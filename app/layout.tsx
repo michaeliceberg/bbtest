@@ -12,6 +12,7 @@ import { getRandomNumberBetween } from '@/usefulFunctions';
 
 
 import React from 'react';
+import { ProtectedRoute } from '@/components/protected-route';
 
 
 const font = Nunito({ subsets: ['latin'] });
@@ -157,7 +158,14 @@ export default function RootLayout({
 	return (
 		<ClerkProvider>
 			<html lang='en'>
-				<body className={font.className}>{children}</body>
+				{/* //123 */}
+				{/* <script src="https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js"></script> */}
+				<body className={font.className}>
+					{/* {children} */}
+					<ProtectedRoute>
+						{children}
+					</ProtectedRoute>
+				</body>
 				<Toaster />
 				<ExitModal />
 				

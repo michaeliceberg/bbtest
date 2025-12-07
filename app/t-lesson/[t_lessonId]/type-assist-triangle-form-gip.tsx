@@ -799,6 +799,20 @@ useEffect(()=>{
     
 
 
+    const HandleClickAnswerButton = () => {
+        if (isDoneRight) 
+            {
+                onAnswer("right")
+            }
+        else 
+            {
+                onAnswer("wrong")
+            }
+    }
+    
+
+
+
   return (
     
 
@@ -1048,6 +1062,7 @@ useEffect(()=>{
       disabled = {!isDone}
       className = "absolute"
       variant='primary'
+      onClick={HandleClickAnswerButton}      
   >
       ответить
   </Button>

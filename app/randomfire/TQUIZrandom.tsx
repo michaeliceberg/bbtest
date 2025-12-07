@@ -4,11 +4,11 @@
 import { useEffect, useState, useTransition } from "react"
 import Confetti from "react-confetti"
 import { useAudio, useWindowSize } from "react-use"
-import TrainerQuestion from "../../../components/trainer-question"
+import TrainerQuestion from "../../components/trainer-question"
 import { t_challenges, t_lessonProgress } from "@/db/schema"
-import { Button } from "../../../components/ui/button"
+import { Button } from "../../components/ui/button"
 import Lottie from "lottie-react"
-import { Avatar, AvatarImage } from "../../../components/ui/avatar";
+import { Avatar, AvatarImage } from "../../components/ui/avatar";
 
 
 import LottieTrainerSharkFailDNO from '@/public/Lottie/trainer/LottieTrainerSharkFailDNO.json'
@@ -39,11 +39,11 @@ import { toast } from "sonner"
 import { upsertTrainerLessonProgress } from "@/actions/user-progress"
 import { ArrowLeft, Badge, BadgeAlert, BadgeCheck, Check, TrendingDown, TrendingUp, X, Baby, Crown, Pizza, Zap, Trophy, Heart } from "lucide-react"
 import { ShuffleTS } from "@/usefulFunctions"
-import { ChartComponent } from "../../../components/chart-comp"
+import { ChartComponent } from "../../components/chart-comp"
 import { cn } from "@/lib/utils"
-import { Separator } from "../../../components/ui/separator"
-import { FinishTrainerStat } from "../../../components/finish-trainer-stat"
-import { TgSendMsgCom } from "../../../components/tg-send-msg-com"
+import { Separator } from "../../components/ui/separator"
+import { FinishTrainerStat } from "../../components/finish-trainer-stat"
+import { TgSendMsgCom } from "../../components/tg-send-msg-com"
 import { QuestionType } from "@/app/t-lesson/[t_lessonId]/page"
 import Image from "next/image"
 

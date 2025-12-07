@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import ReorderingComp from "./reordering-comp";
 
 
-const TestPage = async () => {
+const YouCanSeePage = async () => {
 
 
 // На ст*а%о*ри*нн%н*ые улицы зам*и%е*рающего NLгорода л*о%а*жился бл*и%е*стающий п*о%а*кров ночи.
@@ -139,7 +139,7 @@ const [textBtnsState, setTextBtnsState] = useState(textBtnsInitial)
 }
 
     
-export default TestPage
+export default YouCanSeePage
 
 
 

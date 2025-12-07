@@ -2,15 +2,18 @@
 
 import React from 'react'
 import { QuestionType } from './page'
+import Latex from 'react-latex-next';
+import 'katex/dist/katex.min.css';
 
 
 
-import { MotionProps, useAnimationControls } from "framer-motion";
+import { BoundingBox, MotionProps, useAnimationControls } from "framer-motion";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowDownLeft } from "lucide-react";
+import { ArrowUpLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SnapPointsType, useSnap } from './useSnap';
+import { SnapPointsType } from './useSnap';
+import { useSnapFTrue } from './useSnapFTrue';
 
 
 
@@ -22,24 +25,33 @@ import { SnapPointsType, useSnap } from './useSnap';
 
 type Props = {
     threeCoordinates: number[],
-    answer: string[],
+    xCoordinates: number[],
     onAnswer: (answer: string) => void
+    answer: {
+        variant: string;
+        answer: string[];
+    }[];
+    variant: "sin" | "cos" | "tg" ,
+
 }
 
 
 
-export const TypeAssistTRIANGLEgdeKatet = ({
+export const TypeAssistTRIANGLEbissektr = ({
     threeCoordinates,
-    answer,
+    xCoordinates,
     onAnswer,
-
+    answer,
+    variant,
 }: Props) => {
+
+    const rightAns  = answer.filter(el => el.variant == variant)[0].answer
 
     const [x1, y1, x2, y2, x3, y3] = threeCoordinates
 
     const strokeWidth = 10
 
-    const handleWidth = 125;
+    const handleWidth = 45;
     const handleHeight = 45;
 
     const HEIGHT_FORMULA_COEFF = 0.8
@@ -96,7 +108,7 @@ export const TypeAssistTRIANGLEgdeKatet = ({
 
         {
             pointId: 0,
-            isFree: false,
+            isFree: true,
             occupiedBy: -1,
             coord: { x:0, y: 0 }, 
 
@@ -106,27 +118,39 @@ export const TypeAssistTRIANGLEgdeKatet = ({
         
         {
             pointId: 1,
-            isFree: true,
+            isFree: false,
             occupiedBy: 0,
             coord: { x: (x1+x2) * width /2, y: (y1+y2) * height /2 }, 
 
         },
         {
             pointId: 2,
-            isFree: true,
+            isFree: false,
             occupiedBy: 1,
             coord: { x: (x2+x3) * width /2, y: (y2+y3) * height /2 },
         },
         {
             pointId: 3,
-            isFree: true,
+            isFree: false,
             occupiedBy: 2,
             coord: { x: (x1+x3) * width /2, y: (y1+y3) * height /2 },
         },
 
         // точки для SNAP FORMULA
 
-       
+        {
+            pointId: 4,
+            isFree: true,
+            occupiedBy: -1,
+            coord: { x: x1 * width + 120 + 30, y: HEIGHT_FORMULA_COEFF * height - handleWidth + 5},
+        },
+        {
+            pointId: 5,
+            isFree: true,
+            occupiedBy: -1,
+            coord: { x: x1 * width + 120 + 30, y: (HEIGHT_FORMULA_COEFF + 0.1) * height - handleWidth/4},
+        },
+
     ]
 
     const [BigSnapListState, setBigSnapListState] = useState(initialestate)
@@ -138,22 +162,37 @@ export const TypeAssistTRIANGLEgdeKatet = ({
     }, [width, height])
 
 
-    
+    const FormulaDots = [
+        {
+            id: 'formulaDot1',
+            cx: initialestate[4].coord.x,
+            cy: initialestate[4].coord.y,
+
+
+
+        },
+        {
+            id: 'formulaDot2',
+            cx: initialestate[5].coord.x,
+            cy: initialestate[5].coord.y,
+        },
+
+    ]
 
     const ButtonList =  [
         {
             id: 0,
-            text: 'катет',
+            text: 'a',
             buttonRef: useRef<HTMLButtonElement>(null),
         },
         {
             id: 1,
-            text: 'катет',
+            text: 'b',
             buttonRef: useRef<HTMLButtonElement>(null),
         },
         {
             id: 2,
-            text: 'гипотенуза',
+            text: 'c',
             buttonRef: useRef<HTMLButtonElement>(null),
         },
 
@@ -208,14 +247,16 @@ export const TypeAssistTRIANGLEgdeKatet = ({
     let useSnapList: TypeUseSnapList= []
 
 
-    
-    
-    // Хук useSnap нельзя пихать в ButtonList.map, поэтому 3 отдельных индекса ii
+    // FTrue  изначально TRUE (прикреплены к точкам)
     //
     let ii = 0
-    let spanResult  = useSnap(
+    let spanResult  = useSnapFTrue(
         
-        {   
+        {
+            // initialSnapPoint: index, // к чему изначально прикреплена эта кнопка
+            initialSnapPoint: BigSnapListState.filter(el=>el.occupiedBy == ButtonList[ii].id)[0]?.pointId, 
+
+            
             direction: 'both',
             ref: ButtonList[ii].buttonRef,
             constraints: containerRef,
@@ -231,6 +272,8 @@ export const TypeAssistTRIANGLEgdeKatet = ({
             
         })
 
+
+
     useSnapList[ii]=
         {
             buttonId: ButtonList[ii].id,
@@ -243,10 +286,15 @@ export const TypeAssistTRIANGLEgdeKatet = ({
 
 
 
+        // Хук useSnap нельзя пихать в ButtonList.map, поэтому 3 отдельных индекса ii
+        //
         ii = 1
-        spanResult  = useSnap(
+        spanResult  = useSnapFTrue(
         
             {
+                // initialSnapPoint: index, // к чему изначально прикреплена эта кнопка
+                initialSnapPoint: BigSnapListState.filter(el=>el.occupiedBy == ButtonList[ii].id)[0]?.pointId, 
+
                 
                 direction: 'both',
                 ref: ButtonList[ii].buttonRef,
@@ -279,9 +327,13 @@ export const TypeAssistTRIANGLEgdeKatet = ({
 
 
             ii = 2
-            spanResult  = useSnap(
+            spanResult  = useSnapFTrue(
             
-                {                    
+                {
+                    // initialSnapPoint: index, // к чему изначально прикреплена эта кнопка
+                    initialSnapPoint: BigSnapListState.filter(el=>el.occupiedBy == ButtonList[ii].id)[0]?.pointId, 
+    
+                    
                     direction: 'both',
                     ref: ButtonList[ii].buttonRef,
                     constraints: containerRef,
@@ -350,62 +402,12 @@ export const TypeAssistTRIANGLEgdeKatet = ({
     ]
 
 
+    // const [isAnswered, setIsAnswered] = useState(false)
     const [isDone, setIsDone] = useState(false) // выбран ли ответ (но еще не нажата кнопка "ОТВЕТИТЬ")
     const [isDoneRight, setIsDoneRight] = useState(false) // правильный ли ответ
 
-
-    // BL - ButtonList useState
-    // PTP - POINTS TO PLOT useState
-    //
-    const [BL, setBL] = useState( ButtonList.map(el => {
-        return (
-            {
-                buttonId: el.id,
-                snapPointId: 0,
-                snapColor: "#222222",
-                isSnapped: false,
-            }
-        )
-    }) )
-
-
-    const [PTP, setPTP] = useState( 
-        initialestate.slice(1).map(el => {
-            return (
-                {
-                    snapPointId: el.pointId,
-                    snapColor: "#abcabc",
-                    isSnapped: false,
-                }
-            )
-        }) )
-
-    // let BL = ButtonList.map(el => {
-    //     return (
-    //         {
-    //             buttonId: el.id,
-    //             snapPointId: 0,
-    //             snapColor: "#BADCEF",
-    //             isSnapped: false,
-    //         }
-    //     )
-    // }) 
-
-    // // "#22c55e",   // green500
-    // // "#0ea5e9",
-
-    // let PTP = initialestate.slice(1).map(el => {
-    //         return (
-    //             {
-    //                 snapPointId: el.pointId,
-    //                 snapColor: "#CEFBAD",
-    //                 isSnapped: false,
-    //             }
-    //         )
-    //     }) 
-
-  
-
+    
+    
 
     // СУПЕР АЛГОРИТМ С ДОБАВЛЕНИЕМ 0 МАГНИТА В ЗАНЯТУЮ ТОЧКУ
     //
@@ -421,9 +423,16 @@ export const TypeAssistTRIANGLEgdeKatet = ({
             })
         })
 
+        // console.log('LifeSaver: .... ')
+        // console.log(LifeSaver)
+
+
         const OccupiedPointsObject = LifeSaver.filter(el => el.currentSnappointIndex > 0)
         const OccupiedPointsList = OccupiedPointsObject.map(el => el.currentSnappointIndex)
         
+        // console.log('OccupiedPointsList: ', OccupiedPointsList)
+
+
         // 
         //
         let newInitialState:initialestateType = []
@@ -459,22 +468,11 @@ export const TypeAssistTRIANGLEgdeKatet = ({
             }
         });
 
-        // ПЕРЕОБНОВЛЯЕМ НАЧАЛЬНОЕ СОСТОЯНИЕ чтобы координаты занятых Магнитов стали в x 0, y 0
-        //
+        // console.log('newInitialState ', newInitialState)
+
+
+        // ПЕРЕОБНОВЛЯЕМ НАЧАЛЬНОЕ СОСТОЯНИЕ 
         setBigSnapListState(newInitialState)
-        //
-        
-
-        // console.log('newInitialState', newInitialState)
-
-
-        
-// ВСЕМ ПРИВЕТ ДОРОГИЕ ДРУЗЬЯ
-// Я ОЧЕНЬ РАД ВАС ВИДЕТЬ ЗДЕСЬ!!! УРАААКАКАААААААКАКАКАККАККААКА
-
-// ВСЕМ ДОБРОГО УТРАРАРАРАРАРРАРАРРАРА
-
-
 
         // Создаем объект: со ВСЕМИ СТИКЕРАМИ. Если кнопка НЕ занимает SNAP POINT то snapPointId = -1
         // Если заняты - красим в цвет, иначе SLATE
@@ -492,90 +490,98 @@ export const TypeAssistTRIANGLEgdeKatet = ({
             )
         })
 
-        setBL(ButtonListWithSnap)
-        // BL = ButtonListWithSnap
 
-        // console.log('ButtonListWithSnap ---- ', ButtonListWithSnap)
 
-        const snapPointsToPaint = initialestate.slice(1).map(snapPoint =>{
-            const snapFound = ButtonListWithSnap.filter(button => button.snapPointId == snapPoint.pointId)
-            return (
+        let isSnapped_4 = false
+        let isSnapped_5 = false
+
+
+        useSnapList.map((useSnapResult, indexButton) => {
+                
+            // 
+            // Если SnapPoint Не равен индексу Стикера, то перекрашиваем
+            //
+            if (useSnapResult.currentSnappointIndex != indexButton + 1) 
                 {
-                    snapPointId: snapPoint.pointId,
-                    snapColor: snapFound.length > 0 ? snapFound[0].snapColor : colorLineSlate,
-                    isSnapped: snapFound.length > 0 ? true : false,
-                }
-            )
-        })
+                    listControlsColorLine[indexButton].start('snapColor') 
+                    listControlsColorBG[indexButton].start('snapColorBG')
+                } else {
+                    listControlsColorLine[indexButton].start('initial') 
+                    listControlsColorBG[indexButton].start('initialBG')
+                }   
 
-        setPTP(snapPointsToPaint)
-        // PTP = snapPointsToPaint
-     
-
-        // console.log('BL', BL)
-        // console.log('PTP', PTP)
-
-
-        // console.log('snapPointsToPaint ---- ', snapPointsToPaint)
-        
-
-        // Перекрашиваем отдельно Buttons CТИКЕРЫ - отдельно Линии 
-        //
-        // красим Buttons CТИКЕРЫ
-        //
-        // TODO:  НЕ УСПЕВАЮТ ПОМЕНЯТЬСЯ для перекрашивания стикеров
-        // console.log('BL ',BL)
-        // console.log('PTP ',PTP)
-
-        ButtonListWithSnap.map( el => {
-            if (el.isSnapped) {
-                listControlsColorBG[el.buttonId].start('snapColorBG')
-                // console.log( ' перекрасили buttonId:', el.buttonId )
-
-            } 
-            // else {
-            //     listControlsColorBG[el.buttonId].start('initialBG')
-            // }
-        })
-        //
-        // красим ЛИНИИ
-        //
-        snapPointsToPaint.map( el => {
-            if (el.isSnapped) {
-            // Линии это IdSnap МИНУС 1  потому что НУЛЕВОЙ snap  это x 0 y 0
-            listControlsColorLine[el.snapPointId - 1].start('snapColor')
-            // console.log( ' перекрасили el.snapPointId - 1:', el.snapPointId - 1 )
-
-            } else {
-            // Линии это IdSnap МИНУС 1  потому что НУЛЕВОЙ snap  это x 0 y 0
-            listControlsColorLine[el.snapPointId - 1].start('initial')
-            }
-        })
 
 
 
         // готовим ОТВЕТ
         //
-        let isDone = true
-        ButtonListWithSnap.map(el => {
-            if (el.snapPointId > 0) {} else {isDone = false}
+        // let isDone = true
+        // ButtonListWithSnap.map(el => {
+        //     if (el.snapPointId > 0) {} else {isDone = false}
+        // })
+        // setIsDone(isDone)
+
+
+        // if ( isDone ){
+        //     ButtonListWithSnap.sort((a, b) => a.snapPointId - b.snapPointId);
+        //     console.log('SORTED ', ButtonListWithSnap)
+        //     let isRight = true
+        //     ButtonListWithSnap.map((el, index) => {
+        //         if (el.buttonText == answer[index]) {} else {isRight = false}
+        //     })
+        //     setIsDoneRight(isRight)
+        //     // console.log(isRight)
+        // }
+
+
+        // rightAns
+
+            // Смотрим, был ли дан ответ (заняты ли Snap4 и Snap5)
+            //
+            if (useSnapResult.currentSnappointIndex == 4) {
+                isSnapped_4 = true
+            }
+            if (useSnapResult.currentSnappointIndex == 5) {
+                isSnapped_5 = true
+            }        
+            if (isSnapped_4 && isSnapped_5) {
+                setIsDone(true)
+            } else {
+                setIsDone(false)
+            }
+                
+
         })
-        setIsDone(isDone)
-
-
-        if ( isDone ){
-            ButtonListWithSnap.sort((a, b) => a.snapPointId - b.snapPointId);
-            // console.log('SORTED ', ButtonListWithSnap)
-            let isRight = true
-            ButtonListWithSnap.map((el, index) => {
-                if (el.buttonText == answer[index]) {} else {isRight = false}
-            })
-            setIsDoneRight(isRight)
-            // console.log(isRight)
+    
+        const findAnsSnap4 = ButtonListWithSnap.filter(el => el.snapPointId == 4)
+        let ans4isRight = false
+        if (findAnsSnap4.length > 0) {
+            if (findAnsSnap4[0].buttonText == rightAns[0]) {
+                ans4isRight = true
+            } else {
+                ans4isRight = false
+            }
         }
-        
+        const findAnsSnap5 = ButtonListWithSnap.filter(el => el.snapPointId == 5)
+        let ans5isRight = false
+        if (findAnsSnap5.length > 0) {
+            if (findAnsSnap5[0].buttonText == rightAns[1]) {
+                ans5isRight = true
+            } else {
+                ans5isRight = false
+            }
+        }
 
-        
+        if (ans4isRight && ans5isRight && isSnapped_4 && isSnapped_5 ) {
+            setIsDoneRight(true)
+            console.log('RIGHT')
+        } else {
+            setIsDoneRight(false)
+            console.log('FALSE')
+
+        }
+
+
 
         
     }, useSnapList.map(el => el.currentSnappointIndex)
@@ -585,8 +591,8 @@ export const TypeAssistTRIANGLEgdeKatet = ({
 
 
 
-// Просто функция placeDiv , которой потом пользуемся
-//
+
+
 function placeDiv(x_pos: number, y_pos: number, elementId: string) {
     var d = document.getElementById(elementId);
     if (d) 
@@ -598,43 +604,75 @@ function placeDiv(x_pos: number, y_pos: number, elementId: string) {
 }
 
 useEffect(()=>{
+
+    // Div для Кнопок их начальной координаты на SNAP линиях
+    //
+    placeDiv((x1+x2)*width/2, (y1+y2)*height/2, `${ButtonList[0].id}`)
+    placeDiv((x3+x2)*width/2, (y3+y2)*height/2, `${ButtonList[1].id}`)
+    placeDiv((x1+x3)*width/2, (y1+y3)*height/2, `${ButtonList[2].id}`)
+
+    // Div для нижней формулы Sin
+    placeDiv(x1*width, height*0.8 , 'sincostg')
+
+    // Div для Угла X на треугольнике
+    placeDiv(xCoordinates[0]*width, xCoordinates[1]*height, 'x')
+    
+    // placeDiv(x1, height * HEIGHT_FORMULA_COEFF, 'btnAnswer')
     
     // Div для кнопки ответа
-    placeDiv(width * 0.5 - 50, height - 80, 'btnAnswer')
+    placeDiv(width * 0.8 - 50, height - 20, 'btnAnswer')
+
+    
+    // FormulaDots.map((dot) => { placeDiv(dot.cx ? dot.cx : 0, dot.cy ? dot.cy : 0, dot.id) })
+
 
 }, [width, height, left, top])
     
 
+// const transition = { duration: 1, yoyo: Infinity, ease: "easeInOut"}
 
 
 
-    // const containerVariantsForButtons = {
-    //     hidden: {
-    //         opacity: 0,
-    //         y: 20,
-    //     },
-    //     visible: {
-    //         opacity: 1,
-    //         y: 0,
-    //     },
 
-    // }
+const HandleClickAnswerButton = () => {
+    if (isDoneRight) 
+        {
+            onAnswer("right")
+        }
+    else 
+        {
+            onAnswer("wrong")
+        }
+}
 
 
-    const HandleClickAnswerButton = () => {
-        if (isDoneRight) 
-            {
-                onAnswer("right")
-            }
-        else 
-            {
-                onAnswer("wrong")
-            }
-    }
 
 
   return (
     
+  // <div className="grid grid-cols-2 gap-x-2 gap-y-2 mt-10">
+    
+  //   {question.options.map((option, index) => (
+
+  //         <button
+  //           key={index*28748}
+  //           onClick={() => onAnswer(option)}
+  //           className="inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-bold ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 tracking-wide bg-white border-slate-200 border-2 border-b-4 active:border-b-2 hover:bg-slate-100 text-slate-500"
+  //         >
+  //           <p className="m-4">
+  //             <Latex>
+  //               {option}
+  //             </Latex>
+  //           </p>
+  //         </button>
+          
+  //   ))}
+
+  
+  // </div>
+
+
+
 
 
 
@@ -651,43 +689,28 @@ useEffect(()=>{
 
       <motion.button 
           key={index*51078}
-          id={`${button.id}`}   
+          id={`${button.id}`}
           ref={button.buttonRef}
           className={`text-xl rounded text-primary-foreground `}
           style={{ width: handleWidth, height: handleHeight }} 
-            // backgroundColor: BL[index].snapColor }} 
           drag 
           dragConstraints={containerRef}
           {...useSnapList[index].dragProps}
 
           custom={13}
-          
 
           variants = {{
-            //   hidden: {
-            //     opacity: 0,
-            //     scale: 0,
-            //     // y: -20,
-            //   },
-
               initialBG: {
-                backgroundColor: colorLineSlate,
-                opacity: 0.8,
-                // opacity: 0.1,
+                  backgroundColor: colorLineSlate,
                   
               },
               snapColorBG: {
-                
-                backgroundColor: BL[index].snapColor,
-                opacity: 0.8,
+                  backgroundColor: colorLineList[index],
               },
           }}
 
-
-
-        initial = 'initialBG'
-        animate= {listControlsColorBG[index]}
-        // animate= {handleButtonAnimate(index)}
+          initial = 'initialBG'
+          animate= {listControlsColorBG[index]}
           
 
           whileHover={{
@@ -711,11 +734,9 @@ useEffect(()=>{
               
           {button.text}
 
-          {/* <motion.div className="absolute top-0 -pt-4  text-white text-2xl"> */}
-          <motion.div className="absolute bottom-0 -pb-4  text-white text-2xl">
+          <motion.div className="absolute top-0 -pt-4  text-white text-2xl">
 
-              {/* <ArrowUpLeft size='20' /> */}
-              <ArrowDownLeft size='20' />
+              <ArrowUpLeft size='20' />
 
           </motion.div>
 
@@ -725,16 +746,56 @@ useEffect(()=>{
   )} 
 
 
-{/* <div className='absolute'>
-    {JSON.stringify(BL)}
- </div> */}
 
 
 
 
- {/* <div className='absolute'>
-    {JSON.stringify(PTP)}
- </div> */}
+
+  {/* TODO: sin  Пишем формулу */}
+
+      
+  <motion.div
+      id='sincostg'
+      initial={{ opacity: 0, scale: 0 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{
+          duration: 0.4,
+          scale: { type: "spring", visualDuration: 0.4, bounce: 0.5 },
+      }}
+      className="absolute text-3xl"
+  >
+     {/* sin(x) =  */}
+     {variant}(x) =  
+  </motion.div>
+
+
+
+
+
+
+  {/* угол X */}
+                  
+  <motion.div
+      id='x'
+      initial={{ opacity: 0, scale: 0 }}
+      animate={{ opacity: 1, scale: 1, rotateZ: 360 }}
+
+      transition={{ delay: 4, type: 'spring', stiffness: 300 }}
+
+    //   transition={{
+    //         delay: 3,
+    //         // duration: 0.4,
+    //         // scale: { type: "spring", visualDuration: 0.4, bounce: 0.5 },
+    //         // duration: 0.4,
+    //         // scale: { type: "spring", visualDuration: 0.4, bounce: 0.5 },
+    //       }}
+      className="absolute text-3xl text-slate-300 font-bold"
+  >
+      x 
+
+  </motion.div>
+
+
 
 
 
@@ -755,13 +816,16 @@ useEffect(()=>{
 
 
 
+
+
+
+
   <motion.svg
       width= {width}
       height= {height}
       initial="hidden"
       animate="visible"
   >
-
 
 
 
@@ -794,21 +858,43 @@ useEffect(()=>{
 
       ))}
 
+{/* 
+<motion.polygon
+points={`${x1},${y1} ${x2},${y2} ${x3},${y3}`}
+// fill="#234236"
+fill="transparent"
+variants = {draw}
+
+// style={{
+//     strokeWidth: strokeWidth,
+//     strokeLinecap: "round",
+//     fill: "transparent",
+// }}
+/> */}
+
+
+
+
+
+
+
+
+
 
 
       {/* TODO: 123 рисуем ЦВЕТНЫЕ SNAP линии (просто меняем Opacity) */}
 
 
       {lineCoordinates.map((line, index) => (
-        <motion.line
+
+          <motion.line
               key={index*5107851}
 
               x1 = {line.x1}
               y1 = {line.y1}
               x2 = {line.x2}
               y2 = {line.y2}
-            stroke= {PTP[index].snapColor}
-
+              stroke= {colorLineList[index]}
               variants = {{
                   initial: {
                       opacity: '0',
@@ -825,10 +911,9 @@ useEffect(()=>{
               }}
               initial = 'initial'
               animate = {listControlsColorLine[index]}
-
-        />
-
-
+              // transition={{ duration: 1 }}
+              // transition={{ type: "spring" }}
+          />
 
       ))}
       
@@ -836,6 +921,51 @@ useEffect(()=>{
 
 
 
+
+      {/* TODO:  FORMULA LINE (дробь)*/}
+
+      <motion.line
+          x1 = {x1 * width + 120}
+          y1 = {HEIGHT_FORMULA_COEFF * height + 20}
+          // x2 = {x3 + deltaX + 120 }
+          x2 = {x1 * width + 120 + 120 }
+          y2 = {HEIGHT_FORMULA_COEFF * height + 20}
+          stroke= "#404040"
+          variants = {draw}
+          custom={3.5}
+          style={{
+              strokeWidth: 3,
+              strokeLinecap: "round",
+              fill: "transparent",
+          }}
+      />
+
+
+      {/* TODO:  FORMULA  СЕРЫЕ snap CIRCLES    222 */}
+
+      {FormulaDots.map((dot, index) => (
+
+
+          <motion.circle  
+              key={index*51075138}
+
+              cx={dot.cx ? dot.cx + handleWidth/2: handleWidth/2}
+              cy={dot.cy ? dot.cy + handleHeight/2: handleHeight/2}
+              r="4"
+              // stroke= {colorCircle1}
+              stroke= {colorLineSlate}
+
+              variants={draw}
+              custom={6.5 + index}
+              style={{
+                  strokeWidth: strokeWidth,
+                  strokeLinecap: "round",
+                  fill: "transparent",
+              }}
+          />
+
+
+      ))}
 
 
 
@@ -878,8 +1008,7 @@ useEffect(()=>{
               cx={(line.x1+line.x2)/2}
               cy={(line.y1+line.y2)/2}
               r="4"
-            //   stroke= {colorLineList[index]}
-              stroke= {PTP[index].snapColor}
+              stroke= {colorLineList[index]}
 
               variants = {{
                   initial: {
@@ -927,51 +1056,3 @@ useEffect(()=>{
 
   
 }
-
-
-
-
-
-
-        // let isSnapped_4 = false
-        // let isSnapped_5 = false
-
-        // useSnapList.map((useSnapResult, indexButton) => {
-                
-        //     // 
-        //     // Перекрашивем если CurrentSnapPointIndex > 0  (null - начальное состояние)
-        //     //
-        //     if (useSnapResult.currentSnappointIndex && useSnapResult.currentSnappointIndex > 0) {
-        //         listControlsColorLine[useSnapResult.buttonIndex].start('snapColor') 
-        //     }
-
-        //     // if (useSnapResult.currentSnappointIndex != indexButton + 1) 
-        //     //     {
-        //     //         listControlsColorLine[indexButton].start('snapColor') 
-        //     //         listControlsColorBG[indexButton].start('snapColorBG')
-        //     //     } else {
-        //     //         listControlsColorLine[indexButton].start('initial') 
-        //     //         listControlsColorBG[indexButton].start('initialBG')
-        //     //     }   
-
-
-        //     // Смотрим, был ли дан ответ (заняты ли Snap4 и Snap5)
-        //     //
-        //     if (useSnapResult.currentSnappointIndex == 4) {
-        //         isSnapped_4 = true
-        //     }
-        //     if (useSnapResult.currentSnappointIndex == 5) {
-        //         isSnapped_5 = true
-        //     }        
-        //     if (isSnapped_4 && isSnapped_5) {
-        //         setIsAnswered(true)
-        //     } else {
-        //         setIsAnswered(false)
-        //     }
-                
-
-        // })
-
-
-
-

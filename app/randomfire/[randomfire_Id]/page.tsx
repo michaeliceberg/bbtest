@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { Shuffle2, ShuffleTS } from "@/usefulFunctions"
 import { allTypesCT } from "@/db/schema";
 import TQuizRandom from "./TQUIZrandom";
+// import TQuizRandom from "./TQUIZrandom";
 
 
 function randomBetween(min: number, max: number) { // min and max included 
@@ -70,7 +71,8 @@ export type QuestionType = {
 
 type Props = {
     params: {
-        t_lessonId: number
+        // t_lessonId: number
+        randomfire_Id: number
     }
 }
 
@@ -79,7 +81,7 @@ type Props = {
 const RandomFirePage =  async ({
     params,
 }: Props) => {
-    const lessonData = getTLesson(params.t_lessonId)
+    const lessonData = getTLesson(params.randomfire_Id)
     const userProgressData = getUserProgress()
     const userTLessonProgressData = getTLessonProgress()
 
@@ -229,50 +231,6 @@ const RandomFirePage =  async ({
   
 
 
-    const currentLessonProgress = all_t_lessonProgress.filter(el => el.t_lessonId == params.t_lessonId)
-
-
-    const UniqueUserIds = currentLessonProgress.map(el => el.userId)
-    .filter(
-        (value, index, current_value) => current_value.indexOf(value) === index
-    );
-
-
-
-    const usersStat = UniqueUserIds.map(user_id => {
-        const CLCUProgress = currentLessonProgress.filter(progress => progress.userId == user_id)
-
-        let DRP = 0
-
-        const doneRight = CLCUProgress.reduce((total, elem) => {
-            return (
-                total + elem.doneRight
-            )
-        }, 0)
-
-        const doneWrong = CLCUProgress.reduce((total, elem) => {
-            return (
-                total + elem.doneRight
-            )
-        }, 0)
-
-        if (doneRight + doneWrong > 0) {
-            DRP = doneRight/(doneRight + doneWrong)
-        }
-
-        const DR_DRP = doneRight * DRP
-
-        return  {
-            DR_DRP: DR_DRP,
-            user_id: allUsersProgress?.filter(pr => pr.userId==user_id)[0].userId,
-            user_name: allUsersProgress?.filter(pr => pr.userId==user_id)[0].userName,
-            user_imgSrc: allUsersProgress?.filter(pr => pr.userId==user_id)[0].userImageSrc,
-        }
-    
-    })
-
-    usersStat.sort((a, b) => b.DR_DRP - a.DR_DRP)
-
 
 
 
@@ -304,7 +262,7 @@ const RandomFirePage =  async ({
             t_lessonProgress={t_lessonProgress}
 
             questions1={questions}
-            usersStat={usersStat}
+            // usersStat={usersStat}
             finishAudioSrc={finishAudioSrc}
             userId={userProgress.userId}
             userName={userProgress.userName}

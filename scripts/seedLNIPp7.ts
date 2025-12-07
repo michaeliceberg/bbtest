@@ -9,13 +9,13 @@ const db = drizzle(sql, { schema });
 const main = async () => {
 	try {
 		console.log('Seeding DB');
-		await db.delete(schema.courses);
-		await db.delete(schema.userProgress);
-		await db.delete(schema.units);
-		await db.delete(schema.lessons);
-		await db.delete(schema.challenges);
-		await db.delete(schema.challengeOptions);
-		await db.delete(schema.challengeProgress);
+		// await db.delete(schema.courses);
+		// await db.delete(schema.userProgress);
+		// await db.delete(schema.units);
+		// await db.delete(schema.lessons);
+		// await db.delete(schema.challenges);
+		// await db.delete(schema.challengeOptions);
+		// await db.delete(schema.challengeProgress);
 
 		//тетрис
 
@@ -508,7 +508,7 @@ await db.insert(schema.challengeOptions).values([{challengeId:104113001,correct:
 {challengeId:105116002,correct:true,text:'5000 кг/м³',imageSrc:''},{challengeId:105116002,correct:false,text:'8000 кг/м³',imageSrc:''},{challengeId:105116002,correct:false,text:'6500 кг/м³',imageSrc:''},{challengeId:105116002,correct:false,text:'4500 кг/м³',imageSrc:''},{challengeId:105116002,correct:false,text:'6000 кг/м³',imageSrc:''},{challengeId:105116002,correct:false,text:'8500 кг/м³',imageSrc:''},
 {challengeId:105116003,correct:true,text:'800 кг/м³',imageSrc:''},{challengeId:105116003,correct:false,text:'1200 кг/м³',imageSrc:''},{challengeId:105116003,correct:false,text:'1000 кг/м³',imageSrc:''},{challengeId:105116003,correct:false,text:'650 кг/м³',imageSrc:''},{challengeId:105116003,correct:false,text:'900 кг/м³',imageSrc:''},{challengeId:105116003,correct:false,text:'750 кг/м³',imageSrc:''},
 {challengeId:105116004,correct:true,text:'2800 кг/м³',imageSrc:''},{challengeId:105116004,correct:false,text:'2850 кг/м³',imageSrc:''},{challengeId:105116004,correct:false,text:'2900 кг/м³',imageSrc:''},{challengeId:105116004,correct:false,text:'2950 кг/м³',imageSrc:''},{challengeId:105116004,correct:false,text:'3000 кг/м³',imageSrc:''},{challengeId:105116004,correct:false,text:'3050 кг/м³',imageSrc:''},
-{challengeId:105116005,correct:true,text:'1400 кг/м³',imageSrc:''},{challengeId:105116005,correct:false,text:'1450 кг/м³',imageSrc:''},{challengeId:105116005,correct:false,text:'1400 кг/м³',imageSrc:''},{challengeId:105116005,correct:false,text:'1350 кг/м³',imageSrc:''},{challengeId:105116005,correct:false,text:'1300 кг/м³',imageSrc:''},{challengeId:105116005,correct:false,text:'1250 кг/м³',imageSrc:''},
+{challengeId:105116005,correct:true,text:'1400 кг/м³',imageSrc:''},{challengeId:105116005,correct:false,text:'1450 кг/м³',imageSrc:''},{challengeId:105116005,correct:false,text:'1200 кг/м³',imageSrc:''},{challengeId:105116005,correct:false,text:'1350 кг/м³',imageSrc:''},{challengeId:105116005,correct:false,text:'1300 кг/м³',imageSrc:''},{challengeId:105116005,correct:false,text:'1250 кг/м³',imageSrc:''},
 {challengeId:105116006,correct:true,text:'4000 кг/м³',imageSrc:''},{challengeId:105116006,correct:false,text:'4500 кг/м³',imageSrc:''},{challengeId:105116006,correct:false,text:'3500 кг/м³',imageSrc:''},{challengeId:105116006,correct:false,text:'2500 кг/м³',imageSrc:''},{challengeId:105116006,correct:false,text:'2000 кг/м³',imageSrc:''},{challengeId:105116006,correct:false,text:'3000 кг/м³',imageSrc:''},
 {challengeId:105116007,correct:true,text:'1800 кг/м³',imageSrc:''},{challengeId:105116007,correct:false,text:'2300 кг/м³',imageSrc:''},{challengeId:105116007,correct:false,text:'1900 кг/м³',imageSrc:''},{challengeId:105116007,correct:false,text:'2100 кг/м³',imageSrc:''},{challengeId:105116007,correct:false,text:'2000 кг/м³',imageSrc:''},{challengeId:105116007,correct:false,text:'22000 кг/м³',imageSrc:''},
 {challengeId:105116008,correct:true,text:'4000 кг/м³',imageSrc:''},{challengeId:105116008,correct:false,text:'4500 кг/м³',imageSrc:''},{challengeId:105116008,correct:false,text:'3500 кг/м³',imageSrc:''},{challengeId:105116008,correct:false,text:'2500 кг/м³',imageSrc:''},{challengeId:105116008,correct:false,text:'2000 кг/м³',imageSrc:''},{challengeId:105116008,correct:false,text:'3000 кг/м³',imageSrc:''},

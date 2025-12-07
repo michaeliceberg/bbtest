@@ -359,6 +359,16 @@ useEffect(() => {
 ]
 
 
+// Надо сделать Свойство Биссектрисы (пропорция кусочков)
+const triangleBissektr = [
+  {
+    'coords': [0.1, 0.1, 0.9, 0.1, 0.1, 0.6],
+    'xCoord': [0.7, 0.2],
+    'answer': ['катет', 'гипотенуза', 'катет'],
+  },
+]
+
+
 
 
 const triangleGdeSinCosTg = [
@@ -684,7 +694,7 @@ const triangleGdeSinCosTg = [
             xCoordinates = {[triangleGdeSinCosTg[2].xCoord[0], triangleGdeSinCosTg[2].xCoord[1]-0.09]}
             answer = {triangleGdeSinCosTg[2].answer}
             onAnswer={onAnswer}
-            variant='tg'
+            variant='sin'
           />
 
 
@@ -707,7 +717,7 @@ const triangleGdeSinCosTg = [
           xCoordinates = {[triangleGdeSinCosTg[2].xCoord[0], triangleGdeSinCosTg[2].xCoord[1]-0.09]}
           answer = {triangleGdeSinCosTg[2].answer}
           onAnswer={onAnswer}
-          variant='tg'
+          variant='sin'
         />
 
 
