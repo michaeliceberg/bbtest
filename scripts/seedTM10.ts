@@ -10,12 +10,12 @@ const main = async () => {
 	try {
 		console.log('Seeding Trainer DB Math');
 
-		await db.delete(schema.t_courses);
-		await db.delete(schema.t_units);
-		await db.delete(schema.t_lessons);
-		await db.delete(schema.t_challenges);
-		await db.delete(schema.t_challengeOptions);
-		await db.delete(schema.challengeProgress);
+		// await db.delete(schema.t_courses);
+		// await db.delete(schema.t_units);
+		// await db.delete(schema.t_lessons);
+		// await db.delete(schema.t_challenges);
+		// await db.delete(schema.t_challengeOptions);
+		// await db.delete(schema.challengeProgress);
 
 		//тетрис
 
