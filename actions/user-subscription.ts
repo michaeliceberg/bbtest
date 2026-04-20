@@ -1,19 +1,25 @@
 'use server'
 
 import { getUserSubscription } from "@/db/queries"
+import { auth } from "@/lib/auth"
 import { stripe } from "@/lib/stripe"
 import { absoluteUrl } from "@/lib/utils"
-import { auth, currentUser } from "@clerk/nextjs/server"
+// import { auth, currentUser } from "@clerk/nextjs/server"
 
 const returnUrl = absoluteUrl('/shop')
 
 export const createStripeUrl = async () => {
-    const {userId} = await auth()
-    const user = await currentUser()
+    // const {userId} = await auth()
+    // const user = await currentUser()
 
-    if (!userId || !user) {
-        throw new Error("Вы не авторизованы!")
-    }
+    const session = await auth();  
+	// Проверяем авторизацию
+	if (!session?.user?.id) {
+	  throw new Error('Вы не авторизованы!');
+	}	
+	const userId = session.user.id;
+
+
 
     const userSubscription = await getUserSubscription()
     
@@ -29,7 +35,7 @@ export const createStripeUrl = async () => {
     const stripeSession = await stripe.checkout.sessions.create({
         mode: 'subscription',
         payment_method_types: ['card'],
-        customer_email: user.emailAddresses[0].emailAddress,
+        customer_email: session.user.id,
         line_items: [
             {
                 quantity: 1,

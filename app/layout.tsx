@@ -1,4 +1,4 @@
-import { ClerkProvider } from '@clerk/nextjs';
+// import { ClerkProvider } from '@clerk/nextjs';
 import type { Metadata } from 'next';
 import { Nunito } from 'next/font/google';
 import { Toaster } from 'sonner';
@@ -9,6 +9,11 @@ import { PracticeModal } from '@/components/modals/practice-modal';
 import { WrongAnswerModal } from '@/components/modals/wronganswer-modal';
 import { RightAnswerModal } from '@/components/modals/rightanswer-modal';
 import { getRandomNumberBetween } from '@/usefulFunctions';
+
+
+import { SessionProvider } from 'next-auth/react';
+import { Providers } from '@/components/for-vk-auth/providers';
+
 
 
 import React from 'react';
@@ -156,15 +161,14 @@ export default function RootLayout({
 	
 
 	return (
-		<ClerkProvider>
+		// <ClerkProvider>
+		// <SessionProvider>
+		
 			<html lang='en'>
-				{/* //123 */}
-				{/* <script src="https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js"></script> */}
 				<body className={font.className}>
-					{/* {children} */}
-					<ProtectedRoute>
+					<Providers>
 						{children}
-					</ProtectedRoute>
+					</Providers>
 				</body>
 				<Toaster />
 				<ExitModal />
@@ -187,6 +191,61 @@ export default function RootLayout({
 				<HeartsModal />	
 				<PracticeModal />
 			</html>
-		</ClerkProvider>
+			
+		// {/* // </ClerkProvider> */}
+	// </SessionProvider>
+
 	);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// return (
+// 	// <ClerkProvider>
+// 	<SessionProvider>
+// 		<html lang='en'>
+// 			{/* //123 */}
+// 			{/* <script src="https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js"></script> */}
+// 			<body className={font.className}>
+// 				{/* {children} */}
+// 				{/* <ProtectedRoute> */}
+// 					{children}
+// 				{/* </ProtectedRoute> */}
+// 			</body>
+// 			<Toaster />
+// 			<ExitModal />
+			
+// 			 <RightAnswerModal 
+// 				randomRightAudio={randomRightAudio}
+// 				randomRightImage={randomRightImage}
+// 				randomRightMessage={randomRightMessage}
+
+// 			/>
+
+// 			<WrongAnswerModal 
+// 				randomWrongAudio={randomWrongAudio}
+// 				randomWrongImage={randomWrongImage}
+// 				randomWrongMessage={randomWrongMessage}
+// 				randomLottieNumber={randomLottieNumber}
+
+// 			/> 
+
+// 			<HeartsModal />	
+// 			<PracticeModal />
+// 		</html>
+// 	{/* // </ClerkProvider> */}
+// </SessionProvider>
+
+// );

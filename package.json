@@ -17,7 +17,7 @@
 		"db:seed:tm6": "tsx ./scripts/seedTM6.ts",
 		"db:seed:tm9": "tsx ./scripts/seedTM9.ts",
 		"db:seed:tm10": "tsx ./scripts/seedTM10.ts",
-		"db:seed:tp": "tsx ./scripts/seedTP2.ts",
+		"db:seed:tp2": "tsx ./scripts/seedTP2.ts",
 		"db:seed:m11ege": "tsx ./scripts/seedM11_EGE.ts",
 		"db:seed:tr6": "tsx ./scripts/seedTR6.ts",
 		"db:reset": "tsx ./scripts/reset.ts"
@@ -51,6 +51,7 @@
 		"lucide-react": "^0.503.0",
 		"moment": "^2.30.1",
 		"next": "14.2.3",
+		"next-auth": "^4.24.13",
 		"next-themes": "^0.3.0",
 		"node-telegram-bot-api": "^0.66.0",
 		"ra-data-simple-rest": "^5.0.1",

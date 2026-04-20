@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
 import Link from '@/node_modules/next/link'
-import { ClerkLoaded, ClerkLoading, UserButton } from '@clerk/nextjs'
+// import { ClerkLoaded, ClerkLoading, UserButton } from '@clerk/nextjs'
 import { Loader } from 'lucide-react'
 import Image from 'next/image'
 import { SidebarItem } from './sidebar-item'
@@ -31,12 +31,12 @@ export const Sidebar = ({ className }: Props) => {
 
 			</div>
 			<div className='p-4'>
-				<ClerkLoading>
+				{/* <ClerkLoading>
 					<Loader className='h-5 w-5 text-muted-foreground animate-spin' />
 				</ClerkLoading>
 				<ClerkLoaded>
 					<UserButton afterSignOutUrl='/' />
-				</ClerkLoaded>
+				</ClerkLoaded> */}
 			</div>
 		</div>
 	)

@@ -3,7 +3,8 @@
 import db from "@/db/drizzle"
 import { getUserProgress } from "@/db/queries"
 import { SuperType, challengeProgress, challenges, progressType, userProgress } from "@/db/schema"
-import { auth } from "@clerk/nextjs/server"
+import { auth } from "@/lib/auth"
+
 import { and, eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
@@ -16,12 +17,12 @@ export const upsertChallengeProgress = async (
         isDoneChallenge: boolean,
     ) => {
     
-    const {userId} = await auth()
-
-    
-    if (!userId) {
-        throw new Error("Вы не авторизированы")
-    }
+    const session = await auth();  
+    // Проверяем авторизацию
+    if (!session?.user?.id) {
+        throw new Error('Вы не авторизованы!');
+    }	
+    const userId = session.user.id;
 
     const currentUserProgress = await getUserProgress()
 

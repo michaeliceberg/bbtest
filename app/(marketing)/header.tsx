@@ -1,7 +1,11 @@
 import { Button } from '@/components/ui/button'
-import { ClerkLoaded, ClerkLoading, SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs'
+// import { ClerkLoaded, ClerkLoading, SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs'
 import { Loader } from 'lucide-react'
 import Image from 'next/image'
+
+
+import AuthButton from "@/components/vk-auth-btn" 
+
 
 export const Header = () => {
 	return (
@@ -25,10 +29,21 @@ export const Header = () => {
 
 
 				</div>
-				<ClerkLoading>
+
+
+
+
+
+
+
+
+				<AuthButton />
+
+				{/* <ClerkLoading> */}
 					<Loader className='h-5 w-5 text-muted-foreground animate-spin' />
-				</ClerkLoading>
-				<ClerkLoaded>
+				{/* </ClerkLoading> */}
+				
+				{/* <ClerkLoaded>
 					<SignedIn>
 						<UserButton afterSignOutUrl='/' />
 					</SignedIn>
@@ -39,7 +54,11 @@ export const Header = () => {
 							// signInForceRedirectUrl='/learn'
 							// signUpForceRedirectUrl='/learn'>		
 							// CLERK_SIGN_IN_FORCE_REDIRECT_URL	
+
+
 							signUpForceRedirectUrl='/learn'				
+							
+							
 							// afterSignInUrl='/learn'
 							// afterSignUpUrl='/learn'
 							>
@@ -48,7 +67,8 @@ export const Header = () => {
 							</Button>
 						</SignInButton>
 					</SignedOut>
-				</ClerkLoaded>
+				</ClerkLoaded> */}
+				
 			</div>
 		</header>
 	)

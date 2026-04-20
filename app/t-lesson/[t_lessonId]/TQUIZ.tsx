@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useEffect, useState, useTransition } from "react"
+import React, { useEffect, useMemo, useState, useTransition } from "react"
 import Confetti from "react-confetti"
 import { useAudio, useWindowSize } from "react-use"
 import TrainerQuestion from "../../../components/trainer-question"
@@ -9,6 +9,8 @@ import { t_challenges, t_lessonProgress } from "@/db/schema"
 import { Button } from "../../../components/ui/button"
 import Lottie from "lottie-react"
 import { Avatar, AvatarImage } from "../../../components/ui/avatar";
+
+// import WinStreakModal from 
 
 
 import LottieTrainerSharkFailDNO from '@/public/Lottie/trainer/LottieTrainerSharkFailDNO.json'
@@ -32,7 +34,10 @@ import LottieTrainerSharkFinalWinClap from '@/public/Lottie/trainer/LottieTraine
 
 
 
+import WinStreakModal from "../../../components/win-streak-modal"
 
+// "../../../components/win-streak-modal"' has no exported member 'WinStreakModal'. Did you mean to use 
+// 'import WinStreakModal from "../../../components/win-streak-modal"' instead?
 
 
 import { toast } from "sonner"
@@ -49,8 +54,27 @@ import Image from "next/image"
 
 
 
+import { createEffect, StreakEffect } from "@/lib/streakEffects"
+// import { StreakEffect } from "@/lib/streakEffects"
 
 
+
+import { useRouter } from 'next/navigation'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Акулка ПРИВЕТСТВУЕТ на втором экране
 
 const LottieStartList = [
   LottieTrainerSharkStart, 
@@ -124,6 +148,36 @@ export default function TQuiz(
 
 
 
+
+    const router = useRouter()
+    
+    
+
+
+  const [streak, setStreak] = useState(0)
+  const [effect, setEffect] = useState<StreakEffect | null>(null)
+
+
+
+  const [randomStartLottie, setRandomStartLottie] = useState(LottieStartList[0])
+  const [randomStartButton, setRandomStartButton] = useState(startButton[0])
+  
+  const [randomEmotionLottie, setRandomEmotionLottie] = useState(LottieEmotionRightList[0])
+
+  useEffect(()=>{
+    setRandomStartLottie([...LottieStartList].sort(() => 0.5 - Math.random())[0])
+    setRandomStartButton([...startButton].sort(() => 0.5 - Math.random())[0])
+  }, [])
+
+
+
+
+
+  
+
+  // Проверяем СЕРДЕЧИ
+  // ЕСЛИ < 3 то заканчиваем КВИЗ, отправляем в БАЗУ
+  //
   const [threeHearts, setThreeHearts] = useState(3)
 
   useEffect(() => {
@@ -140,7 +194,10 @@ export default function TQuiz(
   
 
   // const [pending, startTransition] = useTransition()
-  const [quizStarted, setQuizStarted] = useState(false)
+
+  // ЧТОБЫ УБРАТЬ НУЛЕвоЙ ЭКРан const [quizStarted, setQuizStarted] = useState(false)
+  const [quizStarted, setQuizStarted] = useState(true)
+
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [score, setScore] = useState(0)
   const [quizCompleted, setQuizCompleted] = useState(false)
@@ -149,50 +206,11 @@ export default function TQuiz(
 
 
   
-
+  // Берем ТОЛЬКО первые 30% ВОПРОСОВ
+  //
   const [allQuestions, setAllQuestions] = useState(questions1.slice(0, Math.round(questions1.length*0.3)))
   const [numQuestionsButton, setNumQuestionsButton] = useState(0)
   
-
-
-
-  let finishAudioSrcList = [
-
-    '/MemesAudio/meme-right-chetko.WAV',
-    '/MemesAudio/meme-right-chinazes.WAV',
-    '/MemesAudio/meme-right-umeetemogete.WAV',
-
-    '/MemesAudio/meme-right-clapping.WAV',
-    '/MemesAudio/meme-right-gtapassed.WAV',
-    '/MemesAudio/meme-right-nice.WAV',
-    '/MemesAudio/meme-right-papichlegkaya.WAV',
-    // '/MemesAudio/meme-right-estestvenno.WAV',
-    
-    // '/MemesAudio/meme-wrong-etofiaskobratan.WAV',
-    // '/MemesAudio/meme-wrong-kid.WAV',
-    // '/MemesAudio/meme-wrong-pacankuspehy.WAV',
-    // '/MemesAudio/meme-wrong-polnomochia.WAV',
-    // '/MemesAudio/meme-wrong-ponovoy.WAV',
-    // '/MemesAudio/meme-wrong-sharish.WAV',
-    // '/MemesAudio/meme-wrong-shirokuiu.WAV',
-    // '/MemesAudio/meme-wrong-shokoladnevinovat.WAV',
-    // '/MemesAudio/meme-wrong-skolko.WAV',
-    // '/MemesAudio/meme-wrong-tipereputal.WAV',
-    // '/MemesAudio/meme-wrong-tivtiraesh.WA',
-
-  ]
-
-
-
-  const [finishA, setFinishA] = useState(finishAudioSrcList[0])
-
-  
-  useEffect(()=>{
-    setFinishA(ShuffleTS(finishAudioSrcList)[0])
-  },[])
-
-
-
   //
   // Выбор сколько задач выдать в Lesson'e
   //
@@ -216,7 +234,52 @@ export default function TQuiz(
 
 
 
+
+
+  let finishAudioSrcList = [
+
+    '/MemesAudio/meme-right-chetko.WAV',
+    '/MemesAudio/meme-right-chinazes.WAV',
+    '/MemesAudio/meme-right-umeetemogete.WAV',
+
+    '/MemesAudio/meme-right-clapping.WAV',
+    '/MemesAudio/meme-right-gtapassed.WAV',
+    '/MemesAudio/meme-right-nice.WAV',
+    '/MemesAudio/meme-right-papichlegkaya.WAV',
+    
+    // '/MemesAudio/meme-right-estestvenno.WAV',
+    
+    // '/MemesAudio/meme-wrong-etofiaskobratan.WAV',
+    // '/MemesAudio/meme-wrong-kid.WAV',
+    // '/MemesAudio/meme-wrong-pacankuspehy.WAV',
+    // '/MemesAudio/meme-wrong-polnomochia.WAV',
+    // '/MemesAudio/meme-wrong-ponovoy.WAV',
+    // '/MemesAudio/meme-wrong-sharish.WAV',
+    // '/MemesAudio/meme-wrong-shirokuiu.WAV',
+    // '/MemesAudio/meme-wrong-shokoladnevinovat.WAV',
+    // '/MemesAudio/meme-wrong-skolko.WAV',
+    // '/MemesAudio/meme-wrong-tipereputal.WAV',
+    // '/MemesAudio/meme-wrong-tivtiraesh.WA',
+
+  ]
+
+
+
+  // финальный АУДИО
+  const [finishA, setFinishA] = useState(finishAudioSrcList[0])
+
   
+  useEffect(()=>{
+    setFinishA(ShuffleTS(finishAudioSrcList)[0])
+  },[])
+
+
+
+ 
+
+
+
+  // AUDIO
   const [audioCorrect, _, controlsCorrect] = useAudio({src: '/correct.wav'})
   const [audioInCorrect, _c, controlsInCorrect] = useAudio({src: '/incorrect.wav'})
 
@@ -226,6 +289,11 @@ export default function TQuiz(
 
 
 
+
+
+
+  // смотрим ПРОГРЕСС ЭТОГО Т-лессона
+  //
   const t_lessonProgressThisLesson =  t_lessonProgress.filter(lessonProgress => lessonProgress.t_lessonId == t_lessonId)
   
 
@@ -240,11 +308,8 @@ export default function TQuiz(
   ))
 
 
-
   const uniqueMonths = PTLByMonth.map(item => item.month)
   .filter((value, index, self) => self.indexOf(value) === index)
-
-
 
 
   const doneRightSumList = uniqueMonths.map(month => (
@@ -290,28 +355,6 @@ export default function TQuiz(
 
 
 
-  // const Icon = title.slice(-1) === '3' ? Skull 
-  // : title.slice(-1) === '4' ? Cake 
-  // : isLast ? Crown 
-  // : Star
-
-
-  const [randomStartLottie, setRandomStartLottie] = useState(LottieStartList[0])
-  const [randomStartButton, setRandomStartButton] = useState(startButton[0])
-
-  // const [randomEmotionRightLottie, setRandomEmotionRightLottie] = useState(LottieEmotionRightList[0])
-  // const [randomEmotionWrongLottie, setRandomEmotionWrongLottie] = useState(LottieEmotionWrongList[0])
-  
-  const [randomEmotionLottie, setRandomEmotionLottie] = useState(LottieEmotionRightList[0])
-  // const [randomEmotionWrongLottie, setRandomEmotionWrongLottie] = useState(LottieEmotionWrongList[0])
-
-  useEffect(()=>{
-    setRandomStartLottie([...LottieStartList].sort(() => 0.5 - Math.random())[0])
-    setRandomStartButton([...startButton].sort(() => 0.5 - Math.random())[0])
-  }, [])
-
-
-
 
 
 
@@ -352,14 +395,6 @@ export default function TQuiz(
     setAnsweredQuestions(0)
     setIsRightList(initialState)
 
-    // setFinishList([{
-    //   question: '',
-    //   answer: '',
-    //   rightAnswer: '',
-    //   isRight: true,
-    // }])
-
-
     setFinishList([])
 
   }
@@ -388,7 +423,7 @@ export default function TQuiz(
   const handleAnswer = async (answer: string) => {
     
     setAnsweredQuestions(answeredQuestions + 1)
-
+    // сдвигаем вопрос на + 1
 
 
 
@@ -407,6 +442,29 @@ export default function TQuiz(
 
       setIsRightPrevious(true)
       setRandomEmotionLottie([...LottieEmotionRightList].sort(() => 0.5 - Math.random())[0])
+
+
+
+      setStreak(prev => {
+
+        const newStreak = prev + 1
+        
+        if(newStreak === 3){
+          setEffect(createEffect(newStreak))
+        }
+
+   
+        return newStreak
+      })
+
+
+
+
+
+
+
+
+
 
 
       // TODO: ANIMATION GREEN    Анимация Зеленым фоном вверх при правильном ответе
@@ -430,6 +488,7 @@ export default function TQuiz(
       // РЕШЕНО ПРАВИЛЬНО  1
       //
       if (questions[currentQuestionIndex].questionType == 'ASSIST') {
+        // AUDIO
         controlsCorrect.play()
       }
       // controlsCorrect.play()
@@ -442,7 +501,7 @@ export default function TQuiz(
       }])
 
 
-      // TODO:  scorescore возможно тут добавляется лишний праивльынй ответ
+      // TODO:  scorescore возможно тут добавляется лишний праивльный ответ
       // TODO: 
 
       setScore(score + 1)
@@ -475,8 +534,16 @@ export default function TQuiz(
     {
       // РЕШЕНО НЕПРАВИЛЬНО  2
 
+      controlsInCorrect.play()
+      // обнуляем СТРИК
+      //
+      setStreak(0)
 
+
+      // Отнимаем сердечко
+      //
       setThreeHearts(threeHearts - 1)
+
 
 
       setIsRightPrevious(false)
@@ -505,7 +572,8 @@ export default function TQuiz(
 
 
       if (questions[currentQuestionIndex].questionType == 'ASSIST') {
-        controlsInCorrect.play()
+        // AUDIO
+        // controlsInCorrect.play()
       }
       // controlsInCorrect.play()
 
@@ -550,13 +618,16 @@ export default function TQuiz(
 
 
     if (currentQuestionIndex < questions.length - 1) {
+
+      // Переходим к СЛЕДУЩЕМУ вопросу
+      //
       setCurrentQuestionIndex(currentQuestionIndex + 1)
       
 
     } else {
 
 
-      // TODO:    обновляем БД
+      // вопросы ЗАКОНЧИЛИСЬ.   обновляем БД
       
       setQuizCompleted(true)
 
@@ -569,8 +640,8 @@ export default function TQuiz(
   }
 
   const handleTimeout = () => {
-    
-    controlsInCorrect.play()
+    // AUDIO
+    // controlsInCorrect.play()
     setAnsweredQuestions(answeredQuestions + 1)
 
 
@@ -605,190 +676,13 @@ export default function TQuiz(
 
 
 
+// TODO: тут был ПЕРВЫЙ экран
 
 
 
-  //TODO:     ЕЩЕ НЕ СТАРТАНУЛИ
-  //
-  if (!quizStarted) {
-    return (
-      <div className="text-center content-center mx-auto">
-        
-        <h1 className="text-3xl font-bold mb-6 mt-6">
-          {t_lessonTitle}
-        </h1>
-        
-
-
-        <ChartComponent TrainingProgressMonth = {TrainingProgressMonth}/>
-
-
-        <div className="mt-4 flex justify-center gap-8">
-          <div className="flex">
-            <Check
-              className={cn("h-8 w-8 stroke-gray-600")}
-            />
-            <p className="pt-1 pl-2">{totalD}</p>
-          </div>
-        
-
-          <div className="flex">
-
-            {Math.round(totalPercentDR*100) > 80 
-            
-            ? 
-            
-            <TrendingUp
-              className={cn("h-8 w-8  stroke-green-600")}
-            />
-
-            :
-
-            <TrendingDown
-              className={cn("h-8 w-8  stroke-red-600")}
-            /> 
-            }
-            
-
-    
-
-
-            <p className="pt-1 pl-2">{Math.round(totalPercentDR*100)} %</p>
-          </div>
-        </div>
-
-
-        <Lottie                
-          animationData={ randomStartLottie } 
-        className="h-40 w-40 mt-4 mx-auto"
-        />
-
-
-        
-        
-        <p className="text-sm mt-5">
-          количество заданий
-        </p>
-
-        <div className="flex gap-3 justify-center mt-2">
-
-          <Button className="gap-2" variant={numQuestionsButton == 0 ? 'super' : 'default'} onClick={()=>{handleNumQuestions(0)}}>
-            <Baby />
-            {Math.round(questions1.length*0.3)}
-          </Button>
-
-          <Button className="gap-2" variant={numQuestionsButton == 1 ? 'super' : 'default'} onClick={()=>{handleNumQuestions(1)}}>
-            <Pizza />
-            {Math.round(questions1.length*0.6)}
-          </Button>
-
-          <Button className="gap-2" variant={numQuestionsButton == 2 ? 'super' : 'default'} onClick={()=>{handleNumQuestions(2)}}>
-            
-            {questions1.length}
-            <Crown />
-          </Button>
-
-        </div>
 
 
 
-        <div className="flex gap-3 justify-center mt-6">
-
-          <Button onClick={()=>window.location.href = `/trainer`} >
-            <div className="gap-2 flex">
-              <ArrowLeft />
-            </div>
-          </Button>
-
-          <Button variant='primary' onClick={startQuiz} >
-            {randomStartButton}
-          </Button>
-
-        </div>
-
-        <Separator className="mt-12 h-0.5 rounded-full w-full" />
-
-
-        <div className="mt-6 mb-20 w-full">
-            
-            
-            
-
-              <ul className="grid grid-cols-5 gap-y-4 ">
-
-                <li key={3313} className="col-span-2 flex justify-center ">
-                  <Trophy
-                    className= {cn("h-7 w-7 pt-1  fill-yellow-300 stroke-yellow-400")}
-                  />
-                </li>
-
-                  
-
-                <li key={33132} className="col-span-2 flex justify-center">
-                  <Heart
-                    className= {cn("h-7 w-7 pt-1  fill-yellow-300 stroke-yellow-400")}
-                  />  
-                </li>
-
-
-                  
-                <li key={33131} className="flex justify-center">
-                  <Zap
-                    className={cn("h-7 w-7 pt-1  fill-yellow-300 stroke-yellow-400")}
-                  />
-                </li>
-
-                
-
-                {usersStat.map((el, index)=> 
-                //
-                // РИСУЕМ СТАТИСТИКУ ЭТОГО ТРЕНАЖЕРА СРЕДИ ВСЕХ USERS
-                //
-                  <>
-
-                    <li className="pt-5 col-span-2 flex justify-center" key={index*722137}>
-                      {index + 1}
-                    </li>
-
-                      
-                    <li className="col-span-2 flex justify-center" key={index*7137}>
-                      <div key={index*18} className={el.user_id == userId 
-                      ? "flex flex-1 gap-2 items-center border-dashed border-2 border-gray-300 rounded-lg p-2"
-                      : "flex flex-1 gap-2 items-center rounded-lg p-3"
-                      }>
-
-                        <Avatar>
-                          <AvatarImage 
-                              className="object-cover"
-                              src={el.user_imgSrc}
-                          />
-                        </Avatar>  
-
-                        {el.user_name}
-                      </div>
-                    </li>
-
-
-
-                    <li className="pt-5 flex justify-center" key={index*73437}>
-                      {el.DR_DRP}
-                    </li>
-
-                  </>
-
-                )}
-
-
-              </ul>
-
-            </div>
-
-
-        
-
-
-      </div>
-    )}
 
 
 
@@ -799,7 +693,23 @@ export default function TQuiz(
 
 
 
+  const handleFinishLesson = () => {
+    // setCompleted(true);
+    setQuizCompleted(true)
 
+
+    // сам добавил чтобы убрать нулевой экран (может и не надо)
+    // setQuizStarted(false)
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        // window.location.href = `/t-lesson/${t_lessonId}`;
+        // window.location.href = `/trainer`;
+        router.push('/trainer')
+      });
+    });
+    // window.location.href = `/t-lesson/${t_lessonId}`
+  };
 
   
 
@@ -822,7 +732,10 @@ export default function TQuiz(
 
     return (
       <>
+      {/* // AUDIO */}
       {finishAudio}
+
+
       <div className="text-center content-center mx-auto">
 
         <h1 className="text-3xl font-bold mb-6">
@@ -850,8 +763,8 @@ export default function TQuiz(
 
 
         <Lottie 
-                animationData={ score / questions.length < 0.8 ? LottieTrainerSharkFailDNO : LottieTrainerSharkFinalWin } 
-        className="h-80 w-80 mx-auto"
+          animationData={ score / questions.length < 0.8 ? LottieTrainerSharkFailDNO : LottieTrainerSharkFinalWin } 
+          className="h-80 w-80 mx-auto"
         />
 
 
@@ -863,7 +776,7 @@ export default function TQuiz(
           className="mt-4"
           variant='primary'
         >
-          Давай ещё раз
+          Давай по новой
         </Button>
 
         <div>
@@ -871,7 +784,12 @@ export default function TQuiz(
                   className='mt-4'
                   // size='sm' 
                   variant='primaryOutline'
-                  onClick={()=>window.location.href = `/t-lesson/${t_lessonId}`}
+                  // onClick={()=>window.location.href = `/t-lesson/${t_lessonId}`}
+                  onClick={handleFinishLesson}
+
+                  
+
+                  
                   >
                       Завершить
                   {/* {t_lesson.title} */}
@@ -919,7 +837,22 @@ export default function TQuiz(
     <>
     {audioCorrect}
     {audioInCorrect}
+
+
+
     
+
+
+
+
+
+    <WinStreakModal
+      // onClose={() => setShowWinModal(false)}
+      effect={effect}
+      onClose={() => setEffect(null)}
+      />
+
+
 
     <div className="w-full max-w-xl mx-auto text-center">
 
@@ -929,7 +862,7 @@ export default function TQuiz(
       
       
       
-      <TrainerQuestion 
+      <TrainerQuestion
         questions={questions}
         question={questions[currentQuestionIndex]} 
         onAnswer={handleAnswer} 
@@ -979,6 +912,20 @@ export default function TQuiz(
 
         </div>
         } 
+        
+        
+        {/* <div className="justify-center gap-x-1 flex">
+          {[...Array(3)].map((_, index) => (
+            <Image 
+              key={index}
+              src={index < threeHearts ? '/heartYes.svg' : '/heartNo.svg'}
+              height={22}
+              width={22}
+              alt='Hearts'
+            />
+          ))}
+        </div> */}
+
       </div>
 
 
@@ -1002,3 +949,349 @@ export default function TQuiz(
 
 
 
+
+
+
+
+
+
+
+    {/* НАЧАЛИ КВИЗ ВСТАВИТЬ АУДИО 
+    
+        {/* // AUDIO */}
+    {/* {audioInCorrect} */}
+    
+
+
+    {/* {showWinModal && (
+    <WinStreakModal
+      // onClose={() => setShowWinModal(false)}
+      effect={effect}
+      onClose={() => setEffect(null)}
+      />
+    )} */}
+
+
+
+
+
+
+
+
+
+
+
+
+  // //TODO:   Первый экран.  ЕЩЕ НЕ СТАРТАНУЛИ . Начальный экран с выбором Сколько заданий (Этот экран НЕ нужен)
+  // //
+  // if (!quizStarted) {
+  //   return (
+  //     <div className="text-center content-center mx-auto">
+        
+  //       <h1 className="text-3xl font-bold mb-6 mt-6">
+  //         {t_lessonTitle}
+  //       </h1>
+        
+
+
+  //       <ChartComponent TrainingProgressMonth = {TrainingProgressMonth}/>
+
+
+  //       <div className="mt-4 flex justify-center gap-8">
+  //         <div className="flex">
+  //           <Check
+  //             className={cn("h-8 w-8 stroke-gray-600")}
+  //           />
+  //           <p className="pt-1 pl-2">{totalD}</p>
+  //         </div>
+        
+
+  //         <div className="flex">
+
+  //           {Math.round(totalPercentDR*100) > 80 
+            
+  //           ? 
+            
+  //           <TrendingUp
+  //             className={cn("h-8 w-8  stroke-green-600")}
+  //           />
+
+  //           :
+
+  //           <TrendingDown
+  //             className={cn("h-8 w-8  stroke-red-600")}
+  //           /> 
+  //           }
+            
+
+    
+
+
+  //           <p className="pt-1 pl-2">{Math.round(totalPercentDR*100)} %</p>
+  //         </div>
+  //       </div>
+
+
+  //       <Lottie                
+  //         animationData={ randomStartLottie } 
+  //       className="h-40 w-40 mt-4 mx-auto"
+  //       />
+
+
+        
+        
+  //       <p className="text-sm mt-5">
+  //         количество заданий
+  //       </p>
+
+  //       <div className="flex gap-3 justify-center mt-2">
+
+  //         <Button className="gap-2" variant={numQuestionsButton == 0 ? 'super' : 'default'} onClick={()=>{handleNumQuestions(0)}}>
+  //           <Baby />
+  //           {Math.round(questions1.length*0.3)}
+  //         </Button>
+
+  //         <Button className="gap-2" variant={numQuestionsButton == 1 ? 'super' : 'default'} onClick={()=>{handleNumQuestions(1)}}>
+  //           <Pizza />
+  //           {Math.round(questions1.length*0.6)}
+  //         </Button>
+
+  //         <Button className="gap-2" variant={numQuestionsButton == 2 ? 'super' : 'default'} onClick={()=>{handleNumQuestions(2)}}>
+            
+  //           {questions1.length}
+  //           <Crown />
+  //         </Button>
+
+  //       </div>
+
+
+
+  //       <div className="flex gap-3 justify-center mt-6">
+
+  //         <Button onClick={()=>window.location.href = `/trainer`} >
+  //           <div className="gap-2 flex">
+  //             <ArrowLeft />
+  //           </div>
+  //         </Button>
+
+  //         <Button variant='primary' onClick={startQuiz} >
+  //           {randomStartButton}
+  //         </Button>
+
+  //       </div>
+
+  //       <Separator className="mt-12 h-0.5 rounded-full w-full" />
+
+
+  //       <div className="mt-6 mb-20 w-full">
+            
+            
+            
+
+  //         <ul className="grid grid-cols-5 gap-y-4 ">
+
+  //           <li key={3313} className="col-span-2 flex justify-center ">
+  //             <Trophy
+  //               className= {cn("h-7 w-7 pt-1  fill-yellow-300 stroke-yellow-400")}
+  //             />
+  //           </li>
+
+              
+
+  //           <li key={33132} className="col-span-2 flex justify-center">
+  //             <Heart
+  //               className= {cn("h-7 w-7 pt-1  fill-yellow-300 stroke-yellow-400")}
+  //             />  
+  //           </li>
+
+
+              
+  //           <li key={33131} className="flex justify-center">
+  //             <Zap
+  //               className={cn("h-7 w-7 pt-1  fill-yellow-300 stroke-yellow-400")}
+  //             />
+  //           </li>
+
+            
+
+  //         {usersStat.map((el, index)=> (
+  //           <React.Fragment key={el.user_id}>
+              
+  //             <li className="pt-5 col-span-2 flex justify-center">
+  //               {index + 1}
+  //             </li>
+
+  //             <li className="col-span-2 flex justify-center">
+  //               <div
+  //                 className={el.user_id == userId 
+  //                   ? "flex flex-1 gap-2 items-center border-dashed border-2 border-gray-300 rounded-lg p-2"
+  //                   : "flex flex-1 gap-2 items-center rounded-lg p-3"
+  //                 }
+  //               >
+  //                 <Avatar>
+  //                   <AvatarImage
+  //                     className="object-cover"
+  //                     src={el.user_imgSrc}
+  //                   />
+  //                 </Avatar>
+  //                 {el.user_name}
+  //               </div>
+  //             </li>
+
+  //             <li className="pt-5 flex justify-center">
+  //               {el.DR_DRP}
+  //             </li>
+
+  //           </React.Fragment>
+  //         ))}
+
+  //         </ul>
+
+  //       </div>
+
+
+        
+
+
+  //     </div>
+  //   )}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // Вместо трех отдельных вызовов:
+// const [audioCorrect, _, controlsCorrect] = useAudio({src: '/correct.wav'})
+// const [audioInCorrect, _c, controlsInCorrect] = useAudio({src: '/incorrect.wav'})
+// const [finishAudio] = useAudio({src: finishA, autoPlay: true})
+
+// // Создайте один hook для управления аудио:
+// const [playCorrect] = useAudioPlayer('/correct.wav')
+// const [playIncorrect] = useAudioPlayer('/incorrect.wav')
+// const [playFinish] = useAudioPlayer(finishA, { autoPlay: true })
+
+// // Кастомный hook:
+// function useAudioPlayer(src: string, options = {}) {
+//   const [audio] = useAudio({ src, ...options })
+//   const play = () => {
+//     const audioEl = document.querySelector(`audio[src="${src}"]`) as HTMLAudioElement
+//     audioEl?.play()
+//   }
+//   return [audio, play]
+// }
+
+// // Компонент для сердечек
+// const HeartsDisplay = ({ count }: { count: number }) => (
+//   <div className="justify-center gap-x-1 flex">
+//     {[1, 2, 3].map(i => (
+//       <Image 
+//         key={i}
+//         src={i <= count ? '/heartYes.svg' : '/heartNo.svg'} 
+//         height={22} 
+//         width={22} 
+//         alt='Heart' 
+//       />
+//     ))}
+//   </div>
+// )
+
+// // Компонент статистики пользователя
+// const UserStats = ({ usersStat, userId }: { usersStat: any[], userId: string }) => (
+//   <ul className="grid grid-cols-5 gap-y-4">
+//     {usersStat.map((el, index) => (
+//       <React.Fragment key={el.user_id}>
+//         <li className="pt-5 col-span-2 flex justify-center">{index + 1}</li>
+//         <li className="col-span-2 flex justify-center">
+//           <div className={cn(
+//             "flex flex-1 gap-2 items-center rounded-lg p-3",
+//             el.user_id == userId && "border-dashed border-2 border-gray-300"
+//           )}>
+//             <Avatar>
+//               <AvatarImage className="object-cover" src={el.user_imgSrc} />
+//             </Avatar>
+//             {el.user_name}
+//           </div>
+//         </li>
+//         <li className="pt-5 flex justify-center">{el.DR_DRP}</li>
+//       </React.Fragment>
+//     ))}
+//   </ul>
+// )
+
+
+// // Хук для управления игровым состоянием
+// const useGameState = (questions: QuestionType[]) => {
+//   const [state, setState] = useState({
+//     currentIndex: 0,
+//     score: 0,
+//     hearts: 3,
+//     streak: 0,
+//     isRightList: questions.map((_, i) => i === 0 ? 3 : 0)
+//   })
+
+//   const updateState = (updates: Partial<typeof state>) => 
+//     setState(prev => ({ ...prev, ...updates }))
+
+//   return [state, updateState] as const
+// }
+
+// // Хук для случайного выбора
+// const useRandomSelector = <T,>(items: T[], defaultValue: T) => {
+//   const [selected, setSelected] = useState(defaultValue)
+  
+//   useEffect(() => {
+//     setSelected(items[Math.floor(Math.random() * items.length)])
+//   }, [])
+  
+//   return selected
+// }
+
+
+
+
+// const TrainingProgressMonth = useMemo(() => {
+//   const PTLByMonth = t_lessonProgressThisLesson.map(el => ({
+//     doneRight: el.doneRight,
+//     doneWrong: el.doneWrong,
+//     month: el.dateDone.getMonth(),
+//   }))
+
+//   const uniqueMonths = [...new Set(PTLByMonth.map(item => item.month))]
+
+//   return uniqueMonths.map(month => ({
+//     month: monthTable[month],
+//     doneRight: PTLByMonth
+//       .filter(el => el.month === month)
+//       .reduce((sum, el) => sum + el.doneRight, 0),
+//     doneWrong: PTLByMonth
+//       .filter(el => el.month === month)
+//       .reduce((sum, el) => sum + el.doneWrong, 0)
+//   }))
+// }, [t_lessonProgressThisLesson])
+
+
+
+
+// const useSlideAnimation = () => {
+//   const triggerAnimation = async (className: string) => {
+//     const body = document.querySelector("body")
+//     body?.classList.add(className)
+//     await sleep(200)
+//     body?.classList.remove(className)
+//   }
+
+//   return {
+//     slideUp: () => triggerAnimation("trainer-slide-up-transition"),
+//     slideDown: () => triggerAnimation("trainer-slide-down-transition")
+//   }
+// }

@@ -63,26 +63,34 @@ export const WrongAnswerModal = ({
 
 
 
-    const [
-        incorrectAudio,
-        _i,
-        incorrectControls,
-    ] = useAudio({ src: randomWrongAudio })
+    // const [
+    //     incorrectAudio,
+    //     _i,
+    //     incorrectControls,
+    // ] = useAudio({ src: randomWrongAudio })
 
 
 
     const [isClient, setIsClient] = useState(false)
-    useEffect(()=>setIsClient(true),[]) 
-    // БЕЗ этого ПОЧЕМУ-то Hydration ERROR
-    if (!isClient){
-        return null
-    }
     
+    // useEffect(()=>setIsClient(true),[]) 
+    // // БЕЗ этого ПОЧЕМУ-то Hydration ERROR
+    // if (!isClient){
+    //     return null
+    // }
+    
+    useEffect(() => {
+        if (isOpen) {
+          const audio = new Audio(randomWrongAudio)
+          audio.play()
+        }
+      }, [isOpen])
+
     
 
     return (
         <>
-        {incorrectAudio}
+        {/* {incorrectAudio} */}
 
         <Dialog open={isOpen} onOpenChange={close}>
             <DialogContent className='max-w-md'>

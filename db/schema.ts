@@ -156,17 +156,17 @@ export const lessonsRelations = relations(lessons, ({ one, many }) => ({
 
 
 
-export type allTypesCT = "SELECT" | "ASSIST" | "CONNECT" | "SLIDER" | "CONSTRUCT" | "WORKBOOK" | "R ASSIST" | "R CONNECT" | "R SLIDER" | "GEOSIN" | "RUSSIANDICTANT";
+export type allTypesCT = "M_ASC" | "SELECT" | "ASSIST" | "CONNECT" | "SLIDER" | "CONSTRUCT" | "WORKBOOK" | "R ASSIST" | "R CONNECT" | "R SLIDER" | "GEOSIN" | "RUSSIANDICTANT" | "SWIPE";
+// CT? что значит
 
 
-
-export const challengesEnum = pgEnum("type", ["SELECT", "ASSIST", "CONNECT", "SLIDER", "CONSTRUCT", "WORKBOOK",
-												        "R ASSIST", "R CONNECT", "R SLIDER", "GEOSIN", "RUSSIANDICTANT",
+export const challengesEnum = pgEnum("type", ["M_ASC", "SELECT", "ASSIST", "CONNECT", "SLIDER", "CONSTRUCT", "WORKBOOK",
+												        "R ASSIST", "R CONNECT", "R SLIDER", "GEOSIN", "RUSSIANDICTANT", "SWIPE",
 ])
 
 
-export const t_challengesEnum = pgEnum("type", ["SELECT", "ASSIST", "CONNECT", "SLIDER", "CONSTRUCT", "WORKBOOK",
-															"R ASSIST", "R CONNECT", "R SLIDER", "GEOSIN", "RUSSIANDICTANT",
+export const t_challengesEnum = pgEnum("type", ["M_ASC", "SELECT", "ASSIST", "CONNECT", "SLIDER", "CONSTRUCT", "WORKBOOK",
+															"R ASSIST", "R CONNECT", "R SLIDER", "GEOSIN", "RUSSIANDICTANT", "SWIPE",
 ])
 
 

@@ -12,11 +12,13 @@ import { Promo } from '@/components/promo';
 import { Quests } from '@/components/quests';
 import db from '@/db/drizzle';
 import { eq } from 'drizzle-orm';
-import { auth, currentUser } from "@clerk/nextjs/server"
-import { FlameKindling } from 'lucide-react';
-import Image from 'next/image';
+// import { auth, currentUser } from "@clerk/nextjs/server"
+// import { FlameKindling } from 'lucide-react';
+// import Image from 'next/image';
 import { HwTopBanner } from './hw-top-banner';
-
+// import { auth, getVKUser, getVKUserId, requireAuth } from '@/lib/auth';
+// import { auth } from '@/lib/auth';
+import { auth } from '@/lib/server-auth';
 
 const bgList = [
 	'/bg-svg/anchors-away.svg',
@@ -46,12 +48,79 @@ const bgList = [
 
 
 const LearnPage = async () => {
-	const { userId } = await auth();
-	const user = await currentUser();
 
-	if (!userId || !user) {
+
+
+	// const session = await requireAuth(); // Автоматически редиректит если не авторизован
+
+	// const vkUserId = session.user?.id;
+  	// const userName = session.user?.name;
+  	// const userEmail = session.user?.email;
+  
+  	// console.log('VK User ID:', vkUserId);
+
+
+
+
+
+
+
+
+
+	//   const session = await auth();
+
+	//   // Если сессии нет, перенаправляем на страницу входа
+	//   if (!session?.user) {
+	// 	  redirect('/'); // или на вашу страницу с кнопкой входа
+	//   }
+  
+	//   // Данные пользователя доступны в session.user
+	//   const userId = session.user.id;
+	//   const userName = session.user.name;
+	//   const userEmail = session.user.email;
+  
+	//   console.log('Authorized user ID:', userId);
+
+
+
+
+	const session = await auth();
+  
+	if (!session?.user) {
+	  redirect('/'); // Редирект на главную
+	}
+	
+	const userId = session.user.id;
+	console.log('User ID:', userId);
+
+
+
+
+
+
+
+
+
+	//   const { userId } = await requireAuth();
+	//   const { user } = await requireAuth();
+
+
+	// const userId = await getVKUserId();
+	// const user = await getVKUser();
+
+	// const { userId } = await auth();
+	// const user = await currentUser();
+
+	// console.log(userId)
+	// console.log(user)
+
+
+	if (!userId ) {
 		throw new Error('Вы не авторизированны!');
 	}
+	// if (!userId || !user) {
+	// 	throw new Error('Вы не авторизированны!');
+	// }
 
 	const userProgressData = getUserProgress()
 	const unitsData = getUnits()

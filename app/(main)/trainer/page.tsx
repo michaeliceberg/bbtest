@@ -4,20 +4,28 @@ import { UserProgress } from '@/components/user-progress';
 import { getAllClassHW, getAllClasses, getAllTLessonProgress, getAllUsers, getAllUsersProgress, getChallengeProgress, getCourseProgress, getTCourses, getTLessonProgress, getTUnits, getUserProgress } from '@/db/queries';
 import { redirect } from 'next/navigation';
 import { Header } from './header';
-import { auth, currentUser } from "@clerk/nextjs/server"
+// import { auth, currentUser } from "@clerk/nextjs/server"
 import { TabTCourses } from '@/components/tab-t-courses';
 import { HwTopBanner } from '../learn/hw-top-banner';
+import { auth } from '@/lib/auth';
 
 
 
 const LearnPage = async () => {
-	const { userId } = await auth();
-	const user = await currentUser();
+	// const { userId } = await auth();
+	// const user = await currentUser();
 
-	if (!userId || !user) {
-		throw new Error('Вы не авторизированны!');
+	// if (!userId || !user) {
+	// 	throw new Error('Вы не авторизированны!');
+	// }
+
+	const session = await auth(); // 👈 Получаем сессию
+	const userId = session?.user?.id; // 👈 Берем id из сессии
+
+	// const userId = await getVKUserId();
+	if (!userId) {
+		return null;
 	}
-
 
 	// const coursesData = getCourses();
 	const t_coursesData = getTCourses();

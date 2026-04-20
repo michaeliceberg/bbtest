@@ -28,9 +28,9 @@ const FrozenList = ['unfrozen','unfrozen','unfrozen','unfrozen','frozen','frozen
 const FrozenTimeList = [3, 4, 5, 6, 7, 8]
 
 
-
-const [audioConstructAdd, _ca, controlsAudioConstructAdd] = useAudio({src: '/Lottie/trainer/frozen/sounds/soundClick2.mp3'})
-const [audioConstructFire, _cf, controlsAudioConstructFire] = useAudio({src: '/Lottie/trainer/frozen/sounds/soundClickFire1.mp3'})
+// AUDIO
+// const [audioConstructAdd, _ca, controlsAudioConstructAdd] = useAudio({src: '/Lottie/trainer/frozen/sounds/soundClick2.mp3'})
+// const [audioConstructFire, _cf, controlsAudioConstructFire] = useAudio({src: '/Lottie/trainer/frozen/sounds/soundClickFire1.mp3'})
 
 //
 // const [randomFrozen, setRandomFrozen] = useState(
@@ -60,7 +60,8 @@ const [constructorList, setConstructorList] = useState<string[]>(['', '', ''])
 
 const handleConstructorAddClick = (option: string ) => {
   
-  controlsAudioConstructAdd.play()
+  // AUDIO
+  // controlsAudioConstructAdd.play()
   const indexEmpty = constructorList.indexOf('')
 
   if (indexEmpty > -1) {
@@ -79,7 +80,8 @@ const handleConstructorAddClick = (option: string ) => {
 
 const handleConstructorDelClick = (delIndex: number) => {
 
-    controlsAudioConstructAdd.play()
+    // AUDIO
+    // controlsAudioConstructAdd.play()
     let newList = constructorList
     newList[delIndex] = ''
     setConstructorList(newList)

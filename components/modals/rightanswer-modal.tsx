@@ -44,17 +44,45 @@ export const RightAnswerModal = ({
 
 
 
-    let [
-        correctAudio,
-        _с,
-        correctControls,
-    ] = useAudio({ src: randomRightAudio })
+    // let [
+    //     correctAudio,
+    //     _с,
+    //     correctControls,
+    // ] = useAudio({ src: randomRightAudio, 
+    //     autoPlay: false 
+    // })
 
 
 
     const [isClient, setIsClient] = useState(false)
-    useEffect(()=>setIsClient(true),[]) 
+    
+    
+    // useEffect(()=>{
+    //     setIsClient(true)
+    //     correctControls.play()
+    // },[]) 
+    
+    // useEffect(() => {
+    //     if (isOpen) {
+    //       correctControls.play()
+    //     }
+    //   }, [isOpen])
+    
+    
+
+
+    useEffect(() => {
+        if (isOpen) {
+          const audio = new Audio(randomRightAudio)
+          audio.play()
+        }
+      }, [isOpen])
+
+
+
+
     // БЕЗ этого ПОЧЕМУ-то Hydration ERROR
+
     if (!isClient){
         return null
     }
@@ -64,7 +92,7 @@ export const RightAnswerModal = ({
 
     return (
         <>
-        {correctAudio}
+        {/* {correctAudio} */}
 
         <Dialog open={isOpen} onOpenChange={close}>
             <DialogContent className='max-w-md'>

@@ -7,6 +7,9 @@ const adminIds = [
 export const isAdmin = () => {
     const {userId} = auth()
 
+    // const userId = await getVKUserId()
+
+
     if (!userId) {
         return false
     }
