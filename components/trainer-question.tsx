@@ -32,7 +32,7 @@ import { TypeAssistTRIANGLEsincostg } from "@/app/t-lesson/[t_lessonId]/type-ass
 import { TypeAssistTRIANGLEformGip } from "@/app/t-lesson/[t_lessonId]/type-assist-triangle-form-gip";
 import { TypeAssistTRIANGLETable } from "@/app/t-lesson/[t_lessonId]/type-assist-triangle-table";
 import { TypeRussianDictant } from "@/app/t-lesson/[t_lessonId]/type-russian-dictant";
-// import { TypeSwipe } from "@/app/t-lesson-test/[t_lesson_test_Id]/type-swipe";
+import { TypeSwipe } from "@/app/t-lesson/[t_lessonId]/type-swipe";
 
 
 
@@ -564,11 +564,11 @@ const triangleGdeSinCosTg = [
 
 
 
-        // : (question.questionType == "SWIPE")
-        // ? <TypeSwipe
-        //     question = {question}
-        //     onAnswer={onAnswer}
-        // />
+        : (question.questionType == "SWIPE")
+        ? <TypeSwipe
+            question = {question}
+            onAnswer={onAnswer}
+        />
 
 
 
