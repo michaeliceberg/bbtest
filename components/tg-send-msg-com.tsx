@@ -10,7 +10,7 @@ export const TgSendMsgCom = ({message}: Props) => {
 
     useEffect(()=>{
         sendMessageToTelegram(message)
-      }, [])
+      }, [message])
 
 
   return (

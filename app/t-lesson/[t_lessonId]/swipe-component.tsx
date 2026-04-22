@@ -3,7 +3,7 @@
 import { motion, useMotionValue, useMotionValueEvent, useTransform } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { QuestionType } from "./page";
-
+// import {react} from react
 
 
 type Props = {
@@ -58,7 +58,7 @@ const color = useTransform(x, xInput, [
     useEffect(() => {
         setIsAnswered(false)
         setLrAnswer(0)
-    }, [question]) // или другой триггер
+    }, [question, setLrAnswer]) // или другой триггер
 
     useMotionValueEvent(x, "change", (latest) => 
     {

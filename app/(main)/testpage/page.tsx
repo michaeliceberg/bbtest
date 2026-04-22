@@ -3,8 +3,218 @@
 import { useEffect, useState } from "react"
 import ReorderingComp from "./reordering-comp";
 
+const TestPage = () => {
+    const [textBtnsState, setTextBtnsState] = useState<any[]>([])
+    const [doneRight, setDoneRight] = useState(false)
 
-const TestPage = async () => {
+    useEffect(() => {
+        // Инициализация данных при монтировании компонента
+        const text = "" // ваши данные
+        const textNL = text.split('NL')
+        const textListNL = textNL.map(el => el.split("*"))
+
+        console.log(textListNL)
+
+        type btnListType = {
+            rightAnswer: string,
+            allVariantsThisBtn: string[],
+            selectedVariant: string,
+            rowInd: number,
+            colInd: number,
+        }[]
+
+        let textBtnsInitial: btnListType = []
+        let index_element = 0
+
+        const textWithBtnNumbersNL = textListNL.map((this_line_textList, index_line) => {
+            const textWithBtnNumbers = this_line_textList.map((el, index) => {
+                index_element += 1
+
+                if (el.includes("%")) {
+                    textBtnsInitial.push({
+                        rightAnswer: el.split("%")[0],
+                        allVariantsThisBtn: el.split("%").sort(() => 0.5 - Math.random()),
+                        selectedVariant: "🌼",
+                        rowInd: index_line,
+                        colInd: index,
+                    })
+                    return 'BTN'
+                } else {
+                    return el
+                }
+            })
+            return {
+                textWithBtnNumbers: textWithBtnNumbers,
+                index_line: index_line,
+            }
+        })
+
+        console.log('textBtnsInitial', textBtnsInitial)
+        setTextBtnsState(textBtnsInitial)
+    }, []) // пустой массив зависимостей - выполнится один раз
+
+    const handleClickVariant = (rowInd: number, colInd: number, variant: string) => {
+        setTextBtnsState(prev =>
+            prev.map(btn =>
+                (btn.rowInd === rowInd && btn.colInd === colInd)
+                    ? { ...btn, selectedVariant: variant }
+                    : btn
+            )
+        )
+    }
+
+    useEffect(() => {
+        if (textBtnsState.length === 0) return
+        const allCorrect = textBtnsState.every(btn => btn.rightAnswer === btn.selectedVariant)
+        setDoneRight(allCorrect)
+        console.log('doneRight:', allCorrect)
+    }, [textBtnsState])
+
+    return <ReorderingComp />
+}
+
+export default TestPage
+
+
+
+
+
+
+
+
+
+// 'use client'
+
+// import { useEffect, useState } from "react"
+// import ReorderingComp from "./reordering-comp";
+
+
+// const TestPage = async () => {
+
+
+
+
+// 	const text = ""
+
+
+// 	const textNL = text.split('NL')
+// 	const textListNL = textNL.map(el => el.split("*"))
+
+
+// 	console.log(textListNL)
+
+
+// 	type btnListType = 
+// 	{
+// 		rightAnswer: string,
+// 		allVariantsThisBtn: string[],
+// 		selectedVariant: string,
+// 		rowInd: number,
+// 		colInd: number,
+// 	}[]
+
+// 	let textBtnsInitial: btnListType = []
+
+
+// 	let index_element = 0
+// 	const textWithBtnNumbersNL = textListNL.map((this_line_textList, index_line) => {
+
+// 		const textWithBtnNumbers = this_line_textList.map((el, index) => {
+// 			index_element += 1
+
+// 			if (el.includes("%"))
+// 				{
+// 					textBtnsInitial.push
+// 						(
+// 							{
+// 								rightAnswer: el.split("%")[0],
+// 								//
+// 								// перемешиваем варианты
+// 								allVariantsThisBtn: el.split("%").sort(() => 0.5 - Math.random()),
+																
+// 								selectedVariant: "🌼", 
+
+// 								rowInd: index_line,
+// 								colInd: index,
+
+// 								//"🍟",
+// 							}
+// 						)
+// 					return('BTN')
+					
+// 				} 
+// 			else 
+// 				{
+// 					return (el)
+
+// 				}
+			
+			
+	
+	
+// 		})
+
+// 		return( 
+// 			{
+// 				textWithBtnNumbers: textWithBtnNumbers,
+// 				index_line: index_line,
+// 			}
+// 		)
+
+// 	})
+
+
+
+// 	console.log('textBtnsInitialtextBtnsInitialtextBtnsInitial', textBtnsInitial)
+
+
+
+
+
+// const [textBtnsState, setTextBtnsState] = useState(textBtnsInitial)
+
+
+
+
+
+// 	const [doneRight, setDoneRight] = useState(false)
+	
+	
+// 	const handleClickVariant = (rowInd: number, colInd: number, variant: string) => {
+// 		setTextBtnsState(prev =>
+// 		  prev.map(btn =>
+// 			(btn.rowInd === rowInd && btn.colInd === colInd) ? { ...btn, selectedVariant: variant } : btn
+// 		  )
+// 		);
+// 	  };
+	  
+
+
+// 	useEffect(() => {
+// 		const allCorrect = textBtnsState.every(btn => btn.rightAnswer === btn.selectedVariant);
+// 		setDoneRight(allCorrect);
+// 		console.log('doneRight:', allCorrect);
+// 	}, [textBtnsState]);
+
+
+
+// 	return (
+		
+
+// 		<ReorderingComp />
+
+		
+// 	)
+// }
+
+    
+// export default TestPage
+
+
+
+
+
+
 
 
 // На ст*а%о*ри*нн%н*ые улицы зам*и%е*рающего NLгорода л*о%а*жился бл*и%е*стающий п*о%а*кров ночи.
@@ -22,124 +232,6 @@ const TestPage = async () => {
 // Румя*н%нн*ое марево р*а%о**сс%с%зс*вета осв*е%я*ща*е%и*т чугу*нн%н*ую изг*о%а*ро*д%т*ь.
 // Лики тума*нн%н*ых крыш*␣%ь%ъ* соч*е%и*таются NLвместе, сл*и%е*вают*␣%ь%ъ*ся в свинц*о%ё*вый NLг*о%а*р*и%е*зонт и уча*␣%в*ству*ю%я*т в NLспектакл*е%и* о начал*е%и* нового дня.
 //  
-
-
-
-	const text = ""
-
-
-	const textNL = text.split('NL')
-	const textListNL = textNL.map(el => el.split("*"))
-
-
-	console.log(textListNL)
-
-
-	type btnListType = 
-	{
-		rightAnswer: string,
-		allVariantsThisBtn: string[],
-		selectedVariant: string,
-		rowInd: number,
-		colInd: number,
-	}[]
-
-	let textBtnsInitial: btnListType = []
-
-
-	let index_element = 0
-	const textWithBtnNumbersNL = textListNL.map((this_line_textList, index_line) => {
-
-		const textWithBtnNumbers = this_line_textList.map((el, index) => {
-			index_element += 1
-
-			if (el.includes("%"))
-				{
-					textBtnsInitial.push
-						(
-							{
-								rightAnswer: el.split("%")[0],
-								//
-								// перемешиваем варианты
-								allVariantsThisBtn: el.split("%").sort(() => 0.5 - Math.random()),
-																
-								selectedVariant: "🌼", 
-
-								rowInd: index_line,
-								colInd: index,
-
-								//"🍟",
-							}
-						)
-					return('BTN')
-					
-				} 
-			else 
-				{
-					return (el)
-
-				}
-			
-			
-	
-	
-		})
-
-		return( 
-			{
-				textWithBtnNumbers: textWithBtnNumbers,
-				index_line: index_line,
-			}
-		)
-
-	})
-
-
-
-	console.log('textBtnsInitialtextBtnsInitialtextBtnsInitial', textBtnsInitial)
-
-
-
-
-
-const [textBtnsState, setTextBtnsState] = useState(textBtnsInitial)
-
-
-
-
-
-	const [doneRight, setDoneRight] = useState(false)
-	
-	
-	const handleClickVariant = (rowInd: number, colInd: number, variant: string) => {
-		setTextBtnsState(prev =>
-		  prev.map(btn =>
-			(btn.rowInd === rowInd && btn.colInd === colInd) ? { ...btn, selectedVariant: variant } : btn
-		  )
-		);
-	  };
-	  
-
-
-	useEffect(() => {
-		const allCorrect = textBtnsState.every(btn => btn.rightAnswer === btn.selectedVariant);
-		setDoneRight(allCorrect);
-		console.log('doneRight:', allCorrect);
-	}, [textBtnsState]);
-
-
-
-	return (
-		
-
-		<ReorderingComp />
-
-		
-	)
-}
-
-    
-export default TestPage
 
 
 

@@ -18,7 +18,7 @@ export default function HTMLContent({
     useEffect(() => {
         const controls = animate(count, percent, { duration: 5 })
         return () => controls.stop()
-    }, [])
+    }, [count, percent])
 
     return (
         // <pre style={{ fontSize: 64, color: "#61afef" }}>
@@ -28,4 +28,6 @@ export default function HTMLContent({
     <motion.p>{rounded}</motion.p>
     
 )}
+
+
 

@@ -2,12 +2,19 @@
 
 
 import { BoundingBox, MotionProps, useAnimationControls } from "framer-motion";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowUpLeft, Cog } from "lucide-react";
 import { SnapPointsType } from "./useSnap";
 import { useSnapFTrue } from "./useSnapFTrue";
 import { Button } from "@/components/ui/button";
+
+// Вне компонента - если тексты и id не меняются
+const BUTTONS_CONFIG = [
+    { id: 0, text: 'a' },
+    { id: 1, text: 'b' },
+    { id: 2, text: 'c' },
+] as const;
 
 
 
@@ -130,7 +137,7 @@ export const AnimRightTriangleSin = ({
 
         ])
 
-    }, [width, height])
+    }, [width, height,x1, x2, x3, y1, y2,y3])
 
 
 
@@ -181,38 +188,73 @@ export const AnimRightTriangleSin = ({
 
     
 
-    const FormulaDots = [
-        {
-            id: 'formulaDot1',
-            cx: BigSnapListState[3].coord.x,
-            cy: BigSnapListState[3].coord.y,
-        },
-        {
-            id: 'formulaDot2',
-            cx: BigSnapListState[4].coord.x,
-            cy: BigSnapListState[4].coord.y,
-        },
+    // const FormulaDots = [
+    //     {
+    //         id: 'formulaDot1',
+    //         cx: BigSnapListState[3].coord.x,
+    //         cy: BigSnapListState[3].coord.y,
+    //     },
+    //     {
+    //         id: 'formulaDot2',
+    //         cx: BigSnapListState[4].coord.x,
+    //         cy: BigSnapListState[4].coord.y,
+    //     },
 
-    ]
+    // ]
 
-    const ButtonList =  [
-        {
-            id: 0,
-            text: 'a',
-            buttonRef: useRef<HTMLButtonElement>(null),
-        },
-        {
-            id: 1,
-            text: 'b',
-            buttonRef: useRef<HTMLButtonElement>(null),
-        },
-        {
-            id: 2,
-            text: 'c',
-            buttonRef: useRef<HTMLButtonElement>(null),
-        },
+    // const ButtonList =  [
+    //     {
+    //         id: 0,
+    //         text: 'a',
+    //         buttonRef: useRef<HTMLButtonElement>(null),
+    //     },
+    //     {
+    //         id: 1,
+    //         text: 'b',
+    //         buttonRef: useRef<HTMLButtonElement>(null),
+    //     },
+    //     {
+    //         id: 2,
+    //         text: 'c',
+    //         buttonRef: useRef<HTMLButtonElement>(null),
+    //     },
 
-    ]
+    // ]
+
+     // Создаём ref-ы для кнопок
+    const buttonRefs = useRef([
+        React.createRef<HTMLButtonElement>(),
+        React.createRef<HTMLButtonElement>(),
+        React.createRef<HTMLButtonElement>(),
+    ]);
+    
+    // Мемоизируем ButtonList
+    const ButtonList = useMemo(() => 
+        ['a', 'b', 'c'].map((text, id) => ({
+            id,
+            text,
+            buttonRef: buttonRefs.current[id],
+        })),
+        []
+    );
+    
+        // Мемоизируем FormulaDots
+        const FormulaDots = useMemo(() => {
+        const snap3 = BigSnapListState[3];
+        const snap4 = BigSnapListState[4];
+        
+        return [
+            { id: 'formulaDot1', cx: snap3?.coord.x ?? 0, cy: snap3?.coord.y ?? 0 },
+            { id: 'formulaDot2', cx: snap4?.coord.x ?? 0, cy: snap4?.coord.y ?? 0 },
+        ];
+    }, [BigSnapListState[3]?.coord.x, BigSnapListState[3]?.coord.y,
+        BigSnapListState[4]?.coord.x, BigSnapListState[4]?.coord.y]);
+    
+    // ... остальной код
+
+
+
+
 
 
 
@@ -430,25 +472,55 @@ export const AnimRightTriangleSin = ({
     }
 
     
-    const controlsColor0 = useAnimationControls()
-    const controlsColor1 = useAnimationControls()
-    const controlsColor2 = useAnimationControls()  
+    // const controlsColor0 = useAnimationControls()
+    // const controlsColor1 = useAnimationControls()
+    // const controlsColor2 = useAnimationControls()  
 
-    const controlsColorBG0 = useAnimationControls()
-    const controlsColorBG1 = useAnimationControls()
-    const controlsColorBG2 = useAnimationControls()
+    // const controlsColorBG0 = useAnimationControls()
+    // const controlsColorBG1 = useAnimationControls()
+    // const controlsColorBG2 = useAnimationControls()
 
-    const listControlsColorLine = [
-        controlsColor0,
-        controlsColor1,
-        controlsColor2,
-    ]
+    // const listControlsColorLine = [
+    //     controlsColor0,
+    //     controlsColor1,
+    //     controlsColor2,
+    // ]
 
-    const listControlsColorBG = [
-        controlsColorBG0,
-        controlsColorBG1,
-        controlsColorBG2,
-    ]
+    // const listControlsColorBG = [
+    //     controlsColorBG0,
+    //     controlsColorBG1,
+    //     controlsColorBG2,
+    // ]
+
+
+    // Создаём массив из вызовов хуков
+    const [controlsColor0, controlsColor1, controlsColor2] = [
+        useAnimationControls(),
+        useAnimationControls(),
+        useAnimationControls(),
+    ];
+
+    const [controlsColorBG0, controlsColorBG1, controlsColorBG2] = [
+        useAnimationControls(),
+        useAnimationControls(),
+        useAnimationControls(),
+    ];
+
+    // Мемоизируем массивы
+    const listControlsColorLine = useMemo(
+        () => [controlsColor0, controlsColor1, controlsColor2],
+        [controlsColor0, controlsColor1, controlsColor2]
+    );
+
+    const listControlsColorBG = useMemo(
+        () => [controlsColorBG0, controlsColorBG1, controlsColorBG2],
+        [controlsColorBG0, controlsColorBG1, controlsColorBG2]
+    );
+
+
+
+
+
 
 
     const [isAnswered, setIsAnswered] = useState(false)
@@ -458,103 +530,236 @@ export const AnimRightTriangleSin = ({
     
 
 
-    useEffect(()=>{
-   
+
+
+
+
+    
+
+    // useEffect(() => {
+    //     const LifeSaver = useSnapList.map(useSnapResult => {
+    //         return {
+    //             currentSnappointIndex: useSnapResult.currentSnappointIndex || 0,
+    //             buttonId: useSnapResult.buttonId,
+    //         }
+    //     })
+    
+    //     const mega = pointsInitialFreeWithID.map((el, index) => {
+    //         // ищем, есть ли этот index в занятых LifeSaver
+    //         const isSnapped = LifeSaver.filter(el => el.currentSnappointIndex == index)
+    //         if (isSnapped.length > 0) {
+    //             return {
+    //                 isFree: false,
+    //                 coord: el.coord,
+    //                 pointId: el.pointId,
+    //                 occupiedBy: isSnapped[0].buttonId,
+    //             }
+    //         } else {
+    //             return {
+    //                 isFree: true,
+    //                 coord: el.coord,
+    //                 pointId: el.pointId,
+    //                 occupiedBy: -1,
+    //             }
+    //         }
+    //     })
+    
+    //     // setBigSnapListState(mega)
+    
+    //     let isSnapped_3 = false
+    //     let isSnapped_4 = false
+    
+    //     useSnapList.map((useSnapResult, indexButton) => {
+    //         // Если SnapPoint Не равен индексу Стикера, то перекрашиваем
+    //         if (useSnapResult.currentSnappointIndex != indexButton) {
+    //             listControlsColorLine[indexButton].start('snapColor')
+    //             listControlsColorBG[indexButton].start('snapColorBG')
+    //         } else {
+    //             listControlsColorLine[indexButton].start('initial')
+    //             listControlsColorBG[indexButton].start('initialBG')
+    //         }
+    
+    //         // Смотрим, был ли дан ответ (заняты ли Snap3 и Snap4)
+    //         if (useSnapResult.currentSnappointIndex == 3) {
+    //             isSnapped_3 = true
+    //         }
+    //         if (useSnapResult.currentSnappointIndex == 4) {
+    //             isSnapped_4 = true
+    //         }
+    //         if (isSnapped_3 && isSnapped_4) {
+    //             setIsAnswered(true)
+    //         } else {
+    //             setIsAnswered(false)
+    //         }
+    //     })
+    // }, [useSnapList]) // ✅ Передаем весь массив useSnapList как зависимость
+
+
+
+
+
+    useEffect(() => {
         const LifeSaver = useSnapList.map(useSnapResult => {
-            
-            return (
-            {
+            return {
                 currentSnappointIndex: useSnapResult.currentSnappointIndex || 0,
                 buttonId: useSnapResult.buttonId,
-
-            })
+            }
         })
-
-       
-
-        const mega = pointsInitialFreeWithID.map((el, index )=>{
-
+    
+        const mega = pointsInitialFreeWithID.map((el, index) => {
             // ищем, есть ли этот index в занятых LifeSaver
-            //
             const isSnapped = LifeSaver.filter(el => el.currentSnappointIndex == index)
             if (isSnapped.length > 0) {
-                // console.log(index)
-                return( 
-                    {
-                        isFree: false,
-                        coord: el.coord,
-                        pointId: el.pointId,
-                        occupiedBy: isSnapped[0].buttonId,
-                    }
-                )
+                return {
+                    isFree: false,
+                    coord: el.coord,
+                    pointId: el.pointId,
+                    occupiedBy: isSnapped[0].buttonId,
+                }
             } else {
-                return( 
-                    {
-                        isFree: true,
-                        coord: el.coord,
-                        pointId: el.pointId,
-                        occupiedBy: -1,
-                    }
-                )
+                return {
+                    isFree: true,
+                    coord: el.coord,
+                    pointId: el.pointId,
+                    occupiedBy: -1,
+                }
             }
-
         })
-
-
-
-        // console.log('mega')
-        // console.log(mega)
-
-
-        // 123
+    
         // setBigSnapListState(mega)
-
-
-
-
-
-
-
-
+    
         let isSnapped_3 = false
         let isSnapped_4 = false
-
-
-        useSnapList.map((useSnapResult, indexButton) => {
-                
-            // 
+    
+        useSnapList.forEach((useSnapResult, indexButton) => {
             // Если SnapPoint Не равен индексу Стикера, то перекрашиваем
-            //
-            if (useSnapResult.currentSnappointIndex != indexButton) 
-                {
-                    listControlsColorLine[indexButton].start('snapColor') 
-                    listControlsColorBG[indexButton].start('snapColorBG')
-                } else {
-                    listControlsColorLine[indexButton].start('initial') 
-                    listControlsColorBG[indexButton].start('initialBG')
-                }   
-
-
+            if (useSnapResult.currentSnappointIndex != indexButton) {
+                listControlsColorLine[indexButton]?.start('snapColor')
+                listControlsColorBG[indexButton]?.start('snapColorBG')
+            } else {
+                listControlsColorLine[indexButton]?.start('initial')
+                listControlsColorBG[indexButton]?.start('initialBG')
+            }
+    
             // Смотрим, был ли дан ответ (заняты ли Snap3 и Snap4)
-            //
             if (useSnapResult.currentSnappointIndex == 3) {
                 isSnapped_3 = true
             }
             if (useSnapResult.currentSnappointIndex == 4) {
                 isSnapped_4 = true
-            }        
+            }
             if (isSnapped_3 && isSnapped_4) {
                 setIsAnswered(true)
             } else {
                 setIsAnswered(false)
             }
+        })
+    }, [useSnapList, pointsInitialFreeWithID, listControlsColorLine, listControlsColorBG]) // ✅ Добавлены все зависимости
+
+
+
+
+
+    
+
+
+//     useEffect(()=>{
+   
+//         const LifeSaver = useSnapList.map(useSnapResult => {
+            
+//             return (
+//             {
+//                 currentSnappointIndex: useSnapResult.currentSnappointIndex || 0,
+//                 buttonId: useSnapResult.buttonId,
+
+//             })
+//         })
+
+       
+
+//         const mega = pointsInitialFreeWithID.map((el, index )=>{
+
+//             // ищем, есть ли этот index в занятых LifeSaver
+//             //
+//             const isSnapped = LifeSaver.filter(el => el.currentSnappointIndex == index)
+//             if (isSnapped.length > 0) {
+//                 // console.log(index)
+//                 return( 
+//                     {
+//                         isFree: false,
+//                         coord: el.coord,
+//                         pointId: el.pointId,
+//                         occupiedBy: isSnapped[0].buttonId,
+//                     }
+//                 )
+//             } else {
+//                 return( 
+//                     {
+//                         isFree: true,
+//                         coord: el.coord,
+//                         pointId: el.pointId,
+//                         occupiedBy: -1,
+//                     }
+//                 )
+//             }
+
+//         })
+
+
+
+//         // console.log('mega')
+//         // console.log(mega)
+
+
+//         // 123
+//         // setBigSnapListState(mega)
+
+
+
+
+
+
+
+
+//         let isSnapped_3 = false
+//         let isSnapped_4 = false
+
+
+//         useSnapList.map((useSnapResult, indexButton) => {
+                
+//             // 
+//             // Если SnapPoint Не равен индексу Стикера, то перекрашиваем
+//             //
+//             if (useSnapResult.currentSnappointIndex != indexButton) 
+//                 {
+//                     listControlsColorLine[indexButton].start('snapColor') 
+//                     listControlsColorBG[indexButton].start('snapColorBG')
+//                 } else {
+//                     listControlsColorLine[indexButton].start('initial') 
+//                     listControlsColorBG[indexButton].start('initialBG')
+//                 }   
+
+
+//             // Смотрим, был ли дан ответ (заняты ли Snap3 и Snap4)
+//             //
+//             if (useSnapResult.currentSnappointIndex == 3) {
+//                 isSnapped_3 = true
+//             }
+//             if (useSnapResult.currentSnappointIndex == 4) {
+//                 isSnapped_4 = true
+//             }        
+//             if (isSnapped_3 && isSnapped_4) {
+//                 setIsAnswered(true)
+//             } else {
+//                 setIsAnswered(false)
+//             }
                 
 
-        })
+//         })
 
         
-    }, useSnapList.map(el => el.currentSnappointIndex)
-)
+//     }, useSnapList.map(el => el.currentSnappointIndex)
+// )
 
 
 
@@ -591,7 +796,7 @@ useEffect(()=>{
     FormulaDots.map((dot) => { placeDiv(dot.cx, dot.cy, dot.id) })
 
 
-}, [width, height, left, top])
+}, [width, height, left, top, ButtonList, FormulaDots, x1, x2, x3, xCoordinates, y1, y2, y3])
     
 
 // const transition = { duration: 1, yoyo: Infinity, ease: "easeInOut"}
