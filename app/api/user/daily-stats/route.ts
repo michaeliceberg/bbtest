@@ -32,6 +32,7 @@ export async function POST(req: Request) {
         
         let targetHomework = null;
         for (const hw of activeHomework) {
+            if (!hw.challengeIds) continue;
             const ids = hw.challengeIds.split(',').map(id => parseInt(id));
             if (ids.includes(challengeId)) {
                 targetHomework = hw;

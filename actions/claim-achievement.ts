@@ -26,7 +26,7 @@ export async function claimAchievementReward(userId: string, achievementId: numb
         WHERE ua.user_id = ${userId} AND ua.achievement_id = ${achievementId}
     `);
     
-    const row = result.rows[0] as any;
+    const row = result[0] as any;
     
     if (!row) {
         return { success: false, error: 'Достижение не найдено' };

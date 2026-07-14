@@ -1,29 +1,3 @@
-// import { NextResponse } from "next/server";
-
-// import db from '@/db/drizzle'
-// import { challengeOptions } from "@/db/schema";
-// import { isAdmin } from "@/lib/admin";
-
-// export const GET = async () => {
-//     if (!isAdmin()) {
-//         return new NextResponse('Вы не авторизированны', {status: 401})
-//     }
-
-//     const data = await db.query.challengeOptions.findMany()
-
-//     return NextResponse.json(data)
-// }
-
-// export const POST = async (req: Request) => {
-//     if (!isAdmin()) {
-//         return new NextResponse('Вы не авторизированны', {status: 401})
-//     }
-
-//     const body = await req.json()
-
-//     const data = await db.insert(challengeOptions).values({
-//         ...body,
-//     }).returning()
-
-//     return NextResponse.json(data[0])
-// }
+// Отключённый старый роут (не используется). Оставлен пустым валидным модулем,
+// чтобы TypeScript не падал на "File is not a module". Можно удалить безопасно.
+export {};

@@ -21,7 +21,7 @@ export async function getPendingGems(userId: string) {
     let totalPending = 0;
     const mines = [];
     
-    for (const mine of result.rows as any[]) {
+    for (const mine of result as any[]) {
         const lastCollected = mine.last_collected_at || mine.purchase_date;
         const now = new Date();
         const lastDate = new Date(lastCollected);
