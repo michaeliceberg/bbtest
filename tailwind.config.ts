@@ -52,6 +52,15 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        game: {
+          bg: "#0a0e27",
+          "bg-light": "#141834",
+          card: "#1a1f3a",
+          "card-light": "#2a2f4a",
+          border: "#2a2f4a",
+          gold: "#ffd700",
+          "gold-dark": "#ff8c00",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

@@ -3,7 +3,7 @@
 import axios from "axios";
 
 const TELEGRAM_BOT_TOKEN = "7675525540:AAGy9BBsi54zeaFFs2Jt9k_PR2ofrRnGUQ8";
-const BOT_USERNAME = "brickbrain007_bot";
+export const BOT_USERNAME = "brickbrain007_bot";
 
 export const sendMessageToTelegram = async (message: string, chatId?: string): Promise<void> => {
     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
