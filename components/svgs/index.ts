@@ -1,0 +1,1 @@
+export { default as num5 } from './5.svg'
