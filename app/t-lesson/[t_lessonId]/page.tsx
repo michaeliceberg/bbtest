@@ -277,7 +277,7 @@ const LessonIdPage = async ({ params }: Props) => {
 
     // СЧИТАЕМ Статистику правильно решенных задач
     const currentLessonProgress = all_t_lessonProgress?.filter(el => el.t_lessonId === t_lessonId) || [];
-    const UniqueUserIds = [...new Set(currentLessonProgress.map(el => el.userId))];
+    const UniqueUserIds = Array.from(new Set(currentLessonProgress.map(el => el.userId)));
 
     const usersStat = UniqueUserIds.map(user_id => {
         const CLCUProgress = currentLessonProgress.filter(progress => progress.userId === user_id);
