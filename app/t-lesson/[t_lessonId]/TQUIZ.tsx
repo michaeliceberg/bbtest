@@ -9,6 +9,7 @@ import Lottie from "lottie-react"
 import LottieTrainerSharkFailDNO from '@/public/Lottie/trainer/LottieTrainerSharkFailDNO.json'
 import LottieTrainerSharkFinalWin from '@/public/Lottie/trainer/LottieTrainerSharkFinalWin.json'
 import WinStreakModal from "../../../components/win-streak-modal"
+import ComboBanner from "../../../components/combo-banner"
 import { toast } from "sonner"
 import { upsertTrainerLessonProgress } from "@/actions/user-progress"
 import { Separator } from "../../../components/ui/separator"
@@ -47,6 +48,7 @@ export default function TQuiz({
   
   const [streak, setStreak] = useState(0)
   const [effect, setEffect] = useState<StreakEffect | null>(null)
+  const [combo, setCombo] = useState<number | null>(null)
   const [randomStartLottie, setRandomStartLottie] = useState(LOTTIE_START_LIST[0])
   const [randomStartButton, setRandomStartButton] = useState(startButton[0])
   const [randomEmotionLottie, setRandomEmotionLottie] = useState(LOTTIE_EMOTION_RIGHT_LIST[0])
@@ -189,6 +191,9 @@ export default function TQuiz({
           const newStreak = prev + 1
           if (newStreak === 3) {
             setEffect(createEffect(newStreak))
+          }
+          if (newStreak >= 5 && newStreak % 5 === 0) {
+            setCombo(newStreak)
           }
           return newStreak
         })
@@ -368,6 +373,7 @@ export default function TQuiz({
   return (
     <>
       <WinStreakModal effect={effect} onClose={() => setEffect(null)} />
+      <ComboBanner combo={combo} onDone={() => setCombo(null)} />
       <div className="w-full max-w-xl mx-auto text-center">
         <TrainerQuestion
           questions={questions}
