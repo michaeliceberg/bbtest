@@ -206,12 +206,12 @@ export const TabTCourses = ({
             <Tabs defaultValue={t_courses[0]?.title} className="w-full">
                 {/* Табы курсов - центрируем */}
                 <div className="flex justify-center mb-6">
-                    <TabsList className="bg-gray-100 rounded-xl p-1">
+                    <TabsList className="bg-game-card border border-game-border rounded-xl p-1">
                         {t_courses.map((t_course, index) => (
-                            <TabsTrigger 
-                                key={index * 21983} 
+                            <TabsTrigger
+                                key={index * 21983}
                                 value={t_course.title}
-                                className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2"
+                                className="text-gray-400 data-[state=active]:bg-game-card-light data-[state=active]:text-game-gold data-[state=active]:shadow-sm px-4 py-2"
                             >
                                 {t_course.title.split(' ')[0]}
                             </TabsTrigger>
@@ -238,11 +238,11 @@ export const TabTCourses = ({
                             {t_units.filter(u => u.t_courseId === t_course.id).map((t_unit, indexUnit) => (
                                 <div key={indexUnit * 81872} className="w-full max-w-4xl mx-auto mb-8">
                                     <Block
-                                        className="font-bold w-full rounded-xl bg-gradient-to-r from-green-500 to-green-600 p-4 text-2xl text-white shadow-md"
+                                        className="font-bold w-full rounded-xl bg-gradient-to-r from-game-card to-game-card-light border border-game-gold/30 p-4 text-2xl text-game-gold shadow-md"
                                     >
                                         <div className="flex justify-between items-center">
                                             <p>{t_unit.title}</p>
-                                            <p className="text-sm bg-white/20 px-3 py-1 rounded-full">
+                                            <p className="text-sm bg-game-gold/10 text-game-gold px-3 py-1 rounded-full">
                                                 {indexUnit + 1}/{t_units.filter(u => u.t_courseId === t_course.id).length}
                                             </p>
                                         </div>
@@ -278,31 +278,31 @@ export const TabTCourses = ({
                         </div>
 
                         <div className="flex justify-center mt-8">
-                            <Button 
-                                onClick={onClickHandler} 
+                            <Button
+                                onClick={onClickHandler}
                                 variant='primaryOutline'
-                                className="px-6"
+                                className="px-6 bg-game-card text-game-gold border border-game-gold/30 hover:bg-game-card-light"
                             >
                                 {showFormulas ? 'Скрыть формулы' : 'Показать все формулы'}
                             </Button>
                         </div>
 
                         {showFormulas && (
-                            <div className="mt-6 p-6 bg-gray-50 rounded-xl border">
-                                <h3 className="text-xl font-bold mb-4 text-center">📖 Все формулы</h3>
+                            <div className="mt-6 p-6 bg-game-card rounded-xl border border-game-border">
+                                <h3 className="text-xl font-bold mb-4 text-center text-white">Все формулы</h3>
                                 <div className="space-y-6">
                                     {t_units.filter(u => u.t_courseId === t_course.id).map((t_unit, index) => (
-                                        <div key={index * 14213} className="border-b pb-4 last:border-b-0">
-                                            <h4 className="font-bold text-lg mb-3 text-green-700">{t_unit.title}</h4>
+                                        <div key={index * 14213} className="border-b border-game-border pb-4 last:border-b-0">
+                                            <h4 className="font-bold text-lg mb-3 text-game-gold">{t_unit.title}</h4>
                                             <div className="space-y-3 pl-4">
                                                 {t_units.filter(ul => ul.id == t_unit.id)[0].t_lessons.map((t_lesson, idx) => (
                                                     <div key={idx * 2241}>
-                                                        <p className="font-medium text-gray-600 mb-2">{t_lesson.title}:</p>
+                                                        <p className="font-medium text-gray-300 mb-2">{t_lesson.title}:</p>
                                                         <div className="space-y-2 pl-4">
                                                             {t_lesson.t_challenges.map((t_challenge, i) => (
-                                                                <div key={i * 9135} className="p-3 bg-white rounded-lg border">
+                                                                <div key={i * 9135} className="p-3 bg-game-card-light rounded-lg border border-game-border text-gray-200">
                                                                     <Latex>{t_challenge.question}</Latex>
-                                                                    <div className="text-green-600 mt-1 text-sm">
+                                                                    <div className="text-emerald-400 mt-1 text-sm">
                                                                         Ответ: <Latex>{t_challenge.t_challengeOptions[0]?.text}</Latex>
                                                                     </div>
                                                                 </div>
