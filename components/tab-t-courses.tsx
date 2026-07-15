@@ -15,8 +15,7 @@ import 'katex/dist/katex.min.css';
 import Latex from 'react-latex-next';
 import { useState } from "react";
 import { Button } from "./ui/button";
-import { TrainerLessonItemRound } from "./trainer-list-round";
-import { Block } from "./block";
+import { TrainerSkillTree, SkillUnit } from "./trainer-skill-tree";
 
 type Props = {
     t_courses: {
@@ -220,7 +219,40 @@ export const TabTCourses = ({
                 </div>
 
                 {/* Контент для каждого курса */}
-                {t_courses.map((t_course, indexCourse) => (
+                {t_courses.map((t_course, indexCourse) => {
+                    const skillUnits: SkillUnit[] = t_units.filter(u => u.t_courseId === t_course.id).map((t_unit, indexUnit) => {
+                        const StatThisUnitLessons = AllTStat[indexCourse].StatThisCourse[indexUnit].unitStat
+
+                        const lessons = t_unit.t_lessons.map((t_lesson, indexLesson) => {
+                            let isDisabled = true
+                            if (indexLesson == 0 || StatThisUnitLessons[indexLesson - 1]?.PD > 0.9) {
+                                isDisabled = false
+                            }
+                            const percentage = Math.round((StatThisUnitLessons[indexLesson]?.PD ?? 0) * 100)
+
+                            return {
+                                id: t_lesson.id,
+                                title: t_lesson.title,
+                                percentage,
+                                isDisabled,
+                                isInQuest: questLessonIds.includes(t_lesson.id),
+                                hasHw: missedLIds.includes(t_lesson.id),
+                            }
+                        })
+
+                        const unitPercentage = lessons.length
+                            ? Math.round(lessons.reduce((a, b) => a + b.percentage, 0) / lessons.length)
+                            : 0
+
+                        return {
+                            id: t_unit.id,
+                            title: t_unit.title,
+                            percentage: unitPercentage,
+                            lessons,
+                        }
+                    })
+
+                    return (
                     <TabsContent key={indexCourse * 19339} value={t_course.title} className="mt-0">
                         <TCourseBanner
                             t_course_title={t_course.title}
@@ -234,47 +266,8 @@ export const TabTCourses = ({
                             CourseStat={CourseStat}
                         />
 
-                        <div className="flex flex-col items-center w-full mt-6">
-                            {t_units.filter(u => u.t_courseId === t_course.id).map((t_unit, indexUnit) => (
-                                <div key={indexUnit * 81872} className="w-full max-w-4xl mx-auto mb-8">
-                                    <Block
-                                        className="font-bold w-full rounded-xl bg-gradient-to-r from-green-500 to-green-600 p-4 text-2xl text-white shadow-md"
-                                    >
-                                        <div className="flex justify-between items-center">
-                                            <p>{t_unit.title}</p>
-                                            <p className="text-sm bg-white/20 px-3 py-1 rounded-full">
-                                                {indexUnit + 1}/{t_units.filter(u => u.t_courseId === t_course.id).length}
-                                            </p>
-                                        </div>
-                                    </Block>
-
-                                    <div className="mt-4 space-y-4">
-                                        {t_units.filter(ul => ul.id == t_unit.id)[0].t_lessons.map((t_lesson, indexLesson) => {
-                                            const StatThisUnitLessons = AllTStat[indexCourse].StatThisCourse[indexUnit].unitStat
-                                            let isDisabled = true
-                                            if (indexLesson == 0 || StatThisUnitLessons[indexLesson - 1]?.PD > 0.9) {
-                                                isDisabled = false
-                                            }
-
-                                            const isInQuest = questLessonIds.includes(t_lesson.id);
-
-                                            return (
-                                                <TrainerLessonItemRound
-                                                    key={t_lesson.id}
-                                                    t_lesson={t_lesson}
-                                                    t_lessonProgress={t_lessonProgress}
-                                                    TRatingUsers={TRatingUsers}
-                                                    user_id={user_id}
-                                                    indexLesson={indexLesson}
-                                                    isDisabled={isDisabled}
-                                                    missedLIds={missedLIds}
-                                                    isInQuest={isInQuest}
-                                                />
-                                            )
-                                        })}
-                                    </div>
-                                </div>
-                            ))}
+                        <div className="w-full mt-6">
+                            <TrainerSkillTree units={skillUnits} />
                         </div>
 
                         <div className="flex justify-center mt-8">
@@ -317,7 +310,8 @@ export const TabTCourses = ({
                             </div>
                         )}
                     </TabsContent>
-                ))}
+                    )
+                })}
             </Tabs>
         </div>
     )
