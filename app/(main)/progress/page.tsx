@@ -111,66 +111,66 @@ const ProgressPage = async () => {
                             <TrendingUp className="h-8 w-8 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-3xl font-bold text-gray-800">Мой прогресс</h1>
-                            <p className="text-gray-500">{userProgress.activeCourse.title}</p>
+                            <h1 className="text-3xl font-bold text-[#F2F7FB]">Мой прогресс</h1>
+                            <p className="text-[#9AA7B0]">{userProgress.activeCourse.title}</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Статистика в карточках */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                    <div className="bg-white rounded-xl border p-4 shadow-sm">
-                        <div className="flex items-center gap-2 text-gray-500 mb-2">
+                    <div className="bg-[#151F23] rounded-xl border p-4 shadow-sm">
+                        <div className="flex items-center gap-2 text-[#9AA7B0] mb-2">
                             <BookOpen className="h-4 w-4" />
                             <span className="text-sm">Всего заданий</span>
                         </div>
-                        <div className="text-2xl font-bold text-gray-800">{totalChallenges}</div>
+                        <div className="text-2xl font-bold text-[#F2F7FB]">{totalChallenges}</div>
                     </div>
-                    <div className="bg-white rounded-xl border p-4 shadow-sm">
-                        <div className="flex items-center gap-2 text-gray-500 mb-2">
+                    <div className="bg-[#151F23] rounded-xl border p-4 shadow-sm">
+                        <div className="flex items-center gap-2 text-[#9AA7B0] mb-2">
                             <CheckCircle className="h-4 w-4 text-green-500" />
                             <span className="text-sm">Выполнено</span>
                         </div>
-                        <div className="text-2xl font-bold text-gray-800">{totalCompleted}</div>
+                        <div className="text-2xl font-bold text-[#F2F7FB]">{totalCompleted}</div>
                         <div className="text-sm text-green-600">{totalPercent}%</div>
                     </div>
-                    <div className="bg-white rounded-xl border p-4 shadow-sm">
-                        <div className="flex items-center gap-2 text-gray-500 mb-2">
+                    <div className="bg-[#151F23] rounded-xl border p-4 shadow-sm">
+                        <div className="flex items-center gap-2 text-[#9AA7B0] mb-2">
                             <Zap className="h-4 w-4 text-yellow-500" />
                             <span className="text-sm">В день</span>
                         </div>
-                        <div className="text-2xl font-bold text-gray-800">{dailyAverage}</div>
+                        <div className="text-2xl font-bold text-[#F2F7FB]">{dailyAverage}</div>
                         <div className="text-sm text-gray-400">задач/день</div>
                     </div>
-                    <div className="bg-white rounded-xl border p-4 shadow-sm">
-                        <div className="flex items-center gap-2 text-gray-500 mb-2">
+                    <div className="bg-[#151F23] rounded-xl border p-4 shadow-sm">
+                        <div className="flex items-center gap-2 text-[#9AA7B0] mb-2">
                             <Calendar className="h-4 w-4 text-blue-500" />
                             <span className="text-sm">Прогноз</span>
                         </div>
-                        <div className="text-2xl font-bold text-gray-800">{daysToFinish}</div>
+                        <div className="text-2xl font-bold text-[#F2F7FB]">{daysToFinish}</div>
                         <div className="text-sm text-gray-400">дней до завершения</div>
                     </div>
                 </div>
 
                 {/* Прогресс-бар общего курса */}
-                <div className="bg-white rounded-xl border p-6 mb-8">
+                <div className="bg-[#151F23] rounded-xl border p-6 mb-8">
                     <div className="flex justify-between items-center mb-3">
                         <h3 className="font-bold text-lg">Общий прогресс курса</h3>
                         <span className="text-2xl font-bold text-green-600">{totalPercent}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div className="w-full bg-[#2E3A40] rounded-full h-3">
                         <div
                             className="bg-green-500 h-3 rounded-full transition-all duration-500"
                             style={{ width: `${totalPercent}%` }}
                         />
                     </div>
-                    <p className="text-sm text-gray-500 mt-3">
+                    <p className="text-sm text-[#9AA7B0] mt-3">
                         {totalCompleted} из {totalChallenges} заданий выполнено
                     </p>
                 </div>
 
                 {/* Прогресс по разделам */}
-                <div className="bg-white rounded-xl border p-6 mb-8">
+                <div className="bg-[#151F23] rounded-xl border p-6 mb-8">
                     <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
                         <Target className="h-5 w-5 text-purple-500" />
                         Прогресс по разделам
@@ -179,10 +179,10 @@ const ProgressPage = async () => {
                         {unitStats.map((unit) => (
                             <div key={unit.unitId}>
                                 <div className="flex justify-between text-sm mb-1">
-                                    <span className="font-medium text-gray-700">{unit.unitTitle}</span>
-                                    <span className="text-gray-500">{unit.completed}/{unit.total}</span>
+                                    <span className="font-medium text-[#F2F7FB]">{unit.unitTitle}</span>
+                                    <span className="text-[#9AA7B0]">{unit.completed}/{unit.total}</span>
                                 </div>
-                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div className="w-full bg-[#2E3A40] rounded-full h-2">
                                     <div
                                         className={`${getPercentColor(unit.percent)} h-2 rounded-full transition-all duration-500`}
                                         style={{ width: `${unit.percent}%` }}
@@ -194,29 +194,29 @@ const ProgressPage = async () => {
                 </div>
 
                 {/* Аналитика */}
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border p-6">
-                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                <div className="bg-[#1A252B] rounded-xl border border-[#3A464E] p-6">
+                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-[#F2F7FB]">
                         <Award className="h-5 w-5 text-yellow-500" />
                         Аналитика
                     </h3>
                     <div className="space-y-3">
-                        <div className="flex justify-between items-center py-2 border-b border-white/50">
-                            <span className="text-gray-600">Осталось решить</span>
-                            <span className="font-bold text-orange-600">{remaining} задач</span>
+                        <div className="flex justify-between items-center py-2 border-b border-[#3A464E]">
+                            <span className="text-[#9AA7B0]">Осталось решить</span>
+                            <span className="font-bold text-orange-400">{remaining} задач</span>
                         </div>
-                        <div className="flex justify-between items-center py-2 border-b border-white/50">
-                            <span className="text-gray-600">Средняя скорость</span>
-                            <span className="font-bold text-blue-600">{dailyAverage} задач/день</span>
+                        <div className="flex justify-between items-center py-2 border-b border-[#3A464E]">
+                            <span className="text-[#9AA7B0]">Средняя скорость</span>
+                            <span className="font-bold text-blue-400">{dailyAverage} задач/день</span>
                         </div>
-                        <div className="flex justify-between items-center py-2 border-b border-white/50">
-                            <span className="text-gray-600">Прогнозируемая дата завершения</span>
-                            <span className="font-bold text-green-600">{formattedFinishDate}</span>
+                        <div className="flex justify-between items-center py-2 border-b border-[#3A464E]">
+                            <span className="text-[#9AA7B0]">Прогнозируемая дата завершения</span>
+                            <span className="font-bold text-green-400">{formattedFinishDate}</span>
                         </div>
                         <div className="flex justify-between items-center py-2">
-                            <span className="text-gray-600">Активность на этой неделе</span>
+                            <span className="text-[#9AA7B0]">Активность на этой неделе</span>
                             <div className="flex items-center gap-1">
-                                <Clock className="h-4 w-4 text-gray-400" />
-                                <span className="font-medium">{lastWeekChallenges.length} задач</span>
+                                <Clock className="h-4 w-4 text-[#9AA7B0]" />
+                                <span className="font-medium text-[#F2F7FB]">{lastWeekChallenges.length} задач</span>
                             </div>
                         </div>
                     </div>
@@ -674,7 +674,7 @@ export default ProgressPage
 //                                     <Button key={index*203} className=
 // 									{
 // 										lessonStat.percentageDoneLesson === 0 
-// 										? "w-full mb-3 bg-white border-slate-200 border-2 hover:bg-slate-100 text-slate-500"
+// 										? "w-full mb-3 bg-[#151F23] border-[#3A464E] border-2 hover:bg-[#232F34] text-[#9AA7B0]"
 //                                     	: lessonStat.percentageDoneLesson < 20
 // 										? "w-full mb-3 bg-green-500/5 text-green-500 border-green-300 border-2 hover:bg-sky-500/20 transition-none"
 //                                     	: lessonStat.percentageDoneLesson < 40

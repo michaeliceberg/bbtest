@@ -39,7 +39,7 @@ const ShopPage = async () => {
             <FeedWrapper>
                 <div className="mb-6">
                     <h1 className="text-3xl font-bold">🏪 Королевский магазин</h1>
-                    <p className="text-gray-500 mt-1">
+                    <p className="text-[#9AA7B0] mt-1">
                         Инвестируй в шахты и получай реальные призы!
                     </p>
                 </div>

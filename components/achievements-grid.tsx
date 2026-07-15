@@ -111,7 +111,7 @@ export const AchievementsGrid = ({ userId, achievementsWithProgress }: Props) =>
                                     className={`relative rounded-xl overflow-hidden border-2 transition-all ${
                                         isCompleted 
                                             ? 'border-yellow-400 shadow-lg shadow-yellow-200'
-                                            : 'border-gray-200 opacity-70'
+                                            : 'border-[#3A464E] opacity-70'
                                     }`}
                                     whileHover={{ scale: 1.02 }}
                                 >
@@ -137,12 +137,12 @@ export const AchievementsGrid = ({ userId, achievementsWithProgress }: Props) =>
                                         <p className="text-xs opacity-90">{ach.description}</p>
                                     </div>
                                     
-                                    <div className="p-3 bg-white">
-                                        <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                    <div className="p-3 bg-[#151F23]">
+                                        <div className="flex justify-between text-xs text-[#9AA7B0] mb-1">
                                             <span>Прогресс</span>
                                             <span>{ach.progress}/{ach.requirement}</span>
                                         </div>
-                                        <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                        <div className="w-full bg-[#2E3A40] rounded-full h-1.5">
                                             <div 
                                                 className="h-full rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 transition-all"
                                                 style={{ width: `${progressPercent}%` }}

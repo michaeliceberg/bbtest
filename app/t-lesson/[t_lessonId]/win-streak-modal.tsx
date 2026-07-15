@@ -32,7 +32,7 @@
     
 //     <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
 
-//       <div className="bg-white p-6 rounded-xl shadow-xl text-center">
+//       <div className="bg-[#151F23] p-6 rounded-xl shadow-xl text-center">
 
 //         <img
 //           src="/images/winner.png"

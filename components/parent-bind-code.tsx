@@ -24,12 +24,12 @@ export const ParentBindCode = ({ userId, userName }: Props) => {
     };
 
     return (
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-4 space-y-3">
-            <h3 className="font-bold text-slate-700 flex items-center gap-2">
+        <div className="rounded-xl border border-[#3A464E] bg-[#151F23] shadow-sm p-4 space-y-3">
+            <h3 className="font-bold text-[#F2F7FB] flex items-center gap-2">
                 <Users className="h-5 w-5 text-amber-500" />
                 Родителям
             </h3>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-[#9AA7B0]">
                 Поделитесь кодом с родителями — они смогут отслеживать прогресс в Telegram.
             </p>
             <div className="flex items-center gap-2 justify-center">
@@ -46,7 +46,7 @@ export const ParentBindCode = ({ userId, userName }: Props) => {
                 </Button>
             </div>
             <p className="text-xs text-slate-400 text-center">
-                Команда боту: <code className="bg-slate-100 px-1 rounded text-slate-600">/bind {bindCode}</code>
+                Команда боту: <code className="bg-[#232F34] px-1 rounded text-[#9AA7B0]">/bind {bindCode}</code>
             </p>
             <p className="text-xs text-slate-400 text-center">
                 Telegram бот: <span className="font-mono text-amber-600">@{BOT_USERNAME}</span>

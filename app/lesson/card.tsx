@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { useCallback } from "react"
 import { useKey } from "react-use"
+import { motion, useAnimation } from "framer-motion"
 
 type Props = {
     id: number
@@ -31,23 +32,28 @@ export const Card = ({
     type,
     isDoneWrongChallenge,
 }: Props) => {
+    const controls = useAnimation()
+
     const handleClick = useCallback(() => {
         if (disabled) return
+        // Bounce-эффект: карточка чуть увеличивается и возвращается к исходному размеру
+        controls.start({ scale: [1, 1.08, 1], transition: { duration: 0.28, ease: 'easeInOut' } })
         onClick()
-    }, [disabled, onClick])
+    }, [disabled, onClick, controls])
 
     useKey(shortcut, handleClick, {}, [handleClick])
 
     return (
-        <div
+        <motion.div
+            animate={controls}
             onClick={handleClick}
             className={cn(
-                'h-full border-2 rounded-xl border-b-4 hover:bg-black/5 p-4 lg:p-6 cursor-pointer active:border-b-2 transition-all',
-                selected && "border-sky-300 bg-sky-100 hover:bg-sky-100",
-                selected && status === "correct" && "border-green-300 bg-green-100 hover:bg-green-100",
-                selected && status === "wrong" && "border-rose-300 bg-rose-100 hover:bg-rose-100",
-                disabled && "pointer-events-none hover:bg-white",
-                isDoneWrongChallenge && "border-rose-300 bg-rose-100 hover:bg-rose-100",
+                'h-full border-2 rounded-xl border-b-4 bg-[#161F23] border-[#3A464E] hover:bg-[#1A252B] p-4 lg:p-6 cursor-pointer active:border-b-2 transition-colors',
+                selected && "border-[#3E6883] bg-[#5183A4] hover:bg-[#5183A4]",
+                selected && status === "correct" && "border-[#53692C] bg-[#678337] hover:bg-[#678337]",
+                selected && status === "wrong" && "border-[#A3423E] bg-[#C8524E] hover:bg-[#C8524E]",
+                disabled && "pointer-events-none hover:bg-[#161F23]",
+                isDoneWrongChallenge && "border-[#A3423E] bg-[#C8524E] hover:bg-[#C8524E]",
                 type === "ASSIST" && "lg:p-3 w-full"
             )}
         >
@@ -69,24 +75,20 @@ export const Card = ({
                 {type === "ASSIST" && <div />}
 
                 <p className={cn(
-                    "text-neutral-600 text-sm lg:text-base text-center flex-1",
-                    selected && "text-sky-500",
-                    selected && status === "correct" && "text-green-500",
-                    selected && status === "wrong" && "text-rose-500",
+                    "text-[#F2F7FB] text-sm lg:text-base text-center flex-1",
+                    (selected || isDoneWrongChallenge) && "text-white",
                 )}>
                     {text}
                 </p>
-                
+
                 <div className={cn(
-                    "lg:w-[30px] lg:h-[30px] w-[20px] h-[20px] border-2 flex items-center justify-center rounded-lg text-neutral-400 lg:text-[15px] text-xs font-semibold",
-                    selected && "border-sky-300 text-sky-500",
-                    selected && status === "correct" && "border-green-500 text-green-500",
-                    selected && status === "wrong" && "border-rose-500 text-rose-500",
+                    "lg:w-[30px] lg:h-[30px] w-[20px] h-[20px] border-2 border-[#3A464E] flex items-center justify-center rounded-lg text-[#9AA7B0] lg:text-[15px] text-xs font-semibold",
+                    (selected || isDoneWrongChallenge) && "border-white/60 text-white",
                 )}>
-                    {shortcut}  
+                    {shortcut}
                 </div>
             </div>
-        </div>
+        </motion.div>
     )
 }
 

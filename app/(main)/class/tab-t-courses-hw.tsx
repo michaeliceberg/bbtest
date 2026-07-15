@@ -139,19 +139,19 @@ export const TabTCoursesHW = ({
     }
 
     if (!t_courses || t_courses.length === 0) {
-        return <div className="text-center py-8 text-gray-500">Нет доступных курсов</div>
+        return <div className="text-center py-8 text-[#9AA7B0]">Нет доступных курсов</div>
     }
 
     return (
         <div className="w-full max-w-6xl mx-auto px-4">
             <Tabs defaultValue={t_courses[0].title} className="w-full">
                 <div className="flex justify-center mb-6">
-                    <TabsList className="bg-gray-100 rounded-xl p-1">
+                    <TabsList className="bg-[#232F34] rounded-xl p-1">
                         {t_courses.map((t_course, index) => (
                             <TabsTrigger
                                 key={index * 21983}
                                 value={t_course.title}
-                                className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2"
+                                className="data-[state=active]:bg-[#151F23] data-[state=active]:shadow-sm px-4 py-2"
                             >
                                 {t_course.title.split(' ')[0]}
                             </TabsTrigger>
@@ -161,11 +161,11 @@ export const TabTCoursesHW = ({
 
                 {t_courses.map((t_course, indexCourse) => (
                     <TabsContent key={indexCourse * 19339} value={t_course.title} className="mt-0">
-                        <div className="bg-white rounded-xl border p-6">
-                            <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
+                        <div className="bg-[#151F23] rounded-xl border p-6">
+                            <h2 className="text-2xl font-bold mb-6 text-center text-[#F2F7FB]">
                                 Выберите уроки для ДЗ
                             </h2>
-                            <p className="text-center text-gray-500 mb-6">
+                            <p className="text-center text-[#9AA7B0] mb-6">
                                 Отметьте уроки тренажера, которые хотите задать классу
                             </p>
 
@@ -187,9 +187,9 @@ export const TabTCoursesHW = ({
                                                 const isChecked = checkedState.find(el => el.lessonId === t_lesson.id)?.isChecked || false
 
                                                 return (
-                                                    <div key={indexLesson * 2241} className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+                                                    <div key={indexLesson * 2241} className="flex items-center justify-between p-4 hover:bg-[#1A252B] transition-colors">
                                                         <div className="flex items-center gap-4">
-                                                            <span className="text-gray-600 font-medium">{t_lesson.title}</span>
+                                                            <span className="text-[#9AA7B0] font-medium">{t_lesson.title}</span>
                                                             {missedCount > 0 && (
                                                                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                                                                     missedCount === 0 

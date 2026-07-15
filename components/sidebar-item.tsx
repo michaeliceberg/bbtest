@@ -62,12 +62,12 @@ export const SidebarItem = ({ label, iconSrc, href }: Props) => {
 //                 'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group',
 //                 isActive 
 //                     ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 shadow-sm' 
-//                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+//                     : 'text-[#9AA7B0] hover:bg-[#232F34] hover:text-[#F2F7FB]'
 //             )}
 //         >
 //             <div className={cn(
 //                 'transition-transform duration-200 group-hover:scale-110',
-//                 isActive ? 'text-green-600' : 'text-gray-500'
+//                 isActive ? 'text-green-600' : 'text-[#9AA7B0]'
 //             )}>
 //                 {icon}
 //             </div>

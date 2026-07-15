@@ -136,7 +136,7 @@ export const Sidebar = ({
     if (courses.length === 0) {
         return (
             <div className={cn(
-                'flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-gradient-to-b from-white to-gray-50',
+                'flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-[#151F23]',
                 className
             )}>
                 <div className='pt-8 pl-4 pb-7 flex items-center gap-x-3'>
@@ -145,7 +145,7 @@ export const Sidebar = ({
                         <h1 className='text-xl font-extrabold bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent'>
                             Korolev
                         </h1>
-                        <p className="text-[10px] text-gray-400">Королевские знания</p>
+                        <p className="text-[10px] text-[#9AA7B0]">Королевские знания</p>
                     </div>
                 </div>
                 
@@ -160,8 +160,8 @@ export const Sidebar = ({
                                     variant={isActive ? 'sidebarOutline' : 'sidebar'}
                                     className="justify-start h-[52px] w-full"
                                 >
-                                    <Icon className="mr-3 h-5 w-5 text-gray-500" />
-                                    <span className="text-sm text-gray-700">{item.label}</span>
+                                    <Icon className="mr-3 h-5 w-5 text-[#9AA7B0]" />
+                                    <span className="text-sm text-[#F2F7FB]">{item.label}</span>
                                 </Button>
                             </TransitionLink>
                         )
@@ -173,7 +173,7 @@ export const Sidebar = ({
     
     return (
         <div className={cn(
-            'flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-gradient-to-b from-white to-gray-50',
+            'flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-[#151F23]',
             className
         )}>
             {/* Логотип */}
@@ -186,7 +186,7 @@ export const Sidebar = ({
                         <h1 className='text-xl font-extrabold bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent'>
                             Korolev
                         </h1>
-                        <p className="text-[10px] text-gray-400">Королевские знания</p>
+                        <p className="text-[10px] text-[#9AA7B0]">Королевские знания</p>
                     </div>
                 </div>
             </TransitionLink>
@@ -199,15 +199,15 @@ export const Sidebar = ({
                     <button
                         onClick={() => setIsCoursesOpen(!isCoursesOpen)}
                         disabled={isPending}
-                        className="w-full flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 transition-all"
+                        className="w-full flex items-center justify-between p-3 rounded-xl bg-green-500/10 hover:bg-green-500/15 transition-all"
                     >
                         <div className="flex items-center gap-2">
-                            <GraduationCap className="h-5 w-5 text-green-600" />
-                            <span className="font-medium text-green-700">{activeCourse?.title || 'Выберите курс'}</span>
+                            <GraduationCap className="h-5 w-5 text-green-400" />
+                            <span className="font-medium text-green-300">{activeCourse?.title || 'Выберите курс'}</span>
                             {activeCourse?.streak && activeCourse.streak > 0 && (
-                                <div className="flex items-center gap-1 bg-orange-100 px-2 py-0.5 rounded-full">
-                                    <Flame className="h-3 w-3 text-orange-500" />
-                                    <span className="text-xs text-orange-600">{activeCourse.streak}</span>
+                                <div className="flex items-center gap-1 bg-orange-500/15 px-2 py-0.5 rounded-full">
+                                    <Flame className="h-3 w-3 text-orange-400" />
+                                    <span className="text-xs text-orange-300">{activeCourse.streak}</span>
                                 </div>
                             )}
                             {activeCourse?.hasUnfinishedHomework && (
@@ -215,11 +215,11 @@ export const Sidebar = ({
                             )}
                         </div>
                         {isPending ? (
-                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-green-400 border-t-transparent" />
                         ) : isCoursesOpen ? (
-                            <ChevronUp className="h-4 w-4 text-green-600" />
+                            <ChevronUp className="h-4 w-4 text-green-400" />
                         ) : (
-                            <ChevronDown className="h-4 w-4 text-green-600" />
+                            <ChevronDown className="h-4 w-4 text-green-400" />
                         )}
                     </button>
                     
@@ -239,8 +239,8 @@ export const Sidebar = ({
                                         className={cn(
                                             "w-full flex items-center justify-between p-2 rounded-lg transition-all",
                                             course.id === activeCourseId
-                                                ? "bg-green-100 text-green-700"
-                                                : "hover:bg-gray-100 text-gray-600"
+                                                ? "bg-green-500/15 text-green-300"
+                                                : "hover:bg-[#232F34] text-[#9AA7B0]"
                                         )}
                                     >
                                         <div className="flex items-center gap-2">
@@ -250,9 +250,9 @@ export const Sidebar = ({
                                         <div className="flex items-center gap-2">
                                             {/* Стрик (огонь) */}
                                             {course.streak && course.streak > 0 && (
-                                                <div className="flex items-center gap-0.5 bg-orange-100 px-1.5 py-0.5 rounded-full">
-                                                    <Flame className="h-3 w-3 text-orange-500" />
-                                                    <span className="text-xs text-orange-600">{course.streak}</span>
+                                                <div className="flex items-center gap-0.5 bg-orange-500/15 px-1.5 py-0.5 rounded-full">
+                                                    <Flame className="h-3 w-3 text-orange-400" />
+                                                    <span className="text-xs text-orange-300">{course.streak}</span>
                                                 </div>
                                             )}
                                             
@@ -289,13 +289,13 @@ export const Sidebar = ({
                                     isActive && 'shadow-md'
                                 )}
                             >
-                                <Icon className={cn('mr-3 h-5 w-5', isActive ? 'text-green-600' : 'text-gray-500')} />
-                                
+                                <Icon className={cn('mr-3 h-5 w-5', isActive ? 'text-green-400' : 'text-[#9AA7B0]')} />
+
                                 <div className="flex-1 text-left flex items-center">
-                                    <span className={cn('text-sm', isActive ? 'font-semibold text-green-700' : 'text-gray-700')}>
+                                    <span className={cn('text-sm', isActive ? 'font-semibold text-green-300' : 'text-[#F2F7FB]')}>
                                         {item.label}
                                     </span>
-                                    
+
                                     {/* Бейдж справа от текста с отступом */}
                                     {item.badge && (
                                         <div className={cn(
@@ -304,9 +304,9 @@ export const Sidebar = ({
                                             "animate-pulse shadow-md"
                                         )} />
                                     )}
-                                    
+
                                     {item.label === 'Тренажёр' && trainerQuestProgress && (
-                                        <span className="text-xs text-gray-400 ml-2">({trainerQuestProgress})</span>
+                                        <span className="text-xs text-[#9AA7B0] ml-2">({trainerQuestProgress})</span>
                                     )}
                                 </div>
                                 
@@ -322,27 +322,27 @@ export const Sidebar = ({
             {/* Нижняя секция */}
             <div className="mt-auto pb-6 space-y-3">
                 {hasHomework && (
-                    <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl p-3 border border-orange-200">
+                    <div className="bg-orange-500/10 rounded-xl p-3 border border-orange-500/30">
                         <div className="flex items-center gap-2 mb-1">
-                            <Gift className="h-4 w-4 text-orange-500" />
-                            <span className="text-xs font-medium text-orange-700">Есть домашнее задание!</span>
+                            <Gift className="h-4 w-4 text-orange-400" />
+                            <span className="text-xs font-medium text-orange-300">Есть домашнее задание!</span>
                         </div>
                     </div>
                 )}
-                
+
                 {hasTrainerQuest && (
-                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-3 border border-purple-200">
+                    <div className="bg-purple-500/10 rounded-xl p-3 border border-purple-500/30">
                         <div className="flex items-center gap-2 mb-1">
-                            <Flame className="h-4 w-4 text-purple-500" />
-                            <span className="text-xs font-medium text-purple-700">Ежедневный квест!</span>
+                            <Flame className="h-4 w-4 text-purple-400" />
+                            <span className="text-xs font-medium text-purple-300">Ежедневный квест!</span>
                         </div>
                     </div>
                 )}
-                
-                <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-3">
+
+                <div className="bg-amber-500/10 rounded-xl p-3">
                     <div className="flex items-center gap-2 mb-1">
-                        <Crown className="h-4 w-4 text-yellow-500" />
-                        <span className="text-xs font-medium text-amber-700">Королевский бонус</span>
+                        <Crown className="h-4 w-4 text-yellow-400" />
+                        <span className="text-xs font-medium text-amber-300">Королевский бонус</span>
                     </div>
                 </div>
             </div>

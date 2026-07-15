@@ -142,7 +142,7 @@ export const LessonButton = ({
                 marginTop: isFirst ? 60 : 24,
             }}>
                 <div className="h-[102px] w-[102px]">
-                    <div className="h-[70px] w-[70px] rounded-full bg-gray-200 flex items-center justify-center">
+                    <div className="h-[70px] w-[70px] rounded-full bg-[#2E3A40] flex items-center justify-center">
                         <Lock className="h-8 w-8 text-gray-400" />
                     </div>
                 </div>
@@ -172,7 +172,7 @@ export const LessonButton = ({
                         </div>
                     </div>
                     <div className="pt-8 ml-4">
-                        <p className="text-gray-700 font-medium line-through">{title}</p>
+                        <p className="text-[#F2F7FB] font-medium line-through">{title}</p>
                         <p className="text-xs text-green-600 mt-1">Мастер! 🎓</p>
                     </div>
                 </div>
@@ -215,7 +215,7 @@ export const LessonButton = ({
                                     height={40} 
                                     width={40} 
                                     alt='Mascot' 
-                                    className="absolute top-0 left-0 animate-bounce bg-white rounded-2xl"
+                                    className="absolute top-0 left-0 animate-bounce bg-[#151F23] rounded-2xl"
                                 />           
                             )}
                         </Button>
@@ -225,7 +225,7 @@ export const LessonButton = ({
 
                 <div className="pt-8 ml-4">
                     <div>
-                        <h1 className="px-3 py-0.5 border-2 font-bold text-green-500 bg-white rounded-xl tracking-white z-10">
+                        <h1 className="px-3 py-0.5 border-2 font-bold text-green-500 bg-[#151F23] rounded-xl tracking-white z-10">
                             {title}                
                         </h1>
                     </div>    

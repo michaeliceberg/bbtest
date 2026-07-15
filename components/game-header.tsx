@@ -48,7 +48,7 @@ export const GameHeader = ({ mmr, gems, hearts, streak, rank }: GameHeaderProps)
                 key={i} 
                 className={cn(
                   "w-4 h-4",
-                  i < hearts ? "text-red-500 fill-red-500" : "text-gray-600"
+                  i < hearts ? "text-red-500 fill-red-500" : "text-[#9AA7B0]"
                 )} 
               />
             ))}

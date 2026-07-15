@@ -45,15 +45,15 @@ export const UnitBanner = ({
     if (!isUnlocked && !isCompleted) {
         return (
             <div className="relative mb-8">
-                <div className="bg-gray-100 rounded-2xl p-6 border-2 border-dashed border-gray-300">
+                <div className="bg-[#232F34] rounded-2xl p-6 border-2 border-dashed border-[#3A464E]">
                     <div className="flex items-center gap-5">
-                        <div className="bg-gray-200 rounded-2xl p-4">
-                            <Lock className="h-8 w-8 text-gray-500" />
+                        <div className="bg-[#2E3A40] rounded-2xl p-4">
+                            <Lock className="h-8 w-8 text-[#9AA7B0]" />
                         </div>
                         <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-bold text-xl text-gray-500">{title}</h3>
-                                <span className="text-xs bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">
+                                <h3 className="font-bold text-xl text-[#9AA7B0]">{title}</h3>
+                                <span className="text-xs bg-[#2E3A40] text-[#9AA7B0] px-2 py-0.5 rounded-full">
                                     Закрыто
                                 </span>
                             </div>
@@ -61,7 +61,7 @@ export const UnitBanner = ({
                             {needMoreLessons > 0 && (
                                 <div className="mt-3 flex items-center gap-2">
                                     <Flame className="h-4 w-4 text-orange-400" />
-                                    <span className="text-sm text-gray-500">
+                                    <span className="text-sm text-[#9AA7B0]">
                                         Нужно открыть ещё {needMoreLessons} уроков в предыдущем разделе
                                     </span>
                                 </div>
@@ -192,18 +192,18 @@ export const UnitBanner = ({
 //     if (!isUnlocked && !isCompleted) {
 //         return (
 //             <div className="relative mb-10 opacity-60">
-//                 <div className="bg-gray-100 rounded-xl p-6 border-2 border-dashed border-gray-300">
+//                 <div className="bg-[#232F34] rounded-xl p-6 border-2 border-dashed border-[#3A464E]">
 //                     <div className="flex items-center gap-4">
 //                         <div className="bg-gray-300 rounded-full p-3">
-//                             <Lock className="h-8 w-8 text-gray-500" />
+//                             <Lock className="h-8 w-8 text-[#9AA7B0]" />
 //                         </div>
 //                         <div className="flex-1">
-//                             <h3 className="font-bold text-xl text-gray-500">{title}</h3>
+//                             <h3 className="font-bold text-xl text-[#9AA7B0]">{title}</h3>
 //                             <p className="text-gray-400 text-sm">{description}</p>
 //                             {needMoreLessons > 0 && (
 //                                 <div className="mt-2 flex items-center gap-2">
 //                                     <Flame className="h-4 w-4 text-orange-400" />
-//                                     <span className="text-sm text-gray-500">
+//                                     <span className="text-sm text-[#9AA7B0]">
 //                                         Нужно открыть ещё {needMoreLessons} уроков в предыдущем разделе
 //                                     </span>
 //                                 </div>

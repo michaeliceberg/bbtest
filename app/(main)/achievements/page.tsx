@@ -38,7 +38,7 @@ const AchievementsPage = async () => {
             <FeedWrapper>
                 <div className="mb-6">
                     <h1 className="text-3xl font-bold">🏆 Достижения</h1>
-                    <p className="text-gray-500 mt-1">
+                    <p className="text-[#9AA7B0] mt-1">
                         Собирай достижения и получай награды!
                     </p>
                 </div>
@@ -93,7 +93,7 @@ export default AchievementsPage;
 //             <FeedWrapper>
 //                 <div className="mb-6">
 //                     <h1 className="text-3xl font-bold">🏆 Достижения</h1>
-//                     <p className="text-gray-500 mt-1">
+//                     <p className="text-[#9AA7B0] mt-1">
 //                         Собирай достижения и получай награды!
 //                     </p>
 //                 </div>

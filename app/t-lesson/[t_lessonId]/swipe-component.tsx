@@ -106,11 +106,11 @@ export default function SwipeCard({ onAnswer, question, setLrAnswer }: Props) {
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 className={`
                     relative z-10
-                    bg-white
+                    bg-[#151F23]
                     rounded-2xl
                     min-h-[320px] w-full
                     cursor-grab active:cursor-grabbing
-                    border-2 border-gray-200
+                    border-2 border-[#3A464E]
                 `}
             >
                 {/* Индикатор "потяни" сверху */}
@@ -138,7 +138,7 @@ export default function SwipeCard({ onAnswer, question, setLrAnswer }: Props) {
                         <div className="text-sm text-gray-400 mb-2 font-bold uppercase tracking-wide">
                             {isDragging ? 'Отпусти, чтобы выбрать!' : 'Свайпни влево или вправо'}
                         </div>
-                        <div className="text-xl md:text-2xl font-bold text-gray-800">
+                        <div className="text-xl md:text-2xl font-bold text-[#F2F7FB]">
                             <Latex>{question.question}</Latex>
                         </div>
                     </div>
@@ -155,7 +155,7 @@ export default function SwipeCard({ onAnswer, question, setLrAnswer }: Props) {
                             transition={{ type: "spring", stiffness: 400, damping: 20 }}
                         >
                             <motion.div 
-                                className="bg-gray-100 rounded-full p-4"
+                                className="bg-[#232F34] rounded-full p-4"
                                 animate={{
                                     backgroundColor: isSwipingLeft ? "#58cc71" : "#f3f4f6",
                                     scale: isSwipingLeft ? 1.2 : 1
@@ -168,7 +168,7 @@ export default function SwipeCard({ onAnswer, question, setLrAnswer }: Props) {
                                 />
                             </motion.div>
                             <motion.span 
-                                className="text-base font-bold text-gray-800"
+                                className="text-base font-bold text-[#F2F7FB]"
                                 animate={{
                                     color: isSwipingLeft ? "#58cc71" : "#374151",
                                     scale: isSwipingLeft ? 1.1 : 1
@@ -198,7 +198,7 @@ export default function SwipeCard({ onAnswer, question, setLrAnswer }: Props) {
                             transition={{ type: "spring", stiffness: 400, damping: 20 }}
                         >
                             <motion.div 
-                                className="bg-gray-100 rounded-full p-4"
+                                className="bg-[#232F34] rounded-full p-4"
                                 animate={{
                                     backgroundColor: isSwipingRight ? "#58cc71" : "#f3f4f6",
                                     scale: isSwipingRight ? 1.2 : 1
@@ -211,7 +211,7 @@ export default function SwipeCard({ onAnswer, question, setLrAnswer }: Props) {
                                 />
                             </motion.div>
                             <motion.span 
-                                className="text-base font-bold text-gray-800"
+                                className="text-base font-bold text-[#F2F7FB]"
                                 animate={{
                                     color: isSwipingRight ? "#58cc71" : "#374151",
                                     scale: isSwipingRight ? 1.1 : 1
@@ -342,7 +342,7 @@ export default function SwipeCard({ onAnswer, question, setLrAnswer }: Props) {
 //                     }}
 //                     className="flex flex-col items-center gap-3 bg-red-500 rounded-2xl py-4 px-6 shadow-lg"
 //                 >
-//                     <div className="bg-white rounded-full p-2">
+//                     <div className="bg-[#151F23] rounded-full p-2">
 //                         <X className="w-8 h-8 text-red-500" strokeWidth={3} />
 //                     </div>
 //                     <span className="text-sm font-bold text-white">
@@ -358,7 +358,7 @@ export default function SwipeCard({ onAnswer, question, setLrAnswer }: Props) {
 //                     }}
 //                     className="flex flex-col items-center gap-3 bg-green-500 rounded-2xl py-4 px-6 shadow-lg"
 //                 >
-//                     <div className="bg-white rounded-full p-2">
+//                     <div className="bg-[#151F23] rounded-full p-2">
 //                         <Check className="w-8 h-8 text-green-500" strokeWidth={3} />
 //                     </div>
 //                     <span className="text-sm font-bold text-white">
@@ -388,7 +388,7 @@ export default function SwipeCard({ onAnswer, question, setLrAnswer }: Props) {
 //                     rounded-2xl shadow-xl
 //                     min-h-[320px] w-full
 //                     cursor-grab active:cursor-grabbing
-//                     border-2 border-gray-200
+//                     border-2 border-[#3A464E]
 //                 `}
 //             >
 //                 <div className="flex flex-col items-center justify-center min-h-[320px] p-8">
@@ -400,21 +400,21 @@ export default function SwipeCard({ onAnswer, question, setLrAnswer }: Props) {
 //                         <div className="text-sm text-gray-400 mb-2 font-bold uppercase tracking-wide">
 //                             Свайпни влево или вправо
 //                         </div>
-//                         <div className="text-xl md:text-2xl font-bold text-gray-800">
+//                         <div className="text-xl md:text-2xl font-bold text-[#F2F7FB]">
 //                             <Latex>{question.question}</Latex>
 //                         </div>
 //                     </div>
 
 //                     <div className="flex items-center justify-center gap-6 text-gray-400 text-sm">
-//                         <div className="flex items-center gap-2 bg-gray-100 rounded-full px-4 py-2">
+//                         <div className="flex items-center gap-2 bg-[#232F34] rounded-full px-4 py-2">
 //                             <ChevronLeft className="w-4 h-4 text-red-500" strokeWidth={3} />
-//                             <span className="font-medium text-gray-600">
+//                             <span className="font-medium text-[#9AA7B0]">
 //                                 <Latex>{leftOption}</Latex>
 //                             </span>
 //                         </div>
 //                         <div className="w-2 h-2 bg-gray-300 rounded-full" />
-//                         <div className="flex items-center gap-2 bg-gray-100 rounded-full px-4 py-2">
-//                             <span className="font-medium text-gray-600">
+//                         <div className="flex items-center gap-2 bg-[#232F34] rounded-full px-4 py-2">
+//                             <span className="font-medium text-[#9AA7B0]">
 //                                 <Latex>{rightOption}</Latex>
 //                             </span>
 //                             <ChevronRight className="w-4 h-4 text-green-500" strokeWidth={3} />
@@ -626,7 +626,7 @@ export default function SwipeCard({ onAnswer, question, setLrAnswer }: Props) {
 //                     }}
 //                     className="flex flex-col items-center gap-3 bg-red-500 rounded-2xl py-4 px-6 shadow-lg"
 //                 >
-//                     <div className="bg-white rounded-full p-2">
+//                     <div className="bg-[#151F23] rounded-full p-2">
 //                         <X className="w-8 h-8 text-red-500" strokeWidth={3} />
 //                     </div>
 //                     <span className="text-sm font-bold text-white">{leftOption}</span>
@@ -640,7 +640,7 @@ export default function SwipeCard({ onAnswer, question, setLrAnswer }: Props) {
 //                     }}
 //                     className="flex flex-col items-center gap-3 bg-green-500 rounded-2xl py-4 px-6 shadow-lg"
 //                 >
-//                     <div className="bg-white rounded-full p-2">
+//                     <div className="bg-[#151F23] rounded-full p-2">
 //                         <Check className="w-8 h-8 text-green-500" strokeWidth={3} />
 //                     </div>
 //                     <span className="text-sm font-bold text-white">{rightOption}</span>
@@ -668,7 +668,7 @@ export default function SwipeCard({ onAnswer, question, setLrAnswer }: Props) {
 //                     rounded-2xl shadow-xl
 //                     min-h-[320px] w-full
 //                     cursor-grab active:cursor-grabbing
-//                     border-2 border-gray-200
+//                     border-2 border-[#3A464E]
 //                 `}
 //             >
 //                 {/* Контент карточки */}
@@ -682,22 +682,22 @@ export default function SwipeCard({ onAnswer, question, setLrAnswer }: Props) {
 //                         <div className="text-sm text-gray-400 mb-2 font-bold uppercase tracking-wide">
 //                             Свайпни влево или вправо
 //                         </div>
-//                         <div className="text-xl md:text-2xl font-bold text-gray-800">
+//                         <div className="text-xl md:text-2xl font-bold text-[#F2F7FB]">
 //                             <Latex>{question.question}</Latex>
 //                         </div>
 //                     </div>
 
 //                     {/* Индикаторы направления */}
 //                     <div className="flex items-center justify-center gap-6 text-gray-400 text-sm">
-//                         <div className="flex items-center gap-2 bg-gray-100 rounded-full px-4 py-2">
+//                         <div className="flex items-center gap-2 bg-[#232F34] rounded-full px-4 py-2">
 //                             <ChevronLeft className="w-4 h-4 text-red-500" strokeWidth={3} />
-//                             <span className="font-medium text-gray-600">
+//                             <span className="font-medium text-[#9AA7B0]">
 //                                 <Latex>{leftOption}</Latex>
 //                             </span>
 //                         </div>
 //                         <div className="w-2 h-2 bg-gray-300 rounded-full" />
-//                         <div className="flex items-center gap-2 bg-gray-100 rounded-full px-4 py-2">
-//                             <span className="font-medium text-gray-600">
+//                         <div className="flex items-center gap-2 bg-[#232F34] rounded-full px-4 py-2">
+//                             <span className="font-medium text-[#9AA7B0]">
 //                                 <Latex>{rightOption}</Latex>
 //                             </span>
 //                             <ChevronRight className="w-4 h-4 text-green-500" strokeWidth={3} />
@@ -957,7 +957,7 @@ export default function SwipeCard({ onAnswer, question, setLrAnswer }: Props) {
 //                         <div className="text-sm text-gray-400 mb-2 font-medium">
 //                             Свайпните влево или вправо
 //                         </div>
-//                         <div className="text-xl md:text-2xl font-bold text-gray-800">
+//                         <div className="text-xl md:text-2xl font-bold text-[#F2F7FB]">
 //                             <Latex>{question.question}</Latex>
 //                         </div>
 //                     </div>

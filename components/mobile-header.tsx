@@ -20,7 +20,7 @@ export const MobileHeader = () => {
 // export const MobileHeader = () => {
 //     // Убираем useSession полностью
 //     return (
-//         <div className="lg:hidden fixed top-0 left-0 right-0 h-[50px] bg-white border-b flex items-center px-4 z-50">
+//         <div className="lg:hidden fixed top-0 left-0 right-0 h-[50px] bg-[#151F23] border-b flex items-center px-4 z-50">
 //             <Link href="/learn" className="font-bold text-green-600">
 //                 BRAINSTARS
 //             </Link>

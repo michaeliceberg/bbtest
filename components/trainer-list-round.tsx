@@ -140,7 +140,7 @@ export const TrainerLessonItemRound = ({
                         </Button>
                     </CircularProgressbarWithChildren>
                 </div>
-                <button className="ml-4 rounded-2xl border-2 border-dashed border-neutral-300 bg-gray-100
+                <button className="ml-4 rounded-2xl border-2 border-dashed border-neutral-300 bg-[#232F34]
                     px-6 py-3 uppercase text-sm font-semibold text-neutral-400">
                     {t_lesson.title}
                 </button>
@@ -219,7 +219,7 @@ export const TrainerLessonItemRound = ({
                     )}
                 </div>
 
-                <button className="ml-4 rounded-2xl border-2 border-dashed border-neutral-400 bg-white
+                <button className="ml-4 rounded-2xl border-2 border-dashed border-neutral-400 bg-[#151F23]
                     px-6 py-3 uppercase text-sm font-semibold text-neutral-400 transition-all duration-300
                     hover:translate-x-[-4px] hover:translate-y-[-4px] hover:rounded-md
                     hover:shadow-[4px_4px_0px_gray]

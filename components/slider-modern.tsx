@@ -53,8 +53,8 @@ export const SliderModern = ({
 				<SliderRange className="absolute h-full rounded-full bg-sky-400/90" />
 			</SliderTrack>
 			<SliderThumb
-				// className="block size-5 rounded-[10px] bg-white shadow-[0_2px_10px] shadow-blackA4 hover:bg-violet3 focus:shadow-[0_0_0_5px] focus:shadow-blackA5 focus:outline-none"
-				className="block size-5 rounded-[10px] bg-white shadow-[0_8px_20px] shadow-sky-800 hover:bg-sky-500/90 focus:shadow-[0_0_0_3px] focus:shadow-800 focus:outline-none"
+				// className="block size-5 rounded-[10px] bg-[#151F23] shadow-[0_2px_10px] shadow-blackA4 hover:bg-violet3 focus:shadow-[0_0_0_5px] focus:shadow-blackA5 focus:outline-none"
+				className="block size-5 rounded-[10px] bg-[#151F23] shadow-[0_8px_20px] shadow-sky-800 hover:bg-sky-500/90 focus:shadow-[0_0_0_3px] focus:shadow-800 focus:outline-none"
 				aria-label="Volume"
 			/>
 		</Slider>

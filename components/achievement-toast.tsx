@@ -64,7 +64,7 @@ export const AchievementToast = ({ achievement, onClose }: Props) => {
                     </div>
                     <div className="h-1 bg-white/30">
                         <motion.div
-                            className="h-full bg-white"
+                            className="h-full bg-[#151F23]"
                             initial={{ width: '100%' }}
                             animate={{ width: '0%' }}
                             transition={{ duration: 3, ease: 'linear' }}

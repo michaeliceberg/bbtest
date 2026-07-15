@@ -204,12 +204,12 @@ export const TabTCourses = ({
             <Tabs defaultValue={t_courses[0]?.title} className="w-full">
                 {/* Табы курсов - центрируем */}
                 <div className="flex justify-center mb-6">
-                    <TabsList className="bg-gray-100 rounded-xl p-1">
+                    <TabsList className="bg-[#232F34] rounded-xl p-1">
                         {t_courses.map((t_course, index) => (
                             <TabsTrigger
                                 key={index * 21983}
                                 value={t_course.title}
-                                className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2"
+                                className="data-[state=active]:bg-[#151F23] data-[state=active]:shadow-sm px-4 py-2"
                             >
                                 {t_course.title.split(' ')[0]}
                             </TabsTrigger>
@@ -253,7 +253,7 @@ export const TabTCourses = ({
 
                     return (
                     <TabsContent key={indexCourse * 19339} value={t_course.title} className="mt-0">
-                        <h2 className="text-center text-lg font-bold text-slate-700 mb-3">
+                        <h2 className="text-center text-lg font-bold text-[#F2F7FB] mb-3">
                             {t_course.title.split(' ')[1] ?? t_course.title}
                         </h2>
 
@@ -272,7 +272,7 @@ export const TabTCourses = ({
                         </div>
 
                         {showFormulas && (
-                            <div className="mt-6 p-6 bg-gray-50 rounded-xl border">
+                            <div className="mt-6 p-6 bg-[#1A252B] rounded-xl border">
                                 <h3 className="text-xl font-bold mb-4 text-center">📖 Все формулы</h3>
                                 <div className="space-y-6">
                                     {t_units.filter(u => u.t_courseId === t_course.id).map((t_unit, index) => (
@@ -281,10 +281,10 @@ export const TabTCourses = ({
                                             <div className="space-y-3 pl-4">
                                                 {t_units.filter(ul => ul.id == t_unit.id)[0].t_lessons.map((t_lesson, idx) => (
                                                     <div key={idx * 2241}>
-                                                        <p className="font-medium text-gray-600 mb-2">{t_lesson.title}:</p>
+                                                        <p className="font-medium text-[#9AA7B0] mb-2">{t_lesson.title}:</p>
                                                         <div className="space-y-2 pl-4">
                                                             {t_lesson.t_challenges.map((t_challenge, i) => (
-                                                                <div key={i * 9135} className="p-3 bg-white rounded-lg border">
+                                                                <div key={i * 9135} className="p-3 bg-[#151F23] rounded-lg border">
                                                                     <Latex>{t_challenge.question}</Latex>
                                                                     <div className="text-green-600 mt-1 text-sm">
                                                                         Ответ: <Latex>{t_challenge.t_challengeOptions[0]?.text}</Latex>

@@ -19,8 +19,8 @@ const Example = ({
     data,
 }: Props) => {
   return (
-    // <div className="grid w-full place-content-center bg-gradient-to-br from-indigo-500 to-violet-500 px-4 py-12 text-slate-900">
-    // <div className="grid w-full place-content-center  text-slate-900">
+    // <div className="grid w-full place-content-center bg-gradient-to-br from-indigo-500 to-violet-500 px-4 py-12 text-[#F2F7FB]">
+    // <div className="grid w-full place-content-center  text-[#F2F7FB]">
     <div className="grid w-full place-content-center ">
       <TiltCard data={data} />
     </div>
@@ -85,7 +85,7 @@ const TiltCard = ({
           transform: "translateZ(75px)",
           transformStyle: "preserve-3d",
         }}
-        className="absolute inset-4 grid place-content-center rounded-xl bg-white shadow-lg"
+        className="absolute inset-4 grid place-content-center rounded-xl bg-[#151F23] shadow-lg"
       >
         {/* <FiMousePointer
           style={{

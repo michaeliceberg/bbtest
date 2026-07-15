@@ -11,7 +11,7 @@ export const Block = ({className, ...rest}: Props) => {
     return (
         <motion.div 
             className={twMerge(
-                'w-full bg-gray-100 rounded-xl', 
+                'w-full bg-[#232F34] rounded-xl', 
                 className
             )}
             {...rest}

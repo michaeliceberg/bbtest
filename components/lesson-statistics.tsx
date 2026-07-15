@@ -47,7 +47,7 @@ export function LessonStatistics({
           ))}
         </div>
         
-        <div className="mt-6 bg-gray-50 rounded-lg p-4">
+        <div className="mt-6 bg-[#1A252B] rounded-lg p-4">
           <h4 className="font-semibold text-lg">Общая статистика</h4>
           <div className="flex gap-4 mt-2">
             <span className="text-green-600">

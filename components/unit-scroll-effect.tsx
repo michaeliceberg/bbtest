@@ -365,7 +365,7 @@ export const UnitScrollEffect = ({ children, unitTitles }: Props) => {
 //                             key={unit.id}
 //                             className={`w-2 h-2 rounded-full mb-2 transition-all duration-300 cursor-pointer ${
 //                                 activeUnitId === unit.id
-//                                     ? 'bg-white scale-150'
+//                                     ? 'bg-[#151F23] scale-150'
 //                                     : 'bg-white/40 hover:bg-white/60'
 //                             }`}
 //                             onClick={() => {

@@ -657,7 +657,7 @@ const HandleClickAnswerButton = () => {
   //         <button
   //           key={index*28748}
   //           onClick={() => onAnswer(option)}
-  //           className="inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-bold ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 tracking-wide bg-white border-slate-200 border-2 border-b-4 active:border-b-2 hover:bg-slate-100 text-slate-500"
+  //           className="inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-bold ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 tracking-wide bg-[#151F23] border-[#3A464E] border-2 border-b-4 active:border-b-2 hover:bg-[#232F34] text-[#9AA7B0]"
   //         >
   //           <p className="m-4">
   //             <Latex>

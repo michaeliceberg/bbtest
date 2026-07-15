@@ -181,10 +181,10 @@ export const TrainerLessonItem = ({
         //     >
 
         //         <div className='ml-10 mr-10 mt-6 relative text-2xl flex justify-between z-0'>
-        //             <p className='text-gray-500'>
+        //             <p className='text-[#9AA7B0]'>
         //                 #{index+1}
         //             </p>
-        //             <p className='text-gray-500'>
+        //             <p className='text-[#9AA7B0]'>
         //                 {t_lesson.title}
         //             </p>                    
         //         </div>

@@ -51,7 +51,7 @@ export const CollectGemsButton = () => {
                 <Button 
                     onClick={handleCollect}
                     disabled={collecting}
-                    className="bg-white text-amber-600 hover:bg-white/90"
+                    className="bg-[#151F23] text-amber-600 hover:bg-[#151F23]/90"
                 >
                     {collecting ? 'Сбор...' : 'Собрать'}
                 </Button>

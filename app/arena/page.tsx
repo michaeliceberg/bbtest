@@ -10,7 +10,7 @@ export default function ArenaPage() {
                 <div className="bg-[#0f3460] rounded-xl p-4 mb-8 flex justify-between items-center">
                     <div className="flex items-center gap-3">
                         <div className="bg-yellow-500 rounded-full p-2">
-                            <Crown className="h-6 w-6 text-black" />
+                            <Crown className="h-6 w-6 text-[#F2F7FB]" />
                         </div>
                         <div>
                             <h2 className="font-bold text-xl">PLAYER_1337</h2>

@@ -37,7 +37,7 @@ const ConnectColumn = ({
     delayOffset?: number
 }) => (
     <div className="bg-[#1E2A2E] rounded-2xl p-4 border-2 border-[#2E3A40]">
-        <h3 className="text-lg font-bold text-slate-100 mb-3 text-center">{title}</h3>
+        <h3 className="text-lg font-bold text-[#F2F7FB] mb-3 text-center">{title}</h3>
         <div className="space-y-3">
             {options.map((option, index) => {
                 const matched = isMatched(option.id)
@@ -47,19 +47,19 @@ const ConnectColumn = ({
                         onClick={() => onSelect(option.id, option.pairId)}
                         disabled={matched}
                         initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 + delayOffset }}
+                        animate={{ opacity: 1, y: 0, scale: selectedId === option.id ? [1, 1.06, 1] : 1 }}
+                        transition={{ delay: index * 0.05 + delayOffset, scale: { duration: 0.25, ease: 'easeInOut' } }}
                         whileHover={{ scale: matched ? 1 : 1.02, y: matched ? 0 : -2 }}
                         whileTap={{ scale: matched ? 1 : 0.98 }}
                         className={`
                             relative overflow-hidden w-full text-left
-                            transition-all duration-200 rounded-xl
+                            transition-colors duration-200 rounded-xl
                             font-bold
                             ${selectedId === option.id
-                                ? 'bg-sky-500 text-white shadow-lg border-2 border-sky-400'
+                                ? 'bg-[#5183A4] text-white shadow-lg border-2 border-[#3E6883]'
                                 : matched
-                                    ? 'bg-[#78C93C] text-white'
-                                    : 'bg-[#1A2529] border-2 border-[#37464F] hover:border-[#78C93C] hover:shadow-md text-slate-100'
+                                    ? 'bg-[#678337] text-white border-2 border-[#53692C]'
+                                    : 'bg-[#161F23] border-2 border-[#3A464E] hover:border-[#5183A4] hover:shadow-md text-[#F2F7FB]'
                             }
                             ${matched ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'}
                         `}
@@ -73,7 +73,7 @@ const ConnectColumn = ({
                                 className="absolute right-3 top-1/2 transform -translate-y-1/2"
                             >
                                 <div className="bg-white rounded-full p-1">
-                                    <Check className="w-5 h-5 text-[#78C93C]" strokeWidth={3} />
+                                    <Check className="w-5 h-5 text-[#678337]" strokeWidth={3} />
                                 </div>
                             </motion.div>
                         )}
@@ -173,7 +173,7 @@ export const TypeConnect = ({ question, onAnswer }: Props) => {
                         exit={{ opacity: 0, scale: 0.5, y: -50 }}
                         className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50"
                     >
-                        <div className="bg-[#78C93C] rounded-full p-4 shadow-2xl">
+                        <div className="bg-[#678337] rounded-full p-4 shadow-2xl">
                             <Check className="w-16 h-16 text-white" />
                         </div>
                     </motion.div>
@@ -192,7 +192,7 @@ export const TypeConnect = ({ question, onAnswer }: Props) => {
                         transition={{ x: { duration: 0.2 } }}
                         className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50"
                     >
-                        <div className="bg-[#FF4B4B] rounded-full p-4 shadow-2xl">
+                        <div className="bg-[#C8524E] rounded-full p-4 shadow-2xl">
                             <X className="w-16 h-16 text-white" />
                         </div>
                     </motion.div>
@@ -203,14 +203,15 @@ export const TypeConnect = ({ question, onAnswer }: Props) => {
                 {/* Прогресс-бар в стиле Duolingo */}
                 <div className="mb-8">
                     <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-bold text-slate-400">ПРОГРЕСС</span>
-                        <span className="text-sm font-bold text-[#78C93C]">
+                        <span className="text-sm font-bold text-[#9AA7B0]">ПРОГРЕСС</span>
+                        <span className="text-sm font-bold" style={{ color: '#F3AF4E' }}>
                             {completedPairs} / {totalPairs}
                         </span>
                     </div>
                     <div className="h-3 bg-[#2E3A40] rounded-full overflow-hidden">
                         <motion.div
-                            className="h-full bg-[#78C93C] rounded-full"
+                            className="h-full rounded-full"
+                            style={{ backgroundColor: '#F3AF4E' }}
                             initial={{ width: 0 }}
                             animate={{ width: `${(completedPairs / totalPairs) * 100}%` }}
                             transition={{ duration: 0.3 }}

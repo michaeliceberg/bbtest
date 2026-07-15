@@ -4,7 +4,6 @@
 
 import { useState, useEffect, useRef, SetStateAction, Dispatch } from "react"
 
-import { cn } from "@/lib/utils";
 import Latex from 'react-latex-next';
 import 'katex/dist/katex.min.css';
 
@@ -222,7 +221,7 @@ const renderQuestionContent = () => {
         question.questionType !== "SWIPE") {  // Добавляем SWIPE в исключения
         return (
             <motion.h2
-                className="text-xl font-semibold mt-4 text-white"
+                className="text-xl font-semibold mt-4 text-[#C385F8]"
                 initial={{ x: 250, y: -20, opacity: 0 }}
                 animate={{ x: 10, y: -20, opacity: 1 }}
                 transition={{ delay: 0.2, type: 'spring', stiffness: 300 }}
@@ -341,44 +340,31 @@ const renderQuestionContent = () => {
 return (
   <div className="bg-[#1E2A2E] shadow-xl rounded-2xl p-6 relative overflow-hidden border border-[#2E3A40]">
 
-    {/* Верхняя панель: маскот (с сообщениями) + прогресс-бар */}
-    <div className="flex items-center justify-between gap-4 mb-6">
-
-      {/* Маскот с сообщениями - занимает всё свободное место */}
-      <div className="flex-1">
-        <TrainerMascot
-          emotion={mascotEmotion}
-          lottieAnimations={{
-            right: randomEmotionLottie,
-            wrong: randomEmotionLottie,
-            default: randomEmotionLottie
-          }}
-          isRightPrevious={isRightPrevious}
-        />
-      </div>
-
-      {/* Прогресс-бар - 40% от ширины */}
-      <div className="w-[40%]">
-        <div className="w-full bg-[#2E3A40] rounded-full h-2">
-          <div
-            className={cn(
-              "h-2 rounded-full transition-all duration-1000 ease-linear",
-              timeLeft > 5 ? "bg-sky-400" : "bg-red-500"
-            )}
-            style={{ width: `${(timeLeft / question.timeLimit) * 100}%` }}
-          />
-        </div>
-      </div>
-
+    {/* Прогресс-бар на всю ширину сверху — вместо счётчика времени */}
+    <div className="w-full bg-[#2E3A40] rounded-full h-2.5 overflow-hidden">
+      <div
+        className="h-full rounded-full transition-all duration-1000 ease-linear"
+        style={{ width: `${(timeLeft / question.timeLimit) * 100}%`, backgroundColor: '#F3AF4E' }}
+      />
     </div>
 
+    {/* Маскот с сообщениями */}
+    <div className="mt-4">
+      <TrainerMascot
+        emotion={mascotEmotion}
+        lottieAnimations={{
+          right: randomEmotionLottie,
+          wrong: randomEmotionLottie,
+          default: randomEmotionLottie
+        }}
+        isRightPrevious={isRightPrevious}
+      />
+    </div>
 
-
-
-    <div className="mt-8">
+    {/* Задание, затем варианты ответов */}
+    <div className="mt-6">
       {renderQuestionContent()}
     </div>
-
 
   </div>
 )}

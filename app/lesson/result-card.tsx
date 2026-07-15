@@ -23,7 +23,7 @@ export const ResultCard = ({value, variant}: Props)=>{
                 {variant === "hearts" ? "Сердечек " : "Опыта "}
             </div>
             <div className={cn(
-                "rounded-2xl bg-white items-center flex justify-center p-6 font-bold text-lg",
+                "rounded-2xl bg-[#151F23] items-center flex justify-center p-6 font-bold text-lg",
                 variant === "hearts" && "text-rose-500",
                 variant === "points" && "text-orange-400",
             )}>

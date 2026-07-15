@@ -118,13 +118,13 @@ export const TrainerMascot = ({
             animate={{ scale: 1, x: 0, opacity: 1 }}
             exit={{ scale: 0, x: -20, opacity: 0 }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className="relative px-4 py-2 bg-white rounded-2xl shadow-lg border-2 border-slate-200"
+            className="relative px-4 py-2 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]"
           >
-            <span className="text-slate-700 font-bold text-sm whitespace-nowrap">
+            <span className="text-[#F2F7FB] font-bold text-sm whitespace-nowrap">
               {currentMessage}
             </span>
             {/* Стрелка слева, указывающая на талисман */}
-            <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-t-2 border-l-2 border-slate-200 transform rotate-45" />
+            <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-3 h-3 bg-[#151F23] border-t-2 border-l-2 border-[#3A464E] transform rotate-45" />
           </motion.div>
         )}
       </AnimatePresence>

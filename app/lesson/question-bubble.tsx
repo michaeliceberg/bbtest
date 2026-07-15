@@ -103,7 +103,7 @@ export const QuestionBubble = ({
 
     return (
         <div className="w-full">
-            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-3 md:p-4">
+            <div className="bg-[#151F23] rounded-xl shadow-md border border-[#3A464E] p-3 md:p-4">
                 {/* Персонаж и вопрос */}
                 <div className="flex gap-3">
                     <motion.div 
@@ -133,7 +133,7 @@ export const QuestionBubble = ({
                     </motion.div>
 
                     <div className="flex-1 pt-0.5">
-                        <div className="text-gray-800 text-sm md:text-base leading-relaxed">
+                        <div className="text-[#F2F7FB] text-sm md:text-base leading-relaxed">
                             <Latex>{question}</Latex>
                         </div>
                     </div>
@@ -143,13 +143,13 @@ export const QuestionBubble = ({
                 {(correctAttempts > 0 || timesDoneWrong > 0) && (
                     <div className="flex items-center gap-2 mt-2">
                         {correctAttempts > 0 && (
-                            <div className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                            <div className="flex items-center gap-1 text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
                                 <CheckCircle className="w-3.5 h-3.5" />
                                 <span className="text-xs font-medium">{correctAttempts}</span>
                             </div>
                         )}
                         {timesDoneWrong > 0 && (
-                            <div className="flex items-center gap-1 text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
+                            <div className="flex items-center gap-1 text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">
                                 <XCircle className="w-3.5 h-3.5" />
                                 <span className="text-xs font-medium">{timesDoneWrong}</span>
                             </div>
@@ -158,9 +158,9 @@ export const QuestionBubble = ({
                 )}
 
                 {/* Нижняя строка: Author | Нет правильного ответа | Bulb | Pts */}
-                <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-2 border-t border-gray-100">
+                <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-2 border-t border-[#3A464E]">
                     {/* Левая часть - Author */}
-                    <div className="flex items-center gap-1 text-gray-500 text-xs">
+                    <div className="flex items-center gap-1 text-[#9AA7B0] text-xs">
                         <User className="w-3.5 h-3.5" />
                         <span className="font-medium">{author}</span>
                     </div>
@@ -177,21 +177,21 @@ export const QuestionBubble = ({
                             <button
                                 onMouseEnter={() => setShowHint(true)}
                                 onMouseLeave={() => setShowHint(false)}
-                                className="flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-amber-500 hover:bg-amber-50 transition-colors"
+                                className="flex items-center justify-center w-7 h-7 rounded-full text-[#9AA7B0] hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
                             >
                                 <Lightbulb className="w-4 h-4" />
                             </button>
-                            
+
                             {showHint && (
-                                <div className="absolute bottom-full right-0 mb-2 w-56 p-2 bg-gray-800 text-white text-xs rounded-lg shadow-lg z-20 pointer-events-none">
+                                <div className="absolute bottom-full right-0 mb-2 w-56 p-2 bg-[#0E1518] text-white text-xs rounded-lg shadow-lg z-20 pointer-events-none">
                                     {hintText}
-                                    <div className="absolute -bottom-1 right-2 w-2 h-2 bg-gray-800 rotate-45"></div>
+                                    <div className="absolute -bottom-1 right-2 w-2 h-2 bg-[#0E1518] rotate-45"></div>
                                 </div>
                             )}
                         </div>
 
                         {/* Очки */}
-                        <div className="flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
+                        <div className="flex items-center gap-1 text-amber-400 bg-amber-500/10 px-2 py-1 rounded-full">
                             <Coins className="w-3.5 h-3.5" />
                             <span className="font-bold text-sm">+{pts}</span>
                         </div>

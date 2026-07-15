@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 
 export const BouncyCardsFeatures = () => {
   return (
-    <section className="mx-auto max-w-7xl px-4 py-12 text-slate-800">
+    <section className="mx-auto max-w-7xl px-4 py-12 text-[#F2F7FB]">
       <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end md:px-8">
         <h2 className="max-w-lg text-4xl font-bold md:text-5xl">
           Grow faster with our
@@ -67,7 +67,7 @@ const BounceCard = ({
   return (
     <motion.div
       whileHover={{ scale: 0.95, rotate: "-1deg" }}
-      className={`group relative min-h-[300px] cursor-pointer overflow-hidden rounded-2xl bg-slate-100 p-8 ${className}`}
+      className={`group relative min-h-[300px] cursor-pointer overflow-hidden rounded-2xl bg-[#232F34] p-8 ${className}`}
     >
       {children}
     </motion.div>

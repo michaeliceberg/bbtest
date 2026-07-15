@@ -184,12 +184,12 @@
 
 //             <div className="pt-8 hover:translate-x-4 transition-transform duration-500 ease-in-out">
 //                 <div>
-//                     <h1 className="px-3 py-0.5 border-2 font-bold text-green-500 bg-white rounded-xl tracking-white z-10">
+//                     <h1 className="px-3 py-0.5 border-2 font-bold text-green-500 bg-[#151F23] rounded-xl tracking-white z-10">
 //                     {title}                
 //                     </h1>
 //                 </div>    
 //             <div>
-//                 <h1 className="px-3 py-0.5 font-bold text-green-500 bg-white rounded-xl tracking-white z-10">
+//                 <h1 className="px-3 py-0.5 font-bold text-green-500 bg-[#151F23] rounded-xl tracking-white z-10">
                
 //                     <div className="flex flex-1">
 //                         {currentLessonStat[0].done[1] > 0 && 

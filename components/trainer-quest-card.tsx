@@ -29,10 +29,10 @@ export const TrainerQuestCard = ({ quest, streak, tCourseId }: Props) => {
 
     if (!quest) {
         return (
-            <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-4 space-y-3">
+            <div className="rounded-xl border border-[#3A464E] bg-[#151F23] shadow-sm p-4 space-y-3">
                 <div className="flex items-center gap-2">
                     <Target className="h-5 w-5 text-amber-500" />
-                    <h3 className="font-bold text-slate-700">Квест</h3>
+                    <h3 className="font-bold text-[#F2F7FB]">Квест</h3>
                 </div>
                 <p className="text-sm text-slate-400 text-center py-4">
                     Загрузка квеста...
@@ -49,11 +49,11 @@ export const TrainerQuestCard = ({ quest, streak, tCourseId }: Props) => {
     };
 
     return (
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-4 space-y-4">
+        <div className="rounded-xl border border-[#3A464E] bg-[#151F23] shadow-sm p-4 space-y-4">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Target className="h-5 w-5 text-amber-500" />
-                    <h3 className="font-bold text-slate-700">Ежедневный квест</h3>
+                    <h3 className="font-bold text-[#F2F7FB]">Ежедневный квест</h3>
                 </div>
                 {streak > 0 && (
                     <div className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-full">
@@ -64,11 +64,11 @@ export const TrainerQuestCard = ({ quest, streak, tCourseId }: Props) => {
             </div>
 
             <div className="space-y-1">
-                <div className="flex justify-between text-sm text-slate-500">
+                <div className="flex justify-between text-sm text-[#9AA7B0]">
                     <span>Прогресс</span>
-                    <span className="font-bold text-slate-700">{quest.completedCount}/{quest.totalCount}</span>
+                    <span className="font-bold text-[#F2F7FB]">{quest.completedCount}/{quest.totalCount}</span>
                 </div>
-                <Progress value={progress} className="h-2 bg-slate-100" indicatorClassName="bg-amber-400" />
+                <Progress value={progress} className="h-2 bg-[#232F34]" indicatorClassName="bg-amber-400" />
             </div>
 
             <div className="space-y-2">
@@ -78,7 +78,7 @@ export const TrainerQuestCard = ({ quest, streak, tCourseId }: Props) => {
                         className={`flex items-center justify-between p-2 rounded-lg transition-all cursor-pointer border ${
                             lesson.completed
                                 ? 'bg-emerald-50 border-emerald-200'
-                                : 'bg-slate-50 border-slate-200 hover:border-amber-300'
+                                : 'bg-[#1A252B] border-[#3A464E] hover:border-amber-300'
                         }`}
                         onClick={() => !lesson.completed && handleLessonClick(lesson.id)}
                     >
@@ -88,7 +88,7 @@ export const TrainerQuestCard = ({ quest, streak, tCourseId }: Props) => {
                             ) : (
                                 <Circle className="h-4 w-4 text-slate-300" />
                             )}
-                            <span className={`text-sm ${lesson.completed ? 'text-emerald-600 line-through' : 'text-slate-600'}`}>
+                            <span className={`text-sm ${lesson.completed ? 'text-emerald-600 line-through' : 'text-[#9AA7B0]'}`}>
                                 {idx + 1}. {lesson.title}
                             </span>
                         </div>

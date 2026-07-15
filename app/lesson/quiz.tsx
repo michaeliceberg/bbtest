@@ -451,7 +451,7 @@ export const Quiz = ({
                     <h1 className="text-2xl md:text-3xl font-bold text-neutral-700">
                         Отличная работа! 🎉
                     </h1>
-                    <p className="text-gray-500">Вы завершили урок</p>
+                    <p className="text-[#9AA7B0]">Вы завершили урок</p>
                     <div className="flex items-center gap-4 w-full justify-center mt-4">
                         <ResultCard variant='points' value={challenges.length * 10} />
                         <ResultCard variant='hearts' value={hearts} />
@@ -482,7 +482,7 @@ export const Quiz = ({
     }, [] as typeof challenges[]);
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col">
+        <div className="min-h-screen bg-[#151F23] flex flex-col">
             <Header
                 hearts={hearts}
                 percentage={percentage}
@@ -490,7 +490,7 @@ export const Quiz = ({
             />
 
             {/* Навигация по задачам */}
-            {/* <div className="border-b border-gray-100 py-3 bg-white/50">
+            {/* <div className="border-b border-[#3A464E] py-3 bg-[#151F23]/50">
                 <div className="container mx-auto px-4">
                     <div className="flex flex-col gap-2">
                         {challengeRows.map((row, rowIndex) => (
@@ -531,7 +531,7 @@ export const Quiz = ({
                                                     animate={{ y: [0, -3, 0] }}
                                                     transition={{ duration: 1, repeat: Infinity }}
                                                 >
-                                                    <div className="text-xs bg-white rounded-full p-0.5">🍩</div>
+                                                    <div className="text-xs bg-[#151F23] rounded-full p-0.5">🍩</div>
                                                 </motion.div>
                                             )}
                                         </motion.div>
@@ -545,7 +545,7 @@ export const Quiz = ({
 
 
 {/* Навигация по задачам */}
-<div className="border-b border-gray-100 py-3 bg-white/50">
+<div className="border-b border-[#3A464E] py-3 bg-[#151F23]/50">
     <div className="container mx-auto px-4">
         <div className="flex flex-col gap-2">
             {challengeRows.map((row, rowIndex) => (
@@ -600,7 +600,7 @@ export const Quiz = ({
                                         animate={{ y: [0, -3, 0] }}
                                         transition={{ duration: 1, repeat: Infinity }}
                                     >
-                                        <div className="text-xs bg-white rounded-full p-0.5 shadow-md">🍩</div>
+                                        <div className="text-xs bg-[#151F23] rounded-full p-0.5 shadow-md">🍩</div>
                                     </motion.div>
                                 )}
                             </motion.div>
@@ -625,7 +625,7 @@ export const Quiz = ({
                         transition={{ duration: 0.2 }}
                         className="mb-5 md:mb-7"
                     >
-                        <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-800 text-center md:text-left">
+                        <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-[#F2F7FB] text-center md:text-left">
                             {title}
                         </h1>
                     </motion.div>

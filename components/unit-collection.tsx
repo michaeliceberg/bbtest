@@ -139,7 +139,7 @@ export const UnitCollection = ({ units, onSelectUnit }: Props) => {
                                     Доступен
                                 </div>
                             ) : (
-                                <div className="text-xs text-gray-500 flex items-center gap-1 mt-2">
+                                <div className="text-xs text-[#9AA7B0] flex items-center gap-1 mt-2">
                                     <Lock className="h-3 w-3" />
                                     Заблокирован
                                 </div>

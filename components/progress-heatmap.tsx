@@ -90,20 +90,20 @@ export const ProgressHeatmap = ({ challengesData, userId, isAdminView = false }:
             return 'bg-orange-200 border border-orange-400';
         }
         
-        return 'bg-gray-200 hover:bg-gray-300';
+        return 'bg-[#2E3A40] hover:bg-gray-300';
     };
     
     const getChallengeTooltip = (challenge: ChallengeData) => {
         return (
             <div className="space-y-1 text-sm">
                 <p className="font-bold">{challenge.lessonTitle}</p>
-                <p className="text-xs text-gray-600">Задание #{challenge.id % 1000}</p>
+                <p className="text-xs text-[#9AA7B0]">Задание #{challenge.id % 1000}</p>
                 {challenge.isCompleted ? (
                     <p className="text-green-600">
                         {challenge.isDoneRight ? '✅ Решено правильно' : '❌ Решено неправильно'}
                     </p>
                 ) : (
-                    <p className="text-gray-500">⏳ Не решено</p>
+                    <p className="text-[#9AA7B0]">⏳ Не решено</p>
                 )}
                 {challenge.isFromHomework && (
                     <p className="text-orange-600">
@@ -111,7 +111,7 @@ export const ProgressHeatmap = ({ challengesData, userId, isAdminView = false }:
                     </p>
                 )}
                 {challenge.correctCount !== undefined && challenge.correctCount > 0 && (
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-[#9AA7B0]">
                         📊 Статистика: ✅ {challenge.correctCount} | ❌ {challenge.wrongCount || 0}
                     </p>
                 )}
@@ -160,7 +160,7 @@ export const ProgressHeatmap = ({ challengesData, userId, isAdminView = false }:
                         <span>Было в ДЗ (не решено)</span>
                     </div>
                     <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-gray-200 rounded-sm" />
+                        <div className="w-3 h-3 bg-[#2E3A40] rounded-sm" />
                         <span>Не решено</span>
                     </div>
                 </div>
@@ -181,13 +181,13 @@ export const ProgressHeatmap = ({ challengesData, userId, isAdminView = false }:
                                 return (
                                     <div key={unit.unitId} className="border rounded-lg overflow-hidden">
                                         <div 
-                                            className="bg-gray-100 p-3 cursor-pointer hover:bg-gray-200 transition-colors"
+                                            className="bg-[#232F34] p-3 cursor-pointer hover:bg-[#2E3A40] transition-colors"
                                             onClick={() => setSelectedUnit(selectedUnit === unit.unitId ? null : unit.unitId)}
                                         >
                                             <div className="flex justify-between items-center flex-wrap gap-2">
                                                 <div>
                                                     <h3 className="font-bold text-lg">{unit.unitTitle}</h3>
-                                                    <p className="text-sm text-gray-500">
+                                                    <p className="text-sm text-[#9AA7B0]">
                                                         {stats.total} заданий
                                                     </p>
                                                 </div>
@@ -196,7 +196,7 @@ export const ProgressHeatmap = ({ challengesData, userId, isAdminView = false }:
                                                         <div className="text-sm font-medium">Прогресс</div>
                                                         <div className="text-xl font-bold">{stats.percent}%</div>
                                                     </div>
-                                                    <div className="w-32 bg-gray-200 rounded-full h-2">
+                                                    <div className="w-32 bg-[#2E3A40] rounded-full h-2">
                                                         <div 
                                                             className="bg-green-500 h-2 rounded-full transition-all"
                                                             style={{ width: `${stats.percent}%` }}
@@ -213,7 +213,7 @@ export const ProgressHeatmap = ({ challengesData, userId, isAdminView = false }:
                                         </div>
                                         
                                         {selectedUnit === unit.unitId && (
-                                            <div className="p-4 bg-white">
+                                            <div className="p-4 bg-[#151F23]">
                                                 <div className="grid grid-cols-10 sm:grid-cols-15 md:grid-cols-20 gap-1">
                                                     {unit.challenges.map((challenge, idx) => (
                                                         <TooltipProvider key={challenge.id}>
@@ -252,30 +252,30 @@ export const ProgressHeatmap = ({ challengesData, userId, isAdminView = false }:
             
             {/* Общая статистика */}
             {isAdminView && challengesData.length > 0 && (
-                <div className="bg-gray-50 rounded-xl p-4 border">
+                <div className="bg-[#1A252B] rounded-xl p-4 border">
                     <h3 className="font-bold text-lg mb-3">📊 Общая статистика</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="text-center">
                             <div className="text-2xl font-bold text-blue-600">{challengesData.length}</div>
-                            <div className="text-xs text-gray-500">Всего заданий</div>
+                            <div className="text-xs text-[#9AA7B0]">Всего заданий</div>
                         </div>
                         <div className="text-center">
                             <div className="text-2xl font-bold text-green-600">
                                 {challengesData.filter(c => c.isCompleted && c.isDoneRight).length}
                             </div>
-                            <div className="text-xs text-gray-500">Правильно решено</div>
+                            <div className="text-xs text-[#9AA7B0]">Правильно решено</div>
                         </div>
                         <div className="text-center">
                             <div className="text-2xl font-bold text-orange-600">
                                 {challengesData.filter(c => c.isFromHomework && !c.isCompleted).length}
                             </div>
-                            <div className="text-xs text-gray-500">ДЗ не выполнено</div>
+                            <div className="text-xs text-[#9AA7B0]">ДЗ не выполнено</div>
                         </div>
                         <div className="text-center">
                             <div className="text-2xl font-bold text-purple-600">
                                 {Math.round((challengesData.filter(c => c.isCompleted).length / challengesData.length) * 100)}%
                             </div>
-                            <div className="text-xs text-gray-500">Общий прогресс</div>
+                            <div className="text-xs text-[#9AA7B0]">Общий прогресс</div>
                         </div>
                     </div>
                 </div>

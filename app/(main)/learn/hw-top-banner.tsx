@@ -17,7 +17,7 @@ export const HwTopBanner = ({
         return (
             <div className="mx-auto w-fit max-w-[280px]">
                 {missedCIds.length > 0 ? (
-                    <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white shadow-sm px-4 py-3">
+                    <div className="flex items-center gap-3 rounded-xl border border-[#3A464E] bg-[#151F23] shadow-sm px-4 py-3">
                         <Image
                             src="/hwSvgs/friesW.svg"
                             height={36}

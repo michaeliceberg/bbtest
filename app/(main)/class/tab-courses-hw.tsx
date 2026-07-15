@@ -100,19 +100,19 @@ export const TabCoursesHW = ({
     }
 
     if (!courses || courses.length === 0) {
-        return <div className="text-center py-8 text-gray-500">Нет доступных курсов</div>
+        return <div className="text-center py-8 text-[#9AA7B0]">Нет доступных курсов</div>
     }
 
     return (
         <div className="w-full max-w-6xl mx-auto px-4 mt-8">
             <Tabs defaultValue={courses[0].title} className="w-full">
                 <div className="flex justify-center mb-6">
-                    <TabsList className="bg-gray-100 rounded-xl p-1">
+                    <TabsList className="bg-[#232F34] rounded-xl p-1">
                         {courses.map((course, index) => (
                             <TabsTrigger
                                 key={index * 21983}
                                 value={course.title}
-                                className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2"
+                                className="data-[state=active]:bg-[#151F23] data-[state=active]:shadow-sm px-4 py-2"
                             >
                                 {course.title.split(' ')[0]}
                             </TabsTrigger>
@@ -122,11 +122,11 @@ export const TabCoursesHW = ({
 
                 {courses.map((course, indexCourse) => (
                     <TabsContent key={indexCourse * 19339} value={course.title} className="mt-0">
-                        <div className="bg-white rounded-xl border p-6">
-                            <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
+                        <div className="bg-[#151F23] rounded-xl border p-6">
+                            <h2 className="text-2xl font-bold mb-6 text-center text-[#F2F7FB]">
                                 Выберите задания для ДЗ
                             </h2>
-                            <p className="text-center text-gray-500 mb-6">
+                            <p className="text-center text-[#9AA7B0] mb-6">
                                 Нажмите на номер задания, чтобы добавить его в ДЗ
                             </p>
 
@@ -146,7 +146,7 @@ export const TabCoursesHW = ({
                                             {units.filter(u => u.id === unit.id)[0]?.lessons?.map((lesson, lessonIndex) => (
                                                 <div key={lessonIndex} className="p-4">
                                                     <div className="flex items-center gap-2 mb-3">
-                                                        <span className="font-medium text-gray-700">{lesson.title}</span>
+                                                        <span className="font-medium text-[#F2F7FB]">{lesson.title}</span>
                                                         <span className="text-xs text-gray-400">({lesson.challenges.length} заданий)</span>
                                                     </div>
                                                     <div className="flex flex-wrap gap-2">
@@ -200,12 +200,12 @@ export const TabCoursesHW = ({
                             </div>
 
                             <div className="mt-8 pt-4 border-t">
-                                <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                                    <p className="text-sm text-gray-600">
+                                <div className="mb-4 p-3 bg-[#1A252B] rounded-lg">
+                                    <p className="text-sm text-[#9AA7B0]">
                                         📋 Выбрано заданий: <span className="font-bold text-blue-600">{hwListChallengeIds.length}</span>
                                     </p>
                                     {hwTLessonIds.length > 0 && (
-                                        <p className="text-sm text-gray-600 mt-1">
+                                        <p className="text-sm text-[#9AA7B0] mt-1">
                                             🎯 Выбрано уроков тренажера: <span className="font-bold text-green-600">{hwTLessonIds.length}</span>
                                         </p>
                                     )}

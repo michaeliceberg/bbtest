@@ -207,7 +207,7 @@ export const WrongAnswerModal = () => {
                         {randomWrongMessage}
                     </DialogTitle>
                     
-                    <DialogDescription className='text-center text-sm md:text-base text-gray-600'>
+                    <DialogDescription className='text-center text-sm md:text-base text-[#9AA7B0]'>
                         Попробуй ещё раз! ❤️ -1
                     </DialogDescription>   
                 </DialogHeader>

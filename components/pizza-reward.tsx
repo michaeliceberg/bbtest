@@ -64,7 +64,7 @@ export const PizzaReward = ({ userGems, userStreak, userRank, onOrder }: Props) 
             <div className={`border-2 rounded-xl p-4 transition-all ${
                 isAvailable 
                     ? 'bg-gradient-to-r from-red-500 to-orange-500 cursor-pointer hover:scale-105' 
-                    : 'bg-gray-100 opacity-50'
+                    : 'bg-[#232F34] opacity-50'
             }`}
             onClick={() => isAvailable && setIsOpen(true)}>
                 <div className="flex items-center gap-3">

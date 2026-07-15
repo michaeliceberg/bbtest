@@ -29,8 +29,8 @@ export const Header = () => {
       <header 
         className={`fixed top-0 w-full z-50 transition-all duration-300 ${
           isScrolled 
-            ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-slate-200' 
-            : 'bg-white/80 backdrop-blur-sm border-b-2 border-slate-200'
+            ? 'bg-[#151F23]/95 backdrop-blur-md shadow-lg border-b border-[#3A464E]' 
+            : 'bg-[#151F23]/80 backdrop-blur-sm border-b-2 border-[#3A464E]'
         }`}
       >
         <div className='lg:max-w-screen-lg mx-auto px-4 h-20 flex items-center justify-between'>
@@ -159,8 +159,8 @@ export const Header = () => {
 //       <header 
 //         className={`fixed top-0 w-full z-50 transition-all duration-300 ${
 //           isScrolled 
-//             ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-slate-200' 
-//             : 'bg-white/80 backdrop-blur-sm border-b-2 border-slate-200'
+//             ? 'bg-[#151F23]/95 backdrop-blur-md shadow-lg border-b border-[#3A464E]' 
+//             : 'bg-[#151F23]/80 backdrop-blur-sm border-b-2 border-[#3A464E]'
 //         }`}
 //       >
 //         <div className='lg:max-w-screen-lg mx-auto px-4 h-20 flex items-center justify-between'>
@@ -252,8 +252,8 @@ export const Header = () => {
 //       <header 
 //         className={`fixed top-0 w-full z-50 transition-all duration-300 ${
 //           isScrolled 
-//             ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-slate-200' 
-//             : 'bg-white/80 backdrop-blur-sm border-b-2 border-slate-200'
+//             ? 'bg-[#151F23]/95 backdrop-blur-md shadow-lg border-b border-[#3A464E]' 
+//             : 'bg-[#151F23]/80 backdrop-blur-sm border-b-2 border-[#3A464E]'
 //         }`}
 //       >
 //         <div className='lg:max-w-screen-lg mx-auto px-4 h-20 flex items-center justify-between'>
@@ -324,7 +324,7 @@ export const Header = () => {
 //           {/* Мобильное меню кнопка */}
 //           <button 
 //             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-//             className='md:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors'
+//             className='md:hidden p-2 rounded-lg hover:bg-[#232F34] transition-colors'
 //           >
 //             {isMobileMenuOpen ? <X className='h-6 w-6' /> : <Menu className='h-6 w-6' />}
 //           </button>
@@ -335,7 +335,7 @@ export const Header = () => {
 //       {isMobileMenuOpen && (
 //         <div className='fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden' onClick={() => setIsMobileMenuOpen(false)}>
 //           <div 
-//             className='fixed top-20 left-0 right-0 bg-white shadow-xl rounded-b-2xl p-6 animate-in slide-in-from-top duration-300'
+//             className='fixed top-20 left-0 right-0 bg-[#151F23] shadow-xl rounded-b-2xl p-6 animate-in slide-in-from-top duration-300'
 //             onClick={(e) => e.stopPropagation()}
 //           >
 //             {/* Приветствие в мобильном меню */}
@@ -355,7 +355,7 @@ export const Header = () => {
 //             <nav className='flex flex-col gap-y-3'>
 //               <Link 
 //                 href='/' 
-//                 className='flex items-center gap-x-3 p-3 rounded-lg hover:bg-slate-100 transition-colors'
+//                 className='flex items-center gap-x-3 p-3 rounded-lg hover:bg-[#232F34] transition-colors'
 //                 onClick={() => setIsMobileMenuOpen(false)}
 //               >
 //                 <Home className='h-5 w-5 text-green-600' />
@@ -363,7 +363,7 @@ export const Header = () => {
 //               </Link>
 //               <Link 
 //                 href='/learn' 
-//                 className='flex items-center gap-x-3 p-3 rounded-lg hover:bg-slate-100 transition-colors'
+//                 className='flex items-center gap-x-3 p-3 rounded-lg hover:bg-[#232F34] transition-colors'
 //                 onClick={() => setIsMobileMenuOpen(false)}
 //               >
 //                 <BookOpen className='h-5 w-5 text-blue-600' />
@@ -371,7 +371,7 @@ export const Header = () => {
 //               </Link>
 //               <Link 
 //                 href='/progress' 
-//                 className='flex items-center gap-x-3 p-3 rounded-lg hover:bg-slate-100 transition-colors'
+//                 className='flex items-center gap-x-3 p-3 rounded-lg hover:bg-[#232F34] transition-colors'
 //                 onClick={() => setIsMobileMenuOpen(false)}
 //               >
 //                 <TrendingUp className='h-5 w-5 text-purple-600' />
@@ -380,7 +380,7 @@ export const Header = () => {
 //             </nav>
 
 //             {/* Блок с вдохновляющей цитатой */}
-//             <div className='mt-6 pt-6 border-t border-slate-200'>
+//             <div className='mt-6 pt-6 border-t border-[#3A464E]'>
 //               <p className='text-xs text-center text-muted-foreground italic'>
 //                 "Знания — это сила, а математика — это ключ 🔑"
 //               </p>
@@ -426,8 +426,8 @@ export const Header = () => {
 //       <header 
 //         className={`fixed top-0 w-full z-50 transition-all duration-300 ${
 //           isScrolled 
-//             ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-slate-200' 
-//             : 'bg-white/80 backdrop-blur-sm border-b-2 border-slate-200'
+//             ? 'bg-[#151F23]/95 backdrop-blur-md shadow-lg border-b border-[#3A464E]' 
+//             : 'bg-[#151F23]/80 backdrop-blur-sm border-b-2 border-[#3A464E]'
 //         }`}
 //       >
 //         <div className='lg:max-w-screen-lg mx-auto px-4 h-20 flex items-center justify-between'>
@@ -482,7 +482,7 @@ export const Header = () => {
 
 // export const Header = () => {
 // 	return (
-// 		<header className='h-20 w-full border-b-2 border-slate-200 px-4'>
+// 		<header className='h-20 w-full border-b-2 border-[#3A464E] px-4'>
 // 			<div className='lg:max-w-screen-lg mx-auto flex items-center justify-between h-full'>
 // 				<div className='pt-8 pl-4 pb-7 flex items-center gap-x-3'>
 // 					<Image src='/mascot.svg' height={40} width={40} alt='Mascot' />

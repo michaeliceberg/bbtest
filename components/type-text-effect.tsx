@@ -155,7 +155,7 @@ import dynamic from "next/dynamic";
 // Динамический импорт Lottie с отключением SSR
 const Lottie = dynamic(() => import("lottie-react"), { 
   ssr: false,
-  loading: () => <div className="size-36 bg-gray-200 animate-pulse rounded-full" />
+  loading: () => <div className="size-36 bg-[#2E3A40] animate-pulse rounded-full" />
 });
 
 // Импортируем анимацию через dynamic, чтобы избежать проблем с парсингом JSON на сервере
@@ -212,7 +212,7 @@ const Typewrite = ({ examples }: { examples: string[] }) => {
     return (
       <div className="text-xs font-light">
         <span className="ml-3">
-          <div className="size-36 bg-gray-200 animate-pulse rounded-full" />
+          <div className="size-36 bg-[#2E3A40] animate-pulse rounded-full" />
           <div className="relative mt-4 py-2 px-4 border-2 rounded-xl font-semibold text-center text-sm lg:text-base w-full pb-1 pt-1">
             {examples[0]}
           </div>

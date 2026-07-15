@@ -205,13 +205,13 @@ export const RightAnswerModal = () => {
                         {randomRightMessage}
                     </DialogTitle>
                     
-                    <DialogDescription className='text-center text-sm md:text-base text-gray-600'>
+                    <DialogDescription className='text-center text-sm md:text-base text-[#9AA7B0]'>
                         <div className="flex items-center justify-center gap-4 mt-2">
                             <div className="flex items-center gap-1 text-amber-500">
                                 <Lottie className="w-6 h-6" animationData={LottieCoins} />
                                 <span className="font-bold text-lg">+{pointsEarned}</span>
                             </div>
-                            <div className="w-px h-5 bg-gray-200" />
+                            <div className="w-px h-5 bg-[#2E3A40]" />
                             <div className="flex items-center gap-1 text-purple-500">
                                 <span className="text-lg">💎</span>
                                 <span className="font-bold text-lg">+{gemsEarned}</span>

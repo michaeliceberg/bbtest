@@ -50,7 +50,7 @@ export default function WinStreakModal({ effect, onClose }: Props) {
         >
 
           <motion.div
-            className="bg-white p-6 rounded-xl shadow-xl text-center"
+            className="bg-[#151F23] p-6 rounded-xl shadow-xl text-center"
             initial={{ scale: 0.5, y: 100 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.7 }}

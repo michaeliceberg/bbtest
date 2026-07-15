@@ -88,15 +88,15 @@ export const Challenge = ({
                 <motion.div 
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="text-center py-8 px-4 bg-gray-50 rounded-xl border border-gray-200"
+                    className="text-center py-8 px-4 bg-[#1A252B] rounded-xl border border-[#3A464E]"
                 >
                     {statusInfo && (
                         <>
-                            <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3 ${statusInfo.color}`}>
+                            <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#232F34] mb-3 ${statusInfo.color}`}>
                                 <statusInfo.icon className="w-6 h-6" />
                             </div>
                             <h3 className="font-semibold text-base mb-1">{statusInfo.title}</h3>
-                            <p className="text-gray-500 text-sm">{statusInfo.message}</p>
+                            <p className="text-[#9AA7B0] text-sm">{statusInfo.message}</p>
                         </>
                     )}
                 </motion.div>

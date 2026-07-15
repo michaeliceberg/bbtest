@@ -83,10 +83,10 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
         const isCompleted = hw.correctCount >= hw.totalCount;
         
         const getCardColor = () => {
-            if (isExpired) return 'from-red-50 to-red-100 border-red-200';
-            if (isCompleted) return 'from-green-50 to-emerald-100 border-green-200';
-            if (isUrgent) return 'from-orange-50 to-amber-100 border-orange-200';
-            return hw.type === 'daily' ? 'from-purple-50 to-fuchsia-100 border-purple-200' : 'from-amber-50 to-yellow-100 border-amber-200';
+            if (isExpired) return 'from-red-500/10 to-red-500/5 border-red-500/30';
+            if (isCompleted) return 'from-green-500/10 to-emerald-500/5 border-green-500/30';
+            if (isUrgent) return 'from-orange-500/10 to-amber-500/5 border-orange-500/30';
+            return hw.type === 'daily' ? 'from-purple-500/10 to-fuchsia-500/5 border-purple-500/30' : 'from-amber-500/10 to-yellow-500/5 border-amber-500/30';
         };
         
         const getIconBg = () => {
@@ -115,26 +115,26 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
                                     <BookOpen className="h-3.5 w-3.5 text-white" />
                                 )}
                             </div>
-                            <span className="text-xs font-medium text-gray-500">
+                            <span className="text-xs font-medium text-[#9AA7B0]">
                                 {format(hw.assignedAt, 'dd MMMM', { locale: ru })}
                             </span>
                             <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                isExpired ? 'bg-red-200 text-red-700' :
-                                isCompleted ? 'bg-green-200 text-green-700' :
-                                isUrgent ? 'bg-orange-200 text-orange-700' :
-                                hw.type === 'daily' ? 'bg-purple-200 text-purple-700' : 'bg-amber-200 text-amber-700'
+                                isExpired ? 'bg-red-500/20 text-red-300' :
+                                isCompleted ? 'bg-green-500/20 text-green-300' :
+                                isUrgent ? 'bg-orange-500/20 text-orange-300' :
+                                hw.type === 'daily' ? 'bg-purple-500/20 text-purple-300' : 'bg-amber-500/20 text-amber-300'
                             }`}>
                                 {isExpired ? 'Просрочено' : getTimeLeft(hw.dueDate)}
                             </span>
                         </div>
                         
-                        <h4 className="font-bold text-gray-800 mb-1">{typeTitle}</h4>
+                        <h4 className="font-bold text-[#F2F7FB] mb-1">{typeTitle}</h4>
                         
                         <div className="flex items-center gap-3 mt-2">
                             <div className="flex-1">
                                 <Progress value={progress} className="h-2" />
                             </div>
-                            <span className="text-sm font-semibold text-gray-700">
+                            <span className="text-sm font-semibold text-[#F2F7FB]">
                                 {hw.correctCount}/{hw.totalCount}
                             </span>
                         </div>
@@ -153,18 +153,18 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
     };
 
     return (
-        <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+        <div className="bg-[#151F23] rounded-2xl border shadow-sm overflow-hidden">
             {/* Заголовок */}
-            <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-5 py-4 border-b">
+            <div className="bg-[#1A252B] px-5 py-4 border-b border-[#3A464E]">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg p-1.5">
                             <Gift className="h-4 w-4 text-white" />
                         </div>
-                        <h3 className="font-bold text-gray-800">Задания</h3>
+                        <h3 className="font-bold text-[#F2F7FB]">Задания</h3>
                     </div>
                     {!hasAnyActive && completedHomework.length > 0 && (
-                        <div className="flex items-center gap-1 text-green-600 text-xs bg-green-50 px-2 py-1 rounded-full">
+                        <div className="flex items-center gap-1 text-green-400 text-xs bg-green-500/10 px-2 py-1 rounded-full">
                             <Sparkles className="h-3 w-3" />
                             <span>Все выполнено!</span>
                         </div>
@@ -215,7 +215,7 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
                         <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
                             <CheckCircle className="h-8 w-8 text-white" />
                         </div>
-                        <p className="text-gray-600 font-medium">Все задания выполнены!</p>
+                        <p className="text-[#9AA7B0] font-medium">Все задания выполнены!</p>
                         <p className="text-xs text-gray-400 mt-1">Отличная работа, продолжай в том же духе</p>
                     </motion.div>
                 )}
@@ -229,20 +229,20 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
                         </summary>
                         <div className="mt-3 space-y-2">
                             {dailyExpired.map(hw => (
-                                <div key={hw.id} className="flex items-center justify-between text-sm bg-red-50 rounded-lg p-3">
+                                <div key={hw.id} className="flex items-center justify-between text-sm bg-red-500/10 rounded-lg p-3">
                                     <div className="flex items-center gap-2">
                                         <Zap className="h-4 w-4 text-red-400" />
-                                        <span className="text-gray-600">Челлендж</span>
+                                        <span className="text-[#9AA7B0]">Челлендж</span>
                                         <span className="text-gray-400 text-xs">{format(hw.assignedAt, 'dd MMM', { locale: ru })}</span>
                                     </div>
                                     <span className="text-red-500 font-medium">{hw.correctCount}/{hw.totalCount}</span>
                                 </div>
                             ))}
                             {teacherExpired.map(hw => (
-                                <div key={hw.id} className="flex items-center justify-between text-sm bg-red-50 rounded-lg p-3">
+                                <div key={hw.id} className="flex items-center justify-between text-sm bg-red-500/10 rounded-lg p-3">
                                     <div className="flex items-center gap-2">
                                         <BookOpen className="h-4 w-4 text-red-400" />
-                                        <span className="text-gray-600">ДЗ</span>
+                                        <span className="text-[#9AA7B0]">ДЗ</span>
                                         <span className="text-gray-400 text-xs">{format(hw.assignedAt, 'dd MMM', { locale: ru })}</span>
                                     </div>
                                     <span className="text-red-500 font-medium">{hw.correctCount}/{hw.totalCount}</span>
@@ -255,26 +255,26 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
                 {/* Выполненные задания (сворачиваемые) */}
                 {(dailyCompleted.length > 0 || teacherCompleted.length > 0) && (
                     <details className="mt-4 pt-2 border-t">
-                        <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-600 flex items-center gap-2 py-2">
+                        <summary className="cursor-pointer text-sm text-[#9AA7B0] hover:text-[#9AA7B0] flex items-center gap-2 py-2">
                             <CheckCircle className="h-4 w-4" />
                             <span className="font-medium">Выполненные ({dailyCompleted.length + teacherCompleted.length})</span>
                         </summary>
                         <div className="mt-3 space-y-2">
                             {dailyCompleted.map(hw => (
-                                <div key={hw.id} className="flex items-center justify-between text-sm bg-gray-50 rounded-lg p-3">
+                                <div key={hw.id} className="flex items-center justify-between text-sm bg-[#1A252B] rounded-lg p-3">
                                     <div className="flex items-center gap-2">
                                         <Zap className="h-4 w-4 text-green-500" />
-                                        <span className="text-gray-500">Челлендж</span>
+                                        <span className="text-[#9AA7B0]">Челлендж</span>
                                         <span className="text-gray-400 text-xs">{format(hw.assignedAt, 'dd MMM', { locale: ru })}</span>
                                     </div>
                                     <span className="text-green-600">✓ {hw.correctCount}/{hw.totalCount}</span>
                                 </div>
                             ))}
                             {teacherCompleted.map(hw => (
-                                <div key={hw.id} className="flex items-center justify-between text-sm bg-gray-50 rounded-lg p-3">
+                                <div key={hw.id} className="flex items-center justify-between text-sm bg-[#1A252B] rounded-lg p-3">
                                     <div className="flex items-center gap-2">
                                         <BookOpen className="h-4 w-4 text-green-500" />
-                                        <span className="text-gray-500">ДЗ</span>
+                                        <span className="text-[#9AA7B0]">ДЗ</span>
                                         <span className="text-gray-400 text-xs">{format(hw.assignedAt, 'dd MMM', { locale: ru })}</span>
                                     </div>
                                     <span className="text-green-600">✓ {hw.correctCount}/{hw.totalCount}</span>
@@ -423,7 +423,7 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
 //                         {getStatusIcon(hw.status, hw.dueDate, hw.type)}
 //                         <div className="flex items-center gap-1">
 //                             {getTypeIcon(hw.type)}
-//                             <span className="text-xs text-gray-500">{typeTitle}</span>
+//                             <span className="text-xs text-[#9AA7B0]">{typeTitle}</span>
 //                         </div>
 //                         <span className="text-sm font-medium">
 //                             {format(hw.assignedAt, 'dd MMM', { locale: ru })}
@@ -462,7 +462,7 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
 //     };
 
 //     return (
-//         <div className="border-2 rounded-xl p-4 space-y-4 bg-white">
+//         <div className="border-2 rounded-xl p-4 space-y-4 bg-[#151F23]">
 //             <div className="flex items-center justify-between">
 //                 <h3 className="font-bold text-lg flex items-center gap-2">
 //                     📋 Задания
@@ -668,7 +668,7 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
 //     const sortedActive = [...activeHomework].sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
 
 //     return (
-//         <div className="border-2 rounded-xl p-4 space-y-4 bg-white">
+//         <div className="border-2 rounded-xl p-4 space-y-4 bg-[#151F23]">
 //             <div className="flex items-center justify-between">
 //                 <h3 className="font-bold text-lg flex items-center gap-2">
 //                     📚 Домашние задания
@@ -702,7 +702,7 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
 //                                         {getStatusIcon(hw.status, hw.dueDate)}
 //                                         <div className="flex items-center gap-1">
 //                                             {getTypeIcon(type)}
-//                                             <span className="text-xs text-gray-500">{getTypeLabel(type)}</span>
+//                                             <span className="text-xs text-[#9AA7B0]">{getTypeLabel(type)}</span>
 //                                         </div>
 //                                         <span className="text-sm font-medium">
 //                                             {format(hw.assignedAt, 'dd MMM', { locale: ru })}
