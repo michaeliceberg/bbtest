@@ -10,7 +10,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Lock, Zap, Trophy, Star } from 'lucide-react'
+import { Lock, Zap, Trophy, Star, List } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TrainerChest } from './trainer-chest'
 
@@ -49,11 +49,15 @@ const wave = (i: number) => {
     return cycle - 8
 }
 
+const BG_COLOR = '#151F23'
+const GREEN = '#78C93C'
+const GREEN_DARK = '#5C9A2E'
+
 const legColor = (percentage: number) => {
-    if (percentage > 90) return { bg: 'bg-amber-400', border: 'border-amber-300', icon: Trophy }
-    if (percentage > 60) return { bg: 'bg-emerald-500', border: 'border-emerald-400', icon: Star }
-    if (percentage > 1) return { bg: 'bg-rose-500', border: 'border-rose-400', icon: Zap }
-    return { bg: 'bg-emerald-500', border: 'border-emerald-400', icon: Zap }
+    if (percentage > 90) return { bg: '#fbbf24', border: '#d97706', icon: Trophy }
+    if (percentage > 60) return { bg: GREEN, border: GREEN_DARK, icon: Star }
+    if (percentage > 1) return { bg: '#f43f5e', border: '#be123c', icon: Zap }
+    return { bg: GREEN, border: GREEN_DARK, icon: Zap }
 }
 
 type Row = { kind: 'lesson'; unit: SkillUnit; lesson: SkillLesson; x: number; y: number; justUnlocked: boolean }
@@ -103,12 +107,12 @@ export const TrainerSkillTree = ({ units }: Props) => {
     const centerOffset = -minX
 
     return (
-        <div className="relative w-full rounded-2xl bg-[#0b0f19] overflow-hidden">
+        <div className="relative w-full rounded-2xl overflow-hidden" style={{ backgroundColor: BG_COLOR }}>
             <style>{`
                 @keyframes sktreeUnlock {
-                    0% { box-shadow: 0 0 0 0 rgba(52,211,153,0.7); }
-                    70% { box-shadow: 0 0 0 18px rgba(52,211,153,0); }
-                    100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); }
+                    0% { box-shadow: 0 0 0 0 rgba(120,201,60,0.7); }
+                    70% { box-shadow: 0 0 0 18px rgba(120,201,60,0); }
+                    100% { box-shadow: 0 0 0 0 rgba(120,201,60,0); }
                 }
                 .sktree-flash { animation: sktreeUnlock 0.8s ease-out 2; }
             `}</style>
@@ -117,16 +121,21 @@ export const TrainerSkillTree = ({ units }: Props) => {
                 {bannerYs.map(({ unit, y }, idx) => (
                     <div
                         key={`banner-${unit.id}`}
-                        className="absolute left-3 right-3 rounded-xl bg-emerald-600 flex items-center justify-between px-4"
-                        style={{ top: y, height: BANNER_H }}
+                        className="absolute left-3 right-3 rounded-[20px] flex items-stretch justify-between overflow-hidden"
+                        style={{ top: y, height: BANNER_H, backgroundColor: GREEN }}
                     >
-                        <div>
-                            <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-100/80">
+                        <div className="flex flex-col justify-center px-4">
+                            <div className="text-[10px] font-bold uppercase tracking-wide text-white/80">
                                 Юнит {idx + 1}
                             </div>
                             <div className="text-[15px] font-bold text-white leading-tight">{unit.title}</div>
                         </div>
-                        <div className="text-[11px] font-semibold text-emerald-100/90">{Math.round(unit.percentage)}%</div>
+                        <div className="flex items-center pr-1">
+                            <div className="self-stretch w-px my-3 bg-white/30" />
+                            <div className="flex h-9 w-9 items-center justify-center rounded-xl ml-3 mr-2" style={{ backgroundColor: 'rgba(255,255,255,0.16)' }}>
+                                <List className="h-5 w-5 text-white" />
+                            </div>
+                        </div>
                     </div>
                 ))}
 
@@ -140,7 +149,7 @@ export const TrainerSkillTree = ({ units }: Props) => {
                         <div
                             data-node-id={r.lesson.id}
                             className={cn(
-                                'relative flex items-center justify-center rounded-full border-4 transition-colors',
+                                'relative flex items-center justify-center rounded-full border-2 border-b-8 active:border-b-2 transition-[border-width] duration-100',
                                 flashIds.has(r.lesson.id) ? 'sktree-flash' : '',
                                 locked ? 'bg-[#1c2333] border-[#2a3348]' : cn(state.bg, state.border),
                             )}
