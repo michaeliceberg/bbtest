@@ -12,7 +12,7 @@
 
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { Fragment, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Lock, Zap, Trophy } from 'lucide-react'
@@ -114,13 +114,23 @@ const legGeometry = (parent: Pt, angleDeg: number) => {
     const knee: Pt = { x: parent.x + THIGH * Math.cos(a), y: parent.y + THIGH * Math.sin(a) }
     // Верхние ножки (острие смотрит вверх, sin(a) < 0) гнутся внутрь, к центру —
     // иначе получается слишком "паучий" вид. Нижние ножки по-прежнему
-    // разворачиваются наружу.
+    // разворачиваются наружу. Излом всегда ровно 90° (скругляется при отрисовке).
     const isUpper = Math.sin(a) < 0
-    const outward = Math.cos(a) >= 0 ? 15 : -15
+    const outward = Math.cos(a) >= 0 ? 90 : -90
     const bend = isUpper ? -outward : outward
     const a2 = toRad(angleDeg + bend)
     const foot: Pt = { x: knee.x + SHIN * Math.cos(a2), y: knee.y + SHIN * Math.sin(a2) }
     return { knee, foot }
+}
+
+const ROUND_R = 26
+const buildLegPath = (parent: Pt, knee: Pt, foot: Pt) => {
+    const distA = Math.hypot(knee.x - parent.x, knee.y - parent.y)
+    const distB = Math.hypot(foot.x - knee.x, foot.y - knee.y)
+    const r = Math.min(ROUND_R, distA * 0.45, distB * 0.45)
+    const pA: Pt = { x: knee.x + (parent.x - knee.x) * (r / distA), y: knee.y + (parent.y - knee.y) * (r / distA) }
+    const pB: Pt = { x: knee.x + (foot.x - knee.x) * (r / distB), y: knee.y + (foot.y - knee.y) * (r / distB) }
+    return `M ${parent.x} ${parent.y} L ${pA.x} ${pA.y} Q ${knee.x} ${knee.y} ${pB.x} ${pB.y} L ${foot.x} ${foot.y}`
 }
 
 type PlacedLesson = { lesson: SkillLesson; parentPos: Pt; knee: Pt; foot: Pt; isRevealTarget: boolean }
@@ -282,20 +292,20 @@ export const TrainerSkillTree = ({ units }: Props) => {
                             {layout.placed.map((p) => {
                                 const locked = p.lesson.isDisabled
                                 const color = locked ? LOCKED_COLOR : legColor(p.lesson.percentage)
-                                const d = `M ${p.parentPos.x} ${p.parentPos.y} L ${p.knee.x} ${p.knee.y} L ${p.foot.x} ${p.foot.y}`
+                                const d = buildLegPath(p.parentPos, p.knee, p.foot)
 
                                 if (p.isRevealTarget) {
                                     return (
                                         <g key={p.lesson.id}>
-                                            <path d={d} stroke={LOCKED_COLOR} strokeWidth={8} strokeLinecap="square" strokeLinejoin="miter" fill="none" />
+                                            <path d={d} stroke={LOCKED_COLOR} strokeWidth={8} strokeLinecap="round" strokeLinejoin="round" fill="none" />
                                             <path
                                                 data-reveal="true"
                                                 data-leg-id={p.lesson.id}
                                                 d={d}
                                                 stroke={color}
                                                 strokeWidth={8}
-                                                strokeLinecap="square"
-                                                strokeLinejoin="miter"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
                                                 fill="none"
                                             />
                                             <circle data-spark-id={p.lesson.id} r={7} fill="#facc15" opacity={0} cx={p.parentPos.x} cy={p.parentPos.y} />
@@ -309,8 +319,8 @@ export const TrainerSkillTree = ({ units }: Props) => {
                                         d={d}
                                         stroke={color}
                                         strokeWidth={locked ? 6 : 8}
-                                        strokeLinecap="square"
-                                        strokeLinejoin="miter"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
                                         fill="none"
                                     />
                                 )
@@ -357,12 +367,17 @@ export const TrainerSkillTree = ({ units }: Props) => {
                         const locked = p.lesson.isDisabled
                         const mastered = p.lesson.percentage > 90
                         const Icon = locked ? Lock : mastered ? Trophy : Zap
+                        // Ярлык с названием урока "пристраивается" к квадратику с внутренней
+                        // стороны (к центру дерева), чтобы не налезать на ножку, которая
+                        // всегда подходит снаружи.
+                        const isLeft = p.foot.x <= layout.hub.x
 
                         const badge = (
                             <div
                                 data-node-id={p.lesson.id}
                                 className={cn(
-                                    'relative flex h-[60px] w-[60px] items-center justify-center rounded-2xl border-4 transition-colors',
+                                    'relative flex h-[60px] w-[60px] items-center justify-center border-4 transition-colors',
+                                    isLeft ? 'rounded-l-2xl rounded-r-none' : 'rounded-r-2xl rounded-l-none',
                                     locked
                                         ? 'bg-slate-100 border-slate-300'
                                         : mastered
@@ -385,25 +400,39 @@ export const TrainerSkillTree = ({ units }: Props) => {
                         )
 
                         return (
-                            <div
-                                key={p.lesson.id}
-                                style={{
-                                    position: 'absolute',
-                                    left: pct(p.foot.x, totalWidth),
-                                    top: pct(p.foot.y, totalHeight),
-                                    transform: 'translate(-50%, -50%)',
-                                    width: 104,
-                                }}
-                            >
-                                <div className="flex flex-col items-center gap-1.5">
-                                    {locked ? badge : (
-                                        <Link href={`/t-lesson/${p.lesson.id}`}>{badge}</Link>
-                                    )}
-                                    <div className={cn('text-[11px] font-medium text-center leading-tight', locked ? 'text-slate-400' : 'text-slate-600')}>
+                            <Fragment key={p.lesson.id}>
+                                <div
+                                    style={{
+                                        position: 'absolute',
+                                        left: pct(p.foot.x, totalWidth),
+                                        top: pct(p.foot.y, totalHeight),
+                                        transform: 'translate(-50%, -50%)',
+                                        zIndex: 1,
+                                    }}
+                                >
+                                    {locked ? badge : <Link href={`/t-lesson/${p.lesson.id}`}>{badge}</Link>}
+                                </div>
+                                <div
+                                    style={{
+                                        position: 'absolute',
+                                        top: pct(p.foot.y, totalHeight),
+                                        maxWidth: 128,
+                                        ...(isLeft
+                                            ? { left: pct(p.foot.x + NODE_R, totalWidth), transform: 'translate(0, -50%)' }
+                                            : { left: pct(p.foot.x - NODE_R, totalWidth), transform: 'translate(-100%, -50%)' }),
+                                    }}
+                                >
+                                    <div
+                                        className={cn(
+                                            'text-[11px] font-medium leading-tight px-2.5 py-2.5 border-2 bg-white',
+                                            isLeft ? 'rounded-r-xl rounded-l-none border-l-0' : 'rounded-l-xl rounded-r-none border-r-0',
+                                            locked ? 'text-slate-400 border-slate-200' : 'text-slate-700 border-slate-300',
+                                        )}
+                                    >
                                         {p.lesson.title}
                                     </div>
                                 </div>
-                            </div>
+                            </Fragment>
                         )
                     }),
                 )}
