@@ -2,7 +2,6 @@
 
 'use client'
 
-import { TCourseBanner } from "@/app/(main)/trainer/t-course-banner";
 import {
     Tabs,
     TabsContent,
@@ -254,19 +253,11 @@ export const TabTCourses = ({
 
                     return (
                     <TabsContent key={indexCourse * 19339} value={t_course.title} className="mt-0">
-                        <TCourseBanner
-                            t_course_title={t_course.title}
-                            description={t_course.imageSrc}
-                            imgSrc={t_course.imageSrc}
-                            id={1}
-                            percentageDone={20}
-                            t_course_id={t_course.id}
-                            t_units={t_units}
-                            t_lessonProgress={t_lessonProgress}
-                            CourseStat={CourseStat}
-                        />
+                        <h2 className="text-center text-lg font-bold text-slate-700 mb-3">
+                            {t_course.title.split(' ')[1] ?? t_course.title}
+                        </h2>
 
-                        <div className="w-full mt-6">
+                        <div className="w-full mt-2">
                             <TrainerSkillTree units={skillUnits} />
                         </div>
 

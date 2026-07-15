@@ -51,14 +51,8 @@ const wave = (i: number) => {
 
 const BG_COLOR = '#151F23'
 const GREEN = '#78C93C'
-const GREEN_DARK = '#5C9A2E'
 
-const legColor = (percentage: number) => {
-    if (percentage > 90) return { bg: '#fbbf24', border: '#d97706', icon: Trophy }
-    if (percentage > 60) return { bg: GREEN, border: GREEN_DARK, icon: Star }
-    if (percentage > 1) return { bg: '#f43f5e', border: '#be123c', icon: Zap }
-    return { bg: GREEN, border: GREEN_DARK, icon: Zap }
-}
+const nodeIcon = (percentage: number) => (percentage > 90 ? Trophy : percentage > 1 ? Star : Zap)
 
 type Row = { kind: 'lesson'; unit: SkillUnit; lesson: SkillLesson; x: number; y: number; justUnlocked: boolean }
 
@@ -101,8 +95,9 @@ export const TrainerSkillTree = ({ units }: Props) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
-    const minX = Math.min(0, ...rows.map((r) => r.x), chestX) - NODE / 2 - 20
-    const maxX = Math.max(0, ...rows.map((r) => r.x), chestX) + NODE / 2 + 20
+    const xs = [...rows.map((r) => r.x), chestX]
+    const minX = Math.min(...xs) - NODE / 2 - 20
+    const maxX = Math.max(...xs) + NODE / 2 + 20
     const width = maxX - minX
     const centerOffset = -minX
 
@@ -121,7 +116,7 @@ export const TrainerSkillTree = ({ units }: Props) => {
                 {bannerYs.map(({ unit, y }, idx) => (
                     <div
                         key={`banner-${unit.id}`}
-                        className="absolute left-3 right-3 rounded-[20px] flex items-stretch justify-between overflow-hidden"
+                        className="absolute left-3 right-3 rounded-[20px] flex items-stretch justify-between border-b-[10px] border-b-[#5FA12E]"
                         style={{ top: y, height: BANNER_H, backgroundColor: GREEN }}
                     >
                         <div className="flex flex-col justify-center px-4">
@@ -141,8 +136,7 @@ export const TrainerSkillTree = ({ units }: Props) => {
 
                 {rows.map((r) => {
                     const locked = r.lesson.isDisabled
-                    const state = legColor(r.lesson.percentage)
-                    const Icon = locked ? Lock : state.icon
+                    const Icon = locked ? Lock : nodeIcon(r.lesson.percentage)
                     const cx = centerOffset + r.x
 
                     const node = (
@@ -151,11 +145,13 @@ export const TrainerSkillTree = ({ units }: Props) => {
                             className={cn(
                                 'relative flex items-center justify-center rounded-full border-2 border-b-8 active:border-b-2 transition-[border-width] duration-100',
                                 flashIds.has(r.lesson.id) ? 'sktree-flash' : '',
-                                locked ? 'bg-[#1c2333] border-[#2a3348]' : cn(state.bg, state.border),
+                                locked
+                                    ? 'bg-[#3A454E] border-[#2E383E]'
+                                    : 'bg-[#78C93C] border-[#5FA12F]',
                             )}
                             style={{ width: NODE, height: NODE }}
                         >
-                            <Icon className={cn('h-7 w-7', locked ? 'text-[#3a4358]' : 'text-white')} />
+                            <Icon className={cn('h-7 w-7', locked ? 'text-[#5A6673]' : 'text-white')} />
                             {r.lesson.hasHw && !locked && (
                                 <Image src="/hwSvgs/friesW.svg" width={24} height={24} alt="ДЗ" className="absolute -top-2 -left-2 animate-bounce" />
                             )}
