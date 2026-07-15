@@ -221,8 +221,8 @@ const renderQuestionContent = () => {
         question.questionType !== "RUSSIANDICTANT" && 
         question.questionType !== "SWIPE") {  // Добавляем SWIPE в исключения
         return (
-            <motion.h2 
-                className="text-xl font-semibold mt-4"
+            <motion.h2
+                className="text-xl font-semibold mt-4 text-white"
                 initial={{ x: 250, y: -20, opacity: 0 }}
                 animate={{ x: 10, y: -20, opacity: 1 }}
                 transition={{ delay: 0.2, type: 'spring', stiffness: 300 }}
@@ -339,19 +339,14 @@ const renderQuestionContent = () => {
 
 
 return (
-  <div className="bg-white shadow-xl rounded-2xl p-6 relative overflow-hidden">
-   
-   
-    {/* <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-slate-50 to-transparent rounded-full -mr-32 -mt-32" /> */}
-      
-
+  <div className="bg-[#1E2A2E] shadow-xl rounded-2xl p-6 relative overflow-hidden border border-[#2E3A40]">
 
     {/* Верхняя панель: маскот (с сообщениями) + прогресс-бар */}
     <div className="flex items-center justify-between gap-4 mb-6">
-      
+
       {/* Маскот с сообщениями - занимает всё свободное место */}
       <div className="flex-1">
-        <TrainerMascot 
+        <TrainerMascot
           emotion={mascotEmotion}
           lottieAnimations={{
             right: randomEmotionLottie,
@@ -364,7 +359,7 @@ return (
 
       {/* Прогресс-бар - 40% от ширины */}
       <div className="w-[40%]">
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-[#2E3A40] rounded-full h-2">
           <div
             className={cn(
               "h-2 rounded-full transition-all duration-1000 ease-linear",

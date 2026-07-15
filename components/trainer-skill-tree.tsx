@@ -47,7 +47,9 @@ const TOP_PAD = 8
 const BOTTOM_PAD = 40
 
 // Плавная синусоида вместо ромбовидного зигзага.
-const wave = (i: number) => Math.sin((2 * Math.PI * i) / WAVE_PERIOD)
+// Знак инвертирован, чтобы первый "виток" уходил в противоположную
+// (левую) сторону.
+const wave = (i: number) => -Math.sin((2 * Math.PI * i) / WAVE_PERIOD)
 
 // Точная вершина синусоиды (sin = ±1) — на этих индексах узел стоит
 // в крайнем положении, а на противоположной пустой стороне можно
@@ -110,6 +112,17 @@ export const TrainerSkillTree = ({ units }: Props) => {
     const maxX = Math.max(...xs) + NODE_W / 2 + 20
     const width = maxX - minX
     const centerOffset = -minX
+
+    // Персонажа ставим не у самого края канваса, а посередине между
+    // краем канваса и ближайшим краем кнопки, что стоит примерно на
+    // его уровне (на противоположной, пустой стороне волны).
+    let mascotX = 0
+    if (mascotRow) {
+        const side = mascotRow.x >= 0 ? 1 : -1
+        const buttonNearEdge = mascotRow.x - side * (NODE_W / 2)
+        const canvasOuterEdge = side > 0 ? minX : maxX
+        mascotX = (buttonNearEdge + canvasOuterEdge) / 2
+    }
 
     return (
         <div className="relative w-full rounded-2xl overflow-hidden" style={{ backgroundColor: BG_COLOR }}>
@@ -186,8 +199,8 @@ export const TrainerSkillTree = ({ units }: Props) => {
                     <div
                         className="absolute pointer-events-none"
                         style={{
-                            top: mascotRow.y - 50,
-                            left: centerOffset - mascotRow.x,
+                            top: mascotRow.y + NODE_H / 2 - 55,
+                            left: centerOffset + mascotX,
                             transform: 'translate(-50%, 0)',
                             width: 110,
                             height: 110,

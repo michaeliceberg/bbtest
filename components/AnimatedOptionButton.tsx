@@ -31,9 +31,9 @@ export const AnimatedOptionButton = ({
   const [isHovered, setIsHovered] = useState(false)
 
   const getButtonStyle = () => {
-    if (isCorrect) return "bg-green-500 text-white shadow-lg shadow-green-200 border-green-600"
-    if (isWrong) return "bg-red-500 text-white shadow-lg shadow-red-200 border-red-600"
-    return "bg-white border-2 border-slate-200 hover:border-green-300 hover:shadow-lg text-slate-700"
+    if (isCorrect) return "bg-[#78C93C] text-white shadow-lg shadow-black/20 border-[#5FA12F]"
+    if (isWrong) return "bg-[#FF4B4B] text-white shadow-lg shadow-black/20 border-[#C43333]"
+    return "bg-[#232F34] border-2 border-[#37464F] hover:border-[#78C93C] hover:shadow-lg text-slate-100"
   }
 
   return (
