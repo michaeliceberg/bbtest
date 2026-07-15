@@ -17,7 +17,7 @@ export const HwTopBanner = ({
         return (
             <div className="mx-auto w-fit max-w-[280px]">
                 {missedCIds.length > 0 ? (
-                    <div className="flex items-center gap-3 rounded-xl border border-game-border bg-game-card px-4 py-3">
+                    <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white shadow-sm px-4 py-3">
                         <Image
                             src="/hwSvgs/friesW.svg"
                             height={36}
@@ -25,14 +25,14 @@ export const HwTopBanner = ({
                             alt="Домашнее задание"
                         />
                         <div className="text-left">
-                            <p className="text-sm font-bold text-game-gold">ДЗ: реши {missedCIds.length}</p>
-                            <p className="text-xs text-gray-400">Не пропусти дедлайн</p>
+                            <p className="text-sm font-bold text-amber-600">ДЗ: реши {missedCIds.length}</p>
+                            <p className="text-xs text-slate-400">Не пропусти дедлайн</p>
                         </div>
                     </div>
                 ) : (
-                    <div className="flex items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3">
-                        <Check className="h-4 w-4 text-emerald-400" />
-                        <p className="text-sm font-bold text-emerald-400">ДЗ выполнено</p>
+                    <div className="flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                        <Check className="h-4 w-4 text-emerald-500" />
+                        <p className="text-sm font-bold text-emerald-600">ДЗ выполнено</p>
                     </div>
                 )}
             </div>

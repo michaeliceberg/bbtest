@@ -126,8 +126,8 @@ export const TrainerLessonItemRound = ({
                     <CircularProgressbarWithChildren
                         value={0}
                         styles={{
-                            path: { stroke: "#2a2f4a" },
-                            trail: { stroke: "#2a2f4a" },
+                            path: { stroke: "#e5e7eb" },
+                            trail: { stroke: "#e5e7eb" },
                         }}
                     >
                         <Button
@@ -136,12 +136,12 @@ export const TrainerLessonItemRound = ({
                             className="h-[70px] w-[70px] border-b-8"
                             disabled
                         >
-                            <Lock className="h-10 w-10 text-gray-500" />
+                            <Lock className="h-10 w-10 text-neutral-400" />
                         </Button>
                     </CircularProgressbarWithChildren>
                 </div>
-                <button className="ml-4 rounded-2xl border-2 border-dashed border-game-border bg-game-card
-                    px-6 py-3 uppercase text-sm font-semibold text-gray-500">
+                <button className="ml-4 rounded-2xl border-2 border-dashed border-neutral-300 bg-gray-100
+                    px-6 py-3 uppercase text-sm font-semibold text-neutral-400">
                     {t_lesson.title}
                 </button>
             </div>
@@ -159,7 +159,7 @@ export const TrainerLessonItemRound = ({
                         value={Number.isNaN(percentage) ? 0 : percentage}
                         styles={{
                             path: { stroke: color },
-                            trail: { stroke: "#2a2f4a" },
+                            trail: { stroke: "#e5e7eb" },
                         }}
                     >
                         <Button
@@ -219,10 +219,10 @@ export const TrainerLessonItemRound = ({
                     )}
                 </div>
 
-                <button className="ml-4 rounded-2xl border-2 border-dashed border-game-border bg-game-card
-                    px-6 py-3 uppercase text-sm font-semibold text-gray-200 transition-all duration-300
-                    hover:translate-x-[-4px] hover:translate-y-[-4px] hover:rounded-md hover:border-game-gold/50
-                    hover:shadow-[4px_4px_0px_rgba(255,215,0,0.25)]
+                <button className="ml-4 rounded-2xl border-2 border-dashed border-neutral-400 bg-white
+                    px-6 py-3 uppercase text-sm font-semibold text-neutral-400 transition-all duration-300
+                    hover:translate-x-[-4px] hover:translate-y-[-4px] hover:rounded-md
+                    hover:shadow-[4px_4px_0px_gray]
                     active:translate-x-[0px] active:translate-y-[0px] active:rounded-2xl active:shadow-none cursor-pointer">
                     {t_lesson.title}
                 </button>

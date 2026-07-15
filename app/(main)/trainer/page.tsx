@@ -237,8 +237,7 @@ const TLearnPage = async () => {
     const currentHearts = userProgress.hearts;
 
     return (
-        <div className='rounded-3xl bg-game-bg -mx-4 px-4 py-6 md:mx-0 md:px-6'>
-        <div className='flex flex-row-reverse gap-[48px]'>
+        <div className='flex flex-row-reverse gap-[48px] px-6'>
             <StickyWrapper>
                 <UserProgress
                     activeCourse={userProgress.activeCourse}
@@ -246,7 +245,6 @@ const TLearnPage = async () => {
                     points={currentPoints}
                     gems={currentGems}
                     hasActiveSubscription={false}
-                    theme='dark'
                 />
 
                 <ParentBindCode userId={userId} userName={userProgress.userName} />
@@ -282,7 +280,6 @@ const TLearnPage = async () => {
                     questLessonIds={questLessonIds}
                 />
             </FeedWrapper>
-        </div>
         </div>
     );
 };

@@ -65,9 +65,9 @@ export const TCourseBanner = ({
             
 
 
-            <div className="flex justify-between content-center mx-auto text-white">
+            <div className="flex justify-between content-center mx-auto">
 
-                <div className="text-2xl font-bold text-game-gold">
+                <div className="text-2xl font-bold">
                     <FlipLink href="#">
                         {t_course_title.split(' ')[1]}
                     </FlipLink>
@@ -81,7 +81,7 @@ export const TCourseBanner = ({
                 </p>                                   */}
 
 
-                <div className="text-sm pt-2 flex gap-x-1 text-gray-400">
+                <div className="text-sm pt-2 flex gap-x-1">
                     <span>пройдено</span>
                     <HTMLContent percent={Math.round(averageDonePercent*100)} />
                     <span>%</span>

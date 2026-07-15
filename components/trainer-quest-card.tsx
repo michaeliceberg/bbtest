@@ -29,12 +29,12 @@ export const TrainerQuestCard = ({ quest, streak, tCourseId }: Props) => {
 
     if (!quest) {
         return (
-            <div className="rounded-xl border border-game-border bg-game-card p-4 space-y-3">
+            <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-4 space-y-3">
                 <div className="flex items-center gap-2">
-                    <Target className="h-5 w-5 text-game-gold" />
-                    <h3 className="font-bold text-white">Квест</h3>
+                    <Target className="h-5 w-5 text-amber-500" />
+                    <h3 className="font-bold text-slate-700">Квест</h3>
                 </div>
-                <p className="text-sm text-gray-400 text-center py-4">
+                <p className="text-sm text-slate-400 text-center py-4">
                     Загрузка квеста...
                 </p>
             </div>
@@ -49,26 +49,26 @@ export const TrainerQuestCard = ({ quest, streak, tCourseId }: Props) => {
     };
 
     return (
-        <div className="rounded-xl border border-game-border bg-game-card p-4 space-y-4">
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-4 space-y-4">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <Target className="h-5 w-5 text-game-gold" />
-                    <h3 className="font-bold text-white">Ежедневный квест</h3>
+                    <Target className="h-5 w-5 text-amber-500" />
+                    <h3 className="font-bold text-slate-700">Ежедневный квест</h3>
                 </div>
                 {streak > 0 && (
-                    <div className="flex items-center gap-1 bg-game-card-light px-2 py-1 rounded-full">
-                        <Flame className="h-3 w-3 text-game-gold" />
-                        <span className="text-xs font-bold text-game-gold">x{streak}</span>
+                    <div className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-full">
+                        <Flame className="h-3 w-3 text-amber-500" />
+                        <span className="text-xs font-bold text-amber-600">x{streak}</span>
                     </div>
                 )}
             </div>
 
             <div className="space-y-1">
-                <div className="flex justify-between text-sm text-gray-300">
+                <div className="flex justify-between text-sm text-slate-500">
                     <span>Прогресс</span>
-                    <span className="font-bold text-white">{quest.completedCount}/{quest.totalCount}</span>
+                    <span className="font-bold text-slate-700">{quest.completedCount}/{quest.totalCount}</span>
                 </div>
-                <Progress value={progress} className="h-2 bg-game-card-light" indicatorClassName="bg-game-gold" />
+                <Progress value={progress} className="h-2 bg-slate-100" indicatorClassName="bg-amber-400" />
             </div>
 
             <div className="space-y-2">
@@ -77,30 +77,30 @@ export const TrainerQuestCard = ({ quest, streak, tCourseId }: Props) => {
                         key={lesson.id}
                         className={`flex items-center justify-between p-2 rounded-lg transition-all cursor-pointer border ${
                             lesson.completed
-                                ? 'bg-emerald-500/10 border-emerald-500/30'
-                                : 'bg-game-card-light border-game-border hover:border-game-gold/50'
+                                ? 'bg-emerald-50 border-emerald-200'
+                                : 'bg-slate-50 border-slate-200 hover:border-amber-300'
                         }`}
                         onClick={() => !lesson.completed && handleLessonClick(lesson.id)}
                     >
                         <div className="flex items-center gap-2">
                             {lesson.completed ? (
-                                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                             ) : (
-                                <Circle className="h-4 w-4 text-gray-500" />
+                                <Circle className="h-4 w-4 text-slate-300" />
                             )}
-                            <span className={`text-sm ${lesson.completed ? 'text-emerald-400 line-through' : 'text-gray-200'}`}>
+                            <span className={`text-sm ${lesson.completed ? 'text-emerald-600 line-through' : 'text-slate-600'}`}>
                                 {idx + 1}. {lesson.title}
                             </span>
                         </div>
                         {!lesson.completed && (
-                            <Gift className="h-4 w-4 text-game-gold" />
+                            <Gift className="h-4 w-4 text-amber-500" />
                         )}
                     </div>
                 ))}
             </div>
 
             {quest.isCompleted && (
-                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-2 text-center text-sm text-emerald-400 font-medium">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-center text-sm text-emerald-600 font-medium">
                     Квест выполнен! +1 к стрику
                 </div>
             )}
