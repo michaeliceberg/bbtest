@@ -39,7 +39,7 @@ export const TypeAssist = ({
 
   return (
     <motion.div 
-      className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-8"
+      className="grid grid-cols-2 gap-3 mt-8"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.2 }}

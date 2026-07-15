@@ -45,7 +45,7 @@ const ConnectItem = ({
         whileHover={{ scale: isMatched ? 1 : 1.02 }}
         whileTap={{ scale: isMatched ? 1 : 0.97 }}
         className={`
-            relative w-full text-left rounded-lg border
+            relative w-full h-full flex items-center justify-center text-center rounded-lg border
             px-3 py-2.5 text-sm font-medium leading-snug
             transition-colors duration-200
             ${isSelected
@@ -57,7 +57,7 @@ const ConnectItem = ({
             ${isMatched ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}
         `}
     >
-        <span className={isMatched ? 'pr-5' : ''}>{option.label}</span>
+        <span className={isMatched ? 'px-4' : ''}>{option.label}</span>
         {isMatched && (
             <motion.div
                 initial={{ scale: 0 }}
@@ -208,36 +208,36 @@ export const TypeConnect = ({ question, onAnswer }: Props) => {
                     Соедини пары — выбери элемент слева и подходящий справа
                 </p>
 
-                {/* Две колонки в любом размере экрана + тонкая разделительная линия */}
-                <div className="relative grid grid-cols-2 gap-x-3 gap-y-2">
+                {/* Две колонки в любом размере экрана + тонкая разделительная линия.
+                    Элементы левой и правой колонки идут парами по строкам —
+                    CSS grid растягивает обе ячейки строки до высоты большей
+                    из них, поэтому прямоугольники в ряд получаются соразмерными. */}
+                <div className="relative grid grid-cols-2 grid-flow-row gap-x-3 gap-y-2 items-stretch">
                     <div className="absolute inset-y-0 left-1/2 w-px bg-[#2E3A40] -translate-x-1/2" />
 
-                    <div className="space-y-2">
-                        {optionsQ.map((option, index) => (
-                            <ConnectItem
-                                key={option.id}
-                                option={option}
-                                index={index}
-                                isSelected={selectedOptionQId === option.id}
-                                isMatched={isOptionMatched(option.id)}
-                                onSelect={handleOptionQClick}
-                            />
-                        ))}
-                    </div>
-
-                    <div className="space-y-2">
-                        {optionsA.map((option, index) => (
-                            <ConnectItem
-                                key={option.id}
-                                option={option}
-                                index={index}
-                                isSelected={selectedOptionAId === option.id}
-                                isMatched={isOptionMatched(option.id)}
-                                onSelect={handleOptionAClick}
-                                delayOffset={0.08}
-                            />
-                        ))}
-                    </div>
+                    {Array.from({ length: Math.max(optionsQ.length, optionsA.length) }).map((_, rowIndex) => (
+                        <React.Fragment key={rowIndex}>
+                            {optionsQ[rowIndex] && (
+                                <ConnectItem
+                                    option={optionsQ[rowIndex]}
+                                    index={rowIndex}
+                                    isSelected={selectedOptionQId === optionsQ[rowIndex].id}
+                                    isMatched={isOptionMatched(optionsQ[rowIndex].id)}
+                                    onSelect={handleOptionQClick}
+                                />
+                            )}
+                            {optionsA[rowIndex] && (
+                                <ConnectItem
+                                    option={optionsA[rowIndex]}
+                                    index={rowIndex}
+                                    isSelected={selectedOptionAId === optionsA[rowIndex].id}
+                                    isMatched={isOptionMatched(optionsA[rowIndex].id)}
+                                    onSelect={handleOptionAClick}
+                                    delayOffset={0.08}
+                                />
+                            )}
+                        </React.Fragment>
+                    ))}
                 </div>
             </div>
         </>

@@ -67,8 +67,8 @@ export const AnimatedOptionButton = ({
       className={`
         relative overflow-hidden
         inline-flex items-center justify-center
-        w-full py-4 px-6
-        text-base md:text-lg font-bold rounded-xl
+        w-full py-3 px-3 md:py-4 md:px-6
+        text-sm md:text-lg font-bold rounded-xl
         transition-colors duration-300
         ${getButtonStyle()}
       `}
