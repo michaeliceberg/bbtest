@@ -1,16 +1,14 @@
 // components/trainer-skill-tree.tsx
 //
 // "Паучье" дерево навыков тренажёра: каждый юнит — центральный узел
-// с радиальным кольцом прогресса, от которого строго ортогональными
-// (90°) ножками расходятся уроки: вверх, влево, вправо от хаба.
-// Если уроков больше трёх, следующие ножки растут не от хаба,
-// а от уже нарисованных узлов (получается граф/дерево, а не звезда).
-// Юниты соединены вертикальным стержнем сверху вниз (направление "вниз"
-// у хаба всегда свободно под этот стержень).
-//
-// Когда урок только что открылся (предыдущий пройден на 90%+, этот ещё
-// не начат), его ножка при заходе на страницу подсвечивается бегущей
-// искрой, перекрашивающей её из серого в целевой цвет.
+// с радиальным кольцом прогресса, от которого угловатыми ножками
+// (двумя сегментами: бедро + голень, с изломом на "колене") расходятся
+// уроки по диагоналям — никогда строго вертикально и никогда строго по
+// линии, соединяющей соседние юниты (иначе урок перекрывает стержень).
+// Если уроков больше 4, лишние ножки растут не от хаба, а от уже
+// нарисованных узлов — получается граф, а не звезда. Для количества
+// ножек 1-5 есть несколько вариантов раскладки, которые чередуются
+// между юнитами, чтобы дерево не выглядело однообразно.
 
 'use client'
 
@@ -40,21 +38,12 @@ type Props = {
     units: SkillUnit[]
 }
 
-type Dir = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT'
-
-const DIR_VEC: Record<Dir, { dx: number; dy: number }> = {
-    UP: { dx: 0, dy: -1 },
-    DOWN: { dx: 0, dy: 1 },
-    LEFT: { dx: -1, dy: 0 },
-    RIGHT: { dx: 1, dy: 0 },
-}
-const OPPOSITE: Record<Dir, Dir> = { UP: 'DOWN', DOWN: 'UP', LEFT: 'RIGHT', RIGHT: 'LEFT' }
-
 const HUB_R = 62
 const NODE_R = 30
-const STEP = 150
-const STEM_LEN = 170
-const PAD = 50
+const THIGH = 110
+const SHIN = 95
+const STEM_LEN = 190
+const PAD = 60
 
 const LOCKED_COLOR = '#cbd5e1'
 const TRACK_COLOR = '#e2e8f0'
@@ -68,8 +57,68 @@ const legColor = (percentage: number) => {
     return '#22c55e'
 }
 
+// Углы ножек (в градусах, 0 = вправо, 90 = вниз) — все строго по диагоналям,
+// подальше от ±90 (это направление занято стержнем между юнитами) и от 0/180.
+type TemplateLeg = { angle: number; from: number }
+const HUB_FROM = -1
+
+const TEMPLATES: Record<number, TemplateLeg[][]> = {
+    1: [[{ angle: -115, from: HUB_FROM }]],
+    2: [
+        [{ angle: -150, from: HUB_FROM }, { angle: -30, from: HUB_FROM }],
+        [{ angle: 150, from: HUB_FROM }, { angle: 30, from: HUB_FROM }],
+    ],
+    3: [
+        [{ angle: -150, from: HUB_FROM }, { angle: -30, from: HUB_FROM }, { angle: 150, from: HUB_FROM }],
+        [{ angle: -150, from: HUB_FROM }, { angle: -30, from: HUB_FROM }, { angle: 30, from: HUB_FROM }],
+    ],
+    4: [
+        [{ angle: -150, from: HUB_FROM }, { angle: -30, from: HUB_FROM }, { angle: 150, from: HUB_FROM }, { angle: 30, from: HUB_FROM }],
+        [{ angle: -150, from: HUB_FROM }, { angle: -30, from: HUB_FROM }, { angle: 150, from: HUB_FROM }, { angle: 165, from: 2 }],
+    ],
+    5: [
+        [{ angle: -150, from: HUB_FROM }, { angle: -30, from: HUB_FROM }, { angle: 150, from: HUB_FROM }, { angle: 30, from: HUB_FROM }, { angle: 165, from: 2 }],
+        [{ angle: -150, from: HUB_FROM }, { angle: -30, from: HUB_FROM }, { angle: 150, from: HUB_FROM }, { angle: 30, from: HUB_FROM }, { angle: 15, from: 3 }],
+    ],
+}
+
+const genericTemplate = (n: number): TemplateLeg[] => {
+    const primary = [-150, -30, 150, 30]
+    const legs: TemplateLeg[] = []
+    for (let i = 0; i < n; i++) {
+        if (i < 4) {
+            legs.push({ angle: primary[i], from: HUB_FROM })
+        } else {
+            const parentIdx = (i - 4) % 4
+            const round = Math.floor((i - 4) / 4)
+            const offset = round % 2 === 0 ? 20 : -20
+            legs.push({ angle: primary[parentIdx] + offset, from: parentIdx })
+        }
+    }
+    return legs
+}
+
+const pickTemplate = (n: number, unitIndex: number): TemplateLeg[] => {
+    if (n === 0) return []
+    const variants = TEMPLATES[n]
+    if (!variants) return genericTemplate(n)
+    return variants[unitIndex % variants.length]
+}
+
+const toRad = (deg: number) => (deg * Math.PI) / 180
+
 type Pt = { x: number; y: number }
-type PlacedLesson = { lesson: SkillLesson; pos: Pt; parentPos: Pt; isRevealTarget: boolean }
+
+const legGeometry = (parent: Pt, angleDeg: number) => {
+    const a = toRad(angleDeg)
+    const knee: Pt = { x: parent.x + THIGH * Math.cos(a), y: parent.y + THIGH * Math.sin(a) }
+    const bend = Math.cos(a) >= 0 ? 15 : -15
+    const a2 = toRad(angleDeg + bend)
+    const foot: Pt = { x: knee.x + SHIN * Math.cos(a2), y: knee.y + SHIN * Math.sin(a2) }
+    return { knee, foot }
+}
+
+type PlacedLesson = { lesson: SkillLesson; parentPos: Pt; knee: Pt; foot: Pt; isRevealTarget: boolean }
 type UnitLayout = {
     unit: SkillUnit
     hub: Pt
@@ -80,30 +129,16 @@ type UnitLayout = {
     maxY: number
 }
 
-type Slot = { parentPos: Pt; dir: Dir }
-
-const buildUnitPositions = (unit: SkillUnit): Omit<UnitLayout, 'hub' | 'unit'> => {
-    const slotQueue: Slot[] = [
-        { parentPos: { x: 0, y: 0 }, dir: 'UP' },
-        { parentPos: { x: 0, y: 0 }, dir: 'LEFT' },
-        { parentPos: { x: 0, y: 0 }, dir: 'RIGHT' },
-    ]
-
+const buildUnitPositions = (unit: SkillUnit, unitIndex: number): Omit<UnitLayout, 'hub' | 'unit'> => {
+    const template = pickTemplate(unit.lessons.length, unitIndex)
     const placed: PlacedLesson[] = []
 
-    unit.lessons.forEach((lesson, i) => {
-        let slot = slotQueue.shift()
-        if (!slot) {
-            slot = { parentPos: { x: 0, y: 0 }, dir: 'DOWN' }
-        }
-        const vec = DIR_VEC[slot.dir]
-        const pos: Pt = { x: slot.parentPos.x + vec.dx * STEP, y: slot.parentPos.y + vec.dy * STEP }
-
+    template.forEach((leg, i) => {
+        const lesson = unit.lessons[i]
+        const parentPos: Pt = leg.from === HUB_FROM ? { x: 0, y: 0 } : placed[leg.from].foot
+        const { knee, foot } = legGeometry(parentPos, leg.angle)
         const isRevealTarget = i > 0 && !lesson.isDisabled && lesson.percentage === 0
-        placed.push({ lesson, pos, parentPos: slot.parentPos, isRevealTarget })
-
-        const order: Dir[] = (['UP', 'LEFT', 'RIGHT', 'DOWN'] as Dir[]).filter((d) => d !== OPPOSITE[slot!.dir])
-        order.forEach((d) => slotQueue.push({ parentPos: pos, dir: d }))
+        placed.push({ lesson, parentPos, knee, foot, isRevealTarget })
     })
 
     let minX = -HUB_R
@@ -111,17 +146,19 @@ const buildUnitPositions = (unit: SkillUnit): Omit<UnitLayout, 'hub' | 'unit'> =
     let minY = -HUB_R
     let maxY = HUB_R
     placed.forEach((p) => {
-        minX = Math.min(minX, p.pos.x - NODE_R)
-        maxX = Math.max(maxX, p.pos.x + NODE_R)
-        minY = Math.min(minY, p.pos.y - NODE_R)
-        maxY = Math.max(maxY, p.pos.y + NODE_R)
+        ;[p.knee, p.foot].forEach((pt) => {
+            minX = Math.min(minX, pt.x - NODE_R)
+            maxX = Math.max(maxX, pt.x + NODE_R)
+            minY = Math.min(minY, pt.y - NODE_R)
+            maxY = Math.max(maxY, pt.y + NODE_R)
+        })
     })
 
     return { placed, minX, maxX, minY, maxY }
 }
 
 const buildLayout = (units: SkillUnit[]) => {
-    const raw = units.map((unit) => ({ unit, ...buildUnitPositions(unit) }))
+    const raw = units.map((unit, idx) => ({ unit, ...buildUnitPositions(unit, idx) }))
 
     const globalMinX = raw.length ? Math.min(...raw.map((u) => u.minX)) : -HUB_R
     const globalMaxX = raw.length ? Math.max(...raw.map((u) => u.maxX)) : HUB_R
@@ -131,13 +168,15 @@ const buildLayout = (units: SkillUnit[]) => {
     let cursorY = PAD - (raw[0]?.minY ?? -HUB_R)
     const layouts: UnitLayout[] = raw.map((u, i) => {
         const hub = { x: centerX, y: cursorY }
+        const shift = (pt: Pt) => ({ x: centerX + pt.x, y: cursorY + pt.y })
         const layout: UnitLayout = {
             unit: u.unit,
             hub,
             placed: u.placed.map((p) => ({
                 ...p,
-                pos: { x: centerX + p.pos.x, y: cursorY + p.pos.y },
-                parentPos: { x: centerX + p.parentPos.x, y: cursorY + p.parentPos.y },
+                parentPos: shift(p.parentPos),
+                knee: shift(p.knee),
+                foot: shift(p.foot),
             })),
             minX: u.minX,
             maxX: u.maxX,
@@ -165,7 +204,7 @@ export const TrainerSkillTree = ({ units }: Props) => {
         const svg = svgRef.current
         if (!svg) return
 
-        const targets = Array.from(svg.querySelectorAll<SVGLineElement>('[data-reveal="true"]'))
+        const targets = Array.from(svg.querySelectorAll<SVGPathElement>('[data-reveal="true"]'))
         if (targets.length === 0) return
 
         const timer = window.setTimeout(() => {
@@ -210,7 +249,7 @@ export const TrainerSkillTree = ({ units }: Props) => {
     }, [])
 
     return (
-        <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 pt-8 pb-10">
+        <div className="py-6">
             <div style={{ position: 'relative', width: '100%', aspectRatio: `${totalWidth} / ${totalHeight}` }}>
                 <svg
                     ref={svgRef}
@@ -238,21 +277,21 @@ export const TrainerSkillTree = ({ units }: Props) => {
                             {layout.placed.map((p) => {
                                 const locked = p.lesson.isDisabled
                                 const color = locked ? LOCKED_COLOR : legColor(p.lesson.percentage)
+                                const d = `M ${p.parentPos.x} ${p.parentPos.y} L ${p.knee.x} ${p.knee.y} L ${p.foot.x} ${p.foot.y}`
 
                                 if (p.isRevealTarget) {
                                     return (
                                         <g key={p.lesson.id}>
-                                            <line x1={p.parentPos.x} y1={p.parentPos.y} x2={p.pos.x} y2={p.pos.y} stroke={LOCKED_COLOR} strokeWidth={8} strokeLinecap="square" />
-                                            <line
+                                            <path d={d} stroke={LOCKED_COLOR} strokeWidth={8} strokeLinecap="square" strokeLinejoin="miter" fill="none" />
+                                            <path
                                                 data-reveal="true"
                                                 data-leg-id={p.lesson.id}
-                                                x1={p.parentPos.x}
-                                                y1={p.parentPos.y}
-                                                x2={p.pos.x}
-                                                y2={p.pos.y}
+                                                d={d}
                                                 stroke={color}
                                                 strokeWidth={8}
                                                 strokeLinecap="square"
+                                                strokeLinejoin="miter"
+                                                fill="none"
                                             />
                                             <circle data-spark-id={p.lesson.id} r={7} fill="#facc15" opacity={0} cx={p.parentPos.x} cy={p.parentPos.y} />
                                         </g>
@@ -260,15 +299,14 @@ export const TrainerSkillTree = ({ units }: Props) => {
                                 }
 
                                 return (
-                                    <line
+                                    <path
                                         key={p.lesson.id}
-                                        x1={p.parentPos.x}
-                                        y1={p.parentPos.y}
-                                        x2={p.pos.x}
-                                        y2={p.pos.y}
+                                        d={d}
                                         stroke={color}
                                         strokeWidth={locked ? 6 : 8}
                                         strokeLinecap="square"
+                                        strokeLinejoin="miter"
+                                        fill="none"
                                     />
                                 )
                             })}
@@ -346,8 +384,8 @@ export const TrainerSkillTree = ({ units }: Props) => {
                                 key={p.lesson.id}
                                 style={{
                                     position: 'absolute',
-                                    left: pct(p.pos.x, totalWidth),
-                                    top: pct(p.pos.y, totalHeight),
+                                    left: pct(p.foot.x, totalWidth),
+                                    top: pct(p.foot.y, totalHeight),
                                     transform: 'translate(-50%, -50%)',
                                     width: 104,
                                 }}
