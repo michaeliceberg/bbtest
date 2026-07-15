@@ -112,7 +112,12 @@ type Pt = { x: number; y: number }
 const legGeometry = (parent: Pt, angleDeg: number) => {
     const a = toRad(angleDeg)
     const knee: Pt = { x: parent.x + THIGH * Math.cos(a), y: parent.y + THIGH * Math.sin(a) }
-    const bend = Math.cos(a) >= 0 ? 15 : -15
+    // Верхние ножки (острие смотрит вверх, sin(a) < 0) гнутся внутрь, к центру —
+    // иначе получается слишком "паучий" вид. Нижние ножки по-прежнему
+    // разворачиваются наружу.
+    const isUpper = Math.sin(a) < 0
+    const outward = Math.cos(a) >= 0 ? 15 : -15
+    const bend = isUpper ? -outward : outward
     const a2 = toRad(angleDeg + bend)
     const foot: Pt = { x: knee.x + SHIN * Math.cos(a2), y: knee.y + SHIN * Math.sin(a2) }
     return { knee, foot }
