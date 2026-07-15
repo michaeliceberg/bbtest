@@ -106,7 +106,10 @@ export const TrainerLessonItemRound = ({
         Umbrella, Waves, Apple, Citrus
     ]
 
-    const randomIndex = Math.floor(Math.random() * randomIconList.length);
+    // Детерминированный выбор (стабильный между сервером и клиентом) —
+    // раньше был Math.random(), что вызывало hydration mismatch (React #418/#423)
+    // и приводило к падению страницы на мобильных устройствах.
+    const randomIndex = t_lesson.id % randomIconList.length;
     const RandomIcon = randomIconList[randomIndex];
 
     const showQuestDonut = isInQuest && percentage < 100;
