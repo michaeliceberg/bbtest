@@ -44,7 +44,7 @@ export const AnimatedOptionButton = ({
     if (isCorrect) return "bg-[#678337] text-white shadow-lg shadow-black/20 border-[#53692C]"
     if (isWrong) return "bg-[#C8524E] text-white shadow-lg shadow-black/20 border-[#A3423E]"
     if (isSelected) return "bg-[#5183A4] text-white shadow-lg shadow-black/20 border-[#3E6883]"
-    return "bg-[#161F23] border-2 border-[#3A464E] hover:border-[#5183A4] hover:shadow-lg text-[#F2F7FB]"
+    return "bg-[#161F23] border-[#3A464E] hover:border-[#5183A4] hover:shadow-lg text-[#F2F7FB]"
   }
 
   const handleClick = () => {
@@ -69,7 +69,8 @@ export const AnimatedOptionButton = ({
         inline-flex items-center justify-center
         w-full py-3 px-3 md:py-4 md:px-6
         text-sm md:text-lg font-bold rounded-xl
-        transition-colors duration-300
+        border-2 border-b-4 active:border-b-2
+        transition-[border-width,background-color,color,border-color,box-shadow] duration-100
         ${getButtonStyle()}
       `}
     >

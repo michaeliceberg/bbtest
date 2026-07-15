@@ -4,6 +4,10 @@ import { motion, AnimatePresence } from "framer-motion"
 import Lottie from "lottie-react"
 import { useEffect, useState, useRef } from "react"
 
+// Реплики маскота теперь не пропадают "в пустоту" по таймеру — они
+// висят на экране, пока не придёт следующая (при смене эмоции), и тогда
+// AnimatePresence плавно меняет старую фразу на новую.
+
 interface TrainerMascotProps {
   emotion: "happy" | "sad" | "thinking" | "celebrating" | "waiting" | "angry" | "neutral"
   lottieAnimations: {
@@ -36,49 +40,25 @@ export const TrainerMascot = ({
   const [currentMessage, setCurrentMessage] = useState("")
   const [isMessageVisible, setIsMessageVisible] = useState(false)
   const previousEmotionRef = useRef(emotion)
-  const messageTimeoutRef = useRef<NodeJS.Timeout>()
 
-  // Очистка таймера
-  useEffect(() => {
-    return () => {
-      if (messageTimeoutRef.current) {
-        clearTimeout(messageTimeoutRef.current)
-      }
-    }
-  }, [])
-
-  // Показываем сообщение при изменении эмоции
+  // Показываем сообщение при изменении эмоции (и один раз при монтировании).
+  // Больше нет таймера, который прятал фразу в никуда — она остаётся
+  // на экране, пока её не сменит следующая.
   useEffect(() => {
     if (!showMessage) return
-    
-    if (previousEmotionRef.current !== emotion) {
+
+    const isFirstMessage = !currentMessage
+    if (previousEmotionRef.current !== emotion || isFirstMessage) {
       previousEmotionRef.current = emotion
-      
+
       const messages = emotionMessages[emotion] || emotionMessages.neutral
       const randomMessage = message || messages[Math.floor(Math.random() * messages.length)]
-      
-      setCurrentMessage(randomMessage)
-      setIsMessageVisible(true)
-      
-      messageTimeoutRef.current = setTimeout(() => {
-        setIsMessageVisible(false)
-      }, 2500)
-    }
-  }, [emotion, message, showMessage])
 
-  // При первом монтировании
-  useEffect(() => {
-    if (showMessage && !currentMessage) {
-      const messages = emotionMessages[emotion] || emotionMessages.neutral
-      const randomMessage = messages[Math.floor(Math.random() * messages.length)]
       setCurrentMessage(randomMessage)
       setIsMessageVisible(true)
-      
-      messageTimeoutRef.current = setTimeout(() => {
-        setIsMessageVisible(false)
-      }, 2500)
     }
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emotion, message, showMessage])
 
   const getLottieData = () => {
     if (isRightPrevious === true && lottieAnimations.right) return lottieAnimations.right
