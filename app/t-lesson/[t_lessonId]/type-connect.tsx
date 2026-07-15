@@ -45,13 +45,14 @@ const ConnectItem = ({
         whileHover={{ scale: isMatched ? 1 : 1.02 }}
         whileTap={{ scale: isMatched ? 1 : 0.97 }}
         className={`
-            relative w-full h-full flex items-center justify-center text-center rounded-lg border
-            px-3 py-2.5 text-sm font-medium leading-snug
-            transition-colors duration-200
+            relative w-full h-full flex items-center justify-center text-center rounded-lg
+            border-2 border-b-4 active:border-b-2
+            px-3 py-2 text-sm font-medium leading-snug
+            transition-[border-width,background-color,color,border-color] duration-100
             ${isSelected
-                ? 'bg-[#5183A4] border-[#5183A4] text-white'
+                ? 'bg-[#5183A4] border-[#3E6883] text-white'
                 : isMatched
-                    ? 'bg-[#678337] border-[#678337] text-white'
+                    ? 'bg-[#678337] border-[#53692C] text-white'
                     : 'bg-[#161F23] border-[#3A464E] hover:border-[#5183A4] text-[#F2F7FB]'
             }
             ${isMatched ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}
