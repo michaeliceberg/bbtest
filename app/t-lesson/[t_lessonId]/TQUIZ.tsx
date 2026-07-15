@@ -68,8 +68,9 @@ export default function TQuiz({
   const hasPlayedFinishSoundRef = useRef(false)
   // Флаг для отслеживания, был ли уже обновлен квест
   const hasUpdatedQuestRef = useRef(false)
-  
-  const [allQuestions, setAllQuestions] = useState(questions1)
+
+  // ВРЕМЕННО для тестирования: не больше 4 заданий за урок (обычно их ~20)
+  const [allQuestions, setAllQuestions] = useState(questions1.slice(0, 4))
   const [numQuestionsButton, setNumQuestionsButton] = useState(0)
   const [isRightPrevious, setIsRightPrevious] = useState(true)
   const questions = allQuestions

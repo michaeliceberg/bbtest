@@ -10,9 +10,11 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import Lottie from 'lottie-react'
 import { Lock, Zap, Trophy, Star, List } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TrainerChest } from './trainer-chest'
+import LottieWaterMellonThumbsUp from '@/public/Lottie/LottieWaterMellonThumbsUp.json'
 
 export type SkillLesson = {
     id: number
@@ -34,27 +36,30 @@ type Props = {
     units: SkillUnit[]
 }
 
-const NODE = 76
-const STEP_Y = 108
-const AMPLITUDE = 78
+const NODE_W = 76
+const NODE_H = Math.round(NODE_W * 0.92)
+const STEP_Y = 54
+const AMPLITUDE = 145
+const WAVE_PERIOD = 8
 const BANNER_H = 74
 const BANNER_GAP = 34
 const TOP_PAD = 8
 const BOTTOM_PAD = 40
 
-const wave = (i: number) => {
-    const cycle = i % 8
-    if (cycle <= 2) return cycle
-    if (cycle <= 6) return 4 - cycle
-    return cycle - 8
-}
+// Плавная синусоида вместо ромбовидного зигзага.
+const wave = (i: number) => Math.sin((2 * Math.PI * i) / WAVE_PERIOD)
+
+// Точная вершина синусоиды (sin = ±1) — на этих индексах узел стоит
+// в крайнем положении, а на противоположной пустой стороне можно
+// посадить персонажа.
+const isPeak = (i: number) => (i - WAVE_PERIOD / 4) % (WAVE_PERIOD / 2) === 0
 
 const BG_COLOR = '#151F23'
 const GREEN = '#78C93C'
 
 const nodeIcon = (percentage: number) => (percentage > 90 ? Trophy : percentage > 1 ? Star : Zap)
 
-type Row = { kind: 'lesson'; unit: SkillUnit; lesson: SkillLesson; x: number; y: number; justUnlocked: boolean }
+type Row = { kind: 'lesson'; unit: SkillUnit; unitIndex: number; lesson: SkillLesson; x: number; y: number; justUnlocked: boolean }
 
 export const TrainerSkillTree = ({ units }: Props) => {
     const [flashIds, setFlashIds] = useState<Set<number>>(new Set())
@@ -64,7 +69,7 @@ export const TrainerSkillTree = ({ units }: Props) => {
     let globalIndex = 0
     let cursorY = TOP_PAD
 
-    units.forEach((unit) => {
+    units.forEach((unit, unitIndex) => {
         cursorY += BANNER_H + BANNER_GAP
         bannerYs.push({ unit, y: cursorY - BANNER_H - BANNER_GAP })
 
@@ -72,7 +77,7 @@ export const TrainerSkillTree = ({ units }: Props) => {
             const x = wave(globalIndex) * AMPLITUDE
             const y = cursorY
             const justUnlocked = idxInUnit > 0 && !lesson.isDisabled && lesson.percentage === 0
-            rows.push({ kind: 'lesson', unit, lesson, x, y, justUnlocked })
+            rows.push({ kind: 'lesson', unit, unitIndex, lesson, x, y, justUnlocked })
             cursorY += STEP_Y
             globalIndex += 1
         })
@@ -82,7 +87,12 @@ export const TrainerSkillTree = ({ units }: Props) => {
 
     const chestX = wave(globalIndex) * AMPLITUDE
     const chestY = cursorY
-    const totalHeight = chestY + NODE + BOTTOM_PAD
+    const totalHeight = chestY + NODE_H + BOTTOM_PAD
+
+    // Персонаж (Lottie) в первой "вершине" волны юнита 1 — располагаем
+    // на противоположной (пустой) стороне от узла, чтобы просто создавать
+    // настроение, не мешая самой дорожке.
+    const mascotRow = rows.find((r, idx) => r.unitIndex === 0 && isPeak(idx))
 
     useEffect(() => {
         const targets = rows.filter((r) => r.justUnlocked).map((r) => r.lesson.id)
@@ -96,8 +106,8 @@ export const TrainerSkillTree = ({ units }: Props) => {
     }, [])
 
     const xs = [...rows.map((r) => r.x), chestX]
-    const minX = Math.min(...xs) - NODE / 2 - 20
-    const maxX = Math.max(...xs) + NODE / 2 + 20
+    const minX = Math.min(...xs) - NODE_W / 2 - 20
+    const maxX = Math.max(...xs) + NODE_W / 2 + 20
     const width = maxX - minX
     const centerOffset = -minX
 
@@ -149,7 +159,7 @@ export const TrainerSkillTree = ({ units }: Props) => {
                                     ? 'bg-[#3A454E] border-[#2E383E]'
                                     : 'bg-[#78C93C] border-[#5FA12F]',
                             )}
-                            style={{ width: NODE, height: NODE }}
+                            style={{ width: NODE_W, height: NODE_H }}
                         >
                             <Icon className={cn('h-7 w-7', locked ? 'text-[#5A6673]' : 'text-white')} />
                             {r.lesson.hasHw && !locked && (
@@ -172,8 +182,23 @@ export const TrainerSkillTree = ({ units }: Props) => {
                     )
                 })}
 
+                {mascotRow && (
+                    <div
+                        className="absolute pointer-events-none"
+                        style={{
+                            top: mascotRow.y - 50,
+                            left: centerOffset - mascotRow.x,
+                            transform: 'translate(-50%, 0)',
+                            width: 110,
+                            height: 110,
+                        }}
+                    >
+                        <Lottie animationData={LottieWaterMellonThumbsUp} loop autoplay />
+                    </div>
+                )}
+
                 <div className="absolute" style={{ top: chestY, left: centerOffset + chestX, transform: 'translate(-50%, 0)' }}>
-                    <TrainerChest size={NODE} />
+                    <TrainerChest size={NODE_W} />
                 </div>
             </div>
         </div>
