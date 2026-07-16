@@ -7,7 +7,7 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import Lottie from 'lottie-react'
@@ -58,6 +58,15 @@ const isPeak = (i: number) => (i - WAVE_PERIOD / 4) % (WAVE_PERIOD / 2) === 0
 
 const BG_COLOR = '#151F23'
 const GREEN = '#78C93C'
+const GREEN_3D = '#5FA12E'
+const PURPLE = '#C385F7'
+const PURPLE_3D = '#9C6BC6'
+const DIVIDER_COLOR = '#2E3A40'
+
+// Цвет липкой плашки юнита чередуется зелёный/фиолетовый по чётности
+// индекса — единственный вариант, для которого пользователь задал точный
+// второй цвет, поэтому дальше просто повторяем пару.
+const unitStyle = (index: number) => (index % 2 === 0 ? { bg: GREEN, bottom: GREEN_3D } : { bg: PURPLE, bottom: PURPLE_3D })
 
 const nodeIcon = (percentage: number) => (percentage > 90 ? Trophy : percentage > 1 ? Star : Zap)
 
@@ -65,6 +74,9 @@ type Row = { kind: 'lesson'; unit: SkillUnit; unitIndex: number; lesson: SkillLe
 
 export const TrainerSkillTree = ({ units }: Props) => {
     const [flashIds, setFlashIds] = useState<Set<number>>(new Set())
+    const [activeUnitIndex, setActiveUnitIndex] = useState(0)
+    const dividerRefs = useRef<(HTMLDivElement | null)[]>([])
+    const stickyBannerRef = useRef<HTMLDivElement | null>(null)
 
     const rows: Row[] = []
     const bannerYs: { unit: SkillUnit; y: number }[] = []
@@ -107,6 +119,35 @@ export const TrainerSkillTree = ({ units }: Props) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
+    // Следим за скроллом: как только серая разделительная линия следующего
+    // юнита заезжает под нижний край липкой плашки — переключаем плашку
+    // (цвет + текст) на следующий юнит.
+    useEffect(() => {
+        let raf = 0
+        const handleScroll = () => {
+            if (raf) return
+            raf = window.requestAnimationFrame(() => {
+                raf = 0
+                const bannerBottom = stickyBannerRef.current?.getBoundingClientRect().bottom ?? BANNER_H
+                let idx = 0
+                dividerRefs.current.forEach((el, i) => {
+                    if (!el) return
+                    const top = el.getBoundingClientRect().top
+                    if (top <= bannerBottom) idx = i + 1
+                })
+                setActiveUnitIndex(idx)
+            })
+        }
+        handleScroll()
+        window.addEventListener('scroll', handleScroll, { passive: true })
+        window.addEventListener('resize', handleScroll)
+        return () => {
+            window.removeEventListener('scroll', handleScroll)
+            window.removeEventListener('resize', handleScroll)
+            if (raf) window.cancelAnimationFrame(raf)
+        }
+    }, [])
+
     const xs = [...rows.map((r) => r.x), chestX]
     const minX = Math.min(...xs) - NODE_W / 2 - 20
     const maxX = Math.max(...xs) + NODE_W / 2 + 20
@@ -124,8 +165,11 @@ export const TrainerSkillTree = ({ units }: Props) => {
         mascotX = (buttonNearEdge + canvasOuterEdge) / 2
     }
 
+    const activeStyle = unitStyle(activeUnitIndex)
+    const activeUnit = units[activeUnitIndex]
+
     return (
-        <div className="relative w-full rounded-2xl overflow-hidden" style={{ backgroundColor: BG_COLOR }}>
+        <div className="relative w-full rounded-2xl" style={{ backgroundColor: BG_COLOR }}>
             <style>{`
                 @keyframes sktreeUnlock {
                     0% { box-shadow: 0 0 0 0 rgba(120,201,60,0.7); }
@@ -136,25 +180,37 @@ export const TrainerSkillTree = ({ units }: Props) => {
             `}</style>
 
             <div style={{ position: 'relative', width: Math.max(width, 300), height: totalHeight, margin: '0 auto' }}>
-                {bannerYs.map(({ unit, y }, idx) => (
-                    <div
-                        key={`banner-${unit.id}`}
-                        className="absolute left-3 right-3 rounded-[20px] flex items-stretch justify-between border-b-[10px] border-b-[#5FA12E]"
-                        style={{ top: y, height: BANNER_H, backgroundColor: GREEN }}
-                    >
-                        <div className="flex flex-col justify-center px-4">
-                            <div className="text-[10px] font-bold uppercase tracking-wide text-white/80">
-                                Юнит {idx + 1}
-                            </div>
-                            <div className="text-[15px] font-bold text-white leading-tight">{unit.title}</div>
+                {/* Единственная плашка юнита — прилипает к верху при скролле
+                    и меняет цвет/текст, когда наезжает на серую линию
+                    следующего юнита. */}
+                <div
+                    ref={stickyBannerRef}
+                    className="sticky top-0 z-20 mx-3 rounded-[20px] flex items-stretch justify-between border-b-[7px] transition-colors duration-300"
+                    style={{ marginTop: TOP_PAD, height: BANNER_H, backgroundColor: activeStyle.bg, borderBottomColor: activeStyle.bottom }}
+                >
+                    <div className="flex flex-col justify-center px-4">
+                        <div className="text-[10px] font-bold uppercase tracking-wide text-white/80">
+                            Юнит {activeUnitIndex + 1}
                         </div>
-                        <div className="flex items-center pr-1">
-                            <div className="self-stretch w-px my-3 bg-white/30" />
-                            <div className="flex h-9 w-9 items-center justify-center rounded-xl ml-3 mr-2" style={{ backgroundColor: 'rgba(255,255,255,0.16)' }}>
-                                <List className="h-5 w-5 text-white" />
-                            </div>
+                        <div className="text-[15px] font-bold text-white leading-tight">{activeUnit?.title}</div>
+                    </div>
+                    <div className="flex items-center pr-1">
+                        <div className="self-stretch w-px my-3 bg-white/30" />
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl ml-3 mr-2" style={{ backgroundColor: 'rgba(255,255,255,0.16)' }}>
+                            <List className="h-5 w-5 text-white" />
                         </div>
                     </div>
+                </div>
+
+                {/* Серые линии-разделители там, где раньше начинался баннер
+                    следующего юнита. */}
+                {bannerYs.slice(1).map(({ unit, y }, i) => (
+                    <div
+                        key={`divider-${unit.id}`}
+                        ref={(el) => { dividerRefs.current[i] = el }}
+                        className="absolute left-4 right-4 h-px"
+                        style={{ top: y + BANNER_H / 2, backgroundColor: DIVIDER_COLOR }}
+                    />
                 ))}
 
                 {rows.map((r) => {
