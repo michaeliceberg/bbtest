@@ -9,6 +9,22 @@ import { ChallengeForm, type FormData } from "./challenge-form"
 import { ChallengePreview } from "./challenge-preview"
 import { ChallengeList } from "./challenge-list"
 
+// Контейнер для формы с управлением состоянием
+function ChallengeFormContainer({
+  lessonId,
+  onDataChange,
+}: {
+  lessonId: number
+  onDataChange: (data: FormData) => void
+}) {
+  return (
+    <ChallengeForm
+      lessonId={lessonId}
+      onDataChange={onDataChange}
+    />
+  )
+}
+
 // Компонент который объединяет форму и preview
 function ChallengeFormWithPreview({ lessonId }: { lessonId: number }) {
   const [formData, setFormData] = useState<FormData>({
@@ -141,22 +157,6 @@ export function ChallengeTabs({
     }
     loadLessons()
   }, [selectedUnit, onSelectLesson])
-
-// Контейнер для формы с управлением состоянием
-function ChallengeFormContainer({
-  lessonId,
-  onDataChange,
-}: {
-  lessonId: number
-  onDataChange: (data: FormData) => void
-}) {
-  return (
-    <ChallengeForm
-      lessonId={lessonId}
-      onDataChange={onDataChange}
-    />
-  )
-}
 
   if (loading) {
     return <div className="text-white">Загрузка...</div>

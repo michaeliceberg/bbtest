@@ -271,10 +271,6 @@ export const TypeAssistTRIANGLETable = ({
 
 
 
-    // ✅ Если размеры еще не готовы, не рендерим ничего
-    if (!isReady) {
-        return <div style={{ width: '100%', height: '100%' }} ref={containerRef} />
-    }
 
     type TypeUseSnapList= {
         buttonId: number;
@@ -710,14 +706,19 @@ export const TypeAssistTRIANGLETable = ({
 
 
     const HandleClickAnswerButton = () => {
-        if (isDoneRight) 
+        if (isDoneRight)
             {
                 onAnswer("right")
             }
-        else 
+        else
             {
                 onAnswer("wrong")
             }
+    }
+
+    // ✅ Если размеры еще не готовы, не рендерим ничего
+    if (!isReady) {
+        return <div style={{ width: '100%', height: '100%' }} ref={containerRef} />
     }
 
     return (

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { EditChallengeModal } from "./edit-challenge-modal"
 import { Target, Zap } from "lucide-react"
 
@@ -18,7 +18,7 @@ export function ChallengeList({ lessonId }: { lessonId: number }) {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  const loadChallenges = async () => {
+  const loadChallenges = useCallback(async () => {
     try {
       const res = await fetch(`/api/admin/challenges?lessonId=${lessonId}`)
       const data = await res.json()
@@ -28,7 +28,7 @@ export function ChallengeList({ lessonId }: { lessonId: number }) {
       console.error(err)
       setLoading(false)
     }
-  }
+  }, [lessonId])
 
   useEffect(() => {
     if (!lessonId) {
@@ -37,7 +37,7 @@ export function ChallengeList({ lessonId }: { lessonId: number }) {
     }
 
     loadChallenges()
-  }, [lessonId])
+  }, [lessonId, loadChallenges])
 
   if (loading) {
     return <div className="text-[#9AA7B0]">Загрузка...</div>
