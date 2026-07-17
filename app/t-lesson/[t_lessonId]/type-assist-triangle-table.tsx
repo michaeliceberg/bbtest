@@ -49,13 +49,12 @@ export const TypeAssistTRIANGLETable = ({
 
     
     useLayoutEffect(() => {
-        setWidth(containerRef.current?.getBoundingClientRect().width ?? 0);
-        setHeight(containerRef.current?.getBoundingClientRect().height ?? 0);
+        const w = containerRef.current?.getBoundingClientRect().width ?? 0;
+        const h = containerRef.current?.getBoundingClientRect().height ?? 0;
+        setWidth(w);
+        setHeight(h);
         setLeft(containerRef.current?.getBoundingClientRect().left ?? 0);
         setTop(containerRef.current?.getBoundingClientRect().top ?? 0);
-
-
-
     }, []);
  
 
@@ -132,43 +131,6 @@ export const TypeAssistTRIANGLETable = ({
 
     let x9 = (X_START + 2 * X_STEP) * width
     let y9 = (Y_START + 2 * Y_STEP) * height
-
-    useEffect(()=>{
-
-         // -- 1 ряд
-    
-    let x1 = X_START * width
-    let y1 = Y_START * height
-    
-    let x2 = (X_START + X_STEP) * width
-    let y2 = Y_START * height
-
-    let x3 = (X_START + 2 * X_STEP) * width
-    let y3 = Y_START * height
-
-    // -- 2 ряд
-
-    let x4 = X_START * width
-    let y4 = (Y_START + Y_STEP) * height
-    
-    let x5 = (X_START + X_STEP) * width
-    let y5 = (Y_START + Y_STEP) * height
-
-    let x6 = (X_START + 2 * X_STEP) * width
-    let y6 = (Y_START + Y_STEP) * height
-
-    // -- 3 ряд
-
-    let x7 = X_START * width
-    let y7 = (Y_START + 2 * Y_STEP) * height
-    
-    let x8 = (X_START + X_STEP) * width
-    let y8 = (Y_START + 2 * Y_STEP) * height
-
-    let x9 = (X_START + 2 * X_STEP) * width
-    let y9 = (Y_START + 2 * Y_STEP) * height
-
-    },[width, height])
 
 
 
@@ -275,15 +237,31 @@ export const TypeAssistTRIANGLETable = ({
 
 
     const [points, setPoints] = useState(pointsInitial)
+    const [isReady, setIsReady] = useState(false) // ✅ Флаг готовности
 
- 
+    // ✅ Обновляем snap points когда размеры готовы
+    useEffect(() => {
+        if (width > 0 && height > 0) {
+            setPoints([
+                { y: 0 },
+                { x: x4, y: y4 },
+                { x: x5, y: y5 },
+                { x: x6, y: y6 },
+                { x: x7, y: y7 },
+                { x: x8, y: y8 },
+                { x: x9, y: y9 },
+            ])
+            setIsReady(true) // ✅ Отмечаем что размеры готовы
+        }
+    }, [width, height, x4, y4, x5, y5, x6, y6, x7, y7, x8, y8, x9, y9])
+
     const snapPoints:SnapPointsType = {
 
         type: 'constraints-box',
         // unit: 'percent',
         unit: 'pixel',
         points: points
-        
+
 
     };
  
@@ -292,6 +270,11 @@ export const TypeAssistTRIANGLETable = ({
 
 
 
+
+    // ✅ Если размеры еще не готовы, не рендерим ничего
+    if (!isReady) {
+        return <div style={{ width: '100%', height: '100%' }} ref={containerRef} />
+    }
 
     type TypeUseSnapList= {
         buttonId: number;

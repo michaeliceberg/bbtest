@@ -281,7 +281,7 @@ const renderQuestionContent = () => {
   const renderGeosinContent = () => {
     switch (question.difficulty) {
       case '1':
-        return <TypeAssistTRIANGLEgdeKatet 
+        return <TypeAssistTRIANGLEgdeKatet
           threeCoordinates={triangleGdeKatet[7].coords}
           answer={triangleGdeKatet[7].answer}
           onAnswer={onAnswer}

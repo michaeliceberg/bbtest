@@ -37,3 +37,4 @@ next-env.d.ts
 
 # large build/deploy artifacts — don't commit these
 *.tar.gz
+scripts/.google-creds.json

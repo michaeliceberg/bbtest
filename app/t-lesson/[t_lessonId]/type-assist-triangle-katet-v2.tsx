@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { motion, useAnimationControls } from 'framer-motion'
+import { motion, useAnimationControls, MotionProps } from 'framer-motion'
 import { ArrowDownLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SnapPointsType, useSnap } from './useSnap'
@@ -15,9 +15,8 @@ type Props = {
 const COLORS = ['#22c55e', '#0ea5e9', '#a855f7']
 const GRAY = '#cbd5e1'
 const HANDLE_SIZE = { width: 125, height: 45 }
-const STROKE_WIDTH = 10
 
-export const TypeAssistTRIANGLEgdeKatet = ({
+export const TypeAssistTRIANGLEgdeKatetV2 = ({
   threeCoordinates,
   answer,
   onAnswer,
@@ -35,20 +34,14 @@ export const TypeAssistTRIANGLEgdeKatet = ({
     }
   }, [])
 
-  // Refs для стикеров
-  const ref0 = useRef<HTMLButtonElement>(null)
-  const ref1 = useRef<HTMLButtonElement>(null)
-  const ref2 = useRef<HTMLButtonElement>(null)
-  const refs = [ref0, ref1, ref2]
-
   // Данные для стикеров
   const stickers = [
-    { id: 0, text: 'катет' },
-    { id: 1, text: 'катет' },
-    { id: 2, text: 'гипотенуза' },
+    { id: 0, text: 'катет', ref: useRef<HTMLButtonElement>(null) },
+    { id: 1, text: 'катет', ref: useRef<HTMLButtonElement>(null) },
+    { id: 2, text: 'гипотенуза', ref: useRef<HTMLButtonElement>(null) },
   ]
 
-  // Координаты линий
+  // Координаты линий (sides) треугольника
   const lineCoordinates = [
     {
       x1: dimensions.width * x1,
@@ -82,7 +75,7 @@ export const TypeAssistTRIANGLEgdeKatet = ({
     },
   ]
 
-  // Snap points
+  // Snap points = середины линий
   const snapPoints: SnapPointsType = {
     type: 'absolute',
     points: lineCoordinates.map(line => ({
@@ -91,75 +84,49 @@ export const TypeAssistTRIANGLEgdeKatet = ({
     })),
   }
 
-  // Вызываем useSnap для каждого ref явно (БЕЗ .map()!)
-  const snap0 = useSnap({
-    direction: 'both',
-    ref: ref0,
-    constraints: containerRef,
-    snapPoints,
-  })
+  // useSnap для каждого стикера
+  const useSnapResults = stickers.map(sticker =>
+    useSnap({
+      direction: 'both',
+      ref: sticker.ref,
+      constraints: containerRef,
+      snapPoints,
+    })
+  )
 
-  const snap1 = useSnap({
-    direction: 'both',
-    ref: ref1,
-    constraints: containerRef,
-    snapPoints,
-  })
-
-  const snap2 = useSnap({
-    direction: 'both',
-    ref: ref2,
-    constraints: containerRef,
-    snapPoints,
-  })
-
-  const snaps = [snap0, snap1, snap2]
-
-  // Анимационные контролы - явно 3 раза (не в .map()!)
-  const lineControl0 = useAnimationControls()
-  const lineControl1 = useAnimationControls()
-  const lineControl2 = useAnimationControls()
-  const lineControls = [lineControl0, lineControl1, lineControl2]
-
-  const buttonControl0 = useAnimationControls()
-  const buttonControl1 = useAnimationControls()
-  const buttonControl2 = useAnimationControls()
-  const buttonControls = [buttonControl0, buttonControl1, buttonControl2]
-
-  // Состояние
+  // Состояние: какой стикер в каком snap point
   const [assignments, setAssignments] = useState<(number | null)[]>([null, null, null])
   const [isDone, setIsDone] = useState(false)
   const [isCorrect, setIsCorrect] = useState(false)
 
-  // Главный эффект
-  useEffect(() => {
-    const currentAssignments = [
-      snap0.currentSnappointIndex,
-      snap1.currentSnappointIndex,
-      snap2.currentSnappointIndex,
-    ]
-    setAssignments(currentAssignments)
+  // Анимационные контролы для каждой линии и кнопки
+  const lineControls = stickers.map(() => useAnimationControls())
+  const buttonControls = stickers.map(() => useAnimationControls())
 
-    // Все ли размещены?
-    const allPlaced = currentAssignments.every(idx => idx !== null && idx >= 0)
+  // Обновляем состояние когда стикер перемещается
+  useEffect(() => {
+    const newAssignments = useSnapResults.map(result => result.currentSnappointIndex)
+    setAssignments(newAssignments)
+
+    // Проверяем, все ли стикеры размещены
+    const allPlaced = newAssignments.every(idx => idx !== null && idx >= 0)
     setIsDone(allPlaced)
 
     if (allPlaced) {
-      // Проверяем ответ
-      const sorted = stickers
-        .map((sticker, idx) => ({
-          text: sticker.text,
-          snapIdx: currentAssignments[idx]!,
-        }))
-        .sort((a, b) => a.snapIdx - b.snapIdx)
+      // Проверяем правильность ответа
+      const sortedAssignments = stickers
+        .map((sticker, idx) => ({ id: sticker.id, snapIdx: newAssignments[idx] }))
+        .sort((a, b) => (a.snapIdx ?? -1) - (b.snapIdx ?? -1))
 
-      const isRight = sorted.every((item, idx) => item.text === answer[idx])
+      const isRight = sortedAssignments.every(
+        (item, idx) => stickers[item.id].text === answer[idx]
+      )
       setIsCorrect(isRight)
     }
 
-    // Анимируем линии и кнопки
-    stickers.forEach((_, idx) => {
-      const snapIdx = currentAssignments[idx]
+    // Перекрашиваем линии и кнопки
+    stickers.forEach((sticker, idx) => {
+      const snapIdx = newAssignments[idx]
       if (snapIdx !== null && snapIdx >= 0) {
         buttonControls[idx].start({ backgroundColor: COLORS[idx], opacity: 0.8 })
         lineControls[idx].start({ opacity: 1, stroke: COLORS[idx] })
@@ -168,7 +135,7 @@ export const TypeAssistTRIANGLEgdeKatet = ({
         lineControls[idx].start({ opacity: 0 })
       }
     })
-  }, [snap0.currentSnappointIndex, snap1.currentSnappointIndex, snap2.currentSnappointIndex])
+  }, useSnapResults.map(r => r.currentSnappointIndex))
 
   const handleAnswer = () => {
     onAnswer(isCorrect ? 'right' : 'wrong')
@@ -180,19 +147,20 @@ export const TypeAssistTRIANGLEgdeKatet = ({
       ref={containerRef}
       style={{ width: '100%', height: 'auto', minHeight: '400px' }}
     >
-      {/* Стикеры - в .map() но используем уже созданные snaps */}
+      {/* Стикеры */}
       {stickers.map((sticker, idx) => (
         <motion.button
           key={sticker.id}
-          ref={refs[idx]}
-          className="absolute text-xl rounded font-semibold text-white"
+          ref={sticker.ref}
+          className="absolute text-xl rounded font-semibold"
           style={{
             width: HANDLE_SIZE.width,
             height: HANDLE_SIZE.height,
           }}
-          {...snaps[idx].dragProps}
+          {...useSnapResults[idx].dragProps}
           variants={{
             initial: { backgroundColor: GRAY, opacity: 0.8 },
+            snapped: { backgroundColor: COLORS[idx], opacity: 0.8 },
           }}
           initial="initial"
           animate={buttonControls[idx]}
@@ -207,6 +175,7 @@ export const TypeAssistTRIANGLEgdeKatet = ({
         </motion.button>
       ))}
 
+      {/* Кнопка "Ответить" */}
       <Button
         className="absolute"
         style={{ left: '50%', bottom: '20px', transform: 'translateX(-50%)' }}
@@ -217,8 +186,9 @@ export const TypeAssistTRIANGLEgdeKatet = ({
         ответить
       </Button>
 
+      {/* SVG: треугольник */}
       <motion.svg width={dimensions.width} height={dimensions.height}>
-        {/* Серые линии */}
+        {/* Серые линии (фон) */}
         {lineCoordinates.map((line, idx) => (
           <motion.line
             key={`gray-${idx}`}
@@ -227,7 +197,7 @@ export const TypeAssistTRIANGLEgdeKatet = ({
             x2={line.x2}
             y2={line.y2}
             stroke={GRAY}
-            strokeWidth={STROKE_WIDTH}
+            strokeWidth={10}
             strokeLinecap="round"
             initial={{ pathLength: 0, opacity: 0 }}
             animate={{ pathLength: 1, opacity: 1 }}
@@ -235,7 +205,7 @@ export const TypeAssistTRIANGLEgdeKatet = ({
           />
         ))}
 
-        {/* Цветные линии */}
+        {/* Цветные линии (на синяп) */}
         {lineCoordinates.map((line, idx) => (
           <motion.line
             key={`color-${idx}`}
@@ -244,7 +214,7 @@ export const TypeAssistTRIANGLEgdeKatet = ({
             x2={line.x2}
             y2={line.y2}
             stroke={COLORS[idx]}
-            strokeWidth={STROKE_WIDTH}
+            strokeWidth={10}
             strokeLinecap="round"
             initial={{ opacity: 0 }}
             animate={lineControls[idx]}
@@ -252,7 +222,7 @@ export const TypeAssistTRIANGLEgdeKatet = ({
           />
         ))}
 
-        {/* Snap point circles */}
+        {/* Snap points (маленькие кружки) */}
         {lineCoordinates.map((line, idx) => (
           <motion.circle
             key={`snap-${idx}`}

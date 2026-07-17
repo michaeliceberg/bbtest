@@ -91,7 +91,7 @@ export const TypeAssistTRIANGLEgdeKatet = ({
     })),
   }
 
-  // Вызываем useSnap для каждого ref явно (БЕЗ .map()!)
+  // Вызываем useSnap для каждого ref явно (никакой map!)
   const snap0 = useSnap({
     direction: 'both',
     ref: ref0,
@@ -115,7 +115,7 @@ export const TypeAssistTRIANGLEgdeKatet = ({
 
   const snaps = [snap0, snap1, snap2]
 
-  // Анимационные контролы - явно 3 раза (не в .map()!)
+  // Анимационные контролы - явно 3 раза
   const lineControl0 = useAnimationControls()
   const lineControl1 = useAnimationControls()
   const lineControl2 = useAnimationControls()
@@ -133,11 +133,7 @@ export const TypeAssistTRIANGLEgdeKatet = ({
 
   // Главный эффект
   useEffect(() => {
-    const currentAssignments = [
-      snap0.currentSnappointIndex,
-      snap1.currentSnappointIndex,
-      snap2.currentSnappointIndex,
-    ]
+    const currentAssignments = [snap0.currentSnappointIndex, snap1.currentSnappointIndex, snap2.currentSnappointIndex]
     setAssignments(currentAssignments)
 
     // Все ли размещены?
@@ -157,7 +153,7 @@ export const TypeAssistTRIANGLEgdeKatet = ({
       setIsCorrect(isRight)
     }
 
-    // Анимируем линии и кнопки
+    // Анимируем
     stickers.forEach((_, idx) => {
       const snapIdx = currentAssignments[idx]
       if (snapIdx !== null && snapIdx >= 0) {
@@ -180,7 +176,7 @@ export const TypeAssistTRIANGLEgdeKatet = ({
       ref={containerRef}
       style={{ width: '100%', height: 'auto', minHeight: '400px' }}
     >
-      {/* Стикеры - в .map() но используем уже созданные snaps */}
+      {/* Стикеры - явно каждый */}
       {stickers.map((sticker, idx) => (
         <motion.button
           key={sticker.id}
@@ -218,7 +214,6 @@ export const TypeAssistTRIANGLEgdeKatet = ({
       </Button>
 
       <motion.svg width={dimensions.width} height={dimensions.height}>
-        {/* Серые линии */}
         {lineCoordinates.map((line, idx) => (
           <motion.line
             key={`gray-${idx}`}
@@ -235,7 +230,6 @@ export const TypeAssistTRIANGLEgdeKatet = ({
           />
         ))}
 
-        {/* Цветные линии */}
         {lineCoordinates.map((line, idx) => (
           <motion.line
             key={`color-${idx}`}
@@ -252,7 +246,6 @@ export const TypeAssistTRIANGLEgdeKatet = ({
           />
         ))}
 
-        {/* Snap point circles */}
         {lineCoordinates.map((line, idx) => (
           <motion.circle
             key={`snap-${idx}`}
