@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState, useMemo } from 'react'
 import { motion, useAnimationControls } from 'framer-motion'
-import { ArrowDownLeft } from 'lucide-react'
+import { ArrowUpLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SnapPointsType, useSnap } from './useSnap'
 
@@ -48,100 +48,197 @@ export const TypeAssistTRIANGLEgdeKatet = ({
     { id: 2, text: 'гипотенуза' },
   ]
 
-  // Координаты линий
-  const lineCoordinates = [
-    {
-      x1: dimensions.width * x1,
-      y1: dimensions.height * y1,
-      x2: dimensions.width * x2,
-      y2: dimensions.height * y2,
-      mid: [
-        (dimensions.width * (x1 + x2)) / 2,
-        (dimensions.height * (y1 + y2)) / 2,
-      ],
-    },
-    {
-      x1: dimensions.width * x2,
-      y1: dimensions.height * y2,
-      x2: dimensions.width * x3,
-      y2: dimensions.height * y3,
-      mid: [
-        (dimensions.width * (x2 + x3)) / 2,
-        (dimensions.height * (y2 + y3)) / 2,
-      ],
-    },
-    {
-      x1: dimensions.width * x3,
-      y1: dimensions.height * y3,
-      x2: dimensions.width * x1,
-      y2: dimensions.height * y1,
-      mid: [
-        (dimensions.width * (x3 + x1)) / 2,
-        (dimensions.height * (y3 + y1)) / 2,
-      ],
-    },
-  ]
+  // Координаты линий - вычисляются когда dimensions получены
+  const [lineCoordinates, setLineCoordinates] = useState([
+    { x1: 0, y1: 0, x2: 0, y2: 0, mid: [0, 0] },
+    { x1: 0, y1: 0, x2: 0, y2: 0, mid: [0, 0] },
+    { x1: 0, y1: 0, x2: 0, y2: 0, mid: [0, 0] },
+  ])
 
-  // Snap points
-  const snapPoints: SnapPointsType = {
-    type: 'absolute',
+  useEffect(() => {
+    if (dimensions.width > 0 && dimensions.height > 0) {
+      const newLineCoordinates = [
+        {
+          x1: dimensions.width * x1,
+          y1: dimensions.height * y1,
+          x2: dimensions.width * x2,
+          y2: dimensions.height * y2,
+          mid: [
+            (dimensions.width * (x1 + x2)) / 2,
+            (dimensions.height * (y1 + y2)) / 2,
+          ],
+        },
+        {
+          x1: dimensions.width * x2,
+          y1: dimensions.height * y2,
+          x2: dimensions.width * x3,
+          y2: dimensions.height * y3,
+          mid: [
+            (dimensions.width * (x2 + x3)) / 2,
+            (dimensions.height * (y2 + y3)) / 2,
+          ],
+        },
+        {
+          x1: dimensions.width * x3,
+          y1: dimensions.height * y3,
+          x2: dimensions.width * x1,
+          y2: dimensions.height * y1,
+          mid: [
+            (dimensions.width * (x3 + x1)) / 2,
+            (dimensions.height * (y3 + y1)) / 2,
+          ],
+        },
+      ]
+      setLineCoordinates(newLineCoordinates)
+    }
+  }, [dimensions.width, dimensions.height, x1, x2, x3, y1, y2, y3])
+
+  // Базовые snap points
+  const baseSnapPoints: SnapPointsType = {
+    type: 'constraints-box',
+    unit: 'pixel',
     points: lineCoordinates.map(line => ({
       x: line.mid[0],
       y: line.mid[1],
     })),
   }
 
-  // Вызываем useSnap для каждого ref явно (БЕЗ .map()!)
+  // Хранимое состояние текущих snap indices (для использования в useMemo)
+  const [currentSnapIndices, setCurrentSnapIndices] = useState<(number | null)[]>([null, null, null])
+
+  // useMemo для создания snapPoints для каждого стикера
+  // Пересчитывается когда currentSnapIndices меняется
+  const snapPointsForEachSticker = useMemo(() => {
+    return [0, 1, 2].map((stickerIdx) => {
+      // Проверяем какие snap points занаты ДРУГИМИ стикерами
+      const occupiedByOthers = currentSnapIndices
+        .map((idx, i) => (i !== stickerIdx && idx !== null ? idx : null))
+        .filter((idx): idx is number => idx !== null)
+
+      return {
+        type: 'constraints-box' as const,
+        unit: 'pixel' as const,
+        points: baseSnapPoints.points.map((point, idx) => {
+          // Если эта точка занята другим стикером, "отключаем" её
+          if (occupiedByOthers.includes(idx)) {
+            return { y: 0 } // Точка вне экрана, недостижимая
+          }
+          return point
+        }),
+      } as SnapPointsType
+    })
+  }, [currentSnapIndices, baseSnapPoints])
+
+  // Вызываем useSnap для каждого ref с мемоизированными snap points
   const snap0 = useSnap({
     direction: 'both',
     ref: ref0,
     constraints: containerRef,
-    snapPoints,
+    snapPoints: snapPointsForEachSticker[0],
   })
 
   const snap1 = useSnap({
     direction: 'both',
     ref: ref1,
     constraints: containerRef,
-    snapPoints,
+    snapPoints: snapPointsForEachSticker[1],
   })
 
   const snap2 = useSnap({
     direction: 'both',
     ref: ref2,
     constraints: containerRef,
-    snapPoints,
+    snapPoints: snapPointsForEachSticker[2],
   })
 
   const snaps = [snap0, snap1, snap2]
+  const liveCurrentSnapIndices = [
+    snap0.currentSnappointIndex,
+    snap1.currentSnappointIndex,
+    snap2.currentSnappointIndex,
+  ]
 
-  // Анимационные контролы - явно 3 раза (не в .map()!)
+  // Анимационные контролы для линий
   const lineControl0 = useAnimationControls()
   const lineControl1 = useAnimationControls()
   const lineControl2 = useAnimationControls()
   const lineControls = [lineControl0, lineControl1, lineControl2]
 
+  // Анимационные контролы для snap point кружочков
+  const snapPointControl0 = useAnimationControls()
+  const snapPointControl1 = useAnimationControls()
+  const snapPointControl2 = useAnimationControls()
+  const snapPointControls = [snapPointControl0, snapPointControl1, snapPointControl2]
+
+  // Анимационные контролы для стикеров
   const buttonControl0 = useAnimationControls()
   const buttonControl1 = useAnimationControls()
   const buttonControl2 = useAnimationControls()
   const buttonControls = [buttonControl0, buttonControl1, buttonControl2]
 
-  // Состояние
-  const [assignments, setAssignments] = useState<(number | null)[]>([null, null, null])
+  // Состояние для финального ответа
   const [isDone, setIsDone] = useState(false)
   const [isCorrect, setIsCorrect] = useState(false)
 
-  // Главный эффект
+  // Главный эффект - обновляем цвета и проверяем конфликты
   useEffect(() => {
-    const currentAssignments = [
-      snap0.currentSnappointIndex,
-      snap1.currentSnappointIndex,
-      snap2.currentSnappointIndex,
-    ]
-    setAssignments(currentAssignments)
+    // Проверяем конфликты: два стикера не должны быть на одном snap point
+    console.log(`📊 liveCurrentSnapIndices:`, liveCurrentSnapIndices)
 
-    // Все ли размещены?
-    const allPlaced = currentAssignments.every(idx => idx !== null && idx >= 0)
+    const snapIndexCounts = new Map<number, number>()
+    const resolvedSnapIndices = [...liveCurrentSnapIndices]
+
+    liveCurrentSnapIndices.forEach((snapIdx, stickerIdx) => {
+      if (snapIdx !== null && snapIdx >= 0) {
+        const count = snapIndexCounts.get(snapIdx) || 0
+        if (count > 0) {
+          // Конфликт! Сбрасываем этот стикер
+          console.log(`⚠️ Conflict: Sticker ${stickerIdx} trying to use snap point ${snapIdx} that's already occupied. Resetting.`)
+          resolvedSnapIndices[stickerIdx] = null
+          snaps[stickerIdx].snapTo(-1) // Сбрасываем snap
+        } else {
+          snapIndexCounts.set(snapIdx, count + 1)
+        }
+      }
+    })
+
+    console.log(`📋 resolvedSnapIndices after conflict check:`, resolvedSnapIndices)
+    console.log(`📋 snapIndexCounts:`, Array.from(snapIndexCounts.entries()))
+
+    // Обновляем currentSnapIndices для использования в useMemo
+    setCurrentSnapIndices(resolvedSnapIndices)
+
+    // Сначала скрываем ВСЕ цветные линии и сбрасываем snap points на серый
+    lineControls.forEach((control) => {
+      control.start({ opacity: 0 })
+    })
+    snapPointControls.forEach((control, idx) => {
+      console.log(`🔴 Resetting snap point ${idx} to GRAY`)
+      control.start({ stroke: GRAY, transition: { duration: 0.15 } })
+    })
+
+    // Для каждого стикера обновляем его цвет на основе текущей позиции
+    stickers.forEach((_, idx) => {
+      const snapIdx = resolvedSnapIndices[idx]
+      console.log(`🎨 Sticker ${idx}: snapIdx = ${snapIdx}`)
+
+      if (snapIdx !== null && snapIdx >= 0) {
+        // Стикер на snap point - раскрашиваем его, линию и snap point кружочек
+        const lineColor = COLORS[snapIdx]
+        console.log(`  → На snap point ${snapIdx}, цвет: ${lineColor}`)
+        buttonControls[idx].start({ backgroundColor: lineColor, opacity: 0.8, transition: { duration: 0.1 } })
+        lineControls[snapIdx].start({ opacity: 1, stroke: lineColor, transition: { duration: 0.1 } })
+        console.log(`🟢 Coloring snap point ${snapIdx} to ${lineColor}`)
+        snapPointControls[snapIdx].start({ stroke: lineColor, transition: { duration: 0.1 } })
+      } else {
+        // Стикер не на snap point - серый
+        console.log(`  → Вне snap points, цвет: серый`)
+        buttonControls[idx].start({ backgroundColor: GRAY, opacity: 0.8, transition: { duration: 0.15 } })
+      }
+    })
+
+    // Проверяем все ли размещены
+    const allPlaced = liveCurrentSnapIndices.every(idx => idx !== null && idx >= 0)
     setIsDone(allPlaced)
 
     if (allPlaced) {
@@ -149,26 +246,20 @@ export const TypeAssistTRIANGLEgdeKatet = ({
       const sorted = stickers
         .map((sticker, idx) => ({
           text: sticker.text,
-          snapIdx: currentAssignments[idx]!,
+          snapIdx: liveCurrentSnapIndices[idx]!,
         }))
         .sort((a, b) => a.snapIdx - b.snapIdx)
 
+      const resultArray = sorted.map(item => item.text)
       const isRight = sorted.every((item, idx) => item.text === answer[idx])
+
+      console.log('📋 Expected answer:', answer)
+      console.log('📋 Your answer:', resultArray)
+      console.log('✅ Is correct?', isRight)
+
       setIsCorrect(isRight)
     }
-
-    // Анимируем линии и кнопки
-    stickers.forEach((_, idx) => {
-      const snapIdx = currentAssignments[idx]
-      if (snapIdx !== null && snapIdx >= 0) {
-        buttonControls[idx].start({ backgroundColor: COLORS[idx], opacity: 0.8 })
-        lineControls[idx].start({ opacity: 1, stroke: COLORS[idx] })
-      } else {
-        buttonControls[idx].start({ backgroundColor: GRAY, opacity: 0.8 })
-        lineControls[idx].start({ opacity: 0 })
-      }
-    })
-  }, [snap0.currentSnappointIndex, snap1.currentSnappointIndex, snap2.currentSnappointIndex])
+  }, [liveCurrentSnapIndices[0], liveCurrentSnapIndices[1], liveCurrentSnapIndices[2]])
 
   const handleAnswer = () => {
     onAnswer(isCorrect ? 'right' : 'wrong')
@@ -180,7 +271,7 @@ export const TypeAssistTRIANGLEgdeKatet = ({
       ref={containerRef}
       style={{ width: '100%', height: 'auto', minHeight: '400px' }}
     >
-      {/* Стикеры - в .map() но используем уже созданные snaps */}
+      {/* Стикеры */}
       {stickers.map((sticker, idx) => (
         <motion.button
           key={sticker.id}
@@ -191,18 +282,15 @@ export const TypeAssistTRIANGLEgdeKatet = ({
             height: HANDLE_SIZE.height,
           }}
           {...snaps[idx].dragProps}
-          variants={{
-            initial: { backgroundColor: GRAY, opacity: 0.8 },
-          }}
-          initial="initial"
+          initial={{ x: idx * 150, y: -20, backgroundColor: GRAY, opacity: 0.8 }}
           animate={buttonControls[idx]}
           whileHover={{ scale: 1.2, rotate: 5 }}
           whileTap={{ scale: 0.8, rotate: -5 }}
           transition={{ type: 'spring', stiffness: 400, damping: 17 }}
         >
           {sticker.text}
-          <motion.div className="absolute bottom-0 -pb-4 text-white text-2xl">
-            <ArrowDownLeft size={20} />
+          <motion.div className="absolute top-0 left-0 text-white text-2xl">
+            <ArrowUpLeft size={18} />
           </motion.div>
         </motion.button>
       ))}
@@ -258,12 +346,15 @@ export const TypeAssistTRIANGLEgdeKatet = ({
             key={`snap-${idx}`}
             cx={line.mid[0]}
             cy={line.mid[1]}
-            r={8}
-            stroke={GRAY}
+            r={10}
             fill="none"
-            strokeWidth={2}
-            initial={{ opacity: 0.3 }}
-            whileHover={{ opacity: 1, r: 12 }}
+            stroke={GRAY}
+            strokeWidth={5}
+            strokeLinecap="round"
+            initial={{ opacity: 0.5 }}
+            animate={snapPointControls[idx]}
+            whileHover={{ opacity: 1, r: 14 }}
+            transition={{ duration: 0.2 }}
           />
         ))}
       </motion.svg>

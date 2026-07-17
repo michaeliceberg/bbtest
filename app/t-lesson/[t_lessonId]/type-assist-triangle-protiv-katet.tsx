@@ -335,11 +335,16 @@ export const TypeAssistTRIANGLEgdeProtivKatet = ({
     
     const controlsColor0 = useAnimationControls()
     const controlsColor1 = useAnimationControls()
-    const controlsColor2 = useAnimationControls()  
+    const controlsColor2 = useAnimationControls()
 
     const controlsColorBG0 = useAnimationControls()
     const controlsColorBG1 = useAnimationControls()
     const controlsColorBG2 = useAnimationControls()
+
+    // Контролы для snap point кружочков
+    const snapPointControl0 = useAnimationControls()
+    const snapPointControl1 = useAnimationControls()
+    const snapPointControl2 = useAnimationControls()
 
     const listControlsColorLine = [
         controlsColor0,
@@ -351,6 +356,12 @@ export const TypeAssistTRIANGLEgdeProtivKatet = ({
         controlsColorBG0,
         controlsColorBG1,
         controlsColorBG2,
+    ]
+
+    const listSnapPointControls = [
+        snapPointControl0,
+        snapPointControl1,
+        snapPointControl2,
     ]
 
 
@@ -480,36 +491,40 @@ export const TypeAssistTRIANGLEgdeProtivKatet = ({
         // console.log('snapPointsToPaint ---- ', snapPointsToPaint)
         
 
-        // Перекрашиваем отдельно Buttons CТИКЕРЫ - отдельно Линии 
+        // Перекрашиваем отдельно Buttons CТИКЕРЫ - отдельно Линии
         //
         // красим Buttons CТИКЕРЫ
         //
-        // TODO:  НЕ УСПЕВАЮТ ПОМЕНЯТЬСЯ для перекрашивания стикеров
-        // console.log('BL ',BL)
-        // console.log('PTP ',PTP)
-
         ButtonListWithSnap.map( el => {
             if (el.isSnapped) {
-                listControlsColorBG[el.buttonId].start('snapColorBG')
-                // console.log( ' перекрасили buttonId:', el.buttonId )
-
-            } 
-            // else {
-            //     listControlsColorBG[el.buttonId].start('initialBG')
-            // }
+                // ✅ Передаем цвет напрямую вместо варианта
+                listControlsColorBG[el.buttonId].start(
+                  { backgroundColor: el.snapColor, opacity: 0.8, transition: { duration: 0.15 } }
+                )
+            } else {
+                // Сбрасываем на серый
+                listControlsColorBG[el.buttonId].start(
+                  { backgroundColor: colorLineSlate, opacity: 0.8, transition: { duration: 0.15 } }
+                )
+            }
         })
         //
         // красим ЛИНИИ
         //
         snapPointsToPaint.map( el => {
+            // Snap points это IdSnap МИНУС 1 потому что НУЛЕВОЙ snap это x 0 y 0
             if (el.isSnapped) {
-            // Линии это IdSnap МИНУС 1  потому что НУЛЕВОЙ snap  это x 0 y 0
-            listControlsColorLine[el.snapPointId - 1].start('snapColor')
-            // console.log( ' перекрасили el.snapPointId - 1:', el.snapPointId - 1 )
-
+                listControlsColorLine[el.snapPointId - 1].start('snapColor')
+                // ✅ Перекрашиваем кружочки snap points напрямую
+                listSnapPointControls[el.snapPointId - 1].start(
+                    { stroke: el.snapColor, transition: { duration: 0.15 } }
+                )
             } else {
-            // Линии это IdSnap МИНУС 1  потому что НУЛЕВОЙ snap  это x 0 y 0
-            listControlsColorLine[el.snapPointId - 1].start('initial')
+                listControlsColorLine[el.snapPointId - 1].start('initial')
+                // ✅ Сбрасываем кружочки на серый
+                listSnapPointControls[el.snapPointId - 1].start(
+                    { stroke: colorLineSlate, transition: { duration: 0.15 } }
+                )
             }
         })
 
@@ -870,33 +885,22 @@ strokeLinecap="round"
 
       {lineCoordinates.map((line, index) => (
 
-          <motion.circle  
+          <motion.circle
               key={index*5106378}
 
               cx={(line.x1+line.x2)/2}
               cy={(line.y1+line.y2)/2}
-              r="4"
-            //   stroke= {colorLineList[index]}
-              stroke= {PTP[index].snapColor}
+              r={10}
+              fill="none"
+              stroke={colorLineSlate}
 
-              variants = {{
-                  initial: {
-                      opacity: '0'
-                  },
-                  snapColor: {
-                      opacity: [0, 1],
-                  }
-              }}
+              initial={{ opacity: 0.5, stroke: colorLineSlate }}
+              animate={listSnapPointControls[index]}
 
-              custom={0}
               style={{
-                  strokeWidth: strokeWidth,
+                  strokeWidth: 5,
                   strokeLinecap: "round",
-                  fill: "transparent",
               }}
-
-              initial = 'initial'
-              animate = {listControlsColorLine[index]}
           />
 
 

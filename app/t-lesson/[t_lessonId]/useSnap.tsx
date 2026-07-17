@@ -159,17 +159,18 @@ export const useSnap = ({
  
     const onDragEndHandler: DragHandlers["onDragEnd"] = (event, info) => {
         onDragEnd?.(event, info);
- 
+
         if (!ref.current) {
             throw new Error('element ref is not set');
         }
- 
+
+        console.log('🎯 useSnap drag end - snapPoints config:', snapPoints);
         const points = convertSnappoints(snapPoints);
-        // console.log('Converted snappoints', points);
+        console.log('🔍 Converted snappoints:', points);
         if (!points) {
             throw new Error(`snap point weren't calculated on drag start`);
         }
- 
+
         const constraintsBox = resolveConstraints();
         const elementBox = ref.current.getBoundingClientRect();
         const style = window.getComputedStyle(ref.current);
@@ -179,11 +180,13 @@ export const useSnap = ({
             x: window.scrollX + elementBox.x - translate.x,
             y: window.scrollY + elementBox.y - translate.y,
         };
- 
+
         const dropCoordinates = {
             x: window.scrollX + elementBox.x,
             y: window.scrollY + elementBox.y,
         };
+        console.log('📍 Drop coordinates:', dropCoordinates);
+        console.log('💨 After inertia:', { x: dropCoordinates.x + (0.15 * 0), y: dropCoordinates.y + (0.15 * 0) });
  
         const power = 0.15;
  
@@ -202,6 +205,8 @@ export const useSnap = ({
         });
         const minDistance = Math.min(...distances);
         const minDistanceIndex = distances.indexOf(minDistance);
+        console.log('📏 Distances to snap points:', distances);
+        console.log('🎯 Selected snap point index:', minDistanceIndex, '| Distance:', minDistance);
         setCurrentSnappointIndex(minDistanceIndex);
         const selectedPoint = points[minDistanceIndex];
  
