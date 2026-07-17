@@ -46,7 +46,7 @@ export function ChallengeList({ lessonId }: { lessonId: number }) {
   if (challenges.length === 0) {
     return (
       <div className="text-[#9AA7B0] text-sm">
-        Нет задач. Добавьте новую на вкладке "✏️ Новая задача"
+        Нет задач. Добавьте новую на вкладке &quot;✏️ Новая задача&quot;
       </div>
     )
   }
