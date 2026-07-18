@@ -101,11 +101,11 @@ const LessonIdPage = async ({ params }: Props) => {
         () => ACStype[Math.floor(Math.random() * ACStype.length)]
     );
 
-    questions = t_lesson.t_challenges.map((t_challenge, index) => {
+    questions = t_lesson.t_challenges.map((t_challenge, index): QuestionType | undefined => {
         if (t_challenge.type === 'M_ASC') {
             const randomASCtype = ACStype[Math.floor(Math.random() * ACStype.length)];
 
-            if (randomASCtype === 'ASSIST') {
+            if (randomASCtype === 'ASSIST' as const) {
                 const other5Questions = t_lesson.t_challenges.filter((el, i) => 
                     el.type === "M_ASC" && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
                 );
@@ -127,14 +127,15 @@ const LessonIdPage = async ({ params }: Props) => {
                     timeLimit: 40,
                 };
             } 
-            else if (randomASCtype === 'CONNECT') {
-                const otherQuestions = t_lesson.t_challenges.filter((el, i) => 
+            else {
+                // randomASCtype === 'CONNECT'
+                const otherQuestions = t_lesson.t_challenges.filter((el, i) =>
                     el.type === "M_ASC" && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
                 );
                 const twoQuestions = getRandomElements(otherQuestions, 2);
 
                 return {
-                    questionType: randomASCtype,
+                    questionType: 'CONNECT' as const,
                     question: "Соедините",
                     imageSrc: t_challenge.imageSrc,
                     options: [],
@@ -236,7 +237,7 @@ const LessonIdPage = async ({ params }: Props) => {
                 timeLimit: 25,
             };
         }
-    });
+    }).filter((q): q is QuestionType => q !== undefined);
 
     // 🔥 ДОБАВЛЕНА ПРОВЕРКА: если questions пустой или первый вопрос undefined
     if (!questions || questions.length === 0 || !questions[0]) {
