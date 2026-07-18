@@ -15,11 +15,10 @@ export const HeroParallax = () => {
   return (
     <div className="bg-zinc-950">
       {/* ReactLenis removed - lenis dependency not installed */}
-      <div>
-        <Nav />
-        <Hero />
-        <Schedule />
-      </div>
+      <Nav />
+      <Hero />
+      <Schedule />
+    </div>
   );
 };
 

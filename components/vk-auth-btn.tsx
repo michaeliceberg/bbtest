@@ -3,6 +3,7 @@
 'use client';
 
 import { signIn, signOut } from 'next-auth/react';
+import Image from 'next/image';
 
 type Props = {
     isAuthenticated?: boolean;
@@ -15,7 +16,7 @@ export default function AuthButton({ isAuthenticated, userName, userImage }: Pro
         return (
             <div className="flex items-center gap-2">
                 {userImage && (
-                    <img src={userImage} alt={userName} className="w-8 h-8 rounded-full" />
+                    <Image src={userImage} alt={userName || 'User'} width={32} height={32} className="rounded-full" />
                 )}
                 <span className="text-sm font-medium">{userName}</span>
                 <button 
