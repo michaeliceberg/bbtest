@@ -90,7 +90,7 @@ const LessonIdPage = async ({ params }: Props) => {
         return shuffled.slice(0, count);
     }
 
-    const ACStype = ['ASSIST', 'CONNECT', 'SWIPE'] as const;
+    const ACStype = ['ASSIST', 'CONNECT'] as const;
     type ACStype = typeof ACStype[number];
 
     // Фильтруем только M_ASC типы
@@ -181,33 +181,6 @@ const LessonIdPage = async ({ params }: Props) => {
                     difficulty: t_challenge.difficulty,
                     correctAnswer: t_challenge.t_challengeOptions[0]?.text || '',
                     timeLimit: 45,
-                };
-            } 
-            else { // SWIPE
-                const otherQuestions = t_lesson.t_challenges.filter((el, i) => 
-                    el.type === "M_ASC" && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
-                );
-                const threeQuestions = getRandomElements(otherQuestions, 3);
-                const threeWrongOptions = threeQuestions.map(el => el.t_challengeOptions[0]?.text || '');
-                const threeWrongOptionsPlusThreeRight = [
-                    ...threeWrongOptions,
-                    t_challenge.t_challengeOptions[0]?.text || '',
-                    t_challenge.t_challengeOptions[0]?.text || '',
-                    t_challenge.t_challengeOptions[0]?.text || ''
-                ];
-
-                return {
-                    questionType: randomASCtype,
-                    question: t_challenge.question,
-                    imageSrc: t_challenge.imageSrc,
-                    options: Shuffle2(threeWrongOptionsPlusThreeRight),
-                    numRans: t_challenge.numRans,
-                    optionsQ: [],
-                    optionsA: [],
-                    optionsConstructRight: [],
-                    difficulty: t_challenge.difficulty,
-                    correctAnswer: t_challenge.t_challengeOptions[0]?.text || '',
-                    timeLimit: 1000,
                 };
             }
         } 

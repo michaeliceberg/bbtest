@@ -1,3 +1,5 @@
+// app/t-lesson/[t_lessonId]/type-connect.tsx
+
 'use client'
 
 import React, { useEffect, useState } from 'react'
@@ -10,6 +12,7 @@ import { Check, X } from 'lucide-react'
 type Props = {
     question: QuestionType
     onAnswer: (answer: string) => void
+    onAllPairsMatched?: () => void
 }
 
 type ConnectOption = {
@@ -72,7 +75,7 @@ const ConnectItem = ({
     </motion.button>
 )
 
-export const TypeConnect = ({ question, onAnswer }: Props) => {
+export const TypeConnect = ({ question, onAnswer, onAllPairsMatched }: Props) => {
     const [selectedOptionAId, setSelectedOptionAId] = useState<number>()
     const [selectedOptionQId, setSelectedOptionQId] = useState<number>()
     const [selectedOptionAPair, setSelectedOptionAPair] = useState<number>()
@@ -89,13 +92,16 @@ export const TypeConnect = ({ question, onAnswer }: Props) => {
         // Проверяем, собрали ли все пары
         if (completedPairs === totalPairs && totalPairs > 0) {
             setShowSuccess(true)
-            setTimeout(() => {
-                setListOptionsIdDoneRight([])
-                setShowSuccess(false)
-                onAnswer("right")
-            }, 500)
+            // Вызываем callback что все пары правильны
+            onAllPairsMatched?.()
+            // Не отправляем onAnswer сразу - ждем пока пользователь нажмет кнопку
+            // setTimeout(() => {
+            //     setListOptionsIdDoneRight([])
+            //     setShowSuccess(false)
+            //     onAnswer("right")
+            // }, 500)
         }
-    }, [completedPairs, totalPairs, onAnswer])
+    }, [completedPairs, totalPairs, onAllPairsMatched])
 
     useEffect(() => {
         if (selectedOptionAId && selectedOptionQId && selectedOptionAId > 0 && selectedOptionQId > 0) {
@@ -108,21 +114,18 @@ export const TypeConnect = ({ question, onAnswer }: Props) => {
                 setShowSuccess(true)
                 setTimeout(() => setShowSuccess(false), 300)
             } else {
-                // Неправильный ответ
+                // Неправильный ответ - просто показываем ошибку и сбрасываем выбор
                 setShowError(true)
                 setTimeout(() => setShowError(false), 500)
-
-                setListOptionsIdDoneRight([])
-                onAnswer("wrong")
             }
 
-            // Сброс выбранных опций
+            // Сброс выбранных опций (независимо от правильности)
             setSelectedOptionAId(-1)
             setSelectedOptionQId(-2)
             setSelectedOptionAPair(-3)
             setSelectedOptionQPair(-4)
         }
-    }, [selectedOptionAId, selectedOptionQId, selectedOptionAPair, selectedOptionQPair, listOptionsIdDoneRight, onAnswer])
+    }, [selectedOptionAId, selectedOptionQId, selectedOptionAPair, selectedOptionQPair, listOptionsIdDoneRight, onAllPairsMatched])
 
     const handleOptionQClick = (id: number, pair: number) => {
         if (listOptionsIdDoneRight.includes(id)) return
@@ -151,64 +154,7 @@ export const TypeConnect = ({ question, onAnswer }: Props) => {
     }))
 
     return (
-        <>
-            {/* Эффекты успеха/ошибки */}
-            <AnimatePresence>
-                {showSuccess && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.5, y: -50 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.5, y: -50 }}
-                        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50"
-                    >
-                        <div className="bg-[#678337] rounded-full p-4 shadow-2xl">
-                            <Check className="w-16 h-16 text-white" />
-                        </div>
-                    </motion.div>
-                )}
-
-                {showError && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.5, y: -50 }}
-                        animate={{
-                            opacity: 1,
-                            scale: 1,
-                            y: 0,
-                            x: [-10, 10, -10, 10, 0]
-                        }}
-                        exit={{ opacity: 0, scale: 0.5, y: -50 }}
-                        transition={{ x: { duration: 0.2 } }}
-                        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50"
-                    >
-                        <div className="bg-[#C8524E] rounded-full p-4 shadow-2xl">
-                            <X className="w-16 h-16 text-white" />
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            <div className="relative w-full max-w-lg mx-auto p-3">
-                {/* Прогресс-бар */}
-                <div className="mb-3 flex items-center gap-2">
-                    <div className="flex-1 h-1.5 bg-[#2E3A40] rounded-full overflow-hidden">
-                        <motion.div
-                            className="h-full rounded-full"
-                            style={{ backgroundColor: '#F3AF4E' }}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${(completedPairs / totalPairs) * 100}%` }}
-                            transition={{ duration: 0.3 }}
-                        />
-                    </div>
-                    <span className="text-xs font-bold text-[#9AA7B0] shrink-0">
-                        {completedPairs} / {totalPairs}
-                    </span>
-                </div>
-
-                {/* Короткая подсказка вместо заголовков колонок */}
-                <p className="text-center text-xs text-[#9AA7B0] mb-3">
-                    Соедини пары — выбери элемент слева и подходящий справа
-                </p>
-
+        <div className="relative w-full max-w-lg mx-auto p-3">
                 {/* Две колонки в любом размере экрана + тонкая разделительная линия.
                     Элементы левой и правой колонки идут парами по строкам —
                     CSS grid растягивает обе ячейки строки до высоты большей
@@ -240,7 +186,6 @@ export const TypeConnect = ({ question, onAnswer }: Props) => {
                         </React.Fragment>
                     ))}
                 </div>
-            </div>
-        </>
+        </div>
     )
 }

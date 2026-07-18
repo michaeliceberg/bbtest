@@ -1,14 +1,16 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { QuestionType } from './page'
 import Latex from 'react-latex-next';
 import 'katex/dist/katex.min.css';
-import Lottie from 'lottie-react';
-import LottieArrowRight from '@/public/Lottie/trainer/LottieArrowRight.json'
 import { useAudio } from 'react-use';
 import { Button } from '@/components/ui/button';
+import LottieArrowRight from '@/public/Lottie/trainer/LottieArrowRight.json'
 import LottieSkull from '@/public/Lottie/trainer/frozen/LottieSkull.json'
+
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 
 
 type Props = {

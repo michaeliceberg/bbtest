@@ -16,7 +16,7 @@ interface TrainerMascotProps {
     default?: any
   }
   message?: string
-  isRightPrevious?: boolean
+  isRightPrevious?: boolean | null
   showMessage?: boolean
 }
 

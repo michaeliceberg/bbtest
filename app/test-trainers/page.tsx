@@ -83,8 +83,11 @@ export default function TestTrainersPage() {
           </div>
         )}
 
-        <Tabs defaultValue="triangle-katet" className="w-full">
-          <TabsList className="bg-[#161F23] border-b border-[#3A464E] grid grid-cols-4 w-full">
+        <Tabs defaultValue="assist" className="w-full">
+          <TabsList className="bg-[#161F23] border-b border-[#3A464E] grid grid-cols-5 w-full">
+            <TabsTrigger value="assist" className="text-white text-xs">
+              📝 ASSIST
+            </TabsTrigger>
             <TabsTrigger value="triangle-katet" className="text-white text-xs">
               🔺 Катет
             </TabsTrigger>
@@ -98,6 +101,47 @@ export default function TestTrainersPage() {
               🔺 Гип.
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="assist" className="mt-6">
+            <div className="bg-[#161F23] border border-[#3A464E] rounded-lg p-8">
+              <h2 className="text-white font-bold mb-6">Обычный ASSIST (из seedTM9)</h2>
+
+              {/* Вопрос */}
+              <div className="mb-8 p-6 bg-[#0F1419] rounded-lg border border-[#3A464E]">
+                <p className="text-center text-white text-lg font-medium">
+                  Решите уравнение:
+                </p>
+                <p className="text-center text-white text-2xl mt-4 font-semibold">
+                  $ -2x^2 + 7x + 9 = 0, \quad x = ? $
+                </p>
+              </div>
+
+              {/* Варианты ответов */}
+              <TypeAssist
+                question={{
+                  question: '$ -2x^2 + 7x + 9 \\quad x=? $',
+                  questionType: 'ASSIST',
+                  difficulty: '1',
+                  timeLimit: 30,
+                  imageSrc: '0',
+                  numRans: '1',
+                  options: [
+                    '$ \\large -1 \\quad \\frac{9}{2} $',
+                    '$ \\large 1 \\quad - \\frac{10}{3} $',
+                    '$ \\large 1 \\quad - \\frac{11}{8} $',
+                    '$ \\large -1 \\quad \\frac{13}{8} $',
+                    '$ \\large -1 \\quad \\frac{7}{2} $',
+                    '$ \\large -1 \\quad \\frac{16}{13} $',
+                  ],
+                  optionsQ: [],
+                  optionsA: [],
+                  optionsConstructRight: [],
+                  correctAnswer: '$ \\large -1 \\quad \\frac{9}{2} $',
+                }}
+                onAnswer={handleAnswer}
+              />
+            </div>
+          </TabsContent>
 
           <TabsContent value="triangle-katet" className="mt-6">
             <div className="bg-[#161F23] border border-[#3A464E] rounded-lg p-6">

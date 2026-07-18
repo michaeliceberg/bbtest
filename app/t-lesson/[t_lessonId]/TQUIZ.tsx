@@ -1,15 +1,23 @@
+// app/t-lesson/[t_lessonId]/TQUIZ.tsx
+
 "use client"
 
 import React, { useEffect, useState, useRef, useCallback } from "react"
+import dynamic from "next/dynamic"
 import Confetti from "react-confetti"
 import { useWindowSize } from "react-use"
 import TrainerQuestion from "../../../components/trainer-question"
 import { Button } from "../../../components/ui/button"
-import Lottie from "lottie-react"
 import LottieTrainerSharkFailDNO from '@/public/Lottie/trainer/LottieTrainerSharkFailDNO.json'
 import LottieTrainerSharkFinalWin from '@/public/Lottie/trainer/LottieTrainerSharkFinalWin.json'
-import WinStreakModal from "../../../components/win-streak-modal"
-import ComboBanner from "../../../components/combo-banner"
+import LottieThunderStrike from '@/public/Lottie/ggege/LottieThunderStrike.json'
+import LottiePaperFly from '@/public/Lottie/ggege/LottiePaperFly.json'
+
+const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
+const WinStreakModal = dynamic(() => import("../../../components/win-streak-modal"), { ssr: false })
+const ComboBanner = dynamic(() => import("../../../components/combo-banner"), { ssr: false })
+const StreakLightning = dynamic(() => import("../../../components/streak-lightning").then(mod => mod.StreakLightning), { ssr: false })
+const StreakCelebrationScreen = dynamic(() => import("../../../components/streak-celebration-screen").then(mod => mod.StreakCelebrationScreen), { ssr: false })
 import { toast } from "sonner"
 import { upsertTrainerLessonProgress } from "@/actions/user-progress"
 import { Separator } from "../../../components/ui/separator"
@@ -49,6 +57,8 @@ export default function TQuiz({
   const [streak, setStreak] = useState(0)
   const [effect, setEffect] = useState<StreakEffect | null>(null)
   const [combo, setCombo] = useState<number | null>(null)
+  const [showLightning, setShowLightning] = useState(false)
+  const [showStreakCelebration, setShowStreakCelebration] = useState(false)
   const [randomStartLottie, setRandomStartLottie] = useState(LOTTIE_START_LIST[0])
   const [randomStartButton, setRandomStartButton] = useState(startButton[0])
   const [randomEmotionLottie, setRandomEmotionLottie] = useState(LOTTIE_EMOTION_RIGHT_LIST[0])
@@ -68,11 +78,13 @@ export default function TQuiz({
   const hasPlayedFinishSoundRef = useRef(false)
   // Флаг для отслеживания, был ли уже обновлен квест
   const hasUpdatedQuestRef = useRef(false)
+  // Ref для отслеживания текущего isRightList (избегаем closure issues)
+  const isRightListRef = useRef<number[]>([])
 
-  // ВРЕМЕННО для тестирования: не больше 4 заданий за урок (обычно их ~20)
-  const [allQuestions, setAllQuestions] = useState(questions1.slice(0, 4))
+  // Расширяем до 11 вопросов
+  const [allQuestions, setAllQuestions] = useState(questions1.slice(0, 11))
   const [numQuestionsButton, setNumQuestionsButton] = useState(0)
-  const [isRightPrevious, setIsRightPrevious] = useState(true)
+  const [isRightPrevious, setIsRightPrevious] = useState<boolean | null>(null)
   const questions = allQuestions
   
   const initialState: number[] = questions.map((el, index) => index == 0 ? 3 : 0)
@@ -113,6 +125,11 @@ export default function TQuiz({
   }, [fromQuest, tCourseId, t_lessonId])
 
   // Воспроизведение финального звука только один раз
+  // Синхронизируем isRightListRef с текущим isRightList
+  useEffect(() => {
+    isRightListRef.current = isRightList
+  }, [isRightList])
+
   useEffect(() => {
     if (quizCompleted && !hasPlayedFinishSoundRef.current) {
       hasPlayedFinishSoundRef.current = true
@@ -152,6 +169,11 @@ export default function TQuiz({
     hasUpdatedQuestRef.current = false
   }, [initialState])
 
+  // Сбрасываем isRightPrevious при смене вопроса
+  useEffect(() => {
+    setIsRightPrevious(null)
+  }, [currentQuestionIndex])
+
   const sleep = useCallback((ms: number): Promise<void> => {
     return new Promise((resolve) => setTimeout(resolve, ms))
   }, [])
@@ -169,10 +191,16 @@ export default function TQuiz({
   }, [currentQuestionIndex, questions.length, score, t_lessonId, updateQuestProgress])
 
   const handleAnswer = useCallback(async (answer: string) => {
+    // Для ASSIST: если это "next", просто переходим к следующему вопросу
+    if (answer === "next") {
+      await goToNextQuestion()
+      return
+    }
+
     if (isProcessing || quizCompleted) return
     if (processedQuestionsRef.current.has(currentQuestionIndex)) return
     processedQuestionsRef.current.add(currentQuestionIndex)
-    
+
     setIsProcessing(true)
 
     try {
@@ -191,17 +219,17 @@ export default function TQuiz({
         setStreak(prev => {
           const newStreak = prev + 1
           if (newStreak === 3) {
-            setEffect(createEffect(newStreak))
+            setShowLightning(true)
+            // Показываем экран поздравления после небольшой задержки
+            setTimeout(() => {
+              setShowStreakCelebration(true)
+            }, 600)
           }
           if (newStreak >= 5 && newStreak % 5 === 0) {
             setCombo(newStreak)
           }
           return newStreak
         })
-
-        const body = document.querySelector("body")
-        body?.classList.add("trainer-slide-up-transition")
-        await sleep(200)
 
         setFinishList(oldArray => [...oldArray, {
           question: questions[currentQuestionIndex].question,
@@ -212,28 +240,27 @@ export default function TQuiz({
 
         setScore(prev => prev + 1)
 
-        let newArr = [...isRightList]
+        let newArr = [...(isRightListRef.current || isRightList)]
         newArr[currentQuestionIndex] = 1
         if (currentQuestionIndex < questions.length - 1) {
           newArr[currentQuestionIndex + 1] = 3
         }
         setIsRightList(newArr)
-        
-        await sleep(200)
-        body?.classList.remove("trainer-slide-up-transition")
-        
-        await goToNextQuestion()
+        isRightListRef.current = newArr
+
+        await sleep(400)
+
+        // Для ASSIST типа не переходим автоматически - ждем клика на кнопку "далее"
+        if (questions[currentQuestionIndex].questionType !== 'ASSIST') {
+          await goToNextQuestion()
+        }
       } else {
         playIncorrectSound()
         setStreak(0)
-        
+
         setThreeHearts(prev => prev - 1)
         setIsRightPrevious(false)
         setRandomEmotionLottie(getRandomLottie(LOTTIE_EMOTION_RIGHT_LIST))
-
-        const body = document.querySelector("body")
-        body?.classList.add("trainer-slide-down-transition")
-        await sleep(200)
 
         setFinishList(oldArray => [...oldArray, {
           question: questions[currentQuestionIndex].question,
@@ -242,30 +269,38 @@ export default function TQuiz({
           isRight: false,
         }])
 
-        let newArr = [...isRightList]
+        let newArr = [...(isRightListRef.current || isRightList)]
         newArr[currentQuestionIndex] = 2
         if (currentQuestionIndex < questions.length - 1) {
           newArr[currentQuestionIndex + 1] = 3
         }
         setIsRightList(newArr)
+        isRightListRef.current = newArr
 
-        await sleep(200)
-        body?.classList.remove("trainer-slide-down-transition")
-        
-        if (threeHearts > 1) {
-          await goToNextQuestion()
+        await sleep(400)
+
+        // Для ASSIST типа не переходим автоматически - ждем клика на кнопку "понятно"
+        if (questions[currentQuestionIndex].questionType !== 'ASSIST') {
+          if (threeHearts > 1) {
+            await goToNextQuestion()
+          } else {
+            setQuizCompleted(true)
+          }
         } else {
-          setQuizCompleted(true)
-          await upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score)
-            .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
-          await updateQuestProgress()
+          // Для ASSIST - если жизней осталось 0, завершаем
+          if (threeHearts <= 1) {
+            setQuizCompleted(true)
+            await upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score)
+              .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
+            await updateQuestProgress()
+          }
         }
       }
     } finally {
       setIsProcessing(false)
     }
   }, [
-    isProcessing, quizCompleted, currentQuestionIndex, questions, isRightList,
+    isProcessing, quizCompleted, currentQuestionIndex, questions,
     playCorrectSound, playIncorrectSound, sleep, goToNextQuestion, threeHearts,
     score, t_lessonId, updateQuestProgress
   ])
@@ -324,7 +359,7 @@ export default function TQuiz({
       setIsProcessing(false)
     }
   }, [
-    isProcessing, quizCompleted, currentQuestionIndex, questions, isRightList,
+    isProcessing, quizCompleted, currentQuestionIndex, questions,
     playIncorrectSound, threeHearts, score, t_lessonId, updateQuestProgress
   ])
 
@@ -373,34 +408,51 @@ export default function TQuiz({
 
   return (
     <>
-      <WinStreakModal effect={effect} onClose={() => setEffect(null)} />
+      <StreakLightning
+        isVisible={showLightning}
+        onComplete={() => setShowLightning(false)}
+        animationData={LottieThunderStrike}
+      />
       <ComboBanner combo={combo} onDone={() => setCombo(null)} />
-      <div className="w-full max-w-xl mx-auto text-center">
-        <TrainerQuestion
-          questions={questions}
-          question={questions[currentQuestionIndex]} 
-          onAnswer={handleAnswer} 
-          onTimeout={handleTimeout} 
-          isRightList={isRightList}
-          isRightPrevious={isRightPrevious}
-          randomEmotionLottie={randomEmotionLottie}
-          setThreeHearts={setThreeHearts}
-          threeHearts={threeHearts}
+
+      {showStreakCelebration ? (
+        <StreakCelebrationScreen
+          animationData={LottiePaperFly}
+          onNext={async () => {
+            setShowStreakCelebration(false)
+            setStreak(0)
+            await goToNextQuestion()
+          }}
         />
-        <div className="mt-8">
-          <AnimatedHearts hearts={threeHearts} />
+      ) : (
+        <div className="w-full max-w-xl mx-auto text-center">
+          <TrainerQuestion
+            questions={questions}
+            question={questions[currentQuestionIndex]}
+            onAnswer={handleAnswer}
+            onTimeout={handleTimeout}
+            isRightList={isRightList}
+            isRightPrevious={isRightPrevious}
+            randomEmotionLottie={randomEmotionLottie}
+            playCorrectSound={playCorrectSound}
+            setThreeHearts={setThreeHearts}
+            threeHearts={threeHearts}
+          />
+          <div className="mt-8">
+            <AnimatedHearts hearts={threeHearts} />
+          </div>
+          <div className="mt-4 text-center">
+            <Button
+              variant='dangerOutline'
+              className="gap-2"
+              onClick={() => window.location.href = `/trainer`}
+            >
+              <X size='18' />
+              завершить
+            </Button>
+          </div>
         </div>
-        <div className="mt-4 text-center">
-          <Button 
-            variant='dangerOutline'
-            className="gap-2"
-            onClick={() => window.location.href = `/trainer`}
-          >
-            <X size='18' />
-            завершить
-          </Button>
-        </div>
-      </div>
+      )}
     </>
   )
 }

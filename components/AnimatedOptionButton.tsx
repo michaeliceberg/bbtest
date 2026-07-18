@@ -41,24 +41,42 @@ export const AnimatedOptionButton = ({
   }, [])
 
   const getButtonStyle = () => {
-    if (isCorrect) return "bg-[#678337] text-white shadow-lg shadow-black/20 border-[#53692C]"
-    if (isWrong) return "bg-[#C8524E] text-white shadow-lg shadow-black/20 border-[#A3423E]"
-    if (isSelected) return "bg-[#5183A4] text-white shadow-lg shadow-black/20 border-[#3E6883]"
+    // При правильном ответе - оливковый border, текст и темный фон
+    if (isCorrect) return "bg-[#232F35] text-[#678337] border-[#678337] shadow-lg shadow-black/20"
+    // При неправильном ответе - только красный border и текст
+    if (isWrong) return "bg-[#161F23] text-[#DC605B] border-[#DC605B] shadow-lg shadow-black/20"
+    // При выборе - голубой border и текст
+    if (isSelected) return "bg-[#161F23] text-[#4897D1] border-[#4897D1] shadow-lg shadow-black/20"
+    // По умолчанию
     return "bg-[#161F23] border-[#3A464E] hover:border-[#5183A4] hover:shadow-lg text-[#F2F7FB]"
   }
 
   const handleClick = () => {
     if (disabled) return
-    // Bounce: кнопка чуть увеличивается и возвращается к исходному размеру
-    controls.start({ scale: [1, 1.1, 1], transition: { duration: 0.3, ease: "easeInOut" } })
     onClick()
   }
+
+  // Bounce анимация: сжатие (пружина) → подпрыгивание → возврат
+  useEffect(() => {
+    if (isCorrect) {
+      controls.start({
+        scaleY: [1, 0.85, 1, 1.05, 1],  // сжатие вниз → выпрямление → подпрыгивание → возврат
+        y: [0, 0, 0, -15, 0],             // подпрыгивание вверх
+        transition: {
+          duration: 0.6,
+          times: [0, 0.2, 0.3, 0.6, 1],
+          ease: "easeInOut"
+        }
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCorrect])
 
   return (
     <motion.button
       initial={{ opacity: 0, x: index % 2 === 0 ? -30 : 30, y: 20 }}
       animate={controls}
-      whileHover={{ scale: disabled ? 1 : 1.02, y: disabled ? 0 : -2 }}
+      whileHover={{ scale: disabled ? 1 : 1.02 }}
       whileTap={{ scale: disabled ? 1 : 0.98 }}
       onClick={handleClick}
       disabled={disabled}
@@ -93,9 +111,9 @@ export const AnimatedOptionButton = ({
         <motion.div
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
-          className="absolute right-4 w-6 h-6 bg-white rounded-full flex items-center justify-center"
+          className="absolute right-4 w-6 h-6 bg-[#678337] rounded-full flex items-center justify-center"
         >
-          <Check className="w-4 h-4 text-[#678337]" />
+          <Check className="w-4 h-4 text-[#151F24]" strokeWidth={3} />
         </motion.div>
       )}
 
@@ -103,9 +121,9 @@ export const AnimatedOptionButton = ({
         <motion.div
           initial={{ scale: 0, rotate: 180 }}
           animate={{ scale: 1, rotate: 0 }}
-          className="absolute right-4 w-6 h-6 bg-white rounded-full flex items-center justify-center"
+          className="absolute right-4 w-6 h-6 bg-[#DC605B] rounded-full flex items-center justify-center"
         >
-          <X className="w-4 h-4 text-[#C8524E]" />
+          <X className="w-4 h-4 text-[#151F24]" strokeWidth={3} />
         </motion.div>
       )}
     </motion.button>
