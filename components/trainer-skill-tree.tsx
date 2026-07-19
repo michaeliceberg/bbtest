@@ -1,277 +1,256 @@
-// components/trainer-skill-tree.tsx
-//
-// Тёмная извилистая дорожка уроков в стиле настоящего Duolingo:
-// цветной баннер юнита сверху, круглые узлы уроков змейкой вниз
-// (без подписей и без "паучьих ножек"), в конце всего курса — сундук,
-// который открывается тремя тапами.
+'use client';
 
-'use client'
+import { motion } from 'framer-motion';
+import Link from 'next/link';
+import { Lock, Star, Zap, Trophy, Gift, Flame } from 'lucide-react';
 
-import { useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
-import Lottie from 'lottie-react'
-import { Lock, Zap, Trophy, Star, List } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { TrainerChest } from './trainer-chest'
-import LottieWaterMellonThumbsUp from '@/public/Lottie/LottieWaterMellonThumbsUp.json'
-
-export type SkillLesson = {
-    id: number
-    title: string
-    percentage: number
-    isDisabled: boolean
-    isInQuest?: boolean
-    hasHw?: boolean
+export interface SkillLesson {
+    id: number;
+    title: string;
+    percentage: number;
+    isDisabled: boolean;
+    isInQuest?: boolean;
+    hasHw?: boolean;
 }
 
-export type SkillUnit = {
-    id: number
-    title: string
-    percentage: number
-    lessons: SkillLesson[]
+export interface SkillUnit {
+    id: number;
+    title: string;
+    percentage: number;
+    lessons: SkillLesson[];
 }
 
-type Props = {
-    units: SkillUnit[]
+interface Props {
+    units: SkillUnit[];
 }
 
-const NODE_W = 76
-const NODE_H = Math.round(NODE_W * 0.92)
-const STEP_Y = 54
-const AMPLITUDE = 145
-const WAVE_PERIOD = 8
-const BANNER_H = 74
-const BANNER_GAP = 34
-const TOP_PAD = 8
-const BOTTOM_PAD = 40
+// Иконки для уроков (в порядке чередования для разнообразия)
+const LESSON_ICONS = [
+    { icon: Star, label: 'Star' },
+    { icon: Zap, label: 'Lightning' },
+    { icon: Trophy, label: 'Trophy' },
+    { icon: Gift, label: 'Gift' },
+    { icon: Flame, label: 'Flame' },
+];
 
-// Плавная синусоида вместо ромбовидного зигзага.
-// Знак инвертирован, чтобы первый "виток" уходил в противоположную
-// (левую) сторону.
-const wave = (i: number) => -Math.sin((2 * Math.PI * i) / WAVE_PERIOD)
-
-// Точная вершина синусоиды (sin = ±1) — на этих индексах узел стоит
-// в крайнем положении, а на противоположной пустой стороне можно
-// посадить персонажа.
-const isPeak = (i: number) => (i - WAVE_PERIOD / 4) % (WAVE_PERIOD / 2) === 0
-
-const BG_COLOR = '#151F23'
-const GREEN = '#78C93C'
-const GREEN_3D = '#5FA12E'
-const PURPLE = '#C385F7'
-const PURPLE_3D = '#9C6BC6'
-const DIVIDER_COLOR = '#2E3A40'
-
-// Цвет липкой плашки юнита чередуется зелёный/фиолетовый по чётности
-// индекса — единственный вариант, для которого пользователь задал точный
-// второй цвет, поэтому дальше просто повторяем пару.
-const unitStyle = (index: number) => (index % 2 === 0 ? { bg: GREEN, bottom: GREEN_3D } : { bg: PURPLE, bottom: PURPLE_3D })
-
-const nodeIcon = (percentage: number) => (percentage > 90 ? Trophy : percentage > 1 ? Star : Zap)
-
-type Row = { kind: 'lesson'; unit: SkillUnit; unitIndex: number; lesson: SkillLesson; x: number; y: number; justUnlocked: boolean }
+const getLessonIcon = (index: number) => {
+    return LESSON_ICONS[index % LESSON_ICONS.length];
+};
 
 export const TrainerSkillTree = ({ units }: Props) => {
-    const [flashIds, setFlashIds] = useState<Set<number>>(new Set())
-    const [activeUnitIndex, setActiveUnitIndex] = useState(0)
-    const dividerRefs = useRef<(HTMLDivElement | null)[]>([])
-    const stickyBannerRef = useRef<HTMLDivElement | null>(null)
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1,
+                delayChildren: 0.2,
+            },
+        },
+    };
 
-    const rows: Row[] = []
-    const bannerYs: { unit: SkillUnit; y: number }[] = []
-    let globalIndex = 0
-    let cursorY = TOP_PAD
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: {
+            opacity: 1,
+            y: 0,
+            transition: {
+                type: 'spring',
+                stiffness: 100,
+                damping: 12,
+            },
+        },
+    };
 
-    units.forEach((unit, unitIndex) => {
-        cursorY += BANNER_H + BANNER_GAP
-        bannerYs.push({ unit, y: cursorY - BANNER_H - BANNER_GAP })
-
-        unit.lessons.forEach((lesson, idxInUnit) => {
-            const x = wave(globalIndex) * AMPLITUDE
-            const y = cursorY
-            const justUnlocked = idxInUnit > 0 && !lesson.isDisabled && lesson.percentage === 0
-            rows.push({ kind: 'lesson', unit, unitIndex, lesson, x, y, justUnlocked })
-            cursorY += STEP_Y
-            globalIndex += 1
-        })
-
-        cursorY += 30
-    })
-
-    const chestX = wave(globalIndex) * AMPLITUDE
-    const chestY = cursorY
-    const totalHeight = chestY + NODE_H + BOTTOM_PAD
-
-    // Персонаж (Lottie) в первой "вершине" волны юнита 1 — располагаем
-    // на противоположной (пустой) стороне от узла, чтобы просто создавать
-    // настроение, не мешая самой дорожке.
-    const mascotRow = rows.find((r, idx) => r.unitIndex === 0 && isPeak(idx))
-
-    useEffect(() => {
-        const targets = rows.filter((r) => r.justUnlocked).map((r) => r.lesson.id)
-        if (targets.length === 0) return
-        const timer = window.setTimeout(() => {
-            setFlashIds(new Set(targets))
-            window.setTimeout(() => setFlashIds(new Set()), 1600)
-        }, 500)
-        return () => window.clearTimeout(timer)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
-
-    // Следим за скроллом: как только серая разделительная линия следующего
-    // юнита заезжает под нижний край липкой плашки — переключаем плашку
-    // (цвет + текст) на следующий юнит.
-    useEffect(() => {
-        let raf = 0
-        const handleScroll = () => {
-            if (raf) return
-            raf = window.requestAnimationFrame(() => {
-                raf = 0
-                const bannerBottom = stickyBannerRef.current?.getBoundingClientRect().bottom ?? BANNER_H
-                let idx = 0
-                dividerRefs.current.forEach((el, i) => {
-                    if (!el) return
-                    const top = el.getBoundingClientRect().top
-                    if (top <= bannerBottom) idx = i + 1
-                })
-                setActiveUnitIndex(idx)
-            })
-        }
-        handleScroll()
-        window.addEventListener('scroll', handleScroll, { passive: true })
-        window.addEventListener('resize', handleScroll)
-        return () => {
-            window.removeEventListener('scroll', handleScroll)
-            window.removeEventListener('resize', handleScroll)
-            if (raf) window.cancelAnimationFrame(raf)
-        }
-    }, [])
-
-    const xs = [...rows.map((r) => r.x), chestX]
-    const minX = Math.min(...xs) - NODE_W / 2 - 20
-    const maxX = Math.max(...xs) + NODE_W / 2 + 20
-    const width = maxX - minX
-    const centerOffset = -minX
-
-    // Персонажа ставим не у самого края канваса, а посередине между
-    // краем канваса и ближайшим краем кнопки, что стоит примерно на
-    // его уровне (на противоположной, пустой стороне волны).
-    let mascotX = 0
-    if (mascotRow) {
-        const side = mascotRow.x >= 0 ? 1 : -1
-        const buttonNearEdge = mascotRow.x - side * (NODE_W / 2)
-        const canvasOuterEdge = side > 0 ? minX : maxX
-        mascotX = (buttonNearEdge + canvasOuterEdge) / 2
-    }
-
-    const activeStyle = unitStyle(activeUnitIndex)
-    const activeUnit = units[activeUnitIndex]
+    const lessonVariants = {
+        hidden: { scale: 0.8, opacity: 0 },
+        visible: {
+            scale: 1,
+            opacity: 1,
+            transition: {
+                type: 'spring',
+                stiffness: 150,
+                damping: 10,
+            },
+        },
+        hover: {
+            scale: 1.08,
+            transition: {
+                type: 'spring',
+                stiffness: 300,
+                damping: 10,
+            },
+        },
+    };
 
     return (
-        <div className="relative w-full rounded-2xl" style={{ backgroundColor: BG_COLOR }}>
-            <style>{`
-                @keyframes sktreeUnlock {
-                    0% { box-shadow: 0 0 0 0 rgba(120,201,60,0.7); }
-                    70% { box-shadow: 0 0 0 18px rgba(120,201,60,0); }
-                    100% { box-shadow: 0 0 0 0 rgba(120,201,60,0); }
-                }
-                .sktree-flash { animation: sktreeUnlock 0.8s ease-out 2; }
-            `}</style>
-
-            <div style={{ position: 'relative', width: Math.max(width, 300), height: totalHeight, margin: '0 auto' }}>
-                {/* Единственная плашка юнита — прилипает к верху при скролле
-                    и меняет цвет/текст, когда наезжает на серую линию
-                    следующего юнита. */}
-                <div
-                    ref={stickyBannerRef}
-                    className="sticky top-0 z-20 mx-3 rounded-[20px] flex items-stretch justify-between border-b-[7px] transition-colors duration-300"
-                    style={{ marginTop: TOP_PAD, height: BANNER_H, backgroundColor: activeStyle.bg, borderBottomColor: activeStyle.bottom }}
+        <motion.div
+            className="w-full max-w-4xl mx-auto"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+        >
+            {units.map((unit) => (
+                <motion.div
+                    key={unit.id}
+                    className="mb-12"
+                    variants={itemVariants}
                 >
-                    <div className="flex flex-col justify-center px-4">
-                        <div className="text-[10px] font-bold uppercase tracking-wide text-white/80">
-                            Юнит {activeUnitIndex + 1}
+                    {/* Unit Title */}
+                    <div className="mb-6 pl-4">
+                        <h3 className="text-xl font-bold text-[#F2F7FB] mb-2">
+                            {unit.title}
+                        </h3>
+                        <div className="flex items-center gap-2">
+                            <div className="flex-1 h-2 bg-[#232F34] rounded-full overflow-hidden max-w-xs">
+                                <motion.div
+                                    className="h-full bg-gradient-to-r from-[#A1D051] to-[#678337]"
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${unit.percentage}%` }}
+                                    transition={{ duration: 0.6, delay: 0.2 }}
+                                />
+                            </div>
+                            <span className="text-sm text-[#9AA7B0]">
+                                {unit.percentage}%
+                            </span>
                         </div>
-                        <div className="text-[15px] font-bold text-white leading-tight">{activeUnit?.title}</div>
                     </div>
-                    <div className="flex items-center pr-1">
-                        <div className="self-stretch w-px my-3 bg-white/30" />
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl ml-3 mr-2" style={{ backgroundColor: 'rgba(255,255,255,0.16)' }}>
-                            <List className="h-5 w-5 text-white" />
-                        </div>
+
+                    {/* Lessons Grid */}
+                    <div className="pl-8 space-y-6">
+                        {unit.lessons.map((lesson, lessonIndex) => {
+                            const lessonIconData = getLessonIcon(lessonIndex);
+                            const LessonIcon = lessonIconData.icon;
+                            const isCompleted = lesson.percentage === 100;
+                            const isStarted = lesson.percentage > 0 && lesson.percentage < 100;
+
+                            return (
+                                <motion.div
+                                    key={lesson.id}
+                                    className="flex items-center gap-6 group"
+                                    variants={lessonVariants}
+                                    whileHover={{ x: 8 }}
+                                    transition={{ type: 'spring', stiffness: 200 }}
+                                >
+                                    {/* Lesson Circle Icon */}
+                                    <Link href={lesson.isDisabled ? '#' : `/t-lesson/${lesson.id}`}>
+                                        <motion.div
+                                            className={`relative w-20 h-20 rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer transition-all ${
+                                                lesson.isDisabled
+                                                    ? 'bg-[#1A252B] opacity-50'
+                                                    : isCompleted
+                                                      ? 'bg-gradient-to-br from-[#A1D051] to-[#678337]'
+                                                      : isStarted
+                                                        ? 'bg-gradient-to-br from-[#4897D1] to-[#2E5F8F]'
+                                                        : 'bg-[#232F34] border-2 border-[#3A4F5C]'
+                                            }`}
+                                            variants={lessonVariants}
+                                            whileHover={!lesson.isDisabled ? 'hover' : {}}
+                                        >
+                                            {lesson.isDisabled ? (
+                                                <Lock className="w-8 h-8 text-[#5A6F7A]" />
+                                            ) : (
+                                                <>
+                                                    <LessonIcon
+                                                        className={`w-8 h-8 ${
+                                                            isCompleted
+                                                                ? 'text-[#151F24]'
+                                                                : 'text-[#F2F7FB]'
+                                                        }`}
+                                                    />
+                                                    {isCompleted && (
+                                                        <motion.div
+                                                            className="absolute top-0 right-0 w-6 h-6 bg-[#A1D051] rounded-full flex items-center justify-center"
+                                                            initial={{ scale: 0 }}
+                                                            animate={{ scale: 1 }}
+                                                            transition={{
+                                                                type: 'spring',
+                                                                stiffness: 200,
+                                                                delay: 0.2,
+                                                            }}
+                                                        >
+                                                            <span className="text-[#151F24] font-bold text-sm">
+                                                                ✓
+                                                            </span>
+                                                        </motion.div>
+                                                    )}
+                                                </>
+                                            )}
+                                        </motion.div>
+                                    </Link>
+
+                                    {/* Lesson Info */}
+                                    <div className="flex-1">
+                                        <h4 className="text-lg font-semibold text-[#F2F7FB] mb-1">
+                                            {lesson.title}
+                                        </h4>
+                                        <div className="flex items-center gap-3">
+                                            {/* Progress */}
+                                            <div className="w-32 h-1.5 bg-[#232F34] rounded-full overflow-hidden">
+                                                <motion.div
+                                                    className={`h-full ${
+                                                        isCompleted
+                                                            ? 'bg-[#A1D051]'
+                                                            : 'bg-[#4897D1]'
+                                                    }`}
+                                                    initial={{ width: 0 }}
+                                                    animate={{ width: `${lesson.percentage}%` }}
+                                                    transition={{ duration: 0.6, delay: 0.15 }}
+                                                />
+                                            </div>
+                                            <span
+                                                className={`text-xs font-medium ${
+                                                    isCompleted
+                                                        ? 'text-[#A1D051]'
+                                                        : 'text-[#9AA7B0]'
+                                                }`}
+                                            >
+                                                {lesson.percentage}%
+                                            </span>
+
+                                            {/* Status Badges */}
+                                            {lesson.hasHw && (
+                                                <span className="text-xs px-2 py-1 bg-red-900/30 text-red-300 rounded-full">
+                                                    HW
+                                                </span>
+                                            )}
+                                            {lesson.isInQuest && (
+                                                <span className="text-xs px-2 py-1 bg-yellow-900/30 text-yellow-300 rounded-full">
+                                                    Quest
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Arrow Indicator */}
+                                    {!lesson.isDisabled && (
+                                        <motion.div
+                                            className="text-[#4897D1]"
+                                            initial={{ x: 0 }}
+                                            whileHover={{ x: 4 }}
+                                            transition={{ type: 'spring', stiffness: 200 }}
+                                        >
+                                            <svg
+                                                className="w-6 h-6"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M9 5l7 7-7 7"
+                                                />
+                                            </svg>
+                                        </motion.div>
+                                    )}
+                                </motion.div>
+                            );
+                        })}
                     </div>
-                </div>
-
-                {/* Серые линии-разделители там, где раньше начинался баннер
-                    следующего юнита. */}
-                {bannerYs.slice(1).map(({ unit, y }, i) => (
-                    <div
-                        key={`divider-${unit.id}`}
-                        ref={(el) => { dividerRefs.current[i] = el }}
-                        className="absolute left-4 right-4 h-px"
-                        style={{ top: y + BANNER_H / 2, backgroundColor: DIVIDER_COLOR }}
-                    />
-                ))}
-
-                {rows.map((r) => {
-                    const locked = r.lesson.isDisabled
-                    const Icon = locked ? Lock : nodeIcon(r.lesson.percentage)
-                    const cx = centerOffset + r.x
-
-                    const node = (
-                        <div
-                            data-node-id={r.lesson.id}
-                            className={cn(
-                                'relative flex items-center justify-center rounded-full border-2 border-b-8 active:border-b-2 transition-[border-width] duration-100',
-                                flashIds.has(r.lesson.id) ? 'sktree-flash' : '',
-                                locked
-                                    ? 'bg-[#3A454E] border-[#2E383E]'
-                                    : 'bg-[#78C93C] border-[#5FA12F]',
-                            )}
-                            style={{ width: NODE_W, height: NODE_H }}
-                        >
-                            <Icon className={cn('h-7 w-7', locked ? 'text-[#5A6673]' : 'text-white')} />
-                            {r.lesson.hasHw && !locked && (
-                                <Image src="/hwSvgs/friesW.svg" width={24} height={24} alt="ДЗ" className="absolute -top-2 -left-2 animate-bounce" />
-                            )}
-                            {r.lesson.isInQuest && !locked && r.lesson.percentage < 100 && (
-                                <Image src="/hwSvgs/donut.svg" width={22} height={22} alt="Квест" className="absolute -top-2 -right-2 animate-bounce" />
-                            )}
-                        </div>
-                    )
-
-                    return (
-                        <div
-                            key={r.lesson.id}
-                            className="absolute"
-                            style={{ top: r.y, left: cx, transform: 'translate(-50%, 0)' }}
-                        >
-                            {locked ? node : <Link href={`/t-lesson/${r.lesson.id}`}>{node}</Link>}
-                        </div>
-                    )
-                })}
-
-                {mascotRow && (
-                    <div
-                        className="absolute pointer-events-none"
-                        style={{
-                            top: mascotRow.y + NODE_H / 2 - 55,
-                            left: centerOffset + mascotX,
-                            transform: 'translate(-50%, 0)',
-                            width: 110,
-                            height: 110,
-                        }}
-                    >
-                        <Lottie animationData={LottieWaterMellonThumbsUp} loop autoplay />
-                    </div>
-                )}
-
-                <div className="absolute" style={{ top: chestY, left: centerOffset + chestX, transform: 'translate(-50%, 0)' }}>
-                    <TrainerChest size={NODE_W} />
-                </div>
-            </div>
-        </div>
-    )
-}
-
-export default TrainerSkillTree
+                </motion.div>
+            ))}
+        </motion.div>
+    );
+};

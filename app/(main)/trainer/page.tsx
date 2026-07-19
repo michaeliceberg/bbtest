@@ -1,4 +1,4 @@
-// app/trainer/page.tsx
+// app/(main)/trainer/page.tsx
 
 import { FeedWrapper } from '@/components/feed-wrapper';
 import { StickyWrapper } from '@/components/sticky-wrapper';
