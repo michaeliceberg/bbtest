@@ -219,7 +219,7 @@ export const TabTCourses = ({
 
                 {/* Контент для каждого курса */}
                 {t_courses.map((t_course, indexCourse) => {
-                    const skillUnits: SkillUnit[] = t_units.filter(u => u.t_courseId === t_course.id).map((t_unit, indexUnit) => {
+                    const skillUnits = t_units.filter(u => u.t_courseId === t_course.id).map((t_unit, indexUnit) => {
                         const StatThisUnitLessons = AllTStat[indexCourse].StatThisCourse[indexUnit].unitStat
 
                         const lessons = t_unit.t_lessons.map((t_lesson, indexLesson) => {
