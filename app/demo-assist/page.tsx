@@ -1,6 +1,8 @@
 import TQuiz from "@/app/t-lesson/[t_lessonId]/TQUIZ"
 import { QuestionType } from "@/app/t-lesson/[t_lessonId]/page"
 
+export const dynamic = 'force-dynamic'
+
 export default function DemoAssistPage() {
   const demoQuestions: QuestionType[] = [
     {
