@@ -39,6 +39,7 @@ const buttonVariants = cva(
 				trainer_bad: 'bg-red-400 text-primary-foreground hover:bg-red-400/90 border-red-500 border-b-4 active:border-b-0',
 				trainer_better: 'bg-green-400 text-primary-foreground hover:bg-green-400/90 border-green-500 border-b-4 active:border-b-0',
 				trainer_best: 'bg-yellow-300 text-primary-foreground hover:bg-yellow-300/90 border-yellow-500 border-b-4 active:border-b-0',
+				skillLesson: 'bg-[#3A4E58] text-[#6A7E8A] border-0 transition-none',
 
 			},
 			size: {
@@ -49,6 +50,7 @@ const buttonVariants = cva(
 				construct: 'h-16 px-8',
 				icon: 'h-10 w-10',
 				rounded: 'rounded-full',
+				lesson: 'active:border-b-2',
 				buy: 'px-12 h-12',
 				leader: 'px-2 h-14'
 			},

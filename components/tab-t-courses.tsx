@@ -14,7 +14,7 @@ import 'katex/dist/katex.min.css';
 import Latex from 'react-latex-next';
 import { useState } from "react";
 import { Button } from "./ui/button";
-// import { TrainerSkillTree, SkillUnit } from "./trainer-skill-tree";
+import { TrainerSkillTree, SkillUnit } from "./trainer-skill-tree";
 
 type Props = {
     t_courses: {
@@ -258,8 +258,7 @@ export const TabTCourses = ({
                         </h2>
 
                         <div className="w-full mt-2">
-                            {/* <TrainerSkillTree units={skillUnits} /> */}
-                            <div className="text-center text-[#9AA7B0] py-8">Lessons loading...</div>
+                            <TrainerSkillTree units={skillUnits} />
                         </div>
 
                         <div className="flex justify-center mt-8">
