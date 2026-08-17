@@ -9,21 +9,33 @@ import { useEffect, useState, useTransition } from 'react'
 import { cn } from '@/lib/utils'
 import Image from 'next/image'
 import { switchCourse } from '@/actions/switch-course'
-import { Course } from '@/db/schema'
+
+// Форма курса, которую реально собирает и передаёт app/(main)/layout.tsx —
+// это не сырая строка таблицы courses, а агрегированные данные для сайдбара.
+type SidebarCourse = {
+  id: number
+  title: string
+  imageSrc?: string
+  isActive?: boolean
+  streak?: number
+  hasUnfinishedHomework?: boolean
+}
 
 interface SidebarProps {
-  courses: Course[]
-  activeCourseId: number | null
+  courses?: SidebarCourse[]
+  activeCourseId?: number | null
   hasTrainerQuest?: boolean
+  hasHomework?: boolean
+  trainerQuestProgress?: string
   className?: string
 }
 
-export const Sidebar = ({ courses, activeCourseId, hasTrainerQuest = false, className }: SidebarProps) => {
+export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest = false, className }: SidebarProps) => {
   const pathname = usePathname()
   const router = useRouter()
   const [isCoursesOpen, setIsCoursesOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
-  const [activeCourse, setActiveCourse] = useState<Course | null>(null)
+  const [activeCourse, setActiveCourse] = useState<SidebarCourse | null>(null)
 
   useEffect(() => {
     if (activeCourseId && courses.length > 0) {
