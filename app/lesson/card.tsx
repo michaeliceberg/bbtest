@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { useCallback } from "react"
 import { useKey } from "react-use"
-import { motion, useAnimation } from "framer-motion"
 
 type Props = {
     id: number
@@ -32,23 +31,18 @@ export const Card = ({
     type,
     isDoneWrongChallenge,
 }: Props) => {
-    const controls = useAnimation()
-
     const handleClick = useCallback(() => {
         if (disabled) return
-        // Bounce-эффект: карточка чуть увеличивается и возвращается к исходному размеру
-        controls.start({ scale: [1, 1.08, 1], transition: { duration: 0.28, ease: 'easeInOut' } })
         onClick()
-    }, [disabled, onClick, controls])
+    }, [disabled, onClick])
 
     useKey(shortcut, handleClick, {}, [handleClick])
 
     return (
-        <motion.div
-            animate={controls}
+        <div
             onClick={handleClick}
             className={cn(
-                'h-full border-2 rounded-xl border-b-4 bg-[#161F23] border-[#3A464E] hover:bg-[#1A252B] p-4 lg:p-6 cursor-pointer active:border-b-2 transition-colors',
+                'h-full border-2 rounded-xl bg-[#161F23] border-[#3A464E] hover:bg-[#1A252B] p-4 lg:p-6 cursor-pointer transition-colors',
                 selected && "border-[#3E6883] bg-[#5183A4] hover:bg-[#5183A4]",
                 selected && status === "correct" && "border-[#53692C] bg-[#678337] hover:bg-[#678337]",
                 selected && status === "wrong" && "border-[#A3423E] bg-[#C8524E] hover:bg-[#C8524E]",
@@ -82,13 +76,13 @@ export const Card = ({
                 </p>
 
                 <div className={cn(
-                    "lg:w-[30px] lg:h-[30px] w-[20px] h-[20px] border-2 border-[#3A464E] flex items-center justify-center rounded-lg text-[#9AA7B0] lg:text-[15px] text-xs font-semibold",
-                    (selected || isDoneWrongChallenge) && "border-white/60 text-white",
+                    "lg:w-[30px] lg:h-[30px] w-[20px] h-[20px] flex items-center justify-center rounded-lg text-[#9AA7B0]/70 lg:text-[15px] text-xs font-semibold",
+                    (selected || isDoneWrongChallenge) && "text-white/70",
                 )}>
                     {shortcut}
                 </div>
             </div>
-        </motion.div>
+        </div>
     )
 }
 

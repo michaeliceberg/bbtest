@@ -8,6 +8,7 @@ import { Clock, AlertCircle, CheckCircle, Skull, ChevronRight, Zap, BookOpen, Gi
 import { Progress } from './ui/progress';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { PALETTE_RED, PALETTE_MINT } from '@/src/constants/lessonButtonColors';
 
 type Homework = {
     id: number;
@@ -81,20 +82,20 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
     const HomeworkCard = ({ hw, typeTitle, isUrgent, isExpired = false }: { hw: Homework; typeTitle: string; isUrgent: boolean; isExpired?: boolean }) => {
         const progress = getProgress(hw);
         const isCompleted = hw.correctCount >= hw.totalCount;
-        
-        const getCardColor = () => {
-            if (isExpired) return 'from-red-500/10 to-red-500/5 border-red-500/30';
-            if (isCompleted) return 'from-green-500/10 to-emerald-500/5 border-green-500/30';
-            if (isUrgent) return 'from-orange-500/10 to-amber-500/5 border-orange-500/30';
-            return hw.type === 'daily' ? 'from-purple-500/10 to-fuchsia-500/5 border-purple-500/30' : 'from-amber-500/10 to-yellow-500/5 border-amber-500/30';
-        };
-        
-        const getIconBg = () => {
-            if (isExpired) return 'bg-red-500';
-            if (isCompleted) return 'bg-green-500';
-            if (isUrgent) return 'bg-orange-500';
-            return hw.type === 'daily' ? 'bg-purple-500' : 'bg-amber-500';
-        };
+        // Срок мог пройти, а статус в базе ещё не успел обновиться на 'expired' —
+        // визуально это тоже "просрочено", а не просто "срочно" (раньше красилось оранжевым).
+        const isOverdue = isExpired || isPast(hw.dueDate);
+
+        // Единый цвет состояния карточки: просрочено > выполнено > челлендж дня (мятный) > срочно > обычное ДЗ.
+        const stateColor = isOverdue
+            ? PALETTE_RED.button
+            : isCompleted
+            ? '#4ADE80'
+            : hw.type === 'daily'
+            ? PALETTE_MINT.button
+            : isUrgent
+            ? '#FB923C'
+            : '#FBBF24';
 
         return (
             <motion.div
@@ -102,13 +103,17 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
                 animate={{ opacity: 1, y: 0 }}
                 whileHover={{ scale: 1.01 }}
                 transition={{ duration: 0.2 }}
-                className={`bg-gradient-to-r ${getCardColor()} rounded-xl p-4 border cursor-pointer transition-all hover:shadow-md`}
+                className="rounded-xl p-4 border cursor-pointer transition-all hover:shadow-md"
+                style={{
+                    background: `linear-gradient(to right, ${stateColor}1A, ${stateColor}0D)`,
+                    borderColor: `${stateColor}4D`,
+                }}
                 onClick={() => startHomework(hw)}
             >
                 <div className="flex items-start justify-between">
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                            <div className={`${getIconBg()} rounded-full p-1.5 shadow-sm`}>
+                            <div className="rounded-full p-1.5 shadow-sm" style={{ backgroundColor: stateColor }}>
                                 {hw.type === 'daily' ? (
                                     <Zap className="h-3.5 w-3.5 text-white" />
                                 ) : (
@@ -118,18 +123,16 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
                             <span className="text-xs font-medium text-[#9AA7B0]">
                                 {format(hw.assignedAt, 'dd MMMM', { locale: ru })}
                             </span>
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                isExpired ? 'bg-red-500/20 text-red-300' :
-                                isCompleted ? 'bg-green-500/20 text-green-300' :
-                                isUrgent ? 'bg-orange-500/20 text-orange-300' :
-                                hw.type === 'daily' ? 'bg-purple-500/20 text-purple-300' : 'bg-amber-500/20 text-amber-300'
-                            }`}>
-                                {isExpired ? 'Просрочено' : getTimeLeft(hw.dueDate)}
+                            <span
+                                className="text-xs px-2 py-0.5 rounded-full"
+                                style={{ backgroundColor: `${stateColor}33`, color: stateColor }}
+                            >
+                                {isOverdue ? 'Просрочено' : getTimeLeft(hw.dueDate)}
                             </span>
                         </div>
-                        
+
                         <h4 className="font-bold text-[#F2F7FB] mb-1">{typeTitle}</h4>
-                        
+
                         <div className="flex items-center gap-3 mt-2">
                             <div className="flex-1">
                                 <Progress value={progress} className="h-2" />
@@ -138,8 +141,8 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
                                 {hw.correctCount}/{hw.totalCount}
                             </span>
                         </div>
-                        
-                        {hw.wrongCount && hw.wrongCount > 0 && !isCompleted && !isExpired && (
+
+                        {hw.wrongCount && hw.wrongCount > 0 && !isCompleted && !isOverdue && (
                             <p className="text-xs text-red-400 mt-2 flex items-center gap-1">
                                 <Skull className="h-3 w-3" />
                                 ошибок: {hw.wrongCount}
@@ -179,8 +182,8 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
                         {sortedDailyActive.length > 0 && (
                             <div>
                                 <div className="flex items-center gap-2 mb-3">
-                                    <div className="w-1 h-5 bg-purple-500 rounded-full" />
-                                    <h4 className="text-sm font-semibold text-purple-700">Челлендж дня</h4>
+                                    <div className="w-1 h-5 rounded-full" style={{ backgroundColor: PALETTE_MINT.button }} />
+                                    <h4 className="text-sm font-semibold" style={{ color: PALETTE_MINT.button }}>Челлендж дня</h4>
                                 </div>
                                 <div className="space-y-3">
                                     {sortedDailyActive.map(hw => {
@@ -223,29 +226,40 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
                 {/* Просроченные задания (сворачиваемые) */}
                 {(dailyExpired.length > 0 || teacherExpired.length > 0) && (
                     <details className="mt-4">
-                        <summary className="cursor-pointer text-sm text-red-500 hover:text-red-600 flex items-center gap-2 py-2">
+                        <summary
+                            className="cursor-pointer text-sm flex items-center gap-2 py-2"
+                            style={{ color: PALETTE_RED.button }}
+                        >
                             <Skull className="h-4 w-4" />
                             <span className="font-medium">Просроченные ({dailyExpired.length + teacherExpired.length})</span>
                         </summary>
                         <div className="mt-3 space-y-2">
                             {dailyExpired.map(hw => (
-                                <div key={hw.id} className="flex items-center justify-between text-sm bg-red-500/10 rounded-lg p-3">
+                                <div
+                                    key={hw.id}
+                                    className="flex items-center justify-between text-sm rounded-lg p-3"
+                                    style={{ backgroundColor: `${PALETTE_RED.button}1A` }}
+                                >
                                     <div className="flex items-center gap-2">
-                                        <Zap className="h-4 w-4 text-red-400" />
+                                        <Zap className="h-4 w-4" style={{ color: PALETTE_RED.button }} />
                                         <span className="text-[#9AA7B0]">Челлендж</span>
                                         <span className="text-gray-400 text-xs">{format(hw.assignedAt, 'dd MMM', { locale: ru })}</span>
                                     </div>
-                                    <span className="text-red-500 font-medium">{hw.correctCount}/{hw.totalCount}</span>
+                                    <span className="font-medium" style={{ color: PALETTE_RED.button }}>{hw.correctCount}/{hw.totalCount}</span>
                                 </div>
                             ))}
                             {teacherExpired.map(hw => (
-                                <div key={hw.id} className="flex items-center justify-between text-sm bg-red-500/10 rounded-lg p-3">
+                                <div
+                                    key={hw.id}
+                                    className="flex items-center justify-between text-sm rounded-lg p-3"
+                                    style={{ backgroundColor: `${PALETTE_RED.button}1A` }}
+                                >
                                     <div className="flex items-center gap-2">
-                                        <BookOpen className="h-4 w-4 text-red-400" />
+                                        <BookOpen className="h-4 w-4" style={{ color: PALETTE_RED.button }} />
                                         <span className="text-[#9AA7B0]">ДЗ</span>
                                         <span className="text-gray-400 text-xs">{format(hw.assignedAt, 'dd MMM', { locale: ru })}</span>
                                     </div>
-                                    <span className="text-red-500 font-medium">{hw.correctCount}/{hw.totalCount}</span>
+                                    <span className="font-medium" style={{ color: PALETTE_RED.button }}>{hw.correctCount}/{hw.totalCount}</span>
                                 </div>
                             ))}
                         </div>

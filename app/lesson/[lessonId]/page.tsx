@@ -4,6 +4,7 @@ import { getLesson, getUserProgress, getChallengeProgress, getTodayStats, getUse
 import { redirect } from "next/navigation"
 import { Quiz } from "../quiz"
 import { auth } from "@/lib/auth"
+import { getUnitButtonColor } from "@/src/constants/lessonButtonColors"
 
 type Props = {
     params: {
@@ -59,6 +60,10 @@ const LessonIdPage = async ({ params }: Props) => {
     const initialHearts = userProgress.hearts
     const initialPercentage = lesson.challenges.filter(c => c.completed).length / lesson.challenges.length * 100
     const oldCourseProgress = userProgress.courseProgress
+    // Тот же индекс, что и на /learn (позиция юнита по order, 0-based) — чтобы
+    // цвет карточки урока совпадал с цветом её же кнопки на /learn.
+    const unitIndex = lesson.unit ? lesson.unit.order - 1 : 0
+    const unitColor = getUnitButtonColor(unitIndex)
 
     console.log('📖 Открыт урок ID:', lessonId)
     console.log('📊 hwChallengeIds:', hwChallengeIds)
@@ -76,6 +81,7 @@ const LessonIdPage = async ({ params }: Props) => {
             activeCourseTitle={activeCourseTitle}
             hwChallengeIds={hwChallengeIds}
             courseId={activeCourseId}
+            unitColor={unitColor}
         />
     )
 }

@@ -6,10 +6,16 @@ import Link from "next/link";
 import { Cake, CircleCheckBig, CircleX, Crown, Layers, Skull, Star, Lock, Target, Zap, Flame, Gift } from "lucide-react";
 import { CircularProgressbarWithChildren } from "react-circular-progressbar";
 import 'react-circular-progressbar/dist/styles.css'
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { differenceInHours, isPast } from "date-fns";
+import {
+    getUnitButtonColor,
+    LOCKED_BUTTON_COLOR,
+    LOCKED_BUTTON_BOTTOM_COLOR,
+    LOCKED_ICON_COLOR,
+    ACTIVE_ICON_COLOR,
+} from "@/src/constants/lessonButtonColors";
 
 interface lessonDone {
     lesson: number;
@@ -18,6 +24,7 @@ interface lessonDone {
 
 type Props = {
     id: number;
+    unitIndex: number;
     index: number;
     totalCount: number;
     locked?: boolean;
@@ -40,6 +47,7 @@ type Props = {
 
 export const LessonButton = ({
     id,
+    unitIndex,
     index,
     totalCount,
     locked,
@@ -86,6 +94,7 @@ export const LessonButton = ({
     const isFirst = index === 0;
     const isLast = index === totalCount;
     const isLessonCompleted = completed || isMasteryCompleted;
+    const unitColor = getUnitButtonColor(unitIndex);
 
     const Icon = title.slice(-1) === '3' ? Skull 
         : title.slice(-1) === '4' ? Cake 
@@ -100,7 +109,7 @@ export const LessonButton = ({
     const progressPercent = Math.round(displayProgress);
 
     const isNextUnlocked = correctChallenges >= challengesNeeded;
-    const showNeedMore = needMore > 0 && !isNextUnlocked && !isLessonCompleted;
+    const showNeedMore = needMore > 0 && !isNextUnlocked && !isLessonCompleted && !locked;
 
     // Получаем иконку статуса ДЗ
     const getHomeworkIcon = () => {
@@ -142,8 +151,11 @@ export const LessonButton = ({
                 marginTop: isFirst ? 60 : 24,
             }}>
                 <div className="h-[102px] w-[102px]">
-                    <div className="h-[70px] w-[70px] rounded-full bg-[#2E3A40] flex items-center justify-center">
-                        <Lock className="h-8 w-8 text-gray-400" />
+                    <div
+                        className="h-[70px] w-[70px] rounded-full border-b-4 flex items-center justify-center"
+                        style={{ backgroundColor: LOCKED_BUTTON_COLOR, borderColor: LOCKED_BUTTON_BOTTOM_COLOR }}
+                    >
+                        <Lock className="h-8 w-8" style={{ color: LOCKED_ICON_COLOR }} />
                     </div>
                 </div>
                 <div className="pt-8 ml-4">
@@ -192,21 +204,21 @@ export const LessonButton = ({
                         value={progressPercent}
                         styles={{
                             path: { stroke: isNextUnlocked ? "#22c55e" : "#eab308" },
-                            trail: { stroke: "#e5e7eb" },
+                            trail: { stroke: LOCKED_BUTTON_COLOR },
                         }}
                     >
                         <Button
                             size='rounded'
                             variant={locked ? "locked" : "secondary"}
                             className="h-[70px] w-[70px] border-b-8 relative"
+                            style={{
+                                backgroundColor: locked ? LOCKED_BUTTON_COLOR : unitColor.button,
+                                borderColor: locked ? LOCKED_BUTTON_BOTTOM_COLOR : unitColor.bottom,
+                            }}
                         >
                             <Icon
-                                className={cn(
-                                    "h-10 w-10",
-                                    locked
-                                        ? "fill-neutral-400 text-neutral-400 stroke-neutral-400"
-                                        : "fill-primary-foreground text-primary-foreground"
-                                )}
+                                className="h-10 w-10 fill-current stroke-current"
+                                style={{ color: locked ? LOCKED_ICON_COLOR : ACTIVE_ICON_COLOR }}
                             />
 
                             {isHwNumber > 0 && (
@@ -223,49 +235,58 @@ export const LessonButton = ({
                     {getHomeworkIcon()}
                 </div>
 
-                <div className="pt-8 ml-4">
-                    <div>
-                        <h1 className="px-3 py-0.5 border-2 font-bold text-green-500 bg-[#151F23] rounded-xl tracking-white z-10">
-                            {title}                
-                        </h1>
-                    </div>    
-                    <div className="mt-1">
-                        <div className="flex flex-1 gap-2">
-                            {currentLessonStat[0]?.done[1] > 0 && (
-                                <div className="flex mr-1 items-center">
-                                    <CircleCheckBig className='h-4 w-4 stroke-2 text-green-500 mr-1' />
-                                    <p className='text-xs text-green-500 font-bold'>{currentLessonStat[0].done[1]}</p>
-                                </div>
-                            )}
+                <div className="pt-8 ml-4 max-w-[220px]">
+                    <h1
+                        className="inline-block px-3 py-1 rounded-full text-sm font-bold leading-none"
+                        style={{
+                            backgroundColor: `${locked ? LOCKED_ICON_COLOR : unitColor.button}1F`,
+                            color: locked ? LOCKED_ICON_COLOR : unitColor.button,
+                            border: `1.5px solid ${locked ? LOCKED_ICON_COLOR : unitColor.button}4D`,
+                        }}
+                    >
+                        {title}
+                    </h1>
 
-                            {currentLessonStat[0]?.done[2] > 0 && (
-                                <div className="flex mr-1 items-center">
-                                    <CircleX className='h-4 w-4 stroke-2 text-rose-500 mr-1' />
-                                    <p className='text-xs text-rose-500 font-bold'>{currentLessonStat[0].done[2]}</p>
-                                </div>
-                            )}
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        {currentLessonStat[0]?.done[1] > 0 && (
+                            <div className="flex items-center gap-1 bg-green-500/10 text-green-400 rounded-full px-2 py-0.5">
+                                <CircleCheckBig className="h-3.5 w-3.5" />
+                                <span className="text-xs font-semibold">{currentLessonStat[0].done[1]}</span>
+                            </div>
+                        )}
 
-                            {currentLessonStat[0]?.done[0] > 0 && (
-                                <div className="flex mr-1 items-center">
-                                    <Layers className='h-4 w-4 stroke-2 text-neutral-400 mr-1' />
-                                    <p className='text-xs text-neutral-400 font-bold'>{currentLessonStat[0].done[0]}</p>
-                                </div>
-                            )}
-                        </div>
+                        {currentLessonStat[0]?.done[2] > 0 && (
+                            <div className="flex items-center gap-1 bg-rose-500/10 text-rose-400 rounded-full px-2 py-0.5">
+                                <CircleX className="h-3.5 w-3.5" />
+                                <span className="text-xs font-semibold">{currentLessonStat[0].done[2]}</span>
+                            </div>
+                        )}
 
-                        {showNeedMore && (
-                            <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
-                                <Target className="h-3 w-3" />
+                        {currentLessonStat[0]?.done[0] > 0 && (
+                            <div className="flex items-center gap-1 bg-white/5 text-[#9AA7B0] rounded-full px-2 py-0.5">
+                                <Layers className="h-3.5 w-3.5" />
+                                <span className="text-xs font-semibold">{currentLessonStat[0].done[0]}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {showNeedMore && (
+                        <div
+                            className="mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1"
+                            style={{ backgroundColor: `${LOCKED_ICON_COLOR}26`, color: LOCKED_ICON_COLOR }}
+                        >
+                            <Target className="h-3.5 w-3.5" />
+                            <span className="text-xs font-semibold">
                                 Решите ещё {needMore} {declension(needMore, "задачу", "задачи", "задач")}
-                            </p>
-                        )}
-                        {isNextUnlocked && !isLessonCompleted && (
-                            <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                                <Zap className="h-3 w-3" />
-                                ✅ Следующий урок открыт!
-                            </p>
-                        )}
-                    </div>    
+                            </span>
+                        </div>
+                    )}
+                    {isNextUnlocked && !isLessonCompleted && (
+                        <div className="mt-2 inline-flex items-center gap-1.5 bg-green-500/10 text-green-400 rounded-full px-2.5 py-1">
+                            <Zap className="h-3.5 w-3.5" />
+                            <span className="text-xs font-semibold">Следующий урок открыт</span>
+                        </div>
+                    )}
                 </div>
             </div>
         </Link>

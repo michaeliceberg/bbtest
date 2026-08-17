@@ -38,29 +38,42 @@ const ConnectItem = ({
     isMatched: boolean
     onSelect: (id: number, pairId: number) => void
     delayOffset?: number
-}) => (
-    <motion.button
-        onClick={() => onSelect(option.id, option.pairId)}
-        disabled={isMatched}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0, scale: isSelected ? [1, 1.06, 1] : 1 }}
-        transition={{ delay: index * 0.04 + delayOffset, scale: { duration: 0.25, ease: 'easeInOut' } }}
-        whileHover={{ scale: isMatched ? 1 : 1.02 }}
-        whileTap={{ scale: isMatched ? 1 : 0.97 }}
-        className={`
-            relative w-full h-full flex items-center justify-center text-center rounded-lg
-            border-2 border-b-4 active:border-b-2
-            px-3 py-2 text-sm font-medium leading-snug
-            transition-[border-width,background-color,color,border-color] duration-100
-            ${isSelected
-                ? 'bg-[#5183A4] border-[#3E6883] text-white'
-                : isMatched
-                    ? 'bg-[#678337] border-[#53692C] text-white'
-                    : 'bg-[#161F23] border-[#3A464E] hover:border-[#5183A4] text-[#F2F7FB]'
-            }
-            ${isMatched ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}
-        `}
-    >
+}) => {
+    const [isPressed, setIsPressed] = React.useState(false)
+
+    return (
+        <motion.button
+            onClick={() => onSelect(option.id, option.pairId)}
+            onMouseDown={() => setIsPressed(true)}
+            onMouseUp={() => setIsPressed(false)}
+            onMouseLeave={() => setIsPressed(false)}
+            disabled={isMatched}
+            initial={{ opacity: 0 }}
+            animate={{
+                opacity: 1,
+                y: isPressed || isSelected ? 2 : 0,
+                boxShadow: isPressed || isSelected
+                    ? '0 2px 0 rgba(58,70,78,1)'
+                    : '0 4px 0 rgba(58,70,78,1)'
+            }}
+            transition={{
+                delay: index * 0.04 + delayOffset,
+                boxShadow: { duration: 0.05 },
+                y: { duration: 0.05 }
+            }}
+            className={`
+                relative w-full h-full flex items-center justify-center text-center rounded-lg
+                border-2
+                px-3 py-2 text-sm font-medium leading-snug
+                ${isSelected
+                    ? 'bg-[#5183A4] border-[#3E6883] text-white'
+                    : isMatched
+                        ? 'bg-[#232F35] border-[#A1D151] text-[#A1D151]'
+                        : 'bg-[#161F23] border-[#3A464E] hover:border-[#5183A4] text-[#F2F7FB]'
+                }
+                ${isMatched ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}
+            `}
+        >
         <span className={isMatched ? 'px-4' : ''}>{option.label}</span>
         {isMatched && (
             <motion.div
@@ -72,8 +85,9 @@ const ConnectItem = ({
                 <Check className="w-4 h-4 text-white" strokeWidth={3} />
             </motion.div>
         )}
-    </motion.button>
-)
+        </motion.button>
+    )
+}
 
 export const TypeConnect = ({ question, onAnswer, onAllPairsMatched }: Props) => {
     const [selectedOptionAId, setSelectedOptionAId] = useState<number>()

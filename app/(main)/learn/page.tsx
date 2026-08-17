@@ -270,8 +270,9 @@ const LearnPage = async () => {
           <div className='mt-5'>
             {unitsWithFormattedLessons.map((unit, index) => (
               <div key={unit.id} className='mb-10'>
-                <Unit 
+                <Unit
                   id={unit.id}
+                  unitIndex={index}
                   order={unit.order}
                   description={unit.description}
                   title={unit.title}

@@ -1,8 +1,11 @@
 'use client';
 
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Lock, Star, Zap, Trophy, Gift, Flame } from 'lucide-react';
+import { LessonLoading } from './lesson-loading';
 
 export interface SkillLesson {
     id: number;
@@ -36,7 +39,7 @@ const getLessonIcon = (index: number) => {
     return LESSON_ICONS[index % LESSON_ICONS.length];
 };
 
-const LessonButton = ({ lesson, lessonIndex, isCompleted, isStarted, LessonIcon }: any) => {
+const LessonButton = ({ lesson, lessonIndex, isCompleted, isStarted, LessonIcon, isPressed }: any) => {
     let topColor = '';
     let bottomColor = '';
 
@@ -59,7 +62,7 @@ const LessonButton = ({ lesson, lessonIndex, isCompleted, isStarted, LessonIcon 
     }
 
     return (
-        <div className="relative w-fit h-fit">
+        <div className="relative w-fit h-fit" style={{ pointerEvents: 'none' }}>
             {/* Пульсирующее кольцо для активного урока */}
             {isStarted && !isCompleted && (
                 <motion.svg
@@ -87,13 +90,24 @@ const LessonButton = ({ lesson, lessonIndex, isCompleted, isStarted, LessonIcon 
                 </motion.svg>
             )}
 
-        <svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 110 102" width="110px" height="102px" className="relative z-10">
-            <path fill={topColor} stroke="none" d="M 108.5 37 Q 104.75 24.7 94.3 15 78.15 0 55.25 0 32.35 0 16.15 15 4.85 25.5 1.45 39.1 0.15 49.15 4.5 60.15 8.5 68.65 16.15 75.75 32.35 90.75 55.25 90.75 78.15 90.75 94.3 75.75 103.3 67.4 107.3 57.15 111.2 47.1 108.5 37 Z"/>
-            <path fill={bottomColor} stroke="none" d="M 110.2 45.4 Q 109.7 41.05 108.5 37 111.2 47.1 107.3 57.15 103.3 67.4 94.3 75.75 78.15 90.75 55.25 90.75 32.35 90.75 16.15 75.75 8.5 68.65 4.5 60.15 0.15 49.15 1.45 39.1 0.7 42.15 0.35 45.4 0 48.25 0 51.25 0 72.5 16.15 87.5 32.35 102.5 55.25 102.5 78.15 102.5 94.3 87.5 110.5 72.5 110.5 51.25 110.5 48.25 110.2 45.4 Z"/>
-            <g transform="matrix( 1, 0, 0, 1, 0,0)">
-                <use xlinkHref="#Layer0_0_FILL"/>
-            </g>
-            <foreignObject x="0" y="-8" width="110" height="102">
+        {isPressed ? (
+            <svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 110 102" width="110px" height="102px" className="relative z-10">
+                <path fill={topColor} stroke="none" d="M 108.5 48.75 Q 104.75 36.45 94.3 26.75 78.15 11.75 55.25 11.75 32.35 11.75 16.15 26.75 4.85 37.25 1.45 50.85 1.35 51.65 1.3 52.5 1.25 52.95 1.2 53.4 1.1607421875 54.0990234375 1.15 54.8 0.9984375 63.0541015625 4.5 71.9 5.4783203125 73.9677734375 6.65 75.95 8.4861328125 78.9744140625 10.8 81.8 10.8560546875 81.8912109375 10.9 81.95 13.2767578125 84.8314453125 16.15 87.5 32.35 102.5 55.25 102.5 78.15 102.5 94.3 87.5 103.3015625 79.165234375 107.3 68.9 107.8375 67.3125 108.35 65.7 109.70859375 60.9775390625 109.6 56.2 109.592578125 55.56171875 109.55 54.9 109.5 54.4 109.45 53.9 109.15 51.3 108.5 48.75 Z"/>
+                <foreignObject x="0" y="2" width="110" height="102">
+                    <div className="w-full h-full flex items-center justify-center">
+                        {lesson.isDisabled ? (
+                            <Lock className="w-10 h-10" style={{ color: '#56646C' }} />
+                        ) : (
+                            <LessonIcon className="w-12 h-12" style={{ color: '#FEFEFE' }} />
+                        )}
+                    </div>
+                </foreignObject>
+            </svg>
+        ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 110 102" width="110px" height="102px" className="relative z-10">
+                <path fill={topColor} stroke="none" d="M 108.5 37 Q 104.75 24.7 94.3 15 78.15 0 55.25 0 32.35 0 16.15 15 4.85 25.5 1.45 39.1 0.15 49.15 4.5 60.15 8.5 68.65 16.15 75.75 32.35 90.75 55.25 90.75 78.15 90.75 94.3 75.75 103.3 67.4 107.3 57.15 111.2 47.1 108.5 37 Z"/>
+                <path fill={bottomColor} stroke="none" d="M 110.2 45.4 Q 109.7 41.05 108.5 37 111.2 47.1 107.3 57.15 103.3 67.4 94.3 75.75 78.15 90.75 55.25 90.75 32.35 90.75 16.15 75.75 8.5 68.65 4.5 60.15 0.15 49.15 1.45 39.1 0.7 42.15 0.35 45.4 0 48.25 0 51.25 0 72.5 16.15 87.5 32.35 102.5 55.25 102.5 78.15 102.5 94.3 87.5 110.5 72.5 110.5 51.25 110.5 48.25 110.2 45.4 Z"/>
+                <foreignObject x="0" y="-8" width="110" height="102">
                 <div className="w-full h-full flex items-center justify-center">
                     {lesson.isDisabled ? (
                         <Lock className="w-10 h-10" style={{ color: '#56646C' }} />
@@ -102,18 +116,46 @@ const LessonButton = ({ lesson, lessonIndex, isCompleted, isStarted, LessonIcon 
                     )}
                 </div>
             </foreignObject>
-            {isCompleted && (
-                <>
-                    <circle cx="85" cy="15" r="10" fill="white" stroke="#5FA12F" strokeWidth="2"/>
-                    <text x="85" y="20" textAnchor="middle" fill="#5FA12F" fontSize="14" fontWeight="bold">✓</text>
-                </>
+                    {isCompleted && (
+                        <>
+                            <circle cx="85" cy="15" r="10" fill="white" stroke="#5FA12F" strokeWidth="2"/>
+                            <text x="85" y="20" textAnchor="middle" fill="#5FA12F" fontSize="14" fontWeight="bold">✓</text>
+                        </>
+                    )}
+                </svg>
             )}
-        </svg>
         </div>
     );
 };
 
 export const TrainerSkillTree = ({ units }: Props) => {
+    const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
+
+    const handleLessonClick = (e: React.MouseEvent<HTMLAnchorElement>, lessonId: number, isDisabled: boolean) => {
+        if (isDisabled) {
+            e.preventDefault();
+            return;
+        }
+
+        e.preventDefault();
+        setIsLoading(true);
+
+        const startTime = Date.now();
+        const minDuration = 3000; // 3 секунды
+
+        // Переходим после минимального времени показа экрана
+        const timer = setTimeout(() => {
+            const elapsed = Date.now() - startTime;
+            const remainingDelay = Math.max(0, minDuration - elapsed);
+            setTimeout(() => {
+                router.push(`/t-lesson/${lessonId}`);
+            }, remainingDelay);
+        }, 100);
+
+        return () => clearTimeout(timer);
+    };
+
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -139,12 +181,14 @@ export const TrainerSkillTree = ({ units }: Props) => {
     };
 
     return (
-        <motion.div
-            className="w-full"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-        >
+        <>
+            {isLoading && <LessonLoading minDuration={3000} />}
+            <motion.div
+                className="w-full"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+            >
             {units.map((unit) => (
                 <motion.div key={unit.id} className="mb-16">
                     <div className="text-center mb-12">
@@ -169,11 +213,12 @@ export const TrainerSkillTree = ({ units }: Props) => {
                     <div className="max-w-2xl mx-auto">
                         <div className="flex flex-col gap-12">
                             {unit.lessons.map((lesson, lessonIndex) => {
+                                const [isPressed, setIsPressed] = useState(false);
                                 const lessonIconData = LESSON_ICONS[lessonIndex % LESSON_ICONS.length];
                                 const LessonIcon = lessonIconData.icon;
                                 const isCompleted = lesson.percentage === 100;
                                 const isStarted = lesson.percentage > 0 && lesson.percentage < 100;
-                                
+
                                 const isLeft = lessonIndex % 2 === 0;
                                 const alignment = isLeft ? 'justify-start' : 'justify-end';
 
@@ -183,18 +228,20 @@ export const TrainerSkillTree = ({ units }: Props) => {
                                         className={`flex ${alignment} px-4`}
                                         variants={lessonVariants}
                                     >
-                                        <Link href={lesson.isDisabled ? '#' : `/t-lesson/${lesson.id}`}>
+                                        <Link href="#" onClick={(e) => handleLessonClick(e, lesson.id, lesson.isDisabled)}>
                                             <motion.div
-                                                whileHover={!lesson.isDisabled ? { y: -8, scale: 1.08 } : {}}
-                                                whileTap={!lesson.isDisabled ? { scale: 0.95 } : {}}
                                                 transition={{ type: 'spring', stiffness: 250, damping: 12 }}
+                                                onMouseDown={() => !lesson.isDisabled && setIsPressed(true)}
+                                                onMouseUp={() => setIsPressed(false)}
+                                                onMouseLeave={() => setIsPressed(false)}
                                             >
-                                                <LessonButton 
+                                                <LessonButton
                                                     lesson={lesson}
                                                     lessonIndex={lessonIndex}
                                                     isCompleted={isCompleted}
                                                     isStarted={isStarted}
                                                     LessonIcon={LESSON_ICONS[lessonIndex % LESSON_ICONS.length].icon}
+                                                    isPressed={isPressed}
                                                 />
                                             </motion.div>
                                         </Link>
@@ -221,6 +268,7 @@ export const TrainerSkillTree = ({ units }: Props) => {
                     </div>
                 </motion.div>
             ))}
-        </motion.div>
+            </motion.div>
+        </>
     );
 };

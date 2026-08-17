@@ -5,6 +5,7 @@ import { Nunito } from 'next/font/google';
 import { Toaster } from 'sonner';
 import './globals.css';
 import dynamic from 'next/dynamic';
+import Script from 'next/script';
 
 import { SessionProvider } from 'next-auth/react';
 import { Providers } from '@/components/for-vk-auth/providers';
@@ -32,15 +33,17 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang='en'>
+			<head>
+			</head>
 			<body className={font.className}>
 				<Providers>
 					{children}
 				</Providers>
 				<Toaster />
 				<ExitModal />
-				<RightAnswerModal />  
-				<WrongAnswerModal />  
-				<HeartsModal />	
+				<RightAnswerModal />
+				<WrongAnswerModal />
+				<HeartsModal />
 				<PracticeModal />
 			</body>
 		</html>

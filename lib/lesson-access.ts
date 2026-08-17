@@ -246,25 +246,10 @@ export async function getLessonAccess(userId: string, lessonId: number): Promise
         isPrevLessonUnlocked = prevProgress.isEnoughToUnlockNext;
     }
     
-    // Проверяем, открыт ли текущий юнит
-    const isFirstUnit = lesson.unit.order === 1;
-    let isUnitUnlocked = true;
-    
-    if (!isFirstUnit) {
-        const prevUnit = await db.query.units.findFirst({
-            where: and(
-                eq(units.courseId, lesson.unit.courseId),
-                eq(units.order, lesson.unit.order - 1)
-            ),
-        });
-        
-        if (prevUnit) {
-            const prevUnitProgress = await getUnitProgress(userId, prevUnit.id);
-            isUnitUnlocked = prevUnitProgress.isEnoughToUnlockNextUnit;
-        }
-    }
-    
-    const isUnlocked = isUnitUnlocked && isPrevLessonUnlocked;
+    // Юниты не блокируют друг друга — доступ к уроку зависит только от
+    // прогресса предыдущего урока в этом же юните (первый урок юнита
+    // всегда открыт, см. isPrevLessonUnlocked выше).
+    const isUnlocked = isPrevLessonUnlocked;
     
     return {
         isUnlocked,
@@ -383,8 +368,7 @@ export const getAllUnitsLessonsWithAccess = cache(async (userId: string, courseI
         
         const totalLessons = unitLessons.length;
         const percent = totalLessons > 0 ? lessonsWithNextUnlocked / totalLessons : 0;
-        const isPrevUnitUnlocked = i === 0 || result[i - 1]?.isNextUnitUnlocked;
-        
+
         
 result.push({
     id: unit.id,
@@ -419,7 +403,10 @@ result.push({
     isEnoughToUnlockNextUnit: percent >= 0.5,
     isUnitCompleted: percent >= 1.0,
     needMoreLessons: Math.max(0, Math.ceil(totalLessons * 0.5) - lessonsWithNextUnlocked),
-    isUnlocked: isPrevUnitUnlocked,
+    // Юниты больше не блокируют друг друга последовательно — ученик может
+    // начать решать с любого юнита. Внутри юнита уроки по-прежнему
+    // открываются последовательно (см. getLessonAccess ниже).
+    isUnlocked: true,
     isNextUnitUnlocked: percent >= 0.5,
     isCompleted: percent >= 1.0,
 });

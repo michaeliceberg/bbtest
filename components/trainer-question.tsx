@@ -29,8 +29,7 @@ import {triangleGdeProtivKatet, triangleBissektr, triangleGdeKatet, triangleGdeS
 
 import { motion, AnimatePresence } from "framer-motion"
 import { X, Check, Flag } from "lucide-react"
-
-const TrainerMascot = dynamic(() => import("./TrainerMascot").then(mod => mod.TrainerMascot), { ssr: false })
+import { TrainerMascot } from "./TrainerMascot"
 
 
 
@@ -287,7 +286,7 @@ export default function TrainerQuestion({
 
   const getButtonColor = () => {
     if (answerState === "correct" || answerState === "selected") {
-      return "bg-[#A1D051] active:bg-[#876E4A]"
+      return "bg-[#A1D151] active:bg-[#876E4A]"
     } else if (answerState === "incorrect") {
       return "bg-[#DC605B] active:bg-[#C8524E]"
     }
@@ -295,7 +294,7 @@ export default function TrainerQuestion({
   }
 
   const getButtonTextColor = () => {
-    if (answerState === "correct" || answerState === "incorrect") {
+    if (answerState === "correct" || answerState === "incorrect" || answerState === "selected") {
       return "text-[#151F24]"
     }
     return "text-[#F2F7FB]"
@@ -333,7 +332,7 @@ export default function TrainerQuestion({
             className="h-full rounded-full transition-all duration-300 ease-out"
             style={{
               width: `${((questions.indexOf(question) + 1) / questions.length) * 100}%`,
-              backgroundColor: '#A1D051'
+              backgroundColor: '#A1D151'
             }}
           />
         </div>
@@ -363,7 +362,7 @@ export default function TrainerQuestion({
         </div>
 
         {/* Вопрос и варианты ответов */}
-        <div className="bg-[#1A2A3A] rounded-xl p-6 mb-6">
+        <div className="p-6 mb-6">
           {renderQuestionContent()}
         </div>
         </motion.div>
@@ -381,16 +380,16 @@ export default function TrainerQuestion({
           >
             <div className="flex items-center gap-3">
               {/* Кружок с галочкой */}
-              <div className="w-6 h-6 bg-[#A1D051] rounded-full flex items-center justify-center flex-shrink-0">
+              <div className="w-6 h-6 bg-[#A1D151] rounded-full flex items-center justify-center flex-shrink-0">
                 <Check className="w-4 h-4 text-[#151F24]" strokeWidth={3} />
               </div>
               {/* Текст Отлично */}
-              <span className="text-base font-black text-[#A1D051]">Отлично!</span>
+              <span className="text-base font-black text-[#A1D151]">Отлично!</span>
             </div>
 
             {/* Иконка Flag справа */}
             <button className="cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0">
-              <Flag className="w-5 h-5 text-[#A1D051]" strokeWidth={2.5} />
+              <Flag className="w-5 h-5 text-[#A1D151]" strokeWidth={2.5} />
             </button>
           </motion.div>
         )}

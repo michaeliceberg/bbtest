@@ -94,17 +94,19 @@ export const TrainerMascot = ({
         {isMessageVisible && currentMessage && (
           <motion.div
             key={currentMessage + emotion}
-            initial={{ scale: 0, x: -20, opacity: 0 }}
-            animate={{ scale: 1, x: 0, opacity: 1 }}
-            exit={{ scale: 0, x: -20, opacity: 0 }}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
             className="relative px-4 py-2 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]"
           >
             <span className="text-[#F2F7FB] font-bold text-sm whitespace-nowrap">
               {currentMessage}
             </span>
-            {/* Стрелка слева, указывающая на талисман */}
-            <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-3 h-3 bg-[#151F23] border-t-2 border-l-2 border-[#3A464E] transform rotate-45" />
+            {/* Стрелка слева, указывающая влево < */}
+            <div className="absolute -left-3 top-1/2 -translate-y-1/2 text-[#3A464E] text-xl font-bold">
+              &lt;
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

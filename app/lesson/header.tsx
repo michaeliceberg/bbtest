@@ -24,9 +24,9 @@ export const Header = ({
             initial={{ y: -50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.3 }}
-            className="top-0 z-20 bg-[#151F23]/95 backdrop-blur-md border-b border-[#3A464E]"
+            className="top-0 z-20 bg-[#151F23]"
         >
-            <div className="container mx-auto px-4 py-3 md:py-4">
+            <div className="max-w-xl mx-auto px-4 py-3 md:py-4">
                 <div className="flex items-center gap-4 md:gap-6">
                     {/* Кнопка выхода */}
                     <motion.button

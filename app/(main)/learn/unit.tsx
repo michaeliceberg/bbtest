@@ -23,6 +23,7 @@ type SimpleChallenge = {
 
 type Props = {
     id: number;
+    unitIndex: number;
     order: number;
     title: string;
     description: string;
@@ -60,6 +61,7 @@ const CHALLENGES_TO_UNLOCK_NEXT_LESSON = 4;
 
 export const Unit = ({
     id,
+    unitIndex,
     order,
     title,
     description,
@@ -109,12 +111,13 @@ export const Unit = ({
     
     return (
         <>
-            <UnitBanner 
-                title={title} 
-                description={description} 
-                imgSrc={imgSrc} 
-                id={id} 
-                percentageDone={percentageDone} 
+            <UnitBanner
+                title={title}
+                description={description}
+                imgSrc={imgSrc}
+                id={id}
+                unitIndex={unitIndex}
+                percentageDone={percentageDone}
                 bgSvgSrc={bgSvgSrc}
                 isUnlocked={isUnlocked}
                 isCompleted={isCompleted}
@@ -148,9 +151,10 @@ export const Unit = ({
                     const isCompletedLesson = isLessonCompleted;
                     
                     return (
-                        <LessonButton 
-                            key={lesson.id} 
+                        <LessonButton
+                            key={lesson.id}
                             id={lesson.id}
+                            unitIndex={unitIndex}
                             index={index}
                             totalCount={lessons.length - 1}
                             current={isCurrent} 

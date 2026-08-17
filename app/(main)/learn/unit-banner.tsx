@@ -2,12 +2,14 @@
 
 import { Flame, Lock, Crown, TrendingUp, Star, Rocket, Zap } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { getUnitButtonColor } from '@/src/constants/lessonButtonColors';
 
 type Props = {
     title: string;
     description: string;
     imgSrc: string;
     id: number;
+    unitIndex: number;
     percentageDone: number;
     bgSvgSrc?: string;  // делаем опциональным
     isUnlocked?: boolean;
@@ -17,20 +19,11 @@ type Props = {
     isNextUnitUnlocked?: boolean;
 }
 
-// Цвета для разных юнитов (циклически)
-const unitColors = [
-    { from: '#6366f1', to: '#8b5cf6', accent: '#c4b5fd' }, // Indigo → Purple
-    { from: '#ec4899', to: '#f43f5e', accent: '#fda4af' }, // Pink → Rose
-    { from: '#14b8a6', to: '#10b981', accent: '#6ee7b7' }, // Teal → Emerald
-    { from: '#f59e0b', to: '#f97316', accent: '#fed7aa' }, // Amber → Orange
-    { from: '#3b82f6', to: '#06b6d4', accent: '#bae6fd' }, // Blue → Cyan
-    { from: '#8b5cf6', to: '#d946ef', accent: '#ddd6fe' }, // Purple → Fuchsia
-];
-
-export const UnitBanner = ({ 
-    title, 
-    description, 
+export const UnitBanner = ({
+    title,
+    description,
     id,
+    unitIndex,
     isUnlocked = true,
     isCompleted = false,
     unitProgressPercent = 0,
@@ -38,8 +31,8 @@ export const UnitBanner = ({
     isNextUnitUnlocked = false,
 }: Props) => {
     const progressPercent = Math.round(unitProgressPercent * 100);
-    const colorIndex = (id - 1) % unitColors.length;
-    const colors = unitColors[colorIndex];
+    // Та же палитра, что и у lesson button этого юнита — карточка должна совпадать по цвету.
+    const colors = getUnitButtonColor(unitIndex);
     
     // Заблокированный юнит
     if (!isUnlocked && !isCompleted) {
@@ -80,7 +73,7 @@ export const UnitBanner = ({
             <div 
                 className="absolute inset-0"
                 style={{
-                    background: `linear-gradient(135deg, ${colors.from}, ${colors.to})`,
+                    background: `linear-gradient(135deg, ${colors.button}, ${colors.bottom})`,
                 }}
             />
             

@@ -1,13 +1,15 @@
 'use client'
+import dynamic from 'next/dynamic';
 import { courses } from '@/db/schema';
 import Image from '@/node_modules/next/image';
 import Link from '@/node_modules/next/link';
 import { InfinityIcon } from 'lucide-react';
 import { Button } from './ui/button';
-import Lottie from 'lottie-react';
 import LottieCoins from '@/public/Lottie/LottieCoins.json'
 import LottieGems from '@/public/Lottie/LottieGems.json'
 import { cn } from '@/lib/utils';
+
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
 
 
 type Props = {

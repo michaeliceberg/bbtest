@@ -4,8 +4,26 @@ import Link, { LinkProps } from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import React, { ReactNode, useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { motion } from 'framer-motion'
-import Reordering from '@/components/reordering-comp'
+import dynamic from 'next/dynamic'
+
+const LessonLoading = dynamic(() => import('@/components/lesson-loading').then(mod => mod.LessonLoading), { ssr: false })
+
+const SIDEBAR_LOTTIE_LOADERS = [
+    '/LottieLoader/HP angry snake hugs.json',
+    '/LottieLoader/HP cool guy Full.json',
+    '/LottieLoader/HP hurry.json',
+    '/LottieLoader/HP i saw some shit.json',
+    '/LottieLoader/HP like.json',
+    '/LottieLoader/HP loveletter.json',
+]
+
+// Ниже этого лоадер не скрываем, даже если страница успела прогрузиться
+// быстрее — иначе на очень быстрых переходах будет просто мигание.
+const MIN_LOADING_DISPLAY = 500
+// Ориентир для анимации прогресс-бара внутри LessonLoading (декоративный,
+// реальную загрузку не отслеживает) — если страница грузится дольше, бар
+// просто "стоит" у 100%, ничего не ломается.
+const PROGRESS_BAR_DURATION = 1800
 
 interface TransitionLinkProps extends LinkProps {
     children: ReactNode,
@@ -13,10 +31,6 @@ interface TransitionLinkProps extends LinkProps {
     className?: string,
     style?: React.CSSProperties,
     'aria-disabled'?: boolean,
-}
-
-function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 export const TransitionLink = ({
@@ -31,153 +45,56 @@ export const TransitionLink = ({
     const pathname = usePathname()
     const [isLoading, setIsLoading] = useState(false)
     const [mounted, setMounted] = useState(false)
-    const [progress, setProgress] = useState(0)
-    const timeoutRef = useRef<NodeJS.Timeout>()
+    const loadStartRef = useRef<number | null>(null)
+    const hideTimerRef = useRef<ReturnType<typeof setTimeout>>()
 
     useEffect(() => {
         setMounted(true)
+        return () => {
+            if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
+        }
     }, [])
 
-    // Имитация прогресса загрузки
-    useEffect(() => {
-        if (!isLoading) {
-            setProgress(0)
-            return
-        }
-        
-        const interval = setInterval(() => {
-            setProgress(prev => {
-                if (prev >= 90) return prev
-                return prev + 10
-            })
-        }, 100)
-        
-        return () => clearInterval(interval)
-    }, [isLoading])
-
-    // Скрываем оверлей ТОЛЬКО когда страница полностью загрузилась
+    // Sidebar не размонтируется при переходе (это часть layout), поэтому
+    // скрываем оверлей сами — как только роут реально сменился на целевой,
+    // но не раньше MIN_LOADING_DISPLAY от момента клика.
     useEffect(() => {
         if (!isLoading) return
-        
-        if (pathname === href) {
-            setProgress(100)
-            setTimeout(() => {
-                setIsLoading(false)
-            }, 200)
-        }
+        if (pathname !== href) return
+
+        const elapsed = loadStartRef.current ? Date.now() - loadStartRef.current : MIN_LOADING_DISPLAY
+        const remaining = Math.max(0, MIN_LOADING_DISPLAY - elapsed)
+
+        hideTimerRef.current = setTimeout(() => setIsLoading(false), remaining)
+        return () => clearTimeout(hideTimerRef.current)
     }, [pathname, href, isLoading])
 
-    const handleTransition = async (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+    const handleTransition = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
         e.preventDefault()
-        
-        if (isLoading) return
-        
-        setIsLoading(true)
-        setProgress(0)
 
-        await sleep(300)
-        
+        if (isLoading || pathname === href) return
+
+        loadStartRef.current = Date.now()
+        setIsLoading(true)
         router.push(href)
     }
-    
-    useEffect(() => {
-        return () => {
-            if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current)
-            }
-        }
-    }, [])
-    
-    const overlay = mounted && isLoading ? createPortal(
-        <div 
-            style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                width: '100vw',
-                height: '100vh',
-                backgroundColor: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'column',
-                zIndex: 999999,
-                margin: 0,
-                padding: 0,
-            }}
-            onClick={(e) => e.stopPropagation()}
-        >
-            <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '30px',
-            }}>
-                {/* Reordering компонент вместо лоадера */}
-                <Reordering />
-                
-                <motion.p
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    style={{ 
-                        color: '#9911ff', 
-                        fontSize: '16px',
-                        fontWeight: 'bold',
-                        fontFamily: 'Nunito, sans-serif',
-                        letterSpacing: '1px'
-                    }}
-                >
-                    ЗАГРУЗКА...
-                </motion.p>
-                
-                {/* Игровой прогресс-бар */}
-                {/* Минималистичный прогресс-бар */}
-<div style={{ width: '200px' }}>
-    <div style={{
-        width: '100%',
-        height: '4px',
-        backgroundColor: '#f0f0f0',
-        borderRadius: '2px',
-        overflow: 'hidden',
-    }}>
-        <motion.div
-            style={{
-                height: '100%',
-                backgroundColor: '#c0c0c0',
-            }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-        />
-    </div>
-    
-    <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        marginTop: '6px',
-    }}>
-        <span style={{ 
-            color: '#c0c0c0', 
-            fontSize: '11px', 
-            fontFamily: 'monospace',
-        }}>
-            {Math.floor(progress)}%
-        </span>
-    </div>
-</div>
 
-            </div>
-        </div>,
-        document.body
-    ) : null
-    
+    // Рендерим оверлей через портал прямо в <body>: если рендерить его на месте
+    // (внутри sidebar), fixed inset-0 может "прилипнуть" не ко всему экрану,
+    // а к ближайшему предку с CSS transform (например, анимированной обёртке
+    // от framer-motion) — тогда предыдущая страница остаётся видна на фоне.
+    const overlay = mounted && isLoading
+        ? createPortal(
+            <LessonLoading minDuration={PROGRESS_BAR_DURATION} lottieFiles={SIDEBAR_LOTTIE_LOADERS} />,
+            document.body
+        )
+        : null
+
     return (
         <>
             {overlay}
-            <Link 
-                onClick={handleTransition} 
+            <Link
+                onClick={handleTransition}
                 href={href}
                 className={className}
                 style={style}
@@ -189,4 +106,3 @@ export const TransitionLink = ({
         </>
     )
 }
-

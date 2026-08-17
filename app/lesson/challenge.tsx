@@ -1,7 +1,6 @@
 // app/lesson/challenge.tsx (упрощённая версия без нижних кнопок)
 
 import { challengeOptions, challenges } from "@/db/schema"
-import { cn } from "@/lib/utils"
 import { Card } from "./card"
 import { motion } from "framer-motion"
 import { Lock, Calendar, CheckCircle, XCircle } from "lucide-react"
@@ -63,11 +62,7 @@ export const Challenge = ({
     return (
         <div className="w-full">
             {canSolve ? (
-                <div className={cn(
-                    "grid gap-3",
-                    type === "ASSIST" && "grid-cols-1 md:grid-cols-2",
-                    type === "SELECT" && "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-                )}>
+                <div className="grid gap-2 sm:gap-3 grid-cols-2">
                     {options.map((option, i) => (
                         <Card 
                             key={option.id}

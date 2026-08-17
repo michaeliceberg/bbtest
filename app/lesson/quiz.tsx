@@ -22,7 +22,6 @@ import { usePracticeModal } from "@/store/use-practice-modal";
 import { Button } from "@/components/ui/button";
 import { useWrongAnswerModal } from "@/store/use-wronganswer-modal";
 import { useRightAnswerModal } from "@/store/use-rightanswer-modal";
-import { cn } from "@/lib/utils";
 
 type Props = {
     initialPercentage: number
@@ -39,17 +38,13 @@ type Props = {
     activeCourseTitle: string
     hwChallengeIds?: number[]
     courseId: number
+    unitColor: { button: string; bottom: string }
 }
 
 const pageVariants = {
     initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0 },
     exit: { opacity: 0, y: -20 }
-};
-
-const navItemVariants = {
-    hidden: { opacity: 0, scale: 0.8 },
-    visible: { opacity: 1, scale: 1 }
 };
 
 // Анимационные варианты для контента
@@ -91,6 +86,7 @@ export const Quiz = ({
     activeCourseTitle,
     hwChallengeIds,
     courseId,
+    unitColor,
 }: Props) => {
     const { open: openHeartsModal } = useHeartsModal()
     const { open: openPracticeModal } = usePracticeModal()
@@ -472,14 +468,9 @@ export const Quiz = ({
         ? lessonTitle
         : challenge.question
 
-    // Разбиваем challenges на строки (по 6-8 элементов)
-    const chunkSize = typeof window !== 'undefined' && window.innerWidth < 640 ? 5 : 8;
-    const challengeRows = challenges.reduce((rows, item, index) => {
-        const rowIndex = Math.floor(index / chunkSize);
-        if (!rows[rowIndex]) rows[rowIndex] = [];
-        rows[rowIndex].push(item);
-        return rows;
-    }, [] as typeof challenges[]);
+    // Число колонок сетки меню — кнопки в неполном последнем ряду остаются
+    // той же ширины, что и в предыдущих (grid, а не flex по рядам).
+    const menuColumns = typeof window !== 'undefined' && window.innerWidth < 640 ? 5 : 8;
 
     return (
         <div className="min-h-screen bg-[#151F23] flex flex-col">
@@ -489,146 +480,68 @@ export const Quiz = ({
                 hasActiveSubscription={!!userSubscription?.isActive}
             />
 
-            {/* Навигация по задачам */}
-            {/* <div className="border-b border-[#3A464E] py-3 bg-[#151F23]/50">
-                <div className="container mx-auto px-4">
-                    <div className="flex flex-col gap-2">
-                        {challengeRows.map((row, rowIndex) => (
-                            <div key={rowIndex} className="flex justify-center flex-wrap gap-2">
-                                {row.map((challengeItem) => {
-                                    const isHW = hwChallengeIds?.includes(challengeItem.id) ?? false;
-                                    const isDone = doneChallengesId.includes(challengeItem.id);
-                                    const showDonut = isHW && !isDone;
-                                    
-                                    return (
-                                        <motion.div
-                                            key={challengeItem.id}
-                                            variants={navItemVariants}
-                                            initial="hidden"
-                                            animate="visible"
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            className="relative"
-                                        >
-                                            <Button
-                                                className={cn(
-                                                    "w-9 h-9 md:w-10 md:h-10 rounded-lg text-sm font-medium transition-all",
-                                                    Number(activeIndex) === challengeItem.id && "ring-2 ring-blue-400 shadow-md bg-blue-50"
-                                                )}
-                                                variant={
-                                                    wrongChallengesId.includes(challengeItem.id) ? 'danger'
-                                                        : isDone ? 'secondary'
-                                                            : 'default'
-                                                }
-                                                onClick={() => onClickNumber(challengeItem.id + 1)}
-                                            >
-                                                {challengeItem.id % 1000}
-                                            </Button>
+            {/* Название урока */}
+            <div className="max-w-xl mx-auto w-full px-4 pt-3 flex items-center gap-2">
+                <div className="w-1 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: unitColor.button }} />
+                <h2 className="text-sm md:text-base font-bold text-[#F2F7FB] truncate">{lessonTitle}</h2>
+            </div>
 
-                                            {showDonut && (
-                                                <motion.div 
-                                                    className="absolute -top-1.5 -right-1.5 z-20"
-                                                    animate={{ y: [0, -3, 0] }}
-                                                    transition={{ duration: 1, repeat: Infinity }}
-                                                >
-                                                    <div className="text-xs bg-[#151F23] rounded-full p-0.5">🍩</div>
-                                                </motion.div>
-                                            )}
-                                        </motion.div>
-                                    );
-                                })}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div> */}
-
-
-{/* Навигация по задачам */}
-<div className="border-b border-[#3A464E] py-3 bg-[#151F23]/50">
-    <div className="container mx-auto px-4">
-        <div className="flex flex-col gap-2">
-            {challengeRows.map((row, rowIndex) => (
-                <div key={rowIndex} className="flex justify-center flex-wrap gap-2">
-                    {row.map((challengeItem) => {
+            {/* Меню выбора задачи */}
+            <div className="max-w-xl mx-auto w-full px-4 pt-2 pb-3">
+                <div
+                    className="grid gap-1.5"
+                    style={{ gridTemplateColumns: `repeat(${menuColumns}, minmax(0, 1fr))` }}
+                >
+                    {challenges.map((challengeItem) => {
                         const isHW = hwChallengeIds?.includes(challengeItem.id) ?? false;
                         const isDone = doneChallengesId.includes(challengeItem.id);
                         const isWrong = wrongChallengesId.includes(challengeItem.id);
                         const isActive = Number(activeIndex) === challengeItem.id;
                         const showDonut = isHW && !isDone;
-                        
-                        // 🔥 Определяем variant
-                        let buttonVariant: any = "default";
-                        let activeRingColor = "ring-blue-400"; // по умолчанию
-                        
-                        if (isWrong) {
-                            buttonVariant = "danger";
-                            activeRingColor = "ring-red-400";
-                        } else if (isDone) {
-                            buttonVariant = "secondary";
-                            activeRingColor = "ring-green-400";
-                        } else {
-                            buttonVariant = "default";
-                            activeRingColor = "ring-blue-400";
-                        }
-                        
+
+                        const bg = isWrong ? 'rgba(244,63,94,0.14)' : isDone ? 'rgba(74,222,128,0.14)' : '#1A252B';
+                        const color = isWrong ? '#fb7185' : isDone ? '#4ade80' : '#9AA7B0';
+
                         return (
-                            <motion.div
+                            <button
                                 key={challengeItem.id}
-                                variants={navItemVariants}
-                                initial="hidden"
-                                animate="visible"
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="relative"
+                                onClick={() => onClickNumber(challengeItem.id + 1)}
+                                className="relative h-9 rounded-lg text-xs font-semibold transition-colors"
+                                style={{
+                                    backgroundColor: isActive ? unitColor.button : bg,
+                                    color: isActive ? '#151F23' : color,
+                                }}
                             >
-                                <Button
-                                    variant={buttonVariant}
-                                    className={cn(
-                                        "w-9 h-9 md:w-10 md:h-10 rounded-lg text-sm font-medium transition-all",
-                                        isActive && `${activeRingColor} ring-2 shadow-md relative`,
-                                        isActive && `after:content-[''] after:absolute after:-bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-6 after:h-0.5 after:rounded-full after:bg-current`
-                                    )}
-                                    onClick={() => onClickNumber(challengeItem.id + 1)}
-                                >
-                                    {challengeItem.id % 1000}
-                                </Button>
+                                {challengeItem.id % 1000}
 
                                 {showDonut && (
-                                    <motion.div 
-                                        className="absolute -top-1.5 -right-1.5 z-20"
-                                        animate={{ y: [0, -3, 0] }}
-                                        transition={{ duration: 1, repeat: Infinity }}
-                                    >
-                                        <div className="text-xs bg-[#151F23] rounded-full p-0.5 shadow-md">🍩</div>
-                                    </motion.div>
+                                    <span className="absolute -top-1.5 -right-1 text-[10px]">🍩</span>
                                 )}
-                            </motion.div>
+                            </button>
                         );
                     })}
                 </div>
-            ))}
-        </div>
-    </div>
-</div>
+            </div>
 
 
 
             {/* Основной контент */}
-            <div className="flex-1 container mx-auto px-4 py-6 md:py-8">
-                <div className="max-w-3xl mx-auto">
-                    {/* Заголовок вопроса - простая анимация fade */}
-                    <motion.div 
-                        key={`title-${activeIndex}`}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.2 }}
-                        className="mb-5 md:mb-7"
-                    >
-                        <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-[#F2F7FB] text-center md:text-left">
-                            {title}
-                        </h1>
-                    </motion.div>
+            <div className="flex-1 max-w-xl w-full mx-auto px-4 py-6 md:py-8">
+                <div className="w-full">
+                    {/* Для не-ASSIST типов (нет QuestionBubble) заголовок — это сам вопрос */}
+                    {challenge.type !== "ASSIST" && (
+                        <motion.div
+                            key={`title-${activeIndex}`}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.2 }}
+                            className="mb-5 md:mb-7"
+                        >
+                            <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-[#F2F7FB] text-center md:text-left">
+                                {title}
+                            </h1>
+                        </motion.div>
+                    )}
 
                     {/* Question Bubble и Challenge с анимацией */}
                     <AnimatePresence mode="wait" custom={animationDirection}>
@@ -643,6 +556,7 @@ export const Quiz = ({
                         >
                             {challenge.type === "ASSIST" && (
                                 <QuestionBubble
+                                    unitColor={unitColor}
                                     question={challenge.question}
                                     pts={challenge.points}
                                     author={challenge.author}

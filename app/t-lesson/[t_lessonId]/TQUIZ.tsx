@@ -32,6 +32,7 @@ import { LOTTIE_START_LIST, LOTTIE_EMOTION_RIGHT_LIST, getRandomLottie } from '@
 import { X } from "lucide-react"
 import { useQuizAudio } from "@/app/hooks/useQuizAudio"
 import { completeTrainerQuestLesson } from "@/actions/generate-trainer-quest"
+import { ChestReward } from "@/components/ChestReward"
 
 const startButton = ['Погнали!', 'Гоу!', 'Старт!', 'Поехали!', 'Поплыли!']
 
@@ -67,6 +68,7 @@ export default function TQuiz({
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [score, setScore] = useState(0)
   const [quizCompleted, setQuizCompleted] = useState(false)
+  const [showChestReward, setShowChestReward] = useState(false)
   const [answeredQuestions, setAnsweredQuestions] = useState(0)
   const { width, height } = useWindowSize()
   
@@ -81,8 +83,8 @@ export default function TQuiz({
   // Ref для отслеживания текущего isRightList (избегаем closure issues)
   const isRightListRef = useRef<number[]>([])
 
-  // Расширяем до 11 вопросов
-  const [allQuestions, setAllQuestions] = useState(questions1.slice(0, 11))
+  // Для тестирования Rive сундука - только 1 вопрос
+  const [allQuestions, setAllQuestions] = useState(questions1.slice(0, 1))
   const [numQuestionsButton, setNumQuestionsButton] = useState(0)
   const [isRightPrevious, setIsRightPrevious] = useState<boolean | null>(null)
   const questions = allQuestions
@@ -142,6 +144,11 @@ export default function TQuiz({
     setRandomStartButton([...startButton].sort(() => 0.5 - Math.random())[0])
   }, [])
 
+  // Меняем маскота при смене вопроса
+  useEffect(() => {
+    setRandomEmotionLottie(getRandomLottie(LOTTIE_EMOTION_RIGHT_LIST))
+  }, [currentQuestionIndex])
+
   useEffect(() => {
     if (threeHearts == 0 && !quizCompleted) {
       setQuizCompleted(true)
@@ -158,6 +165,7 @@ export default function TQuiz({
     setCurrentQuestionIndex(0)
     setScore(0)
     setQuizCompleted(false)
+    setShowChestReward(false)
     setAnsweredQuestions(0)
     setThreeHearts(3)
     setStreak(0)
@@ -182,8 +190,20 @@ export default function TQuiz({
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1)
     } else {
-      setQuizCompleted(true)
+      console.log('🏁 Квиз завершён! score:', score, 'questions.length:', questions.length)
       const doneRightPercent = Math.round(score / questions.length * 100)
+
+      // Если идеальный результат (все вопросы правильные), показываем сундук ПЕРЕД финальным экраном
+      if (score === questions.length) {
+        console.log('✅ Показываем сундук!')
+        setShowChestReward(true)
+        // НЕ устанавливаем quizCompleted сразу - сначала показываем сундук
+      } else {
+        console.log('❌ Не показываем сундук (не все правильно)')
+        // Если не все ответы правильные - сразу показываем результаты
+        setQuizCompleted(true)
+      }
+
       await upsertTrainerLessonProgress(t_lessonId, doneRightPercent, 200, score, questions.length - score)
         .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
       await updateQuestProgress()
@@ -212,8 +232,11 @@ export default function TQuiz({
         : answerIsRight = answer === "right"
 
       if (answerIsRight) {
-        playCorrectSound()
-        setIsRightPrevious(true)
+        // Для CONNECT звук и анимация уже были в handleAllPairsMatched
+        if (questions[currentQuestionIndex].questionType !== 'CONNECT') {
+          playCorrectSound()
+          setIsRightPrevious(true)
+        }
         setRandomEmotionLottie(getRandomLottie(LOTTIE_EMOTION_RIGHT_LIST))
 
         setStreak(prev => {
@@ -365,13 +388,34 @@ export default function TQuiz({
 
   const handleFinishLesson = useCallback(() => {
     setQuizCompleted(true)
+    setShowChestReward(false)
     updateQuestProgress()
     requestAnimationFrame(() => {
       router.push('/trainer')
     })
   }, [updateQuestProgress, router])
 
+  const handleChestOpened = useCallback(() => {
+    setShowChestReward(false)
+    // После клика на сундук - показываем финальный экран
+    setQuizCompleted(true)
+  }, [])
+
+  console.log('Рендер: quizCompleted:', quizCompleted, 'showChestReward:', showChestReward)
+
+  if (showChestReward) {
+    console.log('🎁 Показываем сундук! showChestReward:', showChestReward)
+    return (
+      <div className="w-full max-w-xl mx-auto py-8">
+        <ChestReward
+          onChestClicked={handleChestOpened}
+        />
+      </div>
+    )
+  }
+
   if (quizCompleted) {
+    console.log('📊 Показываем финальный экран')
     const isPerfectScore = score === questions.length
     const numQuestions = finishList.length
     const numQuestionsRight = finishList.filter(el => el.isRight).length
@@ -389,8 +433,8 @@ export default function TQuiz({
           <p className={`text-xl ${isPerfectScore ? "text-green-600 font-bold" : ""}`}>
             Правильно {score} из {questions.length}
           </p>
-          <Lottie 
-            animationData={score / questions.length < 0.8 ? LottieTrainerSharkFailDNO : LottieTrainerSharkFinalWin} 
+          <Lottie
+            animationData={score / questions.length < 0.8 ? LottieTrainerSharkFailDNO : LottieTrainerSharkFinalWin}
             className="h-80 w-80 mx-auto"
           />
           <Button onClick={startQuiz} className="mt-4" variant='primary'>Давай по новой</Button>
