@@ -54,7 +54,15 @@ export async function getCallCheckStatus(checkId: string): Promise<CallCheckStat
     const res = await fetch(url.toString(), { cache: "no-store" })
     const data = await res.json()
 
-    switch (Number(data.status_code)) {
+    // status_code — это статус самого HTTP-запроса к API (100 = запрос успешно
+    // выполнен). Реальный статус проверки звонка лежит в отдельном поле
+    // check_status — их легко перепутать, что и произошло в первой версии.
+    if (data.status !== "OK") {
+        console.error("[sms-ru status] request failed:", data)
+        return "error"
+    }
+
+    switch (Number(data.check_status)) {
         case 100:
             return "waiting"
         case 401:
@@ -66,6 +74,7 @@ export async function getCallCheckStatus(checkId: string): Promise<CallCheckStat
         case 402:
             return "expired"
         default:
+            console.error("[sms-ru status] unexpected check_status:", data)
             return "error"
     }
 }
