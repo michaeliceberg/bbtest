@@ -1,6 +1,6 @@
 'use client'
 
-import { BarChart4, BookOpen, Flame, Gift, Home, Search, Trophy, TrendingUp, Award, ShoppingBag, ChevronDown, ChevronUp, GraduationCap } from 'lucide-react'
+import { BarChart4, BookOpen, Flame, Gift, Home, Search, Trophy, TrendingUp, Award, ShoppingBag, ChevronDown, ChevronUp, GraduationCap, User as UserIcon, LogOut } from 'lucide-react'
 import { Button } from './ui/button'
 import Link from 'next/link'
 import { TransitionLink } from '@/utils/TransitionLink'
@@ -9,6 +9,7 @@ import { useEffect, useState, useTransition } from 'react'
 import { cn } from '@/lib/utils'
 import Image from 'next/image'
 import { switchCourse } from '@/actions/switch-course'
+import { useSession, signOut } from 'next-auth/react'
 
 // Форма курса, которую реально собирает и передаёт app/(main)/layout.tsx —
 // это не сырая строка таблицы courses, а агрегированные данные для сайдбара.
@@ -33,7 +34,9 @@ interface SidebarProps {
 export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest = false, className }: SidebarProps) => {
   const pathname = usePathname()
   const router = useRouter()
+  const { data: session } = useSession()
   const [isCoursesOpen, setIsCoursesOpen] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [activeCourse, setActiveCourse] = useState<SidebarCourse | null>(null)
 
@@ -62,7 +65,47 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
       router.refresh()
     })
   }
-  
+
+  // Иконка пользователя внизу сайдбара — клик открывает меню с выходом.
+  const userMenu = session?.user && (
+    <div className="px-2 pb-4 relative">
+      {isUserMenuOpen && (
+        <div className="absolute bottom-full left-2 right-2 mb-2 bg-[#1A252B] border border-[#3A464E] rounded-lg overflow-hidden shadow-lg">
+          <button
+            onClick={() => signOut({ callbackUrl: '/' })}
+            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-rose-400 hover:bg-[#232F34] transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+            Выйти
+          </button>
+        </div>
+      )}
+
+      <button
+        onClick={() => setIsUserMenuOpen((open) => !open)}
+        className="w-full flex items-center gap-2 p-3 rounded-lg hover:bg-[#232F34] transition-colors"
+      >
+        {session.user.image ? (
+          <Image
+            src={session.user.image}
+            alt=""
+            width={32}
+            height={32}
+            className="rounded-full flex-shrink-0"
+          />
+        ) : (
+          <div className="h-8 w-8 rounded-full bg-[#232F34] flex items-center justify-center flex-shrink-0">
+            <UserIcon className="h-4 w-4 text-[#9AA7B0]" />
+          </div>
+        )}
+        <span className="text-sm text-[#F2F7FB] truncate flex-1 text-left">
+          {session.user.name || 'Ученик'}
+        </span>
+      </button>
+    </div>
+  )
+
+
   if (courses.length === 0) {
     return (
       <div className={cn('flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-[#151F23]', className)}>
@@ -83,6 +126,8 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
             )
           })}
         </div>
+
+        {userMenu}
       </div>
     )
   }
@@ -148,6 +193,8 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
           )
         })}
       </div>
+
+      {userMenu}
     </div>
   )
 }

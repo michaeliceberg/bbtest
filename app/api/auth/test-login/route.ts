@@ -1,6 +1,7 @@
 // ⚠️ ТОЛЬКО для localhost разработки!
 
 import { NextRequest, NextResponse } from "next/server"
+import { encode } from "next-auth/jwt"
 
 export async function GET(request: NextRequest) {
   // Проверяем что это локалхост
@@ -12,11 +13,24 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  // Возвращаем OK - редирект случится в page.tsx
+  const testUserId = "test-user-123"
+
+  const token = await encode({
+    token: {
+      id: testUserId,
+      sub: testUserId,
+      name: "Тестовый ученик",
+    },
+    secret: process.env.NEXTAUTH_SECRET!,
+  })
+
   const response = NextResponse.json({ success: true })
 
-  // Можно установить тестовый cookie если понадобится позже
-  // response.cookies.set('test-user', 'test-user-123', { path: '/' })
+  response.cookies.set("next-auth.session-token", token, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+  })
 
   return response
 }
