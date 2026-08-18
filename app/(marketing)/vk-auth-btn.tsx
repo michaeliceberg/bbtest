@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { TelegramLoginButton } from '@/components/telegram-login-button';
+import { PhoneCallLogin } from '@/components/phone-call-login';
 import { Loader } from 'lucide-react';
 import { useState } from 'react';
 
@@ -46,6 +47,14 @@ export default function AuthButton() {
 
           <div className="flex flex-col items-center gap-4 py-2">
             <TelegramLoginButton botUsername={TELEGRAM_BOT_USERNAME} />
+
+            <div className="flex items-center gap-2 w-full">
+              <div className="h-px flex-1 bg-[#3A464E]" />
+              <span className="text-xs text-[#9AA7B0]">или</span>
+              <div className="h-px flex-1 bg-[#3A464E]" />
+            </div>
+
+            <PhoneCallLogin callbackUrl="/learn" />
 
             <div className="flex items-center gap-2 w-full">
               <div className="h-px flex-1 bg-[#3A464E]" />

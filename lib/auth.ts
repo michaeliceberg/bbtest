@@ -6,6 +6,9 @@ import type { NextAuthOptions, DefaultSession } from "next-auth";
 import VKProvider from "next-auth/providers/vk";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { verifyTelegramAuth } from "./telegram-auth";
+import { getPhoneForCheck } from "./phone-call-store";
+import { getCallCheckStatus } from "./sms-ru";
+import { formatRuPhonePretty } from "./phone";
 
 declare module "next-auth" {
   interface Session {
@@ -85,6 +88,29 @@ export const authOptions: NextAuthOptions = {
           id: `tg:${credentials.id}`,
           name,
           image: credentials.photo_url || undefined,
+        };
+      },
+    }),
+    CredentialsProvider({
+      id: "phone-call",
+      name: "Звонок",
+      credentials: {
+        checkId: { label: "checkId", type: "text" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.checkId) return null;
+
+        // Телефон берём из своего хранилища, а не из того, что прислал
+        // клиент — checkId сам по себе уже привязан к конкретному номеру.
+        const phone = getPhoneForCheck(credentials.checkId);
+        if (!phone) return null;
+
+        const status = await getCallCheckStatus(credentials.checkId);
+        if (status !== "confirmed") return null;
+
+        return {
+          id: `phone:${phone}`,
+          name: formatRuPhonePretty(phone),
         };
       },
     }),
