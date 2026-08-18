@@ -42,7 +42,7 @@ export const upsertUserProgress = async (courseId: number) => {
 	if (existingUserProgress) {
 		await db.update(userProgress).set({
 			activeCourseId: courseId,
-			userName: session.user.name || 'VK User',
+			userName: session.user.name || 'Ученик',
 			userImageSrc: '/mascot.svg',
 
 		}). where(eq(userProgress.userId, userId))
@@ -55,7 +55,7 @@ export const upsertUserProgress = async (courseId: number) => {
 	await db.insert(userProgress).values({
 		userId,
 		activeCourseId: courseId,
-		userName: session.user.name || 'VK User',
+		userName: session.user.name || 'Ученик',
 		userImageSrc: '/mascot.svg',
 
 	});
@@ -82,7 +82,7 @@ export const upsertUserName = async (nickName: string) => {
 	if (existingUserProgress) {
 		await db.update(userProgress).set({
 			// userName: nickName || vkUser.firstName || 'User',
-			userName: session.user.name || 'VK User',
+			userName: session.user.name || 'Ученик',
 		}). where(eq(userProgress.userId, userId))
 		
 		revalidatePath('/courses');

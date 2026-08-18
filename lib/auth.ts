@@ -4,6 +4,8 @@
 import { getServerSession } from "next-auth";
 import type { NextAuthOptions, DefaultSession } from "next-auth";
 import VKProvider from "next-auth/providers/vk";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { verifyTelegramAuth } from "./telegram-auth";
 
 declare module "next-auth" {
   interface Session {
@@ -47,6 +49,45 @@ export const authOptions: NextAuthOptions = {
         };
       },
     }),
+    CredentialsProvider({
+      id: "telegram",
+      name: "Telegram",
+      credentials: {
+        id: { label: "id", type: "text" },
+        first_name: { label: "first_name", type: "text" },
+        last_name: { label: "last_name", type: "text" },
+        username: { label: "username", type: "text" },
+        photo_url: { label: "photo_url", type: "text" },
+        auth_date: { label: "auth_date", type: "text" },
+        hash: { label: "hash", type: "text" },
+      },
+      async authorize(credentials) {
+        if (!credentials) return null;
+
+        const valid = verifyTelegramAuth({
+          id: credentials.id,
+          first_name: credentials.first_name,
+          last_name: credentials.last_name,
+          username: credentials.username,
+          photo_url: credentials.photo_url,
+          auth_date: credentials.auth_date,
+          hash: credentials.hash,
+        });
+
+        if (!valid) return null;
+
+        const name = [credentials.first_name, credentials.last_name]
+          .filter(Boolean)
+          .join(" ")
+          .trim() || credentials.username || "Ученик";
+
+        return {
+          id: `tg:${credentials.id}`,
+          name,
+          image: credentials.photo_url || undefined,
+        };
+      },
+    }),
   ],
   callbacks: {
     async jwt({ token, account, profile, user }) {
@@ -59,7 +100,9 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.name = user.name;
         // token.email = user.email;
-        // token.picture = user.image;
+        if (user.image) {
+          token.picture = user.image;
+        }
       }
       
       // Если есть account, сохраняем access token
