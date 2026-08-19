@@ -53,7 +53,7 @@ export const Footer = ({
                     {status === "completed" && (
                         <Button
                             variant='default'
-                            className="flex-1"
+                            className="flex-1 h-14 lg:h-16 text-base"
                             size={isMobile ? "sm" : "lg"}
                             onClick={() => window.location.href = `/lesson/${lessonId}`}
                         >
@@ -62,7 +62,7 @@ export const Footer = ({
                     )}
                     <Button
                         disabled={disabled}
-                        className="w-full"
+                        className="w-full h-14 lg:h-16 text-base"
                         onClick={onCheck}
                         size={isMobile ? "sm" : "lg"}
                         variant={status === "wrong" ? "danger" : "secondary"}
