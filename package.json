@@ -11,6 +11,7 @@
 		"db:studio": "npx drizzle-kit studio",
 		"db:push": "npx drizzle-kit push",
 		"indexes": "npx tsx scripts/run-indexes.ts",
+		"backfill:identities": "npx tsx scripts/backfill-identities.ts",
 		"db:seed:lnipp7": "tsx ./scripts/seedLNIPp7.ts",
 		"db:seed:m6": "tsx ./scripts/seedMath6.ts",
 		"db:seed:tm": "tsx ./scripts/seedTM1.ts",

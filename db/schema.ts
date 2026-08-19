@@ -705,6 +705,26 @@ export const userMinesRelations = relations(userMines, ({ one }) => ({
 }));
 
 
+// ===== ПРИВЯЗКА СПОСОБОВ ВХОДА (VK / Telegram / звонок) К ОДНОМУ АККАУНТУ =====
+//
+// userProgress.userId раньше был "сырым" id провайдера (VK-номер, phone:...,
+// tg:...) — из-за этого один и тот же человек, зайдя другим способом,
+// получал новый пустой аккаунт. identities — связка
+// (provider, providerAccountId) -> canonical userId. Новый canonical id
+// генерируется при первом входе конкретным способом; существующие
+// аккаунты "усыновлены" через scripts/backfill-identities.ts без переноса
+// данных.
+export const identities = pgTable('identities', {
+    id: serial('id').primaryKey(),
+    provider: text('provider').notNull(), // 'vk' | 'telegram' | 'phone-call'
+    providerAccountId: text('provider_account_id').notNull(),
+    userId: text('user_id').notNull(), // canonical id, = userProgress.userId
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => ({
+    uniqueProviderAccount: unique('unique_provider_account').on(table.provider, table.providerAccountId),
+}));
+
+
 // Заказы пиццы
 export const pizzaOrders = pgTable('pizza_orders', {
     id: serial('id').primaryKey(),

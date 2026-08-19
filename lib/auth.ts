@@ -9,6 +9,7 @@ import { verifyTelegramAuth } from "./telegram-auth";
 import { getPhoneForCheck } from "./phone-call-store";
 import { getCallCheckStatus } from "./sms-ru";
 import { formatRuPhonePretty } from "./phone";
+import { resolveCanonicalUserId } from "./identity";
 
 declare module "next-auth" {
   interface Session {
@@ -38,14 +39,16 @@ export const authOptions: NextAuthOptions = {
           v: '5.131',
         },
       },
-      profile(profile) {
+      async profile(profile) {
         // console.log('Profile in provider:', profile);
-        
+
         // VK возвращает массив response
         const user = profile.response?.[0] || profile;
-        
+
+        const { userId } = await resolveCanonicalUserId("vk", String(user.id));
+
         return {
-          id: String(user.id),
+          id: userId,
           name: `${user.first_name} ${user.last_name}`,
         //   email: user.email,
         //   image: user.photo_100,
@@ -84,8 +87,10 @@ export const authOptions: NextAuthOptions = {
           .join(" ")
           .trim() || credentials.username || "Ученик";
 
+        const { userId } = await resolveCanonicalUserId("telegram", credentials.id);
+
         return {
-          id: `tg:${credentials.id}`,
+          id: userId,
           name,
           image: credentials.photo_url || undefined,
         };
@@ -108,8 +113,10 @@ export const authOptions: NextAuthOptions = {
         const status = await getCallCheckStatus(credentials.checkId);
         if (status !== "confirmed") return null;
 
+        const { userId } = await resolveCanonicalUserId("phone-call", phone);
+
         return {
-          id: `phone:${phone}`,
+          id: userId,
           name: formatRuPhonePretty(phone),
         };
       },

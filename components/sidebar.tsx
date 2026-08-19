@@ -1,6 +1,6 @@
 'use client'
 
-import { BookOpen, Flame, Home, Trophy, TrendingUp, Award, ShoppingBag, ChevronDown, ChevronUp, GraduationCap, User as UserIcon, LogOut } from 'lucide-react'
+import { BookOpen, Flame, Home, Trophy, TrendingUp, Award, ShoppingBag, ChevronDown, ChevronUp, GraduationCap, User as UserIcon, LogOut, Link2 } from 'lucide-react'
 import { Button } from './ui/button'
 import Link from 'next/link'
 import { TransitionLink } from '@/utils/TransitionLink'
@@ -69,6 +69,15 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
     <div className="px-2 pb-4 relative">
       {isUserMenuOpen && (
         <div className="absolute bottom-full left-2 right-2 mb-2 bg-[#1A252B] border border-[#3A464E] rounded-lg overflow-hidden shadow-lg">
+          <TransitionLink href="/account">
+            <button
+              onClick={() => setIsUserMenuOpen(false)}
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-[#F2F7FB] hover:bg-[#232F34] transition-colors"
+            >
+              <Link2 className="h-4 w-4" />
+              Способы входа
+            </button>
+          </TransitionLink>
           <button
             onClick={() => signOut({ callbackUrl: '/' })}
             className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-rose-400 hover:bg-[#232F34] transition-colors"
