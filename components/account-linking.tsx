@@ -14,7 +14,7 @@ import { signIn } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { TelegramAuthTrigger } from '@/components/telegram-auth-trigger'
 import { PhoneCallLogin } from '@/components/phone-call-login'
-import { Loader2, CheckCircle2, Phone } from 'lucide-react'
+import { Loader2, Phone } from 'lucide-react'
 import { FaTelegram, FaVk } from 'react-icons/fa'
 
 type Provider = 'vk' | 'telegram' | 'phone-call'
@@ -123,10 +123,9 @@ export const AccountLinking = () => {
                                 </div>
 
                                 {isLinked ? (
-                                    <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-400">
-                                        <CheckCircle2 className="h-4 w-4" />
+                                    <Button size="sm" variant="secondaryOutline" disabled>
                                         Привязан
-                                    </span>
+                                    </Button>
                                 ) : !state ? (
                                     <Loader2 className="h-4 w-4 animate-spin text-[#9AA7B0]" />
                                 ) : provider === 'vk' ? (

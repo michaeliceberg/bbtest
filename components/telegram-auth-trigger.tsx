@@ -10,7 +10,6 @@
 import { useEffect, useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
-import { FaTelegram } from 'react-icons/fa'
 import { Loader2 } from 'lucide-react'
 
 type TelegramAuthUser = {
@@ -81,12 +80,7 @@ export const TelegramAuthTrigger = ({ callbackUrl }: Props) => {
 
     return (
         <Button size="sm" variant="primaryOutline" disabled={!scriptReady || isLoading} onClick={handleClick}>
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (
-                <span className="flex items-center gap-1.5">
-                    <FaTelegram className="h-4 w-4" />
-                    Привязать
-                </span>
-            )}
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Привязать'}
         </Button>
     )
 }
