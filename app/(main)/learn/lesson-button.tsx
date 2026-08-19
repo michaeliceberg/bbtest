@@ -206,11 +206,11 @@ export const LessonButton = ({
     // Обычный доступный урок
     return (
         <Link href={href} aria-disabled={locked} style={{ pointerEvents: locked ? "none" : "auto" }}>
-            <div className="relative flex flex-1 group" style={{
+            <div className="relative flex flex-1 items-center group" style={{
                 right: `${-20 + rightPosition}px`,
                 marginTop: isFirst ? 28 : 24,
             }}>
-                <div className="h-[102px] w-[102px] relative">
+                <div className="h-[102px] w-[102px] relative flex-shrink-0">
                     <CircularProgressbarWithChildren
                         value={progressPercent}
                         styles={{
@@ -241,18 +241,12 @@ export const LessonButton = ({
                                     className="absolute top-0 left-0 animate-bounce bg-[#151F23] rounded-2xl"
                                 />
                             )}
-
-                            {isDailyNumber > 0 && (
-                                <div className="absolute top-0 right-0 bg-[#151F23] rounded-2xl p-1">
-                                    <ThunderBadge size={24} />
-                                </div>
-                            )}
                         </Button>
                     </CircularProgressbarWithChildren>
                     {getHomeworkIcon()}
                 </div>
 
-                <div className="pt-8 ml-4 max-w-[220px]">
+                <div className="ml-4 max-w-[220px]">
                     {(isHwNumber > 0 || isDailyNumber > 0) && (
                         <div className="mb-1.5 flex items-center gap-3">
                             {isHwNumber > 0 && (

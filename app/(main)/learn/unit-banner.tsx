@@ -68,30 +68,28 @@ export const UnitBanner = ({
 
     // Открытый юнит
     return (
-        <div
-            className="relative mb-6 md:mb-8 overflow-hidden rounded-2xl p-4 md:p-6 text-white"
-            style={{
-                background: `linear-gradient(135deg, ${colors.button}, ${colors.bottom})`,
-            }}
-        >
-            <div className="flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-3">
-                        <h2 className="text-xl md:text-2xl font-bold tracking-tight break-words min-w-0">
-                            {title}
-                        </h2>
-                        <span className="text-2xl md:text-3xl font-bold flex-shrink-0">
-                            {progressPercent}%
-                        </span>
-                    </div>
-
-                    <p className="text-white/80 text-sm md:text-base mt-1 break-words">
-                        {description}
-                    </p>
+        <div className="relative mb-6 md:mb-8 flex items-center gap-3">
+            <div
+                className="flex-1 min-w-0 overflow-hidden rounded-2xl p-4 md:p-6 text-white"
+                style={{
+                    background: `linear-gradient(135deg, ${colors.button}, ${colors.bottom})`,
+                }}
+            >
+                <div className="flex items-start justify-between gap-3">
+                    <h2 className="text-xl md:text-2xl font-bold tracking-tight break-words min-w-0">
+                        {title}
+                    </h2>
+                    <span className="text-2xl md:text-3xl font-bold flex-shrink-0">
+                        {progressPercent}%
+                    </span>
                 </div>
 
-                <UnitCardLottie progress={unitProgressPercent} />
+                <p className="text-white/80 text-sm md:text-base mt-1 break-words">
+                    {description}
+                </p>
             </div>
+
+            <UnitCardLottie progress={unitProgressPercent} />
         </div>
     );
 };
