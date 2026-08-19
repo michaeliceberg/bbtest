@@ -159,7 +159,7 @@ export const LessonButton = ({
         return (
             <div className="relative flex flex-1 opacity-60" style={{
                 right: `${-20 + rightPosition}px`,
-                marginTop: isFirst ? 60 : 24,
+                marginTop: isFirst ? 28 : 24,
             }}>
                 <div className="h-[102px] w-[102px]">
                     <div
@@ -187,7 +187,7 @@ export const LessonButton = ({
             <Link href={href} aria-disabled={locked} style={{ pointerEvents: locked ? "none" : "auto" }}>
                 <div className="relative flex flex-1" style={{
                     right: `${-20 + rightPosition}px`,
-                    marginTop: isFirst ? 60 : 24,
+                    marginTop: isFirst ? 28 : 24,
                 }}>
                     <div className="h-[102px] w-[102px]">
                         <div className="h-[70px] w-[70px] rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-lg">
@@ -208,7 +208,7 @@ export const LessonButton = ({
         <Link href={href} aria-disabled={locked} style={{ pointerEvents: locked ? "none" : "auto" }}>
             <div className="relative flex flex-1 group" style={{
                 right: `${-20 + rightPosition}px`,
-                marginTop: isFirst ? 60 : 24,
+                marginTop: isFirst ? 28 : 24,
             }}>
                 <div className="h-[102px] w-[102px] relative">
                     <CircularProgressbarWithChildren
