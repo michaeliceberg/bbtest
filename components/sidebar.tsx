@@ -1,6 +1,6 @@
 'use client'
 
-import { BarChart4, BookOpen, Flame, Gift, Home, Search, Trophy, TrendingUp, Award, ShoppingBag, ChevronDown, ChevronUp, GraduationCap, User as UserIcon, LogOut } from 'lucide-react'
+import { BookOpen, Flame, Home, Trophy, TrendingUp, Award, ShoppingBag, ChevronDown, ChevronUp, GraduationCap, User as UserIcon, LogOut } from 'lucide-react'
 import { Button } from './ui/button'
 import Link from 'next/link'
 import { TransitionLink } from '@/utils/TransitionLink'
@@ -48,12 +48,10 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
   }, [activeCourseId, courses])
 
   const navItems = [
-    { label: 'Главная', href: '/learn', icon: Home },
-    { label: 'Обучение', href: '/trainer', icon: BookOpen },
-    { label: 'Задачи', href: '/lesson', icon: BarChart4 },
-    { label: 'Тренировка', href: '/practice', icon: Flame, badge: hasTrainerQuest },
-    { label: 'Достижения', href: '/achievements', icon: Award },
+    { label: 'Задачник', href: '/learn', icon: Home },
+    { label: 'Тренажёр', href: '/trainer', icon: BookOpen, badge: hasTrainerQuest },
     { label: 'Магазин', href: '/shop', icon: ShoppingBag },
+    { label: 'Достижения', href: '/achievements', icon: Award },
     { label: 'Лидеры', href: '/leaderboard', icon: Trophy },
     { label: 'Прогресс', href: '/progress', icon: TrendingUp },
   ]
