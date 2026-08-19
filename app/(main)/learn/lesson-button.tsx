@@ -122,18 +122,15 @@ export const LessonButton = ({
     const isNextUnlocked = correctChallenges >= challengesNeeded;
     const showNeedMore = needMore > 0 && !isNextUnlocked && !isLessonCompleted && !locked;
 
+    // Просроченное ДЗ рисуем не тут, а в бейдж-строке над названием урока
+    // (см. isHomeworkExpired ниже) — вместе с пончиком и молнией.
+    const isHomeworkExpired = !!homeworkStatus &&
+        (homeworkStatus.status === 'expired' || isPast(new Date(homeworkStatus.dueDate)));
+
     // Получаем иконку статуса ДЗ
     const getHomeworkIcon = () => {
-        if (!homeworkStatus) return null;
-        
-        if (homeworkStatus.status === 'expired' || isPast(new Date(homeworkStatus.dueDate))) {
-            return (
-                <div className="absolute -top-2 -right-2 z-10">
-                    <Skull className="h-5 w-5 text-red-500 fill-red-500" />
-                </div>
-            );
-        }
-        
+        if (!homeworkStatus || isHomeworkExpired) return null;
+
         const hoursLeft = differenceInHours(new Date(homeworkStatus.dueDate), new Date());
         if (hoursLeft < 3) {
             return (
@@ -247,8 +244,11 @@ export const LessonButton = ({
                 </div>
 
                 <div className="ml-4 max-w-[220px]">
-                    {(isHwNumber > 0 || isDailyNumber > 0) && (
+                    {(isHomeworkExpired || isHwNumber > 0 || isDailyNumber > 0) && (
                         <div className="mb-1.5 flex items-center gap-3">
+                            {isHomeworkExpired && (
+                                <Skull className="h-4 w-4 text-red-500" />
+                            )}
                             {isHwNumber > 0 && (
                                 <div className="flex items-center gap-1">
                                     <Image src="/hwSvgs/donut.svg" height={18} width={18} alt="ДЗ" />
