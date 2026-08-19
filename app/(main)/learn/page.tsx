@@ -278,7 +278,7 @@ const LearnPage = async () => {
             progressPercent={courseProgressPercent}
           />
 
-          <div className='mt-5'>
+          <div className='mt-2 lg:mt-5'>
             {unitsWithFormattedLessons.map((unit, index) => (
               <div key={unit.id} className='mb-10'>
                 <Unit
