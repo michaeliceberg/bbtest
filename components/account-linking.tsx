@@ -12,16 +12,23 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
-import { TelegramLoginButton } from '@/components/telegram-login-button'
+import { TelegramAuthTrigger } from '@/components/telegram-auth-trigger'
 import { PhoneCallLogin } from '@/components/phone-call-login'
-import { Loader2, CheckCircle2 } from 'lucide-react'
+import { Loader2, CheckCircle2, Phone } from 'lucide-react'
+import { FaTelegram, FaVk } from 'react-icons/fa'
 
 type Provider = 'vk' | 'telegram' | 'phone-call'
 
 const PROVIDER_LABELS: Record<Provider, string> = {
     vk: 'ВКонтакте',
     telegram: 'Telegram',
-    'phone-call': 'Телефон (звонок)',
+    'phone-call': 'Телефон',
+}
+
+const PROVIDER_ICONS: Record<Provider, { Icon: React.ComponentType<{ className?: string }>; color: string }> = {
+    vk: { Icon: FaVk, color: 'text-[#4C75A3]' },
+    telegram: { Icon: FaTelegram, color: 'text-[#2AABEE]' },
+    'phone-call': { Icon: Phone, color: 'text-emerald-400' },
 }
 
 const LINK_STATUS_MESSAGES: Record<string, { text: string; tone: 'success' | 'info' | 'error' }> = {
@@ -31,8 +38,6 @@ const LINK_STATUS_MESSAGES: Record<string, { text: string; tone: 'success' | 'in
     expired: { text: 'Время привязки истекло, попробуйте ещё раз', tone: 'error' },
     'not-authenticated': { text: 'Не удалось войти выбранным способом', tone: 'error' },
 }
-
-const TELEGRAM_BOT_USERNAME = 'brickbrain007_bot'
 
 async function requestLinkState(): Promise<string | null> {
     const res = await fetch('/api/account/link/start', { method: 'POST' })
@@ -46,6 +51,7 @@ export const AccountLinking = () => {
     const [linked, setLinked] = useState<Provider[] | null>(null)
     const [states, setStates] = useState<Partial<Record<Provider, string>>>({})
     const [vkLoading, setVkLoading] = useState(false)
+    const [phoneOpen, setPhoneOpen] = useState(false)
 
     const linkStatusParam = searchParams.get('link')
     const statusMessage = linkStatusParam ? LINK_STATUS_MESSAGES[linkStatusParam] : null
@@ -83,12 +89,14 @@ export const AccountLinking = () => {
         )
     }
 
+    const providers: Provider[] = ['vk', 'telegram', 'phone-call']
+
     return (
         <div className="flex flex-col gap-4">
             {statusMessage && (
                 <div
                     className={
-                        'rounded-lg px-4 py-3 text-sm ' +
+                        'rounded-xl px-4 py-3 text-sm ' +
                         (statusMessage.tone === 'success'
                             ? 'bg-emerald-500/10 text-emerald-400'
                             : statusMessage.tone === 'error'
@@ -100,47 +108,49 @@ export const AccountLinking = () => {
                 </div>
             )}
 
-            {(['vk', 'telegram', 'phone-call'] as Provider[]).map((provider) => {
-                const isLinked = linked.includes(provider)
-                return (
-                    <div
-                        key={provider}
-                        className="flex flex-col gap-3 rounded-lg border border-[#3A464E] bg-[#1A252B] px-4 py-4"
-                    >
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-[#F2F7FB]">{PROVIDER_LABELS[provider]}</span>
-                            {isLinked && (
-                                <span className="flex items-center gap-1 text-xs text-emerald-400">
-                                    <CheckCircle2 className="h-4 w-4" />
-                                    Привязан
-                                </span>
+            <div className="rounded-2xl border border-[#3A464E] bg-[#1A252B] divide-y divide-[#232F34] overflow-hidden">
+                {providers.map((provider) => {
+                    const isLinked = linked.includes(provider)
+                    const { Icon, color } = PROVIDER_ICONS[provider]
+                    const state = states[provider]
+
+                    return (
+                        <div key={provider}>
+                            <div className="flex items-center justify-between gap-3 px-5 py-4">
+                                <div className="flex items-center gap-3">
+                                    <Icon className={`h-5 w-5 flex-shrink-0 ${color}`} />
+                                    <span className="text-sm font-medium text-[#F2F7FB]">{PROVIDER_LABELS[provider]}</span>
+                                </div>
+
+                                {isLinked ? (
+                                    <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-400">
+                                        <CheckCircle2 className="h-4 w-4" />
+                                        Привязан
+                                    </span>
+                                ) : !state ? (
+                                    <Loader2 className="h-4 w-4 animate-spin text-[#9AA7B0]" />
+                                ) : provider === 'vk' ? (
+                                    <Button size="sm" variant="primaryOutline" disabled={vkLoading} onClick={handleVkLink}>
+                                        {vkLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Привязать'}
+                                    </Button>
+                                ) : provider === 'telegram' ? (
+                                    <TelegramAuthTrigger callbackUrl={`/api/account/link/finish?state=${state}`} />
+                                ) : (
+                                    <Button size="sm" variant="primaryOutline" onClick={() => setPhoneOpen((open) => !open)}>
+                                        Привязать
+                                    </Button>
+                                )}
+                            </div>
+
+                            {provider === 'phone-call' && !isLinked && phoneOpen && state && (
+                                <div className="px-5 pb-5 pt-1">
+                                    <PhoneCallLogin callbackUrl={`/api/account/link/finish?state=${state}`} />
+                                </div>
                             )}
                         </div>
-
-                        {!isLinked && provider === 'telegram' && (
-                            states.telegram ? (
-                                <TelegramLoginButton botUsername={TELEGRAM_BOT_USERNAME} callbackUrl={`/api/account/link/finish?state=${states.telegram}`} />
-                            ) : (
-                                <Loader2 className="h-4 w-4 animate-spin text-[#9AA7B0] mx-auto" />
-                            )
-                        )}
-
-                        {!isLinked && provider === 'phone-call' && (
-                            states['phone-call'] ? (
-                                <PhoneCallLogin callbackUrl={`/api/account/link/finish?state=${states['phone-call']}`} />
-                            ) : (
-                                <Loader2 className="h-4 w-4 animate-spin text-[#9AA7B0] mx-auto" />
-                            )
-                        )}
-
-                        {!isLinked && provider === 'vk' && (
-                            <Button className="w-full" disabled={vkLoading} onClick={handleVkLink}>
-                                {vkLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Привязать ВКонтакте'}
-                            </Button>
-                        )}
-                    </div>
-                )
-            })}
+                    )
+                })}
+            </div>
         </div>
     )
 }
