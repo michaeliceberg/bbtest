@@ -1,7 +1,6 @@
 // app/learn/unit-banner.tsx
 
-import { Flame, Lock, Crown, TrendingUp, Star, Rocket, Zap } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
+import { Flame, Lock } from 'lucide-react';
 import { getUnitButtonColor } from '@/src/constants/lessonButtonColors';
 
 type Props = {
@@ -37,24 +36,24 @@ export const UnitBanner = ({
     // Заблокированный юнит
     if (!isUnlocked && !isCompleted) {
         return (
-            <div className="relative mb-8">
-                <div className="bg-[#232F34] rounded-2xl p-6 border-2 border-dashed border-[#3A464E]">
-                    <div className="flex items-center gap-5">
-                        <div className="bg-[#2E3A40] rounded-2xl p-4">
-                            <Lock className="h-8 w-8 text-[#9AA7B0]" />
+            <div className="relative mb-6 md:mb-8">
+                <div className="bg-[#232F34] rounded-2xl p-4 md:p-6 border-2 border-dashed border-[#3A464E]">
+                    <div className="flex items-center gap-3 md:gap-5">
+                        <div className="bg-[#2E3A40] rounded-2xl p-3 md:p-4 flex-shrink-0">
+                            <Lock className="h-6 w-6 md:h-8 md:w-8 text-[#9AA7B0]" />
                         </div>
-                        <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-bold text-xl text-[#9AA7B0]">{title}</h3>
-                                <span className="text-xs bg-[#2E3A40] text-[#9AA7B0] px-2 py-0.5 rounded-full">
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <h3 className="font-bold text-lg md:text-xl text-[#9AA7B0] break-words">{title}</h3>
+                                <span className="text-xs bg-[#2E3A40] text-[#9AA7B0] px-2 py-0.5 rounded-full flex-shrink-0">
                                     Закрыто
                                 </span>
                             </div>
-                            <p className="text-gray-400 text-sm">{description}</p>
+                            <p className="text-gray-400 text-sm break-words">{description}</p>
                             {needMoreLessons > 0 && (
-                                <div className="mt-3 flex items-center gap-2">
-                                    <Flame className="h-4 w-4 text-orange-400" />
-                                    <span className="text-sm text-[#9AA7B0]">
+                                <div className="mt-3 flex items-start gap-2">
+                                    <Flame className="h-4 w-4 text-orange-400 flex-shrink-0 mt-0.5" />
+                                    <span className="text-sm text-[#9AA7B0] break-words">
                                         Нужно открыть ещё {needMoreLessons} уроков в предыдущем разделе
                                     </span>
                                 </div>
@@ -65,84 +64,27 @@ export const UnitBanner = ({
             </div>
         );
     }
-    
+
     // Открытый юнит
     return (
-        <div className="relative mb-8 overflow-hidden rounded-2xl shadow-lg transition-all hover:shadow-xl">
-            {/* Градиентный фон */}
-            <div 
-                className="absolute inset-0"
-                style={{
-                    background: `linear-gradient(135deg, ${colors.button}, ${colors.bottom})`,
-                }}
-            />
-            
-            {/* Декоративные элементы */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full blur-xl" />
-            
-            {/* Звёздочки для украшения */}
-            <div className="absolute top-4 right-12 text-white/20">
-                <Star className="h-6 w-6 fill-current" />
+        <div
+            className="relative mb-6 md:mb-8 overflow-hidden rounded-2xl p-4 md:p-6 text-white"
+            style={{
+                background: `linear-gradient(135deg, ${colors.button}, ${colors.bottom})`,
+            }}
+        >
+            <div className="flex items-start justify-between gap-3">
+                <h2 className="text-xl md:text-2xl font-bold tracking-tight break-words min-w-0">
+                    {title}
+                </h2>
+                <span className="text-2xl md:text-3xl font-bold flex-shrink-0">
+                    {progressPercent}%
+                </span>
             </div>
-            <div className="absolute bottom-2 right-24 text-white/10">
-                <Rocket className="h-8 w-8 fill-current" />
-            </div>
-            
-            {/* Контент */}
-            <div className="relative p-6 text-white">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    {/* Левая часть */}
-                    <div className="space-y-2 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                            {isCompleted && (
-                                <span className="bg-white/20 backdrop-blur rounded-full px-3 py-1 text-sm font-medium flex items-center gap-1">
-                                    <Crown className="h-4 w-4 text-yellow-300" />
-                                    Завершён
-                                </span>
-                            )}
-                            {isNextUnitUnlocked && !isCompleted && (
-                                <span className="bg-green-500/30 backdrop-blur rounded-full px-3 py-1 text-sm font-medium flex items-center gap-1">
-                                    <Zap className="h-4 w-4" />
-                                    Следующий раздел открыт
-                                </span>
-                            )}
-                        </div>
-                        
-                        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-                            {title}
-                        </h2>
-                        
-                        <p className="text-white/80 text-base max-w-2xl">
-                            {description}
-                        </p>
-                        
-                        <div className="flex items-center gap-4 pt-2">
-                            <div className="flex items-center gap-2">
-                                <TrendingUp className="h-4 w-4 text-white/70" />
-                                <span className="text-sm text-white/80">Прогресс раздела</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {/* Правая часть */}
-                    <div className="flex flex-col items-end gap-2 min-w-[160px]">
-                        <div className="text-right">
-                            <div className="text-3xl font-bold">{progressPercent}%</div>
-                            <div className="text-xs text-white/70">завершено</div>
-                        </div>
-                        <Progress 
-                            value={progressPercent} 
-                            className="h-2 w-32 bg-white/30" 
-                        />
-                        {unitProgressPercent < 1 && (
-                            <p className="text-xs text-white/60 mt-1">
-                                {Math.ceil((1 - unitProgressPercent) * 100)}% до открытия следующего
-                            </p>
-                        )}
-                    </div>
-                </div>
-            </div>
+
+            <p className="text-white/80 text-sm md:text-base mt-1 break-words">
+                {description}
+            </p>
         </div>
     );
 };
