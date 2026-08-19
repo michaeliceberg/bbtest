@@ -25,7 +25,11 @@ export async function GET(req: NextRequest) {
     const state = req.nextUrl.searchParams.get("state");
     const result = await finishLink(state);
 
-    const redirectUrl = new URL("/account", req.url);
+    // req.url за прокси может указывать на внутренний адрес сервера
+    // (например http://localhost:3001) — берём публичный домен из
+    // NEXTAUTH_URL, как это уже делает сам next-auth.
+    const baseUrl = process.env.NEXTAUTH_URL || req.nextUrl.origin;
+    const redirectUrl = new URL("/account", baseUrl);
     redirectUrl.searchParams.set("link", result.status);
 
     return withSessionCookie(NextResponse.redirect(redirectUrl), result);
