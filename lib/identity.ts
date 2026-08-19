@@ -36,34 +36,20 @@ export async function resolveCanonicalUserId(
     return { userId, isNew: true };
 }
 
-export type LinkResult =
-    | { status: 'linked' }
-    | { status: 'already-linked' }
-    | { status: 'conflict'; existingUserId: string };
-
 /**
- * Привязывает способ входа к УЖЕ АВТОРИЗОВАННОМУ аккаунту targetUserId.
- * Если способ уже привязан к ДРУГОМУ аккаунту с реальными данными —
- * не сливаем автоматически, возвращаем conflict.
+ * Осознанно "забирает" способ входа у другого аккаунта (даже если там был
+ * реальный прогресс) и привязывает его к targetUserId — используется только
+ * после явного подтверждения пользователя на конфликт (см. lib/link-finish.ts).
  */
-export async function linkIdentity(
+export async function forceRelinkIdentity(
     provider: Provider,
     providerAccountId: string,
     targetUserId: string
-): Promise<LinkResult> {
-    const existing = await db.query.identities.findFirst({
-        where: and(eq(identities.provider, provider), eq(identities.providerAccountId, providerAccountId)),
-    });
-
-    if (existing) {
-        if (existing.userId === targetUserId) {
-            return { status: 'already-linked' };
-        }
-        return { status: 'conflict', existingUserId: existing.userId };
-    }
-
-    await db.insert(identities).values({ provider, providerAccountId, userId: targetUserId });
-    return { status: 'linked' };
+): Promise<void> {
+    await db
+        .update(identities)
+        .set({ userId: targetUserId })
+        .where(and(eq(identities.provider, provider), eq(identities.providerAccountId, providerAccountId)));
 }
 
 export async function getLinkedProviders(userId: string): Promise<Provider[]> {

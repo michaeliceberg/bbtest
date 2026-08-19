@@ -1,26 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { finishLink, sessionCookieName } from "@/lib/link-finish";
 
-function withSessionCookie(response: NextResponse, result: Awaited<ReturnType<typeof finishLink>>) {
-    if ("newToken" in result) {
-        response.cookies.set(sessionCookieName(), result.newToken, {
-            path: "/",
-            httpOnly: true,
-            sameSite: "lax",
-            secure: process.env.NODE_ENV === "production",
-        });
-    }
-    return response;
-}
-
-// Вызывается клиентом после "тихого" входа (Telegram/звонок, signIn с redirect:false).
-export async function POST(req: NextRequest) {
-    const body = await req.json().catch(() => null);
-    const result = await finishLink(body?.state ?? null);
-    return withSessionCookie(NextResponse.json(result), result);
-}
-
-// Вызывается при возврате из VK OAuth (там вход возможен только полным редиректом).
+// Вызывается при возврате из signIn(provider, { callbackUrl }) — вход всегда
+// идёт полным редиректом (OAuth и виджеты не умеют иначе).
 export async function GET(req: NextRequest) {
     const state = req.nextUrl.searchParams.get("state");
     const result = await finishLink(state);
@@ -32,5 +14,21 @@ export async function GET(req: NextRequest) {
     const redirectUrl = new URL("/account", baseUrl);
     redirectUrl.searchParams.set("link", result.status);
 
-    return withSessionCookie(NextResponse.redirect(redirectUrl), result);
+    if (result.status === "conflict") {
+        redirectUrl.searchParams.set("conflictToken", result.conflictToken);
+        redirectUrl.searchParams.set("points", String(result.stats.points));
+        redirectUrl.searchParams.set("gems", String(result.stats.gems));
+        redirectUrl.searchParams.set("lessonsDone", String(result.stats.lessonsDone));
+    }
+
+    const response = NextResponse.redirect(redirectUrl);
+    if ("newToken" in result) {
+        response.cookies.set(sessionCookieName(), result.newToken, {
+            path: "/",
+            httpOnly: true,
+            sameSite: "lax",
+            secure: process.env.NODE_ENV === "production",
+        });
+    }
+    return response;
 }

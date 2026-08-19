@@ -4,20 +4,28 @@
 // способом через существующий signIn(provider, ...) — эта функция сверяет
 // результат с тем, кто инициировал привязку (через link-state-store), и
 // либо тихо переприкрепляет identity к исходному аккаунту (если новый вход
-// оказался "пустым", без прогресса), либо сообщает о конфликте и
-// откатывает сессию обратно на исходный аккаунт (ничего не сливаем молча).
+// оказался "пустым", без прогресса), либо откатывает сессию обратно и
+// предлагает пользователю осознанно подтвердить перепривязку (см.
+// lib/link-conflict-store.ts и /api/account/link/force).
 
 import { encode } from "next-auth/jwt";
 import db from "@/db/drizzle";
-import { userProgress, identities } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { getUserIdForLinkState } from "./link-state-store";
+import { userProgress, identities, challengeProgress } from "@/db/schema";
+import { eq, and, sql } from "drizzle-orm";
+import { consumeLinkState } from "./link-state-store";
+import { rememberConflict } from "./link-conflict-store";
 import { auth } from "./auth";
+
+export type ConflictStats = {
+    points: number;
+    gems: number;
+    lessonsDone: number;
+};
 
 export type FinishLinkResult =
     | { status: "already-linked" }
     | { status: "linked"; newToken: string }
-    | { status: "conflict"; newToken: string }
+    | { status: "conflict"; newToken: string; conflictToken: string; stats: ConflictStats }
     | { status: "expired" }
     | { status: "not-authenticated" };
 
@@ -30,8 +38,9 @@ export function sessionCookieName(): string {
 export async function finishLink(state: string | null): Promise<FinishLinkResult> {
     if (!state) return { status: "expired" };
 
-    const targetUserId = getUserIdForLinkState(state);
-    if (!targetUserId) return { status: "expired" };
+    const linkState = consumeLinkState(state);
+    if (!linkState) return { status: "expired" };
+    const { userId: targetUserId, provider } = linkState;
 
     const session = await auth();
     const justSignedInUserId = session?.user?.id;
@@ -41,29 +50,60 @@ export async function finishLink(state: string | null): Promise<FinishLinkResult
         return { status: "already-linked" };
     }
 
-    const buildRevertToken = () =>
-        encode({
-            token: {
-                id: targetUserId,
-                sub: targetUserId,
-                name: session!.user.name,
-                picture: session!.user.image,
-            },
-            secret: process.env.NEXTAUTH_SECRET!,
-        });
+    const revertToken = await encode({
+        token: {
+            id: targetUserId,
+            sub: targetUserId,
+            name: session!.user.name,
+            picture: session!.user.image,
+        },
+        secret: process.env.NEXTAUTH_SECRET!,
+    });
+
+    const identityRow = await db.query.identities.findFirst({
+        where: and(eq(identities.provider, provider), eq(identities.userId, justSignedInUserId)),
+    });
+    if (!identityRow) {
+        // Не должно случаться в норме — просто откатываем сессию как было.
+        return { status: "not-authenticated" };
+    }
 
     const existingProgress = await db.query.userProgress.findFirst({
         where: eq(userProgress.userId, justSignedInUserId),
     });
 
-    if (existingProgress) {
-        // У только что вошедшего способа уже есть свой реальный аккаунт —
-        // не сливаем данные молча, возвращаем сессию как было.
-        return { status: "conflict", newToken: await buildRevertToken() };
+    if (!existingProgress) {
+        // Пусто — безопасно переприкрепить этот способ входа к целевому аккаунту.
+        await db
+            .update(identities)
+            .set({ userId: targetUserId })
+            .where(and(eq(identities.provider, provider), eq(identities.providerAccountId, identityRow.providerAccountId)));
+
+        return { status: "linked", newToken: revertToken };
     }
 
-    // Пусто — безопасно переприкрепить этот способ входа к целевому аккаунту.
-    await db.update(identities).set({ userId: targetUserId }).where(eq(identities.userId, justSignedInUserId));
+    // У только что вошедшего способа уже есть свой реальный аккаунт — не
+    // сливаем данные молча. Показываем, что там есть, и даём пользователю
+    // осознанно решить, забрать ли этот способ себе (force-релинк).
+    const [{ value: lessonsDoneRaw }] = await db
+        .select({ value: sql<number>`count(*)` })
+        .from(challengeProgress)
+        .where(and(eq(challengeProgress.userId, justSignedInUserId), eq(challengeProgress.completed, true)));
 
-    return { status: "linked", newToken: await buildRevertToken() };
+    const conflictToken = rememberConflict({
+        targetUserId,
+        provider,
+        providerAccountId: identityRow.providerAccountId,
+    });
+
+    return {
+        status: "conflict",
+        newToken: revertToken,
+        conflictToken,
+        stats: {
+            points: existingProgress.points,
+            gems: existingProgress.gems,
+            lessonsDone: Number(lessonsDoneRaw) || 0,
+        },
+    };
 }
