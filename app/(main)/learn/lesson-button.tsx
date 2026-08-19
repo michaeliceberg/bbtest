@@ -3,7 +3,7 @@
 "use client";
 
 import Link from "next/link";
-import { Cake, CircleCheckBig, CircleX, Crown, Layers, Skull, Star, Lock, Target, Zap, Flame, Gift } from "lucide-react";
+import { Cake, CircleCheckBig, CircleX, Crown, Layers, Skull, Star, Lock, Zap, Flame, Gift } from "lucide-react";
 import { CircularProgressbarWithChildren } from "react-circular-progressbar";
 import 'react-circular-progressbar/dist/styles.css'
 import { Button } from "@/components/ui/button";
@@ -236,6 +236,13 @@ export const LessonButton = ({
                 </div>
 
                 <div className="pt-8 ml-4 max-w-[220px]">
+                    {isHwNumber > 0 && (
+                        <div className="mb-1.5 flex items-center gap-1">
+                            <Image src="/hwSvgs/donut.svg" height={18} width={18} alt="ДЗ" />
+                            <span className="text-xs font-bold text-amber-400">{isHwNumber}</span>
+                        </div>
+                    )}
+
                     <h1
                         className="inline-block px-3 py-1 rounded-full text-sm font-bold leading-none"
                         style={{
@@ -275,7 +282,7 @@ export const LessonButton = ({
                             className="mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1"
                             style={{ backgroundColor: `${LOCKED_ICON_COLOR}26`, color: LOCKED_ICON_COLOR }}
                         >
-                            <Target className="h-3.5 w-3.5" />
+                            <Lock className="h-3.5 w-3.5" />
                             <span className="text-xs font-semibold">
                                 Решите ещё {needMore} {declension(needMore, "задачу", "задачи", "задач")}
                             </span>
