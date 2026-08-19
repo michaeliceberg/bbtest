@@ -1,6 +1,6 @@
 'use client'
 
-import { BookOpen, Flame, Home, Trophy, TrendingUp, Award, ShoppingBag, ChevronDown, ChevronUp, GraduationCap, User as UserIcon, LogOut, Link2 } from 'lucide-react'
+import { BookOpen, Flame, Home, Trophy, TrendingUp, Award, ShoppingBag, ChevronDown, ChevronUp, GraduationCap, LogOut, Link2 } from 'lucide-react'
 import { Button } from './ui/button'
 import Link from 'next/link'
 import { TransitionLink } from '@/utils/TransitionLink'
@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import Image from 'next/image'
 import { switchCourse } from '@/actions/switch-course'
 import { useSession, signOut } from 'next-auth/react'
+import { UnitCardLottie } from '@/components/unit-card-lottie'
 
 // Форма курса, которую реально собирает и передаёт app/(main)/layout.tsx —
 // это не сырая строка таблицы courses, а агрегированные данные для сайдбара.
@@ -101,9 +102,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
             className="rounded-full flex-shrink-0"
           />
         ) : (
-          <div className="h-8 w-8 rounded-full bg-[#232F34] flex items-center justify-center flex-shrink-0">
-            <UserIcon className="h-4 w-4 text-[#9AA7B0]" />
-          </div>
+          <UnitCardLottie progress={0} size={32} className="rounded-full bg-[#232F34] flex-shrink-0" />
         )}
         <span className="text-sm text-[#F2F7FB] truncate flex-1 text-left">
           {session.user.name || 'Ученик'}
