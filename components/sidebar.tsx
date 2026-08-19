@@ -13,7 +13,7 @@ import { useSession, signOut } from 'next-auth/react'
 
 // Форма курса, которую реально собирает и передаёт app/(main)/layout.tsx —
 // это не сырая строка таблицы courses, а агрегированные данные для сайдбара.
-type SidebarCourse = {
+export type SidebarCourse = {
   id: number
   title: string
   imageSrc?: string

@@ -102,10 +102,17 @@ const MainLayout = async ({ children }: Props) => {
     console.log(`🔴 Активный курс ${activeCourseId}: hasTrainerQuest=${hasTrainerQuest}, trainerQuest=${activeTrainerQuest}`)
 
     
+    const activeCourseTitle = coursesWithData.find(c => c.id === activeCourseId)?.title
+
     return (
         <>
-            <MobileHeader />
-            <Sidebar 
+            <MobileHeader
+                courseTitle={activeCourseTitle}
+                courses={coursesWithData}
+                activeCourseId={activeCourseId}
+                hasTrainerQuest={hasTrainerQuest}
+            />
+            <Sidebar
                 className='hidden lg:flex'
                 courses={coursesWithData}
                 activeCourseId={activeCourseId}
