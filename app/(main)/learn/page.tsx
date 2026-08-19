@@ -219,7 +219,18 @@ const LearnPage = async () => {
 
   const bgSvgSrc = randomizeArray.slice(0, unitsWithFormattedLessons.length);
   const courseProgressPercent = courseProgressData?.progressPercent || 0;
-  const missedCIds: number[] = [];
+  // Задачи из активных (ещё не сданных) заданий — раздельно ДЗ от учителя
+  // (🍩) и челлендж дня (⚡), чтобы над названием урока была верная иконка.
+  const collectActiveChallengeIds = (type: 'teacher' | 'daily') =>
+    Array.from(
+      new Set(
+        activeHomework
+          .filter((hw) => hw.type === type)
+          .flatMap((hw) => (hw.challengeIds ? hw.challengeIds.split(',').map(Number) : []))
+      )
+    );
+  const teacherMissedCIds = collectActiveChallengeIds('teacher');
+  const dailyMissedCIds = collectActiveChallengeIds('daily');
 
   const currentPoints = userProgress.points;
   const currentGems = userProgress.gems;
@@ -283,7 +294,8 @@ const LearnPage = async () => {
                   imgSrc={unit.imageSrc}
                   RecomNumChallengesToday={recommendedToday}
                   bgSvgSrc={bgSvgSrc[index]}
-                  missedCIds={missedCIds}
+                  missedCIds={teacherMissedCIds}
+                  dailyMissedCIds={dailyMissedCIds}
                   homeworkStatusMap={homeworkStatusMap}
                   isUnlocked={unit.isUnlocked}
                   isCompleted={unit.isCompleted}

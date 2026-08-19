@@ -46,6 +46,7 @@ type Props = {
     RecomNumChallengesToday: number;
     bgSvgSrc: string,
     missedCIds: number[],
+    dailyMissedCIds?: number[],
     homeworkStatusMap: Map<number, { homeworkId: number; status: string; dueDate: Date; correctCount: number; totalCount: number }>;
     
     // Новые пропсы от родителя
@@ -73,6 +74,7 @@ export const Unit = ({
     RecomNumChallengesToday,
     bgSvgSrc,
     missedCIds,
+    dailyMissedCIds = [],
     homeworkStatusMap,
     isUnlocked = true,
     isCompleted = false,
@@ -149,7 +151,16 @@ export const Unit = ({
                     
                     // Для повторения: пройденные уроки тоже можно открыть, но сделаем их серыми
                     const isCompletedLesson = isLessonCompleted;
-                    
+
+                    // Самое срочное активное задание среди задач этого урока (если есть).
+                    const lessonChallengeIds = lesson.challenges.map(el => el.id);
+                    const lessonHomeworkStatuses = lessonChallengeIds
+                        .map(cid => homeworkStatusMap.get(cid))
+                        .filter((hw): hw is NonNullable<typeof hw> => !!hw);
+                    const homeworkStatus = lessonHomeworkStatuses.sort(
+                        (a, b) => a.dueDate.getTime() - b.dueDate.getTime()
+                    )[0] ?? null;
+
                     return (
                         <LessonButton
                             key={lesson.id}
@@ -157,13 +168,14 @@ export const Unit = ({
                             unitIndex={unitIndex}
                             index={index}
                             totalCount={lessons.length - 1}
-                            current={isCurrent} 
+                            current={isCurrent}
                             locked={isLessonLocked}
                             title={lesson.title}
                             lessonStat={lessonStat}
                             missedCIds={missedCIds}
-                            challengeIdsInLesson={lesson.challenges.map(el => el.id)}
-                            homeworkStatus={null}
+                            dailyMissedCIds={dailyMissedCIds}
+                            challengeIdsInLesson={lessonChallengeIds}
+                            homeworkStatus={homeworkStatus}
                             completed={isCompletedLesson}
                             // Дополнительные пропсы для отображения прогресса
                             needMore={CHALLENGES_TO_UNLOCK_NEXT_LESSON - lessonProgress.correct}

@@ -9,12 +9,14 @@ import 'react-circular-progressbar/dist/styles.css'
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { differenceInHours, isPast } from "date-fns";
+import { ThunderBadge } from "@/components/thunder-badge";
 import {
     getUnitButtonColor,
     LOCKED_BUTTON_COLOR,
     LOCKED_BUTTON_BOTTOM_COLOR,
     LOCKED_ICON_COLOR,
     ACTIVE_ICON_COLOR,
+    PALETTE_MINT,
 } from "@/src/constants/lessonButtonColors";
 
 interface lessonDone {
@@ -32,6 +34,7 @@ type Props = {
     title: string;
     lessonStat: Array<lessonDone>;
     missedCIds: number[];
+    dailyMissedCIds?: number[];
     challengeIdsInLesson: number[];
     homeworkStatus?: { homeworkId: number; status: string; dueDate: Date } | null;
     completed?: boolean;
@@ -55,6 +58,7 @@ export const LessonButton = ({
     title,
     lessonStat,
     missedCIds,
+    dailyMissedCIds = [],
     challengeIdsInLesson,
     homeworkStatus,
     completed,
@@ -68,11 +72,18 @@ export const LessonButton = ({
     challengesNeeded = 4,
 }: Props) => {
 
-    // Проверяем, есть ли в этом уроке нерешенные задачи из HW
+    // Проверяем, есть ли в этом уроке нерешенные задачи из ДЗ и/или челленджа дня
     let isHwNumber = 0;
     missedCIds.forEach(missChalId => {
         if (challengeIdsInLesson.includes(missChalId)) {
             isHwNumber += 1;
+        }
+    });
+
+    let isDailyNumber = 0;
+    dailyMissedCIds.forEach(missChalId => {
+        if (challengeIdsInLesson.includes(missChalId)) {
+            isDailyNumber += 1;
         }
     });
 
@@ -222,13 +233,19 @@ export const LessonButton = ({
                             />
 
                             {isHwNumber > 0 && (
-                                <Image 
-                                    src='/hwSvgs/donut.svg' 
-                                    height={40} 
-                                    width={40} 
-                                    alt='Mascot' 
+                                <Image
+                                    src='/hwSvgs/donut.svg'
+                                    height={40}
+                                    width={40}
+                                    alt='Mascot'
                                     className="absolute top-0 left-0 animate-bounce bg-[#151F23] rounded-2xl"
-                                />           
+                                />
+                            )}
+
+                            {isDailyNumber > 0 && (
+                                <div className="absolute top-0 right-0 bg-[#151F23] rounded-2xl p-1">
+                                    <ThunderBadge size={24} />
+                                </div>
                             )}
                         </Button>
                     </CircularProgressbarWithChildren>
@@ -236,10 +253,20 @@ export const LessonButton = ({
                 </div>
 
                 <div className="pt-8 ml-4 max-w-[220px]">
-                    {isHwNumber > 0 && (
-                        <div className="mb-1.5 flex items-center gap-1">
-                            <Image src="/hwSvgs/donut.svg" height={18} width={18} alt="ДЗ" />
-                            <span className="text-xs font-bold text-amber-400">{isHwNumber}</span>
+                    {(isHwNumber > 0 || isDailyNumber > 0) && (
+                        <div className="mb-1.5 flex items-center gap-3">
+                            {isHwNumber > 0 && (
+                                <div className="flex items-center gap-1">
+                                    <Image src="/hwSvgs/donut.svg" height={18} width={18} alt="ДЗ" />
+                                    <span className="text-xs font-bold text-amber-400">{isHwNumber}</span>
+                                </div>
+                            )}
+                            {isDailyNumber > 0 && (
+                                <div className="flex items-center gap-1">
+                                    <ThunderBadge size={18} />
+                                    <span className="text-xs font-bold" style={{ color: PALETTE_MINT.button }}>{isDailyNumber}</span>
+                                </div>
+                            )}
                         </div>
                     )}
 

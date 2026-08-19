@@ -22,6 +22,7 @@ import { usePracticeModal } from "@/store/use-practice-modal";
 import { Button } from "@/components/ui/button";
 import { useWrongAnswerModal } from "@/store/use-wronganswer-modal";
 import { useRightAnswerModal } from "@/store/use-rightanswer-modal";
+import { ThunderBadge } from "@/components/thunder-badge";
 
 type Props = {
     initialPercentage: number
@@ -37,6 +38,7 @@ type Props = {
     oldCourseProgress: SuperType
     activeCourseTitle: string
     hwChallengeIds?: number[]
+    dailyChallengeIds?: number[]
     courseId: number
     unitColor: { button: string; bottom: string }
 }
@@ -85,6 +87,7 @@ export const Quiz = ({
     oldCourseProgress,
     activeCourseTitle,
     hwChallengeIds,
+    dailyChallengeIds,
     courseId,
     unitColor,
 }: Props) => {
@@ -493,11 +496,13 @@ export const Quiz = ({
                     style={{ gridTemplateColumns: `repeat(${menuColumns}, minmax(0, 1fr))` }}
                 >
                     {challenges.map((challengeItem) => {
-                        const isHW = hwChallengeIds?.includes(challengeItem.id) ?? false;
+                        const isDaily = dailyChallengeIds?.includes(challengeItem.id) ?? false;
+                        const isTeacherHW = !isDaily && (hwChallengeIds?.includes(challengeItem.id) ?? false);
                         const isDone = doneChallengesId.includes(challengeItem.id);
                         const isWrong = wrongChallengesId.includes(challengeItem.id);
                         const isActive = Number(activeIndex) === challengeItem.id;
-                        const showDonut = isHW && !isDone;
+                        const showDonut = isTeacherHW && !isDone;
+                        const showThunder = isDaily && !isDone;
 
                         const bg = isWrong ? 'rgba(244,63,94,0.14)' : isDone ? 'rgba(74,222,128,0.14)' : '#1A252B';
                         const color = isWrong ? '#fb7185' : isDone ? '#4ade80' : '#9AA7B0';
@@ -516,6 +521,11 @@ export const Quiz = ({
 
                                 {showDonut && (
                                     <span className="absolute -top-1.5 -right-1 text-[10px]">🍩</span>
+                                )}
+                                {showThunder && (
+                                    <span className="absolute -top-2 -right-2">
+                                        <ThunderBadge size={16} />
+                                    </span>
                                 )}
                             </button>
                         );

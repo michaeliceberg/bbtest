@@ -9,6 +9,7 @@ import { Progress } from './ui/progress';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PALETTE_RED, PALETTE_MINT } from '@/src/constants/lessonButtonColors';
+import { ThunderBadge } from './thunder-badge';
 
 type Homework = {
     id: number;
@@ -113,9 +114,9 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
                 <div className="flex items-start justify-between">
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                            <div className="rounded-full p-1.5 shadow-sm" style={{ backgroundColor: stateColor }}>
+                            <div className="rounded-full p-1.5 shadow-sm flex items-center justify-center" style={{ backgroundColor: stateColor }}>
                                 {hw.type === 'daily' ? (
-                                    <Zap className="h-3.5 w-3.5 text-white" />
+                                    <ThunderBadge size={14} />
                                 ) : (
                                     <BookOpen className="h-3.5 w-3.5 text-white" />
                                 )}

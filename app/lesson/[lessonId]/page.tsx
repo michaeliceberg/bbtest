@@ -41,21 +41,21 @@ const LessonIdPage = async ({ params }: Props) => {
     const todayStats = await getTodayStats(activeCourseId)
     const allHomework = await getUserHomework(userId, activeCourseId)
     const activeHomework = allHomework.filter(h => h.status === 'pending')
-    
-    let hwChallengeIds: number[] = []
-    for (const hw of activeHomework) {
-        // 🔥 Проверяем challengeIds (задачник)
-        if (hw.challengeIds) {
-            const ids = hw.challengeIds.split(',').map(id => parseInt(id))
-            hwChallengeIds.push(...ids)
+
+    // Разделяем на ДЗ от учителя (🍩) и челлендж дня (⚡) — это разные вещи
+    // визуально, хоть обе и попадают в этот список активных заданий.
+    const collectChallengeIds = (list: typeof activeHomework) => {
+        const ids: number[] = []
+        for (const hw of list) {
+            if (hw.challengeIds) ids.push(...hw.challengeIds.split(',').map(id => parseInt(id)))
+            if (hw.tLessonIds) ids.push(...hw.tLessonIds.split(',').map(id => parseInt(id)))
         }
-        // 🔥 Проверяем tLessonIds (тренажер)
-        if (hw.tLessonIds) {
-            const ids = hw.tLessonIds.split(',').map(id => parseInt(id))
-            hwChallengeIds.push(...ids)
-        }
+        return Array.from(new Set(ids))
     }
-    hwChallengeIds = Array.from(new Set(hwChallengeIds))
+
+    const teacherHwChallengeIds = collectChallengeIds(activeHomework.filter(hw => hw.type === 'teacher'))
+    const dailyChallengeIds = collectChallengeIds(activeHomework.filter(hw => hw.type === 'daily'))
+    const hwChallengeIds = Array.from(new Set([...teacherHwChallengeIds, ...dailyChallengeIds]))
 
     const initialHearts = userProgress.hearts
     const initialPercentage = lesson.challenges.filter(c => c.completed).length / lesson.challenges.length * 100
@@ -80,6 +80,7 @@ const LessonIdPage = async ({ params }: Props) => {
             oldCourseProgress={oldCourseProgress}
             activeCourseTitle={activeCourseTitle}
             hwChallengeIds={hwChallengeIds}
+            dailyChallengeIds={dailyChallengeIds}
             courseId={activeCourseId}
             unitColor={unitColor}
         />
