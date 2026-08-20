@@ -27,10 +27,12 @@ export const ParentBindCode = ({ userId, userName }: Props) => {
     const shareLink = async () => {
         if (navigator.share) {
             try {
+                // Некоторые приложения (в т.ч. Telegram) при получении Web Share
+                // с раздельными text и url показывают только text, а url теряется —
+                // поэтому ссылку кладём прямо в текст одним полем.
                 await navigator.share({
                     title: 'Привязка родителя',
-                    text: 'Перейдите по ссылке в своём Telegram, чтобы получать уведомления о моей учёбе:',
-                    url: bindLink,
+                    text: `Перейдите по ссылке в своём Telegram, чтобы получать уведомления о моей учёбе:\n${bindLink}`,
                 });
                 return;
             } catch {
