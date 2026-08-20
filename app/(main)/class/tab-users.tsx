@@ -151,10 +151,14 @@ type Props = {
     }: Props) => {
 
 
+if (allClasses.length === 0) {
+    return null
+}
+
 return(
 
     <div className="flex pt-10">
-        
+
 
         <Tabs defaultValue={allClasses[0].title} className="pt-5      flex items-center flex-col relative ">
     

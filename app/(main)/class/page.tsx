@@ -5,6 +5,7 @@ import { getAllClassHW, getAllClasses, getAllTLessonProgress, getAllUsers, getCh
 import Image from "next/image"
 import { redirect } from "next/navigation"
 import { TabUsers } from "./tab-users"
+import { ManageClasses } from "./manage-classes"
 import { ProgressHeatmap } from "@/components/progress-heatmap"
 
 const ClassroomPage = async () => {
@@ -161,7 +162,7 @@ const ClassroomPage = async () => {
 
                     <Separator className="mb-4 h-0.5 rounded-full" />
 
-
+                    <ManageClasses allUsers={allUsers} allClasses={allClasses} />
 
 
 
