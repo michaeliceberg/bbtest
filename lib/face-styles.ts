@@ -27,88 +27,6 @@ function numberedVariants(count: number): string[] {
     return Array.from({ length: count }, (_, i) => `variant${String(i + 1).padStart(2, '0')}`);
 }
 
-const AVATAAARS: FaceStyle = {
-    id: 'avataaars',
-    label: 'Классический',
-    categories: [
-        {
-            key: 'top', label: 'Причёска', type: 'style',
-            options: [
-                'shortFlat', 'shortRound', 'shortWaved', 'shortCurly', 'sides', 'theCaesar', 'theCaesarAndSidePart',
-                'bob', 'bun', 'curly', 'curvy', 'dreads', 'dreads01', 'dreads02', 'frida', 'fro', 'froBand',
-                'longButNotTooLong', 'miaWallace', 'shavedSides', 'straight01', 'straight02', 'straightAndStrand',
-                'frizzle', 'shaggy', 'shaggyMullet', 'bigHair',
-                'hat', 'hijab', 'turban', 'winterHat1', 'winterHat02', 'winterHat03', 'winterHat04',
-            ],
-        },
-        {
-            key: 'hairColor', label: 'Цвет волос', type: 'color',
-            options: ['a55728', '2c1b18', 'b58143', 'd6b370', '724133', '4a312c', 'f59797', 'ecdcbf', 'c93305', 'e8e1e1'],
-        },
-        {
-            key: 'skinColor', label: 'Цвет кожи', type: 'color',
-            options: ['614335', 'd08b5b', 'ae5d29', 'edb98a', 'ffdbb4', 'fd9841', 'f8d25c'],
-        },
-        {
-            key: 'eyebrows', label: 'Брови', type: 'style',
-            options: [
-                'default', 'defaultNatural', 'angry', 'angryNatural', 'flatNatural', 'frownNatural',
-                'raisedExcited', 'raisedExcitedNatural', 'sadConcerned', 'sadConcernedNatural', 'unibrowNatural', 'upDown', 'upDownNatural',
-            ],
-        },
-        {
-            key: 'eyes', label: 'Глаза', type: 'style',
-            options: ['default', 'happy', 'side', 'squint', 'surprised', 'wink', 'winkWacky', 'closed', 'cry', 'eyeRoll', 'hearts', 'xDizzy'],
-        },
-        {
-            key: 'mouth', label: 'Рот', type: 'style',
-            options: ['smile', 'default', 'twinkle', 'serious', 'concerned', 'disbelief', 'eating', 'grimace', 'sad', 'screamOpen', 'tongue', 'vomit'],
-        },
-        {
-            key: 'facialHair', label: 'Борода', type: 'style', optional: true,
-            options: ['beardLight', 'beardMedium', 'beardMajestic', 'moustacheFancy', 'moustacheMagnum'],
-        },
-        {
-            key: 'accessories', label: 'Очки', type: 'style', optional: true,
-            options: ['round', 'prescription01', 'prescription02', 'sunglasses', 'wayfarers', 'kurt', 'eyepatch'],
-        },
-        {
-            key: 'clothing', label: 'Одежда', type: 'style',
-            options: ['hoodie', 'graphicShirt', 'shirtCrewNeck', 'shirtScoopNeck', 'shirtVNeck', 'collarAndSweater', 'blazerAndShirt', 'blazerAndSweater', 'overall'],
-        },
-        {
-            key: 'clothesColor', label: 'Цвет одежды', type: 'color',
-            options: ['65c9ff', '5199e4', '25557c', '262e33', 'e6e6e6', '929598', '3c4f5c', 'b1e2ff', 'a7ffc4', 'ffafb9', 'ffffb1', 'ff488e', 'ff5c5c', 'ffffff'],
-        },
-    ],
-    defaults: {
-        top: 'shortFlat', hairColor: '4a312c', skinColor: 'edb98a', eyebrows: 'default', eyes: 'default',
-        mouth: 'smile', facialHair: null, accessories: null, clothing: 'hoodie', clothesColor: '65c9ff',
-    },
-};
-
-const MICAH: FaceStyle = {
-    id: 'micah',
-    label: 'Дружелюбный',
-    categories: [
-        { key: 'hair', label: 'Причёска', type: 'style', options: ['fonze', 'mrT', 'dougFunny', 'mrClean', 'dannyPhantom', 'full', 'turban', 'pixie'] },
-        { key: 'hairColor', label: 'Цвет волос', type: 'color', options: ['000000', '77311d', 'ac6651', 'f4d150', '9287ff', '6bd9e9', 'e0ddff'] },
-        { key: 'baseColor', label: 'Цвет кожи', type: 'color', options: ['f9c9b6', 'ac6651', '77311d'] },
-        { key: 'eyebrows', label: 'Брови', type: 'style', options: ['up', 'down', 'eyelashesUp', 'eyelashesDown'] },
-        { key: 'eyes', label: 'Глаза', type: 'style', options: ['eyes', 'round', 'eyesShadow', 'smiling', 'smilingShadow'] },
-        { key: 'mouth', label: 'Рот', type: 'style', options: ['smile', 'laughing', 'surprised', 'nervous', 'sad', 'pucker', 'frown', 'smirk'] },
-        { key: 'nose', label: 'Нос', type: 'style', options: ['curve', 'pointed', 'tound'] },
-        { key: 'facialHair', label: 'Борода', type: 'style', optional: true, options: ['beard', 'scruff'] },
-        { key: 'glasses', label: 'Очки', type: 'style', optional: true, options: ['round', 'square'] },
-        { key: 'shirt', label: 'Одежда', type: 'style', options: ['open', 'crew', 'collared'] },
-        { key: 'shirtColor', label: 'Цвет одежды', type: 'color', options: ['65c9ff', '9287ff', 'f4d150', '6bd9e9', 'fc909f', '000000', 'ffffff'] },
-    ],
-    defaults: {
-        hair: 'full', hairColor: '77311d', baseColor: 'f9c9b6', eyebrows: 'up', eyes: 'eyes',
-        mouth: 'smile', nose: 'curve', facialHair: null, glasses: null, shirt: 'crew', shirtColor: '65c9ff',
-    },
-};
-
 const BOTTTS: FaceStyle = {
     id: 'bottts-neutral',
     label: 'Робот',
@@ -137,38 +55,54 @@ const ADVENTURER: FaceStyle = {
     defaults: { eyebrows: 'variant01', eyes: 'variant01', mouth: 'variant01', glasses: null },
 };
 
-const FUN_EMOJI: FaceStyle = {
-    id: 'fun-emoji',
-    label: 'Эмодзи',
+const VOXEL_ART: FaceStyle = {
+    id: 'voxel-art',
+    label: 'Воксель',
     categories: [
         {
-            key: 'eyes', label: 'Глаза', type: 'style',
-            options: ['sad', 'tearDrop', 'pissed', 'cute', 'wink', 'wink2', 'plain', 'glasses', 'closed', 'love', 'stars', 'shades', 'closed2', 'crying', 'sleepClose'],
+            key: 'top', label: 'Причёска', type: 'style',
+            options: [
+                'short', 'spiky', 'bowl', 'sideSwept', 'curly', 'mohawk', 'buns', 'ponytail', 'bob',
+                'shoulderLength', 'longStraight', 'longWavy', 'partedLong', 'braids', 'twinTails',
+                'cap', 'beanie', 'animalEars', 'bunnyEars', 'afro', 'halfShaved',
+            ],
         },
-        {
-            key: 'mouth', label: 'Рот', type: 'style',
-            options: ['plain', 'lilSmile', 'sad', 'shy', 'cute', 'wideSmile', 'shout', 'smileTeeth', 'smileLol', 'pissed', 'drip', 'tongueOut', 'kissHeart', 'sick', 'faceMask'],
-        },
+        { key: 'hairColor', label: 'Цвет волос', type: 'color', options: ['2c222b', '3b2f2f', '5a3825', '7b4a2d', 'a56b46', 'c98850', 'd9b380', 'e8d4a8', 'b55239', 'd6455d', '6d5acf', '3fb27f'] },
+        { key: 'skinColor', label: 'Цвет кожи', type: 'color', options: ['f5d0b0', 'eab890', 'dda878', 'c99062', 'b07347', '95562f', '7d4a26', '6a3d1f'] },
+        { key: 'eyebrows', label: 'Брови', type: 'style', options: ['flat', 'raised', 'angry', 'soft'] },
+        { key: 'eyes', label: 'Глаза', type: 'style', options: ['open', 'soft', 'happy', 'sleepy', 'side', 'closed', 'wide', 'star'] },
+        { key: 'nose', label: 'Нос', type: 'style', options: ['block', 'wide', 'small', 'tall'] },
+        { key: 'mouth', label: 'Рот', type: 'style', options: ['smile', 'bigSmile', 'flat', 'ooh', 'tongue', 'smirk', 'laugh', 'wideSmile', 'frown', 'grin'] },
+        { key: 'cheeks', label: 'Щёки', type: 'style', optional: true, options: ['blush', 'pixel', 'freckles'] },
+        { key: 'beard', label: 'Борода', type: 'style', optional: true, options: ['full', 'mustache', 'goatee', 'stubble'] },
+        { key: 'glasses', label: 'Очки', type: 'style', optional: true, options: ['round', 'square', 'shades', 'cat', 'visor'] },
+        { key: 'outfit', label: 'Одежда', type: 'style', options: ['plain', 'stripes', 'jacket', 'checker', 'overalls', 'hoodie', 'tie', 'coat', 'dress', 'suit'] },
+        { key: 'shirtColor', label: 'Цвет одежды', type: 'color', options: ['e64980', 'f76707', 'fab005', '40c057', '12b886', '228be6', '4c6ef5', '7950f2', 'e8590c', '495057'] },
     ],
-    defaults: { eyes: 'cute', mouth: 'wideSmile' },
+    defaults: {
+        top: 'short', hairColor: '3b2f2f', skinColor: 'eab890', eyebrows: 'flat', eyes: 'happy', nose: 'block',
+        mouth: 'smile', cheeks: null, beard: null, glasses: null, outfit: 'hoodie', shirtColor: '228be6',
+    },
 };
 
-const CRITTERS: FaceStyle = {
-    id: 'critters',
-    label: 'Зверёк',
+const CLAY: FaceStyle = {
+    id: 'clay',
+    label: 'Пластилин',
     categories: [
         {
             key: 'top', label: 'Голова', type: 'style',
-            options: ['horns', 'hornsIn', 'hornsSmall', 'spike', 'antenna', 'antennae', 'earsRound', 'earsPointy', 'earsDroop', 'spikes', 'fin', 'crown', 'sprout', 'nub', 'bobble'],
+            options: ['horns', 'hornsSmall', 'nub', 'curl', 'spikes', 'antenna', 'loop', 'peak', 'ears', 'crest', 'swirl', 'pellet', 'tuft'],
         },
         {
             key: 'body', label: 'Тело', type: 'style',
-            options: ['dome', 'block', 'tower', 'chimney', 'squat', 'blob', 'round', 'tilt', 'lean', 'peak', 'bell', 'wedge', 'wedgeInv', 'steps'],
+            options: ['pear', 'boulder', 'loaf', 'column', 'stack', 'gumdrop', 'dollop', 'slug', 'egg', 'blob', 'bell', 'cube', 'squat', 'lean'],
         },
-        { key: 'eyes', label: 'Глаза', type: 'style', options: numberedVariants(19) },
-        { key: 'mouth', label: 'Рот', type: 'style', options: numberedVariants(19) },
-        { key: 'pattern', label: 'Узор', type: 'style', optional: true, options: ['belly', 'dots', 'speckles', 'bar', 'bars', 'spot', 'stripes', 'dotRow', 'chevron', 'ring'] },
-        { key: 'cheeks', label: 'Щёчки', type: 'style', optional: true, options: ['blush', 'blushBig', 'freckles'] },
+        { key: 'eyes', label: 'Глаза', type: 'style', options: ['googly', 'even', 'big', 'tiny', 'mono', 'trio', 'side', 'outward', 'inward', 'dots', 'happy', 'wink', 'down', 'up', 'pinprick'] },
+        {
+            key: 'mouth', label: 'Рот', type: 'style',
+            options: ['teeth', 'smile', 'o', 'frown', 'line', 'wavy', 'open', 'toothy', 'tongue', 'pout', 'grin', 'smirk', 'zigzag', 'dot', 'laugh', 'cat', 'smileBig', 'uu', 'openSmall', 'smileTongue'],
+        },
+        { key: 'pattern', label: 'Узор', type: 'style', optional: true, options: ['spiral', 'prints', 'pellets', 'buttons', 'stitches', 'patch', 'coil', 'freckles', 'checker', 'zig'] },
         {
             key: 'bodyColor', label: 'Цвет тела', type: 'color',
             options: ['7dd3fc', 'a5b4fc', 'c4b5fd', 'f0abfc', 'fda4af', 'fca5a5', 'fdba74', 'fcd34d', 'bef264', '6ee7b9', '5eead4', 'e2e8f0'],
@@ -183,12 +117,12 @@ const CRITTERS: FaceStyle = {
         },
     ],
     defaults: {
-        top: 'earsRound', body: 'round', eyes: 'variant01', mouth: 'variant01',
-        pattern: null, cheeks: 'blush', bodyColor: '7dd3fc', accentColor: 'fcd34d', backgroundColor: '0369a1',
+        top: 'nub', body: 'blob', eyes: 'happy', mouth: 'smile',
+        pattern: null, bodyColor: '7dd3fc', accentColor: 'fcd34d', backgroundColor: '0369a1',
     },
 };
 
-export const FACE_STYLES: FaceStyle[] = [AVATAAARS, MICAH, BOTTTS, ADVENTURER, FUN_EMOJI, CRITTERS];
+export const FACE_STYLES: FaceStyle[] = [BOTTTS, ADVENTURER, VOXEL_ART, CLAY];
 
 export function findFaceStyle(id: string): FaceStyle {
     return FACE_STYLES.find((s) => s.id === id) ?? FACE_STYLES[0];
@@ -214,13 +148,6 @@ export function buildFaceUrl(styleId: string, selections: Record<string, string 
             params.set(`${category.key}Variant`, value);
             params.set(`${category.key}Probability`, '100');
         }
-    }
-
-    if (style.id === 'avataaars' && selections.facialHair) {
-        params.set('facialHairColor', selections.hairColor ?? '2c1b18');
-    }
-    if (style.id === 'micah' && selections.facialHair) {
-        params.set('facialHairColor', selections.hairColor ?? '000000');
     }
 
     return `https://api.dicebear.com/10.x/${style.id}/svg?${params.toString()}`;
