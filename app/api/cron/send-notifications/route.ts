@@ -80,17 +80,20 @@ export async function GET(req: Request) {
             ),
         });
         
-        if (parent) {
+        // Не уведомляем повторно, если уже писали за последние 24 часа —
+        // иначе при каждом запуске крона родителю будет прилетать то же
+        // сообщение заново, пока ДЗ остаётся просроченным.
+        if (parent && (!parent.lastNotifiedAt || parent.lastNotifiedAt < new Date(now.getTime() - 24 * 60 * 60 * 1000))) {
             const student = await db.query.userProgress.findFirst({
                 where: eq(userProgress.userId, studentId),
             });
-            
+
             const totalExpired = homeworkList.length;
             // 🔥 ИСПРАВЛЕНО: добавлены типы для параметров reduce
             const totalTasks = homeworkList.reduce((sum: number, hw: Homework) => {
                 return sum + (hw.totalCount - (hw.correctCount || 0));
             }, 0);
-            
+
             const message = `⚠️ *ВНИМАНИЕ! ПРОСРОЧЕННЫЕ ДЗ!*\n\n` +
                 `У вашего ребенка *${student?.userName}* есть просроченные домашние задания!\n\n` +
                 `📚 *Просрочено ДЗ:* ${totalExpired}\n` +
@@ -108,8 +111,7 @@ export async function GET(req: Request) {
     }
     
     // Отправляем уведомления о ДЗ, срок которых истекает
-    // for (const [studentId, homeworkList] of studentsWithExpiring) {
-        for (const [studentId, homeworkList] of Array.from(studentsWithExpired)) {
+    for (const [studentId, homeworkList] of Array.from(studentsWithExpiring.entries())) {
         const parent = await db.query.parentLinks.findFirst({
             where: and(
                 eq(parentLinks.studentId, studentId),
