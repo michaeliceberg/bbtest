@@ -7,12 +7,13 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 const TELEGRAM_BOT_TOKEN = "7675525540:AAGy9BBsi54zeaFFs2Jt9k_PR2ofrRnGUQ8";
+const TELEGRAM_API_BASE = process.env.TELEGRAM_API_BASE || "https://api.telegram.org";
 
 export async function GET() {
     const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/telegram/webhook`;
-    
+
     const response = await fetch(
-        `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook?url=${webhookUrl}`
+        `${TELEGRAM_API_BASE}/bot${TELEGRAM_BOT_TOKEN}/setWebhook?url=${webhookUrl}`
     );
     const data = await response.json();
     

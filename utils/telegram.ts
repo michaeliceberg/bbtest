@@ -5,8 +5,15 @@ import axios from "axios";
 const TELEGRAM_BOT_TOKEN = "7675525540:AAGy9BBsi54zeaFFs2Jt9k_PR2ofrRnGUQ8";
 export const BOT_USERNAME = "brickbrain007_bot";
 
+// На сервере api.telegram.org недоступен напрямую (заблокирован у хостера) —
+// TELEGRAM_API_BASE указывает на прокси (Cloudflare Worker), который просто
+// пересылает запрос дальше. В браузере эта переменная всегда пустая (не
+// NEXT_PUBLIC_), так что клиентские вызовы (см. tg-send-msg-com.tsx) как и
+// раньше идут напрямую в Telegram — там блокировки нет.
+const TELEGRAM_API_BASE = process.env.TELEGRAM_API_BASE || "https://api.telegram.org";
+
 export const sendMessageToTelegram = async (message: string, chatId?: string): Promise<void> => {
-    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    const url = `${TELEGRAM_API_BASE}/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
     const targetChatId = chatId || "1005641275";
 
     try {
