@@ -5,7 +5,7 @@ import { getUserProgress } from '@/db/queries'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import { AccountLinking } from '@/components/account-linking'
-import { AvatarPicker } from '@/components/avatar-picker'
+import { FaceBuilder } from '@/components/face-builder'
 import { NameEditor } from '@/components/name-editor'
 import { ParentBindCode } from '@/components/parent-bind-code'
 
@@ -27,7 +27,7 @@ const AccountPage = async () => {
                 <h2 className="font-bold text-lg text-[#F2F7FB] mb-3">Профиль</h2>
                 <div className="flex flex-col gap-4">
                     <NameEditor currentName={userProgress.userName} />
-                    <AvatarPicker currentAvatar={userProgress.userImageSrc} />
+                    <FaceBuilder currentAvatar={userProgress.userImageSrc} />
                 </div>
             </div>
 
