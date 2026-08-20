@@ -3,7 +3,7 @@
 import { MobileHeader } from '@/components/mobile-header'
 import { Sidebar } from '@/components/sidebar'
 import { auth } from '@/lib/server-auth'
-import { getUserCourses, getUserCourseStreak, getUserHomework, getTodayTrainerQuest } from '@/db/queries'
+import { getUserCourses, getUserCourseStreak, getUserHomework, getTodayTrainerQuest, getUserProgress } from '@/db/queries'
 import { cookies } from 'next/headers'
 
 import 'katex/dist/katex.min.css'
@@ -13,7 +13,7 @@ type Props = { children: React.ReactNode }
 const MainLayout = async ({ children }: Props) => {
     const session = await auth()
     const userId = session?.user?.id
-    
+
     if (!userId) {
         return (
             <>
@@ -25,15 +25,19 @@ const MainLayout = async ({ children }: Props) => {
             </>
         )
     }
-    
+
+    // Профиль (имя/аватар) — источник правды для сайдбара, а не сессия
+    // NextAuth, которая обновляется только при новом входе.
+    const userProgressRow = await getUserProgress()
+
     // Получаем доступные курсы пользователя
     const allCourses = await getUserCourses()
-    
+
     if (!allCourses.length) {
         return (
             <>
                 <MobileHeader />
-                <Sidebar className='hidden lg:flex' />
+                <Sidebar className='hidden lg:flex' userName={userProgressRow?.userName} userImageSrc={userProgressRow?.userImageSrc} />
                 <main className='lg:pl-[280px] h-full pt-[50px] lg:pt-0'>
                     <div className='max-w-[1056px] mx-auto pt-6 h-full'>{children}</div>
                 </main>
@@ -119,6 +123,8 @@ const MainLayout = async ({ children }: Props) => {
                 hasHomework={hasHomework}
                 hasTrainerQuest={hasTrainerQuest}
                 trainerQuestProgress={trainerQuestProgress}
+                userName={userProgressRow?.userName}
+                userImageSrc={userProgressRow?.userImageSrc}
             />
             <main className='lg:pl-[280px] h-full pt-[50px] lg:pt-0'>
                 <div className='max-w-[1056px] mx-auto pt-6 h-full'>{children}</div>

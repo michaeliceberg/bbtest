@@ -21,7 +21,6 @@ import { Quests } from '@/components/quests';
 import { HomeworkList } from '@/components/homework-list';
 import { auth } from '@/lib/server-auth';
 import { recalculateDailyStats } from '@/actions/recalculate-daily-stats';
-import { ParentBindCode } from '@/components/parent-bind-code';
 import { cookies } from 'next/headers';
 import { getCourseUnitsWithProgress } from '@/lib/lesson-access';
 import { LearnWrapper } from '@/components/learn-wrapper';
@@ -252,9 +251,7 @@ const LearnPage = async () => {
             hasActiveSubscription={false}
           />
 
-          <ParentBindCode userId={userId} userName={userProgress.userName} />
-
-          <HomeworkList 
+          <HomeworkList
             activeHomework={activeHomework}
             expiredHomework={expiredHomework}
             completedHomework={completedHomework}

@@ -1,6 +1,6 @@
 'use client'
 
-import { BookOpen, Flame, Home, Trophy, TrendingUp, Award, ShoppingBag, ChevronDown, ChevronUp, GraduationCap, LogOut, Link2 } from 'lucide-react'
+import { BookOpen, Flame, Home, Trophy, TrendingUp, Award, ShoppingBag, ChevronDown, ChevronUp, GraduationCap, LogOut, Settings } from 'lucide-react'
 import { Button } from './ui/button'
 import Link from 'next/link'
 import { TransitionLink } from '@/utils/TransitionLink'
@@ -30,9 +30,13 @@ interface SidebarProps {
   hasHomework?: boolean
   trainerQuestProgress?: string
   className?: string
+  // Профиль из userProgress — источник правды, в отличие от сессии
+  // NextAuth, которая обновляется только при новом входе.
+  userName?: string
+  userImageSrc?: string
 }
 
-export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest = false, className }: SidebarProps) => {
+export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest = false, className, userName, userImageSrc }: SidebarProps) => {
   const pathname = usePathname()
   const router = useRouter()
   const { data: session } = useSession()
@@ -75,8 +79,8 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
               onClick={() => setIsUserMenuOpen(false)}
               className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-[#F2F7FB] hover:bg-[#232F34] transition-colors"
             >
-              <Link2 className="h-4 w-4" />
-              Способы входа
+              <Settings className="h-4 w-4" />
+              Настройки
             </button>
           </TransitionLink>
           <button
@@ -93,19 +97,20 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
         onClick={() => setIsUserMenuOpen((open) => !open)}
         className="w-full flex items-center gap-2 p-3 rounded-lg hover:bg-[#232F34] transition-colors"
       >
-        {session.user.image ? (
-          <Image
-            src={session.user.image}
+        {userImageSrc || session.user.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={userImageSrc || session.user.image || ''}
             alt=""
             width={32}
             height={32}
-            className="rounded-full flex-shrink-0"
+            className="rounded-full flex-shrink-0 w-8 h-8 object-cover bg-[#232F34]"
           />
         ) : (
           <UnitCardLottie progress={0} size={32} className="rounded-full bg-[#232F34] flex-shrink-0" />
         )}
         <span className="text-sm text-[#F2F7FB] truncate flex-1 text-left">
-          {session.user.name || 'Ученик'}
+          {userName || session.user.name || 'Ученик'}
         </span>
       </button>
     </div>
