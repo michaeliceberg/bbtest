@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { Button } from './ui/button';
 import { generateBindCode, getBindLink, BOT_USERNAME } from '@/utils/telegram';
-import { Users, Copy, Check, Send } from 'lucide-react';
+import { Users, Copy, Check, Share2, TriangleAlert } from 'lucide-react';
 
 type Props = {
     userId: string;
@@ -24,6 +24,23 @@ export const ParentBindCode = ({ userId, userName }: Props) => {
         setTimeout(() => setCopied(false), 2000);
     };
 
+    const shareLink = async () => {
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: 'Привязка родителя',
+                    text: 'Перейдите по ссылке в своём Telegram, чтобы получать уведомления о моей учёбе:',
+                    url: bindLink,
+                });
+                return;
+            } catch {
+                // пользователь отменил шаринг — просто ничего не делаем
+                return;
+            }
+        }
+        copyToClipboard();
+    };
+
     return (
         <div className="rounded-xl border border-[#3A464E] bg-[#151F23] shadow-sm p-4 space-y-3">
             <h3 className="font-bold text-[#F2F7FB] flex items-center gap-2">
@@ -31,14 +48,17 @@ export const ParentBindCode = ({ userId, userName }: Props) => {
                 Родителям
             </h3>
             <p className="text-sm text-[#9AA7B0]">
-                Отправьте родителям ссылку — она сама откроет Telegram и привяжет аккаунт, вводить ничего не нужно.
+                Отправьте эту ссылку родителю — когда он откроет её в СВОЁМ Telegram, аккаунт привяжется сам, вводить ничего не нужно.
             </p>
 
-            <Button asChild variant="secondary" className="w-full">
-                <a href={bindLink} target="_blank" rel="noopener noreferrer">
-                    <Send className="h-4 w-4 mr-2" />
-                    Открыть в Telegram и привязать
-                </a>
+            <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 text-amber-400 text-xs px-3 py-2">
+                <TriangleAlert className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                <span>Не открывайте её сами — иначе привяжете свой же Telegram к себе.</span>
+            </div>
+
+            <Button type="button" variant="secondary" className="w-full" onClick={shareLink}>
+                <Share2 className="h-4 w-4 mr-2" />
+                Отправить ссылку родителю
             </Button>
 
             <div className="flex items-center gap-2">

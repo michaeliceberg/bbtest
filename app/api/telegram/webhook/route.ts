@@ -70,6 +70,23 @@ async function performBind(chatId: string, firstName: string, rawCode: string | 
         return;
     }
 
+    // Защита от случайного самопривязывания: если ЭТОТ Telegram уже
+    // используется как способ входа в приложение у ТОГО ЖЕ ученика,
+    // значит ссылку открыл сам ученик, а не родитель.
+    const selfIdentity = await db.query.identities.findFirst({
+        where: and(eq(identities.provider, 'telegram'), eq(identities.providerAccountId, chatId)),
+    });
+    if (selfIdentity?.userId === student.userId) {
+        await sendMessageToTelegram(
+            `⚠️ *Это ваш собственный аккаунт*\n\n` +
+            `Этот Telegram уже используется учеником "${student.userName}" для входа в приложение — привязать его как родителя нельзя.\n\n` +
+            `Эту ссылку нужно передать родителю, чтобы он открыл её в СВОЁМ Telegram.`,
+            chatId,
+            keyboard
+        );
+        return;
+    }
+
     const existingLink = await db.query.parentLinks.findFirst({
         where: and(
             eq(parentLinks.studentId, student.userId),
