@@ -7,6 +7,7 @@ import { classesHw, userDailyStats, userHomework, userProgress } from "@/db/sche
 import { auth } from "@/lib/auth";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { notifyHomeworkAssigned } from "@/lib/notify-homework-assigned";
 
 export const upsertTrainerHomework = async (
     classId: number,
@@ -102,6 +103,15 @@ export const upsertTrainerHomework = async (
                 updatedAt: new Date(),
             });
         }
+
+        // 5. Уведомляем ученика и его родителя в Telegram (если привязаны)
+        await notifyHomeworkAssigned(
+            student.userId,
+            student.userName,
+            0,
+            tLessonIds.length,
+            dueDate,
+        );
     }
 
     revalidatePath('/class');

@@ -8,6 +8,7 @@ import { auth } from "@/lib/auth";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { recalculateDailyStats } from "./recalculate-daily-stats";
+import { notifyHomeworkAssigned } from "@/lib/notify-homework-assigned";
 
 export const upsertClassHW = async (
     classId: number,
@@ -93,6 +94,15 @@ export const upsertClassHW = async (
         }
 
         await recalculateDailyStats(student.userId, activeCourseId);
+
+        // 5. Уведомляем ученика и его родителя в Telegram (если привязаны)
+        await notifyHomeworkAssigned(
+            student.userId,
+            student.userName,
+            challengeIdsHw.length,
+            lessonsIdsHw.length,
+            dueDate,
+        );
     }
 
     revalidatePath('/class');
