@@ -1,6 +1,6 @@
 // db/queries.ts
 
-import { eq, and, desc, asc, sql, gte, lte } from 'drizzle-orm';
+import { eq, and, desc, asc, sql, gte, lte, inArray } from 'drizzle-orm';
 import { cache } from 'react';
 import db from './drizzle';
 import { 
@@ -14,7 +14,8 @@ import {
   userHomework,
   userAchievements,
   userMines,
-  trainerQuests
+  trainerQuests,
+  identities,
 } from './schema';
 import { auth } from '@/lib/auth';
 
@@ -657,8 +658,15 @@ export const getTopTenUsers = cache(async () => {
   return data;
 });
 
+// После привязки способов входа (см. lib/identity.ts) старый userProgress,
+// с которого всё "переехало" на канонический аккаунт, остаётся в базе
+// осиротевшим — на него никто больше не может зайти. identities всегда
+// указывает только на живые (актуальные) аккаунты, поэтому фильтруем по
+// ней, чтобы в списках учеников не мелькали дубли от одного человека.
 export const getAllUsers = cache(async () => {
+  const liveUserIds = db.selectDistinct({ userId: identities.userId }).from(identities);
   const data = await db.query.userProgress.findMany({
+    where: inArray(userProgress.userId, liveUserIds),
     orderBy: (userProgress, { desc }) => [desc(userProgress.points)],
     columns: {
       userId: true,
