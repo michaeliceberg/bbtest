@@ -4,8 +4,8 @@
 
 import { useState } from 'react';
 import { Button } from './ui/button';
-import { generateBindCode, BOT_USERNAME } from '@/utils/telegram';
-import { Users, Copy, Check } from 'lucide-react';
+import { generateBindCode, getBindLink, BOT_USERNAME } from '@/utils/telegram';
+import { Users, Copy, Check, Send } from 'lucide-react';
 
 type Props = {
     userId: string;
@@ -16,9 +16,10 @@ export const ParentBindCode = ({ userId, userName }: Props) => {
     const [copied, setCopied] = useState(false);
 
     const bindCode = generateBindCode(userId);
+    const bindLink = getBindLink(bindCode);
 
     const copyToClipboard = () => {
-        navigator.clipboard.writeText(bindCode);
+        navigator.clipboard.writeText(bindLink);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
@@ -30,11 +31,19 @@ export const ParentBindCode = ({ userId, userName }: Props) => {
                 Родителям
             </h3>
             <p className="text-sm text-[#9AA7B0]">
-                Поделитесь кодом с родителями — они смогут отслеживать прогресс в Telegram.
+                Отправьте родителям ссылку — она сама откроет Telegram и привяжет аккаунт, вводить ничего не нужно.
             </p>
-            <div className="flex items-center gap-2 justify-center">
-                <code className="bg-amber-50 text-amber-600 border border-amber-200 px-6 py-3 rounded-lg font-mono text-2xl font-bold tracking-wider">
-                    {bindCode}
+
+            <Button asChild variant="secondary" className="w-full">
+                <a href={bindLink} target="_blank" rel="noopener noreferrer">
+                    <Send className="h-4 w-4 mr-2" />
+                    Открыть в Telegram и привязать
+                </a>
+            </Button>
+
+            <div className="flex items-center gap-2">
+                <code className="flex-1 min-w-0 truncate bg-[#232F34] text-[#9AA7B0] border border-[#3A464E] px-3 py-2 rounded-lg text-xs">
+                    {bindLink}
                 </code>
                 <Button
                     onClick={copyToClipboard}
@@ -45,11 +54,11 @@ export const ParentBindCode = ({ userId, userName }: Props) => {
                     {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
                 </Button>
             </div>
+
             <p className="text-xs text-slate-400 text-center">
-                Команда боту: <code className="bg-[#232F34] px-1 rounded text-[#9AA7B0]">/bind {bindCode}</code>
-            </p>
-            <p className="text-xs text-slate-400 text-center">
-                Telegram бот: <span className="font-mono text-amber-600">@{BOT_USERNAME}</span>
+                Или вручную: код <code className="bg-[#232F34] px-1 rounded text-[#9AA7B0]">{bindCode}</code> боту{' '}
+                <span className="font-mono text-amber-600">@{BOT_USERNAME}</span> командой{' '}
+                <code className="bg-[#232F34] px-1 rounded text-[#9AA7B0]">/bind {bindCode}</code>
             </p>
         </div>
     );
