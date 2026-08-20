@@ -87,28 +87,6 @@ const AVATAAARS: FaceStyle = {
     },
 };
 
-const NOTIONISTS: FaceStyle = {
-    id: 'notionists',
-    label: 'Иллюстрация',
-    categories: [
-        { key: 'hair', label: 'Причёска', type: 'style', options: [...numberedVariants(63), 'hat'] },
-        { key: 'beard', label: 'Борода', type: 'style', optional: true, options: numberedVariants(12) },
-        { key: 'brows', label: 'Брови', type: 'style', options: numberedVariants(13) },
-        { key: 'eyes', label: 'Глаза', type: 'style', options: numberedVariants(5) },
-        { key: 'nose', label: 'Нос', type: 'style', options: numberedVariants(20) },
-        { key: 'lips', label: 'Губы', type: 'style', options: numberedVariants(30) },
-        { key: 'glasses', label: 'Очки', type: 'style', optional: true, options: numberedVariants(11) },
-        {
-            key: 'gesture', label: 'Жест', type: 'style',
-            options: ['hand', 'point', 'ok', 'handPhone', 'pointLongArm', 'okLongArm', 'waveLongArm', 'waveLongArms', 'waveOkLongArms', 'wavePointLongArms'],
-        },
-    ],
-    defaults: {
-        hair: 'variant01', beard: null, brows: 'variant01', eyes: 'variant01',
-        nose: 'variant01', lips: 'variant01', glasses: null, gesture: 'hand',
-    },
-};
-
 const MICAH: FaceStyle = {
     id: 'micah',
     label: 'Дружелюбный',
@@ -210,7 +188,7 @@ const CRITTERS: FaceStyle = {
     },
 };
 
-export const FACE_STYLES: FaceStyle[] = [AVATAAARS, NOTIONISTS, MICAH, BOTTTS, ADVENTURER, FUN_EMOJI, CRITTERS];
+export const FACE_STYLES: FaceStyle[] = [AVATAAARS, MICAH, BOTTTS, ADVENTURER, FUN_EMOJI, CRITTERS];
 
 export function findFaceStyle(id: string): FaceStyle {
     return FACE_STYLES.find((s) => s.id === id) ?? FACE_STYLES[0];
