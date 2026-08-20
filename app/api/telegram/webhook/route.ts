@@ -4,7 +4,7 @@
 import { NextResponse } from 'next/server';
 import { sendMessageToTelegram, generateBindCode } from '@/utils/telegram';
 import db from '@/db/drizzle';
-import { parentLinks, userHomework, userProgress } from '@/db/schema';
+import { parentLinks, userHomework, userProgress, classes, identities } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 
 export async function POST(req: Request) {
@@ -211,6 +211,67 @@ export async function POST(req: Request) {
             return NextResponse.json({ ok: true });
         }
         
+        // Команда /class_status — компактная сводка по классам, только для учителя (админа)
+        if (text === '/class_status') {
+            const teacherIdentity = await db.query.identities.findFirst({
+                where: and(eq(identities.provider, 'telegram'), eq(identities.providerAccountId, chatId)),
+            });
+            const teacher = teacherIdentity
+                ? await db.query.userProgress.findFirst({ where: eq(userProgress.userId, teacherIdentity.userId) })
+                : null;
+
+            if (!teacher?.isAdmin) {
+                await sendMessageToTelegram(
+                    `❌ *Эта команда только для учителя*`,
+                    chatId
+                );
+                return NextResponse.json({ ok: true });
+            }
+
+            const allClasses = await db.query.classes.findMany();
+
+            if (allClasses.length === 0) {
+                await sendMessageToTelegram(`❌ *Классов пока нет*`, chatId);
+                return NextResponse.json({ ok: true });
+            }
+
+            let report = `📋 *Статус по классам*\n`;
+
+            for (const cls of allClasses) {
+                const students = await db.query.userProgress.findMany({
+                    where: eq(userProgress.classId, cls.id),
+                });
+
+                if (students.length === 0) continue;
+
+                report += `\n*${cls.title}*\n`;
+
+                for (const student of students) {
+                    const pendingHw = await db.query.userHomework.findMany({
+                        where: and(
+                            eq(userHomework.userId, student.userId),
+                            eq(userHomework.status, 'pending'),
+                            eq(userHomework.type, 'teacher'),
+                        ),
+                    });
+
+                    if (pendingHw.length === 0) {
+                        report += `⚪ ${student.userName} — нет активного ДЗ\n`;
+                        continue;
+                    }
+
+                    const totalCount = pendingHw.reduce((sum, hw) => sum + hw.totalCount, 0);
+                    const correctCount = pendingHw.reduce((sum, hw) => sum + hw.correctCount, 0);
+                    const icon = correctCount >= totalCount && totalCount > 0 ? '✅' : correctCount > 0 ? '⏳' : '❌';
+
+                    report += `${icon} ${student.userName} — ${correctCount}/${totalCount}\n`;
+                }
+            }
+
+            await sendMessageToTelegram(report, chatId);
+            return NextResponse.json({ ok: true });
+        }
+
         // Команда /help
         if (text === '/help') {
             await sendMessageToTelegram(
@@ -219,6 +280,7 @@ export async function POST(req: Request) {
                 `🔹 /bind КОД - Привязать ученика\n` +
                 `🔹 /unbind - Отвязать ученика\n` +
                 `🔹 /report - Получить отчет о прогрессе\n` +
+                `🔹 /class_status - Сводка по классам (для учителя)\n` +
                 `🔹 /help - Показать эту справку`,
                 chatId
             );
