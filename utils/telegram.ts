@@ -12,7 +12,19 @@ export const BOT_USERNAME = "brickbrain007_bot";
 // раньше идут напрямую в Telegram — там блокировки нет.
 const TELEGRAM_API_BASE = process.env.TELEGRAM_API_BASE || "https://api.telegram.org";
 
-export const sendMessageToTelegram = async (message: string, chatId?: string): Promise<void> => {
+// Reply-клавиатура — постоянные кнопки внизу чата вместо ручного ввода
+// команд. Нажатие кнопки присылает её текст обычным сообщением — см.
+// сопоставление BUTTON_LABELS в webhook/route.ts.
+export type TelegramReplyKeyboard = {
+    keyboard: string[][];
+    resize_keyboard?: boolean;
+};
+
+export const sendMessageToTelegram = async (
+    message: string,
+    chatId?: string,
+    replyMarkup?: TelegramReplyKeyboard
+): Promise<void> => {
     const url = `${TELEGRAM_API_BASE}/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
     const targetChatId = chatId || "1005641275";
 
@@ -21,6 +33,7 @@ export const sendMessageToTelegram = async (message: string, chatId?: string): P
             chat_id: targetChatId,
             text: message,
             parse_mode: "Markdown",
+            ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
         });
         console.log("✅ Сообщение отправлено в Telegram");
     } catch (error) {
