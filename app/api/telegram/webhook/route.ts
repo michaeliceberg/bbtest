@@ -179,7 +179,7 @@ export async function POST(req: Request) {
                     });
                     unbindMessage += `${i + 1}. ${student?.userName}\n`;
                 }
-                unbindMessage += `\nОтправьте /unbind_1, /unbind_2 и т.д. чтобы отвязать конкретного ученика.`;
+                unbindMessage += `\nОтправьте \`/unbind_1\`, \`/unbind_2\` и т.д. чтобы отвязать конкретного ученика.`;
                 await sendMessageToTelegram(unbindMessage, chatId, keyboard);
             }
 
@@ -226,7 +226,8 @@ export async function POST(req: Request) {
                 return NextResponse.json({ ok: true });
             }
 
-            let report = `📊 *Отчет о прогрессе*\n\n`;
+            const reportTitle = links.length === 1 ? `📊 *Отчёт по вашему ученику*` : `📊 *Отчёт по вашим ученикам*`;
+            let report = `${reportTitle}\n\n`;
 
             for (const link of links) {
                 const student = await db.query.userProgress.findFirst({
@@ -314,7 +315,7 @@ export async function POST(req: Request) {
         if (text === '/help') {
             const commandsList = isTeacher
                 ? `🔹 /report - Отчёт по вашим привязанным ученикам\n` +
-                  `🔹 /class_status - Сводка по классам\n` +
+                  `🔹 \`/class_status\` - Сводка по классам\n` +
                   `🔹 /bind КОД - Привязать ученика\n` +
                   `🔹 /unbind - Отвязать ученика\n`
                 : `🔹 /bind КОД - Привязать ученика\n` +

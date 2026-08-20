@@ -27,16 +27,29 @@ export const sendMessageToTelegram = async (
 ): Promise<void> => {
     const url = `${TELEGRAM_API_BASE}/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
     const targetChatId = chatId || "1005641275";
+    const base = {
+        chat_id: targetChatId,
+        ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
+    };
 
     try {
-        await axios.post(url, {
-            chat_id: targetChatId,
-            text: message,
-            parse_mode: "Markdown",
-            ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
-        });
+        await axios.post(url, { ...base, text: message, parse_mode: "Markdown" });
         console.log("✅ Сообщение отправлено в Telegram");
     } catch (error) {
+        // Если сломался разбор Markdown (например, "_" в тексте команды или
+        // в чьём-то имени) — Telegram не шлёт вообще ничего. Пробуем ещё раз
+        // простым текстом, чтобы сообщение всё равно дошло.
+        const isMarkdownError = axios.isAxiosError(error) && error.response?.data?.description?.includes("can't parse entities");
+        if (isMarkdownError) {
+            try {
+                await axios.post(url, { ...base, text: message.replace(/[*_`]/g, "") });
+                console.log("✅ Сообщение отправлено в Telegram (без Markdown, после ошибки разметки)");
+                return;
+            } catch (fallbackError) {
+                console.error("❌ Не удалось отправить даже без Markdown:", fallbackError);
+                return;
+            }
+        }
         console.error("❌ Ошибка при отправке сообщения в Telegram:", error);
     }
 };
