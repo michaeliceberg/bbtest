@@ -22,12 +22,12 @@ export const upsertTrainerHomework = async (
     dueDate.setHours(23, 59, 59, 999);
 
     // 1. Сохраняем в classesHw (история выдачи)
-    await db.insert(classesHw).values({
+    const [classHwRow] = await db.insert(classesHw).values({
         classId,
         taskTrainer: tLessonIds.length > 0 ? tLessonIds.join(',') : null,
         task: null,
         dateHw: today,
-    });
+    }).returning({ id: classesHw.id });
 
     // 2. Находим всех учеников класса
     const students = await db.query.userProgress.findMany({
@@ -53,6 +53,7 @@ export const upsertTrainerHomework = async (
             status: 'pending',
             correctCount: 0,
             wrongCount: 0,
+            classHwId: classHwRow.id,
         });
 
         // 4. Обновляем userDailyStats (агрегация)
@@ -103,7 +104,7 @@ export const upsertTrainerHomework = async (
         }
     }
 
-    revalidatePath('/classroom');
+    revalidatePath('/class');
     revalidatePath('/learn');
     revalidatePath('/trainer');
 

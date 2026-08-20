@@ -24,12 +24,12 @@ export const upsertClassHW = async (
     dueDate.setHours(23, 59, 59, 999);
 
     // 1. Сохраняем в classesHw (история выдачи)
-    await db.insert(classesHw).values({
+    const [classHwRow] = await db.insert(classesHw).values({
         classId,
         taskTrainer: lessonsIdsHw.length > 0 ? lessonsIdsHw.join(',') : null,
         task: challengeIdsHw.length > 0 ? challengeIdsHw.join(',') : null,
         dateHw: today,
-    });
+    }).returning({ id: classesHw.id });
 
     // 2. Находим всех учеников класса
     const students = await db.query.userProgress.findMany({
@@ -60,6 +60,7 @@ export const upsertClassHW = async (
             correctCount: 0,
             wrongCount: 0,
             type: 'teacher', // 🔥 ДЗ от учителя
+            classHwId: classHwRow.id,
         });
 
         // 4. Обновляем userDailyStats
@@ -94,7 +95,7 @@ export const upsertClassHW = async (
         await recalculateDailyStats(student.userId, activeCourseId);
     }
 
-    revalidatePath('/classroom');
+    revalidatePath('/class');
     revalidatePath('/learn');
 
     return { success: true };

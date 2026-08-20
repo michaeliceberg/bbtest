@@ -234,6 +234,11 @@ export const userHomework = pgTable('user_homework', {
 
     // 🔥 Тип домашнего задания: 'teacher' (от учителя) или 'daily' (ежедневный челлендж)
     type: text('type').notNull().default('teacher'),
+
+    // Связь с выдачей ДЗ классу (classesHw) — чтобы таблица учителя могла
+    // читать тот же status/correctCount, что видит ученик и бот для
+    // родителей, вместо отдельного пересчёта по датам.
+    classHwId: integer('class_hw_id').references(() => classesHw.id, { onDelete: 'set null' }),
 });
 
 

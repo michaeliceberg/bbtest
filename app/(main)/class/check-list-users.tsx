@@ -40,6 +40,16 @@ type Props = {
         dateHw: Date;
     }[] | null,
 
+    allUserHomework: {
+        id: number;
+        userId: string;
+        classHwId: number | null;
+        status: string;
+        correctCount: number;
+        totalCount: number;
+        assignedAt: Date;
+    }[],
+
 
 
 
@@ -141,6 +151,7 @@ export const CheckListUsers = ({
 
     all_t_lessonProgress,
     allClassHW,
+    allUserHomework,
 
     t_courses,
     t_units,
@@ -241,38 +252,39 @@ export const CheckListUsers = ({
                 if (hw_casual_string != null && hw_casual_string != "") {
                     wasHwCasual = 1
                     const hw_casual_list_of_str = hw_casual_string.split(',')
-                    
+
                     // hw_casual - список номеров задач Задачника этого HW
                     const hw_casual = hw_casual_list_of_str.map((str) => Number(str));
-                    
 
-                    // TODO:
-                    // считаем, сколько user'ов НЕ сделали каждый challenge
-                   
+                    // Единый источник правды: тот же userHomework.status,
+                    // который видит ученик на /learn и по которому шлются
+                    // уведомления родителям — чтобы эта таблица не
+                    // расходилась с ними в ответе "сделал/не сделал".
+                    const matchingHomework = allUserHomework.find(hw =>
+                        hw.userId === user.userId && hw.classHwId === cur_hw.id
+                    )
 
-                    hw_casual.map(cur_chal_in_hw => {
-                        // смотрим первый (нулевой) результат по этому Lesson'у тк УЖЕ был отсортирован в query по дате
-                        const isDone = challengesDoneByThisUser.filter(challengeDone => challengeDone.challengeId == cur_chal_in_hw)[0]?.completed
-                        const isDoneRight = challengesDoneByThisUser.filter(challengeDone => challengeDone.challengeId == cur_chal_in_hw)[0]?.doneRight
- 
-                        // смотрим, сколько раз был решен Lesson ПОСЛЕ даты выдачи HW
-                        //
-                        const timesDoneCurLessonAfterHWDate = challengesDoneByThisUser.filter(challengeDone => 
-                            (challengeDone.challengeId == cur_chal_in_hw) && (challengeDone.dateDone > cur_hw.dateHw))?.length
+                    if (matchingHomework?.status === 'completed') {
+                        // ничего не делаем — controlMultiplyCasual остаётся 1
+                    } else {
+                        controlMultiplyCasual = controlMultiplyCasual * 0
 
-                        if (isDoneRight && timesDoneCurLessonAfterHWDate > 0) {
-                            //
-                            // ничего не делаем
-                            //
-                        } else {
-                            controlMultiplyCasual = controlMultiplyCasual * 0
-                            ListOfMissedChallengesIds.push(cur_chal_in_hw)
-                        }
-                    })
+                        // Для старых выдач (до появления classHwId) нет
+                        // привязанной userHomework — откатываемся на дату
+                        // самой выдачи, как считали раньше.
+                        const assignedAfter = matchingHomework?.assignedAt ?? cur_hw.dateHw
 
-
-
-
+                        hw_casual.forEach(cur_chal_in_hw => {
+                            const doneRightAfterAssign = challengesDoneByThisUser.some(challengeDone =>
+                                challengeDone.challengeId == cur_chal_in_hw &&
+                                challengeDone.doneRight &&
+                                challengeDone.dateDone > assignedAfter
+                            )
+                            if (!doneRightAfterAssign) {
+                                ListOfMissedChallengesIds.push(cur_chal_in_hw)
+                            }
+                        })
+                    }
                 }
 
 

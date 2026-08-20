@@ -85,6 +85,16 @@ type Props = {
         dateHw: Date;
     }[] | null,
 
+    allUserHomework: {
+        id: number;
+        userId: string;
+        classHwId: number | null;
+        status: string;
+        correctCount: number;
+        totalCount: number;
+        assignedAt: Date;
+    }[],
+
    
     challengeProgress: {
         id: number;
@@ -141,6 +151,7 @@ type Props = {
 
         all_t_lessonProgress,
         allClassHW,
+        allUserHomework,
 
         challengeProgress, 
         
@@ -200,6 +211,7 @@ return(
                         // для статистики в таблице Учеников
                         all_t_lessonProgress={all_t_lessonProgress}
                         allClassHW={allClassHW}
+                        allUserHomework={allUserHomework}
 
                         challengeProgress={challengeProgress}
 

@@ -422,6 +422,14 @@ export const getChallengeProgressAllUsers = cache(async () => {
   return data;
 });
 
+// Для таблицы учителя на /class — чтобы "выполнено ли ДЗ" считалось по
+// тому же userHomework.status, каким пользуется страница ученика и
+// уведомления родителям, а не отдельным пересчётом по датам.
+export const getAllUserHomework = cache(async () => {
+  const data = await db.query.userHomework.findMany();
+  return data;
+});
+
 
 
 

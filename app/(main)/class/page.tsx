@@ -1,7 +1,7 @@
 import { FeedWrapper } from "@/components/feed-wrapper"
 import { StickyWrapper } from "@/components/sticky-wrapper"
 import { Separator } from "@/components/ui/separator"
-import { getAllClassHW, getAllClasses, getAllTLessonProgress, getAllUsers, getChallengeProgress, getChallengeProgressAllUsers, getCourseProgress, getCourses, getTCourses, getTUnits, getUnits, getUserProgress } from "@/db/queries"
+import { getAllClassHW, getAllClasses, getAllTLessonProgress, getAllUserHomework, getAllUsers, getChallengeProgress, getChallengeProgressAllUsers, getCourseProgress, getCourses, getTCourses, getTUnits, getUnits, getUserProgress } from "@/db/queries"
 import Image from "next/image"
 import { redirect } from "next/navigation"
 import { TabUsers } from "./tab-users"
@@ -26,6 +26,7 @@ const ClassroomPage = async () => {
 
     const userAllTLessonProgressData = getAllTLessonProgress()
     const allClassHWData = getAllClassHW()
+    const allUserHomeworkData = getAllUserHomework()
 
 
     const coursesData = getCourses();
@@ -49,6 +50,7 @@ const ClassroomPage = async () => {
 
 		all_t_lessonProgress,
         allClassHW,
+        allUserHomework,
 
         courses,
         units,
@@ -66,6 +68,7 @@ const ClassroomPage = async () => {
 
 		userAllTLessonProgressData,
         allClassHWData,
+        allUserHomeworkData,
 
 
         coursesData,
@@ -187,6 +190,7 @@ const ClassroomPage = async () => {
                         // для статистики учеников (просмотр сделали или нет ДЗ)
                         all_t_lessonProgress={all_t_lessonProgress}
                         allClassHW={allClassHW}
+                        allUserHomework={allUserHomework}
                         challengeProgress={challengeProgress}
 
 
