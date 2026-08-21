@@ -38,7 +38,7 @@ export const Header = () => {
             <Image
               src='/ggegelogo.png'
               height={40}
-              width={86}
+              width={88}
               alt='ggege'
               className='h-auto w-auto transition-all group-hover:scale-105'
             />
