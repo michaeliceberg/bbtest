@@ -23,18 +23,18 @@ export default function Home() {
       </div>
       <div className='flex flex-col items-center gap-y-8'>
         {userName ? (
-          <h1 className='text-xl lg:text-3xl font-bold text-neutral-600 max-w-[480px] text-center'>
-            С возвращением, 
+          <h1 className='text-xl lg:text-3xl font-bold text-[#F2F7FB] max-w-[480px] text-center'>
+            С возвращением,
             <br />
             {userName}! 👋
             <br />
             Готов продолжить?
           </h1>
         ) : (
-          <h1 className='text-xl lg:text-3xl font-bold text-neutral-600 max-w-[480px] text-center'>
+          <h1 className='text-xl lg:text-3xl font-bold text-[#F2F7FB] max-w-[480px] text-center'>
             Привет! Давай
             <br />
-            учиться вместе! 🚀
+            учиться вместе!
           </h1>
         )}
         
@@ -56,7 +56,7 @@ export default function Home() {
           <p className='text-sm text-muted-foreground text-center mt-2'>
             {userName 
               ? `${userName}, у тебя отлично получается! 🌟` 
-              : 'Присоединяйся к сотням учеников и достигай успеха! 📚'}
+              : 'Присоединяйся! С нами весело 🥳'}
           </p>
         </div>
       </div>

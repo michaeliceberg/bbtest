@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { Sparkles, User } from 'lucide-react';
+import { User } from 'lucide-react';
 import AuthButton from "@/app/(marketing)/vk-auth-btn";
 
 export const Header = () => {
@@ -35,17 +35,6 @@ export const Header = () => {
       >
         <div className='lg:max-w-screen-lg mx-auto px-4 h-20 flex items-center justify-between'>
           <Link href='/' className='group flex items-center gap-x-3 transition-transform hover:scale-105'>
-            <div className='relative'>
-              <Image 
-                src='/mascot.svg' 
-                height={40} 
-                width={40} 
-                alt='Mascot' 
-                className='transition-all group-hover:rotate-12'
-              />
-              <Sparkles className='absolute -top-2 -right-2 h-4 w-4 text-yellow-500 opacity-0 group-hover:opacity-100 transition-opacity' />
-            </div>
-            
             <Image
               src='/ggegelogo.png'
               height={40}
