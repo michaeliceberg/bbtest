@@ -10,12 +10,14 @@
 import { useCallback, useRef, useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { PhoneCall, Loader2 } from 'lucide-react'
 
 type Step = 'enter-phone' | 'calling'
 
 const POLL_INTERVAL_MS = 3000
 const TIMEOUT_MS = 5 * 60 * 1000
+const DIGITS_COUNT = 10 // после фиксированной 8: 916 099 19 97
 
 type Props = {
     callbackUrl?: string
@@ -23,14 +25,54 @@ type Props = {
 
 export const PhoneCallLogin = ({ callbackUrl = '/learn' }: Props) => {
     const [step, setStep] = useState<Step>('enter-phone')
-    const [phoneInput, setPhoneInput] = useState('')
+    const [digits, setDigits] = useState<string[]>(Array(DIGITS_COUNT).fill(''))
     const [callPhonePretty, setCallPhonePretty] = useState('')
     const [callPhoneRaw, setCallPhoneRaw] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [isStarting, setIsStarting] = useState(false)
 
+    const digitRefs = useRef<(HTMLInputElement | null)[]>([])
     const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null)
     const timeoutTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    const isComplete = digits.every((d) => d !== '')
+    const phoneInput = '8' + digits.join('')
+
+    const handleDigitChange = (index: number, rawValue: string) => {
+        const char = rawValue.replace(/\D/g, '').slice(-1)
+        setDigits((prev) => {
+            const next = [...prev]
+            next[index] = char
+            return next
+        })
+        if (char && index < DIGITS_COUNT - 1) {
+            digitRefs.current[index + 1]?.focus()
+        }
+    }
+
+    const handleDigitKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Backspace' && !digits[index] && index > 0) {
+            digitRefs.current[index - 1]?.focus()
+        }
+    }
+
+    const handleDigitPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+        const pasted = e.clipboardData.getData('text').replace(/\D/g, '')
+        if (!pasted) return
+        e.preventDefault()
+        // если скопировали номер целиком (с ведущей 8/7), отбрасываем её
+        const cleaned = pasted.length > DIGITS_COUNT && /^[78]/.test(pasted)
+            ? pasted.slice(1)
+            : pasted
+        const next = cleaned.slice(0, DIGITS_COUNT).split('')
+        setDigits((prev) => {
+            const merged = [...prev]
+            next.forEach((d, i) => { merged[i] = d })
+            return merged
+        })
+        const lastIndex = Math.min(next.length, DIGITS_COUNT) - 1
+        if (lastIndex >= 0) digitRefs.current[lastIndex]?.focus()
+    }
 
     const stopPolling = useCallback(() => {
         if (pollTimer.current) clearInterval(pollTimer.current)
@@ -85,6 +127,7 @@ export const PhoneCallLogin = ({ callbackUrl = '/learn' }: Props) => {
     const handleCancel = () => {
         stopPolling()
         setStep('enter-phone')
+        setDigits(Array(DIGITS_COUNT).fill(''))
         setError(null)
     }
 
@@ -106,17 +149,53 @@ export const PhoneCallLogin = ({ callbackUrl = '/learn' }: Props) => {
         )
     }
 
+    const boxClass = 'w-6 h-9 sm:w-7 sm:h-10 text-center bg-[#232F34] border border-[#3A464E] rounded-md text-white text-sm sm:text-base font-semibold focus:outline-none focus:border-sky-400'
+
     return (
-        <div className="flex flex-col items-center gap-2 w-full">
-            <input
-                type="tel"
-                placeholder="+7 900 123-45-67"
-                value={phoneInput}
-                onChange={(e) => setPhoneInput(e.target.value)}
-                className="w-full bg-[#232F34] border border-[#3A464E] rounded-lg px-3 py-2 text-white placeholder-[#5A6A72] text-sm text-center"
-            />
+        <div className="flex flex-col items-center gap-3 w-full">
+            <div className="flex items-center justify-center gap-1">
+                <div className={cn(boxClass, 'flex items-center justify-center bg-[#1A2328] text-[#9AA7B0] flex-shrink-0 select-none cursor-default')}>
+                    8
+                </div>
+
+                {digits.slice(0, 3).map((d, i) => (
+                    <input
+                        key={i}
+                        ref={(el) => { digitRefs.current[i] = el }}
+                        type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={1}
+                        value={d}
+                        onChange={(e) => handleDigitChange(i, e.target.value)}
+                        onKeyDown={(e) => handleDigitKeyDown(i, e)}
+                        onPaste={handleDigitPaste}
+                        className={cn(boxClass, i === 0 && 'ml-2', 'flex-shrink-0')}
+                    />
+                ))}
+
+                {digits.slice(3).map((d, i) => {
+                    const index = i + 3
+                    return (
+                        <input
+                            key={index}
+                            ref={(el) => { digitRefs.current[index] = el }}
+                            type="tel"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            maxLength={1}
+                            value={d}
+                            onChange={(e) => handleDigitChange(index, e.target.value)}
+                            onKeyDown={(e) => handleDigitKeyDown(index, e)}
+                            onPaste={handleDigitPaste}
+                            className={cn(boxClass, i === 0 && 'ml-2', 'flex-shrink-0')}
+                        />
+                    )
+                })}
+            </div>
+
             {error && <p className="text-xs text-rose-400">{error}</p>}
-            <Button className="w-full" disabled={isStarting || !phoneInput} onClick={handleStart}>
+            <Button className="w-full" disabled={isStarting || !isComplete} onClick={handleStart}>
                 {isStarting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Войти по звонку'}
             </Button>
         </div>
