@@ -26,7 +26,7 @@ export const LoginDialog = ({ open, onOpenChange }: Props) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm w-[calc(100%-2rem)] min-w-0">
         <DialogHeader>
-          <DialogTitle>Вход</DialogTitle>
+          <DialogTitle className="text-center">Вход</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-4 py-2 w-full min-w-0">

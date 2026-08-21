@@ -151,7 +151,7 @@ export const PhoneCallLogin = ({ callbackUrl = '/learn' }: Props) => {
 
     return (
         <div className="flex flex-col items-center gap-3 w-full min-w-0">
-            <div className="flex items-center gap-2 w-full min-w-0 bg-[#232F34] border border-[#3A464E] rounded-lg px-3 py-2.5 focus-within:border-sky-400">
+            <div className="flex items-center justify-center gap-2 w-full min-w-0 bg-[#232F34] border border-[#3A464E] rounded-lg px-3 py-2.5 focus-within:border-sky-400">
                 <span className="text-white text-base font-semibold flex-shrink-0 select-none">8</span>
                 <input
                     ref={inputRef}
@@ -162,7 +162,7 @@ export const PhoneCallLogin = ({ callbackUrl = '/learn' }: Props) => {
                     onKeyDown={handleKeyDown}
                     onPaste={handlePaste}
                     placeholder="(___) ___-__-__"
-                    className="flex-1 min-w-0 bg-transparent text-white placeholder-[#5A6A72] text-base font-semibold tracking-wide focus:outline-none"
+                    className="w-44 max-w-full min-w-0 bg-transparent text-white placeholder-[#5A6A72] text-base font-semibold tracking-wide text-center focus:outline-none"
                 />
             </div>
 
