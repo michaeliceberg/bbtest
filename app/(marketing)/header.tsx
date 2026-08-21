@@ -46,12 +46,12 @@ export const Header = () => {
               <Sparkles className='absolute -top-2 -right-2 h-4 w-4 text-yellow-500 opacity-0 group-hover:opacity-100 transition-opacity' />
             </div>
             
-            <Image 
-              src='/ggegelogo.svg' 
-              height={50} 
-              width={180} 
-              alt='ggege' 
-              className='h-auto transition-all group-hover:scale-105'
+            <Image
+              src='/ggegelogo.png'
+              height={40}
+              width={86}
+              alt='ggege'
+              className='h-auto w-auto transition-all group-hover:scale-105'
             />
           </Link>
 
