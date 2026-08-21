@@ -70,7 +70,7 @@ export const TelegramLoginButton = ({ botUsername, callbackUrl = '/learn' }: Pro
 
     return (
         <div className="flex flex-col items-center gap-2 w-full min-w-0">
-            <div ref={containerRef} className="max-w-full [&>iframe]:!max-w-full [&>iframe]:!rounded-xl [&>iframe]:!overflow-hidden" />
+            <div ref={containerRef} className="max-w-full [&>iframe]:!max-w-full [&>iframe]:!rounded-full [&>iframe]:!overflow-hidden" />
             {isLoading && (
                 <span className="text-xs text-[#9AA7B0]">Входим…</span>
             )}

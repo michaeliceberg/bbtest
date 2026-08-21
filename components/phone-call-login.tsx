@@ -10,25 +10,16 @@
 import { useCallback, useRef, useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
-import { PhoneCall, Loader2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { Phone, PhoneCall, Loader2 } from 'lucide-react'
 
 type Step = 'enter-phone' | 'calling'
 
 const POLL_INTERVAL_MS = 3000
 const TIMEOUT_MS = 5 * 60 * 1000
-const MAX_DIGITS = 10 // после фиксированной 8: (916) 099-19-97
-
-// 8 (916) 099-19-97 — собираем маску по мере ввода, не показывая
-// разделители, до которых пользователь ещё не дошёл.
-function formatPhoneDigits(digits: string): string {
-    let out = ''
-    if (digits.length > 0) out += '(' + digits.slice(0, 3)
-    if (digits.length >= 3) out += ')'
-    if (digits.length > 3) out += ' ' + digits.slice(3, 6)
-    if (digits.length > 6) out += '-' + digits.slice(6, 8)
-    if (digits.length > 8) out += '-' + digits.slice(8, 10)
-    return out
-}
+const AREA_LEN = 3 // (916)
+const LOCAL_LEN = 7 // 0991997
+const DIGITS_COUNT = AREA_LEN + LOCAL_LEN // после фиксированной 8
 
 type Props = {
     callbackUrl?: string
@@ -36,42 +27,53 @@ type Props = {
 
 export const PhoneCallLogin = ({ callbackUrl = '/learn' }: Props) => {
     const [step, setStep] = useState<Step>('enter-phone')
-    const [digits, setDigits] = useState('')
+    const [digits, setDigits] = useState<string[]>(Array(DIGITS_COUNT).fill(''))
     const [callPhonePretty, setCallPhonePretty] = useState('')
     const [callPhoneRaw, setCallPhoneRaw] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [isStarting, setIsStarting] = useState(false)
 
-    const inputRef = useRef<HTMLInputElement>(null)
+    const digitRefs = useRef<(HTMLInputElement | null)[]>([])
     const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null)
     const timeoutTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-    const isComplete = digits.length === MAX_DIGITS
-    const phoneInput = '8' + digits
+    const isComplete = digits.every((d) => d !== '')
+    const phoneInput = '8' + digits.join('')
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const raw = e.target.value.replace(/\D/g, '').slice(0, MAX_DIGITS)
-        setDigits(raw)
-    }
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        // сами решаем, что стереть — иначе backspace может удалить
-        // разделитель маски " ) - " и визуально ничего не произойдёт
-        if (e.key === 'Backspace') {
-            e.preventDefault()
-            setDigits((prev) => prev.slice(0, -1))
+    const handleDigitChange = (index: number, rawValue: string) => {
+        const char = rawValue.replace(/\D/g, '').slice(-1)
+        setDigits((prev) => {
+            const next = [...prev]
+            next[index] = char
+            return next
+        })
+        if (char && index < DIGITS_COUNT - 1) {
+            digitRefs.current[index + 1]?.focus()
         }
     }
 
-    const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const handleDigitKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Backspace' && !digits[index] && index > 0) {
+            digitRefs.current[index - 1]?.focus()
+        }
+    }
+
+    const handleDigitPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
         const pasted = e.clipboardData.getData('text').replace(/\D/g, '')
         if (!pasted) return
         e.preventDefault()
         // если скопировали номер целиком (с ведущей 8/7), отбрасываем её
-        const cleaned = pasted.length > MAX_DIGITS && /^[78]/.test(pasted)
+        const cleaned = pasted.length > DIGITS_COUNT && /^[78]/.test(pasted)
             ? pasted.slice(1)
             : pasted
-        setDigits(cleaned.slice(0, MAX_DIGITS))
+        const next = cleaned.slice(0, DIGITS_COUNT).split('')
+        setDigits((prev) => {
+            const merged = [...prev]
+            next.forEach((d, i) => { merged[i] = d })
+            return merged
+        })
+        const lastIndex = Math.min(next.length, DIGITS_COUNT) - 1
+        if (lastIndex >= 0) digitRefs.current[lastIndex]?.focus()
     }
 
     const stopPolling = useCallback(() => {
@@ -127,7 +129,7 @@ export const PhoneCallLogin = ({ callbackUrl = '/learn' }: Props) => {
     const handleCancel = () => {
         stopPolling()
         setStep('enter-phone')
-        setDigits('')
+        setDigits(Array(DIGITS_COUNT).fill(''))
         setError(null)
     }
 
@@ -149,21 +151,36 @@ export const PhoneCallLogin = ({ callbackUrl = '/learn' }: Props) => {
         )
     }
 
+    const boxClass = 'w-4 h-8 sm:w-6 sm:h-10 text-center bg-[#232F34] border border-[#3A464E] rounded-md text-white text-xs sm:text-base font-semibold focus:outline-none focus:border-sky-400 flex-shrink-0'
+    const parenClass = 'text-[#9AA7B0] text-xs sm:text-base font-semibold flex-shrink-0 select-none'
+
+    const renderDigitBox = (index: number) => (
+        <input
+            key={index}
+            ref={(el) => { digitRefs.current[index] = el }}
+            type="tel"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={1}
+            value={digits[index]}
+            onChange={(e) => handleDigitChange(index, e.target.value)}
+            onKeyDown={(e) => handleDigitKeyDown(index, e)}
+            onPaste={handleDigitPaste}
+            className={boxClass}
+        />
+    )
+
     return (
         <div className="flex flex-col items-center gap-3 w-full min-w-0">
-            <div className="flex items-center justify-center gap-2 w-full min-w-0 bg-[#232F34] border border-[#3A464E] rounded-lg px-3 py-2.5 focus-within:border-sky-400">
-                <span className="text-white text-base font-semibold flex-shrink-0 select-none">8</span>
-                <input
-                    ref={inputRef}
-                    type="tel"
-                    inputMode="numeric"
-                    value={formatPhoneDigits(digits)}
-                    onChange={handleChange}
-                    onKeyDown={handleKeyDown}
-                    onPaste={handlePaste}
-                    placeholder="(___) ___-__-__"
-                    className="w-44 max-w-full min-w-0 bg-transparent text-white placeholder-[#5A6A72] text-base font-semibold tracking-wide text-center focus:outline-none"
-                />
+            <div className="flex items-center justify-center gap-0.5 sm:gap-1 w-full min-w-0 overflow-x-auto">
+                <Phone className="h-4 w-4 text-[#9AA7B0] flex-shrink-0 mr-1" />
+                <div className={cn(boxClass, 'flex items-center justify-center bg-[#1A2328] text-[#9AA7B0] select-none cursor-default')}>
+                    8
+                </div>
+                <span className={parenClass}>(</span>
+                {Array.from({ length: AREA_LEN }, (_, i) => renderDigitBox(i))}
+                <span className={parenClass}>)</span>
+                {Array.from({ length: LOCAL_LEN }, (_, i) => renderDigitBox(AREA_LEN + i))}
             </div>
 
             {error && <p className="text-xs text-rose-400">{error}</p>}
