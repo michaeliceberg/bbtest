@@ -24,12 +24,12 @@ type Props = {
 export const LoginDialog = ({ open, onOpenChange }: Props) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-sm w-[calc(100%-2rem)] min-w-0">
         <DialogHeader>
           <DialogTitle>Вход</DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col items-center gap-4 py-2">
+        <div className="flex flex-col items-center gap-4 py-2 w-full min-w-0">
           <PhoneCallLogin callbackUrl="/learn" />
 
           <div className="flex items-center gap-2 w-full">
