@@ -17,7 +17,7 @@ const AccountPage = async () => {
     if (!userProgress) redirect('/')
 
     return (
-        <div className="max-w-[600px] mx-auto pb-10 flex flex-col gap-8">
+        <div className="max-w-[600px] mx-auto px-4 pb-10 flex flex-col gap-8">
             <div>
                 <h1 className="text-2xl font-bold text-[#F2F7FB] mb-1">Настройки</h1>
                 <p className="text-sm text-[#9AA7B0]">Профиль, вход в аккаунт и родительский доступ.</p>

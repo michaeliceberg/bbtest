@@ -151,8 +151,8 @@ export const PhoneCallLogin = ({ callbackUrl = '/learn' }: Props) => {
         )
     }
 
-    const boxClass = 'w-4 h-8 sm:w-6 sm:h-10 text-center bg-[#232F34] border border-[#3A464E] rounded-md text-white text-xs sm:text-base font-semibold focus:outline-none focus:border-sky-400 flex-shrink-0'
-    const parenClass = 'text-[#9AA7B0] text-xs sm:text-base font-semibold flex-shrink-0 select-none'
+    const boxClass = 'w-4 h-8 text-center bg-[#232F34] border border-[#3A464E] rounded-md text-white text-xs font-semibold focus:outline-none focus:border-sky-400 flex-shrink-0'
+    const parenClass = 'text-[#9AA7B0] text-xs font-semibold flex-shrink-0 select-none'
 
     const renderDigitBox = (index: number) => (
         <input
@@ -172,7 +172,7 @@ export const PhoneCallLogin = ({ callbackUrl = '/learn' }: Props) => {
 
     return (
         <div className="flex flex-col items-center gap-3 w-full min-w-0">
-            <div className="flex items-center justify-center gap-0.5 sm:gap-1 w-full min-w-0 overflow-x-auto">
+            <div className="flex items-center justify-center gap-0.5 w-full min-w-0 overflow-x-auto">
                 <Phone className="h-4 w-4 text-[#9AA7B0] flex-shrink-0 mr-1" />
                 <div className={cn(boxClass, 'flex items-center justify-center bg-[#1A2328] text-[#9AA7B0] select-none cursor-default')}>
                     8
