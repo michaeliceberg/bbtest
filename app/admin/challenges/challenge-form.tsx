@@ -6,6 +6,7 @@ import { ChallengePreview } from "./challenge-preview"
 
 const CHALLENGE_TYPES = [
   "ASSIST",
+  "KEYBOARD",
   "SELECT",
   "CONNECT",
   "SLIDER",

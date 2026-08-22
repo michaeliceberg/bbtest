@@ -8,6 +8,7 @@ import { useEffect, useState, useTransition, useRef } from "react";
 import { Header } from "./header";
 import { QuestionBubble } from "./question-bubble";
 import { Challenge } from "./challenge";
+import { KeyboardInput } from "./keyboard-input";
 import { Footer } from "./footer";
 import { upsertChallengeProgress } from "@/actions/challenge-progress";
 import { toast } from "sonner";
@@ -139,6 +140,7 @@ export const Quiz = ({
     const [timesDone, setTimesDone] = useState(0)
     const [dateLastDone, setDateLastDone] = useState(new Date(2025, 4, 1))
     const [selectedOption, setSelectedOption] = useState<number>()
+    const [typedAnswer, setTypedAnswer] = useState('')
     const [status, setStatus] = useState<"correct" | "wrong" | "none">('none')
     const [options, setOptions] = useState<typeof challengeOptions.$inferSelect[]>([])
 
@@ -209,6 +211,7 @@ export const Quiz = ({
         }
         setActiveIndex(newIndex)
         setSelectedOption(undefined)
+        setTypedAnswer('')
         setStatus('none')
         setIsDoneWrongChallenge(wrongChallengesId.includes(newIndex))
         setIsDoneChallenge(doneChallengesId.includes(newIndex))
@@ -334,13 +337,16 @@ export const Quiz = ({
     // }
 
 
+        const isKeyboardChallenge = challenge.type === 'KEYBOARD'
+
         const onContinue = () => {
-        if (!selectedOption) return
+        if (isKeyboardChallenge ? !typedAnswer : !selectedOption) return
 
         if (status === 'wrong') {
             onNext()
             setStatus('none')
             setSelectedOption(undefined)
+            setTypedAnswer('')
             return
         }
 
@@ -348,6 +354,7 @@ export const Quiz = ({
             onNext()
             setStatus('none')
             setSelectedOption(undefined)
+            setTypedAnswer('')
             return
         }
 
@@ -357,7 +364,12 @@ export const Quiz = ({
             return
         }
 
-        if (correctOption && correctOption.id === selectedOption) {
+        const normalizeAnswer = (s: string) => s.trim().replace(/\./g, ',').replace(/\s+/g, '')
+        const isAnswerCorrect = isKeyboardChallenge
+            ? normalizeAnswer(typedAnswer) === normalizeAnswer(correctOption.text)
+            : correctOption.id === selectedOption
+
+        if (isAnswerCorrect) {
             startTransition(() => {
                 // 🔥 Сначала отправляем запрос
                 upsertChallengeProgress({
@@ -467,7 +479,9 @@ export const Quiz = ({
         )
     }
 
-    const title = challenge.type === "ASSIST"
+    const hasQuestionBubble = challenge.type === "ASSIST" || challenge.type === "KEYBOARD"
+
+    const title = hasQuestionBubble
         ? lessonTitle
         : challenge.question
 
@@ -538,8 +552,8 @@ export const Quiz = ({
             {/* Основной контент */}
             <div className="flex-1 max-w-xl w-full mx-auto px-4 py-6 md:py-8">
                 <div className="w-full">
-                    {/* Для не-ASSIST типов (нет QuestionBubble) заголовок — это сам вопрос */}
-                    {challenge.type !== "ASSIST" && (
+                    {/* Для типов без QuestionBubble заголовок — это сам вопрос */}
+                    {!hasQuestionBubble && (
                         <motion.div
                             key={`title-${activeIndex}`}
                             initial={{ opacity: 0 }}
@@ -564,7 +578,7 @@ export const Quiz = ({
                             exit="exit"
                             className="space-y-6 md:space-y-8"
                         >
-                            {challenge.type === "ASSIST" && (
+                            {hasQuestionBubble && (
                                 <QuestionBubble
                                     unitColor={unitColor}
                                     question={challenge.question}
@@ -580,6 +594,13 @@ export const Quiz = ({
                                 />
                             )}
 
+                            {isKeyboardChallenge ? (
+                                <KeyboardInput
+                                    value={typedAnswer}
+                                    onChange={setTypedAnswer}
+                                    disabled={pending || status !== 'none'}
+                                />
+                            ) : (
                             <Challenge
                                 options={options}
                                 onSelect={onSelect}
@@ -592,13 +613,14 @@ export const Quiz = ({
                                 dateLastDone={dateLastDone}
                                 challengeId={challenge.id}
                             />
+                            )}
                         </motion.div>
                     </AnimatePresence>
                 </div>
             </div>
 
             <Footer
-                disabled={isDoneChallenge || pending || !selectedOption}
+                disabled={isDoneChallenge || pending || (isKeyboardChallenge ? !typedAnswer : !selectedOption)}
                 status={status}
                 onCheck={onContinue}
             />

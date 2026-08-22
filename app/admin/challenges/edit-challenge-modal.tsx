@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 
 const CHALLENGE_TYPES = [
   "ASSIST",
+  "KEYBOARD",
   "SELECT",
   "CONNECT",
   "SLIDER",
