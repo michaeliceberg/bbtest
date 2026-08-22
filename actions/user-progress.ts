@@ -40,13 +40,12 @@ export const upsertUserProgress = async (courseId: number) => {
 	const existingUserProgress = await getUserProgress();
 
 	if (existingUserProgress) {
+		// Имя и аватар — то, что пользователь сам задал в /account, при
+		// смене курса их трогать нельзя (иначе слетает кастомизация).
 		await db.update(userProgress).set({
 			activeCourseId: courseId,
-			userName: session.user.name || 'Ученик',
-			userImageSrc: '/mascot.svg',
-
 		}). where(eq(userProgress.userId, userId))
-		
+
 		revalidatePath('/courses');
 		revalidatePath('/learn');
 		redirect('/learn');
@@ -81,10 +80,9 @@ export const upsertUserName = async (nickName: string) => {
 
 	if (existingUserProgress) {
 		await db.update(userProgress).set({
-			// userName: nickName || vkUser.firstName || 'User',
-			userName: session.user.name || 'Ученик',
+			userName: nickName || session.user.name || 'Ученик',
 		}). where(eq(userProgress.userId, userId))
-		
+
 		revalidatePath('/courses');
 		revalidatePath('/learn');
 		redirect('/leaderboard');

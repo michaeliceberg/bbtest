@@ -50,12 +50,20 @@ export async function finishLink(state: string | null): Promise<FinishLinkResult
         return { status: "already-linked" };
     }
 
+    // Имя/аватар для новой сессии берём у ЦЕЛЕВОГО аккаунта (к которому
+    // привязываем способ входа), а не у только что прошедшего signIn —
+    // иначе на аккаунт бы протекло имя/фото из привязываемого провайдера,
+    // затирая то, что пользователь сам задал в /account.
+    const targetProgress = await db.query.userProgress.findFirst({
+        where: eq(userProgress.userId, targetUserId),
+    });
+
     const revertToken = await encode({
         token: {
             id: targetUserId,
             sub: targetUserId,
-            name: session!.user.name,
-            picture: session!.user.image,
+            name: targetProgress?.userName ?? session!.user.name,
+            picture: targetProgress?.userImageSrc ?? session!.user.image,
         },
         secret: process.env.NEXTAUTH_SECRET!,
     });
