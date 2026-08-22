@@ -40,12 +40,15 @@ export const TelegramLoginButton = ({ botUsername, callbackUrl = '/learn' }: Pro
     useEffect(() => {
         window.onTelegramAuth = async (user: TelegramAuthUser) => {
             setIsLoading(true)
+            // Telegram подписывает hash только по полям, которые реально
+            // прислал (у части пользователей нет last_name/username/photo_url) —
+            // отправлять их пустой строкой нельзя, иначе подпись не сойдётся.
             await signIn('telegram', {
                 id: String(user.id),
                 first_name: user.first_name || '',
-                last_name: user.last_name || '',
-                username: user.username || '',
-                photo_url: user.photo_url || '',
+                ...(user.last_name ? { last_name: user.last_name } : {}),
+                ...(user.username ? { username: user.username } : {}),
+                ...(user.photo_url ? { photo_url: user.photo_url } : {}),
                 auth_date: String(user.auth_date),
                 hash: user.hash,
                 callbackUrl,
