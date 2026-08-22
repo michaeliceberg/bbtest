@@ -25,6 +25,10 @@ import { useWrongAnswerModal } from "@/store/use-wronganswer-modal";
 import { useRightAnswerModal } from "@/store/use-rightanswer-modal";
 import { ThunderBadge } from "@/components/thunder-badge";
 
+// Доля заданий ASSIST с числовым ответом, которые показываем как KEYBOARD
+// вместо сетки вариантов — для разнообразия UI. Сам тип в БД не меняется.
+const KEYBOARD_RATIO_PERCENT = 30
+
 type Props = {
     initialPercentage: number
     initialHearts: number
@@ -146,6 +150,19 @@ export const Quiz = ({
 
     let [challenge] = challenges.filter(el => el.id == activeIndex)
     const isHWChallenge = hwChallengeIds?.includes(challenge?.id) ?? false;
+
+    // Часть заданий ASSIST показываем как KEYBOARD — не переписываем тип в
+    // БД (дистракторы остаются на месте для обычного вида), а решаем на
+    // лету, детерминированно по id задачи, чтобы при пересдаче вид не
+    // менялся. Годится только если ответ — просто число (клавиатура не
+    // умеет вводить текст/единицы измерения).
+    const effectiveType = (() => {
+        if (challenge?.type !== 'ASSIST') return challenge?.type
+        const correctText = challenge.challengeOptions?.find((o) => o.correct)?.text?.trim()
+        if (!correctText || !/^-?\d+([.,]\d+)?$/.test(correctText)) return challenge.type
+        const roll = ((challenge.id * 2654435761) >>> 0) % 100
+        return roll < KEYBOARD_RATIO_PERCENT ? 'KEYBOARD' : challenge.type
+    })()
 
     // Инициализация аудио
     useEffect(() => {
@@ -337,7 +354,7 @@ export const Quiz = ({
     // }
 
 
-        const isKeyboardChallenge = challenge.type === 'KEYBOARD'
+        const isKeyboardChallenge = effectiveType === 'KEYBOARD'
 
         const onContinue = () => {
         if (isKeyboardChallenge ? !typedAnswer : !selectedOption) return
@@ -479,7 +496,7 @@ export const Quiz = ({
         )
     }
 
-    const hasQuestionBubble = challenge.type === "ASSIST" || challenge.type === "KEYBOARD"
+    const hasQuestionBubble = effectiveType === "ASSIST" || effectiveType === "KEYBOARD"
 
     const title = hasQuestionBubble
         ? lessonTitle
