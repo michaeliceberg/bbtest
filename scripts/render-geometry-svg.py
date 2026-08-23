@@ -17,7 +17,8 @@
 #       {"points": [{"x":0,"y":3,"label":"A"}, ...], "closed": true, "fill": true},
 #       {"points": [{"x":..,"y":..}, {"x":..,"y":..}], "closed": false, "dashed": true}  # диагональ/биссектриса без подписи точек
 #   ],
-#   "points": [{"x":..,"y":..,"label":"E"}]  # отдельные подписанные точки (например середина стороны), не входящие в shapes
+#   "points": [{"x":..,"y":..,"label":"E"}],  # отдельные подписанные точки (например середина стороны), не входящие в shapes
+#   "circles": [{"cx":4,"cy":4,"r":3,"center_label":"O"}]  # окружность (для вписанных/центральных углов); center_label необязателен
 # }
 
 import json
@@ -39,11 +40,14 @@ CELL = 52
 MARGIN_CELLS = 1
 
 
-def render(shapes, extra_points=None, cell=CELL, margin_cells=MARGIN_CELLS):
+def render(shapes, extra_points=None, circles=None, cell=CELL, margin_cells=MARGIN_CELLS):
     extra_points = extra_points or []
+    circles = circles or []
 
     all_xy = [(p["x"], p["y"]) for shape in shapes for p in shape["points"]]
     all_xy += [(p["x"], p["y"]) for p in extra_points]
+    all_xy += [(c["cx"] - c["r"], c["cy"] - c["r"]) for c in circles]
+    all_xy += [(c["cx"] + c["r"], c["cy"] + c["r"]) for c in circles]
     xs = [p[0] for p in all_xy]
     ys = [p[1] for p in all_xy]
 
@@ -67,6 +71,7 @@ def render(shapes, extra_points=None, cell=CELL, margin_cells=MARGIN_CELLS):
 
     # центр масс всех подписанных точек — чтобы разносить подписи наружу
     labeled = [p for shape in shapes for p in shape["points"]] + extra_points
+    labeled += [{"x": c["cx"], "y": c["cy"]} for c in circles if c.get("center_label")]
     cx = sum(sx(p["x"]) for p in labeled) / len(labeled)
     cy = sum(sy(p["y"]) for p in labeled) / len(labeled)
 
@@ -80,6 +85,11 @@ def render(shapes, extra_points=None, cell=CELL, margin_cells=MARGIN_CELLS):
     for j in range(rows + 1):
         y = j * cell
         svg.append(f'<line x1="0" y1="{y}" x2="{width}" y2="{y}" stroke="{GRID_COLOR}" stroke-width="1"/>')
+
+    # Окружности — под фигурами/хордами, но над сеткой
+    for c in circles:
+        r_px = c["r"] * cell
+        svg.append(f'<circle cx="{sx(c["cx"]):.1f}" cy="{sy(c["cy"]):.1f}" r="{r_px:.1f}" fill="none" stroke="{LINE_COLOR}" stroke-width="2.5"/>')
 
     # Фигуры (сначала все линии/заливки, точки и подписи — поверх)
     for shape in shapes:
@@ -119,10 +129,27 @@ def render(shapes, extra_points=None, cell=CELL, margin_cells=MARGIN_CELLS):
     for p in extra_points:
         draw_point(sx(p["x"]), sy(p["y"]), p.get("label", ""))
 
+    # Центр окружности — маленькая точка, не такая крупная, как вершины
+    for c in circles:
+        if not c.get("center_label"):
+            continue
+        px, py = sx(c["cx"]), sy(c["cy"])
+        dx, dy = px - cx, py - cy
+        dist = math.hypot(dx, dy)
+        if dist < 1e-6:
+            dx, dy, dist = 0, 1, 1
+        lx, ly = px + dx / dist * 18, py + dy / dist * 18
+        svg.append(f'<circle cx="{px:.1f}" cy="{py:.1f}" r="4" fill="{POINT_FILL}" stroke="{POINT_RING}" stroke-width="1.5"/>')
+        svg.append(
+            f'<text x="{lx:.1f}" y="{ly:.1f}" font-family="Arial, sans-serif" font-style="italic" '
+            f'font-weight="bold" font-size="18" fill="{LABEL_COLOR}" text-anchor="middle" '
+            f'dominant-baseline="middle">{c["center_label"]}</text>'
+        )
+
     svg.append('</svg>')
     return "\n".join(svg)
 
 
 if __name__ == "__main__":
     spec = json.load(sys.stdin)
-    print(render(spec["shapes"], spec.get("points")))
+    print(render(spec["shapes"], spec.get("points"), spec.get("circles")))
