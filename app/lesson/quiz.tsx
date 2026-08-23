@@ -599,6 +599,7 @@ export const Quiz = ({
                                 <QuestionBubble
                                     unitColor={unitColor}
                                     question={challenge.question}
+                                    imageSrc={challenge.imageSrc}
                                     pts={challenge.points}
                                     author={challenge.author}
                                     timesDoneWrong={timesDoneWrong}

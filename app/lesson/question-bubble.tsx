@@ -38,11 +38,13 @@ type Props = {
     isCorrect?: boolean;
     isWrong?: boolean;
     challengeId: number;
+    imageSrc?: string;
 }
 
 export const QuestionBubble = ({
     unitColor,
     question,
+    imageSrc,
     pts,
     author,
     timesDoneWrong,
@@ -129,6 +131,9 @@ export const QuestionBubble = ({
                     <div className="text-[#F2F7FB] text-sm md:text-base leading-relaxed">
                         <Latex>{question}</Latex>
                     </div>
+                    {imageSrc && (
+                        <img src={imageSrc} alt="" className="mt-3 rounded-lg max-w-full h-auto max-h-64" />
+                    )}
                 </div>
             </div>
 

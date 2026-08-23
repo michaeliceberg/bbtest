@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="312" height="312" viewBox="0 0 312 312">
+<rect x="0" y="0" width="312" height="312" fill="#151F23"/>
+<line x1="0" y1="0" x2="0" y2="312" stroke="#3A464E" stroke-width="1"/>
+<line x1="52" y1="0" x2="52" y2="312" stroke="#3A464E" stroke-width="1"/>
+<line x1="104" y1="0" x2="104" y2="312" stroke="#3A464E" stroke-width="1"/>
+<line x1="156" y1="0" x2="156" y2="312" stroke="#3A464E" stroke-width="1"/>
+<line x1="208" y1="0" x2="208" y2="312" stroke="#3A464E" stroke-width="1"/>
+<line x1="260" y1="0" x2="260" y2="312" stroke="#3A464E" stroke-width="1"/>
+<line x1="312" y1="0" x2="312" y2="312" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="0" x2="312" y2="0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="52" x2="312" y2="52" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="104" x2="312" y2="104" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="156" x2="312" y2="156" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="208" x2="312" y2="208" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="260" x2="312" y2="260" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="312" x2="312" y2="312" stroke="#3A464E" stroke-width="1"/>
+<polygon points="52.0,156.0 156.0,52.0 260.0,156.0 156.0,260.0" fill="#7dd3fc" fill-opacity="0.18" stroke="#7dd3fc" stroke-width="2.5" stroke-linejoin="round"/>
+<polyline points="52.0,156.0 260.0,156.0" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linejoin="round" stroke-dasharray="6,5"/>
+<circle cx="52.0" cy="156.0" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
+<text x="28.0" y="156.0" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">A</text>
+<circle cx="156.0" cy="52.0" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
+<text x="156.0" y="28.0" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">B</text>
+<circle cx="260.0" cy="156.0" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
+<text x="284.0" y="156.0" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">C</text>
+<circle cx="156.0" cy="260.0" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
+<text x="156.0" y="284.0" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">D</text>
+</svg>
