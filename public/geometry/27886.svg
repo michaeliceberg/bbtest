@@ -1,14 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="416" height="416" viewBox="0 0 416 416">
-<rect x="0" y="0" width="416" height="416" fill="#151F23"/>
-<line x1="0" y1="0" x2="0" y2="416" stroke="#3A464E" stroke-width="1"/>
-<line x1="52" y1="0" x2="52" y2="416" stroke="#3A464E" stroke-width="1"/>
-<line x1="104" y1="0" x2="104" y2="416" stroke="#3A464E" stroke-width="1"/>
-<line x1="156" y1="0" x2="156" y2="416" stroke="#3A464E" stroke-width="1"/>
-<line x1="208" y1="0" x2="208" y2="416" stroke="#3A464E" stroke-width="1"/>
-<line x1="260" y1="0" x2="260" y2="416" stroke="#3A464E" stroke-width="1"/>
-<line x1="312" y1="0" x2="312" y2="416" stroke="#3A464E" stroke-width="1"/>
-<line x1="364" y1="0" x2="364" y2="416" stroke="#3A464E" stroke-width="1"/>
-<line x1="416" y1="0" x2="416" y2="416" stroke="#3A464E" stroke-width="1"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="416" height="572" viewBox="0 0 416 572">
+<rect x="0" y="0" width="416" height="572" fill="#151F23"/>
+<line x1="0" y1="0" x2="0" y2="572" stroke="#3A464E" stroke-width="1"/>
+<line x1="52" y1="0" x2="52" y2="572" stroke="#3A464E" stroke-width="1"/>
+<line x1="104" y1="0" x2="104" y2="572" stroke="#3A464E" stroke-width="1"/>
+<line x1="156" y1="0" x2="156" y2="572" stroke="#3A464E" stroke-width="1"/>
+<line x1="208" y1="0" x2="208" y2="572" stroke="#3A464E" stroke-width="1"/>
+<line x1="260" y1="0" x2="260" y2="572" stroke="#3A464E" stroke-width="1"/>
+<line x1="312" y1="0" x2="312" y2="572" stroke="#3A464E" stroke-width="1"/>
+<line x1="364" y1="0" x2="364" y2="572" stroke="#3A464E" stroke-width="1"/>
+<line x1="416" y1="0" x2="416" y2="572" stroke="#3A464E" stroke-width="1"/>
 <line x1="0" y1="0" x2="416" y2="0" stroke="#3A464E" stroke-width="1"/>
 <line x1="0" y1="52" x2="416" y2="52" stroke="#3A464E" stroke-width="1"/>
 <line x1="0" y1="104" x2="416" y2="104" stroke="#3A464E" stroke-width="1"/>
@@ -18,20 +18,23 @@
 <line x1="0" y1="312" x2="416" y2="312" stroke="#3A464E" stroke-width="1"/>
 <line x1="0" y1="364" x2="416" y2="364" stroke="#3A464E" stroke-width="1"/>
 <line x1="0" y1="416" x2="416" y2="416" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="468" x2="416" y2="468" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="520" x2="416" y2="520" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="572" x2="416" y2="572" stroke="#3A464E" stroke-width="1"/>
 <circle cx="208.0" cy="208.0" r="156.0" fill="none" stroke="#7dd3fc" stroke-width="2.5"/>
-<polyline points="88.4,107.6 235.0,361.4" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linejoin="round"/>
-<polyline points="327.6,107.6 235.0,361.4" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linejoin="round"/>
-<polyline points="88.4,107.6 327.6,107.6" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linejoin="round" stroke-dasharray="6,5"/>
-<polyline points="88.4,107.6 61.4,261.6" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linejoin="round"/>
-<polyline points="88.4,107.6 61.4,154.4" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linejoin="round"/>
-<circle cx="88.4" cy="107.6" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
-<text x="71.3" y="90.8" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">A</text>
+<polyline points="54.6,181.0 235.0,361.4" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linejoin="round"/>
+<polyline points="235.0,361.4 154.4,61.4" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linejoin="round"/>
+<polyline points="154.4,61.4 286.0,343.2" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linejoin="round"/>
+<polyline points="235.0,361.4 346.8,473.2" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linejoin="round" stroke-dasharray="6,5"/>
+<polyline points="286.0,343.2 346.8,473.2" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linejoin="round" stroke-dasharray="6,5"/>
+<circle cx="54.6" cy="181.0" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
+<text x="34.7" y="167.5" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">B</text>
 <circle cx="235.0" cy="361.4" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
-<text x="244.1" y="383.6" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">C</text>
-<circle cx="327.6" cy="107.6" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
-<text x="349.7" y="98.3" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">B</text>
-<circle cx="61.4" cy="261.6" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
-<text x="43.0" y="277.0" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">D</text>
-<circle cx="61.4" cy="154.4" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
-<text x="38.0" y="148.8" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">E</text>
+<text x="235.7" y="385.4" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">D</text>
+<circle cx="154.4" cy="61.4" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
+<text x="147.0" y="38.6" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">A</text>
+<circle cx="286.0" cy="343.2" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
+<text x="304.9" y="358.0" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">E</text>
+<circle cx="346.8" cy="473.2" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
+<text x="360.1" y="493.2" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">C</text>
 </svg>
