@@ -151,6 +151,12 @@ export const Quiz = ({
     let [challenge] = challenges.filter(el => el.id == activeIndex)
     const isHWChallenge = hwChallengeIds?.includes(challenge?.id) ?? false;
 
+    // Задача, уже отвеченная (верно или нет), блокируется на 24 часа — та же
+    // логика, что открывает/прячет сетку вариантов в Challenge. Без этого
+    // кнопка "Ответить" оставалась задизейбленной навсегда даже после того,
+    // как Challenge уже открывал варианты для пересдачи.
+    const canSolve = !dateLastDone || (new Date().getTime() - new Date(dateLastDone).getTime()) > 24 * 60 * 60 * 1000
+
     // Часть заданий ASSIST показываем как KEYBOARD — не переписываем тип в
     // БД (дистракторы остаются на месте для обычного вида), а решаем на
     // лету, детерминированно по id задачи, чтобы при пересдаче вид не
@@ -413,7 +419,9 @@ export const Quiz = ({
 
                         playCorrectSound()
                         setStatus('correct')
-                        setPercentage((prev) => prev + 100 / challenges.length)
+                        if (!isDoneChallenge) {
+                            setPercentage((prev) => prev + 100 / challenges.length)
+                        }
 
                         if (initialPercentage === 100) {
                             setHearts((prev) => Math.min(prev + 1, 5))
@@ -439,8 +447,10 @@ export const Quiz = ({
 
                         playIncorrectSound()
                         setStatus('wrong')
-                        setPercentage((prev) => prev + 100 / challenges.length)
-                        setHearts((prev) => Math.max(prev - 1, 0))
+                        if (!isDoneChallenge) {
+                            setPercentage((prev) => prev + 100 / challenges.length)
+                            setHearts((prev) => Math.max(prev - 1, 0))
+                        }
                     })
                     .catch(() => toast.error('Что-то пошло не так! Попробуйте ещё раз'))
             })
@@ -638,7 +648,7 @@ export const Quiz = ({
             </div>
 
             <Footer
-                disabled={isDoneChallenge || pending || (isKeyboardChallenge ? !typedAnswer : !selectedOption)}
+                disabled={(isDoneChallenge && !canSolve) || pending || (isKeyboardChallenge ? !typedAnswer : !selectedOption)}
                 status={status}
                 onCheck={onContinue}
             />
