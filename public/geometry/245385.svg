@@ -25,11 +25,11 @@
 <polyline points="235.0,361.4 354.6,154.4" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linejoin="round"/>
 <circle cx="208.0" cy="208.0" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
 <circle cx="61.4" cy="154.4" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
-<text x="39.2" y="145.2" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">A</text>
+<text x="39.2" y="145.2" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="26" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">A</text>
 <circle cx="354.6" cy="154.4" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
-<text x="376.5" y="144.5" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">B</text>
+<text x="376.5" y="144.5" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="26" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">B</text>
 <circle cx="235.0" cy="361.4" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
-<text x="238.5" y="385.1" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">C</text>
+<text x="238.5" y="385.1" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="26" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">C</text>
 <circle cx="208.0" cy="208.0" r="4" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
-<text x="198.9" y="192.5" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="18" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">O</text>
+<text x="198.9" y="192.5" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="22" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">O</text>
 </svg>

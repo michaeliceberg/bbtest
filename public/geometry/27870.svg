@@ -22,13 +22,13 @@
 <polyline points="61.4,154.4 354.6,261.6" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linejoin="round"/>
 <polyline points="61.4,261.6 354.6,154.4" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linejoin="round"/>
 <circle cx="61.4" cy="154.4" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
-<text x="38.8" y="146.2" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">A</text>
+<text x="38.8" y="146.2" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="26" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">A</text>
 <circle cx="354.6" cy="261.6" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
-<text x="377.2" y="269.8" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">C</text>
+<text x="377.2" y="269.8" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="26" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">C</text>
 <circle cx="61.4" cy="261.6" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
-<text x="38.8" y="269.8" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">B</text>
+<text x="38.8" y="269.8" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="26" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">B</text>
 <circle cx="354.6" cy="154.4" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
-<text x="377.2" y="146.2" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">D</text>
+<text x="377.2" y="146.2" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="26" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">D</text>
 <circle cx="208.0" cy="208.0" r="4" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
-<text x="208.0" y="226.0" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="18" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">O</text>
+<text x="208.0" y="226.0" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="22" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">O</text>
 </svg>

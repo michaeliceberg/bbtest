@@ -18,11 +18,11 @@
 <polygon points="52.0,208.0 104.0,52.0 364.0,52.0 312.0,208.0" fill="#7dd3fc" fill-opacity="0.18" stroke="#7dd3fc" stroke-width="2.5" stroke-linejoin="round"/>
 <polyline points="52.0,208.0 364.0,52.0" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linejoin="round" stroke-dasharray="6,5"/>
 <circle cx="52.0" cy="208.0" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
-<text x="30.5" y="218.7" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">A</text>
+<text x="30.5" y="218.7" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="26" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">A</text>
 <circle cx="104.0" cy="52.0" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
-<text x="84.8" y="37.6" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">B</text>
+<text x="84.8" y="37.6" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="26" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">B</text>
 <circle cx="364.0" cy="52.0" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
-<text x="385.5" y="41.3" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">C</text>
+<text x="385.5" y="41.3" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="26" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">C</text>
 <circle cx="312.0" cy="208.0" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
-<text x="331.2" y="222.4" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">D</text>
+<text x="331.2" y="222.4" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="26" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">D</text>
 </svg>

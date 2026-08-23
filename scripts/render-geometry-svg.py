@@ -114,7 +114,7 @@ def render(shapes, extra_points=None, circles=None, cell=CELL, margin_cells=MARG
         if label:
             svg.append(
                 f'<text x="{lx:.1f}" y="{ly:.1f}" font-family="Arial, sans-serif" font-style="italic" '
-                f'font-weight="bold" font-size="20" fill="{LABEL_COLOR}" text-anchor="middle" '
+                f'font-weight="bold" font-size="26" fill="{LABEL_COLOR}" text-anchor="middle" '
                 f'dominant-baseline="middle">{label}</text>'
             )
 
@@ -142,7 +142,7 @@ def render(shapes, extra_points=None, circles=None, cell=CELL, margin_cells=MARG
         svg.append(f'<circle cx="{px:.1f}" cy="{py:.1f}" r="4" fill="{POINT_FILL}" stroke="{POINT_RING}" stroke-width="1.5"/>')
         svg.append(
             f'<text x="{lx:.1f}" y="{ly:.1f}" font-family="Arial, sans-serif" font-style="italic" '
-            f'font-weight="bold" font-size="18" fill="{LABEL_COLOR}" text-anchor="middle" '
+            f'font-weight="bold" font-size="22" fill="{LABEL_COLOR}" text-anchor="middle" '
             f'dominant-baseline="middle">{c["center_label"]}</text>'
         )
 

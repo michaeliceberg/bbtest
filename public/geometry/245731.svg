@@ -23,11 +23,11 @@
 <polyline points="286.0,72.9 261.4,354.6" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linejoin="round"/>
 <polyline points="61.4,154.6 261.4,354.6" fill="none" stroke="#f0a868" stroke-width="2" stroke-linejoin="round"/>
 <circle cx="61.4" cy="154.6" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
-<text x="38.4" y="147.9" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">A</text>
+<text x="38.4" y="147.9" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="26" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">A</text>
 <circle cx="286.0" cy="72.9" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
-<text x="299.3" y="53.0" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">B</text>
+<text x="299.3" y="53.0" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="26" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">B</text>
 <circle cx="261.4" cy="354.6" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
-<text x="269.6" y="377.1" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">C</text>
+<text x="269.6" y="377.1" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="26" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">C</text>
 <circle cx="208.0" cy="208.0" r="4" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
-<text x="214.2" y="224.9" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="18" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">O</text>
+<text x="214.2" y="224.9" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="22" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">O</text>
 </svg>

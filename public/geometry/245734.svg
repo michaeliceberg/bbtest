@@ -23,9 +23,9 @@
 <polyline points="52.1,213.5 208.0,52.0" fill="none" stroke="#f0a868" stroke-width="2" stroke-linejoin="round"/>
 <polyline points="208.0,52.0 390.0,52.0" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linejoin="round"/>
 <circle cx="52.1" cy="213.5" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
-<text x="32.9" y="227.8" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">A</text>
+<text x="32.9" y="227.8" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="26" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">A</text>
 <circle cx="208.0" cy="52.0" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
-<text x="204.2" y="28.3" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">B</text>
+<text x="204.2" y="28.3" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="26" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">B</text>
 <circle cx="390.0" cy="52.0" r="9" fill="#7dd3fc" stroke="#0369a1" stroke-width="2.5"/>
-<text x="413.4" y="46.6" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="20" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">C</text>
+<text x="413.4" y="46.6" font-family="Arial, sans-serif" font-style="italic" font-weight="bold" font-size="26" fill="#7dd3fc" text-anchor="middle" dominant-baseline="middle">C</text>
 </svg>

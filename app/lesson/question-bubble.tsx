@@ -128,11 +128,21 @@ export const QuestionBubble = ({
                 </motion.div>
 
                 <div className="flex-1 pt-0.5">
-                    <div className="text-[#F2F7FB] text-sm md:text-base leading-relaxed">
-                        <Latex>{question}</Latex>
-                    </div>
-                    {imageSrc && (
-                        <img src={imageSrc} alt="" className="mt-2 rounded-lg max-w-full h-auto max-h-40 mx-auto" />
+                    {imageSrc ? (
+                        <div className="flex gap-3 items-start">
+                            <div className="flex-1 min-w-0 text-[#F2F7FB] text-sm md:text-base leading-relaxed">
+                                <Latex>{question}</Latex>
+                            </div>
+                            <img
+                                src={imageSrc}
+                                alt=""
+                                className="flex-shrink-0 rounded-lg w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 object-contain bg-[#1A252B]"
+                            />
+                        </div>
+                    ) : (
+                        <div className="text-[#F2F7FB] text-sm md:text-base leading-relaxed">
+                            <Latex>{question}</Latex>
+                        </div>
                     )}
                 </div>
             </div>
