@@ -47,10 +47,12 @@ def render(shapes, extra_points=None, cell=CELL, margin_cells=MARGIN_CELLS):
     xs = [p[0] for p in all_xy]
     ys = [p[1] for p in all_xy]
 
-    grid_x0 = min(xs) - margin_cells
-    grid_x1 = max(xs) + margin_cells
-    grid_y0 = min(ys) - margin_cells
-    grid_y1 = max(ys) + margin_cells
+    # Сетка всегда по целым узлам — даже если вспомогательные точки (H, K, O...)
+    # стоят на дробных координатах, сама решётка остаётся целочисленной.
+    grid_x0 = math.floor(min(xs)) - margin_cells
+    grid_x1 = math.ceil(max(xs)) + margin_cells
+    grid_y0 = math.floor(min(ys)) - margin_cells
+    grid_y1 = math.ceil(max(ys)) + margin_cells
 
     cols = grid_x1 - grid_x0
     rows = grid_y1 - grid_y0
@@ -93,7 +95,9 @@ def render(shapes, extra_points=None, cell=CELL, margin_cells=MARGIN_CELLS):
 
     def draw_point(px, py, label):
         dx, dy = px - cx, py - cy
-        dist = math.hypot(dx, dy) or 1
+        dist = math.hypot(dx, dy)
+        if dist < 1e-6:
+            dx, dy, dist = 0, 1, 1  # точка совпала с центром масс — подпись просто снизу
         lx = px + dx / dist * 24
         ly = py + dy / dist * 24
         svg.append(f'<circle cx="{px:.1f}" cy="{py:.1f}" r="9" fill="{POINT_FILL}" stroke="{POINT_RING}" stroke-width="2.5"/>')
