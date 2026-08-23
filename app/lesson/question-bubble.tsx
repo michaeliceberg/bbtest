@@ -132,7 +132,7 @@ export const QuestionBubble = ({
                         <Latex>{question}</Latex>
                     </div>
                     {imageSrc && (
-                        <img src={imageSrc} alt="" className="mt-3 rounded-lg max-w-full h-auto max-h-64" />
+                        <img src={imageSrc} alt="" className="mt-2 rounded-lg max-w-full h-auto max-h-40 mx-auto" />
                     )}
                 </div>
             </div>

@@ -504,7 +504,7 @@ export const Quiz = ({
 
     // Число колонок сетки меню — кнопки в неполном последнем ряду остаются
     // той же ширины, что и в предыдущих (grid, а не flex по рядам).
-    const menuColumns = typeof window !== 'undefined' && window.innerWidth < 640 ? 5 : 8;
+    const menuColumns = typeof window !== 'undefined' && window.innerWidth < 640 ? 7 : 10;
 
     return (
         <div className="min-h-screen bg-[#151F23] flex flex-col">
@@ -521,12 +521,12 @@ export const Quiz = ({
             </div>
 
             {/* Меню выбора задачи */}
-            <div className="max-w-xl mx-auto w-full px-4 pt-2 pb-3">
+            <div className="max-w-xl mx-auto w-full px-4 pt-1 pb-2">
                 <div
-                    className="grid gap-1.5"
+                    className="grid gap-1"
                     style={{ gridTemplateColumns: `repeat(${menuColumns}, minmax(0, 1fr))` }}
                 >
-                    {challenges.map((challengeItem) => {
+                    {challenges.map((challengeItem, challengeIndex) => {
                         const isDaily = dailyChallengeIds?.includes(challengeItem.id) ?? false;
                         const isTeacherHW = !isDaily && (hwChallengeIds?.includes(challengeItem.id) ?? false);
                         const isDone = doneChallengesId.includes(challengeItem.id);
@@ -542,13 +542,13 @@ export const Quiz = ({
                             <button
                                 key={challengeItem.id}
                                 onClick={() => onClickNumber(challengeItem.id + 1)}
-                                className="relative h-9 rounded-lg text-xs font-semibold transition-colors"
+                                className="relative h-7 rounded-lg text-xs font-semibold transition-colors"
                                 style={{
                                     backgroundColor: isActive ? unitColor.button : bg,
                                     color: isActive ? '#151F23' : color,
                                 }}
                             >
-                                {challengeItem.id % 1000}
+                                {challengeIndex + 1}
 
                                 {showDonut && (
                                     <span className="absolute -top-1.5 -right-1 text-[10px]">🍩</span>
@@ -567,7 +567,7 @@ export const Quiz = ({
 
 
             {/* Основной контент */}
-            <div className="flex-1 max-w-xl w-full mx-auto px-4 py-6 md:py-8">
+            <div className="flex-1 max-w-xl w-full mx-auto px-4 py-3 md:py-4">
                 <div className="w-full">
                     {/* Для типов без QuestionBubble заголовок — это сам вопрос */}
                     {!hasQuestionBubble && (
@@ -593,7 +593,7 @@ export const Quiz = ({
                             initial="initial"
                             animate="animate"
                             exit="exit"
-                            className="space-y-6 md:space-y-8"
+                            className="space-y-3 md:space-y-4"
                         >
                             {hasQuestionBubble && (
                                 <QuestionBubble
