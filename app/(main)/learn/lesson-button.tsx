@@ -100,7 +100,9 @@ export const LessonButton = ({
     } else {
         indentationLevel = cycleIndex - 8;
     }
-    const rightPosition = indentationLevel * 40;
+    // На узких экранах амплитуда змейки уменьшается (min с vw), чтобы кружок
+    // с прогресс-баром не вылезал за левый/правый край экрана телефона.
+    const rightPosition = `calc(${indentationLevel} * min(40px, 7vw))`;
 
     const isFirst = index === 0;
     const isLast = index === totalCount;
@@ -155,7 +157,7 @@ export const LessonButton = ({
     if (!isUnlocked && !isLessonCompleted) {
         return (
             <div className="relative flex flex-1 opacity-60" style={{
-                right: `${-20 + rightPosition}px`,
+                right: `calc(-20px + ${rightPosition})`,
                 marginTop: isFirst ? 28 : 24,
             }}>
                 <div className="h-[102px] w-[102px]">
@@ -166,7 +168,7 @@ export const LessonButton = ({
                         <Lock className="h-8 w-8" style={{ color: LOCKED_ICON_COLOR }} />
                     </div>
                 </div>
-                <div className="pt-8 ml-4">
+                <div className="pt-8 ml-4 max-w-[150px] sm:max-w-[220px]">
                     <p className="text-gray-400 text-sm font-medium">{title}</p>
                     {needMore > 0 && (
                         <p className="text-xs text-gray-400 mt-1">
@@ -183,7 +185,7 @@ export const LessonButton = ({
         return (
             <Link href={href} aria-disabled={locked} style={{ pointerEvents: locked ? "none" : "auto" }}>
                 <div className="relative flex flex-1" style={{
-                    right: `${-20 + rightPosition}px`,
+                    right: `calc(-20px + ${rightPosition})`,
                     marginTop: isFirst ? 28 : 24,
                 }}>
                     <div className="h-[102px] w-[102px]">
@@ -191,7 +193,7 @@ export const LessonButton = ({
                             <Crown className="h-8 w-8 text-white" />
                         </div>
                     </div>
-                    <div className="pt-8 ml-4">
+                    <div className="pt-8 ml-4 max-w-[150px] sm:max-w-[220px]">
                         <p className="text-[#F2F7FB] font-medium line-through">{title}</p>
                         <p className="text-xs text-green-600 mt-1">Мастер! 🎓</p>
                     </div>
@@ -204,7 +206,7 @@ export const LessonButton = ({
     return (
         <Link href={href} aria-disabled={locked} style={{ pointerEvents: locked ? "none" : "auto" }}>
             <div className="relative flex flex-1 items-center group" style={{
-                right: `${-20 + rightPosition}px`,
+                right: `calc(-20px + ${rightPosition})`,
                 marginTop: isFirst ? 28 : 24,
             }}>
                 <div className="h-[102px] w-[102px] relative flex-shrink-0">
@@ -243,7 +245,7 @@ export const LessonButton = ({
                     {getHomeworkIcon()}
                 </div>
 
-                <div className="ml-4 max-w-[220px]">
+                <div className="ml-4 max-w-[150px] sm:max-w-[220px]">
                     {(isHomeworkExpired || isHwNumber > 0 || isDailyNumber > 0) && (
                         <div className="mb-1.5 flex items-center gap-3">
                             {isHomeworkExpired && (

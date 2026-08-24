@@ -222,7 +222,7 @@ export const QuestionBubble = ({
                         transition={{ duration: 0.15 }}
                         src={imageSrc}
                         alt=""
-                        className="max-w-[100vw] max-h-[100vh] object-contain rounded-xl bg-[#1A252B] shadow-2xl cursor-default"
+                        className="w-screen h-screen object-contain bg-[#1A252B] cursor-default"
                         onClick={(e) => e.stopPropagation()}
                     />
                 </div>
