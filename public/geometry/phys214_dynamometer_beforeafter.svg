@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="150" viewBox="0 0 320 150">
+<rect x="0" y="0" width="320" height="150" fill="#151F23"/>
+<line x1="155" y1="15" x2="155" y2="120" stroke="#3A464E" stroke-width="1.5" stroke-dasharray="4,4"/>
+<text x="75" y="130" font-family="Georgia, serif" font-style="italic" font-size="12" fill="#9AA7B0" text-anchor="middle">слева</text>
+<text x="235" y="130" font-family="Georgia, serif" font-style="italic" font-size="12" fill="#9AA7B0" text-anchor="middle">справа</text>
+<rect x="10" y="40" width="130" height="30" fill="none" stroke="#F2F7FB" stroke-width="1.5" rx="3"/>
+<line x1="20" y1="40" x2="20" y2="52" stroke="#F2F7FB" stroke-width="1"/>
+<line x1="45" y1="40" x2="45" y2="46" stroke="#F2F7FB" stroke-width="1"/>
+<line x1="70" y1="40" x2="70" y2="52" stroke="#F2F7FB" stroke-width="1"/>
+<line x1="95" y1="40" x2="95" y2="46" stroke="#F2F7FB" stroke-width="1"/>
+<line x1="120" y1="40" x2="120" y2="52" stroke="#F2F7FB" stroke-width="1"/>
+<path d="M 20.0,55.0 L 29.1,47.0 L 38.2,63.0 L 47.3,47.0 L 56.4,63.0 L 65.5,47.0 L 74.5,63.0 L 83.6,47.0 L 92.7,63.0 L 101.8,47.0 L 110.9,63.0 L 120.0,55.0" fill="none" stroke="#4ade80" stroke-width="2.2" stroke-linejoin="round"/>
+<rect x="170" y="40" width="130" height="30" fill="none" stroke="#F2F7FB" stroke-width="1.5" rx="3"/>
+<line x1="180" y1="40" x2="180" y2="52" stroke="#F2F7FB" stroke-width="1"/>
+<line x1="205" y1="40" x2="205" y2="46" stroke="#F2F7FB" stroke-width="1"/>
+<line x1="230" y1="40" x2="230" y2="52" stroke="#F2F7FB" stroke-width="1"/>
+<line x1="255" y1="40" x2="255" y2="46" stroke="#F2F7FB" stroke-width="1"/>
+<line x1="280" y1="40" x2="280" y2="52" stroke="#F2F7FB" stroke-width="1"/>
+<path d="M 180.0,55.0 L 189.1,47.0 L 198.2,63.0 L 207.3,47.0 L 216.4,63.0 L 225.5,47.0 L 234.5,63.0 L 243.6,47.0 L 252.7,63.0 L 261.8,47.0 L 270.9,63.0 L 280.0,55.0" fill="none" stroke="#4ade80" stroke-width="2.2" stroke-linejoin="round"/>
+<line x1="280" y1="55" x2="280" y2="80" stroke="#f0a868" stroke-width="2.5"/>
+<rect x="267" y="80" width="26" height="20" fill="#7dd3fc" fill-opacity="0.25" stroke="#7dd3fc" stroke-width="2.2" rx="3"/>
+<text x="280.0" y="94.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="13" fill="#F2F7FB" text-anchor="middle">m</text>
+</svg>

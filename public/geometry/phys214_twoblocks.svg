@@ -21,7 +21,7 @@
 <path d="M 95.0,85.0 L 103.8,93.0 L 112.5,77.0 L 121.2,93.0 L 130.0,77.0 L 138.8,93.0 L 147.5,77.0 L 156.2,93.0 L 165.0,77.0 L 173.8,93.0 L 182.5,77.0 L 191.2,93.0 L 200.0,85.0" fill="none" stroke="#4ade80" stroke-width="2.2" stroke-linejoin="round"/>
 <rect x="200.0" y="65.0" width="50" height="40" fill="#7dd3fc" fill-opacity="0.25" stroke="#7dd3fc" stroke-width="2.2" rx="3"/>
 <text x="225.0" y="90.0" font-family="Arial, sans-serif" font-weight="bold" font-size="15" fill="#F2F7FB" text-anchor="middle">M</text>
-<line x1="45.0" y1="85.0" x2="15.0" y2="85.0" stroke="#f0a868" stroke-width="2.6" stroke-linecap="round"/>
-<polygon points="15.0,85.0 23.7,80.0 23.7,90.0" fill="#f0a868"/>
-<text x="10.5" y="79.0" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="14" fill="#f0a868">F</text>
+<line x1="55.0" y1="75.0" x2="85.0" y2="75.0" stroke="#f0a868" stroke-width="2.6" stroke-linecap="round"/>
+<polygon points="85.0,75.0 76.3,70.0 76.3,80.0" fill="#f0a868"/>
+<text x="60.0" y="62.0" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="14" fill="#f0a868">F</text>
 </svg>
