@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="480" viewBox="0 0 240 480">
+<rect x="0" y="0" width="240" height="480" fill="#151F23"/>
+<line x1="0.0" y1="0" x2="0.0" y2="480" stroke="#3A464E" stroke-width="1"/>
+<line x1="40.0" y1="0" x2="40.0" y2="480" stroke="#3A464E" stroke-width="1"/>
+<line x1="80.0" y1="0" x2="80.0" y2="480" stroke="#3A464E" stroke-width="1"/>
+<line x1="120.0" y1="0" x2="120.0" y2="480" stroke="#3A464E" stroke-width="1"/>
+<line x1="160.0" y1="0" x2="160.0" y2="480" stroke="#3A464E" stroke-width="1"/>
+<line x1="200.0" y1="0" x2="200.0" y2="480" stroke="#3A464E" stroke-width="1"/>
+<line x1="240.0" y1="0" x2="240.0" y2="480" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="480.0" x2="240" y2="480.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="440.0" x2="240" y2="440.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="400.0" x2="240" y2="400.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="360.0" x2="240" y2="360.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="320.0" x2="240" y2="320.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="280.0" x2="240" y2="280.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="240.0" x2="240" y2="240.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="200.0" x2="240" y2="200.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="160.0" x2="240" y2="160.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="120.0" x2="240" y2="120.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="80.0" x2="240" y2="80.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="40.0" x2="240" y2="40.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="0.0" x2="240" y2="0.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="120.0" y1="480" x2="120.0" y2="0" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="115.0,10 125.0,10 120.0,0" fill="#9AA7B0"/>
+<line x1="0" y1="320.0" x2="240" y2="320.0" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="230,315.0 230,325.0 240,320.0" fill="#9AA7B0"/>
+<text x="104.0" y="338.0" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">O</text>
+<text x="155.0" y="340.0" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">1</text>
+<text x="102.0" y="286.0" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">1</text>
+<text x="224.0" y="312.0" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">x</text>
+<text x="128.0" y="14" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">y</text>
+<text x="-6.0" y="340.0" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-3</text>
+<text x="34.0" y="340.0" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-2</text>
+<text x="74.0" y="340.0" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-1</text>
+<text x="194.0" y="340.0" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">2</text>
+<text x="234.0" y="340.0" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">3</text>
+<path d="M 0.0,440.0 L 1.2,429.3 L 2.4,418.7 L 3.6,408.2 L 4.8,398.0 L 6.0,387.8 L 7.2,377.8 L 8.4,367.9 L 9.6,358.2 L 10.8,348.6 L 12.0,339.2 L 13.2,329.9 L 14.4,320.8 L 15.6,311.8 L 16.8,302.9 L 18.0,294.2 L 19.2,285.6 L 20.4,277.2 L 21.6,268.9 L 22.8,260.8 L 24.0,252.8 L 25.2,245.0 L 26.4,237.2 L 27.6,229.7 L 28.8,222.3 L 30.0,215.0 L 31.2,207.9 L 32.4,200.9 L 33.6,194.0 L 34.8,187.4 L 36.0,180.8 L 37.2,174.4 L 38.4,168.1 L 39.6,162.0 L 40.8,156.0 L 42.0,150.2 L 43.2,144.5 L 44.4,139.0 L 45.6,133.6 L 46.8,128.3 L 48.0,123.2 L 49.2,118.2 L 50.4,113.4 L 51.6,108.7 L 52.8,104.2 L 54.0,99.8 L 55.2,95.6 L 56.4,91.4 L 57.6,87.5 L 58.8,83.7 L 60.0,80.0 L 61.2,76.5 L 62.4,73.1 L 63.6,69.8 L 64.8,66.8 L 66.0,63.8 L 67.2,61.0 L 68.4,58.3 L 69.6,55.8 L 70.8,53.4 L 72.0,51.2 L 73.2,49.1 L 74.4,47.2 L 75.6,45.4 L 76.8,43.7 L 78.0,42.2 L 79.2,40.8 L 80.4,39.6 L 81.6,38.5 L 82.8,37.6 L 84.0,36.8 L 85.2,36.2 L 86.4,35.6 L 87.6,35.3 L 88.8,35.1 L 90.0,35.0 L 91.2,35.1 L 92.4,35.3 L 93.6,35.6 L 94.8,36.2 L 96.0,36.8 L 97.2,37.6 L 98.4,38.5 L 99.6,39.6 L 100.8,40.8 L 102.0,42.2 L 103.2,43.7 L 104.4,45.4 L 105.6,47.2 L 106.8,49.1 L 108.0,51.2 L 109.2,53.4 L 110.4,55.8 L 111.6,58.3 L 112.8,61.0 L 114.0,63.8 L 115.2,66.8 L 116.4,69.8 L 117.6,73.1 L 118.8,76.5 L 120.0,80.0 L 121.2,83.7 L 122.4,87.5 L 123.6,91.4 L 124.8,95.6 L 126.0,99.8 L 127.2,104.2 L 128.4,108.7 L 129.6,113.4 L 130.8,118.2 L 132.0,123.2 L 133.2,128.3 L 134.4,133.6 L 135.6,139.0 L 136.8,144.5 L 138.0,150.2 L 139.2,156.0 L 140.4,162.0 L 141.6,168.1 L 142.8,174.4 L 144.0,180.8 L 145.2,187.4 L 146.4,194.0 L 147.6,200.9 L 148.8,207.9 L 150.0,215.0 L 151.2,222.3 L 152.4,229.7 L 153.6,237.2 L 154.8,245.0 L 156.0,252.8 L 157.2,260.8 L 158.4,268.9 L 159.6,277.2 L 160.8,285.6 L 162.0,294.2 L 163.2,302.9 L 164.4,311.8 L 165.6,320.8 L 166.8,329.9 L 168.0,339.2 L 169.2,348.6 L 170.4,358.2 L 171.6,367.9 L 172.8,377.8 L 174.0,387.8 L 175.2,398.0 L 176.4,408.2 L 177.6,418.7 L 178.8,429.3 L 180.0,440.0 L 181.2,450.9 L 182.4,461.9 L 183.6,473.0 L 184.8,484.4 L 186.0,495.8 L 187.2,507.4 L 188.4,519.1 L 189.6,531.0 L 190.8,543.0 L 192.0,555.2 L 193.2,567.5 L 194.4,580.0 L 195.6,592.6 L 196.8,605.3 L 198.0,618.2 L 199.2,631.2 L 200.4,644.4 L 201.6,657.7 L 202.8,671.2 L 204.0,684.8 L 205.2,698.6 L 206.4,712.4 L 207.6,726.5 L 208.8,740.7 L 210.0,755.0 L 211.2,769.5 L 212.4,784.1 L 213.6,798.8 L 214.8,813.8 L 216.0,828.8 L 217.2,844.0 L 218.4,859.3 L 219.6,874.8 L 220.8,890.4 L 222.0,906.2 L 223.2,922.1 L 224.4,938.2 L 225.6,954.4 L 226.8,970.7 L 228.0,987.2 L 229.2,1003.8 L 230.4,1020.6 L 231.6,1037.5 L 232.8,1054.6 L 234.0,1071.8 L 235.2,1089.2 L 236.4,1106.6 L 237.6,1124.3 L 238.8,1142.1 L 240.0,1160.0" fill="none" stroke="#f0a868" stroke-width="2.6" stroke-linecap="round"/>
+<circle cx="160.0" cy="280.0" r="4.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<circle cx="40.0" cy="160.0" r="4.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+</svg>
