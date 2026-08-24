@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="269" height="198" viewBox="0 0 269 198">
+<rect x="0" y="0" width="269" height="198" fill="#151F23"/>
+<line x1="18.0" y1="0" x2="18.0" y2="198" stroke="#3A464E" stroke-width="1"/>
+<line x1="58.0" y1="0" x2="58.0" y2="198" stroke="#3A464E" stroke-width="1"/>
+<line x1="98.0" y1="0" x2="98.0" y2="198" stroke="#3A464E" stroke-width="1"/>
+<line x1="138.0" y1="0" x2="138.0" y2="198" stroke="#3A464E" stroke-width="1"/>
+<line x1="178.0" y1="0" x2="178.0" y2="198" stroke="#3A464E" stroke-width="1"/>
+<line x1="218.0" y1="0" x2="218.0" y2="198" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="161.0" x2="269" y2="161.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="121.0" x2="269" y2="121.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="81.0" x2="269" y2="81.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="41.0" x2="269" y2="41.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="18.0" y1="198" x2="18.0" y2="0" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="13.0,10 23.0,10 18.0,0" fill="#9AA7B0"/>
+<line x1="0" y1="161.0" x2="269" y2="161.0" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="259.0,156.0 259.0,166.0 269,161.0" fill="#9AA7B0"/>
+<text x="2.0" y="179.0" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">0</text>
+<text x="253.0" y="153.0" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">t, с</text>
+<text x="26.0" y="14" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">x, м</text>
+<text x="53.0" y="177.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">2</text>
+<text x="93.0" y="177.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">4</text>
+<text x="133.0" y="177.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">6</text>
+<text x="173.0" y="177.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">8</text>
+<text x="213.0" y="177.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">10</text>
+<text x="23.0" y="125.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">50</text>
+<text x="23.0" y="85.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">100</text>
+<text x="23.0" y="45.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">150</text>
+<path d="M 18.0,49.0 L 218.0,161.0" fill="none" stroke="#f0a868" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="18.0" cy="49.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.2"/>
+<circle cx="218.0" cy="161.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.2"/>
+<text x="226.0" y="165.0" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="13" fill="#f0a868">1</text>
+<path d="M 18.0,161.0 L 218.0,129.0" fill="none" stroke="#7dd3fc" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="18.0" cy="161.0" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
+<circle cx="218.0" cy="129.0" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
+<text x="226.0" y="133.0" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="13" fill="#7dd3fc">2</text>
+</svg>
