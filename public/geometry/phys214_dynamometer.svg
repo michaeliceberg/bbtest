@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="120" viewBox="0 0 280 120">
+<rect x="0" y="0" width="280" height="120" fill="#151F23"/>
+<rect x="20" y="40" width="240" height="30" fill="none" stroke="#F2F7FB" stroke-width="1.5" rx="3"/>
+<line x1="30" y1="40" x2="30" y2="52" stroke="#F2F7FB" stroke-width="1"/>
+<line x1="48" y1="40" x2="48" y2="46" stroke="#F2F7FB" stroke-width="1"/>
+<line x1="66" y1="40" x2="66" y2="46" stroke="#F2F7FB" stroke-width="1"/>
+<line x1="84" y1="40" x2="84" y2="46" stroke="#F2F7FB" stroke-width="1"/>
+<line x1="102" y1="40" x2="102" y2="46" stroke="#F2F7FB" stroke-width="1"/>
+<line x1="120" y1="40" x2="120" y2="52" stroke="#F2F7FB" stroke-width="1"/>
+<line x1="138" y1="40" x2="138" y2="46" stroke="#F2F7FB" stroke-width="1"/>
+<line x1="156" y1="40" x2="156" y2="46" stroke="#F2F7FB" stroke-width="1"/>
+<line x1="174" y1="40" x2="174" y2="46" stroke="#F2F7FB" stroke-width="1"/>
+<line x1="192" y1="40" x2="192" y2="46" stroke="#F2F7FB" stroke-width="1"/>
+<line x1="210" y1="40" x2="210" y2="52" stroke="#F2F7FB" stroke-width="1"/>
+<line x1="228" y1="40" x2="228" y2="46" stroke="#F2F7FB" stroke-width="1"/>
+<line x1="246" y1="40" x2="246" y2="46" stroke="#F2F7FB" stroke-width="1"/>
+<path d="M 20.0,55.0 L 29.2,62.0 L 38.3,48.0 L 47.5,62.0 L 56.7,48.0 L 65.8,62.0 L 75.0,48.0 L 84.2,62.0 L 93.3,48.0 L 102.5,62.0 L 111.7,48.0 L 120.8,62.0 L 130.0,55.0" fill="none" stroke="#4ade80" stroke-width="2.2" stroke-linejoin="round"/>
+<line x1="130" y1="45" x2="130" y2="65" stroke="#f0a868" stroke-width="2.5"/>
+<text x="150.0" y="100.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="14" fill="#F2F7FB" text-anchor="middle">m</text>
+<line x1="150.0" y1="70.0" x2="150.0" y2="85.0" stroke="#F2F7FB" stroke-width="1.8"/>
+<rect x="137.0" y="85.0" width="26" height="20" fill="#7dd3fc" fill-opacity="0.25" stroke="#7dd3fc" stroke-width="2.2" rx="3"/>
+</svg>
