@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="442" height="176.8" viewBox="0 0 442 176.8">
+<rect x="0" y="0" width="442" height="176.8" fill="#151F23"/>
+<line x1="0.0" y1="0" x2="0.0" y2="176.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="34.0" y1="0" x2="34.0" y2="176.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="68.0" y1="0" x2="68.0" y2="176.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="102.0" y1="0" x2="102.0" y2="176.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="136.0" y1="0" x2="136.0" y2="176.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="170.0" y1="0" x2="170.0" y2="176.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="204.0" y1="0" x2="204.0" y2="176.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="238.0" y1="0" x2="238.0" y2="176.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="272.0" y1="0" x2="272.0" y2="176.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="306.0" y1="0" x2="306.0" y2="176.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="340.0" y1="0" x2="340.0" y2="176.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="374.0" y1="0" x2="374.0" y2="176.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="408.0" y1="0" x2="408.0" y2="176.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="442.0" y1="0" x2="442.0" y2="176.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="159.8" x2="442" y2="159.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="125.8" x2="442" y2="125.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="91.8" x2="442" y2="91.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="57.8" x2="442" y2="57.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="23.8" x2="442" y2="23.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="238.0" y1="176.8" x2="238.0" y2="0" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="233.0,10 243.0,10 238.0,0" fill="#9AA7B0"/>
+<line x1="0" y1="159.8" x2="442" y2="159.8" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="432,154.8 432,164.8 442,159.8" fill="#9AA7B0"/>
+<text x="222.0" y="177.8" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">O</text>
+<text x="267.0" y="179.8" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">1</text>
+<text x="220.0" y="131.8" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">1</text>
+<text x="426.0" y="151.8" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">x</text>
+<text x="246.0" y="14" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">y</text>
+<text x="-6.0" y="179.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-7</text>
+<text x="28.0" y="179.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-6</text>
+<text x="62.0" y="179.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-5</text>
+<text x="96.0" y="179.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-4</text>
+<text x="130.0" y="179.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-3</text>
+<text x="164.0" y="179.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-2</text>
+<text x="198.0" y="179.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-1</text>
+<text x="300.0" y="179.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">2</text>
+<text x="334.0" y="179.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">3</text>
+<text x="368.0" y="179.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">4</text>
+<text x="402.0" y="179.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">5</text>
+<text x="436.0" y="179.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">6</text>
+<path d="M 34.0,74.8 C 39.7,70.3 56.7,40.2 68.0,47.6 C 79.3,55.0 88.4,120.7 102.0,119.0 C 115.6,117.3 134.3,39.7 149.6,37.4 C 164.9,35.1 177.9,107.7 193.8,105.4 C 209.7,103.1 228.4,20.4 244.8,23.8 C 261.2,27.2 276.5,121.3 292.4,125.8 C 308.3,130.3 320.7,54.4 340.0,51.0 C 359.3,47.6 396.7,96.3 408.0,105.4 " fill="none" stroke="#f0a868" stroke-width="2.6" stroke-linecap="round"/>
+<circle cx="34.0" cy="74.8" r="4" fill="#151F23" stroke="#f0a868" stroke-width="2"/>
+<circle cx="408.0" cy="105.4" r="4" fill="#151F23" stroke="#f0a868" stroke-width="2"/>
+<text x="20.4" y="17.0" font-family="Georgia, serif" font-style="italic" font-size="16" fill="#f0a868">y = f(x)</text>
+</svg>
