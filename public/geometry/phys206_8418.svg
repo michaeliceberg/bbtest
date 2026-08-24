@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="260" viewBox="0 0 320 260">
+<rect x="0" y="0" width="320" height="260" fill="#151F23"/>
+<line x1="25.0" y1="0" x2="25.0" y2="260" stroke="#3A464E" stroke-width="1"/>
+<line x1="55.0" y1="0" x2="55.0" y2="260" stroke="#3A464E" stroke-width="1"/>
+<line x1="85.0" y1="0" x2="85.0" y2="260" stroke="#3A464E" stroke-width="1"/>
+<line x1="115.0" y1="0" x2="115.0" y2="260" stroke="#3A464E" stroke-width="1"/>
+<line x1="145.0" y1="0" x2="145.0" y2="260" stroke="#3A464E" stroke-width="1"/>
+<line x1="175.0" y1="0" x2="175.0" y2="260" stroke="#3A464E" stroke-width="1"/>
+<line x1="205.0" y1="0" x2="205.0" y2="260" stroke="#3A464E" stroke-width="1"/>
+<line x1="235.0" y1="0" x2="235.0" y2="260" stroke="#3A464E" stroke-width="1"/>
+<line x1="265.0" y1="0" x2="265.0" y2="260" stroke="#3A464E" stroke-width="1"/>
+<line x1="295.0" y1="0" x2="295.0" y2="260" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="235.0" x2="320" y2="235.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="205.0" x2="320" y2="205.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="175.0" x2="320" y2="175.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="145.0" x2="320" y2="145.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="115.0" x2="320" y2="115.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="85.0" x2="320" y2="85.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="55.0" x2="320" y2="55.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="25.0" x2="320" y2="25.0" stroke="#3A464E" stroke-width="1"/>
+<circle cx="145.0" cy="145.0" r="4" fill="#F2F7FB" stroke="#0369a1" stroke-width="1.5"/>
+<line x1="145.0" y1="145.0" x2="265.0" y2="55.0" stroke="#f0a868" stroke-width="2.6" stroke-linecap="round"/>
+<polygon points="265.0,55.0 261.5,63.3 256.1,56.1" fill="#f0a868"/>
+<text x="283.0" y="35.5" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="14" fill="#f0a868">F₁</text>
+<line x1="145.0" y1="145.0" x2="55.0" y2="205.0" stroke="#7dd3fc" stroke-width="2.6" stroke-linecap="round"/>
+<polygon points="55.0,205.0 59.0,196.9 64.0,204.4" fill="#7dd3fc"/>
+<text x="41.5" y="208.0" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="14" fill="#7dd3fc">F₂</text>
+</svg>
