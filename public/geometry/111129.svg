@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="510" height="132.6" viewBox="0 0 510 132.6">
+<rect x="0" y="0" width="510" height="132.6" fill="#151F23"/>
+<line x1="0.0" y1="0" x2="0.0" y2="132.6" stroke="#3A464E" stroke-width="1"/>
+<line x1="34.0" y1="0" x2="34.0" y2="132.6" stroke="#3A464E" stroke-width="1"/>
+<line x1="68.0" y1="0" x2="68.0" y2="132.6" stroke="#3A464E" stroke-width="1"/>
+<line x1="102.0" y1="0" x2="102.0" y2="132.6" stroke="#3A464E" stroke-width="1"/>
+<line x1="136.0" y1="0" x2="136.0" y2="132.6" stroke="#3A464E" stroke-width="1"/>
+<line x1="170.0" y1="0" x2="170.0" y2="132.6" stroke="#3A464E" stroke-width="1"/>
+<line x1="204.0" y1="0" x2="204.0" y2="132.6" stroke="#3A464E" stroke-width="1"/>
+<line x1="238.0" y1="0" x2="238.0" y2="132.6" stroke="#3A464E" stroke-width="1"/>
+<line x1="272.0" y1="0" x2="272.0" y2="132.6" stroke="#3A464E" stroke-width="1"/>
+<line x1="306.0" y1="0" x2="306.0" y2="132.6" stroke="#3A464E" stroke-width="1"/>
+<line x1="340.0" y1="0" x2="340.0" y2="132.6" stroke="#3A464E" stroke-width="1"/>
+<line x1="374.0" y1="0" x2="374.0" y2="132.6" stroke="#3A464E" stroke-width="1"/>
+<line x1="408.0" y1="0" x2="408.0" y2="132.6" stroke="#3A464E" stroke-width="1"/>
+<line x1="442.0" y1="0" x2="442.0" y2="132.6" stroke="#3A464E" stroke-width="1"/>
+<line x1="476.0" y1="0" x2="476.0" y2="132.6" stroke="#3A464E" stroke-width="1"/>
+<line x1="510.0" y1="0" x2="510.0" y2="132.6" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="115.6" x2="510" y2="115.6" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="81.6" x2="510" y2="81.6" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="47.6" x2="510" y2="47.6" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="13.6" x2="510" y2="13.6" stroke="#3A464E" stroke-width="1"/>
+<line x1="340.0" y1="132.6" x2="340.0" y2="0" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="335.0,10 345.0,10 340.0,0" fill="#9AA7B0"/>
+<line x1="0" y1="115.6" x2="510" y2="115.6" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="500,110.6 500,120.6 510,115.6" fill="#9AA7B0"/>
+<text x="324.0" y="133.6" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">O</text>
+<text x="369.0" y="135.6" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">1</text>
+<text x="322.0" y="87.6" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">1</text>
+<text x="494.0" y="107.6" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">x</text>
+<text x="348.0" y="14" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">y</text>
+<text x="-6.0" y="135.6" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-10</text>
+<text x="28.0" y="135.6" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-9</text>
+<text x="62.0" y="135.6" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-8</text>
+<text x="96.0" y="135.6" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-7</text>
+<text x="130.0" y="135.6" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-6</text>
+<text x="164.0" y="135.6" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-5</text>
+<text x="198.0" y="135.6" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-4</text>
+<text x="232.0" y="135.6" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-3</text>
+<text x="266.0" y="135.6" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-2</text>
+<text x="300.0" y="135.6" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-1</text>
+<text x="402.0" y="135.6" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">2</text>
+<text x="436.0" y="135.6" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">3</text>
+<text x="470.0" y="135.6" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">4</text>
+<text x="504.0" y="135.6" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">5</text>
+<path d="M 34.0,81.6 C 85.0,70.3 272.0,7.9 340.0,13.6 C 408.0,19.3 419.3,104.3 442.0,115.6 C 464.7,126.9 470.3,87.3 476.0,81.6 " fill="none" stroke="#f0a868" stroke-width="2.6" stroke-linecap="round"/>
+<circle cx="34.0" cy="81.6" r="4" fill="#151F23" stroke="#f0a868" stroke-width="2"/>
+<circle cx="476.0" cy="81.6" r="4" fill="#151F23" stroke="#f0a868" stroke-width="2"/>
+<text x="13.6" y="71.4" font-family="Georgia, serif" font-style="italic" font-size="16" fill="#f0a868">y = f(x)</text>
+</svg>

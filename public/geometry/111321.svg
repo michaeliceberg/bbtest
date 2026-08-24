@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="408" height="142.8" viewBox="0 0 408 142.8">
+<rect x="0" y="0" width="408" height="142.8" fill="#151F23"/>
+<line x1="0.0" y1="0" x2="0.0" y2="142.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="34.0" y1="0" x2="34.0" y2="142.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="68.0" y1="0" x2="68.0" y2="142.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="102.0" y1="0" x2="102.0" y2="142.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="136.0" y1="0" x2="136.0" y2="142.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="170.0" y1="0" x2="170.0" y2="142.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="204.0" y1="0" x2="204.0" y2="142.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="238.0" y1="0" x2="238.0" y2="142.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="272.0" y1="0" x2="272.0" y2="142.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="306.0" y1="0" x2="306.0" y2="142.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="340.0" y1="0" x2="340.0" y2="142.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="374.0" y1="0" x2="374.0" y2="142.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="408.0" y1="0" x2="408.0" y2="142.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="125.8" x2="408" y2="125.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="91.8" x2="408" y2="91.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="57.8" x2="408" y2="57.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="23.8" x2="408" y2="23.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="102.0" y1="142.8" x2="102.0" y2="0" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="97.0,10 107.0,10 102.0,0" fill="#9AA7B0"/>
+<line x1="0" y1="125.8" x2="408" y2="125.8" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="398,120.8 398,130.8 408,125.8" fill="#9AA7B0"/>
+<text x="86.0" y="143.8" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">O</text>
+<text x="131.0" y="145.8" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">1</text>
+<text x="84.0" y="97.8" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">1</text>
+<text x="392.0" y="117.8" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">x</text>
+<text x="110.0" y="14" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">y</text>
+<text x="-6.0" y="145.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-3</text>
+<text x="28.0" y="145.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-2</text>
+<text x="62.0" y="145.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">-1</text>
+<text x="164.0" y="145.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">2</text>
+<text x="198.0" y="145.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">3</text>
+<text x="232.0" y="145.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">4</text>
+<text x="266.0" y="145.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">5</text>
+<text x="300.0" y="145.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">6</text>
+<text x="334.0" y="145.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">7</text>
+<text x="368.0" y="145.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">8</text>
+<text x="402.0" y="145.8" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">9</text>
+<path d="M 34.0,125.8 C 62.3,108.8 147.3,23.8 204.0,23.8 C 260.7,23.8 345.7,108.8 374.0,125.8 " fill="none" stroke="#f0a868" stroke-width="2.6" stroke-linecap="round"/>
+<circle cx="34.0" cy="125.8" r="4" fill="#151F23" stroke="#f0a868" stroke-width="2"/>
+<circle cx="374.0" cy="125.8" r="4" fill="#151F23" stroke="#f0a868" stroke-width="2"/>
+<text x="13.6" y="112.2" font-family="Georgia, serif" font-style="italic" font-size="16" fill="#f0a868">y = f(x)</text>
+<circle cx="68.0" cy="125.8" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
+<text x="68.0" y="159.8" font-family="Georgia, serif" font-style="italic" font-size="12" fill="#F2F7FB" text-anchor="middle">x1</text>
+<circle cx="102.0" cy="125.8" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
+<text x="102.0" y="159.8" font-family="Georgia, serif" font-style="italic" font-size="12" fill="#F2F7FB" text-anchor="middle">x2</text>
+<circle cx="136.0" cy="125.8" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
+<text x="136.0" y="159.8" font-family="Georgia, serif" font-style="italic" font-size="12" fill="#F2F7FB" text-anchor="middle">x3</text>
+<circle cx="170.0" cy="125.8" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
+<text x="170.0" y="159.8" font-family="Georgia, serif" font-style="italic" font-size="12" fill="#F2F7FB" text-anchor="middle">x4</text>
+<circle cx="238.0" cy="125.8" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
+<text x="238.0" y="159.8" font-family="Georgia, serif" font-style="italic" font-size="12" fill="#F2F7FB" text-anchor="middle">x5</text>
+<circle cx="306.0" cy="125.8" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
+<text x="306.0" y="159.8" font-family="Georgia, serif" font-style="italic" font-size="12" fill="#F2F7FB" text-anchor="middle">x6</text>
+<circle cx="340.0" cy="125.8" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
+<text x="340.0" y="159.8" font-family="Georgia, serif" font-style="italic" font-size="12" fill="#F2F7FB" text-anchor="middle">x7</text>
+</svg>
