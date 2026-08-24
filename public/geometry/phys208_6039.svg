@@ -19,7 +19,7 @@
 <line x1="0" y1="101.0" x2="214" y2="101.0" stroke="#9AA7B0" stroke-width="2"/>
 <polygon points="204.0,96.0 204.0,106.0 214,101.0" fill="#9AA7B0"/>
 <text x="17.0" y="119.0" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">0</text>
-<text x="198.0" y="93.0" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">t, с</text>
+<text x="210.0" y="93.0" text-anchor="end" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">t, с</text>
 <text x="41.0" y="14" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">v, м/с</text>
 <text x="68.0" y="117.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">0,5</text>
 <text x="108.0" y="117.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">1</text>

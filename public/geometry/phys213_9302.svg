@@ -17,7 +17,7 @@
 <line x1="0" y1="181.0" x2="221" y2="181.0" stroke="#9AA7B0" stroke-width="2"/>
 <polygon points="211.2,176.0 211.2,186.0 221,181.0" fill="#9AA7B0"/>
 <text x="0.2" y="199.0" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">0</text>
-<text x="205.2" y="173.0" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">N, Н</text>
+<text x="217.0" y="173.0" text-anchor="end" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">N, Н</text>
 <text x="24.2" y="14" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">Fтр, Н</text>
 <text x="51.2" y="197.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">2</text>
 <text x="91.2" y="197.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">4</text>

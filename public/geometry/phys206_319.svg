@@ -22,7 +22,7 @@
 <text x="41.5" y="109.0" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="14" fill="#f0a868">F₁</text>
 <line x1="145.0" y1="115.0" x2="55.0" y2="175.0" stroke="#7dd3fc" stroke-width="2.6" stroke-linecap="round"/>
 <polygon points="55.0,175.0 59.0,166.9 64.0,174.4" fill="#7dd3fc"/>
-<text x="41.5" y="178.0" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="14" fill="#7dd3fc">F₂</text>
+<text x="32.0" y="192.0" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="14" fill="#7dd3fc">F₂</text>
 <line x1="145.0" y1="115.0" x2="145.0" y2="55.0" stroke="#4ade80" stroke-width="2.6" stroke-linecap="round"/>
 <polygon points="145.0,55.0 149.5,62.8 140.5,62.8" fill="#4ade80"/>
 <text x="145.0" y="40.0" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="14" fill="#4ade80">F₃</text>

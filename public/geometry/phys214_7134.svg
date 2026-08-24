@@ -19,7 +19,7 @@
 <line x1="0" y1="221.0" x2="298" y2="221.0" stroke="#9AA7B0" stroke-width="2"/>
 <polygon points="288.0,216.0 288.0,226.0 298,221.0" fill="#9AA7B0"/>
 <text x="53.0" y="239.0" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">0</text>
-<text x="282.0" y="213.0" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">x, м</text>
+<text x="294.0" y="213.0" text-anchor="end" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">x, м</text>
 <text x="77.0" y="14" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">Fупр, Н</text>
 <text x="24.0" y="237.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">-0,2</text>
 <text x="104.0" y="237.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">0,2</text>
