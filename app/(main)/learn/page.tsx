@@ -234,6 +234,7 @@ const LearnPage = async () => {
   const currentPoints = userProgress.points;
   const currentGems = userProgress.gems;
   const currentHearts = userProgress.hearts;
+  const isAdmin = userProgress.isAdmin === 1;
   const hwAssigned = todayStats?.hwAssigned || 0;
   const hwDone = todayStats?.hwDone || 0;
   const hwList = [hwAssigned, hwDone, 0];
@@ -299,6 +300,7 @@ const LearnPage = async () => {
                   unitProgressPercent={unit.percent}
                   needMoreLessons={unit.needMoreLessons}
                   isNextUnitUnlocked={unit.isNextUnitUnlocked}
+                  isAdmin={isAdmin}
                 />
               </div>
             ))}

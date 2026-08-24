@@ -55,6 +55,7 @@ type Props = {
     unitProgressPercent?: number;
     needMoreLessons?: number;
     isNextUnitUnlocked?: boolean;
+    isAdmin?: boolean;
 }
 
 // Количество задач, необходимых для открытия следующего урока
@@ -81,9 +82,11 @@ export const Unit = ({
     unitProgressPercent = 0,
     needMoreLessons = 0,
     isNextUnitUnlocked = false,
+    isAdmin = false,
 }: Props) => {
     // Если юнит заблокирован и не завершён — все уроки locked
-    const isUnitLocked = !isUnlocked && !isCompleted;
+    // (админам разрешён доступ к любому уроку без прохождения предыдущих)
+    const isUnitLocked = !isAdmin && !isUnlocked && !isCompleted;
     
     // Вычисляем, сколько задач решено в каждом уроке
     const getLessonProgress = (lessonId: number): { correct: number; total: number } => {
@@ -97,8 +100,11 @@ export const Unit = ({
     
     // Определяем, открыт ли урок
     const isLessonUnlocked = (index: number): boolean => {
+        // Админ видит и может открыть любой урок без прохождения предыдущих
+        if (isAdmin) return true;
+
         if (isUnitLocked) return false;
-        
+
         // Первый урок всегда открыт
         if (index === 0) return true;
         
