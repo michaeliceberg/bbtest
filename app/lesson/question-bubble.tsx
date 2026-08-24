@@ -213,7 +213,7 @@ export const QuestionBubble = ({
 
             {imageSrc && isImageZoomed && (
                 <div
-                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 cursor-zoom-out"
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 cursor-zoom-out"
                     onClick={() => setIsImageZoomed(false)}
                 >
                     <motion.img
@@ -222,8 +222,8 @@ export const QuestionBubble = ({
                         transition={{ duration: 0.15 }}
                         src={imageSrc}
                         alt=""
-                        className="w-screen h-screen object-contain bg-[#1A252B] cursor-default"
-                        onClick={(e) => e.stopPropagation()}
+                        className="w-[92vw] h-[92vh] object-contain rounded-xl bg-[#1A252B] shadow-2xl cursor-zoom-out"
+                        onClick={() => setIsImageZoomed(false)}
                     />
                 </div>
             )}
