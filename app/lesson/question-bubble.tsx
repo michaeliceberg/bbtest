@@ -127,8 +127,15 @@ export const QuestionBubble = ({
                     } : isWrong ? {
                         scale: [1, 0.9, 1],
                         x: [0, -5, 5, -5, 0]
-                    } : {}}
-                    transition={{ duration: 0.5 }}
+                    } : {
+                        // Лёгкое "дыхание" маскота, пока ученик читает условие —
+                        // чтобы экран не выглядел статичным до ответа.
+                        y: [0, -3, 0],
+                        rotate: [-2, 2, -2],
+                    }}
+                    transition={isCorrect || isWrong
+                        ? { duration: 0.5 }
+                        : { duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
                 >
                     <div className="w-10 h-10 md:w-12 md:h-12">
                         <Lottie
@@ -151,14 +158,30 @@ export const QuestionBubble = ({
                                 className="relative flex-shrink-0 group cursor-zoom-in"
                                 aria-label="Увеличить изображение"
                             >
-                                <img
-                                    src={imageSrc}
-                                    alt=""
-                                    className="rounded-lg w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 object-contain bg-[#1A252B] transition-transform group-hover:scale-[1.03] group-active:scale-95"
-                                />
-                                <span className="absolute bottom-1.5 right-1.5 flex items-center justify-center rounded-full bg-black/70 p-1.5 shadow group-hover:bg-black/85 transition-colors">
+                                {/* "Прорисовка" картинки слева направо при появлении задачи —
+                                    key={imageSrc} перезапускает анимацию на каждой новой задаче. */}
+                                <motion.div
+                                    key={imageSrc}
+                                    initial={{ clipPath: "inset(0 100% 0 0)" }}
+                                    animate={{ clipPath: "inset(0 0% 0 0)" }}
+                                    transition={{ duration: 0.9, ease: "easeOut" }}
+                                    className="rounded-lg w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 bg-[#1A252B]"
+                                >
+                                    <img
+                                        src={imageSrc}
+                                        alt=""
+                                        className="w-full h-full rounded-lg object-contain transition-transform group-hover:scale-[1.03] group-active:scale-95"
+                                    />
+                                </motion.div>
+                                <motion.span
+                                    key={`hint-${imageSrc}`}
+                                    initial={{ opacity: 0, scale: 0.6 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: 0.85, duration: 0.25 }}
+                                    className="absolute bottom-1.5 right-1.5 flex items-center justify-center rounded-full bg-black/70 p-1.5 shadow group-hover:bg-black/85 transition-colors"
+                                >
                                     <ZoomIn className="w-3.5 h-3.5 text-white" />
-                                </span>
+                                </motion.span>
                             </button>
                         </div>
                     ) : (
