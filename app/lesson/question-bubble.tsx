@@ -2,7 +2,7 @@
 
 import Lottie from "lottie-react";
 import Latex from 'react-latex-next';
-import { Skull, Home, User, Coins, CheckCircle, XCircle } from 'lucide-react';
+import { Skull, Home, User, Coins, CheckCircle, XCircle, ZoomIn } from 'lucide-react';
 import { differenceInHours, isPast } from 'date-fns';
 import { motion } from "framer-motion";
 import { NoRightAnswer } from "@/components/hover-card";
@@ -57,6 +57,18 @@ export const QuestionBubble = ({
     challengeId,
 }: Props) => {
     const correctAttempts = timesDone - timesDoneWrong;
+
+    // Увеличенный просмотр картинки к задаче (график/рисунок часто мелкий)
+    const [isImageZoomed, setIsImageZoomed] = useState(false);
+
+    useEffect(() => {
+        if (!isImageZoomed) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setIsImageZoomed(false);
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [isImageZoomed]);
 
     // 🔥 Используем ref для хранения текущей анимации, чтобы она не менялась при ререндерах
     const [currentMascot, setCurrentMascot] = useState(() => {
@@ -133,11 +145,21 @@ export const QuestionBubble = ({
                             <div className="flex-1 min-w-0 text-[#F2F7FB] text-sm md:text-base leading-relaxed">
                                 <Latex>{question}</Latex>
                             </div>
-                            <img
-                                src={imageSrc}
-                                alt=""
-                                className="flex-shrink-0 rounded-lg w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 object-contain bg-[#1A252B]"
-                            />
+                            <button
+                                type="button"
+                                onClick={() => setIsImageZoomed(true)}
+                                className="relative flex-shrink-0 group cursor-zoom-in"
+                                aria-label="Увеличить изображение"
+                            >
+                                <img
+                                    src={imageSrc}
+                                    alt=""
+                                    className="rounded-lg w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 object-contain bg-[#1A252B] transition-transform group-hover:scale-[1.03] group-active:scale-95"
+                                />
+                                <span className="absolute bottom-1.5 right-1.5 flex items-center justify-center rounded-full bg-black/70 p-1.5 shadow group-hover:bg-black/85 transition-colors">
+                                    <ZoomIn className="w-3.5 h-3.5 text-white" />
+                                </span>
+                            </button>
                         </div>
                     ) : (
                         <div className="text-[#F2F7FB] text-sm md:text-base leading-relaxed">
@@ -188,6 +210,23 @@ export const QuestionBubble = ({
                     <span>{author}</span>
                 </div>
             </div>
+
+            {imageSrc && isImageZoomed && (
+                <div
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-6 cursor-zoom-out"
+                    onClick={() => setIsImageZoomed(false)}
+                >
+                    <motion.img
+                        initial={{ scale: 0.85, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.15 }}
+                        src={imageSrc}
+                        alt=""
+                        className="max-w-[92vw] max-h-[88vh] object-contain rounded-xl bg-[#1A252B] shadow-2xl cursor-default"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
+            )}
         </div>
     );
 };
