@@ -153,25 +153,19 @@ export const QuestionBubble = ({
                                 <Latex>{question}</Latex>
                             </div>
                             <div className="relative flex-shrink-0 w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44">
-                                {/* Рассеивающаяся подсветка по периметру — вспыхивает и гаснет
-                                    в цвет юнита, синхронно с появлением картинки. */}
+                                {/* Тихая "дышащая" подсветка по периметру — бесконечный,
+                                    едва заметный пульс в цвет юнита. */}
                                 <motion.div
-                                    key={`glow-${imageSrc}`}
-                                    initial={{ opacity: 0.9, scale: 0.3 }}
-                                    animate={{ opacity: 0, scale: 1.9 }}
-                                    transition={{ duration: 1.2, ease: "easeOut" }}
+                                    animate={{ opacity: [0.2, 0.45, 0.2], scale: [0.92, 1.08, 0.92] }}
+                                    transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
                                     className="absolute inset-0 rounded-full pointer-events-none"
                                     style={{
                                         background: `radial-gradient(circle, ${unitColor.button}80 0%, ${unitColor.button}00 70%)`,
                                     }}
                                 />
-                                <motion.button
-                                    key={`img-${imageSrc}`}
+                                <button
                                     type="button"
                                     onClick={() => setIsImageZoomed(true)}
-                                    initial={{ scale: 0.05, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    transition={{ type: "spring", stiffness: 260, damping: 11, mass: 0.6 }}
                                     className="relative w-full h-full group cursor-zoom-in"
                                     aria-label="Увеличить изображение"
                                 >
@@ -180,16 +174,10 @@ export const QuestionBubble = ({
                                         alt=""
                                         className="w-full h-full rounded-lg object-contain bg-[#1A252B] transition-transform group-hover:scale-[1.03] group-active:scale-95"
                                     />
-                                    <motion.span
-                                        key={`hint-${imageSrc}`}
-                                        initial={{ opacity: 0, scale: 0.6 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        transition={{ delay: 0.6, duration: 0.25 }}
-                                        className="absolute bottom-1.5 right-1.5 flex items-center justify-center rounded-full bg-black/70 p-1.5 shadow group-hover:bg-black/85 transition-colors"
-                                    >
+                                    <span className="absolute bottom-1.5 right-1.5 flex items-center justify-center rounded-full bg-black/70 p-1.5 shadow group-hover:bg-black/85 transition-colors">
                                         <ZoomIn className="w-3.5 h-3.5 text-white" />
-                                    </motion.span>
-                                </motion.button>
+                                    </span>
+                                </button>
                             </div>
                         </div>
                     ) : (
@@ -253,7 +241,7 @@ export const QuestionBubble = ({
                         transition={{ duration: 0.15 }}
                         src={imageSrc}
                         alt=""
-                        className="w-[92vw] h-[92vh] object-contain rounded-xl bg-[#1A252B] shadow-2xl cursor-zoom-out"
+                        className="w-[92vw] h-[92vh] object-contain rounded-xl bg-[#151F23] shadow-2xl cursor-zoom-out"
                         onClick={() => setIsImageZoomed(false)}
                     />
                 </div>
