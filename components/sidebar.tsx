@@ -11,6 +11,7 @@ import Image from 'next/image'
 import { switchCourse } from '@/actions/switch-course'
 import { useSession, signOut } from 'next-auth/react'
 import { UnitCardLottie } from '@/components/unit-card-lottie'
+import { useCourseSwitchStore } from '@/store/course-switch-store'
 
 // Форма курса, которую реально собирает и передаёт app/(main)/layout.tsx —
 // это не сырая строка таблицы courses, а агрегированные данные для сайдбара.
@@ -74,6 +75,8 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
     { label: 'Прогресс', href: '/progress', icon: TrendingUp },
   ]
   
+  const setPendingCourse = useCourseSwitchStore((s) => s.setPending)
+
   const handleCourseChange = (courseId: number) => {
     if (courseId === displayedCourseId) {
       setIsCoursesOpen(false)
@@ -81,6 +84,9 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
     }
     setIsCoursesOpen(false)
     setOptimisticCourseId(courseId)
+    // Сигнал в LearnWrapper (сосед по layout, не потомок) — начать выезд
+    // старого контента влево ПРЯМО СЕЙЧАС, не дожидаясь ответа сервера.
+    setPendingCourse(courseId)
     onAfterCourseChange?.()
     startTransition(async () => {
       await switchCourse(courseId)
