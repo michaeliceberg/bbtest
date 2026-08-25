@@ -4,6 +4,7 @@
 
 import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { Celebration } from '@/components/celebration';
 import { useCelebrationStore } from '@/store/celebration-store';
 
@@ -25,7 +26,16 @@ export const LearnWrapper = ({ children }: Props) => {
     return (
         <>
             <Celebration isOpen={isOpen} onClose={hide} />
-            {children}
+            {/* Плавный въезд контента справа при каждом маунте страницы —
+                в частности, при смене курса (redirect на /learn), чтобы
+                новый курс не вспыхивал резко, а въезжал к центру. */}
+            <motion.div
+                initial={{ x: 28, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+            >
+                {children}
+            </motion.div>
         </>
     );
 };

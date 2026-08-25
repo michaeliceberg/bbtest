@@ -30,8 +30,8 @@ const ContinueBadge = ({ color }: { color: string }) => (
         className="absolute -top-3 left-0 w-[102px] flex justify-center pointer-events-none z-10"
     >
         <span
-            className="px-2.5 py-0.5 rounded-full text-[10px] font-bold shadow-md whitespace-nowrap"
-            style={{ backgroundColor: color, color: '#151F23' }}
+            className="px-2.5 py-0.5 rounded-full text-[10px] font-bold shadow-md whitespace-nowrap border"
+            style={{ backgroundColor: color, color: '#F2F7FB', borderColor: '#F2F7FB' }}
         >
             Продолжить
         </span>

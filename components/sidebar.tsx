@@ -46,15 +46,24 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
   const { data: session } = useSession()
   const [isCoursesOpen, setIsCoursesOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
-  const [isPending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
   const [activeCourse, setActiveCourse] = useState<SidebarCourse | null>(null)
+  // Оптимистично "выбранный" курс — обновляется мгновенно по клику, не
+  // дожидаясь ответа сервера, чтобы переключение ощущалось мгновенным.
+  // Сбрасывается, как только реальный activeCourseId догоняет его.
+  const [optimisticCourseId, setOptimisticCourseId] = useState<number | null>(null)
+  const displayedCourseId = optimisticCourseId ?? activeCourseId
 
   useEffect(() => {
-    if (activeCourseId && courses.length > 0) {
-      const course = courses.find(c => c.id === activeCourseId)
+    setOptimisticCourseId(null)
+  }, [activeCourseId])
+
+  useEffect(() => {
+    if (displayedCourseId && courses.length > 0) {
+      const course = courses.find(c => c.id === displayedCourseId)
       setActiveCourse(course || null)
     }
-  }, [activeCourseId, courses])
+  }, [displayedCourseId, courses])
 
   const navItems = [
     { label: 'Задачник', href: '/learn', icon: Home },
@@ -66,7 +75,12 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
   ]
   
   const handleCourseChange = (courseId: number) => {
+    if (courseId === displayedCourseId) {
+      setIsCoursesOpen(false)
+      return
+    }
     setIsCoursesOpen(false)
+    setOptimisticCourseId(courseId)
     onAfterCourseChange?.()
     startTransition(async () => {
       await switchCourse(courseId)
@@ -177,9 +191,9 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
           {isCoursesOpen && (
             <div className="mt-2 space-y-1 max-h-[200px] overflow-y-auto">
               {courses.map((course) => (
-                <button key={course.id} onClick={() => handleCourseChange(course.id)} disabled={isPending}
-                  className={cn('w-full text-left px-3 py-2 rounded-lg transition-colors text-sm',
-                    activeCourseId === course.id ? "bg-green-500/15 text-green-300" : "hover:bg-[#232F34] text-[#9AA7B0]")}>
+                <button key={course.id} onClick={() => handleCourseChange(course.id)}
+                  className={cn('w-full text-left px-3 py-2 rounded-lg transition-colors text-sm active:scale-[0.98]',
+                    displayedCourseId === course.id ? "bg-green-500/15 text-green-300" : "hover:bg-[#232F34] text-[#9AA7B0]")}>
                   <span>{course.title}</span>
                   {course.streak && (
                     <div className="flex items-center gap-1 mt-1">
