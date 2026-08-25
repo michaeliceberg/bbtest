@@ -25,6 +25,8 @@ import { cookies } from 'next/headers';
 import { getCourseUnitsWithProgress } from '@/lib/lesson-access';
 import { LearnWrapper } from '@/components/learn-wrapper';
 import { generateHomework } from '@/actions/generate-homework';
+import { ScrollToLesson } from '@/components/scroll-to-lesson';
+import { Suspense } from 'react';
 
 const bgList = [
   '/bg-svg/anchors-away.svg',
@@ -167,6 +169,28 @@ const LearnPage = async () => {
 
   const lessonStat: LessonStat[] = Array.from(lessonStatsMap.values());
 
+  // Урок, в котором последний раз решали задачи в этом курсе — чтобы после
+  // переключения курса плавно проскроллить туда и показать "Продолжить".
+  const challengeToLessonId = new Map<number, number>();
+  for (const unit of unitsWithProgress) {
+    for (const lesson of unit.lessons || []) {
+      for (const ch of lesson.challenges || []) {
+        challengeToLessonId.set(ch.id, lesson.id);
+      }
+    }
+  }
+  let lastTouchedLessonId: number | null = null;
+  let lastTouchedTime = 0;
+  for (const cp of challengeProgress ?? []) {
+    const lessonId = challengeToLessonId.get(cp.challengeId);
+    if (!lessonId || !cp.dateDone) continue;
+    const t = new Date(cp.dateDone).getTime();
+    if (t > lastTouchedTime) {
+      lastTouchedTime = t;
+      lastTouchedLessonId = lessonId;
+    }
+  }
+
   const unitsWithFormattedLessons = unitsWithProgress.map(unit => ({
     ...unit,
     lessons: unit.lessons?.map(lesson => ({
@@ -242,6 +266,9 @@ const LearnPage = async () => {
 
   return (
     <LearnWrapper>
+      <Suspense fallback={null}>
+        <ScrollToLesson lessonId={lastTouchedLessonId} />
+      </Suspense>
       <div className='flex flex-row-reverse gap-[48px] px-6'>
         <StickyWrapper>
           <UserProgress 
@@ -301,6 +328,7 @@ const LearnPage = async () => {
                   needMoreLessons={unit.needMoreLessons}
                   isNextUnitUnlocked={unit.isNextUnitUnlocked}
                   isAdmin={isAdmin}
+                  lastTouchedLessonId={lastTouchedLessonId}
                 />
               </div>
             ))}

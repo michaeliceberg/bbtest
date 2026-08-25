@@ -3,6 +3,7 @@
 "use client";
 
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { Cake, CircleCheckBig, CircleX, Crown, Layers, Skull, Star, Lock, Zap, Flame, Gift } from "lucide-react";
 import { CircularProgressbarWithChildren } from "react-circular-progressbar";
 import 'react-circular-progressbar/dist/styles.css'
@@ -18,6 +19,24 @@ import {
     ACTIVE_ICON_COLOR,
     PALETTE_MINT,
 } from "@/src/constants/lessonButtonColors";
+
+// Плашка "Продолжить" над уроком, где ученик последний раз решал задачи —
+// очень медленный, еле заметный bounce вверх-вниз, чтобы притягивать взгляд,
+// но не раздражать.
+const ContinueBadge = ({ color }: { color: string }) => (
+    <motion.div
+        animate={{ y: [0, -4, 0] }}
+        transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute -top-3 left-0 w-[102px] flex justify-center pointer-events-none z-10"
+    >
+        <span
+            className="px-2.5 py-0.5 rounded-full text-[10px] font-bold shadow-md whitespace-nowrap"
+            style={{ backgroundColor: color, color: '#151F23' }}
+        >
+            Продолжить
+        </span>
+    </motion.div>
+);
 
 interface lessonDone {
     lesson: number;
@@ -46,6 +65,9 @@ type Props = {
     totalChallenges?: number;
     correctChallenges?: number;
     challengesNeeded?: number;
+    // Урок, в котором пользователь последний раз решал задачи в этом курсе —
+    // над ним показываем плашку "Продолжить".
+    isLastTouched?: boolean;
 }
 
 export const LessonButton = ({
@@ -70,6 +92,7 @@ export const LessonButton = ({
     totalChallenges = 0,
     correctChallenges = 0,
     challengesNeeded = 4,
+    isLastTouched = false,
 }: Props) => {
 
     // Проверяем, есть ли в этом уроке нерешенные задачи из ДЗ и/или челленджа дня
@@ -156,7 +179,7 @@ export const LessonButton = ({
     // Если урок заблокирован
     if (!isUnlocked && !isLessonCompleted) {
         return (
-            <div className="relative flex flex-1 opacity-60" style={{
+            <div id={`lesson-${id}`} className="relative flex flex-1 opacity-60" style={{
                 right: `calc(-20px + ${rightPosition})`,
                 marginTop: isFirst ? 28 : 24,
             }}>
@@ -184,11 +207,12 @@ export const LessonButton = ({
     if (isLessonCompleted) {
         return (
             <Link href={href} aria-disabled={locked} style={{ pointerEvents: locked ? "none" : "auto" }}>
-                <div className="relative flex flex-1" style={{
+                <div id={`lesson-${id}`} className="relative flex flex-1" style={{
                     right: `calc(-20px + ${rightPosition})`,
                     marginTop: isFirst ? 28 : 24,
                 }}>
-                    <div className="h-[102px] w-[102px]">
+                    <div className="h-[102px] w-[102px] relative">
+                        {isLastTouched && <ContinueBadge color={unitColor.button} />}
                         <div className="h-[70px] w-[70px] rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-lg">
                             <Crown className="h-8 w-8 text-white" />
                         </div>
@@ -205,11 +229,12 @@ export const LessonButton = ({
     // Обычный доступный урок
     return (
         <Link href={href} aria-disabled={locked} style={{ pointerEvents: locked ? "none" : "auto" }}>
-            <div className="relative flex flex-1 items-center group" style={{
+            <div id={`lesson-${id}`} className="relative flex flex-1 items-center group" style={{
                 right: `calc(-20px + ${rightPosition})`,
                 marginTop: isFirst ? 28 : 24,
             }}>
                 <div className="h-[102px] w-[102px] relative flex-shrink-0">
+                    {isLastTouched && <ContinueBadge color={unitColor.button} />}
                     <CircularProgressbarWithChildren
                         value={progressPercent}
                         styles={{

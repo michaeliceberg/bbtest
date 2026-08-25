@@ -29,7 +29,12 @@ export const MobileSidebar = ({ courses, activeCourseId, hasTrainerQuest }: Prop
 				<Menu className='text-white' />
 			</SheetTrigger>
 			<SheetContent className='p-0 z-[100]' side='left'>
-				<Sidebar courses={courses} activeCourseId={activeCourseId} hasTrainerQuest={hasTrainerQuest} />
+				<Sidebar
+					courses={courses}
+					activeCourseId={activeCourseId}
+					hasTrainerQuest={hasTrainerQuest}
+					onAfterCourseChange={() => setOpen(false)}
+				/>
 			</SheetContent>
 		</Sheet>
 	)

@@ -17,8 +17,10 @@ export async function switchCourse(courseId: number) {
     revalidatePath('/progress');
     revalidatePath('/leaderboard');
     
-    // Перенаправляем на /learn с обновлением
-    redirect('/learn');
+    // Перенаправляем на /learn с обновлением. Метка ?switched=1 — сигнал
+    // клиенту один раз проскроллить к последнему уроку, которым занимались
+    // в этом курсе (см. components/scroll-to-lesson.tsx).
+    redirect('/learn?switched=1');
 }
 
 

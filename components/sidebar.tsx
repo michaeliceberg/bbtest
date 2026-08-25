@@ -34,9 +34,13 @@ interface SidebarProps {
   // NextAuth, которая обновляется только при новом входе.
   userName?: string
   userImageSrc?: string
+  // Вызывается сразу при переключении курса — нужен мобильному сайдбару,
+  // чтобы плавно закрыться (redirect на /learn не всегда меняет pathname,
+  // если пользователь уже был на /learn — тогда сайдбар сам не закрывался).
+  onAfterCourseChange?: () => void
 }
 
-export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest = false, className, userName, userImageSrc }: SidebarProps) => {
+export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest = false, className, userName, userImageSrc, onAfterCourseChange }: SidebarProps) => {
   const pathname = usePathname()
   const router = useRouter()
   const { data: session } = useSession()
@@ -63,6 +67,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
   
   const handleCourseChange = (courseId: number) => {
     setIsCoursesOpen(false)
+    onAfterCourseChange?.()
     startTransition(async () => {
       await switchCourse(courseId)
       router.refresh()

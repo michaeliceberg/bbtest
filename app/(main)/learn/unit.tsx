@@ -56,6 +56,7 @@ type Props = {
     needMoreLessons?: number;
     isNextUnitUnlocked?: boolean;
     isAdmin?: boolean;
+    lastTouchedLessonId?: number | null;
 }
 
 // Количество задач, необходимых для открытия следующего урока
@@ -83,6 +84,7 @@ export const Unit = ({
     needMoreLessons = 0,
     isNextUnitUnlocked = false,
     isAdmin = false,
+    lastTouchedLessonId = null,
 }: Props) => {
     // Если юнит заблокирован и не завершён — все уроки locked
     // (админам разрешён доступ к любому уроку без прохождения предыдущих)
@@ -188,6 +190,7 @@ export const Unit = ({
                             totalChallenges={lessonProgress.total}
                             correctChallenges={lessonProgress.correct}
                             challengesNeeded={CHALLENGES_TO_UNLOCK_NEXT_LESSON}
+                            isLastTouched={lesson.id === lastTouchedLessonId}
                         />
                     );
                 })}
