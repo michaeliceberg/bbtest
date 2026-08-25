@@ -120,26 +120,35 @@ export const LessonButton = ({
 
     const cycleLength = 8;
     const cycleIndex = index % cycleLength;
-    let indentationLevel;
+    let baseIndentationLevel;
 
     if (cycleIndex <= 2) {
-        indentationLevel = cycleIndex;
+        baseIndentationLevel = cycleIndex;
     } else if (cycleIndex <= 4) {
-        indentationLevel = 4 - cycleIndex;
+        baseIndentationLevel = 4 - cycleIndex;
     } else if (cycleIndex <= 6) {
-        indentationLevel = 4 - cycleIndex;
+        baseIndentationLevel = 4 - cycleIndex;
     } else {
-        indentationLevel = cycleIndex - 8;
+        baseIndentationLevel = cycleIndex - 8;
     }
+    // Чётные юниты изгибаются влево первыми (как раньше), нечётные —
+    // зеркально, вправо: просто инвертируем знак изгиба.
+    const directionSign = unitIndex % 2 === 0 ? 1 : -1;
+    const indentationLevel = directionSign * baseIndentationLevel;
     // На узких экранах амплитуда змейки уменьшается (min с vw), чтобы кружок
     // с прогресс-баром не вылезал за левый/правый край экрана телефона.
     const rightPosition = `calc(${indentationLevel} * min(40px, 7vw))`;
 
     // На экстремумах изгиба змейки (кружок максимально сдвинут в одну
     // сторону) с противоположной стороны остаётся самое пустое место —
-    // туда и ставим декоративного маскота.
+    // туда и ставим декоративного маскота. Сторона зависит от направления
+    // изгиба этого юнита (см. directionSign выше).
     const zigzagMascotSide: 'left' | 'right' | null =
-        cycleIndex === 2 ? 'right' : cycleIndex === 6 ? 'left' : null;
+        cycleIndex !== 2 && cycleIndex !== 6
+            ? null
+            : (cycleIndex === 2) === (directionSign > 0)
+                ? 'right'
+                : 'left';
 
     const isFirst = index === 0;
     const isLast = index === totalCount;

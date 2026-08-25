@@ -6,6 +6,10 @@
 // В отличие от UnitCardLottie (справа от карточки Unit'а): нет порога по
 // прогрессу — проигрывается при первом попадании в область видимости
 // независимо от прогресса, плюс клик по нему проигрывает анимацию заново.
+//
+// Размер и отступ от ряда урока — адаптивные (clamp по vw): на телефоне
+// немного и близко к краю экрана, на широком десктопе — крупнее и дальше
+// вбок, там свободного места намного больше.
 
 'use client';
 
@@ -17,10 +21,9 @@ const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
 
 type Props = {
     side: 'left' | 'right';
-    size?: number;
 };
 
-export const LessonZigzagMascot = ({ side, size = 48 }: Props) => {
+export const LessonZigzagMascot = ({ side }: Props) => {
     const [file] = useState(() => MASCOT_FILES[Math.floor(Math.random() * MASCOT_FILES.length)]);
     const [animationData, setAnimationData] = useState<unknown>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -55,7 +58,11 @@ export const LessonZigzagMascot = ({ side, size = 48 }: Props) => {
         return () => observer.disconnect();
     }, [animationData]);
 
-    const replay = () => {
+    const replay = (e: React.MouseEvent) => {
+        // Маскот лежит внутри <Link> урока — без stopPropagation/preventDefault
+        // клик всплывал бы до ссылки и вместо повтора анимации открывал урок.
+        e.preventDefault();
+        e.stopPropagation();
         lottieRef.current?.goToAndPlay(0, true);
     };
 
@@ -65,13 +72,10 @@ export const LessonZigzagMascot = ({ side, size = 48 }: Props) => {
             onClick={replay}
             role="button"
             aria-label="Проиграть анимацию ещё раз"
-            className="absolute top-1/2 hidden md:block cursor-pointer select-none"
+            className="absolute top-1/2 z-10 cursor-pointer select-none w-9 h-9 sm:w-14 sm:h-14 md:w-20 md:h-20 lg:w-24 lg:h-24"
             style={{
-                [side === 'right' ? 'left' : 'right']: 'calc(100% + 12px)',
+                [side === 'right' ? 'left' : 'right']: 'calc(100% + clamp(10px, 6vw, 140px))',
                 transform: 'translateY(-50%)',
-                width: size,
-                height: size,
-                flexShrink: 0,
             }}
         >
             {!!animationData && (
