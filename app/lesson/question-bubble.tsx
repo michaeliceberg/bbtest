@@ -152,37 +152,45 @@ export const QuestionBubble = ({
                             <div className="flex-1 min-w-0 text-[#F2F7FB] text-sm md:text-base leading-relaxed">
                                 <Latex>{question}</Latex>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => setIsImageZoomed(true)}
-                                className="relative flex-shrink-0 group cursor-zoom-in"
-                                aria-label="Увеличить изображение"
-                            >
-                                {/* "Прорисовка" картинки слева направо при появлении задачи —
-                                    key={imageSrc} перезапускает анимацию на каждой новой задаче. */}
+                            <div className="relative flex-shrink-0 w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44">
+                                {/* Рассеивающаяся подсветка по периметру — вспыхивает и гаснет
+                                    в цвет юнита, синхронно с появлением картинки. */}
                                 <motion.div
-                                    key={imageSrc}
-                                    initial={{ clipPath: "inset(0 100% 0 0)" }}
-                                    animate={{ clipPath: "inset(0 0% 0 0)" }}
-                                    transition={{ duration: 0.9, ease: "easeOut" }}
-                                    className="rounded-lg w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 bg-[#1A252B]"
+                                    key={`glow-${imageSrc}`}
+                                    initial={{ opacity: 0.9, scale: 0.3 }}
+                                    animate={{ opacity: 0, scale: 1.9 }}
+                                    transition={{ duration: 1.2, ease: "easeOut" }}
+                                    className="absolute inset-0 rounded-full pointer-events-none"
+                                    style={{
+                                        background: `radial-gradient(circle, ${unitColor.button}80 0%, ${unitColor.button}00 70%)`,
+                                    }}
+                                />
+                                <motion.button
+                                    key={`img-${imageSrc}`}
+                                    type="button"
+                                    onClick={() => setIsImageZoomed(true)}
+                                    initial={{ scale: 0.05, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    transition={{ type: "spring", stiffness: 260, damping: 11, mass: 0.6 }}
+                                    className="relative w-full h-full group cursor-zoom-in"
+                                    aria-label="Увеличить изображение"
                                 >
                                     <img
                                         src={imageSrc}
                                         alt=""
-                                        className="w-full h-full rounded-lg object-contain transition-transform group-hover:scale-[1.03] group-active:scale-95"
+                                        className="w-full h-full rounded-lg object-contain bg-[#1A252B] transition-transform group-hover:scale-[1.03] group-active:scale-95"
                                     />
-                                </motion.div>
-                                <motion.span
-                                    key={`hint-${imageSrc}`}
-                                    initial={{ opacity: 0, scale: 0.6 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ delay: 0.85, duration: 0.25 }}
-                                    className="absolute bottom-1.5 right-1.5 flex items-center justify-center rounded-full bg-black/70 p-1.5 shadow group-hover:bg-black/85 transition-colors"
-                                >
-                                    <ZoomIn className="w-3.5 h-3.5 text-white" />
-                                </motion.span>
-                            </button>
+                                    <motion.span
+                                        key={`hint-${imageSrc}`}
+                                        initial={{ opacity: 0, scale: 0.6 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ delay: 0.6, duration: 0.25 }}
+                                        className="absolute bottom-1.5 right-1.5 flex items-center justify-center rounded-full bg-black/70 p-1.5 shadow group-hover:bg-black/85 transition-colors"
+                                    >
+                                        <ZoomIn className="w-3.5 h-3.5 text-white" />
+                                    </motion.span>
+                                </motion.button>
+                            </div>
                         </div>
                     ) : (
                         <div className="text-[#F2F7FB] text-sm md:text-base leading-relaxed">
