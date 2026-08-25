@@ -6,12 +6,20 @@ type Props = {
 	courses?: SidebarCourse[]
 	activeCourseId?: number | null
 	hasTrainerQuest?: boolean
+	userName?: string
+	userImageSrc?: string
 }
 
-export const MobileHeader = ({ courseTitle, courses, activeCourseId, hasTrainerQuest }: Props) => {
+export const MobileHeader = ({ courseTitle, courses, activeCourseId, hasTrainerQuest, userName, userImageSrc }: Props) => {
 	return (
 		<nav className='lg:hidden fixed px-4 h-[50px] flex items-center bg-[#151F23] border-b border-[#3A464E] top-0 w-full z-50'>
-			<MobileSidebar courses={courses} activeCourseId={activeCourseId} hasTrainerQuest={hasTrainerQuest} />
+			<MobileSidebar
+				courses={courses}
+				activeCourseId={activeCourseId}
+				hasTrainerQuest={hasTrainerQuest}
+				userName={userName}
+				userImageSrc={userImageSrc}
+			/>
 			{courseTitle && (
 				<span className='absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[60%] truncate font-bold text-sm text-[#F2F7FB]'>
 					{courseTitle}

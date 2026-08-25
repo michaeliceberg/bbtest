@@ -36,7 +36,7 @@ const MainLayout = async ({ children }: Props) => {
     if (!allCourses.length) {
         return (
             <>
-                <MobileHeader />
+                <MobileHeader userName={userProgressRow?.userName} userImageSrc={userProgressRow?.userImageSrc} />
                 <Sidebar className='hidden lg:flex' userName={userProgressRow?.userName} userImageSrc={userProgressRow?.userImageSrc} />
                 <main className='lg:pl-[280px] h-full pt-[50px] lg:pt-0'>
                     <div className='max-w-[1056px] mx-auto pt-6 h-full'>{children}</div>
@@ -115,6 +115,8 @@ const MainLayout = async ({ children }: Props) => {
                 courses={coursesWithData}
                 activeCourseId={activeCourseId}
                 hasTrainerQuest={hasTrainerQuest}
+                userName={userProgressRow?.userName}
+                userImageSrc={userProgressRow?.userImageSrc}
             />
             <Sidebar
                 className='hidden lg:flex'

@@ -184,7 +184,14 @@ export const PhoneCallLogin = ({ callbackUrl = '/learn' }: Props) => {
             </div>
 
             {error && <p className="text-xs text-rose-400">{error}</p>}
-            <Button className="w-full" disabled={isStarting || !isComplete} onClick={handleStart}>
+            <Button
+                className={cn(
+                    'w-full',
+                    isComplete && !isStarting && 'bg-green-500 hover:bg-green-600 border-green-600 text-white'
+                )}
+                disabled={isStarting || !isComplete}
+                onClick={handleStart}
+            >
                 {isStarting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Войти по звонку'}
             </Button>
         </div>
