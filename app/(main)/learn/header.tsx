@@ -18,12 +18,13 @@ export const Header = ({ title, progressPercent = 0, courseId }: Props) => {
 			'sticky top-0 bg-[#151F23] lg:pb-3 lg:pt-[28px] lg:mt-[-28px] lg:border-b-2 lg:mb-5 text-neutral-400 lg:z-50',
 			progressPercent > 0 && 'pt-3 pb-3 mb-3',
 		)}>
-			{/* Три колонки: заголовок остаётся математически по центру
-				независимо от ширины логотипа, логотип — у правого края. */}
-			<div className='hidden lg:grid grid-cols-3 items-center mb-2'>
-				<div />
-				<h1 className='font-bold text-lg text-center'>{title}</h1>
-				<div className='flex justify-end'>
+			{/* Заголовок центрируется как раньше (flex justify-center, без
+				ограничения ширины колонкой — иначе длинные названия курсов
+				переносятся на 2 строки); логотип — absolute у правого края,
+				не участвует в раскладке заголовка. */}
+			<div className='hidden lg:flex relative items-center justify-center mb-2 min-h-[36px]'>
+				<h1 className='font-bold text-lg text-center whitespace-nowrap'>{title}</h1>
+				<div className='absolute right-0 top-1/2 -translate-y-1/2'>
 					<CourseLogo courseId={courseId} />
 				</div>
 			</div>
