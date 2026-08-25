@@ -1,6 +1,6 @@
 'use client'
 
-import { BookOpen, Flame, Home, Trophy, TrendingUp, Award, ShoppingBag, ChevronDown, ChevronUp, GraduationCap, LogOut, Settings } from 'lucide-react'
+import { BookOpen, Flame, Home, Trophy, TrendingUp, Award, ShoppingBag, ChevronDown, ChevronUp, LogOut, Settings } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from './ui/button'
 import Link from 'next/link'
@@ -12,6 +12,7 @@ import Image from 'next/image'
 import { switchCourse } from '@/actions/switch-course'
 import { useSession, signOut } from 'next-auth/react'
 import { UnitCardLottie } from '@/components/unit-card-lottie'
+import { CourseLogo } from '@/components/course-logo'
 import { useCourseSwitchStore } from '@/store/course-switch-store'
 
 // Форма курса, которую реально собирает и передаёт app/(main)/layout.tsx —
@@ -179,9 +180,18 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
 
       {courses.length > 0 && (
         <div className="px-2 mb-4">
-          <button onClick={() => setIsCoursesOpen(!isCoursesOpen)} className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-[#232F34] transition-colors">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <GraduationCap className="h-5 w-5 text-green-400" />
+          <div className="px-1 mb-1.5 text-[10px] font-bold tracking-widest text-[#5A6A72] uppercase">Курс</div>
+          <button
+            onClick={() => setIsCoursesOpen(!isCoursesOpen)}
+            className={cn(
+              'w-full flex items-center justify-between p-3 rounded-xl transition-all duration-200 border',
+              isCoursesOpen
+                ? 'border-green-400/70 shadow-[0_0_16px_2px_rgba(74,222,128,0.4)] bg-[#1A2B22]'
+                : 'border-green-400/25 shadow-[0_0_10px_1px_rgba(74,222,128,0.15)] hover:border-green-400/50 hover:shadow-[0_0_14px_2px_rgba(74,222,128,0.3)] bg-[#1A2B22]/50'
+            )}
+          >
+            <div className="flex items-center gap-2.5 flex-1 min-w-0">
+              <CourseLogo courseId={displayedCourseId} size={28} />
               <div className="flex-1 min-w-0">
                 <span className="font-medium text-green-300 block truncate">{activeCourse?.title || 'Выберите курс'}</span>
                 {activeCourse?.streak && (
@@ -192,7 +202,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
                 )}
               </div>
             </div>
-            {isCoursesOpen ? <ChevronUp className="h-4 w-4 text-green-400" /> : <ChevronDown className="h-4 w-4 text-green-400" />}
+            {isCoursesOpen ? <ChevronUp className="h-4 w-4 text-green-400 flex-shrink-0" /> : <ChevronDown className="h-4 w-4 text-green-400 flex-shrink-0" />}
           </button>
 
           <AnimatePresence initial={false}>
