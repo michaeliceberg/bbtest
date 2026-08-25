@@ -4,6 +4,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useState } from "react";
 import { Cake, CircleCheckBig, CircleX, Crown, Layers, Skull, Star, Lock, Zap, Flame, Gift } from "lucide-react";
 import { CircularProgressbarWithChildren } from "react-circular-progressbar";
 import 'react-circular-progressbar/dist/styles.css'
@@ -20,10 +21,15 @@ import {
     PALETTE_MINT,
 } from "@/src/constants/lessonButtonColors";
 
+const CONTINUE_EMOJIS = ["🥹", "🙃", "😇", "😎", "🤓", "🫡", "🤠", "💩"];
+
 // Плашка "Продолжить" над уроком, где ученик последний раз решал задачи —
 // очень медленный, еле заметный bounce вверх-вниз, чтобы притягивать взгляд,
-// но не раздражать.
-const ContinueBadge = ({ color }: { color: string }) => (
+// но не раздражать. Смайлик рядом со словом каждый раз случайный.
+const ContinueBadge = ({ color }: { color: string }) => {
+    const [emoji] = useState(() => CONTINUE_EMOJIS[Math.floor(Math.random() * CONTINUE_EMOJIS.length)]);
+
+    return (
     <motion.div
         animate={{ y: [0, -4, 0] }}
         transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
@@ -33,10 +39,11 @@ const ContinueBadge = ({ color }: { color: string }) => (
             className="px-2.5 py-0.5 rounded-full text-[10px] font-bold shadow-md whitespace-nowrap border"
             style={{ backgroundColor: color, color: '#F2F7FB', borderColor: '#F2F7FB' }}
         >
-            Продолжить
+            ПРОДОЛЖИТЬ {emoji}
         </span>
     </motion.div>
-);
+    );
+};
 
 interface lessonDone {
     lesson: number;
