@@ -49,7 +49,12 @@ export const ChallengeNav = ({
         });
     }, [activeId, isExpanded]);
 
-    const renderButton = (challengeItem: ChallengeItem, index: number, ref?: React.Ref<HTMLButtonElement>) => {
+    const renderButton = (
+        challengeItem: ChallengeItem,
+        index: number,
+        ref?: React.Ref<HTMLButtonElement>,
+        fill?: boolean,
+    ) => {
         const isDaily = dailyChallengeIds.includes(challengeItem.id);
         const isTeacherHW = !isDaily && hwChallengeIds.includes(challengeItem.id);
         const isDone = doneChallengesId.includes(challengeItem.id);
@@ -66,7 +71,7 @@ export const ChallengeNav = ({
                 ref={ref}
                 key={challengeItem.id}
                 onClick={() => onClickNumber(challengeItem.id + 1)}
-                className="relative h-7 w-7 flex-shrink-0 rounded-lg text-xs font-semibold transition-colors"
+                className={`relative h-7 rounded-lg text-xs font-semibold transition-colors ${fill ? 'w-full' : 'w-7 flex-shrink-0'}`}
                 style={{
                     backgroundColor: isActive ? unitColor.button : bg,
                     color: isActive ? '#151F23' : color,
@@ -90,7 +95,7 @@ export const ChallengeNav = ({
         return (
             <div className="flex items-start gap-1.5">
                 <div className="flex-1 grid grid-cols-7 sm:grid-cols-10 gap-1">
-                    {challenges.map((challengeItem, index) => renderButton(challengeItem, index))}
+                    {challenges.map((challengeItem, index) => renderButton(challengeItem, index, undefined, true))}
                 </div>
                 <button
                     type="button"
