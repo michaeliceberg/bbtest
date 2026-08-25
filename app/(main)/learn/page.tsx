@@ -265,7 +265,7 @@ const LearnPage = async () => {
   const isHwCompleted = todayStats?.hwCompleted ?? false;
 
   return (
-    <LearnWrapper>
+    <LearnWrapper courseId={activeCourseId}>
       <Suspense fallback={null}>
         <ScrollToLesson lessonId={lastTouchedLessonId} />
       </Suspense>
