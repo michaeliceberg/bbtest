@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { NoRightAnswer } from "@/components/hover-card";
 import { useState, useRef, useEffect } from "react";
 import { PALETTE_RED } from "@/src/constants/lessonButtonColors";
+import { findQuestionTarget } from "@/lib/highlight-question-target";
 
 import LottieRainbow from '@/public/LottieSelectRainbow.json'
 import LottieCrown from '@/public/LottieSelectCrown.json'
@@ -15,6 +16,23 @@ import LottieDiamond from '@/public/LottieSelectDiamond.json'
 import LottieSparks from '@/public/LottieSelectSparks.json'
 import LottieStars from '@/public/LottieSelectStars.json'
 import LottieButterfly from '@/public/LottieSelectButterfly.json'
+
+// Рендерит условие задачи, подсвечивая цветом юнита фразу "что нужно найти"
+// (если удалось её распознать эвристикой — иначе просто весь текст как есть).
+const QuestionText = ({ question, color }: { question: string; color: string }) => {
+    const highlight = findQuestionTarget(question);
+    if (!highlight) return <Latex>{question}</Latex>;
+
+    return (
+        <>
+            <Latex>{highlight.before}</Latex>
+            <span className="font-semibold" style={{ color }}>
+                <Latex>{highlight.target}</Latex>
+            </span>
+            <Latex>{highlight.after}</Latex>
+        </>
+    );
+};
 
 const mascotAnimations = [
     { lottie: LottieRainbow, name: "rainbow" },
@@ -150,7 +168,7 @@ export const QuestionBubble = ({
                     {imageSrc ? (
                         <div className="flex gap-3 items-start">
                             <div className="flex-1 min-w-0 text-[#F2F7FB] text-sm md:text-base leading-relaxed">
-                                <Latex>{question}</Latex>
+                                <QuestionText question={question} color={unitColor.button} />
                             </div>
                             <div className="relative flex-shrink-0 w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44">
                                 {/* Тихая "дышащая" подсветка по периметру — бесконечный,
@@ -182,7 +200,7 @@ export const QuestionBubble = ({
                         </div>
                     ) : (
                         <div className="text-[#F2F7FB] text-sm md:text-base leading-relaxed">
-                            <Latex>{question}</Latex>
+                            <QuestionText question={question} color={unitColor.button} />
                         </div>
                     )}
                 </div>

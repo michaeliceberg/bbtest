@@ -23,7 +23,7 @@ import { usePracticeModal } from "@/store/use-practice-modal";
 import { Button } from "@/components/ui/button";
 import { useWrongAnswerModal } from "@/store/use-wronganswer-modal";
 import { useRightAnswerModal } from "@/store/use-rightanswer-modal";
-import { ThunderBadge } from "@/components/thunder-badge";
+import { ChallengeNav } from "./challenge-nav";
 
 // Доля заданий ASSIST с числовым ответом, которые показываем как KEYBOARD
 // вместо сетки вариантов — для разнообразия UI. Сам тип в БД не меняется.
@@ -512,10 +512,6 @@ export const Quiz = ({
         ? lessonTitle
         : challenge.question
 
-    // Число колонок сетки меню — кнопки в неполном последнем ряду остаются
-    // той же ширины, что и в предыдущих (grid, а не flex по рядам).
-    const menuColumns = typeof window !== 'undefined' && window.innerWidth < 640 ? 7 : 10;
-
     return (
         <div className="min-h-screen bg-[#151F23] flex flex-col">
             <Header
@@ -532,46 +528,16 @@ export const Quiz = ({
 
             {/* Меню выбора задачи */}
             <div className="max-w-xl mx-auto w-full px-4 pt-1 pb-2">
-                <div
-                    className="grid gap-1"
-                    style={{ gridTemplateColumns: `repeat(${menuColumns}, minmax(0, 1fr))` }}
-                >
-                    {challenges.map((challengeItem, challengeIndex) => {
-                        const isDaily = dailyChallengeIds?.includes(challengeItem.id) ?? false;
-                        const isTeacherHW = !isDaily && (hwChallengeIds?.includes(challengeItem.id) ?? false);
-                        const isDone = doneChallengesId.includes(challengeItem.id);
-                        const isWrong = wrongChallengesId.includes(challengeItem.id);
-                        const isActive = Number(activeIndex) === challengeItem.id;
-                        const showDonut = isTeacherHW && !isDone;
-                        const showThunder = isDaily && !isDone;
-
-                        const bg = isWrong ? 'rgba(244,63,94,0.14)' : isDone ? 'rgba(74,222,128,0.14)' : '#1A252B';
-                        const color = isWrong ? '#fb7185' : isDone ? '#4ade80' : '#9AA7B0';
-
-                        return (
-                            <button
-                                key={challengeItem.id}
-                                onClick={() => onClickNumber(challengeItem.id + 1)}
-                                className="relative h-7 rounded-lg text-xs font-semibold transition-colors"
-                                style={{
-                                    backgroundColor: isActive ? unitColor.button : bg,
-                                    color: isActive ? '#151F23' : color,
-                                }}
-                            >
-                                {challengeIndex + 1}
-
-                                {showDonut && (
-                                    <span className="absolute -top-1.5 -right-1 text-[10px]">🍩</span>
-                                )}
-                                {showThunder && (
-                                    <span className="absolute -top-2 -right-2">
-                                        <ThunderBadge size={16} />
-                                    </span>
-                                )}
-                            </button>
-                        );
-                    })}
-                </div>
+                <ChallengeNav
+                    challenges={challenges}
+                    activeId={Number(activeIndex)}
+                    doneChallengesId={doneChallengesId}
+                    wrongChallengesId={wrongChallengesId}
+                    dailyChallengeIds={dailyChallengeIds}
+                    hwChallengeIds={hwChallengeIds}
+                    unitColor={unitColor}
+                    onClickNumber={onClickNumber}
+                />
             </div>
 
 
