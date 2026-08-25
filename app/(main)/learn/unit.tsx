@@ -135,7 +135,13 @@ export const Unit = ({
                 needMoreLessons={needMoreLessons}
                 isNextUnitUnlocked={isNextUnitUnlocked}
             />
-            <div data-zigzag-container className="flex items-center flex-col relative overflow-x-hidden">
+            {/* pb-16: маскот на экстремуме змейки центрируется по высоте СВОЕЙ
+                строки (top:50%) и на широком экране может быть выше самой
+                строки (до 150px против ~102px) — вылезает вниз. Если это
+                последняя строка юнита (например, юнит ровно из 3 уроков),
+                без запаса снизу вылезание выходит за пределы контейнера и
+                добавляет вертикальный скроллбар странице. */}
+            <div data-zigzag-container className="flex items-center flex-col relative overflow-x-hidden pb-16">
                 {lessons.map((lesson, index) => {
                     const isCurrent = lesson.id === activeLesson?.id;
                     const lessonProgress = getLessonProgress(lesson.id);
