@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { differenceInHours, isPast } from "date-fns";
 import { ThunderBadge } from "@/components/thunder-badge";
+import { LessonZigzagMascot } from "@/components/lesson-zigzag-mascot";
 import {
     getUnitButtonColor,
     LOCKED_BUTTON_COLOR,
@@ -134,6 +135,12 @@ export const LessonButton = ({
     // с прогресс-баром не вылезал за левый/правый край экрана телефона.
     const rightPosition = `calc(${indentationLevel} * min(40px, 7vw))`;
 
+    // На экстремумах изгиба змейки (кружок максимально сдвинут в одну
+    // сторону) с противоположной стороны остаётся самое пустое место —
+    // туда и ставим декоративного маскота.
+    const zigzagMascotSide: 'left' | 'right' | null =
+        cycleIndex === 2 ? 'right' : cycleIndex === 6 ? 'left' : null;
+
     const isFirst = index === 0;
     const isLast = index === totalCount;
     const isLessonCompleted = completed || isMasteryCompleted;
@@ -190,6 +197,7 @@ export const LessonButton = ({
                 right: `calc(-20px + ${rightPosition})`,
                 marginTop: isFirst ? 28 : 24,
             }}>
+                {zigzagMascotSide && <LessonZigzagMascot side={zigzagMascotSide} />}
                 <div className="h-[102px] w-[102px]">
                     <div
                         className="h-[70px] w-[70px] rounded-full border-b-4 flex items-center justify-center"
@@ -218,6 +226,7 @@ export const LessonButton = ({
                     right: `calc(-20px + ${rightPosition})`,
                     marginTop: isFirst ? 28 : 24,
                 }}>
+                    {zigzagMascotSide && <LessonZigzagMascot side={zigzagMascotSide} />}
                     <div className="h-[102px] w-[102px] relative">
                         {isLastTouched && <ContinueBadge color={unitColor.button} />}
                         <div className="h-[70px] w-[70px] rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-lg">
@@ -240,6 +249,7 @@ export const LessonButton = ({
                 right: `calc(-20px + ${rightPosition})`,
                 marginTop: isFirst ? 28 : 24,
             }}>
+                {zigzagMascotSide && <LessonZigzagMascot side={zigzagMascotSide} />}
                 <div className="h-[102px] w-[102px] relative flex-shrink-0">
                     {isLastTouched && <ContinueBadge color={unitColor.button} />}
                     <CircularProgressbarWithChildren

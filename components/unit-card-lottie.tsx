@@ -12,7 +12,7 @@ import { useEffect, useRef, useState } from 'react';
 
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
 
-const MASCOT_FILES = [
+export const MASCOT_FILES = [
     'LottieKapiAngry.json',
     'LottieKapiCry.json',
     'LottieKapiGood1.json',
@@ -30,9 +30,10 @@ const MASCOT_FILES = [
     'LottieKapiThirsty.json',
 ];
 
-const cache = new Map<string, unknown>();
+export const mascotCache = new Map<string, unknown>();
+const cache = mascotCache;
 
-function loadMascot(file: string): Promise<unknown> {
+export function loadMascot(file: string): Promise<unknown> {
     if (cache.has(file)) return Promise.resolve(cache.get(file));
     return fetch(`/Lottie/UnitCard/${file}`)
         .then((res) => res.json())
