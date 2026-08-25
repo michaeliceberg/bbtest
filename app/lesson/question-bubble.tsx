@@ -156,11 +156,11 @@ export const QuestionBubble = ({
                                 {/* Тихая "дышащая" подсветка по периметру — бесконечный,
                                     едва заметный пульс в цвет юнита. */}
                                 <motion.div
-                                    animate={{ opacity: [0.2, 0.45, 0.2], scale: [0.92, 1.08, 0.92] }}
+                                    animate={{ opacity: [0.25, 0.55, 0.25], scale: [0.94, 1.1, 0.94] }}
                                     transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
-                                    className="absolute inset-0 rounded-full pointer-events-none"
+                                    className="absolute -inset-4 rounded-full pointer-events-none"
                                     style={{
-                                        background: `radial-gradient(circle, ${unitColor.button}80 0%, ${unitColor.button}00 70%)`,
+                                        background: `radial-gradient(circle, ${unitColor.button}90 0%, ${unitColor.button}00 65%)`,
                                     }}
                                 />
                                 <button
@@ -172,7 +172,7 @@ export const QuestionBubble = ({
                                     <img
                                         src={imageSrc}
                                         alt=""
-                                        className="w-full h-full rounded-lg object-contain bg-[#1A252B] transition-transform group-hover:scale-[1.03] group-active:scale-95"
+                                        className="w-full h-full rounded-lg object-contain bg-[#151F23] transition-transform group-hover:scale-[1.03] group-active:scale-95"
                                     />
                                     <span className="absolute bottom-1.5 right-1.5 flex items-center justify-center rounded-full bg-black/70 p-1.5 shadow group-hover:bg-black/85 transition-colors">
                                         <ZoomIn className="w-3.5 h-3.5 text-white" />
