@@ -147,7 +147,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
     return (
       <div className={cn('flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-[#151F23]', className)}>
         <div className='pt-8 pl-4 pb-7 flex items-center gap-x-3'>
-          <Image src="/ggegelogo.png" height={32} width={70} alt="ggege" className="h-auto w-auto" />
+          <Image src="/ggegelogo.svg" height={32} width={64} alt="ggege" className="h-auto w-auto" />
         </div>
         <div className='flex flex-col gap-y-2 flex-1 justify-center'>
           {navItems.map((item) => {
@@ -173,7 +173,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
     <div className={cn('flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-[#151F23]', className)}>
       <Link href='/learn'>
         <div className='pt-8 pl-4 pb-4 flex items-center gap-x-3 cursor-pointer hover:opacity-80 transition-opacity'>
-          <Image src="/ggegelogo.png" height={32} width={70} alt="ggege" className="h-auto w-auto" />
+          <Image src="/ggegelogo.svg" height={32} width={64} alt="ggege" className="h-auto w-auto" />
         </div>
       </Link>
 

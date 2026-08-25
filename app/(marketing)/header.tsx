@@ -42,9 +42,9 @@ export const Header = ({ dbUserName }: Props) => {
         <div className='lg:max-w-screen-lg mx-auto px-4 h-20 flex items-center justify-between'>
           <Link href='/' className='group flex items-center gap-x-3 transition-transform hover:scale-105'>
             <Image
-              src='/ggegelogo.png'
+              src='/ggegelogo.svg'
               height={40}
-              width={88}
+              width={80}
               alt='ggege'
               className='h-auto w-auto transition-all group-hover:scale-105'
             />
