@@ -7,9 +7,12 @@
 // прогрессу — проигрывается при первом попадании в область видимости
 // независимо от прогресса, плюс клик по нему проигрывает анимацию заново.
 //
-// Размер и отступ от ряда урока — адаптивные (clamp по vw): на телефоне
-// немного и близко к краю экрана, на широком десктопе — крупнее и дальше
-// вбок, там свободного места намного больше.
+// Размер и отступ — НЕ фиксированные/vw-based (это либо обрезалось по
+// правому краю на десктопе, либо было мельче, чем реально можно, на
+// телефоне), а вычисляются через реальный замер свободного места: от
+// правого/левого края ряда урока до края общего контейнера уроков
+// (data-zigzag-container в unit.tsx) — тогда размер честно подстраивается
+// под то, сколько места на самом деле есть.
 
 'use client';
 
@@ -23,12 +26,18 @@ type Props = {
     side: 'left' | 'right';
 };
 
+const MIN_SIZE = 28;
+const MAX_SIZE = 150;
+const EDGE_MARGIN = 8; // отступ от самого края контейнера, чтобы не липло вплотную
+
 export const LessonZigzagMascot = ({ side }: Props) => {
     const [file] = useState(() => MASCOT_FILES[Math.floor(Math.random() * MASCOT_FILES.length)]);
     const [animationData, setAnimationData] = useState<unknown>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
+    const wrapperRef = useRef<HTMLDivElement>(null);
     const lottieRef = useRef<any>(null);
     const hasPlayedRef = useRef(false);
+
+    const [layout, setLayout] = useState<{ size: number; offset: number } | null>(null);
 
     useEffect(() => {
         let cancelled = false;
@@ -40,8 +49,41 @@ export const LessonZigzagMascot = ({ side }: Props) => {
         };
     }, [file]);
 
+    // Замер реального свободного места: от края ряда урока (родитель этого
+    // wrapper'а) до края общего контейнера уроков — и вычисление размера/
+    // отступа так, чтобы маскот занимал примерно 60% этого зазора, но не
+    // вплотную к краю.
     useEffect(() => {
-        if (!animationData || !containerRef.current) return;
+        const measure = () => {
+            const rowEl = wrapperRef.current?.parentElement;
+            const containerEl = wrapperRef.current?.closest<HTMLElement>('[data-zigzag-container]');
+            if (!rowEl || !containerEl) return;
+
+            const rowRect = rowEl.getBoundingClientRect();
+            const containerRect = containerEl.getBoundingClientRect();
+            const available = side === 'right'
+                ? containerRect.right - rowRect.right
+                : rowRect.left - containerRect.left;
+
+            const usable = Math.max(0, available - EDGE_MARGIN);
+            const size = Math.min(MAX_SIZE, Math.max(MIN_SIZE, usable * 0.6));
+            const offset = Math.max(EDGE_MARGIN, (usable - size) / 2 + EDGE_MARGIN);
+            setLayout({ size, offset });
+        };
+
+        measure();
+        // Двойной замер следующим кадром — на случай, если шрифты/змейка
+        // ещё не успели встать на финальные позиции к первому рендеру.
+        const raf = requestAnimationFrame(measure);
+        window.addEventListener('resize', measure);
+        return () => {
+            cancelAnimationFrame(raf);
+            window.removeEventListener('resize', measure);
+        };
+    }, [side]);
+
+    useEffect(() => {
+        if (!animationData || !wrapperRef.current) return;
 
         const observer = new IntersectionObserver(
             (entries) => {
@@ -54,7 +96,7 @@ export const LessonZigzagMascot = ({ side }: Props) => {
             },
             { threshold: 0.4 }
         );
-        observer.observe(containerRef.current);
+        observer.observe(wrapperRef.current);
         return () => observer.disconnect();
     }, [animationData]);
 
@@ -66,19 +108,32 @@ export const LessonZigzagMascot = ({ side }: Props) => {
         lottieRef.current?.goToAndPlay(0, true);
     };
 
+    // wrapperRef должен существовать с самого первого рендера — иначе
+    // измерению (см. выше) буквально нечего мерить. Поэтому обёртка
+    // рендерится всегда, а до первого замера просто нулевого размера
+    // (невидима, ни на что не влияет).
+    const isMeasured = !!layout && layout.size >= MIN_SIZE;
+
     return (
         <div
-            ref={containerRef}
-            onClick={replay}
+            ref={wrapperRef}
+            onClick={isMeasured ? replay : undefined}
             role="button"
             aria-label="Проиграть анимацию ещё раз"
-            className="absolute top-1/2 z-10 cursor-pointer select-none w-9 h-9 sm:w-14 sm:h-14 md:w-20 md:h-20 lg:w-24 lg:h-24"
-            style={{
-                [side === 'right' ? 'left' : 'right']: 'calc(100% + clamp(10px, 6vw, 140px))',
-                transform: 'translateY(-50%)',
-            }}
+            className="absolute top-1/2 z-10 select-none"
+            style={
+                isMeasured
+                    ? {
+                        [side === 'right' ? 'left' : 'right']: `calc(100% + ${layout.offset}px)`,
+                        transform: 'translateY(-50%)',
+                        width: layout.size,
+                        height: layout.size,
+                        cursor: 'pointer',
+                    }
+                    : { width: 0, height: 0, overflow: 'hidden', [side === 'right' ? 'left' : 'right']: '100%' }
+            }
         >
-            {!!animationData && (
+            {isMeasured && !!animationData && (
                 <Lottie lottieRef={lottieRef} animationData={animationData} loop={false} autoplay={false} />
             )}
         </div>

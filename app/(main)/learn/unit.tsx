@@ -135,7 +135,7 @@ export const Unit = ({
                 needMoreLessons={needMoreLessons}
                 isNextUnitUnlocked={isNextUnitUnlocked}
             />
-            <div className="flex items-center flex-col relative overflow-x-hidden">
+            <div data-zigzag-container className="flex items-center flex-col relative overflow-x-hidden">
                 {lessons.map((lesson, index) => {
                     const isCurrent = lesson.id === activeLesson?.id;
                     const lessonProgress = getLessonProgress(lesson.id);
