@@ -1,6 +1,7 @@
 'use client'
 
 import { BookOpen, Flame, Home, Trophy, TrendingUp, Award, ShoppingBag, ChevronDown, ChevronUp, GraduationCap, LogOut, Settings } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from './ui/button'
 import Link from 'next/link'
 import { TransitionLink } from '@/utils/TransitionLink'
@@ -148,7 +149,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
         <div className='pt-8 pl-4 pb-7 flex items-center gap-x-3'>
           <Image src="/ggegelogo.png" height={32} width={70} alt="ggege" className="h-auto w-auto" />
         </div>
-        <div className='flex flex-col gap-y-2 flex-1'>
+        <div className='flex flex-col gap-y-2 flex-1 justify-center'>
           {navItems.map((item) => {
             const isActive = pathname === item.href
             const Icon = item.icon
@@ -194,27 +195,37 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
             {isCoursesOpen ? <ChevronUp className="h-4 w-4 text-green-400" /> : <ChevronDown className="h-4 w-4 text-green-400" />}
           </button>
 
-          {isCoursesOpen && (
-            <div className="mt-2 space-y-1 max-h-[200px] overflow-y-auto">
-              {courses.map((course) => (
-                <button key={course.id} onClick={() => handleCourseChange(course.id)}
-                  className={cn('w-full text-left px-3 py-2 rounded-lg transition-colors text-sm active:scale-[0.98]',
-                    displayedCourseId === course.id ? "bg-green-500/15 text-green-300" : "hover:bg-[#232F34] text-[#9AA7B0]")}>
-                  <span>{course.title}</span>
-                  {course.streak && (
-                    <div className="flex items-center gap-1 mt-1">
-                      <Flame className="h-3 w-3 text-orange-400" />
-                      <span className="text-xs text-orange-300">{course.streak}</span>
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
+          <AnimatePresence initial={false}>
+            {isCoursesOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                className="overflow-hidden"
+              >
+                <div className="mt-2 space-y-1 max-h-[200px] overflow-y-auto">
+                  {courses.map((course) => (
+                    <button key={course.id} onClick={() => handleCourseChange(course.id)}
+                      className={cn('w-full text-left px-3 py-2 rounded-lg transition-colors text-sm active:scale-[0.98]',
+                        displayedCourseId === course.id ? "bg-green-500/15 text-green-300" : "hover:bg-[#232F34] text-[#9AA7B0]")}>
+                      <span>{course.title}</span>
+                      {course.streak && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <Flame className="h-3 w-3 text-orange-400" />
+                          <span className="text-xs text-orange-300">{course.streak}</span>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
-      <div className='flex flex-col gap-y-2 flex-1'>
+      <div className='flex flex-col gap-y-2 flex-1 justify-center'>
         {navItems.map((item) => {
           const isActive = pathname === item.href
           const Icon = item.icon

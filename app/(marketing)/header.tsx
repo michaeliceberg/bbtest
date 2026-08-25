@@ -10,7 +10,13 @@ import { useState, useEffect } from 'react';
 import { User } from 'lucide-react';
 import AuthButton from "@/app/(marketing)/vk-auth-btn";
 
-export const Header = () => {
+type Props = {
+  // Имя из userProgress (профиль в БД) — источник правды, в отличие от
+  // session.user.name (для входа по телефону там номер, не имя из /account).
+  dbUserName?: string | null;
+};
+
+export const Header = ({ dbUserName }: Props) => {
   const { data: session } = useSession();
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -22,7 +28,7 @@ export const Header = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const userName = session?.user?.name;
+  const userName = dbUserName || session?.user?.name;
 
   return (
     <>
