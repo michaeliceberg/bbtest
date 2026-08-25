@@ -298,9 +298,10 @@ const LearnPage = async () => {
         </StickyWrapper>
 
         <FeedWrapper>
-          <Header 
+          <Header
             title={activeCourse.title}
             progressPercent={courseProgressPercent}
+            courseId={activeCourse.id}
           />
 
           <div className='mt-2 lg:mt-5'>

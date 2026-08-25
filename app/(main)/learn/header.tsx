@@ -1,13 +1,15 @@
 // app/learn/header.tsx
 
 import { cn } from '@/lib/utils';
+import { CourseLogo } from '@/components/course-logo';
 
 type Props = {
 	title: string;
 	progressPercent?: number; // 0-100
+	courseId?: number | null;
 };
 
-export const Header = ({ title, progressPercent = 0 }: Props) => {
+export const Header = ({ title, progressPercent = 0, courseId }: Props) => {
 	// На телефоне название курса уже показано в верхней sticky-панели —
 	// если тут больше нечего показывать (нет прогресс-бара), весь блок
 	// схлопывается в ноль, без отступов и линии.
@@ -16,8 +18,14 @@ export const Header = ({ title, progressPercent = 0 }: Props) => {
 			'sticky top-0 bg-[#151F23] lg:pb-3 lg:pt-[28px] lg:mt-[-28px] lg:border-b-2 lg:mb-5 text-neutral-400 lg:z-50',
 			progressPercent > 0 && 'pt-3 pb-3 mb-3',
 		)}>
-			<div className='hidden lg:flex items-center justify-center mb-2'>
-				<h1 className='font-bold text-lg'>{title}</h1>
+			{/* Три колонки: заголовок остаётся математически по центру
+				независимо от ширины логотипа, логотип — у правого края. */}
+			<div className='hidden lg:grid grid-cols-3 items-center mb-2'>
+				<div />
+				<h1 className='font-bold text-lg text-center'>{title}</h1>
+				<div className='flex justify-end'>
+					<CourseLogo courseId={courseId} />
+				</div>
 			</div>
 
 			{/* Progress bar */}
