@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="301" height="288" viewBox="0 0 301 288">
+<rect x="0" y="0" width="301" height="288" fill="#151F23"/>
+<line x1="55" y1="38" x2="55" y2="238" stroke="#3A464E" stroke-width="1"/>
+<line x1="95" y1="38" x2="95" y2="238" stroke="#3A464E" stroke-width="1"/>
+<line x1="135" y1="38" x2="135" y2="238" stroke="#3A464E" stroke-width="1"/>
+<line x1="175" y1="38" x2="175" y2="238" stroke="#3A464E" stroke-width="1"/>
+<line x1="215" y1="38" x2="215" y2="238" stroke="#3A464E" stroke-width="1"/>
+<line x1="255" y1="38" x2="255" y2="238" stroke="#3A464E" stroke-width="1"/>
+<line x1="55" y1="38" x2="255" y2="38" stroke="#3A464E" stroke-width="1"/>
+<line x1="55" y1="78" x2="255" y2="78" stroke="#3A464E" stroke-width="1"/>
+<line x1="55" y1="118" x2="255" y2="118" stroke="#3A464E" stroke-width="1"/>
+<line x1="55" y1="158" x2="255" y2="158" stroke="#3A464E" stroke-width="1"/>
+<line x1="55" y1="198" x2="255" y2="198" stroke="#3A464E" stroke-width="1"/>
+<line x1="55" y1="238" x2="255" y2="238" stroke="#3A464E" stroke-width="1"/>
+<line x1="55.0" y1="238.0" x2="55.0" y2="26.0" stroke="#F2F7FB" stroke-width="2" stroke-linecap="round"/>
+<polygon points="55.0,26.0 60.0,34.7 50.0,34.7" fill="#F2F7FB"/>
+<line x1="55.0" y1="238.0" x2="275.0" y2="238.0" stroke="#F2F7FB" stroke-width="2" stroke-linecap="round"/>
+<polygon points="275.0,238.0 266.3,243.0 266.3,233.0" fill="#F2F7FB"/>
+<text x="39.0" y="20.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="18" fill="#F2F7FB" text-anchor="middle">p</text>
+<text x="283.0" y="244.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="18" fill="#F2F7FB" text-anchor="start">ρ</text>
+<text x="41.0" y="258.0" font-family="Georgia, serif"  font-weight="normal" font-size="17" fill="#F2F7FB" text-anchor="middle">0</text>
+<line x1="55" y1="158" x2="215" y2="158" stroke="#3A464E" stroke-width="1" stroke-dasharray="3,3"/>
+<text x="39.0" y="163.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">p₀</text>
+<circle cx="95" cy="238" r="2" fill="#F2F7FB"/>
+<text x="95.0" y="258.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">ρ₀</text>
+<circle cx="215" cy="238" r="2" fill="#F2F7FB"/>
+<text x="215.0" y="258.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">4ρ₀</text>
+<line x1="95" y1="158" x2="215" y2="158" stroke="#f0a868" stroke-width="2.2"/>
+<line x1="95.0" y1="158.0" x2="163.0" y2="158.0" stroke="#f0a868" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="163.0,158.0 156.1,162.0 156.1,154.0" fill="#f0a868"/>
+<circle cx="95.0" cy="158.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<circle cx="215.0" cy="158.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<text x="95.0" y="146.0" font-family="Georgia, serif"  font-weight="normal" font-size="20" fill="#F2F7FB" text-anchor="middle">1</text>
+<text x="215.0" y="146.0" font-family="Georgia, serif"  font-weight="normal" font-size="20" fill="#F2F7FB" text-anchor="middle">2</text>
+</svg>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="152" viewBox="0 0 560 152">
+<rect x="0" y="0" width="560" height="152" fill="#151F23"/>
+<rect x="4" y="10" width="552" height="134" rx="8" fill="none" stroke="#9AA7B0" stroke-width="1.5"/>
+<line x1="4" y1="54" x2="556" y2="54" stroke="#3A464E" stroke-width="1.5"/>
+<line x1="4" y1="98" x2="556" y2="98" stroke="#3A464E" stroke-width="1.5"/>
+<line x1="160" y1="10" x2="160" y2="144" stroke="#3A464E" stroke-width="1.5"/>
+<line x1="260" y1="10" x2="260" y2="144" stroke="#3A464E" stroke-width="1"/>
+<line x1="360" y1="10" x2="360" y2="144" stroke="#3A464E" stroke-width="1"/>
+<line x1="460" y1="10" x2="460" y2="144" stroke="#3A464E" stroke-width="1"/>
+<text x="210.0" y="38.0" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="16" fill="#f0a868"></text>
+<text x="310.0" y="38.0" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="16" fill="#f0a868">p, 10⁵ Па</text>
+<text x="410.0" y="38.0" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="16" fill="#f0a868">V, 10⁻³ м³</text>
+<text x="510.0" y="38.0" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="16" fill="#f0a868">Т, К</text>
+<text x="16" y="82.0" font-family="Georgia, serif" font-size="16" fill="#F2F7FB">Состояние A</text>
+<text x="210.0" y="82.0" text-anchor="middle" font-family="Georgia, serif" font-size="16" fill="#F2F7FB">0,5</text>
+<text x="310.0" y="82.0" text-anchor="middle" font-family="Georgia, serif" font-size="16" fill="#F2F7FB">6</text>
+<text x="410.0" y="82.0" text-anchor="middle" font-family="Georgia, serif" font-size="16" fill="#F2F7FB">1200</text>
+<text x="16" y="126.0" font-family="Georgia, serif" font-size="16" fill="#F2F7FB">Состояние B</text>
+<text x="210.0" y="126.0" text-anchor="middle" font-family="Georgia, serif" font-size="16" fill="#F2F7FB">1,0</text>
+<text x="310.0" y="126.0" text-anchor="middle" font-family="Georgia, serif" font-size="16" fill="#F2F7FB">2</text>
+<text x="410.0" y="126.0" text-anchor="middle" font-family="Georgia, serif" font-size="20" font-weight="bold" fill="#f0a868">?</text>
+</svg>
