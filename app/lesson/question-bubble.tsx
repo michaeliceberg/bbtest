@@ -270,11 +270,11 @@ export const QuestionBubble = ({
                             их и сверяют с рисунком. */}
                         <div className="flex-shrink-0 max-h-[45%] overflow-y-auto rounded-xl bg-[#151F23] shadow-2xl px-4 py-3 text-[#F2F7FB] text-sm md:text-base leading-relaxed">
                             {isMultiSelect && options?.length ? (
-                                <ul className="space-y-1.5">
+                                <ul className="space-y-1.5 text-center">
                                     {options.map((o, i) => (
-                                        <li key={o.id} className="flex gap-2">
-                                            <span className="flex-shrink-0 text-[#9AA7B0]">{i + 1}.</span>
-                                            <span><Latex>{o.text}</Latex></span>
+                                        <li key={o.id}>
+                                            <span className="text-[#9AA7B0]">{i + 1}.</span>{' '}
+                                            <Latex>{o.text}</Latex>
                                         </li>
                                     ))}
                                 </ul>
