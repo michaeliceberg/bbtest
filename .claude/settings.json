@@ -1,0 +1,62 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push origin main)",
+      "Bash(ssh root@168.222.192.167 *)",
+      "Bash(python3 *)",
+      "Bash(cd * && python3 *)",
+      "Bash(find *)",
+      "Bash(cd * && find *)",
+      "Bash(grep *)",
+      "Bash(cd * && grep *)",
+
+      "Bash(git status *)",
+      "Bash(cd * && git status *)",
+      "Bash(git diff *)",
+      "Bash(cd * && git diff *)",
+      "Bash(git log *)",
+      "Bash(cd * && git log *)",
+      "Bash(git ls-files *)",
+      "Bash(git remote *)",
+
+      "Bash(npx tsc *)",
+      "Bash(cd * && npx tsc *)",
+      "Bash(npx tsx scripts/*)",
+      "Bash(cd * && npx tsx scripts/*)",
+
+      "Bash(npm run dev *)",
+      "Bash(cd * && npm run dev *)",
+      "Bash(npm run build *)",
+      "Bash(cd * && npm run build *)",
+      "Bash(npm run start *)",
+      "Bash(cd * && npm run start *)",
+      "Bash(npm run lint *)",
+      "Bash(cd * && npm run lint *)",
+
+      "Bash(lsof *)",
+      "Bash(cd * && lsof *)",
+      "Bash(sed -n *)",
+      "Bash(cd * && sed -n *)",
+      "Bash(mkdir -p *)",
+      "Bash(cd * && mkdir -p *)",
+      "Bash(rm -rf .next)",
+      "Bash(cd * && rm -rf .next)",
+
+      "Bash(node -e *)",
+      "Bash(cd * && node -e *)",
+      "Bash(node *)",
+      "Bash(cd * && node *)",
+
+      "mcp__Claude_Browser__get_page_text",
+      "mcp__Claude_Browser__read_console_messages",
+      "mcp__Claude_Browser__read_page",
+      "mcp__Claude_Browser__read_network_requests",
+      "mcp__Claude_Browser__tabs_context",
+      "mcp__Claude_Browser__find",
+      "mcp__Claude_Browser__preview_logs",
+      "mcp__Claude_Browser__preview_list"
+    ]
+  }
+}
