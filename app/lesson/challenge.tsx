@@ -6,18 +6,21 @@ import { motion } from "framer-motion"
 import { Lock, Calendar, CheckCircle, XCircle } from "lucide-react"
 import { format } from "date-fns"
 import { ru } from "date-fns/locale"
+import { cn } from "@/lib/utils"
 
 type Props = {
     options: typeof challengeOptions.$inferSelect[]
     onSelect: (id: number) => void
     status: "correct" | "wrong" | "none"
     selectedOption?: number
+    selectedOptions?: Set<number>
     disabled?: boolean
     type: typeof challenges.$inferSelect["type"]
     isDoneWrongChallenge: boolean
     isDoneChallenge: boolean
     dateLastDone: Date
     challengeId: number
+    unitColor?: { button: string; bottom: string }
 }
 
 export const Challenge = ({
@@ -25,13 +28,16 @@ export const Challenge = ({
     onSelect,
     status,
     selectedOption,
+    selectedOptions,
     disabled,
     type,
     isDoneWrongChallenge,
     isDoneChallenge,
     dateLastDone,
     challengeId,
+    unitColor,
 }: Props) => {
+    const multiSelect = type === "SELECT"
     const canSolve = !dateLastDone || (new Date().getTime() - new Date(dateLastDone).getTime()) > 24 * 60 * 60 * 1000
     
     const getStatusMessage = () => {
@@ -62,21 +68,24 @@ export const Challenge = ({
     return (
         <div className="w-full">
             {canSolve ? (
-                <div className="grid gap-2 sm:gap-3 grid-cols-2">
+                <div className={cn("grid gap-2 sm:gap-3", multiSelect ? "grid-cols-1" : "grid-cols-2")}>
                     {options.map((option, i) => (
-                        <Card 
+                        <Card
                             key={option.id}
                             id={option.id}
                             text={option.text}
                             imageSrc={option.imageSrc}
                             shortcut={String(i + 1)}
-                            selected={selectedOption === option.id}
+                            selected={multiSelect ? !!selectedOptions?.has(option.id) : selectedOption === option.id}
                             onClick={() => onSelect(option.id)}
                             status={status}
                             disabled={disabled}
                             type={type}
                             isDoneWrongChallenge={isDoneWrongChallenge}
-                        />   
+                            multiSelect={multiSelect}
+                            unitColor={unitColor}
+                            isCorrectOption={option.correct}
+                        />
                     ))}
                 </div>
             ) : (

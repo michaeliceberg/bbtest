@@ -144,6 +144,10 @@ export const Quiz = ({
     const [timesDone, setTimesDone] = useState(0)
     const [dateLastDone, setDateLastDone] = useState(new Date(2025, 4, 1))
     const [selectedOption, setSelectedOption] = useState<number>()
+    // Множественный выбор (тип SELECT — "выберите N верных утверждений"):
+    // отдельный стейт-набор id, не трогаем selectedOption, чтобы не задеть
+    // остальные типы заданий.
+    const [selectedOptions, setSelectedOptions] = useState<Set<number>>(new Set())
     const [typedAnswer, setTypedAnswer] = useState('')
     const [status, setStatus] = useState<"correct" | "wrong" | "none">('none')
     const [options, setOptions] = useState<typeof challengeOptions.$inferSelect[]>([])
@@ -234,6 +238,7 @@ export const Quiz = ({
         }
         setActiveIndex(newIndex)
         setSelectedOption(undefined)
+        setSelectedOptions(new Set())
         setTypedAnswer('')
         setStatus('none')
         setIsDoneWrongChallenge(wrongChallengesId.includes(newIndex))
@@ -272,8 +277,22 @@ export const Quiz = ({
         setShowMascotWrong(false)
     }
 
+    const isMultiSelect = challenge?.type === 'SELECT'
+
     const onSelect = (id: number) => {
         if (status !== "none") return
+        if (isMultiSelect) {
+            setSelectedOptions((prev) => {
+                const next = new Set(prev)
+                if (next.has(id)) {
+                    next.delete(id)
+                } else {
+                    next.add(id)
+                }
+                return next
+            })
+            return
+        }
         setSelectedOption(id)
     }
 
@@ -363,12 +382,13 @@ export const Quiz = ({
         const isKeyboardChallenge = effectiveType === 'KEYBOARD'
 
         const onContinue = () => {
-        if (isKeyboardChallenge ? !typedAnswer : !selectedOption) return
+        if (isMultiSelect ? selectedOptions.size === 0 : (isKeyboardChallenge ? !typedAnswer : !selectedOption)) return
 
         if (status === 'wrong') {
             onNext()
             setStatus('none')
             setSelectedOption(undefined)
+            setSelectedOptions(new Set())
             setTypedAnswer('')
             return
         }
@@ -377,6 +397,7 @@ export const Quiz = ({
             onNext()
             setStatus('none')
             setSelectedOption(undefined)
+            setSelectedOptions(new Set())
             setTypedAnswer('')
             return
         }
@@ -388,9 +409,15 @@ export const Quiz = ({
         }
 
         const normalizeAnswer = (s: string) => s.trim().replace(/\./g, ',').replace(/\s+/g, '')
-        const isAnswerCorrect = isKeyboardChallenge
-            ? normalizeAnswer(typedAnswer) === normalizeAnswer(correctOption.text)
-            : correctOption.id === selectedOption
+        const isAnswerCorrect = isMultiSelect
+            ? (() => {
+                const correctIds = new Set(options.filter((o) => o.correct).map((o) => o.id))
+                return correctIds.size === selectedOptions.size
+                    && [...selectedOptions].every((id) => correctIds.has(id))
+            })()
+            : isKeyboardChallenge
+                ? normalizeAnswer(typedAnswer) === normalizeAnswer(correctOption.text)
+                : correctOption.id === selectedOption
 
         if (isAnswerCorrect) {
             startTransition(() => {
@@ -600,12 +627,14 @@ export const Quiz = ({
                                 onSelect={onSelect}
                                 status={status}
                                 selectedOption={selectedOption}
+                                selectedOptions={selectedOptions}
                                 disabled={pending}
                                 type={challenge.type}
                                 isDoneWrongChallenge={isDoneWrongChallenge}
                                 isDoneChallenge={isDoneChallenge}
                                 dateLastDone={dateLastDone}
                                 challengeId={challenge.id}
+                                unitColor={unitColor}
                             />
                             )}
                         </motion.div>
@@ -614,7 +643,7 @@ export const Quiz = ({
             </div>
 
             <Footer
-                disabled={(isDoneChallenge && !canSolve) || pending || (isKeyboardChallenge ? !typedAnswer : !selectedOption)}
+                disabled={(isDoneChallenge && !canSolve) || pending || (isMultiSelect ? selectedOptions.size === 0 : (isKeyboardChallenge ? !typedAnswer : !selectedOption))}
                 status={status}
                 onCheck={onContinue}
             />
