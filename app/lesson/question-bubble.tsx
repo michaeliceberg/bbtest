@@ -261,13 +261,14 @@ export const QuestionBubble = ({
                         initial={{ scale: 0.85, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ duration: 0.15 }}
-                        className="w-[92vw] h-[92vh] flex flex-col gap-3 cursor-auto"
-                        onClick={(e) => e.stopPropagation()}
+                        className="w-[92vw] h-[92vh] flex flex-col gap-3 cursor-zoom-out"
                     >
                         {/* Текст продублирован здесь, чтобы не сворачивать картинку
                             туда-обратно, сверяя её с условием. Для SELECT (чекбоксы)
                             полезнее сами утверждения, а не общая формулировка задания —
-                            их и сверяют с рисунком. */}
+                            их и сверяют с рисунком. Клик где угодно (включая этот текст)
+                            должен закрывать зум — событие намеренно не гасим, чтобы
+                            всплыло до onClick на фоне. */}
                         <div className="flex-shrink-0 max-h-[45%] overflow-y-auto rounded-xl bg-[#151F23] shadow-2xl px-4 py-3 text-[#F2F7FB] text-sm md:text-base leading-relaxed">
                             {isMultiSelect && options?.length ? (
                                 <ul className="space-y-1.5 text-center">
