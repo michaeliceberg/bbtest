@@ -58,22 +58,21 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                         <p className="text-[#F2F7FB] text-sm lg:text-base font-semibold mb-2.5">
                             <Latex>{name}</Latex>
                         </p>
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-3 gap-2 items-start">
                             {opts.map((o) => {
                                 const label = o.text.split("::")[1] ?? o.text
                                 const isSelected = selectedId === o.id
                                 const revealCorrect = revealed && o.correct
                                 const revealWrong = revealed && isSelected && !o.correct
-                                // "Нажатое" состояние — тонкий низ + сдвиг вниз, как у
-                                // футер-кнопки "Ответить" в момент клика, только тут
-                                // оно держится, пока вариант выбран/показан верным.
-                                // Смешивать в className стандартный border-b-2 с
-                                // произвольным border-b-[Npx] нельзя — Tailwind кладёт
-                                // arbitrary-value утилиты в конец таблицы стилей, и они
-                                // побеждают вне зависимости от порядка классов в JSX,
-                                // так что граница по факту никогда не уменьшалась —
-                                // отсюда эффект "кнопка увеличивается" при нажатии.
-                                // Через inline style такой проблемы нет.
+                                // "Нажатое" состояние — просто пропадает нижняя 3D-тень
+                                // (граница), ровно как в кнопке "Ответить"
+                                // (border-b-4 active:border-b-0), без всякого translate —
+                                // сама граница держит форму. transform был лишним и
+                                // визуально "выталкивал" кнопку ниже её же места, отсюда
+                                // и казалось, что она растёт при нажатии. Плюс контейнер
+                                // grid по умолчанию растягивает элементы на всю высоту
+                                // строки (align-items: stretch) — без items-start на
+                                // родителе изменение border-bottom вообще не сработало бы.
                                 const isPressed = isSelected || revealCorrect
                                 const bg = revealCorrect
                                     ? "#678337"
@@ -97,14 +96,13 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                                         disabled={disabled}
                                         className={cn(
                                             "relative flex items-center justify-center rounded-xl py-3 px-2 text-center border-2 border-solid",
-                                            "transition-[background-color,border-color,transform] duration-150 ease-out",
+                                            "transition-[background-color,border-color,border-bottom-width] duration-150 ease-out",
                                             disabled && "pointer-events-none",
                                         )}
                                         style={{
                                             borderColor: border,
                                             backgroundColor: bg,
                                             borderBottomWidth: isPressed ? 2 : 7,
-                                            transform: isPressed ? "translateY(5px)" : "translateY(0)",
                                         }}
                                     >
                                         <span className={cn(
