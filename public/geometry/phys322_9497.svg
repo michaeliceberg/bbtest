@@ -15,7 +15,7 @@
 <polygon points="302,138.3 302,148.3 312,143.3" fill="#9AA7B0"/>
 <text x="34.0" y="159.3" font-family="Georgia, serif"  font-weight="normal" font-size="13" fill="#F2F7FB" text-anchor="end">0</text>
 <text x="306.0" y="133.3" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">t, с</text>
-<text x="32.0" y="22.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">Vₓ, м/с</text>
+<text x="58.0" y="22.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="start">Vₓ, м/с</text>
 <text x="85.7" y="161.3" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">10</text>
 <text x="127.3" y="161.3" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">20</text>
 <text x="169.0" y="161.3" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">30</text>

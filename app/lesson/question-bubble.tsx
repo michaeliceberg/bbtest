@@ -57,6 +57,8 @@ type Props = {
     isWrong?: boolean;
     challengeId: number;
     imageSrc?: string;
+    isMultiSelect?: boolean;
+    options?: { id: number; text: string }[];
 }
 
 export const QuestionBubble = ({
@@ -73,6 +75,8 @@ export const QuestionBubble = ({
     isCorrect,
     isWrong,
     challengeId,
+    isMultiSelect,
+    options,
 }: Props) => {
     const correctAttempts = timesDone - timesDoneWrong;
 
@@ -253,15 +257,38 @@ export const QuestionBubble = ({
                     className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 cursor-zoom-out"
                     onClick={() => setIsImageZoomed(false)}
                 >
-                    <motion.img
+                    <motion.div
                         initial={{ scale: 0.85, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ duration: 0.15 }}
-                        src={imageSrc}
-                        alt=""
-                        className="w-[92vw] h-[92vh] object-contain rounded-xl bg-[#151F23] shadow-2xl cursor-zoom-out"
-                        onClick={() => setIsImageZoomed(false)}
-                    />
+                        className="w-[92vw] h-[92vh] flex flex-col gap-3 cursor-auto"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Текст продублирован здесь, чтобы не сворачивать картинку
+                            туда-обратно, сверяя её с условием. Для SELECT (чекбоксы)
+                            полезнее сами утверждения, а не общая формулировка задания —
+                            их и сверяют с рисунком. */}
+                        <div className="flex-shrink-0 max-h-[45%] overflow-y-auto rounded-xl bg-[#151F23] shadow-2xl px-4 py-3 text-[#F2F7FB] text-sm md:text-base leading-relaxed">
+                            {isMultiSelect && options?.length ? (
+                                <ul className="space-y-1.5">
+                                    {options.map((o, i) => (
+                                        <li key={o.id} className="flex gap-2">
+                                            <span className="flex-shrink-0 text-[#9AA7B0]">{i + 1}.</span>
+                                            <span><Latex>{o.text}</Latex></span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <QuestionText question={question} color={unitColor.button} />
+                            )}
+                        </div>
+                        <img
+                            src={imageSrc}
+                            alt=""
+                            className="flex-1 min-h-0 w-full object-contain rounded-xl bg-[#151F23] shadow-2xl cursor-zoom-out"
+                            onClick={() => setIsImageZoomed(false)}
+                        />
+                    </motion.div>
                 </div>
             )}
         </div>

@@ -612,6 +612,8 @@ export const Quiz = ({
                                     isCorrect={showMascotCorrect}
                                     isWrong={showMascotWrong}
                                     challengeId={challenge.id}
+                                    isMultiSelect={isMultiSelect}
+                                    options={options}
                                 />
                             )}
 
