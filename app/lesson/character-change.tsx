@@ -36,6 +36,10 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
         if (!g) { g = { name, opts: [] }; groups.push(g) }
         g.opts.push(o)
     })
+    // Порядок групп не должен зависеть от того, как они перемешались при
+    // сидинге challengeOptions — иначе, например, "График Б" мог случайно
+    // оказаться выше "График А". Сортируем по названию детерминированно.
+    groups.sort((a, b) => a.name.localeCompare(b.name, "ru"))
     groups.forEach((g) => {
         g.opts.sort((a, b) => {
             const ia = CATEGORY_ORDER.indexOf(a.text.split("::")[1] ?? "")
@@ -58,7 +62,10 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                         <p className="text-[#F2F7FB] text-sm lg:text-base font-semibold mb-2.5">
                             <Latex>{name}</Latex>
                         </p>
-                        <div className="grid grid-cols-3 gap-2 items-start">
+                        <div className={cn(
+                            "grid gap-2 items-start",
+                            opts.length === 4 ? "grid-cols-2" : "grid-cols-3",
+                        )}>
                             {opts.map((o) => {
                                 const label = o.text.split("::")[1] ?? o.text
                                 const isSelected = selectedId === o.id
