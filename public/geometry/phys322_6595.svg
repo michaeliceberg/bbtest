@@ -20,6 +20,7 @@
 <text x="34.0" y="216.0" font-family="Georgia, serif"  font-weight="normal" font-size="13" fill="#F2F7FB" text-anchor="end">0</text>
 <text x="266.0" y="190.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">t, с</text>
 <text x="58.0" y="22.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="start">S, м</text>
+<path d="M 44.0,200.0 L 254.0,30.0" fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
 <text x="79.0" y="218.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">1</text>
 <text x="114.0" y="218.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">2</text>
 <text x="149.0" y="218.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">3</text>
@@ -33,5 +34,4 @@
 <text x="34.0" y="85.9" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">25</text>
 <text x="34.0" y="62.3" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">30</text>
 <text x="34.0" y="38.7" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">35</text>
-<path d="M 44.0,200.0 L 254.0,30.0" fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

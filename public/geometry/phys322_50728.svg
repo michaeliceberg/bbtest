@@ -1,42 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="340" height="340" viewBox="0 0 340 340">
-<rect x="0" y="0" width="340" height="340" fill="#151F23"/>
-<line x1="80.0" y1="10" x2="80.0" y2="330" stroke="#3A464E" stroke-width="1"/>
-<line x1="120.0" y1="10" x2="120.0" y2="330" stroke="#3A464E" stroke-width="1"/>
-<line x1="160.0" y1="10" x2="160.0" y2="330" stroke="#3A464E" stroke-width="1"/>
-<line x1="200.0" y1="10" x2="200.0" y2="330" stroke="#3A464E" stroke-width="1"/>
-<line x1="240.0" y1="10" x2="240.0" y2="330" stroke="#3A464E" stroke-width="1"/>
-<line x1="10" y1="140.0" x2="330" y2="140.0" stroke="#3A464E" stroke-width="1"/>
-<line x1="10" y1="160.0" x2="330" y2="160.0" stroke="#3A464E" stroke-width="1"/>
-<line x1="10" y1="180.0" x2="330" y2="180.0" stroke="#3A464E" stroke-width="1"/>
-<line x1="10" y1="200.0" x2="330" y2="200.0" stroke="#3A464E" stroke-width="1"/>
-<line x1="10" y1="220.0" x2="330" y2="220.0" stroke="#3A464E" stroke-width="1"/>
-<line x1="10" y1="260.0" x2="330" y2="260.0" stroke="#3A464E" stroke-width="1"/>
-<line x1="10" y1="280.0" x2="330" y2="280.0" stroke="#3A464E" stroke-width="1"/>
-<line x1="10" y1="300.0" x2="330" y2="300.0" stroke="#3A464E" stroke-width="1"/>
-<line x1="10" y1="320.0" x2="330" y2="320.0" stroke="#3A464E" stroke-width="1"/>
-<line x1="40" y1="330" x2="40" y2="10" stroke="#9AA7B0" stroke-width="2"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="225" height="280" viewBox="0 0 225 280">
+<rect x="0" y="0" width="225" height="280" fill="#151F23"/>
+<line x1="80.0" y1="10" x2="80.0" y2="270" stroke="#3A464E" stroke-width="1"/>
+<line x1="120.0" y1="10" x2="120.0" y2="270" stroke="#3A464E" stroke-width="1"/>
+<line x1="160.0" y1="10" x2="160.0" y2="270" stroke="#3A464E" stroke-width="1"/>
+<line x1="200.0" y1="10" x2="200.0" y2="270" stroke="#3A464E" stroke-width="1"/>
+<line x1="10" y1="170.0" x2="215" y2="170.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="10" y1="150.0" x2="215" y2="150.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="10" y1="130.0" x2="215" y2="130.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="10" y1="110.0" x2="215" y2="110.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="10" y1="210.0" x2="215" y2="210.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="10" y1="230.0" x2="215" y2="230.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="40" y1="270" x2="40" y2="10" stroke="#9AA7B0" stroke-width="2"/>
 <polygon points="35,18 45,18 40,8" fill="#9AA7B0"/>
-<line x1="10" y1="240.0" x2="330" y2="240.0" stroke="#9AA7B0" stroke-width="2"/>
-<polygon points="322,235.0 322,245.0 332,240.0" fill="#9AA7B0"/>
-<text x="30.0" y="256.0" font-family="Georgia, serif"  font-weight="normal" font-size="13" fill="#F2F7FB" text-anchor="end">0</text>
-<text x="326.0" y="230.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">t</text>
+<line x1="10" y1="190.0" x2="215" y2="190.0" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="207,185.0 207,195.0 217,190.0" fill="#9AA7B0"/>
+<text x="30.0" y="206.0" font-family="Georgia, serif"  font-weight="normal" font-size="13" fill="#F2F7FB" text-anchor="end">0</text>
+<text x="211.0" y="180.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">t</text>
 <text x="54.0" y="22.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="start">x</text>
-<text x="80.0" y="258.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">2</text>
-<text x="120.0" y="258.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">4</text>
-<text x="160.0" y="258.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">6</text>
-<text x="200.0" y="258.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">8</text>
-<text x="240.0" y="258.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">10</text>
-<text x="30.0" y="144.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">25</text>
-<text x="30.0" y="164.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">20</text>
-<text x="30.0" y="184.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">15</text>
-<text x="30.0" y="204.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">10</text>
-<text x="30.0" y="224.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">5</text>
-<text x="30.0" y="264.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">-5</text>
-<text x="30.0" y="284.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">-10</text>
-<text x="30.0" y="304.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">-15</text>
-<text x="30.0" y="324.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">-20</text>
-<path d="M 40.0,280.0 L 43.4,276.6 L 46.8,273.2 L 50.2,269.8 L 53.6,266.4 L 57.0,263.0 L 60.4,259.6 L 63.8,256.2 L 67.2,252.8 L 70.6,249.4 L 74.0,246.0 L 77.4,242.6 L 80.8,239.2 L 84.2,235.8 L 87.6,232.4 L 91.0,229.0 L 94.4,225.6 L 97.8,222.2 L 101.2,218.8 L 104.6,215.4 L 108.0,212.0 L 111.4,208.6 L 114.8,205.2 L 118.2,201.8 L 121.6,198.4 L 125.0,195.0 L 128.4,191.6 L 131.8,188.2 L 135.2,184.8 L 138.6,181.4 L 142.0,178.0 L 145.4,174.6 L 148.8,171.2 L 152.2,167.8 L 155.6,164.4 L 159.0,161.0 L 162.4,157.6 L 165.8,154.2 L 169.2,150.8 L 172.6,147.4 L 176.0,144.0" fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M 40.0,220.0 C 40.7,220.9 42.7,223.5 44.0,225.2 C 45.3,226.8 46.7,228.4 48.0,230.0 C 49.3,231.5 50.7,233.0 52.0,234.4 C 53.3,235.8 54.7,237.2 56.0,238.5 C 57.3,239.8 58.7,241.0 60.0,242.2 C 61.3,243.4 62.7,244.5 64.0,245.6 C 65.3,246.7 66.7,247.7 68.0,248.6 C 69.3,249.6 70.7,250.5 72.0,251.3 C 73.3,252.1 74.7,252.9 76.0,253.6 C 77.3,254.3 78.7,255.0 80.0,255.6 C 81.3,256.1 82.7,256.7 84.0,257.2 C 85.3,257.6 86.7,258.0 88.0,258.4 C 89.3,258.8 90.7,259.1 92.0,259.3 C 93.3,259.5 94.7,259.7 96.0,259.8 C 97.3,259.9 98.7,260.0 100.0,260.0 C 101.3,260.0 102.7,259.9 104.0,259.8 C 105.3,259.7 106.7,259.5 108.0,259.3 C 109.3,259.1 110.7,258.8 112.0,258.4 C 113.3,258.0 114.7,257.6 116.0,257.2 C 117.3,256.7 118.7,256.1 120.0,255.6 C 121.3,255.0 122.7,254.3 124.0,253.6 C 125.3,252.9 126.7,252.1 128.0,251.3 C 129.3,250.5 130.7,249.6 132.0,248.6 C 133.3,247.7 134.7,246.7 136.0,245.6 C 137.3,244.5 138.7,243.4 140.0,242.2 C 141.3,241.0 142.7,239.8 144.0,238.5 C 145.3,237.2 146.7,235.8 148.0,234.4 C 149.3,233.0 150.7,231.5 152.0,230.0 C 153.3,228.4 154.7,226.8 156.0,225.2 C 157.3,223.5 158.7,221.8 160.0,220.0 C 161.3,218.2 162.7,216.4 164.0,214.5 C 165.3,212.6 166.7,210.6 168.0,208.6 C 169.3,206.6 170.7,204.5 172.0,202.4 C 173.3,200.3 174.7,198.1 176.0,195.8 C 177.3,193.6 178.7,191.3 180.0,188.9 C 181.3,186.5 182.7,184.1 184.0,181.6 C 185.3,179.1 186.7,176.6 188.0,174.0 C 189.3,171.4 190.7,168.7 192.0,166.0 C 193.3,163.2 194.7,160.5 196.0,157.6 C 197.3,154.8 199.3,150.4 200.0,148.9 " fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="150.0" y="170.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="17" fill="#f0a868" text-anchor="middle">A</text>
-<text x="170.0" y="205.6" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="17" fill="#f0a868" text-anchor="middle">B</text>
+<path d="M 40.0,230.0 L 43.4,226.6 L 46.8,223.2 L 50.2,219.8 L 53.6,216.4 L 57.0,213.0 L 60.4,209.6 L 63.8,206.2 L 67.2,202.8 L 70.6,199.4 L 74.0,196.0 L 77.4,192.6 L 80.8,189.2 L 84.2,185.8 L 87.6,182.4 L 91.0,179.0 L 94.4,175.6 L 97.8,172.2 L 101.2,168.8 L 104.6,165.4 L 108.0,162.0 L 111.4,158.6 L 114.8,155.2 L 118.2,151.8 L 121.6,148.4 L 125.0,145.0 L 128.4,141.6 L 131.8,138.2 L 135.2,134.8 L 138.6,131.4 L 142.0,128.0 L 145.4,124.6 L 148.8,121.2 L 152.2,117.8 L 155.6,114.4 L 159.0,111.0 L 162.4,107.6 L 165.8,104.2 L 169.2,100.8 L 172.6,97.4 L 176.0,94.0" fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 40.0,170.0 C 40.7,170.9 42.7,173.5 44.0,175.2 C 45.3,176.8 46.7,178.4 48.0,180.0 C 49.3,181.5 50.7,183.0 52.0,184.4 C 53.3,185.8 54.7,187.2 56.0,188.5 C 57.3,189.8 58.7,191.0 60.0,192.2 C 61.3,193.4 62.7,194.5 64.0,195.6 C 65.3,196.7 66.7,197.7 68.0,198.6 C 69.3,199.6 70.7,200.5 72.0,201.3 C 73.3,202.1 74.7,202.9 76.0,203.6 C 77.3,204.3 78.7,205.0 80.0,205.6 C 81.3,206.1 82.7,206.7 84.0,207.2 C 85.3,207.6 86.7,208.0 88.0,208.4 C 89.3,208.8 90.7,209.1 92.0,209.3 C 93.3,209.5 94.7,209.7 96.0,209.8 C 97.3,209.9 98.7,210.0 100.0,210.0 C 101.3,210.0 102.7,209.9 104.0,209.8 C 105.3,209.7 106.7,209.5 108.0,209.3 C 109.3,209.1 110.7,208.8 112.0,208.4 C 113.3,208.0 114.7,207.6 116.0,207.2 C 117.3,206.7 118.7,206.1 120.0,205.6 C 121.3,205.0 122.7,204.3 124.0,203.6 C 125.3,202.9 126.7,202.1 128.0,201.3 C 129.3,200.5 130.7,199.6 132.0,198.6 C 133.3,197.7 134.7,196.7 136.0,195.6 C 137.3,194.5 138.7,193.4 140.0,192.2 C 141.3,191.0 142.7,189.8 144.0,188.5 C 145.3,187.2 146.7,185.8 148.0,184.4 C 149.3,183.0 150.7,181.5 152.0,180.0 C 153.3,178.4 154.7,176.8 156.0,175.2 C 157.3,173.5 158.7,171.8 160.0,170.0 C 161.3,168.2 162.7,166.4 164.0,164.5 C 165.3,162.6 166.7,160.6 168.0,158.6 C 169.3,156.6 170.7,154.5 172.0,152.4 C 173.3,150.3 174.7,148.1 176.0,145.8 C 177.3,143.6 178.7,141.3 180.0,138.9 C 181.3,136.5 182.7,134.1 184.0,131.6 C 185.3,129.1 186.7,126.6 188.0,124.0 C 189.3,121.4 190.7,118.7 192.0,116.0 C 193.3,113.2 194.7,110.5 196.0,107.6 C 197.3,104.8 199.3,100.4 200.0,98.9 " fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="80.0" y="208.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">2</text>
+<text x="120.0" y="208.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">4</text>
+<text x="160.0" y="208.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">6</text>
+<text x="200.0" y="208.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">8</text>
+<text x="30.0" y="174.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">5</text>
+<text x="30.0" y="154.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">10</text>
+<text x="30.0" y="134.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">15</text>
+<text x="30.0" y="114.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">20</text>
+<text x="30.0" y="214.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">-5</text>
+<text x="30.0" y="234.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">-10</text>
+<text x="150.0" y="120.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="17" fill="#f0a868" text-anchor="middle">A</text>
+<text x="170.0" y="155.6" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="17" fill="#f0a868" text-anchor="middle">B</text>
 </svg>
