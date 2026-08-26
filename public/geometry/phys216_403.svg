@@ -21,8 +21,6 @@
 <circle cx="160.0" cy="160.0" r="4" fill="#F2F7FB" stroke="#0369a1" stroke-width="1.5"/>
 <line x1="160.0" y1="160.0" x2="264.0" y2="56.0" stroke="#f0a868" stroke-width="2.6" stroke-linecap="round"/>
 <polygon points="264.0,56.0 261.7,64.7 255.3,58.3" fill="#f0a868"/>
-<text x="279.6" y="34.4" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="14" fill="#f0a868">pₐ</text>
 <line x1="160.0" y1="160.0" x2="56.0" y2="56.0" stroke="#7dd3fc" stroke-width="2.6" stroke-linecap="round"/>
 <polygon points="56.0,56.0 64.7,58.3 58.3,64.7" fill="#7dd3fc"/>
-<text x="40.4" y="34.4" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="14" fill="#7dd3fc">p_b</text>
-</svg>
+<text x="272.0" y="54.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="15" fill="#f0a868">p<tspan font-size="10.2" baseline-shift="-25%">a</tspan></text><text x="48.0" y="54.0" text-anchor="end" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="15" fill="#f0a868">p<tspan font-size="10.2" baseline-shift="-25%">b</tspan></text><line x1="40.0" y1="20.0" x2="55.6" y2="20.0" stroke="#F2F7FB" stroke-width="2"/><text x="47.8" y="10.0" font-family="Georgia, serif"  font-weight="normal" font-size="14" fill="#F2F7FB" text-anchor="middle">2 кг·м/с</text></svg>

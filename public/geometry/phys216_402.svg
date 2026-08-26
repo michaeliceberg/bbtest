@@ -14,9 +14,10 @@
 <line x1="0" y1="121.0" x2="194" y2="121.0" stroke="#3A464E" stroke-width="1"/>
 <line x1="169.0" y1="25.0" x2="33.0" y2="25.0" stroke="#f0a868" stroke-width="2.6" stroke-linecap="round"/>
 <polygon points="33.0,25.0 40.8,20.5 40.8,29.5" fill="#f0a868"/>
-<text x="12.6" y="19.0" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="14" fill="#f0a868">p_b</text>
+<text x="97.0" y="15.0" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="15" fill="#f0a868">p<tspan font-size="10.2" baseline-shift="-25%">b</tspan></text>
 <line x1="25.0" y1="25.0" x2="25.0" y2="113.0" stroke="#7dd3fc" stroke-width="2.6" stroke-linecap="round"/>
 <polygon points="25.0,113.0 20.5,105.2 29.5,105.2" fill="#7dd3fc"/>
-<text x="25.0" y="120.2" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="14" fill="#7dd3fc">pₐ</text>
-
+<text x="39.0" y="73.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="15" fill="#7dd3fc">p<tspan font-size="10.2" baseline-shift="-25%">a</tspan></text>
+<line x1="25.0" y1="9.0" x2="39.4" y2="9.0" stroke="#F2F7FB" stroke-width="2"/>
+<text x="32.2" y="-1.0" font-family="Georgia, serif"  font-weight="normal" font-size="14" fill="#F2F7FB" text-anchor="middle">2 кг·м/с</text>
 </svg>
