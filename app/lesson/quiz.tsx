@@ -533,7 +533,7 @@ export const Quiz = ({
         )
     }
 
-    const hasQuestionBubble = effectiveType === "ASSIST" || effectiveType === "KEYBOARD"
+    const hasQuestionBubble = effectiveType === "ASSIST" || effectiveType === "KEYBOARD" || effectiveType === "SELECT"
 
     const title = hasQuestionBubble
         ? lessonTitle
