@@ -64,15 +64,16 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                                 const isSelected = selectedId === o.id
                                 const revealCorrect = revealed && o.correct
                                 const revealWrong = revealed && isSelected && !o.correct
-                                // "Нажатое" состояние — просто пропадает нижняя 3D-тень
-                                // (граница), ровно как в кнопке "Ответить"
-                                // (border-b-4 active:border-b-0), без всякого translate —
-                                // сама граница держит форму. transform был лишним и
-                                // визуально "выталкивал" кнопку ниже её же места, отсюда
-                                // и казалось, что она растёт при нажатии. Плюс контейнер
-                                // grid по умолчанию растягивает элементы на всю высоту
-                                // строки (align-items: stretch) — без items-start на
-                                // родителе изменение border-bottom вообще не сработало бы.
+                                // "Нажатое" состояние — пропадает нижняя 3D-тень (граница),
+                                // ровно как в кнопке "Ответить" (border-b-4 active:border-b-0).
+                                // Ключевое условие эффекта "текст опускается" — ФИКСИРОВАННАЯ
+                                // высота кнопки (h-[53px]) с border-box: когда нижняя граница
+                                // тает с 7 до 2px, внутренняя область кнопки растёт вниз (сама
+                                // кнопка при этом не меняет размер), и центрированный
+                                // items-center текст сам смещается вниз вместе с новым
+                                // центром — без ручного translate на тексте. items-start на
+                                // родителе не даёт grid растянуть все 3 кнопки по высоте
+                                // самой высокой (align-items: stretch по умолчанию).
                                 const isPressed = isSelected || revealCorrect
                                 const bg = revealCorrect
                                     ? "#678337"
@@ -95,7 +96,7 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                                         onClick={() => { vibrate('light'); onSelect(name, o.id); }}
                                         disabled={disabled}
                                         className={cn(
-                                            "relative flex items-center justify-center rounded-xl py-3 px-2 text-center border-2 border-solid",
+                                            "relative flex items-center justify-center rounded-xl h-[53px] px-2 text-center border-2 border-solid",
                                             "transition-[background-color,border-color,border-bottom-width] duration-150 ease-out",
                                             disabled && "pointer-events-none",
                                         )}
