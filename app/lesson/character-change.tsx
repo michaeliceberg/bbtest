@@ -67,20 +67,27 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                                 // "Нажатое" состояние — тонкий низ + сдвиг вниз, как у
                                 // футер-кнопки "Ответить" в момент клика, только тут
                                 // оно держится, пока вариант выбран/показан верным.
+                                // Смешивать в className стандартный border-b-2 с
+                                // произвольным border-b-[Npx] нельзя — Tailwind кладёт
+                                // arbitrary-value утилиты в конец таблицы стилей, и они
+                                // побеждают вне зависимости от порядка классов в JSX,
+                                // так что граница по факту никогда не уменьшалась —
+                                // отсюда эффект "кнопка увеличивается" при нажатии.
+                                // Через inline style такой проблемы нет.
                                 const isPressed = isSelected || revealCorrect
                                 const bg = revealCorrect
                                     ? "#678337"
                                     : revealWrong
                                         ? "#C8524E"
                                         : isSelected
-                                            ? (unitColor?.button ?? "#5183A4")
+                                            ? "#4ade80"
                                             : "#232F34"
                                 const border = revealCorrect
                                     ? "#3E5220"
                                     : revealWrong
                                         ? "#8C332F"
                                         : isSelected
-                                            ? (unitColor?.bottom ?? "#3E6883")
+                                            ? "#22a35d"
                                             : "#11171A"
                                 return (
                                     <button
@@ -89,12 +96,16 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                                         onClick={() => { vibrate('light'); onSelect(name, o.id); }}
                                         disabled={disabled}
                                         className={cn(
-                                            "relative flex items-center justify-center rounded-xl py-3 px-2 text-center",
-                                            "border-2 border-b-[5px] transition-[background-color,border-color,transform] duration-200 ease-out",
-                                            isPressed && "border-b-2 translate-y-[3px]",
+                                            "relative flex items-center justify-center rounded-xl py-3 px-2 text-center border-2 border-solid",
+                                            "transition-[background-color,border-color,transform] duration-150 ease-out",
                                             disabled && "pointer-events-none",
                                         )}
-                                        style={{ borderColor: border, backgroundColor: bg }}
+                                        style={{
+                                            borderColor: border,
+                                            backgroundColor: bg,
+                                            borderBottomWidth: isPressed ? 2 : 7,
+                                            transform: isPressed ? "translateY(5px)" : "translateY(0)",
+                                        }}
                                     >
                                         <span className={cn(
                                             "text-xs lg:text-sm leading-tight font-bold inline-flex items-center gap-1",
