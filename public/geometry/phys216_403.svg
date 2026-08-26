@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="216" viewBox="0 0 320 216">
+<rect x="0" y="0" width="320" height="216" fill="#151F23"/>
+<line x1="30.0" y1="0" x2="30.0" y2="216" stroke="#3A464E" stroke-width="1"/>
+<line x1="56.0" y1="0" x2="56.0" y2="216" stroke="#3A464E" stroke-width="1"/>
+<line x1="82.0" y1="0" x2="82.0" y2="216" stroke="#3A464E" stroke-width="1"/>
+<line x1="108.0" y1="0" x2="108.0" y2="216" stroke="#3A464E" stroke-width="1"/>
+<line x1="134.0" y1="0" x2="134.0" y2="216" stroke="#3A464E" stroke-width="1"/>
+<line x1="160.0" y1="0" x2="160.0" y2="216" stroke="#3A464E" stroke-width="1"/>
+<line x1="186.0" y1="0" x2="186.0" y2="216" stroke="#3A464E" stroke-width="1"/>
+<line x1="212.0" y1="0" x2="212.0" y2="216" stroke="#3A464E" stroke-width="1"/>
+<line x1="238.0" y1="0" x2="238.0" y2="216" stroke="#3A464E" stroke-width="1"/>
+<line x1="264.0" y1="0" x2="264.0" y2="216" stroke="#3A464E" stroke-width="1"/>
+<line x1="290.0" y1="0" x2="290.0" y2="216" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="186.0" x2="320" y2="186.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="160.0" x2="320" y2="160.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="134.0" x2="320" y2="134.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="108.0" x2="320" y2="108.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="82.0" x2="320" y2="82.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="56.0" x2="320" y2="56.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="30.0" x2="320" y2="30.0" stroke="#3A464E" stroke-width="1"/>
+<circle cx="160.0" cy="160.0" r="4" fill="#F2F7FB" stroke="#0369a1" stroke-width="1.5"/>
+<line x1="160.0" y1="160.0" x2="264.0" y2="56.0" stroke="#f0a868" stroke-width="2.6" stroke-linecap="round"/>
+<polygon points="264.0,56.0 261.7,64.7 255.3,58.3" fill="#f0a868"/>
+<text x="279.6" y="34.4" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="14" fill="#f0a868">pₐ</text>
+<line x1="160.0" y1="160.0" x2="56.0" y2="56.0" stroke="#7dd3fc" stroke-width="2.6" stroke-linecap="round"/>
+<polygon points="56.0,56.0 64.7,58.3 58.3,64.7" fill="#7dd3fc"/>
+<text x="40.4" y="34.4" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="14" fill="#7dd3fc">p_b</text>
+</svg>
