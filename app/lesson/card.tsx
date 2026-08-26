@@ -6,6 +6,7 @@ import Image from "next/image"
 import { useCallback } from "react"
 import { useKey } from "react-use"
 import { Check } from "lucide-react"
+import Latex from "react-latex-next"
 
 type Props = {
     id: number
@@ -92,7 +93,7 @@ export const Card = ({
                 >
                     {(selected || revealCorrect) && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
                 </div>
-                <p className="text-[#F2F7FB] text-sm lg:text-base flex-1">{text}</p>
+                <p className="text-[#F2F7FB] text-sm lg:text-base flex-1"><Latex>{text}</Latex></p>
             </div>
         )
     }
@@ -131,7 +132,7 @@ export const Card = ({
                     "text-[#F2F7FB] text-sm lg:text-base text-center flex-1",
                     (selected || isDoneWrongChallenge) && "text-white",
                 )}>
-                    {text}
+                    <Latex>{text}</Latex>
                 </p>
 
                 <div className={cn(
