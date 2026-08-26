@@ -47,12 +47,15 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
     const revealed = status !== "none"
 
     return (
-        <div className="space-y-5">
+        <div className="space-y-3">
             {groups.map(({ name, opts }) => {
                 const selectedId = selected[name]
                 return (
-                    <div key={name}>
-                        <p className="text-[#F2F7FB] text-sm lg:text-base font-semibold mb-2">
+                    <div
+                        key={name}
+                        className="rounded-2xl border-2 border-[#2A343A] bg-[#1A252B] p-3"
+                    >
+                        <p className="text-[#F2F7FB] text-sm lg:text-base font-semibold mb-2.5">
                             <Latex>{name}</Latex>
                         </p>
                         <div className="grid grid-cols-3 gap-2">
@@ -61,20 +64,24 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                                 const isSelected = selectedId === o.id
                                 const revealCorrect = revealed && o.correct
                                 const revealWrong = revealed && isSelected && !o.correct
-                                const borderColor = revealCorrect
-                                    ? "#53692C"
-                                    : revealWrong
-                                        ? "#A3423E"
-                                        : isSelected
-                                            ? (unitColor?.button ?? "#3E6883")
-                                            : "#3A464E"
-                                const bgColor = revealCorrect
+                                // "Нажатое" состояние — тонкий низ + сдвиг вниз, как у
+                                // футер-кнопки "Ответить" в момент клика, только тут
+                                // оно держится, пока вариант выбран/показан верным.
+                                const isPressed = isSelected || revealCorrect
+                                const bg = revealCorrect
                                     ? "#678337"
                                     : revealWrong
                                         ? "#C8524E"
                                         : isSelected
                                             ? (unitColor?.button ?? "#5183A4")
-                                            : "#161F23"
+                                            : "#232F34"
+                                const border = revealCorrect
+                                    ? "#3E5220"
+                                    : revealWrong
+                                        ? "#8C332F"
+                                        : isSelected
+                                            ? (unitColor?.bottom ?? "#3E6883")
+                                            : "#11171A"
                                 return (
                                     <button
                                         key={o.id}
@@ -82,19 +89,19 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                                         onClick={() => { vibrate('light'); onSelect(name, o.id); }}
                                         disabled={disabled}
                                         className={cn(
-                                            "flex flex-col items-center justify-center gap-1 border-2 rounded-xl py-3 px-2 text-center transition-colors hover:bg-[#1A252B]",
+                                            "relative flex items-center justify-center rounded-xl py-3 px-2 text-center",
+                                            "border-2 border-b-[5px] transition-[background-color,border-color,transform] duration-200 ease-out",
+                                            isPressed && "border-b-2 translate-y-[3px]",
                                             disabled && "pointer-events-none",
                                         )}
-                                        style={{ borderColor, backgroundColor: bgColor }}
+                                        style={{ borderColor: border, backgroundColor: bg }}
                                     >
-                                        <span className="h-4">
-                                            {revealCorrect && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
-                                            {revealWrong && <X className="w-4 h-4 text-white" strokeWidth={3} />}
-                                        </span>
                                         <span className={cn(
-                                            "text-xs lg:text-sm leading-tight",
-                                            (isSelected || revealCorrect) ? "text-white" : "text-[#F2F7FB]",
+                                            "text-xs lg:text-sm leading-tight font-bold inline-flex items-center gap-1",
+                                            (isSelected || revealCorrect) ? "text-white" : "text-[#9AA7B0]",
                                         )}>
+                                            {revealCorrect && <Check className="w-4 h-4 flex-shrink-0" strokeWidth={3} />}
+                                            {revealWrong && <X className="w-4 h-4 flex-shrink-0" strokeWidth={3} />}
                                             <Latex>{label}</Latex>
                                         </span>
                                     </button>
