@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="220" viewBox="0 0 260 220">
+<rect x="0" y="0" width="260" height="220" fill="#151F23"/>
+<line x1="30" y1="210" x2="30" y2="10" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="25,18 35,18 30,8" fill="#9AA7B0"/>
+<line x1="20" y1="180" x2="250" y2="180" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="242,175 242,185 252,180" fill="#9AA7B0"/>
+<text x="14.0" y="200.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">0</text>
+<text x="244.0" y="168.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="end">t</text>
+<text x="46.0" y="24.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="start">x</text>
+<path d="M 30.0,180.0 C 36.7,177.5 57.5,174.2 70.0,165.0 C 82.5,155.8 99.2,131.7 105.0,125.0 " fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 105.0,125.0 C 114.2,119.2 137.5,104.2 160.0,90.0 C 182.5,75.8 226.7,48.3 240.0,40.0 " fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="105.0" cy="125.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<text x="65.0" y="125.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="17" fill="#f0a868" text-anchor="middle">1</text>
+<text x="170.0" y="65.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="17" fill="#f0a868" text-anchor="middle">2</text>
+</svg>

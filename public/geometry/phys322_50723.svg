@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="492" height="100" viewBox="0 0 492 100">
+<rect x="0" y="0" width="492" height="100" fill="#151F23"/>
+<rect x="4" y="10" width="484" height="82" rx="8" fill="none" stroke="#9AA7B0" stroke-width="1.5"/>
+<line x1="4" y1="50" x2="488" y2="50" stroke="#3A464E" stroke-width="1.5"/>
+<line x1="70" y1="10" x2="70" y2="92" stroke="#3A464E" stroke-width="1.5"/>
+<line x1="116" y1="10" x2="116" y2="92" stroke="#3A464E" stroke-width="1"/>
+<line x1="162" y1="10" x2="162" y2="92" stroke="#3A464E" stroke-width="1"/>
+<line x1="208" y1="10" x2="208" y2="92" stroke="#3A464E" stroke-width="1"/>
+<line x1="254" y1="10" x2="254" y2="92" stroke="#3A464E" stroke-width="1"/>
+<line x1="300" y1="10" x2="300" y2="92" stroke="#3A464E" stroke-width="1"/>
+<line x1="346" y1="10" x2="346" y2="92" stroke="#3A464E" stroke-width="1"/>
+<line x1="392" y1="10" x2="392" y2="92" stroke="#3A464E" stroke-width="1"/>
+<line x1="438" y1="10" x2="438" y2="92" stroke="#3A464E" stroke-width="1"/>
+<text x="14.0" y="35.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#f0a868">t, с</text>
+<text x="93.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,0</text>
+<text x="139.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,2</text>
+<text x="185.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,4</text>
+<text x="231.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,6</text>
+<text x="277.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,8</text>
+<text x="323.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">1,0</text>
+<text x="369.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">1,2</text>
+<text x="415.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">1,4</text>
+<text x="461.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">1,6</text>
+<text x="14.0" y="75.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#f0a868">x, см</text>
+<text x="93.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">2,0</text>
+<text x="139.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">1,4</text>
+<text x="185.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,0</text>
+<text x="231.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">-1,4</text>
+<text x="277.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">-2,0</text>
+<text x="323.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">-1,4</text>
+<text x="369.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,0</text>
+<text x="415.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">1,4</text>
+<text x="461.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">2,0</text>
+</svg>

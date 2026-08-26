@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="340" height="340" viewBox="0 0 340 340">
+<rect x="0" y="0" width="340" height="340" fill="#151F23"/>
+<line x1="80.0" y1="10" x2="80.0" y2="330" stroke="#3A464E" stroke-width="1"/>
+<line x1="120.0" y1="10" x2="120.0" y2="330" stroke="#3A464E" stroke-width="1"/>
+<line x1="160.0" y1="10" x2="160.0" y2="330" stroke="#3A464E" stroke-width="1"/>
+<line x1="200.0" y1="10" x2="200.0" y2="330" stroke="#3A464E" stroke-width="1"/>
+<line x1="240.0" y1="10" x2="240.0" y2="330" stroke="#3A464E" stroke-width="1"/>
+<line x1="10" y1="140.0" x2="330" y2="140.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="10" y1="160.0" x2="330" y2="160.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="10" y1="180.0" x2="330" y2="180.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="10" y1="200.0" x2="330" y2="200.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="10" y1="220.0" x2="330" y2="220.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="10" y1="260.0" x2="330" y2="260.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="10" y1="280.0" x2="330" y2="280.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="10" y1="300.0" x2="330" y2="300.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="10" y1="320.0" x2="330" y2="320.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="40" y1="330" x2="40" y2="10" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="35,18 45,18 40,8" fill="#9AA7B0"/>
+<line x1="10" y1="240.0" x2="330" y2="240.0" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="322,235.0 322,245.0 332,240.0" fill="#9AA7B0"/>
+<text x="30.0" y="256.0" font-family="Georgia, serif"  font-weight="normal" font-size="13" fill="#F2F7FB" text-anchor="end">0</text>
+<text x="326.0" y="230.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">t</text>
+<text x="28.0" y="22.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">x</text>
+<text x="80.0" y="258.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">2</text>
+<text x="120.0" y="258.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">4</text>
+<text x="160.0" y="258.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">6</text>
+<text x="200.0" y="258.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">8</text>
+<text x="240.0" y="258.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">10</text>
+<text x="30.0" y="144.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">25</text>
+<text x="30.0" y="164.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">20</text>
+<text x="30.0" y="184.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">15</text>
+<text x="30.0" y="204.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">10</text>
+<text x="30.0" y="224.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">5</text>
+<text x="30.0" y="264.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">-5</text>
+<text x="30.0" y="284.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">-10</text>
+<text x="30.0" y="304.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">-15</text>
+<text x="30.0" y="324.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">-20</text>
+<path d="M 40.0,280.0 L 43.4,276.6 L 46.8,273.2 L 50.2,269.8 L 53.6,266.4 L 57.0,263.0 L 60.4,259.6 L 63.8,256.2 L 67.2,252.8 L 70.6,249.4 L 74.0,246.0 L 77.4,242.6 L 80.8,239.2 L 84.2,235.8 L 87.6,232.4 L 91.0,229.0 L 94.4,225.6 L 97.8,222.2 L 101.2,218.8 L 104.6,215.4 L 108.0,212.0 L 111.4,208.6 L 114.8,205.2 L 118.2,201.8 L 121.6,198.4 L 125.0,195.0 L 128.4,191.6 L 131.8,188.2 L 135.2,184.8 L 138.6,181.4 L 142.0,178.0 L 145.4,174.6 L 148.8,171.2 L 152.2,167.8 L 155.6,164.4 L 159.0,161.0 L 162.4,157.6 L 165.8,154.2 L 169.2,150.8 L 172.6,147.4 L 176.0,144.0" fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 40.0,220.0 C 40.7,220.9 42.7,223.5 44.0,225.2 C 45.3,226.8 46.7,228.4 48.0,230.0 C 49.3,231.5 50.7,233.0 52.0,234.4 C 53.3,235.8 54.7,237.2 56.0,238.5 C 57.3,239.8 58.7,241.0 60.0,242.2 C 61.3,243.4 62.7,244.5 64.0,245.6 C 65.3,246.7 66.7,247.7 68.0,248.6 C 69.3,249.6 70.7,250.5 72.0,251.3 C 73.3,252.1 74.7,252.9 76.0,253.6 C 77.3,254.3 78.7,255.0 80.0,255.6 C 81.3,256.1 82.7,256.7 84.0,257.2 C 85.3,257.6 86.7,258.0 88.0,258.4 C 89.3,258.8 90.7,259.1 92.0,259.3 C 93.3,259.5 94.7,259.7 96.0,259.8 C 97.3,259.9 98.7,260.0 100.0,260.0 C 101.3,260.0 102.7,259.9 104.0,259.8 C 105.3,259.7 106.7,259.5 108.0,259.3 C 109.3,259.1 110.7,258.8 112.0,258.4 C 113.3,258.0 114.7,257.6 116.0,257.2 C 117.3,256.7 118.7,256.1 120.0,255.6 C 121.3,255.0 122.7,254.3 124.0,253.6 C 125.3,252.9 126.7,252.1 128.0,251.3 C 129.3,250.5 130.7,249.6 132.0,248.6 C 133.3,247.7 134.7,246.7 136.0,245.6 C 137.3,244.5 138.7,243.4 140.0,242.2 C 141.3,241.0 142.7,239.8 144.0,238.5 C 145.3,237.2 146.7,235.8 148.0,234.4 C 149.3,233.0 150.7,231.5 152.0,230.0 C 153.3,228.4 154.7,226.8 156.0,225.2 C 157.3,223.5 158.7,221.8 160.0,220.0 C 161.3,218.2 162.7,216.4 164.0,214.5 C 165.3,212.6 166.7,210.6 168.0,208.6 C 169.3,206.6 170.7,204.5 172.0,202.4 C 173.3,200.3 174.7,198.1 176.0,195.8 C 177.3,193.6 178.7,191.3 180.0,188.9 C 181.3,186.5 182.7,184.1 184.0,181.6 C 185.3,179.1 186.7,176.6 188.0,174.0 C 189.3,171.4 190.7,168.7 192.0,166.0 C 193.3,163.2 194.7,160.5 196.0,157.6 C 197.3,154.8 199.3,150.4 200.0,148.9 " fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="150.0" y="170.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="17" fill="#f0a868" text-anchor="middle">A</text>
+<text x="170.0" y="205.6" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="17" fill="#f0a868" text-anchor="middle">B</text>
+</svg>

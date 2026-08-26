@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="160" viewBox="0 0 220 160">
+<rect x="0" y="0" width="220" height="160" fill="#151F23"/>
+<line x1="25" y1="150" x2="25" y2="10" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="20,18 30,18 25,8" fill="#9AA7B0"/>
+<line x1="15" y1="130" x2="210" y2="130" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="202,125 202,135 212,130" fill="#9AA7B0"/>
+<text x="9.0" y="150.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">0</text>
+<text x="204.0" y="118.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="end">t</text>
+<text x="41.0" y="24.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="start">s</text>
+<path d="M 25.0,130.0 C 26.3,129.8 30.3,129.6 33.0,128.9 C 35.7,128.2 38.3,127.1 41.0,125.6 C 43.7,124.1 46.3,122.3 49.0,120.1 C 51.7,117.9 54.3,115.3 57.0,112.4 C 59.7,109.5 62.3,106.2 65.0,102.5 C 67.7,98.8 70.3,94.8 73.0,90.4 C 75.7,86.0 78.3,81.2 81.0,76.1 C 83.7,71.0 86.3,65.5 89.0,59.6 C 91.7,53.7 94.3,47.5 97.0,40.9 C 99.7,34.3 102.3,27.3 105.0,20.0 C 107.7,12.7 110.3,5.0 113.0,-3.1 C 115.7,-11.2 119.7,-24.2 121.0,-28.4 " fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

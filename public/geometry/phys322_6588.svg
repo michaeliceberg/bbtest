@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="220" viewBox="0 0 300 220">
+<rect x="0" y="0" width="300" height="220" fill="#151F23"/>
+<line x1="30" y1="210" x2="30" y2="10" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="25,18 35,18 30,8" fill="#9AA7B0"/>
+<line x1="20" y1="170" x2="290" y2="170" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="282,165 282,175 292,170" fill="#9AA7B0"/>
+<text x="14.0" y="190.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">0</text>
+<text x="284.0" y="158.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="end">t</text>
+<text x="46.0" y="24.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="start">x</text>
+<path d="M 30.0,170.0 L 140.0,70.0" fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 140.0,70.0 L 280.0,70.0" fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="140" y1="70" x2="140" y2="170" stroke="#F2F7FB" stroke-width="1.4" stroke-dasharray="4,3"/>
+<text x="85.0" y="30.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="18" fill="#f0a868" text-anchor="middle">1</text>
+<text x="210.0" y="54.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="18" fill="#f0a868" text-anchor="middle">2</text>
+</svg>

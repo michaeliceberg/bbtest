@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="220" viewBox="0 0 260 220">
+<rect x="0" y="0" width="260" height="220" fill="#151F23"/>
+<line x1="40" y1="210" x2="40" y2="10" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="35,18 45,18 40,8" fill="#9AA7B0"/>
+<line x1="30" y1="180" x2="250" y2="180" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="242,175 242,185 252,180" fill="#9AA7B0"/>
+<text x="24.0" y="200.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">0</text>
+<text x="244.0" y="168.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="end">E, Дж</text>
+<text x="56.0" y="24.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="start">h, м</text>
+<line x1="100.0" y1="10" x2="100.0" y2="205" stroke="#3A464E" stroke-width="1"/>
+<text x="100.0" y="198.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">3</text>
+<line x1="160.0" y1="10" x2="160.0" y2="205" stroke="#3A464E" stroke-width="1"/>
+<text x="160.0" y="198.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">6</text>
+<line x1="220.0" y1="10" x2="220.0" y2="205" stroke="#3A464E" stroke-width="1"/>
+<text x="220.0" y="198.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">9</text>
+<line x1="10" y1="133.4" x2="250" y2="133.4" stroke="#3A464E" stroke-width="1"/>
+<text x="30.0" y="137.4" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">2</text>
+<line x1="10" y1="86.8" x2="250" y2="86.8" stroke="#3A464E" stroke-width="1"/>
+<text x="30.0" y="90.8" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">4</text>
+<line x1="10" y1="40.2" x2="250" y2="40.2" stroke="#3A464E" stroke-width="1"/>
+<text x="30.0" y="44.2" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">6</text>
+<path d="M 40.0,180.0 L 220.0,40.2" fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

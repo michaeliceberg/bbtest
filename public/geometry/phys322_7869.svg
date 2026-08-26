@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="564" height="140" viewBox="0 0 564 140">
+<rect x="0" y="0" width="564" height="140" fill="#151F23"/>
+<rect x="4" y="10" width="556" height="122" rx="8" fill="none" stroke="#9AA7B0" stroke-width="1.5"/>
+<line x1="4" y1="50" x2="560" y2="50" stroke="#3A464E" stroke-width="1.5"/>
+<line x1="4" y1="90" x2="560" y2="90" stroke="#3A464E" stroke-width="1.5"/>
+<line x1="140" y1="10" x2="140" y2="132" stroke="#3A464E" stroke-width="1.5"/>
+<line x1="192" y1="10" x2="192" y2="132" stroke="#3A464E" stroke-width="1"/>
+<line x1="244" y1="10" x2="244" y2="132" stroke="#3A464E" stroke-width="1"/>
+<line x1="296" y1="10" x2="296" y2="132" stroke="#3A464E" stroke-width="1"/>
+<line x1="348" y1="10" x2="348" y2="132" stroke="#3A464E" stroke-width="1"/>
+<line x1="400" y1="10" x2="400" y2="132" stroke="#3A464E" stroke-width="1"/>
+<line x1="452" y1="10" x2="452" y2="132" stroke="#3A464E" stroke-width="1"/>
+<line x1="504" y1="10" x2="504" y2="132" stroke="#3A464E" stroke-width="1"/>
+<text x="14.0" y="35.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#f0a868">Время, с</text>
+<text x="166.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,1</text>
+<text x="218.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,2</text>
+<text x="270.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,3</text>
+<text x="322.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,4</text>
+<text x="374.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,5</text>
+<text x="426.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,6</text>
+<text x="478.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,7</text>
+<text x="530.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,8</text>
+<text x="14.0" y="75.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#f0a868">Координата x, м</text>
+<text x="166.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,3</text>
+<text x="218.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,6</text>
+<text x="270.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,9</text>
+<text x="322.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">1,2</text>
+<text x="374.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">1,5</text>
+<text x="426.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">1,8</text>
+<text x="478.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">2,1</text>
+<text x="530.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">2,4</text>
+<text x="14.0" y="115.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#f0a868">Координата y, м</text>
+<text x="166.0" y="115.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,35</text>
+<text x="218.0" y="115.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,60</text>
+<text x="270.0" y="115.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,75</text>
+<text x="322.0" y="115.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,80</text>
+<text x="374.0" y="115.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,75</text>
+<text x="426.0" y="115.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,60</text>
+<text x="478.0" y="115.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,35</text>
+<text x="530.0" y="115.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0</text>
+</svg>

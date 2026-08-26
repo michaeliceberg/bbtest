@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="240" viewBox="0 0 280 240">
+<rect x="0" y="0" width="280" height="240" fill="#151F23"/>
+<line x1="79.0" y1="10" x2="79.0" y2="225" stroke="#3A464E" stroke-width="1"/>
+<line x1="114.0" y1="10" x2="114.0" y2="225" stroke="#3A464E" stroke-width="1"/>
+<line x1="149.0" y1="10" x2="149.0" y2="225" stroke="#3A464E" stroke-width="1"/>
+<line x1="184.0" y1="10" x2="184.0" y2="225" stroke="#3A464E" stroke-width="1"/>
+<line x1="219.0" y1="10" x2="219.0" y2="225" stroke="#3A464E" stroke-width="1"/>
+<line x1="254.0" y1="10" x2="254.0" y2="225" stroke="#3A464E" stroke-width="1"/>
+<line x1="10" y1="176.4" x2="270" y2="176.4" stroke="#3A464E" stroke-width="1"/>
+<line x1="10" y1="152.8" x2="270" y2="152.8" stroke="#3A464E" stroke-width="1"/>
+<line x1="10" y1="129.2" x2="270" y2="129.2" stroke="#3A464E" stroke-width="1"/>
+<line x1="10" y1="105.6" x2="270" y2="105.6" stroke="#3A464E" stroke-width="1"/>
+<line x1="10" y1="81.9" x2="270" y2="81.9" stroke="#3A464E" stroke-width="1"/>
+<line x1="10" y1="58.3" x2="270" y2="58.3" stroke="#3A464E" stroke-width="1"/>
+<line x1="10" y1="34.7" x2="270" y2="34.7" stroke="#3A464E" stroke-width="1"/>
+<line x1="44" y1="225" x2="44" y2="10" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="39,18 49,18 44,8" fill="#9AA7B0"/>
+<line x1="10" y1="200.0" x2="270" y2="200.0" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="262,195.0 262,205.0 272,200.0" fill="#9AA7B0"/>
+<text x="34.0" y="216.0" font-family="Georgia, serif"  font-weight="normal" font-size="13" fill="#F2F7FB" text-anchor="end">0</text>
+<text x="266.0" y="190.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">t, с</text>
+<text x="32.0" y="22.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">S, м</text>
+<text x="79.0" y="218.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">1</text>
+<text x="114.0" y="218.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">2</text>
+<text x="149.0" y="218.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">3</text>
+<text x="184.0" y="218.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">4</text>
+<text x="219.0" y="218.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">5</text>
+<text x="254.0" y="218.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">6</text>
+<text x="34.0" y="180.4" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">5</text>
+<text x="34.0" y="156.8" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">10</text>
+<text x="34.0" y="133.2" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">15</text>
+<text x="34.0" y="109.6" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">20</text>
+<text x="34.0" y="85.9" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">25</text>
+<text x="34.0" y="62.3" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">30</text>
+<text x="34.0" y="38.7" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">35</text>
+<path d="M 44.0,200.0 L 79.0,195.3 L 114.0,181.1 L 149.0,157.5 L 184.0,124.4 L 219.0,81.9 L 254.0,30.0" fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
