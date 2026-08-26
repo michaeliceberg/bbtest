@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="348" height="284" viewBox="0 0 348 284">
+<rect x="0" y="0" width="348" height="284" fill="#151F23"/>
+<line x1="30.0" y1="0" x2="30.0" y2="284" stroke="#3A464E" stroke-width="1"/>
+<line x1="62.0" y1="0" x2="62.0" y2="284" stroke="#3A464E" stroke-width="1"/>
+<line x1="94.0" y1="0" x2="94.0" y2="284" stroke="#3A464E" stroke-width="1"/>
+<line x1="126.0" y1="0" x2="126.0" y2="284" stroke="#3A464E" stroke-width="1"/>
+<line x1="158.0" y1="0" x2="158.0" y2="284" stroke="#3A464E" stroke-width="1"/>
+<line x1="190.0" y1="0" x2="190.0" y2="284" stroke="#3A464E" stroke-width="1"/>
+<line x1="222.0" y1="0" x2="222.0" y2="284" stroke="#3A464E" stroke-width="1"/>
+<line x1="254.0" y1="0" x2="254.0" y2="284" stroke="#3A464E" stroke-width="1"/>
+<line x1="286.0" y1="0" x2="286.0" y2="284" stroke="#3A464E" stroke-width="1"/>
+<line x1="318.0" y1="0" x2="318.0" y2="284" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="254.0" x2="348" y2="254.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="222.0" x2="348" y2="222.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="190.0" x2="348" y2="190.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="158.0" x2="348" y2="158.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="126.0" x2="348" y2="126.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="94.0" x2="348" y2="94.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="62.0" x2="348" y2="62.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="30.0" x2="348" y2="30.0" stroke="#3A464E" stroke-width="1"/>
+<circle cx="158.0" cy="190.0" r="4" fill="#F2F7FB" stroke="#0369a1" stroke-width="1.5"/>
+<line x1="158.0" y1="190.0" x2="254.0" y2="190.0" stroke="#f0a868" stroke-width="2.6" stroke-linecap="round"/>
+<polygon points="254.0,190.0 246.2,194.5 246.2,185.5" fill="#f0a868"/>
+<text x="268.4" y="184.0" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="14" fill="#f0a868">F₁</text>
+<line x1="158.0" y1="190.0" x2="62.0" y2="222.0" stroke="#7dd3fc" stroke-width="2.6" stroke-linecap="round"/>
+<polygon points="62.0,222.0 68.0,215.3 70.8,223.8" fill="#7dd3fc"/>
+<text x="47.6" y="220.8" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="14" fill="#7dd3fc">F₂</text>
+<line x1="158.0" y1="190.0" x2="286.0" y2="62.0" stroke="#4ade80" stroke-width="2.6" stroke-linecap="round"/>
+<polygon points="286.0,62.0 283.7,70.7 277.3,64.3" fill="#4ade80"/>
+<text x="305.2" y="36.8" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="14" fill="#4ade80">F₃</text>
+</svg>

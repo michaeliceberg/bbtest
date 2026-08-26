@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="220" viewBox="0 0 320 220">
+<rect x="0" y="0" width="320" height="220" fill="#151F23"/>
+<polygon points="40,40 280,20 250,190 10,170" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<line x1="250" y1="190" x2="305" y2="176" stroke="#F2F7FB" stroke-width="1.6"/>
+<text x="280.0" y="166.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="middle">α</text>
+<line x1="150.0" y1="155.0" x2="95.0" y2="55.0" stroke="#5b6b76" stroke-width="1.3" stroke-dasharray="5,4"/>
+<circle cx="125.0" cy="105.0" r="6" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
+<text x="105.0" y="110.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">m</text>
+<line x1="133.0" y1="103.0" x2="105.0" y2="61.0" stroke="#f0a868" stroke-width="2.6" stroke-linecap="round"/>
+<polygon points="105.0,61.0 113.1,65.0 105.6,70.0" fill="#f0a868"/>
+<text x="100.8" y="48.7" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="14" fill="#f0a868">F</text>
+</svg>

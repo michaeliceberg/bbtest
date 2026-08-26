@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="380" height="108" viewBox="0 0 380 108">
+<rect x="0" y="0" width="380" height="108" fill="#151F23"/>
+<rect x="4" y="10" width="372" height="90" rx="8" fill="none" stroke="#9AA7B0" stroke-width="1.5"/>
+<line x1="4" y1="54" x2="376" y2="54" stroke="#3A464E" stroke-width="1.5"/>
+<line x1="100" y1="10" x2="100" y2="100" stroke="#3A464E" stroke-width="1.5"/>
+<line x1="156" y1="10" x2="156" y2="100" stroke="#3A464E" stroke-width="1"/>
+<line x1="212" y1="10" x2="212" y2="100" stroke="#3A464E" stroke-width="1"/>
+<line x1="268" y1="10" x2="268" y2="100" stroke="#3A464E" stroke-width="1"/>
+<line x1="324" y1="10" x2="324" y2="100" stroke="#3A464E" stroke-width="1"/>
+<text x="16" y="38.0" font-family="Georgia, serif" font-style="italic" font-size="16" fill="#f0a868">t, с</text>
+<text x="128.0" y="38.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0</text>
+<text x="184.0" y="38.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">1</text>
+<text x="240.0" y="38.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">2</text>
+<text x="296.0" y="38.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">3</text>
+<text x="352.0" y="38.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">4</text>
+<text x="16" y="82.0" font-family="Georgia, serif" font-style="italic" font-size="16" fill="#f0a868">υₓ, м/с</text>
+<text x="128.0" y="82.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0</text>
+<text x="184.0" y="82.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,5</text>
+<text x="240.0" y="82.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">1</text>
+<text x="296.0" y="82.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">1,5</text>
+<text x="352.0" y="82.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">2</text>
+</svg>
