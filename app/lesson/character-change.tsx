@@ -8,6 +8,7 @@
 // "<название величины>::<вариант>", correct отмечает правильный вариант
 // для каждой величины.
 
+import { useState } from "react"
 import { challengeOptions } from "@/db/schema"
 import Latex from "react-latex-next"
 import { cn } from "@/lib/utils"
@@ -29,6 +30,11 @@ type Props = {
 const CATEGORY_ORDER = ["Увеличится", "Уменьшится", "Не изменится"]
 
 export const CharacterChangeChallenge = ({ options, selected, onSelect, status, disabled, unitColor }: Props) => {
+    // Физическое "нажатие" (палец/мышь ещё удерживаются) отслеживается
+    // отдельно от закреплённого выбора — кнопка должна проседать сразу по
+    // pointerdown, а не только после полного клика (pointerdown+up).
+    const [downId, setDownId] = useState<number | null>(null)
+
     const groups: { name: string; opts: typeof options }[] = []
     options.forEach((o) => {
         const [name] = o.text.split("::")
@@ -74,19 +80,23 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                                 // центром — без ручного translate на тексте. items-start на
                                 // родителе не даёт grid растянуть все 3 кнопки по высоте
                                 // самой высокой (align-items: stretch по умолчанию).
-                                const isPressed = isSelected || revealCorrect
+                                // Физическое нажатие держится, только пока курсор/палец над
+                                // ЭТОЙ кнопкой — увести и отпустить в сторону не должно её
+                                // "выбрать" (закрепляет клик, как обычно у кнопок).
+                                const isPhysicallyDown = !disabled && downId === o.id
+                                const isActive = isSelected || revealCorrect || isPhysicallyDown
                                 const bg = revealCorrect
                                     ? "#678337"
                                     : revealWrong
                                         ? "#C8524E"
-                                        : isSelected
+                                        : isActive
                                             ? "#4ade80"
                                             : "#232F34"
                                 const border = revealCorrect
                                     ? "#3E5220"
                                     : revealWrong
                                         ? "#8C332F"
-                                        : isSelected
+                                        : isActive
                                             ? "#22a35d"
                                             : "#11171A"
                                 return (
@@ -94,6 +104,10 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                                         key={o.id}
                                         type="button"
                                         onClick={() => { vibrate('light'); onSelect(name, o.id); }}
+                                        onPointerDown={() => !disabled && setDownId(o.id)}
+                                        onPointerUp={() => setDownId(null)}
+                                        onPointerLeave={() => setDownId(null)}
+                                        onPointerCancel={() => setDownId(null)}
                                         disabled={disabled}
                                         className={cn(
                                             "relative flex items-center justify-center rounded-xl h-[53px] px-2 text-center border-2 border-solid",
@@ -103,12 +117,16 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                                         style={{
                                             borderColor: border,
                                             backgroundColor: bg,
-                                            borderBottomWidth: isPressed ? 2 : 7,
+                                            borderBottomWidth: isActive ? 2 : 7,
                                         }}
                                     >
                                         <span className={cn(
                                             "text-xs lg:text-sm leading-tight font-bold inline-flex items-center gap-1",
-                                            (isSelected || revealCorrect) ? "text-white" : "text-[#9AA7B0]",
+                                            revealCorrect || revealWrong
+                                                ? "text-white"
+                                                : isActive
+                                                    ? "text-[#123018]"
+                                                    : "text-[#9AA7B0]",
                                         )}>
                                             {revealCorrect && <Check className="w-4 h-4 flex-shrink-0" strokeWidth={3} />}
                                             {revealWrong && <X className="w-4 h-4 flex-shrink-0" strokeWidth={3} />}
