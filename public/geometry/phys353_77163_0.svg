@@ -1,30 +1,30 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="290" height="280" viewBox="0 0 290 280">
-<rect x="0" y="0" width="290" height="280" fill="#151F23"/>
-<line x1="60" y1="30" x2="60" y2="230" stroke="#3A464E" stroke-width="1"/>
-<line x1="100" y1="30" x2="100" y2="230" stroke="#3A464E" stroke-width="1"/>
-<line x1="140" y1="30" x2="140" y2="230" stroke="#3A464E" stroke-width="1"/>
-<line x1="180" y1="30" x2="180" y2="230" stroke="#3A464E" stroke-width="1"/>
-<line x1="220" y1="30" x2="220" y2="230" stroke="#3A464E" stroke-width="1"/>
-<line x1="260" y1="30" x2="260" y2="230" stroke="#3A464E" stroke-width="1"/>
-<line x1="60" y1="30" x2="260" y2="30" stroke="#3A464E" stroke-width="1"/>
-<line x1="60" y1="70" x2="260" y2="70" stroke="#3A464E" stroke-width="1"/>
-<line x1="60" y1="110" x2="260" y2="110" stroke="#3A464E" stroke-width="1"/>
-<line x1="60" y1="150" x2="260" y2="150" stroke="#3A464E" stroke-width="1"/>
-<line x1="60" y1="190" x2="260" y2="190" stroke="#3A464E" stroke-width="1"/>
-<line x1="60" y1="230" x2="260" y2="230" stroke="#3A464E" stroke-width="1"/>
-<line x1="60.0" y1="230.0" x2="60.0" y2="20.0" stroke="#F2F7FB" stroke-width="2" stroke-linecap="round"/>
-<polygon points="60.0,20.0 65.0,28.7 55.0,28.7" fill="#F2F7FB"/>
-<line x1="60.0" y1="230.0" x2="280.0" y2="230.0" stroke="#F2F7FB" stroke-width="2" stroke-linecap="round"/>
-<polygon points="280.0,230.0 271.3,235.0 271.3,225.0" fill="#F2F7FB"/>
-<text x="44.0" y="16.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="18" fill="#F2F7FB" text-anchor="middle">T</text>
-<text x="290.0" y="236.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="18" fill="#F2F7FB" text-anchor="middle">V</text>
-<text x="46.0" y="250.0" font-family="Georgia, serif"  font-weight="normal" font-size="17" fill="#F2F7FB" text-anchor="middle">0</text>
-<line x1="60" y1="190" x2="100" y2="190" stroke="#3A464E" stroke-width="1" stroke-dasharray="3,3"/>
-<line x1="100" y1="230" x2="100" y2="190" stroke="#3A464E" stroke-width="1" stroke-dasharray="3,3"/>
-<text x="40.0" y="195.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">T₀</text>
-<text x="100.0" y="250.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">V₀</text>
-<circle cx="100.0" cy="190.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
-<circle cx="260.0" cy="110.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
-<text x="86.0" y="180.0" font-family="Georgia, serif"  font-weight="normal" font-size="20" fill="#F2F7FB" text-anchor="middle">1</text>
-<text x="260.0" y="98.0" font-family="Georgia, serif"  font-weight="normal" font-size="20" fill="#F2F7FB" text-anchor="middle">2</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="306" height="288" viewBox="0 0 306 288">
+<rect x="0" y="0" width="306" height="288" fill="#151F23"/>
+<line x1="60" y1="38" x2="60" y2="238" stroke="#3A464E" stroke-width="1"/>
+<line x1="100" y1="38" x2="100" y2="238" stroke="#3A464E" stroke-width="1"/>
+<line x1="140" y1="38" x2="140" y2="238" stroke="#3A464E" stroke-width="1"/>
+<line x1="180" y1="38" x2="180" y2="238" stroke="#3A464E" stroke-width="1"/>
+<line x1="220" y1="38" x2="220" y2="238" stroke="#3A464E" stroke-width="1"/>
+<line x1="260" y1="38" x2="260" y2="238" stroke="#3A464E" stroke-width="1"/>
+<line x1="60" y1="38" x2="260" y2="38" stroke="#3A464E" stroke-width="1"/>
+<line x1="60" y1="78" x2="260" y2="78" stroke="#3A464E" stroke-width="1"/>
+<line x1="60" y1="118" x2="260" y2="118" stroke="#3A464E" stroke-width="1"/>
+<line x1="60" y1="158" x2="260" y2="158" stroke="#3A464E" stroke-width="1"/>
+<line x1="60" y1="198" x2="260" y2="198" stroke="#3A464E" stroke-width="1"/>
+<line x1="60" y1="238" x2="260" y2="238" stroke="#3A464E" stroke-width="1"/>
+<line x1="60.0" y1="238.0" x2="60.0" y2="26.0" stroke="#F2F7FB" stroke-width="2" stroke-linecap="round"/>
+<polygon points="60.0,26.0 65.0,34.7 55.0,34.7" fill="#F2F7FB"/>
+<line x1="60.0" y1="238.0" x2="280.0" y2="238.0" stroke="#F2F7FB" stroke-width="2" stroke-linecap="round"/>
+<polygon points="280.0,238.0 271.3,243.0 271.3,233.0" fill="#F2F7FB"/>
+<text x="44.0" y="20.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="18" fill="#F2F7FB" text-anchor="middle">T</text>
+<text x="288.0" y="244.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="18" fill="#F2F7FB" text-anchor="start">V</text>
+<text x="46.0" y="258.0" font-family="Georgia, serif"  font-weight="normal" font-size="17" fill="#F2F7FB" text-anchor="middle">0</text>
+<line x1="60" y1="198" x2="100" y2="198" stroke="#3A464E" stroke-width="1" stroke-dasharray="3,3"/>
+<line x1="100" y1="238" x2="100" y2="198" stroke="#3A464E" stroke-width="1" stroke-dasharray="3,3"/>
+<text x="40.0" y="203.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">T₀</text>
+<text x="100.0" y="258.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">V₀</text>
+<circle cx="100.0" cy="198.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<circle cx="260.0" cy="118.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<text x="86.0" y="188.0" font-family="Georgia, serif"  font-weight="normal" font-size="20" fill="#F2F7FB" text-anchor="middle">1</text>
+<text x="260.0" y="106.0" font-family="Georgia, serif"  font-weight="normal" font-size="20" fill="#F2F7FB" text-anchor="middle">2</text>
 </svg>

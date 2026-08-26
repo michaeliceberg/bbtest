@@ -1,32 +1,32 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="283" height="248" viewBox="0 0 283 248">
-<rect x="0" y="0" width="283" height="248" fill="#151F23"/>
-<line x1="85" y1="25" x2="253" y2="25" stroke="#3A464E" stroke-width="1"/>
-<line x1="85" y1="67" x2="253" y2="67" stroke="#3A464E" stroke-width="1"/>
-<line x1="85" y1="109" x2="253" y2="109" stroke="#3A464E" stroke-width="1"/>
-<line x1="85" y1="151" x2="253" y2="151" stroke="#3A464E" stroke-width="1"/>
-<line x1="85" y1="193" x2="253" y2="193" stroke="#3A464E" stroke-width="1"/>
-<line x1="85" y1="25" x2="85" y2="193" stroke="#3A464E" stroke-width="1"/>
-<line x1="127" y1="25" x2="127" y2="193" stroke="#3A464E" stroke-width="1"/>
-<line x1="169" y1="25" x2="169" y2="193" stroke="#3A464E" stroke-width="1"/>
-<line x1="211" y1="25" x2="211" y2="193" stroke="#3A464E" stroke-width="1"/>
-<line x1="253" y1="25" x2="253" y2="193" stroke="#3A464E" stroke-width="1"/>
-<line x1="85.0" y1="193.0" x2="85.0" y2="15.0" stroke="#F2F7FB" stroke-width="2" stroke-linecap="round"/>
-<polygon points="85.0,15.0 90.0,23.7 80.0,23.7" fill="#F2F7FB"/>
-<line x1="85.0" y1="193.0" x2="273.0" y2="193.0" stroke="#F2F7FB" stroke-width="2" stroke-linecap="round"/>
-<polygon points="273.0,193.0 264.3,198.0 264.3,188.0" fill="#F2F7FB"/>
-<text x="65.0" y="15.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="start">p, Па</text>
-<path d="M 81,195 l 4,6 l -4,6 l 4,6" fill="none" stroke="#F2F7FB" stroke-width="1.3"/>
-<circle cx="85.0" cy="151.0" r="2" fill="#F2F7FB" stroke="#0369a1" stroke-width="1.5"/>
-<text x="73.0" y="156.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">103 750</text>
-<circle cx="85.0" cy="67.0" r="2" fill="#F2F7FB" stroke="#0369a1" stroke-width="1.5"/>
-<text x="73.0" y="72.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">141 100</text>
-<circle cx="127" cy="193" r="2" fill="#F2F7FB"/>
-<text x="127.0" y="213.0" font-family="Georgia, serif"  font-weight="normal" font-size="14" fill="#F2F7FB" text-anchor="middle">20</text>
-<circle cx="169" cy="193" r="2" fill="#F2F7FB"/>
-<text x="169.0" y="213.0" font-family="Georgia, serif"  font-weight="normal" font-size="14" fill="#F2F7FB" text-anchor="middle">40</text>
-<circle cx="211" cy="193" r="2" fill="#F2F7FB"/>
-<text x="211.0" y="213.0" font-family="Georgia, serif"  font-weight="normal" font-size="14" fill="#F2F7FB" text-anchor="middle">60</text>
-<text x="279.0" y="199.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">t, мин</text>
-<text x="71.0" y="213.0" font-family="Georgia, serif"  font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="middle">0</text>
-<line x1="85" y1="151" x2="240.4" y2="16.6" stroke="#f0a868" stroke-width="2.2"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="323" height="263" viewBox="0 0 323 263">
+<rect x="0" y="0" width="323" height="263" fill="#151F23"/>
+<line x1="85" y1="40" x2="253" y2="40" stroke="#3A464E" stroke-width="1"/>
+<line x1="85" y1="82" x2="253" y2="82" stroke="#3A464E" stroke-width="1"/>
+<line x1="85" y1="124" x2="253" y2="124" stroke="#3A464E" stroke-width="1"/>
+<line x1="85" y1="166" x2="253" y2="166" stroke="#3A464E" stroke-width="1"/>
+<line x1="85" y1="208" x2="253" y2="208" stroke="#3A464E" stroke-width="1"/>
+<line x1="85" y1="40" x2="85" y2="208" stroke="#3A464E" stroke-width="1"/>
+<line x1="127" y1="40" x2="127" y2="208" stroke="#3A464E" stroke-width="1"/>
+<line x1="169" y1="40" x2="169" y2="208" stroke="#3A464E" stroke-width="1"/>
+<line x1="211" y1="40" x2="211" y2="208" stroke="#3A464E" stroke-width="1"/>
+<line x1="253" y1="40" x2="253" y2="208" stroke="#3A464E" stroke-width="1"/>
+<line x1="85.0" y1="208.0" x2="85.0" y2="25.0" stroke="#F2F7FB" stroke-width="2" stroke-linecap="round"/>
+<polygon points="85.0,25.0 90.0,33.7 80.0,33.7" fill="#F2F7FB"/>
+<line x1="85.0" y1="208.0" x2="273.0" y2="208.0" stroke="#F2F7FB" stroke-width="2" stroke-linecap="round"/>
+<polygon points="273.0,208.0 264.3,213.0 264.3,203.0" fill="#F2F7FB"/>
+<text x="65.0" y="18.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="start">p, Па</text>
+<path d="M 81,210 l 4,6 l -4,6 l 4,6" fill="none" stroke="#F2F7FB" stroke-width="1.3"/>
+<circle cx="85.0" cy="166.0" r="2" fill="#F2F7FB" stroke="#0369a1" stroke-width="1.5"/>
+<text x="73.0" y="171.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">103 750</text>
+<circle cx="85.0" cy="82.0" r="2" fill="#F2F7FB" stroke="#0369a1" stroke-width="1.5"/>
+<text x="73.0" y="87.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">141 100</text>
+<circle cx="127" cy="208" r="2" fill="#F2F7FB"/>
+<text x="127.0" y="228.0" font-family="Georgia, serif"  font-weight="normal" font-size="14" fill="#F2F7FB" text-anchor="middle">20</text>
+<circle cx="169" cy="208" r="2" fill="#F2F7FB"/>
+<text x="169.0" y="228.0" font-family="Georgia, serif"  font-weight="normal" font-size="14" fill="#F2F7FB" text-anchor="middle">40</text>
+<circle cx="211" cy="208" r="2" fill="#F2F7FB"/>
+<text x="211.0" y="228.0" font-family="Georgia, serif"  font-weight="normal" font-size="14" fill="#F2F7FB" text-anchor="middle">60</text>
+<text x="279.0" y="214.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="start">t, мин</text>
+<text x="71.0" y="228.0" font-family="Georgia, serif"  font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="middle">0</text>
+<line x1="85" y1="166" x2="240.4" y2="31.6" stroke="#f0a868" stroke-width="2.2"/>
 </svg>
