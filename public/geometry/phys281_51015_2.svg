@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="140" viewBox="0 0 180 140">
+<rect x="0" y="0" width="180" height="140" fill="#151F23"/>
+<line x1="25" y1="125" x2="25" y2="15" stroke="#F2F7FB" stroke-width="2"/>
+<polygon points="20,23 30,23 25,13" fill="#F2F7FB"/>
+<line x1="25" y1="90" x2="165" y2="90" stroke="#F2F7FB" stroke-width="2"/>
+<polygon points="157,85 157,95 167,90" fill="#F2F7FB"/>
+<text x="13.0" y="104.0" font-family="Georgia, serif"  font-weight="normal" font-size="13" fill="#F2F7FB" text-anchor="middle">0</text>
+<text x="162.0" y="106.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">t</text>
+<path d="M 25.0,90.0 L 26.7,86.3 L 28.3,82.7 L 30.0,79.2 L 31.7,75.8 L 33.3,72.5 L 35.0,69.4 L 36.7,66.6 L 38.3,64.0 L 40.0,61.7 L 41.7,59.7 L 43.3,58.0 L 45.0,56.7 L 46.7,55.8 L 48.3,55.2 L 50.0,55.0 L 51.7,55.2 L 53.3,55.8 L 55.0,56.7 L 56.7,58.0 L 58.3,59.7 L 60.0,61.7 L 61.7,64.0 L 63.3,66.6 L 65.0,69.4 L 66.7,72.5 L 68.3,75.8 L 70.0,79.2 L 71.7,82.7 L 73.3,86.3 L 75.0,90.0 L 76.7,86.3 L 78.3,82.7 L 80.0,79.2 L 81.7,75.8 L 83.3,72.5 L 85.0,69.4 L 86.7,66.6 L 88.3,64.0 L 90.0,61.7 L 91.7,59.7 L 93.3,58.0 L 95.0,56.7 L 96.7,55.8 L 98.3,55.2 L 100.0,55.0 L 101.7,55.2 L 103.3,55.8 L 105.0,56.7 L 106.7,58.0 L 108.3,59.7 L 110.0,61.7 L 111.7,64.0 L 113.3,66.6 L 115.0,69.4 L 116.7,72.5 L 118.3,75.8 L 120.0,79.2 L 121.7,82.7 L 123.3,86.3 L 125.0,90.0" fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round"/>
+<line x1="125.0" y1="90" x2="125.0" y2="86.0" stroke="#F2F7FB" stroke-width="1" stroke-dasharray="3,3"/>
+<text x="125.0" y="106.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="14" fill="#F2F7FB" text-anchor="middle">T</text>
+</svg>
