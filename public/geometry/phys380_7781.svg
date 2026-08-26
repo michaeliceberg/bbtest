@@ -1,10 +1,47 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
-<rect x="0" y="0" width="300" height="300" fill="#151F23"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="340" height="300" viewBox="0 0 340 300">
+<rect x="0" y="0" width="340" height="300" fill="#151F23"/>
+<line x1="0.0" y1="0" x2="0.0" y2="300" stroke="#3A464E" stroke-width="1"/>
+<line x1="18.0" y1="0" x2="18.0" y2="300" stroke="#3A464E" stroke-width="1"/>
+<line x1="36.0" y1="0" x2="36.0" y2="300" stroke="#3A464E" stroke-width="1"/>
+<line x1="54.0" y1="0" x2="54.0" y2="300" stroke="#3A464E" stroke-width="1"/>
+<line x1="72.0" y1="0" x2="72.0" y2="300" stroke="#3A464E" stroke-width="1"/>
+<line x1="90.0" y1="0" x2="90.0" y2="300" stroke="#3A464E" stroke-width="1"/>
+<line x1="108.0" y1="0" x2="108.0" y2="300" stroke="#3A464E" stroke-width="1"/>
+<line x1="126.0" y1="0" x2="126.0" y2="300" stroke="#3A464E" stroke-width="1"/>
+<line x1="144.0" y1="0" x2="144.0" y2="300" stroke="#3A464E" stroke-width="1"/>
+<line x1="162.0" y1="0" x2="162.0" y2="300" stroke="#3A464E" stroke-width="1"/>
+<line x1="180.0" y1="0" x2="180.0" y2="300" stroke="#3A464E" stroke-width="1"/>
+<line x1="198.0" y1="0" x2="198.0" y2="300" stroke="#3A464E" stroke-width="1"/>
+<line x1="216.0" y1="0" x2="216.0" y2="300" stroke="#3A464E" stroke-width="1"/>
+<line x1="234.0" y1="0" x2="234.0" y2="300" stroke="#3A464E" stroke-width="1"/>
+<line x1="252.0" y1="0" x2="252.0" y2="300" stroke="#3A464E" stroke-width="1"/>
+<line x1="270.0" y1="0" x2="270.0" y2="300" stroke="#3A464E" stroke-width="1"/>
+<line x1="288.0" y1="0" x2="288.0" y2="300" stroke="#3A464E" stroke-width="1"/>
+<line x1="306.0" y1="0" x2="306.0" y2="300" stroke="#3A464E" stroke-width="1"/>
+<line x1="324.0" y1="0" x2="324.0" y2="300" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="0.0" x2="340" y2="0.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="18.0" x2="340" y2="18.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="36.0" x2="340" y2="36.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="54.0" x2="340" y2="54.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="72.0" x2="340" y2="72.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="90.0" x2="340" y2="90.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="108.0" x2="340" y2="108.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="126.0" x2="340" y2="126.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="144.0" x2="340" y2="144.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="162.0" x2="340" y2="162.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="180.0" x2="340" y2="180.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="198.0" x2="340" y2="198.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="216.0" x2="340" y2="216.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="234.0" x2="340" y2="234.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="252.0" x2="340" y2="252.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="270.0" x2="340" y2="270.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="0" y1="288.0" x2="340" y2="288.0" stroke="#3A464E" stroke-width="1"/>
 <path d="M 40,40 L 40,240 L 140,240 L 140,110 L 220,110 L 220,190" fill="none" stroke="#F2F7FB" stroke-width="16" stroke-linecap="butt" stroke-linejoin="round"/>
 <path d="M 40,40 L 40,240 L 140,240 L 140,110 L 220,110 L 220,190" fill="none" stroke="#4a90a4" stroke-width="12" stroke-linecap="butt" stroke-linejoin="round" fill-opacity="0.6"/>
-<line x1="31" y1="58" x2="49" y2="58" stroke="#7dd3fc" stroke-width="2"/>
+<line x1="31" y1="76" x2="49" y2="76" stroke="#7dd3fc" stroke-width="2"/>
 <circle cx="220" cy="190" r="4" fill="#F2F7FB"/>
-<text x="232.0" y="194.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="middle">A</text>
-<text x="60.0" y="52.0" font-family="Georgia, serif"  font-weight="normal" font-size="11" fill="#F2F7FB" text-anchor="middle">открытый конец</text>
-<text x="150.0" y="270.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="middle">1 клетка = 1 см</text>
+<text x="236.0" y="194.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="middle">A</text>
+<line x1="49" y1="35" x2="80" y2="20" stroke="#F2F7FB" stroke-width="1"/>
+<text x="82.0" y="20.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="start">открытый конец</text>
+<text x="334.0" y="292.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">1 клетка = 1 см</text>
 </svg>

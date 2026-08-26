@@ -80,7 +80,7 @@ export function ChallengePreview({ data }: ChallengePreviewProps) {
             )}
           >
             <span className="text-xs opacity-75 mr-2">
-              {String.fromCharCode(65 + i)}.
+              {i + 1}.
             </span>
             <Latex>{option.text}</Latex>
           </button>

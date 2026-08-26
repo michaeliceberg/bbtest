@@ -69,7 +69,7 @@ export const Challenge = ({
                             id={option.id}
                             text={option.text}
                             imageSrc={option.imageSrc}
-                            shortcut={String.fromCharCode(65 + i)}
+                            shortcut={String(i + 1)}
                             selected={selectedOption === option.id}
                             onClick={() => onSelect(option.id)}
                             status={status}

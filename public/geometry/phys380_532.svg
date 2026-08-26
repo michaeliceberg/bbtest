@@ -1,17 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="300" height="260" viewBox="0 0 300 260">
 <rect x="0" y="0" width="300" height="260" fill="#151F23"/>
 <line x1="20" y1="220" x2="270" y2="220" stroke="#F2F7FB" stroke-width="2"/>
-<line x1="100" y1="20" x2="100" y2="194.0" stroke="#F2F7FB" stroke-width="2"/>
-<line x1="190" y1="20" x2="190" y2="194.0" stroke="#F2F7FB" stroke-width="2"/>
-<path d="M 100,194.0 A 45.0,26.0 0 0 0 190,194.0" fill="none" stroke="#F2F7FB" stroke-width="2"/>
-<rect x="91.0" y="142.0" width="18" height="52.0" fill="#e8c874" fill-opacity="0.7"/>
-<path d="M 91.0,194.0 L 91.0,194.0 A 54.0,32.0 0 0 0 199.0,194.0 L 199.0,157.6 L 181.0,157.6 L 181.0,194.0 L 109.0,194.0 Z" fill="#4a90a4" fill-opacity="0.55"/>
-<line x1="30" y1="142.0" x2="91.0" y2="142.0" stroke="#F2F7FB" stroke-width="1" stroke-dasharray="4,3"/>
+<path d="M 100,20 L 100,149.0 A 45.0,45.0 0 0 0 190,149.0 L 190,20" fill="none" stroke="#F2F7FB" stroke-width="22" stroke-linecap="butt"/>
+<path d="M 100,20 L 100,149.0 A 45.0,45.0 0 0 0 190,149.0 L 190,20" fill="none" stroke="#4a90a4" stroke-opacity="0.55" stroke-width="16" stroke-linecap="butt"/>
+<line x1="100" y1="142.0" x2="100" y2="194.0" stroke="#e8c874" stroke-opacity="0.85" stroke-width="16" stroke-linecap="butt"/>
+<line x1="30" y1="142.0" x2="89.0" y2="142.0" stroke="#F2F7FB" stroke-width="1" stroke-dasharray="4,3"/>
 <text x="20.0" y="146.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">H</text>
-<line x1="30" y1="194.0" x2="91.0" y2="194.0" stroke="#F2F7FB" stroke-width="1" stroke-dasharray="4,3"/>
+<line x1="30" y1="194.0" x2="89.0" y2="194.0" stroke="#F2F7FB" stroke-width="1" stroke-dasharray="4,3"/>
 <text x="20.0" y="198.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">b</text>
-<line x1="199.0" y1="157.6" x2="250" y2="157.6" stroke="#F2F7FB" stroke-width="1" stroke-dasharray="4,3"/>
+<line x1="201.0" y1="157.6" x2="250" y2="157.6" stroke="#F2F7FB" stroke-width="1" stroke-dasharray="4,3"/>
 <text x="260.0" y="161.6" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="start">h</text>
-<text x="70.0" y="172.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="14" fill="#F2F7FB" text-anchor="middle">ρ₁</text>
-<text x="212.0" y="188.8" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="14" fill="#F2F7FB" text-anchor="middle">ρ₂</text>
+<text x="68.0" y="172.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="14" fill="#F2F7FB" text-anchor="middle">ρ₁</text>
+<text x="214.0" y="188.8" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="14" fill="#F2F7FB" text-anchor="middle">ρ₂</text>
 </svg>
