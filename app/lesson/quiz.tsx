@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { useWrongAnswerModal } from "@/store/use-wronganswer-modal";
 import { useRightAnswerModal } from "@/store/use-rightanswer-modal";
 import { ChallengeNav } from "./challenge-nav";
+import { vibrate } from "@/lib/haptics";
 
 // Доля заданий ASSIST с числовым ответом, которые показываем как KEYBOARD
 // вместо сетки вариантов — для разнообразия UI. Сам тип в БД не меняется.
@@ -148,6 +149,10 @@ export const Quiz = ({
     // отдельный стейт-набор id, не трогаем selectedOption, чтобы не задеть
     // остальные типы заданий.
     const [selectedOptions, setSelectedOptions] = useState<Set<number>>(new Set())
+    // Тип CONSTRUCT ("определите характер изменения") — выбор по одному
+    // варианту на каждую физическую величину, ключ — имя величины
+    // (закодировано в тексте опции как "величина::вариант").
+    const [characterSelections, setCharacterSelections] = useState<Record<string, number>>({})
     const [typedAnswer, setTypedAnswer] = useState('')
     const [status, setStatus] = useState<"correct" | "wrong" | "none">('none')
     const [options, setOptions] = useState<typeof challengeOptions.$inferSelect[]>([])
@@ -239,6 +244,7 @@ export const Quiz = ({
         setActiveIndex(newIndex)
         setSelectedOption(undefined)
         setSelectedOptions(new Set())
+        setCharacterSelections({})
         setTypedAnswer('')
         setStatus('none')
         setIsDoneWrongChallenge(wrongChallengesId.includes(newIndex))
@@ -278,6 +284,7 @@ export const Quiz = ({
     }
 
     const isMultiSelect = challenge?.type === 'SELECT'
+    const isCharacterChange = challenge?.type === 'CONSTRUCT'
 
     const onSelect = (id: number) => {
         if (status !== "none") return
@@ -294,6 +301,11 @@ export const Quiz = ({
             return
         }
         setSelectedOption(id)
+    }
+
+    const onSelectCharacter = (quantity: string, optionId: number) => {
+        if (status !== "none") return
+        setCharacterSelections((prev) => ({ ...prev, [quantity]: optionId }))
     }
 
     // const onContinue = () => {
@@ -381,14 +393,20 @@ export const Quiz = ({
 
         const isKeyboardChallenge = effectiveType === 'KEYBOARD'
 
+        const characterGroupNames = isCharacterChange
+            ? [...new Set(options.map((o) => o.text.split('::')[0]))]
+            : []
+        const characterAllAnswered = characterGroupNames.every((name) => characterSelections[name] !== undefined)
+
         const onContinue = () => {
-        if (isMultiSelect ? selectedOptions.size === 0 : (isKeyboardChallenge ? !typedAnswer : !selectedOption)) return
+        if (isCharacterChange ? !characterAllAnswered : isMultiSelect ? selectedOptions.size === 0 : (isKeyboardChallenge ? !typedAnswer : !selectedOption)) return
 
         if (status === 'wrong') {
             onNext()
             setStatus('none')
             setSelectedOption(undefined)
             setSelectedOptions(new Set())
+            setCharacterSelections({})
             setTypedAnswer('')
             return
         }
@@ -398,6 +416,7 @@ export const Quiz = ({
             setStatus('none')
             setSelectedOption(undefined)
             setSelectedOptions(new Set())
+            setCharacterSelections({})
             setTypedAnswer('')
             return
         }
@@ -409,7 +428,12 @@ export const Quiz = ({
         }
 
         const normalizeAnswer = (s: string) => s.trim().replace(/\./g, ',').replace(/\s+/g, '')
-        const isAnswerCorrect = isMultiSelect
+        const isAnswerCorrect = isCharacterChange
+            ? characterGroupNames.every((name) => {
+                const picked = characterSelections[name]
+                return options.find((o) => o.id === picked)?.correct === true
+            })
+            : isMultiSelect
             ? (() => {
                 const correctIds = new Set(options.filter((o) => o.correct).map((o) => o.id))
                 return correctIds.size === selectedOptions.size
@@ -445,6 +469,7 @@ export const Quiz = ({
                         setTimeout(() => setShowMascotCorrect(false), 1500)
 
                         playCorrectSound()
+                        vibrate('success')
                         setStatus('correct')
                         if (!isDoneChallenge) {
                             setPercentage((prev) => prev + 100 / challenges.length)
@@ -473,6 +498,7 @@ export const Quiz = ({
                         }
 
                         playIncorrectSound()
+                        vibrate('error')
                         setStatus('wrong')
                         if (!isDoneChallenge) {
                             setPercentage((prev) => prev + 100 / challenges.length)
@@ -533,7 +559,7 @@ export const Quiz = ({
         )
     }
 
-    const hasQuestionBubble = effectiveType === "ASSIST" || effectiveType === "KEYBOARD" || effectiveType === "SELECT"
+    const hasQuestionBubble = effectiveType === "ASSIST" || effectiveType === "KEYBOARD" || effectiveType === "SELECT" || effectiveType === "CONSTRUCT"
 
     const title = hasQuestionBubble
         ? lessonTitle
@@ -630,6 +656,8 @@ export const Quiz = ({
                                 status={status}
                                 selectedOption={selectedOption}
                                 selectedOptions={selectedOptions}
+                                characterSelections={characterSelections}
+                                onSelectCharacter={onSelectCharacter}
                                 disabled={pending}
                                 type={challenge.type}
                                 isDoneWrongChallenge={isDoneWrongChallenge}
@@ -645,7 +673,7 @@ export const Quiz = ({
             </div>
 
             <Footer
-                disabled={(isDoneChallenge && !canSolve) || pending || (isMultiSelect ? selectedOptions.size === 0 : (isKeyboardChallenge ? !typedAnswer : !selectedOption))}
+                disabled={(isDoneChallenge && !canSolve) || pending || (isCharacterChange ? !characterAllAnswered : isMultiSelect ? selectedOptions.size === 0 : (isKeyboardChallenge ? !typedAnswer : !selectedOption))}
                 status={status}
                 onCheck={onContinue}
             />

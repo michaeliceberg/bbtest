@@ -3,6 +3,7 @@ import { CheckCircle, XCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { vibrate } from "@/lib/haptics";
 
 type Props = {
     onCheck: () => void
@@ -55,7 +56,7 @@ export const Footer = ({
                             variant='default'
                             className="flex-1 h-14 lg:h-16 text-base"
                             size={isMobile ? "sm" : "lg"}
-                            onClick={() => window.location.href = `/lesson/${lessonId}`}
+                            onClick={() => { vibrate('medium'); window.location.href = `/lesson/${lessonId}`; }}
                         >
                             Practice again
                         </Button>
@@ -63,7 +64,7 @@ export const Footer = ({
                     <Button
                         disabled={disabled}
                         className="w-full h-14 lg:h-16 text-base"
-                        onClick={onCheck}
+                        onClick={() => { vibrate('medium'); onCheck(); }}
                         size={isMobile ? "sm" : "lg"}
                         variant={status === "wrong" ? "danger" : "secondary"}
                     >

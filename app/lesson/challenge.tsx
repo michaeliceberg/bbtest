@@ -2,6 +2,7 @@
 
 import { challengeOptions, challenges } from "@/db/schema"
 import { Card } from "./card"
+import { CharacterChangeChallenge } from "./character-change"
 import { motion } from "framer-motion"
 import { Lock, Calendar, CheckCircle, XCircle } from "lucide-react"
 import { format } from "date-fns"
@@ -14,6 +15,8 @@ type Props = {
     status: "correct" | "wrong" | "none"
     selectedOption?: number
     selectedOptions?: Set<number>
+    characterSelections?: Record<string, number>
+    onSelectCharacter?: (quantity: string, optionId: number) => void
     disabled?: boolean
     type: typeof challenges.$inferSelect["type"]
     isDoneWrongChallenge: boolean
@@ -29,6 +32,8 @@ export const Challenge = ({
     status,
     selectedOption,
     selectedOptions,
+    characterSelections,
+    onSelectCharacter,
     disabled,
     type,
     isDoneWrongChallenge,
@@ -38,6 +43,7 @@ export const Challenge = ({
     unitColor,
 }: Props) => {
     const multiSelect = type === "SELECT"
+    const isCharacterChange = type === "CONSTRUCT"
     const canSolve = !dateLastDone || (new Date().getTime() - new Date(dateLastDone).getTime()) > 24 * 60 * 60 * 1000
     
     const getStatusMessage = () => {
@@ -68,6 +74,16 @@ export const Challenge = ({
     return (
         <div className="w-full">
             {canSolve ? (
+                isCharacterChange ? (
+                    <CharacterChangeChallenge
+                        options={options}
+                        selected={characterSelections ?? {}}
+                        onSelect={onSelectCharacter ?? (() => {})}
+                        status={status}
+                        disabled={disabled}
+                        unitColor={unitColor}
+                    />
+                ) : (
                 <div className={cn("grid gap-2 sm:gap-3", multiSelect ? "grid-cols-1" : "grid-cols-2")}>
                     {options.map((option, i) => (
                         <Card
@@ -88,8 +104,9 @@ export const Challenge = ({
                         />
                     ))}
                 </div>
+                )
             ) : (
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     className="text-center py-8 px-4 bg-[#1A252B] rounded-xl border border-[#3A464E]"

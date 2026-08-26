@@ -10,6 +10,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { ThunderBadge } from "@/components/thunder-badge";
+import { vibrate } from "@/lib/haptics";
 
 type ChallengeItem = { id: number };
 
@@ -70,7 +71,7 @@ export const ChallengeNav = ({
             <button
                 ref={ref}
                 key={challengeItem.id}
-                onClick={() => onClickNumber(challengeItem.id + 1)}
+                onClick={() => { vibrate('light'); onClickNumber(challengeItem.id + 1); }}
                 className={`relative h-7 rounded-lg text-xs font-semibold transition-colors ${fill ? 'w-full' : 'w-7 flex-shrink-0'}`}
                 style={{
                     backgroundColor: isActive ? unitColor.button : bg,
@@ -99,7 +100,7 @@ export const ChallengeNav = ({
                 </div>
                 <button
                     type="button"
-                    onClick={() => setIsExpanded(false)}
+                    onClick={() => { vibrate('light'); setIsExpanded(false); }}
                     aria-label="Свернуть список задач"
                     className="flex-shrink-0 h-7 w-7 rounded-lg flex items-center justify-center bg-[#1A252B] text-[#9AA7B0] hover:text-[#F2F7FB] transition-colors"
                 >
@@ -122,7 +123,7 @@ export const ChallengeNav = ({
             </div>
             <button
                 type="button"
-                onClick={() => setIsExpanded(true)}
+                onClick={() => { vibrate('light'); setIsExpanded(true); }}
                 aria-label="Показать все задачи урока"
                 className="flex-shrink-0 h-7 w-7 rounded-lg flex items-center justify-center bg-[#1A252B] text-[#9AA7B0] hover:text-[#F2F7FB] transition-colors"
             >

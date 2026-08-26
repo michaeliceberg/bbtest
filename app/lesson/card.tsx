@@ -7,6 +7,7 @@ import { useCallback } from "react"
 import { useKey } from "react-use"
 import { Check } from "lucide-react"
 import Latex from "react-latex-next"
+import { vibrate } from "@/lib/haptics"
 
 type Props = {
     id: number
@@ -44,6 +45,7 @@ export const Card = ({
 }: Props) => {
     const handleClick = useCallback(() => {
         if (disabled) return
+        vibrate('light')
         onClick()
     }, [disabled, onClick])
 
