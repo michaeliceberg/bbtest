@@ -290,6 +290,11 @@ export const t_courses = pgTable('t_courses', {
 	id: serial('id').primaryKey(),
 	title: text('title').notNull(),
 	imageSrc: text('image_src').notNull(),
+	// Какому основному курсу (course) соответствует этот предмет тренажёра
+	// — чтобы /trainer мог сам открыться на предмете активного курса
+	// юзера, без ручного выбора. Nullable — предмет тренажёра технически
+	// может существовать без привязки к courses.
+	courseId: integer('course_id').references(() => courses.id),
 });
 
 export const t_units = pgTable('t_units', {
@@ -319,6 +324,10 @@ export const t_challenges = pgTable('t_challenges', {
 	numRans: text('num_r_ans').notNull(),
 	difficulty: text('difficulty').notNull(),
 	imageSrc: text('image_src').notNull(),
+	// Этап (1-4) внутри темы урока — темы (t_lesson) друг от друга не
+	// зависят и открыты сразу, а вот внутри одной темы этапы открываются
+	// последовательно по мере тренировки именно этой темы.
+	stage: integer('stage').notNull().default(1),
 });
 
 export const t_challengeOptions = pgTable('t_challenge_options', {
@@ -339,6 +348,9 @@ export const t_lessonProgress = pgTable('t_lesson_progress', {
 	doneWrong: integer('done_wrong').notNull().default(0),
 	dateDone: timestamp('date_done').notNull().defaultNow(),
 	trainingPts: integer('training_pts').notNull().default(0),
+	// Какой этап темы тренировали в этой попытке. NULL у старых записей,
+	// сделанных до появления этапов внутри темы.
+	stage: integer('stage'),
 });
 
 // ===== CLASSES =====
@@ -479,8 +491,12 @@ export const challengeProgressRelations = relations(challengeProgress, ({ one })
 
 
 // TRAINER COURSES RELATIONS
-export const t_coursesRelations = relations(t_courses, ({ many }) => ({
+export const t_coursesRelations = relations(t_courses, ({ many, one }) => ({
 	t_units: many(t_units),
+	course: one(courses, {
+		fields: [t_courses.courseId],
+		references: [courses.id],
+	}),
 }));
 
 // TRAINER UNITS RELATIONS
