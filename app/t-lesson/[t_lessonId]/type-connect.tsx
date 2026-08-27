@@ -39,27 +39,30 @@ const ConnectItem = ({
     onSelect: (id: number, pairId: number) => void
     delayOffset?: number
 }) => {
-    const [isPressed, setIsPressed] = React.useState(false)
-
+    // Раньше "прожатое" состояние велось через локальный isPressed state
+    // в onMouseDown/onMouseUp — setState внутри native onMouseDown вызывал
+    // ре-рендер МЕЖДУ mousedown и mouseup, из-за чего браузер иногда вообще
+    // не генерировал итоговый click (см. тот же фикс и подробное объяснение
+    // в components/AnimatedOptionButton.tsx). whileTap — родной механизм
+    // framer-motion под "визуал при нажатии", не требует состояния и не
+    // мешает нативному click.
     return (
         <motion.button
             onClick={() => onSelect(option.id, option.pairId)}
-            onMouseDown={() => setIsPressed(true)}
-            onMouseUp={() => setIsPressed(false)}
-            onMouseLeave={() => setIsPressed(false)}
             disabled={isMatched}
             initial={{ opacity: 0 }}
             animate={{
                 opacity: 1,
-                y: isPressed || isSelected ? 2 : 0,
-                boxShadow: isPressed || isSelected
+                y: isSelected ? 2 : 0,
+                boxShadow: isSelected
                     ? '0 2px 0 rgba(58,70,78,1)'
                     : '0 4px 0 rgba(58,70,78,1)'
             }}
+            whileTap={isMatched ? undefined : { y: 2, boxShadow: '0 2px 0 rgba(58,70,78,1)' }}
             transition={{
                 delay: index * 0.04 + delayOffset,
-                boxShadow: { duration: 0.05 },
-                y: { duration: 0.05 }
+                boxShadow: { duration: 0.05, delay: 0 },
+                y: { duration: 0.05, delay: 0 }
             }}
             className={`
                 relative w-full h-full flex items-center justify-center text-center rounded-lg

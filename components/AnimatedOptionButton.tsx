@@ -28,8 +28,17 @@ export const AnimatedOptionButton = ({
   isWrong,
   disabled
 }: AnimatedOptionButtonProps) => {
-  const [isPressed, setIsPressed] = React.useState(false)
-  // Натуральный bounce при isCorrect используя Framer Motion
+  // Раньше "прожатое" состояние кнопки (y/boxShadow при удержании) велось
+  // через локальный isPressed state, обновляемый в onMouseDown/onMouseUp.
+  // Это ломало реальные (не синтетические) клики мыши: setState внутри
+  // native onMouseDown вызывал ре-рендер МЕЖДУ mousedown и mouseup, из-за
+  // чего браузер иногда вообще не генерировал итоговый click-event (браузер
+  // диспатчил только mousedown, событие click до React так и не долетало —
+  // подтверждено логированием событий с isTrusted:true). Пользователь ловил
+  // это как "кликаю на вариант — не выбирается, а через пару кликов на
+  // соседние вдруг выбирается". whileTap — родной механизм framer-motion
+  // именно под "визуал при нажатии", не требует состояния/обработчиков
+  // мыши и не мешает нативному click.
   const getAnimateState = () => {
     if (isCorrect) {
       return {
@@ -41,8 +50,8 @@ export const AnimatedOptionButton = ({
     return {
       opacity: 1,
       x: 0,
-      y: isPressed || isSelected ? 2 : 0,
-      boxShadow: isPressed || isSelected
+      y: isSelected ? 2 : 0,
+      boxShadow: isSelected
         ? '0 2px 0 rgba(58,70,78,1)'
         : '0 4px 0 rgba(58,70,78,1)'
     }
@@ -97,11 +106,9 @@ export const AnimatedOptionButton = ({
     <motion.button
       initial={{ opacity: 0 }}
       animate={getAnimateState()}
+      whileTap={disabled ? undefined : { y: 2, boxShadow: '0 2px 0 rgba(58,70,78,1)' }}
       transition={getTransition()}
       onClick={handleClick}
-      onMouseDown={() => setIsPressed(true)}
-      onMouseUp={() => setIsPressed(false)}
-      onMouseLeave={() => setIsPressed(false)}
       disabled={disabled}
       className={`
         relative overflow-hidden
