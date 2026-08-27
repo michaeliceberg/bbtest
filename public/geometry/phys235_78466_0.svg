@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="230" height="254" viewBox="0 0 230 254">
+<rect x="0" y="0" width="230" height="254" fill="#151F23"/>
+<line x1="55" y1="44" x2="55" y2="204" stroke="#3A464E" stroke-width="1"/>
+<line x1="95" y1="44" x2="95" y2="204" stroke="#3A464E" stroke-width="1"/>
+<line x1="135" y1="44" x2="135" y2="204" stroke="#3A464E" stroke-width="1"/>
+<line x1="55" y1="44" x2="135" y2="44" stroke="#3A464E" stroke-width="1"/>
+<line x1="55" y1="84" x2="135" y2="84" stroke="#3A464E" stroke-width="1"/>
+<line x1="55" y1="124" x2="135" y2="124" stroke="#3A464E" stroke-width="1"/>
+<line x1="55" y1="164" x2="135" y2="164" stroke="#3A464E" stroke-width="1"/>
+<line x1="55" y1="204" x2="135" y2="204" stroke="#3A464E" stroke-width="1"/>
+<line x1="55.0" y1="204.0" x2="55.0" y2="32.0" stroke="#F2F7FB" stroke-width="2" stroke-linecap="round"/>
+<polygon points="55.0,32.0 60.0,40.7 50.0,40.7" fill="#F2F7FB"/>
+<line x1="55.0" y1="204.0" x2="155.0" y2="204.0" stroke="#F2F7FB" stroke-width="2" stroke-linecap="round"/>
+<polygon points="155.0,204.0 146.3,209.0 146.3,199.0" fill="#F2F7FB"/>
+<text x="41.0" y="224.0" font-family="Georgia, serif"  font-weight="normal" font-size="17" fill="#F2F7FB" text-anchor="middle">0</text>
+<text x="39.0" y="26.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="middle">T, К</text>
+<text x="163.0" y="210.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="start">Q, кДж</text>
+<circle cx="95" cy="204" r="2" fill="#F2F7FB"/>
+<text x="95.0" y="224.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">200</text>
+<circle cx="135" cy="204" r="2" fill="#F2F7FB"/>
+<text x="135.0" y="224.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">400</text>
+<circle cx="55" cy="164" r="2" fill="#F2F7FB"/>
+<text x="43.0" y="169.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">100</text>
+<circle cx="55" cy="124" r="2" fill="#F2F7FB"/>
+<text x="43.0" y="129.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">200</text>
+<circle cx="55" cy="84" r="2" fill="#F2F7FB"/>
+<text x="43.0" y="89.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">300</text>
+<circle cx="55" cy="44" r="2" fill="#F2F7FB"/>
+<text x="43.0" y="49.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">400</text>
+<line x1="55" y1="124" x2="55" y2="124" stroke="#3A464E" stroke-width="1" stroke-dasharray="3,3"/>
+<line x1="55" y1="124" x2="55" y2="204" stroke="#3A464E" stroke-width="1" stroke-dasharray="3,3"/>
+<line x1="55" y1="44" x2="135" y2="44" stroke="#3A464E" stroke-width="1" stroke-dasharray="3,3"/>
+<line x1="135" y1="44" x2="135" y2="204" stroke="#3A464E" stroke-width="1" stroke-dasharray="3,3"/>
+<line x1="55" y1="124" x2="135" y2="44" stroke="#f0a868" stroke-width="2.2"/>
+<circle cx="55.0" cy="124.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<circle cx="135.0" cy="44.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<text x="41.0" y="114.0" font-family="Georgia, serif"  font-weight="normal" font-size="20" fill="#F2F7FB" text-anchor="middle">1</text>
+<text x="147.0" y="34.0" font-family="Georgia, serif"  font-weight="normal" font-size="20" fill="#F2F7FB" text-anchor="middle">2</text>
+</svg>
