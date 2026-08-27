@@ -7,6 +7,7 @@ import { ChallengePreview } from './challenge-preview'
 import { AddCourseModal } from './modals/add-course-modal'
 import { AddUnitModal } from './modals/add-unit-modal'
 import { AddLessonModal } from './modals/add-lesson-modal'
+import { UnitChallengePool } from './unit-challenge-pool'
 
 interface TCourse {
   id: number
@@ -41,6 +42,10 @@ export function StructureBrowser() {
   const [showAddCourse, setShowAddCourse] = useState(false)
   const [showAddUnit, setShowAddUnit] = useState(false)
   const [showAddLesson, setShowAddLesson] = useState(false)
+
+  // Меняется при создании новой задачи — форсирует remount+refetch пула
+  // (UnitChallengePool сам не знает о новых задачах, добавленных формой).
+  const [poolRefreshKey, setPoolRefreshKey] = useState(0)
 
   // Form state
   const [formData, setFormData] = useState<FormData>({
@@ -169,6 +174,7 @@ export function StructureBrowser() {
     })
     // Reload lessons to show updated challenges
     await reloadLessons()
+    setPoolRefreshKey((k) => k + 1)
   }
 
   return (
@@ -301,10 +307,19 @@ export function StructureBrowser() {
           )}
         </div>
 
-        {/* Панель 4: Форма + Preview + Список */}
-        <div className="flex-1 bg-[#161F23] border border-[#3A464E] rounded-lg p-4 overflow-y-auto flex flex-col">
-          {selectedLesson ? (
-            <div className="flex flex-col gap-4 flex-1 min-h-0">
+        {/* Панель 4: Пул задач юнита + (если выбран урок) Форма + Preview + Список */}
+        <div className="flex-1 bg-[#161F23] border border-[#3A464E] rounded-lg p-4 overflow-y-auto flex flex-col gap-4">
+          {selectedUnit ? (
+            <div>
+              <h3 className="text-white font-bold mb-3">🔀 Пул задач юнита — перенос между этапами</h3>
+              <UnitChallengePool key={`${selectedUnit}-${poolRefreshKey}`} unitId={selectedUnit} />
+            </div>
+          ) : (
+            <p className="text-[#5A6A72] text-sm">Выберите юнит, чтобы увидеть пул его задач</p>
+          )}
+
+          {selectedLesson && (
+            <div className="flex flex-col gap-4 flex-1 min-h-0 border-t border-[#3A464E] pt-4">
               {/* Заголовок */}
               <h3 className="text-white font-bold">✏️ Добавить задачу</h3>
 
@@ -336,8 +351,6 @@ export function StructureBrowser() {
                 </div>
               </div>
             </div>
-          ) : (
-            <p className="text-[#5A6A72] text-sm">Выберите урок для добавления задач</p>
           )}
         </div>
       </div>

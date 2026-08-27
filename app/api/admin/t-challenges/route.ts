@@ -1,14 +1,35 @@
 import db from "@/db/drizzle"
-import { t_challenges, t_challengeOptions } from "@/db/schema"
-import { eq } from "drizzle-orm"
+import { t_challenges, t_challengeOptions, t_lessons } from "@/db/schema"
+import { eq, inArray } from "drizzle-orm"
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
     const lessonId = searchParams.get("lessonId")
+    const unitId = searchParams.get("unitId")
+
+    if (unitId) {
+      // Пул задач ВСЕГО юнита разом (across всех его этапов-уроков) —
+      // для админки переноса задач между этапами.
+      const lessonsInUnit = await db
+        .select({ id: t_lessons.id })
+        .from(t_lessons)
+        .where(eq(t_lessons.t_unitId, Number(unitId)))
+
+      if (lessonsInUnit.length === 0) {
+        return Response.json([])
+      }
+
+      const challengesList = await db
+        .select()
+        .from(t_challenges)
+        .where(inArray(t_challenges.t_lessonId, lessonsInUnit.map((l) => l.id)))
+
+      return Response.json(challengesList)
+    }
 
     if (!lessonId) {
-      return Response.json({ error: "lessonId is required" }, { status: 400 })
+      return Response.json({ error: "lessonId or unitId is required" }, { status: 400 })
     }
 
     const challengesList = await db

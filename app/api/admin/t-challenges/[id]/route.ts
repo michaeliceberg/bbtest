@@ -44,38 +44,50 @@ export async function PUT(
   try {
     const challengeId = Number(params.id)
     const body = await req.json()
-    const { question, type, author, difficulty, points, numRans, options } = body
+    const { question, type, author, difficulty, points, numRans, options, lessonId, order } = body
 
-    // Update challenge
-    await db
-      .update(t_challenges)
-      .set({
-        question,
-        type: type as any,
-        author,
-        difficulty,
-        points,
-        numRans,
-      })
-      .where(eq(t_challenges.id, challengeId))
+    // question/type/... приходят из формы редактирования содержимого задачи;
+    // lessonId/order — из пула переноса задач между этапами (unit-challenge-pool.tsx).
+    // Оба вызова бьют в один и тот же PUT, поэтому оба набора полей опциональны —
+    // обновляем только то, что реально прислали.
+    const updateSet: Record<string, unknown> = {}
+    if (question !== undefined) updateSet.question = question
+    if (type !== undefined) updateSet.type = type
+    if (author !== undefined) updateSet.author = author
+    if (difficulty !== undefined) updateSet.difficulty = difficulty
+    if (points !== undefined) updateSet.points = points
+    if (numRans !== undefined) updateSet.numRans = numRans
+    if (lessonId !== undefined) updateSet.t_lessonId = lessonId
+    if (order !== undefined) updateSet.order = order
 
-    // Delete old options
-    await db
-      .delete(t_challengeOptions)
-      .where(eq(t_challengeOptions.t_challengeId, challengeId))
+    if (Object.keys(updateSet).length > 0) {
+      await db
+        .update(t_challenges)
+        .set(updateSet as any)
+        .where(eq(t_challenges.id, challengeId))
+    }
 
-    // Insert new options
-    if (options && options.length > 0) {
-      const optionValues = options
-        .filter((o: any) => o.text && o.text.trim())
-        .map((o: any) => ({
-          t_challengeId: challengeId,
-          text: o.text,
-          correct: o.correct || false,
-        }))
+    // options не присланы (например, при переносе задачи между этапами
+    // из пула — шлётся только lessonId/order) — не трогаем существующие
+    // варианты ответа вообще. Раньше здесь безусловно удалялись ВСЕ
+    // опции задачи при любом PUT, даже без options в теле запроса.
+    if (options !== undefined) {
+      await db
+        .delete(t_challengeOptions)
+        .where(eq(t_challengeOptions.t_challengeId, challengeId))
 
-      if (optionValues.length > 0) {
-        await db.insert(t_challengeOptions).values(optionValues)
+      if (options.length > 0) {
+        const optionValues = options
+          .filter((o: any) => o.text && o.text.trim())
+          .map((o: any) => ({
+            t_challengeId: challengeId,
+            text: o.text,
+            correct: o.correct || false,
+          }))
+
+        if (optionValues.length > 0) {
+          await db.insert(t_challengeOptions).values(optionValues)
+        }
       }
     }
 
