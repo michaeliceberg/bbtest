@@ -3,6 +3,7 @@
 import { getAllTLessonProgress, getAllUsersProgress, getTLesson, getUserProgress } from "@/db/queries"
 import { redirect } from "next/navigation"
 import { Shuffle2, ShuffleTS } from "@/usefulFunctions"
+import { pickInsertBlank } from "@/lib/formulaLetters"
 import TQuiz from "@/app/t-lesson/[t_lessonId]/TQUIZ"
 import { allTypesCT } from "@/db/schema";
 
@@ -26,6 +27,8 @@ export type QuestionType = {
     correctAnswer: string,
     timeLimit: number,
     difficulty: string,
+    // Только для INSERT — формула с пропущенной буквой (\boxed{\phantom{X}}).
+    blankedFormula?: string,
 }
 
 type Props = {
@@ -104,43 +107,77 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         return shuffled.slice(0, count);
     }
 
-    const ACStype = ['ASSIST', 'CONNECT'] as const;
+    const ACStype = ['ASSIST', 'CONNECT', 'INSERT'] as const;
     type ACStype = typeof ACStype[number];
 
     // Фильтруем только M_ASC типы
     const mAscChallenges = t_lesson.t_challenges.filter(t_ch => t_ch.type === "M_ASC");
-    
+
     const randomTypeASC: ACStype[] = Array.from(
         { length: mAscChallenges.length },
         () => ACStype[Math.floor(Math.random() * ACStype.length)]
     );
+
+    // Общий рендер ASSIST-варианта (переиспользуется и как основной тип,
+    // и как fallback для INSERT, когда в формуле нет подходящей буквы —
+    // см. lib/formulaLetters.ts).
+    const buildAssistQuestion = (t_challenge: typeof lessonChallenges[number]): QuestionType => {
+        const other5Questions = t_lesson.t_challenges.filter((el) =>
+            el.type === "M_ASC" && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
+        );
+        const fiveQuestions = getRandomElements(other5Questions, 5);
+        const fiveWrongOptions = fiveQuestions.map(el => el.t_challengeOptions[0]?.text || '');
+        const fiveWrongOptionsPlusRight = [...fiveWrongOptions, t_challenge.t_challengeOptions[0]?.text || ''];
+
+        return {
+            questionType: 'ASSIST' as const,
+            question: t_challenge.question,
+            imageSrc: t_challenge.imageSrc,
+            options: Shuffle2(fiveWrongOptionsPlusRight),
+            numRans: '1',
+            optionsQ: [],
+            optionsA: [],
+            optionsConstructRight: [],
+            difficulty: t_challenge.difficulty,
+            correctAnswer: t_challenge.t_challengeOptions[0]?.text || '',
+            timeLimit: 40,
+        };
+    };
 
     questions = lessonChallenges.map((t_challenge, index): QuestionType | undefined => {
         if (t_challenge.type === 'M_ASC') {
             const randomASCtype = ACStype[Math.floor(Math.random() * ACStype.length)];
 
             if (randomASCtype === 'ASSIST' as const) {
-                const other5Questions = t_lesson.t_challenges.filter((el, i) => 
-                    el.type === "M_ASC" && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
+                return buildAssistQuestion(t_challenge);
+            }
+            else if (randomASCtype === 'INSERT' as const) {
+                const siblingChallenges = t_lesson.t_challenges.filter((el) =>
+                    el.type === "M_ASC" && el.id !== t_challenge.id
                 );
-                const fiveQuestions = getRandomElements(other5Questions, 5);
-                const fiveWrongOptions = fiveQuestions.map(el => el.t_challengeOptions[0]?.text || '');
-                const fiveWrongOptionsPlusRight = [...fiveWrongOptions, t_challenge.t_challengeOptions[0]?.text || ''];
+                const insertBlank = pickInsertBlank(t_challenge, siblingChallenges);
+
+                // Формула без подходящей буквы или без 3 обманок в уроке —
+                // откатываемся на обычный ASSIST для этой задачи.
+                if (!insertBlank) {
+                    return buildAssistQuestion(t_challenge);
+                }
 
                 return {
-                    questionType: randomASCtype,
+                    questionType: 'INSERT' as const,
                     question: t_challenge.question,
                     imageSrc: t_challenge.imageSrc,
-                    options: Shuffle2(fiveWrongOptionsPlusRight),
+                    options: Shuffle2([insertBlank.correctLetter, ...insertBlank.distractorLetters]),
                     numRans: '1',
                     optionsQ: [],
                     optionsA: [],
                     optionsConstructRight: [],
                     difficulty: t_challenge.difficulty,
-                    correctAnswer: t_challenge.t_challengeOptions[0]?.text || '',
+                    correctAnswer: insertBlank.correctLetter,
+                    blankedFormula: insertBlank.blankedFormula,
                     timeLimit: 40,
                 };
-            } 
+            }
             else {
                 // randomASCtype === 'CONNECT'
                 const otherQuestions = t_lesson.t_challenges.filter((el, i) =>

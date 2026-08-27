@@ -11,6 +11,7 @@ import 'katex/dist/katex.min.css';
 import Image from "next/image"
 import { QuestionType } from "@/app/t-lesson/[t_lessonId]/page"
 import { TypeAssist } from "@/app/t-lesson/[t_lessonId]/type-assist"
+import { TypeInsert } from "@/app/t-lesson/[t_lessonId]/type-insert"
 import { TypeSlider } from "@/app/t-lesson/[t_lessonId]/type-slider"
 import { TypeConnect } from "@/app/t-lesson/[t_lessonId]/type-connect"
 import { TypeWorkbook } from "@/app/t-lesson/[t_lessonId]/type-workbook"
@@ -197,6 +198,15 @@ export default function TrainerQuestion({
       switch (question.questionType) {
         case "ASSIST":
           return <TypeAssist
+            question={question}
+            onAnswer={onAnswer}
+            onOptionSelected={handleAssistOptionSelected}
+            isAnswerChecked={answerState === "correct" || answerState === "incorrect"}
+            isAnswerCorrect={answerState === "correct"}
+          />
+
+        case "INSERT":
+          return <TypeInsert
             question={question}
             onAnswer={onAnswer}
             onOptionSelected={handleAssistOptionSelected}
@@ -408,18 +418,20 @@ export default function TrainerQuestion({
         <button
           onClick={() => {
             if (!isButtonDisabled) {
-              // Для ASSIST - отправить ответ при первом нажатии (answerState === "selected")
-              if (question.questionType === "ASSIST" && answerState === "selected" && selectedAssistAnswer) {
+              // ASSIST и INSERT — двухшаговый флоу: сначала выбор варианта
+              // (answerState === "selected"), потом отдельный клик "далее"/
+              // "понятно" на уже проверенный ответ, без повторной отправки.
+              const isSelectThenSubmitType = question.questionType === "ASSIST" || question.questionType === "INSERT"
+
+              if (isSelectThenSubmitType && answerState === "selected" && selectedAssistAnswer) {
                 onAnswer(selectedAssistAnswer)
                 setAnswerSubmitted(true)
               }
-              // Для ASSIST - при клике на "далее"/"понятно" (answerState === "correct" или "incorrect")
-              // просто переходим к следующему вопросу БЕЗ отправки ответа
-              else if (question.questionType === "ASSIST" && (answerState === "correct" || answerState === "incorrect")) {
+              else if (isSelectThenSubmitType && (answerState === "correct" || answerState === "incorrect")) {
                 onAnswer("next")
               }
               // Для других типов (CONNECT и т.д.)
-              else if (question.questionType !== "ASSIST") {
+              else if (!isSelectThenSubmitType) {
                 onAnswer(answerState === "correct" ? "right" : "wrong")
                 setAnswerState("pending")
               }

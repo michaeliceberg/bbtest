@@ -236,8 +236,15 @@ export default function TQuiz({
     try {
       setAnsweredQuestions(prev => prev + 1)
 
+      // ASSIST и INSERT — двухшаговый флоу (выбор варианта, потом
+      // отдельный клик "далее"/"понятно"), ответ сравнивается с
+      // correctAnswer. Остальные типы (CONNECT и т.д.) шлют "right"/"wrong"
+      // напрямую и переходят к следующему вопросу автоматически.
+      const isSelectThenSubmitType = questions[currentQuestionIndex].questionType === 'ASSIST'
+        || questions[currentQuestionIndex].questionType === 'INSERT'
+
       let answerIsRight = false
-      questions[currentQuestionIndex].questionType == 'ASSIST'
+      isSelectThenSubmitType
         ? answerIsRight = answer === questions[currentQuestionIndex].correctAnswer
         : answerIsRight = answer === "right"
 
@@ -284,8 +291,8 @@ export default function TQuiz({
 
         await sleep(400)
 
-        // Для ASSIST типа не переходим автоматически - ждем клика на кнопку "далее"
-        if (questions[currentQuestionIndex].questionType !== 'ASSIST') {
+        // Для ASSIST/INSERT не переходим автоматически - ждем клика на кнопку "далее"
+        if (!isSelectThenSubmitType) {
           await goToNextQuestion()
         }
       } else {
@@ -313,15 +320,15 @@ export default function TQuiz({
 
         await sleep(400)
 
-        // Для ASSIST типа не переходим автоматически - ждем клика на кнопку "понятно"
-        if (questions[currentQuestionIndex].questionType !== 'ASSIST') {
+        // Для ASSIST/INSERT не переходим автоматически - ждем клика на кнопку "понятно"
+        if (!isSelectThenSubmitType) {
           if (threeHearts > 1) {
             await goToNextQuestion()
           } else {
             setQuizCompleted(true)
           }
         } else {
-          // Для ASSIST - если жизней осталось 0, завершаем
+          // Для ASSIST/INSERT - если жизней осталось 0, завершаем
           if (threeHearts <= 1) {
             setQuizCompleted(true)
             await upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score, stage)
