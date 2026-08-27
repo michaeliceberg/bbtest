@@ -1,30 +1,30 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="280" height="214" viewBox="0 0 280 214">
-<rect x="0" y="0" width="280" height="214" fill="#151F23"/>
-<line x1="60" y1="44" x2="60" y2="164" stroke="#3A464E" stroke-width="1"/>
-<line x1="100" y1="44" x2="100" y2="164" stroke="#3A464E" stroke-width="1"/>
-<line x1="140" y1="44" x2="140" y2="164" stroke="#3A464E" stroke-width="1"/>
-<line x1="180" y1="44" x2="180" y2="164" stroke="#3A464E" stroke-width="1"/>
-<line x1="220" y1="44" x2="220" y2="164" stroke="#3A464E" stroke-width="1"/>
-<line x1="60" y1="44" x2="220" y2="44" stroke="#3A464E" stroke-width="1"/>
-<line x1="60" y1="84" x2="220" y2="84" stroke="#3A464E" stroke-width="1"/>
-<line x1="60" y1="124" x2="220" y2="124" stroke="#3A464E" stroke-width="1"/>
-<line x1="60" y1="164" x2="220" y2="164" stroke="#3A464E" stroke-width="1"/>
-<line x1="60.0" y1="164.0" x2="60.0" y2="32.0" stroke="#F2F7FB" stroke-width="2" stroke-linecap="round"/>
-<polygon points="60.0,32.0 65.0,40.7 55.0,40.7" fill="#F2F7FB"/>
-<line x1="60.0" y1="164.0" x2="240.0" y2="164.0" stroke="#F2F7FB" stroke-width="2" stroke-linecap="round"/>
-<polygon points="240.0,164.0 231.3,169.0 231.3,159.0" fill="#F2F7FB"/>
-<text x="46.0" y="184.0" font-family="Georgia, serif"  font-weight="normal" font-size="17" fill="#F2F7FB" text-anchor="middle">0</text>
-<text x="44.0" y="26.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="middle">p</text>
-<text x="248.0" y="170.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="start">V</text>
-<circle cx="180" cy="164" r="2" fill="#F2F7FB"/>
-<text x="180.0" y="184.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">3V₀</text>
-<circle cx="60" cy="124" r="2" fill="#F2F7FB"/>
-<text x="48.0" y="129.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">p₀</text>
-<circle cx="60" cy="84" r="2" fill="#F2F7FB"/>
-<text x="48.0" y="89.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">2p₀</text>
-<line x1="60" y1="124" x2="180" y2="84" stroke="#f0a868" stroke-width="2.2"/>
-<line x1="60.0" y1="124.0" x2="120.0" y2="104.0" stroke="#f0a868" stroke-width="2.2" stroke-linecap="round"/>
-<polygon points="120.0,104.0 115.4,109.2 113.1,102.6" fill="#f0a868"/>
-<circle cx="60.0" cy="124.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
-<circle cx="180.0" cy="84.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="315" height="223" viewBox="0 0 315 223">
+<rect x="0" y="0" width="315" height="223" fill="#151F23"/>
+<line x1="60" y1="48" x2="60" y2="168" stroke="#3A464E" stroke-width="1"/>
+<line x1="100" y1="48" x2="100" y2="168" stroke="#3A464E" stroke-width="1"/>
+<line x1="140" y1="48" x2="140" y2="168" stroke="#3A464E" stroke-width="1"/>
+<line x1="180" y1="48" x2="180" y2="168" stroke="#3A464E" stroke-width="1"/>
+<line x1="220" y1="48" x2="220" y2="168" stroke="#3A464E" stroke-width="1"/>
+<line x1="60" y1="48" x2="220" y2="48" stroke="#3A464E" stroke-width="1"/>
+<line x1="60" y1="88" x2="220" y2="88" stroke="#3A464E" stroke-width="1"/>
+<line x1="60" y1="128" x2="220" y2="128" stroke="#3A464E" stroke-width="1"/>
+<line x1="60" y1="168" x2="220" y2="168" stroke="#3A464E" stroke-width="1"/>
+<line x1="60.0" y1="168.0" x2="60.0" y2="36.0" stroke="#F2F7FB" stroke-width="2" stroke-linecap="round"/>
+<polygon points="60.0,36.0 65.0,44.7 55.0,44.7" fill="#F2F7FB"/>
+<line x1="60.0" y1="168.0" x2="240.0" y2="168.0" stroke="#F2F7FB" stroke-width="2" stroke-linecap="round"/>
+<polygon points="240.0,168.0 231.3,173.0 231.3,163.0" fill="#F2F7FB"/>
+<text x="46.0" y="188.0" font-family="Georgia, serif"  font-weight="normal" font-size="17" fill="#F2F7FB" text-anchor="middle">0</text>
+<text x="44.0" y="30.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="middle">p</text>
+<text x="248.0" y="174.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="start">V</text>
+<circle cx="180" cy="168" r="2" fill="#F2F7FB"/>
+<text x="180.0" y="188.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">3V₀</text>
+<circle cx="60" cy="128" r="2" fill="#F2F7FB"/>
+<text x="48.0" y="133.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">p₀</text>
+<circle cx="60" cy="88" r="2" fill="#F2F7FB"/>
+<text x="48.0" y="93.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">2p₀</text>
+<line x1="60" y1="128" x2="180" y2="88" stroke="#f0a868" stroke-width="2.2"/>
+<line x1="60.0" y1="128.0" x2="120.0" y2="108.0" stroke="#f0a868" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="120.0,108.0 115.4,113.2 113.1,106.6" fill="#f0a868"/>
+<circle cx="60.0" cy="128.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<circle cx="180.0" cy="88.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
 </svg>

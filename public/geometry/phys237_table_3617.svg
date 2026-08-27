@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="350" height="104" viewBox="0 0 350 104">
+<rect x="0" y="0" width="350" height="104" fill="#151F23"/>
+<rect x="4" y="10" width="342" height="86" rx="8" fill="none" stroke="#9AA7B0" stroke-width="1.5"/>
+<line x1="4" y1="52" x2="346" y2="52" stroke="#3A464E" stroke-width="1.5"/>
+<line x1="90" y1="10" x2="90" y2="96" stroke="#3A464E" stroke-width="1.5"/>
+<line x1="142" y1="10" x2="142" y2="96" stroke="#3A464E" stroke-width="1"/>
+<line x1="194" y1="10" x2="194" y2="96" stroke="#3A464E" stroke-width="1"/>
+<line x1="246" y1="10" x2="246" y2="96" stroke="#3A464E" stroke-width="1"/>
+<line x1="298" y1="10" x2="298" y2="96" stroke="#3A464E" stroke-width="1"/>
+<text x="16" y="37.0" font-family="Georgia, serif" font-style="italic" font-size="16" fill="#f0a868">Tₙ, К</text>
+<text x="16" y="79.0" font-family="Georgia, serif" font-style="italic" font-size="16" fill="#f0a868">η, %</text>
+<text x="116.0" y="37.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">400</text>
+<text x="168.0" y="37.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">500</text>
+<text x="220.0" y="37.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">600</text>
+<text x="272.0" y="37.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">800</text>
+<text x="324.0" y="37.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">1000</text>
+<text x="116.0" y="79.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">25</text>
+<text x="168.0" y="79.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">40</text>
+<text x="220.0" y="79.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">50</text>
+<text x="272.0" y="79.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">62,5</text>
+<text x="324.0" y="79.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">70</text>
+</svg>
