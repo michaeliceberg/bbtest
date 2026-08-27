@@ -180,6 +180,17 @@ export const challengeOptions = pgTable('challenge_options', {
 	audioSrc: text('audio_src'),
 });
 
+// ===== CHALLENGE SKILL TAGS =====
+// Связь many-to-many: одна задача (challenge) из course может требовать
+// несколько мини-скилов (t_lessons) из тренажёра, и один и тот же скил
+// нужен для многих разных задач — поэтому отдельная join-таблица, а не
+// поле на challenges.
+export const challengeSkillTags = pgTable('challenge_skill_tags', {
+	id: serial('id').primaryKey(),
+	challengeId: integer('challenge_id').references(() => challenges.id, { onDelete: 'cascade' }).notNull(),
+	tLessonId: integer('t_lesson_id').references(() => t_lessons.id, { onDelete: 'cascade' }).notNull(),
+});
+
 // ===== CHALLENGE PROGRESS =====
 
 export const challengeProgress = pgTable('challenge_progress', {
@@ -424,6 +435,7 @@ export const challengesRelations = relations(challenges, ({ one, many }) => ({
 	}),
 	challengeOptions: many(challengeOptions),
 	challengeProgress: many(challengeProgress),
+	skillTags: many(challengeSkillTags),
 }));
 
 // CHALLENGE OPTIONS RELATIONS
@@ -431,6 +443,18 @@ export const challengeOptionsRelations = relations(challengeOptions, ({ one }) =
 	challenge: one(challenges, {
 		fields: [challengeOptions.challengeId],
 		references: [challenges.id],
+	}),
+}));
+
+// CHALLENGE SKILL TAGS RELATIONS
+export const challengeSkillTagsRelations = relations(challengeSkillTags, ({ one }) => ({
+	challenge: one(challenges, {
+		fields: [challengeSkillTags.challengeId],
+		references: [challenges.id],
+	}),
+	t_lesson: one(t_lessons, {
+		fields: [challengeSkillTags.tLessonId],
+		references: [t_lessons.id],
 	}),
 }));
 
@@ -476,6 +500,7 @@ export const t_lessonsRelations = relations(t_lessons, ({ one, many }) => ({
 	}),
 	t_challenges: many(t_challenges),
 	t_lessonProgress: many(t_lessonProgress),
+	skillTagsOfChallenges: many(challengeSkillTags),
 }));
 
 // // TRAINER CHALLENGES RELATIONS (ВРОДЕ РАБОТАЛО)
