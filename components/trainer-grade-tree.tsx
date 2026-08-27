@@ -13,7 +13,10 @@ import Link from 'next/link';
 import { Egg, Shield, Sword, Crown, Gift } from 'lucide-react';
 
 const STAGE_ICONS = [Egg, Shield, Sword, Crown];
-const UNLOCK_THRESHOLD = 90;
+// 90%, как у последовательной разблокировки уроков в юните, для одного
+// короткого круга (3-6 вопросов) на этап оказалось слишком жёстко —
+// один неверный ответ уже не даёт пройти дальше. Порог ниже.
+const UNLOCK_THRESHOLD = 50;
 
 export type SkillStage = {
     stage: number;
