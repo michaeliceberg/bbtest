@@ -1,6 +1,6 @@
 // app/lesson/question-bubble.tsx
 
-import Lottie from "lottie-react";
+import dynamic from "next/dynamic";
 import Latex from 'react-latex-next';
 import { Skull, Home, User, Coins, CheckCircle, XCircle, ZoomIn, GraduationCap } from 'lucide-react';
 import { differenceInHours, isPast } from 'date-fns';
@@ -8,6 +8,8 @@ import { motion } from "framer-motion";
 import { NoRightAnswer } from "@/components/hover-card";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+
+const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 import { PALETTE_RED } from "@/src/constants/lessonButtonColors";
 import { findQuestionTarget } from "@/lib/highlight-question-target";
 
