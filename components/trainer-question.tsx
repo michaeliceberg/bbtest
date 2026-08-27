@@ -12,6 +12,7 @@ import Image from "next/image"
 import { QuestionType } from "@/app/t-lesson/[t_lessonId]/page"
 import { TypeAssist } from "@/app/t-lesson/[t_lessonId]/type-assist"
 import { TypeInsert } from "@/app/t-lesson/[t_lessonId]/type-insert"
+import { TypeMemory } from "@/app/t-lesson/[t_lessonId]/type-memory"
 import { TypeSlider } from "@/app/t-lesson/[t_lessonId]/type-slider"
 import { TypeConnect } from "@/app/t-lesson/[t_lessonId]/type-connect"
 import { TypeWorkbook } from "@/app/t-lesson/[t_lessonId]/type-workbook"
@@ -220,6 +221,9 @@ export default function TrainerQuestion({
 
         case "CONNECT":
           return <TypeConnect question={question} onAnswer={onAnswer} onAllPairsMatched={handleAllPairsMatched} />
+
+        case "MEMORY":
+          return <TypeMemory question={question} onAnswer={onAnswer} onAllPairsMatched={handleAllPairsMatched} />
 
         case "WORKBOOK":
           return <TypeWorkbook question={question.question} options={question.options} />
