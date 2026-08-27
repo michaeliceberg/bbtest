@@ -182,13 +182,17 @@ export const challengeOptions = pgTable('challenge_options', {
 
 // ===== CHALLENGE SKILL TAGS =====
 // Связь many-to-many: одна задача (challenge) из course может требовать
-// несколько мини-скилов (t_lessons) из тренажёра, и один и тот же скил
-// нужен для многих разных задач — поэтому отдельная join-таблица, а не
-// поле на challenges.
+// несколько мини-скилов (t_units — темы тренажёра) из тренажёра, и один
+// и тот же скил нужен для многих разных задач — поэтому отдельная
+// join-таблица, а не поле на challenges.
+// Указывает на t_unit (тему), а НЕ на t_lesson (этап внутри темы) — с
+// переходом на модель "юнит = тема, урок = этап" у одной темы всегда
+// 4 этапа, и привязка задачи course к какому-то ОДНОМУ конкретному этапу
+// была бы произвольной; вся тема целиком — осмысленная гранулярность.
 export const challengeSkillTags = pgTable('challenge_skill_tags', {
 	id: serial('id').primaryKey(),
 	challengeId: integer('challenge_id').references(() => challenges.id, { onDelete: 'cascade' }).notNull(),
-	tLessonId: integer('t_lesson_id').references(() => t_lessons.id, { onDelete: 'cascade' }).notNull(),
+	tUnitId: integer('t_unit_id').references(() => t_units.id, { onDelete: 'cascade' }).notNull(),
 });
 
 // ===== CHALLENGE PROGRESS =====
@@ -295,6 +299,13 @@ export const t_courses = pgTable('t_courses', {
 	// юзера, без ручного выбора. Nullable — предмет тренажёра технически
 	// может существовать без привязки к courses.
 	courseId: integer('course_id').references(() => courses.id),
+	// Класс (9/10/11) — живёт НА УРОВНЕ t_course, а не как t_unit внутри
+	// одного трейнера: класс определяет, какие courses/trainers целиком
+	// входят в подписку ("Физика-9" и "Физика-10" — разные t_courses,
+	// а не один t_course с переключателем класса внутри). t_unit внутри
+	// одного t_course — это ТОЛЬКО тема (Динамика/Кинематика/...), без
+	// класса. Nullable — не все t_courses обязательно классово-привязаны.
+	grade: integer('grade'),
 });
 
 export const t_units = pgTable('t_units', {
@@ -464,9 +475,9 @@ export const challengeSkillTagsRelations = relations(challengeSkillTags, ({ one 
 		fields: [challengeSkillTags.challengeId],
 		references: [challenges.id],
 	}),
-	t_lesson: one(t_lessons, {
-		fields: [challengeSkillTags.tLessonId],
-		references: [t_lessons.id],
+	t_unit: one(t_units, {
+		fields: [challengeSkillTags.tUnitId],
+		references: [t_units.id],
 	}),
 }));
 
@@ -506,6 +517,7 @@ export const t_unitsRelations = relations(t_units, ({ many, one }) => ({
 		references: [t_courses.id],
 	}),
 	t_lessons: many(t_lessons),
+	skillTagsOfChallenges: many(challengeSkillTags),
 }));
 
 // TRAINER LESSONS RELATIONS
@@ -516,7 +528,6 @@ export const t_lessonsRelations = relations(t_lessons, ({ one, many }) => ({
 	}),
 	t_challenges: many(t_challenges),
 	t_lessonProgress: many(t_lessonProgress),
-	skillTagsOfChallenges: many(challengeSkillTags),
 }));
 
 // // TRAINER CHALLENGES RELATIONS (ВРОДЕ РАБОТАЛО)

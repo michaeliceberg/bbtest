@@ -1,9 +1,11 @@
 // scripts/tagLessonSkills.ts
 //
 // Массовое тегирование: помечает ВСЕ задачи одного урока course (lessons)
-// одним или несколькими тэгами-скилами тренажёра (t_lessons) разом, а не
-// по одной задаче вручную. Пропускает пары challenge/t_lesson, которые уже
-// протегированы (безопасно перезапускать).
+// одним или несколькими тэгами-скилами тренажёра (t_units — темами) разом,
+// а не по одной задаче вручную. Тэг ведёт на ТЕМУ целиком (не на конкретный
+// этап внутри неё — с моделью "юнит = тема, урок = этап" привязка задачи
+// course к одному произвольному этапу не имела бы смысла). Пропускает пары
+// challenge/t_unit, которые уже протегированы (безопасно перезапускать).
 //
 // Отредактируйте MAPPING ниже и запустите: npx tsx scripts/tagLessonSkills.ts
 
@@ -12,12 +14,12 @@ import db from '../db/drizzle';
 import { challenges, challengeSkillTags } from '../db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 
-const MAPPING: { courseLessonId: number; tLessonIds: number[] }[] = [
-	{ courseLessonId: 345, tLessonIds: [2103] }, // Unit 8 lesson 1 "Первое начало термодинамики" → Газ и нагрев
+const MAPPING: { courseLessonId: number; tUnitIds: number[] }[] = [
+	{ courseLessonId: 345, tUnitIds: [6] }, // Unit 8 lesson 1 "Первое начало термодинамики" → тема "Газ и нагрев"
 ];
 
 async function main() {
-	for (const { courseLessonId, tLessonIds } of MAPPING) {
+	for (const { courseLessonId, tUnitIds } of MAPPING) {
 		const lessonChallenges = await db.query.challenges.findMany({
 			where: eq(challenges.lessonId, courseLessonId),
 		});
@@ -27,25 +29,25 @@ async function main() {
 			continue;
 		}
 
-		for (const tLessonId of tLessonIds) {
+		for (const tUnitId of tUnitIds) {
 			const existing = await db.query.challengeSkillTags.findMany({
 				where: and(
 					inArray(challengeSkillTags.challengeId, lessonChallenges.map((c) => c.id)),
-					eq(challengeSkillTags.tLessonId, tLessonId),
+					eq(challengeSkillTags.tUnitId, tUnitId),
 				),
 			});
 			const alreadyTaggedIds = new Set(existing.map((e) => e.challengeId));
 			const toInsert = lessonChallenges
 				.filter((c) => !alreadyTaggedIds.has(c.id))
-				.map((c) => ({ challengeId: c.id, tLessonId }));
+				.map((c) => ({ challengeId: c.id, tUnitId }));
 
 			if (toInsert.length === 0) {
-				console.log(`✅ Урок ${courseLessonId} → t_lesson ${tLessonId}: уже всё протегировано (${lessonChallenges.length} задач)`);
+				console.log(`✅ Урок ${courseLessonId} → t_unit ${tUnitId}: уже всё протегировано (${lessonChallenges.length} задач)`);
 				continue;
 			}
 
 			await db.insert(challengeSkillTags).values(toInsert);
-			console.log(`✅ Урок ${courseLessonId} → t_lesson ${tLessonId}: добавлено ${toInsert.length} тэгов (было уже ${alreadyTaggedIds.size}, всего задач ${lessonChallenges.length})`);
+			console.log(`✅ Урок ${courseLessonId} → t_unit ${tUnitId}: добавлено ${toInsert.length} тэгов (было уже ${alreadyTaggedIds.size}, всего задач ${lessonChallenges.length})`);
 		}
 	}
 

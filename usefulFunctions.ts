@@ -102,21 +102,19 @@ export const GetTLessonStat = (
 
 }
 
-// То же самое, что GetTLessonStat, но по одному конкретному этапу внутри
-// темы — попытки без stage (NULL, сделаны до появления этапов) в подсчёт
-// конкретного этапа не попадают.
-export const GetTLessonStageStat = (
+// То же самое, что GetTLessonStat, но агрегирует сразу НЕСКОЛЬКО уроков
+// (этапов) одной темы (t_unit) в один процент — для бейджа скила на
+// карточке задачи course, где градуировка "какой конкретно этап" не
+// имеет смысла, важен прогресс по теме целиком.
+export const GetTUnitStat = (
     t_lP: typeof t_lessonProgress.$inferSelect[],
-    t_lessonId: number,
-    stage: number,
+    t_lessonIds: number[],
 ) => {
 
-    const thisStageProgress = t_lP.filter(
-        lessonProgress => lessonProgress.t_lessonId == t_lessonId && lessonProgress.stage == stage
-    )
+    const thisUnitProgress = t_lP.filter(lessonProgress => t_lessonIds.includes(lessonProgress.t_lessonId))
 
-    const totalDR = thisStageProgress.reduce((total, elem) => total + elem.doneRight, 0)
-    const totalDW = thisStageProgress.reduce((total, elem) => total + elem.doneWrong, 0)
+    const totalDR = thisUnitProgress.reduce((total, elem) => total + elem.doneRight, 0)
+    const totalDW = thisUnitProgress.reduce((total, elem) => total + elem.doneWrong, 0)
 
     let totalPercentDR = 0
     const totalD = totalDR + totalDW

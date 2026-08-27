@@ -1,14 +1,17 @@
 // components/trainer-grade-tree.tsx
 //
-// Карта скиллов тренажёра: переключатель класса сверху (только один
-// класс на экране, чтобы не путать 9/11 классы одновременно), темы
-// внутри класса — вертикальный список карточек, все сразу доступны
-// (темы друг от друга не зависят). Внутри темы — этапы (1-4),
-// открывающиеся последовательно по мере тренировки именно этой темы.
+// Карта скиллов тренажёра: темы (t_unit) — вертикальный список карточек,
+// все сразу доступны (темы друг от друга не зависят). Внутри темы —
+// этапы (t_lesson, обычно 4), открывающиеся последовательно по мере
+// тренировки именно этой темы.
+//
+// Раньше здесь ещё был переключатель класса (9/10/11) поверх тем — с
+// переходом на модель "класс = отдельный t_course, а не t_unit внутри
+// одного трейнера" переключатель класса больше не нужен НА ЭТОМ уровне:
+// выбор класса происходит выше, на уровне выбора самого t_course.
 
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { Egg, Shield, Sword, Crown, Gift } from 'lucide-react';
 
@@ -19,7 +22,7 @@ const STAGE_ICONS = [Egg, Shield, Sword, Crown];
 const UNLOCK_THRESHOLD = 50;
 
 export type SkillStage = {
-    stage: number;
+    id: number;
     percentage: number;
 };
 
@@ -30,44 +33,15 @@ export type SkillTopic = {
     stages: SkillStage[];
 };
 
-export type SkillGrade = {
-    id: number;
-    title: string;
-    topics: SkillTopic[];
-};
-
 interface Props {
-    grades: SkillGrade[];
+    topics: SkillTopic[];
 }
 
-export const TrainerGradeTree = ({ grades }: Props) => {
-    const [activeGrade, setActiveGrade] = useState(0);
-    const grade = grades[activeGrade];
-
-    if (!grade) return null;
-
+export const TrainerGradeTree = ({ topics }: Props) => {
     return (
         <div className="w-full max-w-xl mx-auto">
-            {grades.length > 1 && (
-                <div className="flex gap-1.5 mb-5">
-                    {grades.map((g, i) => (
-                        <button
-                            key={g.id}
-                            onClick={() => setActiveGrade(i)}
-                            className="flex-1 py-2 rounded-lg text-sm font-semibold transition-colors"
-                            style={{
-                                backgroundColor: i === activeGrade ? '#78C93C' : '#1A252B',
-                                color: i === activeGrade ? '#16240C' : '#9AA7B0',
-                            }}
-                        >
-                            {g.title}
-                        </button>
-                    ))}
-                </div>
-            )}
-
             <div className="flex flex-col gap-2.5">
-                {grade.topics.map((topic) => (
+                {topics.map((topic) => (
                     <div key={topic.id} className="bg-[#1A252B] rounded-2xl px-4 py-3">
                         <div className="flex items-center justify-between mb-2.5">
                             <span className="text-sm font-medium text-[#F2F7FB]">{topic.title}</span>
@@ -83,10 +57,10 @@ export const TrainerGradeTree = ({ grades }: Props) => {
                                     const Icon = STAGE_ICONS[idx % STAGE_ICONS.length];
 
                                     return (
-                                        <div key={s.stage} className="flex items-center flex-1 last:flex-initial">
+                                        <div key={s.id} className="flex items-center flex-1 last:flex-initial">
                                             {unlocked ? (
                                                 <Link
-                                                    href={`/t-lesson/${topic.id}?stage=${s.stage}`}
+                                                    href={`/t-lesson/${s.id}`}
                                                     className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                     style={{
                                                         backgroundColor: done ? '#5FA12F' : '#232F35',

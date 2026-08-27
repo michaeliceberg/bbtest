@@ -5,7 +5,7 @@ import { redirect } from "next/navigation"
 import { Quiz } from "../quiz"
 import { auth } from "@/lib/auth"
 import { getUnitButtonColor } from "@/src/constants/lessonButtonColors"
-import { GetTLessonStat } from "@/usefulFunctions"
+import { GetTUnitStat } from "@/usefulFunctions"
 
 type Props = {
     params: {
@@ -67,16 +67,21 @@ const LessonIdPage = async ({ params }: Props) => {
     const unitColor = getUnitButtonColor(unitIndex)
 
     // Бейджи скилов тренажёра на карточке задачи: у задачи может быть
-    // несколько тэгов (t_lessons), процент — прогресс текущего юзера по
-    // соответствующему уроку тренажёра (0%, если ещё не начинал).
+    // несколько тэгов (t_units — тем тренажёра), процент — прогресс
+    // текущего юзера по ВСЕМ этапам этой темы разом (0%, если ещё не
+    // начинал). Ссылка ведёт на первый (самый простой) этап темы.
     const tLessonProgress = await getTLessonProgress()
     const challengesWithSkillTags = lesson.challenges.map((challenge) => ({
         ...challenge,
-        skillTags: challenge.skillTags.map((tag) => ({
-            id: tag.t_lesson.id,
-            title: tag.t_lesson.title,
-            percentage: Math.round(GetTLessonStat(tLessonProgress, tag.t_lesson.id).totalPercentDR * 100),
-        })),
+        skillTags: challenge.skillTags.map((tag) => {
+            const stageLessonIds = tag.t_unit.t_lessons.map((l) => l.id)
+            const firstStageLessonId = tag.t_unit.t_lessons[0]?.id ?? tag.t_unit.id
+            return {
+                id: firstStageLessonId,
+                title: tag.t_unit.title,
+                percentage: Math.round(GetTUnitStat(tLessonProgress, stageLessonIds).totalPercentDR * 100),
+            }
+        }),
     }))
 
     console.log('📖 Открыт урок ID:', lessonId)

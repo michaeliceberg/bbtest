@@ -592,7 +592,13 @@ export const getLesson = cache(async (lessonId: number) => {
                     },
                     skillTags: {
                         with: {
-                            t_lesson: true,
+                            t_unit: {
+                                with: {
+                                    t_lessons: {
+                                        orderBy: (t_lessons, { asc }) => [asc(t_lessons.order)],
+                                    },
+                                },
+                            },
                         },
                     },
                 },
