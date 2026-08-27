@@ -1,8 +1,10 @@
 "use client"
 
 import { motion, AnimatePresence } from "framer-motion"
-import Lottie from "lottie-react"
+import dynamic from "next/dynamic"
 import { useEffect, useState, useRef } from "react"
+
+const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
 
 // Реплики маскота теперь не пропадают "в пустоту" по таймеру — они
 // висят на экране, пока не придёт следующая (при смене эмоции), и тогда

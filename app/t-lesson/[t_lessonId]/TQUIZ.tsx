@@ -82,6 +82,13 @@ export default function TQuiz({
   const hasUpdatedQuestRef = useRef(false)
   // Ref для отслеживания текущего isRightList (избегаем closure issues)
   const isRightListRef = useRef<number[]>([])
+  // Ref-дубликат score: goToNextQuestion вызывается из handleAnswer сразу
+  // после setScore(prev => prev+1) в той же самой async-функции (после
+  // await sleep) — замыкание goToNextQuestion в этот момент ещё держит
+  // старое значение score (React не подменяет его посреди уже запущенного
+  // вызова). Ref обновляется синхронно вместе с setScore, поэтому всегда
+  // актуален на момент чтения.
+  const scoreRef = useRef(0)
 
   // Для тестирования Rive сундука - только 1 вопрос
   const [allQuestions, setAllQuestions] = useState(questions1.slice(0, 1))
@@ -164,6 +171,7 @@ export default function TQuiz({
     setQuizStarted(true)
     setCurrentQuestionIndex(0)
     setScore(0)
+    scoreRef.current = 0
     setQuizCompleted(false)
     setShowChestReward(false)
     setAnsweredQuestions(0)
@@ -190,11 +198,12 @@ export default function TQuiz({
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1)
     } else {
-      console.log('🏁 Квиз завершён! score:', score, 'questions.length:', questions.length)
-      const doneRightPercent = Math.round(score / questions.length * 100)
+      const finalScore = scoreRef.current
+      console.log('🏁 Квиз завершён! score:', finalScore, 'questions.length:', questions.length)
+      const doneRightPercent = Math.round(finalScore / questions.length * 100)
 
       // Если идеальный результат (все вопросы правильные), показываем сундук ПЕРЕД финальным экраном
-      if (score === questions.length) {
+      if (finalScore === questions.length) {
         console.log('✅ Показываем сундук!')
         setShowChestReward(true)
         // НЕ устанавливаем quizCompleted сразу - сначала показываем сундук
@@ -204,11 +213,11 @@ export default function TQuiz({
         setQuizCompleted(true)
       }
 
-      await upsertTrainerLessonProgress(t_lessonId, doneRightPercent, 200, score, questions.length - score)
+      await upsertTrainerLessonProgress(t_lessonId, doneRightPercent, 200, finalScore, questions.length - finalScore)
         .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
       await updateQuestProgress()
     }
-  }, [currentQuestionIndex, questions.length, score, t_lessonId, updateQuestProgress])
+  }, [currentQuestionIndex, questions.length, t_lessonId, updateQuestProgress])
 
   const handleAnswer = useCallback(async (answer: string) => {
     // Для ASSIST: если это "next", просто переходим к следующему вопросу
@@ -262,6 +271,7 @@ export default function TQuiz({
         }])
 
         setScore(prev => prev + 1)
+        scoreRef.current += 1
 
         let newArr = [...(isRightListRef.current || isRightList)]
         newArr[currentQuestionIndex] = 1
