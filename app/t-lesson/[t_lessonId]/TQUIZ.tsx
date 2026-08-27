@@ -42,6 +42,7 @@ type Props = {
   questions1: QuestionType[],
   userName: string,
   stage?: number | null,
+  isBossStage?: boolean,
 }
 
 export default function TQuiz({
@@ -50,6 +51,7 @@ export default function TQuiz({
   questions1,
   userName,
   stage,
+  isBossStage,
 }: Props) {
 
   const router = useRouter()
@@ -499,6 +501,8 @@ export default function TQuiz({
             playCorrectSound={playCorrectSound}
             setThreeHearts={setThreeHearts}
             threeHearts={threeHearts}
+            score={score}
+            isBossStage={isBossStage}
           />
           <div className="mt-8">
             <AnimatedHearts hearts={threeHearts} />

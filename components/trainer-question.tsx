@@ -33,6 +33,7 @@ import {triangleGdeProtivKatet, triangleBissektr, triangleGdeKatet, triangleGdeS
 import { motion } from "framer-motion"
 import { X, Check, Flag } from "lucide-react"
 import { TrainerMascot } from "./TrainerMascot"
+import { TrainerBossBar } from "./trainer-boss-bar"
 
 
 
@@ -52,6 +53,11 @@ interface QuestionProps {
 
   setThreeHearts: Dispatch<SetStateAction<number>>
   threeHearts: number,
+
+  // HP-босс на финальном ("корона") этапе темы — чисто визуальный слой,
+  // не заменяет сердечки игрока (threeHearts) выше.
+  score?: number,
+  isBossStage?: boolean,
 }
 
 export default function TrainerQuestion({
@@ -66,6 +72,9 @@ export default function TrainerQuestion({
 
   setThreeHearts,
   threeHearts,
+
+  score = 0,
+  isBossStage = false,
 
 }: QuestionProps) {
 
@@ -352,6 +361,13 @@ export default function TrainerQuestion({
           />
         </div>
       </div>
+
+      {isBossStage && (
+        <TrainerBossBar
+          hp={100 - (score / questions.length) * 100}
+          hit={isRightPrevious === true}
+        />
+      )}
 
       {/* Основной контент (скролируемый) с анимацией слайда.
           БЕЗ AnimatePresence: exit-анимация здесь иногда никогда не

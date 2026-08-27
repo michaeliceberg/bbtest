@@ -60,7 +60,7 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                         <div key={s.id} className="flex items-center flex-1 last:flex-initial">
                                             {unlocked ? (
                                                 <Link
-                                                    href={`/t-lesson/${s.id}`}
+                                                    href={`/t-lesson/${s.id}${isLast ? '?boss=1' : ''}`}
                                                     className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                     style={{
                                                         backgroundColor: done ? '#5FA12F' : '#232F35',

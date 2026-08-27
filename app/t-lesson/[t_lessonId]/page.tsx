@@ -39,6 +39,7 @@ type Props = {
     }
     searchParams: {
         stage?: string
+        boss?: string
     }
 }
 
@@ -53,6 +54,11 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // выбора темы. Без параметра (старые ссылки, математический тренажёр
     // без этапов) — берём ВСЕ задачи темы, как было раньше.
     const stageParam = searchParams?.stage ? parseInt(searchParams.stage) : null;
+    // Финальный ("корона") этап темы — приходит явно через ?boss=1 со
+    // страницы карты скиллов (trainer-grade-tree.tsx уже точно знает,
+    // какой этап последний). Чисто визуальный флаг, HP-босс не заменяет
+    // существующие 3 сердечка игрока.
+    const isBossStage = searchParams?.boss === '1';
 
     const [
         t_lesson,
@@ -394,6 +400,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             questions1={questions}
             userName={userProgress.userName}
             stage={stageParam}
+            isBossStage={isBossStage}
         />
     );
 }
