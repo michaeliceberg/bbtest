@@ -25,6 +25,7 @@ import { TypeAssistTRIANGLEformGip } from "@/app/t-lesson/[t_lessonId]/type-assi
 import { TypeAssistTRIANGLETable } from "@/app/t-lesson/[t_lessonId]/type-assist-triangle-table";
 import { TypeRussianDictant } from "@/app/t-lesson/[t_lessonId]/type-russian-dictant";
 import { TypeSwipe } from "@/app/t-lesson/[t_lessonId]/type-swipe";
+import { TypeSwipeV2 } from "@/app/t-lesson/[t_lessonId]/type-swipe-v2";
 
 import {triangleGdeProtivKatet, triangleBissektr, triangleGdeKatet, triangleGdeSinCosTg } from "@/constants"
 
@@ -227,7 +228,7 @@ export default function TrainerQuestion({
           return <TypeRussianDictant question={question} onAnswer={onAnswer} />
 
         case "SWIPE":
-          return <TypeSwipe question={question} onAnswer={onAnswer} />
+          return <TypeSwipeV2 question={question} onAnswer={onAnswer} />
 
         case "GEOSIN":
           return renderGeosinContent()

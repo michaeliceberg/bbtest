@@ -107,7 +107,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         return shuffled.slice(0, count);
     }
 
-    const ACStype = ['ASSIST', 'CONNECT', 'INSERT'] as const;
+    const ACStype = ['ASSIST', 'CONNECT', 'INSERT', 'SWIPE'] as const;
     type ACStype = typeof ACStype[number];
 
     // Фильтруем только M_ASC типы
@@ -176,6 +176,35 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                     correctAnswer: insertBlank.correctLetter,
                     blankedFormula: insertBlank.blankedFormula,
                     timeLimit: 40,
+                };
+            }
+            else if (randomASCtype === 'SWIPE' as const) {
+                const otherQuestionsForSwipe = t_lesson.t_challenges.filter((el) =>
+                    el.type === "M_ASC" && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
+                );
+                const oneWrongQuestion = getRandomElements(otherQuestionsForSwipe, 1);
+
+                // Нет с чем сравнить (единственная M_ASC-задача урока) —
+                // откатываемся на ASSIST.
+                if (oneWrongQuestion.length === 0) {
+                    return buildAssistQuestion(t_challenge);
+                }
+
+                return {
+                    questionType: 'SWIPE' as const,
+                    question: t_challenge.question,
+                    imageSrc: t_challenge.imageSrc,
+                    options: Shuffle2([
+                        t_challenge.t_challengeOptions[0]?.text || '',
+                        oneWrongQuestion[0].t_challengeOptions[0]?.text || '',
+                    ]),
+                    numRans: '1',
+                    optionsQ: [],
+                    optionsA: [],
+                    optionsConstructRight: [],
+                    difficulty: t_challenge.difficulty,
+                    correctAnswer: t_challenge.t_challengeOptions[0]?.text || '',
+                    timeLimit: 30,
                 };
             }
             else {
