@@ -1,10 +1,11 @@
 // app/lesson/[lessonId]/page.tsx
 
-import { getLesson, getUserProgress, getChallengeProgress, getTodayStats, getUserHomework } from "@/db/queries"
+import { getLesson, getUserProgress, getChallengeProgress, getTodayStats, getUserHomework, getTLessonProgress } from "@/db/queries"
 import { redirect } from "next/navigation"
 import { Quiz } from "../quiz"
 import { auth } from "@/lib/auth"
 import { getUnitButtonColor } from "@/src/constants/lessonButtonColors"
+import { GetTLessonStat } from "@/usefulFunctions"
 
 type Props = {
     params: {
@@ -65,13 +66,26 @@ const LessonIdPage = async ({ params }: Props) => {
     const unitIndex = lesson.unit ? lesson.unit.order - 1 : 0
     const unitColor = getUnitButtonColor(unitIndex)
 
+    // Бейджи скилов тренажёра на карточке задачи: у задачи может быть
+    // несколько тэгов (t_lessons), процент — прогресс текущего юзера по
+    // соответствующему уроку тренажёра (0%, если ещё не начинал).
+    const tLessonProgress = await getTLessonProgress()
+    const challengesWithSkillTags = lesson.challenges.map((challenge) => ({
+        ...challenge,
+        skillTags: challenge.skillTags.map((tag) => ({
+            id: tag.t_lesson.id,
+            title: tag.t_lesson.title,
+            percentage: Math.round(GetTLessonStat(tLessonProgress, tag.t_lesson.id).totalPercentDR * 100),
+        })),
+    }))
+
     console.log('📖 Открыт урок ID:', lessonId)
     console.log('📊 hwChallengeIds:', hwChallengeIds)
 
     return (
-        <Quiz 
+        <Quiz
             initialLessonId={lesson.id}
-            initialLessonChallenges={lesson.challenges}
+            initialLessonChallenges={challengesWithSkillTags}
             initialHearts={initialHearts}
             initialPercentage={initialPercentage}
             userSubscription={null}

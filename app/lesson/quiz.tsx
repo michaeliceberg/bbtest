@@ -37,6 +37,7 @@ type Props = {
     initialLessonChallenges: (typeof challenges.$inferSelect & {
         completed: boolean
         challengeOptions: typeof challengeOptions.$inferSelect[]
+        skillTags: { id: number; title: string; percentage: number }[]
     })[]
     userSubscription: any
     challengeProgress: typeof challengeProgress.$inferSelect[] 
@@ -640,6 +641,7 @@ export const Quiz = ({
                                     challengeId={challenge.id}
                                     isMultiSelect={isMultiSelect}
                                     options={options}
+                                    skillTags={challenge.skillTags}
                                 />
                             )}
 

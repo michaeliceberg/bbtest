@@ -590,6 +590,11 @@ export const getLesson = cache(async (lessonId: number) => {
                     challengeProgress: {
                         where: eq(challengeProgress.userId, userId)
                     },
+                    skillTags: {
+                        with: {
+                            t_lesson: true,
+                        },
+                    },
                 },
             },
         },

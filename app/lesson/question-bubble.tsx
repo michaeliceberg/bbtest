@@ -2,11 +2,12 @@
 
 import Lottie from "lottie-react";
 import Latex from 'react-latex-next';
-import { Skull, Home, User, Coins, CheckCircle, XCircle, ZoomIn } from 'lucide-react';
+import { Skull, Home, User, Coins, CheckCircle, XCircle, ZoomIn, GraduationCap } from 'lucide-react';
 import { differenceInHours, isPast } from 'date-fns';
 import { motion } from "framer-motion";
 import { NoRightAnswer } from "@/components/hover-card";
 import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import { PALETTE_RED } from "@/src/constants/lessonButtonColors";
 import { findQuestionTarget } from "@/lib/highlight-question-target";
 
@@ -59,6 +60,7 @@ type Props = {
     imageSrc?: string;
     isMultiSelect?: boolean;
     options?: { id: number; text: string }[];
+    skillTags?: { id: number; title: string; percentage: number }[];
 }
 
 export const QuestionBubble = ({
@@ -77,6 +79,7 @@ export const QuestionBubble = ({
     challengeId,
     isMultiSelect,
     options,
+    skillTags,
 }: Props) => {
     const correctAttempts = timesDone - timesDoneWrong;
 
@@ -233,6 +236,23 @@ export const QuestionBubble = ({
                         <span className="text-xs font-medium">{badge.text}</span>
                     </div>
                 )}
+
+                {skillTags && skillTags.length > 0 && skillTags.map((tag) => {
+                    const isLocked = tag.percentage === 0;
+                    const color = isLocked ? '#7A8A93' : unitColor.button;
+                    return (
+                        <Link
+                            key={tag.id}
+                            href={`/t-lesson/${tag.id}`}
+                            title={`Скилл тренажёра: ${tag.title}`}
+                            className="flex items-center gap-1 px-2 py-0.5 rounded-full transition-opacity hover:opacity-80"
+                            style={{ backgroundColor: isLocked ? 'rgba(122,138,147,0.14)' : `${unitColor.button}1F`, color }}
+                        >
+                            <GraduationCap className="w-3.5 h-3.5" />
+                            <span className="text-xs font-medium">{tag.percentage}%</span>
+                        </Link>
+                    );
+                })}
 
                 <div className="scale-90">
                     <NoRightAnswer challengeId={challengeId} />
