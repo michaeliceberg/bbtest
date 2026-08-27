@@ -27,11 +27,16 @@ export const TypeAssist = ({
   const [localSelected, setLocalSelected] = useState<string | null>(null)
   const [showResult, setShowResult] = useState(false)
 
-  // Когда ответ проверен, показываем результат
+  // Синхронизируем showResult с isAnswerChecked в обе стороны. Раньше
+  // эффект только ВКЛЮЧАЛ showResult и никогда не выключал — если новый
+  // вопрос (свежий TypeAssist после key-ремаунта) монтировался в рендере,
+  // где родительский answerState ещё не успел сброситься с "correct"
+  // прошлого вопроса на "pending" (дочерние эффекты выполняются раньше
+  // родительских), showResult стартовал сразу в true и оставался
+  // залипшим навсегда — все варианты ответа рендерились disabled, клики
+  // по ним молча игнорировались.
   React.useEffect(() => {
-    if (isAnswerChecked) {
-      setShowResult(true)
-    }
+    setShowResult(isAnswerChecked)
   }, [isAnswerChecked])
 
   const handleOptionClick = (option: string) => {

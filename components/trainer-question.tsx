@@ -27,7 +27,7 @@ import { TypeSwipe } from "@/app/t-lesson/[t_lessonId]/type-swipe";
 
 import {triangleGdeProtivKatet, triangleBissektr, triangleGdeKatet, triangleGdeSinCosTg } from "@/constants"
 
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import { X, Check, Flag } from "lucide-react"
 import { TrainerMascot } from "./TrainerMascot"
 
@@ -338,14 +338,26 @@ export default function TrainerQuestion({
         </div>
       </div>
 
-      {/* Основной контент (скролируемый) с анимацией слайда */}
-      <AnimatePresence mode="wait">
+      {/* Основной контент (скролируемый) с анимацией слайда.
+          БЕЗ AnimatePresence: exit-анимация здесь иногда никогда не
+          завершается (framer-motion не вызывает колбэк завершения) —
+          старый вопрос навсегда остаётся в DOM (подтверждено: после
+          нескольких вопросов на экране одновременно по 2+ заголовка).
+          С mode="wait" это ещё хуже: новый вопрос вообще не появляется,
+          пока не завершится exit старого — React-состояние
+          (currentQuestionIndex) корректно продвигается дальше, форма
+          ответа сбрасывается в pending, а на экране навсегда виснет
+          старый вопрос. Из-за этого ответ пользователя проверяется
+          против ДРУГОГО вопроса, чем тот, что он видит — воспроизведено
+          и подтверждено консоль-логами (React-состояние обгоняет DOM).
+          Обычный key-ремаунт (без AnimatePresence/exit) гарантированно
+          и синхронно убирает старый DOM-узел через React, не полагаясь
+          на завершение чужой анимации — остаётся только анимация входа. */}
         <motion.div
           className="flex-1 overflow-y-auto px-4 pb-6"
           key={questions.indexOf(question)}
           initial={{ opacity: 0, x: 100 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -100 }}
           transition={{ duration: 0.4, ease: "easeInOut" }}
         >
         {/* Маскот */}
@@ -366,7 +378,6 @@ export default function TrainerQuestion({
           {renderQuestionContent()}
         </div>
         </motion.div>
-      </AnimatePresence>
 
       {/* Кнопка внизу - фиксированная */}
       <div className="px-4 pb-4 pt-2 bg-[#151F24] relative">
