@@ -32,14 +32,22 @@ type Props = {
     params: {
         t_lessonId: string  // ← может быть string из URL
     }
+    searchParams: {
+        stage?: string
+    }
 }
 
-const LessonIdPage = async ({ params }: Props) => {
+const LessonIdPage = async ({ params, searchParams }: Props) => {
     const t_lessonId = parseInt(params.t_lessonId);
-    
+
     if (isNaN(t_lessonId)) {
         redirect('/trainer');
     }
+
+    // Этап (1-4) внутри темы — приходит явно через ?stage=N со страницы
+    // выбора темы. Без параметра (старые ссылки, математический тренажёр
+    // без этапов) — берём ВСЕ задачи темы, как было раньше.
+    const stageParam = searchParams?.stage ? parseInt(searchParams.stage) : null;
 
     const [
         t_lesson,
@@ -74,7 +82,13 @@ const LessonIdPage = async ({ params }: Props) => {
         redirect('/trainer');
     }
 
+    const lessonChallenges = stageParam
+        ? t_lesson.t_challenges.filter(t_ch => t_ch.stage === stageParam)
+        : t_lesson.t_challenges;
 
+    if (lessonChallenges.length === 0) {
+        redirect('/trainer');
+    }
 
     let questions: QuestionType[];
 
@@ -101,7 +115,7 @@ const LessonIdPage = async ({ params }: Props) => {
         () => ACStype[Math.floor(Math.random() * ACStype.length)]
     );
 
-    questions = t_lesson.t_challenges.map((t_challenge, index): QuestionType | undefined => {
+    questions = lessonChallenges.map((t_challenge, index): QuestionType | undefined => {
         if (t_challenge.type === 'M_ASC') {
             const randomASCtype = ACStype[Math.floor(Math.random() * ACStype.length)];
 
@@ -272,11 +286,12 @@ const LessonIdPage = async ({ params }: Props) => {
     usersStat.sort((a, b) => b.DR_DRP - a.DR_DRP);
 
     return (
-        <TQuiz 
-            t_lessonId={t_lesson.id} 
-            t_lessonTitle={t_lesson.title} 
+        <TQuiz
+            t_lessonId={t_lesson.id}
+            t_lessonTitle={t_lesson.title}
             questions1={questions}
             userName={userProgress.userName}
+            stage={stageParam}
         />
     );
 }

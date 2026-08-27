@@ -9,12 +9,12 @@ import {
     TabsTrigger,
 } from "@/components/ui/tabs"
 import { allTypesCT, t_challengeOptions, t_lessonProgress, t_units } from "@/db/schema";
-import { GetTLessonStat } from "@/usefulFunctions";
+import { GetTLessonStat, GetTLessonStageStat } from "@/usefulFunctions";
 import 'katex/dist/katex.min.css';
 import Latex from 'react-latex-next';
 import { useState } from "react";
 import { Button } from "./ui/button";
-import { TrainerSkillTree, SkillUnit } from "./trainer-skill-tree";
+import { TrainerGradeTree, SkillGrade } from "./trainer-grade-tree";
 
 type Props = {
     t_courses: {
@@ -46,6 +46,7 @@ type Props = {
                 question: string;
                 author: string;
                 t_lessonId: number;
+                stage: number;
                 t_challengeOptions: typeof t_challengeOptions.$inferSelect[];
             }[];
         }[];
@@ -122,37 +123,6 @@ export const TabTCourses = ({
         setShowFormulas(!showFormulas)
     }
 
-    const AllTStat = t_courses.map(course => {
-        const this_courseUnits = t_units.filter(unit => unit.t_courseId == course.id)
-        const StatThisUnit = this_courseUnits.map(unit => {
-            const unitStat = unit.t_lessons.map(t_lesson => ({
-                lessonId: t_lesson.id,
-                PD: GetTLessonStat(t_lessonProgress, t_lesson.id).totalPercentDR
-            }))
-            return {
-                unitStat: unitStat,
-                unitId: unit.id,
-            }
-        })
-        return {
-            StatThisCourse: StatThisUnit,
-            courseTitle: course.title
-        }
-    })
-
-    let CourseStat = AllTStat.map(t_course => {
-        let listOfMini: number[] = []
-        t_course.StatThisCourse.map(unit => {
-            unit.unitStat.map(lesson => {
-                listOfMini.push(lesson.PD)
-            })
-        })
-        return {
-            listOfMini: listOfMini,
-            courseTitle: t_course.courseTitle
-        }
-    })
-
     const usersThisClass = allUsers.filter(user => user.classId == this_class_id)
     const thisClassHW = allClassHW?.filter(el => el.classId == this_class_id)
 
@@ -219,35 +189,38 @@ export const TabTCourses = ({
 
                 {/* Контент для каждого курса */}
                 {t_courses.map((t_course, indexCourse) => {
-                    const skillUnits = t_units.filter(u => u.t_courseId === t_course.id).map((t_unit, indexUnit) => {
-                        const StatThisUnitLessons = AllTStat[indexCourse].StatThisCourse[indexUnit].unitStat
+                    // Темы (t_lesson) друг от друга не зависят и открыты сразу —
+                    // ученик может начать готовиться с любой темы. А вот этапы
+                    // (1-4) ВНУТРИ темы открываются по порядку, по мере
+                    // тренировки именно этой темы (см. TrainerGradeTree).
+                    const grades: SkillGrade[] = t_units.filter(u => u.t_courseId === t_course.id).map((t_unit) => {
+                        const topics = t_unit.t_lessons.map((t_lesson) => {
+                            const percentage = Math.round(GetTLessonStat(t_lessonProgress, t_lesson.id).totalPercentDR * 100)
 
-                        const lessons = t_unit.t_lessons.map((t_lesson, indexLesson) => {
-                            let isDisabled = true
-                            if (indexLesson == 0 || StatThisUnitLessons[indexLesson - 1]?.PD > 0.9) {
-                                isDisabled = false
-                            }
-                            const percentage = Math.round((StatThisUnitLessons[indexLesson]?.PD ?? 0) * 100)
+                            const maxStage = t_lesson.t_challenges.length
+                                ? Math.max(...t_lesson.t_challenges.map(c => c.stage))
+                                : 0
+
+                            const stages = Array.from({ length: maxStage }, (_, i) => {
+                                const stageNum = i + 1
+                                return {
+                                    stage: stageNum,
+                                    percentage: Math.round(GetTLessonStageStat(t_lessonProgress, t_lesson.id, stageNum).totalPercentDR * 100),
+                                }
+                            })
 
                             return {
                                 id: t_lesson.id,
                                 title: t_lesson.title,
                                 percentage,
-                                isDisabled,
-                                isInQuest: questLessonIds.includes(t_lesson.id),
-                                hasHw: missedLIds.includes(t_lesson.id),
+                                stages,
                             }
                         })
-
-                        const unitPercentage = lessons.length
-                            ? Math.round(lessons.reduce((a, b) => a + b.percentage, 0) / lessons.length)
-                            : 0
 
                         return {
                             id: t_unit.id,
                             title: t_unit.title,
-                            percentage: unitPercentage,
-                            lessons,
+                            topics,
                         }
                     })
 
@@ -258,7 +231,7 @@ export const TabTCourses = ({
                         </h2>
 
                         <div className="w-full mt-2">
-                            <TrainerSkillTree units={skillUnits} />
+                            <TrainerGradeTree grades={grades} />
                         </div>
 
                         <div className="flex justify-center mt-8">

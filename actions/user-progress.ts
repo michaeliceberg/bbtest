@@ -243,18 +243,19 @@ export const refillHearts = async () => {
 
 
 export const upsertTrainerLessonProgress = async (
-	t_lessonId: number, 
-	doneRightPercent: number, 
+	t_lessonId: number,
+	doneRightPercent: number,
 	trainingPts: number,
 	doneRight: number,
 	doneWrong: number,
+	stage?: number | null,
 ) => {
 
-	const session = await auth();  
+	const session = await auth();
 	// Проверяем авторизацию
 	if (!session?.user?.id) {
 	  throw new Error('Вы не авторизованы!');
-	}	
+	}
 	const userId = session.user.id;
 
 
@@ -265,6 +266,7 @@ export const upsertTrainerLessonProgress = async (
 		trainingPts: trainingPts,
 		doneRight: doneRight,
 		doneWrong: doneWrong,
+		stage: stage ?? null,
 	});
 
 

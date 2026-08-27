@@ -41,13 +41,15 @@ type Props = {
   t_lessonTitle: string,
   questions1: QuestionType[],
   userName: string,
+  stage?: number | null,
 }
 
 export default function TQuiz({
   t_lessonId,
-  t_lessonTitle, 
+  t_lessonTitle,
   questions1,
   userName,
+  stage,
 }: Props) {
 
   const router = useRouter()
@@ -90,8 +92,7 @@ export default function TQuiz({
   // актуален на момент чтения.
   const scoreRef = useRef(0)
 
-  // Для тестирования Rive сундука - только 1 вопрос
-  const [allQuestions, setAllQuestions] = useState(questions1.slice(0, 1))
+  const [allQuestions, setAllQuestions] = useState(questions1)
   const [numQuestionsButton, setNumQuestionsButton] = useState(0)
   const [isRightPrevious, setIsRightPrevious] = useState<boolean | null>(null)
   const questions = allQuestions
@@ -159,7 +160,7 @@ export default function TQuiz({
   useEffect(() => {
     if (threeHearts == 0 && !quizCompleted) {
       setQuizCompleted(true)
-      upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score)
+      upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score, stage)
         .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
         .finally(() => {
           updateQuestProgress()
@@ -213,7 +214,7 @@ export default function TQuiz({
         setQuizCompleted(true)
       }
 
-      await upsertTrainerLessonProgress(t_lessonId, doneRightPercent, 200, finalScore, questions.length - finalScore)
+      await upsertTrainerLessonProgress(t_lessonId, doneRightPercent, 200, finalScore, questions.length - finalScore, stage)
         .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
       await updateQuestProgress()
     }
@@ -323,7 +324,7 @@ export default function TQuiz({
           // Для ASSIST - если жизней осталось 0, завершаем
           if (threeHearts <= 1) {
             setQuizCompleted(true)
-            await upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score)
+            await upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score, stage)
               .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
             await updateQuestProgress()
           }
@@ -373,7 +374,7 @@ export default function TQuiz({
 
       if (newHearts <= 0) {
         setQuizCompleted(true)
-        await upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score)
+        await upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score, stage)
           .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
         await updateQuestProgress()
         return
@@ -384,7 +385,7 @@ export default function TQuiz({
       } else {
         setQuizCompleted(true)
         const doneRightPercent = Math.round(score / questions.length * 100)
-        await upsertTrainerLessonProgress(t_lessonId, doneRightPercent, 200, score, questions.length - score)
+        await upsertTrainerLessonProgress(t_lessonId, doneRightPercent, 200, score, questions.length - score, stage)
           .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
         await updateQuestProgress()
       }
@@ -621,7 +622,7 @@ export default function TQuiz({
 //   useEffect(() => {
 //     if (threeHearts == 0 && !quizCompleted) {
 //       setQuizCompleted(true)
-//       upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score)
+//       upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score, stage)
 //         .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
 //         .finally(() => {
 //           // Обновляем квест, даже если не прошли урок
@@ -712,7 +713,7 @@ export default function TQuiz({
 //     } else {
 //       setQuizCompleted(true)
 //       const doneRightPercent = Math.round(score / questions.length * 100)
-//       await upsertTrainerLessonProgress(t_lessonId, doneRightPercent, 200, score, questions.length - score)
+//       await upsertTrainerLessonProgress(t_lessonId, doneRightPercent, 200, score, questions.length - score, stage)
 //         .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
 //       // Обновляем квест после завершения урока
 //       // await updateQuestProgress()
@@ -811,7 +812,7 @@ export default function TQuiz({
 //         } else {
 //           // Сердечки закончились, завершаем квиз
 //           setQuizCompleted(true)
-//           await upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score)
+//           await upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score, stage)
 //             .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
 //           await updateQuestProgress()
 //         }
@@ -860,7 +861,7 @@ export default function TQuiz({
 //       // Если сердечки стали 0, завершаем квиз
 //       if (newHearts <= 0) {
 //         setQuizCompleted(true)
-//         await upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score)
+//         await upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score, stage)
 //           .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
 //         await updateQuestProgress()
 //         return
@@ -872,7 +873,7 @@ export default function TQuiz({
 //       } else {
 //         setQuizCompleted(true)
 //         const doneRightPercent = Math.round(score / questions.length * 100)
-//         await upsertTrainerLessonProgress(t_lessonId, doneRightPercent, 200, score, questions.length - score)
+//         await upsertTrainerLessonProgress(t_lessonId, doneRightPercent, 200, score, questions.length - score, stage)
 //           .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
 //         await updateQuestProgress()
 //       }
@@ -1063,7 +1064,7 @@ export default function TQuiz({
 // //   useEffect(() => {
 // //     if (threeHearts == 0 && !quizCompleted) {
 // //       setQuizCompleted(true)
-// //       upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score)
+// //       upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score, stage)
 // //         .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
 // //     }
 // //   }, [threeHearts, t_lessonId, questions.length, score, quizCompleted])
@@ -1094,7 +1095,7 @@ export default function TQuiz({
 // //     } else {
 // //       setQuizCompleted(true)
 // //       const doneRightPercent = Math.round(score / questions.length * 100)
-// //       upsertTrainerLessonProgress(t_lessonId, doneRightPercent, 200, score, questions.length - score)
+// //       upsertTrainerLessonProgress(t_lessonId, doneRightPercent, 200, score, questions.length - score, stage)
 // //         .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
 // //     }
 // //   }
@@ -1190,7 +1191,7 @@ export default function TQuiz({
 // //         } else {
 // //           // Сердечки закончились, завершаем квиз
 // //           setQuizCompleted(true)
-// //           upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score)
+// //           upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score, stage)
 // //             .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
 // //         }
 // //       }
@@ -1238,7 +1239,7 @@ export default function TQuiz({
 // //       // Если сердечки стали 0, завершаем квиз
 // //       if (newHearts <= 0) {
 // //         setQuizCompleted(true)
-// //         upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score)
+// //         upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score, stage)
 // //           .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
 // //         return
 // //       }
@@ -1249,7 +1250,7 @@ export default function TQuiz({
 // //       } else {
 // //         setQuizCompleted(true)
 // //         const doneRightPercent = Math.round(score / questions.length * 100)
-// //         upsertTrainerLessonProgress(t_lessonId, doneRightPercent, 200, score, questions.length - score)
+// //         upsertTrainerLessonProgress(t_lessonId, doneRightPercent, 200, score, questions.length - score, stage)
 // //           .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
 // //       }
 // //     } finally {

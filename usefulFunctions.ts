@@ -102,6 +102,35 @@ export const GetTLessonStat = (
 
 }
 
+// То же самое, что GetTLessonStat, но по одному конкретному этапу внутри
+// темы — попытки без stage (NULL, сделаны до появления этапов) в подсчёт
+// конкретного этапа не попадают.
+export const GetTLessonStageStat = (
+    t_lP: typeof t_lessonProgress.$inferSelect[],
+    t_lessonId: number,
+    stage: number,
+) => {
+
+    const thisStageProgress = t_lP.filter(
+        lessonProgress => lessonProgress.t_lessonId == t_lessonId && lessonProgress.stage == stage
+    )
+
+    const totalDR = thisStageProgress.reduce((total, elem) => total + elem.doneRight, 0)
+    const totalDW = thisStageProgress.reduce((total, elem) => total + elem.doneWrong, 0)
+
+    let totalPercentDR = 0
+    const totalD = totalDR + totalDW
+    if (totalDR > 0) {
+        totalPercentDR = totalDR / totalD
+    }
+
+    return ({
+        totalPercentDR: totalPercentDR,
+        totalDR: totalDR,
+    })
+
+}
+
 
 export const NearestRound = (x: number) => {
     // const netTable = [ 0.2, 0.5, 0.7, 0.8, 1 ]
