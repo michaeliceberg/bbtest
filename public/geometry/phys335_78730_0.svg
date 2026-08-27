@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="418" height="350" viewBox="0 0 418 350">
+<rect x="0" y="0" width="418" height="350" fill="#151F23"/>
+<line x1="60.0" y1="300.0" x2="60.0" y2="32.0" stroke="#F2F7FB" stroke-width="2" stroke-linecap="round"/>
+<polygon points="60.0,32.0 65.0,40.7 55.0,40.7" fill="#F2F7FB"/>
+<line x1="60.0" y1="300.0" x2="368.0" y2="300.0" stroke="#F2F7FB" stroke-width="2" stroke-linecap="round"/>
+<polygon points="368.0,300.0 359.3,305.0 359.3,295.0" fill="#F2F7FB"/>
+<text x="46.0" y="320.0" font-family="Georgia, serif"  font-weight="normal" font-size="17" fill="#F2F7FB" text-anchor="middle">0</text>
+<text x="44.0" y="26.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="14" fill="#F2F7FB" text-anchor="middle">p, мм рт.ст.</text>
+<text x="376.0" y="306.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="start">h, км</text>
+<circle cx="156" cy="300" r="2" fill="#F2F7FB"/>
+<text x="156.0" y="320.0" font-family="Georgia, serif"  font-weight="normal" font-size="14" fill="#F2F7FB" text-anchor="middle">5</text>
+<circle cx="220" cy="300" r="2" fill="#F2F7FB"/>
+<text x="220.0" y="320.0" font-family="Georgia, serif"  font-weight="normal" font-size="14" fill="#F2F7FB" text-anchor="middle">9</text>
+<circle cx="60" cy="204" r="2" fill="#F2F7FB"/>
+<text x="48.0" y="209.0" font-family="Georgia, serif"  font-weight="normal" font-size="14" fill="#F2F7FB" text-anchor="end">240</text>
+<circle cx="60" cy="76" r="2" fill="#F2F7FB"/>
+<text x="48.0" y="81.0" font-family="Georgia, serif"  font-weight="normal" font-size="14" fill="#F2F7FB" text-anchor="end">700</text>
+<path d="M 66.4,62.3 L 77.6,76.7 L 88.8,90.3 L 100.0,103.1 L 111.2,115.0 L 122.4,126.3 L 133.6,136.8 L 144.8,146.8 L 156.0,156.1 L 167.2,164.8 L 178.4,173.0 L 189.6,180.8 L 200.8,188.0 L 212.0,194.8 L 223.2,201.2 L 234.4,207.2 L 245.6,212.9 L 256.8,218.2 L 268.0,223.1 L 279.2,227.8 L 290.4,232.2 L 301.6,236.3 L 312.8,240.2 L 324.0,243.8 L 335.2,247.2" fill="none" stroke="#f0a868" stroke-width="2.2"/>
+</svg>

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="355" height="303" viewBox="0 0 355 303">
+<rect x="0" y="0" width="355" height="303" fill="#151F23"/>
+<line x1="60" y1="48" x2="60" y2="248" stroke="#3A464E" stroke-width="1"/>
+<line x1="100" y1="48" x2="100" y2="248" stroke="#3A464E" stroke-width="1"/>
+<line x1="140" y1="48" x2="140" y2="248" stroke="#3A464E" stroke-width="1"/>
+<line x1="180" y1="48" x2="180" y2="248" stroke="#3A464E" stroke-width="1"/>
+<line x1="220" y1="48" x2="220" y2="248" stroke="#3A464E" stroke-width="1"/>
+<line x1="260" y1="48" x2="260" y2="248" stroke="#3A464E" stroke-width="1"/>
+<line x1="60" y1="48" x2="260" y2="48" stroke="#3A464E" stroke-width="1"/>
+<line x1="60" y1="88" x2="260" y2="88" stroke="#3A464E" stroke-width="1"/>
+<line x1="60" y1="128" x2="260" y2="128" stroke="#3A464E" stroke-width="1"/>
+<line x1="60" y1="168" x2="260" y2="168" stroke="#3A464E" stroke-width="1"/>
+<line x1="60" y1="208" x2="260" y2="208" stroke="#3A464E" stroke-width="1"/>
+<line x1="60" y1="248" x2="260" y2="248" stroke="#3A464E" stroke-width="1"/>
+<line x1="60.0" y1="248.0" x2="60.0" y2="36.0" stroke="#F2F7FB" stroke-width="2" stroke-linecap="round"/>
+<polygon points="60.0,36.0 65.0,44.7 55.0,44.7" fill="#F2F7FB"/>
+<line x1="60.0" y1="248.0" x2="280.0" y2="248.0" stroke="#F2F7FB" stroke-width="2" stroke-linecap="round"/>
+<polygon points="280.0,248.0 271.3,253.0 271.3,243.0" fill="#F2F7FB"/>
+<text x="46.0" y="268.0" font-family="Georgia, serif"  font-weight="normal" font-size="17" fill="#F2F7FB" text-anchor="middle">0</text>
+<text x="44.0" y="30.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="middle">n</text>
+<text x="288.0" y="254.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="start">t</text>
+<line x1="60" y1="236.0" x2="140" y2="68.0" stroke="#f0a868" stroke-width="2.2"/>
+<line x1="60.0" y1="236.0" x2="100.0" y2="152.0" stroke="#f0a868" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="100.0,152.0 100.6,159.0 94.2,156.0" fill="#f0a868"/>
+<line x1="140" y1="68.0" x2="260" y2="68.0" stroke="#f0a868" stroke-width="2.2"/>
+<line x1="140.0" y1="68.0" x2="200.0" y2="68.0" stroke="#f0a868" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="200.0,68.0 193.9,71.5 193.9,64.5" fill="#f0a868"/>
+<circle cx="60.0" cy="236.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<circle cx="140.0" cy="68.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<circle cx="260.0" cy="68.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+</svg>
