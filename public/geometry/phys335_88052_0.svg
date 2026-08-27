@@ -21,9 +21,11 @@
 <text x="44.0" y="30.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="middle">p</text>
 <text x="288.0" y="294.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="start">V</text>
 <circle cx="100" cy="288" r="2" fill="#F2F7FB"/>
-<text x="100.0" y="308.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">V₀</text>
+<text x="92.2" y="308.0" font-family="Georgia, serif"  font-size="15" fill="#F2F7FB" text-anchor="start">V</text>
+<text x="101.5" y="312.8" font-family="Georgia, serif"  font-size="10.5" fill="#F2F7FB" text-anchor="start">0</text>
 <circle cx="220" cy="288" r="2" fill="#F2F7FB"/>
-<text x="220.0" y="308.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">4V₀</text>
+<text x="207.6" y="308.0" font-family="Georgia, serif"  font-size="15" fill="#F2F7FB" text-anchor="start">4V</text>
+<text x="226.2" y="312.8" font-family="Georgia, serif"  font-size="10.5" fill="#F2F7FB" text-anchor="start">0</text>
 <line x1="100" y1="88" x2="220" y2="236.0" stroke="#f0a868" stroke-width="2.2"/>
 <line x1="100.0" y1="88.0" x2="160.0" y2="162.0" stroke="#f0a868" stroke-width="2.2" stroke-linecap="round"/>
 <polygon points="160.0,162.0 153.5,159.5 158.9,155.1" fill="#f0a868"/>

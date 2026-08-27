@@ -17,11 +17,14 @@
 <text x="44.0" y="30.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="middle">p</text>
 <text x="248.0" y="174.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="start">V</text>
 <circle cx="180" cy="168" r="2" fill="#F2F7FB"/>
-<text x="180.0" y="188.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">3V₀</text>
+<text x="167.6" y="188.0" font-family="Georgia, serif"  font-size="15" fill="#F2F7FB" text-anchor="start">3V</text>
+<text x="186.2" y="192.8" font-family="Georgia, serif"  font-size="10.5" fill="#F2F7FB" text-anchor="start">0</text>
 <circle cx="60" cy="128" r="2" fill="#F2F7FB"/>
-<text x="48.0" y="133.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">p₀</text>
+<text x="32.4" y="133.0" font-family="Georgia, serif"  font-size="15" fill="#F2F7FB" text-anchor="start">p</text>
+<text x="41.7" y="137.8" font-family="Georgia, serif"  font-size="10.5" fill="#F2F7FB" text-anchor="start">0</text>
 <circle cx="60" cy="88" r="2" fill="#F2F7FB"/>
-<text x="48.0" y="93.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">2p₀</text>
+<text x="23.1" y="93.0" font-family="Georgia, serif"  font-size="15" fill="#F2F7FB" text-anchor="start">2p</text>
+<text x="41.7" y="97.8" font-family="Georgia, serif"  font-size="10.5" fill="#F2F7FB" text-anchor="start">0</text>
 <line x1="60" y1="128" x2="180" y2="88" stroke="#f0a868" stroke-width="2.2"/>
 <line x1="60.0" y1="128.0" x2="120.0" y2="108.0" stroke="#f0a868" stroke-width="2.2" stroke-linecap="round"/>
 <polygon points="120.0,108.0 115.4,113.2 113.1,106.6" fill="#f0a868"/>
