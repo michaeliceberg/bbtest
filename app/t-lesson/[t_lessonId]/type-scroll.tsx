@@ -7,6 +7,7 @@
 // "ответить" общая).
 
 import React, { useState } from 'react'
+import { motion } from 'framer-motion'
 import { QuestionType } from './page'
 import { Slider, SliderTrack, SliderRange, SliderThumb } from '@radix-ui/react-slider'
 import Latex from 'react-latex-next'
@@ -20,7 +21,23 @@ type Props = {
     isAnswerCorrect?: boolean
 }
 
-const TICK_POSITIONS = ['0%', '50%', '100%']
+// Бегунок (size-6 = 24px) — Radix держит его ЦЕНТР в диапазоне
+// [радиус, 100% - радиус] трека, а не [0%, 100%], иначе он вылезал бы
+// за пределы трека в крайних положениях. Подписи вариантов раньше стояли
+// ровно на 0%/50%/100%, поэтому в крайних положениях бегунок и подпись
+// над ним были не на одной вертикали — теперь подписи стоят на тех же
+// точках, что и центр бегунка.
+const THUMB_RADIUS_PX = 12
+const TICK_POSITIONS = [`${THUMB_RADIUS_PX}px`, '50%', `calc(100% - ${THUMB_RADIUS_PX}px)`]
+
+const EASE = [0.4, 0, 0.2, 1] as const // ease-in-out — разгон и торможение
+const TRANSITION = { duration: 0.3, ease: EASE }
+
+type ColorState = { bg: string; border: string; text: string }
+const COLOR_NEUTRAL: ColorState = { bg: '#161F23', border: '#3A464E', text: 'rgba(242,247,251,0.8)' }
+const COLOR_SELECTED: ColorState = { bg: '#1B2C3D', border: '#4A90D9', text: '#F2F7FB' }
+const COLOR_RIGHT: ColorState = { bg: '#1F3A2A', border: '#A1D151', text: '#A1D151' }
+const COLOR_WRONG: ColorState = { bg: '#3A1F22', border: '#DC605B', text: '#DC605B' }
 
 export const TypeScroll = ({
     question,
@@ -55,13 +72,21 @@ export const TypeScroll = ({
     }
 
     return (
-        <div className="mt-16 mb-6 px-2">
+        <div className="mt-16 mb-6 px-3">
             <div className="relative h-24 mb-2">
                 {question.options.map((option, idx) => {
                     const isSelected = selectedIndex === idx
                     const isCorrectOption = option === question.correctAnswer
                     const isRightHighlight = showResult && isCorrectOption
                     const isWrongHighlight = showResult && isSelected && !isCorrectOption
+
+                    const colors = isRightHighlight
+                        ? COLOR_RIGHT
+                        : isWrongHighlight
+                        ? COLOR_WRONG
+                        : isSelected
+                        ? COLOR_SELECTED
+                        : COLOR_NEUTRAL
 
                     return (
                         <button
@@ -70,24 +95,25 @@ export const TypeScroll = ({
                             disabled={showResult}
                             onClick={() => handleSelect(idx)}
                             style={{ left: TICK_POSITIONS[idx] }}
-                            className={`absolute top-0 -translate-x-1/2 flex flex-col items-center gap-2 ${showResult ? 'cursor-default' : 'cursor-pointer'}`}
+                            className={`absolute top-0 -translate-x-1/2 flex flex-col items-center gap-2 max-w-[92px] ${showResult ? 'cursor-default' : 'cursor-pointer'}`}
                         >
-                            <div
-                                className={`
-                                    px-3 py-2 rounded-lg border-2 text-base whitespace-nowrap transition-colors
-                                    ${isRightHighlight
-                                        ? 'bg-[#1F3A2A] border-[#A1D151] text-[#A1D151]'
-                                        : isWrongHighlight
-                                        ? 'bg-[#3A1F22] border-[#DC605B] text-[#DC605B]'
-                                        : isSelected
-                                        ? 'bg-[#1B2C3D] border-[#4A90D9] text-[#F2F7FB]'
-                                        : 'bg-[#161F23] border-[#3A464E] text-[#F2F7FB]/80'
-                                    }
-                                `}
+                            <motion.div
+                                animate={{
+                                    backgroundColor: colors.bg,
+                                    borderColor: colors.border,
+                                    color: colors.text,
+                                    scale: isSelected ? 1.05 : 1,
+                                }}
+                                transition={TRANSITION}
+                                className="px-2 py-1.5 rounded-lg border-2 text-xs leading-tight text-center break-words"
                             >
                                 <Latex>{option}</Latex>
-                            </div>
-                            <div className={`w-[2px] h-4 ${isSelected ? 'bg-[#4A90D9]' : 'bg-[#3A464E]'}`} />
+                            </motion.div>
+                            <motion.div
+                                animate={{ backgroundColor: isSelected ? '#4A90D9' : '#3A464E' }}
+                                transition={TRANSITION}
+                                className="w-[2px] h-4"
+                            />
                         </button>
                     )
                 })}
@@ -103,10 +129,10 @@ export const TypeScroll = ({
                 onValueChange={(val) => handleSelect(val[0])}
             >
                 <SliderTrack className="relative h-[8px] grow rounded-full bg-[#3A464E]">
-                    <SliderRange className="absolute h-full rounded-full bg-[#4A90D9]" />
+                    <SliderRange className="absolute h-full rounded-full bg-[#4A90D9] transition-all duration-300 ease-in-out" />
                 </SliderTrack>
                 <SliderThumb
-                    className="block size-6 rounded-full bg-[#F2F7FB] shadow-[0_4px_10px] shadow-black/40 focus:outline-none focus:shadow-[0_0_0_4px] focus:shadow-[#4A90D9]/40"
+                    className="block size-6 rounded-full bg-[#F2F7FB] shadow-[0_4px_10px] shadow-black/40 transition-all duration-300 ease-in-out focus:outline-none focus:shadow-[0_0_0_4px] focus:shadow-[#4A90D9]/40"
                     aria-label="Выбор варианта"
                 />
             </Slider>
