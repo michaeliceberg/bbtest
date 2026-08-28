@@ -28,12 +28,16 @@ export interface SuperType {
 // ===== ENUMS =====
 
 // INSERT/SCROLL — только рендер-типы для M_ASC (как уже ASSIST/CONNECT),
-// в реальный Postgres-enum (t_challengesEnum ниже) никогда не пишутся.
+// INSERT/SCROLL раньше были чисто рендер-выбором для M_ASC (никогда не
+// писались в БД как отдельный type) — теперь их тоже можно сохранить
+// напрямую (см. CLAUDE.md "Явный выбор рендер-типа для M_ASC-подобных
+// задач"), поэтому оба добавлены в реальный Postgres-enum ниже.
 export type allTypesCT = "M_ASC" | "SELECT" | "ASSIST" | "CONNECT" | "SLIDER" | "CONSTRUCT" | "WORKBOOK" | "R ASSIST" | "R CONNECT" | "R SLIDER" | "GEOSIN" | "RUSSIANDICTANT" | "SWIPE" | "KEYBOARD" | "INSERT" | "SCROLL";
 
 export const challengesEnum = pgEnum("type", [
 	"M_ASC", "SELECT", "ASSIST", "CONNECT", "SLIDER", "CONSTRUCT", "WORKBOOK",
-	"R ASSIST", "R CONNECT", "R SLIDER", "GEOSIN", "RUSSIANDICTANT", "SWIPE", "KEYBOARD"
+	"R ASSIST", "R CONNECT", "R SLIDER", "GEOSIN", "RUSSIANDICTANT", "SWIPE", "KEYBOARD",
+	"INSERT", "SCROLL"
 ]);
 
 
@@ -41,7 +45,8 @@ export const challengesEnum = pgEnum("type", [
 
 export const t_challengesEnum = pgEnum("type", [
 	"M_ASC", "SELECT", "ASSIST", "CONNECT", "SLIDER", "CONSTRUCT", "WORKBOOK",
-	"R ASSIST", "R CONNECT", "R SLIDER", "GEOSIN", "RUSSIANDICTANT", "SWIPE", "KEYBOARD"
+	"R ASSIST", "R CONNECT", "R SLIDER", "GEOSIN", "RUSSIANDICTANT", "SWIPE", "KEYBOARD",
+	"INSERT", "SCROLL"
 ]);
 
 // ===== COURSES =====

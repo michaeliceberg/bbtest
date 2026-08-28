@@ -161,6 +161,30 @@ export function StructureBrowser() {
     }
   }
 
+  const handleDeleteLesson = async (lessonId: number, title: string) => {
+    if (!confirm(`Удалить урок «${title}» вместе со всеми его задачами? Это необратимо.`)) {
+      return
+    }
+    try {
+      const res = await fetch(`/api/admin/t-lessons/${lessonId}`, { method: 'DELETE' })
+      if (!res.ok) {
+        alert('❌ Ошибка при удалении урока')
+        return
+      }
+      if (selectedLesson === lessonId) {
+        setSelectedLesson(null)
+      }
+      await reloadLessons()
+      // Пул задач юнита показывает содержимое всех его уроков — тоже
+      // нужно перечитать, иначе задачи удалённого урока провисят там
+      // до следующего ручного обновления.
+      setPoolRefreshKey((k) => k + 1)
+    } catch (err) {
+      console.error(err)
+      alert('❌ Ошибка при удалении урока')
+    }
+  }
+
   const handleChallengeSuccess = async () => {
     // Reset form
     setFormData({
@@ -285,18 +309,26 @@ export function StructureBrowser() {
             <div className="space-y-1 flex-1">
               {lessons.length > 0 ? (
                 lessons.map(lesson => (
-                  <button
-                    key={lesson.id}
-                    onClick={() => setSelectedLesson(lesson.id)}
-                    className={`w-full text-left px-2 py-1.5 rounded text-xs transition truncate ${
-                      selectedLesson === lesson.id
-                        ? 'bg-[#5183A4] text-white'
-                        : 'bg-[#232F34] text-[#9AA7B0] hover:bg-[#2A3A42]'
-                    }`}
-                    title={lesson.title}
-                  >
-                    {lesson.title}
-                  </button>
+                  <div key={lesson.id} className="flex items-center gap-1">
+                    <button
+                      onClick={() => setSelectedLesson(lesson.id)}
+                      className={`flex-1 min-w-0 text-left px-2 py-1.5 rounded text-xs transition truncate ${
+                        selectedLesson === lesson.id
+                          ? 'bg-[#5183A4] text-white'
+                          : 'bg-[#232F34] text-[#9AA7B0] hover:bg-[#2A3A42]'
+                      }`}
+                      title={lesson.title}
+                    >
+                      {lesson.title}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteLesson(lesson.id, lesson.title)}
+                      className="flex-shrink-0 px-1.5 py-1.5 rounded text-xs text-red-400 hover:bg-red-500/20 transition"
+                      title="Удалить урок вместе со всеми задачами"
+                    >
+                      🗑
+                    </button>
+                  </div>
                 ))
               ) : (
                 <p className="text-[#5A6A72] text-xs">Нет уроков</p>

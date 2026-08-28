@@ -25,6 +25,7 @@ export function UnitChallengePool({ unitId }: { unitId: number }) {
   // Локальные несохранённые правки: challengeId -> {lessonId, order}
   const [pending, setPending] = useState<Record<number, { lessonId: number; order: number }>>({})
   const [savingId, setSavingId] = useState<number | null>(null)
+  const [duplicatingId, setDuplicatingId] = useState<number | null>(null)
 
   const load = async () => {
     setLoading(true)
@@ -81,6 +82,24 @@ export function UnitChallengePool({ unitId }: { unitId: number }) {
       console.error(err)
     } finally {
       setSavingId(null)
+    }
+  }
+
+  // Дубль задачи в другой этап — в отличие от save() (переноса), исходная
+  // задача остаётся на месте, появляется независимая копия во втором уроке.
+  const duplicate = async (challengeId: number, targetLessonId: number) => {
+    setDuplicatingId(challengeId)
+    try {
+      await fetch(`/api/admin/t-challenges/${challengeId}/duplicate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lessonId: targetLessonId }),
+      })
+      await load()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setDuplicatingId(null)
     }
   }
 
@@ -143,6 +162,22 @@ export function UnitChallengePool({ unitId }: { unitId: number }) {
                       >
                         {savingId === challenge.id ? '...' : 'Сохранить'}
                       </button>
+                      <select
+                        value=""
+                        disabled={duplicatingId === challenge.id}
+                        onChange={(e) => {
+                          const targetId = Number(e.target.value)
+                          if (targetId) duplicate(challenge.id, targetId)
+                          e.target.value = ''
+                        }}
+                        className="bg-[#232F34] border border-[#3A464E] rounded px-1.5 py-1 text-[#9AA7B0] flex-shrink-0"
+                        title="Скопировать эту задачу в другой этап (исходная останется на месте)"
+                      >
+                        <option value="">{duplicatingId === challenge.id ? '...' : '📋 Копировать в...'}</option>
+                        {lessons.map((l) => (
+                          <option key={l.id} value={l.id}>{l.title}</option>
+                        ))}
+                      </select>
                     </div>
                   )
                 })}

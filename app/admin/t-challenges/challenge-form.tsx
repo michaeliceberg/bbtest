@@ -12,20 +12,20 @@ export interface FormData {
   options: Array<{ text: string; correct: boolean }>
 }
 
+// Только реально используемые в тренажёре типы (см. CLAUDE.md): M_ASC —
+// формула-ответ со случайным стилем рендера (ASSIST/CONNECT/INSERT/SWIPE/
+// SCROLL, выбирается на лету); остальные 5 — тот же M_ASC-конструктор, но
+// с ЗАФИКСИРОВАННЫМ стилем (задача всегда рендерится именно так, без
+// рандома). Прочие типы из общего enum (SELECT/SLIDER/CONSTRUCT/WORKBOOK/
+// R ASSIST/R CONNECT/R SLIDER/GEOSIN/RUSSIANDICTANT) — наследие от курсов
+// (`challenges`), для t_challenges не используются, убраны из формы.
 const CHALLENGE_TYPES = [
   'M_ASC',
-  'SELECT',
   'ASSIST',
   'CONNECT',
-  'SLIDER',
-  'CONSTRUCT',
-  'WORKBOOK',
-  'R ASSIST',
-  'R CONNECT',
-  'R SLIDER',
-  'GEOSIN',
-  'RUSSIANDICTANT',
   'SWIPE',
+  'INSERT',
+  'SCROLL',
 ]
 
 interface ChallengeFormProps {

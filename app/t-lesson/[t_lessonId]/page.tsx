@@ -126,20 +126,22 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     const ACStype = ['ASSIST', 'CONNECT', 'INSERT', 'SWIPE', 'SCROLL'] as const;
     type ACStype = typeof ACStype[number];
 
-    // Фильтруем только M_ASC типы
-    const mAscChallenges = t_lesson.t_challenges.filter(t_ch => t_ch.type === "M_ASC");
-
-    const randomTypeASC: ACStype[] = Array.from(
-        { length: mAscChallenges.length },
-        () => ACStype[Math.floor(Math.random() * ACStype.length)]
-    );
+    // "M_ASC-подобные" типы — задачи с одной формулой-ответом, отрисовываемые
+    // одним из 5 рендер-стилей (ASSIST/CONNECT/INSERT/SWIPE/SCROLL). Для
+    // M_ASC стиль выбирается случайно (см. randomASCtype ниже); задачу можно
+    // сохранить сразу с ЗАФИКСИРОВАННЫМ стилем (type = 'ASSIST' и т.п.
+    // напрямую в БД) — тогда она всегда рендерится этим одним стилем, без
+    // рандома. Оба варианта конструируются идентично, поэтому и как
+    // источник обманок/пар друг для друга (see фильтры el.type ниже)
+    // задачи с любым из этих типов равноценны.
+    const isMAscLike = (type: string): boolean => type === 'M_ASC' || (ACStype as readonly string[]).includes(type);
 
     // Общий рендер ASSIST-варианта (переиспользуется и как основной тип,
     // и как fallback для INSERT, когда в формуле нет подходящей буквы —
     // см. lib/formulaLetters.ts).
     const buildAssistQuestion = (t_challenge: typeof lessonChallenges[number]): QuestionType => {
         const other5Questions = t_lesson.t_challenges.filter((el) =>
-            el.type === "M_ASC" && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
+            isMAscLike(el.type) && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
         );
         const fiveQuestions = getRandomElements(other5Questions, 5);
         const fiveWrongOptions = fiveQuestions.map(el => el.t_challengeOptions[0]?.text || '');
@@ -161,15 +163,19 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     };
 
     questions = lessonChallenges.map((t_challenge, index): QuestionType | undefined => {
-        if (t_challenge.type === 'M_ASC') {
-            const randomASCtype = ACStype[Math.floor(Math.random() * ACStype.length)];
+        if (isMAscLike(t_challenge.type)) {
+            // M_ASC — случайный стиль рендера; зафиксированный тип (сам
+            // t_challenge.type равен одному из ACStype) — всегда этот стиль.
+            const randomASCtype: ACStype = t_challenge.type === 'M_ASC'
+                ? ACStype[Math.floor(Math.random() * ACStype.length)]
+                : t_challenge.type as ACStype;
 
             if (randomASCtype === 'ASSIST' as const) {
                 return buildAssistQuestion(t_challenge);
             }
             else if (randomASCtype === 'INSERT' as const) {
                 const siblingChallenges = t_lesson.t_challenges.filter((el) =>
-                    el.type === "M_ASC" && el.id !== t_challenge.id
+                    isMAscLike(el.type) && el.id !== t_challenge.id
                 );
                 // Усложнённая версия (2 пропуска вместо 1) — примерно
                 // в 40% случаев; pickInsertBlank сам тихо откатится на 1
@@ -205,7 +211,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             }
             else if (randomASCtype === 'SWIPE' as const) {
                 const otherQuestionsForSwipe = t_lesson.t_challenges.filter((el) =>
-                    el.type === "M_ASC" && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
+                    isMAscLike(el.type) && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
                 );
                 const oneWrongQuestion = getRandomElements(otherQuestionsForSwipe, 1);
 
@@ -234,7 +240,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             }
             else if (randomASCtype === 'SCROLL' as const) {
                 const otherQuestionsForScroll = t_lesson.t_challenges.filter((el) =>
-                    el.type === "M_ASC" && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
+                    isMAscLike(el.type) && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
                 );
                 const twoWrongQuestions = getRandomElements(otherQuestionsForScroll, 2);
 
@@ -264,7 +270,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             else {
                 // randomASCtype === 'CONNECT'
                 const otherQuestions = t_lesson.t_challenges.filter((el, i) =>
-                    el.type === "M_ASC" && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
+                    isMAscLike(el.type) && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
                 );
                 const twoQuestions = getRandomElements(otherQuestions, 2);
 
