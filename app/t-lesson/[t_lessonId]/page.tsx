@@ -161,13 +161,43 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         return (correctOnes.length > 0 ? correctOnes.join('|') : t_challenge.t_challengeOptions[0]?.text) || '';
     };
 
+    // С появлением словарных вопросов (Что такое X? / В чём измеряется X?)
+    // в одном уроке с формулами — простые кандидаты в обманки "любой
+    // другой M_ASC-сосед урока" стали смешивать жанры: формула-LaTeX могла
+    // всплыть как вариант ответа у вопроса с обычным текстовым ответом
+    // (и наоборот). Единственный непохожий по виду вариант среди остальных
+    // угадывается без решения задачи — тот же класс проблемы, что уже
+    // чинили для числовых дистракторов (см. fixDistractorsEGEPhysics.ts).
+    // Простая эвристика по наличию `$` (LaTeX-формула vs обычный текст)
+    // ограничивает пул обманок вопросами того же "жанра".
+    const looksLikeFormula = (text: string): boolean => text.includes('$');
+    const sameAnswerGenre = (a: string, b: string): boolean => looksLikeFormula(a) === looksLikeFormula(b);
+
+    // Разные challenges МОГУТ случайно иметь одинаковый текст ответа
+    // (например "Что такое F_тяж?" → "сила тяжести" и "Что измеряется в
+    // Н?" → "сила тяжести" как канонический [0] — два РАЗНЫХ challenge с
+    // одинаковым отображаемым текстом). Без дедупликации оба могли попасть
+    // в один и тот же пул обманок и показать пользователю один и тот же
+    // вариант ответа дважды в списке кнопок.
+    const dedupeByAnswerText = <T extends { t_challengeOptions: { text: string }[] }>(items: T[]): T[] => {
+        const seen = new Set<string>();
+        return items.filter((el) => {
+            const text = el.t_challengeOptions[0]?.text || '';
+            if (seen.has(text)) return false;
+            seen.add(text);
+            return true;
+        });
+    };
+
     // Общий рендер ASSIST-варианта (переиспользуется и как основной тип,
     // и как fallback для INSERT, когда в формуле нет подходящей буквы —
     // см. lib/formulaLetters.ts).
     const buildAssistQuestion = (t_challenge: typeof lessonChallenges[number]): QuestionType => {
-        const other5Questions = t_lesson.t_challenges.filter((el) =>
-            isMAscLike(el.type) && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
-        );
+        const other5Questions = dedupeByAnswerText(t_lesson.t_challenges.filter((el) =>
+            isMAscLike(el.type)
+            && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
+            && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
+        ));
         const fiveQuestions = getRandomElements(other5Questions, 5);
         const fiveWrongOptions = fiveQuestions.map(el => el.t_challengeOptions[0]?.text || '');
         const fiveWrongOptionsPlusRight = [...fiveWrongOptions, t_challenge.t_challengeOptions[0]?.text || ''];
@@ -235,9 +265,11 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 };
             }
             else if (randomASCtype === 'SWIPE' as const) {
-                const otherQuestionsForSwipe = t_lesson.t_challenges.filter((el) =>
-                    isMAscLike(el.type) && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
-                );
+                const otherQuestionsForSwipe = dedupeByAnswerText(t_lesson.t_challenges.filter((el) =>
+                    isMAscLike(el.type)
+                    && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
+                    && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
+                ));
                 const oneWrongQuestion = getRandomElements(otherQuestionsForSwipe, 1);
 
                 // Нет с чем сравнить (единственная M_ASC-задача урока) —
@@ -264,9 +296,11 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 };
             }
             else if (randomASCtype === 'SCROLL' as const) {
-                const otherQuestionsForScroll = t_lesson.t_challenges.filter((el) =>
-                    isMAscLike(el.type) && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
-                );
+                const otherQuestionsForScroll = dedupeByAnswerText(t_lesson.t_challenges.filter((el) =>
+                    isMAscLike(el.type)
+                    && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
+                    && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
+                ));
                 const twoWrongQuestions = getRandomElements(otherQuestionsForScroll, 2);
 
                 // Меньше 2 обманок в уроке — откатываемся на ASSIST.
@@ -294,9 +328,11 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             }
             else {
                 // randomASCtype === 'CONNECT'
-                const otherQuestions = t_lesson.t_challenges.filter((el, i) =>
-                    isMAscLike(el.type) && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
-                );
+                const otherQuestions = dedupeByAnswerText(t_lesson.t_challenges.filter((el, i) =>
+                    isMAscLike(el.type)
+                    && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
+                    && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
+                ));
                 const twoQuestions = getRandomElements(otherQuestions, 2);
 
                 return {
