@@ -50,7 +50,7 @@ const TLearnPage = async () => {
     const allUsersData = getAllUsers();
 
     const [
-        t_courses,
+        t_coursesRaw,
         userProgress,
         t_units,
         courseProgress,
@@ -78,6 +78,11 @@ const TLearnPage = async () => {
     if (!userProgress || !userProgress.activeCourse || !allClasses) {
         redirect('/courses');
     }
+
+    // М9 и Физика-9 временно скрыты из тренажёра (пусто/не готово) — не
+    // мешают, но не удалены из БД, легко вернуть обратно.
+    const HIDDEN_T_COURSE_IDS = [1, 2];
+    const t_courses = t_coursesRaw.filter((c) => !HIDDEN_T_COURSE_IDS.includes(c.id));
 
     if (!courseProgress) {
         redirect('/courses');
@@ -262,23 +267,25 @@ const TLearnPage = async () => {
             <FeedWrapper>
                 <Header title="Тренажёр" />
 
-                <div className='content-center mx-auto justify-center text-center align-middle'>
-                    <HwTopBanner missedCIds={missedLIds} variant='trainer' />
-                </div>
+                <div className='mt-2 lg:mt-5'>
+                    <div className='content-center mx-auto justify-center text-center align-middle'>
+                        <HwTopBanner missedCIds={missedLIds} variant='trainer' />
+                    </div>
 
-                <TabTCourses 
-                    t_courses={t_courses} 
-                    t_units={t_units} 
-                    t_lessonProgress={t_lessonProgress}
-                    TRatingUsers={TRatingUsers}
-                    user_id={userProgress.userId}
-                    allClasses={allClasses}
-                    allClassHW={allClassHW}
-                    allUsers={allUsers}
-                    all_t_lessonProgress={all_t_lessonProgress}
-                    this_class_id={userProgress.classId}
-                    questLessonIds={questLessonIds}
-                />
+                    <TabTCourses
+                        t_courses={t_courses}
+                        t_units={t_units}
+                        t_lessonProgress={t_lessonProgress}
+                        TRatingUsers={TRatingUsers}
+                        user_id={userProgress.userId}
+                        allClasses={allClasses}
+                        allClassHW={allClassHW}
+                        allUsers={allUsers}
+                        all_t_lessonProgress={all_t_lessonProgress}
+                        this_class_id={userProgress.classId}
+                        questLessonIds={questLessonIds}
+                    />
+                </div>
             </FeedWrapper>
         </div>
     );

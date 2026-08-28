@@ -1,7 +1,6 @@
 'use client'
 
 import Image from "next/image"
-import { Check } from "lucide-react"
 
 type Props = {
     missedCIds: number[]
@@ -14,27 +13,24 @@ export const HwTopBanner = ({
 }: Props) => {
 
     if (variant === 'trainer') {
+        // Пустое ДЗ здесь никак не показываем (раньше был зелёный баннер
+        // на белом фоне — не в тон тёмной теме тренажёра, просто убрали).
+        if (missedCIds.length === 0) return null
+
         return (
             <div className="mx-auto w-fit max-w-[280px]">
-                {missedCIds.length > 0 ? (
-                    <div className="flex items-center gap-3 rounded-xl border border-[#3A464E] bg-[#151F23] shadow-sm px-4 py-3">
-                        <Image
-                            src="/hwSvgs/friesW.svg"
-                            height={36}
-                            width={36}
-                            alt="Домашнее задание"
-                        />
-                        <div className="text-left">
-                            <p className="text-sm font-bold text-amber-600">ДЗ: реши {missedCIds.length}</p>
-                            <p className="text-xs text-slate-400">Не пропусти дедлайн</p>
-                        </div>
+                <div className="flex items-center gap-3 rounded-xl border border-[#3A464E] bg-[#151F23] shadow-sm px-4 py-3">
+                    <Image
+                        src="/hwSvgs/friesW.svg"
+                        height={36}
+                        width={36}
+                        alt="Домашнее задание"
+                    />
+                    <div className="text-left">
+                        <p className="text-sm font-bold text-amber-600">ДЗ: реши {missedCIds.length}</p>
+                        <p className="text-xs text-slate-400">Не пропусти дедлайн</p>
                     </div>
-                ) : (
-                    <div className="flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-                        <Check className="h-4 w-4 text-emerald-500" />
-                        <p className="text-sm font-bold text-emerald-600">ДЗ выполнено</p>
-                    </div>
-                )}
+                </div>
             </div>
         )
     }
