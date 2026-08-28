@@ -244,6 +244,7 @@ export default function TQuiz({
       // напрямую и переходят к следующему вопросу автоматически.
       const isSelectThenSubmitType = questions[currentQuestionIndex].questionType === 'ASSIST'
         || questions[currentQuestionIndex].questionType === 'INSERT'
+        || questions[currentQuestionIndex].questionType === 'SCROLL'
 
       let answerIsRight = false
       isSelectThenSubmitType

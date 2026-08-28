@@ -12,7 +12,7 @@ import Image from "next/image"
 import { QuestionType } from "@/app/t-lesson/[t_lessonId]/page"
 import { TypeAssist } from "@/app/t-lesson/[t_lessonId]/type-assist"
 import { TypeInsert } from "@/app/t-lesson/[t_lessonId]/type-insert"
-import { TypeMemory } from "@/app/t-lesson/[t_lessonId]/type-memory"
+import { TypeScroll } from "@/app/t-lesson/[t_lessonId]/type-scroll"
 import { TypeSlider } from "@/app/t-lesson/[t_lessonId]/type-slider"
 import { TypeConnect } from "@/app/t-lesson/[t_lessonId]/type-connect"
 import { TypeWorkbook } from "@/app/t-lesson/[t_lessonId]/type-workbook"
@@ -225,14 +225,25 @@ export default function TrainerQuestion({
             isAnswerCorrect={answerState === "correct"}
           />
 
+        case "SCROLL":
+          return <TypeScroll
+            question={question}
+            onAnswer={onAnswer}
+            onOptionSelected={handleAssistOptionSelected}
+            isAnswerChecked={answerState === "correct" || answerState === "incorrect"}
+            isAnswerCorrect={answerState === "correct"}
+          />
+
         case "SLIDER":
           return <TypeSlider questions={questions} question={question} onAnswer={onAnswer} />
 
         case "CONNECT":
           return <TypeConnect question={question} onAnswer={onAnswer} onAllPairsMatched={handleAllPairsMatched} />
 
-        case "MEMORY":
-          return <TypeMemory question={question} onAnswer={onAnswer} onAllPairsMatched={handleAllPairsMatched} />
+        // MEMORY отключён (пользователь: "душный" тип, не вызывает приятных
+        // эмоций) — компонент type-memory.tsx оставлен нетронутым в
+        // репозитории (красиво реализован, может понадобится переосмыслить
+        // позже), просто больше не рендерится и не входит в ACStype в page.tsx.
 
         case "WORKBOOK":
           return <TypeWorkbook question={question.question} options={question.options} />
@@ -442,7 +453,7 @@ export default function TrainerQuestion({
               // ASSIST и INSERT — двухшаговый флоу: сначала выбор варианта
               // (answerState === "selected"), потом отдельный клик "далее"/
               // "понятно" на уже проверенный ответ, без повторной отправки.
-              const isSelectThenSubmitType = question.questionType === "ASSIST" || question.questionType === "INSERT"
+              const isSelectThenSubmitType = question.questionType === "ASSIST" || question.questionType === "INSERT" || question.questionType === "SCROLL"
 
               if (isSelectThenSubmitType && answerState === "selected" && selectedAssistAnswer) {
                 onAnswer(selectedAssistAnswer)

@@ -27,9 +27,9 @@ export interface SuperType {
 
 // ===== ENUMS =====
 
-// INSERT/MEMORY — только рендер-типы для M_ASC (как уже ASSIST/CONNECT),
+// INSERT/SCROLL — только рендер-типы для M_ASC (как уже ASSIST/CONNECT),
 // в реальный Postgres-enum (t_challengesEnum ниже) никогда не пишутся.
-export type allTypesCT = "M_ASC" | "SELECT" | "ASSIST" | "CONNECT" | "SLIDER" | "CONSTRUCT" | "WORKBOOK" | "R ASSIST" | "R CONNECT" | "R SLIDER" | "GEOSIN" | "RUSSIANDICTANT" | "SWIPE" | "KEYBOARD" | "INSERT" | "MEMORY";
+export type allTypesCT = "M_ASC" | "SELECT" | "ASSIST" | "CONNECT" | "SLIDER" | "CONSTRUCT" | "WORKBOOK" | "R ASSIST" | "R CONNECT" | "R SLIDER" | "GEOSIN" | "RUSSIANDICTANT" | "SWIPE" | "KEYBOARD" | "INSERT" | "SCROLL";
 
 export const challengesEnum = pgEnum("type", [
 	"M_ASC", "SELECT", "ASSIST", "CONNECT", "SLIDER", "CONSTRUCT", "WORKBOOK",

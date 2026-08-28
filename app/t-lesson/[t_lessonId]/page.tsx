@@ -29,7 +29,8 @@ export type QuestionType = {
     difficulty: string,
     // Только для INSERT — формула с пропущенной буквой (\boxed{\phantom{X}}).
     blankedFormula?: string,
-    // Только для MEMORY — перемешанные карточки (пара: подпись переменной ↔ формула).
+    // Только для (отключённого) MEMORY — оставлено ради type-memory.tsx,
+    // который не рендерится, но не удалён (может пригодиться позже).
     memoryCards?: { id: number; pairId: number; text: string }[],
 }
 
@@ -115,7 +116,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         return shuffled.slice(0, count);
     }
 
-    const ACStype = ['ASSIST', 'CONNECT', 'INSERT', 'SWIPE', 'MEMORY'] as const;
+    const ACStype = ['ASSIST', 'CONNECT', 'INSERT', 'SWIPE', 'SCROLL'] as const;
     type ACStype = typeof ACStype[number];
 
     // Фильтруем только M_ASC типы
@@ -215,38 +216,33 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                     timeLimit: 30,
                 };
             }
-            else if (randomASCtype === 'MEMORY' as const) {
-                const otherQuestionsForMemory = t_lesson.t_challenges.filter((el) =>
+            else if (randomASCtype === 'SCROLL' as const) {
+                const otherQuestionsForScroll = t_lesson.t_challenges.filter((el) =>
                     el.type === "M_ASC" && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
                 );
-                const threeOthers = getRandomElements(otherQuestionsForMemory, 3);
+                const twoWrongQuestions = getRandomElements(otherQuestionsForScroll, 2);
 
-                // Не с чем составить пары — откатываемся на ASSIST.
-                if (threeOthers.length === 0) {
+                // Меньше 2 обманок в уроке — откатываемся на ASSIST.
+                if (twoWrongQuestions.length < 2) {
                     return buildAssistQuestion(t_challenge);
                 }
 
-                const pairChallenges = [t_challenge, ...threeOthers];
-                const memoryCards = ShuffleTS(
-                    pairChallenges.flatMap((ch, pairId) => ([
-                        { id: ch.id * 10 + 1, pairId, text: ch.question },
-                        { id: ch.id * 10 + 2, pairId, text: ch.t_challengeOptions[0]?.text || '' },
-                    ]))
-                );
-
                 return {
-                    questionType: 'MEMORY' as const,
-                    question: 'Найди пары',
+                    questionType: 'SCROLL' as const,
+                    question: t_challenge.question,
                     imageSrc: t_challenge.imageSrc,
-                    options: [],
+                    options: Shuffle2([
+                        t_challenge.t_challengeOptions[0]?.text || '',
+                        twoWrongQuestions[0].t_challengeOptions[0]?.text || '',
+                        twoWrongQuestions[1].t_challengeOptions[0]?.text || '',
+                    ]),
                     numRans: '1',
                     optionsQ: [],
                     optionsA: [],
                     optionsConstructRight: [],
                     difficulty: t_challenge.difficulty,
                     correctAnswer: t_challenge.t_challengeOptions[0]?.text || '',
-                    memoryCards,
-                    timeLimit: 60,
+                    timeLimit: 30,
                 };
             }
             else {
