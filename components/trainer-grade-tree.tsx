@@ -106,7 +106,7 @@ export const TrainerGradeTree = ({ topics }: Props) => {
 
                                                     return (
                                                         <React.Fragment key={s.id}>
-                                                            <div style={{ gridColumn: col }} className="flex justify-center">
+                                                            <div style={{ gridColumn: col, gridRow: 1 }} className="flex justify-center">
                                                                 {unlocked ? (
                                                                     <Link
                                                                         href={`/t-lesson/${s.id}${isLastOverall ? '?boss=1' : ''}`}
@@ -140,6 +140,7 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                                 <div
                                                                     style={{
                                                                         gridColumn: Math.min(col, boxColumn(j + 1)) + 1,
+                                                                        gridRow: 1,
                                                                         backgroundColor: done ? '#78C93C' : '#3A464E',
                                                                     }}
                                                                     className="h-0.5"
@@ -153,7 +154,7 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                 <div className={`flex ${isReversed ? 'justify-start' : 'justify-end'}`}>
                                                     <div className="w-9 flex justify-center">
                                                         <div
-                                                            className="w-0.5 h-3"
+                                                            className="w-0.5 h-6"
                                                             style={{ backgroundColor: (row[row.length - 1].percentage >= UNLOCK_THRESHOLD) ? '#78C93C' : '#3A464E' }}
                                                         />
                                                     </div>
