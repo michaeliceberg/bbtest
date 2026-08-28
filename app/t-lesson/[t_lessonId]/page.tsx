@@ -27,8 +27,15 @@ export type QuestionType = {
     correctAnswer: string,
     timeLimit: number,
     difficulty: string,
-    // Только для INSERT — формула с пропущенной буквой (\boxed{\phantom{X}}).
+    // Только для INSERT — формула с 1-2 пропущенными буквами
+    // (\boxed{\phantom{1}}, \boxed{\phantom{2}}).
     blankedFormula?: string,
+    // Только для INSERT — какие буквы верные (длина 1 или 2, порядок —
+    // слева направо по пропускам в формуле). correctAnswer при этом —
+    // отсортированный join через запятую этого же массива (см.
+    // lib/formulaLetters.ts — при 2 пропусках порядок сомножителей
+    // неважен, поэтому сравнение ответа идёт как множество, не позиционно).
+    insertCorrectLetters?: string[],
     // Только для (отключённого) MEMORY — оставлено ради type-memory.tsx,
     // который не рендерится, но не удалён (может пригодиться позже).
     memoryCards?: { id: number; pairId: number; text: string }[],
@@ -164,9 +171,14 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 const siblingChallenges = t_lesson.t_challenges.filter((el) =>
                     el.type === "M_ASC" && el.id !== t_challenge.id
                 );
-                const insertBlank = pickInsertBlank(t_challenge, siblingChallenges);
+                // Усложнённая версия (2 пропуска вместо 1) — примерно
+                // в 40% случаев; pickInsertBlank сам тихо откатится на 1
+                // пропуск, если в формуле нет подходящего слитного
+                // произведения из ≥2 букв или не хватает обманок под 2.
+                const wantDoubleBlank = Math.random() < 0.4;
+                const insertBlank = pickInsertBlank(t_challenge, siblingChallenges, wantDoubleBlank);
 
-                // Формула без подходящей буквы или без 3 обманок в уроке —
+                // Формула без подходящей буквы или без обманок в уроке —
                 // откатываемся на обычный ASSIST для этой задачи.
                 if (!insertBlank) {
                     return buildAssistQuestion(t_challenge);
@@ -176,14 +188,18 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                     questionType: 'INSERT' as const,
                     question: t_challenge.question,
                     imageSrc: t_challenge.imageSrc,
-                    options: Shuffle2([insertBlank.correctLetter, ...insertBlank.distractorLetters]),
+                    options: Shuffle2([...insertBlank.correctLetters, ...insertBlank.distractorLetters]),
                     numRans: '1',
                     optionsQ: [],
                     optionsA: [],
                     optionsConstructRight: [],
                     difficulty: t_challenge.difficulty,
-                    correctAnswer: insertBlank.correctLetter,
+                    // Отсортированный join, а не позиционное сравнение — 2
+                    // загаданные буквы всегда из одного произведения, порядок
+                    // сомножителей не важен (mgh = hgm).
+                    correctAnswer: [...insertBlank.correctLetters].sort().join(','),
                     blankedFormula: insertBlank.blankedFormula,
+                    insertCorrectLetters: insertBlank.correctLetters,
                     timeLimit: 40,
                 };
             }
