@@ -28,7 +28,6 @@ export function AddLessonModal({
         body: JSON.stringify({
           unitId,
           title: title.trim(),
-          order: 1,
         }),
       })
 

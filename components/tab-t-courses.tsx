@@ -194,7 +194,14 @@ export const TabTCourses = ({
                     // (t_lesson, обычно 4) ВНУТРИ темы открываются по порядку,
                     // по мере тренировки именно этой темы (см. TrainerGradeTree).
                     const topics: SkillTopic[] = t_units.filter(u => u.t_courseId === t_course.id).map((t_unit) => {
-                        const stages = t_unit.t_lessons.map((t_lesson) => ({
+                        // Раньше не сортировалось вообще — порядок этапов
+                        // (в т.ч. "какой из них последний-босс" и раскладка
+                        // змейкой) держался на случайном порядке возврата
+                        // БД, а не на поле order, которое для этого и
+                        // существует. Обычно совпадало (Postgres часто
+                        // возвращает строки по id), но не гарантированно.
+                        const sortedLessons = [...t_unit.t_lessons].sort((a, b) => a.order - b.order)
+                        const stages = sortedLessons.map((t_lesson) => ({
                             id: t_lesson.id,
                             percentage: Math.round(GetTLessonStat(t_lessonProgress, t_lesson.id).totalPercentDR * 100),
                         }))

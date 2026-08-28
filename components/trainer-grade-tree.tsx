@@ -12,6 +12,7 @@
 
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import { Egg, Shield, Sword, Crown, Gift } from 'lucide-react';
 
@@ -67,80 +68,93 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                             <div className="flex flex-col">
                                 {chunkStages(topic.stages, COLUMNS_PER_ROW).map((row, rowIdx, allRows) => {
                                     const rowStartIdx = rowIdx * COLUMNS_PER_ROW;
-                                    // Нечётный ряд идёт справа налево (змейка) — весь
-                                    // плоский список [бокс, линия, бокс, линия, ...]
-                                    // строится в обычном порядке (важно для верного
-                                    // "done"-цвета соединителей), а затем целиком
-                                    // разворачивается для отрисовки — так каждая линия
-                                    // остаётся строго между своей парой боксов.
                                     const isReversed = rowIdx % 2 === 1;
                                     const isLastRow = rowIdx === allRows.length - 1;
 
-                                    const nodes = row.flatMap((s, j) => {
-                                        const trueIdx = rowStartIdx + j;
-                                        const unlocked = trueIdx === 0 || topic.stages[trueIdx - 1].percentage >= UNLOCK_THRESHOLD;
-                                        const done = s.percentage >= UNLOCK_THRESHOLD;
-                                        const isLastOverall = trueIdx === topic.stages.length - 1;
-                                        const Icon = STAGE_ICONS[trueIdx % STAGE_ICONS.length];
+                                    // Фиксированная сетка на COLUMNS_PER_ROW колонок
+                                    // боксов, между ними — колонки-"щели" под линию
+                                    // соединителя (бокс,щель,бокс,щель,...,бокс).
+                                    // Раньше ряд был обычным flex — при НЕПОЛНОМ
+                                    // ряду (последняя тема, этапов не кратно 4) он
+                                    // просто сжимался до фактического числа боксов
+                                    // и растягивался на всю ширину карточки, из-за
+                                    // чего элементы уезжали не в свои колонки. Сетка
+                                    // с явными колонками, где недостающие боксы —
+                                    // просто пустая ячейка, решает это: у каждого
+                                    // этапа всегда его "настоящая" колонка, даже
+                                    // если ряд не заполнен целиком.
+                                    const gridTemplate = Array.from({ length: COLUMNS_PER_ROW }, () => '36px').join(' 1fr ');
 
-                                        const box = (
-                                            <div key={`box-${s.id}`} className="flex-shrink-0">
-                                                {unlocked ? (
-                                                    <Link
-                                                        href={`/t-lesson/${s.id}${isLastOverall ? '?boss=1' : ''}`}
-                                                        className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
-                                                        style={{
-                                                            backgroundColor: done ? '#5FA12F' : '#232F35',
-                                                            border: `2px solid ${done ? '#78C93C' : '#4897D1'}`,
-                                                        }}
-                                                    >
-                                                        <Icon className="w-4 h-4" style={{ color: done ? '#16240C' : '#4897D1' }} />
-                                                        {isLastOverall && done && (
-                                                            <span
-                                                                className="absolute -top-2 -right-2 w-4 h-4 rounded flex items-center justify-center"
-                                                                style={{ backgroundColor: '#EF9F27' }}
-                                                            >
-                                                                <Gift className="w-2.5 h-2.5" style={{ color: '#412402' }} />
-                                                            </span>
-                                                        )}
-                                                    </Link>
-                                                ) : (
-                                                    <div
-                                                        className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
-                                                        style={{ border: '2px solid #3A464E' }}
-                                                    >
-                                                        <Icon className="w-4 h-4" style={{ color: '#56646C' }} />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-
-                                        if (j === row.length - 1) return [box];
-
-                                        const line = (
-                                            <div
-                                                key={`line-${s.id}`}
-                                                className="flex-1 h-0.5 mx-0.5"
-                                                style={{ backgroundColor: done ? '#78C93C' : '#3A464E' }}
-                                            />
-                                        );
-                                        return [box, line];
-                                    });
-
-                                    const rowEndStage = row[row.length - 1];
-                                    const rowEndDone = rowEndStage.percentage >= UNLOCK_THRESHOLD;
+                                    // Колонка бокса под порядковым номером внутри
+                                    // ряда j (0-индекс) — при развороте ряда змейкой
+                                    // считаем от конца, независимо от того, сколько
+                                    // боксов реально есть в ряду (иначе неполный
+                                    // развёрнутый ряд не дотягивался бы до правого
+                                    // края, где должен продолжать предыдущий ряд).
+                                    const boxColumn = (j: number) => (isReversed ? COLUMNS_PER_ROW - 1 - j : j) * 2 + 1;
 
                                     return (
                                         <div key={rowIdx}>
-                                            <div className="flex items-center">
-                                                {isReversed ? [...nodes].reverse() : nodes}
+                                            <div className="grid items-center" style={{ gridTemplateColumns: gridTemplate }}>
+                                                {row.map((s, j) => {
+                                                    const trueIdx = rowStartIdx + j;
+                                                    const unlocked = trueIdx === 0 || topic.stages[trueIdx - 1].percentage >= UNLOCK_THRESHOLD;
+                                                    const done = s.percentage >= UNLOCK_THRESHOLD;
+                                                    const isLastOverall = trueIdx === topic.stages.length - 1;
+                                                    const Icon = STAGE_ICONS[trueIdx % STAGE_ICONS.length];
+                                                    const col = boxColumn(j);
+
+                                                    return (
+                                                        <React.Fragment key={s.id}>
+                                                            <div style={{ gridColumn: col }} className="flex justify-center">
+                                                                {unlocked ? (
+                                                                    <Link
+                                                                        href={`/t-lesson/${s.id}${isLastOverall ? '?boss=1' : ''}`}
+                                                                        className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
+                                                                        style={{
+                                                                            backgroundColor: done ? '#5FA12F' : '#232F35',
+                                                                            border: `2px solid ${done ? '#78C93C' : '#4897D1'}`,
+                                                                        }}
+                                                                    >
+                                                                        <Icon className="w-4 h-4" style={{ color: done ? '#16240C' : '#4897D1' }} />
+                                                                        {isLastOverall && done && (
+                                                                            <span
+                                                                                className="absolute -top-2 -right-2 w-4 h-4 rounded flex items-center justify-center"
+                                                                                style={{ backgroundColor: '#EF9F27' }}
+                                                                            >
+                                                                                <Gift className="w-2.5 h-2.5" style={{ color: '#412402' }} />
+                                                                            </span>
+                                                                        )}
+                                                                    </Link>
+                                                                ) : (
+                                                                    <div
+                                                                        className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
+                                                                        style={{ border: '2px solid #3A464E' }}
+                                                                    >
+                                                                        <Icon className="w-4 h-4" style={{ color: '#56646C' }} />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            {j < row.length - 1 && (
+                                                                <div
+                                                                    style={{
+                                                                        gridColumn: Math.min(col, boxColumn(j + 1)) + 1,
+                                                                        backgroundColor: done ? '#78C93C' : '#3A464E',
+                                                                    }}
+                                                                    className="h-0.5"
+                                                                />
+                                                            )}
+                                                        </React.Fragment>
+                                                    );
+                                                })}
                                             </div>
                                             {!isLastRow && (
                                                 <div className={`flex ${isReversed ? 'justify-start' : 'justify-end'}`}>
                                                     <div className="w-9 flex justify-center">
                                                         <div
                                                             className="w-0.5 h-3"
-                                                            style={{ backgroundColor: rowEndDone ? '#78C93C' : '#3A464E' }}
+                                                            style={{ backgroundColor: (row[row.length - 1].percentage >= UNLOCK_THRESHOLD) ? '#78C93C' : '#3A464E' }}
                                                         />
                                                     </div>
                                                 </div>

@@ -1,6 +1,6 @@
 import db from "@/db/drizzle"
 import { t_lessons } from "@/db/schema"
-import { eq } from "drizzle-orm"
+import { eq, max } from "drizzle-orm"
 
 export async function GET(req: Request) {
   try {
@@ -32,12 +32,25 @@ export async function POST(req: Request) {
       return Response.json({ error: "Missing required fields" }, { status: 400 })
     }
 
+    // Без явного order (обычный кейс — форма "Добавить урок" его не
+    // присылает) новый этап встаёт в конец, а не всегда на order=1: было
+    // так, что любой новый этап рисовался сразу вторым (внутри существующих),
+    // а не последним, ломая и порядок этапов, и "змейку" карты скиллов.
+    let resolvedOrder = order
+    if (!resolvedOrder) {
+      const [{ maxOrder }] = await db
+        .select({ maxOrder: max(t_lessons.order) })
+        .from(t_lessons)
+        .where(eq(t_lessons.t_unitId, unitId))
+      resolvedOrder = (maxOrder ?? 0) + 1
+    }
+
     const [lesson] = await db
       .insert(t_lessons)
       .values({
         t_unitId: unitId,
         title: title.trim(),
-        order: order || 1,
+        order: resolvedOrder,
       })
       .returning({ id: t_lessons.id })
 
