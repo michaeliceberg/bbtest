@@ -39,6 +39,12 @@ export type QuestionType = {
     // Только для (отключённого) MEMORY — оставлено ради type-memory.tsx,
     // который не рендерится, но не удалён (может пригодиться позже).
     memoryCards?: { id: number; pairId: number; text: string }[],
+    // Внутреннее поле для сортировки "от простого к сложному" (см. ниже
+    // у ShuffleTS/.sort) — 0 = словарный вопрос (что такое/единица
+    // измерения, обычный текст-ответ), 1 = формула (LaTeX-ответ). Не
+    // используется рендер-компонентами, только порядком вопросов внутри
+    // урока.
+    contentTier?: number,
 }
 
 type Props = {
@@ -216,6 +222,14 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             timeLimit: 40,
         };
     };
+
+    // Индекс-выровненный со lessonChallenges массив — 0 = словарный вопрос
+    // (обычный текст-ответ), 1 = формула (LaTeX-ответ). Считается ДО
+    // основного .map() по тому же принципу, что sameAnswerGenre/
+    // looksLikeFormula выше, и приклеивается к готовым QuestionType вторым
+    // .map() после (см. ниже) — так не пришлось трогать ни одну из веток
+    // ASSIST/INSERT/SWIPE/SCROLL/CONNECT ниже.
+    const contentTiers = lessonChallenges.map((c) => looksLikeFormula(c.t_challengeOptions[0]?.text || '') ? 1 : 0);
 
     questions = lessonChallenges.map((t_challenge, index): QuestionType | undefined => {
         if (isMAscLike(t_challenge.type)) {
@@ -438,7 +452,8 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 timeLimit: 25,
             };
         }
-    }).filter((q): q is QuestionType => q !== undefined);
+    }).map((q, idx): QuestionType | undefined => q ? { ...q, contentTier: contentTiers[idx] } : q)
+      .filter((q): q is QuestionType => q !== undefined);
 
     // 🔥 ДОБАВЛЕНА ПРОВЕРКА: если questions пустой или первый вопрос undefined
     if (!questions || questions.length === 0 || !questions[0]) {
@@ -447,15 +462,22 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
 
     // ЕСЛИ ТИП GEOSIN , то НЕ шафлим, а идем в порядке
     if (questions[0].questionType !== 'GEOSIN') {
-        // Сложность по возрастанию: сначала "узнай" (ASSIST/CONNECT), потом
-        // SWIPE/SCROLL, и последним — INSERT (единственный тип, где надо
-        // самому вспомнить и вписать букву, не просто узнать среди
-        // готовых вариантов). Сортировка после шаффла (Array.sort
-        // стабильна) — порядок УРОВНЕЙ сложности фиксирован, а порядок
-        // вопросов ВНУТРИ одного уровня всё ещё случайный при каждом
-        // заходе в урок.
+        // Сложность по возрастанию по ДВУМ осям: сначала тип КОНТЕНТА
+        // (contentTier — словарный вопрос раньше формулы, "что такое
+        // сила" раньше "F=?"), и уже ВНУТРИ каждого из них — сложность
+        // РЕНДЕРА (RENDER_DIFFICULTY_TIER — ASSIST/CONNECT проще, SWIPE/
+        // SCROLL средне, INSERT сложнее всего). contentTier — старший
+        // разряд (умножен на 10, с большим запасом над макс. рендер-
+        // тиром 2), поэтому ЛЮБОЙ словарный вопрос идёт раньше ЛЮБОГО
+        // формульного, а INSERT (всегда формула на практике, см.
+        // lib/formulaLetters.ts) естественно оказывается в самом конце —
+        // никакого спецкейса под него не потребовалось. Сортировка после
+        // шаффла (Array.sort стабильна) — порядок уровней зафиксирован, а
+        // порядок вопросов ВНУТРИ одного уровня всё ещё случайный при
+        // каждом заходе в урок.
+        const combinedTier = (q: QuestionType) => (q.contentTier ?? 0) * 10 + (RENDER_DIFFICULTY_TIER[q.questionType] ?? 1);
         questions = ShuffleTS(questions)
-            .sort((a, b) => (RENDER_DIFFICULTY_TIER[a.questionType] ?? 1) - (RENDER_DIFFICULTY_TIER[b.questionType] ?? 1));
+            .sort((a, b) => combinedTier(a) - combinedTier(b));
     }
 
     // СЧИТАЕМ Статистику правильно решенных задач
