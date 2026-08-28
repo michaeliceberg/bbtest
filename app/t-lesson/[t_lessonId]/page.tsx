@@ -241,12 +241,33 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // ASSIST/INSERT/SWIPE/SCROLL/CONNECT ниже.
     const contentTiers = lessonChallenges.map((c) => looksLikeFormula(c.t_challengeOptions[0]?.text || '') ? 1 : 0);
 
+    // Гарантированный INSERT — раньше стиль рендера выбирался чисто
+    // случайно (WEIGHTED_ASC_POOL) НЕЗАВИСИМО для каждой задачи, поэтому
+    // при 2 формулах в уроке и ~33% на INSERT шанс не увидеть его вообще
+    // ни разу за урок был больше 40% — пользователь поймал это живьём
+    // ("прошёл lesson 1, ни одной INSERT"). Явно выбираем ОДНУ
+    // формула-задачу (не словарную — INSERT для них откатывается на
+    // ASSIST, см. ниже) и принудительно рендерим её как INSERT; для
+    // остальных M_ASC-задач стиль по-прежнему случайный (в т.ч. тоже
+    // может выпасть INSERT — лишние вхождения не проблема). Если в уроке
+    // вообще нет формул (чисто словарный урок) — null, никого не форсим.
+    const formulaMAscChallengeIds = lessonChallenges
+        .filter((c) => c.type === 'M_ASC' && looksLikeFormula(c.t_challengeOptions[0]?.text || ''))
+        .map((c) => c.id);
+    const guaranteedInsertChallengeId = formulaMAscChallengeIds.length > 0
+        ? formulaMAscChallengeIds[Math.floor(Math.random() * formulaMAscChallengeIds.length)]
+        : null;
+
     questions = lessonChallenges.map((t_challenge, index): QuestionType | undefined => {
         if (isMAscLike(t_challenge.type)) {
-            // M_ASC — случайный стиль рендера; зафиксированный тип (сам
-            // t_challenge.type равен одному из ACStype) — всегда этот стиль.
+            // M_ASC — случайный стиль рендера (кроме той ОДНОЙ задачи,
+            // которой гарантирован INSERT — см. guaranteedInsertChallengeId
+            // выше); зафиксированный тип (сам t_challenge.type равен одному
+            // из ACStype) — всегда этот стиль.
             const randomASCtype: ACStype = t_challenge.type === 'M_ASC'
-                ? WEIGHTED_ASC_POOL[Math.floor(Math.random() * WEIGHTED_ASC_POOL.length)]
+                ? (t_challenge.id === guaranteedInsertChallengeId
+                    ? 'INSERT'
+                    : WEIGHTED_ASC_POOL[Math.floor(Math.random() * WEIGHTED_ASC_POOL.length)])
                 : t_challenge.type as ACStype;
 
             if (randomASCtype === 'ASSIST' as const) {
