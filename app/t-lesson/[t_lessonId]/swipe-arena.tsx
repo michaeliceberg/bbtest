@@ -93,7 +93,11 @@ export default function SwipeArena({ onAnswer, question, setLrAnswer }: Props) {
                 x.set(0)
             }, 320)
         } else {
+            // Потянули, но недостаточно (отпустили без ответа) — карточка
+            // пружинит обратно в центр, а подсказка-палец возвращается и
+            // снова начинает покачиваться, а не остаётся молча погашенной.
             animate(x, 0, { type: 'spring', stiffness: 400, damping: 28 })
+            setHasInteracted(false)
         }
 
         setIsDragging(false)

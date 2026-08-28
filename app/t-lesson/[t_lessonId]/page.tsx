@@ -132,6 +132,16 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     const ACStype = ['ASSIST', 'CONNECT', 'INSERT', 'SWIPE', 'SCROLL'] as const;
     type ACStype = typeof ACStype[number];
 
+    // INSERT (вписать букву) — по явной просьбе пользователя должен
+    // выпадать чаще остальных стилей. Отдельный ВЗВЕШЕННЫЙ пул только для
+    // случайного выбора ниже — сам ACStype (типовые проверки/isMAscLike)
+    // не трогаем. INSERT вдвое чаще ASSIST/CONNECT/SWIPE/SCROLL (2/6 ≈ 33%
+    // вместо базовых 20%); если конкретной формуле не хватает букв/обманок
+    // — pickInsertBlank всё равно тихо откатится на ASSIST (см. ниже),
+    // так что более высокий вес не может ничего сломать, только чаще
+    // пробовать.
+    const WEIGHTED_ASC_POOL: ACStype[] = ['ASSIST', 'CONNECT', 'INSERT', 'INSERT', 'SWIPE', 'SCROLL'];
+
     // "M_ASC-подобные" типы — задачи с одной формулой-ответом, отрисовываемые
     // одним из 5 рендер-стилей (ASSIST/CONNECT/INSERT/SWIPE/SCROLL). Для
     // M_ASC стиль выбирается случайно (см. randomASCtype ниже); задачу можно
@@ -236,15 +246,32 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             // M_ASC — случайный стиль рендера; зафиксированный тип (сам
             // t_challenge.type равен одному из ACStype) — всегда этот стиль.
             const randomASCtype: ACStype = t_challenge.type === 'M_ASC'
-                ? ACStype[Math.floor(Math.random() * ACStype.length)]
+                ? WEIGHTED_ASC_POOL[Math.floor(Math.random() * WEIGHTED_ASC_POOL.length)]
                 : t_challenge.type as ACStype;
 
             if (randomASCtype === 'ASSIST' as const) {
                 return buildAssistQuestion(t_challenge);
             }
             else if (randomASCtype === 'INSERT' as const) {
+                // INSERT имеет смысл только для формул (LaTeX-ответ,
+                // содержит "$") — словарный ответ вроде "Н" тоже может
+                // выглядеть как "изолированная буква" для pickInsertBlank
+                // (см. lib/formulaLetters.ts), но у него нет "$"-обёртки,
+                // и результат (\color{...}{\underset{...}{...}}) рендерится
+                // как СЫРОЙ LaTeX-текст вместо формулы — react-latex-next
+                // конвертирует в KaTeX только то, что внутри "$...$"
+                // делимитеров, а blankedFormula для такого ответа их не
+                // содержит. Баг найден пользователем живьём (испорченный
+                // текст вместо "Н" на "В чём измеряется F_тяж?"). Откат на
+                // ASSIST — тот же путь, что уже используется, когда в
+                // формуле вообще нет подходящей буквы.
+                if (!looksLikeFormula(t_challenge.t_challengeOptions[0]?.text || '')) {
+                    return buildAssistQuestion(t_challenge);
+                }
+
                 const siblingChallenges = t_lesson.t_challenges.filter((el) =>
                     isMAscLike(el.type) && el.id !== t_challenge.id
+                    && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
                 );
                 // Усложнённая версия (2 пропуска вместо 1) — примерно
                 // в 40% случаев; pickInsertBlank сам тихо откатится на 1

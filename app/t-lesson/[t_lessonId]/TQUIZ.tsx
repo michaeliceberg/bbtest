@@ -3,6 +3,7 @@
 "use client"
 
 import React, { useEffect, useState, useRef, useCallback } from "react"
+import { motion } from "framer-motion"
 import dynamic from "next/dynamic"
 import Confetti from "react-confetti"
 import { useWindowSize } from "react-use"
@@ -30,7 +31,7 @@ import { AnimatedHearts } from "@/components/AnimatedHearts"
 import { FINISH_AUDIO_SRC_LIST } from "@/constants"
 import { isCorrectAnswer } from "@/usefulFunctions"
 import { LOTTIE_START_LIST, LOTTIE_EMOTION_RIGHT_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
-import { X } from "lucide-react"
+import { X, PencilLine } from "lucide-react"
 import { useQuizAudio } from "@/app/hooks/useQuizAudio"
 import { completeTrainerQuestLesson } from "@/actions/generate-trainer-quest"
 import { ChestReward } from "@/components/ChestReward"
@@ -94,6 +95,26 @@ export default function TQuiz({
   // вызова). Ref обновляется синхронно вместе с setScore, поэтому всегда
   // актуален на момент чтения.
   const scoreRef = useRef(0)
+
+  // "Работа над ошибками" — по завершении обычного прохода, если были
+  // неверные ответы, урок не заканчивается, а повторяет именно эти
+  // вопросы новым раундом, пока пользователь не ответит на все верно
+  // (см. goToNextQuestion). mistakeQueueRef собирает ошибки ТЕКУЩЕГО
+  // раунда (первого прохода или уже раунда повтора) — очищается и снова
+  // наполняется на каждом новом раунде. Только ref (не state) — сама
+  // очередь нигде не рендерится, важно только актуальное значение сразу
+  // после handleAnswer/handleTimeout, до следующего рендера (тот же
+  // паттерн, что уже применяется для isRightListRef/scoreRef).
+  const [isReviewRound, setIsReviewRound] = useState(false)
+  const isReviewRoundRef = useRef(false)
+  const mistakeQueueRef = useRef<QuestionType[]>([])
+  // Номер раунда (0 = основной проход, 1+ = раунды повтора) — прокидывается
+  // в TrainerQuestion как roundKey: каждый раунд начинается заново с
+  // currentQuestionIndex=0, а questions.indexOf(question) в самом
+  // TrainerQuestion — это позиция в массиве, не identity вопроса, поэтому
+  // без roundKey два РАЗНЫХ вопроса на одной позиции в соседних раундах
+  // получили бы один и тот же remount-key.
+  const [roundNumber, setRoundNumber] = useState(0)
 
   const [allQuestions, setAllQuestions] = useState(questions1)
   const [numQuestionsButton, setNumQuestionsButton] = useState(0)
@@ -181,13 +202,23 @@ export default function TQuiz({
     setAnsweredQuestions(0)
     setThreeHearts(3)
     setStreak(0)
-    setIsRightList(initialState)
+    // allQuestions мог остаться на "работе над ошибками" (укороченный
+    // набор только неверных вопросов) — рестарт должен идти с ПОЛНОГО
+    // исходного набора урока, не с этого остатка. isRightList считаем от
+    // questions1.length напрямую (initialState в этот момент ещё
+    // высчитан от старого/укороченного allQuestions).
+    setAllQuestions(questions1)
+    setIsRightList(questions1.map((el, index) => index === 0 ? 3 : 0))
+    setIsReviewRound(false)
+    isReviewRoundRef.current = false
+    mistakeQueueRef.current = []
+    setRoundNumber(0)
     setFinishList([])
     setIsProcessing(false)
     processedQuestionsRef.current.clear()
     hasPlayedFinishSoundRef.current = false
     hasUpdatedQuestRef.current = false
-  }, [initialState])
+  }, [questions1])
 
   // Сбрасываем isRightPrevious при смене вопроса
   useEffect(() => {
@@ -198,30 +229,62 @@ export default function TQuiz({
     return new Promise((resolve) => setTimeout(resolve, ms))
   }, [])
 
+  // Начинает новый раунд "работы над ошибками" из накопленных за только
+  // что законченный раунд неверных ответов — общая логика для конца
+  // первого прохода и конца КАЖДОГО следующего раунда повтора.
+  const startMistakeReviewRound = useCallback(() => {
+    const nextRoundQuestions = mistakeQueueRef.current
+    mistakeQueueRef.current = []
+    setAllQuestions(nextRoundQuestions)
+    setCurrentQuestionIndex(0)
+    setIsRightList(nextRoundQuestions.map((el, index) => index === 0 ? 3 : 0))
+    setIsReviewRound(true)
+    isReviewRoundRef.current = true
+    setRoundNumber(prev => prev + 1)
+    processedQuestionsRef.current.clear()
+  }, [])
+
   const goToNextQuestion = useCallback(async () => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1)
-    } else {
-      const finalScore = scoreRef.current
-      console.log('🏁 Квиз завершён! score:', finalScore, 'questions.length:', questions.length)
-      const doneRightPercent = Math.round(finalScore / questions.length * 100)
+      return
+    }
 
-      // Если идеальный результат (все вопросы правильные), показываем сундук ПЕРЕД финальным экраном
-      if (finalScore === questions.length) {
-        console.log('✅ Показываем сундук!')
-        setShowChestReward(true)
-        // НЕ устанавливаем quizCompleted сразу - сначала показываем сундук
-      } else {
-        console.log('❌ Не показываем сундук (не все правильно)')
-        // Если не все ответы правильные - сразу показываем результаты
-        setQuizCompleted(true)
-      }
+    // Конец текущего раунда. DB-запись и решение "сундук/не сундук"
+    // считаются ТОЛЬКО по итогам первого (основного) прохода —
+    // score/finishList дальше в раундах "работы над ошибками" не
+    // трогаются (см. handleAnswer/handleTimeout), поэтому это решение
+    // корректно независимо от того, потребуется ли ещё повтор.
+    if (!isReviewRoundRef.current) {
+      const finalScore = scoreRef.current
+      console.log('🏁 Основной проход завершён! score:', finalScore, 'questions.length:', questions.length)
+      const doneRightPercent = Math.round(finalScore / questions.length * 100)
 
       await upsertTrainerLessonProgress(t_lessonId, doneRightPercent, 200, finalScore, questions.length - finalScore, stage)
         .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
       await updateQuestProgress()
+
+      // Идеальный результат — mistakeQueue по построению пуст (ни одной
+      // ошибки не было), существующий путь с сундуком не меняется.
+      if (finalScore === questions.length) {
+        console.log('✅ Показываем сундук!')
+        setShowChestReward(true)
+        return
+      }
     }
-  }, [currentQuestionIndex, questions.length, t_lessonId, updateQuestProgress])
+
+    // Остались невыученные ошибки за только что законченный раунд —
+    // "работа над ошибками" вместо завершения урока.
+    if (mistakeQueueRef.current.length > 0) {
+      console.log('📝 Работа над ошибками:', mistakeQueueRef.current.length, 'вопрос(ов)')
+      startMistakeReviewRound()
+      return
+    }
+
+    // Ошибок для повтора больше нет (либо их не было вовсе, либо "работа
+    // над ошибками" только что успешно закончилась) — финальный экран.
+    setQuizCompleted(true)
+  }, [currentQuestionIndex, questions.length, t_lessonId, updateQuestProgress, startMistakeReviewRound])
 
   const handleAnswer = useCallback(async (answer: string) => {
     // Для ASSIST: если это "next", просто переходим к следующему вопросу
@@ -283,15 +346,21 @@ export default function TQuiz({
           return newStreak
         })
 
-        setFinishList(oldArray => [...oldArray, {
-          question: questions[currentQuestionIndex].question,
-          answer: answer,
-          rightAnswer: questions[currentQuestionIndex].correctAnswer,
-          isRight: true,
-        }])
+        // finishList/score — только результат ОСНОВНОГО прохода (см.
+        // "Работа над ошибками" выше): в раундах повтора не трогаем, иначе
+        // повторно верный ответ на уже проваленный вопрос задвоил бы счёт
+        // и историю первого прохода.
+        if (!isReviewRoundRef.current) {
+          setFinishList(oldArray => [...oldArray, {
+            question: questions[currentQuestionIndex].question,
+            answer: answer,
+            rightAnswer: questions[currentQuestionIndex].correctAnswer,
+            isRight: true,
+          }])
 
-        setScore(prev => prev + 1)
-        scoreRef.current += 1
+          setScore(prev => prev + 1)
+          scoreRef.current += 1
+        }
 
         let newArr = [...(isRightListRef.current || isRightList)]
         newArr[currentQuestionIndex] = 1
@@ -311,16 +380,28 @@ export default function TQuiz({
         playIncorrectSound()
         setStreak(0)
 
-        setThreeHearts(prev => prev - 1)
+        // Вопрос уходит в очередь "работы над ошибками" ВСЕГДА (и в
+        // основном проходе, и уже внутри самого раунда повтора — так
+        // повторно проваленный вопрос снова встанет в очередь следующего
+        // раунда, а не потеряется).
+        mistakeQueueRef.current = [...mistakeQueueRef.current, questions[currentQuestionIndex]]
+
+        // Сердечки и история (finishList) — только на основном проходе.
+        // В раунде повтора жизни специально не тратятся (иначе пришлось
+        // бы отдельно разбираться, что значит "закончились жизни во время
+        // работы над ошибками" — сама механика жизней тут не нужна,
+        // достаточно продолжать до чистого результата).
+        if (!isReviewRoundRef.current) {
+          setThreeHearts(prev => prev - 1)
+          setFinishList(oldArray => [...oldArray, {
+            question: questions[currentQuestionIndex].question,
+            answer: answer,
+            rightAnswer: questions[currentQuestionIndex].correctAnswer,
+            isRight: false,
+          }])
+        }
         setIsRightPrevious(false)
         setRandomEmotionLottie(getRandomLottie(LOTTIE_EMOTION_RIGHT_LIST))
-
-        setFinishList(oldArray => [...oldArray, {
-          question: questions[currentQuestionIndex].question,
-          answer: answer,
-          rightAnswer: questions[currentQuestionIndex].correctAnswer,
-          isRight: false,
-        }])
 
         let newArr = [...(isRightListRef.current || isRightList)]
         newArr[currentQuestionIndex] = 2
@@ -334,14 +415,15 @@ export default function TQuiz({
 
         // Для ASSIST/INSERT не переходим автоматически - ждем клика на кнопку "понятно"
         if (!isSelectThenSubmitType) {
-          if (threeHearts > 1) {
+          if (isReviewRoundRef.current || threeHearts > 1) {
             await goToNextQuestion()
           } else {
             setQuizCompleted(true)
           }
         } else {
-          // Для ASSIST/INSERT - если жизней осталось 0, завершаем
-          if (threeHearts <= 1) {
+          // Для ASSIST/INSERT - если жизней осталось 0, завершаем (не в
+          // раунде повтора — там жизни не тратятся и не проверяются).
+          if (!isReviewRoundRef.current && threeHearts <= 1) {
             setQuizCompleted(true)
             await upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score, stage)
               .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
@@ -367,22 +449,30 @@ export default function TQuiz({
 
     try {
       playIncorrectSound()
-      
+
       setAnsweredQuestions(prev => prev + 1)
-      
-      const newHearts = threeHearts - 1
-      setThreeHearts(newHearts)
-      
+
+      // Таймаут — тот же "неверный ответ", вопрос уходит в очередь
+      // "работы над ошибками" (см. handleAnswer выше).
+      mistakeQueueRef.current = [...mistakeQueueRef.current, questions[currentQuestionIndex]]
+
+      // Жизни/finishList — только на основном проходе, не в раунде
+      // повтора (та же логика, что в handleAnswer).
+      let newHearts = threeHearts
+      if (!isReviewRoundRef.current) {
+        newHearts = threeHearts - 1
+        setThreeHearts(newHearts)
+        setFinishList(prev => [...prev, {
+          question: questions[currentQuestionIndex].question,
+          answer: "Время вышло",
+          rightAnswer: questions[currentQuestionIndex].correctAnswer,
+          isRight: false,
+        }])
+      }
+
       setStreak(0)
       setIsRightPrevious(false)
       setRandomEmotionLottie(getRandomLottie(LOTTIE_EMOTION_RIGHT_LIST))
-
-      setFinishList(prev => [...prev, {
-        question: questions[currentQuestionIndex].question,
-        answer: "Время вышло",
-        rightAnswer: questions[currentQuestionIndex].correctAnswer,
-        isRight: false,
-      }])
 
       const newArr = [...isRightList]
       newArr[currentQuestionIndex] = 2
@@ -390,8 +480,9 @@ export default function TQuiz({
         newArr[currentQuestionIndex + 1] = 3
       }
       setIsRightList(newArr)
+      isRightListRef.current = newArr
 
-      if (newHearts <= 0) {
+      if (!isReviewRoundRef.current && newHearts <= 0) {
         setQuizCompleted(true)
         await upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score, stage)
           .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
@@ -399,21 +490,16 @@ export default function TQuiz({
         return
       }
 
-      if (currentQuestionIndex < questions.length - 1) {
-        setCurrentQuestionIndex(prev => prev + 1)
-      } else {
-        setQuizCompleted(true)
-        const doneRightPercent = Math.round(score / questions.length * 100)
-        await upsertTrainerLessonProgress(t_lessonId, doneRightPercent, 200, score, questions.length - score, stage)
-          .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
-        await updateQuestProgress()
-      }
+      // Дальше — та же логика "конец раунда" (переход к следующему
+      // вопросу / DB-запись / работа над ошибками / завершение), что и
+      // после явного неверного ответа — см. goToNextQuestion.
+      await goToNextQuestion()
     } finally {
       setIsProcessing(false)
     }
   }, [
     isProcessing, quizCompleted, currentQuestionIndex, questions,
-    playIncorrectSound, threeHearts, score, t_lessonId, updateQuestProgress
+    playIncorrectSound, threeHearts, score, t_lessonId, updateQuestProgress, goToNextQuestion, isRightList
   ])
 
   const handleFinishLesson = useCallback(() => {
@@ -446,7 +532,12 @@ export default function TQuiz({
 
   if (quizCompleted) {
     console.log('📊 Показываем финальный экран')
-    const isPerfectScore = score === questions.length
+    // score/finishList заморожены на результатах ОСНОВНОГО прохода (см.
+    // "Работа над ошибками" выше) — но questions/questions.length к этому
+    // моменту могут указывать на последний (укороченный) раунд повтора,
+    // не на исходный набор урока. Для итогового счёта берём questions1
+    // (стабильный проп, всегда полный исходный список).
+    const isPerfectScore = score === questions1.length
     const numQuestions = finishList.length
     const numQuestionsRight = finishList.filter(el => el.isRight).length
     const message = `✅ ${userName}  ${t_lessonTitle} ${numQuestionsRight - 1} / ${numQuestions - 1}`
@@ -461,10 +552,10 @@ export default function TQuiz({
           <h2 className="text-2xl font-bold mb-4">Завершено!</h2>
           {isPerfectScore && <Confetti width={width} height={height} />}
           <p className={`text-xl ${isPerfectScore ? "text-green-600 font-bold" : ""}`}>
-            Правильно {score} из {questions.length}
+            Правильно {score} из {questions1.length}
           </p>
           <Lottie
-            animationData={score / questions.length < 0.8 ? LottieTrainerSharkFailDNO : LottieTrainerSharkFinalWin}
+            animationData={score / questions1.length < 0.8 ? LottieTrainerSharkFailDNO : LottieTrainerSharkFinalWin}
             className="h-80 w-80 mx-auto"
           />
           <Button onClick={startQuiz} className="mt-4" variant='primary'>Давай по новой</Button>
@@ -500,6 +591,19 @@ export default function TQuiz({
         />
       ) : (
         <div className="w-full max-w-xl mx-auto text-center">
+          {isReviewRound && (
+            <motion.div
+              key={isReviewRound ? 'review-banner' : 'no-banner'}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center justify-center gap-2 mb-4 py-2 px-4 mx-auto w-fit rounded-full bg-[#1B2C3D] border border-[#4A90D9]"
+            >
+              <PencilLine className="w-4 h-4 text-[#4A90D9]" />
+              <span className="text-sm font-bold text-[#4A90D9] uppercase tracking-wide">
+                Работа над ошибками
+              </span>
+            </motion.div>
+          )}
           <TrainerQuestion
             questions={questions}
             question={questions[currentQuestionIndex]}
@@ -513,6 +617,7 @@ export default function TQuiz({
             threeHearts={threeHearts}
             score={score}
             isBossStage={isBossStage}
+            roundKey={roundNumber}
           />
           <div className="mt-8">
             <AnimatedHearts hearts={threeHearts} />

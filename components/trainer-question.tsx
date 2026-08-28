@@ -58,6 +58,16 @@ interface QuestionProps {
   // не заменяет сердечки игрока (threeHearts) выше.
   score?: number,
   isBossStage?: boolean,
+
+  // Номер раунда "работы над ошибками" (0 — основной проход, 1+ — раунды
+  // повтора, см. TQUIZ.tsx). Нужен ТОЛЬКО для remount-ключа ниже:
+  // questions.indexOf(question) — это позиция в МАССИВЕ, а не identity
+  // самого вопроса, и каждый новый раунд начинается заново с индекса 0 —
+  // без roundKey два РАЗНЫХ вопроса на одной и той же позиции в двух
+  // соседних раундах получили бы одинаковый key и не пересоздали бы
+  // компонент (риск залипшего состояния, тот же класс бага, что уже
+  // чинили раньше — см. CLAUDE.md).
+  roundKey?: number,
 }
 
 export default function TrainerQuestion({
@@ -75,6 +85,7 @@ export default function TrainerQuestion({
 
   score = 0,
   isBossStage = false,
+  roundKey = 0,
 
 }: QuestionProps) {
 
@@ -397,7 +408,7 @@ export default function TrainerQuestion({
           на завершение чужой анимации — остаётся только анимация входа. */}
         <motion.div
           className="flex-1 overflow-y-auto px-4 pb-6"
-          key={questions.indexOf(question)}
+          key={`${roundKey}-${questions.indexOf(question)}`}
           initial={{ opacity: 0, x: 100 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, ease: "easeInOut" }}
