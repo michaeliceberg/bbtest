@@ -136,6 +136,31 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // задачи с любым из этих типов равноценны.
     const isMAscLike = (type: string): boolean => type === 'M_ASC' || (ACStype as readonly string[]).includes(type);
 
+    // Уровень сложности рендер-стиля — используется ниже, чтобы урок шёл
+    // от простого к сложному (см. комментарий у ShuffleTS/.sort). ASSIST/
+    // CONNECT — узнать среди готовых вариантов, проще всего; SWIPE/SCROLL —
+    // тоже узнавание, но с непривычным взаимодействием; INSERT — самому
+    // вспомнить и вписать букву, сложнее всего. Типы не из этого списка
+    // (WORKBOOK, RUSSIANDICTANT и т.п.) — по умолчанию "средний" уровень.
+    const RENDER_DIFFICULTY_TIER: Record<string, number> = {
+        ASSIST: 0, CONNECT: 0,
+        SWIPE: 1, SCROLL: 1,
+        INSERT: 2,
+    };
+
+    // Обычно у M_ASC-задачи ровно один t_challengeOptions (сам correct
+    // не проверяется — по конвенции это единственная строка). Но когда
+    // единица измерения/название неоднозначны (Дж = и работа, и энергия),
+    // на задачу может быть НЕСКОЛЬКО строк с correct=true — тогда все они
+    // склеиваются через "|" (см. usefulFunctions.isCorrectAnswer) и любая
+    // засчитывается верной. Кнопкой-опцией среди вариантов всё равно
+    // показывается только ОДНА (каноничная, [0]) — склеенный список нужен
+    // только для самой проверки правильности.
+    const getCorrectAnswerText = (t_challenge: { t_challengeOptions: { text: string; correct: boolean }[] }): string => {
+        const correctOnes = t_challenge.t_challengeOptions.filter((o) => o.correct).map((o) => o.text);
+        return (correctOnes.length > 0 ? correctOnes.join('|') : t_challenge.t_challengeOptions[0]?.text) || '';
+    };
+
     // Общий рендер ASSIST-варианта (переиспользуется и как основной тип,
     // и как fallback для INSERT, когда в формуле нет подходящей буквы —
     // см. lib/formulaLetters.ts).
@@ -157,7 +182,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             optionsA: [],
             optionsConstructRight: [],
             difficulty: t_challenge.difficulty,
-            correctAnswer: t_challenge.t_challengeOptions[0]?.text || '',
+            correctAnswer: getCorrectAnswerText(t_challenge),
             timeLimit: 40,
         };
     };
@@ -234,7 +259,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                     optionsA: [],
                     optionsConstructRight: [],
                     difficulty: t_challenge.difficulty,
-                    correctAnswer: t_challenge.t_challengeOptions[0]?.text || '',
+                    correctAnswer: getCorrectAnswerText(t_challenge),
                     timeLimit: 30,
                 };
             }
@@ -263,7 +288,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                     optionsA: [],
                     optionsConstructRight: [],
                     difficulty: t_challenge.difficulty,
-                    correctAnswer: t_challenge.t_challengeOptions[0]?.text || '',
+                    correctAnswer: getCorrectAnswerText(t_challenge),
                     timeLimit: 30,
                 };
             }
@@ -320,7 +345,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                         t_challenge.t_challengeOptions[2]?.text || ''
                     ],
                     difficulty: t_challenge.difficulty,
-                    correctAnswer: t_challenge.t_challengeOptions[0]?.text || '',
+                    correctAnswer: getCorrectAnswerText(t_challenge),
                     timeLimit: 45,
                 };
             }
@@ -384,9 +409,17 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         redirect('/trainer');
     }
 
-    // ЕСЛИ ТИП GEOSIN , то НЕ шафлим, а идем в порядке 
+    // ЕСЛИ ТИП GEOSIN , то НЕ шафлим, а идем в порядке
     if (questions[0].questionType !== 'GEOSIN') {
-        questions = ShuffleTS(questions);
+        // Сложность по возрастанию: сначала "узнай" (ASSIST/CONNECT), потом
+        // SWIPE/SCROLL, и последним — INSERT (единственный тип, где надо
+        // самому вспомнить и вписать букву, не просто узнать среди
+        // готовых вариантов). Сортировка после шаффла (Array.sort
+        // стабильна) — порядок УРОВНЕЙ сложности фиксирован, а порядок
+        // вопросов ВНУТРИ одного уровня всё ещё случайный при каждом
+        // заходе в урок.
+        questions = ShuffleTS(questions)
+            .sort((a, b) => (RENDER_DIFFICULTY_TIER[a.questionType] ?? 1) - (RENDER_DIFFICULTY_TIER[b.questionType] ?? 1));
     }
 
     // СЧИТАЕМ Статистику правильно решенных задач

@@ -33,6 +33,14 @@ const PENDING_COLOR = '#5C6B73'
 const CORRECT_COLOR = '#A1D151'
 const WRONG_COLOR = '#DC605B'
 
+// Пунктирное подчёркивание вместо сплошного \underline (KaTeX не умеет
+// dashed-линии как отдельный стиль без \trust, который react-latex-next
+// не пробрасывает) — три маленьких \rule-штриха, поставленные под
+// буквой/? через \underset. Цвет — через общий \color снаружи, он
+// каскадируется и на буквы, и на сами rule-штрихи.
+const DASH = '\\rule[0pt]{0.22em}{0.09em}'
+const DASH_ROW = `${DASH}\\mkern3mu${DASH}\\mkern3mu${DASH}`
+
 export const TypeInsert = ({
     question,
     onAnswer,
@@ -45,6 +53,14 @@ export const TypeInsert = ({
     const [filledLetters, setFilledLetters] = useState<(string | null)[]>(
         () => Array.from({ length: blankCount }, () => null)
     )
+    // Какой пропуск сейчас "целевой" для следующего клика по букве — раньше
+    // им управлял indexOf(null), из-за чего после заполнения ВСЕХ пропусков
+    // (activeBlankIndex вставал в -1) клик по любой ДРУГОЙ букве ничего не
+    // делал: приходилось сначала кликнуть по уже выбранной, чтобы её снять,
+    // и только тогда выбирать новую. Явный activeSlot всегда указывает
+    // куда именно попадёт следующий клик, поэтому переключение работает
+    // одним кликом даже когда все пропуски уже заполнены.
+    const [activeSlot, setActiveSlot] = useState(0)
     const [showResult, setShowResult] = useState(false)
 
     // Тот же паттерн, что в type-assist.tsx: эффект двунаправленный, иначе
@@ -53,27 +69,23 @@ export const TypeInsert = ({
         setShowResult(isAnswerChecked)
     }, [isAnswerChecked])
 
-    const activeBlankIndex = filledLetters.indexOf(null)
-
     const handleLetterClick = (letter: string) => {
         if (showResult) return
-
-        // Клик по уже использованной букве — снимаем её с этого пропуска,
-        // делаем его снова активным (простой "отменить выбор").
-        const filledAt = filledLetters.indexOf(letter)
-        if (filledAt !== -1) {
-            const next = [...filledLetters]
-            next[filledAt] = null
-            setFilledLetters(next)
-            onOptionSelected?.(null)
-            return
-        }
-
-        if (activeBlankIndex === -1) return // все пропуски уже заполнены
+        if (filledLetters[activeSlot] === letter) return // уже стоит в активном пропуске
 
         const next = [...filledLetters]
-        next[activeBlankIndex] = letter
+        // Если эта буква уже стоит в ДРУГОМ пропуске — освобождаем его
+        // (буква "переезжает" в активный пропуск, а не дублируется).
+        const usedAt = next.indexOf(letter)
+        if (usedAt !== -1) next[usedAt] = null
+        next[activeSlot] = letter
         setFilledLetters(next)
+
+        // Переключаемся на следующий пустой пропуск; если пустых больше
+        // нет — остаёмся на только что заполненном, чтобы повторный клик
+        // по другой букве сразу же заменял именно его.
+        const nextEmpty = next.indexOf(null)
+        setActiveSlot(nextEmpty !== -1 ? nextEmpty : activeSlot)
 
         if (next.every((l) => l !== null)) {
             // Порядок неважен — сравниваем как множество букв (см. шапку
@@ -91,7 +103,7 @@ export const TypeInsert = ({
             return correctLetters.includes(filled) ? CORRECT_COLOR : WRONG_COLOR
         }
         if (filled) return ACTIVE_COLOR
-        return i === activeBlankIndex ? ACTIVE_COLOR : PENDING_COLOR
+        return i === activeSlot ? ACTIVE_COLOR : PENDING_COLOR
     }
 
     const displayedFormula = React.useMemo(() => {
@@ -103,7 +115,7 @@ export const TypeInsert = ({
             const glyph = filled ?? '?'
             formula = formula.replace(
                 `\\boxed{\\phantom{${marker}}}`,
-                `\\underline{\\color{${color}}{${glyph}}}`
+                `\\color{${color}}{\\underset{${DASH_ROW}}{${glyph}}}`
             )
         }
         return formula
@@ -138,7 +150,7 @@ export const TypeInsert = ({
                             isSelected={isUsed}
                             isCorrect={showResult && isUsed && correctLetters.includes(option)}
                             isWrong={showResult && isUsed && !correctLetters.includes(option)}
-                            disabled={showResult || (!isUsed && activeBlankIndex === -1)}
+                            disabled={showResult}
                         />
                     )
                 })}

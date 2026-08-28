@@ -12,6 +12,7 @@ import { QuestionType } from './page'
 import { Slider, SliderTrack, SliderRange, SliderThumb } from '@radix-ui/react-slider'
 import Latex from 'react-latex-next'
 import 'katex/dist/katex.min.css';
+import { isCorrectAnswer } from '@/usefulFunctions'
 
 type Props = {
     question: QuestionType
@@ -76,7 +77,7 @@ export const TypeScroll = ({
             <div className="relative h-24 mb-2">
                 {question.options.map((option, idx) => {
                     const isSelected = selectedIndex === idx
-                    const isCorrectOption = option === question.correctAnswer
+                    const isCorrectOption = isCorrectAnswer(option, question.correctAnswer)
                     const isRightHighlight = showResult && isCorrectOption
                     const isWrongHighlight = showResult && isSelected && !isCorrectOption
 
@@ -119,23 +120,44 @@ export const TypeScroll = ({
                 })}
             </div>
 
-            <Slider
-                className="relative flex h-6 touch-none select-none items-center"
-                value={[selectedIndex]}
-                min={0}
-                max={2}
-                step={1}
-                disabled={showResult}
-                onValueChange={(val) => handleSelect(val[0])}
-            >
-                <SliderTrack className="relative h-[8px] grow rounded-full bg-[#3A464E]">
-                    <SliderRange className="absolute h-full rounded-full bg-[#4A90D9] transition-all duration-300 ease-in-out" />
-                </SliderTrack>
-                <SliderThumb
-                    className="block size-6 rounded-full bg-[#F2F7FB] shadow-[0_4px_10px] shadow-black/40 transition-all duration-300 ease-in-out focus:outline-none focus:shadow-[0_0_0_4px] focus:shadow-[#4A90D9]/40"
-                    aria-label="Выбор варианта"
+            {/* Позиция бегунка у Radix задаётся через inline-style на его
+                собственном узле, и на практике (проверено вживую) обычный
+                CSS transition на className к нему не подхватывается —
+                бегунок всё равно телепортируется, а не едет. Поэтому визуал
+                бегунка полностью свой: motion.div поверх, анимируется через
+                framer-motion (гарантированно плавно, ease-in-out 300ms).
+                Сам Radix Slider ниже оставлен только как интерактивный слой
+                (клик по треку/драг/клавиатура) — его собственная отрисовка
+                скрыта через opacity-0, но он по-прежнему реально управляет
+                selectedIndex через onValueChange. */}
+            <div className="relative h-6">
+                <div className="absolute top-1/2 left-0 right-0 h-[8px] -translate-y-1/2 rounded-full bg-[#3A464E]" />
+                <motion.div
+                    className="absolute top-1/2 left-0 h-[8px] -translate-y-1/2 rounded-full bg-[#4A90D9]"
+                    animate={{ width: TICK_POSITIONS[selectedIndex] }}
+                    transition={TRANSITION}
                 />
-            </Slider>
+                <motion.div
+                    className="absolute top-1/2 size-6 -translate-y-1/2 -translate-x-1/2 rounded-full bg-[#F2F7FB] shadow-[0_4px_10px] shadow-black/40"
+                    animate={{ left: TICK_POSITIONS[selectedIndex] }}
+                    transition={TRANSITION}
+                />
+
+                <Slider
+                    className="absolute inset-0 flex touch-none select-none items-center opacity-0"
+                    value={[selectedIndex]}
+                    min={0}
+                    max={2}
+                    step={1}
+                    disabled={showResult}
+                    onValueChange={(val) => handleSelect(val[0])}
+                >
+                    <SliderTrack className="relative h-[8px] grow rounded-full">
+                        <SliderRange className="absolute h-full rounded-full" />
+                    </SliderTrack>
+                    <SliderThumb className="block size-6 rounded-full" aria-label="Выбор варианта" />
+                </Slider>
+            </div>
         </div>
     )
 }

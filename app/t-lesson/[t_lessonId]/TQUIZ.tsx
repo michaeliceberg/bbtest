@@ -28,6 +28,7 @@ import { createEffect, StreakEffect } from "@/lib/streakEffects"
 import { useRouter, useSearchParams } from 'next/navigation'
 import { AnimatedHearts } from "@/components/AnimatedHearts"
 import { FINISH_AUDIO_SRC_LIST } from "@/constants"
+import { isCorrectAnswer } from "@/usefulFunctions"
 import { LOTTIE_START_LIST, LOTTIE_EMOTION_RIGHT_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
 import { X } from "lucide-react"
 import { useQuizAudio } from "@/app/hooks/useQuizAudio"
@@ -246,9 +247,17 @@ export default function TQuiz({
         || questions[currentQuestionIndex].questionType === 'INSERT'
         || questions[currentQuestionIndex].questionType === 'SCROLL'
 
+      // INSERT сравнивается ровно (answer — отсортированный набор букв,
+      // все обязательны, см. type-insert.tsx) — множественный "|"-ответ
+      // (см. usefulFunctions.isCorrectAnswer) для него не применим и не
+      // используется. Остальные select-then-submit типы (ASSIST/SCROLL) —
+      // через isCorrectAnswer, чтобы принимать любой из нескольких верных
+      // синонимов (например, "Дж" — и работа, и энергия).
       let answerIsRight = false
       isSelectThenSubmitType
-        ? answerIsRight = answer === questions[currentQuestionIndex].correctAnswer
+        ? answerIsRight = questions[currentQuestionIndex].questionType === 'INSERT'
+          ? answer === questions[currentQuestionIndex].correctAnswer
+          : isCorrectAnswer(answer, questions[currentQuestionIndex].correctAnswer)
         : answerIsRight = answer === "right"
 
       if (answerIsRight) {

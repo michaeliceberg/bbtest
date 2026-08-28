@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { QuestionType } from './page'
 import { AnimatedOptionButton } from '@/components/AnimatedOptionButton'
 import { motion } from 'framer-motion'
+import { isCorrectAnswer } from '@/usefulFunctions'
 
 type Props = {
     question: QuestionType
@@ -60,8 +61,8 @@ export const TypeAssist = ({
           onClick={() => handleOptionClick(option)}
           index={idx}
           isSelected={localSelected === option}
-          isCorrect={showResult && localSelected === option && option === question.correctAnswer}
-          isWrong={showResult && localSelected === option && option !== question.correctAnswer}
+          isCorrect={showResult && localSelected === option && isCorrectAnswer(option, question.correctAnswer)}
+          isWrong={showResult && localSelected === option && !isCorrectAnswer(option, question.correctAnswer)}
           disabled={showResult}
         />
       ))}

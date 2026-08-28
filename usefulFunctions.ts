@@ -54,7 +54,19 @@ export const getUserPointsHearts = (userProgress: Props) => {
 
 
 
-export const Shuffle2 = (array: string[]) => { 
+// Правильный ответ иногда неоднозначен — одна и та же единица измерения
+// бывает у нескольких величин (Дж = и работа, и энергия). В таких случаях
+// correctAnswer хранится как несколько допустимых вариантов через "|"
+// (см. CLAUDE.md, "Множественный правильный ответ"), и верным считается
+// любой из них — не пропускаем такие вопросы, а принимаем любой данный
+// правильный вариант. Для обычных (однозначных) ответов, где в
+// correctAnswer нет "|", работает как раньше — просто ===.
+export const isCorrectAnswer = (given: string | null | undefined, correctAnswer: string): boolean => {
+    if (given == null) return false
+    return correctAnswer.split('|').includes(given)
+}
+
+export const Shuffle2 = (array: string[]) => {
     for (let i = array.length - 1; i > 0; i--) { 
       const j = Math.floor(Math.random() * (i + 1)); 
       [array[i], array[j]] = [array[j], array[i]]; 

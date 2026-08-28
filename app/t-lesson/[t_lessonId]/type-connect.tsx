@@ -176,8 +176,12 @@ export const TypeConnect = ({ question, onAnswer, onAllPairsMatched }: Props) =>
                     Элементы левой и правой колонки идут парами по строкам —
                     CSS grid растягивает обе ячейки строки до высоты большей
                     из них, поэтому прямоугольники в ряд получаются соразмерными. */}
-                <div className="relative grid grid-cols-2 grid-flow-row gap-x-3 gap-y-2 items-stretch">
-                    <div className="absolute inset-y-0 left-1/2 w-px bg-[#2E3A40] -translate-x-1/2" />
+                <div className="relative grid grid-cols-2 grid-flow-row gap-x-7 gap-y-2 items-stretch">
+                    {/* Пунктирная (не сплошная) разделительная линия — чуть
+                        сильнее обособляет левый и правый столбец друг от
+                        друга, явно читается как "не одна колонка, а два
+                        конца, которые нужно соединить попарно". */}
+                    <div className="absolute inset-y-0 left-1/2 border-l-2 border-dashed border-[#3A464E] -translate-x-1/2" />
 
                     {Array.from({ length: Math.max(optionsQ.length, optionsA.length) }).map((_, rowIndex) => (
                         <React.Fragment key={rowIndex}>

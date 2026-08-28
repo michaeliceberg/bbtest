@@ -32,7 +32,15 @@ const COLUMNS_PER_ROW = 4;
 export type SkillStage = {
     id: number;
     percentage: number;
+    title: string;
 };
+
+// Мини-босс на промежуточном этапе ("контрольная" с миксом уже пройденных
+// формул, между обычными этапами) — тот же HP-бар-босс, что раньше был
+// только на последнем ("корона") этапе темы, просто навешивается ещё и
+// здесь. Определяется по названию урока — без миграции схемы под
+// отдельный флаг; конвенция: урок с "контрольная" в названии.
+const isReviewStage = (title: string): boolean => /контрольн/i.test(title);
 
 export type SkillTopic = {
     id: number;
@@ -101,6 +109,10 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                     const unlocked = trueIdx === 0 || topic.stages[trueIdx - 1].percentage >= UNLOCK_THRESHOLD;
                                                     const done = s.percentage >= UNLOCK_THRESHOLD;
                                                     const isLastOverall = trueIdx === topic.stages.length - 1;
+                                                    // Финальный этап темы — всегда босс; промежуточный
+                                                    // "контрольная"-урок (по названию, см. isReviewStage
+                                                    // выше) — тоже, мини-босс с миксом уже пройденных формул.
+                                                    const isBoss = isLastOverall || isReviewStage(s.title);
                                                     const Icon = STAGE_ICONS[trueIdx % STAGE_ICONS.length];
                                                     const col = boxColumn(j);
 
@@ -109,7 +121,7 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                             <div style={{ gridColumn: col, gridRow: 1 }} className="flex justify-center">
                                                                 {unlocked ? (
                                                                     <Link
-                                                                        href={`/t-lesson/${s.id}${isLastOverall ? '?boss=1' : ''}`}
+                                                                        href={`/t-lesson/${s.id}${isBoss ? '?boss=1' : ''}`}
                                                                         className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                         style={{
                                                                             backgroundColor: done ? '#5FA12F' : '#232F35',
@@ -117,7 +129,7 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                                         }}
                                                                     >
                                                                         <Icon className="w-4 h-4" style={{ color: done ? '#16240C' : '#4897D1' }} />
-                                                                        {isLastOverall && done && (
+                                                                        {isBoss && done && (
                                                                             <span
                                                                                 className="absolute -top-2 -right-2 w-4 h-4 rounded flex items-center justify-center"
                                                                                 style={{ backgroundColor: '#EF9F27' }}

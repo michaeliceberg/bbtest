@@ -204,6 +204,7 @@ export const TabTCourses = ({
                         const stages = sortedLessons.map((t_lesson) => ({
                             id: t_lesson.id,
                             percentage: Math.round(GetTLessonStat(t_lessonProgress, t_lesson.id).totalPercentDR * 100),
+                            title: t_lesson.title,
                         }))
 
                         const lessonIds = t_unit.t_lessons.map((l) => l.id)
