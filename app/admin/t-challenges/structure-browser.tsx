@@ -310,9 +310,16 @@ export function StructureBrowser() {
         {/* Панель 4: Пул задач юнита + (если выбран урок) Форма + Preview + Список */}
         <div className="flex-1 bg-[#161F23] border border-[#3A464E] rounded-lg p-4 overflow-y-auto flex flex-col gap-4">
           {selectedUnit ? (
-            <div>
+            <div className="flex-shrink-0">
               <h3 className="text-white font-bold mb-3">🔀 Пул задач юнита — перенос между этапами</h3>
-              <UnitChallengePool key={`${selectedUnit}-${poolRefreshKey}`} unitId={selectedUnit} />
+              {/* Ограничена по высоте и скроллится сама — иначе при большом
+                  количестве задач в юните этот блок растягивался без предела
+                  внутри overflow-y-auto панели, и форме "Добавить задачу"
+                  ниже (тоже на flex-1) не оставалось места: она схлопывалась
+                  до пары пикселей высоты, а текст в её полях обрезался. */}
+              <div className="max-h-[45vh] overflow-y-auto">
+                <UnitChallengePool key={`${selectedUnit}-${poolRefreshKey}`} unitId={selectedUnit} />
+              </div>
             </div>
           ) : (
             <p className="text-[#5A6A72] text-sm">Выберите юнит, чтобы увидеть пул его задач</p>
