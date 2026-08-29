@@ -47,9 +47,15 @@ export const TypeAssist = ({
     onOptionSelected?.(option)
   }
 
+  // Нечётное число вариантов (3 или 5) в 2-колоночной сетке оставляет
+  // последний элемент одиноким на полширины строки — по просьбе
+  // пользователя выглядит некрасиво. При нечётном count — один столбец
+  // (варианты друг под другом), при чётном — сетка 2 колонки, как раньше.
+  const isOddCount = question.options.length % 2 === 1
+
   return (
     <motion.div
-      className="grid grid-cols-2 gap-3 mt-8"
+      className={`grid ${isOddCount ? 'grid-cols-1' : 'grid-cols-2'} gap-3 mt-8`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.2 }}

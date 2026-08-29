@@ -397,6 +397,20 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 ));
                 const twoQuestions = getRandomElements(otherQuestions, 2);
 
+                // Меньше 2 других пар в уроке — откатываемся на ASSIST (тот
+                // же паттерн, что уже есть у SWIPE/SCROLL выше). Без этой
+                // проверки twoQuestions[1] (а при otherQuestions.length===0
+                // и twoQuestions[0] тоже) был бы undefined — optQ/optA
+                // подставлялись бы как пустая строка через "|| ''", давая
+                // кнопки с пустым текстом и id=0 у обеих недостающих пар.
+                // Клик по такой кнопке не ломался явно, но matching-логика
+                // (id=0 у нескольких "разных" пар сразу) никогда не могла
+                // засчитать все 3 пары собранными — "ответить" оставался
+                // заблокирован навсегда. Баг найден пользователем живьём.
+                if (twoQuestions.length < 2) {
+                    return buildAssistQuestion(t_challenge);
+                }
+
                 return {
                     questionType: 'CONNECT' as const,
                     question: "Соедините",
