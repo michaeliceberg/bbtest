@@ -200,6 +200,36 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     const looksLikeFormula = (text: string): boolean => text.includes('$');
     const sameAnswerGenre = (a: string, b: string): boolean => looksLikeFormula(a) === looksLikeFormula(b);
 
+    // "В чём измеряется X?" отвечает ЕДИНИЦЕЙ измерения (Н, Дж, с...), а
+    // "Что такое X?"/"Что измеряется в Y?" — НАЗВАНИЕМ величины (сила
+    // тяжести, кинетическая энергия...). Обе категории — простой текст
+    // без "$", поэтому sameAnswerGenre их не различает: без отдельной
+    // проверки единица измерения могла попасть в пул обманок для
+    // вопроса, ожидающего название величины (и наоборот) — категориальная
+    // ошибка (не влияет на корректность самой проверки ответа, но
+    // выглядит нелепо: "Дж" как вариант ответа на "Что измеряется в
+    // Дж?"). Найдено живьём при добавлении словарного слоя на
+    // энергию/импульс (2026-08-30).
+    const isUnitAnswerQuestion = (question: string): boolean => /^В чём измеряется/.test(question);
+    const sameAnswerKind = (aQuestion: string, bQuestion: string): boolean =>
+        isUnitAnswerQuestion(aQuestion) === isUnitAnswerQuestion(bQuestion);
+
+    // Предпочитаем обманки "того же рода" (см. sameAnswerKind выше), но
+    // если их в уроке не хватает на нужное количество — расширяем полным
+    // (родовым, sameAnswerGenre) пулом. Иначе в маленьких уроках, где
+    // ВСЕ "В чём измеряется" вопросы случайно делят один и тот же ответ
+    // (например два "Н" в disjunct-formulaх — оба дедуплицируются в
+    // одного представителя и исключаются как "свой собственный ответ"),
+    // строгий фильтр мог обнулить пул до нуля обманок — то есть сделать
+    // вопрос ХУЖЕ (1 вариант ответа вместо честного набора), чем до
+    // фикса категориальной ошибки. Лучше редкая обманка не того рода,
+    // чем вопрос без обманок вообще.
+    const pickPreferringKind = <T extends { t_challengeOptions: { text: string }[] }>(genrePool: T[], kindPool: T[], count: number): T[] => {
+        if (kindPool.length >= count) return getRandomElements(kindPool, count);
+        const extra = genrePool.filter((el) => !kindPool.includes(el));
+        return [...kindPool, ...getRandomElements(extra, count - kindPool.length)];
+    };
+
     // Разные challenges МОГУТ случайно иметь одинаковый текст ответа
     // (например "Что такое F_тяж?" → "сила тяжести" и "Что измеряется в
     // Н?" → "сила тяжести" как канонический [0] — два РАЗНЫХ challenge с
@@ -220,12 +250,13 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // и как fallback для INSERT, когда в формуле нет подходящей буквы —
     // см. lib/formulaLetters.ts).
     const buildAssistQuestion = (t_challenge: typeof lessonChallenges[number]): QuestionType => {
-        const other5Questions = dedupeByAnswerText(t_lesson.t_challenges.filter((el) =>
+        const other5QuestionsGenre = dedupeByAnswerText(t_lesson.t_challenges.filter((el) =>
             isMAscLike(el.type)
             && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
             && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
         ));
-        const fiveQuestions = getRandomElements(other5Questions, 5);
+        const other5QuestionsKind = other5QuestionsGenre.filter((el) => sameAnswerKind(t_challenge.question, el.question));
+        const fiveQuestions = pickPreferringKind(other5QuestionsGenre, other5QuestionsKind, 5);
         const fiveWrongOptions = fiveQuestions.map(el => el.t_challengeOptions[0]?.text || '');
         const fiveWrongOptionsPlusRight = [...fiveWrongOptions, t_challenge.t_challengeOptions[0]?.text || ''];
 
@@ -338,12 +369,13 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 };
             }
             else if (randomASCtype === 'SWIPE' as const) {
-                const otherQuestionsForSwipe = dedupeByAnswerText(t_lesson.t_challenges.filter((el) =>
+                const otherQuestionsForSwipeGenre = dedupeByAnswerText(t_lesson.t_challenges.filter((el) =>
                     isMAscLike(el.type)
                     && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
                     && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
                 ));
-                const oneWrongQuestion = getRandomElements(otherQuestionsForSwipe, 1);
+                const otherQuestionsForSwipeKind = otherQuestionsForSwipeGenre.filter((el) => sameAnswerKind(t_challenge.question, el.question));
+                const oneWrongQuestion = pickPreferringKind(otherQuestionsForSwipeGenre, otherQuestionsForSwipeKind, 1);
 
                 // Нет с чем сравнить (единственная M_ASC-задача урока) —
                 // откатываемся на ASSIST.
@@ -369,12 +401,13 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 };
             }
             else if (randomASCtype === 'SCROLL' as const) {
-                const otherQuestionsForScroll = dedupeByAnswerText(t_lesson.t_challenges.filter((el) =>
+                const otherQuestionsForScrollGenre = dedupeByAnswerText(t_lesson.t_challenges.filter((el) =>
                     isMAscLike(el.type)
                     && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
                     && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
                 ));
-                const twoWrongQuestions = getRandomElements(otherQuestionsForScroll, 2);
+                const otherQuestionsForScrollKind = otherQuestionsForScrollGenre.filter((el) => sameAnswerKind(t_challenge.question, el.question));
+                const twoWrongQuestions = pickPreferringKind(otherQuestionsForScrollGenre, otherQuestionsForScrollKind, 2);
 
                 // Меньше 2 обманок в уроке — откатываемся на ASSIST.
                 if (twoWrongQuestions.length < 2) {
@@ -401,12 +434,13 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             }
             else {
                 // randomASCtype === 'CONNECT'
-                const otherQuestions = dedupeByAnswerText(t_lesson.t_challenges.filter((el, i) =>
+                const otherQuestionsGenre = dedupeByAnswerText(t_lesson.t_challenges.filter((el, i) =>
                     isMAscLike(el.type)
                     && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
                     && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
                 ));
-                const twoQuestions = getRandomElements(otherQuestions, 2);
+                const otherQuestionsKind = otherQuestionsGenre.filter((el) => sameAnswerKind(t_challenge.question, el.question));
+                const twoQuestions = pickPreferringKind(otherQuestionsGenre, otherQuestionsKind, 2);
 
                 // Меньше 2 других пар в уроке — откатываемся на ASSIST (тот
                 // же паттерн, что уже есть у SWIPE/SCROLL выше). Без этой
