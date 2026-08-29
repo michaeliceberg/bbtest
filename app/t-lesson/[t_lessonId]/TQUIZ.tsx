@@ -688,16 +688,40 @@ export default function TQuiz({
       ) : (
         <div className="w-full max-w-xl mx-auto text-center">
           {isReviewRound && (
+            // Раньше — синяя овальная "таблетка" (rounded-full). По просьбе
+            // пользователя ("не овальная, более премиально, не синий цвет")
+            // — форма ленты-медали (clip-path с заострёнными краями вместо
+            // rounded-full) + бронзово-золотой градиент вместо синего.
+            // Лёгкий блик (shine), пробегающий один раз при появлении —
+            // тот самый "премиальный" акцент, тот же приём анимации, что
+            // уже используется в проекте (motion.div поверх статичного
+            // фона, не требует AnimatePresence).
             <motion.div
               key={isReviewRound ? 'review-banner' : 'no-banner'}
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-center gap-2 mb-4 py-2 px-4 mx-auto w-fit rounded-full bg-[#1B2C3D] border border-[#4A90D9]"
+              className="relative mb-4 mx-auto w-fit overflow-hidden"
+              style={{
+                clipPath: 'polygon(14px 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 14px 100%, 0 50%)',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.4)',
+              }}
             >
-              <PencilLine className="w-4 h-4 text-[#4A90D9]" />
-              <span className="text-sm font-bold text-[#4A90D9] uppercase tracking-wide">
-                Работа над ошибками
-              </span>
+              <div
+                className="flex items-center justify-center gap-2 py-2.5 px-8"
+                style={{ background: 'linear-gradient(135deg, #8A5A28 0%, #E0B563 45%, #8A5A28 100%)' }}
+              >
+                <PencilLine className="w-4 h-4 text-[#3A2410] relative z-10" />
+                <span className="text-sm font-black text-[#3A2410] uppercase tracking-wide relative z-10">
+                  Работа над ошибками
+                </span>
+              </div>
+              <motion.div
+                className="absolute inset-y-0 w-1/3 pointer-events-none"
+                style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent)' }}
+                initial={{ x: '-120%' }}
+                animate={{ x: '320%' }}
+                transition={{ duration: 1.1, delay: 0.3, ease: 'easeInOut' }}
+              />
             </motion.div>
           )}
           <TrainerQuestion
