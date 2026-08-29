@@ -46,6 +46,19 @@ import { ChestReward } from "@/components/ChestReward"
 // знаменателе).
 const scorableCount = (arr: QuestionType[]) => arr.filter((q) => q.questionType !== 'HOT').length
 
+// Рубежи серии правильных ответов подряд, на которые показывается
+// молния + полноэкранное поздравление (StreakLightning/
+// StreakCelebrationScreen) — в отличие от ComboBanner (маленький
+// баннер на x5/x10/...), которая не сбрасывает streak. Раньше был
+// только один рубеж (3), и закрытие поздравления сбрасывало streak в
+// 0 — из-за этого при непрерывной серии 6 подряд пользователь видел
+// один и тот же экран "3 подряд" ДВАЖДЫ (на реальных 3-м и 6-м верных
+// ответах), а не разные экраны на 3-м и 7-м. Теперь streak не
+// сбрасывается на самом поздравлении (только на неверном ответе/
+// таймауте), поэтому каждый рубеж встречается ровно один раз за
+// непрерывную серию.
+const STREAK_MILESTONES = [3, 7] as const
+
 const startButton = ['Погнали!', 'Гоу!', 'Старт!', 'Поехали!', 'Поплыли!']
 
 // Отдельный подарок ПОСЛЕ всего урока за угаданный "горячий вопрос" (см.
@@ -109,6 +122,10 @@ export default function TQuiz({
   const [combo, setCombo] = useState<number | null>(null)
   const [showLightning, setShowLightning] = useState(false)
   const [showStreakCelebration, setShowStreakCelebration] = useState(false)
+  // Какой именно рубеж серии сейчас празднуем — 3 или 7 (см.
+  // STREAK_MILESTONES ниже). Молния/экран поздравления — общие
+  // компоненты на оба рубежа, отличается только текст/акцентный цвет.
+  const [celebrationMilestone, setCelebrationMilestone] = useState(3)
   const [randomStartLottie, setRandomStartLottie] = useState(LOTTIE_START_LIST[0])
   const [randomStartButton, setRandomStartButton] = useState(startButton[0])
   const [randomEmotionLottie, setRandomEmotionLottie] = useState(LOTTIE_EMOTION_RIGHT_LIST[0])
@@ -404,7 +421,8 @@ export default function TQuiz({
 
         setStreak(prev => {
           const newStreak = prev + 1
-          if (newStreak === 3) {
+          if ((STREAK_MILESTONES as readonly number[]).includes(newStreak)) {
+            setCelebrationMilestone(newStreak)
             setShowLightning(true)
             // Показываем экран поздравления после небольшой задержки
             setTimeout(() => {
@@ -651,15 +669,19 @@ export default function TQuiz({
         isVisible={showLightning}
         onComplete={() => setShowLightning(false)}
         animationData={LottieThunderStrike}
+        count={celebrationMilestone}
       />
       <ComboBanner combo={combo} onDone={() => setCombo(null)} />
 
       {showStreakCelebration ? (
         <StreakCelebrationScreen
           animationData={LottiePaperFly}
+          milestone={celebrationMilestone}
           onNext={async () => {
             setShowStreakCelebration(false)
-            setStreak(0)
+            // Streak НЕ сбрасываем здесь — см. STREAK_MILESTONES выше:
+            // иначе следующий рубеж (7) никогда не наступит, серия
+            // сбрасывается только на неверном ответе/таймауте.
             await goToNextQuestion()
           }}
         />

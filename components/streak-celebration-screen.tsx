@@ -8,12 +8,23 @@ const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 interface StreakCelebrationScreenProps {
   animationData: any
   onNext: () => void
+  milestone: number
+}
+
+// Текст/акцент по рубежу серии (см. STREAK_MILESTONES в TQUIZ.tsx) —
+// один и тот же экран-компонент, разное содержимое, чтобы 3 и 7 подряд
+// не выглядели как повтор одного и того же поздравления.
+const MILESTONE_COPY: Record<number, { title: string, subtitle: string, accent: string }> = {
+  3: { title: 'Молодец!', subtitle: 'Три ответа подряд!', accent: '#C386F8' },
+  7: { title: 'Огонь!', subtitle: 'Семь ответов подряд!', accent: '#EF9F27' },
 }
 
 export const StreakCelebrationScreen = ({
   animationData,
   onNext,
+  milestone,
 }: StreakCelebrationScreenProps) => {
+  const copy = MILESTONE_COPY[milestone] ?? MILESTONE_COPY[3]
   return (
     <div className="min-h-screen bg-[#151F24] text-[#F2F7FB] flex flex-col">
       {/* Пустой header для выравнивания */}
@@ -50,11 +61,11 @@ export const StreakCelebrationScreen = ({
           }}
           className="text-center"
         >
-          <h2 className="text-3xl font-black text-[#C386F8] mb-4">
-            Молодец!
+          <h2 className="text-3xl font-black mb-4" style={{ color: copy.accent }}>
+            {copy.title}
           </h2>
           <p className="text-xl font-semibold text-[#F2F7FB]">
-            Три ответа подряд!
+            {copy.subtitle}
           </p>
         </motion.div>
       </div>

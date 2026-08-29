@@ -124,9 +124,24 @@ export const TypeInsert = ({
 
     return (
         <div className="mt-6">
+            {/* Анимация появления буквы в пропуске: сама буква — это часть
+                одной скомпилированной KaTeX-строки (displayedFormula), а не
+                отдельный React/DOM-узел, поэтому нацелить framer-motion
+                именно на глиф буквы нельзя без \cssId+trust, который
+                react-latex-next не пробрасывает (та же причина, по которой
+                пунктирное подчёркивание выше сделано через чистые KaTeX-
+                примитивы, см. шапку файла). Вместо этого — key на весь бокс
+                формулы, привязанный к filledLetters: при каждом клике по
+                букве React полностью пересоздаёт бокс (тот же паттерн
+                key-ремаунта, что используется в проекте вместо
+                AnimatePresence), и он проигрывает entrance-анимацию заново —
+                визуально буква "слетает" сверху с естественным замедлением
+                (spring), а не мгновенно появляется. */}
             <motion.div
-                initial={{ opacity: 0, y: -8 }}
+                key={filledLetters.join('-')}
+                initial={{ opacity: 0, y: -24 }}
                 animate={{ opacity: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 22, mass: 0.7 }}
                 className="flex items-center justify-center py-6 px-4 mb-6 bg-[#161F23] border-2 border-[#3A464E] rounded-xl text-2xl md:text-3xl text-[#F2F7FB]"
             >
                 <Latex>{displayedFormula || ''}</Latex>

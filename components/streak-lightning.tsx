@@ -9,9 +9,10 @@ interface StreakLightningProps {
   isVisible: boolean
   onComplete: () => void
   animationData: any
+  count: number
 }
 
-export const StreakLightning = ({ isVisible, onComplete, animationData }: StreakLightningProps) => {
+export const StreakLightning = ({ isVisible, onComplete, animationData, count }: StreakLightningProps) => {
   if (!isVisible) return null
 
   return (
@@ -48,7 +49,7 @@ export const StreakLightning = ({ isVisible, onComplete, animationData }: Streak
         />
       </motion.div>
 
-      {/* Текст "3 ПОДРЯД!" - bounce вместе с молнией */}
+      {/* Текст "N ПОДРЯД!" (N — рубеж серии, см. STREAK_MILESTONES в TQUIZ.tsx) - bounce вместе с молнией */}
       <motion.div
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: [0, 1.3, 1], opacity: [0, 1, 1] }}
@@ -77,7 +78,7 @@ export const StreakLightning = ({ isVisible, onComplete, animationData }: Streak
             filter: 'drop-shadow(0 0 15px rgba(255, 215, 0, 0.4))',
           }}
         >
-          3 ПОДРЯД!
+          {count} ПОДРЯД!
         </span>
       </motion.div>
     </div>
