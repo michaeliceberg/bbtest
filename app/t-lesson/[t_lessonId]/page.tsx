@@ -230,6 +230,21 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         return [...kindPool, ...getRandomElements(extra, count - kindPool.length)];
     };
 
+    // Реверс-вопрос "Что измеряется в $X$?" содержит X буквально в
+    // тексте своего же вопроса — X (сама единица) не должна быть среди
+    // вариантов ОТВЕТА на этот вопрос ("чем измеряется джоуль?" →
+    // "джоуль" бессмысленно). В отличие от sameAnswerKind (эвристика,
+    // которая мягко расширяется fallback'ом в pickPreferringKind при
+    // нехватке пула и поэтому иногда всё равно пропускает единицу,
+    // включая именно ЭТУ САМУЮ единицу) — это жёсткое правило без
+    // исключений, применяется ДО pickPreferringKind (сужает сам пул,
+    // а не фильтрует его результат, иначе оставшийся count оказался бы
+    // меньше нужного). Найдено пользователем живьём после первого
+    // фикса sameAnswerKind — тот фикс снижал ЧАСТОТУ утечки, но не
+    // исключал именно этот, самый режущий глаз случай.
+    const selfUnitToExclude = (question: string): string | undefined =>
+        question.match(/^Что измеряется в \$(.+)\$\?$/)?.[1];
+
     // Разные challenges МОГУТ случайно иметь одинаковый текст ответа
     // (например "Что такое F_тяж?" → "сила тяжести" и "Что измеряется в
     // Н?" → "сила тяжести" как канонический [0] — два РАЗНЫХ challenge с
@@ -250,9 +265,11 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // и как fallback для INSERT, когда в формуле нет подходящей буквы —
     // см. lib/formulaLetters.ts).
     const buildAssistQuestion = (t_challenge: typeof lessonChallenges[number]): QuestionType => {
+        const excludedUnit = selfUnitToExclude(t_challenge.question);
         const other5QuestionsGenre = dedupeByAnswerText(t_lesson.t_challenges.filter((el) =>
             isMAscLike(el.type)
             && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
+            && el.t_challengeOptions[0]?.text !== excludedUnit
             && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
         ));
         const other5QuestionsKind = other5QuestionsGenre.filter((el) => sameAnswerKind(t_challenge.question, el.question));
@@ -369,9 +386,11 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 };
             }
             else if (randomASCtype === 'SWIPE' as const) {
+                const excludedUnitSwipe = selfUnitToExclude(t_challenge.question);
                 const otherQuestionsForSwipeGenre = dedupeByAnswerText(t_lesson.t_challenges.filter((el) =>
                     isMAscLike(el.type)
                     && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
+                    && el.t_challengeOptions[0]?.text !== excludedUnitSwipe
                     && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
                 ));
                 const otherQuestionsForSwipeKind = otherQuestionsForSwipeGenre.filter((el) => sameAnswerKind(t_challenge.question, el.question));
@@ -401,9 +420,11 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 };
             }
             else if (randomASCtype === 'SCROLL' as const) {
+                const excludedUnitScroll = selfUnitToExclude(t_challenge.question);
                 const otherQuestionsForScrollGenre = dedupeByAnswerText(t_lesson.t_challenges.filter((el) =>
                     isMAscLike(el.type)
                     && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
+                    && el.t_challengeOptions[0]?.text !== excludedUnitScroll
                     && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
                 ));
                 const otherQuestionsForScrollKind = otherQuestionsForScrollGenre.filter((el) => sameAnswerKind(t_challenge.question, el.question));
@@ -434,9 +455,11 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             }
             else {
                 // randomASCtype === 'CONNECT'
+                const excludedUnitConnect = selfUnitToExclude(t_challenge.question);
                 const otherQuestionsGenre = dedupeByAnswerText(t_lesson.t_challenges.filter((el, i) =>
                     isMAscLike(el.type)
                     && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
+                    && el.t_challengeOptions[0]?.text !== excludedUnitConnect
                     && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
                 ));
                 const otherQuestionsKind = otherQuestionsGenre.filter((el) => sameAnswerKind(t_challenge.question, el.question));
