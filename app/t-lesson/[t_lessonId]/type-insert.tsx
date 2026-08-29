@@ -13,7 +13,7 @@
 // произведения (mgh = m·g·h), а порядок сомножителей не важен —
 // "mgh" и "hgm" одинаково верны (см. lib/formulaLetters.ts).
 
-import React, { useState } from 'react'
+import React, { useState, useRef, useLayoutEffect } from 'react'
 import { QuestionType } from './page'
 import { AnimatedOptionButton } from '@/components/AnimatedOptionButton'
 import { motion } from 'framer-motion'
@@ -32,6 +32,7 @@ const ACTIVE_COLOR = '#4A90D9'
 const PENDING_COLOR = '#5C6B73'
 const CORRECT_COLOR = '#A1D151'
 const WRONG_COLOR = '#DC605B'
+const BLANK_COLORS = [ACTIVE_COLOR, PENDING_COLOR, CORRECT_COLOR, WRONG_COLOR]
 
 // Пунктирное подчёркивание вместо сплошного \underline (KaTeX не умеет
 // dashed-линии как отдельный стиль без \trust, который react-latex-next
@@ -41,49 +42,11 @@ const WRONG_COLOR = '#DC605B'
 const DASH = '\\rule[0pt]{0.22em}{0.09em}'
 const DASH_ROW = `${DASH}\\mkern3mu${DASH}\\mkern3mu${DASH}`
 
-// Непрерывное покачивание ТЕКУЩЕГО целевого пропуска (не просто цвет —
-// пользователь явно попросил визуально показывать, какую позицию
-// заменит следующий клик по букве, особенно важно при 2 пропусках,
-// когда оба уже заполнены и неясно, что поменяется при выборе новой
-// буквы). Покачивается "?" (ещё не заполнен) ИЛИ уже подставленная
-// буква (если активный пропуск уже занят) — то же самое activeSlot,
-// что уже управляет цветом.
-//
-// Реализовано ЧИСТЫМ CSS-keyframe (см. app/globals.css,
-// .animate-insert-wobble), НЕ через framer-motion `repeat: Infinity` —
-// последнее было опробовано первым и на практике залипало на одном
-// кадре навсегда (проверено вживую: `getComputedStyle().transform`
-// возвращал один и тот же угол много секунд подряд, анимация реально
-// не крутилась, хотя framer-motion её формально запускал). CSS-анимация
-// крутится на компоузере, независимо от React-рендер-цикла компонента.
-function BlankGlyph({ glyph, color, isActive }: { glyph: string; color: string; isActive: boolean }) {
-    // Покачивание включаем только ПОСЛЕ того, как буква долетела (иначе
-    // падение и покачивание накладываются друг на друга и выглядят
-    // хаотично) — onAnimationComplete framer-motion (для entrance-
-    // анимации y/opacity, которая как раз НЕ бесконечная и поэтому не
-    // страдает от того же залипания) сигналит, что можно включать CSS-
-    // класс покачивания.
-    const [settled, setSettled] = useState(false)
-    return (
-        <motion.span
-            // key на саму букву — при КАЖДОЙ подстановке/смене буквы этого
-            // конкретного пропуска React пересоздаёт именно этот маленький
-            // узел (тот же паттерн key-ремаунта вместо AnimatePresence, что
-            // и везде в проекте) и проигрывает entrance замедленным слайдом
-            // сверху — ТОЛЬКО для этой буквы, соседние сегменты формулы не
-            // трогаются и не перерисовываются. settled сбрасывается сам
-            // собой при таком ремаунте (обычный useState на новом узле).
-            key={glyph}
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 22, mass: 0.6 }}
-            onAnimationComplete={() => setSettled(true)}
-            className={`inline-block ${settled && isActive ? 'animate-insert-wobble' : ''}`}
-        >
-            <Latex>{`$\\color{${color}}{\\underset{${DASH_ROW}}{${glyph}}}$`}</Latex>
-        </motion.span>
-    )
+const hexToRgb = (hex: string): string => {
+    const n = parseInt(hex.slice(1), 16)
+    return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`
 }
+const BLANK_COLORS_RGB = BLANK_COLORS.map(hexToRgb)
 
 export const TypeInsert = ({
     question,
@@ -150,61 +113,91 @@ export const TypeInsert = ({
         return i === activeSlot ? ACTIVE_COLOR : PENDING_COLOR
     }
 
-    // Формула — НЕ одна скомпилированная KaTeX-строка (как было раньше),
-    // а последовательность кусков: обычный (неизменный) текст формулы
-    // рендерится через <Latex> как есть, а каждый пропуск — отдельный,
-    // React-управляемый BlankGlyph-компонент того же массива. Только
-    // так можно анимировать ИМЕННО букву при подстановке: KaTeX (через
-    // react-latex-next) на каждое изменение строки перезаписывает ВЕСЬ
-    // innerHTML синхронно — ни один кусок внутри одной скомпилированной
-    // строки не переживает такую замену, значит и анимировать в ней
-    // можно только весь блок целиком (так и было сделано в первой
-    // версии — пользователь справедливо отверг: "не всю карточку, а
-    // только букву"). Разбивка на сегменты по маркеру `\boxed{\phantom{N}}`
-    // (тот же маркер, что уже кладёт lib/formulaLetters.ts в
-    // question.blankedFormula) даёт каждому пропуску СВОЙ, отдельный
-    // React-узел — react-latex-next не трогает соседние сегменты при
-    // перерисовке одного из них, поэтому framer-motion animate на
-    // BlankGlyph отвечает только за свою букву.
-    const segments = React.useMemo(() => {
-        // question.blankedFormula целиком — ОДНА пара "$...$" (чистая
-        // формула-ответ, а не текст с математикой вперемешку, как у
-        // question) — например "$ \huge \boxed{\phantom{1}}g$". Снимаем
-        // внешние $ здесь и оборачиваем КАЖДЫЙ текстовый кусок между
-        // пропусками СВОЕЙ независимой парой $...$ при рендере ниже —
-        // без этого несбалансированный одиночный "$" в изолированном
-        // фрагменте react-latex-next не распознаёт как математику и
-        // показывает его сырым текстом (баг, пойманный живьём: "$ \huge"
-        // рисовался буквально вместо перехода в math-режим).
-        let raw = (question.blankedFormula ?? '').trim()
-        if (raw.startsWith('$') && raw.endsWith('$')) raw = raw.slice(1, -1)
-        return raw.split(/\\boxed\{\\phantom\{(\d+)\}\}/)
-    }, [question.blankedFormula])
+    // Формула — ОДНА скомпилированная KaTeX-строка (не разбита на
+    // сегменты — так было в предыдущей версии, но это ЛОМАЕТ формулы,
+    // где пропуск сидит ВНУТРИ вложенной группы наравне с обычным
+    // текстом, например `\sqrt{\frac{\boxed{\phantom{1}}}{k}}`: разрыв
+    // сырой строки ровно на маркере даёт несбалансированные половинки
+    // ("\frac{" без закрытия в одном фрагменте, "}{k}}" с лишней
+    // закрывающей скобкой в другом) — баг, пойманный пользователем
+    // живьём на формуле периода колебаний (2π√(m/k)). KaTeX/react-latex-next
+    // корректно рендерит ЛЮБУЮ вложенность только когда получает формулу
+    // целиком одним вызовом — поэтому анимация "только буквы" ниже
+    // сделана НЕ через раздельные React-узлы на пропуск, а через прямой
+    // Web Animations API вызов на уже отрисованном KaTeX-узле (см.
+    // useLayoutEffect ниже) — форма формулы всегда остаётся
+    // единственным источником истины для корректности рендера.
+    const displayedFormula = React.useMemo(() => {
+        let formula = question.blankedFormula ?? ''
+        for (let i = 0; i < blankCount; i++) {
+            const marker = i + 1
+            const filled = filledLetters[i]
+            const color = blankColor(i)
+            const glyph = filled ?? '?'
+            formula = formula.replace(
+                `\\boxed{\\phantom{${marker}}}`,
+                `\\color{${color}}{\\underset{${DASH_ROW}}{${glyph}}}`
+            )
+        }
+        return formula
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [question.blankedFormula, filledLetters, showResult])
+
+    const containerRef = useRef<HTMLDivElement>(null)
+    const prevFilledRef = useRef<(string | null)[]>(filledLetters)
+
+    // Каждый пропуск — единственный узел формулы с явным инлайновым
+    // `\color{...}` (обычный текст формулы KaTeX-цвет не задаёт вообще,
+    // наследует текущий) — поэтому все "цветные" span'ы внутри контейнера,
+    // в порядке DOM (совпадает с порядком пропусков слева направо),
+    // однозначно соответствуют пропускам 0..blankCount-1, без хрупкой
+    // привязки к внутренней структуре/классам KaTeX.
+    useLayoutEffect(() => {
+        const container = containerRef.current
+        if (!container) return
+        const blankNodes = Array.from(container.querySelectorAll<HTMLElement>('[style*="color"]'))
+            .filter((el) => BLANK_COLORS_RGB.includes(el.style.color))
+
+        const prev = prevFilledRef.current
+        filledLetters.forEach((letter, i) => {
+            const node = blankNodes[i]
+            if (!node) return
+            if (letter !== prev[i]) {
+                // Буква (или "?") в этом пропуске реально изменилась —
+                // слайд сверху с естественным замедлением ТОЛЬКО на этом
+                // узле, соседние пропуски и остальная формула не
+                // затронуты (WAAPI анимирует конкретный DOM-элемент
+                // напрямую, минуя React/framer-motion — обходит и разрыв
+                // вложенности выше, и застревание repeat:Infinity, см.
+                // ниже про покачивание).
+                node.animate(
+                    [
+                        { opacity: 0, transform: 'translateY(-20px)' },
+                        { opacity: 1, transform: 'translateY(0)' },
+                    ],
+                    { duration: 420, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
+                )
+            }
+            // Покачивание активного пропуска — тот же класс, что и раньше
+            // (.animate-insert-wobble, чистый CSS @keyframes, см.
+            // app/globals.css), теперь навешивается/снимается напрямую на
+            // найденный узел, а не через React className — независимо от
+            // того, как формула скомпилирована в разметку.
+            node.classList.toggle('animate-insert-wobble', !showResult && i === activeSlot)
+        })
+        prevFilledRef.current = filledLetters
+    }, [filledLetters, activeSlot, showResult])
 
     return (
         <div className="mt-6">
-            <div className="flex items-center justify-center flex-wrap py-6 px-4 mb-6 bg-[#161F23] border-2 border-[#3A464E] rounded-xl text-2xl md:text-3xl text-[#F2F7FB]">
-                {segments.map((seg, i) => {
-                    // Чётные индексы .split() — куски обычного текста формулы
-                    // между пропусками (могут быть пустыми на краях строки).
-                    if (i % 2 === 0) {
-                        return seg ? <Latex key={`t${i}`}>{`$${seg}$`}</Latex> : null
-                    }
-                    // Нечётные — захваченный номер маркера (marker = i+1 при
-                    // вставке, см. lib/formulaLetters.ts), переводим обратно
-                    // в 0-based индекс пропуска.
-                    const blankIdx = parseInt(seg, 10) - 1
-                    const filled = filledLetters[blankIdx]
-                    return (
-                        <BlankGlyph
-                            key={`b${blankIdx}`}
-                            glyph={filled ?? '?'}
-                            color={blankColor(blankIdx)}
-                            isActive={!showResult && blankIdx === activeSlot}
-                        />
-                    )
-                })}
-            </div>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                ref={containerRef}
+                className="flex items-center justify-center py-6 px-4 mb-6 bg-[#161F23] border-2 border-[#3A464E] rounded-xl text-2xl md:text-3xl text-[#F2F7FB]"
+            >
+                <Latex>{displayedFormula || ''}</Latex>
+            </motion.div>
 
             <motion.div
                 className="grid grid-cols-2 gap-3"

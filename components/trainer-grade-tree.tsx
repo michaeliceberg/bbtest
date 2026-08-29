@@ -116,6 +116,19 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                     const Icon = STAGE_ICONS[trueIdx % STAGE_ICONS.length];
                                                     const col = boxColumn(j);
 
+                                                    // Значок босса виден ЗАРАНЕЕ, ещё до разблокировки
+                                                    // этапа (не только после прохождения, как раньше
+                                                    // делал бейдж-подарок ниже) — пользователь явно
+                                                    // попросил показывать в самой цепочке этапов, какой
+                                                    // из них будет "боем с боссом", чтобы это не было
+                                                    // сюрпризом только в момент открытия. Тот же 👹, что
+                                                    // уже используется как маскот босса в самом бою
+                                                    // (components/trainer-boss-bar.tsx) — единый визуальный
+                                                    // язык между картой этапов и экраном боя.
+                                                    const stageIcon = isBoss
+                                                        ? <span className={`text-base leading-none ${!unlocked ? 'grayscale opacity-50' : ''}`}>👹</span>
+                                                        : <Icon className="w-4 h-4" style={{ color: unlocked ? (done ? '#16240C' : '#4897D1') : '#56646C' }} />;
+
                                                     return (
                                                         <React.Fragment key={s.id}>
                                                             <div style={{ gridColumn: col, gridRow: 1 }} className="flex justify-center">
@@ -128,7 +141,7 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                                             border: `2px solid ${done ? '#78C93C' : '#4897D1'}`,
                                                                         }}
                                                                     >
-                                                                        <Icon className="w-4 h-4" style={{ color: done ? '#16240C' : '#4897D1' }} />
+                                                                        {stageIcon}
                                                                         {isBoss && done && (
                                                                             <span
                                                                                 className="absolute -top-2 -right-2 w-4 h-4 rounded flex items-center justify-center"
@@ -143,7 +156,7 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                                         className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
                                                                         style={{ border: '2px solid #3A464E' }}
                                                                     >
-                                                                        <Icon className="w-4 h-4" style={{ color: '#56646C' }} />
+                                                                        {stageIcon}
                                                                     </div>
                                                                 )}
                                                             </div>
