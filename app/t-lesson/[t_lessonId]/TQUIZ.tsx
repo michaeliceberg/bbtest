@@ -31,12 +31,55 @@ import { AnimatedHearts } from "@/components/AnimatedHearts"
 import { FINISH_AUDIO_SRC_LIST } from "@/constants"
 import { isCorrectAnswer } from "@/usefulFunctions"
 import { LOTTIE_START_LIST, LOTTIE_EMOTION_RIGHT_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
-import { X, PencilLine } from "lucide-react"
+import { X, PencilLine, Gift } from "lucide-react"
 import { useQuizAudio } from "@/app/hooks/useQuizAudio"
 import { completeTrainerQuestLesson } from "@/actions/generate-trainer-quest"
+import { awardHotQuestionReward } from "@/actions/award-hot-question-reward"
 import { ChestReward } from "@/components/ChestReward"
 
+// "Горячий вопрос" (questionType 'HOT', см. type-hot.tsx) — факультативный,
+// не входит в счёт/сердечки/работу над ошибками (см. handleAnswer). Везде,
+// где "questions.length"/"questions1.length" использовался для решения
+// "идеальный ли результат"/"сколько из скольки" — нужно считать БЕЗ него,
+// иначе даже безупречный проход всех РЕАЛЬНЫХ вопросов не засчитывался бы
+// как 100% (HOT никогда не увеличивает score, но раньше учитывался в
+// знаменателе).
+const scorableCount = (arr: QuestionType[]) => arr.filter((q) => q.questionType !== 'HOT').length
+
 const startButton = ['Погнали!', 'Гоу!', 'Старт!', 'Поехали!', 'Поплыли!']
+
+// Отдельный подарок ПОСЛЕ всего урока за угаданный "горячий вопрос" (см.
+// type-hot.tsx) — награда начисляется здесь, в момент показа финального
+// экрана, а не сразу в самом вопросе (по просьбе пользователя). Ref-guard
+// внутри самого себя (не в родителе) — этот компонент монтируется РОВНО
+// один раз за показ финального экрана, повторный awardHotQuestionReward()
+// при случайном re-render (в т.ч. React StrictMode double-invoke) не
+// нужен.
+function HotBonusPanel() {
+  const [gems, setGems] = useState<number | null>(null)
+  const awardedRef = useRef(false)
+
+  useEffect(() => {
+    if (awardedRef.current) return
+    awardedRef.current = true
+    awardHotQuestionReward()
+      .then((res) => { if (res.success) setGems(res.gems ?? 0) })
+      .catch(() => {})
+  }, [])
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      className="flex items-center justify-center gap-2 mx-auto mt-4 mb-2 w-fit px-4 py-2 rounded-full bg-[#3A2A1B] border border-[#EF9F27]"
+    >
+      <Gift className="w-5 h-5 text-[#EF9F27]" />
+      <span className="text-sm font-bold text-[#EF9F27]">
+        Бонус за горячий вопрос{gems !== null ? `: +${gems} монет` : '…'}
+      </span>
+    </motion.div>
+  )
+}
 
 type Props = {
   t_lessonId: number,
@@ -116,6 +159,13 @@ export default function TQuiz({
   // получили бы один и тот же remount-key.
   const [roundNumber, setRoundNumber] = useState(0)
 
+  // "Горячий вопрос" — угадал реальную величину с точностью до 50% (см.
+  // type-hot.tsx) → отдельный подарок ПОСЛЕ всего урока (не сразу), см.
+  // экран "Завершено!" ниже. Ref — тот же паттерн, что и у mistakeQueueRef
+  // (goToNextQuestion читает актуальное значение сразу после handleAnswer).
+  const [hotQuestionWon, setHotQuestionWon] = useState(false)
+  const hotQuestionWonRef = useRef(false)
+
   const [allQuestions, setAllQuestions] = useState(questions1)
   const [numQuestionsButton, setNumQuestionsButton] = useState(0)
   const [isRightPrevious, setIsRightPrevious] = useState<boolean | null>(null)
@@ -184,7 +234,7 @@ export default function TQuiz({
   useEffect(() => {
     if (threeHearts == 0 && !quizCompleted) {
       setQuizCompleted(true)
-      upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score, stage)
+      upsertTrainerLessonProgress(t_lessonId, 0, 0, score, scorableCount(questions) - score, stage)
         .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
         .finally(() => {
           updateQuestProgress()
@@ -218,6 +268,8 @@ export default function TQuiz({
     processedQuestionsRef.current.clear()
     hasPlayedFinishSoundRef.current = false
     hasUpdatedQuestRef.current = false
+    setHotQuestionWon(false)
+    hotQuestionWonRef.current = false
   }, [questions1])
 
   // Сбрасываем isRightPrevious при смене вопроса
@@ -257,16 +309,17 @@ export default function TQuiz({
     // корректно независимо от того, потребуется ли ещё повтор.
     if (!isReviewRoundRef.current) {
       const finalScore = scoreRef.current
-      console.log('🏁 Основной проход завершён! score:', finalScore, 'questions.length:', questions.length)
-      const doneRightPercent = Math.round(finalScore / questions.length * 100)
+      const total = scorableCount(questions)
+      console.log('🏁 Основной проход завершён! score:', finalScore, 'total (без HOT):', total)
+      const doneRightPercent = Math.round(finalScore / total * 100)
 
-      await upsertTrainerLessonProgress(t_lessonId, doneRightPercent, 200, finalScore, questions.length - finalScore, stage)
+      await upsertTrainerLessonProgress(t_lessonId, doneRightPercent, 200, finalScore, total - finalScore, stage)
         .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
       await updateQuestProgress()
 
       // Идеальный результат — mistakeQueue по построению пуст (ни одной
       // ошибки не было), существующий путь с сундуком не меняется.
-      if (finalScore === questions.length) {
+      if (finalScore === total) {
         console.log('✅ Показываем сундук!')
         setShowChestReward(true)
         return
@@ -296,6 +349,24 @@ export default function TQuiz({
     if (isProcessing || quizCompleted) return
     if (processedQuestionsRef.current.has(currentQuestionIndex)) return
     processedQuestionsRef.current.add(currentQuestionIndex)
+
+    // "Горячий вопрос" — факультативный, НЕ входит в счёт/сердечки/
+    // finishList/работу над ошибками (см. type-hot.tsx: сам компонент уже
+    // показал пользователю результат — верно/неверно, правильный ответ,
+    // конфетти — прежде чем вызвать onAnswer). Здесь только запоминаем
+    // успех (для подарка на экране "Завершено!", см. ниже) и переходим
+    // дальше отдельной, короткой веткой — ничего из основной логики ниже
+    // не должно её касаться.
+    if (questions[currentQuestionIndex].questionType === 'HOT') {
+      setIsProcessing(true)
+      if (answer === 'right') {
+        setHotQuestionWon(true)
+        hotQuestionWonRef.current = true
+      }
+      await goToNextQuestion()
+      setIsProcessing(false)
+      return
+    }
 
     setIsProcessing(true)
 
@@ -536,8 +607,10 @@ export default function TQuiz({
     // "Работа над ошибками" выше) — но questions/questions.length к этому
     // моменту могут указывать на последний (укороченный) раунд повтора,
     // не на исходный набор урока. Для итогового счёта берём questions1
-    // (стабильный проп, всегда полный исходный список).
-    const isPerfectScore = score === questions1.length
+    // (стабильный проп, всегда полный исходный список) БЕЗ "горячего
+    // вопроса" — он не входит в счёт, см. scorableCount выше.
+    const totalScorable = scorableCount(questions1)
+    const isPerfectScore = score === totalScorable
     const numQuestions = finishList.length
     const numQuestionsRight = finishList.filter(el => el.isRight).length
     const message = `✅ ${userName}  ${t_lessonTitle} ${numQuestionsRight - 1} / ${numQuestions - 1}`
@@ -550,12 +623,13 @@ export default function TQuiz({
           </h1>
           <TgSendMsgCom message={message} />
           <h2 className="text-2xl font-bold mb-4">Завершено!</h2>
-          {isPerfectScore && <Confetti width={width} height={height} />}
+          {(isPerfectScore || hotQuestionWon) && <Confetti width={width} height={height} />}
           <p className={`text-xl ${isPerfectScore ? "text-green-600 font-bold" : ""}`}>
-            Правильно {score} из {questions1.length}
+            Правильно {score} из {totalScorable}
           </p>
+          {hotQuestionWon && <HotBonusPanel />}
           <Lottie
-            animationData={score / questions1.length < 0.8 ? LottieTrainerSharkFailDNO : LottieTrainerSharkFinalWin}
+            animationData={score / totalScorable < 0.8 ? LottieTrainerSharkFailDNO : LottieTrainerSharkFinalWin}
             className="h-80 w-80 mx-auto"
           />
           <Button onClick={startQuiz} className="mt-4" variant='primary'>Давай по новой</Button>

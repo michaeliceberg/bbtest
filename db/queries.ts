@@ -10,7 +10,7 @@ import {
   // Новые таблицы
   userDailyStats, userCourseProgress,
   // Тренажер
-  t_courses, t_units, t_lessons, t_challenges, t_challengeOptions, t_lessonProgress,
+  t_courses, t_units, t_lessons, t_challenges, t_challengeOptions, t_lessonProgress, t_hot_questions,
   userHomework,
   userAchievements,
   userMines,
@@ -771,6 +771,16 @@ export const getTLesson = cache(async (t_lessonId: number) => {
 
   if (!data || !data.t_challenges) return null;
   return { ...data };
+});
+
+// "Горячий вопрос" — привязан к ТЕМЕ (t_unit), не к конкретному этапу,
+// см. db/schema.ts t_hot_questions. Пустой массив (тема без ни одного
+// заведённого горячего вопроса) — штатный случай, page.tsx просто не
+// покажет его в этом уроке.
+export const getHotQuestionsForUnit = cache(async (t_unitId: number) => {
+  return db.query.t_hot_questions.findMany({
+    where: eq(t_hot_questions.t_unitId, t_unitId),
+  });
 });
 
 export const getTLessonProgress = cache(async () => {

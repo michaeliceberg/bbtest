@@ -1,6 +1,6 @@
 // app/t-lesson/[t_lessonId]/page.tsx
 
-import { getAllTLessonProgress, getAllUsersProgress, getTLesson, getUserProgress } from "@/db/queries"
+import { getAllTLessonProgress, getAllUsersProgress, getTLesson, getUserProgress, getHotQuestionsForUnit } from "@/db/queries"
 import { redirect } from "next/navigation"
 import { Shuffle2, ShuffleTS } from "@/usefulFunctions"
 import { pickInsertBlank } from "@/lib/formulaLetters"
@@ -45,6 +45,13 @@ export type QuestionType = {
     // используется рендер-компонентами, только порядком вопросов внутри
     // урока.
     contentTier?: number,
+    // Только для HOT ("горячий вопрос", см. CLAUDE.md) — единица измерения
+    // рядом с полем ввода и верхняя граница слайдера (случайно подобрана
+    // так, чтобы гарантированно быть больше правильного ответа —
+    // correctAnswer при этом просто хранит целое число этим же способом,
+    // что и другие типы, строкой).
+    hotUnit?: string,
+    hotSliderMax?: number,
 }
 
 type Props = {
@@ -90,7 +97,11 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         redirect('/trainer');
     }
 
-
+    // "Горячий вопрос" привязан к ТЕМЕ (t_unit), не к конкретному этапу —
+    // может выпасть в любом уроке этой темы. Отдельный запрос (а не в
+    // общем Promise.all выше) — t_unitId известен только после того, как
+    // t_lesson уже пришёл.
+    const hotQuestionsPool = await getHotQuestionsForUnit(t_lesson.t_unitId);
 
     // В начале страницы, после получения t_lesson
     // console.log('t_lesson:', t_lesson);
@@ -264,11 +275,11 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             // которой гарантирован INSERT — см. guaranteedInsertChallengeId
             // выше); зафиксированный тип (сам t_challenge.type равен одному
             // из ACStype) — всегда этот стиль.
-            const randomASCtype: ACStype = t_challenge.type === 'M_ASC'
-                ? (t_challenge.id === guaranteedInsertChallengeId
+            const randomASCtype: ACStype = t_challenge.type !== 'M_ASC'
+                ? t_challenge.type as ACStype
+                : t_challenge.id === guaranteedInsertChallengeId
                     ? 'INSERT'
-                    : WEIGHTED_ASC_POOL[Math.floor(Math.random() * WEIGHTED_ASC_POOL.length)])
-                : t_challenge.type as ACStype;
+                    : WEIGHTED_ASC_POOL[Math.floor(Math.random() * WEIGHTED_ASC_POOL.length)];
 
             if (randomASCtype === 'ASSIST' as const) {
                 return buildAssistQuestion(t_challenge);
@@ -540,6 +551,42 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         const combinedTier = (q: QuestionType) => (q.contentTier ?? 0) * 10 + (RENDER_DIFFICULTY_TIER[q.questionType] ?? 1);
         questions = ShuffleTS(questions)
             .sort((a, b) => combinedTier(a) - combinedTier(b));
+    }
+
+    // "Горячий вопрос" (см. CLAUDE.md) — редкий (10%) факультативный
+    // вопрос про реальную величину ("Сколько весит мышь?"), привязан к
+    // ТЕМЕ (t_unit), не к конкретной формуле урока — не формула и не
+    // термин, отдельный жанр, поэтому не участвует в сортировке по
+    // сложности выше и добавляется уже ПОСЛЕ неё. Позиция — случайная, но
+    // НЕ самая первая (эффект внезапной вставки посреди решения, а не
+    // "первый же вопрос урока").
+    const HOT_QUESTION_CHANCE = 0.1;
+    if (questions[0].questionType !== 'GEOSIN' && hotQuestionsPool.length > 0 && Math.random() < HOT_QUESTION_CHANCE) {
+        const hotSource = hotQuestionsPool[Math.floor(Math.random() * hotQuestionsPool.length)];
+        // Верхняя граница слайдера — случайно в 4-25 раз больше правильного
+        // ответа, КАЖДЫЙ РАЗ новая (а не фиксированная под конкретный
+        // факт) — "чтобы веселее было попасть в ответ", не одна и та же
+        // шкала при каждой попытке одного и того же вопроса.
+        const multiplier = 4 + Math.random() * 21;
+        const hotQuestion: QuestionType = {
+            questionType: 'HOT',
+            question: hotSource.question,
+            imageSrc: '0',
+            options: [],
+            numRans: '1',
+            optionsQ: [],
+            optionsA: [],
+            optionsConstructRight: [],
+            difficulty: '1',
+            correctAnswer: String(hotSource.correctValue),
+            timeLimit: 7,
+            hotUnit: hotSource.unit,
+            hotSliderMax: Math.max(hotSource.correctValue + 1, Math.round(hotSource.correctValue * multiplier)),
+        };
+        const insertAt = questions.length <= 1
+            ? questions.length
+            : 1 + Math.floor(Math.random() * questions.length);
+        questions = [...questions.slice(0, insertAt), hotQuestion, ...questions.slice(insertAt)];
     }
 
     // СЧИТАЕМ Статистику правильно решенных задач

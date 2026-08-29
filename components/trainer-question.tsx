@@ -14,6 +14,7 @@ import { TypeAssist } from "@/app/t-lesson/[t_lessonId]/type-assist"
 import { TypeInsert } from "@/app/t-lesson/[t_lessonId]/type-insert"
 import { TypeScroll } from "@/app/t-lesson/[t_lessonId]/type-scroll"
 import { TypeSlider } from "@/app/t-lesson/[t_lessonId]/type-slider"
+import { TypeHot } from "@/app/t-lesson/[t_lessonId]/type-hot"
 import { TypeConnect } from "@/app/t-lesson/[t_lessonId]/type-connect"
 import { TypeWorkbook } from "@/app/t-lesson/[t_lessonId]/type-workbook"
 import { TypeConstructor } from "@/app/t-lesson/[t_lessonId]/type-constructor"
@@ -247,6 +248,9 @@ export default function TrainerQuestion({
 
         case "SLIDER":
           return <TypeSlider questions={questions} question={question} onAnswer={onAnswer} />
+
+        case "HOT":
+          return <TypeHot question={question} onAnswer={onAnswer} />
 
         case "CONNECT":
           return <TypeConnect question={question} onAnswer={onAnswer} onAllPairsMatched={handleAllPairsMatched} />

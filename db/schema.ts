@@ -32,7 +32,12 @@ export interface SuperType {
 // писались в БД как отдельный type) — теперь их тоже можно сохранить
 // напрямую (см. CLAUDE.md "Явный выбор рендер-типа для M_ASC-подобных
 // задач"), поэтому оба добавлены в реальный Postgres-enum ниже.
-export type allTypesCT = "M_ASC" | "SELECT" | "ASSIST" | "CONNECT" | "SLIDER" | "CONSTRUCT" | "WORKBOOK" | "R ASSIST" | "R CONNECT" | "R SLIDER" | "GEOSIN" | "RUSSIANDICTANT" | "SWIPE" | "KEYBOARD" | "INSERT" | "SCROLL";
+// "HOT" — "горячий вопрос" (см. CLAUDE.md): чисто клиентский render-тип,
+// как раньше были INSERT/SCROLL до того, как их закрепили в Postgres-enum
+// (см. историю в CLAUDE.md) — задачи с этим типом никогда не читаются из
+// t_challenges.type, а собираются на лету в page.tsx из отдельной таблицы
+// t_hot_questions, поэтому миграция самого pgEnum "type" тут не нужна.
+export type allTypesCT = "M_ASC" | "SELECT" | "ASSIST" | "CONNECT" | "SLIDER" | "CONSTRUCT" | "WORKBOOK" | "R ASSIST" | "R CONNECT" | "R SLIDER" | "GEOSIN" | "RUSSIANDICTANT" | "SWIPE" | "KEYBOARD" | "INSERT" | "SCROLL" | "HOT";
 
 export const challengesEnum = pgEnum("type", [
 	"M_ASC", "SELECT", "ASSIST", "CONNECT", "SLIDER", "CONSTRUCT", "WORKBOOK",
@@ -331,6 +336,20 @@ export const t_lessons = pgTable('t_lessons', {
 	order: integer('order').notNull(),
 });
 
+// "Горячий вопрос" — редкий (см. вероятность в page.tsx) факультативный
+// вопрос-оценка реальной величины ("Сколько весит мышь?"), привязан к
+// ТЕМЕ (t_unit), не к конкретному этапу/уроку — может выпасть в любом
+// уроке этой темы. correctValue — целое число в единице unit (без запятой,
+// "г"/"кг"/"т" и т.п. — единица уже подобрана куратором под порядок
+// величины конкретного факта).
+export const t_hot_questions = pgTable('t_hot_questions', {
+	id: serial('id').primaryKey(),
+	t_unitId: integer('t_unit_id').references(() => t_units.id, { onDelete: 'cascade' }).notNull(),
+	question: text('question').notNull(),
+	correctValue: integer('correct_value').notNull(),
+	unit: text('unit').notNull(),
+});
+
 export const t_challenges = pgTable('t_challenges', {
 	id: serial('id').primaryKey(),
 	t_lessonId: integer('lesson_id').references(() => t_lessons.id, { onDelete: 'cascade' }).notNull(),
@@ -525,6 +544,14 @@ export const t_unitsRelations = relations(t_units, ({ many, one }) => ({
 	}),
 	t_lessons: many(t_lessons),
 	skillTagsOfChallenges: many(challengeSkillTags),
+	t_hot_questions: many(t_hot_questions),
+}));
+
+export const t_hot_questionsRelations = relations(t_hot_questions, ({ one }) => ({
+	t_unit: one(t_units, {
+		fields: [t_hot_questions.t_unitId],
+		references: [t_units.id],
+	}),
 }));
 
 // TRAINER LESSONS RELATIONS
