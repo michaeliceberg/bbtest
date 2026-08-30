@@ -16,6 +16,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { xpForAmount, getLevelUpInfo } from '@/lib/xp';
+import { recalculateAchievements, type NewlyCompletedAchievement } from './check-achievements';
 
 interface UpdateChallengeProgressProps {
     challengeId: number;
@@ -35,6 +36,7 @@ interface ChallengeProgressResponse {
     isHomeworkCompleted?: boolean;
     leveledUp?: boolean;
     newLevel?: number;
+    newAchievements?: NewlyCompletedAchievement[];
 }
 
 export async function updateChallengeProgress({
@@ -273,7 +275,10 @@ export async function updateChallengeProgress({
     
     revalidatePath('/learn');
     revalidatePath(`/lesson/${challenge.lessonId}`);
-    
+    revalidatePath('/achievements');
+
+    const newAchievements = await recalculateAchievements(userId);
+
     return {
         success: true,
         pointsEarned,
@@ -283,6 +288,7 @@ export async function updateChallengeProgress({
         hwCompleted: isHomeworkCompleted,
         leveledUp,
         newLevel,
+        newAchievements,
     };
 }
 

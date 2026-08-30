@@ -25,6 +25,7 @@ import { useWrongAnswerModal } from "@/store/use-wronganswer-modal";
 import { useRightAnswerModal } from "@/store/use-rightanswer-modal";
 import { ChallengeNav } from "./challenge-nav";
 import { vibrate } from "@/lib/haptics";
+import { useAchievementStore } from "@/store/use-achievement-store";
 
 // Доля заданий ASSIST с числовым ответом, которые показываем как KEYBOARD
 // вместо сетки вариантов — для разнообразия UI. Сам тип в БД не меняется.
@@ -102,6 +103,7 @@ export const Quiz = ({
     const { open: openPracticeModal } = usePracticeModal()
     const { open: openWrongModal } = useWrongAnswerModal()
     const { openR: openRightModal } = useRightAnswerModal()
+    const showAchievement = useAchievementStore((state) => state.showAchievement)
 
     useMount(() => {
         if (initialPercentage === 100) {
@@ -483,6 +485,7 @@ export const Quiz = ({
                         if (response?.leveledUp) {
                             toast.success(`🎊 Новый уровень! Теперь ты на Ур. ${response.newLevel}`, { duration: 4000 })
                         }
+                        response?.newAchievements?.forEach((ach) => showAchievement(ach))
                     })
                     .catch(() => toast.error('Что-то пошло не так! Попробуйте ещё раз'))
             })

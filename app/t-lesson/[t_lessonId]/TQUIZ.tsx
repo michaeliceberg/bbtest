@@ -36,6 +36,7 @@ import { useQuizAudio } from "@/app/hooks/useQuizAudio"
 import { completeTrainerQuestLesson } from "@/actions/generate-trainer-quest"
 import { awardHotQuestionReward } from "@/actions/award-hot-question-reward"
 import { ChestReward } from "@/components/ChestReward"
+import { useAchievementStore } from "@/store/use-achievement-store"
 
 // "Горячий вопрос" (questionType 'HOT', см. type-hot.tsx) — факультативный,
 // не входит в счёт/сердечки/работу над ошибками (см. handleAnswer). Везде,
@@ -114,6 +115,7 @@ export default function TQuiz({
 
   const router = useRouter()
   const searchParams = useSearchParams()
+  const showAchievement = useAchievementStore((state) => state.showAchievement)
   const fromQuest = searchParams.get('fromQuest') === 'true'
   const tCourseId = searchParams.get('tCourseId') ? parseInt(searchParams.get('tCourseId')!) : null
   
@@ -338,6 +340,7 @@ export default function TQuiz({
       if (progressResult?.leveledUp) {
         toast.success(`🎊 Новый уровень! Теперь ты на Ур. ${progressResult.newLevel}`, { duration: 4000 })
       }
+      progressResult?.newAchievements?.forEach((ach) => showAchievement(ach))
       await updateQuestProgress()
 
       // Идеальный результат — mistakeQueue по построению пуст (ни одной

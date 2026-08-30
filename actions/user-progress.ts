@@ -9,6 +9,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { xpForAmount, getLevelUpInfo } from '@/lib/xp';
+import { recalculateAchievements } from './check-achievements';
 
 const POINTS_TO_REFILL = 10
 
@@ -293,10 +294,13 @@ export const upsertTrainerLessonProgress = async (
 	}
 
 	revalidatePath('/trainer');
+	revalidatePath('/achievements');
 	// revalidatePath('/learn');
 	// redirect('/trainer');
 
-	return { leveledUp, newLevel };
+	const newAchievements = await recalculateAchievements(userId);
+
+	return { leveledUp, newLevel, newAchievements };
 };
 
 
