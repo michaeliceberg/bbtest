@@ -15,6 +15,7 @@ import {
 import { and, eq, sql } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import { xpForAmount } from '@/lib/xp';
 
 interface UpdateChallengeProgressProps {
     challengeId: number;
@@ -159,6 +160,7 @@ export async function updateChallengeProgress({
             .set({
                 points: sql`${userProgress.points} + ${pointsEarned}`,
                 gems: sql`${userProgress.gems} + ${gemsEarned}`,
+                xp: sql`${userProgress.xp} + ${xpForAmount(pointsEarned)}`,
             })
             .where(eq(userProgress.userId, userId));
         

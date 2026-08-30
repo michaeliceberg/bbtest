@@ -7,6 +7,7 @@ import { userProgress } from '@/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import { xpForAmount } from '@/lib/xp';
 
 export async function claimAchievementReward(userId: string, achievementId: number) {
     const session = await auth();
@@ -53,10 +54,13 @@ export async function claimAchievementReward(userId: string, achievementId: numb
     // 3. Добавляем награду
     if (rewardPoints > 0) {
         await db.update(userProgress)
-            .set({ points: sql`${userProgress.points} + ${rewardPoints}` })
+            .set({
+                points: sql`${userProgress.points} + ${rewardPoints}`,
+                xp: sql`${userProgress.xp} + ${xpForAmount(rewardPoints)}`,
+            })
             .where(eq(userProgress.userId, userId));
     }
-    
+
     if (rewardGems > 0) {
         await db.update(userProgress)
             .set({ gems: sql`${userProgress.gems} + ${rewardGems}` })
@@ -66,9 +70,10 @@ export async function claimAchievementReward(userId: string, achievementId: numb
     revalidatePath('/achievements');
     revalidatePath('/learn');
     
-    return { 
-        success: true, 
+    return {
+        success: true,
         points: rewardPoints,
         gems: rewardGems,
+        xp: rewardPoints > 0 ? xpForAmount(rewardPoints) : 0,
     };
 }

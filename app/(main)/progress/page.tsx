@@ -98,6 +98,7 @@ const ProgressPage = async () => {
                     hearts={userProgress.hearts}
                     points={userProgress.points}
                     gems={userProgress.gems}
+                    xp={userProgress.xp}
                     hasActiveSubscription={isPro}
                 />
                 <Achievement />

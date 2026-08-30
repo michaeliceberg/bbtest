@@ -5,9 +5,10 @@ import { getCourseById, getUserProgress } from '@/db/queries';
 import { challengeProgress, challenges, t_lessonProgress, userProgress } from '@/db/schema';
 import { auth } from '@/lib/auth';
 // import { auth, currentUser } from '@clerk/nextjs/server';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { xpForAmount } from '@/lib/xp';
 
 const POINTS_TO_REFILL = 10
 
@@ -269,6 +270,16 @@ export const upsertTrainerLessonProgress = async (
 		stage: stage ?? null,
 	});
 
+	// trainingPts>0 — только настоящее завершение основного прохода (см.
+	// вызовы в TQUIZ.tsx: сбросы/ранние выходы шлют 0, чтобы не давать
+	// опыт за незавершённую попытку). userProgress здесь раньше вообще не
+	// трогалась — очки/гемы за тренажёр не начислялись никогда, только
+	// XP теперь делает это первым.
+	if (trainingPts > 0) {
+		await db.update(userProgress)
+			.set({ xp: sql`${userProgress.xp} + ${xpForAmount(trainingPts)}` })
+			.where(eq(userProgress.userId, userId));
+	}
 
 	revalidatePath('/trainer');
 	// revalidatePath('/learn');

@@ -258,6 +258,7 @@ const LearnPage = async () => {
   const currentPoints = userProgress.points;
   const currentGems = userProgress.gems;
   const currentHearts = userProgress.hearts;
+  const currentXp = userProgress.xp;
   const isAdmin = userProgress.isAdmin === 1;
   const hwAssigned = todayStats?.hwAssigned || 0;
   const hwDone = todayStats?.hwDone || 0;
@@ -271,11 +272,12 @@ const LearnPage = async () => {
       </Suspense>
       <div className='flex flex-row-reverse gap-[48px] px-6'>
         <StickyWrapper>
-          <UserProgress 
+          <UserProgress
             activeCourse={activeCourse}
             hearts={currentHearts}
             points={currentPoints}
             gems={currentGems}
+            xp={currentXp}
             hasActiveSubscription={false}
           />
 

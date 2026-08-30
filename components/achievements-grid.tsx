@@ -66,7 +66,7 @@ export const AchievementsGrid = ({ userId, achievementsWithProgress }: Props) =>
         try {
             const result = await claimAchievementReward(userId, achievementId);
             if (result.success) {
-                toast.success(`🎉 Получено: ${result.points}⭐ и ${result.gems}💎`);
+                toast.success(`🎉 Получено: ${result.points}⭐, ${result.gems}💎 и ${result.xp} XP`);
                 setAchievements(prev => prev.map(ach => 
                     ach.id === achievementId 
                         ? { ...ach, claimed: true }

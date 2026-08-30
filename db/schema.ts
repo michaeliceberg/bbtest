@@ -72,6 +72,15 @@ export const userProgress = pgTable('user_progress', {
 	hearts: integer('hearts').notNull().default(500),
 	points: integer('points').notNull().default(0),
 	gems: integer('gems').notNull().default(0), // 👈 ДОБАВЛЕНО глобальные гемы
+	// Опыт (XP) для системы уровней — в отличие от points/gems НИКОГДА не
+	// тратится (не валюта, а кумулятивный счётчик прогресса), поэтому не
+	// может просто переиспользовать поле points. Начисляется 1:1 (см.
+	// XP_MULTIPLIER в lib/xp.ts) за верные ответы в курсах, завершение
+	// уроков тренажёра и получение наград за достижения — общий множитель
+	// в одном месте, чтобы позже можно было подкрутить баланс разом.
+	// Уровень выводится из xp на лету (см. getLevelInfo), не хранится
+	// отдельным полем.
+	xp: integer('xp').notNull().default(0),
 	isAdmin: integer('is_admin').notNull().default(0),
 	classId: integer('class_id').references(() => classes.id, { onDelete: 'cascade' }),
 	isOnMeme: integer('is_on_meme').notNull().default(1),

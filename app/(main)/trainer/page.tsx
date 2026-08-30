@@ -240,6 +240,7 @@ const TLearnPage = async () => {
     const currentPoints = userProgress.points;
     const currentGems = userProgress.gems;
     const currentHearts = userProgress.hearts;
+    const currentXp = userProgress.xp;
 
     return (
         <div className='flex flex-row-reverse gap-[48px] px-6'>
@@ -249,6 +250,7 @@ const TLearnPage = async () => {
                     hearts={currentHearts}
                     points={currentPoints}
                     gems={currentGems}
+                    xp={currentXp}
                     hasActiveSubscription={false}
                 />
 

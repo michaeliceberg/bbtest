@@ -26,11 +26,12 @@ const AchievementsPage = async () => {
     return (
         <div className='flex flex-row-reverse gap-[48px] px-6'>
             <StickyWrapper>
-                <UserProgress 
+                <UserProgress
                     activeCourse={userProgress.activeCourse}
                     hearts={userProgress.hearts}
                     points={userProgress.points}
                     gems={userProgress.gems}
+                    xp={userProgress.xp}
                     hasActiveSubscription={false}
                 />
             </StickyWrapper>
