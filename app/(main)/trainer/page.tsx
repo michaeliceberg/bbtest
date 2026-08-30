@@ -28,6 +28,7 @@ import db from '@/db/drizzle';
 import { and, eq } from 'drizzle-orm';
 import { trainerStreaks } from '@/db/schema';
 import { LevelCard } from '@/components/level-card';
+import { getLvlLottieCount } from '@/lib/lvl-lottie';
 
 const TLearnPage = async () => {
     const session = await auth();
@@ -272,7 +273,7 @@ const TLearnPage = async () => {
 
                 <div className='mt-2 lg:mt-5'>
                     <div className='mb-4'>
-                        <LevelCard xp={currentXp} />
+                        <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} />
                     </div>
 
                     <div className='content-center mx-auto justify-center text-center align-middle'>
