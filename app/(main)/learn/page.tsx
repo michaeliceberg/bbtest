@@ -26,6 +26,7 @@ import { getCourseUnitsWithProgress } from '@/lib/lesson-access';
 import { LearnWrapper } from '@/components/learn-wrapper';
 import { generateHomework } from '@/actions/generate-homework';
 import { ScrollToLesson } from '@/components/scroll-to-lesson';
+import { LevelCard } from '@/components/level-card';
 import { Suspense } from 'react';
 
 const bgList = [
@@ -307,6 +308,10 @@ const LearnPage = async () => {
           />
 
           <div className='mt-2 lg:mt-5'>
+            <div className='mb-4'>
+              <LevelCard xp={currentXp} />
+            </div>
+
             {unitsWithFormattedLessons.map((unit, index) => (
               <div key={unit.id} className='mb-10'>
                 <Unit

@@ -27,6 +27,7 @@ import { ParentBindCode } from '@/components/parent-bind-code';
 import db from '@/db/drizzle';
 import { and, eq } from 'drizzle-orm';
 import { trainerStreaks } from '@/db/schema';
+import { LevelCard } from '@/components/level-card';
 
 const TLearnPage = async () => {
     const session = await auth();
@@ -270,6 +271,10 @@ const TLearnPage = async () => {
                 <Header title="Тренажёр" />
 
                 <div className='mt-2 lg:mt-5'>
+                    <div className='mb-4'>
+                        <LevelCard xp={currentXp} />
+                    </div>
+
                     <div className='content-center mx-auto justify-center text-center align-middle'>
                         <HwTopBanner missedCIds={missedLIds} variant='trainer' />
                     </div>

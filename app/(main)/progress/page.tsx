@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 // import { Achievement } from "@/components/achievements"
 import { TrendingUp, Calendar, Target, Zap, Award, BookOpen, CheckCircle, Clock } from 'lucide-react'
 import { Achievement } from "@/components/achievements"
+import { LevelCard } from "@/components/level-card"
 // import { Achievement } from "@/components/achievements"
 
 const ProgressPage = async () => {
@@ -169,6 +170,8 @@ const ProgressPage = async () => {
                         {totalCompleted} из {totalChallenges} заданий выполнено
                     </p>
                 </div>
+
+                <LevelCard xp={userProgress.xp} variant="full" />
 
                 {/* Прогресс по разделам */}
                 <div className="bg-[#151F23] rounded-xl border p-6 mb-8">
