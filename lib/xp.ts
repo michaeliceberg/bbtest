@@ -18,6 +18,16 @@
 export const XP_MULTIPLIER = 1;
 export const XP_PER_LEVEL = 100;
 
+// Реальная награда за повышение уровня (не только тост) — гемы, тот же
+// прецедент, что уже используют HOT-вопрос/достижения (наградная плашка
+// с эмодзи, без отдельной анимации). За множественное пересечение границы
+// в одном начислении (например тренажёр даёт плоские 200 XP — этого
+// достаточно, чтобы перепрыгнуть сразу два уровня, если пользователь был
+// близко к границе) награда умножается на levelsGained, а не выдаётся
+// один раз — иначе повышение сразу на 2 уровня давало бы столько же гемов,
+// сколько и на 1.
+export const LEVEL_UP_GEM_REWARD = 5;
+
 export const xpForAmount = (baseAmount: number): number => Math.round(baseAmount * XP_MULTIPLIER);
 
 export type LevelInfo = {
@@ -39,12 +49,26 @@ export const getLevelInfo = (totalXp: number): LevelInfo => {
     };
 };
 
+export type LevelUpInfo = {
+    leveledUp: boolean;
+    newLevel: number;
+    levelsGained: number;
+    gemsAwarded: number;
+};
+
 // Сравнивает XP до/после начисления — используется в actions, которые
 // начисляют XP, чтобы вернуть клиенту "пересёк ли пользователь границу
-// уровня" (для тоста "уровень повышен"), не заставляя каждый call site
-// самостоятельно дважды считать getLevelInfo.
-export const getLevelUpInfo = (xpBefore: number, xpAfter: number): { leveledUp: boolean; newLevel: number } => {
+// уровня" (для тоста "уровень повышен") и реальную награду (гемы) за
+// это, не заставляя каждый call site самостоятельно дважды считать
+// getLevelInfo.
+export const getLevelUpInfo = (xpBefore: number, xpAfter: number): LevelUpInfo => {
     const levelBefore = getLevelInfo(xpBefore).level;
     const levelAfter = getLevelInfo(xpAfter).level;
-    return { leveledUp: levelAfter > levelBefore, newLevel: levelAfter };
+    const levelsGained = Math.max(0, levelAfter - levelBefore);
+    return {
+        leveledUp: levelsGained > 0,
+        newLevel: levelAfter,
+        levelsGained,
+        gemsAwarded: levelsGained * LEVEL_UP_GEM_REWARD,
+    };
 };

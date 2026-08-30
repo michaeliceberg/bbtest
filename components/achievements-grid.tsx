@@ -68,7 +68,8 @@ export const AchievementsGrid = ({ userId, achievementsWithProgress }: Props) =>
             if (result.success) {
                 toast.success(`🎉 Получено: ${result.points}⭐, ${result.gems}💎 и ${result.xp} XP`);
                 if (result.leveledUp) {
-                    toast.success(`🎊 Новый уровень! Теперь ты на Ур. ${result.newLevel}`, { duration: 4000 });
+                    const gemsPart = result.levelUpGems ? ` +${result.levelUpGems}💎` : '';
+                    toast.success(`🎊 Новый уровень! Теперь ты на Ур. ${result.newLevel}${gemsPart}`, { duration: 4000 });
                 }
                 setAchievements(prev => prev.map(ach =>
                     ach.id === achievementId 

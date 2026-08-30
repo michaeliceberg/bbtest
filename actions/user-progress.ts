@@ -278,6 +278,7 @@ export const upsertTrainerLessonProgress = async (
 	// XP теперь делает это первым.
 	let leveledUp = false;
 	let newLevel: number | undefined;
+	let levelUpGems = 0;
 
 	if (trainingPts > 0) {
 		const earnedXp = xpForAmount(trainingPts);
@@ -285,12 +286,17 @@ export const upsertTrainerLessonProgress = async (
 			where: eq(userProgress.userId, userId),
 		});
 		const xpBefore = currentUserProgress?.xp ?? 0;
+		const levelUpInfo = getLevelUpInfo(xpBefore, xpBefore + earnedXp);
+		leveledUp = levelUpInfo.leveledUp;
+		newLevel = levelUpInfo.newLevel;
+		levelUpGems = levelUpInfo.gemsAwarded;
 
 		await db.update(userProgress)
-			.set({ xp: sql`${userProgress.xp} + ${earnedXp}` })
+			.set({
+				xp: sql`${userProgress.xp} + ${earnedXp}`,
+				gems: sql`${userProgress.gems} + ${levelUpGems}`,
+			})
 			.where(eq(userProgress.userId, userId));
-
-		({ leveledUp, newLevel } = getLevelUpInfo(xpBefore, xpBefore + earnedXp));
 	}
 
 	revalidatePath('/trainer');
@@ -300,7 +306,7 @@ export const upsertTrainerLessonProgress = async (
 
 	const newAchievements = await recalculateAchievements(userId);
 
-	return { leveledUp, newLevel, newAchievements };
+	return { leveledUp, newLevel, levelUpGems, newAchievements };
 };
 
 

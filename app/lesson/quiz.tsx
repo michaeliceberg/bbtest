@@ -483,7 +483,8 @@ export const Quiz = ({
                         }
 
                         if (response?.leveledUp) {
-                            toast.success(`🎊 Новый уровень! Теперь ты на Ур. ${response.newLevel}`, { duration: 4000 })
+                            const gemsPart = response.levelUpGems ? ` +${response.levelUpGems}💎` : ''
+                            toast.success(`🎊 Новый уровень! Теперь ты на Ур. ${response.newLevel}${gemsPart}`, { duration: 4000 })
                         }
                         response?.newAchievements?.forEach((ach) => showAchievement(ach))
                     })

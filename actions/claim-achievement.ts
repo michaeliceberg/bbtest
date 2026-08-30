@@ -54,6 +54,7 @@ export async function claimAchievementReward(userId: string, achievementId: numb
     // 3. Добавляем награду
     let leveledUp = false;
     let newLevel: number | undefined;
+    let levelUpGems = 0;
     const earnedXp = rewardPoints > 0 ? xpForAmount(rewardPoints) : 0;
 
     if (rewardPoints > 0) {
@@ -61,6 +62,10 @@ export async function claimAchievementReward(userId: string, achievementId: numb
             where: eq(userProgress.userId, userId),
         });
         const xpBefore = currentUserProgress?.xp ?? 0;
+        const levelUpInfo = getLevelUpInfo(xpBefore, xpBefore + earnedXp);
+        leveledUp = levelUpInfo.leveledUp;
+        newLevel = levelUpInfo.newLevel;
+        levelUpGems = levelUpInfo.gemsAwarded;
 
         await db.update(userProgress)
             .set({
@@ -68,13 +73,12 @@ export async function claimAchievementReward(userId: string, achievementId: numb
                 xp: sql`${userProgress.xp} + ${earnedXp}`,
             })
             .where(eq(userProgress.userId, userId));
-
-        ({ leveledUp, newLevel } = getLevelUpInfo(xpBefore, xpBefore + earnedXp));
     }
 
-    if (rewardGems > 0) {
+    const totalGems = rewardGems + levelUpGems;
+    if (totalGems > 0) {
         await db.update(userProgress)
-            .set({ gems: sql`${userProgress.gems} + ${rewardGems}` })
+            .set({ gems: sql`${userProgress.gems} + ${totalGems}` })
             .where(eq(userProgress.userId, userId));
     }
 
@@ -88,5 +92,6 @@ export async function claimAchievementReward(userId: string, achievementId: numb
         xp: earnedXp,
         leveledUp,
         newLevel,
+        levelUpGems,
     };
 }

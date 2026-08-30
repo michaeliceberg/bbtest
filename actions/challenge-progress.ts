@@ -36,6 +36,7 @@ interface ChallengeProgressResponse {
     isHomeworkCompleted?: boolean;
     leveledUp?: boolean;
     newLevel?: number;
+    levelUpGems?: number;
     newAchievements?: NewlyCompletedAchievement[];
 }
 
@@ -157,22 +158,26 @@ export async function updateChallengeProgress({
     let gemsEarned = 0;
     let leveledUp = false;
     let newLevel: number | undefined;
+    let levelUpGems = 0;
 
     if (!isPractice && doneRight && !existingProgress?.completed) {
         pointsEarned = challenge.points;
         gemsEarned = Math.floor(challenge.points / 10);
         const earnedXp = xpForAmount(pointsEarned);
 
+        const xpBefore = userProgressData?.xp ?? 0;
+        const levelUpInfo = getLevelUpInfo(xpBefore, xpBefore + earnedXp);
+        leveledUp = levelUpInfo.leveledUp;
+        newLevel = levelUpInfo.newLevel;
+        levelUpGems = levelUpInfo.gemsAwarded;
+
         await db.update(userProgress)
             .set({
                 points: sql`${userProgress.points} + ${pointsEarned}`,
-                gems: sql`${userProgress.gems} + ${gemsEarned}`,
+                gems: sql`${userProgress.gems} + ${gemsEarned + levelUpGems}`,
                 xp: sql`${userProgress.xp} + ${earnedXp}`,
             })
             .where(eq(userProgress.userId, userId));
-
-        const xpBefore = userProgressData?.xp ?? 0;
-        ({ leveledUp, newLevel } = getLevelUpInfo(xpBefore, xpBefore + earnedXp));
         
         const courseProgress = await db.query.userCourseProgress.findFirst({
             where: and(
@@ -288,6 +293,7 @@ export async function updateChallengeProgress({
         hwCompleted: isHomeworkCompleted,
         leveledUp,
         newLevel,
+        levelUpGems,
         newAchievements,
     };
 }

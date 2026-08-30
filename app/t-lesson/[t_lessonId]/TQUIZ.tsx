@@ -338,7 +338,8 @@ export default function TQuiz({
           return null
         })
       if (progressResult?.leveledUp) {
-        toast.success(`🎊 Новый уровень! Теперь ты на Ур. ${progressResult.newLevel}`, { duration: 4000 })
+        const gemsPart = progressResult.levelUpGems ? ` +${progressResult.levelUpGems}💎` : ''
+        toast.success(`🎊 Новый уровень! Теперь ты на Ур. ${progressResult.newLevel}${gemsPart}`, { duration: 4000 })
       }
       progressResult?.newAchievements?.forEach((ach) => showAchievement(ach))
       await updateQuestProgress()
