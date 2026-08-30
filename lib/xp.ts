@@ -38,3 +38,13 @@ export const getLevelInfo = (totalXp: number): LevelInfo => {
         progressPercent: Math.round((xpIntoLevel / XP_PER_LEVEL) * 100),
     };
 };
+
+// Сравнивает XP до/после начисления — используется в actions, которые
+// начисляют XP, чтобы вернуть клиенту "пересёк ли пользователь границу
+// уровня" (для тоста "уровень повышен"), не заставляя каждый call site
+// самостоятельно дважды считать getLevelInfo.
+export const getLevelUpInfo = (xpBefore: number, xpAfter: number): { leveledUp: boolean; newLevel: number } => {
+    const levelBefore = getLevelInfo(xpBefore).level;
+    const levelAfter = getLevelInfo(xpAfter).level;
+    return { leveledUp: levelAfter > levelBefore, newLevel: levelAfter };
+};

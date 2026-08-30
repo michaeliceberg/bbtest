@@ -479,6 +479,10 @@ export const Quiz = ({
                         if (initialPercentage === 100) {
                             setHearts((prev) => Math.min(prev + 1, 5))
                         }
+
+                        if (response?.leveledUp) {
+                            toast.success(`🎊 Новый уровень! Теперь ты на Ур. ${response.newLevel}`, { duration: 4000 })
+                        }
                     })
                     .catch(() => toast.error('Что-то пошло не так! Попробуйте ещё раз'))
             })

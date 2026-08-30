@@ -330,8 +330,14 @@ export default function TQuiz({
       console.log('🏁 Основной проход завершён! score:', finalScore, 'total (без HOT):', total)
       const doneRightPercent = Math.round(finalScore / total * 100)
 
-      await upsertTrainerLessonProgress(t_lessonId, doneRightPercent, 200, finalScore, total - finalScore, stage)
-        .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
+      const progressResult = await upsertTrainerLessonProgress(t_lessonId, doneRightPercent, 200, finalScore, total - finalScore, stage)
+        .catch(() => {
+          toast.error('Что-то пошло не так! Результат не добавлен в базу данных.')
+          return null
+        })
+      if (progressResult?.leveledUp) {
+        toast.success(`🎊 Новый уровень! Теперь ты на Ур. ${progressResult.newLevel}`, { duration: 4000 })
+      }
       await updateQuestProgress()
 
       // Идеальный результат — mistakeQueue по построению пуст (ни одной

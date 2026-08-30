@@ -8,7 +8,7 @@ import { auth } from '@/lib/auth';
 import { and, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { xpForAmount } from '@/lib/xp';
+import { xpForAmount, getLevelUpInfo } from '@/lib/xp';
 
 const POINTS_TO_REFILL = 10
 
@@ -275,16 +275,28 @@ export const upsertTrainerLessonProgress = async (
 	// опыт за незавершённую попытку). userProgress здесь раньше вообще не
 	// трогалась — очки/гемы за тренажёр не начислялись никогда, только
 	// XP теперь делает это первым.
+	let leveledUp = false;
+	let newLevel: number | undefined;
+
 	if (trainingPts > 0) {
+		const earnedXp = xpForAmount(trainingPts);
+		const currentUserProgress = await db.query.userProgress.findFirst({
+			where: eq(userProgress.userId, userId),
+		});
+		const xpBefore = currentUserProgress?.xp ?? 0;
+
 		await db.update(userProgress)
-			.set({ xp: sql`${userProgress.xp} + ${xpForAmount(trainingPts)}` })
+			.set({ xp: sql`${userProgress.xp} + ${earnedXp}` })
 			.where(eq(userProgress.userId, userId));
+
+		({ leveledUp, newLevel } = getLevelUpInfo(xpBefore, xpBefore + earnedXp));
 	}
 
 	revalidatePath('/trainer');
 	// revalidatePath('/learn');
 	// redirect('/trainer');
-	
+
+	return { leveledUp, newLevel };
 };
 
 

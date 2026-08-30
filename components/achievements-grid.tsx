@@ -67,7 +67,10 @@ export const AchievementsGrid = ({ userId, achievementsWithProgress }: Props) =>
             const result = await claimAchievementReward(userId, achievementId);
             if (result.success) {
                 toast.success(`🎉 Получено: ${result.points}⭐, ${result.gems}💎 и ${result.xp} XP`);
-                setAchievements(prev => prev.map(ach => 
+                if (result.leveledUp) {
+                    toast.success(`🎊 Новый уровень! Теперь ты на Ур. ${result.newLevel}`, { duration: 4000 });
+                }
+                setAchievements(prev => prev.map(ach =>
                     ach.id === achievementId 
                         ? { ...ach, claimed: true }
                         : ach

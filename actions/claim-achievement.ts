@@ -7,7 +7,7 @@ import { userProgress } from '@/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
-import { xpForAmount } from '@/lib/xp';
+import { xpForAmount, getLevelUpInfo } from '@/lib/xp';
 
 export async function claimAchievementReward(userId: string, achievementId: number) {
     const session = await auth();
@@ -43,22 +43,33 @@ export async function claimAchievementReward(userId: string, achievementId: numb
     
     const rewardPoints = row.reward_points || 0;
     const rewardGems = row.reward_gems || 0;
-    
+
     // 2. Отмечаем как полученное
     await db.execute(sql`
-        UPDATE user_achievements 
-        SET claimed = true 
+        UPDATE user_achievements
+        SET claimed = true
         WHERE user_id = ${userId} AND achievement_id = ${achievementId}
     `);
-    
+
     // 3. Добавляем награду
+    let leveledUp = false;
+    let newLevel: number | undefined;
+    const earnedXp = rewardPoints > 0 ? xpForAmount(rewardPoints) : 0;
+
     if (rewardPoints > 0) {
+        const currentUserProgress = await db.query.userProgress.findFirst({
+            where: eq(userProgress.userId, userId),
+        });
+        const xpBefore = currentUserProgress?.xp ?? 0;
+
         await db.update(userProgress)
             .set({
                 points: sql`${userProgress.points} + ${rewardPoints}`,
-                xp: sql`${userProgress.xp} + ${xpForAmount(rewardPoints)}`,
+                xp: sql`${userProgress.xp} + ${earnedXp}`,
             })
             .where(eq(userProgress.userId, userId));
+
+        ({ leveledUp, newLevel } = getLevelUpInfo(xpBefore, xpBefore + earnedXp));
     }
 
     if (rewardGems > 0) {
@@ -66,14 +77,16 @@ export async function claimAchievementReward(userId: string, achievementId: numb
             .set({ gems: sql`${userProgress.gems} + ${rewardGems}` })
             .where(eq(userProgress.userId, userId));
     }
-    
+
     revalidatePath('/achievements');
     revalidatePath('/learn');
-    
+
     return {
         success: true,
         points: rewardPoints,
         gems: rewardGems,
-        xp: rewardPoints > 0 ? xpForAmount(rewardPoints) : 0,
+        xp: earnedXp,
+        leveledUp,
+        newLevel,
     };
 }

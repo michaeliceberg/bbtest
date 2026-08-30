@@ -15,7 +15,7 @@ import {
 import { and, eq, sql } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
-import { xpForAmount } from '@/lib/xp';
+import { xpForAmount, getLevelUpInfo } from '@/lib/xp';
 
 interface UpdateChallengeProgressProps {
     challengeId: number;
@@ -33,6 +33,8 @@ interface ChallengeProgressResponse {
     hwCompleted?: boolean;
     redirectTo?: string;
     isHomeworkCompleted?: boolean;
+    leveledUp?: boolean;
+    newLevel?: number;
 }
 
 export async function updateChallengeProgress({
@@ -151,18 +153,24 @@ export async function updateChallengeProgress({
     // 10. Очки и гемы
     let pointsEarned = 0;
     let gemsEarned = 0;
-    
+    let leveledUp = false;
+    let newLevel: number | undefined;
+
     if (!isPractice && doneRight && !existingProgress?.completed) {
         pointsEarned = challenge.points;
         gemsEarned = Math.floor(challenge.points / 10);
-        
+        const earnedXp = xpForAmount(pointsEarned);
+
         await db.update(userProgress)
             .set({
                 points: sql`${userProgress.points} + ${pointsEarned}`,
                 gems: sql`${userProgress.gems} + ${gemsEarned}`,
-                xp: sql`${userProgress.xp} + ${xpForAmount(pointsEarned)}`,
+                xp: sql`${userProgress.xp} + ${earnedXp}`,
             })
             .where(eq(userProgress.userId, userId));
+
+        const xpBefore = userProgressData?.xp ?? 0;
+        ({ leveledUp, newLevel } = getLevelUpInfo(xpBefore, xpBefore + earnedXp));
         
         const courseProgress = await db.query.userCourseProgress.findFirst({
             where: and(
@@ -273,6 +281,8 @@ export async function updateChallengeProgress({
         accuracy: newAccuracy,
         hwDone: hwDone,
         hwCompleted: isHomeworkCompleted,
+        leveledUp,
+        newLevel,
     };
 }
 
