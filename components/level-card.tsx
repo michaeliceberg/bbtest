@@ -38,10 +38,10 @@ type Props = {
 // challenge-progress.ts, actions/user-progress.ts,
 // actions/claim-achievement.ts — не просто картинка).
 const getMotivation = (progressPercent: number): string => {
-    if (progressPercent >= 75) return 'Почти у цели — рывок! ⚡';
-    if (progressPercent >= 50) return 'Уже на полпути! 🔥';
-    if (progressPercent >= 25) return 'Хороший темп, продолжай! 💪';
-    return 'Погнали за новым уровнем! 🚀';
+    if (progressPercent >= 75) return 'Почти у цели! ⚡';
+    if (progressPercent >= 50) return 'На полпути! 🔥';
+    if (progressPercent >= 25) return 'Хороший темп! 💪';
+    return 'Погнали! 🚀';
 };
 
 // 3 уровня на одного персонажа (1-3 → lvl1, 4-6 → lvl2, ...), с зажимом
@@ -74,15 +74,19 @@ export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact' }: Props) =>
     }, [mascotSrc]);
 
     const isFull = variant === 'full';
-    const mascotSize = isFull ? 'h-16 w-16 sm:h-28 sm:w-28' : 'h-14 w-14';
+    // Персонаж — главный источник эмоции в карточке, увеличен насколько
+    // позволяет освободившееся место (фразы-мотиваторы укорочены выше,
+    // текстовой колонке теперь нужно меньше горизонтального места).
+    const mascotSize = isFull ? 'h-24 w-24 sm:h-32 sm:w-32' : 'h-20 w-20';
     const chestWidth = isFull ? 'w-[128px] sm:w-[144px]' : 'w-[92px]';
     // Без явного минимума текстовая колонка (flex-1 min-w-0) охотно
     // схлопывается до пары пикселей вместо того, чтобы вытолкнуть панель
     // сундука на отдельную строку — flex-wrap только переносит элемент,
     // если он ДЕЙСТВИТЕЛЬНО не помещается, а не когда сосед просто может
     // сжаться. Минимум подобран так, чтобы "Уровень N" не переносился по
-    // слову на телефоне.
-    const textGroupMinWidth = isFull ? 'min-w-[210px]' : 'min-w-[150px]';
+    // слову на телефоне (короче, чем раньше, — фразы-мотиваторы тоже
+    // укорочены, экономят место).
+    const textGroupMinWidth = isFull ? 'min-w-[190px]' : 'min-w-[120px]';
 
     return (
         <div
@@ -105,7 +109,7 @@ export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact' }: Props) =>
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                             <Sparkles className={isFull ? 'h-5 w-5 text-violet-400 shrink-0' : 'h-4 w-4 text-violet-400 shrink-0'} />
-                            <span className={`font-extrabold text-[#F2F7FB] ${isFull ? 'text-lg' : ''}`}>Уровень {level}</span>
+                            <span className={`font-extrabold text-[#F2F7FB] whitespace-nowrap ${isFull ? 'text-lg' : ''}`}>Уровень {level}</span>
                         </div>
                         <p className={`text-[#C9B8F5] mb-2 ${isFull ? 'text-sm' : 'text-xs truncate'}`}>{motivation}</p>
                         <div className={`w-full rounded-full overflow-hidden ${isFull ? 'h-3' : 'h-1.5'}`} style={{ backgroundColor: 'rgba(167,139,250,0.2)' }}>
