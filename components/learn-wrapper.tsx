@@ -56,7 +56,16 @@ export const LearnWrapper = ({ children, courseId }: Props) => {
     return (
         <>
             <Celebration isOpen={isOpen} onClose={hide} />
-            <div className="relative">
+            {/* overflow-x-clip — обе анимации (выезд старого контента влево,
+                въезд нового справа) двигают motion.div на ±60px по X; без
+                клипа этот сдвиг на мобильной ширине даёт горизонтальный
+                скролл всей страницы на время (и, судя по всему, "залипает"
+                в scrollWidth на весь остаток жизни вкладки — см. диагностику
+                в spawn_task). "clip", не "hidden", — чтобы не зацепить
+                overflow-y (он тут нигде не используется намеренно, но
+                hidden на одной оси у флекс-контейнеров в этом проекте уже
+                раз давал неожиданные эффекты на другой оси). */}
+            <div className="relative overflow-x-clip">
                 {frozenOld && (
                     <motion.div
                         className="absolute inset-0"
