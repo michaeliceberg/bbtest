@@ -85,14 +85,17 @@ export const TypeInsert = ({
             .filter((el) => BLANK_COLORS_RGB.includes(el.style.color) && el.textContent === text)
     }
 
-    // Старая буква "уезжает" в точку клоном при СМЕНЕ уже заполненного
-    // пропуска (не первом заполнении "?" → буква, для него остаётся вход
-    // сверху, см. useLayoutEffect ниже) — снимок берётся ДО обновления
-    // state, пока настоящий узел с текстом ещё есть в DOM. Клон — обычный
+    // Старая буква плавно тает клоном при СМЕНЕ уже заполненного пропуска
+    // (не первом заполнении "?" → буква, для него остаётся вход сверху,
+    // см. useLayoutEffect ниже) — снимок берётся ДО обновления state,
+    // пока настоящий узел с текстом ещё есть в DOM. Клон — обычный
     // DOM-узел поверх формулы (position:absolute внутри containerRef,
     // ниже добавлен relative), не связан с React/KaTeX и сам себя убирает
-    // по окончании анимации.
-    const shrinkOutOldGlyph = (oldLetter: string) => {
+    // по окончании анимации. Раньше буква схлопывалась в точку (scale→0)
+    // — по отзыву пользователя заменено на простое затухание без scale,
+    // симметрично тому, как новая буква ниже просто проявляется, а не
+    // раскрывается из точки с bounce.
+    const fadeOutOldGlyph = (oldLetter: string) => {
         const container = containerRef.current
         if (!container) return
         const node = findGlyphNodes(oldLetter)[0]
@@ -113,21 +116,25 @@ export const TypeInsert = ({
         clone.style.pointerEvents = 'none'
         clone.style.zIndex = '10'
         clone.style.display = 'inline-block'
-        clone.style.transformOrigin = 'center'
         container.appendChild(clone)
 
-        // Ускоряющееся схлопывание в точку (ease-in — медленный старт,
-        // резкое ускорение к концу), а не линейное/замедляющееся — читается
-        // как "буква стремительно втягивается", а не просто тает.
         const anim = clone.animate(
             [
-                { opacity: 1, transform: 'scale(1)' },
-                { opacity: 0.6, transform: 'scale(0.5)' },
-                { opacity: 0, transform: 'scale(0)' },
+                { opacity: 1 },
+                { opacity: 0 },
             ],
-            { duration: 240, easing: 'cubic-bezier(0.55, 0, 1, 0.45)' }
+            { duration: 220, easing: 'ease-out' }
         )
-        anim.onfinish = () => clone.remove()
+        const cleanup = () => clone.remove()
+        anim.onfinish = cleanup
+        anim.oncancel = cleanup
+        // Подстраховка: onfinish/oncancel WAAPI-анимации не всегда надёжно
+        // срабатывают (замечено живьём при частых повторных кликах —
+        // клон оставался в DOM навсегда, хотя сама анимация визуально
+        // отыгрывала) — clone.remove() безопасно вызвать повторно на уже
+        // удалённом узле, поэтому setTimeout-подстраховка не мешает
+        // штатному срабатыванию onfinish, только гарантирует итог.
+        setTimeout(cleanup, 260)
     }
 
     const handleLetterClick = (letter: string) => {
@@ -136,7 +143,7 @@ export const TypeInsert = ({
 
         const oldLetter = filledLetters[activeSlot]
         if (oldLetter !== null) {
-            shrinkOutOldGlyph(oldLetter)
+            fadeOutOldGlyph(oldLetter)
         }
 
         const next = [...filledLetters]
@@ -147,11 +154,14 @@ export const TypeInsert = ({
         next[activeSlot] = letter
         setFilledLetters(next)
 
-        // Переключаемся на следующий пустой пропуск; если пустых больше
-        // нет — остаёмся на только что заполненном, чтобы повторный клик
-        // по другой букве сразу же заменял именно его.
+        // Пока есть пустые пропуски — переключаемся на следующий пустой
+        // (обычный порядок заполнения слева направо). Когда пропуски
+        // ВСЕ заполнены — целевой пропуск идёт "по кругу" (0→1→0→1→…),
+        // а не залипает на последнем заполненном: по просьбе пользователя
+        // каждый следующий клик по варианту должен сдвигать позицию
+        // заменяемой буквы, а не всегда бить по одному и тому же пропуску.
         const nextEmpty = next.indexOf(null)
-        setActiveSlot(nextEmpty !== -1 ? nextEmpty : activeSlot)
+        setActiveSlot(nextEmpty !== -1 ? nextEmpty : (activeSlot + 1) % blankCount)
 
         if (next.every((l) => l !== null)) {
             // Порядок неважен — сравниваем как множество букв (см. шапку
@@ -254,16 +264,17 @@ export const TypeInsert = ({
         filledLetters.forEach((letter, i) => {
             if (letter === prev[i] || letter === null) return
             // Первое заполнение пустого "?" — буква падает сверху (как и
-            // раньше). СМЕНА уже выбранной буквы на другую — новая
-            // раскрывается из точки с bounce-перехлёстом (её старая версия
-            // в этот момент уже схлопывается в точку клоном, см.
-            // shrinkOutOldGlyph выше) — по отзыву пользователя прежний
-            // слайд-свап "получился плохо", заменён на пару схлопывание/
-            // раскрытие. WAAPI анимирует конкретный DOM-узел напрямую,
-            // минуя React/framer-motion. Узел ищем по тексту НОВОЙ буквы
-            // (findGlyphNodes) — буквы в разных пропусках всегда разные
-            // (см. handleLetterClick), поэтому поиск однозначен даже без
-            // знания позиции этого пропуска среди остальных.
+            // раньше, не жаловались). СМЕНА уже выбранной буквы на другую —
+            // раньше новая буква раскрывалась из точки с bounce (её старая
+            // версия тем временем схлопывалась в точку клоном) — по отзыву
+            // пользователя убрано: теперь новая буква просто плавно
+            // проявляется (opacity 0→1, без transform), симметрично тому,
+            // что старая просто плавно тает (см. fadeOutOldGlyph выше).
+            // WAAPI анимирует конкретный DOM-узел напрямую, минуя React/
+            // framer-motion. Узел ищем по тексту НОВОЙ буквы (findGlyphNodes)
+            // — буквы в разных пропусках всегда разные (см. handleLetterClick),
+            // поэтому поиск однозначен даже без знания позиции этого
+            // пропуска среди остальных.
             const isFirstFill = prev[i] === null
             findGlyphNodes(letter).forEach((node) => {
                 node.animate(
@@ -273,10 +284,12 @@ export const TypeInsert = ({
                             { opacity: 1, transform: 'translateY(0)' },
                         ]
                         : [
-                            { opacity: 0, transform: 'scale(0.2)' },
-                            { opacity: 1, transform: 'scale(1)' },
+                            { opacity: 0 },
+                            { opacity: 1 },
                         ],
-                    { duration: isFirstFill ? 420 : 380, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
+                    isFirstFill
+                        ? { duration: 420, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
+                        : { duration: 260, easing: 'ease-in' }
                 )
             })
         })
