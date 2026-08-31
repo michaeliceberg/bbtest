@@ -16,7 +16,37 @@
 // Переделано на transform (x/y/scale) вместо layout-свойств: transform
 // дёшев для браузера и, в отличие от анимации width/height, естественно
 // поддерживает spring-bounce (лёгкий перехлёст перед тем, как осесть в
-// финальной точке) — именно этого эффекта попросил пользователь.
+// финальной точке).
+//
+// Важно: router.push() вызывается НЕ сразу по клику, а с задержкой
+// REVEAL_DELAY (см. ниже). Раньше push шёл сразу, и bounce просто
+// "надеялся" продержаться на экране хотя бы MIN_EXPAND_DISPLAY — но
+// Next.js App Router размонтирует /trainer (а вместе с ним и портал
+// оверлея) СРАЗУ, как только новый маршрут готов, независимо от того, в
+// какой фазе была наша собственная анимация — на прогретом (prefetched)
+// маршруте это иногда обрезало bounce почти сразу после старта.
+// Пользователь явно попросил обратное: сначала пусть bounce доиграет
+// полностью, и только сразу после этого открывать урок — поэтому теперь
+// порядок событий (а не желаемая длительность) гарантирует результат:
+// пока не вызван router.push, Next.js в принципе не может подменить
+// дерево /trainer, значит наш компонент (и его портал) не может быть
+// размонтирован раньше срока.
+//
+// REVEAL_DELAY — фиксированный таймер, а НЕ framer-motion
+// onAnimationComplete на самом spring'е. Живая проверка (программные
+// клики + замер реального transform по кадрам) показала: визуально
+// bounce полностью оседает уже к ~470-480мс (переданный spring
+// `duration: 0.45` — это ощущаемая цель, её framer-motion честно
+// выдерживает), но onAnimationComplete у spring-анимации срабатывает
+// только когда истинная (физически смоделированная, а не округлённая
+// до пикселя) скорость/остаток падают ниже внутреннего порога покоя —
+// это заняло у framer-motion ЕЩЁ ~500-700мс сверху в тесте (реальный
+// push случился не раньше t≈910мс и не позже t≈1211мс), то есть почти
+// вдвое дольше, чем bounce выглядит законченным на экране. Такая
+// задержка воспринималась бы как "зависание", а не "аккуратно" — ровно
+// то, чего пользователь просил избежать. Обычный setTimeout на
+// REVEAL_DELAY, не завязанный на внутренний детектор покоя пружины,
+// даёт предсказуемый и быстрый результат.
 //
 // Настоящий cross-route framer-motion `layoutId` shared layout здесь не
 // подходит — /trainer и /t-lesson/[id] рендерятся в независимых
@@ -36,15 +66,12 @@ import { motion } from 'framer-motion';
 
 const SCALE_FACTOR = 5;
 const FADE_DURATION = 0.18;
-// Пользователь явно попросил: если lesson загрузился быстрее анимации —
-// открывать сразу, не ждать. Поэтому минимум держим маленьким — только
-// чтобы гарантировать хотя бы один отрисованный кадр эффекта (иначе при
-// мгновенной (закэшированной) навигации оверлей мог бы не успеть даже
-// показаться на экране). Если страница подгружается дольше — bounce
-// доигрывает до конца сам, ждать её не приходится.
-const MIN_EXPAND_DISPLAY = 150;
+// Совпадает с `duration` spring-перехода ниже (0.45с) + небольшой запас,
+// чтобы последние доли перехлёста точно успели визуально осесть — не
+// framer-motion'овский onAnimationComplete, см. комментарий в шапке файла.
+const REVEAL_DELAY = 480;
 
-type Phase = 'idle' | 'expanding' | 'fading';
+type Phase = 'idle' | 'bouncing' | 'fading';
 
 type Props = {
     href: string;
@@ -66,29 +93,51 @@ export const TrainerStageLink = ({ href, className, style, icon, extra }: Props)
     const [rect, setRect] = useState<DOMRect | null>(null);
     const [phase, setPhase] = useState<Phase>('idle');
     const [mounted, setMounted] = useState(false);
-    const clickTimeRef = useRef<number | null>(null);
+    // Успели ли уже реально вызвать router.push для текущего клика — до
+    // этого момента pathname меняться не может, проверять его в эффекте
+    // ниже нет смысла (и опасно: pathname мог случайно совпасть с целью
+    // ещё до навигации, например при повторном клике по уже открытому
+    // маршруту — но это уже отсекается отдельной проверкой в handleClick).
+    const pushedRef = useRef(false);
     const timerRef = useRef<ReturnType<typeof setTimeout>>();
+    const revealTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
     useEffect(() => {
         setMounted(true);
         return () => {
             if (timerRef.current) clearTimeout(timerRef.current);
+            if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
         };
     }, []);
 
     // usePathname() не включает query-строку — сравниваем без "?boss=1".
     const targetPathname = href.split('?')[0];
 
-    // Страница реально сменилась на целевую — можно начинать угасание
-    // (не раньше MIN_EXPAND_DISPLAY от клика, см. комментарий выше —
-    // только маленький защитный буфер, не полное ожидание bounce).
+    // REVEAL_DELAY истёк — bounce визуально закончился, только теперь
+    // запускаем настоящую навигацию. До этого момента маршрут не меняется
+    // в принципе, поэтому Next.js не может размонтировать /trainer раньше
+    // времени, каким бы быстрым (прогретым) ни был целевой урок.
     useEffect(() => {
-        if (phase !== 'expanding') return;
+        if (phase !== 'bouncing') return;
+        revealTimerRef.current = setTimeout(() => {
+            pushedRef.current = true;
+            router.push(href);
+        }, REVEAL_DELAY);
+        return () => clearTimeout(revealTimerRef.current);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phase]);
+
+    // Страница реально сменилась на целевую — можно начинать короткое
+    // угасание оверлея. Проверка pushedRef защищает от гипотетического
+    // случая, когда pathname совпал бы с целью до собственного push
+    // (на практике не должно происходить — see handleClick guard — но
+    // без этой проверки эффект мог бы сработать по чужому совпадению).
+    useEffect(() => {
+        if (phase !== 'bouncing') return;
+        if (!pushedRef.current) return;
         if (pathname !== targetPathname) return;
 
-        const elapsed = clickTimeRef.current ? Date.now() - clickTimeRef.current : MIN_EXPAND_DISPLAY;
-        const remaining = Math.max(0, MIN_EXPAND_DISPLAY - elapsed);
-        timerRef.current = setTimeout(() => setPhase('fading'), remaining);
+        timerRef.current = setTimeout(() => setPhase('fading'), 0);
         return () => clearTimeout(timerRef.current);
     }, [pathname, targetPathname, phase]);
 
@@ -109,9 +158,9 @@ export const TrainerStageLink = ({ href, className, style, icon, extra }: Props)
         }
 
         setRect(r);
-        clickTimeRef.current = Date.now();
-        setPhase('expanding');
-        router.push(href);
+        pushedRef.current = false;
+        setPhase('bouncing');
+        // router.push() здесь намеренно НЕ вызывается — см. REVEAL_DELAY-эффект выше.
     };
 
     // Смещение от центра нажатого квадратика до центра экрана — считается
