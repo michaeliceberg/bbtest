@@ -2,12 +2,11 @@
 'use server';
 
 import db from '@/db/drizzle';
-import { 
-    challengeProgress, 
-    userDailyStats, 
-    userHomework, 
-    userProgress, 
-    userCourseProgress,
+import {
+    challengeProgress,
+    userDailyStats,
+    userHomework,
+    userProgress,
     challenges,
     lessons,
     units
@@ -17,6 +16,7 @@ import { auth } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { xpForAmount, getLevelUpInfo } from '@/lib/xp';
 import { recalculateAchievements, type NewlyCompletedAchievement } from './check-achievements';
+import { bumpCourseStreak } from '@/lib/streak';
 
 interface UpdateChallengeProgressProps {
     challengeId: number;
@@ -38,6 +38,8 @@ interface ChallengeProgressResponse {
     newLevel?: number;
     levelUpGems?: number;
     newAchievements?: NewlyCompletedAchievement[];
+    streakExtended?: boolean;
+    newStreak?: number;
 }
 
 export async function updateChallengeProgress({
@@ -159,6 +161,8 @@ export async function updateChallengeProgress({
     let leveledUp = false;
     let newLevel: number | undefined;
     let levelUpGems = 0;
+    let streakExtended = false;
+    let newStreak: number | undefined;
 
     if (!isPractice && doneRight && !existingProgress?.completed) {
         pointsEarned = challenge.points;
@@ -179,69 +183,20 @@ export async function updateChallengeProgress({
             })
             .where(eq(userProgress.userId, userId));
         
-        const courseProgress = await db.query.userCourseProgress.findFirst({
-            where: and(
-                eq(userCourseProgress.userId, userId),
-                eq(userCourseProgress.courseId, courseId)
-            ),
+        // "Ударный режим" (streak) — общий помощник (lib/streak.ts),
+        // делит логику с трениажёром (см. actions/user-progress.ts): по
+        // решению пользователя один и тот же курсовый стрик продлевается
+        // ЛИБО задачей из задачника, ЛИБО уроком тренажёра, привязанного
+        // к этому курсу — "хотя бы что-то оттуда или оттуда". До правки
+        // это поле не обновлялось НИГДЕ в живом коде (только в мёртвом
+        // закомментированном блоке ниже в этом файле) — таблица
+        // user_course_progress была пуста для всех пользователей.
+        const streakResult = await bumpCourseStreak(userId, courseId, today, {
+            pointsDelta: pointsEarned,
+            gemsDelta: gemsEarned,
         });
-
-        // "Ударный режим" (streak) — до этой правки поле не обновлялось
-        // НИГДЕ в живом коде (только в мёртвом закомментированном блоке
-        // ниже в этом файле), из-за чего у всех пользователей оно всегда
-        // оставалось 0 — бейдж в шапке (app/(main)/layout.tsx,
-        // `streak > 0 ? streak : undefined`) просто не показывался, а
-        // ачивка категории 'streak' (MAX(longest_streak), см.
-        // actions/check-achievements.ts) была недостижима в принципе.
-        // По календарным дням: lastActiveDate уже сегодня — серию не
-        // трогаем (иначе два верных ответа за один день считались бы как
-        // 2 дня подряд); вчера — +1; более старая дата или полное
-        // отсутствие активности — сброс на 1 (не на 0: сегодняшний день
-        // тоже реально прожит).
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-
-        const lastActive = courseProgress?.lastActiveDate ? new Date(courseProgress.lastActiveDate) : null;
-        if (lastActive) lastActive.setHours(0, 0, 0, 0);
-
-        let newStreak: number;
-        if (lastActive && lastActive.getTime() === today.getTime()) {
-            newStreak = courseProgress?.streak ?? 1;
-        } else if (lastActive && lastActive.getTime() === yesterday.getTime()) {
-            newStreak = (courseProgress?.streak ?? 0) + 1;
-        } else {
-            newStreak = 1;
-        }
-        const newLongestStreak = Math.max(newStreak, courseProgress?.longestStreak ?? 0);
-
-        if (courseProgress) {
-            await db.update(userCourseProgress)
-                .set({
-                    points: sql`${userCourseProgress.points} + ${pointsEarned}`,
-                    gems: sql`${userCourseProgress.gems} + ${gemsEarned}`,
-                    streak: newStreak,
-                    longestStreak: newLongestStreak,
-                    lastActiveDate: today,
-                    updatedAt: now,
-                })
-                .where(eq(userCourseProgress.id, courseProgress.id));
-        } else {
-            // Ранее строка на этот userId+courseId вообще никогда не
-            // создавалась живым кодом (см. комментарий выше) — без этой
-            // ветки первый же верный ответ по новому курсу продолжал бы
-            // молча пропускать очки/гемы/стрик курса.
-            await db.insert(userCourseProgress).values({
-                userId,
-                courseId,
-                points: pointsEarned,
-                gems: gemsEarned,
-                progressPercent: 0,
-                streak: newStreak,
-                longestStreak: newLongestStreak,
-                lastActiveDate: today,
-                updatedAt: now,
-            });
-        }
+        streakExtended = streakResult.extended;
+        newStreak = streakResult.streak;
     }
     
     // 11. HW статистика
@@ -342,6 +297,8 @@ export async function updateChallengeProgress({
         newLevel,
         levelUpGems,
         newAchievements,
+        streakExtended,
+        newStreak,
     };
 }
 

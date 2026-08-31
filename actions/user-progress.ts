@@ -2,7 +2,7 @@
 
 import db from '@/db/drizzle';
 import { getCourseById, getUserProgress } from '@/db/queries';
-import { challengeProgress, challenges, t_lessonProgress, userProgress } from '@/db/schema';
+import { challengeProgress, challenges, t_lessonProgress, t_lessons, userProgress } from '@/db/schema';
 import { auth } from '@/lib/auth';
 // import { auth, currentUser } from '@clerk/nextjs/server';
 import { and, eq, sql } from 'drizzle-orm';
@@ -10,6 +10,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { xpForAmount, getLevelUpInfo } from '@/lib/xp';
 import { recalculateAchievements } from './check-achievements';
+import { bumpCourseStreak } from '@/lib/streak';
 
 const POINTS_TO_REFILL = 10
 
@@ -279,6 +280,8 @@ export const upsertTrainerLessonProgress = async (
 	let leveledUp = false;
 	let newLevel: number | undefined;
 	let levelUpGems = 0;
+	let streakExtended = false;
+	let newStreak: number | undefined;
 
 	if (trainingPts > 0) {
 		const earnedXp = xpForAmount(trainingPts);
@@ -297,6 +300,25 @@ export const upsertTrainerLessonProgress = async (
 				gems: sql`${userProgress.gems} + ${levelUpGems}`,
 			})
 			.where(eq(userProgress.userId, userId));
+
+		// "Ударный режим" — по решению пользователя урок тренажёра
+		// продлевает ТОТ ЖЕ курсовый стрик, что и задачи в задачнике
+		// (см. lib/streak.ts, actions/challenge-progress.ts) — не
+		// отдельный тренажёрный стрик. Привязанного курса может не быть
+		// (t_courses.courseId nullable, см. db/schema.ts) — тогда просто
+		// нечего продлевать, тихо пропускаем.
+		const lesson = await db.query.t_lessons.findFirst({
+			where: eq(t_lessons.id, t_lessonId),
+			with: { t_unit: { with: { t_course: true } } },
+		});
+		const linkedCourseId = lesson?.t_unit?.t_course?.courseId;
+		if (linkedCourseId) {
+			const today = new Date();
+			today.setHours(0, 0, 0, 0);
+			const streakResult = await bumpCourseStreak(userId, linkedCourseId, today);
+			streakExtended = streakResult.extended;
+			newStreak = streakResult.streak;
+		}
 	}
 
 	revalidatePath('/trainer');
@@ -306,7 +328,7 @@ export const upsertTrainerLessonProgress = async (
 
 	const newAchievements = await recalculateAchievements(userId);
 
-	return { leveledUp, newLevel, levelUpGems, newAchievements };
+	return { leveledUp, newLevel, levelUpGems, newAchievements, streakExtended, newStreak };
 };
 
 

@@ -6,6 +6,7 @@ import db from '@/db/drizzle';
 import { trainerQuests, t_lessons, t_units, t_courses, trainerStreaks, userHomework } from '@/db/schema';
 import { and, eq, gte, sql } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
+import { getCourseStreak } from '@/lib/streak';
 
 export async function generateDailyTrainerQuest(tCourseId: number) {
     const session = await auth();
@@ -283,8 +284,16 @@ export async function reportLessonQuestSignals(t_lessonId: number, maxStreak: nu
     // "всё сделано", хотя на деле просто нечего было бы считать).
     let hwDone: number | null = null;
     let hwTotal: number | null = null;
+    // "Продли серию дней" (первая карточка экрана наград) — реальный
+    // курсовый стрик (lib/streak.ts), а не заглушка. Уже продлён на
+    // сегодня к этому моменту: upsertTrainerLessonProgress этой же
+    // попытки вызывается РАНЬШЕ (см. TQUIZ.tsx), поэтому здесь только
+    // читаем, не бампаем повторно.
+    let courseStreak: number | null = null;
     const tCourse = await db.query.t_courses.findFirst({ where: eq(t_courses.id, tCourseId) });
     if (tCourse?.courseId) {
+        courseStreak = await getCourseStreak(userId, tCourse.courseId);
+
         const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
         const rows = await db.select({ status: userHomework.status })
             .from(userHomework)
@@ -304,5 +313,6 @@ export async function reportLessonQuestSignals(t_lessonId: number, maxStreak: nu
         perfectTarget: PERFECT_TARGET,
         hwDone,
         hwTotal,
+        courseStreak,
     };
 }

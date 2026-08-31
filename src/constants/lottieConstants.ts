@@ -1,4 +1,10 @@
 // Все Lottie анимации в одном месте
+import LottieStreakFireCelebrating from '@/public/Lottie/streak/streakFireCelebrating.json'
+import LottieStreakFireKiss from '@/public/Lottie/streak/streakFireKiss.json'
+import LottieStreakFireRolling from '@/public/Lottie/streak/streakFireRolling.json'
+import LottieStreakFireThanks from '@/public/Lottie/streak/streakFireThanks.json'
+import LottieStreakFireRain from '@/public/Lottie/streak/streakFireRain.json'
+import LottieStreakFireSad from '@/public/Lottie/streak/streakFireSad.json'
 import LottieTrainerSharkFailDNO from '@/public/Lottie/trainer/LottieTrainerSharkFailDNO.json'
 import LottieTrainerSharkStart from '@/public/Lottie/trainer/LottieTrainerSharkStart.json'
 import LottieTrainerSharkStartUdachi from '@/public/Lottie/trainer/LottieTrainerSharkStartUdachi.json'
@@ -38,6 +44,21 @@ export const LOTTIE_RESULT = {
   SUCCESS: LottieTrainerSharkFinalWin,
   FAIL: LottieTrainerSharkFailDNO,
 } as const
+
+// Огонёк "ударного режима" (user_course_progress.streak, см. lib/streak.ts)
+// — радуется, когда серию продлили сегодня; грустит/мокнет под дождём,
+// когда серия под угрозой (время поджимает, а сегодня ещё не позанимался).
+export const LOTTIE_STREAK_CELEBRATE_LIST = [
+  LottieStreakFireCelebrating,
+  LottieStreakFireKiss,
+  LottieStreakFireRolling,
+  LottieStreakFireThanks,
+] as const
+
+export const LOTTIE_STREAK_RISK_LIST = [
+  LottieStreakFireRain,
+  LottieStreakFireSad,
+] as const
 
 // Helper функция для получения случайной анимации
 export const getRandomLottie = (lottieList: readonly any[]) => {

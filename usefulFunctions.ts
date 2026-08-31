@@ -186,3 +186,27 @@ export const NearestRound = (x: number) => {
 export const getRandomNumberBetween = (min: number, max: number) => {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   };
+
+
+// Русское склонение по числу (1 день / 2 дня / 5 дней) — общий помощник,
+// используется для тостов "серия продлена" (app/lesson/quiz.tsx,
+// app/t-lesson/[t_lessonId]/TQUIZ.tsx). lib/notify-homework-assigned.ts
+// уже содержит похожую функцию, но та не экспортирована и живёт в
+// серверном (БД-импортирующем) модуле — сюда её тащить нельзя, эта
+// функция вызывается из клиентских компонентов.
+export const declensionRu = (n: number, one: string, few: string, many: string): string => {
+    const mod10 = n % 10;
+    const mod100 = n % 100;
+    if (mod100 >= 11 && mod100 <= 19) return many;
+    if (mod10 === 1) return one;
+    if (mod10 >= 2 && mod10 <= 4) return few;
+    return many;
+};
+
+export const daysWord = (n: number): string => declensionRu(n, 'день', 'дня', 'дней');
+
+// Родительный падеж ("серию ИЗ N дней") — отдельно от daysWord(), т.к. это
+// именительный/счётный ("1 день", "3 дня", "5 дней"). После предлога "из"
+// вся фраза целиком в родительном: "из 1 дня" (не "из 1 день"), "из 3 дней"
+// (не "из 3 дня" — сравните со счётным "3 дня" без предлога).
+export const daysWordGenitive = (n: number): string => (n % 10 === 1 && n % 100 !== 11 ? 'дня' : 'дней');

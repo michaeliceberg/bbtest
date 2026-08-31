@@ -38,6 +38,7 @@ import { awardHotQuestionReward } from "@/actions/award-hot-question-reward"
 import { ChestReward } from "@/components/ChestReward"
 import { TrainerQuestRewardsScreen, QuestRewardsData } from "@/components/trainer-quest-rewards-screen"
 import { useAchievementStore } from "@/store/use-achievement-store"
+import { useStreakCelebrationStore } from "@/store/use-streak-celebration-store"
 
 // "Горячий вопрос" (questionType 'HOT', см. type-hot.tsx) — факультативный,
 // не входит в счёт/сердечки/работу над ошибками (см. handleAnswer). Везде,
@@ -117,6 +118,12 @@ export default function TQuiz({
   const router = useRouter()
   const searchParams = useSearchParams()
   const showAchievement = useAchievementStore((state) => state.showAchievement)
+  // Название с префиксом "daily" не просто так — showStreakCelebration/
+  // setShowStreakCelebration (state ниже) уже заняты СОВСЕМ другим
+  // понятием: внутриурочная серия "3/7 ПОДРЯД" (STREAK_MILESTONES), а
+  // это — курсовый ударный режим по ДНЯМ (см. lib/streak.ts). Разные
+  // механики, случайно совпавшее название переменной.
+  const triggerDailyStreakToast = useStreakCelebrationStore((state) => state.showStreakCelebration)
   const fromQuest = searchParams.get('fromQuest') === 'true'
   const tCourseId = searchParams.get('tCourseId') ? parseInt(searchParams.get('tCourseId')!) : null
   
@@ -354,6 +361,12 @@ export default function TQuiz({
       if (progressResult?.leveledUp) {
         const gemsPart = progressResult.levelUpGems ? ` +${progressResult.levelUpGems}💎` : ''
         toast.success(`🎊 Новый уровень! Теперь ты на Ур. ${progressResult.newLevel}${gemsPart}`, { duration: 4000 })
+      }
+      // Урок тренажёра продлевает ТОТ ЖЕ курсовый стрик, что и задачи в
+      // задачнике (см. lib/streak.ts) — streakExtended==true только если
+      // это первый успех за сегодня, продливший серию на новый день.
+      if (progressResult?.streakExtended && progressResult.newStreak) {
+        triggerDailyStreakToast(progressResult.newStreak)
       }
       progressResult?.newAchievements?.forEach((ach) => showAchievement(ach))
       await updateQuestProgress()

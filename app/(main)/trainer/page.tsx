@@ -29,6 +29,8 @@ import { and, eq } from 'drizzle-orm';
 import { trainerStreaks } from '@/db/schema';
 import { LevelCard } from '@/components/level-card';
 import { getLvlLottieCount } from '@/lib/lvl-lottie';
+import { StreakRiskBanner } from '@/components/streak-risk-banner';
+import { getUserCourseProgress } from '@/db/queries';
 
 const TLearnPage = async () => {
     const session = await auth();
@@ -244,6 +246,23 @@ const TLearnPage = async () => {
     const currentHearts = userProgress.hearts;
     const currentXp = userProgress.xp;
 
+    // "Ударный режим под угрозой" (components/streak-risk-banner.tsx) —
+    // тот же единый курсовый стрик, что и на /learn (см. lib/streak.ts),
+    // читаем через привязанный к теме тренажёра courseId (t_courses.courseId,
+    // nullable — у части тем привязки может не быть, тогда banner тихо не
+    // рендерится, т.к. currentStreakForRisk останется 0).
+    let currentStreakForRisk = 0;
+    let hasExtendedStreakToday = false;
+    if (activeTCourse?.courseId) {
+        const linkedCourseProgress = await getUserCourseProgress(activeTCourse.courseId);
+        currentStreakForRisk = linkedCourseProgress?.streak ?? 0;
+        const lastActive = linkedCourseProgress?.lastActiveDate ? new Date(linkedCourseProgress.lastActiveDate) : null;
+        if (lastActive) lastActive.setHours(0, 0, 0, 0);
+        const todayForStreak = new Date();
+        todayForStreak.setHours(0, 0, 0, 0);
+        hasExtendedStreakToday = !!lastActive && lastActive.getTime() === todayForStreak.getTime();
+    }
+
     return (
         <div className='flex flex-row-reverse gap-[48px] px-6'>
             <StickyWrapper>
@@ -272,6 +291,8 @@ const TLearnPage = async () => {
                 <Header title="Тренажёр" />
 
                 <div className='mt-2 lg:mt-5'>
+                    <StreakRiskBanner streak={currentStreakForRisk} hasExtendedToday={hasExtendedStreakToday} />
+
                     <div className='mb-4'>
                         <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} />
                     </div>

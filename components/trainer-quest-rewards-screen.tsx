@@ -11,11 +11,13 @@
 // Данные — честные, не выдуманные на клиенте: серверный экшен
 // reportLessonQuestSignals (actions/generate-trainer-quest.ts) считает их
 // из реальных данных (trainer_quests.streak5Count/perfectLessonCount,
-// user_homework за текущий месяц) в момент завершения урока. Единственное
-// исключение — первая карточка "Продли серию дней": она всегда 1/1 в
-// момент показа этого экрана, поскольку сам факт того, что урок только
-// что пройден идеально, УЖЕ означает "позанимался сегодня" — статичное
-// значение, отдельный запрос к серверу ради него не нужен.
+// user_homework за текущий месяц, user_course_progress.streak) в момент
+// завершения урока. Первая карточка "Продли серию дней" всегда 1/1 —
+// сам факт того, что урок только что пройден идеально, УЖЕ означает
+// "позанимался сегодня" (единый курсовый стрик, см. lib/streak.ts,
+// продлевается ЛИБО задачей из задачника, ЛИБО уроком тренажёра) — но
+// подпись рядом с заголовком показывает РЕАЛЬНОЕ число дней подряд
+// (courseStreak), а не выдуманное.
 //
 // Карточка ДЗ переиспользует ТОТ ЖЕ RewardRow (полоса-прогресс + бейдж
 // справа), что и обычные квесты — изначально у неё была своя, чуть
@@ -30,6 +32,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Gift, Smile, Meh } from 'lucide-react'
 import { Button } from './ui/button'
+import { daysWord } from '@/usefulFunctions'
 
 export type QuestRewardsData = {
     streak5Count: number
@@ -38,6 +41,7 @@ export type QuestRewardsData = {
     perfectTarget: number
     hwDone: number | null
     hwTotal: number | null
+    courseStreak: number | null
 } | null
 
 type Props = {
@@ -145,6 +149,7 @@ export const TrainerQuestRewardsScreen = ({ data, onOpenChest }: Props) => {
     const hwTotal = data?.hwTotal ?? 0
     const hwCompleted = showHomework && hwDone >= hwTotal
     const monthName = MONTH_GENITIVE[new Date().getMonth()]
+    const courseStreak = data?.courseStreak ?? null
 
     return (
         <div className="w-full max-w-xl mx-auto py-6 px-1">
@@ -161,6 +166,7 @@ export const TrainerQuestRewardsScreen = ({ data, onOpenChest }: Props) => {
             <div className="flex flex-col gap-3">
                 <RewardCard
                     title="Продли серию дней"
+                    caption={courseStreak ? `🔥 ${courseStreak} ${daysWord(courseStreak)} подряд` : undefined}
                     current={1}
                     target={1}
                     icon={<Gift className="w-5 h-5" />}

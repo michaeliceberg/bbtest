@@ -28,6 +28,7 @@ import { generateHomework } from '@/actions/generate-homework';
 import { ScrollToLesson } from '@/components/scroll-to-lesson';
 import { LevelCard } from '@/components/level-card';
 import { getLvlLottieCount } from '@/lib/lvl-lottie';
+import { StreakRiskBanner } from '@/components/streak-risk-banner';
 import { Suspense } from 'react';
 
 const bgList = [
@@ -267,6 +268,16 @@ const LearnPage = async () => {
   const hwList = [hwAssigned, hwDone, 0];
   const isHwCompleted = todayStats?.hwCompleted ?? false;
 
+  // "Ударный режим под угрозой" (components/streak-risk-banner.tsx) —
+  // сама проверка часа ("поздно ли уже") целиком на клиенте (локальное
+  // время браузера), здесь только честно считаем "продлевал ли сегодня".
+  const currentStreak = courseProgressData?.streak ?? 0;
+  const streakLastActive = courseProgressData?.lastActiveDate ? new Date(courseProgressData.lastActiveDate) : null;
+  if (streakLastActive) streakLastActive.setHours(0, 0, 0, 0);
+  const todayForStreak = new Date();
+  todayForStreak.setHours(0, 0, 0, 0);
+  const hasExtendedStreakToday = !!streakLastActive && streakLastActive.getTime() === todayForStreak.getTime();
+
   return (
     <LearnWrapper courseId={activeCourseId}>
       <Suspense fallback={null}>
@@ -309,6 +320,8 @@ const LearnPage = async () => {
           />
 
           <div className='mt-2 lg:mt-5'>
+            <StreakRiskBanner streak={currentStreak} hasExtendedToday={hasExtendedStreakToday} />
+
             <div className='mb-4'>
               <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} />
             </div>

@@ -19,6 +19,7 @@ const PracticeModal = dynamic(() => import('@/components/modals/practice-modal')
 const WrongAnswerModal = dynamic(() => import('@/components/modals/wronganswer-modal').then(mod => ({ default: mod.WrongAnswerModal })), { ssr: false });
 const RightAnswerModal = dynamic(() => import('@/components/modals/rightanswer-modal').then(mod => ({ default: mod.RightAnswerModal })), { ssr: false });
 const AchievementToastProvider = dynamic(() => import('@/components/achievement-toast-provider').then(mod => ({ default: mod.AchievementToastProvider })), { ssr: false });
+const StreakCelebrationToastProvider = dynamic(() => import('@/components/streak-celebration-toast-provider').then(mod => ({ default: mod.StreakCelebrationToastProvider })), { ssr: false });
 
 const font = Nunito({ subsets: ['latin'] });
 
@@ -47,6 +48,7 @@ export default function RootLayout({
 				<HeartsModal />
 				<PracticeModal />
 				<AchievementToastProvider />
+				<StreakCelebrationToastProvider />
 			</body>
 		</html>
 	);
