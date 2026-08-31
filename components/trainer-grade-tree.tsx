@@ -127,7 +127,7 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                     // язык между картой этапов и экраном боя.
                                                     const stageIcon = isBoss
                                                         ? <span className={`text-base leading-none ${!unlocked ? 'grayscale opacity-50' : ''}`}>👹</span>
-                                                        : <Icon className="w-4 h-4" style={{ color: unlocked ? (done ? '#16240C' : '#4897D1') : '#56646C' }} />;
+                                                        : <Icon className="w-4 h-4" style={{ color: unlocked ? (done ? '#F5F0FF' : '#4897D1') : '#56646C' }} />;
 
                                                     return (
                                                         <React.Fragment key={s.id}>
@@ -137,8 +137,9 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                                         href={`/t-lesson/${s.id}${isBoss ? '?boss=1' : ''}`}
                                                                         className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                         style={{
-                                                                            backgroundColor: done ? '#5FA12F' : '#232F35',
-                                                                            border: `2px solid ${done ? '#78C93C' : '#4897D1'}`,
+                                                                            background: done ? 'linear-gradient(135deg, #7C3AED 0%, #C026D3 100%)' : '#232F35',
+                                                                            border: `2px solid ${done ? '#C4B5FD' : '#4897D1'}`,
+                                                                            boxShadow: done ? '0 0 12px -2px rgba(167, 139, 250, 0.55)' : undefined,
                                                                         }}
                                                                         icon={stageIcon}
                                                                         extra={isBoss && done ? (
@@ -165,7 +166,7 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                                     style={{
                                                                         gridColumn: Math.min(col, boxColumn(j + 1)) + 1,
                                                                         gridRow: 1,
-                                                                        backgroundColor: done ? '#78C93C' : '#3A464E',
+                                                                        backgroundColor: done ? '#A78BFA' : '#3A464E',
                                                                     }}
                                                                     className="h-0.5"
                                                                 />

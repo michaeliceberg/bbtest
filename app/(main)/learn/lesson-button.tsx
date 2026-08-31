@@ -2,7 +2,7 @@
 
 "use client";
 
-import Link from "next/link";
+import { TransitionLink } from "@/utils/TransitionLink";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { Cake, CircleCheckBig, CircleX, Crown, Layers, Skull, Star, Lock, Zap, Flame, Gift } from "lucide-react";
@@ -230,7 +230,7 @@ export const LessonButton = ({
     // Если урок полностью пройден (мастерство)
     if (isLessonCompleted) {
         return (
-            <Link href={href} aria-disabled={locked} style={{ pointerEvents: locked ? "none" : "auto" }}>
+            <TransitionLink href={href} aria-disabled={locked} style={{ pointerEvents: locked ? "none" : "auto" }}>
                 <div id={`lesson-${id}`} className="relative flex flex-1" style={{
                     right: `calc(-20px + ${rightPosition})`,
                     marginTop: isFirst ? 28 : 24,
@@ -247,13 +247,13 @@ export const LessonButton = ({
                         <p className="text-xs text-green-600 mt-1">Мастер! 🎓</p>
                     </div>
                 </div>
-            </Link>
+            </TransitionLink>
         );
     }
 
     // Обычный доступный урок
     return (
-        <Link href={href} aria-disabled={locked} style={{ pointerEvents: locked ? "none" : "auto" }}>
+        <TransitionLink href={href} aria-disabled={locked} style={{ pointerEvents: locked ? "none" : "auto" }}>
             <div id={`lesson-${id}`} className="relative flex flex-1 items-center group" style={{
                 right: `calc(-20px + ${rightPosition})`,
                 marginTop: isFirst ? 28 : 24,
@@ -370,7 +370,7 @@ export const LessonButton = ({
                     )}
                 </div>
             </div>
-        </Link>
+        </TransitionLink>
     );
 };
 

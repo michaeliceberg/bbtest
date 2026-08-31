@@ -70,6 +70,13 @@ const FADE_DURATION = 0.18;
 // чтобы последние доли перехлёста точно успели визуально осесть — не
 // framer-motion'овский onAnimationComplete, см. комментарий в шапке файла.
 const REVEAL_DELAY = 480;
+// Если целевая страница не успела смонтироваться сразу после
+// REVEAL_DELAY (router.push уже вызван, но pathname ещё не сменился —
+// см. STUCK_DELAY ниже), раньше квадратик просто застывал увеличенным
+// и статичным — пользователь принял это за зависание. Через STUCK_DELAY
+// после начала ожидания включаем лёгкое покачивание влево-вправо, пока
+// страница не откроется по-настоящему.
+const STUCK_DELAY = 300;
 
 type Phase = 'idle' | 'bouncing' | 'fading';
 
@@ -93,6 +100,8 @@ export const TrainerStageLink = ({ href, className, style, icon, extra }: Props)
     const [rect, setRect] = useState<DOMRect | null>(null);
     const [phase, setPhase] = useState<Phase>('idle');
     const [mounted, setMounted] = useState(false);
+    const [isStuck, setIsStuck] = useState(false);
+    const stuckTimerRef = useRef<ReturnType<typeof setTimeout>>();
     // Успели ли уже реально вызвать router.push для текущего клика — до
     // этого момента pathname меняться не может, проверять его в эффекте
     // ниже нет смысла (и опасно: pathname мог случайно совпасть с целью
@@ -107,6 +116,7 @@ export const TrainerStageLink = ({ href, className, style, icon, extra }: Props)
         return () => {
             if (timerRef.current) clearTimeout(timerRef.current);
             if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
+            if (stuckTimerRef.current) clearTimeout(stuckTimerRef.current);
         };
     }, []);
 
@@ -122,6 +132,12 @@ export const TrainerStageLink = ({ href, className, style, icon, extra }: Props)
         revealTimerRef.current = setTimeout(() => {
             pushedRef.current = true;
             router.push(href);
+            // Навигация запущена, но целевая страница может ещё какое-то
+            // время монтироваться (медленная сеть, непрогретый маршрут) —
+            // если за STUCK_DELAY страница так и не сменилась, включаем
+            // покачивание (см. isStuck ниже), чтобы застывший увеличенный
+            // квадратик не читался как зависание.
+            stuckTimerRef.current = setTimeout(() => setIsStuck(true), STUCK_DELAY);
         }, REVEAL_DELAY);
         return () => clearTimeout(revealTimerRef.current);
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -137,6 +153,8 @@ export const TrainerStageLink = ({ href, className, style, icon, extra }: Props)
         if (!pushedRef.current) return;
         if (pathname !== targetPathname) return;
 
+        if (stuckTimerRef.current) clearTimeout(stuckTimerRef.current);
+        setIsStuck(false);
         timerRef.current = setTimeout(() => setPhase('fading'), 0);
         return () => clearTimeout(timerRef.current);
     }, [pathname, targetPathname, phase]);
@@ -159,6 +177,7 @@ export const TrainerStageLink = ({ href, className, style, icon, extra }: Props)
 
         setRect(r);
         pushedRef.current = false;
+        setIsStuck(false);
         setPhase('bouncing');
         // router.push() здесь намеренно НЕ вызывается — см. REVEAL_DELAY-эффект выше.
     };
@@ -186,7 +205,13 @@ export const TrainerStageLink = ({ href, className, style, icon, extra }: Props)
                     left: rect.left,
                     width: rect.width,
                     height: rect.height,
-                    backgroundColor: style?.backgroundColor,
+                    // style?.background покрывает и обычный backgroundColor,
+                    // и CSS-градиент (done-квадратики теперь красятся
+                    // градиентом, см. trainer-grade-tree.tsx) — раньше сюда
+                    // копировался только backgroundColor, из-за чего
+                    // увеличенная копия done-квадратика при анимации
+                    // оставалась вообще без фона.
+                    background: style?.background ?? style?.backgroundColor,
                     border: style?.border,
                     boxSizing: 'border-box',
                 }}
@@ -194,12 +219,21 @@ export const TrainerStageLink = ({ href, className, style, icon, extra }: Props)
                 animate={
                     phase === 'fading'
                         ? { x: centerDelta.x, y: centerDelta.y, scale: SCALE_FACTOR, opacity: 0 }
-                        : { x: centerDelta.x, y: centerDelta.y, scale: SCALE_FACTOR, opacity: 1 }
+                        : isStuck
+                            // Навигация уже запущена, но целевая страница ещё
+                            // не смонтировалась — лёгкое покачивание влево-
+                            // вправо вместо статично замершего квадратика,
+                            // чтобы было понятно, что мы всё ещё грузим урок,
+                            // а не зависли.
+                            ? { x: [centerDelta.x - 6, centerDelta.x + 6, centerDelta.x - 6], y: centerDelta.y, scale: SCALE_FACTOR, opacity: 1 }
+                            : { x: centerDelta.x, y: centerDelta.y, scale: SCALE_FACTOR, opacity: 1 }
                 }
                 transition={
                     phase === 'fading'
                         ? { opacity: { duration: FADE_DURATION, ease: 'easeIn' } }
-                        : { type: 'spring', duration: 0.45, bounce: 0.5 }
+                        : isStuck
+                            ? { x: { duration: 1.1, repeat: Infinity, ease: 'easeInOut' } }
+                            : { type: 'spring', duration: 0.45, bounce: 0.5 }
                 }
             >
                 {icon}
