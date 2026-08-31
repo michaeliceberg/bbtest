@@ -704,7 +704,16 @@ export const trainerQuests = pgTable('trainer_quests', {
     totalCount: integer('total_count').notNull().default(0),
     isCompleted: boolean('is_completed').default(false),
     completedAt: timestamp('completed_at'),
-    
+
+    // Доп. дневные квесты для экрана "промежуточных наград" (см.
+    // components/trainer-quest-rewards-screen.tsx) — растут по мере
+    // прохождения ЛЮБЫХ уроков темы за сегодня, независимо от того,
+    // входят ли эти уроки в основной "квест из N уроков" выше (tLessonIds).
+    // Оба с фиксированной целью 2 (см. actions/generate-trainer-quest.ts,
+    // reportLessonQuestSignals).
+    streak5Count: integer('streak5_count').notNull().default(0),
+    perfectLessonCount: integer('perfect_lesson_count').notNull().default(0),
+
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow(),
 });

@@ -33,9 +33,10 @@ import { isCorrectAnswer } from "@/usefulFunctions"
 import { LOTTIE_START_LIST, LOTTIE_EMOTION_RIGHT_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
 import { X, PencilLine, Gift } from "lucide-react"
 import { useQuizAudio } from "@/app/hooks/useQuizAudio"
-import { completeTrainerQuestLesson } from "@/actions/generate-trainer-quest"
+import { completeTrainerQuestLesson, reportLessonQuestSignals } from "@/actions/generate-trainer-quest"
 import { awardHotQuestionReward } from "@/actions/award-hot-question-reward"
 import { ChestReward } from "@/components/ChestReward"
+import { TrainerQuestRewardsScreen, QuestRewardsData } from "@/components/trainer-quest-rewards-screen"
 import { useAchievementStore } from "@/store/use-achievement-store"
 
 // "Горячий вопрос" (questionType 'HOT', см. type-hot.tsx) — факультативный,
@@ -137,6 +138,11 @@ export default function TQuiz({
   const [score, setScore] = useState(0)
   const [quizCompleted, setQuizCompleted] = useState(false)
   const [showChestReward, setShowChestReward] = useState(false)
+  // Промежуточный экран "ближайших наград" (components/trainer-quest-
+  // rewards-screen.tsx) — показывается ПЕРЕД showChestReward на идеальном
+  // результате, см. goToNextQuestion.
+  const [showQuestRewardsScreen, setShowQuestRewardsScreen] = useState(false)
+  const [questRewardsData, setQuestRewardsData] = useState<QuestRewardsData>(null)
   const [answeredQuestions, setAnsweredQuestions] = useState(0)
   const { width, height } = useWindowSize()
   
@@ -157,6 +163,11 @@ export default function TQuiz({
   // вызова). Ref обновляется синхронно вместе с setScore, поэтому всегда
   // актуален на момент чтения.
   const scoreRef = useRef(0)
+  // Наибольшая серия подряд верных ответов ВНУТРИ этой попытки — нужна для
+  // квеста "5 подряд в 2 уроках" на экране ближайших наград (см.
+  // reportLessonQuestSignals). Отдельно от trainerStreaks (стрик по ДНЯМ) и
+  // от streak (текущая, сбрасываемая серия) — именно МАКСИМУМ за попытку.
+  const maxStreakRef = useRef(0)
 
   // "Работа над ошибками" — по завершении обычного прохода, если были
   // неверные ответы, урок не заканчивается, а повторяет именно эти
@@ -268,6 +279,9 @@ export default function TQuiz({
     scoreRef.current = 0
     setQuizCompleted(false)
     setShowChestReward(false)
+    setShowQuestRewardsScreen(false)
+    setQuestRewardsData(null)
+    maxStreakRef.current = 0
     setAnsweredQuestions(0)
     setThreeHearts(3)
     setStreak(0)
@@ -345,10 +359,14 @@ export default function TQuiz({
       await updateQuestProgress()
 
       // Идеальный результат — mistakeQueue по построению пуст (ни одной
-      // ошибки не было), существующий путь с сундуком не меняется.
+      // ошибки не было). Перед сундуком — экран ближайших наград
+      // (см. components/trainer-quest-rewards-screen.tsx); сам сундук
+      // открывается по клику на его кнопке (см. onOpenChest ниже).
       if (finalScore === total) {
-        console.log('✅ Показываем сундук!')
-        setShowChestReward(true)
+        console.log('✅ Идеальный результат — показываем экран наград')
+        const rewards = await reportLessonQuestSignals(t_lessonId, maxStreakRef.current).catch(() => null)
+        setQuestRewardsData(rewards)
+        setShowQuestRewardsScreen(true)
         return
       }
     }
@@ -431,6 +449,7 @@ export default function TQuiz({
 
         setStreak(prev => {
           const newStreak = prev + 1
+          if (newStreak > maxStreakRef.current) maxStreakRef.current = newStreak
           if ((STREAK_MILESTONES as readonly number[]).includes(newStreak)) {
             setCelebrationMilestone(newStreak)
             setShowLightning(true)
@@ -617,6 +636,18 @@ export default function TQuiz({
   }, [])
 
   console.log('Рендер: quizCompleted:', quizCompleted, 'showChestReward:', showChestReward)
+
+  if (showQuestRewardsScreen) {
+    return (
+      <TrainerQuestRewardsScreen
+        data={questRewardsData}
+        onOpenChest={() => {
+          setShowQuestRewardsScreen(false)
+          setShowChestReward(true)
+        }}
+      />
+    )
+  }
 
   if (showChestReward) {
     console.log('🎁 Показываем сундук! showChestReward:', showChestReward)

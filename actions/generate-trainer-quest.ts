@@ -3,8 +3,8 @@
 'use server';
 
 import db from '@/db/drizzle';
-import { trainerQuests, t_lessons, t_units, trainerStreaks } from '@/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { trainerQuests, t_lessons, t_units, t_courses, trainerStreaks, userHomework } from '@/db/schema';
+import { and, eq, gte, sql } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 
 export async function generateDailyTrainerQuest(tCourseId: number) {
@@ -215,4 +215,94 @@ async function updateTrainerStreak(userId: string, tCourseId: number) {
             lastCompletedDate: today,
         });
     }
+}
+
+// Целевые значения дневных мини-квестов на экране "промежуточных наград"
+// (components/trainer-quest-rewards-screen.tsx) — фиксированные, не
+// настраиваются по теме/пользователю (то же самое, что уже сделано для
+// generateDailyTrainerQuest's questCount=3..5, просто константы попроще).
+const STREAK5_TARGET = 2;
+const PERFECT_TARGET = 2;
+
+// Вызывается ровно один раз при завершении урока тренажёра С ИДЕАЛЬНЫМ
+// результатом (тем же условием, что уже открывает сундук, см. TQUIZ.tsx —
+// т.е. "без ошибок" для perfectLessonCount выполняется автоматически на
+// каждый вызов). maxStreak — наибольшая серия подряд верных ответов,
+// достигнутая ВНУТРИ этой попытки (не путать с trainerStreaks —
+// стриком по ДНЯМ, это отдельное понятие, см. комментарий у полей схемы).
+//
+// В отличие от completeTrainerQuestLesson (гейтится ?fromQuest=true и
+// конкретным списком tLessonIds дневного квеста) — эти два счётчика растут
+// от ЛЮБОГО урока темы, пройденного сегодня, независимо от того, входил
+// ли он в основной список из 3-5 уроков.
+export async function reportLessonQuestSignals(t_lessonId: number, maxStreak: number) {
+    const session = await auth();
+    if (!session?.user?.id) return null;
+    const userId = session.user.id;
+
+    const lesson = await db.query.t_lessons.findFirst({
+        where: eq(t_lessons.id, t_lessonId),
+        with: { t_unit: true },
+    });
+    const tCourseId = lesson?.t_unit?.t_courseId;
+    if (!tCourseId) return null;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let quest = (await db.query.trainerQuests.findFirst({
+        where: and(
+            eq(trainerQuests.userId, userId),
+            eq(trainerQuests.tCourseId, tCourseId),
+            eq(trainerQuests.date, today)
+        ),
+    })) ?? null;
+
+    // Урок мог быть пройден раньше первого визита на /trainer сегодня
+    // (например, по прямой ссылке) — тогда дневной строки квеста ещё нет,
+    // создаём её тем же путём, что и сама страница /trainer.
+    if (!quest) {
+        quest = await generateDailyTrainerQuest(tCourseId);
+        if (!quest) return null;
+    }
+
+    const newStreak5Count = Math.min((quest.streak5Count ?? 0) + (maxStreak >= 5 ? 1 : 0), STREAK5_TARGET);
+    const newPerfectCount = Math.min((quest.perfectLessonCount ?? 0) + 1, PERFECT_TARGET);
+
+    await db.update(trainerQuests)
+        .set({
+            streak5Count: newStreak5Count,
+            perfectLessonCount: newPerfectCount,
+            updatedAt: new Date(),
+        })
+        .where(eq(trainerQuests.id, quest.id));
+
+    // Домашка за текущий месяц — только если у этого t_course есть
+    // привязанный основной курс (t_courses.courseId, nullable). Без
+    // привязки честно возвращаем null, а не 0/0 (которое выглядело бы как
+    // "всё сделано", хотя на деле просто нечего было бы считать).
+    let hwDone: number | null = null;
+    let hwTotal: number | null = null;
+    const tCourse = await db.query.t_courses.findFirst({ where: eq(t_courses.id, tCourseId) });
+    if (tCourse?.courseId) {
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        const rows = await db.select({ status: userHomework.status })
+            .from(userHomework)
+            .where(and(
+                eq(userHomework.userId, userId),
+                eq(userHomework.courseId, tCourse.courseId),
+                gte(userHomework.assignedAt, monthStart)
+            ));
+        hwTotal = rows.length;
+        hwDone = rows.filter((r) => r.status === 'completed').length;
+    }
+
+    return {
+        streak5Count: newStreak5Count,
+        streak5Target: STREAK5_TARGET,
+        perfectLessonCount: newPerfectCount,
+        perfectTarget: PERFECT_TARGET,
+        hwDone,
+        hwTotal,
+    };
 }
