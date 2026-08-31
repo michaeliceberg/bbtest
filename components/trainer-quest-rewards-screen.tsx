@@ -16,12 +16,19 @@
 // момент показа этого экрана, поскольку сам факт того, что урок только
 // что пройден идеально, УЖЕ означает "позанимался сегодня" — статичное
 // значение, отдельный запрос к серверу ради него не нужен.
+//
+// Карточка ДЗ переиспользует ТОТ ЖЕ RewardRow (полоса-прогресс + бейдж
+// справа), что и обычные квесты — изначально у неё была своя, чуть
+// другая вёрстка (счёт текстом СНАРУЖИ полосы, вместо самой полосы), из-за
+// чего она выглядела "приклеенной", а не частью одной системы. Единый
+// компонент строкой ниже — не косметика ради красоты, а гарантия, что
+// четыре карточки экрана визуально читаются как одно целое.
 
 'use client'
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Gift, Smile, Frown } from 'lucide-react'
+import { Gift, Smile, Meh } from 'lucide-react'
 import { Button } from './ui/button'
 
 export type QuestRewardsData = {
@@ -38,28 +45,40 @@ type Props = {
     onOpenChest: () => void
 }
 
-type Tier = 'common' | 'rare' | 'mythic'
+// common/rare/mythic — награда-сундук за квест (тот же вокабуляр, что уже
+// использован в комментариях components/ChestReward.tsx и в
+// trainer-chest.tsx). info — не сундук, а статус ("как у тебя дела с ДЗ"),
+// поэтому отдельный, нейтральный тон — фиолетовый, тот же акцент, что уже
+// используется для уровня/опыта в LevelCard, чтобы читаться как "это про
+// тебя", а не "это ещё одна добыча".
+type Tone = 'common' | 'rare' | 'mythic' | 'info'
 
-const TIER_STYLE: Record<Tier, { color: string; bg: string; border: string; glow: string }> = {
+const TONE_STYLE: Record<Tone, { color: string; bg: string; border: string; glow: string }> = {
     common: { color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)', border: 'rgba(156,163,175,0.5)', glow: 'rgba(156,163,175,0.35)' },
     rare: { color: '#38BDF8', bg: 'rgba(56,189,248,0.12)', border: 'rgba(56,189,248,0.5)', glow: 'rgba(56,189,248,0.4)' },
     mythic: { color: '#FBBF24', bg: 'rgba(251,191,36,0.14)', border: 'rgba(251,191,36,0.55)', glow: 'rgba(251,191,36,0.45)' },
+    info: { color: '#A78BFA', bg: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.5)', glow: 'rgba(167,139,250,0.4)' },
 }
 
-// Родительный падеж (нужен для "Задания <месяца>") — Intl не всегда даёт
-// нужный падеж стабильно для ru-RU, надёжнее захардкодить.
+// Родительный падеж (нужен для "за <месяц>") — Intl не всегда даёт нужный
+// падеж стабильно для ru-RU, надёжнее захардкодить.
 const MONTH_GENITIVE = [
     'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
     'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
 ]
 
-const QuestCard = ({
-    title, current, target, tier, delay,
-}: { title: string; current: number; target: number; tier: Tier; delay: number }) => {
+// Полоса-прогресс (0 → факт, с анимацией заполнения) + бейдж-иконка
+// справа — общий "низ" каждой карточки экрана, будь то квест-сундук или
+// статус ДЗ. Бейдж получает зелёную галку-уголок, как только цель
+// достигнута — единственный сигнал "готово" на весь экран, всегда в
+// одном и том же месте, чтобы взгляд не искал его заново на каждой карточке.
+const RewardRow = ({
+    current, target, icon, tone, delay,
+}: { current: number; target: number; icon: React.ReactNode; tone: Tone; delay: number }) => {
     const [fillPct, setFillPct] = useState(0)
     const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0
-    const isDone = current >= target
-    const style = TIER_STYLE[tier]
+    const isDone = target > 0 && current >= target
+    const style = TONE_STYLE[tone]
 
     useEffect(() => {
         const t = setTimeout(() => setFillPct(pct), 300 + delay * 1000)
@@ -67,45 +86,54 @@ const QuestCard = ({
     }, [pct, delay])
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay, duration: 0.35 }}
-            className="rounded-2xl border border-[#3A464E] bg-[#151F23] p-4"
-        >
-            <p className="font-bold text-[#F2F7FB] mb-3">{title}</p>
-            <div className="flex items-center gap-3">
-                <div className="relative flex-1 h-7 rounded-full overflow-hidden" style={{ backgroundColor: '#232F35' }}>
-                    <motion.div
-                        className="h-full rounded-full"
-                        style={{ background: 'linear-gradient(90deg, #2DD4BF, #34D399)' }}
-                        animate={{ width: `${fillPct}%` }}
-                        transition={{ duration: 0.9, ease: 'easeOut' }}
-                    />
-                    <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.5)]">
-                        {current} / {target}
-                    </span>
-                </div>
-                <div
-                    className="relative shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
-                    style={{ backgroundColor: style.bg, border: `2px solid ${style.border}`, boxShadow: isDone ? `0 0 14px ${style.glow}` : undefined }}
-                >
-                    <Gift className="w-5 h-5" style={{ color: style.color }} />
-                    {isDone && (
-                        <motion.span
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: delay + 0.9, type: 'spring', stiffness: 400, damping: 15 }}
-                            className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-[10px] text-white font-bold"
-                        >
-                            ✓
-                        </motion.span>
-                    )}
-                </div>
+        <div className="flex items-center gap-3">
+            <div className="relative flex-1 h-7 rounded-full overflow-hidden" style={{ backgroundColor: '#232F35' }}>
+                <motion.div
+                    className="h-full rounded-full"
+                    style={{ background: 'linear-gradient(90deg, #2DD4BF, #34D399)' }}
+                    animate={{ width: `${fillPct}%` }}
+                    transition={{ duration: 0.9, ease: 'easeOut' }}
+                />
+                <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.5)]">
+                    {current} / {target}
+                </span>
             </div>
-        </motion.div>
+            <div
+                className="relative shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
+                style={{ backgroundColor: style.bg, border: `2px solid ${style.border}`, boxShadow: isDone ? `0 0 14px ${style.glow}` : undefined }}
+            >
+                <span style={{ color: style.color }}>{icon}</span>
+                {isDone && (
+                    <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: delay + 0.9, type: 'spring', stiffness: 400, damping: 15 }}
+                        className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-[10px] text-white font-bold"
+                    >
+                        ✓
+                    </motion.span>
+                )}
+            </div>
+        </div>
     )
 }
+
+const RewardCard = ({
+    title, caption, current, target, icon, tone, delay,
+}: { title: string; caption?: string; current: number; target: number; icon: React.ReactNode; tone: Tone; delay: number }) => (
+    <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay, duration: 0.35 }}
+        className="rounded-2xl border border-[#3A464E] bg-[#151F23] p-4"
+    >
+        <div className="flex items-baseline justify-between mb-3">
+            <p className="font-bold text-[#F2F7FB]">{title}</p>
+            {caption && <span className="text-xs text-[#9AA7B0]">{caption}</span>}
+        </div>
+        <RewardRow current={current} target={target} icon={icon} tone={tone} delay={delay} />
+    </motion.div>
+)
 
 export const TrainerQuestRewardsScreen = ({ data, onOpenChest }: Props) => {
     const streak5Current = data?.streak5Count ?? 0
@@ -131,40 +159,42 @@ export const TrainerQuestRewardsScreen = ({ data, onOpenChest }: Props) => {
             </motion.h1>
 
             <div className="flex flex-col gap-3">
-                <QuestCard title="Продли серию дней" current={1} target={1} tier="common" delay={0} />
-                <QuestCard
+                <RewardCard
+                    title="Продли серию дней"
+                    current={1}
+                    target={1}
+                    icon={<Gift className="w-5 h-5" />}
+                    tone="common"
+                    delay={0}
+                />
+                <RewardCard
                     title="Дайте 5 верных ответов подряд в 2 уроках"
                     current={streak5Current}
                     target={streak5Target}
-                    tier="rare"
+                    icon={<Gift className="w-5 h-5" />}
+                    tone="rare"
                     delay={0.15}
                 />
-                <QuestCard
+                <RewardCard
                     title="Пройдите 2 урока без ошибок"
                     current={perfectCurrent}
                     target={perfectTarget}
-                    tier="mythic"
+                    icon={<Gift className="w-5 h-5" />}
+                    tone="mythic"
                     delay={0.3}
                 />
+                {showHomework && (
+                    <RewardCard
+                        title="Домашние задания"
+                        caption={`за ${monthName}`}
+                        current={hwDone}
+                        target={hwTotal}
+                        icon={hwCompleted ? <Smile className="w-5 h-5" /> : <Meh className="w-5 h-5" />}
+                        tone="info"
+                        delay={0.45}
+                    />
+                )}
             </div>
-
-            {showHomework && (
-                <motion.div
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5, duration: 0.35 }}
-                    className="mt-3 rounded-2xl border p-4 flex items-center justify-between"
-                    style={{ borderColor: hwCompleted ? 'rgba(52,211,153,0.5)' : 'rgba(58,70,78,1)' }}
-                >
-                    <div>
-                        <p className="font-bold text-[#F2F7FB]">Задания {monthName}</p>
-                        <p className="text-sm text-[#9AA7B0] mt-0.5">{hwDone} / {hwTotal}</p>
-                    </div>
-                    {hwCompleted
-                        ? <Smile className="w-8 h-8 text-emerald-400" />
-                        : <Frown className="w-8 h-8 text-[#9AA7B0]" />}
-                </motion.div>
-            )}
 
             <motion.div
                 initial={{ opacity: 0 }}
