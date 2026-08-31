@@ -154,8 +154,10 @@ export const PhoneCallLogin = ({ callbackUrl = '/learn' }: Props) => {
         )
     }
 
-    const boxClass = 'w-4 h-8 text-center bg-[#232F34] border border-[#3A464E] rounded-md text-white text-xs font-semibold focus:outline-none focus:border-sky-400 flex-shrink-0'
-    const parenClass = 'text-[#9AA7B0] text-xs font-semibold flex-shrink-0 select-none'
+    // Клеточки с рамками заменены на прочерки — каждый "-" превращается в
+    // введённую цифру, без визуального шума отдельных бордеров.
+    const digitClass = 'w-3.5 text-center bg-transparent border-none text-[#F2F7FB] text-xl font-mono font-bold focus:outline-none placeholder:text-[#4A5A63] flex-shrink-0 p-0'
+    const staticClass = 'text-[#5C6B73] text-xl font-mono font-bold flex-shrink-0 select-none'
 
     const renderDigitBox = (index: number) => (
         <input
@@ -165,11 +167,12 @@ export const PhoneCallLogin = ({ callbackUrl = '/learn' }: Props) => {
             inputMode="numeric"
             pattern="[0-9]*"
             maxLength={1}
+            placeholder="-"
             value={digits[index]}
             onChange={(e) => handleDigitChange(index, e.target.value)}
             onKeyDown={(e) => handleDigitKeyDown(index, e)}
             onPaste={handleDigitPaste}
-            className={boxClass}
+            className={digitClass}
         />
     )
 
@@ -177,12 +180,10 @@ export const PhoneCallLogin = ({ callbackUrl = '/learn' }: Props) => {
         <div className="flex flex-col items-center gap-3 w-full min-w-0">
             <div className="flex items-center justify-center gap-0.5 w-full min-w-0 overflow-x-auto">
                 <Phone className="h-4 w-4 text-[#9AA7B0] flex-shrink-0 mr-1" />
-                <div className={cn(boxClass, 'flex items-center justify-center bg-[#1A2328] text-[#9AA7B0] select-none cursor-default')}>
-                    8
-                </div>
-                <span className={parenClass}>(</span>
+                <span className={staticClass}>8</span>
+                <span className={staticClass}>(</span>
                 {Array.from({ length: AREA_LEN }, (_, i) => renderDigitBox(i))}
-                <span className={parenClass}>)</span>
+                <span className={staticClass}>)</span>
                 {Array.from({ length: LOCAL_LEN }, (_, i) => renderDigitBox(AREA_LEN + i))}
             </div>
 
