@@ -46,7 +46,7 @@ export const Header = ({ dbUserName }: Props) => {
               height={40}
               width={80}
               alt='ggege'
-              className='h-auto w-auto transition-all group-hover:scale-105'
+              className='h-10 w-20 transition-all group-hover:scale-105'
             />
           </Link>
 

@@ -138,7 +138,7 @@ export const PhoneCallLogin = ({ callbackUrl = '/learn' }: Props) => {
             <div className="flex flex-col items-center gap-3 text-center py-2">
                 <PhoneCall className="h-8 w-8 text-sky-400 animate-pulse" />
                 <p className="text-sm text-[#F2F7FB]">
-                    Нажмите на номер, позвоните и сразу сбросьте — звонок бесплатный:
+                    Нажмите на номер, звонок бесплатный:
                 </p>
                 <a href={`tel:${callPhoneRaw}`} className="w-full">
                     <Button variant="primary" size="lg" className="w-full gap-2 text-xl font-bold tracking-wide">
