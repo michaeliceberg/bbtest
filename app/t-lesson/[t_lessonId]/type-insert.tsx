@@ -68,22 +68,34 @@ export const TypeInsert = ({
         setShowResult(isAnswerChecked)
     }, [isAnswerChecked])
 
-    // Старая буква "уезжает" влево клоном при СМЕНЕ уже заполненного
+    // Находит узел(ы) формулы по ТОЧНОМУ тексту глифа, а не по позиции —
+    // см. подробный комментарий у applyFloatClass ниже про то, почему
+    // позиционный индекс здесь ненадёжен (KaTeX иногда рендерит один и
+    // тот же "?" двумя соседними DOM-узлами, что при 2 пропусках сдвигает
+    // всю последующую индексацию). У букв такой дубликации не бывает, и
+    // при 2 пропусках буквы в них всегда РАЗНЫЕ (see handleLetterClick —
+    // одинаковая буква не может стоять в двух пропусках одновременно),
+    // поэтому поиск "узел с текстом ровно X" однозначно находит нужный
+    // пропуск независимо от того, как физически устроена разметка KaTeX
+    // и что происходит с ДРУГИМИ пропусками рядом.
+    const findGlyphNodes = (text: string): HTMLElement[] => {
+        const container = containerRef.current
+        if (!container) return []
+        return Array.from(container.querySelectorAll<HTMLElement>('[style*="color"]'))
+            .filter((el) => BLANK_COLORS_RGB.includes(el.style.color) && el.textContent === text)
+    }
+
+    // Старая буква "уезжает" в точку клоном при СМЕНЕ уже заполненного
     // пропуска (не первом заполнении "?" → буква, для него остаётся вход
     // сверху, см. useLayoutEffect ниже) — снимок берётся ДО обновления
     // state, пока настоящий узел с текстом ещё есть в DOM. Клон — обычный
     // DOM-узел поверх формулы (position:absolute внутри containerRef,
     // ниже добавлен relative), не связан с React/KaTeX и сам себя убирает
-    // по окончании анимации. Раньше клон уезжал влево (slideOutOldGlyph) —
-    // по отзыву пользователя ("получилось плохо") заменено на схлопывание
-    // в точку с ускорением, симметрично тому, как новая буква ниже
-    // раскрывается из точки с bounce.
-    const shrinkOutOldGlyph = (slotIndex: number) => {
+    // по окончании анимации.
+    const shrinkOutOldGlyph = (oldLetter: string) => {
         const container = containerRef.current
         if (!container) return
-        const blankNodes = Array.from(container.querySelectorAll<HTMLElement>('[style*="color"]'))
-            .filter((el) => BLANK_COLORS_RGB.includes(el.style.color))
-        const node = blankNodes[slotIndex]
+        const node = findGlyphNodes(oldLetter)[0]
         if (!node) return
 
         const containerRect = container.getBoundingClientRect()
@@ -122,8 +134,9 @@ export const TypeInsert = ({
         if (showResult) return
         if (filledLetters[activeSlot] === letter) return // уже стоит в активном пропуске
 
-        if (filledLetters[activeSlot] !== null) {
-            shrinkOutOldGlyph(activeSlot)
+        const oldLetter = filledLetters[activeSlot]
+        if (oldLetter !== null) {
+            shrinkOutOldGlyph(oldLetter)
         }
 
         const next = [...filledLetters]
@@ -173,10 +186,19 @@ export const TypeInsert = ({
     // Web Animations API вызов на уже отрисованном KaTeX-узле (см.
     // useLayoutEffect ниже) — форма формулы всегда остаётся
     // единственным источником истины для корректности рендера.
-    // Просто \color{...}{глиф} — БЕЗ \underset/подчёркивания: то оборачивало
+    // \textcolor{...}{глиф} — БЕЗ \underset/подчёркивания: то оборачивало
     // букву во "над-под" группу, из-за которой KaTeX ужимал её мельче и
     // выше остальной формулы, вне общей базовой линии (жалоба пользователя
     // — "буква становится выше и меньше и не на одном уровне с другими").
+    // Именно \textcolor (не \color) — по умолчанию KaTeX трактует
+    // `\color{c}{arg}` как ОДНОАРГУМЕНТНЫЙ TeX-переключатель цвета (arg
+    // после него — просто СОСЕДНЯЯ группа скобок, не аргумент самой
+    // \color), из-за чего цвет "протекал" на СЛЕДУЮЩИЙ символ формулы,
+    // пока не встретится следующий `\color{...}` — пойман живьём на
+    // формуле "mgh" при двойном пропуске (m/h пропущены, средняя "g" не
+    // должна была окраситься, но красилась в цвет ПЕРВОГО пропуска).
+    // \textcolor — всегда явный двухаргументный вариант, применяет цвет
+    // ТОЛЬКО к своему аргументу, без утечки на соседей.
     // Цвет сам по себе уже достаточно заметен как визуальная подсказка
     // "это пропуск"; недостающая аффорданс-подсказка "сюда нужно
     // вписать" компенсируется парящей анимацией пустого "?" (см.
@@ -193,7 +215,7 @@ export const TypeInsert = ({
             const glyph = filled ?? '?'
             formula = formula.replace(
                 `\\boxed{\\phantom{${marker}}}`,
-                `\\color{${color}}{${glyph}}`
+                `\\textcolor{${color}}{${glyph}}`
             )
         }
         return formula
@@ -203,46 +225,47 @@ export const TypeInsert = ({
     const containerRef = useRef<HTMLDivElement>(null)
     const prevFilledRef = useRef<(string | null)[]>(filledLetters)
 
-    // Каждый пропуск — единственный узел формулы с явным инлайновым
-    // `\color{...}` (обычный текст формулы KaTeX-цвет не задаёт вообще,
-    // наследует текущий) — поэтому все "цветные" span'ы внутри контейнера,
-    // в порядке DOM (совпадает с порядком пропусков слева направо),
-    // однозначно соответствуют пропускам 0..blankCount-1, без хрупкой
-    // привязки к внутренней структуре/классам KaTeX.
-    // Находит текущие узлы-пропуски (по цвету, см. комментарий выше) и
-    // расставляет им класс "парения" по актуальному состоянию — вынесено
-    // в отдельную функцию, т.к. вызывается и из основного эффекта, и из
-    // подстраховочного интервала ниже.
+    // Раньше "какой DOM-узел соответствует какому пропуску" определялось
+    // ПОЗИЦИЕЙ в плоском списке всех цветных узлов — ломалось при 2
+    // пропусках: KaTeX иногда рендерит один и тот же "?" ДВУМЯ соседними
+    // DOM-узлами (`mord`+`mclose`, оба с текстом "?" и тем же inline-
+    // цветом — пойман живьём через прямой дамп DOM), из-за чего плоский
+    // индекс `blankNodes[1]` для второго пропуска на самом деле указывал
+    // на "лишний" второй узел ПЕРВОГО пропуска, а не на второй пропуск
+    // вообще (баг, пойманный пользователем: "первый вопросик продолжает
+    // качаться" после выбора буквы для него, второй — нет). Теперь вместо
+    // позиции — поиск по ТОЧНОМУ ТЕКСТУ глифа (см. findGlyphNodes выше):
+    // все узлы с текстом "?" плавают разом (пустых пропусков может быть
+    // и 2 — не нужно знать, какой из них "первый/второй"), а под букву X
+    // всегда находится узел с текстом ровно X, независимо от того, из
+    // скольких DOM-узлов состоит СОСЕДНИЙ "?" пропуск.
     const applyFloatClass = () => {
         const container = containerRef.current
         if (!container) return
-        const blankNodes = Array.from(container.querySelectorAll<HTMLElement>('[style*="color"]'))
+        const nodes = Array.from(container.querySelectorAll<HTMLElement>('[style*="color"]'))
             .filter((el) => BLANK_COLORS_RGB.includes(el.style.color))
-        filledLetters.forEach((letter, i) => {
-            blankNodes[i]?.classList.toggle('animate-insert-float', !showResult && letter === null)
+        nodes.forEach((node) => {
+            node.classList.toggle('animate-insert-float', !showResult && node.textContent === '?')
         })
     }
 
     useLayoutEffect(() => {
-        const container = containerRef.current
-        if (!container) return
-        const blankNodes = Array.from(container.querySelectorAll<HTMLElement>('[style*="color"]'))
-            .filter((el) => BLANK_COLORS_RGB.includes(el.style.color))
-
         const prev = prevFilledRef.current
         filledLetters.forEach((letter, i) => {
-            const node = blankNodes[i]
-            if (!node) return
-            if (letter !== prev[i]) {
-                // Первое заполнение пустого "?" — буква падает сверху (как
-                // и раньше). СМЕНА уже выбранной буквы на другую — новая
-                // раскрывается из точки с bounce-перехлёстом (её старая
-                // версия в этот момент уже схлопывается в точку клоном,
-                // см. shrinkOutOldGlyph выше) — по отзыву пользователя
-                // прежний слайд-свап "получился плохо", заменён на пару
-                // схлопывание/раскрытие. WAAPI анимирует конкретный
-                // DOM-узел напрямую, минуя React/framer-motion.
-                const isFirstFill = prev[i] === null
+            if (letter === prev[i] || letter === null) return
+            // Первое заполнение пустого "?" — буква падает сверху (как и
+            // раньше). СМЕНА уже выбранной буквы на другую — новая
+            // раскрывается из точки с bounce-перехлёстом (её старая версия
+            // в этот момент уже схлопывается в точку клоном, см.
+            // shrinkOutOldGlyph выше) — по отзыву пользователя прежний
+            // слайд-свап "получился плохо", заменён на пару схлопывание/
+            // раскрытие. WAAPI анимирует конкретный DOM-узел напрямую,
+            // минуя React/framer-motion. Узел ищем по тексту НОВОЙ буквы
+            // (findGlyphNodes) — буквы в разных пропусках всегда разные
+            // (см. handleLetterClick), поэтому поиск однозначен даже без
+            // знания позиции этого пропуска среди остальных.
+            const isFirstFill = prev[i] === null
+            findGlyphNodes(letter).forEach((node) => {
                 node.animate(
                     isFirstFill
                         ? [
@@ -255,7 +278,7 @@ export const TypeInsert = ({
                         ],
                     { duration: isFirstFill ? 420 : 380, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
                 )
-            }
+            })
         })
         applyFloatClass()
         prevFilledRef.current = filledLetters
