@@ -13,7 +13,7 @@
 // произведения (mgh = m·g·h), а порядок сомножителей не важен —
 // "mgh" и "hgm" одинаково верны (см. lib/formulaLetters.ts).
 
-import React, { useState, useRef, useLayoutEffect } from 'react'
+import React, { useState, useRef, useLayoutEffect, useEffect } from 'react'
 import { QuestionType } from './page'
 import { AnimatedOptionButton } from '@/components/AnimatedOptionButton'
 import { motion } from 'framer-motion'
@@ -33,14 +33,6 @@ const PENDING_COLOR = '#5C6B73'
 const CORRECT_COLOR = '#A1D151'
 const WRONG_COLOR = '#DC605B'
 const BLANK_COLORS = [ACTIVE_COLOR, PENDING_COLOR, CORRECT_COLOR, WRONG_COLOR]
-
-// Пунктирное подчёркивание вместо сплошного \underline (KaTeX не умеет
-// dashed-линии как отдельный стиль без \trust, который react-latex-next
-// не пробрасывает) — три маленьких \rule-штриха, поставленные под
-// буквой/? через \underset. Цвет — через общий \color снаружи, он
-// каскадируется и на буквы, и на сами rule-штрихи.
-const DASH = '\\rule[0pt]{0.22em}{0.09em}'
-const DASH_ROW = `${DASH}\\mkern3mu${DASH}\\mkern3mu${DASH}`
 
 const hexToRgb = (hex: string): string => {
     const n = parseInt(hex.slice(1), 16)
@@ -76,9 +68,54 @@ export const TypeInsert = ({
         setShowResult(isAnswerChecked)
     }, [isAnswerChecked])
 
+    // Старая буква "уезжает" влево клоном при СМЕНЕ уже заполненного
+    // пропуска (не первом заполнении "?" → буква, для него остаётся вход
+    // сверху, см. useLayoutEffect ниже) — снимок берётся ДО обновления
+    // state, пока настоящий узел с текстом ещё есть в DOM. Клон — обычный
+    // DOM-узел поверх формулы (position:absolute внутри containerRef,
+    // ниже добавлен relative), не связан с React/KaTeX и сам себя убирает
+    // по окончании анимации.
+    const slideOutOldGlyph = (slotIndex: number) => {
+        const container = containerRef.current
+        if (!container) return
+        const blankNodes = Array.from(container.querySelectorAll<HTMLElement>('[style*="color"]'))
+            .filter((el) => BLANK_COLORS_RGB.includes(el.style.color))
+        const node = blankNodes[slotIndex]
+        if (!node) return
+
+        const containerRect = container.getBoundingClientRect()
+        const nodeRect = node.getBoundingClientRect()
+        const computed = getComputedStyle(node)
+
+        const clone = document.createElement('span')
+        clone.textContent = node.textContent
+        clone.style.position = 'absolute'
+        clone.style.left = `${nodeRect.left - containerRect.left}px`
+        clone.style.top = `${nodeRect.top - containerRect.top}px`
+        clone.style.color = node.style.color
+        clone.style.fontSize = computed.fontSize
+        clone.style.fontFamily = computed.fontFamily
+        clone.style.pointerEvents = 'none'
+        clone.style.zIndex = '10'
+        container.appendChild(clone)
+
+        const anim = clone.animate(
+            [
+                { opacity: 1, transform: 'translateX(0)' },
+                { opacity: 0, transform: 'translateX(-24px)' },
+            ],
+            { duration: 280, easing: 'ease-in' }
+        )
+        anim.onfinish = () => clone.remove()
+    }
+
     const handleLetterClick = (letter: string) => {
         if (showResult) return
         if (filledLetters[activeSlot] === letter) return // уже стоит в активном пропуске
+
+        if (filledLetters[activeSlot] !== null) {
+            slideOutOldGlyph(activeSlot)
+        }
 
         const next = [...filledLetters]
         // Если эта буква уже стоит в ДРУГОМ пропуске — освобождаем его
@@ -127,6 +164,17 @@ export const TypeInsert = ({
     // Web Animations API вызов на уже отрисованном KaTeX-узле (см.
     // useLayoutEffect ниже) — форма формулы всегда остаётся
     // единственным источником истины для корректности рендера.
+    // Просто \color{...}{глиф} — БЕЗ \underset/подчёркивания: то оборачивало
+    // букву во "над-под" группу, из-за которой KaTeX ужимал её мельче и
+    // выше остальной формулы, вне общей базовой линии (жалоба пользователя
+    // — "буква становится выше и меньше и не на одном уровне с другими").
+    // Цвет сам по себе уже достаточно заметен как визуальная подсказка
+    // "это пропуск"; недостающая аффорданс-подсказка "сюда нужно
+    // вписать" компенсируется парящей анимацией пустого "?" (см.
+    // .animate-insert-float в useLayoutEffect ниже) — эффект "плавающего
+    // знака вопроса", который пользователь хотел, но не через LaTeX
+    // (LaTeX/KaTeX не умеет непрерывную анимацию сам по себе — плавание
+    // применяется отдельно, CSS-классом на уже отрисованном DOM-узле).
     const displayedFormula = React.useMemo(() => {
         let formula = question.blankedFormula ?? ''
         for (let i = 0; i < blankCount; i++) {
@@ -136,7 +184,7 @@ export const TypeInsert = ({
             const glyph = filled ?? '?'
             formula = formula.replace(
                 `\\boxed{\\phantom{${marker}}}`,
-                `\\color{${color}}{\\underset{${DASH_ROW}}{${glyph}}}`
+                `\\color{${color}}{${glyph}}`
             )
         }
         return formula
@@ -152,6 +200,20 @@ export const TypeInsert = ({
     // в порядке DOM (совпадает с порядком пропусков слева направо),
     // однозначно соответствуют пропускам 0..blankCount-1, без хрупкой
     // привязки к внутренней структуре/классам KaTeX.
+    // Находит текущие узлы-пропуски (по цвету, см. комментарий выше) и
+    // расставляет им класс "парения" по актуальному состоянию — вынесено
+    // в отдельную функцию, т.к. вызывается и из основного эффекта, и из
+    // подстраховочного интервала ниже.
+    const applyFloatClass = () => {
+        const container = containerRef.current
+        if (!container) return
+        const blankNodes = Array.from(container.querySelectorAll<HTMLElement>('[style*="color"]'))
+            .filter((el) => BLANK_COLORS_RGB.includes(el.style.color))
+        filledLetters.forEach((letter, i) => {
+            blankNodes[i]?.classList.toggle('animate-insert-float', !showResult && letter === null)
+        })
+    }
+
     useLayoutEffect(() => {
         const container = containerRef.current
         if (!container) return
@@ -163,30 +225,45 @@ export const TypeInsert = ({
             const node = blankNodes[i]
             if (!node) return
             if (letter !== prev[i]) {
-                // Буква (или "?") в этом пропуске реально изменилась —
-                // слайд сверху с естественным замедлением ТОЛЬКО на этом
-                // узле, соседние пропуски и остальная формула не
-                // затронуты (WAAPI анимирует конкретный DOM-элемент
-                // напрямую, минуя React/framer-motion — обходит и разрыв
-                // вложенности выше, и застревание repeat:Infinity, см.
-                // ниже про покачивание).
+                // Первое заполнение пустого "?" — буква падает сверху
+                // (как и раньше). СМЕНА уже выбранной буквы на другую —
+                // въезжает СПРАВА (её старая версия в этот момент уже
+                // уезжает влево клоном, см. slideOutOldGlyph выше) — по
+                // просьбе пользователя сделать смену варианта заметнее,
+                // не просто тем же дропом сверху. WAAPI анимирует
+                // конкретный DOM-узел напрямую, минуя React/framer-motion.
+                const isFirstFill = prev[i] === null
                 node.animate(
                     [
-                        { opacity: 0, transform: 'translateY(-20px)' },
-                        { opacity: 1, transform: 'translateY(0)' },
+                        { opacity: 0, transform: isFirstFill ? 'translateY(-20px)' : 'translateX(24px)' },
+                        { opacity: 1, transform: 'translate(0, 0)' },
                     ],
-                    { duration: 420, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
+                    { duration: isFirstFill ? 420 : 320, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
                 )
             }
-            // Покачивание активного пропуска — тот же класс, что и раньше
-            // (.animate-insert-wobble, чистый CSS @keyframes, см.
-            // app/globals.css), теперь навешивается/снимается напрямую на
-            // найденный узел, а не через React className — независимо от
-            // того, как формула скомпилирована в разметку.
-            node.classList.toggle('animate-insert-wobble', !showResult && i === activeSlot)
         })
+        applyFloatClass()
         prevFilledRef.current = filledLetters
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filledLetters, activeSlot, showResult])
+
+    // Подстраховка: react-latex-next пересчитывает и подменяет innerHTML
+    // формулы на КАЖДЫЙ ре-рендер родителя (katex.renderToString не
+    // мемоизирован внутри библиотеки, и, судя по всему, даёт не побайтово
+    // идентичную строку между вызовами) — даже когда сам LaTeX-текст не
+    // менялся. Это тихо стирает вручную навешенный класс
+    // .animate-insert-float, никак не задевая наш useLayoutEffect (его
+    // зависимости filledLetters/activeSlot/showResult при этом не
+    // меняются, поэтому он и не перезапускается, чтобы восстановить
+    // класс). Найдено живьём — класс пропадал уже через доли секунды
+    // после появления, независимо от логики эффекта. Лёгкий интервал
+    // просто переприменяет класс по актуальному состоянию, не трогая
+    // анимации выше.
+    useEffect(() => {
+        const id = setInterval(applyFloatClass, 400)
+        return () => clearInterval(id)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filledLetters, showResult])
 
     return (
         <div className="mt-6">
@@ -194,7 +271,7 @@ export const TypeInsert = ({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 ref={containerRef}
-                className="flex items-center justify-center py-6 px-4 mb-6 bg-[#161F23] border-2 border-[#3A464E] rounded-xl text-2xl md:text-3xl text-[#F2F7FB]"
+                className="relative flex items-center justify-center py-6 px-4 mb-6 bg-[#161F23] border-2 border-[#3A464E] rounded-xl text-2xl md:text-3xl text-[#F2F7FB]"
             >
                 <Latex>{displayedFormula || ''}</Latex>
             </motion.div>

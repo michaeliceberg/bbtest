@@ -313,3 +313,17 @@ body {
   animation: insert-wobble 1.1s ease-in-out infinite;
   transform-origin: center;
 }
+
+/* INSERT — "парящий" знак вопроса на ещё не заполненном пропуске (замена
+   подчёркиванию через \underset, которое портило размер/базовую линию
+   буквы в KaTeX — см. type-insert.tsx). Тот же приём (CSS keyframe,
+   не framer-motion repeat:Infinity), что и у insert-wobble выше, по той
+   же причине. */
+@keyframes insert-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.animate-insert-float {
+  display: inline-block;
+  animation: insert-float 1.6s ease-in-out infinite;
+}

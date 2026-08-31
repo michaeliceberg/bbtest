@@ -708,10 +708,14 @@ export default function TQuiz({
           <div>
             <Button className='mt-4' variant='primaryOutline' onClick={handleFinishLesson}>Завершить</Button>
           </div>
-          <div className="pt-8">
+          {/* По просьбе пользователя временно убрана детальная таблица
+              "вопрос/ваш ответ/верный ответ" ниже итога — показалась
+              лишней на экране завершения (2026-08-31). Сам компонент
+              и данные (finishList) не удалены, легко вернуть обратно. */}
+          {/* <div className="pt-8">
             <Separator />
           </div>
-          <FinishTrainerStat finishList={finishList} />
+          <FinishTrainerStat finishList={finishList} /> */}
         </div>
       </>
     )
