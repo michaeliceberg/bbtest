@@ -1,4 +1,4 @@
-import { MessageCircleQuestion, Send } from "lucide-react"
+import { Send } from "lucide-react"
 import dynamic from "next/dynamic"
 import LottieGems from '@/public/Lottie/LottieGems.json'
 
@@ -36,11 +36,14 @@ export function NoRightAnswer({ challengeId }: Props) {
   return (
     <Dialog>
       <DialogTrigger asChild>
+        {/* Без иконки слева (убрана по просьбе пользователя) — сама
+            толщина нижней рамки (border-b-4, active:border-b-2) и есть
+            аффорданс "это кнопка", тот же приём "псевдо-3D"-кнопки, что
+            и у components/ui/button.tsx variant="default". */}
         <button
           type="button"
-          className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#3A464E] text-[#9AA7B0] hover:text-[#F2F7FB] hover:bg-[#232F34] hover:border-[#4A5A63] transition-colors text-xs font-medium"
+          className="px-2.5 py-0.5 rounded-full border-2 border-b-4 active:border-b-2 border-[#3A464E] text-[#9AA7B0] hover:text-[#F2F7FB] hover:bg-[#232F34] transition-colors text-xs font-medium"
         >
-          <MessageCircleQuestion className="w-3.5 h-3.5" />
           Нет правильного ответа?
         </button>
       </DialogTrigger>

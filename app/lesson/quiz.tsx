@@ -62,7 +62,7 @@ const TrainerHeaderLink = ({ tag, unitColor }: { tag: { id: number; title: strin
     }
 
     const isReady = tier === 'ready';
-    const color = isReady ? '#F5F0FF' : SKILL_PRACTICING_COLOR;
+    const dividerColor = isReady ? 'rgba(245, 240, 255, 0.35)' : `${SKILL_PRACTICING_COLOR}55`;
     const buttonStyle = isReady
         ? {
             background: SKILL_READY_GRADIENT,
@@ -76,17 +76,20 @@ const TrainerHeaderLink = ({ tag, unitColor }: { tag: { id: number; title: strin
             color: SKILL_PRACTICING_COLOR,
         };
 
+    // Процент и переход — раньше два отдельных элемента (число само по
+    // себе + рядом кнопка), пользователь попросил объединить в одну
+    // кнопку вида "( 85% | Перейти в тренажёр › )" — разделитель-палочка
+    // между числом и текстом вместо раздельных блоков.
     return (
         <Link
             href={`/t-lesson/${tag.id}`}
             title={`Скилл тренажёра: ${tag.title}${isReady ? ' — готов' : ' — нужна практика'}`}
-            className="flex items-center gap-2 shrink-0"
+            className="flex items-center gap-2 pl-2.5 pr-2 py-1 rounded-full border text-xs font-semibold shrink-0 transition-transform hover:scale-[1.03]"
+            style={buttonStyle}
         >
-            <span className="text-sm font-extrabold" style={{ color }}>{tag.percentage}%</span>
-            <span
-                className="flex items-center gap-1 pl-2.5 pr-2 py-1 rounded-full border text-xs font-semibold transition-transform hover:scale-[1.03]"
-                style={buttonStyle}
-            >
+            <span className="font-extrabold">{tag.percentage}%</span>
+            <span className="w-px self-stretch" style={{ backgroundColor: dividerColor }} />
+            <span className="flex items-center gap-1">
                 Перейти в тренажёр
                 <ChevronRight className="w-3.5 h-3.5" />
             </span>
