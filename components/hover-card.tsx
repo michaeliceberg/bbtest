@@ -1,80 +1,61 @@
-import { CalendarIcon } from "lucide-react"
+import { MessageCircleQuestion } from "lucide-react"
+import dynamic from "next/dynamic"
 import LottieCoins from '@/public/Lottie/LottieCoins.json'
 
-
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar"
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card"
-import Lottie from "lottie-react"
 
-type Props = { 
+const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
+
+const TELEGRAM_USERNAME = 'michaeldeve'
+
+type Props = {
     challengeId: number
 }
 
 export function NoRightAnswer({ challengeId }: Props) {
+  // Автоссылка t.me с уже подставленным номером задания — пользователю
+  // остаётся только дописать сам ответ и отправить.
+  const prefilledText = `Задание №${challengeId}: мой ответ — `
+  const telegramLink = `https://t.me/${TELEGRAM_USERNAME}?text=${encodeURIComponent(prefilledText)}`
+
   return (
-    <HoverCard>
-      <HoverCardTrigger asChild>
-        <Button variant='primaryOutline'>Нет правильного ответа?</Button>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-80">
-        <div className="flex justify-between space-x-4">
-          <Avatar>
+    <Dialog>
+      <DialogTrigger asChild>
+        <button
+          type="button"
+          title="Нет правильного ответа?"
+          className="flex items-center justify-center w-6 h-6 rounded-full text-[#9AA7B0] hover:text-[#F2F7FB] hover:bg-[#232F34] transition-colors"
+        >
+          <MessageCircleQuestion className="w-4 h-4" />
+        </button>
+      </DialogTrigger>
+      <DialogContent className="max-w-[320px] gap-3">
+        <DialogHeader className="gap-1">
+          <DialogTitle className="text-lg">Ничего себе!</DialogTitle>
+          <DialogDescription className="text-sm">
+            Напишите нам в Telegram — укажем номер задания за вас, получите вознаграждение!
+          </DialogDescription>
+        </DialogHeader>
 
-          {/* <Image 
-                src='/mascot.svg'
-                alt='Mascot'
-                height={60}
-                width={60}
-                className="hidden lg:block"
-            />
-             */}
-            {/* <AvatarImage src="https://github.com/vercel.png" /> */}
-            <AvatarImage src="/mascot.svg" />
-            <AvatarFallback>VC</AvatarFallback>
-          </Avatar>
-          <div className="space-y-1">
-          {/* <h4 className="text-sm font-semibold">@nextjs</h4> */}
-          <h4 className="text-sm font-semibold">Ничего себе!</h4>
-            <p className="text-sm">
-              напишите ваш ответ
-              <br />
-              в telegram:
-              <br />
-              @michaeldeve              
-              <br />
-              <br />
-              и укажите № задания:
-              <br />
-              {challengeId}
-            </p>
-            <div className="flex items-center pt-2">
-
-              {/* <CalendarIcon className="mr-2 h-4 w-4 opacity-70" />{" "} */}
-
-
-
-{/* <span className="text-xs text-muted-foreground"> */}
-            <span className="text-xs">
-                Получите вознаграждение!
-              </span>
-              <Lottie 
-                    className="h-14 w-14 pb-4 opacity-70" 
-                    animationData={LottieCoins}
-                    loop={false}
-                /> 
-            </div>
-          </div>
+        <div className="flex items-center gap-2 -my-1">
+          <Lottie className="h-9 w-9 shrink-0" animationData={LottieCoins} loop={false} />
+          <span className="text-xs text-[#9AA7B0]">Задание №{challengeId}</span>
         </div>
-      </HoverCardContent>
-    </HoverCard>
+
+        <a href={telegramLink} target="_blank" rel="noopener noreferrer" className="w-full">
+          <Button variant="primary" className="w-full">
+            Написать в Telegram
+          </Button>
+        </a>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -19,6 +19,7 @@ import LottieDiamond from '@/public/LottieSelectDiamond.json'
 import LottieSparks from '@/public/LottieSelectSparks.json'
 import LottieStars from '@/public/LottieSelectStars.json'
 import LottieButterfly from '@/public/LottieSelectButterfly.json'
+import { LOTTIE_SKILL_ASK_LIST, getRandomLottie } from "@/src/constants/lottieConstants";
 
 // Рендерит условие задачи, подсвечивая цветом юнита фразу "что нужно найти"
 // (если удалось её распознать эвристикой — иначе просто весь текст как есть).
@@ -34,6 +35,44 @@ const QuestionText = ({ question, color }: { question: string; color: string }) 
             </span>
             <Latex>{highlight.after}</Latex>
         </>
+    );
+};
+
+// Бейдж-ссылка на тему тренажёра под задачей курса. Если скилл ещё не
+// начат (percentage === 0) — вместо скучной серой иконки-магистра
+// показываем анимированного Lottie-персонажа (public/Lottie/tegs/) с
+// эмоциональным призывом "Пройди тренажёр"; если прогресс уже есть —
+// как раньше, компактный процент. Выбор Lottie — один раз на монтирование
+// (не на каждый ре-рендер), тот же паттерн useState(() => ...), что уже
+// применяется для похожих случайных анимаций в этом проекте.
+const SkillTagBadge = ({ tag, unitColor }: { tag: { id: number; title: string; percentage: number }; unitColor: { button: string; bottom: string } }) => {
+    const isLocked = tag.percentage === 0;
+    const [askAnimation] = useState(() => getRandomLottie(LOTTIE_SKILL_ASK_LIST));
+
+    if (isLocked) {
+        return (
+            <Link
+                href={`/t-lesson/${tag.id}`}
+                title={`Скилл тренажёра: ${tag.title}`}
+                className="flex items-center gap-1 pl-0.5 pr-2 py-0.5 rounded-full transition-opacity hover:opacity-80"
+                style={{ backgroundColor: `${unitColor.button}1F`, color: unitColor.button }}
+            >
+                <Lottie className="w-6 h-6 shrink-0" animationData={askAnimation} loop />
+                <span className="text-xs font-medium">Пройди тренажёр</span>
+            </Link>
+        );
+    }
+
+    return (
+        <Link
+            href={`/t-lesson/${tag.id}`}
+            title={`Скилл тренажёра: ${tag.title}`}
+            className="flex items-center gap-1 px-2 py-0.5 rounded-full transition-opacity hover:opacity-80"
+            style={{ backgroundColor: `${unitColor.button}1F`, color: unitColor.button }}
+        >
+            <GraduationCap className="w-3.5 h-3.5" />
+            <span className="text-xs font-medium">{tag.percentage}%</span>
+        </Link>
     );
 };
 
@@ -239,26 +278,11 @@ export const QuestionBubble = ({
                     </div>
                 )}
 
-                {skillTags && skillTags.length > 0 && skillTags.map((tag) => {
-                    const isLocked = tag.percentage === 0;
-                    const color = isLocked ? '#7A8A93' : unitColor.button;
-                    return (
-                        <Link
-                            key={tag.id}
-                            href={`/t-lesson/${tag.id}`}
-                            title={`Скилл тренажёра: ${tag.title}`}
-                            className="flex items-center gap-1 px-2 py-0.5 rounded-full transition-opacity hover:opacity-80"
-                            style={{ backgroundColor: isLocked ? 'rgba(122,138,147,0.14)' : `${unitColor.button}1F`, color }}
-                        >
-                            <GraduationCap className="w-3.5 h-3.5" />
-                            <span className="text-xs font-medium">{tag.percentage}%</span>
-                        </Link>
-                    );
-                })}
+                {skillTags && skillTags.length > 0 && skillTags.map((tag) => (
+                    <SkillTagBadge key={tag.id} tag={tag} unitColor={unitColor} />
+                ))}
 
-                <div className="scale-90">
-                    <NoRightAnswer challengeId={challengeId} />
-                </div>
+                <NoRightAnswer challengeId={challengeId} />
 
                 <div
                     className="flex items-center gap-1 px-2 py-1 rounded-full"

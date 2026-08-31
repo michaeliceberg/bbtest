@@ -18,6 +18,11 @@ import LottieStartDots from '@/public/Lottie/trainer/LottieStartDots.json'
 import LottieTrainerSharkFinalNoo from '@/public/Lottie/trainer/LottieTrainerSharkFinalNoo.json'
 import LottieTrainerSharkFasterPistol from '@/public/Lottie/trainer/LottieTrainerSharkFasterPistol.json'
 import LottieTrainerSharkFinalWinClap from '@/public/Lottie/trainer/LottieTrainerSharkFinalWinClap.json'
+import LottieTegAsk1 from '@/public/Lottie/tegs/tegAsk1.json'
+import LottieTegAsk2 from '@/public/Lottie/tegs/tegAsk2.json'
+import LottieTegAsk3 from '@/public/Lottie/tegs/tegAsk3.json'
+import LottieTegAsk4 from '@/public/Lottie/tegs/tegAsk4.json'
+import LottieTegAsk5 from '@/public/Lottie/tegs/tegAsk5.json'
 
 // Группировка по назначению
 export const LOTTIE_START_LIST = [
@@ -58,6 +63,17 @@ export const LOTTIE_STREAK_CELEBRATE_LIST = [
 export const LOTTIE_STREAK_RISK_LIST = [
   LottieStreakFireRain,
   LottieStreakFireSad,
+] as const
+
+// Бейдж-приглашение "пройди тренажёр" на карточке задачи курса
+// (app/lesson/question-bubble.tsx) — вместо скучной серой иконки
+// GraduationCap для ещё не начатого скила.
+export const LOTTIE_SKILL_ASK_LIST = [
+  LottieTegAsk1,
+  LottieTegAsk2,
+  LottieTegAsk3,
+  LottieTegAsk4,
+  LottieTegAsk5,
 ] as const
 
 // Helper функция для получения случайной анимации
