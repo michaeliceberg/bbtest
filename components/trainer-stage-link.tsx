@@ -2,21 +2,29 @@
 //
 // Клик по квадратику этапа тренажёра — вместо мгновенной навигации
 // (не даёт пользователю понять, тот ли именно квадратик открылся, см.
-// обсуждение) квадратик "вырастает" из точки клика на весь экран тем
-// же цветом, что и он сам, затем открывается сам урок. Тот же
-// портал + ручной router.push паттерн, что уже применяется в
+// обсуждение) квадратик подпрыгивает: увеличивается в SCALE_FACTOR раз
+// с bounce-эффектом и едет в центр экрана, затем открывается сам урок.
+// Тот же портал + ручной router.push паттерн, что уже применяется в
 // utils/TransitionLink.tsx для переходов между разделами сайдбара —
 // но без случайного Lottie: анимация исходит ИМЕННО из нажатого
 // элемента (shared-element style), это и даёт пользователю
 // пространственную обратную связь "открылся именно этот этап", а не
 // просто "что-то грузится".
 //
+// Первая версия растила квадратик до fullscreen (top/left/width/height
+// → 0/0/100vw/100vh) — пользователь оценил как "скучно и некрасиво".
+// Переделано на transform (x/y/scale) вместо layout-свойств: transform
+// дёшев для браузера и, в отличие от анимации width/height, естественно
+// поддерживает spring-bounce (лёгкий перехлёст перед тем, как осесть в
+// финальной точке) — именно этого эффекта попросил пользователь.
+//
 // Настоящий cross-route framer-motion `layoutId` shared layout здесь не
 // подходит — /trainer и /t-lesson/[id] рендерятся в независимых
 // поддеревьях без общего motion-контекста (LayoutGroup пришлось бы
 // поднимать на уровень общего layout, где живут и десятки других
 // анимаций). Ручной portal-оверлей, который сам знает стартовый rect
-// и просто едет к fullscreen, — надёжнее и не требует правок layout.tsx.
+// и просто едет transform'ом к центру, — надёжнее и не требует правок
+// layout.tsx.
 
 'use client';
 
@@ -26,12 +34,15 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 
-const EXPAND_DURATION = 0.5;
-const FADE_DURATION = 0.25;
-// Держим полностью развёрнутый оверлей чуть дольше самой анимации
-// роста — если страница успела отрендериться раньше (быстрый переход),
-// не хотим сразу же начинать угасание посреди роста.
-const MIN_EXPAND_DISPLAY = EXPAND_DURATION * 1000 + 100;
+const SCALE_FACTOR = 5;
+const FADE_DURATION = 0.18;
+// Пользователь явно попросил: если lesson загрузился быстрее анимации —
+// открывать сразу, не ждать. Поэтому минимум держим маленьким — только
+// чтобы гарантировать хотя бы один отрисованный кадр эффекта (иначе при
+// мгновенной (закэшированной) навигации оверлей мог бы не успеть даже
+// показаться на экране). Если страница подгружается дольше — bounce
+// доигрывает до конца сам, ждать её не приходится.
+const MIN_EXPAND_DISPLAY = 150;
 
 type Phase = 'idle' | 'expanding' | 'fading';
 
@@ -39,12 +50,12 @@ type Props = {
     href: string;
     className?: string;
     style?: React.CSSProperties;
-    // Иконка этапа — показывается и в самом квадратике, и (укрупнённая
-    // через scale, тем же элементом — transform не зависит от
-    // интринсик-размера) в центре разворачивающегося оверлея.
+    // Иконка этапа — показывается и в самом квадратике, и (тем же
+    // элементом, просто увеличенным вместе со всем квадратиком через
+    // общий transform) в оверлее.
     icon: React.ReactNode;
     // Доп. контент квадратика (бейдж-подарок и т.п.) — рисуется только
-    // в самом квадратике, не участвует в fullscreen-анимации.
+    // в самом квадратике, не участвует в анимации.
     extra?: React.ReactNode;
 };
 
@@ -69,7 +80,8 @@ export const TrainerStageLink = ({ href, className, style, icon, extra }: Props)
     const targetPathname = href.split('?')[0];
 
     // Страница реально сменилась на целевую — можно начинать угасание
-    // (не раньше MIN_EXPAND_DISPLAY от клика, см. комментарий выше).
+    // (не раньше MIN_EXPAND_DISPLAY от клика, см. комментарий выше —
+    // только маленький защитный буфер, не полное ожидание bounce).
     useEffect(() => {
         if (phase !== 'expanding') return;
         if (pathname !== targetPathname) return;
@@ -102,29 +114,46 @@ export const TrainerStageLink = ({ href, className, style, icon, extra }: Props)
         router.push(href);
     };
 
+    // Смещение от центра нажатого квадратика до центра экрана — считается
+    // один раз, в момент клика (viewport не меняется за время жизни
+    // оверлея). rect — координаты relative-to-viewport (getBoundingClientRect),
+    // ровно то, что нужно для position:fixed элемента без поправки на скролл.
+    const centerDelta = rect
+        ? {
+            x: window.innerWidth / 2 - (rect.left + rect.width / 2),
+            y: window.innerHeight / 2 - (rect.top + rect.height / 2),
+        }
+        : { x: 0, y: 0 };
+
     // Портал прямо в <body> — та же причина, что и в TransitionLink.tsx:
     // fixed внутри анимированного (framer-motion transform) предка может
     // "прилипнуть" не ко всему экрану.
     const overlay = mounted && phase !== 'idle' && rect
         ? createPortal(
             <motion.div
-                className="fixed z-[70] flex items-center justify-center overflow-hidden pointer-events-none"
-                style={{ backgroundColor: style?.backgroundColor, border: style?.border, boxSizing: 'border-box' }}
-                initial={{ top: rect.top, left: rect.left, width: rect.width, height: rect.height, borderRadius: 12, opacity: 1 }}
+                className="fixed z-[70] flex items-center justify-center overflow-hidden pointer-events-none rounded-xl"
+                style={{
+                    top: rect.top,
+                    left: rect.left,
+                    width: rect.width,
+                    height: rect.height,
+                    backgroundColor: style?.backgroundColor,
+                    border: style?.border,
+                    boxSizing: 'border-box',
+                }}
+                initial={{ x: 0, y: 0, scale: 1, opacity: 1 }}
                 animate={
                     phase === 'fading'
-                        ? { opacity: 0 }
-                        : { top: 0, left: 0, width: '100vw', height: '100vh', borderRadius: 0, opacity: 1 }
+                        ? { x: centerDelta.x, y: centerDelta.y, scale: SCALE_FACTOR, opacity: 0 }
+                        : { x: centerDelta.x, y: centerDelta.y, scale: SCALE_FACTOR, opacity: 1 }
                 }
-                transition={{ duration: phase === 'fading' ? FADE_DURATION : EXPAND_DURATION, ease: [0.4, 0, 0.2, 1] }}
+                transition={
+                    phase === 'fading'
+                        ? { opacity: { duration: FADE_DURATION, ease: 'easeIn' } }
+                        : { type: 'spring', duration: 0.45, bounce: 0.5 }
+                }
             >
-                <motion.div
-                    initial={{ scale: 1, opacity: 1 }}
-                    animate={{ scale: 5, opacity: 0 }}
-                    transition={{ duration: EXPAND_DURATION * 0.8, ease: 'easeOut' }}
-                >
-                    {icon}
-                </motion.div>
+                {icon}
             </motion.div>,
             document.body
         )
