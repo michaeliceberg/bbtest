@@ -13,8 +13,8 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import { Egg, Shield, Sword, Crown, Gift } from 'lucide-react';
+import { TrainerStageLink } from './trainer-stage-link';
 
 const STAGE_ICONS = [Egg, Shield, Sword, Crown];
 // 90%, как у последовательной разблокировки уроков в юните, для одного
@@ -133,24 +133,23 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                         <React.Fragment key={s.id}>
                                                             <div style={{ gridColumn: col, gridRow: 1 }} className="flex justify-center">
                                                                 {unlocked ? (
-                                                                    <Link
+                                                                    <TrainerStageLink
                                                                         href={`/t-lesson/${s.id}${isBoss ? '?boss=1' : ''}`}
                                                                         className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                         style={{
                                                                             backgroundColor: done ? '#5FA12F' : '#232F35',
                                                                             border: `2px solid ${done ? '#78C93C' : '#4897D1'}`,
                                                                         }}
-                                                                    >
-                                                                        {stageIcon}
-                                                                        {isBoss && done && (
+                                                                        icon={stageIcon}
+                                                                        extra={isBoss && done ? (
                                                                             <span
                                                                                 className="absolute -top-2 -right-2 w-4 h-4 rounded flex items-center justify-center"
                                                                                 style={{ backgroundColor: '#EF9F27' }}
                                                                             >
                                                                                 <Gift className="w-2.5 h-2.5" style={{ color: '#412402' }} />
                                                                             </span>
-                                                                        )}
-                                                                    </Link>
+                                                                        ) : null}
+                                                                    />
                                                                 ) : (
                                                                     <div
                                                                         className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
