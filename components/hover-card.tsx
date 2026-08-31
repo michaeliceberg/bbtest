@@ -1,4 +1,6 @@
 import { MessageCircleQuestion, Send } from "lucide-react"
+import dynamic from "next/dynamic"
+import LottieGems from '@/public/Lottie/LottieGems.json'
 
 import {
   Dialog,
@@ -10,18 +12,21 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 
+const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
+
 const TELEGRAM_USERNAME = 'michaeldeve'
 
 type Props = {
     challengeId: number
 }
 
-// Раньше заголовок модалки ("Ничего себе!") и монетка-Lottie никак не
-// объясняли, ПО ПОВОДУ ЧЕГО открылось это окно — пользователь кликал на
-// "?" рядом с задачей и видел непонятный тост про вознаграждение. Текст
-// переписан так, чтобы заголовок буквально повторял вопрос, на который
-// отвечает иконка-триггер ("Нет правильного ответа?") — сразу понятно,
-// что это форма жалобы на конкретную задачу, а не что-то про бонусы.
+// Заголовок модалки буквально повторяет вопрос, на который отвечает сам
+// триггер ("Нет правильного ответа?") — сразу понятно, что это форма
+// жалобы на конкретную задачу. Триггер — снова текстовая кнопка (не
+// голая иконка "?"), по просьбе пользователя: иконка одна не объясняла,
+// что на неё вообще стоит нажимать. Награда — гемы (LottieGems, тот же
+// файл, что уже крутится в шапке и в магазине), не монеты — просьба
+// заменить именно на гемы.
 export function NoRightAnswer({ challengeId }: Props) {
   // Автоссылка t.me с уже подставленным номером задания — пользователю
   // остаётся только дописать сам ответ и отправить.
@@ -33,19 +38,23 @@ export function NoRightAnswer({ challengeId }: Props) {
       <DialogTrigger asChild>
         <button
           type="button"
-          title="Нет правильного ответа?"
-          className="flex items-center justify-center w-6 h-6 rounded-full text-[#9AA7B0] hover:text-[#F2F7FB] hover:bg-[#232F34] transition-colors"
+          className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#3A464E] text-[#9AA7B0] hover:text-[#F2F7FB] hover:bg-[#232F34] hover:border-[#4A5A63] transition-colors text-xs font-medium"
         >
-          <MessageCircleQuestion className="w-4 h-4" />
+          <MessageCircleQuestion className="w-3.5 h-3.5" />
+          Нет правильного ответа?
         </button>
       </DialogTrigger>
       <DialogContent className="max-w-[320px] gap-3">
         <DialogHeader className="gap-1">
           <DialogTitle className="text-lg">Нет правильного ответа?</DialogTitle>
           <DialogDescription className="text-sm">
-            Отправьте сообщение с правильным ответом в Telegram — мы проверим и поправим задание №{challengeId}.
+            Отправьте сообщение с правильным ответом в Telegram к заданию №{challengeId}. И вы получите награду!
           </DialogDescription>
         </DialogHeader>
+
+        <div className="flex items-center justify-center -my-1">
+          <Lottie className="h-16 w-16" animationData={LottieGems} loop />
+        </div>
 
         <a href={telegramLink} target="_blank" rel="noopener noreferrer" className="w-full">
           <Button variant="primary" className="w-full gap-2">

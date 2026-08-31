@@ -28,6 +28,71 @@ import { vibrate } from "@/lib/haptics";
 import { useAchievementStore } from "@/store/use-achievement-store";
 import { useStreakCelebrationStore } from "@/store/use-streak-celebration-store";
 import { useLevelUpStore } from "@/store/use-level-up-store";
+import Link from "next/link";
+import dynamic from "next/dynamic";
+import { ChevronRight } from "lucide-react";
+import { LOTTIE_SKILL_ASK_LIST, getRandomLottie } from "@/src/constants/lottieConstants";
+import { getSkillTier, SKILL_PRACTICING_COLOR, SKILL_READY_GRADIENT, SKILL_READY_BORDER } from "@/lib/skillTier";
+
+const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
+
+// Бейдж-ссылка на тему тренажёра, привязанную к текущей задаче — раньше
+// жил внизу карточки задачи (app/lesson/question-bubble.tsx), пользователь
+// попросил перенести его наверх, рядом с названием урока, и сделать явную
+// кнопку-переход, а не кликабельную, но неочевидную пилюлю. Процент и
+// сама кнопка "Перейти в тренажёр" — два отдельных визуальных элемента
+// (по просьбе пользователя "85% обособленно, а правее кнопка"), но обе
+// части одной ссылки — клик по любой из них ведёт в тренажёр.
+const TrainerHeaderLink = ({ tag, unitColor }: { tag: { id: number; title: string; percentage: number }; unitColor: { button: string; bottom: string } }) => {
+    const tier = getSkillTier(tag.percentage);
+    const [askAnimation] = useState(() => getRandomLottie(LOTTIE_SKILL_ASK_LIST));
+
+    if (tier === 'locked') {
+        return (
+            <Link
+                href={`/t-lesson/${tag.id}`}
+                title={`Скилл тренажёра: ${tag.title}`}
+                className="flex items-center gap-1.5 shrink-0 pl-0.5 pr-2.5 py-0.5 rounded-full border transition-transform hover:scale-[1.03]"
+                style={{ backgroundColor: `${unitColor.button}14`, borderColor: `${unitColor.button}55`, color: unitColor.button }}
+            >
+                <Lottie className="w-6 h-6 shrink-0" animationData={askAnimation} loop />
+                <span className="text-xs font-medium">Пройди тренажёр</span>
+            </Link>
+        );
+    }
+
+    const isReady = tier === 'ready';
+    const color = isReady ? '#F5F0FF' : SKILL_PRACTICING_COLOR;
+    const buttonStyle = isReady
+        ? {
+            background: SKILL_READY_GRADIENT,
+            borderColor: SKILL_READY_BORDER,
+            color: '#F5F0FF',
+            boxShadow: '0 0 10px -3px rgba(167, 139, 250, 0.55)',
+        }
+        : {
+            backgroundColor: `${SKILL_PRACTICING_COLOR}1F`,
+            borderColor: `${SKILL_PRACTICING_COLOR}66`,
+            color: SKILL_PRACTICING_COLOR,
+        };
+
+    return (
+        <Link
+            href={`/t-lesson/${tag.id}`}
+            title={`Скилл тренажёра: ${tag.title}${isReady ? ' — готов' : ' — нужна практика'}`}
+            className="flex items-center gap-2 shrink-0"
+        >
+            <span className="text-sm font-extrabold" style={{ color }}>{tag.percentage}%</span>
+            <span
+                className="flex items-center gap-1 pl-2.5 pr-2 py-1 rounded-full border text-xs font-semibold transition-transform hover:scale-[1.03]"
+                style={buttonStyle}
+            >
+                Перейти в тренажёр
+                <ChevronRight className="w-3.5 h-3.5" />
+            </span>
+        </Link>
+    );
+};
 
 // Доля заданий ASSIST с числовым ответом, которые показываем как KEYBOARD
 // вместо сетки вариантов — для разнообразия UI. Сам тип в БД не меняется.
@@ -593,10 +658,22 @@ export const Quiz = ({
                 hasActiveSubscription={!!userSubscription?.isActive}
             />
 
-            {/* Название урока */}
-            <div className="max-w-xl mx-auto w-full px-4 pt-3 flex items-center gap-2">
-                <div className="w-1 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: unitColor.button }} />
-                <h2 className="text-sm md:text-base font-bold text-[#F2F7FB] truncate">{lessonTitle}</h2>
+            {/* Название урока + (если у активной задачи есть тег скила)
+                ссылка на соответствующую тему тренажёра — раньше стояла
+                внизу карточки задачи, перенесена сюда по просьбе
+                пользователя: видна сразу, ещё до того как читать условие. */}
+            <div className="max-w-xl mx-auto w-full px-4 pt-3 flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-1 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: unitColor.button }} />
+                    <h2 className="text-sm md:text-base font-bold text-[#F2F7FB] truncate">{lessonTitle}</h2>
+                </div>
+                {challenge.skillTags && challenge.skillTags.length > 0 && (
+                    <div className="flex items-center gap-3 flex-wrap">
+                        {challenge.skillTags.map((tag) => (
+                            <TrainerHeaderLink key={tag.id} tag={tag} unitColor={unitColor} />
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Меню выбора задачи */}
@@ -660,7 +737,6 @@ export const Quiz = ({
                                     challengeId={challenge.id}
                                     isMultiSelect={isMultiSelect}
                                     options={options}
-                                    skillTags={challenge.skillTags}
                                 />
                             )}
 

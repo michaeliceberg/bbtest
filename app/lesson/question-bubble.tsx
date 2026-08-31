@@ -2,12 +2,11 @@
 
 import dynamic from "next/dynamic";
 import Latex from 'react-latex-next';
-import { Skull, Home, User, Coins, CheckCircle, XCircle, ZoomIn, GraduationCap, ChevronRight } from 'lucide-react';
+import { Skull, Home, BookOpen, CheckCircle, XCircle, ZoomIn } from 'lucide-react';
 import { differenceInHours, isPast } from 'date-fns';
 import { motion } from "framer-motion";
 import { NoRightAnswer } from "@/components/hover-card";
 import { useState, useRef, useEffect } from "react";
-import Link from "next/link";
 
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 import { PALETTE_RED } from "@/src/constants/lessonButtonColors";
@@ -19,7 +18,6 @@ import LottieDiamond from '@/public/LottieSelectDiamond.json'
 import LottieSparks from '@/public/LottieSelectSparks.json'
 import LottieStars from '@/public/LottieSelectStars.json'
 import LottieButterfly from '@/public/LottieSelectButterfly.json'
-import { LOTTIE_SKILL_ASK_LIST, getRandomLottie } from "@/src/constants/lottieConstants";
 
 // Рендерит условие задачи, подсвечивая цветом юнита фразу "что нужно найти"
 // (если удалось её распознать эвристикой — иначе просто весь текст как есть).
@@ -38,80 +36,11 @@ const QuestionText = ({ question, color }: { question: string; color: string }) 
     );
 };
 
-// Порог "готовности" — насколько высокий процент в теме тренажёра
-// говорит "можешь уверенно решать эту задачу курса". Ниже — только
-// потренировался, но экзаменационный уровень ещё рано; выше — уже
-// закреплено. Выше общего UNLOCK_THRESHOLD=50 у самого тренажёра
-// (там это порог разблокировки следующего этапа, а не готовности к
-// сложной задаче курса) — тут сознательно строже.
-const SKILL_READY_THRESHOLD = 70;
-
-// Палитра "готовности" бейджа — раньше был всегда один и тот же
-// приглушённый цвет темы юнита (для 0% и для 90% выглядело одинаково,
-// пользователь не мог на глаз понять, готов ли он к задаче или нет).
-// Теперь 3 явно различимых состояния:
-// - не начато (0%) — Lottie-приглашение (как раньше);
-// - практикуется (1-69%) — предупреждающий янтарный ("ещё рано");
-// - закреплено (70%+) — тот же премиальный фиолетово-фуксия градиент,
-//   что уже используется для пройденного этапа на карте скиллов
-//   (components/trainer-grade-tree.tsx, done-квадратик) — единый
-//   визуальный язык "готов" между картой тренажёра и бейджем задачи.
-const SKILL_PRACTICING_COLOR = '#E8A23D';
-const SKILL_READY_GRADIENT = 'linear-gradient(135deg, #7C3AED 0%, #C026D3 100%)';
-const SKILL_READY_BORDER = '#C4B5FD';
-
-// Бейдж-ссылка на тему тренажёра под задачей курса. Оформлен как
-// настоящая кнопка (рамка, ChevronRight-стрелка, лёгкий scale на hover)
-// — раньше это была едва заметная пилюля в тон общего фона, непонятно
-// было, что на неё вообще можно нажать. Выбор Lottie для 0%-состояния —
-// один раз на монтирование (не на каждый ре-рендер), тот же паттерн
-// useState(() => ...), что уже применяется для похожих случайных
-// анимаций в этом проекте.
-const SkillTagBadge = ({ tag, unitColor }: { tag: { id: number; title: string; percentage: number }; unitColor: { button: string; bottom: string } }) => {
-    const isLocked = tag.percentage === 0;
-    const isReady = tag.percentage >= SKILL_READY_THRESHOLD;
-    const [askAnimation] = useState(() => getRandomLottie(LOTTIE_SKILL_ASK_LIST));
-
-    if (isLocked) {
-        return (
-            <Link
-                href={`/t-lesson/${tag.id}`}
-                title={`Скилл тренажёра: ${tag.title}`}
-                className="flex items-center gap-1 pl-0.5 pr-2.5 py-0.5 rounded-full border transition-transform hover:scale-[1.03]"
-                style={{ backgroundColor: `${unitColor.button}14`, borderColor: `${unitColor.button}55`, color: unitColor.button }}
-            >
-                <Lottie className="w-6 h-6 shrink-0" animationData={askAnimation} loop />
-                <span className="text-xs font-medium">Пройди тренажёр</span>
-            </Link>
-        );
-    }
-
-    const style = isReady
-        ? {
-            background: SKILL_READY_GRADIENT,
-            borderColor: SKILL_READY_BORDER,
-            color: '#F5F0FF',
-            boxShadow: '0 0 10px -3px rgba(167, 139, 250, 0.55)',
-        }
-        : {
-            backgroundColor: `${SKILL_PRACTICING_COLOR}1F`,
-            borderColor: `${SKILL_PRACTICING_COLOR}66`,
-            color: SKILL_PRACTICING_COLOR,
-        };
-
-    return (
-        <Link
-            href={`/t-lesson/${tag.id}`}
-            title={`Скилл тренажёра: ${tag.title}${isReady ? ' — готов' : ' — нужна практика'}`}
-            className="flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full border transition-transform hover:scale-[1.03]"
-            style={style}
-        >
-            <GraduationCap className="w-3.5 h-3.5" />
-            <span className="text-xs font-bold">{tag.percentage}%</span>
-            <ChevronRight className="w-3 h-3 opacity-70" />
-        </Link>
-    );
-};
+// Бейдж-ссылка на тему тренажёра переехал из этой нижней строки меты в
+// шапку урока (app/lesson/quiz.tsx, рядом с названием урока) — там он
+// виден сразу, до того как читать саму задачу, и там же появилась явная
+// кнопка "Перейти в тренажёр" вместо кликабельной, но неочевидной пилюли.
+// Палитра готовности (lib/skillTier.ts) теперь общая для обоих мест.
 
 const mascotAnimations = [
     { lottie: LottieRainbow, name: "rainbow" },
@@ -138,14 +67,12 @@ type Props = {
     imageSrc?: string;
     isMultiSelect?: boolean;
     options?: { id: number; text: string }[];
-    skillTags?: { id: number; title: string; percentage: number }[];
 }
 
 export const QuestionBubble = ({
     unitColor,
     question,
     imageSrc,
-    pts,
     author,
     timesDoneWrong,
     timesDone,
@@ -157,7 +84,6 @@ export const QuestionBubble = ({
     challengeId,
     isMultiSelect,
     options,
-    skillTags,
 }: Props) => {
     const correctAttempts = timesDone - timesDoneWrong;
 
@@ -320,22 +246,15 @@ export const QuestionBubble = ({
                     </div>
                 )}
 
-                {skillTags && skillTags.length > 0 && skillTags.map((tag) => (
-                    <SkillTagBadge key={tag.id} tag={tag} unitColor={unitColor} />
-                ))}
-
                 <NoRightAnswer challengeId={challengeId} />
 
-                <div
-                    className="flex items-center gap-1 px-2 py-1 rounded-full"
-                    style={{ backgroundColor: `${unitColor.button}1F`, color: unitColor.button }}
-                >
-                    <Coins className="w-3.5 h-3.5" />
-                    <span className="font-bold text-sm">+{pts}</span>
-                </div>
-
+                {/* Иконка "источник" — раньше здесь стоял User, хотя author
+                    никогда не хранит имя человека, только курс/учебник-
+                    источник задачи ("ЕГЭ Физика", "Ф10 ФИЗИКА-10" и т.п.),
+                    см. значения в scripts/seed*.ts. BookOpen честнее
+                    отражает смысл поля. */}
                 <div className="flex items-center gap-1 text-[#9AA7B0]/60 text-[11px] ml-auto">
-                    <User className="w-3 h-3" />
+                    <BookOpen className="w-3 h-3" />
                     <span>{author}</span>
                 </div>
             </div>
