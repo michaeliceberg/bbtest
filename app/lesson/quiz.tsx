@@ -27,6 +27,7 @@ import { ChallengeNav } from "./challenge-nav";
 import { vibrate } from "@/lib/haptics";
 import { useAchievementStore } from "@/store/use-achievement-store";
 import { useStreakCelebrationStore } from "@/store/use-streak-celebration-store";
+import { useLevelUpStore } from "@/store/use-level-up-store";
 
 // Доля заданий ASSIST с числовым ответом, которые показываем как KEYBOARD
 // вместо сетки вариантов — для разнообразия UI. Сам тип в БД не меняется.
@@ -106,6 +107,7 @@ export const Quiz = ({
     const { openR: openRightModal } = useRightAnswerModal()
     const showAchievement = useAchievementStore((state) => state.showAchievement)
     const showStreakCelebration = useStreakCelebrationStore((state) => state.showStreakCelebration)
+    const showLevelUp = useLevelUpStore((state) => state.showLevelUp)
 
     useMount(() => {
         if (initialPercentage === 100) {
@@ -484,9 +486,9 @@ export const Quiz = ({
                             setHearts((prev) => Math.min(prev + 1, 5))
                         }
 
-                        if (response?.leveledUp) {
-                            const gemsPart = response.levelUpGems ? ` +${response.levelUpGems}💎` : ''
-                            toast.success(`🎊 Новый уровень! Теперь ты на Ур. ${response.newLevel}${gemsPart}`, { duration: 4000 })
+                        if (response?.leveledUp && response.newLevel) {
+                            const gained = response.levelsGained ?? 1
+                            showLevelUp(response.newLevel - gained, response.newLevel, response.levelUpGems ?? 0)
                         }
                         // streakExtended — true только на ПЕРВЫЙ верный ответ,
                         // продливший серию на новый день (см. lib/streak.ts) —

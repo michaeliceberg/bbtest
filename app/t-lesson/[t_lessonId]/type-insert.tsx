@@ -74,8 +74,11 @@ export const TypeInsert = ({
     // state, пока настоящий узел с текстом ещё есть в DOM. Клон — обычный
     // DOM-узел поверх формулы (position:absolute внутри containerRef,
     // ниже добавлен relative), не связан с React/KaTeX и сам себя убирает
-    // по окончании анимации.
-    const slideOutOldGlyph = (slotIndex: number) => {
+    // по окончании анимации. Раньше клон уезжал влево (slideOutOldGlyph) —
+    // по отзыву пользователя ("получилось плохо") заменено на схлопывание
+    // в точку с ускорением, симметрично тому, как новая буква ниже
+    // раскрывается из точки с bounce.
+    const shrinkOutOldGlyph = (slotIndex: number) => {
         const container = containerRef.current
         if (!container) return
         const blankNodes = Array.from(container.querySelectorAll<HTMLElement>('[style*="color"]'))
@@ -97,14 +100,20 @@ export const TypeInsert = ({
         clone.style.fontFamily = computed.fontFamily
         clone.style.pointerEvents = 'none'
         clone.style.zIndex = '10'
+        clone.style.display = 'inline-block'
+        clone.style.transformOrigin = 'center'
         container.appendChild(clone)
 
+        // Ускоряющееся схлопывание в точку (ease-in — медленный старт,
+        // резкое ускорение к концу), а не линейное/замедляющееся — читается
+        // как "буква стремительно втягивается", а не просто тает.
         const anim = clone.animate(
             [
-                { opacity: 1, transform: 'translateX(0)' },
-                { opacity: 0, transform: 'translateX(-24px)' },
+                { opacity: 1, transform: 'scale(1)' },
+                { opacity: 0.6, transform: 'scale(0.5)' },
+                { opacity: 0, transform: 'scale(0)' },
             ],
-            { duration: 280, easing: 'ease-in' }
+            { duration: 240, easing: 'cubic-bezier(0.55, 0, 1, 0.45)' }
         )
         anim.onfinish = () => clone.remove()
     }
@@ -114,7 +123,7 @@ export const TypeInsert = ({
         if (filledLetters[activeSlot] === letter) return // уже стоит в активном пропуске
 
         if (filledLetters[activeSlot] !== null) {
-            slideOutOldGlyph(activeSlot)
+            shrinkOutOldGlyph(activeSlot)
         }
 
         const next = [...filledLetters]
@@ -225,20 +234,26 @@ export const TypeInsert = ({
             const node = blankNodes[i]
             if (!node) return
             if (letter !== prev[i]) {
-                // Первое заполнение пустого "?" — буква падает сверху
-                // (как и раньше). СМЕНА уже выбранной буквы на другую —
-                // въезжает СПРАВА (её старая версия в этот момент уже
-                // уезжает влево клоном, см. slideOutOldGlyph выше) — по
-                // просьбе пользователя сделать смену варианта заметнее,
-                // не просто тем же дропом сверху. WAAPI анимирует
-                // конкретный DOM-узел напрямую, минуя React/framer-motion.
+                // Первое заполнение пустого "?" — буква падает сверху (как
+                // и раньше). СМЕНА уже выбранной буквы на другую — новая
+                // раскрывается из точки с bounce-перехлёстом (её старая
+                // версия в этот момент уже схлопывается в точку клоном,
+                // см. shrinkOutOldGlyph выше) — по отзыву пользователя
+                // прежний слайд-свап "получился плохо", заменён на пару
+                // схлопывание/раскрытие. WAAPI анимирует конкретный
+                // DOM-узел напрямую, минуя React/framer-motion.
                 const isFirstFill = prev[i] === null
                 node.animate(
-                    [
-                        { opacity: 0, transform: isFirstFill ? 'translateY(-20px)' : 'translateX(24px)' },
-                        { opacity: 1, transform: 'translate(0, 0)' },
-                    ],
-                    { duration: isFirstFill ? 420 : 320, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
+                    isFirstFill
+                        ? [
+                            { opacity: 0, transform: 'translateY(-20px)' },
+                            { opacity: 1, transform: 'translateY(0)' },
+                        ]
+                        : [
+                            { opacity: 0, transform: 'scale(0.2)' },
+                            { opacity: 1, transform: 'scale(1)' },
+                        ],
+                    { duration: isFirstFill ? 420 : 380, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
                 )
             }
         })

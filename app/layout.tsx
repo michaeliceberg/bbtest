@@ -20,6 +20,7 @@ const WrongAnswerModal = dynamic(() => import('@/components/modals/wronganswer-m
 const RightAnswerModal = dynamic(() => import('@/components/modals/rightanswer-modal').then(mod => ({ default: mod.RightAnswerModal })), { ssr: false });
 const AchievementToastProvider = dynamic(() => import('@/components/achievement-toast-provider').then(mod => ({ default: mod.AchievementToastProvider })), { ssr: false });
 const StreakCelebrationToastProvider = dynamic(() => import('@/components/streak-celebration-toast-provider').then(mod => ({ default: mod.StreakCelebrationToastProvider })), { ssr: false });
+const LevelUpModalProvider = dynamic(() => import('@/components/level-up-modal-provider').then(mod => ({ default: mod.LevelUpModalProvider })), { ssr: false });
 
 const font = Nunito({ subsets: ['latin'] });
 
@@ -49,6 +50,7 @@ export default function RootLayout({
 				<PracticeModal />
 				<AchievementToastProvider />
 				<StreakCelebrationToastProvider />
+				<LevelUpModalProvider />
 			</body>
 		</html>
 	);

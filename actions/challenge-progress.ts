@@ -37,6 +37,7 @@ interface ChallengeProgressResponse {
     leveledUp?: boolean;
     newLevel?: number;
     levelUpGems?: number;
+    levelsGained?: number;
     newAchievements?: NewlyCompletedAchievement[];
     streakExtended?: boolean;
     newStreak?: number;
@@ -161,6 +162,7 @@ export async function updateChallengeProgress({
     let leveledUp = false;
     let newLevel: number | undefined;
     let levelUpGems = 0;
+    let levelsGained = 0;
     let streakExtended = false;
     let newStreak: number | undefined;
 
@@ -174,6 +176,7 @@ export async function updateChallengeProgress({
         leveledUp = levelUpInfo.leveledUp;
         newLevel = levelUpInfo.newLevel;
         levelUpGems = levelUpInfo.gemsAwarded;
+        levelsGained = levelUpInfo.levelsGained;
 
         await db.update(userProgress)
             .set({
@@ -296,6 +299,7 @@ export async function updateChallengeProgress({
         leveledUp,
         newLevel,
         levelUpGems,
+        levelsGained,
         newAchievements,
         streakExtended,
         newStreak,

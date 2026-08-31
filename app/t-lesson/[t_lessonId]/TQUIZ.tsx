@@ -39,6 +39,7 @@ import { ChestReward } from "@/components/ChestReward"
 import { TrainerQuestRewardsScreen, QuestRewardsData } from "@/components/trainer-quest-rewards-screen"
 import { useAchievementStore } from "@/store/use-achievement-store"
 import { useStreakCelebrationStore } from "@/store/use-streak-celebration-store"
+import { useLevelUpStore } from "@/store/use-level-up-store"
 
 // "Горячий вопрос" (questionType 'HOT', см. type-hot.tsx) — факультативный,
 // не входит в счёт/сердечки/работу над ошибками (см. handleAnswer). Везде,
@@ -124,6 +125,7 @@ export default function TQuiz({
   // это — курсовый ударный режим по ДНЯМ (см. lib/streak.ts). Разные
   // механики, случайно совпавшее название переменной.
   const triggerDailyStreakToast = useStreakCelebrationStore((state) => state.showStreakCelebration)
+  const showLevelUp = useLevelUpStore((state) => state.showLevelUp)
   const fromQuest = searchParams.get('fromQuest') === 'true'
   const tCourseId = searchParams.get('tCourseId') ? parseInt(searchParams.get('tCourseId')!) : null
   
@@ -358,9 +360,9 @@ export default function TQuiz({
           toast.error('Что-то пошло не так! Результат не добавлен в базу данных.')
           return null
         })
-      if (progressResult?.leveledUp) {
-        const gemsPart = progressResult.levelUpGems ? ` +${progressResult.levelUpGems}💎` : ''
-        toast.success(`🎊 Новый уровень! Теперь ты на Ур. ${progressResult.newLevel}${gemsPart}`, { duration: 4000 })
+      if (progressResult?.leveledUp && progressResult.newLevel) {
+        const gained = progressResult.levelsGained ?? 1
+        showLevelUp(progressResult.newLevel - gained, progressResult.newLevel, progressResult.levelUpGems ?? 0)
       }
       // Урок тренажёра продлевает ТОТ ЖЕ курсовый стрик, что и задачи в
       // задачнике (см. lib/streak.ts) — streakExtended==true только если
@@ -746,14 +748,13 @@ export default function TQuiz({
       ) : (
         <div className="w-full max-w-xl mx-auto text-center">
           {isReviewRound && (
-            // Раньше — синяя овальная "таблетка" (rounded-full). По просьбе
-            // пользователя ("не овальная, более премиально, не синий цвет")
-            // — форма ленты-медали (clip-path с заострёнными краями вместо
-            // rounded-full) + бронзово-золотой градиент вместо синего.
-            // Лёгкий блик (shine), пробегающий один раз при появлении —
-            // тот самый "премиальный" акцент, тот же приём анимации, что
-            // уже используется в проекте (motion.div поверх статичного
-            // фона, не требует AnimatePresence).
+            // Раньше — синяя овальная "таблетка", потом золото-бронзовый
+            // градиент (по просьбе "не овальная, более премиально"). Сама
+            // золотая палитра пользователю тоже не понравилась —
+            // "выглядит бездушно, как золотая стальная пластина, не
+            // вызывает приятные эмоции" — заменена на яркий игровой
+            // градиент (коралл→розовый→фиолетовый), форма ленты-медали
+            // (clip-path) и блик-анимация не тронуты, только цвет/текст.
             <motion.div
               key={isReviewRound ? 'review-banner' : 'no-banner'}
               initial={{ opacity: 0, y: -8 }}
@@ -761,15 +762,15 @@ export default function TQuiz({
               className="relative mb-4 mx-auto w-fit overflow-hidden"
               style={{
                 clipPath: 'polygon(14px 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 14px 100%, 0 50%)',
-                boxShadow: '0 4px 14px rgba(0,0,0,0.4)',
+                boxShadow: '0 4px 18px rgba(255, 111, 145, 0.35)',
               }}
             >
               <div
                 className="flex items-center justify-center gap-2 py-2.5 px-8"
-                style={{ background: 'linear-gradient(135deg, #8A5A28 0%, #E0B563 45%, #8A5A28 100%)' }}
+                style={{ background: 'linear-gradient(135deg, #FF9A56 0%, #FF6F91 50%, #C86DD7 100%)' }}
               >
-                <PencilLine className="w-4 h-4 text-[#3A2410] relative z-10" />
-                <span className="text-sm font-black text-[#3A2410] uppercase tracking-wide relative z-10">
+                <PencilLine className="w-4 h-4 text-white relative z-10" />
+                <span className="text-sm font-black text-white uppercase tracking-wide relative z-10">
                   Работа над ошибками
                 </span>
               </div>

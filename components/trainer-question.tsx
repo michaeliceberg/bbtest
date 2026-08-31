@@ -33,6 +33,7 @@ import {triangleGdeProtivKatet, triangleBissektr, triangleGdeKatet, triangleGdeS
 
 import { motion } from "framer-motion"
 import { X, Check, Flag } from "lucide-react"
+import { TrainerExitModal } from "@/components/modals/trainer-exit-modal"
 import { TrainerMascot } from "./TrainerMascot"
 import { TrainerBossBar } from "./trainer-boss-bar"
 
@@ -505,29 +506,10 @@ export default function TrainerQuestion({
         </button>
       </div>
 
-      {/* Модалка выхода */}
-      {showExitModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1A2A3A] border border-[#2A3A4A] rounded-xl p-6 max-w-sm w-full">
-            <h3 className="text-white font-bold text-lg mb-2">Вы уверены?</h3>
-            <p className="text-[#F2F7FB]/70 mb-6 text-sm">Вы действительно хотите завершить урок?</p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowExitModal(false)}
-                className="flex-1 px-4 py-2 bg-[#3A464E] text-[#F2F7FB] rounded-lg hover:bg-[#4A5568] transition"
-              >
-                Продолжить
-              </button>
-              <button
-                onClick={() => window.location.href = '/trainer'}
-                className="flex-1 px-4 py-2 bg-[#DC605B] text-[#151F24] rounded-lg hover:bg-[#C8524E] transition"
-              >
-                Выход
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Модалка выхода — тот же Lottie-маскот "Не уходи!", что уже
+          проверен в задачнике (components/modals/exit-modal.tsx),
+          вместо прежнего резко появлявшегося статичного div. */}
+      <TrainerExitModal open={showExitModal} onOpenChange={setShowExitModal} />
     </div>
   )
 }

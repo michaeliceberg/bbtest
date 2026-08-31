@@ -7,6 +7,7 @@ import { Trophy, Lock, CheckCircle, Star, Gem, Flame, Target, Brain, Gift } from
 import { motion } from 'framer-motion';
 import { claimAchievementReward } from '@/actions/claim-achievement';
 import { toast } from 'sonner';
+import { useLevelUpStore } from '@/store/use-level-up-store';
 
 type AchievementWithProgress = {
     id: number;
@@ -32,6 +33,7 @@ type Props = {
 export const AchievementsGrid = ({ userId, achievementsWithProgress }: Props) => {
     const [achievements, setAchievements] = useState(achievementsWithProgress);
     const [claiming, setClaiming] = useState<number | null>(null);
+    const showLevelUp = useLevelUpStore((state) => state.showLevelUp);
     
     const getCategoryIcon = (category: string) => {
         switch (category) {
@@ -67,9 +69,9 @@ export const AchievementsGrid = ({ userId, achievementsWithProgress }: Props) =>
             const result = await claimAchievementReward(userId, achievementId);
             if (result.success) {
                 toast.success(`🎉 Получено: ${result.points}⭐, ${result.gems}💎 и ${result.xp} XP`);
-                if (result.leveledUp) {
-                    const gemsPart = result.levelUpGems ? ` +${result.levelUpGems}💎` : '';
-                    toast.success(`🎊 Новый уровень! Теперь ты на Ур. ${result.newLevel}${gemsPart}`, { duration: 4000 });
+                if (result.leveledUp && result.newLevel) {
+                    const gained = result.levelsGained ?? 1;
+                    showLevelUp(result.newLevel - gained, result.newLevel, result.levelUpGems ?? 0);
                 }
                 setAchievements(prev => prev.map(ach =>
                     ach.id === achievementId 

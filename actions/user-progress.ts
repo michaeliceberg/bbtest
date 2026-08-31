@@ -280,6 +280,7 @@ export const upsertTrainerLessonProgress = async (
 	let leveledUp = false;
 	let newLevel: number | undefined;
 	let levelUpGems = 0;
+	let levelsGained = 0;
 	let streakExtended = false;
 	let newStreak: number | undefined;
 
@@ -293,6 +294,7 @@ export const upsertTrainerLessonProgress = async (
 		leveledUp = levelUpInfo.leveledUp;
 		newLevel = levelUpInfo.newLevel;
 		levelUpGems = levelUpInfo.gemsAwarded;
+		levelsGained = levelUpInfo.levelsGained;
 
 		await db.update(userProgress)
 			.set({
@@ -328,7 +330,7 @@ export const upsertTrainerLessonProgress = async (
 
 	const newAchievements = await recalculateAchievements(userId);
 
-	return { leveledUp, newLevel, levelUpGems, newAchievements, streakExtended, newStreak };
+	return { leveledUp, newLevel, levelUpGems, levelsGained, newAchievements, streakExtended, newStreak };
 };
 
 

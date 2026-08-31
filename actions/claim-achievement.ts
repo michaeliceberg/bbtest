@@ -55,6 +55,7 @@ export async function claimAchievementReward(userId: string, achievementId: numb
     let leveledUp = false;
     let newLevel: number | undefined;
     let levelUpGems = 0;
+    let levelsGained = 0;
     const earnedXp = rewardPoints > 0 ? xpForAmount(rewardPoints) : 0;
 
     if (rewardPoints > 0) {
@@ -66,6 +67,7 @@ export async function claimAchievementReward(userId: string, achievementId: numb
         leveledUp = levelUpInfo.leveledUp;
         newLevel = levelUpInfo.newLevel;
         levelUpGems = levelUpInfo.gemsAwarded;
+        levelsGained = levelUpInfo.levelsGained;
 
         await db.update(userProgress)
             .set({
@@ -93,5 +95,6 @@ export async function claimAchievementReward(userId: string, achievementId: numb
         leveledUp,
         newLevel,
         levelUpGems,
+        levelsGained,
     };
 }
