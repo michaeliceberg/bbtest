@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Latex from 'react-latex-next';
-import { Skull, Home, User, Coins, CheckCircle, XCircle, ZoomIn, GraduationCap } from 'lucide-react';
+import { Skull, Home, User, Coins, CheckCircle, XCircle, ZoomIn, GraduationCap, ChevronRight } from 'lucide-react';
 import { differenceInHours, isPast } from 'date-fns';
 import { motion } from "framer-motion";
 import { NoRightAnswer } from "@/components/hover-card";
@@ -38,15 +38,38 @@ const QuestionText = ({ question, color }: { question: string; color: string }) 
     );
 };
 
-// Бейдж-ссылка на тему тренажёра под задачей курса. Если скилл ещё не
-// начат (percentage === 0) — вместо скучной серой иконки-магистра
-// показываем анимированного Lottie-персонажа (public/Lottie/tegs/) с
-// эмоциональным призывом "Пройди тренажёр"; если прогресс уже есть —
-// как раньше, компактный процент. Выбор Lottie — один раз на монтирование
-// (не на каждый ре-рендер), тот же паттерн useState(() => ...), что уже
-// применяется для похожих случайных анимаций в этом проекте.
+// Порог "готовности" — насколько высокий процент в теме тренажёра
+// говорит "можешь уверенно решать эту задачу курса". Ниже — только
+// потренировался, но экзаменационный уровень ещё рано; выше — уже
+// закреплено. Выше общего UNLOCK_THRESHOLD=50 у самого тренажёра
+// (там это порог разблокировки следующего этапа, а не готовности к
+// сложной задаче курса) — тут сознательно строже.
+const SKILL_READY_THRESHOLD = 70;
+
+// Палитра "готовности" бейджа — раньше был всегда один и тот же
+// приглушённый цвет темы юнита (для 0% и для 90% выглядело одинаково,
+// пользователь не мог на глаз понять, готов ли он к задаче или нет).
+// Теперь 3 явно различимых состояния:
+// - не начато (0%) — Lottie-приглашение (как раньше);
+// - практикуется (1-69%) — предупреждающий янтарный ("ещё рано");
+// - закреплено (70%+) — тот же премиальный фиолетово-фуксия градиент,
+//   что уже используется для пройденного этапа на карте скиллов
+//   (components/trainer-grade-tree.tsx, done-квадратик) — единый
+//   визуальный язык "готов" между картой тренажёра и бейджем задачи.
+const SKILL_PRACTICING_COLOR = '#E8A23D';
+const SKILL_READY_GRADIENT = 'linear-gradient(135deg, #7C3AED 0%, #C026D3 100%)';
+const SKILL_READY_BORDER = '#C4B5FD';
+
+// Бейдж-ссылка на тему тренажёра под задачей курса. Оформлен как
+// настоящая кнопка (рамка, ChevronRight-стрелка, лёгкий scale на hover)
+// — раньше это была едва заметная пилюля в тон общего фона, непонятно
+// было, что на неё вообще можно нажать. Выбор Lottie для 0%-состояния —
+// один раз на монтирование (не на каждый ре-рендер), тот же паттерн
+// useState(() => ...), что уже применяется для похожих случайных
+// анимаций в этом проекте.
 const SkillTagBadge = ({ tag, unitColor }: { tag: { id: number; title: string; percentage: number }; unitColor: { button: string; bottom: string } }) => {
     const isLocked = tag.percentage === 0;
+    const isReady = tag.percentage >= SKILL_READY_THRESHOLD;
     const [askAnimation] = useState(() => getRandomLottie(LOTTIE_SKILL_ASK_LIST));
 
     if (isLocked) {
@@ -54,8 +77,8 @@ const SkillTagBadge = ({ tag, unitColor }: { tag: { id: number; title: string; p
             <Link
                 href={`/t-lesson/${tag.id}`}
                 title={`Скилл тренажёра: ${tag.title}`}
-                className="flex items-center gap-1 pl-0.5 pr-2 py-0.5 rounded-full transition-opacity hover:opacity-80"
-                style={{ backgroundColor: `${unitColor.button}1F`, color: unitColor.button }}
+                className="flex items-center gap-1 pl-0.5 pr-2.5 py-0.5 rounded-full border transition-transform hover:scale-[1.03]"
+                style={{ backgroundColor: `${unitColor.button}14`, borderColor: `${unitColor.button}55`, color: unitColor.button }}
             >
                 <Lottie className="w-6 h-6 shrink-0" animationData={askAnimation} loop />
                 <span className="text-xs font-medium">Пройди тренажёр</span>
@@ -63,15 +86,29 @@ const SkillTagBadge = ({ tag, unitColor }: { tag: { id: number; title: string; p
         );
     }
 
+    const style = isReady
+        ? {
+            background: SKILL_READY_GRADIENT,
+            borderColor: SKILL_READY_BORDER,
+            color: '#F5F0FF',
+            boxShadow: '0 0 10px -3px rgba(167, 139, 250, 0.55)',
+        }
+        : {
+            backgroundColor: `${SKILL_PRACTICING_COLOR}1F`,
+            borderColor: `${SKILL_PRACTICING_COLOR}66`,
+            color: SKILL_PRACTICING_COLOR,
+        };
+
     return (
         <Link
             href={`/t-lesson/${tag.id}`}
-            title={`Скилл тренажёра: ${tag.title}`}
-            className="flex items-center gap-1 px-2 py-0.5 rounded-full transition-opacity hover:opacity-80"
-            style={{ backgroundColor: `${unitColor.button}1F`, color: unitColor.button }}
+            title={`Скилл тренажёра: ${tag.title}${isReady ? ' — готов' : ' — нужна практика'}`}
+            className="flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full border transition-transform hover:scale-[1.03]"
+            style={style}
         >
             <GraduationCap className="w-3.5 h-3.5" />
-            <span className="text-xs font-medium">{tag.percentage}%</span>
+            <span className="text-xs font-bold">{tag.percentage}%</span>
+            <ChevronRight className="w-3 h-3 opacity-70" />
         </Link>
     );
 };
@@ -254,8 +291,13 @@ export const QuestionBubble = ({
                 </div>
             </div>
 
-            {/* Единая строка меты: статистика, ДЗ, "нет ответа", очки, автор */}
-            <div className="flex flex-wrap items-center gap-2 mt-3">
+            {/* Единая строка меты: статистика, ДЗ, "нет ответа", очки, автор —
+                раньше это были голые пилюли вразнобой прямо на фоне карточки
+                задачи, читалось как случайный набор, не единый блок. Теперь
+                обёрнуто в собственную рамку-контейнер (тот же язык, что и у
+                других тёмных карточек в проекте — LevelCard/TrainerQuestCard,
+                bg-[#151F23] border). */}
+            <div className="flex flex-wrap items-center gap-2 mt-3 p-2.5 rounded-xl border border-[#232F34] bg-[#151F23]/60">
                 {correctAttempts > 0 && (
                     <div className="flex items-center gap-1 text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
                         <CheckCircle className="w-3.5 h-3.5" />

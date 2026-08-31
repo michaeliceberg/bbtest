@@ -1,6 +1,4 @@
-import { MessageCircleQuestion } from "lucide-react"
-import dynamic from "next/dynamic"
-import LottieCoins from '@/public/Lottie/LottieCoins.json'
+import { MessageCircleQuestion, Send } from "lucide-react"
 
 import {
   Dialog,
@@ -12,14 +10,18 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 
-const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
-
 const TELEGRAM_USERNAME = 'michaeldeve'
 
 type Props = {
     challengeId: number
 }
 
+// Раньше заголовок модалки ("Ничего себе!") и монетка-Lottie никак не
+// объясняли, ПО ПОВОДУ ЧЕГО открылось это окно — пользователь кликал на
+// "?" рядом с задачей и видел непонятный тост про вознаграждение. Текст
+// переписан так, чтобы заголовок буквально повторял вопрос, на который
+// отвечает иконка-триггер ("Нет правильного ответа?") — сразу понятно,
+// что это форма жалобы на конкретную задачу, а не что-то про бонусы.
 export function NoRightAnswer({ challengeId }: Props) {
   // Автоссылка t.me с уже подставленным номером задания — пользователю
   // остаётся только дописать сам ответ и отправить.
@@ -39,20 +41,16 @@ export function NoRightAnswer({ challengeId }: Props) {
       </DialogTrigger>
       <DialogContent className="max-w-[320px] gap-3">
         <DialogHeader className="gap-1">
-          <DialogTitle className="text-lg">Ничего себе!</DialogTitle>
+          <DialogTitle className="text-lg">Нет правильного ответа?</DialogTitle>
           <DialogDescription className="text-sm">
-            Напишите нам в Telegram — укажем номер задания за вас, получите вознаграждение!
+            Отправьте сообщение с правильным ответом в Telegram — мы проверим и поправим задание №{challengeId}.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center gap-2 -my-1">
-          <Lottie className="h-9 w-9 shrink-0" animationData={LottieCoins} loop={false} />
-          <span className="text-xs text-[#9AA7B0]">Задание №{challengeId}</span>
-        </div>
-
         <a href={telegramLink} target="_blank" rel="noopener noreferrer" className="w-full">
-          <Button variant="primary" className="w-full">
-            Написать в Telegram
+          <Button variant="primary" className="w-full gap-2">
+            <Send className="w-4 h-4" />
+            Отправить в Telegram
           </Button>
         </a>
       </DialogContent>
