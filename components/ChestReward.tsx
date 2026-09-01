@@ -100,11 +100,17 @@ export const ChestReward = ({ onChestClicked }: ChestRewardProps) => {
 
   return (
     // Canvas Rive сам обрабатывает pointer-события (хит-тест своих Listener'ов,
-    // в т.ч. со звуком) и останавливает их всплытие, поэтому обычный onClick
-    // на обёртке не сработает. onClickCapture перехватывает клик на фазе
-    // погружения — раньше, чем canvas успеет его остановить — и не мешает
-    // самому canvas получить событие для своей логики (звук, hit-test).
-    <div className="relative w-80 h-80 mx-auto cursor-pointer" onClickCapture={handleTap}>
+    // в т.ч. со звуком). Раньше здесь был onClickCapture (синтетический click) —
+    // на телефонах Rive сам вызывает preventDefault() на touchstart своего
+    // canvas (чтобы тап не скроллил страницу), а это по спецификации мобильных
+    // браузеров ГЛУШИТ последующий синтетический click целиком: наш handleTap
+    // просто не вызывался на части тапов, tapIndexRef не доходил до конца,
+    // и экран зависал именно "на завершении" — сама Rive-анимация тапы всё
+    // равно видела (её собственный hit-test не зависит от click) и могла
+    // доиграть, а наш JS-счётчик — нет, отсюда несовпадение. onPointerDown
+    // не подвержен этому — pointer-события не глушатся чужим preventDefault
+    // на touchstart, приходят раньше и одинаково надёжно на мыши/тач.
+    <div className="relative w-80 h-80 mx-auto cursor-pointer touch-manipulation" onPointerDown={handleTap}>
       <RiveComponent />
     </div>
   )

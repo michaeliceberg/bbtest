@@ -444,6 +444,8 @@ export default function TQuiz({
       const isSelectThenSubmitType = questions[currentQuestionIndex].questionType === 'ASSIST'
         || questions[currentQuestionIndex].questionType === 'INSERT'
         || questions[currentQuestionIndex].questionType === 'SCROLL'
+        || questions[currentQuestionIndex].questionType === 'CHECK'
+        || questions[currentQuestionIndex].questionType === 'PICMATCH'
 
       // INSERT сравнивается ровно (answer — отсортированный набор букв,
       // все обязательны, см. type-insert.tsx) — множественный "|"-ответ
@@ -681,8 +683,15 @@ export default function TQuiz({
       <TrainerQuestRewardsScreen
         data={questRewardsData}
         onOpenChest={() => {
+          // Rive-анимация сундука (components/ChestReward.tsx) глючила на
+          // телефонах — тап не долетал до конца, пользователь застревал
+          // на этом экране без возможности продолжить (баг с preventDefault
+          // на touchstart, глушащим синтетический click, см. коммент в
+          // самом ChestReward.tsx). По просьбе пользователя (2026-09-01)
+          // сундук временно пропускается целиком — сразу на финальный
+          // экран, тем же путём, что раньше шёл после клика по сундуку.
           setShowQuestRewardsScreen(false)
-          setShowChestReward(true)
+          setQuizCompleted(true)
         }}
       />
     )

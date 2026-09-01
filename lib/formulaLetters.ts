@@ -72,6 +72,53 @@ const findLetterOccurrences = (latex: string): LetterOccurrence[] => {
 export const extractLetterCandidates = (latex: string): string[] =>
 	Array.from(new Set(findLetterOccurrences(latex).map((o) => o.letter)))
 
+// Общий пул частых однобуквенных физических/математических переменных —
+// используется и как добор обманок для INSERT (см. pickInsertBlank ниже),
+// и как источник замены для corruptFormulaLetter (тип CHECK). Вынесен на
+// уровень модуля, а не внутрь одной функции — обеим нужен один и тот же
+// список.
+const GENERIC_FALLBACK_LETTERS = [
+	'a', 'b', 'c', 'd', 'e', 'F', 'g', 'h', 'k', 'l', 'm', 'n',
+	'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+	'A', 'B', 'C', 'E', 'L', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',
+]
+
+export type CorruptedFormula = {
+	corruptedLatex: string
+	originalLetter: string
+	replacementLetter: string
+}
+
+// Тип задания CHECK ("правильно ли записана формула?") — портим ОДНУ
+// букву в формуле похожей, но ДРУГОЙ буквой ("mgh" -> "mkh"), чтобы
+// получить правдоподобную ошибку школьника (перепутал соседнюю
+// переменную), а не случайный мусор. siblingLetterPool — буквы из других
+// формул урока (тот же принцип "правдоподобная обманка", что уже
+// используется в pickInsertBlank), в дополнение к общему пулу ниже — не
+// обязателен, без него используется только общий пул.
+export const corruptFormulaLetter = (
+	latex: string,
+	siblingLetterPool: string[] = [],
+): CorruptedFormula | null => {
+	const occurrences = findLetterOccurrences(latex)
+	if (occurrences.length === 0) return null
+
+	const target = occurrences[Math.floor(Math.random() * occurrences.length)]
+	// Не подменяем на букву, которая и так уже где-то встречается в этой
+	// же формуле — иначе результат может случайно совпасть по смыслу
+	// (та же переменная дважды) вместо правдоподобной ошибки.
+	const usedLetters = new Set(occurrences.map((o) => o.letter))
+
+	const candidates = Array.from(new Set([...siblingLetterPool, ...GENERIC_FALLBACK_LETTERS]))
+		.filter((letter) => letter !== target.letter && !usedLetters.has(letter))
+	if (candidates.length === 0) return null
+
+	const replacement = candidates[Math.floor(Math.random() * candidates.length)]
+	const corruptedLatex = latex.slice(0, target.index) + replacement + latex.slice(target.index + 1)
+
+	return { corruptedLatex, originalLetter: target.letter, replacementLetter: replacement }
+}
+
 type ChallengeLike = {
 	t_challengeOptions: { text: string; correct: boolean }[]
 }
@@ -155,12 +202,8 @@ export const pickInsertBlank = (
 	// пропуска буквы). Если соседей не хватило — добираем из общего пула
 	// частых однобуквенных физических/математических переменных (не
 	// специфичных ни одной формуле, но хотя бы похожих по духу на реальные
-	// обозначения, а не случайных символов).
-	const GENERIC_FALLBACK_LETTERS = [
-		'a', 'b', 'c', 'd', 'e', 'F', 'g', 'h', 'k', 'l', 'm', 'n',
-		'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-		'A', 'B', 'C', 'E', 'L', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',
-	]
+	// обозначения, а не случайных символов) — GENERIC_FALLBACK_LETTERS,
+	// объявлен на уровне модуля выше (переиспользуется и corruptFormulaLetter).
 
 	// Столько же обманок, сколько в обычном режиме (3) — при 2 верных
 	// буквах кнопок будет 5 вместо 4, этого достаточно для сложности, а

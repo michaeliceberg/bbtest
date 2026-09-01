@@ -13,6 +13,8 @@ import { QuestionType } from "@/app/t-lesson/[t_lessonId]/page"
 import { TypeAssist } from "@/app/t-lesson/[t_lessonId]/type-assist"
 import { TypeInsert } from "@/app/t-lesson/[t_lessonId]/type-insert"
 import { TypeScroll } from "@/app/t-lesson/[t_lessonId]/type-scroll"
+import { TypeCheck } from "@/app/t-lesson/[t_lessonId]/type-check"
+import { FormulaIcon } from "@/components/FormulaIcon"
 import { TypeSlider } from "@/app/t-lesson/[t_lessonId]/type-slider"
 import { TypeHot } from "@/app/t-lesson/[t_lessonId]/type-hot"
 import { TypeConnect } from "@/app/t-lesson/[t_lessonId]/type-connect"
@@ -201,6 +203,14 @@ export default function TrainerQuestion({
       return null;
     };
 
+    // Рендерим иконку-пиктограмму (только PICMATCH, см. lib/formulaIcons.ts)
+    const renderFormulaIcon = () => {
+      if (question.questionType === "PICMATCH" && question.iconKey) {
+        return <FormulaIcon iconKey={question.iconKey} />
+      }
+      return null
+    };
+
     // Рендерим изображение
     const renderImage = () => {
       if (question.imageSrc && question.imageSrc !== '0') {
@@ -240,6 +250,24 @@ export default function TrainerQuestion({
 
         case "SCROLL":
           return <TypeScroll
+            question={question}
+            onAnswer={onAnswer}
+            onOptionSelected={handleAssistOptionSelected}
+            isAnswerChecked={answerState === "correct" || answerState === "incorrect"}
+            isAnswerCorrect={answerState === "correct"}
+          />
+
+        case "PICMATCH":
+          return <TypeAssist
+            question={question}
+            onAnswer={onAnswer}
+            onOptionSelected={handleAssistOptionSelected}
+            isAnswerChecked={answerState === "correct" || answerState === "incorrect"}
+            isAnswerCorrect={answerState === "correct"}
+          />
+
+        case "CHECK":
+          return <TypeCheck
             question={question}
             onAnswer={onAnswer}
             onOptionSelected={handleAssistOptionSelected}
@@ -329,6 +357,7 @@ export default function TrainerQuestion({
     return (
       <>
         {renderQuestionHeader()}
+        {renderFormulaIcon()}
         {renderImage()}
         {renderMainContent()}
       </>
@@ -469,7 +498,7 @@ export default function TrainerQuestion({
               // ASSIST и INSERT — двухшаговый флоу: сначала выбор варианта
               // (answerState === "selected"), потом отдельный клик "далее"/
               // "понятно" на уже проверенный ответ, без повторной отправки.
-              const isSelectThenSubmitType = question.questionType === "ASSIST" || question.questionType === "INSERT" || question.questionType === "SCROLL"
+              const isSelectThenSubmitType = question.questionType === "ASSIST" || question.questionType === "INSERT" || question.questionType === "SCROLL" || question.questionType === "CHECK" || question.questionType === "PICMATCH"
 
               if (isSelectThenSubmitType && answerState === "selected" && selectedAssistAnswer) {
                 onAnswer(selectedAssistAnswer)

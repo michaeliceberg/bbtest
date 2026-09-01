@@ -3,7 +3,8 @@
 import { getAllTLessonProgress, getAllUsersProgress, getTLesson, getUserProgress, getHotQuestionsForUnit } from "@/db/queries"
 import { redirect } from "next/navigation"
 import { Shuffle2, ShuffleTS } from "@/usefulFunctions"
-import { pickInsertBlank } from "@/lib/formulaLetters"
+import { pickInsertBlank, corruptFormulaLetter, extractLetterCandidates } from "@/lib/formulaLetters"
+import { getFormulaIconKey } from "@/lib/formulaIcons"
 import TQuiz from "@/app/t-lesson/[t_lessonId]/TQUIZ"
 import { allTypesCT } from "@/db/schema";
 
@@ -36,6 +37,13 @@ export type QuestionType = {
     // lib/formulaLetters.ts — при 2 пропусках порядок сомножителей
     // неважен, поэтому сравнение ответа идёт как множество, не позиционно).
     insertCorrectLetters?: string[],
+    // Только для CHECK ("правильно ли записана формула?") — сама формула
+    // для показа, либо оригинал (correctAnswer='CORRECT'), либо с одной
+    // подменённой буквой (correctAnswer='WRONG').
+    checkFormula?: string,
+    // Только для PICMATCH ("сопоставь картинку и формулу", пилот на теме
+    // Динамика) — ключ иконки для components/FormulaIcon.tsx.
+    iconKey?: string,
     // Только для (отключённого) MEMORY — оставлено ради type-memory.tsx,
     // который не рендерится, но не удалён (может пригодиться позже).
     memoryCards?: { id: number; pairId: number; text: string }[],
@@ -140,18 +148,25 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         return shuffled.slice(0, count);
     }
 
-    const ACStype = ['ASSIST', 'CONNECT', 'INSERT', 'SWIPE', 'SCROLL'] as const;
+    const ACStype = ['ASSIST', 'CONNECT', 'INSERT', 'SWIPE', 'SCROLL', 'CHECK', 'PICMATCH'] as const;
     type ACStype = typeof ACStype[number];
 
     // INSERT (вписать букву) — по явной просьбе пользователя должен
     // выпадать чаще остальных стилей. Отдельный ВЗВЕШЕННЫЙ пул только для
     // случайного выбора ниже — сам ACStype (типовые проверки/isMAscLike)
-    // не трогаем. INSERT вдвое чаще ASSIST/CONNECT/SWIPE/SCROLL (2/6 ≈ 33%
-    // вместо базовых 20%); если конкретной формуле не хватает букв/обманок
-    // — pickInsertBlank всё равно тихо откатится на ASSIST (см. ниже),
-    // так что более высокий вес не может ничего сломать, только чаще
-    // пробовать.
-    const WEIGHTED_ASC_POOL: ACStype[] = ['ASSIST', 'CONNECT', 'INSERT', 'INSERT', 'SWIPE', 'SCROLL'];
+    // не трогаем. INSERT вдвое чаще ASSIST/CONNECT/SWIPE/SCROLL/CHECK
+    // (2/7 ≈ 29%); если конкретной формуле не хватает букв/обманок —
+    // pickInsertBlank всё равно тихо откатится на ASSIST (см. ниже), так
+    // что более высокий вес не может ничего сломать, только чаще
+    // пробовать. CHECK ("верно ли записана формула?") — новый тип,
+    // 2026-09-01, тот же вес, что у остальных базовых стилей.
+    // PICMATCH ("сопоставь картинку и формулу") — пилот, покрывает только
+    // формулы с иконкой в lib/formulaIcons.ts (сейчас — тема Динамика);
+    // для остальных getFormulaIconKey вернёт null и ветка ниже тихо
+    // откатится на ASSIST — с более низким весом, чем у остальных
+    // стилей, не смысла пробовать чаще, чем есть шанс попасть в формулу
+    // с иконкой.
+    const WEIGHTED_ASC_POOL: ACStype[] = ['ASSIST', 'CONNECT', 'INSERT', 'INSERT', 'SWIPE', 'SCROLL', 'CHECK', 'PICMATCH'];
 
     // "M_ASC-подобные" типы — задачи с одной формулой-ответом, отрисовываемые
     // одним из 5 рендер-стилей (ASSIST/CONNECT/INSERT/SWIPE/SCROLL). Для
@@ -170,8 +185,8 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // вспомнить и вписать букву, сложнее всего. Типы не из этого списка
     // (WORKBOOK, RUSSIANDICTANT и т.п.) — по умолчанию "средний" уровень.
     const RENDER_DIFFICULTY_TIER: Record<string, number> = {
-        ASSIST: 0, CONNECT: 0,
-        SWIPE: 1, SCROLL: 1,
+        ASSIST: 0, CONNECT: 0, PICMATCH: 0,
+        SWIPE: 1, SCROLL: 1, CHECK: 1,
         INSERT: 2,
     };
 
@@ -320,6 +335,69 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         ? formulaMAscChallengeIds[Math.floor(Math.random() * formulaMAscChallengeIds.length)]
         : null;
 
+    // Буквы, уже спрошенные INSERT'ом по КАЖДОЙ формуле (ключ — id
+    // challenge, значение — набор уже использованных наборов букв, вида
+    // "g" или "g,m") — общий между основным проходом ниже и вторым
+    // проходом extraInsertQuestions (см. ниже), чтобы доп. вопросы по
+    // той же формуле гарантированно прятали ДРУГИЕ буквы, а не повторяли
+    // уже показанный пропуск.
+    const insertLetterSetsByChallenge = new Map<number, Set<string>>();
+
+    // Общий билдер INSERT-вопроса — переиспользуется и основным .map()
+    // ниже (через randomASCtype === 'INSERT'), и вторым проходом
+    // extraInsertQuestions (реально добавляет ДОПОЛНИТЕЛЬНЫЕ вопросы на
+    // ту же формулу — явная просьба пользователя "увеличить количество
+    // заданий INSERT", 2026-09-01, а не просто поднять вероятность
+    // рендер-стиля). usedLetterSets — из insertLetterSetsByChallenge,
+    // до 6 попыток подобрать пропуск, чьё буквенное множество ещё не
+    // встречалось у ЭТОЙ формулы в уроке; не нашли — вернём undefined
+    // (для основного прохода это откат на ASSIST, для доп. вопросов —
+    // просто не добавляем).
+    const buildInsertQuestion = (
+        t_challenge: typeof lessonChallenges[number],
+        wantDouble: boolean,
+        usedLetterSets: Set<string>,
+    ): QuestionType | undefined => {
+        // INSERT имеет смысл только для формул (LaTeX-ответ, содержит
+        // "$") — см. подробный комментарий у прежнего инлайн-варианта
+        // этой проверки ниже по файлу.
+        if (!looksLikeFormula(t_challenge.t_challengeOptions[0]?.text || '')) return undefined;
+
+        const siblingChallenges = t_lesson.t_challenges.filter((el) =>
+            isMAscLike(el.type) && el.id !== t_challenge.id
+            && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
+        );
+
+        let insertBlank: ReturnType<typeof pickInsertBlank> = null;
+        for (let attempt = 0; attempt < 6; attempt++) {
+            const candidate = pickInsertBlank(t_challenge, siblingChallenges, wantDouble);
+            if (!candidate) break;
+            const key = [...candidate.correctLetters].sort().join(',');
+            if (!usedLetterSets.has(key)) {
+                insertBlank = candidate;
+                usedLetterSets.add(key);
+                break;
+            }
+        }
+        if (!insertBlank) return undefined;
+
+        return {
+            questionType: 'INSERT' as const,
+            question: t_challenge.question,
+            imageSrc: t_challenge.imageSrc,
+            options: Shuffle2([...insertBlank.correctLetters, ...insertBlank.distractorLetters]),
+            numRans: '1',
+            optionsQ: [],
+            optionsA: [],
+            optionsConstructRight: [],
+            difficulty: t_challenge.difficulty,
+            correctAnswer: [...insertBlank.correctLetters].sort().join(','),
+            blankedFormula: insertBlank.blankedFormula,
+            insertCorrectLetters: insertBlank.correctLetters,
+            timeLimit: 40,
+        };
+    };
+
     questions = lessonChallenges.map((t_challenge, index): QuestionType | undefined => {
         if (isMAscLike(t_challenge.type)) {
             // M_ASC — случайный стиль рендера (кроме той ОДНОЙ задачи,
@@ -336,57 +414,20 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 return buildAssistQuestion(t_challenge);
             }
             else if (randomASCtype === 'INSERT' as const) {
-                // INSERT имеет смысл только для формул (LaTeX-ответ,
-                // содержит "$") — словарный ответ вроде "Н" тоже может
-                // выглядеть как "изолированная буква" для pickInsertBlank
-                // (см. lib/formulaLetters.ts), но у него нет "$"-обёртки,
-                // и результат (\color{...}{\underset{...}{...}}) рендерится
-                // как СЫРОЙ LaTeX-текст вместо формулы — react-latex-next
-                // конвертирует в KaTeX только то, что внутри "$...$"
-                // делимитеров, а blankedFormula для такого ответа их не
-                // содержит. Баг найден пользователем живьём (испорченный
-                // текст вместо "Н" на "В чём измеряется F_тяж?"). Откат на
-                // ASSIST — тот же путь, что уже используется, когда в
-                // формуле вообще нет подходящей буквы.
-                if (!looksLikeFormula(t_challenge.t_challengeOptions[0]?.text || '')) {
-                    return buildAssistQuestion(t_challenge);
-                }
-
-                const siblingChallenges = t_lesson.t_challenges.filter((el) =>
-                    isMAscLike(el.type) && el.id !== t_challenge.id
-                    && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
-                );
-                // Усложнённая версия (2 пропуска вместо 1) — примерно
-                // в 40% случаев; pickInsertBlank сам тихо откатится на 1
-                // пропуск, если в формуле нет подходящего слитного
-                // произведения из ≥2 букв или не хватает обманок под 2.
+                // Усложнённая версия (2 пропуска вместо 1) — примерно в
+                // 40% случаев; buildInsertQuestion/pickInsertBlank сами
+                // тихо откатятся на 1 пропуск, если в формуле нет
+                // подходящего слитного произведения из ≥2 букв или не
+                // хватает обманок под 2.
                 const wantDoubleBlank = Math.random() < 0.4;
-                const insertBlank = pickInsertBlank(t_challenge, siblingChallenges, wantDoubleBlank);
+                const usedLetterSets = insertLetterSetsByChallenge.get(t_challenge.id) ?? new Set<string>();
+                insertLetterSetsByChallenge.set(t_challenge.id, usedLetterSets);
+                const built = buildInsertQuestion(t_challenge, wantDoubleBlank, usedLetterSets);
 
-                // Формула без подходящей буквы или без обманок в уроке —
-                // откатываемся на обычный ASSIST для этой задачи.
-                if (!insertBlank) {
-                    return buildAssistQuestion(t_challenge);
-                }
-
-                return {
-                    questionType: 'INSERT' as const,
-                    question: t_challenge.question,
-                    imageSrc: t_challenge.imageSrc,
-                    options: Shuffle2([...insertBlank.correctLetters, ...insertBlank.distractorLetters]),
-                    numRans: '1',
-                    optionsQ: [],
-                    optionsA: [],
-                    optionsConstructRight: [],
-                    difficulty: t_challenge.difficulty,
-                    // Отсортированный join, а не позиционное сравнение — 2
-                    // загаданные буквы всегда из одного произведения, порядок
-                    // сомножителей не важен (mgh = hgm).
-                    correctAnswer: [...insertBlank.correctLetters].sort().join(','),
-                    blankedFormula: insertBlank.blankedFormula,
-                    insertCorrectLetters: insertBlank.correctLetters,
-                    timeLimit: 40,
-                };
+                // Формула без "$" (словарный ответ), без подходящей буквы
+                // или без обманок в уроке — откатываемся на обычный
+                // ASSIST для этой задачи (см. buildInsertQuestion).
+                return built ?? buildAssistQuestion(t_challenge);
             }
             else if (randomASCtype === 'SWIPE' as const) {
                 const excludedUnitSwipe = selfUnitToExclude(t_challenge.question);
@@ -453,6 +494,87 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                     optionsConstructRight: [],
                     difficulty: t_challenge.difficulty,
                     correctAnswer: getCorrectAnswerText(t_challenge),
+                    timeLimit: 30,
+                };
+            }
+            else if (randomASCtype === 'CHECK' as const) {
+                // CHECK ("верно ли записана формула?") имеет смысл только
+                // для формул (LaTeX-ответ) — по тем же причинам, что и
+                // INSERT (см. выше): у словарного текстового ответа нет
+                // отдельных "букв-переменных" для правдоподобной порчи.
+                if (!looksLikeFormula(t_challenge.t_challengeOptions[0]?.text || '')) {
+                    return buildAssistQuestion(t_challenge);
+                }
+
+                const formulaText = t_challenge.t_challengeOptions[0]?.text || '';
+                const siblingLetterPool = t_lesson.t_challenges
+                    .filter((el) => isMAscLike(el.type) && el.id !== t_challenge.id
+                        && looksLikeFormula(el.t_challengeOptions[0]?.text || ''))
+                    .flatMap((el) => extractLetterCandidates(el.t_challengeOptions[0]?.text || ''));
+
+                // ~50/50 — показываем формулу как есть или с одной
+                // подменённой буквой. Если испортить нечем (в формуле нет
+                // ни одной подходящей буквы) — откатываемся на ASSIST, а
+                // не молча показываем "всегда верно".
+                const wantWrong = Math.random() < 0.5;
+                const corrupted = wantWrong ? corruptFormulaLetter(formulaText, siblingLetterPool) : null;
+                if (wantWrong && !corrupted) {
+                    return buildAssistQuestion(t_challenge);
+                }
+
+                return {
+                    questionType: 'CHECK' as const,
+                    question: 'Формула записана верно?',
+                    imageSrc: t_challenge.imageSrc,
+                    options: ['CORRECT', 'WRONG'],
+                    numRans: '1',
+                    optionsQ: [],
+                    optionsA: [],
+                    optionsConstructRight: [],
+                    difficulty: t_challenge.difficulty,
+                    correctAnswer: corrupted ? 'WRONG' : 'CORRECT',
+                    checkFormula: corrupted ? corrupted.corruptedLatex : formulaText,
+                    timeLimit: 20,
+                };
+            }
+            else if (randomASCtype === 'PICMATCH' as const) {
+                // Пилот "сопоставь картинку и формулу" (см. lib/
+                // formulaIcons.ts) — покрывает только заранее размеченные
+                // формулы (сейчас тема Динамика). Нет иконки для этой
+                // формулы — откатываемся на ASSIST, тихо, как и везде выше.
+                const iconKey = getFormulaIconKey(t_challenge.question);
+                if (!iconKey) {
+                    return buildAssistQuestion(t_challenge);
+                }
+
+                // Пул вариантов-формул — та же логика genre/kind-фильтров,
+                // что и в buildAssistQuestion, но без переиспользования
+                // самой функции (там question = t_challenge.question,
+                // который здесь заменён на иконку — сохраняем question
+                // текстом на случай текстового фолбэка в самом рендере).
+                const excludedUnitPic = selfUnitToExclude(t_challenge.question);
+                const otherQuestionsPicGenre = dedupeByAnswerText(t_lesson.t_challenges.filter((el) =>
+                    isMAscLike(el.type)
+                    && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
+                    && el.t_challengeOptions[0]?.text !== excludedUnitPic
+                    && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
+                ));
+                const otherQuestionsPicKind = otherQuestionsPicGenre.filter((el) => sameAnswerKind(t_challenge.question, el.question));
+                const fiveQuestionsPic = pickPreferringKind(otherQuestionsPicGenre, otherQuestionsPicKind, 5);
+                const fiveWrongOptionsPic = fiveQuestionsPic.map(el => el.t_challengeOptions[0]?.text || '');
+
+                return {
+                    questionType: 'PICMATCH' as const,
+                    question: t_challenge.question,
+                    imageSrc: t_challenge.imageSrc,
+                    options: Shuffle2([...fiveWrongOptionsPic, t_challenge.t_challengeOptions[0]?.text || '']),
+                    numRans: '1',
+                    optionsQ: [],
+                    optionsA: [],
+                    optionsConstructRight: [],
+                    difficulty: t_challenge.difficulty,
+                    correctAnswer: getCorrectAnswerText(t_challenge),
+                    iconKey,
                     timeLimit: 30,
                 };
             }
@@ -587,6 +709,34 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         }
     }).map((q, idx): QuestionType | undefined => q ? { ...q, contentTier: contentTiers[idx] } : q)
       .filter((q): q is QuestionType => q !== undefined);
+
+    // Реально увеличиваем число заданий INSERT (явная просьба
+    // пользователя, 2026-09-01 — "больше вопросов", не просто выше шанс
+    // рендер-стиля на ту же длину урока). Для каждой формулы-M_ASC урока
+    // пробуем добавить ЕЩЁ один однобуквенный и ЕЩЁ один двухбуквенный
+    // INSERT-вопрос — с ДРУГИМИ спрятанными буквами, чем уже могло
+    // выпасть в основном проходе выше (insertLetterSetsByChallenge). Не
+    // добавляем безусловно на каждую формулу — на большом "Контрольная"-
+    // уроке (5-9 формул) это удвоило/утроило бы длину урока; вместо
+    // этого собираем кандидатов и берём случайно не больше
+    // MAX_EXTRA_INSERT — короткие уроки (1-3 формулы) получают их почти
+    // все, длинные — предсказуемо ограниченную добавку.
+    const MAX_EXTRA_INSERT = 6;
+    const extraInsertCandidates: QuestionType[] = [];
+    for (const t_challenge of lessonChallenges) {
+        if (!isMAscLike(t_challenge.type)) continue;
+        if (!looksLikeFormula(t_challenge.t_challengeOptions[0]?.text || '')) continue;
+
+        const usedLetterSets = insertLetterSetsByChallenge.get(t_challenge.id) ?? new Set<string>();
+        insertLetterSetsByChallenge.set(t_challenge.id, usedLetterSets);
+
+        const single = buildInsertQuestion(t_challenge, false, usedLetterSets);
+        if (single) extraInsertCandidates.push({ ...single, contentTier: 1 });
+
+        const double = buildInsertQuestion(t_challenge, true, usedLetterSets);
+        if (double) extraInsertCandidates.push({ ...double, contentTier: 1 });
+    }
+    questions = [...questions, ...getRandomElements(extraInsertCandidates, MAX_EXTRA_INSERT)];
 
     // 🔥 ДОБАВЛЕНА ПРОВЕРКА: если questions пустой или первый вопрос undefined
     if (!questions || questions.length === 0 || !questions[0]) {
