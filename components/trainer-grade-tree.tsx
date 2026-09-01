@@ -12,7 +12,8 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Egg, Shield, Sword, Crown, Gift } from 'lucide-react';
 import { TrainerStageLink } from './trainer-stage-link';
 
@@ -28,6 +29,18 @@ const UNLOCK_THRESHOLD = 50;
 // слева направо, нечётный — справа налево, с коротким вертикальным
 // соединителем на том краю, где заканчивается предыдущий ряд.
 const COLUMNS_PER_ROW = 4;
+
+// Цвета "премиального done" — те же значения, что заданы в inline-style
+// ниже, вынесены в константы, т.к. теперь используются в двух местах
+// (обычный статичный рендер + анимированный crossfade при reveal).
+const DONE_GRADIENT = 'linear-gradient(135deg, #7C3AED 0%, #C026D3 100%)';
+const DONE_BORDER = '#C4B5FD';
+const DONE_GLOW = '0 0 12px -2px rgba(167, 139, 250, 0.55)';
+const DONE_ICON_COLOR = '#F5F0FF';
+const UNLOCKED_BORDER = '#4897D1';
+const UNLOCKED_BG = '#232F35';
+const LOCKED_BORDER = '#3A464E';
+const LOCKED_ICON_COLOR = '#56646C';
 
 export type SkillStage = {
     id: number;
@@ -61,7 +74,83 @@ const chunkStages = (stages: SkillStage[], size: number): SkillStage[][] => {
     return rows;
 };
 
+// Сама иконка этапа (яйцо/щит/меч/корона или 👹 для босса) — вынесена в
+// функцию, чтобы не дублировать JSX в трёх разных визуальных состояниях
+// одного и того же квадратика (locked / unlocked-not-done / done).
+const StageIcon = ({
+    isBoss,
+    Icon,
+    color,
+    dim = false,
+}: {
+    isBoss: boolean;
+    Icon: typeof Egg;
+    color: string;
+    dim?: boolean;
+}) => (
+    isBoss
+        ? <span className={`text-base leading-none transition-[filter,opacity] duration-300 ${dim ? 'grayscale opacity-50' : ''}`}>👹</span>
+        : <Icon className="w-4 h-4 transition-colors duration-300" style={{ color }} />
+);
+
+const BossGiftBadge = () => (
+    <span
+        className="absolute -top-2 -right-2 w-4 h-4 rounded flex items-center justify-center"
+        style={{ backgroundColor: '#EF9F27' }}
+    >
+        <Gift className="w-2.5 h-2.5" style={{ color: '#412402' }} />
+    </span>
+);
+
 export const TrainerGradeTree = ({ topics }: Props) => {
+    // Reveal-анимация "только что прошёл этот этап" — сигнал приходит из
+    // app/t-lesson/[t_lessonId]/TQUIZ.tsx (handleFinishLesson) через
+    // sessionStorage, читается ровно один раз при монтировании и сразу
+    // стирается (обновление страницы после этого не повторяет анимацию).
+    // Три фазы с нарастающей задержкой — цепная реакция "квадратик
+    // засветился → фитиль добежал → следующий квадратик разблокировался",
+    // а не всё одновременно.
+    const [pendingRevealId, setPendingRevealId] = useState<number | null>(null);
+    const [stageRevealed, setStageRevealed] = useState(false);
+    const [connectorRevealed, setConnectorRevealed] = useState(false);
+    const [nextRevealed, setNextRevealed] = useState(false);
+    // React 18 Strict Mode в dev нарочно вызывает setup→cleanup→setup ещё
+    // раз при монтировании (проверка чистоты эффектов) — с обычным
+    // return-cleanup, отменяющим setTimeout, ПЕРВЫЙ набор таймеров
+    // отменялся до срабатывания, а ВТОРОЙ setup уже не находил флаг в
+    // sessionStorage (он был потреблён первым же вызовом) и просто ничего
+    // не планировал заново — итог: pendingRevealId выставлялся, а сама
+    // цепочка reveal-фаз никогда не срабатывала (проверено живьём — все
+    // квадратики застревали в "исходном" состоянии). Ref-гвард не даёт
+    // повторному setup что-либо перезапускать; без cleanup-отмены таймеры
+    // спокойно доживают до срабатывания.
+    const startedRef = React.useRef(false);
+
+    useEffect(() => {
+        if (startedRef.current) return;
+        let raw: string | null = null;
+        try {
+            raw = sessionStorage.getItem('justCompletedTLesson');
+        } catch {
+            return;
+        }
+        if (!raw) return;
+        sessionStorage.removeItem('justCompletedTLesson');
+        const id = Number(raw);
+        // Анимируем, только если этап РЕАЛЬНО сейчас числится решённым —
+        // иначе (например, урок пройден без 90%+ или id устарел) молча
+        // ничего не делаем, а не показываем анимацию "в никуда".
+        const isActuallyDone = topics.some((t) => t.stages.some((s) => s.id === id && s.percentage >= UNLOCK_THRESHOLD));
+        if (!isActuallyDone) return;
+
+        startedRef.current = true;
+        setPendingRevealId(id);
+        setTimeout(() => setStageRevealed(true), 150);
+        setTimeout(() => setConnectorRevealed(true), 600);
+        setTimeout(() => setNextRevealed(true), 1100);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     return (
         <div className="w-full max-w-xl mx-auto">
             <div className="flex flex-col gap-2.5">
@@ -106,8 +195,9 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                             <div className="grid items-center" style={{ gridTemplateColumns: gridTemplate }}>
                                                 {row.map((s, j) => {
                                                     const trueIdx = rowStartIdx + j;
-                                                    const unlocked = trueIdx === 0 || topic.stages[trueIdx - 1].percentage >= UNLOCK_THRESHOLD;
-                                                    const done = s.percentage >= UNLOCK_THRESHOLD;
+                                                    const prevStage = trueIdx > 0 ? topic.stages[trueIdx - 1] : null;
+                                                    const unlockedReal = trueIdx === 0 || (prevStage !== null && prevStage.percentage >= UNLOCK_THRESHOLD);
+                                                    const doneReal = s.percentage >= UNLOCK_THRESHOLD;
                                                     const isLastOverall = trueIdx === topic.stages.length - 1;
                                                     // Финальный этап темы — всегда босс; промежуточный
                                                     // "контрольная"-урок (по названию, см. isReviewStage
@@ -116,49 +206,127 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                     const Icon = STAGE_ICONS[trueIdx % STAGE_ICONS.length];
                                                     const col = boxColumn(j);
 
-                                                    // Значок босса виден ЗАРАНЕЕ, ещё до разблокировки
-                                                    // этапа (не только после прохождения, как раньше
-                                                    // делал бейдж-подарок ниже) — пользователь явно
-                                                    // попросил показывать в самой цепочке этапов, какой
-                                                    // из них будет "боем с боссом", чтобы это не было
-                                                    // сюрпризом только в момент открытия. Тот же 👹, что
-                                                    // уже используется как маскот босса в самом бою
-                                                    // (components/trainer-boss-bar.tsx) — единый визуальный
-                                                    // язык между картой этапов и экраном боя.
-                                                    const stageIcon = isBoss
-                                                        ? <span className={`text-base leading-none ${!unlocked ? 'grayscale opacity-50' : ''}`}>👹</span>
-                                                        : <Icon className="w-4 h-4" style={{ color: unlocked ? (done ? '#F5F0FF' : '#4897D1') : '#56646C' }} />;
+                                                    // Этот квадратик — тот самый, что пользователь только
+                                                    // что прошёл (reveal "locked-visual → done-visual"), или
+                                                    // следующий за ним (reveal "locked → unlocked"). Оба флага
+                                                    // взаимоисключающие для одного и того же трюка id.
+                                                    const isRevealTarget = pendingRevealId !== null && s.id === pendingRevealId;
+                                                    const isRevealNext = pendingRevealId !== null && prevStage !== null && prevStage.id === pendingRevealId;
+
+                                                    // "Видимое" (возможно, ещё задержанное анимацией)
+                                                    // состояние — используется для всего остального в этой
+                                                    // итерации (цвет соединителя дальше по коду).
+                                                    const done = isRevealTarget ? (stageRevealed && doneReal) : doneReal;
+                                                    const unlocked = isRevealNext ? (nextRevealed && unlockedReal) : unlockedReal;
+
+                                                    let stageBox: React.ReactNode;
+
+                                                    if (isRevealTarget) {
+                                                        // Кроссфейд между "было" (обычный незавершённый вид)
+                                                        // и "стало" (премиальный градиент) — CSS/framer-motion
+                                                        // не умеют плавно интерполировать МЕЖДУ двумя разными
+                                                        // background-градиентами напрямую, поэтому оба слоя
+                                                        // рендерятся одновременно друг над другом и один гаснет,
+                                                        // пока другой проявляется.
+                                                        stageBox = (
+                                                            <div className="relative w-9 h-9">
+                                                                <motion.div
+                                                                    className="absolute inset-0"
+                                                                    animate={{ opacity: stageRevealed ? 0 : 1 }}
+                                                                    transition={{ duration: 0.35 }}
+                                                                >
+                                                                    <TrainerStageLink
+                                                                        href={`/t-lesson/${s.id}${isBoss ? '?boss=1' : ''}`}
+                                                                        className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
+                                                                        style={{ background: UNLOCKED_BG, border: `2px solid ${UNLOCKED_BORDER}` }}
+                                                                        icon={<StageIcon isBoss={isBoss} Icon={Icon} color={UNLOCKED_BORDER} />}
+                                                                    />
+                                                                </motion.div>
+                                                                <motion.div
+                                                                    className="absolute inset-0"
+                                                                    initial={{ opacity: 0, scale: 1 }}
+                                                                    animate={stageRevealed ? { opacity: 1, scale: [1, 1.2, 1] } : { opacity: 0 }}
+                                                                    transition={{ duration: 0.55, ease: 'easeOut' }}
+                                                                >
+                                                                    <TrainerStageLink
+                                                                        href={`/t-lesson/${s.id}${isBoss ? '?boss=1' : ''}`}
+                                                                        className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
+                                                                        style={{ background: DONE_GRADIENT, border: `2px solid ${DONE_BORDER}`, boxShadow: DONE_GLOW }}
+                                                                        icon={<StageIcon isBoss={isBoss} Icon={Icon} color={DONE_ICON_COLOR} />}
+                                                                        extra={isBoss ? <BossGiftBadge /> : null}
+                                                                    />
+                                                                </motion.div>
+                                                            </div>
+                                                        );
+                                                    } else if (isRevealNext) {
+                                                        // Locked-заглушка (даже не ссылка) гаснет, под ней
+                                                        // проявляется настоящая рабочая TrainerStageLink —
+                                                        // ровно момент "теперь сюда можно зайти".
+                                                        stageBox = (
+                                                            <div className="relative w-9 h-9">
+                                                                <motion.div
+                                                                    className="absolute inset-0"
+                                                                    animate={{ opacity: nextRevealed ? 0 : 1 }}
+                                                                    transition={{ duration: 0.3 }}
+                                                                >
+                                                                    <div
+                                                                        className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
+                                                                        style={{ border: `2px solid ${LOCKED_BORDER}` }}
+                                                                    >
+                                                                        <StageIcon isBoss={isBoss} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
+                                                                    </div>
+                                                                </motion.div>
+                                                                <motion.div
+                                                                    className="absolute inset-0"
+                                                                    initial={{ opacity: 0, scale: 0.8 }}
+                                                                    animate={nextRevealed ? { opacity: 1, scale: [0.8, 1.12, 1] } : { opacity: 0 }}
+                                                                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                                                                >
+                                                                    <TrainerStageLink
+                                                                        href={`/t-lesson/${s.id}${isBoss ? '?boss=1' : ''}`}
+                                                                        className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
+                                                                        style={{ background: UNLOCKED_BG, border: `2px solid ${UNLOCKED_BORDER}` }}
+                                                                        icon={<StageIcon isBoss={isBoss} Icon={Icon} color={UNLOCKED_BORDER} />}
+                                                                    />
+                                                                </motion.div>
+                                                            </div>
+                                                        );
+                                                    } else if (unlocked) {
+                                                        stageBox = (
+                                                            <TrainerStageLink
+                                                                href={`/t-lesson/${s.id}${isBoss ? '?boss=1' : ''}`}
+                                                                className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
+                                                                style={{
+                                                                    background: done ? DONE_GRADIENT : UNLOCKED_BG,
+                                                                    border: `2px solid ${done ? DONE_BORDER : UNLOCKED_BORDER}`,
+                                                                    boxShadow: done ? DONE_GLOW : undefined,
+                                                                }}
+                                                                icon={<StageIcon isBoss={isBoss} Icon={Icon} color={done ? DONE_ICON_COLOR : UNLOCKED_BORDER} />}
+                                                                extra={isBoss && done ? <BossGiftBadge /> : null}
+                                                            />
+                                                        );
+                                                    } else {
+                                                        stageBox = (
+                                                            <div
+                                                                className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
+                                                                style={{ border: `2px solid ${LOCKED_BORDER}` }}
+                                                            >
+                                                                <StageIcon isBoss={isBoss} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
+                                                            </div>
+                                                        );
+                                                    }
+
+                                                    // "Фитиль" — соединитель ДО следующего бокса в этом же
+                                                    // ряду. Реальный прогрессивный залив (scaleX от 0 до 1)
+                                                    // только для конкретно того соединителя, что идёт СРАЗУ
+                                                    // после только что пройденного этапа — остальные просто
+                                                    // статично в своём цвете, без анимации на каждый рендер.
+                                                    const isFuseHere = isRevealTarget && j < row.length - 1;
 
                                                     return (
                                                         <React.Fragment key={s.id}>
                                                             <div style={{ gridColumn: col, gridRow: 1 }} className="flex justify-center">
-                                                                {unlocked ? (
-                                                                    <TrainerStageLink
-                                                                        href={`/t-lesson/${s.id}${isBoss ? '?boss=1' : ''}`}
-                                                                        className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
-                                                                        style={{
-                                                                            background: done ? 'linear-gradient(135deg, #7C3AED 0%, #C026D3 100%)' : '#232F35',
-                                                                            border: `2px solid ${done ? '#C4B5FD' : '#4897D1'}`,
-                                                                            boxShadow: done ? '0 0 12px -2px rgba(167, 139, 250, 0.55)' : undefined,
-                                                                        }}
-                                                                        icon={stageIcon}
-                                                                        extra={isBoss && done ? (
-                                                                            <span
-                                                                                className="absolute -top-2 -right-2 w-4 h-4 rounded flex items-center justify-center"
-                                                                                style={{ backgroundColor: '#EF9F27' }}
-                                                                            >
-                                                                                <Gift className="w-2.5 h-2.5" style={{ color: '#412402' }} />
-                                                                            </span>
-                                                                        ) : null}
-                                                                    />
-                                                                ) : (
-                                                                    <div
-                                                                        className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
-                                                                        style={{ border: '2px solid #3A464E' }}
-                                                                    >
-                                                                        {stageIcon}
-                                                                    </div>
-                                                                )}
+                                                                {stageBox}
                                                             </div>
 
                                                             {j < row.length - 1 && (
@@ -166,25 +334,54 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                                     style={{
                                                                         gridColumn: Math.min(col, boxColumn(j + 1)) + 1,
                                                                         gridRow: 1,
-                                                                        backgroundColor: done ? '#A78BFA' : '#3A464E',
+                                                                        backgroundColor: LOCKED_BORDER,
                                                                     }}
-                                                                    className="h-0.5"
-                                                                />
+                                                                    className="h-0.5 relative overflow-hidden rounded-full"
+                                                                >
+                                                                    {(done || isFuseHere) && (
+                                                                        <motion.div
+                                                                            className="absolute inset-0 rounded-full"
+                                                                            style={{ backgroundColor: '#A78BFA', transformOrigin: isReversed ? 'right' : 'left' }}
+                                                                            initial={isFuseHere ? { scaleX: 0 } : false}
+                                                                            animate={{ scaleX: isFuseHere ? (connectorRevealed ? 1 : 0) : 1 }}
+                                                                            transition={isFuseHere ? { duration: 0.45, ease: 'easeInOut' } : { duration: 0 }}
+                                                                        />
+                                                                    )}
+                                                                </div>
                                                             )}
                                                         </React.Fragment>
                                                     );
                                                 })}
                                             </div>
-                                            {!isLastRow && (
-                                                <div className={`flex ${isReversed ? 'justify-start' : 'justify-end'}`}>
-                                                    <div className="w-9 flex justify-center">
-                                                        <div
-                                                            className="w-0.5 h-6"
-                                                            style={{ backgroundColor: (row[row.length - 1].percentage >= UNLOCK_THRESHOLD) ? '#78C93C' : '#3A464E' }}
-                                                        />
+                                            {!isLastRow && (() => {
+                                                // Тот же "фитиль" для вертикального соединителя между
+                                                // рядами — срабатывает, только когда только что пройденный
+                                                // этап оказался ПОСЛЕДНИМ в своём ряду (следующий этап уже
+                                                // на новой строке змейки).
+                                                const lastInRow = row[row.length - 1];
+                                                const isFuseHereVertical = pendingRevealId !== null && lastInRow.id === pendingRevealId;
+                                                const doneHere = lastInRow.percentage >= UNLOCK_THRESHOLD;
+                                                return (
+                                                    <div className={`flex ${isReversed ? 'justify-start' : 'justify-end'}`}>
+                                                        <div className="w-9 flex justify-center">
+                                                            <div
+                                                                className="w-0.5 h-6 relative overflow-hidden rounded-full"
+                                                                style={{ backgroundColor: LOCKED_BORDER }}
+                                                            >
+                                                                {(doneHere || isFuseHereVertical) && (
+                                                                    <motion.div
+                                                                        className="absolute inset-0 rounded-full"
+                                                                        style={{ backgroundColor: '#A78BFA', transformOrigin: 'top' }}
+                                                                        initial={isFuseHereVertical ? { scaleY: 0 } : false}
+                                                                        animate={{ scaleY: isFuseHereVertical ? (connectorRevealed ? 1 : 0) : 1 }}
+                                                                        transition={isFuseHereVertical ? { duration: 0.45, ease: 'easeInOut' } : { duration: 0 }}
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            )}
+                                                );
+                                            })()}
                                         </div>
                                     );
                                 })}

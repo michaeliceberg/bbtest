@@ -634,10 +634,22 @@ export default function TQuiz({
     setQuizCompleted(true)
     setShowChestReward(false)
     updateQuestProgress()
+    // Сигнал для карты скиллов (components/trainer-grade-tree.tsx) — "только
+    // что прошёл именно этот этап", чтобы на /trainer сыграла анимация
+    // разблокировки (квадратик → цвет "решено", фитиль по линии, следующий
+    // этап → доступен), а не просто мгновенно отрисовалось новое состояние.
+    // sessionStorage, не query-параметр — переживает redirect, но не липнет
+    // к URL и не триггерится повторно при обновлении страницы.
+    try {
+      sessionStorage.setItem('justCompletedTLesson', String(t_lessonId))
+    } catch {
+      // Приватный режим браузера может блокировать sessionStorage — тогда
+      // просто не будет reveal-анимации, /trainer отрисуется как обычно.
+    }
     requestAnimationFrame(() => {
       router.push('/trainer')
     })
-  }, [updateQuestProgress, router])
+  }, [updateQuestProgress, router, t_lessonId])
 
   const handleChestOpened = useCallback(() => {
     setShowChestReward(false)
