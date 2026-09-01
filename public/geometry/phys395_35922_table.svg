@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="414" height="100" viewBox="0 0 414 100">
+<rect x="0" y="0" width="414" height="100" fill="#151F23"/>
+<rect x="4" y="10" width="406" height="82" rx="8" fill="none" stroke="#9AA7B0" stroke-width="1.5"/>
+<line x1="4" y1="50" x2="410" y2="50" stroke="#3A464E" stroke-width="1.5"/>
+<line x1="92" y1="10" x2="92" y2="92" stroke="#3A464E" stroke-width="1.5"/>
+<line x1="138" y1="10" x2="138" y2="92" stroke="#3A464E" stroke-width="1"/>
+<line x1="184" y1="10" x2="184" y2="92" stroke="#3A464E" stroke-width="1"/>
+<line x1="230" y1="10" x2="230" y2="92" stroke="#3A464E" stroke-width="1"/>
+<line x1="276" y1="10" x2="276" y2="92" stroke="#3A464E" stroke-width="1"/>
+<line x1="322" y1="10" x2="322" y2="92" stroke="#3A464E" stroke-width="1"/>
+<line x1="368" y1="10" x2="368" y2="92" stroke="#3A464E" stroke-width="1"/>
+<text x="12" y="35.0" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#7dd3fc">p, кПа</text>
+<text x="12" y="75.0" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#7dd3fc">t, °C</text>
+<text x="115.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#F2F7FB">200</text>
+<text x="161.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#F2F7FB">180</text>
+<text x="207.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#F2F7FB">150</text>
+<text x="253.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#F2F7FB">100</text>
+<text x="299.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#F2F7FB">110</text>
+<text x="345.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#F2F7FB">150</text>
+<text x="391.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#F2F7FB">200</text>
+<text x="115.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#F2F7FB">27</text>
+<text x="161.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#F2F7FB">27</text>
+<text x="207.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#F2F7FB">27</text>
+<text x="253.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#F2F7FB">27</text>
+<text x="299.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#F2F7FB">57</text>
+<text x="345.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#F2F7FB">177</text>
+<text x="391.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#F2F7FB">327</text>
+</svg>

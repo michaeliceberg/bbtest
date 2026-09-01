@@ -29,6 +29,8 @@
 <text x="6" y="102.0" font-family="Georgia, serif" font-size="12" fill="#F2F7FB">1,5</text>
 <text x="6" y="66.0" font-family="Georgia, serif" font-size="12" fill="#F2F7FB">2</text>
 <text x="6" y="30.0" font-family="Georgia, serif" font-size="12" fill="#F2F7FB">2,5</text>
+<line x1="46.0" y1="206.0" x2="118.0" y2="134.0" stroke="#9AA7B0" stroke-width="1" stroke-dasharray="4,3"/>
+<line x1="46.0" y1="206.0" x2="118.0" y2="62.0" stroke="#9AA7B0" stroke-width="1" stroke-dasharray="4,3"/>
 <line x1="118.0" y1="134.0" x2="118.0" y2="62.0" stroke="#7dd3fc" stroke-width="2.4" stroke-linecap="round"/>
 <line x1="118.0" y1="62.0" x2="190.0" y2="98.0" stroke="#7dd3fc" stroke-width="2.4" stroke-linecap="round"/>
 <line x1="190.0" y1="98.0" x2="190.0" y2="152.0" stroke="#7dd3fc" stroke-width="2.4" stroke-linecap="round"/>
