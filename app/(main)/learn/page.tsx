@@ -25,13 +25,12 @@ import { recalculateDailyStats } from '@/actions/recalculate-daily-stats';
 import { cookies } from 'next/headers';
 import { getCourseUnitsWithProgress } from '@/lib/lesson-access';
 import { LearnWrapper } from '@/components/learn-wrapper';
-import { generateHomework } from '@/actions/generate-homework';
 import { ScrollToLesson } from '@/components/scroll-to-lesson';
 import { LevelCard } from '@/components/level-card';
 import { getLvlLottieCount } from '@/lib/lvl-lottie';
 import { StreakRiskBanner } from '@/components/streak-risk-banner';
 import { TrainerQuestCard } from '@/components/trainer-quest-card';
-import { getDailyQuestStatus } from '@/actions/generate-trainer-quest';
+import { getDailyQuestStatus, getRecentQuestHistory } from '@/actions/generate-trainer-quest';
 import { Suspense } from 'react';
 
 const bgList = [
@@ -100,10 +99,18 @@ const LearnPage = async () => {
 
   await recalculateDailyStats(userId, activeCourseId);
 
-  // ✅ Просто вызываем generateHomework - он сам проверит существование
-  await generateHomework(activeCourseId);
-
-  // ✅ И получаем ДЗ (уже с учётом нового или существующего)
+  // generateHomework (автогенерация "Челлендж дня" — 2 ЖЁСТКО
+  // ЗАФИКСИРОВАННЫЕ задачи курса каждый день, components/homework-list.tsx)
+  // здесь больше не вызывается — пользователь явно попросил объединить
+  // этот виджет с "Квест дня" (components/trainer-quest-card.tsx), у
+  // которого та же механика (дедлайн/очки/история/стрик), но БЕЗ
+  // привязки к конкретным id ("любая задача" вместо "вот эти 2"). Сама
+  // функция (actions/generate-homework.ts) не удалена — тем же принципом,
+  // что и другие вытесненные, но не удалённые реализации в этом проекте
+  // (например trainer-skill-tree.tsx рядом с TrainerGradeTree) — на
+  // случай, если понадобится вернуть точечные фиксированные задания.
+  // ДЗ от УЧИТЕЛЯ (type='teacher') эта правка не затрагивает вообще —
+  // generateHomework никогда не создавала такие строки, только 'daily'.
   const allHomework = await getUserHomework(userId, activeCourseId);
 
 
@@ -291,6 +298,7 @@ const LearnPage = async () => {
   const allTCourses = await getTCourses();
   const linkedTCourse = allTCourses.find((tc) => tc.courseId === activeCourseId);
   const dailyQuest = linkedTCourse ? await getDailyQuestStatus(linkedTCourse.id) : null;
+  const questHistory = linkedTCourse ? await getRecentQuestHistory(linkedTCourse.id) : [];
 
   return (
     <LearnWrapper courseId={activeCourseId}>
@@ -314,6 +322,9 @@ const LearnPage = async () => {
               taskDone={dailyQuest.taskDone}
               isCompleted={dailyQuest.isCompleted}
               streak={dailyQuest.streak}
+              dueDateIso={dailyQuest.dueDateIso}
+              pointsReward={dailyQuest.pointsReward}
+              history={questHistory}
             />
           )}
 

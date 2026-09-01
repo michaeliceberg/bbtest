@@ -3,8 +3,8 @@
 'use server';
 
 import db from '@/db/drizzle';
-import { trainerQuests, t_lessons, t_units, t_courses, trainerStreaks, userHomework, t_lessonProgress, userDailyStats } from '@/db/schema';
-import { and, eq, gte, inArray } from 'drizzle-orm';
+import { trainerQuests, t_lessons, t_units, t_courses, trainerStreaks, userHomework, t_lessonProgress, userDailyStats, userProgress } from '@/db/schema';
+import { and, eq, gte, inArray, lt, sql, desc } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { getCourseStreak } from '@/lib/streak';
 
@@ -14,6 +14,21 @@ import { getCourseStreak } from '@/lib/streak';
 // пунктов: любой 1 урок тренажёра + любая 1 задача курса — тот же смысл
 // "позанимался сегодня и там, и там", без привязки к конкретным id.
 const DAILY_QUEST_TOTAL = 2;
+
+// Замена старого "Челлендж дня" (components/homework-list.tsx,
+// userHomework type='daily', см. actions/generate-homework.ts) — та же
+// идея дедлайн-давления/очковых бонусов/истории, но БЕЗ жёстко
+// зафиксированных id задач (пользователь явно попросил объединить два
+// параллельных виджета в один, оставив гибкость "любая задача/любой
+// урок" от "Квест дня"). Очковый бонус — того же порядка, что был у
+// старого "Челлендж дня" (DAILY_HOMEWORK_SIZE=2 × 5 очков = 10).
+const QUEST_POINT_REWARD = 10;
+
+// Столько последних дней показываем в истории (свёрнутый список
+// выполнено/просрочено под карточкой) — тот же смысл, что был у
+// "Просроченные"/"Выполненные" в старом HomeworkList, не бесконечный
+// архив.
+const QUEST_HISTORY_DAYS = 10;
 
 export async function generateDailyTrainerQuest(tCourseId: number) {
     const session = await auth();
@@ -54,6 +69,13 @@ export type DailyQuestStatus = {
     taskDone: boolean;
     isCompleted: boolean;
     streak: number;
+    // Конец дедлайна — не отдельная колонка в БД, а просто конец
+    // календарного дня, которому принадлежит quest.date (тот же день,
+    // что уже определяет "какой именно квест сегодняшний"). Сериализуется
+    // в ISO-строку — проп клиентского компонента, Date через границу
+    // Server→Client Component не проходит напрямую.
+    dueDateIso: string;
+    pointsReward: number;
 };
 
 // Заменяет старую пару generateDailyTrainerQuest+completeTrainerQuestLesson
@@ -130,18 +152,65 @@ export async function getDailyQuestStatus(tCourseId: number): Promise<DailyQuest
 
     if (isCompleted && !wasCompleted) {
         await updateTrainerStreak(userId, tCourseId);
+        // Очковый бонус — ровно один раз, в момент самого перехода
+        // false→true (тот же guard, что уже используется для стрика
+        // чуть выше) — повторные вызовы getDailyQuestStatus в течение
+        // того же дня (при каждом заходе на /trainer или /learn) не
+        // начисляют его снова, wasCompleted уже true.
+        await db.update(userProgress)
+            .set({ points: sql`${userProgress.points} + ${QUEST_POINT_REWARD}` })
+            .where(eq(userProgress.userId, userId));
     }
 
     const streakRow = await db.query.trainerStreaks.findFirst({
         where: and(eq(trainerStreaks.userId, userId), eq(trainerStreaks.tCourseId, tCourseId)),
     });
 
+    const dueDate = new Date(quest.date);
+    dueDate.setDate(dueDate.getDate() + 1);
+
     return {
         trainerDone,
         taskDone,
         isCompleted,
         streak: streakRow?.currentStreak ?? 0,
+        dueDateIso: dueDate.toISOString(),
+        pointsReward: QUEST_POINT_REWARD,
     };
+}
+
+export type QuestHistoryEntry = {
+    date: string;
+    isCompleted: boolean;
+};
+
+// История последних дней — тот же смысл, что был у "Просроченные"/
+// "Выполненные" в старом HomeworkList (components/homework-list.tsx),
+// но по квестам, а не по конкретным задачам. Сегодняшний день намеренно
+// исключён (`lt`, не `lte`) — статус "сегодня" уже полностью покрыт
+// основной карточкой, дублировать его в истории незачем.
+export async function getRecentQuestHistory(tCourseId: number): Promise<QuestHistoryEntry[]> {
+    const session = await auth();
+    if (!session?.user?.id) return [];
+    const userId = session.user.id;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const rows = await db.query.trainerQuests.findMany({
+        where: and(
+            eq(trainerQuests.userId, userId),
+            eq(trainerQuests.tCourseId, tCourseId),
+            lt(trainerQuests.date, today),
+        ),
+        orderBy: [desc(trainerQuests.date)],
+        limit: QUEST_HISTORY_DAYS,
+    });
+
+    return rows.map((r) => ({
+        date: r.date.toISOString(),
+        isCompleted: r.isCompleted === true,
+    }));
 }
 
 

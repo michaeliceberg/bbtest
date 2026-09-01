@@ -4,12 +4,11 @@
 
 import { format, isPast, differenceInHours } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { Clock, AlertCircle, CheckCircle, Skull, ChevronRight, Zap, BookOpen, Gift, Sparkles } from 'lucide-react';
+import { Clock, AlertCircle, CheckCircle, Skull, ChevronRight, BookOpen, Gift, Sparkles } from 'lucide-react';
 import { Progress } from './ui/progress';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PALETTE_RED, PALETTE_MINT } from '@/src/constants/lessonButtonColors';
-import { ThunderBadge } from './thunder-badge';
+import { PALETTE_RED } from '@/src/constants/lessonButtonColors';
 
 type Homework = {
     id: number;
@@ -21,6 +20,10 @@ type Homework = {
     correctCount: number;
     totalCount: number;
     wrongCount?: number;
+    // Тип оставлен как объединение (не сужен до 'teacher') — Props этого
+    // компонента приходят из общего getUserHomework(), который всё ещё
+    // может вернуть исторические 'daily'-строки (данные не удалены, см.
+    // actions/generate-homework.ts) — компонент их просто отфильтровывает.
     type: 'teacher' | 'daily';
 };
 
@@ -33,14 +36,18 @@ type Props = {
 export const HomeworkList = ({ activeHomework, expiredHomework, completedHomework }: Props) => {
     const router = useRouter();
 
-    const dailyActive = activeHomework.filter(h => h.type === 'daily');
+    // "Челлендж дня" (type='daily', автогенерация 2 фиксированных задач
+    // каждый день) убран отсюда — пользователь попросил объединить его
+    // с "Квест дня" (components/trainer-quest-card.tsx), где та же
+    // механика (дедлайн/очки/история/стрик) работает БЕЗ привязки к
+    // конкретным id. Эта карточка теперь показывает ТОЛЬКО реальные
+    // задания от учителя (type='teacher') — их generateHomework никогда
+    // не касалась, эта правка их не затрагивает.
     const teacherActive = activeHomework.filter(h => h.type === 'teacher');
-    const dailyExpired = expiredHomework.filter(h => h.type === 'daily');
     const teacherExpired = expiredHomework.filter(h => h.type === 'teacher');
-    const dailyCompleted = completedHomework.filter(h => h.type === 'daily');
     const teacherCompleted = completedHomework.filter(h => h.type === 'teacher');
 
-    const hasAnyActive = dailyActive.length > 0 || teacherActive.length > 0;
+    const hasAnyActive = teacherActive.length > 0;
 
     const getStatusIcon = (status: string, dueDate: Date) => {
         if (status === 'completed') {
@@ -77,7 +84,6 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
     };
 
     const sortByDueDate = (a: Homework, b: Homework) => a.dueDate.getTime() - b.dueDate.getTime();
-    const sortedDailyActive = [...dailyActive].sort(sortByDueDate);
     const sortedTeacherActive = [...teacherActive].sort(sortByDueDate);
 
     const HomeworkCard = ({ hw, typeTitle, isUrgent, isExpired = false }: { hw: Homework; typeTitle: string; isUrgent: boolean; isExpired?: boolean }) => {
@@ -87,13 +93,13 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
         // визуально это тоже "просрочено", а не просто "срочно" (раньше красилось оранжевым).
         const isOverdue = isExpired || isPast(hw.dueDate);
 
-        // Единый цвет состояния карточки: просрочено > выполнено > челлендж дня (мятный) > срочно > обычное ДЗ.
+        // Единый цвет состояния карточки: просрочено > выполнено > срочно > обычное ДЗ.
+        // Ветка "челлендж дня" (мятный PALETTE_MINT) убрана вместе с самим
+        // типом — эта карточка теперь показывает только type='teacher'.
         const stateColor = isOverdue
             ? PALETTE_RED.button
             : isCompleted
             ? '#4ADE80'
-            : hw.type === 'daily'
-            ? PALETTE_MINT.button
             : isUrgent
             ? '#FB923C'
             : '#FBBF24';
@@ -115,11 +121,7 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                             <div className="rounded-full p-1.5 shadow-sm flex items-center justify-center" style={{ backgroundColor: stateColor }}>
-                                {hw.type === 'daily' ? (
-                                    <ThunderBadge size={14} />
-                                ) : (
-                                    <BookOpen className="h-3.5 w-3.5 text-white" />
-                                )}
+                                <BookOpen className="h-3.5 w-3.5 text-white" />
                             </div>
                             <span className="text-xs font-medium text-[#9AA7B0]">
                                 {format(hw.assignedAt, 'dd MMMM', { locale: ru })}
@@ -180,21 +182,6 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
                 {/* Активные задания */}
                 {hasAnyActive ? (
                     <>
-                        {sortedDailyActive.length > 0 && (
-                            <div>
-                                <div className="flex items-center gap-2 mb-3">
-                                    <div className="w-1 h-5 rounded-full" style={{ backgroundColor: PALETTE_MINT.button }} />
-                                    <h4 className="text-sm font-semibold" style={{ color: PALETTE_MINT.button }}>Челлендж дня</h4>
-                                </div>
-                                <div className="space-y-3">
-                                    {sortedDailyActive.map(hw => {
-                                        const isUrgent = differenceInHours(hw.dueDate, new Date()) < 3;
-                                        return <HomeworkCard key={hw.id} hw={hw} typeTitle="Челлендж дня" isUrgent={isUrgent} />;
-                                    })}
-                                </div>
-                            </div>
-                        )}
-
                         {sortedTeacherActive.length > 0 && (
                             <div>
                                 <div className="flex items-center gap-2 mb-3">
@@ -225,30 +212,16 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
                 )}
 
                 {/* Просроченные задания (сворачиваемые) */}
-                {(dailyExpired.length > 0 || teacherExpired.length > 0) && (
+                {teacherExpired.length > 0 && (
                     <details className="mt-4">
                         <summary
                             className="cursor-pointer text-sm flex items-center gap-2 py-2"
                             style={{ color: PALETTE_RED.button }}
                         >
                             <Skull className="h-4 w-4" />
-                            <span className="font-medium">Просроченные ({dailyExpired.length + teacherExpired.length})</span>
+                            <span className="font-medium">Просроченные ({teacherExpired.length})</span>
                         </summary>
                         <div className="mt-3 space-y-2">
-                            {dailyExpired.map(hw => (
-                                <div
-                                    key={hw.id}
-                                    className="flex items-center justify-between text-sm rounded-lg p-3"
-                                    style={{ backgroundColor: `${PALETTE_RED.button}1A` }}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <Zap className="h-4 w-4" style={{ color: PALETTE_RED.button }} />
-                                        <span className="text-[#9AA7B0]">Челлендж</span>
-                                        <span className="text-gray-400 text-xs">{format(hw.assignedAt, 'dd MMM', { locale: ru })}</span>
-                                    </div>
-                                    <span className="font-medium" style={{ color: PALETTE_RED.button }}>{hw.correctCount}/{hw.totalCount}</span>
-                                </div>
-                            ))}
                             {teacherExpired.map(hw => (
                                 <div
                                     key={hw.id}
@@ -268,23 +241,13 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
                 )}
 
                 {/* Выполненные задания (сворачиваемые) */}
-                {(dailyCompleted.length > 0 || teacherCompleted.length > 0) && (
+                {teacherCompleted.length > 0 && (
                     <details className="mt-4 pt-2 border-t">
                         <summary className="cursor-pointer text-sm text-[#9AA7B0] hover:text-[#9AA7B0] flex items-center gap-2 py-2">
                             <CheckCircle className="h-4 w-4" />
-                            <span className="font-medium">Выполненные ({dailyCompleted.length + teacherCompleted.length})</span>
+                            <span className="font-medium">Выполненные ({teacherCompleted.length})</span>
                         </summary>
                         <div className="mt-3 space-y-2">
-                            {dailyCompleted.map(hw => (
-                                <div key={hw.id} className="flex items-center justify-between text-sm bg-[#1A252B] rounded-lg p-3">
-                                    <div className="flex items-center gap-2">
-                                        <Zap className="h-4 w-4 text-green-500" />
-                                        <span className="text-[#9AA7B0]">Челлендж</span>
-                                        <span className="text-gray-400 text-xs">{format(hw.assignedAt, 'dd MMM', { locale: ru })}</span>
-                                    </div>
-                                    <span className="text-green-600">✓ {hw.correctCount}/{hw.totalCount}</span>
-                                </div>
-                            ))}
                             {teacherCompleted.map(hw => (
                                 <div key={hw.id} className="flex items-center justify-between text-sm bg-[#1A252B] rounded-lg p-3">
                                     <div className="flex items-center gap-2">

@@ -21,7 +21,7 @@ import { Header } from './header';
 import { TabTCourses } from '@/components/tab-t-courses';
 import { HwTopBanner } from '../learn/hw-top-banner';
 import { auth } from '@/lib/auth';
-import { getDailyQuestStatus } from '@/actions/generate-trainer-quest';
+import { getDailyQuestStatus, getRecentQuestHistory } from '@/actions/generate-trainer-quest';
 import { TrainerQuestCard } from '@/components/trainer-quest-card';
 import { LevelCard } from '@/components/level-card';
 import { getLvlLottieCount } from '@/lib/lvl-lottie';
@@ -177,6 +177,7 @@ const TLearnPage = async () => {
     // ========== КВЕСТ (пройди 1 урок тренажёра + реши 1 задачу курса) ==========
     const activeTCourse = t_courses[0];
     const dailyQuest = activeTCourse ? await getDailyQuestStatus(activeTCourse.id) : null;
+    const questHistory = activeTCourse ? await getRecentQuestHistory(activeTCourse.id) : [];
 
     const currentPoints = userProgress.points;
     const currentGems = userProgress.gems;
@@ -219,6 +220,9 @@ const TLearnPage = async () => {
                         taskDone={dailyQuest.taskDone}
                         isCompleted={dailyQuest.isCompleted}
                         streak={dailyQuest.streak}
+                        dueDateIso={dailyQuest.dueDateIso}
+                        pointsReward={dailyQuest.pointsReward}
+                        history={questHistory}
                     />
                 )}
             </StickyWrapper>
