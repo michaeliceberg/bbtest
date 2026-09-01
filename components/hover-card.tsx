@@ -36,13 +36,13 @@ export function NoRightAnswer({ challengeId }: Props) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        {/* Без иконки слева (убрана по просьбе пользователя) — сама
-            толщина нижней рамки (border-b-4, active:border-b-2) и есть
-            аффорданс "это кнопка", тот же приём "псевдо-3D"-кнопки, что
-            и у components/ui/button.tsx variant="default". */}
+        {/* Форма — та же, что у клавиш KEYBOARD (app/lesson/keyboard-input.tsx):
+            rounded-xl (не пилюля), border-2 border-b-4/active:border-b-2 —
+            узнаваемая "псевдо-3D" кнопка вместо круглого бейджа. Без
+            иконки слева (убрана по просьбе пользователя). */}
         <button
           type="button"
-          className="px-2.5 py-0.5 rounded-full border-2 border-b-4 active:border-b-2 border-[#3A464E] text-[#9AA7B0] hover:text-[#F2F7FB] hover:bg-[#232F34] transition-colors text-xs font-medium"
+          className="px-3 py-1.5 rounded-xl bg-[#161F23] border-2 border-b-4 active:border-b-2 border-[#3A464E] text-[#9AA7B0] hover:text-[#F2F7FB] hover:bg-[#232F34] transition-colors text-xs font-bold"
         >
           Нет правильного ответа?
         </button>

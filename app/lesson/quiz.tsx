@@ -52,7 +52,7 @@ const TrainerHeaderLink = ({ tag, unitColor }: { tag: { id: number; title: strin
             <Link
                 href={`/t-lesson/${tag.id}`}
                 title={`Скилл тренажёра: ${tag.title}`}
-                className="flex items-center gap-1.5 shrink-0 pl-0.5 pr-2.5 py-0.5 rounded-full border transition-transform hover:scale-[1.03]"
+                className="flex items-center gap-1.5 shrink-0 pl-0.5 pr-2.5 py-0.5 rounded-xl border-2 border-b-4 active:border-b-2 transition-colors"
                 style={{ backgroundColor: `${unitColor.button}14`, borderColor: `${unitColor.button}55`, color: unitColor.button }}
             >
                 <Lottie className="w-6 h-6 shrink-0" animationData={askAnimation} loop />
@@ -79,12 +79,14 @@ const TrainerHeaderLink = ({ tag, unitColor }: { tag: { id: number; title: strin
     // Процент и переход — раньше два отдельных элемента (число само по
     // себе + рядом кнопка), пользователь попросил объединить в одну
     // кнопку вида "( 85% | Перейти в тренажёр › )" — разделитель-палочка
-    // между числом и текстом вместо раздельных блоков.
+    // между числом и текстом вместо раздельных блоков. Форма — та же
+    // "псевдо-3D" кнопка, что у клавиш KEYBOARD (rounded-xl, border-2
+    // border-b-4/active:border-b-2), а не пилюля.
     return (
         <Link
             href={`/t-lesson/${tag.id}`}
             title={`Скилл тренажёра: ${tag.title}${isReady ? ' — готов' : ' — нужна практика'}`}
-            className="flex items-center gap-2 pl-2.5 pr-2 py-1 rounded-full border text-xs font-semibold shrink-0 transition-transform hover:scale-[1.03]"
+            className="flex items-center gap-2 pl-2.5 pr-2 py-1.5 rounded-xl border-2 border-b-4 active:border-b-2 text-xs font-semibold shrink-0 transition-colors"
             style={buttonStyle}
         >
             <span className="font-extrabold">{tag.percentage}%</span>
@@ -740,6 +742,7 @@ export const Quiz = ({
                                     challengeId={challenge.id}
                                     isMultiSelect={isMultiSelect}
                                     options={options}
+                                    hasOptions={!isKeyboardChallenge}
                                 />
                             )}
 

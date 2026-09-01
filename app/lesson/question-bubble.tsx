@@ -67,6 +67,13 @@ type Props = {
     imageSrc?: string;
     isMultiSelect?: boolean;
     options?: { id: number; text: string }[];
+    // "Нет правильного ответа?" имеет смысл только там, где мы РЕАЛЬНО
+    // предлагаем варианты (есть что оспорить среди готовых кнопок) — у
+    // KEYBOARD вариантов нет вообще, там свободный числовой ввод, жалоба
+    // "неверный вариант" неприменима. По умолчанию true — все остальные
+    // hasQuestionBubble-типы (ASSIST/SELECT/CONSTRUCT) действительно
+    // показывают варианты.
+    hasOptions?: boolean;
 }
 
 export const QuestionBubble = ({
@@ -84,6 +91,7 @@ export const QuestionBubble = ({
     challengeId,
     isMultiSelect,
     options,
+    hasOptions = true,
 }: Props) => {
     const correctAttempts = timesDone - timesDoneWrong;
 
@@ -217,13 +225,13 @@ export const QuestionBubble = ({
                 </div>
             </div>
 
-            {/* Единая строка меты: статистика, ДЗ, "нет ответа", очки, автор —
-                раньше это были голые пилюли вразнобой прямо на фоне карточки
-                задачи, читалось как случайный набор, не единый блок. Теперь
-                обёрнуто в собственную рамку-контейнер (тот же язык, что и у
-                других тёмных карточек в проекте — LevelCard/TrainerQuestCard,
-                bg-[#151F23] border). */}
-            <div className="flex flex-wrap items-center gap-2 mt-3 p-2.5 rounded-xl border border-[#232F34] bg-[#151F23]/60">
+            {/* Единая строка меты: статистика, ДЗ, "нет ответа", автор —
+                раньше была своя рамка-карточка вокруг всей строки; теперь
+                у "нет ответа" появилась собственная кнопочная рамка (см.
+                NoRightAnswer), поэтому внешняя стала лишней — убрана по
+                просьбе пользователя, элементы просто лежат рядом на фоне
+                самой карточки задачи. */}
+            <div className="flex flex-wrap items-center gap-2 mt-3">
                 {correctAttempts > 0 && (
                     <div className="flex items-center gap-1 text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
                         <CheckCircle className="w-3.5 h-3.5" />
@@ -246,7 +254,7 @@ export const QuestionBubble = ({
                     </div>
                 )}
 
-                <NoRightAnswer challengeId={challengeId} />
+                {hasOptions && <NoRightAnswer challengeId={challengeId} />}
 
                 {/* Иконка "источник" — раньше здесь стоял User, хотя author
                     никогда не хранит имя человека, только курс/учебник-
