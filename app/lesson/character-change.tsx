@@ -9,14 +9,23 @@
 // прежний UI (полный список вариантов под каждой группой отдельно)
 // буквально дублировал одни и те же 4-6 кнопок несколько раз подряд.
 //
-// Новый UI: слева карточки-группы (источники — "График А"/"График Б"
-// и т.п.), справа ОДИН общий пул уникальных вариантов ответа. Клик по
+// UI: слева карточки-группы (источники — "График А"/"График Б" и
+// т.п., просто текст — картинки самих графиков сюда сознательно НЕ
+// рисуем, это отдельная будущая фича на стороне вариантов ответа, не
+// группы), справа ОДИН общий пул уникальных вариантов ответа. Клик по
 // группе делает её активной, клик по варианту связывает его с активной
 // группой (тот же принцип "клик-клик", что уже используется в
 // тренажёре для CONNECT, но, в отличие от него, здесь НЕ сбрасываем
 // пару при ошибке — пользователь достраивает все связи как хочет и сам
 // решает, когда нажать "Ответить"; проверка — только в момент общего
 // ответа, как у всех остальных типов курса).
+//
+// Составленная пара (группа слева + выбранный для неё вариант справа)
+// сразу подсвечивается ОБЩИМ цветом ещё до "Ответить" — по одному
+// цвету на пару, чтобы было видно соответствие, не дожидаясь проверки.
+// Текст выбранного варианта под карточкой группы намеренно НЕ дублируем
+// (раньше дублировали — только раздувало кнопку, сама подсветка уже
+// достаточно ясно показывает, что с чем связано).
 //
 // Данные хранятся в обычных challengeOptions без изменения схемы: text
 // кодируется как "<название группы>::<вариант>", correct отмечает
@@ -25,30 +34,13 @@
 // поэтому дедупликация вариантов для правого столбца — только для
 // отображения, назначение по-прежнему идёт через id строки конкретной
 // группы.
-//
-// Мини-графики групп (Unit 10 "Установите соответствие"): когда группы
-// — это буквально панели ОДНОЙ общей картинки (challenge.imageSrc —
-// композитное изображение из N графиков рядом или друг под другом,
-// каждая панель 280×210, см. scripts/seedEGEPhysics-unit10-lesson1.ts),
-// вместо текста "График А"/"График Б" в левой карточке рисуется РЕАЛЬНАЯ
-// вырезка соответствующей панели картинки (CSS-спрайт: <img> в 2 раза
-// (на N панелей) шире/выше контейнера со сдвигом на свою позицию —
-// сама картинка при этом уже содержит подпись "А"/"Б", отдельно её не
-// дублируем). Определяется НЕ по названию группы (у matching-задач
-// бывают группы вида "Процесс А"/"Процесс Б", чей текст выглядит так
-// же, но картинка при этом — ОДИН график на двоих, а не 2 панели —
-// такое ложное срабатывание уже ловилось при разборе реальных данных
-// урока), а по РЕАЛЬНЫМ пропорциям загруженной картинки: если её
-// natural-размер совпадает (с запасом на технологический зазор между
-// панелями) с N панелями 280×210 подряд по горизонтали или вертикали —
-// это композит, иначе — обычный текст, без изменений.
 
 import { challengeOptions } from "@/db/schema"
 import Latex from "react-latex-next"
 import { cn } from "@/lib/utils"
 import { Check, X } from "lucide-react"
 import { vibrate } from "@/lib/haptics"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 type Props = {
     options: typeof challengeOptions.$inferSelect[]
@@ -57,7 +49,6 @@ type Props = {
     status: "correct" | "wrong" | "none"
     disabled?: boolean
     unitColor?: { button: string; bottom: string }
-    imageSrc?: string | null
 }
 
 // Порядок вариантов внутри группы всегда фиксирован (независимо от
@@ -68,57 +59,15 @@ const CATEGORY_ORDER = ["Увеличится", "Уменьшится", "Не и
 // Цвет-идентификатор группы (фон/рамка её собственной карточки слева И
 // связанного с ней варианта справа, как только пара составлена) —
 // намеренно не зелёный/красный (те заняты индикацией правильности после
-// "Ответить") и не unitColor (тот теперь значит "сейчас выбираю",
-// см. ниже). Достаточно 4 цветов — среди matching-задач курса ни у одной
-// нет больше 3 групп.
-const GROUP_COLORS = ["#5B9BD9", "#c084fc", "#fbbf24", "#fb7185"]
+// "Ответить") и не unitColor (тот значит "сейчас выбираю", см. ниже).
+// Контрастные, хорошо различимые между собой цвета (синий/розовый —
+// первая пара сравнивается чаще всего, взяты подальше друг от друга по
+// оттенку, не два похожих оттенка синего/сиреневого, как было раньше).
+// Достаточно 4 цветов — среди matching-задач курса ни у одной нет
+// больше 3 групп.
+const GROUP_COLORS = ["#3B82F6", "#EC4899", "#FBBF24", "#22D3EE"]
 
-// Базовый размер ОДНОЙ панели композитного изображения (см. свод-тулы
-// scripts/svg-tools/render_table.py и seedEGEPhysics-unit10-lesson1.ts —
-// диаграммы matching-задач рисуются на канве 280×210, композит — эти же
-// панели впритык рядом/друг под другом). TOLERANCE — запас на небольшой
-// технологический зазор между панелями (реально ~3% по ширине у
-// горизонтальных композитов, по вертикали зазора нет вовсе).
-const PANEL_W = 280
-const PANEL_H = 210
-const PANEL_TOLERANCE = 0.12
-
-type PanelOrientation = "h" | "v"
-
-function detectPanelOrientation(natW: number, natH: number, n: number): PanelOrientation | null {
-    if (!natW || !natH || n < 2) return null
-    const closeTo1 = (x: number) => Math.abs(x - 1) < PANEL_TOLERANCE
-    if (closeTo1(natW / (n * PANEL_W)) && closeTo1(natH / PANEL_H)) return "h"
-    if (closeTo1(natW / PANEL_W) && closeTo1(natH / (n * PANEL_H))) return "v"
-    return null
-}
-
-// Вырезка одной панели композитной картинки — тот же приём, что CSS
-// спрайты: сама картинка рисуется в N раз шире/выше контейнера и
-// сдвигается на свою позицию, контейнер обрезает всё лишнее.
-const GraphPanelThumb = ({ src, index, total, orientation }: {
-    src: string
-    index: number
-    total: number
-    orientation: PanelOrientation
-}) => {
-    const style: React.CSSProperties = orientation === "h"
-        ? { width: `${total * 100}%`, height: "100%", left: `-${index * 100}%`, top: 0 }
-        : { width: "100%", height: `${total * 100}%`, left: 0, top: `-${index * 100}%` }
-    return (
-        <div className="relative w-full overflow-hidden rounded-lg bg-[#0F171B]" style={{ aspectRatio: "4 / 3" }}>
-            <img
-                src={src}
-                alt=""
-                draggable={false}
-                className="absolute max-w-none pointer-events-none select-none"
-                style={style}
-            />
-        </div>
-    )
-}
-
-export const CharacterChangeChallenge = ({ options, selected, onSelect, status, disabled, unitColor, imageSrc }: Props) => {
+export const CharacterChangeChallenge = ({ options, selected, onSelect, status, disabled, unitColor }: Props) => {
     const groups: { name: string; opts: typeof options }[] = []
     options.forEach((o) => {
         const [name] = o.text.split("::")
@@ -128,10 +77,7 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
     })
     // Порядок групп не должен зависеть от того, как они перемешались при
     // сидинге challengeOptions — иначе, например, "График Б" мог случайно
-    // оказаться выше "График А". Сортируем по названию детерминированно —
-    // это заодно гарантирует, что индекс группы в этом массиве совпадает
-    // с порядком панелей в композитной картинке (А слева/сверху, Б
-    // справа/снизу — ровно алфавитный порядок).
+    // оказаться выше "График А". Сортируем по названию детерминированно.
     groups.sort((a, b) => a.name.localeCompare(b.name, "ru"))
     groups.forEach((g) => {
         g.opts.sort((a, b) => {
@@ -154,25 +100,6 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
 
     const revealed = status !== "none"
     const isLongText = rightTexts.some((t) => t.length > 24)
-
-    // Определяем, композитная ли это картинка из N панелей (по РЕАЛЬНЫМ
-    // пропорциям загруженного файла, не по названиям групп — см. коммент
-    // в шапке файла про ложное срабатывание на "Процесс А"/"Процесс Б").
-    const [panelOrientation, setPanelOrientation] = useState<PanelOrientation | null>(null)
-    useEffect(() => {
-        setPanelOrientation(null)
-        if (!imageSrc || groups.length < 2) return
-        let cancelled = false
-        const img = new window.Image()
-        img.onload = () => {
-            if (!cancelled) setPanelOrientation(detectPanelOrientation(img.naturalWidth, img.naturalHeight, groups.length))
-        }
-        img.src = imageSrc
-        return () => { cancelled = true }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [imageSrc, groups.length])
-
-    const isGraphPanelMode = panelOrientation !== null
 
     const [activeGroup, setActiveGroup] = useState<string | null>(null)
     // Явный клик по группе слева всегда побеждает. Без него — по умолчанию
@@ -209,7 +136,7 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
             <div className="grid grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] gap-3 items-start">
                 {/* Левая колонка — группы (источники) */}
                 <div className="flex flex-col gap-2">
-                    {groups.map((g, idx) => {
+                    {groups.map((g) => {
                         const selId = selected[g.name]
                         const selOpt = g.opts.find((o) => o.id === selId)
                         const isActive = effectiveActive === g.name && !revealed
@@ -244,46 +171,22 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                                         : "#232F34",
                                 }}
                             >
-                                {isGraphPanelMode ? (
-                                    <div className="relative">
-                                        <GraphPanelThumb src={imageSrc!} index={idx} total={groups.length} orientation={panelOrientation!} />
-                                        {(isCorrect || isWrong) && (
-                                            <span
-                                                className="absolute top-1 right-1 flex items-center justify-center w-5 h-5 rounded-full border border-[#151F23]"
-                                                style={{ backgroundColor: isCorrect ? "#678337" : "#C8524E" }}
-                                            >
-                                                {isCorrect
-                                                    ? <Check className="w-3 h-3 text-white" strokeWidth={3} />
-                                                    : <X className="w-3 h-3 text-white" strokeWidth={3} />}
-                                            </span>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-1.5">
-                                        {!revealed && (
-                                            <span
-                                                className="w-2 h-2 rounded-full flex-shrink-0"
-                                                style={{ backgroundColor: selId !== undefined ? color : "transparent", border: `1.5px solid ${color}` }}
-                                            />
-                                        )}
-                                        {isCorrect && <Check className="w-3.5 h-3.5 flex-shrink-0 text-white" strokeWidth={3} />}
-                                        {isWrong && <X className="w-3.5 h-3.5 flex-shrink-0 text-white" strokeWidth={3} />}
-                                        <span className={cn(
-                                            "text-xs lg:text-sm font-bold",
-                                            isCorrect || isWrong ? "text-white" : "text-[#F2F7FB]",
-                                        )}>
-                                            <Latex>{g.name}</Latex>
-                                        </span>
-                                    </div>
-                                )}
-                                {selOpt && (
-                                    <p className={cn(
-                                        "mt-1 text-[10px] lg:text-xs leading-snug line-clamp-2",
-                                        isCorrect || isWrong ? "text-white/85" : "text-[#9AA7B0]",
+                                <div className="flex items-center gap-1.5">
+                                    {!revealed && (
+                                        <span
+                                            className="w-2 h-2 rounded-full flex-shrink-0"
+                                            style={{ backgroundColor: selId !== undefined ? color : "transparent", border: `1.5px solid ${color}` }}
+                                        />
+                                    )}
+                                    {isCorrect && <Check className="w-3.5 h-3.5 flex-shrink-0 text-white" strokeWidth={3} />}
+                                    {isWrong && <X className="w-3.5 h-3.5 flex-shrink-0 text-white" strokeWidth={3} />}
+                                    <span className={cn(
+                                        "text-xs lg:text-sm font-bold",
+                                        isCorrect || isWrong ? "text-white" : "text-[#F2F7FB]",
                                     )}>
-                                        <Latex>{selOpt.text.split("::")[1] ?? ""}</Latex>
-                                    </p>
-                                )}
+                                        <Latex>{g.name}</Latex>
+                                    </span>
+                                </div>
                             </button>
                         )
                     })}

@@ -783,7 +783,6 @@ export const Quiz = ({
                                 dateLastDone={dateLastDone}
                                 challengeId={challenge.id}
                                 unitColor={unitColor}
-                                imageSrc={challenge.imageSrc}
                             />
                             )}
                         </motion.div>

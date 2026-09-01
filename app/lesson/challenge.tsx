@@ -24,7 +24,6 @@ type Props = {
     dateLastDone: Date
     challengeId: number
     unitColor?: { button: string; bottom: string }
-    imageSrc?: string | null
 }
 
 export const Challenge = ({
@@ -42,7 +41,6 @@ export const Challenge = ({
     dateLastDone,
     challengeId,
     unitColor,
-    imageSrc,
 }: Props) => {
     const multiSelect = type === "SELECT"
     const isCharacterChange = type === "CONSTRUCT"
@@ -84,7 +82,6 @@ export const Challenge = ({
                         status={status}
                         disabled={disabled}
                         unitColor={unitColor}
-                        imageSrc={imageSrc}
                     />
                 ) : (
                 <div className={cn("grid gap-2 sm:gap-3", multiSelect ? "grid-cols-1" : "grid-cols-2")}>
