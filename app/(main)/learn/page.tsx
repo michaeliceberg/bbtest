@@ -3,9 +3,10 @@
 import { FeedWrapper } from '@/components/feed-wrapper';
 import { StickyWrapper } from '@/components/sticky-wrapper';
 import { UserProgress } from '@/components/user-progress';
-import { 
+import {
   getChallengeProgress,
   getCourses,
+  getTCourses,
   getTodayStats,
   getUserAllStatsByCourse,
   getUserCourseProgress,
@@ -29,6 +30,8 @@ import { ScrollToLesson } from '@/components/scroll-to-lesson';
 import { LevelCard } from '@/components/level-card';
 import { getLvlLottieCount } from '@/lib/lvl-lottie';
 import { StreakRiskBanner } from '@/components/streak-risk-banner';
+import { TrainerQuestCard } from '@/components/trainer-quest-card';
+import { getDailyQuestStatus } from '@/actions/generate-trainer-quest';
 import { Suspense } from 'react';
 
 const bgList = [
@@ -278,6 +281,17 @@ const LearnPage = async () => {
   todayForStreak.setHours(0, 0, 0, 0);
   const hasExtendedStreakToday = !!streakLastActive && streakLastActive.getTime() === todayForStreak.getTime();
 
+  // "Квест дня" (components/trainer-quest-card.tsx) — раньше существовал
+  // только на /trainer, пользователь справедливо указал, что это должен
+  // быть один и тот же компонент/понятие на обеих страницах. Тема
+  // тренажёра для активного курса задачника находится через
+  // t_courses.courseId (courseId → t_course, обратная связь к уже
+  // существующей "t_course.courseId" из более ранней сессии) — курс без
+  // привязанного тренажёра просто не показывает карточку.
+  const allTCourses = await getTCourses();
+  const linkedTCourse = allTCourses.find((tc) => tc.courseId === activeCourseId);
+  const dailyQuest = linkedTCourse ? await getDailyQuestStatus(linkedTCourse.id) : null;
+
   return (
     <LearnWrapper courseId={activeCourseId}>
       <Suspense fallback={null}>
@@ -293,6 +307,15 @@ const LearnPage = async () => {
             xp={currentXp}
             hasActiveSubscription={false}
           />
+
+          {dailyQuest && (
+            <TrainerQuestCard
+              trainerDone={dailyQuest.trainerDone}
+              taskDone={dailyQuest.taskDone}
+              isCompleted={dailyQuest.isCompleted}
+              streak={dailyQuest.streak}
+            />
+          )}
 
           <HomeworkList
             activeHomework={activeHomework}

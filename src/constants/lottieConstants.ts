@@ -23,6 +23,8 @@ import LottieTegAsk2 from '@/public/Lottie/tegs/tegAsk2.json'
 import LottieTegAsk3 from '@/public/Lottie/tegs/tegAsk3.json'
 import LottieTegAsk4 from '@/public/Lottie/tegs/tegAsk4.json'
 import LottieTegAsk5 from '@/public/Lottie/tegs/tegAsk5.json'
+import LottieFlamyHwYes from '@/public/Lottie/hw/FlamyHwYes.json'
+import LottieFlamyHwPanic from '@/public/Lottie/hw/FlamyHwPanic.json'
 
 // Группировка по назначению
 export const LOTTIE_START_LIST = [
@@ -74,6 +76,15 @@ export const LOTTIE_SKILL_ASK_LIST = [
   LottieTegAsk3,
   LottieTegAsk4,
   LottieTegAsk5,
+] as const
+
+// Маскот-огонёк карточки "Квест дня" (components/trainer-quest-card.tsx)
+// пока квест ещё не выполнен — один из двух случайно, для разнообразия
+// (панике/уверенности не соответствует конкретный прогресс, это просто
+// эмоция-приглашение "давай, действуй").
+export const LOTTIE_QUEST_MASCOT_LIST = [
+  LottieFlamyHwYes,
+  LottieFlamyHwPanic,
 ] as const
 
 // Helper функция для получения случайной анимации
