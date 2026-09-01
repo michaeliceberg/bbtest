@@ -2,7 +2,7 @@
 
 'use client';
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { SuperType, challengeOptions, challengeProgress, challenges } from "@/db/schema";
 import { useEffect, useState, useTransition, useRef } from "react";
 import { Header } from "./header";
@@ -723,15 +723,22 @@ export const Quiz = ({
                         </motion.div>
                     )}
 
-                    {/* Question Bubble и Challenge с анимацией */}
-                    <AnimatePresence mode="wait" custom={animationDirection}>
+                    {/* Question Bubble и Challenge с анимацией — key-ремаунт
+                        без AnimatePresence/mode="wait": та же причина, что и
+                        в остальных местах проекта (см. CLAUDE.md, баги
+                        "TypeAssist"/"trainer-question.tsx") — mode="wait"
+                        держит новый контент невидимым, пока не отыграет exit
+                        предыдущего, а framer-motion не всегда честно
+                        вызывает колбэк завершения exit — особенно при
+                        быстрых переходах через клик по номеру в
+                        ChallengeNav (не через обычную кнопку "Далее"), что и
+                        давало полностью пустой экран на некоторых задачах. */}
                         <motion.div
                             key={activeIndex}
                             custom={animationDirection}
                             variants={contentVariants}
                             initial="initial"
                             animate="animate"
-                            exit="exit"
                             className="space-y-3 md:space-y-4"
                         >
                             {hasQuestionBubble && (
@@ -776,10 +783,10 @@ export const Quiz = ({
                                 dateLastDone={dateLastDone}
                                 challengeId={challenge.id}
                                 unitColor={unitColor}
+                                imageSrc={challenge.imageSrc}
                             />
                             )}
                         </motion.div>
-                    </AnimatePresence>
                 </div>
             </div>
 

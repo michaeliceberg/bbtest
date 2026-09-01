@@ -25,13 +25,30 @@
 // поэтому дедупликация вариантов для правого столбца — только для
 // отображения, назначение по-прежнему идёт через id строки конкретной
 // группы.
+//
+// Мини-графики групп (Unit 10 "Установите соответствие"): когда группы
+// — это буквально панели ОДНОЙ общей картинки (challenge.imageSrc —
+// композитное изображение из N графиков рядом или друг под другом,
+// каждая панель 280×210, см. scripts/seedEGEPhysics-unit10-lesson1.ts),
+// вместо текста "График А"/"График Б" в левой карточке рисуется РЕАЛЬНАЯ
+// вырезка соответствующей панели картинки (CSS-спрайт: <img> в 2 раза
+// (на N панелей) шире/выше контейнера со сдвигом на свою позицию —
+// сама картинка при этом уже содержит подпись "А"/"Б", отдельно её не
+// дублируем). Определяется НЕ по названию группы (у matching-задач
+// бывают группы вида "Процесс А"/"Процесс Б", чей текст выглядит так
+// же, но картинка при этом — ОДИН график на двоих, а не 2 панели —
+// такое ложное срабатывание уже ловилось при разборе реальных данных
+// урока), а по РЕАЛЬНЫМ пропорциям загруженной картинки: если её
+// natural-размер совпадает (с запасом на технологический зазор между
+// панелями) с N панелями 280×210 подряд по горизонтали или вертикали —
+// это композит, иначе — обычный текст, без изменений.
 
 import { challengeOptions } from "@/db/schema"
 import Latex from "react-latex-next"
 import { cn } from "@/lib/utils"
 import { Check, X } from "lucide-react"
 import { vibrate } from "@/lib/haptics"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 type Props = {
     options: typeof challengeOptions.$inferSelect[]
@@ -40,6 +57,7 @@ type Props = {
     status: "correct" | "wrong" | "none"
     disabled?: boolean
     unitColor?: { button: string; bottom: string }
+    imageSrc?: string | null
 }
 
 // Порядок вариантов внутри группы всегда фиксирован (независимо от
@@ -47,13 +65,60 @@ type Props = {
 // "увеличится/уменьшится/не изменится" прыгали бы местами при пересдаче.
 const CATEGORY_ORDER = ["Увеличится", "Уменьшится", "Не изменится"]
 
-// Цвет-идентификатор группы (бейдж на связанном варианте справа) —
-// намеренно не зелёный/красный (те заняты индикацией правильности) и не
-// unitColor (тот уже значит "выбрано/активно"). Достаточно 4 цветов —
-// среди 73 matching-задач курса ни у одной нет больше 3 групп.
-const GROUP_COLORS = ["#7dd3fc", "#c084fc", "#fbbf24", "#fb7185"]
+// Цвет-идентификатор группы (фон/рамка её собственной карточки слева И
+// связанного с ней варианта справа, как только пара составлена) —
+// намеренно не зелёный/красный (те заняты индикацией правильности после
+// "Ответить") и не unitColor (тот теперь значит "сейчас выбираю",
+// см. ниже). Достаточно 4 цветов — среди matching-задач курса ни у одной
+// нет больше 3 групп.
+const GROUP_COLORS = ["#5B9BD9", "#c084fc", "#fbbf24", "#fb7185"]
 
-export const CharacterChangeChallenge = ({ options, selected, onSelect, status, disabled, unitColor }: Props) => {
+// Базовый размер ОДНОЙ панели композитного изображения (см. свод-тулы
+// scripts/svg-tools/render_table.py и seedEGEPhysics-unit10-lesson1.ts —
+// диаграммы matching-задач рисуются на канве 280×210, композит — эти же
+// панели впритык рядом/друг под другом). TOLERANCE — запас на небольшой
+// технологический зазор между панелями (реально ~3% по ширине у
+// горизонтальных композитов, по вертикали зазора нет вовсе).
+const PANEL_W = 280
+const PANEL_H = 210
+const PANEL_TOLERANCE = 0.12
+
+type PanelOrientation = "h" | "v"
+
+function detectPanelOrientation(natW: number, natH: number, n: number): PanelOrientation | null {
+    if (!natW || !natH || n < 2) return null
+    const closeTo1 = (x: number) => Math.abs(x - 1) < PANEL_TOLERANCE
+    if (closeTo1(natW / (n * PANEL_W)) && closeTo1(natH / PANEL_H)) return "h"
+    if (closeTo1(natW / PANEL_W) && closeTo1(natH / (n * PANEL_H))) return "v"
+    return null
+}
+
+// Вырезка одной панели композитной картинки — тот же приём, что CSS
+// спрайты: сама картинка рисуется в N раз шире/выше контейнера и
+// сдвигается на свою позицию, контейнер обрезает всё лишнее.
+const GraphPanelThumb = ({ src, index, total, orientation }: {
+    src: string
+    index: number
+    total: number
+    orientation: PanelOrientation
+}) => {
+    const style: React.CSSProperties = orientation === "h"
+        ? { width: `${total * 100}%`, height: "100%", left: `-${index * 100}%`, top: 0 }
+        : { width: "100%", height: `${total * 100}%`, left: 0, top: `-${index * 100}%` }
+    return (
+        <div className="relative w-full overflow-hidden rounded-lg bg-[#0F171B]" style={{ aspectRatio: "4 / 3" }}>
+            <img
+                src={src}
+                alt=""
+                draggable={false}
+                className="absolute max-w-none pointer-events-none select-none"
+                style={style}
+            />
+        </div>
+    )
+}
+
+export const CharacterChangeChallenge = ({ options, selected, onSelect, status, disabled, unitColor, imageSrc }: Props) => {
     const groups: { name: string; opts: typeof options }[] = []
     options.forEach((o) => {
         const [name] = o.text.split("::")
@@ -63,7 +128,10 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
     })
     // Порядок групп не должен зависеть от того, как они перемешались при
     // сидинге challengeOptions — иначе, например, "График Б" мог случайно
-    // оказаться выше "График А". Сортируем по названию детерминированно.
+    // оказаться выше "График А". Сортируем по названию детерминированно —
+    // это заодно гарантирует, что индекс группы в этом массиве совпадает
+    // с порядком панелей в композитной картинке (А слева/сверху, Б
+    // справа/снизу — ровно алфавитный порядок).
     groups.sort((a, b) => a.name.localeCompare(b.name, "ru"))
     groups.forEach((g) => {
         g.opts.sort((a, b) => {
@@ -86,6 +154,25 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
 
     const revealed = status !== "none"
     const isLongText = rightTexts.some((t) => t.length > 24)
+
+    // Определяем, композитная ли это картинка из N панелей (по РЕАЛЬНЫМ
+    // пропорциям загруженного файла, не по названиям групп — см. коммент
+    // в шапке файла про ложное срабатывание на "Процесс А"/"Процесс Б").
+    const [panelOrientation, setPanelOrientation] = useState<PanelOrientation | null>(null)
+    useEffect(() => {
+        setPanelOrientation(null)
+        if (!imageSrc || groups.length < 2) return
+        let cancelled = false
+        const img = new window.Image()
+        img.onload = () => {
+            if (!cancelled) setPanelOrientation(detectPanelOrientation(img.naturalWidth, img.naturalHeight, groups.length))
+        }
+        img.src = imageSrc
+        return () => { cancelled = true }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [imageSrc, groups.length])
+
+    const isGraphPanelMode = panelOrientation !== null
 
     const [activeGroup, setActiveGroup] = useState<string | null>(null)
     // Явный клик по группе слева всегда побеждает. Без него — по умолчанию
@@ -122,13 +209,20 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
             <div className="grid grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] gap-3 items-start">
                 {/* Левая колонка — группы (источники) */}
                 <div className="flex flex-col gap-2">
-                    {groups.map((g) => {
+                    {groups.map((g, idx) => {
                         const selId = selected[g.name]
                         const selOpt = g.opts.find((o) => o.id === selId)
                         const isActive = effectiveActive === g.name && !revealed
                         const isCorrect = revealed && selOpt?.correct === true
                         const isWrong = revealed && selId !== undefined && selOpt?.correct === false
                         const color = groupColor(g.name)
+                        // Пара уже составлена (группа связана с вариантом) и мы ещё
+                        // не проверили ответ — красим карточку в ЕЁ СОБСТВЕННЫЙ цвет,
+                        // тот же, что получит связанный вариант справа, чтобы было
+                        // видно соответствие. "Активна, но ещё не выбран вариант" —
+                        // отдельный, более нейтральный акцент (цвет темы юнита), не
+                        // путать с уже состоявшейся парой.
+                        const isPaired = !revealed && selId !== undefined
                         return (
                             <button
                                 key={g.name}
@@ -140,26 +234,48 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                                     disabled && "pointer-events-none",
                                 )}
                                 style={{
-                                    borderColor: isCorrect ? "#3E5220" : isWrong ? "#8C332F" : isActive ? color : "#11171A",
-                                    backgroundColor: isCorrect ? "#678337" : isWrong ? "#C8524E" : isActive ? "rgba(255,255,255,0.06)" : "#232F34",
+                                    borderColor: isCorrect ? "#3E5220" : isWrong ? "#8C332F"
+                                        : isPaired ? color
+                                        : isActive ? (unitColor?.bottom ?? "#5183A4")
+                                        : "#11171A",
+                                    backgroundColor: isCorrect ? "#678337" : isWrong ? "#C8524E"
+                                        : isPaired ? `${color}26`
+                                        : isActive ? "rgba(255,255,255,0.06)"
+                                        : "#232F34",
                                 }}
                             >
-                                <div className="flex items-center gap-1.5">
-                                    {!revealed && (
-                                        <span
-                                            className="w-2 h-2 rounded-full flex-shrink-0"
-                                            style={{ backgroundColor: selId !== undefined ? color : "transparent", border: `1.5px solid ${color}` }}
-                                        />
-                                    )}
-                                    {isCorrect && <Check className="w-3.5 h-3.5 flex-shrink-0 text-white" strokeWidth={3} />}
-                                    {isWrong && <X className="w-3.5 h-3.5 flex-shrink-0 text-white" strokeWidth={3} />}
-                                    <span className={cn(
-                                        "text-xs lg:text-sm font-bold",
-                                        isCorrect || isWrong ? "text-white" : "text-[#F2F7FB]",
-                                    )}>
-                                        <Latex>{g.name}</Latex>
-                                    </span>
-                                </div>
+                                {isGraphPanelMode ? (
+                                    <div className="relative">
+                                        <GraphPanelThumb src={imageSrc!} index={idx} total={groups.length} orientation={panelOrientation!} />
+                                        {(isCorrect || isWrong) && (
+                                            <span
+                                                className="absolute top-1 right-1 flex items-center justify-center w-5 h-5 rounded-full border border-[#151F23]"
+                                                style={{ backgroundColor: isCorrect ? "#678337" : "#C8524E" }}
+                                            >
+                                                {isCorrect
+                                                    ? <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                                                    : <X className="w-3 h-3 text-white" strokeWidth={3} />}
+                                            </span>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-1.5">
+                                        {!revealed && (
+                                            <span
+                                                className="w-2 h-2 rounded-full flex-shrink-0"
+                                                style={{ backgroundColor: selId !== undefined ? color : "transparent", border: `1.5px solid ${color}` }}
+                                            />
+                                        )}
+                                        {isCorrect && <Check className="w-3.5 h-3.5 flex-shrink-0 text-white" strokeWidth={3} />}
+                                        {isWrong && <X className="w-3.5 h-3.5 flex-shrink-0 text-white" strokeWidth={3} />}
+                                        <span className={cn(
+                                            "text-xs lg:text-sm font-bold",
+                                            isCorrect || isWrong ? "text-white" : "text-[#F2F7FB]",
+                                        )}>
+                                            <Latex>{g.name}</Latex>
+                                        </span>
+                                    </div>
+                                )}
                                 {selOpt && (
                                     <p className={cn(
                                         "mt-1 text-[10px] lg:text-xs leading-snug line-clamp-2",
@@ -176,22 +292,14 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                 {/* Правая колонка — общий пул вариантов ответа */}
                 <div className="flex flex-col gap-2">
                     {rightTexts.map((label) => {
-                        // На какие группы сейчас указывает этот вариант (после
-                        // проверки — только реально выбранные пары; активная
-                        // группа до проверки подсвечивается отдельно, кольцом).
-                        const linkedGroups = revealed
-                            ? groups.filter((g) => {
-                                const so = g.opts.find((o) => o.id === selected[g.name])
-                                return so && (so.text.split("::")[1] ?? "") === label
-                            })
-                            : []
-                        const isActiveTarget = !revealed && effectiveActive
-                            ? (() => {
-                                const g = groups.find((x) => x.name === effectiveActive)
-                                const so = g?.opts.find((o) => o.id === selected[g.name])
-                                return so ? (so.text.split("::")[1] ?? "") === label : false
-                            })()
-                            : false
+                        // На какие группы сейчас указывает этот вариант — считаем
+                        // всегда (не только после проверки), чтобы подсвечивать пары
+                        // цветом их группы сразу по мере составления.
+                        const linkedGroups = groups.filter((g) => {
+                            const so = g.opts.find((o) => o.id === selected[g.name])
+                            return so && (so.text.split("::")[1] ?? "") === label
+                        })
+                        const pairColor = linkedGroups.length === 1 ? groupColor(linkedGroups[0].name) : null
                         return (
                             <button
                                 key={label}
@@ -205,14 +313,14 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                                     disabled && "pointer-events-none",
                                 )}
                                 style={{
-                                    borderColor: isActiveTarget ? (unitColor?.bottom ?? "#22a35d") : "#11171A",
-                                    backgroundColor: isActiveTarget ? (unitColor?.button ?? "#4ade80") : "#232F34",
+                                    borderColor: !revealed && pairColor ? pairColor : "#11171A",
+                                    backgroundColor: !revealed && pairColor ? `${pairColor}26` : "#232F34",
                                 }}
                             >
                                 <span className={cn(
                                     "leading-tight font-semibold",
                                     isLongText ? "text-[11px] lg:text-xs" : "text-xs lg:text-sm",
-                                    isActiveTarget ? "text-[#123018]" : "text-[#9AA7B0]",
+                                    !revealed && pairColor ? "text-[#F2F7FB]" : "text-[#9AA7B0]",
                                 )}>
                                     <Latex>{label}</Latex>
                                 </span>
@@ -225,9 +333,9 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                                                 <span
                                                     key={g.name}
                                                     className="flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold text-white border border-[#151F23]"
-                                                    style={{ backgroundColor: ok ? "#678337" : "#C8524E" }}
+                                                    style={{ backgroundColor: revealed ? (ok ? "#678337" : "#C8524E") : groupColor(g.name) }}
                                                 >
-                                                    {ok ? "✓" : "✕"}
+                                                    {revealed ? (ok ? "✓" : "✕") : ""}
                                                 </span>
                                             )
                                         })}
