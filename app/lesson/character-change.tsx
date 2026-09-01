@@ -50,6 +50,14 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
 
     const revealed = status !== "none"
 
+    // Компонент изначально проектировался под короткие категориальные
+    // ответы ("увеличится"/"уменьшится"/"не изменится"), но переиспользован
+    // и для matching-задач, где вариант — целое предложение. Длинный текст
+    // не помещался в фиксированную h-[53px]/2-3-колоночную сетку — тот же
+    // класс проблемы, что уже решён в ASSIST через isOddCount/grid-cols-1
+    // (см. type-assist.tsx), здесь порог по длине текста, а не по чётности.
+    const isLongText = options.some((o) => (o.text.split("::")[1] ?? o.text).length > 24)
+
     return (
         <div className="space-y-3">
             {groups.map(({ name, opts }) => {
@@ -64,7 +72,7 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                         </p>
                         <div className={cn(
                             "grid gap-2 items-start",
-                            opts.length === 4 ? "grid-cols-2" : "grid-cols-3",
+                            isLongText ? "grid-cols-1" : opts.length === 4 ? "grid-cols-2" : "grid-cols-3",
                         )}>
                             {opts.map((o) => {
                                 const label = o.text.split("::")[1] ?? o.text
@@ -105,7 +113,8 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                                         onClick={() => { vibrate('light'); onSelect(name, o.id); }}
                                         disabled={disabled}
                                         className={cn(
-                                            "group relative flex items-center justify-center rounded-xl h-[53px] px-2 text-center",
+                                            "group relative flex items-center justify-center rounded-xl px-3 py-2.5 text-center",
+                                            isLongText ? "min-h-[44px]" : "h-[53px]",
                                             "border-2 border-solid border-b-4 active:border-b-0 transition-colors duration-150",
                                             isChosen && "border-b-0",
                                             disabled && "pointer-events-none",
@@ -116,7 +125,8 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                                         }}
                                     >
                                         <span className={cn(
-                                            "text-xs lg:text-sm leading-tight font-bold inline-flex items-center gap-1",
+                                            "leading-tight font-bold inline-flex items-center gap-1.5",
+                                            isLongText ? "text-[11px] lg:text-xs font-semibold text-left" : "text-xs lg:text-sm",
                                             revealCorrect || revealWrong
                                                 ? "text-white"
                                                 : isSelected

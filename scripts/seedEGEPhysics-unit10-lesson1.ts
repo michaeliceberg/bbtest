@@ -24,6 +24,7 @@
 
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
+import { eq } from 'drizzle-orm';
 import 'dotenv/config';
 import * as schema from '../db/schema';
 import { readFileSync } from 'fs';
@@ -73,25 +74,43 @@ function shuffle<T>(arr: T[]): T[] {
     return a;
 }
 
+// Повторный запуск (после фиксов текста/формул/диаграмм) переиспользует
+// уже существующие unit/lesson вместо создания дублей — правится через
+// REUSE_UNIT_ID/REUSE_LESSON_ID; при первом запуске (оба undefined)
+// поведение как раньше — создаёт unit/lesson с нуля.
+const REUSE_UNIT_ID = 111;
+const REUSE_LESSON_ID = 350;
+
 const main = async () => {
     try {
         console.log('Seeding: ЕГЭ Физика → Unit 10 → Урок 1 (Установите соответствие)');
 
-        const [unit] = await db.insert(schema.units).values({
-            title: '10. Установите соответствие',
-            description: 'Сопоставьте графики, процессы и физические величины — задачи на соответствие',
-            imageSrc: 'LottieUnit4',
-            courseId: COURSE_ID,
-            order: 10,
-        }).returning();
-        console.log(`unit: ${unit.id} "${unit.title}"`);
+        let unit: typeof schema.units.$inferSelect;
+        let lesson: typeof schema.lessons.$inferSelect;
 
-        const [lesson] = await db.insert(schema.lessons).values({
-            title: 'Установите соответствие',
-            unitId: unit.id,
-            order: 1,
-        }).returning();
-        console.log(`lesson: ${lesson.id} "${lesson.title}"`);
+        if (REUSE_UNIT_ID && REUSE_LESSON_ID) {
+            [unit] = await db.select().from(schema.units).where(eq(schema.units.id, REUSE_UNIT_ID));
+            [lesson] = await db.select().from(schema.lessons).where(eq(schema.lessons.id, REUSE_LESSON_ID));
+            console.log(`переиспользуем unit: ${unit.id} "${unit.title}", lesson: ${lesson.id} "${lesson.title}"`);
+            const deleted = await db.delete(schema.challenges).where(eq(schema.challenges.lessonId, lesson.id)).returning();
+            console.log(`удалено старых challenges: ${deleted.length} (challengeOptions уйдут каскадом)`);
+        } else {
+            [unit] = await db.insert(schema.units).values({
+                title: '10. Установите соответствие',
+                description: 'Сопоставьте графики, процессы и физические величины — задачи на соответствие',
+                imageSrc: 'LottieUnit4',
+                courseId: COURSE_ID,
+                order: 10,
+            }).returning();
+            console.log(`unit: ${unit.id} "${unit.title}"`);
+
+            [lesson] = await db.insert(schema.lessons).values({
+                title: 'Установите соответствие',
+                unitId: unit.id,
+                order: 1,
+            }).returning();
+            console.log(`lesson: ${lesson.id} "${lesson.title}"`);
+        }
 
         const allSeeds = [...challenges, CHANGE_CHALLENGE];
         let order = 1;
