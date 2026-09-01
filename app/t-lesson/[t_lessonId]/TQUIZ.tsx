@@ -63,6 +63,17 @@ const scorableCount = (arr: QuestionType[]) => arr.filter((q) => q.questionType 
 // непрерывную серию.
 const STREAK_MILESTONES = [3, 7] as const
 
+// Плоские очки/XP за завершение ОСНОВНОГО прохода урока тренажёра —
+// независимо от числа вопросов и точности (не наказывает за короткий
+// урок из малого числа вопросов, см. историю решения в CLAUDE.md).
+// Было 200 — при XP_PER_LEVEL=100 (lib/xp.ts) это гарантированно 2
+// уровня за один урок, из-за чего повышение всегда "перепрыгивало"
+// через уровень (например 7→9, 8-й никогда не показывался) — заметно и
+// прямо об этом спросил пользователь. Снижено до 50 — соизмеримо с ~5
+// верными ответами курса (обычно 10 XP за ответ), больше не перепрыгивает
+// уровень при типичном XP_PER_LEVEL=100.
+const TRAINER_LESSON_TRAINING_PTS = 50
+
 const startButton = ['Погнали!', 'Гоу!', 'Старт!', 'Поехали!', 'Поплыли!']
 
 // Отдельный подарок ПОСЛЕ всего урока за угаданный "горячий вопрос" (см.
@@ -339,7 +350,7 @@ export default function TQuiz({
       console.log('🏁 Основной проход завершён! score:', finalScore, 'total (без HOT):', total)
       const doneRightPercent = Math.round(finalScore / total * 100)
 
-      const progressResult = await upsertTrainerLessonProgress(t_lessonId, doneRightPercent, 200, finalScore, total - finalScore, stage)
+      const progressResult = await upsertTrainerLessonProgress(t_lessonId, doneRightPercent, TRAINER_LESSON_TRAINING_PTS, finalScore, total - finalScore, stage)
         .catch(() => {
           toast.error('Что-то пошло не так! Результат не добавлен в базу данных.')
           return null

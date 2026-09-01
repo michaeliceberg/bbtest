@@ -1,6 +1,7 @@
 'use client'
 
 // import Image from "next/image"
+import dynamic from "next/dynamic"
 import { Button } from "./ui/button"
 import Link from "next/link"
 // import LottieAnimationFine from '@/public/LottieProgressFine.json'
@@ -15,8 +16,12 @@ import LottieKapiSad1 from '@/public/Lottie/LottieKapiSad1.json'
 // import LegoDetail from '@/public/Lego/LegoDetail.json'
 // import AETriangle from '@/public/Lottie/hints/AETriangle.json'
 
-
-import Lottie from "lottie-react"
+// Статический import "lottie-react" здесь падал на SSR при холодном
+// старте dev-сервера ("document is not defined" — lottie-react трогает
+// document на уровне модуля, 'use client' сам по себе SSR модуля не
+// исключает) — тот же класс бага, что уже чинили в TrainerMascot.tsx/
+// question-bubble.tsx этим же способом.
+const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
 
 type Props= {
     YourDaysLate: number
