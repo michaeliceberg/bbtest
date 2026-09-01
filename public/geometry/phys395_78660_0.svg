@@ -16,7 +16,7 @@
 <polygon points="206.0,165.0 206.0,175.0 216,170.0" fill="#9AA7B0"/>
 <text x="30.0" y="188.0" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">0</text>
 <text x="208.0" y="162.0" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB" text-anchor="end">V</text>
-<text x="54.0" y="16" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">v_{ср.кв.}</text>
+<text x="54.0" y="16" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">v<tspan font-size="0.65em" dy="0.35em">ср.кв.</tspan></text>
 <text x="82.0" y="186.0" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#F2F7FB">1</text>
 <text x="118.0" y="186.0" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#F2F7FB">2</text>
 <text x="154.0" y="186.0" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#F2F7FB">3</text>
