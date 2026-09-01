@@ -17,6 +17,7 @@ import {
     getUserProgress 
 } from '@/db/queries';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { Header } from './header';
 import { TabTCourses } from '@/components/tab-t-courses';
 import { HwTopBanner } from '../learn/hw-top-banner';
@@ -175,7 +176,21 @@ const TLearnPage = async () => {
     });
 
     // ========== КВЕСТ (пройди 1 урок тренажёра + реши 1 задачу курса) ==========
-    const activeTCourse = t_courses[0];
+    // Та же тема тренажёра, что и на /learn (там — по activeCourseId,
+    // курс, который пользователь сейчас реально изучает; связь через
+    // t_courses.courseId) — раньше здесь брался безусловно t_courses[0]
+    // (первая по id тема), из-за чего "Квест дня" на /trainer и /learn мог
+    // показывать РАЗНЫЕ темы тренажёра и, соответственно, рассинхронное
+    // состояние "пройди урок тренажёра" — пользователь проходил урок под
+    // активным курсом, /learn корректно засчитывал квест именно этой темы,
+    // а /trainer продолжал спрашивать статус первой попавшейся другой темы.
+    // Без cookie/активного курса (не должно случаться после редиректов выше,
+    // но на всякий случай) — откат на старое поведение (первая тема).
+    const activeCourseIdFromCookie = cookies().get('activeCourseId')?.value;
+    const resolvedActiveCourseId = activeCourseIdFromCookie
+        ? parseInt(activeCourseIdFromCookie)
+        : userProgress.activeCourse.id;
+    const activeTCourse = t_courses.find((tc) => tc.courseId === resolvedActiveCourseId) ?? t_courses[0];
     const dailyQuest = activeTCourse ? await getDailyQuestStatus(activeTCourse.id) : null;
     const questHistory = activeTCourse ? await getRecentQuestHistory(activeTCourse.id) : [];
 
