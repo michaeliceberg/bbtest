@@ -102,6 +102,12 @@ const BossGiftBadge = () => (
     </span>
 );
 
+// Сколько ждать после запуска плавного scrollIntoView, прежде чем начинать
+// сами фазы reveal — достаточно с запасом для скролла на любое расстояние
+// внутри одной карточки-темы (реальный smooth-scroll обычно укладывается в
+// 300-500мс), чтобы анимация не началась "за кадром", пока страница ещё едет.
+const SCROLL_SETTLE_MS = 500;
+
 export const TrainerGradeTree = ({ topics }: Props) => {
     // Reveal-анимация "только что прошёл этот этап" — сигнал приходит из
     // app/t-lesson/[t_lessonId]/TQUIZ.tsx (handleFinishLesson) через
@@ -125,6 +131,12 @@ export const TrainerGradeTree = ({ topics }: Props) => {
     // повторному setup что-либо перезапускать; без cleanup-отмены таймеры
     // спокойно доживают до срабатывания.
     const startedRef = React.useRef(false);
+    // Узел квадратика "только что пройденного" этапа — чтобы проскроллить и
+    // отцентрировать его на экране ДО начала самой анимации (пользователь
+    // мог вернуться на /trainer со скроллом страницы в произвольном месте —
+    // например, тема с только что пройденным этапом ниже видимой области).
+    const targetStageRef = React.useRef<HTMLDivElement | null>(null);
+    const scrollStartedRef = React.useRef(false);
 
     useEffect(() => {
         if (startedRef.current) return;
@@ -145,11 +157,24 @@ export const TrainerGradeTree = ({ topics }: Props) => {
 
         startedRef.current = true;
         setPendingRevealId(id);
-        setTimeout(() => setStageRevealed(true), 150);
-        setTimeout(() => setConnectorRevealed(true), 600);
-        setTimeout(() => setNextRevealed(true), 1100);
+        // Сами фазы (stageRevealed/connectorRevealed/nextRevealed) запускает
+        // ОТДЕЛЬНЫЙ эффект ниже, после того как узел квадратика реально
+        // появится в DOM и страница проскроллится к нему — иначе анимация
+        // могла бы начаться, пока целевой квадратик ещё не виден.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    useEffect(() => {
+        if (pendingRevealId === null || scrollStartedRef.current) return;
+        if (!targetStageRef.current) return;
+        scrollStartedRef.current = true;
+
+        targetStageRef.current.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+
+        setTimeout(() => setStageRevealed(true), SCROLL_SETTLE_MS + 150);
+        setTimeout(() => setConnectorRevealed(true), SCROLL_SETTLE_MS + 600);
+        setTimeout(() => setNextRevealed(true), SCROLL_SETTLE_MS + 1100);
+    }, [pendingRevealId]);
 
     return (
         <div className="w-full max-w-xl mx-auto">
@@ -325,7 +350,11 @@ export const TrainerGradeTree = ({ topics }: Props) => {
 
                                                     return (
                                                         <React.Fragment key={s.id}>
-                                                            <div style={{ gridColumn: col, gridRow: 1 }} className="flex justify-center">
+                                                            <div
+                                                                ref={isRevealTarget ? targetStageRef : undefined}
+                                                                style={{ gridColumn: col, gridRow: 1 }}
+                                                                className="flex justify-center"
+                                                            >
                                                                 {stageBox}
                                                             </div>
 
