@@ -26,14 +26,14 @@ import { FinishTrainerStat } from "../../../components/finish-trainer-stat"
 import { TgSendMsgCom } from "../../../components/tg-send-msg-com"
 import { QuestionType } from "@/app/t-lesson/[t_lessonId]/page"
 import { createEffect, StreakEffect } from "@/lib/streakEffects"
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { AnimatedHearts } from "@/components/AnimatedHearts"
 import { FINISH_AUDIO_SRC_LIST } from "@/constants"
 import { isCorrectAnswer } from "@/usefulFunctions"
 import { LOTTIE_START_LIST, LOTTIE_EMOTION_RIGHT_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
 import { X, PencilLine, Gift } from "lucide-react"
 import { useQuizAudio } from "@/app/hooks/useQuizAudio"
-import { completeTrainerQuestLesson, reportLessonQuestSignals } from "@/actions/generate-trainer-quest"
+import { reportLessonQuestSignals } from "@/actions/generate-trainer-quest"
 import { awardHotQuestionReward } from "@/actions/award-hot-question-reward"
 import { ChestReward } from "@/components/ChestReward"
 import { TrainerQuestRewardsScreen, QuestRewardsData } from "@/components/trainer-quest-rewards-screen"
@@ -117,7 +117,6 @@ export default function TQuiz({
 }: Props) {
 
   const router = useRouter()
-  const searchParams = useSearchParams()
   const showAchievement = useAchievementStore((state) => state.showAchievement)
   // Название с префиксом "daily" не просто так — showStreakCelebration/
   // setShowStreakCelebration (state ниже) уже заняты СОВСЕМ другим
@@ -126,9 +125,7 @@ export default function TQuiz({
   // механики, случайно совпавшее название переменной.
   const triggerDailyStreakToast = useStreakCelebrationStore((state) => state.showStreakCelebration)
   const showLevelUp = useLevelUpStore((state) => state.showLevelUp)
-  const fromQuest = searchParams.get('fromQuest') === 'true'
-  const tCourseId = searchParams.get('tCourseId') ? parseInt(searchParams.get('tCourseId')!) : null
-  
+
   const [streak, setStreak] = useState(0)
   const [effect, setEffect] = useState<StreakEffect | null>(null)
   const [combo, setCombo] = useState<number | null>(null)
@@ -161,8 +158,6 @@ export default function TQuiz({
   const processedQuestionsRef = useRef<Set<number>>(new Set())
   // Флаг для предотвращения двойного воспроизведения финального звука
   const hasPlayedFinishSoundRef = useRef(false)
-  // Флаг для отслеживания, был ли уже обновлен квест
-  const hasUpdatedQuestRef = useRef(false)
   // Ref для отслеживания текущего isRightList (избегаем closure issues)
   const isRightListRef = useRef<number[]>([])
   // Ref-дубликат score: goToNextQuestion вызывается из handleAnswer сразу
@@ -227,25 +222,15 @@ export default function TQuiz({
   const playIncorrectSound = useCallback(() => playAudio('incorrect'), [playAudio])
   const playFinishSound = useCallback(() => playAudio('finish'), [playAudio])
 
-  // Функция для обновления прогресса квеста
-  const updateQuestProgress = useCallback(async () => {
-    if (hasUpdatedQuestRef.current) return
-    if (!fromQuest || !tCourseId) return
-    
-    hasUpdatedQuestRef.current = true
-    
-    try {
-      const result = await completeTrainerQuestLesson(t_lessonId, tCourseId, '')
-      if (result && result.success) {
-        console.log('✅ Квест обновлен!', result.completedCount, '/', result.totalCount)
-        if (result.isCompleted) {
-          toast.success('🎉 Квест выполнен! +1 к стрику!')
-        }
-      }
-    } catch (error) {
-      console.error('Ошибка обновления квеста:', error)
-    }
-  }, [fromQuest, tCourseId, t_lessonId])
+  // Дневной квест ("Ежедневный квест" в сайдбаре /trainer) больше не
+  // привязан к конкретному списку уроков, отмечаемому с клиента — он
+  // вычисляется live на сервере из реальных данных прогресса при каждом
+  // заходе на /trainer (см. actions/generate-trainer-quest.ts,
+  // getDailyQuestStatus). updateQuestProgress оставлен как совместимый
+  // no-op — у него много вызовов ниже по всему компоненту (на каждый
+  // путь завершения/выхода из урока), переписывать каждый ради удаления
+  // одной функции не требуется.
+  const updateQuestProgress = useCallback(async () => {}, [])
 
   // Воспроизведение финального звука только один раз
   // Синхронизируем isRightListRef с текущим isRightList
@@ -309,7 +294,6 @@ export default function TQuiz({
     setIsProcessing(false)
     processedQuestionsRef.current.clear()
     hasPlayedFinishSoundRef.current = false
-    hasUpdatedQuestRef.current = false
     setHotQuestionWon(false)
     hotQuestionWonRef.current = false
   }, [questions1])

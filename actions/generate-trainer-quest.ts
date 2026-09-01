@@ -3,19 +3,26 @@
 'use server';
 
 import db from '@/db/drizzle';
-import { trainerQuests, t_lessons, t_units, t_courses, trainerStreaks, userHomework } from '@/db/schema';
-import { and, eq, gte, sql } from 'drizzle-orm';
+import { trainerQuests, t_lessons, t_units, t_courses, trainerStreaks, userHomework, t_lessonProgress, userDailyStats } from '@/db/schema';
+import { and, eq, gte, inArray } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { getCourseStreak } from '@/lib/streak';
+
+// Дневной квест раньше требовал пройти КОНКРЕТНЫЙ список из 3-5 случайно
+// выбранных уроков темы ("почему именно эти номера?" — пользователь счёл
+// это запутанным). Теперь квест из двух простых, общих для любой темы
+// пунктов: любой 1 урок тренажёра + любая 1 задача курса — тот же смысл
+// "позанимался сегодня и там, и там", без привязки к конкретным id.
+const DAILY_QUEST_TOTAL = 2;
 
 export async function generateDailyTrainerQuest(tCourseId: number) {
     const session = await auth();
     if (!session?.user?.id) throw new Error('Не авторизован');
-    
+
     const userId = session.user.id;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     // Проверяем, есть ли уже квест на сегодня
     const existing = await db.query.trainerQuests.findFirst({
         where: and(
@@ -24,136 +31,118 @@ export async function generateDailyTrainerQuest(tCourseId: number) {
             eq(trainerQuests.date, today)
         ),
     });
-    
+
     if (existing) return existing;
-    
-    // Получаем все уроки тренажера по этому курсу через t_units
-    // 1. Сначала получаем все unit'ы этого курса
-    const units = await db.query.t_units.findMany({
-        where: eq(t_units.t_courseId, tCourseId),
-    });
-    
-    const unitIds = units.map(u => u.id);
-    
-    if (unitIds.length === 0) {
-        // Нет уроков в этом тренажере
-        return null;
-    }
-    
-    // 2. Получаем все уроки из этих unit'ов
-    const allLessons = await db.query.t_lessons.findMany({
-        where: (t_lessons, { inArray }) => inArray(t_lessons.t_unitId, unitIds),
-    });
-    
-    if (allLessons.length === 0) return null;
-    
-    // Выбираем 3-5 случайных уроков
-    const questCount = Math.min(5, Math.max(3, allLessons.length));
-    const shuffled = [...allLessons].sort(() => 0.5 - Math.random());
-    const selectedLessons = shuffled.slice(0, questCount);
-    const tLessonIds = selectedLessons.map(l => l.id).join(',');
-    
-    // Создаем квест
+
+    // tLessonIds — колонка NOT NULL с более ранней модели (конкретный
+    // список уроков квеста), сейчас не несёт смысла — пустая строка.
     const [quest] = await db.insert(trainerQuests).values({
         userId,
         tCourseId: tCourseId,
         date: today,
-        tLessonIds: tLessonIds,
-        totalCount: selectedLessons.length,
+        tLessonIds: '',
+        totalCount: DAILY_QUEST_TOTAL,
         completedCount: 0,
         isCompleted: false,
     }).returning();
-    
+
     return quest;
 }
 
+export type DailyQuestStatus = {
+    trainerDone: boolean;
+    taskDone: boolean;
+    isCompleted: boolean;
+    streak: number;
+};
 
-
-// app/actions/generate-trainer-quest.ts
-
-export async function completeTrainerQuestLesson(tLessonId: number, tCourseId: number, userId: string) {
+// Заменяет старую пару generateDailyTrainerQuest+completeTrainerQuestLesson
+// (клиент явно "отмечал" урок частью квеста через ?fromQuest=true) — оба
+// пункта вычисляются LIVE из уже существующих источников правды при
+// каждом заходе на /trainer, а не накапливаются вручную с клиента:
+// - "Тренажёр" — сегодня пройден хотя бы 1 урок ЛЮБОЙ темы этого
+//   t_course (trainingPts>0 — тот же признак настоящего завершения
+//   основного прохода, что уже используется для XP/ачивок тренажёра).
+// - "Задача" — сегодня решена хотя бы 1 задача ОСНОВНОГО курса,
+//   привязанного к этой теме тренажёра (t_courses.courseId), через
+//   userDailyStats.challengesRight — тот же счётчик, что уже
+//   инкрементируется на каждый верный ответ (db/queries.ts).
+// Пересчёт при каждом вызове исключает рассинхрон между реальным
+// прогрессом и счётчиком квеста (старая версия могла разойтись, если
+// урок был пройден до первого визита на /trainer за день).
+export async function getDailyQuestStatus(tCourseId: number): Promise<DailyQuestStatus | null> {
     const session = await auth();
-    const currentUserId = userId || session?.user?.id;
-    
-    if (!currentUserId) throw new Error('Не авторизован');
+    if (!session?.user?.id) return null;
+    const userId = session.user.id;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
-    const quest = await db.query.trainerQuests.findFirst({
-        where: and(
-            eq(trainerQuests.userId, currentUserId),
-            eq(trainerQuests.tCourseId, tCourseId),
-            eq(trainerQuests.date, today)
-        ),
-    });
-    
-    if (!quest || quest.isCompleted) return { success: false, message: 'Квест не найден или уже выполнен' };
-    
-    const lessonIds = quest.tLessonIds.split(',').map(Number);
-    if (!lessonIds.includes(tLessonId)) return { success: false, message: 'Урок не входит в квест' };
-    
-    const newCompletedCount = (quest.completedCount || 0) + 1;
-    const isCompleted = newCompletedCount >= quest.totalCount;
-    
-    await db.update(trainerQuests)
-        .set({
-            completedCount: newCompletedCount,
-            isCompleted: isCompleted,
-            completedAt: isCompleted ? new Date() : null,
-            updatedAt: new Date(),
-        })
-        .where(eq(trainerQuests.id, quest.id));
-    
-    if (isCompleted) {
-        await updateTrainerStreak(currentUserId, tCourseId);
+
+    const quest = await generateDailyTrainerQuest(tCourseId);
+    if (!quest) return null;
+
+    let trainerDone = false;
+    const units = await db.query.t_units.findMany({ where: eq(t_units.t_courseId, tCourseId) });
+    const unitIds = units.map((u) => u.id);
+    if (unitIds.length > 0) {
+        const lessons = await db.query.t_lessons.findMany({ where: inArray(t_lessons.t_unitId, unitIds) });
+        const lessonIds = lessons.map((l) => l.id);
+        if (lessonIds.length > 0) {
+            const todayProgress = await db.query.t_lessonProgress.findFirst({
+                where: and(
+                    eq(t_lessonProgress.userId, userId),
+                    inArray(t_lessonProgress.t_lessonId, lessonIds),
+                    gte(t_lessonProgress.trainingPts, 1),
+                    gte(t_lessonProgress.dateDone, today),
+                ),
+            });
+            trainerDone = !!todayProgress;
+        }
     }
-    
-    return { 
-        success: true, 
-        completedCount: newCompletedCount, 
-        totalCount: quest.totalCount,
-        isCompleted 
+
+    let taskDone = false;
+    const tCourse = await db.query.t_courses.findFirst({ where: eq(t_courses.id, tCourseId) });
+    if (tCourse?.courseId) {
+        const stats = await db.query.userDailyStats.findFirst({
+            where: and(
+                eq(userDailyStats.userId, userId),
+                eq(userDailyStats.courseId, tCourse.courseId),
+                eq(userDailyStats.date, today),
+            ),
+        });
+        taskDone = (stats?.challengesRight ?? 0) > 0;
+    }
+
+    const completedCount = (trainerDone ? 1 : 0) + (taskDone ? 1 : 0);
+    const isCompleted = completedCount >= DAILY_QUEST_TOTAL;
+    const wasCompleted = quest.isCompleted === true;
+
+    if (completedCount !== quest.completedCount || isCompleted !== wasCompleted) {
+        await db.update(trainerQuests)
+            .set({
+                completedCount,
+                isCompleted,
+                completedAt: isCompleted && !wasCompleted ? new Date() : quest.completedAt,
+                updatedAt: new Date(),
+            })
+            .where(eq(trainerQuests.id, quest.id));
+    }
+
+    if (isCompleted && !wasCompleted) {
+        await updateTrainerStreak(userId, tCourseId);
+    }
+
+    const streakRow = await db.query.trainerStreaks.findFirst({
+        where: and(eq(trainerStreaks.userId, userId), eq(trainerStreaks.tCourseId, tCourseId)),
+    });
+
+    return {
+        trainerDone,
+        taskDone,
+        isCompleted,
+        streak: streakRow?.currentStreak ?? 0,
     };
 }
-
-
-
-// // Отметка выполнения урока в квесте
-// export async function completeTrainerQuestLesson(tLessonId: number, tCourseId: number, userId: string) {
-//     const today = new Date();
-//     today.setHours(0, 0, 0, 0);
-    
-//     const quest = await db.query.trainerQuests.findFirst({
-//         where: and(
-//             eq(trainerQuests.userId, userId),
-//             eq(trainerQuests.tCourseId, tCourseId),
-//             eq(trainerQuests.date, today)
-//         ),
-//     });
-    
-//     if (!quest || quest.isCompleted) return;
-    
-//     const lessonIds = quest.tLessonIds.split(',').map(Number);
-//     if (!lessonIds.includes(tLessonId)) return;
-    
-//     const newCompletedCount = (quest.completedCount || 0) + 1;
-//     const isCompleted = newCompletedCount >= quest.totalCount;
-    
-//     await db.update(trainerQuests)
-//         .set({
-//             completedCount: newCompletedCount,
-//             isCompleted: isCompleted,
-//             completedAt: isCompleted ? new Date() : null,
-//             updatedAt: new Date(),
-//         })
-//         .where(eq(trainerQuests.id, quest.id));
-    
-//     // Если квест выполнен полностью, обновляем стрик
-//     if (isCompleted) {
-//         await updateTrainerStreak(userId, tCourseId);
-//     }
-// }
 
 
 

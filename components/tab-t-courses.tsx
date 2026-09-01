@@ -100,8 +100,6 @@ type Props = {
         doneWrong: number;
         trainingPts: number;
     }[],
-
-    questLessonIds?: number[],
 }
 
 export const TabTCourses = ({
@@ -115,7 +113,6 @@ export const TabTCourses = ({
     allUsers,
     this_class_id,
     all_t_lessonProgress,
-    questLessonIds = [],
 }: Props) => {
     const [showFormulas, setShowFormulas] = useState(false)
 

@@ -21,12 +21,8 @@ import { Header } from './header';
 import { TabTCourses } from '@/components/tab-t-courses';
 import { HwTopBanner } from '../learn/hw-top-banner';
 import { auth } from '@/lib/auth';
-import { generateDailyTrainerQuest } from '@/actions/generate-trainer-quest';
+import { getDailyQuestStatus } from '@/actions/generate-trainer-quest';
 import { TrainerQuestCard } from '@/components/trainer-quest-card';
-import { ParentBindCode } from '@/components/parent-bind-code';
-import db from '@/db/drizzle';
-import { and, eq } from 'drizzle-orm';
-import { trainerStreaks } from '@/db/schema';
 import { LevelCard } from '@/components/level-card';
 import { getLvlLottieCount } from '@/lib/lvl-lottie';
 import { StreakRiskBanner } from '@/components/streak-risk-banner';
@@ -178,68 +174,9 @@ const TLearnPage = async () => {
         });
     });
 
-    // ========== КВЕСТЫ И СТРИКИ ==========
+    // ========== КВЕСТ (пройди 1 урок тренажёра + реши 1 задачу курса) ==========
     const activeTCourse = t_courses[0];
-    let questWithLessons = null;
-    let streak = 0;
-
-    if (activeTCourse && t_units) {
-        // Генерируем квест на сегодня
-        const quest = await generateDailyTrainerQuest(activeTCourse.id);
-        
-        // Получаем стрик
-        const streakData = await db.query.trainerStreaks.findFirst({
-            where: and(
-                eq(trainerStreaks.userId, userId),
-                eq(trainerStreaks.tCourseId, activeTCourse.id)
-            ),
-        });
-        streak = streakData?.currentStreak || 0;
-
-        // Получаем детали уроков для квеста
-        if (quest && quest.tLessonIds) {
-            const lessonIds = quest.tLessonIds.split(',').map(Number);
-            
-            if (lessonIds.length > 0) {
-                // Собираем все уроки из t_units (они уже содержат t_lessons)
-                const allLessons: { id: number; title: string }[] = [];
-                for (const unit of t_units) {
-                    if (unit.t_courseId === activeTCourse.id && unit.t_lessons) {
-                        for (const lesson of unit.t_lessons) {
-                            allLessons.push({
-                                id: lesson.id,
-                                title: lesson.title,
-                            });
-                        }
-                    }
-                }
-                
-                // Фильтруем нужные уроки
-                const questLessons = allLessons.filter(l => lessonIds.includes(l.id));
-                
-                // Используем уже полученный t_lessonProgress
-                const completedIds = t_lessonProgress
-                    .filter(lp => lessonIds.includes(lp.t_lessonId) && lp.doneRightPercent === 100)
-                    .map(lp => lp.t_lessonId);
-                
-                questWithLessons = {
-                    ...quest,
-                    isCompleted: quest.isCompleted === true,
-                    lessons: questLessons.map(l => ({
-                        id: l.id,
-                        title: l.title,
-                        completed: completedIds.includes(l.id),
-                    })),
-                };
-            }
-        }
-    }
-
-    // Собираем ID уроков, которые входят в сегодняшний квест
-    let questLessonIds: number[] = [];
-    if (questWithLessons && questWithLessons.tLessonIds) {
-        questLessonIds = questWithLessons.tLessonIds.split(',').map(Number);
-    }
+    const dailyQuest = activeTCourse ? await getDailyQuestStatus(activeTCourse.id) : null;
 
     const currentPoints = userProgress.points;
     const currentGems = userProgress.gems;
@@ -275,14 +212,13 @@ const TLearnPage = async () => {
                     hasActiveSubscription={false}
                 />
 
-                <ParentBindCode userId={userId} userName={userProgress.userName} />
-
                 {/* Квест тренажера */}
-                {activeTCourse && questWithLessons && (
-                    <TrainerQuestCard 
-                        quest={questWithLessons}
-                        streak={streak}
-                        tCourseId={activeTCourse.id}
+                {dailyQuest && (
+                    <TrainerQuestCard
+                        trainerDone={dailyQuest.trainerDone}
+                        taskDone={dailyQuest.taskDone}
+                        isCompleted={dailyQuest.isCompleted}
+                        streak={dailyQuest.streak}
                     />
                 )}
             </StickyWrapper>
@@ -312,7 +248,6 @@ const TLearnPage = async () => {
                         allUsers={allUsers}
                         all_t_lessonProgress={all_t_lessonProgress}
                         this_class_id={userProgress.classId}
-                        questLessonIds={questLessonIds}
                     />
                 </div>
             </FeedWrapper>
