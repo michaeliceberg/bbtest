@@ -47,6 +47,19 @@ export const HomeworkList = ({ activeHomework, expiredHomework, completedHomewor
     const teacherExpired = expiredHomework.filter(h => h.type === 'teacher');
     const teacherCompleted = completedHomework.filter(h => h.type === 'teacher');
 
+    // Учительского ДЗ вообще никогда не было (ни активного, ни
+    // просроченного, ни выполненного) — раньше карточка всё равно
+    // рисовалась с плашкой "Все задания выполнены!", потому что там
+    // почти всегда был хотя бы один "Челлендж дня" (автогенерация). Тот
+    // убран (см. коммент выше), и без него эта плашка вводит в
+    // заблуждение — звучит как "было что-то и ты это сделал", хотя на
+    // самом деле не было ничего. Пользователь поймал это живьём на
+    // /learn ("похоже на кусок старого компонента") — честнее просто не
+    // рисовать карточку.
+    if (teacherActive.length === 0 && teacherExpired.length === 0 && teacherCompleted.length === 0) {
+        return null;
+    }
+
     const hasAnyActive = teacherActive.length > 0;
 
     const getStatusIcon = (status: string, dueDate: Date) => {
