@@ -4,7 +4,7 @@
 
 import { TransitionLink } from "@/utils/TransitionLink";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Cake, CircleCheckBig, CircleX, Crown, Layers, Skull, Star, Lock, Zap, Flame, Gift } from "lucide-react";
 import { CircularProgressbarWithChildren } from "react-circular-progressbar";
 import 'react-circular-progressbar/dist/styles.css'
@@ -28,7 +28,17 @@ const CONTINUE_EMOJIS = ["🥹", "🙃", "😇", "😎", "🤓", "🫡", "🤠",
 // очень медленный, еле заметный bounce вверх-вниз, чтобы притягивать взгляд,
 // но не раздражать. Смайлик рядом со словом каждый раз случайный.
 const ContinueBadge = ({ color }: { color: string }) => {
-    const [emoji] = useState(() => CONTINUE_EMOJIS[Math.floor(Math.random() * CONTINUE_EMOJIS.length)]);
+    // Случайный смайлик выбирается ТОЛЬКО после монтирования (не в самом
+    // рендере) — иначе сервер и клиент независимо выбирают РАЗНЫЕ смайлики
+    // при гидратации ("💩" vs "😇"), что роняет всю страницу в full
+    // client-side re-render. До монтирования — фиксированный дефолт
+    // (первый эмодзи списка), тот же паттерн, что уже используется в
+    // components/streak-risk-banner.tsx.
+    const [emoji, setEmoji] = useState(CONTINUE_EMOJIS[0]);
+
+    useEffect(() => {
+        setEmoji(CONTINUE_EMOJIS[Math.floor(Math.random() * CONTINUE_EMOJIS.length)]);
+    }, []);
 
     return (
     <motion.div
