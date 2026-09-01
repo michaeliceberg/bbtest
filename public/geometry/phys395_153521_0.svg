@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="100" viewBox="0 0 180 100">
+<rect x="0" y="0" width="180" height="100" fill="#151F23"/>
+<rect x="20" y="15" width="140" height="70" fill="none" stroke="#9AA7B0" stroke-width="2.5" rx="4"/>
+<line x1="90.0" y1="15" x2="90.0" y2="85" stroke="#7dd3fc" stroke-width="3"/>
+<text x="55.0" y="56.0" text-anchor="middle" font-family="Georgia, serif" font-weight="bold" font-size="18" fill="#F2F7FB">А</text>
+<text x="125.0" y="56.0" text-anchor="middle" font-family="Georgia, serif" font-weight="bold" font-size="18" fill="#F2F7FB">Б</text>
+</svg>
