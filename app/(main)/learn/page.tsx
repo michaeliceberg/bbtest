@@ -31,6 +31,7 @@ import { getLvlLottieCount } from '@/lib/lvl-lottie';
 import { StreakRiskBanner } from '@/components/streak-risk-banner';
 import { TrainerQuestCard } from '@/components/trainer-quest-card';
 import { getDailyQuestStatus, getRecentQuestHistory } from '@/actions/generate-trainer-quest';
+import { resolveActiveTCourse } from '@/lib/trainer-topic';
 import { Suspense } from 'react';
 
 const bgList = [
@@ -291,12 +292,19 @@ const LearnPage = async () => {
   // "Квест дня" (components/trainer-quest-card.tsx) — раньше существовал
   // только на /trainer, пользователь справедливо указал, что это должен
   // быть один и тот же компонент/понятие на обеих страницах. Тема
-  // тренажёра для активного курса задачника находится через
-  // t_courses.courseId (courseId → t_course, обратная связь к уже
-  // существующей "t_course.courseId" из более ранней сессии) — курс без
-  // привязанного тренажёра просто не показывает карточку.
+  // тренажёра — через lib/trainer-topic.ts (resolveActiveTCourse), общую
+  // с /trainer: привязка к активному курсу через t_courses.courseId, с
+  // фильтром скрытых тем и фоллбэком на первую видимую. Раньше здесь был
+  // прямой `.find()` БЕЗ фильтра скрытых — если активный курс формально
+  // был привязан к скрытой (пустой) теме тренажёра (например, courseId
+  // курса "ЕГЭ Математика" ссылается на скрытую "М9 МАТЕМАТИКА-9"),
+  // карточка находила именно её и навсегда показывала "0/1" для
+  // "пройди урок тренажёра" — в скрытой теме физически нет уроков,
+  // прогресс по ней в принципе не мог набраться, даже если пользователь
+  // реально занимался в тренажёре по другой (видимой) теме (см. CLAUDE.md,
+  // разбор рассинхрона /trainer↔/learn).
   const allTCourses = await getTCourses();
-  const linkedTCourse = allTCourses.find((tc) => tc.courseId === activeCourseId);
+  const linkedTCourse = resolveActiveTCourse(allTCourses, activeCourseId);
   const dailyQuest = linkedTCourse ? await getDailyQuestStatus(linkedTCourse.id) : null;
   const questHistory = linkedTCourse ? await getRecentQuestHistory(linkedTCourse.id) : [];
 

@@ -28,6 +28,7 @@ import { LevelCard } from '@/components/level-card';
 import { getLvlLottieCount } from '@/lib/lvl-lottie';
 import { StreakRiskBanner } from '@/components/streak-risk-banner';
 import { getUserCourseProgress } from '@/db/queries';
+import { HIDDEN_T_COURSE_IDS, resolveActiveTCourse } from '@/lib/trainer-topic';
 
 const TLearnPage = async () => {
     const session = await auth();
@@ -81,8 +82,8 @@ const TLearnPage = async () => {
     }
 
     // М9 и Физика-9 временно скрыты из тренажёра (пусто/не готово) — не
-    // мешают, но не удалены из БД, легко вернуть обратно.
-    const HIDDEN_T_COURSE_IDS = [1, 2];
+    // мешают, но не удалены из БД, легко вернуть обратно. Список скрытых id
+    // — в lib/trainer-topic.ts, общий с /learn (см. ниже про activeTCourse).
     const t_courses = t_coursesRaw.filter((c) => !HIDDEN_T_COURSE_IDS.includes(c.id));
 
     if (!courseProgress) {
@@ -176,21 +177,17 @@ const TLearnPage = async () => {
     });
 
     // ========== КВЕСТ (пройди 1 урок тренажёра + реши 1 задачу курса) ==========
-    // Та же тема тренажёра, что и на /learn (там — по activeCourseId,
-    // курс, который пользователь сейчас реально изучает; связь через
-    // t_courses.courseId) — раньше здесь брался безусловно t_courses[0]
-    // (первая по id тема), из-за чего "Квест дня" на /trainer и /learn мог
-    // показывать РАЗНЫЕ темы тренажёра и, соответственно, рассинхронное
-    // состояние "пройди урок тренажёра" — пользователь проходил урок под
-    // активным курсом, /learn корректно засчитывал квест именно этой темы,
-    // а /trainer продолжал спрашивать статус первой попавшейся другой темы.
-    // Без cookie/активного курса (не должно случаться после редиректов выше,
-    // но на всякий случай) — откат на старое поведение (первая тема).
+    // Та же тема тренажёра, что и на /learn (см. lib/trainer-topic.ts —
+    // resolveActiveTCourse, общая для обеих страниц). Раньше обе страницы
+    // резолвили её РАЗНО (здесь — безусловно первая тема по id; на /learn —
+    // поиск по courseId БЕЗ фильтра скрытых тем) — из-за этого "Квест дня"
+    // мог показывать разные темы тренажёра и рассинхронное состояние
+    // "пройди урок тренажёра" (см. CLAUDE.md, полный разбор обоих случаев).
     const activeCourseIdFromCookie = cookies().get('activeCourseId')?.value;
     const resolvedActiveCourseId = activeCourseIdFromCookie
         ? parseInt(activeCourseIdFromCookie)
         : userProgress.activeCourse.id;
-    const activeTCourse = t_courses.find((tc) => tc.courseId === resolvedActiveCourseId) ?? t_courses[0];
+    const activeTCourse = resolveActiveTCourse(t_coursesRaw, resolvedActiveCourseId);
     const dailyQuest = activeTCourse ? await getDailyQuestStatus(activeTCourse.id) : null;
     const questHistory = activeTCourse ? await getRecentQuestHistory(activeTCourse.id) : [];
 
