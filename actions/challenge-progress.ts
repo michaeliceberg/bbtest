@@ -9,7 +9,8 @@ import {
     userProgress,
     challenges,
     lessons,
-    units
+    units,
+    t_courses
 } from '@/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
@@ -17,6 +18,8 @@ import { revalidatePath } from 'next/cache';
 import { xpForAmount, getLevelUpInfo } from '@/lib/xp';
 import { recalculateAchievements, type NewlyCompletedAchievement } from './check-achievements';
 import { bumpCourseStreak } from '@/lib/streak';
+import { getDailyQuestStatus } from './generate-trainer-quest';
+import { HIDDEN_T_COURSE_IDS } from '@/lib/trainer-topic';
 
 interface UpdateChallengeProgressProps {
     challengeId: number;
@@ -41,6 +44,9 @@ interface ChallengeProgressResponse {
     newAchievements?: NewlyCompletedAchievement[];
     streakExtended?: boolean;
     newStreak?: number;
+    questJustCompleted?: boolean;
+    questStreak?: number;
+    questPointsReward?: number;
 }
 
 export async function updateChallengeProgress({
@@ -275,6 +281,24 @@ export async function updateChallengeProgress({
         });
     }
     
+    // 12.5. Квест дня — "реши задачу курса" мог только что закрыться этим
+    // самым ответом (userDailyStats.challengesRight уже сохранён строкой
+    // выше — getDailyQuestStatus обязан видеть его СВЕЖИМ). Только для
+    // реального (не практика) верного ответа — это единственный случай,
+    // когда taskDone вообще может перейти false→true.
+    let questJustCompleted = false;
+    let questStreak: number | undefined;
+    let questPointsReward: number | undefined;
+    if (!isPractice && doneRight && !existingProgress?.completed) {
+        const tCourse = await db.query.t_courses.findFirst({ where: eq(t_courses.courseId, courseId) });
+        if (tCourse && !HIDDEN_T_COURSE_IDS.includes(tCourse.id)) {
+            const questStatus = await getDailyQuestStatus(tCourse.id);
+            questJustCompleted = questStatus?.justCompleted ?? false;
+            questStreak = questStatus?.streak;
+            questPointsReward = questStatus?.pointsReward;
+        }
+    }
+
     // 13. Обновляем сердца при неправильном ответе
     if (!isPractice && !doneRight && !existingProgress?.completed) {
         const newHearts = Math.max((userProgressData?.hearts ?? 0) - 1, 0);
@@ -303,6 +327,9 @@ export async function updateChallengeProgress({
         newAchievements,
         streakExtended,
         newStreak,
+        questJustCompleted,
+        questStreak,
+        questPointsReward,
     };
 }
 

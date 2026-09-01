@@ -108,6 +108,19 @@ export const TrainerQuestCard = ({ trainerDone, taskDone, isCompleted, streak, d
             ? `${Math.max(minutesLeft, 0)} мин`
             : `${Math.floor(minutesLeft / 60)} ч`;
 
+    // Подпись "сегодня" для золотой строки истории (см. ниже) — тот же
+    // принцип "дата только на клиенте, после монтирования", что уже
+    // применяется для minutesLeft чуть выше: date-fns/`format()` читает
+    // ЛОКАЛЬНЫЕ календарные поля раннтайма, сервер и браузер пользователя
+    // могут быть в разных часовых поясах и дать РАЗНЫЙ день для одного и
+    // того же момента — вычислять на сервере (и тем более использовать
+    // прямо в SSR-разметке) нельзя, иначе тот же класс hydration-мисматча,
+    // что уже пойман и исправлен для doneWord выше.
+    const [todayLabel, setTodayLabel] = useState<string | null>(null);
+    useEffect(() => {
+        setTodayLabel(format(new Date(), 'd MMM', { locale: ru }));
+    }, []);
+
     return (
         <div className="rounded-xl border border-[#3A464E] bg-[#151F23] shadow-sm p-4 space-y-4">
             <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -143,18 +156,36 @@ export const TrainerQuestCard = ({ trainerDone, taskDone, isCompleted, streak, d
                 </div>
             )}
 
-            <div className="space-y-2">
-                <QuestRow icon={Dumbbell} label="Пройди урок тренажёра" done={trainerDone} />
-                <QuestRow icon={PenLine} label="Реши задачу курса" done={taskDone} />
-            </div>
+            {!isCompleted && (
+                <div className="space-y-2">
+                    <QuestRow icon={Dumbbell} label="Пройди урок тренажёра" done={trainerDone} />
+                    <QuestRow icon={PenLine} label="Реши задачу курса" done={taskDone} />
+                </div>
+            )}
 
-            {history.length > 0 && (
+            {(history.length > 0 || isCompleted) && (
                 <details className="pt-1">
                     <summary className="cursor-pointer text-xs text-[#9AA7B0] hover:text-[#F2F7FB] flex items-center gap-2 select-none">
                         <History className="h-3.5 w-3.5" />
-                        <span className="font-medium">История ({history.length})</span>
+                        <span className="font-medium">
+                            История ({history.length + (isCompleted ? 1 : 0)})
+                        </span>
                     </summary>
                     <div className="mt-2 space-y-1.5">
+                        {/* Сегодняшняя строка — золотая, отдельно от обычной
+                            истории прошлых дней (getRecentQuestHistory нарочно
+                            исключает сегодня, см. actions/generate-trainer-
+                            quest.ts) — раньше сегодняшний статус показывали
+                            зачёркнутые QuestRow выше, теперь при isCompleted
+                            они скрыты, и результат дня виден только здесь. */}
+                        {isCompleted && todayLabel && (
+                            <div className="flex items-center justify-between text-xs bg-gradient-to-r from-amber-500/20 to-yellow-500/10 border border-amber-400/40 rounded-lg px-2.5 py-1.5">
+                                <span className="text-amber-200 font-medium">{todayLabel}</span>
+                                <span className="flex items-center gap-1 text-amber-300 font-bold">
+                                    <CheckCircle2 className="h-3.5 w-3.5" /> выполнен
+                                </span>
+                            </div>
+                        )}
                         {history.map((entry) => (
                             <div
                                 key={entry.date}

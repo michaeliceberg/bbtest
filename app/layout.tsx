@@ -21,6 +21,7 @@ const RightAnswerModal = dynamic(() => import('@/components/modals/rightanswer-m
 const AchievementToastProvider = dynamic(() => import('@/components/achievement-toast-provider').then(mod => ({ default: mod.AchievementToastProvider })), { ssr: false });
 const StreakCelebrationToastProvider = dynamic(() => import('@/components/streak-celebration-toast-provider').then(mod => ({ default: mod.StreakCelebrationToastProvider })), { ssr: false });
 const LevelUpModalProvider = dynamic(() => import('@/components/level-up-modal-provider').then(mod => ({ default: mod.LevelUpModalProvider })), { ssr: false });
+const QuestCompleteModalProvider = dynamic(() => import('@/components/quest-complete-modal-provider').then(mod => ({ default: mod.QuestCompleteModalProvider })), { ssr: false });
 
 const font = Nunito({ subsets: ['latin'] });
 
@@ -51,6 +52,7 @@ export default function RootLayout({
 				<AchievementToastProvider />
 				<StreakCelebrationToastProvider />
 				<LevelUpModalProvider />
+				<QuestCompleteModalProvider />
 			</body>
 		</html>
 	);

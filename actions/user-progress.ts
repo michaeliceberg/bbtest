@@ -11,6 +11,7 @@ import { redirect } from 'next/navigation';
 import { xpForAmount, getLevelUpInfo } from '@/lib/xp';
 import { recalculateAchievements } from './check-achievements';
 import { bumpCourseStreak } from '@/lib/streak';
+import { getDailyQuestStatus } from './generate-trainer-quest';
 
 const POINTS_TO_REFILL = 10
 
@@ -283,6 +284,9 @@ export const upsertTrainerLessonProgress = async (
 	let levelsGained = 0;
 	let streakExtended = false;
 	let newStreak: number | undefined;
+	let questJustCompleted = false;
+	let questStreak: number | undefined;
+	let questPointsReward: number | undefined;
 
 	if (trainingPts > 0) {
 		const earnedXp = xpForAmount(trainingPts);
@@ -321,6 +325,20 @@ export const upsertTrainerLessonProgress = async (
 			streakExtended = streakResult.extended;
 			newStreak = streakResult.streak;
 		}
+
+		// Квест дня — "пройди урок тренажёра" мог только что закрыться
+		// именно этой попыткой (t_lessonProgress уже вставлена строкой
+		// выше, до входа в этот if — getDailyQuestStatus обязан увидеть её
+		// свежей). tCourseId для квеста — t_unit.t_courseId (тема
+		// тренажёра), НЕ linkedCourseId выше (тот — основной курс
+		// задачника, другое понятие).
+		const tCourseId = lesson?.t_unit?.t_courseId;
+		if (tCourseId) {
+			const questStatus = await getDailyQuestStatus(tCourseId);
+			questJustCompleted = questStatus?.justCompleted ?? false;
+			questStreak = questStatus?.streak;
+			questPointsReward = questStatus?.pointsReward;
+		}
 	}
 
 	revalidatePath('/trainer');
@@ -330,7 +348,7 @@ export const upsertTrainerLessonProgress = async (
 
 	const newAchievements = await recalculateAchievements(userId);
 
-	return { leveledUp, newLevel, levelUpGems, levelsGained, newAchievements, streakExtended, newStreak };
+	return { leveledUp, newLevel, levelUpGems, levelsGained, newAchievements, streakExtended, newStreak, questJustCompleted, questStreak, questPointsReward };
 };
 
 

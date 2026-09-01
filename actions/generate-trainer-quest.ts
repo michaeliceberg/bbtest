@@ -68,6 +68,13 @@ export type DailyQuestStatus = {
     trainerDone: boolean;
     taskDone: boolean;
     isCompleted: boolean;
+    // true ТОЛЬКО в тот самый вызов, где completedCount пересёк
+    // DAILY_QUEST_TOTAL (переход false→true) — используется как триггер
+    // модалки-поздравления (components/quest-complete-modal.tsx), а не
+    // isCompleted напрямую, иначе модалка показывалась бы повторно на
+    // КАЖДОМ следующем заходе/действии в тот же день, когда квест уже
+    // давно выполнен.
+    justCompleted: boolean;
     streak: number;
     // Конец дедлайна — не отдельная колонка в БД, а просто конец
     // календарного дня, которому принадлежит quest.date (тот же день,
@@ -173,6 +180,7 @@ export async function getDailyQuestStatus(tCourseId: number): Promise<DailyQuest
         trainerDone,
         taskDone,
         isCompleted,
+        justCompleted: isCompleted && !wasCompleted,
         streak: streakRow?.currentStreak ?? 0,
         dueDateIso: dueDate.toISOString(),
         pointsReward: QUEST_POINT_REWARD,

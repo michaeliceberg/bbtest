@@ -40,6 +40,7 @@ import { TrainerQuestRewardsScreen, QuestRewardsData } from "@/components/traine
 import { useAchievementStore } from "@/store/use-achievement-store"
 import { useStreakCelebrationStore } from "@/store/use-streak-celebration-store"
 import { useLevelUpStore } from "@/store/use-level-up-store"
+import { useQuestCompleteStore } from "@/store/use-quest-complete-store"
 
 // "Горячий вопрос" (questionType 'HOT', см. type-hot.tsx) — факультативный,
 // не входит в счёт/сердечки/работу над ошибками (см. handleAnswer). Везде,
@@ -136,6 +137,7 @@ export default function TQuiz({
   // механики, случайно совпавшее название переменной.
   const triggerDailyStreakToast = useStreakCelebrationStore((state) => state.showStreakCelebration)
   const showLevelUp = useLevelUpStore((state) => state.showLevelUp)
+  const showQuestComplete = useQuestCompleteStore((state) => state.showQuestComplete)
 
   const [streak, setStreak] = useState(0)
   const [effect, setEffect] = useState<StreakEffect | null>(null)
@@ -366,6 +368,13 @@ export default function TQuiz({
         triggerDailyStreakToast(progressResult.newStreak)
       }
       progressResult?.newAchievements?.forEach((ach) => showAchievement(ach))
+      // Квест дня мог закрыться именно этой попыткой (первый из двух
+      // пунктов, "пройди урок тренажёра", или оба разом если "реши
+      // задачу курса" уже был выполнен сегодня раньше) — модалка вместо
+      // тихого тоста, как и при повышении уровня.
+      if (progressResult?.questJustCompleted && progressResult.questStreak) {
+        showQuestComplete(progressResult.questStreak, progressResult.questPointsReward ?? 0)
+      }
       await updateQuestProgress()
 
       // Идеальный результат — mistakeQueue по построению пуст (ни одной
