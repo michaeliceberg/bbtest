@@ -16,11 +16,17 @@ import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { format, differenceInHours, differenceInMinutes } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { Flame, CheckCircle2, Circle, Dumbbell, PenLine, Clock, History, Gift, X } from 'lucide-react';
+import { Flame, CheckCircle2, Circle, Dumbbell, PenLine, Clock, History, Gift, X, PartyPopper } from 'lucide-react';
 import { LOTTIE_QUEST_MASCOT_LIST, getRandomLottie } from '@/src/constants/lottieConstants';
 import FlamyHwDone from '@/public/Lottie/hw/FlamyHwDone.json';
 
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
+
+// Раньше поздравление ("Умничка! Квест выполнен! +1 к стрику · +N очков")
+// жило отдельным блоком внизу карточки — пользователь попросил убрать его
+// оттуда и перенести смысл в шапку (рядом с "Квест дня"), плашкой в цвет
+// огонька стрика, с рандомным словом на каждое монтирование.
+const DONE_WORDS = ['Умничка!', 'Молодец!', 'Красава!'];
 
 type QuestHistoryEntry = {
     date: string;
@@ -66,6 +72,25 @@ export const TrainerQuestCard = ({ trainerDone, taskDone, isCompleted, streak, d
     // useState(() => ...), что уже применяется для похожих случайных
     // анимаций в проекте — SkillTagBadge/StreakCelebrationToast).
     const [inProgressMascot] = useState(() => getRandomLottie(LOTTIE_QUEST_MASCOT_LIST));
+    // Слово выбирается ДЕТЕРМИНИРОВАННО хэшем сырой строки dueDateIso (тот
+    // же пропс, что и дедлайн — идентичен на сервере и клиенте as-is), а
+    // не через Math.random()/useState — карточка сперва рендерится на
+    // сервере (SSR), и если бы каждая сторона выбирала своё случайное
+    // слово независимо, текст почти всегда не совпал бы при гидратации
+    // (React ругается "Text content did not match" — воспроизведено
+    // живьём при первой версии на Math.random()). В отличие от
+    // inProgressMascot, который никогда не попадает в SSR-HTML вообще
+    // (Lottie смонтирован с `dynamic(..., {ssr:false})`), doneWord — это
+    // обычный текст в JSX, обязан совпадать 1-в-1 на обеих сторонах.
+    // Хэш строки, а не `new Date(dueDateIso).getDate()` — важно: тот же
+    // класс SSR/клиент-рассинхрона по часовому поясу, что уже отдельно
+    // обходится чуть ниже для minutesLeft (сервер и браузер пользователя
+    // могут быть в разных TZ, `.getDate()` от одного и того же момента
+    // времени может дать РАЗНЫЙ календарный день) — хэш сырых символов
+    // строки такого разночтения в принципе не допускает.
+    const doneWord = DONE_WORDS[
+        dueDateIso.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % DONE_WORDS.length
+    ];
 
     // Обратный отсчёт до дедлайна — тот же принцип, что уже применяется
     // в streak-risk-banner.tsx/quests.tsx: время суток считается ТОЛЬКО
@@ -85,19 +110,27 @@ export const TrainerQuestCard = ({ trainerDone, taskDone, isCompleted, streak, d
 
     return (
         <div className="rounded-xl border border-[#3A464E] bg-[#151F23] shadow-sm p-4 space-y-4">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2 min-w-0">
                     <div className="w-9 h-9 shrink-0 -my-1">
                         <Lottie animationData={isCompleted ? FlamyHwDone : inProgressMascot} loop autoplay />
                     </div>
-                    <h3 className="font-bold text-[#F2F7FB]">Квест дня</h3>
+                    <h3 className="font-bold text-lg text-[#F2F7FB] truncate">Квест дня</h3>
                 </div>
-                {streak > 0 && (
-                    <div className="flex items-center gap-1 bg-amber-500/15 px-2 py-1 rounded-full">
-                        <Flame className="h-3 w-3 text-amber-500" />
-                        <span className="text-xs font-bold text-amber-400">x{streak}</span>
-                    </div>
-                )}
+                <div className="flex items-center gap-1.5 shrink-0">
+                    {isCompleted && (
+                        <div className="flex items-center gap-1 bg-amber-500/15 px-2 py-1 rounded-full">
+                            <PartyPopper className="h-3 w-3 text-amber-500" />
+                            <span className="text-xs font-bold text-amber-400 whitespace-nowrap">Выполнен! {doneWord}</span>
+                        </div>
+                    )}
+                    {streak > 0 && (
+                        <div className="flex items-center gap-1 bg-amber-500/15 px-2 py-1 rounded-full">
+                            <Flame className="h-3 w-3 text-amber-500" />
+                            <span className="text-xs font-bold text-amber-400">x{streak}</span>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {!isCompleted && deadlineText && (
@@ -114,13 +147,6 @@ export const TrainerQuestCard = ({ trainerDone, taskDone, isCompleted, streak, d
                 <QuestRow icon={Dumbbell} label="Пройди урок тренажёра" done={trainerDone} />
                 <QuestRow icon={PenLine} label="Реши задачу курса" done={taskDone} />
             </div>
-
-            {isCompleted && (
-                <div className="bg-violet-500/10 border border-violet-500/40 rounded-lg p-2 text-center">
-                    <p className="text-sm text-violet-300 font-bold">Умничка! Квест выполнен!</p>
-                    <p className="text-xs text-violet-400/80">+1 к стрику · +{pointsReward} очков</p>
-                </div>
-            )}
 
             {history.length > 0 && (
                 <details className="pt-1">
