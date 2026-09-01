@@ -269,6 +269,14 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                             return so && (so.text.split("::")[1] ?? "") === label
                         })
                         const pairColor = linkedGroups.length === 1 ? groupColor(linkedGroups[0].name) : null
+                        // Формулы (LaTeX, "$...$") — отдельная сущность, не просто
+                        // "короткий текст": длина ИСХОДНОЙ строки (`\sqrt{\frac{3kT}
+                        // {m_0}}`) плохо коррелирует с шириной ОТРИСОВАННОЙ формулы —
+                        // из-за неё формула могла ложно попасть в "длинный текст"
+                        // мельче + попадала под text-left, из-за чего короткая формула
+                        // болталась у левого края кнопки. Формулы всегда крупнее и по
+                        // центру, независимо от isLongText.
+                        const isFormula = label.includes("$")
                         return (
                             <button
                                 key={label}
@@ -276,9 +284,8 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                                 onClick={() => handleOptionClick(label)}
                                 disabled={disabled || revealed || !effectiveActive}
                                 className={cn(
-                                    "group relative flex items-center rounded-xl px-3 py-2.5 text-left",
-                                    isLongText ? "min-h-[44px]" : "min-h-[44px]",
-                                    "border-2 border-solid transition-colors duration-150",
+                                    "group relative flex items-center rounded-xl px-3 border-2 border-solid transition-colors duration-150",
+                                    isFormula ? "justify-center text-center py-3 min-h-[52px]" : "text-left min-h-[44px]",
                                     disabled && "pointer-events-none",
                                 )}
                                 style={{
@@ -288,7 +295,7 @@ export const CharacterChangeChallenge = ({ options, selected, onSelect, status, 
                             >
                                 <span className={cn(
                                     "leading-tight font-semibold",
-                                    isLongText ? "text-[11px] lg:text-xs" : "text-xs lg:text-sm",
+                                    isFormula ? "text-base lg:text-lg" : (isLongText ? "text-[11px] lg:text-xs" : "text-xs lg:text-sm"),
                                     !revealed && pairColor ? "text-[#F2F7FB]" : "text-[#9AA7B0]",
                                 )}>
                                     <Latex>{label}</Latex>
