@@ -34,6 +34,7 @@ import dynamic from "next/dynamic";
 import { ChevronRight } from "lucide-react";
 import { LOTTIE_SKILL_ASK_LIST, getRandomLottie } from "@/src/constants/lottieConstants";
 import { getSkillTier, SKILL_PRACTICING_COLOR, SKILL_READY_GRADIENT, SKILL_READY_BORDER } from "@/lib/skillTier";
+import { detectPanelOrientation, PanelOrientation } from "@/lib/graphPanel";
 
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 
@@ -354,6 +355,33 @@ export const Quiz = ({
             setOptions(randomizeArray);
         }
     }, [challenge?.challengeOptions]);
+
+    // matching-задачи (CONSTRUCT, Unit 10 физики) с композитной картинкой из
+    // N панелей (см. lib/graphPanel.ts) показывают её ВЫРЕЗКАМИ по группам
+    // внутри самого задания (app/lesson/character-change.tsx) — общую
+    // иллюстрацию над условием в этом случае нужно СПРЯТАТЬ, иначе тот же
+    // график будет виден дважды. Считаем один раз здесь (а не внутри
+    // character-change.tsx) — тот же результат нужен ОБОИМ местам рендера
+    // (иллюстрация сверху / вырезки внутри), два независимых распознавания
+    // рисковали бы разъехаться.
+    const characterGroupCountForPanelCheck = challenge?.type === 'CONSTRUCT'
+        ? new Set((challenge.challengeOptions ?? []).map((o) => o.text.split('::')[0])).size
+        : 0
+    const [panelOrientation, setPanelOrientation] = useState<PanelOrientation | null>(null)
+    useEffect(() => {
+        setPanelOrientation(null)
+        const src = challenge?.imageSrc
+        if (challenge?.type !== 'CONSTRUCT' || !src || characterGroupCountForPanelCheck < 2) return
+        let cancelled = false
+        const img = new window.Image()
+        img.onload = () => {
+            if (!cancelled) setPanelOrientation(detectPanelOrientation(img.naturalWidth, img.naturalHeight, characterGroupCountForPanelCheck))
+        }
+        img.src = src
+        return () => { cancelled = true }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [challenge?.type, challenge?.imageSrc, characterGroupCountForPanelCheck])
+    const isGraphPanelMode = panelOrientation !== null
 
     const onNext = () => {
         setAnimationDirection(1);
@@ -745,7 +773,7 @@ export const Quiz = ({
                                 <QuestionBubble
                                     unitColor={unitColor}
                                     question={challenge.question}
-                                    imageSrc={challenge.imageSrc}
+                                    imageSrc={isGraphPanelMode ? undefined : challenge.imageSrc}
                                     pts={challenge.points}
                                     author={challenge.author}
                                     timesDoneWrong={timesDoneWrong}
@@ -783,6 +811,8 @@ export const Quiz = ({
                                 dateLastDone={dateLastDone}
                                 challengeId={challenge.id}
                                 unitColor={unitColor}
+                                imageSrc={challenge.imageSrc}
+                                panelOrientation={panelOrientation}
                             />
                             )}
                         </motion.div>

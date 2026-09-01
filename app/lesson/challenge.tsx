@@ -8,6 +8,7 @@ import { Lock, Calendar, CheckCircle, XCircle } from "lucide-react"
 import { format } from "date-fns"
 import { ru } from "date-fns/locale"
 import { cn } from "@/lib/utils"
+import { PanelOrientation } from "@/lib/graphPanel"
 
 type Props = {
     options: typeof challengeOptions.$inferSelect[]
@@ -24,6 +25,8 @@ type Props = {
     dateLastDone: Date
     challengeId: number
     unitColor?: { button: string; bottom: string }
+    imageSrc?: string | null
+    panelOrientation?: PanelOrientation | null
 }
 
 export const Challenge = ({
@@ -41,6 +44,8 @@ export const Challenge = ({
     dateLastDone,
     challengeId,
     unitColor,
+    imageSrc,
+    panelOrientation,
 }: Props) => {
     const multiSelect = type === "SELECT"
     const isCharacterChange = type === "CONSTRUCT"
@@ -82,6 +87,8 @@ export const Challenge = ({
                         status={status}
                         disabled={disabled}
                         unitColor={unitColor}
+                        imageSrc={imageSrc}
+                        panelOrientation={panelOrientation ?? null}
                     />
                 ) : (
                 <div className={cn("grid gap-2 sm:gap-3", multiSelect ? "grid-cols-1" : "grid-cols-2")}>
