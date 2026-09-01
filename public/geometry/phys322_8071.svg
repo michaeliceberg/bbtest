@@ -17,5 +17,5 @@
 <text x="30.0" y="144.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">0,1</text>
 <line x1="10" y1="50.0" x2="250" y2="50.0" stroke="#3A464E" stroke-width="1"/>
 <text x="30.0" y="54.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">0,2</text>
-<path d="M 40.0,140.0 L 220.0,50.0" fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 40.0,140.0 L 220.0,50.0" fill="none" stroke="#7dd3fc" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

@@ -25,9 +25,9 @@
 <circle cx="60" cy="88" r="2" fill="#F2F7FB"/>
 <text x="23.1" y="93.0" font-family="Georgia, serif"  font-size="15" fill="#F2F7FB" text-anchor="start">2p</text>
 <text x="41.7" y="97.8" font-family="Georgia, serif"  font-size="10.5" fill="#F2F7FB" text-anchor="start">0</text>
-<line x1="60" y1="128" x2="180" y2="88" stroke="#f0a868" stroke-width="2.2"/>
-<line x1="60.0" y1="128.0" x2="120.0" y2="108.0" stroke="#f0a868" stroke-width="2.2" stroke-linecap="round"/>
-<polygon points="120.0,108.0 115.4,113.2 113.1,106.6" fill="#f0a868"/>
-<circle cx="60.0" cy="128.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
-<circle cx="180.0" cy="88.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<line x1="60" y1="128" x2="180" y2="88" stroke="#7dd3fc" stroke-width="2.2"/>
+<line x1="60.0" y1="128.0" x2="120.0" y2="108.0" stroke="#7dd3fc" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="120.0,108.0 115.4,113.2 113.1,106.6" fill="#7dd3fc"/>
+<circle cx="60.0" cy="128.0" r="5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
+<circle cx="180.0" cy="88.0" r="5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
 </svg>

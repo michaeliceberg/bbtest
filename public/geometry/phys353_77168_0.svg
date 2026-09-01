@@ -30,7 +30,7 @@
 <circle cx="154.0" cy="173" r="2" fill="#F2F7FB"/>
 <text x="154.0" y="193.0" font-family="Georgia, serif"  font-weight="normal" font-size="14" fill="#F2F7FB" text-anchor="middle">45</text>
 <text x="212.0" y="179.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="start">t, мин</text>
-<line x1="58" y1="173" x2="166.8" y2="70.6" stroke="#f0a868" stroke-width="2.2"/>
+<line x1="58" y1="173" x2="166.8" y2="70.6" stroke="#7dd3fc" stroke-width="2.2"/>
 <line x1="344" y1="45" x2="472" y2="45" stroke="#3A464E" stroke-width="1"/>
 <line x1="344" y1="77" x2="472" y2="77" stroke="#3A464E" stroke-width="1"/>
 <line x1="344" y1="109" x2="472" y2="109" stroke="#3A464E" stroke-width="1"/>
@@ -61,5 +61,5 @@
 <circle cx="440.0" cy="173" r="2" fill="#F2F7FB"/>
 <text x="440.0" y="193.0" font-family="Georgia, serif"  font-weight="normal" font-size="14" fill="#F2F7FB" text-anchor="middle">45</text>
 <text x="498.0" y="179.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="start">t, мин</text>
-<line x1="344" y1="173" x2="452.8" y2="70.6" stroke="#f0a868" stroke-width="2.2"/>
+<line x1="344" y1="173" x2="452.8" y2="70.6" stroke="#7dd3fc" stroke-width="2.2"/>
 </svg>

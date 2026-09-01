@@ -33,7 +33,7 @@
 <text x="24.8" y="125.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">10</text>
 <text x="24.8" y="85.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">12,5</text>
 <text x="24.8" y="45.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">15</text>
-<path d="M 19.8,121.0 L 259.8,41.0" fill="none" stroke="#f0a868" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="19.8" cy="121.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.2"/>
-<circle cx="259.8" cy="41.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.2"/>
+<path d="M 19.8,121.0 L 259.8,41.0" fill="none" stroke="#7dd3fc" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="19.8" cy="121.0" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
+<circle cx="259.8" cy="41.0" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
 </svg>

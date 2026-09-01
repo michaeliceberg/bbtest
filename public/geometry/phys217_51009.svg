@@ -8,8 +8,8 @@
 <line x1="212" y1="10" x2="212" y2="96" stroke="#3A464E" stroke-width="1"/>
 <line x1="258" y1="10" x2="258" y2="96" stroke="#3A464E" stroke-width="1"/>
 <line x1="304" y1="10" x2="304" y2="96" stroke="#3A464E" stroke-width="1"/>
-<text x="16" y="37.0" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#f0a868">F, Н</text>
-<text x="16" y="79.0" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#f0a868">x, м</text>
+<text x="16" y="37.0" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#7dd3fc">F, Н</text>
+<text x="16" y="79.0" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#7dd3fc">x, м</text>
 <text x="97.0" y="37.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0</text>
 <text x="143.0" y="37.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,5</text>
 <text x="189.0" y="37.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">1</text>

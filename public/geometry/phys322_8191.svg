@@ -7,10 +7,10 @@
 <text x="14.0" y="200.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">0</text>
 <text x="284.0" y="168.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="end">t</text>
 <text x="46.0" y="24.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="start">x</text>
-<path d="M 30.0,180.0 C 32.5,168.3 39.2,126.7 45.0,110.0 C 50.8,93.3 55.8,88.0 65.0,80.0 C 74.2,72.0 87.5,66.0 100.0,62.0 C 112.5,58.0 133.3,57.0 140.0,56.0 " fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M 140.0,56.0 L 285.0,56.0" fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 30.0,180.0 C 32.5,168.3 39.2,126.7 45.0,110.0 C 50.8,93.3 55.8,88.0 65.0,80.0 C 74.2,72.0 87.5,66.0 100.0,62.0 C 112.5,58.0 133.3,57.0 140.0,56.0 " fill="none" stroke="#7dd3fc" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 140.0,56.0 L 285.0,56.0" fill="none" stroke="#7dd3fc" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
 <line x1="140" y1="56" x2="140" y2="180" stroke="#F2F7FB" stroke-width="1" stroke-dasharray="4,3"/>
-<circle cx="140.0" cy="56.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
-<text x="70.0" y="110.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="18" fill="#f0a868" text-anchor="middle">1</text>
-<text x="200.0" y="46.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="18" fill="#f0a868" text-anchor="middle">2</text>
+<circle cx="140.0" cy="56.0" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
+<text x="70.0" y="110.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="18" fill="#7dd3fc" text-anchor="middle">1</text>
+<text x="200.0" y="46.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="18" fill="#7dd3fc" text-anchor="middle">2</text>
 </svg>

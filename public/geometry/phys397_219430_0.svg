@@ -23,7 +23,7 @@
 <text x="100.0" y="268.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">1</text>
 <circle cx="220" cy="248" r="2" fill="#F2F7FB"/>
 <text x="220.0" y="268.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">4</text>
-<line x1="60" y1="208" x2="100" y2="128" stroke="#f0a868" stroke-width="2.2"/>
-<line x1="100" y1="128" x2="220" y2="128" stroke="#f0a868" stroke-width="2.2"/>
-<line x1="220" y1="128" x2="260" y2="68.0" stroke="#f0a868" stroke-width="2.2"/>
+<line x1="60" y1="208" x2="100" y2="128" stroke="#7dd3fc" stroke-width="2.2"/>
+<line x1="100" y1="128" x2="220" y2="128" stroke="#7dd3fc" stroke-width="2.2"/>
+<line x1="220" y1="128" x2="260" y2="68.0" stroke="#7dd3fc" stroke-width="2.2"/>
 </svg>

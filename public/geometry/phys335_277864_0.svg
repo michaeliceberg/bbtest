@@ -22,19 +22,19 @@
 <text x="46.0" y="308.0" font-family="Georgia, serif"  font-weight="normal" font-size="17" fill="#F2F7FB" text-anchor="middle">0</text>
 <text x="44.0" y="30.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="middle">t</text>
 <text x="368.0" y="294.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="start">Q</text>
-<line x1="72.0" y1="248" x2="140" y2="168" stroke="#f0a868" stroke-width="2.2"/>
-<line x1="72.0" y1="248.0" x2="106.0" y2="208.0" stroke="#f0a868" stroke-width="2.2" stroke-linecap="round"/>
-<polygon points="106.0,208.0 104.7,214.9 99.4,210.4" fill="#f0a868"/>
-<line x1="140" y1="168" x2="220" y2="168" stroke="#f0a868" stroke-width="2.2"/>
-<line x1="140.0" y1="168.0" x2="180.0" y2="168.0" stroke="#f0a868" stroke-width="2.2" stroke-linecap="round"/>
-<polygon points="180.0,168.0 173.9,171.5 173.9,164.5" fill="#f0a868"/>
-<line x1="220" y1="168" x2="340" y2="68.0" stroke="#f0a868" stroke-width="2.2"/>
-<line x1="220.0" y1="168.0" x2="280.0" y2="118.0" stroke="#f0a868" stroke-width="2.2" stroke-linecap="round"/>
-<polygon points="280.0,118.0 277.6,124.6 273.1,119.2" fill="#f0a868"/>
-<circle cx="72.0" cy="248.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
-<circle cx="140.0" cy="168.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
-<circle cx="220.0" cy="168.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
-<circle cx="340.0" cy="68.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<line x1="72.0" y1="248" x2="140" y2="168" stroke="#7dd3fc" stroke-width="2.2"/>
+<line x1="72.0" y1="248.0" x2="106.0" y2="208.0" stroke="#7dd3fc" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="106.0,208.0 104.7,214.9 99.4,210.4" fill="#7dd3fc"/>
+<line x1="140" y1="168" x2="220" y2="168" stroke="#7dd3fc" stroke-width="2.2"/>
+<line x1="140.0" y1="168.0" x2="180.0" y2="168.0" stroke="#7dd3fc" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="180.0,168.0 173.9,171.5 173.9,164.5" fill="#7dd3fc"/>
+<line x1="220" y1="168" x2="340" y2="68.0" stroke="#7dd3fc" stroke-width="2.2"/>
+<line x1="220.0" y1="168.0" x2="280.0" y2="118.0" stroke="#7dd3fc" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="280.0,118.0 277.6,124.6 273.1,119.2" fill="#7dd3fc"/>
+<circle cx="72.0" cy="248.0" r="5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
+<circle cx="140.0" cy="168.0" r="5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
+<circle cx="220.0" cy="168.0" r="5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
+<circle cx="340.0" cy="68.0" r="5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
 <line x1="72.0" y1="248" x2="140" y2="208" stroke="#5b9bd5" stroke-width="2.2"/>
 <line x1="72.0" y1="248.0" x2="106.0" y2="228.0" stroke="#5b9bd5" stroke-width="2.2" stroke-linecap="round"/>
 <polygon points="106.0,228.0 102.5,234.1 99.0,228.1" fill="#5b9bd5"/>

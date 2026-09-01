@@ -93,12 +93,12 @@
 <line x1="98.1" y1="144.1" x2="106.8" y2="138.1" stroke="#5A6A72" stroke-width="1"/>
 <line x1="106.8" y1="144.1" x2="115.4" y2="138.1" stroke="#5A6A72" stroke-width="1"/>
 <line x1="115.4" y1="144.1" x2="124.1" y2="138.1" stroke="#5A6A72" stroke-width="1"/>
-<path d="M 452.8,242.0 C 433.4,201.7 389.6,124.7 387.7,137.9 C 365.2,112.0 304.0,34.1 257.8,60.0 C 200.1,59.6 153.9,99.8 127.9,138.5" fill="none" stroke="#f0a868" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="127.8" cy="138.5" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.2"/>
+<path d="M 452.8,242.0 C 433.4,201.7 389.6,124.7 387.7,137.9 C 365.2,112.0 304.0,34.1 257.8,60.0 C 200.1,59.6 153.9,99.8 127.9,138.5" fill="none" stroke="#7dd3fc" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="127.8" cy="138.5" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
 <text x="113.8" y="132.5" font-family="Georgia, serif" font-style="italic" font-size="16" fill="#F2F7FB">A</text>
-<circle cx="387.7" cy="137.9" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.2"/>
+<circle cx="387.7" cy="137.9" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
 <text x="393.7" y="129.9" font-family="Georgia, serif" font-style="italic" font-size="16" fill="#F2F7FB">B</text>
-<circle cx="452.8" cy="242.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.2"/>
+<circle cx="452.8" cy="242.0" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
 <text x="458.8" y="240.0" font-family="Georgia, serif" font-style="italic" font-size="16" fill="#F2F7FB">C</text>
 <line x1="153.9" y1="164.1" x2="153.9" y2="190.0" stroke="#9AA7B0" stroke-width="1.5"/>
 <polygon points="149.9,170.1 157.9,170.1 153.9,164.1" fill="#9AA7B0"/>

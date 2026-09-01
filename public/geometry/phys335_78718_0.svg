@@ -29,19 +29,19 @@
 <text x="36.7" y="253.8" font-family="Georgia, serif" font-style="italic" font-size="10.5" fill="#F2F7FB" text-anchor="start">0</text>
 <text x="18.7" y="129.0" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB" text-anchor="start">4p</text>
 <text x="36.7" y="133.8" font-family="Georgia, serif" font-style="italic" font-size="10.5" fill="#F2F7FB" text-anchor="start">0</text>
-<path d="M 95,124 A 120,120 0 0 1 215,244" fill="none" stroke="#f0a868" stroke-width="2.2"/>
-<line x1="155.0" y1="140.1" x2="186.9" y2="166.9" stroke="#f0a868" stroke-width="2.2" stroke-linecap="round"/>
-<polygon points="186.9,166.9 180.0,165.6 184.5,160.3" fill="#f0a868"/>
-<line x1="215" y1="244" x2="95" y2="244" stroke="#f0a868" stroke-width="2.2"/>
-<line x1="215.0" y1="244.0" x2="155.0" y2="244.0" stroke="#f0a868" stroke-width="2.2" stroke-linecap="round"/>
-<polygon points="155.0,244.0 161.1,240.5 161.1,247.5" fill="#f0a868"/>
-<line x1="95" y1="244" x2="95" y2="124" stroke="#f0a868" stroke-width="2.2"/>
-<line x1="95.0" y1="244.0" x2="95.0" y2="184.0" stroke="#f0a868" stroke-width="2.2" stroke-linecap="round"/>
-<polygon points="95.0,184.0 98.5,190.1 91.5,190.1" fill="#f0a868"/>
-<circle cx="95.0" cy="124.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<path d="M 95,124 A 120,120 0 0 1 215,244" fill="none" stroke="#7dd3fc" stroke-width="2.2"/>
+<line x1="155.0" y1="140.1" x2="186.9" y2="166.9" stroke="#7dd3fc" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="186.9,166.9 180.0,165.6 184.5,160.3" fill="#7dd3fc"/>
+<line x1="215" y1="244" x2="95" y2="244" stroke="#7dd3fc" stroke-width="2.2"/>
+<line x1="215.0" y1="244.0" x2="155.0" y2="244.0" stroke="#7dd3fc" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="155.0,244.0 161.1,240.5 161.1,247.5" fill="#7dd3fc"/>
+<line x1="95" y1="244" x2="95" y2="124" stroke="#7dd3fc" stroke-width="2.2"/>
+<line x1="95.0" y1="244.0" x2="95.0" y2="184.0" stroke="#7dd3fc" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="95.0,184.0 98.5,190.1 91.5,190.1" fill="#7dd3fc"/>
+<circle cx="95.0" cy="124.0" r="5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
 <text x="81.0" y="138.0" font-family="Georgia, serif"  font-weight="normal" font-size="19" fill="#F2F7FB" text-anchor="middle">1</text>
-<circle cx="215.0" cy="244.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<circle cx="215.0" cy="244.0" r="5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
 <text x="225.0" y="250.0" font-family="Georgia, serif"  font-weight="normal" font-size="19" fill="#F2F7FB" text-anchor="middle">2</text>
-<circle cx="95.0" cy="244.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<circle cx="95.0" cy="244.0" r="5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
 <text x="105.0" y="238.0" font-family="Georgia, serif"  font-weight="normal" font-size="19" fill="#F2F7FB" text-anchor="middle">3</text>
 </svg>

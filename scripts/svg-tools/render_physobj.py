@@ -17,16 +17,20 @@ def finish(svg):
     return '\n'.join(svg)
 
 def hatch_line(x1, y1, x2, y2, n=10, length=10, side=1):
-    # surface with hatching (ground/wall)
+    # surface with hatching (ground/wall) — косая штриховка (45° между
+    # линией поверхности и нормалью к ней), стандартное обозначение
+    # неподвижной опоры в физике, а не "гребёнка" строго поперёк линии
+    # (та читалась как деления шкалы, а не как штриховка).
     out = [f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{SURFACE}" stroke-width="2.5"/>']
     dx, dy = x2-x1, y2-y1
     dl = math.hypot(dx,dy)
     ux,uy = dx/dl, dy/dl
     nx,ny = -uy*side, ux*side
+    hx, hy = (ux+nx)/math.sqrt(2), (uy+ny)/math.sqrt(2)
     for i in range(n+1):
         px = x1 + dx*i/n
         py = y1 + dy*i/n
-        out.append(f'<line x1="{px:.1f}" y1="{py:.1f}" x2="{px+nx*length:.1f}" y2="{py+ny*length:.1f}" stroke="{SURFACE}" stroke-width="1.3"/>')
+        out.append(f'<line x1="{px:.1f}" y1="{py:.1f}" x2="{px+hx*length:.1f}" y2="{py+hy*length:.1f}" stroke="{SURFACE}" stroke-width="1.3"/>')
     return out
 
 def block(cx, cy, w, h, label=None, fill=ACCENT):

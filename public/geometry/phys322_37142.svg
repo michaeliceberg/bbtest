@@ -7,13 +7,13 @@
 <text x="14.0" y="240.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">0</text>
 <text x="334.0" y="208.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="end">t</text>
 <text x="46.0" y="24.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="start">x</text>
-<path d="M 30.0,80.0 C 37.5,84.2 55.0,114.2 75.0,105.0 C 95.0,95.8 126.7,17.5 150.0,25.0 C 173.3,32.5 198.3,123.3 215.0,150.0 C 231.7,176.7 238.3,179.2 250.0,185.0 C 261.7,190.8 273.3,195.8 285.0,185.0 C 296.7,174.2 314.2,130.8 320.0,120.0 " fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="75.0" cy="105.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<path d="M 30.0,80.0 C 37.5,84.2 55.0,114.2 75.0,105.0 C 95.0,95.8 126.7,17.5 150.0,25.0 C 173.3,32.5 198.3,123.3 215.0,150.0 C 231.7,176.7 238.3,179.2 250.0,185.0 C 261.7,190.8 273.3,195.8 285.0,185.0 C 296.7,174.2 314.2,130.8 320.0,120.0 " fill="none" stroke="#7dd3fc" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="75.0" cy="105.0" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
 <text x="80.0" y="135.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="17" fill="#F2F7FB" text-anchor="middle">A</text>
-<circle cx="150.0" cy="25.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<circle cx="150.0" cy="25.0" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
 <text x="150.0" y="11.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="17" fill="#F2F7FB" text-anchor="middle">B</text>
-<circle cx="250.0" cy="185.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<circle cx="250.0" cy="185.0" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
 <text x="244.0" y="211.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="17" fill="#F2F7FB" text-anchor="middle">C</text>
-<circle cx="285.0" cy="185.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<circle cx="285.0" cy="185.0" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
 <text x="295.0" y="211.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="17" fill="#F2F7FB" text-anchor="middle">D</text>
 </svg>

@@ -30,9 +30,9 @@
 <text x="43.0" y="209.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">40</text>
 <circle cx="55" cy="164" r="2" fill="#F2F7FB"/>
 <text x="43.0" y="169.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="end">60</text>
-<path d="M 55.0,244.0 L 64.2,243.2 L 73.3,241.2 L 82.5,238.2 L 91.7,234.3 L 100.8,229.6 L 110.0,223.9 L 119.2,217.5 L 128.3,210.3 L 137.5,202.4 L 146.7,193.7 L 155.8,184.3 L 165.0,174.2 L 174.2,163.3 L 183.3,151.8 L 192.5,139.6 L 201.7,126.8 L 210.8,113.3 L 220.0,99.1 L 229.2,84.3 L 238.3,68.8 L 247.5,52.7 L 256.7,36.0 L 265.8,18.7 L 275.0,0.8" fill="none" stroke="#f0a868" stroke-width="2.2"/>
-<circle cx="167.0" cy="188.0" r="4" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<path d="M 55.0,244.0 L 64.2,243.2 L 73.3,241.2 L 82.5,238.2 L 91.7,234.3 L 100.8,229.6 L 110.0,223.9 L 119.2,217.5 L 128.3,210.3 L 137.5,202.4 L 146.7,193.7 L 155.8,184.3 L 165.0,174.2 L 174.2,163.3 L 183.3,151.8 L 192.5,139.6 L 201.7,126.8 L 210.8,113.3 L 220.0,99.1 L 229.2,84.3 L 238.3,68.8 L 247.5,52.7 L 256.7,36.0 L 265.8,18.7 L 275.0,0.8" fill="none" stroke="#7dd3fc" stroke-width="2.2"/>
+<circle cx="167.0" cy="188.0" r="4" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
 <text x="177.0" y="184.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="18" fill="#F2F7FB" text-anchor="middle">A</text>
-<circle cx="115.0" cy="232.0" r="4" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<circle cx="115.0" cy="232.0" r="4" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
 <text x="125.0" y="228.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="18" fill="#F2F7FB" text-anchor="middle">B</text>
 </svg>

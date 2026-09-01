@@ -25,10 +25,10 @@
 <text x="23.0" y="173.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">-5</text>
 <text x="23.0" y="93.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">5</text>
 <text x="23.0" y="53.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">10</text>
-<path d="M 18.0,81.0 L 58.0,161.0 L 98.0,161.0 L 178.0,81.0 L 218.0,49.0" fill="none" stroke="#f0a868" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="18.0" cy="81.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.2"/>
-<circle cx="58.0" cy="161.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.2"/>
-<circle cx="98.0" cy="161.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.2"/>
-<circle cx="178.0" cy="81.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.2"/>
-<circle cx="218.0" cy="49.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.2"/>
+<path d="M 18.0,81.0 L 58.0,161.0 L 98.0,161.0 L 178.0,81.0 L 218.0,49.0" fill="none" stroke="#7dd3fc" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="18.0" cy="81.0" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
+<circle cx="58.0" cy="161.0" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
+<circle cx="98.0" cy="161.0" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
+<circle cx="178.0" cy="81.0" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
+<circle cx="218.0" cy="49.0" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
 </svg>

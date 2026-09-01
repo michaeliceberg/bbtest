@@ -11,35 +11,35 @@
 <line x1="226" y1="10" x2="226" y2="212" stroke="#3A464E" stroke-width="1"/>
 <line x1="278" y1="10" x2="278" y2="212" stroke="#3A464E" stroke-width="1"/>
 <line x1="330" y1="10" x2="330" y2="212" stroke="#3A464E" stroke-width="1"/>
-<text x="14.0" y="35.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#f0a868">t, с</text>
+<text x="14.0" y="35.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#7dd3fc">t, с</text>
 <text x="96.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0</text>
 <text x="148.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">1</text>
 <text x="200.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">2</text>
 <text x="252.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">3</text>
 <text x="304.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">4</text>
 <text x="356.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">5</text>
-<text x="14.0" y="75.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#f0a868">x</text><text x="22.8" y="79.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="10.8" fill="#f0a868">1</text><text x="30.7" y="75.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#f0a868">, м</text>
+<text x="14.0" y="75.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#7dd3fc">x</text><text x="22.8" y="79.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="10.8" fill="#7dd3fc">1</text><text x="30.7" y="75.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#7dd3fc">, м</text>
 <text x="96.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0</text>
 <text x="148.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">2</text>
 <text x="200.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">4</text>
 <text x="252.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">6</text>
 <text x="304.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">8</text>
 <text x="356.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">10</text>
-<text x="14.0" y="115.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#f0a868">x</text><text x="22.8" y="119.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="10.8" fill="#f0a868">2</text><text x="30.7" y="115.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#f0a868">, м</text>
+<text x="14.0" y="115.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#7dd3fc">x</text><text x="22.8" y="119.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="10.8" fill="#7dd3fc">2</text><text x="30.7" y="115.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#7dd3fc">, м</text>
 <text x="96.0" y="115.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0</text>
 <text x="148.0" y="115.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">1</text>
 <text x="200.0" y="115.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">3</text>
 <text x="252.0" y="115.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">3</text>
 <text x="304.0" y="115.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">3</text>
 <text x="356.0" y="115.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">3</text>
-<text x="14.0" y="155.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#f0a868">x</text><text x="22.8" y="159.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="10.8" fill="#f0a868">3</text><text x="30.7" y="155.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#f0a868">, м</text>
+<text x="14.0" y="155.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#7dd3fc">x</text><text x="22.8" y="159.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="10.8" fill="#7dd3fc">3</text><text x="30.7" y="155.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#7dd3fc">, м</text>
 <text x="96.0" y="155.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0</text>
 <text x="148.0" y="155.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">1</text>
 <text x="200.0" y="155.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">4</text>
 <text x="252.0" y="155.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">9</text>
 <text x="304.0" y="155.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">16</text>
 <text x="356.0" y="155.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">25</text>
-<text x="14.0" y="195.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#f0a868">x</text><text x="22.8" y="199.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="10.8" fill="#f0a868">4</text><text x="30.7" y="195.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#f0a868">, м</text>
+<text x="14.0" y="195.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#7dd3fc">x</text><text x="22.8" y="199.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="10.8" fill="#7dd3fc">4</text><text x="30.7" y="195.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#7dd3fc">, м</text>
 <text x="96.0" y="195.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0</text>
 <text x="148.0" y="195.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">2</text>
 <text x="200.0" y="195.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0</text>

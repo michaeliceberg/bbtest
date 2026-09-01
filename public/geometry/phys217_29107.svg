@@ -42,9 +42,9 @@
 <line x1="238.0" y1="108.0" x2="240.0" y2="100.0" stroke="#5A6A72" stroke-width="1"/>
 <path d="M 30.0,78.0 L 35.0,69.0 L 45.0,87.0 L 55.0,69.0 L 65.0,87.0 L 75.0,69.0 L 85.0,87.0 L 95.0,69.0 L 100.0,78.0" fill="none" stroke="#9AA7B0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 <text x="59.0" y="60.0" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">k</text>
-<rect x="100.0" y="66.0" width="46" height="34" rx="3" fill="#f0a86840" stroke="#f0a868" stroke-width="2"/>
+<rect x="100.0" y="66.0" width="46" height="34" rx="3" fill="#7dd3fc40" stroke="#7dd3fc" stroke-width="2"/>
 <text x="117.0" y="58.0" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">m</text>
-<line x1="152.0" y1="83.0" x2="198.0" y2="83.0" stroke="#f0a868" stroke-width="2.4"/>
-<polygon points="190.0,78.0 190.0,88.0 200.0,83.0" fill="#f0a868"/>
+<line x1="152.0" y1="83.0" x2="198.0" y2="83.0" stroke="#7dd3fc" stroke-width="2.4"/>
+<polygon points="190.0,78.0 190.0,88.0 200.0,83.0" fill="#7dd3fc"/>
 <text x="204.0" y="75.0" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">F</text>
 </svg>

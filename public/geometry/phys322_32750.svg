@@ -10,7 +10,7 @@
 <line x1="376" y1="10" x2="376" y2="92" stroke="#3A464E" stroke-width="1"/>
 <line x1="428" y1="10" x2="428" y2="92" stroke="#3A464E" stroke-width="1"/>
 <line x1="480" y1="10" x2="480" y2="92" stroke="#3A464E" stroke-width="1"/>
-<text x="14.0" y="35.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#f0a868">\Delta x, см</text>
+<text x="14.0" y="35.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#7dd3fc">\Delta x, см</text>
 <text x="142.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">1,0</text>
 <text x="194.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">2,0</text>
 <text x="246.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">3,0</text>
@@ -19,7 +19,7 @@
 <text x="402.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">6,0</text>
 <text x="454.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">7,0</text>
 <text x="506.0" y="35.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">8,0</text>
-<text x="14.0" y="75.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#f0a868">v , м/с</text>
+<text x="14.0" y="75.0" text-anchor="start" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#7dd3fc">v , м/с</text>
 <text x="142.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,365</text>
 <text x="194.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">0,894</text>
 <text x="246.0" y="75.0" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#F2F7FB">1,414</text>

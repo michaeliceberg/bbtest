@@ -31,9 +31,9 @@
 <line x1="55" y1="124" x2="55" y2="204" stroke="#3A464E" stroke-width="1" stroke-dasharray="3,3"/>
 <line x1="55" y1="44" x2="135" y2="44" stroke="#3A464E" stroke-width="1" stroke-dasharray="3,3"/>
 <line x1="135" y1="44" x2="135" y2="204" stroke="#3A464E" stroke-width="1" stroke-dasharray="3,3"/>
-<line x1="55" y1="124" x2="135" y2="44" stroke="#f0a868" stroke-width="2.2"/>
-<circle cx="55.0" cy="124.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
-<circle cx="135.0" cy="44.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<line x1="55" y1="124" x2="135" y2="44" stroke="#7dd3fc" stroke-width="2.2"/>
+<circle cx="55.0" cy="124.0" r="5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
+<circle cx="135.0" cy="44.0" r="5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
 <text x="41.0" y="114.0" font-family="Georgia, serif"  font-weight="normal" font-size="20" fill="#F2F7FB" text-anchor="middle">1</text>
 <text x="147.0" y="34.0" font-family="Georgia, serif"  font-weight="normal" font-size="20" fill="#F2F7FB" text-anchor="middle">2</text>
 </svg>

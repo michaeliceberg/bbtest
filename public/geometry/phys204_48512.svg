@@ -37,10 +37,10 @@
 <text x="26.0" y="105.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">10</text>
 <text x="26.0" y="65.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">12,5</text>
 <text x="26.0" y="25.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">15</text>
-<path d="M 21.0,133.0 L 101.0,261.0 L 181.0,69.0 L 221.0,261.0 L 261.0,229.0" fill="none" stroke="#f0a868" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="21.0" cy="133.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.2"/>
-<circle cx="101.0" cy="261.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.2"/>
-<circle cx="181.0" cy="69.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.2"/>
-<circle cx="221.0" cy="261.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.2"/>
-<circle cx="261.0" cy="229.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.2"/>
+<path d="M 21.0,133.0 L 101.0,261.0 L 181.0,69.0 L 221.0,261.0 L 261.0,229.0" fill="none" stroke="#7dd3fc" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="21.0" cy="133.0" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
+<circle cx="101.0" cy="261.0" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
+<circle cx="181.0" cy="69.0" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
+<circle cx="221.0" cy="261.0" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
+<circle cx="261.0" cy="229.0" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
 </svg>

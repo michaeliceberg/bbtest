@@ -7,9 +7,9 @@
 <text x="24.0" y="170.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">0</text>
 <text x="284.0" y="138.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="end">t</text>
 <text x="56.0" y="24.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="start">V</text>
-<path d="M 40.0,150.0 L 130.0,150.0" fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M 130.0,150.0 L 190.0,60.0" fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M 190.0,60.0 L 280.0,60.0" fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 40.0,150.0 L 130.0,150.0" fill="none" stroke="#7dd3fc" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 130.0,150.0 L 190.0,60.0" fill="none" stroke="#7dd3fc" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 190.0,60.0 L 280.0,60.0" fill="none" stroke="#7dd3fc" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
 <line x1="130" y1="150" x2="130" y2="210" stroke="#F2F7FB" stroke-width="1" stroke-dasharray="4,3"/>
 <line x1="190" y1="150" x2="190" y2="210" stroke="#F2F7FB" stroke-width="1" stroke-dasharray="4,3"/>
 <text x="124.0" y="176.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="start">t</text>

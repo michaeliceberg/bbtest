@@ -21,9 +21,9 @@
 <text x="100.0" y="228.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">200</text>
 <circle cx="180" cy="208" r="2" fill="#F2F7FB"/>
 <text x="180.0" y="228.0" font-family="Georgia, serif"  font-weight="normal" font-size="15" fill="#F2F7FB" text-anchor="middle">600</text>
-<line x1="60" y1="208" x2="180" y2="88" stroke="#f0a868" stroke-width="2.2"/>
-<circle cx="100.0" cy="168.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
-<circle cx="180.0" cy="88.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<line x1="60" y1="208" x2="180" y2="88" stroke="#7dd3fc" stroke-width="2.2"/>
+<circle cx="100.0" cy="168.0" r="5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
+<circle cx="180.0" cy="88.0" r="5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
 <text x="86.0" y="162.0" font-family="Georgia, serif"  font-weight="normal" font-size="20" fill="#F2F7FB" text-anchor="middle">1</text>
 <text x="192.0" y="82.0" font-family="Georgia, serif"  font-weight="normal" font-size="20" fill="#F2F7FB" text-anchor="middle">2</text>
 </svg>

@@ -19,8 +19,8 @@
 <text x="30.0" y="94.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">5</text>
 <line x1="10" y1="70.0" x2="290" y2="70.0" stroke="#3A464E" stroke-width="1"/>
 <text x="30.0" y="74.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">6</text>
-<path d="M 40.0,70.0 L 200.0,150.0" fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M 40.0,130.0 L 200.0,90.0" fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="160.0" y="126.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#f0a868" text-anchor="middle">B</text>
-<text x="160.0" y="90.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#f0a868" text-anchor="middle">A</text>
+<path d="M 40.0,70.0 L 200.0,150.0" fill="none" stroke="#7dd3fc" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 40.0,130.0 L 200.0,90.0" fill="none" stroke="#7dd3fc" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="160.0" y="126.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#7dd3fc" text-anchor="middle">B</text>
+<text x="160.0" y="90.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#7dd3fc" text-anchor="middle">A</text>
 </svg>

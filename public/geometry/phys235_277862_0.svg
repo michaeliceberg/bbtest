@@ -28,9 +28,9 @@
 <line x1="95" y1="164" x2="95" y2="204" stroke="#3A464E" stroke-width="1" stroke-dasharray="3,3"/>
 <line x1="55" y1="84" x2="135" y2="84" stroke="#3A464E" stroke-width="1" stroke-dasharray="3,3"/>
 <line x1="135" y1="84" x2="135" y2="204" stroke="#3A464E" stroke-width="1" stroke-dasharray="3,3"/>
-<line x1="95" y1="164" x2="135" y2="84" stroke="#f0a868" stroke-width="2.2"/>
-<circle cx="95.0" cy="164.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
-<circle cx="135.0" cy="84.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<line x1="95" y1="164" x2="135" y2="84" stroke="#7dd3fc" stroke-width="2.2"/>
+<circle cx="95.0" cy="164.0" r="5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
+<circle cx="135.0" cy="84.0" r="5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
 <text x="81.0" y="154.0" font-family="Georgia, serif"  font-weight="normal" font-size="20" fill="#F2F7FB" text-anchor="middle">1</text>
 <text x="147.0" y="74.0" font-family="Georgia, serif"  font-weight="normal" font-size="20" fill="#F2F7FB" text-anchor="middle">2</text>
 </svg>

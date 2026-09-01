@@ -19,6 +19,6 @@
 <text x="30.0" y="104.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">2</text>
 <line x1="10" y1="40.0" x2="250" y2="40.0" stroke="#3A464E" stroke-width="1"/>
 <text x="30.0" y="44.0" font-family="Georgia, serif"  font-weight="normal" font-size="12" fill="#F2F7FB" text-anchor="end">4</text>
-<path d="M 40.0,40.0 L 110.0,40.0" fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M 110.0,40.0 C 115.8,44.0 135.7,53.0 145.0,64.0 C 154.3,75.0 160.2,90.0 166.0,106.0 C 171.8,122.0 177.7,151.0 180.0,160.0 " fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 40.0,40.0 L 110.0,40.0" fill="none" stroke="#7dd3fc" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 110.0,40.0 C 115.8,44.0 135.7,53.0 145.0,64.0 C 154.3,75.0 160.2,90.0 166.0,106.0 C 171.8,122.0 177.7,151.0 180.0,160.0 " fill="none" stroke="#7dd3fc" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

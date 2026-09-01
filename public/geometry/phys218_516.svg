@@ -6,9 +6,9 @@
 <text x="146.0" y="124.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="17" fill="#F2F7FB" text-anchor="middle">l</text>
 <text x="318.0" y="130.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="17" fill="#F2F7FB" text-anchor="middle">h</text>
 <g transform="translate(258.0,60.0) rotate(-35.5)">
-<rect x="-23.0" y="-29.0" width="46" height="30" fill="#f0a868" fill-opacity="0.25" stroke="#f0a868" stroke-width="2.2" rx="3"/>
+<rect x="-23.0" y="-29.0" width="46" height="30" fill="#7dd3fc" fill-opacity="0.25" stroke="#7dd3fc" stroke-width="2.2" rx="3"/>
 </g>
-<line x1="258.0" y1="44.0" x2="184.8" y2="96.3" stroke="#f0a868" stroke-width="2.6" stroke-linecap="round"/>
-<polygon points="184.8,96.3 188.5,88.1 193.7,95.4" fill="#f0a868"/>
-<text x="173.8" y="98.2" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="14" fill="#f0a868">F</text>
+<line x1="258.0" y1="44.0" x2="184.8" y2="96.3" stroke="#7dd3fc" stroke-width="2.6" stroke-linecap="round"/>
+<polygon points="184.8,96.3 188.5,88.1 193.7,95.4" fill="#7dd3fc"/>
+<text x="173.8" y="98.2" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="14" fill="#7dd3fc">F</text>
 </svg>

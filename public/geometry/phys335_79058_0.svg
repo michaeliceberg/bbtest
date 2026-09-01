@@ -17,12 +17,12 @@
 <text x="46.0" y="228.0" font-family="Georgia, serif"  font-weight="normal" font-size="17" fill="#F2F7FB" text-anchor="middle">0</text>
 <text x="44.0" y="30.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="middle">V</text>
 <text x="248.0" y="214.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="start">T</text>
-<line x1="100" y1="168" x2="132.0" y2="88" stroke="#f0a868" stroke-width="2.2"/>
-<line x1="100.0" y1="168.0" x2="116.0" y2="128.0" stroke="#f0a868" stroke-width="2.2" stroke-linecap="round"/>
-<polygon points="116.0,128.0 117.0,134.9 110.5,132.3" fill="#f0a868"/>
-<circle cx="100.0" cy="168.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<line x1="100" y1="168" x2="132.0" y2="88" stroke="#7dd3fc" stroke-width="2.2"/>
+<line x1="100.0" y1="168.0" x2="116.0" y2="128.0" stroke="#7dd3fc" stroke-width="2.2" stroke-linecap="round"/>
+<polygon points="116.0,128.0 117.0,134.9 110.5,132.3" fill="#7dd3fc"/>
+<circle cx="100.0" cy="168.0" r="5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
 <text x="88.0" y="158.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="17" fill="#F2F7FB" text-anchor="middle">A</text>
-<circle cx="132.0" cy="88.0" r="5" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
+<circle cx="132.0" cy="88.0" r="5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
 <text x="120.0" y="78.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="17" fill="#F2F7FB" text-anchor="middle">A'</text>
 <line x1="132.0" y1="168" x2="180" y2="88" stroke="#5b9bd5" stroke-width="2.2"/>
 <line x1="132.0" y1="168.0" x2="156.0" y2="128.0" stroke="#5b9bd5" stroke-width="2.2" stroke-linecap="round"/>

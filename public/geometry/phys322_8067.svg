@@ -30,9 +30,9 @@
 <text x="324.0" y="238.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="end">t</text>
 <text x="56.0" y="24.0" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="16" fill="#F2F7FB" text-anchor="start">E</text>
 <text x="65.8" y="28.5" font-family="Georgia, serif" font-style="italic" font-weight="normal" font-size="11.2" fill="#F2F7FB" text-anchor="start">к</text>
-<path d="M 40.0,60.0 C 55.0,86.7 100.0,215.0 130.0,220.0 C 160.0,225.0 200.0,116.7 220.0,90.0 C 240.0,63.3 245.0,65.0 250.0,60.0 " fill="none" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 40.0,60.0 C 55.0,86.7 100.0,215.0 130.0,220.0 C 160.0,225.0 200.0,116.7 220.0,90.0 C 240.0,63.3 245.0,65.0 250.0,60.0 " fill="none" stroke="#7dd3fc" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
 <line x1="250" y1="60" x2="250" y2="190" stroke="#F2F7FB" stroke-width="1.6" stroke-dasharray="5,4"/>
-<circle cx="250.0" cy="60.0" r="4" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
-<circle cx="250.0" cy="190.0" r="4" fill="#f0a868" stroke="#0369a1" stroke-width="1.5"/>
-<line x1="250" y1="190" x2="325" y2="190" stroke="#f0a868" stroke-width="2.4" stroke-linecap="round"/>
+<circle cx="250.0" cy="60.0" r="4" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
+<circle cx="250.0" cy="190.0" r="4" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.5"/>
+<line x1="250" y1="190" x2="325" y2="190" stroke="#7dd3fc" stroke-width="2.4" stroke-linecap="round"/>
 </svg>

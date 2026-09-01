@@ -29,7 +29,7 @@
 <text x="22.6" y="105.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">2</text>
 <text x="22.6" y="65.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">3</text>
 <text x="22.6" y="25.0" font-family="Georgia, serif" font-style="italic" font-size="11" fill="#F2F7FB">4</text>
-<path d="M 17.6,181.0 L 209.6,61.0" fill="none" stroke="#f0a868" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="17.6" cy="181.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.2"/>
-<circle cx="209.6" cy="61.0" r="3.5" fill="#f0a868" stroke="#0369a1" stroke-width="1.2"/>
+<path d="M 17.6,181.0 L 209.6,61.0" fill="none" stroke="#7dd3fc" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="17.6" cy="181.0" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
+<circle cx="209.6" cy="61.0" r="3.5" fill="#7dd3fc" stroke="#0369a1" stroke-width="1.2"/>
 </svg>

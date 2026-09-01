@@ -23,14 +23,14 @@
 <line x1="0" y1="140" x2="240" y2="140" stroke="#2A343B" stroke-width="1"/>
 <line x1="0" y1="160" x2="240" y2="160" stroke="#2A343B" stroke-width="1"/>
 <line x1="0" y1="180" x2="240" y2="180" stroke="#2A343B" stroke-width="1"/>
-<line x1="110.0" y1="90.0" x2="110.0" y2="59.0" stroke="#f0a868" stroke-width="2.6" stroke-linecap="round"/>
-<polygon points="110.0,50.0 115.5,59.0 104.5,59.0" fill="#f0a868"/>
-<text x="110.0" y="34.0" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="13" fill="#f0a868" text-anchor="middle">F₁</text>
-<line x1="110.0" y1="90.0" x2="161.0" y2="90.0" stroke="#f0a868" stroke-width="2.6" stroke-linecap="round"/>
-<polygon points="170.0,90.0 161.0,95.5 161.0,84.5" fill="#f0a868"/>
-<text x="186.0" y="90.0" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="13" fill="#f0a868" text-anchor="start">F₂</text>
-<line x1="110.0" y1="90.0" x2="110.0" y2="101.0" stroke="#f0a868" stroke-width="2.6" stroke-linecap="round"/>
-<polygon points="110.0,110.0 104.5,101.0 115.5,101.0" fill="#f0a868"/>
-<text x="110.0" y="132.0" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="13" fill="#f0a868" text-anchor="middle">F₃</text>
-<circle cx="110" cy="90" r="3.5" fill="#f0a868"/>
+<line x1="110.0" y1="90.0" x2="110.0" y2="59.0" stroke="#7dd3fc" stroke-width="2.6" stroke-linecap="round"/>
+<polygon points="110.0,50.0 115.5,59.0 104.5,59.0" fill="#7dd3fc"/>
+<text x="110.0" y="34.0" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="13" fill="#7dd3fc" text-anchor="middle">F₁</text>
+<line x1="110.0" y1="90.0" x2="161.0" y2="90.0" stroke="#7dd3fc" stroke-width="2.6" stroke-linecap="round"/>
+<polygon points="170.0,90.0 161.0,95.5 161.0,84.5" fill="#7dd3fc"/>
+<text x="186.0" y="90.0" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="13" fill="#7dd3fc" text-anchor="start">F₂</text>
+<line x1="110.0" y1="90.0" x2="110.0" y2="101.0" stroke="#7dd3fc" stroke-width="2.6" stroke-linecap="round"/>
+<polygon points="110.0,110.0 104.5,101.0 115.5,101.0" fill="#7dd3fc"/>
+<text x="110.0" y="132.0" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="13" fill="#7dd3fc" text-anchor="middle">F₃</text>
+<circle cx="110" cy="90" r="3.5" fill="#7dd3fc"/>
 </svg>
