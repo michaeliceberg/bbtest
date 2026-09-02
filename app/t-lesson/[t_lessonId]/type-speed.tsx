@@ -30,6 +30,38 @@ const BURN_DIGITS: Record<number, object> = { 5: burn5, 4: burn4, 3: burn3, 2: b
 const START_SECONDS = 5
 const RESULT_DELAY_MS = 700
 
+// Цветовая раскладка условия — по прямой просьбе пользователя ("8
+// зелёное × 2 красное"): первый операнд зелёный, второй — красный (та же
+// пара, что уже используют "верно"/"неверно" в приложении, но здесь это
+// чисто декоративная раскраска условия, не индикатор правильности — по
+// контексту, ДО выбора ответа, спутать не с чем). Оператор/степень —
+// нейтральный светлый, чтобы не перегружать цветом. Варианты ответа —
+// фиолетовый акцент (тот же, что уже красит заголовки вопросов в
+// trainer-question.tsx).
+const GREEN = '#A1D151'
+const RED = '#DC605B'
+const PURPLE = '#C386F8'
+
+function buildColoredQuestion(raw: string): string {
+    const stripped = raw.trim().replace(/^\$/, '').replace(/\$$/, '')
+
+    const timesMatch = stripped.match(/^(\d+)\s*\\times\s*(\d+)$/)
+    if (timesMatch) {
+        const [, a, b] = timesMatch
+        return `$\\textcolor{${GREEN}}{${a}} \\times \\textcolor{${RED}}{${b}}$`
+    }
+
+    const squareMatch = stripped.match(/^(\d+)\^(\d+)$/)
+    if (squareMatch) {
+        const [, base, exp] = squareMatch
+        return `$\\textcolor{${GREEN}}{${base}}^{\\textcolor{${RED}}{${exp}}}$`
+    }
+
+    // Незнакомый формат условия — показываем как есть, без раскраски,
+    // а не пытаемся угадать структуру.
+    return raw
+}
+
 type Props = {
     question: QuestionType
     onAnswer: (answer: string) => void
@@ -78,13 +110,18 @@ export const TypeSpeed = ({ question, onAnswer }: Props) => {
     }
 
     const isOddCount = question.options.length % 2 === 1
+    const coloredQuestion = buildColoredQuestion(question.question)
 
     return (
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center gap-6">
             <div className="h-14 flex items-center justify-center">
                 {phase === 'answering' && timeLeft in BURN_DIGITS && (
                     <Lottie animationData={BURN_DIGITS[timeLeft]} className="w-14 h-14" loop={false} />
                 )}
+            </div>
+
+            <div className="text-5xl md:text-6xl font-black tracking-wide">
+                <Latex>{coloredQuestion}</Latex>
             </div>
 
             <div className={cn('grid gap-3 w-full', isOddCount ? 'grid-cols-1' : 'grid-cols-2')}>
@@ -99,15 +136,16 @@ export const TypeSpeed = ({ question, onAnswer }: Props) => {
                             onClick={() => handleClick(option)}
                             disabled={phase !== 'answering'}
                             className={cn(
-                                'py-3 px-3 rounded-xl border-2 border-b-4 font-bold text-lg transition-colors',
+                                'py-4 px-3 rounded-xl border-2 border-b-4 font-black text-2xl md:text-3xl transition-colors',
                                 phase === 'result'
                                     ? isCorrectOption
                                         ? 'bg-[#A1D151] border-[#78C93C] text-[#151F24]'
                                         : isSelected
                                             ? 'bg-[#DC605B] border-[#B94944] text-white'
                                             : 'bg-[#161F23] border-[#3A464E] text-[#5A6A72] opacity-60'
-                                    : 'bg-[#161F23] border-[#3A464E] text-[#F2F7FB] hover:bg-[#232F34] active:border-b-2'
+                                    : 'bg-[#161F23] border-[#3A464E] hover:bg-[#232F34] active:border-b-2'
                             )}
+                            style={phase !== 'result' ? { color: PURPLE } : undefined}
                         >
                             <Latex>{option}</Latex>
                         </button>

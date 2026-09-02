@@ -206,10 +206,13 @@ export default function TrainerQuestion({
     // Сначала рендерим заголовок вопроса (если нужно)
 
     const renderQuestionHeader = () => {
-      // Для SWIPE типа не показываем заголовок вопроса, так как он уже внутри карточки
+      // Для SWIPE типа не показываем заголовок вопроса, так как он уже внутри карточки.
+      // SPEED тоже сам рисует условие (крупное, цветное, сразу под своим
+      // таймером) — см. type-speed.tsx, дублировать тут не нужно.
       if (question.questionType !== "WORKBOOK" &&
           question.questionType !== "RUSSIANDICTANT" &&
-          question.questionType !== "SWIPE") {  // Добавляем SWIPE в исключения
+          question.questionType !== "SWIPE" &&
+          question.questionType !== "SPEED") {
           return (
               <h2 className="text-xl font-semibold mt-4 text-[#C386F8]">
                   <Latex>{question.question}</Latex>
