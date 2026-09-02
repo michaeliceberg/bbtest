@@ -12,7 +12,6 @@ import Image from 'next/image'
 import { switchCourse } from '@/actions/switch-course'
 import { useSession, signOut } from 'next-auth/react'
 import { UnitCardLottie } from '@/components/unit-card-lottie'
-import { CourseLogo } from '@/components/course-logo'
 import { useCourseSwitchStore } from '@/store/course-switch-store'
 
 // Форма курса, которую реально собирает и передаёт app/(main)/layout.tsx —
@@ -95,6 +94,30 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
       router.refresh()
     })
   }
+
+  // Группировка курсов в выпадающем списке по первому слову названия
+  // ("ЕГЭ Физика"/"ЕГЭ Математика Профиль" → группа "ЕГЭ", "ЛНИП Физика 7"
+  // → "ЛНИП") — не завязано на конкретный список групп, поэтому будущий
+  // "ОГЭ Физика" и т.п. сам попадёт в свою группу без правки кода.
+  // GROUP_ORDER задаёт порядок уже известных групп сверху вниз, остальные
+  // (если появятся) идут следом по алфавиту.
+  const groupedCourseEntries = (() => {
+    const map = new Map<string, SidebarCourse[]>()
+    for (const course of courses) {
+      const groupName = course.title.split(' ')[0]
+      if (!map.has(groupName)) map.set(groupName, [])
+      map.get(groupName)!.push(course)
+    }
+    const GROUP_ORDER = ['ЕГЭ', 'ОГЭ', 'ЛНИП']
+    return Array.from(map.entries()).sort(([a], [b]) => {
+      const ia = GROUP_ORDER.indexOf(a)
+      const ib = GROUP_ORDER.indexOf(b)
+      if (ia === -1 && ib === -1) return a.localeCompare(b)
+      if (ia === -1) return 1
+      if (ib === -1) return -1
+      return ia - ib
+    })
+  })()
 
   // Иконка пользователя внизу сайдбара — клик открывает меню с выходом.
   const userMenu = session?.user && (
@@ -190,17 +213,14 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
                 : 'border-green-400/25 shadow-[0_0_10px_1px_rgba(74,222,128,0.15)] hover:border-green-400/50 hover:shadow-[0_0_14px_2px_rgba(74,222,128,0.3)] bg-[#1A2B22]/50'
             )}
           >
-            <div className="flex items-center gap-2.5 flex-1 min-w-0">
-              <CourseLogo courseId={displayedCourseId} size={28} />
-              <div className="flex-1 min-w-0">
-                <span className="font-medium text-green-300 block truncate">{activeCourse?.title || 'Выберите курс'}</span>
-                {activeCourse?.streak && (
-                  <div className="flex items-center gap-1 text-xs">
-                    <Flame className="h-3 w-3 text-orange-400" />
-                    <span className="text-orange-300">{activeCourse.streak}</span>
-                  </div>
-                )}
-              </div>
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <span className="font-medium text-green-300 truncate">{activeCourse?.title || 'Выберите курс'}</span>
+              {activeCourse?.streak && (
+                <span className="flex items-center gap-1 text-xs text-orange-300 flex-shrink-0">
+                  <Flame className="h-3 w-3 text-orange-400" />
+                  {activeCourse.streak}
+                </span>
+              )}
             </div>
             {isCoursesOpen ? <ChevronUp className="h-4 w-4 text-green-400 flex-shrink-0" /> : <ChevronDown className="h-4 w-4 text-green-400 flex-shrink-0" />}
           </button>
@@ -215,18 +235,25 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
                 className="overflow-hidden"
               >
                 <div className="mt-2 space-y-1 max-h-[200px] overflow-y-auto">
-                  {courses.map((course) => (
-                    <button key={course.id} onClick={() => handleCourseChange(course.id)}
-                      className={cn('w-full text-left px-3 py-2 rounded-lg transition-colors text-sm active:scale-[0.98]',
-                        displayedCourseId === course.id ? "bg-green-500/15 text-green-300" : "hover:bg-[#232F34] text-[#9AA7B0]")}>
-                      <span>{course.title}</span>
-                      {course.streak && (
-                        <div className="flex items-center gap-1 mt-1">
-                          <Flame className="h-3 w-3 text-orange-400" />
-                          <span className="text-xs text-orange-300">{course.streak}</span>
-                        </div>
-                      )}
-                    </button>
+                  {groupedCourseEntries.map(([groupName, groupCourses], i) => (
+                    <div key={groupName}>
+                      <div className={cn('px-3 pb-1 text-[10px] font-bold tracking-widest text-[#5A6A72]/70 uppercase', i === 0 ? 'pt-0' : 'pt-2')}>
+                        {groupName}
+                      </div>
+                      {groupCourses.map((course) => (
+                        <button key={course.id} onClick={() => handleCourseChange(course.id)}
+                          className={cn('w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm active:scale-[0.98]',
+                            displayedCourseId === course.id ? "bg-green-500/15 text-green-300" : "hover:bg-[#232F34] text-[#9AA7B0]")}>
+                          <span className="flex-1 min-w-0 text-left truncate">{course.title}</span>
+                          {course.streak && (
+                            <span className="flex items-center gap-1 text-xs text-orange-300 flex-shrink-0">
+                              <Flame className="h-3 w-3 text-orange-400" />
+                              {course.streak}
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
                   ))}
                 </div>
               </motion.div>

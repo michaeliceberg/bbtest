@@ -231,7 +231,14 @@ export const QuestionBubble = ({
                 NoRightAnswer), поэтому внешняя стала лишней — убрана по
                 просьбе пользователя, элементы просто лежат рядом на фоне
                 самой карточки задачи. */}
-            <div className="flex flex-wrap items-center gap-2 mt-3">
+            {/* Отрицательные mx компенсируют p-3/md:p-4 внешней карточки —
+                без них кнопка "нет ответа" и author оказывались вписаны на
+                16px глубже, чем сетка вариантов ответа/кнопка "Ответить"
+                ниже (у тех своего внутреннего паддинга нет, только внешний
+                px-4 в quiz.tsx) — визуально читалось как "сдвинуто к
+                середине". Теперь края этой строки совпадают с краями
+                остальных элементов страницы. */}
+            <div className="flex flex-wrap items-center gap-2 mt-3 -mx-3 md:-mx-4">
                 {correctAttempts > 0 && (
                     <div className="flex items-center gap-1 text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
                         <CheckCircle className="w-3.5 h-3.5" />
