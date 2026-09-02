@@ -37,12 +37,12 @@ export interface SuperType {
 // (см. историю в CLAUDE.md) — задачи с этим типом никогда не читаются из
 // t_challenges.type, а собираются на лету в page.tsx из отдельной таблицы
 // t_hot_questions, поэтому миграция самого pgEnum "type" тут не нужна.
-export type allTypesCT = "M_ASC" | "SELECT" | "ASSIST" | "CONNECT" | "SLIDER" | "CONSTRUCT" | "WORKBOOK" | "R ASSIST" | "R CONNECT" | "R SLIDER" | "GEOSIN" | "RUSSIANDICTANT" | "SWIPE" | "KEYBOARD" | "INSERT" | "SCROLL" | "HOT" | "CHECK" | "PICMATCH";
+export type allTypesCT = "M_ASC" | "SELECT" | "ASSIST" | "CONNECT" | "SLIDER" | "CONSTRUCT" | "WORKBOOK" | "R ASSIST" | "R CONNECT" | "R SLIDER" | "GEOSIN" | "RUSSIANDICTANT" | "SWIPE" | "KEYBOARD" | "INSERT" | "SCROLL" | "HOT" | "CHECK" | "PICMATCH" | "MULTISTEP";
 
 export const challengesEnum = pgEnum("type", [
 	"M_ASC", "SELECT", "ASSIST", "CONNECT", "SLIDER", "CONSTRUCT", "WORKBOOK",
 	"R ASSIST", "R CONNECT", "R SLIDER", "GEOSIN", "RUSSIANDICTANT", "SWIPE", "KEYBOARD",
-	"INSERT", "SCROLL", "CHECK", "PICMATCH"
+	"INSERT", "SCROLL", "CHECK", "PICMATCH", "MULTISTEP"
 ]);
 
 
@@ -51,7 +51,7 @@ export const challengesEnum = pgEnum("type", [
 export const t_challengesEnum = pgEnum("type", [
 	"M_ASC", "SELECT", "ASSIST", "CONNECT", "SLIDER", "CONSTRUCT", "WORKBOOK",
 	"R ASSIST", "R CONNECT", "R SLIDER", "GEOSIN", "RUSSIANDICTANT", "SWIPE", "KEYBOARD",
-	"INSERT", "SCROLL", "CHECK", "PICMATCH"
+	"INSERT", "SCROLL", "CHECK", "PICMATCH", "MULTISTEP"
 ]);
 
 // ===== COURSES =====
@@ -374,6 +374,11 @@ export const t_challenges = pgTable('t_challenges', {
 	// зависят и открыты сразу, а вот внутри одной темы этапы открываются
 	// последовательно по мере тренировки именно этой темы.
 	stage: integer('stage').notNull().default(1),
+	// Только для type='MULTISTEP' — JSON-массив шагов (см. MultistepStep в
+	// app/t-lesson/[t_lessonId]/page.tsx): каждый шаг — своя подсказка,
+	// формула и правильный ответ, вводимый пользователем цифрами.
+	// Nullable — у всех остальных типов не используется.
+	multistepData: text('multistep_data'),
 });
 
 export const t_challengeOptions = pgTable('t_challenge_options', {

@@ -8,6 +8,22 @@ import { getFormulaIconKey } from "@/lib/formulaIcons"
 import TQuiz from "@/app/t-lesson/[t_lessonId]/TQUIZ"
 import { allTypesCT } from "@/db/schema";
 
+// Только для type='MULTISTEP' — один шаг многошагового задания (см.
+// CLAUDE.md "тренажёр Арифметики", приём "0,75×32 → перевести в дробь →
+// сократить → умножить"). cancelVisual — опционально, только у шага с
+// анимацией зачёркивания сокращаемых чисел в двух дробях.
+export type MultistepStep = {
+    prompt: string;
+    formula?: string;
+    cancelVisual?: {
+        leftNum: string;
+        leftDen: string;
+        rightNum: string;
+        rightDen: string;
+    };
+    answer: string;
+};
+
 export type QuestionType = {
     questionType: allTypesCT;
     question: string;
@@ -60,6 +76,8 @@ export type QuestionType = {
     // что и другие типы, строкой).
     hotUnit?: string,
     hotSliderMax?: number,
+    // Только для MULTISTEP — см. MultistepStep выше.
+    multistepSteps?: MultistepStep[],
 }
 
 type Props = {
@@ -399,6 +417,31 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     };
 
     questions = lessonChallenges.map((t_challenge, index): QuestionType | undefined => {
+        if (t_challenge.type === 'MULTISTEP') {
+            let steps: MultistepStep[] = [];
+            try {
+                steps = t_challenge.multistepData ? JSON.parse(t_challenge.multistepData) : [];
+            } catch {
+                steps = [];
+            }
+            if (steps.length === 0) return undefined;
+
+            return {
+                questionType: 'MULTISTEP' as const,
+                question: t_challenge.question,
+                imageSrc: t_challenge.imageSrc,
+                options: [],
+                numRans: t_challenge.numRans,
+                optionsQ: [],
+                optionsA: [],
+                optionsConstructRight: [],
+                difficulty: t_challenge.difficulty,
+                correctAnswer: steps[steps.length - 1].answer,
+                timeLimit: 60,
+                multistepSteps: steps,
+            };
+        }
+
         if (isMAscLike(t_challenge.type)) {
             // M_ASC — случайный стиль рендера (кроме той ОДНОЙ задачи,
             // которой гарантирован INSERT — см. guaranteedInsertChallengeId

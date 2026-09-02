@@ -18,6 +18,7 @@ import { FormulaIcon } from "@/components/FormulaIcon"
 import { TypeSlider } from "@/app/t-lesson/[t_lessonId]/type-slider"
 import { TypeHot } from "@/app/t-lesson/[t_lessonId]/type-hot"
 import { TypeConnect } from "@/app/t-lesson/[t_lessonId]/type-connect"
+import { TypeMultistep } from "@/app/t-lesson/[t_lessonId]/type-multistep"
 import { TypeWorkbook } from "@/app/t-lesson/[t_lessonId]/type-workbook"
 import { TypeConstructor } from "@/app/t-lesson/[t_lessonId]/type-constructor"
 
@@ -152,6 +153,20 @@ export default function TrainerQuestion({
     setMascotEmotion("celebrating")
   }, [playCorrectSound])
 
+  // Для MULTISTEP: в отличие от CONNECT, задание может закончиться и
+  // неверно (была ошибка хотя бы на одном промежуточном шаге) — сам
+  // TypeMultistep решает это внутри себя и сообщает сюда готовый вердикт.
+  const handleMultistepComplete = useCallback((isCorrect: boolean) => {
+    if (isCorrect) {
+      playCorrectSound?.()
+      setAnswerState("correct")
+      setMascotEmotion("celebrating")
+    } else {
+      setAnswerState("incorrect")
+      setMascotEmotion("sad")
+    }
+  }, [playCorrectSound])
+
   // Для ASSIST: когда выбран вариант
   const handleAssistOptionSelected = (answer: string | null) => {
     setSelectedAssistAnswer(answer)
@@ -283,6 +298,9 @@ export default function TrainerQuestion({
 
         case "CONNECT":
           return <TypeConnect question={question} onAnswer={onAnswer} onAllPairsMatched={handleAllPairsMatched} />
+
+        case "MULTISTEP":
+          return <TypeMultistep question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
 
         // MEMORY отключён (пользователь: "душный" тип, не вызывает приятных
         // эмоций) — компонент type-memory.tsx оставлен нетронутым в
