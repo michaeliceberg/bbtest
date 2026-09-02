@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="150" viewBox="0 0 200 150">
+<rect x="0" y="0" width="200" height="150" fill="#151F23"/>
+<rect x="60.0" y="44.0" width="60" height="22" fill="#7dd3fc" fill-opacity="0.85" stroke="#7dd3fc" stroke-width="1.5" rx="2"/>
+<text x="90" y="28.0" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">R1</text>
+<rect x="60.0" y="89.0" width="60" height="22" fill="#7dd3fc" fill-opacity="0.85" stroke="#7dd3fc" stroke-width="1.5" rx="2"/>
+<text x="90" y="73.0" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">R2</text>
+<polyline points="30,55 60,55" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<text x="45" y="47" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="13" fill="#F2F7FB">I1</text>
+<polyline points="120,55 150,55" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<polyline points="30,100 60,100" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<text x="45" y="92" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="13" fill="#F2F7FB">I2</text>
+<polyline points="120,100 150,100" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<polyline points="30,55 30,100" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<polyline points="150,55 150,100" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<circle cx="15" cy="77.5" r="3.5" fill="#F2F7FB"/>
+<text x="1" y="81.5" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">A</text>
+<polyline points="15,77.5 30,77.5" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<circle cx="165" cy="77.5" r="3.5" fill="#F2F7FB"/>
+<text x="179" y="81.5" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">B</text>
+<polyline points="150,77.5 165,77.5" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+</svg>

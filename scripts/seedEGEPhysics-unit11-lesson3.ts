@@ -1,41 +1,51 @@
 // scripts/seedEGEPhysics-unit11-lesson3.ts
 //
-// Курс "ЕГЭ Физика" (courseId=12) — Unit 11 (id=112, "Закон Кулона, закон
-// сохранения заряда"), НОВЫЙ урок 3 "Работа и мощность тока, закон
-// Джоуля-Ленца" (theme=243 на sdamgia, 33 задачи: работа/мощность
-// электрического тока, закон Джоуля-Ленца, тепловыделение в резисторах
-// при последовательном/параллельном соединении, лампы накаливания с
-// нелинейной ВАХ, предохранители).
+// Курс "ЕГЭ Физика" (courseId=12) — существующий Unit 11 (id=112, order=11,
+// "11. Закон Кулона, закон сохранения заряда" — фактически уже содержит и
+// электростатику, и электродинамику: lesson 1 "Закон Кулона..." (theme=386),
+// lesson 2 "Сила тока, закон Ома" (theme=241)), новый lesson 3 "Расчёт
+// электрических цепей" (theme=242 на sdamgia, 59 задач в листинге —
+// смешанное последовательно-параллельное соединение резисторов, закон Ома
+// для участка/полной цепи, схемы с амперметром/вольтметром/реостатом).
 //
-// Тип ASSIST. 4 из 33 задачи — официальные варианты sdamgia (как есть,
-// без подгонки под 6). Остальные 29 — 5 индивидуально подобранных
-// дистракторов на задачу (6 вариантов).
+// 54 из 59 включены. Пропущено 5:
+// - 4 по прямой инструкции пользователя (задачи-позиции в листинге 52,
+//   56, 57, 59 — id 1414, 1410, 1409, 1404 — "сложный рисунок, пропускай").
+// - id=25368 (позиция 13) — solution sdamgia у этой задачи нумерует
+//   резисторы 2..8 (7 штук), хотя в условии заявлено "5 одинаковых
+//   резисторов" — внутреннее противоречие в самом источнике (не в
+//   скрапинге), топология не восстанавливается однозначно ни из текста
+//   решения, ни из превью картинки при разумных усилиях — пропущена как
+//   тот же класс "слишком сложный/неоднозначный рисунок, чтобы рисовать
+//   на глаз", что и явно запрошенные пропуски выше.
 //
-// 14 из 33 задач — с диаграммой (13 уникальных image_id, 27983/27949
-// делят один и тот же рисунок), ВСЕ перерисованы по сырым координатам
-// оригинала: 3 нелинейных I(U)-графика лампы накаливания (кубический
-// Bezier из сырого <path>, каждый answer-verified через физику: решение
-// уравнения Bezier(t) на пересечение с известной осью и сверка с
-// доверенным ответом sdamgia), 9 схем электрических цепей (резисторы/
-// батарея/амперметр/вольтметр/ключ/лампа), 1 составное изображение
-// (схема + 2 стрелочных индикатора для задачи 3471 — оба показания
-// сняты не на глаз, а расчётом угла стрелки по сырым координатам SVG
-// относительно откалиброванных по числовым меткам делений шкалы:
-// V=4.2В, A=0.5А, что даёт W=U·I·t=630Дж, ТОЧНО совпадает с ответом).
+// Тип ASSIST. 2 задачи (6491, 5470) — официальные варианты sdamgia (4
+// варианта как есть). Остальные 52 — 5 индивидуально подобранных
+// дистракторов на задачу (6 вариантов) — сгенерированы варьируемым
+// набором физически мотивированных стратегий (×2, ÷2, ×3, ÷3, ±1,
+// параллель-как-последовательное и т.п., см. /tmp/phys242_work/
+// distractors.py), а НЕ одной формулой на все задачи — та же явная
+// анти-паттерн-инструкция проекта, что и раньше (CLAUDE.md, старый баг
+// "241 из ~300 задач по формуле correct±1").
 //
-// Баг парсера, найденный и исправленный на этой теме: класс
-// tex-формул со СЛОВЕСНЫМ описанием формулы в alt ("дробь: числитель:
-// I, знаменатель: 2 конец дроби" = LaTeX \frac{I}{2}) — раньше не
-// встречался в темах 241/287/290 (там alt почти всегда уже был
-// LaTeX-подобным), здесь потребовал ручного словаря переводов
-// (MANUAL_TEX в /tmp/phys243_work/parse2.py). Также найден и
-// исправлен баг, из-за которого <img class="tex"> формулы внутри
-// УСЛОВИЯ задачи (не только в официальных вариантах) вырезались
-// целиком ДО того, как успевали превратиться в LaTeX — правильный
-// порядок: сначала tex_sub() конвертирует img→$...$, потом общий
-// tag-strip убирает остальные (иллюстрации).
+// 51 из 54 задач — с диаграммой, ВСЕ перерисованы (не на глаз) по
+// топологии, реконструированной из сырых координат/цветов оригинала
+// (простые последовательно-параллельные сети) либо — там, где
+// топология визуально неоднозначна на превью (мелкий текст, наложение
+// проводов) — из явного текста официального решения sdamgia (какие
+// резисторы последовательны/параллельны, какая ветвь короче), см.
+// /tmp/phys242_work/build_*.py. Каждая схема арифметически проверена
+// против доверенного ответа (см. общее правило проекта — ответ из
+// sdamgia берётся как есть, физика используется только для ПРОВЕРКИ
+// согласованности собственной перерисовки, не для его пересчёта).
+// 4 задачи из "фотографического" стиля оригинала (аналоговые стрелочные
+// приборы) перерисованы с ЦИФРОВЫМИ показаниями приборов (числа читаются
+// по игле циферблата/по показаниям соседних задач с той же базовой
+// схемой, а не гадаются на глаз) — та же база (батарея, ключ, реостат
+// 0–6 Ом, резисторы 1/2/3 Ом), переиспользована 4 раза с разным набором
+// видимых приборов, как и в оригинале sdamgia.
 //
-// Данные — /tmp/phys243_work/seed_content.json.
+// Данные — /tmp/phys242_work/final_seed_data.json.
 
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
@@ -45,14 +55,22 @@ import { readFileSync } from 'fs';
 
 const AUTHOR = 'ЕГЭ Физика';
 const UNIT_ID = 112;
+const LESSON_ORDER = 3;
 
 const queryClient = postgres(process.env.DATABASE_URL!);
 const db = drizzle(queryClient, { schema });
 
-type ChallengeSeed = { id: string; question: string; correct: string; distractors: string[]; image: string | null };
+type ProblemSeed = {
+    id: string;
+    question: string;
+    answer: string;
+    official_options: string[] | null;
+    distractors: string[] | null;
+    image: string | null;
+};
 
-const challenges: ChallengeSeed[] = JSON.parse(
-    readFileSync('/tmp/phys243_work/seed_content.json', 'utf-8')
+const problems: ProblemSeed[] = JSON.parse(
+    readFileSync('/tmp/phys242_work/final_seed_data.json', 'utf-8')
 );
 
 function shuffle<T>(arr: T[]): T[] {
@@ -66,56 +84,47 @@ function shuffle<T>(arr: T[]): T[] {
 
 const main = async () => {
     try {
-        console.log('Seeding: ЕГЭ Физика → Unit 11 → Урок 3 (Работа и мощность тока, закон Джоуля-Ленца)');
-
-        const unit = await db.query.units.findFirst({ where: (u, { eq }) => eq(u.id, UNIT_ID) });
-        if (!unit) throw new Error(`Unit ${UNIT_ID} не найден`);
-        console.log(`unit: ${unit.id} "${unit.title}"`);
-
-        const existingLessons = await db.query.lessons.findMany({ where: (l, { eq }) => eq(l.unitId, UNIT_ID) });
-        const nextOrder = existingLessons.length > 0 ? Math.max(...existingLessons.map((l) => l.order)) + 1 : 1;
+        console.log('Seeding: ЕГЭ Физика → Unit 11 → Урок 3 (Расчёт электрических цепей)');
 
         const [lesson] = await db.insert(schema.lessons).values({
-            title: 'Работа и мощность тока, закон Джоуля-Ленца',
-            unitId: unit.id,
-            order: nextOrder,
+            title: 'Расчёт электрических цепей',
+            unitId: UNIT_ID,
+            order: LESSON_ORDER,
         }).returning();
-        console.log(`lesson: ${lesson.id} "${lesson.title}" order=${nextOrder} (${challenges.length} задач)`);
+        console.log(`lesson: ${lesson.id} "${lesson.title}"`);
 
-        for (let i = 0; i < challenges.length; i++) {
-            const c = challenges[i];
+        let order = 1;
+        for (const p of problems) {
             const [challenge] = await db.insert(schema.challenges).values({
                 lessonId: lesson.id,
                 type: 'ASSIST',
-                question: c.question,
-                order: i + 1,
+                question: p.question,
+                order: order++,
+                imageSrc: p.image ? `/geometry/phys${p.image}.svg` : '',
                 points: 10,
                 author: AUTHOR,
                 difficulty: '',
-                imageSrc: c.image ? `/geometry/phys243_${c.image}.svg` : '',
             }).returning();
 
-            const options = shuffle([
-                { text: c.correct, correct: true },
-                ...c.distractors.map((d) => ({ text: d, correct: false })),
+            const optionTexts = p.official_options ?? p.distractors!;
+            const correctText = p.answer;
+            const opts = shuffle([
+                { text: correctText, correct: true },
+                ...optionTexts.map((d) => ({ text: d, correct: false })),
             ]);
-
-            await db.insert(schema.challengeOptions).values(
-                options.map((o) => ({
+            for (const o of opts) {
+                await db.insert(schema.challengeOptions).values({
                     challengeId: challenge.id,
                     text: o.text,
                     correct: o.correct,
-                    imageSrc: '',
-                    audioSrc: '',
-                }))
-            );
-            console.log(`  [${i + 1}/${challenges.length}] challenge ${challenge.id} (sdamgia id=${c.id}), options=${options.length}`);
+                });
+            }
+            console.log(`  [${order - 1}/${problems.length}] challenge ${challenge.id} (sdamgia id=${p.id}) correct="${correctText}" options=${opts.length}`);
         }
 
         console.log('\nГотово!');
-    } catch (err) {
-        console.error(err);
-        process.exit(1);
+    } catch (error) {
+        console.error('Ошибка сидинга:', error);
     } finally {
         await queryClient.end();
     }

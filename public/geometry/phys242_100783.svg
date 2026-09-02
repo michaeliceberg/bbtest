@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="290" height="210" viewBox="0 0 290 210">
+<rect x="0" y="0" width="290" height="210" fill="#151F23"/>
+<polyline points="40,40 55,40" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<polyline points="245,40 260,40" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<polyline points="40,85 55,85" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<polyline points="245,85 260,85" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<polyline points="40,130 55,130" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<polyline points="245,130 260,130" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<rect x="65.0" y="30.0" width="50" height="20" fill="#7dd3fc" fill-opacity="0.85" stroke="#7dd3fc" stroke-width="1.5" rx="2"/>
+<text x="90" y="14.0" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">R</text>
+<polyline points="115,40 135,40" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<line x1="140" y1="31" x2="140" y2="49" stroke="#F2F7FB" stroke-width="2.5"/>
+<line x1="148" y1="31" x2="148" y2="49" stroke="#F2F7FB" stroke-width="2.5"/>
+<text x="144" y="24" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">C</text>
+<polyline points="148,40 245,40" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<rect x="65.0" y="75.0" width="50" height="20" fill="#7dd3fc" fill-opacity="0.85" stroke="#7dd3fc" stroke-width="1.5" rx="2"/>
+<text x="90" y="59.0" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">R</text>
+<polyline points="115,85 245,85" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<rect x="65.0" y="120.0" width="50" height="20" fill="#7dd3fc" fill-opacity="0.85" stroke="#7dd3fc" stroke-width="1.5" rx="2"/>
+<text x="90" y="104.0" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">R</text>
+<polyline points="115,130 150,130" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<circle cx="170" cy="130" r="14" fill="#151F23" stroke="#F2F7FB" stroke-width="2"/>
+<text x="170" y="136" text-anchor="middle" font-family="Georgia, serif" font-size="16" fill="#F2F7FB">A</text>
+<polyline points="184,130 245,130" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<polyline points="40,40 40,130" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<polyline points="260,40 260,130" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<polyline points="40,130 40,165 260,165 260,130" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<line x1="143.0" y1="154" x2="143.0" y2="176" stroke="#F2F7FB" stroke-width="3"/>
+<line x1="157.0" y1="159" x2="157.0" y2="171" stroke="#F2F7FB" stroke-width="1.5"/>
+<text x="150.0" y="193" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">ε, r</text>
+</svg>

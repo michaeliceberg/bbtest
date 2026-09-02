@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="140" viewBox="0 0 280 140">
+<rect x="0" y="0" width="280" height="140" fill="#151F23"/>
+<rect x="25.0" y="48.0" width="50" height="24" fill="#7dd3fc" fill-opacity="0.85" stroke="#7dd3fc" stroke-width="1.5" rx="2"/>
+<text x="50" y="32.0" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">1 Ом</text>
+<rect x="95.0" y="48.0" width="50" height="24" fill="#7dd3fc" fill-opacity="0.85" stroke="#7dd3fc" stroke-width="1.5" rx="2"/>
+<text x="120" y="32.0" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">1 Ом</text>
+<rect x="165.0" y="48.0" width="50" height="24" fill="#7dd3fc" fill-opacity="0.85" stroke="#7dd3fc" stroke-width="1.5" rx="2"/>
+<text x="190" y="32.0" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">1 Ом</text>
+<polyline points="10,60 25,60" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<polyline points="75,60 95,60" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<polyline points="145,60 165,60" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<polyline points="215,60 235,60" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<circle cx="10" cy="60" r="3.5" fill="#F2F7FB"/>
+<text x="-4" y="64" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">A</text>
+<circle cx="235" cy="60" r="3.5" fill="#F2F7FB"/>
+<text x="249" y="64" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">B</text>
+</svg>
