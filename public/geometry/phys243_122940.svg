@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="160" viewBox="0 0 300 160">
+<rect x="0" y="0" width="300" height="160" fill="#151F23"/>
+<polyline points="10,60 35,60" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<circle cx="10" cy="60" r="5" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<rect x="45.0" y="48.0" width="70" height="24" fill="#7dd3fc" fill-opacity="0.85" stroke="#7dd3fc" stroke-width="1.5" rx="2"/>
+<text x="80" y="32.0" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">R<tspan font-size="0.65em" dy="0.35em">1</tspan><tspan dy="-0.35em"> </tspan></text>
+<polyline points="115,60 185,60" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<polyline points="185,60 185,35 225,35" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<polyline points="185,60 185,85 225,85" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<rect x="232.0" y="24.0" width="56" height="22" fill="#7dd3fc" fill-opacity="0.85" stroke="#7dd3fc" stroke-width="1.5" rx="2"/>
+<text x="260" y="8.0" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">R<tspan font-size="0.65em" dy="0.35em">2</tspan><tspan dy="-0.35em"> </tspan></text>
+<rect x="232.0" y="74.0" width="56" height="22" fill="#7dd3fc" fill-opacity="0.85" stroke="#7dd3fc" stroke-width="1.5" rx="2"/>
+<text x="260" y="58.0" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">R<tspan font-size="0.65em" dy="0.35em">3</tspan><tspan dy="-0.35em"> </tspan></text>
+<polyline points="288,35 298,35 298,60 185,60" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<polyline points="288,85 298,85 298,60" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<circle cx="298" cy="60" r="5" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+</svg>

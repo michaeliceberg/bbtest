@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="220" viewBox="0 0 260 220">
+<rect x="0" y="0" width="260" height="220" fill="#151F23"/>
+<polyline points="30,90 30,60 200,60 200,90" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<rect x="80.0" y="78.0" width="70" height="24" fill="#7dd3fc" fill-opacity="0.85" stroke="#7dd3fc" stroke-width="1.5" rx="2"/>
+<polyline points="30,90 65,90" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<polyline points="150,90 200,90" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<polyline points="65,90 65,40 150,40 150,90" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<circle cx="107" cy="40" r="16" fill="#151F23" stroke="#F2F7FB" stroke-width="2"/>
+<text x="107" y="46" text-anchor="middle" font-family="Georgia, serif" font-size="16" fill="#F2F7FB">V</text>
+<polyline points="200,90 200,130" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<circle cx="200" cy="155" r="16" fill="#151F23" stroke="#F2F7FB" stroke-width="2"/>
+<text x="200" y="161" text-anchor="middle" font-family="Georgia, serif" font-size="16" fill="#F2F7FB">A</text>
+<polyline points="30,90 30,190" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<polyline points="200,171 200,190" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<line x1="108" y1="179" x2="108" y2="201" stroke="#F2F7FB" stroke-width="3"/>
+<line x1="122" y1="184" x2="122" y2="196" stroke="#F2F7FB" stroke-width="1.5"/>
+<polyline points="30,190 84,190" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<polyline points="146,190 200,190" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+</svg>
