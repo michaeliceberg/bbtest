@@ -13,6 +13,8 @@ import { GetTLessonStat, GetTUnitStat } from "@/usefulFunctions";
 import 'katex/dist/katex.min.css';
 import Latex from 'react-latex-next';
 import { useState } from "react";
+import Link from "next/link";
+import { Infinity as InfinityIcon } from "lucide-react";
 import { Button } from "./ui/button";
 import { TrainerGradeTree, SkillTopic } from "./trainer-grade-tree";
 
@@ -220,6 +222,18 @@ export const TabTCourses = ({
                         <h2 className="text-center text-lg font-bold text-[#F2F7FB] mb-3">
                             {t_course.title.split(' ')[1] ?? t_course.title}
                         </h2>
+
+                        {t_course.title === 'Арифметика' && (
+                            <div className="flex justify-center mb-4">
+                                <Link
+                                    href="/trainer-chain"
+                                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-b-4 active:border-b-2 bg-[#161F23] border-[#3A464E] hover:bg-[#232F34] transition-colors font-bold text-[#F2F7FB]"
+                                >
+                                    <InfinityIcon className="w-5 h-5 text-[#4A90D9]" />
+                                    Бесконечная цепочка на умножение
+                                </Link>
+                            </div>
+                        )}
 
                         <div className="w-full mt-2">
                             <TrainerGradeTree topics={topics} />
