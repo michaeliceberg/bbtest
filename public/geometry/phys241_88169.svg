@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="220" viewBox="0 0 240 220">
+<rect x="0" y="0" width="240" height="220" fill="#151F23"/>
+<line x1="46.0" y1="16" x2="46.0" y2="190" stroke="#3A464E" stroke-width="1"/>
+<line x1="98.7" y1="16" x2="98.7" y2="190" stroke="#3A464E" stroke-width="1"/>
+<line x1="151.5" y1="16" x2="151.5" y2="190" stroke="#3A464E" stroke-width="1"/>
+<line x1="204.2" y1="16" x2="204.2" y2="190" stroke="#3A464E" stroke-width="1"/>
+<line x1="46" y1="190.0" x2="220" y2="190.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="46" y1="161.0" x2="220" y2="161.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="46" y1="132.0" x2="220" y2="132.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="46" y1="103.0" x2="220" y2="103.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="46" y1="74.0" x2="220" y2="74.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="46" y1="45.0" x2="220" y2="45.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="46" y1="16.0" x2="220" y2="16.0" stroke="#3A464E" stroke-width="1"/>
+<line x1="46" y1="190" x2="46" y2="12" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="41,22 51,22 46,12" fill="#9AA7B0"/>
+<line x1="46" y1="190" x2="224" y2="190" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="214,185 214,195 224,190" fill="#9AA7B0"/>
+<text x="32" y="210" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">0</text>
+<text x="222" y="180" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB" text-anchor="end">R, Ом</text>
+<text x="54" y="24" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">I, А</text>
+<text x="98.7" y="208" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#F2F7FB">1</text>
+<text x="151.5" y="208" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#F2F7FB">2</text>
+<text x="204.2" y="208" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#F2F7FB">3</text>
+<text x="36" y="165.0" text-anchor="end" font-family="Georgia, serif" font-size="12" fill="#F2F7FB">2</text>
+<text x="36" y="136.0" text-anchor="end" font-family="Georgia, serif" font-size="12" fill="#F2F7FB">4</text>
+<text x="36" y="107.0" text-anchor="end" font-family="Georgia, serif" font-size="12" fill="#F2F7FB">6</text>
+<text x="36" y="78.0" text-anchor="end" font-family="Georgia, serif" font-size="12" fill="#F2F7FB">8</text>
+<text x="36" y="49.0" text-anchor="end" font-family="Georgia, serif" font-size="12" fill="#F2F7FB">10</text>
+<text x="36" y="20.0" text-anchor="end" font-family="Georgia, serif" font-size="12" fill="#F2F7FB">12</text>
+<polyline points="47.1,22.7 49.9,38.6 52.8,51.8 55.7,62.8 58.6,72.2 61.5,80.3 64.3,87.4 67.2,93.6 70.1,99.1 73.0,104.0 75.9,108.4 78.8,112.4 81.6,116.0 84.5,119.3 87.4,122.3 90.3,125.1 93.2,127.6 96.1,130.0 98.9,132.2 101.8,134.2 104.7,136.1 107.6,137.8 110.5,139.5 113.4,141.1 116.2,142.5 119.1,143.9 122.0,145.2 124.9,146.4 127.8,147.6 130.6,148.7 133.5,149.7 136.4,150.7 139.3,151.7 142.2,152.6 145.1,153.4 147.9,154.2 150.8,155.0 153.7,155.8 156.6,156.5 159.5,157.2 162.4,157.9 165.2,158.5 168.1,159.1 171.0,159.7 173.9,160.3 176.8,160.8 179.6,161.3 182.5,161.8 185.4,162.3 188.3,162.8 191.2,163.3 194.1,163.7 196.9,164.1 199.8,164.5 202.7,164.9 205.6,165.3 208.5,165.7 211.4,166.1 214.2,166.4 217.1,166.8 220.0,167.1" fill="none" stroke="#7dd3fc" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

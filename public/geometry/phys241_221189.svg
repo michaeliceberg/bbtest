@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="220" viewBox="0 0 240 220">
+<rect x="0" y="0" width="240" height="220" fill="#151F23"/>
+<line x1="85.5" y1="50.8" x2="85.5" y2="190" stroke="#9AA7B0" stroke-width="1" stroke-dasharray="4,3"/>
+<line x1="46" y1="50.8" x2="85.5" y2="50.8" stroke="#9AA7B0" stroke-width="1" stroke-dasharray="4,3"/>
+<line x1="164.6" y1="50.8" x2="164.6" y2="190" stroke="#9AA7B0" stroke-width="1" stroke-dasharray="4,3"/>
+<line x1="46" y1="50.8" x2="164.6" y2="50.8" stroke="#9AA7B0" stroke-width="1" stroke-dasharray="4,3"/>
+<line x1="46" y1="190" x2="46" y2="12" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="41,22 51,22 46,12" fill="#9AA7B0"/>
+<line x1="46" y1="190" x2="224" y2="190" stroke="#9AA7B0" stroke-width="2"/>
+<polygon points="214,185 214,195 224,190" fill="#9AA7B0"/>
+<text x="32" y="210" font-family="Georgia, serif" font-style="italic" font-size="14" fill="#F2F7FB">0</text>
+<text x="222" y="180" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB" text-anchor="end">t, с</text>
+<text x="54" y="24" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB">I, А</text>
+<text x="85.5" y="208" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#F2F7FB">10</text>
+<text x="164.6" y="208" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#F2F7FB">30</text>
+<text x="36" y="159.2" text-anchor="end" font-family="Georgia, serif" font-size="12" fill="#F2F7FB">2</text>
+<text x="36" y="124.4" text-anchor="end" font-family="Georgia, serif" font-size="12" fill="#F2F7FB">4</text>
+<text x="36" y="89.6" text-anchor="end" font-family="Georgia, serif" font-size="12" fill="#F2F7FB">6</text>
+<text x="36" y="54.8" text-anchor="end" font-family="Georgia, serif" font-size="12" fill="#F2F7FB">8</text>
+<polyline points="46.0,190.0 85.5,50.8 164.6,50.8 204.2,190.0" fill="none" stroke="#7dd3fc" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
