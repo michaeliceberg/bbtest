@@ -237,7 +237,8 @@ export const TrainerChain = () => {
                             checked ? (isCorrect ? 'text-[#A1D151]' : 'text-[#DC605B]') : 'text-[#F2F7FB]'
                         )}
                     >
-                        {pending.op} {pending.factor} = {checked ? pending.result : (input || '?')}
+                        {pending.op} {pending.factor}
+                        {checked && ` = ${pending.result}`}
                     </motion.span>
                 </div>
 

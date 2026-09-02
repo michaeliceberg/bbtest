@@ -15,7 +15,7 @@ function multiplicationFacts(numbers: number[]): Fact[] {
 	const facts: Fact[] = [];
 	for (const n of numbers) {
 		for (let m = 1; m <= 10; m++) {
-			facts.push({ question: `${n} \\times ${m} = ?`, answer: String(n * m) });
+			facts.push({ question: `${n} \\times ${m}`, answer: String(n * m) });
 		}
 	}
 	return facts;
@@ -24,7 +24,7 @@ function multiplicationFacts(numbers: number[]): Fact[] {
 function squareFacts(from: number, to: number): Fact[] {
 	const facts: Fact[] = [];
 	for (let n = from; n <= to; n++) {
-		facts.push({ question: `${n}^2 = ?`, answer: String(n * n) });
+		facts.push({ question: `${n}^2`, answer: String(n * n) });
 	}
 	return facts;
 }
@@ -63,13 +63,19 @@ const quickMultTricks: Fact[] = [
 ];
 
 type StageSpec = { title: string; facts: Fact[] };
-type UnitSpec = { title: string; description: string; order: number; stages: StageSpec[] };
+type UnitSpec = { title: string; description: string; order: number; challengeType: 'ASSIST' | 'SPEED'; stages: StageSpec[] };
 
 const units: UnitSpec[] = [
 	{
 		title: 'Таблица умножения',
 		description: 'Быстрый устный счёт: таблица умножения от 2 до 9',
 		order: 1,
+		// SPEED — тренировка на скорость (см. type-speed.tsx): свой таймер
+		// с горящими цифрами + мгновенный ответ по клику на вариант, без
+		// подтверждения общей кнопкой внизу. По прямой просьбе
+		// пользователя — таблица умножения и квадраты именно про
+		// скорость реакции, не только про правильность.
+		challengeType: 'SPEED',
 		stages: [
 			{ title: 'Этап 1: ×2 и ×3', facts: multiplicationFacts([2, 3]) },
 			{ title: 'Этап 2: ×4 и ×5', facts: multiplicationFacts([4, 5]) },
@@ -81,6 +87,7 @@ const units: UnitSpec[] = [
 		title: 'Квадраты чисел',
 		description: 'Квадраты чисел от 1 до 26 наизусть',
 		order: 2,
+		challengeType: 'SPEED',
 		stages: [
 			{ title: 'Этап 1: квадраты 1–7', facts: squareFacts(1, 7) },
 			{ title: 'Этап 2: квадраты 8–14', facts: squareFacts(8, 14) },
@@ -92,6 +99,7 @@ const units: UnitSpec[] = [
 		title: 'Дроби и десятичные',
 		description: 'Частые эквиваленты дробей и десятичных чисел, приёмы быстрого счёта',
 		order: 3,
+		challengeType: 'ASSIST',
 		stages: [
 			{ title: 'Этап 1: дробь → десятичная', facts: fractionToDecimalFacts() },
 			{ title: 'Этап 2: десятичная → дробь', facts: decimalToFractionFacts() },
@@ -150,7 +158,7 @@ const main = async () => {
 						.insert(schema.t_challenges)
 						.values({
 							t_lessonId: lesson.id,
-							type: 'ASSIST',
+							type: u.challengeType,
 							question,
 							order: fIdx + 1,
 							points: 10,

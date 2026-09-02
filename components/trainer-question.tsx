@@ -19,6 +19,7 @@ import { TypeSlider } from "@/app/t-lesson/[t_lessonId]/type-slider"
 import { TypeHot } from "@/app/t-lesson/[t_lessonId]/type-hot"
 import { TypeConnect } from "@/app/t-lesson/[t_lessonId]/type-connect"
 import { TypeMultistep } from "@/app/t-lesson/[t_lessonId]/type-multistep"
+import { TypeSpeed } from "@/app/t-lesson/[t_lessonId]/type-speed"
 import { TypeWorkbook } from "@/app/t-lesson/[t_lessonId]/type-workbook"
 import { TypeConstructor } from "@/app/t-lesson/[t_lessonId]/type-constructor"
 
@@ -295,6 +296,9 @@ export default function TrainerQuestion({
 
         case "HOT":
           return <TypeHot question={question} onAnswer={onAnswer} />
+
+        case "SPEED":
+          return <TypeSpeed question={question} onAnswer={onAnswer} />
 
         case "CONNECT":
           return <TypeConnect question={question} onAnswer={onAnswer} onAllPairsMatched={handleAllPairsMatched} />

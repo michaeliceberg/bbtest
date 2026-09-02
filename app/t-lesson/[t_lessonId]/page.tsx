@@ -166,7 +166,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         return shuffled.slice(0, count);
     }
 
-    const ACStype = ['ASSIST', 'CONNECT', 'INSERT', 'SWIPE', 'SCROLL', 'CHECK', 'PICMATCH'] as const;
+    const ACStype = ['ASSIST', 'CONNECT', 'INSERT', 'SWIPE', 'SCROLL', 'CHECK', 'PICMATCH', 'SPEED'] as const;
     type ACStype = typeof ACStype[number];
 
     // INSERT (вписать букву) — по явной просьбе пользователя должен
@@ -455,6 +455,13 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
 
             if (randomASCtype === 'ASSIST' as const) {
                 return buildAssistQuestion(t_challenge);
+            }
+            else if (randomASCtype === 'SPEED' as const) {
+                // Та же сборка вариантов/дистракторов, что у ASSIST (см.
+                // buildAssistQuestion) — отличается только рендер-компонент
+                // (свой таймер с горящими цифрами + мгновенный ответ по
+                // клику, без общей кнопки "Ответить" внизу, см. type-speed.tsx).
+                return { ...buildAssistQuestion(t_challenge), questionType: 'SPEED' as const };
             }
             else if (randomASCtype === 'INSERT' as const) {
                 // Усложнённая версия (2 пропуска вместо 1) — примерно в

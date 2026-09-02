@@ -37,12 +37,12 @@ export interface SuperType {
 // (см. историю в CLAUDE.md) — задачи с этим типом никогда не читаются из
 // t_challenges.type, а собираются на лету в page.tsx из отдельной таблицы
 // t_hot_questions, поэтому миграция самого pgEnum "type" тут не нужна.
-export type allTypesCT = "M_ASC" | "SELECT" | "ASSIST" | "CONNECT" | "SLIDER" | "CONSTRUCT" | "WORKBOOK" | "R ASSIST" | "R CONNECT" | "R SLIDER" | "GEOSIN" | "RUSSIANDICTANT" | "SWIPE" | "KEYBOARD" | "INSERT" | "SCROLL" | "HOT" | "CHECK" | "PICMATCH" | "MULTISTEP";
+export type allTypesCT = "M_ASC" | "SELECT" | "ASSIST" | "CONNECT" | "SLIDER" | "CONSTRUCT" | "WORKBOOK" | "R ASSIST" | "R CONNECT" | "R SLIDER" | "GEOSIN" | "RUSSIANDICTANT" | "SWIPE" | "KEYBOARD" | "INSERT" | "SCROLL" | "HOT" | "CHECK" | "PICMATCH" | "MULTISTEP" | "SPEED";
 
 export const challengesEnum = pgEnum("type", [
 	"M_ASC", "SELECT", "ASSIST", "CONNECT", "SLIDER", "CONSTRUCT", "WORKBOOK",
 	"R ASSIST", "R CONNECT", "R SLIDER", "GEOSIN", "RUSSIANDICTANT", "SWIPE", "KEYBOARD",
-	"INSERT", "SCROLL", "CHECK", "PICMATCH", "MULTISTEP"
+	"INSERT", "SCROLL", "CHECK", "PICMATCH", "MULTISTEP", "SPEED"
 ]);
 
 
@@ -51,7 +51,7 @@ export const challengesEnum = pgEnum("type", [
 export const t_challengesEnum = pgEnum("type", [
 	"M_ASC", "SELECT", "ASSIST", "CONNECT", "SLIDER", "CONSTRUCT", "WORKBOOK",
 	"R ASSIST", "R CONNECT", "R SLIDER", "GEOSIN", "RUSSIANDICTANT", "SWIPE", "KEYBOARD",
-	"INSERT", "SCROLL", "CHECK", "PICMATCH", "MULTISTEP"
+	"INSERT", "SCROLL", "CHECK", "PICMATCH", "MULTISTEP", "SPEED"
 ]);
 
 // ===== COURSES =====
