@@ -14,7 +14,7 @@ import 'katex/dist/katex.min.css';
 import Latex from 'react-latex-next';
 import { useState } from "react";
 import Link from "next/link";
-import { Infinity as InfinityIcon } from "lucide-react";
+import { Infinity as InfinityIcon, Zap } from "lucide-react";
 import { Button } from "./ui/button";
 import { TrainerGradeTree, SkillTopic } from "./trainer-grade-tree";
 
@@ -224,7 +224,14 @@ export const TabTCourses = ({
                         </h2>
 
                         {t_course.title === 'Арифметика' && (
-                            <div className="flex justify-center mb-4">
+                            <div className="flex flex-wrap justify-center gap-3 mb-4">
+                                <Link
+                                    href="/trainer-speed"
+                                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-b-4 active:border-b-2 bg-[#161F23] border-[#3A464E] hover:bg-[#232F34] transition-colors font-bold text-[#F2F7FB]"
+                                >
+                                    <Zap className="w-5 h-5 text-[#E8A23D]" />
+                                    Таблица умножения на скорость
+                                </Link>
                                 <Link
                                     href="/trainer-chain"
                                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-b-4 active:border-b-2 bg-[#161F23] border-[#3A464E] hover:bg-[#232F34] transition-colors font-bold text-[#F2F7FB]"
