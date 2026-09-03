@@ -60,12 +60,20 @@ function nextPalette(): [string, string] {
 	return p
 }
 
+// Короткая формулировка по прямой просьбе пользователя ("такие длинные
+// тексты не будем писать") — было "Чему равно 0,5 в виде обыкновенной
+// дроби?", стало просто "0,5 это". Направление (десятичная→дробь или
+// наоборот) не проговаривается словами — оно и так видно по вариантам
+// ответа (дроби vs десятичные), тот же принцип, что уже используется в
+// физическом словаре ("Что такое $X$?" тоже не уточняет формат ответа).
+// getAnswerKind в page.tsx матчит ЭТУ ЖЕ формулировку регэкспом — при
+// правке текста здесь обязательно сверить и его.
 function dictionaryFacts(defs: DecimalDef[]): Fact[] {
 	const facts: Fact[] = []
 	for (const d of defs) {
 		const frac = `${d.fracNum}/${d.fracDen}`
-		facts.push({ kind: 'ASSIST', question: `Чему равно ${d.plain} в виде обыкновенной дроби?`, answer: frac })
-		facts.push({ kind: 'ASSIST', question: `Чему равно ${frac} в виде десятичной дроби?`, answer: d.plain })
+		facts.push({ kind: 'ASSIST', question: `${d.plain} это`, answer: frac })
+		facts.push({ kind: 'ASSIST', question: `${frac} это`, answer: d.plain })
 	}
 	return facts
 }

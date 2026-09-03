@@ -301,8 +301,13 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // отсутствии однородных кандидатов, а не жёстко требует совпадения.
     const getAnswerKind = (question: string): string => {
         if (/^В чём измеряется/.test(question)) return 'unit';
-        if (/в виде обыкновенной дроби\?$/.test(question)) return 'to-fraction';
-        if (/в виде десятичной дроби\?$/.test(question)) return 'to-decimal';
+        // Короткая формулировка "Дробей и десятичных" (см. dictionaryFacts
+        // в rebuildFractionsUnit.ts, было "Чему равно X в виде Y?", стало
+        // "X это") — источник-десятичная ("0,5 это") ждёт ответ-ДРОБЬ,
+        // источник-дробь ("1/2 это") ждёт ответ-ДЕСЯТИЧНУЮ, различаем по
+        // тому, есть ли в самом X запятая (десятичная) или слэш (дробь).
+        if (/^\d+,\d+ это$/.test(question)) return 'to-fraction';
+        if (/^\d+\/\d+ это$/.test(question)) return 'to-decimal';
         return 'other';
     };
     const sameAnswerKind = (aQuestion: string, bQuestion: string): boolean =>

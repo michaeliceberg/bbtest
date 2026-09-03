@@ -137,11 +137,15 @@ export const TypeFracTrick = ({ question, onAnswer }: Props) => {
     // файла. prefix виден только на этапе 1, suffix — только на этапе 2;
     // middle виден ВСЕГДА и не меняет своих props между этапами (кроме
     // самого содержимого пропуска, который и должен морфиться).
-    const prefixFormula = `$\\huge \\textcolor{${trick.colorN}}{${trick.n}} ${trick.op} \\textcolor{${trick.colorDecimal}}{${trick.decimal}} =$`
+    // \boldsymbol — по прямой просьбе пользователя сделать текст задания
+    // жирнее (\huge меняет только размер, не насыщенность); оборачивает
+    // ВЕСЬ фрагмент целиком, включая \dfrac — KaTeX корректно применяет
+    // жирность и к числителю/знаменателю дроби, не только к плоским цифрам.
+    const prefixFormula = `$\\huge \\boldsymbol{\\textcolor{${trick.colorN}}{${trick.n}} ${trick.op} \\textcolor{${trick.colorDecimal}}{${trick.decimal}} =}$`
     const middleFormula = trick.rightOp === '/'
-        ? `$\\huge \\textcolor{${trick.colorN}}{${trick.n}} \\times \\dfrac{1}{\\textcolor{${middleGlyphColor}}{${forKatex(middleGlyph)}}}$`
-        : `$\\huge \\textcolor{${trick.colorN}}{${trick.n}} \\times \\textcolor{${middleGlyphColor}}{${forKatex(middleGlyph)}}$`
-    const suffixFormula = `$\\huge = \\textcolor{${stage2GlyphColor}}{${forKatex(stage2Glyph)}}$`
+        ? `$\\huge \\boldsymbol{\\textcolor{${trick.colorN}}{${trick.n}} \\times \\dfrac{1}{\\textcolor{${middleGlyphColor}}{${forKatex(middleGlyph)}}}}$`
+        : `$\\huge \\boldsymbol{\\textcolor{${trick.colorN}}{${trick.n}} \\times \\textcolor{${middleGlyphColor}}{${forKatex(middleGlyph)}}}$`
+    const suffixFormula = `$\\huge \\boldsymbol{= \\textcolor{${stage2GlyphColor}}{${forKatex(stage2Glyph)}}}$`
 
     // Тот же WAAPI-вход, что у первого заполнения пропуска в type-insert.tsx
     // (падение сверху с лёгким пружинным перехлёстом).
