@@ -54,18 +54,42 @@ type Props = {
 
 // Цвет пропуска этапа 2 — там уже только ОДНО число без "парного"
 // соответствия (в отличие от colorN/colorDecimal этапа 1), но он НЕ
-// должен случайно совпасть ни с colorN, ни с colorDecimal конкретного
-// примера: одинаковый цвет в этом проекте всегда значит "это то же самое
-// число" (см. FracTrickVisual в page.tsx), а результат этапа 2 — НОВОЕ,
-// не связанное с ними число. Раньше был один фиксированный синий,
-// который у части палитр (см. PALETTES в rebuildFractionsUnit.ts)
-// совпадал буквально с colorDecimal — пойман пользователем живьём.
-// Перебираем кандидатов и берём первый, не совпадающий ни с одним из
-// цветов этапа 1.
-const STAGE2_COLOR_CANDIDATES = ['#4A90D9', '#F59E0B', '#34D399', '#F472B6', '#818CF8', '#FB923C']
-const pickStage2Color = (avoid: string[]): string =>
-    STAGE2_COLOR_CANDIDATES.find((c) => !avoid.some((a) => a.toLowerCase() === c.toLowerCase()))
-    ?? STAGE2_COLOR_CANDIDATES[0]
+// должен НИ СОВПАДАТЬ, НИ быть визуально ПОХОЖИМ ни на colorN, ни на
+// colorDecimal конкретного примера: одинаковый (или "почти тот же")
+// цвет в этом проекте читается как "это то же самое число" (см.
+// FracTrickVisual в page.tsx), а результат этапа 2 — НОВОЕ, не связанное
+// с ними число. Точное сравнение строк (a===c) ловило только буквальное
+// совпадение хекса — пользователь поймал живьём случай, где выбранный
+// "разный" янтарный (#F59E0B) был визуально почти неотличим от
+// оранжевого colorN (#E8A23D) из той же палитры, хоть строки и не
+// совпадали. Теперь сравниваем РАССТОЯНИЕ в RGB-пространстве и требуем
+// от кандидата быть достаточно ДАЛЕКО от ОБОИХ цветов этапа 1 — не
+// просто "не тем же самым hex".
+const STAGE2_COLOR_CANDIDATES = ['#4A90D9', '#F59E0B', '#34D399', '#F472B6', '#818CF8', '#FB923C', '#EAB308', '#22D3EE']
+const MIN_COLOR_DISTANCE = 100
+
+const hexToRgbTuple = (hex: string): [number, number, number] => {
+    const n = parseInt(hex.replace('#', ''), 16)
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+}
+const colorDistance = (a: string, b: string): number => {
+    const [r1, g1, b1] = hexToRgbTuple(a)
+    const [r2, g2, b2] = hexToRgbTuple(b)
+    return Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2)
+}
+
+const pickStage2Color = (avoid: string[]): string => {
+    const farEnough = STAGE2_COLOR_CANDIDATES.find((c) => avoid.every((a) => colorDistance(a, c) >= MIN_COLOR_DISTANCE))
+    if (farEnough) return farEnough
+    // Ни один кандидат не прошёл строгий порог (в теории возможно при
+    // очень насыщенной палитре) — берём того, кто суммарно дальше всего
+    // от обоих цветов этапа 1, а не первого попавшегося вслепую.
+    return STAGE2_COLOR_CANDIDATES.reduce((best, c) => {
+        const score = avoid.reduce((sum, a) => sum + colorDistance(a, c), 0)
+        const bestScore = avoid.reduce((sum, a) => sum + colorDistance(a, best), 0)
+        return score > bestScore ? c : best
+    })
+}
 
 const CORRECT_COLOR = '#A1D151'
 const WRONG_COLOR = '#DC605B'
