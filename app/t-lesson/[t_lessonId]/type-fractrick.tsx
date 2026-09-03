@@ -1,21 +1,37 @@
 // app/t-lesson/[t_lessonId]/type-fractrick.tsx
 //
 // Тип FRACTRICK — "умножить/разделить на унитарную дробь" (0,5/0,25/
-// 0,125), теперь ДВУХЭТАПНЫЙ (по прямой просьбе пользователя):
+// 0,125), ДВУХЭТАПНЫЙ:
 //
 // Этап 1 — переписать decimal дробью: "N × 0,25 = N × 1/?" (rightOp='/')
 // или "N ÷ 0,5 = N × ?" (rightOp='times') — выбираем знаменатель,
 // подтверждаем своей кнопкой "Ответить".
-// Этап 2 — условие "сдвигается влево" (старая левая часть "N op decimal ="
-// отбрасывается), остаётся уже готовое умножение "N × 1/4 = ?" (или
-// "N × 2 = ?") — считаем РЕАЛЬНЫЙ числовой результат, снова подтверждаем.
+// Этап 2 — старая левая часть "N op decimal =" исчезает, а НЕ ВСЯ
+// карточка целиком: по прямой просьбе пользователя ("хочется чтобы на
+// ТОЙ же карточке сам текст вопроса сдвинулся левее, а не смахивался
+// новой картой") — "N × 1/answer" остаётся ТЕМ ЖЕ, физически не
+// перерисовывающимся фрагментом (свой собственный <Latex>, отдельный от
+// исчезающего префикса), и к нему просто дорисовывается новый суффикс
+// "= ?". Формула поэтому разбита на 3 независимых KaTeX-фрагмента в
+// одном flex-ряду (prefix/middle/suffix) — не один монолитный
+// <Latex>-вызов, как раньше: react-latex-next перекомпилирует ВЕСЬ
+// переданный ему текст при любом изменении, поэтому единственный способ
+// у части формулы физически "остаться на месте" — вообще не менять её
+// props между этапами (middle рендерится идентично что при stage=1, что
+// при stage=2). Уход префикса и приход суффикса — через AnimatePresence
+// mode="popLayout": exit-анимация префикса тут декоративная (ничто не
+// ждёт её завершения перед переходом дальше — сам переход этапов уже
+// произошёл синхронно по клику кнопки), поэтому не подвержена
+// задокументированному в проекте риску "exit никогда не завершается,
+// стейт обгоняет DOM" — тот баг был именно про то, что ЛОГИКА ждала
+// колбэк; здесь не ждёт никто.
+//
 // Только после второго подтверждения onAnswer('right'/'wrong') вызывается
 // ОДИН раз на весь t_challenge — тот же принцип "самодостаточный
 // многошаговый тип со своей кнопкой", что уже используется в
-// type-multistep.tsx (см. его же комментарий про hadMistake — ошибка на
-// этапе 1 не прерывает прохождение, пользователь всё равно доходит до
-// конца и видит верный ответ, но итог всего задания зависит от ОБОИХ
-// этапов).
+// type-multistep.tsx (ошибка на этапе 1 не прерывает прохождение,
+// пользователь всё равно доходит до конца и видит верный ответ, но итог
+// всего задания зависит от ОБОИХ этапов — hadMistake).
 //
 // Оператор/черта дроби — белые (нейтральные), N и пара decimal/ответ
 // красятся по цветовому соответствию (см. FracTrickVisual в page.tsx),
@@ -25,7 +41,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Latex from 'react-latex-next'
 import 'katex/dist/katex.min.css';
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { AnimatedOptionButton } from '@/components/AnimatedOptionButton'
 import { Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -48,6 +64,13 @@ const hexToRgb = (hex: string): string => {
     const n = parseInt(hex.replace('#', ''), 16)
     return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`
 }
+
+// stage2Answer иногда дробный ("3,5") — голая запятая в KaTeX-формуле
+// (в отличие от plain-text кнопок-вариантов ниже, которые НЕ проходят
+// через реальный KaTeX, см. AnimatedOptionButton) получает лишний
+// TeX-отступ после себя; {,} — та же самая конвенция, что уже
+// используется у trick.decimal (см. DecimalDef.tex в rebuildFractionsUnit.ts).
+const forKatex = (text: string) => text.replace(',', '{,}')
 
 export const TypeFracTrick = ({ question, onAnswer }: Props) => {
     const trick = question.fracTrick
@@ -73,51 +96,58 @@ export const TypeFracTrick = ({ question, onAnswer }: Props) => {
 
     if (!trick) return null
 
-    const stage1Color = trick.colorDecimal
-    const blankColor = stage === 1
-        ? (stage1Checked ? (stage1Selected === question.correctAnswer ? CORRECT_COLOR : WRONG_COLOR) : stage1Color)
-        : (stage2Checked ? (stage2Selected === trick.stage2Answer ? CORRECT_COLOR : WRONG_COLOR) : STAGE2_COLOR)
-    const blankColorRgb = hexToRgb(blankColor)
+    // "Средний" фрагмент — знаменатель дроби этапа 1. Пока мы В этапе 1,
+    // это активный пропуск (цвет trick.colorDecimal, либо CORRECT/WRONG
+    // после проверки); как только переходим в этап 2 — навсегда
+    // застывает на ПРАВИЛЬНОМ значении (trick.answer, не обязательно том,
+    // что выбрал пользователь — тот же принцип, что и у MULTISTEP) в
+    // своём "родном" цвете соответствия, без дальнейшей подсветки
+    // верно/неверно (та уже была показана в момент проверки этапа 1).
+    const middleGlyph = stage === 1 ? (stage1Selected ?? '?') : trick.answer
+    const middleGlyphColor = stage === 1
+        ? (stage1Checked ? (stage1Selected === question.correctAnswer ? CORRECT_COLOR : WRONG_COLOR) : trick.colorDecimal)
+        : trick.colorDecimal
+
+    const stage2Glyph = stage2Selected ?? '?'
+    const stage2GlyphColor = stage2Checked
+        ? (stage2Selected === trick.stage2Answer ? CORRECT_COLOR : WRONG_COLOR)
+        : STAGE2_COLOR
+
+    // Активный (сейчас анимируемый падением сверху) глиф — только тот,
+    // что реально меняется прямо сейчас: на этапе 1 это middleGlyph, на
+    // этапе 2 — уже застывший middleGlyph больше не трогаем, анимируем
+    // только stage2Glyph.
+    const activeGlyph = stage === 1 ? middleGlyph : stage2Glyph
+    const activeGlyphColorRgb = hexToRgb(stage === 1 ? middleGlyphColor : stage2GlyphColor)
 
     // Тот же приём, что в type-insert.tsx: находим узел(ы) формулы по
-    // ТОЧНОМУ тексту глифа среди тех, что покрашены цветом пропуска — не
+    // ТОЧНОМУ тексту глифа среди тех, что покрашены ЗАДАННЫМ цветом — не
     // по позиции (KaTeX иногда рендерит один и тот же глиф несколькими
-    // соседними DOM-узлами).
-    const findGlyphNodes = (text: string): HTMLElement[] => {
+    // соседними DOM-узлами). Цвет передаём явно (не берём из замыкания),
+    // т.к. на этапе 2 на экране одновременно два разных "числа-ответа"
+    // (застывший middleGlyph и активный stage2Glyph), у каждого свой цвет.
+    const findGlyphNodes = (text: string, colorRgb: string): HTMLElement[] => {
         const container = containerRef.current
         if (!container) return []
         return Array.from(container.querySelectorAll<HTMLElement>('[style*="color"]'))
-            .filter((el) => el.style.color === blankColorRgb && el.textContent === text)
+            .filter((el) => el.style.color === colorRgb && el.textContent === text)
     }
 
-    const glyph = stage === 1 ? (stage1Selected ?? '?') : (stage2Selected ?? '?')
-    // stage2Answer иногда дробный ("3,5") — голая запятая в KaTeX-формуле
-    // (в отличие от plain-text кнопок-вариантов ниже, которые НЕ проходят
-    // через реальный KaTeX, см. AnimatedOptionButton) получает лишний
-    // TeX-отступ после себя; {,} — та же самая конвенция, что уже
-    // используется у trick.decimal (см. DecimalDef.tex в rebuildFractionsUnit.ts).
-    const glyphForKatex = glyph.replace(',', '{,}')
-
-    // Этап 1 — правая часть переписывает decimal дробью (не готовым
-    // числом): rightOp='/' → N × 1/blank (умножение на унитарную дробь),
-    // rightOp='times' → N × blank (деление уже переписано как умножение
-    // на знаменатель). Этап 2 — старая левая часть "N op decimal =" уже
-    // отброшена ("сдвиг влево"), остаётся готовое умножение из ПРАВИЛЬНОГО
-    // (не обязательно выбранного пользователем) знаменателя этапа 1, плюс
-    // новый пропуск под РЕАЛЬНЫЙ числовой результат.
-    const formula = stage === 1
-        ? (trick.rightOp === '/'
-            ? `$\\huge \\textcolor{${trick.colorN}}{${trick.n}} ${trick.op} \\textcolor{${trick.colorDecimal}}{${trick.decimal}} = \\textcolor{${trick.colorN}}{${trick.n}} \\times \\dfrac{1}{\\textcolor{${blankColor}}{${glyphForKatex}}}$`
-            : `$\\huge \\textcolor{${trick.colorN}}{${trick.n}} ${trick.op} \\textcolor{${trick.colorDecimal}}{${trick.decimal}} = \\textcolor{${trick.colorN}}{${trick.n}} \\times \\textcolor{${blankColor}}{${glyphForKatex}}$`)
-        : (trick.rightOp === '/'
-            ? `$\\huge \\textcolor{${trick.colorN}}{${trick.n}} \\times \\dfrac{1}{\\textcolor{${trick.colorDecimal}}{${trick.answer}}} = \\textcolor{${blankColor}}{${glyphForKatex}}$`
-            : `$\\huge \\textcolor{${trick.colorN}}{${trick.n}} \\times \\textcolor{${trick.colorDecimal}}{${trick.answer}} = \\textcolor{${blankColor}}{${glyphForKatex}}$`)
+    // Три независимых KaTeX-фрагмента вместо одной строки — см. шапку
+    // файла. prefix виден только на этапе 1, suffix — только на этапе 2;
+    // middle виден ВСЕГДА и не меняет своих props между этапами (кроме
+    // самого содержимого пропуска, который и должен морфиться).
+    const prefixFormula = `$\\huge \\textcolor{${trick.colorN}}{${trick.n}} ${trick.op} \\textcolor{${trick.colorDecimal}}{${trick.decimal}} =$`
+    const middleFormula = trick.rightOp === '/'
+        ? `$\\huge \\textcolor{${trick.colorN}}{${trick.n}} \\times \\dfrac{1}{\\textcolor{${middleGlyphColor}}{${forKatex(middleGlyph)}}}$`
+        : `$\\huge \\textcolor{${trick.colorN}}{${trick.n}} \\times \\textcolor{${middleGlyphColor}}{${forKatex(middleGlyph)}}$`
+    const suffixFormula = `$\\huge = \\textcolor{${stage2GlyphColor}}{${forKatex(stage2Glyph)}}$`
 
     // Тот же WAAPI-вход, что у первого заполнения пропуска в type-insert.tsx
     // (падение сверху с лёгким пружинным перехлёстом).
     useLayoutEffect(() => {
-        if (glyph !== '?' && glyph !== prevGlyphRef.current) {
-            findGlyphNodes(glyph).forEach((node) => {
+        if (activeGlyph !== '?' && activeGlyph !== prevGlyphRef.current) {
+            findGlyphNodes(activeGlyph, activeGlyphColorRgb).forEach((node) => {
                 node.animate(
                     [
                         { opacity: 0, transform: 'translateY(-20px)' },
@@ -127,9 +157,9 @@ export const TypeFracTrick = ({ question, onAnswer }: Props) => {
                 )
             })
         }
-        prevGlyphRef.current = glyph
+        prevGlyphRef.current = activeGlyph
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [glyph])
+    }, [activeGlyph])
 
     const handlePick = (option: string) => {
         if (stage === 1) {
@@ -149,7 +179,9 @@ export const TypeFracTrick = ({ question, onAnswer }: Props) => {
                 setStage1Checked(true)
                 return
             }
-            // "Далее" — сдвигаем условие влево, переходим ко второму этапу.
+            // "Далее" — старая левая часть уходит, средний фрагмент
+            // застывает на месте, справа дорисовывается "= ?" (см. шапку
+            // файла) — сама карточка не перемонтируется.
             setStage(2)
             setStage2Selected(null)
             setStage2Checked(false)
@@ -190,14 +222,42 @@ export const TypeFracTrick = ({ question, onAnswer }: Props) => {
             </div>
 
             <motion.div
-                key={stage}
-                initial={{ opacity: 0, x: 40 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.35, ease: 'easeOut' }}
+                layout
                 ref={containerRef}
-                className="flex items-center justify-center py-8 px-4 mb-6 bg-[#161F23] border-2 border-[#3A464E] rounded-xl text-[#F2F7FB]"
+                transition={{ layout: { duration: 0.4, ease: 'easeInOut' } }}
+                className="flex items-baseline justify-center flex-wrap gap-x-2 py-8 px-4 mb-6 bg-[#161F23] border-2 border-[#3A464E] rounded-xl text-[#F2F7FB] overflow-hidden"
             >
-                <Latex>{formula}</Latex>
+                <AnimatePresence mode="popLayout">
+                    {stage === 1 && (
+                        <motion.span
+                            key="prefix"
+                            layout
+                            initial={false}
+                            exit={{ opacity: 0, x: -24, filter: 'blur(3px)' }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <Latex>{prefixFormula}</Latex>
+                        </motion.span>
+                    )}
+                </AnimatePresence>
+
+                <motion.span layout>
+                    <Latex>{middleFormula}</Latex>
+                </motion.span>
+
+                <AnimatePresence mode="popLayout">
+                    {stage === 2 && (
+                        <motion.span
+                            key="suffix"
+                            layout
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.3, delay: 0.15 }}
+                        >
+                            <Latex>{suffixFormula}</Latex>
+                        </motion.span>
+                    )}
+                </AnimatePresence>
             </motion.div>
 
             <motion.div
