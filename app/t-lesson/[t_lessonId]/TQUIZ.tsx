@@ -445,7 +445,6 @@ export default function TQuiz({
         || questions[currentQuestionIndex].questionType === 'INSERT'
         || questions[currentQuestionIndex].questionType === 'SCROLL'
         || questions[currentQuestionIndex].questionType === 'PICMATCH'
-        || questions[currentQuestionIndex].questionType === 'FRACTRICK'
 
       // INSERT сравнивается ровно (answer — отсортированный набор букв,
       // все обязательны, см. type-insert.tsx) — множественный "|"-ответ

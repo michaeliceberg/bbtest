@@ -300,13 +300,13 @@ export default function TrainerQuestion({
           return <TypeSpeed question={question} onAnswer={onAnswer} />
 
         case "FRACTRICK":
-          return <TypeFracTrick
-            question={question}
-            onAnswer={onAnswer}
-            onOptionSelected={handleAssistOptionSelected}
-            isAnswerChecked={answerState === "correct" || answerState === "incorrect"}
-            isAnswerCorrect={answerState === "correct"}
-          />
+          // Двухэтапный: сам компонент владеет обоими подтверждениями
+          // (этап 1 — переписать decimal дробью, этап 2 — посчитать
+          // реальный результат) и зовёт onAnswer('right'/'wrong') только
+          // ОДИН раз, по итогу второго этапа — самодостаточный тип, как
+          // CHECK/SPEED/HOT, общая нижняя кнопка тут не участвует (см.
+          // её скрытие ниже, рядом с CHECK).
+          return <TypeFracTrick question={question} onAnswer={onAnswer} />
 
         case "CONNECT":
           return <TypeConnect question={question} onAnswer={onAnswer} onAllPairsMatched={handleAllPairsMatched} />
@@ -496,7 +496,15 @@ export default function TrainerQuestion({
         </div>
         </motion.div>
 
-      {/* Кнопка внизу - фиксированная */}
+      {/* Кнопка внизу - фиксированная. У CHECK и FRACTRICK её нет вообще
+          (не только disabled) — оба типа самодостаточные и владеют
+          подтверждением сами: CHECK — вообще без подтверждения (клик по
+          ведру/галочке сразу засчитывает ответ), FRACTRICK — со своими
+          ДВУМЯ внутренними кнопками "Ответить" (по одной на каждый из 2
+          этапов, см. type-fractrick.tsx). Общая кнопка тут была бы либо
+          лишней (CHECK), либо третьей, которую пользователь явно не
+          просил (FRACTRICK). */}
+      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && (
       <div className="px-4 pb-4 pt-2 bg-[#151F24] relative">
         {/* Notification фон который выезжает при правильном ответе */}
         {answerState === "correct" && (
@@ -528,7 +536,7 @@ export default function TrainerQuestion({
               // ASSIST и INSERT — двухшаговый флоу: сначала выбор варианта
               // (answerState === "selected"), потом отдельный клик "далее"/
               // "понятно" на уже проверенный ответ, без повторной отправки.
-              const isSelectThenSubmitType = question.questionType === "ASSIST" || question.questionType === "INSERT" || question.questionType === "SCROLL" || question.questionType === "PICMATCH" || question.questionType === "FRACTRICK"
+              const isSelectThenSubmitType = question.questionType === "ASSIST" || question.questionType === "INSERT" || question.questionType === "SCROLL" || question.questionType === "PICMATCH"
 
               if (isSelectThenSubmitType && answerState === "selected" && selectedAssistAnswer) {
                 onAnswer(selectedAssistAnswer)
@@ -564,6 +572,7 @@ export default function TrainerQuestion({
           {getButtonText()}
         </button>
       </div>
+      )}
 
       {/* Модалка выхода — тот же Lottie-маскот "Не уходи!", что уже
           проверен в задачнике (components/modals/exit-modal.tsx),

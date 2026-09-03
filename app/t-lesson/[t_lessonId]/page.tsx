@@ -25,17 +25,22 @@ export type MultistepStep = {
 };
 
 // Только для type='FRACTRICK' — "умножить/разделить на унитарную дробь"
-// (0,5/0,25/0,125), см. CLAUDE.md "тренажёр Арифметики". n/decimal —
-// левая часть (N × decimal или N ÷ decimal), answer — правильный ответ
-// (знаменатель дроби, не зависит от n). rightOp='/' рисует правую часть
-// НАСТОЯЩЕЙ дробью (N сверху, ответ снизу — эффект умножения на
-// унитарную дробь = деление на знаменатель); rightOp='times' — правая
-// часть строкой "N × answer" (эффект деления на унитарную дробь =
-// умножение на знаменатель, дробь тут визуально не нужна). colorN/
-// colorDecimal — по прямой просьбе пользователя: палитра РАЗНАЯ у
-// разных примеров (не всегда фиолетовый/зелёный), но ВНУТРИ одного
-// примера n красится одним цветом на обеих сторонах, decimal и answer —
-// другим (общим), чтобы цвет сам показывал соответствие чисел.
+// (0,5/0,25/0,125), см. CLAUDE.md "тренажёр Арифметики". Двухэтапный
+// флоу (по прямой просьбе пользователя): ЭТАП 1 — переписать decimal как
+// дробь ("N × 0,25 = N × 1/?", rightOp='/' — правая часть N×(1/answer);
+// "N ÷ 0,5 = N × ?", rightOp='times' — правая часть N×answer, это уже
+// готовое умножение, дробь тут не нужна) — answer/answer-варианты те же,
+// что раньше. ЭТАП 2 (новый) — после подтверждения этапа 1 условие
+// "сдвигается влево", отбрасывая исходное "N op decimal =", и остаётся
+// готовое умножение "N × answer = ?" (или "N × (1/answer) = ?"), нужно
+// посчитать РЕАЛЬНЫЙ числовой результат (stage2Answer/stage2Options) —
+// вычисляется здесь же, в page.tsx, из уже имеющихся n/answer, дистракторы
+// собираются из таких же вычисленных результатов ДРУГИХ FRACTRICK-задач
+// урока (см. ветку ниже). colorN/colorDecimal — по прямой просьбе
+// пользователя: палитра РАЗНАЯ у разных примеров (не всегда фиолетовый/
+// зелёный), но ВНУТРИ одного примера n красится одним цветом на обеих
+// сторонах, decimal и answer — другим (общим), чтобы цвет сам показывал
+// соответствие чисел.
 export type FracTrickVisual = {
     n: string;
     op: '\\times' | '\\div';
@@ -44,6 +49,8 @@ export type FracTrickVisual = {
     answer: string;
     colorN: string;
     colorDecimal: string;
+    stage2Answer: string;
+    stage2Options: string[];
 };
 
 export type QuestionType = {
@@ -497,7 +504,8 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         }
 
         if (t_challenge.type === 'FRACTRICK') {
-            let visual: FracTrickVisual | null = null;
+            type FracTrickStored = Omit<FracTrickVisual, 'stage2Answer' | 'stage2Options'>;
+            let visual: FracTrickStored | null = null;
             try {
                 visual = t_challenge.fracTrickData ? JSON.parse(t_challenge.fracTrickData) : null;
             } catch {
@@ -505,20 +513,45 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             }
             if (!visual) return undefined;
 
-            // Дистракторы — из ДРУГИХ FRACTRICK-задач того же урока (их
-            // ответ = знаменатель ИХ дроби, естественно отличается от
-            // текущего). Не через общий isEligibleSibling/t_challengeOptions
-            // — у FRACTRICK нет t_challengeOptions вообще (данные целиком
-            // в fracTrickData, тот же принцип, что уже у MULTISTEP выше).
+            // ЭТАП 2 — реальный числовой результат уже готового умножения
+            // (rightOp='/' → N × (1/answer) = N/answer; rightOp='times' →
+            // N × answer) — считается на лету из уже сохранённых n/answer,
+            // отдельного поля в БД не заводили (см. FracTrickVisual выше).
+            const computeStage2 = (v: { n: string; answer: string; rightOp: '/' | 'times' }): number => {
+                const n = parseFloat(v.n);
+                const den = parseFloat(v.answer);
+                return v.rightOp === '/' ? n / den : n * den;
+            };
+            // Округление гасит погрешность плавающей точки (7×0,5 и т.п.),
+            // запятая — русская десятичная нотация, как и везде в проекте.
+            const formatRuNumber = (num: number): string => {
+                const rounded = Math.round(num * 1000) / 1000;
+                return String(rounded).replace('.', ',');
+            };
+            const stage2Answer = formatRuNumber(computeStage2(visual));
+
+            // Дистракторы — из ДРУГИХ FRACTRICK-задач того же урока: для
+            // этапа 1 их ответ = знаменатель ИХ дроби, для этапа 2 — их же
+            // вычисленный результат (естественно отличается от текущего).
+            // Не через общий isEligibleSibling/t_challengeOptions — у
+            // FRACTRICK нет t_challengeOptions вообще (данные целиком в
+            // fracTrickData, тот же принцип, что уже у MULTISTEP выше).
             const siblingAnswers = new Set<string>();
+            const stage2SiblingAnswers = new Set<string>();
             for (const sibling of t_lesson.t_challenges) {
                 if (sibling.type !== 'FRACTRICK' || sibling.id === t_challenge.id) continue;
                 try {
-                    const siblingVisual: FracTrickVisual | null = sibling.fracTrickData
+                    const siblingVisual: FracTrickStored | null = sibling.fracTrickData
                         ? JSON.parse(sibling.fracTrickData)
                         : null;
-                    if (siblingVisual && siblingVisual.answer !== visual.answer) {
-                        siblingAnswers.add(siblingVisual.answer);
+                    if (siblingVisual) {
+                        if (siblingVisual.answer !== visual.answer) {
+                            siblingAnswers.add(siblingVisual.answer);
+                        }
+                        const siblingStage2 = formatRuNumber(computeStage2(siblingVisual));
+                        if (siblingStage2 !== stage2Answer) {
+                            stage2SiblingAnswers.add(siblingStage2);
+                        }
                     }
                 } catch {
                     // пропускаем битую запись
@@ -526,6 +559,9 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             }
             const distractors = getRandomElements(Array.from(siblingAnswers), 5);
             const options = ShuffleTS([visual.answer, ...distractors]);
+
+            const stage2Distractors = getRandomElements(Array.from(stage2SiblingAnswers), 3);
+            const stage2Options = ShuffleTS([stage2Answer, ...stage2Distractors]);
 
             return {
                 questionType: 'FRACTRICK' as const,
@@ -539,7 +575,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 difficulty: t_challenge.difficulty,
                 correctAnswer: visual.answer,
                 timeLimit: 20,
-                fracTrick: visual,
+                fracTrick: { ...visual, stage2Answer, stage2Options },
             };
         }
 
