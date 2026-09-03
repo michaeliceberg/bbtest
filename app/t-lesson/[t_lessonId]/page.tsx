@@ -196,6 +196,17 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // задачи с любым из этих типов равноценны.
     const isMAscLike = (type: string): boolean => type === 'M_ASC' || (ACStype as readonly string[]).includes(type);
 
+    // Явно авторские CHECK-задачи (см. ветку randomASCtype === 'CHECK' ниже)
+    // хранят в t_challengeOptions[0].text не настоящий ответ, а служебный
+    // вердикт 'CORRECT'/'WRONG' — если такую задачу пустить в общий пул
+    // сиблингов-дистракторов для ДРУГИХ вопросов урока (ASSIST/SWIPE/SCROLL/
+    // CONNECT), 'CORRECT'/'WRONG' попадёт туда как бессмысленный "вариант
+    // ответа". Обычный (авто-порченный из M_ASC) CHECK этой проблемы не
+    // имеет — его answer это настоящая формула, просто РЕНДЕРИТСЯ иначе —
+    // поэтому здесь фильтруем по самому type='CHECK' (только явно
+    // авторский контент имеет такой тип в БД), а не по questionType.
+    const isEligibleSibling = (type: string): boolean => isMAscLike(type) && type !== 'CHECK';
+
     // Уровень сложности рендер-стиля — используется ниже, чтобы урок шёл
     // от простого к сложному (см. комментарий у ShuffleTS/.sort). ASSIST/
     // CONNECT — узнать среди готовых вариантов, проще всего; SWIPE/SCROLL —
@@ -303,7 +314,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     const buildAssistQuestion = (t_challenge: typeof lessonChallenges[number]): QuestionType => {
         const excludedUnit = selfUnitToExclude(t_challenge.question);
         const other5QuestionsGenre = dedupeByAnswerText(t_lesson.t_challenges.filter((el) =>
-            isMAscLike(el.type)
+            isEligibleSibling(el.type)
             && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
             && el.t_challengeOptions[0]?.text !== excludedUnit
             && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
@@ -382,7 +393,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         if (!looksLikeFormula(t_challenge.t_challengeOptions[0]?.text || '')) return undefined;
 
         const siblingChallenges = t_lesson.t_challenges.filter((el) =>
-            isMAscLike(el.type) && el.id !== t_challenge.id
+            isEligibleSibling(el.type) && el.id !== t_challenge.id
             && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
         );
 
@@ -482,7 +493,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             else if (randomASCtype === 'SWIPE' as const) {
                 const excludedUnitSwipe = selfUnitToExclude(t_challenge.question);
                 const otherQuestionsForSwipeGenre = dedupeByAnswerText(t_lesson.t_challenges.filter((el) =>
-                    isMAscLike(el.type)
+                    isEligibleSibling(el.type)
                     && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
                     && el.t_challengeOptions[0]?.text !== excludedUnitSwipe
                     && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
@@ -516,7 +527,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             else if (randomASCtype === 'SCROLL' as const) {
                 const excludedUnitScroll = selfUnitToExclude(t_challenge.question);
                 const otherQuestionsForScrollGenre = dedupeByAnswerText(t_lesson.t_challenges.filter((el) =>
-                    isMAscLike(el.type)
+                    isEligibleSibling(el.type)
                     && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
                     && el.t_challengeOptions[0]?.text !== excludedUnitScroll
                     && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
@@ -548,6 +559,33 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 };
             }
             else if (randomASCtype === 'CHECK' as const) {
+                // Явно авторский CHECK — challenge создан НАПРЯМУЮ с
+                // type='CHECK' (не M_ASC, случайно выбранный в этот
+                // рендер-стиль) и сам несёт готовое утверждение
+                // (t_challenge.question) + служебный вердикт в
+                // t_challengeOptions[0].text ('CORRECT'/'WRONG') — без
+                // автогенерации через порчу буквы формулы ниже. Нужно для
+                // контента вроде "3/8 = 0,125" (дроби/десятичные), где
+                // ложное утверждение придумывается вручную, а не берётся
+                // порчей случайной буквы в настоящей физической формуле.
+                const explicitVerdict = t_challenge.t_challengeOptions[0]?.text;
+                if (explicitVerdict === 'CORRECT' || explicitVerdict === 'WRONG') {
+                    return {
+                        questionType: 'CHECK' as const,
+                        question: 'Утверждение верно?',
+                        imageSrc: t_challenge.imageSrc,
+                        options: ['CORRECT', 'WRONG'],
+                        numRans: '1',
+                        optionsQ: [],
+                        optionsA: [],
+                        optionsConstructRight: [],
+                        difficulty: t_challenge.difficulty,
+                        correctAnswer: explicitVerdict,
+                        checkFormula: t_challenge.question,
+                        timeLimit: 20,
+                    };
+                }
+
                 // CHECK ("верно ли записана формула?") имеет смысл только
                 // для формул (LaTeX-ответ) — по тем же причинам, что и
                 // INSERT (см. выше): у словарного текстового ответа нет
@@ -558,7 +596,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
 
                 const formulaText = t_challenge.t_challengeOptions[0]?.text || '';
                 const siblingLetterPool = t_lesson.t_challenges
-                    .filter((el) => isMAscLike(el.type) && el.id !== t_challenge.id
+                    .filter((el) => isEligibleSibling(el.type) && el.id !== t_challenge.id
                         && looksLikeFormula(el.t_challengeOptions[0]?.text || ''))
                     .flatMap((el) => extractLetterCandidates(el.t_challengeOptions[0]?.text || ''));
 
@@ -604,7 +642,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 // текстом на случай текстового фолбэка в самом рендере).
                 const excludedUnitPic = selfUnitToExclude(t_challenge.question);
                 const otherQuestionsPicGenre = dedupeByAnswerText(t_lesson.t_challenges.filter((el) =>
-                    isMAscLike(el.type)
+                    isEligibleSibling(el.type)
                     && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
                     && el.t_challengeOptions[0]?.text !== excludedUnitPic
                     && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
@@ -632,7 +670,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 // randomASCtype === 'CONNECT'
                 const excludedUnitConnect = selfUnitToExclude(t_challenge.question);
                 const otherQuestionsGenre = dedupeByAnswerText(t_lesson.t_challenges.filter((el, i) =>
-                    isMAscLike(el.type)
+                    isEligibleSibling(el.type)
                     && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
                     && el.t_challengeOptions[0]?.text !== excludedUnitConnect
                     && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
