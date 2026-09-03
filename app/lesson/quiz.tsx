@@ -35,6 +35,8 @@ import { ChevronRight } from "lucide-react";
 import { LOTTIE_SKILL_ASK_LIST, getRandomLottie } from "@/src/constants/lottieConstants";
 import { getSkillTier, SKILL_PRACTICING_COLOR, SKILL_READY_GRADIENT, SKILL_READY_BORDER } from "@/lib/skillTier";
 import { detectPanelOrientation, PanelOrientation } from "@/lib/graphPanel";
+import { SolveModeChoice } from "@/components/geometry/SolveModeChoice";
+import { TrapezoidWalkthrough } from "@/components/geometry/TrapezoidWalkthrough";
 
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 
@@ -236,6 +238,20 @@ export const Quiz = ({
     const [typedAnswer, setTypedAnswer] = useState('')
     const [status, setStatus] = useState<"correct" | "wrong" | "none">('none')
     const [options, setOptions] = useState<typeof challengeOptions.$inferSelect[]>([])
+    // Прототип "интерактивного разбора по шагам" (см. components/geometry/
+    // TrapezoidWalkthrough.tsx) — привязан к ОДНОЙ конкретной задаче
+    // (courseId=11, challengeId=1679, "Трапеция" — по просьбе пользователя),
+    // не общий механизм пока. null = ещё не выбрано (показываем экран
+    // выбора режима), 'self'/'guided' — выбранный режим на ЭТУ попытку.
+    const WALKTHROUGH_CHALLENGE_ID = 1679
+    const [walkthroughMode, setWalkthroughMode] = useState<'self' | 'guided' | null>(null)
+    // Флаг "подставили верный ответ программно, надо засчитать" — сам вызов
+    // onContinue() отложен в useEffect (ниже, после его определения), а не
+    // сразу после setSelectedOption/setTypedAnswer: React не обновляет
+    // состояние синхронно, вызов onContinue() в том же тике замкнулся бы на
+    // ЕЩЁ СТАРОЕ значение (typedAnswer/selectedOption) — тот же класс
+    // stale-closure бага, что уже не раз ловили в этом проекте.
+    const [pendingWalkthroughSubmit, setPendingWalkthroughSubmit] = useState(false)
 
     let [challenge] = challenges.filter(el => el.id == activeIndex)
     const isHWChallenge = hwChallengeIds?.includes(challenge?.id) ?? false;
@@ -327,6 +343,7 @@ export const Quiz = ({
         setCharacterSelections({})
         setTypedAnswer('')
         setStatus('none')
+        setWalkthroughMode(null)
         setIsDoneWrongChallenge(wrongChallengesId.includes(newIndex))
         setIsDoneChallenge(doneChallengesId.includes(newIndex))
         setDateLastDone(challengesDone.filter(el => el.challengeId === newIndex)
@@ -636,6 +653,34 @@ export const Quiz = ({
         }
     }
 
+    // См. комментарий у pendingWalkthroughSubmit выше — вызываем onContinue
+    // только ПОСЛЕ того, как React зафиксировал новое значение
+    // selectedOption/typedAnswer (эффект гарантированно видит свежее
+    // состояние, в отличие от прямого вызова в том же обработчике).
+    useEffect(() => {
+        if (!pendingWalkthroughSubmit) return
+        setPendingWalkthroughSubmit(false)
+        onContinue()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pendingWalkthroughSubmit])
+
+    const handleWalkthroughComplete = (allCorrect: boolean) => {
+        // Разбор по шагам сам по себе не требует "правильно с первого
+        // раза" — оценка идёт по факту прохождения (тот же принцип, что
+        // и у MULTISTEP в тренажёре): подставляем настоящий правильный
+        // ответ задачи и подтверждаем его через уже существующий onContinue
+        // (та же логика очков/сердечек/ачивок/XP, что и у обычного ответа —
+        // не дублируем её здесь).
+        const correctOption = options.find((o) => o.correct)
+        if (!correctOption) return
+        if (effectiveType === 'KEYBOARD') {
+            setTypedAnswer(correctOption.text)
+        } else {
+            setSelectedOption(correctOption.id)
+        }
+        setPendingWalkthroughSubmit(true)
+    }
+
     if (!challenge) {
         challenge = challenges[0]
     }
@@ -682,6 +727,43 @@ export const Quiz = ({
                     </Button>
                 </motion.div>
             </>
+        )
+    }
+
+    // Прототип "интерактивного разбора по шагам" — см. комментарий у
+    // WALKTHROUGH_CHALLENGE_ID выше. Отдельный ранний return (не встроено
+    // внутрь обычного JSX ниже) — сознательно, чтобы не трогать основную,
+    // и так сложную разметку карточки/футера для остальных типов заданий.
+    const isWalkthroughChallenge = challenge.id === WALKTHROUGH_CHALLENGE_ID
+    if (isWalkthroughChallenge && walkthroughMode !== 'self' && !isDoneChallenge) {
+        return (
+            <div className="min-h-screen bg-[#151F23] flex flex-col">
+                <Header
+                    hearts={hearts}
+                    percentage={percentage}
+                    hasActiveSubscription={!!userSubscription?.isActive}
+                />
+                <div className="max-w-xl mx-auto w-full px-4 pt-3 flex items-center gap-2">
+                    <div className="w-1 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: unitColor.button }} />
+                    <h2 className="text-sm md:text-base font-bold text-[#F2F7FB] truncate">{lessonTitle}</h2>
+                </div>
+                <div className="flex-1 max-w-xl w-full mx-auto px-4 py-4">
+                    {walkthroughMode === 'guided' ? (
+                        <TrapezoidWalkthrough
+                            onComplete={(allCorrect) => {
+                                handleWalkthroughComplete(allCorrect)
+                                // Переключаем на обычный экран СРАЗУ — верный
+                                // ответ уже подставлен (см. handleWalkthroughComplete),
+                                // дальше это обычный поток "ответ засчитан",
+                                // тот же, что и без разбора по шагам.
+                                setWalkthroughMode('self')
+                            }}
+                        />
+                    ) : (
+                        <SolveModeChoice onChoose={setWalkthroughMode} />
+                    )}
+                </div>
+            </div>
         )
     }
 
