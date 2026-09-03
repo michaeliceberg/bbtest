@@ -734,8 +734,16 @@ export const Quiz = ({
     // WALKTHROUGH_CHALLENGE_ID выше. Отдельный ранний return (не встроено
     // внутрь обычного JSX ниже) — сознательно, чтобы не трогать основную,
     // и так сложную разметку карточки/футера для остальных типов заданий.
+    // Убрано условие "!isDoneChallenge" по прямой просьбе пользователя —
+    // разбор по шагам должен оставаться доступен для пересмотра/повторного
+    // прохождения СКОЛЬКО УГОДНО раз, а не только один раз до первого
+    // верного ответа. walkthroughMode сбрасывается на null при каждом
+    // заходе на задачу (см. onClickNumber выше), так что экран выбора
+    // режима снова появляется при каждом новом визите на неё — "Решу сам"
+    // по-прежнему доступен как раньше, просто выбор больше не запоминается
+    // между визитами.
     const isWalkthroughChallenge = challenge.id === WALKTHROUGH_CHALLENGE_ID
-    if (isWalkthroughChallenge && walkthroughMode !== 'self' && !isDoneChallenge) {
+    if (isWalkthroughChallenge && walkthroughMode !== 'self') {
         return (
             <div className="min-h-screen bg-[#151F23] flex flex-col">
                 <Header
@@ -808,6 +816,7 @@ export const Quiz = ({
                     wrongChallengesId={wrongChallengesId}
                     dailyChallengeIds={dailyChallengeIds}
                     hwChallengeIds={hwChallengeIds}
+                    walkthroughChallengeIds={[WALKTHROUGH_CHALLENGE_ID]}
                     unitColor={unitColor}
                     onClickNumber={onClickNumber}
                 />
