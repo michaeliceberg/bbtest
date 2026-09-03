@@ -254,9 +254,28 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // выглядит нелепо: "Дж" как вариант ответа на "Что измеряется в
     // Дж?"). Найдено живьём при добавлении словарного слоя на
     // энергию/импульс (2026-08-30).
-    const isUnitAnswerQuestion = (question: string): boolean => /^В чём измеряется/.test(question);
+    // Расширено (2026-09-04) сверх исходной "В чём измеряется" —
+    // словарные факты "Дробей и десятичных" (см. rebuildFractionsUnit.ts)
+    // тоже textовый genre (нет "$"), а значит без разделения по родам
+    // "Чему равно 0,5 в виде обыкновенной дроби?" (ждёт ответ-ДРОБЬ) мог
+    // получить в дистракторы ответ ИЗ ОБРАТНОГО вопроса "Чему равно 1/2 в
+    // виде десятичной дроби?" — то есть саму же десятичную "0,5" или
+    // "0,25" как вариант ответа на вопрос про дробь: не просто неверный
+    // вариант, а вариант ДРУГОГО ТИПА данных, ответить которым на вопрос
+    // "в виде дроби" в принципе бессмысленно. Пойман пользователем
+    // живьём. getAnswerKind — общий классификатор "рода" вопроса вместо
+    // старой булевой isUnitAnswerQuestion; для родов, не описанных явно
+    // ниже, возвращает 'other' — как и раньше, эвристика мягкая, сужает
+    // пул через pickPreferringKind с fallback на родовой пул при полном
+    // отсутствии однородных кандидатов, а не жёстко требует совпадения.
+    const getAnswerKind = (question: string): string => {
+        if (/^В чём измеряется/.test(question)) return 'unit';
+        if (/в виде обыкновенной дроби\?$/.test(question)) return 'to-fraction';
+        if (/в виде десятичной дроби\?$/.test(question)) return 'to-decimal';
+        return 'other';
+    };
     const sameAnswerKind = (aQuestion: string, bQuestion: string): boolean =>
-        isUnitAnswerQuestion(aQuestion) === isUnitAnswerQuestion(bQuestion);
+        getAnswerKind(aQuestion) === getAnswerKind(bQuestion);
 
     // Обманки СТРОГО того же рода (см. sameAnswerKind выше), пока их
     // хватает хоть на одну — getRandomElements сам аккуратно вернёт
