@@ -23,7 +23,11 @@ const StreakCelebrationToastProvider = dynamic(() => import('@/components/streak
 const LevelUpModalProvider = dynamic(() => import('@/components/level-up-modal-provider').then(mod => ({ default: mod.LevelUpModalProvider })), { ssr: false });
 const QuestCompleteModalProvider = dynamic(() => import('@/components/quest-complete-modal-provider').then(mod => ({ default: mod.QuestCompleteModalProvider })), { ssr: false });
 
-const font = Nunito({ subsets: ['latin'] });
+// variable — даёт стабильную CSS-переменную --font-nunito (в отличие от
+// font.className, чьё имя класса — сгенерированный хэш, разный между
+// сборками) — нужна, чтобы сослаться на этот же Nunito из app/globals.css
+// (переопределение шрифта внутри KaTeX, см. там же).
+const font = Nunito({ subsets: ['latin'], variable: '--font-nunito' });
 
 export const metadata: Metadata = {
 	title: 'ggege',
@@ -39,7 +43,7 @@ export default function RootLayout({
 		<html lang='en'>
 			<head>
 			</head>
-			<body className={font.className}>
+			<body className={`${font.className} ${font.variable}`}>
 				<Providers>
 					{children}
 				</Providers>
