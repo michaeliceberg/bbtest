@@ -12,7 +12,7 @@ import { allTypesCT, t_challengeOptions, t_lessonProgress, t_units } from "@/db/
 import { GetTLessonStat, GetTUnitStat } from "@/usefulFunctions";
 import 'katex/dist/katex.min.css';
 import Latex from 'react-latex-next';
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Infinity as InfinityIcon, Zap } from "lucide-react";
 import { Button } from "./ui/button";
@@ -122,6 +122,42 @@ export const TabTCourses = ({
         setShowFormulas(!showFormulas)
     }
 
+    // Запоминаем последнюю выбранную вкладку курса тренажёра — иначе
+    // после возврата с урока (например, из "Арифметики") /trainer всегда
+    // открывался бы на первом по порядку курсе (Физика-11), а не на том,
+    // с которым пользователь реально занимался. defaultValue у Tabs
+    // хватило бы только на "открылось один раз за сессию" — здесь нужнее
+    // именно "куда бы я ни вернулся, помни" (переживает уход на /t-lesson
+    // и обратно, и вообще любую навигацию), поэтому localStorage, а не
+    // просто React state. null — детерминированный SSR-плейсхолдер,
+    // настоящее чтение localStorage — только внутри useEffect после
+    // монтирования (та же причина, что и у прошлых hydration-фиксов в
+    // этом проекте — localStorage недоступен на сервере).
+    const ACTIVE_T_COURSE_TAB_KEY = 'trainerActiveTCourseTab'
+    const [activeTab, setActiveTab] = useState<string | null>(null)
+
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem(ACTIVE_T_COURSE_TAB_KEY)
+            if (saved && t_courses.some((c) => c.title === saved)) {
+                setActiveTab(saved)
+            }
+        } catch {
+            // localStorage недоступен (приватный режим и т.п.) — не критично,
+            // просто останется дефолт (первый курс)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    const handleTabChange = (value: string) => {
+        setActiveTab(value)
+        try {
+            localStorage.setItem(ACTIVE_T_COURSE_TAB_KEY, value)
+        } catch {
+            // не критично
+        }
+    }
+
     const usersThisClass = allUsers.filter(user => user.classId == this_class_id)
     const thisClassHW = allClassHW?.filter(el => el.classId == this_class_id)
 
@@ -170,7 +206,11 @@ export const TabTCourses = ({
 
     return (
         <div className="w-full">
-            <Tabs defaultValue={t_courses[0]?.title} className="w-full">
+            <Tabs
+                value={activeTab ?? t_courses[0]?.title}
+                onValueChange={handleTabChange}
+                className="w-full"
+            >
                 {/* Табы курсов - центрируем */}
                 <div className="flex justify-center mb-6">
                     <TabsList className="bg-[#232F34] rounded-xl p-1">
@@ -246,6 +286,12 @@ export const TabTCourses = ({
                             <TrainerGradeTree topics={topics} />
                         </div>
 
+                        {/* "Показать все формулы" — убрано по просьбе пользователя (2026-09-03):
+                            падало с крашем на MULTISTEP-задачах (нет t_challengeOptions,
+                            answer живёт в multistepData — <Latex>{undefined}</Latex> роняло
+                            react-latex-next). Не чинили, просто закомментировали — сам
+                            onClickHandler/showFormulas state оставлен нетронутым на случай,
+                            если понадобится вернуть.
                         <div className="flex justify-center mt-8">
                             <Button
                                 onClick={onClickHandler}
@@ -272,7 +318,7 @@ export const TabTCourses = ({
                                                                 <div key={i * 9135} className="p-3 bg-[#151F23] rounded-lg border">
                                                                     <Latex>{t_challenge.question}</Latex>
                                                                     <div className="text-green-600 mt-1 text-sm">
-                                                                        Ответ: <Latex>{t_challenge.t_challengeOptions[0]?.text}</Latex>
+                                                                        Ответ: <Latex>{t_challenge.t_challengeOptions[0]?.text || '(см. multistepData)'}</Latex>
                                                                     </div>
                                                                 </div>
                                                             ))}
@@ -285,6 +331,7 @@ export const TabTCourses = ({
                                 </div>
                             </div>
                         )}
+                        */}
                     </TabsContent>
                     )
                 })}
