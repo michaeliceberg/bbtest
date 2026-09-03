@@ -755,6 +755,26 @@ export const Quiz = ({
                     <div className="w-1 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: unitColor.button }} />
                     <h2 className="text-sm md:text-base font-bold text-[#F2F7FB] truncate">{lessonTitle}</h2>
                 </div>
+
+                {/* Этот ранний return раньше НЕ включал меню выбора задачи —
+                    из экрана выбора режима/самого разбора не было способа
+                    переключиться на другую задачу (пользователь: "как будто
+                    мы обязаны пройти задачу №1"). Добавлено то же самое
+                    меню, что и в обычном рендере ниже. */}
+                <div className="max-w-xl mx-auto w-full px-4 pt-1 pb-2">
+                    <ChallengeNav
+                        challenges={challenges}
+                        activeId={Number(activeIndex)}
+                        doneChallengesId={doneChallengesId}
+                        wrongChallengesId={wrongChallengesId}
+                        dailyChallengeIds={dailyChallengeIds}
+                        hwChallengeIds={hwChallengeIds}
+                        walkthroughChallengeIds={[WALKTHROUGH_CHALLENGE_ID]}
+                        unitColor={unitColor}
+                        onClickNumber={onClickNumber}
+                    />
+                </div>
+
                 <div className="flex-1 max-w-xl w-full mx-auto px-4 py-4">
                     {walkthroughMode === 'guided' ? (
                         <TrapezoidWalkthrough

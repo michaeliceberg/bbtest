@@ -69,6 +69,43 @@ const ZOOM_TY = -36.35
 const HYP_MID = { x: (B.x + C.x) / 2, y: (B.y + C.y) / 2 }
 const HYP_QMARK = { x: HYP_MID.x + 29.8, y: HYP_MID.y - 23.6 }
 
+// Те же "?" + наклонная стрелочка нужны и для отрезков основания
+// (левый/правый), пока их длина ещё не найдена — по прямой просьбе
+// пользователя ("когда кусочки ищем нижние — там тоже нужны
+// стрелочки"). "?" ставим НАД серединой каждого отрезка (по диагонали
+// наружу — левый левее, правый правее, чтобы не толпились к центру),
+// стрелка указывает вниз на сам отрезок; когда длина найдена — "?"
+// гаснет, а число "15" появляется НИЖЕ отрезка (уже существующая
+// позиция), так что они не перекрываются.
+const SEG_L_MID = { x: (D.x + A_FOOT.x) / 2, y: D.y }
+const SEG_L_QMARK = { x: SEG_L_MID.x - 20, y: SEG_L_MID.y - 34 }
+const SEG_R_MID = { x: (B_FOOT.x + C.x) / 2, y: D.y }
+const SEG_R_QMARK = { x: SEG_R_MID.x + 20, y: SEG_R_MID.y - 34 }
+
+type Pt = { x: number; y: number }
+
+// Наклонная стрелочка от "?" к самой стороне/отрезку, которую ищем — по
+// прямой просьбе пользователя. Направление считается аналитически
+// (единичный вектор from→to), не подбирается на глаз — общая функция,
+// переиспользуемая для гипотенузы и обоих отрезков основания.
+const computeArrow = (from: Pt, to: Pt, headLen = 14, headWidth = 9) => {
+    const dx = to.x - from.x
+    const dy = to.y - from.y
+    const len = Math.sqrt(dx * dx + dy * dy)
+    const ux = dx / len, uy = dy / len
+    const px = -uy, py = ux
+    // Хвост стрелки начинается чуть в стороне от самого символа "?" (не
+    // из его центра — иначе накладывался бы на глиф).
+    const tail = { x: from.x + ux * 10, y: from.y + uy * 10 }
+    const headBack = { x: to.x - ux * headLen, y: to.y - uy * headLen }
+    const headPoints = [
+        `${to.x},${to.y}`,
+        `${headBack.x + px * (headWidth / 2)},${headBack.y + py * (headWidth / 2)}`,
+        `${headBack.x - px * (headWidth / 2)},${headBack.y - py * (headWidth / 2)}`,
+    ].join(' ')
+    return { tail, headBack, headPoints }
+}
+
 export type TrapezoidVisual = {
     legsHighlighted?: boolean
     base43Shown?: boolean
@@ -93,6 +130,45 @@ const numberBounce = {
     initial: { opacity: 0, scale: 5 },
     animate: { opacity: 1, scale: 1 },
     transition: { type: 'spring' as const, duration: 0.8, bounce: 0.6 },
+}
+
+// "?" + наклонная стрелочка, указывающая на сторону/отрезок, который мы
+// сейчас ищем — общий компонент для гипотенузы и обоих отрезков
+// основания (было 3 копии одной и той же JSX-хореографии, вынесено
+// один раз). Порядок появления: линия-стрелка рисуется первой (0.15с
+// задержка), затем наконечник (0.45с), затем сам "?" всплывает
+// пружинным bounce (0.3с) — тот же тайминг, что был у гипотенузы.
+const ArrowHint = ({ from, to, active, color, fontSize = 24 }: { from: Pt; to: Pt; active: boolean; color: string; fontSize?: number }) => {
+    const { tail, headBack, headPoints } = computeArrow(from, to)
+    return (
+        <>
+            <motion.line
+                x1={tail.x} y1={tail.y} x2={headBack.x} y2={headBack.y}
+                stroke={color}
+                strokeWidth={3}
+                strokeLinecap="round"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: active ? 1 : 0, opacity: active ? 1 : 0 }}
+                transition={{ duration: 0.35, ease: 'easeOut', delay: active ? 0.15 : 0 }}
+            />
+            <motion.polygon
+                points={headPoints}
+                fill={color}
+                initial={{ opacity: 0, scale: 0.4 }}
+                animate={{ opacity: active ? 1 : 0, scale: active ? 1 : 0.4 }}
+                transition={{ duration: 0.25, delay: active ? 0.45 : 0 }}
+            />
+            <motion.text
+                x={from.x} y={from.y}
+                initial={{ opacity: 0, scale: 0.3, x: to.x - from.x, y: to.y - from.y }}
+                animate={active
+                    ? { opacity: 1, scale: 1, x: 0, y: 0 }
+                    : { opacity: 0, scale: 0.3, x: to.x - from.x, y: to.y - from.y }}
+                transition={{ type: 'spring', duration: 0.7, bounce: 0.5, delay: active ? 0.3 : 0 }}
+                textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={fontSize} fontWeight={800} fill={color}
+            >?</motion.text>
+        </>
+    )
 }
 
 export const TrapezoidDiagram = (props: TrapezoidVisual) => {
@@ -155,21 +231,8 @@ export const TrapezoidDiagram = (props: TrapezoidVisual) => {
                         animate={{ stroke: hypotenuseFocused ? HYPOTENUSE_COLOR : legsHighlighted ? ACCENT : EDGE }}
                         transition={{ duration: 0.4 }}
                     />
-                    {/* "?" выезжает из гипотенузы наружу — сигнал "вот что мы ищем".
-                        Фиксированный атрибут x/y — конечная (offset) позиция; сам
-                        motion.x/y — ОТНОСИТЕЛЬНОЕ смещение НАЗАД к середине линии,
-                        тот же проверенный приём, что уже используется у подписей
-                        43/73 выше (transform-offset поверх фиксированного атрибута,
-                        а не анимация самого x/y-атрибута напрямую). */}
-                    <motion.text
-                        x={HYP_QMARK.x} y={HYP_QMARK.y}
-                        initial={{ opacity: 0, scale: 0.3, x: HYP_MID.x - HYP_QMARK.x, y: HYP_MID.y - HYP_QMARK.y }}
-                        animate={hypotenuseFocused
-                            ? { opacity: 1, scale: 1, x: 0, y: 0 }
-                            : { opacity: 0, scale: 0.3, x: HYP_MID.x - HYP_QMARK.x, y: HYP_MID.y - HYP_QMARK.y }}
-                        transition={{ type: 'spring', duration: 0.7, bounce: 0.5, delay: hypotenuseFocused ? 0.3 : 0 }}
-                        textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={28} fontWeight={800} fill={HYPOTENUSE_COLOR}
-                    >?</motion.text>
+                    {/* "?" + стрелка у гипотенузы — сигнал "вот что мы ищем". */}
+                    <ArrowHint from={HYP_QMARK} to={HYP_MID} active={hypotenuseFocused} color={HYPOTENUSE_COLOR} fontSize={28} />
 
                     {/* высоты — дорисовываются анимированно (pathLength), медленнее и толще */}
                     <motion.path
@@ -211,6 +274,12 @@ export const TrapezoidDiagram = (props: TrapezoidVisual) => {
                         animate={{ opacity: segmentsHighlighted ? 1 : 0 }}
                         transition={{ duration: 0.5 }}
                     />
+
+                    {/* "?" + стрелки у отрезков основания, пока их длина ещё
+                        не найдена — гаснут, как только появляется сама
+                        цифра (segmentValue), чтобы не перекрываться с ней. */}
+                    <ArrowHint from={SEG_L_QMARK} to={SEG_L_MID} active={segmentsHighlighted && !segmentValue} color={SEGMENT_COLOR} fontSize={22} />
+                    <ArrowHint from={SEG_R_QMARK} to={SEG_R_MID} active={segmentsHighlighted && !segmentValue} color={SEGMENT_COLOR} fontSize={22} />
 
                     {/* подпись "43" — "выныривает" СНИЗУ ВВЕРХ с bounce-эффектом
                         (стартует крупнее и ближе к телу трапеции, оседает на своё
