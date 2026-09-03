@@ -20,6 +20,7 @@ const BG = '#161F23'
 const EDGE = '#F2F7FB'
 const ACCENT = '#7dd3fc'       // акцент математики (см. CLAUDE.md) — боковые стороны, финальный ответ
 const SEGMENT_COLOR = '#FB923C' // оранжевый — отрезки основания после проведения высот
+const HYPOTENUSE_COLOR = '#F43F5E' // тот же розово-красный, что и текст-маркер — "вот что мы сейчас ищем"
 const TEXT = '#F2F7FB'
 
 // Координаты — не в масштабе, топология точная: отступ верхних вершин
@@ -58,6 +59,14 @@ const ZOOM_SCALE = 1.3
 const ZOOM_TX = -315.25
 const ZOOM_TY = -36.35
 
+// "?" у гипотенузы B-C — стартует ПРЯМО НА линии (в её середине) и
+// "выезжает" наружу перпендикулярно ей, будто выныривая из самой стороны.
+// Направление перпендикуляра посчитано аналитически (единичный вектор
+// B→C, повёрнутый на 90°, в сторону, противоположную третьей вершине
+// треугольника B_FOOT — то есть НАРУЖУ, не внутрь фигуры).
+const HYP_MID = { x: (B.x + C.x) / 2, y: (B.y + C.y) / 2 }
+const HYP_QMARK = { x: HYP_MID.x + 29.8, y: HYP_MID.y - 23.6 }
+
 export type TrapezoidVisual = {
     legsHighlighted?: boolean
     base43Shown?: boolean
@@ -67,6 +76,7 @@ export type TrapezoidVisual = {
     segmentValue?: string | null   // "15" — подпись на отрезках D-A_FOOT/B_FOOT
     triangleHighlighted?: boolean  // подсветка правого треугольника (до зума)
     zoomTriangle?: boolean         // зум на правый треугольник
+    hypotenuseFocused?: boolean    // гипотенуза B-C красится отдельным цветом + "?" выезжает из неё
     legValue?: string | null       // "21" — подпись на боковой стороне (финал)
 }
 
@@ -93,6 +103,7 @@ export const TrapezoidDiagram = (props: TrapezoidVisual) => {
         segmentValue = null,
         triangleHighlighted = false,
         zoomTriangle = false,
+        hypotenuseFocused = false,
         legValue = null,
     } = props
 
@@ -136,12 +147,27 @@ export const TrapezoidDiagram = (props: TrapezoidVisual) => {
                     />
                     <motion.line
                         x1={B.x} y1={B.y} x2={C.x} y2={C.y}
-                        stroke={legsHighlighted ? ACCENT : EDGE}
-                        strokeWidth={legsHighlighted ? 7 : 5}
+                        stroke={hypotenuseFocused ? HYPOTENUSE_COLOR : legsHighlighted ? ACCENT : EDGE}
+                        strokeWidth={hypotenuseFocused ? 8 : legsHighlighted ? 7 : 5}
                         strokeLinecap="round"
-                        animate={{ stroke: legsHighlighted ? ACCENT : EDGE }}
+                        animate={{ stroke: hypotenuseFocused ? HYPOTENUSE_COLOR : legsHighlighted ? ACCENT : EDGE }}
                         transition={{ duration: 0.4 }}
                     />
+                    {/* "?" выезжает из гипотенузы наружу — сигнал "вот что мы ищем".
+                        Фиксированный атрибут x/y — конечная (offset) позиция; сам
+                        motion.x/y — ОТНОСИТЕЛЬНОЕ смещение НАЗАД к середине линии,
+                        тот же проверенный приём, что уже используется у подписей
+                        43/73 выше (transform-offset поверх фиксированного атрибута,
+                        а не анимация самого x/y-атрибута напрямую). */}
+                    <motion.text
+                        x={HYP_QMARK.x} y={HYP_QMARK.y}
+                        initial={{ opacity: 0, scale: 0.3, x: HYP_MID.x - HYP_QMARK.x, y: HYP_MID.y - HYP_QMARK.y }}
+                        animate={hypotenuseFocused
+                            ? { opacity: 1, scale: 1, x: 0, y: 0 }
+                            : { opacity: 0, scale: 0.3, x: HYP_MID.x - HYP_QMARK.x, y: HYP_MID.y - HYP_QMARK.y }}
+                        transition={{ type: 'spring', duration: 0.7, bounce: 0.5, delay: hypotenuseFocused ? 0.3 : 0 }}
+                        textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={28} fontWeight={800} fill={HYPOTENUSE_COLOR}
+                    >?</motion.text>
 
                     {/* высоты — дорисовываются анимированно (pathLength), медленнее и толще */}
                     <motion.path

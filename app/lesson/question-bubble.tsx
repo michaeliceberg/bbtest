@@ -1,11 +1,11 @@
 // app/lesson/question-bubble.tsx
 
 import dynamic from "next/dynamic";
-import Latex from 'react-latex-next';
 import { Skull, Home, BookOpen, CheckCircle, XCircle, ZoomIn } from 'lucide-react';
 import { differenceInHours, isPast } from 'date-fns';
 import { motion } from "framer-motion";
 import { NoRightAnswer } from "@/components/hover-card";
+import { HighlightedNumbersText } from "@/components/HighlightedNumbersText";
 import { useState, useRef, useEffect } from "react";
 
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
@@ -23,15 +23,15 @@ import LottieButterfly from '@/public/LottieSelectButterfly.json'
 // (если удалось её распознать эвристикой — иначе просто весь текст как есть).
 const QuestionText = ({ question, color }: { question: string; color: string }) => {
     const highlight = findQuestionTarget(question);
-    if (!highlight) return <Latex>{question}</Latex>;
+    if (!highlight) return <HighlightedNumbersText text={question} />;
 
     return (
         <>
-            <Latex>{highlight.before}</Latex>
+            <HighlightedNumbersText text={highlight.before} />
             <span className="font-semibold" style={{ color }}>
-                <Latex>{highlight.target}</Latex>
+                <HighlightedNumbersText text={highlight.target} />
             </span>
-            <Latex>{highlight.after}</Latex>
+            <HighlightedNumbersText text={highlight.after} />
         </>
     );
 };
@@ -297,7 +297,7 @@ export const QuestionBubble = ({
                                     {options.map((o, i) => (
                                         <li key={o.id}>
                                             <span className="text-[#9AA7B0]">{i + 1}.</span>{' '}
-                                            <Latex>{o.text}</Latex>
+                                            <HighlightedNumbersText text={o.text} />
                                         </li>
                                     ))}
                                 </ul>

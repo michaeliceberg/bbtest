@@ -30,6 +30,7 @@ import { Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { KeyboardInput } from '@/app/lesson/keyboard-input'
 import { AnimatedOptionButton } from '@/components/AnimatedOptionButton'
+import { HighlightedNumbersText } from '@/components/HighlightedNumbersText'
 import { TrapezoidDiagram, TrapezoidVisual } from './TrapezoidDiagram'
 
 type Props = {
@@ -84,16 +85,21 @@ const INTRO_TIMELINE = [400, 2100, 3800, 5400]   // шаг 0: маркер "ра
 const HEIGHTS_TIMELINE = [200, 1800]              // шаг 1: высоты → пауза → оранжевые отрезки
 const CHOICE_TIMELINE = [250, 1950, 3550, 5250]   // шаг 3: зум → подпись 15 → маркер "косинус" → вопрос
 
-// Жёлтый маркер заменён на тёмно-фиолетовый — по просьбе пользователя
-// ("сделаем выделение красивым тёмным цветом, может фиолетовым"),
-// расположен ВЫШЕ (на уровне самого текста, не под ним) и шире полосы
-// текста — растёт слева направо, как будто его проводят фломастером.
-const MARKER_COLOR = 'rgba(124, 58, 237, 0.6)' // violet-600 @ 60%
+// Фиолетовый маркер оказался слишком тёмным и сливался с тёмным фоном
+// приложения — заменён на розово-красный (тот же оттенок, что и
+// HYPOTENUSE_COLOR в TrapezoidDiagram — единый "вот на чём фокус сейчас"
+// язык между текстом и диаграммой), при высокой непрозрачности — чтобы
+// не сливаться с фоном, но белые буквы поверх оставались контрастными.
+// Верхний край не трогаем (пользователь подтвердил "верхний край идёт
+// отлично") — расширяем ТОЛЬКО вниз, чтобы под маркер попадали и
+// нижние выносные элементы букв (р, у, б...), которые раньше вылезали
+// из-под полосы.
+const MARKER_COLOR = 'rgba(244, 63, 94, 0.82)' // rose-500 @ 82%
 
 const HighlightWord = ({ children, active }: { children: React.ReactNode; active: boolean }) => (
     <span className="relative inline-block whitespace-nowrap">
         <motion.span
-            className="absolute -inset-x-1.5 top-[0.03em] h-[0.92em] rounded-[3px]"
+            className="absolute -inset-x-1.5 top-[0.03em] h-[1.25em] rounded-[3px]"
             style={{ backgroundColor: MARKER_COLOR, transformOrigin: 'left center' }}
             initial={{ scaleX: 0 }}
             animate={{ scaleX: active ? 1 : 0 }}
@@ -151,6 +157,11 @@ export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
     const altitudesDrawn = stepIndex > 1 || (stepIndex === 1 && heightsPhase >= 1)
     const segmentsHighlighted = stepIndex > 1 || (stepIndex === 1 && heightsPhase >= 2)
     const zoomTriangle = (stepIndex === 3 && choicePhase >= 1) || (stepIndex === 4 && !checked)
+    // Гипотенуза перекрашивается + "?" выезжает из неё, пока идёт зум и
+    // ответ ещё не найден — по просьбе пользователя, гаснет одновременно
+    // с самим зумом (тем же условием, `&& !checked`) как только появляется
+    // финальное число.
+    const hypotenuseFocused = zoomTriangle
 
     const visual: TrapezoidVisual = {
         legsHighlighted,
@@ -161,6 +172,7 @@ export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
         segmentValue,
         triangleHighlighted: stepIndex >= 3,
         zoomTriangle,
+        hypotenuseFocused,
         legValue,
     }
 
@@ -240,7 +252,7 @@ export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
                 подсвечиваются маркером синхронно с разбором. */}
             <div className="w-full rounded-xl border-2 border-[#3A464E] bg-[#161F23] px-4 py-3 text-center text-sm md:text-base text-[#F2F7FB] leading-relaxed">
                 Основания <HighlightWord active={legsMarkerActive}>равнобедренной</HighlightWord> трапеции{' '}
-                <HighlightWord active={basesMarkerActive}>равны 43 и 73</HighlightWord>.
+                <HighlightWord active={basesMarkerActive}><HighlightedNumbersText text="равны 43 и 73" /></HighlightWord>.
                 {' '}<HighlightWord active={cosineMarkerActive}>Косинус острого угла трапеции равен</HighlightWord> <Latex>{'$\\dfrac{5}{7}$'}</Latex>. Найдите боковую сторону.
             </div>
 
@@ -254,7 +266,7 @@ export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
                     transition={{ duration: 0.3 }}
                     className="w-full text-center text-base md:text-lg text-[#F2F7FB]"
                 >
-                    <Latex>{step.prompt}</Latex>
+                    <HighlightedNumbersText text={step.prompt} />
                 </motion.div>
             )}
 
