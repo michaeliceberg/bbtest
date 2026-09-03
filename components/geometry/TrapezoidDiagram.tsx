@@ -10,20 +10,24 @@
 //
 // Топология не в масштабе (реальная высота трапеции при этих числах
 // визуально почти плоская — h=6√6≈14.7 при основаниях 43/73), высота
-// осознанно завышена для читаемости чертежа.
+// осознанно завышена для читаемости чертежа — и по прямой просьбе
+// пользователя увеличена ещё раз ("более вытянутой вниз"), т.к. по
+// вертикали было много неиспользуемого места.
 
 import { motion } from 'framer-motion'
 
 const BG = '#161F23'
 const EDGE = '#F2F7FB'
-const ACCENT = '#7dd3fc'   // акцент математики (см. CLAUDE.md)
-const ACCENT2 = '#facc15'  // отрезки основания после проведения высот
+const ACCENT = '#7dd3fc'       // акцент математики (см. CLAUDE.md) — боковые стороны, финальный ответ
+const SEGMENT_COLOR = '#FB923C' // оранжевый — отрезки основания после проведения высот
 const TEXT = '#F2F7FB'
 
 // Координаты — не в масштабе, топология точная: отступ верхних вершин
 // пропорционален разности оснований (73-43)/2 = 15 с каждой стороны.
-const D = { x: 40, y: 200 }   // низ-лево
-const C = { x: 660, y: 200 }  // низ-право
+// Высота (D.y-A.y) увеличена с 110 до 170 по просьбе пользователя —
+// трапеция была визуально "приплюснута", вертикального места хватало.
+const D = { x: 40, y: 260 }   // низ-лево
+const C = { x: 660, y: 260 }  // низ-право
 const A = { x: 175, y: 90 }   // верх-лево
 const B = { x: 525, y: 90 }   // верх-право
 const A_FOOT = { x: A.x, y: D.y } // основание левой высоты
@@ -40,15 +44,19 @@ const B_FOOT = { x: B.x, y: D.y } // основание правой высот�
 // через style-проп (проверено вживую) — поэтому translate/scale здесь
 // считаются НЕ от (0,0) viewBox, а от формулы композиции CSS-трансформов
 // вокруг центра bbox: result = scale·(P − O) + O + (tx,ty), где O — центр
-// bbox содержимого (получен через getBBox(): x:[40,660], y:[72,231.33] →
-// O=(350, 151.667)). Числа ниже подобраны решением этого уравнения так,
-// чтобы центр блока "треугольник + подпись 15 под его катетом"
-// (592.5, 162.5) переходил ровно в центр viewBox (350, 130) — то есть и
-// сам треугольник, и подпись гарантированно остаются в кадре (проверено
-// расчётом координат всех вершин после трансформа, не на глаз).
-const ZOOM_SCALE = 1.5
-const ZOOM_TX = -363.75
-const ZOOM_TY = -37.917
+// bbox УСТОЯВШЕГОСЯ (не анимирующегося) содержимого. Посчитан аналитически
+// по известной геометрии (не через живой getBBox() в браузере — при
+// bounce-анимации цифр с initial scale:5 промежуточные/замороженные кадры
+// раздувают измеренный bbox некорректно): x:[40,660], y:[60.6,294.4] (верх —
+// подпись "43" над трапецией, низ — подписи "73"/"15" под ней) →
+// O=(350, 177.5). Числа ниже подобраны решением этого уравнения так, чтобы
+// центр блока "треугольник + подпись 15 под его катетом" (592.5, 192)
+// переходил в центр viewBox (350, 160) — то есть и сам треугольник, и
+// подпись гарантированно остаются в кадре (проверено расчётом координат
+// всех вершин после трансформа).
+const ZOOM_SCALE = 1.3
+const ZOOM_TX = -315.25
+const ZOOM_TY = -36.35
 
 export type TrapezoidVisual = {
     legsHighlighted?: boolean
@@ -65,6 +73,16 @@ export type TrapezoidVisual = {
 const line = (p1: { x: number; y: number }, p2: { x: number; y: number }) =>
     `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`
 
+// Общий "bounce"-эффект появления цифры: стартует В 5 РАЗ крупнее своего
+// конечного размера и с отскоком уменьшается до него — по явной просьбе
+// пользователя ("цифра сейчас просто резко появляется"), вместо прежнего
+// мгновенного/мелкого масштаба.
+const numberBounce = {
+    initial: { opacity: 0, scale: 5 },
+    animate: { opacity: 1, scale: 1 },
+    transition: { type: 'spring' as const, duration: 0.8, bounce: 0.6 },
+}
+
 export const TrapezoidDiagram = (props: TrapezoidVisual) => {
     const {
         legsHighlighted = false,
@@ -79,9 +97,9 @@ export const TrapezoidDiagram = (props: TrapezoidVisual) => {
     } = props
 
     return (
-        <div className="flex items-center justify-center py-6 px-4 mb-4 bg-[#161F23] border-2 border-[#3A464E] rounded-xl overflow-hidden">
-            <svg viewBox="0 0 700 260" width="100%" height="auto" style={{ maxWidth: 480 }}>
-                <rect x="0" y="0" width="700" height="260" fill={BG} />
+        <div className="flex items-center justify-center py-2 px-2 mb-4 bg-[#161F23] rounded-xl overflow-hidden">
+            <svg viewBox="0 0 700 320" width="100%" height="auto" style={{ maxWidth: 480 }}>
+                <rect x="0" y="0" width="700" height="320" fill={BG} />
 
                 <motion.g
                     animate={{
@@ -89,7 +107,7 @@ export const TrapezoidDiagram = (props: TrapezoidVisual) => {
                         x: zoomTriangle ? ZOOM_TX : 0,
                         y: zoomTriangle ? ZOOM_TY : 0,
                     }}
-                    transition={{ duration: 0.7, ease: 'easeInOut' }}
+                    transition={{ duration: 0.9, ease: 'easeInOut' }}
                 >
                     {/* подсветка правого треугольника — под линиями трапеции */}
                     {triangleHighlighted && (
@@ -103,15 +121,15 @@ export const TrapezoidDiagram = (props: TrapezoidVisual) => {
                     )}
 
                     {/* верхнее основание A-B */}
-                    <line x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke={EDGE} strokeWidth={3} strokeLinecap="round" />
+                    <line x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke={EDGE} strokeWidth={5} strokeLinecap="round" />
                     {/* нижнее основание D-C */}
-                    <line x1={D.x} y1={D.y} x2={C.x} y2={C.y} stroke={EDGE} strokeWidth={3} strokeLinecap="round" />
+                    <line x1={D.x} y1={D.y} x2={C.x} y2={C.y} stroke={EDGE} strokeWidth={5} strokeLinecap="round" />
 
                     {/* боковые стороны — подсвечиваются акцентом */}
                     <motion.line
                         x1={A.x} y1={A.y} x2={D.x} y2={D.y}
                         stroke={legsHighlighted ? ACCENT : EDGE}
-                        strokeWidth={legsHighlighted ? 4 : 3}
+                        strokeWidth={legsHighlighted ? 7 : 5}
                         strokeLinecap="round"
                         animate={{ stroke: legsHighlighted ? ACCENT : EDGE }}
                         transition={{ duration: 0.4 }}
@@ -119,87 +137,88 @@ export const TrapezoidDiagram = (props: TrapezoidVisual) => {
                     <motion.line
                         x1={B.x} y1={B.y} x2={C.x} y2={C.y}
                         stroke={legsHighlighted ? ACCENT : EDGE}
-                        strokeWidth={legsHighlighted ? 4 : 3}
+                        strokeWidth={legsHighlighted ? 7 : 5}
                         strokeLinecap="round"
                         animate={{ stroke: legsHighlighted ? ACCENT : EDGE }}
                         transition={{ duration: 0.4 }}
                     />
 
-                    {/* высоты — дорисовываются анимированно (pathLength) */}
+                    {/* высоты — дорисовываются анимированно (pathLength), медленнее и толще */}
                     <motion.path
                         d={line(A, A_FOOT)}
                         stroke={EDGE}
-                        strokeWidth={2}
-                        strokeDasharray="7,5"
+                        strokeWidth={4}
+                        strokeDasharray="10,7"
                         fill="none"
                         initial={{ pathLength: 0, opacity: 0 }}
                         animate={{ pathLength: altitudesDrawn ? 1 : 0, opacity: altitudesDrawn ? 1 : 0 }}
-                        transition={{ duration: 0.6, ease: 'easeInOut' }}
+                        transition={{ duration: 0.8, ease: 'easeInOut' }}
                     />
                     <motion.path
                         d={line(B, B_FOOT)}
                         stroke={EDGE}
-                        strokeWidth={2}
-                        strokeDasharray="7,5"
+                        strokeWidth={4}
+                        strokeDasharray="10,7"
                         fill="none"
                         initial={{ pathLength: 0, opacity: 0 }}
                         animate={{ pathLength: altitudesDrawn ? 1 : 0, opacity: altitudesDrawn ? 1 : 0 }}
-                        transition={{ duration: 0.6, ease: 'easeInOut', delay: 0.15 }}
+                        transition={{ duration: 0.8, ease: 'easeInOut', delay: 0.2 }}
                     />
 
-                    {/* отрезки основания слева/справа от высот — жёлтый акцент */}
+                    {/* отрезки основания слева/справа от высот — оранжевый акцент,
+                        появляются ПОСЛЕ паузы за высотами (тайминг — в TrapezoidWalkthrough) */}
                     <motion.line
                         x1={D.x} y1={D.y} x2={A_FOOT.x} y2={A_FOOT.y}
-                        stroke={segmentsHighlighted ? ACCENT2 : 'transparent'}
-                        strokeWidth={5}
+                        stroke={segmentsHighlighted ? SEGMENT_COLOR : 'transparent'}
+                        strokeWidth={8}
                         strokeLinecap="round"
                         animate={{ opacity: segmentsHighlighted ? 1 : 0 }}
-                        transition={{ duration: 0.4, delay: 0.5 }}
+                        transition={{ duration: 0.5 }}
                     />
                     <motion.line
                         x1={B_FOOT.x} y1={B_FOOT.y} x2={C.x} y2={C.y}
-                        stroke={segmentsHighlighted ? ACCENT2 : 'transparent'}
-                        strokeWidth={5}
+                        stroke={segmentsHighlighted ? SEGMENT_COLOR : 'transparent'}
+                        strokeWidth={8}
                         strokeLinecap="round"
                         animate={{ opacity: segmentsHighlighted ? 1 : 0 }}
-                        transition={{ duration: 0.4, delay: 0.5 }}
+                        transition={{ duration: 0.5 }}
                     />
 
-                    {/* подпись "43" — "выныривает" СНИЗУ ВВЕРХ (стартует ближе
-                        к телу трапеции и поднимается на своё место над ней). */}
+                    {/* подпись "43" — "выныривает" СНИЗУ ВВЕРХ с bounce-эффектом
+                        (стартует крупнее и ближе к телу трапеции, оседает на своё
+                        место над ней). */}
                     <motion.text
-                        initial={{ opacity: 0, y: 18 }}
-                        animate={{ opacity: base43Shown ? 1 : 0, y: base43Shown ? 0 : 18 }}
-                        transition={{ duration: 0.4, ease: 'easeOut' }}
+                        initial={{ ...numberBounce.initial, y: 18 }}
+                        animate={{ ...numberBounce.animate, y: base43Shown ? 0 : 18, opacity: base43Shown ? 1 : 0, scale: base43Shown ? 1 : 5 }}
+                        transition={numberBounce.transition}
                         x={(A.x + B.x) / 2} y={A.y - 14}
                         textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={22} fontWeight={700} fill={TEXT}
                     >43</motion.text>
-                    {/* подпись "73" — "выныривает" СВЕРХУ ВНИЗ (стартует ближе
-                        к телу трапеции и опускается на своё место под ней). */}
+                    {/* подпись "73" — "выныривает" СВЕРХУ ВНИЗ с bounce-эффектом. */}
                     <motion.text
-                        initial={{ opacity: 0, y: -18 }}
-                        animate={{ opacity: base73Shown ? 1 : 0, y: base73Shown ? 0 : -18 }}
-                        transition={{ duration: 0.4, ease: 'easeOut' }}
+                        initial={{ ...numberBounce.initial, y: -18 }}
+                        animate={{ ...numberBounce.animate, y: base73Shown ? 0 : -18, opacity: base73Shown ? 1 : 0, scale: base73Shown ? 1 : 5 }}
+                        transition={numberBounce.transition}
                         x={(D.x + C.x) / 2} y={D.y + 30}
                         textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={22} fontWeight={700} fill={TEXT}
                     >73</motion.text>
 
-                    {/* подписи отрезков 15/15 */}
+                    {/* подписи отрезков 15/15 — оранжевые, тот же bounce-эффект */}
                     {segmentValue && (
                         <>
                             <motion.text
-                                initial={{ opacity: 0, scale: 0.6 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ duration: 0.3, type: 'spring', bounce: 0.5 }}
+                                initial={numberBounce.initial}
+                                animate={numberBounce.animate}
+                                transition={numberBounce.transition}
                                 x={(D.x + A_FOOT.x) / 2} y={D.y + 30}
-                                textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={20} fontWeight={800} fill={ACCENT2}
+                                textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={20} fontWeight={800} fill={SEGMENT_COLOR}
                             >{segmentValue}</motion.text>
                             <motion.text
-                                initial={{ opacity: 0, scale: 0.6 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ duration: 0.3, type: 'spring', bounce: 0.5 }}
+                                initial={numberBounce.initial}
+                                animate={numberBounce.animate}
+                                transition={numberBounce.transition}
                                 x={(B_FOOT.x + C.x) / 2} y={D.y + 30}
-                                textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={20} fontWeight={800} fill={ACCENT2}
+                                textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={20} fontWeight={800} fill={SEGMENT_COLOR}
                             >{segmentValue}</motion.text>
                         </>
                     )}
@@ -207,9 +226,9 @@ export const TrapezoidDiagram = (props: TrapezoidVisual) => {
                     {/* подпись боковой стороны 21 (финал) — правая сторона B-C */}
                     {legValue && (
                         <motion.text
-                            initial={{ opacity: 0, scale: 0.6 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.35, type: 'spring', bounce: 0.55 }}
+                            initial={numberBounce.initial}
+                            animate={numberBounce.animate}
+                            transition={numberBounce.transition}
                             x={(B.x + C.x) / 2 + 34} y={(B.y + C.y) / 2}
                             textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={20} fontWeight={800} fill={ACCENT}
                         >{legValue}</motion.text>

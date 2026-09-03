@@ -8,19 +8,12 @@
 // диаграммой (TrapezoidDiagram), которая подсвечивает/подписывает то, о
 // чём идёт речь именно сейчас.
 //
-// По итогам обратной связи (после первой версии) — три доработки:
-// 1) Исходный текст условия теперь показан ПОСТОЯННО отдельным блоком
-//    сверху (не пропадает, пока рисуется/меняется диаграмма ниже).
-// 2) Для самого первого шага — хореография вместо мгновенной подсветки:
-//    сначала жёлтый маркер-текстовыделитель "проводится" под нужной
-//    фразой прямо в этом верхнем блоке условия, и только ПОСЛЕ этого на
-//    диаграмме ПОСЛЕДОВАТЕЛЬНО (не одновременно) появляются 43, затем 73.
-//    Реализовано как автопроигрывающаяся таймер-последовательность
-//    (introPhase), кнопка "Дальше" разблокируется только по её концу —
-//    чтобы взгляд ученика физически не мог "перескочить" вперёд.
-// 3) Перед вопросом про косинус — диаграмма зумится на получившийся
-//    прямоугольный треугольник, подписывает "15" на его катете, и только
-//    ПОСЛЕ этого показывается сам вопрос выбора формулы (choicePhase).
+// По итогам двух раундов обратной связи хореография построена как
+// цепочка ИМЕННОВАННЫХ таймер-фаз с явными паузами (≥800мс) между
+// бит?ами — по прямой просьбе пользователя: "сейчас всё очень быстро и
+// глаз не успевает следить" / "ученик должен логику понять
+// последовательность действий". Каждый шаг с автопроигрышем не даёт
+// нажать "Дальше", пока его хореография не доиграна целиком.
 //
 // Тот же принцип самодостаточного многошагового компонента со своей
 // кнопкой, что и type-multistep.tsx (тренажёр) — onComplete зовётся
@@ -83,18 +76,28 @@ const STEPS: Step[] = [
 
 const CORRECT_CHOICE = '15 / cos'
 
-// Жёлтый маркер-текстовыделитель под словом/фразой — растёт слева
-// направо (scaleX), как будто его проводят фломастером. Полупрозрачный
-// прямоугольник ПОД текстом (не заливка самого текста), чтобы буквы
-// оставались чётко читаемы поверх него.
+// Таймлайны хореографии — абсолютное время (мс) от входа на шаг для
+// каждой именованной фазы. Между фазами всегда пауза ≥800мс сверх
+// длительности самой предыдущей анимации — чтобы взгляд ученика успевал
+// заметить каждую отдельную деталь, а не терял их в общем потоке.
+const INTRO_TIMELINE = [400, 2100, 3800, 5400]   // шаг 0: маркер "равнобедренной"+ноги → маркер "43 и 73" → 43 → 73
+const HEIGHTS_TIMELINE = [200, 1800]              // шаг 1: высоты → пауза → оранжевые отрезки
+const CHOICE_TIMELINE = [250, 1950, 3550, 5250]   // шаг 3: зум → подпись 15 → маркер "косинус" → вопрос
+
+// Жёлтый маркер заменён на тёмно-фиолетовый — по просьбе пользователя
+// ("сделаем выделение красивым тёмным цветом, может фиолетовым"),
+// расположен ВЫШЕ (на уровне самого текста, не под ним) и шире полосы
+// текста — растёт слева направо, как будто его проводят фломастером.
+const MARKER_COLOR = 'rgba(124, 58, 237, 0.6)' // violet-600 @ 60%
+
 const HighlightWord = ({ children, active }: { children: React.ReactNode; active: boolean }) => (
     <span className="relative inline-block whitespace-nowrap">
         <motion.span
-            className="absolute inset-x-0 bottom-[0.05em] h-[0.62em] rounded-[2px]"
-            style={{ backgroundColor: '#facc15', transformOrigin: 'left center' }}
+            className="absolute -inset-x-1.5 top-[0.03em] h-[0.92em] rounded-[3px]"
+            style={{ backgroundColor: MARKER_COLOR, transformOrigin: 'left center' }}
             initial={{ scaleX: 0 }}
             animate={{ scaleX: active ? 1 : 0 }}
-            transition={{ duration: 0.5, ease: 'easeInOut' }}
+            transition={{ duration: 0.9, ease: 'easeInOut' }}
         />
         <span className="relative">{children}</span>
     </span>
@@ -108,33 +111,31 @@ export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
     const [lastCorrect, setLastCorrect] = useState<boolean | null>(null)
     const [hadMistake, setHadMistake] = useState(false)
 
-    // Таймер-хореография шага 0: 0=ничего, 1=маркер+подсветка боковых
-    // сторон, 2=маркер под "43 и 73", 3=появилась 43, 4=появилась 73
-    // (конец — можно жать "Дальше").
+    // Хореография шага 0 (0=ничего, 1=маркер+ноги, 2=маркер 43/73, 3=43, 4=73)
     const [introPhase, setIntroPhase] = useState(0)
-    // Таймер-хореография шага "choice" (индекс 3): 0=не зумлено,
-    // 1=идёт зум, 2=подпись "15" появилась и вопрос можно показывать.
+    // Хореография шага 1 (0=ничего, 1=высоты, 2=оранжевые отрезки)
+    const [heightsPhase, setHeightsPhase] = useState(0)
+    // Хореография шага "choice" (0=не зумлено, 1=зум, 2=подпись 15, 3=маркер "косинус", 4=вопрос)
     const [choicePhase, setChoicePhase] = useState(0)
 
     useEffect(() => {
         if (stepIndex !== 0) return
         setIntroPhase(0)
-        const timers = [
-            setTimeout(() => setIntroPhase(1), 350),
-            setTimeout(() => setIntroPhase(2), 1250),
-            setTimeout(() => setIntroPhase(3), 1950),
-            setTimeout(() => setIntroPhase(4), 2550),
-        ]
+        const timers = INTRO_TIMELINE.map((t, i) => setTimeout(() => setIntroPhase(i + 1), t))
+        return () => timers.forEach(clearTimeout)
+    }, [stepIndex])
+
+    useEffect(() => {
+        if (stepIndex !== 1) return
+        setHeightsPhase(0)
+        const timers = HEIGHTS_TIMELINE.map((t, i) => setTimeout(() => setHeightsPhase(i + 1), t))
         return () => timers.forEach(clearTimeout)
     }, [stepIndex])
 
     useEffect(() => {
         if (stepIndex !== 3) return
         setChoicePhase(0)
-        const timers = [
-            setTimeout(() => setChoicePhase(1), 250),
-            setTimeout(() => setChoicePhase(2), 1050),
-        ]
+        const timers = CHOICE_TIMELINE.map((t, i) => setTimeout(() => setChoicePhase(i + 1), t))
         return () => timers.forEach(clearTimeout)
     }, [stepIndex])
 
@@ -147,23 +148,34 @@ export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
     const legsHighlighted = stepIndex > 0 || introPhase >= 1
     const base43Shown = stepIndex > 0 || introPhase >= 3
     const base73Shown = stepIndex > 0 || introPhase >= 4
+    const altitudesDrawn = stepIndex > 1 || (stepIndex === 1 && heightsPhase >= 1)
+    const segmentsHighlighted = stepIndex > 1 || (stepIndex === 1 && heightsPhase >= 2)
     const zoomTriangle = (stepIndex === 3 && choicePhase >= 1) || (stepIndex === 4 && !checked)
 
     const visual: TrapezoidVisual = {
         legsHighlighted,
         base43Shown,
         base73Shown,
-        altitudesDrawn: stepIndex >= 1,
-        segmentsHighlighted: stepIndex >= 1,
+        altitudesDrawn,
+        segmentsHighlighted,
         segmentValue,
         triangleHighlighted: stepIndex >= 3,
         zoomTriangle,
         legValue,
     }
 
-    // choice-шаг: сам вопрос/варианты показываем только ПОСЛЕ того, как
-    // зум и подпись "15" на треугольнике доиграли (choicePhase>=2).
-    const choiceContentReady = stepIndex !== 3 || choicePhase >= 2
+    // Текст-маркер в шапке условия — отдельно от диаграммы: подсвечивает
+    // ТЕКУЩИЙ фокус разбора, а не накопленное состояние диаграммы. По шагам
+    // 0-2 это "равнобедренной"/"43 и 73", а после увеличения треугольника
+    // (шаг 3) старые подсветки убираются и включается "космнус..." — по
+    // прямой просьбе пользователя.
+    const legsMarkerActive = stepIndex < 3 && (stepIndex > 0 || introPhase >= 1)
+    const basesMarkerActive = stepIndex < 3 && (stepIndex > 0 || introPhase >= 2)
+    const cosineMarkerActive = stepIndex >= 3 && (stepIndex > 3 || choicePhase >= 3)
+
+    // choice-шаг: сам вопрос/варианты показываем только ПОСЛЕ полной
+    // хореографии (зум → подпись 15 → маркер "косинус").
+    const choiceContentReady = stepIndex !== 3 || choicePhase >= 4
 
     const handleCheck = () => {
         if (step.kind === 'observe') return
@@ -190,7 +202,8 @@ export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
         setLastCorrect(null)
     }
 
-    const introBusy = stepIndex === 0 && introPhase < 4
+    const introBusy = stepIndex === 0 && introPhase < INTRO_TIMELINE.length
+    const heightsBusy = stepIndex === 1 && heightsPhase < HEIGHTS_TIMELINE.length
 
     const primaryLabel = step.kind === 'observe'
         ? 'Дальше'
@@ -201,7 +214,7 @@ export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
                 : 'Дальше'
 
     const primaryDisabled = step.kind === 'observe'
-        ? introBusy
+        ? (introBusy || heightsBusy)
         : step.kind === 'input'
             ? !checked && typedAnswer.trim().length === 0
             : step.kind === 'choice'
@@ -226,9 +239,9 @@ export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
                 прячется под диаграммой на последующих шагах; фразы
                 подсвечиваются маркером синхронно с разбором. */}
             <div className="w-full rounded-xl border-2 border-[#3A464E] bg-[#161F23] px-4 py-3 text-center text-sm md:text-base text-[#F2F7FB] leading-relaxed">
-                Основания <HighlightWord active={legsHighlighted}>равнобедренной</HighlightWord> трапеции{' '}
-                <HighlightWord active={base43Shown || base73Shown || introPhase >= 2}>равны 43 и 73</HighlightWord>.
-                {' '}Косинус острого угла трапеции равен <Latex>{'$\\dfrac{5}{7}$'}</Latex>. Найдите боковую сторону.
+                Основания <HighlightWord active={legsMarkerActive}>равнобедренной</HighlightWord> трапеции{' '}
+                <HighlightWord active={basesMarkerActive}>равны 43 и 73</HighlightWord>.
+                {' '}<HighlightWord active={cosineMarkerActive}>Косинус острого угла трапеции равен</HighlightWord> <Latex>{'$\\dfrac{5}{7}$'}</Latex>. Найдите боковую сторону.
             </div>
 
             <TrapezoidDiagram {...visual} />
