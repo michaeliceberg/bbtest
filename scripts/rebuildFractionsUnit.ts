@@ -38,6 +38,11 @@ type FracTrickData = {
 	colorDecimal: string
 }
 
+// 'ASSIST' здесь — внутреннее имя "простой факт с одним ответом" (вопрос
+// + t_challengeOptions), не буквальный DB-тип: в БД такие факты пишутся
+// как type='M_ASC' (см. main() ниже), чтобы page.tsx мог случайно
+// рендерить их разными стилями (ASSIST/CONNECT/SWIPE/SCROLL), а не всегда
+// жёстко ASSIST.
 type Fact =
 	| { kind: 'ASSIST'; question: string; answer: string }
 	| { kind: 'FRACTRICK'; fracTrick: FracTrickData }
@@ -269,11 +274,20 @@ const main = async () => {
 					continue
 				}
 
+				// M_ASC (не жёсткий ASSIST) — по просьбе пользователя: даёт
+				// page.tsx случайно рендерить эти факты как CONNECT/SWIPE/
+				// SCROLL для разнообразия (см. WEIGHTED_ASC_POOL), не только
+				// ASSIST. INSERT из этого пула для таких фактов практически
+				// бесполезен (ответы вида "1/2"/"0,5"/число — не формула с
+				// буквами-переменными, extractLetterCandidates не найдёт
+				// кандидатов) — pickInsertBlank в этом случае тихо
+				// откатывается на обычный ASSIST, это уже проверенное,
+				// безопасное поведение (не крашится, не даёт пустых вариантов).
 				const [challenge] = await db
 					.insert(schema.t_challenges)
 					.values({
 						t_lessonId: lesson.id,
-						type: 'ASSIST',
+						type: 'M_ASC',
 						question: fact.question,
 						order: i + 1,
 						points: 10,
