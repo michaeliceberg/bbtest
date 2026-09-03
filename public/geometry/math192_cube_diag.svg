@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0.00 30.00 190.00 190.00" width="260" height="260">
+<rect x="0.00" y="30.00" width="190.00" height="190.00" fill="#151F23"/>
+<line x1="40.00" y1="180.00" x2="120.00" y2="180.00" stroke="#F2F7FB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="120.00" y1="180.00" x2="120.00" y2="100.00" stroke="#F2F7FB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="120.00" y1="100.00" x2="40.00" y2="100.00" stroke="#F2F7FB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="40.00" y1="100.00" x2="40.00" y2="180.00" stroke="#F2F7FB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="40.00" y1="100.00" x2="70.00" y2="70.00" stroke="#F2F7FB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="120.00" y1="100.00" x2="150.00" y2="70.00" stroke="#F2F7FB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="70.00" y1="70.00" x2="150.00" y2="70.00" stroke="#F2F7FB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="120.00" y1="180.00" x2="150.00" y2="150.00" stroke="#F2F7FB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="150.00" y1="150.00" x2="150.00" y2="70.00" stroke="#F2F7FB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="40.00" y1="180.00" x2="70.00" y2="150.00" stroke="#F2F7FB" stroke-width="1.87" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9,5"/>
+<line x1="70.00" y1="150.00" x2="150.00" y2="150.00" stroke="#F2F7FB" stroke-width="1.87" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9,5"/>
+<line x1="70.00" y1="150.00" x2="70.00" y2="70.00" stroke="#F2F7FB" stroke-width="1.87" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9,5"/>
+<line x1="70.00" y1="70.00" x2="120.00" y2="180.00" stroke="#7dd3fc" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9,5"/>
+</svg>
