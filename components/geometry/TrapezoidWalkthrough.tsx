@@ -6,23 +6,30 @@
 // id=1679: "Основания равнобедренной трапеции равны 43 и 73. Косинус
 // острого угла трапеции равен 5/7. Найдите боковую сторону."), с живой
 // диаграммой (TrapezoidDiagram), которая подсвечивает/подписывает то, о
-// чём идёт речь именно сейчас — см. обсуждение с пользователем "как если
-// бы репетитор сидел рядом".
+// чём идёт речь именно сейчас.
+//
+// По итогам обратной связи (после первой версии) — три доработки:
+// 1) Исходный текст условия теперь показан ПОСТОЯННО отдельным блоком
+//    сверху (не пропадает, пока рисуется/меняется диаграмма ниже).
+// 2) Для самого первого шага — хореография вместо мгновенной подсветки:
+//    сначала жёлтый маркер-текстовыделитель "проводится" под нужной
+//    фразой прямо в этом верхнем блоке условия, и только ПОСЛЕ этого на
+//    диаграмме ПОСЛЕДОВАТЕЛЬНО (не одновременно) появляются 43, затем 73.
+//    Реализовано как автопроигрывающаяся таймер-последовательность
+//    (introPhase), кнопка "Дальше" разблокируется только по её концу —
+//    чтобы взгляд ученика физически не мог "перескочить" вперёд.
+// 3) Перед вопросом про косинус — диаграмма зумится на получившийся
+//    прямоугольный треугольник, подписывает "15" на его катете, и только
+//    ПОСЛЕ этого показывается сам вопрос выбора формулы (choicePhase).
 //
 // Тот же принцип самодостаточного многошагового компонента со своей
 // кнопкой, что и type-multistep.tsx (тренажёр) — onComplete зовётся
 // ОДИН раз в конце, ошибка на промежуточном шаге не прерывает
-// прохождение (показываем верный ответ и идём дальше — сам разбор всё
-// равно должен быть пройден целиком), но у ЭТОГО прототипа (в отличие от
-// MULTISTEP) добавлены 2 новых типа шагов, которых там ещё нет:
-// 'observe' (просто посмотреть/понять, без ввода — кнопка "Дальше") и
-// 'choice' (выбор из 2-3 вариантов, не только числовой ввод). Это
-// сознательно НЕ обобщено в общий тип данных прямо сейчас — сперва
-// проверяем сам эффект на одном живом примере, обобщение до
-// переиспользуемой модели (как MULTISTEP) — следующий шаг, если эффект
-// понравится.
+// прохождение. 2 типа шагов вне общей модели MULTISTEP ('observe' и
+// 'choice') — сознательно не обобщено, сперва проверяем эффект на одном
+// живом примере.
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import Latex from 'react-latex-next'
 import 'katex/dist/katex.min.css';
@@ -30,7 +37,7 @@ import { Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { KeyboardInput } from '@/app/lesson/keyboard-input'
 import { AnimatedOptionButton } from '@/components/AnimatedOptionButton'
-import { TrapezoidDiagram, TrapezoidStage } from './TrapezoidDiagram'
+import { TrapezoidDiagram, TrapezoidVisual } from './TrapezoidDiagram'
 
 type Props = {
     onComplete: (allCorrect: boolean) => void
@@ -40,7 +47,6 @@ type StepKind = 'observe' | 'input' | 'choice'
 
 type Step = {
     kind: StepKind
-    stage: TrapezoidStage
     prompt: string
     formula?: string
     answer?: string       // 'input'
@@ -50,30 +56,25 @@ type Step = {
 const STEPS: Step[] = [
     {
         kind: 'observe',
-        stage: 1,
-        prompt: 'Трапеция равнобедренная — значит, боковые стороны равны. Основания известны: 43 и 73.',
+        prompt: '',
     },
     {
         kind: 'observe',
-        stage: 2,
         prompt: 'Проведём две высоты из вершин меньшего основания. У основания образовались два равных отрезка по краям.',
     },
     {
         kind: 'input',
-        stage: 2,
         prompt: 'Найдём длину каждого отрезка:',
         formula: '$\\dfrac{73-43}{2} = ?$',
         answer: '15',
     },
     {
         kind: 'choice',
-        stage: 4,
         prompt: 'В прямоугольном треугольнике известны прилежащий катет (15) и косинус угла ($\\cos = \\dfrac{5}{7}$). Как найти боковую сторону — гипотенузу?',
         options: ['15 · cos', '15 / cos'],
     },
     {
         kind: 'input',
-        stage: 4,
         prompt: 'Подставим числа:',
         formula: '$\\dfrac{15}{\\tfrac{5}{7}} = ?$',
         answer: '21',
@@ -81,6 +82,23 @@ const STEPS: Step[] = [
 ]
 
 const CORRECT_CHOICE = '15 / cos'
+
+// Жёлтый маркер-текстовыделитель под словом/фразой — растёт слева
+// направо (scaleX), как будто его проводят фломастером. Полупрозрачный
+// прямоугольник ПОД текстом (не заливка самого текста), чтобы буквы
+// оставались чётко читаемы поверх него.
+const HighlightWord = ({ children, active }: { children: React.ReactNode; active: boolean }) => (
+    <span className="relative inline-block whitespace-nowrap">
+        <motion.span
+            className="absolute inset-x-0 bottom-[0.05em] h-[0.62em] rounded-[2px]"
+            style={{ backgroundColor: '#facc15', transformOrigin: 'left center' }}
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: active ? 1 : 0 }}
+            transition={{ duration: 0.5, ease: 'easeInOut' }}
+        />
+        <span className="relative">{children}</span>
+    </span>
+)
 
 export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
     const [stepIndex, setStepIndex] = useState(0)
@@ -90,16 +108,62 @@ export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
     const [lastCorrect, setLastCorrect] = useState<boolean | null>(null)
     const [hadMistake, setHadMistake] = useState(false)
 
+    // Таймер-хореография шага 0: 0=ничего, 1=маркер+подсветка боковых
+    // сторон, 2=маркер под "43 и 73", 3=появилась 43, 4=появилась 73
+    // (конец — можно жать "Дальше").
+    const [introPhase, setIntroPhase] = useState(0)
+    // Таймер-хореография шага "choice" (индекс 3): 0=не зумлено,
+    // 1=идёт зум, 2=подпись "15" появилась и вопрос можно показывать.
+    const [choicePhase, setChoicePhase] = useState(0)
+
+    useEffect(() => {
+        if (stepIndex !== 0) return
+        setIntroPhase(0)
+        const timers = [
+            setTimeout(() => setIntroPhase(1), 350),
+            setTimeout(() => setIntroPhase(2), 1250),
+            setTimeout(() => setIntroPhase(3), 1950),
+            setTimeout(() => setIntroPhase(4), 2550),
+        ]
+        return () => timers.forEach(clearTimeout)
+    }, [stepIndex])
+
+    useEffect(() => {
+        if (stepIndex !== 3) return
+        setChoicePhase(0)
+        const timers = [
+            setTimeout(() => setChoicePhase(1), 250),
+            setTimeout(() => setChoicePhase(2), 1050),
+        ]
+        return () => timers.forEach(clearTimeout)
+    }, [stepIndex])
+
     const step = STEPS[stepIndex]
     const isLastStep = stepIndex === STEPS.length - 1
 
-    // Визуальное состояние диаграммы — этап текущего шага, но подписи
-    // отрезка/боковой стороны показываем только ПОСЛЕ верной проверки
-    // соответствующего шага (не раньше — иначе выдаём ответ до того, как
-    // ученик сам его ввёл).
     const segmentValue = stepIndex >= 2 && (stepIndex > 2 || checked) ? '15' : null
     const legValue = stepIndex >= 4 && checked && lastCorrect !== null ? '21' : null
-    const diagramStage: TrapezoidStage = step.stage
+
+    const legsHighlighted = stepIndex > 0 || introPhase >= 1
+    const base43Shown = stepIndex > 0 || introPhase >= 3
+    const base73Shown = stepIndex > 0 || introPhase >= 4
+    const zoomTriangle = (stepIndex === 3 && choicePhase >= 1) || (stepIndex === 4 && !checked)
+
+    const visual: TrapezoidVisual = {
+        legsHighlighted,
+        base43Shown,
+        base73Shown,
+        altitudesDrawn: stepIndex >= 1,
+        segmentsHighlighted: stepIndex >= 1,
+        segmentValue,
+        triangleHighlighted: stepIndex >= 3,
+        zoomTriangle,
+        legValue,
+    }
+
+    // choice-шаг: сам вопрос/варианты показываем только ПОСЛЕ того, как
+    // зум и подпись "15" на треугольнике доиграли (choicePhase>=2).
+    const choiceContentReady = stepIndex !== 3 || choicePhase >= 2
 
     const handleCheck = () => {
         if (step.kind === 'observe') return
@@ -126,6 +190,8 @@ export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
         setLastCorrect(null)
     }
 
+    const introBusy = stepIndex === 0 && introPhase < 4
+
     const primaryLabel = step.kind === 'observe'
         ? 'Дальше'
         : !checked
@@ -134,11 +200,13 @@ export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
                 ? 'Готово'
                 : 'Дальше'
 
-    const primaryDisabled = step.kind === 'input'
-        ? !checked && typedAnswer.trim().length === 0
-        : step.kind === 'choice'
-            ? !checked && selectedChoice === null
-            : false
+    const primaryDisabled = step.kind === 'observe'
+        ? introBusy
+        : step.kind === 'input'
+            ? !checked && typedAnswer.trim().length === 0
+            : step.kind === 'choice'
+                ? (!choiceContentReady || (!checked && selectedChoice === null))
+                : false
 
     return (
         <div className="w-full max-w-xl mx-auto flex flex-col items-center gap-4">
@@ -154,17 +222,32 @@ export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
                 ))}
             </div>
 
-            <TrapezoidDiagram stage={diagramStage} segmentValue={segmentValue} legValue={legValue} />
+            {/* Исходное условие задачи — показывается ПОСТОЯННО, не
+                прячется под диаграммой на последующих шагах; фразы
+                подсвечиваются маркером синхронно с разбором. */}
+            <div className="w-full rounded-xl border-2 border-[#3A464E] bg-[#161F23] px-4 py-3 text-center text-sm md:text-base text-[#F2F7FB] leading-relaxed">
+                Основания <HighlightWord active={legsHighlighted}>равнобедренной</HighlightWord> трапеции{' '}
+                <HighlightWord active={base43Shown || base73Shown || introPhase >= 2}>равны 43 и 73</HighlightWord>.
+                {' '}Косинус острого угла трапеции равен <Latex>{'$\\dfrac{5}{7}$'}</Latex>. Найдите боковую сторону.
+            </div>
 
-            <motion.div
-                key={stepIndex}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className="w-full text-center text-base md:text-lg text-[#F2F7FB]"
-            >
-                <Latex>{step.prompt}</Latex>
-            </motion.div>
+            <TrapezoidDiagram {...visual} />
+
+            {step.prompt && (
+                <motion.div
+                    key={stepIndex}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="w-full text-center text-base md:text-lg text-[#F2F7FB]"
+                >
+                    <Latex>{step.prompt}</Latex>
+                </motion.div>
+            )}
+
+            {step.kind === 'choice' && !choiceContentReady && (
+                <div className="text-sm text-[#7dd3fc] font-medium py-1">Смотрим на получившийся треугольник…</div>
+            )}
 
             {step.formula && (
                 <div className="text-2xl md:text-3xl font-bold text-[#F2F7FB] py-1">
@@ -176,8 +259,13 @@ export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
                 <KeyboardInput value={typedAnswer} onChange={setTypedAnswer} disabled={checked} />
             )}
 
-            {step.kind === 'choice' && (
-                <div className="grid grid-cols-2 gap-3 w-full">
+            {step.kind === 'choice' && choiceContentReady && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="grid grid-cols-2 gap-3 w-full"
+                >
                     {(step.options ?? []).map((option, idx) => (
                         <AnimatedOptionButton
                             key={idx}
@@ -190,7 +278,7 @@ export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
                             disabled={checked}
                         />
                     ))}
-                </div>
+                </motion.div>
             )}
 
             {checked && step.kind !== 'observe' && (
