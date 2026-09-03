@@ -444,7 +444,6 @@ export default function TQuiz({
       const isSelectThenSubmitType = questions[currentQuestionIndex].questionType === 'ASSIST'
         || questions[currentQuestionIndex].questionType === 'INSERT'
         || questions[currentQuestionIndex].questionType === 'SCROLL'
-        || questions[currentQuestionIndex].questionType === 'CHECK'
         || questions[currentQuestionIndex].questionType === 'PICMATCH'
 
       // INSERT сравнивается ровно (answer — отсортированный набор букв,

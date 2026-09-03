@@ -20,6 +20,7 @@ import { TypeHot } from "@/app/t-lesson/[t_lessonId]/type-hot"
 import { TypeConnect } from "@/app/t-lesson/[t_lessonId]/type-connect"
 import { TypeMultistep } from "@/app/t-lesson/[t_lessonId]/type-multistep"
 import { TypeSpeed } from "@/app/t-lesson/[t_lessonId]/type-speed"
+import { TypeFracTrick } from "@/app/t-lesson/[t_lessonId]/type-fractrick"
 import { TypeWorkbook } from "@/app/t-lesson/[t_lessonId]/type-workbook"
 import { TypeConstructor } from "@/app/t-lesson/[t_lessonId]/type-constructor"
 
@@ -212,7 +213,8 @@ export default function TrainerQuestion({
       if (question.questionType !== "WORKBOOK" &&
           question.questionType !== "RUSSIANDICTANT" &&
           question.questionType !== "SWIPE" &&
-          question.questionType !== "SPEED") {
+          question.questionType !== "SPEED" &&
+          question.questionType !== "FRACTRICK") {
           return (
               <h2 className="text-xl font-semibold mt-4 text-[#C386F8]">
                   <Latex>{question.question}</Latex>
@@ -286,13 +288,7 @@ export default function TrainerQuestion({
           />
 
         case "CHECK":
-          return <TypeCheck
-            question={question}
-            onAnswer={onAnswer}
-            onOptionSelected={handleAssistOptionSelected}
-            isAnswerChecked={answerState === "correct" || answerState === "incorrect"}
-            isAnswerCorrect={answerState === "correct"}
-          />
+          return <TypeCheck question={question} onAnswer={onAnswer} />
 
         case "SLIDER":
           return <TypeSlider questions={questions} question={question} onAnswer={onAnswer} />
@@ -302,6 +298,9 @@ export default function TrainerQuestion({
 
         case "SPEED":
           return <TypeSpeed question={question} onAnswer={onAnswer} />
+
+        case "FRACTRICK":
+          return <TypeFracTrick question={question} onAnswer={onAnswer} />
 
         case "CONNECT":
           return <TypeConnect question={question} onAnswer={onAnswer} onAllPairsMatched={handleAllPairsMatched} />
@@ -523,7 +522,7 @@ export default function TrainerQuestion({
               // ASSIST и INSERT — двухшаговый флоу: сначала выбор варианта
               // (answerState === "selected"), потом отдельный клик "далее"/
               // "понятно" на уже проверенный ответ, без повторной отправки.
-              const isSelectThenSubmitType = question.questionType === "ASSIST" || question.questionType === "INSERT" || question.questionType === "SCROLL" || question.questionType === "CHECK" || question.questionType === "PICMATCH"
+              const isSelectThenSubmitType = question.questionType === "ASSIST" || question.questionType === "INSERT" || question.questionType === "SCROLL" || question.questionType === "PICMATCH"
 
               if (isSelectThenSubmitType && answerState === "selected" && selectedAssistAnswer) {
                 onAnswer(selectedAssistAnswer)

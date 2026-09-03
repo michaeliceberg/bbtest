@@ -25,14 +25,47 @@ const D_0125: DecimalDef = { plain: '0,125', tex: '0{,}125', fracNum: 1, fracDen
 const D_075: DecimalDef = { plain: '0,75', tex: '0{,}75', fracNum: 3, fracDen: 4, isUnit: false }
 const D_0375: DecimalDef = { plain: '0,375', tex: '0{,}375', fracNum: 3, fracDen: 8, isUnit: false }
 
-type Fact = { question: string; answer: string }
+// Структура должна побайтово совпадать с FracTrickVisual в
+// app/t-lesson/[t_lessonId]/page.tsx — эта строка сериализуется в
+// t_challenges.fracTrickData и парсится там же.
+type FracTrickData = {
+	n: string
+	op: '\\times' | '\\div'
+	decimal: string
+	rightOp: '/' | 'times'
+	answer: string
+	colorN: string
+	colorDecimal: string
+}
+
+type Fact =
+	| { kind: 'ASSIST'; question: string; answer: string }
+	| { kind: 'FRACTRICK'; fracTrick: FracTrickData }
+
+// Палитра варьируется от примера к примеру (по прямой просьбе
+// пользователя — "не каждый раз только зелёный и фиолетовый"), но
+// ВНУТРИ одного примера n красится одним цветом на обеих сторонах,
+// decimal/ответ — другим общим (см. FracTrickVisual в page.tsx).
+const PALETTES: [string, string][] = [
+	['#C386F8', '#A1D151'], // фиолетовый / зелёный
+	['#E8A23D', '#4A90D9'], // оранжевый / синий
+	['#F472B6', '#22D3EE'], // розовый / бирюзовый
+	['#FBBF24', '#A78BFA'], // жёлтый / светло-фиолетовый
+	['#FB7185', '#2DD4BF'], // розово-красный / тёмно-бирюзовый
+]
+let paletteCursor = 0
+function nextPalette(): [string, string] {
+	const p = PALETTES[paletteCursor % PALETTES.length]
+	paletteCursor++
+	return p
+}
 
 function dictionaryFacts(defs: DecimalDef[]): Fact[] {
 	const facts: Fact[] = []
 	for (const d of defs) {
 		const frac = `${d.fracNum}/${d.fracDen}`
-		facts.push({ question: `Чему равно ${d.plain} в виде обыкновенной дроби?`, answer: frac })
-		facts.push({ question: `Чему равно ${frac} в виде десятичной дроби?`, answer: d.plain })
+		facts.push({ kind: 'ASSIST', question: `Чему равно ${d.plain} в виде обыкновенной дроби?`, answer: frac })
+		facts.push({ kind: 'ASSIST', question: `Чему равно ${frac} в виде десятичной дроби?`, answer: d.plain })
 	}
 	return facts
 }
@@ -42,16 +75,53 @@ function dictionaryFacts(defs: DecimalDef[]): Fact[] {
 // поэтому правильный ответ ПОСТОЯНЕН для конкретной дроби (2 для 0,5, 4
 // для 0,25, 8 для 0,125), а само число N в вопросе меняется только чтобы
 // ребёнок обобщил закономерность, а не запомнил один частный случай.
-// \Huge — тот же приём, что уже используют M_ASC-формулы в БД для
-// крупного отображения; цвета — тот же \textcolor, что и в type-speed.tsx
-// (тренажёр "Таблица умножения на скорость"), тот же фиолетовый/зелёный.
+// Рендерится компонентом type-fractrick.tsx — настоящая дробь справа,
+// не строка "N/?" (см. FracTrickData выше).
 function multTrickFacts(defs: DecimalDef[], ns: number[]): Fact[] {
 	const facts: Fact[] = []
 	for (const d of defs) {
 		if (!d.isUnit) continue
 		for (const n of ns) {
-			const question = `$\\huge \\textcolor{${PURPLE}}{${n}} \\times \\textcolor{${GREEN}}{${d.tex}} = \\textcolor{${PURPLE}}{${n}} / \\textcolor{${GREEN}}{?}$`
-			facts.push({ question, answer: `$\\Large \\textcolor{${PURPLE}}{${d.fracDen}}$` })
+			const [colorN, colorDecimal] = nextPalette()
+			facts.push({
+				kind: 'FRACTRICK',
+				fracTrick: {
+					n: String(n),
+					op: '\\times',
+					decimal: d.tex,
+					rightOp: '/',
+					answer: String(d.fracDen),
+					colorN,
+					colorDecimal,
+				},
+			})
+		}
+	}
+	return facts
+}
+
+// Деление на унитарную дробь 1/N — то же самое, что умножение на N,
+// опять же независимо от самого делимого — тот же приём "постоянный
+// ответ, N меняется для обобщения", что и у multTrickFacts. Правая часть
+// тут НЕ дробь (N × ответ), рисуется строкой — см. rightOp:'times'.
+function divTrickFacts(defs: DecimalDef[], ns: number[]): Fact[] {
+	const facts: Fact[] = []
+	for (const d of defs) {
+		if (!d.isUnit) continue
+		for (const n of ns) {
+			const [colorN, colorDecimal] = nextPalette()
+			facts.push({
+				kind: 'FRACTRICK',
+				fracTrick: {
+					n: String(n),
+					op: '\\div',
+					decimal: d.tex,
+					rightOp: 'times',
+					answer: String(d.fracDen),
+					colorN,
+					colorDecimal,
+				},
+			})
 		}
 	}
 	return facts
@@ -60,7 +130,9 @@ function multTrickFacts(defs: DecimalDef[], ns: number[]): Fact[] {
 // Для НЕ-унитарных дробей (0,75=3/4, 0,375=3/8) простого "= N/const" нет —
 // используем прямое вычисление произведения (тот же формат, что уже был
 // у "быстрого счёта с десятичными" в этой же теме), N подобрано кратным
-// знаменателю, чтобы результат был целым.
+// знаменателю, чтобы результат был целым. Остаются обычным ASSIST —
+// FRACTRICK-визуал (дробь/соответствие цветов) сюда не применим, тут
+// просто числовой ответ.
 function multDirectFacts(defs: DecimalDef[], ns: number[]): Fact[] {
 	const facts: Fact[] = []
 	for (const d of defs) {
@@ -68,22 +140,7 @@ function multDirectFacts(defs: DecimalDef[], ns: number[]): Fact[] {
 		for (const n of ns) {
 			if (n % d.fracDen !== 0) continue
 			const product = (n * d.fracNum) / d.fracDen
-			facts.push({ question: `$\\huge ${n} \\times ${d.tex} = ?$`, answer: `$\\Large \\textcolor{${PURPLE}}{${product}}$` })
-		}
-	}
-	return facts
-}
-
-// Деление на унитарную дробь 1/N — то же самое, что умножение на N,
-// опять же независимо от самого делимого — тот же приём "постоянный
-// ответ, N меняется для обобщения", что и у multTrickFacts.
-function divTrickFacts(defs: DecimalDef[], ns: number[]): Fact[] {
-	const facts: Fact[] = []
-	for (const d of defs) {
-		if (!d.isUnit) continue
-		for (const n of ns) {
-			const question = `$\\huge \\textcolor{${PURPLE}}{${n}} \\div \\textcolor{${GREEN}}{${d.tex}} = \\textcolor{${PURPLE}}{${n}} \\times \\textcolor{${GREEN}}{?}$`
-			facts.push({ question, answer: `$\\Large \\textcolor{${PURPLE}}{${d.fracDen}}$` })
+			facts.push({ kind: 'ASSIST', question: `$\\huge ${n} \\times ${d.tex} = ?$`, answer: `$\\Large \\textcolor{${PURPLE}}{${product}}$` })
 		}
 	}
 	return facts
@@ -96,7 +153,7 @@ function divDirectFacts(defs: DecimalDef[], ns: number[]): Fact[] {
 		for (const n of ns) {
 			if (n % d.fracNum !== 0) continue
 			const quotient = (n * d.fracDen) / d.fracNum
-			facts.push({ question: `$\\huge ${n} \\div ${d.tex} = ?$`, answer: `$\\Large \\textcolor{${PURPLE}}{${quotient}}$` })
+			facts.push({ kind: 'ASSIST', question: `$\\huge ${n} \\div ${d.tex} = ?$`, answer: `$\\Large \\textcolor{${PURPLE}}{${quotient}}$` })
 		}
 	}
 	return facts
@@ -150,26 +207,20 @@ const main = async () => {
 		const unit = await db.query.t_units.findFirst({ where: eq(schema.t_units.title, 'Дроби и десятичные') })
 		if (!unit) throw new Error('Юнит "Дроби и десятичные" не найден')
 
-		// Удаляем только СТАРЫЕ ASSIST-этапы ("всё в одну кучу") — этап 4
-		// "умножение по шагам" (MULTISTEP) не трогаем, это отдельный,
-		// уже хорошо работающий тип задания.
+		// Удаляем старые уроки этой темы (в т.ч. предыдущий прогон этого же
+		// скрипта — идентифицируем по title, см. LessonSpec выше) — этап
+		// "умножение по шагам" (MULTISTEP) не трогаем, отдельный тип задания.
+		const titlesToClear = lessons.map((l) => l.title)
 		const oldLessons = await db.query.t_lessons.findMany({
-			where: and(
-				eq(schema.t_lessons.t_unitId, unit.id),
-				inArray(schema.t_lessons.title, [
-					'Этап 1: дробь → десятичная',
-					'Этап 2: десятичная → дробь',
-					'Этап 3: быстрый счёт с десятичными',
-				])
-			),
+			where: and(eq(schema.t_lessons.t_unitId, unit.id), inArray(schema.t_lessons.title, titlesToClear)),
 		})
 		for (const l of oldLessons) {
 			await db.delete(schema.t_lessons).where(eq(schema.t_lessons.id, l.id))
-			console.log(`Удалён старый этап "${l.title}" (${l.id})`)
+			console.log(`Удалён старый урок "${l.title}" (${l.id})`)
 		}
 
-		// Существующий "Этап 4: умножение по шагам" (MULTISTEP) сдвигаем
-		// в конец, чтобы порядок был: 10 новых + он последним бонусом.
+		// "Этап 4: умножение по шагам" (MULTISTEP) сдвигаем в конец, если
+		// он всё ещё на старом месте (order 4) — идемпотентно.
 		const multistepLesson = await db.query.t_lessons.findFirst({
 			where: and(eq(schema.t_lessons.t_unitId, unit.id), eq(schema.t_lessons.title, 'Этап 4: умножение по шагам')),
 		})
@@ -185,6 +236,24 @@ const main = async () => {
 
 			for (let i = 0; i < spec.facts.length; i++) {
 				const fact = spec.facts[i]
+
+				if (fact.kind === 'FRACTRICK') {
+					await db.insert(schema.t_challenges).values({
+						t_lessonId: lesson.id,
+						type: 'FRACTRICK',
+						question: '',
+						order: i + 1,
+						points: 10,
+						author: AUTHOR,
+						numRans: '1',
+						difficulty: '',
+						imageSrc: '',
+						stage: 1,
+						fracTrickData: JSON.stringify(fact.fracTrick),
+					})
+					continue
+				}
+
 				const [challenge] = await db
 					.insert(schema.t_challenges)
 					.values({

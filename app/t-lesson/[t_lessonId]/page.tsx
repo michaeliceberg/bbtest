@@ -24,6 +24,28 @@ export type MultistepStep = {
     answer: string;
 };
 
+// Только для type='FRACTRICK' — "умножить/разделить на унитарную дробь"
+// (0,5/0,25/0,125), см. CLAUDE.md "тренажёр Арифметики". n/decimal —
+// левая часть (N × decimal или N ÷ decimal), answer — правильный ответ
+// (знаменатель дроби, не зависит от n). rightOp='/' рисует правую часть
+// НАСТОЯЩЕЙ дробью (N сверху, ответ снизу — эффект умножения на
+// унитарную дробь = деление на знаменатель); rightOp='times' — правая
+// часть строкой "N × answer" (эффект деления на унитарную дробь =
+// умножение на знаменатель, дробь тут визуально не нужна). colorN/
+// colorDecimal — по прямой просьбе пользователя: палитра РАЗНАЯ у
+// разных примеров (не всегда фиолетовый/зелёный), но ВНУТРИ одного
+// примера n красится одним цветом на обеих сторонах, decimal и answer —
+// другим (общим), чтобы цвет сам показывал соответствие чисел.
+export type FracTrickVisual = {
+    n: string;
+    op: '\\times' | '\\div';
+    decimal: string;
+    rightOp: '/' | 'times';
+    answer: string;
+    colorN: string;
+    colorDecimal: string;
+};
+
 export type QuestionType = {
     questionType: allTypesCT;
     question: string;
@@ -78,6 +100,8 @@ export type QuestionType = {
     hotSliderMax?: number,
     // Только для MULTISTEP — см. MultistepStep выше.
     multistepSteps?: MultistepStep[],
+    // Только для FRACTRICK — см. FracTrickVisual выше.
+    fracTrick?: FracTrickVisual,
 }
 
 type Props = {
@@ -469,6 +493,53 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 correctAnswer: steps[steps.length - 1].answer,
                 timeLimit: 60,
                 multistepSteps: steps,
+            };
+        }
+
+        if (t_challenge.type === 'FRACTRICK') {
+            let visual: FracTrickVisual | null = null;
+            try {
+                visual = t_challenge.fracTrickData ? JSON.parse(t_challenge.fracTrickData) : null;
+            } catch {
+                visual = null;
+            }
+            if (!visual) return undefined;
+
+            // Дистракторы — из ДРУГИХ FRACTRICK-задач того же урока (их
+            // ответ = знаменатель ИХ дроби, естественно отличается от
+            // текущего). Не через общий isEligibleSibling/t_challengeOptions
+            // — у FRACTRICK нет t_challengeOptions вообще (данные целиком
+            // в fracTrickData, тот же принцип, что уже у MULTISTEP выше).
+            const siblingAnswers = new Set<string>();
+            for (const sibling of t_lesson.t_challenges) {
+                if (sibling.type !== 'FRACTRICK' || sibling.id === t_challenge.id) continue;
+                try {
+                    const siblingVisual: FracTrickVisual | null = sibling.fracTrickData
+                        ? JSON.parse(sibling.fracTrickData)
+                        : null;
+                    if (siblingVisual && siblingVisual.answer !== visual.answer) {
+                        siblingAnswers.add(siblingVisual.answer);
+                    }
+                } catch {
+                    // пропускаем битую запись
+                }
+            }
+            const distractors = getRandomElements(Array.from(siblingAnswers), 5);
+            const options = ShuffleTS([visual.answer, ...distractors]);
+
+            return {
+                questionType: 'FRACTRICK' as const,
+                question: '',
+                imageSrc: t_challenge.imageSrc,
+                options,
+                numRans: t_challenge.numRans,
+                optionsQ: [],
+                optionsA: [],
+                optionsConstructRight: [],
+                difficulty: t_challenge.difficulty,
+                correctAnswer: visual.answer,
+                timeLimit: 20,
+                fracTrick: visual,
             };
         }
 
