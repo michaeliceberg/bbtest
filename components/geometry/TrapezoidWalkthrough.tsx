@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils'
 import { KeyboardInput } from '@/app/lesson/keyboard-input'
 import { AnimatedOptionButton } from '@/components/AnimatedOptionButton'
 import { HighlightedNumbersText } from '@/components/HighlightedNumbersText'
+import { HighlightWord } from './WalkthroughMarker'
 import { TrapezoidDiagram, TrapezoidVisual } from './TrapezoidDiagram'
 
 type Props = {
@@ -84,30 +85,6 @@ const CORRECT_CHOICE = '15 / cos'
 const INTRO_TIMELINE = [400, 2100, 3800, 5400]   // шаг 0: маркер "равнобедренной"+ноги → маркер "43 и 73" → 43 → 73
 const HEIGHTS_TIMELINE = [200, 1800]              // шаг 1: высоты → пауза → оранжевые отрезки
 const CHOICE_TIMELINE = [250, 1950, 3550, 5250]   // шаг 3: зум → подпись 15 → маркер "косинус" → вопрос
-
-// Тёмно-фиолетовый маркер первой версии сливался с фоном; розово-красный
-// второй версии читался как "ошибка" (красный = плохо). Итог — яркий
-// фиолетовый (тот же HYPOTENUSE_COLOR в TrapezoidDiagram — единый "вот на
-// чём фокус сейчас" язык между текстом и диаграммой, и тот же акцент,
-// что и у бейджа "разбор по шагам" в ChallengeNav): не сливается с тёмным
-// фоном, не ассоциируется с ошибкой/предупреждением, белые буквы поверх
-// остаются контрастными. Верхний край не трогаем (пользователь
-// подтвердил "верхний край идёт отлично") — расширяем ТОЛЬКО вниз, чтобы
-// под маркер попадали нижние выносные элементы букв (р, у, б...).
-const MARKER_COLOR = 'rgba(139, 92, 246, 0.85)' // violet-500 @ 85%
-
-const HighlightWord = ({ children, active }: { children: React.ReactNode; active: boolean }) => (
-    <span className="relative inline-block whitespace-nowrap">
-        <motion.span
-            className="absolute -inset-x-1.5 top-[0.03em] h-[1.25em] rounded-[3px]"
-            style={{ backgroundColor: MARKER_COLOR, transformOrigin: 'left center' }}
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: active ? 1 : 0 }}
-            transition={{ duration: 0.9, ease: 'easeInOut' }}
-        />
-        <span className="relative">{children}</span>
-    </span>
-)
 
 export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
     const [stepIndex, setStepIndex] = useState(0)

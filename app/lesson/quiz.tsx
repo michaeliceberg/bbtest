@@ -37,8 +37,21 @@ import { getSkillTier, SKILL_PRACTICING_COLOR, SKILL_READY_GRADIENT, SKILL_READY
 import { detectPanelOrientation, PanelOrientation } from "@/lib/graphPanel";
 import { SolveModeChoice } from "@/components/geometry/SolveModeChoice";
 import { TrapezoidWalkthrough } from "@/components/geometry/TrapezoidWalkthrough";
+import { TangentialQuadWalkthrough } from "@/components/geometry/TangentialQuadWalkthrough";
 
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
+
+// Реестр интерактивных разборов по шагам — id задачи → её компонент.
+// Раньше был единственный захардкоженный WALKTHROUGH_CHALLENGE_ID/
+// TrapezoidWalkthrough (единственный живой пример); при появлении
+// ВТОРОГО разбора (TangentialQuadWalkthrough) обобщено в реестр, чтобы
+// не плодить отдельную ветку if/else на каждую новую задачу. Живёт вне
+// компонента — статичные данные, не должны пересоздаваться на каждый
+// рендер.
+const WALKTHROUGH_REGISTRY: Record<number, React.ComponentType<{ onComplete: (allCorrect: boolean) => void }>> = {
+    1679: TrapezoidWalkthrough,        // Трапеция — курс "ЕГЭ Математика Профиль"
+    4594: TangentialQuadWalkthrough,   // Вписанная окружность в четырёхугольник
+}
 
 // Бейдж-ссылка на тему тренажёра, привязанную к текущей задаче — раньше
 // жил внизу карточки задачи (app/lesson/question-bubble.tsx), пользователь
@@ -238,12 +251,9 @@ export const Quiz = ({
     const [typedAnswer, setTypedAnswer] = useState('')
     const [status, setStatus] = useState<"correct" | "wrong" | "none">('none')
     const [options, setOptions] = useState<typeof challengeOptions.$inferSelect[]>([])
-    // Прототип "интерактивного разбора по шагам" (см. components/geometry/
-    // TrapezoidWalkthrough.tsx) — привязан к ОДНОЙ конкретной задаче
-    // (courseId=11, challengeId=1679, "Трапеция" — по просьбе пользователя),
-    // не общий механизм пока. null = ещё не выбрано (показываем экран
-    // выбора режима), 'self'/'guided' — выбранный режим на ЭТУ попытку.
-    const WALKTHROUGH_CHALLENGE_ID = 1679
+    // Интерактивные разборы по шагам (см. WALKTHROUGH_REGISTRY выше) — null =
+    // ещё не выбрано (показываем экран выбора режима), 'self'/'guided' —
+    // выбранный режим на ЭТУ попытку.
     const [walkthroughMode, setWalkthroughMode] = useState<'self' | 'guided' | null>(null)
     // Флаг "подставили верный ответ программно, надо засчитать" — сам вызов
     // onContinue() отложен в useEffect (ниже, после его определения), а не
@@ -730,10 +740,10 @@ export const Quiz = ({
         )
     }
 
-    // Прототип "интерактивного разбора по шагам" — см. комментарий у
-    // WALKTHROUGH_CHALLENGE_ID выше. Отдельный ранний return (не встроено
-    // внутрь обычного JSX ниже) — сознательно, чтобы не трогать основную,
-    // и так сложную разметку карточки/футера для остальных типов заданий.
+    // Интерактивный разбор по шагам — см. WALKTHROUGH_REGISTRY выше.
+    // Отдельный ранний return (не встроено внутрь обычного JSX ниже) —
+    // сознательно, чтобы не трогать основную, и так сложную разметку
+    // карточки/футера для остальных типов заданий.
     // Убрано условие "!isDoneChallenge" по прямой просьбе пользователя —
     // разбор по шагам должен оставаться доступен для пересмотра/повторного
     // прохождения СКОЛЬКО УГОДНО раз, а не только один раз до первого
@@ -742,8 +752,8 @@ export const Quiz = ({
     // режима снова появляется при каждом новом визите на неё — "Решу сам"
     // по-прежнему доступен как раньше, просто выбор больше не запоминается
     // между визитами.
-    const isWalkthroughChallenge = challenge.id === WALKTHROUGH_CHALLENGE_ID
-    if (isWalkthroughChallenge && walkthroughMode !== 'self') {
+    const WalkthroughComponent = WALKTHROUGH_REGISTRY[challenge.id]
+    if (WalkthroughComponent && walkthroughMode !== 'self') {
         return (
             <div className="min-h-screen bg-[#151F23] flex flex-col">
                 <Header
@@ -769,7 +779,7 @@ export const Quiz = ({
                         wrongChallengesId={wrongChallengesId}
                         dailyChallengeIds={dailyChallengeIds}
                         hwChallengeIds={hwChallengeIds}
-                        walkthroughChallengeIds={[WALKTHROUGH_CHALLENGE_ID]}
+                        walkthroughChallengeIds={Object.keys(WALKTHROUGH_REGISTRY).map(Number)}
                         unitColor={unitColor}
                         onClickNumber={onClickNumber}
                     />
@@ -777,7 +787,7 @@ export const Quiz = ({
 
                 <div className="flex-1 max-w-xl w-full mx-auto px-4 py-4">
                     {walkthroughMode === 'guided' ? (
-                        <TrapezoidWalkthrough
+                        <WalkthroughComponent
                             onComplete={(allCorrect) => {
                                 handleWalkthroughComplete(allCorrect)
                                 // Переключаем на обычный экран СРАЗУ — верный
@@ -836,7 +846,7 @@ export const Quiz = ({
                     wrongChallengesId={wrongChallengesId}
                     dailyChallengeIds={dailyChallengeIds}
                     hwChallengeIds={hwChallengeIds}
-                    walkthroughChallengeIds={[WALKTHROUGH_CHALLENGE_ID]}
+                    walkthroughChallengeIds={Object.keys(WALKTHROUGH_REGISTRY).map(Number)}
                     unitColor={unitColor}
                     onClickNumber={onClickNumber}
                 />
