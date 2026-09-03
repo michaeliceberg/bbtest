@@ -52,11 +52,21 @@ type Props = {
     onAnswer: (answer: string) => void
 }
 
-// Отдельный, фиксированный цвет для пропуска этапа 2 — там уже только
-// ОДНО число без "парного" соответствия (в отличие от colorN/colorDecimal
-// этапа 1), поэтому берём общий "активный" акцент, уже используемый в
-// проекте для текущего выбора (INSERT/SCROLL).
-const STAGE2_COLOR = '#4A90D9'
+// Цвет пропуска этапа 2 — там уже только ОДНО число без "парного"
+// соответствия (в отличие от colorN/colorDecimal этапа 1), но он НЕ
+// должен случайно совпасть ни с colorN, ни с colorDecimal конкретного
+// примера: одинаковый цвет в этом проекте всегда значит "это то же самое
+// число" (см. FracTrickVisual в page.tsx), а результат этапа 2 — НОВОЕ,
+// не связанное с ними число. Раньше был один фиксированный синий,
+// который у части палитр (см. PALETTES в rebuildFractionsUnit.ts)
+// совпадал буквально с colorDecimal — пойман пользователем живьём.
+// Перебираем кандидатов и берём первый, не совпадающий ни с одним из
+// цветов этапа 1.
+const STAGE2_COLOR_CANDIDATES = ['#4A90D9', '#F59E0B', '#34D399', '#F472B6', '#818CF8', '#FB923C']
+const pickStage2Color = (avoid: string[]): string =>
+    STAGE2_COLOR_CANDIDATES.find((c) => !avoid.some((a) => a.toLowerCase() === c.toLowerCase()))
+    ?? STAGE2_COLOR_CANDIDATES[0]
+
 const CORRECT_COLOR = '#A1D151'
 const WRONG_COLOR = '#DC605B'
 
@@ -96,6 +106,8 @@ export const TypeFracTrick = ({ question, onAnswer }: Props) => {
 
     if (!trick) return null
 
+    const stage2Color = pickStage2Color([trick.colorN, trick.colorDecimal])
+
     // "Средний" фрагмент — знаменатель дроби этапа 1. Пока мы В этапе 1,
     // это активный пропуск (цвет trick.colorDecimal, либо CORRECT/WRONG
     // после проверки); как только переходим в этап 2 — навсегда
@@ -111,7 +123,7 @@ export const TypeFracTrick = ({ question, onAnswer }: Props) => {
     const stage2Glyph = stage2Selected ?? '?'
     const stage2GlyphColor = stage2Checked
         ? (stage2Selected === trick.stage2Answer ? CORRECT_COLOR : WRONG_COLOR)
-        : STAGE2_COLOR
+        : stage2Color
 
     // Активный (сейчас анимируемый падением сверху) глиф — только тот,
     // что реально меняется прямо сейчас: на этапе 1 это middleGlyph, на
@@ -226,16 +238,32 @@ export const TypeFracTrick = ({ question, onAnswer }: Props) => {
             </div>
 
             <motion.div
-                layout
+                layout="position"
                 ref={containerRef}
                 transition={{ layout: { duration: 0.4, ease: 'easeInOut' } }}
                 className="flex items-baseline justify-center flex-wrap gap-x-2 py-8 px-4 mb-6 bg-[#161F23] border-2 border-[#3A464E] rounded-xl text-[#F2F7FB] overflow-hidden"
             >
+                {/* layout="position" (не просто layout) — принципиально:
+                    обычный layout заставляет framer-motion интерполировать
+                    scale между старым/новым размером бокса при ЛЮБОМ
+                    изменении ширины контента, включая смену цифры внутри
+                    одного и того же фрагмента (не только уход/приход
+                    prefix/suffix) — а глифы KaTeX внутри НЕ являются
+                    motion-компонентами и не участвуют в компенсирующем
+                    масштабировании framer'а, поэтому визуально
+                    "растягиваются" на время transition, если новая цифра
+                    ощутимо шире старой (например "5"→"10", однозначное
+                    → двузначное; на "5"→"8", той же ширины, эффект
+                    незаметен — это и заметил пользователь). "position"
+                    анимирует только смещение (нужное для реального
+                    сценария — реакция на исчезновение prefix), но не сам
+                    размер — смена ширины при новой цифре происходит
+                    мгновенно, без растягивающего рескейла. */}
                 <AnimatePresence mode="popLayout">
                     {stage === 1 && (
                         <motion.span
                             key="prefix"
-                            layout
+                            layout="position"
                             initial={false}
                             exit={{ opacity: 0, x: -24, filter: 'blur(3px)' }}
                             transition={{ duration: 0.3 }}
@@ -245,7 +273,7 @@ export const TypeFracTrick = ({ question, onAnswer }: Props) => {
                     )}
                 </AnimatePresence>
 
-                <motion.span layout>
+                <motion.span layout="position">
                     <Latex>{middleFormula}</Latex>
                 </motion.span>
 
@@ -253,7 +281,7 @@ export const TypeFracTrick = ({ question, onAnswer }: Props) => {
                     {stage === 2 && (
                         <motion.span
                             key="suffix"
-                            layout
+                            layout="position"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ duration: 0.3, delay: 0.15 }}
