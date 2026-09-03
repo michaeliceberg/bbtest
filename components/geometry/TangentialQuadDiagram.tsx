@@ -2,30 +2,32 @@
 //
 // Анимированный четырёхугольник ABCD с вписанной окружностью — второй
 // интерактивный разбор по шагам (курс "ЕГЭ Математика Профиль" →
-// Планиметрия → "Вписанная окружность" → challenge id=4594: "В
-// четырёхугольник ABCD вписана окружность, AB=10, CD=16. Найдите
-// периметр четырёхугольника ABCD."), тот же принцип, что и
-// TrapezoidDiagram — параметризуемый React/SVG-компонент, а не
-// статичный файл.
+// Планиметрия → "Вписанная окружность" → challenge id=4594).
 //
-// Геометрия — НАСТОЯЩИЙ (не приблизительный на глаз) тангенциальный
-// четырёхугольник: 4 касательные к окружности радиуса r в точках под
-// углами -100°/-10°/95°/190°, вершины — пересечения соседних
-// касательных (x·cosθ + y·sinθ = r). Посчитано один раз аналитически
-// (Python), не подбиралось визуально — см. координаты ниже.
+// По итогам обратной связи ("надо ЕЩЁ проще... на чертеже не нужно
+// вводить маленькие стороны a,b,c,d рисовать радиусы") — диаграмма
+// сильно упрощена: только сам четырёхугольник + окружность + (позже)
+// крупные числа данных сторон + итоговый периметр. Точки касания и
+// пунктирные радиусы, бывшие в первой версии, убраны целиком — вся
+// "теорема" объясняется теперь только текстом в TangentialQuadWalkthrough,
+// не на самом чертеже.
+//
+// Геометрия вершин/окружности — настоящий (не на глаз) тангенциальный
+// четырёхугольник, посчитан аналитически один раз (см. предыдущую
+// версию файла в истории коммитов) — координаты сохранены.
+//
+// Диаграмма увеличена (maxWidth 480→560, viewBox чуть выше — 340 вместо
+// 320, для запаса под подпись у нижней стороны) по прямой просьбе
+// пользователя "использовать максимально пространства".
 
 import { motion } from 'framer-motion'
 
 const BG = '#161F23'
 const EDGE = '#F2F7FB'
-const ACCENT = '#7dd3fc'        // акцент математики — сторона AB+CD (дано)
-const SEGMENT_COLOR = '#FB923C' // оранжевый — сторона BC+DA (выводим равенство)
+const ACCENT = '#7dd3fc'
 const CIRCLE_COLOR = '#5C6B73'
 const TEXT = '#F2F7FB'
-const LABEL_COLOR = '#C4B5FD' // светло-фиолетовый — буквы касательных отрезков a/b/c/d
 
-// Круг: центр O, радиус r. Вершины и точки касания — пересечение/касание
-// 4 касательных линий x·cosθ+y·sinθ=r в точках под углами ниже.
 const O = { x: 350, y: 175 }
 const R = 100
 
@@ -34,30 +36,22 @@ const B = { x: 431.1, y: 59.2 }
 const C = { x: 471.1, y: 286.0 }
 const D = { x: 232.6, y: 265.1 }
 
-const T_AB = { x: 332.6, y: 76.5 } // точка касания на стороне AB
-const T_BC = { x: 448.5, y: 157.6 } // точка касания на стороне BC
-const T_CD = { x: 341.3, y: 274.6 } // точка касания на стороне CD
-const T_DA = { x: 251.5, y: 157.6 } // точка касания на стороне DA
-
-// Середины отрезков "вершина → точка касания" — сюда сажаем буквы
-// a/b/c/d (по касательному отрезку из каждой вершины).
+// Подписи данных сторон (10 у AB, 16 у CD) — выносятся НАРУЖУ от фигуры
+// вдоль направления "из центра O через середину стороны", тот же приём,
+// что уже использовался для гипотенузы в TrapezoidDiagram.
 const mid = (p1: { x: number; y: number }, p2: { x: number; y: number }) => ({ x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 })
-
-const LABEL_A1 = mid(A, T_AB) // отрезок "a" на стороне AB со стороны A
-const LABEL_A2 = mid(A, T_DA) // тот же отрезок "a" со стороны DA
-const LABEL_B1 = mid(B, T_AB)
-const LABEL_B2 = mid(B, T_BC)
-const LABEL_C1 = mid(C, T_BC)
-const LABEL_C2 = mid(C, T_CD)
-const LABEL_D1 = mid(D, T_CD)
-const LABEL_D2 = mid(D, T_DA)
+const outward = (mid: { x: number; y: number }, dist: number) => {
+    const dx = mid.x - O.x
+    const dy = mid.y - O.y
+    const len = Math.sqrt(dx * dx + dy * dy)
+    return { x: mid.x + (dx / len) * dist, y: mid.y + (dy / len) * dist }
+}
+const LABEL_AB = outward(mid(A, B), 32)
+const LABEL_CD = outward(mid(C, D), 32)
 
 export type TangentialQuadVisual = {
-    tangentPointsShown?: boolean   // точки касания + пунктирные радиусы к ним
-    tangentLabelsShown?: boolean   // буквы a/b/c/d на касательных отрезках
-    abcdHighlighted?: boolean      // AB+CD подсвечены синим (дано)
-    bcdaHighlighted?: boolean      // BC+DA подсвечены оранжевым (выводим)
-    perimeterValue?: string | null // итоговый периметр (финальный ответ)
+    numbersShown?: boolean          // крупные "10"/"16" у сторон AB/CD
+    perimeterValue?: string | null  // итоговый периметр в центре фигуры
 }
 
 const numberBounce = {
@@ -66,100 +60,48 @@ const numberBounce = {
     transition: { type: 'spring' as const, duration: 0.8, bounce: 0.6 },
 }
 
-const TangentLabel = ({ pos, letter, shown, delay = 0 }: { pos: { x: number; y: number }; letter: string; shown: boolean; delay?: number }) => (
-    <motion.text
-        x={pos.x} y={pos.y}
-        initial={{ opacity: 0, scale: 0.3 }}
-        animate={{ opacity: shown ? 1 : 0, scale: shown ? 1 : 0.3 }}
-        transition={{ type: 'spring', duration: 0.5, bounce: 0.55, delay: shown ? delay : 0 }}
-        textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={17} fontWeight={800} fontStyle="italic" fill={LABEL_COLOR}
-    >{letter}</motion.text>
-)
-
-export const TangentialQuadDiagram = (props: TangentialQuadVisual) => {
-    const {
-        tangentPointsShown = false,
-        tangentLabelsShown = false,
-        abcdHighlighted = false,
-        bcdaHighlighted = false,
-        perimeterValue = null,
-    } = props
-
+export const TangentialQuadDiagram = ({ numbersShown = false, perimeterValue = null }: TangentialQuadVisual) => {
     return (
         <div className="flex items-center justify-center py-2 px-2 mb-4 bg-[#161F23] rounded-xl overflow-hidden">
-            <svg viewBox="0 0 700 320" width="100%" height="auto" style={{ maxWidth: 480 }}>
-                <rect x="0" y="0" width="700" height="320" fill={BG} />
+            <svg viewBox="0 0 700 340" width="100%" height="auto" style={{ maxWidth: 560 }}>
+                <rect x="0" y="0" width="700" height="340" fill={BG} />
 
-                {/* окружность */}
                 <circle cx={O.x} cy={O.y} r={R} fill="none" stroke={CIRCLE_COLOR} strokeWidth={3} />
 
-                {/* стороны четырёхугольника */}
-                <motion.line
-                    x1={A.x} y1={A.y} x2={B.x} y2={B.y}
-                    stroke={abcdHighlighted ? ACCENT : EDGE}
-                    strokeWidth={abcdHighlighted ? 7 : 5}
-                    strokeLinecap="round"
-                    animate={{ stroke: abcdHighlighted ? ACCENT : EDGE }}
-                    transition={{ duration: 0.4 }}
-                />
-                <motion.line
-                    x1={B.x} y1={B.y} x2={C.x} y2={C.y}
-                    stroke={bcdaHighlighted ? SEGMENT_COLOR : EDGE}
-                    strokeWidth={bcdaHighlighted ? 7 : 5}
-                    strokeLinecap="round"
-                    animate={{ stroke: bcdaHighlighted ? SEGMENT_COLOR : EDGE }}
-                    transition={{ duration: 0.4 }}
-                />
-                <motion.line
-                    x1={C.x} y1={C.y} x2={D.x} y2={D.y}
-                    stroke={abcdHighlighted ? ACCENT : EDGE}
-                    strokeWidth={abcdHighlighted ? 7 : 5}
-                    strokeLinecap="round"
-                    animate={{ stroke: abcdHighlighted ? ACCENT : EDGE }}
-                    transition={{ duration: 0.4 }}
-                />
-                <motion.line
-                    x1={D.x} y1={D.y} x2={A.x} y2={A.y}
-                    stroke={bcdaHighlighted ? SEGMENT_COLOR : EDGE}
-                    strokeWidth={bcdaHighlighted ? 7 : 5}
-                    strokeLinecap="round"
-                    animate={{ stroke: bcdaHighlighted ? SEGMENT_COLOR : EDGE }}
-                    transition={{ duration: 0.4 }}
-                />
+                <line x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke={EDGE} strokeWidth={5} strokeLinecap="round" />
+                <line x1={B.x} y1={B.y} x2={C.x} y2={C.y} stroke={EDGE} strokeWidth={5} strokeLinecap="round" />
+                <line x1={C.x} y1={C.y} x2={D.x} y2={D.y} stroke={EDGE} strokeWidth={5} strokeLinecap="round" />
+                <line x1={D.x} y1={D.y} x2={A.x} y2={A.y} stroke={EDGE} strokeWidth={5} strokeLinecap="round" />
 
-                {/* точки касания + пунктирные радиусы к ним */}
-                {[T_AB, T_BC, T_CD, T_DA].map((t, i) => (
-                    <motion.g key={i} initial={{ opacity: 0 }} animate={{ opacity: tangentPointsShown ? 1 : 0 }} transition={{ duration: 0.4, delay: i * 0.1 }}>
-                        <line x1={O.x} y1={O.y} x2={t.x} y2={t.y} stroke={CIRCLE_COLOR} strokeWidth={2} strokeDasharray="5,5" />
-                        <circle cx={t.x} cy={t.y} r={5} fill={TEXT} />
-                    </motion.g>
-                ))}
+                <text x={A.x - 18} y={A.y - 8} textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={20} fontWeight={700} fill={TEXT}>A</text>
+                <text x={B.x + 18} y={B.y - 8} textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={20} fontWeight={700} fill={TEXT}>B</text>
+                <text x={C.x + 18} y={C.y + 8} textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={20} fontWeight={700} fill={TEXT}>C</text>
+                <text x={D.x - 18} y={D.y + 8} textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={20} fontWeight={700} fill={TEXT}>D</text>
 
-                {/* подписи вершин */}
-                <text x={A.x - 16} y={A.y - 6} textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={18} fontWeight={700} fill={TEXT}>A</text>
-                <text x={B.x + 16} y={B.y - 6} textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={18} fontWeight={700} fill={TEXT}>B</text>
-                <text x={C.x + 16} y={C.y + 6} textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={18} fontWeight={700} fill={TEXT}>C</text>
-                <text x={D.x - 16} y={D.y + 6} textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={18} fontWeight={700} fill={TEXT}>D</text>
+                {/* крупные числа данных сторон — bounce-эффект, тот же, что и
+                    у чисел в TrapezoidDiagram */}
+                <motion.text
+                    initial={numberBounce.initial}
+                    animate={{ ...numberBounce.animate, opacity: numbersShown ? 1 : 0, scale: numbersShown ? 1 : 5 }}
+                    transition={numberBounce.transition}
+                    x={LABEL_AB.x} y={LABEL_AB.y}
+                    textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={28} fontWeight={800} fill={ACCENT}
+                >10</motion.text>
+                <motion.text
+                    initial={numberBounce.initial}
+                    animate={{ ...numberBounce.animate, opacity: numbersShown ? 1 : 0, scale: numbersShown ? 1 : 5 }}
+                    transition={numberBounce.transition}
+                    x={LABEL_CD.x} y={LABEL_CD.y}
+                    textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={28} fontWeight={800} fill={ACCENT}
+                >16</motion.text>
 
-                {/* буквы касательных отрезков — одна и та же буква на ОБОИХ
-                    отрезках из одной вершины: наглядно "эти два равны". */}
-                <TangentLabel pos={LABEL_A1} letter="a" shown={tangentLabelsShown} delay={0} />
-                <TangentLabel pos={LABEL_A2} letter="a" shown={tangentLabelsShown} delay={0.1} />
-                <TangentLabel pos={LABEL_B1} letter="b" shown={tangentLabelsShown} delay={0.2} />
-                <TangentLabel pos={LABEL_B2} letter="b" shown={tangentLabelsShown} delay={0.3} />
-                <TangentLabel pos={LABEL_C1} letter="c" shown={tangentLabelsShown} delay={0.4} />
-                <TangentLabel pos={LABEL_C2} letter="c" shown={tangentLabelsShown} delay={0.5} />
-                <TangentLabel pos={LABEL_D1} letter="d" shown={tangentLabelsShown} delay={0.6} />
-                <TangentLabel pos={LABEL_D2} letter="d" shown={tangentLabelsShown} delay={0.7} />
-
-                {/* итоговый периметр — по центру фигуры */}
                 {perimeterValue && (
                     <motion.text
                         initial={numberBounce.initial}
                         animate={numberBounce.animate}
                         transition={numberBounce.transition}
-                        x={O.x} y={O.y + 6}
-                        textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={26} fontWeight={800} fill={ACCENT}
+                        x={O.x} y={O.y + 8}
+                        textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={30} fontWeight={800} fill={ACCENT}
                     >P={perimeterValue}</motion.text>
                 )}
             </svg>

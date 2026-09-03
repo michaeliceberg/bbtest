@@ -187,7 +187,7 @@ export const TrapezoidDiagram = (props: TrapezoidVisual) => {
 
     return (
         <div className="flex items-center justify-center py-2 px-2 mb-4 bg-[#161F23] rounded-xl overflow-hidden">
-            <svg viewBox="0 0 700 320" width="100%" height="auto" style={{ maxWidth: 480 }}>
+            <svg viewBox="0 0 700 320" width="100%" height="auto" style={{ maxWidth: 560 }}>
                 <rect x="0" y="0" width="700" height="320" fill={BG} />
 
                 <motion.g
