@@ -300,7 +300,13 @@ export default function TrainerQuestion({
           return <TypeSpeed question={question} onAnswer={onAnswer} />
 
         case "FRACTRICK":
-          return <TypeFracTrick question={question} onAnswer={onAnswer} />
+          return <TypeFracTrick
+            question={question}
+            onAnswer={onAnswer}
+            onOptionSelected={handleAssistOptionSelected}
+            isAnswerChecked={answerState === "correct" || answerState === "incorrect"}
+            isAnswerCorrect={answerState === "correct"}
+          />
 
         case "CONNECT":
           return <TypeConnect question={question} onAnswer={onAnswer} onAllPairsMatched={handleAllPairsMatched} />
@@ -522,7 +528,7 @@ export default function TrainerQuestion({
               // ASSIST и INSERT — двухшаговый флоу: сначала выбор варианта
               // (answerState === "selected"), потом отдельный клик "далее"/
               // "понятно" на уже проверенный ответ, без повторной отправки.
-              const isSelectThenSubmitType = question.questionType === "ASSIST" || question.questionType === "INSERT" || question.questionType === "SCROLL" || question.questionType === "PICMATCH"
+              const isSelectThenSubmitType = question.questionType === "ASSIST" || question.questionType === "INSERT" || question.questionType === "SCROLL" || question.questionType === "PICMATCH" || question.questionType === "FRACTRICK"
 
               if (isSelectThenSubmitType && answerState === "selected" && selectedAssistAnswer) {
                 onAnswer(selectedAssistAnswer)

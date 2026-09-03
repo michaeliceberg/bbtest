@@ -5,12 +5,16 @@
 // оператор и горизонтальная черта дроби — белые (нейтральные), а N и
 // пара "decimal/ответ" красятся каждый СВОИМ цветом, чтобы цвет сам
 // показывал соответствие чисел (N — тот же везде, decimal слева
-// соответствует подставляемому ответу справа). Мгновенный клик по
-// варианту сразу же засчитывает ответ (без отдельной кнопки "Ответить",
-// тот же принцип, что и у TypeSpeed/TypeCheck) — но сам "?" при этом
-// проигрывает ТОЧНО ТАКУЮ ЖЕ анимацию появления буквы, что и в
-// type-insert.tsx (тот же WAAPI-приём поиска узла по цвету+тексту,
-// та же кривая/длительность входа).
+// соответствует подставляемому ответу справа).
+//
+// Флоу ответа — select-then-submit, тот же контракт, что у ASSIST/
+// INSERT (onOptionSelected/isAnswerChecked приходят сверху из
+// trainer-question.tsx, кнопка "Ответить" внизу общая — см.
+// isSelectThenSubmitType в trainer-question.tsx/TQUIZ.tsx). По прямой
+// просьбе пользователя подтверждение для FRACTRICK ОСТАЁТСЯ (в отличие
+// от CHECK, где подтверждение убрано намеренно). Клик по варианту сразу
+// морфит "?" в цифру — та же WAAPI-анимация, что и в type-insert.tsx —
+// но сам ответ засчитывается только по нажатию общей кнопки.
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Latex from 'react-latex-next'
@@ -22,28 +26,25 @@ import type { QuestionType } from './page'
 type Props = {
     question: QuestionType
     onAnswer: (answer: string) => void
+    onOptionSelected?: (answer: string | null) => void
+    isAnswerChecked?: boolean
+    isAnswerCorrect?: boolean
 }
-
-const RESULT_DELAY_MS = 900
 
 const hexToRgb = (hex: string): string => {
     const n = parseInt(hex.replace('#', ''), 16)
     return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`
 }
 
-export const TypeFracTrick = ({ question, onAnswer }: Props) => {
+export const TypeFracTrick = ({ question, onAnswer, onOptionSelected, isAnswerChecked = false }: Props) => {
     const trick = question.fracTrick
     const containerRef = useRef<HTMLDivElement>(null)
-    const [filled, setFilled] = useState<string | null>(null)
-    const [phase, setPhase] = useState<'answering' | 'result'>('answering')
-    const hasSubmittedRef = useRef(false)
-    const prevFilledRef = useRef<string | null>(null)
+    const [selected, setSelected] = useState<string | null>(null)
+    const prevSelectedRef = useRef<string | null>(null)
 
     useEffect(() => {
-        setFilled(null)
-        setPhase('answering')
-        hasSubmittedRef.current = false
-        prevFilledRef.current = null
+        setSelected(null)
+        prevSelectedRef.current = null
     }, [question])
 
     if (!trick) return null
@@ -61,17 +62,18 @@ export const TypeFracTrick = ({ question, onAnswer }: Props) => {
             .filter((el) => el.style.color === blankColorRgb && el.textContent === text)
     }
 
-    const glyph = filled ?? '?'
+    const glyph = selected ?? '?'
     const formula = trick.rightOp === '/'
         ? `$\\huge \\textcolor{${trick.colorN}}{${trick.n}} ${trick.op} \\textcolor{${trick.colorDecimal}}{${trick.decimal}} = \\dfrac{\\textcolor{${trick.colorN}}{${trick.n}}}{\\textcolor{${trick.colorDecimal}}{${glyph}}}$`
         : `$\\huge \\textcolor{${trick.colorN}}{${trick.n}} ${trick.op} \\textcolor{${trick.colorDecimal}}{${trick.decimal}} = \\textcolor{${trick.colorN}}{${trick.n}} \\times \\textcolor{${trick.colorDecimal}}{${glyph}}$`
 
     // Тот же WAAPI-вход, что у первого заполнения пропуска в type-insert.tsx
-    // (падение сверху с лёгким пружинным перехлёстом) — по прямой просьбе
-    // пользователя "оформление сделай точно таким же".
+    // (падение сверху с лёгким пружинным перехлёстом) — играет на КАЖДЫЙ
+    // выбор/смену варианта (в отличие от INSERT тут всего один пропуск,
+    // отдельного "первое заполнение vs смена" различия не нужно).
     useLayoutEffect(() => {
-        if (filled !== null && filled !== prevFilledRef.current) {
-            findGlyphNodes(filled).forEach((node) => {
+        if (selected !== null && selected !== prevSelectedRef.current) {
+            findGlyphNodes(selected).forEach((node) => {
                 node.animate(
                     [
                         { opacity: 0, transform: 'translateY(-20px)' },
@@ -81,18 +83,14 @@ export const TypeFracTrick = ({ question, onAnswer }: Props) => {
                 )
             })
         }
-        prevFilledRef.current = filled
+        prevSelectedRef.current = selected
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filled])
+    }, [selected])
 
     const handlePick = (option: string) => {
-        if (phase !== 'answering' || hasSubmittedRef.current) return
-        hasSubmittedRef.current = true
-        setFilled(option)
-        setPhase('result')
-
-        const isRight = option === question.correctAnswer
-        setTimeout(() => onAnswer(isRight ? 'right' : 'wrong'), RESULT_DELAY_MS)
+        if (isAnswerChecked) return
+        setSelected(option)
+        onOptionSelected?.(option)
     }
 
     return (
@@ -118,10 +116,10 @@ export const TypeFracTrick = ({ question, onAnswer }: Props) => {
                         option={option}
                         onClick={() => handlePick(option)}
                         index={idx}
-                        isSelected={filled === option}
-                        isCorrect={phase === 'result' && option === question.correctAnswer}
-                        isWrong={phase === 'result' && filled === option && option !== question.correctAnswer}
-                        disabled={phase !== 'answering'}
+                        isSelected={selected === option}
+                        isCorrect={isAnswerChecked && option === question.correctAnswer}
+                        isWrong={isAnswerChecked && selected === option && option !== question.correctAnswer}
+                        disabled={isAnswerChecked}
                     />
                 ))}
             </motion.div>
