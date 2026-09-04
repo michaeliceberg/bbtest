@@ -23,7 +23,7 @@
 // (AB=10 и CD=16, в ЛЮБОМ порядке), и только потом — обычный числовой
 // ответ (периметр=52).
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import Latex from 'react-latex-next'
 import 'katex/dist/katex.min.css';
@@ -42,6 +42,19 @@ type Props = {
 // Два независимых значения, которые нужно вписать в формулу P=2×(?+?) —
 // порядок ввода не важен (сложение коммутативно).
 const TARGET_VALUES = ['10', '16']
+
+const PENDING_COLOR = '#5C6B73'
+const CORRECT_COLOR = '#A1D151'
+const WRONG_COLOR = '#DC605B'
+
+// Тот же приём, что в type-insert.tsx (трейнер) — цвет пропуска задаётся
+// через \textcolor и потом ищется в уже отрисованном KaTeX по СВОЕМУ
+// computed-цвету (браузер всегда возвращает rgb(), не исходный hex).
+const hexToRgb = (hex: string): string => {
+    const n = parseInt(hex.slice(1), 16)
+    return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`
+}
+const PENDING_COLOR_RGB = hexToRgb(PENDING_COLOR)
 
 const BlinkingExclaim = () => (
     <motion.span
@@ -177,7 +190,10 @@ function useStickToBottom(deps: unknown[]) {
 
     useEffect(() => {
         if (!stickRef.current) return
-        endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+        // block:'center' (не 'end') — новый блок должен оказаться примерно
+        // ПОСЕРЕДИНЕ экрана, а не впритык к нижнему краю, по просьбе
+        // пользователя ("скроль ещё дальше вниз").
+        endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, deps)
 
@@ -252,15 +268,57 @@ export const TangentialQuadWalkthrough = ({ onComplete }: Props) => {
     // и то, что печатается на клавиатуре, сразу видно ПРЯМО в формуле на
     // месте пропуска — отдельного "экранчика" с набранным числом больше
     // нет (см. KeyboardInput{showDisplay=false} ниже).
-    const PENDING_COLOR = '#5C6B73'
+    const activeDoubleSlot: 0 | 1 = doubleValues[0] === null ? 0 : 1
     const slotContent = (slotIndex: 0 | 1, letters: string) => {
         const committed = doubleValues[slotIndex]
         if (committed !== null) return committed
-        const isActive = slotIndex === (doubleValues[0] === null ? 0 : 1)
-        if (isActive && doubleTyped.length > 0) return doubleTyped
+        if (slotIndex === activeDoubleSlot && doubleTyped.length > 0) return doubleTyped
         return `\\textcolor{${PENDING_COLOR}}{${letters}}`
     }
     const doubleFormula = `$P = 2\\times(${slotContent(0, 'AB')}+${slotContent(1, 'CD')})$`
+    const activeDoubleLetters = activeDoubleSlot === 0 ? 'AB' : 'CD'
+
+    // Финальный ответ — раньше "?" всегда оставался статичным placeholder,
+    // а набранное число показывалось в отдельном экранчике клавиатуры;
+    // теперь набранные цифры сразу подставляются на место "?", а после
+    // проверки ответ красится в цвет результата (зелёный/красный) — та же
+    // самая \textcolor-логика, что и у пропусков выше.
+    const finalAnswerContent = checked
+        ? `\\textcolor{${lastCorrect ? CORRECT_COLOR : WRONG_COLOR}}{${typedAnswer || '?'}}`
+        : (typedAnswer.length > 0 ? typedAnswer : '?')
+    const finalFormula = `$P = 2\\times(10+16) = ${finalAnswerContent}$`
+
+    // ---------- мигание активного пропуска (AB или CD) ----------
+    // Тот же приём, что и у .animate-insert-wobble/.animate-insert-float в
+    // трейнерном type-insert.tsx: KaTeX перерисовывает формулу целиком на
+    // каждый ре-рендер (react-latex-next не мемоизирован), поэтому вручную
+    // навешенный класс нужно переприкладывать — как через useLayoutEffect
+    // сразу после смены состояния, так и лёгким интервалом-подстраховкой.
+    const doubleFormulaRef = useRef<HTMLDivElement>(null)
+    const applyBlinkClass = () => {
+        const container = doubleFormulaRef.current
+        if (!container) return
+        const nodes = Array.from(container.querySelectorAll<HTMLElement>('[style*="color"]'))
+            .filter((el) => el.style.color === PENDING_COLOR_RGB)
+        // KaTeX рендерит "AB" не одним узлом с текстом "AB", а ДВУМЯ
+        // соседними mathnormal-глифами "A" и "B" по отдельности — сравнение
+        // node.textContent === 'AB' никогда бы не совпало. AB и CD не имеют
+        // общих букв, поэтому достаточно проверить "буква входит в состав
+        // активной пары" через includes на односимвольном textContent.
+        nodes.forEach((node) => {
+            const isActiveTarget = !doubleBothFilled && doubleTyped.length === 0 && activeDoubleLetters.includes(node.textContent || '')
+            node.classList.toggle('animate-blank-blink', isActiveTarget)
+        })
+    }
+    useLayoutEffect(() => {
+        applyBlinkClass()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [doubleValues, doubleTyped, stepIndex])
+    useEffect(() => {
+        const id = setInterval(applyBlinkClass, 400)
+        return () => clearInterval(id)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [doubleValues, doubleTyped, stepIndex])
 
     const endRef = useStickToBottom([stepIndex, introReveal, numbersReveal, doubleBothFilled, doubleWrongFlash, checked])
 
@@ -335,11 +393,11 @@ export const TangentialQuadWalkthrough = ({ onComplete }: Props) => {
 
                 {stepIndex >= 2 && (
                     <div className="w-full flex flex-col items-center gap-3">
-                        <div className="text-2xl md:text-3xl font-bold text-[#F2F7FB] py-1 text-center">
+                        <div ref={doubleFormulaRef} className="text-2xl md:text-3xl font-bold text-[#F2F7FB] py-1 text-center">
                             <Latex>{doubleFormula}</Latex>
                         </div>
                         {!doubleBothFilled && (
-                            <KeyboardInput value={doubleTyped} onChange={setDoubleTyped} disabled={false} showDisplay={false} />
+                            <KeyboardInput value={doubleTyped} onChange={setDoubleTyped} disabled={false} showDisplay={false} allowNegative={false} />
                         )}
                         {doubleWrongFlash && (
                             <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">
@@ -358,9 +416,9 @@ export const TangentialQuadWalkthrough = ({ onComplete }: Props) => {
 
                 {stepIndex >= 3 && (
                     <>
-                        <FormulaBlock latex="$P = 2\times(10+16) = ?$" />
+                        <FormulaBlock latex={finalFormula} />
                         <div className="w-full flex flex-col items-center gap-3">
-                            <KeyboardInput value={typedAnswer} onChange={setTypedAnswer} disabled={checked} />
+                            <KeyboardInput value={typedAnswer} onChange={setTypedAnswer} disabled={checked} showDisplay={false} allowNegative={false} />
                             {checked && (
                                 <div
                                     className={cn(

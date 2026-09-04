@@ -21,11 +21,12 @@ type Props = {
     onChange: (value: string) => void
     disabled?: boolean
     showDisplay?: boolean
+    allowNegative?: boolean
 }
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', ',', '0', '⌫']
 
-export const KeyboardInput = ({ value, onChange, disabled, showDisplay = true }: Props) => {
+export const KeyboardInput = ({ value, onChange, disabled, showDisplay = true, allowNegative = true }: Props) => {
     const digitsOnly = value.replace('-', '')
     const isNegative = value.startsWith('-')
 
@@ -49,30 +50,41 @@ export const KeyboardInput = ({ value, onChange, disabled, showDisplay = true }:
         onChange(isNegative ? value.slice(1) : `-${value}`)
     }
 
+    // Строка со знаком "−" рисуется, только если отрицательные значения
+    // вообще допустимы (в геометрии их не бывает — periметр/сторона не
+    // может быть отрицательной, см. allowNegative={false} в
+    // TangentialQuadWalkthrough) — иначе кнопка минуса висела в одиночку
+    // без экрана рядом и выглядела как отдельный лишний ряд.
+    const showTopRow = allowNegative || showDisplay
+
     return (
         <div className="flex flex-col items-center gap-2.5 w-full">
-            <div className="w-full max-w-xs flex items-center gap-1.5">
-                <button
-                    type="button"
-                    onClick={toggleSign}
-                    disabled={disabled}
-                    className={cn(
-                        'flex-shrink-0 h-11 w-10 rounded-xl border-2 border-b-4 text-lg font-bold transition-colors',
-                        isNegative
-                            ? 'bg-sky-400 text-[#0B1114] border-sky-500'
-                            : 'bg-[#161F23] text-[#F2F7FB] border-[#3A464E] hover:bg-[#232F34]'
+            {showTopRow && (
+                <div className="w-full max-w-xs flex items-center gap-1.5">
+                    {allowNegative && (
+                        <button
+                            type="button"
+                            onClick={toggleSign}
+                            disabled={disabled}
+                            className={cn(
+                                'flex-shrink-0 h-11 w-10 rounded-xl border-2 border-b-4 text-lg font-bold transition-colors',
+                                isNegative
+                                    ? 'bg-sky-400 text-[#0B1114] border-sky-500'
+                                    : 'bg-[#161F23] text-[#F2F7FB] border-[#3A464E] hover:bg-[#232F34]'
+                            )}
+                        >
+                            &minus;
+                        </button>
                     )}
-                >
-                    &minus;
-                </button>
-                {showDisplay && (
-                    <div className="flex-1 h-11 flex items-center justify-center px-3 overflow-x-auto">
-                        <span className="text-xl md:text-2xl font-bold text-[#F2F7FB] tracking-wide whitespace-nowrap">
-                            {value || <span className="text-[#5A6A72]">?</span>}
-                        </span>
-                    </div>
-                )}
-            </div>
+                    {showDisplay && (
+                        <div className="flex-1 h-11 flex items-center justify-center px-3 overflow-x-auto">
+                            <span className="text-xl md:text-2xl font-bold text-[#F2F7FB] tracking-wide whitespace-nowrap">
+                                {value || <span className="text-[#5A6A72]">?</span>}
+                            </span>
+                        </div>
+                    )}
+                </div>
+            )}
 
             <div className="grid grid-cols-3 gap-1.5 w-full max-w-xs">
                 {KEYS.map((key) => (

@@ -314,6 +314,20 @@ body {
   transform-origin: center;
 }
 
+/* Разбор по шагам (TangentialQuadWalkthrough) — активная (сейчас
+   заполняемая) буква-пропуск в формуле мигает между серым ("ожидание")
+   и белым, чтобы было видно, какую именно сторону сейчас вводят —
+   тот же приём CSS keyframe + WAAPI-поиск узла по цвету/тексту, что и у
+   .animate-insert-wobble/.animate-insert-float (см. type-insert.tsx),
+   просто цвет вместо transform. */
+@keyframes blank-color-blink {
+  0%, 100% { color: #5C6B73; }
+  50% { color: #F2F7FB; }
+}
+.animate-blank-blink {
+  animation: blank-color-blink 1.3s ease-in-out infinite;
+}
+
 /* INSERT — "парящий" знак вопроса на ещё не заполненном пропуске (замена
    подчёркиванию через \underset, которое портило размер/базовую линию
    буквы в KaTeX — см. type-insert.tsx). Тот же приём (CSS keyframe,
