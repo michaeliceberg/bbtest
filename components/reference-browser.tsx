@@ -79,11 +79,6 @@ const UNIT_NAMES: Record<string, string> = {
     'м': 'Метр',
 }
 
-const chipClass = (active: boolean) => cn(
-    'px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-colors whitespace-nowrap',
-    active ? '' : 'bg-[#161F23] border-[#3A464E] text-[#9AA7B0] hover:text-[#F2F7FB]'
-)
-
 type FiltersPanelProps = {
     topics: string[]
     activeTopic: string
@@ -92,10 +87,25 @@ type FiltersPanelProps = {
     setQuery: (q: string) => void
     resultCount: number
     className?: string
+    // 'sidebar' — узкая колонка справа: темы одна под другой на всю
+    // ширину (280px слишком узко, чтобы горизонтальные чипы вроде
+    // "Электродинамика" смотрелись опрятно). 'inline' — прежний
+    // горизонтальный ряд чипов, для мобильной копии панели над сеткой,
+    // где ширина не ограничена.
+    layout?: 'sidebar' | 'inline'
 }
 
-const FiltersPanel = ({ topics, activeTopic, setActiveTopic, query, setQuery, resultCount, className }: FiltersPanelProps) => (
-    <div className={cn('flex flex-col gap-3 rounded-xl border-2 border-[#3A464E] bg-[#161F23] p-4', className)}>
+const topicChipStyle = (active: boolean, accent: string, layout: 'sidebar' | 'inline') => ({
+    className: cn(
+        'font-semibold border-2 transition-colors',
+        layout === 'sidebar' ? 'w-full text-left px-3 py-2 rounded-lg text-sm' : 'px-3 py-1.5 rounded-full text-xs whitespace-nowrap',
+        active ? '' : 'bg-[#161F23] border-[#3A464E] text-[#9AA7B0] hover:text-[#F2F7FB]'
+    ),
+    style: active ? { backgroundColor: `${accent}22`, borderColor: `${accent}66`, color: accent } : undefined,
+})
+
+const FiltersPanel = ({ topics, activeTopic, setActiveTopic, query, setQuery, resultCount, className, layout = 'inline' }: FiltersPanelProps) => (
+    <div className={cn('flex flex-col gap-3 rounded-xl border-2 border-[#3A464E] bg-[#161F23] p-4', layout === 'sidebar' && 'lg:w-[260px]', className)}>
         <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5A6A72]" />
             <input
@@ -106,21 +116,21 @@ const FiltersPanel = ({ topics, activeTopic, setActiveTopic, query, setQuery, re
             />
         </div>
 
-        <div className="flex flex-wrap gap-1.5">
-            <button type="button" onClick={() => setActiveTopic('all')} className={chipClass(activeTopic === 'all')}>
-                Все темы
-            </button>
+        <div className={cn(layout === 'sidebar' ? 'flex flex-col gap-1.5' : 'flex flex-wrap gap-1.5')}>
+            {(() => {
+                const all = topicChipStyle(activeTopic === 'all', DEFAULT_ACCENT, layout)
+                return (
+                    <button type="button" onClick={() => setActiveTopic('all')} className={all.className} style={all.style}>
+                        Все темы
+                    </button>
+                )
+            })()}
             {topics.map((t) => {
                 const active = activeTopic === t
                 const accent = TOPIC_ACCENT[t] ?? DEFAULT_ACCENT
+                const s = topicChipStyle(active, accent, layout)
                 return (
-                    <button
-                        key={t}
-                        type="button"
-                        onClick={() => setActiveTopic(t)}
-                        className={chipClass(active)}
-                        style={active ? { backgroundColor: `${accent}22`, borderColor: `${accent}66`, color: accent } : undefined}
-                    >
+                    <button key={t} type="button" onClick={() => setActiveTopic(t)} className={s.className} style={s.style}>
                         {t}
                     </button>
                 )
@@ -166,7 +176,7 @@ export const ReferenceBrowser = ({ entries, userProgress }: { entries: Reference
                     xp={userProgress.xp}
                     hasActiveSubscription={false}
                 />
-                <FiltersPanel {...filtersProps} />
+                <FiltersPanel {...filtersProps} layout="sidebar" />
             </StickyWrapper>
 
             <FeedWrapper>
@@ -182,7 +192,7 @@ export const ReferenceBrowser = ({ entries, userProgress }: { entries: Reference
                 {filtered.length === 0 ? (
                     <div className="text-center py-16 text-[#5A6A72]">Ничего не найдено</div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {filtered.map((e) => {
                             const accent = TOPIC_ACCENT[e.topic] ?? DEFAULT_ACCENT
                             const unitName = e.unit ? UNIT_NAMES[e.unit] : null
