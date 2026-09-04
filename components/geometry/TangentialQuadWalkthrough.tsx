@@ -31,9 +31,12 @@ import { Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { KeyboardInput } from '@/app/lesson/keyboard-input'
 import { HighlightedNumbersText } from '@/components/HighlightedNumbersText'
-import { HighlightWord } from './WalkthroughMarker'
-import { TangentialQuadDiagram, TangentialQuadVisual } from './TangentialQuadDiagram'
+import { TangentialQuadDiagram } from './TangentialQuadDiagram'
 import { Typewriter } from './Typewriter'
+import {
+    PENDING_COLOR, CORRECT_COLOR, WRONG_COLOR, PENDING_COLOR_RGB,
+    ConditionCitation, TypedLine, BlinkingExclaim, FormulaBlock, DiagramBlock, useStickToBottom,
+} from './WalkthroughLog'
 
 type Props = {
     onComplete: (allCorrect: boolean) => void
@@ -43,72 +46,11 @@ type Props = {
 // порядок ввода не важен (сложение коммутативно).
 const TARGET_VALUES = ['10', '16']
 
-const PENDING_COLOR = '#5C6B73'
-const CORRECT_COLOR = '#A1D151'
-const WRONG_COLOR = '#DC605B'
-
-// Тот же приём, что в type-insert.tsx (трейнер) — цвет пропуска задаётся
-// через \textcolor и потом ищется в уже отрисованном KaTeX по СВОЕМУ
-// computed-цвету (браузер всегда возвращает rgb(), не исходный hex).
-const hexToRgb = (hex: string): string => {
-    const n = parseInt(hex.slice(1), 16)
-    return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`
-}
-const PENDING_COLOR_RGB = hexToRgb(PENDING_COLOR)
-
-const BlinkingExclaim = () => (
-    <motion.span
-        className="inline-block ml-1 font-black"
-        style={{ color: '#FBBF24' }}
-        animate={{ opacity: [1, 0.25, 1] }}
-        transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
-    >!</motion.span>
-)
-
-// ---------- строительные блоки лога ----------
-
-// Короткая цитата из условия — не всё условие, только та часть, которую
-// сейчас разбираем; печатается по буквам, затем подсвечивается маркером.
-const ConditionCitation = ({ text, onSettled }: { text: string; onSettled?: () => void }) => {
-    const [typed, setTyped] = useState(false)
-    const [marked, setMarked] = useState(false)
-    return (
-        <div className="flex items-start gap-2.5 w-full">
-            <span className="shrink-0 mt-[3px] text-[10px] font-bold uppercase tracking-wider" style={{ color: '#F0A868' }}>
-                Условие
-            </span>
-            <div className="flex-1 text-sm md:text-base text-[#F2F7FB] leading-relaxed">
-                <HighlightWord active={marked}>
-                    <Typewriter
-                        text={text}
-                        cursor={!typed}
-                        onDone={() => {
-                            setTyped(true)
-                            setTimeout(() => {
-                                setMarked(true)
-                                setTimeout(() => onSettled?.(), 700)
-                            }, 200)
-                        }}
-                    />
-                </HighlightWord>
-            </div>
-        </div>
-    )
-}
-
-// Обычная печатаемая строка объяснения (без цитирования условия).
-const TypedLine = ({ text, className, onSettled, delayAfter = 500 }: { text: string; className?: string; onSettled?: () => void; delayAfter?: number }) => {
-    return (
-        <div className={className}>
-            <Typewriter text={text} onDone={() => setTimeout(() => onSettled?.(), delayAfter)} />
-        </div>
-    )
-}
-
 // Печатаемая строка с эмоциональным акцентом на хвосте фразы — вместо
 // маркера-цитаты (тот теперь зарезервирован под "Условие") здесь просто
 // жирный янтарный цвет на выводе + мигающий "!" после того, как печать
-// дошла до конца.
+// дошла до конца. Специфична для ЭТОГО разбора (конкретный текст про
+// суммы противоположных сторон), поэтому не вынесена в общий файл.
 const ExplainLine = ({ onSettled }: { onSettled?: () => void }) => {
     const [typed, setTyped] = useState(false)
     return (
@@ -127,77 +69,6 @@ const ExplainLine = ({ onSettled }: { onSettled?: () => void }) => {
             )}
         </div>
     )
-}
-
-const formulaBounce = {
-    initial: { opacity: 0, y: 10, scale: 0.85 },
-    animate: { opacity: 1, y: 0, scale: 1 },
-    transition: { type: 'spring' as const, duration: 0.5, bounce: 0.4 },
-}
-
-const FormulaBlock = ({ latex, onSettled }: { latex: string; onSettled?: () => void }) => {
-    useEffect(() => {
-        const t = setTimeout(() => onSettled?.(), 550)
-        return () => clearTimeout(t)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
-    return (
-        <motion.div
-            initial={formulaBounce.initial}
-            animate={formulaBounce.animate}
-            transition={formulaBounce.transition}
-            className="text-xl md:text-2xl font-bold text-[#F2F7FB] py-1 text-center w-full"
-        >
-            <Latex>{latex}</Latex>
-        </motion.div>
-    )
-}
-
-const DiagramBlock = ({ visual, onSettled }: { visual: TangentialQuadVisual; onSettled?: () => void }) => {
-    useEffect(() => {
-        const t = setTimeout(() => onSettled?.(), 400)
-        return () => clearTimeout(t)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
-    return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.94 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.35 }}
-            className="w-full"
-        >
-            <TangentialQuadDiagram {...visual} />
-        </motion.div>
-    )
-}
-
-// Держит скролл страницы "прилипшим" к низу лога — но только пока
-// пользователь сам не отскроллил вверх почитать предыдущие шаги; в этом
-// случае автоскролл не мешает, а возобновляется, как только пользователь
-// снова окажется у низа сам.
-function useStickToBottom(deps: unknown[]) {
-    const endRef = useRef<HTMLDivElement>(null)
-    const stickRef = useRef(true)
-
-    useEffect(() => {
-        const onScroll = () => {
-            const nearBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 120
-            stickRef.current = nearBottom
-        }
-        window.addEventListener('scroll', onScroll, { passive: true })
-        return () => window.removeEventListener('scroll', onScroll)
-    }, [])
-
-    useEffect(() => {
-        if (!stickRef.current) return
-        // block:'center' (не 'end') — новый блок должен оказаться примерно
-        // ПОСЕРЕДИНЕ экрана, а не впритык к нижнему краю, по просьбе
-        // пользователя ("скроль ещё дальше вниз").
-        endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, deps)
-
-    return endRef
 }
 
 export const TangentialQuadWalkthrough = ({ onComplete }: Props) => {
@@ -349,7 +220,7 @@ export const TangentialQuadWalkthrough = ({ onComplete }: Props) => {
             {/* ---------- накопительный лог ---------- */}
             <div className="w-full flex flex-col gap-4">
 
-                <DiagramBlock visual={{}} />
+                <DiagramBlock><TangentialQuadDiagram /></DiagramBlock>
 
                 <ConditionCitation
                     text="В четырёхугольник ABCD вписана окружность"
@@ -380,7 +251,9 @@ export const TangentialQuadWalkthrough = ({ onComplete }: Props) => {
                 )}
 
                 {stepIndex >= 1 && numbersReveal >= 1 && (
-                    <DiagramBlock visual={{ numbersShown: true }} onSettled={() => setNumbersReveal((r) => Math.max(r, 2))} />
+                    <DiagramBlock onSettled={() => setNumbersReveal((r) => Math.max(r, 2))}>
+                        <TangentialQuadDiagram numbersShown />
+                    </DiagramBlock>
                 )}
 
                 {stepIndex >= 1 && numbersReveal >= 2 && (
