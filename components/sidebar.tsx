@@ -1,6 +1,6 @@
 'use client'
 
-import { BookOpen, Flame, Home, Trophy, TrendingUp, Award, ShoppingBag, ChevronDown, ChevronUp, LogOut, Settings } from 'lucide-react'
+import { BookOpen, Flame, Home, Trophy, TrendingUp, Award, ShoppingBag, ChevronDown, ChevronUp, LogOut, Settings, Library } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from './ui/button'
 import Link from 'next/link'
@@ -70,6 +70,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
   const navItems = [
     { label: 'Задачник', href: '/learn', icon: Home },
     { label: 'Тренажёр', href: '/trainer', icon: BookOpen, badge: hasTrainerQuest },
+    { label: 'Справочник', href: '/reference', icon: Library },
     { label: 'Магазин', href: '/shop', icon: ShoppingBag },
     { label: 'Достижения', href: '/achievements', icon: Award },
     { label: 'Лидеры', href: '/leaderboard', icon: Trophy },

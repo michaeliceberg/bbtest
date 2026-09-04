@@ -722,6 +722,18 @@ export const getTCourses = cache(async () => {
   return data;
 });
 
+// /reference — просматриваемый справочник формул (см.
+// scripts/seedPhysicsReference.ts). Данные не персонализированы
+// (одинаковы для всех пользователей курса), поэтому просто cache() без
+// привязки к userId — как и getTCourses выше.
+export const getReferenceEntries = cache(async (courseId: number) => {
+  const data = await db.query.referenceEntries.findMany({
+    where: (r, { eq }) => eq(r.courseId, courseId),
+    orderBy: (r, { asc }) => asc(r.order),
+  });
+  return data;
+});
+
 
 
 export const getTUnits = cache(async () => {

@@ -359,6 +359,27 @@ export const t_hot_questions = pgTable('t_hot_questions', {
 	unit: text('unit').notNull(),
 });
 
+// ===== СПРАВОЧНИК (страница /reference) =====
+//
+// Просматриваемый список формул/величин по теме — "ученик 11 класса
+// открывает и глазами просматривает всё по теме". Не новый контент:
+// строки извлечены (см. scripts/seedPhysicsReference.ts) из уже
+// существующих "Термины: ..." уроков тренажёра (t_challenges) — та же
+// физика, что уже используется для словарных M_ASC-вопросов, просто
+// показана как обычный список для чтения, а не как квиз.
+export const referenceEntries = pgTable('reference_entries', {
+	id: serial('id').primaryKey(),
+	courseId: integer('course_id').references(() => courses.id, { onDelete: 'cascade' }).notNull(),
+	topic: text('topic').notNull(),       // напр. "Динамика" — для фильтра по теме
+	label: text('label').notNull(),       // человеко-читаемое название формулы, напр. "Сила тяжести"
+	symbol: text('symbol').notNull(),     // LaTeX без $, напр. "F_{тяж}"
+	name: text('name'),                   // именительный падеж величины (из "Что такое $X$?"), может отсутствовать
+	unit: text('unit'),                   // LaTeX/текст единицы (из "В чём измеряется $X$?"), может отсутствовать
+	formula: text('formula').notNull(),   // LaTeX правой части, напр. "mg"
+	imageSrc: text('image_src'),          // зарезервировано под иллюстрацию к формуле — пока не рисовались
+	order: integer('order').notNull().default(0),
+});
+
 export const t_challenges = pgTable('t_challenges', {
 	id: serial('id').primaryKey(),
 	t_lessonId: integer('lesson_id').references(() => t_lessons.id, { onDelete: 'cascade' }).notNull(),
