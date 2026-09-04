@@ -246,7 +246,21 @@ export const TangentialQuadWalkthrough = ({ onComplete }: Props) => {
         onComplete(!hadMistake)
     }
 
-    const doubleFormula = `$P = 2\\times(${doubleValues[0] ?? '?'}+${doubleValues[1] ?? '?'})$`
+    // Вместо "?" — само имя стороны (AB/CD) бледно-серым, пока пропуск не
+    // заполнен; активный пропуск заполняется первым (порядок ввода не
+    // важен — принимается любое из двух чисел, см. handleDoubleSubmit),
+    // и то, что печатается на клавиатуре, сразу видно ПРЯМО в формуле на
+    // месте пропуска — отдельного "экранчика" с набранным числом больше
+    // нет (см. KeyboardInput{showDisplay=false} ниже).
+    const PENDING_COLOR = '#5C6B73'
+    const slotContent = (slotIndex: 0 | 1, letters: string) => {
+        const committed = doubleValues[slotIndex]
+        if (committed !== null) return committed
+        const isActive = slotIndex === (doubleValues[0] === null ? 0 : 1)
+        if (isActive && doubleTyped.length > 0) return doubleTyped
+        return `\\textcolor{${PENDING_COLOR}}{${letters}}`
+    }
+    const doubleFormula = `$P = 2\\times(${slotContent(0, 'AB')}+${slotContent(1, 'CD')})$`
 
     const endRef = useStickToBottom([stepIndex, introReveal, numbersReveal, doubleBothFilled, doubleWrongFlash, checked])
 
@@ -325,7 +339,7 @@ export const TangentialQuadWalkthrough = ({ onComplete }: Props) => {
                             <Latex>{doubleFormula}</Latex>
                         </div>
                         {!doubleBothFilled && (
-                            <KeyboardInput value={doubleTyped} onChange={setDoubleTyped} disabled={false} />
+                            <KeyboardInput value={doubleTyped} onChange={setDoubleTyped} disabled={false} showDisplay={false} />
                         )}
                         {doubleWrongFlash && (
                             <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">

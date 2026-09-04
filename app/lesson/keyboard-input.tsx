@@ -1,8 +1,17 @@
 // app/lesson/keyboard-input.tsx
 //
-// Тип задачи KEYBOARD: вместо сетки вариантов — крупный editbox с
-// введённым ответом и своя цифровая клавиатура снизу (для задач с
-// открытым ответом, как в реальном ЕГЭ — ввод числа, а не выбор).
+// Тип задачи KEYBOARD: цифровая клавиатура для задач с открытым ответом
+// (как в реальном ЕГЭ — ввод числа, а не выбор).
+//
+// Раньше набранное число всегда показывалось в отдельном "экранчике"
+// (обособленный бокс с своим фоном/рамкой) над клавиатурой. По просьбе
+// пользователя эта обособленная рамка убрана везде — введённое число
+// теперь просто крупный текст без рамки-"дисплея". А там, где цифры
+// подставляются НЕПОСРЕДСТВЕННО в нужное место (например, в формулу
+// с пропуском — см. TangentialQuadWalkthrough.tsx), сам компонент
+// вообще не показывает значение — `showDisplay={false}` оставляет
+// только знак-минус и клавиатуру, а число печатает сам родитель прямо
+// в месте подстановки (см. `doubleTyped` в TangentialQuadWalkthrough).
 
 import { Delete } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -11,11 +20,12 @@ type Props = {
     value: string
     onChange: (value: string) => void
     disabled?: boolean
+    showDisplay?: boolean
 }
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', ',', '0', '⌫']
 
-export const KeyboardInput = ({ value, onChange, disabled }: Props) => {
+export const KeyboardInput = ({ value, onChange, disabled, showDisplay = true }: Props) => {
     const digitsOnly = value.replace('-', '')
     const isNegative = value.startsWith('-')
 
@@ -55,11 +65,13 @@ export const KeyboardInput = ({ value, onChange, disabled }: Props) => {
                 >
                     &minus;
                 </button>
-                <div className="flex-1 h-11 rounded-xl bg-[#232F34] border-2 border-[#3A464E] flex items-center justify-center px-3 overflow-x-auto">
-                    <span className="text-xl md:text-2xl font-bold text-[#F2F7FB] tracking-wide whitespace-nowrap">
-                        {value || <span className="text-[#5A6A72]">?</span>}
-                    </span>
-                </div>
+                {showDisplay && (
+                    <div className="flex-1 h-11 flex items-center justify-center px-3 overflow-x-auto">
+                        <span className="text-xl md:text-2xl font-bold text-[#F2F7FB] tracking-wide whitespace-nowrap">
+                            {value || <span className="text-[#5A6A72]">?</span>}
+                        </span>
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-3 gap-1.5 w-full max-w-xs">
