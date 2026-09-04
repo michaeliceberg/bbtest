@@ -6,10 +6,12 @@
 // геометрия вторым заходом). Данные — не новый контент, а извлечение из
 // уже существующих "Термины: ..." уроков тренажёра, см.
 // scripts/seedPhysicsReference.ts.
+//
+// Сам layout (StickyWrapper/FeedWrapper/поиск+фильтр в сайдбаре) собран
+// внутри клиентского ReferenceBrowser — там же живёт состояние поиска/
+// фильтра, общее для обеих копий панели (десктопная в сайдбаре и
+// мобильная над сеткой), см. комментарий в самом компоненте.
 
-import { FeedWrapper } from '@/components/feed-wrapper';
-import { StickyWrapper } from '@/components/sticky-wrapper';
-import { UserProgress } from '@/components/user-progress';
 import { auth } from '@/lib/server-auth';
 import { redirect } from 'next/navigation';
 import { getUserProgress, getReferenceEntries } from '@/db/queries';
@@ -29,29 +31,16 @@ const ReferencePage = async () => {
     const entries = await getReferenceEntries(PHYSICS_COURSE_ID);
 
     return (
-        <div className='flex flex-row-reverse gap-[48px] px-6'>
-            <StickyWrapper>
-                <UserProgress
-                    activeCourse={userProgress.activeCourse}
-                    hearts={userProgress.hearts}
-                    points={userProgress.points}
-                    gems={userProgress.gems}
-                    xp={userProgress.xp}
-                    hasActiveSubscription={false}
-                />
-            </StickyWrapper>
-
-            <FeedWrapper>
-                <div className="mb-6">
-                    <h1 className="text-3xl font-bold">📖 Справочник</h1>
-                    <p className="text-[#9AA7B0] mt-1">
-                        Все формулы и единицы измерения по физике — открой и повтори любую тему.
-                    </p>
-                </div>
-
-                <ReferenceBrowser entries={entries} />
-            </FeedWrapper>
-        </div>
+        <ReferenceBrowser
+            entries={entries}
+            userProgress={{
+                activeCourse: userProgress.activeCourse,
+                hearts: userProgress.hearts,
+                points: userProgress.points,
+                gems: userProgress.gems,
+                xp: userProgress.xp,
+            }}
+        />
     );
 };
 
