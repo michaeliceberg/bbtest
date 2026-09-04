@@ -5,7 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "next dev",
-		"build": "next build",
+		"build": "NODE_OPTIONS='--max-old-space-size=3072' next build",
 		"start": "next start",
 		"lint": "next lint",
 		"db:studio": "until npx drizzle-kit studio; do echo 'Drizzle Studio упал (обрыв соединения с БД), перезапуск через 2с...'; sleep 2; done",
