@@ -18,7 +18,14 @@ import { motion } from 'framer-motion'
 
 const BG = '#161F23'
 const EDGE = '#F2F7FB'
-const ACCENT = '#7dd3fc'       // акцент математики (см. CLAUDE.md) — боковые стороны, финальный ответ
+const ACCENT = '#7dd3fc'       // акцент математики (см. CLAUDE.md) — финальный ответ, подсветка треугольника
+// Подсветка боковых сторон ("равнобедренная" — обе ноги равны) раньше
+// красилась тем же ACCENT (голубой #7dd3fc) — пользователь отметил, что
+// на светлой линии EDGE (#F2F7FB) этот голубой почти не отличим по
+// яркости, сливается. Янтарный — тот же цвет, что уже используется в
+// проекте как "смотри сюда" (BlinkingExclaim в WalkthroughLog.tsx) —
+// контрастен и к тёмному фону, и к белым линиям трапеции.
+const LEGS_HIGHLIGHT_COLOR = '#FBBF24'
 const SEGMENT_COLOR = '#FB923C' // оранжевый — отрезки основания после проведения высот
 const HYPOTENUSE_COLOR = '#8B5CF6' // тот же фиолетовый, что и текст-маркер — "вот что мы сейчас ищем"
 // (розово-красный первой версии читался пользователем как "ошибка", а
@@ -63,24 +70,30 @@ const ZOOM_TY = -36.35
 
 // "?" у гипотенузы B-C — стартует ПРЯМО НА линии (в её середине) и
 // "выезжает" наружу перпендикулярно ей, будто выныривая из самой стороны.
-// Направление перпендикуляра посчитано аналитически (единичный вектор
-// B→C, повёрнутый на 90°, в сторону, противоположную третьей вершине
-// треугольника B_FOOT — то есть НАРУЖУ, не внутрь фигуры).
+// Направление — единичный вектор B→C, повёрнутый на 90°, в сторону,
+// противоположную третьей вершине треугольника B_FOOT (НАРУЖУ, не внутрь
+// фигуры) — это направление уже было верным, но пользователь отметил, что
+// глиф всё равно сливался с линией. Увеличен ТОЛЬКО отступ (магнитуда
+// вдоль той же перпендикулярной прямой) — простое "отражение по Y" здесь
+// увело бы точку ВДОЛЬ линии, а не от неё, т.к. сама линия B-C не
+// вертикальна и не горизонтальна.
 const HYP_MID = { x: (B.x + C.x) / 2, y: (B.y + C.y) / 2 }
-const HYP_QMARK = { x: HYP_MID.x + 29.8, y: HYP_MID.y - 23.6 }
+const HYP_QMARK = { x: HYP_MID.x + 43, y: HYP_MID.y - 34 }
 
 // Те же "?" + наклонная стрелочка нужны и для отрезков основания
 // (левый/правый), пока их длина ещё не найдена — по прямой просьбе
 // пользователя ("когда кусочки ищем нижние — там тоже нужны
-// стрелочки"). "?" ставим НАД серединой каждого отрезка (по диагонали
-// наружу — левый левее, правый правее, чтобы не толпились к центру),
-// стрелка указывает вниз на сам отрезок; когда длина найдена — "?"
-// гаснет, а число "15" появляется НИЖЕ отрезка (уже существующая
-// позиция), так что они не перекрываются.
+// стрелочки"). Раньше "?" стоял НАД серединой каждого отрезка —
+// оказывался вплотную к диагональной боковой стороне трапеции (A-D
+// слева / B-C справа) и визуально сливался с ней. Отражён по вертикали
+// — теперь ПОД нижним основанием, в свободном месте под фигурой,
+// стрелка указывает вверх на сам отрезок; когда длина найдена — "?"
+// гаснет, а число "15" появляется чуть выше (уже существующая позиция),
+// они по-прежнему не перекрываются (взаимно исключающие active-условия).
 const SEG_L_MID = { x: (D.x + A_FOOT.x) / 2, y: D.y }
-const SEG_L_QMARK = { x: SEG_L_MID.x - 20, y: SEG_L_MID.y - 34 }
+const SEG_L_QMARK = { x: SEG_L_MID.x - 20, y: SEG_L_MID.y + 34 }
 const SEG_R_MID = { x: (B_FOOT.x + C.x) / 2, y: D.y }
-const SEG_R_QMARK = { x: SEG_R_MID.x + 20, y: SEG_R_MID.y - 34 }
+const SEG_R_QMARK = { x: SEG_R_MID.x + 20, y: SEG_R_MID.y + 34 }
 
 type Pt = { x: number; y: number }
 
@@ -158,15 +171,28 @@ const ArrowHint = ({ from, to, active, color, fontSize = 24 }: { from: Pt; to: P
                 animate={{ opacity: active ? 1 : 0, scale: active ? 1 : 0.4 }}
                 transition={{ duration: 0.25, delay: active ? 0.45 : 0 }}
             />
-            <motion.text
-                x={from.x} y={from.y}
+            {/* Появление (спрятано→на месте) — framer-motion на ОБЁРТКЕ,
+                разовая анимация, settles и больше не пишет transform.
+                Непрерывный bounce вверх-вниз — ЧИСТЫЙ CSS-класс на
+                ВЛОЖЕННОМ обычном <text> (не framer): если бы framer
+                продолжал писать transform на том же узле, что и CSS
+                @keyframes, они конкурировали бы за одно и то же
+                свойство и дёргались бы — тот же принцип разделения
+                ответственности, что и у .animate-insert-wobble/
+                .animate-blank-blink в type-insert.tsx/WalkthroughLog.tsx. */}
+            <motion.g
                 initial={{ opacity: 0, scale: 0.3, x: to.x - from.x, y: to.y - from.y }}
                 animate={active
                     ? { opacity: 1, scale: 1, x: 0, y: 0 }
                     : { opacity: 0, scale: 0.3, x: to.x - from.x, y: to.y - from.y }}
                 transition={{ type: 'spring', duration: 0.7, bounce: 0.5, delay: active ? 0.3 : 0 }}
-                textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={fontSize} fontWeight={800} fill={color}
-            >?</motion.text>
+            >
+                <text
+                    x={from.x} y={from.y}
+                    className={active ? 'animate-qmark-bounce' : undefined}
+                    textAnchor="middle" fontFamily="var(--font-nunito), sans-serif" fontSize={fontSize} fontWeight={800} fill={color}
+                >?</text>
+            </motion.g>
         </>
     )
 }
@@ -214,21 +240,23 @@ export const TrapezoidDiagram = (props: TrapezoidVisual) => {
                     {/* нижнее основание D-C */}
                     <line x1={D.x} y1={D.y} x2={C.x} y2={C.y} stroke={EDGE} strokeWidth={5} strokeLinecap="round" />
 
-                    {/* боковые стороны — подсвечиваются акцентом */}
+                    {/* боковые стороны — подсвечиваются янтарным (контрастнее
+                        голубого ACCENT на фоне белых линий основания) и
+                        заметно толще (8 против базовых 5) */}
                     <motion.line
                         x1={A.x} y1={A.y} x2={D.x} y2={D.y}
-                        stroke={legsHighlighted ? ACCENT : EDGE}
-                        strokeWidth={legsHighlighted ? 7 : 5}
+                        stroke={legsHighlighted ? LEGS_HIGHLIGHT_COLOR : EDGE}
+                        strokeWidth={legsHighlighted ? 8 : 5}
                         strokeLinecap="round"
-                        animate={{ stroke: legsHighlighted ? ACCENT : EDGE }}
+                        animate={{ stroke: legsHighlighted ? LEGS_HIGHLIGHT_COLOR : EDGE }}
                         transition={{ duration: 0.4 }}
                     />
                     <motion.line
                         x1={B.x} y1={B.y} x2={C.x} y2={C.y}
-                        stroke={hypotenuseFocused ? HYPOTENUSE_COLOR : legsHighlighted ? ACCENT : EDGE}
-                        strokeWidth={hypotenuseFocused ? 8 : legsHighlighted ? 7 : 5}
+                        stroke={hypotenuseFocused ? HYPOTENUSE_COLOR : legsHighlighted ? LEGS_HIGHLIGHT_COLOR : EDGE}
+                        strokeWidth={hypotenuseFocused ? 8 : legsHighlighted ? 8 : 5}
                         strokeLinecap="round"
-                        animate={{ stroke: hypotenuseFocused ? HYPOTENUSE_COLOR : legsHighlighted ? ACCENT : EDGE }}
+                        animate={{ stroke: hypotenuseFocused ? HYPOTENUSE_COLOR : legsHighlighted ? LEGS_HIGHLIGHT_COLOR : EDGE }}
                         transition={{ duration: 0.4 }}
                     />
                     {/* "?" + стрелка у гипотенузы — сигнал "вот что мы ищем". */}

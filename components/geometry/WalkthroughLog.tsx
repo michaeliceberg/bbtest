@@ -13,7 +13,7 @@
 // цитата с оранжевой пометкой "Условие" рядом. Если диаграмма меняется —
 // рисуется НОВый экземпляр ниже, старый не трогается.
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import Latex from 'react-latex-next'
 import { HighlightWord } from './WalkthroughMarker'
@@ -22,6 +22,11 @@ import { Typewriter } from './Typewriter'
 export const PENDING_COLOR = '#5C6B73'
 export const CORRECT_COLOR = '#A1D151'
 export const WRONG_COLOR = '#DC605B'
+// Цвет мигающего курсора-приглашения "|" на месте ещё не введённого
+// числового ответа (см. CURSOR_LATEX/useGlyphBlink ниже) — тот же синий
+// акцент, что уже используется в проекте для "сюда сейчас вводим"
+// (type-insert.tsx ACTIVE_COLOR).
+export const ACTIVE_COLOR = '#4A90D9'
 
 // Тот же приём, что в type-insert.tsx (трейнер) — цвет пропуска задаётся
 // через \textcolor и потом ищется в уже отрисованном KaTeX по СВОЕМУ
@@ -31,6 +36,37 @@ export const hexToRgb = (hex: string): string => {
     return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`
 }
 export const PENDING_COLOR_RGB = hexToRgb(PENDING_COLOR)
+export const ACTIVE_COLOR_RGB = hexToRgb(ACTIVE_COLOR)
+
+// LaTeX-кусок пустого пропуска — пробел (\;) + синий мигающий "|" —
+// вместо статичного "?", который никак не сообщал, что сюда нужно
+// что-то ввести (по прямой просьбе пользователя, "надо чтобы было более
+// user friendly"). Мигание применяется отдельно, см. useGlyphBlink.
+export const CURSOR_LATEX = `\\;\\textcolor{${ACTIVE_COLOR}}{|}`
+
+// Находит в уже отрисованном KaTeX (внутри containerRef) узел-глиф "|"
+// нужного цвета и включает мигание — тот же WAAPI/класс-приём, что и у
+// .animate-blank-blink/.animate-insert-float (react-latex-next не
+// мемоизирует рендер, поэтому переприкладываем и через useLayoutEffect
+// сразу после изменения, и интервалом-подстраховкой). В отличие от
+// AB/CD-мигания в TangentialQuadWalkthrough — тут не нужно выбирать
+// АКТИВНОГО из нескольких кандидатов: пока формула не проверена и ничего
+// не набрано, курсор в ней всегда ровно один.
+export function useGlyphBlink(containerRef: React.RefObject<HTMLElement | null>, deps: unknown[]) {
+    const apply = () => {
+        const container = containerRef.current
+        if (!container) return
+        Array.from(container.querySelectorAll<HTMLElement>('[style*="color"]'))
+            .filter((el) => el.style.color === ACTIVE_COLOR_RGB && el.textContent === '|')
+            .forEach((el) => el.classList.add('animate-caret-blink'))
+    }
+    useLayoutEffect(apply, deps) // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => {
+        const id = setInterval(apply, 400)
+        return () => clearInterval(id)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, deps)
+}
 
 export const BlinkingExclaim = () => (
     <motion.span

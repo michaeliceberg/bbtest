@@ -21,7 +21,7 @@
 // сам TrapezoidDiagram.tsx не менялся, просто вызывается несколько раз
 // подряд с разными снимками состояния вместо одного реактивного набора.
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { KeyboardInput } from '@/app/lesson/keyboard-input'
@@ -29,8 +29,8 @@ import { AnimatedOptionButton } from '@/components/AnimatedOptionButton'
 import { HighlightedNumbersText } from '@/components/HighlightedNumbersText'
 import { TrapezoidDiagram } from './TrapezoidDiagram'
 import {
-    CORRECT_COLOR, WRONG_COLOR,
-    ConditionCitation, TypedLine, FormulaBlock, DiagramBlock, useStickToBottom,
+    CORRECT_COLOR, WRONG_COLOR, CURSOR_LATEX,
+    ConditionCitation, TypedLine, FormulaBlock, DiagramBlock, useStickToBottom, useGlyphBlink,
 } from './WalkthroughLog'
 
 type Props = {
@@ -42,11 +42,12 @@ const CORRECT_CHOICE = '15 / cos'
 
 // Живая подстановка ответа прямо на место "?" в формуле (тот же приём,
 // что и у финального шага TangentialQuadWalkthrough): пока ничего не
-// набрано — обычный "?" безо всякой окраски; по мере набора — сами
-// цифры; после проверки — окраска в зелёный/красный.
+// набрано — не статичный "?" (неинформативно, непонятно, что тут нужно
+// вводить), а мигающий курсор-приглашение (см. CURSOR_LATEX); по мере
+// набора — сами цифры; после проверки — окраска в зелёный/красный.
 const answerLatexPart = (typed: string, checked: boolean, correct: boolean | null): string => {
     if (checked) return `\\textcolor{${correct ? CORRECT_COLOR : WRONG_COLOR}}{${typed || '?'}}`
-    return typed.length > 0 ? typed : '?'
+    return typed.length > 0 ? typed : CURSOR_LATEX
 }
 
 export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
@@ -80,6 +81,10 @@ export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
 
     const segmentFormula = `$\\dfrac{73-43}{2} = ${answerLatexPart(segmentTyped, segmentChecked, segmentCorrect)}$`
     const finalFormula = `$\\dfrac{15}{\\tfrac{5}{7}} = ${answerLatexPart(finalTyped, finalChecked, finalCorrect)}$`
+    const segmentFormulaRef = useRef<HTMLDivElement>(null)
+    const finalFormulaRef = useRef<HTMLDivElement>(null)
+    useGlyphBlink(segmentFormulaRef, [segmentTyped, segmentChecked])
+    useGlyphBlink(finalFormulaRef, [finalTyped, finalChecked])
 
     const handleSegmentCheck = () => {
         const correct = segmentTyped.trim().replace('.', ',') === '15'
@@ -193,7 +198,7 @@ export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
                             className="w-full text-base md:text-lg text-[#F2F7FB]"
                             text="Найдём длину каждого отрезка:"
                         />
-                        <FormulaBlock latex={segmentFormula} />
+                        <FormulaBlock latex={segmentFormula} innerRef={segmentFormulaRef} />
                         {!segmentChecked && (
                             <KeyboardInput value={segmentTyped} onChange={setSegmentTyped} disabled={false} showDisplay={false} allowNegative={false} />
                         )}
@@ -282,7 +287,7 @@ export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
                             className="w-full text-base md:text-lg text-[#F2F7FB]"
                             text="Подставим числа:"
                         />
-                        <FormulaBlock latex={finalFormula} />
+                        <FormulaBlock latex={finalFormula} innerRef={finalFormulaRef} />
                         {!finalChecked && (
                             <KeyboardInput value={finalTyped} onChange={setFinalTyped} disabled={false} showDisplay={false} allowNegative={false} />
                         )}

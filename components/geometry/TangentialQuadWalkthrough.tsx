@@ -34,8 +34,8 @@ import { HighlightedNumbersText } from '@/components/HighlightedNumbersText'
 import { TangentialQuadDiagram } from './TangentialQuadDiagram'
 import { Typewriter } from './Typewriter'
 import {
-    PENDING_COLOR, CORRECT_COLOR, WRONG_COLOR, PENDING_COLOR_RGB,
-    ConditionCitation, TypedLine, BlinkingExclaim, FormulaBlock, DiagramBlock, useStickToBottom,
+    PENDING_COLOR, CORRECT_COLOR, WRONG_COLOR, PENDING_COLOR_RGB, CURSOR_LATEX,
+    ConditionCitation, TypedLine, BlinkingExclaim, FormulaBlock, DiagramBlock, useStickToBottom, useGlyphBlink,
 } from './WalkthroughLog'
 
 type Props = {
@@ -153,11 +153,15 @@ export const TangentialQuadWalkthrough = ({ onComplete }: Props) => {
     // а набранное число показывалось в отдельном экранчике клавиатуры;
     // теперь набранные цифры сразу подставляются на место "?", а после
     // проверки ответ красится в цвет результата (зелёный/красный) — та же
-    // самая \textcolor-логика, что и у пропусков выше.
+    // самая \textcolor-логика, что и у пропусков выше. Пока ничего не
+    // набрано — не статичный "?" (неинформативно, непонятно, что тут
+    // вообще нужно вводить), а мигающий курсор-приглашение, см. CURSOR_LATEX.
     const finalAnswerContent = checked
         ? `\\textcolor{${lastCorrect ? CORRECT_COLOR : WRONG_COLOR}}{${typedAnswer || '?'}}`
-        : (typedAnswer.length > 0 ? typedAnswer : '?')
+        : (typedAnswer.length > 0 ? typedAnswer : CURSOR_LATEX)
     const finalFormula = `$P = 2\\times(10+16) = ${finalAnswerContent}$`
+    const finalFormulaRef = useRef<HTMLDivElement>(null)
+    useGlyphBlink(finalFormulaRef, [typedAnswer, checked])
 
     // ---------- мигание активного пропуска (AB или CD) ----------
     // Тот же приём, что и у .animate-insert-wobble/.animate-insert-float в
@@ -289,7 +293,7 @@ export const TangentialQuadWalkthrough = ({ onComplete }: Props) => {
 
                 {stepIndex >= 3 && (
                     <>
-                        <FormulaBlock latex={finalFormula} />
+                        <FormulaBlock latex={finalFormula} innerRef={finalFormulaRef} />
                         <div className="w-full flex flex-col items-center gap-3">
                             <KeyboardInput value={typedAnswer} onChange={setTypedAnswer} disabled={checked} showDisplay={false} allowNegative={false} />
                             {checked && (

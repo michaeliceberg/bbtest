@@ -342,6 +342,33 @@ body {
   animation: insert-float 1.6s ease-in-out infinite;
 }
 
+/* Разбор по шагам (WalkthroughLog.tsx) — мигающий вертикальный курсор
+   "|" вместо статичного "?" на месте ещё не введённого числового
+   ответа: "?" не сообщал, что сюда вообще нужно что-то вводить, курсор
+   читается как приглашение печатать (тот же UX-язык, что и у обычного
+   текстового ввода). Резкий шаг (не плавное затухание, как у
+   .animate-blank-blink) — так ведёт себя настоящий мигающий курсор. */
+@keyframes caret-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.animate-caret-blink {
+  animation: caret-blink 1s step-end infinite;
+}
+
+/* TrapezoidDiagram.tsx — "?"-подсказка (что именно мы сейчас ищем)
+   непрерывно подпрыгивает вверх-вниз, чтобы привлекать внимание — по
+   прямой просьбе пользователя. Применяется на ВЛОЖЕННЫЙ обычный <text>,
+   не на элемент, которым управляет framer-motion (см. комментарий в
+   ArrowHint) — иначе оба конкурировали бы за один и тот же transform. */
+@keyframes qmark-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+.animate-qmark-bounce {
+  animation: qmark-bounce 0.9s ease-in-out infinite;
+}
+
 /* KaTeX по умолчанию рендерит своими собственными шрифтами (KaTeX_Main/
    KaTeX_Math/...), из-за чего текст условия и цифры-варианты ответа
    (обычный, не-LaTeX текст — Nunito, см. app/layout.tsx) визуально

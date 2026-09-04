@@ -926,6 +926,15 @@ export const Quiz = ({
                                     value={typedAnswer}
                                     onChange={setTypedAnswer}
                                     disabled={pending || status !== 'none'}
+                                    // Минус нужен клавиатуре только если у ЭТОЙ конкретной
+                                    // задачи ответ действительно может быть отрицательным
+                                    // (физика — скорость/заряд и т.п.) — для геометрии и
+                                    // подобных задач с заведомо неотрицательным ответом
+                                    // (например "Решение прямоугольного треугольника")
+                                    // кнопка минуса лишняя и не нужна. Тот же корректный
+                                    // ответ, что уже используется чуть выше при отборе
+                                    // KEYBOARD-рендера (effectiveType).
+                                    allowNegative={challenge.challengeOptions?.find((o) => o.correct)?.text?.trim().startsWith('-') ?? true}
                                 />
                             ) : (
                             <Challenge
