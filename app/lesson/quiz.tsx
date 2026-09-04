@@ -33,6 +33,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { ChevronRight } from "lucide-react";
 import { LOTTIE_SKILL_ASK_LIST, getRandomLottie } from "@/src/constants/lottieConstants";
+import { HighlightedNumbersText } from "@/components/HighlightedNumbersText";
 import { getSkillTier, SKILL_PRACTICING_COLOR, SKILL_READY_GRADIENT, SKILL_READY_BORDER } from "@/lib/skillTier";
 import { detectPanelOrientation, PanelOrientation } from "@/lib/graphPanel";
 import { SolveModeChoice } from "@/components/geometry/SolveModeChoice";
@@ -798,7 +799,17 @@ export const Quiz = ({
                             }}
                         />
                     ) : (
-                        <SolveModeChoice onChoose={setWalkthroughMode} />
+                        <div className="w-full max-w-xl mx-auto flex flex-col gap-4">
+                            {/* Условие задачи — по просьбе пользователя, ДО выбора
+                                режима ("Разберём по шагам"/"Решу сам") непонятно,
+                                что вообще решать. Сам разбор (WalkthroughComponent)
+                                показывает своё собственное условие внутри — здесь
+                                оно нужно только на ЭТОМ, промежуточном экране. */}
+                            <div className="w-full rounded-xl border-2 border-[#3A464E] bg-[#161F23] px-4 py-3 text-center text-sm md:text-base text-[#F2F7FB] leading-relaxed">
+                                <HighlightedNumbersText text={challenge.question} />
+                            </div>
+                            <SolveModeChoice onChoose={setWalkthroughMode} />
+                        </div>
                     )}
                 </div>
             </div>

@@ -8,7 +8,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { motion } from "framer-motion";
 import { ThunderBadge } from "@/components/thunder-badge";
 import { vibrate } from "@/lib/haptics";
 
@@ -78,9 +79,15 @@ export const ChallengeNav = ({
 
         const bg = isWrong ? 'rgba(244,63,94,0.14)' : isDone ? 'rgba(74,222,128,0.14)' : '#1A252B';
         const color = isWrong ? '#fb7185' : isDone ? '#4ade80' : '#9AA7B0';
+        // Раньше — бейдж-кружок со Sparkles в углу кнопки (absolute,
+        // выступал за её границы) — на самой ПЕРВОЙ кнопке строки он
+        // упирался в край overflow-x-auto контейнера и обрезался напополам
+        // (некуда деться влево). Заменено на мерцание/bounce самой кнопки —
+        // ничего не выступает за её собственные границы, обрезаться нечему.
+        const glow = hasWalkthrough && !isActive;
 
         return (
-            <button
+            <motion.button
                 ref={ref}
                 key={challengeItem.id}
                 onClick={() => { vibrate('light'); onClickNumber(challengeItem.id + 1); }}
@@ -89,8 +96,12 @@ export const ChallengeNav = ({
                 style={{
                     backgroundColor: isActive ? unitColor.button : bg,
                     color: isActive ? '#151F23' : color,
-                    boxShadow: hasWalkthrough && !isActive ? `0 0 0 1.5px ${WALKTHROUGH_ACCENT}` : undefined,
                 }}
+                animate={glow ? {
+                    scale: [1, 1.16, 1],
+                    backgroundColor: [bg, `${WALKTHROUGH_ACCENT}55`, bg],
+                } : undefined}
+                transition={glow ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' } : undefined}
             >
                 {index + 1}
 
@@ -102,15 +113,7 @@ export const ChallengeNav = ({
                         <ThunderBadge size={16} />
                     </span>
                 )}
-                {hasWalkthrough && (
-                    <span
-                        className="absolute -top-1.5 -left-1.5 flex items-center justify-center w-4 h-4 rounded-full"
-                        style={{ backgroundColor: WALKTHROUGH_ACCENT }}
-                    >
-                        <Sparkles className="w-2.5 h-2.5 text-white" fill="currentColor" />
-                    </span>
-                )}
-            </button>
+            </motion.button>
         );
     };
 
