@@ -41,13 +41,14 @@ const STEP_COUNT = 5
 const CORRECT_CHOICE = '15 / cos'
 
 // Живая подстановка ответа прямо на место "?" в формуле (тот же приём,
-// что и у финального шага TangentialQuadWalkthrough): пока ничего не
-// набрано — не статичный "?" (неинформативно, непонятно, что тут нужно
-// вводить), а мигающий курсор-приглашение (см. CURSOR_LATEX); по мере
-// набора — сами цифры; после проверки — окраска в зелёный/красный.
+// что и у финального шага TangentialQuadWalkthrough): пока не проверено —
+// курсор ВСЕГДА дописан сразу после уже набранных цифр (по образцу
+// motion.dev "Typewriter" — курсор не пропадает после первого символа, а
+// продолжает мигать и сдвигается вправо по мере ввода); после проверки —
+// окраска в зелёный/красный, курсор больше не нужен.
 const answerLatexPart = (typed: string, checked: boolean, correct: boolean | null): string => {
     if (checked) return `\\textcolor{${correct ? CORRECT_COLOR : WRONG_COLOR}}{${typed || '?'}}`
-    return typed.length > 0 ? typed : CURSOR_LATEX
+    return `${typed}${CURSOR_LATEX}`
 }
 
 export const TrapezoidWalkthrough = ({ onComplete }: Props) => {

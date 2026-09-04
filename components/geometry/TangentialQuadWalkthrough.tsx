@@ -153,12 +153,14 @@ export const TangentialQuadWalkthrough = ({ onComplete }: Props) => {
     // а набранное число показывалось в отдельном экранчике клавиатуры;
     // теперь набранные цифры сразу подставляются на место "?", а после
     // проверки ответ красится в цвет результата (зелёный/красный) — та же
-    // самая \textcolor-логика, что и у пропусков выше. Пока ничего не
-    // набрано — не статичный "?" (неинформативно, непонятно, что тут
-    // вообще нужно вводить), а мигающий курсор-приглашение, см. CURSOR_LATEX.
+    // самая \textcolor-логика, что и у пропусков выше. Пока не проверено —
+    // курсор ВСЕГДА дописан СРАЗУ ПОСЛЕ уже набранных цифр (а не только
+    // когда пусто) — по образцу motion.dev "Typewriter": курсор не
+    // пропадает после первого символа, а продолжает мигать и сдвигается
+    // вправо по мере ввода, показывая, где именно сейчас идёт набор.
     const finalAnswerContent = checked
         ? `\\textcolor{${lastCorrect ? CORRECT_COLOR : WRONG_COLOR}}{${typedAnswer || '?'}}`
-        : (typedAnswer.length > 0 ? typedAnswer : CURSOR_LATEX)
+        : `${typedAnswer}${CURSOR_LATEX}`
     const finalFormula = `$P = 2\\times(10+16) = ${finalAnswerContent}$`
     const finalFormulaRef = useRef<HTMLDivElement>(null)
     useGlyphBlink(finalFormulaRef, [typedAnswer, checked])

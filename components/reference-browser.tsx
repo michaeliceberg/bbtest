@@ -192,7 +192,7 @@ export const ReferenceBrowser = ({ entries, userProgress }: { entries: Reference
                 {filtered.length === 0 ? (
                     <div className="text-center py-16 text-[#5A6A72]">Ничего не найдено</div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {filtered.map((e) => {
                             const accent = TOPIC_ACCENT[e.topic] ?? DEFAULT_ACCENT
                             const unitName = e.unit ? UNIT_NAMES[e.unit] : null
