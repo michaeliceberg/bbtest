@@ -192,39 +192,51 @@ export const ReferenceBrowser = ({ entries, userProgress }: { entries: Reference
                 {filtered.length === 0 ? (
                     <div className="text-center py-16 text-[#5A6A72]">Ничего не найдено</div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3">
                         {filtered.map((e) => {
                             const accent = TOPIC_ACCENT[e.topic] ?? DEFAULT_ACCENT
                             const unitName = e.unit ? UNIT_NAMES[e.unit] : null
                             return (
-                                <div key={e.id} className="flex gap-3 rounded-xl border-2 border-[#3A464E] bg-[#161F23] p-3">
-                                    {/* Зарезервированное место под иллюстрацию к ЭТОЙ
-                                        конкретной формуле — по одной картинке на
-                                        карточку. imageSrc пока не заполнен ни у одной
-                                        записи (см. scripts/seedPhysicsReference.ts) —
-                                        показываем placeholder-иконку. */}
-                                    <div className="flex-shrink-0 w-14 h-14 rounded-lg bg-[#1A252B] border border-[#2A363D] flex items-center justify-center overflow-hidden">
-                                        {e.imageSrc ? (
-                                            // eslint-disable-next-line @next/next/no-img-element
-                                            <img src={e.imageSrc} alt="" className="w-full h-full object-contain" />
-                                        ) : (
-                                            <ImageIcon className="w-5 h-5 text-[#3A464E]" />
-                                        )}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: accent }}>
-                                            {e.topic}
+                                <div key={e.id} className="rounded-xl border-2 overflow-hidden bg-[#161F23]" style={{ borderColor: `${accent}55` }}>
+                                    {/* Шапка — контекст (тема/название/картинка/единица),
+                                        специально сдержанная по размеру, чтобы не спорить
+                                        с формулой ниже за внимание. */}
+                                    <div className="flex items-center gap-3 px-4 pt-3 pb-2">
+                                        {/* Зарезервированное место под иллюстрацию к ЭТОЙ
+                                            конкретной формуле — по одной картинке на
+                                            карточку. imageSrc пока не заполнен ни у одной
+                                            записи (см. scripts/seedPhysicsReference.ts) —
+                                            показываем placeholder-иконку. */}
+                                        <div className="flex-shrink-0 w-11 h-11 rounded-lg bg-[#1A252B] border border-[#2A363D] flex items-center justify-center overflow-hidden">
+                                            {e.imageSrc ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img src={e.imageSrc} alt="" className="w-full h-full object-contain" />
+                                            ) : (
+                                                <ImageIcon className="w-4 h-4 text-[#3A464E]" />
+                                            )}
                                         </div>
-                                        <div className="text-sm text-[#F2F7FB] font-semibold truncate">{e.label}</div>
-                                        <div className="text-base font-bold text-[#F2F7FB] mt-0.5 overflow-x-auto">
-                                            <Latex>{`$${e.symbol} = ${e.formula}$`}</Latex>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: accent }}>
+                                                {e.topic}
+                                            </div>
+                                            <div className="text-sm text-[#F2F7FB] font-semibold truncate">{e.label}</div>
                                         </div>
                                         {e.unit && (
-                                            <div className="text-xs text-[#9AA7B0] mt-1">
+                                            <div className="text-xs text-[#9AA7B0] text-right flex-shrink-0">
                                                 <span className="font-semibold text-[#7dd3fc]">[{e.unit}]</span>
-                                                {unitName && <> {unitName}</>}
+                                                {unitName && <div>{unitName}</div>}
                                             </div>
                                         )}
+                                    </div>
+
+                                    {/* Сама формула — главный акцент карточки: отдельная
+                                        подсвеченная (в цвет темы) панель, крупный шрифт,
+                                        по центру — по прямой просьбе пользователя ("чтобы
+                                        сразу было видно формулу, бросалась в глаза"). */}
+                                    <div className="px-4 py-4 overflow-x-auto" style={{ backgroundColor: `${accent}14` }}>
+                                        <div className="text-2xl md:text-3xl font-bold text-[#F2F7FB] text-center whitespace-nowrap">
+                                            <Latex>{`$${e.symbol} = ${e.formula}$`}</Latex>
+                                        </div>
                                     </div>
                                 </div>
                             )
