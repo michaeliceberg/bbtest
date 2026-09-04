@@ -56,8 +56,13 @@ export function useGlyphBlink(containerRef: React.RefObject<HTMLElement | null>,
     const apply = () => {
         const container = containerRef.current
         if (!container) return
+        // KaTeX в математическом режиме рендерит "|" не буквальной
+        // вертикальной чертой, а своим каноничным глифом "∣" (U+2223,
+        // "divides") — textContent содержит именно ЭТОТ символ, не
+        // исходный "|" из LaTeX-строки; сравнение только с "|" никогда
+        // не совпадало, мигание тихо не включалось.
         Array.from(container.querySelectorAll<HTMLElement>('[style*="color"]'))
-            .filter((el) => el.style.color === ACTIVE_COLOR_RGB && el.textContent === '|')
+            .filter((el) => el.style.color === ACTIVE_COLOR_RGB && (el.textContent === '|' || el.textContent === '∣'))
             .forEach((el) => el.classList.add('animate-caret-blink'))
     }
     useLayoutEffect(apply, deps) // eslint-disable-line react-hooks/exhaustive-deps

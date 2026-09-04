@@ -26,7 +26,11 @@ const ACCENT = '#7dd3fc'       // акцент математики (см. CLAUD
 // проекте как "смотри сюда" (BlinkingExclaim в WalkthroughLog.tsx) —
 // контрастен и к тёмному фону, и к белым линиям трапеции.
 const LEGS_HIGHLIGHT_COLOR = '#FBBF24'
-const SEGMENT_COLOR = '#FB923C' // оранжевый — отрезки основания после проведения высот
+// Отрезки основания красились оранжевым (#FB923C) — визуально слишком
+// близко к янтарной подсветке боковых сторон выше, сливались между
+// собой при чтении разбора подряд. Светло-зелёный — чётко другой цвет,
+// не занят другими смыслами в этой диаграмме.
+const SEGMENT_COLOR = '#4ADE80'
 const HYPOTENUSE_COLOR = '#8B5CF6' // тот же фиолетовый, что и текст-маркер — "вот что мы сейчас ищем"
 // (розово-красный первой версии читался пользователем как "ошибка", а
 // оранжевый уже занят под отрезки основания — фиолетовый нейтрален)
@@ -101,15 +105,16 @@ type Pt = { x: number; y: number }
 // прямой просьбе пользователя. Направление считается аналитически
 // (единичный вектор from→to), не подбирается на глаз — общая функция,
 // переиспользуемая для гипотенузы и обоих отрезков основания.
-const computeArrow = (from: Pt, to: Pt, headLen = 14, headWidth = 9) => {
+const computeArrow = (from: Pt, to: Pt, headLen = 14, headWidth = 9, tailGap = 22) => {
     const dx = to.x - from.x
     const dy = to.y - from.y
     const len = Math.sqrt(dx * dx + dy * dy)
     const ux = dx / len, uy = dy / len
     const px = -uy, py = ux
-    // Хвост стрелки начинается чуть в стороне от самого символа "?" (не
-    // из его центра — иначе накладывался бы на глиф).
-    const tail = { x: from.x + ux * 10, y: from.y + uy * 10 }
+    // Хвост стрелки начинается с заметным отступом от самого символа "?"
+    // (не впритык — раньше 10px давало слишком маленький зазор для
+    // качающегося глифа, они визуально сливались, пользователь отметил).
+    const tail = { x: from.x + ux * tailGap, y: from.y + uy * tailGap }
     const headBack = { x: to.x - ux * headLen, y: to.y - uy * headLen }
     const headPoints = [
         `${to.x},${to.y}`,
@@ -240,24 +245,33 @@ export const TrapezoidDiagram = (props: TrapezoidVisual) => {
                     {/* нижнее основание D-C */}
                     <line x1={D.x} y1={D.y} x2={C.x} y2={C.y} stroke={EDGE} strokeWidth={5} strokeLinecap="round" />
 
-                    {/* боковые стороны — подсвечиваются янтарным (контрастнее
-                        голубого ACCENT на фоне белых линий основания) и
-                        заметно толще (8 против базовых 5) */}
+                    {/* боковые стороны — сам контур трапеции всегда виден
+                        белым (базовая линия, статична), а подсветка
+                        "равнобедренности"/гипотенузы — ОТДЕЛЬНАЯ линия
+                        ПОВЕРХ неё, протяжно дорисовывается (pathLength),
+                        а не просто мгновенно меняет цвет — по прямой
+                        просьбе пользователя ("надо продолжительно вести
+                        линию, чтобы было видно, что и где мы проводим"),
+                        тот же приём, что уже применялся для высот ниже. */}
+                    <line x1={A.x} y1={A.y} x2={D.x} y2={D.y} stroke={EDGE} strokeWidth={5} strokeLinecap="round" />
+                    <line x1={B.x} y1={B.y} x2={C.x} y2={C.y} stroke={EDGE} strokeWidth={5} strokeLinecap="round" />
                     <motion.line
                         x1={A.x} y1={A.y} x2={D.x} y2={D.y}
-                        stroke={legsHighlighted ? LEGS_HIGHLIGHT_COLOR : EDGE}
-                        strokeWidth={legsHighlighted ? 8 : 5}
+                        stroke={LEGS_HIGHLIGHT_COLOR}
+                        strokeWidth={8}
                         strokeLinecap="round"
-                        animate={{ stroke: legsHighlighted ? LEGS_HIGHLIGHT_COLOR : EDGE }}
-                        transition={{ duration: 0.4 }}
+                        initial={{ pathLength: 0, opacity: 0 }}
+                        animate={{ pathLength: legsHighlighted ? 1 : 0, opacity: legsHighlighted ? 1 : 0 }}
+                        transition={{ duration: 0.8, ease: 'easeInOut' }}
                     />
                     <motion.line
                         x1={B.x} y1={B.y} x2={C.x} y2={C.y}
-                        stroke={hypotenuseFocused ? HYPOTENUSE_COLOR : legsHighlighted ? LEGS_HIGHLIGHT_COLOR : EDGE}
-                        strokeWidth={hypotenuseFocused ? 8 : legsHighlighted ? 8 : 5}
+                        stroke={hypotenuseFocused ? HYPOTENUSE_COLOR : LEGS_HIGHLIGHT_COLOR}
+                        strokeWidth={8}
                         strokeLinecap="round"
-                        animate={{ stroke: hypotenuseFocused ? HYPOTENUSE_COLOR : legsHighlighted ? LEGS_HIGHLIGHT_COLOR : EDGE }}
-                        transition={{ duration: 0.4 }}
+                        initial={{ pathLength: 0, opacity: 0 }}
+                        animate={{ pathLength: (legsHighlighted || hypotenuseFocused) ? 1 : 0, opacity: (legsHighlighted || hypotenuseFocused) ? 1 : 0 }}
+                        transition={{ duration: 0.8, ease: 'easeInOut', delay: 0.15 }}
                     />
                     {/* "?" + стрелка у гипотенузы — сигнал "вот что мы ищем". */}
                     <ArrowHint from={HYP_QMARK} to={HYP_MID} active={hypotenuseFocused} color={HYPOTENUSE_COLOR} fontSize={28} />
@@ -284,23 +298,28 @@ export const TrapezoidDiagram = (props: TrapezoidVisual) => {
                         transition={{ duration: 0.8, ease: 'easeInOut', delay: 0.2 }}
                     />
 
-                    {/* отрезки основания слева/справа от высот — оранжевый акцент,
-                        появляются ПОСЛЕ паузы за высотами (тайминг — в TrapezoidWalkthrough) */}
+                    {/* отрезки основания слева/справа от высот — светло-зелёные
+                        (не оранжевый — сливался с янтарной подсветкой боковых
+                        сторон выше), появляются ПОСЛЕ паузы за высотами (тайминг
+                        — в TrapezoidWalkthrough), протяжно дорисовываются
+                        (pathLength), а не просто проявляются по прозрачности. */}
                     <motion.line
                         x1={D.x} y1={D.y} x2={A_FOOT.x} y2={A_FOOT.y}
-                        stroke={segmentsHighlighted ? SEGMENT_COLOR : 'transparent'}
+                        stroke={SEGMENT_COLOR}
                         strokeWidth={8}
                         strokeLinecap="round"
-                        animate={{ opacity: segmentsHighlighted ? 1 : 0 }}
-                        transition={{ duration: 0.5 }}
+                        initial={{ pathLength: 0, opacity: 0 }}
+                        animate={{ pathLength: segmentsHighlighted ? 1 : 0, opacity: segmentsHighlighted ? 1 : 0 }}
+                        transition={{ duration: 0.6, ease: 'easeInOut' }}
                     />
                     <motion.line
                         x1={B_FOOT.x} y1={B_FOOT.y} x2={C.x} y2={C.y}
-                        stroke={segmentsHighlighted ? SEGMENT_COLOR : 'transparent'}
+                        stroke={SEGMENT_COLOR}
                         strokeWidth={8}
                         strokeLinecap="round"
-                        animate={{ opacity: segmentsHighlighted ? 1 : 0 }}
-                        transition={{ duration: 0.5 }}
+                        initial={{ pathLength: 0, opacity: 0 }}
+                        animate={{ pathLength: segmentsHighlighted ? 1 : 0, opacity: segmentsHighlighted ? 1 : 0 }}
+                        transition={{ duration: 0.6, ease: 'easeInOut', delay: 0.15 }}
                     />
 
                     {/* "?" + стрелки у отрезков основания, пока их длина ещё
