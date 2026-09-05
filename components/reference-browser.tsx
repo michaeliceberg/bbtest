@@ -17,7 +17,7 @@
 
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import Latex from 'react-latex-next'
 import 'katex/dist/katex.min.css'
 import { Image as ImageIcon, Search, Dumbbell } from 'lucide-react'
@@ -188,6 +188,23 @@ export const ReferenceBrowser = ({ entries, userProgress }: { entries: Reference
         })
     }, [entries, activeTopic, query])
 
+    // Группировка по теме для заголовков-разделителей в самой ленте (не
+    // только в панели фильтров) — по прямой просьбе пользователя: "выше
+    // всех формул по Динамике" пишем название темы и кнопку в тренажёр,
+    // и то же самое повторяется при скролле к следующей теме. entries уже
+    // приходят с сервера сгруппированными по теме (см. порядок вставки в
+    // scripts/seedPhysicsReference.ts), поэтому достаточно собрать группы
+    // в порядке первого появления темы, не сортируя заново.
+    const grouped = useMemo(() => {
+        const map = new Map<string, ReferenceEntryData[]>()
+        for (const e of filtered) {
+            const list = map.get(e.topic)
+            if (list) list.push(e)
+            else map.set(e.topic, [e])
+        }
+        return Array.from(map.entries())
+    }, [filtered])
+
     const filtersProps = { topics, activeTopic, setActiveTopic, query, setQuery, resultCount: filtered.length }
 
     return (
@@ -217,51 +234,72 @@ export const ReferenceBrowser = ({ entries, userProgress }: { entries: Reference
                 {filtered.length === 0 ? (
                     <div className="text-center py-16 text-[#5A6A72]">Ничего не найдено</div>
                 ) : (
-                    <div className="grid grid-cols-1 gap-3">
-                        {filtered.map((e) => {
-                            const accent = TOPIC_ACCENT[e.topic] ?? DEFAULT_ACCENT
-                            const unitName = e.unit ? UNIT_NAMES[e.unit] : null
+                    <div className="flex flex-col gap-6">
+                        {grouped.map(([topic, items]) => {
+                            const accent = TOPIC_ACCENT[topic] ?? DEFAULT_ACCENT
                             return (
-                                <div key={e.id} className="rounded-xl border-2 overflow-hidden bg-[#161F23]" style={{ borderColor: `${accent}55` }}>
-                                    {/* Шапка — контекст (тема/название/картинка/единица),
-                                        специально сдержанная по размеру, чтобы не спорить
-                                        с формулой ниже за внимание. */}
-                                    <div className="flex items-center gap-3 px-4 pt-3 pb-2">
-                                        {/* Зарезервированное место под иллюстрацию к ЭТОЙ
-                                            конкретной формуле — по одной картинке на
-                                            карточку. imageSrc пока не заполнен ни у одной
-                                            записи (см. scripts/seedPhysicsReference.ts) —
-                                            показываем placeholder-иконку. */}
-                                        <div className="flex-shrink-0 w-11 h-11 rounded-lg bg-[#1A252B] border border-[#2A363D] flex items-center justify-center overflow-hidden">
-                                            {e.imageSrc ? (
-                                                // eslint-disable-next-line @next/next/no-img-element
-                                                <img src={e.imageSrc} alt="" className="w-full h-full object-contain" />
-                                            ) : (
-                                                <ImageIcon className="w-4 h-4 text-[#3A464E]" />
-                                            )}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: accent }}>
-                                                {e.topic}
-                                            </div>
-                                            <div className="text-sm text-[#F2F7FB] font-semibold truncate">{e.label}</div>
-                                        </div>
-                                        {e.unit && (
-                                            <div className="text-xs text-[#9AA7B0] text-right flex-shrink-0">
-                                                <span className="font-semibold text-[#7dd3fc]">[{e.unit}]</span>
-                                                {unitName && <div>{unitName}</div>}
-                                            </div>
-                                        )}
+                                <div key={topic}>
+                                    {/* Заголовок темы + кнопка в тренажёр — появляется
+                                        заново над каждой группой формул при скролле
+                                        (не только один раз в панели фильтров), по прямой
+                                        просьбе пользователя. */}
+                                    <div className="flex items-center justify-between gap-3 mb-3">
+                                        <h2 className="text-lg font-bold" style={{ color: accent }}>{topic}</h2>
+                                        <Link
+                                            href={`/trainer?topic=${encodeURIComponent(topic)}`}
+                                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold text-sm border-2 border-b-4 active:border-b-2 transition-colors bg-[#A1D151] border-[#78C93C] text-[#151F24] flex-shrink-0"
+                                        >
+                                            <Dumbbell className="w-4 h-4" />
+                                            Го тренить
+                                        </Link>
                                     </div>
 
-                                    {/* Сама формула — главный акцент карточки: отдельная
-                                        подсвеченная (в цвет темы) панель, крупный шрифт,
-                                        по центру — по прямой просьбе пользователя ("чтобы
-                                        сразу было видно формулу, бросалась в глаза"). */}
-                                    <div className="px-4 py-4 overflow-x-auto" style={{ backgroundColor: `${accent}14` }}>
-                                        <div className="text-2xl md:text-3xl font-bold text-[#F2F7FB] text-center whitespace-nowrap">
-                                            <Latex>{`$${e.symbol} = ${e.formula}$`}</Latex>
-                                        </div>
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {items.map((e) => {
+                                            const unitName = e.unit ? UNIT_NAMES[e.unit] : null
+                                            return (
+                                                <div key={e.id} className="rounded-xl border-2 overflow-hidden bg-[#161F23]" style={{ borderColor: `${accent}55` }}>
+                                                    {/* Шапка — контекст (название/картинка/единица),
+                                                        специально сдержанная по размеру, чтобы не
+                                                        спорить с формулой ниже за внимание. Тема здесь
+                                                        больше не дублируется — она уже над всей группой. */}
+                                                    <div className="flex items-center gap-3 px-4 pt-3 pb-2">
+                                                        {/* Зарезервированное место под иллюстрацию к ЭТОЙ
+                                                            конкретной формуле — по одной картинке на
+                                                            карточку. imageSrc пока не заполнен ни у одной
+                                                            записи (см. scripts/seedPhysicsReference.ts) —
+                                                            показываем placeholder-иконку. */}
+                                                        <div className="flex-shrink-0 w-11 h-11 rounded-lg bg-[#1A252B] border border-[#2A363D] flex items-center justify-center overflow-hidden">
+                                                            {e.imageSrc ? (
+                                                                // eslint-disable-next-line @next/next/no-img-element
+                                                                <img src={e.imageSrc} alt="" className="w-full h-full object-contain" />
+                                                            ) : (
+                                                                <ImageIcon className="w-4 h-4 text-[#3A464E]" />
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="text-sm text-[#F2F7FB] font-semibold truncate">{e.label}</div>
+                                                        </div>
+                                                        {e.unit && (
+                                                            <div className="text-xs text-[#9AA7B0] text-right flex-shrink-0">
+                                                                <span className="font-semibold text-[#7dd3fc]">[{e.unit}]</span>
+                                                                {unitName && <div>{unitName}</div>}
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Сама формула — главный акцент карточки: отдельная
+                                                        подсвеченная (в цвет темы) панель, крупный шрифт,
+                                                        по центру — по прямой просьбе пользователя ("чтобы
+                                                        сразу было видно формулу, бросалась в глаза"). */}
+                                                    <div className="px-4 py-4 overflow-x-auto" style={{ backgroundColor: `${accent}14` }}>
+                                                        <div className="text-2xl md:text-3xl font-bold text-[#F2F7FB] text-center whitespace-nowrap">
+                                                            <Latex>{`$${e.symbol} = ${e.formula}$`}</Latex>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
                                     </div>
                                 </div>
                             )
