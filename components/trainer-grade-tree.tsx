@@ -14,7 +14,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Egg, Shield, Sword, Crown, Gift } from 'lucide-react';
+import { Egg, Shield, Sword, Crown, Gift, Library } from 'lucide-react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { TrainerStageLink } from './trainer-stage-link';
 
 const STAGE_ICONS = [Egg, Shield, Sword, Crown];
@@ -138,6 +140,29 @@ export const TrainerGradeTree = ({ topics }: Props) => {
     const targetStageRef = React.useRef<HTMLDivElement | null>(null);
     const scrollStartedRef = React.useRef(false);
 
+    // Переход из /reference?topic=... — скроллим к нужной теме и на
+    // секунду подсвечиваем её карточку рамкой, чтобы было видно, куда
+    // именно приехали (тем на странице может быть много). Сопоставление
+    // по НАЗВАНИЮ темы (topic.title), не по id — со стороны справочника
+    // это единственное общее поле (reference_entries.topic — просто
+    // текст, id темы трейнера справочнику не известен).
+    const searchParams = useSearchParams();
+    const topicParam = searchParams.get('topic');
+    const topicRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+    const [highlightedTopic, setHighlightedTopic] = useState<string | null>(null);
+    const topicScrollStartedRef = React.useRef(false);
+
+    useEffect(() => {
+        if (!topicParam || topicScrollStartedRef.current) return;
+        const node = topicRefs.current[topicParam];
+        if (!node) return;
+        topicScrollStartedRef.current = true;
+        node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setHighlightedTopic(topicParam);
+        const t = setTimeout(() => setHighlightedTopic(null), 2200);
+        return () => clearTimeout(t);
+    }, [topicParam, topics]);
+
     useEffect(() => {
         if (startedRef.current) return;
         let raw: string | null = null;
@@ -180,10 +205,25 @@ export const TrainerGradeTree = ({ topics }: Props) => {
         <div className="w-full max-w-xl mx-auto">
             <div className="flex flex-col gap-2.5">
                 {topics.map((topic) => (
-                    <div key={topic.id} className="bg-[#1A252B] rounded-2xl px-4 py-3">
-                        <div className="flex items-center justify-between mb-2.5">
-                            <span className="text-sm font-medium text-[#F2F7FB]">{topic.title}</span>
-                            <span className="text-xs text-[#9AA7B0]">{topic.percentage}%</span>
+                    <div
+                        key={topic.id}
+                        ref={(el) => { topicRefs.current[topic.title] = el; }}
+                        className="bg-[#1A252B] rounded-2xl px-4 py-3 transition-shadow duration-300"
+                        style={highlightedTopic === topic.title ? { boxShadow: '0 0 0 2px #4A90D9' } : undefined}
+                    >
+                        <div className="flex items-center justify-between mb-2.5 gap-2">
+                            <span className="text-sm font-medium text-[#F2F7FB] truncate">{topic.title}</span>
+                            <div className="flex items-center gap-2.5 flex-shrink-0">
+                                <Link
+                                    href={`/reference?topic=${encodeURIComponent(topic.title)}`}
+                                    className="flex items-center gap-1 text-[11px] font-semibold text-[#9AA7B0] hover:text-[#F2F7FB] transition-colors"
+                                    title={`Справочник формул — ${topic.title}`}
+                                >
+                                    <Library className="w-3 h-3" />
+                                    Справочник
+                                </Link>
+                                <span className="text-xs text-[#9AA7B0]">{topic.percentage}%</span>
+                            </div>
                         </div>
 
                         {topic.stages.length > 0 && (

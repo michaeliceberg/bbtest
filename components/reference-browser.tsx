@@ -17,10 +17,12 @@
 
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Latex from 'react-latex-next'
 import 'katex/dist/katex.min.css'
-import { Image as ImageIcon, Search } from 'lucide-react'
+import { Image as ImageIcon, Search, Dumbbell } from 'lucide-react'
+import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { StickyWrapper } from './sticky-wrapper'
 import { FeedWrapper } from './feed-wrapper'
@@ -140,12 +142,35 @@ const FiltersPanel = ({ topics, activeTopic, setActiveTopic, query, setQuery, re
         <div className="text-xs text-[#5A6A72]">
             {resultCount} {resultCount === 1 ? 'формула' : 'формул'}
         </div>
+
+        {/* Ссылка обратно в тренажёр на конкретную тему — по прямой
+            просьбе пользователя (пара к "Справочник" в trainer-grade-tree.tsx).
+            Показывается только когда выбрана конкретная тема (не "Все темы"),
+            иначе непонятно, на какую тему тренажёра вести. */}
+        {activeTopic !== 'all' && (
+            <Link
+                href={`/trainer?topic=${encodeURIComponent(activeTopic)}`}
+                className="flex items-center justify-center gap-1.5 rounded-lg border-2 border-[#3A464E] bg-[#1A252B] px-3 py-2 text-xs font-semibold text-[#9AA7B0] hover:text-[#F2F7FB] hover:border-[#4A90D9] transition-colors"
+            >
+                <Dumbbell className="w-3.5 h-3.5" />
+                Потренировать «{activeTopic}»
+            </Link>
+        )}
     </div>
 )
 
 export const ReferenceBrowser = ({ entries, userProgress }: { entries: ReferenceEntryData[]; userProgress: UserProgressData }) => {
     const topics = useMemo(() => Array.from(new Set(entries.map((e) => e.topic))), [entries])
-    const [activeTopic, setActiveTopic] = useState<string>('all')
+    // Переход из /trainer?... → /reference?topic=Тема (ссылка "Справочник"
+    // у карточки темы в trainer-grade-tree.tsx) — сразу открывает нужную
+    // тему, а не общий "Все темы". Инициализация из URL один раз при
+    // монтировании (не useEffect) — иначе фильтр на долю секунды мигнул
+    // бы "все темы" перед тем, как переключиться.
+    const searchParams = useSearchParams()
+    const topicParam = searchParams.get('topic')
+    const [activeTopic, setActiveTopic] = useState<string>(() =>
+        topicParam && entries.some((e) => e.topic === topicParam) ? topicParam : 'all'
+    )
     const [query, setQuery] = useState('')
 
     const filtered = useMemo(() => {
