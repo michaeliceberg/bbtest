@@ -245,9 +245,17 @@ export const ReferenceBrowser = ({ entries, userProgress }: { entries: Reference
                                         просьбе пользователя. */}
                                     <div className="flex items-center justify-between gap-3 mb-3">
                                         <h2 className="text-lg font-bold" style={{ color: accent }}>{topic}</h2>
+                                        {/* "Нажимная" тень — через box-shadow, а не
+                                            border-b-4/active:border-b-2 (тот приём
+                                            меняет реальную высоту блока при нажатии,
+                                            из-за чего вся страница ниже кнопки на
+                                            мгновение сдвигается на 1-2px — box-shadow
+                                            не участвует в layout, сдвига нет). Цвет
+                                            тени темнее фона кнопки (#78C93C был слишком
+                                            близок по яркости к #A1D151 и терялся). */}
                                         <Link
                                             href={`/trainer?topic=${encodeURIComponent(topic)}`}
-                                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold text-sm border-2 border-b-4 active:border-b-2 transition-colors bg-[#A1D151] border-[#78C93C] text-[#151F24] flex-shrink-0"
+                                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold text-sm border-2 bg-[#A1D151] border-[#78C93C] text-[#151F24] flex-shrink-0 transition-[transform,box-shadow] shadow-[0_4px_0_0_#4D7A1E] active:shadow-[0_2px_0_0_#4D7A1E] active:translate-y-0.5"
                                         >
                                             <Dumbbell className="w-4 h-4" />
                                             Го тренить
