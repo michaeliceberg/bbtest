@@ -70,7 +70,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
   const navItems = [
     { label: 'Задачник', href: '/learn', icon: Home },
     { label: 'Тренажёр', href: '/trainer', icon: Dumbbell, badge: hasTrainerQuest },
-    { label: 'Книга знаний', href: '/reference', icon: Library },
+    { label: 'Справочник', href: '/reference', icon: Library },
     { label: 'Магазин', href: '/shop', icon: ShoppingBag },
     { label: 'Достижения', href: '/achievements', icon: Award },
     { label: 'Лидеры', href: '/leaderboard', icon: Trophy },

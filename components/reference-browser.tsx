@@ -144,7 +144,7 @@ const FiltersPanel = ({ topics, activeTopic, setActiveTopic, query, setQuery, re
         </div>
 
         {/* Ссылка обратно в тренажёр на конкретную тему — по прямой
-            просьбе пользователя (пара к "Книга знаний" в trainer-grade-tree.tsx).
+            просьбе пользователя (пара к ссылке-иконке в trainer-grade-tree.tsx).
             Показывается только когда выбрана конкретная тема (не "Все темы"),
             иначе непонятно, на какую тему тренажёра вести. */}
         {activeTopic !== 'all' && (
@@ -223,7 +223,7 @@ export const ReferenceBrowser = ({ entries, userProgress }: { entries: Reference
 
             <FeedWrapper>
                 <div className="mb-6">
-                    <h1 className="text-3xl font-bold">📖 Книга знаний</h1>
+                    <h1 className="text-3xl font-bold">📖 Справочник</h1>
                     <p className="text-[#9AA7B0] mt-1">
                         Все формулы и единицы измерения по физике — открой и повтори любую тему.
                     </p>
@@ -251,16 +251,15 @@ export const ReferenceBrowser = ({ entries, userProgress }: { entries: Reference
                                             из-за чего вся страница ниже кнопки на
                                             мгновение сдвигается на 1-2px — box-shadow
                                             не участвует в layout, сдвига нет).
-                                            Красноватый — по прямой просьбе пользователя
-                                            (парная кнопка "Книга знаний" в
-                                            trainer-grade-tree.tsx — бирюзовая, чтобы
-                                            две кнопки визуально не путались). */}
+                                            Красноватый, только иконка (без текста) —
+                                            по прямой просьбе пользователя. */}
                                         <Link
                                             href={`/trainer?topic=${encodeURIComponent(topic)}`}
-                                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold text-sm border-2 bg-[#F87171] border-[#EF4444] text-[#151F24] flex-shrink-0 transition-[transform,box-shadow] shadow-[0_4px_0_0_#991B1B] active:shadow-[0_2px_0_0_#991B1B] active:translate-y-0.5"
+                                            className="flex items-center justify-center p-2.5 rounded-xl border-2 bg-[#F87171] border-[#EF4444] text-[#151F24] flex-shrink-0 transition-[transform,box-shadow] shadow-[0_4px_0_0_#991B1B] active:shadow-[0_2px_0_0_#991B1B] active:translate-y-0.5"
+                                            title={`Потренировать «${topic}»`}
+                                            aria-label={`Потренировать «${topic}»`}
                                         >
                                             <Dumbbell className="w-4 h-4" />
-                                            Го тренить
                                         </Link>
                                     </div>
 
