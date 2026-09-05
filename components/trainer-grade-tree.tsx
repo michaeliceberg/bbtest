@@ -212,18 +212,18 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                         style={highlightedTopic === topic.title ? { boxShadow: '0 0 0 2px #4A90D9' } : undefined}
                     >
                         <div className="flex items-center justify-between mb-2.5 gap-2">
-                            <span className="text-sm font-medium text-[#F2F7FB] truncate">{topic.title}</span>
-                            <div className="flex items-center gap-2.5 flex-shrink-0">
-                                <Link
-                                    href={`/reference?topic=${encodeURIComponent(topic.title)}`}
-                                    className="flex items-center gap-1 text-[11px] font-semibold text-[#9AA7B0] hover:text-[#F2F7FB] transition-colors"
-                                    title={`Справочник формул — ${topic.title}`}
-                                >
-                                    <Library className="w-3 h-3" />
-                                    Справочник
-                                </Link>
-                                <span className="text-xs text-[#9AA7B0]">{topic.percentage}%</span>
+                            <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-sm font-medium text-[#F2F7FB] truncate">{topic.title}</span>
+                                <span className="text-xs text-[#9AA7B0] flex-shrink-0">{topic.percentage}%</span>
                             </div>
+                            <Link
+                                href={`/reference?topic=${encodeURIComponent(topic.title)}`}
+                                className="flex items-center gap-1 text-[11px] font-semibold text-[#9AA7B0] hover:text-[#F2F7FB] transition-colors flex-shrink-0"
+                                title={`Книга знаний — ${topic.title}`}
+                            >
+                                <Library className="w-3 h-3" />
+                                Книга знаний
+                            </Link>
                         </div>
 
                         {topic.stages.length > 0 && (

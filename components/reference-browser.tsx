@@ -144,7 +144,7 @@ const FiltersPanel = ({ topics, activeTopic, setActiveTopic, query, setQuery, re
         </div>
 
         {/* Ссылка обратно в тренажёр на конкретную тему — по прямой
-            просьбе пользователя (пара к "Справочник" в trainer-grade-tree.tsx).
+            просьбе пользователя (пара к "Книга знаний" в trainer-grade-tree.tsx).
             Показывается только когда выбрана конкретная тема (не "Все темы"),
             иначе непонятно, на какую тему тренажёра вести. */}
         {activeTopic !== 'all' && (
@@ -206,7 +206,7 @@ export const ReferenceBrowser = ({ entries, userProgress }: { entries: Reference
 
             <FeedWrapper>
                 <div className="mb-6">
-                    <h1 className="text-3xl font-bold">📖 Справочник</h1>
+                    <h1 className="text-3xl font-bold">📖 Книга знаний</h1>
                     <p className="text-[#9AA7B0] mt-1">
                         Все формулы и единицы измерения по физике — открой и повтори любую тему.
                     </p>
