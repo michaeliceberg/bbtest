@@ -250,12 +250,14 @@ export const ReferenceBrowser = ({ entries, userProgress }: { entries: Reference
                                             меняет реальную высоту блока при нажатии,
                                             из-за чего вся страница ниже кнопки на
                                             мгновение сдвигается на 1-2px — box-shadow
-                                            не участвует в layout, сдвига нет). Цвет
-                                            тени темнее фона кнопки (#78C93C был слишком
-                                            близок по яркости к #A1D151 и терялся). */}
+                                            не участвует в layout, сдвига нет).
+                                            Красноватый — по прямой просьбе пользователя
+                                            (парная кнопка "Книга знаний" в
+                                            trainer-grade-tree.tsx — бирюзовая, чтобы
+                                            две кнопки визуально не путались). */}
                                         <Link
                                             href={`/trainer?topic=${encodeURIComponent(topic)}`}
-                                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold text-sm border-2 bg-[#A1D151] border-[#78C93C] text-[#151F24] flex-shrink-0 transition-[transform,box-shadow] shadow-[0_4px_0_0_#4D7A1E] active:shadow-[0_2px_0_0_#4D7A1E] active:translate-y-0.5"
+                                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold text-sm border-2 bg-[#F87171] border-[#EF4444] text-[#151F24] flex-shrink-0 transition-[transform,box-shadow] shadow-[0_4px_0_0_#991B1B] active:shadow-[0_2px_0_0_#991B1B] active:translate-y-0.5"
                                         >
                                             <Dumbbell className="w-4 h-4" />
                                             Го тренить

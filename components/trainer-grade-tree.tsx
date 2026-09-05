@@ -216,12 +216,19 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                 <span className="text-sm font-medium text-[#F2F7FB] truncate">{topic.title}</span>
                                 <span className="text-xs text-[#9AA7B0] flex-shrink-0">{topic.percentage}%</span>
                             </div>
+                            {/* Тот же "нажимной" приём, что и у кнопки "Го тренить"
+                                в reference-browser.tsx — box-shadow вместо
+                                border-b-4/active:border-b-2, чтобы нажатие не
+                                двигало окружающий контент (border-b-4 реально меняет
+                                высоту блока). Бирюзовый — по прямой просьбе
+                                пользователя, чтобы визуально отличаться от красноватой
+                                кнопки тренировки в самой книге знаний. */}
                             <Link
                                 href={`/reference?topic=${encodeURIComponent(topic.title)}`}
-                                className="flex items-center gap-1 text-[11px] font-semibold text-[#9AA7B0] hover:text-[#F2F7FB] transition-colors flex-shrink-0"
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs border-2 bg-[#2DD4BF] border-[#14B8A6] text-[#0B2B28] flex-shrink-0 transition-[transform,box-shadow] shadow-[0_3px_0_0_#115E59] active:shadow-[0_1px_0_0_#115E59] active:translate-y-0.5"
                                 title={`Книга знаний — ${topic.title}`}
                             >
-                                <Library className="w-3 h-3" />
+                                <Library className="w-3.5 h-3.5" />
                                 Книга знаний
                             </Link>
                         </div>
