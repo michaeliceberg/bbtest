@@ -206,6 +206,29 @@ const LearnPage = async () => {
     }
   }
 
+  // Честный процент раздела для CourseProgressStrip — доля РЕШЁННЫХ
+  // ЗАДАЧ во всём unit, а не доля "открытых" (unlocked) уроков. unit.percent
+  // из getCourseUnitsWithProgress — это lessonsWithNextUnlocked/totalLessons,
+  // а урок засчитывается открытым уже после нескольких решённых задач
+  // (не всех) — на юните из уроков по 20-30 задач это давало обманчиво
+  // высокий процент ("Векторы 50%" при реально решённых 4 задачах из
+  // многих). Пользователь поймал это живьём.
+  const completedChallengeIds = new Set(
+    (challengeProgress ?? []).filter((cp) => cp.completed).map((cp) => cp.challengeId)
+  );
+  const unitChallengeStats = new Map<number, { total: number; completed: number }>();
+  for (const unit of unitsWithProgress) {
+    let total = 0;
+    let completed = 0;
+    for (const lesson of unit.lessons || []) {
+      for (const ch of lesson.challenges || []) {
+        total++;
+        if (completedChallengeIds.has(ch.id)) completed++;
+      }
+    }
+    unitChallengeStats.set(unit.id, { total, completed });
+  }
+
   const unitsWithFormattedLessons = unitsWithProgress.map(unit => ({
     ...unit,
     lessons: unit.lessons?.map(lesson => ({
@@ -370,19 +393,19 @@ const LearnPage = async () => {
             </div>
 
             <CourseProgressStrip
-              units={unitsWithFormattedLessons.map((unit) => ({
-                id: unit.id,
-                title: unit.title,
-                order: unit.order,
-                // unit.percent из getCourseUnitsWithProgress — доля 0..1
-                // (lessonsWithNextUnlocked/totalLessons), не 0..100 — в
-                // отличие от одноимённого поля на /progress (там честный
-                // 0..100, посчитанный вручную по challengeProgress).
-                percent: unit.percent * 100,
-                isUnlocked: unit.isUnlocked,
-                isCompleted: unit.isCompleted,
-                firstLessonId: unit.lessons?.[0]?.id ?? null,
-              }))}
+              units={unitsWithFormattedLessons.map((unit) => {
+                const stats = unitChallengeStats.get(unit.id);
+                const percent = stats && stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+                return {
+                  id: unit.id,
+                  title: unit.title,
+                  order: unit.order,
+                  percent,
+                  isUnlocked: unit.isUnlocked,
+                  isCompleted: unit.isCompleted,
+                  firstLessonId: unit.lessons?.[0]?.id ?? null,
+                };
+              })}
             />
 
             {unitsWithFormattedLessons.map((unit, index) => (
