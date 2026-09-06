@@ -332,6 +332,21 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     const pickPreferringKind = <T extends { t_challengeOptions: { text: string }[] }>(genrePool: T[], kindPool: T[], count: number): T[] =>
         getRandomElements(kindPool.length > 0 ? kindPool : genrePool, count);
 
+    // Число обманок для ASSIST/PICMATCH растёт вместе с этапом ТЕМЫ
+    // (t_lesson.order — этот урок и есть этап, см. "t_unit = тема,
+    // t_lesson = этап" в CLAUDE.md), а не фиксировано на 5 (6 вариантов
+    // всего) для любого урока. Прямая просьба пользователя: "если в
+    // первых уроках предлагаешь по 5 вариантов ответа — ученик
+    // запутается, надо учиться интуитивно на простых вопросах" — общее
+    // правило для ВСЕХ тем тренажёра (Электростатика была лишь примером),
+    // не точечная правка одного урока. Первый этап темы — всего 2
+    // обманки (3 варианта), второй — 3 обманки (4 варианта), дальше —
+    // прежние 5 (6 вариантов), уже проверенные на реальном контенте.
+    // Другие рендер-стили (SWIPE/SCROLL/CONNECT) и так предлагают мало
+    // вариантов (2-3) и не были той жалобой, которую озвучил пользователь
+    // — не трогаем, чтобы не сузить пул обманок там, где он и так мал.
+    const distractorCount = t_lesson.order <= 1 ? 2 : t_lesson.order === 2 ? 3 : 5;
+
     // Реверс-вопрос "Что измеряется в $X$?" содержит X буквально в
     // тексте своего же вопроса — X (сама единица) не должна быть среди
     // вариантов ОТВЕТА на этот вопрос ("чем измеряется джоуль?" →
@@ -375,7 +390,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
         ));
         const other5QuestionsKind = other5QuestionsGenre.filter((el) => sameAnswerKind(t_challenge.question, el.question));
-        const fiveQuestions = pickPreferringKind(other5QuestionsGenre, other5QuestionsKind, 5);
+        const fiveQuestions = pickPreferringKind(other5QuestionsGenre, other5QuestionsKind, distractorCount);
         const fiveWrongOptions = fiveQuestions.map(el => el.t_challengeOptions[0]?.text || '');
         const fiveWrongOptionsPlusRight = [...fiveWrongOptions, t_challenge.t_challengeOptions[0]?.text || ''];
 
@@ -779,7 +794,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                     && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
                 ));
                 const otherQuestionsPicKind = otherQuestionsPicGenre.filter((el) => sameAnswerKind(t_challenge.question, el.question));
-                const fiveQuestionsPic = pickPreferringKind(otherQuestionsPicGenre, otherQuestionsPicKind, 5);
+                const fiveQuestionsPic = pickPreferringKind(otherQuestionsPicGenre, otherQuestionsPicKind, distractorCount);
                 const fiveWrongOptionsPic = fiveQuestionsPic.map(el => el.t_challengeOptions[0]?.text || '');
 
                 return {
