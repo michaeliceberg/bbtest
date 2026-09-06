@@ -150,7 +150,6 @@ export default function TQuiz({
   const [randomStartLottie, setRandomStartLottie] = useState(LOTTIE_START_LIST[0])
   const [randomStartButton, setRandomStartButton] = useState(startButton[0])
   const [randomEmotionLottie, setRandomEmotionLottie] = useState(LOTTIE_EMOTION_RIGHT_LIST[0])
-  const [threeHearts, setThreeHearts] = useState(3)
   const [quizStarted, setQuizStarted] = useState(true)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [score, setScore] = useState(0)
@@ -267,17 +266,6 @@ export default function TQuiz({
     setRandomEmotionLottie(getRandomLottie(LOTTIE_EMOTION_RIGHT_LIST))
   }, [currentQuestionIndex])
 
-  useEffect(() => {
-    if (threeHearts == 0 && !quizCompleted) {
-      setQuizCompleted(true)
-      upsertTrainerLessonProgress(t_lessonId, 0, 0, score, scorableCount(questions) - score, stage)
-        .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
-        .finally(() => {
-          updateQuestProgress()
-        })
-    }
-  }, [threeHearts, t_lessonId, questions.length, score, quizCompleted, updateQuestProgress])
-
   const startQuiz = useCallback(() => {
     setQuizStarted(true)
     setCurrentQuestionIndex(0)
@@ -289,7 +277,6 @@ export default function TQuiz({
     setQuestRewardsData(null)
     maxStreakRef.current = 0
     setAnsweredQuestions(0)
-    setThreeHearts(3)
     setStreak(0)
     // allQuestions мог остаться на "работе над ошибками" (укороченный
     // набор только неверных вопросов) — рестарт должен идти с ПОЛНОГО
@@ -523,13 +510,8 @@ export default function TQuiz({
         // раунда, а не потеряется).
         mistakeQueueRef.current = [...mistakeQueueRef.current, questions[currentQuestionIndex]]
 
-        // Сердечки и история (finishList) — только на основном проходе.
-        // В раунде повтора жизни специально не тратятся (иначе пришлось
-        // бы отдельно разбираться, что значит "закончились жизни во время
-        // работы над ошибками" — сама механика жизней тут не нужна,
-        // достаточно продолжать до чистого результата).
+        // История (finishList) — только на основном проходе.
         if (!isReviewRoundRef.current) {
-          setThreeHearts(prev => prev - 1)
           setFinishList(oldArray => [...oldArray, {
             question: questions[currentQuestionIndex].question,
             answer: answer,
@@ -552,20 +534,7 @@ export default function TQuiz({
 
         // Для ASSIST/INSERT не переходим автоматически - ждем клика на кнопку "понятно"
         if (!isSelectThenSubmitType) {
-          if (isReviewRoundRef.current || threeHearts > 1) {
-            await goToNextQuestion()
-          } else {
-            setQuizCompleted(true)
-          }
-        } else {
-          // Для ASSIST/INSERT - если жизней осталось 0, завершаем (не в
-          // раунде повтора — там жизни не тратятся и не проверяются).
-          if (!isReviewRoundRef.current && threeHearts <= 1) {
-            setQuizCompleted(true)
-            await upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score, stage)
-              .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
-            await updateQuestProgress()
-          }
+          await goToNextQuestion()
         }
       }
     } finally {
@@ -573,8 +542,7 @@ export default function TQuiz({
     }
   }, [
     isProcessing, quizCompleted, currentQuestionIndex, questions,
-    playCorrectSound, playIncorrectSound, sleep, goToNextQuestion, threeHearts,
-    score, t_lessonId, updateQuestProgress
+    playCorrectSound, playIncorrectSound, sleep, goToNextQuestion,
   ])
 
   const handleTimeout = useCallback(async () => {
@@ -593,12 +561,9 @@ export default function TQuiz({
       // "работы над ошибками" (см. handleAnswer выше).
       mistakeQueueRef.current = [...mistakeQueueRef.current, questions[currentQuestionIndex]]
 
-      // Жизни/finishList — только на основном проходе, не в раунде
-      // повтора (та же логика, что в handleAnswer).
-      let newHearts = threeHearts
+      // finishList — только на основном проходе, не в раунде повтора
+      // (та же логика, что в handleAnswer).
       if (!isReviewRoundRef.current) {
-        newHearts = threeHearts - 1
-        setThreeHearts(newHearts)
         setFinishList(prev => [...prev, {
           question: questions[currentQuestionIndex].question,
           answer: "Время вышло",
@@ -619,14 +584,6 @@ export default function TQuiz({
       setIsRightList(newArr)
       isRightListRef.current = newArr
 
-      if (!isReviewRoundRef.current && newHearts <= 0) {
-        setQuizCompleted(true)
-        await upsertTrainerLessonProgress(t_lessonId, 0, 0, score, questions.length - score, stage)
-          .catch(() => toast.error('Что-то пошло не так! Результат не добавлен в базу данных.'))
-        await updateQuestProgress()
-        return
-      }
-
       // Дальше — та же логика "конец раунда" (переход к следующему
       // вопросу / DB-запись / работа над ошибками / завершение), что и
       // после явного неверного ответа — см. goToNextQuestion.
@@ -636,7 +593,7 @@ export default function TQuiz({
     }
   }, [
     isProcessing, quizCompleted, currentQuestionIndex, questions,
-    playIncorrectSound, threeHearts, score, t_lessonId, updateQuestProgress, goToNextQuestion, isRightList
+    playIncorrectSound, goToNextQuestion, isRightList
   ])
 
   const handleFinishLesson = useCallback(() => {
@@ -823,8 +780,6 @@ export default function TQuiz({
             isRightPrevious={isRightPrevious}
             randomEmotionLottie={randomEmotionLottie}
             playCorrectSound={playCorrectSound}
-            setThreeHearts={setThreeHearts}
-            threeHearts={threeHearts}
             score={score}
             isBossStage={isBossStage}
             roundKey={roundNumber}

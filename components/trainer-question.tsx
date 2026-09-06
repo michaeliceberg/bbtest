@@ -2,7 +2,7 @@
 
 // components/trainer-question.tsx
 
-import { useState, useEffect, useRef, SetStateAction, Dispatch, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import dynamic from "next/dynamic"
 
 import 'katex/dist/katex.min.css';
@@ -40,7 +40,6 @@ import { X, Check, Flag } from "lucide-react"
 import { TrainerExitModal } from "@/components/modals/trainer-exit-modal"
 import { TrainerMascot } from "./TrainerMascot"
 import { TrainerBossBar } from "./trainer-boss-bar"
-import { AnimatedHearts } from "./AnimatedHearts"
 
 
 
@@ -58,11 +57,7 @@ interface QuestionProps {
   randomEmotionLottie: any
   playCorrectSound?: () => void
 
-  setThreeHearts: Dispatch<SetStateAction<number>>
-  threeHearts: number,
-
-  // HP-босс на финальном ("корона") этапе темы — чисто визуальный слой,
-  // не заменяет сердечки игрока (threeHearts) выше.
+  // HP-босс на финальном ("корона") этапе темы — чисто визуальный слой.
   score?: number,
   isBossStage?: boolean,
 
@@ -86,9 +81,6 @@ export default function TrainerQuestion({
   isRightPrevious,
   randomEmotionLottie,
   playCorrectSound,
-
-  setThreeHearts,
-  threeHearts,
 
   score = 0,
   isBossStage = false,
@@ -429,10 +421,9 @@ export default function TrainerQuestion({
   return (
     <div className="min-h-screen bg-[#151F24] text-[#F2F7FB] flex flex-col">
 
-      {/* Крестик, прогресс-бар и сердечки в одной строке (не анимируются).
-          Сердечки раньше рисовались отдельным блоком НИЖЕ всего вопроса
-          (в TQUIZ.tsx) — на телефоне это уводило их за пределы экрана,
-          требуя скролла. Здесь они всегда на виду, как и крестик выхода. */}
+      {/* Крестик и прогресс-бар (не анимируются). Сердечки убраны по
+          просьбе пользователя — механика жизней в тренажёре не нужна,
+          неверный ответ просто уходит в "работу над ошибками". */}
       <div className="px-4 py-3 flex items-center gap-3">
         {/* Крестик слева */}
         <button
@@ -451,11 +442,6 @@ export default function TrainerQuestion({
               backgroundColor: '#A1D151'
             }}
           />
-        </div>
-
-        {/* Сердечки справа, компактнее — только тут, вне скролящегося контента */}
-        <div className="shrink-0 [&_svg]:w-5 [&_svg]:h-5">
-          <AnimatedHearts hearts={threeHearts} />
         </div>
       </div>
 
