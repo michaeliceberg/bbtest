@@ -260,6 +260,25 @@ const RULES_BY_UNIT: Record<number, UnitRules> = {
 			{ pattern: bare('p'), sticker: 'photon' },
 		],
 	},
+
+	// ---------------- 10. Квантовая ----------------
+	10: {
+		formula: {},
+		name: {
+			'длина волны де Бройля': 'de-broglie',
+			'дефект массы': 'nucleus-binding',
+			'энергия связи ядра': 'nucleus-binding',
+		},
+		symbol: [
+			// Постулат Бора и закон распада — формулы-законы (как ЗСИ/ЗСЭ/
+			// МДК в других темах), не одна именованная величина.
+			{ pattern: /^2-й постулат Бора/, sticker: 'bohr-atom' },
+			{ pattern: /^Закон радиоактивного распада/, sticker: 'radioactive-decay' },
+			{ pattern: /\\triangle m/, sticker: 'nucleus-binding' },
+			{ pattern: /E_\{св\}/, sticker: 'nucleus-binding' },
+			{ pattern: /\\lambda/, sticker: 'de-broglie' },
+		],
+	},
 }
 
 type ChallengeLike = {

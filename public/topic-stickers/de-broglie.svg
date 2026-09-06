@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200">
+<style>
+text { font-family: Nunito, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #F2F7FB; }
+
+@keyframes move { 0%,100% { transform: translateX(-25px); } 50% { transform: translateX(25px); } }
+#p { animation: move 2s ease-in-out infinite; }
+
+</style>
+
+<path d="M 15 100 Q 30 80 45 100 T 75 100 T 105 100 T 135 100" fill="none" stroke="#C084FC" stroke-width="3" stroke-linecap="round"/>
+<g id="p">
+  <circle cx="80" cy="100" r="13" fill="#5AA9E6"/>
+  <circle cx="76" cy="96" r="4" fill="#fff" opacity=".4"/>
+</g>
+
+</svg>

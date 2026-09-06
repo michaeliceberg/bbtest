@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200">
+<style>
+text { font-family: Nunito, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #F2F7FB; }
+
+@keyframes jump { 0%,55%,100% { transform: rotate(0deg) translateX(0); } }
+@keyframes e1 { 0%,40% { transform: rotate(0deg); } 60%,100% { transform: rotate(0deg); } }
+@keyframes flash { 0%,45% { opacity: 0; transform: scale(.3); } 55% { opacity: 1; transform: scale(1); } 75%,100% { opacity: 0; transform: scale(1.6); } }
+@keyframes eOuter { 0%,45% { opacity: 1; } 55%,100% { opacity: 0; } }
+@keyframes eInner { 0%,45% { opacity: 0; } 55%,100% { opacity: 1; } }
+#orbitOuter { animation: e1 4s linear infinite; transform-origin: 80px 100px; }
+#orbitInner { animation: e1 4s linear infinite reverse; transform-origin: 80px 100px; }
+.eOuter { animation: eOuter 2.4s ease-in-out infinite; }
+.eInner { animation: eInner 2.4s ease-in-out infinite; }
+.flash { animation: flash 2.4s ease-in-out infinite; transform-origin: 80px 70px; }
+
+</style>
+
+<circle cx="80" cy="100" r="45" fill="none" stroke="#6B7680" stroke-width="2" stroke-dasharray="4 4"/>
+<circle cx="80" cy="100" r="25" fill="none" stroke="#6B7680" stroke-width="2" stroke-dasharray="4 4"/>
+<circle cx="80" cy="100" r="10" fill="#FF8C42"/>
+<g id="orbitOuter" class="eOuter">
+  <circle cx="80" cy="55" r="7" fill="#C084FC"/>
+</g>
+<g id="orbitInner" class="eInner">
+  <circle cx="80" cy="75" r="7" fill="#C084FC"/>
+</g>
+<g class="flash">
+  <path d="M 80 55 L 86 68 L 100 71 L 86 76 L 80 92 L 74 76 L 60 71 L 74 68 Z" fill="#FFE066"/>
+</g>
+
+</svg>
