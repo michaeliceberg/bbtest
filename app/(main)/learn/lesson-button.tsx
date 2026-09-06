@@ -306,8 +306,12 @@ export const LessonButton = ({
                                     className="h-10 w-10 object-contain"
                                 />
                             ) : topicGlyph ? (
+                                // normal-case — родительский Button рисует ВСЕХ детей
+                                // с text-transform:uppercase (components/ui/button.tsx,
+                                // общий базовый класс), которое иначе наследуется сюда
+                                // и превращает "log"/"aˣ" в "LOG"/"AˣA" визуально.
                                 <span
-                                    className="italic font-extrabold text-xl select-none"
+                                    className="normal-case font-extrabold text-xl select-none"
                                     style={{ color: locked ? LOCKED_ICON_COLOR : ACTIVE_ICON_COLOR }}
                                 >
                                     {topicGlyph}
