@@ -3,6 +3,8 @@
 import { motion, AnimatePresence } from "framer-motion"
 import dynamic from "next/dynamic"
 import { useEffect, useState, useRef } from "react"
+import Latex from 'react-latex-next'
+import 'katex/dist/katex.min.css'
 
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
 
@@ -20,6 +22,13 @@ interface TrainerMascotProps {
   message?: string
   isRightPrevious?: boolean | null
   showMessage?: boolean
+  // Текст самого задания ("Найди сторону:" и т.п.) — пока пользователь
+  // ещё не ответил (emotion === thinking/waiting), показываем ЕГО в
+  // облаке маскота вместо общей фразы-подбадривания ("думай...",
+  // "давай смелее") — экономит отдельную строку-заголовок над картинкой
+  // и делает облако полезным. На состояниях обратной связи после ответа
+  // (celebrating/sad и т.п.) по-прежнему живые случайные фразы.
+  taskMessage?: string
 }
 
 const emotionMessages = {
@@ -32,12 +41,13 @@ const emotionMessages = {
   neutral: ["Думай головой 🧠", "Верь в себя! 🌟", "Ты справишься! 💪"]
 }
 
-export const TrainerMascot = ({ 
-  emotion, 
+export const TrainerMascot = ({
+  emotion,
   lottieAnimations,
   message,
   isRightPrevious,
-  showMessage = true
+  showMessage = true,
+  taskMessage,
 }: TrainerMascotProps) => {
   const [currentMessage, setCurrentMessage] = useState("")
   const [isMessageVisible, setIsMessageVisible] = useState(false)
@@ -48,6 +58,16 @@ export const TrainerMascot = ({
   // на экране, пока её не сменит следующая.
   useEffect(() => {
     if (!showMessage) return
+
+    // Пока ответ ещё не дан (thinking сразу после загрузки вопроса,
+    // waiting пока пользователь выбирает) — облако показывает само
+    // задание, если оно передано, а не случайную фразу.
+    if ((emotion === "thinking" || emotion === "waiting") && taskMessage) {
+      previousEmotionRef.current = emotion
+      setCurrentMessage(taskMessage)
+      setIsMessageVisible(true)
+      return
+    }
 
     const isFirstMessage = !currentMessage
     if (previousEmotionRef.current !== emotion || isFirstMessage) {
@@ -60,7 +80,7 @@ export const TrainerMascot = ({
       setIsMessageVisible(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [emotion, message, showMessage])
+  }, [emotion, message, showMessage, taskMessage])
 
   const getLottieData = () => {
     if (isRightPrevious === true && lottieAnimations.right) return lottieAnimations.right
@@ -93,19 +113,21 @@ export const TrainerMascot = ({
         />
       </motion.div>
 
-      {/* Сообщение справа от талисмана */}
+      {/* Сообщение справа от талисмана — key только на текст (не на
+          emotion+текст), чтобы переход thinking→waiting с ОДНИМ и тем же
+          taskMessage не перезапускал анимацию появления зря */}
       <AnimatePresence mode="wait">
         {isMessageVisible && currentMessage && (
           <motion.div
-            key={currentMessage + emotion}
+            key={currentMessage}
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className="relative px-3 py-1.5 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]"
+            className="relative px-3 py-1.5 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E] max-w-[220px] sm:max-w-xs"
           >
-            <span className="text-[#F2F7FB] font-bold text-xs whitespace-nowrap">
-              {currentMessage}
+            <span className="text-[#F2F7FB] font-bold text-xs whitespace-normal break-words">
+              <Latex>{currentMessage}</Latex>
             </span>
             {/* Стрелка слева, указывающая влево < */}
             <div className="absolute -left-3 top-1/2 -translate-y-1/2 text-[#3A464E] text-xl font-bold">

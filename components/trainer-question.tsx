@@ -5,7 +5,6 @@
 import { useState, useEffect, useRef, SetStateAction, Dispatch, useCallback } from "react"
 import dynamic from "next/dynamic"
 
-import Latex from 'react-latex-next';
 import 'katex/dist/katex.min.css';
 
 import Image from "next/image"
@@ -207,20 +206,11 @@ export default function TrainerQuestion({
     // Сначала рендерим заголовок вопроса (если нужно)
 
     const renderQuestionHeader = () => {
-      // Для SWIPE типа не показываем заголовок вопроса, так как он уже внутри карточки.
-      // SPEED тоже сам рисует условие (крупное, цветное, сразу под своим
-      // таймером) — см. type-speed.tsx, дублировать тут не нужно.
-      if (question.questionType !== "WORKBOOK" &&
-          question.questionType !== "RUSSIANDICTANT" &&
-          question.questionType !== "SWIPE" &&
-          question.questionType !== "SPEED" &&
-          question.questionType !== "FRACTRICK") {
-          return (
-              <h2 className="text-xl font-semibold mt-4 text-[#C386F8]">
-                  <Latex>{question.question}</Latex>
-              </h2>
-          );
-      }
+      // Отдельный заголовок вопроса убран — тот же текст теперь живёт в
+      // облаке маскота (см. TrainerMascot.tsx, проп taskMessage), пока
+      // пользователь ещё не ответил. Раньше здесь дублировался
+      // question.question отдельным <h2> — две одинаковых строки подряд
+      // занимали лишнюю высоту карточки.
       return null;
     };
 
@@ -499,6 +489,15 @@ export default function TrainerQuestion({
               default: randomEmotionLottie
             }}
             isRightPrevious={isRightPrevious}
+            taskMessage={
+              question.questionType !== "WORKBOOK" &&
+              question.questionType !== "RUSSIANDICTANT" &&
+              question.questionType !== "SWIPE" &&
+              question.questionType !== "SPEED" &&
+              question.questionType !== "FRACTRICK"
+                ? question.question
+                : undefined
+            }
           />
         </div>
 
