@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 210" width="320" height="270">
+<rect x="0" y="0" width="250" height="210" fill="#151F23"/>
+<line x1="40.00" y1="40.00" x2="72.00" y2="80.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="72.00" y1="80.00" x2="205.00" y2="55.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="205.00" y1="55.00" x2="40.00" y2="40.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="40.00" y1="140.00" x2="72.00" y2="180.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="72.00" y1="180.00" x2="205.00" y2="155.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="205.00" y1="155.00" x2="40.00" y2="140.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9,5"/>
+<line x1="40.00" y1="40.00" x2="40.00" y2="140.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="72.00" y1="80.00" x2="72.00" y2="180.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="205.00" y1="55.00" x2="205.00" y2="155.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

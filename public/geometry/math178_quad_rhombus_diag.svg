@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 200" width="340" height="260">
+<rect x="0" y="0" width="260" height="200" fill="#151F23"/>
+<line x1="40.00" y1="155.00" x2="135.00" y2="155.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="135.00" y1="155.00" x2="135.00" y2="60.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="135.00" y1="60.00" x2="40.00" y2="60.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="40.00" y1="60.00" x2="40.00" y2="155.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="135.00" y1="155.00" x2="183.00" y2="109.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="183.00" y1="109.00" x2="183.00" y2="14.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="183.00" y1="14.00" x2="135.00" y2="60.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="40.00" y1="60.00" x2="88.00" y2="14.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="88.00" y1="14.00" x2="183.00" y2="14.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="40.00" y1="155.00" x2="88.00" y2="109.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9,5"/>
+<line x1="88.00" y1="109.00" x2="183.00" y2="109.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9,5"/>
+<line x1="88.00" y1="109.00" x2="88.00" y2="14.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9,5"/>
+<line x1="40.00" y1="155.00" x2="183.00" y2="109.00" stroke="#7dd3fc" stroke-width="2.40" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="88.00" y1="109.00" x2="135.00" y2="155.00" stroke="#7dd3fc" stroke-width="2.40" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

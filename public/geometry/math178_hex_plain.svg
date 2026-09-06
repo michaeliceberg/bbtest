@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 300" width="300" height="345">
+<rect x="0" y="0" width="260" height="300" fill="#151F23"/>
+<line x1="85.00" y1="125.00" x2="35.00" y2="90.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="35.00" y1="90.00" x2="95.00" y2="55.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="95.00" y1="55.00" x2="175.00" y2="55.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="175.00" y1="55.00" x2="220.00" y2="90.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="220.00" y1="90.00" x2="165.00" y2="125.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="165.00" y1="125.00" x2="85.00" y2="125.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="35.00" y1="240.00" x2="85.00" y2="275.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="85.00" y1="275.00" x2="165.00" y2="275.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="165.00" y1="275.00" x2="220.00" y2="240.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="220.00" y1="240.00" x2="175.00" y2="205.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9,5"/>
+<line x1="175.00" y1="205.00" x2="95.00" y2="205.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9,5"/>
+<line x1="95.00" y1="205.00" x2="35.00" y2="240.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9,5"/>
+<line x1="85.00" y1="125.00" x2="85.00" y2="275.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="165.00" y1="125.00" x2="165.00" y2="275.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="220.00" y1="90.00" x2="220.00" y2="240.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="35.00" y1="90.00" x2="35.00" y2="240.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="175.00" y1="55.00" x2="175.00" y2="205.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9,5"/>
+<line x1="95.00" y1="55.00" x2="95.00" y2="205.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9,5"/>
+</svg>
