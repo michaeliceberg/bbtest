@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200">
+<style>
+text { font-family: Nunito, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #F2F7FB; }
+
+@keyframes push { 0%,100% { transform: translateX(0); } 50% { transform: translateX(14px); } }
+#wire { animation: push 1.6s ease-in-out infinite; }
+
+</style>
+
+<circle cx="30" cy="35" r="2" fill="#C084FC"/><circle cx="30" cy="165" r="2" fill="#C084FC"/><circle cx="55" cy="35" r="2" fill="#C084FC"/><circle cx="55" cy="165" r="2" fill="#C084FC"/><circle cx="105" cy="35" r="2" fill="#C084FC"/><circle cx="105" cy="165" r="2" fill="#C084FC"/><circle cx="130" cy="35" r="2" fill="#C084FC"/><circle cx="130" cy="165" r="2" fill="#C084FC"/>
+<g id="wire">
+  <line x1="80" y1="25" x2="80" y2="175" stroke="#96A3AF" stroke-width="8" stroke-linecap="round"/>
+  <line x1="105" y1="100" x2="130" y2="100" stroke="#FF8C42" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 124 90 L 142 100 L 124 110 Z" fill="#FF8C42"/>
+</g>
+
+</svg>

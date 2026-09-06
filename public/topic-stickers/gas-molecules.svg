@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200">
+<style>
+text { font-family: Nunito, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #F2F7FB; }
+
+@keyframes m1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(14px,-10px); } }
+@keyframes m2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-12px,8px); } }
+@keyframes m3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(8px,12px); } }
+@keyframes m4 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-10px,-12px); } }
+.m1 { animation: m1 1.6s ease-in-out infinite; }
+.m2 { animation: m2 1.9s ease-in-out infinite; }
+.m3 { animation: m3 1.4s ease-in-out infinite; }
+.m4 { animation: m4 1.7s ease-in-out infinite; }
+
+</style>
+
+<rect x="25" y="35" width="110" height="110" rx="8" fill="none" stroke="#6B7680" stroke-width="4"/>
+<circle class="m1" cx="55" cy="65" r="8" fill="#FF8C42"/>
+<circle class="m2" cx="100" cy="60" r="8" fill="#7dd3fc"/>
+<circle class="m3" cx="60" cy="115" r="8" fill="#FFD400"/>
+<circle class="m4" cx="105" cy="115" r="8" fill="#FF8C42"/>
+<circle cx="80" cy="90" r="8" fill="#7dd3fc"/>
+
+</svg>

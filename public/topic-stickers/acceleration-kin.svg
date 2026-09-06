@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200">
+<style>
+text { font-family: Nunito, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #F2F7FB; }
+
+@keyframes grow { 0%,100% { transform: scaleX(1); } 50% { transform: scaleX(1.6); } }
+.v2 { animation: grow 1.8s ease-in-out infinite; transform-origin: 95px 130px; }
+
+</style>
+
+<circle cx="45" cy="130" r="14" fill="#96A3AF"/>
+<line x1="59" y1="130" x2="90" y2="130" stroke="#F2F7FB" stroke-width="4" stroke-linecap="round"/>
+<path d="M 84 122 L 96 130 L 84 138 Z" fill="#F2F7FB"/>
+<text x="70" y="115" font-size="13" text-anchor="middle">v₀</text>
+<g class="v2">
+  <line x1="59" y1="130" x2="90" y2="130" stroke="#FF8C42" stroke-width="4" stroke-linecap="round" transform="translate(0,60)"/>
+  <path d="M 84 182 L 96 190 L 84 198 Z" fill="#FF8C42" transform="translate(0,60)"/>
+</g>
+<circle cx="45" cy="190" r="14" fill="#96A3AF"/>
+<text x="120" y="185" font-size="13" text-anchor="middle" fill="#FF8C42">v</text>
+
+</svg>

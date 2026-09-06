@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200">
+<style>
+text { font-family: Nunito, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #F2F7FB; }
+
+@keyframes glow { 0%,100% { opacity: .4; transform: scale(.85); } 50% { opacity: 1; transform: scale(1.1); } }
+#spark { animation: glow 1.6s ease-in-out infinite; transform-origin: 80px 100px; }
+
+</style>
+
+<line x1="55" y1="60" x2="55" y2="140" stroke="#FF8C42" stroke-width="8" stroke-linecap="round"/>
+<line x1="105" y1="60" x2="105" y2="140" stroke="#5AA9E6" stroke-width="8" stroke-linecap="round"/>
+<g id="spark"><path d="M 80 84 L 86 98 L 100 100 L 86 104 L 80 120 L 74 104 L 60 100 L 74 98 Z" fill="#FFD400"/></g>
+
+</svg>

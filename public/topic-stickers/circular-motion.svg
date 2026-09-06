@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200">
+<style>
+text { font-family: Nunito, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #F2F7FB; }
+
+@keyframes orbit { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+#orbiter { animation: orbit 3s linear infinite; transform-origin: 80px 100px; }
+
+</style>
+
+<circle cx="80" cy="100" r="55" fill="none" stroke="#6B7680" stroke-width="2.5" stroke-dasharray="5 5"/>
+<circle cx="80" cy="100" r="4" fill="#F2F7FB"/>
+<g id="orbiter">
+  <circle cx="80" cy="45" r="14" fill="#96A3AF"/>
+  <line x1="80" y1="45" x2="80" y2="70" stroke="#FF8C42" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 72 64 L 80 78 L 88 64 Z" fill="#FF8C42"/>
+</g>
+
+</svg>

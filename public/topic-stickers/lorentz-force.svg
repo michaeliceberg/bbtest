@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200">
+<style>
+text { font-family: Nunito, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #F2F7FB; }
+
+@keyframes move { 0% { transform: translate(-40px,20px); } 100% { transform: translate(40px,-20px); } }
+#q { animation: move 1.8s ease-in-out infinite alternate; }
+
+</style>
+
+<circle cx="30" cy="40" r="2.2" fill="#C084FC"/><circle cx="30" cy="65" r="2.2" fill="#C084FC"/><circle cx="30" cy="90" r="2.2" fill="#C084FC"/><circle cx="30" cy="115" r="2.2" fill="#C084FC"/><circle cx="30" cy="140" r="2.2" fill="#C084FC"/><circle cx="55" cy="40" r="2.2" fill="#C084FC"/><circle cx="55" cy="65" r="2.2" fill="#C084FC"/><circle cx="55" cy="90" r="2.2" fill="#C084FC"/><circle cx="55" cy="115" r="2.2" fill="#C084FC"/><circle cx="55" cy="140" r="2.2" fill="#C084FC"/><circle cx="80" cy="40" r="2.2" fill="#C084FC"/><circle cx="80" cy="65" r="2.2" fill="#C084FC"/><circle cx="80" cy="90" r="2.2" fill="#C084FC"/><circle cx="80" cy="115" r="2.2" fill="#C084FC"/><circle cx="80" cy="140" r="2.2" fill="#C084FC"/><circle cx="105" cy="40" r="2.2" fill="#C084FC"/><circle cx="105" cy="65" r="2.2" fill="#C084FC"/><circle cx="105" cy="90" r="2.2" fill="#C084FC"/><circle cx="105" cy="115" r="2.2" fill="#C084FC"/><circle cx="105" cy="140" r="2.2" fill="#C084FC"/><circle cx="130" cy="40" r="2.2" fill="#C084FC"/><circle cx="130" cy="65" r="2.2" fill="#C084FC"/><circle cx="130" cy="90" r="2.2" fill="#C084FC"/><circle cx="130" cy="115" r="2.2" fill="#C084FC"/><circle cx="130" cy="140" r="2.2" fill="#C084FC"/>
+<g id="q">
+  <circle cx="80" cy="100" r="12" fill="#FF8C42"/>
+  <text x="80" y="105" font-size="12" text-anchor="middle" fill="#1B242A" font-weight="700">+</text>
+</g>
+<line x1="95" y1="85" x2="112" y2="68" stroke="#FF8C42" stroke-width="5" stroke-linecap="round"/>
+<path d="M 100 62 L 118 66 L 106 78 Z" fill="#FF8C42"/>
+
+</svg>

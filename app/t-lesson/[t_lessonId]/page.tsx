@@ -430,7 +430,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     const topicStickers = lessonChallenges.map((c) => getTopicSticker({
         question: c.question,
         t_challengeOptions: c.t_challengeOptions.map((o) => ({ text: o.text, correct: o.correct })),
-    }));
+    }, t_lesson.t_unitId));
 
     // Гарантированный INSERT — раньше стиль рендера выбирался чисто
     // случайно (WEIGHTED_ASC_POOL) НЕЗАВИСИМО для каждой задачи, поэтому
@@ -1008,7 +1008,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         const extraSticker = getTopicSticker({
             question: t_challenge.question,
             t_challengeOptions: t_challenge.t_challengeOptions.map((o) => ({ text: o.text, correct: o.correct })),
-        }) ?? undefined;
+        }, t_lesson.t_unitId) ?? undefined;
 
         const single = buildInsertQuestion(t_challenge, false, usedLetterSets);
         if (single) extraInsertCandidates.push({ ...single, contentTier: 1, topicSticker: extraSticker });

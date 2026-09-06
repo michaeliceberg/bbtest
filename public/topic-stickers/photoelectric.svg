@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200">
+<style>
+text { font-family: Nunito, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #F2F7FB; }
+
+@keyframes hit { 0%,100% { transform: translateX(-30px); opacity: 0; } 60% { opacity: 1; } 70% { transform: translateX(0px); opacity: 1;} 100% { transform: translateX(0px); opacity: 0; } }
+@keyframes eject { 0%,60% { transform: translate(0,0); opacity: 0; } 75% { opacity: 1; } 100% { transform: translate(30px,-24px); opacity: 0; } }
+#photonIn { animation: hit 2s ease-in infinite; }
+#electron { animation: eject 2s ease-out infinite; }
+
+</style>
+
+<rect x="70" y="70" width="16" height="90" fill="#96A3AF"/>
+<rect x="10" y="70" width="60" height="90" fill="#6B7680"/>
+<g id="photonIn">
+  <path d="M 40 65 L 46 78 L 60 82 L 46 86 L 40 100 L 34 86 L 20 82 L 34 78 Z" fill="#FFE066"/>
+</g>
+<circle id="electron" cx="40" cy="82" r="7" fill="#5AA9E6"/>
+
+</svg>

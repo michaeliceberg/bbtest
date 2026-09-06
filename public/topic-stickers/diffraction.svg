@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200">
+<style>
+text { font-family: Nunito, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #F2F7FB; }
+
+@keyframes wave { 0% { stroke-dashoffset: 40; } 100% { stroke-dashoffset: 0; } }
+.w { stroke-dasharray: 6 4; animation: wave 1.2s linear infinite; }
+
+</style>
+
+<rect x="15" y="20" width="10" height="55" fill="#6B7680"/>
+<rect x="15" y="95" width="10" height="65" fill="#6B7680"/>
+<path class="w" d="M 25 82 Q 70 60 130 35" fill="none" stroke="#FFE066" stroke-width="3"/>
+<path class="w" d="M 25 88 Q 70 90 130 100" fill="none" stroke="#FFE066" stroke-width="3" style="animation-delay:.2s"/>
+<path class="w" d="M 25 88 Q 70 120 130 165" fill="none" stroke="#FFE066" stroke-width="3" style="animation-delay:.4s"/>
+
+</svg>

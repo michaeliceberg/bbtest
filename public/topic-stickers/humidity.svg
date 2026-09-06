@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200">
+<style>
+text { font-family: Nunito, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #F2F7FB; }
+
+@keyframes drift { 0%,100% { transform: translateX(0); } 50% { transform: translateX(8px); } }
+@keyframes rise { 0% { transform: translateY(0); opacity: .8; } 100% { transform: translateY(-22px); opacity: 0; } }
+.cloud { animation: drift 2.4s ease-in-out infinite; }
+.vapor { animation: rise 1.8s ease-out infinite; }
+
+</style>
+
+<rect x="25" y="120" width="110" height="35" fill="#5AA9E6" opacity=".4"/>
+<path d="M 25 120 Q 45 113 65 120 T 105 120 T 135 120" fill="none" stroke="#2E6DA4" stroke-width="3"/>
+<circle class="vapor" cx="55" cy="105" r="4" fill="#F2F7FB" opacity=".6"/>
+<circle class="vapor" cx="80" cy="100" r="5" fill="#F2F7FB" opacity=".6" style="animation-delay:.5s"/>
+<circle class="vapor" cx="105" cy="108" r="4" fill="#F2F7FB" opacity=".6" style="animation-delay:1s"/>
+<g class="cloud">
+  <ellipse cx="80" cy="55" rx="34" ry="20" fill="#C9D3DC"/>
+  <ellipse cx="58" cy="62" rx="20" ry="14" fill="#C9D3DC"/>
+  <ellipse cx="104" cy="62" rx="20" ry="14" fill="#C9D3DC"/>
+</g>
+
+</svg>

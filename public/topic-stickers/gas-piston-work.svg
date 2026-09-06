@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200">
+<style>
+text { font-family: Nunito, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #F2F7FB; }
+
+@keyframes piston { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-18px); } }
+@keyframes flame { 0%,100% { transform: scaleY(1); opacity: .85; } 50% { transform: scaleY(1.2); opacity: 1; } }
+#piston { animation: piston 2s ease-in-out infinite; }
+.flame { animation: flame 0.9s ease-in-out infinite; transform-origin: bottom; }
+
+</style>
+
+<rect x="35" y="70" width="90" height="70" fill="none" stroke="#6B7680" stroke-width="4"/>
+<g id="piston">
+  <rect x="35" y="80" width="90" height="14" fill="#96A3AF"/>
+  <rect x="72" y="55" width="16" height="28" fill="#96A3AF"/>
+</g>
+<path class="flame" d="M 70 165 Q 65 150 72 140 Q 78 150 74 160 Q 82 150 78 138 Q 90 150 80 168 Z" fill="#FF6B4A"/>
+<path class="flame" d="M 95 165 Q 90 152 96 143 Q 101 152 98 162 Z" fill="#FF6B4A" opacity=".8"/>
+
+</svg>

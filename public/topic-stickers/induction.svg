@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200">
+<style>
+text { font-family: Nunito, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #F2F7FB; }
+
+@keyframes slide { 0%,100% { transform: translateX(-55px); } 50% { transform: translateX(55px); } }
+@keyframes glow { 0%,15%,85%,100% { opacity: .15; } 50% { opacity: 1; } }
+#magnet { animation: slide 2.4s ease-in-out infinite; }
+.bulb { animation: glow 2.4s ease-in-out infinite; }
+
+</style>
+
+<line x1="10" y1="90" x2="150" y2="90" stroke="#6B7680" stroke-width="1.5" stroke-dasharray="2 5" opacity=".4"/>
+<g id="magnet">
+  <rect x="60" y="75" width="40" height="30" rx="3" fill="#FF8C42"/>
+  <rect x="60" y="75" width="20" height="30" rx="3" fill="#C084FC"/>
+  <text x="70" y="96" font-size="12" text-anchor="middle" fill="#fff" font-weight="700">N</text>
+  <text x="90" y="96" font-size="12" text-anchor="middle" fill="#1B242A" font-weight="700">S</text>
+</g>
+<ellipse cx="50" cy="90" rx="9" ry="26" fill="none" stroke="#7dd3fc" stroke-width="3"/><ellipse cx="64" cy="90" rx="9" ry="26" fill="none" stroke="#7dd3fc" stroke-width="3"/><ellipse cx="78" cy="90" rx="9" ry="26" fill="none" stroke="#7dd3fc" stroke-width="3"/><ellipse cx="92" cy="90" rx="9" ry="26" fill="none" stroke="#7dd3fc" stroke-width="3"/><ellipse cx="106" cy="90" rx="9" ry="26" fill="none" stroke="#7dd3fc" stroke-width="3"/><ellipse cx="120" cy="90" rx="9" ry="26" fill="none" stroke="#7dd3fc" stroke-width="3"/>
+<line x1="30" y1="116" x2="30" y2="150" stroke="#6B7680" stroke-width="3"/>
+<line x1="130" y1="116" x2="130" y2="150" stroke="#6B7680" stroke-width="3"/>
+<line x1="30" y1="150" x2="65" y2="150" stroke="#6B7680" stroke-width="3"/>
+<line x1="95" y1="150" x2="130" y2="150" stroke="#6B7680" stroke-width="3"/>
+<circle class="bulb" cx="80" cy="150" r="15" fill="#FFD400"/>
+<circle cx="80" cy="150" r="15" fill="none" stroke="#6B7680" stroke-width="2"/>
+
+</svg>

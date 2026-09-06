@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200">
+<style>
+text { font-family: Nunito, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #F2F7FB; }
+
+@keyframes expand { 0% { opacity: .9; transform: scale(.7); } 100% { opacity: 0; transform: scale(1.5); } }
+.ring { animation: expand 2s ease-out infinite; transform-origin: 80px 100px; }
+
+</style>
+
+<circle class="ring" cx="80" cy="100" r="30" fill="none" stroke="#C084FC" stroke-width="3"/>
+<circle class="ring" cx="80" cy="100" r="30" fill="none" stroke="#C084FC" stroke-width="3" style="animation-delay:.7s"/>
+<circle class="ring" cx="80" cy="100" r="30" fill="none" stroke="#C084FC" stroke-width="3" style="animation-delay:1.4s"/>
+<circle cx="80" cy="100" r="45" fill="none" stroke="#6B7680" stroke-width="2" stroke-dasharray="3 4" opacity=".5"/>
+<circle cx="80" cy="100" r="20" fill="#FF8C42"/>
+<text x="80" y="107" font-size="18" text-anchor="middle" fill="#1B242A" font-weight="700">+</text>
+
+</svg>

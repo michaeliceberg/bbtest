@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200">
+<style>
+text { font-family: Nunito, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #F2F7FB; }
+
+@keyframes pulse { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
+.charge { animation: pulse 1.6s ease-in-out infinite; }
+
+</style>
+
+<line x1="55" y1="60" x2="55" y2="140" stroke="#FF8C42" stroke-width="8" stroke-linecap="round"/>
+<line x1="105" y1="60" x2="105" y2="140" stroke="#5AA9E6" stroke-width="8" stroke-linecap="round"/>
+<g class="charge"><text x="55" y="107" font-size="20" text-anchor="middle" fill="#FF8C42" font-weight="700">+</text><text x="105" y="107" font-size="24" text-anchor="middle" fill="#5AA9E6" font-weight="700">−</text></g>
+
+</svg>

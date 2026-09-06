@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200">
+<style>
+text { font-family: Nunito, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #F2F7FB; }
+
+@keyframes flow { 0% { stroke-dashoffset: 24; } 100% { stroke-dashoffset: 0; } }
+.wire { stroke-dasharray: 4 8; animation: flow 1s linear infinite; }
+@keyframes glow { 0%,100% { opacity: .6; } 50% { opacity: 1; } }
+.bulb { animation: glow 1.3s ease-in-out infinite; }
+
+</style>
+
+<rect x="20" y="80" width="16" height="40" rx="2" fill="#96A3AF"/>
+<text x="28" y="135" font-size="11" text-anchor="middle">ε</text>
+<path d="M 36 82 L 140 82" class="wire" stroke="#FF8C42" stroke-width="3" fill="none"/>
+<path d="M 140 82 L 140 118" class="wire" stroke="#FF8C42" stroke-width="3" fill="none"/>
+<path d="M 140 118 L 36 118" class="wire" stroke="#FF8C42" stroke-width="3" fill="none"/>
+<path d="M 20 118 L 20 120" stroke="#FF8C42" stroke-width="3" fill="none"/>
+<polyline points="60,82 66,70 74,94 82,70 90,94 96,82" fill="none" stroke="#F2F7FB" stroke-width="3" stroke-linejoin="round"/>
+<circle class="bulb" cx="140" cy="100" r="14" fill="#FFD400" opacity=".8"/>
+<circle cx="140" cy="100" r="8" fill="none" stroke="#6B7680" stroke-width="2"/>
+
+</svg>

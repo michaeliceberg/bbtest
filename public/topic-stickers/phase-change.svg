@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200">
+<style>
+text { font-family: Nunito, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #F2F7FB; }
+
+@keyframes melt { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(.82); opacity: .8; } }
+@keyframes drip { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(24px); opacity: 0; } }
+#ice { animation: melt 2.2s ease-in-out infinite; transform-origin: center; }
+#drop { animation: drip 1.4s ease-in infinite; }
+
+</style>
+
+<rect id="ice" x="50" y="55" width="60" height="60" rx="8" fill="#5AA9E6" opacity=".75" stroke="#2E6DA4" stroke-width="3"/>
+<circle id="drop" cx="80" cy="118" r="6" fill="#2E6DA4"/>
+<ellipse cx="80" cy="165" rx="34" ry="8" fill="#5AA9E6" opacity=".5"/>
+
+</svg>
