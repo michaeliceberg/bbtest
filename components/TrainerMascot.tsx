@@ -69,8 +69,10 @@ export const TrainerMascot = ({
   }
 
   return (
-    <div className="flex flex-row items-center gap-4">
-      {/* Талисман */}
+    <div className="flex flex-row items-center gap-3">
+      {/* Талисман — уменьшен по прямой просьбе пользователя: занимал
+          слишком много места по вертикали, из-за чего остальной контент
+          вопроса (особенно крупные картинки-диаграммы) уезжал вниз. */}
       <motion.div
         animate={{
           scale: emotion === "celebrating" ? [1, 1.15, 1] : 1,
@@ -84,10 +86,10 @@ export const TrainerMascot = ({
         }}
         className="cursor-pointer shrink-0"
       >
-        <Lottie 
+        <Lottie
           animationData={getLottieData()}
           loop={emotion === "thinking" || emotion === "waiting"}
-          className="w-16 h-16 md:w-20 md:h-20"
+          className="w-10 h-10 md:w-12 md:h-12"
         />
       </motion.div>
 
@@ -100,9 +102,9 @@ export const TrainerMascot = ({
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className="relative px-4 py-2 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]"
+            className="relative px-3 py-1.5 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]"
           >
-            <span className="text-[#F2F7FB] font-bold text-sm whitespace-nowrap">
+            <span className="text-[#F2F7FB] font-bold text-xs whitespace-nowrap">
               {currentMessage}
             </span>
             {/* Стрелка слева, указывающая влево < */}

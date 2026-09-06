@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-80.0 -124.4 187.4 144.4">
 <style>
 @keyframes drawUnknownLine {
-  0% { stroke-dashoffset: var(--len); opacity: 1; }
-  100% { stroke-dashoffset: 0; opacity: 1; }
+  0% { stroke-dashoffset: var(--len); }
+  100% { stroke-dashoffset: 0; }
 }
 @keyframes bounceInQ {
   0% { opacity: 0; transform: scale(0.2); }
@@ -14,7 +14,6 @@
   stroke-dasharray: var(--len);
   stroke-dashoffset: var(--len);
   animation: drawUnknownLine 0.9s ease-out 1.5s forwards;
-  opacity: 0;
 }
 .q-mark {
   opacity: 0;
@@ -22,16 +21,18 @@
   transform-origin: center;
   animation: bounceInQ 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 2.25s forwards;
 }
+text { font-family: Nunito, -apple-system, 'Segoe UI', Roboto, sans-serif; }
 </style>
-<line x1="120.0" y1="120.0" x2="84.6" y2="58.8" stroke="#7dd3fc" stroke-width="4.5" stroke-linecap="round"/>
-<line class="unknown-line" style="--len:84.3" x1="120.0" y1="120.0" x2="47.0" y2="162.1" stroke="#F0B23D" stroke-width="5.5" stroke-linecap="round"/>
-<line x1="84.6" y1="58.8" x2="47.0" y2="162.1" stroke="#7dd3fc" stroke-width="4.5" stroke-linecap="round"/>
-<polyline points="113.0,107.9 100.9,114.9 107.9,127.0" fill="none" stroke="#7dd3fc" stroke-width="3"/>
-<path d="M 97.6 81.3 A 26 26 0 0 1 75.8 83.2" fill="none" stroke="#F2F7FB" stroke-width="2.5"/>
-<text x="88.3" y="100.6" font-family="Georgia, serif" font-style="italic" font-size="18" fill="#F2F7FB" text-anchor="middle" dominant-baseline="middle">α</text>
-<circle cx="120.0" cy="120.0" r="3.5" fill="#F2F7FB"/>
-<circle cx="84.6" cy="58.8" r="3.5" fill="#F2F7FB"/>
-<circle cx="47.0" cy="162.1" r="3.5" fill="#F2F7FB"/>
-<text x="47.0" y="103.6" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="20" fill="#F2F7FB" text-anchor="middle" dominant-baseline="middle">c</text>
-<text class="q-mark" x="94.5" y="160.1" font-family="Georgia, serif" font-weight="bold" font-size="24" fill="#F0B23D" text-anchor="middle" dominant-baseline="middle">?</text>
+<line x1="-0.0" y1="0.0" x2="87.4" y2="-40.7" stroke="#7dd3fc" stroke-width="3" stroke-linecap="round"/>
+<line x1="-0.0" y1="0.0" x2="-48.6" y2="-104.1" stroke="#7dd3fc" stroke-width="3" stroke-linecap="round"/>
+<line x1="87.4" y1="-40.7" x2="-48.6" y2="-104.1" stroke="#7dd3fc" stroke-width="3" stroke-linecap="round"/>
+<polyline points="14.5,-6.8 7.7,-21.3 -6.8,-14.5" fill="none" stroke="#7dd3fc" stroke-width="2"/>
+<path d="M 58.4 -27.2 A 32 32 0 0 1 58.4 -54.3" fill="none" stroke="#F2F7FB" stroke-width="2"/>
+<text x="37.4" y="-40.7" font-size="20" font-weight="bold" fill="#F2F7FB" text-anchor="middle" dominant-baseline="middle">α</text>
+<circle cx="-0.0" cy="0.0" r="2.8" fill="#F2F7FB"/>
+<circle cx="87.4" cy="-40.7" r="2.8" fill="#F2F7FB"/>
+<circle cx="-48.6" cy="-104.1" r="2.8" fill="#F2F7FB"/>
+<text x="28.7" y="-92.4" font-size="22" font-weight="bold" fill="#F2F7FB" text-anchor="middle" dominant-baseline="middle">c</text>
+<line class="unknown-line" style="--len:114.9" x1="-0.0" y1="0.0" x2="-48.6" y2="-104.1" stroke="#F0B23D" stroke-width="3.6" stroke-linecap="round"/>
+<text class="q-mark" x="-46.0" y="-41.9" font-size="26" font-weight="bold" fill="#F0B23D" text-anchor="middle" dominant-baseline="middle">?</text>
 </svg>
