@@ -255,7 +255,7 @@ const LearnPage = async () => {
   const totalDone = lessonStat.reduce((sum, l) => sum + l.done[1] + l.done[2], 0);
   const totalLeft = totalChallenges - totalDone;
 
-  const examDate = new Date(2026, 5, 1);
+  const examDate = new Date(2027, 5, 1);
   const now = new Date();
   const daysToExam = Math.max(1, Math.ceil((examDate.getTime() - now.getTime()) / (1000 * 3600 * 24)));
 
@@ -265,8 +265,16 @@ const LearnPage = async () => {
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
 
-  const lastWeekChallenges = challengeProgress?.filter(cp => 
-    lessonStat.some(l => l.done[0] === cp.challengeId) && 
+  // Сколько задач ИЗ ЭТОГО КУРСА пользователь реально РЕШИЛ (doneRight,
+  // не просто попытался) за последние 7 дней — раньше здесь было
+  // `lessonStat.some(l => l.done[0] === cp.challengeId)`, что сравнивало
+  // challengeId с total-count урока (l.done[0]) — бессмысленное сравнение
+  // двух несопоставимых чисел, почти всегда false. Правильная проверка
+  // принадлежности задачи курсу — уже готовая `challengeToLessonId`
+  // (Map<challengeId, lessonId>, построена выше по unitsWithProgress).
+  const lastWeekChallenges = challengeProgress?.filter(cp =>
+    cp.doneRight &&
+    challengeToLessonId.has(cp.challengeId) &&
     new Date(cp.dateDone) > weekAgo
   ) || [];
 

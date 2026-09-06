@@ -4,6 +4,7 @@
 import dynamic from "next/dynamic"
 import { Button } from "./ui/button"
 import Link from "next/link"
+import { Clock } from "lucide-react"
 // import LottieAnimationFine from '@/public/LottieProgressFine.json'
 // import LottieAnimationLate from '@/public/LottieProgressLate.json'
 import LottieKapiGood1 from '@/public/Lottie/LottieKapiGood1.json'
@@ -41,7 +42,7 @@ export const Promo = ({
         finalWord = 'день'
     } else if ([2, 3, 4].includes(lastNumber)){
         finalWord = 'дня'
-    } else if ([5, 6, 7, 8, 9, 0].includes(lastNumber)){ 
+    } else if ([5, 6, 7, 8, 9, 0].includes(lastNumber)){
         finalWord = 'дней'
     }
 
@@ -50,46 +51,47 @@ export const Promo = ({
 	    sendMsg = "Опаздываете на"
         isLate = true
 	} else {
-		sendMsg = "Опережаете на" 
+		sendMsg = "Опережаете на"
         YourDaysLate = - YourDaysLate
 	}
 
+  // Дизайн приведён к тому же языку, что и "Квест дня"
+  // (components/trainer-quest-card.tsx) — тёмная карточка
+  // rounded-xl/border-[#3A464E]/bg-[#151F23], маскот-Lottie 9×9 рядом с
+  // заголовком, большое число вынесено в цветную пилюлю (амбер/фиолет-
+  // язык проекта был бы неверным сигналом здесь — "опаздываете" это
+  // тревога, "опережаете" похвала, поэтому rose/violet), а не отдельная
+  // растянутая на всю ширину кнопка с одним числом внутри.
   return (
-    <div className="border-2 rounded-xl p-4 space-y-4">
-        <div className="space-y-2">
-            <div className="flex items-center gap-x-4">
-                
-            
-
-
-                <Lottie 
-                
-                    // animationData={ isLate ? LottieTriangle3 : LottieTriangle3 } 
-                    animationData={ isLate ? LottieKapiSad1 : LottieKapiGood1 } 
-                className="h-20 w-20"
-                />
-
-
-
-                <div className="items-center">
-                    <h3 className="font-bold text-lg text-center"> 
-                        {sendMsg}
-                    </h3>
-
-                    <Button variant={isLate ? 'isLate' : 'isNotLate'} className="w-full">
-                        {YourDaysLate}
-                    </Button>
-
-                    <h3 className="font-bold text-lg text-center"> 
-                        {finalWord}                
-                    </h3>
+    <div className="rounded-xl border border-[#3A464E] bg-[#151F23] shadow-sm p-4 space-y-4">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 min-w-0">
+                <div className="w-9 h-9 shrink-0 -my-1">
+                    <Lottie
+                        animationData={isLate ? LottieKapiSad1 : LottieKapiGood1}
+                        loop
+                        autoplay
+                    />
                 </div>
-
+                <h3 className="font-bold text-lg text-[#F2F7FB] truncate">
+                    {sendMsg}
+                </h3>
             </div>
-            <p className="text-muted-foreground">
-                 Будете готовы к экзамену {formattedDate}
-            </p>
+            <div className={`flex items-center gap-1 px-2 py-1 rounded-full shrink-0 ${isLate ? 'bg-rose-500/15' : 'bg-violet-500/15'}`}>
+                <span className={`text-xs font-bold whitespace-nowrap ${isLate ? 'text-rose-400' : 'text-violet-300'}`}>
+                    {YourDaysLate} {finalWord}
+                </span>
+            </div>
         </div>
+
+        {/* Тот же формат "дедлайн-строки", что и в "Квест дня"
+            (Clock-иконка + текст, дата — акцентом справа) */}
+        <div className={`flex items-center gap-1.5 text-xs ${isLate ? 'text-rose-400' : 'text-[#9AA7B0]'}`}>
+            <Clock className="h-3.5 w-3.5 shrink-0" />
+            <span>Будете готовы к экзамену</span>
+            <span className="ml-auto font-bold text-[#F2F7FB]">{formattedDate}</span>
+        </div>
+
         <Button
             asChild
             className="w-full"
@@ -100,11 +102,6 @@ export const Promo = ({
                 Прогресс
             </Link>
         </Button>
-
-
-
-
-
     </div>
   )
 }

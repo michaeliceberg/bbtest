@@ -103,7 +103,7 @@ export function CourseProgressStrip({ units }: { units: StripUnit[] }) {
                             <div
                                 className="absolute inset-0 pointer-events-none"
                                 style={{
-                                    backgroundImage: 'repeating-linear-gradient(0deg, transparent 0px, transparent 7px, rgba(0,0,0,0.28) 7px, rgba(0,0,0,0.28) 9px)',
+                                    backgroundImage: 'repeating-linear-gradient(0deg, transparent 0px, transparent 12px, rgba(0,0,0,0.28) 12px, rgba(0,0,0,0.28) 14px)',
                                 }}
                             />
                             {unit.isCompleted && (
