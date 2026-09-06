@@ -67,7 +67,13 @@ export const TypeAssist = ({
           onClick={() => handleOptionClick(option)}
           index={idx}
           isSelected={localSelected === option}
-          isCorrect={showResult && localSelected === option && isCorrectAnswer(option, question.correctAnswer)}
+          // isCorrect — ЛЮБОЙ вариант, совпадающий с правильным ответом,
+          // независимо от того, что выбрал пользователь: раньше зелёным
+          // подсвечивался ТОЛЬКО угаданный верный вариант, а если
+          // пользователь ошибался — правильный ответ вообще никак не
+          // показывался (только красным гас выбранный неверный). По
+          // просьбе пользователя — теперь верный вариант всегда виден.
+          isCorrect={showResult && isCorrectAnswer(option, question.correctAnswer)}
           isWrong={showResult && localSelected === option && !isCorrectAnswer(option, question.correctAnswer)}
           disabled={showResult}
         />

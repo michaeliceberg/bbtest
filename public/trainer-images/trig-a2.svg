@@ -1,6 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+<style>
+@keyframes drawUnknownLine {
+  from { stroke-dashoffset: var(--len); }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes bounceInQ {
+  0% { opacity: 0; transform: scale(0.2); }
+  55% { opacity: 1; transform: scale(1.35); }
+  75% { transform: scale(0.85); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.unknown-line {
+  stroke-dasharray: var(--len);
+  stroke-dashoffset: var(--len);
+  animation: drawUnknownLine 0.9s ease-out forwards;
+}
+.q-mark {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: bounceInQ 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.75s forwards;
+}
+</style>
 <line x1="120.0" y1="120.0" x2="84.6" y2="58.8" stroke="#7dd3fc" stroke-width="4.5" stroke-linecap="round"/>
-<line x1="120.0" y1="120.0" x2="47.0" y2="162.1" stroke="#F0B23D" stroke-width="5" stroke-linecap="round"/>
+<line class="unknown-line" style="--len:84.3" x1="120.0" y1="120.0" x2="47.0" y2="162.1" stroke="#F0B23D" stroke-width="5.5" stroke-linecap="round"/>
 <line x1="84.6" y1="58.8" x2="47.0" y2="162.1" stroke="#7dd3fc" stroke-width="4.5" stroke-linecap="round"/>
 <polyline points="113.0,107.9 100.9,114.9 107.9,127.0" fill="none" stroke="#7dd3fc" stroke-width="3"/>
 <path d="M 97.6 81.3 A 26 26 0 0 1 75.8 83.2" fill="none" stroke="#F2F7FB" stroke-width="2.5"/>
@@ -9,5 +32,5 @@
 <circle cx="84.6" cy="58.8" r="3.5" fill="#F2F7FB"/>
 <circle cx="47.0" cy="162.1" r="3.5" fill="#F2F7FB"/>
 <text x="47.0" y="103.6" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="20" fill="#F2F7FB" text-anchor="middle" dominant-baseline="middle">c</text>
-<text x="94.5" y="160.1" font-family="Georgia, serif" font-weight="bold" font-size="24" fill="#F0B23D" text-anchor="middle" dominant-baseline="middle">?</text>
+<text class="q-mark" x="94.5" y="160.1" font-family="Georgia, serif" font-weight="bold" font-size="24" fill="#F0B23D" text-anchor="middle" dominant-baseline="middle">?</text>
 </svg>
