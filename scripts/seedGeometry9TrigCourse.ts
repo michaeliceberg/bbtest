@@ -20,16 +20,18 @@ type ChallengeSpec = {
     options: { text: string; correct: boolean }[];
 };
 
+// \cdot между множителем и sin/cos/tan — без него, например, "c" и "sin"
+// визуально сливаются в KaTeX (по просьбе пользователя).
 const OPTIONS_HYP: (correctIdx: number) => { text: string; correct: boolean }[] = (correctIdx) => {
-    const opts = ["$c\\cos\\alpha$", "$c\\sin\\alpha$", "$\\dfrac{c}{\\sin\\alpha}$", "$\\dfrac{c}{\\cos\\alpha}$"];
+    const opts = ["$c\\cdot\\cos\\alpha$", "$c\\cdot\\sin\\alpha$", "$\\dfrac{c}{\\sin\\alpha}$", "$\\dfrac{c}{\\cos\\alpha}$"];
     return opts.map((text, i) => ({ text, correct: i === correctIdx }));
 };
 const OPTIONS_LEG: (correctIdx: number) => { text: string; correct: boolean }[] = (correctIdx) => {
-    const opts = ["$b\\cos\\alpha$", "$b\\sin\\alpha$", "$\\dfrac{b}{\\sin\\alpha}$", "$\\dfrac{b}{\\cos\\alpha}$"];
+    const opts = ["$b\\cdot\\cos\\alpha$", "$b\\cdot\\sin\\alpha$", "$\\dfrac{b}{\\sin\\alpha}$", "$\\dfrac{b}{\\cos\\alpha}$"];
     return opts.map((text, i) => ({ text, correct: i === correctIdx }));
 };
 const OPTIONS_TAN: (correctIdx: number) => { text: string; correct: boolean }[] = (correctIdx) => {
-    const opts = ["$b\\tan\\alpha$", "$\\dfrac{b}{\\tan\\alpha}$", "$b\\sin\\alpha$", "$b\\cos\\alpha$"];
+    const opts = ["$b\\cdot\\tan\\alpha$", "$\\dfrac{b}{\\tan\\alpha}$", "$b\\cdot\\sin\\alpha$", "$b\\cdot\\cos\\alpha$"];
     return opts.map((text, i) => ({ text, correct: i === correctIdx }));
 };
 
