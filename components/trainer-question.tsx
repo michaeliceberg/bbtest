@@ -195,198 +195,175 @@ export default function TrainerQuestion({
     }, 1500)
   }, [question])
 
-  const renderQuestionContent = () => {
-    // Сначала рендерим заголовок вопроса (если нужно)
+  // Рендерим иконку-пиктограмму (только PICMATCH, см. lib/formulaIcons.ts)
+  const renderFormulaIcon = () => {
+    if (question.questionType === "PICMATCH" && question.iconKey) {
+      return <FormulaIcon iconKey={question.iconKey} />
+    }
+    return null
+  };
 
-    const renderQuestionHeader = () => {
-      // Отдельный заголовок вопроса убран — тот же текст теперь живёт в
-      // облаке маскота (см. TrainerMascot.tsx, проп taskMessage), пока
-      // пользователь ещё не ответил. Раньше здесь дублировался
-      // question.question отдельным <h2> — две одинаковых строки подряд
-      // занимали лишнюю высоту карточки.
-      return null;
-    };
+  // Рендерим изображение
+  const renderImage = () => {
+    if (question.imageSrc && question.imageSrc !== '0') {
+      // 90×90 (было изначально) слишком мелко для диаграмм прямоугольного
+      // треугольника (тема "Геометрия 9") — этот слот раньше не
+      // использовался реальным контентом, увеличение безопасно. Каждая
+      // из 18 SVG теперь сама объявляет viewBox точно по своему
+      // содержимому (не фиксированный квадрат) — h-auto здесь обязателен:
+      // ширина растягивается на всю карточку (w-full), а высота
+      // подстраивается под РЕАЛЬНОЕ соотношение сторон конкретной
+      // картинки (иначе прошлая версия, квадрат 440×440, оставляла
+      // пустые поля по бокам на "неквадратных" поворотах треугольника).
+      // width/height пропсы ниже — просто заявленное соотношение для
+      // Next/Image, реальный размер на экране всегда берётся из
+      // фактического viewBox самого SVG благодаря h-auto.
+      return (
+        <Image
+          className="pt-1 mx-auto w-full max-w-[520px] h-auto max-h-[38vh] object-contain"
+          src={`/trainer-images/${question.imageSrc}`}
+          alt='triangle'
+          height={320}
+          width={520}
+        />
+      );
+    }
+    return null;
+  };
 
-    // Рендерим иконку-пиктограмму (только PICMATCH, см. lib/formulaIcons.ts)
-    const renderFormulaIcon = () => {
-      if (question.questionType === "PICMATCH" && question.iconKey) {
-        return <FormulaIcon iconKey={question.iconKey} />
-      }
-      return null
-    };
+  // Рендерим основной контент в зависимости от типа вопроса
+  const renderMainContent = () => {
+    switch (question.questionType) {
+      case "ASSIST":
+        return <TypeAssist
+          question={question}
+          onAnswer={onAnswer}
+          onOptionSelected={handleAssistOptionSelected}
+          isAnswerChecked={answerState === "correct" || answerState === "incorrect"}
+          isAnswerCorrect={answerState === "correct"}
+        />
 
-    // Рендерим изображение
-    const renderImage = () => {
-      if (question.imageSrc && question.imageSrc !== '0') {
-        // 90×90 (было изначально) слишком мелко для диаграмм прямоугольного
-        // треугольника (тема "Геометрия 9") — этот слот раньше не
-        // использовался реальным контентом, увеличение безопасно. Каждая
-        // из 18 SVG теперь сама объявляет viewBox точно по своему
-        // содержимому (не фиксированный квадрат) — h-auto здесь обязателен:
-        // ширина растягивается на всю карточку (w-full), а высота
-        // подстраивается под РЕАЛЬНОЕ соотношение сторон конкретной
-        // картинки (иначе прошлая версия, квадрат 440×440, оставляла
-        // пустые поля по бокам на "неквадратных" поворотах треугольника).
-        // width/height пропсы ниже — просто заявленное соотношение для
-        // Next/Image, реальный размер на экране всегда берётся из
-        // фактического viewBox самого SVG благодаря h-auto.
-        return (
-          <Image
-            className="pt-1 mx-auto w-full max-w-[520px] h-auto max-h-[38vh] object-contain"
-            src={`/trainer-images/${question.imageSrc}`}
-            alt='triangle'
-            height={320}
-            width={520}
-          />
-        );
-      }
-      return null;
-    };
+      case "INSERT":
+        return <TypeInsert
+          question={question}
+          onAnswer={onAnswer}
+          onOptionSelected={handleAssistOptionSelected}
+          isAnswerChecked={answerState === "correct" || answerState === "incorrect"}
+          isAnswerCorrect={answerState === "correct"}
+        />
 
-    // Рендерим основной контент в зависимости от типа вопроса
-    const renderMainContent = () => {
-      switch (question.questionType) {
-        case "ASSIST":
-          return <TypeAssist
-            question={question}
-            onAnswer={onAnswer}
-            onOptionSelected={handleAssistOptionSelected}
-            isAnswerChecked={answerState === "correct" || answerState === "incorrect"}
-            isAnswerCorrect={answerState === "correct"}
-          />
+      case "SCROLL":
+        return <TypeScroll
+          question={question}
+          onAnswer={onAnswer}
+          onOptionSelected={handleAssistOptionSelected}
+          isAnswerChecked={answerState === "correct" || answerState === "incorrect"}
+          isAnswerCorrect={answerState === "correct"}
+        />
 
-        case "INSERT":
-          return <TypeInsert
-            question={question}
-            onAnswer={onAnswer}
-            onOptionSelected={handleAssistOptionSelected}
-            isAnswerChecked={answerState === "correct" || answerState === "incorrect"}
-            isAnswerCorrect={answerState === "correct"}
-          />
+      case "PICMATCH":
+        return <TypeAssist
+          question={question}
+          onAnswer={onAnswer}
+          onOptionSelected={handleAssistOptionSelected}
+          isAnswerChecked={answerState === "correct" || answerState === "incorrect"}
+          isAnswerCorrect={answerState === "correct"}
+        />
 
-        case "SCROLL":
-          return <TypeScroll
-            question={question}
-            onAnswer={onAnswer}
-            onOptionSelected={handleAssistOptionSelected}
-            isAnswerChecked={answerState === "correct" || answerState === "incorrect"}
-            isAnswerCorrect={answerState === "correct"}
-          />
+      case "CHECK":
+        return <TypeCheck question={question} onAnswer={onAnswer} />
 
-        case "PICMATCH":
-          return <TypeAssist
-            question={question}
-            onAnswer={onAnswer}
-            onOptionSelected={handleAssistOptionSelected}
-            isAnswerChecked={answerState === "correct" || answerState === "incorrect"}
-            isAnswerCorrect={answerState === "correct"}
-          />
+      case "SLIDER":
+        return <TypeSlider questions={questions} question={question} onAnswer={onAnswer} />
 
-        case "CHECK":
-          return <TypeCheck question={question} onAnswer={onAnswer} />
+      case "HOT":
+        return <TypeHot question={question} onAnswer={onAnswer} />
 
-        case "SLIDER":
-          return <TypeSlider questions={questions} question={question} onAnswer={onAnswer} />
+      case "SPEED":
+        return <TypeSpeed question={question} onAnswer={onAnswer} />
 
-        case "HOT":
-          return <TypeHot question={question} onAnswer={onAnswer} />
+      case "FRACTRICK":
+        // Двухэтапный: сам компонент владеет обоими подтверждениями
+        // (этап 1 — переписать decimal дробью, этап 2 — посчитать
+        // реальный результат) и зовёт onAnswer('right'/'wrong') только
+        // ОДИН раз, по итогу второго этапа — самодостаточный тип, как
+        // CHECK/SPEED/HOT, общая нижняя кнопка тут не участвует (см.
+        // её скрытие ниже, рядом с CHECK).
+        return <TypeFracTrick question={question} onAnswer={onAnswer} />
 
-        case "SPEED":
-          return <TypeSpeed question={question} onAnswer={onAnswer} />
+      case "CONNECT":
+        return <TypeConnect question={question} onAnswer={onAnswer} onAllPairsMatched={handleAllPairsMatched} />
 
-        case "FRACTRICK":
-          // Двухэтапный: сам компонент владеет обоими подтверждениями
-          // (этап 1 — переписать decimal дробью, этап 2 — посчитать
-          // реальный результат) и зовёт onAnswer('right'/'wrong') только
-          // ОДИН раз, по итогу второго этапа — самодостаточный тип, как
-          // CHECK/SPEED/HOT, общая нижняя кнопка тут не участвует (см.
-          // её скрытие ниже, рядом с CHECK).
-          return <TypeFracTrick question={question} onAnswer={onAnswer} />
+      case "MULTISTEP":
+        return <TypeMultistep question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
 
-        case "CONNECT":
-          return <TypeConnect question={question} onAnswer={onAnswer} onAllPairsMatched={handleAllPairsMatched} />
+      // MEMORY отключён (пользователь: "душный" тип, не вызывает приятных
+      // эмоций) — компонент type-memory.tsx оставлен нетронутым в
+      // репозитории (красиво реализован, может понадобится переосмыслить
+      // позже), просто больше не рендерится и не входит в ACStype в page.tsx.
 
-        case "MULTISTEP":
-          return <TypeMultistep question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
+      case "WORKBOOK":
+        return <TypeWorkbook question={question.question} options={question.options} />
 
-        // MEMORY отключён (пользователь: "душный" тип, не вызывает приятных
-        // эмоций) — компонент type-memory.tsx оставлен нетронутым в
-        // репозитории (красиво реализован, может понадобится переосмыслить
-        // позже), просто больше не рендерится и не входит в ACStype в page.tsx.
+      case "RUSSIANDICTANT":
+        return <TypeRussianDictant question={question} onAnswer={onAnswer} />
 
-        case "WORKBOOK":
-          return <TypeWorkbook question={question.question} options={question.options} />
+      case "SWIPE":
+        return <TypeSwipeV2 question={question} onAnswer={onAnswer} />
 
-        case "RUSSIANDICTANT":
-          return <TypeRussianDictant question={question} onAnswer={onAnswer} />
+      case "GEOSIN":
+        return renderGeosinContent()
 
-        case "SWIPE":
-          return <TypeSwipeV2 question={question} onAnswer={onAnswer} />
+      default:
+        return <TypeConstructor question={question} onAnswer={onAnswer} />
+    }
+  };
 
-        case "GEOSIN":
-          return renderGeosinContent()
+  const renderGeosinContent = () => {
+    switch (question.difficulty) {
+      case '1':
+        return <TypeAssistTRIANGLEgdeKatet
+          threeCoordinates={triangleGdeKatet[7].coords}
+          answer={triangleGdeKatet[7].answer}
+          onAnswer={onAnswer}
+        />
 
-        default:
-          return <TypeConstructor question={question} onAnswer={onAnswer} />
-      }
-    };
+      case '2':
+        return <TypeAssistTRIANGLEgdeProtivKatet
+          threeCoordinates={triangleGdeProtivKatet[7].coords}
+          xCoordinates={triangleGdeProtivKatet[7].xCoord}
+          answer={triangleGdeProtivKatet[7].answer}
+          onAnswer={onAnswer}
+          arcSVG="M 440,42 Q 420,80 460,92"
+        />
 
-    const renderGeosinContent = () => {
-      switch (question.difficulty) {
-        case '1':
-          return <TypeAssistTRIANGLEgdeKatet
-            threeCoordinates={triangleGdeKatet[7].coords}
-            answer={triangleGdeKatet[7].answer}
-            onAnswer={onAnswer}
-          />
+      case '3':
+        return <TypeAssistTRIANGLEsincostg
+          threeCoordinates={triangleGdeSinCosTg[2].coords}
+          xCoordinates={[triangleGdeSinCosTg[2].xCoord[0], triangleGdeSinCosTg[2].xCoord[1] - 0.09]}
+          answer={triangleGdeSinCosTg[2].answer}
+          onAnswer={onAnswer}
+          variant='sin'
+        />
 
-        case '2':
-          return <TypeAssistTRIANGLEgdeProtivKatet
-            threeCoordinates={triangleGdeProtivKatet[7].coords}
-            xCoordinates={triangleGdeProtivKatet[7].xCoord}
-            answer={triangleGdeProtivKatet[7].answer}
-            onAnswer={onAnswer}
-            arcSVG="M 440,42 Q 420,80 460,92"
-          />
+      case '4':
+        return <TypeAssistTRIANGLETable
+          ButtonList={ButtonList}
+          onAnswer={onAnswer}
+        />
 
-        case '3':
-          return <TypeAssistTRIANGLEsincostg
-            threeCoordinates={triangleGdeSinCosTg[2].coords}
-            xCoordinates={[triangleGdeSinCosTg[2].xCoord[0], triangleGdeSinCosTg[2].xCoord[1] - 0.09]}
-            answer={triangleGdeSinCosTg[2].answer}
-            onAnswer={onAnswer}
-            variant='sin'
-          />
+      case '5':
+        return <TypeAssistTRIANGLEformGip
+          threeCoordinates={triangleGdeSinCosTg[2].coords}
+          xCoordinates={[triangleGdeSinCosTg[2].xCoord[0], triangleGdeSinCosTg[2].xCoord[1] - 0.09]}
+          answer={triangleGdeSinCosTg[2].answer}
+          onAnswer={onAnswer}
+          variant='sin'
+        />
 
-        case '4':
-          return <TypeAssistTRIANGLETable
-            ButtonList={ButtonList}
-            onAnswer={onAnswer}
-          />
-
-        case '5':
-          return <TypeAssistTRIANGLEformGip
-            threeCoordinates={triangleGdeSinCosTg[2].coords}
-            xCoordinates={[triangleGdeSinCosTg[2].xCoord[0], triangleGdeSinCosTg[2].xCoord[1] - 0.09]}
-            answer={triangleGdeSinCosTg[2].answer}
-            onAnswer={onAnswer}
-            variant='sin'
-          />
-
-        default:
-          return null
-      }
-    };
-
-    // Собираем всё вместе
-    return (
-      <>
-        {renderQuestionHeader()}
-        {renderFormulaIcon()}
-        {renderImage()}
-        {renderMainContent()}
-      </>
-    );
+      default:
+        return null
+    }
   };
 
   const getButtonColor = () => {
@@ -468,14 +445,14 @@ export default function TrainerQuestion({
           и синхронно убирает старый DOM-узел через React, не полагаясь
           на завершение чужой анимации — остаётся только анимация входа. */}
         <motion.div
-          className="flex-1 overflow-y-auto px-4 pb-3"
+          className="flex-1 overflow-y-auto px-4 pb-3 flex flex-col"
           key={`${roundKey}-${questions.indexOf(question)}`}
           initial={{ opacity: 0, x: 100 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, ease: "easeInOut" }}
         >
         {/* Маскот — компактнее (см. TrainerMascot.tsx), меньше отступ снизу */}
-        <div className="mb-1">
+        <div className="mb-1 shrink-0">
           <TrainerMascot
             emotion={mascotEmotion}
             lottieAnimations={{
@@ -496,9 +473,18 @@ export default function TrainerQuestion({
           />
         </div>
 
-        {/* Вопрос и варианты ответов */}
-        <div className="px-1 py-2">
-          {renderQuestionContent()}
+        {/* Иконка/картинка задачи — у верхнего края, сразу под облаком */}
+        <div className="shrink-0 px-1">
+          {renderFormulaIcon()}
+          {renderImage()}
+        </div>
+
+        {/* Варианты ответа — по просьбе пользователя расположены примерно
+            посередине оставшегося пространства между картинкой и кнопкой
+            "ответить" внизу (раньше просто лепились сразу под картинкой,
+            оставляя много пустого места ниже). */}
+        <div className="flex-1 flex flex-col justify-center px-1 py-2 min-h-0">
+          {renderMainContent()}
         </div>
         </motion.div>
 
