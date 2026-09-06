@@ -86,6 +86,14 @@ type Props = {
     // Урок, в котором пользователь последний раз решал задачи в этом курсе —
     // над ним показываем плашку "Продолжить".
     isLastTouched?: boolean;
+    // ПИЛОТ — узнаваемая тема урока вместо абстрактной звезды/черепа
+    // (см. unit.tsx). topicIconSrc — иллюстрация первой задачи урока
+    // (уже существующий SVG, ничего нового не генерируем), topicGlyph —
+    // короткий формульный символ для уроков без иллюстраций (тема
+    // "Простейшие уравнения"). Если оба пусты — старое поведение
+    // (Star/Crown/Skull/Cake по index/last), без изменений.
+    topicIconSrc?: string | null;
+    topicGlyph?: string | null;
 }
 
 export const LessonButton = ({
@@ -111,6 +119,8 @@ export const LessonButton = ({
     correctChallenges = 0,
     challengesNeeded = 4,
     isLastTouched = false,
+    topicIconSrc = null,
+    topicGlyph = null,
 }: Props) => {
 
     // Проверяем, есть ли в этом уроке нерешенные задачи из ДЗ и/или челленджа дня
@@ -287,10 +297,27 @@ export const LessonButton = ({
                                 borderColor: locked ? LOCKED_BUTTON_BOTTOM_COLOR : unitColor.bottom,
                             }}
                         >
-                            <Icon
-                                className="h-10 w-10 fill-current stroke-current"
-                                style={{ color: locked ? LOCKED_ICON_COLOR : ACTIVE_ICON_COLOR }}
-                            />
+                            {topicIconSrc ? (
+                                <Image
+                                    src={topicIconSrc}
+                                    alt=""
+                                    width={40}
+                                    height={40}
+                                    className="h-10 w-10 object-contain"
+                                />
+                            ) : topicGlyph ? (
+                                <span
+                                    className="italic font-extrabold text-xl select-none"
+                                    style={{ color: locked ? LOCKED_ICON_COLOR : ACTIVE_ICON_COLOR }}
+                                >
+                                    {topicGlyph}
+                                </span>
+                            ) : (
+                                <Icon
+                                    className="h-10 w-10 fill-current stroke-current"
+                                    style={{ color: locked ? LOCKED_ICON_COLOR : ACTIVE_ICON_COLOR }}
+                                />
+                            )}
 
                             {isHwNumber > 0 && (
                                 <Image

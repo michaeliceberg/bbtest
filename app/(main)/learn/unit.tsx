@@ -62,6 +62,53 @@ type Props = {
 // Количество задач, необходимых для открытия следующего урока
 const CHALLENGES_TO_UNLOCK_NEXT_LESSON = 4;
 
+// ПИЛОТ (по просьбе пользователя, см. CLAUDE.md) — маленькая картинка/
+// формула вместо абстрактной звезды/черепа на кружке урока, чтобы тема
+// узнавалась визуально, а не только по тексту. Пока только на двух
+// юнитах для проверки идеи: "6. Простейшие уравнения" (юнит 91 — короткий
+// формульный глиф вручную по названию урока) и "1. Планиметрия" (юнит 92).
+//
+// Для юнита 92 ПЕРВАЯ версия пилота переиспользовала иллюстрацию первой
+// задачи урока как есть (никаких новых ассетов) — но живая проверка
+// показала, что настоящие иллюстрации задач (сетка, подписанные точки
+// A/B/C/D, тонкие линии) при сжатии до ~40px превращаются в нечитаемое
+// синее пятно, одинаковое на вид для любой фигуры. Заменено на набор
+// простых силуэтных иконок без сетки/подписей (public/geometry/
+// topic-icons/*.svg, жирный белый контур на прозрачном фоне — тот же
+// ACTIVE_ICON_COLOR, что и у обычных Star/Crown) — они узнаются
+// значительно лучше в размере кружка урока.
+const TOPIC_GLYPH_BY_TITLE: Record<string, string> = {
+    "Показательные уравнения": "aˣ",
+    "Логарифмические уравнения": "log",
+    "Иррациональные уравнения": "√x",
+    "Линейные уравнения": "x",
+    "Квадратные уравнения": "x²",
+    "Уравнения вида (x+a)^n=b": "(x+a)ⁿ",
+    "Рациональные уравнения": "⅟ₓ",
+    "Тригонометрические уравнения": "sin",
+};
+const TOPIC_ICON_BY_TITLE: Record<string, string> = {
+    "Прямоугольник: периметр, площадь, диагональ": "rectangle",
+    "Параллелограмм и ромб: площадь через синус угла": "parallelogram",
+    "Ромб: площадь и диагонали": "rhombus",
+    "Углы и биссектрисы параллелограмма": "parallelogram",
+    "Средняя линия и точки на сторонах: площадь части фигуры": "triangle_generic",
+    "Центральные и вписанные углы": "circle_angles",
+    "Касательная, хорда, секущая": "circle_tangent",
+    "Трапеция": "trapezoid",
+    "Прямоугольный треугольник: тригонометрические отношения": "right_triangle",
+    "Прямоугольный треугольник: высота на гипотенузу": "right_triangle_altitude",
+    "Прямоугольный треугольник: биссектриса, медиана, высота из прямого угла": "right_triangle_cevians",
+    "Прямоугольный треугольник: площадь и углы": "right_triangle",
+    "Равнобедренный треугольник: сторона по синусу/косинусу угла": "isosceles_triangle",
+    "Треугольник: площадь, средняя линия, высоты — быстрые факты": "triangle_generic",
+    "Внешний угол треугольника": "triangle_exterior",
+    "Углы треугольника по отношению": "triangle_generic",
+    "Вписанная окружность в четырёхугольник": "incircle_quad",
+    "Вписанная окружность в треугольник": "incircle_triangle",
+    "Вписанный четырёхугольник и углы, опирающиеся на дуги": "cyclic_quad",
+};
+
 export const Unit = ({
     id,
     unitIndex,
@@ -175,6 +222,10 @@ export const Unit = ({
                         (a, b) => a.dueDate.getTime() - b.dueDate.getTime()
                     )[0] ?? null;
 
+                    const topicGlyph = TOPIC_GLYPH_BY_TITLE[lesson.title] ?? null;
+                    const topicIconKey = TOPIC_ICON_BY_TITLE[lesson.title];
+                    const topicIconSrc = topicIconKey ? `/geometry/topic-icons/${topicIconKey}.svg` : null;
+
                     return (
                         <LessonButton
                             key={lesson.id}
@@ -185,6 +236,8 @@ export const Unit = ({
                             current={isCurrent}
                             locked={isLessonLocked}
                             title={lesson.title}
+                            topicGlyph={topicGlyph}
+                            topicIconSrc={topicIconSrc}
                             lessonStat={lessonStat}
                             missedCIds={missedCIds}
                             dailyMissedCIds={dailyMissedCIds}
