@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 205" width="392" height="287">
+<rect x="0" y="0" width="280" height="205" fill="#151F23"/>
+<line x1="35.00" y1="108.00" x2="245.00" y2="100.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9,5"/>
+<line x1="140.00" y1="20.00" x2="35.00" y2="108.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="140.00" y1="20.00" x2="245.00" y2="100.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="140.00" y1="20.00" x2="140.00" y2="185.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="140.00" y1="185.00" x2="35.00" y2="108.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="140.00" y1="185.00" x2="245.00" y2="100.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="87.50,64.00 192.50,60.00 192.50,142.50 87.50,146.50" fill="#7dd3fc" fill-opacity="0.28" stroke="none"/>
+<line x1="87.50" y1="64.00" x2="192.50" y2="60.00" stroke="#7dd3fc" stroke-width="2.40" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="192.50" y1="60.00" x2="192.50" y2="142.50" stroke="#7dd3fc" stroke-width="2.40" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="192.50" y1="142.50" x2="87.50" y2="146.50" stroke="#7dd3fc" stroke-width="2.40" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="87.50" y1="146.50" x2="87.50" y2="64.00" stroke="#7dd3fc" stroke-width="1.87" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9,5"/>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 200" width="308" height="280">
+<rect x="0" y="0" width="220" height="200" fill="#151F23"/>
+<line x1="30.00" y1="125.00" x2="192.00" y2="112.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9,5"/>
+<line x1="30.00" y1="125.00" x2="148.00" y2="178.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="192.00" y1="112.00" x2="148.00" y2="178.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="110.00" y1="25.00" x2="30.00" y2="125.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="110.00" y1="25.00" x2="192.00" y2="112.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="110.00" y1="25.00" x2="148.00" y2="178.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="82.00,60.00 148.00,178.00 192.00,112.00" fill="#7dd3fc" fill-opacity="0.28" stroke="none"/>
+<text x="105.00" y="15.00" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">S</text>
+<text x="14.00" y="129.00" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">A</text>
+<text x="200.00" y="110.00" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">C</text>
+<text x="150.00" y="198.00" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">B</text>
+<line x1="82.00" y1="60.00" x2="148.00" y2="178.00" stroke="#7dd3fc" stroke-width="2.40" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="82.00" y1="60.00" x2="192.00" y2="112.00" stroke="#7dd3fc" stroke-width="2.40" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="66.00" y="62.00" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">P</text>
+</svg>

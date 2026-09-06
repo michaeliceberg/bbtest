@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 200" width="392" height="280">
+<rect x="0" y="0" width="280" height="200" fill="#151F23"/>
+<line x1="68.00" y1="118.00" x2="108.00" y2="92.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9,5"/>
+<line x1="108.00" y1="92.00" x2="172.00" y2="92.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9,5"/>
+<line x1="172.00" y1="92.00" x2="212.00" y2="118.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9,5"/>
+<line x1="212.00" y1="118.00" x2="198.00" y2="178.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="198.00" y1="178.00" x2="82.00" y2="178.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="82.00" y1="178.00" x2="68.00" y2="118.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="140.00" y1="22.00" x2="68.00" y2="118.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="140.00" y1="22.00" x2="82.00" y2="178.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="140.00" y1="22.00" x2="198.00" y2="178.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="140.00" y1="22.00" x2="212.00" y2="118.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="140.00" y1="22.00" x2="172.00" y2="92.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9,5"/>
+<line x1="140.00" y1="22.00" x2="108.00" y2="92.00" stroke="#F2F7FB" stroke-width="2.20" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9,5"/>
+<text x="135.00" y="12.00" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">S</text>
+<text x="52.00" y="120.00" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">A</text>
+<text x="74.00" y="196.00" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">B</text>
+<text x="202.00" y="196.00" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">C</text>
+<text x="220.00" y="120.00" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">D</text>
+<text x="178.00" y="86.00" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">E</text>
+<text x="92.00" y="86.00" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#F2F7FB">F</text>
+<polygon points="140.00,22.00 68.00,118.00 82.00,178.00 198.00,178.00" fill="#7dd3fc" fill-opacity="0.22" stroke="none"/>
+<line x1="140.00" y1="22.00" x2="68.00" y2="118.00" stroke="#7dd3fc" stroke-width="2.40" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="140.00" y1="22.00" x2="82.00" y2="178.00" stroke="#7dd3fc" stroke-width="2.40" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="140.00" y1="22.00" x2="198.00" y2="178.00" stroke="#7dd3fc" stroke-width="2.40" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="68.00" y1="118.00" x2="82.00" y2="178.00" stroke="#7dd3fc" stroke-width="2.40" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="82.00" y1="178.00" x2="198.00" y2="178.00" stroke="#7dd3fc" stroke-width="2.40" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
