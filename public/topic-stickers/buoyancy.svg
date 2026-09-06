@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200">
+<style>
+text { font-family: Nunito, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #F2F7FB; }
+
+@keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes ripple { 0%,100% { transform: scaleX(1); } 50% { transform: scaleX(1.04); } }
+@keyframes pulseArrow { 0%,100% { opacity:.5; transform: scaleY(.85); } 50% { opacity:1; transform: scaleY(1.05); } }
+.ball { animation: bob 1.8s ease-in-out infinite; transform-origin: 80px 95px; }
+.surface { animation: ripple 2.4s ease-in-out infinite; transform-origin: 80px 62px; }
+.arrow { animation: pulseArrow 1.8s ease-in-out infinite; transform-origin: 80px 150px; }
+
+</style>
+
+<rect x="20" y="65" width="120" height="90" rx="6" fill="#5AA9E6" opacity=".35"/>
+<rect x="20" y="65" width="120" height="90" rx="6" fill="none" stroke="#2E6DA4" stroke-width="3"/>
+<path class="surface" d="M 20 65 Q 40 58 60 65 T 100 65 T 140 65" fill="none" stroke="#2E6DA4" stroke-width="3" stroke-linecap="round"/>
+<g class="ball">
+  <ellipse cx="80" cy="95" rx="30" ry="28" fill="#96A3AF"/>
+  <ellipse cx="70" cy="86" rx="9" ry="6" fill="#C9D3DC" opacity=".5"/>
+</g>
+<g class="arrow">
+  <line x1="80" y1="155" x2="80" y2="122" stroke="#FF8C42" stroke-width="7" stroke-linecap="round"/>
+  <path d="M 66 128 L 80 108 L 94 128 Z" fill="#FF8C42"/>
+</g>
+
+</svg>

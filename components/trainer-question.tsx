@@ -451,8 +451,12 @@ export default function TrainerQuestion({
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, ease: "easeInOut" }}
         >
-        {/* Маскот — компактнее (см. TrainerMascot.tsx), меньше отступ снизу */}
-        <div className="mb-1 shrink-0">
+        {/* Маскот — компактнее (см. TrainerMascot.tsx), меньше отступ снизу.
+            "Картинка темы" (topicSticker, см. lib/topicStickers.ts) — гиря
+            для силы тяжести, пружина для упругости и т.п. — поставлена
+            СПРАВА в ТОЙ ЖЕ строке, а не отдельным блоком ниже: не отнимает
+            ни пикселя дополнительной высоты у и так тесной карточки. */}
+        <div className="mb-1 shrink-0 flex items-center justify-between gap-2">
           <TrainerMascot
             emotion={mascotEmotion}
             lottieAnimations={{
@@ -471,6 +475,17 @@ export default function TrainerQuestion({
                 : undefined
             }
           />
+          {question.topicSticker && (
+            <Image
+              key={question.topicSticker}
+              className="shrink-0"
+              src={`/topic-stickers/${question.topicSticker}.svg`}
+              alt=""
+              width={72}
+              height={90}
+              style={{ width: 'clamp(56px, 16vw, 72px)', height: 'auto' }}
+            />
+          )}
         </div>
 
         {/* Иконка/картинка задачи — у верхнего края, сразу под облаком */}

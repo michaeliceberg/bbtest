@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 import { Shuffle2, ShuffleTS } from "@/usefulFunctions"
 import { pickInsertBlank, corruptFormulaLetter, extractLetterCandidates } from "@/lib/formulaLetters"
 import { getFormulaIconKey } from "@/lib/formulaIcons"
+import { getTopicSticker } from "@/lib/topicStickers"
 import TQuiz from "@/app/t-lesson/[t_lessonId]/TQUIZ"
 import { allTypesCT } from "@/db/schema";
 
@@ -109,6 +110,11 @@ export type QuestionType = {
     multistepSteps?: MultistepStep[],
     // Только для FRACTRICK — см. FracTrickVisual выше.
     fracTrick?: FracTrickVisual,
+    // "Картинка темы" (public/topic-stickers/*.svg) — гиря для силы
+    // тяжести, пружина для упругости и т.п., см. lib/topicStickers.ts.
+    // Не подобрано для каждой задачи — undefined, если сопоставление
+    // неоднозначно (например голое "P" без формулы рядом).
+    topicSticker?: string,
 }
 
 type Props = {
@@ -416,6 +422,15 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // .map() после (см. ниже) — так не пришлось трогать ни одну из веток
     // ASSIST/INSERT/SWIPE/SCROLL/CONNECT ниже.
     const contentTiers = lessonChallenges.map((c) => looksLikeFormula(c.t_challengeOptions[0]?.text || '') ? 1 : 0);
+
+    // "Картинка темы" (см. lib/topicStickers.ts) — тот же приём index-
+    // выровненного массива, что и у contentTiers выше: считаем по
+    // ИСХОДНОМУ t_challenge (вопрос+варианты) ДО основного .map(), клеим
+    // вторым проходом ниже — не трогая ни одну из веток рендер-типов.
+    const topicStickers = lessonChallenges.map((c) => getTopicSticker({
+        question: c.question,
+        t_challengeOptions: c.t_challengeOptions.map((o) => ({ text: o.text, correct: o.correct })),
+    }));
 
     // Гарантированный INSERT — раньше стиль рендера выбирался чисто
     // случайно (WEIGHTED_ASC_POOL) НЕЗАВИСИМО для каждой задачи, поэтому
@@ -967,7 +982,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 timeLimit: 25,
             };
         }
-    }).map((q, idx): QuestionType | undefined => q ? { ...q, contentTier: contentTiers[idx] } : q)
+    }).map((q, idx): QuestionType | undefined => q ? { ...q, contentTier: contentTiers[idx], topicSticker: topicStickers[idx] ?? undefined } : q)
       .filter((q): q is QuestionType => q !== undefined);
 
     // Реально увеличиваем число заданий INSERT (явная просьба
@@ -990,11 +1005,16 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         const usedLetterSets = insertLetterSetsByChallenge.get(t_challenge.id) ?? new Set<string>();
         insertLetterSetsByChallenge.set(t_challenge.id, usedLetterSets);
 
+        const extraSticker = getTopicSticker({
+            question: t_challenge.question,
+            t_challengeOptions: t_challenge.t_challengeOptions.map((o) => ({ text: o.text, correct: o.correct })),
+        }) ?? undefined;
+
         const single = buildInsertQuestion(t_challenge, false, usedLetterSets);
-        if (single) extraInsertCandidates.push({ ...single, contentTier: 1 });
+        if (single) extraInsertCandidates.push({ ...single, contentTier: 1, topicSticker: extraSticker });
 
         const double = buildInsertQuestion(t_challenge, true, usedLetterSets);
-        if (double) extraInsertCandidates.push({ ...double, contentTier: 1 });
+        if (double) extraInsertCandidates.push({ ...double, contentTier: 1, topicSticker: extraSticker });
     }
     questions = [...questions, ...getRandomElements(extraInsertCandidates, MAX_EXTRA_INSERT)];
 
