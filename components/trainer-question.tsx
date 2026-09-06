@@ -451,12 +451,8 @@ export default function TrainerQuestion({
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, ease: "easeInOut" }}
         >
-        {/* Маскот — компактнее (см. TrainerMascot.tsx), меньше отступ снизу.
-            "Картинка темы" (topicSticker, см. lib/topicStickers.ts) — гиря
-            для силы тяжести, пружина для упругости и т.п. — поставлена
-            СПРАВА в ТОЙ ЖЕ строке, а не отдельным блоком ниже: не отнимает
-            ни пикселя дополнительной высоты у и так тесной карточки. */}
-        <div className="mb-1 shrink-0 flex items-center justify-between gap-2">
+        {/* Маскот — компактнее (см. TrainerMascot.tsx), меньше отступ снизу */}
+        <div className="mb-1 shrink-0">
           <TrainerMascot
             emotion={mascotEmotion}
             lottieAnimations={{
@@ -475,23 +471,26 @@ export default function TrainerQuestion({
                 : undefined
             }
           />
-          {question.topicSticker && (
-            <Image
-              key={question.topicSticker}
-              className="shrink-0"
-              src={`/topic-stickers/${question.topicSticker}.svg`}
-              alt=""
-              width={72}
-              height={90}
-              style={{ width: 'clamp(56px, 16vw, 72px)', height: 'auto' }}
-            />
-          )}
         </div>
 
-        {/* Иконка/картинка задачи — у верхнего края, сразу под облаком */}
+        {/* Иконка/картинка задачи — сразу под облаком, крупно (это и есть
+            основная картинка вопроса, а не мелкий значок сбоку от маскота,
+            как было раньше) — варианты ответа ниже сами займут остаток
+            места до кнопки "ответить" (см. justify-center на контейнере
+            вариантов). */}
         <div className="shrink-0 px-1">
           {renderFormulaIcon()}
           {renderImage()}
+          {question.topicSticker && (
+            <Image
+              key={question.topicSticker}
+              className="mx-auto w-full max-w-[220px] h-auto max-h-[34vh] object-contain"
+              src={`/topic-stickers/${question.topicSticker}.svg`}
+              alt=""
+              width={220}
+              height={275}
+            />
+          )}
         </div>
 
         {/* Варианты ответа — по просьбе пользователя расположены примерно
