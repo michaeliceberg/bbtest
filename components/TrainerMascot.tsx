@@ -89,10 +89,8 @@ export const TrainerMascot = ({
   }
 
   return (
-    <div className="flex flex-row items-center gap-3">
-      {/* Талисман — уменьшен по прямой просьбе пользователя: занимал
-          слишком много места по вертикали, из-за чего остальной контент
-          вопроса (особенно крупные картинки-диаграммы) уезжал вниз. */}
+    <div className="flex flex-row items-center gap-4">
+      {/* Талисман — крупнее по просьбе пользователя (было w-10/w-12) */}
       <motion.div
         animate={{
           scale: emotion === "celebrating" ? [1, 1.15, 1] : 1,
@@ -109,13 +107,15 @@ export const TrainerMascot = ({
         <Lottie
           animationData={getLottieData()}
           loop={emotion === "thinking" || emotion === "waiting"}
-          className="w-10 h-10 md:w-12 md:h-12"
+          className="w-16 h-16 md:w-20 md:h-20"
         />
       </motion.div>
 
-      {/* Сообщение справа от талисмана — key только на текст (не на
-          emotion+текст), чтобы переход thinking→waiting с ОДНИМ и тем же
-          taskMessage не перезапускал анимацию появления зря */}
+      {/* Облако сообщения — занимает всё оставшееся место в строке
+          (flex-1) и текст крупнее, вместо узкой фиксированной пилюли,
+          чтобы было удобнее читать текст задания. key только на текст
+          (не на emotion+текст), чтобы переход thinking→waiting с ОДНИМ и
+          тем же taskMessage не перезапускал анимацию появления зря */}
       <AnimatePresence mode="wait">
         {isMessageVisible && currentMessage && (
           <motion.div
@@ -124,9 +124,9 @@ export const TrainerMascot = ({
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className="relative px-3 py-1.5 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E] max-w-[220px] sm:max-w-xs"
+            className="relative flex-1 min-w-0 px-4 py-3 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]"
           >
-            <span className="text-[#F2F7FB] font-bold text-xs whitespace-normal break-words">
+            <span className="text-[#F2F7FB] font-bold text-base md:text-lg whitespace-normal break-words">
               <Latex>{currentMessage}</Latex>
             </span>
             {/* Стрелка слева, указывающая влево < */}
