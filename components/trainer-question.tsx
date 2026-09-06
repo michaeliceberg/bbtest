@@ -235,13 +235,17 @@ export default function TrainerQuestion({
     // Рендерим изображение
     const renderImage = () => {
       if (question.imageSrc && question.imageSrc !== '0') {
+        // 90×90 (было изначально) слишком мелко для диаграмм прямоугольного
+        // треугольника (тема "Геометрия 9" — метки α/?/c/b на них теряются
+        // при таком масштабе) — этот слот раньше не использовался реальным
+        // контентом, увеличение безопасно.
         return (
           <Image
             className="pt-8 mx-auto"
             src={`/trainer-images/${question.imageSrc}`}
             alt='triangle'
-            height={90}
-            width={90}
+            height={190}
+            width={190}
           />
         );
       }

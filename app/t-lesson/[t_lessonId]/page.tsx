@@ -599,6 +599,32 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             };
         }
 
+        // DIAGRAM — картинка (прямоугольный треугольник и т.п.) + СВОИ
+        // собственные t_challengeOptions напрямую, БЕЗ обычного механизма
+        // "обманки из соседей по уроку" (buildAssistQuestion/isEligibleSibling
+        // ниже) — тому механизму нужно, чтобы у соседних задач совпадал
+        // текст-ответ с чем-то осмысленным для пула, а здесь варианты это
+        // 4 конкретные формулы одного и того же вида (например c·cosα /
+        // c·sinα / c/sinα / c/cosα) — их не собрать из ответов ДРУГИХ задач
+        // урока (там своих 2 значения от силы, не 4). Рендерится тем же
+        // готовым ASSIST-компонентом (картинка+варианты уже поддерживаются
+        // trainer-question.tsx), просто options строятся из САМОЙ задачи.
+        if (t_challenge.type === 'DIAGRAM') {
+            return {
+                questionType: 'ASSIST' as const,
+                question: t_challenge.question,
+                imageSrc: t_challenge.imageSrc,
+                options: Shuffle2(t_challenge.t_challengeOptions.map((o) => o.text)),
+                numRans: '1',
+                optionsQ: [],
+                optionsA: [],
+                optionsConstructRight: [],
+                difficulty: t_challenge.difficulty,
+                correctAnswer: getCorrectAnswerText(t_challenge),
+                timeLimit: 40,
+            };
+        }
+
         if (isMAscLike(t_challenge.type)) {
             // M_ASC — случайный стиль рендера (кроме той ОДНОЙ задачи,
             // которой гарантирован INSERT — см. guaranteedInsertChallengeId

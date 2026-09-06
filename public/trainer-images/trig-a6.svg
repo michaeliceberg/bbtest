@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+<line x1="120.0" y1="120.0" x2="53.6" y2="175.7" stroke="#7dd3fc" stroke-width="4.5" stroke-linecap="round"/>
+<line x1="120.0" y1="120.0" x2="163.5" y2="171.9" stroke="#F0B23D" stroke-width="5" stroke-linecap="round"/>
+<line x1="53.6" y1="175.7" x2="163.5" y2="171.9" stroke="#7dd3fc" stroke-width="4.5" stroke-linecap="round"/>
+<polyline points="109.3,129.0 118.3,139.7 129.0,130.7" fill="none" stroke="#7dd3fc" stroke-width="3"/>
+<path d="M 73.5 159.0 A 26 26 0 0 1 79.6 174.8" fill="none" stroke="#F2F7FB" stroke-width="2.5"/>
+<text x="92.8" y="160.7" font-family="Georgia, serif" font-style="italic" font-size="18" fill="#F2F7FB" text-anchor="middle" dominant-baseline="middle">α</text>
+<circle cx="120.0" cy="120.0" r="3.5" fill="#F2F7FB"/>
+<circle cx="53.6" cy="175.7" r="3.5" fill="#F2F7FB"/>
+<circle cx="163.5" cy="171.9" r="3.5" fill="#F2F7FB"/>
+<text x="109.3" y="193.8" font-family="Georgia, serif" font-style="italic" font-weight="bold" font-size="20" fill="#F2F7FB" text-anchor="middle" dominant-baseline="middle">c</text>
+<text x="158.6" y="131.8" font-family="Georgia, serif" font-weight="bold" font-size="24" fill="#F0B23D" text-anchor="middle" dominant-baseline="middle">?</text>
+</svg>
