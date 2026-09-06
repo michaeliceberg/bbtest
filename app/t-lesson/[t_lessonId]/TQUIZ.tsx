@@ -27,11 +27,10 @@ import { TgSendMsgCom } from "../../../components/tg-send-msg-com"
 import { QuestionType } from "@/app/t-lesson/[t_lessonId]/page"
 import { createEffect, StreakEffect } from "@/lib/streakEffects"
 import { useRouter } from 'next/navigation'
-import { AnimatedHearts } from "@/components/AnimatedHearts"
 import { FINISH_AUDIO_SRC_LIST } from "@/constants"
 import { isCorrectAnswer } from "@/usefulFunctions"
 import { LOTTIE_START_LIST, LOTTIE_EMOTION_RIGHT_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
-import { X, PencilLine, Gift } from "lucide-react"
+import { PencilLine, Gift } from "lucide-react"
 import { useQuizAudio } from "@/app/hooks/useQuizAudio"
 import { reportLessonQuestSignals } from "@/actions/generate-trainer-quest"
 import { awardHotQuestionReward } from "@/actions/award-hot-question-reward"
@@ -830,19 +829,6 @@ export default function TQuiz({
             isBossStage={isBossStage}
             roundKey={roundNumber}
           />
-          <div className="mt-8">
-            <AnimatedHearts hearts={threeHearts} />
-          </div>
-          <div className="mt-4 text-center">
-            <Button
-              variant='dangerOutline'
-              className="gap-2"
-              onClick={() => window.location.href = `/trainer`}
-            >
-              <X size='18' />
-              завершить
-            </Button>
-          </div>
         </div>
       )}
     </>

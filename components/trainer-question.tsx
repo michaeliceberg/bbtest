@@ -40,6 +40,7 @@ import { X, Check, Flag } from "lucide-react"
 import { TrainerExitModal } from "@/components/modals/trainer-exit-modal"
 import { TrainerMascot } from "./TrainerMascot"
 import { TrainerBossBar } from "./trainer-boss-bar"
+import { AnimatedHearts } from "./AnimatedHearts"
 
 
 
@@ -239,7 +240,7 @@ export default function TrainerQuestion({
         // фактического viewBox самого SVG благодаря h-auto.
         return (
           <Image
-            className="pt-8 mx-auto w-full max-w-[520px] h-auto"
+            className="pt-1 mx-auto w-full max-w-[520px] h-auto max-h-[38vh] object-contain"
             src={`/trainer-images/${question.imageSrc}`}
             alt='triangle'
             height={320}
@@ -428,8 +429,11 @@ export default function TrainerQuestion({
   return (
     <div className="min-h-screen bg-[#151F24] text-[#F2F7FB] flex flex-col">
 
-      {/* Крестик и прогресс-бар (не анимируются) */}
-      <div className="px-4 py-4 flex items-center gap-4">
+      {/* Крестик, прогресс-бар и сердечки в одной строке (не анимируются).
+          Сердечки раньше рисовались отдельным блоком НИЖЕ всего вопроса
+          (в TQUIZ.tsx) — на телефоне это уводило их за пределы экрана,
+          требуя скролла. Здесь они всегда на виду, как и крестик выхода. */}
+      <div className="px-4 py-3 flex items-center gap-3">
         {/* Крестик слева */}
         <button
           onClick={() => setShowExitModal(true)}
@@ -447,6 +451,11 @@ export default function TrainerQuestion({
               backgroundColor: '#A1D151'
             }}
           />
+        </div>
+
+        {/* Сердечки справа, компактнее — только тут, вне скролящегося контента */}
+        <div className="shrink-0 [&_svg]:w-5 [&_svg]:h-5">
+          <AnimatedHearts hearts={threeHearts} />
         </div>
       </div>
 
@@ -473,14 +482,14 @@ export default function TrainerQuestion({
           и синхронно убирает старый DOM-узел через React, не полагаясь
           на завершение чужой анимации — остаётся только анимация входа. */}
         <motion.div
-          className="flex-1 overflow-y-auto px-4 pb-6"
+          className="flex-1 overflow-y-auto px-4 pb-3"
           key={`${roundKey}-${questions.indexOf(question)}`}
           initial={{ opacity: 0, x: 100 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, ease: "easeInOut" }}
         >
         {/* Маскот — компактнее (см. TrainerMascot.tsx), меньше отступ снизу */}
-        <div className="mb-3">
+        <div className="mb-1">
           <TrainerMascot
             emotion={mascotEmotion}
             lottieAnimations={{
@@ -502,7 +511,7 @@ export default function TrainerQuestion({
         </div>
 
         {/* Вопрос и варианты ответов */}
-        <div className="p-6 mb-6">
+        <div className="px-1 py-2">
           {renderQuestionContent()}
         </div>
         </motion.div>
