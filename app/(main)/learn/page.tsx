@@ -33,6 +33,7 @@ import { TrainerQuestCard } from '@/components/trainer-quest-card';
 import { getDailyQuestStatus, getRecentQuestHistory } from '@/actions/generate-trainer-quest';
 import { resolveActiveTCourse } from '@/lib/trainer-topic';
 import { Suspense } from 'react';
+import { CourseProgressStrip } from '@/components/course-progress-strip';
 
 const bgList = [
   '/bg-svg/anchors-away.svg',
@@ -367,6 +368,22 @@ const LearnPage = async () => {
             <div className='mb-4'>
               <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} />
             </div>
+
+            <CourseProgressStrip
+              units={unitsWithFormattedLessons.map((unit) => ({
+                id: unit.id,
+                title: unit.title,
+                order: unit.order,
+                // unit.percent из getCourseUnitsWithProgress — доля 0..1
+                // (lessonsWithNextUnlocked/totalLessons), не 0..100 — в
+                // отличие от одноимённого поля на /progress (там честный
+                // 0..100, посчитанный вручную по challengeProgress).
+                percent: unit.percent * 100,
+                isUnlocked: unit.isUnlocked,
+                isCompleted: unit.isCompleted,
+                firstLessonId: unit.lessons?.[0]?.id ?? null,
+              }))}
+            />
 
             {unitsWithFormattedLessons.map((unit, index) => (
               <div key={unit.id} className='mb-10'>
