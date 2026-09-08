@@ -112,7 +112,7 @@ export const TypeScroll = ({
                             disabled={showResult}
                             onClick={() => handleSelect(idx)}
                             style={{ left: TICK_POSITIONS[idx], top: 0, height: LABEL_HEIGHT }}
-                            className={`absolute -translate-x-1/2 flex items-center max-w-[92px] ${showResult ? 'cursor-default' : 'cursor-pointer'}`}
+                            className={`absolute -translate-x-1/2 flex items-center justify-center w-[92px] ${showResult ? 'cursor-default' : 'cursor-pointer'}`}
                         >
                             <motion.div
                                 animate={{
@@ -122,7 +122,7 @@ export const TypeScroll = ({
                                     scale: isSelected ? 1.05 : 1,
                                 }}
                                 transition={TRANSITION}
-                                className="px-2 py-1.5 rounded-lg border-2 text-xs leading-tight text-center break-words"
+                                className="w-full px-2 py-1.5 rounded-lg border-2 text-xs leading-tight text-center break-words"
                             >
                                 <Latex>{option}</Latex>
                             </motion.div>
