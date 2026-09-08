@@ -64,12 +64,15 @@ export const TypeVieta = ({ question, onOptionSelected, isAnswerChecked }: Props
 
     const [introDone, setIntroDone] = useState(false)
     const [values, setValues] = useState<Record<Slot, number | null>>({ x1: null, x2: null })
-    const [activeSlot, setActiveSlot] = useState<Slot>('x1')
+    // Изначально НИ x1, НИ x2 не активны (по прямой просьбе пользователя —
+    // "изначально обе кнопки бледного цвета") — ни одна не выбрана заранее,
+    // яркой становится только та, по которой реально кликнули.
+    const [activeSlot, setActiveSlot] = useState<Slot | null>(null)
 
     useEffect(() => {
         setIntroDone(!data?.quadratic)
         setValues({ x1: null, x2: null })
-        setActiveSlot('x1')
+        setActiveSlot(null)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [question])
 
@@ -88,6 +91,9 @@ export const TypeVieta = ({ question, onOptionSelected, isAnswerChecked }: Props
 
     const handlePickNumber = (num: number) => {
         if (isAnswerChecked) return
+        // Ни один слот ещё не выбран — сначала нужно кликнуть по x1 или x2
+        // (по прямой просьбе пользователя, см. activeSlot выше).
+        if (activeSlot === null) return
         if (usedNumbers.has(num) && values[activeSlot] !== num) return
         setValues((prev) => ({ ...prev, [activeSlot]: num }))
         // Автопереход на другой (ещё не заполненный) слот — тот же приём,
@@ -111,12 +117,42 @@ export const TypeVieta = ({ question, onOptionSelected, isAnswerChecked }: Props
     // Кнопка x1 или x2 — рендерится ДВАЖДЫ (по разу на каждое уравнение),
     // всегда с одним и тем же values[slot]/activeSlot, поэтому оба
     // вхождения всегда синхронны. checkedColor — вердикт КОНКРЕТНО того
-    // уравнения, в котором эта кнопка сейчас стоит (до проверки — null,
-    // тогда используется постоянный цвет слота).
+    // уравнения, в котором эта кнопка сейчас стоит (до проверки — null).
+    //
+    // Три визуальных состояния (по прямой просьбе пользователя,
+    // 2026-09-09 — раньше кнопка всегда была цветной, независимо от
+    // активности):
+    // - пусто и не активна — БЛЕДНАЯ (нейтральный серый, как обычная
+    //   невыбранная кнопка) — так выглядят ОБЕ кнопки в самом начале, ни
+    //   одна не выбрана заранее;
+    // - активна (следующий клик по числу пойдёт именно сюда) — ЯРКИЙ
+    //   цвет слота с заметной заливкой фона;
+    // - уже заполнена, но сейчас не активна (например, после автопере-
+    //   хода на другой слот) — тот же яркий цвет, но заливка светлее —
+    //   видно, что здесь уже есть ответ, не так настойчиво, как у
+    //   активной.
     const SlotButton = ({ slot, checkedColor }: { slot: Slot; checkedColor: string | null }) => {
         const val = values[slot]
         const isActive = activeSlot === slot
-        const color = checkedColor ?? slotColor(slot)
+        const bright = slotColor(slot)
+
+        let borderColor = '#3A464E'
+        let textColor = '#6B7A83'
+        let bgColor = 'transparent'
+        if (checkedColor) {
+            borderColor = checkedColor
+            textColor = checkedColor
+            bgColor = `${checkedColor}1F`
+        } else if (isActive) {
+            borderColor = bright
+            textColor = bright
+            bgColor = `${bright}26`
+        } else if (val !== null) {
+            borderColor = bright
+            textColor = bright
+            bgColor = `${bright}12`
+        }
+
         return (
             <button
                 type="button"
@@ -126,12 +162,12 @@ export const TypeVieta = ({ question, onOptionSelected, isAnswerChecked }: Props
                     'min-w-[52px] px-3 py-1 rounded-lg border-2 border-b-4 active:border-b-2 active:translate-y-0.5 font-bold transition-colors',
                     isAnswerChecked ? 'opacity-80 cursor-default' : 'cursor-pointer',
                 )}
-                style={{
-                    borderColor: color,
-                    backgroundColor: isActive && !isAnswerChecked ? `${color}26` : `${color}12`,
-                    color,
-                }}
+                style={{ borderColor, backgroundColor: bgColor, color: textColor }}
             >
+                {/* key={val} — при КАЖДОЙ смене значения ЭТОГО слота (и
+                    только его — у другого слота val/key не меняется, значит
+                    remount и bounce у него не сработает) React пересоздаёт
+                    узел и он играет entrance-анимацию заново. */}
                 <motion.span
                     key={val ?? 'empty'}
                     initial={{ scale: 0.4, opacity: 0 }}
@@ -234,7 +270,11 @@ export const TypeVieta = ({ question, onOptionSelected, isAnswerChecked }: Props
                 {data.options.map((num) => {
                     const assignedSlot: Slot | null = values.x1 === num ? 'x1' : values.x2 === num ? 'x2' : null
                     const isTakenByOther = assignedSlot !== null && assignedSlot !== activeSlot
-                    const disabled = isAnswerChecked || isTakenByOther
+                    // Ни x1, ни x2 ещё не выбраны — числа кликабельны быть
+                    // не должны (клик всё равно ничего не сделает, см.
+                    // handlePickNumber), иначе кнопка выглядела бы активной,
+                    // но молча игнорировала клик.
+                    const disabled = isAnswerChecked || isTakenByOther || activeSlot === null
                     const color = assignedSlot ? slotColor(assignedSlot) : null
 
                     return (
