@@ -59,6 +59,91 @@ const COLOR_X1 = '#4A90D9' // синий — уже основной "выбра
 const COLOR_X2 = '#EF9F27' // янтарный — уже используется в этом же файле для 'b'
 const slotColor = (slot: Slot) => (slot === 'x1' ? COLOR_X1 : COLOR_X2)
 
+// Кнопка x1 или x2 — рендерится ДВАЖДЫ (по разу на каждое уравнение), всегда
+// с одним и тем же values[slot]/activeSlot, поэтому оба вхождения всегда
+// синхронны. checkedColor — вердикт КОНКРЕТНО того уравнения, в котором эта
+// кнопка сейчас стоит (до проверки — null).
+//
+// ВАЖНО: вынесена НА ВЕРХНИЙ УРОВЕНЬ модуля, не объявлена внутри TypeVieta.
+// Раньше была вложенной функцией — из-за этого на КАЖДЫЙ рендер родителя
+// (клик по слоту, клик по числу — любое изменение state) React получал
+// НОВУЮ ссылку на функцию-компонент и считал её другим типом компонента,
+// поэтому размонтировал и заново монтировал ВСЕ 4 инстанса (x1×2 + x2×2)
+// целиком — их motion.span проигрывал entrance-анимацию заново при КАЖДОМ
+// изменении state, а не только когда реально менялось val самого этого
+// слота (баг, пойманный пользователем 2026-09-09 — bounce срабатывал у
+// обоих слотов при клике по любому из них). Стабильная ссылка на компонент
+// на уровне модуля устраняет причину: React больше не размонтирует узел
+// целиком на пустом месте, motion.span у КОНКРЕТНОГО val ремонтится только
+// когда key={val} реально меняется — то есть только когда в ЭТОТ слот
+// реально попало число.
+//
+// Пустой слот (val===null, показывает "x₁"/"x₂") — вообще БЕЗ motion.span:
+// по прямой просьбе пользователя, никакого bounce ни при клике на слот
+// (активация), ни при первом появлении на экране — только в момент, когда
+// в слот реально подставляется число.
+const SlotButton = ({
+    slot,
+    val,
+    isActive,
+    checkedColor,
+    isAnswerChecked,
+    onClick,
+}: {
+    slot: Slot
+    val: number | null
+    isActive: boolean
+    checkedColor: string | null
+    isAnswerChecked: boolean
+    onClick: (slot: Slot) => void
+}) => {
+    const bright = slotColor(slot)
+
+    let borderColor = '#3A464E'
+    let textColor = '#6B7A83'
+    let bgColor = 'transparent'
+    if (checkedColor) {
+        borderColor = checkedColor
+        textColor = checkedColor
+        bgColor = `${checkedColor}1F`
+    } else if (isActive) {
+        borderColor = bright
+        textColor = bright
+        bgColor = `${bright}26`
+    } else if (val !== null) {
+        borderColor = bright
+        textColor = bright
+        bgColor = `${bright}12`
+    }
+
+    return (
+        <button
+            type="button"
+            onClick={() => onClick(slot)}
+            disabled={isAnswerChecked}
+            className={cn(
+                'min-w-[52px] px-3 py-1 rounded-lg border-2 border-b-4 active:border-b-2 active:translate-y-0.5 font-bold transition-colors',
+                isAnswerChecked ? 'opacity-80 cursor-default' : 'cursor-pointer',
+            )}
+            style={{ borderColor, backgroundColor: bgColor, color: textColor }}
+        >
+            {val !== null ? (
+                <motion.span
+                    key={val}
+                    initial={{ scale: 0.4, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 18 }}
+                    className="inline-block"
+                >
+                    {val}
+                </motion.span>
+            ) : (
+                <span className="inline-block">{slot === 'x1' ? 'x₁' : 'x₂'}</span>
+            )}
+        </button>
+    )
+}
+
 export const TypeVieta = ({ question, onOptionSelected, isAnswerChecked }: Props) => {
     const data = question.vieta
 
@@ -113,73 +198,6 @@ export const TypeVieta = ({ question, onOptionSelected, isAnswerChecked }: Props
     const sumOk = bothFilled && values.x1! + values.x2! === data.sum
 
     const eqColor = (ok: boolean) => (!isAnswerChecked ? null : ok ? '#A1D151' : '#DC605B')
-
-    // Кнопка x1 или x2 — рендерится ДВАЖДЫ (по разу на каждое уравнение),
-    // всегда с одним и тем же values[slot]/activeSlot, поэтому оба
-    // вхождения всегда синхронны. checkedColor — вердикт КОНКРЕТНО того
-    // уравнения, в котором эта кнопка сейчас стоит (до проверки — null).
-    //
-    // Три визуальных состояния (по прямой просьбе пользователя,
-    // 2026-09-09 — раньше кнопка всегда была цветной, независимо от
-    // активности):
-    // - пусто и не активна — БЛЕДНАЯ (нейтральный серый, как обычная
-    //   невыбранная кнопка) — так выглядят ОБЕ кнопки в самом начале, ни
-    //   одна не выбрана заранее;
-    // - активна (следующий клик по числу пойдёт именно сюда) — ЯРКИЙ
-    //   цвет слота с заметной заливкой фона;
-    // - уже заполнена, но сейчас не активна (например, после автопере-
-    //   хода на другой слот) — тот же яркий цвет, но заливка светлее —
-    //   видно, что здесь уже есть ответ, не так настойчиво, как у
-    //   активной.
-    const SlotButton = ({ slot, checkedColor }: { slot: Slot; checkedColor: string | null }) => {
-        const val = values[slot]
-        const isActive = activeSlot === slot
-        const bright = slotColor(slot)
-
-        let borderColor = '#3A464E'
-        let textColor = '#6B7A83'
-        let bgColor = 'transparent'
-        if (checkedColor) {
-            borderColor = checkedColor
-            textColor = checkedColor
-            bgColor = `${checkedColor}1F`
-        } else if (isActive) {
-            borderColor = bright
-            textColor = bright
-            bgColor = `${bright}26`
-        } else if (val !== null) {
-            borderColor = bright
-            textColor = bright
-            bgColor = `${bright}12`
-        }
-
-        return (
-            <button
-                type="button"
-                onClick={() => handleSlotClick(slot)}
-                disabled={isAnswerChecked}
-                className={cn(
-                    'min-w-[52px] px-3 py-1 rounded-lg border-2 border-b-4 active:border-b-2 active:translate-y-0.5 font-bold transition-colors',
-                    isAnswerChecked ? 'opacity-80 cursor-default' : 'cursor-pointer',
-                )}
-                style={{ borderColor, backgroundColor: bgColor, color: textColor }}
-            >
-                {/* key={val} — при КАЖДОЙ смене значения ЭТОГО слота (и
-                    только его — у другого слота val/key не меняется, значит
-                    remount и bounce у него не сработает) React пересоздаёт
-                    узел и он играет entrance-анимацию заново. */}
-                <motion.span
-                    key={val ?? 'empty'}
-                    initial={{ scale: 0.4, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: 'spring', stiffness: 420, damping: 18 }}
-                    className="inline-block"
-                >
-                    {val !== null ? val : (slot === 'x1' ? 'x₁' : 'x₂')}
-                </motion.span>
-            </button>
-        )
-    }
 
     if (!introDone && data.quadratic) {
         const { a, b, c } = data.quadratic
@@ -249,16 +267,16 @@ export const TypeVieta = ({ question, onOptionSelected, isAnswerChecked }: Props
                 одной формульной конструкции, которая бы его требовала). */}
             <div className="flex flex-col items-center gap-5 text-2xl md:text-3xl font-bold text-[#F2F7FB]">
                 <div className="flex items-center gap-3">
-                    <SlotButton slot="x1" checkedColor={eqColor(productOk)} />
+                    <SlotButton slot="x1" val={values.x1} isActive={activeSlot === 'x1'} checkedColor={eqColor(productOk)} isAnswerChecked={isAnswerChecked} onClick={handleSlotClick} />
                     <span>·</span>
-                    <SlotButton slot="x2" checkedColor={eqColor(productOk)} />
+                    <SlotButton slot="x2" val={values.x2} isActive={activeSlot === 'x2'} checkedColor={eqColor(productOk)} isAnswerChecked={isAnswerChecked} onClick={handleSlotClick} />
                     <span>=</span>
                     <span style={{ color: eqColor(productOk) ?? undefined }}>{fmtPlain(data.product)}</span>
                 </div>
                 <div className="flex items-center gap-3">
-                    <SlotButton slot="x1" checkedColor={eqColor(sumOk)} />
+                    <SlotButton slot="x1" val={values.x1} isActive={activeSlot === 'x1'} checkedColor={eqColor(sumOk)} isAnswerChecked={isAnswerChecked} onClick={handleSlotClick} />
                     <span>+</span>
-                    <SlotButton slot="x2" checkedColor={eqColor(sumOk)} />
+                    <SlotButton slot="x2" val={values.x2} isActive={activeSlot === 'x2'} checkedColor={eqColor(sumOk)} isAnswerChecked={isAnswerChecked} onClick={handleSlotClick} />
                     <span>=</span>
                     <span style={{ color: eqColor(sumOk) ?? undefined }}>{fmtPlain(data.sum)}</span>
                 </div>
