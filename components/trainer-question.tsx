@@ -21,6 +21,7 @@ import { TypeMultistep } from "@/app/t-lesson/[t_lessonId]/type-multistep"
 import { TypeSpeed } from "@/app/t-lesson/[t_lessonId]/type-speed"
 import { TypeFracTrick } from "@/app/t-lesson/[t_lessonId]/type-fractrick"
 import { TypeTrigTable } from "@/app/t-lesson/[t_lessonId]/type-trigtable"
+import { TypeUnitCircle } from "@/app/t-lesson/[t_lessonId]/type-unitcircle"
 import { TypeWorkbook } from "@/app/t-lesson/[t_lessonId]/type-workbook"
 import { TypeConstructor } from "@/app/t-lesson/[t_lessonId]/type-constructor"
 
@@ -311,6 +312,16 @@ export default function TrainerQuestion({
           isAnswerCorrect={answerState === "correct"}
         />
 
+      case "UNITCIRCLE":
+        // Тот же select-then-submit контракт, что у TRIGTABLE — см.
+        // type-unitcircle.tsx.
+        return <TypeUnitCircle
+          question={question}
+          onOptionSelected={handleAssistOptionSelected}
+          isAnswerChecked={answerState === "correct" || answerState === "incorrect"}
+          isAnswerCorrect={answerState === "correct"}
+        />
+
       // MEMORY отключён (пользователь: "душный" тип, не вызывает приятных
       // эмоций) — компонент type-memory.tsx оставлен нетронутым в
       // репозитории (красиво реализован, может понадобится переосмыслить
@@ -556,7 +567,7 @@ export default function TrainerQuestion({
               // ASSIST и INSERT — двухшаговый флоу: сначала выбор варианта
               // (answerState === "selected"), потом отдельный клик "далее"/
               // "понятно" на уже проверенный ответ, без повторной отправки.
-              const isSelectThenSubmitType = question.questionType === "ASSIST" || question.questionType === "INSERT" || question.questionType === "SCROLL" || question.questionType === "PICMATCH" || question.questionType === "TRIGTABLE"
+              const isSelectThenSubmitType = question.questionType === "ASSIST" || question.questionType === "INSERT" || question.questionType === "SCROLL" || question.questionType === "PICMATCH" || question.questionType === "TRIGTABLE" || question.questionType === "UNITCIRCLE"
 
               if (isSelectThenSubmitType && answerState === "selected" && selectedAssistAnswer) {
                 onAnswer(selectedAssistAnswer)

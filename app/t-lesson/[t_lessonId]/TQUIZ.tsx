@@ -432,18 +432,21 @@ export default function TQuiz({
         || questions[currentQuestionIndex].questionType === 'SCROLL'
         || questions[currentQuestionIndex].questionType === 'PICMATCH'
         || questions[currentQuestionIndex].questionType === 'TRIGTABLE'
+        || questions[currentQuestionIndex].questionType === 'UNITCIRCLE'
 
-      // INSERT и TRIGTABLE сравниваются ровно (answer — точный собранный
-      // ответ: отсортированный набор букв у INSERT, "|||"-склеенные
-      // значения пропусков в порядке table.blanks у TRIGTABLE, см.
-      // type-insert.tsx/type-trigtable.tsx) — множественный "|"-ответ
-      // (см. usefulFunctions.isCorrectAnswer) для них не применим и не
-      // используется. Остальные select-then-submit типы (ASSIST/SCROLL) —
-      // через isCorrectAnswer, чтобы принимать любой из нескольких верных
-      // синонимов (например, "Дж" — и работа, и энергия).
+      // INSERT, TRIGTABLE и UNITCIRCLE сравниваются ровно (answer — точный
+      // собранный ответ: отсортированный набор букв у INSERT, "|||"-
+      // склеенные значения пропусков в порядке table.blanks у TRIGTABLE,
+      // отсортированные индексы выбранных точек у UNITCIRCLE — см.
+      // type-insert.tsx/type-trigtable.tsx/type-unitcircle.tsx) —
+      // множественный "|"-ответ (см. usefulFunctions.isCorrectAnswer) для
+      // них не применим и не используется. Остальные select-then-submit
+      // типы (ASSIST/SCROLL) — через isCorrectAnswer, чтобы принимать
+      // любой из нескольких верных синонимов (например, "Дж" — и работа,
+      // и энергия).
       let answerIsRight = false
       isSelectThenSubmitType
-        ? answerIsRight = (questions[currentQuestionIndex].questionType === 'INSERT' || questions[currentQuestionIndex].questionType === 'TRIGTABLE')
+        ? answerIsRight = (questions[currentQuestionIndex].questionType === 'INSERT' || questions[currentQuestionIndex].questionType === 'TRIGTABLE' || questions[currentQuestionIndex].questionType === 'UNITCIRCLE')
           ? answer === questions[currentQuestionIndex].correctAnswer
           : isCorrectAnswer(answer, questions[currentQuestionIndex].correctAnswer)
         : answerIsRight = answer === "right"

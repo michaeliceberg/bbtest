@@ -72,6 +72,27 @@ export type TrigTableData = {
     options: string[];
 };
 
+// Только для type='UNITCIRCLE' — тригонометрический круг с точками-
+// "магнитами" (см. CLAUDE.md/просьба пользователя — тренажёр на
+// расположение корней тригонометрических уравнений на окружности,
+// часть б) задания №13 ЕГЭ). Два режима:
+// - 'locate' — вопрос называет ОДИН угол (в т.ч. отрицательный или
+//   больше 2π — "где находится 3π?"), пользователь выбирает ОДНУ точку
+//   на круге (angle mod 2π должен совпасть с точкой из points).
+// - 'select' — вопрос называет уравнение ("sin x = 1/2"), пользователь
+//   отмечает ВСЕ подходящие точки (чекбоксы, 1-4 штуки).
+// points — фиксированный (обычно один и тот же для всех задач урока, но
+// не обязан быть) набор из 16 стандартных точек круга (кратные 30° +
+// нечётные кратные 45°) — label БЕЗ "$" (обёртка в самом компоненте),
+// angle — позиция в радианах [0, 2π). correctIndices — индексы (в
+// points) верных точек, ответ сравнивается как отсортированный набор
+// индексов (см. correctAnswer ниже) — порядок клика не важен.
+export type UnitCircleData = {
+    mode: 'locate' | 'select';
+    points: { label: string; angle: number }[];
+    correctIndices: number[];
+};
+
 export type QuestionType = {
     questionType: allTypesCT;
     question: string;
@@ -130,6 +151,8 @@ export type QuestionType = {
     fracTrick?: FracTrickVisual,
     // Только для TRIGTABLE — см. TrigTableData выше.
     trigTable?: TrigTableData,
+    // Только для UNITCIRCLE — см. UnitCircleData выше.
+    unitCircle?: UnitCircleData,
     // "Картинка темы" (public/topic-stickers/*.svg) — гиря для силы
     // тяжести, пружина для упругости и т.п., см. lib/topicStickers.ts.
     // Не подобрано для каждой задачи — undefined, если сопоставление
@@ -661,6 +684,34 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 correctAnswer: trigTable.blanks.map((b) => trigTable!.values[b.row][b.col]).join('|||'),
                 timeLimit: 60,
                 trigTable,
+            };
+        }
+
+        if (t_challenge.type === 'UNITCIRCLE') {
+            let unitCircle: UnitCircleData | null = null;
+            try {
+                unitCircle = t_challenge.unitCircleData ? JSON.parse(t_challenge.unitCircleData) : null;
+            } catch {
+                unitCircle = null;
+            }
+            if (!unitCircle || unitCircle.correctIndices.length === 0) return undefined;
+
+            return {
+                questionType: 'UNITCIRCLE' as const,
+                question: t_challenge.question,
+                imageSrc: t_challenge.imageSrc,
+                options: [],
+                numRans: t_challenge.numRans,
+                optionsQ: [],
+                optionsA: [],
+                optionsConstructRight: [],
+                difficulty: t_challenge.difficulty,
+                // Тот же формат точного сравнения "|||", что у TRIGTABLE/INSERT
+                // (см. type-unitcircle.tsx) — отсортированные по возрастанию
+                // индексы точек, порядок клика не важен.
+                correctAnswer: [...unitCircle.correctIndices].sort((a, b) => a - b).join('|||'),
+                timeLimit: 60,
+                unitCircle,
             };
         }
 
