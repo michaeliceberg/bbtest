@@ -141,6 +141,30 @@ export const GetTUnitStat = (
 
 }
 
+// Бейдж процента темы на карте скиллов тренажёра (topic.percentage в
+// TrainerGradeTree) раньше считался через GetTUnitStat — то есть как
+// ТОЧНОСТЬ ответов среди уже НАЧАТЫХ этапов (doneRight/(doneRight+
+// doneWrong)), полностью игнорируя, сколько этапов в теме вообще есть.
+// Из-за этого, пройдя всего 2 из 18 этапов темы, но ответив в них почти
+// без ошибок, бейдж показывал "83%" — читалось как "тема выполнена на
+// 83%", хотя реально пройдено 2/18. Здесь — честная доля РЕАЛЬНО
+// ПРОЙДЕННЫХ этапов (перешагнувших тот же порог UNLOCK_THRESHOLD=50%,
+// что красит квадратик "done" на самой карте, см. trainer-grade-tree.tsx)
+// от общего числа этапов темы, а не точность внутри начатых.
+export const GetTUnitCompletionPercent = (
+    t_lP: typeof t_lessonProgress.$inferSelect[],
+    t_lessonIds: number[],
+    threshold = 50,
+) => {
+    if (t_lessonIds.length === 0) return 0
+
+    const doneCount = t_lessonIds.filter((id) => {
+        return GetTLessonStat(t_lP, id).totalPercentDR * 100 >= threshold
+    }).length
+
+    return doneCount / t_lessonIds.length
+}
+
 
 export const NearestRound = (x: number) => {
     // const netTable = [ 0.2, 0.5, 0.7, 0.8, 1 ]

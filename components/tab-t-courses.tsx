@@ -9,7 +9,7 @@ import {
     TabsTrigger,
 } from "@/components/ui/tabs"
 import { allTypesCT, t_challengeOptions, t_lessonProgress, t_units } from "@/db/schema";
-import { GetTLessonStat, GetTUnitStat } from "@/usefulFunctions";
+import { GetTLessonStat, GetTUnitCompletionPercent } from "@/usefulFunctions";
 import 'katex/dist/katex.min.css';
 import Latex from 'react-latex-next';
 import { useEffect, useState } from "react";
@@ -247,7 +247,7 @@ export const TabTCourses = ({
                         }))
 
                         const lessonIds = t_unit.t_lessons.map((l) => l.id)
-                        const percentage = Math.round(GetTUnitStat(t_lessonProgress, lessonIds).totalPercentDR * 100)
+                        const percentage = Math.round(GetTUnitCompletionPercent(t_lessonProgress, lessonIds) * 100)
 
                         return {
                             id: t_unit.id,
