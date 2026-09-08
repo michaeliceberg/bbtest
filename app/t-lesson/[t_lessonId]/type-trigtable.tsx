@@ -165,10 +165,18 @@ export const TypeTrigTable = ({ question, onOptionSelected, isAnswerChecked }: P
 
                                     return (
                                         <td key={ci} className="p-0">
-                                            <motion.div
+                                            <div
                                                 onClick={() => isBlank && filledValue !== null && handleClearBlank(bIdx)}
                                                 className={cn(
-                                                    'flex items-center justify-center rounded-lg min-h-[38px] sm:min-h-[44px] px-1 py-0.5 text-base sm:text-lg',
+                                                    // h- (фиксированная), а не min-h- — иначе смена заполненного
+                                                    // значения с дроби (выше) на короткое число (ниже) меняла
+                                                    // высоту ЭТОЙ ячейки, а значит и всей строки/таблицы, и всё,
+                                                    // что ниже (варианты ответа),视уально "подпрыгивало" вверх.
+                                                    // Высота — под самый высокий реальный случай (дробь с корнем
+                                                    // в заполненном, с рамкой, пропуске, см. живые замеры в
+                                                    // CLAUDE.md) с небольшим запасом; короткие значения просто
+                                                    // центрируются в оставшемся месте (items-center).
+                                                    'flex items-center justify-center rounded-lg h-[54px] sm:h-[60px] px-1 py-0.5 text-base sm:text-lg',
                                                     // Уже вписанные (не-пропуск) значения — без рамки, приглушённым
                                                     // цветом: пользователь заметил, что яркая рамка на КАЖДОЙ ячейке
                                                     // (в т.ч. неактивной) только отвлекает от реальных пропусков, а
@@ -182,9 +190,25 @@ export const TypeTrigTable = ({ question, onOptionSelected, isAnswerChecked }: P
                                                 )}
                                             >
                                                 {isBlank
-                                                    ? (filledValue !== null ? <Latex>{wrap(filledValue)}</Latex> : '?')
+                                                    ? (filledValue !== null
+                                                        ? (
+                                                            // key={filledValue} — при КАЖДОЙ смене значения пропуска
+                                                            // (в т.ч. замене одного варианта на другой, не только
+                                                            // первом заполнении) React пересоздаёт узел, и он играет
+                                                            // entrance-анимацию заново — "прилетает" с лёгким
+                                                            // пружинным перехлёстом, по прямой просьбе пользователя.
+                                                            <motion.span
+                                                                key={filledValue}
+                                                                initial={{ scale: 0.3, opacity: 0 }}
+                                                                animate={{ scale: 1, opacity: 1 }}
+                                                                transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                                                            >
+                                                                <Latex>{wrap(filledValue)}</Latex>
+                                                            </motion.span>
+                                                        )
+                                                        : '?')
                                                     : <Latex>{wrap(table.values[ri][ci])}</Latex>}
-                                            </motion.div>
+                                            </div>
                                         </td>
                                     )
                                 })}
