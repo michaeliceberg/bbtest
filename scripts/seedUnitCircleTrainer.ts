@@ -162,7 +162,7 @@ const TG_EQUATIONS: { disp: string; val: number }[] = [
     { disp: "tg(x) = 0", val: 0 },
 ]
 
-const locateQuestion = (disp: string) => `Где на окружности находится точка $${disp}$?`
+const locateQuestion = (disp: string) => `Где находится $${disp}$?`
 const selectQuestion = (disp: string) => `Отметь все точки, где $${disp}$`
 
 function buildLocate(items: { disp: string; val: number }[]): Challenge[] {
