@@ -88,10 +88,32 @@ export type TrigTableData = {
 // angle — позиция в радианах [0, 2π). correctIndices — индексы (в
 // points) верных точек, ответ сравнивается как отсортированный набор
 // индексов (см. correctAnswer ниже) — порядок клика не важен.
+// 'label' — по прямой просьбе пользователя (2026-09-08): вместо "найди
+// ВСЕ точки среди всех 16" — на круге показывается пунктирная
+// направляющая (горизонтальная для sin x=a, вертикальная для cos x=a)
+// на нужном уровне, она пересекает окружность РОВНО в 1-2 точках — они
+// единственные кликабельны (реальный "radiobutton" на самой точке), а
+// остальные 14 точек в этом режиме неактивны/приглушены. Клик по точке
+// делает её активной, снизу появляется список вариантов (несколько
+// правдоподобных подписей угла) — выбор подставляет ИМЕННО этой точке
+// её собственную подпись (не общий набор "верно/неверно" на весь
+// экран — у каждой точки СВОЙ верный ответ, задача — подписать обе
+// заранее подсвеченные точки правильно).
 export type UnitCircleData = {
-    mode: 'locate' | 'select';
+    mode: 'locate' | 'select' | 'label';
     points: { label: string; angle: number }[];
     correctIndices: number[];
+    // Только для 'label' — какие индексы (в points) отмечены
+    // направляющей и какие варианты подписи предлагаются для КАЖДОЙ из
+    // них (правильный вариант — points[pointIndex].label, среди
+    // options — обязательно).
+    labelTargets?: { pointIndex: number; options: string[] }[];
+    // Только для 'label' — по какой оси идёт направляющая (sin —
+    // горизонтальная, cos — вертикальная) и на каком уровне (значение
+    // sin/cos, от -1 до 1) — используется компонентом только для
+    // рисования пунктирной линии, на проверку ответа не влияет.
+    guideAxis?: 'sin' | 'cos';
+    guideValue?: number;
 };
 
 // Только для type='VIETA' — тренажёр теоремы Виета (по прямой просьбе
@@ -739,7 +761,25 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             } catch {
                 unitCircle = null;
             }
-            if (!unitCircle || unitCircle.correctIndices.length === 0) return undefined;
+            if (!unitCircle) return undefined;
+            if (unitCircle.mode === 'label') {
+                if (!unitCircle.labelTargets || unitCircle.labelTargets.length === 0) return undefined;
+            } else if (unitCircle.correctIndices.length === 0) {
+                return undefined;
+            }
+
+            // 'label' — у каждой отмеченной точки СВОЙ верный ответ (не
+            // просто набор индексов): "pointIndex:label", отсортированные
+            // по возрастанию pointIndex и склеенные через "|||" — тот же
+            // разделитель точного сравнения, что у остальных режимов, но
+            // порядок фиксирован по индексу точки (не по клику), т.к.
+            // сравнение ключ-в-ключ, не множество.
+            const correctAnswer = unitCircle.mode === 'label'
+                ? [...unitCircle.labelTargets!]
+                    .sort((a, b) => a.pointIndex - b.pointIndex)
+                    .map((t) => `${t.pointIndex}:${unitCircle!.points[t.pointIndex].label}`)
+                    .join('|||')
+                : [...unitCircle.correctIndices].sort((a, b) => a - b).join('|||');
 
             return {
                 questionType: 'UNITCIRCLE' as const,
@@ -751,10 +791,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 optionsA: [],
                 optionsConstructRight: [],
                 difficulty: t_challenge.difficulty,
-                // Тот же формат точного сравнения "|||", что у TRIGTABLE/INSERT
-                // (см. type-unitcircle.tsx) — отсортированные по возрастанию
-                // индексы точек, порядок клика не важен.
-                correctAnswer: [...unitCircle.correctIndices].sort((a, b) => a - b).join('|||'),
+                correctAnswer,
                 timeLimit: 60,
                 unitCircle,
             };

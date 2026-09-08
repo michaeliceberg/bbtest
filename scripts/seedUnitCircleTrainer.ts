@@ -3,28 +3,28 @@
 // Новый тип UNITCIRCLE (тригонометрический круг с точками-"магнитами",
 // см. type-unitcircle.tsx) — по прямой просьбе пользователя: тренажёр на
 // расположение корней тригонометрических уравнений на окружности, часть
-// б) задания №13 ЕГЭ (примеры sdamgia problem?id=697375/697347/697406/
-// 697407 — "изобразите на тригонометрической окружности корни уравнения
-// и отберите те, что принадлежат отрезку"). Здесь — первый, более
-// простой навык-фундамент, явно описанный пользователем: (1) найти на
-// круге ОДНУ точку по названному углу (в т.ч. с приведением по модулю
-// 2π — "где находится 3π?"), и (2) отметить ВСЕ точки, соответствующие
-// простому тригонометрическому уравнению (sin/cos/tg x = a).
+// б) задания №13 ЕГЭ.
+//
+// Раунд 2 (2026-09-08) — по прямой просьбе пользователя:
+// 1) "избыточные" locate-примеры с многовитковым приведением (15π/4,
+//    17π/6 и т.п.) убраны целиком — заменены тремя чёткими уровнями:
+//    оси (π/2,π,3π/2,2π + их отрицательные формы), простые Q1/Q4
+//    (π/3,π/6,π/4 + отрицательные), Q2/Q3 (3π/4,2π/3,5π/6 + отрицательные).
+// 2) Новый режим 'label' (см. UnitCircleData в page.tsx) — вместо
+//    "отметь ВСЕ точки среди всех 16" теперь пунктирная направляющая
+//    (горизонтальная для sin x=a, вертикальная для cos x=a) заранее
+//    выделяет 1-2 точки-кандидата, и для КАЖДОЙ из них нужно выбрать
+//    правильную подпись угла из небольшого списка вариантов — заменяет
+//    старые sin/cos 'select'-уроки (tg остался как был, у тангенса нет
+//    естественной "направляющей" на самой окружности).
 //
 // Наполняем тот же t_course "Математика-11" (id=5, courseId=11 "ЕГЭ
-// Математика Профиль") — новый юнит "Тригонометрический круг", order=4
-// (следующий по порядку после уже существующих Тригонометрия/Логарифмы/
-// Таблица значений, см. seedTrigLogTrainer.ts/seedTrigTableTrainer.ts).
-//
-// Тот же идемпотентный паттерн, что и у seedTrigTableTrainer.ts — если
-// юнит с этим названием уже существует, пересоздаём его целиком
-// (каскад снесёт t_lessons/t_challenges), а не патчим точечно.
+// Математика Профиль") — юнит "Тригонометрический круг", order=4.
 //
 // Корректность ответов НЕ вбивается руками — каждый target/equation
-// проверяется программно против фиксированного набора 16 точек круга
-// (findPointIndices ниже), скрипт падает с ошибкой, если для какого-то
-// примера не нашлось ни одной подходящей точки — это гарантирует, что
-// в БД не попадёт математически неверная задача.
+// проверяется программно против фиксированного набора 16 точек круга,
+// скрипт падает с ошибкой при малейшем расхождении, до того как это
+// попадёт в БД.
 
 import db from "@/db/drizzle"
 import { eq } from "drizzle-orm"
@@ -34,10 +34,8 @@ const MATH11_TCOURSE_ID = 5
 const UNIT_TITLE = "Тригонометрический круг"
 
 // 16 стандартных точек тригонометрического круга — кратные 30° (12) +
-// нечётные кратные 45° (4), тот же набор, что на любой классической
-// таблице-круге. label — слитная (без \dfrac) запись угла через "/" —
-// компактнее для кружка-магнита, чем "вертикальная" дробь (см.
-// type-unitcircle.tsx).
+// нечётные кратные 45° (4). label — слитная (без \dfrac) запись угла
+// через "/" — компактнее для кружка-магнита (см. type-unitcircle.tsx).
 const POINTS: { label: string; angle: number }[] = [
     { label: "0", angle: 0 },
     { label: "\\pi/6", angle: Math.PI / 6 },
@@ -78,7 +76,7 @@ function findSinglePointIndex(value: number): number {
     return idx
 }
 
-// 'select' — все точки, где sin/cos/tg совпадает с value (с допуском).
+// 'select'/'label' — все точки, где sin/cos совпадает с value (с допуском).
 function findAllMatchingIndices(fn: (angle: number) => number, value: number): number[] {
     const out: number[] = []
     POINTS.forEach((p, idx) => {
@@ -90,20 +88,43 @@ function findAllMatchingIndices(fn: (angle: number) => number, value: number): n
     return out
 }
 
+// Отвлекающие подписи для 'label' — соседние (по индексу в 16-точечном
+// цикле, не по физической близости) точки, гарантированно НЕ являются
+// точкой pointIndex самой; count всегда выполним (8 разных смещений на
+// 16 точек с лихвой хватает и на count=2, и на count=3).
+function pickNearbyLabels(pointIndex: number, count: number): string[] {
+    const offsets = [1, -1, 2, -2, 3, -3, 4, -4]
+    const out: string[] = []
+    for (const off of offsets) {
+        if (out.length >= count) break
+        const idx = (((pointIndex + off) % 16) + 16) % 16
+        out.push(POINTS[idx].label)
+    }
+    return out
+}
+
+function shuffle<T>(arr: T[]): T[] {
+    const a = [...arr]
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+            ;[a[i], a[j]] = [a[j], a[i]]
+    }
+    return a
+}
+
+type LabelTarget = { pointIndex: number; options: string[] }
 type Challenge = {
     question: string
-    mode: 'locate' | 'select'
+    mode: 'locate' | 'select' | 'label'
     correctIndices: number[]
+    labelTargets?: LabelTarget[]
+    guideAxis?: 'sin' | 'cos'
+    guideValue?: number
 }
 
 // ===== LOCATE — простые (угол уже в [0, 2π), другая запись той же
 // величины, чем на магните — \dfrac вместо "/", чтобы не давать просто
 // вычитывать ответ по совпадению текста) =====
-// Отрицательный пример ("-\dfrac{\pi}{6}" → 11π/6) намеренно стоит
-// ВТОРЫМ элементом — по прямой просьбе пользователя отрицательные углы
-// должны встречаться уже в первом уроке (chunkBalanced режет группами
-// по 3 подряд, так что позиция 1 гарантированно попадает в 1-й урок),
-// а не только в отдельном "сложном" наборе LOCATE_HARD ниже.
 const LOCATE_SIMPLE: { disp: string; val: number }[] = [
     { disp: "\\dfrac{\\pi}{6}", val: Math.PI / 6 },
     { disp: "-\\dfrac{\\pi}{6}", val: -Math.PI / 6 }, // → 11π/6
@@ -117,47 +138,44 @@ const LOCATE_SIMPLE: { disp: string; val: number }[] = [
     { disp: "\\dfrac{5\\pi}{3}", val: (5 * Math.PI) / 3 },
 ]
 
-// ===== LOCATE — отрицательные/большие углы, нужно приведение по модулю
-// 2π (val посчитан программно через Math.PI — сам факт, что скрипт
-// успешно находит точку с допуском TOL, УЖЕ подтверждает арифметику). =====
-const LOCATE_HARD: { disp: string; val: number }[] = [
-    { disp: "3\\pi", val: 3 * Math.PI }, // → π
-    { disp: "-\\dfrac{\\pi}{3}", val: -Math.PI / 3 }, // → 5π/3
-    { disp: "\\dfrac{13\\pi}{6}", val: (13 * Math.PI) / 6 }, // → π/6
-    { disp: "\\dfrac{9\\pi}{4}", val: (9 * Math.PI) / 4 }, // → π/4
-    { disp: "-\\dfrac{7\\pi}{6}", val: (-7 * Math.PI) / 6 }, // → 5π/6
-    { disp: "\\dfrac{15\\pi}{4}", val: (15 * Math.PI) / 4 }, // → 7π/4
-    { disp: "4\\pi", val: 4 * Math.PI }, // → 0
-    { disp: "-\\dfrac{5\\pi}{3}", val: (-5 * Math.PI) / 3 }, // → π/3
-    { disp: "\\dfrac{17\\pi}{6}", val: (17 * Math.PI) / 6 }, // → 5π/6
-    { disp: "-\\dfrac{13\\pi}{4}", val: (-13 * Math.PI) / 4 }, // → 3π/4
-    { disp: "\\dfrac{23\\pi}{6}", val: (23 * Math.PI) / 6 }, // → 11π/6
-    { disp: "-4\\pi", val: -4 * Math.PI }, // → 0
+// ===== LOCATE, уровень 2 — оси (π/2, π, 3π/2, 2π=0) в прямой и
+// отрицательной форме. По прямой просьбе пользователя — заменяет
+// прежний набор с многовитковым приведением (15π/4 и т.п.), который был
+// признан "неинтересным, только тратить время". =====
+const LOCATE_AXES: { disp: string; val: number }[] = [
+    { disp: "\\dfrac{\\pi}{2}", val: Math.PI / 2 },
+    { disp: "\\pi", val: Math.PI },
+    { disp: "\\dfrac{3\\pi}{2}", val: (3 * Math.PI) / 2 },
+    { disp: "2\\pi", val: 2 * Math.PI }, // → 0
+    { disp: "-\\dfrac{\\pi}{2}", val: -Math.PI / 2 }, // → 3π/2
+    { disp: "-\\pi", val: -Math.PI }, // → π
+    { disp: "-\\dfrac{3\\pi}{2}", val: (-3 * Math.PI) / 2 }, // → π/2
+    { disp: "-2\\pi", val: -2 * Math.PI }, // → 0
 ]
 
-// ===== SELECT — sin/cos/tg x = a =====
-const SIN_EQUATIONS: { disp: string; val: number }[] = [
-    { disp: "\\sin x = \\dfrac{1}{2}", val: 0.5 },
-    { disp: "\\sin x = -\\dfrac{1}{2}", val: -0.5 },
-    { disp: "\\sin x = \\dfrac{\\sqrt{2}}{2}", val: Math.SQRT1_2 },
-    { disp: "\\sin x = -\\dfrac{\\sqrt{2}}{2}", val: -Math.SQRT1_2 },
-    { disp: "\\sin x = \\dfrac{\\sqrt{3}}{2}", val: Math.sqrt(3) / 2 },
-    { disp: "\\sin x = -\\dfrac{\\sqrt{3}}{2}", val: -Math.sqrt(3) / 2 },
-    { disp: "\\sin x = 0", val: 0 },
-    { disp: "\\sin x = 1", val: 1 },
-    { disp: "\\sin x = -1", val: -1 },
+// ===== LOCATE, уровень 3 — простые Q1-углы и их отрицательные (→ Q4)
+// зеркала =====
+const LOCATE_Q1Q4: { disp: string; val: number }[] = [
+    { disp: "\\dfrac{\\pi}{3}", val: Math.PI / 3 },
+    { disp: "\\dfrac{\\pi}{6}", val: Math.PI / 6 },
+    { disp: "\\dfrac{\\pi}{4}", val: Math.PI / 4 },
+    { disp: "-\\dfrac{\\pi}{3}", val: -Math.PI / 3 }, // → 5π/3
+    { disp: "-\\dfrac{\\pi}{6}", val: -Math.PI / 6 }, // → 11π/6
+    { disp: "-\\dfrac{\\pi}{4}", val: -Math.PI / 4 }, // → 7π/4
 ]
-const COS_EQUATIONS: { disp: string; val: number }[] = [
-    { disp: "\\cos x = \\dfrac{1}{2}", val: 0.5 },
-    { disp: "\\cos x = -\\dfrac{1}{2}", val: -0.5 },
-    { disp: "\\cos x = \\dfrac{\\sqrt{2}}{2}", val: Math.SQRT1_2 },
-    { disp: "\\cos x = -\\dfrac{\\sqrt{2}}{2}", val: -Math.SQRT1_2 },
-    { disp: "\\cos x = \\dfrac{\\sqrt{3}}{2}", val: Math.sqrt(3) / 2 },
-    { disp: "\\cos x = -\\dfrac{\\sqrt{3}}{2}", val: -Math.sqrt(3) / 2 },
-    { disp: "\\cos x = 0", val: 0 },
-    { disp: "\\cos x = 1", val: 1 },
-    { disp: "\\cos x = -1", val: -1 },
+
+// ===== LOCATE, уровень 4 — Q2-углы и их отрицательные (→ Q3) зеркала =====
+const LOCATE_Q2Q3: { disp: string; val: number }[] = [
+    { disp: "\\dfrac{3\\pi}{4}", val: (3 * Math.PI) / 4 },
+    { disp: "\\dfrac{2\\pi}{3}", val: (2 * Math.PI) / 3 },
+    { disp: "\\dfrac{5\\pi}{6}", val: (5 * Math.PI) / 6 },
+    { disp: "-\\dfrac{3\\pi}{4}", val: (-3 * Math.PI) / 4 }, // → 5π/4
+    { disp: "-\\dfrac{2\\pi}{3}", val: (-2 * Math.PI) / 3 }, // → 4π/3
+    { disp: "-\\dfrac{5\\pi}{6}", val: (-5 * Math.PI) / 6 }, // → 7π/6
 ]
+
+// ===== SELECT — tg x = a (у тангенса нет "направляющей" на самой
+// окружности — оставлен старым multi-select режимом) =====
 const TG_EQUATIONS: { disp: string; val: number }[] = [
     { disp: "tg(x) = 1", val: 1 },
     { disp: "tg(x) = -1", val: -1 },
@@ -168,8 +186,35 @@ const TG_EQUATIONS: { disp: string; val: number }[] = [
     { disp: "tg(x) = 0", val: 0 },
 ]
 
+// ===== LABEL — sin x = a / cos x = a: пунктирная направляющая заранее
+// выделяет 1-2 точки, для каждой выбирается верная подпись угла из
+// нескольких вариантов (не общий multi-select по всем 16). =====
+const SIN_LABEL_TARGETS: { disp: string; val: number }[] = [
+    { disp: "\\dfrac{1}{2}", val: 0.5 },
+    { disp: "-\\dfrac{1}{2}", val: -0.5 },
+    { disp: "\\dfrac{\\sqrt{2}}{2}", val: Math.SQRT1_2 },
+    { disp: "-\\dfrac{\\sqrt{2}}{2}", val: -Math.SQRT1_2 },
+    { disp: "\\dfrac{\\sqrt{3}}{2}", val: Math.sqrt(3) / 2 },
+    { disp: "-\\dfrac{\\sqrt{3}}{2}", val: -Math.sqrt(3) / 2 },
+    { disp: "0", val: 0 },
+    { disp: "1", val: 1 },
+    { disp: "-1", val: -1 },
+]
+const COS_LABEL_TARGETS: { disp: string; val: number }[] = [
+    { disp: "\\dfrac{1}{2}", val: 0.5 },
+    { disp: "-\\dfrac{1}{2}", val: -0.5 },
+    { disp: "\\dfrac{\\sqrt{2}}{2}", val: Math.SQRT1_2 },
+    { disp: "-\\dfrac{\\sqrt{2}}{2}", val: -Math.SQRT1_2 },
+    { disp: "\\dfrac{\\sqrt{3}}{2}", val: Math.sqrt(3) / 2 },
+    { disp: "-\\dfrac{\\sqrt{3}}{2}", val: -Math.sqrt(3) / 2 },
+    { disp: "0", val: 0 },
+    { disp: "1", val: 1 },
+    { disp: "-1", val: -1 },
+]
+
 const locateQuestion = (disp: string) => `Где находится $${disp}$?`
 const selectQuestion = (disp: string) => `Отметь все точки, где $${disp}$`
+const labelQuestion = (axis: 'sin' | 'cos', disp: string) => `Отметь точки, где $\\${axis} x = ${disp}$`
 
 function buildLocate(items: { disp: string; val: number }[]): Challenge[] {
     return items.map(({ disp, val }) => ({
@@ -187,10 +232,26 @@ function buildSelect(items: { disp: string; val: number }[], fn: (a: number) => 
     }))
 }
 
-// Сбалансированное деление — см. общий приём в seedTrigLogTrainer.ts/
-// seedTrigTableTrainer.ts (не даёт "огрызок" из 1 задачи; для UNITCIRCLE
-// это не критично, т.к. у типа нет обманок-соседей, но сохраняем
-// единообразие уроков по 2-3 задачи).
+function buildLabel(items: { disp: string; val: number }[], axis: 'sin' | 'cos', fn: (a: number) => number): Challenge[] {
+    return items.map(({ disp, val }) => {
+        const matches = findAllMatchingIndices(fn, val)
+        const labelTargets: LabelTarget[] = matches.map((pointIndex) => {
+            const distractors = pickNearbyLabels(pointIndex, 2)
+            const options = shuffle([POINTS[pointIndex].label, ...distractors])
+            return { pointIndex, options }
+        })
+        return {
+            question: labelQuestion(axis, disp),
+            mode: 'label' as const,
+            correctIndices: matches,
+            labelTargets,
+            guideAxis: axis,
+            guideValue: val,
+        }
+    })
+}
+
+// Сбалансированное деление — не даёт "огрызок" из 1 задачи.
 function chunkBalanced<T>(items: T[], targetSize: number): T[][] {
     if (items.length === 0) return []
     const numGroups = Math.max(1, Math.ceil(items.length / targetSize))
@@ -214,28 +275,34 @@ function buildLessons(): LessonSpec[] {
     chunkBalanced(buildLocate(LOCATE_SIMPLE), 3).forEach((group, i) => {
         lessons.push({ title: `Найди точку — простые углы ${i + 1}`, challenges: group })
     })
-    chunkBalanced(buildLocate(LOCATE_HARD), 3).forEach((group, i) => {
-        lessons.push({ title: `Найди точку — отрицательные и большие углы ${i + 1}`, challenges: group })
+    chunkBalanced(buildLocate(LOCATE_AXES), 3).forEach((group, i) => {
+        lessons.push({ title: `Найди точку — оси и отрицательные углы ${i + 1}`, challenges: group })
     })
-    chunkBalanced(buildSelect(SIN_EQUATIONS, Math.sin), 3).forEach((group, i) => {
-        lessons.push({ title: `sin x = a — отметь корни ${i + 1}`, challenges: group })
+    chunkBalanced(buildLocate(LOCATE_Q1Q4), 3).forEach((group, i) => {
+        lessons.push({ title: `Найди точку — простые Q1/Q4 ${i + 1}`, challenges: group })
     })
-    chunkBalanced(buildSelect(COS_EQUATIONS, Math.cos), 3).forEach((group, i) => {
-        lessons.push({ title: `cos x = a — отметь корни ${i + 1}`, challenges: group })
+    chunkBalanced(buildLocate(LOCATE_Q2Q3), 3).forEach((group, i) => {
+        lessons.push({ title: `Найди точку — Q2/Q3 ${i + 1}`, challenges: group })
+    })
+    chunkBalanced(buildLabel(SIN_LABEL_TARGETS, 'sin', Math.sin), 3).forEach((group, i) => {
+        lessons.push({ title: `sin x = a — подпиши точки ${i + 1}`, challenges: group })
+    })
+    chunkBalanced(buildLabel(COS_LABEL_TARGETS, 'cos', Math.cos), 3).forEach((group, i) => {
+        lessons.push({ title: `cos x = a — подпиши точки ${i + 1}`, challenges: group })
     })
     chunkBalanced(buildSelect(TG_EQUATIONS, Math.tan), 3).forEach((group, i) => {
         lessons.push({ title: `tg x = a — отметь корни ${i + 1}`, challenges: group })
     })
 
     // Контрольная — мини-босс (isReviewStage триггерится по слову
-    // "контрольн" в названии, см. trainer-grade-tree.tsx) — микс locate
-    // (сложный угол) и всех трёх уравнений.
+    // "контрольн" в названии, см. trainer-grade-tree.tsx) — микс всех
+    // режимов.
     lessons.push({
         title: "Контрольная — весь круг",
         challenges: [
-            ...buildLocate([{ disp: "\\dfrac{11\\pi}{4}", val: (11 * Math.PI) / 4 }]), // → 3π/4
-            ...buildSelect([{ disp: "\\sin x = \\dfrac{\\sqrt{3}}{2}", val: Math.sqrt(3) / 2 }], Math.sin),
-            ...buildSelect([{ disp: "\\cos x = -\\dfrac{1}{2}", val: -0.5 }], Math.cos),
+            ...buildLocate([{ disp: "-\\dfrac{3\\pi}{4}", val: (-3 * Math.PI) / 4 }]), // → 5π/4
+            ...buildLabel([{ disp: "\\dfrac{\\sqrt{3}}{2}", val: Math.sqrt(3) / 2 }], 'sin', Math.sin),
+            ...buildLabel([{ disp: "-\\dfrac{1}{2}", val: -0.5 }], 'cos', Math.cos),
             ...buildSelect([{ disp: "tg(x) = -1", val: -1 }], Math.tan),
         ],
     })
@@ -280,13 +347,16 @@ async function main() {
                 order: i + 1,
                 points: 10,
                 author: "ЕГЭ Математика Профиль",
-                numRans: String(ch.correctIndices.length),
+                numRans: String(ch.mode === 'label' ? (ch.labelTargets?.length ?? 1) : ch.correctIndices.length),
                 difficulty: '',
                 imageSrc: '',
                 unitCircleData: JSON.stringify({
                     mode: ch.mode,
                     points: POINTS,
                     correctIndices: ch.correctIndices,
+                    labelTargets: ch.labelTargets,
+                    guideAxis: ch.guideAxis,
+                    guideValue: ch.guideValue,
                 }),
             })
         }

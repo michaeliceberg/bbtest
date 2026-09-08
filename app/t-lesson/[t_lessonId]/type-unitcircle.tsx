@@ -1,24 +1,37 @@
 // app/t-lesson/[t_lessonId]/type-unitcircle.tsx
 //
 // Тип UNITCIRCLE — тригонометрический круг с точками-"радиокнопками" (см.
-// UnitCircleData в page.tsx). Два режима:
+// UnitCircleData в page.tsx). Три режима:
 // - 'locate' — выбрать ОДНУ точку, соответствующую названному в вопросе
 //   углу ("Где находится 3π?", угол может быть отрицательным или
 //   больше 2π — нужно привести по модулю 2π).
 // - 'select' — отметить ВСЕ точки, подходящие под уравнение ("отметь
 //   все x, где sin x = 1/2") — те же радиокнопки, просто без взаимного
 //   исключения (можно отметить несколько сразу).
+// - 'label' — пунктирная направляющая (горизонтальная для sin x=a,
+//   вертикальная для cos x=a) пересекает окружность в 1-2 точках —
+//   ТОЛЬКО они кликабельны (реальный radiobutton прямо на точке),
+//   остальные 14 приглушены/неактивны. Клик по точке делает её активной,
+//   снизу — список вариантов подписи угла именно ДЛЯ НЕЁ (у каждой
+//   отмеченной точки свой корректный ответ, не общий набор).
 //
-// По прямой просьбе пользователя точки НЕ подписаны (иначе ответ просто
-// вычитывается взглядом, а не вспоминается) — только маленькие кружки
-// точно НА линии окружности; подписаны лишь оси (cos α вправо, sin α
-// вверх, со стрелками) как единственные визуальные ориентиры.
+// По прямой просьбе пользователя обычные точки НЕ подписаны (иначе ответ
+// просто вычитывается взглядом, а не вспоминается) — только маленькие
+// кружки точно НА линии окружности; подписаны лишь оси (cos α вправо,
+// sin α вверх, со стрелками) как единственные визуальные ориентиры. В
+// 'label'-режиме ЕДИНСТВЕННОЕ исключение — подпись, которую сам
+// пользователь выбрал для отмеченной точки, показывается рядом с ней
+// (это его собственный ответ, не подсказка).
 //
 // Тот же select-then-submit контракт, что у TRIGTABLE/ASSIST/INSERT —
-// компонент только СООБЩАЕТ наверх собранный ответ (отсортированные по
-// возрастанию индексы выбранных точек, склеенные через "|||" — тот же
-// разделитель точного сравнения, что у TRIGTABLE/INSERT, см. TQUIZ.tsx),
-// реальная проверка — по клику на общую кнопку "Ответить" внизу экрана.
+// компонент только СООБЩАЕТ наверх собранный ответ, реальная проверка —
+// по клику на общую кнопку "Ответить" внизу экрана. Формат ответа:
+// - 'locate'/'select' — отсортированные по возрастанию индексы точек,
+//   склеенные через "|||" (порядок клика не важен).
+// - 'label' — "pointIndex:label" по КАЖДОЙ отмеченной точке,
+//   отсортированные по возрастанию pointIndex, склеенные через "|||"
+//   (см. TQUIZ.tsx — сравнивается точным совпадением строки, как и
+//   TRIGTABLE/INSERT).
 
 'use client'
 
@@ -66,13 +79,27 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
     const data = question.unitCircle
 
     const [selected, setSelected] = useState<Set<number>>(new Set())
+    // 'label'-режим — своё, отдельное состояние (не пересекается с
+    // selected выше, у него другая форма ответа).
+    const [assigned, setAssigned] = useState<Record<number, string | null>>({})
+    const [activePointIdx, setActivePointIdx] = useState<number | null>(null)
 
     useEffect(() => {
         setSelected(new Set())
+        if (data?.mode === 'label' && data.labelTargets) {
+            const init: Record<number, string | null> = {}
+            data.labelTargets.forEach((t) => { init[t.pointIndex] = null })
+            setAssigned(init)
+            setActivePointIdx(data.labelTargets[0]?.pointIndex ?? null)
+        } else {
+            setAssigned({})
+            setActivePointIdx(null)
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [question])
 
     useEffect(() => {
+        if (data?.mode === 'label') return // отдельный эффект ниже
         if (selected.size === 0) {
             onOptionSelected(null)
             return
@@ -81,13 +108,36 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selected])
 
+    useEffect(() => {
+        if (data?.mode !== 'label') return
+        const entries = Object.entries(assigned)
+        if (entries.length === 0 || entries.some(([, v]) => v === null)) {
+            onOptionSelected(null)
+            return
+        }
+        const answer = entries
+            .map(([idx, label]) => [Number(idx), label as string] as const)
+            .sort((a, b) => a[0] - b[0])
+            .map(([idx, label]) => `${idx}:${label}`)
+            .join('|||')
+        onOptionSelected(answer)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [assigned])
+
     if (!data) return null
 
     const isSelect = data.mode === 'select'
+    const isLabel = data.mode === 'label'
     const correctSet = new Set(data.correctIndices)
+    const targetIndices = new Set((data.labelTargets ?? []).map((t) => t.pointIndex))
 
     const handleClick = (idx: number) => {
         if (isAnswerChecked) return
+        if (isLabel) {
+            if (!targetIndices.has(idx)) return // остальные 14 точек неактивны
+            setActivePointIdx(idx)
+            return
+        }
         setSelected((prev) => {
             const next = new Set(prev)
             if (isSelect) {
@@ -107,6 +157,20 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
         })
     }
 
+    const handlePickLabel = (label: string) => {
+        if (isAnswerChecked || activePointIdx === null) return
+        setAssigned((prev) => {
+            const next = { ...prev, [activePointIdx]: label }
+            return next
+        })
+        // Автопереход на следующую ещё не подписанную отмеченную точку —
+        // тот же round-robin приём, что у INSERT/TRIGTABLE/VIETA.
+        const remaining = (data.labelTargets ?? []).find(
+            (t) => t.pointIndex !== activePointIdx && assigned[t.pointIndex] === null,
+        )
+        if (remaining) setActivePointIdx(remaining.pointIndex)
+    }
+
     // Конец стрелки-оси (за пределом окружности, но внутри 0-100%) —
     // общий отступ от края круга до наконечника стрелки. Наконечник
     // (AXIS_END+ARROW) оказывается на 50+36=86% / 50-36=14% — подписи
@@ -117,10 +181,32 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
     const LABEL_RIGHT = 89 // % — левый край подписи "cos α"
     const LABEL_TOP = 3 // % — верхний край подписи "sin α"
 
+    // Пунктирная направляющая ('label'-режим) — хорда окружности на
+    // уровне guideValue: для sin — горизонтальная (y фиксирован, x — по
+    // обе стороны от центра на половину хорды), для cos — вертикальная
+    // (зеркально). При guideValue=±1 хорда вырождается в точку (касание
+    // сверху/снизу или справа/слева) — half всегда получается 0, отрезок
+    // просто не виден, отдельно этот случай не обрабатываем.
+    let guideLine: { x1: number; y1: number; x2: number; y2: number } | null = null
+    if (isLabel && data.guideAxis !== undefined && data.guideValue !== undefined) {
+        const half = R * Math.sqrt(Math.max(0, 1 - data.guideValue * data.guideValue))
+        if (data.guideAxis === 'sin') {
+            const y = CY - R * data.guideValue
+            guideLine = { x1: CX - half, y1: y, x2: CX + half, y2: y }
+        } else {
+            const x = CX + R * data.guideValue
+            guideLine = { x1: x, y1: CY - half, x2: x, y2: CY + half }
+        }
+    }
+
+    const activeTarget = isLabel ? (data.labelTargets ?? []).find((t) => t.pointIndex === activePointIdx) : undefined
+    const usedForActive = new Set<string>() // варианты уже назначены ДРУГИМ точкам — не блокируем повтор специально, у каждой точки свой список
+
     return (
-        <div className="w-full h-full max-w-[360px] mx-auto flex flex-col items-center justify-center">
-            <div className="relative w-full aspect-square select-none">
-                {/* Декоративный фон — сама окружность + оси со стрелками */}
+        <div className="w-full h-full max-w-[360px] mx-auto flex flex-col items-center gap-4 mt-2">
+            <div className="relative w-full aspect-square select-none shrink-0">
+                {/* Декоративный фон — сама окружность + оси со стрелками
+                    (+ пунктирная направляющая в 'label'-режиме) */}
                 <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none">
                     <circle cx={CX} cy={CY} r={R} fill="none" stroke="#3A464E" strokeWidth="1" />
 
@@ -139,6 +225,13 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                     />
 
                     <circle cx={CX} cy={CY} r="1.2" fill="#3A464E" />
+
+                    {guideLine && (
+                        <line
+                            x1={guideLine.x1} y1={guideLine.y1} x2={guideLine.x2} y2={guideLine.y2}
+                            stroke="#4A90D9" strokeWidth="1" strokeDasharray="2.2,1.6"
+                        />
+                    )}
                 </svg>
 
                 {/* Подписи осей — обычный HTML (не SVG-text), чтобы размер
@@ -166,8 +259,12 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                     const { left, top } = pointPos(point.angle)
                     const isSelected = selected.has(idx)
                     const isCorrectPoint = correctSet.has(idx)
+                    const isTarget = isLabel && targetIndices.has(idx)
+                    const isActiveTargetPoint = isLabel && activePointIdx === idx
+                    const assignedLabel = isLabel ? assigned[idx] : undefined
+                    const isThisPointCorrect = isLabel && assignedLabel === point.label
 
-                    // Радиокnopка — маленький кружок ТОЧНО на линии окружности:
+                    // Радиокнопка — маленький кружок ТОЧНО на линии окружности:
                     // невидимая (прозрачная) внешняя кнопка даёт удобную зону
                     // клика (особенно на телефоне), а видимый кружок внутри —
                     // фиксированного маленького размера, не растущего с зоной
@@ -183,7 +280,28 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                     let dotClass = 'border-2 border-[#4A5560] bg-[#151F24]'
                     let glowClass = ''
                     let correctScale = 1
-                    if (!isAnswerChecked && isSelected) {
+
+                    if (isLabel) {
+                        // В 'label'-режиме НЕ-целевые точки — просто приглушены
+                        // и некликабельны (только направляющая+2 точки имеют
+                        // смысл); целевые — своя цветовая логика ниже.
+                        if (!isTarget) {
+                            dotClass = 'border-2 border-[#26313A] bg-[#181F24] opacity-40'
+                        } else if (isAnswerChecked) {
+                            dotClass = isThisPointCorrect
+                                ? 'border-2 border-[#A1D151] bg-[#A1D151]'
+                                : 'border-2 border-[#DC605B] bg-[#DC605B]'
+                            glowClass = isThisPointCorrect ? 'shadow-[0_0_0_5px_rgba(161,209,81,0.35)]' : ''
+                            correctScale = isThisPointCorrect ? 1.5 : 1.2
+                        } else if (isActiveTargetPoint) {
+                            dotClass = 'border-2 border-[#4A90D9] bg-[#4A90D9]'
+                            correctScale = 1.3
+                        } else {
+                            dotClass = assignedLabel
+                                ? 'border-2 border-[#4A90D9] bg-[#1B2C3D]'
+                                : 'border-2 border-[#4A90D9] bg-[#151F24]'
+                        }
+                    } else if (!isAnswerChecked && isSelected) {
                         dotClass = 'border-2 border-[#4A90D9] bg-[#4A90D9]'
                     } else if (isAnswerChecked && isCorrectPoint) {
                         dotClass = 'border-2 border-[#A1D151] bg-[#A1D151]'
@@ -195,17 +313,19 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                         dotClass = 'border-2 border-[#333F47] bg-[#181F24] opacity-60'
                     }
 
+                    const clickable = isLabel ? isTarget && !isAnswerChecked : !isAnswerChecked
+
                     return (
                         <button
                             key={idx}
                             type="button"
                             onClick={() => handleClick(idx)}
-                            disabled={isAnswerChecked}
+                            disabled={!clickable}
                             aria-label={point.label}
                             className={cn(
                                 'absolute flex items-center justify-center rounded-full',
                                 'w-7 h-7 sm:w-8 sm:h-8', // зона клика
-                                !isAnswerChecked && 'cursor-pointer',
+                                clickable && 'cursor-pointer',
                             )}
                             style={{
                                 left: `${left}%`,
@@ -215,14 +335,63 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                         >
                             <motion.span
                                 className={cn('block rounded-full w-3 h-3 sm:w-3.5 sm:h-3.5', dotClass, glowClass)}
-                                animate={{ scale: !isAnswerChecked && isSelected ? 1.25 : correctScale }}
-                                whileTap={!isAnswerChecked ? { scale: 0.85 } : undefined}
+                                animate={{
+                                    scale: isLabel
+                                        ? correctScale
+                                        : !isAnswerChecked && isSelected ? 1.25 : correctScale,
+                                }}
+                                whileTap={clickable ? { scale: 0.85 } : undefined}
                                 transition={{ type: 'spring', stiffness: 420, damping: 20 }}
                             />
+
+                            {/* Подпись, которую пользователь САМ выбрал для этой
+                                точки — единственное исключение из "точки без
+                                подписей", это его собственный ответ, а не
+                                подсказка. */}
+                            {isTarget && assignedLabel && (
+                                <span
+                                    className={cn(
+                                        'absolute left-1/2 -translate-x-1/2 top-full mt-0.5 whitespace-nowrap text-[10px] sm:text-xs font-bold px-1 rounded',
+                                        isAnswerChecked
+                                            ? isThisPointCorrect ? 'text-[#A1D151]' : 'text-[#DC605B]'
+                                            : 'text-[#4A90D9]',
+                                    )}
+                                >
+                                    <Latex>{`$${assignedLabel}$`}</Latex>
+                                </span>
+                            )}
                         </button>
                     )
                 })}
             </div>
+
+            {/* 'label'-режим — варианты подписи для АКТИВНОЙ отмеченной
+                точки (не общий пул, у каждой точки свой список вариантов,
+                см. UnitCircleData.labelTargets в page.tsx). */}
+            {isLabel && activeTarget && (
+                <div className="flex flex-col items-center gap-2 w-full">
+                    <div className="text-xs text-[#8CA0AB]">Выбери значение для выделенной точки</div>
+                    <div className="flex flex-wrap justify-center gap-2">
+                        {activeTarget.options.map((label) => (
+                            <motion.button
+                                key={label}
+                                type="button"
+                                whileTap={!isAnswerChecked ? { scale: 0.9 } : undefined}
+                                onClick={() => handlePickLabel(label)}
+                                disabled={isAnswerChecked}
+                                className={cn(
+                                    'min-w-[64px] py-2 px-3 rounded-lg border-2 text-sm font-bold transition-colors',
+                                    assigned[activePointIdx!] === label
+                                        ? 'border-[#4A90D9] bg-[#1B2C3D] text-[#4A90D9]'
+                                        : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]',
+                                )}
+                            >
+                                <Latex>{`$${label}$`}</Latex>
+                            </motion.button>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
