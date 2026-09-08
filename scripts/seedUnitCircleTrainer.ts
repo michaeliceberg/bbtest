@@ -28,7 +28,7 @@
 
 import db from "@/db/drizzle"
 import { eq } from "drizzle-orm"
-import { t_units, t_lessons, t_challenges } from "@/db/schema"
+import { t_units, t_lessons, t_challenges, t_challengeOptions } from "@/db/schema"
 
 const MATH11_TCOURSE_ID = 5
 const UNIT_TITLE = "Тригонометрический круг"
@@ -120,6 +120,7 @@ type Challenge = {
     labelTargets?: LabelTarget[]
     guideAxis?: 'sin' | 'cos'
     guideValue?: number
+    guideValueLabel?: string
 }
 
 // ===== LOCATE — простые (угол уже в [0, 2π), другая запись той же
@@ -214,7 +215,11 @@ const COS_LABEL_TARGETS: { disp: string; val: number }[] = [
 
 const locateQuestion = (disp: string) => `Где находится $${disp}$?`
 const selectQuestion = (disp: string) => `Отметь все точки, где $${disp}$`
-const labelQuestion = (axis: 'sin' | 'cos', disp: string) => `Отметь точки, где $\\${axis} x = ${disp}$`
+// "Укажи углы" вместо "Отметь точки" — по прямой просьбе пользователя
+// (2026-09-09): в этом режиме отвечаем не кликом по точке (она уже
+// подсвечена направляющей заранее), а выбором подписи угла снизу —
+// формулировка "отметь точки" была не по смыслу самого взаимодействия.
+const labelQuestion = (axis: 'sin' | 'cos', disp: string) => `Укажи углы, где $\\${axis} x = ${disp}$`
 
 function buildLocate(items: { disp: string; val: number }[]): Challenge[] {
     return items.map(({ disp, val }) => ({
@@ -247,6 +252,7 @@ function buildLabel(items: { disp: string; val: number }[], axis: 'sin' | 'cos',
             labelTargets,
             guideAxis: axis,
             guideValue: val,
+            guideValueLabel: disp,
         }
     })
 }
@@ -265,6 +271,44 @@ function chunkBalanced<T>(items: T[], targetSize: number): T[][] {
         idx += size
     }
     return out
+}
+
+// ===== Радианы ↔ градусы — по прямой просьбе пользователя, "в первые
+// уроки этой темы": прежде чем работать с точками на круге, полезно
+// закрепить сам перевод единиц. Обычный M_ASC-словарь (как формулы
+// физики, см. insertVocabChallenge в seedDynamicsVocabPilot.ts) — ответ
+// хранится в t_challengeOptions, а НЕ в unitCircleData: дистракторы
+// ("π это? 180°/360°/90°") собираются динамически из СОСЕДНИХ задач
+// этого же урока самим рендер-пайплайном (page.tsx), специально
+// подбирать 3 конкретных варианта на каждый вопрос не нужно — сама эта
+// подборка (другие градусные/радианные значения урока) и даёт ровно
+// такой набор обманок, какой пользователь привёл примером. =====
+const DEGREE_VOCAB: { question: string; answer: string }[] = [
+    { question: 'Чему равен $\\pi$ в градусах?', answer: '$180^\\circ$' },
+    { question: 'Чему равен $2\\pi$ в градусах?', answer: '$360^\\circ$' },
+    { question: 'Чему равен $\\dfrac{\\pi}{2}$ в градусах?', answer: '$90^\\circ$' },
+    { question: 'Чему равен $\\dfrac{\\pi}{3}$ в градусах?', answer: '$60^\\circ$' },
+    { question: 'Чему равен $\\dfrac{\\pi}{4}$ в градусах?', answer: '$45^\\circ$' },
+    { question: 'Чему равен $\\dfrac{\\pi}{6}$ в градусах?', answer: '$30^\\circ$' },
+    { question: '$180^\\circ$ — это сколько радиан?', answer: '$\\pi$' },
+    { question: '$360^\\circ$ — это сколько радиан?', answer: '$2\\pi$' },
+    { question: '$90^\\circ$ — это сколько радиан?', answer: '$\\dfrac{\\pi}{2}$' },
+]
+
+async function insertVocabChallenge(lessonId: number, order: number, question: string, answer: string) {
+    const [ch] = await db.insert(t_challenges).values({
+        t_lessonId: lessonId,
+        type: 'M_ASC',
+        question,
+        order,
+        points: 10,
+        author: "ЕГЭ Математика Профиль",
+        numRans: '1',
+        difficulty: '1',
+        imageSrc: '0',
+    }).returning({ id: t_challenges.id })
+
+    await db.insert(t_challengeOptions).values({ t_challengeId: ch.id, text: answer, correct: true })
 }
 
 type LessonSpec = { title: string; challenges: Challenge[] }
@@ -328,6 +372,27 @@ async function main() {
     }).returning({ id: t_units.id })
     console.log(`Юнит "${UNIT_TITLE}" создан: id=${unit.id}`)
 
+    // Вводные уроки "Радианы и градусы" — ПЕРЕД самим кругом (по прямой
+    // просьбе пользователя, "в первые уроки этой темы"), order 1..N —
+    // остальные уроки темы сдвигаются на освободившееся место через
+    // orderOffset ниже.
+    const vocabGroups = chunkBalanced(DEGREE_VOCAB, 3)
+    let orderOffset = 0
+    for (let gi = 0; gi < vocabGroups.length; gi++) {
+        const group = vocabGroups[gi]
+        const title = vocabGroups.length > 1 ? `Радианы и градусы ${gi + 1}` : "Радианы и градусы"
+        const [lesson] = await db.insert(t_lessons).values({
+            title,
+            t_unitId: unit.id,
+            order: gi + 1,
+        }).returning({ id: t_lessons.id })
+        for (let i = 0; i < group.length; i++) {
+            await insertVocabChallenge(lesson.id, i + 1, group[i].question, group[i].answer)
+        }
+        console.log(`Урок "${title}" создан: id=${lesson.id}, задач=${group.length}`)
+        orderOffset++
+    }
+
     const lessons = buildLessons()
 
     for (let li = 0; li < lessons.length; li++) {
@@ -335,7 +400,7 @@ async function main() {
         const [lesson] = await db.insert(t_lessons).values({
             title: lessonSpec.title,
             t_unitId: unit.id,
-            order: li + 1,
+            order: orderOffset + li + 1,
         }).returning({ id: t_lessons.id })
 
         for (let i = 0; i < lessonSpec.challenges.length; i++) {
@@ -357,6 +422,7 @@ async function main() {
                     labelTargets: ch.labelTargets,
                     guideAxis: ch.guideAxis,
                     guideValue: ch.guideValue,
+                    guideValueLabel: ch.guideValueLabel,
                 }),
             })
         }

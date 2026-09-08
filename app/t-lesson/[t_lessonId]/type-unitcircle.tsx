@@ -256,7 +256,39 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                             stroke="#4A90D9" strokeWidth="1.4" strokeDasharray="2.6,1.8"
                         />
                     )}
+
+                    {/* Риска-засечка ПРЯМО НА оси в точке guideValue — по
+                        прямой просьбе пользователя, чтобы было видно на самой
+                        оси (не только по пунктирной линии), какому значению
+                        она соответствует. Короткий сплошной штрих поперёк
+                        оси, толще самой оси — читается как деление шкалы. */}
+                    {guideLine && data.guideAxis === 'sin' && (
+                        <line x1={CX - 2.4} y1={guideLine.y1} x2={CX + 2.4} y2={guideLine.y1} stroke="#4A90D9" strokeWidth="1.8" />
+                    )}
+                    {guideLine && data.guideAxis === 'cos' && (
+                        <line x1={guideLine.x1} y1={CY - 2.4} x2={guideLine.x1} y2={CY + 2.4} stroke="#4A90D9" strokeWidth="1.8" />
+                    )}
                 </svg>
+
+                {/* Подпись значения риски (guideValueLabel) — сразу рядом с
+                    самой риской, тем же акцентным синим, что и вся
+                    направляющая/риска. */}
+                {guideLine && data.guideAxis === 'sin' && data.guideValueLabel && (
+                    <div
+                        className="absolute -translate-x-full -translate-y-1/2 whitespace-nowrap text-[#4A90D9] font-bold text-xs sm:text-sm pr-1"
+                        style={{ left: `${CX - 3}%`, top: `${guideLine.y1}%` }}
+                    >
+                        <Latex>{`$${data.guideValueLabel}$`}</Latex>
+                    </div>
+                )}
+                {guideLine && data.guideAxis === 'cos' && data.guideValueLabel && (
+                    <div
+                        className="absolute -translate-x-1/2 whitespace-nowrap text-[#4A90D9] font-bold text-xs sm:text-sm pt-0.5"
+                        style={{ left: `${guideLine.x1}%`, top: `${CY + 3}%` }}
+                    >
+                        <Latex>{`$${data.guideValueLabel}$`}</Latex>
+                    </div>
+                )}
 
                 {/* Подписи осей — обычный HTML (не SVG-text), чтобы размер
                     шрифта был предсказуем в rem/px и не зависел от масштаба
@@ -267,13 +299,13 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                     заранее вычисленную отметку (-translate-y-full), с
                     гарантированным зазором от самой линии оси. */}
                 <div
-                    className="absolute -translate-x-1/2 -translate-y-full whitespace-nowrap text-[#8CA0AB] font-bold text-sm sm:text-lg"
+                    className="absolute -translate-x-1/2 -translate-y-full whitespace-nowrap text-[#8CA0AB] font-black text-base sm:text-xl"
                     style={{ left: `${RIGHT_LABEL_X}%`, top: `${RIGHT_LABEL_Y}%` }}
                 >
                     <Latex>{'$\\cos\\alpha$'}</Latex>
                 </div>
                 <div
-                    className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[#8CA0AB] font-bold text-sm sm:text-lg"
+                    className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[#8CA0AB] font-black text-base sm:text-xl"
                     style={{ top: `${LABEL_TOP}%` }}
                 >
                     <Latex>{'$\\sin\\alpha$'}</Latex>
@@ -373,16 +405,29 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                                 подписей", это его собственный ответ, а не
                                 подсказка. */}
                             {isTarget && assignedLabel && (
-                                <span
+                                <motion.span
+                                    // key={assignedLabel} — при КАЖДОЙ смене выбранного
+                                    // варианта (не только первом появлении) React
+                                    // пересоздаёт узел и заново играет entrance-bounce —
+                                    // по прямой просьбе пользователя, чтобы смена угла у
+                                    // радиокнопки была явно заметна, не только текстом.
+                                    key={assignedLabel}
+                                    initial={{ scale: 0.4, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    transition={{ type: 'spring', stiffness: 420, damping: 18 }}
                                     className={cn(
-                                        'absolute left-1/2 -translate-x-1/2 top-full mt-0.5 whitespace-nowrap text-[10px] sm:text-xs font-bold px-1 rounded',
+                                        // Крупнее и жирнее (было text-[10px] sm:text-xs) — по
+                                        // прямой просьбе пользователя: это собственный ответ
+                                        // ученика, дублируемый прямо на окружности, должен
+                                        // читаться с первого взгляда, не мельче самих точек.
+                                        'absolute left-1/2 -translate-x-1/2 top-full mt-1 whitespace-nowrap text-sm sm:text-base font-black px-1 rounded',
                                         isAnswerChecked
                                             ? isThisPointCorrect ? 'text-[#A1D151]' : 'text-[#DC605B]'
                                             : 'text-[#4A90D9]',
                                     )}
                                 >
                                     <Latex>{`$${assignedLabel}$`}</Latex>
-                                </span>
+                                </motion.span>
                             )}
                         </button>
                     )
