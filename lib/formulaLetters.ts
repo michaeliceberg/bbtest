@@ -21,6 +21,15 @@ const FUNCTION_WORDS = new Set([
 	'arcsin', 'arccos', 'arctg', 'arcctg', 'arctan',
 	'ln', 'lg', 'log', 'exp', 'lim', 'det', 'sign', 'mod', 'deg', 'rad', 'min', 'max',
 	'const',
+	// Название LaTeX-окружения внутри \begin{...}/\end{...} — например
+	// "\left[ \begin{gathered} ... \end{gathered} \right." в общих
+	// решениях тригонометрических уравнений (тема "Тригонометрия"). Слово
+	// стоит СРАЗУ ПОСЛЕ "{", не после "\" (сама команда \begin/\end уже
+	// защищена общим правилом "сразу после backslash") — регэксп резал
+	// его на буквы g/a/t/h/e/r/e/d и предлагал вставить одну из них в
+	// пропуск ("...\end{gat?ered}..."), хотя это не переменные, а часть
+	// разметки. Найден пользователем живьём в реальном INSERT-вопросе.
+	'gathered',
 ])
 
 type LetterOccurrence = {
