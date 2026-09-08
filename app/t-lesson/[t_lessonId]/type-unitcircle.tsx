@@ -41,10 +41,14 @@ type Props = {
 // краям под подписи осей (cos α / sin α), не вылезающие за пределы
 // контейнера (см. риск горизонтального переполнения на мобильном,
 // многократно чинившийся в этом проекте — см. CLAUDE.md) — весь запас
-// решается внутри тех же 0-100%, без overflow-трюков.
+// решается внутри тех же 0-100%, без overflow-трюков. R уменьшен (было
+// 34) — при 34 наконечник стрелки (AXIS_END+ARROW) вылезал почти к
+// самому краю контейнера и физически перекрывал подпись "cos α"/"sin α"
+// (пользователь поймал живьём) — с R=26 между наконечником и подписью
+// гарантированный зазор, проверено через getBoundingClientRect.
 const CX = 50
 const CY = 50
-const R = 34
+const R = 26
 
 // toFixed(4) — не про визуальную точность (0.0001% контейнера ничтожна),
 // а про гидратацию: Math.cos/Math.sin теоретически могут дать чуть разный
@@ -104,9 +108,14 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
     }
 
     // Конец стрелки-оси (за пределом окружности, но внутри 0-100%) —
-    // общий отступ от края круга до наконечника стрелки.
-    const AXIS_END = R + 12 // 46
-    const ARROW = 3.2
+    // общий отступ от края круга до наконечника стрелки. Наконечник
+    // (AXIS_END+ARROW) оказывается на 50+36=86% / 50-36=14% — подписи
+    // осей начинаются заметно дальше (89% / у верхнего края 3%), с
+    // явным зазором, а не впритык к остриям (см. LABEL_* ниже).
+    const AXIS_END = R + 7 // 33
+    const ARROW = 3
+    const LABEL_RIGHT = 89 // % — левый край подписи "cos α"
+    const LABEL_TOP = 3 // % — верхний край подписи "sin α"
 
     return (
         <div className="w-full h-full max-w-[360px] mx-auto flex flex-col items-center justify-center">
@@ -134,13 +143,22 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
 
                 {/* Подписи осей — обычный HTML (не SVG-text), чтобы размер
                     шрифта был предсказуем в rem/px и не зависел от масштаба
-                    viewBox; позиционируются от краёв контейнера, а не от
-                    острия стрелки — гарантированно остаются в пределах
-                    0-100%, без риска обрезания/горизонтального скролла. */}
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 text-[#8CA0AB] text-xs sm:text-sm">
+                    viewBox. Раньше подписи были прижаты к самому краю
+                    контейнера (right-0/top-0) — при более длинной стрелке
+                    это давало физическое наложение наконечника на текст
+                    (поймано пользователем живьём); теперь якорь — заранее
+                    вычисленный отступ (LABEL_RIGHT/LABEL_TOP), гарантированно
+                    дальше острия стрелки с явным зазором. */}
+                <div
+                    className="absolute top-1/2 -translate-y-1/2 whitespace-nowrap text-[#8CA0AB] text-xs sm:text-sm"
+                    style={{ left: `${LABEL_RIGHT}%` }}
+                >
                     <Latex>{'$\\cos\\alpha$'}</Latex>
                 </div>
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 text-[#8CA0AB] text-xs sm:text-sm">
+                <div
+                    className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[#8CA0AB] text-xs sm:text-sm"
+                    style={{ top: `${LABEL_TOP}%` }}
+                >
                     <Latex>{'$\\sin\\alpha$'}</Latex>
                 </div>
 
@@ -149,16 +167,28 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                     const isSelected = selected.has(idx)
                     const isCorrectPoint = correctSet.has(idx)
 
-                    // Радиокнопка — маленький кружок ТОЧНО на линии окружности:
+                    // Радиокnopка — маленький кружок ТОЧНО на линии окружности:
                     // невидимая (прозрачная) внешняя кнопка даёт удобную зону
                     // клика (особенно на телефоне), а видимый кружок внутри —
                     // фиксированного маленького размера, не растущего с зоной
                     // клика, чтобы визуально не съезжать с линии.
+                    //
+                    // Правильная точка ПОСЛЕ проверки — не просто зелёный
+                    // цвет (при 12-14px размере это легко не заметить среди
+                    // 16 точек, пользователь пожаловался, что "не видно, где
+                    // правильный ответ") — дополнительно крупнее (scale) и со
+                    // свечением (glow), чтобы бросалось в глаза даже беглым
+                    // взглядом, независимо от того, выбрал её пользователь или
+                    // нет.
                     let dotClass = 'border-2 border-[#4A5560] bg-[#151F24]'
+                    let glowClass = ''
+                    let correctScale = 1
                     if (!isAnswerChecked && isSelected) {
                         dotClass = 'border-2 border-[#4A90D9] bg-[#4A90D9]'
                     } else if (isAnswerChecked && isCorrectPoint) {
                         dotClass = 'border-2 border-[#A1D151] bg-[#A1D151]'
+                        glowClass = 'shadow-[0_0_0_5px_rgba(161,209,81,0.35)]'
+                        correctScale = 1.5
                     } else if (isAnswerChecked && isSelected && !isCorrectPoint) {
                         dotClass = 'border-2 border-[#DC605B] bg-[#DC605B]'
                     } else if (isAnswerChecked) {
@@ -184,8 +214,8 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                             }}
                         >
                             <motion.span
-                                className={cn('block rounded-full w-3 h-3 sm:w-3.5 sm:h-3.5', dotClass)}
-                                animate={{ scale: !isAnswerChecked && isSelected ? 1.25 : 1 }}
+                                className={cn('block rounded-full w-3 h-3 sm:w-3.5 sm:h-3.5', dotClass, glowClass)}
+                                animate={{ scale: !isAnswerChecked && isSelected ? 1.25 : correctScale }}
                                 whileTap={!isAnswerChecked ? { scale: 0.85 } : undefined}
                                 transition={{ type: 'spring', stiffness: 420, damping: 20 }}
                             />
