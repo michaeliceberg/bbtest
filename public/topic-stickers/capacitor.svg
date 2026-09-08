@@ -7,15 +7,28 @@ text { font-family: Nunito, -apple-system, 'Segoe UI', Roboto, sans-serif; font-
 
 </style>
 
-<line x1="55" y1="60" x2="55" y2="140" stroke="#FF8C42" stroke-width="8" stroke-linecap="round"/>
-<line x1="105" y1="60" x2="105" y2="140" stroke="#5AA9E6" stroke-width="8" stroke-linecap="round"/>
+<!-- расстояние d между обкладками -->
+<line x1="52" y1="20" x2="52" y2="39" stroke="#9AA7B0" stroke-width="1.5" opacity="0.8"/>
+<line x1="74" y1="20" x2="74" y2="55" stroke="#9AA7B0" stroke-width="1.5" opacity="0.8"/>
+<line x1="52" y1="20" x2="74" y2="20" stroke="#9AA7B0" stroke-width="1.5" opacity="0.8"/>
+<path d="M 52,20 L 58,17 L 58,23 Z" fill="#9AA7B0" opacity="0.8"/>
+<path d="M 74,20 L 68,17 L 68,23 Z" fill="#9AA7B0" opacity="0.8"/>
+<text x="63" y="13" font-size="13" text-anchor="middle" fill="#9AA7B0">d</text>
+
+<!-- левая пластина (параллелограмм, вид сбоку) -->
+<polygon points="26,55 52,39 52,139 26,155" fill="#FF8C42" stroke="#D97530" stroke-width="1.5"/>
+<text x="39" y="101" font-size="15" text-anchor="middle" fill="#1B242A">S</text>
+
+<!-- правая пластина (параллелограмм, вид сбоку) -->
+<polygon points="74,55 100,39 100,139 74,155" fill="#5AA9E6" stroke="#3F86BE" stroke-width="1.5"/>
+
 <g class="charge">
-  <text x="38" y="86" font-size="18" text-anchor="middle" fill="#FF8C42" font-weight="700">+</text>
-  <text x="38" y="106" font-size="18" text-anchor="middle" fill="#FF8C42" font-weight="700">+</text>
-  <text x="38" y="126" font-size="18" text-anchor="middle" fill="#FF8C42" font-weight="700">+</text>
-  <text x="122" y="86" font-size="22" text-anchor="middle" fill="#5AA9E6" font-weight="700">−</text>
-  <text x="122" y="106" font-size="22" text-anchor="middle" fill="#5AA9E6" font-weight="700">−</text>
-  <text x="122" y="126" font-size="22" text-anchor="middle" fill="#5AA9E6" font-weight="700">−</text>
+  <text x="12" y="82" font-size="17" text-anchor="middle" fill="#FF8C42" font-weight="700">+</text>
+  <text x="12" y="102" font-size="17" text-anchor="middle" fill="#FF8C42" font-weight="700">+</text>
+  <text x="12" y="122" font-size="17" text-anchor="middle" fill="#FF8C42" font-weight="700">+</text>
+  <text x="114" y="82" font-size="21" text-anchor="middle" fill="#5AA9E6" font-weight="700">−</text>
+  <text x="114" y="102" font-size="21" text-anchor="middle" fill="#5AA9E6" font-weight="700">−</text>
+  <text x="114" y="122" font-size="21" text-anchor="middle" fill="#5AA9E6" font-weight="700">−</text>
 </g>
 
 </svg>
