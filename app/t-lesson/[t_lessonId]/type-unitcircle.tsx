@@ -54,14 +54,16 @@ type Props = {
 // краям под подписи осей (cos α / sin α), не вылезающие за пределы
 // контейнера (см. риск горизонтального переполнения на мобильном,
 // многократно чинившийся в этом проекте — см. CLAUDE.md) — весь запас
-// решается внутри тех же 0-100%, без overflow-трюков. R уменьшен (было
-// 34) — при 34 наконечник стрелки (AXIS_END+ARROW) вылезал почти к
-// самому краю контейнера и физически перекрывал подпись "cos α"/"sin α"
-// (пользователь поймал живьём) — с R=26 между наконечником и подписью
-// гарантированный зазор, проверено через getBoundingClientRect.
+// решается внутри тех же 0-100%, без overflow-трюков. R увеличен (было
+// 26, до этого — 34) по прямой просьбе пользователя ("покрупнее сам
+// круг... точки будут не так близко друг к другу"): подпись "cos α"
+// больше не стоит СБОКУ от правой стрелки (см. RIGHT_LABEL_X/Y ниже —
+// теперь она НАД стрелкой, тем же приёмом, что и "sin α" над верхней),
+// поэтому освободившееся справа место можно отдать самому кругу без
+// риска обрезания подписи, как было при R=34 раньше.
 const CX = 50
 const CY = 50
-const R = 26
+const R = 32
 
 // toFixed(4) — не про визуальную точность (0.0001% контейнера ничтожна),
 // а про гидратацию: Math.cos/Math.sin теоретически могут дать чуть разный
@@ -172,14 +174,21 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
     }
 
     // Конец стрелки-оси (за пределом окружности, но внутри 0-100%) —
-    // общий отступ от края круга до наконечника стрелки. Наконечник
-    // (AXIS_END+ARROW) оказывается на 50+36=86% / 50-36=14% — подписи
-    // осей начинаются заметно дальше (89% / у верхнего края 3%), с
-    // явным зазором, а не впритык к остриям (см. LABEL_* ниже).
-    const AXIS_END = R + 7 // 33
-    const ARROW = 3
-    const LABEL_RIGHT = 89 // % — левый край подписи "cos α"
-    const LABEL_TOP = 3 // % — верхний край подписи "sin α"
+    // общий отступ от края круга до наконечника стрелки.
+    const AXIS_END = R + 6 // 38
+    const ARROW = 3.5
+    // Обе подписи осей теперь стоят НАД своей стрелкой (по прямой
+    // просьбе пользователя для "cos α" — раньше стояла СБОКУ от правой
+    // стрелки и на широком круге не помещалась по ширине контейнера;
+    // теперь она отзеркаливает уже работавший приём "sin α"). Горизонталь
+    // подписи — x наконечника правой стрелки (CX+AXIS_END); вертикаль —
+    // чуть выше центральной линии (CY минус зазор), сам див переносится
+    // так, что его НИЖНИЙ край садится ровно на эту отметку
+    // (-translate-y-full в разметке ниже) — гарантированный зазор от оси
+    // независимо от размера шрифта.
+    const RIGHT_LABEL_X = CX + AXIS_END // 88
+    const RIGHT_LABEL_Y = CY - 6 // 44 — нижний край подписи "cos α"
+    const LABEL_TOP = 1 // % — верхний край подписи "sin α"
 
     // Пунктирная направляющая ('label'-режим) — хорда окружности на
     // уровне guideValue: для sin — горизонтальная (y фиксирован, x — по
@@ -203,22 +212,26 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
     const usedForActive = new Set<string>() // варианты уже назначены ДРУГИМ точкам — не блокируем повтор специально, у каждой точки свой список
 
     return (
-        <div className="w-full h-full max-w-[360px] mx-auto flex flex-col items-center gap-4 mt-2">
+        <div className="w-full h-full max-w-[440px] mx-auto flex flex-col items-center gap-4 mt-2">
             <div className="relative w-full aspect-square select-none shrink-0">
                 {/* Декоративный фон — сама окружность + оси со стрелками
-                    (+ пунктирная направляющая в 'label'-режиме) */}
+                    (+ пунктирная направляющая в 'label'-режиме). Линии
+                    потолще (было strokeWidth 1 везде) — по прямой просьбе
+                    пользователя, вместе с укрупнением самого круга (R)
+                    тонкие линии на большом радиусе выглядели непропорц-
+                    ионально хрупкими. */}
                 <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none">
-                    <circle cx={CX} cy={CY} r={R} fill="none" stroke="#3A464E" strokeWidth="1" />
+                    <circle cx={CX} cy={CY} r={R} fill="none" stroke="#3A464E" strokeWidth="1.8" />
 
                     {/* Ось X — стрелка вправо (cos α) */}
-                    <line x1={CX - AXIS_END} y1={CY} x2={CX + AXIS_END} y2={CY} stroke="#2A363D" strokeWidth="1" />
+                    <line x1={CX - AXIS_END} y1={CY} x2={CX + AXIS_END} y2={CY} stroke="#2A363D" strokeWidth="1.6" />
                     <polygon
                         points={`${CX + AXIS_END + ARROW},${CY} ${CX + AXIS_END - ARROW},${CY - ARROW * 0.7} ${CX + AXIS_END - ARROW},${CY + ARROW * 0.7}`}
                         fill="#4A5560"
                     />
 
                     {/* Ось Y — стрелка вверх (sin α) */}
-                    <line x1={CX} y1={CY + AXIS_END} x2={CX} y2={CY - AXIS_END} stroke="#2A363D" strokeWidth="1" />
+                    <line x1={CX} y1={CY + AXIS_END} x2={CX} y2={CY - AXIS_END} stroke="#2A363D" strokeWidth="1.6" />
                     <polygon
                         points={`${CX},${CY - AXIS_END - ARROW} ${CX - ARROW * 0.7},${CY - AXIS_END + ARROW} ${CX + ARROW * 0.7},${CY - AXIS_END + ARROW}`}
                         fill="#4A5560"
@@ -229,22 +242,22 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                     {guideLine && (
                         <line
                             x1={guideLine.x1} y1={guideLine.y1} x2={guideLine.x2} y2={guideLine.y2}
-                            stroke="#4A90D9" strokeWidth="1" strokeDasharray="2.2,1.6"
+                            stroke="#4A90D9" strokeWidth="1.4" strokeDasharray="2.6,1.8"
                         />
                     )}
                 </svg>
 
                 {/* Подписи осей — обычный HTML (не SVG-text), чтобы размер
                     шрифта был предсказуем в rem/px и не зависел от масштаба
-                    viewBox. Раньше подписи были прижаты к самому краю
-                    контейнера (right-0/top-0) — при более длинной стрелке
-                    это давало физическое наложение наконечника на текст
-                    (поймано пользователем живьём); теперь якорь — заранее
-                    вычисленный отступ (LABEL_RIGHT/LABEL_TOP), гарантированно
-                    дальше острия стрелки с явным зазором. */}
+                    viewBox. Обе подписи стоят НАД своей стрелкой (по прямой
+                    просьбе пользователя для "cos α" — раньше стояла сбоку от
+                    правой стрелки и на широком круге упиралась в край
+                    контейнера) — div переносится своим НИЖНИМ краем на
+                    заранее вычисленную отметку (-translate-y-full), с
+                    гарантированным зазором от самой линии оси. */}
                 <div
-                    className="absolute top-1/2 -translate-y-1/2 whitespace-nowrap text-[#8CA0AB] text-xs sm:text-sm"
-                    style={{ left: `${LABEL_RIGHT}%` }}
+                    className="absolute -translate-x-1/2 -translate-y-full whitespace-nowrap text-[#8CA0AB] text-xs sm:text-sm"
+                    style={{ left: `${RIGHT_LABEL_X}%`, top: `${RIGHT_LABEL_Y}%` }}
                 >
                     <Latex>{'$\\cos\\alpha$'}</Latex>
                 </div>
@@ -324,7 +337,7 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                             aria-label={point.label}
                             className={cn(
                                 'absolute flex items-center justify-center rounded-full',
-                                'w-7 h-7 sm:w-8 sm:h-8', // зона клика
+                                'w-9 h-9 sm:w-10 sm:h-10', // зона клика — увеличена по просьбе пользователя
                                 clickable && 'cursor-pointer',
                             )}
                             style={{
@@ -334,7 +347,7 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                             }}
                         >
                             <motion.span
-                                className={cn('block rounded-full w-3 h-3 sm:w-3.5 sm:h-3.5', dotClass, glowClass)}
+                                className={cn('block rounded-full w-4 h-4 sm:w-[18px] sm:h-[18px]', dotClass, glowClass)}
                                 animate={{
                                     scale: isLabel
                                         ? correctScale
