@@ -159,6 +159,11 @@ type Props = {
   // tree.tsx) — см. ChestBonusPanel ниже.
   isChestStage?: boolean,
   isMegaChestStage?: boolean,
+  // Следующий по порядку этап той же темы (t_unit) — null, если текущий
+  // этап последний (тогда кнопка "Следующий урок" на финальном экране не
+  // показывается вовсе, см. ниже). Считается на сервере (page.tsx), т.к.
+  // там уже есть отсортированный список этапов темы.
+  nextTLessonHref?: string | null,
 }
 
 export default function TQuiz({
@@ -170,6 +175,7 @@ export default function TQuiz({
   isBossStage,
   isChestStage,
   isMegaChestStage,
+  nextTLessonHref,
 }: Props) {
 
   const router = useRouter()
@@ -310,37 +316,6 @@ export default function TQuiz({
   useEffect(() => {
     setRandomEmotionLottie(getRandomLottie(LOTTIE_EMOTION_RIGHT_LIST))
   }, [currentQuestionIndex])
-
-  const startQuiz = useCallback(() => {
-    setQuizStarted(true)
-    setCurrentQuestionIndex(0)
-    setScore(0)
-    scoreRef.current = 0
-    setQuizCompleted(false)
-    setShowChestReward(false)
-    setShowQuestRewardsScreen(false)
-    setQuestRewardsData(null)
-    maxStreakRef.current = 0
-    setAnsweredQuestions(0)
-    setStreak(0)
-    // allQuestions мог остаться на "работе над ошибками" (укороченный
-    // набор только неверных вопросов) — рестарт должен идти с ПОЛНОГО
-    // исходного набора урока, не с этого остатка. isRightList считаем от
-    // questions1.length напрямую (initialState в этот момент ещё
-    // высчитан от старого/укороченного allQuestions).
-    setAllQuestions(questions1)
-    setIsRightList(questions1.map((el, index) => index === 0 ? 3 : 0))
-    setIsReviewRound(false)
-    isReviewRoundRef.current = false
-    mistakeQueueRef.current = []
-    setRoundNumber(0)
-    setFinishList([])
-    setIsProcessing(false)
-    processedQuestionsRef.current.clear()
-    hasPlayedFinishSoundRef.current = false
-    setHotQuestionWon(false)
-    hotQuestionWonRef.current = false
-  }, [questions1])
 
   // Сбрасываем isRightPrevious при смене вопроса
   useEffect(() => {
@@ -678,6 +653,23 @@ export default function TQuiz({
     })
   }, [updateQuestProgress, router, t_lessonId])
 
+  // "Следующий урок" на финальном экране — тот же сигнал для карты
+  // скиллов, что и у "Завершить" выше (см. комментарий там), но переход
+  // идёт сразу на следующий этап темы, а не на /trainer.
+  const handleNextLesson = useCallback(() => {
+    if (!nextTLessonHref) return
+    updateQuestProgress()
+    try {
+      sessionStorage.setItem('justCompletedTLesson', String(t_lessonId))
+    } catch {
+      // см. комментарий в handleFinishLesson выше
+    }
+    router.refresh()
+    requestAnimationFrame(() => {
+      router.push(nextTLessonHref)
+    })
+  }, [updateQuestProgress, router, t_lessonId, nextTLessonHref])
+
   const handleChestOpened = useCallback(() => {
     setShowChestReward(false)
     // После клика на сундук - показываем финальный экран
@@ -748,7 +740,9 @@ export default function TQuiz({
             animationData={score / totalScorable < 0.8 ? LottieTrainerSharkFailDNO : LottieTrainerSharkFinalWin}
             className="h-80 w-80 mx-auto"
           />
-          <Button onClick={startQuiz} className="mt-4" variant='primary'>Давай по новой</Button>
+          {nextTLessonHref && (
+            <Button onClick={handleNextLesson} className="mt-4" variant='primary'>Следующий урок</Button>
+          )}
           <div>
             <Button className='mt-4' variant='primaryOutline' onClick={handleFinishLesson}>Завершить</Button>
           </div>

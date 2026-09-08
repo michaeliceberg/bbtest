@@ -18,6 +18,7 @@ import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket,
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { TrainerStageLink } from './trainer-stage-link';
+import { isReviewStage, getStageQueryParams } from '@/lib/trainerStageFlags';
 
 // Больше разнообразия по прямой просьбе пользователя ("яйцо щит меч —
 // хочется большее количество разных иконок, чтобы было интереснее") —
@@ -60,13 +61,6 @@ export type SkillStage = {
     percentage: number;
     title: string;
 };
-
-// Мини-босс на промежуточном этапе ("контрольная" с миксом уже пройденных
-// формул, между обычными этапами) — тот же HP-бар-босс, что раньше был
-// только на последнем ("корона") этапе темы, просто навешивается ещё и
-// здесь. Определяется по названию урока — без миграции схемы под
-// отдельный флаг; конвенция: урок с "контрольная" в названии.
-const isReviewStage = (title: string): boolean => /контрольн/i.test(title);
 
 export type SkillTopic = {
     id: number;
@@ -306,13 +300,7 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                     // StageIcon), просто подсветка вокруг богаче.
                                                     const isChest = !isBoss && topic.stages.length >= 3 && trueIdx === Math.floor((topic.stages.length - 1) / 2);
                                                     const isMegaChest = isLastOverall;
-                                                    const stageHref = (() => {
-                                                        const params: string[] = [];
-                                                        if (isBoss) params.push('boss=1');
-                                                        if (isChest) params.push('chest=1');
-                                                        if (isMegaChest) params.push('megachest=1');
-                                                        return `/t-lesson/${s.id}${params.length ? '?' + params.join('&') : ''}`;
-                                                    })();
+                                                    const stageHref = `/t-lesson/${s.id}${getStageQueryParams(trueIdx, topic.stages.length, s.title)}`;
                                                     const Icon = STAGE_ICONS[trueIdx % STAGE_ICONS.length];
                                                     const col = boxColumn(j);
 

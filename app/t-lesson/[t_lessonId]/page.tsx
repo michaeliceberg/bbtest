@@ -6,6 +6,7 @@ import { Shuffle2, ShuffleTS } from "@/usefulFunctions"
 import { pickInsertBlank, corruptFormulaLetter, extractLetterCandidates } from "@/lib/formulaLetters"
 import { getFormulaIconKey } from "@/lib/formulaIcons"
 import { getTopicSticker } from "@/lib/topicStickers"
+import { getStageQueryParams } from "@/lib/trainerStageFlags"
 import TQuiz from "@/app/t-lesson/[t_lessonId]/TQUIZ"
 import { allTypesCT } from "@/db/schema";
 
@@ -253,6 +254,20 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     if (!t_lesson.t_challenges || t_lesson.t_challenges.length === 0) {
         redirect('/trainer');
     }
+
+    // Кнопка "Следующий урок" на финальном экране (TQUIZ.tsx) — следующий
+    // по order этап внутри той же темы (t_unit), null если текущий этап —
+    // последний (кнопка тогда не показывается вовсе, см. TQUIZ.tsx).
+    // Query-параметры (?boss=1 и т.п.) считаются той же позиционной
+    // логикой, что и прямые ссылки с карты скиллов (components/
+    // trainer-grade-tree.tsx) — иначе один и тот же этап показывал бы
+    // разную разметку в зависимости от того, как на него попали.
+    const siblingLessons = t_lesson.t_unit.t_lessons;
+    const currentLessonIdx = siblingLessons.findIndex((l) => l.id === t_lesson.id);
+    const nextLesson = currentLessonIdx >= 0 ? siblingLessons[currentLessonIdx + 1] : undefined;
+    const nextTLessonHref = nextLesson
+        ? `/t-lesson/${nextLesson.id}${getStageQueryParams(currentLessonIdx + 1, siblingLessons.length, nextLesson.title)}`
+        : null;
 
     const lessonChallenges = stageParam
         ? t_lesson.t_challenges.filter(t_ch => t_ch.stage === stageParam)
@@ -1279,6 +1294,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             isBossStage={isBossStage}
             isChestStage={isChestStage}
             isMegaChestStage={isMegaChestStage}
+            nextTLessonHref={nextTLessonHref}
         />
     );
 }

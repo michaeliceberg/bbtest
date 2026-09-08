@@ -778,6 +778,18 @@ export const getTLesson = cache(async (t_lessonId: number) => {
           t_challengeOptions: true,
         },
       },
+      // Только id/order/title соседних этапов темы — нужно для кнопки
+      // "Следующий урок" на финальном экране (TQUIZ.tsx): найти этап
+      // сразу после текущего внутри того же t_unit, без отдельного
+      // запроса.
+      t_unit: {
+        with: {
+          t_lessons: {
+            orderBy: (l, { asc }) => [asc(l.order)],
+            columns: { id: true, order: true, title: true },
+          },
+        },
+      },
     },
   });
 
