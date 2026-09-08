@@ -20,6 +20,7 @@ import { TypeConnect } from "@/app/t-lesson/[t_lessonId]/type-connect"
 import { TypeMultistep } from "@/app/t-lesson/[t_lessonId]/type-multistep"
 import { TypeSpeed } from "@/app/t-lesson/[t_lessonId]/type-speed"
 import { TypeFracTrick } from "@/app/t-lesson/[t_lessonId]/type-fractrick"
+import { TypeTrigTable } from "@/app/t-lesson/[t_lessonId]/type-trigtable"
 import { TypeWorkbook } from "@/app/t-lesson/[t_lessonId]/type-workbook"
 import { TypeConstructor } from "@/app/t-lesson/[t_lessonId]/type-constructor"
 
@@ -297,6 +298,12 @@ export default function TrainerQuestion({
       case "MULTISTEP":
         return <TypeMultistep question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
 
+      case "TRIGTABLE":
+        // Самодостаточный тип (как FRACTRICK) — своя кнопка "Ответить"/
+        // "Готово" внутри, вызывает onAnswer один раз по итогу проверки
+        // ВСЕХ пропусков таблицы разом (см. type-trigtable.tsx).
+        return <TypeTrigTable question={question} onAnswer={onAnswer} />
+
       // MEMORY отключён (пользователь: "душный" тип, не вызывает приятных
       // эмоций) — компонент type-memory.tsx оставлен нетронутым в
       // репозитории (красиво реализован, может понадобится переосмыслить
@@ -502,15 +509,16 @@ export default function TrainerQuestion({
         </div>
         </motion.div>
 
-      {/* Кнопка внизу - фиксированная. У CHECK и FRACTRICK её нет вообще
-          (не только disabled) — оба типа самодостаточные и владеют
-          подтверждением сами: CHECK — вообще без подтверждения (клик по
-          ведру/галочке сразу засчитывает ответ), FRACTRICK — со своими
-          ДВУМЯ внутренними кнопками "Ответить" (по одной на каждый из 2
-          этапов, см. type-fractrick.tsx). Общая кнопка тут была бы либо
-          лишней (CHECK), либо третьей, которую пользователь явно не
-          просил (FRACTRICK). */}
-      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && (
+      {/* Кнопка внизу - фиксированная. У CHECK, FRACTRICK и TRIGTABLE её
+          нет вообще (не только disabled) — все три типа самодостаточные и
+          владеют подтверждением сами: CHECK — вообще без подтверждения
+          (клик по ведру/галочке сразу засчитывает ответ), FRACTRICK — со
+          своими ДВУМЯ внутренними кнопками "Ответить" (по одной на каждый
+          из 2 этапов, см. type-fractrick.tsx), TRIGTABLE — одной кнопкой
+          "Ответить"/"Готово", проверяющей сразу все пропуски таблицы (см.
+          type-trigtable.tsx). Общая кнопка тут была бы либо лишней (CHECK),
+          либо третьей/четвёртой, которую пользователь явно не просил. */}
+      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "TRIGTABLE" && (
       <div className="px-4 pb-4 pt-2 bg-[#151F24] relative">
         {/* Notification фон который выезжает при правильном ответе */}
         {answerState === "correct" && (

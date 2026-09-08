@@ -37,7 +37,7 @@ export interface SuperType {
 // (см. историю в CLAUDE.md) — задачи с этим типом никогда не читаются из
 // t_challenges.type, а собираются на лету в page.tsx из отдельной таблицы
 // t_hot_questions, поэтому миграция самого pgEnum "type" тут не нужна.
-export type allTypesCT = "M_ASC" | "SELECT" | "ASSIST" | "CONNECT" | "SLIDER" | "CONSTRUCT" | "WORKBOOK" | "R ASSIST" | "R CONNECT" | "R SLIDER" | "GEOSIN" | "RUSSIANDICTANT" | "SWIPE" | "KEYBOARD" | "INSERT" | "SCROLL" | "HOT" | "CHECK" | "PICMATCH" | "MULTISTEP" | "SPEED" | "FRACTRICK" | "DIAGRAM";
+export type allTypesCT = "M_ASC" | "SELECT" | "ASSIST" | "CONNECT" | "SLIDER" | "CONSTRUCT" | "WORKBOOK" | "R ASSIST" | "R CONNECT" | "R SLIDER" | "GEOSIN" | "RUSSIANDICTANT" | "SWIPE" | "KEYBOARD" | "INSERT" | "SCROLL" | "HOT" | "CHECK" | "PICMATCH" | "MULTISTEP" | "SPEED" | "FRACTRICK" | "DIAGRAM" | "TRIGTABLE";
 
 export const challengesEnum = pgEnum("type", [
 	"M_ASC", "SELECT", "ASSIST", "CONNECT", "SLIDER", "CONSTRUCT", "WORKBOOK",
@@ -51,7 +51,7 @@ export const challengesEnum = pgEnum("type", [
 export const t_challengesEnum = pgEnum("type", [
 	"M_ASC", "SELECT", "ASSIST", "CONNECT", "SLIDER", "CONSTRUCT", "WORKBOOK",
 	"R ASSIST", "R CONNECT", "R SLIDER", "GEOSIN", "RUSSIANDICTANT", "SWIPE", "KEYBOARD",
-	"INSERT", "SCROLL", "CHECK", "PICMATCH", "MULTISTEP", "SPEED", "FRACTRICK", "DIAGRAM"
+	"INSERT", "SCROLL", "CHECK", "PICMATCH", "MULTISTEP", "SPEED", "FRACTRICK", "DIAGRAM", "TRIGTABLE"
 ]);
 
 // ===== COURSES =====
@@ -405,6 +405,12 @@ export const t_challenges = pgTable('t_challenges', {
 	// N, оператор, десятичная дробь, ответ, цвета для визуального
 	// соответствия чисел. Nullable — у всех остальных типов не используется.
 	fracTrickData: text('frac_trick_data'),
+	// Только для type='TRIGTABLE' — JSON с таблицей значений тригонометрии
+	// (см. TrigTableData в app/t-lesson/[t_lessonId]/page.tsx): подписи
+	// строк/столбцов, полная сетка значений (LaTeX-фрагменты без "$") и
+	// список пропусков (row/col), которые пользователь заполняет вариантами
+	// снизу. Nullable — у всех остальных типов не используется.
+	trigTableData: text('trig_table_data'),
 });
 
 export const t_challengeOptions = pgTable('t_challenge_options', {

@@ -54,6 +54,24 @@ export type FracTrickVisual = {
     stage2Options: string[];
 };
 
+// Только для type='TRIGTABLE' — таблица значений тригонометрии (строки
+// sin/cos/tg/ctg, столбцы 30°/45°/60°) с одним или несколькими пропусками.
+// values[row][col] — LaTeX-фрагмент БЕЗ "$" (обёртка добавляется в самом
+// компоненте type-trigtable.tsx, и у ячейки, и у варианта ответа — так
+// формат хранения общий для полных и пропущенных ячеек). blanks — какие
+// именно (row,col) пропущены, options — пул вариантов снизу (уже включает
+// правильные значения ПО ОДНОМУ НА КАЖДЫЙ пропуск — если два пропуска
+// требуют одно и то же значение, в options должно быть два одинаковых на
+// вид элемента, иначе одного варианта не хватит на оба пропуска — плюс
+// несколько "отвлекающих" значений).
+export type TrigTableData = {
+    rowLabels: string[];
+    colLabels: string[];
+    values: string[][];
+    blanks: { row: number; col: number }[];
+    options: string[];
+};
+
 export type QuestionType = {
     questionType: allTypesCT;
     question: string;
@@ -110,6 +128,8 @@ export type QuestionType = {
     multistepSteps?: MultistepStep[],
     // Только для FRACTRICK — см. FracTrickVisual выше.
     fracTrick?: FracTrickVisual,
+    // Только для TRIGTABLE — см. TrigTableData выше.
+    trigTable?: TrigTableData,
     // "Картинка темы" (public/topic-stickers/*.svg) — гиря для силы
     // тяжести, пружина для упругости и т.п., см. lib/topicStickers.ts.
     // Не подобрано для каждой задачи — undefined, если сопоставление
@@ -611,6 +631,35 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 correctAnswer: visual.answer,
                 timeLimit: 20,
                 fracTrick: { ...visual, stage2Answer, stage2Options },
+            };
+        }
+
+        if (t_challenge.type === 'TRIGTABLE') {
+            let trigTable: TrigTableData | null = null;
+            try {
+                trigTable = t_challenge.trigTableData ? JSON.parse(t_challenge.trigTableData) : null;
+            } catch {
+                trigTable = null;
+            }
+            if (!trigTable || trigTable.blanks.length === 0) return undefined;
+
+            return {
+                questionType: 'TRIGTABLE' as const,
+                question: t_challenge.question,
+                imageSrc: t_challenge.imageSrc,
+                options: [],
+                numRans: t_challenge.numRans,
+                optionsQ: [],
+                optionsA: [],
+                optionsConstructRight: [],
+                difficulty: t_challenge.difficulty,
+                // Не используется рендер-компонентом напрямую (проверка идёт
+                // по ячейкам внутри trigTable), но нужен как непустая строка
+                // для остальной инфраструктуры (напр. отображение "верного
+                // ответа" где-то ещё) — join всех верных значений пропусков.
+                correctAnswer: trigTable.blanks.map((b) => trigTable!.values[b.row][b.col]).join(', '),
+                timeLimit: 60,
+                trigTable,
             };
         }
 
