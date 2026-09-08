@@ -219,5 +219,4 @@ export const FINISH_AUDIO_SRC_LIST = [
   '/MemesAudio/meme-right-clapping.WAV',
   '/MemesAudio/meme-right-gtapassed.WAV',
   '/MemesAudio/meme-right-nice.WAV',
-  '/MemesAudio/meme-right-papichlegkaya.WAV',
 ] as const;

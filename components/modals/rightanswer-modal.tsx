@@ -20,7 +20,6 @@ import { Button } from '../ui/button'
 import { useRightAnswerModal } from '@/store/use-rightanswer-modal'
 
 const rightAudioList = [
-    '/MemesAudio/meme-right-papichlegkaya.WAV',
     '/MemesAudio/meme-right-chinazes.WAV',
     '/MemesAudio/meme-right-clapping.WAV', 
     '/MemesAudio/meme-right-estestvenno.WAV',
