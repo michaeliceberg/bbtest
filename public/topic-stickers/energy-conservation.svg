@@ -3,7 +3,7 @@
 text { font-family: Nunito, -apple-system, 'Segoe UI', Roboto, sans-serif; font-weight: 700; fill: #F2F7FB; }
 
 @keyframes swing { 0%,100% { transform: rotate(-28deg); } 50% { transform: rotate(28deg); } }
-#pend { animation: swing 1.8s ease-in-out infinite; transform-origin: 80px 30px; }
+#pend { animation: swing 3.2s ease-in-out infinite; transform-origin: 80px 30px; }
 
 @keyframes fadeKin { 0%,15%,35%,65%,85%,100% { opacity: 0; } 25%,75% { opacity: 1; } }
 @keyframes fadeAt0 { 0%,100% { opacity: 1; } 8%,92% { opacity: 0; } }
@@ -19,9 +19,9 @@ text { font-family: Nunito, -apple-system, 'Segoe UI', Roboto, sans-serif; font-
   <ellipse cx="74" cy="144" rx="6" ry="4" fill="#C9D3DC" opacity=".5"/>
 </g>
 
-<text x="14" y="118" font-size="13" text-anchor="start" fill="#FFD400" style="animation: fadeAt50 1.8s ease-in-out infinite">Eпот</text>
-<text x="146" y="118" font-size="13" text-anchor="end" fill="#FFD400" style="animation: fadeAt0 1.8s ease-in-out infinite">Eпот</text>
-<text x="80" y="182" font-size="13" text-anchor="middle" fill="#FF8C42" style="animation: fadeKin 1.8s ease-in-out infinite">Eкин</text>
+<text x="14" y="118" font-size="13" text-anchor="start" fill="#FFD400" style="animation: fadeAt50 3.2s ease-in-out infinite">Eпот</text>
+<text x="146" y="118" font-size="13" text-anchor="end" fill="#FFD400" style="animation: fadeAt0 3.2s ease-in-out infinite">Eпот</text>
+<text x="80" y="182" font-size="13" text-anchor="middle" fill="#FF8C42" style="animation: fadeKin 3.2s ease-in-out infinite">Eкин</text>
 
 
 </svg>
