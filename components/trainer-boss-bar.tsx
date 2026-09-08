@@ -6,13 +6,14 @@
 // урока отвечены верно (совпадает с уже существующим isPerfectScore/
 // сундуком в TQUIZ.tsx). Лут-дроп чисто декоративный (не даёт реальных
 // сердечек/наград — это отдельная, не начатая тема) — просто визуальный
-// отклик на "удар". Плейсхолдер-арт (emoji) — пользователь заменит на
-// гифки персонажа/босса/баночки позже.
+// отклик на "удар". Мордочка — собственный SVG (BossFace), становится
+// побитее по мере падения hp (см. сам компонент).
 
 'use client'
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
+import { BossFace } from './BossFace'
 
 type Props = {
     hp: number // 0-100, оставшееся здоровье босса
@@ -43,7 +44,7 @@ export const TrainerBossBar = ({ hp, hit }: Props) => {
         <div className="px-4 pt-1 pb-3">
             <div className="flex items-center gap-3">
                 <motion.div
-                    className="relative w-12 h-12 rounded-lg flex items-center justify-center text-2xl flex-shrink-0"
+                    className="relative w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ border: '2px solid #DC605B' }}
                     animate={{
                         backgroundColor: flash ? '#DC605B' : '#3A1F1F',
@@ -51,7 +52,7 @@ export const TrainerBossBar = ({ hp, hit }: Props) => {
                     }}
                     transition={{ duration: 0.25 }}
                 >
-                    👹
+                    <BossFace hp={hp} size={44} />
                     {showLoot && (
                         <motion.div
                             key={lootKey}
