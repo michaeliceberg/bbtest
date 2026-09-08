@@ -195,7 +195,11 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
     // независимо от размера шрифта.
     const RIGHT_LABEL_X = CX + AXIS_END // 88
     const RIGHT_LABEL_Y = CY - 6 // 44 — нижний край подписи "cos α"
-    const LABEL_TOP = 1 // % — верхний край подписи "sin α"
+    // Отрицательный отступ (выше самого контейнера круга) — по прямой
+    // просьбе пользователя поднять "sin α" подальше от наконечника
+    // верхней стрелки; родительские контейнеры не обрезают overflow, так
+    // что уход за верхнюю границу 0-100% безопасен.
+    const LABEL_TOP = -6 // % — верхний край подписи "sin α"
 
     // Пунктирная направляющая ('label'-режим) — хорда окружности на
     // уровне guideValue: для sin — горизонтальная (y фиксирован, x — по
@@ -263,13 +267,13 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                     заранее вычисленную отметку (-translate-y-full), с
                     гарантированным зазором от самой линии оси. */}
                 <div
-                    className="absolute -translate-x-1/2 -translate-y-full whitespace-nowrap text-[#8CA0AB] text-xs sm:text-sm"
+                    className="absolute -translate-x-1/2 -translate-y-full whitespace-nowrap text-[#8CA0AB] font-bold text-sm sm:text-lg"
                     style={{ left: `${RIGHT_LABEL_X}%`, top: `${RIGHT_LABEL_Y}%` }}
                 >
                     <Latex>{'$\\cos\\alpha$'}</Latex>
                 </div>
                 <div
-                    className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[#8CA0AB] text-xs sm:text-sm"
+                    className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[#8CA0AB] font-bold text-sm sm:text-lg"
                     style={{ top: `${LABEL_TOP}%` }}
                 >
                     <Latex>{'$\\sin\\alpha$'}</Latex>

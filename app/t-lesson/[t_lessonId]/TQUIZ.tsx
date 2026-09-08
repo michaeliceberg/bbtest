@@ -795,18 +795,26 @@ export default function TQuiz({
               key={isReviewRound ? 'review-banner' : 'no-banner'}
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="relative mb-4 mx-auto w-fit overflow-hidden"
+              // Компактнее по вертикали (py-2.5→py-1, mb-4→mb-1, leading-none,
+              // иконка/текст чуть мельче) — по прямой просьбе пользователя:
+              // на телефоне баннер сдвигал весь остальной контент вниз, и
+              // кнопка "ответить" (TrainerQuestion рассчитан на min-h-screen
+              // без запаса под лишний блок сверху) уезжала за нижний край
+              // экрана — измерено живьём (getBoundingClientRect), первая
+              // (py-1.5/mb-2) попытка сократила overflow, но не убрала его
+              // целиком (36px добавки при ~16px запаса на типичном экране).
+              className="relative mb-0.5 mx-auto w-fit overflow-hidden leading-none"
               style={{
                 clipPath: 'polygon(14px 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 14px 100%, 0 50%)',
                 boxShadow: '0 4px 18px rgba(255, 111, 145, 0.35)',
               }}
             >
               <div
-                className="flex items-center justify-center gap-2 py-2.5 px-8"
+                className="flex items-center justify-center gap-1.5 py-0.5 px-6"
                 style={{ background: 'linear-gradient(135deg, #FF9A56 0%, #FF6F91 50%, #C86DD7 100%)' }}
               >
-                <PencilLine className="w-4 h-4 text-white relative z-10" />
-                <span className="text-sm font-black text-white uppercase tracking-wide relative z-10">
+                <PencilLine className="w-3 h-3 text-white relative z-10" />
+                <span className="text-[11px] leading-none font-black text-white uppercase tracking-wide relative z-10">
                   Работа над ошибками
                 </span>
               </div>
