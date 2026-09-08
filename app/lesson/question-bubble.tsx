@@ -12,12 +12,22 @@ const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 import { PALETTE_RED } from "@/src/constants/lessonButtonColors";
 import { findQuestionTarget } from "@/lib/highlight-question-target";
 
-import LottieRainbow from '@/public/LottieSelectRainbow.json'
-import LottieCrown from '@/public/LottieSelectCrown.json'
-import LottieDiamond from '@/public/LottieSelectDiamond.json'
-import LottieSparks from '@/public/LottieSelectSparks.json'
-import LottieStars from '@/public/LottieSelectStars.json'
-import LottieButterfly from '@/public/LottieSelectButterfly.json'
+// Облако-персонаж — тот же визуальный язык, что уже используется в
+// тренажёре (см. components/TrainerMascot.tsx): крупный Lottie слева +
+// речевое облако с текстом задания справа. Раньше здесь был маленький
+// значок (радуга/корона/бабочка и т.п.) без настоящего "облака" — по
+// прямой просьбе пользователя заменён на набор "cloudCharacter"
+// персонажей (public/Lottie/cloudCharacter/*.json).
+import LottieCloud02 from '@/public/Lottie/cloudCharacter/02.json'
+import LottieCloud04 from '@/public/Lottie/cloudCharacter/04.json'
+import LottieCloud05 from '@/public/Lottie/cloudCharacter/05.json'
+import LottieCloud06 from '@/public/Lottie/cloudCharacter/06.json'
+import LottieCloud07 from '@/public/Lottie/cloudCharacter/07.json'
+import LottieCloud14 from '@/public/Lottie/cloudCharacter/14.json'
+import LottieCloud18 from '@/public/Lottie/cloudCharacter/18.json'
+import LottieCloud24 from '@/public/Lottie/cloudCharacter/24.json'
+import LottieCloud36 from '@/public/Lottie/cloudCharacter/36.json'
+import LottieCloud42 from '@/public/Lottie/cloudCharacter/42.json'
 
 // Рендерит условие задачи, подсвечивая цветом юнита фразу "что нужно найти"
 // (если удалось её распознать эвристикой — иначе просто весь текст как есть).
@@ -43,12 +53,16 @@ const QuestionText = ({ question, color }: { question: string; color: string }) 
 // Палитра готовности (lib/skillTier.ts) теперь общая для обоих мест.
 
 const mascotAnimations = [
-    { lottie: LottieRainbow, name: "rainbow" },
-    { lottie: LottieCrown, name: "crown" },
-    { lottie: LottieDiamond, name: "diamond" },
-    { lottie: LottieSparks, name: "sparks" },
-    { lottie: LottieStars, name: "stars" },
-    { lottie: LottieButterfly, name: "butterfly" },
+    { lottie: LottieCloud02, name: "cloud02" },
+    { lottie: LottieCloud04, name: "cloud04" },
+    { lottie: LottieCloud05, name: "cloud05" },
+    { lottie: LottieCloud06, name: "cloud06" },
+    { lottie: LottieCloud07, name: "cloud07" },
+    { lottie: LottieCloud14, name: "cloud14" },
+    { lottie: LottieCloud18, name: "cloud18" },
+    { lottie: LottieCloud24, name: "cloud24" },
+    { lottie: LottieCloud36, name: "cloud36" },
+    { lottie: LottieCloud42, name: "cloud42" },
 ]
 
 type Props = {
@@ -154,8 +168,14 @@ export const QuestionBubble = ({
 
     return (
         <div className="w-full p-3 md:p-4">
-            {/* Персонаж и вопрос */}
-            <div className="flex gap-3">
+            {/* Персонаж и речевое облако — тот же визуальный язык, что уже
+                используется в тренажёре (components/TrainerMascot.tsx):
+                крупный Lottie-персонаж слева + бордер-облако со стрелкой
+                справа, "говорящее" текст задания. Раньше маскот был мелкой
+                иконкой без настоящего облака, а картинка (если есть)
+                теснилась рядом с текстом — теперь картинка (если есть)
+                идёт ОТДЕЛЬНЫМ блоком ниже облака, а не втискивается сбоку. */}
+            <div className="flex items-center gap-3">
                 <motion.div
                     className="flex-shrink-0"
                     animate={isCorrect ? {
@@ -174,7 +194,7 @@ export const QuestionBubble = ({
                         ? { duration: 0.5 }
                         : { duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
                 >
-                    <div className="w-10 h-10 md:w-12 md:h-12">
+                    <div className="w-14 h-14 md:w-16 md:h-16">
                         <Lottie
                             animationData={currentMascot.lottie}
                             loop={true}
@@ -183,47 +203,48 @@ export const QuestionBubble = ({
                     </div>
                 </motion.div>
 
-                <div className="flex-1 pt-0.5">
-                    {imageSrc ? (
-                        <div className="flex gap-3 items-start">
-                            <div className="flex-1 min-w-0 text-[#F2F7FB] text-sm md:text-base leading-relaxed">
-                                <QuestionText question={question} color={unitColor.button} />
-                            </div>
-                            <div className="relative flex-shrink-0 w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44">
-                                {/* Тихая "дышащая" подсветка по периметру — бесконечный,
-                                    едва заметный пульс в цвет юнита. */}
-                                <motion.div
-                                    animate={{ opacity: [0.25, 0.55, 0.25], scale: [0.94, 1.1, 0.94] }}
-                                    transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
-                                    className="absolute -inset-4 rounded-full pointer-events-none"
-                                    style={{
-                                        background: `radial-gradient(circle, ${unitColor.button}90 0%, ${unitColor.button}00 65%)`,
-                                    }}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setIsImageZoomed(true)}
-                                    className="relative w-full h-full group cursor-zoom-in"
-                                    aria-label="Увеличить изображение"
-                                >
-                                    <img
-                                        src={imageSrc}
-                                        alt=""
-                                        className="w-full h-full rounded-lg object-contain bg-[#151F23] transition-transform group-hover:scale-[1.03] group-active:scale-95"
-                                    />
-                                    <span className="absolute bottom-1.5 right-1.5 flex items-center justify-center rounded-full bg-black/70 p-1.5 shadow group-hover:bg-black/85 transition-colors">
-                                        <ZoomIn className="w-3.5 h-3.5 text-white" />
-                                    </span>
-                                </button>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="text-[#F2F7FB] text-sm md:text-base leading-relaxed">
-                            <QuestionText question={question} color={unitColor.button} />
-                        </div>
-                    )}
+                <div className="relative flex-1 min-w-0 px-4 py-3 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]">
+                    <div className="text-[#F2F7FB] text-sm md:text-base leading-relaxed">
+                        <QuestionText question={question} color={unitColor.button} />
+                    </div>
+                    {/* Стрелка слева, указывающая к маскоту — как в трейнере */}
+                    <div className="absolute -left-3 top-1/2 -translate-y-1/2 text-[#3A464E] text-xl font-bold">
+                        &lt;
+                    </div>
                 </div>
             </div>
+
+            {imageSrc && (
+                <div className="flex justify-center mt-3">
+                    <div className="relative w-full max-w-[220px] sm:max-w-[260px] md:max-w-[300px] aspect-square">
+                        {/* Тихая "дышащая" подсветка по периметру — бесконечный,
+                            едва заметный пульс в цвет юнита. */}
+                        <motion.div
+                            animate={{ opacity: [0.25, 0.55, 0.25], scale: [0.94, 1.1, 0.94] }}
+                            transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+                            className="absolute -inset-4 rounded-full pointer-events-none"
+                            style={{
+                                background: `radial-gradient(circle, ${unitColor.button}90 0%, ${unitColor.button}00 65%)`,
+                            }}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setIsImageZoomed(true)}
+                            className="relative w-full h-full group cursor-zoom-in"
+                            aria-label="Увеличить изображение"
+                        >
+                            <img
+                                src={imageSrc}
+                                alt=""
+                                className="w-full h-full rounded-lg object-contain bg-[#151F23] transition-transform group-hover:scale-[1.03] group-active:scale-95"
+                            />
+                            <span className="absolute bottom-1.5 right-1.5 flex items-center justify-center rounded-full bg-black/70 p-1.5 shadow group-hover:bg-black/85 transition-colors">
+                                <ZoomIn className="w-3.5 h-3.5 text-white" />
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Единая строка меты: статистика, ДЗ, "нет ответа", автор —
                 раньше была своя рамка-карточка вокруг всей строки; теперь

@@ -34,6 +34,7 @@ import { PencilLine, Gift } from "lucide-react"
 import { useQuizAudio } from "@/app/hooks/useQuizAudio"
 import { reportLessonQuestSignals } from "@/actions/generate-trainer-quest"
 import { awardHotQuestionReward } from "@/actions/award-hot-question-reward"
+import { awardChestReward } from "@/actions/award-chest-reward"
 import { ChestReward } from "@/components/ChestReward"
 import { TrainerQuestRewardsScreen, QuestRewardsData } from "@/components/trainer-quest-rewards-screen"
 import { useAchievementStore } from "@/store/use-achievement-store"
@@ -109,6 +110,44 @@ function HotBonusPanel() {
   )
 }
 
+// Сундук/мегасундук на карте скиллов (components/trainer-grade-tree.tsx,
+// ?chest=1/?megachest=1) — та же идея и тот же ref-guard, что и у
+// HotBonusPanel выше: начисление ровно один раз за показ финального
+// экрана, сумма решается на сервере (см. actions/award-chest-reward.ts).
+// Мегасундук — золотая палитра и покрупнее, обычный — амбер, как у
+// HotBonusPanel (тот же акцент, что уже закреплён в проекте за "бонус",
+// не за "достижение"/"уровень" — разные оттенки для разных типов наград).
+function ChestBonusPanel({ mega }: { mega: boolean }) {
+  const [gems, setGems] = useState<number | null>(null)
+  const awardedRef = useRef(false)
+
+  useEffect(() => {
+    if (awardedRef.current) return
+    awardedRef.current = true
+    awardChestReward(mega)
+      .then((res) => { if (res.success) setGems(res.gems ?? 0) })
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      className={
+        mega
+          ? "flex items-center justify-center gap-2 mx-auto mt-4 mb-2 w-fit px-5 py-2.5 rounded-full bg-[#3A2E0B] border-2 border-[#FFD460]"
+          : "flex items-center justify-center gap-2 mx-auto mt-4 mb-2 w-fit px-4 py-2 rounded-full bg-[#3A2A1B] border border-[#EF9F27]"
+      }
+    >
+      <Gift className={mega ? "w-6 h-6 text-[#FFD460]" : "w-5 h-5 text-[#EF9F27]"} />
+      <span className={mega ? "text-base font-black text-[#FFD460]" : "text-sm font-bold text-[#EF9F27]"}>
+        {mega ? "Мегасундук" : "Сундук открыт"}{gems !== null ? `: +${gems} монет` : '…'}
+      </span>
+    </motion.div>
+  )
+}
+
 type Props = {
   t_lessonId: number,
   t_lessonTitle: string,
@@ -116,6 +155,10 @@ type Props = {
   userName: string,
   stage?: number | null,
   isBossStage?: boolean,
+  // "Сундук"/"мегасундук" на карте скиллов (components/trainer-grade-
+  // tree.tsx) — см. ChestBonusPanel ниже.
+  isChestStage?: boolean,
+  isMegaChestStage?: boolean,
 }
 
 export default function TQuiz({
@@ -125,6 +168,8 @@ export default function TQuiz({
   userName,
   stage,
   isBossStage,
+  isChestStage,
+  isMegaChestStage,
 }: Props) {
 
   const router = useRouter()
@@ -691,11 +736,12 @@ export default function TQuiz({
           </h1>
           <TgSendMsgCom message={message} />
           <h2 className="text-2xl font-bold mb-4">Завершено!</h2>
-          {(isPerfectScore || hotQuestionWon) && <Confetti width={width} height={height} />}
+          {(isPerfectScore || hotQuestionWon || isChestStage || isMegaChestStage) && <Confetti width={width} height={height} />}
           <p className={`text-xl ${isPerfectScore ? "text-green-600 font-bold" : ""}`}>
             Правильно {score} из {totalScorable}
           </p>
           {hotQuestionWon && <HotBonusPanel />}
+          {isMegaChestStage ? <ChestBonusPanel mega /> : isChestStage ? <ChestBonusPanel mega={false} /> : null}
           <Lottie
             animationData={score / totalScorable < 0.8 ? LottieTrainerSharkFailDNO : LottieTrainerSharkFinalWin}
             className="h-80 w-80 mx-auto"

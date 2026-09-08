@@ -14,12 +14,23 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Egg, Shield, Sword, Crown, Gift, Library } from 'lucide-react';
+import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { TrainerStageLink } from './trainer-stage-link';
 
-const STAGE_ICONS = [Egg, Shield, Sword, Crown];
+// Больше разнообразия по прямой просьбе пользователя ("яйцо щит меч —
+// хочется большее количество разных иконок, чтобы было интереснее") —
+// цикл теперь на 10 значков вместо 4, повторяется только на действительно
+// длинных темах (>10 этапов, редкость).
+const STAGE_ICONS = [Egg, Shield, Sword, Crown, Dumbbell, Footprints, Rocket, Flame, Target, Trophy];
+
+// Один из промежуточных (не боссовских) этапов темы — "сундук" вместо
+// обычной иконки, с мигающей золотой подсветкой. Пройти его — отдельная
+// небольшая награда (см. awardChestReward/ChestBonusPanel в TQUIZ.tsx),
+// сверх обычного прогресса. Позиция — середина списка этапов, чисто по
+// индексу (без новых полей в БД, тот же принцип конвенции "по позиции",
+// что уже применяется у STAGE_ICONS/isReviewStage рядом).
 // 90%, как у последовательной разблокировки уроков в юните, для одного
 // короткого круга (3-6 вопросов) на этап оказалось слишком жёстко —
 // один неверный ответ уже не даёт пройти дальше. Порог ниже.
@@ -76,23 +87,31 @@ const chunkStages = (stages: SkillStage[], size: number): SkillStage[][] => {
     return rows;
 };
 
-// Сама иконка этапа (яйцо/щит/меч/корона или 👹 для босса) — вынесена в
-// функцию, чтобы не дублировать JSX в трёх разных визуальных состояниях
-// одного и того же квадратика (locked / unlocked-not-done / done).
+// Сама иконка этапа (яйцо/щит/меч/корона/... или 👹 для босса, 🎁 для
+// сундука) — вынесена в функцию, чтобы не дублировать JSX в трёх разных
+// визуальных состояниях одного и того же квадратика (locked / unlocked-
+// not-done / done). Сундук — отдельная ветка ПЕРЕД боссом: мегасундук
+// (isChest не выставляется на боссовском этапе, см. вычисление ниже)
+// сюда не попадает — тот остаётся 👹, просто с более нарядной подсветкой
+// вокруг квадратика (см. ChestGlow).
 const StageIcon = ({
     isBoss,
+    isChest = false,
     Icon,
     color,
     dim = false,
 }: {
     isBoss: boolean;
+    isChest?: boolean;
     Icon: typeof Egg;
     color: string;
     dim?: boolean;
 }) => (
-    isBoss
-        ? <span className={`text-base leading-none transition-[filter,opacity] duration-300 ${dim ? 'grayscale opacity-50' : ''}`}>👹</span>
-        : <Icon className="w-4 h-4 transition-colors duration-300" style={{ color }} />
+    isChest
+        ? <Gift className={`w-4 h-4 transition-[filter,opacity] duration-300 ${dim ? 'grayscale opacity-50' : ''}`} style={{ color: dim ? undefined : '#EF9F27' }} />
+        : isBoss
+            ? <span className={`text-base leading-none transition-[filter,opacity] duration-300 ${dim ? 'grayscale opacity-50' : ''}`}>👹</span>
+            : <Icon className="w-4 h-4 transition-colors duration-300" style={{ color }} />
 );
 
 const BossGiftBadge = () => (
@@ -102,6 +121,27 @@ const BossGiftBadge = () => (
     >
         <Gift className="w-2.5 h-2.5" style={{ color: '#412402' }} />
     </span>
+);
+
+// Мигающая золотая подсветка вокруг квадратика-сундука (и, чуть щедрее, у
+// мегасундука на финальном этапе темы) — та же "дышащая" радиальная
+// подсветка, что уже используется в question-bubble.tsx, просто в
+// золотой палитре вместо цвета юнита, и с более быстрым пульсом (чтобы
+// сразу бросалось в глаза на карте, а не только при наведении).
+const ChestGlow = ({ mega = false, children }: { mega?: boolean; children: React.ReactNode }) => (
+    <div className="relative w-9 h-9">
+        <motion.div
+            animate={{ opacity: [0.35, 0.8, 0.35], scale: [0.9, mega ? 1.35 : 1.15, 0.9] }}
+            transition={{ duration: mega ? 1.6 : 2, repeat: Infinity, ease: 'easeInOut' }}
+            className="absolute -inset-2 rounded-full pointer-events-none"
+            style={{
+                background: mega
+                    ? 'radial-gradient(circle, #FFD46090 0%, #FFD46000 70%)'
+                    : 'radial-gradient(circle, #EF9F2790 0%, #EF9F2700 70%)',
+            }}
+        />
+        {children}
+    </div>
 );
 
 // Сколько ждать после запуска плавного scrollIntoView, прежде чем начинать
@@ -211,24 +251,9 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                         className="bg-[#1A252B] rounded-2xl px-4 py-3 transition-shadow duration-300"
                         style={highlightedTopic === topic.title ? { boxShadow: '0 0 0 2px #4A90D9' } : undefined}
                     >
-                        <div className="flex items-center justify-between mb-2.5 gap-2">
-                            <div className="flex items-center gap-2 min-w-0">
-                                <span className="text-sm font-medium text-[#F2F7FB] truncate">{topic.title}</span>
-                                <span className="text-xs text-[#9AA7B0] flex-shrink-0">{topic.percentage}%</span>
-                            </div>
-                            {/* Раньше был яркий бирюзовый кнопка-бейдж с текстом —
-                                пользователь отметил, что слишком бросается в глаза.
-                                Возвращено к еле заметной иконке-ссылке без текста
-                                (приглушённый серый, светлеет на hover — тот же язык,
-                                что уже используют другие второстепенные иконки в
-                                проекте). */}
-                            <Link
-                                href={`/reference?topic=${encodeURIComponent(topic.title)}`}
-                                className="flex-shrink-0 text-[#5A6A72] hover:text-[#9AA7B0] transition-colors"
-                                title={`Справочник — ${topic.title}`}
-                            >
-                                <Library className="w-4 h-4" />
-                            </Link>
+                        <div className="flex items-center gap-2 mb-2.5 min-w-0">
+                            <span className="text-sm font-medium text-[#F2F7FB] truncate">{topic.title}</span>
+                            <span className="text-xs text-[#9AA7B0] flex-shrink-0">{topic.percentage}%</span>
                         </div>
 
                         {topic.stages.length > 0 && (
@@ -273,6 +298,21 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                     // "контрольная"-урок (по названию, см. isReviewStage
                                                     // выше) — тоже, мини-босс с миксом уже пройденных формул.
                                                     const isBoss = isLastOverall || isReviewStage(s.title);
+                                                    // Сундук — один промежуточный (не боссовский) этап в
+                                                    // середине списка, чисто по позиции (без нового поля в
+                                                    // БД — тот же принцип конвенции, что isReviewStage выше).
+                                                    // Мегасундук — всегда финальный этап (тот же, что уже
+                                                    // "босс") — награда щедрее, иконка остаётся 👹 (см.
+                                                    // StageIcon), просто подсветка вокруг богаче.
+                                                    const isChest = !isBoss && topic.stages.length >= 3 && trueIdx === Math.floor((topic.stages.length - 1) / 2);
+                                                    const isMegaChest = isLastOverall;
+                                                    const stageHref = (() => {
+                                                        const params: string[] = [];
+                                                        if (isBoss) params.push('boss=1');
+                                                        if (isChest) params.push('chest=1');
+                                                        if (isMegaChest) params.push('megachest=1');
+                                                        return `/t-lesson/${s.id}${params.length ? '?' + params.join('&') : ''}`;
+                                                    })();
                                                     const Icon = STAGE_ICONS[trueIdx % STAGE_ICONS.length];
                                                     const col = boxColumn(j);
 
@@ -306,10 +346,10 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                                     transition={{ duration: 0.35 }}
                                                                 >
                                                                     <TrainerStageLink
-                                                                        href={`/t-lesson/${s.id}${isBoss ? '?boss=1' : ''}`}
+                                                                        href={stageHref}
                                                                         className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                         style={{ background: UNLOCKED_BG, border: `2px solid ${UNLOCKED_BORDER}` }}
-                                                                        icon={<StageIcon isBoss={isBoss} Icon={Icon} color={UNLOCKED_BORDER} />}
+                                                                        icon={<StageIcon isBoss={isBoss} isChest={isChest} Icon={Icon} color={UNLOCKED_BORDER} />}
                                                                     />
                                                                 </motion.div>
                                                                 <motion.div
@@ -319,10 +359,10 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                                     transition={{ duration: 0.55, ease: 'easeOut' }}
                                                                 >
                                                                     <TrainerStageLink
-                                                                        href={`/t-lesson/${s.id}${isBoss ? '?boss=1' : ''}`}
+                                                                        href={stageHref}
                                                                         className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                         style={{ background: DONE_GRADIENT, border: `2px solid ${DONE_BORDER}`, boxShadow: DONE_GLOW }}
-                                                                        icon={<StageIcon isBoss={isBoss} Icon={Icon} color={DONE_ICON_COLOR} />}
+                                                                        icon={<StageIcon isBoss={isBoss} isChest={isChest} Icon={Icon} color={DONE_ICON_COLOR} />}
                                                                         extra={isBoss ? <BossGiftBadge /> : null}
                                                                     />
                                                                 </motion.div>
@@ -343,7 +383,7 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                                         className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
                                                                         style={{ border: `2px solid ${LOCKED_BORDER}` }}
                                                                     >
-                                                                        <StageIcon isBoss={isBoss} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
+                                                                        <StageIcon isBoss={isBoss} isChest={isChest} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
                                                                     </div>
                                                                 </motion.div>
                                                                 <motion.div
@@ -353,10 +393,10 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                                     transition={{ duration: 0.5, ease: 'easeOut' }}
                                                                 >
                                                                     <TrainerStageLink
-                                                                        href={`/t-lesson/${s.id}${isBoss ? '?boss=1' : ''}`}
+                                                                        href={stageHref}
                                                                         className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                         style={{ background: UNLOCKED_BG, border: `2px solid ${UNLOCKED_BORDER}` }}
-                                                                        icon={<StageIcon isBoss={isBoss} Icon={Icon} color={UNLOCKED_BORDER} />}
+                                                                        icon={<StageIcon isBoss={isBoss} isChest={isChest} Icon={Icon} color={UNLOCKED_BORDER} />}
                                                                     />
                                                                 </motion.div>
                                                             </div>
@@ -364,14 +404,14 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                     } else if (unlocked) {
                                                         stageBox = (
                                                             <TrainerStageLink
-                                                                href={`/t-lesson/${s.id}${isBoss ? '?boss=1' : ''}`}
+                                                                href={stageHref}
                                                                 className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                 style={{
                                                                     background: done ? DONE_GRADIENT : UNLOCKED_BG,
                                                                     border: `2px solid ${done ? DONE_BORDER : UNLOCKED_BORDER}`,
                                                                     boxShadow: done ? DONE_GLOW : undefined,
                                                                 }}
-                                                                icon={<StageIcon isBoss={isBoss} Icon={Icon} color={done ? DONE_ICON_COLOR : UNLOCKED_BORDER} />}
+                                                                icon={<StageIcon isBoss={isBoss} isChest={isChest} Icon={Icon} color={done ? DONE_ICON_COLOR : UNLOCKED_BORDER} />}
                                                                 extra={isBoss && done ? <BossGiftBadge /> : null}
                                                             />
                                                         );
@@ -381,7 +421,7 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                                 className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
                                                                 style={{ border: `2px solid ${LOCKED_BORDER}` }}
                                                             >
-                                                                <StageIcon isBoss={isBoss} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
+                                                                <StageIcon isBoss={isBoss} isChest={isChest} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
                                                             </div>
                                                         );
                                                     }
@@ -400,7 +440,11 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                                 style={{ gridColumn: col, gridRow: 1 }}
                                                                 className="flex justify-center"
                                                             >
-                                                                {stageBox}
+                                                                {isChest
+                                                                    ? <ChestGlow>{stageBox}</ChestGlow>
+                                                                    : isMegaChest
+                                                                        ? <ChestGlow mega>{stageBox}</ChestGlow>
+                                                                        : stageBox}
                                                             </div>
 
                                                             {j < row.length - 1 && (
@@ -461,6 +505,22 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                 })}
                             </div>
                         )}
+
+                        {/* Иконка-ссылка на справочник — теперь настоящая маленькая
+                            кнопка (не голая иконка), на отдельной строке СРАЗУ ПОД
+                            рядом этапов и выровненная по тому же правому краю, что и
+                            сами этапы (ряд этапов растянут на всю ширину карточки —
+                            justify-end здесь автоматически даёт тот же правый край). */}
+                        <div className="flex justify-end mt-2">
+                            <Link
+                                href={`/reference?topic=${encodeURIComponent(topic.title)}`}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg border-2 border-b-4 active:border-b-2 bg-[#161F23] border-[#3A464E] text-[#9AA7B0] hover:text-[#F2F7FB] transition-colors text-xs font-bold"
+                                title={`Справочник — ${topic.title}`}
+                            >
+                                <Library className="w-3.5 h-3.5" />
+                                Справочник
+                            </Link>
+                        </div>
                     </div>
                 ))}
             </div>

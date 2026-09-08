@@ -487,13 +487,21 @@ export default function TrainerQuestion({
             }}
             isRightPrevious={isRightPrevious}
             taskMessage={
-              question.questionType !== "WORKBOOK" &&
-              question.questionType !== "RUSSIANDICTANT" &&
-              question.questionType !== "SWIPE" &&
-              question.questionType !== "SPEED" &&
-              question.questionType !== "FRACTRICK"
-                ? question.question
-                : undefined
+              // PICMATCH называет формулу прямо в question.question (это
+              // текст, по которому в page.tsx подбирается сама картинка) —
+              // показывать его в облаке буквально выдало бы ответ раньше,
+              // чем ученик посмотрит на картинку. Общий нейтральный
+              // вопрос вместо этого — так же, как у остальных типов,
+              // облако задаёт задание, просто здесь оно не текст-специфично.
+              question.questionType === "PICMATCH"
+                ? "Какая формула соответствует картинке?"
+                : question.questionType !== "WORKBOOK" &&
+                  question.questionType !== "RUSSIANDICTANT" &&
+                  question.questionType !== "SWIPE" &&
+                  question.questionType !== "SPEED" &&
+                  question.questionType !== "FRACTRICK"
+                  ? question.question
+                  : undefined
             }
           />
         </div>
@@ -506,7 +514,13 @@ export default function TrainerQuestion({
         <div className="shrink-0 px-1">
           {renderFormulaIcon()}
           {renderImage()}
-          {question.topicSticker && (
+          {/* Для PICMATCH без размеченной абстрактной иконки (formulaIcons.ts)
+              "картинка темы" (topicSticker) — это и есть САМА картинка,
+              которую нужно сопоставить с формулой (см. page.tsx — теперь
+              topicSticker расширяет покрытие PICMATCH на всю физику, не
+              только тему Динамика). Если у PICMATCH ЕСТЬ iconKey —
+              renderFormulaIcon() её уже показал, дублировать не нужно. */}
+          {!(question.questionType === "PICMATCH" && question.iconKey) && question.topicSticker && (
             <Image
               key={question.topicSticker}
               className="mx-auto w-full max-w-[220px] h-auto max-h-[34vh] object-contain"

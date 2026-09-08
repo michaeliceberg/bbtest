@@ -167,6 +167,8 @@ type Props = {
     searchParams: {
         stage?: string
         boss?: string
+        chest?: string
+        megachest?: string
     }
 }
 
@@ -186,6 +188,12 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // какой этап последний). Чисто визуальный флаг, HP-босс не заменяет
     // существующие 3 сердечка игрока.
     const isBossStage = searchParams?.boss === '1';
+    // "Сундук"/"мегасундук" — та же идея, что и isBossStage выше: карта
+    // скиллов (trainer-grade-tree.tsx) уже знает, какой именно этап
+    // выбран сундуком/финальным, и передаёт это явным query-параметром,
+    // а не пересчитывает здесь заново.
+    const isChestStage = searchParams?.chest === '1';
+    const isMegaChestStage = searchParams?.megachest === '1';
 
     const [
         t_lesson,
@@ -914,12 +922,21 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 };
             }
             else if (randomASCtype === 'PICMATCH' as const) {
-                // Пилот "сопоставь картинку и формулу" (см. lib/
-                // formulaIcons.ts) — покрывает только заранее размеченные
-                // формулы (сейчас тема Динамика). Нет иконки для этой
-                // формулы — откатываемся на ASSIST, тихо, как и везде выше.
+                // "Сопоставь картинку и формулу" — по прямой просьбе
+                // пользователя ("какая формула ассоциируется с этой
+                // картинкой?"). Раньше картинкой служила ТОЛЬКО узкая
+                // ручная разметка lib/formulaIcons.ts (13 формул темы
+                // Динамика) — теперь вдобавок принимается уже готовая
+                // "картинка темы" (public/topic-stickers/*.svg,
+                // topicStickers[index], та же, что обычно просто украшает
+                // вопрос) — она покрывает все 39+ формул физики разом, без
+                // единой строчки нового контента. iconKey (абстрактная
+                // рисованная иконка) в приоритете, где размечена; иначе —
+                // topicSticker. Нет ни того, ни другого — откатываемся на
+                // ASSIST, тихо, как и везде выше.
                 const iconKey = getFormulaIconKey(t_challenge.question);
-                if (!iconKey) {
+                const stickerFallback = topicStickers[index];
+                if (!iconKey && !stickerFallback) {
                     return buildAssistQuestion(t_challenge);
                 }
 
@@ -950,7 +967,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                     optionsConstructRight: [],
                     difficulty: t_challenge.difficulty,
                     correctAnswer: getCorrectAnswerText(t_challenge),
-                    iconKey,
+                    iconKey: iconKey ?? undefined,
                     timeLimit: 30,
                 };
             }
@@ -1210,6 +1227,8 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             userName={userProgress.userName}
             stage={stageParam}
             isBossStage={isBossStage}
+            isChestStage={isChestStage}
+            isMegaChestStage={isMegaChestStage}
         />
     );
 }
