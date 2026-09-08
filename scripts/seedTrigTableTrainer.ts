@@ -5,31 +5,40 @@
 // просьбе пользователя. Наполняем тот же t_course "Математика-11"
 // (id=5, courseId=11 "ЕГЭ Математика Профиль"), созданный ранее в этой
 // же сессии для тем "Тригонометрия"/"Логарифмы" (см. seedTrigLogTrainer.ts)
-// — новый юнит "Таблица значений", order=3, следующим по порядку.
+// — юнит "Таблица значений", order=3, следующим по порядку.
 //
 // 4 маленьких урока по 3 задачи (та же логика "2-3 на этап", что и у
 // остальных тренажёров этого проекта): от простого (1 пропуск в sin/cos)
-// к сложному (2-3 пропуска across все 4 строки).
+// к сложному (2-3 пропуска across все строки).
+//
+// Строка ctg убрана по прямой просьбе пользователя (только sin/cos/tg) —
+// этот файл идемпотентно ПЕРЕСОЗДАЁТ юнит "Таблица значений" с нуля
+// (см. main() — сперва удаляет старый юнит id=17 от первой версии этой
+// же фичи, если он ещё существует), а не патчит старые записи: реальных
+// пользовательских t_lesson_progress на этом юните ещё не было
+// (проверено перед удалением), так что безопасно пересоздать целиком с
+// новой 3-строчной сеткой, а не подгонять уже сохранённые blanks под
+// сократившееся число строк.
 
 import db from "@/db/drizzle"
+import { eq } from "drizzle-orm"
 import { t_units, t_lessons, t_challenges } from "@/db/schema"
 
 const MATH11_TCOURSE_ID = 5 // t_courses.id, "Математика-11" (см. seedTrigLogTrainer.ts)
+const OLD_UNIT_TITLE = "Таблица значений"
 
-const ROW_LABELS = ["sin", "cos", "tg", "ctg"]
+const ROW_LABELS = ["sin", "cos", "tg"]
 const COL_LABELS = ["30°", "45°", "60°"]
 
 // values[row][col] — LaTeX-фрагмент БЕЗ "$" (обёртка добавляется в
-// type-trigtable.tsx). Строки: sin, cos, tg, ctg; столбцы: 30°, 45°, 60°.
+// type-trigtable.tsx). Строки: sin, cos, tg; столбцы: 30°, 45°, 60°.
 const GRID: string[][] = [
     ["\\dfrac{1}{2}", "\\dfrac{\\sqrt{2}}{2}", "\\dfrac{\\sqrt{3}}{2}"],
     ["\\dfrac{\\sqrt{3}}{2}", "\\dfrac{\\sqrt{2}}{2}", "\\dfrac{1}{2}"],
     ["\\dfrac{\\sqrt{3}}{3}", "1", "\\sqrt{3}"],
-    ["\\sqrt{3}", "1", "\\dfrac{\\sqrt{3}}{3}"],
 ]
 
-// Все 6 различных значений таблицы (каждое встречается ровно дважды в
-// сетке) — источник "отвлекающих" вариантов.
+// Все 6 различных значений таблицы — источник "отвлекающих" вариантов.
 const DISTINCT_VALUES = [
     "\\dfrac{1}{2}",
     "\\dfrac{\\sqrt{2}}{2}",
@@ -64,7 +73,9 @@ function buildTrigTableData(blanks: Blank[], decoyCount: number) {
     }
 }
 
-const QUESTION_TEXT = "Заполни пропуски в таблице значений тригонометрии"
+// Короче, по прямой просьбе пользователя — раньше было "Заполни пропуски
+// в таблице значений тригонометрии".
+const QUESTION_TEXT = "Заполни пропуски"
 
 type LessonSpec = {
     title: string
@@ -77,41 +88,52 @@ const LESSONS: LessonSpec[] = [
         title: "Синус и косинус — 1 пропуск",
         order: 1,
         challenges: [
-            { blanks: [{ row: 0, col: 0 }], decoyCount: 3 },
-            { blanks: [{ row: 1, col: 1 }], decoyCount: 3 },
-            { blanks: [{ row: 0, col: 2 }], decoyCount: 3 },
+            { blanks: [{ row: 0, col: 0 }], decoyCount: 3 }, // sin30
+            { blanks: [{ row: 1, col: 1 }], decoyCount: 3 }, // cos45
+            { blanks: [{ row: 0, col: 2 }], decoyCount: 3 }, // sin60
         ],
     },
     {
         title: "Синус и косинус — 2 пропуска",
         order: 2,
         challenges: [
-            { blanks: [{ row: 0, col: 0 }, { row: 1, col: 2 }], decoyCount: 3 },
-            { blanks: [{ row: 0, col: 1 }, { row: 1, col: 1 }], decoyCount: 3 },
-            { blanks: [{ row: 1, col: 0 }, { row: 0, col: 2 }], decoyCount: 3 },
+            { blanks: [{ row: 0, col: 0 }, { row: 1, col: 2 }], decoyCount: 3 }, // sin30=cos60=1/2
+            { blanks: [{ row: 0, col: 1 }, { row: 1, col: 1 }], decoyCount: 3 }, // sin45=cos45=√2/2
+            { blanks: [{ row: 1, col: 0 }, { row: 0, col: 2 }], decoyCount: 3 }, // cos30=sin60=√3/2
         ],
     },
     {
-        title: "Тангенс и котангенс",
+        title: "Тангенс",
         order: 3,
         challenges: [
-            { blanks: [{ row: 2, col: 1 }], decoyCount: 3 },
-            { blanks: [{ row: 3, col: 0 }], decoyCount: 3 },
-            { blanks: [{ row: 2, col: 0 }, { row: 3, col: 2 }], decoyCount: 3 },
+            { blanks: [{ row: 2, col: 0 }], decoyCount: 3 }, // tg30
+            { blanks: [{ row: 2, col: 1 }], decoyCount: 3 }, // tg45
+            { blanks: [{ row: 2, col: 2 }], decoyCount: 3 }, // tg60
         ],
     },
     {
         title: "Вся таблица",
         order: 4,
         challenges: [
-            { blanks: [{ row: 0, col: 1 }, { row: 2, col: 2 }, { row: 3, col: 0 }], decoyCount: 3 },
-            { blanks: [{ row: 1, col: 0 }, { row: 2, col: 0 }, { row: 0, col: 2 }], decoyCount: 3 },
-            { blanks: [{ row: 0, col: 0 }, { row: 1, col: 1 }, { row: 2, col: 1 }, { row: 3, col: 2 }], decoyCount: 2 },
+            { blanks: [{ row: 0, col: 1 }, { row: 2, col: 0 }, { row: 1, col: 2 }], decoyCount: 3 },
+            { blanks: [{ row: 1, col: 0 }, { row: 2, col: 1 }, { row: 0, col: 2 }], decoyCount: 3 },
+            { blanks: [{ row: 0, col: 0 }, { row: 1, col: 1 }, { row: 2, col: 2 }, { row: 1, col: 2 }], decoyCount: 2 },
         ],
     },
 ]
 
 async function main() {
+    // Идемпотентность: если юнит от предыдущей (4-строчной) версии уже
+    // существует — удаляем его целиком (каскад снесёт t_lessons/
+    // t_challenges) и создаём заново с новой 3-строчной сеткой.
+    const existing = await db.query.t_units.findFirst({
+        where: (u, { and, eq }) => and(eq(u.t_courseId, MATH11_TCOURSE_ID), eq(u.title, OLD_UNIT_TITLE)),
+    })
+    if (existing) {
+        await db.delete(t_units).where(eq(t_units.id, existing.id))
+        console.log(`Старый юнит "${OLD_UNIT_TITLE}" (id=${existing.id}) удалён — пересоздаём с 3 строками`)
+    }
+
     const [unit] = await db.insert(t_units).values({
         title: "Таблица значений",
         t_courseId: MATH11_TCOURSE_ID,

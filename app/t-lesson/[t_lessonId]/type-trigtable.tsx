@@ -102,15 +102,21 @@ export const TypeTrigTable = ({ question, onAnswer }: Props) => {
         onAnswer(hadMistake ? 'wrong' : 'right')
     }
 
+    // Чётное число вариантов (в т.ч. частый случай 4 — один пропуск + 3
+    // обманки) — по просьбе пользователя раскладываем в 2 колонки на всю
+    // ширину экрана вместо 3 (при 4 вариантах 3 колонки давали кривой
+    // "3+1" ряд); нечётное — как раньше, 3 колонки.
+    const optionsGridClass = table.options.length % 2 === 0 ? 'grid-cols-2' : 'grid-cols-3'
+
     return (
-        <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-6">
+        <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-3 sm:gap-4">
             <div className="w-full overflow-x-auto">
-                <table className="mx-auto border-separate" style={{ borderSpacing: '6px' }}>
+                <table className="mx-auto border-separate" style={{ borderSpacing: '4px' }}>
                     <thead>
                         <tr>
-                            <th className="w-16" />
+                            <th className="w-10 sm:w-14" />
                             {table.colLabels.map((col, ci) => (
-                                <th key={ci} className="px-3 py-2 text-[#F2F7FB] text-base md:text-lg font-bold">
+                                <th key={ci} className="px-1 sm:px-2 py-1 text-[#F2F7FB] text-sm sm:text-base font-bold">
                                     <Latex>{`$${col}$`}</Latex>
                                 </th>
                             ))}
@@ -119,7 +125,7 @@ export const TypeTrigTable = ({ question, onAnswer }: Props) => {
                     <tbody>
                         {table.rowLabels.map((row, ri) => (
                             <tr key={ri}>
-                                <th className="px-3 py-2 text-[#F2F7FB] text-base md:text-lg font-bold text-right">
+                                <th className="px-1 sm:px-2 py-1 text-[#F2F7FB] text-sm sm:text-base font-bold text-right">
                                     {row}
                                 </th>
                                 {table.colLabels.map((_, ci) => {
@@ -131,17 +137,21 @@ export const TypeTrigTable = ({ question, onAnswer }: Props) => {
                                     const correct = isBlank && checked ? isBlankCorrect(bIdx) : null
 
                                     return (
-                                        <td key={ci} className="px-1 py-1">
+                                        <td key={ci} className="p-0">
                                             <motion.div
                                                 onClick={() => isBlank && filledValue !== null && handleClearBlank(bIdx)}
                                                 className={cn(
-                                                    'flex items-center justify-center rounded-xl border-2 min-w-[64px] min-h-[52px] px-2 py-1 text-lg md:text-xl',
-                                                    !isBlank && 'bg-[#161F23] border-[#232F35] text-[#F2F7FB]',
-                                                    isBlank && !checked && filledValue === null && isActive && 'bg-[#161F23] border-[#4A90D9] text-[#4A90D9] cursor-pointer',
-                                                    isBlank && !checked && filledValue === null && !isActive && 'bg-[#161F23] border-[#3A464E] text-[#5A6A72]',
-                                                    isBlank && !checked && filledValue !== null && 'bg-[#161F2377] border-[#4A90D9] text-[#4A90D9] cursor-pointer',
-                                                    isBlank && checked && correct && 'bg-[#232F35] border-[#A1D151] text-[#A1D151]',
-                                                    isBlank && checked && !correct && 'bg-[#161F23] border-[#DC605B] text-[#DC605B]'
+                                                    'flex items-center justify-center rounded-lg min-w-[48px] min-h-[38px] sm:min-w-[56px] sm:min-h-[44px] px-1 py-0.5 text-base sm:text-lg',
+                                                    // Уже вписанные (не-пропуск) значения — без рамки, приглушённым
+                                                    // цветом: пользователь заметил, что яркая рамка на КАЖДОЙ ячейке
+                                                    // (в т.ч. неактивной) только отвлекает от реальных пропусков, а
+                                                    // яркий белый текст на них "рябит в глазах".
+                                                    !isBlank && 'text-[#6B7A83]',
+                                                    isBlank && !checked && filledValue === null && isActive && 'border-2 border-[#4A90D9] text-[#4A90D9] cursor-pointer',
+                                                    isBlank && !checked && filledValue === null && !isActive && 'border-2 border-[#3A464E] text-[#5A6A72]',
+                                                    isBlank && !checked && filledValue !== null && 'border-2 border-[#4A90D9] text-[#4A90D9] cursor-pointer',
+                                                    isBlank && checked && correct && 'border-2 border-[#A1D151] bg-[#232F35] text-[#A1D151]',
+                                                    isBlank && checked && !correct && 'border-2 border-[#DC605B] text-[#DC605B]'
                                                 )}
                                             >
                                                 {isBlank
@@ -157,7 +167,7 @@ export const TypeTrigTable = ({ question, onAnswer }: Props) => {
                 </table>
             </div>
 
-            <div className="w-full grid grid-cols-3 gap-3">
+            <div className={cn('w-full grid gap-2 sm:gap-3', optionsGridClass)}>
                 {table.options.map((opt, idx) => {
                     const used = usedOptionIndices.has(idx)
                     return (
