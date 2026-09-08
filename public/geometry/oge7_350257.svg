@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 90" width="460" height="90">
+<rect x="0" y="0" width="460" height="90" fill="#151F23"/>
+<line x1="20.00" y1="40.00" x2="448.00" y2="40.00" stroke="#F2F7FB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 438.00 35.00 L 448.00 40.00 L 438.00 45.00" fill="none" stroke="#F2F7FB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="462.00" y="45.00" font-family="Georgia, serif" font-style="italic" font-size="15" fill="#F2F7FB" text-anchor="middle">x</text>
+<line x1="352.91" y1="34.00" x2="352.91" y2="46.00" stroke="#F2F7FB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="352.91" y="62.00" font-family="Georgia, serif" font-size="15" fill="#F2F7FB" text-anchor="middle">0</text>
+<circle cx="93.59" cy="40.00" r="3.6" fill="#7dd3fc"/>
+<text x="93.59" y="28.00" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#7dd3fc" text-anchor="middle">A</text>
+<circle cx="210.28" cy="40.00" r="3.6" fill="#7dd3fc"/>
+<text x="210.28" y="28.00" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#7dd3fc" text-anchor="middle">B</text>
+<circle cx="336.44" cy="40.00" r="3.6" fill="#7dd3fc"/>
+<text x="336.44" y="28.00" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#7dd3fc" text-anchor="middle">C</text>
+<circle cx="377.44" cy="40.00" r="3.6" fill="#7dd3fc"/>
+<text x="377.44" y="28.00" font-family="Georgia, serif" font-style="italic" font-size="17" fill="#7dd3fc" text-anchor="middle">D</text>
+</svg>
