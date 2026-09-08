@@ -37,7 +37,7 @@ export interface SuperType {
 // (см. историю в CLAUDE.md) — задачи с этим типом никогда не читаются из
 // t_challenges.type, а собираются на лету в page.tsx из отдельной таблицы
 // t_hot_questions, поэтому миграция самого pgEnum "type" тут не нужна.
-export type allTypesCT = "M_ASC" | "SELECT" | "ASSIST" | "CONNECT" | "SLIDER" | "CONSTRUCT" | "WORKBOOK" | "R ASSIST" | "R CONNECT" | "R SLIDER" | "GEOSIN" | "RUSSIANDICTANT" | "SWIPE" | "KEYBOARD" | "INSERT" | "SCROLL" | "HOT" | "CHECK" | "PICMATCH" | "MULTISTEP" | "SPEED" | "FRACTRICK" | "DIAGRAM" | "TRIGTABLE" | "UNITCIRCLE";
+export type allTypesCT = "M_ASC" | "SELECT" | "ASSIST" | "CONNECT" | "SLIDER" | "CONSTRUCT" | "WORKBOOK" | "R ASSIST" | "R CONNECT" | "R SLIDER" | "GEOSIN" | "RUSSIANDICTANT" | "SWIPE" | "KEYBOARD" | "INSERT" | "SCROLL" | "HOT" | "CHECK" | "PICMATCH" | "MULTISTEP" | "SPEED" | "FRACTRICK" | "DIAGRAM" | "TRIGTABLE" | "UNITCIRCLE" | "VIETA";
 
 export const challengesEnum = pgEnum("type", [
 	"M_ASC", "SELECT", "ASSIST", "CONNECT", "SLIDER", "CONSTRUCT", "WORKBOOK",
@@ -51,7 +51,7 @@ export const challengesEnum = pgEnum("type", [
 export const t_challengesEnum = pgEnum("type", [
 	"M_ASC", "SELECT", "ASSIST", "CONNECT", "SLIDER", "CONSTRUCT", "WORKBOOK",
 	"R ASSIST", "R CONNECT", "R SLIDER", "GEOSIN", "RUSSIANDICTANT", "SWIPE", "KEYBOARD",
-	"INSERT", "SCROLL", "CHECK", "PICMATCH", "MULTISTEP", "SPEED", "FRACTRICK", "DIAGRAM", "TRIGTABLE", "UNITCIRCLE"
+	"INSERT", "SCROLL", "CHECK", "PICMATCH", "MULTISTEP", "SPEED", "FRACTRICK", "DIAGRAM", "TRIGTABLE", "UNITCIRCLE", "VIETA"
 ]);
 
 // ===== COURSES =====
@@ -417,6 +417,14 @@ export const t_challenges = pgTable('t_challenges', {
 	// позиция в радианах) и индексы верных точек. Nullable — у всех
 	// остальных типов не используется.
 	unitCircleData: text('unit_circle_data'),
+	// Только для type='VIETA' — JSON с данными теоремы Виета (см.
+	// VietaData в app/t-lesson/[t_lessonId]/page.tsx): целевые product/
+	// sum, пул числовых вариантов, верная пара корней и (опционально)
+	// коэффициенты a/b/c исходного квадратного уравнения — если заданы,
+	// перед подбором корней показывается анимированный разбор
+	// "уравнение → a/b/c → формулы Виета → числа". Nullable — у всех
+	// остальных типов не используется.
+	vietaData: text('vieta_data'),
 });
 
 export const t_challengeOptions = pgTable('t_challenge_options', {

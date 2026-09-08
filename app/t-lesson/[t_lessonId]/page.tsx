@@ -93,6 +93,26 @@ export type UnitCircleData = {
     correctIndices: number[];
 };
 
+// Только для type='VIETA' — тренажёр теоремы Виета (по прямой просьбе
+// пользователя): "подбери два числа так, чтобы x1·x2 = P, x1+x2 = S" —
+// клик по x1 выбирает число из пула вариантов, оно сразу подставляется
+// в ОБА уравнения одновременно (то же для x2). product/sum — уже
+// КОНКРЕТНЫЕ числа (даже если задача выросла из квадратного уравнения —
+// туда подставляются c и -b, а не символы "c"/"-b", сама подстановка
+// символ→число показывается отдельной анимацией внутри компонента).
+// options — пул чисел под выбор (включает оба корня + отвлекающие).
+// correctRoots — верная пара (порядок роли не играет, x1/x2
+// взаимозаменяемы — сравнение как отсортированное множество).
+// quadratic — если задан, ПЕРЕД подбором корней показывается короткая
+// вводная анимация "x²+bx+c=0 → a/b/c → x1·x2=c, x1+x2=-b → числа".
+export type VietaData = {
+    product: number;
+    sum: number;
+    options: number[];
+    correctRoots: [number, number];
+    quadratic?: { a: number; b: number; c: number };
+};
+
 export type QuestionType = {
     questionType: allTypesCT;
     question: string;
@@ -153,6 +173,8 @@ export type QuestionType = {
     trigTable?: TrigTableData,
     // Только для UNITCIRCLE — см. UnitCircleData выше.
     unitCircle?: UnitCircleData,
+    // Только для VIETA — см. VietaData выше.
+    vieta?: VietaData,
     // "Картинка темы" (public/topic-stickers/*.svg) — гиря для силы
     // тяжести, пружина для упругости и т.п., см. lib/topicStickers.ts.
     // Не подобрано для каждой задачи — undefined, если сопоставление
@@ -720,6 +742,34 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 correctAnswer: [...unitCircle.correctIndices].sort((a, b) => a - b).join('|||'),
                 timeLimit: 60,
                 unitCircle,
+            };
+        }
+
+        if (t_challenge.type === 'VIETA') {
+            let vieta: VietaData | null = null;
+            try {
+                vieta = t_challenge.vietaData ? JSON.parse(t_challenge.vietaData) : null;
+            } catch {
+                vieta = null;
+            }
+            if (!vieta) return undefined;
+
+            return {
+                questionType: 'VIETA' as const,
+                question: t_challenge.question,
+                imageSrc: t_challenge.imageSrc,
+                options: [],
+                numRans: t_challenge.numRans,
+                optionsQ: [],
+                optionsA: [],
+                optionsConstructRight: [],
+                difficulty: t_challenge.difficulty,
+                // Тот же формат точного сравнения "|||", что у TRIGTABLE/
+                // UNITCIRCLE — отсортированная по возрастанию пара корней,
+                // порядок клика (что x1, что x2) не важен.
+                correctAnswer: [...vieta.correctRoots].sort((a, b) => a - b).join('|||'),
+                timeLimit: 90,
+                vieta,
             };
         }
 
