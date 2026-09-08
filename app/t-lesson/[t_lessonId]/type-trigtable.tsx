@@ -1,44 +1,46 @@
 // app/t-lesson/[t_lessonId]/type-trigtable.tsx
 //
-// Тип TRIGTABLE — таблица значений тригонометрии (строки sin/cos/tg/ctg,
+// Тип TRIGTABLE — таблица значений тригонометрии (строки sin/cos/tg,
 // столбцы 30°/45°/60°) с одним или несколькими пропусками, заполняемыми
 // последовательно вариантами снизу (по прямой просьбе пользователя —
 // "рисуется таблица но не полная... пользователь последовательно её
 // заполняет вариантами которые внизу предлагаем").
 //
-// Самодостаточный тип (как FRACTRICK/CHECK) — свой собственный флоу и
-// своя кнопка внизу, общая кнопка компонента TrainerQuestion не
-// участвует (см. trainer-question.tsx — TRIGTABLE добавлен в тот же
-// список исключений, что и CHECK/FRACTRICK).
+// По просьбе пользователя переведён на СТАНДАРТНЫЙ для тренажёра дизайн
+// (как у ASSIST/CONNECT/MULTISTEP) — своей кнопки внизу больше нет,
+// используется общая фиксированная кнопка `TrainerQuestion`. Проверка
+// срабатывает АВТОМАТИЧЕСКИ, как только заполнен последний пропуск
+// (эффект ниже) — компонент сообщает результат через `onComplete`, тот же
+// контракт, что уже у MULTISTEP/CONNECT (`onComplete`/`onAllPairsMatched`).
+// Общая кнопка дальше сама берёт на себя "далее"/"понятно" и реальный
+// вызов onAnswer — TRIGTABLE в этом смысле больше НЕ самодостаточный тип,
+// как раньше был.
 //
 // Заполнение — round-robin по недостающим пропускам (тот же принцип, что
 // уже применяется в INSERT для 2 пропусков): клик по варианту заполняет
 // ТЕКУЩИЙ активный пропуск и переводит активность на следующий незаполненный;
 // клик по уже заполненной (но ещё не проверенной) ячейке снимает с неё
 // значение — вариант возвращается в пул, а сама ячейка снова становится
-// активной. Проверка — одной кнопкой "Ответить" сразу по ВСЕМ пропускам
-// (как FRACTRICK — итог всего задания зависит от каждого пропуска), после
-// чего кнопка становится "Готово" и вызывает onAnswer один раз.
+// активной.
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Latex from 'react-latex-next'
 import 'katex/dist/katex.min.css';
 import { motion } from 'framer-motion'
-import { Check, X } from 'lucide-react'
 import { AnimatedOptionButton } from '@/components/AnimatedOptionButton'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
 
 type Props = {
     question: QuestionType
-    onAnswer: (answer: string) => void
+    onComplete: (isCorrect: boolean) => void
 }
 
 const wrap = (v: string) => `$${v}$`
 
-export const TypeTrigTable = ({ question, onAnswer }: Props) => {
+export const TypeTrigTable = ({ question, onComplete }: Props) => {
     const table = question.trigTable
 
     // filledOptionIdx[i] — индекс варианта из table.options, занявшего i-й
@@ -46,26 +48,51 @@ export const TypeTrigTable = ({ question, onAnswer }: Props) => {
     const [filledOptionIdx, setFilledOptionIdx] = useState<(number | null)[]>([])
     const [activeBlank, setActiveBlank] = useState(0)
     const [checked, setChecked] = useState(false)
+    const completedRef = useRef(false)
 
     useEffect(() => {
         setFilledOptionIdx(table ? table.blanks.map(() => null) : [])
         setActiveBlank(0)
         setChecked(false)
+        completedRef.current = false
     }, [question, table])
 
-    if (!table) return null
-
     const blankIndexAt = (row: number, col: number) =>
-        table.blanks.findIndex((b) => b.row === row && b.col === col)
+        table ? table.blanks.findIndex((b) => b.row === row && b.col === col) : -1
 
     const usedOptionIndices = new Set(filledOptionIdx.filter((v): v is number => v !== null))
 
-    const firstUnfilled = () => filledOptionIdx.findIndex((v) => v === null)
+    const isBlankCorrect = (blankIdx: number) => {
+        if (!table) return false
+        const optIdx = filledOptionIdx[blankIdx]
+        if (optIdx === null || optIdx === undefined) return false
+        const { row, col } = table.blanks[blankIdx]
+        return table.options[optIdx] === table.values[row][col]
+    }
+
+    const allFilled = filledOptionIdx.length > 0 && filledOptionIdx.every((v) => v !== null)
+
+    // Автоматическая проверка — как только заполнен последний пропуск,
+    // сразу решаем итог и сообщаем наверх (тот же принцип, что уже
+    // использует MULTISTEP/CONNECT) — своей кнопки "Ответить" у типа
+    // больше нет, за подтверждение и переход дальше отвечает общая
+    // фиксированная кнопка внизу экрана.
+    useEffect(() => {
+        if (allFilled && !completedRef.current) {
+            completedRef.current = true
+            setChecked(true)
+            const hadMistake = filledOptionIdx.some((_, i) => !isBlankCorrect(i))
+            onComplete(!hadMistake)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [allFilled])
+
+    if (!table) return null
 
     const handlePickOption = (optionIdx: number) => {
         if (checked || usedOptionIndices.has(optionIdx)) return
         const target = activeBlank
-        if (filledOptionIdx[target] !== undefined && target >= 0 && target < filledOptionIdx.length) {
+        if (target >= 0 && target < filledOptionIdx.length) {
             const next = [...filledOptionIdx]
             next[target] = optionIdx
             setFilledOptionIdx(next)
@@ -82,26 +109,6 @@ export const TypeTrigTable = ({ question, onAnswer }: Props) => {
         setActiveBlank(blankIdx)
     }
 
-    const allFilled = filledOptionIdx.length > 0 && filledOptionIdx.every((v) => v !== null)
-
-    const isBlankCorrect = (blankIdx: number) => {
-        const optIdx = filledOptionIdx[blankIdx]
-        if (optIdx === null || optIdx === undefined) return false
-        const { row, col } = table.blanks[blankIdx]
-        return table.options[optIdx] === table.values[row][col]
-    }
-
-    const hadMistake = checked && filledOptionIdx.some((_, i) => !isBlankCorrect(i))
-
-    const handleButtonClick = () => {
-        if (!checked) {
-            if (!allFilled) return
-            setChecked(true)
-            return
-        }
-        onAnswer(hadMistake ? 'wrong' : 'right')
-    }
-
     // Чётное число вариантов (в т.ч. частый случай 4 — один пропуск + 3
     // обманки) — по просьбе пользователя раскладываем в 2 колонки на всю
     // ширину экрана вместо 3 (при 4 вариантах 3 колонки давали кривой
@@ -109,14 +116,22 @@ export const TypeTrigTable = ({ question, onAnswer }: Props) => {
     const optionsGridClass = table.options.length % 2 === 0 ? 'grid-cols-2' : 'grid-cols-3'
 
     return (
-        <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-3 sm:gap-4">
+        // h-full — принципиально: родитель (trainer-question.tsx) кладёт
+        // renderMainContent() в flex-контейнер с justify-center, который
+        // ЦЕНТРИРУЕТ переданный блок по высоте, если тот меньше доступного
+        // места — раньше это создавало большой отступ и над, и под
+        // таблицей ("давай таблицу рисовать повыше"). h-full заставляет
+        // корень занять ВСЮ доступную высоту, поэтому центрировать
+        // нечего — контент прижимается к началу (сверху) сам, любое
+        // лишнее место остаётся снизу, не расталкивая таблицу от облака.
+        <div className="w-full h-full max-w-2xl mx-auto flex flex-col gap-3 sm:gap-4">
             <div className="w-full overflow-x-auto">
-                <table className="mx-auto border-separate" style={{ borderSpacing: '4px' }}>
+                <table className="mx-auto border-separate table-fixed" style={{ borderSpacing: '4px' }}>
                     <thead>
                         <tr>
-                            <th className="w-10 sm:w-14" />
+                            <th className="w-8 sm:w-12" />
                             {table.colLabels.map((col, ci) => (
-                                <th key={ci} className="px-1 sm:px-2 py-1 text-[#F2F7FB] text-sm sm:text-base font-bold">
+                                <th key={ci} className="w-[64px] sm:w-[74px] px-0.5 py-1 text-[#F2F7FB] text-sm sm:text-base font-bold">
                                     <Latex>{`$${col}$`}</Latex>
                                 </th>
                             ))}
@@ -125,7 +140,7 @@ export const TypeTrigTable = ({ question, onAnswer }: Props) => {
                     <tbody>
                         {table.rowLabels.map((row, ri) => (
                             <tr key={ri}>
-                                <th className="px-1 sm:px-2 py-1 text-[#F2F7FB] text-sm sm:text-base font-bold text-right">
+                                <th className="px-0.5 py-1 text-[#F2F7FB] text-sm sm:text-base font-bold text-right">
                                     {row}
                                 </th>
                                 {table.colLabels.map((_, ci) => {
@@ -141,7 +156,7 @@ export const TypeTrigTable = ({ question, onAnswer }: Props) => {
                                             <motion.div
                                                 onClick={() => isBlank && filledValue !== null && handleClearBlank(bIdx)}
                                                 className={cn(
-                                                    'flex items-center justify-center rounded-lg min-w-[48px] min-h-[38px] sm:min-w-[56px] sm:min-h-[44px] px-1 py-0.5 text-base sm:text-lg',
+                                                    'flex items-center justify-center rounded-lg min-h-[38px] sm:min-h-[44px] px-1 py-0.5 text-base sm:text-lg',
                                                     // Уже вписанные (не-пропуск) значения — без рамки, приглушённым
                                                     // цветом: пользователь заметил, что яркая рамка на КАЖДОЙ ячейке
                                                     // (в т.ч. неактивной) только отвлекает от реальных пропусков, а
@@ -182,32 +197,6 @@ export const TypeTrigTable = ({ question, onAnswer }: Props) => {
                     )
                 })}
             </div>
-
-            {checked && (
-                <div
-                    className={cn(
-                        'flex items-center gap-2 rounded-xl px-4 py-2 font-bold',
-                        !hadMistake ? 'bg-[#A1D15122] text-[#A1D151]' : 'bg-[#DC605B22] text-[#DC605B]'
-                    )}
-                >
-                    {!hadMistake ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
-                    {!hadMistake ? 'Верно!' : 'Есть ошибки — сверься с таблицей'}
-                </div>
-            )}
-
-            <button
-                type="button"
-                onClick={handleButtonClick}
-                disabled={!checked && !allFilled}
-                className={cn(
-                    'w-full max-w-xs py-3 rounded-xl font-bold text-lg border-2 border-b-4 active:border-b-2 transition-colors',
-                    !checked && !allFilled
-                        ? 'bg-[#161F23] border-[#3A464E] text-[#5A6A72] cursor-not-allowed'
-                        : 'bg-[#A1D151] border-[#78C93C] text-[#151F24]'
-                )}
-            >
-                {checked ? 'Готово' : 'Ответить'}
-            </button>
         </div>
     )
 }

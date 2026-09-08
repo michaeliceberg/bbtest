@@ -162,6 +162,22 @@ export default function TrainerQuestion({
     }
   }, [playCorrectSound])
 
+  // Для TRIGTABLE — тот же контракт, что и у MULTISTEP: компонент сам
+  // проверяет ВСЕ пропуски разом, как только заполнен последний, и
+  // сообщает готовый вердикт сюда — дальше общая фиксированная кнопка
+  // внизу экрана (см. ниже) берёт на себя "далее"/"понятно" и реальный
+  // onAnswer, как и для CONNECT/MULTISTEP.
+  const handleTrigTableComplete = useCallback((isCorrect: boolean) => {
+    if (isCorrect) {
+      playCorrectSound?.()
+      setAnswerState("correct")
+      setMascotEmotion("celebrating")
+    } else {
+      setAnswerState("incorrect")
+      setMascotEmotion("sad")
+    }
+  }, [playCorrectSound])
+
   // Для ASSIST: когда выбран вариант
   const handleAssistOptionSelected = (answer: string | null) => {
     setSelectedAssistAnswer(answer)
@@ -299,10 +315,11 @@ export default function TrainerQuestion({
         return <TypeMultistep question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
 
       case "TRIGTABLE":
-        // Самодостаточный тип (как FRACTRICK) — своя кнопка "Ответить"/
-        // "Готово" внутри, вызывает onAnswer один раз по итогу проверки
-        // ВСЕХ пропусков таблицы разом (см. type-trigtable.tsx).
-        return <TypeTrigTable question={question} onAnswer={onAnswer} />
+        // Стандартный дизайн (как ASSIST/CONNECT/MULTISTEP) — общая
+        // фиксированная кнопка внизу экрана, а не своя. Сам компонент
+        // проверяет ВСЕ пропуски разом, как только заполнен последний, и
+        // сообщает вердикт через onComplete (см. type-trigtable.tsx).
+        return <TypeTrigTable question={question} onComplete={handleTrigTableComplete} />
 
       // MEMORY отключён (пользователь: "душный" тип, не вызывает приятных
       // эмоций) — компонент type-memory.tsx оставлен нетронутым в
@@ -509,16 +526,16 @@ export default function TrainerQuestion({
         </div>
         </motion.div>
 
-      {/* Кнопка внизу - фиксированная. У CHECK, FRACTRICK и TRIGTABLE её
-          нет вообще (не только disabled) — все три типа самодостаточные и
-          владеют подтверждением сами: CHECK — вообще без подтверждения
-          (клик по ведру/галочке сразу засчитывает ответ), FRACTRICK — со
-          своими ДВУМЯ внутренними кнопками "Ответить" (по одной на каждый
-          из 2 этапов, см. type-fractrick.tsx), TRIGTABLE — одной кнопкой
-          "Ответить"/"Готово", проверяющей сразу все пропуски таблицы (см.
-          type-trigtable.tsx). Общая кнопка тут была бы либо лишней (CHECK),
-          либо третьей/четвёртой, которую пользователь явно не просил. */}
-      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "TRIGTABLE" && (
+      {/* Кнопка внизу - фиксированная. У CHECK и FRACTRICK её нет вообще
+          (не только disabled) — оба типа самодостаточные и владеют
+          подтверждением сами: CHECK — вообще без подтверждения (клик по
+          ведру/галочке сразу засчитывает ответ), FRACTRICK — со своими
+          ДВУМЯ внутренними кнопками "Ответить" (по одной на каждый из 2
+          этапов, см. type-fractrick.tsx). TRIGTABLE (как MULTISTEP/
+          CONNECT) общую кнопку ИСПОЛЬЗУЕТ — сам только проверяет пропуски
+          и сообщает вердикт через onComplete, см. handleTrigTableComplete
+          выше. */}
+      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && (
       <div className="px-4 pb-4 pt-2 bg-[#151F24] relative">
         {/* Notification фон который выезжает при правильном ответе */}
         {answerState === "correct" && (
