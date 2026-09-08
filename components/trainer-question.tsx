@@ -162,22 +162,6 @@ export default function TrainerQuestion({
     }
   }, [playCorrectSound])
 
-  // Для TRIGTABLE — тот же контракт, что и у MULTISTEP: компонент сам
-  // проверяет ВСЕ пропуски разом, как только заполнен последний, и
-  // сообщает готовый вердикт сюда — дальше общая фиксированная кнопка
-  // внизу экрана (см. ниже) берёт на себя "далее"/"понятно" и реальный
-  // onAnswer, как и для CONNECT/MULTISTEP.
-  const handleTrigTableComplete = useCallback((isCorrect: boolean) => {
-    if (isCorrect) {
-      playCorrectSound?.()
-      setAnswerState("correct")
-      setMascotEmotion("celebrating")
-    } else {
-      setAnswerState("incorrect")
-      setMascotEmotion("sad")
-    }
-  }, [playCorrectSound])
-
   // Для ASSIST: когда выбран вариант
   const handleAssistOptionSelected = (answer: string | null) => {
     setSelectedAssistAnswer(answer)
@@ -315,11 +299,17 @@ export default function TrainerQuestion({
         return <TypeMultistep question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
 
       case "TRIGTABLE":
-        // Стандартный дизайн (как ASSIST/CONNECT/MULTISTEP) — общая
-        // фиксированная кнопка внизу экрана, а не своя. Сам компонент
-        // проверяет ВСЕ пропуски разом, как только заполнен последний, и
-        // сообщает вердикт через onComplete (см. type-trigtable.tsx).
-        return <TypeTrigTable question={question} onComplete={handleTrigTableComplete} />
+        // select-then-submit, тот же контракт, что у ASSIST/INSERT/SCROLL —
+        // пользователь может менять заполненные пропуски ДО нажатия общей
+        // кнопки "Ответить" внизу (по прямой просьбе пользователя — раньше
+        // проверка срабатывала автоматически по заполнению последнего
+        // пропуска, без права передумать). См. type-trigtable.tsx.
+        return <TypeTrigTable
+          question={question}
+          onOptionSelected={handleAssistOptionSelected}
+          isAnswerChecked={answerState === "correct" || answerState === "incorrect"}
+          isAnswerCorrect={answerState === "correct"}
+        />
 
       // MEMORY отключён (пользователь: "душный" тип, не вызывает приятных
       // эмоций) — компонент type-memory.tsx оставлен нетронутым в
@@ -531,10 +521,9 @@ export default function TrainerQuestion({
           подтверждением сами: CHECK — вообще без подтверждения (клик по
           ведру/галочке сразу засчитывает ответ), FRACTRICK — со своими
           ДВУМЯ внутренними кнопками "Ответить" (по одной на каждый из 2
-          этапов, см. type-fractrick.tsx). TRIGTABLE (как MULTISTEP/
-          CONNECT) общую кнопку ИСПОЛЬЗУЕТ — сам только проверяет пропуски
-          и сообщает вердикт через onComplete, см. handleTrigTableComplete
-          выше. */}
+          этапов, см. type-fractrick.tsx). TRIGTABLE (как ASSIST/INSERT/
+          SCROLL) — select-then-submit: общая кнопка сначала "Ответить"
+          (когда все пропуски заполнены), затем "далее"/"понятно". */}
       {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && (
       <div className="px-4 pb-4 pt-2 bg-[#151F24] relative">
         {/* Notification фон который выезжает при правильном ответе */}
@@ -567,7 +556,7 @@ export default function TrainerQuestion({
               // ASSIST и INSERT — двухшаговый флоу: сначала выбор варианта
               // (answerState === "selected"), потом отдельный клик "далее"/
               // "понятно" на уже проверенный ответ, без повторной отправки.
-              const isSelectThenSubmitType = question.questionType === "ASSIST" || question.questionType === "INSERT" || question.questionType === "SCROLL" || question.questionType === "PICMATCH"
+              const isSelectThenSubmitType = question.questionType === "ASSIST" || question.questionType === "INSERT" || question.questionType === "SCROLL" || question.questionType === "PICMATCH" || question.questionType === "TRIGTABLE"
 
               if (isSelectThenSubmitType && answerState === "selected" && selectedAssistAnswer) {
                 onAnswer(selectedAssistAnswer)

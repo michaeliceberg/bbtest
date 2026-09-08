@@ -431,16 +431,19 @@ export default function TQuiz({
         || questions[currentQuestionIndex].questionType === 'INSERT'
         || questions[currentQuestionIndex].questionType === 'SCROLL'
         || questions[currentQuestionIndex].questionType === 'PICMATCH'
+        || questions[currentQuestionIndex].questionType === 'TRIGTABLE'
 
-      // INSERT сравнивается ровно (answer — отсортированный набор букв,
-      // все обязательны, см. type-insert.tsx) — множественный "|"-ответ
-      // (см. usefulFunctions.isCorrectAnswer) для него не применим и не
+      // INSERT и TRIGTABLE сравниваются ровно (answer — точный собранный
+      // ответ: отсортированный набор букв у INSERT, "|||"-склеенные
+      // значения пропусков в порядке table.blanks у TRIGTABLE, см.
+      // type-insert.tsx/type-trigtable.tsx) — множественный "|"-ответ
+      // (см. usefulFunctions.isCorrectAnswer) для них не применим и не
       // используется. Остальные select-then-submit типы (ASSIST/SCROLL) —
       // через isCorrectAnswer, чтобы принимать любой из нескольких верных
       // синонимов (например, "Дж" — и работа, и энергия).
       let answerIsRight = false
       isSelectThenSubmitType
-        ? answerIsRight = questions[currentQuestionIndex].questionType === 'INSERT'
+        ? answerIsRight = (questions[currentQuestionIndex].questionType === 'INSERT' || questions[currentQuestionIndex].questionType === 'TRIGTABLE')
           ? answer === questions[currentQuestionIndex].correctAnswer
           : isCorrectAnswer(answer, questions[currentQuestionIndex].correctAnswer)
         : answerIsRight = answer === "right"

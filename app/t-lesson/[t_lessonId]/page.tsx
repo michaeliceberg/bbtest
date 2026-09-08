@@ -653,11 +653,12 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 optionsA: [],
                 optionsConstructRight: [],
                 difficulty: t_challenge.difficulty,
-                // Не используется рендер-компонентом напрямую (проверка идёт
-                // по ячейкам внутри trigTable), но нужен как непустая строка
-                // для остальной инфраструктуры (напр. отображение "верного
-                // ответа" где-то ещё) — join всех верных значений пропусков.
-                correctAnswer: trigTable.blanks.map((b) => trigTable!.values[b.row][b.col]).join(', '),
+                // "|||" — тот же формат, что собирает сам type-trigtable.tsx
+                // из выбранных вариантов (в порядке пропусков) — TQUIZ.tsx
+                // сравнивает TRIGTABLE ТОЧНЫМ совпадением всей строки, как
+                // INSERT, а не через isCorrectAnswer (там "|" занят под
+                // OR-семантику синонимов, тут порядок и состав пропусков).
+                correctAnswer: trigTable.blanks.map((b) => trigTable!.values[b.row][b.col]).join('|||'),
                 timeLimit: 60,
                 trigTable,
             };

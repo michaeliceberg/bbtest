@@ -6,26 +6,33 @@
 // "рисуется таблица но не полная... пользователь последовательно её
 // заполняет вариантами которые внизу предлагаем").
 //
-// По просьбе пользователя переведён на СТАНДАРТНЫЙ для тренажёра дизайн
-// (как у ASSIST/CONNECT/MULTISTEP) — своей кнопки внизу больше нет,
-// используется общая фиксированная кнопка `TrainerQuestion`. Проверка
-// срабатывает АВТОМАТИЧЕСКИ, как только заполнен последний пропуск
-// (эффект ниже) — компонент сообщает результат через `onComplete`, тот же
-// контракт, что уже у MULTISTEP/CONNECT (`onComplete`/`onAllPairsMatched`).
-// Общая кнопка дальше сама берёт на себя "далее"/"понятно" и реальный
-// вызов onAnswer — TRIGTABLE в этом смысле больше НЕ самодостаточный тип,
-// как раньше был.
+// Стандартный для тренажёра "select-then-submit" дизайн — ТОТ ЖЕ
+// контракт (onOptionSelected/isAnswerChecked/isAnswerCorrect), что уже у
+// ASSIST/INSERT/SCROLL: пользователь заполняет пропуски (может менять
+// уже выбранное — клик по заполненной ячейке снимает с неё значение),
+// компонент лишь СООБЩАЕТ наверх собранный ответ (как только заполнен
+// ПОСЛЕДНИЙ пропуск), а фактическая проверка происходит по клику на
+// общую фиксированную кнопку внизу экрана ("Ответить" → "далее"/
+// "понятно") — по прямой просьбе пользователя: "надо оставить
+// подтверждение, чтобы по возможности можно было поменять вариант
+// ответа" (раньше проверка срабатывала автоматически сразу по
+// заполнению последнего пропуска, без возможности передумать).
+//
+// Собранный ответ — значения вариантов В ПОРЯДКЕ пропусков (table.blanks),
+// склеенные через "|||" (не через "|" — этот разделитель уже занят в
+// проекте под OR-семантику нескольких синонимов правильного ответа,
+// см. isCorrectAnswer в usefulFunctions.ts; TRIGTABLE сравнивается ТОЧНЫМ
+// совпадением всей строки, как INSERT, а не через isCorrectAnswer).
+// question.correctAnswer собран в page.tsx ТЕМ ЖЕ способом и в ТОМ ЖЕ
+// порядке — см. TQUIZ.tsx/trainer-question.tsx, где TRIGTABLE добавлен
+// в ту же ветку точного сравнения, что и INSERT.
 //
 // Заполнение — round-robin по недостающим пропускам (тот же принцип, что
-// уже применяется в INSERT для 2 пропусков): клик по варианту заполняет
-// ТЕКУЩИЙ активный пропуск и переводит активность на следующий незаполненный;
-// клик по уже заполненной (но ещё не проверенной) ячейке снимает с неё
-// значение — вариант возвращается в пул, а сама ячейка снова становится
-// активной.
+// уже применяется в INSERT для 2 пропусков).
 
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Latex from 'react-latex-next'
 import 'katex/dist/katex.min.css';
 import { motion } from 'framer-motion'
@@ -35,62 +42,58 @@ import type { QuestionType } from './page'
 
 type Props = {
     question: QuestionType
-    onComplete: (isCorrect: boolean) => void
+    onOptionSelected: (answer: string | null) => void
+    isAnswerChecked: boolean
+    isAnswerCorrect: boolean
 }
 
 const wrap = (v: string) => `$${v}$`
 
-export const TypeTrigTable = ({ question, onComplete }: Props) => {
+export const TypeTrigTable = ({ question, onOptionSelected, isAnswerChecked }: Props) => {
     const table = question.trigTable
 
     // filledOptionIdx[i] — индекс варианта из table.options, занявшего i-й
     // пропуск (table.blanks[i]), либо null, если пропуск ещё пуст.
     const [filledOptionIdx, setFilledOptionIdx] = useState<(number | null)[]>([])
     const [activeBlank, setActiveBlank] = useState(0)
-    const [checked, setChecked] = useState(false)
-    const completedRef = useRef(false)
 
     useEffect(() => {
         setFilledOptionIdx(table ? table.blanks.map(() => null) : [])
         setActiveBlank(0)
-        setChecked(false)
-        completedRef.current = false
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [question, table])
 
+    // Сообщаем наверх собранный ответ — null, пока не заполнены ВСЕ
+    // пропуски (общая кнопка "Ответить" остаётся неактивной до этого
+    // момента, тот же принцип, что у ASSIST с selectedAssistAnswer).
+    useEffect(() => {
+        if (!table) return
+        const allFilled = filledOptionIdx.length > 0 && filledOptionIdx.every((v) => v !== null)
+        if (!allFilled) {
+            onOptionSelected(null)
+            return
+        }
+        const answer = filledOptionIdx.map((idx) => table.options[idx as number]).join('|||')
+        onOptionSelected(answer)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filledOptionIdx])
+
+    if (!table) return null
+
     const blankIndexAt = (row: number, col: number) =>
-        table ? table.blanks.findIndex((b) => b.row === row && b.col === col) : -1
+        table.blanks.findIndex((b) => b.row === row && b.col === col)
 
     const usedOptionIndices = new Set(filledOptionIdx.filter((v): v is number => v !== null))
 
     const isBlankCorrect = (blankIdx: number) => {
-        if (!table) return false
         const optIdx = filledOptionIdx[blankIdx]
         if (optIdx === null || optIdx === undefined) return false
         const { row, col } = table.blanks[blankIdx]
         return table.options[optIdx] === table.values[row][col]
     }
 
-    const allFilled = filledOptionIdx.length > 0 && filledOptionIdx.every((v) => v !== null)
-
-    // Автоматическая проверка — как только заполнен последний пропуск,
-    // сразу решаем итог и сообщаем наверх (тот же принцип, что уже
-    // использует MULTISTEP/CONNECT) — своей кнопки "Ответить" у типа
-    // больше нет, за подтверждение и переход дальше отвечает общая
-    // фиксированная кнопка внизу экрана.
-    useEffect(() => {
-        if (allFilled && !completedRef.current) {
-            completedRef.current = true
-            setChecked(true)
-            const hadMistake = filledOptionIdx.some((_, i) => !isBlankCorrect(i))
-            onComplete(!hadMistake)
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [allFilled])
-
-    if (!table) return null
-
     const handlePickOption = (optionIdx: number) => {
-        if (checked || usedOptionIndices.has(optionIdx)) return
+        if (isAnswerChecked || usedOptionIndices.has(optionIdx)) return
         const target = activeBlank
         if (target >= 0 && target < filledOptionIdx.length) {
             const next = [...filledOptionIdx]
@@ -102,7 +105,7 @@ export const TypeTrigTable = ({ question, onComplete }: Props) => {
     }
 
     const handleClearBlank = (blankIdx: number) => {
-        if (checked) return
+        if (isAnswerChecked) return
         const next = [...filledOptionIdx]
         next[blankIdx] = null
         setFilledOptionIdx(next)
@@ -125,7 +128,16 @@ export const TypeTrigTable = ({ question, onComplete }: Props) => {
         // нечего — контент прижимается к началу (сверху) сам, любое
         // лишнее место остаётся снизу, не расталкивая таблицу от облака.
         <div className="w-full h-full max-w-2xl mx-auto flex flex-col gap-3 sm:gap-4">
-            <div className="w-full overflow-x-auto">
+            {/* overflow-y-hidden ОБЯЗАТЕЛЕН рядом с overflow-x-auto — иначе
+                браузер по спецификации CSS вычисляет overflow-y как "auto"
+                (правило "visible на одной оси + не-visible на другой →
+                другая тоже auto"), из-за чего справа от таблицы появляется
+                постоянный вертикальный скроллбар/его дорожка, даже когда
+                скроллить нечего — сама таблица (table-fixed, фиксированные
+                ширины колонок) никогда не переполняется по вертикали, весь
+                этот запас — чисто CSS-квирк, тот же класс бага, что уже
+                чинили для LearnWrapper (см. CLAUDE.md). */}
+            <div className="w-full overflow-x-auto overflow-y-hidden">
                 <table className="mx-auto border-separate table-fixed" style={{ borderSpacing: '4px' }}>
                     <thead>
                         <tr>
@@ -148,8 +160,8 @@ export const TypeTrigTable = ({ question, onComplete }: Props) => {
                                     const isBlank = bIdx !== -1
                                     const optIdx = isBlank ? filledOptionIdx[bIdx] : null
                                     const filledValue = optIdx !== null && optIdx !== undefined ? table.options[optIdx] : null
-                                    const isActive = isBlank && bIdx === activeBlank && !checked
-                                    const correct = isBlank && checked ? isBlankCorrect(bIdx) : null
+                                    const isActive = isBlank && bIdx === activeBlank && !isAnswerChecked
+                                    const correct = isBlank && isAnswerChecked ? isBlankCorrect(bIdx) : null
 
                                     return (
                                         <td key={ci} className="p-0">
@@ -162,11 +174,11 @@ export const TypeTrigTable = ({ question, onComplete }: Props) => {
                                                     // (в т.ч. неактивной) только отвлекает от реальных пропусков, а
                                                     // яркий белый текст на них "рябит в глазах".
                                                     !isBlank && 'text-[#6B7A83]',
-                                                    isBlank && !checked && filledValue === null && isActive && 'border-2 border-[#4A90D9] text-[#4A90D9] cursor-pointer',
-                                                    isBlank && !checked && filledValue === null && !isActive && 'border-2 border-[#3A464E] text-[#5A6A72]',
-                                                    isBlank && !checked && filledValue !== null && 'border-2 border-[#4A90D9] text-[#4A90D9] cursor-pointer',
-                                                    isBlank && checked && correct && 'border-2 border-[#A1D151] bg-[#232F35] text-[#A1D151]',
-                                                    isBlank && checked && !correct && 'border-2 border-[#DC605B] text-[#DC605B]'
+                                                    isBlank && !isAnswerChecked && filledValue === null && isActive && 'border-2 border-[#4A90D9] text-[#4A90D9] cursor-pointer',
+                                                    isBlank && !isAnswerChecked && filledValue === null && !isActive && 'border-2 border-[#3A464E] text-[#5A6A72]',
+                                                    isBlank && !isAnswerChecked && filledValue !== null && 'border-2 border-[#4A90D9] text-[#4A90D9] cursor-pointer',
+                                                    isBlank && isAnswerChecked && correct && 'border-2 border-[#A1D151] bg-[#232F35] text-[#A1D151]',
+                                                    isBlank && isAnswerChecked && !correct && 'border-2 border-[#DC605B] text-[#DC605B]'
                                                 )}
                                             >
                                                 {isBlank
@@ -192,7 +204,7 @@ export const TypeTrigTable = ({ question, onComplete }: Props) => {
                             index={idx}
                             onClick={() => handlePickOption(idx)}
                             isSelected={false}
-                            disabled={checked || used}
+                            disabled={isAnswerChecked || used}
                         />
                     )
                 })}
