@@ -284,15 +284,15 @@ function chunkBalanced<T>(items: T[], targetSize: number): T[][] {
 // подборка (другие градусные/радианные значения урока) и даёт ровно
 // такой набор обманок, какой пользователь привёл примером. =====
 const DEGREE_VOCAB: { question: string; answer: string }[] = [
-    { question: '$\\pi$ это?', answer: '$180°$' },
-    { question: '$2\\pi$ это?', answer: '$360°$' },
-    { question: '$\\dfrac{\\pi}{2}$ это?', answer: '$90°$' },
-    { question: '$\\dfrac{\\pi}{3}$ это?', answer: '$60°$' },
-    { question: '$\\dfrac{\\pi}{4}$ это?', answer: '$45°$' },
-    { question: '$\\dfrac{\\pi}{6}$ это?', answer: '$30°$' },
-    { question: '$180°$ это?', answer: '$\\pi$' },
-    { question: '$360°$ это?', answer: '$2\\pi$' },
-    { question: '$90°$ это?', answer: '$\\dfrac{\\pi}{2}$' },
+    { question: '$\\pi$ это', answer: '$180°$' },
+    { question: '$2\\pi$ это', answer: '$360°$' },
+    { question: '$\\dfrac{\\pi}{2}$ это', answer: '$90°$' },
+    { question: '$\\dfrac{\\pi}{3}$ это', answer: '$60°$' },
+    { question: '$\\dfrac{\\pi}{4}$ это', answer: '$45°$' },
+    { question: '$\\dfrac{\\pi}{6}$ это', answer: '$30°$' },
+    { question: '$180°$ это', answer: '$\\pi$' },
+    { question: '$360°$ это', answer: '$2\\pi$' },
+    { question: '$90°$ это', answer: '$\\dfrac{\\pi}{2}$' },
 ]
 
 async function insertVocabChallenge(lessonId: number, order: number, question: string, answer: string) {

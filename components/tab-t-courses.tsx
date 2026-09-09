@@ -92,6 +92,11 @@ type Props = {
 
     this_class_id: number | null,
 
+    // Админ видит ВСЕ этапы тренажёра разблокированными (не обязан
+    // проходить последовательно) — тот же приём, что уже есть для юнитов
+    // основного курса (см. isAdmin в app/(main)/learn/unit.tsx).
+    isAdmin?: boolean,
+
     all_t_lessonProgress: {
         id: number;
         userId: string;
@@ -115,6 +120,7 @@ export const TabTCourses = ({
     allUsers,
     this_class_id,
     all_t_lessonProgress,
+    isAdmin = false,
 }: Props) => {
     const [showFormulas, setShowFormulas] = useState(false)
 
@@ -283,7 +289,7 @@ export const TabTCourses = ({
                         )}
 
                         <div className="w-full mt-2">
-                            <TrainerGradeTree topics={topics} />
+                            <TrainerGradeTree topics={topics} isAdmin={isAdmin} />
                         </div>
 
                         {/* "Показать все формулы" — убрано по просьбе пользователя (2026-09-03):

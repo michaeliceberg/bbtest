@@ -264,6 +264,7 @@ const TLearnPage = async () => {
                         allUsers={allUsers}
                         all_t_lessonProgress={all_t_lessonProgress}
                         this_class_id={userProgress.classId}
+                        isAdmin={userProgress.isAdmin === 1}
                     />
                 </div>
             </FeedWrapper>

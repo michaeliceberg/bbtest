@@ -71,6 +71,11 @@ export type SkillTopic = {
 
 interface Props {
     topics: SkillTopic[];
+    // Админ видит все этапы разблокированными, без последовательного
+    // прохождения — по прямой просьбе пользователя ("чтобы не надо было
+    // последовательно все проходить"), тот же принцип, что уже применён
+    // для юнитов основного курса (app/(main)/learn/unit.tsx).
+    isAdmin?: boolean;
 }
 
 const chunkStages = (stages: SkillStage[], size: number): SkillStage[][] => {
@@ -144,7 +149,7 @@ const ChestGlow = ({ mega = false, children }: { mega?: boolean; children: React
 // 300-500мс), чтобы анимация не началась "за кадром", пока страница ещё едет.
 const SCROLL_SETTLE_MS = 500;
 
-export const TrainerGradeTree = ({ topics }: Props) => {
+export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
     // Reveal-анимация "только что прошёл этот этап" — сигнал приходит из
     // app/t-lesson/[t_lessonId]/TQUIZ.tsx (handleFinishLesson) через
     // sessionStorage, читается ровно один раз при монтировании и сразу
@@ -285,7 +290,7 @@ export const TrainerGradeTree = ({ topics }: Props) => {
                                                 {row.map((s, j) => {
                                                     const trueIdx = rowStartIdx + j;
                                                     const prevStage = trueIdx > 0 ? topic.stages[trueIdx - 1] : null;
-                                                    const unlockedReal = trueIdx === 0 || (prevStage !== null && prevStage.percentage >= UNLOCK_THRESHOLD);
+                                                    const unlockedReal = isAdmin || trueIdx === 0 || (prevStage !== null && prevStage.percentage >= UNLOCK_THRESHOLD);
                                                     const doneReal = s.percentage >= UNLOCK_THRESHOLD;
                                                     const isLastOverall = trueIdx === topic.stages.length - 1;
                                                     // Финальный этап темы — всегда босс; промежуточный
