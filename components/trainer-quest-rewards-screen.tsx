@@ -28,7 +28,6 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Gift, Smile, Meh } from 'lucide-react'
 import { Button } from './ui/button'
@@ -79,30 +78,38 @@ const MONTH_GENITIVE = [
 const RewardRow = ({
     current, target, icon, tone, delay,
 }: { current: number; target: number; icon: React.ReactNode; tone: Tone; delay: number }) => {
-    const [fillPct, setFillPct] = useState(0)
     const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0
     const isDone = target > 0 && current >= target
     const style = TONE_STYLE[tone]
-
-    useEffect(() => {
-        // prev => Math.max(prev, pct) — защита "по прямой просьбе
-        // пользователя": полоса не должна уменьшаться, даже если данный
-        // эффект по какой-то причине сработает повторно (например, если
-        // экран наград окажется смонтирован с уже другими current/target —
-        // такое не должно происходить при обычном сценарии, но полоса не
-        // должна визуально "прыгать назад", даже случись это).
-        const t = setTimeout(() => setFillPct((prev) => Math.max(prev, pct)), 300 + delay * 1000)
-        return () => clearTimeout(t)
-    }, [pct, delay])
+    // Полное время до заполнения полосы — используется и для самой
+    // полосы, и для синхронного появления галки-бейджа сразу по её
+    // завершении (было рассинхронизировано: бейдж всплывал на 0.3с
+    // раньше, чем полоса реально доезжала до конца).
+    const fillDelay = 0.3 + delay
+    const fillDuration = 0.9
 
     return (
         <div className="flex items-center gap-3">
             <div className="relative flex-1 h-7 rounded-full overflow-hidden" style={{ backgroundColor: '#232F35' }}>
+                {/* Полностью декларативная анимация (initial→animate одним
+                    объявлением framer-motion, без React state/useEffect/
+                    setTimeout) — раньше значение вело отдельный useState,
+                    обновляемый по таймеру, и при повторном (в норме не
+                    должном происходить, но по факту иногда происходившем)
+                    рендере/ремаунте строки счётчик путался и полоса
+                    визуально "прыгала" то вверх, то вниз. Здесь такому
+                    просто неоткуда взяться: `initial` гарантирует старт
+                    ровно с 0%, framer-motion сам ведёт единственный
+                    переход к pct% и не имеет промежуточного состояния,
+                    которое можно было бы перезапустить с нуля отдельно от
+                    самого компонента.
+                */}
                 <motion.div
                     className="h-full rounded-full"
                     style={{ background: 'linear-gradient(90deg, #2DD4BF, #34D399)' }}
-                    animate={{ width: `${fillPct}%` }}
-                    transition={{ duration: 0.9, ease: 'easeOut' }}
+                    initial={{ width: '0%' }}
+                    animate={{ width: `${pct}%` }}
+                    transition={{ duration: fillDuration, ease: 'easeOut', delay: fillDelay }}
                 />
                 <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.5)]">
                     {current} / {target}
@@ -117,7 +124,7 @@ const RewardRow = ({
                     <motion.span
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        transition={{ delay: delay + 0.9, type: 'spring', stiffness: 400, damping: 15 }}
+                        transition={{ delay: fillDelay + fillDuration, type: 'spring', stiffness: 400, damping: 15 }}
                         className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-[10px] text-white font-bold"
                     >
                         ✓
