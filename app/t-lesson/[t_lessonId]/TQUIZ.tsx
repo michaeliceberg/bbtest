@@ -9,12 +9,8 @@ import Confetti from "react-confetti"
 import { useWindowSize } from "react-use"
 import TrainerQuestion from "../../../components/trainer-question"
 import { Button } from "../../../components/ui/button"
-import LottieTrainerSharkFailDNO from '@/public/Lottie/trainer/LottieTrainerSharkFailDNO.json'
-import LottieTrainerSharkFinalWin from '@/public/Lottie/trainer/LottieTrainerSharkFinalWin.json'
 import LottieThunderStrike from '@/public/Lottie/ggege/LottieThunderStrike.json'
-import LottiePaperFly from '@/public/Lottie/ggege/LottiePaperFly.json'
 
-const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
 const WinStreakModal = dynamic(() => import("../../../components/win-streak-modal"), { ssr: false })
 const ComboBanner = dynamic(() => import("../../../components/combo-banner"), { ssr: false })
 const StreakLightning = dynamic(() => import("../../../components/streak-lightning").then(mod => mod.StreakLightning), { ssr: false })
@@ -28,8 +24,8 @@ import { QuestionType } from "@/app/t-lesson/[t_lessonId]/page"
 import { createEffect, StreakEffect } from "@/lib/streakEffects"
 import { useRouter } from 'next/navigation'
 import { FINISH_AUDIO_SRC_LIST } from "@/constants"
-import { isCorrectAnswer } from "@/usefulFunctions"
-import { LOTTIE_START_LIST, LOTTIE_EMOTION_RIGHT_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
+import { isCorrectAnswer, declensionRu } from "@/usefulFunctions"
+import { LOTTIE_START_LIST, LOTTIE_EMOTION_RIGHT_LIST, LOTTIE_STREAK_CHARACTER_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
 import { PencilLine, Gift } from "lucide-react"
 import { useQuizAudio } from "@/app/hooks/useQuizAudio"
 import { reportLessonQuestSignals } from "@/actions/generate-trainer-quest"
@@ -41,6 +37,8 @@ import { useAchievementStore } from "@/store/use-achievement-store"
 import { useStreakCelebrationStore } from "@/store/use-streak-celebration-store"
 import { useLevelUpStore } from "@/store/use-level-up-store"
 import { useQuestCompleteStore } from "@/store/use-quest-complete-store"
+import { xpForAmount } from "@/lib/xp"
+import { TrainerLessonCompleteScreen } from "@/components/trainer-lesson-complete-screen"
 
 // "Горячий вопрос" (questionType 'HOT', см. type-hot.tsx) — факультативный,
 // не входит в счёт/сердечки/работу над ошибками (см. handleAnswer). Везде,
@@ -201,6 +199,12 @@ export default function TQuiz({
   const [randomStartLottie, setRandomStartLottie] = useState(LOTTIE_START_LIST[0])
   const [randomStartButton, setRandomStartButton] = useState(startButton[0])
   const [randomEmotionLottie, setRandomEmotionLottie] = useState(LOTTIE_EMOTION_RIGHT_LIST[0])
+  // Персонаж-праздник — общий пул для StreakCelebrationScreen (экран
+  // "3/7 подряд" в середине урока) И для нового экрана завершения урока
+  // (см. TrainerLessonCompleteScreen ниже) — по прямой просьбе
+  // пользователя раньше был всегда один и тот же (LottiePaperFly),
+  // теперь случайный из 6 при каждом реальном показе.
+  const [randomStreakCharacterLottie, setRandomStreakCharacterLottie] = useState(() => getRandomLottie(LOTTIE_STREAK_CHARACTER_LIST))
   const [quizStarted, setQuizStarted] = useState(true)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [score, setScore] = useState(0)
@@ -234,6 +238,12 @@ export default function TQuiz({
   // reportLessonQuestSignals). Отдельно от trainerStreaks (стрик по ДНЯМ) и
   // от streak (текущая, сбрасываемая серия) — именно МАКСИМУМ за попытку.
   const maxStreakRef = useRef(0)
+  // Момент открытия урока — для "БЫСТРО" на новом экране завершения
+  // (TrainerLessonCompleteScreen), реальное затраченное время, не
+  // выдуманное. useRef(Date.now()) вычисляется РОВНО один раз при первом
+  // рендере (аргумент useRef игнорируется на последующих) — не требует
+  // отдельного useEffect.
+  const lessonStartRef = useRef(Date.now())
 
   // "Работа над ошибками" — по завершении обычного прохода, если были
   // неверные ответы, урок не заканчивается, а повторяет именно эти
@@ -501,6 +511,7 @@ export default function TQuiz({
           if (newStreak > maxStreakRef.current) maxStreakRef.current = newStreak
           if ((STREAK_MILESTONES as readonly number[]).includes(newStreak)) {
             setCelebrationMilestone(newStreak)
+            setRandomStreakCharacterLottie(getRandomLottie(LOTTIE_STREAK_CHARACTER_LIST))
             setShowLightning(true)
             // Показываем экран поздравления после небольшой задержки
             setTimeout(() => {
@@ -736,40 +747,33 @@ export default function TQuiz({
     const numQuestions = finishList.length
     const numQuestionsRight = finishList.filter(el => el.isRight).length
     const message = `✅ ${userName}  ${t_lessonTitle} ${numQuestionsRight - 1} / ${numQuestions - 1}`
+    const elapsedSeconds = Math.max(0, Math.round((Date.now() - lessonStartRef.current) / 1000))
+    const earnedXp = xpForAmount(TRAINER_LESSON_TRAINING_PTS)
 
     return (
       <>
-        <div className="text-center content-center mx-auto">
-          <h1 className="text-3xl font-bold mb-6">
-            {t_lessonTitle}
-          </h1>
-          <TgSendMsgCom message={message} />
-          <h2 className="text-2xl font-bold mb-4">Завершено!</h2>
-          {(isPerfectScore || hotQuestionWon || isChestStage || isMegaChestStage) && <Confetti width={width} height={height} />}
-          <p className={`text-xl ${isPerfectScore ? "text-green-600 font-bold" : ""}`}>
-            Правильно {score} из {totalScorable}
-          </p>
-          {hotQuestionWon && <HotBonusPanel />}
-          {isMegaChestStage ? <ChestBonusPanel mega /> : isChestStage ? <ChestBonusPanel mega={false} /> : null}
-          <Lottie
-            animationData={score / totalScorable < 0.8 ? LottieTrainerSharkFailDNO : LottieTrainerSharkFinalWin}
-            className="h-80 w-80 mx-auto"
-          />
-          {nextTLessonHref && (
-            <Button onClick={handleNextLesson} className="mt-4" variant='primary'>Следующий урок</Button>
-          )}
-          <div>
-            <Button className='mt-4' variant='primaryOutline' onClick={handleFinishLesson}>Завершить</Button>
-          </div>
-          {/* По просьбе пользователя временно убрана детальная таблица
-              "вопрос/ваш ответ/верный ответ" ниже итога — показалась
-              лишней на экране завершения (2026-08-31). Сам компонент
-              и данные (finishList) не удалены, легко вернуть обратно. */}
-          {/* <div className="pt-8">
-            <Separator />
-          </div>
-          <FinishTrainerStat finishList={finishList} /> */}
+        <TgSendMsgCom message={message} />
+        {(isPerfectScore || hotQuestionWon || isChestStage || isMegaChestStage) && <Confetti width={width} height={height} />}
+        {hotQuestionWon && <HotBonusPanel />}
+        {isMegaChestStage ? <ChestBonusPanel mega /> : isChestStage ? <ChestBonusPanel mega={false} /> : null}
+        <TrainerLessonCompleteScreen
+          lottieData={randomStreakCharacterLottie}
+          streak={maxStreakRef.current}
+          xp={earnedXp}
+          elapsedSeconds={elapsedSeconds}
+          primaryLabel={nextTLessonHref ? 'Следующий урок' : 'Завершить'}
+          onPrimary={nextTLessonHref ? handleNextLesson : handleFinishLesson}
+          secondaryLabel={nextTLessonHref ? 'Завершить' : undefined}
+          onSecondary={nextTLessonHref ? handleFinishLesson : undefined}
+        />
+        {/* По просьбе пользователя временно убрана детальная таблица
+            "вопрос/ваш ответ/верный ответ" ниже итога — показалась
+            лишней на экране завершения (2026-08-31). Сам компонент
+            и данные (finishList) не удалены, легко вернуть обратно. */}
+        {/* <div className="pt-8">
+          <Separator />
         </div>
+        <FinishTrainerStat finishList={finishList} /> */}
       </>
     )
   }
@@ -786,7 +790,7 @@ export default function TQuiz({
 
       {showStreakCelebration ? (
         <StreakCelebrationScreen
-          animationData={LottiePaperFly}
+          animationData={randomStreakCharacterLottie}
           milestone={celebrationMilestone}
           onNext={async () => {
             setShowStreakCelebration(false)

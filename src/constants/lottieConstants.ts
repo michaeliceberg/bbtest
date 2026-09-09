@@ -25,6 +25,12 @@ import LottieTegAsk4 from '@/public/Lottie/tegs/tegAsk4.json'
 import LottieTegAsk5 from '@/public/Lottie/tegs/tegAsk5.json'
 import LottieFlamyHwYes from '@/public/Lottie/hw/FlamyHwYes.json'
 import LottieFlamyHwPanic from '@/public/Lottie/hw/FlamyHwPanic.json'
+import LottiePaperFly from '@/public/Lottie/ggege/LottiePaperFly.json'
+import LottiePaperStreak1 from '@/public/Lottie/streakCharacter/paperStreak1.json'
+import LottiePaperStreak2 from '@/public/Lottie/streakCharacter/paperStreak2.json'
+import LottiePaperStreak3 from '@/public/Lottie/streakCharacter/paperStreak3.json'
+import LottiePaperStreak4 from '@/public/Lottie/streakCharacter/paperStreak4.json'
+import LottiePaperStreak5 from '@/public/Lottie/streakCharacter/paperStreak5.json'
 
 // Группировка по назначению
 export const LOTTIE_START_LIST = [
@@ -85,6 +91,19 @@ export const LOTTIE_SKILL_ASK_LIST = [
 export const LOTTIE_QUEST_MASCOT_LIST = [
   LottieFlamyHwYes,
   LottieFlamyHwPanic,
+] as const
+
+// Персонаж-праздник на экране "серия из 3/7 подряд" (StreakCelebrationScreen)
+// и на новом экране завершения урока тренажёра (TrainerLessonCompleteScreen)
+// — раньше был всегда один и тот же (LottiePaperFly), по прямой просьбе
+// пользователя выбирается случайно из 6 (сам paperFly + 5 присланных).
+export const LOTTIE_STREAK_CHARACTER_LIST = [
+  LottiePaperFly,
+  LottiePaperStreak1,
+  LottiePaperStreak2,
+  LottiePaperStreak3,
+  LottiePaperStreak4,
+  LottiePaperStreak5,
 ] as const
 
 // Helper функция для получения случайной анимации
