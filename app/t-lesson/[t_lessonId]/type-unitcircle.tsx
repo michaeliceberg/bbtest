@@ -270,21 +270,35 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                     )}
                 </svg>
 
-                {/* Подпись значения риски (guideValueLabel) — сразу рядом с
-                    самой риской, тем же акцентным синим, что и вся
-                    направляющая/риска. */}
+                {/* Подпись значения риски (guideValueLabel) — рядом с самой
+                    риской, но СМЕЩЕНА от неё (по прямой просьбе пользователя
+                    2026-09-09 — раньше стояла вертикально/горизонтально ПО
+                    ЦЕНТРУ риски и сливалась с самой пунктирной линией):
+                    - sin (горизонтальная риска/линия) — подпись НИЖЕ риски
+                      (top без -translate-y — верхний край текста стартует
+                      сразу под линией, не по центру на ней), слева от оси Y
+                      (без изменений, там зазор уже был верный);
+                    - cos (вертикальная риска/линия) — подпись СБОКУ от
+                      риски (не по центру на ней): вправо, если guideValue
+                      неотрицательный (риска и так справа от центра — сдвиг
+                      вправо ведёт ДАЛЬШЕ от оси Y, не ближе), влево иначе —
+                      так подпись никогда не двигается К оси Y, только от неё. */}
                 {guideLine && data.guideAxis === 'sin' && data.guideValueLabel && (
                     <div
-                        className="absolute -translate-x-full -translate-y-1/2 whitespace-nowrap text-[#4A90D9] font-bold text-xs sm:text-sm pr-1"
-                        style={{ left: `${CX - 3}%`, top: `${guideLine.y1}%` }}
+                        className="absolute -translate-x-full whitespace-nowrap text-[#4A90D9] font-bold text-xs sm:text-sm pr-1"
+                        style={{ left: `${CX - 3}%`, top: `${guideLine.y1 + 4}%` }}
                     >
                         <Latex>{`$${data.guideValueLabel}$`}</Latex>
                     </div>
                 )}
                 {guideLine && data.guideAxis === 'cos' && data.guideValueLabel && (
                     <div
-                        className="absolute -translate-x-1/2 whitespace-nowrap text-[#4A90D9] font-bold text-xs sm:text-sm pt-0.5"
-                        style={{ left: `${guideLine.x1}%`, top: `${CY + 3}%` }}
+                        className="absolute whitespace-nowrap text-[#4A90D9] font-bold text-xs sm:text-sm pt-0.5"
+                        style={{
+                            left: `${guideLine.x1}%`,
+                            top: `${CY + 3}%`,
+                            transform: (data.guideValue ?? 0) >= 0 ? 'translateX(6px)' : 'translateX(calc(-100% - 6px))',
+                        }}
                     >
                         <Latex>{`$${data.guideValueLabel}$`}</Latex>
                     </div>
@@ -420,7 +434,13 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                                         // прямой просьбе пользователя: это собственный ответ
                                         // ученика, дублируемый прямо на окружности, должен
                                         // читаться с первого взгляда, не мельче самих точек.
-                                        'absolute left-1/2 -translate-x-1/2 top-full mt-1 whitespace-nowrap text-sm sm:text-base font-black px-1 rounded',
+                                        //
+                                        // right-1/2 (не left-1/2 -translate-x-1/2) — подпись
+                                        // растёт влево от центра кнопки, а не по центру под
+                                        // ней: по прямой просьбе пользователя (2026-09-09) —
+                                        // при центрировании подпись у точек справа от центра
+                                        // круга наезжала правым краем на саму линию окружности.
+                                        'absolute right-1/2 top-full mt-1 whitespace-nowrap text-sm sm:text-base font-black px-1 rounded',
                                         isAnswerChecked
                                             ? isThisPointCorrect ? 'text-[#A1D151]' : 'text-[#DC605B]'
                                             : 'text-[#4A90D9]',
