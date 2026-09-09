@@ -67,10 +67,29 @@ export const TypeCheck = ({ question, onAnswer }: Props) => {
 
     return (
         <div className="mt-6">
+            {/* Условие (уравнение/выражение), из которого получена формула
+                ниже — без него в тригонометрии/логарифмах "верно ли
+                записана формула?" бессмысленно (formulaText сама по себе
+                не говорит, ЧТО она решает). У физики (formula-name
+                вопросы вроде "Сила тяжести F=?") condition не приходит
+                вовсе — see isConditionalCheckSubject() в page.tsx. */}
+            {question.checkCondition && (
+                <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="text-center mb-3"
+                >
+                    <span className="text-lg md:text-xl font-semibold text-[#9AA7B0]">
+                        <Latex>{question.checkCondition}</Latex>
+                    </span>
+                </motion.div>
+            )}
+
             <motion.div
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: 0.3, delay: question.checkCondition ? 0.1 : 0 }}
                 className="rounded-2xl border-2 border-[#3A464E] bg-[#161F23] px-4 py-8 text-center"
             >
                 <span className="text-2xl md:text-3xl font-bold text-[#F2F7FB]">

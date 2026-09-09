@@ -174,6 +174,15 @@ export type QuestionType = {
     // для показа, либо оригинал (correctAnswer='CORRECT'), либо с одной
     // подменённой буквой (correctAnswer='WRONG').
     checkFormula?: string,
+    // Только для CHECK — исходное УСЛОВИЕ, из которого получена формула
+    // (например "$\sin x=\frac{\sqrt2}{2}$" для тригонометрии/логарифмов).
+    // По прямой просьбе пользователя (2026-09-09): в физике t_challenge.question
+    // сам по себе самодостаточен ("Сила тяжести $F=?$" — формулу можно
+    // судить в отрыве от контекста), а в тригонометрии/логарифмах без
+    // условия сам вопрос "Формула записана верно?" бессмысленен — нельзя
+    // понять, верно ли "π/4+2πk", не зная, какое уравнение оно решает.
+    // См. isConditionalCheckSubject() ниже.
+    checkCondition?: string,
     // Только для PICMATCH ("сопоставь картинку и формулу", пилот на теме
     // Динамика) — ключ иконки для components/FormulaIcon.tsx.
     iconKey?: string,
@@ -395,6 +404,17 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // ограничивает пул обманок вопросами того же "жанра".
     const looksLikeFormula = (text: string): boolean => text.includes('$');
     const sameAnswerGenre = (a: string, b: string): boolean => looksLikeFormula(a) === looksLikeFormula(b);
+
+    // Для CHECK ("формула записана верно?") — физическая формула
+    // самодостаточна ("Сила тяжести $F_{тяж}=?$" судится сама по себе,
+    // повторять условие незачем), а тригонометрия/логарифмы — нет: их
+    // t_challenge.question ЦЕЛИКОМ состоит из уравнения/выражения без
+    // единого русского слова ("$\sin(x)=\frac{\sqrt3}{2}\quad x=?$") —
+    // сама формула-ответ бессмысленна без этого условия. Отличаем по
+    // наличию кириллицы (физика её всегда содержит — название величины),
+    // а не по жёстко зашитому unitId — так правило само подхватит любой
+    // будущий чисто-математический юнит без отдельной правки.
+    const isConditionalCheckSubject = (question: string): boolean => !/[а-яА-ЯёЁ]/.test(question);
 
     // "В чём измеряется X?" отвечает ЕДИНИЦЕЙ измерения (Н, Дж, с...), а
     // "Что такое X?"/"Что измеряется в Y?" — НАЗВАНИЕМ величины (сила
@@ -1025,6 +1045,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                     difficulty: t_challenge.difficulty,
                     correctAnswer: corrupted ? 'WRONG' : 'CORRECT',
                     checkFormula: corrupted ? corrupted.corruptedLatex : formulaText,
+                    checkCondition: isConditionalCheckSubject(t_challenge.question) ? t_challenge.question : undefined,
                     timeLimit: 20,
                 };
             }
