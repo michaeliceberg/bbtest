@@ -70,41 +70,56 @@ export const TrainerLessonCompleteScreen = ({
     const streakWord = declensionRu(streak, 'верный ответ', 'верных ответа', 'верных ответов')
 
     return (
-        <div className="w-full max-w-xl mx-auto py-6 px-1 flex flex-col items-center">
-            <motion.div
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-                className="w-52 h-52 sm:w-64 sm:h-64"
-            >
-                <Lottie animationData={lottieData} loop autoplay className="w-full h-full" />
-            </motion.div>
+        // Тот же каркас "min-h-screen flex flex-col", что уже используют
+        // обычные вопросы тренажёра (components/trainer-question.tsx) —
+        // по прямой просьбе пользователя кнопки внизу должны сидеть ровно
+        // там же, где стандартная кнопка "ответить": она пришита к низу
+        // не через position:fixed, а тем, что ЭТОТ блок — единственный
+        // НЕ-flex-1 сосед под flex-1 серединой, поэтому просто прижимается
+        // книзу естественным потоком flex.
+        <div className="min-h-screen bg-[#151F24] text-[#F2F7FB] flex flex-col">
+            <div className="flex flex-col items-center pt-8 px-4 shrink-0">
+                <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+                    className="w-64 h-64 sm:w-80 sm:h-80"
+                >
+                    <Lottie animationData={lottieData} loop autoplay className="w-full h-full" />
+                </motion.div>
 
-            <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15, duration: 0.35 }}
-                className="text-center mt-2"
-            >
-                <h1 className="text-2xl sm:text-3xl font-extrabold" style={{ color: '#38BDF8' }}>
-                    Вы запустили серию!
-                </h1>
-                <p className="text-base sm:text-lg text-[#F2F7FB] mt-2">
-                    {streak} {streakWord} подряд? Так держать!
-                </p>
-            </motion.div>
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15, duration: 0.35 }}
+                    className="text-center"
+                >
+                    <h1 className="text-2xl sm:text-3xl font-extrabold" style={{ color: '#38BDF8' }}>
+                        Вы запустили серию!
+                    </h1>
+                    <p className="text-base sm:text-lg text-[#F2F7FB] mt-2">
+                        {streak} {streakWord} подряд? Так держать!
+                    </p>
+                </motion.div>
+            </div>
 
-            <div className="flex gap-3 w-full mt-6">
-                <StatCard label="Очки опыта" value={`${xp}`} icon={<Zap className="w-5 h-5" fill="currentColor" />} color="#FBBF24" delay={0.3} />
-                <StatCard label="Серия" value={`x${streak}`} icon={<Target className="w-5 h-5" />} color="#38BDF8" delay={0.4} />
-                <StatCard label="Быстро" value={formatElapsed(elapsedSeconds)} icon={<Timer className="w-5 h-5" />} color="#34D399" delay={0.5} />
+            {/* Статистика — посередине ОСТАВШЕГОСЯ пространства между
+                персонажем и кнопками (не сразу под текстом), тот же приём
+                justify-center на flex-1, что уже применяется для вариантов
+                ответа обычного вопроса (см. коммент в trainer-question.tsx). */}
+            <div className="flex-1 flex flex-col justify-center px-4 min-h-0">
+                <div className="flex gap-3 w-full">
+                    <StatCard label="Очки опыта" value={`${xp}`} icon={<Zap className="w-5 h-5" fill="currentColor" />} color="#FBBF24" delay={0.3} />
+                    <StatCard label="Серия" value={`x${streak}`} icon={<Target className="w-5 h-5" />} color="#38BDF8" delay={0.4} />
+                    <StatCard label="Быстро" value={formatElapsed(elapsedSeconds)} icon={<Timer className="w-5 h-5" />} color="#34D399" delay={0.5} />
+                </div>
             </div>
 
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6, duration: 0.35 }}
-                className="w-full mt-8"
+                className="px-4 pb-4 pt-2 shrink-0"
             >
                 <Button onClick={onPrimary} variant="primary" className="w-full">
                     {primaryLabel}
