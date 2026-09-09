@@ -356,17 +356,26 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                     </div>
                 )}
 
-                {/* Подпись значения на оси тангенса — теперь СПРАВА от
-                    риски, наружу от круга (было слева, к кругу — с тех
-                    пор как ось стала настоящей касательной, x>TAN_LINE_X
+                {/* Подпись значения на оси тангенса — СПРАВА от риски,
+                    наружу от круга (было слева, к кругу — с тех пор как
+                    ось стала настоящей касательной, x>TAN_LINE_X
                     гарантированно вне круга при ЛЮБОМ y, поэтому больше
                     не нужно ни смещать текст в сторону от центра, ни
                     считать минимальный отступ, см. TAN_SCALE выше).
-                    Вертикально центрирована на самой риске. */}
+                    Вертикально центрирована на самой риске — КРОМЕ
+                    tg(x)=0: там риска сидит ровно на высоте центра (y=CY),
+                    что совпадает с горизонтальной осью cos — при обычном
+                    центрировании подпись "0" наполовину налезала на эту
+                    линию (поймано пользователем живьём). Только в этом
+                    случае подпись растёт НИЖЕ и ПРАВЕЕ риски, а не по
+                    центру на ней. */}
                 {tanTickY !== null && data.guideValueLabel && (
                     <div
-                        className="absolute -translate-y-1/2 whitespace-nowrap text-[#4A90D9] font-bold text-[10px] sm:text-xs pl-1"
-                        style={{ left: `${TAN_LINE_X + 1}%`, top: `${tanTickY}%` }}
+                        className={cn(
+                            'absolute whitespace-nowrap text-[#4A90D9] font-bold text-[10px] sm:text-xs pl-1',
+                            data.guideValue === 0 ? 'pt-1' : '-translate-y-1/2',
+                        )}
+                        style={{ left: `${TAN_LINE_X + (data.guideValue === 0 ? 2 : 1)}%`, top: `${tanTickY}%` }}
                     >
                         <Latex>{`$${data.guideValueLabel}$`}</Latex>
                     </div>
