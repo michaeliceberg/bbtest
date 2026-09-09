@@ -284,15 +284,15 @@ function chunkBalanced<T>(items: T[], targetSize: number): T[][] {
 // подборка (другие градусные/радианные значения урока) и даёт ровно
 // такой набор обманок, какой пользователь привёл примером. =====
 const DEGREE_VOCAB: { question: string; answer: string }[] = [
-    { question: 'Чему равен $\\pi$ в градусах?', answer: '$180^\\circ$' },
-    { question: 'Чему равен $2\\pi$ в градусах?', answer: '$360^\\circ$' },
-    { question: 'Чему равен $\\dfrac{\\pi}{2}$ в градусах?', answer: '$90^\\circ$' },
-    { question: 'Чему равен $\\dfrac{\\pi}{3}$ в градусах?', answer: '$60^\\circ$' },
-    { question: 'Чему равен $\\dfrac{\\pi}{4}$ в градусах?', answer: '$45^\\circ$' },
-    { question: 'Чему равен $\\dfrac{\\pi}{6}$ в градусах?', answer: '$30^\\circ$' },
-    { question: '$180^\\circ$ — это сколько радиан?', answer: '$\\pi$' },
-    { question: '$360^\\circ$ — это сколько радиан?', answer: '$2\\pi$' },
-    { question: '$90^\\circ$ — это сколько радиан?', answer: '$\\dfrac{\\pi}{2}$' },
+    { question: 'Чему равен $\\pi$ в градусах?', answer: '$180°$' },
+    { question: 'Чему равен $2\\pi$ в градусах?', answer: '$360°$' },
+    { question: 'Чему равен $\\dfrac{\\pi}{2}$ в градусах?', answer: '$90°$' },
+    { question: 'Чему равен $\\dfrac{\\pi}{3}$ в градусах?', answer: '$60°$' },
+    { question: 'Чему равен $\\dfrac{\\pi}{4}$ в градусах?', answer: '$45°$' },
+    { question: 'Чему равен $\\dfrac{\\pi}{6}$ в градусах?', answer: '$30°$' },
+    { question: '$180°$ — это сколько радиан?', answer: '$\\pi$' },
+    { question: '$360°$ — это сколько радиан?', answer: '$2\\pi$' },
+    { question: '$90°$ — это сколько радиан?', answer: '$\\dfrac{\\pi}{2}$' },
 ]
 
 async function insertVocabChallenge(lessonId: number, order: number, question: string, answer: string) {
