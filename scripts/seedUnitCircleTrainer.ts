@@ -18,6 +18,19 @@
 //    старые sin/cos 'select'-уроки (tg остался как был, у тангенса нет
 //    естественной "направляющей" на самой окружности).
 //
+// Раунд 3 (2026-09-10) — по прямой просьбе пользователя: было слишком
+// много уроков (~25) по 2-3 задачи каждый — перегруппировано в 10 уроков
+// по 6-9 задач, организованных строго по темам (см. buildLessons() ниже):
+// 1) радианы/градусы, 2) оси круга, 3) простые Q1/Q4, 4) Q2/Q3,
+// [Контрольная 1], 5) sin/cos = 0/±1, 6-7) sin/cos = дробь, 8) tg(x)=a,
+// [Контрольная 2 — весь круг]. Мини-боссы (isReviewStage по слову
+// "контрольная", см. trainer-grade-tree.tsx) стоят каждые ~4 урока и
+// смешивают выборку из ВСЕХ предыдущих категорий, а не только соседних.
+// Старый LOCATE_SIMPLE (10 избыточных "простых углов", дублировавших
+// подмножества LOCATE_AXES/Q1Q4/Q2Q3 без чёткой категоризации — наследие
+// ДО раунда 2, так и не убранное тогда) удалён целиком — все его значения
+// уже покрыты (с добавлением отрицательных форм) тремя чёткими группами.
+//
 // Наполняем тот же t_course "Математика-11" (id=5, courseId=11 "ЕГЭ
 // Математика Профиль") — юнит "Тригонометрический круг", order=4.
 //
@@ -122,22 +135,6 @@ type Challenge = {
     guideValue?: number
     guideValueLabel?: string
 }
-
-// ===== LOCATE — простые (угол уже в [0, 2π), другая запись той же
-// величины, чем на магните — \dfrac вместо "/", чтобы не давать просто
-// вычитывать ответ по совпадению текста) =====
-const LOCATE_SIMPLE: { disp: string; val: number }[] = [
-    { disp: "\\dfrac{\\pi}{6}", val: Math.PI / 6 },
-    { disp: "-\\dfrac{\\pi}{6}", val: -Math.PI / 6 }, // → 11π/6
-    { disp: "\\dfrac{\\pi}{3}", val: Math.PI / 3 },
-    { disp: "\\dfrac{\\pi}{2}", val: Math.PI / 2 },
-    { disp: "\\dfrac{2\\pi}{3}", val: (2 * Math.PI) / 3 },
-    { disp: "\\dfrac{5\\pi}{6}", val: (5 * Math.PI) / 6 },
-    { disp: "\\pi", val: Math.PI },
-    { disp: "\\dfrac{7\\pi}{6}", val: (7 * Math.PI) / 6 },
-    { disp: "\\dfrac{5\\pi}{4}", val: (5 * Math.PI) / 4 },
-    { disp: "\\dfrac{5\\pi}{3}", val: (5 * Math.PI) / 3 },
-]
 
 // ===== LOCATE, уровень 2 — оси (π/2, π, 3π/2, 2π=0) в прямой и
 // отрицательной форме. По прямой просьбе пользователя — заменяет
@@ -321,47 +318,131 @@ async function insertVocabChallenge(lessonId: number, order: number, question: s
     await db.insert(t_challengeOptions).values({ t_challengeId: ch.id, text: answer, correct: true })
 }
 
-type LessonSpec = { title: string; challenges: Challenge[] }
+async function insertCircleChallenge(lessonId: number, order: number, ch: Challenge) {
+    await db.insert(t_challenges).values({
+        t_lessonId: lessonId,
+        type: 'UNITCIRCLE' as any,
+        question: ch.question,
+        order,
+        points: 10,
+        author: "ЕГЭ Математика Профиль",
+        numRans: String(ch.mode === 'label' ? (ch.labelTargets?.length ?? 1) : ch.correctIndices.length),
+        difficulty: '',
+        imageSrc: '',
+        unitCircleData: JSON.stringify({
+            mode: ch.mode,
+            points: POINTS,
+            correctIndices: ch.correctIndices,
+            labelTargets: ch.labelTargets,
+            guideAxis: ch.guideAxis,
+            guideValue: ch.guideValue,
+            guideValueLabel: ch.guideValueLabel,
+        }),
+    })
+}
+
+// Единый элемент урока — вокаб (M_ASC, радианы/градусы) ИЛИ задача на
+// круге (UNITCIRCLE) — раньше это были два полностью раздельных пути
+// вставки (вокаб-уроки создавались ДО buildLessons(), остальные — после,
+// с ручным orderOffset), из-за чего "контрольная"-урок в принципе не мог
+// смешать вокаб с точками на круге. Теперь один и тот же список может
+// содержать оба вида вперемешку — нужно именно для Контрольной 2 ниже
+// ("смесь ВСЕХ предыдущих категорий", включая радианы/градусы).
+type MixedItem =
+    | { kind: 'vocab'; question: string; answer: string }
+    | { kind: 'circle'; challenge: Challenge }
+
+const vocabItem = (v: { question: string; answer: string }): MixedItem => ({ kind: 'vocab', question: v.question, answer: v.answer })
+const circleItem = (c: Challenge): MixedItem => ({ kind: 'circle', challenge: c })
+
+type LessonSpec = { title: string; items: MixedItem[] }
+
+// "0"/"1"/"-1" — оси (углы кратные π/2), остальные — дробные (1/2, √2/2,
+// √3/2) — по прямой просьбе пользователя эти две категории теперь
+// отдельные уроки, а sin и cos внутри каждой категории смешаны вместе
+// (было — sin и cos всегда раздельными уроками, дробные вперемешку с
+// осевыми внутри каждого).
+const isAxisVal = (disp: string) => disp === '0' || disp === '1' || disp === '-1'
 
 function buildLessons(): LessonSpec[] {
+    const sinAxisTargets = SIN_LABEL_TARGETS.filter((t) => isAxisVal(t.disp))
+    const sinFracTargets = SIN_LABEL_TARGETS.filter((t) => !isAxisVal(t.disp))
+    const cosAxisTargets = COS_LABEL_TARGETS.filter((t) => isAxisVal(t.disp))
+    const cosFracTargets = COS_LABEL_TARGETS.filter((t) => !isAxisVal(t.disp))
+
+    const sinCosAxisChallenges = shuffle([
+        ...buildLabel(sinAxisTargets, 'sin', Math.sin),
+        ...buildLabel(cosAxisTargets, 'cos', Math.cos),
+    ])
+    const sinCosFracChallenges = shuffle([
+        ...buildLabel(sinFracTargets, 'sin', Math.sin),
+        ...buildLabel(cosFracTargets, 'cos', Math.cos),
+    ])
+    // 12 штук (6 sin + 6 cos) — 2 урока по 6, ближе к целевым 7-9, чем
+    // один урок из 12 или совсем мелкие уроки по 3, как было раньше.
+    const fracGroups = chunkBalanced(sinCosFracChallenges, 7)
+
     const lessons: LessonSpec[] = []
 
-    chunkBalanced(buildLocate(LOCATE_SIMPLE), 3).forEach((group, i) => {
-        lessons.push({ title: `Найди точку — простые углы ${i + 1}`, challenges: group })
-    })
-    chunkBalanced(buildLocate(LOCATE_AXES), 3).forEach((group, i) => {
-        lessons.push({ title: `Найди точку — оси и отрицательные углы ${i + 1}`, challenges: group })
-    })
-    chunkBalanced(buildLocate(LOCATE_Q1Q4), 3).forEach((group, i) => {
-        lessons.push({ title: `Найди точку — простые Q1/Q4 ${i + 1}`, challenges: group })
-    })
-    chunkBalanced(buildLocate(LOCATE_Q2Q3), 3).forEach((group, i) => {
-        lessons.push({ title: `Найди точку — Q2/Q3 ${i + 1}`, challenges: group })
-    })
-    chunkBalanced(buildLabel(SIN_LABEL_TARGETS, 'sin', Math.sin), 3).forEach((group, i) => {
-        lessons.push({ title: `sin x = a — подпиши точки ${i + 1}`, challenges: group })
-    })
-    chunkBalanced(buildLabel(COS_LABEL_TARGETS, 'cos', Math.cos), 3).forEach((group, i) => {
-        lessons.push({ title: `cos x = a — подпиши точки ${i + 1}`, challenges: group })
-    })
-    chunkBalanced(buildSelect(TG_EQUATIONS, Math.tan), 3).forEach((group, i) => {
-        lessons.push({ title: `tg x = a — отметь корни ${i + 1}`, challenges: group })
-    })
+    lessons.push({ title: "Радианы и градусы", items: DEGREE_VOCAB.map(vocabItem) })
+    lessons.push({ title: "Точки на окружности: оси", items: buildLocate(LOCATE_AXES).map(circleItem) })
+    lessons.push({ title: "Точки на окружности: π/6, π/4, π/3", items: buildLocate(LOCATE_Q1Q4).map(circleItem) })
+    lessons.push({ title: "Точки на окружности: 2π/3, 5π/6", items: buildLocate(LOCATE_Q2Q3).map(circleItem) })
 
     // Контрольная — мини-босс (isReviewStage триггерится по слову
-    // "контрольн" в названии, см. trainer-grade-tree.tsx) — микс всех
-    // режимов.
+    // "контрольн" в названии, см. trainer-grade-tree.tsx) каждые ~4 урока
+    // — микс выборки из ВСЕХ уже пройденных к этому моменту категорий, не
+    // просто повтор последнего урока.
     lessons.push({
-        title: "Контрольная — весь круг",
-        challenges: [
-            ...buildLocate([{ disp: "-\\dfrac{3\\pi}{4}", val: (-3 * Math.PI) / 4 }]), // → 5π/4
-            ...buildLabel([{ disp: "\\dfrac{\\sqrt{3}}{2}", val: Math.sqrt(3) / 2 }], 'sin', Math.sin),
-            ...buildLabel([{ disp: "-\\dfrac{1}{2}", val: -0.5 }], 'cos', Math.cos),
-            ...buildSelect([{ disp: "tg(x) = -1", val: -1, label: "-1" }], Math.tan),
+        title: "Контрольная 1",
+        items: [
+            vocabItem(DEGREE_VOCAB[0]), vocabItem(DEGREE_VOCAB[6]),
+            ...buildLocate([LOCATE_AXES[0], LOCATE_AXES[4]]).map(circleItem),
+            ...buildLocate([LOCATE_Q1Q4[0], LOCATE_Q1Q4[3]]).map(circleItem),
+            ...buildLocate([LOCATE_Q2Q3[0], LOCATE_Q2Q3[3]]).map(circleItem),
+        ],
+    })
+
+    lessons.push({ title: "Углы: sin/cos = 0, ±1", items: sinCosAxisChallenges.map(circleItem) })
+    fracGroups.forEach((group, i) => {
+        lessons.push({ title: `Углы: sin/cos = дробь ${i + 1}`, items: group.map(circleItem) })
+    })
+    lessons.push({ title: "Углы: tg(x) = a", items: buildSelect(TG_EQUATIONS, Math.tan).map(circleItem) })
+
+    lessons.push({
+        title: "Контрольная 2 — весь круг",
+        items: [
+            vocabItem(DEGREE_VOCAB[2]),
+            ...buildLocate([LOCATE_AXES[1]]).map(circleItem),
+            ...buildLocate([LOCATE_Q1Q4[1]]).map(circleItem),
+            ...buildLocate([LOCATE_Q2Q3[2]]).map(circleItem),
+            ...buildLabel([{ disp: "0", val: 0 }], 'sin', Math.sin).map(circleItem),
+            ...buildLabel([{ disp: "1", val: 1 }], 'cos', Math.cos).map(circleItem),
+            ...buildLabel([{ disp: "\\dfrac{1}{2}", val: 0.5 }], 'sin', Math.sin).map(circleItem),
+            ...buildLabel([{ disp: "-\\dfrac{\\sqrt{2}}{2}", val: -Math.SQRT1_2 }], 'cos', Math.cos).map(circleItem),
+            ...buildSelect([{ disp: "tg(x) = -1", val: -1, label: "-1" }], Math.tan).map(circleItem),
         ],
     })
 
     return lessons
+}
+
+async function createLesson(unitId: number, title: string, order: number, items: MixedItem[]) {
+    const [lesson] = await db.insert(t_lessons).values({
+        title,
+        t_unitId: unitId,
+        order,
+    }).returning({ id: t_lessons.id })
+
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i]
+        if (item.kind === 'vocab') {
+            await insertVocabChallenge(lesson.id, i + 1, item.question, item.answer)
+        } else {
+            await insertCircleChallenge(lesson.id, i + 1, item.challenge)
+        }
+    }
+    console.log(`Урок "${title}" создан: id=${lesson.id}, задач=${items.length}`)
 }
 
 async function main() {
@@ -382,61 +463,9 @@ async function main() {
     }).returning({ id: t_units.id })
     console.log(`Юнит "${UNIT_TITLE}" создан: id=${unit.id}`)
 
-    // Вводные уроки "Радианы и градусы" — ПЕРЕД самим кругом (по прямой
-    // просьбе пользователя, "в первые уроки этой темы"), order 1..N —
-    // остальные уроки темы сдвигаются на освободившееся место через
-    // orderOffset ниже.
-    const vocabGroups = chunkBalanced(DEGREE_VOCAB, 3)
-    let orderOffset = 0
-    for (let gi = 0; gi < vocabGroups.length; gi++) {
-        const group = vocabGroups[gi]
-        const title = vocabGroups.length > 1 ? `Радианы и градусы ${gi + 1}` : "Радианы и градусы"
-        const [lesson] = await db.insert(t_lessons).values({
-            title,
-            t_unitId: unit.id,
-            order: gi + 1,
-        }).returning({ id: t_lessons.id })
-        for (let i = 0; i < group.length; i++) {
-            await insertVocabChallenge(lesson.id, i + 1, group[i].question, group[i].answer)
-        }
-        console.log(`Урок "${title}" создан: id=${lesson.id}, задач=${group.length}`)
-        orderOffset++
-    }
-
     const lessons = buildLessons()
-
-    for (let li = 0; li < lessons.length; li++) {
-        const lessonSpec = lessons[li]
-        const [lesson] = await db.insert(t_lessons).values({
-            title: lessonSpec.title,
-            t_unitId: unit.id,
-            order: orderOffset + li + 1,
-        }).returning({ id: t_lessons.id })
-
-        for (let i = 0; i < lessonSpec.challenges.length; i++) {
-            const ch = lessonSpec.challenges[i]
-            await db.insert(t_challenges).values({
-                t_lessonId: lesson.id,
-                type: 'UNITCIRCLE' as any,
-                question: ch.question,
-                order: i + 1,
-                points: 10,
-                author: "ЕГЭ Математика Профиль",
-                numRans: String(ch.mode === 'label' ? (ch.labelTargets?.length ?? 1) : ch.correctIndices.length),
-                difficulty: '',
-                imageSrc: '',
-                unitCircleData: JSON.stringify({
-                    mode: ch.mode,
-                    points: POINTS,
-                    correctIndices: ch.correctIndices,
-                    labelTargets: ch.labelTargets,
-                    guideAxis: ch.guideAxis,
-                    guideValue: ch.guideValue,
-                    guideValueLabel: ch.guideValueLabel,
-                }),
-            })
-        }
-        console.log(`Урок "${lessonSpec.title}" создан: id=${lesson.id}, задач=${lessonSpec.challenges.length}`)
+    for (let i = 0; i < lessons.length; i++) {
+        await createLesson(unit.id, lessons[i].title, i + 1, lessons[i].items)
     }
 
     console.log("\nГотово.")
