@@ -201,14 +201,17 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
     // что уход за верхнюю границу 0-100% безопасен.
     const LABEL_TOP = -6 // % — верхний край подписи "sin α"
 
-    // Пунктирная направляющая ('label'-режим) — хорда окружности на
-    // уровне guideValue: для sin — горизонтальная (y фиксирован, x — по
-    // обе стороны от центра на половину хорды), для cos — вертикальная
+    // Пунктирная направляющая (sin/cos) — хорда окружности на уровне
+    // guideValue: для sin — горизонтальная (y фиксирован, x — по обе
+    // стороны от центра на половину хорды), для cos — вертикальная
     // (зеркально). При guideValue=±1 хорда вырождается в точку (касание
     // сверху/снизу или справа/слева) — half всегда получается 0, отрезок
-    // просто не виден, отдельно этот случай не обрабатываем.
+    // просто не виден, отдельно этот случай не обрабатываем. Раньше было
+    // условие isLabel && ... — теперь просто по guideAxis (sin/cos): у
+    // tg своя, отдельная направляющая ниже, а не эта хорда (для тангенса
+    // хорда через круг не имеет того же геометрического смысла).
     let guideLine: { x1: number; y1: number; x2: number; y2: number } | null = null
-    if (isLabel && data.guideAxis !== undefined && data.guideValue !== undefined) {
+    if ((data.guideAxis === 'sin' || data.guideAxis === 'cos') && data.guideValue !== undefined) {
         const half = R * Math.sqrt(Math.max(0, 1 - data.guideValue * data.guideValue))
         if (data.guideAxis === 'sin') {
             const y = CY - R * data.guideValue
@@ -217,6 +220,45 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
             const x = CX + R * data.guideValue
             guideLine = { x1: x, y1: CY - half, x2: x, y2: CY + half }
         }
+    }
+
+    // Ось тангенса — вертикальная касательная СПРАВА от круга (по прямой
+    // просьбе пользователя: "параллельно оси синусов... как бы
+    // касательная к окружности"). Не строго впритык к дуге (TAN_LINE_X
+    // чуть правее реальной точки касания CX+R) — нужен запас, чтобы
+    // подпись значения слева от риски не наезжала на саму дугу, которая
+    // рядом с точкой касания (angle=0) шире всего.
+    //
+    // Масштаб по вертикали НЕ 1:1 с радиусом — честная геометрическая
+    // касательная для tg=√3≈1.73 (макс. значение в данных) ушла бы на
+    // ~55 условных единиц от центра, далеко за пределы видимой области.
+    // TAN_SCALE подобран так, чтобы весь диапазон значений (0..±√3)
+    // укладывался в высоту линии с запасом — компромисс, не физически
+    // точный масштаб, но сохраняет все качественные свойства (знак —
+    // сторона, величина — расстояние от точки касания).
+    // TAN_LINE_X — было CX+R+3, увеличено до +6: измерено живьём, +3 не
+    // хватало зазора даже с TAN_MIN_OFFSET ниже (см. следующий коммент).
+    const TAN_LINE_X = CX + R + 6
+    const TAN_HALF_HEIGHT = 28
+    const TAN_MAX_ABS = Math.sqrt(3)
+    const TAN_SCALE = (TAN_HALF_HEIGHT - 2) / TAN_MAX_ABS
+    // Измерено живьём: у маленьких |tg| (например √3/3≈0.577) чисто
+    // линейный масштаб держал риску слишком близко к центру — там, где
+    // дуга круга (у самой точки касания) шире всего, подпись слева от
+    // риски заезжала на дугу (зазор уходил в минус, проверено дважды —
+    // первая попытка TAN_MIN_OFFSET=14 всё ещё давала минус ~2%).
+    // TAN_MIN_OFFSET — нижняя граница смещения от центра: даже самое
+    // маленькое ненулевое |tg| в данных отодвигает риску настолько же
+    // далеко, насколько среднее значение — жертвуем пропорциональностью
+    // шкалы ради гарантированного зазора для подписи. tg=0 — законное
+    // исключение (риска ровно в центре, как и было бы геометрически
+    // честно).
+    const TAN_MIN_OFFSET = 18
+    let tanTickY: number | null = null
+    if (data.guideAxis === 'tan' && data.guideValue !== undefined) {
+        const v = data.guideValue
+        const offset = v === 0 ? 0 : Math.sign(v) * Math.max(TAN_MIN_OFFSET, Math.abs(v) * TAN_SCALE)
+        tanTickY = CY - offset
     }
 
     const activeTarget = isLabel ? (data.labelTargets ?? []).find((t) => t.pointIndex === activePointIdx) : undefined
@@ -268,6 +310,21 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                     {guideLine && data.guideAxis === 'cos' && (
                         <line x1={guideLine.x1} y1={CY - 2.4} x2={guideLine.x1} y2={CY + 2.4} stroke="#4A90D9" strokeWidth="1.8" />
                     )}
+
+                    {/* Ось тангенса — своя вертикальная линия (см. TAN_LINE_X
+                        выше), не хорда через круг: рисуется только в
+                        tg-заданиях (guideAxis==='tan'), нейтральным серым —
+                        читается как "ещё одна ось", а не как акцентная
+                        подсказка (акцент — только у самой риски, ниже). */}
+                    {tanTickY !== null && (
+                        <>
+                            <line
+                                x1={TAN_LINE_X} y1={CY - TAN_HALF_HEIGHT} x2={TAN_LINE_X} y2={CY + TAN_HALF_HEIGHT}
+                                stroke="#2A363D" strokeWidth="1.4"
+                            />
+                            <line x1={TAN_LINE_X - 2.4} y1={tanTickY} x2={TAN_LINE_X + 2.4} y2={tanTickY} stroke="#4A90D9" strokeWidth="1.8" />
+                        </>
+                    )}
                 </svg>
 
                 {/* Подпись значения риски (guideValueLabel) — рядом с самой
@@ -299,6 +356,30 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                             top: `${CY + 3}%`,
                             transform: (data.guideValue ?? 0) >= 0 ? 'translateX(6px)' : 'translateX(calc(-100% - 6px))',
                         }}
+                    >
+                        <Latex>{`$${data.guideValueLabel}$`}</Latex>
+                    </div>
+                )}
+
+                {/* Подпись значения на оси тангенса — СЛЕВА от риски (по
+                    прямой просьбе пользователя). Шрифт мельче, чем у
+                    sin/cos-рисок (text-[10px] sm:text-xs) — эта подпись
+                    ближе к дуге круга (риска у самой точки касания).
+                    Вертикально — НЕ центрирована на высоте риски (как
+                    было раньше): измерено живьём — при центрировании
+                    нижняя половина многострочной дроби (например √3/3)
+                    у маленьких |tg| заезжала на дугу, которая около
+                    точки касания шире всего. Вместо этого — растёт ТОЛЬКО
+                    от риски В СТОРОНУ ОТ ЦЕНТРА (вверх для tg>0, вниз для
+                    tg<0), тем же принципом, что уже применён для подписи
+                    выбранного угла у точки. */}
+                {tanTickY !== null && data.guideValueLabel && (
+                    <div
+                        className={cn(
+                            'absolute -translate-x-full whitespace-nowrap text-[#4A90D9] font-bold text-[10px] sm:text-xs pr-1',
+                            (data.guideValue ?? 0) >= 0 ? '-translate-y-full' : '',
+                        )}
+                        style={{ left: `${TAN_LINE_X - 1}%`, top: `${tanTickY}%` }}
                     >
                         <Latex>{`$${data.guideValueLabel}$`}</Latex>
                     </div>

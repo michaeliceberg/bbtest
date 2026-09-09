@@ -118,7 +118,7 @@ type Challenge = {
     mode: 'locate' | 'select' | 'label'
     correctIndices: number[]
     labelTargets?: LabelTarget[]
-    guideAxis?: 'sin' | 'cos'
+    guideAxis?: 'sin' | 'cos' | 'tan'
     guideValue?: number
     guideValueLabel?: string
 }
@@ -175,16 +175,19 @@ const LOCATE_Q2Q3: { disp: string; val: number }[] = [
     { disp: "-\\dfrac{5\\pi}{6}", val: (-5 * Math.PI) / 6 }, // → 7π/6
 ]
 
-// ===== SELECT — tg x = a (у тангенса нет "направляющей" на самой
-// окружности — оставлен старым multi-select режимом) =====
-const TG_EQUATIONS: { disp: string; val: number }[] = [
-    { disp: "tg(x) = 1", val: 1 },
-    { disp: "tg(x) = -1", val: -1 },
-    { disp: "tg(x) = \\sqrt{3}", val: Math.sqrt(3) },
-    { disp: "tg(x) = -\\sqrt{3}", val: -Math.sqrt(3) },
-    { disp: "tg(x) = \\dfrac{\\sqrt{3}}{3}", val: Math.sqrt(3) / 3 },
-    { disp: "tg(x) = -\\dfrac{\\sqrt{3}}{3}", val: -Math.sqrt(3) / 3 },
-    { disp: "tg(x) = 0", val: 0 },
+// ===== SELECT — tg x = a. Точки по-прежнему выбираются кликом (не через
+// подписи снизу, как у 'label') — но теперь у тангенса ЕСТЬ собственная
+// направляющая: вертикальная "ось тангенса" рядом с кругом (касательная
+// справа), см. type-unitcircle.tsx. label — короткая метка риски на этой
+// оси (БЕЗ "tg(x) = "-префикса, который есть в disp для текста вопроса). =====
+const TG_EQUATIONS: { disp: string; val: number; label: string }[] = [
+    { disp: "tg(x) = 1", val: 1, label: "1" },
+    { disp: "tg(x) = -1", val: -1, label: "-1" },
+    { disp: "tg(x) = \\sqrt{3}", val: Math.sqrt(3), label: "\\sqrt{3}" },
+    { disp: "tg(x) = -\\sqrt{3}", val: -Math.sqrt(3), label: "-\\sqrt{3}" },
+    { disp: "tg(x) = \\dfrac{\\sqrt{3}}{3}", val: Math.sqrt(3) / 3, label: "\\dfrac{\\sqrt{3}}{3}" },
+    { disp: "tg(x) = -\\dfrac{\\sqrt{3}}{3}", val: -Math.sqrt(3) / 3, label: "-\\dfrac{\\sqrt{3}}{3}" },
+    { disp: "tg(x) = 0", val: 0, label: "0" },
 ]
 
 // ===== LABEL — sin x = a / cos x = a: пунктирная направляющая заранее
@@ -229,11 +232,16 @@ function buildLocate(items: { disp: string; val: number }[]): Challenge[] {
     }))
 }
 
-function buildSelect(items: { disp: string; val: number }[], fn: (a: number) => number): Challenge[] {
-    return items.map(({ disp, val }) => ({
+function buildSelect(items: { disp: string; val: number; label?: string }[], fn: (a: number) => number): Challenge[] {
+    return items.map(({ disp, val, label }) => ({
         question: selectQuestion(disp),
         mode: 'select' as const,
         correctIndices: findAllMatchingIndices(fn, val),
+        // label задан только у TG_EQUATIONS — единственный текущий
+        // потребитель buildSelect с направляющей (см. комментарий там же).
+        guideAxis: label !== undefined ? ('tan' as const) : undefined,
+        guideValue: label !== undefined ? val : undefined,
+        guideValueLabel: label,
     }))
 }
 
@@ -347,7 +355,7 @@ function buildLessons(): LessonSpec[] {
             ...buildLocate([{ disp: "-\\dfrac{3\\pi}{4}", val: (-3 * Math.PI) / 4 }]), // → 5π/4
             ...buildLabel([{ disp: "\\dfrac{\\sqrt{3}}{2}", val: Math.sqrt(3) / 2 }], 'sin', Math.sin),
             ...buildLabel([{ disp: "-\\dfrac{1}{2}", val: -0.5 }], 'cos', Math.cos),
-            ...buildSelect([{ disp: "tg(x) = -1", val: -1 }], Math.tan),
+            ...buildSelect([{ disp: "tg(x) = -1", val: -1, label: "-1" }], Math.tan),
         ],
     })
 
