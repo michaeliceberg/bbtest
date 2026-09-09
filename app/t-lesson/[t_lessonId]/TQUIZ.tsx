@@ -247,6 +247,18 @@ export default function TQuiz({
   const [isReviewRound, setIsReviewRound] = useState(false)
   const isReviewRoundRef = useRef(false)
   const mistakeQueueRef = useRef<QuestionType[]>([])
+  // Защита от повторного входа в блок "основной проход завершён" внутри
+  // goToNextQuestion — если функция вызывается дважды подряд (двойной
+  // клик по последнему ответу, гонка между двумя путями вызова), ОБЕ
+  // попытки могут увидеть один и тот же (ещё не обновившийся)
+  // currentQuestionIndex и пройти проверку "это последний вопрос" —
+  // тогда upsertTrainerLessonProgress/reportLessonQuestSignals уходят на
+  // сервер ДВАЖДЫ, и второй ответ сервера (с уже увеличенными счётчиками
+  // квеста) перезаписывает questRewardsData поверх первого — с точки
+  // зрения пользователя прогресс-бар экрана наград "прыгает" на новое
+  // значение уже после того как проиграл анимацию до старого. Тот же
+  // паттерн "ровно один раз", что уже применяется для awardedRef выше.
+  const finalRoundHandledRef = useRef(false)
   // Номер раунда (0 = основной проход, 1+ = раунды повтора) — прокидывается
   // в TrainerQuestion как roundKey: каждый раунд начинается заново с
   // currentQuestionIndex=0, а questions.indexOf(question) в самом
@@ -353,6 +365,9 @@ export default function TQuiz({
     // трогаются (см. handleAnswer/handleTimeout), поэтому это решение
     // корректно независимо от того, потребуется ли ещё повтор.
     if (!isReviewRoundRef.current) {
+      if (finalRoundHandledRef.current) return
+      finalRoundHandledRef.current = true
+
       const finalScore = scoreRef.current
       const total = scorableCount(questions)
       console.log('🏁 Основной проход завершён! score:', finalScore, 'total (без HOT):', total)

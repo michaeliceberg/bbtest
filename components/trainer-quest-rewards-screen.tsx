@@ -85,7 +85,13 @@ const RewardRow = ({
     const style = TONE_STYLE[tone]
 
     useEffect(() => {
-        const t = setTimeout(() => setFillPct(pct), 300 + delay * 1000)
+        // prev => Math.max(prev, pct) — защита "по прямой просьбе
+        // пользователя": полоса не должна уменьшаться, даже если данный
+        // эффект по какой-то причине сработает повторно (например, если
+        // экран наград окажется смонтирован с уже другими current/target —
+        // такое не должно происходить при обычном сценарии, но полоса не
+        // должна визуально "прыгать назад", даже случись это).
+        const t = setTimeout(() => setFillPct((prev) => Math.max(prev, pct)), 300 + delay * 1000)
         return () => clearTimeout(t)
     }, [pct, delay])
 
