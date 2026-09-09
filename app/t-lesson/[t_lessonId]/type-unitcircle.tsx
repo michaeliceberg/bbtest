@@ -222,43 +222,29 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
         }
     }
 
-    // Ось тангенса — вертикальная касательная СПРАВА от круга (по прямой
-    // просьбе пользователя: "параллельно оси синусов... как бы
-    // касательная к окружности"). Не строго впритык к дуге (TAN_LINE_X
-    // чуть правее реальной точки касания CX+R) — нужен запас, чтобы
-    // подпись значения слева от риски не наезжала на саму дугу, которая
-    // рядом с точкой касания (angle=0) шире всего.
-    //
-    // Масштаб по вертикали НЕ 1:1 с радиусом — честная геометрическая
-    // касательная для tg=√3≈1.73 (макс. значение в данных) ушла бы на
-    // ~55 условных единиц от центра, далеко за пределы видимой области.
-    // TAN_SCALE подобран так, чтобы весь диапазон значений (0..±√3)
-    // укладывался в высоту линии с запасом — компромисс, не физически
-    // точный масштаб, но сохраняет все качественные свойства (знак —
-    // сторона, величина — расстояние от точки касания).
-    // TAN_LINE_X — было CX+R+3, увеличено до +6: измерено живьём, +3 не
-    // хватало зазора даже с TAN_MIN_OFFSET ниже (см. следующий коммент).
-    const TAN_LINE_X = CX + R + 6
-    const TAN_HALF_HEIGHT = 28
+    // Ось тангенса — вертикальная КАСАТЕЛЬНАЯ к кругу (по прямой просьбе
+    // пользователя, 2026-09-10): TAN_LINE_X = CX+R ровно, без зазора —
+    // линия физически проходит через ту же точку, что и точка-магнит
+    // угла α=0 (pointPos(0) даёт те же координаты), касаясь дуги круга
+    // математически ровно в одной этой точке (для любого другого y ось
+    // строго СНАРУЖИ круга — окружность нигде больше не доходит до
+    // x=CX+R). Длина — та же AXIS_END/ARROW геометрия, что у оси sin
+    // (по прямой просьбе "по длине точно такая же, как ось синусов"), со
+    // своей стрелкой и подписью "tg α" сверху (было — совсем без стрелки
+    // и подписи).
+    const TAN_LINE_X = CX + R
     const TAN_MAX_ABS = Math.sqrt(3)
-    const TAN_SCALE = (TAN_HALF_HEIGHT - 2) / TAN_MAX_ABS
-    // Измерено живьём: у маленьких |tg| (например √3/3≈0.577) чисто
-    // линейный масштаб держал риску слишком близко к центру — там, где
-    // дуга круга (у самой точки касания) шире всего, подпись слева от
-    // риски заезжала на дугу (зазор уходил в минус, проверено дважды —
-    // первая попытка TAN_MIN_OFFSET=14 всё ещё давала минус ~2%).
-    // TAN_MIN_OFFSET — нижняя граница смещения от центра: даже самое
-    // маленькое ненулевое |tg| в данных отодвигает риску настолько же
-    // далеко, насколько среднее значение — жертвуем пропорциональностью
-    // шкалы ради гарантированного зазора для подписи. tg=0 — законное
-    // исключение (риска ровно в центре, как и было бы геометрически
-    // честно).
-    const TAN_MIN_OFFSET = 18
+    // Тот же общий AXIS_END, что у X/Y-осей — гарантирует одинаковую
+    // длину, не отдельную константу, которую легко рассинхронизировать.
+    const TAN_SCALE = (AXIS_END - 2) / TAN_MAX_ABS
     let tanTickY: number | null = null
     if (data.guideAxis === 'tan' && data.guideValue !== undefined) {
-        const v = data.guideValue
-        const offset = v === 0 ? 0 : Math.sign(v) * Math.max(TAN_MIN_OFFSET, Math.abs(v) * TAN_SCALE)
-        tanTickY = CY - offset
+        // Подпись значения теперь ставится ПРАВЕЕ риски (наружу от
+        // круга, не к нему) — см. div ниже — поэтому больше не нужен
+        // отдельный "минимальный отступ от центра", чтобы не наезжать на
+        // дугу (весь x > CX+R гарантированно вне круга при любом y).
+        // Масштаб честно пропорционален значению.
+        tanTickY = CY - data.guideValue * TAN_SCALE
     }
 
     const activeTarget = isLabel ? (data.labelTargets ?? []).find((t) => t.pointIndex === activePointIdx) : undefined
@@ -305,24 +291,33 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                         она соответствует. Короткий сплошной штрих поперёк
                         оси, толще самой оси — читается как деление шкалы. */}
                     {guideLine && data.guideAxis === 'sin' && (
-                        <line x1={CX - 2.4} y1={guideLine.y1} x2={CX + 2.4} y2={guideLine.y1} stroke="#4A90D9" strokeWidth="1.8" />
+                        <line x1={CX - 2.4} y1={guideLine.y1} x2={CX + 2.4} y2={guideLine.y1} stroke="#4A90D9" strokeWidth="1.8" strokeLinecap="round" />
                     )}
                     {guideLine && data.guideAxis === 'cos' && (
-                        <line x1={guideLine.x1} y1={CY - 2.4} x2={guideLine.x1} y2={CY + 2.4} stroke="#4A90D9" strokeWidth="1.8" />
+                        <line x1={guideLine.x1} y1={CY - 2.4} x2={guideLine.x1} y2={CY + 2.4} stroke="#4A90D9" strokeWidth="1.8" strokeLinecap="round" />
                     )}
 
-                    {/* Ось тангенса — своя вертикальная линия (см. TAN_LINE_X
-                        выше), не хорда через круг: рисуется только в
-                        tg-заданиях (guideAxis==='tan'), нейтральным серым —
-                        читается как "ещё одна ось", а не как акцентная
-                        подсказка (акцент — только у самой риски, ниже). */}
+                    {/* Ось тангенса — касательная к кругу в точке α=0 (см.
+                        TAN_LINE_X выше), не хорда через круг: рисуется
+                        только в tg-заданиях (guideAxis==='tan'). Та же
+                        длина/стрелка, что и у оси sin (AXIS_END/ARROW —
+                        общие константы, не отдельные), нейтральным серым
+                        для самой линии/стрелки — читается как "ещё одна
+                        ось", акцент только у самой риски, ниже. */}
                     {tanTickY !== null && (
                         <>
                             <line
-                                x1={TAN_LINE_X} y1={CY - TAN_HALF_HEIGHT} x2={TAN_LINE_X} y2={CY + TAN_HALF_HEIGHT}
-                                stroke="#2A363D" strokeWidth="1.4"
+                                x1={TAN_LINE_X} y1={CY + AXIS_END} x2={TAN_LINE_X} y2={CY - AXIS_END}
+                                stroke="#2A363D" strokeWidth="1.6"
                             />
-                            <line x1={TAN_LINE_X - 2.4} y1={tanTickY} x2={TAN_LINE_X + 2.4} y2={tanTickY} stroke="#4A90D9" strokeWidth="1.8" />
+                            <polygon
+                                points={`${TAN_LINE_X},${CY - AXIS_END - ARROW} ${TAN_LINE_X - ARROW * 0.7},${CY - AXIS_END + ARROW} ${TAN_LINE_X + ARROW * 0.7},${CY - AXIS_END + ARROW}`}
+                                fill="#4A5560"
+                            />
+                            <line
+                                x1={TAN_LINE_X - 2.4} y1={tanTickY} x2={TAN_LINE_X + 2.4} y2={tanTickY}
+                                stroke="#4A90D9" strokeWidth="1.8" strokeLinecap="round"
+                            />
                         </>
                     )}
                 </svg>
@@ -361,25 +356,17 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                     </div>
                 )}
 
-                {/* Подпись значения на оси тангенса — СЛЕВА от риски (по
-                    прямой просьбе пользователя). Шрифт мельче, чем у
-                    sin/cos-рисок (text-[10px] sm:text-xs) — эта подпись
-                    ближе к дуге круга (риска у самой точки касания).
-                    Вертикально — НЕ центрирована на высоте риски (как
-                    было раньше): измерено живьём — при центрировании
-                    нижняя половина многострочной дроби (например √3/3)
-                    у маленьких |tg| заезжала на дугу, которая около
-                    точки касания шире всего. Вместо этого — растёт ТОЛЬКО
-                    от риски В СТОРОНУ ОТ ЦЕНТРА (вверх для tg>0, вниз для
-                    tg<0), тем же принципом, что уже применён для подписи
-                    выбранного угла у точки. */}
+                {/* Подпись значения на оси тангенса — теперь СПРАВА от
+                    риски, наружу от круга (было слева, к кругу — с тех
+                    пор как ось стала настоящей касательной, x>TAN_LINE_X
+                    гарантированно вне круга при ЛЮБОМ y, поэтому больше
+                    не нужно ни смещать текст в сторону от центра, ни
+                    считать минимальный отступ, см. TAN_SCALE выше).
+                    Вертикально центрирована на самой риске. */}
                 {tanTickY !== null && data.guideValueLabel && (
                     <div
-                        className={cn(
-                            'absolute -translate-x-full whitespace-nowrap text-[#4A90D9] font-bold text-[10px] sm:text-xs pr-1',
-                            (data.guideValue ?? 0) >= 0 ? '-translate-y-full' : '',
-                        )}
-                        style={{ left: `${TAN_LINE_X - 1}%`, top: `${tanTickY}%` }}
+                        className="absolute -translate-y-1/2 whitespace-nowrap text-[#4A90D9] font-bold text-[10px] sm:text-xs pl-1"
+                        style={{ left: `${TAN_LINE_X + 1}%`, top: `${tanTickY}%` }}
                     >
                         <Latex>{`$${data.guideValueLabel}$`}</Latex>
                     </div>
@@ -405,6 +392,18 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                 >
                     <Latex>{'$\\sin\\alpha$'}</Latex>
                 </div>
+                {/* "tg α" над стрелкой своей оси — по прямой просьбе
+                    пользователя (была без подписи вовсе). Только в
+                    tg-заданиях (tanTickY!==null), тот же LABEL_TOP, что и
+                    у sin α — обе стрелки теперь одной длины (AXIS_END). */}
+                {tanTickY !== null && (
+                    <div
+                        className="absolute -translate-x-1/2 whitespace-nowrap text-[#8CA0AB] font-black text-base sm:text-xl"
+                        style={{ left: `${TAN_LINE_X}%`, top: `${LABEL_TOP}%` }}
+                    >
+                        <Latex>{'$tg\\,\\alpha$'}</Latex>
+                    </div>
+                )}
 
                 {data.points.map((point, idx) => {
                     const { left, top } = pointPos(point.angle)
