@@ -511,6 +511,7 @@ export default function TrainerQuestion({
               default: isBossStage ? bossLottie : randomEmotionLottie
             }}
             isRightPrevious={isRightPrevious}
+            isBossStage={isBossStage}
             taskMessage={
               // PICMATCH называет формулу прямо в question.question (это
               // текст, по которому в page.tsx подбирается сама картинка) —

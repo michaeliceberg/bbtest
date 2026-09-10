@@ -29,6 +29,10 @@ interface TrainerMascotProps {
   // и делает облако полезным. На состояниях обратной связи после ответа
   // (celebrating/sad и т.п.) по-прежнему живые случайные фразы.
   taskMessage?: string
+  // На боссовском этапе (см. TrainerBossBar, тот же цвет #DC605B, что у
+  // подписи "Босс") облако получает пульсирующую тень того же цвета,
+  // расходящуюся во все стороны — по прямой просьбе пользователя.
+  isBossStage?: boolean
 }
 
 const emotionMessages = {
@@ -48,6 +52,7 @@ export const TrainerMascot = ({
   isRightPrevious,
   showMessage = true,
   taskMessage,
+  isBossStage = false,
 }: TrainerMascotProps) => {
   const [currentMessage, setCurrentMessage] = useState("")
   const [isMessageVisible, setIsMessageVisible] = useState(false)
@@ -121,9 +126,28 @@ export const TrainerMascot = ({
           <motion.div
             key={currentMessage}
             initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
+            animate={{
+              scale: 1,
+              opacity: 1,
+              // Пульсирующая тень в цвет подписи "Босс" (#DC605B),
+              // расходящаяся во все стороны — только на боссовском этапе.
+              ...(isBossStage
+                ? {
+                    boxShadow: [
+                      "0 0 0px 0px rgba(220,96,91,0)",
+                      "0 0 26px 10px rgba(220,96,91,0.55)",
+                      "0 0 0px 0px rgba(220,96,91,0)",
+                    ],
+                  }
+                : {}),
+            }}
             exit={{ scale: 0, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            transition={{
+              default: { type: "spring", stiffness: 400, damping: 25 },
+              ...(isBossStage
+                ? { boxShadow: { duration: 1.6, repeat: Infinity, ease: "easeInOut" } }
+                : {}),
+            }}
             className="relative flex-1 min-w-0 px-4 py-3 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]"
           >
             <span className="text-[#F2F7FB] font-bold text-base md:text-lg whitespace-normal break-words">
