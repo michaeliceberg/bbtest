@@ -547,8 +547,20 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // см. lib/formulaLetters.ts).
     const buildAssistQuestion = (t_challenge: typeof lessonChallenges[number]): QuestionType => {
         const excludedUnit = selfUnitToExclude(t_challenge.question);
+        // el.question !== t_challenge.question — один и тот же символ иногда
+        // переиспользован в теме под РАЗНЫЕ величины (P — и "давление" в
+        // одном уроке, и "вес тела" в другом; после расширения пула на всю
+        // тему оба стали видны друг другу). Раньше это исключалось только у
+        // CONNECT (где дублировалась видимая карточка вопроса) — но баг
+        // шире: у "В чём измеряется $P$?" (давление→Па) среди дистракторов
+        // всплывало "Н" — НАСТОЯЩИЙ верный ответ ДРУГОГО "P" (вес тела), а
+        // не просто правдоподобная ошибка. Ответивший "Н" рассуждает верно
+        // для другого смысла того же символа — нечестно засчитывать это как
+        // ошибку. Тот же принцип для ЛЮБОГО рендер-стиля, не только CONNECT.
+        // Найдено пользователем живьём после первого (частичного) фикса.
         const other5QuestionsGenre = dedupeByAnswerText(topicChallenges.filter((el) =>
             isEligibleSibling(el.type)
+            && el.question !== t_challenge.question
             && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
             && el.t_challengeOptions[0]?.text !== excludedUnit
             && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
@@ -940,6 +952,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 const excludedUnitSwipe = selfUnitToExclude(t_challenge.question);
                 const otherQuestionsForSwipeGenre = dedupeByAnswerText(topicChallenges.filter((el) =>
                     isEligibleSibling(el.type)
+                    && el.question !== t_challenge.question
                     && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
                     && el.t_challengeOptions[0]?.text !== excludedUnitSwipe
                     && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
@@ -974,6 +987,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 const excludedUnitScroll = selfUnitToExclude(t_challenge.question);
                 const otherQuestionsForScrollGenre = dedupeByAnswerText(topicChallenges.filter((el) =>
                     isEligibleSibling(el.type)
+                    && el.question !== t_challenge.question
                     && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
                     && el.t_challengeOptions[0]?.text !== excludedUnitScroll
                     && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
@@ -1114,6 +1128,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 const excludedUnitPic = selfUnitToExclude(t_challenge.question);
                 const otherQuestionsPicGenre = dedupeByAnswerText(topicChallenges.filter((el) =>
                     isEligibleSibling(el.type)
+                    && el.question !== t_challenge.question
                     && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
                     && el.t_challengeOptions[0]?.text !== excludedUnitPic
                     && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
@@ -1140,19 +1155,13 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             else {
                 // randomASCtype === 'CONNECT'
                 const excludedUnitConnect = selfUnitToExclude(t_challenge.question);
-                // el.question !== t_challenge.question — ТОЛЬКО у CONNECT: он
-                // (в отличие от ASSIST/SWIPE/SCROLL/PICMATCH) рисует ТЕКСТ
-                // ВОПРОСА соседа отдельной кликабельной карточкой в левой
-                // колонке (см. type-connect.tsx) — если два РАЗНЫХ challenge
-                // делят один и тот же символ под РАЗНЫЕ величины (P — и
-                // "давление" в одном уроке темы, и "вес тела" в другом;
-                // topicChallenges с 2026-09-10 видит оба сразу), ученик видит
-                // "Что такое $P$?" ДВАЖДЫ с разными правильными парами —
-                // выглядит как противоречие. Найдено пользователем живьём. Для
-                // ASSIST и т.п. та же пара соседей не проблема — там вопрос
-                // рисуется один раз, а альтернативная формула/значение как
-                // ПРОСТО неверный вариант ответа — нормальный, даже полезный
-                // дистрактор, убирать его незачем.
+                // el.question !== t_challenge.question — см. общий комментарий
+                // в buildAssistQuestion выше (тот же принцип здесь, у CONNECT
+                // дополнительно видимый эффект — ТЕКСТ вопроса соседа рисуется
+                // отдельной кликабельной карточкой, см. type-connect.tsx, и
+                // без этого исключения два challenge с одним и тем же
+                // символом под разные величины показывали бы одну и ту же
+                // подпись "Что такое $P$?" ДВАЖДЫ с разными парами).
                 const otherQuestionsGenre = dedupeByAnswerText(topicChallenges.filter((el, i) =>
                     isEligibleSibling(el.type)
                     && el.question !== t_challenge.question
