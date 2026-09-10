@@ -27,16 +27,25 @@ const AUTHOR = "ЕГЭ Математика Профиль"
 // см. GRID в seedTrigTableTrainer.ts — держим значения синхронно вручную,
 // а не через общий модуль: это разные типы контента (одна задача = один
 // пропуск таблицы vs один вопрос-факт), общая структура не оправдана.
+// °  — обычный Unicode DEGREE SIGN (U+00B0), НЕ LaTeX "^\circ" (ring
+// operator, U+2218 — визуально похож, но семантически "композиция
+// функций", а не градус; в KaTeX рендерится мелким символом обычного
+// размера, не масштабируясь как надстрочный знак — на короткой формуле
+// вроде "45°" это заметно мельче и смещено по сравнению с настоящим
+// "°"). Пойман пользователем живьём на "$tg\ 45^\circ = ?$", тот же
+// символ уже был заменён на "°" раньше в DEGREE_VOCAB
+// (seedUnitCircleTrainer.ts) — этот файл был единственным местом
+// тренажёра тригонометрии, где остался старый "^\circ".
 const CELLS: { question: string; answer: string }[] = [
-    { question: "$\\sin 30^\\circ = ?$", answer: "$\\dfrac{1}{2}$" },
-    { question: "$\\sin 45^\\circ = ?$", answer: "$\\dfrac{\\sqrt{2}}{2}$" },
-    { question: "$\\sin 60^\\circ = ?$", answer: "$\\dfrac{\\sqrt{3}}{2}$" },
-    { question: "$\\cos 30^\\circ = ?$", answer: "$\\dfrac{\\sqrt{3}}{2}$" },
-    { question: "$\\cos 45^\\circ = ?$", answer: "$\\dfrac{\\sqrt{2}}{2}$" },
-    { question: "$\\cos 60^\\circ = ?$", answer: "$\\dfrac{1}{2}$" },
-    { question: "$tg\\ 30^\\circ = ?$", answer: "$\\dfrac{\\sqrt{3}}{3}$" },
-    { question: "$tg\\ 45^\\circ = ?$", answer: "$1$" },
-    { question: "$tg\\ 60^\\circ = ?$", answer: "$\\sqrt{3}$" },
+    { question: "$\\sin 30° = ?$", answer: "$\\dfrac{1}{2}$" },
+    { question: "$\\sin 45° = ?$", answer: "$\\dfrac{\\sqrt{2}}{2}$" },
+    { question: "$\\sin 60° = ?$", answer: "$\\dfrac{\\sqrt{3}}{2}$" },
+    { question: "$\\cos 30° = ?$", answer: "$\\dfrac{\\sqrt{3}}{2}$" },
+    { question: "$\\cos 45° = ?$", answer: "$\\dfrac{\\sqrt{2}}{2}$" },
+    { question: "$\\cos 60° = ?$", answer: "$\\dfrac{1}{2}$" },
+    { question: "$tg\\ 30° = ?$", answer: "$\\dfrac{\\sqrt{3}}{3}$" },
+    { question: "$tg\\ 45° = ?$", answer: "$1$" },
+    { question: "$tg\\ 60° = ?$", answer: "$\\sqrt{3}$" },
 ]
 
 async function main() {
