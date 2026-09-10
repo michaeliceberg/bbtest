@@ -12,12 +12,20 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import Confetti from 'react-confetti'
 import { useWindowSize } from 'react-use'
 import { Gift, Sparkles } from 'lucide-react'
 import { openCase, type OpenCaseResult } from '@/actions/open-case'
 import { getCasePool, isJackpotReward, pickWeightedReward, rewardEmoji, rewardLabel, type CaseReward } from '@/lib/caseRewards'
+import LottieCoins from '@/public/Lottie/LottieCoins.json'
+import LottieGems from '@/public/Lottie/LottieGems.json'
+
+// Те же самые lottie-анимации монет/гемов, что уже используются в шапке
+// (components/user-progress.tsx) и магазине — вместо голых эмодзи,
+// по просьбе пользователя ("у нас уже есть готовые lottie").
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 
 const ITEM_WIDTH = 96 // px, соответствует w-24 ниже
 const ITEM_GAP = 12 // px, соответствует gap-3 ниже
@@ -72,7 +80,14 @@ const RewardCell = ({ reward, highlighted }: { reward: CaseReward; highlighted?:
             animate={highlighted ? { boxShadow: ['0 0 8px rgba(255,212,96,0.3)', '0 0 22px rgba(255,212,96,0.7)', '0 0 8px rgba(255,212,96,0.3)'] } : undefined}
             transition={highlighted ? { duration: 1.4, repeat: Infinity, ease: 'easeInOut' } : undefined}
         >
-            <span className="text-3xl leading-none">{rewardEmoji(reward)}</span>
+            {/* Пока лента крутится — lottie как СТАТИЧНАЯ картинка (autoplay
+                выключен, показывает 1-й кадр), не проигрывается на всех
+                ячейках сразу; оживает только на итоговой выигрышной ячейке
+                (highlighted) — и ради экономии ресурсов на быстрой
+                прокрутке, и по прямой просьбе пользователя. */}
+            {reward.kind === 'coins' && <Lottie animationData={LottieCoins} loop autoplay={!!highlighted} className="w-10 h-10" />}
+            {reward.kind === 'gems' && <Lottie animationData={LottieGems} loop autoplay={!!highlighted} className="w-9 h-9" />}
+            {reward.kind === 'pizza' && <span className="text-3xl leading-none">{rewardEmoji(reward)}</span>}
             <span className="text-[11px] font-bold whitespace-nowrap" style={{ color: highlighted ? '#FFD460' : rarity.text }}>
                 {reward.kind === 'pizza' ? `x${reward.amount}` : `+${reward.amount}`}
             </span>
@@ -80,11 +95,17 @@ const RewardCell = ({ reward, highlighted }: { reward: CaseReward; highlighted?:
     )
 }
 
+// Не-пиццевые реакции — по одному случайному ролику на показ (не
+// перевыбирается на каждый ре-рендер), см. RewardVideo ниже.
+const OK_REACTION_FILES = ['ok1.webm', 'ok2.webm', 'ok3.webm', 'ok4.webm', 'ok5.webm', 'ok6.webm', 'ok7.webm']
+
 // Пробует проиграть со звуком (реальный клик по "Крутить" — настоящий
 // user gesture, браузер обычно это разрешает); если политика браузера
 // всё же заблокирует автовоспроизведение со звуком — тихо повторяет
 // попытку без звука, чтобы ролик показался в любом случае, а не пропал.
-const PizzaTimeVideo = () => {
+// Крутится по кругу (loop), пока не сменится награда — реакция короткая,
+// а карточка результата может провисеть на экране заметно дольше.
+const RewardVideo = ({ src, glow }: { src: string; glow?: string }) => {
     const ref = useRef<HTMLVideoElement>(null)
     useEffect(() => {
         const el = ref.current
@@ -93,13 +114,14 @@ const PizzaTimeVideo = () => {
             el.muted = true
             el.play().catch(() => {})
         })
-    }, [])
+    }, [src])
     return (
         <video
             ref={ref}
-            src="/webm/pizzaTime.webm"
+            src={src}
+            loop
             playsInline
-            className="w-full max-w-[240px] h-auto rounded-xl shadow-[0_0_24px_rgba(255,212,96,0.35)]"
+            className={'w-full max-w-[240px] h-auto rounded-xl ' + (glow ?? '')}
         />
     )
 }
@@ -130,6 +152,9 @@ export const CaseReel = ({ isMega, onDone }: Props) => {
     // ячейки — заметно, но не настолько, чтобы указатель визуально ушёл
     // на СЛЕДУЮЩУЮ ячейку целиком.
     const jitterRef = useRef((Math.random() - 0.5) * (ITEM_WIDTH * 0.84))
+    // Случайная не-пиццевая реакция выбирается ОДИН раз за спин (в момент
+    // получения результата от сервера), а не на каждый ре-рендер.
+    const reactionVideoRef = useRef<string>(OK_REACTION_FILES[0])
     const { width, height } = useWindowSize()
 
     useEffect(() => {
@@ -155,6 +180,9 @@ export const CaseReel = ({ isMega, onDone }: Props) => {
             return
         }
         finalResultRef.current = result
+        if (result.reward.kind !== 'pizza') {
+            reactionVideoRef.current = OK_REACTION_FILES[Math.floor(Math.random() * OK_REACTION_FILES.length)]
+        }
 
         // Финальная награда — НЕ последний элемент ленты (см. TARGET_INDEX),
         // остальные — та же случайная "витрина" для разнообразия картинки,
@@ -252,10 +280,14 @@ export const CaseReel = ({ isMega, onDone }: Props) => {
                     animate={{ opacity: 1, scale: 1 }}
                     className="flex flex-col items-center gap-4"
                 >
-                    {/* "Pizza time!" — короткий видео-ролик (161КБ, WebM,
-                        нативный <video>, без библиотек) специально на дроп
-                        пиццы — по просьбе пользователя. */}
-                    {wonReward.kind === 'pizza' && <PizzaTimeVideo />}
+                    {/* Реакция-видео (WebM, зацикленное) — "Pizza time!" на
+                        дроп пиццы, иначе случайный ролик из ok1..ok7 — по
+                        просьбе пользователя. */}
+                    {wonReward.kind === 'pizza' ? (
+                        <RewardVideo src="/webm/pizzaTime.webm" glow="shadow-[0_0_24px_rgba(255,212,96,0.35)]" />
+                    ) : (
+                        <RewardVideo src={`/webm/${reactionVideoRef.current}`} />
+                    )}
                     <div className="relative flex items-center justify-center">
                         <div
                             className="absolute inset-0 rounded-full blur-2xl opacity-60"

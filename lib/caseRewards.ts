@@ -32,9 +32,12 @@ export const REGULAR_CASE_POOL: CaseReward[] = [
 	{ kind: 'coins', amount: 20, weight: 22 },
 	{ kind: 'coins', amount: 30, weight: 14 },
 	{ kind: 'coins', amount: 50, weight: 6 },
-	{ kind: 'gems', amount: 3, weight: 14 },
-	{ kind: 'gems', amount: 5, weight: 8 },
-	{ kind: 'gems', amount: 10, weight: 3 },
+	// Гемы — по прямой просьбе пользователя максимум +3 за раз (были
+	// вплоть до +25 в мегакейсе — гем это премиальная валюта, крупные
+	// суммы обесценивали бы её).
+	{ kind: 'gems', amount: 1, weight: 14 },
+	{ kind: 'gems', amount: 2, weight: 8 },
+	{ kind: 'gems', amount: 3, weight: 3 },
 	{ kind: 'pizza', amount: 1, weight: 3 },
 ]
 
@@ -45,9 +48,9 @@ export const MEGA_CASE_POOL: CaseReward[] = [
 	{ kind: 'coins', amount: 80, weight: 20 },
 	{ kind: 'coins', amount: 120, weight: 12 },
 	{ kind: 'coins', amount: 200, weight: 6 },
-	{ kind: 'gems', amount: 15, weight: 16 },
-	{ kind: 'gems', amount: 25, weight: 10 },
-	{ kind: 'gems', amount: 40, weight: 4 },
+	{ kind: 'gems', amount: 1, weight: 16 },
+	{ kind: 'gems', amount: 2, weight: 10 },
+	{ kind: 'gems', amount: 3, weight: 4 },
 	{ kind: 'pizza', amount: 1, weight: 5 },
 	{ kind: 'pizza', amount: 2, weight: 1 },
 ]
