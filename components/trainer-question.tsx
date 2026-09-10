@@ -43,6 +43,7 @@ import { X, Check, Flag } from "lucide-react"
 import { TrainerExitModal } from "@/components/modals/trainer-exit-modal"
 import { TrainerMascot } from "./TrainerMascot"
 import { TrainerBossBar } from "./trainer-boss-bar"
+import { LOTTIE_BOSS_DEATH_LIST, LOTTIE_BOSS_DEATH_LOW_HP, getRandomLottie } from "@/src/constants/lottieConstants"
 
 
 
@@ -138,6 +139,13 @@ export default function TrainerQuestion({
   ]
 
   const [showExitModal, setShowExitModal] = useState(false)
+  // Лотти босса (вместо обычного маскота, только на isBossStage) —
+  // случайный из 10 "death"-анимаций, выбирается один раз на попытку
+  // урока (не на каждый вопрос — тот же паттерн, что randomEmotionLottie/
+  // randomStreakCharacterLottie в других местах проекта). Ниже, при
+  // низком HP, подменяется на deathLowHp независимо от того, какой из
+  // десяти выпал изначально.
+  const [randomBossLottie] = useState(() => getRandomLottie(LOTTIE_BOSS_DEATH_LIST))
   const [mascotEmotion, setMascotEmotion] = useState<"happy" | "sad" | "thinking" | "celebrating" | "waiting" | "angry" | "neutral">("waiting")
   const [answerState, setAnswerState] = useState<"pending" | "selected" | "correct" | "incorrect">("pending")
   const [selectedAssistAnswer, setSelectedAssistAnswer] = useState<string | null>(null)
@@ -431,6 +439,12 @@ export default function TrainerQuestion({
 
   const isButtonDisabled = answerState === "pending"
 
+  // HP босса и его лотти — тот же процент, что уже шёл в TrainerBossBar
+  // ниже, вынесен сюда, т.к. теперь нужен ЕЩЁ и для выбора Lottie
+  // маскота (deathLowHp при <30% вместо случайного death1-10).
+  const bossHp = 100 - (score / questions.length) * 100
+  const bossLottie = bossHp < 30 ? LOTTIE_BOSS_DEATH_LOW_HP : randomBossLottie
+
   return (
     <div className="min-h-screen bg-[#151F24] text-[#F2F7FB] flex flex-col">
 
@@ -460,7 +474,7 @@ export default function TrainerQuestion({
 
       {isBossStage && (
         <TrainerBossBar
-          hp={100 - (score / questions.length) * 100}
+          hp={bossHp}
           hit={isRightPrevious === true}
         />
       )}
@@ -492,9 +506,9 @@ export default function TrainerQuestion({
           <TrainerMascot
             emotion={mascotEmotion}
             lottieAnimations={{
-              right: randomEmotionLottie,
-              wrong: randomEmotionLottie,
-              default: randomEmotionLottie
+              right: isBossStage ? bossLottie : randomEmotionLottie,
+              wrong: isBossStage ? bossLottie : randomEmotionLottie,
+              default: isBossStage ? bossLottie : randomEmotionLottie
             }}
             isRightPrevious={isRightPrevious}
             taskMessage={

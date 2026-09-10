@@ -31,6 +31,17 @@ import LottiePaperStreak2 from '@/public/Lottie/streakCharacter/paperStreak2.jso
 import LottiePaperStreak3 from '@/public/Lottie/streakCharacter/paperStreak3.json'
 import LottiePaperStreak4 from '@/public/Lottie/streakCharacter/paperStreak4.json'
 import LottiePaperStreak5 from '@/public/Lottie/streakCharacter/paperStreak5.json'
+import LottieDeath1 from '@/public/Lottie/death/death1.json'
+import LottieDeath2 from '@/public/Lottie/death/death2.json'
+import LottieDeath3 from '@/public/Lottie/death/death3.json'
+import LottieDeath4 from '@/public/Lottie/death/death4.json'
+import LottieDeath5 from '@/public/Lottie/death/death5.json'
+import LottieDeath6 from '@/public/Lottie/death/death6.json'
+import LottieDeath7 from '@/public/Lottie/death/death7.json'
+import LottieDeath8 from '@/public/Lottie/death/death8.json'
+import LottieDeath9 from '@/public/Lottie/death/death9.json'
+import LottieDeath10 from '@/public/Lottie/death/death10.json'
+import LottieDeathLowHp from '@/public/Lottie/death/deathLowHp.json'
 
 // Группировка по назначению
 export const LOTTIE_START_LIST = [
@@ -105,6 +116,27 @@ export const LOTTIE_STREAK_CHARACTER_LIST = [
   LottiePaperStreak4,
   LottiePaperStreak5,
 ] as const
+
+// Маскот на боевом ("корона"/"контрольная") этапе темы — по прямой
+// просьбе пользователя (2026-09-10) заменяет обычного маскота (см.
+// trainer-question.tsx, isBossStage) на одну из 10 анимаций "смерти
+// босса", случайную на попытку урока; при HP < 30% (см. TrainerBossBar)
+// переключается на deathLowHp независимо от того, какая из десяти
+// выпала изначально — единый сигнал "босс почти повержен".
+export const LOTTIE_BOSS_DEATH_LIST = [
+  LottieDeath1,
+  LottieDeath2,
+  LottieDeath3,
+  LottieDeath4,
+  LottieDeath5,
+  LottieDeath6,
+  LottieDeath7,
+  LottieDeath8,
+  LottieDeath9,
+  LottieDeath10,
+] as const
+
+export const LOTTIE_BOSS_DEATH_LOW_HP = LottieDeathLowHp
 
 // Helper функция для получения случайной анимации
 export const getRandomLottie = (lottieList: readonly any[]) => {
