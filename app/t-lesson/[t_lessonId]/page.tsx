@@ -1140,8 +1140,22 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             else {
                 // randomASCtype === 'CONNECT'
                 const excludedUnitConnect = selfUnitToExclude(t_challenge.question);
+                // el.question !== t_challenge.question — ТОЛЬКО у CONNECT: он
+                // (в отличие от ASSIST/SWIPE/SCROLL/PICMATCH) рисует ТЕКСТ
+                // ВОПРОСА соседа отдельной кликабельной карточкой в левой
+                // колонке (см. type-connect.tsx) — если два РАЗНЫХ challenge
+                // делят один и тот же символ под РАЗНЫЕ величины (P — и
+                // "давление" в одном уроке темы, и "вес тела" в другом;
+                // topicChallenges с 2026-09-10 видит оба сразу), ученик видит
+                // "Что такое $P$?" ДВАЖДЫ с разными правильными парами —
+                // выглядит как противоречие. Найдено пользователем живьём. Для
+                // ASSIST и т.п. та же пара соседей не проблема — там вопрос
+                // рисуется один раз, а альтернативная формула/значение как
+                // ПРОСТО неверный вариант ответа — нормальный, даже полезный
+                // дистрактор, убирать его незачем.
                 const otherQuestionsGenre = dedupeByAnswerText(topicChallenges.filter((el, i) =>
                     isEligibleSibling(el.type)
+                    && el.question !== t_challenge.question
                     && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
                     && el.t_challengeOptions[0]?.text !== excludedUnitConnect
                     && sameAnswerGenre(t_challenge.t_challengeOptions[0]?.text || '', el.t_challengeOptions[0]?.text || '')
