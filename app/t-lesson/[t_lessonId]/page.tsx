@@ -313,6 +313,19 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         redirect('/trainer');
     }
 
+    // Пул обманок для ASSIST/SWIPE/SCROLL/CONNECT/PICMATCH — по всей ТЕМЕ
+    // (t_unit), а не только текущему уроку. У маленьких словарных уроков
+    // "своего рода" кандидата (та же единица измерения/название величины)
+    // иногда нет вообще ВНУТРИ одного урока (5-8 задач) — например пара
+    // "F_тяж"/"F_упр" делит одну и ту же единицу "Н", и единственный
+    // сосед-единица исключается как дубль-по-значению, оставляя пул
+    // обманок пустым; без соседних уроков это тихо откатывалось на
+    // дистракторы ЧУЖОГО рода (названия величин вместо единиц измерения
+    // — "Н" среди {сила тяжести, сила упругости}, и наоборот). Тема
+    // целиком почти всегда даёт настоящих "своих" соседей (Дж, кг·м/с,
+    // с, Па и т.п. — в других уроках той же темы). См. topicChallenges.
+    const topicChallenges = siblingLessons.flatMap((l) => l.t_challenges);
+
     let questions: QuestionType[];
 
     function getRandomElements<T>(arr: T[], count: number): T[] {
@@ -534,7 +547,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // см. lib/formulaLetters.ts).
     const buildAssistQuestion = (t_challenge: typeof lessonChallenges[number]): QuestionType => {
         const excludedUnit = selfUnitToExclude(t_challenge.question);
-        const other5QuestionsGenre = dedupeByAnswerText(t_lesson.t_challenges.filter((el) =>
+        const other5QuestionsGenre = dedupeByAnswerText(topicChallenges.filter((el) =>
             isEligibleSibling(el.type)
             && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
             && el.t_challengeOptions[0]?.text !== excludedUnit
@@ -925,7 +938,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             }
             else if (randomASCtype === 'SWIPE' as const) {
                 const excludedUnitSwipe = selfUnitToExclude(t_challenge.question);
-                const otherQuestionsForSwipeGenre = dedupeByAnswerText(t_lesson.t_challenges.filter((el) =>
+                const otherQuestionsForSwipeGenre = dedupeByAnswerText(topicChallenges.filter((el) =>
                     isEligibleSibling(el.type)
                     && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
                     && el.t_challengeOptions[0]?.text !== excludedUnitSwipe
@@ -959,7 +972,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             }
             else if (randomASCtype === 'SCROLL' as const) {
                 const excludedUnitScroll = selfUnitToExclude(t_challenge.question);
-                const otherQuestionsForScrollGenre = dedupeByAnswerText(t_lesson.t_challenges.filter((el) =>
+                const otherQuestionsForScrollGenre = dedupeByAnswerText(topicChallenges.filter((el) =>
                     isEligibleSibling(el.type)
                     && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
                     && el.t_challengeOptions[0]?.text !== excludedUnitScroll
@@ -1072,6 +1085,21 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 // рисованная иконка) в приоритете, где размечена; иначе —
                 // topicSticker. Нет ни того, ни другого — откатываемся на
                 // ASSIST, тихо, как и везде выше.
+                //
+                // Дополнительно (найдено пользователем живьём) — PICMATCH
+                // задаёт фиксированный вопрос "Какая формула соответствует
+                // картинке?" (см. taskMessage-переопределение в
+                // trainer-question.tsx), поэтому имеет смысл ТОЛЬКО когда
+                // ответ САМОЙ задачи — формула. Без этой проверки словарный
+                // вопрос вроде "В чём измеряется F_упр?" (ответ "Н") тоже
+                // мог случайно выпасть PICMATCH'ем — картинка есть у любого
+                // вопроса темы (topicSticker не завязан на жанр), а верным
+                // "какой формуле она соответствует" ответом оказывалась
+                // единица измерения — бессмыслица.
+                if (!looksLikeFormula(t_challenge.t_challengeOptions[0]?.text || '')) {
+                    return buildAssistQuestion(t_challenge);
+                }
+
                 const iconKey = getFormulaIconKey(t_challenge.question);
                 const stickerFallback = topicStickers[index];
                 if (!iconKey && !stickerFallback) {
@@ -1084,7 +1112,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 // который здесь заменён на иконку — сохраняем question
                 // текстом на случай текстового фолбэка в самом рендере).
                 const excludedUnitPic = selfUnitToExclude(t_challenge.question);
-                const otherQuestionsPicGenre = dedupeByAnswerText(t_lesson.t_challenges.filter((el) =>
+                const otherQuestionsPicGenre = dedupeByAnswerText(topicChallenges.filter((el) =>
                     isEligibleSibling(el.type)
                     && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
                     && el.t_challengeOptions[0]?.text !== excludedUnitPic
@@ -1112,7 +1140,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             else {
                 // randomASCtype === 'CONNECT'
                 const excludedUnitConnect = selfUnitToExclude(t_challenge.question);
-                const otherQuestionsGenre = dedupeByAnswerText(t_lesson.t_challenges.filter((el, i) =>
+                const otherQuestionsGenre = dedupeByAnswerText(topicChallenges.filter((el, i) =>
                     isEligibleSibling(el.type)
                     && t_challenge.t_challengeOptions[0]?.text !== el.t_challengeOptions[0]?.text
                     && el.t_challengeOptions[0]?.text !== excludedUnitConnect
