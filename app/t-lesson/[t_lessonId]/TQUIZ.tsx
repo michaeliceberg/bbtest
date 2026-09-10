@@ -30,8 +30,9 @@ import { PencilLine, Gift } from "lucide-react"
 import { useQuizAudio } from "@/app/hooks/useQuizAudio"
 import { reportLessonQuestSignals } from "@/actions/generate-trainer-quest"
 import { awardHotQuestionReward } from "@/actions/award-hot-question-reward"
-import { awardChestReward } from "@/actions/award-chest-reward"
 import { ChestReward } from "@/components/ChestReward"
+import { CaseReel } from "@/components/CaseReel"
+import { rewardLabel, type CaseReward } from "@/lib/caseRewards"
 import { TrainerQuestRewardsScreen, QuestRewardsData } from "@/components/trainer-quest-rewards-screen"
 import { useAchievementStore } from "@/store/use-achievement-store"
 import { useStreakCelebrationStore } from "@/store/use-streak-celebration-store"
@@ -108,26 +109,13 @@ function HotBonusPanel() {
   )
 }
 
-// Сундук/мегасундук на карте скиллов (components/trainer-grade-tree.tsx,
-// ?chest=1/?megachest=1) — та же идея и тот же ref-guard, что и у
-// HotBonusPanel выше: начисление ровно один раз за показ финального
-// экрана, сумма решается на сервере (см. actions/award-chest-reward.ts).
-// Мегасундук — золотая палитра и покрупнее, обычный — амбер, как у
-// HotBonusPanel (тот же акцент, что уже закреплён в проекте за "бонус",
-// не за "достижение"/"уровень" — разные оттенки для разных типов наград).
-function ChestBonusPanel({ mega }: { mega: boolean }) {
-  const [gems, setGems] = useState<number | null>(null)
-  const awardedRef = useRef(false)
-
-  useEffect(() => {
-    if (awardedRef.current) return
-    awardedRef.current = true
-    awardChestReward(mega)
-      .then((res) => { if (res.success) setGems(res.gems ?? 0) })
-      .catch(() => {})
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
+// Итог кейса (components/CaseReel.tsx) на карте скиллов — награда УЖЕ
+// начислена самим CaseReel (сервер решил и применил её ДО того, как
+// пользователь попал на этот, финальный экран урока), здесь только
+// показываем, что именно выиграно — статичный баннер, без повторного
+// начисления. Мегакейс — золотая палитра, обычный — амбер, тот же
+// акцент, что уже закреплён в проекте за "бонус" (см. HotBonusPanel).
+function CaseWonBanner({ mega, reward }: { mega: boolean; reward: CaseReward }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: -10, scale: 0.9 }}
@@ -140,7 +128,7 @@ function ChestBonusPanel({ mega }: { mega: boolean }) {
     >
       <Gift className={mega ? "w-6 h-6 text-[#FFD460]" : "w-5 h-5 text-[#EF9F27]"} />
       <span className={mega ? "text-base font-black text-[#FFD460]" : "text-sm font-bold text-[#EF9F27]"}>
-        {mega ? "Мегасундук" : "Сундук открыт"}{gems !== null ? `: +${gems} монет` : '…'}
+        {mega ? "Мегакейс" : "Кейс"}: {rewardLabel(reward)}
       </span>
     </motion.div>
   )
@@ -153,8 +141,8 @@ type Props = {
   userName: string,
   stage?: number | null,
   isBossStage?: boolean,
-  // "Сундук"/"мегасундук" на карте скиллов (components/trainer-grade-
-  // tree.tsx) — см. ChestBonusPanel ниже.
+  // "Кейс"/"мегакейс" на карте скиллов (components/trainer-grade-
+  // tree.tsx) — см. CaseReel/CaseWonBanner ниже.
   isChestStage?: boolean,
   isMegaChestStage?: boolean,
   // Следующий по порядку этап той же темы (t_unit) — null, если текущий
@@ -210,6 +198,13 @@ export default function TQuiz({
   const [score, setScore] = useState(0)
   const [quizCompleted, setQuizCompleted] = useState(false)
   const [showChestReward, setShowChestReward] = useState(false)
+  // CS:GO-style кейс (components/CaseReel.tsx) — заменяет старую сундук/
+  // мегасундук механику (ChestBonusPanel/awardChestReward, см. Git-
+  // историю) на этапах isChestStage/isMegaChestStage. Награда решается
+  // сервером ВНУТРИ CaseReel (actions/open-case.ts), сюда прилетает уже
+  // готовый результат — только чтобы показать баннер на финальном экране.
+  const [showCaseReel, setShowCaseReel] = useState(false)
+  const [wonCaseReward, setWonCaseReward] = useState<CaseReward | null>(null)
   // Промежуточный экран "ближайших наград" (components/trainer-quest-
   // rewards-screen.tsx) — показывается ПЕРЕД showChestReward на идеальном
   // результате, см. goToNextQuestion.
@@ -217,7 +212,22 @@ export default function TQuiz({
   const [questRewardsData, setQuestRewardsData] = useState<QuestRewardsData>(null)
   const [answeredQuestions, setAnsweredQuestions] = useState(0)
   const { width, height } = useWindowSize()
-  
+
+  // Точка "первого прихода" на завершение урока (после основного прохода
+  // ИЛИ после успешной работы над ошибками, независимо от итогового
+  // счёта — тот же принцип, что раньше был у ChestBonusPanel: кейс на
+  // isChestStage/isMegaChestStage выдаётся ВСЕГДА, не только при идеале).
+  // На обычных этапах — сразу финальный экран; на кейс-этапах — сперва
+  // барабан (components/CaseReel.tsx), а quizCompleted выставляется уже
+  // ПОСЛЕ того, как пользователь его прокрутит (см. onDone у CaseReel ниже).
+  const finishOrOpenCase = useCallback(() => {
+    if (isChestStage || isMegaChestStage) {
+      setShowCaseReel(true)
+    } else {
+      setQuizCompleted(true)
+    }
+  }, [isChestStage, isMegaChestStage])
+
   // Флаг для предотвращения двойной обработки
   const [isProcessing, setIsProcessing] = useState(false)
   // useRef для отслеживания обработанных вопросов (особенно важно для таймаутов)
@@ -430,9 +440,10 @@ export default function TQuiz({
     }
 
     // Ошибок для повтора больше нет (либо их не было вовсе, либо "работа
-    // над ошибками" только что успешно закончилась) — финальный экран.
-    setQuizCompleted(true)
-  }, [currentQuestionIndex, questions.length, t_lessonId, updateQuestProgress, startMistakeReviewRound])
+    // над ошибками" только что успешно закончилась) — финальный экран
+    // (или барабан кейса, если этап это подразумевает — см. finishOrOpenCase).
+    finishOrOpenCase()
+  }, [currentQuestionIndex, questions.length, t_lessonId, updateQuestProgress, startMistakeReviewRound, finishOrOpenCase])
 
   const handleAnswer = useCallback(async (answer: string) => {
     // Для ASSIST: если это "next", просто переходим к следующему вопросу
@@ -715,9 +726,10 @@ export default function TQuiz({
           // на touchstart, глушащим синтетический click, см. коммент в
           // самом ChestReward.tsx). По просьбе пользователя (2026-09-01)
           // сундук временно пропускается целиком — сразу на финальный
-          // экран, тем же путём, что раньше шёл после клика по сундуку.
+          // экран (или барабан кейса, см. finishOrOpenCase), тем же путём,
+          // что раньше шёл после клика по сундуку.
           setShowQuestRewardsScreen(false)
-          setQuizCompleted(true)
+          finishOrOpenCase()
         }}
       />
     )
@@ -731,6 +743,19 @@ export default function TQuiz({
           onChestClicked={handleChestOpened}
         />
       </div>
+    )
+  }
+
+  if (showCaseReel) {
+    return (
+      <CaseReel
+        isMega={!!isMegaChestStage}
+        onDone={({ reward }) => {
+          setWonCaseReward(reward)
+          setShowCaseReel(false)
+          setQuizCompleted(true)
+        }}
+      />
     )
   }
 
@@ -755,7 +780,9 @@ export default function TQuiz({
         <TgSendMsgCom message={message} />
         {(isPerfectScore || hotQuestionWon || isChestStage || isMegaChestStage) && <Confetti width={width} height={height} />}
         {hotQuestionWon && <HotBonusPanel />}
-        {isMegaChestStage ? <ChestBonusPanel mega /> : isChestStage ? <ChestBonusPanel mega={false} /> : null}
+        {wonCaseReward && (isMegaChestStage || isChestStage) && (
+          <CaseWonBanner mega={!!isMegaChestStage} reward={wonCaseReward} />
+        )}
         <TrainerLessonCompleteScreen
           lottieData={randomStreakCharacterLottie}
           streak={maxStreakRef.current}

@@ -27,6 +27,7 @@ import { TrainerQuestCard } from '@/components/trainer-quest-card';
 import { LevelCard } from '@/components/level-card';
 import { getLvlLottieCount } from '@/lib/lvl-lottie';
 import { StreakRiskBanner } from '@/components/streak-risk-banner';
+import { PizzaProgress } from '@/components/PizzaProgress';
 import { getUserCourseProgress } from '@/db/queries';
 import { HIDDEN_T_COURSE_IDS, resolveActiveTCourse } from '@/lib/trainer-topic';
 
@@ -195,6 +196,7 @@ const TLearnPage = async () => {
     const currentGems = userProgress.gems;
     const currentHearts = userProgress.hearts;
     const currentXp = userProgress.xp;
+    const currentPizzaSlices = userProgress.pizzaSlices;
 
     // "Ударный режим под угрозой" (components/streak-risk-banner.tsx) —
     // тот же единый курсовый стрик, что и на /learn (см. lib/streak.ts),
@@ -247,6 +249,14 @@ const TLearnPage = async () => {
 
                     <div className='mb-4'>
                         <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} />
+                    </div>
+
+                    {/* Кусочки пиццы из кейсов (components/CaseReel.tsx) — общий
+                        счётчик 0-8 на пользователя, см. lib/caseRewards.ts. В
+                        основной колонке (не в сайдбаре) — тот же принцип, что
+                        и у LevelCard: сайдбар скрыт на мобильном (hidden lg:block). */}
+                    <div className='mb-4 flex justify-center'>
+                        <PizzaProgress collected={currentPizzaSlices} />
                     </div>
 
                     <div className='content-center mx-auto justify-center text-center align-middle'>

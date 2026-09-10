@@ -81,6 +81,13 @@ export const userProgress = pgTable('user_progress', {
 	// Уровень выводится из xp на лету (см. getLevelInfo), не хранится
 	// отдельным полем.
 	xp: integer('xp').notNull().default(0),
+	// Кусочки пиццы из кейсов тренажёра (components/CaseReel.tsx) — общий
+	// счётчик на пользователя, 0-8 (MAX_PIZZA_SLICES в lib/caseRewards.ts).
+	// Собрал все 8 — открывается право заказать настоящую пиццу (сама
+	// логика заказа — отдельная, ещё не реализованная фича). Выпадение
+	// сверх 8 конвертируется в бонусные монеты (см. actions/open-case.ts),
+	// чтобы "лишний" дроп не пропадал зря.
+	pizzaSlices: integer('pizza_slices').notNull().default(0),
 	isAdmin: integer('is_admin').notNull().default(0),
 	classId: integer('class_id').references(() => classes.id, { onDelete: 'cascade' }),
 	isOnMeme: integer('is_on_meme').notNull().default(1),
