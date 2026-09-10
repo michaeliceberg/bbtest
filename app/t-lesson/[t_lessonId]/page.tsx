@@ -449,6 +449,16 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         // тому, есть ли в самом X запятая (десятичная) или слэш (дробь).
         if (/^\d+,\d+ это$/.test(question)) return 'to-fraction';
         if (/^\d+\/\d+ это$/.test(question)) return 'to-decimal';
+        // Радианы/градусы (DEGREE_VOCAB, seedUnitCircleTrainer.ts) — тот
+        // же класс бага, что и unit/name выше: вопрос "$\pi$ это" ждёт
+        // ответ-ГРАДУСЫ ("180°"), а обратный "$180°$ это" — ответ-РАДИАНЫ
+        // ("π"). Оба answer-текста "$...$"-обёрнуты (одна genre), поэтому
+        // без разделения по роду градусный ответ мог попасть в дистракторы
+        // вопроса, ожидающего π-выражение (и наоборот) — "180° = 30°"
+        // выглядит нелепо. Различаем по символу в самом вопросе — "\pi"
+        // однозначно значит "ждём градусы", "°" — "ждём радианы".
+        if (/\\pi/.test(question)) return 'radians-to-degrees';
+        if (/°/.test(question)) return 'degrees-to-radians';
         return 'other';
     };
     const sameAnswerKind = (aQuestion: string, bQuestion: string): boolean =>
