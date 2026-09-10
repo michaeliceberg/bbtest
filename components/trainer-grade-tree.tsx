@@ -14,7 +14,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy } from 'lucide-react';
+import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { TrainerStageLink } from './trainer-stage-link';
@@ -253,6 +253,15 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                         <div className="flex items-center gap-2 mb-2.5 min-w-0">
                             <span className="text-sm font-medium text-[#F2F7FB] truncate">{topic.title}</span>
                             <span className="text-xs text-[#9AA7B0] flex-shrink-0">{topic.percentage}%</span>
+                            {isAdmin && (
+                                <Link
+                                    href={`/admin/t-unit-review/${topic.id}`}
+                                    title="Редактировать задачи темы"
+                                    className="ml-auto flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-md text-[#9AA7B0] hover:text-[#F2F7FB] hover:bg-[#232F34] transition-colors"
+                                >
+                                    <Pencil className="w-3.5 h-3.5" />
+                                </Link>
+                            )}
                         </div>
 
                         {topic.stages.length > 0 && (

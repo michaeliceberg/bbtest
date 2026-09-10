@@ -763,6 +763,31 @@ export const getTUnits = cache(async () => {
 
 
 
+// Для страницы-обзора /admin/t-unit-review/[unitId] — одна тема тренажёра
+// со ВСЕМИ её этапами и ВСЕМИ задачами (+ варианты ответа), уже
+// отсортированными по order (в отличие от getTUnits() выше, который не
+// фильтрует по id и не гарантирует порядок — relational-запрос Drizzle
+// без orderBy возвращает строки в произвольном порядке).
+export const getTUnitWithChallenges = cache(async (t_unitId: number) => {
+  const data = await db.query.t_units.findFirst({
+    where: eq(t_units.id, t_unitId),
+    with: {
+      t_lessons: {
+        orderBy: (l, { asc }) => [asc(l.order)],
+        with: {
+          t_challenges: {
+            orderBy: (c, { asc }) => [asc(c.order)],
+            with: {
+              t_challengeOptions: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  return data;
+});
+
 export const getTLesson = cache(async (t_lessonId: number) => {
   const session = await auth();
   const userId = session?.user?.id;
