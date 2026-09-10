@@ -182,9 +182,18 @@ export const TypeTrigTable = ({ question, onOptionSelected, isAnswerChecked }: P
                                                     // (в т.ч. неактивной) только отвлекает от реальных пропусков, а
                                                     // яркий белый текст на них "рябит в глазах".
                                                     !isBlank && 'text-[#6B7A83]',
-                                                    isBlank && !isAnswerChecked && filledValue === null && isActive && 'border-2 border-[#4A90D9] text-[#4A90D9] cursor-pointer',
+                                                    // Активный пустой пропуск (ждёт ответа ПРЯМО СЕЙЧАС) и уже
+                                                    // заполненный пропуск раньше красились ОДНИМ и тем же синим —
+                                                    // пользователь не мог с одного взгляда понять, какая ячейка
+                                                    // ещё ждёт ответа, а какая уже отвечена (поймано живьём).
+                                                    // Теперь явно разные состояния: активная — контур пульсирует
+                                                    // (animate-pulse, привлекает внимание, "сюда сейчас"),
+                                                    // заполненная — заливка тем же синим (спокойный, "уже стоит
+                                                    // значение", тот же bg-[#1B2C3D], что уже используют
+                                                    // "выбрано"-состояния в SCROLL/ASSIST).
+                                                    isBlank && !isAnswerChecked && filledValue === null && isActive && 'border-2 border-[#4A90D9] text-[#4A90D9] cursor-pointer animate-pulse',
                                                     isBlank && !isAnswerChecked && filledValue === null && !isActive && 'border-2 border-[#3A464E] text-[#5A6A72]',
-                                                    isBlank && !isAnswerChecked && filledValue !== null && 'border-2 border-[#4A90D9] text-[#4A90D9] cursor-pointer',
+                                                    isBlank && !isAnswerChecked && filledValue !== null && 'border-2 border-[#4A90D9] bg-[#1B2C3D] text-[#4A90D9] cursor-pointer',
                                                     isBlank && isAnswerChecked && correct && 'border-2 border-[#A1D151] bg-[#232F35] text-[#A1D151]',
                                                     isBlank && isAnswerChecked && !correct && 'border-2 border-[#DC605B] text-[#DC605B]'
                                                 )}
@@ -229,6 +238,7 @@ export const TypeTrigTable = ({ question, onOptionSelected, isAnswerChecked }: P
                             onClick={() => handlePickOption(idx)}
                             isSelected={false}
                             disabled={isAnswerChecked || used}
+                            isUsed={used}
                         />
                     )
                 })}

@@ -17,6 +17,21 @@ interface AnimatedOptionButtonProps {
   isCorrect?: boolean
   isWrong?: boolean
   disabled?: boolean
+  // Отдельно от disabled — "этот вариант уже поставлен в один из
+  // пропусков" (TRIGTABLE и т.п.), а не просто "сейчас нельзя нажимать"
+  // (disabled без isUsed раньше рендерился НЕ ОТЛИЧИМО от обычной
+  // активной кнопки — getButtonStyle() не проверял disabled вообще).
+  // Из-за этого при двух пропусках с ОДНИМ и тем же правильным значением
+  // (напр. sin30°=cos60°=1/2) пул вариантов показывал две одинаковые на
+  // вид кнопки "1/2" — после заполнения первого пропуска пользователь не
+  // мог понять, какая из двух идентичных кнопок ещё кликабельна, и жал
+  // на уже занятую. Не переиспользуем зелёный "isCorrect"-цвет — до
+  // нажатия общей кнопки "Ответить" правильность ещё не проверена,
+  // зелёный тут означал бы "верно", а не "занято". Не трогает isCorrect/
+  // isWrong (те по-прежнему приоритетны, см. getButtonStyle) и не
+  // задействуется нигде, кроме TRIGTABLE — остальные типы (ASSIST/
+  // CONNECT/INSERT/FRACTRICK) этот проп не передают, их вид не меняется.
+  isUsed?: boolean
 }
 
 export const AnimatedOptionButton = ({
@@ -26,7 +41,8 @@ export const AnimatedOptionButton = ({
   isSelected,
   isCorrect,
   isWrong,
-  disabled
+  disabled,
+  isUsed
 }: AnimatedOptionButtonProps) => {
   // Раньше "прожатое" состояние кнопки (y/boxShadow при удержании) велось
   // через локальный isPressed state, обновляемый в onMouseDown/onMouseUp.
@@ -91,6 +107,11 @@ export const AnimatedOptionButton = ({
     if (isCorrect) return "bg-[#232F35] text-[#A1D151] border-[#A1D151] shadow-lg shadow-black/20"
     // При неправильном ответе - только красный border и текст
     if (isWrong) return "bg-[#161F23] text-[#DC605B] border-[#DC605B] shadow-lg shadow-black/20"
+    // Уже занято (поставлено в другой пропуск, см. isUsed выше) —
+    // приглушённо-серый, НЕ зелёный/красный (правильность ещё не
+    // проверена) и явно ОТЛИЧИМЫЙ от активной кнопки ниже, специально
+    // под случай двух вариантов с одинаковым текстом.
+    if (isUsed) return "bg-[#161F23]/50 border-[#2A333A] text-[#4A5560]"
     // При выборе - голубой border и текст
     if (isSelected) return "bg-[#161F23] text-[#4897D1] border-[#4897D1] shadow-lg shadow-black/20"
     // По умолчанию
@@ -117,6 +138,7 @@ export const AnimatedOptionButton = ({
         text-sm md:text-lg font-bold rounded-xl
         border-2
         ${getButtonStyle()}
+        ${isUsed ? 'cursor-not-allowed' : ''}
       `}
     >
 
