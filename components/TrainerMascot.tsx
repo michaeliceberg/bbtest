@@ -58,6 +58,21 @@ export const TrainerMascot = ({
   const [isMessageVisible, setIsMessageVisible] = useState(false)
   const previousEmotionRef = useRef(emotion)
 
+  // "Удар по боссу" — каждый верный ответ на боссовском этапе резко
+  // дёргает аватарку в СЛУЧАЙНУЮ сторону (то по X, то по Y) с затуханием,
+  // по прямой просьбе пользователя. key меняется на каждый хит — тот же
+  // приём key-ремонта, что уже используется в TrainerBossBar (lootKey) и
+  // по всему проекту вместо AnimatePresence/повторного триггера одной и
+  // той же animate-цели: framer-motion не всегда переигрывает keyframe-
+  // массив заново, если сам объект animate не поменял "форму", а смена
+  // key гарантированно пересоздаёт узел. hitKey=0 — исходное состояние
+  // (до первого хита), тряски ещё не было.
+  const [hitShake, setHitShake] = useState<{ key: number; axis: 'x' | 'y' }>({ key: 0, axis: 'x' })
+  useEffect(() => {
+    if (!isBossStage || isRightPrevious !== true) return
+    setHitShake((prev) => ({ key: prev.key + 1, axis: Math.random() < 0.5 ? 'x' : 'y' }))
+  }, [isRightPrevious, isBossStage])
+
   // Показываем сообщение при изменении эмоции (и один раз при монтировании).
   // Больше нет таймера, который прятал фразу в никуда — она остаётся
   // на экране, пока её не сменит следующая.
@@ -95,7 +110,22 @@ export const TrainerMascot = ({
 
   return (
     <div className="flex flex-row items-center gap-4">
-      {/* Талисман — крупнее по просьбе пользователя (было w-10/w-12) */}
+      {/* Талисман — крупнее по просьбе пользователя (было w-10/w-12).
+          Внешняя обёртка — ТОЛЬКО для "удара по боссу" (см. hitShake
+          выше), отдельно от эмоциональной анимации на внутреннем
+          motion.div, чтобы не конфликтовать с ней за transform. */}
+      <motion.div
+        key={isBossStage ? `hit-${hitShake.key}` : 'no-hit'}
+        animate={
+          isBossStage && hitShake.key > 0
+            ? hitShake.axis === 'x'
+              ? { x: [0, 18, -13, 8, -4, 0] }
+              : { y: [0, -18, 13, -8, 4, 0] }
+            : {}
+        }
+        transition={{ duration: 0.4, ease: [0.36, 0.07, 0.19, 0.97] }}
+        className="shrink-0"
+      >
       <motion.div
         animate={{
           scale: emotion === "celebrating" ? [1, 1.15, 1] : 1,
@@ -107,13 +137,14 @@ export const TrainerMascot = ({
           repeat: emotion === "celebrating" ? Infinity : emotion === "happy" ? 2 : 0,
           repeatType: "reverse",
         }}
-        className="cursor-pointer shrink-0"
+        className="cursor-pointer"
       >
         <Lottie
           animationData={getLottieData()}
           loop={emotion === "thinking" || emotion === "waiting"}
           className="w-16 h-16 md:w-20 md:h-20"
         />
+      </motion.div>
       </motion.div>
 
       {/* Облако сообщения — занимает всё оставшееся место в строке
