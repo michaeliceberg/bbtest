@@ -1091,14 +1091,19 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 // пользователя ("какая формула ассоциируется с этой
                 // картинкой?"). Раньше картинкой служила ТОЛЬКО узкая
                 // ручная разметка lib/formulaIcons.ts (13 формул темы
-                // Динамика) — теперь вдобавок принимается уже готовая
-                // "картинка темы" (public/topic-stickers/*.svg,
-                // topicStickers[index], та же, что обычно просто украшает
-                // вопрос) — она покрывает все 39+ формул физики разом, без
-                // единой строчки нового контента. iconKey (абстрактная
-                // рисованная иконка) в приоритете, где размечена; иначе —
-                // topicSticker. Нет ни того, ни другого — откатываемся на
-                // ASSIST, тихо, как и везде выше.
+                // Динамика, абстрактные lucide-иконки вроде "круг с
+                // волнами" для периода колебаний) — теперь вдобавок
+                // принимается уже готовая "картинка темы" (public/
+                // topic-stickers/*.svg, topicStickers[index], та же, что
+                // обычно просто украшает вопрос) — она покрывает все 39+
+                // формул физики разом, включая все 13 старых. topicSticker
+                // в приоритете (пользователь явно предпочитает нарисованную
+                // картинку абстрактной иконке — она живьём отрисовалась на
+                // боссовском этапе Динамики вместо ожидаемого рисунка
+                // пружины); iconKey из formulaIcons.ts — только fallback на
+                // случай будущей формулы без своего topicSticker. Нет ни
+                // того, ни другого — откатываемся на ASSIST, тихо, как и
+                // везде выше.
                 //
                 // Дополнительно (найдено пользователем живьём) — PICMATCH
                 // задаёт фиксированный вопрос "Какая формула соответствует
@@ -1114,8 +1119,8 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                     return buildAssistQuestion(t_challenge);
                 }
 
-                const iconKey = getFormulaIconKey(t_challenge.question);
                 const stickerFallback = topicStickers[index];
+                const iconKey = stickerFallback ? null : getFormulaIconKey(t_challenge.question);
                 if (!iconKey && !stickerFallback) {
                     return buildAssistQuestion(t_challenge);
                 }
