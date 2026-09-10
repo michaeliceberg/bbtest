@@ -54,6 +54,18 @@ export const MEGA_CASE_POOL: CaseReward[] = [
 
 export const getCasePool = (isMega: boolean): CaseReward[] => (isMega ? MEGA_CASE_POOL : REGULAR_CASE_POOL)
 
+// "Джекпот" — повод для конфетти на реакции барабана: пицца (любое
+// количество, сама по себе самый редкий/желанный дроп) или максимально
+// возможное количество монет/гемов В ЭТОМ ЖЕ пуле (сравнение относительно
+// пула, а не абсолютного числа — у мегакейса и обычного кейса разный
+// потолок сумм).
+export const isJackpotReward = (reward: CaseReward, pool: CaseReward[]): boolean => {
+	if (reward.kind === 'pizza') return true
+	const sameKindAmounts = pool.filter((r) => r.kind === reward.kind).map((r) => r.amount)
+	const maxAmount = Math.max(...sameKindAmounts)
+	return reward.amount === maxAmount
+}
+
 export const pickWeightedReward = (pool: CaseReward[]): CaseReward => {
 	const total = pool.reduce((sum, r) => sum + r.weight, 0)
 	let roll = Math.random() * total
