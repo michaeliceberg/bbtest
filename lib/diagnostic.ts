@@ -8,13 +8,6 @@ export type DiagnosticSubject = 'math' | 'physics';
 
 export const DIAGNOSTIC_SUBJECTS: DiagnosticSubject[] = ['math', 'physics'];
 
-// Промокод, созданный scripts/createDiagnosticCoupon.ts — вводится вручную
-// на экране Stripe Checkout (allow_promotion_codes: true в
-// actions/user-subscription.ts). Сейчас работает только в Stripe test mode
-// (см. STRIPE_API_KEY в .env) — при переходе на боевые платежи нужно
-// создать тот же купон повторно с live-ключом.
-export const DIAGNOSTIC_PROMO_CODE = 'DIAG20';
-
 export const DIAGNOSTIC_SUBJECT_LABEL: Record<DiagnosticSubject, string> = {
 	math: 'Математика',
 	physics: 'Физика',

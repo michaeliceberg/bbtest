@@ -57,6 +57,18 @@ export const MEGA_CASE_POOL: CaseReward[] = [
 
 export const getCasePool = (isMega: boolean): CaseReward[] => (isMega ? MEGA_CASE_POOL : REGULAR_CASE_POOL)
 
+// Кейс за номер телефона на анонимном диагностическом тесте
+// (app/test/[subject]/diagnostic-client.tsx, actions/open-diagnostic-
+// case.ts) — только пицца и гемы, без монет (не привязано к реальному
+// аккаунту — пользователь ещё не зарегистрирован в этот момент воронки,
+// монеты тут были бы бессмысленны).
+export const DIAGNOSTIC_CASE_POOL: CaseReward[] = [
+	{ kind: 'gems', amount: 1, weight: 40 },
+	{ kind: 'gems', amount: 2, weight: 20 },
+	{ kind: 'pizza', amount: 1, weight: 30 },
+	{ kind: 'pizza', amount: 2, weight: 10 },
+]
+
 // "Джекпот" — повод для конфетти на реакции барабана: пицца (любое
 // количество, сама по себе самый редкий/желанный дроп) или максимально
 // возможное количество монет/гемов В ЭТОМ ЖЕ пуле (сравнение относительно

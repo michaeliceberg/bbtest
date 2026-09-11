@@ -9,7 +9,7 @@
 import db from "@/db/drizzle";
 import { diagnosticLeads } from "@/db/schema";
 import { sendMessageToTelegram } from "@/utils/telegram";
-import { DIAGNOSTIC_PROMO_CODE, DIAGNOSTIC_SUBJECT_LABEL, type DiagnosticSubject } from "@/lib/diagnostic";
+import { DIAGNOSTIC_SUBJECT_LABEL, type DiagnosticSubject } from "@/lib/diagnostic";
 
 type SubmitLeadInput = {
 	subject: DiagnosticSubject;
@@ -28,7 +28,7 @@ export const submitDiagnosticLead = async (input: SubmitLeadInput) => {
 		throw new Error("Некорректный номер телефона");
 	}
 
-	await db.insert(diagnosticLeads).values({
+	const [row] = await db.insert(diagnosticLeads).values({
 		subject: input.subject,
 		phone: digitsOnly,
 		score: input.score,
@@ -37,7 +37,7 @@ export const submitDiagnosticLead = async (input: SubmitLeadInput) => {
 		utmSource: input.utmSource ?? null,
 		utmMedium: input.utmMedium ?? null,
 		utmCampaign: input.utmCampaign ?? null,
-	});
+	}).returning({ id: diagnosticLeads.id });
 
 	// Уведомление админу в Telegram — без chatId уходит в дефолтный чат
 	// (см. sendMessageToTelegram в utils/telegram.ts).
@@ -51,5 +51,5 @@ export const submitDiagnosticLead = async (input: SubmitLeadInput) => {
 		(utmLine ? `Источник: ${utmLine}\n` : "")
 	);
 
-	return { promoCode: DIAGNOSTIC_PROMO_CODE };
+	return { leadId: row.id };
 };

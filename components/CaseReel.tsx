@@ -129,12 +129,21 @@ const RewardVideo = ({ src, glow }: { src: string; glow?: string }) => {
 type Props = {
     isMega: boolean
     onDone: (result: { reward: CaseReward; justMaxedPizza: boolean }) => void
+    // Опционально — переопределяют пул наград/сам вызов открытия кейса и
+    // заголовок над барабаном. Нужно для анонимного диагностического
+    // теста (app/test/[subject]/diagnostic-client.tsx), где вместо
+    // openCase() (требует auth()) используется openDiagnosticCase() и
+    // отдельный, более узкий пул (только пицца/гемы, см. lib/caseRewards.ts).
+    // Без этих пропов поведение полностью совпадает с прежним.
+    pool?: CaseReward[]
+    spinAction?: () => Promise<OpenCaseResult>
+    title?: string
 }
 
-export const CaseReel = ({ isMega, onDone }: Props) => {
+export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title }: Props) => {
     const [phase, setPhase] = useState<Phase>('idle')
     const [strip, setStrip] = useState<CaseReward[]>(() => {
-        const pool = getCasePool(isMega)
+        const pool = poolOverride ?? getCasePool(isMega)
         return Array.from({ length: STRIP_LENGTH }, () => pickWeightedReward(pool))
     })
     const [translateX, setTranslateX] = useState(0)
@@ -173,7 +182,7 @@ export const CaseReel = ({ isMega, onDone }: Props) => {
         setPhase('spinning')
         setError(null)
 
-        const result = await openCase(isMega).catch(() => null)
+        const result = await (spinAction ? spinAction() : openCase(isMega)).catch(() => null)
         if (!result || !result.success) {
             setError('Не удалось открыть кейс. Попробуй ещё раз.')
             setPhase('idle')
@@ -197,7 +206,7 @@ export const CaseReel = ({ isMega, onDone }: Props) => {
         const centerOfTarget = TARGET_INDEX * SLOT_STRIDE + ITEM_WIDTH / 2
         const finalX = -(centerOfTarget - windowWidth / 2) + jitterRef.current
         setTranslateX(finalX)
-    }, [phase, isMega])
+    }, [phase, isMega, spinAction])
 
     const handleAnimationComplete = useCallback(() => {
         if (phase !== 'spinning') return
@@ -209,14 +218,14 @@ export const CaseReel = ({ isMega, onDone }: Props) => {
     const wonRarity = wonReward ? RARITY_STYLE[wonReward.kind] : null
     // Джекпот (пицца или максимум монет/гемов для этого пула) — повод
     // для конфетти, по просьбе пользователя.
-    const isJackpot = phase === 'revealed' && wonReward ? isJackpotReward(wonReward, getCasePool(isMega)) : false
+    const isJackpot = phase === 'revealed' && wonReward ? isJackpotReward(wonReward, poolOverride ?? getCasePool(isMega)) : false
 
     return (
         <div className="w-full max-w-md mx-auto px-4 py-6 flex flex-col items-center gap-5">
             {isJackpot && <Confetti width={width} height={height} recycle={false} numberOfPieces={260} />}
             <div className="flex items-center gap-2 text-[#F2F7FB]">
                 <Gift className={isMega ? 'w-6 h-6 text-[#FFD460]' : 'w-5 h-5 text-[#EF9F27]'} />
-                <span className="font-black text-lg tracking-wide">{isMega ? 'Мегакейс' : 'Кейс'}</span>
+                <span className="font-black text-lg tracking-wide">{title ?? (isMega ? 'Мегакейс' : 'Кейс')}</span>
             </div>
 
             {/* Окно барабана — резиновая ширина (заполняет мобильный экран со

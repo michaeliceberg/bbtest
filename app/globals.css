@@ -388,11 +388,11 @@ body {
    .animate-insert-wobble выше) — идёт на компоузере, не зависит от
    React/rAF главного потока. */
 @keyframes cta-pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.65); }
-  50% { box-shadow: 0 0 34px 14px rgba(74, 222, 128, 0.55); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.45); }
+  50% { box-shadow: 0 0 17px 7px rgba(74, 222, 128, 0.32); }
 }
 .animate-cta-pulse {
-  animation: cta-pulse-glow 1.3s ease-in-out infinite;
+  animation: cta-pulse-glow 2.6s ease-in-out infinite;
 }
 
 /* KaTeX по умолчанию рендерит своими собственными шрифтами (KaTeX_Main/

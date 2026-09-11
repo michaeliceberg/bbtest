@@ -944,6 +944,9 @@ export const diagnosticLeads = pgTable('diagnostic_leads', {
 	utmSource: text('utm_source'),
 	utmMedium: text('utm_medium'),
 	utmCampaign: text('utm_campaign'),
+	// Кейс за номер уже открыт (actions/open-diagnostic-case.ts) — не даёт
+	// открыть повторно на одном и том же лиде.
+	caseOpened: boolean('case_opened').notNull().default(false),
 	createdAt: timestamp('created_at').defaultNow(),
 });
 

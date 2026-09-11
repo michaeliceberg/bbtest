@@ -4,18 +4,22 @@
 //
 // Интерактивный флоу анонимного диагностического теста: интро → вопросы
 // (клик по варианту → мгновенная подсветка верно/неверно → авто-переход) →
-// результат (процент, слабая тема со ссылкой прямо в тренажёр, шеринг,
-// мягкий сбор телефона в двух точках со skip, промокод после отправки).
+// результат (процент, слабая тема со ссылкой прямо в тренажёр, мягкий сбор
+// телефона в двух точках со skip, кейс-барабан с призом — пицца/гемы —
+// после отправки, см. actions/open-diagnostic-case.ts).
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Latex from 'react-latex-next';
 import Image from 'next/image';
-import { ChevronRight, Loader2, Phone, Share2 } from 'lucide-react';
+import { ChevronRight, Loader2, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrambleText } from '@/components/ScrambleText';
+import { CaseReel } from '@/components/CaseReel';
 import { submitDiagnosticLead } from '@/actions/diagnostic';
+import { openDiagnosticCase } from '@/actions/open-diagnostic-case';
+import { DIAGNOSTIC_CASE_POOL, rewardEmoji, rewardLabel, type CaseReward } from '@/lib/caseRewards';
 import { DIAGNOSTIC_SUBJECT_LABEL, shuffle, type DiagnosticQuestion, type DiagnosticSubject } from '@/lib/diagnostic';
 import {
 	LOTTIE_TEST_RESULT_GOOD_LIST,
@@ -72,7 +76,8 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 
 	const [phoneSkippedOnce, setPhoneSkippedOnce] = useState(false);
 	const [leadSubmitted, setLeadSubmitted] = useState(false);
-	const [promoCode, setPromoCode] = useState<string | null>(null);
+	const [leadId, setLeadId] = useState<number | null>(null);
+	const [wonReward, setWonReward] = useState<CaseReward | null>(null);
 	const [phoneInput, setPhoneInput] = useState('');
 	const [isSubmittingPhone, setIsSubmittingPhone] = useState(false);
 	const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -173,7 +178,7 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 		setPhoneError(null);
 		setIsSubmittingPhone(true);
 		try {
-			const { promoCode } = await submitDiagnosticLead({
+			const { leadId } = await submitDiagnosticLead({
 				subject,
 				phone: phoneInput,
 				score,
@@ -183,7 +188,7 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 				utmMedium: utm.medium,
 				utmCampaign: utm.campaign,
 			});
-			setPromoCode(promoCode);
+			setLeadId(leadId);
 			setLeadSubmitted(true);
 			setShowSecondAsk(false);
 		} catch (e) {
@@ -191,20 +196,6 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 		} finally {
 			setIsSubmittingPhone(false);
 		}
-	};
-
-	const handleShare = async () => {
-		const url = typeof window !== 'undefined' ? window.location.href.split('?')[0] + '?utm_source=share' : '';
-		const text = `Прошёл диагностику по предмету «${DIAGNOSTIC_SUBJECT_LABEL[subject]}»: ${score} из ${questions.length}. Проверь себя!`;
-		if (typeof navigator !== 'undefined' && (navigator as any).share) {
-			try {
-				await (navigator as any).share({ title: 'ggege — диагностика', text, url });
-				return;
-			} catch {
-				// пользователь отменил — просто откатываемся на телеграм-ссылку ниже
-			}
-		}
-		window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, '_blank');
 	};
 
 	return (
@@ -303,11 +294,6 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 							</Button>
 						</div>
 
-						<Button variant="default" size="lg" className="w-full flex items-center justify-center gap-2" onClick={handleShare}>
-							<Share2 className="h-4 w-4" />
-							Поделиться результатом
-						</Button>
-
 						{!leadSubmitted && !phoneSkippedOnce && (
 							<PhoneCaptureCard
 								phoneInput={phoneInput}
@@ -319,10 +305,24 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 							/>
 						)}
 
-						{promoCode && (
+						{leadId && !wonReward && (
+							<div className="rounded-xl border-2 border-[#3A464E] bg-[#151F23]">
+								<CaseReel
+									isMega={false}
+									pool={DIAGNOSTIC_CASE_POOL}
+									title="Твой приз"
+									spinAction={() => openDiagnosticCase(leadId)}
+									onDone={({ reward }) => setWonReward(reward)}
+								/>
+							</div>
+						)}
+
+						{wonReward && (
 							<div className="rounded-xl border-2 border-violet-400/40 bg-violet-400/10 p-4 text-center">
-								<p className="text-sm text-[#9AA7B0] mb-1">Ваш промокод на скидку 20%</p>
-								<p className="text-2xl font-extrabold tracking-widest text-violet-300">{promoCode}</p>
+								<p className="text-sm text-[#9AA7B0] mb-1">Твой приз</p>
+								<p className="text-2xl font-extrabold tracking-wide text-violet-300">
+									{rewardEmoji(wonReward)} {rewardLabel(wonReward)}
+								</p>
 							</div>
 						)}
 
@@ -330,7 +330,7 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 							<div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50" onClick={() => setShowSecondAsk(false)}>
 								<div className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
 									<PhoneCaptureCard
-										title="Последний шанс на скидку 20%"
+										title="Последний шанс — 1 вращение слота"
 										phoneInput={phoneInput}
 										setPhoneInput={setPhoneInput}
 										onSubmit={submitPhone}
@@ -363,7 +363,7 @@ type PhoneCaptureCardProps = {
 };
 
 const PhoneCaptureCard = ({
-	title = 'Оставьте номер — получите скидку 20% на первый месяц',
+	title = 'Оставь номер и получи 1 вращение слота',
 	phoneInput,
 	setPhoneInput,
 	onSubmit,
@@ -387,7 +387,7 @@ const PhoneCaptureCard = ({
 		/>
 		{error && <p className="text-xs text-rose-400 mb-2">{error}</p>}
 		<Button variant="primary" size="lg" className="w-full mt-2 flex items-center justify-center gap-2" onClick={onSubmit} disabled={isSubmitting}>
-			{isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Получить скидку'}
+			{isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Получить приз'}
 		</Button>
 		<button onClick={onSkip} className="w-full text-center text-xs text-[#9AA7B0] mt-2 hover:text-[#F2F7FB]">
 			{skipLabel}
