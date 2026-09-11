@@ -45,6 +45,10 @@ type Props = {
 const CORRECT_COLOR = '#A1D151';
 const WRONG_COLOR = '#DC605B';
 
+// Текст кнопки старта — по кругу, в этом порядке (см. обсуждение с
+// пользователем, геймерский/зумерский сленг под настроение).
+const START_LABELS = ['Я ПОБЕДЮ', 'ВПЕРЁД ВПЕРЁД ВПЕРЁД', 'ГАААААЗ', 'РАШИМ', 'ПОЕХАЛИ', 'ГРИНДИМ', 'ГЛ ХФ'];
+
 export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 	const router = useRouter();
 	const { data: session } = useSession();
@@ -53,11 +57,11 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 	// Текст кнопки старта чередуется через scramble-эффект (ScrambleText) —
 	// только пока виден интро-экран, чтобы не гонять таймер впустую на
 	// остальных фазах.
-	const [startLabel, setStartLabel] = useState('Я ПОБЕДЮ');
+	const [startLabelIndex, setStartLabelIndex] = useState(0);
 	useEffect(() => {
 		if (phase !== 'intro') return;
 		const id = setInterval(() => {
-			setStartLabel((prev) => (prev === 'Я ПОБЕДЮ' ? 'ВПЕРЁД ВПЕРЁД ВПЕРЁД' : 'Я ПОБЕДЮ'));
+			setStartLabelIndex((prev) => (prev + 1) % START_LABELS.length);
 		}, 2600);
 		return () => clearInterval(id);
 	}, [phase]);
@@ -221,8 +225,8 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 							<Lottie animationData={LOTTIE_TEST_PIZZA} loop autoplay className="w-10 h-10 shrink-0" />
 							<p className="text-[#9AA7B0] font-semibold">Так же вы можете выиграть пиццу!</p>
 						</div>
-						<Button variant="primary" size="lg" className="w-full h-14 mt-4" onClick={() => setPhase('quiz')}>
-							<ScrambleText text={startLabel} />
+						<Button variant="primary" size="lg" className="w-full h-14 mt-4 animate-cta-pulse" onClick={() => setPhase('quiz')}>
+							<ScrambleText text={START_LABELS[startLabelIndex]} />
 						</Button>
 					</div>
 				)}
