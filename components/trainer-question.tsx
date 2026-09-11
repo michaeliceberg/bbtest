@@ -2,7 +2,7 @@
 
 // components/trainer-question.tsx
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import dynamic from "next/dynamic"
 
 import 'katex/dist/katex.min.css';
@@ -44,6 +44,7 @@ import { TrainerExitModal } from "@/components/modals/trainer-exit-modal"
 import { TrainerMascot } from "./TrainerMascot"
 import { TrainerBossBar } from "./trainer-boss-bar"
 import { LOTTIE_BOSS_DEATH_LIST, LOTTIE_BOSS_DEATH_LOW_HP, getRandomLottie } from "@/src/constants/lottieConstants"
+import { pickNextButtonLabel } from "@/usefulFunctions"
 
 
 
@@ -150,6 +151,13 @@ export default function TrainerQuestion({
   const [answerState, setAnswerState] = useState<"pending" | "selected" | "correct" | "incorrect">("pending")
   const [selectedAssistAnswer, setSelectedAssistAnswer] = useState<string | null>(null)
   const [answerSubmitted, setAnswerSubmitted] = useState(false)
+
+  // Мотивационная подпись кнопки "далее" вместо всегда одинаковой — по
+  // просьбе пользователя. useMemo (не голый вызов внутри getButtonText())
+  // — чтобы фраза выбиралась РОВНО один раз при переходе в "correct" для
+  // ЭТОГО вопроса и не перевыбиралась на каждый посторонний ре-рендер
+  // компонента (иначе кнопка бы "дёргалась" текстом без причины).
+  const nextButtonLabel = useMemo(() => pickNextButtonLabel("далее"), [answerState, question])
 
   // Для CONNECT: отслеживаем когда все пары правильны
   const handleAllPairsMatched = useCallback(() => {
@@ -432,7 +440,7 @@ export default function TrainerQuestion({
       return "ответить"
     }
     // После проверки
-    if (answerState === "correct") return "далее"
+    if (answerState === "correct") return nextButtonLabel
     if (answerState === "incorrect") return "понятно"
     return "ответить"
   }

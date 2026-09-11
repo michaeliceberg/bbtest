@@ -46,6 +46,15 @@ export type QuestRewardsData = {
 type Props = {
     data: QuestRewardsData
     onOpenChest: () => void
+    // Этот экран показывается ПОСЛЕ ЛЮБОГО идеального урока, но настоящий
+    // кейс-барабан (components/CaseReel.tsx) открывается только на
+    // позициях isChestStage/isMegaChestStage карты скиллов — на остальных
+    // уроках клик просто ведёт на финальный экран без кейса. Раньше кнопка
+    // ВСЕГДА называлась "Открыть сундук" независимо от того, есть ли
+    // реально что открывать — вводило в заблуждение (см. вопрос
+    // пользователя "это стандартная кнопка или должна была вести на
+    // сундук?"). Теперь подпись отражает реальный переход.
+    hasCase?: boolean
 }
 
 // common/rare/mythic — награда-сундук за квест (тот же вокабуляр, что уже
@@ -152,7 +161,7 @@ const RewardCard = ({
     </motion.div>
 )
 
-export const TrainerQuestRewardsScreen = ({ data, onOpenChest }: Props) => {
+export const TrainerQuestRewardsScreen = ({ data, onOpenChest, hasCase }: Props) => {
     const streak5Current = data?.streak5Count ?? 0
     const streak5Target = data?.streak5Target ?? 2
     const perfectCurrent = data?.perfectLessonCount ?? 0
@@ -222,7 +231,7 @@ export const TrainerQuestRewardsScreen = ({ data, onOpenChest }: Props) => {
                 className="mt-6"
             >
                 <Button onClick={onOpenChest} variant="primary" className="w-full">
-                    Открыть сундук
+                    {hasCase ? 'Открыть кейс' : 'Продолжить'}
                 </Button>
             </motion.div>
         </div>

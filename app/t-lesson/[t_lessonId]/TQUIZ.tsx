@@ -719,6 +719,7 @@ export default function TQuiz({
     return (
       <TrainerQuestRewardsScreen
         data={questRewardsData}
+        hasCase={!!(isChestStage || isMegaChestStage)}
         onOpenChest={() => {
           // Rive-анимация сундука (components/ChestReward.tsx) глючила на
           // телефонах — тап не долетал до конца, пользователь застревал

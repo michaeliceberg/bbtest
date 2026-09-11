@@ -1,9 +1,11 @@
+import { useMemo } from "react";
 import { useKey, useMedia } from "react-use";
 import { CheckCircle, XCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { vibrate } from "@/lib/haptics";
+import { pickNextButtonLabel } from "@/usefulFunctions";
 
 type Props = {
     onCheck: () => void
@@ -27,6 +29,13 @@ export const Footer = ({
 
 
     var randomDoneRight = doneRightArray[Math.floor(Math.random() * doneRightArray.length)];
+
+    // Мотивационная подпись самой кнопки "Дальше" на верном ответе — по
+    // просьбе пользователя (тот же список, что и в тренажёре, см.
+    // usefulFunctions.ts). useMemo на [status] — фраза выбирается один раз
+    // за переход в "correct", не перевыбирается на каждый посторонний
+    // ре-рендер, пока статус не сменится (иначе кнопка бы "дёргалась").
+    const nextButtonLabel = useMemo(() => pickNextButtonLabel("Дальше"), [status]);
 
 
 
@@ -69,7 +78,7 @@ export const Footer = ({
                         variant={status === "wrong" ? "danger" : "secondary"}
                     >
                         {status === "none" && "Ответить"}
-                        {status === "correct" && "Дальше"}
+                        {status === "correct" && nextButtonLabel}
                         {status === "wrong" && "Дальше"}
                         {status === "completed" && "Продолжить"}
                     </Button>
