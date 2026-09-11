@@ -29,7 +29,6 @@ import { LOTTIE_START_LIST, LOTTIE_EMOTION_RIGHT_LIST, LOTTIE_STREAK_CHARACTER_L
 import { PencilLine, Gift } from "lucide-react"
 import { useQuizAudio } from "@/app/hooks/useQuizAudio"
 import { reportLessonQuestSignals } from "@/actions/generate-trainer-quest"
-import { awardHotQuestionReward } from "@/actions/award-hot-question-reward"
 import { ChestReward } from "@/components/ChestReward"
 import { CaseReel } from "@/components/CaseReel"
 import { rewardLabel, type CaseReward } from "@/lib/caseRewards"
@@ -76,46 +75,23 @@ const TRAINER_LESSON_TRAINING_PTS = 50
 
 const startButton = ['Погнали!', 'Гоу!', 'Старт!', 'Поехали!', 'Поплыли!']
 
-// Отдельный подарок ПОСЛЕ всего урока за угаданный "горячий вопрос" (см.
-// type-hot.tsx) — награда начисляется здесь, в момент показа финального
-// экрана, а не сразу в самом вопросе (по просьбе пользователя). Ref-guard
-// внутри самого себя (не в родителе) — этот компонент монтируется РОВНО
-// один раз за показ финального экрана, повторный awardHotQuestionReward()
-// при случайном re-render (в т.ч. React StrictMode double-invoke) не
-// нужен.
-function HotBonusPanel() {
-  const [gems, setGems] = useState<number | null>(null)
-  const awardedRef = useRef(false)
-
-  useEffect(() => {
-    if (awardedRef.current) return
-    awardedRef.current = true
-    awardHotQuestionReward()
-      .then((res) => { if (res.success) setGems(res.gems ?? 0) })
-      .catch(() => {})
-  }, [])
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -10, scale: 0.9 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      className="flex items-center justify-center gap-2 mx-auto mt-4 mb-2 w-fit px-4 py-2 rounded-full bg-[#3A2A1B] border border-[#EF9F27]"
-    >
-      <Gift className="w-5 h-5 text-[#EF9F27]" />
-      <span className="text-sm font-bold text-[#EF9F27]">
-        Бонус за горячий вопрос{gems !== null ? `: +${gems} монет` : '…'}
-      </span>
-    </motion.div>
-  )
-}
+// Награда за угаданный "горячий вопрос" (см. type-hot.tsx) — раньше была
+// мгновенным фиксированным начислением (+15 гемов, без взаимодействия).
+// По просьбе пользователя заменена на интерактивный мегакейс
+// (components/CaseReel.tsx, isMega=true) — тот же барабан, что и на
+// isMegaChestStage, только повод другой (угадал горячий вопрос, а не
+// дошёл до боссовской позиции темы). Рендерится ОТДЕЛЬНОЙ веткой
+// (showHotCaseReel) в момент показа финального экрана — см. finishOrOpenCase.
 
 // Итог кейса (components/CaseReel.tsx) на карте скиллов — награда УЖЕ
 // начислена самим CaseReel (сервер решил и применил её ДО того, как
 // пользователь попал на этот, финальный экран урока), здесь только
 // показываем, что именно выиграно — статичный баннер, без повторного
-// начисления. Мегакейс — золотая палитра, обычный — амбер, тот же
-// акцент, что уже закреплён в проекте за "бонус" (см. HotBonusPanel).
-function CaseWonBanner({ mega, reward }: { mega: boolean; reward: CaseReward }) {
+// начисления. Мегакейс — золотая палитра, обычный — амбер. Опциональный
+// label переопределяет заголовок ("Мегакейс"/"Кейс" по умолчанию) — так
+// этот же баннер переиспользован и для мегакейса за горячий вопрос
+// (label="Горячий вопрос", см. finishOrOpenCase/showHotCaseReel выше).
+function CaseWonBanner({ mega, reward, label }: { mega: boolean; reward: CaseReward; label?: string }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: -10, scale: 0.9 }}
@@ -128,7 +104,7 @@ function CaseWonBanner({ mega, reward }: { mega: boolean; reward: CaseReward }) 
     >
       <Gift className={mega ? "w-6 h-6 text-[#FFD460]" : "w-5 h-5 text-[#EF9F27]"} />
       <span className={mega ? "text-base font-black text-[#FFD460]" : "text-sm font-bold text-[#EF9F27]"}>
-        {mega ? "Мегакейс" : "Кейс"}: {rewardLabel(reward)}
+        {label ?? (mega ? "Мегакейс" : "Кейс")}: {rewardLabel(reward)}
       </span>
     </motion.div>
   )
@@ -210,8 +186,29 @@ export default function TQuiz({
   // результате, см. goToNextQuestion.
   const [showQuestRewardsScreen, setShowQuestRewardsScreen] = useState(false)
   const [questRewardsData, setQuestRewardsData] = useState<QuestRewardsData>(null)
+  // Мегакейс за угаданный "горячий вопрос" (см. type-hot.tsx) — раньше
+  // мгновенное фиксированное +15 гемов без взаимодействия, по просьбе
+  // пользователя заменено на тот же интерактивный барабан, что и на
+  // isMegaChestStage (components/CaseReel.tsx, isMega=true), только повод
+  // другой. Проверяется В ПЕРВУЮ очередь в finishOrOpenCase — если оба
+  // повода совпали (горячий вопрос угадан НА megachest-этапе), сначала
+  // открывается этот, а затем (см. onDone) обычная проверка stage-кейса
+  // всё равно срабатывает — ни одна причитающаяся награда не теряется.
+  const [showHotCaseReel, setShowHotCaseReel] = useState(false)
+  const [wonHotCaseReward, setWonHotCaseReward] = useState<CaseReward | null>(null)
   const [answeredQuestions, setAnsweredQuestions] = useState(0)
   const { width, height } = useWindowSize()
+
+  // Вторая половина финала — тест на isChestStage/isMegaChestStage,
+  // вынесена отдельно, чтобы её же вызывать ПОСЛЕ того, как пользователь
+  // прокрутит мегакейс горячего вопроса (см. finishOrOpenCase ниже).
+  const proceedToStageCaseOrFinish = useCallback(() => {
+    if (isChestStage || isMegaChestStage) {
+      setShowCaseReel(true)
+    } else {
+      setQuizCompleted(true)
+    }
+  }, [isChestStage, isMegaChestStage])
 
   // Точка "первого прихода" на завершение урока (после основного прохода
   // ИЛИ после успешной работы над ошибками, независимо от итогового
@@ -221,12 +218,16 @@ export default function TQuiz({
   // барабан (components/CaseReel.tsx), а quizCompleted выставляется уже
   // ПОСЛЕ того, как пользователь его прокрутит (см. onDone у CaseReel ниже).
   const finishOrOpenCase = useCallback(() => {
-    if (isChestStage || isMegaChestStage) {
-      setShowCaseReel(true)
-    } else {
-      setQuizCompleted(true)
+    if (hotQuestionWonRef.current) {
+      // Потребляем флаг сразу — эта функция может теоретически вызваться
+      // ещё раз в рамках того же урока (см. onOpenChest у quest rewards
+      // screen), повторный показ мегакейса за ТОТ ЖЕ горячий вопрос не нужен.
+      hotQuestionWonRef.current = false
+      setShowHotCaseReel(true)
+      return
     }
-  }, [isChestStage, isMegaChestStage])
+    proceedToStageCaseOrFinish()
+  }, [proceedToStageCaseOrFinish])
 
   // Флаг для предотвращения двойной обработки
   const [isProcessing, setIsProcessing] = useState(false)
@@ -747,6 +748,19 @@ export default function TQuiz({
     )
   }
 
+  if (showHotCaseReel) {
+    return (
+      <CaseReel
+        isMega={true}
+        onDone={({ reward }) => {
+          setWonHotCaseReward(reward)
+          setShowHotCaseReel(false)
+          proceedToStageCaseOrFinish()
+        }}
+      />
+    )
+  }
+
   if (showCaseReel) {
     return (
       <CaseReel
@@ -780,7 +794,9 @@ export default function TQuiz({
       <>
         <TgSendMsgCom message={message} />
         {(isPerfectScore || hotQuestionWon || isChestStage || isMegaChestStage) && <Confetti width={width} height={height} />}
-        {hotQuestionWon && <HotBonusPanel />}
+        {wonHotCaseReward && (
+          <CaseWonBanner mega reward={wonHotCaseReward} label="Горячий вопрос" />
+        )}
         {wonCaseReward && (isMegaChestStage || isChestStage) && (
           <CaseWonBanner mega={!!isMegaChestStage} reward={wonCaseReward} />
         )}
