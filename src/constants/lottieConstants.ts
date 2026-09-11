@@ -42,6 +42,17 @@ import LottieDeath8 from '@/public/Lottie/death/death8.json'
 import LottieDeath9 from '@/public/Lottie/death/death9.json'
 import LottieDeath10 from '@/public/Lottie/death/death10.json'
 import LottieDeathLowHp from '@/public/Lottie/death/deathLowHp.json'
+import LottieTestRandomDnevnik from '@/public/Lottie/test/random-dnevnik.json'
+import LottieTestRandomFalltree from '@/public/Lottie/test/random-falltree.json'
+import LottieTestRandomGrabli from '@/public/Lottie/test/random-grabli.json'
+import LottieTestRandomNumed from '@/public/Lottie/test/random-numed.json'
+import LottieTestRandomNuprivet from '@/public/Lottie/test/random-nuprivet.json'
+import LottieTestRandomSleep from '@/public/Lottie/test/random-sleep.json'
+import LottieTestRandomTrain from '@/public/Lottie/test/random-train.json'
+import LottieTestRandomVtelefone from '@/public/Lottie/test/random-vtelefone.json'
+import LottieTestFinalTheend from '@/public/Lottie/test/final-theend.json'
+import LottieTestFinalSpasibo from '@/public/Lottie/test/final-spasibo.json'
+import LottieTestFinalDojd from '@/public/Lottie/test/final-dojd.json'
 
 // Группировка по назначению
 export const LOTTIE_START_LIST = [
@@ -137,6 +148,44 @@ export const LOTTIE_BOSS_DEATH_LIST = [
 ] as const
 
 export const LOTTIE_BOSS_DEATH_LOW_HP = LottieDeathLowHp
+
+// Экран выбора предмета на /test (app/test/test-picker-client.tsx) — слева
+// и справа по одному случайному ролику из этого пула (гарантированно
+// разные, см. getTwoDistinctRandomLotties), пока предмет не выбран.
+export const LOTTIE_TEST_PICKER_LIST = [
+  LottieTestRandomDnevnik,
+  LottieTestRandomFalltree,
+  LottieTestRandomGrabli,
+  LottieTestRandomNumed,
+  LottieTestRandomNuprivet,
+  LottieTestRandomSleep,
+  LottieTestRandomTrain,
+  LottieTestRandomVtelefone,
+] as const
+
+// Экран результата диагностического теста (app/test/[subject]/diagnostic-client.tsx)
+// — если есть хоть один верный ответ, один из двух случайно; если верных
+// ответов нет вообще — LOTTIE_TEST_RESULT_ZERO (без выбора).
+export const LOTTIE_TEST_RESULT_GOOD_LIST = [
+  LottieTestFinalTheend,
+  LottieTestFinalSpasibo,
+] as const
+
+export const LOTTIE_TEST_RESULT_ZERO = LottieTestFinalDojd
+
+// Выбирает N попарно различных случайных элементов списка (без повторов) —
+// нужен экрану /test, где слева и справа не должен выпасть один и тот же
+// ролик.
+export const getDistinctRandomLotties = <T,>(list: readonly T[], count: number): T[] => {
+  const pool = [...list]
+  const result: T[] = []
+  for (let i = 0; i < count && pool.length > 0; i++) {
+    const idx = Math.floor(Math.random() * pool.length)
+    result.push(pool[idx])
+    pool.splice(idx, 1)
+  }
+  return result
+}
 
 // Helper функция для получения случайной анимации
 export const getRandomLottie = (lottieList: readonly any[]) => {

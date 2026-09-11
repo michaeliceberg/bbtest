@@ -7,7 +7,7 @@
 // результат (процент, слабая тема со ссылкой прямо в тренажёр, шеринг,
 // мягкий сбор телефона в двух точках со skip, промокод после отправки).
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Latex from 'react-latex-next';
@@ -16,9 +16,11 @@ import { ChevronRight, Loader2, Phone, Share2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { submitDiagnosticLead } from '@/actions/diagnostic';
 import { DIAGNOSTIC_SUBJECT_LABEL, shuffle, type DiagnosticQuestion, type DiagnosticSubject } from '@/lib/diagnostic';
+import { LOTTIE_TEST_RESULT_GOOD_LIST, LOTTIE_TEST_RESULT_ZERO, getRandomLottie } from '@/src/constants/lottieConstants';
 import dynamic from 'next/dynamic';
 
 const LoginDialog = dynamic(() => import('@/components/login-dialog').then((m) => ({ default: m.LoginDialog })), { ssr: false });
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
 
 type Phase = 'intro' | 'quiz' | 'result';
 
@@ -84,6 +86,17 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 	};
 
 	const score = answered.filter((a) => a.correct).length;
+
+	// Ролик экрана результата — выбирается ОДИН раз при первом попадании на
+	// result (не на каждый ре-рендер): ни одного верного ответа → "final
+	// dojd", иначе случайно "final theend"/"final spasibo".
+	const [resultLottieData, setResultLottieData] = useState<unknown>(null);
+	useEffect(() => {
+		if (phase === 'result' && !resultLottieData) {
+			setResultLottieData(score === 0 ? LOTTIE_TEST_RESULT_ZERO : getRandomLottie(LOTTIE_TEST_RESULT_GOOD_LIST));
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [phase]);
 
 	const weakTopic = useMemo(() => {
 		const byTopic = new Map<string, { title: string; firstTLessonId: number | null; correct: number; total: number; lastOrder: number }>();
@@ -241,6 +254,10 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 
 				{phase === 'result' && ctaTopic && (
 					<div className="flex flex-col gap-6">
+						{resultLottieData ? (
+							<Lottie animationData={resultLottieData} loop autoplay className="w-full max-w-[280px] h-auto mx-auto" />
+						) : null}
+
 						<div className="text-center">
 							<p className="text-sm text-[#9AA7B0]">Ваш результат</p>
 							<p className="text-4xl font-extrabold mt-1">{score} из {questions.length}</p>
