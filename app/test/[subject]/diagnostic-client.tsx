@@ -49,14 +49,6 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 	const { data: session } = useSession();
 
 	const [phase, setPhase] = useState<Phase>('intro');
-	// "Начать" в 50% случаев на монтировании становится "Я ПОБЕДЮ" — старт
-	// ВСЕГДА "Начать" (совпадает на сервере и клиенте), переключение только
-	// после mount через useEffect, чтобы не словить hydration mismatch (тот
-	// же класс бага, что уже не раз ловили в проекте на случайном тексте).
-	const [startLabel, setStartLabel] = useState('Начать');
-	useEffect(() => {
-		if (Math.random() < 0.5) setStartLabel('Я ПОБЕДЮ');
-	}, []);
 	const [index, setIndex] = useState(0);
 	const [selected, setSelected] = useState<string | null>(null);
 	const [checked, setChecked] = useState(false);
@@ -201,10 +193,14 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 
 	return (
 		<div className="min-h-screen bg-[#0F171A] text-[#F2F7FB] flex flex-col items-center px-4 py-8">
-			<div className="w-full max-w-md">
+			<div className="w-full max-w-md flex-1 flex flex-col">
 				{phase === 'intro' && (
-					<div className="text-center flex flex-col items-center gap-4 mt-10">
-						<Lottie animationData={LOTTIE_TEST_INTRO} loop autoplay className="w-32 h-32" />
+					// Вертикально центрировано в доступной высоте — тот же приём, что
+					// у "Выбери тест"-блока на предыдущей странице (/test), чтобы
+					// верхний Lottie оказывался примерно на той же высоте экрана, где
+					// на предыдущей странице была кнопка "Погнали".
+					<div className="flex-1 text-center flex flex-col items-center justify-center gap-5">
+						<Lottie animationData={LOTTIE_TEST_INTRO} loop autoplay className="w-48 h-48" />
 						<h1 className="text-2xl font-extrabold">{DIAGNOSTIC_SUBJECT_LABEL[subject]}</h1>
 						<p className="text-[#9AA7B0]">
 							{questions.length} вопросов, около {Math.max(2, Math.round(questions.length * 0.5))} минут. Узнайте, к чему готовы уже сейчас — и что стоит подтянуть.
@@ -213,8 +209,8 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 							<Lottie animationData={LOTTIE_TEST_PIZZA} loop autoplay className="w-10 h-10 shrink-0" />
 							<p className="text-[#9AA7B0] font-semibold">Так же вы можете выиграть пиццу!</p>
 						</div>
-						<Button variant="primary" size="lg" className="w-full mt-4" onClick={() => setPhase('quiz')}>
-							{startLabel}
+						<Button variant="primary" size="lg" className="w-full h-14 mt-4" onClick={() => setPhase('quiz')}>
+							Я ПОБЕДЮ
 						</Button>
 					</div>
 				)}

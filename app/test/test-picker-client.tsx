@@ -60,7 +60,7 @@ export const TestPickerClient = ({ utm }: Props) => {
 		<div className="min-h-screen bg-[#0F171A] text-[#F2F7FB] flex flex-col items-center px-4 py-8">
 			<div className="w-full flex flex-col items-center gap-2 mb-4">
 				<Image src="/ggegelogo.svg" alt="ggege" height={96} width={192} className="h-24 w-48" />
-				<span className="text-3xl font-extrabold tracking-wide text-[#9AA7B0]">GGEGE.RU</span>
+				<span className="text-lg font-extrabold tracking-wide text-[#9AA7B0]">GGEGE.RU</span>
 			</div>
 
 			<div className="flex-1 w-full flex flex-col items-center justify-center">
@@ -82,7 +82,7 @@ export const TestPickerClient = ({ utm }: Props) => {
 				<Button
 					variant="secondary"
 					size="lg"
-					className="w-full max-w-lg mt-10"
+					className="w-full max-w-lg h-14 mt-10"
 					disabled={!selected}
 					onClick={goStart}
 				>
@@ -119,7 +119,7 @@ const SubjectColumn = ({ lottieData, label, colors, isSelected, onSelect }: Subj
 		</div>
 
 		<div
-			className="w-full rounded-full border-2 border-b-4 px-4 py-3 text-center font-bold uppercase tracking-wide transition-colors active:border-b-2"
+			className="w-full h-14 rounded-full border-2 border-b-4 px-4 flex items-center justify-center text-center font-bold uppercase tracking-wide transition-colors active:border-b-2"
 			style={
 				isSelected
 					? { backgroundColor: colors.fill, borderColor: colors.border, color: colors.text }
