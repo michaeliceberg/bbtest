@@ -58,9 +58,9 @@ export const TestPickerClient = ({ utm }: Props) => {
 
 	return (
 		<div className="min-h-screen bg-[#0F171A] text-[#F2F7FB] flex flex-col items-center px-4 py-8">
-			<div className="flex items-center gap-3 mb-4 self-start">
-				<Image src="/ggegelogo.svg" alt="ggege" height={64} width={128} className="h-16 w-32" />
-				<span className="text-lg font-bold text-[#9AA7B0]">ggege.ru</span>
+			<div className="w-full flex flex-col items-center gap-2 mb-4">
+				<Image src="/ggegelogo.svg" alt="ggege" height={96} width={192} className="h-24 w-48" />
+				<span className="text-3xl font-extrabold tracking-wide text-[#9AA7B0]">GGEGE.RU</span>
 			</div>
 
 			<div className="flex-1 w-full flex flex-col items-center justify-center">
@@ -80,7 +80,7 @@ export const TestPickerClient = ({ utm }: Props) => {
 				</div>
 
 				<Button
-					variant="primary"
+					variant="secondary"
 					size="lg"
 					className="w-full max-w-lg mt-10"
 					disabled={!selected}

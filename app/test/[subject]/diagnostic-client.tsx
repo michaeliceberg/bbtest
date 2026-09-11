@@ -12,11 +12,17 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Latex from 'react-latex-next';
 import Image from 'next/image';
-import { ChevronRight, Loader2, Phone, Share2, Sparkles } from 'lucide-react';
+import { ChevronRight, Loader2, Phone, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { submitDiagnosticLead } from '@/actions/diagnostic';
 import { DIAGNOSTIC_SUBJECT_LABEL, shuffle, type DiagnosticQuestion, type DiagnosticSubject } from '@/lib/diagnostic';
-import { LOTTIE_TEST_RESULT_GOOD_LIST, LOTTIE_TEST_RESULT_ZERO, getRandomLottie } from '@/src/constants/lottieConstants';
+import {
+	LOTTIE_TEST_RESULT_GOOD_LIST,
+	LOTTIE_TEST_RESULT_ZERO,
+	LOTTIE_TEST_INTRO,
+	LOTTIE_TEST_PIZZA,
+	getRandomLottie,
+} from '@/src/constants/lottieConstants';
 import dynamic from 'next/dynamic';
 
 const LoginDialog = dynamic(() => import('@/components/login-dialog').then((m) => ({ default: m.LoginDialog })), { ssr: false });
@@ -43,6 +49,14 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 	const { data: session } = useSession();
 
 	const [phase, setPhase] = useState<Phase>('intro');
+	// "Начать" в 50% случаев на монтировании становится "Я ПОБЕДЮ" — старт
+	// ВСЕГДА "Начать" (совпадает на сервере и клиенте), переключение только
+	// после mount через useEffect, чтобы не словить hydration mismatch (тот
+	// же класс бага, что уже не раз ловили в проекте на случайном тексте).
+	const [startLabel, setStartLabel] = useState('Начать');
+	useEffect(() => {
+		if (Math.random() < 0.5) setStartLabel('Я ПОБЕДЮ');
+	}, []);
 	const [index, setIndex] = useState(0);
 	const [selected, setSelected] = useState<string | null>(null);
 	const [checked, setChecked] = useState(false);
@@ -190,13 +204,17 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 			<div className="w-full max-w-md">
 				{phase === 'intro' && (
 					<div className="text-center flex flex-col items-center gap-4 mt-10">
-						<Sparkles className="h-10 w-10 text-violet-400" />
-						<h1 className="text-2xl font-extrabold">Диагностика: {DIAGNOSTIC_SUBJECT_LABEL[subject]}</h1>
+						<Lottie animationData={LOTTIE_TEST_INTRO} loop autoplay className="w-32 h-32" />
+						<h1 className="text-2xl font-extrabold">{DIAGNOSTIC_SUBJECT_LABEL[subject]}</h1>
 						<p className="text-[#9AA7B0]">
 							{questions.length} вопросов, около {Math.max(2, Math.round(questions.length * 0.5))} минут. Узнайте, к чему готовы уже сейчас — и что стоит подтянуть.
 						</p>
+						<div className="flex items-center justify-center gap-2">
+							<Lottie animationData={LOTTIE_TEST_PIZZA} loop autoplay className="w-10 h-10 shrink-0" />
+							<p className="text-[#9AA7B0] font-semibold">Так же вы можете выиграть пиццу!</p>
+						</div>
 						<Button variant="primary" size="lg" className="w-full mt-4" onClick={() => setPhase('quiz')}>
-							Начать
+							{startLabel}
 						</Button>
 					</div>
 				)}

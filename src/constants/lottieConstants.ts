@@ -53,6 +53,7 @@ import LottieTestRandomVtelefone from '@/public/Lottie/test/random-vtelefone.jso
 import LottieTestFinalTheend from '@/public/Lottie/test/final-theend.json'
 import LottieTestFinalSpasibo from '@/public/Lottie/test/final-spasibo.json'
 import LottieTestFinalDojd from '@/public/Lottie/test/final-dojd.json'
+import LottieTestPizza from '@/public/Lottie/test/pizza.json'
 
 // Группировка по назначению
 export const LOTTIE_START_LIST = [
@@ -152,6 +153,8 @@ export const LOTTIE_BOSS_DEATH_LOW_HP = LottieDeathLowHp
 // Экран выбора предмета на /test (app/test/test-picker-client.tsx) — слева
 // и справа по одному случайному ролику из этого пула (гарантированно
 // разные, см. getTwoDistinctRandomLotties), пока предмет не выбран.
+// random-vtelefone сюда не входит — он зарезервирован под интро-экран
+// конкретного теста (LOTTIE_TEST_INTRO), см. ниже.
 export const LOTTIE_TEST_PICKER_LIST = [
   LottieTestRandomDnevnik,
   LottieTestRandomFalltree,
@@ -160,8 +163,14 @@ export const LOTTIE_TEST_PICKER_LIST = [
   LottieTestRandomNuprivet,
   LottieTestRandomSleep,
   LottieTestRandomTrain,
-  LottieTestRandomVtelefone,
 ] as const
+
+// Интро-экран конкретного теста (app/test/[subject]/diagnostic-client.tsx,
+// phase='intro') — всегда один и тот же ролик, не случайный.
+export const LOTTIE_TEST_INTRO = LottieTestRandomVtelefone
+
+// Маленький значок "можно выиграть пиццу" на интро-экране теста.
+export const LOTTIE_TEST_PIZZA = LottieTestPizza
 
 // Экран результата диагностического теста (app/test/[subject]/diagnostic-client.tsx)
 // — если есть хоть один верный ответ, один из двух случайно; если верных
