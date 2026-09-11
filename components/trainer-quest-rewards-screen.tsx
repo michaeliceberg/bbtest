@@ -66,9 +66,12 @@ type Props = {
 type Tone = 'common' | 'rare' | 'mythic' | 'info'
 
 const TONE_STYLE: Record<Tone, { color: string; bg: string; border: string; glow: string }> = {
-    common: { color: '#9CA3AF', bg: 'rgba(156,163,175,0.12)', border: 'rgba(156,163,175,0.5)', glow: 'rgba(156,163,175,0.35)' },
-    rare: { color: '#38BDF8', bg: 'rgba(56,189,248,0.12)', border: 'rgba(56,189,248,0.5)', glow: 'rgba(56,189,248,0.4)' },
-    mythic: { color: '#FBBF24', bg: 'rgba(251,191,36,0.14)', border: 'rgba(251,191,36,0.55)', glow: 'rgba(251,191,36,0.45)' },
+    // bg для common/rare/mythic — сплошная заливка под цвет самой
+    // иллюстрации сундука (public/chests/), не полупрозрачный тон акцента,
+    // как раньше (по прямой просьбе пользователя, значения даны им же).
+    common: { color: '#9CA3AF', bg: '#131D22', border: 'rgba(156,163,175,0.5)', glow: 'rgba(156,163,175,0.35)' },
+    rare: { color: '#38BDF8', bg: '#00C5FF', border: 'rgba(56,189,248,0.5)', glow: 'rgba(56,189,248,0.4)' },
+    mythic: { color: '#FBBF24', bg: '#A868FC', border: 'rgba(251,191,36,0.55)', glow: 'rgba(251,191,36,0.45)' },
     info: { color: '#A78BFA', bg: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.5)', glow: 'rgba(167,139,250,0.4)' },
 }
 
