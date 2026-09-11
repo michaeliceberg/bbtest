@@ -29,7 +29,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Gift, Smile, Meh } from 'lucide-react'
+import { Smile, Meh } from 'lucide-react'
 import { Button } from './ui/button'
 import { daysWord } from '@/usefulFunctions'
 
@@ -72,6 +72,16 @@ const TONE_STYLE: Record<Tone, { color: string; bg: string; border: string; glow
     info: { color: '#A78BFA', bg: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.5)', glow: 'rgba(167,139,250,0.4)' },
 }
 
+// Реальные иллюстрации сундуков (public/chests/, нарисованы пользователем)
+// вместо универсальной иконки Gift — от простого common к более редкому
+// mythic, ровно тот же порядок редкости, что уже задан TONE_STYLE/
+// порядком карточек ниже. 'info' (карточка ДЗ) — не сундук, картинки нет.
+const CHEST_IMG: Partial<Record<Tone, string>> = {
+    common: '/chests/comm0001.svg',
+    rare: '/chests/rare0001.svg',
+    mythic: '/chests/myth0001.svg',
+}
+
 // Родительный падеж (нужен для "за <месяц>") — Intl не всегда даёт нужный
 // падеж стабильно для ru-RU, надёжнее захардкодить.
 const MONTH_GENITIVE = [
@@ -86,7 +96,7 @@ const MONTH_GENITIVE = [
 // одном и том же месте, чтобы взгляд не искал его заново на каждой карточке.
 const RewardRow = ({
     current, target, icon, tone, delay,
-}: { current: number; target: number; icon: React.ReactNode; tone: Tone; delay: number }) => {
+}: { current: number; target: number; icon?: React.ReactNode; tone: Tone; delay: number }) => {
     const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0
     const isDone = target > 0 && current >= target
     const style = TONE_STYLE[tone]
@@ -125,10 +135,15 @@ const RewardRow = ({
                 </span>
             </div>
             <div
-                className="relative shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
+                className="relative shrink-0 w-14 h-14 rounded-xl flex items-center justify-center overflow-hidden"
                 style={{ backgroundColor: style.bg, border: `2px solid ${style.border}`, boxShadow: isDone ? `0 0 14px ${style.glow}` : undefined }}
             >
-                <span style={{ color: style.color }}>{icon}</span>
+                {CHEST_IMG[tone] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={CHEST_IMG[tone]} alt="" className="w-11 h-11 object-contain" />
+                ) : (
+                    <span style={{ color: style.color }}>{icon}</span>
+                )}
                 {isDone && (
                     <motion.span
                         initial={{ scale: 0 }}
@@ -146,7 +161,7 @@ const RewardRow = ({
 
 const RewardCard = ({
     title, caption, current, target, icon, tone, delay,
-}: { title: string; caption?: string; current: number; target: number; icon: React.ReactNode; tone: Tone; delay: number }) => (
+}: { title: string; caption?: string; current: number; target: number; icon?: React.ReactNode; tone: Tone; delay: number }) => (
     <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -191,7 +206,6 @@ export const TrainerQuestRewardsScreen = ({ data, onOpenChest, hasCase }: Props)
                     caption={courseStreak ? `🔥 ${courseStreak} ${daysWord(courseStreak)} подряд` : undefined}
                     current={1}
                     target={1}
-                    icon={<Gift className="w-5 h-5" />}
                     tone="common"
                     delay={0}
                 />
@@ -199,7 +213,6 @@ export const TrainerQuestRewardsScreen = ({ data, onOpenChest, hasCase }: Props)
                     title="Дайте 5 верных ответов подряд в 2 уроках"
                     current={streak5Current}
                     target={streak5Target}
-                    icon={<Gift className="w-5 h-5" />}
                     tone="rare"
                     delay={0.15}
                 />
@@ -207,7 +220,6 @@ export const TrainerQuestRewardsScreen = ({ data, onOpenChest, hasCase }: Props)
                     title="Пройдите 2 урока без ошибок"
                     current={perfectCurrent}
                     target={perfectTarget}
-                    icon={<Gift className="w-5 h-5" />}
                     tone="mythic"
                     delay={0.3}
                 />
