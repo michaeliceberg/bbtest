@@ -924,6 +924,9 @@ export const diagnosticQuestions = pgTable('diagnostic_questions', {
 	firstTLessonId: integer('first_t_lesson_id'),
 	t_challengeId: integer('t_challenge_id'), // источник, для трассировки/пересидирования, без FK
 	question: text('question').notNull(),
+	// Только для заданий типа DIAGRAM (например "Геометрия: sin/cos/tg") —
+	// имя файла в public/trainer-images/, как и у t_challenges.imageSrc.
+	imageSrc: text('image_src'),
 	// JSON.stringify([{text, correct}, ...]) — самодостаточный снимок,
 	// не завязан на живой t_challengeOptions.
 	optionsJson: text('options_json').notNull(),

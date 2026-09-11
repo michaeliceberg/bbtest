@@ -35,6 +35,7 @@ export type DiagnosticQuestion = {
 	tUnitTitle: string;
 	firstTLessonId: number | null;
 	question: string;
+	imageSrc: string | null;
 	options: DiagnosticOption[];
 };
 

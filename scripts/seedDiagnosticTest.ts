@@ -27,11 +27,17 @@ import { t_challenges, t_lessons, t_units, diagnosticQuestions } from "@/db/sche
 import { eq, inArray, sql } from "drizzle-orm";
 
 // ЗАПОЛНИТЕ ЭТИ ДВА СПИСКА РЕАЛЬНЫМИ id ЗАДАЧ ИЗ ТРЕНАЖЁРА (t_challenges.id)
-const MATH_CHALLENGE_IDS: number[] = [];
-const PHYSICS_CHALLENGE_IDS: number[] = [];
+// TODO(временно, для смоук-теста по просьбе пользователя): по одному
+// заданию из каждого юнита тренажёра "Математика-11"/"Физика-11".
+// В математике пропущены юниты "Таблица значений" (TRIGTABLE) и
+// "Теорема Виета" (VIETA) — их формат (заполнение таблицы/подбор пары
+// чисел) структурно не сводится к "выбери один из четырёх вариантов".
+// Пользователь сам заменит на финальный набор позже.
+const MATH_CHALLENGE_IDS: number[] = [2229, 2285, 3046, 2189];
+const PHYSICS_CHALLENGE_IDS: number[] = [2103101001, 2103102002, 2103103002, 2103104001, 2103105003, 305, 2208];
 
 const SIMPLE_TYPES = new Set([
-  "M_ASC", "ASSIST", "CONNECT", "INSERT", "SWIPE", "SCROLL", "PICMATCH",
+  "M_ASC", "ASSIST", "CONNECT", "INSERT", "SWIPE", "SCROLL", "PICMATCH", "DIAGRAM",
 ]);
 
 const OPTIONS_PER_QUESTION = 4;
@@ -106,6 +112,7 @@ async function buildQuestion(challengeId: number, order: number, subject: "math"
     firstTLessonId: firstLesson?.id ?? null,
     t_challengeId: challenge.id,
     question: challenge.question,
+    imageSrc: challenge.imageSrc && challenge.imageSrc.trim() !== "" ? challenge.imageSrc : null,
     optionsJson: JSON.stringify(options),
   };
 }

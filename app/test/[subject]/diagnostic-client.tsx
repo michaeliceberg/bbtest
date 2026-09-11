@@ -11,6 +11,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Latex from 'react-latex-next';
+import Image from 'next/image';
 import { ChevronRight, Loader2, Phone, Share2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { submitDiagnosticLead } from '@/actions/diagnostic';
@@ -199,9 +200,19 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 							<span className="text-xs text-[#9AA7B0] shrink-0">{index + 1}/{questions.length}</span>
 						</div>
 
-						<div className="text-lg font-semibold mb-6 leading-snug">
+						<div className="text-lg font-semibold mb-4 leading-snug">
 							<Latex>{currentQuestion.question}</Latex>
 						</div>
+
+						{currentQuestion.imageSrc && (
+							<Image
+								className="mx-auto w-full max-w-[420px] h-auto max-h-[32vh] object-contain mb-4"
+								src={`/trainer-images/${currentQuestion.imageSrc}`}
+								alt=""
+								height={280}
+								width={420}
+							/>
+						)}
 
 						<div className={`grid gap-3 ${shuffledOptions.length % 2 === 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
 							{shuffledOptions.map((opt) => {

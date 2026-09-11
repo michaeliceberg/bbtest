@@ -52,6 +52,7 @@ export default async function DiagnosticTestPage({ params, searchParams }: Props
 		tUnitTitle: r.t_unitTitle,
 		firstTLessonId: r.firstTLessonId,
 		question: r.question,
+		imageSrc: r.imageSrc,
 		options: JSON.parse(r.optionsJson),
 	}));
 
