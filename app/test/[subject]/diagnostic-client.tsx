@@ -14,6 +14,7 @@ import Latex from 'react-latex-next';
 import Image from 'next/image';
 import { ChevronRight, Loader2, Phone, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ScrambleText } from '@/components/ScrambleText';
 import { submitDiagnosticLead } from '@/actions/diagnostic';
 import { DIAGNOSTIC_SUBJECT_LABEL, shuffle, type DiagnosticQuestion, type DiagnosticSubject } from '@/lib/diagnostic';
 import {
@@ -49,6 +50,17 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 	const { data: session } = useSession();
 
 	const [phase, setPhase] = useState<Phase>('intro');
+	// Текст кнопки старта чередуется через scramble-эффект (ScrambleText) —
+	// только пока виден интро-экран, чтобы не гонять таймер впустую на
+	// остальных фазах.
+	const [startLabel, setStartLabel] = useState('Я ПОБЕДЮ');
+	useEffect(() => {
+		if (phase !== 'intro') return;
+		const id = setInterval(() => {
+			setStartLabel((prev) => (prev === 'Я ПОБЕДЮ' ? 'ВПЕРЁД ВПЕРЁД ВПЕРЁД' : 'Я ПОБЕДЮ'));
+		}, 2600);
+		return () => clearInterval(id);
+	}, [phase]);
 	const [index, setIndex] = useState(0);
 	const [selected, setSelected] = useState<string | null>(null);
 	const [checked, setChecked] = useState(false);
@@ -210,7 +222,7 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 							<p className="text-[#9AA7B0] font-semibold">Так же вы можете выиграть пиццу!</p>
 						</div>
 						<Button variant="primary" size="lg" className="w-full h-14 mt-4" onClick={() => setPhase('quiz')}>
-							Я ПОБЕДЮ
+							<ScrambleText text={startLabel} />
 						</Button>
 					</div>
 				)}
