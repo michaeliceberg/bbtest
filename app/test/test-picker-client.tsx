@@ -3,10 +3,11 @@
 // app/test/test-picker-client.tsx
 //
 // Экран выбора предмета для анонимного диагностического теста: слева
-// физика, справа математика — у каждой стороны свой случайный Lottie
-// (серый и не играет, пока сторона не выбрана; цветной и в цикле, когда
-// выбрана), снизу овальная кнопка-переключатель. "Погнали" ведёт на
-// /test/{subject} с сохранением utm.
+// физика (голубой акцент), справа математика (фиолетовый) — у каждой
+// стороны свой случайный Lottie (серый и не играет, пока сторона не
+// выбрана; цветной и в цикле, когда выбрана), снизу овальная
+// кнопка-переключатель в цвет предмета. "Погнали" ведёт на /test/{subject}
+// с сохранением utm.
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -22,9 +23,17 @@ type Props = {
 	utm: { source: string | null; medium: string | null; campaign: string | null };
 };
 
-const SUBJECTS: { key: DiagnosticSubject; label: string }[] = [
-	{ key: 'physics', label: 'Физика' },
-	{ key: 'math', label: 'Математика' },
+type ColorScheme = { fill: string; border: string; text: string };
+
+// Физика — голубой (тот же акцент, что уже используют диаграммы физики/
+// геометрии по всему проекту, см. public/geometry/*), математика —
+// фиолетовый (уже был здесь изначально, не менялся).
+const PHYSICS_COLORS: ColorScheme = { fill: '#38BDF8', border: '#0284C7', text: '#0F171A' };
+const MATH_COLORS: ColorScheme = { fill: '#A78BFA', border: '#7C3AED', text: '#0F171A' };
+
+const SUBJECTS: { key: DiagnosticSubject; label: string; colors: ColorScheme }[] = [
+	{ key: 'physics', label: 'Физика', colors: PHYSICS_COLORS },
+	{ key: 'math', label: 'Математика', colors: MATH_COLORS },
 ];
 
 export const TestPickerClient = ({ utm }: Props) => {
@@ -49,34 +58,37 @@ export const TestPickerClient = ({ utm }: Props) => {
 
 	return (
 		<div className="min-h-screen bg-[#0F171A] text-[#F2F7FB] flex flex-col items-center px-4 py-8">
-			<Image src="/ggegelogo.svg" alt="ggege" height={40} width={80} className="h-10 w-20 mb-6" />
-
-			<h1 className="text-2xl font-extrabold mb-8 text-center">Выбери тест:</h1>
-
-			<div className="w-full max-w-lg grid grid-cols-2 gap-4">
-				<SubjectColumn
-					lottieData={leftLottie}
-					label="Физика"
-					isSelected={selected === 'physics'}
-					onSelect={() => setSelected('physics')}
-				/>
-				<SubjectColumn
-					lottieData={rightLottie}
-					label="Математика"
-					isSelected={selected === 'math'}
-					onSelect={() => setSelected('math')}
-				/>
+			<div className="flex items-center gap-3 mb-4 self-start">
+				<Image src="/ggegelogo.svg" alt="ggege" height={64} width={128} className="h-16 w-32" />
+				<span className="text-lg font-bold text-[#9AA7B0]">ggege.ru</span>
 			</div>
 
-			<Button
-				variant="primary"
-				size="lg"
-				className="w-full max-w-lg mt-10"
-				disabled={!selected}
-				onClick={goStart}
-			>
-				Погнали
-			</Button>
+			<div className="flex-1 w-full flex flex-col items-center justify-center">
+				<h1 className="text-2xl font-extrabold mb-8 text-center">Выбери тест:</h1>
+
+				<div className="w-full max-w-lg grid grid-cols-2 gap-4">
+					{SUBJECTS.map((s, i) => (
+						<SubjectColumn
+							key={s.key}
+							lottieData={i === 0 ? leftLottie : rightLottie}
+							label={s.label}
+							colors={s.colors}
+							isSelected={selected === s.key}
+							onSelect={() => setSelected(s.key)}
+						/>
+					))}
+				</div>
+
+				<Button
+					variant="primary"
+					size="lg"
+					className="w-full max-w-lg mt-10"
+					disabled={!selected}
+					onClick={goStart}
+				>
+					Погнали
+				</Button>
+			</div>
 		</div>
 	);
 };
@@ -84,15 +96,16 @@ export const TestPickerClient = ({ utm }: Props) => {
 type SubjectColumnProps = {
 	lottieData: unknown;
 	label: string;
+	colors: ColorScheme;
 	isSelected: boolean;
 	onSelect: () => void;
 };
 
-const SubjectColumn = ({ lottieData, label, isSelected, onSelect }: SubjectColumnProps) => (
+const SubjectColumn = ({ lottieData, label, colors, isSelected, onSelect }: SubjectColumnProps) => (
 	<button onClick={onSelect} className="flex flex-col items-center gap-4 group">
 		<div
 			className="w-full aspect-square rounded-2xl border-2 flex items-center justify-center overflow-hidden transition-colors"
-			style={{ borderColor: isSelected ? '#A78BFA' : '#3A464E', backgroundColor: '#151F23' }}
+			style={{ borderColor: isSelected ? colors.fill : '#3A464E', backgroundColor: '#151F23' }}
 		>
 			<div
 				className="w-full h-full transition-all duration-300"
@@ -109,7 +122,7 @@ const SubjectColumn = ({ lottieData, label, isSelected, onSelect }: SubjectColum
 			className="w-full rounded-full border-2 border-b-4 px-4 py-3 text-center font-bold uppercase tracking-wide transition-colors active:border-b-2"
 			style={
 				isSelected
-					? { backgroundColor: '#A78BFA', borderColor: '#7C3AED', color: '#0F171A' }
+					? { backgroundColor: colors.fill, borderColor: colors.border, color: colors.text }
 					: { backgroundColor: '#161F23', borderColor: '#3A464E', color: '#F2F7FB' }
 			}
 		>
