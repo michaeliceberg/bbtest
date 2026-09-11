@@ -19,9 +19,13 @@ const TELEGRAM_BOT_USERNAME = 'brickbrain007_bot';
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  // Куда попасть сразу после успешного входа — по умолчанию /learn, как
+  // было раньше везде. Диагностический тест (app/test/[subject]) передаёт
+  // сюда прямую ссылку на тренажёр по слабой теме.
+  callbackUrl?: string;
 };
 
-export const LoginDialog = ({ open, onOpenChange }: Props) => {
+export const LoginDialog = ({ open, onOpenChange, callbackUrl = '/learn' }: Props) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm w-[calc(100%-2rem)] min-w-0">
@@ -30,7 +34,7 @@ export const LoginDialog = ({ open, onOpenChange }: Props) => {
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-4 py-2 w-full min-w-0">
-          <PhoneCallLogin callbackUrl="/learn" />
+          <PhoneCallLogin callbackUrl={callbackUrl} />
 
           <div className="flex items-center gap-2 w-full">
             <div className="h-px flex-1 bg-[#3A464E]" />
@@ -38,7 +42,7 @@ export const LoginDialog = ({ open, onOpenChange }: Props) => {
             <div className="h-px flex-1 bg-[#3A464E]" />
           </div>
 
-          <TelegramLoginButton botUsername={TELEGRAM_BOT_USERNAME} />
+          <TelegramLoginButton botUsername={TELEGRAM_BOT_USERNAME} callbackUrl={callbackUrl} />
 
           <div className="flex items-center gap-2 w-full">
             <div className="h-px flex-1 bg-[#3A464E]" />
@@ -48,7 +52,7 @@ export const LoginDialog = ({ open, onOpenChange }: Props) => {
 
           <Button
             className="w-full flex items-center justify-center gap-2"
-            onClick={() => signIn('vk', { callbackUrl: '/learn' })}
+            onClick={() => signIn('vk', { callbackUrl })}
           >
             <VkIcon className="h-5 w-5 flex-shrink-0" />
             Войти через VK

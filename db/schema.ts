@@ -908,6 +908,43 @@ export const pizzaOrders = pgTable('pizza_orders', {
 
 
 
+// Анонимный диагностический тест (математика/физика) — воронка без
+// регистрации: 7-8 вопросов, взятых из тренажёра (t_challenges), снятых
+// "снимком" в момент сидирования скриптом scripts/seedDiagnosticTest.ts
+// (текст вопроса + варианты + правильный ответ скопированы как есть,
+// без runtime-зависимости от сложного рендер-пайплайна тренажёра).
+export const diagnosticQuestions = pgTable('diagnostic_questions', {
+	id: serial('id').primaryKey(),
+	subject: text('subject').notNull(), // 'math' | 'physics'
+	order: integer('order').notNull(),
+	t_unitId: integer('t_unit_id').references(() => t_units.id, { onDelete: 'set null' }),
+	t_unitTitle: text('t_unit_title').notNull(),
+	// Первый (по order) урок-этап этой темы в тренажёре — прямая ссылка
+	// для CTA на экране результата ("открыть тренажёр по слабой теме").
+	firstTLessonId: integer('first_t_lesson_id'),
+	t_challengeId: integer('t_challenge_id'), // источник, для трассировки/пересидирования, без FK
+	question: text('question').notNull(),
+	// JSON.stringify([{text, correct}, ...]) — самодостаточный снимок,
+	// не завязан на живой t_challengeOptions.
+	optionsJson: text('options_json').notNull(),
+	createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Лиды — номера телефонов, оставленные после диагностического теста.
+export const diagnosticLeads = pgTable('diagnostic_leads', {
+	id: serial('id').primaryKey(),
+	subject: text('subject').notNull(),
+	phone: text('phone').notNull(),
+	score: integer('score').notNull(),
+	totalQuestions: integer('total_questions').notNull(),
+	weakUnitTitle: text('weak_unit_title'),
+	utmSource: text('utm_source'),
+	utmMedium: text('utm_medium'),
+	utmCampaign: text('utm_campaign'),
+	createdAt: timestamp('created_at').defaultNow(),
+});
+
+
 // db/schema.ts - добавить в файл после определения таблиц
 
 // Индексы

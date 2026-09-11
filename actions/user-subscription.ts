@@ -55,6 +55,9 @@ export const createStripeUrl = async () => {
         metadata: {
             userId,
         },
+        // Промокоды диагностического теста (scripts/createDiagnosticCoupon.ts)
+        // вводятся пользователем вручную на этом экране Stripe Checkout.
+        allow_promotion_codes: true,
         success_url: returnUrl,
         cancel_url: returnUrl,
     })
