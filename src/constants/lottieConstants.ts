@@ -50,9 +50,13 @@ import LottieTestRandomNuprivet from '@/public/Lottie/test/random-nuprivet.json'
 import LottieTestRandomSleep from '@/public/Lottie/test/random-sleep.json'
 import LottieTestRandomTrain from '@/public/Lottie/test/random-train.json'
 import LottieTestRandomVtelefone from '@/public/Lottie/test/random-vtelefone.json'
-import LottieTestFinalTheend from '@/public/Lottie/test/final-theend.json'
-import LottieTestFinalSpasibo from '@/public/Lottie/test/final-spasibo.json'
-import LottieTestFinalDojd from '@/public/Lottie/test/final-dojd.json'
+import LottieTestFinalBest1 from '@/public/Lottie/test/final-best1.json'
+import LottieTestFinalBest2 from '@/public/Lottie/test/final-best2.json'
+import LottieTestFinalSoso1 from '@/public/Lottie/test/final-soso1.json'
+import LottieTestFinalSoso2 from '@/public/Lottie/test/final-soso2.json'
+import LottieTestFinalSoso3 from '@/public/Lottie/test/final-soso3.json'
+import LottieTestFinalBad1 from '@/public/Lottie/test/final-bad1.json'
+import LottieTestFinalBad2 from '@/public/Lottie/test/final-bad2.json'
 import LottieTestPizza from '@/public/Lottie/test/pizza.json'
 
 // Группировка по назначению
@@ -173,14 +177,23 @@ export const LOTTIE_TEST_INTRO = LottieTestRandomVtelefone
 export const LOTTIE_TEST_PIZZA = LottieTestPizza
 
 // Экран результата диагностического теста (app/test/[subject]/diagnostic-client.tsx)
-// — если есть хоть один верный ответ, один из двух случайно; если верных
-// ответов нет вообще — LOTTIE_TEST_RESULT_ZERO (без выбора).
-export const LOTTIE_TEST_RESULT_GOOD_LIST = [
-  LottieTestFinalTheend,
-  LottieTestFinalSpasibo,
+// — три тира по проценту верных ответов, один ролик внутри тира случайно:
+// 100% → BEST, 50-99% → SOSO, <50% → BAD.
+export const LOTTIE_TEST_RESULT_BEST_LIST = [
+  LottieTestFinalBest1,
+  LottieTestFinalBest2,
 ] as const
 
-export const LOTTIE_TEST_RESULT_ZERO = LottieTestFinalDojd
+export const LOTTIE_TEST_RESULT_SOSO_LIST = [
+  LottieTestFinalSoso1,
+  LottieTestFinalSoso2,
+  LottieTestFinalSoso3,
+] as const
+
+export const LOTTIE_TEST_RESULT_BAD_LIST = [
+  LottieTestFinalBad1,
+  LottieTestFinalBad2,
+] as const
 
 // Выбирает N попарно различных случайных элементов списка (без повторов) —
 // нужен экрану /test, где слева и справа не должен выпасть один и тот же

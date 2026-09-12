@@ -1,6 +1,6 @@
 "use client"
 
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import dynamic from "next/dynamic"
 import { useEffect, useState, useRef } from "react"
 import Latex from 'react-latex-next'
@@ -9,8 +9,8 @@ import 'katex/dist/katex.min.css'
 const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
 
 // Реплики маскота теперь не пропадают "в пустоту" по таймеру — они
-// висят на экране, пока не придёт следующая (при смене эмоции), и тогда
-// AnimatePresence плавно меняет старую фразу на новую.
+// висят на экране, пока не придёт следующая (при смене эмоции или
+// задания), и тогда key-ремонт (см. ниже) меняет старую фразу на новую.
 
 interface TrainerMascotProps {
   emotion: "happy" | "sad" | "thinking" | "celebrating" | "waiting" | "angry" | "neutral"
@@ -151,46 +151,50 @@ export const TrainerMascot = ({
           (flex-1) и текст крупнее, вместо узкой фиксированной пилюли,
           чтобы было удобнее читать текст задания. key только на текст
           (не на emotion+текст), чтобы переход thinking→waiting с ОДНИМ и
-          тем же taskMessage не перезапускал анимацию появления зря */}
-      <AnimatePresence mode="wait">
-        {isMessageVisible && currentMessage && (
-          <motion.div
-            key={currentMessage}
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{
-              scale: 1,
-              opacity: 1,
-              // Пульсирующая тень в цвет подписи "Босс" (#DC605B),
-              // расходящаяся во все стороны — только на боссовском этапе.
-              ...(isBossStage
-                ? {
-                    boxShadow: [
-                      "0 0 0px 0px rgba(220,96,91,0)",
-                      "0 0 26px 10px rgba(220,96,91,0.55)",
-                      "0 0 0px 0px rgba(220,96,91,0)",
-                    ],
-                  }
-                : {}),
-            }}
-            exit={{ scale: 0, opacity: 0 }}
-            transition={{
-              default: { type: "spring", stiffness: 400, damping: 25 },
-              ...(isBossStage
-                ? { boxShadow: { duration: 1.6, repeat: Infinity, ease: "easeInOut" } }
-                : {}),
-            }}
-            className="relative flex-1 min-w-0 px-4 py-3 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]"
-          >
-            <span className="text-[#F2F7FB] font-bold text-base md:text-lg whitespace-normal break-words">
-              <Latex>{currentMessage}</Latex>
-            </span>
-            {/* Стрелка слева, указывающая влево < */}
-            <div className="absolute -left-3 top-1/2 -translate-y-1/2 text-[#3A464E] text-xl font-bold">
-              &lt;
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          тем же taskMessage не перезапускал анимацию появления зря.
+          Раньше это было обёрнуто в AnimatePresence mode="wait" — тот же
+          класс бага, что уже чинили в TypeAssist/trainer-question.tsx
+          (framer-motion не всегда вызывает колбэк завершения exit-
+          анимации): при быстрой смене вопросов новое сообщение иногда
+          НИКОГДА не появлялось, облако застревало на тексте предыдущего
+          задания навсегда. Обычный key-ремонт без exit гарантированно и
+          синхронно подменяет узел, не полагаясь на чужую анимацию. */}
+      {isMessageVisible && currentMessage && (
+        <motion.div
+          key={currentMessage}
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{
+            scale: 1,
+            opacity: 1,
+            // Пульсирующая тень в цвет подписи "Босс" (#DC605B),
+            // расходящаяся во все стороны — только на боссовском этапе.
+            ...(isBossStage
+              ? {
+                  boxShadow: [
+                    "0 0 0px 0px rgba(220,96,91,0)",
+                    "0 0 26px 10px rgba(220,96,91,0.55)",
+                    "0 0 0px 0px rgba(220,96,91,0)",
+                  ],
+                }
+              : {}),
+          }}
+          transition={{
+            default: { type: "spring", stiffness: 400, damping: 25 },
+            ...(isBossStage
+              ? { boxShadow: { duration: 1.6, repeat: Infinity, ease: "easeInOut" } }
+              : {}),
+          }}
+          className="relative flex-1 min-w-0 px-4 py-3 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]"
+        >
+          <span className="text-[#F2F7FB] font-bold text-base md:text-lg whitespace-normal break-words">
+            <Latex>{currentMessage}</Latex>
+          </span>
+          {/* Стрелка слева, указывающая влево < */}
+          <div className="absolute -left-3 top-1/2 -translate-y-1/2 text-[#3A464E] text-xl font-bold">
+            &lt;
+          </div>
+        </motion.div>
+      )}
     </div>
   )
 }
