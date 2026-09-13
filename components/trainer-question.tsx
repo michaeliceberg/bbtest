@@ -23,6 +23,7 @@ import { TypeFracTrick } from "@/app/t-lesson/[t_lessonId]/type-fractrick"
 import { TypeTrigTable } from "@/app/t-lesson/[t_lessonId]/type-trigtable"
 import { TypeUnitCircle } from "@/app/t-lesson/[t_lessonId]/type-unitcircle"
 import { TypeVieta } from "@/app/t-lesson/[t_lessonId]/type-vieta"
+import { TypeSinWalk } from "@/app/t-lesson/[t_lessonId]/type-sinwalk"
 import { TypeWorkbook } from "@/app/t-lesson/[t_lessonId]/type-workbook"
 import { TypeConstructor } from "@/app/t-lesson/[t_lessonId]/type-constructor"
 
@@ -315,6 +316,13 @@ export default function TrainerQuestion({
 
       case "MULTISTEP":
         return <TypeMultistep question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
+
+      case "SINWALK":
+        // Самодостаточный тип, тот же контракт onComplete, что и у
+        // MULTISTEP — переиспользуем тот же обработчик (не завязан на
+        // конкретный тип, просто красит answerState/маскота по итоговому
+        // verdict'у). См. type-sinwalk.tsx.
+        return <TypeSinWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
 
       case "TRIGTABLE":
         // select-then-submit, тот же контракт, что у ASSIST/INSERT/SCROLL —

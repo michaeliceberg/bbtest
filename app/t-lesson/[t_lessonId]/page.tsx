@@ -683,6 +683,28 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     };
 
     questions = lessonChallenges.map((t_challenge, index): QuestionType | undefined => {
+        if (t_challenge.type === 'SINWALK') {
+            // Полностью самодостаточный тип (см. type-sinwalk.tsx) — вся
+            // хореография и тренировочные испытания генерируются на лету
+            // внутри самого компонента (случайный поворот/зеркало/угол
+            // альфа при каждом монтировании), никаких данных из БД читать
+            // не требуется — тот же принцип "вопрос ничего не хранит",
+            // что уже у CHECK/SPEED.
+            return {
+                questionType: 'SINWALK' as const,
+                question: t_challenge.question,
+                imageSrc: t_challenge.imageSrc,
+                options: [],
+                numRans: t_challenge.numRans,
+                optionsQ: [],
+                optionsA: [],
+                optionsConstructRight: [],
+                difficulty: t_challenge.difficulty,
+                correctAnswer: 'right',
+                timeLimit: 999,
+            };
+        }
+
         if (t_challenge.type === 'MULTISTEP') {
             let steps: MultistepStep[] = [];
             try {
