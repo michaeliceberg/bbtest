@@ -120,6 +120,47 @@ export const TypedLine = ({ text, className, onSettled, delayAfter = 500 }: { te
     )
 }
 
+// Печатаемая строка объяснения с ОДНОЙ ключевой фразой внутри — печатается
+// целиком обычным Typewriter'ом (так печать не спотыкается о разметку
+// посреди слова), а после завершения печати именно эта фраза заменяется на
+// специально оформленную версию (жирный цвет, опционально мигающая) —
+// привлекает внимание к новому термину. Параметризуема цветом, чтобы
+// разные разборы переиспользовали один и тот же приём под свою
+// терминологию/палитру (см. TypeSinWalk — "гипотенуза"/"противолежащий
+// катет", каждая тем же цветом, что и её подпись на диаграмме).
+export const TypedKeyPhraseLine = ({
+    before, phrase, after = '.', color, pulse = false, className, onSettled,
+}: {
+    before: string; phrase: string; after?: string; color: string; pulse?: boolean
+    className?: string; onSettled?: () => void
+}) => {
+    const [typed, setTyped] = useState(false)
+    return (
+        <div className={className ?? 'w-full text-base md:text-lg text-[#F2F7FB]'}>
+            {!typed ? (
+                <Typewriter
+                    text={`${before}${phrase}${after}`}
+                    onDone={() => { setTyped(true); setTimeout(() => onSettled?.(), 450) }}
+                />
+            ) : (
+                <>
+                    {before}
+                    {pulse ? (
+                        <motion.span
+                            style={{ color, fontWeight: 800 }}
+                            animate={{ opacity: [1, 0.4, 1] }}
+                            transition={{ duration: 1.3, repeat: Infinity, ease: 'easeInOut' }}
+                        >{phrase}</motion.span>
+                    ) : (
+                        <span style={{ color, fontWeight: 800 }}>{phrase}</span>
+                    )}
+                    {after}
+                </>
+            )}
+        </div>
+    )
+}
+
 const formulaBounce = {
     initial: { opacity: 0, y: 10, scale: 0.85 },
     animate: { opacity: 1, y: 0, scale: 1 },

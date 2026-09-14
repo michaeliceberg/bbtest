@@ -28,10 +28,17 @@ import { motion } from 'framer-motion'
 
 const BG = '#161F23'
 const EDGE = '#F2F7FB'
-const RIGHT_ANGLE_COLOR = '#9AA7B0'
+// Раньше серый (#9AA7B0) — пользователь отметил, что выглядит скучно и
+// "неактивно". Яркий оранжевый — не занят другими смыслами в этой
+// диаграмме (фиолетовый=гипотенуза, золотой=противолежащий катет,
+// синий=угол альфа).
+const RIGHT_ANGLE_COLOR = '#FB923C'
 const ALPHA_COLOR = '#4A90D9'          // тот же синий, что ACTIVE_COLOR в WalkthroughLog — "вот угол, на который сейчас смотрим"
-const HYPOTENUSE_COLOR = '#8B5CF6'     // тот же фиолетовый, что HYPOTENUSE_COLOR в TrapezoidDiagram
-const OPPOSITE_LEG_COLOR = '#4ADE80'   // тот же зелёный, что SEGMENT_COLOR в TrapezoidDiagram — "вот сторона, которую нашли"
+export const HYPOTENUSE_COLOR = '#8B5CF6'     // тот же фиолетовый, что HYPOTENUSE_COLOR в TrapezoidDiagram
+// Раньше зелёный — пользователь попросил золотой/мигающий цвет именно
+// для "противолежащего катета" (ключевая фраза, привлекающая внимание),
+// экспортируется, чтобы TypeSinWalk красил тем же цветом текст фразы.
+export const OPPOSITE_LEG_COLOR = '#FBBF24'
 const CORRECT_COLOR = '#A1D151'
 const WRONG_COLOR = '#DC605B'
 const TEXT = '#F2F7FB'
@@ -80,60 +87,65 @@ export const computeTriangle = (rotationDeg: number, mirror: boolean) => {
     return { R: place(localR), P: place(localP), Q: place(localQ) }
 }
 
-const computeArrow = (from: Pt, to: Pt, headLen = 12, headWidth = 8, tailGap = 18) => {
-    const d = sub(to, from)
-    const len = Math.sqrt(d.x * d.x + d.y * d.y) || 1
-    const u = { x: d.x / len, y: d.y / len }
-    const p = { x: -u.y, y: u.x }
-    const tail = add(from, scale(u, tailGap))
-    const headBack = sub(to, scale(u, headLen))
-    const headPoints = [
-        `${to.x},${to.y}`,
-        `${headBack.x + p.x * (headWidth / 2)},${headBack.y + p.y * (headWidth / 2)}`,
-        `${headBack.x - p.x * (headWidth / 2)},${headBack.y - p.y * (headWidth / 2)}`,
-    ].join(' ')
-    return { tail, headBack, headPoints }
-}
-
 const numberBounce = {
     initial: { opacity: 0, scale: 4 },
     animate: { opacity: 1, scale: 1 },
     transition: { type: 'spring' as const, duration: 0.7, bounce: 0.55 },
 }
 
-// "?"-подобный приём из TrapezoidDiagram, тут — произвольный текстовый
-// лейбл (не только один глиф), появляющийся вместе со стрелкой,
-// указывающей на середину стороны.
-const ArrowLabel = ({ from, to, active, color, text, fontSize = 17 }: { from: Pt; to: Pt; active: boolean; color: string; text: string; fontSize?: number }) => {
-    const { tail, headBack, headPoints } = computeArrow(from, to)
+// Угол (в градусах) для transform="rotate(...)", разворачивающий текст
+// ВДОЛЬ отрезка a→b — без стрелки, само расположение+поворот+цвет уже
+// однозначно говорят, к какой стороне относится подпись (по прямой
+// просьбе пользователя убрать стрелки). Считается через atan2(dy,dx) —
+// та же формула, что и сама SVG rotate() использует внутри, поэтому
+// rotate(angleAlongLine(a,b)) гарантированно разворачивает базовую линию
+// текста ТОЧНО по вектору a→b, независимо от ориентации канваса.
+// Нормализация в (-90°, 90°] выбирает из двух коллинеарных направлений
+// (a→b и b→a отличаются на 180°) то, где глифы не переворачиваются вверх
+// ногами — а строгие сравнения (< / >, не ≤ / ≥) сохраняют РОВНО ±90°
+// без перевороту на границе, что для вертикального катета R→Q даёт
+// именно -90° (поворот против часовой стрелки, как и попросил пользователь).
+const angleAlongLine = (a: Pt, b: Pt): number => {
+    const dx = b.x - a.x
+    const dy = b.y - a.y
+    let deg = (Math.atan2(dy, dx) * 180) / Math.PI
+    if (deg > 90) deg -= 180
+    else if (deg < -90) deg += 180
+    return deg
+}
+
+// Подпись стороны, развёрнутая вдоль неё (гипотенуза/противолежащий
+// катет) — сама позиция+поворот+цвет читаются как принадлежность к
+// конкретной стороне, отдельная стрелка больше не нужна. `pulse` —
+// золотая мигающая версия для "противолежащего катета" (ключевая фраза,
+// привлекающая внимание, см. TypeSinWalk).
+const SideLabel = ({
+    a, b, labelPt, active, color, text, fontSize = 17, pulse = false,
+}: { a: Pt; b: Pt; labelPt: Pt; active: boolean; color: string; text: string; fontSize?: number; pulse?: boolean }) => {
+    const rotation = angleAlongLine(a, b)
     return (
-        <>
-            <motion.line
-                x1={tail.x} y1={tail.y} x2={headBack.x} y2={headBack.y}
-                stroke={color} strokeWidth={3} strokeLinecap="round"
-                initial={{ pathLength: 0, opacity: 0 }}
-                animate={{ pathLength: active ? 1 : 0, opacity: active ? 1 : 0 }}
-                transition={{ duration: 0.35, ease: 'easeOut', delay: active ? 0.15 : 0 }}
-            />
-            <motion.polygon
-                points={headPoints}
-                fill={color}
-                initial={{ opacity: 0, scale: 0.4 }}
-                animate={{ opacity: active ? 1 : 0, scale: active ? 1 : 0.4 }}
-                transition={{ duration: 0.25, delay: active ? 0.45 : 0 }}
-            />
-            <motion.text
-                x={from.x} y={from.y}
-                textAnchor="middle"
-                fontFamily="var(--font-nunito), sans-serif"
-                fontSize={fontSize}
-                fontWeight={800}
-                fill={color}
-                initial={{ opacity: 0, scale: 0.3 }}
-                animate={{ opacity: active ? 1 : 0, scale: active ? 1 : 0.3 }}
-                transition={{ type: 'spring', duration: 0.6, bounce: 0.45, delay: active ? 0.35 : 0 }}
-            >{text}</motion.text>
-        </>
+        <motion.text
+            x={labelPt.x} y={labelPt.y}
+            textAnchor="middle" dominantBaseline="middle"
+            transform={`rotate(${rotation} ${labelPt.x} ${labelPt.y})`}
+            fontFamily="var(--font-nunito), sans-serif"
+            fontSize={fontSize}
+            fontWeight={800}
+            fill={color}
+            initial={{ opacity: 0, scale: 0.3 }}
+            animate={
+                !active
+                    ? { opacity: 0, scale: 0.3 }
+                    : pulse
+                        ? { opacity: [1, 0.4, 1], scale: 1 }
+                        : { opacity: 1, scale: 1 }
+            }
+            transition={
+                active && pulse
+                    ? { opacity: { duration: 1.3, repeat: Infinity, ease: 'easeInOut' }, scale: { type: 'spring', duration: 0.6, bounce: 0.45 } }
+                    : { type: 'spring', duration: 0.6, bounce: 0.45 }
+            }
+        >{text}</motion.text>
     )
 }
 
@@ -180,9 +192,12 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
     // стрелки-подписи, и для точки, откуда стрелка "выезжает".
     const outward = (mid: Pt, third: Pt, dist: number): Pt => add(mid, scale(norm(sub(mid, third)), dist))
 
-    const hypLabelPt = outward(hypMid, R, 58)
-    const legRQLabelPt = outward(legRQMid, P, 66)
-    const legRPLabelPt = outward(legRPMid, Q, 40)
+    // Отступы уменьшены относительно прежней версии со стрелками — без
+    // стрелки подписи не нужно держать далеко от линии, только не
+    // перекрывать саму сторону.
+    const hypLabelPt = outward(hypMid, R, 42)
+    const legRQLabelPt = outward(legRQMid, P, 36)
+    const legRPLabelPt = outward(legRPMid, Q, 30)
 
     // Маленький квадратик прямого угла — из единичных векторов вдоль
     // обеих сторон, исходящих из R (корректно поворачивается вместе с
@@ -224,10 +239,13 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
             width = 9
         } else if (side === 'hyp' && hypotenuseHighlighted) {
             stroke = HYPOTENUSE_COLOR
-            width = 8
+            // Заметно толще базовой белой линии (6) — чтобы было видно,
+            // что новый цвет рисуется ПОВЕРХ стороны, а не просто заменяет
+            // её один в один (по прямой просьбе пользователя).
+            width = 11
         } else if (oppositeLegHighlighted && alphaVertex && side === oppositeLegOf(alphaVertex)) {
             stroke = OPPOSITE_LEG_COLOR
-            width = 8
+            width = 11
         }
         return { stroke, width }
     }
@@ -238,11 +256,26 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
 
     return (
         <div className="flex items-center justify-center py-2 px-2 mb-2 bg-[#161F23] rounded-xl overflow-hidden">
-            <svg viewBox={`0 0 ${CANVAS} ${CANVAS}`} width="100%" height="auto" style={{ maxWidth: 340 }}>
+            <svg viewBox={`0 0 ${CANVAS} ${CANVAS}`} width="100%" height="auto" style={{ maxWidth: 480 }}>
                 <rect x="0" y="0" width={CANVAS} height={CANVAS} fill={BG} />
 
+                {/* Прямой угол — рисуется ПЕРВЫМ (под линиями сторон), а не
+                    поверх них, по прямой просьбе пользователя. */}
+                <motion.path
+                    d={`M ${m1.x} ${m1.y} L ${m2.x} ${m2.y} L ${m3.x} ${m3.y}`}
+                    fill="none"
+                    stroke={RIGHT_ANGLE_COLOR}
+                    strokeWidth={4}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    initial={{ opacity: 0, scale: 0.4 }}
+                    animate={{ opacity: rightAngleMarkShown ? 1 : 0, scale: rightAngleMarkShown ? 1 : 0.4 }}
+                    transition={{ type: 'spring', duration: 0.5, bounce: 0.5 }}
+                />
+
                 {/* Стороны — сначала широкая прозрачная "зона клика" (если
-                    интерактивно), затем сама видимая линия поверх. */}
+                    интерактивно), затем сама видимая линия поверх (в т.ч.
+                    поверх маркера прямого угла выше). */}
                 {(['hyp', 'legRP', 'legRQ'] as SideId[]).map((side) => {
                     const [a, b] = side === 'hyp' ? [P, Q] : side === 'legRP' ? [R, P] : [R, Q]
                     const style = side === 'hyp' ? hypStyle : side === 'legRP' ? legRPStyle : legRQStyle
@@ -269,19 +302,6 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     )
                 })}
 
-                {/* Прямой угол — маленький уголок-маркер у R. */}
-                <motion.path
-                    d={`M ${m1.x} ${m1.y} L ${m2.x} ${m2.y} L ${m3.x} ${m3.y}`}
-                    fill="none"
-                    stroke={RIGHT_ANGLE_COLOR}
-                    strokeWidth={3}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    initial={{ opacity: 0, scale: 0.4 }}
-                    animate={{ opacity: rightAngleMarkShown ? 1 : 0, scale: rightAngleMarkShown ? 1 : 0.4 }}
-                    transition={{ type: 'spring', duration: 0.5, bounce: 0.5 }}
-                />
-
                 {/* Дуга + подпись "α" у выбранной вершины. */}
                 {alphaArc && (
                     <>
@@ -307,14 +327,16 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     </>
                 )}
 
-                <ArrowLabel from={hypLabelPt} to={hypMid} active={hypotenuseLabelShown} color={HYPOTENUSE_COLOR} text="гипотенуза" />
-                <ArrowLabel
-                    from={alphaVertex === 'P' ? legRQLabelPt : legRPLabelPt}
-                    to={alphaVertex === 'P' ? legRQMid : legRPMid}
+                <SideLabel a={P} b={Q} labelPt={hypLabelPt} active={hypotenuseLabelShown} color={HYPOTENUSE_COLOR} text="гипотенуза" />
+                <SideLabel
+                    a={R}
+                    b={alphaVertex === 'P' ? Q : P}
+                    labelPt={alphaVertex === 'P' ? legRQLabelPt : legRPLabelPt}
                     active={oppositeLegLabelShown}
                     color={OPPOSITE_LEG_COLOR}
                     text="противолежащий катет"
                     fontSize={15}
+                    pulse
                 />
 
                 {/* Вершины — маленькие точки, чтобы стороны читались как

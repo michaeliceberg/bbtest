@@ -33,9 +33,10 @@ import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
 import {
     RightTriangleDiagram, oppositeLegOf,
+    HYPOTENUSE_COLOR, OPPOSITE_LEG_COLOR,
     type AlphaVertex, type SideId,
 } from '@/components/geometry/RightTriangleDiagram'
-import { TypedLine, DiagramBlock, useStickToBottom } from '@/components/geometry/WalkthroughLog'
+import { TypedLine, TypedKeyPhraseLine, DiagramBlock, useStickToBottom } from '@/components/geometry/WalkthroughLog'
 
 type Props = {
     question: QuestionType
@@ -73,15 +74,22 @@ const nextButtonClass = (enabled: boolean) => cn(
     enabled ? 'bg-[#A1D151] border-[#78C93C] text-[#151F24]' : 'bg-[#161F23] border-[#3A464E] text-[#5A6A72] cursor-not-allowed'
 )
 
+// Число шагов обучающей части — по прямой просьбе пользователя шаги
+// больше НЕ проигрываются каскадом сами по себе: каждый требует явного
+// клика "Дальше", чтобы дать время рассмотреть рисунок, прежде чем идти
+// дальше (см. handleIntroNext).
+const INTRO_STEPS = 5
+
 export const TypeSinWalk = ({ onComplete }: Props) => {
     const [phase, setPhase] = useState<'intro' | 'practice'>('intro')
     const [hadMistake, setHadMistake] = useState(false)
 
-    // Раскрытие обучающей последовательности — 0..8 (см. комментарий у
-    // каждого блока ниже, тот же принцип, что introReveal/heightsReveal в
-    // TrapezoidWalkthrough).
-    const [introReveal, setIntroReveal] = useState(0)
-    const introBusy = phase === 'intro' && introReveal < 8
+    // Текущий обучающий шаг (0..INTRO_STEPS-1) — продвигается ТОЛЬКО по
+    // клику "Дальше"; stepReady включается, когда печать текста текущего
+    // шага завершилась (кнопка до этого задизейблена — нечего листать
+    // дальше, пока текст ещё печатается).
+    const [step, setStep] = useState(0)
+    const [stepReady, setStepReady] = useState(false)
 
     const [trialConfigs] = useState(() => makeTrialConfigs(TRIAL_COUNT))
     const [trialIndex, setTrialIndex] = useState(0)
@@ -108,7 +116,18 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
         setChecked(false)
     }
 
-    const endRef = useStickToBottom([introReveal, phase, trialIndex, checked])
+    // Клик "Дальше" в обучающей части — единственный способ продвинуться
+    // (никакого автопроигрыша). На последнем шаге переводит в практику.
+    const handleIntroNext = () => {
+        if (step + 1 >= INTRO_STEPS) {
+            setPhase('practice')
+            return
+        }
+        setStep((s) => s + 1)
+        setStepReady(false)
+    }
+
+    const endRef = useStickToBottom([step, stepReady, phase, trialIndex, checked])
 
     return (
         <div className="w-full max-w-xl mx-auto flex flex-col items-center gap-4">
@@ -117,63 +136,73 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
             </h2>
 
             <div className="w-full flex flex-col gap-4">
+                {/* Шаг 0 — просто треугольник. */}
                 <DiagramBlock><RightTriangleDiagram /></DiagramBlock>
-
                 <TypedLine
                     className="w-full text-base md:text-lg text-[#F2F7FB]"
                     text="Это прямоугольный треугольник — у него есть прямой угол."
-                    onSettled={() => setIntroReveal((r) => Math.max(r, 1))}
+                    onSettled={() => setStepReady(true)}
                 />
 
-                {introReveal >= 1 && (
-                    <DiagramBlock onSettled={() => setIntroReveal((r) => Math.max(r, 2))}>
-                        <RightTriangleDiagram rightAngleMarkShown />
-                    </DiagramBlock>
-                )}
-
-                {introReveal >= 2 && (
-                    <TypedLine
-                        className="w-full text-base md:text-lg text-[#F2F7FB]"
-                        text="Сторона напротив прямого угла — самая длинная сторона треугольника. Она называется гипотенуза."
-                        onSettled={() => setIntroReveal((r) => Math.max(r, 3))}
-                    />
-                )}
-
-                {introReveal >= 3 && (
-                    <DiagramBlock onSettled={() => setIntroReveal((r) => Math.max(r, 4))}>
-                        <RightTriangleDiagram rightAngleMarkShown hypotenuseHighlighted hypotenuseLabelShown />
-                    </DiagramBlock>
-                )}
-
-                {introReveal >= 4 && (
-                    <TypedLine
-                        className="w-full text-base md:text-lg text-[#F2F7FB]"
-                        text="Теперь выберем один из двух других углов — назовём его α (альфа)."
-                        onSettled={() => setIntroReveal((r) => Math.max(r, 5))}
-                    />
-                )}
-
-                {introReveal >= 5 && (
-                    <DiagramBlock onSettled={() => setIntroReveal((r) => Math.max(r, 6))}>
-                        <RightTriangleDiagram rightAngleMarkShown hypotenuseHighlighted alphaVertex="P" />
-                    </DiagramBlock>
-                )}
-
-                {introReveal >= 6 && (
-                    <TypedLine
-                        className="w-full text-base md:text-lg text-[#F2F7FB]"
-                        text="У угла α есть сторона, которая его НЕ касается — она называется противолежащий катет."
-                        onSettled={() => setIntroReveal((r) => Math.max(r, 7))}
-                    />
-                )}
-
-                {introReveal >= 7 && (
-                    <DiagramBlock onSettled={() => setIntroReveal(8)}>
-                        <RightTriangleDiagram
-                            rightAngleMarkShown hypotenuseHighlighted alphaVertex="P"
-                            oppositeLegHighlighted oppositeLegLabelShown
+                {/* Шаг 1 — появляется маркер прямого угла. */}
+                {step >= 1 && (
+                    <>
+                        <DiagramBlock><RightTriangleDiagram rightAngleMarkShown /></DiagramBlock>
+                        <TypedLine
+                            className="w-full text-base md:text-lg text-[#F2F7FB]"
+                            text="Вот он — прямой угол между двумя катетами треугольника."
+                            onSettled={() => setStepReady(true)}
                         />
-                    </DiagramBlock>
+                    </>
+                )}
+
+                {/* Шаг 2 — гипотенуза (ключевая фраза, подпись вдоль стороны). */}
+                {step >= 2 && (
+                    <>
+                        <DiagramBlock>
+                            <RightTriangleDiagram rightAngleMarkShown hypotenuseHighlighted hypotenuseLabelShown />
+                        </DiagramBlock>
+                        <TypedKeyPhraseLine
+                            before="Сторона напротив прямого угла — самая длинная сторона треугольника. Она называется "
+                            phrase="гипотенуза"
+                            color={HYPOTENUSE_COLOR}
+                            onSettled={() => setStepReady(true)}
+                        />
+                    </>
+                )}
+
+                {/* Шаг 3 — выбираем угол α. */}
+                {step >= 3 && (
+                    <>
+                        <DiagramBlock>
+                            <RightTriangleDiagram rightAngleMarkShown hypotenuseHighlighted alphaVertex="P" />
+                        </DiagramBlock>
+                        <TypedLine
+                            className="w-full text-base md:text-lg text-[#F2F7FB]"
+                            text="Теперь выберем один из двух других углов — назовём его α (альфа)."
+                            onSettled={() => setStepReady(true)}
+                        />
+                    </>
+                )}
+
+                {/* Шаг 4 — противолежащий катет (ключевая фраза, золотая и
+                    мигающая — и в тексте, и подписью на рисунке). */}
+                {step >= 4 && (
+                    <>
+                        <DiagramBlock>
+                            <RightTriangleDiagram
+                                rightAngleMarkShown hypotenuseHighlighted alphaVertex="P"
+                                oppositeLegHighlighted oppositeLegLabelShown
+                            />
+                        </DiagramBlock>
+                        <TypedKeyPhraseLine
+                            before="У угла α есть сторона, которая его НЕ касается — она называется "
+                            phrase="противолежащий катет"
+                            color={OPPOSITE_LEG_COLOR}
+                            pulse
+                            onSettled={() => setStepReady(true)}
+                        />
+                    </>
                 )}
 
                 {phase === 'practice' && Array.from({ length: trialIndex + 1 }).map((_, i) => {
@@ -220,7 +249,7 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
             </div>
 
             {phase === 'intro' ? (
-                <button type="button" onClick={() => setPhase('practice')} disabled={introBusy} className={nextButtonClass(!introBusy)}>
+                <button type="button" onClick={handleIntroNext} disabled={!stepReady} className={nextButtonClass(stepReady)}>
                     Дальше
                 </button>
             ) : checked ? (
