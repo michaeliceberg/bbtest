@@ -383,16 +383,42 @@ body {
 }
 
 /* Кнопка старта диагностического теста (app/test/[subject]/diagnostic-
-   client.tsx) — яркое зелёное пульсирующее свечение вокруг кнопки,
-   призывающее кликнуть. Чистый CSS keyframe (тот же принцип, что и у
-   .animate-insert-wobble выше) — идёт на компоузере, не зависит от
-   React/rAF главного потока. */
+   client.tsx) — премиальное фиолетово-фуксия свечение (тот же акцент,
+   что уже закреплён в проекте за "премиальным/done"-состоянием —
+   LevelCard, done-этап карты скиллов тренажёра, #7C3AED/#C026D3), вместо
+   исходного плоского зелёного пульса. Чистый CSS keyframe (тот же
+   принцип, что и у .animate-insert-wobble выше) — идёт на компоузере, не
+   зависит от React/rAF главного потока. Дополнительно — разовый блик
+   (shine), пробегающий по кнопке слева направо, тот же приём, что уже
+   используется для баннера "Работа над ошибками" (TQUIZ.tsx). */
 @keyframes cta-pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.45); }
-  50% { box-shadow: 0 0 17px 7px rgba(74, 222, 128, 0.32); }
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0), 0 0 0 0 rgba(192, 38, 211, 0);
+  }
+  50% {
+    box-shadow: 0 0 20px 5px rgba(124, 58, 237, 0.45), 0 0 34px 12px rgba(192, 38, 211, 0.28);
+  }
 }
 .animate-cta-pulse {
+  position: relative;
+  overflow: hidden;
   animation: cta-pulse-glow 2.6s ease-in-out infinite;
+}
+@keyframes cta-shine-sweep {
+  0%, 15% { left: -60%; }
+  55%, 100% { left: 130%; }
+}
+.animate-cta-pulse::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  transform: skewX(-20deg);
+  animation: cta-shine-sweep 2.6s ease-in-out infinite;
+  pointer-events: none;
 }
 
 /* KaTeX по умолчанию рендерит своими собственными шрифтами (KaTeX_Main/

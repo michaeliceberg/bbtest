@@ -64,6 +64,14 @@ export const getBindLink = (bindCode: string): string => {
     return `https://t.me/${BOT_USERNAME}?start=bind_${bindCode}`;
 };
 
+// Диплинк "вступи в бота" для сбора лида диагностического теста (см.
+// actions/diagnostic.ts/startDiagnosticTelegramLead и webhook/route.ts/
+// performDiagnosticBind) — тот же приём, что и getBindLink выше, другой
+// payload-префикс (diag_ вместо bind_).
+export const getDiagnosticBotLink = (token: string): string => {
+    return `https://t.me/${BOT_USERNAME}?start=diag_${token}`;
+};
+
 
 
 

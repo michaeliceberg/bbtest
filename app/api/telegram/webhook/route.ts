@@ -4,8 +4,9 @@
 import { NextResponse } from 'next/server';
 import { sendMessageToTelegram, generateBindCode, TelegramReplyKeyboard } from '@/utils/telegram';
 import db from '@/db/drizzle';
-import { parentLinks, userHomework, userProgress, classes, identities } from '@/db/schema';
+import { parentLinks, userHomework, userProgress, classes, identities, diagnosticLeads } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { DIAGNOSTIC_SUBJECT_LABEL, type DiagnosticSubject } from '@/lib/diagnostic';
 
 // Reply-клавиатура вместо ручного набора команд — нажатие кнопки
 // присылает её подпись обычным текстовым сообщением, которое мы тут же
@@ -123,6 +124,59 @@ async function performBind(chatId: string, firstName: string, rawCode: string | 
     console.log(`📢 Родитель ${firstName} привязан к ученику ${student.userName}`);
 }
 
+// Диплинк "вступи в бота" со экрана результата диагностического теста
+// (t.me/bot?start=diag_ТОКЕН, см. startDiagnosticTelegramLead в
+// actions/diagnostic.ts — токен создаётся заранее, ещё до тапа
+// пользователя, поэтому ссылка — обычный <a href>, а не async-переход по
+// клику). В отличие от performBind (родитель/учитель) — тут привязывать
+// нечего, только зафиксировать факт подписки и уведомить админа о
+// реальной конверсии лида (не при создании лида — только здесь, при
+// подтверждённой верификации).
+async function performDiagnosticBind(chatId: string, rawToken: string | undefined, keyboard: TelegramReplyKeyboard) {
+    const token = rawToken?.trim();
+    if (!token) return;
+
+    const lead = await db.query.diagnosticLeads.findFirst({
+        where: eq(diagnosticLeads.telegramStartToken, token),
+    });
+
+    if (!lead) {
+        await sendMessageToTelegram(
+            '❌ Ссылка устарела или неверна. Пройдите тест ещё раз в приложении.',
+            chatId,
+            keyboard
+        );
+        return;
+    }
+
+    if (lead.telegramVerifiedAt) {
+        await sendMessageToTelegram('✅ Ты уже подключён — жди разборы задач здесь!', chatId, keyboard);
+        return;
+    }
+
+    await db.update(diagnosticLeads)
+        .set({ telegramChatId: chatId, telegramVerifiedAt: new Date() })
+        .where(eq(diagnosticLeads.id, lead.id));
+
+    await sendMessageToTelegram(
+        `🎉 *Готово, ты подключился!*\n\n` +
+        `Здесь будут разборы задач и подсказки по подготовке.\n\n` +
+        `Возвращайся в приложение — там уже ждёт твой приз 🎁`,
+        chatId
+    );
+
+    const utmLine = [lead.utmSource, lead.utmMedium, lead.utmCampaign].filter(Boolean).join(' / ');
+    await sendMessageToTelegram(
+        `🎯 *Новый лид с диагностического теста (Telegram)*\n\n` +
+        `Предмет: ${DIAGNOSTIC_SUBJECT_LABEL[lead.subject as DiagnosticSubject]}\n` +
+        `Результат: ${lead.score}/${lead.totalQuestions}\n` +
+        (lead.weakUnitTitle ? `Слабая тема: ${lead.weakUnitTitle}\n` : '') +
+        (utmLine ? `Источник: ${utmLine}\n` : '')
+    );
+
+    console.log(`🎯 Диагностический лид ${lead.id} подтверждён через Telegram (chatId=${chatId})`);
+}
+
 export async function POST(req: Request) {
     try {
         const body = await req.json();
@@ -149,6 +203,11 @@ export async function POST(req: Request) {
 
             if (payload?.startsWith('bind_')) {
                 await performBind(chatId, firstName, payload.slice('bind_'.length), keyboard);
+                return NextResponse.json({ ok: true });
+            }
+
+            if (payload?.startsWith('diag_')) {
+                await performDiagnosticBind(chatId, payload.slice('diag_'.length), keyboard);
                 return NextResponse.json({ ok: true });
             }
 

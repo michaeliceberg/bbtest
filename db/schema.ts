@@ -933,20 +933,32 @@ export const diagnosticQuestions = pgTable('diagnostic_questions', {
 	createdAt: timestamp('created_at').defaultNow(),
 });
 
-// Лиды — номера телефонов, оставленные после диагностического теста.
+// Лиды диагностического теста. Изначально собирали номер телефона —
+// заменено на "вступи в Telegram-бота" (t.me/BOT?start=diag_TOKEN, см.
+// actions/diagnostic.ts/startDiagnosticTelegramLead и app/api/telegram/
+// webhook/route.ts/performDiagnosticBind): один тап вместо набора номера,
+// сразу верифицируемо через webhook (в отличие от простой подписки на
+// канал), и даёт канал связи для будущей рассылки разборов задач.
+// `phone` оставлен nullable (не удалён) — старые лиды всё ещё его хранят.
 export const diagnosticLeads = pgTable('diagnostic_leads', {
 	id: serial('id').primaryKey(),
 	subject: text('subject').notNull(),
-	phone: text('phone').notNull(),
+	phone: text('phone'),
 	score: integer('score').notNull(),
 	totalQuestions: integer('total_questions').notNull(),
 	weakUnitTitle: text('weak_unit_title'),
 	utmSource: text('utm_source'),
 	utmMedium: text('utm_medium'),
 	utmCampaign: text('utm_campaign'),
-	// Кейс за номер уже открыт (actions/open-diagnostic-case.ts) — не даёт
-	// открыть повторно на одном и том же лиде.
+	// Кейс уже открыт (actions/open-diagnostic-case.ts) — не даёт открыть
+	// повторно на одном и том же лиде.
 	caseOpened: boolean('case_opened').notNull().default(false),
+	// Одноразовый токен диплинка — создаётся сразу при заходе на экран
+	// результата (см. клиент), позволяет отдать пользователю ссылку
+	// t.me/BOT?start=diag_<token> сразу, без ожидания сервера по клику.
+	telegramStartToken: text('telegram_start_token'),
+	telegramChatId: text('telegram_chat_id'),
+	telegramVerifiedAt: timestamp('telegram_verified_at'),
 	createdAt: timestamp('created_at').defaultNow(),
 });
 

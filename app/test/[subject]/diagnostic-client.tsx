@@ -14,16 +14,17 @@ import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
-import { ChevronRight, Loader2, Phone } from 'lucide-react';
+import { ChevronRight, Loader2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrambleText } from '@/components/ScrambleText';
 import { AnimatedOptionButton } from '@/components/AnimatedOptionButton';
 import { TrainerMascot } from '@/components/TrainerMascot';
 import { CaseReel } from '@/components/CaseReel';
-import { submitDiagnosticLead } from '@/actions/diagnostic';
+import { startDiagnosticTelegramLead, getDiagnosticLeadStatus } from '@/actions/diagnostic';
 import { openDiagnosticCase } from '@/actions/open-diagnostic-case';
 import { DIAGNOSTIC_CASE_POOL, rewardEmoji, rewardLabel, type CaseReward } from '@/lib/caseRewards';
 import { DIAGNOSTIC_SUBJECT_LABEL, shuffle, type DiagnosticQuestion, type DiagnosticSubject } from '@/lib/diagnostic';
+import { declensionRu } from '@/usefulFunctions';
 import {
 	LOTTIE_TEST_RESULT_BEST_LIST,
 	LOTTIE_TEST_RESULT_SOSO_LIST,
@@ -81,13 +82,17 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 	const [checked, setChecked] = useState(false);
 	const [answered, setAnswered] = useState<AnsweredQuestion[]>([]);
 
-	const [phoneSkippedOnce, setPhoneSkippedOnce] = useState(false);
-	const [leadSubmitted, setLeadSubmitted] = useState(false);
+	// Сбор лида — раньше номер телефона, теперь "вступи в Telegram-бота"
+	// (один тап, сразу верифицируемо через webhook, см. обсуждение с
+	// пользователем и actions/diagnostic.ts). Лид+токен создаются СРАЗУ при
+	// заходе на экран результата (эффект ниже), чтобы кнопка была обычной
+	// <a href>, а не async-переходом по клику (тот на мобильных браузерах
+	// рискует упереться в popup-блокер).
+	const [joinSkippedOnce, setJoinSkippedOnce] = useState(false);
+	const [telegramVerified, setTelegramVerified] = useState(false);
 	const [leadId, setLeadId] = useState<number | null>(null);
+	const [botLink, setBotLink] = useState<string | null>(null);
 	const [wonReward, setWonReward] = useState<CaseReward | null>(null);
-	const [phoneInput, setPhoneInput] = useState('');
-	const [isSubmittingPhone, setIsSubmittingPhone] = useState(false);
-	const [phoneError, setPhoneError] = useState<string | null>(null);
 	const [showSecondAsk, setShowSecondAsk] = useState(false);
 	const [loginOpen, setLoginOpen] = useState(false);
 
@@ -190,41 +195,49 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 	};
 
 	const handleCtaClick = () => {
-		if (!leadSubmitted && phoneSkippedOnce) {
+		if (!telegramVerified && joinSkippedOnce) {
 			setShowSecondAsk(true);
 			return;
 		}
 		goToTrainer();
 	};
 
-	const submitPhone = async () => {
-		const digits = phoneInput.replace(/\D/g, '');
-		if (digits.length < 10) {
-			setPhoneError('Проверьте номер телефона');
-			return;
-		}
-		setPhoneError(null);
-		setIsSubmittingPhone(true);
-		try {
-			const { leadId } = await submitDiagnosticLead({
-				subject,
-				phone: phoneInput,
-				score,
-				totalQuestions: questions.length,
-				weakUnitTitle: weakTopic?.title ?? null,
-				utmSource: utm.source,
-				utmMedium: utm.medium,
-				utmCampaign: utm.campaign,
-			});
+	// Лид создаётся один раз, сразу при попадании на экран результата —
+	// не по клику (см. комментарий у стейта выше). Без leadId в
+	// зависимостях — leadId выставляется этим же эффектом, повторный
+	// запуск не нужен.
+	useEffect(() => {
+		if (phase !== 'result' || leadId) return;
+		startDiagnosticTelegramLead({
+			subject,
+			score,
+			totalQuestions: questions.length,
+			weakUnitTitle: weakTopic?.title ?? null,
+			utmSource: utm.source,
+			utmMedium: utm.medium,
+			utmCampaign: utm.campaign,
+		}).then(({ leadId, botLink }) => {
 			setLeadId(leadId);
-			setLeadSubmitted(true);
-			setShowSecondAsk(false);
-		} catch (e) {
-			setPhoneError('Не получилось отправить, попробуйте ещё раз');
-		} finally {
-			setIsSubmittingPhone(false);
-		}
-	};
+			setBotLink(botLink);
+		}).catch(() => {});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [phase]);
+
+	// Поллинг — узнать, подтвердил ли пользователь подписку в боте (см.
+	// performDiagnosticBind в app/api/telegram/webhook/route.ts). Тот же
+	// приём (setInterval + сравнение статуса), что уже применяется в
+	// components/phone-call-login.tsx для входа по звонку.
+	useEffect(() => {
+		if (!leadId || telegramVerified) return;
+		const id = setInterval(async () => {
+			const { verified } = await getDiagnosticLeadStatus(leadId);
+			if (verified) {
+				setTelegramVerified(true);
+				setShowSecondAsk(false);
+			}
+		}, 2500);
+		return () => clearInterval(id);
+	}, [leadId, telegramVerified]);
 
 	return (
 		<div className="min-h-screen bg-[#0F171A] text-[#F2F7FB] flex flex-col items-center px-4 py-8">
@@ -238,13 +251,18 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 						<Lottie animationData={LOTTIE_TEST_INTRO} loop autoplay className="w-48 h-48" />
 						<h1 className="text-2xl font-extrabold">{DIAGNOSTIC_SUBJECT_LABEL[subject]}</h1>
 						<p className="text-[#9AA7B0]">
-							{questions.length} вопросов, около {Math.max(2, Math.round(questions.length * 0.5))} минут. Узнайте, к чему готовы уже сейчас — и что стоит подтянуть.
+							{questions.length} {declensionRu(questions.length, 'вопрос', 'вопроса', 'вопросов')}, около {Math.max(2, Math.round(questions.length * 0.5))} минут. Узнайте, к чему вы уже готовы — и что стоит подтянуть.
 						</p>
 						<div className="flex items-center justify-center gap-2">
 							<Lottie animationData={LOTTIE_TEST_PIZZA} loop autoplay className="w-10 h-10 shrink-0" />
 							<p className="text-[#9AA7B0] font-semibold">А еще вы можете выиграть пиццу!</p>
 						</div>
-						<Button variant="primary" size="lg" className="w-full h-14 mt-4 animate-cta-pulse" onClick={() => setPhase('quiz')}>
+						<Button
+							variant="primary"
+							size="lg"
+							className="w-full h-14 mt-4 animate-cta-pulse bg-gradient-to-r from-violet-500 via-fuchsia-500 to-violet-500 border-violet-300"
+							onClick={() => setPhase('quiz')}
+						>
 							<ScrambleText text={START_LABELS[startLabelIndex]} />
 						</Button>
 					</div>
@@ -306,48 +324,50 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 				)}
 
 				{phase === 'result' && ctaTopic && (
-					<div className="flex flex-col gap-6">
+					<div className="flex flex-col gap-3">
 						{resultTier === 'best' && <Confetti width={windowSize.width} height={windowSize.height} recycle={false} numberOfPieces={260} />}
 
-						{resultLottieData ? (
-							<Lottie animationData={resultLottieData} loop autoplay className="w-full max-w-[280px] h-auto mx-auto" />
-						) : null}
-
-						<div className="text-center">
-							<p className="text-sm text-[#9AA7B0]">Ваш результат</p>
-							<p className="text-4xl font-extrabold mt-1">{score} из {questions.length}</p>
-							{resultPhrase && (
-								<p
-									className="text-xl font-extrabold mt-1"
-									style={{ color: resultTier === 'best' ? '#A1D151' : resultTier === 'bad' ? '#DC605B' : '#F2C879' }}
-								>
-									{resultPhrase}
-								</p>
-							)}
+						{/* Шапка результата — Lottie+счёт+фраза в одном компактном
+						  блоке (было: Lottie отдельно 280px + текст отдельно, вместе
+						  занимало слишком много высоты на телефоне). */}
+						<div className="flex items-center gap-3">
+							{resultLottieData ? (
+								<Lottie animationData={resultLottieData} loop autoplay className="w-20 h-20 shrink-0" />
+							) : null}
+							<div className="text-left min-w-0">
+								<p className="text-xs text-[#9AA7B0]">Ваш результат</p>
+								<p className="text-3xl font-extrabold leading-tight">{score} из {questions.length}</p>
+								{resultPhrase && (
+									<p
+										className="text-base font-extrabold"
+										style={{ color: resultTier === 'best' ? '#A1D151' : resultTier === 'bad' ? '#DC605B' : '#F2C879' }}
+									>
+										{resultPhrase}
+									</p>
+								)}
+							</div>
 						</div>
 
-						<div className="rounded-xl border-2 border-[#3A464E] bg-[#151F23] p-4">
-							<p className="text-sm text-[#9AA7B0] mb-1">{isPerfect ? 'Отлично справились! Закрепите ещё дальше:' : 'Стоит подтянуть тему:'}</p>
-							<p className="font-bold mb-3">{ctaTopic.title}</p>
+						{/* Главный CTA — самая заметная карточка (голубая, primary),
+						  явная визуальная "иерархия #1". */}
+						<div className="rounded-xl border-2 border-sky-500/50 bg-sky-500/10 p-3">
+							<p className="text-xs text-[#9AA7B0] mb-1">{isPerfect ? 'Отлично справились! Закрепите ещё дальше:' : 'Стоит подтянуть тему:'}</p>
+							<p className="font-bold mb-2">{ctaTopic.title}</p>
 							<Button variant="primary" size="lg" className="w-full flex items-center justify-center gap-2" onClick={handleCtaClick}>
 								Попробовать бесплатно
 								<ChevronRight className="h-4 w-4" />
 							</Button>
 						</div>
 
-						{!leadSubmitted && !phoneSkippedOnce && (
-							<PhoneCaptureCard
-								phoneInput={phoneInput}
-								setPhoneInput={setPhoneInput}
-								onSubmit={submitPhone}
-								onSkip={() => setPhoneSkippedOnce(true)}
-								isSubmitting={isSubmittingPhone}
-								error={phoneError}
+						{!telegramVerified && !joinSkippedOnce && botLink && (
+							<TelegramJoinCard
+								botLink={botLink}
+								onSkip={() => setJoinSkippedOnce(true)}
 							/>
 						)}
 
-						{leadId && !wonReward && (
-							<div className="rounded-xl border-2 border-[#3A464E] bg-[#151F23]">
+						{telegramVerified && leadId && !wonReward && (
+							<div className="rounded-xl border-2 border-violet-400/40 bg-[#151F23]">
 								<CaseReel
 									isMega={false}
 									pool={DIAGNOSTIC_CASE_POOL}
@@ -359,26 +379,22 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 						)}
 
 						{wonReward && (
-							<div className="rounded-xl border-2 border-violet-400/40 bg-violet-400/10 p-4 text-center">
-								<p className="text-sm text-[#9AA7B0] mb-1">Твой приз</p>
+							<div className="rounded-xl border-2 border-violet-400/40 bg-violet-400/10 p-3 text-center">
+								<p className="text-xs text-[#9AA7B0] mb-1">Твой приз</p>
 								<p className="text-2xl font-extrabold tracking-wide text-violet-300">
 									{rewardEmoji(wonReward)} {rewardLabel(wonReward)}
 								</p>
 							</div>
 						)}
 
-						{showSecondAsk && (
+						{showSecondAsk && botLink && (
 							<div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50" onClick={() => setShowSecondAsk(false)}>
 								<div className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-									<PhoneCaptureCard
+									<TelegramJoinCard
 										title="Последний шанс — 1 вращение слота"
-										phoneInput={phoneInput}
-										setPhoneInput={setPhoneInput}
-										onSubmit={submitPhone}
+										botLink={botLink}
 										onSkip={goToTrainer}
-										skipLabel="Нет, просто перейти →"
-										isSubmitting={isSubmittingPhone}
-										error={phoneError}
+										skipLabel="🙁 Нет, просто перейти"
 									/>
 								</div>
 							</div>
@@ -392,44 +408,41 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 	);
 };
 
-type PhoneCaptureCardProps = {
+type TelegramJoinCardProps = {
 	title?: string;
-	phoneInput: string;
-	setPhoneInput: (v: string) => void;
-	onSubmit: () => void;
+	botLink: string;
 	onSkip: () => void;
 	skipLabel?: string;
-	isSubmitting: boolean;
-	error: string | null;
 };
 
-const PhoneCaptureCard = ({
-	title = 'Оставь номер и получи 1 вращение слота',
-	phoneInput,
-	setPhoneInput,
-	onSubmit,
+// Замена номеру телефона — один тап открывает бота (t.me/BOT?start=
+// diag_ТОКЕН, см. startDiagnosticTelegramLead в actions/diagnostic.ts),
+// без набора цифр. Родитель поллит getDiagnosticLeadStatus, пока
+// пользователь не нажмёт /start у бота (webhook сам это фиксирует).
+const TelegramJoinCard = ({
+	title = 'Присоединись к боту и получи 1 вращение слота',
+	botLink,
 	onSkip,
-	skipLabel = 'Пропустить →',
-	isSubmitting,
-	error,
-}: PhoneCaptureCardProps) => (
-	<div className="rounded-xl border-2 border-[#3A464E] bg-[#151F23] p-4">
-		<div className="flex items-center gap-2 mb-3">
-			<Phone className="h-4 w-4 text-violet-400 shrink-0" />
+	skipLabel = '🙁 Пропустить',
+}: TelegramJoinCardProps) => (
+	<div className="rounded-xl border-2 border-violet-400/40 bg-[#151F23] p-3">
+		<div className="flex items-center gap-2 mb-2">
+			<Send className="h-4 w-4 text-violet-400 shrink-0" />
 			<p className="text-sm font-semibold">{title}</p>
 		</div>
-		<input
-			type="tel"
-			inputMode="tel"
-			placeholder="+7 999 999-99-99"
-			value={phoneInput}
-			onChange={(e) => setPhoneInput(e.target.value)}
-			className="w-full rounded-lg bg-[#0F171A] border-2 border-[#3A464E] px-3 py-2 text-[#F2F7FB] mb-1 outline-none focus:border-violet-400"
-		/>
-		{error && <p className="text-xs text-rose-400 mb-2">{error}</p>}
-		<Button variant="primary" size="lg" className="w-full mt-2 flex items-center justify-center gap-2" onClick={onSubmit} disabled={isSubmitting}>
-			{isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Получить приз'}
-		</Button>
+		<p className="text-xs text-[#9AA7B0] mb-2">Один тап — без набора номера. Там же будут разборы задач.</p>
+		<a
+			href={botLink}
+			target="_blank"
+			rel="noopener noreferrer"
+			className="w-full h-11 flex items-center justify-center gap-2 rounded-xl border-2 border-violet-300 border-b-4 active:border-b-2 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-violet-500 text-white text-sm font-bold uppercase tracking-wide"
+		>
+			<Send className="h-4 w-4" />
+			Открыть бота
+		</a>
+		<p className="text-xs text-[#9AA7B0] mt-2 flex items-center justify-center gap-1.5">
+			<Loader2 className="h-3 w-3 animate-spin shrink-0" /> Ждём подключения... вернись сюда после
+		</p>
 		<button onClick={onSkip} className="w-full text-center text-xs text-[#9AA7B0] mt-2 hover:text-[#F2F7FB]">
 			{skipLabel}
 		</button>
