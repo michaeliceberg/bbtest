@@ -36,6 +36,7 @@ import {
     HYPOTENUSE_COLOR, OPPOSITE_LEG_COLOR,
     type AlphaVertex, type SideId,
 } from '@/components/geometry/RightTriangleDiagram'
+import { MARKER_COLOR_GREEN } from '@/components/geometry/WalkthroughMarker'
 import { TypedLine, TypedKeyPhraseLine, DiagramBlock, useStickToBottom, pickWalkthroughNextLabel } from '@/components/geometry/WalkthroughLog'
 
 // Пауза ПОСЛЕ клика "Дальше", ДО начала новой анимации следующей сцены
@@ -159,12 +160,11 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
 
     return (
         <div className="w-full max-w-xl mx-auto flex flex-col items-center gap-4">
-            <h2 className="text-lg md:text-xl font-bold text-center text-[#F2F7FB]">
-                Что такое синус угла?
-            </h2>
-
             <div className="w-full flex flex-col gap-4">
-                {/* Шаг 0 — просто треугольник. */}
+                {/* Шаг 0 — просто треугольник. Заголовок вопроса ("Что такое
+                    синус угла?") здесь НЕ дублируется — его уже показывает
+                    облако маскота над карточкой (TrainerMascot.taskMessage),
+                    свой <h2> с тем же текстом раньше был лишним повтором. */}
                 <DiagramBlock><RightTriangleDiagram /></DiagramBlock>
                 <TypedLine
                     className="w-full text-base md:text-lg text-[#F2F7FB]"
@@ -174,13 +174,20 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
 
                 {/* Шаг 1 — появляется маркер прямого угла (с zoom-эффектом
                     "смотри сюда" — камера ненадолго приближается к углу,
-                    рисует маркер, затем отдаляется обратно). */}
+                    рисует маркер, затем отдаляется обратно). Заодно ОБЕ
+                    стороны-катета подписываются зелёным "катет" (bounce
+                    появление с затуханием) — слово "катетами" в тексте
+                    ниже подсвечено тем же зелёным текстовыделителем, что и
+                    в разборе "Трапеция №1". */}
                 {step >= 1 && (
                     <>
-                        <DiagramBlock><RightTriangleDiagram rightAngleMarkShown zoomFocus="rightAngle" /></DiagramBlock>
-                        <TypedLine
-                            className="w-full text-base md:text-lg text-[#F2F7FB]"
-                            text="Вот он — прямой угол между двумя катетами треугольника."
+                        <DiagramBlock><RightTriangleDiagram rightAngleMarkShown legsLabelShown zoomFocus="rightAngle" /></DiagramBlock>
+                        <TypedKeyPhraseLine
+                            before="Вот он — прямой угол между двумя "
+                            phrase="катетами"
+                            after=" треугольника."
+                            color={MARKER_COLOR_GREEN}
+                            highlight
                             onSettled={() => setStepReady(true)}
                         />
                     </>
@@ -190,7 +197,7 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
                 {step >= 2 && (
                     <>
                         <DiagramBlock>
-                            <RightTriangleDiagram rightAngleMarkShown hypotenuseHighlighted hypotenuseLabelShown />
+                            <RightTriangleDiagram rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown />
                         </DiagramBlock>
                         <TypedKeyPhraseLine
                             before="Сторона напротив прямого угла — самая длинная сторона треугольника. Она называется "
@@ -206,7 +213,7 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
                 {step >= 3 && (
                     <>
                         <DiagramBlock>
-                            <RightTriangleDiagram rightAngleMarkShown hypotenuseHighlighted alphaVertex="P" zoomFocus="alpha" />
+                            <RightTriangleDiagram rightAngleMarkShown legsLabelShown hypotenuseHighlighted alphaVertex="P" zoomFocus="alpha" />
                         </DiagramBlock>
                         <TypedLine
                             className="w-full text-base md:text-lg text-[#F2F7FB]"
@@ -216,18 +223,21 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
                     </>
                 )}
 
-                {/* Шаг 4 — противолежащий катет (ключевая фраза, золотая и
-                    мигающая — и в тексте, и подписью на рисунке). */}
+                {/* Шаг 4 — противолежащий катет. Камера панорамирует от α к
+                    самому катету (zoomFocus="alphaToOppositeLeg"); в момент
+                    прибытия зелёная подпись "катет" на этой стороне
+                    сменяется золотой "противолежащий катет" (bounce) — та
+                    же ключевая фраза, что и раньше, мигающая. */}
                 {step >= 4 && (
                     <>
                         <DiagramBlock>
                             <RightTriangleDiagram
-                                rightAngleMarkShown hypotenuseHighlighted alphaVertex="P"
+                                rightAngleMarkShown legsLabelShown hypotenuseHighlighted alphaVertex="P" zoomFocus="alphaToOppositeLeg"
                                 oppositeLegHighlighted oppositeLegLabelShown
                             />
                         </DiagramBlock>
                         <TypedKeyPhraseLine
-                            before="У угла α есть сторона, которая его НЕ касается — она называется "
+                            before="Катет напротив угла α называется "
                             phrase="противолежащий катет"
                             color={OPPOSITE_LEG_COLOR}
                             pulse

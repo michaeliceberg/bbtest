@@ -17,12 +17,17 @@
 import { motion } from 'framer-motion'
 
 export const MARKER_COLOR = 'rgba(139, 92, 246, 0.85)' // violet-500 @ 85%
+// Зелёный вариант маркера — для ключевых слов, помеченных тем же цветом,
+// что и зелёные подписи "катет" на RightTriangleDiagram (см. TypeSinWalk).
+export const MARKER_COLOR_GREEN = 'rgba(74, 222, 128, 0.85)' // green-400 @ 85%
 
-export const HighlightWord = ({ children, active }: { children: React.ReactNode; active: boolean }) => (
+// color — необязательный, по умолчанию фиолетовый MARKER_COLOR (все уже
+// существующие вызовы без явного цвета продолжают работать как раньше).
+export const HighlightWord = ({ children, active, color = MARKER_COLOR }: { children: React.ReactNode; active: boolean; color?: string }) => (
     <span className="relative inline-block whitespace-nowrap">
         <motion.span
             className="absolute -inset-x-1.5 top-[0.03em] h-[1.25em] rounded-[3px]"
-            style={{ backgroundColor: MARKER_COLOR, transformOrigin: 'left center' }}
+            style={{ backgroundColor: color, transformOrigin: 'left center' }}
             initial={{ scaleX: 0 }}
             animate={{ scaleX: active ? 1 : 0 }}
             transition={{ duration: 0.9, ease: 'easeInOut' }}

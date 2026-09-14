@@ -45,6 +45,11 @@ export const HYPOTENUSE_COLOR = '#8B5CF6'     // тот же фиолетовы�
 // для "противолежащего катета" (ключевая фраза, привлекающая внимание),
 // экспортируется, чтобы TypeSinWalk красил тем же цветом текст фразы.
 export const OPPOSITE_LEG_COLOR = '#FBBF24'
+// Зелёный — общая подпись "катет" на ОБЕИХ сторонах-катетах, ещё до того,
+// как мы выбрали угол α и стали различать их (см. legsLabelShown). Тот же
+// зелёный, что уже устоялся в проекте (SEGMENT_COLOR в TrapezoidDiagram) —
+// свободен здесь, т.к. OPPOSITE_LEG_COLOR давно перекрашен в золотой.
+const LEG_COLOR = '#4ADE80'
 const CORRECT_COLOR = '#A1D151'
 const WRONG_COLOR = '#DC605B'
 const TEXT = '#F2F7FB'
@@ -177,13 +182,22 @@ const SideLabel = ({
 // затем камера отдаляется обратно. Задаётся ОДИН раз на конкретный
 // снимок лога (см. TypeSinWalk — только шаги, где элемент появляется
 // впервые, получают zoomFocus, остальные показывают уже устоявшийся вид
-// сразу).
-export type ZoomFocus = 'rightAngle' | 'alpha' | null
+// сразу). 'alphaToOppositeLeg' — отдельный вариант: камера сначала
+// приближается к α, ЗАТЕМ (не отдаляясь) панорамируется к противолежащему
+// катету, держит кадр там, и только потом отдаляется — используется в
+// момент, когда "катет" (уже подписанный зелёным на предыдущем шаге)
+// переименовывается в "противолежащий катет" (золотой, см. legSwap-логику
+// ниже).
+export type ZoomFocus = 'rightAngle' | 'alpha' | 'alphaToOppositeLeg' | null
 
 export type RightTriangleVisual = {
     rotationDeg?: number
     mirror?: boolean
     rightAngleMarkShown?: boolean
+    // Общая подпись "катет" зелёным на ОБЕИХ сторонах-катетах сразу — до
+    // того, как одна из них "переименовывается" в противолежащий катет
+    // (см. oppositeLegHighlighted/легSwap-логику в JSX).
+    legsLabelShown?: boolean
     hypotenuseHighlighted?: boolean
     hypotenuseLabelShown?: boolean
     alphaVertex?: AlphaVertex | null
@@ -206,6 +220,14 @@ const ZOOM_TOTAL_S = 1.8
 const ZOOM_IN_FRACTION = 0.35   // к этому моменту камера уже приблизилась
 const ZOOM_OUT_START_FRACTION = 0.65 // с этого момента начинает отдаляться
 
+// Тайминг для 'alphaToOppositeLeg' — отдельный, подольше (два "дубля"
+// камеры вместо одного): зум на α → пауза → панорама к катету → держим
+// кадр → отдаляемся.
+const PAN_TOTAL_S = 2.4
+const PAN_ARRIVE_ALPHA_FRACTION = 0.2   // камера уже у α
+const PAN_ARRIVE_LEG_FRACTION = 0.55    // панорама к катету завершена — здесь проявляется "swap"
+const PAN_OUT_START_FRACTION = 0.8      // отсюда начинает отдаляться
+
 // Длительность "дорисовки" подсвеченной обучающей стороны (гипотенуза/
 // противолежащий катет) — см. "стандарт" подсветки стороны в JSX ниже.
 const SIDE_DRAW_DURATION = 0.9
@@ -215,6 +237,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
         rotationDeg = 0,
         mirror = false,
         rightAngleMarkShown = false,
+        legsLabelShown = false,
         hypotenuseHighlighted = false,
         hypotenuseLabelShown = false,
         alphaVertex = null,
@@ -230,12 +253,17 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
 
     // Пока камера не "доехала" до цели (zoomFocus задан) — элемент,
     // который сейчас рисуется, ещё не показан; как только зум-анимация
-    // доходит до фазы "держим кадр" — элемент проявляется (см. JSX ниже,
-    // effectiveRightAngleMarkShown/showAlphaArc). Без zoomFocus — сразу true.
+    // доходит до фазы "держим кадр" (для 'alphaToOppositeLeg' — как только
+    // панорама долетела до катета) — элемент проявляется (см. JSX ниже,
+    // effectiveRightAngleMarkShown/showAlphaArc/effectiveOppositeLegHighlighted).
+    // Без zoomFocus — сразу true.
     const [revealed, setRevealed] = useState(!zoomFocus)
     useEffect(() => {
         if (!zoomFocus) return
-        const t = setTimeout(() => setRevealed(true), ZOOM_IN_FRACTION * ZOOM_TOTAL_S * 1000)
+        const delayMs = zoomFocus === 'alphaToOppositeLeg'
+            ? PAN_ARRIVE_LEG_FRACTION * PAN_TOTAL_S * 1000
+            : ZOOM_IN_FRACTION * ZOOM_TOTAL_S * 1000
+        const t = setTimeout(() => setRevealed(true), delayMs)
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
@@ -291,19 +319,27 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
     // цели (revealed) — если ИМЕННО этот элемент и есть цель зума.
     const effectiveRightAngleMarkShown = zoomFocus === 'rightAngle' ? rightAngleMarkShown && revealed : rightAngleMarkShown
     const showAlphaArc = alphaArc !== null && (zoomFocus === 'alpha' ? revealed : true)
+    // Золотая подсветка противолежащего катета (линия+подпись) — если
+    // ИМЕННО в этом снимке камера панорамирует к нему ('alphaToOppositeLeg'),
+    // ждёт, пока панорама доедет (revealed); иначе, как и раньше, сразу.
+    const effectiveOppositeLegHighlighted = zoomFocus === 'alphaToOppositeLeg' ? oppositeLegHighlighted && revealed : oppositeLegHighlighted
 
-    // Точка, куда "наводит камеру" зум-эффект, и рассчитанный по ней сдвиг
-    // motion.g — см. комментарий у <rect>: bbox группы всегда РОВНО canvas
-    // 0..CANVAS (сам rect — первый и самый большой элемент группы), значит
-    // центр bbox = CENTER всегда, независимо от того, что ещё видно/скрыто
-    // — framer-motion's forced fill-box transform-origin (см. аналогичный
-    // комментарий в TrapezoidDiagram.tsx) поэтому даёт ИЗВЕСТНУЮ константу,
-    // не требует измерения через getBBox(). Формула для смещения такая,
-    // чтобы точка фокуса ПОСЛЕ увеличения оказалась в центре канваса:
-    // tx,ty = -ZOOM_SCALE·(focus-CENTER).
-    const zoomFocusPoint = zoomFocus === 'rightAngle' ? R : zoomFocus === 'alpha' ? (alphaVertex === 'P' ? P : Q) : null
-    const zoomTx = zoomFocusPoint ? -ZOOM_SCALE * (zoomFocusPoint.x - CENTER.x) : 0
-    const zoomTy = zoomFocusPoint ? -ZOOM_SCALE * (zoomFocusPoint.y - CENTER.y) : 0
+    // Точка(и), куда "наводит камеру" зум-эффект, и рассчитанный по ним
+    // сдвиг motion.g — см. комментарий у <rect>: bbox группы всегда РОВНО
+    // canvas 0..CANVAS (сам rect — первый и самый большой элемент группы),
+    // значит центр bbox = CENTER всегда, независимо от того, что ещё
+    // видно/скрыто — framer-motion's forced fill-box transform-origin
+    // (см. аналогичный комментарий в TrapezoidDiagram.tsx) поэтому даёт
+    // ИЗВЕСТНУЮ константу, не требует измерения через getBBox(). Формула
+    // для смещения такая, чтобы точка фокуса ПОСЛЕ увеличения оказалась в
+    // центре канваса: tx,ty = -ZOOM_SCALE·(focus-CENTER).
+    const focusOffset = (pt: Pt) => ({ x: -ZOOM_SCALE * (pt.x - CENTER.x), y: -ZOOM_SCALE * (pt.y - CENTER.y) })
+    const alphaPoint = alphaVertex === 'P' ? P : Q
+    const oppositeLegMid = alphaVertex === 'P' ? legRQMid : legRPMid
+    const zoomFocusPoint = zoomFocus === 'rightAngle' ? R : zoomFocus === 'alpha' || zoomFocus === 'alphaToOppositeLeg' ? alphaPoint : null
+    const zoomTx = zoomFocusPoint ? focusOffset(zoomFocusPoint).x : 0
+    const zoomTy = zoomFocusPoint ? focusOffset(zoomFocusPoint).y : 0
+    const panOffset = zoomFocus === 'alphaToOppositeLeg' ? focusOffset(oppositeLegMid) : null
 
     // Подсветка гипотенузы/противолежащего катета в обучающих кадрах
     // ТЕПЕРЬ не здесь — см. отдельные overlay-линии в JSX ниже ("стандарт"
@@ -331,12 +367,22 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
         <div className="flex items-center justify-center py-2 px-2 mb-2 bg-[#161F23] rounded-xl overflow-hidden">
             <svg viewBox={`0 0 ${CANVAS} ${CANVAS}`} width="100%" height="auto" style={{ maxWidth: 480 }}>
                 <motion.g
-                    animate={zoomFocusPoint ? {
+                    animate={panOffset ? {
+                        // Зум на α → пауза → панорама (тот же scale, x/y едут
+                        // к катету) → держим кадр там → отдаляемся.
+                        scale: [1, ZOOM_SCALE, ZOOM_SCALE, ZOOM_SCALE, 1],
+                        x: [0, zoomTx, panOffset.x, panOffset.x, 0],
+                        y: [0, zoomTy, panOffset.y, panOffset.y, 0],
+                    } : zoomFocusPoint ? {
                         scale: [1, ZOOM_SCALE, ZOOM_SCALE, 1],
                         x: [0, zoomTx, zoomTx, 0],
                         y: [0, zoomTy, zoomTy, 0],
                     } : undefined}
-                    transition={zoomFocusPoint ? {
+                    transition={panOffset ? {
+                        duration: PAN_TOTAL_S,
+                        times: [0, PAN_ARRIVE_ALPHA_FRACTION, PAN_ARRIVE_LEG_FRACTION, PAN_OUT_START_FRACTION, 1],
+                        ease: 'easeInOut',
+                    } : zoomFocusPoint ? {
                         duration: ZOOM_TOTAL_S,
                         times: [0, ZOOM_IN_FRACTION, ZOOM_OUT_START_FRACTION, 1],
                         ease: 'easeInOut',
@@ -458,19 +504,40 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     x2={alphaVertex === 'P' ? Q.x : P.x} y2={alphaVertex === 'P' ? Q.y : P.y}
                     stroke={OPPOSITE_LEG_COLOR} strokeWidth={11} strokeLinecap="round"
                     initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: oppositeLegHighlighted ? 1 : 0, opacity: oppositeLegHighlighted ? 1 : 0 }}
+                    animate={{ pathLength: effectiveOppositeLegHighlighted ? 1 : 0, opacity: effectiveOppositeLegHighlighted ? 1 : 0 }}
                     transition={{ duration: SIDE_DRAW_DURATION, ease: 'easeOut' }}
                 />
                 <SideLabel
                     a={R}
                     b={alphaVertex === 'P' ? Q : P}
                     labelPt={alphaVertex === 'P' ? legRQLabelPt : legRPLabelPt}
-                    active={oppositeLegLabelShown}
+                    active={oppositeLegLabelShown && effectiveOppositeLegHighlighted}
                     color={OPPOSITE_LEG_COLOR}
                     text="противолежащий катет"
                     fontSize={15}
                     pulse
-                    delay={oppositeLegHighlighted ? SIDE_DRAW_DURATION : 0}
+                    delay={effectiveOppositeLegHighlighted ? SIDE_DRAW_DURATION : 0}
+                />
+
+                {/* Общая зелёная подпись "катет" на КАЖДОЙ стороне-катете —
+                    появляется вместе с прямым углом (bounce с затуханием,
+                    без отдельной обводки линии — сами катеты остаются
+                    белыми, просто подписаны). Когда одна из сторон
+                    "переименовывается" в противолежащий катет (золотой,
+                    см. выше) — ИМЕННО на этой стороне зелёная подпись
+                    гаснет РОВНО в тот же момент, когда золотая проявляется
+                    — читается как один и тот же ярлык "сменил цвет". */}
+                <SideLabel
+                    a={R} b={P} labelPt={legRPLabelPt}
+                    active={legsLabelShown && !(alphaVertex && oppositeLegOf(alphaVertex) === 'legRP' && effectiveOppositeLegHighlighted)}
+                    color={LEG_COLOR} text="катет" fontSize={16}
+                    delay={zoomFocus === 'rightAngle' ? ZOOM_IN_FRACTION * ZOOM_TOTAL_S : 0}
+                />
+                <SideLabel
+                    a={R} b={Q} labelPt={legRQLabelPt}
+                    active={legsLabelShown && !(alphaVertex && oppositeLegOf(alphaVertex) === 'legRQ' && effectiveOppositeLegHighlighted)}
+                    color={LEG_COLOR} text="катет" fontSize={16}
+                    delay={zoomFocus === 'rightAngle' ? ZOOM_IN_FRACTION * ZOOM_TOTAL_S : 0}
                 />
 
                 {/* Вершины — маленькие точки, чтобы стороны читались как

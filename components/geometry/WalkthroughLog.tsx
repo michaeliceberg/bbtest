@@ -157,9 +157,9 @@ export const TypedLine = ({ text, className, onSettled, delayAfter = 500 }: { te
 // терминологию/палитру (см. TypeSinWalk — "гипотенуза"/"противолежащий
 // катет", каждая тем же цветом, что и её подпись на диаграмме).
 export const TypedKeyPhraseLine = ({
-    before, phrase, after = '.', color, pulse = false, className, onSettled,
+    before, phrase, after = '.', color, pulse = false, highlight = false, className, onSettled,
 }: {
-    before: string; phrase: string; after?: string; color: string; pulse?: boolean
+    before: string; phrase: string; after?: string; color: string; pulse?: boolean; highlight?: boolean
     className?: string; onSettled?: () => void
 }) => {
     const [typed, setTyped] = useState(false)
@@ -173,7 +173,9 @@ export const TypedKeyPhraseLine = ({
             ) : (
                 <>
                     {before}
-                    {pulse ? (
+                    {highlight ? (
+                        <HighlightWord active color={color}>{phrase}</HighlightWord>
+                    ) : pulse ? (
                         <motion.span
                             style={{ color, fontWeight: 800 }}
                             animate={{ opacity: [1, 0.4, 1] }}
