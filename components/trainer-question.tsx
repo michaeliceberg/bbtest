@@ -583,15 +583,19 @@ export default function TrainerQuestion({
         </div>
         </motion.div>
 
-      {/* Кнопка внизу - фиксированная. У CHECK и FRACTRICK её нет вообще
-          (не только disabled) — оба типа самодостаточные и владеют
+      {/* Кнопка внизу - фиксированная. У CHECK, FRACTRICK и SINWALK её нет
+          вообще (не только disabled) — все три самодостаточные и владеют
           подтверждением сами: CHECK — вообще без подтверждения (клик по
           ведру/галочке сразу засчитывает ответ), FRACTRICK — со своими
           ДВУМЯ внутренними кнопками "Ответить" (по одной на каждый из 2
-          этапов, см. type-fractrick.tsx). TRIGTABLE (как ASSIST/INSERT/
-          SCROLL) — select-then-submit: общая кнопка сначала "Ответить"
-          (когда все пропуски заполнены), затем "далее"/"понятно". */}
-      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && (
+          этапов, см. type-fractrick.tsx), SINWALK — своей кнопкой "Дальше"
+          на протяжении ВСЕГО прохождения (и обучающих шагов, и тренировочных
+          заданий) — общая кнопка внизу тут была бы лишней/непонятной
+          disabled-заглушкой "ответить", по прямой просьбе пользователя.
+          TRIGTABLE (как ASSIST/INSERT/SCROLL) — select-then-submit: общая
+          кнопка сначала "Ответить" (когда все пропуски заполнены), затем
+          "далее"/"понятно". */}
+      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "SINWALK" && (
       <div className="px-4 pb-4 pt-2 bg-[#151F24] relative">
         {/* Notification фон который выезжает при правильном ответе */}
         {answerState === "correct" && (

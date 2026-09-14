@@ -34,7 +34,12 @@ const EDGE = '#F2F7FB'
 // диаграмме (фиолетовый=гипотенуза, золотой=противолежащий катет,
 // синий=угол альфа).
 const RIGHT_ANGLE_COLOR = '#FB923C'
-const ALPHA_COLOR = '#4A90D9'          // тот же синий, что ACTIVE_COLOR в WalkthroughLog — "вот угол, на который сейчас смотрим"
+// Раньше приглушённый синий (#4A90D9, тот же ACTIVE_COLOR, что в
+// WalkthroughLog) — на тёмном фоне читался тускло, а угол α — ключевой
+// элемент урока, должен бросаться в глаза. Яркий цианистый — не занят
+// другими смыслами в этой диаграмме и хорошо контрастирует с тёплой
+// остальной палитрой (оранжевый/фиолетовый/золотой).
+const ALPHA_COLOR = '#22D3EE'
 export const HYPOTENUSE_COLOR = '#8B5CF6'     // тот же фиолетовый, что HYPOTENUSE_COLOR в TrapezoidDiagram
 // Раньше зелёный — пользователь попросил золотой/мигающий цвет именно
 // для "противолежащего катета" (ключевая фраза, привлекающая внимание),
@@ -119,34 +124,49 @@ const angleAlongLine = (a: Pt, b: Pt): number => {
 // катет) — сама позиция+поворот+цвет читаются как принадлежность к
 // конкретной стороне, отдельная стрелка больше не нужна. `pulse` —
 // золотая мигающая версия для "противолежащего катета" (ключевая фраза,
-// привлекающая внимание, см. TypeSinWalk).
+// привлекающая внимание, см. TypeSinWalk). `delay` (сек) — чтобы подпись
+// появлялась ПОСЛЕ того, как линия стороны уже дорисовалась (см. "стандарт"
+// подсветки стороны ниже), не одновременно с ней.
+//
+// ВАЖНО: поворот вынесен на ОТДЕЛЬНЫЙ статичный <g> вокруг motion.text, а
+// не передан прямо motion.text'у через проп `transform` — framer-motion
+// для анимируемых SVG-элементов сам вычисляет и перезаписывает атрибут
+// `transform` из своих motion-values (тут — scale), и полностью
+// ИГНОРИРУЕТ/затирает любой вручную заданный `transform`-проп на ТОМ ЖЕ
+// узле, как только анимация реально начинает тикать (это не проявлялось
+// при живой проверке в этом инструментарии ровно потому, что там
+// requestAnimationFrame заморожен — см. класс артефактов, документированный
+// в CLAUDE.md — а в браузере пользователя, где rAF тикает нормально, поворот
+// стирался). Обёртка-<g> не анимируется framer'ом вообще, поэтому её
+// transform гарантированно остаётся как задано.
 const SideLabel = ({
-    a, b, labelPt, active, color, text, fontSize = 17, pulse = false,
-}: { a: Pt; b: Pt; labelPt: Pt; active: boolean; color: string; text: string; fontSize?: number; pulse?: boolean }) => {
+    a, b, labelPt, active, color, text, fontSize = 17, pulse = false, delay = 0,
+}: { a: Pt; b: Pt; labelPt: Pt; active: boolean; color: string; text: string; fontSize?: number; pulse?: boolean; delay?: number }) => {
     const rotation = angleAlongLine(a, b)
     return (
-        <motion.text
-            x={labelPt.x} y={labelPt.y}
-            textAnchor="middle" dominantBaseline="middle"
-            transform={`rotate(${rotation} ${labelPt.x} ${labelPt.y})`}
-            fontFamily="var(--font-nunito), sans-serif"
-            fontSize={fontSize}
-            fontWeight={800}
-            fill={color}
-            initial={{ opacity: 0, scale: 0.3 }}
-            animate={
-                !active
-                    ? { opacity: 0, scale: 0.3 }
-                    : pulse
-                        ? { opacity: [1, 0.4, 1], scale: 1 }
-                        : { opacity: 1, scale: 1 }
-            }
-            transition={
-                active && pulse
-                    ? { opacity: { duration: 1.3, repeat: Infinity, ease: 'easeInOut' }, scale: { type: 'spring', duration: 0.6, bounce: 0.45 } }
-                    : { type: 'spring', duration: 0.6, bounce: 0.45 }
-            }
-        >{text}</motion.text>
+        <g transform={`rotate(${rotation} ${labelPt.x} ${labelPt.y})`}>
+            <motion.text
+                x={labelPt.x} y={labelPt.y}
+                textAnchor="middle" dominantBaseline="middle"
+                fontFamily="var(--font-nunito), sans-serif"
+                fontSize={fontSize}
+                fontWeight={800}
+                fill={color}
+                initial={{ opacity: 0, scale: 0.3 }}
+                animate={
+                    !active
+                        ? { opacity: 0, scale: 0.3 }
+                        : pulse
+                            ? { opacity: [1, 0.4, 1], scale: 1 }
+                            : { opacity: 1, scale: 1 }
+                }
+                transition={
+                    active && pulse
+                        ? { opacity: { duration: 1.3, repeat: Infinity, ease: 'easeInOut', delay }, scale: { type: 'spring', duration: 0.6, bounce: 0.45, delay } }
+                        : { type: 'spring', duration: 0.6, bounce: 0.45, delay: active ? delay : 0 }
+                }
+            >{text}</motion.text>
+        </g>
     )
 }
 
@@ -185,6 +205,10 @@ const ZOOM_SCALE = 2.3
 const ZOOM_TOTAL_S = 1.8
 const ZOOM_IN_FRACTION = 0.35   // к этому моменту камера уже приблизилась
 const ZOOM_OUT_START_FRACTION = 0.65 // с этого момента начинает отдаляться
+
+// Длительность "дорисовки" подсвеченной обучающей стороны (гипотенуза/
+// противолежащий катет) — см. "стандарт" подсветки стороны в JSX ниже.
+const SIDE_DRAW_DURATION = 0.9
 
 export const RightTriangleDiagram = (props: RightTriangleVisual) => {
     const {
@@ -281,6 +305,11 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
     const zoomTx = zoomFocusPoint ? -ZOOM_SCALE * (zoomFocusPoint.x - CENTER.x) : 0
     const zoomTy = zoomFocusPoint ? -ZOOM_SCALE * (zoomFocusPoint.y - CENTER.y) : 0
 
+    // Подсветка гипотенузы/противолежащего катета в обучающих кадрах
+    // ТЕПЕРЬ не здесь — см. отдельные overlay-линии в JSX ниже ("стандарт"
+    // подсветки стороны: базовая белая линия остаётся видна, поверх
+    // дорисовывается цветная с эффектом замедления). sideProps отвечает
+    // только за интерактивные (тренировочные) состояния — клик/проверка.
     const sideProps = (side: SideId) => {
         let stroke = EDGE
         let width = 6
@@ -290,15 +319,6 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
         } else if (side === selectedSide) {
             stroke = ALPHA_COLOR
             width = 9
-        } else if (side === 'hyp' && hypotenuseHighlighted) {
-            stroke = HYPOTENUSE_COLOR
-            // Заметно толще базовой белой линии (6) — чтобы было видно,
-            // что новый цвет рисуется ПОВЕРХ стороны, а не просто заменяет
-            // её один в один (по прямой просьбе пользователя).
-            width = 11
-        } else if (oppositeLegHighlighted && alphaVertex && side === oppositeLegOf(alphaVertex)) {
-            stroke = OPPOSITE_LEG_COLOR
-            width = 11
         }
         return { stroke, width }
     }
@@ -329,8 +349,8 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     внутри (см. комментарий у zoomFocusPoint выше). */}
                 <rect x="0" y="0" width={CANVAS} height={CANVAS} fill={BG} />
 
-                {/* Прямой угол — рисуется ПЕРВЫМ (под линиями сторон), а не
-                    поверх них, по прямой просьбе пользователя. */}
+                {/* Прямой угол И дуга угла α — рисуются ПЕРВЫМИ (под линиями
+                    сторон), а не поверх них, по прямой просьбе пользователя. */}
                 <motion.path
                     d={`M ${m1.x} ${m1.y} L ${m2.x} ${m2.y} L ${m3.x} ${m3.y}`}
                     fill="none"
@@ -343,36 +363,6 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     transition={{ type: 'spring', duration: 0.5, bounce: 0.5 }}
                 />
 
-                {/* Стороны — сначала широкая прозрачная "зона клика" (если
-                    интерактивно), затем сама видимая линия поверх (в т.ч.
-                    поверх маркера прямого угла выше). */}
-                {(['hyp', 'legRP', 'legRQ'] as SideId[]).map((side) => {
-                    const [a, b] = side === 'hyp' ? [P, Q] : side === 'legRP' ? [R, P] : [R, Q]
-                    const style = side === 'hyp' ? hypStyle : side === 'legRP' ? legRPStyle : legRQStyle
-                    return (
-                        <g key={side}>
-                            {interactive && (
-                                <line
-                                    x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-                                    stroke="transparent" strokeWidth={28} strokeLinecap="round"
-                                    className="cursor-pointer"
-                                    onClick={() => !checked && onSideClick?.(side)}
-                                />
-                            )}
-                            <motion.line
-                                x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-                                stroke={style.stroke}
-                                strokeWidth={style.width}
-                                strokeLinecap="round"
-                                animate={{ stroke: style.stroke, strokeWidth: style.width }}
-                                transition={{ duration: 0.3 }}
-                                style={{ pointerEvents: 'none' }}
-                            />
-                        </g>
-                    )
-                })}
-
-                {/* Дуга + подпись "α" у выбранной вершины. */}
                 {showAlphaArc && alphaArc && (
                     <>
                         <motion.path
@@ -397,7 +387,80 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     </>
                 )}
 
-                <SideLabel a={P} b={Q} labelPt={hypLabelPt} active={hypotenuseLabelShown} color={HYPOTENUSE_COLOR} text="гипотенуза" />
+                {/* Стороны — сначала широкая прозрачная "зона клика" (если
+                    интерактивно), затем сама видимая линия поверх (в т.ч.
+                    поверх маркера прямого угла/дуги α выше). Пока сторона
+                    кликабельна, но ещё не выбрана — лёгкое "дыхание"
+                    прозрачности вдоль неё сигналит "это можно нажать" без
+                    единого слова текста (по прямой просьбе пользователя —
+                    непонятно было, что стороны кликабельны). Реакция на
+                    сам клик (переход в checked) — пружинный "bounce" по
+                    ширине линии, не плоское появление. */}
+                {(['hyp', 'legRP', 'legRQ'] as SideId[]).map((side, sideIdx) => {
+                    const [a, b] = side === 'hyp' ? [P, Q] : side === 'legRP' ? [R, P] : [R, Q]
+                    const style = side === 'hyp' ? hypStyle : side === 'legRP' ? legRPStyle : legRQStyle
+                    const showClickHint = interactive && !checked
+                    return (
+                        <g key={side}>
+                            {showClickHint && (
+                                <motion.line
+                                    x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+                                    stroke={TEXT} strokeWidth={16} strokeLinecap="round"
+                                    style={{ pointerEvents: 'none' }}
+                                    animate={{ opacity: [0.08, 0.4, 0.08] }}
+                                    transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut', delay: sideIdx * 0.18 }}
+                                />
+                            )}
+                            {interactive && (
+                                <line
+                                    x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+                                    stroke="transparent" strokeWidth={28} strokeLinecap="round"
+                                    className="cursor-pointer"
+                                    onClick={() => !checked && onSideClick?.(side)}
+                                />
+                            )}
+                            <motion.line
+                                x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+                                stroke={style.stroke}
+                                strokeWidth={style.width}
+                                strokeLinecap="round"
+                                animate={{ stroke: style.stroke, strokeWidth: style.width }}
+                                transition={checked
+                                    ? { strokeWidth: { type: 'spring', stiffness: 500, damping: 11 }, stroke: { duration: 0.2 } }
+                                    : { duration: 0.3 }}
+                                style={{ pointerEvents: 'none' }}
+                            />
+                        </g>
+                    )
+                })}
+
+                {/* "Стандарт" подсветки обучающей стороны (гипотенуза/
+                    противолежащий катет): базовая белая линия выше остаётся
+                    видна, а ПОВЕРХ нЕё дорисовывается отдельная цветная —
+                    pathLength 0→1 с ease-out (эффект замедления к концу),
+                    заметно толще базовой. Подпись появляется bounce'ом
+                    ТОЛЬКО ПОСЛЕ того как линия уже дорисовалась (delay). */}
+                <motion.line
+                    x1={P.x} y1={P.y} x2={Q.x} y2={Q.y}
+                    stroke={HYPOTENUSE_COLOR} strokeWidth={11} strokeLinecap="round"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: hypotenuseHighlighted ? 1 : 0, opacity: hypotenuseHighlighted ? 1 : 0 }}
+                    transition={{ duration: SIDE_DRAW_DURATION, ease: 'easeOut' }}
+                />
+                <SideLabel
+                    a={P} b={Q} labelPt={hypLabelPt}
+                    active={hypotenuseLabelShown} color={HYPOTENUSE_COLOR} text="гипотенуза"
+                    delay={hypotenuseHighlighted ? SIDE_DRAW_DURATION : 0}
+                />
+
+                <motion.line
+                    x1={R.x} y1={R.y}
+                    x2={alphaVertex === 'P' ? Q.x : P.x} y2={alphaVertex === 'P' ? Q.y : P.y}
+                    stroke={OPPOSITE_LEG_COLOR} strokeWidth={11} strokeLinecap="round"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: oppositeLegHighlighted ? 1 : 0, opacity: oppositeLegHighlighted ? 1 : 0 }}
+                    transition={{ duration: SIDE_DRAW_DURATION, ease: 'easeOut' }}
+                />
                 <SideLabel
                     a={R}
                     b={alphaVertex === 'P' ? Q : P}
@@ -407,6 +470,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     text="противолежащий катет"
                     fontSize={15}
                     pulse
+                    delay={oppositeLegHighlighted ? SIDE_DRAW_DURATION : 0}
                 />
 
                 {/* Вершины — маленькие точки, чтобы стороны читались как

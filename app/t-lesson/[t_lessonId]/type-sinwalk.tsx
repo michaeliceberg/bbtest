@@ -27,7 +27,7 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
@@ -36,7 +36,13 @@ import {
     HYPOTENUSE_COLOR, OPPOSITE_LEG_COLOR,
     type AlphaVertex, type SideId,
 } from '@/components/geometry/RightTriangleDiagram'
-import { TypedLine, TypedKeyPhraseLine, DiagramBlock, useStickToBottom } from '@/components/geometry/WalkthroughLog'
+import { TypedLine, TypedKeyPhraseLine, DiagramBlock, useStickToBottom, pickWalkthroughNextLabel } from '@/components/geometry/WalkthroughLog'
+
+// Пауза ПОСЛЕ клика "Дальше", ДО начала новой анимации следующей сцены
+// (зума, дорисовки стороны и т.п.) — по прямой просьбе пользователя,
+// чтобы глаз успевал заметить "это новая сцена", а не воспринимал переход
+// как непрерывное продолжение предыдущей.
+const SCENE_TRANSITION_PAUSE_MS = 1000
 
 type Props = {
     question: QuestionType
@@ -90,6 +96,10 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
     // дальше, пока текст ещё печатается).
     const [step, setStep] = useState(0)
     const [stepReady, setStepReady] = useState(false)
+    // true между кликом "Дальше" и фактическим применением следующего шага
+    // (см. SCENE_TRANSITION_PAUSE_MS) — блокирует повторный клик во время
+    // паузы и держит экран неизменным, прежде чем начнётся новая сцена.
+    const [advancing, setAdvancing] = useState(false)
 
     const [trialConfigs] = useState(() => makeTrialConfigs(TRIAL_COUNT))
     const [trialIndex, setTrialIndex] = useState(0)
@@ -108,26 +118,44 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
     }
 
     const handleNextTrial = () => {
-        if (trialIndex + 1 >= TRIAL_COUNT) {
-            onComplete(!hadMistake)
-            return
-        }
-        setTrialIndex((i) => i + 1)
-        setChecked(false)
+        if (advancing) return
+        setAdvancing(true)
+        setTimeout(() => {
+            if (trialIndex + 1 >= TRIAL_COUNT) {
+                onComplete(!hadMistake)
+                return
+            }
+            setTrialIndex((i) => i + 1)
+            setChecked(false)
+            setAdvancing(false)
+        }, SCENE_TRANSITION_PAUSE_MS)
     }
 
     // Клик "Дальше" в обучающей части — единственный способ продвинуться
     // (никакого автопроигрыша). На последнем шаге переводит в практику.
+    // Пауза (advancing) — ДО применения следующего шага, чтобы новая
+    // сцена (например zoom-эффект) не начиналась вплотную к клику.
     const handleIntroNext = () => {
-        if (step + 1 >= INTRO_STEPS) {
-            setPhase('practice')
-            return
-        }
-        setStep((s) => s + 1)
-        setStepReady(false)
+        if (advancing) return
+        setAdvancing(true)
+        setTimeout(() => {
+            if (step + 1 >= INTRO_STEPS) {
+                setPhase('practice')
+            } else {
+                setStep((s) => s + 1)
+                setStepReady(false)
+            }
+            setAdvancing(false)
+        }, SCENE_TRANSITION_PAUSE_MS)
     }
 
-    const endRef = useStickToBottom([step, stepReady, phase, trialIndex, checked])
+    // Подпись кнопки "Дальше" — иногда варьируется (см. WALKTHROUGH_NEXT_
+    // PHRASES); пересчитывается на каждый НОВЫЙ шаг/задание, а не на любой
+    // ре-рендер, иначе текст менялся бы "на лету" под уже видимой кнопкой.
+    const introNextLabel = useMemo(() => pickWalkthroughNextLabel('Дальше'), [step])
+    const trialNextLabel = useMemo(() => pickWalkthroughNextLabel('Дальше'), [trialIndex])
+
+    const endRef = useStickToBottom([step, stepReady, phase, trialIndex, checked, advancing])
 
     return (
         <div className="w-full max-w-xl mx-auto flex flex-col items-center gap-4">
@@ -252,12 +280,12 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
             </div>
 
             {phase === 'intro' ? (
-                <button type="button" onClick={handleIntroNext} disabled={!stepReady} className={nextButtonClass(stepReady)}>
-                    Дальше
+                <button type="button" onClick={handleIntroNext} disabled={!stepReady || advancing} className={nextButtonClass(stepReady && !advancing)}>
+                    {introNextLabel}
                 </button>
             ) : checked ? (
-                <button type="button" onClick={handleNextTrial} className={nextButtonClass(true)}>
-                    {trialIndex + 1 >= TRIAL_COUNT ? 'Готово' : 'Дальше'}
+                <button type="button" onClick={handleNextTrial} disabled={advancing} className={nextButtonClass(!advancing)}>
+                    {trialIndex + 1 >= TRIAL_COUNT ? 'Готово' : trialNextLabel}
                 </button>
             ) : (
                 <p className="text-sm text-[#9AA7B0] text-center">Кликни по одной из сторон треугольника выше</p>

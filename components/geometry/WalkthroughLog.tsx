@@ -28,6 +28,34 @@ export const WRONG_COLOR = '#DC605B'
 // (type-insert.tsx ACTIVE_COLOR).
 export const ACTIVE_COLOR = '#4A90D9'
 
+// Подписи кнопки "Дальше" в разборах по шагам — по прямой просьбе
+// пользователя вместо всегда одинакового "Дальше" иногда показываем что-то
+// живое ("Понятно", "Я понял"...), в т.ч. несколько зумерских словечек —
+// тот же принцип разнообразия, что уже есть у MOTIVATIONAL_NEXT_PHRASES
+// в usefulFunctions.ts, но с другим тоном (не "я молодец", а "ок, погнали
+// дальше") — отдельный пул, не смешивается с тем.
+export const WALKTHROUGH_NEXT_PHRASES = [
+    'Понятно',
+    'Давай дальше',
+    'Я понял',
+    'Пока легко',
+    'Го дальше',
+    'Всё чётко',
+    'Норм, го',
+    'Вкатился',
+    'Погнали',
+    'Изи',
+];
+
+// defaultLabel — обычное "Дальше"/"Готово" и т.п., chance — как часто
+// вместо него показывать одну из фраз выше.
+export const pickWalkthroughNextLabel = (defaultLabel: string, chance: number = 0.4): string => {
+    if (Math.random() < chance) {
+        return WALKTHROUGH_NEXT_PHRASES[Math.floor(Math.random() * WALKTHROUGH_NEXT_PHRASES.length)];
+    }
+    return defaultLabel;
+};
+
 // Тот же приём, что в type-insert.tsx (трейнер) — цвет пропуска задаётся
 // через \textcolor и потом ищется в уже отрисованном KaTeX по СВОЕМУ
 // computed-цвету (браузер всегда возвращает rgb(), не исходный hex).
