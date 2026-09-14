@@ -24,6 +24,7 @@
 // уже показал себя надёжным для однобуквенных подписей "43"/"73" в
 // TrapezoidDiagram.
 
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 
 const BG = '#161F23'
@@ -149,6 +150,16 @@ const SideLabel = ({
     )
 }
 
+// "Куда наводит камеру" при монтировании этого конкретного снимка
+// диаграммы — по прямой просьбе пользователя: пока рисуется прямой угол
+// или угол α, всё поле зрения на мгновение приближается именно к этой
+// вершине (эффект "смотри сюда"), сама фигура рисуется уже в приближении,
+// затем камера отдаляется обратно. Задаётся ОДИН раз на конкретный
+// снимок лога (см. TypeSinWalk — только шаги, где элемент появляется
+// впервые, получают zoomFocus, остальные показывают уже устоявшийся вид
+// сразу).
+export type ZoomFocus = 'rightAngle' | 'alpha' | null
+
 export type RightTriangleVisual = {
     rotationDeg?: number
     mirror?: boolean
@@ -158,6 +169,7 @@ export type RightTriangleVisual = {
     alphaVertex?: AlphaVertex | null
     oppositeLegHighlighted?: boolean
     oppositeLegLabelShown?: boolean
+    zoomFocus?: ZoomFocus
     // Тренировочный режим — стороны кликабельны, подсвечиваются по итогу проверки.
     interactive?: boolean
     onSideClick?: (side: SideId) => void
@@ -165,6 +177,14 @@ export type RightTriangleVisual = {
     correctSide?: SideId | null
     checked?: boolean
 }
+
+// Тайминг zoom-эффекта — камера зумит внутрь, держит кадр, пока элемент
+// рисуется, затем отдаляется обратно. Доли времени (times) заданы под
+// framer-motion keyframe-анимацию с общей длительностью ZOOM_TOTAL_S.
+const ZOOM_SCALE = 2.3
+const ZOOM_TOTAL_S = 1.8
+const ZOOM_IN_FRACTION = 0.35   // к этому моменту камера уже приблизилась
+const ZOOM_OUT_START_FRACTION = 0.65 // с этого момента начинает отдаляться
 
 export const RightTriangleDiagram = (props: RightTriangleVisual) => {
     const {
@@ -176,12 +196,25 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
         alphaVertex = null,
         oppositeLegHighlighted = false,
         oppositeLegLabelShown = false,
+        zoomFocus = null,
         interactive = false,
         onSideClick,
         selectedSide = null,
         correctSide = null,
         checked = false,
     } = props
+
+    // Пока камера не "доехала" до цели (zoomFocus задан) — элемент,
+    // который сейчас рисуется, ещё не показан; как только зум-анимация
+    // доходит до фазы "держим кадр" — элемент проявляется (см. JSX ниже,
+    // effectiveRightAngleMarkShown/showAlphaArc). Без zoomFocus — сразу true.
+    const [revealed, setRevealed] = useState(!zoomFocus)
+    useEffect(() => {
+        if (!zoomFocus) return
+        const t = setTimeout(() => setRevealed(true), ZOOM_IN_FRACTION * ZOOM_TOTAL_S * 1000)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     const { R, P, Q } = computeTriangle(rotationDeg, mirror)
     const hypMid = { x: (P.x + Q.x) / 2, y: (P.y + Q.y) / 2 }
@@ -228,6 +261,26 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
         return { p1, p2, control, labelPt }
     })()
 
+    // Показывать элемент СРАЗУ, если он не является целью текущего zoom
+    // (например уже введённая гипотенуза на шаге "выбираем угол α" — не
+    // ждёт никакого зума), либо только когда камера уже "доехала" до
+    // цели (revealed) — если ИМЕННО этот элемент и есть цель зума.
+    const effectiveRightAngleMarkShown = zoomFocus === 'rightAngle' ? rightAngleMarkShown && revealed : rightAngleMarkShown
+    const showAlphaArc = alphaArc !== null && (zoomFocus === 'alpha' ? revealed : true)
+
+    // Точка, куда "наводит камеру" зум-эффект, и рассчитанный по ней сдвиг
+    // motion.g — см. комментарий у <rect>: bbox группы всегда РОВНО canvas
+    // 0..CANVAS (сам rect — первый и самый большой элемент группы), значит
+    // центр bbox = CENTER всегда, независимо от того, что ещё видно/скрыто
+    // — framer-motion's forced fill-box transform-origin (см. аналогичный
+    // комментарий в TrapezoidDiagram.tsx) поэтому даёт ИЗВЕСТНУЮ константу,
+    // не требует измерения через getBBox(). Формула для смещения такая,
+    // чтобы точка фокуса ПОСЛЕ увеличения оказалась в центре канваса:
+    // tx,ty = -ZOOM_SCALE·(focus-CENTER).
+    const zoomFocusPoint = zoomFocus === 'rightAngle' ? R : zoomFocus === 'alpha' ? (alphaVertex === 'P' ? P : Q) : null
+    const zoomTx = zoomFocusPoint ? -ZOOM_SCALE * (zoomFocusPoint.x - CENTER.x) : 0
+    const zoomTy = zoomFocusPoint ? -ZOOM_SCALE * (zoomFocusPoint.y - CENTER.y) : 0
+
     const sideProps = (side: SideId) => {
         let stroke = EDGE
         let width = 6
@@ -257,6 +310,23 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
     return (
         <div className="flex items-center justify-center py-2 px-2 mb-2 bg-[#161F23] rounded-xl overflow-hidden">
             <svg viewBox={`0 0 ${CANVAS} ${CANVAS}`} width="100%" height="auto" style={{ maxWidth: 480 }}>
+                <motion.g
+                    animate={zoomFocusPoint ? {
+                        scale: [1, ZOOM_SCALE, ZOOM_SCALE, 1],
+                        x: [0, zoomTx, zoomTx, 0],
+                        y: [0, zoomTy, zoomTy, 0],
+                    } : undefined}
+                    transition={zoomFocusPoint ? {
+                        duration: ZOOM_TOTAL_S,
+                        times: [0, ZOOM_IN_FRACTION, ZOOM_OUT_START_FRACTION, 1],
+                        ease: 'easeInOut',
+                    } : undefined}
+                >
+                {/* bbox этого <rect> (0..CANVAS по обеим осям) — САМЫЙ
+                    крупный элемент группы, поэтому framer-motion'овский
+                    fill-box-центр transform-origin у motion.g ВСЕГДА равен
+                    ровно CENTER, независимо от того, что ещё видно/скрыто
+                    внутри (см. комментарий у zoomFocusPoint выше). */}
                 <rect x="0" y="0" width={CANVAS} height={CANVAS} fill={BG} />
 
                 {/* Прямой угол — рисуется ПЕРВЫМ (под линиями сторон), а не
@@ -269,7 +339,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     initial={{ opacity: 0, scale: 0.4 }}
-                    animate={{ opacity: rightAngleMarkShown ? 1 : 0, scale: rightAngleMarkShown ? 1 : 0.4 }}
+                    animate={{ opacity: effectiveRightAngleMarkShown ? 1 : 0, scale: effectiveRightAngleMarkShown ? 1 : 0.4 }}
                     transition={{ type: 'spring', duration: 0.5, bounce: 0.5 }}
                 />
 
@@ -303,7 +373,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                 })}
 
                 {/* Дуга + подпись "α" у выбранной вершины. */}
-                {alphaArc && (
+                {showAlphaArc && alphaArc && (
                     <>
                         <motion.path
                             d={`M ${alphaArc.p1.x} ${alphaArc.p1.y} Q ${alphaArc.control.x} ${alphaArc.control.y} ${alphaArc.p2.x} ${alphaArc.p2.y}`}
@@ -344,6 +414,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                 {[R, P, Q].map((v, i) => (
                     <circle key={i} cx={v.x} cy={v.y} r={4} fill={TEXT} />
                 ))}
+                </motion.g>
             </svg>
         </div>
     )

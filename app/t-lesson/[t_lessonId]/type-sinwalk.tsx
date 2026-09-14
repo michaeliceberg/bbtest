@@ -144,10 +144,12 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
                     onSettled={() => setStepReady(true)}
                 />
 
-                {/* Шаг 1 — появляется маркер прямого угла. */}
+                {/* Шаг 1 — появляется маркер прямого угла (с zoom-эффектом
+                    "смотри сюда" — камера ненадолго приближается к углу,
+                    рисует маркер, затем отдаляется обратно). */}
                 {step >= 1 && (
                     <>
-                        <DiagramBlock><RightTriangleDiagram rightAngleMarkShown /></DiagramBlock>
+                        <DiagramBlock><RightTriangleDiagram rightAngleMarkShown zoomFocus="rightAngle" /></DiagramBlock>
                         <TypedLine
                             className="w-full text-base md:text-lg text-[#F2F7FB]"
                             text="Вот он — прямой угол между двумя катетами треугольника."
@@ -171,11 +173,12 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
                     </>
                 )}
 
-                {/* Шаг 3 — выбираем угол α. */}
+                {/* Шаг 3 — выбираем угол α (тоже с zoom-эффектом на саму
+                    вершину, где рисуется дуга угла). */}
                 {step >= 3 && (
                     <>
                         <DiagramBlock>
-                            <RightTriangleDiagram rightAngleMarkShown hypotenuseHighlighted alphaVertex="P" />
+                            <RightTriangleDiagram rightAngleMarkShown hypotenuseHighlighted alphaVertex="P" zoomFocus="alpha" />
                         </DiagramBlock>
                         <TypedLine
                             className="w-full text-base md:text-lg text-[#F2F7FB]"
