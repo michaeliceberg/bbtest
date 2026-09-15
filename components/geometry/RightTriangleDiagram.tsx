@@ -41,15 +41,17 @@ const RIGHT_ANGLE_COLOR = '#FB923C'
 // остальной палитрой (оранжевый/фиолетовый/золотой).
 const ALPHA_COLOR = '#22D3EE'
 export const HYPOTENUSE_COLOR = '#8B5CF6'     // тот же фиолетовый, что HYPOTENUSE_COLOR в TrapezoidDiagram
-// Раньше зелёный — пользователь попросил золотой/мигающий цвет именно
-// для "противолежащего катета" (ключевая фраза, привлекающая внимание),
-// экспортируется, чтобы TypeSinWalk красил тем же цветом текст фразы.
+// Раньше золотой/мигающий — пользователь попросил убрать этот эффект и
+// вернуть "противолежащий катет" в тот же формат, что и обычный зелёный
+// "катет" (см. LEG_COLOR ниже) — больше нигде не используется, оставлен
+// экспортированным на случай будущей потребности в отдельном акценте.
 export const OPPOSITE_LEG_COLOR = '#FBBF24'
-// Зелёный — общая подпись "катет" на ОБЕИХ сторонах-катетах, ещё до того,
-// как мы выбрали угол α и стали различать их (см. legsLabelShown). Тот же
-// зелёный, что уже устоялся в проекте (SEGMENT_COLOR в TrapezoidDiagram) —
-// свободен здесь, т.к. OPPOSITE_LEG_COLOR давно перекрашен в золотой.
-const LEG_COLOR = '#4ADE80'
+// Зелёный — общая подпись "катет" на ОБЕИХ сторонах-катетах, а ТЕПЕРЬ и
+// подпись "противолежащий катет" (та же самая сторона, просто текст
+// сменился) — по прямой просьбе пользователя убрать особый золотой
+// мигающий акцент и оставить единый зелёный формат. Экспортируется —
+// TypeSinWalk красит тем же цветом текст соответствующей фразы.
+export const LEG_COLOR = '#4ADE80'
 const CORRECT_COLOR = '#A1D151'
 const WRONG_COLOR = '#DC605B'
 const TEXT = '#F2F7FB'
@@ -232,6 +234,11 @@ const PAN_OUT_START_FRACTION = 0.8      // отсюда начинает отд�
 // противолежащий катет) — см. "стандарт" подсветки стороны в JSX ниже.
 const SIDE_DRAW_DURATION = 0.9
 
+// Задержка между появлением подписи "катет" на первой и на второй стороне
+// — по прямой просьбе пользователя, обе подписи должны появляться
+// ПООЧЕРЁДНО, не одновременно.
+const LEGS_LABEL_STAGGER_S = 0.6
+
 export const RightTriangleDiagram = (props: RightTriangleVisual) => {
     const {
         rotationDeg = 0,
@@ -341,6 +348,14 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
     const zoomTy = zoomFocusPoint ? focusOffset(zoomFocusPoint).y : 0
     const panOffset = zoomFocus === 'alphaToOppositeLeg' ? focusOffset(oppositeLegMid) : null
 
+    // Базовая задержка появления подписей "катет" — раньше срабатывала
+    // ещё ВО ВРЕМЯ зум-эффекта (одновременно с зум-аутом), по прямой
+    // просьбе пользователя теперь ждёт, пока камера ПОЛНОСТЬЮ вернётся
+    // в исходное положение (весь ZOOM_TOTAL_S), а не только фазу
+    // "приблизились" (ZOOM_IN_FRACTION). Вторая подпись — ещё позже, см.
+    // LEGS_LABEL_STAGGER_S у каждого вызова SideLabel ниже.
+    const legsBaseDelay = zoomFocus === 'rightAngle' ? ZOOM_TOTAL_S : 0
+
     // Подсветка гипотенузы/противолежащего катета в обучающих кадрах
     // ТЕПЕРЬ не здесь — см. отдельные overlay-линии в JSX ниже ("стандарт"
     // подсветки стороны: базовая белая линия остаётся видна, поверх
@@ -365,7 +380,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
 
     return (
         <div className="flex items-center justify-center py-2 px-2 mb-2 bg-[#161F23] rounded-xl overflow-hidden">
-            <svg viewBox={`0 0 ${CANVAS} ${CANVAS}`} width="100%" height="auto" style={{ maxWidth: 480 }}>
+            <svg viewBox={`0 0 ${CANVAS} ${CANVAS}`} width="100%" height="auto" style={{ maxWidth: 580 }}>
                 <motion.g
                     animate={panOffset ? {
                         // Зум на α → пауза → панорама (тот же scale, x/y едут
@@ -502,42 +517,47 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                 <motion.line
                     x1={R.x} y1={R.y}
                     x2={alphaVertex === 'P' ? Q.x : P.x} y2={alphaVertex === 'P' ? Q.y : P.y}
-                    stroke={OPPOSITE_LEG_COLOR} strokeWidth={11} strokeLinecap="round"
+                    stroke={LEG_COLOR} strokeWidth={11} strokeLinecap="round"
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: effectiveOppositeLegHighlighted ? 1 : 0, opacity: effectiveOppositeLegHighlighted ? 1 : 0 }}
                     transition={{ duration: SIDE_DRAW_DURATION, ease: 'easeOut' }}
                 />
+                {/* Раньше золотая и мигающая — по прямой просьбе пользователя
+                    убран этот акцент, "противолежащий катет" теперь в ТОМ ЖЕ
+                    формате, что и обычный зелёный "катет" ниже (тот же цвет,
+                    без pulse) — просто другой текст на той же стороне. */}
                 <SideLabel
                     a={R}
                     b={alphaVertex === 'P' ? Q : P}
                     labelPt={alphaVertex === 'P' ? legRQLabelPt : legRPLabelPt}
                     active={oppositeLegLabelShown && effectiveOppositeLegHighlighted}
-                    color={OPPOSITE_LEG_COLOR}
+                    color={LEG_COLOR}
                     text="противолежащий катет"
                     fontSize={15}
-                    pulse
                     delay={effectiveOppositeLegHighlighted ? SIDE_DRAW_DURATION : 0}
                 />
 
                 {/* Общая зелёная подпись "катет" на КАЖДОЙ стороне-катете —
-                    появляется вместе с прямым углом (bounce с затуханием,
-                    без отдельной обводки линии — сами катеты остаются
-                    белыми, просто подписаны). Когда одна из сторон
-                    "переименовывается" в противолежащий катет (золотой,
-                    см. выше) — ИМЕННО на этой стороне зелёная подпись
-                    гаснет РОВНО в тот же момент, когда золотая проявляется
-                    — читается как один и тот же ярлык "сменил цвет". */}
+                    появляется ПОСЛЕ того, как камера полностью отдалилась
+                    (не одновременно с зум-аутом — по прямой просьбе
+                    пользователя), и на ДВУХ сторонах ПООЧЕРЁДНО (вторая с
+                    задержкой LEGS_LABEL_STAGGER_S относительно первой), а
+                    не одновременно. Когда одна из сторон "переименовывается"
+                    в противолежащий катет (см. выше) — ИМЕННО на этой
+                    стороне зелёная подпись гаснет РОВНО в тот же момент,
+                    когда новая появляется — читается как один и тот же
+                    ярлык, сменивший только текст. */}
                 <SideLabel
                     a={R} b={P} labelPt={legRPLabelPt}
                     active={legsLabelShown && !(alphaVertex && oppositeLegOf(alphaVertex) === 'legRP' && effectiveOppositeLegHighlighted)}
                     color={LEG_COLOR} text="катет" fontSize={16}
-                    delay={zoomFocus === 'rightAngle' ? ZOOM_IN_FRACTION * ZOOM_TOTAL_S : 0}
+                    delay={legsBaseDelay}
                 />
                 <SideLabel
                     a={R} b={Q} labelPt={legRQLabelPt}
                     active={legsLabelShown && !(alphaVertex && oppositeLegOf(alphaVertex) === 'legRQ' && effectiveOppositeLegHighlighted)}
                     color={LEG_COLOR} text="катет" fontSize={16}
-                    delay={zoomFocus === 'rightAngle' ? ZOOM_IN_FRACTION * ZOOM_TOTAL_S : 0}
+                    delay={legsBaseDelay + LEGS_LABEL_STAGGER_S}
                 />
 
                 {/* Вершины — маленькие точки, чтобы стороны читались как
