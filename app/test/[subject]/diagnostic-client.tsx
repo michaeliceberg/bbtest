@@ -329,17 +329,19 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 
 						{/* Шапка результата — Lottie+счёт+фраза в одном компактном
 						  блоке (было: Lottie отдельно 280px + текст отдельно, вместе
-						  занимало слишком много высоты на телефоне). */}
-						<div className="flex items-center gap-3">
+						  занимало слишком много высоты на телефоне). Центрировано по
+						  горизонтали как единая группа (было прижато к левому краю);
+						  Lottie и текст увеличены на 50% по прямой просьбе пользователя. */}
+						<div className="flex items-center justify-center gap-4">
 							{resultLottieData ? (
-								<Lottie animationData={resultLottieData} loop autoplay className="w-20 h-20 shrink-0" />
+								<Lottie animationData={resultLottieData} loop autoplay className="w-[120px] h-[120px] shrink-0" />
 							) : null}
 							<div className="text-left min-w-0">
-								<p className="text-xs text-[#9AA7B0]">Ваш результат</p>
-								<p className="text-3xl font-extrabold leading-tight">{score} из {questions.length}</p>
+								<p className="text-sm text-[#9AA7B0]">Ваш результат</p>
+								<p className="text-[2.8rem] font-extrabold leading-tight">{score} из {questions.length}</p>
 								{resultPhrase && (
 									<p
-										className="text-base font-extrabold"
+										className="text-xl font-extrabold"
 										style={{ color: resultTier === 'best' ? '#A1D151' : resultTier === 'bad' ? '#DC605B' : '#F2C879' }}
 									>
 										{resultPhrase}
