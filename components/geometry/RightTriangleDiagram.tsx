@@ -291,10 +291,13 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
 
     // Отступы уменьшены относительно прежней версии со стрелками — без
     // стрелки подписи не нужно держать далеко от линии, только не
-    // перекрывать саму сторону.
-    const hypLabelPt = outward(hypMid, R, 42)
-    const legRQLabelPt = outward(legRQMid, P, 36)
-    const legRPLabelPt = outward(legRPMid, Q, 30)
+    // перекрывать саму сторону. По прямой просьбе пользователя ("подписи
+    // чуть далековато") — уменьшены ЕЩЁ раз, подписи теперь ближе к самим
+    // сторонам (минимальный зазор — половина ширины подсвеченной линии
+    // (11px) плюс небольшой запас под сам текст).
+    const hypLabelPt = outward(hypMid, R, 26)
+    const legRQLabelPt = outward(legRQMid, P, 22)
+    const legRPLabelPt = outward(legRPMid, Q, 18)
 
     // Маленький квадратик прямого угла — из единичных векторов вдоль
     // обеих сторон, исходящих из R (корректно поворачивается вместе с
@@ -490,9 +493,20 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                                 stroke={style.stroke}
                                 strokeWidth={style.width}
                                 strokeLinecap="round"
-                                animate={{ stroke: style.stroke, strokeWidth: style.width }}
+                                // По прямой просьбе пользователя — заметный
+                                // bounce в момент клика: линия ЯВНО толще
+                                // конечной ширины (1.7×), затем оседает до
+                                // нормального размера. Явные keyframe'ы
+                                // [peak, target], а не spring-overshoot от
+                                // stiffness/damping — гарантированный,
+                                // предсказуемый "хлопок", не зависящий от
+                                // тонкой настройки пружины.
+                                animate={{
+                                    stroke: style.stroke,
+                                    strokeWidth: checked ? [style.width * 1.7, style.width] : style.width,
+                                }}
                                 transition={checked
-                                    ? { strokeWidth: { type: 'spring', stiffness: 500, damping: 11 }, stroke: { duration: 0.2 } }
+                                    ? { strokeWidth: { duration: 0.5, times: [0.35, 1], ease: 'easeOut' }, stroke: { duration: 0.2 } }
                                     : { duration: 0.3 }}
                                 style={{ pointerEvents: 'none' }}
                             />

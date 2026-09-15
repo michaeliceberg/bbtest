@@ -27,7 +27,7 @@
 
 'use client'
 
-import { Fragment, useMemo, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { Check, RotateCcw, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
@@ -37,7 +37,7 @@ import {
     type AlphaVertex, type SideId,
 } from '@/components/geometry/RightTriangleDiagram'
 import { MARKER_COLOR, MARKER_COLOR_GREEN } from '@/components/geometry/WalkthroughMarker'
-import { TypedLine, TypedKeyPhraseLine, DiagramBlock, useStickToBottom, pickWalkthroughNextLabel } from '@/components/geometry/WalkthroughLog'
+import { TypedLine, TypedKeyPhraseLine, DiagramBlock, useStickToBottom, pickWalkthroughNextLabel, CORRECT_FEEDBACK_PHRASES } from '@/components/geometry/WalkthroughLog'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 
 // Пауза ПОСЛЕ клика "Дальше", ДО начала новой анимации следующей сцены
@@ -52,6 +52,10 @@ type Props = {
     onComplete: (isCorrect: boolean) => void
 }
 
+// НАЧАЛЬНОЕ число заданий практики — реальное число может вырасти по
+// ходу прохождения (см. handleNextTrial/"работа над ошибками" ниже), для
+// проверки текущего общего количества использовать trialConfigs.length,
+// не эту константу.
 const TRIAL_COUNT = 4
 // 0° сознательно исключён — это уже показанная обучающая ориентация,
 // тренировка должна выглядеть заметно "новой" с первого же задания.
@@ -60,6 +64,17 @@ const ROTATIONS = [35, -35, 55, -55, 75, -75, 110, -110, 140, -140, 160, -160]
 const pick = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)]
 
 type TrialConfig = { rotationDeg: number; mirror: boolean; alphaVertex: AlphaVertex }
+
+// Похвала за верный ответ — ВЫБРАНА ДЕТЕРМИНИРОВАННО из уже случайных
+// (но стабильных на весь заход в урок) полей самого задания, а НЕ через
+// Math.random()/useMemo прямо в JSX внутри .map() — вызов хуков внутри
+// цикла .map() нарушил бы Rules of Hooks (число вызовов росло бы вместе
+// с trialConfigs), а обычный Math.random() в теле рендера давал бы НОВУЮ
+// фразу на каждый лишний ре-рендер, а не одну стабильную на задание.
+const pickTrialFeedback = (cfg: TrialConfig): string => {
+    const seed = cfg.rotationDeg * 3 + (cfg.mirror ? 17 : 0) + (cfg.alphaVertex === 'P' ? 5 : 0)
+    return CORRECT_FEEDBACK_PHRASES[Math.abs(seed) % CORRECT_FEEDBACK_PHRASES.length]
+}
 
 const makeTrialConfigs = (n: number): TrialConfig[] => {
     const configs: TrialConfig[] = []
@@ -84,8 +99,8 @@ const nextButtonClass = (enabled: boolean) => cn(
 
 // Квадратная кнопка "повторить" слева от "Дальше" — по прямой просьбе
 // пользователя, чтобы можно было переиграть анимацию последнего шага ещё
-// раз. Сама "перемотка" реализована не здесь — см. replayNonce/key ниже,
-// эта кнопка только увеличивает счётчик.
+// раз. Сама "перемотка" реализована не здесь — см. replayNonces/key ниже,
+// эта кнопка только увеличивает счётчик ТЕКУЩЕГО шага.
 const ReplayButton = ({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) => (
     <button
         type="button"
@@ -121,19 +136,41 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
     // (см. SCENE_TRANSITION_PAUSE_MS) — блокирует повторный клик во время
     // паузы и держит экран неизменным, прежде чем начнётся новая сцена.
     const [advancing, setAdvancing] = useState(false)
-    // Счётчик "повторов" — по клику на кнопку-повтор растёт на 1; входит
-    // в key ТОЛЬКО текущего (последнего показанного) шага/задания, из-за
-    // чего React полностью пересоздаёт именно его — все анимации (зум,
-    // bounce-подписи) проигрываются заново с нуля. Остальные, уже
-    // показанные ранее шаги остаются нетронутыми (их key от replayNonce
-    // не зависит).
-    const [replayNonce, setReplayNonce] = useState(0)
-    const handleReplay = () => setReplayNonce((n) => n + 1)
-
-    const [trialConfigs] = useState(() => makeTrialConfigs(TRIAL_COUNT))
+    // trialConfigs растёт по ходу практики — см. handleNextTrial: реальный
+    // баг, пойманный пользователем живьём ("на 4/4 сделал ошибку — всё
+    // застыло, дальше нажать нельзя") — раньше при ошибке на ПОСЛЕДНЕМ по
+    // счёту задании компонент всё равно звал onComplete(false) и
+    // завершался, но общая нижняя кнопка тренажёра для SINWALK скрыта
+    // целиком (у него своя "Дальше"/"Готово") — в итоге нажать было
+    // буквально нечего. По прямой просьбе пользователя — если ошибка на
+    // последнем задании, попытка НЕ считается завершённой: вместо
+    // onComplete добавляется ЕЩЁ одно случайное задание, и так пока
+    // последнее по счёту не будет решено верно.
+    const [trialConfigs, setTrialConfigs] = useState<TrialConfig[]>(() => makeTrialConfigs(TRIAL_COUNT))
     const [trialIndex, setTrialIndex] = useState(0)
     const [trialAnswers, setTrialAnswers] = useState<(SideId | null)[]>(Array(TRIAL_COUNT).fill(null))
     const [checked, setChecked] = useState(false)
+
+    // Счётчики "повторов" — ОТДЕЛЬНЫЙ nonce на каждый шаг/задание
+    // ('step-0'..'step-4', 'trial-0'..'trial-3'), а не один общий на всё.
+    // Это важно: если бы nonce был один общий и входил в key каждого
+    // блока БЕЗУСЛОВНО, клик "повторить" на шаге 3 пересоздавал бы (и
+    // заново печатал текст) ВСЕ уже пройденные шаги 0-2 тоже — реальный
+    // баг, пойманный пользователем живьём ("почему в предыдущей сцене
+    // снова проигрывается анимация текста"). Причина была именно в
+    // ФОРМАТЕ key: раньше он переключался между `step1-${nonce}` (пока
+    // шаг активен) и просто `step1` (как только шаг становится пройден)
+    // — а любая смена ФОРМАТА key — это уже смена key для React, даже
+    // если nonce не менялся, поэтому переход НА следующий шаг сам по
+    // себе пересоздавал/перепечатывал предыдущий. Теперь key каждого
+    // блока — ВСЕГДА один и тот же формат `step-N-${nonce}`, не зависит
+    // от того, активен шаг сейчас или уже пройден — он не меняется просто
+    // от перехода дальше, только от явного клика "повторить" ИМЕННО на
+    // этом шаге.
+    const [replayNonces, setReplayNonces] = useState<Record<string, number>>({})
+    const currentReplayKey = phase === 'intro' ? `step-${step}` : `trial-${trialIndex}`
+    const handleReplay = () => setReplayNonces((prev) => ({ ...prev, [currentReplayKey]: (prev[currentReplayKey] ?? 0) + 1 }))
+    const replayNonceFor = (key: string) => replayNonces[key] ?? 0
 
     const currentCorrectSide = oppositeLegOf(trialConfigs[trialIndex].alphaVertex)
 
@@ -150,9 +187,20 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
         if (advancing) return
         setAdvancing(true)
         setTimeout(() => {
-            if (trialIndex + 1 >= TRIAL_COUNT) {
-                onComplete(!hadMistake)
-                return
+            const wasLastCorrect = trialAnswers[trialIndex] === currentCorrectSide
+            const isLastInList = trialIndex + 1 >= trialConfigs.length
+            if (isLastInList) {
+                if (wasLastCorrect) {
+                    setAdvancing(false)
+                    onComplete(!hadMistake)
+                    return
+                }
+                // Ошибка на последнем по счёту задании — не завершаем
+                // попытку, а добавляем ещё одно (см. комментарий у
+                // trialConfigs выше).
+                const [extra] = makeTrialConfigs(1)
+                setTrialConfigs((prev) => [...prev, extra])
+                setTrialAnswers((prev) => [...prev, null])
             }
             setTrialIndex((i) => i + 1)
             setChecked(false)
@@ -181,8 +229,15 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
     // Подпись кнопки "Дальше" — иногда варьируется (см. WALKTHROUGH_NEXT_
     // PHRASES); пересчитывается на каждый НОВЫЙ шаг/задание, а не на любой
     // ре-рендер, иначе текст менялся бы "на лету" под уже видимой кнопкой.
-    const introNextLabel = useMemo(() => pickWalkthroughNextLabel('Дальше'), [step])
-    const trialNextLabel = useMemo(() => pickWalkthroughNextLabel('Дальше'), [trialIndex])
+    // Случайный выбор — ТОЛЬКО после монтирования (useEffect), не в самом
+    // рендере/useMemo: тот выполняется и при SSR, и при первом клиентском
+    // рендере независимо — Math.random() даёт разные значения на сервере
+    // и клиенте и ломает гидратацию (тот же класс бага, что уже не раз
+    // документирован в CLAUDE.md для случайного текста, видимого в SSR-HTML).
+    const [introNextLabel, setIntroNextLabel] = useState('Дальше')
+    const [trialNextLabel, setTrialNextLabel] = useState('Дальше')
+    useEffect(() => { setIntroNextLabel(pickWalkthroughNextLabel('Дальше')) }, [step])
+    useEffect(() => { setTrialNextLabel(pickWalkthroughNextLabel('Дальше')) }, [trialIndex])
 
     const endRef = useStickToBottom([step, stepReady, phase, trialIndex, checked, advancing])
 
@@ -192,11 +247,8 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
                 {/* Шаг 0 — просто треугольник. Заголовок вопроса ("Что такое
                     синус угла?") здесь НЕ дублируется — его уже показывает
                     облако маскота над карточкой (TrainerMascot.taskMessage),
-                    свой <h2> с тем же текстом раньше был лишним повтором.
-                    key меняется вместе с replayNonce, ТОЛЬКО пока это
-                    текущий (step===0) шаг — клик "повторить" пересоздаёт
-                    именно его, не трогая уже пройденные дальше шаги. */}
-                <Fragment key={step === 0 ? `step0-${replayNonce}` : 'step0'}>
+                    свой <h2> с тем же текстом раньше был лишним повтором. */}
+                <Fragment key={`step-0-${replayNonceFor('step-0')}`}>
                     <DiagramBlock><RightTriangleDiagram /></DiagramBlock>
                     <TypedLine
                         className="w-full text-base md:text-lg text-[#F2F7FB]"
@@ -214,7 +266,7 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
                     тексте ниже — просто жирным зелёным (без текстовыделителя,
                     по прямой просьбе пользователя убрать этот эффект). */}
                 {step >= 1 && (
-                    <Fragment key={step === 1 ? `step1-${replayNonce}` : 'step1'}>
+                    <Fragment key={`step-1-${replayNonceFor('step-1')}`}>
                         <DiagramBlock><RightTriangleDiagram rightAngleMarkShown legsLabelShown zoomFocus="rightAngle" /></DiagramBlock>
                         <TypedKeyPhraseLine
                             before="Вот он — прямой угол между двумя "
@@ -228,7 +280,7 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
 
                 {/* Шаг 2 — гипотенуза (ключевая фраза, подпись вдоль стороны). */}
                 {step >= 2 && (
-                    <Fragment key={step === 2 ? `step2-${replayNonce}` : 'step2'}>
+                    <Fragment key={`step-2-${replayNonceFor('step-2')}`}>
                         <DiagramBlock>
                             <RightTriangleDiagram rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown />
                         </DiagramBlock>
@@ -244,9 +296,9 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
                 {/* Шаг 3 — выбираем угол α (тоже с zoom-эффектом на саму
                     вершину, где рисуется дуга угла). */}
                 {step >= 3 && (
-                    <Fragment key={step === 3 ? `step3-${replayNonce}` : 'step3'}>
+                    <Fragment key={`step-3-${replayNonceFor('step-3')}`}>
                         <DiagramBlock>
-                            <RightTriangleDiagram rightAngleMarkShown legsLabelShown hypotenuseHighlighted alphaVertex="P" zoomFocus="alpha" />
+                            <RightTriangleDiagram rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown alphaVertex="P" zoomFocus="alpha" />
                         </DiagramBlock>
                         <TypedLine
                             className="w-full text-base md:text-lg text-[#F2F7FB]"
@@ -263,10 +315,10 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
                     формате (без золотого/мигающего акцента, по прямой
                     просьбе пользователя убрать этот эффект). */}
                 {step >= 4 && (
-                    <Fragment key={step === 4 ? `step4-${replayNonce}` : 'step4'}>
+                    <Fragment key={`step-4-${replayNonceFor('step-4')}`}>
                         <DiagramBlock>
                             <RightTriangleDiagram
-                                rightAngleMarkShown legsLabelShown hypotenuseHighlighted alphaVertex="P" zoomFocus="alphaToOppositeLeg"
+                                rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown alphaVertex="P" zoomFocus="alphaToOppositeLeg"
                                 oppositeLegHighlighted oppositeLegLabelShown
                             />
                         </DiagramBlock>
@@ -286,16 +338,18 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
                     const answer = trialAnswers[i]
                     const correctSide = oppositeLegOf(cfg.alphaVertex)
                     return (
-                        <div key={i === trialIndex ? `trial-${i}-${replayNonce}` : `trial-${i}`} className="w-full flex flex-col gap-3">
-                            {/* "Задание N из M" — отдельная цветная плашка
-                                (не часть печатаемого текста), плюс слово
-                                "противолежащий" в самом вопросе выделено
-                                текстовыделителем — по прямой просьбе
-                                пользователя, чтобы сразу было понятно, что
-                                именно искать на чертеже. */}
+                        <div key={`trial-${i}-${replayNonceFor(`trial-${i}`)}`} className="w-full flex flex-col gap-3">
+                            {/* "N из M" — отдельная цветная плашка (не часть
+                                печатаемого текста); сама фраза-задание
+                                упрощена по прямой просьбе пользователя
+                                ("Выбери противолежащий катет к углу α —
+                                кликни по стороне треугольника" → просто
+                                "Кликни по противолежащему катету"), слово
+                                "противолежащему" выделено текстовыделителем
+                                — чтобы сразу было понятно, что искать. */}
                             <div className="flex items-start gap-3 w-full">
                                 <div
-                                    className="shrink-0 flex items-baseline gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
+                                    className="shrink-0 flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
                                     style={{
                                         borderColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.55),
                                         backgroundColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.16),
@@ -304,13 +358,13 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
                                 >
                                     <span>{i + 1}</span>
                                     <span className="opacity-50 font-normal">/</span>
-                                    <span>{TRIAL_COUNT}</span>
+                                    <span>{trialConfigs.length}</span>
                                 </div>
                                 <TypedKeyPhraseLine
                                     className="flex-1 text-base md:text-lg text-[#F2F7FB]"
-                                    before="Выбери "
-                                    phrase="противолежащий"
-                                    after=" катет к углу α — кликни по стороне треугольника."
+                                    before="Кликни по "
+                                    phrase="противолежащему"
+                                    after=" катету."
                                     color={MARKER_COLOR}
                                     highlight
                                 />
@@ -336,7 +390,7 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
                                     )}
                                 >
                                     {answer === correctSide ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
-                                    {answer === correctSide ? 'Верно!' : 'Не тот катет — верная сторона подсвечена зелёным.'}
+                                    {answer === correctSide ? pickTrialFeedback(cfg) : 'Не тот катет — верная сторона подсвечена зелёным.'}
                                 </div>
                             )}
                         </div>
@@ -357,7 +411,13 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
                 <div className="w-full max-w-xs flex items-center gap-2">
                     <ReplayButton onClick={handleReplay} disabled={advancing} />
                     <button type="button" onClick={handleNextTrial} disabled={advancing} className={nextButtonClass(!advancing)}>
-                        {trialIndex + 1 >= TRIAL_COUNT ? 'Готово' : trialNextLabel}
+                        {/* "Готово" — ТОЛЬКО если это реально последнее и
+                            ВЕРНО решённое задание (клик завершит практику).
+                            Если это последнее по счёту, но ответ неверный —
+                            клик добавит ещё одно задание (см. handleNextTrial),
+                            поэтому кнопка честно показывает "Дальше"-подобную
+                            подпись, а не вводящее в заблуждение "Готово". */}
+                        {trialIndex + 1 >= trialConfigs.length && trialAnswers[trialIndex] === currentCorrectSide ? 'Готово' : trialNextLabel}
                     </button>
                 </div>
             ) : (
