@@ -260,7 +260,7 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 						<Button
 							variant="primary"
 							size="lg"
-							className="w-full h-14 mt-4 animate-cta-pulse bg-gradient-to-r from-violet-500 via-fuchsia-500 to-violet-500 border-violet-300"
+							className="w-full h-14 mt-4 animate-cta-pulse bg-gradient-to-r from-violet-400 via-fuchsia-400 to-violet-400 border-violet-700"
 							onClick={() => setPhase('quiz')}
 						>
 							<ScrambleText text={START_LABELS[startLabelIndex]} />
