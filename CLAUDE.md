@@ -9037,3 +9037,56 @@ justify-center gap-4`) — раньше группа была смещена в�
 правильной, ответ дан чтением существующего кода.
 
 `npx tsc --noEmit` чист.
+
+## Уведомление админу о диагностическом лиде дополнено именем/username из Telegram (2026-09-15)
+
+Пользователь верно указал на пробел: уведомление админу при подтверждении
+лида через бота (`performDiagnosticBind`, см. запись выше "Диагностический
+тест: 4 UI-фикса + замена телефона на диплинк в Telegram-бота") содержало
+только предмет/результат/слабую тему — ни имени, ни username, то есть по
+факту "какой-то новый пользователь", без возможности с ним связаться.
+
+Telegram передаёт `message.chat.first_name`/`last_name`/`username` в
+КАЖДОМ `/start`-апдейте (стандартное поле приватного чата, тот же объект,
+что и `performBind` уже читает для `firstName` при привязке родителя) —
+просто не сохранялось и не попадало в уведомление для диагностического
+флоу.
+
+- `db/schema.ts` (`diagnosticLeads`) — 3 новых nullable-колонки:
+  `telegramFirstName`/`telegramLastName`/`telegramUsername`. Применено
+  прямым SQL (`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`), не через
+  `db:push` — та же причина, что и у всех прошлых схемных правок в
+  проекте (не трогать несвязанный дрифт визарда).
+- `app/api/telegram/webhook/route.ts` — `performDiagnosticBind` получил
+  4-й параметр `identity: {firstName, lastName, username}` (новый тип
+  `TelegramIdentity`), сохраняет их в БД вместе с
+  `telegramChatId`/`telegramVerifiedAt`, и включает в admin-уведомление:
+  "Имя: Имя Фамилия" (или "без имени", если Telegram не прислал) +
+  "Username: [@username](https://t.me/username)" (или "нет username" —
+  часть пользователей Telegram username не заводят) — username сделан
+  КЛИКАБЕЛЬНОЙ Markdown-ссылкой прямо на личку человека (`[текст](url)` —
+  обычный legacy-Markdown, который уже используется в проекте, безопасно
+  даже если username содержит `_`, т.к. текст внутри `[...]` Telegram не
+  парсит на вложенную разметку). Вызов в `POST`-хендлере обновлён —
+  `payload?.startsWith('diag_')`-ветка достаёт `message.chat.first_name/
+  last_name/username` (те же поля, что и `firstName`-переменная чуть
+  выше в файле уже читает для `performBind`) и передаёт объектом.
+
+**Живая проверка** (`npm run dev`, реальный флоу до экрана результата
+через Browser pane → получена настоящая ссылка `t.me/BOT?start=diag_
+<токен>` → прямой `curl POST .../api/telegram/webhook` с `{"message":
+{"chat":{"id":..., "first_name":"Михаил","last_name":"Петров","username":
+"mikhail_test_user"}, "text":"/start diag_<токен>"}}`, тот же формат,
+что реально шлёт Telegram): БД корректно сохранила все три поля
+(`telegramFirstName/LastName/Username`); лог dev-сервера подтвердил
+`✅ Сообщение отправлено в Telegram` именно для admin-уведомления (второй
+вызов `sendMessageToTelegram`, без markdown-фолбэка на "без разметки" —
+значит форма ссылки распарсилась Telegram'ом без ошибок) — то есть
+сообщение с именем/username реально дошло в настоящий admin-чат, не
+только логика на бумаге. Первый вызов (приветствие фейковому chatId) дал
+ожидаемую `Bad Request: chat not found` (фейковый chat_id не существует
+в реальном Telegram) — не связано с этой правкой, тот же класс
+"безобидной, пойманной catch'ем ошибки", что и раньше в `sendMessage
+ToTelegram`. Тестовый лид удалён после проверки.
+
+`npx tsc --noEmit` чист.

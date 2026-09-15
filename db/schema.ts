@@ -959,6 +959,13 @@ export const diagnosticLeads = pgTable('diagnostic_leads', {
 	telegramStartToken: text('telegram_start_token'),
 	telegramChatId: text('telegram_chat_id'),
 	telegramVerifiedAt: timestamp('telegram_verified_at'),
+	// Имя/username из Telegram-профиля пользователя (message.chat.*
+	// на момент /start diag_TOKEN) — чтобы уведомление админу и сам лид
+	// в БД были не просто "кто-то подключился", а конкретный человек,
+	// с кем можно связаться (username кликабелен как t.me/username).
+	telegramFirstName: text('telegram_first_name'),
+	telegramLastName: text('telegram_last_name'),
+	telegramUsername: text('telegram_username'),
 	createdAt: timestamp('created_at').defaultNow(),
 });
 

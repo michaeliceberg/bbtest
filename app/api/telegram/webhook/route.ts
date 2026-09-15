@@ -132,7 +132,18 @@ async function performBind(chatId: string, firstName: string, rawCode: string | 
 // нечего, только зафиксировать факт подписки и уведомить админа о
 // реальной конверсии лида (не при создании лида — только здесь, при
 // подтверждённой верификации).
-async function performDiagnosticBind(chatId: string, rawToken: string | undefined, keyboard: TelegramReplyKeyboard) {
+type TelegramIdentity = {
+    firstName: string | null;
+    lastName: string | null;
+    username: string | null;
+};
+
+async function performDiagnosticBind(
+    chatId: string,
+    rawToken: string | undefined,
+    keyboard: TelegramReplyKeyboard,
+    identity: TelegramIdentity
+) {
     const token = rawToken?.trim();
     if (!token) return;
 
@@ -155,7 +166,13 @@ async function performDiagnosticBind(chatId: string, rawToken: string | undefine
     }
 
     await db.update(diagnosticLeads)
-        .set({ telegramChatId: chatId, telegramVerifiedAt: new Date() })
+        .set({
+            telegramChatId: chatId,
+            telegramVerifiedAt: new Date(),
+            telegramFirstName: identity.firstName,
+            telegramLastName: identity.lastName,
+            telegramUsername: identity.username,
+        })
         .where(eq(diagnosticLeads.id, lead.id));
 
     await sendMessageToTelegram(
@@ -165,16 +182,24 @@ async function performDiagnosticBind(chatId: string, rawToken: string | undefine
         chatId
     );
 
+    // Имя/username — чтобы уведомление было "кто именно пришёл", а не
+    // просто факт конверсии; username даёт кликабельную ссылку прямо на
+    // личку человека (t.me/username), first/last name — запасной вариант,
+    // если username не задан (у части пользователей Telegram его нет).
+    const fullName = [identity.firstName, identity.lastName].filter(Boolean).join(' ') || 'без имени';
+    const usernameLine = identity.username ? `[@${identity.username}](https://t.me/${identity.username})` : 'нет username';
     const utmLine = [lead.utmSource, lead.utmMedium, lead.utmCampaign].filter(Boolean).join(' / ');
     await sendMessageToTelegram(
         `🎯 *Новый лид с диагностического теста (Telegram)*\n\n` +
+        `Имя: ${fullName}\n` +
+        `Username: ${usernameLine}\n` +
         `Предмет: ${DIAGNOSTIC_SUBJECT_LABEL[lead.subject as DiagnosticSubject]}\n` +
         `Результат: ${lead.score}/${lead.totalQuestions}\n` +
         (lead.weakUnitTitle ? `Слабая тема: ${lead.weakUnitTitle}\n` : '') +
         (utmLine ? `Источник: ${utmLine}\n` : '')
     );
 
-    console.log(`🎯 Диагностический лид ${lead.id} подтверждён через Telegram (chatId=${chatId})`);
+    console.log(`🎯 Диагностический лид ${lead.id} подтверждён через Telegram (chatId=${chatId}, ${fullName})`);
 }
 
 export async function POST(req: Request) {
@@ -207,7 +232,11 @@ export async function POST(req: Request) {
             }
 
             if (payload?.startsWith('diag_')) {
-                await performDiagnosticBind(chatId, payload.slice('diag_'.length), keyboard);
+                await performDiagnosticBind(chatId, payload.slice('diag_'.length), keyboard, {
+                    firstName: message.chat.first_name || null,
+                    lastName: message.chat.last_name || null,
+                    username: message.chat.username || null,
+                });
                 return NextResponse.json({ ok: true });
             }
 
