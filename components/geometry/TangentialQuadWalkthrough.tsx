@@ -34,7 +34,7 @@ import { HighlightedNumbersText } from '@/components/HighlightedNumbersText'
 import { TangentialQuadDiagram } from './TangentialQuadDiagram'
 import { Typewriter } from './Typewriter'
 import {
-    PENDING_COLOR, CORRECT_COLOR, WRONG_COLOR, PENDING_COLOR_RGB, CURSOR_LATEX,
+    PENDING_COLOR, CORRECT_COLOR, WRONG_COLOR, PENDING_COLOR_RGB, CURSOR_LATEX, ATTENTION_COLOR,
     ConditionCitation, TypedLine, BlinkingExclaim, FormulaBlock, DiagramBlock, useStickToBottom, useGlyphBlink,
 } from './WalkthroughLog'
 
@@ -63,7 +63,7 @@ const ExplainLine = ({ onSettled }: { onSettled?: () => void }) => {
             ) : (
                 <>
                     Это возможно только если{' '}
-                    <span style={{ color: '#FBBF24', fontWeight: 800 }}>суммы противоположных сторон равны</span>
+                    <span style={{ color: ATTENTION_COLOR, fontWeight: 800 }}>суммы противоположных сторон равны</span>
                     <BlinkingExclaim />
                 </>
             )}

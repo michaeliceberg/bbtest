@@ -15,11 +15,17 @@
 // выносные элементы букв (р, у, б...).
 
 import { motion } from 'framer-motion'
+import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 
-export const MARKER_COLOR = 'rgba(139, 92, 246, 0.85)' // violet-500 @ 85%
+// Цвета маркера-текстовыделителя — из «Палитры ggege» (см. CLAUDE.md), по
+// прямой просьбе пользователя (2026-09-15) использовать те же 6 цветов,
+// что и кнопки уроков на /learn. Фиолетовый — тот же, что HYPOTENUSE_COLOR
+// в TrapezoidDiagram/RightTriangleDiagram (единая роль "вот что мы сейчас
+// ищем"/ключевой термин).
+export const MARKER_COLOR = hexToRgba(GGEGE_PALETTE.purple.button, 0.85)
 // Зелёный вариант маркера — для ключевых слов, помеченных тем же цветом,
 // что и зелёные подписи "катет" на RightTriangleDiagram (см. TypeSinWalk).
-export const MARKER_COLOR_GREEN = 'rgba(74, 222, 128, 0.85)' // green-400 @ 85%
+export const MARKER_COLOR_GREEN = hexToRgba(GGEGE_PALETTE.green.button, 0.85)
 
 // color — необязательный, по умолчанию фиолетовый MARKER_COLOR (все уже
 // существующие вызовы без явного цвета продолжают работать как раньше).

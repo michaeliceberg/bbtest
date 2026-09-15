@@ -38,6 +38,7 @@ import {
 } from '@/components/geometry/RightTriangleDiagram'
 import { MARKER_COLOR, MARKER_COLOR_GREEN } from '@/components/geometry/WalkthroughMarker'
 import { TypedLine, TypedKeyPhraseLine, DiagramBlock, useStickToBottom, pickWalkthroughNextLabel } from '@/components/geometry/WalkthroughLog'
+import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 
 // Пауза ПОСЛЕ клика "Дальше", ДО начала новой анимации следующей сцены
 // (зума, дорисовки стороны и т.п.) — по прямой просьбе пользователя,
@@ -295,7 +296,11 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
                             <div className="flex items-start gap-3 w-full">
                                 <div
                                     className="shrink-0 flex items-baseline gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
-                                    style={{ borderColor: 'rgba(139,92,246,0.55)', backgroundColor: 'rgba(139,92,246,0.16)', color: '#C4B5FD' }}
+                                    style={{
+                                        borderColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.55),
+                                        backgroundColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.16),
+                                        color: GGEGE_PALETTE.purple.button,
+                                    }}
                                 >
                                     <span>{i + 1}</span>
                                     <span className="opacity-50 font-normal">/</span>

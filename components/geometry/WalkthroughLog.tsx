@@ -18,6 +18,14 @@ import { motion } from 'framer-motion'
 import Latex from 'react-latex-next'
 import { HighlightWord } from './WalkthroughMarker'
 import { Typewriter } from './Typewriter'
+import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors'
+
+// Единый "цвет внимания" ("смотри сюда"/"важно") для всех разборов по
+// шагам — оранжевый из «Палитры ggege» (см. CLAUDE.md), используется и
+// здесь (BlinkingExclaim), и в других геометрических диаграммах (см.
+// LEGS_HIGHLIGHT_COLOR в TrapezoidDiagram.tsx) — одна точка правды,
+// чтобы цвет "важно/смотри сюда" не расходился по разным разборам.
+export const ATTENTION_COLOR = GGEGE_PALETTE.orange.button
 
 export const PENDING_COLOR = '#5C6B73'
 export const CORRECT_COLOR = '#A1D151'
@@ -104,7 +112,7 @@ export function useGlyphBlink(containerRef: React.RefObject<HTMLElement | null>,
 export const BlinkingExclaim = () => (
     <motion.span
         className="inline-block ml-1 font-black"
-        style={{ color: '#FBBF24' }}
+        style={{ color: ATTENTION_COLOR }}
         animate={{ opacity: [1, 0.25, 1] }}
         transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
     >!</motion.span>
