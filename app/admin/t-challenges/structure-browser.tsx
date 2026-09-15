@@ -343,13 +343,16 @@ export function StructureBrowser() {
         <div className="flex-1 bg-[#161F23] border border-[#3A464E] rounded-lg p-4 overflow-y-auto flex flex-col gap-4">
           {selectedUnit ? (
             <div className="flex-shrink-0">
-              <h3 className="text-white font-bold mb-3">🔀 Пул задач юнита — перенос между этапами</h3>
-              {/* Ограничена по высоте и скроллится сама — иначе при большом
-                  количестве задач в юните этот блок растягивался без предела
-                  внутри overflow-y-auto панели, и форме "Добавить задачу"
-                  ниже (тоже на flex-1) не оставалось места: она схлопывалась
-                  до пары пикселей высоты, а текст в её полях обрезался. */}
-              <div className="max-h-[45vh] overflow-y-auto">
+              <h3 className="text-white font-bold mb-3">🔀 Пул задач юнита — перетащи карточку в другой этап</h3>
+              {/* Явная (не max-) высота — та же причина, что была у прежнего
+                  max-h-[45vh]: без стабильной высоты этот блок растягивался бы
+                  без предела внутри overflow-y-auto панели, и форме "Добавить
+                  задачу" ниже (тоже на flex-1) не оставалось бы места — она
+                  схлопывалась до пары пикселей. Kanban-доска внутри сама
+                  скроллит каждую колонку независимо, поэтому фиксированная
+                  высота тут даже уместнее, чем max-height — почти всегда
+                  используется целиком. */}
+              <div className="h-[62vh]">
                 <UnitChallengePool key={`${selectedUnit}-${poolRefreshKey}`} unitId={selectedUnit} />
               </div>
             </div>
