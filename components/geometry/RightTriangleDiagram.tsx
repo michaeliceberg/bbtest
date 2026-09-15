@@ -223,14 +223,14 @@ export type RightTriangleVisual = {
 // рисуется, затем отдаляется обратно. Доли времени (times) заданы под
 // framer-motion keyframe-анимацию с общей длительностью ZOOM_TOTAL_S.
 const ZOOM_SCALE = 2.3
-const ZOOM_TOTAL_S = 1.8
+const ZOOM_TOTAL_S = 2.7 // было 1.8, +50% по просьбе пользователя — резче не читалась смена картинки
 const ZOOM_IN_FRACTION = 0.35   // к этому моменту камера уже приблизилась
 const ZOOM_OUT_START_FRACTION = 0.65 // с этого момента начинает отдаляться
 
 // Тайминг для 'alphaToOppositeLeg' — отдельный, подольше (два "дубля"
 // камеры вместо одного): зум на α → пауза → панорама к катету → держим
 // кадр → отдаляемся.
-const PAN_TOTAL_S = 2.4
+const PAN_TOTAL_S = 3.6 // было 2.4, +50% — тот же принцип, что и у ZOOM_TOTAL_S выше
 const PAN_ARRIVE_ALPHA_FRACTION = 0.2   // камера уже у α
 const PAN_ARRIVE_LEG_FRACTION = 0.55    // панорама к катету завершена — здесь проявляется "swap"
 const PAN_OUT_START_FRACTION = 0.8      // отсюда начинает отдаляться

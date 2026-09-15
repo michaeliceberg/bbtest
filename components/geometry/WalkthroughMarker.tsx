@@ -32,7 +32,7 @@ export const MARKER_COLOR_GREEN = hexToRgba(GGEGE_PALETTE.green.button, 0.85)
 export const HighlightWord = ({ children, active, color = MARKER_COLOR }: { children: React.ReactNode; active: boolean; color?: string }) => (
     <span className="relative inline-block whitespace-nowrap">
         <motion.span
-            className="absolute -inset-x-1.5 top-[0.03em] h-[1.25em] rounded-[3px]"
+            className="absolute -inset-x-1.5 top-[calc(0.03em_+_2px)] h-[1.25em] rounded-[3px]"
             style={{ backgroundColor: color, transformOrigin: 'left center' }}
             initial={{ scaleX: 0 }}
             animate={{ scaleX: active ? 1 : 0 }}
