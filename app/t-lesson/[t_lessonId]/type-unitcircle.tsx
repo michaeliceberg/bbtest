@@ -39,6 +39,7 @@ import { useEffect, useRef, useState } from 'react'
 import Latex from 'react-latex-next'
 import 'katex/dist/katex.min.css';
 import { motion, animate as fmAnimate } from 'framer-motion'
+import { Pointer } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import type { QuestionType } from './page'
@@ -543,11 +544,17 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                 </svg>
 
                 {/* Знак направления сектора ('sector'/'draw') — крупно,
-                    жирно, слева сверху, в цвет самого сектора (см.
-                    sectorDirectionColor выше) — по прямой просьбе
-                    пользователя: "+" для положительного (против часовой),
-                    "-" для отрицательного (по часовой). key={sign} —
-                    ремаунт при каждой смене знака, чтобы entrance-bounce
+                    жирно, в цвет самого сектора (см. sectorDirectionColor
+                    выше) — по прямой просьбе пользователя: "+" для
+                    положительного (против часовой), "-" для отрицательного
+                    (по часовой). Позиция — БЕЗ translate/центрирования:
+                    left/top ставят именно левый-верхний угол блока (см.
+                    className — leading-none, без внутренних отступов),
+                    поэтому левый край знака = левый конец оси cos
+                    (CX-AXIS_END), верхний край = верхушка стрелки sin
+                    (CY-AXIS_END-ARROW) — те же константы, что рисуют сами
+                    оси чуть выше, не отдельные магические числа. key={sign}
+                    — ремаунт при каждой смене знака, чтобы entrance-bounce
                     (spring с перехлёстом) проигрывался заново, а не только
                     один раз при первом появлении — тот же паттерн, что уже
                     используется в этом файле для подписи assignedLabel. Не
@@ -560,8 +567,8 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                         initial={{ scale: 0, opacity: 0, rotate: -20 }}
                         animate={{ scale: 1, opacity: 1, rotate: 0 }}
                         transition={{ type: 'spring', stiffness: 320, damping: 13 }}
-                        className="absolute font-black text-3xl sm:text-4xl leading-none pointer-events-none select-none"
-                        style={{ left: '2%', top: '2%', color: sectorDirectionColor }}
+                        className="absolute font-black text-6xl sm:text-7xl leading-none pointer-events-none select-none"
+                        style={{ left: `${CX - AXIS_END}%`, top: `${CY - AXIS_END - ARROW}%`, color: sectorDirectionColor }}
                     >
                         {sectorTheta > 0 ? '+' : '−'}
                     </motion.div>
@@ -804,32 +811,59 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                 {isDraw && (() => {
                     const { left, top } = pointPos(renderAngle)
                     return (
-                        <button
-                            type="button"
-                            aria-label="Перетащи, чтобы задать угол"
-                            onPointerDown={handlePointerDownDraw}
-                            onPointerMove={handlePointerMoveDraw}
-                            onPointerUp={handlePointerUpDraw}
-                            onPointerCancel={handlePointerUpDraw}
-                            disabled={isAnswerChecked}
-                            className={cn(
-                                'absolute flex items-center justify-center rounded-full touch-none',
-                                'w-11 h-11 sm:w-12 sm:h-12',
-                                !isAnswerChecked && 'cursor-grab active:cursor-grabbing',
-                            )}
-                            style={{ left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)' }}
-                        >
-                            <span
+                        <>
+                            <button
+                                type="button"
+                                aria-label="Перетащи, чтобы задать угол"
+                                onPointerDown={handlePointerDownDraw}
+                                onPointerMove={handlePointerMoveDraw}
+                                onPointerUp={handlePointerUpDraw}
+                                onPointerCancel={handlePointerUpDraw}
+                                disabled={isAnswerChecked}
                                 className={cn(
-                                    'block rounded-full w-5 h-5 sm:w-6 sm:h-6 border-2',
-                                    isAnswerChecked && (sectorIsCorrectAfterCheck
-                                        ? 'border-[#A1D151] bg-[#A1D151] shadow-[0_0_0_5px_rgba(161,209,81,0.35)]'
-                                        : 'border-[#DC605B] bg-[#DC605B]'),
-                                    !isAnswerChecked && !hasDragged && 'animate-pulse',
+                                    'absolute flex items-center justify-center rounded-full touch-none',
+                                    'w-11 h-11 sm:w-12 sm:h-12',
+                                    !isAnswerChecked && 'cursor-grab active:cursor-grabbing',
                                 )}
-                                style={!isAnswerChecked ? { borderColor: sectorDirectionColor, backgroundColor: sectorDirectionColor } : undefined}
-                            />
-                        </button>
+                                style={{ left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)' }}
+                            >
+                                <span
+                                    className={cn(
+                                        'block rounded-full w-5 h-5 sm:w-6 sm:h-6 border-2',
+                                        isAnswerChecked && (sectorIsCorrectAfterCheck
+                                            ? 'border-[#A1D151] bg-[#A1D151] shadow-[0_0_0_5px_rgba(161,209,81,0.35)]'
+                                            : 'border-[#DC605B] bg-[#DC605B]'),
+                                        !isAnswerChecked && !hasDragged && 'animate-pulse',
+                                    )}
+                                    style={!isAnswerChecked ? { borderColor: sectorDirectionColor, backgroundColor: sectorDirectionColor } : undefined}
+                                />
+                            </button>
+
+                            {/* Палец-подсказка "схвати и потяни" — по прямой
+                                просьбе пользователя, тот же lucide-react
+                                `Pointer`, что уже используется для этой роли
+                                в SWIPE (swipe-arena.tsx), но здесь "бледно
+                                мигающий" (opacity pulse), не покачивание —
+                                ближе к самому шарику, снизу-справа от него
+                                (не перекрывает сам шарик). Пропадает
+                                навсегда, как только пользователь хоть раз
+                                потянул ручку (hasDragged) — дальше
+                                подсказка не нужна. */}
+                            {!hasDragged && !isAnswerChecked && (
+                                <motion.div
+                                    className="absolute text-[#8CA0AB] pointer-events-none"
+                                    style={{
+                                        left: `${Number(left) + 6}%`,
+                                        top: `${Number(top) + 6}%`,
+                                        transform: 'translate(-20%, -20%)',
+                                    }}
+                                    animate={{ opacity: [0.25, 0.85, 0.25] }}
+                                    transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                                >
+                                    <Pointer className="w-7 h-7 sm:w-8 sm:h-8" strokeWidth={2} />
+                                </motion.div>
+                            )}
+                        </>
                     )
                 })()}
             </div>
