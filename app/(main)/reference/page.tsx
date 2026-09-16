@@ -1,11 +1,21 @@
 // app/(main)/reference/page.tsx
 //
 // Справочник формул — просматриваемый список (не квиз), чтобы ученик мог
-// открыть и глазами пройтись по теме. Первый заход — только физика (см.
-// обсуждение с пользователем: "начнём с физики, дешевле и есть данные",
-// геометрия вторым заходом). Данные — не новый контент, а извлечение из
-// уже существующих "Термины: ..." уроков тренажёра, см.
-// scripts/seedPhysicsReference.ts.
+// открыть и глазами пройтись по теме. Данные — не новый контент, а
+// извлечение/обобщение уже существующих задач тренажёра, см.
+// scripts/seedPhysicsReference.ts (физика) и scripts/seedMathReference.ts
+// (математика).
+//
+// Раньше страница жёстко показывала ТОЛЬКО физику (PHYSICS_COURSE_ID) —
+// поэтому кнопка "Справочник" на любой теме курса "Математика-11" вела на
+// физический справочник (тема не находилась в списке — topicParam не
+// совпадал ни с одной entries.topic, фильтр молча откатывался на "все
+// темы" физики). Исправлено — читаем entries СРАЗУ ОБОИХ предметов и
+// объединяем: раз topic — уникальная строка на предмет (темы физики и
+// математики не пересекаются по названию), клиентский фильтр по topic
+// (уже был в ReferenceBrowser, не менялся) сам находит нужную тему из
+// объединённого списка, никакого resolve "какой именно курс сейчас
+// активен" не требуется.
 //
 // Сам layout (StickyWrapper/FeedWrapper/поиск+фильтр в сайдбаре) собран
 // внутри клиентского ReferenceBrowser — там же живёт состояние поиска/
@@ -17,7 +27,8 @@ import { redirect } from 'next/navigation';
 import { getUserProgress, getReferenceEntries } from '@/db/queries';
 import { ReferenceBrowser } from '@/components/reference-browser';
 
-const PHYSICS_COURSE_ID = 12; // "ЕГЭ Физика" — единственный предмет со справочником пока
+const PHYSICS_COURSE_ID = 12; // "ЕГЭ Физика"
+const MATH_COURSE_ID = 11;    // "ЕГЭ Математика Профиль"
 
 const ReferencePage = async () => {
     const session = await auth();
@@ -28,7 +39,11 @@ const ReferencePage = async () => {
         redirect('/courses');
     }
 
-    const entries = await getReferenceEntries(PHYSICS_COURSE_ID);
+    const [physicsEntries, mathEntries] = await Promise.all([
+        getReferenceEntries(PHYSICS_COURSE_ID),
+        getReferenceEntries(MATH_COURSE_ID),
+    ]);
+    const entries = [...physicsEntries, ...mathEntries];
 
     return (
         <ReferenceBrowser

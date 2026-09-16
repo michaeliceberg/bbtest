@@ -58,6 +58,14 @@ const TOPIC_ACCENT: Record<string, string> = {
     'Электродинамика': '#8B5CF6',
     'Оптика': '#FB923C',
     'Газ и нагрев': '#F472B6',
+    // Математика (scripts/seedMathReference.ts) — свои акценты, не
+    // пересекаются визуально с физикой выше.
+    'Тригонометрическая окружность': '#C4B5FD',
+    'Таблица 30, 45, 60': '#67E8F9',
+    'Геометрия: sin, cos, tg': '#6EE7B7',
+    'Как писать ответ': '#FDA4AF',
+    'Логарифмы': '#FDE047',
+    'Теорема Виета': '#F0ABFC',
 }
 const DEFAULT_ACCENT = '#9AA7B0'
 
@@ -225,7 +233,7 @@ export const ReferenceBrowser = ({ entries, userProgress }: { entries: Reference
                 <div className="mb-6">
                     <h1 className="text-3xl font-bold">📖 Справочник</h1>
                     <p className="text-[#9AA7B0] mt-1">
-                        Все формулы и единицы измерения по физике — открой и повтори любую тему.
+                        Все формулы по физике и математике — открой и повтори любую тему.
                     </p>
                 </div>
 

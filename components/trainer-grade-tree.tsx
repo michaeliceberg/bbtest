@@ -611,9 +611,16 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                 key={`chain-${group.topics[0].id}-${i}`}
                                 className="rounded-2xl border-2 border-[#4C3A78] bg-[#20182E]/50 p-2.5"
                             >
-                                <div className="flex items-center gap-1.5 px-1 mb-2 text-[11px] font-bold text-[#C4B5FD]">
-                                    <Link2 className="w-3.5 h-3.5" />
-                                    Единая цепочка — проходи по порядку
+                                {/* Заголовок группы — по прямой просьбе пользователя,
+                                    настоящий заголовок (не мелкая подпись-иконка, как
+                                    было раньше). Название пока захардкожено — единственная
+                                    существующая цепочка (курс "Математика-11"); если
+                                    появится вторая цепочка в другом курсе, эту строку
+                                    стоит вынести в вычисляемое/настраиваемое поле у
+                                    корневой темы цепочки, а не плодить if по названию. */}
+                                <div className="flex items-center gap-2 px-1 mb-2.5">
+                                    <Link2 className="w-4 h-4 text-[#C4B5FD] flex-shrink-0" />
+                                    <h2 className="text-base font-extrabold text-[#C4B5FD]">Блок Тригонометрия</h2>
                                 </div>
                                 <div className="flex flex-col gap-2.5">
                                     {group.topics.map(renderTopicCard)}
