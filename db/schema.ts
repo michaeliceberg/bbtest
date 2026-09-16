@@ -343,6 +343,17 @@ export const t_units = pgTable('t_units', {
 	imageSrc: text('image_src').notNull(),
 	t_courseId: integer('t_course_id').references(() => t_courses.id, { onDelete: 'cascade' }).notNull(),
 	order: integer('order').notNull(),
+	// Межюнитная зависимость (по прямой просьбе пользователя, тема
+	// "Математика-11" — цепочка "Тригонометрическая окружность" →
+	// {"Таблица 30,45,60", "Геометрия: sin,cos,tg"} → "Как писать ответ").
+	// Nullable — у подавляющего большинства юнитов не используется (темы
+	// друг от друга по умолчанию не зависят, см. CLAUDE.md). Пока задан
+	// unlockAfterTUnitId — юнит целиком залочен, пока в юните-предке НЕ
+	// достигнуты 100% (см. GetTUnitCompletionPercent в usefulFunctions.ts)
+	// по лессонам с order<=unlockAfterLessonOrder (если задан) либо по
+	// ВСЕМ лессонам предка (если unlockAfterLessonOrder=null).
+	unlockAfterTUnitId: integer('unlock_after_t_unit_id'),
+	unlockAfterLessonOrder: integer('unlock_after_lesson_order'),
 });
 
 export const t_lessons = pgTable('t_lessons', {
@@ -350,6 +361,16 @@ export const t_lessons = pgTable('t_lessons', {
 	title: text('title').notNull(),
 	t_unitId: integer('t_unit_id').references(() => t_units.id, { onDelete: 'cascade' }).notNull(),
 	order: integer('order').notNull(),
+	// Точечная ДОПОЛНИТЕЛЬНАЯ блокировка ОДНОГО конкретного этапа поверх
+	// уже существующей последовательной разблокировки внутри своего юнита
+	// (см. UNLOCK_THRESHOLD в trainer-grade-tree.tsx) — например, этап 8
+	// "Тригонометрической окружности" ждёт не только этап 7 СВОЕГО юнита,
+	// но и юнит "Таблица 30,45,60" целиком. Nullable — почти нигде не
+	// используется, семантика "предок должен быть на 100%" та же, что и у
+	// t_units.unlockAfterTUnitId выше (у лессона нет своего "order" среза
+	// предка — только "весь предок целиком", он и не нужен для текущего
+	// кейса).
+	extraUnlockAfterTUnitId: integer('extra_unlock_after_t_unit_id'),
 });
 
 // "Горячий вопрос" — редкий (см. вероятность в page.tsx) факультативный

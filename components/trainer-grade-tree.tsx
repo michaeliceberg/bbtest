@@ -14,7 +14,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil } from 'lucide-react';
+import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil, Lock, Link2 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { TrainerStageLink } from './trainer-stage-link';
@@ -60,6 +60,14 @@ export type SkillStage = {
     id: number;
     percentage: number;
     title: string;
+    // Точечная доп. блокировка ПОВЕРХ обычной последовательной
+    // разблокировки внутри своего юнита (см. t_lessons.extraUnlockAfterTUnitId
+    // в db/schema.ts) — например, этап 8 "Тригонометрической окружности"
+    // ждёт не только этап 7 своего же юнита, но и юнит "Таблица 30,45,60"
+    // целиком. extraLockedPrereqTitle — название юнита-предка, для
+    // сообщения на карточке.
+    extraLocked?: boolean;
+    extraLockedPrereqTitle?: string | null;
 };
 
 export type SkillTopic = {
@@ -67,6 +75,19 @@ export type SkillTopic = {
     title: string;
     percentage: number;
     stages: SkillStage[];
+    // Межюнитная блокировка ВСЕЙ темы целиком (см. t_units.unlockAfterTUnitId
+    // в db/schema.ts) — тема недоступна, пока в теме-предке не набрано 100%
+    // (см. GetTUnitCompletionPercent) по нужному диапазону этапов.
+    locked?: boolean;
+    lockPrereqTitle?: string | null;
+    // true — предок нужен не целиком, только первые его этапы
+    // (unlockAfterLessonOrder задан); false/undefined — предок целиком.
+    lockPrereqPartial?: boolean;
+    // Тема участвует в видимой межюнитной цепочке (сама от кого-то зависит
+    // ИЛИ кто-то зависит от неё) — используется только для визуальной
+    // группировки соседних карточек в одну рамку, на логику разблокировки
+    // не влияет.
+    chainLinked?: boolean;
 };
 
 interface Props {
@@ -240,10 +261,52 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
         setTimeout(() => setNextRevealed(true), SCROLL_SETTLE_MS + 1100);
     }, [pendingRevealId]);
 
-    return (
-        <div className="w-full max-w-xl mx-auto">
-            <div className="flex flex-col gap-2.5">
-                {topics.map((topic) => (
+    // Группировка соседних chainLinked-тем в одну общую рамку (простая
+    // версия визуальной связи — юниты остаются отдельными карточками,
+    // просто визуально обёрнуты вместе + подпись "единая цепочка"). Темы,
+    // не входящие в цепочку, рендерятся как раньше, поодиночке. Работает
+    // на ЛЮБОМ наборе юнитов с t_units.unlockAfterTUnitId — не завязано
+    // на конкретные id/названия.
+    type RenderGroup = { kind: 'solo'; topic: SkillTopic } | { kind: 'chain'; topics: SkillTopic[] };
+    const renderGroups: RenderGroup[] = [];
+    for (const topic of topics) {
+        if (topic.chainLinked) {
+            const last = renderGroups[renderGroups.length - 1];
+            if (last && last.kind === 'chain') { last.topics.push(topic); continue; }
+            renderGroups.push({ kind: 'chain', topics: [topic] });
+        } else {
+            renderGroups.push({ kind: 'solo', topic });
+        }
+    }
+
+    // Карточка одной темы — вынесена в функцию (не отдельный компонент:
+    // нужен доступ по замыканию к состоянию reveal-анимации/рефам выше,
+    // без прокидывания десятка пропсов), вызывается из ДВУХ мест —
+    // одиночная тема и тема внутри chain-группы (см. return ниже).
+    const renderTopicCard = (topic: SkillTopic) => {
+        // Тема залочена целиком (межюнитная зависимость, см.
+        // t_units.unlockAfterTUnitId) — вместо обычной сетки этапов
+        // показываем один плейсхолдер с пояснением, что именно нужно
+        // пройти сначала. Первый этап темы НЕ считается "автоматически
+        // открытым", в отличие от обычной внутриюнитной логики ниже.
+        if (topic.locked) {
+            return (
+                <div
+                    key={topic.id}
+                    className="bg-[#161B20] rounded-2xl px-4 py-3 border border-dashed border-[#333F47]"
+                >
+                    <div className="flex items-center gap-2 min-w-0">
+                        <Lock className="w-3.5 h-3.5 text-[#56646C] flex-shrink-0" />
+                        <span className="text-sm font-medium text-[#6B7880] truncate">{topic.title}</span>
+                    </div>
+                    <p className="text-xs text-[#56646C] mt-1.5 leading-snug">
+                        Откроется после {topic.lockPrereqPartial ? 'первых этапов' : 'полного прохождения'} «{topic.lockPrereqTitle}»
+                    </p>
+                </div>
+            );
+        }
+
+        return (
                     <div
                         key={topic.id}
                         ref={(el) => { topicRefs.current[topic.title] = el; }}
@@ -253,6 +316,11 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                         <div className="flex items-center gap-2 mb-2.5 min-w-0">
                             <span className="text-sm font-medium text-[#F2F7FB] truncate">{topic.title}</span>
                             <span className="text-xs text-[#9AA7B0] flex-shrink-0">{topic.percentage}%</span>
+                            {topic.chainLinked && (
+                                <span title="Часть цепочки тригонометрии" className="flex-shrink-0">
+                                    <Link2 className="w-3 h-3 text-[#A78BFA]" />
+                                </span>
+                            )}
                             {isAdmin && (
                                 <Link
                                     href={`/admin/t-unit-review/${topic.id}`}
@@ -299,7 +367,11 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                 {row.map((s, j) => {
                                                     const trueIdx = rowStartIdx + j;
                                                     const prevStage = trueIdx > 0 ? topic.stages[trueIdx - 1] : null;
-                                                    const unlockedReal = isAdmin || trueIdx === 0 || (prevStage !== null && prevStage.percentage >= UNLOCK_THRESHOLD);
+                                                    // extraLocked — точечная доп. блокировка ПОВЕРХ обычной
+                                                    // последовательной (см. SkillStage.extraLocked выше) —
+                                                    // например, этап 8 темы "Тригонометрическая окружность"
+                                                    // ждёт ещё и отдельный юнит целиком. isAdmin обходит и её.
+                                                    const unlockedReal = isAdmin || ((trueIdx === 0 || (prevStage !== null && prevStage.percentage >= UNLOCK_THRESHOLD)) && !s.extraLocked);
                                                     const doneReal = s.percentage >= UNLOCK_THRESHOLD;
                                                     const isLastOverall = trueIdx === topic.stages.length - 1;
                                                     // Финальный этап темы — всегда босс; промежуточный
@@ -422,6 +494,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                             <div
                                                                 className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
                                                                 style={{ border: `2px solid ${LOCKED_BORDER}` }}
+                                                                title={s.extraLocked && s.extraLockedPrereqTitle ? `Сначала пройди «${s.extraLockedPrereqTitle}»` : undefined}
                                                             >
                                                                 <StageIcon isBoss={isBoss} isChest={isChest} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
                                                             </div>
@@ -524,6 +597,29 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                             </Link>
                         </div>
                     </div>
+        );
+    };
+
+    return (
+        <div className="w-full max-w-xl mx-auto">
+            <div className="flex flex-col gap-2.5">
+                {renderGroups.map((group, i) => (
+                    group.kind === 'solo'
+                        ? renderTopicCard(group.topic)
+                        : (
+                            <div
+                                key={`chain-${group.topics[0].id}-${i}`}
+                                className="rounded-2xl border-2 border-[#4C3A78] bg-[#20182E]/50 p-2.5"
+                            >
+                                <div className="flex items-center gap-1.5 px-1 mb-2 text-[11px] font-bold text-[#C4B5FD]">
+                                    <Link2 className="w-3.5 h-3.5" />
+                                    Единая цепочка — проходи по порядку
+                                </div>
+                                <div className="flex flex-col gap-2.5">
+                                    {group.topics.map(renderTopicCard)}
+                                </div>
+                            </div>
+                        )
                 ))}
             </div>
         </div>

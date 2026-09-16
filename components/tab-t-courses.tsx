@@ -32,11 +32,17 @@ type Props = {
         imageSrc: string;
         t_courseId: number;
         order: number;
+        // Межюнитная зависимость (см. db/schema.ts) — nullable, у
+        // подавляющего большинства юнитов не задана.
+        unlockAfterTUnitId: number | null;
+        unlockAfterLessonOrder: number | null;
         t_lessons: {
             id: number;
             title: string;
             order: number;
             t_unitId: number;
+            // Точечная доп. блокировка одного этапа (см. db/schema.ts).
+            extraUnlockAfterTUnitId: number | null;
             t_challenges: {
                 imageSrc: string;
                 numRans: string;
@@ -234,11 +240,37 @@ export const TabTCourses = ({
 
                 {/* Контент для каждого курса */}
                 {t_courses.map((t_course, indexCourse) => {
-                    // Темы (t_unit) друг от друга не зависят и открыты сразу —
-                    // ученик может начать готовиться с любой темы. А вот этапы
-                    // (t_lesson, обычно 4) ВНУТРИ темы открываются по порядку,
-                    // по мере тренировки именно этой темы (см. TrainerGradeTree).
-                    const topics: SkillTopic[] = t_units.filter(u => u.t_courseId === t_course.id).map((t_unit) => {
+                    // Темы (t_unit) по умолчанию друг от друга не зависят и
+                    // открыты сразу — ученик может начать готовиться с любой
+                    // темы. А вот этапы (t_lesson, обычно 4) ВНУТРИ темы
+                    // открываются по порядку, по мере тренировки именно этой
+                    // темы (см. TrainerGradeTree). Некоторые темы (по прямой
+                    // просьбе пользователя, курс "Математика-11") — исключение:
+                    // тема целиком залочена, пока не пройдена (частично или
+                    // целиком) тема-предок — см. unlockAfterTUnitId ниже.
+                    const unitsInCourse = t_units
+                        .filter(u => u.t_courseId === t_course.id)
+                        // Раньше не сортировалось вообще — держалось на
+                        // случайном порядке возврата БД. Теперь порядок
+                        // отображения тем (сверху вниз) — по полю order,
+                        // важно и само по себе, и для того, чтобы соседние
+                        // chainLinked-темы визуально группировались подряд
+                        // (см. TrainerGradeTree).
+                        .sort((a, b) => a.order - b.order)
+
+                    // Множество тем, участвующих в видимой межюнитной цепочке
+                    // — сама тема ссылается на предка ИЛИ на неё кто-то
+                    // ссылается. Общий признак, не завязан на конкретные id —
+                    // работает для любого будущего набора связанных тем.
+                    const chainMemberIds = new Set<number>()
+                    unitsInCourse.forEach((u) => {
+                        if (u.unlockAfterTUnitId) {
+                            chainMemberIds.add(u.id)
+                            chainMemberIds.add(u.unlockAfterTUnitId)
+                        }
+                    })
+
+                    const topics: SkillTopic[] = unitsInCourse.map((t_unit) => {
                         // Раньше не сортировалось вообще — порядок этапов
                         // (в т.ч. "какой из них последний-босс" и раскладка
                         // змейкой) держался на случайном порядке возврата
@@ -246,20 +278,58 @@ export const TabTCourses = ({
                         // существует. Обычно совпадало (Postgres часто
                         // возвращает строки по id), но не гарантированно.
                         const sortedLessons = [...t_unit.t_lessons].sort((a, b) => a.order - b.order)
-                        const stages = sortedLessons.map((t_lesson) => ({
-                            id: t_lesson.id,
-                            percentage: Math.round(GetTLessonStat(t_lessonProgress, t_lesson.id).totalPercentDR * 100),
-                            title: t_lesson.title,
-                        }))
+                        const stages = sortedLessons.map((t_lesson) => {
+                            let extraLocked = false
+                            let extraLockedPrereqTitle: string | null = null
+                            if (t_lesson.extraUnlockAfterTUnitId && !isAdmin) {
+                                const prereqUnit = unitsInCourse.find((u) => u.id === t_lesson.extraUnlockAfterTUnitId)
+                                if (prereqUnit) {
+                                    const prereqLessonIds = prereqUnit.t_lessons.map((l) => l.id)
+                                    extraLocked = GetTUnitCompletionPercent(t_lessonProgress, prereqLessonIds) < 1
+                                    extraLockedPrereqTitle = prereqUnit.title
+                                }
+                            }
+                            return {
+                                id: t_lesson.id,
+                                percentage: Math.round(GetTLessonStat(t_lessonProgress, t_lesson.id).totalPercentDR * 100),
+                                title: t_lesson.title,
+                                extraLocked,
+                                extraLockedPrereqTitle,
+                            }
+                        })
 
                         const lessonIds = t_unit.t_lessons.map((l) => l.id)
                         const percentage = Math.round(GetTUnitCompletionPercent(t_lessonProgress, lessonIds) * 100)
+
+                        // Межюнитная блокировка всей темы (см. db/schema.ts
+                        // t_units.unlockAfterTUnitId) — залочена, пока в
+                        // теме-предке не набрано 100% (GetTUnitCompletionPercent)
+                        // по лессонам с order<=unlockAfterLessonOrder (если
+                        // задан) либо по ВСЕМ лессонам предка (если null).
+                        let locked = false
+                        let lockPrereqTitle: string | null = null
+                        let lockPrereqPartial = false
+                        if (t_unit.unlockAfterTUnitId && !isAdmin) {
+                            const prereqUnit = unitsInCourse.find((u) => u.id === t_unit.unlockAfterTUnitId)
+                            if (prereqUnit) {
+                                const prereqLessonIds = prereqUnit.t_lessons
+                                    .filter((l) => t_unit.unlockAfterLessonOrder == null || l.order <= t_unit.unlockAfterLessonOrder!)
+                                    .map((l) => l.id)
+                                locked = GetTUnitCompletionPercent(t_lessonProgress, prereqLessonIds) < 1
+                                lockPrereqTitle = prereqUnit.title
+                                lockPrereqPartial = t_unit.unlockAfterLessonOrder != null
+                            }
+                        }
 
                         return {
                             id: t_unit.id,
                             title: t_unit.title,
                             percentage,
                             stages,
+                            locked,
+                            lockPrereqTitle,
+                            lockPrereqPartial,
+                            chainLinked: chainMemberIds.has(t_unit.id),
                         }
                     })
 
