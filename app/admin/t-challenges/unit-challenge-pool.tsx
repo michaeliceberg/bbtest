@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Latex from 'react-latex-next'
+import 'katex/dist/katex.min.css'
 
 interface TLesson {
   id: number
@@ -221,9 +223,19 @@ export function UnitChallengePool({ unitId }: { unitId: number }) {
                     >
                       <div className="flex items-start gap-1.5">
                         <span className="text-[#5A6A72] flex-shrink-0 select-none">#{challenge.id}</span>
-                        <p className="text-white line-clamp-3 flex-1" title={challenge.question}>
-                          {challenge.question}
-                        </p>
+                        {/* KaTeX вместо сырого текста ($...$/\huge и т.п. как
+                          в БД) — та же связка react-latex-next+katex.css, что
+                          уже используется в превью формы (challenge-preview.tsx)
+                          и в самом задачнике. max-h+overflow-hidden вместо
+                          line-clamp — line-clamp на инлайновом KaTeX-выводе
+                          обрезает непредсказуемо (может обрубить формулу
+                          посередине глифа), обрезка по высоте безопаснее. */}
+                        <div
+                          className="text-white flex-1 min-w-0 max-h-[54px] overflow-hidden leading-snug"
+                          title={challenge.question}
+                        >
+                          <Latex>{challenge.question}</Latex>
+                        </div>
                         <div className="relative flex-shrink-0">
                           <button
                             onClick={(e) => {
