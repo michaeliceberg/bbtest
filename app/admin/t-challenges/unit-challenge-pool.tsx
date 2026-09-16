@@ -18,6 +18,63 @@ interface Challenge {
   type: string
   points: number
   t_lessonId: number
+  // Самодостаточные JSON-поля некоторых типов (см. db/schema.ts) — сам
+  // API-эндпоинт уже возвращает их (select() без списка колонок = вся
+  // строка), просто раньше не были объявлены в этом типе и не читались.
+  // Нужны для answerHint() ниже — у части типов (FRACTRICK/TRIGTABLE/
+  // UNITCIRCLE/VIETA) поле question генерическое или вовсе пустое, вся
+  // реальная суть задачи живёт именно здесь.
+  unitCircleData?: string | null
+  fracTrickData?: string | null
+  trigTableData?: string | null
+  vietaData?: string | null
+}
+
+// Короткая "суть задачи" для карточек с генерическим/пустым question —
+// по прямой просьбе пользователя (см. историю правок этого юнита:
+// FRACTRICK хранит question вообще пустым, UNITCIRCLE/TRIGTABLE/VIETA —
+// одну и ту же фразу на десятки задач, различие целиком в JSON-поле).
+// Возвращает LaTeX-фрагмент БЕЗ "$" (карточка сама оборачивает при
+// рендере) либо null, если для этого типа/данных подсказки не построить.
+function answerHint(challenge: Challenge): string | null {
+  try {
+    if (challenge.type === 'UNITCIRCLE' && challenge.unitCircleData) {
+      const d = JSON.parse(challenge.unitCircleData) as {
+        mode: string
+        points: { label: string; angle: number }[]
+        correctIndices: number[]
+        labelTargets?: { pointIndex: number }[]
+        sectorCorrectOption?: string
+        drawTargetAngle?: number
+      }
+      if (d.mode === 'sector' && d.sectorCorrectOption) return d.sectorCorrectOption
+      // 'draw' не нуждается в отдельной подсказке — целевой угол уже прямо
+      // в самом question ("Нарисуй угол X"), дублировать незачем.
+      if (d.mode === 'label' && d.labelTargets) {
+        return d.labelTargets.map((t) => d.points[t.pointIndex]?.label).filter(Boolean).join(',\\;')
+      }
+      if (d.correctIndices?.length) {
+        return d.correctIndices.map((i) => d.points[i]?.label).filter(Boolean).join(',\\;')
+      }
+      return null
+    }
+    if (challenge.type === 'FRACTRICK' && challenge.fracTrickData) {
+      const d = JSON.parse(challenge.fracTrickData) as { n: string; op: string; decimal: string; answer: string }
+      const opSym = d.op === '\\times' ? '\\cdot' : d.op
+      return `${d.n}${opSym}${d.decimal}=${d.answer}`
+    }
+    if (challenge.type === 'TRIGTABLE' && challenge.trigTableData) {
+      const d = JSON.parse(challenge.trigTableData) as { rowLabels: string[]; colLabels: string[]; blanks: { row: number; col: number }[] }
+      return d.blanks.map((b) => `${d.rowLabels[b.row]}\\,${d.colLabels[b.col]}`).join(',\\;')
+    }
+    if (challenge.type === 'VIETA' && challenge.vietaData) {
+      const d = JSON.parse(challenge.vietaData) as { correctRoots: [number, number] }
+      return `x_1=${d.correctRoots[0]},\\;x_2=${d.correctRoots[1]}`
+    }
+  } catch {
+    return null
+  }
+  return null
 }
 
 type DropTarget = { lessonId: number; index: number } | null
@@ -230,11 +287,27 @@ export function UnitChallengePool({ unitId }: { unitId: number }) {
                           line-clamp — line-clamp на инлайновом KaTeX-выводе
                           обрезает непредсказуемо (может обрубить формулу
                           посередине глифа), обрезка по высоте безопаснее. */}
-                        <div
-                          className="text-white flex-1 min-w-0 max-h-[54px] overflow-hidden leading-snug"
-                          title={challenge.question}
-                        >
-                          <Latex>{challenge.question}</Latex>
+                        <div className="flex-1 min-w-0">
+                          <div
+                            className="text-white max-h-[54px] overflow-hidden leading-snug"
+                            title={challenge.question}
+                          >
+                            <Latex>{challenge.question}</Latex>
+                          </div>
+                          {/* Подсказка-ответ для типов с генерическим/пустым
+                            question (FRACTRICK/TRIGTABLE/UNITCIRCLE/VIETA —
+                            см. answerHint()) — без неё карточки этих типов
+                            неотличимы друг от друга (пользователь поймал
+                            это на UNITCIRCLE — десяток карточек "Какой это
+                            угол?" подряд). */}
+                          {(() => {
+                            const hint = answerHint(challenge)
+                            return hint ? (
+                              <div className="text-[#5A9BCF] text-[10px] truncate mt-0.5" title={hint}>
+                                <Latex>{`$${hint}$`}</Latex>
+                              </div>
+                            ) : null
+                          })()}
                         </div>
                         <div className="relative flex-shrink-0">
                           <button
