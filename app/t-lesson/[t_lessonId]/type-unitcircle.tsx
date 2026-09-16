@@ -465,21 +465,6 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                 <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none">
                     <circle cx={CX} cy={CY} r={R} fill="none" stroke="#3A464E" strokeWidth="1.8" />
 
-                    {/* Закрашенный сектор ('sector'/'draw') — от угла 0
-                        (справа) до целевого/текущего угла. Рисуется сразу
-                        над контуром круга, но ПОД осями — оси/наконечники/
-                        центральная точка остаются чёткими поверх заливки. */}
-                    {shape.kind === 'full' && (
-                        <circle cx={CX} cy={CY} r={R} fill={sectorFillColor} stroke={sectorStrokeColor} strokeWidth="1" />
-                    )}
-                    {shape.kind === 'arc' && (
-                        // Без плавной анимации 'd' намеренно — снэп между
-                        // магнитными точками мгновенный, читается как
-                        // "щёлкнуло на место" (тот же приём, что и у самого
-                        // snap-поведения), а не как плавное вращение.
-                        <path d={shape.d} fill={sectorFillColor} stroke={sectorStrokeColor} strokeWidth="1" strokeLinejoin="round" />
-                    )}
-
                     {/* Ось X — стрелка вправо (cos α) */}
                     <line x1={CX - AXIS_END} y1={CY} x2={CX + AXIS_END} y2={CY} stroke="#2A363D" strokeWidth="1.6" />
                     <polygon
@@ -537,6 +522,23 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                                 stroke="#4A90D9" strokeWidth="1.8" strokeLinecap="round"
                             />
                         </>
+                    )}
+
+                    {/* Закрашенный сектор ('sector'/'draw') — от угла 0
+                        (справа) до целевого/текущего угла. По прямой
+                        просьбе пользователя — теперь ВЕРХНИЙ слой (рисуется
+                        последним в SVG = поверх осей), а не под ними: оси
+                        sin/cos видны СКВОЗЬ полупрозрачную заливку, не
+                        перекрывают её собой чёткими линиями. */}
+                    {shape.kind === 'full' && (
+                        <circle cx={CX} cy={CY} r={R} fill={sectorFillColor} stroke={sectorStrokeColor} strokeWidth="1" />
+                    )}
+                    {shape.kind === 'arc' && (
+                        // Без плавной анимации 'd' намеренно — снэп между
+                        // магнитными точками мгновенный, читается как
+                        // "щёлкнуло на место" (тот же приём, что и у самого
+                        // snap-поведения), а не как плавное вращение.
+                        <path d={shape.d} fill={sectorFillColor} stroke={sectorStrokeColor} strokeWidth="1" strokeLinejoin="round" />
                     )}
                 </svg>
 
