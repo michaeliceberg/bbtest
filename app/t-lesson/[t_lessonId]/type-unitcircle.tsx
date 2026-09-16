@@ -38,8 +38,9 @@
 import { useEffect, useRef, useState } from 'react'
 import Latex from 'react-latex-next'
 import 'katex/dist/katex.min.css';
-import { motion } from 'framer-motion'
+import { motion, animate as fmAnimate } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import type { QuestionType } from './page'
 
 type Props = {
@@ -164,6 +165,14 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
     // так и увидит эту демо-позицию при загрузке вопроса), НЕ подсказка —
     // реальная цель в data.drawTargetAngle никогда не показывается прямо.
     const [drawAngle, setDrawAngle] = useState(Math.PI / 4)
+    // Угол, реально используемый для отрисовки (ручка + закрашенный сектор)
+    // — плавно (spring, ускорение/замедление) догоняет drawAngle при каждом
+    // его изменении, вместо мгновенного "телепорта" между соседними
+    // магнитными точками (по прямой просьбе пользователя). drawAngle сам
+    // остаётся мгновенным/логическим — именно он репортится как ответ
+    // (onOptionSelected/angleKey ниже), анимация касается только картинки.
+    const [renderAngle, setRenderAngle] = useState(Math.PI / 4)
+    const renderAngleRef = useRef(Math.PI / 4)
     // Пока пользователь ХОТЯ БЫ раз не потянул ручку — ответ не репортится
     // (кнопка "Ответить" остаётся выключенной), чтобы не дать случайно
     // засчитать дефолтную демо-позицию без реального взаимодействия.
@@ -175,6 +184,8 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
         setSelected(new Set())
         setSectorPicked(null)
         setDrawAngle(Math.PI / 4)
+        setRenderAngle(Math.PI / 4)
+        renderAngleRef.current = Math.PI / 4
         setHasDragged(false)
         setIsDragging(false)
         if (data?.mode === 'label' && data.labelTargets) {
@@ -210,6 +221,26 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
         onOptionSelected(hasDragged ? angleKey(drawAngle) : null)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [drawAngle, hasDragged])
+
+    // Плавная (spring) анимация ОТРИСОВКИ угла вслед за drawAngle — retarget
+    // на лету, а не мгновенный скачок: если drawAngle меняется снова, пока
+    // предыдущая анимация ещё в процессе (частый случай при быстром драге
+    // через несколько магнитных точек подряд), spring просто продолжает
+    // "догонять" уже с новой целью, сохраняя текущую скорость — без рывка.
+    useEffect(() => {
+        if (data?.mode !== 'draw') return
+        const controls = fmAnimate(renderAngleRef.current, drawAngle, {
+            type: 'spring',
+            stiffness: 260,
+            damping: 26,
+            onUpdate: (v) => {
+                renderAngleRef.current = v
+                setRenderAngle(v)
+            },
+        })
+        return () => controls.stop()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [drawAngle])
 
     useEffect(() => {
         if (data?.mode !== 'label') return
@@ -400,29 +431,30 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
     // Закрашенный сектор — 'sector' рисует ФИКСИРОВАННЫЙ (из данных задачи)
     // угол статично, 'draw' — текущий (уже примагниченный) угол ручки,
     // перерисовывается на лету при каждом движении пальца/курсора.
-    const sectorTheta = isSector ? (data.sectorAngle ?? 0) : isDraw ? drawAngle : 0
+    const sectorTheta = isSector ? (data.sectorAngle ?? 0) : isDraw ? renderAngle : 0
     const shape: SectorShape = (isSector || isDraw) ? sectorShape(sectorTheta) : { kind: 'none' }
-    // Цвет сектора — нейтральный синий, пока ответ не проверен; после
-    // проверки — зелёный/красный по той же палитре, что и остальные
-    // режимы этого файла (#A1D151/#DC605B). У 'sector' проверяется выбор
-    // MC-варианта (sectorPicked), у 'draw' — сам угол ручки.
+    // Цвет сектора, пока ответ не проверен, — по знаку угла (по прямой
+    // просьбе пользователя): положительный (рисуется вверх/против часовой)
+    // — зелёный тон палитры ggege, отрицательный (по часовой) — синий тон
+    // палитры — сам цвет сектора уже сообщает направление, не только его
+    // форма. После проверки — зелёный/красный по той же feedback-палитре,
+    // что и остальные режимы этого файла (#A1D151/#DC605B, отдельная от
+    // палитры ggege система "верно/неверно" — см. CLAUDE.md). У 'sector'
+    // проверяется выбор MC-варианта (sectorPicked), у 'draw' — сам угол
+    // ручки.
     const sectorIsCorrectAfterCheck = isSector
         ? sectorPicked === data.sectorCorrectOption
         : isDraw ? angleKey(drawAngle) === angleKey(data.drawTargetAngle ?? NaN) : false
+    const sectorDirectionColor = sectorTheta > 0 ? GGEGE_PALETTE.green.button : GGEGE_PALETTE.blue.button
     const sectorFillColor = isAnswerChecked
         ? (sectorIsCorrectAfterCheck ? 'rgba(161,209,81,0.4)' : 'rgba(220,96,91,0.4)')
-        : 'rgba(74,144,217,0.35)'
+        : hexToRgba(sectorDirectionColor, 0.35)
     const sectorStrokeColor = isAnswerChecked
         ? (sectorIsCorrectAfterCheck ? '#A1D151' : '#DC605B')
-        : '#4A90D9'
+        : sectorDirectionColor
 
     return (
         <div className="w-full h-full max-w-[440px] mx-auto flex flex-col items-center gap-4 mt-2">
-            {isDraw && (
-                <p className="text-xs text-[#8CA0AB] text-center -mb-2">
-                    Потяни за мигающую точку и подведи её к нужному углу
-                </p>
-            )}
             <div ref={circleWrapRef} className="relative w-full aspect-square select-none shrink-0">
                 {/* Декоративный фон — сама окружность + оси со стрелками
                     (+ пунктирная направляющая в 'label'-режиме). Линии
@@ -507,21 +539,6 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                         </>
                     )}
                 </svg>
-
-                {/* "0" у самого начала сектора (угол 0, там же, где стрелка
-                    cos α) — по прямой просьбе пользователя: явный якорь
-                    "отсюда начинается отсчёт", чтобы было видно, что
-                    отрицательный сектор крутится НАЗАД от этой точки (по
-                    часовой), а не просто "куда-то не туда". Только в
-                    'sector'/'draw' — остальным режимам не нужен. */}
-                {(isSector || isDraw) && (
-                    <div
-                        className="absolute -translate-y-1/2 text-[#8CA0AB] font-bold text-[11px] sm:text-sm pointer-events-none"
-                        style={{ left: `${CX + R + 5}%`, top: `${CY}%` }}
-                    >
-                        0
-                    </div>
-                )}
 
                 {/* Подпись значения риски (guideValueLabel) — рядом с самой
                     риской, но СМЕЩЕНА от неё (по прямой просьбе пользователя
@@ -758,7 +775,7 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                     телефоне, тот же приём, что и у обычных точек-радиокнопок
                     этого файла. */}
                 {isDraw && (() => {
-                    const { left, top } = pointPos(drawAngle)
+                    const { left, top } = pointPos(renderAngle)
                     return (
                         <button
                             type="button"
@@ -778,13 +795,12 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                             <span
                                 className={cn(
                                     'block rounded-full w-5 h-5 sm:w-6 sm:h-6 border-2',
-                                    isAnswerChecked
-                                        ? sectorIsCorrectAfterCheck
-                                            ? 'border-[#A1D151] bg-[#A1D151] shadow-[0_0_0_5px_rgba(161,209,81,0.35)]'
-                                            : 'border-[#DC605B] bg-[#DC605B]'
-                                        : 'border-[#4A90D9] bg-[#4A90D9]',
+                                    isAnswerChecked && (sectorIsCorrectAfterCheck
+                                        ? 'border-[#A1D151] bg-[#A1D151] shadow-[0_0_0_5px_rgba(161,209,81,0.35)]'
+                                        : 'border-[#DC605B] bg-[#DC605B]'),
                                     !isAnswerChecked && !hasDragged && 'animate-pulse',
                                 )}
+                                style={!isAnswerChecked ? { borderColor: sectorDirectionColor, backgroundColor: sectorDirectionColor } : undefined}
                             />
                         </button>
                     )
