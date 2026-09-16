@@ -43,7 +43,16 @@ const ReferencePage = async () => {
         getReferenceEntries(PHYSICS_COURSE_ID),
         getReferenceEntries(MATH_COURSE_ID),
     ]);
-    const entries = [...physicsEntries, ...mathEntries];
+    // По прямой просьбе пользователя — справочник разделён на разделы по
+    // предмету (вкладки "Физика-11"/"Математика-11", те же названия, что
+    // уже используются как заголовки вкладок предмета в /trainer), а не
+    // одним общим списком тем вперемешку. Тег добавляется здесь, на
+    // сервере — раз мы и так знаем источник (какой courseId дал каждую
+    // группу), нет смысла гадать предмет по названию темы на клиенте.
+    const entries = [
+        ...physicsEntries.map((e) => ({ ...e, subject: 'Физика-11' })),
+        ...mathEntries.map((e) => ({ ...e, subject: 'Математика-11' })),
+    ];
 
     return (
         <ReferenceBrowser

@@ -28,6 +28,7 @@ import { StickyWrapper } from './sticky-wrapper'
 import { FeedWrapper } from './feed-wrapper'
 import { UserProgress } from './user-progress'
 import { courses } from '@/db/schema'
+import { Tabs, TabsList, TabsTrigger } from './ui/tabs'
 
 export type ReferenceEntryData = {
     id: number
@@ -38,6 +39,10 @@ export type ReferenceEntryData = {
     unit: string | null
     formula: string
     imageSrc: string | null
+    // "Физика-11"/"Математика-11" — то же название, что и у вкладки
+    // предмета в /trainer (см. app/(main)/reference/page.tsx). Разделяет
+    // справочник на отдельные разделы, а не общий список тем вперемешку.
+    subject: string
 }
 
 type UserProgressData = {
@@ -168,22 +173,45 @@ const FiltersPanel = ({ topics, activeTopic, setActiveTopic, query, setQuery, re
 )
 
 export const ReferenceBrowser = ({ entries, userProgress }: { entries: ReferenceEntryData[]; userProgress: UserProgressData }) => {
-    const topics = useMemo(() => Array.from(new Set(entries.map((e) => e.topic))), [entries])
+    // Порядок вкладок — порядок первого появления в entries (физика
+    // вставлена на сервере первой, см. page.tsx) — тот же порядок,
+    // что уже был у смешанного списка раньше, ничего заново сортировать
+    // не нужно.
+    const subjects = useMemo(() => Array.from(new Set(entries.map((e) => e.subject))), [entries])
+
     // Переход из /trainer?... → /reference?topic=Тема (ссылка "Справочник"
     // у карточки темы в trainer-grade-tree.tsx) — сразу открывает нужную
-    // тему, а не общий "Все темы". Инициализация из URL один раз при
-    // монтировании (не useEffect) — иначе фильтр на долю секунды мигнул
-    // бы "все темы" перед тем, как переключиться.
+    // тему И нужный ПРЕДМЕТ (иначе тема пропала бы из списка активного по
+    // умолчанию предмета, а фильтр молча откатился бы на "Все темы").
+    // Инициализация из URL один раз при монтировании (не useEffect) —
+    // иначе экран на долю секунды мигнул бы дефолтным предметом/темой
+    // перед тем, как переключиться.
     const searchParams = useSearchParams()
     const topicParam = searchParams.get('topic')
+    const [activeSubject, setActiveSubject] = useState<string>(() => {
+        if (topicParam) {
+            const match = entries.find((e) => e.topic === topicParam)
+            if (match) return match.subject
+        }
+        return subjects[0] ?? ''
+    })
     const [activeTopic, setActiveTopic] = useState<string>(() =>
         topicParam && entries.some((e) => e.topic === topicParam) ? topicParam : 'all'
     )
     const [query, setQuery] = useState('')
 
+    const subjectEntries = useMemo(() => entries.filter((e) => e.subject === activeSubject), [entries, activeSubject])
+    const topics = useMemo(() => Array.from(new Set(subjectEntries.map((e) => e.topic))), [subjectEntries])
+
+    const handleSubjectChange = (subject: string) => {
+        setActiveSubject(subject)
+        setActiveTopic('all')
+        setQuery('')
+    }
+
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase()
-        return entries.filter((e) => {
+        return subjectEntries.filter((e) => {
             if (activeTopic !== 'all' && e.topic !== activeTopic) return false
             if (!q) return true
             return (
@@ -194,7 +222,7 @@ export const ReferenceBrowser = ({ entries, userProgress }: { entries: Reference
                 (e.unit ?? '').toLowerCase().includes(q)
             )
         })
-    }, [entries, activeTopic, query])
+    }, [subjectEntries, activeTopic, query])
 
     // Группировка по теме для заголовков-разделителей в самой ленте (не
     // только в панели фильтров) — по прямой просьбе пользователя: "выше
@@ -230,12 +258,28 @@ export const ReferenceBrowser = ({ entries, userProgress }: { entries: Reference
             </StickyWrapper>
 
             <FeedWrapper>
-                <div className="mb-6">
-                    <h1 className="text-3xl font-bold">📖 Справочник</h1>
-                    <p className="text-[#9AA7B0] mt-1">
-                        Все формулы по физике и математике — открой и повтори любую тему.
-                    </p>
+                <div className="mb-4">
+                    <h1 className="text-3xl font-bold">Справочник</h1>
                 </div>
+
+                {/* Разделы по предмету — раньше темы физики и математики
+                    шли одним общим списком вперемешку, по прямой просьбе
+                    пользователя разделены на вкладки. */}
+                {subjects.length > 1 && (
+                    <Tabs value={activeSubject} onValueChange={handleSubjectChange} className="mb-6">
+                        <TabsList className="bg-[#232F34] rounded-xl p-1">
+                            {subjects.map((s) => (
+                                <TabsTrigger
+                                    key={s}
+                                    value={s}
+                                    className="data-[state=active]:bg-[#151F23] data-[state=active]:shadow-sm px-4 py-2"
+                                >
+                                    {s}
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                    </Tabs>
+                )}
 
                 <FiltersPanel {...filtersProps} className="lg:hidden mb-4" />
 

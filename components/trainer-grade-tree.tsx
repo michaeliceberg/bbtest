@@ -55,6 +55,10 @@ const UNLOCKED_BORDER = '#4897D1';
 const UNLOCKED_BG = '#232F35';
 const LOCKED_BORDER = '#3A464E';
 const LOCKED_ICON_COLOR = '#56646C';
+// Цвет подсказки "сюда нажать дальше" (см. RippleGlow ниже) — намеренно
+// отдельный, третий акцент, не пересекающийся ни с violet "done", ни с
+// gold "chest", ни с обычной синей рамкой разблокированного этапа.
+const FRONTIER_RING_COLOR = '#2DD4BF';
 
 export type SkillStage = {
     id: number;
@@ -160,6 +164,27 @@ const ChestGlow = ({ mega = false, children }: { mega?: boolean; children: React
                     : 'radial-gradient(circle, #EF9F2790 0%, #EF9F2700 70%)',
             }}
         />
+        {children}
+    </div>
+);
+
+// Подсказка "сюда нажать дальше" — по прямой просьбе пользователя, НЕ
+// пульсирующий градиент (как у сундука/ChestGlow), а расходящиеся кольца,
+// имитирующие круги на воде: три тонких кольца поочерёдно "убегают"
+// наружу от квадратика этапа и гаснут, зациклено. Премиальный, спокойный
+// эффект — обычная скорость и мягкая прозрачность, не "кричащее" мигание.
+const RippleGlow = ({ children }: { children: React.ReactNode }) => (
+    <div className="relative w-9 h-9 flex items-center justify-center">
+        {[0, 1, 2].map((i) => (
+            <motion.div
+                key={i}
+                className="absolute inset-0 rounded-full pointer-events-none"
+                style={{ border: `1.5px solid ${FRONTIER_RING_COLOR}` }}
+                initial={{ opacity: 0, scale: 1 }}
+                animate={{ opacity: [0, 0.6, 0], scale: [1, 1.6, 2.05] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: 'easeOut', delay: i * 0.8 }}
+            />
+        ))}
         {children}
     </div>
 );
@@ -332,7 +357,17 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                             )}
                         </div>
 
-                        {topic.stages.length > 0 && (
+                        {topic.stages.length > 0 && (() => {
+                            // "Фронтир" темы — самый первый ещё не пройденный этап
+                            // по порядку. Благодаря последовательной разблокировке
+                            // это ВСЕГДА ровно тот единственный этап, что сейчас
+                            // реально разблокирован и не done (кроме админа — там
+                            // разблокировано всё сразу, но "что делать дальше по
+                            // порядку" всё равно однозначно определяется так же).
+                            // -1, если тема уже пройдена целиком — тогда подсказка
+                            // никому не показывается.
+                            const frontierIdx = topic.stages.findIndex((st) => st.percentage < UNLOCK_THRESHOLD);
+                            return (
                             <div className="flex flex-col">
                                 {chunkStages(topic.stages, COLUMNS_PER_ROW).map((row, rowIdx, allRows) => {
                                     const rowStartIdx = rowIdx * COLUMNS_PER_ROW;
@@ -386,6 +421,11 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                     // StageIcon), просто подсветка вокруг богаче.
                                                     const isChest = !isBoss && topic.stages.length >= 3 && trueIdx === Math.floor((topic.stages.length - 1) / 2);
                                                     const isMegaChest = isLastOverall;
+                                                    // Подсказка "сюда нажать дальше" — только на самом фронтире,
+                                                    // и только если это не сундук/мегасундук (у тех уже есть
+                                                    // своя, более наглая подсветка — дублировать её кольцами
+                                                    // было бы избыточно).
+                                                    const isFrontier = trueIdx === frontierIdx && !isChest && !isMegaChest;
                                                     const stageHref = `/t-lesson/${s.id}${getStageQueryParams(trueIdx, topic.stages.length, s.title)}`;
                                                     const Icon = STAGE_ICONS[trueIdx % STAGE_ICONS.length];
                                                     const col = boxColumn(j);
@@ -519,7 +559,9 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                     ? <ChestGlow>{stageBox}</ChestGlow>
                                                                     : isMegaChest
                                                                         ? <ChestGlow mega>{stageBox}</ChestGlow>
-                                                                        : stageBox}
+                                                                        : isFrontier
+                                                                            ? <RippleGlow>{stageBox}</RippleGlow>
+                                                                            : stageBox}
                                                             </div>
 
                                                             {j < row.length - 1 && (
@@ -579,7 +621,8 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                     );
                                 })}
                             </div>
-                        )}
+                            );
+                        })()}
 
                         {/* Иконка-ссылка на справочник — теперь настоящая маленькая
                             кнопка (не голая иконка), на отдельной строке СРАЗУ ПОД
@@ -589,7 +632,13 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                         <div className="flex justify-end mt-2">
                             <Link
                                 href={`/reference?topic=${encodeURIComponent(topic.title)}`}
-                                className="flex items-center gap-1 px-2.5 py-1 rounded-lg border-2 border-b-4 active:border-b-2 bg-[#161F23] border-[#3A464E] text-[#9AA7B0] hover:text-[#F2F7FB] transition-colors text-xs font-bold"
+                                // h-8 фиксирует ОБЩУЮ высоту кнопки — иначе при
+                                // нажатии (active:border-b-2, было border-b-4) сама
+                                // высота элемента сокращалась на 2px и весь контент
+                                // страницы НИЖЕ (следующая тема/группа) подскакивал —
+                                // с явной высотой border-box просто "съедает" разницу
+                                // толщины нижней рамки, сама кнопка не меняет размер.
+                                className="flex items-center justify-center gap-1 h-8 px-2.5 rounded-lg border-2 border-b-4 active:border-b-2 bg-[#161F23] border-[#3A464E] text-[#9AA7B0] hover:text-[#F2F7FB] transition-colors text-xs font-bold"
                                 title={`Справочник — ${topic.title}`}
                             >
                                 <Library className="w-3.5 h-3.5" />
