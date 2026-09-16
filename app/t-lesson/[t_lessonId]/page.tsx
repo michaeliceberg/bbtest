@@ -100,7 +100,7 @@ export type TrigTableData = {
 // экран — у каждой точки СВОЙ верный ответ, задача — подписать обе
 // заранее подсвеченные точки правильно).
 export type UnitCircleData = {
-    mode: 'locate' | 'select' | 'label';
+    mode: 'locate' | 'select' | 'label' | 'sector' | 'draw';
     points: { label: string; angle: number }[];
     correctIndices: number[];
     // Только для 'label' — какие индексы (в points) отмечены
@@ -119,6 +119,25 @@ export type UnitCircleData = {
     // пунктирной направляющей — без него компонент показал бы голое
     // число вместо красивой дроби/корня.
     guideValueLabel?: string;
+    // Только для 'sector' — статический вопрос "какой это угол?": уже
+    // нарисован закрашенный сектор от 0 (справа, "cos"-направление) до
+    // sectorAngle СО ЗНАКОМ (положительный крутится против часовой —
+    // растущий угол, отрицательный по часовой). sectorOptions — LaTeX-
+    // варианты ответа БЕЗ обёртки "$...$" (компонент сам оборачивает);
+    // sectorCorrectOption — какой из них верный, дословно как элемент
+    // sectorOptions (не индекс — тот же способ, что уже использует TQUIZ
+    // для точного строкового сравнения correctAnswer у этого типа).
+    sectorAngle?: number;
+    sectorOptions?: string[];
+    sectorCorrectOption?: string;
+    // Только для 'draw' — интерактив "нарисуй этот угол" (см.
+    // type-unitcircle.tsx): drawTargetAngle — целевой угол СО ЗНАКОМ,
+    // который нужно выставить перетаскиванием ручки по кругу. correctAnswer
+    // вычисляется через ту же angleKey() (округление до 4 знаков —
+    // защита от расхождения последнего разряда float между Node и
+    // браузером, тот же приём, что и у pointPos.toFixed(4) ниже), что
+    // компонент использует для угла, до которого пользователь довёл ручку.
+    drawTargetAngle?: number;
 };
 
 // Только для type='VIETA' — тренажёр теоремы Виета (по прямой просьбе
@@ -846,6 +865,10 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             if (!unitCircle) return undefined;
             if (unitCircle.mode === 'label') {
                 if (!unitCircle.labelTargets || unitCircle.labelTargets.length === 0) return undefined;
+            } else if (unitCircle.mode === 'sector') {
+                if (!unitCircle.sectorOptions || unitCircle.sectorOptions.length === 0 || !unitCircle.sectorCorrectOption) return undefined;
+            } else if (unitCircle.mode === 'draw') {
+                if (unitCircle.drawTargetAngle === undefined) return undefined;
             } else if (unitCircle.correctIndices.length === 0) {
                 return undefined;
             }
@@ -856,11 +879,23 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             // разделитель точного сравнения, что у остальных режимов, но
             // порядок фиксирован по индексу точки (не по клику), т.к.
             // сравнение ключ-в-ключ, не множество.
+            // 'sector' — верный вариант хранится дословно (не индекс) — так
+            // проще: он же и есть готовый correctAnswer для точного
+            // строкового сравнения в TQUIZ.tsx.
+            // 'draw' — angleKey() округляет до 4 знаков, та же защита от
+            // расхождения последнего разряда float между Node/браузером,
+            // что и у pointPos.toFixed(4) в type-unitcircle.tsx (та же
+            // функция продублирована там — компонент сам считает ключ от
+            // угла, до которого дотащил ручку пользователь).
             const correctAnswer = unitCircle.mode === 'label'
                 ? [...unitCircle.labelTargets!]
                     .sort((a, b) => a.pointIndex - b.pointIndex)
                     .map((t) => `${t.pointIndex}:${unitCircle!.points[t.pointIndex].label}`)
                     .join('|||')
+                : unitCircle.mode === 'sector'
+                ? unitCircle.sectorCorrectOption!
+                : unitCircle.mode === 'draw'
+                ? unitCircle.drawTargetAngle!.toFixed(4)
                 : [...unitCircle.correctIndices].sort((a, b) => a - b).join('|||');
 
             return {

@@ -35,7 +35,7 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Latex from 'react-latex-next'
 import 'katex/dist/katex.min.css';
 import { motion } from 'framer-motion'
@@ -77,6 +77,78 @@ const pointPos = (angle: number) => ({
     top: (CY - R * Math.sin(angle)).toFixed(4), // экранный Y растёт вниз — инвертируем
 })
 
+// Числовая версия pointPos — нужна для SVG path 'd' (там числа, не
+// строки-проценты) в 'sector'/'draw'-режимах ниже.
+const pointPosNum = (angle: number) => ({
+    x: CX + R * Math.cos(angle),
+    y: CY - R * Math.sin(angle),
+})
+
+const TWO_PI = Math.PI * 2
+
+// Магнитные точки перетаскивания в 'draw' — те же 16 стандартных углов
+// круга (кратные 30° + нечётные кратные 45°), что и в остальных режимах
+// этого тренажёра (см. POINTS в scripts/seedUnitCircleTrainer.ts) —
+// продублированы здесь как числа: 'draw' не получает points-массив от
+// сервера (сектору нечего подписывать точками-радиокнопками), но набор
+// snap-углов должен совпадать с остальным тренажёром для консистентности.
+const SNAP_ANGLES = [
+    0, Math.PI / 6, Math.PI / 4, Math.PI / 3, Math.PI / 2,
+    (2 * Math.PI) / 3, (3 * Math.PI) / 4, (5 * Math.PI) / 6, Math.PI,
+    (7 * Math.PI) / 6, (5 * Math.PI) / 4, (4 * Math.PI) / 3, (3 * Math.PI) / 2,
+    (5 * Math.PI) / 3, (7 * Math.PI) / 4, (11 * Math.PI) / 6,
+]
+
+// Ближайшая магнитная точка к произвольному (в т.ч. за пределами [0,2π))
+// углу — перебирает копии SNAP_ANGLES, сдвинутые на соседние целые обороты
+// вокруг текущего значения. Нужно для заданий "нарисуй 2π" — пользователь
+// должен утащить ручку на целый лишний оборот, обычный snap внутри одного
+// [0,2π) диапазона этого бы не поймал.
+function snapAngle(angle: number): number {
+    const base = Math.floor(angle / TWO_PI) * TWO_PI
+    let best = angle
+    let bestDist = Infinity
+    for (const shift of [base - TWO_PI, base, base + TWO_PI]) {
+        for (const p of SNAP_ANGLES) {
+            const candidate = shift + p
+            const d = Math.abs(candidate - angle)
+            if (d < bestDist) { bestDist = d; best = candidate }
+        }
+    }
+    return best
+}
+
+// Ключ для точного сравнения ответа 'draw' — та же формула (toFixed(4)),
+// что использует page.tsx для drawTargetAngle при вычислении correctAnswer
+// на сервере; округление защищает от расхождения последнего разряда float
+// между Node (там считается верный ответ) и браузером (здесь считается
+// угол, до которого пользователь довёл ручку) — тот же приём, что и у
+// pointPos.toFixed(4) выше.
+const angleKey = (angle: number): string => angle.toFixed(4)
+
+// Форма закрашенного сектора от угла 0 (справа, "cos"-направление) до
+// theta СО ЗНАКОМ — положительный крутится против часовой (растущий угол
+// в системе координат этого файла, см. pointPos), отрицательный по
+// часовой. |theta|≈2π — вырожденная дуга (начало совпадает с концом),
+// рисуется отдельным <circle>, не <path>; |theta|≈0 — сектора нет.
+type SectorShape = { kind: 'none' } | { kind: 'full' } | { kind: 'arc'; d: string }
+function sectorShape(theta: number): SectorShape {
+    const EPS = 1e-3
+    if (Math.abs(theta) < EPS) return { kind: 'none' }
+    if (Math.abs(Math.abs(theta) - TWO_PI) < EPS) return { kind: 'full' }
+    const start = pointPosNum(0)
+    const end = pointPosNum(theta)
+    const absTheta = Math.abs(theta) % TWO_PI
+    const largeArc = absTheta > Math.PI ? 1 : 0
+    // SVG sweep-flag=1 — "положительное" направление САМОГО SVG (у него Y
+    // растёт вниз), визуально это ПО часовой. У нас растущий theta>0 —
+    // визуально ПРОТИВ часовой (pointPos уже инвертирует экранный Y),
+    // поэтому флаг специально зеркален относительно знака theta.
+    const sweep = theta > 0 ? 0 : 1
+    const d = `M ${CX} ${CY} L ${start.x.toFixed(4)} ${start.y.toFixed(4)} A ${R} ${R} 0 ${largeArc} ${sweep} ${end.x.toFixed(4)} ${end.y.toFixed(4)} Z`
+    return { kind: 'arc', d }
+}
+
 export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: Props) => {
     const data = question.unitCircle
 
@@ -85,9 +157,26 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
     // selected выше, у него другая форма ответа).
     const [assigned, setAssigned] = useState<Record<number, string | null>>({})
     const [activePointIdx, setActivePointIdx] = useState<number | null>(null)
+    // 'sector' — выбранный вариант ответа (один из data.sectorOptions).
+    const [sectorPicked, setSectorPicked] = useState<string | null>(null)
+    // 'draw' — текущий (уже примагниченный к SNAP_ANGLES) угол ручки.
+    // π/4 по умолчанию — просто наглядный пример старта (сам пользователь
+    // так и увидит эту демо-позицию при загрузке вопроса), НЕ подсказка —
+    // реальная цель в data.drawTargetAngle никогда не показывается прямо.
+    const [drawAngle, setDrawAngle] = useState(Math.PI / 4)
+    // Пока пользователь ХОТЯ БЫ раз не потянул ручку — ответ не репортится
+    // (кнопка "Ответить" остаётся выключенной), чтобы не дать случайно
+    // засчитать дефолтную демо-позицию без реального взаимодействия.
+    const [hasDragged, setHasDragged] = useState(false)
+    const [isDragging, setIsDragging] = useState(false)
+    const circleWrapRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         setSelected(new Set())
+        setSectorPicked(null)
+        setDrawAngle(Math.PI / 4)
+        setHasDragged(false)
+        setIsDragging(false)
         if (data?.mode === 'label' && data.labelTargets) {
             const init: Record<number, string | null> = {}
             data.labelTargets.forEach((t) => { init[t.pointIndex] = null })
@@ -101,7 +190,7 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
     }, [question])
 
     useEffect(() => {
-        if (data?.mode === 'label') return // отдельный эффект ниже
+        if (data?.mode === 'label' || data?.mode === 'sector' || data?.mode === 'draw') return // отдельные эффекты ниже
         if (selected.size === 0) {
             onOptionSelected(null)
             return
@@ -109,6 +198,18 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
         onOptionSelected([...selected].sort((a, b) => a - b).join('|||'))
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selected])
+
+    useEffect(() => {
+        if (data?.mode !== 'sector') return
+        onOptionSelected(sectorPicked)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sectorPicked])
+
+    useEffect(() => {
+        if (data?.mode !== 'draw') return
+        onOptionSelected(hasDragged ? angleKey(drawAngle) : null)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [drawAngle, hasDragged])
 
     useEffect(() => {
         if (data?.mode !== 'label') return
@@ -172,6 +273,52 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
         )
         if (remaining) setActivePointIdx(remaining.pointIndex)
     }
+
+    const isSector = data.mode === 'sector'
+    const isDraw = data.mode === 'draw'
+
+    // Угол мыши/пальца относительно центра круга, в координатах этого же
+    // файла (см. pointPos — растущий угол визуально против часовой,
+    // экранный Y уже инвертирован).
+    const pointerAngle = (clientX: number, clientY: number): number | null => {
+        const rect = circleWrapRef.current?.getBoundingClientRect()
+        if (!rect) return null
+        const px = ((clientX - rect.left) / rect.width) * 100
+        const py = ((clientY - rect.top) / rect.height) * 100
+        return Math.atan2(-(py - CY), px - CX)
+    }
+
+    // Перетаскивание ручки 'draw' — Pointer Events + setPointerCapture
+    // (не window-листенеры): события остаются на самой ручке, даже если
+    // палец/курсор уходит за её пределы во время быстрого драга — работает
+    // одинаково для мыши и тача, без раздельной обработки.
+    const handlePointerDownDraw = (e: React.PointerEvent) => {
+        if (isAnswerChecked) return
+        setIsDragging(true)
+        e.currentTarget.setPointerCapture(e.pointerId)
+    }
+
+    const handlePointerMoveDraw = (e: React.PointerEvent) => {
+        if (!isDragging || isAnswerChecked) return
+        const raw = pointerAngle(e.clientX, e.clientY)
+        if (raw === null) return
+        const rawNorm = ((raw % TWO_PI) + TWO_PI) % TWO_PI
+        setDrawAngle((prev) => {
+            const prevNorm = ((prev % TWO_PI) + TWO_PI) % TWO_PI
+            // Кратчайшая дельта через границу 0/2π — иначе один шаг мыши
+            // ровно через "верх" (0≈2π) улетел бы скачком на целый оборот.
+            let delta = rawNorm - prevNorm
+            if (delta > Math.PI) delta -= TWO_PI
+            if (delta < -Math.PI) delta += TWO_PI
+            // Клэмп ±2π с небольшим запасом — целевые углы заданий этого
+            // урока никогда не требуют больше одного лишнего оборота.
+            const next = Math.max(-TWO_PI - 0.05, Math.min(TWO_PI + 0.05, prev + delta))
+            return snapAngle(next)
+        })
+        setHasDragged(true)
+    }
+
+    const handlePointerUpDraw = () => setIsDragging(false)
 
     // Конец стрелки-оси (за пределом окружности, но внутри 0-100%).
     // AXIS_GAP — явный зазор между краем круга и ОСНОВАНИЕМ наконечника
@@ -250,9 +397,33 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
     const activeTarget = isLabel ? (data.labelTargets ?? []).find((t) => t.pointIndex === activePointIdx) : undefined
     const usedForActive = new Set<string>() // варианты уже назначены ДРУГИМ точкам — не блокируем повтор специально, у каждой точки свой список
 
+    // Закрашенный сектор — 'sector' рисует ФИКСИРОВАННЫЙ (из данных задачи)
+    // угол статично, 'draw' — текущий (уже примагниченный) угол ручки,
+    // перерисовывается на лету при каждом движении пальца/курсора.
+    const sectorTheta = isSector ? (data.sectorAngle ?? 0) : isDraw ? drawAngle : 0
+    const shape: SectorShape = (isSector || isDraw) ? sectorShape(sectorTheta) : { kind: 'none' }
+    // Цвет сектора — нейтральный синий, пока ответ не проверен; после
+    // проверки — зелёный/красный по той же палитре, что и остальные
+    // режимы этого файла (#A1D151/#DC605B). У 'sector' проверяется выбор
+    // MC-варианта (sectorPicked), у 'draw' — сам угол ручки.
+    const sectorIsCorrectAfterCheck = isSector
+        ? sectorPicked === data.sectorCorrectOption
+        : isDraw ? angleKey(drawAngle) === angleKey(data.drawTargetAngle ?? NaN) : false
+    const sectorFillColor = isAnswerChecked
+        ? (sectorIsCorrectAfterCheck ? 'rgba(161,209,81,0.4)' : 'rgba(220,96,91,0.4)')
+        : 'rgba(74,144,217,0.35)'
+    const sectorStrokeColor = isAnswerChecked
+        ? (sectorIsCorrectAfterCheck ? '#A1D151' : '#DC605B')
+        : '#4A90D9'
+
     return (
         <div className="w-full h-full max-w-[440px] mx-auto flex flex-col items-center gap-4 mt-2">
-            <div className="relative w-full aspect-square select-none shrink-0">
+            {isDraw && (
+                <p className="text-xs text-[#8CA0AB] text-center -mb-2">
+                    Потяни за мигающую точку и подведи её к нужному углу
+                </p>
+            )}
+            <div ref={circleWrapRef} className="relative w-full aspect-square select-none shrink-0">
                 {/* Декоративный фон — сама окружность + оси со стрелками
                     (+ пунктирная направляющая в 'label'-режиме). Линии
                     потолще (было strokeWidth 1 везде) — по прямой просьбе
@@ -261,6 +432,21 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                     ионально хрупкими. */}
                 <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none">
                     <circle cx={CX} cy={CY} r={R} fill="none" stroke="#3A464E" strokeWidth="1.8" />
+
+                    {/* Закрашенный сектор ('sector'/'draw') — от угла 0
+                        (справа) до целевого/текущего угла. Рисуется сразу
+                        над контуром круга, но ПОД осями — оси/наконечники/
+                        центральная точка остаются чёткими поверх заливки. */}
+                    {shape.kind === 'full' && (
+                        <circle cx={CX} cy={CY} r={R} fill={sectorFillColor} stroke={sectorStrokeColor} strokeWidth="1" />
+                    )}
+                    {shape.kind === 'arc' && (
+                        // Без плавной анимации 'd' намеренно — снэп между
+                        // магнитными точками мгновенный, читается как
+                        // "щёлкнуло на место" (тот же приём, что и у самого
+                        // snap-поведения), а не как плавное вращение.
+                        <path d={shape.d} fill={sectorFillColor} stroke={sectorStrokeColor} strokeWidth="1" strokeLinejoin="round" />
+                    )}
 
                     {/* Ось X — стрелка вправо (cos α) */}
                     <line x1={CX - AXIS_END} y1={CY} x2={CX + AXIS_END} y2={CY} stroke="#2A363D" strokeWidth="1.6" />
@@ -321,6 +507,21 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                         </>
                     )}
                 </svg>
+
+                {/* "0" у самого начала сектора (угол 0, там же, где стрелка
+                    cos α) — по прямой просьбе пользователя: явный якорь
+                    "отсюда начинается отсчёт", чтобы было видно, что
+                    отрицательный сектор крутится НАЗАД от этой точки (по
+                    часовой), а не просто "куда-то не туда". Только в
+                    'sector'/'draw' — остальным режимам не нужен. */}
+                {(isSector || isDraw) && (
+                    <div
+                        className="absolute -translate-y-1/2 text-[#8CA0AB] font-bold text-[11px] sm:text-sm pointer-events-none"
+                        style={{ left: `${CX + R + 5}%`, top: `${CY}%` }}
+                    >
+                        0
+                    </div>
+                )}
 
                 {/* Подпись значения риски (guideValueLabel) — рядом с самой
                     риской, но СМЕЩЕНА от неё (по прямой просьбе пользователя
@@ -547,7 +748,82 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                         </button>
                     )
                 })}
+
+                {/* Перетаскиваемая ручка 'draw' — кружок на текущем (уже
+                    примагниченном) угле; мигает (animate-pulse), пока
+                    пользователь ХОТЯ БЫ раз не потянул её — приглашение
+                    начать драг, тот же смысл, что у пальца-подсказки SWIPE
+                    в тренажёре. Зона захвата (внешний button) заметно
+                    крупнее видимого кружка — удобнее попасть пальцем на
+                    телефоне, тот же приём, что и у обычных точек-радиокнопок
+                    этого файла. */}
+                {isDraw && (() => {
+                    const { left, top } = pointPos(drawAngle)
+                    return (
+                        <button
+                            type="button"
+                            aria-label="Перетащи, чтобы задать угол"
+                            onPointerDown={handlePointerDownDraw}
+                            onPointerMove={handlePointerMoveDraw}
+                            onPointerUp={handlePointerUpDraw}
+                            onPointerCancel={handlePointerUpDraw}
+                            disabled={isAnswerChecked}
+                            className={cn(
+                                'absolute flex items-center justify-center rounded-full touch-none',
+                                'w-11 h-11 sm:w-12 sm:h-12',
+                                !isAnswerChecked && 'cursor-grab active:cursor-grabbing',
+                            )}
+                            style={{ left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)' }}
+                        >
+                            <span
+                                className={cn(
+                                    'block rounded-full w-5 h-5 sm:w-6 sm:h-6 border-2',
+                                    isAnswerChecked
+                                        ? sectorIsCorrectAfterCheck
+                                            ? 'border-[#A1D151] bg-[#A1D151] shadow-[0_0_0_5px_rgba(161,209,81,0.35)]'
+                                            : 'border-[#DC605B] bg-[#DC605B]'
+                                        : 'border-[#4A90D9] bg-[#4A90D9]',
+                                    !isAnswerChecked && !hasDragged && 'animate-pulse',
+                                )}
+                            />
+                        </button>
+                    )
+                })()}
             </div>
+
+            {/* 'sector' — MC-варианты ответа под кругом (простой одиночный
+                выбор, без "активной точки" — в отличие от 'label' тут одна
+                общая кнопка "Ответить" проверяет весь вопрос целиком). */}
+            {isSector && data.sectorOptions && (
+                <div className="flex flex-wrap justify-center gap-2 w-full">
+                    {data.sectorOptions.map((opt) => {
+                        const isPicked = sectorPicked === opt
+                        const isThisCorrect = isAnswerChecked && opt === data.sectorCorrectOption
+                        const isThisWrongPick = isAnswerChecked && isPicked && opt !== data.sectorCorrectOption
+                        return (
+                            <motion.button
+                                key={opt}
+                                type="button"
+                                whileTap={!isAnswerChecked ? { scale: 0.9 } : undefined}
+                                onClick={() => !isAnswerChecked && setSectorPicked(opt)}
+                                disabled={isAnswerChecked}
+                                className={cn(
+                                    'min-w-[64px] py-2 px-3 rounded-lg border-2 text-sm font-bold transition-colors',
+                                    isThisCorrect
+                                        ? 'border-[#A1D151] bg-[#A1D151]/15 text-[#A1D151]'
+                                        : isThisWrongPick
+                                        ? 'border-[#DC605B] bg-[#DC605B]/15 text-[#DC605B]'
+                                        : isPicked
+                                        ? 'border-[#4A90D9] bg-[#1B2C3D] text-[#4A90D9]'
+                                        : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]',
+                                )}
+                            >
+                                <Latex>{`$${opt}$`}</Latex>
+                            </motion.button>
+                        )
+                    })}
+                </div>
+            )}
 
             {/* 'label'-режим — варианты подписи для АКТИВНОЙ отмеченной
                 точки (не общий пул, у каждой точки свой список вариантов,
