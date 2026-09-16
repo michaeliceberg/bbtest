@@ -169,16 +169,19 @@ const ChestGlow = ({ mega = false, children }: { mega?: boolean; children: React
 );
 
 // Подсказка "сюда нажать дальше" — по прямой просьбе пользователя, НЕ
-// пульсирующий градиент (как у сундука/ChestGlow), а расходящиеся кольца,
-// имитирующие круги на воде: три тонких кольца поочерёдно "убегают"
-// наружу от квадратика этапа и гаснут, зациклено. Премиальный, спокойный
-// эффект — обычная скорость и мягкая прозрачность, не "кричащее" мигание.
+// пульсирующий градиент (как у сундука/ChestGlow), а расходящиеся "круги
+// на воде": три тонких контура поочерёдно "убегают" наружу от квадратика
+// этапа и гаснут, зациклено. По уточнению пользователя — контур повторяет
+// ФОРМУ самой кнопки (скруглённый квадрат, rounded-lg, как у stageBox), а
+// не идеальный круг — расходится сама фигура кнопки, а не окружность
+// вокруг неё. Премиальный, спокойный эффект — обычная скорость и мягкая
+// прозрачность, не "кричащее" мигание.
 const RippleGlow = ({ children }: { children: React.ReactNode }) => (
     <div className="relative w-9 h-9 flex items-center justify-center">
         {[0, 1, 2].map((i) => (
             <motion.div
                 key={i}
-                className="absolute inset-0 rounded-full pointer-events-none"
+                className="absolute inset-0 rounded-lg pointer-events-none"
                 style={{ border: `1.5px solid ${FRONTIER_RING_COLOR}` }}
                 initial={{ opacity: 0, scale: 1 }}
                 animate={{ opacity: [0, 0.6, 0], scale: [1, 1.6, 2.05] }}

@@ -68,7 +68,7 @@ const TOPIC_ACCENT: Record<string, string> = {
     'Тригонометрическая окружность': '#C4B5FD',
     'Таблица 30, 45, 60': '#67E8F9',
     'Геометрия: sin, cos, tg': '#6EE7B7',
-    'Как писать ответ': '#FDA4AF',
+    'Как записать ответ': '#FDA4AF',
     'Логарифмы': '#FDE047',
     'Теорема Виета': '#F0ABFC',
 }
@@ -318,45 +318,70 @@ export const ReferenceBrowser = ({ entries, userProgress }: { entries: Reference
                                     <div className="grid grid-cols-1 gap-3">
                                         {items.map((e) => {
                                             const unitName = e.unit ? UNIT_NAMES[e.unit] : null
+                                            // Запись-диаграмма (symbol/formula пустые, только imageSrc) —
+                                            // например "Геометрия: sin, cos, tg", где по прямой просьбе
+                                            // пользователя нужен настоящий чертёж, а не иконка-плейсхолдер
+                                            // в шапке. Рендерится по-другому: без "X = Y", крупная картинка
+                                            // прямо в панели формулы.
+                                            const isDiagram = !e.formula && !e.symbol && !!e.imageSrc
                                             return (
                                                 <div key={e.id} className="rounded-xl border-2 overflow-hidden bg-[#161F23]" style={{ borderColor: `${accent}55` }}>
-                                                    {/* Шапка — контекст (название/картинка/единица),
-                                                        специально сдержанная по размеру, чтобы не
-                                                        спорить с формулой ниже за внимание. Тема здесь
-                                                        больше не дублируется — она уже над всей группой. */}
-                                                    <div className="flex items-center gap-3 px-4 pt-3 pb-2">
-                                                        {/* Зарезервированное место под иллюстрацию к ЭТОЙ
-                                                            конкретной формуле — по одной картинке на
-                                                            карточку. imageSrc пока не заполнен ни у одной
-                                                            записи (см. scripts/seedPhysicsReference.ts) —
-                                                            показываем placeholder-иконку. */}
-                                                        <div className="flex-shrink-0 w-11 h-11 rounded-lg bg-[#1A252B] border border-[#2A363D] flex items-center justify-center overflow-hidden">
-                                                            {e.imageSrc ? (
-                                                                // eslint-disable-next-line @next/next/no-img-element
-                                                                <img src={e.imageSrc} alt="" className="w-full h-full object-contain" />
-                                                            ) : (
-                                                                <ImageIcon className="w-4 h-4 text-[#3A464E]" />
+                                                    {isDiagram ? (
+                                                        <div className="px-4 pt-3 pb-1">
+                                                            <div className="text-sm text-[#F2F7FB] font-semibold">{e.label}</div>
+                                                        </div>
+                                                    ) : (
+                                                        /* Шапка — контекст (название/картинка/единица),
+                                                           специально сдержанная по размеру, чтобы не
+                                                           спорить с формулой ниже за внимание. Тема здесь
+                                                           больше не дублируется — она уже над всей группой. */
+                                                        <div className="flex items-center gap-3 px-4 pt-3 pb-2">
+                                                            {/* Зарезервированное место под иллюстрацию к ЭТОЙ
+                                                                конкретной формуле — по одной картинке на
+                                                                карточку. imageSrc пока не заполнен ни у
+                                                                большинства записей — показываем placeholder. */}
+                                                            <div className="flex-shrink-0 w-11 h-11 rounded-lg bg-[#1A252B] border border-[#2A363D] flex items-center justify-center overflow-hidden">
+                                                                {e.imageSrc ? (
+                                                                    // eslint-disable-next-line @next/next/no-img-element
+                                                                    <img src={e.imageSrc} alt="" className="w-full h-full object-contain" />
+                                                                ) : (
+                                                                    <ImageIcon className="w-4 h-4 text-[#3A464E]" />
+                                                                )}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="text-sm text-[#F2F7FB] font-semibold truncate">{e.label}</div>
+                                                            </div>
+                                                            {e.unit && (
+                                                                <div className="text-xs text-[#9AA7B0] text-right flex-shrink-0">
+                                                                    <span className="font-semibold text-[#7dd3fc]">[{e.unit}]</span>
+                                                                    {unitName && <div>{unitName}</div>}
+                                                                </div>
                                                             )}
                                                         </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="text-sm text-[#F2F7FB] font-semibold truncate">{e.label}</div>
-                                                        </div>
-                                                        {e.unit && (
-                                                            <div className="text-xs text-[#9AA7B0] text-right flex-shrink-0">
-                                                                <span className="font-semibold text-[#7dd3fc]">[{e.unit}]</span>
-                                                                {unitName && <div>{unitName}</div>}
-                                                            </div>
-                                                        )}
-                                                    </div>
+                                                    )}
 
                                                     {/* Сама формула — главный акцент карточки: отдельная
-                                                        подсвеченная (в цвет темы) панель, крупный шрифт,
-                                                        по центру — по прямой просьбе пользователя ("чтобы
-                                                        сразу было видно формулу, бросалась в глаза"). */}
-                                                    <div className="px-4 py-4 overflow-x-auto" style={{ backgroundColor: `${accent}14` }}>
-                                                        <div className="text-2xl md:text-3xl font-bold text-[#F2F7FB] text-center whitespace-nowrap">
-                                                            <Latex>{`$${e.symbol} = ${e.formula}$`}</Latex>
-                                                        </div>
+                                                        подсвеченная (в цвет темы) панель, по центру — по
+                                                        прямой просьбе пользователя ("чтобы сразу было видно
+                                                        формулу"). Шрифт — умеренный и АДАПТИВНЫЙ (не
+                                                        text-2xl/3xl, как раньше), плюс разрешён перенос
+                                                        строки (без whitespace-nowrap) — у некоторых формул
+                                                        (особенно длинные наборы решений в "Как записать
+                                                        ответ") текст раньше вылезал за карточку и появлялся
+                                                        горизонтальный скроллбар; перенос+меньший размер
+                                                        гарантированно укладывают формулу в ширину карточки
+                                                        на любом экране, включая мобильный. */}
+                                                    <div className="px-4 py-4" style={{ backgroundColor: `${accent}14` }}>
+                                                        {isDiagram ? (
+                                                            <div className="flex justify-center">
+                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                <img src={e.imageSrc ?? ''} alt={e.label} className="max-h-56 w-auto" />
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-lg sm:text-xl md:text-2xl font-bold text-[#F2F7FB] text-center break-words">
+                                                                <Latex>{`$${e.symbol} = ${e.formula}$`}</Latex>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             )
