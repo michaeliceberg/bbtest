@@ -540,6 +540,31 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                     )}
                 </svg>
 
+                {/* Знак направления сектора ('sector'/'draw') — крупно,
+                    жирно, слева сверху, в цвет самого сектора (см.
+                    sectorDirectionColor выше) — по прямой просьбе
+                    пользователя: "+" для положительного (против часовой),
+                    "-" для отрицательного (по часовой). key={sign} —
+                    ремаунт при каждой смене знака, чтобы entrance-bounce
+                    (spring с перехлёстом) проигрывался заново, а не только
+                    один раз при первом появлении — тот же паттерн, что уже
+                    используется в этом файле для подписи assignedLabel. Не
+                    показывается, пока сектора physически нет (theta≈0,
+                    shape.kind==='none') — знаку направления нечего было бы
+                    обозначать. */}
+                {(isSector || isDraw) && shape.kind !== 'none' && (
+                    <motion.div
+                        key={sectorTheta > 0 ? 'plus' : 'minus'}
+                        initial={{ scale: 0, opacity: 0, rotate: -20 }}
+                        animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                        transition={{ type: 'spring', stiffness: 320, damping: 13 }}
+                        className="absolute font-black text-3xl sm:text-4xl leading-none pointer-events-none select-none"
+                        style={{ left: '2%', top: '2%', color: sectorDirectionColor }}
+                    >
+                        {sectorTheta > 0 ? '+' : '−'}
+                    </motion.div>
+                )}
+
                 {/* Подпись значения риски (guideValueLabel) — рядом с самой
                     риской, но СМЕЩЕНА от неё (по прямой просьбе пользователя
                     2026-09-09 — раньше стояла вертикально/горизонтально ПО
