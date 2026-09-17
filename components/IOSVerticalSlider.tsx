@@ -98,13 +98,23 @@ export const IOSVerticalSlider = ({ value, onChange, ticks }: Props) => {
                                 className="absolute right-0 flex items-center gap-1.5"
                                 style={{ top: TRACK_HEIGHT * (1 - tick.value / 100), transform: 'translateY(-50%)' }}
                             >
-                                <span
-                                    className={`text-[11px] font-semibold whitespace-nowrap transition-colors duration-300 ${
-                                        reached ? 'text-white' : 'text-[#9AA7B0]'
+                                {/* key меняется РОВНО в момент пересечения порога —
+                                    React ремонтирует span и проигрывает entrance
+                                    заново (тот же приём key-ремонта, что везде в
+                                    проекте вместо AnimatePresence). initial=false
+                                    на "недостигнутой" ветке — при уходе НИЖЕ порога
+                                    никакого bounce, просто мгновенно меньше/тусклее. */}
+                                <motion.span
+                                    key={reached ? 'reached' : 'base'}
+                                    initial={reached ? { scale: 2.4 } : false}
+                                    animate={{ scale: 1 }}
+                                    transition={{ type: 'spring', stiffness: 260, damping: 14, bounce: 0.6 }}
+                                    className={`whitespace-nowrap ${
+                                        reached ? 'text-sm font-bold text-white' : 'text-[10px] font-semibold text-[#9AA7B0]'
                                     }`}
                                 >
                                     {tick.label}
-                                </span>
+                                </motion.span>
                                 <span
                                     className={`h-[2px] w-3 rounded-full transition-colors duration-300 ${
                                         reached ? 'bg-violet-400' : 'bg-[#5C6B73]'
