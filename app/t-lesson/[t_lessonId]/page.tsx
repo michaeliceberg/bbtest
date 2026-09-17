@@ -731,6 +731,26 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             };
         }
 
+        if (t_challenge.type === 'LOGWALK') {
+            // Тот же самодостаточный принцип, что у SINWALK (см. выше) —
+            // разбор правила сложения логарифмов (log_a x + log_a y =
+            // log_a(x*y)) на фиксированном примере 2/3/5, тренировочные
+            // задания генерируются на лету внутри type-logwalk.tsx.
+            return {
+                questionType: 'LOGWALK' as const,
+                question: t_challenge.question,
+                imageSrc: t_challenge.imageSrc,
+                options: [],
+                numRans: t_challenge.numRans,
+                optionsQ: [],
+                optionsA: [],
+                optionsConstructRight: [],
+                difficulty: t_challenge.difficulty,
+                correctAnswer: 'right',
+                timeLimit: 999,
+            };
+        }
+
         if (t_challenge.type === 'MULTISTEP') {
             let steps: MultistepStep[] = [];
             try {
