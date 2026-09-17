@@ -122,7 +122,7 @@ const ReplayButton = ({ onClick, disabled }: { onClick: () => void; disabled?: b
 // дальше (см. handleIntroNext).
 const INTRO_STEPS = 5
 
-export const TypeSinWalk = ({ onComplete }: Props) => {
+export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
     const [phase, setPhase] = useState<'intro' | 'practice'>('intro')
     const [hadMistake, setHadMistake] = useState(false)
 
@@ -192,7 +192,16 @@ export const TypeSinWalk = ({ onComplete }: Props) => {
             if (isLastInList) {
                 if (wasLastCorrect) {
                     setAdvancing(false)
-                    onComplete(!hadMistake)
+                    // onComplete — только красит маскота/локальный статус
+                    // ВНУТРИ trainer-question.tsx, сам урок дальше не
+                    // двигает. Настоящее завершение вопроса (счёт/сердечки/
+                    // переход дальше в TQUIZ.tsx) — только через onAnswer,
+                    // как у CHECK/FRACTRICK (тех же самодостаточных типов).
+                    // Раньше этого вызова не было вовсе — клик "Готово"
+                    // ничего не делал, урок не мог закончиться никогда.
+                    const isFullyCorrect = !hadMistake
+                    onComplete(isFullyCorrect)
+                    onAnswer(isFullyCorrect ? 'right' : 'wrong')
                     return
                 }
                 // Ошибка на последнем по счёту задании — не завершаем

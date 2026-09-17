@@ -318,10 +318,14 @@ export default function TrainerQuestion({
         return <TypeMultistep question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
 
       case "SINWALK":
-        // Самодостаточный тип, тот же контракт onComplete, что и у
-        // MULTISTEP — переиспользуем тот же обработчик (не завязан на
-        // конкретный тип, просто красит answerState/маскота по итоговому
-        // verdict'у). См. type-sinwalk.tsx.
+        // handleMultistepComplete здесь — только для мгновенной подсветки
+        // answerState/маскота внутри ЭТОГО компонента (общая нижняя кнопка
+        // для SINWALK скрыта, см. ниже — ей нечего было бы показывать).
+        // Настоящее завершение вопроса (счёт/сердечки/переход дальше в
+        // TQUIZ.tsx) идёт через onAnswer — TypeSinWalk зовёт его САМ, как
+        // и CHECK/FRACTRICK (реальный баг: раньше onAnswer тут вообще не
+        // вызывался — "Готово" ничего не делал, урок не мог закончиться).
+        // См. type-sinwalk.tsx.
         return <TypeSinWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
 
       case "TRIGTABLE":
