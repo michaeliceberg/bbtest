@@ -7,6 +7,7 @@ import db from '@/db/drizzle';
 import { parentLinks, userHomework, userProgress, classes, identities, diagnosticLeads } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { DIAGNOSTIC_SUBJECT_LABEL, type DiagnosticSubject } from '@/lib/diagnostic';
+import { MAX_PIZZA_SLICES } from '@/lib/caseRewards';
 
 // Reply-клавиатура вместо ручного набора команд — нажатие кнопки
 // присылает её подпись обычным текстовым сообщением, которое мы тут же
@@ -14,12 +15,13 @@ import { DIAGNOSTIC_SUBJECT_LABEL, type DiagnosticSubject } from '@/lib/diagnost
 const BUTTON_LABELS: Record<string, string> = {
     '📊 Статус классов': '/class_status',
     '📖 Отчёт': '/report',
+    '🍕 Топ пиццы': '/pizza_top',
     '🔓 Отвязать': '/unbind',
     '❓ Помощь': '/help',
 };
 
 const TEACHER_KEYBOARD: TelegramReplyKeyboard = {
-    keyboard: [['📊 Статус классов', '📖 Отчёт'], ['❓ Помощь']],
+    keyboard: [['📊 Статус классов', '📖 Отчёт'], ['🍕 Топ пиццы'], ['❓ Помощь']],
     resize_keyboard: true,
 };
 
@@ -428,11 +430,49 @@ export async function POST(req: Request) {
             return NextResponse.json({ ok: true });
         }
 
+        // Команда /pizza_top — топ-10 учеников по кусочкам пиццы (только для
+        // учителя/админа) — по прямой просьбе пользователя: ручной контроль,
+        // сколько промокодов Додо Пиццы нужно успеть закупить заранее, пока
+        // ученики не дошли до 8/8 (сама выдача промокода — отдельная, ещё
+        // не реализованная фича, см. CLAUDE.md).
+        if (text === '/pizza_top') {
+            if (!isTeacher) {
+                await sendMessageToTelegram(
+                    `❌ *Эта команда только для учителя*`,
+                    chatId,
+                    keyboard
+                );
+                return NextResponse.json({ ok: true });
+            }
+
+            const allStudents = await db.query.userProgress.findMany();
+            const top = allStudents
+                .filter((s) => (s.pizzaSlices ?? 0) > 0)
+                .sort((a, b) => (b.pizzaSlices ?? 0) - (a.pizzaSlices ?? 0))
+                .slice(0, 10);
+
+            if (top.length === 0) {
+                await sendMessageToTelegram(`🍕 *Пока ни у кого нет кусочков пиццы*`, chatId, keyboard);
+                return NextResponse.json({ ok: true });
+            }
+
+            let report = `🍕 *Топ-${top.length} по кусочкам пиццы*\n\n`;
+            top.forEach((s, i) => {
+                const slices = s.pizzaSlices ?? 0;
+                const ready = slices >= MAX_PIZZA_SLICES ? ' ✅ готов к промокоду' : '';
+                report += `${i + 1}. ${s.userName} — ${slices}/${MAX_PIZZA_SLICES}${ready}\n`;
+            });
+
+            await sendMessageToTelegram(report, chatId, keyboard);
+            return NextResponse.json({ ok: true });
+        }
+
         // Команда /help
         if (text === '/help') {
             const commandsList = isTeacher
                 ? `🔹 /report - Отчёт по вашим привязанным ученикам\n` +
                   `🔹 \`/class_status\` - Сводка по классам\n` +
+                  `🔹 \`/pizza_top\` - Топ-10 по кусочкам пиццы\n` +
                   `🔹 /bind КОД - Привязать ученика\n` +
                   `🔹 /unbind - Отвязать ученика\n`
                 : `🔹 /bind КОД - Привязать ученика\n` +
