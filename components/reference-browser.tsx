@@ -29,6 +29,7 @@ import { FeedWrapper } from './feed-wrapper'
 import { UserProgress } from './user-progress'
 import { courses } from '@/db/schema'
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs'
+import { RightTriangleRefDiagram } from './geometry/RightTriangleRefDiagram'
 
 export type ReferenceEntryData = {
     id: number
@@ -374,8 +375,17 @@ export const ReferenceBrowser = ({ entries, userProgress }: { entries: Reference
                                                     <div className="px-4 py-4" style={{ backgroundColor: `${accent}14` }}>
                                                         {isDiagram ? (
                                                             <div className="flex justify-center">
-                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                <img src={e.imageSrc ?? ''} alt={e.label} className="max-h-56 w-auto" />
+                                                                {e.imageSrc === '__inline_right_triangle__' ? (
+                                                                    // Инлайновый React-компонент (не <img>) — нужен
+                                                                    // для var(--font-nunito), см. комментарий в
+                                                                    // RightTriangleRefDiagram.tsx.
+                                                                    <div className="w-full max-w-[280px]">
+                                                                        <RightTriangleRefDiagram />
+                                                                    </div>
+                                                                ) : (
+                                                                    // eslint-disable-next-line @next/next/no-img-element
+                                                                    <img src={e.imageSrc ?? ''} alt={e.label} className="max-h-56 w-auto" />
+                                                                )}
                                                             </div>
                                                         ) : (
                                                             <div className="text-lg sm:text-xl md:text-2xl font-bold text-[#F2F7FB] text-center break-words">
