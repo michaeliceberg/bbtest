@@ -29,7 +29,7 @@ import { getLvlLottieCount } from '@/lib/lvl-lottie';
 import { StreakRiskBanner } from '@/components/streak-risk-banner';
 import { PizzaProgress } from '@/components/PizzaProgress';
 import { getUserCourseProgress } from '@/db/queries';
-import { HIDDEN_T_COURSE_IDS, resolveActiveTCourse } from '@/lib/trainer-topic';
+import { HIDDEN_T_COURSE_IDS, resolveActiveTCourse, sortTCoursesForTabs } from '@/lib/trainer-topic';
 
 const TLearnPage = async () => {
     const session = await auth();
@@ -85,7 +85,7 @@ const TLearnPage = async () => {
     // М9 и Физика-9 временно скрыты из тренажёра (пусто/не готово) — не
     // мешают, но не удалены из БД, легко вернуть обратно. Список скрытых id
     // — в lib/trainer-topic.ts, общий с /learn (см. ниже про activeTCourse).
-    const t_courses = t_coursesRaw.filter((c) => !HIDDEN_T_COURSE_IDS.includes(c.id));
+    const t_courses = sortTCoursesForTabs(t_coursesRaw.filter((c) => !HIDDEN_T_COURSE_IDS.includes(c.id)));
 
     if (!courseProgress) {
         redirect('/courses');

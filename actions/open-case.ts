@@ -18,24 +18,31 @@ import { eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import {
 	getCasePool,
+	getLessonCasePool,
 	pickWeightedReward,
 	MAX_PIZZA_SLICES,
 	MAXED_PIZZA_FALLBACK_COINS,
 	type CaseReward,
+	type LessonCaseTier,
 } from '@/lib/caseRewards';
 
 export type OpenCaseResult =
 	| { success: true; reward: CaseReward; pizzaSlicesNow: number; justMaxedPizza: boolean }
 	| { success: false; error: string };
 
-export async function openCase(isMega: boolean = false): Promise<OpenCaseResult> {
+// Общее ядро — выбор награды из пула + применение к userProgress.
+// Переиспользуется openCase (позиция на карте скиллов) и openLessonCase
+// (частый кейс за любой завершённый урок, см. caseRewards.ts) — раньше
+// вся эта логика жила только внутри openCase(isMega), продублировать её
+// один в один под новый вызов было бы риском рассинхронизации.
+async function applyCaseReward(pool: CaseReward[]): Promise<OpenCaseResult> {
 	const session = await auth();
 	if (!session?.user?.id) {
 		return { success: false, error: 'Не авторизован' };
 	}
 	const userId = session.user.id;
 
-	let reward = pickWeightedReward(getCasePool(isMega));
+	let reward = pickWeightedReward(pool);
 
 	const current = await db.query.userProgress.findFirst({ where: eq(userProgress.userId, userId) });
 	const currentPizza = current?.pizzaSlices ?? 0;
@@ -68,4 +75,15 @@ export async function openCase(isMega: boolean = false): Promise<OpenCaseResult>
 	revalidatePath('/trainer');
 
 	return { success: true, reward, pizzaSlicesNow, justMaxedPizza };
+}
+
+export async function openCase(isMega: boolean = false): Promise<OpenCaseResult> {
+	return applyCaseReward(getCasePool(isMega));
+}
+
+// Кейс за любой завершённый урок тренажёра (см. actions/roll-lesson-
+// case.ts — решает ДО этого вызова, выпадает ли кейс вообще и какой
+// редкости; здесь только применяется уже решённая редкость).
+export async function openLessonCase(tier: LessonCaseTier): Promise<OpenCaseResult> {
+	return applyCaseReward(getLessonCasePool(tier));
 }

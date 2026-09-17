@@ -31,7 +31,9 @@ import { useQuizAudio } from "@/app/hooks/useQuizAudio"
 import { reportLessonQuestSignals } from "@/actions/generate-trainer-quest"
 import { ChestReward } from "@/components/ChestReward"
 import { CaseReel } from "@/components/CaseReel"
-import { rewardLabel, type CaseReward } from "@/lib/caseRewards"
+import { rewardLabel, getLessonCasePool, LESSON_CASE_TIER_TITLES, type CaseReward, type LessonCaseTier } from "@/lib/caseRewards"
+import { rollLessonCaseTier } from "@/actions/roll-lesson-case"
+import { openLessonCase } from "@/actions/open-case"
 import { TrainerQuestRewardsScreen, QuestRewardsData } from "@/components/trainer-quest-rewards-screen"
 import { useAchievementStore } from "@/store/use-achievement-store"
 import { useStreakCelebrationStore } from "@/store/use-streak-celebration-store"
@@ -196,15 +198,34 @@ export default function TQuiz({
   // всё равно срабатывает — ни одна причитающаяся награда не теряется.
   const [showHotCaseReel, setShowHotCaseReel] = useState(false)
   const [wonHotCaseReward, setWonHotCaseReward] = useState<CaseReward | null>(null)
+  // "Кейс за урок" (actions/roll-lesson-case.ts) — частый шанс на кейс
+  // ПОСЛЕ ЛЮБОГО завершённого этапа (не только isChestStage/
+  // isMegaChestStage) — по прямой просьбе пользователя, чтобы мотивация
+  // "пройти ещё один урок" была ощутимой, не раз на всю тему. Редкость
+  // (common/rare/mythic) решается сервером ДО показа барабана — см.
+  // proceedToStageCaseOrFinish ниже.
+  const [showLessonCaseReel, setShowLessonCaseReel] = useState(false)
+  const [lessonCaseTier, setLessonCaseTier] = useState<LessonCaseTier | null>(null)
+  const [wonLessonCaseReward, setWonLessonCaseReward] = useState<CaseReward | null>(null)
   const [answeredQuestions, setAnsweredQuestions] = useState(0)
   const { width, height } = useWindowSize()
 
   // Вторая половина финала — тест на isChestStage/isMegaChestStage,
   // вынесена отдельно, чтобы её же вызывать ПОСЛЕ того, как пользователь
-  // прокрутит мегакейс горячего вопроса (см. finishOrOpenCase ниже).
-  const proceedToStageCaseOrFinish = useCallback(() => {
+  // прокрутит мегакейс горячего вопроса (см. finishOrOpenCase ниже). Если
+  // это не фиксированная кейс-позиция — пробуем частый "кейс за урок"
+  // (см. rollLessonCaseTier выше): сервер решает, выпадает ли он вообще
+  // и какой редкости, ДО того как мы вообще покажем барабан — иначе
+  // модифицированный клиент мог бы просто игнорировать "не выпало".
+  const proceedToStageCaseOrFinish = useCallback(async () => {
     if (isChestStage || isMegaChestStage) {
       setShowCaseReel(true)
+      return
+    }
+    const tier = await rollLessonCaseTier()
+    if (tier) {
+      setLessonCaseTier(tier)
+      setShowLessonCaseReel(true)
     } else {
       setQuizCompleted(true)
     }
@@ -774,6 +795,22 @@ export default function TQuiz({
     )
   }
 
+  if (showLessonCaseReel && lessonCaseTier) {
+    return (
+      <CaseReel
+        isMega={lessonCaseTier !== 'common'}
+        pool={getLessonCasePool(lessonCaseTier)}
+        spinAction={() => openLessonCase(lessonCaseTier)}
+        title={LESSON_CASE_TIER_TITLES[lessonCaseTier]}
+        onDone={({ reward }) => {
+          setWonLessonCaseReward(reward)
+          setShowLessonCaseReel(false)
+          setQuizCompleted(true)
+        }}
+      />
+    )
+  }
+
   if (quizCompleted) {
     console.log('📊 Показываем финальный экран')
     // score/finishList заморожены на результатах ОСНОВНОГО прохода (см.
@@ -793,12 +830,15 @@ export default function TQuiz({
     return (
       <>
         <TgSendMsgCom message={message} />
-        {(isPerfectScore || hotQuestionWon || isChestStage || isMegaChestStage) && <Confetti width={width} height={height} />}
+        {(isPerfectScore || hotQuestionWon || isChestStage || isMegaChestStage || !!wonLessonCaseReward) && <Confetti width={width} height={height} />}
         {wonHotCaseReward && (
           <CaseWonBanner mega reward={wonHotCaseReward} label="Горячий вопрос" />
         )}
         {wonCaseReward && (isMegaChestStage || isChestStage) && (
           <CaseWonBanner mega={!!isMegaChestStage} reward={wonCaseReward} />
+        )}
+        {wonLessonCaseReward && lessonCaseTier && (
+          <CaseWonBanner mega={lessonCaseTier !== 'common'} reward={wonLessonCaseReward} label={LESSON_CASE_TIER_TITLES[lessonCaseTier]} />
         )}
         <TrainerLessonCompleteScreen
           lottieData={randomStreakCharacterLottie}

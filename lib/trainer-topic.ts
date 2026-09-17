@@ -16,6 +16,23 @@
 // единственного юнита ("Синус, косинус, тангенс...") в Математика-11.
 export const HIDDEN_T_COURSE_IDS = [1, 2, 4];
 
+// Порядок вкладок-предметов на /trainer — по прямой просьбе пользователя
+// (Математика-11 первой, за ней Физика-11, затем Арифметика). Курс, не
+// упомянутый здесь (появится в будущем) — попадает в конец списка, а не
+// теряется. Сортировка только ДЛЯ ОТОБРАЖЕНИЯ вкладок — resolveActiveTCourse
+// ниже принимает свой собственный (несортированный) список отдельно, чтобы
+// порядок вкладок не задевал её фоллбэк-логику "первая видимая тема".
+const TAB_DISPLAY_ORDER = ['Математика-11', 'Физика-11', 'Арифметика'];
+export function sortTCoursesForTabs<T extends { title: string }>(courses: T[]): T[] {
+    return [...courses].sort((a, b) => {
+        const ai = TAB_DISPLAY_ORDER.indexOf(a.title);
+        const bi = TAB_DISPLAY_ORDER.indexOf(b.title);
+        const aRank = ai === -1 ? TAB_DISPLAY_ORDER.length : ai;
+        const bRank = bi === -1 ? TAB_DISPLAY_ORDER.length : bi;
+        return aRank - bRank;
+    });
+}
+
 /**
  * Тема тренажёра, привязанная к активному курсу пользователя (через
  * t_courses.courseId), среди ВИДИМЫХ тем — с фоллбэком на первую видимую

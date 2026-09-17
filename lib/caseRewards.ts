@@ -57,6 +57,40 @@ export const MEGA_CASE_POOL: CaseReward[] = [
 
 export const getCasePool = (isMega: boolean): CaseReward[] => (isMega ? MEGA_CASE_POOL : REGULAR_CASE_POOL)
 
+// "Кейс за урок" — по прямой просьбе пользователя, ЧАСТАЯ (не привязанная
+// к фиксированной позиции на карте скиллов) награда после ЛЮБОГО
+// завершённого этапа тренажёра, не только идеально пройденного — см.
+// actions/roll-lesson-case.ts (решает, выпадет ли кейс вообще и какой
+// редкости) и actions/open-case.ts (openLessonCase, реально применяет
+// награду). Три уровня редкости САМОГО кейса (не наград внутри одного
+// пула, как раньше) — common/rare/mythic:
+// - common — тот же пул, что у обычного 🎁 на карте скиллов (REGULAR).
+// - rare — тот же пул, что у 👑 мегакейса на карте скиллов (MEGA) —
+//   переиспользован, не плодим почти дублирующий пул.
+// - mythic — НОВЫЙ, самый щедрый пул: заметно выше шанс пиццы (~28%
+//   суммарно против ~6% у mega) — по прямой просьбе пользователя
+//   ("а в таком сундуке с бОльшей вероятностью падает пицца").
+export type LessonCaseTier = 'common' | 'rare' | 'mythic'
+
+export const MYTHIC_CASE_POOL: CaseReward[] = [
+	{ kind: 'coins', amount: 100, weight: 20 },
+	{ kind: 'coins', amount: 150, weight: 16 },
+	{ kind: 'coins', amount: 250, weight: 10 },
+	{ kind: 'gems', amount: 2, weight: 16 },
+	{ kind: 'gems', amount: 3, weight: 10 },
+	{ kind: 'pizza', amount: 1, weight: 18 },
+	{ kind: 'pizza', amount: 2, weight: 10 },
+]
+
+export const getLessonCasePool = (tier: LessonCaseTier): CaseReward[] =>
+	tier === 'mythic' ? MYTHIC_CASE_POOL : tier === 'rare' ? MEGA_CASE_POOL : REGULAR_CASE_POOL
+
+export const LESSON_CASE_TIER_TITLES: Record<LessonCaseTier, string> = {
+	common: 'Кейс за урок',
+	rare: 'Редкий кейс',
+	mythic: 'Мифический кейс!',
+}
+
 // Кейс за номер телефона на анонимном диагностическом тесте
 // (app/test/[subject]/diagnostic-client.tsx, actions/open-diagnostic-
 // case.ts) — только пицца и гемы, без монет (не привязано к реальному

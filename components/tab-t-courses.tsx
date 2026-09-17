@@ -223,14 +223,17 @@ export const TabTCourses = ({
                 onValueChange={handleTabChange}
                 className="w-full"
             >
-                {/* Табы курсов - центрируем */}
-                <div className="flex justify-center mb-6">
-                    <TabsList className="bg-[#232F34] rounded-xl p-1">
+                {/* Табы курсов — во всю ширину страницы (по прямой просьбе
+                    пользователя, "аккуратнее"), не узкая центрированная
+                    группа: TabsList сам w-full+flex, каждый TabsTrigger —
+                    flex-1, чтобы вкладки равномерно делили всю ширину. */}
+                <div className="mb-6">
+                    <TabsList className="w-full flex bg-[#232F34] rounded-xl p-1">
                         {t_courses.map((t_course, index) => (
                             <TabsTrigger
                                 key={index * 21983}
                                 value={t_course.title}
-                                className="data-[state=active]:bg-[#151F23] data-[state=active]:shadow-sm px-4 py-2"
+                                className="flex-1 data-[state=active]:bg-[#151F23] data-[state=active]:shadow-sm px-4 py-2"
                             >
                                 {t_course.title.split(' ')[0]}
                             </TabsTrigger>
