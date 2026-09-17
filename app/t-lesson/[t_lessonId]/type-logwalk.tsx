@@ -10,14 +10,14 @@
 //
 // Сюжет — прямая инструкция пользователя, по шагам, на ОДНОМ фиксированном
 // примере (log₂3 + log₂5 = log₂15):
-// 1. Пишем крупно "log₂3 + log₂5 =" — просто условие.
-// 2. Обводим ОБА основания (двойки) как "стикер" — у логарифмов одинаковое
+// 1. Пишем крупно "log₂3 + log₂5 =" — просто условие, без текста-подписи.
+// 2. Обводим ОБА основания (двойки) как "стикер" — заметим одинаковое
 //    основание.
-// 3. Дописываем справа "= log₂" — то же основание обведено тем же цветом
-//    (переносится в ответ).
-// 4. Обводим аргументы 3 и 5 (другой цвет) — раз логарифмы складываем,
-//    аргументы перемножаются: "= log₂(3·5)".
-// 5. Считаем: "= log₂15".
+// 3. Дописываем справа "= log₂" — то же основание обведено тем же цветом.
+// 4. Обводим аргументы 3 и 5 РАЗНЫМИ цветами (не один общий, как раньше) —
+//    стрелка от "+" слева к "·" справа показывает "сумма превращается в
+//    произведение". "= log₂(3·5)".
+// 5. Считаем: "Ответ: log₂15".
 //
 // После разбора — несколько тренировочных заданий с НОВЫМИ случайными
 // числами (log_a x + log_a y = log_a ?), нужно кликнуть на верное число
@@ -27,15 +27,17 @@
 
 'use client'
 
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
 import {
-    TypedLine, TypedKeyPhraseLine, DiagramBlock, useStickToBottom,
+    TypedKeyPhraseLine, DiagramBlock, useStickToBottom,
     pickWalkthroughNextLabel, CORRECT_FEEDBACK_PHRASES,
-    ACTIVE_COLOR, WRONG_COLOR, CORRECT_COLOR,
+    ACTIVE_COLOR, WRONG_COLOR, CORRECT_COLOR, ATTENTION_COLOR,
+    walkthroughButtonClass, walkthroughButtonStyle,
 } from '@/components/geometry/WalkthroughLog'
+import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 
 // Пауза ПОСЛЕ клика "Дальше", ДО начала новой сцены — тот же приём и то
@@ -52,10 +54,14 @@ const INTRO_STEPS = 5
 const TRIAL_COUNT = 4
 
 // Основание — синий (та же роль "величина, вводимая отдельно", что уже
-// закреплена за синим в палитре ggege); аргументы — зелёный (второй по
-// частоте ключевой термин разбора). См. CLAUDE.md «Палитра ggege».
+// закреплена за синим в палитре ggege). Аргументы 3 и 5 — РАЗНЫЕ цвета
+// (по прямой просьбе пользователя — одинаковый цвет для обоих читался
+// как "это одно и то же число"), взяты из двух ролей палитры, пока
+// свободных для новой задачи ("Малиновый/бирюзовый — пока используются
+// только на /learn... свободны для новой роли", см. CLAUDE.md).
 const BASE_COLOR = GGEGE_PALETTE.blue.button
-const ARG_COLOR = GGEGE_PALETTE.green.button
+const ARG_COLOR_X = GGEGE_PALETTE.teal.button
+const ARG_COLOR_Y = GGEGE_PALETTE.raspberry.button
 
 const pick = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)]
 
@@ -98,13 +104,34 @@ const Plain = ({ children }: { children: React.ReactNode }) => (
     <span className="text-[#F2F7FB]">{children}</span>
 )
 
+// Один "токен" формулы — по прямой просьбе пользователя ("можно ли
+// сделать так, чтобы формула тоже 'печаталась'?") каждый смысловой
+// кусок формулы появляется по очереди с небольшой задержкой, а не весь
+// разом. Настоящий Typewriter (по буквам) здесь не имеет смысла —
+// формула это НЕ единая строка текста, а структура из под/над-строчных
+// элементов и цветных стикеров (то же самое, из-за чего когда-то ушли от
+// KaTeX, см. историю INSERT) — но каскадное появление ЦЕЛЫХ элементов
+// слева направо визуально даёт тот же эффект "формула печатается", просто
+// не по одному символу, а по "словам"/операндам.
+const Token = ({ delay, children }: { delay: number; children: React.ReactNode }) => (
+    <motion.span
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.22, delay }}
+        className="inline-flex items-baseline"
+    >
+        {children}
+    </motion.span>
+)
+
 // "logₐ x" — базовый (левый) член суммы. Основание — subscript (тег
 // <sub>, естественная позиция браузера, без ручных transform); аргумент —
-// обычный размер сразу после.
+// обычный размер сразу после. argColor не задан — аргумент показывается
+// плоским текстом (см. FormulaState.arg1Color/arg2Color ниже).
 const LogTerm = ({
-    base, arg, baseHighlighted, argHighlighted,
+    base, arg, baseHighlighted, argColor,
 }: {
-    base: number; arg: number; baseHighlighted: boolean; argHighlighted: boolean
+    base: number; arg: number; baseHighlighted: boolean; argColor?: string
 }) => (
     <span className="inline-flex items-baseline whitespace-nowrap">
         <Plain>log</Plain>
@@ -112,14 +139,17 @@ const LogTerm = ({
             {baseHighlighted ? <NumSticker value={base} color={BASE_COLOR} small /> : <Plain>{base}</Plain>}
         </sub>
         <span className="ml-1">
-            {argHighlighted ? <NumSticker value={arg} color={ARG_COLOR} /> : <Plain>{arg}</Plain>}
+            {argColor ? <NumSticker value={arg} color={argColor} /> : <Plain>{arg}</Plain>}
         </span>
     </span>
 )
 
 type FormulaState = {
     baseHighlighted: boolean
-    argsHighlighted: boolean
+    // Цвет аргумента 3/5 — РАЗНЫЙ для каждого (см. ARG_COLOR_X/Y выше),
+    // undefined до того, как аргументы вообще подсвечиваются (шаг 0-2).
+    arg1Color?: string
+    arg2Color?: string
     showRightSide: boolean
     showProduct: boolean
     showResult: boolean
@@ -129,46 +159,184 @@ type FormulaState = {
 // шаге разбора рисуется НОВЫЙ (не мутирующий предыдущий) экземпляр с
 // накопленными флагами — тот же "накопительный лог", что у SINWALK: все
 // уже пройденные шаги остаются на экране, новый дописывается ниже.
-const ExampleFormula = ({ baseHighlighted, argsHighlighted, showRightSide, showProduct, showResult }: FormulaState) => (
-    <div className="w-full flex items-center justify-center flex-wrap gap-x-2 gap-y-2 text-2xl md:text-3xl font-extrabold py-1">
-        <LogTerm base={2} arg={3} baseHighlighted={baseHighlighted} argHighlighted={argsHighlighted} />
-        <Plain>+</Plain>
-        <LogTerm base={2} arg={5} baseHighlighted={baseHighlighted} argHighlighted={argsHighlighted} />
-        {showRightSide && (
-            <>
-                <Plain>=</Plain>
-                <span className="inline-flex items-baseline whitespace-nowrap">
-                    <Plain>log</Plain>
-                    <sub className="ml-0.5">
-                        <NumSticker value={2} color={BASE_COLOR} small />
-                    </sub>
-                    {showProduct && (
-                        <span className="ml-1 inline-flex items-baseline gap-1 whitespace-nowrap">
-                            <Plain>(</Plain>
-                            <NumSticker value={3} color={ARG_COLOR} />
-                            <Plain>·</Plain>
-                            <NumSticker value={5} color={ARG_COLOR} />
-                            <Plain>)</Plain>
+// data-marker="plus"/"multiply" — точки, между которыми на шаге 3 рисуется
+// стрелка (см. ArgumentsArrow) — присутствуют всегда, безвредны там, где
+// стрелка не рисуется.
+const ExampleFormula = ({ baseHighlighted, arg1Color, arg2Color, showRightSide, showProduct, showResult }: FormulaState) => {
+    let tokenCount = 0
+    const nextDelay = () => (tokenCount++) * 0.13
+    return (
+        <div className="w-full flex items-center justify-center flex-wrap gap-x-2 gap-y-2 text-2xl md:text-3xl font-extrabold py-1">
+            <Token delay={nextDelay()}>
+                <LogTerm base={2} arg={3} baseHighlighted={baseHighlighted} argColor={arg1Color} />
+            </Token>
+            <Token delay={nextDelay()}>
+                <span data-marker="plus" className="text-[#F2F7FB]">+</span>
+            </Token>
+            <Token delay={nextDelay()}>
+                <LogTerm base={2} arg={5} baseHighlighted={baseHighlighted} argColor={arg2Color} />
+            </Token>
+            {showRightSide && (
+                <>
+                    <Token delay={nextDelay()}><Plain>=</Plain></Token>
+                    <Token delay={nextDelay()}>
+                        <span className="inline-flex items-baseline whitespace-nowrap">
+                            <Plain>log</Plain>
+                            <sub className="ml-0.5">
+                                <NumSticker value={2} color={BASE_COLOR} small />
+                            </sub>
+                            {showProduct && (
+                                <span className="ml-1 inline-flex items-baseline gap-1 whitespace-nowrap">
+                                    <Plain>(</Plain>
+                                    {arg1Color ? <NumSticker value={3} color={arg1Color} /> : <Plain>3</Plain>}
+                                    <span data-marker="multiply" className="text-[#F2F7FB]">·</span>
+                                    {arg2Color ? <NumSticker value={5} color={arg2Color} /> : <Plain>5</Plain>}
+                                    <Plain>)</Plain>
+                                </span>
+                            )}
                         </span>
-                    )}
-                </span>
-            </>
-        )}
-        {showResult && (
-            <>
-                <Plain>=</Plain>
-                <motion.span
-                    initial={{ scale: 2.4, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 14 }}
-                    style={{ color: CORRECT_COLOR }}
-                >
-                    15
-                </motion.span>
-            </>
-        )}
-    </div>
-)
+                    </Token>
+                </>
+            )}
+            {showResult && (
+                <>
+                    <Token delay={nextDelay()}><Plain>=</Plain></Token>
+                    <Token delay={nextDelay()}>
+                        <motion.span
+                            initial={{ scale: 2.4, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 14 }}
+                            style={{ color: CORRECT_COLOR }}
+                        >
+                            15
+                        </motion.span>
+                    </Token>
+                </>
+            )}
+        </div>
+    )
+}
+
+// Печатаемая строка объяснения, где в конце — не цветное слово, а
+// НАСТОЯЩИЙ числовой стикер (тот же NumSticker, что и в самой формуле) —
+// по прямой просьбе пользователя ("эту 2 надо сделать в виде стикера").
+// Структура — та же, что у TypedKeyPhraseLine (WalkthroughLog.tsx): типим
+// целиком обычным текстом, после завершения печати заменяем число на
+// стикер.
+const TypedLineWithSticker = ({
+    before, stickerValue, stickerColor, after = '', onSettled,
+}: {
+    before: string; stickerValue: number; stickerColor: string; after?: string; onSettled?: () => void
+}) => {
+    const [typed, setTyped] = useState(false)
+    return (
+        <div className="w-full text-base md:text-lg text-[#F2F7FB]">
+            {!typed ? (
+                <Typewriter
+                    text={`${before}${stickerValue}${after}`}
+                    onDone={() => { setTyped(true); setTimeout(() => onSettled?.(), 450) }}
+                />
+            ) : (
+                <>
+                    {before}
+                    <NumSticker value={stickerValue} color={stickerColor} />
+                    {after}
+                </>
+            )}
+        </div>
+    )
+}
+
+// Финальная строка "Ответ: log₂15" — по прямой просьбе пользователя
+// вместо арифметического пересказа ("3·5=15, поэтому..."). "Ответ:"
+// печатается как обычный текст, сама формула справа — статичная (без
+// анимации подстановки, результат уже показан построчно выше в самой
+// диаграмме) зелёным (цвет "верно" по всему проекту).
+const AnswerLine = ({ onSettled }: { onSettled?: () => void }) => {
+    const [typed, setTyped] = useState(false)
+    return (
+        <div className="w-full text-base md:text-lg text-[#F2F7FB] flex items-baseline gap-2 flex-wrap">
+            {!typed ? (
+                <Typewriter text="Ответ:" onDone={() => { setTyped(true); setTimeout(() => onSettled?.(), 400) }} />
+            ) : (
+                <>
+                    <span>Ответ:</span>
+                    <motion.span
+                        initial={{ opacity: 0, scale: 0.7 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 16 }}
+                        className="inline-flex items-baseline font-extrabold text-lg md:text-xl"
+                        style={{ color: CORRECT_COLOR }}
+                    >
+                        log<sub className="ml-0.5">2</sub><span className="ml-0.5">15</span>
+                    </motion.span>
+                </>
+            )}
+        </div>
+    )
+}
+
+// Кривая стрелка от "+" (левая часть — складываем логарифмы) к "·"
+// (правая часть — аргументы перемножаются) — по прямой просьбе
+// пользователя, показывает "сумма превращается в умножение" наглядно, не
+// только словами. Позиции обоих концов измеряются по факту отрисовки
+// (data-marker), а не считаются аналитически — формула это обычный HTML
+// в потоке текста, не SVG с известной геометрией, поэтому живое измерение
+// здесь единственный вариант (в отличие от зум-эффектов SVG-диаграмм, где
+// проект принципиально требует аналитический расчёт, см. CLAUDE.md, —
+// там причина не работать с getBBox была в ИСКАЖЕНИИ от bounce-анимации
+// детей; здесь измеряем ПОСЛЕ того, как токены/стикеры уже осели).
+const ArgumentsArrow = ({ containerRef }: { containerRef: React.RefObject<HTMLDivElement | null> }) => {
+    const [d, setD] = useState<string | null>(null)
+
+    useEffect(() => {
+        const measure = () => {
+            const container = containerRef.current
+            if (!container) return
+            const plusEl = container.querySelector<HTMLElement>('[data-marker="plus"]')
+            const mulEl = container.querySelector<HTMLElement>('[data-marker="multiply"]')
+            if (!plusEl || !mulEl) return
+            const cRect = container.getBoundingClientRect()
+            const pRect = plusEl.getBoundingClientRect()
+            const mRect = mulEl.getBoundingClientRect()
+            const x1 = pRect.left + pRect.width / 2 - cRect.left
+            const y1 = pRect.top - cRect.top
+            const x2 = mRect.left + mRect.width / 2 - cRect.left
+            const y2 = mRect.top - cRect.top
+            const midX = (x1 + x2) / 2
+            const midY = Math.min(y1, y2) - 34
+            setD(`M ${x1} ${y1} Q ${midX} ${midY} ${x2} ${y2}`)
+        }
+        // Ждём, пока каскад токенов (Token, ~0.13с шаг) и bounce стикеров
+        // осядут, прежде чем измерять реальные позиции.
+        const t = setTimeout(measure, 750)
+        window.addEventListener('resize', measure)
+        return () => { clearTimeout(t); window.removeEventListener('resize', measure) }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    if (!d) return null
+    return (
+        <svg className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible', width: '100%', height: '100%' }}>
+            <defs>
+                <marker id="logwalk-arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                    <path d="M0,0 L8,4 L0,8 Z" fill={ATTENTION_COLOR} />
+                </marker>
+            </defs>
+            <motion.path
+                d={d}
+                stroke={ATTENTION_COLOR}
+                strokeWidth={2.5}
+                fill="none"
+                strokeLinecap="round"
+                markerEnd="url(#logwalk-arrowhead)"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                transition={{ duration: 0.8, ease: 'easeInOut', delay: 0.2 }}
+            />
+        </svg>
+    )
+}
 
 // ===== Тренировочные задания — новые случайные (a, x, y), нужно кликнуть
 // верное число (x·y) среди вариантов. =====
@@ -278,11 +446,6 @@ const LogTrialFormula = ({
     )
 }
 
-const nextButtonClass = (enabled: boolean) => cn(
-    'flex-1 py-3 rounded-xl font-bold text-lg border-2 border-b-4 active:border-b-2 transition-colors',
-    enabled ? 'bg-[#A1D151] border-[#78C93C] text-[#151F24]' : 'bg-[#161F23] border-[#3A464E] text-[#5A6A72] cursor-not-allowed'
-)
-
 export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
     const [phase, setPhase] = useState<'intro' | 'practice'>('intro')
     const [hadMistake, setHadMistake] = useState(false)
@@ -295,6 +458,10 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
     const [trialIndex, setTrialIndex] = useState(0)
     const [trialAnswers, setTrialAnswers] = useState<(number | null)[]>(Array(TRIAL_COUNT).fill(null))
     const [checked, setChecked] = useState(false)
+
+    // Контейнер шага 3 (аргументы 3/5) — нужен ArgumentsArrow, чтобы
+    // измерить реальные позиции "+" и "·" внутри него (см. компонент выше).
+    const step3Ref = useRef<HTMLDivElement>(null)
 
     const currentCorrectValue = trials[trialIndex].x * trials[trialIndex].y
 
@@ -364,26 +531,25 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
     return (
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
             <div className="w-full flex flex-col gap-4">
-                {/* Шаг 0 — просто условие, без подсветки. */}
+                {/* Шаг 0 — просто условие, без текстовой подписи (по прямой
+                    просьбе пользователя убрана целиком). stepReady включает
+                    сама диаграмма (DiagramBlock.onSettled), раз текста
+                    печатать больше не нужно. */}
                 <Fragment key="step-0">
-                    <DiagramBlock><ExampleFormula baseHighlighted={false} argsHighlighted={false} showRightSide={false} showProduct={false} showResult={false} /></DiagramBlock>
-                    <TypedLine
-                        className="w-full text-base md:text-lg text-[#F2F7FB]"
-                        text="Нужно сложить два логарифма: log₂3 и log₂5."
-                        onSettled={() => setStepReady(true)}
-                    />
+                    <DiagramBlock onSettled={() => setStepReady(true)}>
+                        <ExampleFormula baseHighlighted={false} showRightSide={false} showProduct={false} showResult={false} />
+                    </DiagramBlock>
                 </Fragment>
 
-                {/* Шаг 1 — основания (двойки) становятся стикерами. */}
+                {/* Шаг 1 — основания (двойки) становятся стикерами;
+                    "2" в тексте объяснения — тоже настоящий стикер. */}
                 {step >= 1 && (
                     <Fragment key="step-1">
-                        <DiagramBlock><ExampleFormula baseHighlighted argsHighlighted={false} showRightSide={false} showProduct={false} showResult={false} /></DiagramBlock>
-                        <TypedKeyPhraseLine
-                            before="Присмотримся к основаниям — у обоих логарифмов оно "
-                            phrase="одинаковое"
-                            after=" — это 2."
-                            color={BASE_COLOR}
-                            highlight
+                        <DiagramBlock><ExampleFormula baseHighlighted showRightSide={false} showProduct={false} showResult={false} /></DiagramBlock>
+                        <TypedLineWithSticker
+                            before="Заметим что у них одинаковое основание - это "
+                            stickerValue={2}
+                            stickerColor={BASE_COLOR}
                             onSettled={() => setStepReady(true)}
                         />
                     </Fragment>
@@ -392,43 +558,41 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                 {/* Шаг 2 — справа дописывается "= log₂", то же основание. */}
                 {step >= 2 && (
                     <Fragment key="step-2">
-                        <DiagramBlock><ExampleFormula baseHighlighted argsHighlighted={false} showRightSide showProduct={false} showResult={false} /></DiagramBlock>
-                        <TypedKeyPhraseLine
-                            before="Раз основания совпадают, у результата будет "
-                            phrase="то же самое основание"
-                            after=" — 2."
-                            color={BASE_COLOR}
-                            highlight
+                        <DiagramBlock><ExampleFormula baseHighlighted showRightSide showProduct={false} showResult={false} /></DiagramBlock>
+                        <TypedLineWithSticker
+                            before="Поэтому получится логарифм с тем же основанием "
+                            stickerValue={2}
+                            stickerColor={BASE_COLOR}
                             onSettled={() => setStepReady(true)}
                         />
                     </Fragment>
                 )}
 
-                {/* Шаг 3 — аргументы (3 и 5) становятся стикерами, справа
-                    появляется "(3·5)". */}
+                {/* Шаг 3 — аргументы 3 и 5 РАЗНЫМИ цветами, стрелка от "+"
+                    к "·" (сумма превращается в произведение). */}
                 {step >= 3 && (
                     <Fragment key="step-3">
-                        <DiagramBlock><ExampleFormula baseHighlighted argsHighlighted showRightSide showProduct showResult={false} /></DiagramBlock>
+                        <DiagramBlock>
+                            <div ref={step3Ref} className="relative w-full">
+                                <ExampleFormula baseHighlighted arg1Color={ARG_COLOR_X} arg2Color={ARG_COLOR_Y} showRightSide showProduct showResult={false} />
+                                <ArgumentsArrow containerRef={step3Ref} />
+                            </div>
+                        </DiagramBlock>
                         <TypedKeyPhraseLine
-                            before="Когда складываем логарифмы с одинаковым основанием, аргументы "
-                            phrase="перемножаются"
-                            after=" — 3 и 5 попадают внутрь одного логарифма."
-                            color={ARG_COLOR}
+                            before="Так как логарифмы складываются, то аргументы надо "
+                            phrase="перемножить"
+                            color={ATTENTION_COLOR}
                             highlight
                             onSettled={() => setStepReady(true)}
                         />
                     </Fragment>
                 )}
 
-                {/* Шаг 4 — считаем результат. */}
+                {/* Шаг 4 — итог. */}
                 {step >= 4 && (
                     <Fragment key="step-4">
-                        <DiagramBlock><ExampleFormula baseHighlighted argsHighlighted showRightSide showProduct showResult /></DiagramBlock>
-                        <TypedLine
-                            className="w-full text-base md:text-lg text-[#F2F7FB]"
-                            text="3 · 5 = 15, поэтому log₂3 + log₂5 = log₂15."
-                            onSettled={() => setStepReady(true)}
-                        />
+                        <DiagramBlock><ExampleFormula baseHighlighted arg1Color={ARG_COLOR_X} arg2Color={ARG_COLOR_Y} showRightSide showProduct showResult /></DiagramBlock>
+                        <AnswerLine onSettled={() => setStepReady(true)} />
                     </Fragment>
                 )}
 
@@ -454,7 +618,7 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                                     <span>{trials.length}</span>
                                 </div>
                                 <p className="flex-1 text-base md:text-lg text-[#F2F7FB]">
-                                    Кликни на число, которое должно стоять под логарифмом справа.
+                                    Выбери правильный ответ:
                                 </p>
                             </div>
                             <DiagramBlock>
@@ -492,14 +656,14 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
             </div>
 
             {phase === 'intro' ? (
-                <div className="w-full max-w-xs">
-                    <button type="button" onClick={handleIntroNext} disabled={!stepReady || advancing} className={nextButtonClass(stepReady && !advancing)}>
+                <div className="w-full flex items-center gap-2">
+                    <button type="button" onClick={handleIntroNext} disabled={!stepReady || advancing} className={walkthroughButtonClass(stepReady && !advancing)} style={walkthroughButtonStyle(stepReady && !advancing)}>
                         {introNextLabel}
                     </button>
                 </div>
             ) : checked ? (
-                <div className="w-full max-w-xs">
-                    <button type="button" onClick={handleNextTrial} disabled={advancing} className={nextButtonClass(!advancing)}>
+                <div className="w-full flex items-center gap-2">
+                    <button type="button" onClick={handleNextTrial} disabled={advancing} className={walkthroughButtonClass(!advancing)} style={walkthroughButtonStyle(!advancing)}>
                         {trialIndex + 1 >= trials.length && trialAnswers[trialIndex] === currentCorrectValue ? 'Готово' : trialNextLabel}
                     </button>
                 </div>

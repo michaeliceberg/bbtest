@@ -37,7 +37,7 @@ import {
     type AlphaVertex, type SideId,
 } from '@/components/geometry/RightTriangleDiagram'
 import { MARKER_COLOR, MARKER_COLOR_GREEN } from '@/components/geometry/WalkthroughMarker'
-import { TypedLine, TypedKeyPhraseLine, DiagramBlock, useStickToBottom, pickWalkthroughNextLabel, CORRECT_FEEDBACK_PHRASES } from '@/components/geometry/WalkthroughLog'
+import { TypedLine, TypedKeyPhraseLine, DiagramBlock, useStickToBottom, pickWalkthroughNextLabel, CORRECT_FEEDBACK_PHRASES, walkthroughButtonClass, walkthroughButtonStyle } from '@/components/geometry/WalkthroughLog'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 
 // Пауза ПОСЛЕ клика "Дальше", ДО начала новой анимации следующей сцены
@@ -91,11 +91,6 @@ const makeTrialConfigs = (n: number): TrialConfig[] => {
     }
     return configs
 }
-
-const nextButtonClass = (enabled: boolean) => cn(
-    'flex-1 py-3 rounded-xl font-bold text-lg border-2 border-b-4 active:border-b-2 transition-colors',
-    enabled ? 'bg-[#A1D151] border-[#78C93C] text-[#151F24]' : 'bg-[#161F23] border-[#3A464E] text-[#5A6A72] cursor-not-allowed'
-)
 
 // Квадратная кнопка "повторить" слева от "Дальше" — по прямой просьбе
 // пользователя, чтобы можно было переиграть анимацию последнего шага ещё
@@ -410,16 +405,16 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
             </div>
 
             {phase === 'intro' ? (
-                <div className="w-full max-w-xs flex items-center gap-2">
+                <div className="w-full flex items-center gap-2">
                     <ReplayButton onClick={handleReplay} disabled={advancing} />
-                    <button type="button" onClick={handleIntroNext} disabled={!stepReady || advancing} className={nextButtonClass(stepReady && !advancing)}>
+                    <button type="button" onClick={handleIntroNext} disabled={!stepReady || advancing} className={walkthroughButtonClass(stepReady && !advancing)} style={walkthroughButtonStyle(stepReady && !advancing)}>
                         {introNextLabel}
                     </button>
                 </div>
             ) : checked ? (
-                <div className="w-full max-w-xs flex items-center gap-2">
+                <div className="w-full flex items-center gap-2">
                     <ReplayButton onClick={handleReplay} disabled={advancing} />
-                    <button type="button" onClick={handleNextTrial} disabled={advancing} className={nextButtonClass(!advancing)}>
+                    <button type="button" onClick={handleNextTrial} disabled={advancing} className={walkthroughButtonClass(!advancing)} style={walkthroughButtonStyle(!advancing)}>
                         {/* "Готово" — ТОЛЬКО если это реально последнее и
                             ВЕРНО решённое задание (клик завершит практику).
                             Если это последнее по счёту, но ответ неверный —

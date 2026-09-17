@@ -19,6 +19,7 @@ import Latex from 'react-latex-next'
 import { HighlightWord } from './WalkthroughMarker'
 import { Typewriter } from './Typewriter'
 import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors'
+import { cn } from '@/lib/utils'
 
 // Единый "цвет внимания" ("смотри сюда"/"важно") для всех разборов по
 // шагам — оранжевый из «Палитры ggege» (см. CLAUDE.md), используется и
@@ -63,6 +64,24 @@ export const pickWalkthroughNextLabel = (defaultLabel: string, chance: number = 
     }
     return defaultLabel;
 };
+
+// Кнопка "Дальше"/"Готово" разборов по шагам — по прямой просьбе
+// пользователя (2026-09-18, "не очень похожа на кнопку") приведена к
+// ТОЧНО ТОЙ ЖЕ 3D-псевдо-кнопке, что уже использует общая нижняя кнопка
+// тренажёра (components/trainer-question.tsx, getButtonColor/style —
+// boxShadow-"ступенька" + active:translate-y-1, а не border-b-4), с теми
+// же цветами (light-green #A1D151/тёмная тень #876E4A когда активна,
+// нейтральный #3A464E/#1A2A3A пока задизейблена) — единый визуальный
+// язык вместо своих произвольных цветов на каждый разбор. w-full/flex-1
+// (не max-w-xs, как было раньше) — растягивается на всю ширину контента,
+// а не остаётся узкой "таблеткой" по центру.
+export const walkthroughButtonClass = (enabled: boolean) => cn(
+    'flex-1 py-3 rounded-lg font-bold text-lg transition-all duration-200 active:translate-y-1',
+    enabled ? 'bg-[#A1D151] text-[#151F24] cursor-pointer' : 'bg-[#3A464E] text-[#F2F7FB] cursor-not-allowed opacity-90',
+);
+export const walkthroughButtonStyle = (enabled: boolean): { boxShadow: string } => ({
+    boxShadow: enabled ? '0 4px 0 #876E4A' : '0 4px 0 #1A2A3A',
+});
 
 // Похвала за верный ответ в тренировочных заданиях разбора — по прямой
 // просьбе пользователя вместо всегда одинакового "Верно!" — живые
