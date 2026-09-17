@@ -158,6 +158,13 @@ export type VietaData = {
     options: number[];
     correctRoots: [number, number];
     quadratic?: { a: number; b: number; c: number };
+    // Подготовительный режим (первый, самый простой урок темы) — по
+    // прямой просьбе пользователя: вместо ДВУХ уравнений сразу показываем
+    // только ОДНО ("x1+x2=S" или "x1·x2=P"), готовим к полной задаче.
+    // product/sum при этом всё равно посчитаны честно от correctRoots
+    // (см. verify() в seedVietaTrainer.ts) — просто не оба показываются.
+    // undefined — обычный режим "оба равенства сразу" (как раньше).
+    mode?: 'sum' | 'product';
 };
 
 export type QuestionType = {

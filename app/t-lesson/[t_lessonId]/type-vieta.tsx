@@ -260,26 +260,35 @@ export const TypeVieta = ({ question, onOptionSelected, isAnswerChecked }: Props
         )
     }
 
+    // Подготовительный режим — только ОДНО уравнение (см. VietaData.mode
+    // в page.tsx). undefined (обычный режим) — показываем оба, как раньше.
+    const showProduct = data.mode !== 'sum'
+    const showSum = data.mode !== 'product'
+
     return (
         <div className="w-full max-w-md mx-auto flex flex-col items-center gap-10 mt-6">
             {/* Уравнения — x1/x2 настоящие кнопки прямо внутри, операторы и
                 итоговое число справа — обычный текст (не LaTeX, тут нет ни
                 одной формульной конструкции, которая бы его требовала). */}
             <div className="flex flex-col items-center gap-5 text-2xl md:text-3xl font-bold text-[#F2F7FB]">
-                <div className="flex items-center gap-3">
-                    <SlotButton slot="x1" val={values.x1} isActive={activeSlot === 'x1'} checkedColor={eqColor(productOk)} isAnswerChecked={isAnswerChecked} onClick={handleSlotClick} />
-                    <span>·</span>
-                    <SlotButton slot="x2" val={values.x2} isActive={activeSlot === 'x2'} checkedColor={eqColor(productOk)} isAnswerChecked={isAnswerChecked} onClick={handleSlotClick} />
-                    <span>=</span>
-                    <span style={{ color: eqColor(productOk) ?? undefined }}>{fmtPlain(data.product)}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                    <SlotButton slot="x1" val={values.x1} isActive={activeSlot === 'x1'} checkedColor={eqColor(sumOk)} isAnswerChecked={isAnswerChecked} onClick={handleSlotClick} />
-                    <span>+</span>
-                    <SlotButton slot="x2" val={values.x2} isActive={activeSlot === 'x2'} checkedColor={eqColor(sumOk)} isAnswerChecked={isAnswerChecked} onClick={handleSlotClick} />
-                    <span>=</span>
-                    <span style={{ color: eqColor(sumOk) ?? undefined }}>{fmtPlain(data.sum)}</span>
-                </div>
+                {showProduct && (
+                    <div className="flex items-center gap-3">
+                        <SlotButton slot="x1" val={values.x1} isActive={activeSlot === 'x1'} checkedColor={eqColor(productOk)} isAnswerChecked={isAnswerChecked} onClick={handleSlotClick} />
+                        <span>·</span>
+                        <SlotButton slot="x2" val={values.x2} isActive={activeSlot === 'x2'} checkedColor={eqColor(productOk)} isAnswerChecked={isAnswerChecked} onClick={handleSlotClick} />
+                        <span>=</span>
+                        <span style={{ color: eqColor(productOk) ?? undefined }}>{fmtPlain(data.product)}</span>
+                    </div>
+                )}
+                {showSum && (
+                    <div className="flex items-center gap-3">
+                        <SlotButton slot="x1" val={values.x1} isActive={activeSlot === 'x1'} checkedColor={eqColor(sumOk)} isAnswerChecked={isAnswerChecked} onClick={handleSlotClick} />
+                        <span>+</span>
+                        <SlotButton slot="x2" val={values.x2} isActive={activeSlot === 'x2'} checkedColor={eqColor(sumOk)} isAnswerChecked={isAnswerChecked} onClick={handleSlotClick} />
+                        <span>=</span>
+                        <span style={{ color: eqColor(sumOk) ?? undefined }}>{fmtPlain(data.sum)}</span>
+                    </div>
+                )}
             </div>
 
             {/* Числа — цвет показывает, в какой слот число уже попало;

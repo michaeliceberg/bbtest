@@ -3,7 +3,10 @@
 // Новый тип VIETA (тренажёр теоремы Виета, см. type-vieta.tsx) — по
 // прямой просьбе пользователя: "подбери два числа так, чтобы x1·x2 = P,
 // x1+x2 = S", прогрессия сложности —
-//   1. целые положительные корни,
+//   0. подготовительный этап — ТОЛЬКО ОДНО равенство (сумма ИЛИ
+//      произведение), готовим к тому, что дальше нужно будет держать в
+//      голове оба сразу (см. VietaData.mode в page.tsx / type-vieta.tsx).
+//   1. целые положительные корни (оба равенства сразу),
 //   2. отрицательные/смешанные знаки,
 //   3. из полного квадратного уравнения (x²+bx+c=0 → a/b/c → формулы
 //      Виета → числа, см. вводный экран в type-vieta.tsx),
@@ -16,7 +19,12 @@
 // Правильность НЕ вбивается руками — каждая пара корней проверяется
 // программно (product===r1*r2, sum===r1+r2, а для квадратных — ещё и
 // product===c, sum===-b), скрипт падает с ошибкой при малейшем
-// расхождении, до того как это попадёт в БД.
+// расхождении, до того как это попадёт в БД. Для подготовительного этапа
+// (одно равенство) — отдельная проверка verifySingleUnique(): среди 5
+// показанных чисел ДОЛЖНА находиться ровно ОДНА пара, дающая нужную
+// сумму/произведение — иначе у задачи был бы более одного формально
+// верного ответа, а сравнение в TQUIZ.tsx идёт строго с конкретной
+// парой (см. correctAnswer в page.tsx).
 
 import db from "@/db/drizzle"
 import { eq } from "drizzle-orm"
@@ -27,9 +35,11 @@ const UNIT_TITLE = "Теорема Виета"
 
 const INSTRUCTION = "Подбери два числа так, чтобы выполнялись оба равенства"
 const INSTRUCTION_QUADRATIC = "Реши уравнение через теорему Виета — подбери корни"
+const INSTRUCTION_SINGLE = "Подбери два числа так, чтобы выполнялось равенство"
 
 type Quadratic = { a: number; b: number; c: number }
 type Item = { r1: number; r2: number; distractorPool: number[]; quadratic?: Quadratic }
+type SingleItem = { r1: number; r2: number; distractorPool: number[]; op: 'sum' | 'product' }
 
 function verify(item: Item) {
     const { r1, r2, quadratic } = item
@@ -81,6 +91,7 @@ type Challenge = {
     options: number[]
     correctRoots: [number, number]
     quadratic?: Quadratic
+    mode?: 'sum' | 'product'
 }
 
 function buildChallenge(item: Item): Challenge {
@@ -96,6 +107,55 @@ function buildChallenge(item: Item): Challenge {
         quadratic: item.quadratic,
     }
 }
+
+// Среди options должна находиться РОВНО одна пара, дающая нужную
+// сумму/произведение (сама r1/r2 в любом порядке — остальное честные
+// отвлекающие числа) — иначе у подготовительной задачи "одно равенство"
+// формально было бы больше одного верного ответа.
+function verifySingleUnique(op: 'sum' | 'product', target: number, options: number[]) {
+    let matches = 0
+    for (let i = 0; i < options.length; i++) {
+        for (let j = i + 1; j < options.length; j++) {
+            const val = op === 'sum' ? options[i] + options[j] : options[i] * options[j]
+            if (val === target) matches++
+        }
+    }
+    if (matches !== 1) {
+        throw new Error(`verifySingleUnique: ожидалась ровно 1 подходящая пара для ${op}=${target}, найдено ${matches} среди [${options}]`)
+    }
+}
+
+function buildSingleChallenge(item: SingleItem): Challenge {
+    const product = item.r1 * item.r2
+    const sum = item.r1 + item.r2
+    const target = item.op === 'sum' ? sum : product
+    const distractors = pickDistractors([item.r1, item.r2], item.distractorPool, 3)
+    const options = shuffle([item.r1, item.r2, ...distractors])
+    verifySingleUnique(item.op, target, options)
+    return {
+        question: INSTRUCTION_SINGLE,
+        product,
+        sum,
+        options,
+        correctRoots: [item.r1, item.r2],
+        mode: item.op,
+    }
+}
+
+// ===== Этап 0 (подготовительный) — только ОДНО равенство =====
+// distractorPool подобран вручную так, чтобы среди 5 итоговых чисел
+// НИКАКАЯ другая пара не давала ту же сумму/произведение, кроме r1/r2
+// (проверяется программно — verifySingleUnique выше).
+const SUM_SINGLE_ITEMS: SingleItem[] = [
+    { r1: 5, r2: 7, distractorPool: [3, 4, 6], op: 'sum' },      // x1+x2=12
+    { r1: 4, r2: 9, distractorPool: [2, 3, 6], op: 'sum' },      // x1+x2=13
+    { r1: 6, r2: 8, distractorPool: [2, 3, 5], op: 'sum' },      // x1+x2=14
+]
+const PRODUCT_SINGLE_ITEMS: SingleItem[] = [
+    { r1: 2, r2: 7, distractorPool: [3, 4, 5], op: 'product' },  // x1*x2=14
+    { r1: 3, r2: 6, distractorPool: [2, 4, 5], op: 'product' },  // x1*x2=18
+    { r1: 4, r2: 5, distractorPool: [2, 3, 7], op: 'product' },  // x1*x2=20
+]
 
 // ===== Этап 1 — целые положительные корни =====
 const STAGE1_ITEMS: Item[] = [
@@ -150,6 +210,17 @@ type LessonSpec = { title: string; challenges: Challenge[] }
 
 function buildLessons(): LessonSpec[] {
     const lessons: LessonSpec[] = []
+
+    // Подготовительный урок — ставим ПЕРВЫМ (order присваивается по
+    // позиции в этом массиве ниже, в main()) — все остальные уроки темы
+    // из-за этого автоматически сдвигаются на +1, без ручной правки order.
+    lessons.push({
+        title: "Подбери числа — одно равенство",
+        challenges: [
+            ...SUM_SINGLE_ITEMS.map(buildSingleChallenge),
+            ...PRODUCT_SINGLE_ITEMS.map(buildSingleChallenge),
+        ],
+    })
 
     chunkBalanced(STAGE1_ITEMS.map(buildChallenge), 3).forEach((group, i) => {
         lessons.push({ title: `Подбери корни — целые положительные ${i + 1}`, challenges: group })
@@ -222,6 +293,7 @@ async function main() {
                     options: ch.options,
                     correctRoots: ch.correctRoots,
                     quadratic: ch.quadratic,
+                    mode: ch.mode,
                 }),
             })
         }
