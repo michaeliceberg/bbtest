@@ -758,7 +758,10 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                             {/* Подпись, которую пользователь САМ выбрал для этой
                                 точки — единственное исключение из "точки без
                                 подписей", это его собственный ответ, а не
-                                подсказка. */}
+                                подсказка. Оформлена "стикером" (тот же приём, что
+                                и LetterSticker в RightTriangleRefDiagram.tsx —
+                                скруглённая цветная плашка с рамкой того же цвета,
+                                не просто цветной текст). */}
                             {isTarget && assignedLabel && (
                                 <motion.span
                                     // key={assignedLabel} — при КАЖДОЙ смене выбранного
@@ -766,31 +769,32 @@ export const TypeUnitCircle = ({ question, onOptionSelected, isAnswerChecked }: 
                                     // пересоздаёт узел и заново играет entrance-bounce —
                                     // по прямой просьбе пользователя, чтобы смена угла у
                                     // радиокнопки была явно заметна, не только текстом.
+                                    // Низкий damping — заметный пружинный перехлёст
+                                    // ("bounce"), по прямой просьбе пользователя, не
+                                    // просто плавное появление.
                                     key={assignedLabel}
-                                    initial={{ scale: 0.4, opacity: 0 }}
+                                    initial={{ scale: 0, opacity: 0 }}
                                     animate={{ scale: 1, opacity: 1 }}
-                                    transition={{ type: 'spring', stiffness: 420, damping: 18 }}
+                                    transition={{ type: 'spring', stiffness: 300, damping: 12 }}
                                     className={cn(
-                                        // Крупнее и жирнее (было text-[10px] sm:text-xs) — по
-                                        // прямой просьбе пользователя: это собственный ответ
-                                        // ученика, дублируемый прямо на окружности, должен
-                                        // читаться с первого взгляда, не мельче самих точек.
-                                        //
-                                        // Сторона роста подписи зависит от того, в какой
-                                        // половине круга точка (parseFloat(left) относительно
-                                        // CX) — единый сдвиг "всегда влево" (первая версия,
-                                        // 2026-09-09) убирал наложение на дугу СПРАВА, но
-                                        // создавал его же СЛЕВА (там дуга загибается обратно к
-                                        // центру ближе к горизонтали, и подпись, растущая ещё
-                                        // левее и ниже, попадала на неё). Теперь: у точек справа
-                                        // от центра — растёт влево (right-1/2, как раньше), у
-                                        // точек слева — вправо (left-1/2, зеркально) — то есть
-                                        // всегда К ЦЕНТРУ круга по горизонтали, где дуга дальше.
-                                        parseFloat(left) >= CX ? 'absolute right-1/2 top-full mt-1' : 'absolute left-1/2 top-full mt-1',
-                                        'whitespace-nowrap text-sm sm:text-base font-black px-1 rounded',
+                                        // Направление — ОТ точки К КРАЮ круга (не к центру,
+                                        // как раньше): в левой половине плашка стоит ЛЕВЕЕ
+                                        // точки, в правой — ПРАВЕЕ. Раньше рост был К ЦЕНТРУ
+                                        // (чтобы не задевать дугу окружности на краях), но
+                                        // именно у нижних точек (см. скриншот пользователя)
+                                        // это сталкивало подпись с риской-значением на оси
+                                        // (guideValueLabel выше) — по прямой просьбе
+                                        // пользователя направление развёрнуто. Вертикально —
+                                        // на высоте самой точки (top-1/2 + -translate-y-1/2),
+                                        // не ниже неё, как раньше (top-full).
+                                        'absolute top-1/2 -translate-y-1/2',
+                                        parseFloat(left) >= CX ? 'left-full ml-1.5' : 'right-full mr-1.5',
+                                        'whitespace-nowrap text-sm sm:text-base font-black px-1.5 py-0.5 rounded-lg border-2',
                                         isAnswerChecked
-                                            ? isThisPointCorrect ? 'text-[#A1D151]' : 'text-[#DC605B]'
-                                            : 'text-[#4A90D9]',
+                                            ? isThisPointCorrect
+                                                ? 'border-[#A1D151] bg-[#A1D151]/15 text-[#A1D151]'
+                                                : 'border-[#DC605B] bg-[#DC605B]/15 text-[#DC605B]'
+                                            : 'border-[#4A90D9] bg-[#4A90D9]/15 text-[#4A90D9]',
                                     )}
                                 >
                                     <Latex>{`$${assignedLabel}$`}</Latex>
