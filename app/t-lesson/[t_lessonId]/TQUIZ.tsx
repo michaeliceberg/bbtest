@@ -219,6 +219,14 @@ export default function TQuiz({
   const [showLessonCaseReel, setShowLessonCaseReel] = useState(false)
   const [lessonCaseTier, setLessonCaseTier] = useState<LessonCaseTier | null>(null)
   const [wonLessonCaseReward, setWonLessonCaseReward] = useState<CaseReward | null>(null)
+  // "Ударный час" (actions/roll-lesson-case.ts) — заполняется, ТОЛЬКО
+  // если этот кейс — гарантированная награда за рубеж цепочки (3/4/5
+  // уроков подряд без остановки, ≤2 ошибок суммарно), не обычный
+  // случайный ролл. chainHint — состояние цепочки ПОСЛЕ этого урока
+  // независимо от того, выпал ли кейс вообще — для подсказки "ещё N
+  // уроков и получишь mythic" на финальном экране.
+  const [chainBonusLength, setChainBonusLength] = useState<number | null>(null)
+  const [chainHint, setChainHint] = useState<{ count: number; alive: boolean } | null>(null)
   const [answeredQuestions, setAnsweredQuestions] = useState(0)
   const { width, height } = useWindowSize()
 
@@ -234,14 +242,21 @@ export default function TQuiz({
       setShowCaseReel(true)
       return
     }
-    const tier = await rollLessonCaseTier()
-    if (tier) {
-      setLessonCaseTier(tier)
+    // Ошибки основного прохода — scoreRef (не state score, см. комментарий
+    // у самого scoreRef выше: goToNextQuestion читает его же по той же
+    // причине, closure может быть устаревшим) против полного исходного
+    // набора БЕЗ горячего вопроса (scorableCount, см. верх файла).
+    const mistakes = Math.max(0, scorableCount(questions1) - scoreRef.current)
+    const result = await rollLessonCaseTier(mistakes)
+    setChainHint({ count: result.chainCount, alive: result.chainAlive })
+    if (result.tier) {
+      setLessonCaseTier(result.tier)
+      setChainBonusLength(result.chainBonus?.length ?? null)
       setShowLessonCaseReel(true)
     } else {
       setQuizCompleted(true)
     }
-  }, [isChestStage, isMegaChestStage])
+  }, [isChestStage, isMegaChestStage, questions1])
 
   // Точка "первого прихода" на завершение урока (после основного прохода
   // ИЛИ после успешной работы над ошибками, независимо от итогового
@@ -816,7 +831,7 @@ export default function TQuiz({
         isMega={lessonCaseTier !== 'common'}
         pool={getLessonCasePool(lessonCaseTier)}
         spinAction={() => openLessonCase(lessonCaseTier)}
-        title={LESSON_CASE_TIER_TITLES[lessonCaseTier]}
+        title={chainBonusLength ? `🔥 Серия x${chainBonusLength} — Мифический кейс!` : LESSON_CASE_TIER_TITLES[lessonCaseTier]}
         onDone={({ reward }) => {
           setWonLessonCaseReward(reward)
           setShowLessonCaseReel(false)
@@ -853,7 +868,20 @@ export default function TQuiz({
           <CaseWonBanner mega={!!isMegaChestStage} reward={wonCaseReward} />
         )}
         {wonLessonCaseReward && lessonCaseTier && (
-          <CaseWonBanner mega={lessonCaseTier !== 'common'} reward={wonLessonCaseReward} label={LESSON_CASE_TIER_TITLES[lessonCaseTier]} />
+          <CaseWonBanner
+            mega={lessonCaseTier !== 'common'}
+            reward={wonLessonCaseReward}
+            label={chainBonusLength ? `🔥 Серия x${chainBonusLength}` : LESSON_CASE_TIER_TITLES[lessonCaseTier]}
+          />
+        )}
+        {/* "Ударный час" ещё не дошёл до рубежа — подсказка, сколько
+            уроков подряд БЕЗ ошибок осталось до гарантированного mythic
+            (см. actions/roll-lesson-case.ts). Не показывается, если этот
+            же урок УЖЕ дал бонус цепочки (баннер выше это уже сказал). */}
+        {!chainBonusLength && chainHint && chainHint.alive && chainHint.count > 0 && chainHint.count < 3 && (
+          <p className="text-center text-xs font-semibold text-violet-300 -mt-1 mb-2">
+            🔥 Серия x{chainHint.count} без остановки — ещё {3 - chainHint.count} {declensionRu(3 - chainHint.count, 'урок', 'урока', 'уроков')} без ошибок и получишь гарантированный мифический кейс!
+          </p>
         )}
         <TrainerLessonCompleteScreen
           lottieData={randomStreakCharacterLottie}

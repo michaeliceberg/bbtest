@@ -108,6 +108,23 @@ export const userProgress = pgTable('user_progress', {
 			}]
 		}
 	]),
+	// "Ударный час" — цепочка подряд завершённых уроков тренажёра БЕЗ
+	// остановки (см. actions/roll-lesson-case.ts, CHAIN_WINDOW_MS) и с
+	// ограниченным числом ошибок суммарно по всей цепочке — по прямой
+	// просьбе пользователя: дошёл до 3/4/5 уроков подряд с ≤2 ошибками —
+	// гарантированный mythic-кейс на каждом из этих рубежей. Сбрасывается
+	// (count=1, mistakes=текущий урок), если пауза между завершениями
+	// уроков превышает окно, ИЛИ накопленные ошибки уже не позволяют
+	// пройти следующий рубеж (мistakes только растут, специальный сброс
+	// по превышению не нужен — недостижимый рубеж просто никогда не
+	// сработает, см. комментарий в actions/roll-lesson-case.ts).
+	trainerChainCount: integer('trainer_chain_count').notNull().default(0),
+	trainerChainMistakes: integer('trainer_chain_mistakes').notNull().default(0),
+	trainerChainLastAt: timestamp('trainer_chain_last_at'),
+	// Самый высокий рубеж (3/4/5), уже выдавший гарантированный mythic
+	// ВНУТРИ текущей цепочки — не даёт повторно награждать за тот же
+	// рубеж, если пользователь продолжает цепочку дальше без начала новой.
+	trainerChainMilestone: integer('trainer_chain_milestone').notNull().default(0),
 });
 
 // ===== USER COURSE PROGRESS (прогресс по конкретному курсу) =====
