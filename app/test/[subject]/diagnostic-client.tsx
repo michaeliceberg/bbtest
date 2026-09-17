@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { ScrambleText } from '@/components/ScrambleText';
 import { AnimatedOptionButton } from '@/components/AnimatedOptionButton';
 import { TrainerMascot } from '@/components/TrainerMascot';
+import { IOSVerticalSlider } from '@/components/IOSVerticalSlider';
 import { CaseReel } from '@/components/CaseReel';
 import { startDiagnosticTelegramLead, getDiagnosticLeadStatus } from '@/actions/diagnostic';
 import { openDiagnosticCase } from '@/actions/open-diagnostic-case';
@@ -38,7 +39,14 @@ import dynamic from 'next/dynamic';
 const LoginDialog = dynamic(() => import('@/components/login-dialog').then((m) => ({ default: m.LoginDialog })), { ssr: false });
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
 
-type Phase = 'intro' | 'quiz' | 'result';
+// 'goal' — новый необязательный экран между вопросами и результатом:
+// "На какой балл планируешь сдать ЕГЭ?" (слайдер 0-100, не влияет на
+// score/слабую тему, просто доп. контекст для лида).
+type Phase = 'intro' | 'quiz' | 'goal' | 'result';
+
+// Смайлик-реакция на текущее целевое значение слайдера — по прямой
+// просьбе пользователя: <30 грустный, <80 повеселее, 80+ довольный.
+const targetScoreEmoji = (score: number) => (score < 30 ? '😟' : score < 80 ? '🙂' : '😄');
 
 type AnsweredQuestion = {
 	question: DiagnosticQuestion;
@@ -81,6 +89,10 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 	const [selected, setSelected] = useState<string | null>(null);
 	const [checked, setChecked] = useState(false);
 	const [answered, setAnswered] = useState<AnsweredQuestion[]>([]);
+	// Целевой балл ЕГЭ (см. Phase 'goal' выше) — 60 стартовым значением
+	// (середина шкалы), не 0: пустой слайдер выглядел бы "грустным" ещё до
+	// того, как пользователь вообще успел его тронуть.
+	const [targetScore, setTargetScore] = useState(60);
 
 	// Сбор лида — раньше номер телефона, теперь "вступи в Telegram-бота"
 	// (один тап, сразу верифицируемо через webhook, см. обсуждение с
@@ -119,7 +131,7 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 				setSelected(null);
 				setChecked(false);
 			} else {
-				setPhase('result');
+				setPhase('goal');
 			}
 		}, 900);
 	};
@@ -213,6 +225,7 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 			score,
 			totalQuestions: questions.length,
 			weakUnitTitle: weakTopic?.title ?? null,
+			targetScore,
 			utmSource: utm.source,
 			utmMedium: utm.medium,
 			utmCampaign: utm.campaign,
@@ -320,6 +333,30 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 								/>
 							))}
 						</div>
+					</div>
+				)}
+
+				{phase === 'goal' && (
+					<div className="flex-1 flex flex-col items-center justify-center gap-8 text-center">
+						<div>
+							<h2 className="text-xl font-extrabold mb-1">На какой балл планируешь сдать ЕГЭ?</h2>
+							<p className="text-sm text-[#9AA7B0]">Потяни бегунок вверх или вниз</p>
+						</div>
+
+						<div className="flex items-center gap-6">
+							<IOSVerticalSlider value={targetScore} onChange={setTargetScore} />
+							<span className="text-6xl leading-none">{targetScoreEmoji(targetScore)}</span>
+						</div>
+
+						<Button
+							variant="primary"
+							size="lg"
+							className="w-full h-14 flex items-center justify-center gap-2"
+							onClick={() => setPhase('result')}
+						>
+							Продолжить
+							<ChevronRight className="h-4 w-4" />
+						</Button>
 					</div>
 				)}
 

@@ -64,6 +64,9 @@ type StartTelegramLeadInput = {
 	score: number;
 	totalQuestions: number;
 	weakUnitTitle: string | null;
+	// "На какой балл планируешь сдать ЕГЭ?" — последний вопрос теста
+	// (не влияет на score выше, просто доп. контекст для лида).
+	targetScore?: number | null;
 	utmSource?: string | null;
 	utmMedium?: string | null;
 	utmCampaign?: string | null;
@@ -83,6 +86,7 @@ export const startDiagnosticTelegramLead = async (input: StartTelegramLeadInput)
 		score: input.score,
 		totalQuestions: input.totalQuestions,
 		weakUnitTitle: input.weakUnitTitle,
+		targetScore: input.targetScore ?? null,
 		utmSource: input.utmSource ?? null,
 		utmMedium: input.utmMedium ?? null,
 		utmCampaign: input.utmCampaign ?? null,

@@ -987,6 +987,10 @@ export const diagnosticLeads = pgTable('diagnostic_leads', {
 	telegramFirstName: text('telegram_first_name'),
 	telegramLastName: text('telegram_last_name'),
 	telegramUsername: text('telegram_username'),
+	// "На какой балл планируешь сдать ЕГЭ?" — последний, необязательный
+	// вопрос теста (не влияет на score/weakUnit), см. diagnostic-client.tsx.
+	// Nullable — старые лиды, засеянные до этой фичи, его не имеют.
+	targetScore: integer('target_score'),
 	createdAt: timestamp('created_at').defaultNow(),
 });
 

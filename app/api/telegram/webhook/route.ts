@@ -198,6 +198,7 @@ async function performDiagnosticBind(
         `Предмет: ${DIAGNOSTIC_SUBJECT_LABEL[lead.subject as DiagnosticSubject]}\n` +
         `Результат: ${lead.score}/${lead.totalQuestions}\n` +
         (lead.weakUnitTitle ? `Слабая тема: ${lead.weakUnitTitle}\n` : '') +
+        (lead.targetScore != null ? `Цель на ЕГЭ: ${lead.targetScore} баллов\n` : '') +
         (utmLine ? `Источник: ${utmLine}\n` : '')
     );
 
