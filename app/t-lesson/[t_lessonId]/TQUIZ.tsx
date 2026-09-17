@@ -79,8 +79,11 @@ const TRAINER_LESSON_TRAINING_PTS = 50
 // Мем-модалка (картинка+звук, как RightAnswerModal/WrongAnswerModal в
 // задачнике, см. components/modals/trainer-meme-modal.tsx) — не на КАЖДЫЙ
 // ответ (быстро надоело бы при плотном потоке вопросов тренажёра), а с
-// этой вероятностью на верный/неверный ответ.
-const MEME_MODAL_CHANCE = 0.4
+// этой вероятностью на верный/неверный ответ. Раздельные шансы (по
+// прямой просьбе пользователя) — на неверный ответ выше, чтобы смягчить
+// неудачу с юмором чаще, чем "перебивать" уже приятный момент верного.
+const RIGHT_MEME_MODAL_CHANCE = 0.2
+const WRONG_MEME_MODAL_CHANCE = 0.5
 
 const startButton = ['Погнали!', 'Гоу!', 'Старт!', 'Поехали!', 'Поплыли!']
 
@@ -546,7 +549,7 @@ export default function TQuiz({
           playCorrectSound()
           setIsRightPrevious(true)
         }
-        if (Math.random() < MEME_MODAL_CHANCE) openRightMeme()
+        if (Math.random() < RIGHT_MEME_MODAL_CHANCE) openRightMeme()
         setRandomEmotionLottie(getRandomLottie(LOTTIE_EMOTION_RIGHT_LIST))
 
         setStreak(prev => {
@@ -599,7 +602,7 @@ export default function TQuiz({
         }
       } else {
         playIncorrectSound()
-        if (Math.random() < MEME_MODAL_CHANCE) openWrongMeme()
+        if (Math.random() < WRONG_MEME_MODAL_CHANCE) openWrongMeme()
         setStreak(0)
 
         // Вопрос уходит в очередь "работы над ошибками" ВСЕГДА (и в

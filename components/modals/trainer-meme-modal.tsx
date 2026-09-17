@@ -3,8 +3,9 @@
 // Тот же принцип, что у RightAnswerModal/WrongAnswerModal в задачнике —
 // картинка+аудио, закрывается сама по завершении звука — но без очков/
 // Lottie-монет/сердечка: тренажёр награждает по-своему (стрики/кейсы),
-// здесь только эмоция. Открывается с вероятностью MEME_MODAL_CHANCE на
-// правильный/неправильный ответ (см. TQUIZ.tsx), не на каждый ответ.
+// здесь только эмоция. Открывается с вероятностью RIGHT_MEME_MODAL_CHANCE/
+// WRONG_MEME_MODAL_CHANCE (см. TQUIZ.tsx), не на каждый ответ — раздельные
+// шансы, у неверного ответа выше.
 
 'use client'
 
@@ -28,8 +29,6 @@ const RIGHT_MEME_NAMES = [
     'genialno',
     'kruto',
     'missionpassed',
-    'somnitelno',
-    'ti-nedoocenivaeshmoiumosh',
     'umeete-mogete',
     'vot-setogomomenta',
 ]
