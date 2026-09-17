@@ -22,6 +22,7 @@ const AchievementToastProvider = dynamic(() => import('@/components/achievement-
 const StreakCelebrationToastProvider = dynamic(() => import('@/components/streak-celebration-toast-provider').then(mod => ({ default: mod.StreakCelebrationToastProvider })), { ssr: false });
 const LevelUpModalProvider = dynamic(() => import('@/components/level-up-modal-provider').then(mod => ({ default: mod.LevelUpModalProvider })), { ssr: false });
 const QuestCompleteModalProvider = dynamic(() => import('@/components/quest-complete-modal-provider').then(mod => ({ default: mod.QuestCompleteModalProvider })), { ssr: false });
+const TrainerMemeModal = dynamic(() => import('@/components/modals/trainer-meme-modal').then(mod => ({ default: mod.TrainerMemeModal })), { ssr: false });
 
 // variable — даёт стабильную CSS-переменную --font-nunito (в отличие от
 // font.className, чьё имя класса — сгенерированный хэш, разный между
@@ -57,6 +58,7 @@ export default function RootLayout({
 				<StreakCelebrationToastProvider />
 				<LevelUpModalProvider />
 				<QuestCompleteModalProvider />
+				<TrainerMemeModal />
 			</body>
 		</html>
 	);
