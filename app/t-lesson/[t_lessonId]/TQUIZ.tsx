@@ -39,7 +39,6 @@ import { useAchievementStore } from "@/store/use-achievement-store"
 import { useStreakCelebrationStore } from "@/store/use-streak-celebration-store"
 import { useLevelUpStore } from "@/store/use-level-up-store"
 import { useQuestCompleteStore } from "@/store/use-quest-complete-store"
-import { useTrainerMemeModal } from "@/store/use-trainer-meme-modal"
 import { xpForAmount } from "@/lib/xp"
 import { TrainerLessonCompleteScreen } from "@/components/trainer-lesson-complete-screen"
 
@@ -76,14 +75,12 @@ const STREAK_MILESTONES = [3, 7] as const
 // уровень при типичном XP_PER_LEVEL=100.
 const TRAINER_LESSON_TRAINING_PTS = 50
 
-// Мем-модалка (картинка+звук, как RightAnswerModal/WrongAnswerModal в
-// задачнике, см. components/modals/trainer-meme-modal.tsx) — не на КАЖДЫЙ
-// ответ (быстро надоело бы при плотном потоке вопросов тренажёра), а с
-// этой вероятностью на верный/неверный ответ. Раздельные шансы (по
-// прямой просьбе пользователя) — на неверный ответ выше, чтобы смягчить
-// неудачу с юмором чаще, чем "перебивать" уже приятный момент верного.
-const RIGHT_MEME_MODAL_CHANCE = 0.2
-const WRONG_MEME_MODAL_CHANCE = 0.5
+// Мем-модалка (картинка+звук на верный/неверный ответ,
+// components/modals/trainer-meme-modal.tsx) — по прямой просьбе
+// пользователя ОТКЛЮЧЕНА (отвлекает во время решения тренажёра). Сам
+// компонент/стор/звуки не удалены — тот же принцип, что и у MEMORY
+// (отключённого типа задания) в этом проекте: просто больше не
+// вызывается и не монтируется (см. app/layout.tsx).
 
 const startButton = ['Погнали!', 'Гоу!', 'Старт!', 'Поехали!', 'Поплыли!']
 
@@ -162,8 +159,6 @@ export default function TQuiz({
   const triggerDailyStreakToast = useStreakCelebrationStore((state) => state.showStreakCelebration)
   const showLevelUp = useLevelUpStore((state) => state.showLevelUp)
   const showQuestComplete = useQuestCompleteStore((state) => state.showQuestComplete)
-  const openRightMeme = useTrainerMemeModal((state) => state.openRight)
-  const openWrongMeme = useTrainerMemeModal((state) => state.openWrong)
 
   const [streak, setStreak] = useState(0)
   const [effect, setEffect] = useState<StreakEffect | null>(null)
@@ -564,7 +559,6 @@ export default function TQuiz({
           playCorrectSound()
           setIsRightPrevious(true)
         }
-        if (Math.random() < RIGHT_MEME_MODAL_CHANCE) openRightMeme()
         setRandomEmotionLottie(getRandomLottie(LOTTIE_EMOTION_RIGHT_LIST))
 
         setStreak(prev => {
@@ -617,7 +611,6 @@ export default function TQuiz({
         }
       } else {
         playIncorrectSound()
-        if (Math.random() < WRONG_MEME_MODAL_CHANCE) openWrongMeme()
         setStreak(0)
 
         // Вопрос уходит в очередь "работы над ошибками" ВСЕГДА (и в
@@ -669,7 +662,6 @@ export default function TQuiz({
   }, [
     isProcessing, quizCompleted, currentQuestionIndex, questions,
     playCorrectSound, playIncorrectSound, sleep, goToNextQuestion,
-    openRightMeme, openWrongMeme,
   ])
 
   const handleTimeout = useCallback(async () => {
