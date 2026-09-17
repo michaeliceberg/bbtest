@@ -35,7 +35,7 @@ import {
     TypedKeyPhraseLine, DiagramBlock, useStickToBottom,
     pickWalkthroughNextLabel, CORRECT_FEEDBACK_PHRASES,
     ACTIVE_COLOR, WRONG_COLOR, CORRECT_COLOR, ATTENTION_COLOR,
-    walkthroughButtonClass, walkthroughButtonStyle,
+    walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -458,6 +458,11 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
     const [trialIndex, setTrialIndex] = useState(0)
     const [trialAnswers, setTrialAnswers] = useState<(number | null)[]>(Array(TRIAL_COUNT).fill(null))
     const [checked, setChecked] = useState(false)
+    // Конфетти на финальный "Ответ: log₂15" (шаг 4 обучающей части) — по
+    // прямой просьбе пользователя, во ВСЕХ таких "локальных ответах"
+    // разбора (см. LocalAnswerConfetti). Отдельная конфетти на верный
+    // ответ ТРЕНИРОВОЧНОГО задания — см. handleOptionClick ниже.
+    const [showAnswerConfetti, setShowAnswerConfetti] = useState(false)
 
     // Контейнер шага 3 (аргументы 3/5) — нужен ArgumentsArrow, чтобы
     // измерить реальные позиции "+" и "·" внутри него (см. компонент выше).
@@ -588,11 +593,14 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                     </Fragment>
                 )}
 
-                {/* Шаг 4 — итог. */}
+                {/* Шаг 4 — итог. По прямой просьбе пользователя ВСЯ формула
+                    здесь больше НЕ перерисовывается заново (это уже
+                    показано в шаге 3 выше) — просто короткий "Ответ:
+                    log₂15", с конфетти в момент появления. */}
                 {step >= 4 && (
                     <Fragment key="step-4">
-                        <DiagramBlock><ExampleFormula baseHighlighted arg1Color={ARG_COLOR_X} arg2Color={ARG_COLOR_Y} showRightSide showProduct showResult /></DiagramBlock>
-                        <AnswerLine onSettled={() => setStepReady(true)} />
+                        <AnswerLine onSettled={() => { setStepReady(true); setShowAnswerConfetti(true) }} />
+                        {showAnswerConfetti && <LocalAnswerConfetti />}
                     </Fragment>
                 )}
 
@@ -648,6 +656,12 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                                     {answer === correctValue ? pickTrialFeedback(t) : `Неверно — правильный ответ ${correctValue} (${t.x}·${t.y}).`}
                                 </div>
                             )}
+                            {/* Конфетти на верный ответ ТРЕНИРОВОЧНОГО
+                                задания — только пока это ТЕКУЩЕЕ задание
+                                (isCurrent), поэтому естественно
+                                размонтируется, как только переходим к
+                                следующему (см. LocalAnswerConfetti). */}
+                            {isCurrent && isDone && answer === correctValue && <LocalAnswerConfetti />}
                         </div>
                     )
                 })}

@@ -16,6 +16,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import Latex from 'react-latex-next'
+import Confetti from 'react-confetti'
+import { useWindowSize } from 'react-use'
 import { HighlightWord } from './WalkthroughMarker'
 import { Typewriter } from './Typewriter'
 import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors'
@@ -83,10 +85,37 @@ export const walkthroughButtonStyle = (enabled: boolean): { boxShadow: string } 
     boxShadow: enabled ? '0 4px 0 #876E4A' : '0 4px 0 #1A2A3A',
 });
 
+// Конфетти на "локальный" верный ответ ВНУТРИ разбора по шагам — по
+// прямой просьбе пользователя, во ВСЕХ таких разборах (SINWALK, LOGWALK
+// и будущих): и на финальный итог обучающей части (например "Ответ:
+// log₂15"), и на каждый верный ответ тренировочного задания. Легче, чем
+// уже существующие Confetti в CaseReel.tsx/celebration.tsx (это частый,
+// повторяющийся эффект внутри ОДНОГО урока, не разовое празднование
+// завершения всего урока) — recycle=false (падает один раз и
+// останавливается, не зацикливается), умеренное numberOfPieces. Родитель
+// сам решает, когда монтировать/размонтировать (см. TypeSinWalk/
+// TypeLogWalk — обычно "пока текущий шаг/задание видно").
+export const LocalAnswerConfetti = () => {
+    const { width, height } = useWindowSize()
+    return (
+        <Confetti
+            width={width}
+            height={height}
+            recycle={false}
+            numberOfPieces={130}
+            gravity={0.25}
+            style={{ position: 'fixed', top: 0, left: 0, pointerEvents: 'none', zIndex: 60 }}
+        />
+    )
+}
+
 // Похвала за верный ответ в тренировочных заданиях разбора — по прямой
 // просьбе пользователя вместо всегда одинакового "Верно!" — живые
 // зумерские фразы-подбадривания. Гендерно-нейтральные (не "красавчик"/
-// "красавица" и т.п.) — пол пользователя не угадываем.
+// "красавица" и т.п.) — пол пользователя не угадываем. Список расширен
+// (2026-09-19, по прямой просьбе пользователя — "Бомба" повторялась
+// слишком часто) — больше вариантов снижает шанс подряд идущего повтора
+// одной и той же фразы на нескольких заданиях одного урока.
 export const CORRECT_FEEDBACK_PHRASES = [
     'Верно!',
     'Красава!',
@@ -98,6 +127,18 @@ export const CORRECT_FEEDBACK_PHRASES = [
     'В точку!',
     'Отпадно!',
     'Красота!',
+    'Шик!',
+    'Пушка!',
+    'Мощно!',
+    'Ништяк!',
+    'Круто!',
+    'Респект!',
+    'Шаришь!',
+    'Вот это да!',
+    'Сила!',
+    'Годнота!',
+    'На волне!',
+    'Всё по красоте!',
 ];
 
 // Тот же приём, что в type-insert.tsx (трейнер) — цвет пропуска задаётся

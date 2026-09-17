@@ -37,7 +37,7 @@ import {
     type AlphaVertex, type SideId,
 } from '@/components/geometry/RightTriangleDiagram'
 import { MARKER_COLOR, MARKER_COLOR_GREEN } from '@/components/geometry/WalkthroughMarker'
-import { TypedLine, TypedKeyPhraseLine, DiagramBlock, useStickToBottom, pickWalkthroughNextLabel, CORRECT_FEEDBACK_PHRASES, walkthroughButtonClass, walkthroughButtonStyle } from '@/components/geometry/WalkthroughLog'
+import { TypedLine, TypedKeyPhraseLine, DiagramBlock, useStickToBottom, pickWalkthroughNextLabel, CORRECT_FEEDBACK_PHRASES, walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti } from '@/components/geometry/WalkthroughLog'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 
 // Пауза ПОСЛЕ клика "Дальше", ДО начала новой анимации следующей сцены
@@ -397,6 +397,12 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
                                     {answer === correctSide ? pickTrialFeedback(cfg) : 'Не тот катет — верная сторона подсвечена зелёным.'}
                                 </div>
                             )}
+                            {/* Конфетти на верный ответ — по прямой просьбе
+                                пользователя, во всех step-by-step разборах
+                                (см. LocalAnswerConfetti). Только пока это
+                                ТЕКУЩЕЕ задание — естественно размонтируется
+                                при переходе к следующему. */}
+                            {isCurrent && isDone && answer === correctSide && <LocalAnswerConfetti />}
                         </div>
                     )
                 })}
