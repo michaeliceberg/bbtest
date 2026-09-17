@@ -462,7 +462,14 @@ export default function TrainerQuestion({
   const bossLottie = bossHp < 30 ? LOTTIE_BOSS_DEATH_LOW_HP : randomBossLottie
 
   return (
-    <div className="min-h-screen bg-[#151F24] text-[#F2F7FB] flex flex-col">
+    // overflow-x-hidden на корне экрана — общий "предохранитель" от
+    // горизонтального скроллбара, который на короткое время (~200мс)
+    // появлялся то при слайде нового вопроса (x:100→0 ниже), то при
+    // появлении плашки "Отлично!" (position:absolute banner ниже) — оба
+    // источника разные, но эффект один и тот же, поэтому фикс — на самом
+    // внешнем контейнере экрана, а не точечно под каждую анимацию (тот же
+    // приём, что уже применялся для LearnWrapper, см. CLAUDE.md).
+    <div className="min-h-screen overflow-x-hidden bg-[#151F24] text-[#F2F7FB] flex flex-col">
 
       {/* Крестик и прогресс-бар (не анимируются). Сердечки убраны по
           просьбе пользователя — механика жизней в тренажёре не нужна,
@@ -511,7 +518,16 @@ export default function TrainerQuestion({
           и синхронно убирает старый DOM-узел через React, не полагаясь
           на завершение чужой анимации — остаётся только анимация входа. */}
         <motion.div
-          className="flex-1 overflow-y-auto px-4 pb-3 flex flex-col"
+          // overflow-x-hidden — без него на время слайд-анимации (x:100→0
+          // ниже) на странице на ~200-400мс появлялся горизонтальный
+          // скроллбар: overflow-y-auto САМ ПО СЕБЕ, без явного overflow-x,
+          // по известному CSS-квирку форсит и вторую ось в auto (см. тот
+          // же баг и фикс в LearnWrapper, CLAUDE.md), поэтому смещённый на
+          // x:100 контент не просто визуально вылезал за край, а создавал
+          // РЕАЛЬНЫЙ скроллбар именно на этом контейнере. Explicit
+          // overflow-x-hidden отключает эту ось явно, оставляя overflow-y
+          // рабочим как и раньше.
+          className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-3 flex flex-col"
           key={`${roundKey}-${questions.indexOf(question)}`}
           initial={{ opacity: 0, x: 100 }}
           animate={{ opacity: 1, x: 0 }}
