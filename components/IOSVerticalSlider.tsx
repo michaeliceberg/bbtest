@@ -18,12 +18,12 @@ import { useRef, useState } from 'react'
 import { motion, type PanInfo } from 'framer-motion'
 
 const TRACK_HEIGHT = 260
-// Было 76 — по просьбе пользователя сделан заметно шире ("больше радиус
-// закругления, чтобы не был таким острым"): у rounded-full радиус
-// капсулы = половина ширины, поэтому более широкий трек даёт визуально
-// более крупные/плавные полукруглые торцы вместо узкой "остроконечной"
-// пилюли.
 const TRACK_WIDTH = 96
+// Скругление углов трека/заливки — было rounded-full (капсула), по
+// просьбе пользователя сделано более плоским, "похожим на прямоугольник
+// с небольшим скруглением" (не зависит от TRACK_WIDTH, в отличие от
+// rounded-full — фиксированный пиксельный радиус).
+const TRACK_RADIUS = 'rounded-[18px]'
 // Максимальный визуальный "перетяг" в проценты значения — насколько
 // дальше 0/100 можно утянуть плашку, прежде чем сопротивление станет
 // ощутимым (сам эффект — chisto визуальный, value всегда остаётся 0..100).
@@ -85,18 +85,34 @@ export const IOSVerticalSlider = ({ value, onChange, ticks }: Props) => {
                 "слева от скроллбара риски, и слева от рисок подписи"). */}
             {ticks && ticks.length > 0 && (
                 <div className="relative shrink-0" style={{ width: 84, height: TRACK_HEIGHT }}>
-                    {ticks.map((tick) => (
-                        <div
-                            key={tick.value}
-                            className="absolute right-0 flex items-center gap-1.5"
-                            style={{ top: TRACK_HEIGHT * (1 - tick.value / 100), transform: 'translateY(-50%)' }}
-                        >
-                            <span className="text-[11px] font-semibold text-[#9AA7B0] whitespace-nowrap">
-                                {tick.label}
-                            </span>
-                            <span className="h-[2px] w-3 rounded-full bg-[#5C6B73]" />
-                        </div>
-                    ))}
+                    {ticks.map((tick) => {
+                        // Достигнутая риска (значение доехало до/выше неё) —
+                        // подпись и сама риска ярче, тот же фиолетовый акцент,
+                        // что и у заливки слайдера, по прямой просьбе
+                        // пользователя ("при достижении рисок писать названия
+                        // более яркими").
+                        const reached = value >= tick.value
+                        return (
+                            <div
+                                key={tick.value}
+                                className="absolute right-0 flex items-center gap-1.5"
+                                style={{ top: TRACK_HEIGHT * (1 - tick.value / 100), transform: 'translateY(-50%)' }}
+                            >
+                                <span
+                                    className={`text-[11px] font-semibold whitespace-nowrap transition-colors duration-300 ${
+                                        reached ? 'text-white' : 'text-[#9AA7B0]'
+                                    }`}
+                                >
+                                    {tick.label}
+                                </span>
+                                <span
+                                    className={`h-[2px] w-3 rounded-full transition-colors duration-300 ${
+                                        reached ? 'bg-violet-400' : 'bg-[#5C6B73]'
+                                    }`}
+                                />
+                            </div>
+                        )
+                    })}
                 </div>
             )}
 
@@ -108,14 +124,14 @@ export const IOSVerticalSlider = ({ value, onChange, ticks }: Props) => {
                     onPanStart={handlePanStart}
                     onPan={handlePan}
                     onPanEnd={handlePanEnd}
-                    className={`absolute inset-0 rounded-full bg-[#1A252B] border-2 border-[#3A464E] overflow-hidden cursor-grab active:cursor-grabbing shadow-inner ${
+                    className={`absolute inset-0 ${TRACK_RADIUS} bg-[#1A252B] border-2 border-[#3A464E] overflow-hidden cursor-grab active:cursor-grabbing shadow-inner ${
                         value > GLOW_THRESHOLD ? 'animate-slider-glow-pulse' : ''
                     }`}
                 >
                     {/* Заливка снизу — высота = value%, растягивается вверх/вниз
                         при перетяге (transform-origin у соответствующего края). */}
                     <motion.div
-                        className="absolute left-0 right-0 bottom-0 bg-gradient-to-t from-violet-600 via-fuchsia-500 to-violet-400 rounded-full"
+                        className={`absolute left-0 right-0 bottom-0 bg-gradient-to-t from-violet-600 via-fuchsia-500 to-violet-400 ${TRACK_RADIUS}`}
                         animate={{
                             height: `${value}%`,
                             scaleY: isDragging ? stretch : 1,

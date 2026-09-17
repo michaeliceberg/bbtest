@@ -8,7 +8,7 @@
 // телефона в двух точках со skip, кейс-барабан с призом — пицца/гемы —
 // после отправки, см. actions/open-diagnostic-case.ts).
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
@@ -48,10 +48,15 @@ type Phase = 'intro' | 'quiz' | 'goal' | 'result';
 // просьбе пользователя: <30 грустный, <80 повеселее, 80+ довольный.
 const targetScoreEmoji = (score: number) => (score < 30 ? '😟' : score < 80 ? '🙂' : '😄');
 
+// Балл МФТИ — отдельная константа (не просто первый элемент
+// EGE_SCORE_TICKS), т.к. на неё завязан ещё и триггер конфетти ниже —
+// единая точка правды для обоих мест.
+const MFTI_SCORE = 90;
+
 // Вузовские ориентиры по баллам ЕГЭ — риски-метки слева от слайдера
 // (по прямой просьбе пользователя, конкретные пороги/вузы).
 const EGE_SCORE_TICKS: SliderTick[] = [
-	{ value: 90, label: 'МФТИ' },
+	{ value: MFTI_SCORE, label: 'МФТИ' },
 	{ value: 80, label: 'МГУ' },
 	{ value: 70, label: 'МИФИ' },
 	{ value: 40, label: 'Бауманка' },
@@ -102,6 +107,20 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 	// (середина шкалы), не 0: пустой слайдер выглядел бы "грустным" ещё до
 	// того, как пользователь вообще успел его тронуть.
 	const [targetScore, setTargetScore] = useState(60);
+	// Конфетти при достижении балла МФТИ — по прямой просьбе пользователя.
+	// prevTargetScoreRef нужен, чтобы ловить именно МОМЕНТ пересечения
+	// порога (переход снизу вверх), а не просто "значение сейчас >= 90" —
+	// иначе конфетти шло бы на каждый ре-рендер, пока слайдер держат выше
+	// порога, а не одним залпом в момент достижения.
+	const [showMftiConfetti, setShowMftiConfetti] = useState(false);
+	const prevTargetScoreRef = useRef(targetScore);
+	const handleTargetScoreChange = (nextValue: number) => {
+		if (prevTargetScoreRef.current < MFTI_SCORE && nextValue >= MFTI_SCORE) {
+			setShowMftiConfetti(true);
+		}
+		prevTargetScoreRef.current = nextValue;
+		setTargetScore(nextValue);
+	};
 
 	// Сбор лида — раньше номер телефона, теперь "вступи в Telegram-бота"
 	// (один тап, сразу верифицируемо через webhook, см. обсуждение с
@@ -347,13 +366,23 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 
 				{phase === 'goal' && (
 					<div className="flex-1 flex flex-col items-center justify-center gap-8 text-center">
+						{showMftiConfetti && (
+							<Confetti
+								width={windowSize.width}
+								height={windowSize.height}
+								recycle={false}
+								numberOfPieces={260}
+								onConfettiComplete={() => setShowMftiConfetti(false)}
+							/>
+						)}
+
 						<div>
 							<h2 className="text-xl font-extrabold mb-1">На какой балл планируешь сдать ЕГЭ?</h2>
 							<p className="text-sm text-[#9AA7B0]">Потяни бегунок вверх или вниз</p>
 						</div>
 
 						<div className="flex items-center gap-6">
-							<IOSVerticalSlider value={targetScore} onChange={setTargetScore} ticks={EGE_SCORE_TICKS} />
+							<IOSVerticalSlider value={targetScore} onChange={handleTargetScoreChange} ticks={EGE_SCORE_TICKS} />
 							<span className="text-6xl leading-none">{targetScoreEmoji(targetScore)}</span>
 						</div>
 
