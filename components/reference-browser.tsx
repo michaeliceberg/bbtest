@@ -29,7 +29,8 @@ import { FeedWrapper } from './feed-wrapper'
 import { UserProgress } from './user-progress'
 import { courses } from '@/db/schema'
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs'
-import { RightTriangleRefDiagram } from './geometry/RightTriangleRefDiagram'
+import { RightTriangleRefDiagram, SIDE_COLORS } from './geometry/RightTriangleRefDiagram'
+import { hexToRgba } from '@/src/constants/lessonButtonColors'
 
 export type ReferenceEntryData = {
     id: number
@@ -172,6 +173,28 @@ const FiltersPanel = ({ topics, activeTopic, setActiveTopic, query, setQuery, re
         )}
     </div>
 )
+
+// "Стикер" буквы стороны (a/b/c) — HTML-версия того же приёма, что и в
+// RightTriangleRefDiagram.tsx (SVG), тот же цвет через общий SIDE_COLORS,
+// чтобы буква выглядела одинаково и на самой диаграмме, и внутри формул
+// (sin α = b/c и т.п.) — по прямой просьбе пользователя.
+const HtmlLetterSticker = ({ letter }: { letter: 'a' | 'b' | 'c' }) => {
+    const color = SIDE_COLORS[letter]
+    return (
+        <span
+            className="inline-flex items-center justify-center w-9 h-9 rounded-lg font-extrabold text-lg"
+            style={{ backgroundColor: hexToRgba(color, 0.22), border: `2px solid ${color}`, color }}
+        >
+            {letter}
+        </span>
+    )
+}
+
+// Формулы вида "\dfrac{b}{c}" — числитель/знаменатель РОВНО одна из
+// сторон треугольника (sin α=b/c, cos α=a/c, tg α=b/a) — единственный
+// формат, для которого имеет смысл заменять буквы стикерами (общий
+// формульный рендер ниже это НЕ трогает для любых других формул темы).
+const SIDE_RATIO_RE = /^\\dfrac\{([abc])\}\{([abc])\}$/
 
 export const ReferenceBrowser = ({ entries, userProgress }: { entries: ReferenceEntryData[]; userProgress: UserProgressData }) => {
     // Порядок вкладок — порядок первого появления в entries (физика
@@ -325,6 +348,7 @@ export const ReferenceBrowser = ({ entries, userProgress }: { entries: Reference
                                             // в шапке. Рендерится по-другому: без "X = Y", крупная картинка
                                             // прямо в панели формулы.
                                             const isDiagram = !e.formula && !e.symbol && !!e.imageSrc
+                                            const ratioMatch = !isDiagram ? SIDE_RATIO_RE.exec(e.formula) : null
                                             return (
                                                 <div key={e.id} className="rounded-xl border-2 overflow-hidden bg-[#161F23]" style={{ borderColor: `${accent}55` }}>
                                                     {isDiagram ? (
@@ -386,6 +410,17 @@ export const ReferenceBrowser = ({ entries, userProgress }: { entries: Reference
                                                                     // eslint-disable-next-line @next/next/no-img-element
                                                                     <img src={e.imageSrc ?? ''} alt={e.label} className="max-h-56 w-auto" />
                                                                 )}
+                                                            </div>
+                                                        ) : ratioMatch ? (
+                                                            <div className="flex items-center justify-center gap-3">
+                                                                <div className="text-lg sm:text-xl md:text-2xl font-bold text-[#F2F7FB]">
+                                                                    <Latex>{`$${e.symbol} =$`}</Latex>
+                                                                </div>
+                                                                <div className="flex flex-col items-center gap-1.5">
+                                                                    <HtmlLetterSticker letter={ratioMatch[1] as 'a' | 'b' | 'c'} />
+                                                                    <div className="w-8 h-0.5 rounded-full bg-[#F2F7FB]" />
+                                                                    <HtmlLetterSticker letter={ratioMatch[2] as 'a' | 'b' | 'c'} />
+                                                                </div>
                                                             </div>
                                                         ) : (
                                                             <div className="text-lg sm:text-xl md:text-2xl font-bold text-[#F2F7FB] text-center break-words">
