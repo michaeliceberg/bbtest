@@ -624,7 +624,17 @@ export default function TQuiz({
         // основном проходе, и уже внутри самого раунда повтора — так
         // повторно проваленный вопрос снова встанет в очередь следующего
         // раунда, а не потеряется).
-        mistakeQueueRef.current = [...mistakeQueueRef.current, questions[currentQuestionIndex]]
+        // ИСКЛЮЧЕНИЕ — SINWALK: это самодостаточный пошаговый разбор,
+        // который уже сам отслеживает и повторяет свои внутренние ошибки
+        // (см. type-sinwalk.tsx, hadMistake/доп. попытки на последнем
+        // задании) — onAnswer('wrong') здесь означает "по пути были
+        // помарки", а не "непонятно, надо переспросить", поэтому ставить
+        // его в очередь "работы над ошибками" (полный повтор всего
+        // разбора заново) избыточно и сбивает с толку — лессон просто
+        // должен закончиться по клику "Готово".
+        if (questions[currentQuestionIndex].questionType !== 'SINWALK') {
+          mistakeQueueRef.current = [...mistakeQueueRef.current, questions[currentQuestionIndex]]
+        }
 
         // История (finishList) — только на основном проходе.
         if (!isReviewRoundRef.current) {
@@ -675,8 +685,12 @@ export default function TQuiz({
       setAnsweredQuestions(prev => prev + 1)
 
       // Таймаут — тот же "неверный ответ", вопрос уходит в очередь
-      // "работы над ошибками" (см. handleAnswer выше).
-      mistakeQueueRef.current = [...mistakeQueueRef.current, questions[currentQuestionIndex]]
+      // "работы над ошибками" (см. handleAnswer выше). SINWALK сюда не
+      // попадает (тот же исключение, что и в handleAnswer) — на практике
+      // не достижимо (у SINWALK нет таймера), но на всякий случай.
+      if (questions[currentQuestionIndex].questionType !== 'SINWALK') {
+        mistakeQueueRef.current = [...mistakeQueueRef.current, questions[currentQuestionIndex]]
+      }
 
       // finishList — только на основном проходе, не в раунде повтора
       // (та же логика, что в handleAnswer).
