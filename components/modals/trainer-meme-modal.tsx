@@ -26,7 +26,9 @@ const RIGHT_MEME_NAMES = [
     'da-yauveren',
     'daaaam',
     'genialno',
+    'kruto',
     'missionpassed',
+    'somnitelno',
     'ti-nedoocenivaeshmoiumosh',
     'umeete-mogete',
     'vot-setogomomenta',
@@ -36,6 +38,7 @@ const WRONG_MEME_NAMES = [
     'chto-titakoe',
     'eto-kakoytopozor',
     'eto-konechnonepravda',
+    'eto-pechalno',
     'haha',
     'karlson-tisumasoshel',
     'loh',
@@ -48,6 +51,8 @@ const WRONG_MEME_NAMES = [
     'ti-seriozno',
     'ti-vtiraesh',
     'vi-ponomaeteochemgovoryat',
+    'ya-etoneponimaiu',
+    'ya-oshibsa',
     'wasted',
 ]
 
