@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { ScrambleText } from '@/components/ScrambleText';
 import { AnimatedOptionButton } from '@/components/AnimatedOptionButton';
 import { TrainerMascot } from '@/components/TrainerMascot';
-import { IOSVerticalSlider } from '@/components/IOSVerticalSlider';
+import { IOSVerticalSlider, type SliderTick } from '@/components/IOSVerticalSlider';
 import { CaseReel } from '@/components/CaseReel';
 import { startDiagnosticTelegramLead, getDiagnosticLeadStatus } from '@/actions/diagnostic';
 import { openDiagnosticCase } from '@/actions/open-diagnostic-case';
@@ -47,6 +47,15 @@ type Phase = 'intro' | 'quiz' | 'goal' | 'result';
 // Смайлик-реакция на текущее целевое значение слайдера — по прямой
 // просьбе пользователя: <30 грустный, <80 повеселее, 80+ довольный.
 const targetScoreEmoji = (score: number) => (score < 30 ? '😟' : score < 80 ? '🙂' : '😄');
+
+// Вузовские ориентиры по баллам ЕГЭ — риски-метки слева от слайдера
+// (по прямой просьбе пользователя, конкретные пороги/вузы).
+const EGE_SCORE_TICKS: SliderTick[] = [
+	{ value: 90, label: 'МФТИ' },
+	{ value: 80, label: 'МГУ' },
+	{ value: 70, label: 'МИФИ' },
+	{ value: 40, label: 'Бауманка' },
+];
 
 type AnsweredQuestion = {
 	question: DiagnosticQuestion;
@@ -344,7 +353,7 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 						</div>
 
 						<div className="flex items-center gap-6">
-							<IOSVerticalSlider value={targetScore} onChange={setTargetScore} />
+							<IOSVerticalSlider value={targetScore} onChange={setTargetScore} ticks={EGE_SCORE_TICKS} />
 							<span className="text-6xl leading-none">{targetScoreEmoji(targetScore)}</span>
 						</div>
 

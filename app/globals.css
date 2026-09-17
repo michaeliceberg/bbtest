@@ -421,6 +421,23 @@ body {
   pointer-events: none;
 }
 
+/* Слайдер "На какой балл планируешь сдать ЕГЭ?" (components/
+   IOSVerticalSlider.tsx) — фоновая подсветка при значении > 80, тот же
+   фиолетово-фуксия акцент, что и .animate-cta-pulse на этой же странице,
+   но заметно медленнее ("медленно пульсирующая", по прямой просьбе
+   пользователя, не 2.6с, а 3.6с). */
+@keyframes slider-glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0), 0 0 0 0 rgba(192, 38, 211, 0);
+  }
+  50% {
+    box-shadow: 0 0 26px 6px rgba(124, 58, 237, 0.55), 0 0 44px 16px rgba(192, 38, 211, 0.35);
+  }
+}
+.animate-slider-glow-pulse {
+  animation: slider-glow-pulse 3.6s ease-in-out infinite;
+}
+
 /* KaTeX по умолчанию рендерит своими собственными шрифтами (KaTeX_Main/
    KaTeX_Math/...), из-за чего текст условия и цифры-варианты ответа
    (обычный, не-LaTeX текст — Nunito, см. app/layout.tsx) визуально

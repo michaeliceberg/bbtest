@@ -18,18 +18,34 @@ import { useRef, useState } from 'react'
 import { motion, type PanInfo } from 'framer-motion'
 
 const TRACK_HEIGHT = 260
-const TRACK_WIDTH = 76
+// Было 76 — по просьбе пользователя сделан заметно шире ("больше радиус
+// закругления, чтобы не был таким острым"): у rounded-full радиус
+// капсулы = половина ширины, поэтому более широкий трек даёт визуально
+// более крупные/плавные полукруглые торцы вместо узкой "остроконечной"
+// пилюли.
+const TRACK_WIDTH = 96
 // Максимальный визуальный "перетяг" в проценты значения — насколько
 // дальше 0/100 можно утянуть плашку, прежде чем сопротивление станет
 // ощутимым (сам эффект — chisto визуальный, value всегда остаётся 0..100).
 const MAX_OVERPULL = 26
 
+// Порог, начиная с которого трек получает медленную пульсирующую
+// подсветку (см. .animate-slider-glow-pulse в app/globals.css) — тот же
+// фиолетово-фуксия акцент, что и у самой заливки слайдера.
+const GLOW_THRESHOLD = 80
+
+export type SliderTick = { value: number; label: string }
+
 type Props = {
     value: number
     onChange: (value: number) => void
+    // Риски-метки слева от слайдера (например вузовские ориентиры по
+    // баллам ЕГЭ) — необязательные, компонент без них ведёт себя как
+    // раньше.
+    ticks?: SliderTick[]
 }
 
-export const IOSVerticalSlider = ({ value, onChange }: Props) => {
+export const IOSVerticalSlider = ({ value, onChange, ticks }: Props) => {
     // overpull — насколько дальше границы утянута плашка ПРЯМО СЕЙЧАС
     // (0 — в пределах трека, >0 — тянут выше 100, <0 — тянут ниже 0).
     // Используется только для squish/stretch-анимации заливки, не влияет
@@ -63,36 +79,60 @@ export const IOSVerticalSlider = ({ value, onChange }: Props) => {
     const stretch = 1 + Math.min(Math.abs(overpull), MAX_OVERPULL) / MAX_OVERPULL * 0.18
 
     return (
-        <div
-            className="relative select-none touch-none"
-            style={{ width: TRACK_WIDTH, height: TRACK_HEIGHT }}
-        >
-            <motion.div
-                onPanStart={handlePanStart}
-                onPan={handlePan}
-                onPanEnd={handlePanEnd}
-                className="absolute inset-0 rounded-full bg-[#1A252B] border-2 border-[#3A464E] overflow-hidden cursor-grab active:cursor-grabbing shadow-inner"
-            >
-                {/* Заливка снизу — высота = value%, растягивается вверх/вниз
-                    при перетяге (transform-origin у соответствующего края). */}
-                <motion.div
-                    className="absolute left-0 right-0 bottom-0 bg-gradient-to-t from-violet-600 via-fuchsia-500 to-violet-400 rounded-full"
-                    animate={{
-                        height: `${value}%`,
-                        scaleY: isDragging ? stretch : 1,
-                    }}
-                    transition={isDragging ? { duration: 0 } : { type: 'spring', stiffness: 320, damping: 24 }}
-                    style={{ transformOrigin: overpull > 0 ? 'top' : 'bottom' }}
-                />
-
-                {/* Число — фиксировано у нижнего края плашки (там же, где в
-                    оригинале сидит иконка солнца), поверх заливки. */}
-                <div className="absolute inset-x-0 bottom-3 flex items-center justify-center pointer-events-none">
-                    <span className="text-lg font-black text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.55)]">
-                        {value}
-                    </span>
+        <div className="flex items-center gap-2">
+            {/* Риски-метки слева от трека — подпись справа от риски, сама
+                риска слева от трека (порядок как просил пользователь:
+                "слева от скроллбара риски, и слева от рисок подписи"). */}
+            {ticks && ticks.length > 0 && (
+                <div className="relative shrink-0" style={{ width: 84, height: TRACK_HEIGHT }}>
+                    {ticks.map((tick) => (
+                        <div
+                            key={tick.value}
+                            className="absolute right-0 flex items-center gap-1.5"
+                            style={{ top: TRACK_HEIGHT * (1 - tick.value / 100), transform: 'translateY(-50%)' }}
+                        >
+                            <span className="text-[11px] font-semibold text-[#9AA7B0] whitespace-nowrap">
+                                {tick.label}
+                            </span>
+                            <span className="h-[2px] w-3 rounded-full bg-[#5C6B73]" />
+                        </div>
+                    ))}
                 </div>
-            </motion.div>
+            )}
+
+            <div
+                className="relative select-none touch-none"
+                style={{ width: TRACK_WIDTH, height: TRACK_HEIGHT }}
+            >
+                <motion.div
+                    onPanStart={handlePanStart}
+                    onPan={handlePan}
+                    onPanEnd={handlePanEnd}
+                    className={`absolute inset-0 rounded-full bg-[#1A252B] border-2 border-[#3A464E] overflow-hidden cursor-grab active:cursor-grabbing shadow-inner ${
+                        value > GLOW_THRESHOLD ? 'animate-slider-glow-pulse' : ''
+                    }`}
+                >
+                    {/* Заливка снизу — высота = value%, растягивается вверх/вниз
+                        при перетяге (transform-origin у соответствующего края). */}
+                    <motion.div
+                        className="absolute left-0 right-0 bottom-0 bg-gradient-to-t from-violet-600 via-fuchsia-500 to-violet-400 rounded-full"
+                        animate={{
+                            height: `${value}%`,
+                            scaleY: isDragging ? stretch : 1,
+                        }}
+                        transition={isDragging ? { duration: 0 } : { type: 'spring', stiffness: 320, damping: 24 }}
+                        style={{ transformOrigin: overpull > 0 ? 'top' : 'bottom' }}
+                    />
+
+                    {/* Число — фиксировано у нижнего края плашки (там же, где в
+                        оригинале сидит иконка солнца), поверх заливки. */}
+                    <div className="absolute inset-x-0 bottom-3 flex items-center justify-center pointer-events-none">
+                        <span className="text-lg font-black text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.55)]">
+                            {value}
+                        </span>
+                    </div>
+                </motion.div>
+            </div>
         </div>
     )
 }
