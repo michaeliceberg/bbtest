@@ -55,6 +55,19 @@ const UNLOCKED_BORDER = '#4897D1';
 const UNLOCKED_BG = '#232F35';
 const LOCKED_BORDER = '#3A464E';
 const LOCKED_ICON_COLOR = '#56646C';
+// Премиальный золотой фон для этапов-разборов "по шагам" (isStepByStep) —
+// по прямой просьбе пользователя ("фон золотым, иконку белой, чтобы лучше
+// отличалось от остальных tlessons") красится сам квадратик, а не только
+// иконка книги внутри — во ВСЕХ состояниях, где этап вообще виден цветом
+// (unlocked/done), поверх обычной сине-фиолетовой пары UNLOCKED_BG/
+// DONE_GRADIENT. Locked-состояние — приглушённая золотая рамка (не
+// сплошная серая LOCKED_BORDER) — тот же принцип, что уже даёт увидеть
+// ТИП этапа (сундук/босс) даже до разблокировки, просто тусклым.
+const STEPBYSTEP_GRADIENT = 'linear-gradient(135deg, #C9971C 0%, #FFD84D 50%, #C9971C 100%)';
+const STEPBYSTEP_BORDER = '#FFE9A8';
+const STEPBYSTEP_GLOW = '0 0 14px -1px rgba(255, 215, 0, 0.6)';
+const STEPBYSTEP_ICON_COLOR = '#FFFFFF';
+const STEPBYSTEP_LOCKED_BORDER = 'rgba(255, 216, 77, 0.35)';
 // Цвет подсказки "сюда нажать дальше" (см. RippleGlow ниже) — намеренно
 // отдельный, третий акцент, не пересекающийся ни с violet "done", ни с
 // gold "chest", ни с обычной синей рамкой разблокированного этапа.
@@ -139,10 +152,12 @@ const StageIcon = ({
     dim?: boolean;
 }) => (
     isStepByStep
-        // Золотая книга — интерактивный разбор "по шагам", отдельный
-        // визуальный акцент, приоритетнее сундука/босса (по прямой просьбе
-        // пользователя, "особую иконку которая сильно выделяется").
-        ? <BookOpen className={`w-4 h-4 transition-[filter,opacity] duration-300 ${dim ? 'grayscale opacity-50' : ''}`} style={{ color: dim ? undefined : '#FFD700' }} fill={dim ? 'none' : '#FFD700'} fillOpacity={dim ? 0 : 0.25} />
+        // Белая книга на золотом фоне квадратика (см. STEPBYSTEP_GRADIENT
+        // выше) — интерактивный разбор "по шагам", отдельный визуальный
+        // акцент, приоритетнее сундука/босса (по прямой просьбе
+        // пользователя, "особую иконку которая сильно выделяется" — а
+        // затем "фон золотым, иконку белой... премиально").
+        ? <BookOpen className={`w-4 h-4 transition-[filter,opacity] duration-300 ${dim ? 'grayscale opacity-60' : ''}`} style={{ color: '#FFFFFF' }} fill="#FFFFFF" fillOpacity={dim ? 0 : 0.3} />
         : isChest
             ? <Gift className={`w-4 h-4 transition-[filter,opacity] duration-300 ${dim ? 'grayscale opacity-50' : ''}`} style={{ color: dim ? undefined : '#EF9F27' }} />
             : isBoss
@@ -478,7 +493,11 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                     <TrainerStageLink
                                                                         href={stageHref}
                                                                         className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
-                                                                        style={{ background: UNLOCKED_BG, border: `2px solid ${UNLOCKED_BORDER}` }}
+                                                                        style={{
+                                                                            background: isStepByStep ? STEPBYSTEP_GRADIENT : UNLOCKED_BG,
+                                                                            border: `2px solid ${isStepByStep ? STEPBYSTEP_BORDER : UNLOCKED_BORDER}`,
+                                                                            boxShadow: isStepByStep ? STEPBYSTEP_GLOW : undefined,
+                                                                        }}
                                                                         icon={<StageIcon isBoss={isBoss} isChest={isChest} isStepByStep={isStepByStep} Icon={Icon} color={UNLOCKED_BORDER} />}
                                                                     />
                                                                 </motion.div>
@@ -491,7 +510,11 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                     <TrainerStageLink
                                                                         href={stageHref}
                                                                         className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
-                                                                        style={{ background: DONE_GRADIENT, border: `2px solid ${DONE_BORDER}`, boxShadow: DONE_GLOW }}
+                                                                        style={{
+                                                                            background: isStepByStep ? STEPBYSTEP_GRADIENT : DONE_GRADIENT,
+                                                                            border: `2px solid ${isStepByStep ? STEPBYSTEP_BORDER : DONE_BORDER}`,
+                                                                            boxShadow: isStepByStep ? STEPBYSTEP_GLOW : DONE_GLOW,
+                                                                        }}
                                                                         icon={<StageIcon isBoss={isBoss} isChest={isChest} isStepByStep={isStepByStep} Icon={Icon} color={DONE_ICON_COLOR} />}
                                                                         extra={isBoss ? <BossGiftBadge /> : null}
                                                                     />
@@ -511,7 +534,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                 >
                                                                     <div
                                                                         className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
-                                                                        style={{ border: `2px solid ${LOCKED_BORDER}` }}
+                                                                        style={{ border: `2px solid ${isStepByStep ? STEPBYSTEP_LOCKED_BORDER : LOCKED_BORDER}` }}
                                                                     >
                                                                         <StageIcon isBoss={isBoss} isChest={isChest} isStepByStep={isStepByStep} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
                                                                     </div>
@@ -525,7 +548,11 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                     <TrainerStageLink
                                                                         href={stageHref}
                                                                         className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
-                                                                        style={{ background: UNLOCKED_BG, border: `2px solid ${UNLOCKED_BORDER}` }}
+                                                                        style={{
+                                                                            background: isStepByStep ? STEPBYSTEP_GRADIENT : UNLOCKED_BG,
+                                                                            border: `2px solid ${isStepByStep ? STEPBYSTEP_BORDER : UNLOCKED_BORDER}`,
+                                                                            boxShadow: isStepByStep ? STEPBYSTEP_GLOW : undefined,
+                                                                        }}
                                                                         icon={<StageIcon isBoss={isBoss} isChest={isChest} isStepByStep={isStepByStep} Icon={Icon} color={UNLOCKED_BORDER} />}
                                                                     />
                                                                 </motion.div>
@@ -537,9 +564,9 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                 href={stageHref}
                                                                 className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                 style={{
-                                                                    background: done ? DONE_GRADIENT : UNLOCKED_BG,
-                                                                    border: `2px solid ${done ? DONE_BORDER : UNLOCKED_BORDER}`,
-                                                                    boxShadow: done ? DONE_GLOW : undefined,
+                                                                    background: isStepByStep ? STEPBYSTEP_GRADIENT : (done ? DONE_GRADIENT : UNLOCKED_BG),
+                                                                    border: `2px solid ${isStepByStep ? STEPBYSTEP_BORDER : (done ? DONE_BORDER : UNLOCKED_BORDER)}`,
+                                                                    boxShadow: isStepByStep ? STEPBYSTEP_GLOW : (done ? DONE_GLOW : undefined),
                                                                 }}
                                                                 icon={<StageIcon isBoss={isBoss} isChest={isChest} isStepByStep={isStepByStep} Icon={Icon} color={done ? DONE_ICON_COLOR : UNLOCKED_BORDER} />}
                                                                 extra={isBoss && done ? <BossGiftBadge /> : null}
@@ -549,7 +576,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                         stageBox = (
                                                             <div
                                                                 className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
-                                                                style={{ border: `2px solid ${LOCKED_BORDER}` }}
+                                                                style={{ border: `2px solid ${isStepByStep ? STEPBYSTEP_LOCKED_BORDER : LOCKED_BORDER}` }}
                                                                 title={s.extraLocked && s.extraLockedPrereqTitle ? `Сначала пройди «${s.extraLockedPrereqTitle}»` : undefined}
                                                             >
                                                                 <StageIcon isBoss={isBoss} isChest={isChest} isStepByStep={isStepByStep} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
