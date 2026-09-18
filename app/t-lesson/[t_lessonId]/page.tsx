@@ -792,6 +792,27 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             };
         }
 
+        if (t_challenge.type === 'LOGSWAPWALK') {
+            // Тот же самодостаточный принцип, что у LOGWALK/LOGSUBWALK/
+            // LOGPOWWALK — разбор тождества "логарифм в степени"
+            // (a^{log_b c} = c^{log_b a}, числа a и c меняются местами) на
+            // ДВУХ фиксированных примерах (8/2/3 и 25/5/4), тренировочные
+            // задания генерируются на лету внутри type-logswapwalk.tsx.
+            return {
+                questionType: 'LOGSWAPWALK' as const,
+                question: t_challenge.question,
+                imageSrc: t_challenge.imageSrc,
+                options: [],
+                numRans: t_challenge.numRans,
+                optionsQ: [],
+                optionsA: [],
+                optionsConstructRight: [],
+                difficulty: t_challenge.difficulty,
+                correctAnswer: 'right',
+                timeLimit: 999,
+            };
+        }
+
         if (t_challenge.type === 'LOGDEFWALK') {
             // Тот же самодостаточный принцип, что у SINWALK/LOGWALK — разбор
             // "что такое логарифм" (определение через 2³=8→log₂8=3, разбор
