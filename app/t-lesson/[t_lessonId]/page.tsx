@@ -751,6 +751,27 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             };
         }
 
+        if (t_challenge.type === 'LOGDEFWALK') {
+            // Тот же самодостаточный принцип, что у SINWALK/LOGWALK — разбор
+            // "что такое логарифм" (определение через 2³=8→log₂8=3, разбор
+            // ОДЗ, финальная мини-викторина "бывает ли такой логарифм?") —
+            // весь контент фиксирован внутри type-logdefwalk.tsx, никаких
+            // данных из БД читать не требуется.
+            return {
+                questionType: 'LOGDEFWALK' as const,
+                question: t_challenge.question,
+                imageSrc: t_challenge.imageSrc,
+                options: [],
+                numRans: t_challenge.numRans,
+                optionsQ: [],
+                optionsA: [],
+                optionsConstructRight: [],
+                difficulty: t_challenge.difficulty,
+                correctAnswer: 'right',
+                timeLimit: 999,
+            };
+        }
+
         if (t_challenge.type === 'MULTISTEP') {
             let steps: MultistepStep[] = [];
             try {

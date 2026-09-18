@@ -617,16 +617,16 @@ export default function TQuiz({
         // основном проходе, и уже внутри самого раунда повтора — так
         // повторно проваленный вопрос снова встанет в очередь следующего
         // раунда, а не потеряется).
-        // ИСКЛЮЧЕНИЕ — SINWALK/LOGWALK: это самодостаточные пошаговые
-        // разборы, которые уже сами отслеживают и повторяют свои
-        // внутренние ошибки (см. type-sinwalk.tsx/type-logwalk.tsx,
-        // hadMistake/доп. попытки на последнем задании) — onAnswer('wrong')
+        // ИСКЛЮЧЕНИЕ — SINWALK/LOGWALK/LOGDEFWALK: это самодостаточные
+        // пошаговые разборы, которые уже сами отслеживают и повторяют свои
+        // внутренние ошибки (см. type-sinwalk.tsx/type-logwalk.tsx/
+        // type-logdefwalk.tsx, hadMistake/доп. попытки) — onAnswer('wrong')
         // здесь означает "по пути были помарки", а не "непонятно, надо
         // переспросить", поэтому ставить его в очередь "работы над
         // ошибками" (полный повтор всего разбора заново) избыточно и
         // сбивает с толку — лессон просто должен закончиться по клику
         // "Готово".
-        if (questions[currentQuestionIndex].questionType !== 'SINWALK' && questions[currentQuestionIndex].questionType !== 'LOGWALK') {
+        if (questions[currentQuestionIndex].questionType !== 'SINWALK' && questions[currentQuestionIndex].questionType !== 'LOGWALK' && questions[currentQuestionIndex].questionType !== 'LOGDEFWALK') {
           mistakeQueueRef.current = [...mistakeQueueRef.current, questions[currentQuestionIndex]]
         }
 
@@ -678,10 +678,11 @@ export default function TQuiz({
       setAnsweredQuestions(prev => prev + 1)
 
       // Таймаут — тот же "неверный ответ", вопрос уходит в очередь
-      // "работы над ошибками" (см. handleAnswer выше). SINWALK/LOGWALK
-      // сюда не попадают (то же исключение, что и в handleAnswer) — на
-      // практике не достижимо (у обоих нет таймера), но на всякий случай.
-      if (questions[currentQuestionIndex].questionType !== 'SINWALK' && questions[currentQuestionIndex].questionType !== 'LOGWALK') {
+      // "работы над ошибками" (см. handleAnswer выше). SINWALK/LOGWALK/
+      // LOGDEFWALK сюда не попадают (то же исключение, что и в
+      // handleAnswer) — на практике не достижимо (у них нет таймера), но
+      // на всякий случай.
+      if (questions[currentQuestionIndex].questionType !== 'SINWALK' && questions[currentQuestionIndex].questionType !== 'LOGWALK' && questions[currentQuestionIndex].questionType !== 'LOGDEFWALK') {
         mistakeQueueRef.current = [...mistakeQueueRef.current, questions[currentQuestionIndex]]
       }
 
