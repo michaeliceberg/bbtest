@@ -27,7 +27,7 @@
 
 'use client'
 
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
@@ -36,6 +36,7 @@ import {
     pickWalkthroughNextLabel, CORRECT_FEEDBACK_PHRASES,
     ACTIVE_COLOR, WRONG_COLOR, CORRECT_COLOR, ATTENTION_COLOR,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
+    SceneWrapper, useSceneFocus, BackButton,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -533,6 +534,22 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
 
     const endRef = useStickToBottom([step, stepReady, phase, trialIndex, checked, advancing])
 
+    // Фокус/затемнение прошлых сцен + "назад" (см. useSceneFocus в
+    // WalkthroughLog.tsx) — та же схема ключей, что и в SINWALK.
+    const latestSceneKey = phase === 'intro' ? `step-${step}` : `trial-${trialIndex}`
+    const prevSceneKeyOf = (key: string): string | null => {
+        if (key.startsWith('trial-')) {
+            const idx = Number(key.slice('trial-'.length))
+            return idx > 0 ? `trial-${idx - 1}` : `step-${INTRO_STEPS - 1}`
+        }
+        if (key.startsWith('step-')) {
+            const idx = Number(key.slice('step-'.length))
+            return idx > 0 ? `step-${idx - 1}` : null
+        }
+        return null
+    }
+    const { isActive: isSceneActive, sceneRef, goBack, canGoBack } = useSceneFocus(latestSceneKey, prevSceneKeyOf)
+
     return (
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
             <div className="w-full flex flex-col gap-4">
@@ -540,16 +557,16 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                     просьбе пользователя убрана целиком). stepReady включает
                     сама диаграмма (DiagramBlock.onSettled), раз текста
                     печатать больше не нужно. */}
-                <Fragment key="step-0">
+                <SceneWrapper key="step-0" innerRef={sceneRef('step-0')} active={isSceneActive('step-0')}>
                     <DiagramBlock onSettled={() => setStepReady(true)}>
                         <ExampleFormula baseHighlighted={false} showRightSide={false} showProduct={false} showResult={false} />
                     </DiagramBlock>
-                </Fragment>
+                </SceneWrapper>
 
                 {/* Шаг 1 — основания (двойки) становятся стикерами;
                     "2" в тексте объяснения — тоже настоящий стикер. */}
                 {step >= 1 && (
-                    <Fragment key="step-1">
+                    <SceneWrapper key="step-1" innerRef={sceneRef('step-1')} active={isSceneActive('step-1')}>
                         <DiagramBlock><ExampleFormula baseHighlighted showRightSide={false} showProduct={false} showResult={false} /></DiagramBlock>
                         <TypedLineWithSticker
                             before="Заметим что у них одинаковое основание - это "
@@ -557,12 +574,12 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                             stickerColor={BASE_COLOR}
                             onSettled={() => setStepReady(true)}
                         />
-                    </Fragment>
+                    </SceneWrapper>
                 )}
 
                 {/* Шаг 2 — справа дописывается "= log₂", то же основание. */}
                 {step >= 2 && (
-                    <Fragment key="step-2">
+                    <SceneWrapper key="step-2" innerRef={sceneRef('step-2')} active={isSceneActive('step-2')}>
                         <DiagramBlock><ExampleFormula baseHighlighted showRightSide showProduct={false} showResult={false} /></DiagramBlock>
                         <TypedLineWithSticker
                             before="Поэтому получится логарифм с тем же основанием "
@@ -570,13 +587,13 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                             stickerColor={BASE_COLOR}
                             onSettled={() => setStepReady(true)}
                         />
-                    </Fragment>
+                    </SceneWrapper>
                 )}
 
                 {/* Шаг 3 — аргументы 3 и 5 РАЗНЫМИ цветами, стрелка от "+"
                     к "·" (сумма превращается в произведение). */}
                 {step >= 3 && (
-                    <Fragment key="step-3">
+                    <SceneWrapper key="step-3" innerRef={sceneRef('step-3')} active={isSceneActive('step-3')}>
                         <DiagramBlock>
                             <div ref={step3Ref} className="relative w-full">
                                 <ExampleFormula baseHighlighted arg1Color={ARG_COLOR_X} arg2Color={ARG_COLOR_Y} showRightSide showProduct showResult={false} />
@@ -590,7 +607,7 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                             highlight
                             onSettled={() => setStepReady(true)}
                         />
-                    </Fragment>
+                    </SceneWrapper>
                 )}
 
                 {/* Шаг 4 — итог. По прямой просьбе пользователя ВСЯ формула
@@ -598,10 +615,10 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                     показано в шаге 3 выше) — просто короткий "Ответ:
                     log₂15", с конфетти в момент появления. */}
                 {step >= 4 && (
-                    <Fragment key="step-4">
+                    <SceneWrapper key="step-4" innerRef={sceneRef('step-4')} active={isSceneActive('step-4')}>
                         <AnswerLine onSettled={() => { setStepReady(true); setShowAnswerConfetti(true) }} />
                         {showAnswerConfetti && <LocalAnswerConfetti />}
-                    </Fragment>
+                    </SceneWrapper>
                 )}
 
                 {phase === 'practice' && Array.from({ length: trialIndex + 1 }).map((_, i) => {
@@ -611,7 +628,7 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                     const answer = trialAnswers[i]
                     const correctValue = t.x * t.y
                     return (
-                        <div key={`trial-${i}`} className="w-full flex flex-col gap-3">
+                        <SceneWrapper key={`trial-${i}`} innerRef={sceneRef(`trial-${i}`)} active={isSceneActive(`trial-${i}`)}>
                             <div className="flex items-start gap-3 w-full">
                                 <div
                                     className="shrink-0 flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
@@ -662,7 +679,7 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                                 размонтируется, как только переходим к
                                 следующему (см. LocalAnswerConfetti). */}
                             {isCurrent && isDone && answer === correctValue && <LocalAnswerConfetti />}
-                        </div>
+                        </SceneWrapper>
                     )
                 })}
 
@@ -671,12 +688,14 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
 
             {phase === 'intro' ? (
                 <div className="w-full flex items-center gap-2">
+                    <BackButton onClick={goBack} disabled={advancing || !canGoBack} />
                     <button type="button" onClick={handleIntroNext} disabled={!stepReady || advancing} className={walkthroughButtonClass(stepReady && !advancing)} style={walkthroughButtonStyle(stepReady && !advancing)}>
                         {introNextLabel}
                     </button>
                 </div>
             ) : checked ? (
                 <div className="w-full flex items-center gap-2">
+                    <BackButton onClick={goBack} disabled={advancing || !canGoBack} />
                     <button type="button" onClick={handleNextTrial} disabled={advancing} className={walkthroughButtonClass(!advancing)} style={walkthroughButtonStyle(!advancing)}>
                         {trialIndex + 1 >= trials.length && trialAnswers[trialIndex] === currentCorrectValue ? 'Готово' : trialNextLabel}
                     </button>

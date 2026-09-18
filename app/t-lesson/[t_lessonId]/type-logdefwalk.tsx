@@ -31,7 +31,7 @@
 
 'use client'
 
-import { Fragment, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -41,9 +41,8 @@ import {
     pickWalkthroughNextLabel, CORRECT_FEEDBACK_PHRASES,
     ACTIVE_COLOR, WRONG_COLOR, CORRECT_COLOR, ATTENTION_COLOR,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
-    BlinkingExclaim,
+    BlinkingExclaim, SceneWrapper, useSceneFocus, BackButton,
 } from '@/components/geometry/WalkthroughLog'
-import { HighlightWord } from '@/components/geometry/WalkthroughMarker'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
@@ -213,11 +212,12 @@ const RememberBanner = () => (
 )
 
 // Печатаемая строка ЗАПОМНИ/ВНИМАНИЕ-баннера с ДВУМЯ красными акцентами —
-// слово "нельзя" красным СТИКЕРОМ (та же боксовая рамка, что и у чисел-
-// стикеров, не просто цветной текст) И ключевая фраза дальше — тем же
-// приёмом, что TypedKeyPhraseLine (HighlightWord, "выезжающая" подложка).
-// По прямой просьбе пользователя — "нельзя" тоже сделать красным
-// стикером, в ДОПОЛНЕНИЕ к уже подсвеченной фразе, не вместо неё.
+// слово "нельзя" И ключевая фраза дальше — ОБА красными боксовыми
+// СТИКЕРАМИ (та же рамка, что и у числовых стикеров), не текстовыделителем.
+// Раньше фраза шла через HighlightWord ("выезжающая" подложка) — по
+// прямой просьбе пользователя (2026-09-18, "надо не текстовыделителем, а
+// красным стикером, чтобы всё было в одном стиле") переведена на Sticker,
+// единый визуальный язык с "нельзя".
 const TypedForbidLine = ({
     before, stickerWord, between, phrase, after = '.', color, onSettled,
 }: {
@@ -236,7 +236,7 @@ const TypedForbidLine = ({
                     {before}
                     <Sticker value={stickerWord} color={color} />
                     {between}
-                    <HighlightWord active color={color}>{phrase}</HighlightWord>
+                    <Sticker value={phrase} color={color} />
                     {after}
                 </>
             )}
@@ -395,11 +395,28 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
 
     const endRef = useStickToBottom([step, stepReady, phase, existIndex, existChecked, advancing, quizAnswers])
 
+    // Фокус/затемнение прошлых сцен + "назад" (см. useSceneFocus в
+    // WalkthroughLog.tsx) — та же схема ключей, что и в SINWALK/LOGWALK,
+    // только вторая фаза называется "exist-N", а не "trial-N".
+    const latestSceneKey = phase === 'intro' ? `step-${step}` : `exist-${existIndex}`
+    const prevSceneKeyOf = (key: string): string | null => {
+        if (key.startsWith('exist-')) {
+            const idx = Number(key.slice('exist-'.length))
+            return idx > 0 ? `exist-${idx - 1}` : `step-${TOTAL_INTRO_STEPS - 1}`
+        }
+        if (key.startsWith('step-')) {
+            const idx = Number(key.slice('step-'.length))
+            return idx > 0 ? `step-${idx - 1}` : null
+        }
+        return null
+    }
+    const { isActive: isSceneActive, sceneRef, goBack, canGoBack } = useSceneFocus(latestSceneKey, prevSceneKeyOf)
+
     return (
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
             <div className="w-full flex flex-col gap-4">
                 {/* Шаг 0 — определение через 2³=8 → log₂8=3. */}
-                <Fragment key="step-0">
+                <SceneWrapper key="step-0" innerRef={sceneRef('step-0')} active={isSceneActive('step-0')}>
                     <DiagramBlock>
                         <FormulaRow>
                             <PowerExpr base={<Plain>2</Plain>} exp={<Plain>3</Plain>} />
@@ -438,7 +455,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                             />
                         </>
                     )}
-                </Fragment>
+                </SceneWrapper>
 
                 {/* Шаги 1-4 — практика: чему равен log_a x? */}
                 {LOG_QUIZZES.map((def, idx) => {
@@ -446,7 +463,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                     if (step < i) return null
                     const answer = quizAnswers[i]
                     return (
-                        <Fragment key={`step-${i}`}>
+                        <SceneWrapper key={`step-${i}`} innerRef={sceneRef(`step-${i}`)} active={isSceneActive(`step-${i}`)}>
                             <DiagramBlock>
                                 <FormulaRow>
                                     <LogExpr
@@ -469,13 +486,13 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                                     {confettiFor === `step-${i}` && <LocalAnswerConfetti />}
                                 </>
                             )}
-                        </Fragment>
+                        </SceneWrapper>
                     )
                 })}
 
                 {/* Шаг 5 — ЗАПОМНИ: отрицательные числа. */}
                 {step >= 5 && (
-                    <Fragment key="step-5">
+                    <SceneWrapper key="step-5" innerRef={sceneRef('step-5')} active={isSceneActive('step-5')}>
                         <DiagramBlock><RememberBanner /></DiagramBlock>
                         <TypedForbidLine
                             before="В логарифм "
@@ -505,15 +522,15 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                                 </FormulaRow>
                             </div>
                         </DiagramBlock>
-                    </Fragment>
+                    </SceneWrapper>
                 )}
 
                 {/* Шаг 6 — ЗАПОМНИ: основание не может быть 1. */}
                 {step >= 6 && (
-                    <Fragment key="step-6">
+                    <SceneWrapper key="step-6" innerRef={sceneRef('step-6')} active={isSceneActive('step-6')}>
                         <DiagramBlock><RememberBanner /></DiagramBlock>
                         <TypedForbidLine
-                            before="В основание логарифма "
+                            before="А ещё в основание логарифма "
                             stickerWord="нельзя"
                             between=" писать "
                             phrase="1"
@@ -532,7 +549,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                                 </FormulaRow>
                             </div>
                         </DiagramBlock>
-                    </Fragment>
+                    </SceneWrapper>
                 )}
 
                 {/* Финальная викторина — "бывает ли такой логарифм?", БЕЗ
@@ -542,7 +559,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                     const isDone = i < existIndex || (isCurrent && existChecked)
                     const guess = existAnswers[i]
                     return (
-                        <div key={`exist-${i}`} className="w-full flex flex-col gap-3">
+                        <SceneWrapper key={`exist-${i}`} innerRef={sceneRef(`exist-${i}`)} active={isSceneActive(`exist-${i}`)}>
                             <div className="flex items-start gap-3 w-full">
                                 <div
                                     className="shrink-0 flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
@@ -584,7 +601,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                                     {confettiFor === `exist-${i}` && <LocalAnswerConfetti />}
                                 </>
                             )}
-                        </div>
+                        </SceneWrapper>
                     )
                 })}
 
@@ -593,9 +610,13 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
 
             {phase === 'intro' ? (
                 (step <= 4 && quizAnswers[step] === null) ? (
-                    <p className="text-sm text-[#9AA7B0] text-center">Кликни на вариант выше</p>
+                    <div className="w-full flex items-center gap-2">
+                        <BackButton onClick={goBack} disabled={advancing || !canGoBack} />
+                        <p className="flex-1 text-sm text-[#9AA7B0] text-center">Кликни на вариант выше</p>
+                    </div>
                 ) : (
                     <div className="w-full flex items-center gap-2">
+                        <BackButton onClick={goBack} disabled={advancing || !canGoBack} />
                         <button type="button" onClick={handleIntroNext} disabled={!stepReady || advancing} className={walkthroughButtonClass(stepReady && !advancing)} style={walkthroughButtonStyle(stepReady && !advancing)}>
                             {introNextLabel}
                         </button>
@@ -603,12 +624,16 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                 )
             ) : existChecked ? (
                 <div className="w-full flex items-center gap-2">
+                    <BackButton onClick={goBack} disabled={advancing || !canGoBack} />
                     <button type="button" onClick={handleExistNext} disabled={advancing} className={walkthroughButtonClass(!advancing)} style={walkthroughButtonStyle(!advancing)}>
                         {existIndex + 1 >= EXIST_ITEMS.length ? 'Готово' : existNextLabel}
                     </button>
                 </div>
             ) : (
-                <p className="text-sm text-[#9AA7B0] text-center">Выбери ДА или НЕТ</p>
+                <div className="w-full flex items-center gap-2">
+                    <BackButton onClick={goBack} disabled={advancing || !canGoBack} />
+                    <p className="flex-1 text-sm text-[#9AA7B0] text-center">Выбери ДА или НЕТ</p>
+                </div>
             )}
         </div>
     )

@@ -18,6 +18,7 @@ import { motion } from 'framer-motion'
 import Latex from 'react-latex-next'
 import Confetti from 'react-confetti'
 import { useWindowSize } from 'react-use'
+import { ArrowLeft } from 'lucide-react'
 import { HighlightWord } from './WalkthroughMarker'
 import { Typewriter } from './Typewriter'
 import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors'
@@ -84,6 +85,79 @@ export const walkthroughButtonClass = (enabled: boolean) => cn(
 export const walkthroughButtonStyle = (enabled: boolean): { boxShadow: string } => ({
     boxShadow: enabled ? '0 4px 0 #876E4A' : '0 4px 0 #1A2A3A',
 });
+
+// ===== "Фокус" на текущей сцене накопительного лога — по прямой просьбе
+// пользователя (2026-09-18): когда начинается новая сцена, все ПРЕДЫДУЩИЕ
+// становятся бледнее (opacity), чтобы взгляд сразу понимал, куда смотреть
+// теперь. Плюс кнопка-стрелка "назад" (рядом с уже существующей
+// "Повторить" там, где она есть) — возвращает ВЗГЛЯД (не прогресс/ответы)
+// к предыдущей уже показанной сцене лога. Общий кусок для ВСЕХ разборов
+// (SINWALK/LOGWALK/LOGDEFWALK/LOGSUBWALK) — каждый передаёт свой
+// `latestKey` (какая сцена сейчас новая) и `prevKeyOf` (как вычислить
+// ключ ПРЕДЫДУЩЕЙ сцены по текущему — порядок шагов/фаз у каждого свой,
+// знает только сам разбор). =====
+
+export function useSceneFocus(latestKey: string, prevKeyOf: (key: string) => string | null) {
+    // null = "автослежение" — фокус всегда на latestKey (обычное
+    // поведение, пока пользователь явно не нажал "назад"). Строка —
+    // пользователь явно листает предыдущую сцену; сбрасывается обратно в
+    // null, как только появляется НОВАЯ сцена (см. эффект ниже) — тот же
+    // принцип, что и у useStickToBottom для скролла, только для
+    // подсветки/затемнения.
+    const [focusedKey, setFocusedKey] = useState<string | null>(null)
+    const refs = useRef<Record<string, HTMLDivElement | null>>({})
+
+    useEffect(() => { setFocusedKey(null) }, [latestKey])
+
+    const activeKey = focusedKey ?? latestKey
+    const isActive = (key: string) => key === activeKey
+    const sceneRef = (key: string) => (el: HTMLDivElement | null) => { refs.current[key] = el }
+
+    const backTarget = prevKeyOf(activeKey)
+    const goBack = () => {
+        if (!backTarget) return
+        setFocusedKey(backTarget)
+        // Целевой узел — уже показанная ПРОШЛАЯ сцена, уже смонтирована —
+        // скроллим сразу, без ожидания следующего кадра.
+        refs.current[backTarget]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+
+    return { isActive, sceneRef, goBack, canGoBack: !!backTarget }
+}
+
+// Обёртка ОДНОЙ сцены лога — тускнеет, когда перестаёт быть "текущей" (см.
+// useSceneFocus). Key/ref на НЕЙ обязаны быть СТАБИЛЬНЫМИ (не завязаны на
+// replay-nonce конкретного разбора, см. SINWALK) — иначе клик "Повторить"
+// пересоздавал бы саму обёртку вместе с DOM-узлом, который нужен для
+// скролла "назад", вместо того чтобы пересоздавать только содержимое.
+export const SceneWrapper = ({ active, innerRef, children }: { active: boolean; innerRef?: React.Ref<HTMLDivElement>; children: React.ReactNode }) => (
+    <motion.div
+        ref={innerRef}
+        animate={{ opacity: active ? 1 : 0.4 }}
+        transition={{ duration: 0.6, ease: 'easeInOut' }}
+        className="w-full flex flex-col gap-4"
+    >
+        {children}
+    </motion.div>
+)
+
+// Кнопка-стрелка "назад" — тот же визуальный язык 3D-квадратной кнопки,
+// что уже использует ReplayButton (SINWALK), просто с другой иконкой;
+// ставится РЯДОМ с ней там, где она уже есть, и отдельно там, где её нет.
+export const BackButton = ({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) => (
+    <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        title="Вернуться к предыдущей сцене"
+        className={cn(
+            'shrink-0 w-12 py-3 rounded-xl border-2 border-b-4 active:border-b-2 transition-colors flex items-center justify-center',
+            disabled ? 'bg-[#161F23] border-[#2A343A] text-[#3A464E] cursor-not-allowed' : 'bg-[#1B252B] border-[#3A464E] text-[#9AA7B0] hover:text-[#F2F7FB] hover:border-[#4A5860]'
+        )}
+    >
+        <ArrowLeft className="w-5 h-5" />
+    </button>
+)
 
 // Конфетти на "локальный" верный ответ ВНУТРИ разбора по шагам — по
 // прямой просьбе пользователя, во ВСЕХ таких разборах (SINWALK, LOGWALK

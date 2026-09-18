@@ -37,7 +37,11 @@ import {
     type AlphaVertex, type SideId,
 } from '@/components/geometry/RightTriangleDiagram'
 import { MARKER_COLOR, MARKER_COLOR_GREEN } from '@/components/geometry/WalkthroughMarker'
-import { TypedLine, TypedKeyPhraseLine, DiagramBlock, useStickToBottom, pickWalkthroughNextLabel, CORRECT_FEEDBACK_PHRASES, walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti } from '@/components/geometry/WalkthroughLog'
+import {
+    TypedLine, TypedKeyPhraseLine, DiagramBlock, useStickToBottom, pickWalkthroughNextLabel, CORRECT_FEEDBACK_PHRASES,
+    walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
+    SceneWrapper, useSceneFocus, BackButton,
+} from '@/components/geometry/WalkthroughLog'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 
 // Пауза ПОСЛЕ клика "Дальше", ДО начала новой анимации следующей сцены
@@ -245,6 +249,23 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
 
     const endRef = useStickToBottom([step, stepReady, phase, trialIndex, checked, advancing])
 
+    // Фокус/затемнение прошлых сцен + "назад" (см. useSceneFocus в
+    // WalkthroughLog.tsx) — ключи сцен СТАБИЛЬНЫЕ (`step-N`/`trial-N`, без
+    // replayNonce), иначе клик "Повторить" сбрасывал бы фокус/ref.
+    const latestSceneKey = phase === 'intro' ? `step-${step}` : `trial-${trialIndex}`
+    const prevSceneKeyOf = (key: string): string | null => {
+        if (key.startsWith('trial-')) {
+            const idx = Number(key.slice('trial-'.length))
+            return idx > 0 ? `trial-${idx - 1}` : `step-${INTRO_STEPS - 1}`
+        }
+        if (key.startsWith('step-')) {
+            const idx = Number(key.slice('step-'.length))
+            return idx > 0 ? `step-${idx - 1}` : null
+        }
+        return null
+    }
+    const { isActive: isSceneActive, sceneRef, goBack, canGoBack } = useSceneFocus(latestSceneKey, prevSceneKeyOf)
+
     return (
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
             <div className="w-full flex flex-col gap-4">
@@ -252,14 +273,16 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
                     синус угла?") здесь НЕ дублируется — его уже показывает
                     облако маскота над карточкой (TrainerMascot.taskMessage),
                     свой <h2> с тем же текстом раньше был лишним повтором. */}
-                <Fragment key={`step-0-${replayNonceFor('step-0')}`}>
-                    <DiagramBlock><RightTriangleDiagram /></DiagramBlock>
-                    <TypedLine
-                        className="w-full text-base md:text-lg text-[#F2F7FB]"
-                        text="Это прямоугольный треугольник — у него есть прямой угол."
-                        onSettled={() => setStepReady(true)}
-                    />
-                </Fragment>
+                <SceneWrapper key="step-0" innerRef={sceneRef('step-0')} active={isSceneActive('step-0')}>
+                    <Fragment key={`step-0-${replayNonceFor('step-0')}`}>
+                        <DiagramBlock><RightTriangleDiagram /></DiagramBlock>
+                        <TypedLine
+                            className="w-full text-base md:text-lg text-[#F2F7FB]"
+                            text="Это прямоугольный треугольник — у него есть прямой угол."
+                            onSettled={() => setStepReady(true)}
+                        />
+                    </Fragment>
+                </SceneWrapper>
 
                 {/* Шаг 1 — появляется маркер прямого угла (с zoom-эффектом
                     "смотри сюда" — камера ненадолго приближается к углу,
@@ -270,46 +293,52 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
                     тексте ниже — просто жирным зелёным (без текстовыделителя,
                     по прямой просьбе пользователя убрать этот эффект). */}
                 {step >= 1 && (
-                    <Fragment key={`step-1-${replayNonceFor('step-1')}`}>
-                        <DiagramBlock><RightTriangleDiagram rightAngleMarkShown legsLabelShown zoomFocus="rightAngle" /></DiagramBlock>
-                        <TypedKeyPhraseLine
-                            before="Вот он — прямой угол между двумя "
-                            phrase="катетами"
-                            after=" треугольника."
-                            color={MARKER_COLOR_GREEN}
-                            onSettled={() => setStepReady(true)}
-                        />
-                    </Fragment>
+                    <SceneWrapper key="step-1" innerRef={sceneRef('step-1')} active={isSceneActive('step-1')}>
+                        <Fragment key={`step-1-${replayNonceFor('step-1')}`}>
+                            <DiagramBlock><RightTriangleDiagram rightAngleMarkShown legsLabelShown zoomFocus="rightAngle" /></DiagramBlock>
+                            <TypedKeyPhraseLine
+                                before="Вот он — прямой угол между двумя "
+                                phrase="катетами"
+                                after=" треугольника."
+                                color={MARKER_COLOR_GREEN}
+                                onSettled={() => setStepReady(true)}
+                            />
+                        </Fragment>
+                    </SceneWrapper>
                 )}
 
                 {/* Шаг 2 — гипотенуза (ключевая фраза, подпись вдоль стороны). */}
                 {step >= 2 && (
-                    <Fragment key={`step-2-${replayNonceFor('step-2')}`}>
-                        <DiagramBlock>
-                            <RightTriangleDiagram rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown />
-                        </DiagramBlock>
-                        <TypedKeyPhraseLine
-                            before="Сторона напротив прямого угла — самая длинная сторона треугольника. Она называется "
-                            phrase="гипотенуза"
-                            color={HYPOTENUSE_COLOR}
-                            onSettled={() => setStepReady(true)}
-                        />
-                    </Fragment>
+                    <SceneWrapper key="step-2" innerRef={sceneRef('step-2')} active={isSceneActive('step-2')}>
+                        <Fragment key={`step-2-${replayNonceFor('step-2')}`}>
+                            <DiagramBlock>
+                                <RightTriangleDiagram rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown />
+                            </DiagramBlock>
+                            <TypedKeyPhraseLine
+                                before="Сторона напротив прямого угла — самая длинная сторона треугольника. Она называется "
+                                phrase="гипотенуза"
+                                color={HYPOTENUSE_COLOR}
+                                onSettled={() => setStepReady(true)}
+                            />
+                        </Fragment>
+                    </SceneWrapper>
                 )}
 
                 {/* Шаг 3 — выбираем угол α (тоже с zoom-эффектом на саму
                     вершину, где рисуется дуга угла). */}
                 {step >= 3 && (
-                    <Fragment key={`step-3-${replayNonceFor('step-3')}`}>
-                        <DiagramBlock>
-                            <RightTriangleDiagram rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown alphaVertex="P" zoomFocus="alpha" />
-                        </DiagramBlock>
-                        <TypedLine
-                            className="w-full text-base md:text-lg text-[#F2F7FB]"
-                            text="Теперь выберем один из двух других углов — назовём его α (альфа)."
-                            onSettled={() => setStepReady(true)}
-                        />
-                    </Fragment>
+                    <SceneWrapper key="step-3" innerRef={sceneRef('step-3')} active={isSceneActive('step-3')}>
+                        <Fragment key={`step-3-${replayNonceFor('step-3')}`}>
+                            <DiagramBlock>
+                                <RightTriangleDiagram rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown alphaVertex="P" zoomFocus="alpha" />
+                            </DiagramBlock>
+                            <TypedLine
+                                className="w-full text-base md:text-lg text-[#F2F7FB]"
+                                text="Теперь выберем один из двух других углов — назовём его α (альфа)."
+                                onSettled={() => setStepReady(true)}
+                            />
+                        </Fragment>
+                    </SceneWrapper>
                 )}
 
                 {/* Шаг 4 — противолежащий катет. Камера панорамирует от α к
@@ -319,20 +348,22 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
                     формате (без золотого/мигающего акцента, по прямой
                     просьбе пользователя убрать этот эффект). */}
                 {step >= 4 && (
-                    <Fragment key={`step-4-${replayNonceFor('step-4')}`}>
-                        <DiagramBlock>
-                            <RightTriangleDiagram
-                                rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown alphaVertex="P" zoomFocus="alphaToOppositeLeg"
-                                oppositeLegHighlighted oppositeLegLabelShown
+                    <SceneWrapper key="step-4" innerRef={sceneRef('step-4')} active={isSceneActive('step-4')}>
+                        <Fragment key={`step-4-${replayNonceFor('step-4')}`}>
+                            <DiagramBlock>
+                                <RightTriangleDiagram
+                                    rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown alphaVertex="P" zoomFocus="alphaToOppositeLeg"
+                                    oppositeLegHighlighted oppositeLegLabelShown
+                                />
+                            </DiagramBlock>
+                            <TypedKeyPhraseLine
+                                before="Катет напротив угла α называется "
+                                phrase="противолежащий катет"
+                                color={LEG_COLOR}
+                                onSettled={() => setStepReady(true)}
                             />
-                        </DiagramBlock>
-                        <TypedKeyPhraseLine
-                            before="Катет напротив угла α называется "
-                            phrase="противолежащий катет"
-                            color={LEG_COLOR}
-                            onSettled={() => setStepReady(true)}
-                        />
-                    </Fragment>
+                        </Fragment>
+                    </SceneWrapper>
                 )}
 
                 {phase === 'practice' && Array.from({ length: trialIndex + 1 }).map((_, i) => {
@@ -342,6 +373,7 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
                     const answer = trialAnswers[i]
                     const correctSide = oppositeLegOf(cfg.alphaVertex)
                     return (
+                        <SceneWrapper key={`trial-${i}`} innerRef={sceneRef(`trial-${i}`)} active={isSceneActive(`trial-${i}`)}>
                         <div key={`trial-${i}-${replayNonceFor(`trial-${i}`)}`} className="w-full flex flex-col gap-3">
                             {/* "N из M" — отдельная цветная плашка (не часть
                                 печатаемого текста); сама фраза-задание
@@ -404,6 +436,7 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
                                 при переходе к следующему. */}
                             {isCurrent && isDone && answer === correctSide && <LocalAnswerConfetti />}
                         </div>
+                        </SceneWrapper>
                     )
                 })}
 
@@ -413,6 +446,7 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
             {phase === 'intro' ? (
                 <div className="w-full flex items-center gap-2">
                     <ReplayButton onClick={handleReplay} disabled={advancing} />
+                    <BackButton onClick={goBack} disabled={advancing || !canGoBack} />
                     <button type="button" onClick={handleIntroNext} disabled={!stepReady || advancing} className={walkthroughButtonClass(stepReady && !advancing)} style={walkthroughButtonStyle(stepReady && !advancing)}>
                         {introNextLabel}
                     </button>
@@ -420,6 +454,7 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
             ) : checked ? (
                 <div className="w-full flex items-center gap-2">
                     <ReplayButton onClick={handleReplay} disabled={advancing} />
+                    <BackButton onClick={goBack} disabled={advancing || !canGoBack} />
                     <button type="button" onClick={handleNextTrial} disabled={advancing} className={walkthroughButtonClass(!advancing)} style={walkthroughButtonStyle(!advancing)}>
                         {/* "Готово" — ТОЛЬКО если это реально последнее и
                             ВЕРНО решённое задание (клик завершит практику).

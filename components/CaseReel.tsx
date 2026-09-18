@@ -20,7 +20,7 @@ import { Gift, Sparkles } from 'lucide-react'
 import { openCase, type OpenCaseResult } from '@/actions/open-case'
 import {
   getCasePool, isJackpotReward, pickWeightedReward, rewardEmoji, rewardLabel, type CaseReward,
-  LESSON_CASE_TIER_STYLE, LESSON_CASE_TIER_LABEL, type LessonCaseTier,
+  LESSON_CASE_TIER_STYLE, LESSON_CASE_TIER_ICON, type LessonCaseTier,
 } from '@/lib/caseRewards'
 import LottieCoins from '@/public/Lottie/LottieCoins.json'
 import LottieGems from '@/public/Lottie/LottieGems.json'
@@ -233,16 +233,21 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
     return (
         <div className="w-full max-w-md mx-auto px-4 py-6 flex flex-col items-center gap-5">
             {isJackpot && <Confetti width={width} height={height} recycle={false} numberOfPieces={260} />}
-            {tier && (
-                <div
-                    className="px-3 py-1 rounded-full border text-xs font-black uppercase tracking-wider"
-                    style={{ backgroundColor: LESSON_CASE_TIER_STYLE[tier].bg, borderColor: LESSON_CASE_TIER_STYLE[tier].border, color: LESSON_CASE_TIER_STYLE[tier].color }}
-                >
-                    {LESSON_CASE_TIER_LABEL[tier]} КЕЙС
-                </div>
-            )}
-            <div className="flex items-center gap-2 text-[#F2F7FB]">
-                <Gift className={isMega ? 'w-6 h-6 text-[#FFD460]' : 'w-5 h-5 text-[#EF9F27]'} style={tier ? { color: LESSON_CASE_TIER_STYLE[tier].color } : undefined} />
+            {/* Заголовок — по прямой просьбе пользователя (2026-09-18)
+                отдельная рамка-бейдж "ОБЫЧНЫЙ КЕЙС" над этой строкой убрана
+                целиком, а иконка теперь сама показывает редкость: у "кейса
+                за урок" (tier задан) — настоящая SVG-картинка кейса своей
+                редкости (тот же набор, что и у мифического сундука на
+                экране "Серия без остановки"), вместо голой lucide-иконки
+                Gift; у позиционных кейса/мегакейса на карте скиллов и
+                мегакейса за горячий вопрос (tier не задан, только isMega)
+                — Gift не тронут, как и было. */}
+            <div className="flex items-center gap-2.5 text-[#F2F7FB]">
+                {tier ? (
+                    <img src={LESSON_CASE_TIER_ICON[tier]} alt="" className="w-9 h-9 shrink-0" />
+                ) : (
+                    <Gift className={isMega ? 'w-6 h-6 text-[#FFD460]' : 'w-5 h-5 text-[#EF9F27]'} />
+                )}
                 <span className="font-black text-lg tracking-wide" style={tier ? { color: LESSON_CASE_TIER_STYLE[tier].color } : undefined}>{title ?? (isMega ? 'Мегакейс' : 'Кейс')}</span>
             </div>
 

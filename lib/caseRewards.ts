@@ -85,10 +85,23 @@ export const MYTHIC_CASE_POOL: CaseReward[] = [
 export const getLessonCasePool = (tier: LessonCaseTier): CaseReward[] =>
 	tier === 'mythic' ? MYTHIC_CASE_POOL : tier === 'rare' ? MEGA_CASE_POOL : REGULAR_CASE_POOL
 
+// Заголовок над барабаном — по прямой просьбе пользователя (2026-09-18)
+// "Обычный" приведён к тому же формату "<редкость> кейс", что уже был у
+// rare/mythic (было "Кейс за урок" — не в ряд с остальными двумя).
 export const LESSON_CASE_TIER_TITLES: Record<LessonCaseTier, string> = {
-	common: 'Кейс за урок',
+	common: 'Обычный кейс',
 	rare: 'Редкий кейс',
 	mythic: 'Мифический кейс!',
+}
+
+// Иконка самого КЕЙСА (не награды внутри) по редкости — те же SVG, что
+// уже рисуют мифический сундук на экране "Серия без остановки" (см.
+// components/trainer-lesson-complete-screen.tsx) — common/rare версии
+// того же набора, единый визуальный язык вместо lucide-иконки "Gift".
+export const LESSON_CASE_TIER_ICON: Record<LessonCaseTier, string> = {
+	common: '/chests/comm0001.svg',
+	rare: '/chests/rare0001.svg',
+	mythic: '/chests/myth0001.svg',
 }
 
 // Цвет редкости самого КЕЙСА (не награды внутри него) — по прямой просьбе
