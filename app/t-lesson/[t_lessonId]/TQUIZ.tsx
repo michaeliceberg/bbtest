@@ -869,46 +869,52 @@ export default function TQuiz({
       <>
         <TgSendMsgCom message={message} />
         {(isPerfectScore || hotQuestionWon || isChestStage || isMegaChestStage || !!wonLessonCaseReward) && <Confetti width={width} height={height} />}
-        {wonHotCaseReward && (
-          <CaseWonBanner mega reward={wonHotCaseReward} label="Горячий вопрос" />
-        )}
-        {wonCaseReward && (isMegaChestStage || isChestStage) && (
-          <CaseWonBanner mega={!!isMegaChestStage} reward={wonCaseReward} />
-        )}
-        {wonLessonCaseReward && lessonCaseTier && (
-          <CaseWonBanner
-            mega={lessonCaseTier !== 'common'}
-            reward={wonLessonCaseReward}
-            label={chainBonusLength ? `🔥 Серия x${chainBonusLength}` : LESSON_CASE_TIER_TITLES[lessonCaseTier]}
+        {/* Ограничение шириной телефона на десктопе — та же обёртка, что
+            уже используется для showChestReward выше (max-w-xl mx-auto),
+            по прямой просьбе пользователя (этот экран открывался на всю
+            ширину десктопного браузера, 2026-09-18). */}
+        <div className="w-full max-w-xl mx-auto">
+          {wonHotCaseReward && (
+            <CaseWonBanner mega reward={wonHotCaseReward} label="Горячий вопрос" />
+          )}
+          {wonCaseReward && (isMegaChestStage || isChestStage) && (
+            <CaseWonBanner mega={!!isMegaChestStage} reward={wonCaseReward} />
+          )}
+          {wonLessonCaseReward && lessonCaseTier && (
+            <CaseWonBanner
+              mega={lessonCaseTier !== 'common'}
+              reward={wonLessonCaseReward}
+              label={chainBonusLength ? `🔥 Серия x${chainBonusLength}` : LESSON_CASE_TIER_TITLES[lessonCaseTier]}
+            />
+          )}
+          {/* "Ударный час" ещё не дошёл до рубежа — подсказка, сколько
+              уроков подряд БЕЗ ошибок осталось до гарантированного mythic
+              (см. actions/roll-lesson-case.ts). Не показывается, если этот
+              же урок УЖЕ дал бонус цепочки (баннер выше это уже сказал). */}
+          {!chainBonusLength && chainHint && chainHint.alive && chainHint.count > 0 && chainHint.count < 3 && (
+            <p className="text-center text-xs font-semibold text-violet-300 -mt-1 mb-2">
+              🔥 Серия x{chainHint.count} без остановки — ещё {3 - chainHint.count} {declensionRu(3 - chainHint.count, 'урок', 'урока', 'уроков')} без ошибок и получишь гарантированный мифический кейс!
+            </p>
+          )}
+          <TrainerLessonCompleteScreen
+            lottieData={randomStreakCharacterLottie}
+            streak={maxStreakRef.current}
+            xp={earnedXp}
+            elapsedSeconds={elapsedSeconds}
+            primaryLabel={nextTLessonHref ? 'Следующий урок' : 'Завершить'}
+            onPrimary={nextTLessonHref ? handleNextLesson : handleFinishLesson}
+            secondaryLabel={nextTLessonHref ? 'Завершить' : undefined}
+            onSecondary={nextTLessonHref ? handleFinishLesson : undefined}
           />
-        )}
-        {/* "Ударный час" ещё не дошёл до рубежа — подсказка, сколько
-            уроков подряд БЕЗ ошибок осталось до гарантированного mythic
-            (см. actions/roll-lesson-case.ts). Не показывается, если этот
-            же урок УЖЕ дал бонус цепочки (баннер выше это уже сказал). */}
-        {!chainBonusLength && chainHint && chainHint.alive && chainHint.count > 0 && chainHint.count < 3 && (
-          <p className="text-center text-xs font-semibold text-violet-300 -mt-1 mb-2">
-            🔥 Серия x{chainHint.count} без остановки — ещё {3 - chainHint.count} {declensionRu(3 - chainHint.count, 'урок', 'урока', 'уроков')} без ошибок и получишь гарантированный мифический кейс!
-          </p>
-        )}
-        <TrainerLessonCompleteScreen
-          lottieData={randomStreakCharacterLottie}
-          streak={maxStreakRef.current}
-          xp={earnedXp}
-          elapsedSeconds={elapsedSeconds}
-          primaryLabel={nextTLessonHref ? 'Следующий урок' : 'Завершить'}
-          onPrimary={nextTLessonHref ? handleNextLesson : handleFinishLesson}
-          secondaryLabel={nextTLessonHref ? 'Завершить' : undefined}
-          onSecondary={nextTLessonHref ? handleFinishLesson : undefined}
-        />
-        {/* По просьбе пользователя временно убрана детальная таблица
-            "вопрос/ваш ответ/верный ответ" ниже итога — показалась
-            лишней на экране завершения (2026-08-31). Сам компонент
-            и данные (finishList) не удалены, легко вернуть обратно. */}
-        {/* <div className="pt-8">
-          <Separator />
+          {/* По просьбе пользователя временно убрана детальная таблица
+              "вопрос/ваш ответ/верный ответ" ниже итога — показалась
+              лишней на экране завершения (2026-08-31). Сам компонент
+              и данные (finishList) не удалены, легко вернуть обратно. */}
+          {/* <div className="pt-8">
+            <Separator />
+          </div>
+          <FinishTrainerStat finishList={finishList} /> */}
         </div>
-        <FinishTrainerStat finishList={finishList} /> */}
       </>
     )
   }
