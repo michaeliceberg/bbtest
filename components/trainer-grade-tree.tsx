@@ -63,11 +63,15 @@ const LOCKED_ICON_COLOR = '#56646C';
 // DONE_GRADIENT. Locked-состояние — приглушённая золотая рамка (не
 // сплошная серая LOCKED_BORDER) — тот же принцип, что уже даёт увидеть
 // ТИП этапа (сундук/босс) даже до разблокировки, просто тусклым.
-const STEPBYSTEP_GRADIENT = 'linear-gradient(135deg, #C9971C 0%, #FFD84D 50%, #C9971C 100%)';
-const STEPBYSTEP_BORDER = '#FFE9A8';
-const STEPBYSTEP_GLOW = '0 0 14px -1px rgba(255, 215, 0, 0.6)';
+// Приглушено по прямой просьбе пользователя ("слишком слепит") — тот же
+// металлический принцип (тёмный→светлый→тёмный по диагонали), но и
+// светлая точка градиента, и рамка, и свечение заметно темнее/тусклее
+// исходной ярко-жёлтой версии.
+const STEPBYSTEP_GRADIENT = 'linear-gradient(135deg, #8A6A1E 0%, #C9A544 50%, #8A6A1E 100%)';
+const STEPBYSTEP_BORDER = '#D9BC72';
+const STEPBYSTEP_GLOW = '0 0 10px -2px rgba(201, 165, 68, 0.4)';
 const STEPBYSTEP_ICON_COLOR = '#FFFFFF';
-const STEPBYSTEP_LOCKED_BORDER = 'rgba(255, 216, 77, 0.35)';
+const STEPBYSTEP_LOCKED_BORDER = 'rgba(201, 165, 68, 0.3)';
 // Цвет подсказки "сюда нажать дальше" (см. RippleGlow ниже) — намеренно
 // отдельный, третий акцент, не пересекающийся ни с violet "done", ни с
 // gold "chest", ни с обычной синей рамкой разблокированного этапа.
