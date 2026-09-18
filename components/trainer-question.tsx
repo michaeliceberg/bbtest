@@ -26,6 +26,7 @@ import { TypeVieta } from "@/app/t-lesson/[t_lessonId]/type-vieta"
 import { TypeSinWalk } from "@/app/t-lesson/[t_lessonId]/type-sinwalk"
 import { TypeLogWalk } from "@/app/t-lesson/[t_lessonId]/type-logwalk"
 import { TypeLogDefWalk } from "@/app/t-lesson/[t_lessonId]/type-logdefwalk"
+import { TypeLogSubWalk } from "@/app/t-lesson/[t_lessonId]/type-logsubwalk"
 import { TypeWorkbook } from "@/app/t-lesson/[t_lessonId]/type-workbook"
 import { TypeConstructor } from "@/app/t-lesson/[t_lessonId]/type-constructor"
 
@@ -342,6 +343,12 @@ export default function TrainerQuestion({
         // логарифм?"). См. type-logdefwalk.tsx.
         return <TypeLogDefWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
 
+      case "LOGSUBWALK":
+        // Тот же принцип, что и у LOGWALK (см. комментарий выше) — только
+        // разбор правила вычитания логарифмов (аргументы делятся). См.
+        // type-logsubwalk.tsx.
+        return <TypeLogSubWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
+
       case "TRIGTABLE":
         // select-then-submit, тот же контракт, что у ASSIST/INSERT/SCROLL —
         // пользователь может менять заполненные пропуски ДО нажатия общей
@@ -630,7 +637,7 @@ export default function TrainerQuestion({
           TRIGTABLE (как ASSIST/INSERT/SCROLL) — select-then-submit: общая
           кнопка сначала "Ответить" (когда все пропуски заполнены), затем
           "далее"/"понятно". */}
-      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "SINWALK" && question.questionType !== "LOGWALK" && question.questionType !== "LOGDEFWALK" && (
+      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "SINWALK" && question.questionType !== "LOGWALK" && question.questionType !== "LOGDEFWALK" && question.questionType !== "LOGSUBWALK" && (
       <div className="px-4 pb-4 pt-2 bg-[#151F24] relative">
         {/* Notification фон который выезжает при правильном ответе */}
         {answerState === "correct" && (

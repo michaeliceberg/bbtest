@@ -751,6 +751,26 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             };
         }
 
+        if (t_challenge.type === 'LOGSUBWALK') {
+            // Тот же самодостаточный принцип, что у LOGWALK (см. выше) —
+            // разбор правила вычитания логарифмов (log_a x - log_a y =
+            // log_a(x÷y)) на фиксированном примере 2/15/5/3, тренировочные
+            // задания генерируются на лету внутри type-logsubwalk.tsx.
+            return {
+                questionType: 'LOGSUBWALK' as const,
+                question: t_challenge.question,
+                imageSrc: t_challenge.imageSrc,
+                options: [],
+                numRans: t_challenge.numRans,
+                optionsQ: [],
+                optionsA: [],
+                optionsConstructRight: [],
+                difficulty: t_challenge.difficulty,
+                correctAnswer: 'right',
+                timeLimit: 999,
+            };
+        }
+
         if (t_challenge.type === 'LOGDEFWALK') {
             // Тот же самодостаточный принцип, что у SINWALK/LOGWALK — разбор
             // "что такое логарифм" (определение через 2³=8→log₂8=3, разбор

@@ -11,12 +11,13 @@
 export const isReviewStage = (title: string): boolean => /контрольн/i.test(title);
 
 // Типы самодостаточных интерактивных разборов "по шагам" (walkthrough) —
-// SINWALK/LOGWALK/LOGDEFWALK, см. app/t-lesson/[t_lessonId]/type-*.tsx.
-// Каждый такой t_lesson состоит РОВНО из одного challenge этого типа —
-// используется для отдельного визуального акцента на карте скиллов
-// тренажёра (золотая иконка книги вместо обычного яйца/щита/..., см.
-// trainer-grade-tree.tsx, по прямой просьбе пользователя, 2026-09-19).
-const STEP_BY_STEP_CHALLENGE_TYPES = new Set(['SINWALK', 'LOGWALK', 'LOGDEFWALK']);
+// SINWALK/LOGWALK/LOGDEFWALK/LOGSUBWALK, см.
+// app/t-lesson/[t_lessonId]/type-*.tsx. Каждый такой t_lesson состоит
+// РОВНО из одного challenge этого типа — используется для отдельного
+// визуального акцента на карте скиллов тренажёра (золотая иконка книги
+// вместо обычного яйца/щита/..., см. trainer-grade-tree.tsx, по прямой
+// просьбе пользователя, 2026-09-19).
+const STEP_BY_STEP_CHALLENGE_TYPES = new Set(['SINWALK', 'LOGWALK', 'LOGDEFWALK', 'LOGSUBWALK']);
 
 export function isStepByStepLesson(challengeTypes: string[]): boolean {
     return challengeTypes.some((t) => STEP_BY_STEP_CHALLENGE_TYPES.has(t));
