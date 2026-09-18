@@ -27,6 +27,7 @@ import { TypeSinWalk } from "@/app/t-lesson/[t_lessonId]/type-sinwalk"
 import { TypeLogWalk } from "@/app/t-lesson/[t_lessonId]/type-logwalk"
 import { TypeLogDefWalk } from "@/app/t-lesson/[t_lessonId]/type-logdefwalk"
 import { TypeLogSubWalk } from "@/app/t-lesson/[t_lessonId]/type-logsubwalk"
+import { TypeLogPowWalk } from "@/app/t-lesson/[t_lessonId]/type-logpowwalk"
 import { TypeWorkbook } from "@/app/t-lesson/[t_lessonId]/type-workbook"
 import { TypeConstructor } from "@/app/t-lesson/[t_lessonId]/type-constructor"
 
@@ -349,6 +350,12 @@ export default function TrainerQuestion({
         // type-logsubwalk.tsx.
         return <TypeLogSubWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
 
+      case "LOGPOWWALK":
+        // Тот же принцип, что и у LOGWALK/LOGSUBWALK — разбор правила
+        // "степень в основании и аргументе" (log_{a^n} b^m = (m/n)·log_a b).
+        // См. type-logpowwalk.tsx.
+        return <TypeLogPowWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
+
       case "TRIGTABLE":
         // select-then-submit, тот же контракт, что у ASSIST/INSERT/SCROLL —
         // пользователь может менять заполненные пропуски ДО нажатия общей
@@ -625,19 +632,20 @@ export default function TrainerQuestion({
         </motion.div>
 
       {/* Кнопка внизу - фиксированная. У CHECK, FRACTRICK, SINWALK,
-          LOGWALK и LOGDEFWALK её нет вообще (не только disabled) — все
-          самодостаточные и владеют подтверждением сами: CHECK — вообще
-          без подтверждения (клик по ведру/галочке сразу засчитывает
-          ответ), FRACTRICK — со своими ДВУМЯ внутренними кнопками
-          "Ответить" (по одной на каждый из 2 этапов, см. type-fractrick.tsx),
-          SINWALK/LOGWALK/LOGDEFWALK — своей кнопкой "Дальше" на протяжении
+          LOGWALK, LOGDEFWALK, LOGSUBWALK и LOGPOWWALK её нет вообще (не
+          только disabled) — все самодостаточные и владеют подтверждением
+          сами: CHECK — вообще без подтверждения (клик по ведру/галочке
+          сразу засчитывает ответ), FRACTRICK — со своими ДВУМЯ внутренними
+          кнопками "Ответить" (по одной на каждый из 2 этапов, см.
+          type-fractrick.tsx), SINWALK/LOGWALK/LOGDEFWALK/LOGSUBWALK/
+          LOGPOWWALK — своей кнопкой "Дальше" на протяжении
           ВСЕГО прохождения (и обучающих шагов, и тренировочных заданий) —
           общая кнопка внизу тут была бы лишней/непонятной disabled-
           заглушкой "ответить", по прямой просьбе пользователя.
           TRIGTABLE (как ASSIST/INSERT/SCROLL) — select-then-submit: общая
           кнопка сначала "Ответить" (когда все пропуски заполнены), затем
           "далее"/"понятно". */}
-      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "SINWALK" && question.questionType !== "LOGWALK" && question.questionType !== "LOGDEFWALK" && question.questionType !== "LOGSUBWALK" && (
+      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "SINWALK" && question.questionType !== "LOGWALK" && question.questionType !== "LOGDEFWALK" && question.questionType !== "LOGSUBWALK" && question.questionType !== "LOGPOWWALK" && (
       <div className="px-4 pb-4 pt-2 bg-[#151F24] relative">
         {/* Notification фон который выезжает при правильном ответе */}
         {answerState === "correct" && (

@@ -617,17 +617,17 @@ export default function TQuiz({
         // основном проходе, и уже внутри самого раунда повтора — так
         // повторно проваленный вопрос снова встанет в очередь следующего
         // раунда, а не потеряется).
-        // ИСКЛЮЧЕНИЕ — SINWALK/LOGWALK/LOGDEFWALK/LOGSUBWALK: это
+        // ИСКЛЮЧЕНИЕ — SINWALK/LOGWALK/LOGDEFWALK/LOGSUBWALK/LOGPOWWALK: это
         // самодостаточные пошаговые разборы, которые уже сами отслеживают и
         // повторяют свои внутренние ошибки (см. type-sinwalk.tsx/
-        // type-logwalk.tsx/type-logdefwalk.tsx/type-logsubwalk.tsx,
-        // hadMistake/доп. попытки) — onAnswer('wrong')
+        // type-logwalk.tsx/type-logdefwalk.tsx/type-logsubwalk.tsx/
+        // type-logpowwalk.tsx, hadMistake/доп. попытки) — onAnswer('wrong')
         // здесь означает "по пути были помарки", а не "непонятно, надо
         // переспросить", поэтому ставить его в очередь "работы над
         // ошибками" (полный повтор всего разбора заново) избыточно и
         // сбивает с толку — лессон просто должен закончиться по клику
         // "Готово".
-        if (questions[currentQuestionIndex].questionType !== 'SINWALK' && questions[currentQuestionIndex].questionType !== 'LOGWALK' && questions[currentQuestionIndex].questionType !== 'LOGDEFWALK' && questions[currentQuestionIndex].questionType !== 'LOGSUBWALK') {
+        if (questions[currentQuestionIndex].questionType !== 'SINWALK' && questions[currentQuestionIndex].questionType !== 'LOGWALK' && questions[currentQuestionIndex].questionType !== 'LOGDEFWALK' && questions[currentQuestionIndex].questionType !== 'LOGSUBWALK' && questions[currentQuestionIndex].questionType !== 'LOGPOWWALK') {
           mistakeQueueRef.current = [...mistakeQueueRef.current, questions[currentQuestionIndex]]
         }
 
@@ -683,7 +683,7 @@ export default function TQuiz({
       // LOGDEFWALK сюда не попадают (то же исключение, что и в
       // handleAnswer) — на практике не достижимо (у них нет таймера), но
       // на всякий случай.
-      if (questions[currentQuestionIndex].questionType !== 'SINWALK' && questions[currentQuestionIndex].questionType !== 'LOGWALK' && questions[currentQuestionIndex].questionType !== 'LOGDEFWALK' && questions[currentQuestionIndex].questionType !== 'LOGSUBWALK') {
+      if (questions[currentQuestionIndex].questionType !== 'SINWALK' && questions[currentQuestionIndex].questionType !== 'LOGWALK' && questions[currentQuestionIndex].questionType !== 'LOGDEFWALK' && questions[currentQuestionIndex].questionType !== 'LOGSUBWALK' && questions[currentQuestionIndex].questionType !== 'LOGPOWWALK') {
         mistakeQueueRef.current = [...mistakeQueueRef.current, questions[currentQuestionIndex]]
       }
 

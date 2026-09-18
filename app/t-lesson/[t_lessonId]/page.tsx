@@ -771,6 +771,27 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             };
         }
 
+        if (t_challenge.type === 'LOGPOWWALK') {
+            // Тот же самодостаточный принцип, что у LOGWALK/LOGSUBWALK —
+            // разбор правила "степень в основании и аргументе"
+            // (log_{a^n} b^m = (m/n)·log_a b) на фиксированном примере
+            // 2/3/5/7, тренировочные задания генерируются на лету внутри
+            // type-logpowwalk.tsx.
+            return {
+                questionType: 'LOGPOWWALK' as const,
+                question: t_challenge.question,
+                imageSrc: t_challenge.imageSrc,
+                options: [],
+                numRans: t_challenge.numRans,
+                optionsQ: [],
+                optionsA: [],
+                optionsConstructRight: [],
+                difficulty: t_challenge.difficulty,
+                correctAnswer: 'right',
+                timeLimit: 999,
+            };
+        }
+
         if (t_challenge.type === 'LOGDEFWALK') {
             // Тот же самодостаточный принцип, что у SINWALK/LOGWALK — разбор
             // "что такое логарифм" (определение через 2³=8→log₂8=3, разбор
