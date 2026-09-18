@@ -38,9 +38,9 @@ import {
 } from '@/components/geometry/RightTriangleDiagram'
 import { MARKER_COLOR, MARKER_COLOR_GREEN } from '@/components/geometry/WalkthroughMarker'
 import {
-    TypedLine, TypedKeyPhraseLine, DiagramBlock, useStickToBottom, pickWalkthroughNextLabel, CORRECT_FEEDBACK_PHRASES,
+    TypedLine, TypedKeyPhraseLine, DiagramBlock, pickWalkthroughNextLabel, CORRECT_FEEDBACK_PHRASES,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
-    SceneWrapper, useSceneFocus, BackButton,
+    SceneWrapper, useSceneFocus, useReplayNonces, BackButton,
 } from '@/components/geometry/WalkthroughLog'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 
@@ -151,12 +151,15 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
     const [checked, setChecked] = useState(false)
 
     // Счётчики "повторов" — ОТДЕЛЬНЫЙ nonce на каждый шаг/задание
-    // ('step-0'..'step-4', 'trial-0'..'trial-3'), а не один общий на всё.
-    // Это важно: если бы nonce был один общий и входил в key каждого
-    // блока БЕЗУСЛОВНО, клик "повторить" на шаге 3 пересоздавал бы (и
-    // заново печатал текст) ВСЕ уже пройденные шаги 0-2 тоже — реальный
-    // баг, пойманный пользователем живьём ("почему в предыдущей сцене
-    // снова проигрывается анимация текста"). Причина была именно в
+    // ('step-0'..'step-4', 'trial-0'..'trial-3'), а не один общий на всё
+    // (см. useReplayNonces в WalkthroughLog.tsx — тот же общий хук теперь
+    // используют и кнопка "Повторить", и полный откат "назад", обоим
+    // нужно ПЕРЕМОНТИРОВАТЬ содержимое сцены, чтобы анимация проигралась
+    // заново). Это важно: если бы nonce был один общий и входил в key
+    // каждого блока БЕЗУСЛОВНО, клик "повторить" на шаге 3 пересоздавал
+    // бы (и заново печатал текст) ВСЕ уже пройденные шаги 0-2 тоже —
+    // реальный баг, пойманный пользователем живьём ("почему в предыдущей
+    // сцене снова проигрывается анимация текста"). Причина была именно в
     // ФОРМАТЕ key: раньше он переключался между `step1-${nonce}` (пока
     // шаг активен) и просто `step1` (как только шаг становится пройден)
     // — а любая смена ФОРМАТА key — это уже смена key для React, даже
@@ -164,12 +167,11 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
     // себе пересоздавал/перепечатывал предыдущий. Теперь key каждого
     // блока — ВСЕГДА один и тот же формат `step-N-${nonce}`, не зависит
     // от того, активен шаг сейчас или уже пройден — он не меняется просто
-    // от перехода дальше, только от явного клика "повторить" ИМЕННО на
-    // этом шаге.
-    const [replayNonces, setReplayNonces] = useState<Record<string, number>>({})
+    // от перехода дальше, только от явного клика "повторить"/"назад"
+    // ИМЕННО на этом шаге.
+    const { bump: bumpNonce, nonceFor: replayNonceFor } = useReplayNonces()
     const currentReplayKey = phase === 'intro' ? `step-${step}` : `trial-${trialIndex}`
-    const handleReplay = () => setReplayNonces((prev) => ({ ...prev, [currentReplayKey]: (prev[currentReplayKey] ?? 0) + 1 }))
-    const replayNonceFor = (key: string) => replayNonces[key] ?? 0
+    const handleReplay = () => bumpNonce(currentReplayKey)
 
     const currentCorrectSide = oppositeLegOf(trialConfigs[trialIndex].alphaVertex)
 
@@ -247,11 +249,9 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
     useEffect(() => { setIntroNextLabel(pickWalkthroughNextLabel('Дальше')) }, [step])
     useEffect(() => { setTrialNextLabel(pickWalkthroughNextLabel('Дальше')) }, [trialIndex])
 
-    const endRef = useStickToBottom([step, stepReady, phase, trialIndex, checked, advancing])
-
-    // Фокус/затемнение прошлых сцен + "назад" (см. useSceneFocus в
+    // Затемнение прошлых сцен + автоскролл к новой (см. useSceneFocus в
     // WalkthroughLog.tsx) — ключи сцен СТАБИЛЬНЫЕ (`step-N`/`trial-N`, без
-    // replayNonce), иначе клик "Повторить" сбрасывал бы фокус/ref.
+    // replayNonce), иначе клик "Повторить" сбрасывал бы ref.
     const latestSceneKey = phase === 'intro' ? `step-${step}` : `trial-${trialIndex}`
     const prevSceneKeyOf = (key: string): string | null => {
         if (key.startsWith('trial-')) {
@@ -264,7 +264,36 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
         }
         return null
     }
-    const { isActive: isSceneActive, sceneRef, goBack, canGoBack } = useSceneFocus(latestSceneKey, prevSceneKeyOf)
+    const contentSettled = phase === 'intro' ? stepReady : checked
+    const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, contentSettled)
+    const canGoBack = prevSceneKeyOf(latestSceneKey) !== null
+
+    // "Назад" — по прямой просьбе пользователя (2026-09-19) РЕАЛЬНЫЙ откат
+    // на предыдущую сцену (не просто "полистать взглядом"): состояние
+    // step/trialIndex/phase откатывается на target, answer этой сцены
+    // сбрасывается (можно ответить заново), nonce цели бампается (её
+    // содержимое ПЕРЕМОНТИРУЕТСЯ — Typewriter/DiagramBlock/подсветка
+    // стороны проигрываются заново). Сцены ПОСЛЕ target (в т.ч. та, с
+    // которой кликнули "назад") сами исчезают из DOM — рендер-условие
+    // `step >= i`/`trialIndex+1` уже не покрывает их, отдельно "стирать"
+    // ничего не нужно.
+    const handleBack = () => {
+        if (advancing) return
+        const target = prevSceneKeyOf(latestSceneKey)
+        if (!target) return
+        bumpNonce(target)
+        if (target.startsWith('trial-')) {
+            const idx = Number(target.slice('trial-'.length))
+            setTrialIndex(idx)
+            setChecked(false)
+            setTrialAnswers((prev) => { const next = [...prev]; next[idx] = null; return next })
+        } else if (target.startsWith('step-')) {
+            const idx = Number(target.slice('step-'.length))
+            setPhase('intro')
+            setStep(idx)
+            setStepReady(false)
+        }
+    }
 
     return (
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
@@ -439,14 +468,12 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
                         </SceneWrapper>
                     )
                 })}
-
-                <div ref={endRef} />
             </div>
 
             {phase === 'intro' ? (
                 <div className="w-full flex items-center gap-2">
                     <ReplayButton onClick={handleReplay} disabled={advancing} />
-                    <BackButton onClick={goBack} disabled={advancing || !canGoBack} />
+                    <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
                     <button type="button" onClick={handleIntroNext} disabled={!stepReady || advancing} className={walkthroughButtonClass(stepReady && !advancing)} style={walkthroughButtonStyle(stepReady && !advancing)}>
                         {introNextLabel}
                     </button>
@@ -454,7 +481,7 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
             ) : checked ? (
                 <div className="w-full flex items-center gap-2">
                     <ReplayButton onClick={handleReplay} disabled={advancing} />
-                    <BackButton onClick={goBack} disabled={advancing || !canGoBack} />
+                    <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
                     <button type="button" onClick={handleNextTrial} disabled={advancing} className={walkthroughButtonClass(!advancing)} style={walkthroughButtonStyle(!advancing)}>
                         {/* "Готово" — ТОЛЬКО если это реально последнее и
                             ВЕРНО решённое задание (клик завершит практику).

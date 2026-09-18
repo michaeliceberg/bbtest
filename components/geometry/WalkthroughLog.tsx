@@ -7,8 +7,8 @@
 // прямой просьбе пользователя, обкатан на TangentialQuadWalkthrough):
 // текст решения печатается по буквам (Typewriter) и НЕ стирается по
 // мере перехода к следующему шагу — новые блоки дописываются НИЖЕ уже
-// показанных, страница сама скроллит вниз к новому блоку (пока
-// пользователь сам не отскроллил вверх — useStickToBottom). Ссылка на
+// показанных, страница сама скроллит к новому блоку так, чтобы он был
+// примерно посередине экрана (см. useSceneFocus). Ссылка на
 // условие — не сдвиг маркера по статичному тексту, а НОВАЯ короткая
 // цитата с оранжевой пометкой "Условие" рядом. Если диаграмма меняется —
 // рисуется НОВый экземпляр ниже, старый не трогается.
@@ -89,40 +89,58 @@ export const walkthroughButtonStyle = (enabled: boolean): { boxShadow: string } 
 // ===== "Фокус" на текущей сцене накопительного лога — по прямой просьбе
 // пользователя (2026-09-18): когда начинается новая сцена, все ПРЕДЫДУЩИЕ
 // становятся бледнее (opacity), чтобы взгляд сразу понимал, куда смотреть
-// теперь. Плюс кнопка-стрелка "назад" (рядом с уже существующей
-// "Повторить" там, где она есть) — возвращает ВЗГЛЯД (не прогресс/ответы)
-// к предыдущей уже показанной сцене лога. Общий кусок для ВСЕХ разборов
-// (SINWALK/LOGWALK/LOGDEFWALK/LOGSUBWALK) — каждый передаёт свой
-// `latestKey` (какая сцена сейчас новая) и `prevKeyOf` (как вычислить
-// ключ ПРЕДЫДУЩЕЙ сцены по текущему — порядок шагов/фаз у каждого свой,
-// знает только сам разбор). =====
-
-export function useSceneFocus(latestKey: string, prevKeyOf: (key: string) => string | null) {
-    // null = "автослежение" — фокус всегда на latestKey (обычное
-    // поведение, пока пользователь явно не нажал "назад"). Строка —
-    // пользователь явно листает предыдущую сцену; сбрасывается обратно в
-    // null, как только появляется НОВАЯ сцена (см. эффект ниже) — тот же
-    // принцип, что и у useStickToBottom для скролла, только для
-    // подсветки/затемнения.
-    const [focusedKey, setFocusedKey] = useState<string | null>(null)
+// теперь; плюс автоскролл, чтобы новая сцена оказалась ПОСЕРЕДИНЕ экрана
+// (не внизу, см. useEffect ниже). Общий кусок для ВСЕХ разборов
+// (SINWALK/LOGWALK/LOGDEFWALK/LOGSUBWALK/LOGPOWWALK) — каждый передаёт
+// свой `latestKey` (какая сцена сейчас новая) и `contentSettled`
+// (напечатался ли текст текущей сцены — см. ниже, зачем).
+//
+// "Назад" (см. BackButton) больше НЕ живёт в этом хуке — по прямой
+// просьбе пользователя (2026-09-19, "надо сделать полный шаг назад,
+// чтобы сцена начала заново проигрываться, а последнюю сцену стереть")
+// кнопка "назад" стала настоящим откатом РЕАЛЬНОГО состояния
+// (step/trialIndex и т.п.), а не просто визуальным "полистать". Раз
+// откат состояния всегда РЕАЛЕН, "активная" сцена — просто latestKey
+// БЕЗ отдельного focusedKey/goBack — сцены, которых больше нет
+// (step/trialIndex откатились до них), сами перестают рендериться. Сам
+// откат состояния — уникальный для каждого разбора (свои квизы/answers)
+// и реализован в каждом type-*walk.tsx отдельно, эта функция уже не
+// про него.
+export function useSceneFocus(latestKey: string, contentSettled: boolean) {
     const refs = useRef<Record<string, HTMLDivElement | null>>({})
-
-    useEffect(() => { setFocusedKey(null) }, [latestKey])
-
-    const activeKey = focusedKey ?? latestKey
-    const isActive = (key: string) => key === activeKey
+    const isActive = (key: string) => key === latestKey
     const sceneRef = (key: string) => (el: HTMLDivElement | null) => { refs.current[key] = el }
 
-    const backTarget = prevKeyOf(activeKey)
-    const goBack = () => {
-        if (!backTarget) return
-        setFocusedKey(backTarget)
-        // Целевой узел — уже показанная ПРОШЛАЯ сцена, уже смонтирована —
-        // скроллим сразу, без ожидания следующего кадра.
-        refs.current[backTarget]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }
+    // Скроллим к САМОЙ СЦЕНЕ (не к маркеру в конце лога) — раньше
+    // useStickToBottom целился в пустой `endRef`, стоящий ПОСЛЕДНИМ в
+    // потоке (сразу за ним в DOM только кнопочная панель) — центрировать
+    // точку, под которой физически нет контента, browser не может
+    // (скролл упирается в максимум раньше, чем достигает центра) —
+    // реальная причина жалобы "новая сцена внизу экрана". У самой сцены
+    // есть протяжённость, такой проблемы нет. Срабатывает дважды: сразу
+    // по появлению (сцена уже примерно на месте) и повторно, когда
+    // contentSettled меняется (текст дописан начисто — на случай если
+    // печать текста успела подрасти высоту уже после первого скролла).
+    useEffect(() => {
+        refs.current[latestKey]?.scrollIntoView({ behavior: 'auto', block: 'center' })
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [latestKey, contentSettled])
 
-    return { isActive, sceneRef, goBack, canGoBack: !!backTarget }
+    return { isActive, sceneRef }
+}
+
+// Счётчики "повторов" на ключ сцены — раньше жили только в SINWALK (для
+// кнопки "Повторить"), теперь общие: тот же механизм двигает и
+// "Повторить", и полный откат "назад" (обоим нужно ПЕРЕМОНТИРОВАТЬ
+// содержимое сцены, чтобы её анимация — Typewriter/DiagramBlock/
+// NumSticker bounce — проигралась заново, а не осталась в уже
+// осевшем состоянии). Key самой сцены/SceneWrapper — СТАБИЛЬНЫЙ (`step-N`,
+// без nonce), а вложенный внутрь неё контент — `key={`step-N-${nonceFor('step-N')}`}`.
+export function useReplayNonces() {
+    const [nonces, setNonces] = useState<Record<string, number>>({})
+    const bump = (key: string) => setNonces((prev) => ({ ...prev, [key]: (prev[key] ?? 0) + 1 }))
+    const nonceFor = (key: string) => nonces[key] ?? 0
+    return { bump, nonceFor }
 }
 
 // Обёртка ОДНОЙ сцены лога — тускнеет, когда перестаёт быть "текущей" (см.
@@ -377,6 +395,30 @@ export const FormulaBlock = ({ latex, onSettled, innerRef, className }: { latex:
     )
 }
 
+// Двигает экран к концу лога так, чтобы новый блок оказался примерно
+// ПОСЕРЕДИНЕ экрана (block:'center', не 'end'). Используется двумя более
+// старыми разборами (TangentialQuadWalkthrough/TrapezoidWalkthrough), у
+// которых нет накопительного SceneWrapper/useSceneFocus (см. выше) — те 5
+// более новых разборов (SINWALK/LOGWALK/...) переехали на центрирование
+// К САМОЙ СЦЕНЕ через useSceneFocus (надёжнее — endRef, пустой маркер
+// В САМОМ КОНЦЕ потока, не может "дотянуть" центрирование, если под ним
+// не осталось контента, см. useSceneFocus). Раньше здесь была ещё и
+// эвристика "не мешать, если пользователь сам отскроллил вверх" —
+// построенная на анализе 'scroll'-событий, она была хрупкой (тот же
+// smooth-scroll из ЭТОГО эффекта генерирует ПРОМЕЖУТОЧНЫЕ 'scroll'-
+// события, ошибочно трактуемые как "пользователь взял управление") —
+// убрана по прямой просьбе пользователя (2026-09-19, "новая сцена сейчас
+// внизу экрана" — оказалось, что автоскролл НАВСЕГДА выключался после
+// первого же перехода).
+export function useStickToBottom(deps: unknown[]) {
+    const endRef = useRef<HTMLDivElement>(null)
+    useEffect(() => {
+        endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, deps)
+    return endRef
+}
+
 // Обёртка для новой диаграммы-снимка в логе — сама диаграмма передаётся
 // children'ом (разная для разных разборов), обёртка только даёт общий
 // bounce/fade-эффект появления + сигнал "готово" в цепочку раскрытия.
@@ -396,32 +438,4 @@ export const DiagramBlock = ({ children, onSettled }: { children: React.ReactNod
             {children}
         </motion.div>
     )
-}
-
-// Держит скролл страницы "прилипшим" к низу лога — но только пока
-// пользователь сам не отскроллил вверх почитать предыдущие шаги; в этом
-// случае автоскролл не мешает, а возобновляется, как только пользователь
-// снова окажется у низа сам. block:'center' (не 'end') — новый блок
-// должен оказаться примерно ПОСЕРЕДИНЕ экрана, а не впритык к нижнему
-// краю (по прямой просьбе пользователя "скроль ещё дальше вниз").
-export function useStickToBottom(deps: unknown[]) {
-    const endRef = useRef<HTMLDivElement>(null)
-    const stickRef = useRef(true)
-
-    useEffect(() => {
-        const onScroll = () => {
-            const nearBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 120
-            stickRef.current = nearBottom
-        }
-        window.addEventListener('scroll', onScroll, { passive: true })
-        return () => window.removeEventListener('scroll', onScroll)
-    }, [])
-
-    useEffect(() => {
-        if (!stickRef.current) return
-        endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, deps)
-
-    return endRef
 }

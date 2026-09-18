@@ -31,17 +31,17 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
 import {
-    DiagramBlock, useStickToBottom,
+    DiagramBlock,
     pickWalkthroughNextLabel, CORRECT_FEEDBACK_PHRASES,
     ACTIVE_COLOR, WRONG_COLOR, CORRECT_COLOR, ATTENTION_COLOR,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
-    BlinkingExclaim, SceneWrapper, useSceneFocus, BackButton,
+    BlinkingExclaim, SceneWrapper, useSceneFocus, useReplayNonces, BackButton,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -393,9 +393,11 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
     useEffect(() => { setIntroNextLabel(pickWalkthroughNextLabel('Дальше')) }, [step])
     useEffect(() => { setExistNextLabel(pickWalkthroughNextLabel('Дальше')) }, [existIndex])
 
-    const endRef = useStickToBottom([step, stepReady, phase, existIndex, existChecked, advancing, quizAnswers])
+    // Счётчики "повторов" — нужны кнопке "назад" для перемонтирования
+    // содержимого целевой сцены (см. type-sinwalk.tsx).
+    const { bump: bumpNonce, nonceFor } = useReplayNonces()
 
-    // Фокус/затемнение прошлых сцен + "назад" (см. useSceneFocus в
+    // Затемнение прошлых сцен + автоскролл к новой (см. useSceneFocus в
     // WalkthroughLog.tsx) — та же схема ключей, что и в SINWALK/LOGWALK,
     // только вторая фаза называется "exist-N", а не "trial-N".
     const latestSceneKey = phase === 'intro' ? `step-${step}` : `exist-${existIndex}`
@@ -410,51 +412,80 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
         }
         return null
     }
-    const { isActive: isSceneActive, sceneRef, goBack, canGoBack } = useSceneFocus(latestSceneKey, prevSceneKeyOf)
+    const contentSettled = phase === 'intro' ? stepReady : existChecked
+    const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, contentSettled)
+    const canGoBack = prevSceneKeyOf(latestSceneKey) !== null
+
+    // "Назад" — реальный откат состояния на предыдущую сцену (см.
+    // type-logwalk.tsx для подробного комментария). Шаги 0-4 — мини-квизы
+    // (quizAnswers), их ответ сбрасывается тоже — иначе сцена показала бы
+    // уже отвеченное состояние вместо того, чтобы "начать заново".
+    const handleBack = () => {
+        if (advancing) return
+        const target = prevSceneKeyOf(latestSceneKey)
+        if (!target) return
+        bumpNonce(target)
+        if (target.startsWith('exist-')) {
+            const idx = Number(target.slice('exist-'.length))
+            setExistIndex(idx)
+            setExistChecked(false)
+            setExistAnswers((prev) => { const next = [...prev]; next[idx] = null; return next })
+        } else if (target.startsWith('step-')) {
+            const idx = Number(target.slice('step-'.length))
+            setPhase('intro')
+            setStep(idx)
+            setStepReady(false)
+            if (idx <= 4) {
+                setQuizAnswers((prev) => { const next = [...prev]; next[idx] = null; return next })
+            }
+        }
+    }
 
     return (
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
             <div className="w-full flex flex-col gap-4">
                 {/* Шаг 0 — определение через 2³=8 → log₂8=3. */}
                 <SceneWrapper key="step-0" innerRef={sceneRef('step-0')} active={isSceneActive('step-0')}>
-                    <DiagramBlock>
-                        <FormulaRow>
-                            <PowerExpr base={<Plain>2</Plain>} exp={<Plain>3</Plain>} />
-                            <Plain>=</Plain>
-                            {quizAnswers[0] === null ? <QuestionMark /> : <PickedValue value={quizAnswers[0]} isCorrect={quizAnswers[0] === DEFINE_CORRECT} />}
-                        </FormulaRow>
-                    </DiagramBlock>
-                    {quizAnswers[0] === null && (
-                        <div className="flex flex-wrap justify-center gap-3">
-                            {DEFINE_OPTIONS.map((num) => (
-                                <OptionButton key={num} value={num} onClick={() => handleQuizPick(0, num, DEFINE_CORRECT)} />
-                            ))}
-                        </div>
-                    )}
-                    {quizAnswers[0] !== null && (
-                        <>
-                            <FeedbackBanner correct={quizAnswers[0] === DEFINE_CORRECT} correctText="Не то — 2³=8." seed={quizAnswers[0]} />
-                            {confettiFor === 'step-0' && <LocalAnswerConfetti />}
-                            <DiagramBlock>
-                                <FormulaRow>
-                                    <Plain>Тогда</Plain>
-                                    <LogExpr
-                                        base={<Sticker value={2} color={BASE_COLOR} small />}
-                                        arg={<Sticker value={8} color={ARG_COLOR} />}
-                                        tail={<><Plain>=</Plain><Sticker value={3} color={RESULT_COLOR} /></>}
-                                    />
-                                </FormulaRow>
-                            </DiagramBlock>
-                            <TypedLineWithSticker
-                                before="То есть логарифм показывает "
-                                stickerContent="степень"
-                                plainTextForTyping="степень"
-                                stickerColor={RESULT_COLOR}
-                                after=", в которую надо возвести 2, чтобы получить 8."
-                                onSettled={() => setStepReady(true)}
-                            />
-                        </>
-                    )}
+                    <Fragment key={`step-0-${nonceFor('step-0')}`}>
+                        <DiagramBlock>
+                            <FormulaRow>
+                                <PowerExpr base={<Plain>2</Plain>} exp={<Plain>3</Plain>} />
+                                <Plain>=</Plain>
+                                {quizAnswers[0] === null ? <QuestionMark /> : <PickedValue value={quizAnswers[0]} isCorrect={quizAnswers[0] === DEFINE_CORRECT} />}
+                            </FormulaRow>
+                        </DiagramBlock>
+                        {quizAnswers[0] === null && (
+                            <div className="flex flex-wrap justify-center gap-3">
+                                {DEFINE_OPTIONS.map((num) => (
+                                    <OptionButton key={num} value={num} onClick={() => handleQuizPick(0, num, DEFINE_CORRECT)} />
+                                ))}
+                            </div>
+                        )}
+                        {quizAnswers[0] !== null && (
+                            <>
+                                <FeedbackBanner correct={quizAnswers[0] === DEFINE_CORRECT} correctText="Не то — 2³=8." seed={quizAnswers[0]} />
+                                {confettiFor === 'step-0' && <LocalAnswerConfetti />}
+                                <DiagramBlock>
+                                    <FormulaRow>
+                                        <Plain>Тогда</Plain>
+                                        <LogExpr
+                                            base={<Sticker value={2} color={BASE_COLOR} small />}
+                                            arg={<Sticker value={8} color={ARG_COLOR} />}
+                                            tail={<><Plain>=</Plain><Sticker value={3} color={RESULT_COLOR} /></>}
+                                        />
+                                    </FormulaRow>
+                                </DiagramBlock>
+                                <TypedLineWithSticker
+                                    before="То есть логарифм показывает "
+                                    stickerContent="степень"
+                                    plainTextForTyping="степень"
+                                    stickerColor={RESULT_COLOR}
+                                    after=", в которую надо возвести 2, чтобы получить 8."
+                                    onSettled={() => setStepReady(true)}
+                                />
+                            </>
+                        )}
+                    </Fragment>
                 </SceneWrapper>
 
                 {/* Шаги 1-4 — практика: чему равен log_a x? */}
@@ -464,28 +495,30 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                     const answer = quizAnswers[i]
                     return (
                         <SceneWrapper key={`step-${i}`} innerRef={sceneRef(`step-${i}`)} active={isSceneActive(`step-${i}`)}>
-                            <DiagramBlock>
-                                <FormulaRow>
-                                    <LogExpr
-                                        base={<Plain>{def.base}</Plain>}
-                                        arg={<Plain>{def.arg}</Plain>}
-                                        tail={<><Plain>=</Plain>{answer === null ? <QuestionMark /> : <PickedValue value={answer} isCorrect={answer === def.correct} />}</>}
-                                    />
-                                </FormulaRow>
-                            </DiagramBlock>
-                            {answer === null && (
-                                <div className="flex flex-wrap justify-center gap-3">
-                                    {def.options.map((num) => (
-                                        <OptionButton key={num} value={num} onClick={() => handleQuizPick(i, num, def.correct)} />
-                                    ))}
-                                </div>
-                            )}
-                            {answer !== null && (
-                                <>
-                                    <FeedbackBanner correct={answer === def.correct} correctText={`Не то — log${def.base}(${def.arg})=${def.correct}.`} seed={answer + i * 11} />
-                                    {confettiFor === `step-${i}` && <LocalAnswerConfetti />}
-                                </>
-                            )}
+                            <Fragment key={`step-${i}-${nonceFor(`step-${i}`)}`}>
+                                <DiagramBlock>
+                                    <FormulaRow>
+                                        <LogExpr
+                                            base={<Plain>{def.base}</Plain>}
+                                            arg={<Plain>{def.arg}</Plain>}
+                                            tail={<><Plain>=</Plain>{answer === null ? <QuestionMark /> : <PickedValue value={answer} isCorrect={answer === def.correct} />}</>}
+                                        />
+                                    </FormulaRow>
+                                </DiagramBlock>
+                                {answer === null && (
+                                    <div className="flex flex-wrap justify-center gap-3">
+                                        {def.options.map((num) => (
+                                            <OptionButton key={num} value={num} onClick={() => handleQuizPick(i, num, def.correct)} />
+                                        ))}
+                                    </div>
+                                )}
+                                {answer !== null && (
+                                    <>
+                                        <FeedbackBanner correct={answer === def.correct} correctText={`Не то — log${def.base}(${def.arg})=${def.correct}.`} seed={answer + i * 11} />
+                                        {confettiFor === `step-${i}` && <LocalAnswerConfetti />}
+                                    </>
+                                )}
+                            </Fragment>
                         </SceneWrapper>
                     )
                 })}
@@ -493,62 +526,66 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                 {/* Шаг 5 — ЗАПОМНИ: отрицательные числа. */}
                 {step >= 5 && (
                     <SceneWrapper key="step-5" innerRef={sceneRef('step-5')} active={isSceneActive('step-5')}>
-                        <DiagramBlock><RememberBanner /></DiagramBlock>
-                        <TypedForbidLine
-                            before="В логарифм "
-                            stickerWord="нельзя"
-                            between=" подставлять "
-                            phrase="отрицательные числа"
-                            color={WRONG_COLOR}
-                            onSettled={() => setStepReady(true)}
-                        />
-                        <DiagramBlock>
-                            <div className="w-full flex flex-col items-center gap-3">
-                                <FormulaRow>
-                                    <LogExpr base={<Sticker value={-2} color={WRONG_COLOR} small />} arg={<Plain>8</Plain>} />
-                                    <Sticker value="НЕЛЬЗЯ!" color={WRONG_COLOR} small />
-                                </FormulaRow>
-                                <FormulaRow>
-                                    <LogExpr base={<Plain>5</Plain>} arg={<Sticker value={-25} color={WRONG_COLOR} />} />
-                                    <Sticker value="НЕЛЬЗЯ!" color={WRONG_COLOR} small />
-                                </FormulaRow>
-                                <div className="flex items-center gap-2 text-base md:text-lg font-bold text-[#F2F7FB]">
-                                    <span>А такое — тем более!</span>
-                                    <span className="text-2xl">🤢</span>
+                        <Fragment key={`step-5-${nonceFor('step-5')}`}>
+                            <DiagramBlock><RememberBanner /></DiagramBlock>
+                            <TypedForbidLine
+                                before="В логарифм "
+                                stickerWord="нельзя"
+                                between=" подставлять "
+                                phrase="отрицательные числа"
+                                color={WRONG_COLOR}
+                                onSettled={() => setStepReady(true)}
+                            />
+                            <DiagramBlock>
+                                <div className="w-full flex flex-col items-center gap-3">
+                                    <FormulaRow>
+                                        <LogExpr base={<Sticker value={-2} color={WRONG_COLOR} small />} arg={<Plain>8</Plain>} />
+                                        <Sticker value="НЕЛЬЗЯ!" color={WRONG_COLOR} small />
+                                    </FormulaRow>
+                                    <FormulaRow>
+                                        <LogExpr base={<Plain>5</Plain>} arg={<Sticker value={-25} color={WRONG_COLOR} />} />
+                                        <Sticker value="НЕЛЬЗЯ!" color={WRONG_COLOR} small />
+                                    </FormulaRow>
+                                    <div className="flex items-center gap-2 text-base md:text-lg font-bold text-[#F2F7FB]">
+                                        <span>А такое — тем более!</span>
+                                        <span className="text-2xl">🤢</span>
+                                    </div>
+                                    <FormulaRow>
+                                        <LogExpr base={<Sticker value={-6} color={WRONG_COLOR} small />} arg={<Sticker value={-36} color={WRONG_COLOR} />} />
+                                        <Sticker value="ВАЩЕ НЕЛЬЗЯ!" color={WRONG_COLOR} small />
+                                    </FormulaRow>
                                 </div>
-                                <FormulaRow>
-                                    <LogExpr base={<Sticker value={-6} color={WRONG_COLOR} small />} arg={<Sticker value={-36} color={WRONG_COLOR} />} />
-                                    <Sticker value="ВАЩЕ НЕЛЬЗЯ!" color={WRONG_COLOR} small />
-                                </FormulaRow>
-                            </div>
-                        </DiagramBlock>
+                            </DiagramBlock>
+                        </Fragment>
                     </SceneWrapper>
                 )}
 
                 {/* Шаг 6 — ЗАПОМНИ: основание не может быть 1. */}
                 {step >= 6 && (
                     <SceneWrapper key="step-6" innerRef={sceneRef('step-6')} active={isSceneActive('step-6')}>
-                        <DiagramBlock><RememberBanner /></DiagramBlock>
-                        <TypedForbidLine
-                            before="А ещё в основание логарифма "
-                            stickerWord="нельзя"
-                            between=" писать "
-                            phrase="1"
-                            color={WRONG_COLOR}
-                            onSettled={() => setStepReady(true)}
-                        />
-                        <DiagramBlock>
-                            <div className="w-full flex flex-col items-center gap-3">
-                                <FormulaRow>
-                                    <LogExpr base={<Sticker value={1} color={WRONG_COLOR} small />} arg={<Plain>8</Plain>} />
-                                    <Sticker value="НЕЛЬЗЯ!" color={WRONG_COLOR} small />
-                                </FormulaRow>
-                                <FormulaRow>
-                                    <LogExpr base={<Sticker value={1} color={WRONG_COLOR} small />} arg={<Plain>25</Plain>} />
-                                    <Sticker value="НЕЛЬЗЯ!" color={WRONG_COLOR} small />
-                                </FormulaRow>
-                            </div>
-                        </DiagramBlock>
+                        <Fragment key={`step-6-${nonceFor('step-6')}`}>
+                            <DiagramBlock><RememberBanner /></DiagramBlock>
+                            <TypedForbidLine
+                                before="А ещё в основание логарифма "
+                                stickerWord="нельзя"
+                                between=" писать "
+                                phrase="1"
+                                color={WRONG_COLOR}
+                                onSettled={() => setStepReady(true)}
+                            />
+                            <DiagramBlock>
+                                <div className="w-full flex flex-col items-center gap-3">
+                                    <FormulaRow>
+                                        <LogExpr base={<Sticker value={1} color={WRONG_COLOR} small />} arg={<Plain>8</Plain>} />
+                                        <Sticker value="НЕЛЬЗЯ!" color={WRONG_COLOR} small />
+                                    </FormulaRow>
+                                    <FormulaRow>
+                                        <LogExpr base={<Sticker value={1} color={WRONG_COLOR} small />} arg={<Plain>25</Plain>} />
+                                        <Sticker value="НЕЛЬЗЯ!" color={WRONG_COLOR} small />
+                                    </FormulaRow>
+                                </div>
+                            </DiagramBlock>
+                        </Fragment>
                     </SceneWrapper>
                 )}
 
@@ -560,6 +597,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                     const guess = existAnswers[i]
                     return (
                         <SceneWrapper key={`exist-${i}`} innerRef={sceneRef(`exist-${i}`)} active={isSceneActive(`exist-${i}`)}>
+                        <Fragment key={`exist-${i}-${nonceFor(`exist-${i}`)}`}>
                             <div className="flex items-start gap-3 w-full">
                                 <div
                                     className="shrink-0 flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
@@ -601,22 +639,21 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                                     {confettiFor === `exist-${i}` && <LocalAnswerConfetti />}
                                 </>
                             )}
+                        </Fragment>
                         </SceneWrapper>
                     )
                 })}
-
-                <div ref={endRef} />
             </div>
 
             {phase === 'intro' ? (
                 (step <= 4 && quizAnswers[step] === null) ? (
                     <div className="w-full flex items-center gap-2">
-                        <BackButton onClick={goBack} disabled={advancing || !canGoBack} />
+                        <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
                         <p className="flex-1 text-sm text-[#9AA7B0] text-center">Кликни на вариант выше</p>
                     </div>
                 ) : (
                     <div className="w-full flex items-center gap-2">
-                        <BackButton onClick={goBack} disabled={advancing || !canGoBack} />
+                        <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
                         <button type="button" onClick={handleIntroNext} disabled={!stepReady || advancing} className={walkthroughButtonClass(stepReady && !advancing)} style={walkthroughButtonStyle(stepReady && !advancing)}>
                             {introNextLabel}
                         </button>
@@ -624,14 +661,14 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                 )
             ) : existChecked ? (
                 <div className="w-full flex items-center gap-2">
-                    <BackButton onClick={goBack} disabled={advancing || !canGoBack} />
+                    <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
                     <button type="button" onClick={handleExistNext} disabled={advancing} className={walkthroughButtonClass(!advancing)} style={walkthroughButtonStyle(!advancing)}>
                         {existIndex + 1 >= EXIST_ITEMS.length ? 'Готово' : existNextLabel}
                     </button>
                 </div>
             ) : (
                 <div className="w-full flex items-center gap-2">
-                    <BackButton onClick={goBack} disabled={advancing || !canGoBack} />
+                    <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
                     <p className="flex-1 text-sm text-[#9AA7B0] text-center">Выбери ДА или НЕТ</p>
                 </div>
             )}

@@ -26,16 +26,16 @@
 
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
 import {
-    TypedKeyPhraseLine, DiagramBlock, useStickToBottom,
+    TypedKeyPhraseLine, DiagramBlock,
     pickWalkthroughNextLabel, CORRECT_FEEDBACK_PHRASES,
     ACTIVE_COLOR, WRONG_COLOR, CORRECT_COLOR, ATTENTION_COLOR,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
-    SceneWrapper, useSceneFocus, BackButton,
+    SceneWrapper, useSceneFocus, useReplayNonces, BackButton,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -470,9 +470,11 @@ export const TypeLogSubWalk = ({ onAnswer, onComplete }: Props) => {
     useEffect(() => { setIntroNextLabel(pickWalkthroughNextLabel('Дальше')) }, [step])
     useEffect(() => { setTrialNextLabel(pickWalkthroughNextLabel('Дальше')) }, [trialIndex])
 
-    const endRef = useStickToBottom([step, stepReady, phase, trialIndex, checked, advancing])
+    // Счётчики "повторов" — нужны кнопке "назад" для перемонтирования
+    // содержимого целевой сцены (см. type-sinwalk.tsx/type-logwalk.tsx).
+    const { bump: bumpNonce, nonceFor } = useReplayNonces()
 
-    // Фокус/затемнение прошлых сцен + "назад" (см. useSceneFocus в
+    // Затемнение прошлых сцен + автоскролл к новой (см. useSceneFocus в
     // WalkthroughLog.tsx) — та же схема ключей, что и в LOGWALK/SINWALK.
     const latestSceneKey = phase === 'intro' ? `step-${step}` : `trial-${trialIndex}`
     const prevSceneKeyOf = (key: string): string | null => {
@@ -486,41 +488,69 @@ export const TypeLogSubWalk = ({ onAnswer, onComplete }: Props) => {
         }
         return null
     }
-    const { isActive: isSceneActive, sceneRef, goBack, canGoBack } = useSceneFocus(latestSceneKey, prevSceneKeyOf)
+    const contentSettled = phase === 'intro' ? stepReady : checked
+    const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, contentSettled)
+    const canGoBack = prevSceneKeyOf(latestSceneKey) !== null
+
+    // "Назад" — реальный откат состояния на предыдущую сцену (см.
+    // type-logwalk.tsx для подробного комментария).
+    const handleBack = () => {
+        if (advancing) return
+        const target = prevSceneKeyOf(latestSceneKey)
+        if (!target) return
+        bumpNonce(target)
+        if (target.startsWith('trial-')) {
+            const idx = Number(target.slice('trial-'.length))
+            setTrialIndex(idx)
+            setChecked(false)
+            setTrialAnswers((prev) => { const next = [...prev]; next[idx] = null; return next })
+        } else if (target.startsWith('step-')) {
+            const idx = Number(target.slice('step-'.length))
+            setPhase('intro')
+            setStep(idx)
+            setStepReady(false)
+        }
+    }
 
     return (
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
             <div className="w-full flex flex-col gap-4">
                 {/* Шаг 0 — просто условие, без текстовой подписи. */}
                 <SceneWrapper key="step-0" innerRef={sceneRef('step-0')} active={isSceneActive('step-0')}>
-                    <DiagramBlock onSettled={() => setStepReady(true)}>
-                        <ExampleFormula baseHighlighted={false} showRightSide={false} showQuotient={false} showResult={false} />
-                    </DiagramBlock>
+                    <Fragment key={`step-0-${nonceFor('step-0')}`}>
+                        <DiagramBlock onSettled={() => setStepReady(true)}>
+                            <ExampleFormula baseHighlighted={false} showRightSide={false} showQuotient={false} showResult={false} />
+                        </DiagramBlock>
+                    </Fragment>
                 </SceneWrapper>
 
                 {/* Шаг 1 — основания (двойки) становятся стикерами. */}
                 {step >= 1 && (
                     <SceneWrapper key="step-1" innerRef={sceneRef('step-1')} active={isSceneActive('step-1')}>
-                        <DiagramBlock><ExampleFormula baseHighlighted showRightSide={false} showQuotient={false} showResult={false} /></DiagramBlock>
-                        <TypedLineWithSticker
-                            before="Заметим что у них одинаковое основание - это "
-                            stickerValue={2}
-                            stickerColor={BASE_COLOR}
-                            onSettled={() => setStepReady(true)}
-                        />
+                        <Fragment key={`step-1-${nonceFor('step-1')}`}>
+                            <DiagramBlock><ExampleFormula baseHighlighted showRightSide={false} showQuotient={false} showResult={false} /></DiagramBlock>
+                            <TypedLineWithSticker
+                                before="Заметим что у них одинаковое основание - это "
+                                stickerValue={2}
+                                stickerColor={BASE_COLOR}
+                                onSettled={() => setStepReady(true)}
+                            />
+                        </Fragment>
                     </SceneWrapper>
                 )}
 
                 {/* Шаг 2 — справа дописывается "= log₂", то же основание. */}
                 {step >= 2 && (
                     <SceneWrapper key="step-2" innerRef={sceneRef('step-2')} active={isSceneActive('step-2')}>
-                        <DiagramBlock><ExampleFormula baseHighlighted showRightSide showQuotient={false} showResult={false} /></DiagramBlock>
-                        <TypedLineWithSticker
-                            before="Поэтому получится логарифм с тем же основанием "
-                            stickerValue={2}
-                            stickerColor={BASE_COLOR}
-                            onSettled={() => setStepReady(true)}
-                        />
+                        <Fragment key={`step-2-${nonceFor('step-2')}`}>
+                            <DiagramBlock><ExampleFormula baseHighlighted showRightSide showQuotient={false} showResult={false} /></DiagramBlock>
+                            <TypedLineWithSticker
+                                before="Поэтому получится логарифм с тем же основанием "
+                                stickerValue={2}
+                                stickerColor={BASE_COLOR}
+                                onSettled={() => setStepReady(true)}
+                            />
+                        </Fragment>
                     </SceneWrapper>
                 )}
 
@@ -528,27 +558,31 @@ export const TypeLogSubWalk = ({ onAnswer, onComplete }: Props) => {
                     к "÷" (разность превращается в частное). */}
                 {step >= 3 && (
                     <SceneWrapper key="step-3" innerRef={sceneRef('step-3')} active={isSceneActive('step-3')}>
-                        <DiagramBlock>
-                            <div ref={step3Ref} className="relative w-full">
-                                <ExampleFormula baseHighlighted arg1Color={ARG_COLOR_X} arg2Color={ARG_COLOR_Y} showRightSide showQuotient showResult={false} />
-                                <ArgumentsArrow containerRef={step3Ref} />
-                            </div>
-                        </DiagramBlock>
-                        <TypedKeyPhraseLine
-                            before="Так как логарифмы вычитаются, то аргументы надо "
-                            phrase="разделить"
-                            color={ATTENTION_COLOR}
-                            highlight
-                            onSettled={() => setStepReady(true)}
-                        />
+                        <Fragment key={`step-3-${nonceFor('step-3')}`}>
+                            <DiagramBlock>
+                                <div ref={step3Ref} className="relative w-full">
+                                    <ExampleFormula baseHighlighted arg1Color={ARG_COLOR_X} arg2Color={ARG_COLOR_Y} showRightSide showQuotient showResult={false} />
+                                    <ArgumentsArrow containerRef={step3Ref} />
+                                </div>
+                            </DiagramBlock>
+                            <TypedKeyPhraseLine
+                                before="Так как логарифмы вычитаются, то аргументы надо "
+                                phrase="разделить"
+                                color={ATTENTION_COLOR}
+                                highlight
+                                onSettled={() => setStepReady(true)}
+                            />
+                        </Fragment>
                     </SceneWrapper>
                 )}
 
                 {/* Шаг 4 — итог, короткий "Ответ: log₂3" с конфетти. */}
                 {step >= 4 && (
                     <SceneWrapper key="step-4" innerRef={sceneRef('step-4')} active={isSceneActive('step-4')}>
-                        <AnswerLine onSettled={() => { setStepReady(true); setShowAnswerConfetti(true) }} />
-                        {showAnswerConfetti && <LocalAnswerConfetti />}
+                        <Fragment key={`step-4-${nonceFor('step-4')}`}>
+                            <AnswerLine onSettled={() => { setStepReady(true); setShowAnswerConfetti(true) }} />
+                            {showAnswerConfetti && <LocalAnswerConfetti />}
+                        </Fragment>
                     </SceneWrapper>
                 )}
 
@@ -560,6 +594,7 @@ export const TypeLogSubWalk = ({ onAnswer, onComplete }: Props) => {
                     const correctValue = t.q
                     return (
                         <SceneWrapper key={`trial-${i}`} innerRef={sceneRef(`trial-${i}`)} active={isSceneActive(`trial-${i}`)}>
+                        <Fragment key={`trial-${i}-${nonceFor(`trial-${i}`)}`}>
                             <div className="flex items-start gap-3 w-full">
                                 <div
                                     className="shrink-0 flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
@@ -605,23 +640,22 @@ export const TypeLogSubWalk = ({ onAnswer, onComplete }: Props) => {
                                 </div>
                             )}
                             {isCurrent && isDone && answer === correctValue && <LocalAnswerConfetti />}
+                        </Fragment>
                         </SceneWrapper>
                     )
                 })}
-
-                <div ref={endRef} />
             </div>
 
             {phase === 'intro' ? (
                 <div className="w-full flex items-center gap-2">
-                    <BackButton onClick={goBack} disabled={advancing || !canGoBack} />
+                    <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
                     <button type="button" onClick={handleIntroNext} disabled={!stepReady || advancing} className={walkthroughButtonClass(stepReady && !advancing)} style={walkthroughButtonStyle(stepReady && !advancing)}>
                         {introNextLabel}
                     </button>
                 </div>
             ) : checked ? (
                 <div className="w-full flex items-center gap-2">
-                    <BackButton onClick={goBack} disabled={advancing || !canGoBack} />
+                    <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
                     <button type="button" onClick={handleNextTrial} disabled={advancing} className={walkthroughButtonClass(!advancing)} style={walkthroughButtonStyle(!advancing)}>
                         {trialIndex + 1 >= trials.length && trialAnswers[trialIndex] === currentCorrectValue ? 'Готово' : trialNextLabel}
                     </button>
