@@ -20,8 +20,23 @@
 // TrapezoidDiagram с уже готовым набором пропов (см. DiagramBlock) —
 // сам TrapezoidDiagram.tsx не менялся, просто вызывается несколько раз
 // подряд с разными снимками состояния вместо одного реактивного набора.
+//
+// Центрирование сцены + реальный откат "назад" (2026-09-19) — мигрирован
+// на ту же общую архитектуру SceneWrapper/useSceneFocus/useReplayNonces/
+// BackButton, что уже отработана в 5 тренажёрных разборах (см. более
+// раннюю запись в CLAUDE.md "Степбайстеп: настоящее центрирование новой
+// сцены..."). Ключевая разница с ними — здесь один SceneWrapper (`step-N`)
+// покрывает ЦЕЛЫЙ `stepIndex`, а НЕ отдельный микро-блок: внутри одного
+// stepIndex уже была своя цепочка последовательного раскрытия
+// (`introReveal`/`heightsReveal`/...), она осталась КАК ЕСТЬ — просто
+// теперь целиком обёрнута в SceneWrapper+Fragment(nonce), чтобы кнопка
+// "назад" могла и подсветить/центрировать её, и полностью перемонтировать.
+// "Назад" откатывает stepIndex на 1 назад и явно сбрасывает раскрытие/
+// ответ ОБОИХ шагов — целевого (чтобы он проиграл анимацию заново) и
+// того, с которого ушли (чтобы при повторном заходе он тоже стартовал с
+// нуля, а не показался весь разом — см. resetStepState).
 
-import { useRef, useState } from 'react'
+import { Fragment, useRef, useState } from 'react'
 import { Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { KeyboardInput } from '@/app/lesson/keyboard-input'
@@ -30,7 +45,9 @@ import { HighlightedNumbersText } from '@/components/HighlightedNumbersText'
 import { TrapezoidDiagram } from './TrapezoidDiagram'
 import {
     CORRECT_COLOR, WRONG_COLOR, CURSOR_LATEX,
-    ConditionCitation, TypedLine, FormulaBlock, DiagramBlock, useStickToBottom, useGlyphBlink,
+    ConditionCitation, TypedLine, FormulaBlock, DiagramBlock, useGlyphBlink,
+    SceneWrapper, useSceneFocus, useReplayNonces, BackButton,
+    walkthroughButtonClass, walkthroughButtonStyle,
 } from './WalkthroughLog'
 
 type Props = {
@@ -110,9 +127,53 @@ export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
     const goNext = () => setStepIndex((i) => i + 1)
     const handleFinish = () => onComplete(!hadMistake)
 
-    const endRef = useStickToBottom([
-        stepIndex, introReveal, heightsReveal, segmentChecked, choiceReveal, choiceChecked, finalChecked,
-    ])
+    // Счётчики "повторов" — нужны кнопке "назад" для перемонтирования
+    // содержимого целевого шага (тот же приём, что и в тренажёрных
+    // разборах, см. type-logsubwalk.tsx).
+    const { bump: bumpNonce, nonceFor } = useReplayNonces()
+
+    // Затемнение прошлых шагов + автоскролл к текущему (см. useSceneFocus
+    // в WalkthroughLog.tsx). latestKey — просто текущий stepIndex; каждый
+    // раз, как он меняется, скролл центрирует ИМЕННО этот шаг целиком.
+    const latestSceneKey = `step-${stepIndex}`
+    const canGoBack = stepIndex > 0
+    // "Готовность" содержимого текущего шага — грубый, но достаточный
+    // сигнал (тот же принцип, что "stepReady"/"checked" в тренажёрных
+    // разборах) для повторного скролла ПОСЛЕ того, как высота шага
+    // устаканилась (печать текста могла подрасти её уже после первого
+    // скролла).
+    const stepContentSettled =
+        stepIndex === 0 ? introReveal >= 4 :
+        stepIndex === 1 ? heightsReveal >= 4 :
+        stepIndex === 2 ? segmentChecked :
+        stepIndex === 3 ? choiceChecked :
+        finalChecked
+    const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, stepContentSettled)
+
+    // Сброс раскрытия/ответа ОДНОГО шага до пристинного состояния — нужен
+    // и целевому шагу (чтобы он проиграл анимацию заново), и шагу, с
+    // которого уходим (чтобы при повторном заходе вперёд он тоже начал с
+    // нуля, а не показал всё содержимое разом — см. комментарий в шапке
+    // файла).
+    const resetStepState = (idx: number) => {
+        if (idx === 0) { setIntroReveal(0) }
+        else if (idx === 1) { setHeightsReveal(0) }
+        else if (idx === 2) { setSegmentTyped(''); setSegmentChecked(false); setSegmentCorrect(null) }
+        else if (idx === 3) { setChoiceReveal(0); setSelectedChoice(null); setChoiceChecked(false) }
+        else if (idx === 4) { setFinalTyped(''); setFinalChecked(false); setFinalCorrect(null) }
+    }
+
+    // "Назад" — реальный откат на предыдущий шаг: hadMistake НЕ сбрасывается
+    // (та же конвенция, что и в тренажёрных разборах — факт уже сделанной
+    // ошибки не стирается тем, что пользователь решил пересмотреть шаг).
+    const handleBack = () => {
+        if (!canGoBack) return
+        const target = stepIndex - 1
+        bumpNonce(`step-${target}`)
+        resetStepState(target)
+        resetStepState(stepIndex)
+        setStepIndex(target)
+    }
 
     return (
         <div className="w-full max-w-xl mx-auto flex flex-col items-center gap-4">
@@ -139,258 +200,274 @@ export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
             {/* ---------- накопительный лог ---------- */}
             <div className="w-full flex flex-col gap-4">
 
-                <DiagramBlock><TrapezoidDiagram /></DiagramBlock>
+                {/* Шаг 0 — равнобедренность → диаграмма с подсветкой ног →
+                    43/73 → диаграмма с числами. */}
+                <SceneWrapper key="step-0" innerRef={sceneRef('step-0')} active={isSceneActive('step-0')}>
+                    <Fragment key={`step-0-${nonceFor('step-0')}`}>
+                        <DiagramBlock><TrapezoidDiagram /></DiagramBlock>
 
-                <ConditionCitation
-                    text="Основания равнобедренной трапеции"
-                    onSettled={() => setIntroReveal((r) => Math.max(r, 1))}
-                />
-
-                {introReveal >= 1 && (
-                    <DiagramBlock onSettled={() => setIntroReveal((r) => Math.max(r, 2))}>
-                        <TrapezoidDiagram legsHighlighted />
-                    </DiagramBlock>
-                )}
-
-                {introReveal >= 2 && (
-                    <ConditionCitation
-                        text="равны 43 и 73"
-                        onSettled={() => setIntroReveal((r) => Math.max(r, 3))}
-                    />
-                )}
-
-                {introReveal >= 3 && (
-                    <DiagramBlock onSettled={() => setIntroReveal(4)}>
-                        <TrapezoidDiagram legsHighlighted base43Shown base73Shown />
-                    </DiagramBlock>
-                )}
-
-                {stepIndex >= 1 && (
-                    <TypedLine
-                        className="w-full text-base md:text-lg text-[#F2F7FB]"
-                        text="Проведём две высоты из вершин меньшего основания."
-                        onSettled={() => setHeightsReveal((r) => Math.max(r, 1))}
-                    />
-                )}
-
-                {heightsReveal >= 1 && (
-                    <DiagramBlock onSettled={() => setHeightsReveal((r) => Math.max(r, 2))}>
-                        <TrapezoidDiagram legsHighlighted base43Shown base73Shown altitudesDrawn />
-                    </DiagramBlock>
-                )}
-
-                {heightsReveal >= 2 && (
-                    <TypedLine
-                        className="w-full text-base md:text-lg text-[#F2F7FB]"
-                        text="У основания образовались два равных отрезка по краям."
-                        onSettled={() => setHeightsReveal((r) => Math.max(r, 3))}
-                    />
-                )}
-
-                {heightsReveal >= 3 && (
-                    <DiagramBlock onSettled={() => setHeightsReveal(4)}>
-                        <TrapezoidDiagram legsHighlighted base43Shown base73Shown altitudesDrawn segmentsHighlighted />
-                    </DiagramBlock>
-                )}
-
-                {stepIndex >= 2 && (
-                    <>
-                        <TypedLine
-                            className="w-full text-base md:text-lg text-[#F2F7FB]"
-                            text="Найдём длину каждого отрезка:"
+                        <ConditionCitation
+                            text="Основания равнобедренной трапеции"
+                            onSettled={() => setIntroReveal((r) => Math.max(r, 1))}
                         />
-                        <FormulaBlock latex={segmentFormula} innerRef={segmentFormulaRef} />
-                        {!segmentChecked && (
-                            <KeyboardInput value={segmentTyped} onChange={setSegmentTyped} disabled={false} showDisplay={false} allowNegative={false} />
+
+                        {introReveal >= 1 && (
+                            <DiagramBlock onSettled={() => setIntroReveal((r) => Math.max(r, 2))}>
+                                <TrapezoidDiagram legsHighlighted />
+                            </DiagramBlock>
                         )}
-                        {segmentChecked && (
-                            <div
-                                className={cn(
-                                    'flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center',
-                                    segmentCorrect ? 'bg-[#A1D15122] text-[#A1D151]' : 'bg-[#DC605B22] text-[#DC605B]'
-                                )}
-                            >
-                                {segmentCorrect ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
-                                {segmentCorrect ? 'Верно!' : 'Правильный ответ: 15'}
-                            </div>
-                        )}
-                    </>
-                )}
 
-                {stepIndex >= 2 && segmentChecked && (
-                    <DiagramBlock>
-                        <TrapezoidDiagram legsHighlighted base43Shown base73Shown altitudesDrawn segmentsHighlighted segmentValue="15" />
-                    </DiagramBlock>
-                )}
-
-                {stepIndex >= 3 && (
-                    <DiagramBlock onSettled={() => setChoiceReveal((r) => Math.max(r, 1))}>
-                        <TrapezoidDiagram
-                            legsHighlighted base43Shown base73Shown altitudesDrawn segmentsHighlighted segmentValue="15"
-                            triangleHighlighted zoomTriangle hypotenuseFocused
-                        />
-                    </DiagramBlock>
-                )}
-
-                {choiceReveal >= 1 && (
-                    <ConditionCitation
-                        text="Косинус острого угла трапеции равен 5/7"
-                        onSettled={() => setChoiceReveal((r) => Math.max(r, 2))}
-                    />
-                )}
-
-                {choiceReveal >= 2 && (
-                    <TypedLine
-                        className="w-full text-base md:text-lg text-[#F2F7FB]"
-                        text="В прямоугольном треугольнике известны прилежащий катет (15) и косинус угла. Как найти боковую сторону — гипотенузу?"
-                        onSettled={() => setChoiceReveal(3)}
-                    />
-                )}
-
-                {choiceReveal >= 3 && (
-                    <div className="grid grid-cols-2 gap-3 w-full">
-                        {['15 · cos', '15 / cos'].map((option, idx) => (
-                            <AnimatedOptionButton
-                                key={idx}
-                                option={option}
-                                index={idx}
-                                onClick={() => !choiceChecked && setSelectedChoice(option)}
-                                isSelected={selectedChoice === option}
-                                isCorrect={choiceChecked && option === CORRECT_CHOICE}
-                                isWrong={choiceChecked && selectedChoice === option && option !== CORRECT_CHOICE}
-                                disabled={choiceChecked}
+                        {introReveal >= 2 && (
+                            <ConditionCitation
+                                text="равны 43 и 73"
+                                onSettled={() => setIntroReveal((r) => Math.max(r, 3))}
                             />
-                        ))}
-                    </div>
-                )}
-
-                {choiceChecked && (
-                    <div
-                        className={cn(
-                            'flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center',
-                            selectedChoice === CORRECT_CHOICE ? 'bg-[#A1D15122] text-[#A1D151]' : 'bg-[#DC605B22] text-[#DC605B]'
                         )}
-                    >
-                        {selectedChoice === CORRECT_CHOICE ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
-                        {selectedChoice === CORRECT_CHOICE ? 'Верно!' : `Правильный ответ: ${CORRECT_CHOICE}`}
-                    </div>
+
+                        {introReveal >= 3 && (
+                            <DiagramBlock onSettled={() => setIntroReveal(4)}>
+                                <TrapezoidDiagram legsHighlighted base43Shown base73Shown />
+                            </DiagramBlock>
+                        )}
+                    </Fragment>
+                </SceneWrapper>
+
+                {/* Шаг 1 — высоты → диаграмма → отрезки-подсказки → диаграмма. */}
+                {stepIndex >= 1 && (
+                    <SceneWrapper key="step-1" innerRef={sceneRef('step-1')} active={isSceneActive('step-1')}>
+                        <Fragment key={`step-1-${nonceFor('step-1')}`}>
+                            <TypedLine
+                                className="w-full text-base md:text-lg text-[#F2F7FB]"
+                                text="Проведём две высоты из вершин меньшего основания."
+                                onSettled={() => setHeightsReveal((r) => Math.max(r, 1))}
+                            />
+
+                            {heightsReveal >= 1 && (
+                                <DiagramBlock onSettled={() => setHeightsReveal((r) => Math.max(r, 2))}>
+                                    <TrapezoidDiagram legsHighlighted base43Shown base73Shown altitudesDrawn />
+                                </DiagramBlock>
+                            )}
+
+                            {heightsReveal >= 2 && (
+                                <TypedLine
+                                    className="w-full text-base md:text-lg text-[#F2F7FB]"
+                                    text="У основания образовались два равных отрезка по краям."
+                                    onSettled={() => setHeightsReveal((r) => Math.max(r, 3))}
+                                />
+                            )}
+
+                            {heightsReveal >= 3 && (
+                                <DiagramBlock onSettled={() => setHeightsReveal(4)}>
+                                    <TrapezoidDiagram legsHighlighted base43Shown base73Shown altitudesDrawn segmentsHighlighted />
+                                </DiagramBlock>
+                            )}
+                        </Fragment>
+                    </SceneWrapper>
                 )}
 
-                {choiceChecked && (
-                    <DiagramBlock>
-                        <TrapezoidDiagram legsHighlighted base43Shown base73Shown altitudesDrawn segmentsHighlighted segmentValue="15" triangleHighlighted />
-                    </DiagramBlock>
+                {/* Шаг 2 — длина отрезка (73-43)/2. */}
+                {stepIndex >= 2 && (
+                    <SceneWrapper key="step-2" innerRef={sceneRef('step-2')} active={isSceneActive('step-2')}>
+                        <Fragment key={`step-2-${nonceFor('step-2')}`}>
+                            <TypedLine
+                                className="w-full text-base md:text-lg text-[#F2F7FB]"
+                                text="Найдём длину каждого отрезка:"
+                            />
+                            <FormulaBlock latex={segmentFormula} innerRef={segmentFormulaRef} />
+                            {!segmentChecked && (
+                                <KeyboardInput value={segmentTyped} onChange={setSegmentTyped} disabled={false} showDisplay={false} allowNegative={false} />
+                            )}
+                            {segmentChecked && (
+                                <div
+                                    className={cn(
+                                        'flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center',
+                                        segmentCorrect ? 'bg-[#A1D15122] text-[#A1D151]' : 'bg-[#DC605B22] text-[#DC605B]'
+                                    )}
+                                >
+                                    {segmentCorrect ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
+                                    {segmentCorrect ? 'Верно!' : 'Правильный ответ: 15'}
+                                </div>
+                            )}
+                            {segmentChecked && (
+                                <DiagramBlock>
+                                    <TrapezoidDiagram legsHighlighted base43Shown base73Shown altitudesDrawn segmentsHighlighted segmentValue="15" />
+                                </DiagramBlock>
+                            )}
+                        </Fragment>
+                    </SceneWrapper>
                 )}
 
+                {/* Шаг 3 — зум на треугольник → цитата про косинус → вопрос → выбор. */}
+                {stepIndex >= 3 && (
+                    <SceneWrapper key="step-3" innerRef={sceneRef('step-3')} active={isSceneActive('step-3')}>
+                        <Fragment key={`step-3-${nonceFor('step-3')}`}>
+                            <DiagramBlock onSettled={() => setChoiceReveal((r) => Math.max(r, 1))}>
+                                <TrapezoidDiagram
+                                    legsHighlighted base43Shown base73Shown altitudesDrawn segmentsHighlighted segmentValue="15"
+                                    triangleHighlighted zoomTriangle hypotenuseFocused
+                                />
+                            </DiagramBlock>
+
+                            {choiceReveal >= 1 && (
+                                <ConditionCitation
+                                    text="Косинус острого угла трапеции равен 5/7"
+                                    onSettled={() => setChoiceReveal((r) => Math.max(r, 2))}
+                                />
+                            )}
+
+                            {choiceReveal >= 2 && (
+                                <TypedLine
+                                    className="w-full text-base md:text-lg text-[#F2F7FB]"
+                                    text="В прямоугольном треугольнике известны прилежащий катет (15) и косинус угла. Как найти боковую сторону — гипотенузу?"
+                                    onSettled={() => setChoiceReveal(3)}
+                                />
+                            )}
+
+                            {choiceReveal >= 3 && (
+                                <div className="grid grid-cols-2 gap-3 w-full">
+                                    {['15 · cos', '15 / cos'].map((option, idx) => (
+                                        <AnimatedOptionButton
+                                            key={idx}
+                                            option={option}
+                                            index={idx}
+                                            onClick={() => !choiceChecked && setSelectedChoice(option)}
+                                            isSelected={selectedChoice === option}
+                                            isCorrect={choiceChecked && option === CORRECT_CHOICE}
+                                            isWrong={choiceChecked && selectedChoice === option && option !== CORRECT_CHOICE}
+                                            disabled={choiceChecked}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+
+                            {choiceChecked && (
+                                <div
+                                    className={cn(
+                                        'flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center',
+                                        selectedChoice === CORRECT_CHOICE ? 'bg-[#A1D15122] text-[#A1D151]' : 'bg-[#DC605B22] text-[#DC605B]'
+                                    )}
+                                >
+                                    {selectedChoice === CORRECT_CHOICE ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
+                                    {selectedChoice === CORRECT_CHOICE ? 'Верно!' : `Правильный ответ: ${CORRECT_CHOICE}`}
+                                </div>
+                            )}
+
+                            {choiceChecked && (
+                                <DiagramBlock>
+                                    <TrapezoidDiagram legsHighlighted base43Shown base73Shown altitudesDrawn segmentsHighlighted segmentValue="15" triangleHighlighted />
+                                </DiagramBlock>
+                            )}
+                        </Fragment>
+                    </SceneWrapper>
+                )}
+
+                {/* Шаг 4 — финальная боковая сторона 15/(5/7). */}
                 {stepIndex >= 4 && (
-                    <>
-                        <TypedLine
-                            className="w-full text-base md:text-lg text-[#F2F7FB]"
-                            text="Подставим числа:"
-                        />
-                        <FormulaBlock latex={finalFormula} innerRef={finalFormulaRef} />
-                        {!finalChecked && (
-                            <KeyboardInput value={finalTyped} onChange={setFinalTyped} disabled={false} showDisplay={false} allowNegative={false} />
-                        )}
-                        {finalChecked && (
-                            <div
-                                className={cn(
-                                    'flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center',
-                                    finalCorrect ? 'bg-[#A1D15122] text-[#A1D151]' : 'bg-[#DC605B22] text-[#DC605B]'
-                                )}
-                            >
-                                {finalCorrect ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
-                                {finalCorrect ? 'Верно!' : 'Правильный ответ: 21'}
-                            </div>
-                        )}
-                    </>
+                    <SceneWrapper key="step-4" innerRef={sceneRef('step-4')} active={isSceneActive('step-4')}>
+                        <Fragment key={`step-4-${nonceFor('step-4')}`}>
+                            <TypedLine
+                                className="w-full text-base md:text-lg text-[#F2F7FB]"
+                                text="Подставим числа:"
+                            />
+                            <FormulaBlock latex={finalFormula} innerRef={finalFormulaRef} />
+                            {!finalChecked && (
+                                <KeyboardInput value={finalTyped} onChange={setFinalTyped} disabled={false} showDisplay={false} allowNegative={false} />
+                            )}
+                            {finalChecked && (
+                                <div
+                                    className={cn(
+                                        'flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center',
+                                        finalCorrect ? 'bg-[#A1D15122] text-[#A1D151]' : 'bg-[#DC605B22] text-[#DC605B]'
+                                    )}
+                                >
+                                    {finalCorrect ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
+                                    {finalCorrect ? 'Верно!' : 'Правильный ответ: 21'}
+                                </div>
+                            )}
+                            {finalChecked && (
+                                <DiagramBlock>
+                                    <TrapezoidDiagram
+                                        legsHighlighted base43Shown base73Shown altitudesDrawn segmentsHighlighted segmentValue="15"
+                                        triangleHighlighted legValue="21"
+                                    />
+                                </DiagramBlock>
+                            )}
+                        </Fragment>
+                    </SceneWrapper>
                 )}
-
-                {stepIndex >= 4 && finalChecked && (
-                    <DiagramBlock>
-                        <TrapezoidDiagram
-                            legsHighlighted base43Shown base73Shown altitudesDrawn segmentsHighlighted segmentValue="15"
-                            triangleHighlighted legValue="21"
-                        />
-                    </DiagramBlock>
-                )}
-
-                <div ref={endRef} />
             </div>
 
-            {(() => {
-                if (stepIndex === 0) {
-                    return (
-                        <button type="button" onClick={goNext} disabled={introBusy}
-                            className={cn('w-full max-w-xs py-3 rounded-xl font-bold text-lg border-2 border-b-4 active:border-b-2 transition-colors',
-                                introBusy ? 'bg-[#161F23] border-[#3A464E] text-[#5A6A72] cursor-not-allowed' : 'bg-[#A1D151] border-[#78C93C] text-[#151F24]')}>
-                            Дальше
-                        </button>
-                    )
-                }
-                if (stepIndex === 1) {
-                    return (
-                        <button type="button" onClick={goNext} disabled={heightsBusy}
-                            className={cn('w-full max-w-xs py-3 rounded-xl font-bold text-lg border-2 border-b-4 active:border-b-2 transition-colors',
-                                heightsBusy ? 'bg-[#161F23] border-[#3A464E] text-[#5A6A72] cursor-not-allowed' : 'bg-[#A1D151] border-[#78C93C] text-[#151F24]')}>
-                            Дальше
-                        </button>
-                    )
-                }
-                if (stepIndex === 2) {
-                    if (segmentChecked) {
+            <div className="w-full flex items-center gap-2">
+                <BackButton onClick={handleBack} disabled={!canGoBack} />
+                {(() => {
+                    if (stepIndex === 0) {
                         return (
-                            <button type="button" onClick={goNext}
-                                className="w-full max-w-xs py-3 rounded-xl font-bold text-lg border-2 border-b-4 active:border-b-2 transition-colors bg-[#A1D151] border-[#78C93C] text-[#151F24]">
+                            <button type="button" onClick={goNext} disabled={introBusy}
+                                className={walkthroughButtonClass(!introBusy)} style={walkthroughButtonStyle(!introBusy)}>
                                 Дальше
                             </button>
                         )
                     }
-                    const disabled = segmentTyped.trim().length === 0
-                    return (
-                        <button type="button" onClick={handleSegmentCheck} disabled={disabled}
-                            className={cn('w-full max-w-xs py-3 rounded-xl font-bold text-lg border-2 border-b-4 active:border-b-2 transition-colors',
-                                disabled ? 'bg-[#161F23] border-[#3A464E] text-[#5A6A72] cursor-not-allowed' : 'bg-[#A1D151] border-[#78C93C] text-[#151F24]')}>
-                            Проверить
-                        </button>
-                    )
-                }
-                if (stepIndex === 3) {
-                    if (choiceChecked) {
+                    if (stepIndex === 1) {
                         return (
-                            <button type="button" onClick={goNext}
-                                className="w-full max-w-xs py-3 rounded-xl font-bold text-lg border-2 border-b-4 active:border-b-2 transition-colors bg-[#A1D151] border-[#78C93C] text-[#151F24]">
+                            <button type="button" onClick={goNext} disabled={heightsBusy}
+                                className={walkthroughButtonClass(!heightsBusy)} style={walkthroughButtonStyle(!heightsBusy)}>
                                 Дальше
                             </button>
                         )
                     }
-                    const disabled = choiceBusy || selectedChoice === null
+                    if (stepIndex === 2) {
+                        if (segmentChecked) {
+                            return (
+                                <button type="button" onClick={goNext}
+                                    className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>
+                                    Дальше
+                                </button>
+                            )
+                        }
+                        const enabled = segmentTyped.trim().length > 0
+                        return (
+                            <button type="button" onClick={handleSegmentCheck} disabled={!enabled}
+                                className={walkthroughButtonClass(enabled)} style={walkthroughButtonStyle(enabled)}>
+                                Проверить
+                            </button>
+                        )
+                    }
+                    if (stepIndex === 3) {
+                        if (choiceChecked) {
+                            return (
+                                <button type="button" onClick={goNext}
+                                    className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>
+                                    Дальше
+                                </button>
+                            )
+                        }
+                        const enabled = !choiceBusy && selectedChoice !== null
+                        return (
+                            <button type="button" onClick={handleChoiceCheck} disabled={!enabled}
+                                className={walkthroughButtonClass(enabled)} style={walkthroughButtonStyle(enabled)}>
+                                Проверить
+                            </button>
+                        )
+                    }
+                    // stepIndex === 4
+                    if (finalChecked) {
+                        return (
+                            <button type="button" onClick={handleFinish}
+                                className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>
+                                Готово
+                            </button>
+                        )
+                    }
+                    const enabled = finalTyped.trim().length > 0
                     return (
-                        <button type="button" onClick={handleChoiceCheck} disabled={disabled}
-                            className={cn('w-full max-w-xs py-3 rounded-xl font-bold text-lg border-2 border-b-4 active:border-b-2 transition-colors',
-                                disabled ? 'bg-[#161F23] border-[#3A464E] text-[#5A6A72] cursor-not-allowed' : 'bg-[#A1D151] border-[#78C93C] text-[#151F24]')}>
+                        <button type="button" onClick={handleFinalCheck} disabled={!enabled}
+                            className={walkthroughButtonClass(enabled)} style={walkthroughButtonStyle(enabled)}>
                             Проверить
                         </button>
                     )
-                }
-                // stepIndex === 4
-                if (finalChecked) {
-                    return (
-                        <button type="button" onClick={handleFinish}
-                            className="w-full max-w-xs py-3 rounded-xl font-bold text-lg border-2 border-b-4 active:border-b-2 transition-colors bg-[#A1D151] border-[#78C93C] text-[#151F24]">
-                            Готово
-                        </button>
-                    )
-                }
-                const disabled = finalTyped.trim().length === 0
-                return (
-                    <button type="button" onClick={handleFinalCheck} disabled={disabled}
-                        className={cn('w-full max-w-xs py-3 rounded-xl font-bold text-lg border-2 border-b-4 active:border-b-2 transition-colors',
-                            disabled ? 'bg-[#161F23] border-[#3A464E] text-[#5A6A72] cursor-not-allowed' : 'bg-[#A1D151] border-[#78C93C] text-[#151F24]')}>
-                        Проверить
-                    </button>
-                )
-            })()}
+                })()}
+            </div>
         </div>
     )
 }

@@ -9,22 +9,28 @@
 // мотивам motion.dev "Typewriter: Natural Typing" (см. Typewriter.tsx):
 // текст решения печатается по буквам, но НЕ стирается по мере перехода
 // к следующему шагу — новые блоки дописываются НИЖЕ уже показанных, а
-// страница сама скроллит вниз к новому блоку (только пока пользователь
-// сам не проверял листать вверх — см. useStickToBottom). Каждая ссылка
-// на условие — не сдвиг маркера по одному и тому же тексту, а НОВАЯ
-// короткая цитата с оранжевой пометкой "Условие" рядом (не всё условие
-// целиком, только тот кусочек, который сейчас подсвечивается — по
-// уточнению пользователя в чате). Если картинка на этом шаге меняется —
-// рисуется НОВый экземпляр диаграммы ниже, старый не трогается, так что
+// страница сама скроллит к новому блоку так, чтобы он был примерно
+// посередине экрана (см. useSceneFocus в WalkthroughLog.tsx). Каждая
+// ссылка на условие — не сдвиг маркера по одному и тому же тексту, а
+// НОВАЯ короткая цитата с оранжевой пометкой "Условие" рядом (не всё
+// условие целиком, только тот кусочек, который сейчас подсвечивается —
+// по уточнению пользователя в чате). Если картинка на этом шаге меняется
+// — рисуется НОВый экземпляр диаграммы ниже, старый не трогается, так что
 // прокрутив вверх видно, как чертёж выглядел на каждом этапе.
 //
 // Финальный ввод числами — не один "Проверить" на готовую формулу, а
 // ДВА независимых клавиатурных ввода прямо в формулу с двумя "?"
 // (AB=10 и CD=16, в ЛЮБОМ порядке), и только потом — обычный числовой
 // ответ (периметр=52).
+//
+// Центрирование сцены + реальный откат "назад" (2026-09-19) — тот же
+// перенос на SceneWrapper/useSceneFocus/useReplayNonces/BackButton, что и
+// у TrapezoidWalkthrough (см. подробный комментарий там про то, почему
+// один SceneWrapper=целый stepIndex, а не микро-блок, и зачем "назад"
+// сбрасывает раскрытие ОБОИХ шагов — целевого и того, с которого ушли).
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { Fragment } from 'react'
 import Latex from 'react-latex-next'
 import 'katex/dist/katex.min.css';
 import { Check, X } from 'lucide-react'
@@ -35,7 +41,9 @@ import { TangentialQuadDiagram } from './TangentialQuadDiagram'
 import { Typewriter } from './Typewriter'
 import {
     PENDING_COLOR, CORRECT_COLOR, WRONG_COLOR, PENDING_COLOR_RGB, CURSOR_LATEX, ATTENTION_COLOR,
-    ConditionCitation, TypedLine, BlinkingExclaim, FormulaBlock, DiagramBlock, useStickToBottom, useGlyphBlink,
+    ConditionCitation, TypedLine, BlinkingExclaim, FormulaBlock, DiagramBlock, useGlyphBlink,
+    SceneWrapper, useSceneFocus, useReplayNonces, BackButton,
+    walkthroughButtonClass, walkthroughButtonStyle,
 } from './WalkthroughLog'
 
 type Props = {
@@ -197,7 +205,42 @@ export const TangentialQuadWalkthrough = ({ onComplete }: Props) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [doubleValues, doubleTyped, stepIndex])
 
-    const endRef = useStickToBottom([stepIndex, introReveal, numbersReveal, doubleBothFilled, doubleWrongFlash, checked])
+    // Счётчики "повторов" — нужны кнопке "назад" для перемонтирования
+    // содержимого целевого шага (тот же приём, что и в тренажёрных
+    // разборах, см. type-logsubwalk.tsx).
+    const { bump: bumpNonce, nonceFor } = useReplayNonces()
+
+    // Затемнение прошлых шагов + автоскролл к текущему (см. useSceneFocus
+    // в WalkthroughLog.tsx) — тот же принцип, что и в TrapezoidWalkthrough.
+    const latestSceneKey = `step-${stepIndex}`
+    const canGoBack = stepIndex > 0
+    const stepContentSettled =
+        stepIndex === 0 ? introReveal >= 3 :
+        stepIndex === 1 ? numbersReveal >= 3 :
+        stepIndex === 2 ? doubleBothFilled :
+        checked
+    const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, stepContentSettled)
+
+    // Сброс раскрытия/ответа ОДНОГО шага — нужен и целевому шагу (полная
+    // повторная анимация), и шагу, с которого уходим (чтобы при повторном
+    // заходе вперёд он тоже начал с нуля).
+    const resetStepState = (idx: number) => {
+        if (idx === 0) { setIntroReveal(0); setShowFormula1(false) }
+        else if (idx === 1) { setNumbersReveal(0) }
+        else if (idx === 2) { setDoubleValues([null, null]); setDoubleTyped(''); setDoubleWrongFlash(false) }
+        else if (idx === 3) { setTypedAnswer(''); setChecked(false); setLastCorrect(null) }
+    }
+
+    // "Назад" — реальный откат на предыдущий шаг: hadMistake НЕ сбрасывается
+    // (та же конвенция, что и в тренажёрных разборах).
+    const handleBack = () => {
+        if (!canGoBack) return
+        const target = stepIndex - 1
+        bumpNonce(`step-${target}`)
+        resetStepState(target)
+        resetStepState(stepIndex)
+        setStepIndex(target)
+    }
 
     return (
         <div className="w-full max-w-xl mx-auto flex flex-col items-center gap-4">
@@ -226,153 +269,166 @@ export const TangentialQuadWalkthrough = ({ onComplete }: Props) => {
             {/* ---------- накопительный лог ---------- */}
             <div className="w-full flex flex-col gap-4">
 
-                <DiagramBlock><TangentialQuadDiagram /></DiagramBlock>
+                {/* Шаг 0 — интро: условие вписанной окружности → объяснение
+                    → формула периметра. */}
+                <SceneWrapper key="step-0" innerRef={sceneRef('step-0')} active={isSceneActive('step-0')}>
+                    <Fragment key={`step-0-${nonceFor('step-0')}`}>
+                        <DiagramBlock><TangentialQuadDiagram /></DiagramBlock>
 
-                <ConditionCitation
-                    text="В четырёхугольник ABCD вписана окружность"
-                    onSettled={() => setIntroReveal((r) => Math.max(r, 1))}
-                />
+                        <ConditionCitation
+                            text="В четырёхугольник ABCD вписана окружность"
+                            onSettled={() => setIntroReveal((r) => Math.max(r, 1))}
+                        />
 
-                {introReveal >= 1 && (
-                    <ExplainLine onSettled={() => setIntroReveal((r) => Math.max(r, 2))} />
-                )}
+                        {introReveal >= 1 && (
+                            <ExplainLine onSettled={() => setIntroReveal((r) => Math.max(r, 2))} />
+                        )}
 
-                {introReveal >= 2 && (
-                    <TypedLine
-                        className="w-full text-base md:text-lg text-[#F2F7FB]"
-                        text="Поэтому AB+CD = BC+AD. А периметр — сумма всех сторон, значит:"
-                        onSettled={() => setShowFormula1(true)}
-                    />
-                )}
+                        {introReveal >= 2 && (
+                            <TypedLine
+                                className="w-full text-base md:text-lg text-[#F2F7FB]"
+                                text="Поэтому AB+CD = BC+AD. А периметр — сумма всех сторон, значит:"
+                                onSettled={() => setShowFormula1(true)}
+                            />
+                        )}
 
-                {showFormula1 && (
-                    <FormulaBlock latex="$P = 2\times(AB+CD)$" onSettled={() => setIntroReveal(3)} />
-                )}
+                        {showFormula1 && (
+                            <FormulaBlock latex="$P = 2\times(AB+CD)$" onSettled={() => setIntroReveal(3)} />
+                        )}
+                    </Fragment>
+                </SceneWrapper>
 
+                {/* Шаг 1 — конкретные числа AB=10, CD=16. */}
                 {stepIndex >= 1 && (
-                    <ConditionCitation
-                        text="AB = 10, CD = 16"
-                        onSettled={() => setNumbersReveal((r) => Math.max(r, 1))}
-                    />
-                )}
+                    <SceneWrapper key="step-1" innerRef={sceneRef('step-1')} active={isSceneActive('step-1')}>
+                        <Fragment key={`step-1-${nonceFor('step-1')}`}>
+                            <ConditionCitation
+                                text="AB = 10, CD = 16"
+                                onSettled={() => setNumbersReveal((r) => Math.max(r, 1))}
+                            />
 
-                {stepIndex >= 1 && numbersReveal >= 1 && (
-                    <DiagramBlock onSettled={() => setNumbersReveal((r) => Math.max(r, 2))}>
-                        <TangentialQuadDiagram numbersShown />
-                    </DiagramBlock>
-                )}
-
-                {stepIndex >= 1 && numbersReveal >= 2 && (
-                    <TypedLine
-                        className="w-full text-base md:text-lg text-[#F2F7FB]"
-                        text="Теперь у нас есть конкретные числа."
-                        onSettled={() => setNumbersReveal(3)}
-                    />
-                )}
-
-                {stepIndex >= 2 && (
-                    <div className="w-full flex flex-col items-center gap-3">
-                        <div ref={doubleFormulaRef} className="text-2xl md:text-3xl font-bold text-[#F2F7FB] py-1 text-center">
-                            <Latex>{doubleFormula}</Latex>
-                        </div>
-                        {!doubleBothFilled && (
-                            <KeyboardInput value={doubleTyped} onChange={setDoubleTyped} disabled={false} showDisplay={false} allowNegative={false} />
-                        )}
-                        {doubleWrongFlash && (
-                            <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">
-                                <X className="w-5 h-5" /> Это не одна из данных сторон — попробуй ещё
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {stepIndex >= 3 && (
-                    <TypedLine
-                        className="w-full text-base md:text-lg text-[#F2F7FB]"
-                        text="Теперь вычислим:"
-                    />
-                )}
-
-                {stepIndex >= 3 && (
-                    <>
-                        <FormulaBlock latex={finalFormula} innerRef={finalFormulaRef} />
-                        <div className="w-full flex flex-col items-center gap-3">
-                            <KeyboardInput value={typedAnswer} onChange={setTypedAnswer} disabled={checked} showDisplay={false} allowNegative={false} />
-                            {checked && (
-                                <div
-                                    className={cn(
-                                        'flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center',
-                                        lastCorrect ? 'bg-[#A1D15122] text-[#A1D151]' : 'bg-[#DC605B22] text-[#DC605B]'
-                                    )}
-                                >
-                                    {lastCorrect ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
-                                    {lastCorrect ? 'Верно!' : 'Правильный ответ: 52'}
-                                </div>
+                            {numbersReveal >= 1 && (
+                                <DiagramBlock onSettled={() => setNumbersReveal((r) => Math.max(r, 2))}>
+                                    <TangentialQuadDiagram numbersShown />
+                                </DiagramBlock>
                             )}
-                        </div>
-                    </>
+
+                            {numbersReveal >= 2 && (
+                                <TypedLine
+                                    className="w-full text-base md:text-lg text-[#F2F7FB]"
+                                    text="Теперь у нас есть конкретные числа."
+                                    onSettled={() => setNumbersReveal(3)}
+                                />
+                            )}
+                        </Fragment>
+                    </SceneWrapper>
                 )}
 
-                <div ref={endRef} />
+                {/* Шаг 2 — два независимых ввода прямо в формулу P=2×(?+?). */}
+                {stepIndex >= 2 && (
+                    <SceneWrapper key="step-2" innerRef={sceneRef('step-2')} active={isSceneActive('step-2')}>
+                        <Fragment key={`step-2-${nonceFor('step-2')}`}>
+                            <div className="w-full flex flex-col items-center gap-3">
+                                <div ref={doubleFormulaRef} className="text-2xl md:text-3xl font-bold text-[#F2F7FB] py-1 text-center">
+                                    <Latex>{doubleFormula}</Latex>
+                                </div>
+                                {!doubleBothFilled && (
+                                    <KeyboardInput value={doubleTyped} onChange={setDoubleTyped} disabled={false} showDisplay={false} allowNegative={false} />
+                                )}
+                                {doubleWrongFlash && (
+                                    <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">
+                                        <X className="w-5 h-5" /> Это не одна из данных сторон — попробуй ещё
+                                    </div>
+                                )}
+                            </div>
+                        </Fragment>
+                    </SceneWrapper>
+                )}
+
+                {/* Шаг 3 — финальный числовой ответ, периметр=52. */}
+                {stepIndex >= 3 && (
+                    <SceneWrapper key="step-3" innerRef={sceneRef('step-3')} active={isSceneActive('step-3')}>
+                        <Fragment key={`step-3-${nonceFor('step-3')}`}>
+                            <TypedLine
+                                className="w-full text-base md:text-lg text-[#F2F7FB]"
+                                text="Теперь вычислим:"
+                            />
+                            <FormulaBlock latex={finalFormula} innerRef={finalFormulaRef} />
+                            <div className="w-full flex flex-col items-center gap-3">
+                                <KeyboardInput value={typedAnswer} onChange={setTypedAnswer} disabled={checked} showDisplay={false} allowNegative={false} />
+                                {checked && (
+                                    <div
+                                        className={cn(
+                                            'flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center',
+                                            lastCorrect ? 'bg-[#A1D15122] text-[#A1D151]' : 'bg-[#DC605B22] text-[#DC605B]'
+                                        )}
+                                    >
+                                        {lastCorrect ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
+                                        {lastCorrect ? 'Верно!' : 'Правильный ответ: 52'}
+                                    </div>
+                                )}
+                            </div>
+                        </Fragment>
+                    </SceneWrapper>
+                )}
             </div>
 
-            {(() => {
-                if (stepIndex === 0) {
-                    const disabled = introBusy
-                    return (
-                        <button type="button" onClick={handleObserveNext} disabled={disabled}
-                            className={cn('w-full max-w-xs py-3 rounded-xl font-bold text-lg border-2 border-b-4 active:border-b-2 transition-colors',
-                                disabled ? 'bg-[#161F23] border-[#3A464E] text-[#5A6A72] cursor-not-allowed' : 'bg-[#A1D151] border-[#78C93C] text-[#151F24]')}>
-                            Дальше
-                        </button>
-                    )
-                }
-                if (stepIndex === 1) {
-                    const disabled = numbersBusy
-                    return (
-                        <button type="button" onClick={handleObserveNext} disabled={disabled}
-                            className={cn('w-full max-w-xs py-3 rounded-xl font-bold text-lg border-2 border-b-4 active:border-b-2 transition-colors',
-                                disabled ? 'bg-[#161F23] border-[#3A464E] text-[#5A6A72] cursor-not-allowed' : 'bg-[#A1D151] border-[#78C93C] text-[#151F24]')}>
-                            Дальше
-                        </button>
-                    )
-                }
-                if (stepIndex === 2) {
-                    if (doubleBothFilled) {
+            <div className="w-full flex items-center gap-2">
+                <BackButton onClick={handleBack} disabled={!canGoBack} />
+                {(() => {
+                    if (stepIndex === 0) {
+                        const enabled = !introBusy
                         return (
-                            <button type="button" onClick={handleObserveNext}
-                                className="w-full max-w-xs py-3 rounded-xl font-bold text-lg border-2 border-b-4 active:border-b-2 transition-colors bg-[#A1D151] border-[#78C93C] text-[#151F24]">
+                            <button type="button" onClick={handleObserveNext} disabled={!enabled}
+                                className={walkthroughButtonClass(enabled)} style={walkthroughButtonStyle(enabled)}>
                                 Дальше
                             </button>
                         )
                     }
-                    const disabled = doubleTyped.trim().length === 0
+                    if (stepIndex === 1) {
+                        const enabled = !numbersBusy
+                        return (
+                            <button type="button" onClick={handleObserveNext} disabled={!enabled}
+                                className={walkthroughButtonClass(enabled)} style={walkthroughButtonStyle(enabled)}>
+                                Дальше
+                            </button>
+                        )
+                    }
+                    if (stepIndex === 2) {
+                        if (doubleBothFilled) {
+                            return (
+                                <button type="button" onClick={handleObserveNext}
+                                    className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>
+                                    Дальше
+                                </button>
+                            )
+                        }
+                        const enabled = doubleTyped.trim().length > 0
+                        return (
+                            <button type="button" onClick={handleDoubleSubmit} disabled={!enabled}
+                                className={walkthroughButtonClass(enabled)} style={walkthroughButtonStyle(enabled)}>
+                                Проверить
+                            </button>
+                        )
+                    }
+                    // stepIndex === 3
+                    if (!checked) {
+                        const enabled = typedAnswer.trim().length > 0
+                        return (
+                            <button type="button" onClick={handleFinalCheck} disabled={!enabled}
+                                className={walkthroughButtonClass(enabled)} style={walkthroughButtonStyle(enabled)}>
+                                Проверить
+                            </button>
+                        )
+                    }
                     return (
-                        <button type="button" onClick={handleDoubleSubmit} disabled={disabled}
-                            className={cn('w-full max-w-xs py-3 rounded-xl font-bold text-lg border-2 border-b-4 active:border-b-2 transition-colors',
-                                disabled ? 'bg-[#161F23] border-[#3A464E] text-[#5A6A72] cursor-not-allowed' : 'bg-[#A1D151] border-[#78C93C] text-[#151F24]')}>
-                            Проверить
+                        <button type="button" onClick={handleFinalNext}
+                            className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>
+                            Готово
                         </button>
                     )
-                }
-                // stepIndex === 3
-                if (!checked) {
-                    const disabled = typedAnswer.trim().length === 0
-                    return (
-                        <button type="button" onClick={handleFinalCheck} disabled={disabled}
-                            className={cn('w-full max-w-xs py-3 rounded-xl font-bold text-lg border-2 border-b-4 active:border-b-2 transition-colors',
-                                disabled ? 'bg-[#161F23] border-[#3A464E] text-[#5A6A72] cursor-not-allowed' : 'bg-[#A1D151] border-[#78C93C] text-[#151F24]')}>
-                            Проверить
-                        </button>
-                    )
-                }
-                return (
-                    <button type="button" onClick={handleFinalNext}
-                        className="w-full max-w-xs py-3 rounded-xl font-bold text-lg border-2 border-b-4 active:border-b-2 transition-colors bg-[#A1D151] border-[#78C93C] text-[#151F24]">
-                        Готово
-                    </button>
-                )
-            })()}
+                })()}
+            </div>
         </div>
     )
 }

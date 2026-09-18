@@ -1,10 +1,10 @@
 // components/geometry/WalkthroughLog.tsx
 //
-// Общие строительные блоки "накопительного" лога для интерактивных
-// разборов по шагам (TangentialQuadWalkthrough, TrapezoidWalkthrough) —
-// вынесены при переносе принципа со второго разбора на первый, чтобы не
-// дублировать одну и ту же хореографию/приёмы дважды. Принцип (по
-// прямой просьбе пользователя, обкатан на TangentialQuadWalkthrough):
+// Общие строительные блоки "накопительного" лога для ВСЕХ интерактивных
+// разборов по шагам — и курсовых (TangentialQuadWalkthrough,
+// TrapezoidWalkthrough), и тренажёрных (SINWALK/LOGWALK/LOGSUBWALK/
+// LOGDEFWALK/LOGPOWWALK, app/t-lesson/[t_lessonId]/type-*walk.tsx). Принцип
+// (по прямой просьбе пользователя, обкатан на TangentialQuadWalkthrough):
 // текст решения печатается по буквам (Typewriter) и НЕ стирается по
 // мере перехода к следующему шагу — новые блоки дописываются НИЖЕ уже
 // показанных, страница сама скроллит к новому блоку так, чтобы он был
@@ -90,10 +90,11 @@ export const walkthroughButtonStyle = (enabled: boolean): { boxShadow: string } 
 // пользователя (2026-09-18): когда начинается новая сцена, все ПРЕДЫДУЩИЕ
 // становятся бледнее (opacity), чтобы взгляд сразу понимал, куда смотреть
 // теперь; плюс автоскролл, чтобы новая сцена оказалась ПОСЕРЕДИНЕ экрана
-// (не внизу, см. useEffect ниже). Общий кусок для ВСЕХ разборов
-// (SINWALK/LOGWALK/LOGDEFWALK/LOGSUBWALK/LOGPOWWALK) — каждый передаёт
-// свой `latestKey` (какая сцена сейчас новая) и `contentSettled`
-// (напечатался ли текст текущей сцены — см. ниже, зачем).
+// (не внизу, см. useEffect ниже). Общий кусок для ВСЕХ разборов —
+// тренажёрных (SINWALK/LOGWALK/LOGDEFWALK/LOGSUBWALK/LOGPOWWALK) и
+// курсовых (TrapezoidWalkthrough/TangentialQuadWalkthrough, 2026-09-19) —
+// каждый передаёт свой `latestKey` (какая сцена сейчас новая) и
+// `contentSettled` (напечатался ли текст текущей сцены — см. ниже, зачем).
 //
 // "Назад" (см. BackButton) больше НЕ живёт в этом хуке — по прямой
 // просьбе пользователя (2026-09-19, "надо сделать полный шаг назад,
@@ -393,30 +394,6 @@ export const FormulaBlock = ({ latex, onSettled, innerRef, className }: { latex:
             <Latex>{latex}</Latex>
         </motion.div>
     )
-}
-
-// Двигает экран к концу лога так, чтобы новый блок оказался примерно
-// ПОСЕРЕДИНЕ экрана (block:'center', не 'end'). Используется двумя более
-// старыми разборами (TangentialQuadWalkthrough/TrapezoidWalkthrough), у
-// которых нет накопительного SceneWrapper/useSceneFocus (см. выше) — те 5
-// более новых разборов (SINWALK/LOGWALK/...) переехали на центрирование
-// К САМОЙ СЦЕНЕ через useSceneFocus (надёжнее — endRef, пустой маркер
-// В САМОМ КОНЦЕ потока, не может "дотянуть" центрирование, если под ним
-// не осталось контента, см. useSceneFocus). Раньше здесь была ещё и
-// эвристика "не мешать, если пользователь сам отскроллил вверх" —
-// построенная на анализе 'scroll'-событий, она была хрупкой (тот же
-// smooth-scroll из ЭТОГО эффекта генерирует ПРОМЕЖУТОЧНЫЕ 'scroll'-
-// события, ошибочно трактуемые как "пользователь взял управление") —
-// убрана по прямой просьбе пользователя (2026-09-19, "новая сцена сейчас
-// внизу экрана" — оказалось, что автоскролл НАВСЕГДА выключался после
-// первого же перехода).
-export function useStickToBottom(deps: unknown[]) {
-    const endRef = useRef<HTMLDivElement>(null)
-    useEffect(() => {
-        endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, deps)
-    return endRef
 }
 
 // Обёртка для новой диаграммы-снимка в логе — сама диаграмма передаётся
