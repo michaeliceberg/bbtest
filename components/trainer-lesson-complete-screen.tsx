@@ -30,6 +30,12 @@ type Props = {
     onPrimary: () => void
     secondaryLabel?: string
     onSecondary?: () => void
+    // "Ударный час" ещё не дошёл до рубежа (см. actions/roll-lesson-case.ts,
+    // TQUIZ.tsx) — раньше показывалось отдельной мелкой строкой НАД этим
+    // экраном (`text-xs`, легко пропускалась). По прямой просьбе
+    // пользователя — теперь занимает место самого заголовка "Вы запустили
+    // серию!" (тот же крупный формат) + сундук вместо маскота-персонажа.
+    chainHint?: { count: number; remaining: number } | null
 }
 
 const formatElapsed = (seconds: number) => {
@@ -65,9 +71,10 @@ const StatCard = ({
 )
 
 export const TrainerLessonCompleteScreen = ({
-    lottieData, streak, xp, elapsedSeconds, primaryLabel, onPrimary, secondaryLabel, onSecondary,
+    lottieData, streak, xp, elapsedSeconds, primaryLabel, onPrimary, secondaryLabel, onSecondary, chainHint,
 }: Props) => {
     const streakWord = declensionRu(streak, 'верный ответ', 'верных ответа', 'верных ответов')
+    const lessonsWord = chainHint ? declensionRu(chainHint.remaining, 'урок', 'урока', 'уроков') : ''
 
     return (
         // Тот же каркас "min-h-screen flex flex-col", что уже используют
@@ -83,9 +90,26 @@ export const TrainerLessonCompleteScreen = ({
                     initial={{ scale: 0, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-                    className="w-64 h-64 sm:w-80 sm:h-80"
+                    className="relative w-64 h-64 sm:w-80 sm:h-80"
                 >
-                    <Lottie animationData={lottieData} loop autoplay className="w-full h-full" />
+                    {chainHint ? (
+                        <>
+                            {/* Мигающее золотое свечение позади сундука — тот
+                                же приём "дышащей" подсветки, что уже используют
+                                ChestGlow (trainer-grade-tree.tsx)/question-bubble.tsx,
+                                только в размере под этот крупный экран. */}
+                            <motion.div
+                                animate={{ opacity: [0.35, 0.75, 0.35], scale: [0.9, 1.08, 0.9] }}
+                                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                                className="absolute inset-0 rounded-full pointer-events-none"
+                                style={{ background: 'radial-gradient(circle, #FBBF2455 0%, #FBBF2400 70%)' }}
+                            />
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src="/chests/myth0001.svg" alt="" className="relative w-full h-full object-contain" />
+                        </>
+                    ) : (
+                        <Lottie animationData={lottieData} loop autoplay className="w-full h-full" />
+                    )}
                 </motion.div>
 
                 <motion.div
@@ -94,12 +118,25 @@ export const TrainerLessonCompleteScreen = ({
                     transition={{ delay: 0.15, duration: 0.35 }}
                     className="text-center"
                 >
-                    <h1 className="text-2xl sm:text-3xl font-extrabold" style={{ color: '#38BDF8' }}>
-                        Вы запустили серию!
-                    </h1>
-                    <p className="text-base sm:text-lg text-[#F2F7FB] mt-2">
-                        {streak} {streakWord} подряд? Так держать!
-                    </p>
+                    {chainHint ? (
+                        <>
+                            <h1 className="text-2xl sm:text-3xl font-extrabold" style={{ color: '#FBBF24' }}>
+                                Серия x{chainHint.count} без остановки!
+                            </h1>
+                            <p className="text-base sm:text-lg text-[#F2F7FB] mt-2">
+                                Ещё {chainHint.remaining} {lessonsWord} без ошибок — и гарантированный мифический кейс!
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <h1 className="text-2xl sm:text-3xl font-extrabold" style={{ color: '#38BDF8' }}>
+                                Вы запустили серию!
+                            </h1>
+                            <p className="text-base sm:text-lg text-[#F2F7FB] mt-2">
+                                {streak} {streakWord} подряд? Так держать!
+                            </p>
+                        </>
+                    )}
                 </motion.div>
             </div>
 

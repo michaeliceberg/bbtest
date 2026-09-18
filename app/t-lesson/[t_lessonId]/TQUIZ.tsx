@@ -24,7 +24,7 @@ import { QuestionType } from "@/app/t-lesson/[t_lessonId]/page"
 import { createEffect, StreakEffect } from "@/lib/streakEffects"
 import { useRouter } from 'next/navigation'
 import { FINISH_AUDIO_SRC_LIST } from "@/constants"
-import { isCorrectAnswer, declensionRu } from "@/usefulFunctions"
+import { isCorrectAnswer } from "@/usefulFunctions"
 import { LOTTIE_START_LIST, LOTTIE_EMOTION_RIGHT_LIST, LOTTIE_STREAK_CHARACTER_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
 import { PencilLine, Gift } from "lucide-react"
 import { useQuizAudio } from "@/app/hooks/useQuizAudio"
@@ -888,15 +888,6 @@ export default function TQuiz({
               label={chainBonusLength ? `🔥 Серия x${chainBonusLength}` : LESSON_CASE_TIER_TITLES[lessonCaseTier]}
             />
           )}
-          {/* "Ударный час" ещё не дошёл до рубежа — подсказка, сколько
-              уроков подряд БЕЗ ошибок осталось до гарантированного mythic
-              (см. actions/roll-lesson-case.ts). Не показывается, если этот
-              же урок УЖЕ дал бонус цепочки (баннер выше это уже сказал). */}
-          {!chainBonusLength && chainHint && chainHint.alive && chainHint.count > 0 && chainHint.count < 3 && (
-            <p className="text-center text-xs font-semibold text-violet-300 -mt-1 mb-2">
-              🔥 Серия x{chainHint.count} без остановки — ещё {3 - chainHint.count} {declensionRu(3 - chainHint.count, 'урок', 'урока', 'уроков')} без ошибок и получишь гарантированный мифический кейс!
-            </p>
-          )}
           <TrainerLessonCompleteScreen
             lottieData={randomStreakCharacterLottie}
             streak={maxStreakRef.current}
@@ -906,6 +897,18 @@ export default function TQuiz({
             onPrimary={nextTLessonHref ? handleNextLesson : handleFinishLesson}
             secondaryLabel={nextTLessonHref ? 'Завершить' : undefined}
             onSecondary={nextTLessonHref ? handleFinishLesson : undefined}
+            // "Ударный час" ещё не дошёл до рубежа — подсказка, сколько
+            // уроков подряд БЕЗ ошибок осталось до гарантированного mythic
+            // (см. actions/roll-lesson-case.ts). Раньше показывалась
+            // отдельной мелкой строкой НАД этим экраном (легко пропускалась,
+            // см. жалобу пользователя) — теперь занимает место самого
+            // заголовка внутри экрана. Не показывается, если этот же урок
+            // УЖЕ дал бонус цепочки (баннер CaseWonBanner выше это уже сказал).
+            chainHint={
+              !chainBonusLength && chainHint && chainHint.alive && chainHint.count > 0 && chainHint.count < 3
+                ? { count: chainHint.count, remaining: 3 - chainHint.count }
+                : null
+            }
           />
           {/* По просьбе пользователя временно убрана детальная таблица
               "вопрос/ваш ответ/верный ответ" ниже итога — показалась
