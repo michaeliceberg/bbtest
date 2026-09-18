@@ -14,7 +14,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil, Lock, Link2 } from 'lucide-react';
+import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil, Lock, Link2, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { TrainerStageLink } from './trainer-stage-link';
@@ -72,6 +72,11 @@ export type SkillStage = {
     // сообщения на карточке.
     extraLocked?: boolean;
     extraLockedPrereqTitle?: string | null;
+    // Этап целиком — интерактивный разбор "по шагам" (SINWALK/LOGWALK/
+    // LOGDEFWALK, см. lib/trainerStageFlags.ts) — золотая иконка книги
+    // вместо обычной цикличной, по прямой просьбе пользователя, чтобы
+    // такие уроки сильно выделялись на карте скиллов.
+    isStepByStep?: boolean;
 };
 
 export type SkillTopic = {
@@ -121,21 +126,28 @@ const chunkStages = (stages: SkillStage[], size: number): SkillStage[][] => {
 const StageIcon = ({
     isBoss,
     isChest = false,
+    isStepByStep = false,
     Icon,
     color,
     dim = false,
 }: {
     isBoss: boolean;
     isChest?: boolean;
+    isStepByStep?: boolean;
     Icon: typeof Egg;
     color: string;
     dim?: boolean;
 }) => (
-    isChest
-        ? <Gift className={`w-4 h-4 transition-[filter,opacity] duration-300 ${dim ? 'grayscale opacity-50' : ''}`} style={{ color: dim ? undefined : '#EF9F27' }} />
-        : isBoss
-            ? <span className={`text-base leading-none transition-[filter,opacity] duration-300 ${dim ? 'grayscale opacity-50' : ''}`}>👹</span>
-            : <Icon className="w-4 h-4 transition-colors duration-300" style={{ color }} />
+    isStepByStep
+        // Золотая книга — интерактивный разбор "по шагам", отдельный
+        // визуальный акцент, приоритетнее сундука/босса (по прямой просьбе
+        // пользователя, "особую иконку которая сильно выделяется").
+        ? <BookOpen className={`w-4 h-4 transition-[filter,opacity] duration-300 ${dim ? 'grayscale opacity-50' : ''}`} style={{ color: dim ? undefined : '#FFD700' }} fill={dim ? 'none' : '#FFD700'} fillOpacity={dim ? 0 : 0.25} />
+        : isChest
+            ? <Gift className={`w-4 h-4 transition-[filter,opacity] duration-300 ${dim ? 'grayscale opacity-50' : ''}`} style={{ color: dim ? undefined : '#EF9F27' }} />
+            : isBoss
+                ? <span className={`text-base leading-none transition-[filter,opacity] duration-300 ${dim ? 'grayscale opacity-50' : ''}`}>👹</span>
+                : <Icon className="w-4 h-4 transition-colors duration-300" style={{ color }} />
 );
 
 const BossGiftBadge = () => (
@@ -429,6 +441,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                     // своя, более наглая подсветка — дублировать её кольцами
                                                     // было бы избыточно).
                                                     const isFrontier = trueIdx === frontierIdx && !isChest && !isMegaChest;
+                                                    const isStepByStep = s.isStepByStep === true;
                                                     const stageHref = `/t-lesson/${s.id}${getStageQueryParams(trueIdx, topic.stages.length, s.title)}`;
                                                     const Icon = STAGE_ICONS[trueIdx % STAGE_ICONS.length];
                                                     const col = boxColumn(j);
@@ -466,7 +479,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                         href={stageHref}
                                                                         className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                         style={{ background: UNLOCKED_BG, border: `2px solid ${UNLOCKED_BORDER}` }}
-                                                                        icon={<StageIcon isBoss={isBoss} isChest={isChest} Icon={Icon} color={UNLOCKED_BORDER} />}
+                                                                        icon={<StageIcon isBoss={isBoss} isChest={isChest} isStepByStep={isStepByStep} Icon={Icon} color={UNLOCKED_BORDER} />}
                                                                     />
                                                                 </motion.div>
                                                                 <motion.div
@@ -479,7 +492,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                         href={stageHref}
                                                                         className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                         style={{ background: DONE_GRADIENT, border: `2px solid ${DONE_BORDER}`, boxShadow: DONE_GLOW }}
-                                                                        icon={<StageIcon isBoss={isBoss} isChest={isChest} Icon={Icon} color={DONE_ICON_COLOR} />}
+                                                                        icon={<StageIcon isBoss={isBoss} isChest={isChest} isStepByStep={isStepByStep} Icon={Icon} color={DONE_ICON_COLOR} />}
                                                                         extra={isBoss ? <BossGiftBadge /> : null}
                                                                     />
                                                                 </motion.div>
@@ -500,7 +513,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                         className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
                                                                         style={{ border: `2px solid ${LOCKED_BORDER}` }}
                                                                     >
-                                                                        <StageIcon isBoss={isBoss} isChest={isChest} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
+                                                                        <StageIcon isBoss={isBoss} isChest={isChest} isStepByStep={isStepByStep} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
                                                                     </div>
                                                                 </motion.div>
                                                                 <motion.div
@@ -513,7 +526,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                         href={stageHref}
                                                                         className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                         style={{ background: UNLOCKED_BG, border: `2px solid ${UNLOCKED_BORDER}` }}
-                                                                        icon={<StageIcon isBoss={isBoss} isChest={isChest} Icon={Icon} color={UNLOCKED_BORDER} />}
+                                                                        icon={<StageIcon isBoss={isBoss} isChest={isChest} isStepByStep={isStepByStep} Icon={Icon} color={UNLOCKED_BORDER} />}
                                                                     />
                                                                 </motion.div>
                                                             </div>
@@ -528,7 +541,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                     border: `2px solid ${done ? DONE_BORDER : UNLOCKED_BORDER}`,
                                                                     boxShadow: done ? DONE_GLOW : undefined,
                                                                 }}
-                                                                icon={<StageIcon isBoss={isBoss} isChest={isChest} Icon={Icon} color={done ? DONE_ICON_COLOR : UNLOCKED_BORDER} />}
+                                                                icon={<StageIcon isBoss={isBoss} isChest={isChest} isStepByStep={isStepByStep} Icon={Icon} color={done ? DONE_ICON_COLOR : UNLOCKED_BORDER} />}
                                                                 extra={isBoss && done ? <BossGiftBadge /> : null}
                                                             />
                                                         );
@@ -539,7 +552,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                 style={{ border: `2px solid ${LOCKED_BORDER}` }}
                                                                 title={s.extraLocked && s.extraLockedPrereqTitle ? `Сначала пройди «${s.extraLockedPrereqTitle}»` : undefined}
                                                             >
-                                                                <StageIcon isBoss={isBoss} isChest={isChest} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
+                                                                <StageIcon isBoss={isBoss} isChest={isChest} isStepByStep={isStepByStep} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
                                                             </div>
                                                         );
                                                     }
@@ -558,13 +571,15 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                 style={{ gridColumn: col, gridRow: 1 }}
                                                                 className="flex justify-center"
                                                             >
-                                                                {isChest
+                                                                {isStepByStep
                                                                     ? <ChestGlow>{stageBox}</ChestGlow>
-                                                                    : isMegaChest
-                                                                        ? <ChestGlow mega>{stageBox}</ChestGlow>
-                                                                        : isFrontier
-                                                                            ? <RippleGlow>{stageBox}</RippleGlow>
-                                                                            : stageBox}
+                                                                    : isChest
+                                                                        ? <ChestGlow>{stageBox}</ChestGlow>
+                                                                        : isMegaChest
+                                                                            ? <ChestGlow mega>{stageBox}</ChestGlow>
+                                                                            : isFrontier
+                                                                                ? <RippleGlow>{stageBox}</RippleGlow>
+                                                                                : stageBox}
                                                             </div>
 
                                                             {j < row.length - 1 && (

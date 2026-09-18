@@ -17,6 +17,7 @@ import Link from "next/link";
 import { Infinity as InfinityIcon, Zap } from "lucide-react";
 import { Button } from "./ui/button";
 import { TrainerGradeTree, SkillTopic } from "./trainer-grade-tree";
+import { isStepByStepLesson } from "@/lib/trainerStageFlags";
 
 type Props = {
     t_courses: {
@@ -298,6 +299,7 @@ export const TabTCourses = ({
                                 title: t_lesson.title,
                                 extraLocked,
                                 extraLockedPrereqTitle,
+                                isStepByStep: isStepByStepLesson(t_lesson.t_challenges.map((c) => c.type)),
                             }
                         })
 

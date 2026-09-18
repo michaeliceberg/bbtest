@@ -32,18 +32,26 @@
 'use client'
 
 import { Fragment, useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
 import {
-    TypedKeyPhraseLine, DiagramBlock, useStickToBottom,
+    DiagramBlock, useStickToBottom,
     pickWalkthroughNextLabel, CORRECT_FEEDBACK_PHRASES,
     ACTIVE_COLOR, WRONG_COLOR, CORRECT_COLOR, ATTENTION_COLOR,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     BlinkingExclaim,
 } from '@/components/geometry/WalkthroughLog'
+import { HighlightWord } from '@/components/geometry/WalkthroughMarker'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
+import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
+
+// lottie-react трогает document на импорте — без ssr:false падает на
+// сервере (та же SSR-ловушка, что уже чинили у TrainerMascot/
+// question-bubble/type-hot.tsx, см. CLAUDE.md).
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 
 const SCENE_TRANSITION_PAUSE_MS = 1000
 
@@ -182,17 +190,53 @@ const TypedLineWithSticker = ({
     )
 }
 
-// Баннер "ЗАПОМНИ!" — привлекает внимание к правилам ОДЗ логарифма,
-// тот же оранжевый ATTENTION_COLOR и мигающий "!" (BlinkingExclaim), что
-// уже используются в разборах для "смотри сюда/важно".
+// Баннер "ВНИМАААААНИЕ!" (был "ЗАПОМНИ!", заменён по прямой просьбе
+// пользователя) — привлекает внимание к правилам ОДЗ логарифма, тот же
+// оранжевый ATTENTION_COLOR и мигающий "!" (BlinkingExclaim), что уже
+// используются в разборах для "смотри сюда/важно", плюс Lottie
+// "полицейский с бумагой" (public/Lottie/stepByStep/paperPolice.json) —
+// тоже по прямой просьбе пользователя.
 const RememberBanner = () => (
     <div
-        className="w-full flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 font-black text-lg"
+        className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-2 font-black text-lg"
         style={{ backgroundColor: hexToRgba(ATTENTION_COLOR, 0.16), border: `2px solid ${ATTENTION_COLOR}`, color: ATTENTION_COLOR }}
     >
-        ЗАПОМНИ<BlinkingExclaim />
+        <Lottie animationData={paperPolice} loop autoplay className="w-11 h-11 shrink-0" />
+        <span>ВНИМАААААНИЕ<BlinkingExclaim /></span>
     </div>
 )
+
+// Печатаемая строка ЗАПОМНИ/ВНИМАНИЕ-баннера с ДВУМЯ красными акцентами —
+// слово "нельзя" красным СТИКЕРОМ (та же боксовая рамка, что и у чисел-
+// стикеров, не просто цветной текст) И ключевая фраза дальше — тем же
+// приёмом, что TypedKeyPhraseLine (HighlightWord, "выезжающая" подложка).
+// По прямой просьбе пользователя — "нельзя" тоже сделать красным
+// стикером, в ДОПОЛНЕНИЕ к уже подсвеченной фразе, не вместо неё.
+const TypedForbidLine = ({
+    before, stickerWord, between, phrase, after = '.', color, onSettled,
+}: {
+    before: string; stickerWord: string; between: string; phrase: string; after?: string; color: string; onSettled?: () => void
+}) => {
+    const [typed, setTyped] = useState(false)
+    return (
+        <div className="w-full text-base md:text-lg text-[#F2F7FB]">
+            {!typed ? (
+                <Typewriter
+                    text={`${before}${stickerWord}${between}${phrase}${after}`}
+                    onDone={() => { setTyped(true); setTimeout(() => onSettled?.(), 450) }}
+                />
+            ) : (
+                <>
+                    {before}
+                    <Sticker value={stickerWord} color={color} />
+                    {between}
+                    <HighlightWord active color={color}>{phrase}</HighlightWord>
+                    {after}
+                </>
+            )}
+        </div>
+    )
+}
 
 // ===== Мини-викторины 0-4 (см. QUIZ_STEP_DEFS) =====
 
@@ -427,11 +471,12 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                 {step >= 5 && (
                     <Fragment key="step-5">
                         <DiagramBlock><RememberBanner /></DiagramBlock>
-                        <TypedKeyPhraseLine
-                            before="В логарифм нельзя подставлять "
+                        <TypedForbidLine
+                            before="В логарифм "
+                            stickerWord="нельзя"
+                            between=" подставлять "
                             phrase="отрицательные числа"
                             color={WRONG_COLOR}
-                            highlight
                             onSettled={() => setStepReady(true)}
                         />
                         <DiagramBlock>
@@ -458,11 +503,12 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                 {step >= 6 && (
                     <Fragment key="step-6">
                         <DiagramBlock><RememberBanner /></DiagramBlock>
-                        <TypedKeyPhraseLine
-                            before="В основание логарифма нельзя писать "
+                        <TypedForbidLine
+                            before="В основание логарифма "
+                            stickerWord="нельзя"
+                            between=" писать "
                             phrase="1"
                             color={WRONG_COLOR}
-                            highlight
                             onSettled={() => setStepReady(true)}
                         />
                         <DiagramBlock>
