@@ -463,7 +463,7 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
                             </DiagramBlock>
                             <TypedLine
                                 className="w-full text-base md:text-lg text-[#F2F7FB]"
-                                text="Числа 8 и 3 выделены разными стикерами — их можно поменять местами."
+                                text="Числа 8 и 3 можно поменять местами."
                                 onSettled={() => setStepReady(true)}
                             />
                         </Fragment>
@@ -481,7 +481,7 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
                             </DiagramBlock>
                             <TypedLine
                                 className="w-full text-base md:text-lg text-[#F2F7FB]"
-                                text="Получается — 8 и 3 поменялись местами."
+                                text="Хоп — 8 и 3 поменялись местами (и это законно)."
                                 onSettled={() => setStepReady(true)}
                             />
                         </Fragment>
@@ -512,7 +512,7 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
                             </DiagramBlock>
                             <TypedLine
                                 className="w-full text-base md:text-lg text-[#F2F7FB]"
-                                text="Числа 25 и 4 выделены разными стикерами — их можно поменять местами."
+                                text="Аналогично можно поменять местами 25 и 4."
                                 onSettled={() => setStepReady(true)}
                             />
                         </Fragment>
@@ -528,7 +528,7 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
                             </DiagramBlock>
                             <TypedLine
                                 className="w-full text-base md:text-lg text-[#F2F7FB]"
-                                text="Получается — 25 и 4 поменялись местами."
+                                text="Хоба! И так можно делать."
                                 onSettled={() => setStepReady(true)}
                             />
                         </Fragment>
