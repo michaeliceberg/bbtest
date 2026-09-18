@@ -36,7 +36,7 @@ import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
 import {
-    TypedLine, TypedKeyPhraseLine, DiagramBlock,
+    TypedLine, DiagramBlock,
     pickWalkthroughNextLabel, CORRECT_FEEDBACK_PHRASES,
     ACTIVE_COLOR, CORRECT_COLOR,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
@@ -66,11 +66,14 @@ const N = 3
 const B = 5
 const M = 7
 
-// m — teal, n — raspberry: те же две "свободные" роли палитры ggege, что
+// m — teal, n — синий: те же две "свободные" роли палитры ggege, что
 // уже закреплены в LOGWALK/LOGSUBWALK за двумя РАЗНЫМИ величинами одной
 // формулы (не один общий цвет — иначе читалось бы как "одно и то же число").
+// Раньше n был raspberry (малиновый) — пользователь пожаловался, что
+// стикер "3" сливался с тёмным фоном страницы (малиновый заметно темнее/
+// приглушённее teal на этом фоне); синий даёт заметно выше контраст.
 const M_COLOR = GGEGE_PALETTE.teal.button
-const N_COLOR = GGEGE_PALETTE.raspberry.button
+const N_COLOR = GGEGE_PALETTE.blue.button
 
 const pick = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)]
 
@@ -109,19 +112,37 @@ const QuestionMark = () => <span style={{ color: ACTIVE_COLOR }} className="font
 // размер у "3" (внутри уже уменьшенного <sub>) естественно чуть меньше,
 // чем у "7" (в обычном baseline), что и требуется для настоящей
 // вложенной типографики (степень степени мельче степени).
+// Увеличено с 0.6em до 0.78em по прямой просьбе пользователя ("степени
+// очень маленького размера шрифта") — см. ТАКЖЕ фикс ниже: главная
+// причина крошечных стикер-степеней была не в самом Exp, а в том, что
+// стикер внутри Exp дополнительно применял свой собственный "small"
+// (ещё ×0.6) — итоговый масштаб схлопывался до ~0.36em. small убран у
+// стикеров степеней (см. PowFormula), Exp сам держит разумный масштаб.
 const Exp = ({ children }: { children: React.ReactNode }) => (
-    <span className="relative inline-block ml-px" style={{ fontSize: '0.6em', top: '-0.85em' }}>{children}</span>
+    <span className="relative inline-block ml-px" style={{ fontSize: '0.78em', top: '-0.8em' }}>{children}</span>
 )
 
 // Дробь "числитель / знаменатель" — классическая CSS-подложка (нижняя
 // граница числителя = черта дроби). numMarker/denMarker — опциональные
 // data-marker для измерения реальных координат стрелкой (см. TravelArrow).
+// Размер увеличен 0.62em→0.72em (та же просьба "увеличить пропорционально",
+// см. Exp выше — теперь совпадает по масштабу с самими степенями, единый
+// размер для одной и той же величины до/после переноса).
+// inline-block + align-middle (не inline-flex+items-center) — иначе
+// соседний inline-flex-блок логарифма (LogTerm/лог+аргумент) центрируется
+// по высоте СВОЕГО бокса относительно дроби, а не по общей строке, из-за
+// разницы в фактической высоте блоков (дробь мельче) лог визуально
+// "проваливался" ниже строки (баг, найденный пользователем на "Ответ:").
+// vertical-align:middle — стандартный браузерный механизм именно для
+// этого случая (тот же приём, что и у инлайновых иконок рядом с текстом):
+// центрирует дробь относительно математической оси строки, а соседний
+// лог-терм остаётся на обычной text-baseline — как и должно быть.
 const Fraction = ({
     num, den, numMarker, denMarker,
 }: { num: React.ReactNode; den: React.ReactNode; numMarker?: string; denMarker?: string }) => (
-    <span className="inline-flex flex-col items-center leading-none" style={{ fontSize: '0.62em' }}>
-        <span data-marker={numMarker} className="px-1.5 pb-1 border-b-2 border-[#F2F7FB]/70 min-w-[1.5em] text-center">{num}</span>
-        <span data-marker={denMarker} className="px-1.5 pt-1 min-w-[1.5em] text-center">{den}</span>
+    <span className="inline-block align-middle leading-none mr-2" style={{ fontSize: '0.72em' }}>
+        <span data-marker={numMarker} className="block px-1.5 pb-1 border-b-2 border-[#F2F7FB]/70 min-w-[1.5em] text-center">{num}</span>
+        <span data-marker={denMarker} className="block px-1.5 pt-1 min-w-[1.5em] text-center">{den}</span>
     </span>
 )
 
@@ -149,7 +170,10 @@ const PowFormula = ({
                 <Plain>{a}</Plain>
                 <Exp>
                     <span data-marker="exp-n">
-                        {exponentsAsStickers ? <NumSticker value={n} color={N_COLOR} small /> : <Plain>{n}</Plain>}
+                        {/* small снят — Exp УЖЕ даёт масштаб 0.78em, добавочный
+                            "small" (ещё ×0.6) схлопывал степень до крошечного
+                            размера, см. комментарий у Exp выше. */}
+                        {exponentsAsStickers ? <NumSticker value={n} color={N_COLOR} /> : <Plain>{n}</Plain>}
                     </span>
                 </Exp>
             </sub>
@@ -157,17 +181,21 @@ const PowFormula = ({
                 <Plain>{b}</Plain>
                 <Exp>
                     <span data-marker="exp-m">
-                        {exponentsAsStickers ? <NumSticker value={m} color={M_COLOR} small /> : <Plain>{m}</Plain>}
+                        {exponentsAsStickers ? <NumSticker value={m} color={M_COLOR} /> : <Plain>{m}</Plain>}
                     </span>
                 </Exp>
             </span>
         </span>
         <Plain>=</Plain>
         {showRHS ? (
-            <span className="inline-flex items-center gap-2">
+            // НЕ flex — inline поток, чтобы у Fraction (align-middle) и у
+            // лог-терма (обычный baseline) сработало обычное браузерное
+            // вертикальное выравнивание относительно ОДНОЙ строки (см.
+            // комментарий у Fraction выше про баг "лог провалился ниже").
+            <span className="whitespace-nowrap">
                 <Fraction
-                    num={numeratorFilled ? <NumSticker value={m} color={M_COLOR} small /> : <span className="opacity-30">?</span>}
-                    den={denominatorFilled ? <NumSticker value={n} color={N_COLOR} small /> : <span className="opacity-30">?</span>}
+                    num={numeratorFilled ? <NumSticker value={m} color={M_COLOR} /> : <span className="opacity-30">?</span>}
+                    den={denominatorFilled ? <NumSticker value={n} color={N_COLOR} /> : <span className="opacity-30">?</span>}
                     numMarker="num-target"
                     denMarker="den-target"
                 />
@@ -182,14 +210,42 @@ const PowFormula = ({
     </div>
 )
 
-// Кривая стрелка от одного data-marker к другому ВНУТРИ containerRef —
-// тот же приём измерения по факту отрисовки, что и ArgumentsArrow в
-// LOGWALK/LOGSUBWALK (реальные координаты, направление НЕ подгоняется
-// вручную), обобщён на произвольную пару маркеров + свой цвет — здесь
-// нужны ДВЕ независимые стрелки (числитель/знаменатель) на РАЗНЫХ шагах.
+// "Уголок" (elbow/orthogonal-connector) со скруглёнными углами — по
+// прямой просьбе пользователя вместо гладкой дуги: от точки A едем по
+// вертикали к горизонтальному "мосту", проезжаем по нему, спускаемся/
+// поднимаемся в точку B — тот же приём, что в диаграммных инструментах
+// ("orthogonal routing"), просто без острых 90° — угол сглажен небольшим
+// радиусом. Скругление — квадратичная кривая через САМУ угловую точку как
+// control point (классический трюк "смягчить угол": кривая проходит РЯДОМ
+// с углом, не через него, — не нужно вычислять центр отдельной дуги).
+function buildElbowPath(x1: number, y1: number, x2: number, y2: number, bridgeY: number, radius = 10): string {
+    const vDir1 = bridgeY < y1 ? -1 : 1
+    const vDir2 = y2 < bridgeY ? -1 : 1
+    const hDir = x2 >= x1 ? 1 : -1
+    const rV1 = Math.min(radius, Math.abs(bridgeY - y1))
+    const rH = Math.min(radius, Math.abs(x2 - x1) / 2)
+    const rV2 = Math.min(radius, Math.abs(y2 - bridgeY))
+
+    const p2 = `${x1} ${bridgeY - vDir1 * rV1}`
+    const p3 = `${x1 + hDir * rH} ${bridgeY}`
+    const p4 = `${x2 - hDir * rH} ${bridgeY}`
+    const p5 = `${x2} ${bridgeY + vDir2 * rV2}`
+
+    return `M ${x1} ${y1} L ${p2} Q ${x1} ${bridgeY} ${p3} L ${p4} Q ${x2} ${bridgeY} ${p5} L ${x2} ${y2}`
+}
+
+// Стрелка от одного data-marker к другому ВНУТРИ containerRef — реальные
+// координаты, направление НЕ подгоняется вручную, обобщена на произвольную
+// пару маркеров + свой цвет — здесь нужны ДВЕ независимые стрелки
+// (числитель/знаменатель) на РАЗНЫХ шагах. curve — куда выгибается
+// горизонтальный "мост" уголка: 'up' (мост ВЫШЕ обоих концов — подходит
+// для шага "в числитель", идём вверх-и-через-верх) или 'down' (мост НИЖЕ
+// обоих концов — обязателен для шага "в знаменатель": знаменатель физически
+// ниже строки, и если мост всё равно тянуть вверх, путь возвращается назад
+// через верх формулы и рисуется ПОВЕРХ чисел — баг, найденный пользователем).
 const TravelArrow = ({
-    containerRef, fromMarker, toMarker, color,
-}: { containerRef: React.RefObject<HTMLDivElement | null>; fromMarker: string; toMarker: string; color: string }) => {
+    containerRef, fromMarker, toMarker, color, curve = 'up',
+}: { containerRef: React.RefObject<HTMLDivElement | null>; fromMarker: string; toMarker: string; color: string; curve?: 'up' | 'down' }) => {
     const [d, setD] = useState<string | null>(null)
 
     useEffect(() => {
@@ -206,9 +262,9 @@ const TravelArrow = ({
             const y1 = fRect.top - cRect.top
             const x2 = tRect.left + tRect.width / 2 - cRect.left
             const y2 = tRect.top - cRect.top
-            const midX = (x1 + x2) / 2
-            const midY = Math.min(y1, y2) - 30
-            setD(`M ${x1} ${y1} Q ${midX} ${midY} ${x2} ${y2}`)
+            const GAP = 26
+            const bridgeY = curve === 'up' ? Math.min(y1, y2) - GAP : Math.max(y1, y2) + GAP
+            setD(buildElbowPath(x1, y1, x2, y2, bridgeY))
         }
         // Ждём, пока bounce-стикеры и раскладка осядут, прежде чем мерить
         // реальные позиции (тот же таймаут, что и в LOGWALK).
@@ -233,12 +289,40 @@ const TravelArrow = ({
                 strokeWidth={2.5}
                 fill="none"
                 strokeLinecap="round"
+                strokeLinejoin="round"
                 markerEnd={`url(#${markerId})`}
                 initial={{ pathLength: 0, opacity: 0 }}
                 animate={{ pathLength: 1, opacity: 1 }}
                 transition={{ duration: 0.8, ease: 'easeInOut', delay: 0.2 }}
             />
         </svg>
+    )
+}
+
+// Печатаемая строка со СЛОВОМ-стикером внутри текста ("числителем"/
+// "знаменателем") — по прямой просьбе пользователя заменить текстовыделитель
+// (HighlightWord) на тот же боксовый стикер, что и у чисел формулы (единый
+// визуальный язык), тот же приём, что TypedLineWithSticker в type-
+// logdefwalk.tsx. NumSticker уже принимает и число, и строку.
+const TypedLineWithSticker = ({
+    before, word, after = '', color, onSettled,
+}: { before: string; word: string; after?: string; color: string; onSettled?: () => void }) => {
+    const [typed, setTyped] = useState(false)
+    return (
+        <div className="w-full text-base md:text-lg text-[#F2F7FB]">
+            {!typed ? (
+                <Typewriter
+                    text={`${before}${word}${after}`}
+                    onDone={() => { setTyped(true); setTimeout(() => onSettled?.(), 450) }}
+                />
+            ) : (
+                <>
+                    {before}
+                    <NumSticker value={word} color={color} />
+                    {after}
+                </>
+            )}
+        </div>
     )
 }
 
@@ -257,12 +341,18 @@ const AnswerLine = ({ onSettled }: { onSettled?: () => void }) => {
                         initial={{ opacity: 0, scale: 0.7 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ type: 'spring', stiffness: 300, damping: 16 }}
-                        className="inline-flex items-center gap-1.5 font-extrabold text-lg md:text-xl"
+                        className="font-extrabold text-lg md:text-xl whitespace-nowrap"
                         style={{ color: CORRECT_COLOR }}
                     >
-                        <span className="inline-flex flex-col items-center leading-none text-[0.72em]">
-                            <span className="px-1.5 pb-0.5 border-b-2 border-current">{M}</span>
-                            <span className="px-1.5 pt-0.5">{N}</span>
+                        {/* inline-block+align-middle, не flex — та же причина,
+                            что у Fraction/PowFormula выше: иначе лог визуально
+                            "проваливается" ниже дроби (баг, найденный
+                            пользователем) — vertical-align:middle держит дробь
+                            на математической оси, а лог остаётся на обычном
+                            text-baseline. */}
+                        <span className="inline-block align-middle leading-none text-[0.72em] mr-1.5">
+                            <span className="block px-1.5 pb-0.5 border-b-2 border-current text-center">{M}</span>
+                            <span className="block px-1.5 pt-0.5 text-center">{N}</span>
                         </span>
                         <span className="inline-flex items-baseline whitespace-nowrap">
                             log<sub className="ml-0.5">{A}</sub><span className="ml-0.5">{B}</span>
@@ -536,12 +626,11 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
                                     <TravelArrow containerRef={step2Ref} fromMarker="exp-m" toMarker="num-target" color={M_COLOR} />
                                 </div>
                             </DiagramBlock>
-                            <TypedKeyPhraseLine
+                            <TypedLineWithSticker
                                 before="Показатели степени можно перенести перед логарифмом. Показатель аргумента — 7 — становится "
-                                phrase="числителем"
+                                word="числителем"
                                 after=" дроби."
                                 color={M_COLOR}
-                                highlight
                                 onSettled={() => setStepReady(true)}
                             />
                         </Fragment>
@@ -556,14 +645,14 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
                             <DiagramBlock>
                                 <div ref={step3Ref} className="relative w-full">
                                     <PowFormula exponentsAsStickers showRHS numeratorFilled denominatorFilled />
-                                    <TravelArrow containerRef={step3Ref} fromMarker="exp-n" toMarker="den-target" color={N_COLOR} />
+                                    <TravelArrow containerRef={step3Ref} fromMarker="exp-n" toMarker="den-target" color={N_COLOR} curve="down" />
                                 </div>
                             </DiagramBlock>
-                            <TypedKeyPhraseLine
+                            <TypedLineWithSticker
                                 before="А показатель основания — 3 — становится "
-                                phrase="знаменателем"
+                                word="знаменателем"
+                                after="."
                                 color={N_COLOR}
-                                highlight
                                 onSettled={() => setStepReady(true)}
                             />
                         </Fragment>
@@ -591,9 +680,25 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
                     return (
                         <SceneWrapper key={`trial-${i}`} innerRef={sceneRef(`trial-${i}`)} active={isSceneActive(`trial-${i}`)}>
                         <Fragment key={`trial-${i}-${nonceFor(`trial-${i}`)}`}>
-                            <div className="flex items-start gap-3 w-full">
+                            {/* Разделитель перед ПЕРВЫМ тренировочным заданием —
+                                по прямой просьбе пользователя визуально
+                                отгородить практику от предшествующего разбора
+                                по шагам. */}
+                            {i === 0 && (
+                                <div className="w-full flex items-center gap-3" aria-hidden>
+                                    <div className="flex-1 h-px bg-[#3A464E]" />
+                                    <span className="text-xs font-bold uppercase tracking-wide text-[#5C6B73]">Тренировка</span>
+                                    <div className="flex-1 h-px bg-[#3A464E]" />
+                                </div>
+                            )}
+                            {/* Бейдж "N/M" вынесен из потока (absolute), иначе
+                                текст "Выбери правильный ответ:" центрировался
+                                относительно ОСТАВШЕГОСЯ места (после бейджа),
+                                а не всей строки, и визуально съезжал вправо —
+                                баг, найденный пользователем. */}
+                            <div className="relative w-full flex items-center justify-center">
                                 <div
-                                    className="shrink-0 flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
+                                    className="absolute left-0 top-1/2 -translate-y-1/2 shrink-0 flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
                                     style={{
                                         borderColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.55),
                                         backgroundColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.16),
@@ -604,7 +709,7 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
                                     <span className="opacity-50 font-normal">/</span>
                                     <span>{trials.length}</span>
                                 </div>
-                                <p className="flex-1 text-base md:text-lg text-[#F2F7FB]">
+                                <p className="text-base md:text-lg text-[#F2F7FB] text-center">
                                     Выбери правильный ответ:
                                 </p>
                             </div>
