@@ -259,22 +259,27 @@ const TravelArrow = ({
             const fRect = fromEl.getBoundingClientRect()
             const tRect = toEl.getBoundingClientRect()
             const x1 = fRect.left + fRect.width / 2 - cRect.left
-            const y1 = fRect.top - cRect.top
             const x2 = tRect.left + tRect.width / 2 - cRect.left
-            const y2 = tRect.top - cRect.top
+            // Якорная точка на КАЖДОМ маркере — та грань бокса, откуда линия
+            // РЕАЛЬНО уходит/приходит, а не его верх/центр всегда. Для 'up'
+            // это верхний край (уезжаем/прилетаем СВЕРХУ, мимо тела маркера).
+            // Для 'down' — нижний край (уезжаем/прилетаем СНИЗУ): раньше здесь
+            // тоже брался верхний край, из-за чего первый и последний отрезки
+            // линии рисовались НАСКВОЗЬ через сам стикер (сверху вниз через
+            // всё его тело) — баг "стрелка налезает на цифры", найденный
+            // пользователем на скриншоте.
+            const y1 = (curve === 'up' ? fRect.top : fRect.bottom) - cRect.top
+            const y2 = (curve === 'up' ? tRect.top : tRect.bottom) - cRect.top
             let bridgeY: number
             if (curve === 'up') {
                 bridgeY = Math.min(y1, y2) - 26
             } else {
                 // "Вниз" — мост должен быть НИЖЕ реальных НИЖНИХ краёв обоих
-                // боксов (не просто ниже их верхних якорных точек y1/y2), а
+                // боксов (не просто ниже их верхних якорных точек), а
                 // денаменатор к тому же соседствует с "log_a b" того же роста,
                 // что и главный текст формулы — если считать зазор только от
-                // y1/y2 (верх), мост едет прямо ПОСЕРЕДИНЕ строки и режет
-                // текст (баг, найденный пользователем на скриншоте).
-                const fBottom = fRect.bottom - cRect.top
-                const tBottom = tRect.bottom - cRect.top
-                bridgeY = Math.max(fBottom, tBottom) + 34
+                // верха, мост едет прямо ПОСЕРЕДИНЕ строки и режет текст.
+                bridgeY = Math.max(y1, y2) + 34
             }
             setD(buildElbowPath(x1, y1, x2, y2, bridgeY))
         }
