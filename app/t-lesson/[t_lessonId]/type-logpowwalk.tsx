@@ -262,8 +262,20 @@ const TravelArrow = ({
             const y1 = fRect.top - cRect.top
             const x2 = tRect.left + tRect.width / 2 - cRect.left
             const y2 = tRect.top - cRect.top
-            const GAP = 26
-            const bridgeY = curve === 'up' ? Math.min(y1, y2) - GAP : Math.max(y1, y2) + GAP
+            let bridgeY: number
+            if (curve === 'up') {
+                bridgeY = Math.min(y1, y2) - 26
+            } else {
+                // "Вниз" — мост должен быть НИЖЕ реальных НИЖНИХ краёв обоих
+                // боксов (не просто ниже их верхних якорных точек y1/y2), а
+                // денаменатор к тому же соседствует с "log_a b" того же роста,
+                // что и главный текст формулы — если считать зазор только от
+                // y1/y2 (верх), мост едет прямо ПОСЕРЕДИНЕ строки и режет
+                // текст (баг, найденный пользователем на скриншоте).
+                const fBottom = fRect.bottom - cRect.top
+                const tBottom = tRect.bottom - cRect.top
+                bridgeY = Math.max(fBottom, tBottom) + 34
+            }
             setD(buildElbowPath(x1, y1, x2, y2, bridgeY))
         }
         // Ждём, пока bounce-стикеры и раскладка осядут, прежде чем мерить
@@ -304,20 +316,31 @@ const TravelArrow = ({
 // (HighlightWord) на тот же боксовый стикер, что и у чисел формулы (единый
 // визуальный язык), тот же приём, что TypedLineWithSticker в type-
 // logdefwalk.tsx. NumSticker уже принимает и число, и строку.
+// leadNumber/leadMid — опциональный ВТОРОЙ (числовой) стикер перед словом
+// (например "аргумента [7] становится [числителем]") — по прямой просьбе
+// пользователя: раньше число стояло голым текстом между длинными тире
+// ("— 7 —"), теперь само число — такой же боксовый стикер, а тире убраны.
 const TypedLineWithSticker = ({
-    before, word, after = '', color, onSettled,
-}: { before: string; word: string; after?: string; color: string; onSettled?: () => void }) => {
+    before, leadNumber, leadMid = '', word, after = '', color, onSettled,
+}: { before: string; leadNumber?: number; leadMid?: string; word: string; after?: string; color: string; onSettled?: () => void }) => {
     const [typed, setTyped] = useState(false)
+    const plainLead = leadNumber !== undefined ? `${leadNumber}${leadMid}` : ''
     return (
         <div className="w-full text-base md:text-lg text-[#F2F7FB]">
             {!typed ? (
                 <Typewriter
-                    text={`${before}${word}${after}`}
+                    text={`${before}${plainLead}${word}${after}`}
                     onDone={() => { setTyped(true); setTimeout(() => onSettled?.(), 450) }}
                 />
             ) : (
                 <>
                     {before}
+                    {leadNumber !== undefined && (
+                        <>
+                            <NumSticker value={leadNumber} color={color} />
+                            {leadMid}
+                        </>
+                    )}
                     <NumSticker value={word} color={color} />
                     {after}
                 </>
@@ -621,13 +644,19 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
                     <SceneWrapper key="step-2" innerRef={sceneRef('step-2')} active={isSceneActive('step-2')}>
                         <Fragment key={`step-2-${nonceFor('step-2')}`}>
                             <DiagramBlock>
-                                <div ref={step2Ref} className="relative w-full">
+                                {/* pt-10 — запас сверху, чтобы дуга стрелки (мост
+                                    выше обоих концов) не налезала на текст
+                                    ПРЕДЫДУЩЕЙ сцены над этой (баг, найденный
+                                    пользователем). */}
+                                <div ref={step2Ref} className="relative w-full pt-10">
                                     <PowFormula exponentsAsStickers showRHS numeratorFilled denominatorFilled={false} />
                                     <TravelArrow containerRef={step2Ref} fromMarker="exp-m" toMarker="num-target" color={M_COLOR} />
                                 </div>
                             </DiagramBlock>
                             <TypedLineWithSticker
-                                before="Показатели степени можно перенести перед логарифмом. Показатель аргумента — 7 — становится "
+                                before="Показатели степени можно перенести перед логарифмом. Показатель аргумента "
+                                leadNumber={M}
+                                leadMid=" становится "
                                 word="числителем"
                                 after=" дроби."
                                 color={M_COLOR}
@@ -643,13 +672,18 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
                     <SceneWrapper key="step-3" innerRef={sceneRef('step-3')} active={isSceneActive('step-3')}>
                         <Fragment key={`step-3-${nonceFor('step-3')}`}>
                             <DiagramBlock>
-                                <div ref={step3Ref} className="relative w-full">
+                                {/* pb-12 — запас снизу, чтобы дуга стрелки (мост
+                                    ниже обоих концов) не налезала на текст ПОД
+                                    диаграммой этой же сцены. */}
+                                <div ref={step3Ref} className="relative w-full pb-12">
                                     <PowFormula exponentsAsStickers showRHS numeratorFilled denominatorFilled />
                                     <TravelArrow containerRef={step3Ref} fromMarker="exp-n" toMarker="den-target" color={N_COLOR} curve="down" />
                                 </div>
                             </DiagramBlock>
                             <TypedLineWithSticker
-                                before="А показатель основания — 3 — становится "
+                                before="А показатель основания "
+                                leadNumber={N}
+                                leadMid=" становится "
                                 word="знаменателем"
                                 after="."
                                 color={N_COLOR}
