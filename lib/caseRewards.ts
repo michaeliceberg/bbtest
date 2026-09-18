@@ -91,6 +91,22 @@ export const LESSON_CASE_TIER_TITLES: Record<LessonCaseTier, string> = {
 	mythic: 'Мифический кейс!',
 }
 
+// Цвет редкости самого КЕЙСА (не награды внутри него) — по прямой просьбе
+// пользователя, чтобы над барабаном было явно видно common/rare/mythic,
+// а не только по названию текстом. Те же цвета, что уже использует
+// TONE_STYLE в trainer-quest-rewards-screen.tsx для той же тройки редкости.
+export const LESSON_CASE_TIER_STYLE: Record<LessonCaseTier, { color: string; bg: string; border: string }> = {
+	common: { color: '#9CA3AF', bg: 'rgba(156,163,175,0.14)', border: 'rgba(156,163,175,0.5)' },
+	rare: { color: '#38BDF8', bg: 'rgba(56,189,248,0.14)', border: 'rgba(56,189,248,0.5)' },
+	mythic: { color: '#FBBF24', bg: 'rgba(251,191,36,0.14)', border: 'rgba(251,191,36,0.5)' },
+}
+
+export const LESSON_CASE_TIER_LABEL: Record<LessonCaseTier, string> = {
+	common: 'ОБЫЧНЫЙ',
+	rare: 'РЕДКИЙ',
+	mythic: 'МИФИЧЕСКИЙ',
+}
+
 // Кейс за номер телефона на анонимном диагностическом тесте
 // (app/test/[subject]/diagnostic-client.tsx, actions/open-diagnostic-
 // case.ts) — только пицца и гемы, без монет (не привязано к реальному

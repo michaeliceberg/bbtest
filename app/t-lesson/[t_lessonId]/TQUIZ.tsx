@@ -841,6 +841,7 @@ export default function TQuiz({
         pool={getLessonCasePool(lessonCaseTier)}
         spinAction={() => openLessonCase(lessonCaseTier)}
         title={chainBonusLength ? `🔥 Серия x${chainBonusLength} — Мифический кейс!` : LESSON_CASE_TIER_TITLES[lessonCaseTier]}
+        tier={lessonCaseTier}
         onDone={({ reward }) => {
           setWonLessonCaseReward(reward)
           setShowLessonCaseReel(false)
@@ -881,13 +882,11 @@ export default function TQuiz({
           {wonCaseReward && (isMegaChestStage || isChestStage) && (
             <CaseWonBanner mega={!!isMegaChestStage} reward={wonCaseReward} />
           )}
-          {wonLessonCaseReward && lessonCaseTier && (
-            <CaseWonBanner
-              mega={lessonCaseTier !== 'common'}
-              reward={wonLessonCaseReward}
-              label={chainBonusLength ? `🔥 Серия x${chainBonusLength}` : LESSON_CASE_TIER_TITLES[lessonCaseTier]}
-            />
-          )}
+          {/* Баннер "Кейс за урок: +N монет" здесь убран по прямой просьбе
+              пользователя — дублирует то, что уже показал сам барабан
+              (CaseReel) на своём экране результата, и добавлял лишнюю
+              высоту, из-за которой TrainerLessonCompleteScreen не влезал
+              на телефонный экран без скролла. */}
           <TrainerLessonCompleteScreen
             lottieData={randomStreakCharacterLottie}
             streak={maxStreakRef.current}

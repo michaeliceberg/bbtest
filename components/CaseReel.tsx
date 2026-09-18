@@ -18,7 +18,10 @@ import Confetti from 'react-confetti'
 import { useWindowSize } from 'react-use'
 import { Gift, Sparkles } from 'lucide-react'
 import { openCase, type OpenCaseResult } from '@/actions/open-case'
-import { getCasePool, isJackpotReward, pickWeightedReward, rewardEmoji, rewardLabel, type CaseReward } from '@/lib/caseRewards'
+import {
+  getCasePool, isJackpotReward, pickWeightedReward, rewardEmoji, rewardLabel, type CaseReward,
+  LESSON_CASE_TIER_STYLE, LESSON_CASE_TIER_LABEL, type LessonCaseTier,
+} from '@/lib/caseRewards'
 import LottieCoins from '@/public/Lottie/LottieCoins.json'
 import LottieGems from '@/public/Lottie/LottieGems.json'
 
@@ -138,9 +141,16 @@ type Props = {
     pool?: CaseReward[]
     spinAction?: () => Promise<OpenCaseResult>
     title?: string
+    // Редкость самого КЕЙСА (не награды внутри него) — common/rare/mythic,
+    // см. lib/caseRewards.ts. Только у "кейса за урок" (actions/roll-lesson-
+    // case.ts) их реально три — у позиционных кейса/мегакейса на карте
+    // скиллов и у мегакейса за горячий вопрос всегда бинарно isMega, им
+    // этот проп не передаётся. По прямой просьбе пользователя — над
+    // барабаном должно быть явно видно, какая именно это редкость.
+    tier?: LessonCaseTier
 }
 
-export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title }: Props) => {
+export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title, tier }: Props) => {
     const [phase, setPhase] = useState<Phase>('idle')
     const [strip, setStrip] = useState<CaseReward[]>(() => {
         const pool = poolOverride ?? getCasePool(isMega)
@@ -223,9 +233,17 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
     return (
         <div className="w-full max-w-md mx-auto px-4 py-6 flex flex-col items-center gap-5">
             {isJackpot && <Confetti width={width} height={height} recycle={false} numberOfPieces={260} />}
+            {tier && (
+                <div
+                    className="px-3 py-1 rounded-full border text-xs font-black uppercase tracking-wider"
+                    style={{ backgroundColor: LESSON_CASE_TIER_STYLE[tier].bg, borderColor: LESSON_CASE_TIER_STYLE[tier].border, color: LESSON_CASE_TIER_STYLE[tier].color }}
+                >
+                    {LESSON_CASE_TIER_LABEL[tier]} КЕЙС
+                </div>
+            )}
             <div className="flex items-center gap-2 text-[#F2F7FB]">
-                <Gift className={isMega ? 'w-6 h-6 text-[#FFD460]' : 'w-5 h-5 text-[#EF9F27]'} />
-                <span className="font-black text-lg tracking-wide">{title ?? (isMega ? 'Мегакейс' : 'Кейс')}</span>
+                <Gift className={isMega ? 'w-6 h-6 text-[#FFD460]' : 'w-5 h-5 text-[#EF9F27]'} style={tier ? { color: LESSON_CASE_TIER_STYLE[tier].color } : undefined} />
+                <span className="font-black text-lg tracking-wide" style={tier ? { color: LESSON_CASE_TIER_STYLE[tier].color } : undefined}>{title ?? (isMega ? 'Мегакейс' : 'Кейс')}</span>
             </div>
 
             {/* Окно барабана — резиновая ширина (заполняет мобильный экран со

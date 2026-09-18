@@ -90,26 +90,16 @@ export const TrainerLessonCompleteScreen = ({
                     initial={{ scale: 0, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-                    className="relative w-64 h-64 sm:w-80 sm:h-80"
+                    className="w-64 h-64 sm:w-80 sm:h-80"
                 >
-                    {chainHint ? (
-                        <>
-                            {/* Мигающее золотое свечение позади сундука — тот
-                                же приём "дышащей" подсветки, что уже используют
-                                ChestGlow (trainer-grade-tree.tsx)/question-bubble.tsx,
-                                только в размере под этот крупный экран. */}
-                            <motion.div
-                                animate={{ opacity: [0.35, 0.75, 0.35], scale: [0.9, 1.08, 0.9] }}
-                                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                                className="absolute inset-0 rounded-full pointer-events-none"
-                                style={{ background: 'radial-gradient(circle, #FBBF2455 0%, #FBBF2400 70%)' }}
-                            />
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src="/chests/myth0001.svg" alt="" className="relative w-full h-full object-contain" />
-                        </>
-                    ) : (
-                        <Lottie animationData={lottieData} loop autoplay className="w-full h-full" />
-                    )}
+                    {/* Тот же случайный маскот-персонаж, что и в обычном
+                        (не "ударный час") варианте экрана — по прямой просьбе
+                        пользователя, ранее здесь при активном chainHint
+                        рисовался статичный сундук вместо него, оказалось
+                        менее живым. Сундук теперь только маленькой иконкой
+                        внутри текста ниже (там, где написано "мифический
+                        кейс"), не заменяет самого маскота. */}
+                    <Lottie animationData={lottieData} loop autoplay className="w-full h-full" />
                 </motion.div>
 
                 <motion.div
@@ -125,6 +115,13 @@ export const TrainerLessonCompleteScreen = ({
                             </h1>
                             <p className="text-base sm:text-lg text-[#F2F7FB] mt-2">
                                 Ещё {chainHint.remaining} {lessonsWord} без ошибок — и гарантированный мифический кейс!
+                                {/* Маленькая иконка мифического сундука прямо в
+                                    тексте, там, где про него говорится — по
+                                    прямой просьбе пользователя ("вот тут надо
+                                    было нарисовать кейс"), не отдельной крупной
+                                    картинкой вместо маскота. */}
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src="/chests/myth0001.svg" alt="" className="inline-block w-6 h-6 sm:w-7 sm:h-7 ml-1.5 -mb-1.5 align-middle" />
                             </p>
                         </>
                     ) : (

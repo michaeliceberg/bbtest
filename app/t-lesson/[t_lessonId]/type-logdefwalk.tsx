@@ -191,18 +191,24 @@ const TypedLineWithSticker = ({
 }
 
 // Баннер "ВНИМАААААНИЕ!" (был "ЗАПОМНИ!", заменён по прямой просьбе
-// пользователя) — привлекает внимание к правилам ОДЗ логарифма, тот же
-// оранжевый ATTENTION_COLOR и мигающий "!" (BlinkingExclaim), что уже
-// используются в разборах для "смотри сюда/важно", плюс Lottie
-// "полицейский с бумагой" (public/Lottie/stepByStep/paperPolice.json) —
-// тоже по прямой просьбе пользователя.
+// пользователя) — привлекает внимание к правилам ОДЗ логарифма. По
+// уточнению пользователя — Lottie "полицейский с бумагой" (public/Lottie/
+// stepByStep/paperPolice.json) теперь рисуется КРУПНО отдельно (не внутри
+// самой плашки-кнопки, как раньше), а справа от него — сама плашка с
+// текстом "ВНИМАААААНИЕ!" (тот же оранжевый ATTENTION_COLOR и мигающий
+// "!"/BlinkingExclaim, что уже используются в разборах для "смотри сюда/
+// важно") — тот же пропорции Lottie, что уже задействованы в
+// TrainerMascot.tsx (w-16 h-16 md:w-20 md:h-20) для "персонаж + текст
+// справа".
 const RememberBanner = () => (
-    <div
-        className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-2 font-black text-lg"
-        style={{ backgroundColor: hexToRgba(ATTENTION_COLOR, 0.16), border: `2px solid ${ATTENTION_COLOR}`, color: ATTENTION_COLOR }}
-    >
-        <Lottie animationData={paperPolice} loop autoplay className="w-11 h-11 shrink-0" />
-        <span>ВНИМАААААНИЕ<BlinkingExclaim /></span>
+    <div className="w-full flex items-center gap-3">
+        <Lottie animationData={paperPolice} loop autoplay className="w-16 h-16 md:w-20 md:h-20 shrink-0" />
+        <div
+            className="flex-1 flex items-center justify-center rounded-xl px-4 py-3 font-black text-lg"
+            style={{ backgroundColor: hexToRgba(ATTENTION_COLOR, 0.16), border: `2px solid ${ATTENTION_COLOR}`, color: ATTENTION_COLOR }}
+        >
+            <span>ВНИМАААААНИЕ<BlinkingExclaim /></span>
+        </div>
     </div>
 )
 
@@ -483,9 +489,11 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                             <div className="w-full flex flex-col items-center gap-3">
                                 <FormulaRow>
                                     <LogExpr base={<Sticker value={-2} color={WRONG_COLOR} small />} arg={<Plain>8</Plain>} />
+                                    <Sticker value="НЕЛЬЗЯ!" color={WRONG_COLOR} small />
                                 </FormulaRow>
                                 <FormulaRow>
                                     <LogExpr base={<Plain>5</Plain>} arg={<Sticker value={-25} color={WRONG_COLOR} />} />
+                                    <Sticker value="НЕЛЬЗЯ!" color={WRONG_COLOR} small />
                                 </FormulaRow>
                                 <div className="flex items-center gap-2 text-base md:text-lg font-bold text-[#F2F7FB]">
                                     <span>А такое — тем более!</span>
@@ -493,6 +501,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                                 </div>
                                 <FormulaRow>
                                     <LogExpr base={<Sticker value={-6} color={WRONG_COLOR} small />} arg={<Sticker value={-36} color={WRONG_COLOR} />} />
+                                    <Sticker value="ВАЩЕ НЕЛЬЗЯ!" color={WRONG_COLOR} small />
                                 </FormulaRow>
                             </div>
                         </DiagramBlock>
@@ -515,9 +524,11 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                             <div className="w-full flex flex-col items-center gap-3">
                                 <FormulaRow>
                                     <LogExpr base={<Sticker value={1} color={WRONG_COLOR} small />} arg={<Plain>8</Plain>} />
+                                    <Sticker value="НЕЛЬЗЯ!" color={WRONG_COLOR} small />
                                 </FormulaRow>
                                 <FormulaRow>
                                     <LogExpr base={<Sticker value={1} color={WRONG_COLOR} small />} arg={<Plain>25</Plain>} />
+                                    <Sticker value="НЕЛЬЗЯ!" color={WRONG_COLOR} small />
                                 </FormulaRow>
                             </div>
                         </DiagramBlock>
@@ -597,7 +608,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                     </button>
                 </div>
             ) : (
-                <p className="text-sm text-[#9AA7B0] text-center">Выбери ДА или НЕТ выше</p>
+                <p className="text-sm text-[#9AA7B0] text-center">Выбери ДА или НЕТ</p>
             )}
         </div>
     )
