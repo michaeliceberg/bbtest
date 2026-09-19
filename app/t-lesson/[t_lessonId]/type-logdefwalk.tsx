@@ -41,7 +41,7 @@ import {
     pickWalkthroughNextLabel, pickWalkthroughWrongLabel, CORRECT_FEEDBACK_PHRASES,
     ACTIVE_COLOR, WRONG_COLOR, CORRECT_COLOR, ATTENTION_COLOR,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
-    BlinkingExclaim, SceneWrapper, useSceneFocus, useReplayNonces, BackButton,
+    BlinkingExclaim, SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -418,6 +418,10 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
     const contentSettled = phase === 'intro' ? stepReady : existChecked
     const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, contentSettled)
     const canGoBack = prevSceneKeyOf(latestSceneKey) !== null
+    // "Повторить" — переигрывает анимацию ТЕКУЩЕЙ сцены заново, не трогая
+    // состояние (в отличие от handleBack ниже) — та же пара useReplayNonces,
+    // что уже используется для отката.
+    const handleReplay = () => bumpNonce(latestSceneKey)
 
     // "Назад" — реальный откат состояния на предыдущую сцену (см.
     // type-logwalk.tsx для подробного комментария). Шаги 0-4 — мини-квизы
@@ -651,11 +655,13 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
             {phase === 'intro' ? (
                 (step <= 4 && quizAnswers[step] === null) ? (
                     <div className="w-full flex items-center gap-2">
+                        <ReplayButton onClick={handleReplay} disabled={advancing} />
                         <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
                         <p className="flex-1 text-sm text-[#9AA7B0] text-center">Кликни на вариант выше</p>
                     </div>
                 ) : (
                     <div className="w-full flex items-center gap-2">
+                        <ReplayButton onClick={handleReplay} disabled={advancing} />
                         <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
                         <button type="button" onClick={handleIntroNext} disabled={!stepReady || advancing} className={walkthroughButtonClass(stepReady && !advancing)} style={walkthroughButtonStyle(stepReady && !advancing)}>
                             {introNextLabel}
@@ -664,6 +670,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                 )
             ) : existChecked ? (
                 <div className="w-full flex items-center gap-2">
+                    <ReplayButton onClick={handleReplay} disabled={advancing} />
                     <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
                     <button type="button" onClick={handleExistNext} disabled={advancing} className={walkthroughButtonClass(!advancing)} style={walkthroughButtonStyle(!advancing)}>
                         {existIndex + 1 >= EXIST_ITEMS.length ? 'Готово' : existNextLabel}
@@ -671,6 +678,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                 </div>
             ) : (
                 <div className="w-full flex items-center gap-2">
+                    <ReplayButton onClick={handleReplay} disabled={advancing} />
                     <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
                     <p className="flex-1 text-sm text-[#9AA7B0] text-center">Выбери ДА или НЕТ</p>
                 </div>

@@ -36,7 +36,7 @@ import {
     pickWalkthroughNextLabel, pickWalkthroughWrongLabel, CORRECT_FEEDBACK_PHRASES,
     ACTIVE_COLOR, CORRECT_COLOR,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
-    SceneWrapper, useSceneFocus, useReplayNonces, BackButton,
+    SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -534,6 +534,10 @@ export const TypeLogDivWalk = ({ onAnswer, onComplete }: Props) => {
     const contentSettled = phase === 'intro' ? stepReady : checked
     const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, contentSettled)
     const canGoBack = prevSceneKeyOf(latestSceneKey) !== null
+    // "Повторить" — переигрывает анимацию ТЕКУЩЕЙ сцены заново, не трогая
+    // состояние (в отличие от handleBack ниже) — та же пара useReplayNonces,
+    // что уже используется для отката.
+    const handleReplay = () => bumpNonce(latestSceneKey)
 
     const handleBack = () => {
         if (advancing) return
@@ -702,6 +706,7 @@ export const TypeLogDivWalk = ({ onAnswer, onComplete }: Props) => {
 
             {phase === 'intro' ? (
                 <div className="w-full flex items-center gap-2">
+                    <ReplayButton onClick={handleReplay} disabled={advancing} />
                     <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
                     <button type="button" onClick={handleIntroNext} disabled={!stepReady || advancing} className={walkthroughButtonClass(stepReady && !advancing)} style={walkthroughButtonStyle(stepReady && !advancing)}>
                         {introNextLabel}
@@ -709,6 +714,7 @@ export const TypeLogDivWalk = ({ onAnswer, onComplete }: Props) => {
                 </div>
             ) : checked ? (
                 <div className="w-full flex items-center gap-2">
+                    <ReplayButton onClick={handleReplay} disabled={advancing} />
                     <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
                     <button type="button" onClick={handleNextTrial} disabled={advancing} className={walkthroughButtonClass(!advancing)} style={walkthroughButtonStyle(!advancing)}>
                         {trialIndex + 1 >= trials.length && trialAnswers[trialIndex] && sameOption(trialAnswers[trialIndex]!, currentCorrectOption) ? 'Готово' : trialNextLabel}

@@ -18,7 +18,7 @@ import { motion } from 'framer-motion'
 import Latex from 'react-latex-next'
 import Confetti from 'react-confetti'
 import { useWindowSize } from 'react-use'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, RotateCcw } from 'lucide-react'
 import { HighlightWord } from './WalkthroughMarker'
 import { Typewriter } from './Typewriter'
 import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors'
@@ -106,9 +106,15 @@ export const pickWalkthroughWrongLabel = (defaultLabel: string, chance: number =
 // нейтральный #3A464E/#1A2A3A пока задизейблена) — единый визуальный
 // язык вместо своих произвольных цветов на каждый разбор. w-full/flex-1
 // (не max-w-xs, как было раньше) — растягивается на всю ширину контента,
-// а не остаётся узкой "таблеткой" по центру.
+// а не остаётся узкой "таблеткой" по центру. h-[52px] — явная высота
+// (вместо одного лишь py-3, которое давало высоту от line-height текста)
+// — нужна, чтобы иконочные BackButton/ReplayButton рядом (их контент —
+// иконка 20px, не строка текста) могли совпасть по высоте день-в-день, а
+// не только по py-* (см. их же комментарий: без явной высоты кнопки
+// расходились на 2px — 50px у иконочных vs 52px у этой, пойман
+// пользователем визуально).
 export const walkthroughButtonClass = (enabled: boolean) => cn(
-    'flex-1 py-3 rounded-lg font-bold text-lg transition-all duration-200 active:translate-y-1',
+    'flex-1 h-[52px] flex items-center justify-center rounded-lg font-bold text-lg transition-all duration-200 active:translate-y-1',
     enabled ? 'bg-[#A1D151] text-[#151F24] cursor-pointer' : 'bg-[#3A464E] text-[#F2F7FB] cursor-not-allowed opacity-90',
 );
 export const walkthroughButtonStyle = (enabled: boolean): { boxShadow: string } => ({
@@ -189,21 +195,57 @@ export const SceneWrapper = ({ active, innerRef, children }: { active: boolean; 
     </motion.div>
 )
 
-// Кнопка-стрелка "назад" — тот же визуальный язык 3D-квадратной кнопки,
-// что уже использует ReplayButton (SINWALK), просто с другой иконкой;
-// ставится РЯДОМ с ней там, где она уже есть, и отдельно там, где её нет.
+// Общий визуальный язык квадратных иконочных кнопок (Back/Replay) — та
+// же boxShadow-"ступенька" + active:translate-y-1, что и у зелёной
+// walkthroughButtonClass (см. её комментарий выше) вместо старого
+// border-2/border-b-4 — тот старый вариант был на 2px ниже зелёной
+// кнопки (50px vs 52px, border добавлял высоту в layout, boxShadow — нет)
+// и визуально "гулял" по высоте относительно неё, что и заметил
+// пользователь. h-[52px] — та же явная высота, что и у walkthroughButtonClass.
+const iconButtonClass = (disabled: boolean | undefined) => cn(
+    'shrink-0 w-12 h-[52px] rounded-lg transition-all duration-200 active:translate-y-1 flex items-center justify-center',
+    disabled ? 'bg-[#3A464E] text-[#5C6B73] cursor-not-allowed opacity-90' : 'bg-[#1B252B] text-[#9AA7B0] hover:text-[#F2F7FB] cursor-pointer',
+)
+const iconButtonStyle = (disabled: boolean | undefined): { boxShadow: string } => ({
+    boxShadow: disabled ? '0 4px 0 #1A2A3A' : '0 4px 0 #0A1216',
+})
+
+// Кнопка-стрелка "назад" — реальный откат к предыдущей сцене (см.
+// useSceneFocus выше) — ставится РЯДОМ с ReplayButton там, где она есть,
+// и отдельно там, где её нет.
 export const BackButton = ({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) => (
     <button
         type="button"
         onClick={onClick}
         disabled={disabled}
         title="Вернуться к предыдущей сцене"
-        className={cn(
-            'shrink-0 w-12 py-3 rounded-xl border-2 border-b-4 active:border-b-2 transition-colors flex items-center justify-center',
-            disabled ? 'bg-[#161F23] border-[#2A343A] text-[#3A464E] cursor-not-allowed' : 'bg-[#1B252B] border-[#3A464E] text-[#9AA7B0] hover:text-[#F2F7FB] hover:border-[#4A5860]'
-        )}
+        className={iconButtonClass(disabled)}
+        style={iconButtonStyle(disabled)}
     >
         <ArrowLeft className="w-5 h-5" />
+    </button>
+)
+
+// Кнопка "повторить" — переигрывает анимацию ТЕКУЩЕЙ (уже показанной)
+// сцены заново, не трогая состояние (в отличие от BackButton, которая
+// откатывает состояние на предыдущую сцену). Раньше жила только локально
+// в SINWALK — по прямой просьбе пользователя ("почему в этом stepbystep
+// нет кнопки повтора") обобщена сюда и подключена во всех разборах:
+// вызывающий просто зовёт `bumpNonce(latestSceneKey)` (та же пара из
+// useReplayNonces(), что уже используется для отката BackButton'ом), не
+// трогая ни `step`, ни ответы — сцена ремонтируется с тем же состоянием,
+// проигрывая entrance-анимацию (Typewriter/DiagramBlock/NumSticker bounce)
+// заново.
+export const ReplayButton = ({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) => (
+    <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        title="Повторить анимацию"
+        className={iconButtonClass(disabled)}
+        style={iconButtonStyle(disabled)}
+    >
+        <RotateCcw className="w-5 h-5" />
     </button>
 )
 

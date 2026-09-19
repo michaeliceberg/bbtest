@@ -28,7 +28,7 @@
 'use client'
 
 import { Fragment, useEffect, useState } from 'react'
-import { Check, RotateCcw, X } from 'lucide-react'
+import { Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
 import {
@@ -40,7 +40,7 @@ import { MARKER_COLOR, MARKER_COLOR_GREEN } from '@/components/geometry/Walkthro
 import {
     TypedLine, TypedKeyPhraseLine, DiagramBlock, pickWalkthroughNextLabel, pickWalkthroughWrongLabel, CORRECT_FEEDBACK_PHRASES,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
-    SceneWrapper, useSceneFocus, useReplayNonces, BackButton,
+    SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
 } from '@/components/geometry/WalkthroughLog'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 
@@ -95,25 +95,6 @@ const makeTrialConfigs = (n: number): TrialConfig[] => {
     }
     return configs
 }
-
-// Квадратная кнопка "повторить" слева от "Дальше" — по прямой просьбе
-// пользователя, чтобы можно было переиграть анимацию последнего шага ещё
-// раз. Сама "перемотка" реализована не здесь — см. replayNonces/key ниже,
-// эта кнопка только увеличивает счётчик ТЕКУЩЕГО шага.
-const ReplayButton = ({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) => (
-    <button
-        type="button"
-        onClick={onClick}
-        disabled={disabled}
-        title="Повторить анимацию"
-        className={cn(
-            'shrink-0 w-12 py-3 rounded-xl border-2 border-b-4 active:border-b-2 transition-colors flex items-center justify-center',
-            disabled ? 'bg-[#161F23] border-[#2A343A] text-[#3A464E] cursor-not-allowed' : 'bg-[#1B252B] border-[#3A464E] text-[#9AA7B0] hover:text-[#F2F7FB] hover:border-[#4A5860]'
-        )}
-    >
-        <RotateCcw className="w-5 h-5" />
-    </button>
-)
 
 // Число шагов обучающей части — по прямой просьбе пользователя шаги
 // больше НЕ проигрываются каскадом сами по себе: каждый требует явного
