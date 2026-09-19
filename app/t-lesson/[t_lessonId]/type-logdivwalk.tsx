@@ -52,12 +52,18 @@ type Props = {
 // Фиксированный обучающий пример — ровно тот, что дал пользователь.
 const EX = { a: 2, x: 9, y: 3 }
 
-const INTRO_STEPS = 4
+const INTRO_STEPS = 5
 const TRIAL_COUNT = 4
 
 // Основание (обе "2") и зачёркивающая линия — ОДИН цвет (та же роль, что
 // у BASE_COLOR в LOGSUBWALK/LOGWALK — "основание" всегда синее).
 const BASE_COLOR = GGEGE_PALETTE.blue.button
+// Аргументы (9 — числитель, 3 — знаменатель) на сцене "сборки" нового
+// логарифма (шаг 3) получают СВОИ цвета — тот же приём ARG_COLOR_X/
+// ARG_COLOR_Y, что уже используется в LOGWALK для x/y — нужно, чтобы
+// глазом прослеживалось, куда именно уезжает каждое число.
+const ARG_COLOR_X = GGEGE_PALETTE.teal.button
+const ARG_COLOR_Y = GGEGE_PALETTE.raspberry.button
 
 const pick = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)]
 
@@ -150,6 +156,83 @@ const StrikeThrough = ({
     )
 }
 
+// "Уголок" (elbow/orthogonal-connector) со скруглёнными углами — та же
+// функция, что уже используется в LOGPOWWALK/LOGSWAPWALK (копия, у этого
+// семейства файлов нет общего экспорта — каждый несёт свою).
+function buildElbowPath(x1: number, y1: number, x2: number, y2: number, bridgeY: number, radius = 10): string {
+    const vDir1 = bridgeY < y1 ? -1 : 1
+    const vDir2 = y2 < bridgeY ? -1 : 1
+    const hDir = x2 >= x1 ? 1 : -1
+    const rV1 = Math.min(radius, Math.abs(bridgeY - y1))
+    const rH = Math.min(radius, Math.abs(x2 - x1) / 2)
+    const rV2 = Math.min(radius, Math.abs(y2 - bridgeY))
+
+    const p2 = `${x1} ${bridgeY - vDir1 * rV1}`
+    const p3 = `${x1 + hDir * rH} ${bridgeY}`
+    const p4 = `${x2 - hDir * rH} ${bridgeY}`
+    const p5 = `${x2} ${bridgeY + vDir2 * rV2}`
+
+    return `M ${x1} ${y1} L ${p2} Q ${x1} ${bridgeY} ${p3} L ${p4} Q ${x2} ${bridgeY} ${p5} L ${x2} ${y2}`
+}
+
+// Однонаправленная стрелка между data-marker'ами — та же техника
+// (measure-by-DOM + якорь по грани, откуда линия реально уходит/приходит,
+// не всегда верх), что уже применена в LOGPOWWALK. curve='up' — мост выше
+// обоих концов (пара "числитель", физически выше строки), curve='down' —
+// мост ниже обоих концов (пара "знаменатель").
+const TravelArrow = ({
+    containerRef, fromMarker, toMarker, color, curve,
+}: { containerRef: React.RefObject<HTMLDivElement | null>; fromMarker: string; toMarker: string; color: string; curve: 'up' | 'down' }) => {
+    const [d, setD] = useState<string | null>(null)
+
+    useEffect(() => {
+        const measure = () => {
+            const container = containerRef.current
+            if (!container) return
+            const fromEl = container.querySelector<HTMLElement>(`[data-marker="${fromMarker}"]`)
+            const toEl = container.querySelector<HTMLElement>(`[data-marker="${toMarker}"]`)
+            if (!fromEl || !toEl) return
+            const cRect = container.getBoundingClientRect()
+            const fRect = fromEl.getBoundingClientRect()
+            const tRect = toEl.getBoundingClientRect()
+            const x1 = fRect.left + fRect.width / 2 - cRect.left
+            const x2 = tRect.left + tRect.width / 2 - cRect.left
+            const y1 = (curve === 'up' ? fRect.top : fRect.bottom) - cRect.top
+            const y2 = (curve === 'up' ? tRect.top : tRect.bottom) - cRect.top
+            const bridgeY = curve === 'up' ? Math.min(y1, y2) - 26 : Math.max(y1, y2) + 26
+            setD(buildElbowPath(x1, y1, x2, y2, bridgeY))
+        }
+        const t = setTimeout(measure, 750)
+        window.addEventListener('resize', measure)
+        return () => { clearTimeout(t); window.removeEventListener('resize', measure) }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    if (!d) return null
+    const markerId = `logdivwalk-arrowhead-${fromMarker}`
+    return (
+        <svg className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible', width: '100%', height: '100%' }}>
+            <defs>
+                <marker id={markerId} markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                    <path d="M0,0 L8,4 L0,8 Z" fill={color} />
+                </marker>
+            </defs>
+            <motion.path
+                d={d}
+                stroke={color}
+                strokeWidth={2.5}
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                markerEnd={`url(#${markerId})`}
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                transition={{ duration: 0.8, ease: 'easeInOut', delay: 0.2 }}
+            />
+        </svg>
+    )
+}
+
 // Дробь "log_a x / log_a y = ?" — основной вид условия на шагах 0-2.
 // baseColor/strike применяются к ОБОИМ основаниям сразу (они всегда
 // подсвечиваются/зачёркиваются парой, не по отдельности).
@@ -173,6 +256,43 @@ const FullExpression = ({
                 <StrikeThrough containerRef={containerRef} marker="log-den" color={baseColor ?? BASE_COLOR} />
             </>
         )}
+    </div>
+)
+
+// Шаг "сборки" нового логарифма — повторяет ЗАЧЁРКНУТУЮ дробь (log₂
+// сверху и снизу, как на шаге 2), но теперь числа-аргументы (9 и 3) ТОЖЕ
+// стикеры, и правее рисуется "= log₃(9)" стикерами тех же цветов. Угловые
+// стрелки 9→9 и 3→3 показывают, что новый логарифм СОБРАН из тех же
+// самых чисел, просто в новой роли — по прямой просьбе пользователя
+// ("чтобы понятно было, как собрался новый логарифм").
+const AssembleExpression = ({ containerRef }: { containerRef: React.RefObject<HTMLDivElement> }) => (
+    <div ref={containerRef} className="relative w-full flex items-center justify-center gap-3 flex-wrap text-2xl md:text-3xl font-extrabold py-2 pt-10 pb-12">
+        <span className="inline-flex flex-col items-center leading-none">
+            <span className="pb-2 border-b-2 border-[#F2F7FB]/70 px-2">
+                <span data-marker="log-num" className="inline-flex items-baseline">
+                    <Plain>log</Plain>
+                    <sub className="ml-0.5"><NumSticker value={EX.a} color={BASE_COLOR} small /></sub>
+                </span>
+                <span className="ml-1" data-marker="left-x"><NumSticker value={EX.x} color={ARG_COLOR_X} small /></span>
+            </span>
+            <span className="pt-2 px-2">
+                <span data-marker="log-den" className="inline-flex items-baseline">
+                    <Plain>log</Plain>
+                    <sub className="ml-0.5"><NumSticker value={EX.a} color={BASE_COLOR} small /></sub>
+                </span>
+                <span className="ml-1" data-marker="left-y"><NumSticker value={EX.y} color={ARG_COLOR_Y} small /></span>
+            </span>
+        </span>
+        <Plain>=</Plain>
+        <span className="inline-flex items-baseline whitespace-nowrap">
+            <Plain>log</Plain>
+            <sub className="ml-0.5" data-marker="right-y"><NumSticker value={EX.y} color={ARG_COLOR_Y} small /></sub>
+            <span className="ml-1" data-marker="right-x"><NumSticker value={EX.x} color={ARG_COLOR_X} small /></span>
+        </span>
+        <StrikeThrough containerRef={containerRef} marker="log-num" color={BASE_COLOR} />
+        <StrikeThrough containerRef={containerRef} marker="log-den" color={BASE_COLOR} />
+        <TravelArrow containerRef={containerRef} fromMarker="left-x" toMarker="right-x" color={ARG_COLOR_X} curve="up" />
+        <TravelArrow containerRef={containerRef} fromMarker="left-y" toMarker="right-y" color={ARG_COLOR_Y} curve="down" />
     </div>
 )
 
@@ -332,6 +452,7 @@ export const TypeLogDivWalk = ({ onAnswer, onComplete }: Props) => {
     const step0Ref = useRef<HTMLDivElement>(null)
     const step1Ref = useRef<HTMLDivElement>(null)
     const step2Ref = useRef<HTMLDivElement>(null)
+    const step3Ref = useRef<HTMLDivElement>(null)
 
     const currentCorrectOption: LogOption = { base: trials[trialIndex].y, arg: trials[trialIndex].x }
 
@@ -478,10 +599,29 @@ export const TypeLogDivWalk = ({ onAnswer, onComplete }: Props) => {
                     </SceneWrapper>
                 )}
 
-                {/* Шаг 3 — итог: "Получится: log₃9." */}
+                {/* Шаг 3 — сборка нового логарифма: та же зачёркнутая дробь,
+                    но 9 и 3 теперь тоже стикеры, справа "= log₃(9)", и
+                    угловые стрелки 9→9, 3→3 показывают, откуда взялись
+                    аргумент и основание нового логарифма. */}
                 {step >= 3 && (
                     <SceneWrapper key="step-3" innerRef={sceneRef('step-3')} active={isSceneActive('step-3')}>
                         <Fragment key={`step-3-${nonceFor('step-3')}`}>
+                            <DiagramBlock>
+                                <AssembleExpression containerRef={step3Ref} />
+                            </DiagramBlock>
+                            <TypedLine
+                                className="w-full text-base md:text-lg text-[#F2F7FB]"
+                                text="Оставшееся наверху число становится новым аргументом, оставшееся внизу — новым основанием."
+                                onSettled={() => setStepReady(true)}
+                            />
+                        </Fragment>
+                    </SceneWrapper>
+                )}
+
+                {/* Шаг 4 — итог: "Получится: log₃9." */}
+                {step >= 4 && (
+                    <SceneWrapper key="step-4" innerRef={sceneRef('step-4')} active={isSceneActive('step-4')}>
+                        <Fragment key={`step-4-${nonceFor('step-4')}`}>
                             <ResultLine onSettled={() => setStepReady(true)} />
                             <LocalAnswerConfetti />
                         </Fragment>
