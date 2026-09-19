@@ -32,7 +32,7 @@ import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
 import {
-    TypedKeyPhraseLine, DiagramBlock,
+    DiagramBlock,
     pickWalkthroughNextLabel, CORRECT_FEEDBACK_PHRASES,
     ACTIVE_COLOR, WRONG_COLOR, CORRECT_COLOR, ATTENTION_COLOR,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
@@ -80,7 +80,7 @@ const pick = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.le
 // финального размера и с пружинным отскоком уменьшаются (тот же паттерн,
 // что уже применяется в проекте для чисел/букв, см. numberBounce в
 // CLAUDE.md).
-const NumSticker = ({ value, color, small = false }: { value: number; color: string; small?: boolean }) => (
+const NumSticker = ({ value, color, small = false }: { value: number | string; color: string; small?: boolean }) => (
     <motion.span
         initial={{ scale: 2.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -218,16 +218,18 @@ const ExampleFormula = ({ baseHighlighted, arg1Color, arg2Color, showRightSide, 
     )
 }
 
-// Печатаемая строка объяснения, где в конце — не цветное слово, а
-// НАСТОЯЩИЙ числовой стикер (тот же NumSticker, что и в самой формуле) —
-// по прямой просьбе пользователя ("эту 2 надо сделать в виде стикера").
-// Структура — та же, что у TypedKeyPhraseLine (WalkthroughLog.tsx): типим
-// целиком обычным текстом, после завершения печати заменяем число на
-// стикер.
+// Печатаемая строка объяснения, где в конце — не цветное слово/число, а
+// НАСТОЯЩИЙ боксовый стикер (тот же NumSticker, что и в самой формуле) —
+// по прямой просьбе пользователя ("эту 2 надо сделать в виде стикера", и
+// позже — "перемножить надо не текстовыделителем, а стикером", 2026-09-19,
+// единый визуальный язык со стикерами LOGDEFWALK/LOGPOWWALK). Структура —
+// типим целиком обычным текстом, после завершения печати заменяем
+// число/слово на стикер. stickerValue — number (числа основания) ИЛИ
+// string (слово "перемножить").
 const TypedLineWithSticker = ({
     before, stickerValue, stickerColor, after = '', onSettled,
 }: {
-    before: string; stickerValue: number; stickerColor: string; after?: string; onSettled?: () => void
+    before: string; stickerValue: number | string; stickerColor: string; after?: string; onSettled?: () => void
 }) => {
     const [typed, setTyped] = useState(false)
     return (
@@ -277,7 +279,30 @@ const AnswerLine = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-// Кривая стрелка от "+" (левая часть — складываем логарифмы) к "·"
+// "Уголок" (elbow/orthogonal-connector) со скруглёнными углами — та же
+// техника, что уже применена в LOGPOWWALK/LOGSWAPWALK/LOGSUBWALK/
+// LOGDIVWALK (см. buildElbowPath там же, 2026-09-19: заменена гладкая
+// квадратичная дуга — по прямой просьбе пользователя нарисовать стрелку
+// "угловой", как у LOGSWAPWALK). Скругление — квадратичная кривая через
+// САМУ угловую точку как control point (кривая проходит РЯДОМ с углом, не
+// через него — не нужно вычислять центр отдельной дуги).
+function buildElbowPath(x1: number, y1: number, x2: number, y2: number, bridgeY: number, radius = 10): string {
+    const vDir1 = bridgeY < y1 ? -1 : 1
+    const vDir2 = y2 < bridgeY ? -1 : 1
+    const hDir = x2 >= x1 ? 1 : -1
+    const rV1 = Math.min(radius, Math.abs(bridgeY - y1))
+    const rH = Math.min(radius, Math.abs(x2 - x1) / 2)
+    const rV2 = Math.min(radius, Math.abs(y2 - bridgeY))
+
+    const p2 = `${x1} ${bridgeY - vDir1 * rV1}`
+    const p3 = `${x1 + hDir * rH} ${bridgeY}`
+    const p4 = `${x2 - hDir * rH} ${bridgeY}`
+    const p5 = `${x2} ${bridgeY + vDir2 * rV2}`
+
+    return `M ${x1} ${y1} L ${p2} Q ${x1} ${bridgeY} ${p3} L ${p4} Q ${x2} ${bridgeY} ${p5} L ${x2} ${y2}`
+}
+
+// Угловая стрелка от "+" (левая часть — складываем логарифмы) к "·"
 // (правая часть — аргументы перемножаются) — по прямой просьбе
 // пользователя, показывает "сумма превращается в умножение" наглядно, не
 // только словами. Позиции обоих концов измеряются по факту отрисовки
@@ -286,7 +311,10 @@ const AnswerLine = ({ onSettled }: { onSettled?: () => void }) => {
 // здесь единственный вариант (в отличие от зум-эффектов SVG-диаграмм, где
 // проект принципиально требует аналитический расчёт, см. CLAUDE.md, —
 // там причина не работать с getBBox была в ИСКАЖЕНИИ от bounce-анимации
-// детей; здесь измеряем ПОСЛЕ того, как токены/стикеры уже осели).
+// детей; здесь измеряем ПОСЛЕ того, как токены/стикеры уже осели). "+" и
+// "·" — на одной строке (не стикеры одна над другой, как в LOGPOWWALK),
+// поэтому якорь — верхний край обоих (мост выше, тот же принцип, что и
+// curve='up' в LOGPOWWALK).
 const ArgumentsArrow = ({ containerRef }: { containerRef: React.RefObject<HTMLDivElement | null> }) => {
     const [d, setD] = useState<string | null>(null)
 
@@ -304,9 +332,8 @@ const ArgumentsArrow = ({ containerRef }: { containerRef: React.RefObject<HTMLDi
             const y1 = pRect.top - cRect.top
             const x2 = mRect.left + mRect.width / 2 - cRect.left
             const y2 = mRect.top - cRect.top
-            const midX = (x1 + x2) / 2
-            const midY = Math.min(y1, y2) - 34
-            setD(`M ${x1} ${y1} Q ${midX} ${midY} ${x2} ${y2}`)
+            const bridgeY = Math.min(y1, y2) - 26
+            setD(buildElbowPath(x1, y1, x2, y2, bridgeY))
         }
         // Ждём, пока каскад токенов (Token, ~0.13с шаг) и bounce стикеров
         // осядут, прежде чем измерять реальные позиции.
@@ -330,6 +357,7 @@ const ArgumentsArrow = ({ containerRef }: { containerRef: React.RefObject<HTMLDi
                 strokeWidth={2.5}
                 fill="none"
                 strokeLinecap="round"
+                strokeLinejoin="round"
                 markerEnd="url(#logwalk-arrowhead)"
                 initial={{ pathLength: 0, opacity: 0 }}
                 animate={{ pathLength: 1, opacity: 1 }}
@@ -340,9 +368,19 @@ const ArgumentsArrow = ({ containerRef }: { containerRef: React.RefObject<HTMLDi
 }
 
 // ===== Тренировочные задания — новые случайные (a, x, y), нужно кликнуть
-// верное число (x·y) среди вариантов. =====
+// верный вариант ОТВЕТА (основание + число) среди вариантов. По прямой
+// просьбе пользователя (2026-09-19, "сейчас основание уже показывают
+// какое будет... давай варианты с разными основаниями") — раньше правая
+// часть формулы уже показывала правильное основание готовым (logₐ?, менять
+// нужно было только число x·y) — угадать можно было, даже не заметив, что
+// у обеих частей суммы ОДИНАКОВОЕ основание. Теперь правая часть — ПОЛНОЕ
+// "log?  ?" (и основание, и число — "?" до выбора), а сами варианты ответа
+// — готовые ПАРЫ (основание, число), среди которых есть дистракторы с
+// ЧУЖИМ основанием (не только с неверным числом) — клик по варианту
+// подставляет обе части сразу.
 
-type LogTrial = { a: number; x: number; y: number; options: number[] }
+type TrialOption = { base: number; value: number }
+type LogTrial = { a: number; x: number; y: number; options: TrialOption[] }
 
 const A_POOL = [2, 3, 5, 7, 9] as const
 const XY_POOL = [2, 3, 4, 5, 6, 7, 8, 9] as const
@@ -356,22 +394,58 @@ function shuffle<T>(arr: T[]): T[] {
     return a
 }
 
-// Дистракторы — правдоподобные ошибки школьника (сложил вместо того,
-// чтобы умножить; ошибся на 1 в одном из множителей), а не случайный шум.
-function makeOptions(x: number, y: number): number[] {
-    const correct = x * y
-    const candidates = new Set<number>()
-    candidates.add(x + y)
-    candidates.add(x * (y + 1))
-    candidates.add((x + 1) * y)
-    candidates.delete(correct)
-    let out = Array.from(candidates).filter((n) => n > 0 && n !== correct)
-    let extra = correct + 6
-    while (out.length < 3) {
-        if (extra !== correct && !out.includes(extra)) out.push(extra)
-        extra++
+const sameOption = (p: TrialOption | null, q: TrialOption): boolean =>
+    p !== null && p.base === q.base && p.value === q.value
+
+// Дистракторы — правдоподобные ошибки школьника, теперь СРАЗУ по двум
+// осям: (1) число — сложил вместо того, чтобы умножить, ошибся на 1 в
+// одном из множителей; (2) основание — самая частая ошибка тут взять
+// основанием один из АРГУМЕНТОВ (x/y) вместо настоящего a. Ровно один
+// вариант из четырёх — полностью верная пара {a, x·y}.
+function makeOptionsFull(a: number, x: number, y: number): TrialOption[] {
+    const correctValue = x * y
+    const correct: TrialOption = { base: a, value: correctValue }
+
+    const valueCandidates = new Set<number>()
+    valueCandidates.add(x + y)
+    valueCandidates.add(x * (y + 1))
+    valueCandidates.add((x + 1) * y)
+    valueCandidates.delete(correctValue)
+    let valuePool = Array.from(valueCandidates).filter((n) => n > 0)
+    let extraV = correctValue + 6
+    while (valuePool.length < 2) {
+        if (extraV !== correctValue && !valuePool.includes(extraV)) valuePool.push(extraV)
+        extraV++
     }
-    return shuffle([correct, ...out.slice(0, 3)])
+    valuePool = shuffle(valuePool)
+
+    const baseCandidates = shuffle(
+        Array.from(new Set<number>([x, y, a + 1, a > 2 ? a - 1 : a + 2])).filter((n) => n > 1 && n !== a)
+    )
+    let extraB = a + 10
+    while (baseCandidates.length < 2) {
+        if (extraB !== a && !baseCandidates.includes(extraB)) baseCandidates.push(extraB)
+        extraB++
+    }
+
+    const seen = new Set<string>([`${correct.base}:${correct.value}`])
+    const options: TrialOption[] = [correct]
+    const pushUnique = (opt: TrialOption) => {
+        const key = `${opt.base}:${opt.value}`
+        if (seen.has(key)) return
+        seen.add(key)
+        options.push(opt)
+    }
+    pushUnique({ base: baseCandidates[0], value: correctValue })
+    pushUnique({ base: a, value: valuePool[0] })
+    pushUnique({ base: baseCandidates[1], value: valuePool[1] ?? valuePool[0] })
+    let guardBump = 1
+    while (options.length < 4) {
+        const b = baseCandidates[guardBump % baseCandidates.length] ?? a + guardBump
+        pushUnique({ base: b, value: correctValue + guardBump * 5 })
+        guardBump++
+    }
+    return shuffle(options)
 }
 
 const makeTrial = (prev: LogTrial | null): LogTrial => {
@@ -382,7 +456,7 @@ const makeTrial = (prev: LogTrial | null): LogTrial => {
         const x = pick(XY_POOL)
         let y = pick(XY_POOL)
         while (y === x) y = pick(XY_POOL)
-        t = { a, x, y, options: makeOptions(x, y) }
+        t = { a, x, y, options: makeOptionsFull(a, x, y) }
         guard++
     } while (prev && t.a === prev.a && t.x === prev.x && t.y === prev.y && guard < 8)
     return t
@@ -410,9 +484,10 @@ const pickTrialFeedback = (t: LogTrial): string => {
 const LogTrialFormula = ({
     trial, selected, checked, isCorrect,
 }: {
-    trial: LogTrial; selected: number | null; checked: boolean; isCorrect: boolean
+    trial: LogTrial; selected: TrialOption | null; checked: boolean; isCorrect: boolean
 }) => {
     const { a, x, y } = trial
+    const color = checked ? (isCorrect ? CORRECT_COLOR : WRONG_COLOR) : '#F2F7FB'
     return (
         <div className="w-full flex items-center justify-center flex-wrap gap-x-2 gap-y-2 text-2xl md:text-3xl font-extrabold py-1">
             <span className="inline-flex items-baseline whitespace-nowrap">
@@ -426,19 +501,34 @@ const LogTrialFormula = ({
             </span>
             <Plain>=</Plain>
             <span className="inline-flex items-baseline whitespace-nowrap">
-                <Plain>log</Plain><sub className="ml-0.5"><Plain>{a}</Plain></sub>
+                <Plain>log</Plain>
+                <sub className="ml-0.5">
+                    {selected === null ? (
+                        <span style={{ color: ACTIVE_COLOR }} className="font-black">?</span>
+                    ) : (
+                        <motion.span
+                            key={`base-${selected.base}`}
+                            initial={{ scale: 2, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ type: 'spring', stiffness: 320, damping: 15 }}
+                            style={{ color }}
+                        >
+                            {selected.base}
+                        </motion.span>
+                    )}
+                </sub>
                 <span className="ml-1">
                     {selected === null ? (
                         <span style={{ color: ACTIVE_COLOR }} className="font-black">?</span>
                     ) : (
                         <motion.span
-                            key={selected}
+                            key={`val-${selected.value}`}
                             initial={{ scale: 2, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             transition={{ type: 'spring', stiffness: 320, damping: 15 }}
-                            style={{ color: checked ? (isCorrect ? CORRECT_COLOR : WRONG_COLOR) : '#F2F7FB' }}
+                            style={{ color }}
                         >
-                            {selected}
+                            {selected.value}
                         </motion.span>
                     )}
                 </span>
@@ -457,7 +547,7 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
 
     const [trials, setTrials] = useState<LogTrial[]>(() => makeTrials(TRIAL_COUNT))
     const [trialIndex, setTrialIndex] = useState(0)
-    const [trialAnswers, setTrialAnswers] = useState<(number | null)[]>(Array(TRIAL_COUNT).fill(null))
+    const [trialAnswers, setTrialAnswers] = useState<(TrialOption | null)[]>(Array(TRIAL_COUNT).fill(null))
     const [checked, setChecked] = useState(false)
     // Конфетти на финальный "Ответ: log₂15" (шаг 4 обучающей части) — по
     // прямой просьбе пользователя, во ВСЕХ таких "локальных ответах"
@@ -469,22 +559,25 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
     // измерить реальные позиции "+" и "·" внутри него (см. компонент выше).
     const step3Ref = useRef<HTMLDivElement>(null)
 
-    const currentCorrectValue = trials[trialIndex].x * trials[trialIndex].y
+    const currentCorrectOption: TrialOption = {
+        base: trials[trialIndex].a,
+        value: trials[trialIndex].x * trials[trialIndex].y,
+    }
 
-    const handleOptionClick = (value: number) => {
+    const handleOptionClick = (option: TrialOption) => {
         if (checked) return
         const next = [...trialAnswers]
-        next[trialIndex] = value
+        next[trialIndex] = option
         setTrialAnswers(next)
         setChecked(true)
-        if (value !== currentCorrectValue) setHadMistake(true)
+        if (!sameOption(option, currentCorrectOption)) setHadMistake(true)
     }
 
     const handleNextTrial = () => {
         if (advancing) return
         setAdvancing(true)
         setTimeout(() => {
-            const wasLastCorrect = trialAnswers[trialIndex] === currentCorrectValue
+            const wasLastCorrect = sameOption(trialAnswers[trialIndex], currentCorrectOption)
             const isLastInList = trialIndex + 1 >= trials.length
             if (isLastInList) {
                 if (wasLastCorrect) {
@@ -635,11 +728,11 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                                     <ArgumentsArrow containerRef={step3Ref} />
                                 </div>
                             </DiagramBlock>
-                            <TypedKeyPhraseLine
+                            <TypedLineWithSticker
                                 before="Так как логарифмы складываются, то аргументы надо "
-                                phrase="перемножить"
-                                color={ATTENTION_COLOR}
-                                highlight
+                                stickerValue="перемножить"
+                                stickerColor={ATTENTION_COLOR}
+                                after="."
                                 onSettled={() => setStepReady(true)}
                             />
                         </Fragment>
@@ -665,6 +758,8 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                     const isDone = i < trialIndex || (isCurrent && checked)
                     const answer = trialAnswers[i]
                     const correctValue = t.x * t.y
+                    const correctOpt: TrialOption = { base: t.a, value: correctValue }
+                    const isAnswerCorrect = sameOption(answer, correctOpt)
                     return (
                         <SceneWrapper key={`trial-${i}`} innerRef={sceneRef(`trial-${i}`)} active={isSceneActive(`trial-${i}`)}>
                         <Fragment key={`trial-${i}-${nonceFor(`trial-${i}`)}`}>
@@ -686,18 +781,18 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                                 </p>
                             </div>
                             <DiagramBlock>
-                                <LogTrialFormula trial={t} selected={answer} checked={isDone} isCorrect={answer === correctValue} />
+                                <LogTrialFormula trial={t} selected={answer} checked={isDone} isCorrect={isAnswerCorrect} />
                             </DiagramBlock>
                             {isCurrent && !checked && (
                                 <div className="flex flex-wrap justify-center gap-3">
-                                    {t.options.map((num) => (
+                                    {t.options.map((opt, idx) => (
                                         <button
-                                            key={num}
+                                            key={idx}
                                             type="button"
-                                            onClick={() => handleOptionClick(num)}
-                                            className="min-w-[64px] py-3 px-4 rounded-xl border-2 border-[#3A464E] bg-[#161F23] text-[#F2F7FB] text-lg md:text-xl font-bold hover:border-[#4A90D9] transition-colors"
+                                            onClick={() => handleOptionClick(opt)}
+                                            className="min-w-[84px] py-3 px-4 rounded-xl border-2 border-[#3A464E] bg-[#161F23] text-[#F2F7FB] text-lg md:text-xl font-bold hover:border-[#4A90D9] transition-colors inline-flex items-baseline justify-center whitespace-nowrap"
                                         >
-                                            {num}
+                                            <Plain>log</Plain><sub className="ml-0.5"><Plain>{opt.base}</Plain></sub><span className="ml-1"><Plain>{opt.value}</Plain></span>
                                         </button>
                                     ))}
                                 </div>
@@ -706,10 +801,10 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                                 <div
                                     className={cn(
                                         'flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center',
-                                        answer === correctValue ? 'bg-[#A1D15122] text-[#A1D151]' : 'bg-[#DC605B22] text-[#DC605B]'
+                                        isAnswerCorrect ? 'bg-[#A1D15122] text-[#A1D151]' : 'bg-[#DC605B22] text-[#DC605B]'
                                     )}
                                 >
-                                    {answer === correctValue ? pickTrialFeedback(t) : `Неверно — правильный ответ ${correctValue} (${t.x}·${t.y}).`}
+                                    {isAnswerCorrect ? pickTrialFeedback(t) : `Неверно — правильный ответ: основание ${t.a}, число ${correctValue} (${t.x}·${t.y}).`}
                                 </div>
                             )}
                             {/* Конфетти на верный ответ ТРЕНИРОВОЧНОГО
@@ -717,7 +812,7 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                                 (isCurrent), поэтому естественно
                                 размонтируется, как только переходим к
                                 следующему (см. LocalAnswerConfetti). */}
-                            {isCurrent && isDone && answer === correctValue && <LocalAnswerConfetti />}
+                            {isCurrent && isDone && isAnswerCorrect && <LocalAnswerConfetti />}
                         </Fragment>
                         </SceneWrapper>
                     )
@@ -735,7 +830,7 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                 <div className="w-full flex items-center gap-2">
                     <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
                     <button type="button" onClick={handleNextTrial} disabled={advancing} className={walkthroughButtonClass(!advancing)} style={walkthroughButtonStyle(!advancing)}>
-                        {trialIndex + 1 >= trials.length && trialAnswers[trialIndex] === currentCorrectValue ? 'Готово' : trialNextLabel}
+                        {trialIndex + 1 >= trials.length && sameOption(trialAnswers[trialIndex], currentCorrectOption) ? 'Готово' : trialNextLabel}
                     </button>
                 </div>
             ) : (
