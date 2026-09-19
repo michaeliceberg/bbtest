@@ -813,6 +813,26 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             };
         }
 
+        if (t_challenge.type === 'LOGCOMBOWALK') {
+            // Тот же самодостаточный принцип, что у LOGDIVWALK/LOGSWAPWALK —
+            // разбор "цепного правила" логарифмов (log_a b · log_b c =
+            // log_a c) на фиксированном примере 2/3/4, тренировочные
+            // задания генерируются на лету внутри type-logcombowalk.tsx.
+            return {
+                questionType: 'LOGCOMBOWALK' as const,
+                question: t_challenge.question,
+                imageSrc: t_challenge.imageSrc,
+                options: [],
+                numRans: t_challenge.numRans,
+                optionsQ: [],
+                optionsA: [],
+                optionsConstructRight: [],
+                difficulty: t_challenge.difficulty,
+                correctAnswer: 'right',
+                timeLimit: 999,
+            };
+        }
+
         if (t_challenge.type === 'LOGSWAPWALK') {
             // Тот же самодостаточный принцип, что у LOGWALK/LOGSUBWALK/
             // LOGPOWWALK — разбор тождества "логарифм в степени"

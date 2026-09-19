@@ -30,6 +30,7 @@ import { TypeLogSubWalk } from "@/app/t-lesson/[t_lessonId]/type-logsubwalk"
 import { TypeLogPowWalk } from "@/app/t-lesson/[t_lessonId]/type-logpowwalk"
 import { TypeLogSwapWalk } from "@/app/t-lesson/[t_lessonId]/type-logswapwalk"
 import { TypeLogDivWalk } from "@/app/t-lesson/[t_lessonId]/type-logdivwalk"
+import { TypeLogComboWalk } from "@/app/t-lesson/[t_lessonId]/type-logcombowalk"
 import { TypeWorkbook } from "@/app/t-lesson/[t_lessonId]/type-workbook"
 import { TypeConstructor } from "@/app/t-lesson/[t_lessonId]/type-constructor"
 
@@ -370,6 +371,12 @@ export default function TrainerQuestion({
         // log_y x). См. type-logdivwalk.tsx.
         return <TypeLogDivWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
 
+      case "LOGCOMBOWALK":
+        // Тот же принцип, что и у LOGDIVWALK/LOGSWAPWALK — разбор
+        // "цепного правила" логарифмов (log_a b · log_b c = log_a c). См.
+        // type-logcombowalk.tsx.
+        return <TypeLogComboWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
+
       case "TRIGTABLE":
         // select-then-submit, тот же контракт, что у ASSIST/INSERT/SCROLL —
         // пользователь может менять заполненные пропуски ДО нажатия общей
@@ -646,21 +653,21 @@ export default function TrainerQuestion({
         </motion.div>
 
       {/* Кнопка внизу - фиксированная. У CHECK, FRACTRICK, SINWALK,
-          LOGWALK, LOGDEFWALK, LOGSUBWALK, LOGPOWWALK, LOGSWAPWALK и
-          LOGDIVWALK её нет вообще (не только disabled) — все
-          самодостаточные и владеют подтверждением сами: CHECK — вообще
-          без подтверждения (клик по ведру/галочке сразу засчитывает
-          ответ), FRACTRICK — со своими ДВУМЯ внутренними кнопками
-          "Ответить" (по одной на каждый из 2 этапов, см.
+          LOGWALK, LOGDEFWALK, LOGSUBWALK, LOGPOWWALK, LOGSWAPWALK,
+          LOGDIVWALK и LOGCOMBOWALK её нет вообще (не только disabled) —
+          все самодостаточные и владеют подтверждением сами: CHECK —
+          вообще без подтверждения (клик по ведру/галочке сразу
+          засчитывает ответ), FRACTRICK — со своими ДВУМЯ внутренними
+          кнопками "Ответить" (по одной на каждый из 2 этапов, см.
           type-fractrick.tsx), SINWALK/LOGWALK/LOGDEFWALK/LOGSUBWALK/
-          LOGPOWWALK/LOGSWAPWALK/LOGDIVWALK — своей кнопкой "Дальше" на
-          протяжении ВСЕГО прохождения (и обучающих шагов, и тренировочных
-          заданий) — общая кнопка внизу тут была бы лишней/непонятной
-          disabled-заглушкой "ответить", по прямой просьбе пользователя.
-          TRIGTABLE (как ASSIST/INSERT/SCROLL) — select-then-submit: общая
-          кнопка сначала "Ответить" (когда все пропуски заполнены), затем
-          "далее"/"понятно". */}
-      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "SINWALK" && question.questionType !== "LOGWALK" && question.questionType !== "LOGDEFWALK" && question.questionType !== "LOGSUBWALK" && question.questionType !== "LOGPOWWALK" && question.questionType !== "LOGSWAPWALK" && question.questionType !== "LOGDIVWALK" && (
+          LOGPOWWALK/LOGSWAPWALK/LOGDIVWALK/LOGCOMBOWALK — своей кнопкой
+          "Дальше" на протяжении ВСЕГО прохождения (и обучающих шагов, и
+          тренировочных заданий) — общая кнопка внизу тут была бы лишней/
+          непонятной disabled-заглушкой "ответить", по прямой просьбе
+          пользователя. TRIGTABLE (как ASSIST/INSERT/SCROLL) —
+          select-then-submit: общая кнопка сначала "Ответить" (когда все
+          пропуски заполнены), затем "далее"/"понятно". */}
+      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "SINWALK" && question.questionType !== "LOGWALK" && question.questionType !== "LOGDEFWALK" && question.questionType !== "LOGSUBWALK" && question.questionType !== "LOGPOWWALK" && question.questionType !== "LOGSWAPWALK" && question.questionType !== "LOGDIVWALK" && question.questionType !== "LOGCOMBOWALK" && (
       <div className="px-4 pb-4 pt-2 bg-[#151F24] relative">
         {/* Notification фон который выезжает при правильном ответе */}
         {answerState === "correct" && (
