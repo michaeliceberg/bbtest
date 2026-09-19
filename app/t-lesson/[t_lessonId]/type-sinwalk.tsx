@@ -38,7 +38,7 @@ import {
 } from '@/components/geometry/RightTriangleDiagram'
 import { MARKER_COLOR, MARKER_COLOR_GREEN } from '@/components/geometry/WalkthroughMarker'
 import {
-    TypedLine, TypedKeyPhraseLine, DiagramBlock, pickWalkthroughNextLabel, CORRECT_FEEDBACK_PHRASES,
+    TypedLine, TypedKeyPhraseLine, DiagramBlock, pickWalkthroughNextLabel, pickWalkthroughWrongLabel, CORRECT_FEEDBACK_PHRASES,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton,
 } from '@/components/geometry/WalkthroughLog'
@@ -181,7 +181,12 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
         next[trialIndex] = side
         setTrialAnswers(next)
         setChecked(true)
-        if (side !== currentCorrectSide) setHadMistake(true)
+        if (side === currentCorrectSide) {
+            setTrialNextLabel(pickWalkthroughNextLabel('Дальше'))
+        } else {
+            setHadMistake(true)
+            setTrialNextLabel(pickWalkthroughWrongLabel('Дальше'))
+        }
     }
 
     const handleNextTrial = () => {
@@ -244,10 +249,12 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
     // рендере независимо — Math.random() даёт разные значения на сервере
     // и клиенте и ломает гидратацию (тот же класс бага, что уже не раз
     // документирован в CLAUDE.md для случайного текста, видимого в SSR-HTML).
+    // trialNextLabel выставляется ПРЯМО в handleSideClick (не эффектом на
+    // trialIndex) — её тон зависит от того, верно ли ответили сейчас (см.
+    // WALKTHROUGH_WRONG_NEXT_PHRASES для неверного ответа).
     const [introNextLabel, setIntroNextLabel] = useState('Дальше')
     const [trialNextLabel, setTrialNextLabel] = useState('Дальше')
     useEffect(() => { setIntroNextLabel(pickWalkthroughNextLabel('Дальше')) }, [step])
-    useEffect(() => { setTrialNextLabel(pickWalkthroughNextLabel('Дальше')) }, [trialIndex])
 
     // Затемнение прошлых сцен + автоскролл к новой (см. useSceneFocus в
     // WalkthroughLog.tsx) — ключи сцен СТАБИЛЬНЫЕ (`step-N`/`trial-N`, без

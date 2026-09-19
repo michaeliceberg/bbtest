@@ -33,7 +33,7 @@ import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
 import {
     TypedLine, DiagramBlock,
-    pickWalkthroughNextLabel, CORRECT_FEEDBACK_PHRASES,
+    pickWalkthroughNextLabel, pickWalkthroughWrongLabel, CORRECT_FEEDBACK_PHRASES,
     ACTIVE_COLOR, CORRECT_COLOR,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton,
@@ -341,7 +341,12 @@ export const TypeLogDivWalk = ({ onAnswer, onComplete }: Props) => {
         next[trialIndex] = option
         setTrialAnswers(next)
         setChecked(true)
-        if (!sameOption(option, currentCorrectOption)) setHadMistake(true)
+        if (sameOption(option, currentCorrectOption)) {
+            setTrialNextLabel(pickWalkthroughNextLabel('Дальше'))
+        } else {
+            setHadMistake(true)
+            setTrialNextLabel(pickWalkthroughWrongLabel('Дальше'))
+        }
     }
 
     const handleNextTrial = () => {
@@ -385,10 +390,11 @@ export const TypeLogDivWalk = ({ onAnswer, onComplete }: Props) => {
         }, SCENE_TRANSITION_PAUSE_MS)
     }
 
+    // trialNextLabel выставляется ПРЯМО в handleOptionClick (не эффектом
+    // на trialIndex) — её тон зависит от того, верно ли ответили сейчас.
     const [introNextLabel, setIntroNextLabel] = useState('Дальше')
     const [trialNextLabel, setTrialNextLabel] = useState('Дальше')
     useEffect(() => { setIntroNextLabel(pickWalkthroughNextLabel('Дальше')) }, [step])
-    useEffect(() => { setTrialNextLabel(pickWalkthroughNextLabel('Дальше')) }, [trialIndex])
 
     const { bump: bumpNonce, nonceFor } = useReplayNonces()
 

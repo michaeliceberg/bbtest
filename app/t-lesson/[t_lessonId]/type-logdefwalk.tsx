@@ -38,7 +38,7 @@ import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
 import {
     DiagramBlock,
-    pickWalkthroughNextLabel, CORRECT_FEEDBACK_PHRASES,
+    pickWalkthroughNextLabel, pickWalkthroughWrongLabel, CORRECT_FEEDBACK_PHRASES,
     ACTIVE_COLOR, WRONG_COLOR, CORRECT_COLOR, ATTENTION_COLOR,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     BlinkingExclaim, SceneWrapper, useSceneFocus, useReplayNonces, BackButton,
@@ -351,8 +351,10 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
         setExistChecked(true)
         if (guess !== EXIST_ITEMS[existIndex].correct) {
             setHadMistake(true)
+            setExistNextLabel(pickWalkthroughWrongLabel('Дальше'))
         } else {
             setConfettiFor(`exist-${existIndex}`)
+            setExistNextLabel(pickWalkthroughNextLabel('Дальше'))
         }
     }
 
@@ -388,10 +390,11 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
         }, SCENE_TRANSITION_PAUSE_MS)
     }
 
+    // existNextLabel выставляется ПРЯМО в handleExistPick (не эффектом на
+    // existIndex) — её тон зависит от того, верно ли ответили сейчас.
     const [introNextLabel, setIntroNextLabel] = useState('Дальше')
     const [existNextLabel, setExistNextLabel] = useState('Дальше')
     useEffect(() => { setIntroNextLabel(pickWalkthroughNextLabel('Дальше')) }, [step])
-    useEffect(() => { setExistNextLabel(pickWalkthroughNextLabel('Дальше')) }, [existIndex])
 
     // Счётчики "повторов" — нужны кнопке "назад" для перемонтирования
     // содержимого целевой сцены (см. type-sinwalk.tsx).

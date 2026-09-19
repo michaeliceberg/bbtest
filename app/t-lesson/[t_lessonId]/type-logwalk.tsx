@@ -33,7 +33,7 @@ import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
 import {
     DiagramBlock,
-    pickWalkthroughNextLabel, CORRECT_FEEDBACK_PHRASES,
+    pickWalkthroughNextLabel, pickWalkthroughWrongLabel, CORRECT_FEEDBACK_PHRASES,
     ACTIVE_COLOR, WRONG_COLOR, CORRECT_COLOR, ATTENTION_COLOR,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton,
@@ -570,7 +570,14 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
         next[trialIndex] = option
         setTrialAnswers(next)
         setChecked(true)
-        if (!sameOption(option, currentCorrectOption)) setHadMistake(true)
+        if (sameOption(option, currentCorrectOption)) {
+            setTrialNextLabel(pickWalkthroughNextLabel('Дальше'))
+        } else {
+            setHadMistake(true)
+            // Другой тон кнопки после ошибки — не поздравление, а
+            // "принял, идём дальше" (см. WALKTHROUGH_WRONG_NEXT_PHRASES).
+            setTrialNextLabel(pickWalkthroughWrongLabel('Дальше'))
+        }
     }
 
     const handleNextTrial = () => {
@@ -620,10 +627,13 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
     // Подпись кнопки "Дальше" — та же случайная вариативность, что и у
     // SINWALK, только после монтирования (не в рендере/useMemo — избегает
     // SSR/клиент-рассинхрона Math.random(), см. тот же комментарий там).
+    // trialNextLabel — НЕ через отдельный эффект на смену trialIndex, а
+    // выставляется ПРЯМО в handleOptionClick (см. ниже), т.к. её тон
+    // (поздравительный/"принял, идём дальше") зависит от того, верно ли
+    // ответили именно СЕЙЧАС.
     const [introNextLabel, setIntroNextLabel] = useState('Дальше')
     const [trialNextLabel, setTrialNextLabel] = useState('Дальше')
     useEffect(() => { setIntroNextLabel(pickWalkthroughNextLabel('Дальше')) }, [step])
-    useEffect(() => { setTrialNextLabel(pickWalkthroughNextLabel('Дальше')) }, [trialIndex])
 
     // Счётчики "повторов" — нужны, чтобы "назад" (см. handleBack ниже)
     // мог ПЕРЕМОНТИРОВАТЬ содержимое целевой сцены (Typewriter/
