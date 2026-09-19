@@ -98,14 +98,17 @@ const Token = ({ delay, children }: { delay: number; children: React.ReactNode }
     </motion.span>
 )
 
+// baseMarker — data-marker на <sub>, нужен BaseMatchArrow (см. ниже) для
+// измерения реальной позиции этого основания — тот же приём, что в
+// LOGWALK.
 const LogTerm = ({
-    base, arg, baseHighlighted, argColor,
+    base, arg, baseHighlighted, argColor, baseMarker,
 }: {
-    base: number; arg: number; baseHighlighted: boolean; argColor?: string
+    base: number; arg: number; baseHighlighted: boolean; argColor?: string; baseMarker?: string
 }) => (
     <span className="inline-flex items-baseline whitespace-nowrap">
         <Plain>log</Plain>
-        <sub className="ml-0.5">
+        <sub className="ml-0.5" data-marker={baseMarker}>
             {baseHighlighted ? <NumSticker value={base} color={BASE_COLOR} small /> : <Plain>{base}</Plain>}
         </sub>
         <span className="ml-1">
@@ -133,13 +136,13 @@ const ExampleFormula = ({ baseHighlighted, arg1Color, arg2Color, showRightSide, 
     return (
         <div className="w-full flex items-center justify-center flex-wrap gap-x-2 gap-y-2 text-2xl md:text-3xl font-extrabold py-1">
             <Token delay={nextDelay()}>
-                <LogTerm base={2} arg={15} baseHighlighted={baseHighlighted} argColor={arg1Color} />
+                <LogTerm base={2} arg={15} baseHighlighted={baseHighlighted} argColor={arg1Color} baseMarker="base1" />
             </Token>
             <Token delay={nextDelay()}>
                 <span data-marker="minus" className="text-[#F2F7FB]">−</span>
             </Token>
             <Token delay={nextDelay()}>
-                <LogTerm base={2} arg={5} baseHighlighted={baseHighlighted} argColor={arg2Color} />
+                <LogTerm base={2} arg={5} baseHighlighted={baseHighlighted} argColor={arg2Color} baseMarker="base2" />
             </Token>
             {showRightSide && (
                 <>
@@ -147,7 +150,7 @@ const ExampleFormula = ({ baseHighlighted, arg1Color, arg2Color, showRightSide, 
                     <Token delay={nextDelay()}>
                         <span className="inline-flex items-baseline whitespace-nowrap">
                             <Plain>log</Plain>
-                            <sub className="ml-0.5">
+                            <sub className="ml-0.5" data-marker="base3">
                                 <NumSticker value={2} color={BASE_COLOR} small />
                             </sub>
                             {showQuotient && (
@@ -286,6 +289,112 @@ const ArgumentsArrow = ({ containerRef }: { containerRef: React.RefObject<HTMLDi
     )
 }
 
+// "Уголок" (elbow/orthogonal-connector) со скруглёнными углами — та же
+// техника, что уже применена в LOGPOWWALK/LOGSWAPWALK/LOGDIVWALK/LOGWALK
+// (buildElbowPath, скругление — квадратичная кривая через саму угловую
+// точку как control point).
+function buildElbowPath(x1: number, y1: number, x2: number, y2: number, bridgeY: number, radius = 10): string {
+    const vDir1 = bridgeY < y1 ? -1 : 1
+    const vDir2 = y2 < bridgeY ? -1 : 1
+    const hDir = x2 >= x1 ? 1 : -1
+    const rV1 = Math.min(radius, Math.abs(bridgeY - y1))
+    const rH = Math.min(radius, Math.abs(x2 - x1) / 2)
+    const rV2 = Math.min(radius, Math.abs(y2 - bridgeY))
+
+    const p2 = `${x1} ${bridgeY - vDir1 * rV1}`
+    const p3 = `${x1 + hDir * rH} ${bridgeY}`
+    const p4 = `${x2 - hDir * rH} ${bridgeY}`
+    const p5 = `${x2} ${bridgeY + vDir2 * rV2}`
+
+    return `M ${x1} ${y1} L ${p2} Q ${x1} ${bridgeY} ${p3} L ${p4} Q ${x2} ${bridgeY} ${p5} L ${x2} ${y2}`
+}
+
+// Угловая стрелка(и) ПОД формулой, показывающая, что 2 (или 3) основания —
+// ОДНО И ТО ЖЕ число — та же техника, что у BaseMatchArrow в type-logwalk.tsx
+// (см. там подробный комментарий), только markers "base1"/"base2"/"base3"
+// здесь принадлежат "log₂15 − log₂5 [= log₂...]". Один общий мост НИЖЕ
+// всех оснований, наконечник на ОБОИХ концах основного пути (markerStart
+// с orient="auto-start-reverse", тот же приём, что у DoubleArrow в
+// LOGSWAPWALK); для СРЕДНЕЙ (не крайней) точки — отдельный прямой
+// вертикальный "отвод" от моста со своим наконечником. Якорь на каждом
+// основании — НИЖНИЙ край (мост идёт СНИЗУ формулы).
+const BaseMatchArrow = ({
+    containerRef, markers, color,
+}: { containerRef: React.RefObject<HTMLDivElement | null>; markers: string[]; color: string }) => {
+    const [paths, setPaths] = useState<{ main: string; branches: string[] } | null>(null)
+
+    useEffect(() => {
+        const measure = () => {
+            const container = containerRef.current
+            if (!container) return
+            const cRect = container.getBoundingClientRect()
+            const points = markers
+                .map((m) => {
+                    const el = container.querySelector<HTMLElement>(`[data-marker="${m}"]`)
+                    if (!el) return null
+                    const r = el.getBoundingClientRect()
+                    return { x: r.left + r.width / 2 - cRect.left, y: r.bottom - cRect.top }
+                })
+                .filter((p): p is { x: number; y: number } => p !== null)
+                .sort((a, b) => a.x - b.x)
+            if (points.length < 2) return
+            const bridgeY = Math.max(...points.map((p) => p.y)) + 26
+            const first = points[0]
+            const last = points[points.length - 1]
+            const main = buildElbowPath(first.x, first.y, last.x, last.y, bridgeY)
+            const branches = points.slice(1, -1).map((p) => `M ${p.x} ${bridgeY} L ${p.x} ${p.y}`)
+            setPaths({ main, branches })
+        }
+        const t = setTimeout(measure, 750)
+        window.addEventListener('resize', measure)
+        return () => { clearTimeout(t); window.removeEventListener('resize', measure) }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    if (!paths) return null
+    const startId = `logsubwalk-base-arrow-start-${markers.join('-')}`
+    const endId = `logsubwalk-base-arrow-end-${markers.join('-')}`
+    return (
+        <svg className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible', width: '100%', height: '100%' }}>
+            <defs>
+                <marker id={startId} markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto-start-reverse">
+                    <path d="M0,0 L8,4 L0,8 Z" fill={color} />
+                </marker>
+                <marker id={endId} markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                    <path d="M0,0 L8,4 L0,8 Z" fill={color} />
+                </marker>
+            </defs>
+            <motion.path
+                d={paths.main}
+                stroke={color}
+                strokeWidth={2.5}
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                markerStart={`url(#${startId})`}
+                markerEnd={`url(#${endId})`}
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                transition={{ duration: 0.8, ease: 'easeInOut', delay: 0.2 }}
+            />
+            {paths.branches.map((d, i) => (
+                <motion.path
+                    key={i}
+                    d={d}
+                    stroke={color}
+                    strokeWidth={2.5}
+                    fill="none"
+                    strokeLinecap="round"
+                    markerEnd={`url(#${endId})`}
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 1 }}
+                    transition={{ duration: 0.8, ease: 'easeInOut', delay: 0.2 }}
+                />
+            ))}
+        </svg>
+    )
+}
+
 // ===== Тренировочные задания — новые случайные (a, x, y), x КРАТНО y —
 // нужно кликнуть верное число (x÷y) среди вариантов. =====
 
@@ -409,7 +518,10 @@ export const TypeLogSubWalk = ({ onAnswer, onComplete }: Props) => {
     // Конфетти на финальный "Ответ: log₂3" — та же причина, что в LOGWALK.
     const [showAnswerConfetti, setShowAnswerConfetti] = useState(false)
 
-    // Контейнер шага 3 (аргументы 15/5) — нужен ArgumentsArrow.
+    // Контейнеры шагов 1/2 — нужны BaseMatchArrow (см. там же комментарий);
+    // шаг 3 (аргументы 15/5) — ArgumentsArrow.
+    const step1Ref = useRef<HTMLDivElement>(null)
+    const step2Ref = useRef<HTMLDivElement>(null)
     const step3Ref = useRef<HTMLDivElement>(null)
 
     const currentCorrectValue = trials[trialIndex].q
@@ -534,11 +646,17 @@ export const TypeLogSubWalk = ({ onAnswer, onComplete }: Props) => {
                     </Fragment>
                 </SceneWrapper>
 
-                {/* Шаг 1 — основания (двойки) становятся стикерами. */}
+                {/* Шаг 1 — основания (двойки) становятся стикерами; угловая
+                    стрелка снизу с обоими концами на левую и правую двойку. */}
                 {step >= 1 && (
                     <SceneWrapper key="step-1" innerRef={sceneRef('step-1')} active={isSceneActive('step-1')}>
                         <Fragment key={`step-1-${nonceFor('step-1')}`}>
-                            <DiagramBlock><ExampleFormula baseHighlighted showRightSide={false} showQuotient={false} showResult={false} /></DiagramBlock>
+                            <DiagramBlock>
+                                <div ref={step1Ref} className="relative w-full pb-9">
+                                    <ExampleFormula baseHighlighted showRightSide={false} showQuotient={false} showResult={false} />
+                                    <BaseMatchArrow containerRef={step1Ref} markers={['base1', 'base2']} color={BASE_COLOR} />
+                                </div>
+                            </DiagramBlock>
                             <TypedLineWithSticker
                                 before="Заметим что у них одинаковое основание - это "
                                 stickerValue={2}
@@ -549,11 +667,18 @@ export const TypeLogSubWalk = ({ onAnswer, onComplete }: Props) => {
                     </SceneWrapper>
                 )}
 
-                {/* Шаг 2 — справа дописывается "= log₂", то же основание. */}
+                {/* Шаг 2 — справа дописывается "= log₂", то же основание;
+                    угловая стрелка снизу теперь ДЛИННАЯ, с ТРЕМЯ указателями
+                    — на обе левые двойки и на новую третью справа. */}
                 {step >= 2 && (
                     <SceneWrapper key="step-2" innerRef={sceneRef('step-2')} active={isSceneActive('step-2')}>
                         <Fragment key={`step-2-${nonceFor('step-2')}`}>
-                            <DiagramBlock><ExampleFormula baseHighlighted showRightSide showQuotient={false} showResult={false} /></DiagramBlock>
+                            <DiagramBlock>
+                                <div ref={step2Ref} className="relative w-full pb-9">
+                                    <ExampleFormula baseHighlighted showRightSide showQuotient={false} showResult={false} />
+                                    <BaseMatchArrow containerRef={step2Ref} markers={['base1', 'base2', 'base3']} color={BASE_COLOR} />
+                                </div>
+                            </DiagramBlock>
                             <TypedLineWithSticker
                                 before="Поэтому получится логарифм с тем же основанием "
                                 stickerValue={2}
