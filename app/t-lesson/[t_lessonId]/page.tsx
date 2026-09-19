@@ -792,6 +792,27 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             };
         }
 
+        if (t_challenge.type === 'LOGDIVWALK') {
+            // Тот же самодостаточный принцип, что у LOGSUBWALK/LOGSWAPWALK —
+            // разбор правила деления логарифмов с одинаковым основанием
+            // (log_a x / log_a y = log_y x) на фиксированном примере 2/9/3,
+            // тренировочные задания генерируются на лету внутри
+            // type-logdivwalk.tsx.
+            return {
+                questionType: 'LOGDIVWALK' as const,
+                question: t_challenge.question,
+                imageSrc: t_challenge.imageSrc,
+                options: [],
+                numRans: t_challenge.numRans,
+                optionsQ: [],
+                optionsA: [],
+                optionsConstructRight: [],
+                difficulty: t_challenge.difficulty,
+                correctAnswer: 'right',
+                timeLimit: 999,
+            };
+        }
+
         if (t_challenge.type === 'LOGSWAPWALK') {
             // Тот же самодостаточный принцип, что у LOGWALK/LOGSUBWALK/
             // LOGPOWWALK — разбор тождества "логарифм в степени"
