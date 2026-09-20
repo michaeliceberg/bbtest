@@ -317,6 +317,34 @@ const ChainExpression = ({
     </div>
 )
 
+// Печатаемая строка с НЕСКОЛЬКИМИ встроенными стикерами внутри текста —
+// по прямой просьбе пользователя ("одинаковыми выделяем стикером... это
+// цифры 3 и 3"), обобщение TypedLineWithSticker (LOGWALK и др., там
+// только ОДИН стикер на строку) на произвольное число стикеров. Печать
+// (Typewriter) идёт по СВОЕЙ плоской строке (значения стикеров — как
+// обычный текст, без разметки), а уже НАПЕЧАТАННЫЙ вид подменяется на
+// разметку со стикерами — та же техника, что и у TypedLineWithSticker.
+type TypedLinePart = { text: string } | { sticker: number | string; color: string }
+
+const TypedLineWithParts = ({ parts, onSettled }: { parts: TypedLinePart[]; onSettled?: () => void }) => {
+    const [typed, setTyped] = useState(false)
+    const plainText = parts.map((p) => ('text' in p ? p.text : String(p.sticker))).join('')
+    return (
+        <div className="w-full text-base md:text-lg text-[#F2F7FB]">
+            {!typed ? (
+                <Typewriter text={plainText} onDone={() => { setTyped(true); setTimeout(() => onSettled?.(), 450) }} />
+            ) : (
+                <>
+                    {parts.map((p, i) => ('text' in p
+                        ? <span key={i}>{p.text}</span>
+                        : <NumSticker key={i} value={p.sticker} color={p.color} />
+                    ))}
+                </>
+            )}
+        </div>
+    )
+}
+
 // Финальная строка "Получилось: log₂4" — та же структура, что у
 // ResultLine в LOGDIVWALK/LOGSUBWALK/LOGWALK.
 const ResultLine = ({ onSettled }: { onSettled?: () => void }) => {
@@ -599,9 +627,16 @@ export const TypeLogComboWalk = ({ onAnswer, onComplete }: Props) => {
                             <DiagramBlock>
                                 <ChainExpression containerRef={step1Ref} stage="circled" />
                             </DiagramBlock>
-                            <TypedLine
-                                className="w-full text-base md:text-lg text-[#F2F7FB]"
-                                text="К-к-комбо! Если видим такую конструкцию — обводим совпадающую часть."
+                            <TypedLineWithParts
+                                parts={[
+                                    { text: 'К-к-комбо! Если видим такую конструкцию с ' },
+                                    { sticker: 'одинаковыми', color: COMBO_COLOR },
+                                    { text: ' числами — в данном случае это цифры ' },
+                                    { sticker: EX.b, color: COMBO_COLOR },
+                                    { text: ' и ' },
+                                    { sticker: EX.b, color: COMBO_COLOR },
+                                    { text: '.' },
+                                ]}
                                 onSettled={() => setStepReady(true)}
                             />
                         </Fragment>
