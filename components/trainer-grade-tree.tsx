@@ -16,8 +16,10 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil, Lock, Link2, BookOpen } from 'lucide-react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { TrainerStageLink } from './trainer-stage-link';
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
 import { isReviewStage, isMythicStage, getStageQueryParams } from '@/lib/trainerStageFlags';
 
 // Больше разнообразия по прямой просьбе пользователя ("яйцо щит меч —
@@ -94,6 +96,8 @@ export type SkillStage = {
     // вместо обычной цикличной, по прямой просьбе пользователя, чтобы
     // такие уроки сильно выделялись на карте скиллов.
     isStepByStep?: boolean;
+    isBossExam?: boolean;
+    bossWins?: number;
 };
 
 export type SkillTopic = {
@@ -140,8 +144,21 @@ const chunkStages = (stages: SkillStage[], size: number): SkillStage[][] => {
 // (isChest не выставляется на боссовском этапе, см. вычисление ниже)
 // сюда не попадает — тот остаётся 👹, просто с более нарядной подсветкой
 // вокруг квадратика (см. ChestGlow).
+const SkullIcon = ({ dim }: { dim?: boolean }) => {
+    const [data, setData] = useState<unknown>(null)
+    useEffect(() => {
+        fetch('/Lottie/trainerLessonButtons/fireSkull.json').then((r) => r.json()).then(setData).catch(() => {})
+    }, [])
+    return (
+        <span className={`w-7 h-7 inline-block ${dim ? 'grayscale opacity-50' : ''}`}>
+            {data ? <Lottie animationData={data} loop autoplay /> : null}
+        </span>
+    )
+}
+
 const StageIcon = ({
     isBoss,
+    isBossExam = false,
     isMythic = false,
     isChest = false,
     isStepByStep = false,
@@ -151,6 +168,7 @@ const StageIcon = ({
     dim = false,
 }: {
     isBoss: boolean;
+    isBossExam?: boolean;
     isMythic?: boolean;
     isChest?: boolean;
     isStepByStep?: boolean;
@@ -190,6 +208,8 @@ const StageIcon = ({
                 )}
             </span>
         )
+        : isBossExam
+            ? <SkullIcon dim={dim} />
         : isMythic
             ? <img src="/chests/myth0001.svg" alt="" className={`w-6 h-6 transition-[filter,opacity] duration-300 ${dim ? 'grayscale opacity-50' : ''}`} />
         : isChest
@@ -497,8 +517,9 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                     // "босс") — награда щедрее, иконка остаётся 👹 (см.
                                                     // StageIcon), просто подсветка вокруг богаче.
                                                     const isChest = !isBoss && topic.stages.length >= 3 && trueIdx === Math.floor((topic.stages.length - 1) / 2);
-                                                    const isMegaChest = isLastOverall;
+                                                    const isMegaChest = isLastOverall && !s.isBossExam;
                                                     const isMythic = isMythicStage(s.title);
+                                                    const isBossExam = s.isBossExam === true;
                                                     // Подсказка "сюда нажать дальше" — только на самом фронтире,
                                                     // и только если это не сундук/мегасундук (у тех уже есть
                                                     // своя, более наглая подсветка — дублировать её кольцами
@@ -547,7 +568,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                             border: `2px solid ${isStepByStep ? STEPBYSTEP_BORDER : UNLOCKED_BORDER}`,
                                                                             boxShadow: isStepByStep ? STEPBYSTEP_GLOW : undefined,
                                                                         }}
-                                                                        icon={<StageIcon isBoss={isBoss} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={UNLOCKED_BORDER} />}
+                                                                        icon={<StageIcon isBoss={isBoss} isBossExam={isBossExam} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={UNLOCKED_BORDER} />}
                                                                     />
                                                                 </motion.div>
                                                                 <motion.div
@@ -564,7 +585,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                             border: `2px solid ${isStepByStep ? STEPBYSTEP_BORDER : DONE_BORDER}`,
                                                                             boxShadow: isStepByStep ? STEPBYSTEP_GLOW : DONE_GLOW,
                                                                         }}
-                                                                        icon={<StageIcon isBoss={isBoss} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={DONE_ICON_COLOR} />}
+                                                                        icon={<StageIcon isBoss={isBoss} isBossExam={isBossExam} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={DONE_ICON_COLOR} />}
                                                                         extra={isBoss ? <BossGiftBadge /> : null}
                                                                     />
                                                                 </motion.div>
@@ -585,7 +606,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                         className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
                                                                         style={{ border: `2px solid ${isStepByStep ? STEPBYSTEP_LOCKED_BORDER : LOCKED_BORDER}` }}
                                                                     >
-                                                                        <StageIcon isBoss={isBoss} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
+                                                                        <StageIcon isBoss={isBoss} isBossExam={isBossExam} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
                                                                     </div>
                                                                 </motion.div>
                                                                 <motion.div
@@ -602,7 +623,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                             border: `2px solid ${isStepByStep ? STEPBYSTEP_BORDER : UNLOCKED_BORDER}`,
                                                                             boxShadow: isStepByStep ? STEPBYSTEP_GLOW : undefined,
                                                                         }}
-                                                                        icon={<StageIcon isBoss={isBoss} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={UNLOCKED_BORDER} />}
+                                                                        icon={<StageIcon isBoss={isBoss} isBossExam={isBossExam} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={UNLOCKED_BORDER} />}
                                                                     />
                                                                 </motion.div>
                                                             </div>
@@ -617,7 +638,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                     border: `2px solid ${isStepByStep ? STEPBYSTEP_BORDER : (done ? DONE_BORDER : UNLOCKED_BORDER)}`,
                                                                     boxShadow: isStepByStep ? STEPBYSTEP_GLOW : (done ? DONE_GLOW : undefined),
                                                                 }}
-                                                                icon={<StageIcon isBoss={isBoss} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={done ? DONE_ICON_COLOR : UNLOCKED_BORDER} />}
+                                                                icon={<StageIcon isBoss={isBoss} isBossExam={isBossExam} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={done ? DONE_ICON_COLOR : UNLOCKED_BORDER} />}
                                                                 extra={isBoss && done ? <BossGiftBadge /> : null}
                                                             />
                                                         );
@@ -628,7 +649,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                 style={{ border: `2px solid ${isStepByStep ? STEPBYSTEP_LOCKED_BORDER : LOCKED_BORDER}` }}
                                                                 title={s.extraLocked && s.extraLockedPrereqTitle ? `Сначала пройди «${s.extraLockedPrereqTitle}»` : undefined}
                                                             >
-                                                                <StageIcon isBoss={isBoss} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
+                                                                <StageIcon isBoss={isBoss} isBossExam={isBossExam} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
                                                             </div>
                                                         );
                                                     }
@@ -645,8 +666,13 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                             <div
                                                                 ref={isRevealTarget ? targetStageRef : undefined}
                                                                 style={{ gridColumn: col, gridRow: 1 }}
-                                                                className="flex justify-center"
+                                                                className="flex justify-center relative"
                                                             >
+                                                                {isBossExam && (s.bossWins ?? 0) > 0 && (
+                                                                    <span className="absolute left-full top-1/2 -translate-y-1/2 ml-1.5 text-sm font-black text-[#F09B38] whitespace-nowrap">
+                                                                        ×{s.bossWins}
+                                                                    </span>
+                                                                )}
                                                                 {isStepByStep
                                                                     ? <ChestGlow>{stageBox}</ChestGlow>
                                                                     : isMythic

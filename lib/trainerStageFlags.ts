@@ -10,6 +10,10 @@
 // поля в БД.
 export const isReviewStage = (title: string): boolean => /контрольн/i.test(title);
 
+// Бесконечный босс-экзамен темы (любые M_ASC задачи темы, каждый раз новые) —
+// по слову "босс-экзамен" в названии урока.
+export const isBossExamStage = (title: string): boolean => /босс-экзамен/i.test(title);
+
 // Мифическая контрольная — по слову "мифич" в названии: гарантированный
 // мифический кейс по завершении (конвенция без поля в БД).
 export const isMythicStage = (title: string): boolean => /мифич/i.test(title);
@@ -29,16 +33,17 @@ export function isStepByStepLesson(challengeTypes: string[]): boolean {
 
 export function getStageQueryParams(trueIdx: number, stagesLength: number, title: string): string {
     const isLastOverall = trueIdx === stagesLength - 1;
-    const isBoss = isLastOverall || isReviewStage(title);
+    const isBoss = isLastOverall || isReviewStage(title) || isBossExamStage(title);
     // Сундук — один промежуточный (не боссовский) этап в середине списка,
     // чисто по позиции.
     const isChest = !isBoss && stagesLength >= 3 && trueIdx === Math.floor((stagesLength - 1) / 2);
-    const isMegaChest = isLastOverall;
+    const isMegaChest = isLastOverall && !isBossExamStage(title);
 
     const params: string[] = [];
     if (isBoss) params.push('boss=1');
     if (isChest) params.push('chest=1');
     if (isMegaChest) params.push('megachest=1');
     if (isMythicStage(title)) params.push('mythic=1');
+    if (isBossExamStage(title)) params.push('exam=1');
     return params.length ? '?' + params.join('&') : '';
 }

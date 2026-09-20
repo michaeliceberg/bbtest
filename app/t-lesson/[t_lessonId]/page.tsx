@@ -6,7 +6,7 @@ import { Shuffle2, ShuffleTS } from "@/usefulFunctions"
 import { pickInsertBlank, corruptFormulaLetter, extractLetterCandidates } from "@/lib/formulaLetters"
 import { getFormulaIconKey } from "@/lib/formulaIcons"
 import { getTopicSticker } from "@/lib/topicStickers"
-import { getStageQueryParams } from "@/lib/trainerStageFlags"
+import { getStageQueryParams, isBossExamStage } from "@/lib/trainerStageFlags"
 import TQuiz from "@/app/t-lesson/[t_lessonId]/TQUIZ"
 import { allTypesCT } from "@/db/schema";
 
@@ -309,14 +309,28 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // console.log('t_lesson.t_challenges:', t_lesson?.t_challenges);
     // console.log('t_lesson.t_challenges length:', t_lesson?.t_challenges?.length);
 
-    if (!t_lesson || !t_lesson.t_challenges || t_lesson.t_challenges.length === 0) {
+    if (!t_lesson || ((!t_lesson.t_challenges || t_lesson.t_challenges.length === 0) && !isBossExamStage(t_lesson.title))) {
     // console.log('Редирект на /trainer: нет challenges');
     redirect('/trainer');
 }
 
     // Проверка, есть ли challenges
-    if (!t_lesson.t_challenges || t_lesson.t_challenges.length === 0) {
+    if ((!t_lesson.t_challenges || t_lesson.t_challenges.length === 0) && !isBossExamStage(t_lesson.title)) {
         redirect('/trainer');
+    }
+
+    // Бесконечный босс-экзамен темы — вместо собственных задач урока (их
+    // нет) на каждый заход собираем 20 СЛУЧАЙНЫХ M_ASC-задач из остальных
+    // уроков темы (кроме самих разборов), чтобы босса можно было
+    // проходить много раз по кругу.
+    const isBossExam = isBossExamStage(t_lesson.title);
+    if (isBossExam) {
+        const pool = t_lesson.t_unit.t_lessons
+            .filter((l) => l.id !== t_lesson.id)
+            .flatMap((l) => l.t_challenges)
+            .filter((c) => c.type === 'M_ASC' && c.t_challengeOptions.length > 0);
+        const shuffledPool = [...pool].sort(() => Math.random() - 0.5).slice(0, 20);
+        t_lesson.t_challenges = shuffledPool.map((c, i) => ({ ...c, order: i + 1 }));
     }
 
     // Кнопка "Следующий урок" на финальном экране (TQUIZ.tsx) — следующий
@@ -1669,6 +1683,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             isChestStage={isChestStage}
             isMegaChestStage={isMegaChestStage}
             isMythicStage={isMythicStage}
+            isBossExam={isBossExam}
             nextTLessonHref={nextTLessonHref}
         />
     );

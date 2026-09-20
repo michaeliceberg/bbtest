@@ -348,7 +348,13 @@ export const upsertTrainerLessonProgress = async (
 
 	const newAchievements = await recalculateAchievements(userId);
 
-	return { leveledUp, newLevel, levelUpGems, levelsGained, newAchievements, streakExtended, newStreak, questJustCompleted, questStreak, questPointsReward };
+	// Сколько раз пройден урок (завершённых основных проходов) — для
+	// бесконечного босс-экзамена: счётчик побед и редкий сундук за каждые 3.
+	const winsRows = await db.select({ n: sql<number>`count(*)::int` }).from(t_lessonProgress)
+		.where(and(eq(t_lessonProgress.userId, userId), eq(t_lessonProgress.t_lessonId, t_lessonId), sql`${t_lessonProgress.trainingPts} > 0`));
+	const bossWins = winsRows[0]?.n ?? 0;
+
+	return { leveledUp, newLevel, levelUpGems, levelsGained, newAchievements, streakExtended, newStreak, questJustCompleted, questStreak, questPointsReward, bossWins };
 };
 
 

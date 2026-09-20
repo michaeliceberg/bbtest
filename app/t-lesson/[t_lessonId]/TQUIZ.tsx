@@ -131,6 +131,7 @@ type Props = {
   isChestStage?: boolean,
   isMegaChestStage?: boolean,
   isMythicStage?: boolean,
+  isBossExam?: boolean,
   // Следующий по порядку этап той же темы (t_unit) — null, если текущий
   // этап последний (тогда кнопка "Следующий урок" на финальном экране не
   // показывается вовсе, см. ниже). Считается на сервере (page.tsx), т.к.
@@ -148,6 +149,7 @@ export default function TQuiz({
   isChestStage,
   isMegaChestStage,
   isMythicStage,
+  isBossExam,
   nextTLessonHref,
 }: Props) {
 
@@ -234,9 +236,16 @@ export default function TQuiz({
   // (см. rollLessonCaseTier выше): сервер решает, выпадает ли он вообще
   // и какой редкости, ДО того как мы вообще покажем барабан — иначе
   // модифицированный клиент мог бы просто игнорировать "не выпало".
+  const bossWinsRef = useRef(0)
   const proceedToStageCaseOrFinish = useCallback(async () => {
     if (isChestStage || isMegaChestStage) {
       setShowCaseReel(true)
+      return
+    }
+    // Босс-экзамен: за каждые 3 победы — редкий сундук.
+    if (isBossExam && bossWinsRef.current > 0 && bossWinsRef.current % 3 === 0) {
+      setLessonCaseTier('rare')
+      setShowLessonCaseReel(true)
       return
     }
     if (isMythicStage) {
@@ -258,7 +267,7 @@ export default function TQuiz({
     } else {
       setQuizCompleted(true)
     }
-  }, [isChestStage, isMegaChestStage, isMythicStage, questions1])
+  }, [isChestStage, isMegaChestStage, isMythicStage, isBossExam, questions1])
 
   // Точка "первого прихода" на завершение урока (после основного прохода
   // ИЛИ после успешной работы над ошибками, независимо от итогового
@@ -449,6 +458,7 @@ export default function TQuiz({
           toast.error('Что-то пошло не так! Результат не добавлен в базу данных.')
           return null
         })
+      bossWinsRef.current = progressResult?.bossWins ?? 0
       if (progressResult?.leveledUp && progressResult.newLevel) {
         const gained = progressResult.levelsGained ?? 1
         showLevelUp(progressResult.newLevel - gained, progressResult.newLevel, progressResult.levelUpGems ?? 0)
