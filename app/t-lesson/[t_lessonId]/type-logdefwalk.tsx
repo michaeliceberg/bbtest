@@ -9,9 +9,12 @@
 //
 // Сюжет — прямая инструкция пользователя:
 // 1. "2³ = ?" — мини-викторина (варианты ответа). После выбора 8:
-//    "Тогда log₂8 = 3" (2, 8, 3 — ВСЕ стикерами), затем текст "логарифм
-//    показывает СТЕПЕНЬ (стикер того же цвета, что "3"), в которую надо
-//    возвести 2, чтобы получить 8".
+//    равенство повторяется ЕЩЁ РАЗ ("2³=8"), строкой ниже — "Тогда
+//    log₂8=3" — теперь стикером выделена ТОЛЬКО степень "3" в ОБЕИХ
+//    строках (не все 2/8/3, как раньше), угловая стрелка соединяет два
+//    "3" глазом (см. DefinitionBridge/DefinitionArrow), затем текст
+//    "логарифм показывает СТЕПЕНЬ (стикер того же цвета, что "3"), в
+//    которую надо возвести 2, чтобы получить 8".
 // 2. Практика — 4 мини-викторины: log₅25=?, log₆36=?, log₁₀1000=?,
 //    log₂16=?.
 // 3. "ЗАПОМНИ!" — в логарифм нельзя подставлять отрицательные числа
@@ -31,7 +34,7 @@
 
 'use client'
 
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
@@ -61,13 +64,12 @@ type Props = {
     onComplete: (isCorrect: boolean) => void
 }
 
-// Основание — синий (та же роль, что и в LOGWALK); аргумент — зелёный;
-// степень/показатель (то, что мы ищем — "вот ключевой термин этого
+// Степень/показатель (то, что мы ищем — "вот ключевой термин этого
 // урока") — фиолетовый, роль уже закреплена в палитре ggege за "вот что
-// мы сейчас ищем". Невалидные значения — WRONG_COLOR (красный, единая
-// feedback-семантика проекта, не новый цвет).
-const BASE_COLOR = GGEGE_PALETTE.blue.button
-const ARG_COLOR = GGEGE_PALETTE.green.button
+// мы сейчас ищем" — единственный акцент в мосте "2³=8 → log₂8=3" (по
+// прямой просьбе пользователя стикером теперь выделяется ТОЛЬКО степень,
+// не основание/аргумент). Невалидные значения — WRONG_COLOR (красный,
+// единая feedback-семантика проекта, не новый цвет).
 const RESULT_COLOR = GGEGE_PALETTE.purple.button
 
 // ===== Общие строительные блоки (HTML+CSS, без KaTeX — та же причина,
@@ -120,6 +122,118 @@ const PowerExpr = ({ base, exp }: { base: React.ReactNode; exp: React.ReactNode 
         {base}
         <sup className="ml-0.5">{exp}</sup>
     </span>
+)
+
+// Позиционный степенной индекс — НЕ нативный <sup> (у Tailwind preflight
+// sup/sub уже сжаты до 75%, поверх которых вложенный Sticker сжался бы
+// ЕЩЁ раз — тот же двойной баг, что уже пойман и описан в LOGPOWWALK,
+// см. комментарий у Exp там) — абсолютное позиционирование даёт ОДИН
+// контролируемый масштаб.
+const Exp = ({ children }: { children: React.ReactNode }) => (
+    <span className="relative inline-block ml-0.5" style={{ fontSize: '0.78em', top: '-0.8em' }}>{children}</span>
+)
+
+// "Уголок" (elbow) со скруглёнными углами — та же функция, что уже
+// используется в LOGDIVWALK/LOGPOWWALK/LOGSWAPWALK/LOGSUBWALK (копия, у
+// этого семейства файлов нет общего экспорта).
+function buildElbowPath(x1: number, y1: number, x2: number, y2: number, bridgeY: number, radius = 10): string {
+    const vDir1 = bridgeY < y1 ? -1 : 1
+    const vDir2 = y2 < bridgeY ? -1 : 1
+    const hDir = x2 >= x1 ? 1 : -1
+    const rV1 = Math.min(radius, Math.abs(bridgeY - y1))
+    const rH = Math.min(radius, Math.abs(x2 - x1) / 2)
+    const rV2 = Math.min(radius, Math.abs(y2 - bridgeY))
+    const p2 = `${x1} ${bridgeY - vDir1 * rV1}`
+    const p3 = `${x1 + hDir * rH} ${bridgeY}`
+    const p4 = `${x2 - hDir * rH} ${bridgeY}`
+    const p5 = `${x2} ${bridgeY + vDir2 * rV2}`
+    return `M ${x1} ${y1} L ${p2} Q ${x1} ${bridgeY} ${p3} L ${p4} Q ${x2} ${bridgeY} ${p5} L ${x2} ${y2}`
+}
+
+// Угловая стрелка от НИЖНЕГО края fromMarker (степень "3" в "2³=8") к
+// ВЕРХНЕМУ краю toMarker (результат "3" в "log₂8=3") — показывает, что
+// это ОДНО И ТО ЖЕ число, просто переехавшее в новую запись. Мост —
+// ПОСЕРЕДИНЕ между строками (в отличие от TravelArrow в LOGDIVWALK/
+// LOGPOWWALK, где источник и цель на ОДНОЙ строке и мост выше/ниже
+// обеих — здесь они на РАЗНЫХ строках, мост в промежутке между ними).
+const DefinitionArrow = ({
+    containerRef, fromMarker, toMarker, color,
+}: { containerRef: React.RefObject<HTMLDivElement | null>; fromMarker: string; toMarker: string; color: string }) => {
+    const [d, setD] = useState<string | null>(null)
+
+    useEffect(() => {
+        const measure = () => {
+            const container = containerRef.current
+            if (!container) return
+            const fromEl = container.querySelector<HTMLElement>(`[data-marker="${fromMarker}"]`)
+            const toEl = container.querySelector<HTMLElement>(`[data-marker="${toMarker}"]`)
+            if (!fromEl || !toEl) return
+            const cRect = container.getBoundingClientRect()
+            const fRect = fromEl.getBoundingClientRect()
+            const tRect = toEl.getBoundingClientRect()
+            const x1 = fRect.left + fRect.width / 2 - cRect.left
+            const x2 = tRect.left + tRect.width / 2 - cRect.left
+            const y1 = fRect.bottom - cRect.top
+            const y2 = tRect.top - cRect.top
+            const bridgeY = (y1 + y2) / 2
+            setD(buildElbowPath(x1, y1, x2, y2, bridgeY))
+        }
+        const t = setTimeout(measure, 750)
+        window.addEventListener('resize', measure)
+        return () => { clearTimeout(t); window.removeEventListener('resize', measure) }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    if (!d) return null
+    const markerId = `logdefwalk-arrowhead-${fromMarker}`
+    return (
+        <svg className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible', width: '100%', height: '100%' }}>
+            <defs>
+                <marker id={markerId} markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                    <path d="M0,0 L8,4 L0,8 Z" fill={color} />
+                </marker>
+            </defs>
+            <motion.path
+                d={d}
+                stroke={color}
+                strokeWidth={2.5}
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                markerEnd={`url(#${markerId})`}
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                transition={{ duration: 0.8, ease: 'easeInOut', delay: 0.2 }}
+            />
+        </svg>
+    )
+}
+
+// Мост "2³=8 → log₂8=3" — повторяет само равенство ещё раз (по прямой
+// просьбе пользователя — "лучше написать тут ещё раз"), только теперь
+// стикером выделена ТОЛЬКО цифра 3 (в обеих строках — степень сверху,
+// результат снизу), а не все три числа сразу — угловая стрелка соединяет
+// два "3" глазом, показывая, что это одно и то же число.
+const DefinitionBridge = ({ containerRef }: { containerRef: React.RefObject<HTMLDivElement> }) => (
+    <div ref={containerRef} className="relative w-full flex flex-col items-center gap-5 py-2">
+        <FormulaRow>
+            <span className="inline-flex items-baseline whitespace-nowrap">
+                <Plain>2</Plain>
+                <Exp><span data-marker="exp3"><Sticker value={3} color={RESULT_COLOR} /></span></Exp>
+            </span>
+            <Plain>=</Plain>
+            <Plain>8</Plain>
+        </FormulaRow>
+        <FormulaRow>
+            <Plain>Тогда</Plain>
+            <LogExpr
+                base={<Plain>2</Plain>}
+                arg={<Plain>8</Plain>}
+                tail={<><Plain>=</Plain><span data-marker="result3" className="inline-flex items-baseline ml-1"><Sticker value={3} color={RESULT_COLOR} /></span></>}
+            />
+        </FormulaRow>
+        <DefinitionArrow containerRef={containerRef} fromMarker="exp3" toMarker="result3" color={RESULT_COLOR} />
+    </div>
 )
 
 // Показывает выбранное число цветом по итогу проверки — тот же приём,
@@ -341,6 +455,8 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
     const [quizWrongTried, setQuizWrongTried] = useState<number[]>([])
     const [quizWrongFlash, setQuizWrongFlash] = useState<string | null>(null)
 
+    const defBridgeRef = useRef<HTMLDivElement>(null)
+
     const [existIndex, setExistIndex] = useState(0)
     const [existAnswers, setExistAnswers] = useState<(boolean | null)[]>(Array(EXIST_ITEMS.length).fill(null))
     const [existChecked, setExistChecked] = useState(false)
@@ -527,14 +643,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                                 <FeedbackBanner correct seed={quizAnswers[0]} />
                                 {confettiFor === 'step-0' && <LocalAnswerConfetti />}
                                 <DiagramBlock>
-                                    <FormulaRow>
-                                        <Plain>Тогда</Plain>
-                                        <LogExpr
-                                            base={<Sticker value={2} color={BASE_COLOR} small />}
-                                            arg={<Sticker value={8} color={ARG_COLOR} />}
-                                            tail={<><Plain>=</Plain><Sticker value={3} color={RESULT_COLOR} /></>}
-                                        />
-                                    </FormulaRow>
+                                    <DefinitionBridge containerRef={defBridgeRef} />
                                 </DiagramBlock>
                                 <TypedLineWithSticker
                                     before="То есть логарифм показывает "
