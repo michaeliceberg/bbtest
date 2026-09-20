@@ -20,6 +20,7 @@ import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { TrainerStageLink } from './trainer-stage-link';
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
+import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors';
 import { getBossRank } from '@/lib/bossRank';
 import { isReviewStage, isMythicStage, getStageQueryParams } from '@/lib/trainerStageFlags';
 
@@ -50,6 +51,18 @@ const COLUMNS_PER_ROW = 4;
 // Цвета "премиального done" — те же значения, что заданы в inline-style
 // ниже, вынесены в константы, т.к. теперь используются в двух местах
 // (обычный статичный рендер + анимированный crossfade при reveal).
+import { hexToRgba } from '@/src/constants/lessonButtonColors';
+type GroupAccent = { button: string; bottom: string };
+// Цвета блоков/тем по кругу из общей палитры ggege (CLAUDE.md).
+const GROUP_ACCENTS: GroupAccent[] = [
+    GGEGE_PALETTE.purple, GGEGE_PALETTE.blue, GGEGE_PALETTE.green,
+    GGEGE_PALETTE.orange, GGEGE_PALETTE.raspberry, GGEGE_PALETTE.teal,
+];
+const mixWithWhite = (hex: string, k: number): string => {
+    const n = parseInt(hex.slice(1), 16);
+    const mix = (c: number) => Math.round(c + (255 - c) * k);
+    return `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
+};
 const DONE_GRADIENT = 'linear-gradient(135deg, #7C3AED 0%, #C026D3 100%)';
 const DONE_BORDER = '#C4B5FD';
 const DONE_GLOW = '0 0 12px -2px rgba(167, 139, 250, 0.55)';
@@ -395,7 +408,10 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
     // нужен доступ по замыканию к состоянию reveal-анимации/рефам выше,
     // без прокидывания десятка пропсов), вызывается из ДВУХ мест —
     // одиночная тема и тема внутри chain-группы (см. return ниже).
-    const renderTopicCard = (topic: SkillTopic) => {
+    const renderTopicCard = (topic: SkillTopic, accent: GroupAccent, nested = false) => {
+        const doneGradient = `linear-gradient(135deg, ${accent.button} 0%, ${accent.bottom} 100%)`;
+        const doneBorder = mixWithWhite(accent.button, 0.5);
+        const doneGlow = `0 0 12px -2px ${hexToRgba(accent.button, 0.6)}`;
         // Тема залочена целиком (межюнитная зависимость, см.
         // t_units.unlockAfterTUnitId) — вместо обычной сетки этапов
         // показываем один плейсхолдер с пояснением, что именно нужно
@@ -423,11 +439,15 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                         key={topic.id}
                         ref={(el) => { topicRefs.current[topic.title] = el; }}
                         className="bg-[#1A252B] rounded-2xl px-4 py-3 transition-shadow duration-300"
-                        style={highlightedTopic === topic.title ? { boxShadow: '0 0 0 2px #4A90D9' } : undefined}
+                        style={{
+                            ...(nested ? {} : { border: `2px solid ${hexToRgba(accent.button, 0.7)}`, backgroundImage: `linear-gradient(180deg, ${hexToRgba(accent.button, 0.09)}, transparent 60%)` }),
+                            ...(highlightedTopic === topic.title ? { boxShadow: '0 0 0 2px #4A90D9' } : {}),
+                        }}
                     >
                         <div className="flex items-center gap-2 mb-2.5 min-w-0">
-                            <span className="text-sm font-medium text-[#F2F7FB] truncate">{topic.title}</span>
-                            <span className="text-xs text-[#9AA7B0] flex-shrink-0">{topic.percentage}%</span>
+                            <span className="w-1.5 h-5 rounded-full flex-shrink-0" style={{ background: `linear-gradient(180deg, ${accent.button}, ${accent.bottom})` }} />
+                            <span className="text-base font-extrabold truncate" style={{ color: accent.button }}>{topic.title}</span>
+                            <span className="text-xs font-bold flex-shrink-0" style={{ color: hexToRgba(accent.button, 0.85) }}>{topic.percentage}%</span>
                             {topic.chainLinked && (
                                 <span title="Часть цепочки тригонометрии" className="flex-shrink-0">
                                     <Link2 className="w-3 h-3 text-[#A78BFA]" />
@@ -584,9 +604,9 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                         href={stageHref}
                                                                         className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                         style={{
-                                                                            background: isStepByStep ? STEPBYSTEP_GRADIENT : DONE_GRADIENT,
-                                                                            border: `2px solid ${isStepByStep ? STEPBYSTEP_BORDER : DONE_BORDER}`,
-                                                                            boxShadow: isStepByStep ? STEPBYSTEP_GLOW : DONE_GLOW,
+                                                                            background: isStepByStep ? STEPBYSTEP_GRADIENT : doneGradient,
+                                                                            border: `2px solid ${isStepByStep ? STEPBYSTEP_BORDER : doneBorder}`,
+                                                                            boxShadow: isStepByStep ? STEPBYSTEP_GLOW : doneGlow,
                                                                         }}
                                                                         icon={<StageIcon isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={DONE_ICON_COLOR} />}
                                                                         extra={isBoss ? <BossGiftBadge /> : null}
@@ -637,9 +657,9 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                 href={stageHref}
                                                                 className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                 style={{
-                                                                    background: isStepByStep ? STEPBYSTEP_GRADIENT : (done ? DONE_GRADIENT : UNLOCKED_BG),
-                                                                    border: `2px solid ${isStepByStep ? STEPBYSTEP_BORDER : (done ? DONE_BORDER : UNLOCKED_BORDER)}`,
-                                                                    boxShadow: isStepByStep ? STEPBYSTEP_GLOW : (done ? DONE_GLOW : undefined),
+                                                                    background: isStepByStep ? STEPBYSTEP_GRADIENT : (done ? doneGradient : UNLOCKED_BG),
+                                                                    border: `2px solid ${isStepByStep ? STEPBYSTEP_BORDER : (done ? doneBorder : UNLOCKED_BORDER)}`,
+                                                                    boxShadow: isStepByStep ? STEPBYSTEP_GLOW : (done ? doneGlow : undefined),
                                                                 }}
                                                                 icon={<StageIcon isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={done ? DONE_ICON_COLOR : UNLOCKED_BORDER} />}
                                                                 extra={isBoss && done ? <BossGiftBadge /> : null}
@@ -672,7 +692,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                 className="flex justify-center relative"
                                                             >
                                                                 {isBossExam && (s.bossWins ?? 0) > 0 && (
-                                                                    <span className="absolute left-full top-1/2 -translate-y-1/2 ml-1.5 flex flex-col leading-tight whitespace-nowrap">
+                                                                    <span className={`absolute top-1/2 -translate-y-1/2 flex flex-col leading-tight whitespace-nowrap ${isReversed ? 'right-full mr-1.5 items-end' : 'left-full ml-1.5'}`}>
                                                                         <span className="text-sm font-black text-[#F09B38]">×{s.bossWins}</span>
                                                                         <span className="text-[10px] font-bold" style={{ color: getBossRank(s.bossWins ?? 0)?.color }}>{getBossRank(s.bossWins ?? 0)?.title}</span>
                                                                     </span>
@@ -702,7 +722,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                     {(done || isFuseHere) && (
                                                                         <motion.div
                                                                             className="absolute inset-0 rounded-full"
-                                                                            style={{ backgroundColor: '#A78BFA', transformOrigin: isReversed ? 'right' : 'left' }}
+                                                                            style={{ backgroundColor: accent.button, transformOrigin: isReversed ? 'right' : 'left' }}
                                                                             initial={isFuseHere ? { scaleX: 0 } : false}
                                                                             animate={{ scaleX: isFuseHere ? (connectorRevealed ? 1 : 0) : 1 }}
                                                                             transition={isFuseHere ? { duration: 0.45, ease: 'easeInOut' } : { duration: 0 }}
@@ -732,7 +752,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                 {(doneHere || isFuseHereVertical) && (
                                                                     <motion.div
                                                                         className="absolute inset-0 rounded-full"
-                                                                        style={{ backgroundColor: '#A78BFA', transformOrigin: 'top' }}
+                                                                        style={{ backgroundColor: accent.button, transformOrigin: 'top' }}
                                                                         initial={isFuseHereVertical ? { scaleY: 0 } : false}
                                                                         animate={{ scaleY: isFuseHereVertical ? (connectorRevealed ? 1 : 0) : 1 }}
                                                                         transition={isFuseHereVertical ? { duration: 0.45, ease: 'easeInOut' } : { duration: 0 }}
@@ -780,11 +800,12 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
             <div className="flex flex-col gap-2.5">
                 {renderGroups.map((group, i) => (
                     group.kind === 'solo'
-                        ? renderTopicCard(group.topic)
+                        ? renderTopicCard(group.topic, GROUP_ACCENTS[i % GROUP_ACCENTS.length])
                         : (
                             <div
                                 key={`chain-${group.topics[0].id}-${i}`}
-                                className="rounded-2xl border-2 border-[#4C3A78] bg-[#20182E]/50 p-2.5"
+                                className="rounded-2xl border-2 p-2.5"
+                                style={{ borderColor: GROUP_ACCENTS[i % GROUP_ACCENTS.length].button, backgroundColor: hexToRgba(GROUP_ACCENTS[i % GROUP_ACCENTS.length].button, 0.08) }}
                             >
                                 {/* Заголовок группы — по прямой просьбе пользователя,
                                     настоящий заголовок (не мелкая подпись-иконка, как
@@ -794,11 +815,11 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                     стоит вынести в вычисляемое/настраиваемое поле у
                                     корневой темы цепочки, а не плодить if по названию. */}
                                 <div className="flex items-center gap-2 px-1 mb-2.5">
-                                    <Link2 className="w-4 h-4 text-[#C4B5FD] flex-shrink-0" />
-                                    <h2 className="text-base font-extrabold text-[#C4B5FD]">Блок Тригонометрия</h2>
+                                    <Link2 className="w-4 h-4 flex-shrink-0" style={{ color: GROUP_ACCENTS[i % GROUP_ACCENTS.length].button }} />
+                                    <h2 className="text-lg font-black tracking-wide" style={{ color: GROUP_ACCENTS[i % GROUP_ACCENTS.length].button }}>Блок Тригонометрия</h2>
                                 </div>
                                 <div className="flex flex-col gap-2.5">
-                                    {group.topics.map(renderTopicCard)}
+                                    {group.topics.map((t) => renderTopicCard(t, GROUP_ACCENTS[i % GROUP_ACCENTS.length], true))}
                                 </div>
                             </div>
                         )
