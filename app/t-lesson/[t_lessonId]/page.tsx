@@ -8,7 +8,9 @@ import { getFormulaIconKey } from "@/lib/formulaIcons"
 import { getTopicSticker } from "@/lib/topicStickers"
 import { getStageQueryParams, isBossExamStage } from "@/lib/trainerStageFlags"
 import TQuiz from "@/app/t-lesson/[t_lessonId]/TQUIZ"
-import { allTypesCT } from "@/db/schema";
+import { allTypesCT, tChallengeMistakes } from "@/db/schema";
+import db from "@/db/drizzle";
+import { eq } from "drizzle-orm";
 
 // Только для type='MULTISTEP' — один шаг многошагового задания (см.
 // CLAUDE.md "тренажёр Арифметики", приём "0,75×32 → перевести в дробь →
@@ -221,6 +223,7 @@ export type QuestionType = {
     // используется рендер-компонентами, только порядком вопросов внутри
     // урока.
     contentTier?: number,
+    challengeId?: number,
     // Только для HOT ("горячий вопрос", см. CLAUDE.md) — единица измерения
     // рядом с полем ввода и верхняя граница слайдера (случайно подобрана
     // так, чтобы гарантированно быть больше правильного ответа —
@@ -329,7 +332,20 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             .filter((l) => l.id !== t_lesson.id)
             .flatMap((l) => l.t_challenges)
             .filter((c) => c.type === 'M_ASC' && c.t_challengeOptions.length > 0);
-        const shuffledPool = [...pool].sort(() => Math.random() - 0.5).slice(0, 20);
+        // Слабые места (ошибки прошлых прохождений) выпадают чаще:
+        // вес = 1 + 2 * число ошибок. Выбор взвешенный, без повторов.
+        const mistakeRows = await db.select().from(tChallengeMistakes).where(eq(tChallengeMistakes.userId, userProgress.userId));
+        const weightById = new Map(mistakeRows.map((m) => [m.t_challengeId, m.wrongCount]));
+        const bag = pool.map((c) => ({ c, w: 1 + 2 * (weightById.get(c.id) ?? 0) }));
+        const shuffledPool: typeof pool = [];
+        while (shuffledPool.length < 20 && bag.length > 0) {
+            const total = bag.reduce((sum, b) => sum + b.w, 0);
+            let r = Math.random() * total;
+            let idx = bag.findIndex((b) => (r -= b.w) < 0);
+            if (idx < 0) idx = bag.length - 1;
+            shuffledPool.push(bag[idx].c);
+            bag.splice(idx, 1);
+        }
         t_lesson.t_challenges = shuffledPool.map((c, i) => ({ ...c, order: i + 1 }));
     }
 
@@ -1331,7 +1347,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
 
                 return {
                     questionType: 'CHECK' as const,
-                    question: 'Формула записана верно?',
+                    question: t_lesson.t_unit.t_courseId === 5 ? 'Это верно?' : 'Формула записана верно?',
                     imageSrc: t_challenge.imageSrc,
                     options: ['CORRECT', 'WRONG'],
                     numRans: '1',
@@ -1553,7 +1569,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 timeLimit: 25,
             };
         }
-    }).map((q, idx): QuestionType | undefined => q ? { ...q, contentTier: contentTiers[idx], topicSticker: topicStickers[idx] ?? undefined } : q)
+    }).map((q, idx): QuestionType | undefined => q ? { ...q, contentTier: contentTiers[idx], challengeId: lessonChallenges[idx]?.id, topicSticker: topicStickers[idx] ?? undefined } : q)
       .filter((q): q is QuestionType => q !== undefined);
 
     // Реально увеличиваем число заданий INSERT (явная просьба

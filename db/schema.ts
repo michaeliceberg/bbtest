@@ -1023,3 +1023,13 @@ export const diagnosticLeads = pgTable('diagnostic_leads', {
 // for (const index of Object.values(indexes)) {
 //   await db.execute(index);
 // }
+// Ошибки пользователя по конкретным задачам тренажёра — используются
+// босс-экзаменом (слабые места выпадают чаще). wrong_count растёт на ошибке,
+// уменьшается на верном ответе.
+export const tChallengeMistakes = pgTable('t_challenge_mistakes', {
+	id: serial('id').primaryKey(),
+	userId: text('user_id').notNull(),
+	t_challengeId: integer('t_challenge_id').references(() => t_challenges.id, { onDelete: 'cascade' }).notNull(),
+	wrongCount: integer('wrong_count').notNull().default(0),
+	updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});

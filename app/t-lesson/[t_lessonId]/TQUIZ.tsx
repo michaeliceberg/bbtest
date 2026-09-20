@@ -17,6 +17,7 @@ const StreakLightning = dynamic(() => import("../../../components/streak-lightni
 const StreakCelebrationScreen = dynamic(() => import("../../../components/streak-celebration-screen").then(mod => mod.StreakCelebrationScreen), { ssr: false })
 import { toast } from "sonner"
 import { upsertTrainerLessonProgress } from "@/actions/user-progress"
+import { recordChallengeResult } from "@/actions/record-challenge-result"
 import { Separator } from "../../../components/ui/separator"
 import { FinishTrainerStat } from "../../../components/finish-trainer-stat"
 import { TgSendMsgCom } from "../../../components/tg-send-msg-com"
@@ -596,6 +597,8 @@ export default function TQuiz({
           return newStreak
         })
 
+        if (questions[currentQuestionIndex].challengeId) recordChallengeResult(questions[currentQuestionIndex].challengeId!, true).catch(() => {})
+
         // finishList/score — только результат ОСНОВНОГО прохода (см.
         // "Работа над ошибками" выше): в раундах повтора не трогаем, иначе
         // повторно верный ответ на уже проваленный вопрос задвоил бы счёт
@@ -629,6 +632,7 @@ export default function TQuiz({
       } else {
         playIncorrectSound()
         setStreak(0)
+        if (questions[currentQuestionIndex].challengeId) recordChallengeResult(questions[currentQuestionIndex].challengeId!, false).catch(() => {})
 
         // Вопрос уходит в очередь "работы над ошибками" ВСЕГДА (и в
         // основном проходе, и уже внутри самого раунда повтора — так
