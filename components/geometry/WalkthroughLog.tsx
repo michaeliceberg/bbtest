@@ -188,8 +188,24 @@ export function useSceneFocus(latestKey: string, contentSettled: boolean) {
     // по появлению (сцена уже примерно на месте) и повторно, когда
     // contentSettled меняется (текст дописан начисто — на случай если
     // печать текста успела подрасти высоту уже после первого скролла).
+    // Нижний край новой сцены ставим примерно на 2/3 высоты экрана (по
+    // просьбе пользователя) — под ней остаётся место для кнопок ответа/
+    // "Дальше". Если сцена выше 60% экрана — выравниваем по верху с
+    // небольшим отступом. Чтобы вообще было куда скроллить (страница
+    // кончается сразу за кнопками), контейнеру разбора один раз
+    // добавляется большой нижний отступ.
     useEffect(() => {
-        refs.current[latestKey]?.scrollIntoView({ behavior: 'auto', block: 'center' })
+        const el = refs.current[latestKey]
+        if (!el) return
+        const container = el.parentElement?.parentElement
+        if (container && !container.dataset.scrollPad) {
+            container.dataset.scrollPad = '1'
+            container.style.paddingBottom = '60vh'
+        }
+        const rect = el.getBoundingClientRect()
+        const vh = window.innerHeight
+        const delta = rect.height > vh * 0.6 ? rect.top - 72 : rect.bottom - vh * 0.66
+        window.scrollBy({ top: delta, behavior: 'auto' })
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [latestKey, contentSettled])
 
