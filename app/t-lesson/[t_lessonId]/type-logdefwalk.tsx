@@ -675,6 +675,19 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                                         />
                                     </FormulaRow>
                                 </DiagramBlock>
+                                {/* Только у ПЕРВОГО практического примера — перефразировка
+                                    вопроса словами (по прямой просьбе пользователя), у
+                                    остальных трёх (log₆36/log₁₀1000/log₂16) уже не нужна —
+                                    определение к этому моменту закреплено. */}
+                                {idx === 0 && (
+                                    <TypedLineWithSticker
+                                        before="Другими словами — в какую "
+                                        stickerContent="степень"
+                                        plainTextForTyping="степень"
+                                        stickerColor={RESULT_COLOR}
+                                        after={` надо возвести ${def.base}, чтобы получилось ${def.arg}?`}
+                                    />
+                                )}
                                 {answer === null && (
                                     <>
                                         <div className="flex flex-wrap justify-center gap-3">
