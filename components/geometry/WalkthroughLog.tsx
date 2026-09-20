@@ -336,11 +336,14 @@ export const FieryFeedbackBanner = ({ children, fiery = false }: { children: Rea
         )
     }
     return (
-        <div className="flex items-center gap-3 rounded-xl px-4 py-5 font-bold w-full justify-center bg-[#A1D15122] text-[#A1D151]">
-            <div className="w-14 h-14 md:w-16 md:h-16 shrink-0">
+        <div className="flex flex-row items-center gap-3 w-full">
+            <div className="w-1/4 max-w-[110px] shrink-0">
                 <Lottie animationData={lottieData} loop autoplay />
             </div>
-            <span className="text-lg md:text-xl">{children}</span>
+            <div className="relative flex-1 min-w-0 px-4 py-2.5 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]">
+                <span className="text-[#A1D151] font-bold text-base md:text-lg break-words">{children}</span>
+                <div className="absolute -left-3 top-1/2 -translate-y-1/2 text-[#3A464E] text-xl font-bold">&lt;</div>
+            </div>
         </div>
     )
 }
