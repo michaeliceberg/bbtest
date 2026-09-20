@@ -304,10 +304,10 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 						<div className="flex flex-row items-center justify-center gap-3 mt-2">
 							<Lottie animationData={LOTTIE_TEST_PIZZA} loop autoplay className="w-32 h-32 shrink-0" />
 							<p className="text-2xl font-black leading-tight text-left">
-								<span className="text-amber-300">А ещё вы можете</span>
+								<span className="text-white">А ещё вы можете</span>
 								<br />
-								<span className="text-amber-300">выиграть </span>
-								<span className="text-fuchsia-400">пиццу!</span>
+								<span className="text-white">выиграть </span>
+								<span className="text-yellow-300">пиццу!</span>
 							</p>
 						</div>
 						<Button
