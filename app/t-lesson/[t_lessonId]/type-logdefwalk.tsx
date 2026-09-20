@@ -314,11 +314,14 @@ const FeedbackBanner = ({ correct, correctText = '', seed, fiery = false }: { co
     const text = correct ? CORRECT_FEEDBACK_PHRASES[Math.abs(seed) % CORRECT_FEEDBACK_PHRASES.length] : correctText
     if (fiery && correct) {
         return (
-            <div className="flex items-center gap-3 rounded-xl px-4 py-5 font-bold w-full justify-center bg-[#A1D15122] text-[#A1D151]">
-                <div className="w-14 h-14 md:w-16 md:h-16 shrink-0">
+            <div className="flex flex-row items-center gap-3 w-full">
+                <div className="w-1/4 max-w-[110px] shrink-0">
                     <Lottie animationData={lottieData} loop autoplay />
                 </div>
-                <span className="text-lg md:text-xl">{text}</span>
+                <div className="relative flex-1 min-w-0 px-4 py-2.5 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]">
+                    <span className="text-[#A1D151] font-bold text-base md:text-lg break-words">{text}</span>
+                    <div className="absolute -left-3 top-1/2 -translate-y-1/2 text-[#3A464E] text-xl font-bold">&lt;</div>
+                </div>
             </div>
         )
     }
@@ -333,6 +336,21 @@ const FeedbackBanner = ({ correct, correctText = '', seed, fiery = false }: { co
         </div>
     )
 }
+
+const QuizCounter = ({ n, total }: { n: number; total: number }) => (
+    <div
+        className="self-start flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
+        style={{
+            borderColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.55),
+            backgroundColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.16),
+            color: GGEGE_PALETTE.purple.button,
+        }}
+    >
+        <span>{n}</span>
+        <span className="opacity-50 font-normal">/</span>
+        <span>{total}</span>
+    </div>
+)
 
 // Печатаемая строка с ОДНИМ встроенным стикером внутри текста (не число
 // в формуле, а слово — например "степень") — по прямой просьбе
@@ -646,6 +664,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                 {/* Шаг 0 — определение через 2³=8 → log₂8=3. */}
                 <SceneWrapper key="step-0" innerRef={sceneRef('step-0')} active={isSceneActive('step-0')}>
                     <Fragment key={`step-0-${nonceFor('step-0')}`}>
+                        <QuizCounter n={1} total={5} />
                         <DiagramBlock>
                             <FormulaRow>
                                 <PowerExpr base={<Plain>2</Plain>} exp={<Plain>3</Plain>} />
@@ -674,7 +693,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                         )}
                         {quizAnswers[0] !== null && (
                             <>
-                                <FeedbackBanner correct seed={quizAnswers[0]} />
+                                <FeedbackBanner correct seed={quizAnswers[0]} fiery={isFieryMilestoneTrial(0)} />
                                 {confettiFor === 'step-0' && <LocalAnswerConfetti />}
                                 <DiagramBlock>
                                     <DefinitionBridge containerRef={defBridgeRef} />
@@ -700,6 +719,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                     return (
                         <SceneWrapper key={`step-${i}`} innerRef={sceneRef(`step-${i}`)} active={isSceneActive(`step-${i}`)}>
                             <Fragment key={`step-${i}-${nonceFor(`step-${i}`)}`}>
+                                <QuizCounter n={i + 1} total={5} />
                                 <DiagramBlock>
                                     <FormulaRow>
                                         <LogExpr
@@ -743,7 +763,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                                 )}
                                 {answer !== null && (
                                     <>
-                                        <FeedbackBanner correct seed={answer + i * 11} />
+                                        <FeedbackBanner correct seed={answer + i * 11} fiery={isFieryMilestoneTrial(i)} />
                                         {confettiFor === `step-${i}` && <LocalAnswerConfetti />}
                                     </>
                                 )}
