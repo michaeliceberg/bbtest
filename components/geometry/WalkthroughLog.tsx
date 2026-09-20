@@ -326,8 +326,20 @@ export function isFieryMilestoneTrial(trialIndex: number): boolean {
 // отдельным fullscreen-оверлеем (`FieryCelebration`) поверх всего экрана —
 // по прямой просьбе пользователя (сливался с фоном, слишком навязчиво)
 // заменён на этот инлайн-вариант внутри самой плашки.
+// Облачко и Lottie появляются одновременно: ждём подгрузки модуля
+// lottie-react (dynamic-импорт), только потом показываем банер.
+export const useLottieModuleReady = (needed: boolean) => {
+    const [ready, setReady] = useState(false)
+    useEffect(() => {
+        if (!needed) return
+        import('lottie-react').then(() => setReady(true))
+    }, [needed])
+    return ready
+}
+
 export const FieryFeedbackBanner = ({ children, fiery = false }: { children: React.ReactNode; fiery?: boolean }) => {
     const [lottieData] = useState(() => (fiery ? getRandomLottie(LOTTIE_STEP_BY_STEP_FIERY_LIST) : null))
+    const lottieReady = useLottieModuleReady(fiery)
     if (!fiery) {
         return (
             <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#A1D15122] text-[#A1D151]">
@@ -336,9 +348,9 @@ export const FieryFeedbackBanner = ({ children, fiery = false }: { children: Rea
         )
     }
     return (
-        <div className="flex flex-row items-center gap-3 w-full">
+        <div className={`flex flex-row items-center gap-3 w-full transition-opacity duration-300 ${lottieReady ? 'opacity-100' : 'opacity-0'}`}>
             <div className="w-1/4 max-w-[110px] shrink-0">
-                <Lottie animationData={lottieData} loop autoplay />
+                {lottieReady && <Lottie animationData={lottieData} loop autoplay />}
             </div>
             <div className="relative flex-1 min-w-0 px-4 py-2.5 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]">
                 <span className="text-[#A1D151] font-bold text-base md:text-lg break-words">{children}</span>

@@ -183,6 +183,10 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 
 	// Ролик + фраза экрана результата — выбираются ОДИН раз при первом
 	// попадании на result (не на каждый ре-рендер), из пула своего тира.
+	const [introReady, setIntroReady] = useState(false);
+	useEffect(() => {
+		import('lottie-react').then(() => setIntroReady(true));
+	}, []);
 	const [resultLottieData, setResultLottieData] = useState<unknown>(null);
 	const [resultPhrase, setResultPhrase] = useState<string | null>(null);
 	useEffect(() => {
@@ -286,19 +290,24 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 		<div className="min-h-screen bg-[#0F171A] text-[#F2F7FB] flex flex-col items-center px-4 py-8">
 			<div className="w-full max-w-md flex-1 flex flex-col">
 				{phase === 'intro' && (
-					// Вертикально центрировано в доступной высоте — тот же приём, что
-					// у "Выбери тест"-блока на предыдущей странице (/test), чтобы
-					// верхний Lottie оказывался примерно на той же высоте экрана, где
-					// на предыдущей странице была кнопка "Погнали".
-					<div className="flex-1 text-center flex flex-col items-center justify-center gap-5">
+					// Весь блок скрыт (opacity 0, место занято — без сдвига), пока
+					// не подгрузится сам модуль lottie-react, и появляется целиком
+					// разом: текст и Lottie одновременно.
+					<div
+						className={`flex-1 text-center flex flex-col items-center justify-start gap-5 transition-opacity duration-500 ${introReady ? 'opacity-100' : 'opacity-0'}`}
+					>
 						<Lottie animationData={LOTTIE_TEST_INTRO} loop autoplay className="w-48 h-48" />
 						<h1 className="text-2xl font-extrabold">{DIAGNOSTIC_SUBJECT_LABEL[subject]}</h1>
 						<p className="text-[#9AA7B0]">
 							{questions.length} {declensionRu(questions.length, 'вопрос', 'вопроса', 'вопросов')}, около {Math.max(2, Math.round(questions.length * 0.5))} минут. Узнайте, к чему вы уже готовы — и что стоит подтянуть.
 						</p>
-						<div className="flex items-center justify-center gap-2">
-							<Lottie animationData={LOTTIE_TEST_PIZZA} loop autoplay className="w-10 h-10 shrink-0" />
-							<p className="text-[#9AA7B0] font-semibold">А еще вы можете выиграть пиццу!</p>
+						<div className="flex flex-col items-center gap-1 mt-2">
+							<Lottie animationData={LOTTIE_TEST_PIZZA} loop autoplay className="w-32 h-32 shrink-0" />
+							<p className="text-2xl font-black leading-tight">
+								<span className="text-amber-300">А ещё вы можете выиграть</span>
+								<br />
+								<span className="text-fuchsia-400 text-3xl">пиццу!</span>
+							</p>
 						</div>
 						<Button
 							variant="primary"
