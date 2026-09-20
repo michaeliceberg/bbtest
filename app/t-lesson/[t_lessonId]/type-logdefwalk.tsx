@@ -150,6 +150,16 @@ function buildElbowPath(x1: number, y1: number, x2: number, y2: number, bridgeY:
     return `M ${x1} ${y1} L ${p2} Q ${x1} ${bridgeY} ${p3} L ${p4} Q ${x2} ${bridgeY} ${p5} L ${x2} ${y2}`
 }
 
+// Зазор между якорной точкой стрелки и реальным краем элемента — SVG-
+// маркер наконечника (markerWidth=8, refX=6) физически выступает за
+// path-координату конца линии на ~5-6px В НАПРАВЛЕНИИ движения; без
+// отступа якорь ровно на границе элемента даёт видимый наконечник,
+// залезающий НА элемент (реальный баг, найденный пользователем в LOGWALK
+// — "нижняя угловая стрелка залезает на цифры со стикерами", тот же
+// класс бага здесь). Всегда используется так, чтобы отодвинуть якорь
+// ДАЛЬШЕ от элемента.
+const ARROW_TIP_GAP = 8
+
 // Угловая стрелка от НИЖНЕГО края fromMarker (степень "3" в "2³=8") к
 // ВЕРХНЕМУ краю toMarker (результат "3" в "log₂8=3") — показывает, что
 // это ОДНО И ТО ЖЕ число, просто переехавшее в новую запись. Мост —
@@ -173,8 +183,8 @@ const DefinitionArrow = ({
             const tRect = toEl.getBoundingClientRect()
             const x1 = fRect.left + fRect.width / 2 - cRect.left
             const x2 = tRect.left + tRect.width / 2 - cRect.left
-            const y1 = fRect.bottom - cRect.top
-            const y2 = tRect.top - cRect.top
+            const y1 = fRect.bottom - cRect.top + ARROW_TIP_GAP
+            const y2 = tRect.top - cRect.top - ARROW_TIP_GAP
             const bridgeY = (y1 + y2) / 2
             setD(buildElbowPath(x1, y1, x2, y2, bridgeY))
         }

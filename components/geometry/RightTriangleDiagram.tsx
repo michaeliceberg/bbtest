@@ -214,7 +214,13 @@ export type RightTriangleVisual = {
     // Тренировочный режим — стороны кликабельны, подсвечиваются по итогу проверки.
     interactive?: boolean
     onSideClick?: (side: SideId) => void
-    selectedSide?: SideId | null
+    // Режим "пробуй, пока не угадаешь" (та же механика, что и у
+    // log-разборов, см. type-logcombowalk.tsx) — стороны, уже нажатые
+    // НЕВЕРНО в ТЕКУЩЕЙ попытке: красятся красным и перестают быть
+    // кликабельны, остальные (включая правильную) остаются активными, пока
+    // пользователь не найдёт верную. correctSide зеленеет только когда
+    // checked=true (правильная сторона наконец найдена).
+    wrongSides?: SideId[]
     correctSide?: SideId | null
     checked?: boolean
 }
@@ -258,7 +264,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
         zoomFocus = null,
         interactive = false,
         onSideClick,
-        selectedSide = null,
+        wrongSides = [],
         correctSide = null,
         checked = false,
     } = props
@@ -372,11 +378,11 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
     const sideProps = (side: SideId) => {
         let stroke = EDGE
         let width = 6
-        if (checked) {
-            if (side === correctSide) { stroke = CORRECT_COLOR; width = 9 }
-            else if (side === selectedSide) { stroke = WRONG_COLOR; width = 9 }
-        } else if (side === selectedSide) {
-            stroke = ALPHA_COLOR
+        if (checked && side === correctSide) {
+            stroke = CORRECT_COLOR
+            width = 9
+        } else if (wrongSides.includes(side)) {
+            stroke = WRONG_COLOR
             width = 9
         }
         return { stroke, width }
@@ -468,7 +474,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                 {(['hyp', 'legRP', 'legRQ'] as SideId[]).map((side, sideIdx) => {
                     const [a, b] = side === 'hyp' ? [P, Q] : side === 'legRP' ? [R, P] : [R, Q]
                     const style = side === 'hyp' ? hypStyle : side === 'legRP' ? legRPStyle : legRQStyle
-                    const showClickHint = interactive && !checked
+                    const showClickHint = interactive && !checked && !wrongSides.includes(side)
                     return (
                         <g key={side}>
                             {showClickHint && (
@@ -480,7 +486,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                                     transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut', delay: sideIdx * 0.18 }}
                                 />
                             )}
-                            {interactive && (
+                            {interactive && !wrongSides.includes(side) && (
                                 <line
                                     x1={a.x} y1={a.y} x2={b.x} y2={b.y}
                                     stroke="transparent" strokeWidth={28} strokeLinecap="round"

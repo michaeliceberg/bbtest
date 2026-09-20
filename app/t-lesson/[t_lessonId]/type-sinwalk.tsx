@@ -29,7 +29,6 @@
 
 import { Fragment, useEffect, useState } from 'react'
 import { Check, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
 import {
     RightTriangleDiagram, oppositeLegOf,
@@ -38,7 +37,7 @@ import {
 } from '@/components/geometry/RightTriangleDiagram'
 import { MARKER_COLOR, MARKER_COLOR_GREEN } from '@/components/geometry/WalkthroughMarker'
 import {
-    TypedLine, TypedKeyPhraseLine, DiagramBlock, pickWalkthroughNextLabel, pickWalkthroughWrongLabel, CORRECT_FEEDBACK_PHRASES,
+    TypedLine, TypedKeyPhraseLine, DiagramBlock, pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
 } from '@/components/geometry/WalkthroughLog'
@@ -116,20 +115,18 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
     // (см. SCENE_TRANSITION_PAUSE_MS) — блокирует повторный клик во время
     // паузы и держит экран неизменным, прежде чем начнётся новая сцена.
     const [advancing, setAdvancing] = useState(false)
-    // trialConfigs растёт по ходу практики — см. handleNextTrial: реальный
-    // баг, пойманный пользователем живьём ("на 4/4 сделал ошибку — всё
-    // застыло, дальше нажать нельзя") — раньше при ошибке на ПОСЛЕДНЕМ по
-    // счёту задании компонент всё равно звал onComplete(false) и
-    // завершался, но общая нижняя кнопка тренажёра для SINWALK скрыта
-    // целиком (у него своя "Дальше"/"Готово") — в итоге нажать было
-    // буквально нечего. По прямой просьбе пользователя — если ошибка на
-    // последнем задании, попытка НЕ считается завершённой: вместо
-    // onComplete добавляется ЕЩЁ одно случайное задание, и так пока
-    // последнее по счёту не будет решено верно.
     const [trialConfigs, setTrialConfigs] = useState<TrialConfig[]>(() => makeTrialConfigs(TRIAL_COUNT))
     const [trialIndex, setTrialIndex] = useState(0)
-    const [trialAnswers, setTrialAnswers] = useState<(SideId | null)[]>(Array(TRIAL_COUNT).fill(null))
     const [checked, setChecked] = useState(false)
+    // Режим "пробуй, пока не угадаешь" (та же механика, что и у
+    // LOGCOMBOWALK/LOGDEFWALK) — неверно нажатые стороны ТЕКУЩЕГО задания
+    // накапливаются здесь (красятся красным и перестают быть кликабельны,
+    // см. RightTriangleDiagram.wrongSides), пока пользователь не найдёт
+    // верную; сбрасывается при переходе к новому заданию/откате назад.
+    // wrongFlash — ПЕРСИСТЕНТНОЕ сообщение под диаграммой на неверный
+    // клик (не гаснет по таймеру, остаётся до следующего клика).
+    const [wrongTried, setWrongTried] = useState<SideId[]>([])
+    const [wrongFlash, setWrongFlash] = useState<string | null>(null)
 
     // Счётчики "повторов" — ОТДЕЛЬНЫЙ nonce на каждый шаг/задание
     // ('step-0'..'step-4', 'trial-0'..'trial-3'), а не один общий на всё
@@ -158,15 +155,14 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
 
     const handleSideClick = (side: SideId) => {
         if (checked) return
-        const next = [...trialAnswers]
-        next[trialIndex] = side
-        setTrialAnswers(next)
-        setChecked(true)
+        if (wrongTried.includes(side)) return
         if (side === currentCorrectSide) {
+            setChecked(true)
             setTrialNextLabel(pickWalkthroughNextLabel('Дальше'))
         } else {
             setHadMistake(true)
-            setTrialNextLabel(pickWalkthroughWrongLabel('Дальше'))
+            setWrongTried((prev) => [...prev, side])
+            setWrongFlash(pickWrongTryPhrase())
         }
     }
 
@@ -174,32 +170,23 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
         if (advancing) return
         setAdvancing(true)
         setTimeout(() => {
-            const wasLastCorrect = trialAnswers[trialIndex] === currentCorrectSide
             const isLastInList = trialIndex + 1 >= trialConfigs.length
             if (isLastInList) {
-                if (wasLastCorrect) {
-                    setAdvancing(false)
-                    // onComplete — только красит маскота/локальный статус
-                    // ВНУТРИ trainer-question.tsx, сам урок дальше не
-                    // двигает. Настоящее завершение вопроса (счёт/сердечки/
-                    // переход дальше в TQUIZ.tsx) — только через onAnswer,
-                    // как у CHECK/FRACTRICK (тех же самодостаточных типов).
-                    // Раньше этого вызова не было вовсе — клик "Готово"
-                    // ничего не делал, урок не мог закончиться никогда.
-                    const isFullyCorrect = !hadMistake
-                    onComplete(isFullyCorrect)
-                    onAnswer(isFullyCorrect ? 'right' : 'wrong')
-                    return
-                }
-                // Ошибка на последнем по счёту задании — не завершаем
-                // попытку, а добавляем ещё одно (см. комментарий у
-                // trialConfigs выше).
-                const [extra] = makeTrialConfigs(1)
-                setTrialConfigs((prev) => [...prev, extra])
-                setTrialAnswers((prev) => [...prev, null])
+                setAdvancing(false)
+                // onComplete — только красит маскота/локальный статус
+                // ВНУТРИ trainer-question.tsx, сам урок дальше не
+                // двигает. Настоящее завершение вопроса (счёт/сердечки/
+                // переход дальше в TQUIZ.tsx) — только через onAnswer,
+                // как у CHECK/FRACTRICK (тех же самодостаточных типов).
+                const isFullyCorrect = !hadMistake
+                onComplete(isFullyCorrect)
+                onAnswer(isFullyCorrect ? 'right' : 'wrong')
+                return
             }
             setTrialIndex((i) => i + 1)
             setChecked(false)
+            setWrongTried([])
+            setWrongFlash(null)
             setAdvancing(false)
         }, SCENE_TRANSITION_PAUSE_MS)
     }
@@ -230,9 +217,9 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
     // рендере независимо — Math.random() даёт разные значения на сервере
     // и клиенте и ломает гидратацию (тот же класс бага, что уже не раз
     // документирован в CLAUDE.md для случайного текста, видимого в SSR-HTML).
-    // trialNextLabel выставляется ПРЯМО в handleSideClick (не эффектом на
-    // trialIndex) — её тон зависит от того, верно ли ответили сейчас (см.
-    // WALKTHROUGH_WRONG_NEXT_PHRASES для неверного ответа).
+    // trialNextLabel выставляется ПРЯМО в handleSideClick, не эффектом на
+    // trialIndex — раз "Дальше" появляется только ПОСЛЕ верного клика
+    // (режим "пробуй, пока не угадаешь"), тон всегда поздравительный.
     const [introNextLabel, setIntroNextLabel] = useState('Дальше')
     const [trialNextLabel, setTrialNextLabel] = useState('Дальше')
     useEffect(() => { setIntroNextLabel(pickWalkthroughNextLabel('Дальше')) }, [step])
@@ -274,7 +261,8 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
             const idx = Number(target.slice('trial-'.length))
             setTrialIndex(idx)
             setChecked(false)
-            setTrialAnswers((prev) => { const next = [...prev]; next[idx] = null; return next })
+            setWrongTried([])
+            setWrongFlash(null)
         } else if (target.startsWith('step-')) {
             const idx = Number(target.slice('step-'.length))
             setPhase('intro')
@@ -387,7 +375,6 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
                     const cfg = trialConfigs[i]
                     const isCurrent = i === trialIndex
                     const isDone = i < trialIndex || (isCurrent && checked)
-                    const answer = trialAnswers[i]
                     const correctSide = oppositeLegOf(cfg.alphaVertex)
                     return (
                         <SceneWrapper key={`trial-${i}`} innerRef={sceneRef(`trial-${i}`)} active={isSceneActive(`trial-${i}`)}>
@@ -430,20 +417,29 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
                                     alphaVertex={cfg.alphaVertex}
                                     interactive={isCurrent && !checked}
                                     onSideClick={isCurrent ? handleSideClick : undefined}
-                                    selectedSide={answer}
+                                    wrongSides={isCurrent ? wrongTried : []}
                                     correctSide={correctSide}
                                     checked={isDone}
                                 />
                             </DiagramBlock>
+                            {/* Режим "пробуй, пока не угадаешь" — неверный
+                                клик красит сторону красным и блокирует её
+                                (см. RightTriangleDiagram.wrongSides), но НЕ
+                                завершает задание; wrongFlash — персистентное
+                                сообщение под диаграммой (не гаснет по
+                                таймеру, остаётся до следующего клика). */}
+                            {isCurrent && !checked && (
+                                wrongFlash ? (
+                                    <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">
+                                        <X className="w-5 h-5" /> {wrongFlash}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-[#9AA7B0] text-center">Кликни по одной из сторон треугольника выше</p>
+                                )
+                            )}
                             {isDone && (
-                                <div
-                                    className={cn(
-                                        'flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center',
-                                        answer === correctSide ? 'bg-[#A1D15122] text-[#A1D151]' : 'bg-[#DC605B22] text-[#DC605B]'
-                                    )}
-                                >
-                                    {answer === correctSide ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
-                                    {answer === correctSide ? pickTrialFeedback(cfg) : 'Не тот катет — верная сторона подсвечена зелёным.'}
+                                <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#A1D15122] text-[#A1D151]">
+                                    <Check className="w-5 h-5" /> {pickTrialFeedback(cfg)}
                                 </div>
                             )}
                             {/* Конфетти на верный ответ — по прямой просьбе
@@ -451,7 +447,7 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
                                 (см. LocalAnswerConfetti). Только пока это
                                 ТЕКУЩЕЕ задание — естественно размонтируется
                                 при переходе к следующему. */}
-                            {isCurrent && isDone && answer === correctSide && <LocalAnswerConfetti />}
+                            {isCurrent && isDone && <LocalAnswerConfetti />}
                         </div>
                         </SceneWrapper>
                     )
@@ -471,18 +467,14 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
                     <ReplayButton onClick={handleReplay} disabled={advancing} />
                     <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
                     <button type="button" onClick={handleNextTrial} disabled={advancing} className={walkthroughButtonClass(!advancing)} style={walkthroughButtonStyle(!advancing)}>
-                        {/* "Готово" — ТОЛЬКО если это реально последнее и
-                            ВЕРНО решённое задание (клик завершит практику).
-                            Если это последнее по счёту, но ответ неверный —
-                            клик добавит ещё одно задание (см. handleNextTrial),
-                            поэтому кнопка честно показывает "Дальше"-подобную
-                            подпись, а не вводящее в заблуждение "Готово". */}
-                        {trialIndex + 1 >= trialConfigs.length && trialAnswers[trialIndex] === currentCorrectSide ? 'Готово' : trialNextLabel}
+                        {/* "Готово" — на последнем по счёту задании (checked
+                            здесь всегда означает "отвечено верно" — режим
+                            "пробуй, пока не угадаешь" не даёт завершить
+                            задание неверным ответом). */}
+                        {trialIndex + 1 >= trialConfigs.length ? 'Готово' : trialNextLabel}
                     </button>
                 </div>
-            ) : (
-                <p className="text-sm text-[#9AA7B0] text-center">Кликни по одной из сторон треугольника выше</p>
-            )}
+            ) : null}
         </div>
     )
 }

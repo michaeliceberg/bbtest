@@ -29,11 +29,12 @@
 
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
+import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
 import {
     TypedLine, DiagramBlock,
-    pickWalkthroughNextLabel, pickWalkthroughWrongLabel, CORRECT_FEEDBACK_PHRASES,
+    pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     ACTIVE_COLOR, CORRECT_COLOR,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
@@ -175,6 +176,13 @@ function buildElbowPath(x1: number, y1: number, x2: number, y2: number, bridgeY:
     return `M ${x1} ${y1} L ${p2} Q ${x1} ${bridgeY} ${p3} L ${p4} Q ${x2} ${bridgeY} ${p5} L ${x2} ${y2}`
 }
 
+// Зазор между якорной точкой стрелки и реальным краем элемента — SVG-
+// маркер наконечника (markerWidth=8, refX=6) физически выступает за
+// path-координату конца линии на ~5-6px В НАПРАВЛЕНИИ движения; без
+// отступа наконечник залезает НА элемент (класс бага, найденный
+// пользователем в LOGWALK — "стрелка залезает на цифры со стикерами").
+const ARROW_TIP_GAP = 8
+
 // Однонаправленная стрелка между data-marker'ами — та же техника
 // (measure-by-DOM + якорь по грани, откуда линия реально уходит/приходит,
 // не всегда верх), что уже применена в LOGPOWWALK. curve='up' — мост выше
@@ -197,8 +205,8 @@ const TravelArrow = ({
             const tRect = toEl.getBoundingClientRect()
             const x1 = fRect.left + fRect.width / 2 - cRect.left
             const x2 = tRect.left + tRect.width / 2 - cRect.left
-            const y1 = (curve === 'up' ? fRect.top : fRect.bottom) - cRect.top
-            const y2 = (curve === 'up' ? tRect.top : tRect.bottom) - cRect.top
+            const y1 = (curve === 'up' ? fRect.top - ARROW_TIP_GAP : fRect.bottom + ARROW_TIP_GAP) - cRect.top
+            const y2 = (curve === 'up' ? tRect.top - ARROW_TIP_GAP : tRect.bottom + ARROW_TIP_GAP) - cRect.top
             const bridgeY = curve === 'up' ? Math.min(y1, y2) - 26 : Math.max(y1, y2) + 26
             setD(buildElbowPath(x1, y1, x2, y2, bridgeY))
         }
@@ -444,8 +452,14 @@ export const TypeLogDivWalk = ({ onAnswer, onComplete }: Props) => {
 
     const [trials, setTrials] = useState<DivTrial[]>(() => makeTrials(TRIAL_COUNT))
     const [trialIndex, setTrialIndex] = useState(0)
-    const [trialAnswers, setTrialAnswers] = useState<(LogOption | null)[]>(Array(TRIAL_COUNT).fill(null))
     const [checked, setChecked] = useState(false)
+    // Режим "пробуй, пока не угадаешь" (та же механика, что и у
+    // LOGCOMBOWALK/LOGDEFWALK/SINWALK/LOGWALK/LOGSUBWALK/LOGPOWWALK/
+    // LOGSWAPWALK) — неверно нажатые формулы ТЕКУЩЕГО задания красятся
+    // красным и блокируются, wrongFlash — ПЕРСИСТЕНТНОЕ сообщение под
+    // вариантами (не гаснет по таймеру).
+    const [wrongTried, setWrongTried] = useState<LogOption[]>([])
+    const [wrongFlash, setWrongFlash] = useState<string | null>(null)
 
     // Контейнеры каждой сцены с формулой — FullExpression сама решает,
     // нужно ли что-то измерять внутри (зачёркивание — только на шаге 2).
@@ -458,15 +472,14 @@ export const TypeLogDivWalk = ({ onAnswer, onComplete }: Props) => {
 
     const handleOptionClick = (option: LogOption) => {
         if (checked) return
-        const next = [...trialAnswers]
-        next[trialIndex] = option
-        setTrialAnswers(next)
-        setChecked(true)
+        if (wrongTried.some((w) => sameOption(w, option))) return
         if (sameOption(option, currentCorrectOption)) {
+            setChecked(true)
             setTrialNextLabel(pickWalkthroughNextLabel('Дальше'))
         } else {
             setHadMistake(true)
-            setTrialNextLabel(pickWalkthroughWrongLabel('Дальше'))
+            setWrongTried((prev) => [...prev, option])
+            setWrongFlash(pickWrongTryPhrase())
         }
     }
 
@@ -474,25 +487,18 @@ export const TypeLogDivWalk = ({ onAnswer, onComplete }: Props) => {
         if (advancing) return
         setAdvancing(true)
         setTimeout(() => {
-            const answer = trialAnswers[trialIndex]
-            const wasLastCorrect = !!answer && sameOption(answer, currentCorrectOption)
             const isLastInList = trialIndex + 1 >= trials.length
             if (isLastInList) {
-                if (wasLastCorrect) {
-                    setAdvancing(false)
-                    const isFullyCorrect = !hadMistake
-                    onComplete(isFullyCorrect)
-                    onAnswer(isFullyCorrect ? 'right' : 'wrong')
-                    return
-                }
-                // Ошибка на последнем по счёту задании — добавляем ещё
-                // одно (тот же приём, что у LOGSUBWALK/LOGPOWWALK).
-                const [extra] = makeTrials(1)
-                setTrials((prev) => [...prev, extra])
-                setTrialAnswers((prev) => [...prev, null])
+                setAdvancing(false)
+                const isFullyCorrect = !hadMistake
+                onComplete(isFullyCorrect)
+                onAnswer(isFullyCorrect ? 'right' : 'wrong')
+                return
             }
             setTrialIndex((i) => i + 1)
             setChecked(false)
+            setWrongTried([])
+            setWrongFlash(null)
             setAdvancing(false)
         }, SCENE_TRANSITION_PAUSE_MS)
     }
@@ -511,8 +517,9 @@ export const TypeLogDivWalk = ({ onAnswer, onComplete }: Props) => {
         }, SCENE_TRANSITION_PAUSE_MS)
     }
 
-    // trialNextLabel выставляется ПРЯМО в handleOptionClick (не эффектом
-    // на trialIndex) — её тон зависит от того, верно ли ответили сейчас.
+    // trialNextLabel выставляется ПРЯМО в handleOptionClick, не эффектом на
+    // trialIndex — раз "Дальше" появляется только ПОСЛЕ верного клика
+    // (режим "пробуй, пока не угадаешь"), тон всегда поздравительный.
     const [introNextLabel, setIntroNextLabel] = useState('Дальше')
     const [trialNextLabel, setTrialNextLabel] = useState('Дальше')
     useEffect(() => { setIntroNextLabel(pickWalkthroughNextLabel('Дальше')) }, [step])
@@ -548,7 +555,8 @@ export const TypeLogDivWalk = ({ onAnswer, onComplete }: Props) => {
             const idx = Number(target.slice('trial-'.length))
             setTrialIndex(idx)
             setChecked(false)
-            setTrialAnswers((prev) => { const next = [...prev]; next[idx] = null; return next })
+            setWrongTried([])
+            setWrongFlash(null)
         } else if (target.startsWith('step-')) {
             const idx = Number(target.slice('step-'.length))
             setPhase('intro')
@@ -636,7 +644,6 @@ export const TypeLogDivWalk = ({ onAnswer, onComplete }: Props) => {
                     const t = trials[i]
                     const isCurrent = i === trialIndex
                     const isDone = i < trialIndex || (isCurrent && checked)
-                    const answer = trialAnswers[i]
                     const correctOption: LogOption = { base: t.y, arg: t.x }
                     return (
                         <SceneWrapper key={`trial-${i}`} innerRef={sceneRef(`trial-${i}`)} active={isSceneActive(`trial-${i}`)}>
@@ -669,35 +676,52 @@ export const TypeLogDivWalk = ({ onAnswer, onComplete }: Props) => {
                                 <TrialFraction a={t.a} x={t.x} y={t.y} />
                             </DiagramBlock>
                             {isCurrent && !checked && (
-                                <div className="grid grid-cols-2 gap-3">
-                                    {t.options.map((opt, oi) => (
-                                        <MiniAnswerButton key={oi} option={opt} state="idle" onClick={() => handleOptionClick(opt)} />
-                                    ))}
-                                </div>
+                                <>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {t.options.map((opt, oi) => {
+                                            const isWrongTriedOpt = wrongTried.some((w) => sameOption(w, opt))
+                                            return (
+                                                <MiniAnswerButton
+                                                    key={oi}
+                                                    option={opt}
+                                                    state={isWrongTriedOpt ? 'wrong' : 'idle'}
+                                                    disabled={isWrongTriedOpt}
+                                                    onClick={() => handleOptionClick(opt)}
+                                                />
+                                            )
+                                        })}
+                                    </div>
+                                    {wrongFlash ? (
+                                        <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">
+                                            <X className="w-5 h-5" /> {wrongFlash}
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-[#9AA7B0] text-center">Кликни на вариант выше</p>
+                                    )}
+                                </>
                             )}
                             {isDone && (
                                 <>
                                     <div className="grid grid-cols-2 gap-3">
-                                        {t.options.map((opt, oi) => (
-                                            <MiniAnswerButton
-                                                key={oi}
-                                                option={opt}
-                                                disabled
-                                                state={sameOption(opt, correctOption) ? 'correct' : (answer && sameOption(answer, opt) ? 'wrong' : 'idle')}
-                                            />
-                                        ))}
+                                        {t.options.map((opt, oi) => {
+                                            const isCorrectOpt = sameOption(opt, correctOption)
+                                            const isWrongTriedOpt = isCurrent && wrongTried.some((w) => sameOption(w, opt))
+                                            return (
+                                                <MiniAnswerButton
+                                                    key={oi}
+                                                    option={opt}
+                                                    disabled
+                                                    state={isCorrectOpt ? 'correct' : (isWrongTriedOpt ? 'wrong' : 'idle')}
+                                                />
+                                            )
+                                        })}
                                     </div>
-                                    <div
-                                        className={cn(
-                                            'flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center',
-                                            (answer && sameOption(answer, correctOption)) ? 'bg-[#A1D15122] text-[#A1D151]' : 'bg-[#DC605B22] text-[#DC605B]'
-                                        )}
-                                    >
-                                        {(answer && sameOption(answer, correctOption)) ? pickTrialFeedback(t) : `Неверно — правильный ответ log${correctOption.base}(${correctOption.arg}).`}
+                                    <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#A1D15122] text-[#A1D151]">
+                                        {pickTrialFeedback(t)}
                                     </div>
                                 </>
                             )}
-                            {isCurrent && isDone && answer && sameOption(answer, correctOption) && <LocalAnswerConfetti />}
+                            {isCurrent && isDone && <LocalAnswerConfetti />}
                         </Fragment>
                         </SceneWrapper>
                     )
@@ -717,12 +741,10 @@ export const TypeLogDivWalk = ({ onAnswer, onComplete }: Props) => {
                     <ReplayButton onClick={handleReplay} disabled={advancing} />
                     <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
                     <button type="button" onClick={handleNextTrial} disabled={advancing} className={walkthroughButtonClass(!advancing)} style={walkthroughButtonStyle(!advancing)}>
-                        {trialIndex + 1 >= trials.length && trialAnswers[trialIndex] && sameOption(trialAnswers[trialIndex]!, currentCorrectOption) ? 'Готово' : trialNextLabel}
+                        {trialIndex + 1 >= trials.length ? 'Готово' : trialNextLabel}
                     </button>
                 </div>
-            ) : (
-                <p className="text-sm text-[#9AA7B0] text-center">Кликни на вариант выше</p>
-            )}
+            ) : null}
         </div>
     )
 }

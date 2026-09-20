@@ -29,11 +29,12 @@
 
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
+import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
 import {
     DiagramBlock,
-    pickWalkthroughNextLabel, pickWalkthroughWrongLabel, CORRECT_FEEDBACK_PHRASES,
+    pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     ACTIVE_COLOR, WRONG_COLOR, CORRECT_COLOR, ATTENTION_COLOR,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
@@ -306,6 +307,18 @@ function buildElbowPath(x1: number, y1: number, x2: number, y2: number, bridgeY:
     return `M ${x1} ${y1} L ${p2} Q ${x1} ${bridgeY} ${p3} L ${p4} Q ${x2} ${bridgeY} ${p5} L ${x2} ${y2}`
 }
 
+// Зазор между якорной точкой стрелки и реальным краем элемента (цифры/
+// знака), на который она указывает — SVG-маркер наконечника (markerWidth=8,
+// refX=6, markerUnits по умолчанию "strokeWidth") физически ВЫСТУПАЕТ за
+// сам path-координату конца линии на (8-6)×strokeWidth ≈ 5-6px В
+// НАПРАВЛЕНИИ движения — если анкорить ровно на границе элемента (rect.top/
+// rect.bottom без отступа), видимый КОНЧИК наконечника залезает НА
+// элемент (реальный баг, найденный пользователем — "нижняя угловая стрелка
+// залезает на цифры со стикерами"). ARROW_TIP_GAP — компенсирующий отступ:
+// всегда используется ТАК, чтобы отодвинуть анкор ДАЛЬШЕ от элемента (не
+// ближе) — см. каждое использование ниже.
+const ARROW_TIP_GAP = 8
+
 // Угловая стрелка от "+" (левая часть — складываем логарифмы) к "·"
 // (правая часть — аргументы перемножаются) — по прямой просьбе
 // пользователя, показывает "сумма превращается в умножение" наглядно, не
@@ -333,9 +346,9 @@ const ArgumentsArrow = ({ containerRef }: { containerRef: React.RefObject<HTMLDi
             const pRect = plusEl.getBoundingClientRect()
             const mRect = mulEl.getBoundingClientRect()
             const x1 = pRect.left + pRect.width / 2 - cRect.left
-            const y1 = pRect.top - cRect.top
+            const y1 = pRect.top - cRect.top - ARROW_TIP_GAP
             const x2 = mRect.left + mRect.width / 2 - cRect.left
-            const y2 = mRect.top - cRect.top
+            const y2 = mRect.top - cRect.top - ARROW_TIP_GAP
             const bridgeY = Math.min(y1, y2) - 26
             setD(buildElbowPath(x1, y1, x2, y2, bridgeY))
         }
@@ -402,7 +415,7 @@ const BaseMatchArrow = ({
                     const el = container.querySelector<HTMLElement>(`[data-marker="${m}"]`)
                     if (!el) return null
                     const r = el.getBoundingClientRect()
-                    return { x: r.left + r.width / 2 - cRect.left, y: r.bottom - cRect.top }
+                    return { x: r.left + r.width / 2 - cRect.left, y: r.bottom - cRect.top + ARROW_TIP_GAP }
                 })
                 .filter((p): p is { x: number; y: number } => p !== null)
                 .sort((a, b) => a.x - b.x)
@@ -580,13 +593,16 @@ const pickTrialFeedback = (t: LogTrial): string => {
     return CORRECT_FEEDBACK_PHRASES[Math.abs(seed) % CORRECT_FEEDBACK_PHRASES.length]
 }
 
+// selected — заполняется ТОЛЬКО когда пользователь нашёл верный ответ
+// (режим "пробуй, пока не угадаешь" — см. handleOptionClick), поэтому
+// цвет при checked=true всегда "верно".
 const LogTrialFormula = ({
-    trial, selected, checked, isCorrect,
+    trial, selected, checked,
 }: {
-    trial: LogTrial; selected: TrialOption | null; checked: boolean; isCorrect: boolean
+    trial: LogTrial; selected: TrialOption | null; checked: boolean
 }) => {
     const { a, x, y } = trial
-    const color = checked ? (isCorrect ? CORRECT_COLOR : WRONG_COLOR) : '#F2F7FB'
+    const color = checked ? CORRECT_COLOR : '#F2F7FB'
     return (
         <div className="w-full flex items-center justify-center flex-wrap gap-x-2 gap-y-2 text-2xl md:text-3xl font-extrabold py-1">
             <span className="inline-flex items-baseline whitespace-nowrap">
@@ -646,8 +662,13 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
 
     const [trials, setTrials] = useState<LogTrial[]>(() => makeTrials(TRIAL_COUNT))
     const [trialIndex, setTrialIndex] = useState(0)
-    const [trialAnswers, setTrialAnswers] = useState<(TrialOption | null)[]>(Array(TRIAL_COUNT).fill(null))
     const [checked, setChecked] = useState(false)
+    // Режим "пробуй, пока не угадаешь" (та же механика, что и у
+    // LOGCOMBOWALK/LOGDEFWALK/SINWALK) — неверно нажатые пары ТЕКУЩЕГО
+    // задания красятся красным и блокируются, wrongFlash — ПЕРСИСТЕНТНОЕ
+    // сообщение под вариантами (не гаснет по таймеру).
+    const [wrongTried, setWrongTried] = useState<TrialOption[]>([])
+    const [wrongFlash, setWrongFlash] = useState<string | null>(null)
     // Конфетти на финальный "Ответ: log₂15" (шаг 4 обучающей части) — по
     // прямой просьбе пользователя, во ВСЕХ таких "локальных ответах"
     // разбора (см. LocalAnswerConfetti). Отдельная конфетти на верный
@@ -669,17 +690,14 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
 
     const handleOptionClick = (option: TrialOption) => {
         if (checked) return
-        const next = [...trialAnswers]
-        next[trialIndex] = option
-        setTrialAnswers(next)
-        setChecked(true)
+        if (wrongTried.some((w) => sameOption(w, option))) return
         if (sameOption(option, currentCorrectOption)) {
+            setChecked(true)
             setTrialNextLabel(pickWalkthroughNextLabel('Дальше'))
         } else {
             setHadMistake(true)
-            // Другой тон кнопки после ошибки — не поздравление, а
-            // "принял, идём дальше" (см. WALKTHROUGH_WRONG_NEXT_PHRASES).
-            setTrialNextLabel(pickWalkthroughWrongLabel('Дальше'))
+            setWrongTried((prev) => [...prev, option])
+            setWrongFlash(pickWrongTryPhrase())
         }
     }
 
@@ -687,28 +705,21 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
         if (advancing) return
         setAdvancing(true)
         setTimeout(() => {
-            const wasLastCorrect = sameOption(trialAnswers[trialIndex], currentCorrectOption)
             const isLastInList = trialIndex + 1 >= trials.length
             if (isLastInList) {
-                if (wasLastCorrect) {
-                    setAdvancing(false)
-                    // onComplete — только красит маскота/локальный статус,
-                    // настоящее завершение вопроса — через onAnswer, как у
-                    // SINWALK/CHECK/FRACTRICK (те же самодостаточные типы).
-                    const isFullyCorrect = !hadMistake
-                    onComplete(isFullyCorrect)
-                    onAnswer(isFullyCorrect ? 'right' : 'wrong')
-                    return
-                }
-                // Ошибка на последнем по счёту задании — не завершаем
-                // попытку, добавляем ещё одно (тот же приём, что и у
-                // SINWALK).
-                const [extra] = makeTrials(1)
-                setTrials((prev) => [...prev, extra])
-                setTrialAnswers((prev) => [...prev, null])
+                setAdvancing(false)
+                // onComplete — только красит маскота/локальный статус,
+                // настоящее завершение вопроса — через onAnswer, как у
+                // SINWALK/CHECK/FRACTRICK (те же самодостаточные типы).
+                const isFullyCorrect = !hadMistake
+                onComplete(isFullyCorrect)
+                onAnswer(isFullyCorrect ? 'right' : 'wrong')
+                return
             }
             setTrialIndex((i) => i + 1)
             setChecked(false)
+            setWrongTried([])
+            setWrongFlash(null)
             setAdvancing(false)
         }, SCENE_TRANSITION_PAUSE_MS)
     }
@@ -779,7 +790,8 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
             const idx = Number(target.slice('trial-'.length))
             setTrialIndex(idx)
             setChecked(false)
-            setTrialAnswers((prev) => { const next = [...prev]; next[idx] = null; return next })
+            setWrongTried([])
+            setWrongFlash(null)
         } else if (target.startsWith('step-')) {
             const idx = Number(target.slice('step-'.length))
             setPhase('intro')
@@ -888,10 +900,8 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                     const t = trials[i]
                     const isCurrent = i === trialIndex
                     const isDone = i < trialIndex || (isCurrent && checked)
-                    const answer = trialAnswers[i]
                     const correctValue = t.x * t.y
                     const correctOpt: TrialOption = { base: t.a, value: correctValue }
-                    const isAnswerCorrect = sameOption(answer, correctOpt)
                     return (
                         <SceneWrapper key={`trial-${i}`} innerRef={sceneRef(`trial-${i}`)} active={isSceneActive(`trial-${i}`)}>
                         <Fragment key={`trial-${i}-${nonceFor(`trial-${i}`)}`}>
@@ -913,30 +923,43 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                                 </p>
                             </div>
                             <DiagramBlock>
-                                <LogTrialFormula trial={t} selected={answer} checked={isDone} isCorrect={isAnswerCorrect} />
+                                <LogTrialFormula trial={t} selected={isDone ? correctOpt : null} checked={isDone} />
                             </DiagramBlock>
                             {isCurrent && !checked && (
-                                <div className="flex flex-wrap justify-center gap-3">
-                                    {t.options.map((opt, idx) => (
-                                        <button
-                                            key={idx}
-                                            type="button"
-                                            onClick={() => handleOptionClick(opt)}
-                                            className="min-w-[84px] py-3 px-4 rounded-xl border-2 border-[#3A464E] bg-[#161F23] text-[#F2F7FB] text-lg md:text-xl font-bold hover:border-[#4A90D9] transition-colors inline-flex items-baseline justify-center whitespace-nowrap"
-                                        >
-                                            <Plain>log</Plain><sub className="ml-0.5"><Plain>{opt.base}</Plain></sub><span className="ml-1"><Plain>{opt.value}</Plain></span>
-                                        </button>
-                                    ))}
-                                </div>
+                                <>
+                                    <div className="flex flex-wrap justify-center gap-3">
+                                        {t.options.map((opt, idx) => {
+                                            const isWrongTriedOpt = wrongTried.some((w) => sameOption(w, opt))
+                                            return (
+                                                <button
+                                                    key={idx}
+                                                    type="button"
+                                                    onClick={() => handleOptionClick(opt)}
+                                                    disabled={isWrongTriedOpt}
+                                                    className={cn(
+                                                        'min-w-[84px] py-3 px-4 rounded-xl border-2 text-lg md:text-xl font-bold transition-colors inline-flex items-baseline justify-center whitespace-nowrap',
+                                                        isWrongTriedOpt
+                                                            ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]'
+                                                            : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]',
+                                                    )}
+                                                >
+                                                    <Plain>log</Plain><sub className="ml-0.5"><Plain>{opt.base}</Plain></sub><span className="ml-1"><Plain>{opt.value}</Plain></span>
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+                                    {wrongFlash ? (
+                                        <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">
+                                            <X className="w-5 h-5" /> {wrongFlash}
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-[#9AA7B0] text-center">Кликни на вариант выше</p>
+                                    )}
+                                </>
                             )}
                             {isDone && (
-                                <div
-                                    className={cn(
-                                        'flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center',
-                                        isAnswerCorrect ? 'bg-[#A1D15122] text-[#A1D151]' : 'bg-[#DC605B22] text-[#DC605B]'
-                                    )}
-                                >
-                                    {isAnswerCorrect ? pickTrialFeedback(t) : `Неверно — правильный ответ: основание ${t.a}, число ${correctValue} (${t.x}·${t.y}).`}
+                                <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#A1D15122] text-[#A1D151]">
+                                    {pickTrialFeedback(t)}
                                 </div>
                             )}
                             {/* Конфетти на верный ответ ТРЕНИРОВОЧНОГО
@@ -944,7 +967,7 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                                 (isCurrent), поэтому естественно
                                 размонтируется, как только переходим к
                                 следующему (см. LocalAnswerConfetti). */}
-                            {isCurrent && isDone && isAnswerCorrect && <LocalAnswerConfetti />}
+                            {isCurrent && isDone && <LocalAnswerConfetti />}
                         </Fragment>
                         </SceneWrapper>
                     )
@@ -964,12 +987,10 @@ export const TypeLogWalk = ({ onAnswer, onComplete }: Props) => {
                     <ReplayButton onClick={handleReplay} disabled={advancing} />
                     <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
                     <button type="button" onClick={handleNextTrial} disabled={advancing} className={walkthroughButtonClass(!advancing)} style={walkthroughButtonStyle(!advancing)}>
-                        {trialIndex + 1 >= trials.length && sameOption(trialAnswers[trialIndex], currentCorrectOption) ? 'Готово' : trialNextLabel}
+                        {trialIndex + 1 >= trials.length ? 'Готово' : trialNextLabel}
                     </button>
                 </div>
-            ) : (
-                <p className="text-sm text-[#9AA7B0] text-center">Кликни на число выше</p>
-            )}
+            ) : null}
         </div>
     )
 }
