@@ -664,7 +664,6 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                 {/* Шаг 0 — определение через 2³=8 → log₂8=3. */}
                 <SceneWrapper key="step-0" innerRef={sceneRef('step-0')} active={isSceneActive('step-0')}>
                     <Fragment key={`step-0-${nonceFor('step-0')}`}>
-                        <QuizCounter n={1} total={5} />
                         <DiagramBlock>
                             <FormulaRow>
                                 <PowerExpr base={<Plain>2</Plain>} exp={<Plain>3</Plain>} />
@@ -693,7 +692,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                         )}
                         {quizAnswers[0] !== null && (
                             <>
-                                <FeedbackBanner correct seed={quizAnswers[0]} fiery={isFieryMilestoneTrial(0)} />
+                                <FeedbackBanner correct seed={quizAnswers[0]} />
                                 {confettiFor === 'step-0' && <LocalAnswerConfetti />}
                                 <DiagramBlock>
                                     <DefinitionBridge containerRef={defBridgeRef} />
@@ -719,7 +718,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                     return (
                         <SceneWrapper key={`step-${i}`} innerRef={sceneRef(`step-${i}`)} active={isSceneActive(`step-${i}`)}>
                             <Fragment key={`step-${i}-${nonceFor(`step-${i}`)}`}>
-                                <QuizCounter n={i + 1} total={5} />
+                                <QuizCounter n={i} total={4} />
                                 <DiagramBlock>
                                     <FormulaRow>
                                         <LogExpr
@@ -763,7 +762,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                                 )}
                                 {answer !== null && (
                                     <>
-                                        <FeedbackBanner correct seed={answer + i * 11} fiery={isFieryMilestoneTrial(i)} />
+                                        <FeedbackBanner correct seed={answer + i * 11} fiery={isFieryMilestoneTrial(i - 1)} />
                                         {confettiFor === `step-${i}` && <LocalAnswerConfetti />}
                                     </>
                                 )}
