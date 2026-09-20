@@ -10,6 +10,10 @@
 // поля в БД.
 export const isReviewStage = (title: string): boolean => /контрольн/i.test(title);
 
+// Мифическая контрольная — по слову "мифич" в названии: гарантированный
+// мифический кейс по завершении (конвенция без поля в БД).
+export const isMythicStage = (title: string): boolean => /мифич/i.test(title);
+
 // Типы самодостаточных интерактивных разборов "по шагам" (walkthrough) —
 // SINWALK/LOGWALK/LOGDEFWALK/LOGSUBWALK/LOGPOWWALK/LOGSWAPWALK/
 // LOGDIVWALK/LOGCOMBOWALK/LOGFLIPWALK, см. app/t-lesson/[t_lessonId]/
@@ -35,5 +39,6 @@ export function getStageQueryParams(trueIdx: number, stagesLength: number, title
     if (isBoss) params.push('boss=1');
     if (isChest) params.push('chest=1');
     if (isMegaChest) params.push('megachest=1');
+    if (isMythicStage(title)) params.push('mythic=1');
     return params.length ? '?' + params.join('&') : '';
 }

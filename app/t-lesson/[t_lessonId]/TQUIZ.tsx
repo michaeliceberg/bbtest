@@ -130,6 +130,7 @@ type Props = {
   // tree.tsx) — см. CaseReel/CaseWonBanner ниже.
   isChestStage?: boolean,
   isMegaChestStage?: boolean,
+  isMythicStage?: boolean,
   // Следующий по порядку этап той же темы (t_unit) — null, если текущий
   // этап последний (тогда кнопка "Следующий урок" на финальном экране не
   // показывается вовсе, см. ниже). Считается на сервере (page.tsx), т.к.
@@ -146,6 +147,7 @@ export default function TQuiz({
   isBossStage,
   isChestStage,
   isMegaChestStage,
+  isMythicStage,
   nextTLessonHref,
 }: Props) {
 
@@ -237,6 +239,11 @@ export default function TQuiz({
       setShowCaseReel(true)
       return
     }
+    if (isMythicStage) {
+      setLessonCaseTier('mythic')
+      setShowLessonCaseReel(true)
+      return
+    }
     // Ошибки основного прохода — scoreRef (не state score, см. комментарий
     // у самого scoreRef выше: goToNextQuestion читает его же по той же
     // причине, closure может быть устаревшим) против полного исходного
@@ -251,7 +258,7 @@ export default function TQuiz({
     } else {
       setQuizCompleted(true)
     }
-  }, [isChestStage, isMegaChestStage, questions1])
+  }, [isChestStage, isMegaChestStage, isMythicStage, questions1])
 
   // Точка "первого прихода" на завершение урока (после основного прохода
   // ИЛИ после успешной работы над ошибками, независимо от итогового

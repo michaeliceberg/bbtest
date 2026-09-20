@@ -254,6 +254,7 @@ type Props = {
         boss?: string
         chest?: string
         megachest?: string
+        mythic?: string
     }
 }
 
@@ -279,6 +280,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // а не пересчитывает здесь заново.
     const isChestStage = searchParams?.chest === '1';
     const isMegaChestStage = searchParams?.megachest === '1';
+    const isMythicStage = searchParams?.mythic === '1';
 
     const [
         t_lesson,
@@ -571,6 +573,19 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // Общий рендер ASSIST-варианта (переиспользуется и как основной тип,
     // и как fallback для INSERT, когда в формуле нет подходящей буквы —
     // см. lib/formulaLetters.ts).
+    // Авторские неверные варианты (t_challengeOptions с correct=false) —
+    // если заданы у самой задачи, идут ПЕРВЫМИ (они подобраны под
+    // конкретный вопрос — похожи на верный ответ); недостающее добираем из
+    // соседей по теме. Для старых M_ASC без таких вариантов — без изменений.
+    const mergeWrongTexts = (t_challenge: { t_challengeOptions: { text: string; correct: boolean }[] }, siblingTexts: string[], count: number): string[] => {
+        const stored = getRandomElements(
+            t_challenge.t_challengeOptions.filter((o) => !o.correct).map((o) => o.text),
+            count,
+        );
+        const rest = siblingTexts.filter((t) => !stored.includes(t)).slice(0, Math.max(0, count - stored.length));
+        return [...stored, ...rest];
+    };
+
     const buildAssistQuestion = (t_challenge: typeof lessonChallenges[number]): QuestionType => {
         const excludedUnit = selfUnitToExclude(t_challenge.question);
         // el.question !== t_challenge.question — один и тот же символ иногда
@@ -593,7 +608,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         ));
         const other5QuestionsKind = other5QuestionsGenre.filter((el) => sameAnswerKind(t_challenge.question, el.question));
         const fiveQuestions = pickPreferringKind(other5QuestionsGenre, other5QuestionsKind, distractorCount);
-        const fiveWrongOptions = fiveQuestions.map(el => el.t_challengeOptions[0]?.text || '');
+        const fiveWrongOptions = mergeWrongTexts(t_challenge, fiveQuestions.map(el => el.t_challengeOptions[0]?.text || ''), distractorCount);
         const fiveWrongOptionsPlusRight = [...fiveWrongOptions, t_challenge.t_challengeOptions[0]?.text || ''];
 
         return {
@@ -1190,7 +1205,8 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
 
                 // Нет с чем сравнить (единственная M_ASC-задача урока) —
                 // откатываемся на ASSIST.
-                if (oneWrongQuestion.length === 0) {
+                const swipeWrong = mergeWrongTexts(t_challenge, oneWrongQuestion.map((q) => q.t_challengeOptions[0]?.text || ''), 1);
+                if (swipeWrong.length === 0) {
                     return buildAssistQuestion(t_challenge);
                 }
 
@@ -1200,7 +1216,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                     imageSrc: t_challenge.imageSrc,
                     options: Shuffle2([
                         t_challenge.t_challengeOptions[0]?.text || '',
-                        oneWrongQuestion[0].t_challengeOptions[0]?.text || '',
+                        swipeWrong[0],
                     ]),
                     numRans: '1',
                     optionsQ: [],
@@ -1224,7 +1240,8 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 const twoWrongQuestions = pickPreferringKind(otherQuestionsForScrollGenre, otherQuestionsForScrollKind, 2);
 
                 // Меньше 2 обманок в уроке — откатываемся на ASSIST.
-                if (twoWrongQuestions.length < 2) {
+                const scrollWrong = mergeWrongTexts(t_challenge, twoWrongQuestions.map((q) => q.t_challengeOptions[0]?.text || ''), 2);
+                if (scrollWrong.length < 2) {
                     return buildAssistQuestion(t_challenge);
                 }
 
@@ -1234,8 +1251,8 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                     imageSrc: t_challenge.imageSrc,
                     options: Shuffle2([
                         t_challenge.t_challengeOptions[0]?.text || '',
-                        twoWrongQuestions[0].t_challengeOptions[0]?.text || '',
-                        twoWrongQuestions[1].t_challengeOptions[0]?.text || '',
+                        scrollWrong[0],
+                        scrollWrong[1],
                     ]),
                     numRans: '1',
                     optionsQ: [],
@@ -1651,6 +1668,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             isBossStage={isBossStage}
             isChestStage={isChestStage}
             isMegaChestStage={isMegaChestStage}
+            isMythicStage={isMythicStage}
             nextTLessonHref={nextTLessonHref}
         />
     );
