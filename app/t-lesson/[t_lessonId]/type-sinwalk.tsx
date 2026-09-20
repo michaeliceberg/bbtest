@@ -40,7 +40,7 @@ import {
     TypedLine, TypedKeyPhraseLine, DiagramBlock, pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
-    isFieryMilestoneTrial, FieryCelebration,
+    isFieryMilestoneTrial, FieryFeedbackBanner,
 } from '@/components/geometry/WalkthroughLog'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 
@@ -439,9 +439,9 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
                                 )
                             )}
                             {isDone && (
-                                <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#A1D15122] text-[#A1D151]">
+                                <FieryFeedbackBanner fiery={isCurrent && isFieryMilestoneTrial(i)}>
                                     <Check className="w-5 h-5" /> {pickTrialFeedback(cfg)}
-                                </div>
+                                </FieryFeedbackBanner>
                             )}
                             {/* Конфетти на верный ответ — по прямой просьбе
                                 пользователя, во всех step-by-step разборах
@@ -449,11 +449,6 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
                                 ТЕКУЩЕЕ задание — естественно размонтируется
                                 при переходе к следующему. */}
                             {isCurrent && isDone && <LocalAnswerConfetti />}
-                            {/* "Огненная" анимация-подбадривание — только на
-                                milestone-упражнениях (1-е, затем каждое 4-е —
-                                см. isFieryMilestoneTrial), поверх обычного
-                                confetti. */}
-                            {isCurrent && isDone && isFieryMilestoneTrial(i) && <FieryCelebration />}
                         </div>
                         </SceneWrapper>
                     )

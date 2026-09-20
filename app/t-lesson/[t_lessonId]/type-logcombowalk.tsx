@@ -38,7 +38,7 @@ import {
     ACTIVE_COLOR, CORRECT_COLOR, ATTENTION_COLOR,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
-    isFieryMilestoneTrial, FieryCelebration,
+    isFieryMilestoneTrial, FieryFeedbackBanner,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -96,22 +96,33 @@ const Plain = ({ children }: { children: React.ReactNode }) => (
 
 const QuestionMark = () => <span style={{ color: ACTIVE_COLOR }} className="font-black">?</span>
 
-// Опрашивает data-marker внутри containerRef на КАЖДОМ кадре, пока размер
-// не перестанет меняться (2 кадра подряд с одинаковой шириной), и только
-// тогда отдаёт финальный rect наружу — вместо гадания с фиксированной
-// задержкой. Реальный баг, пойманный живьём: ChainExpression рисуется
-// ВНУТРИ DiagramBlock (WalkthroughLog.tsx), у которого есть СВОЯ entrance-
-// анимация `initial:{scale:0.94} → animate:{scale:1}` (350мс) —
-// getBoundingClientRect() ВКЛЮЧАЕТ активный CSS-transform, и замер,
-// сделанный ДО того, как этот scale-переход доиграет, ловил "combo"-
-// маркер уменьшенным на те же ~6% (правый край овала обрезал "log₃").
-// ResizeObserver эту разницу в принципе не ловит (transform не меняет
-// layout-размер элемента), а фиксированный setTimeout — ненадёжен
-// (нет гарантии, что 350мс где-либо реально означают 350мс, см. другие
-// записи в CLAUDE.md про троттлинг таймеров в этом инструментарии) —
-// поэтому вместо угаданного числа мс просто ЖДЁМ, пока значение
-// действительно перестанет меняться. Одинаковая логика нужна и
-// ComboCircle, и ComboStrike ниже — общий хук.
+// Опрашивает data-marker внутри containerRef, пока размер не перестанет
+// меняться, и только тогда отдаёт финальный rect наружу.
+//
+// Настоящая причина бага (найдена ПОСЛЕ того, как первая версия этого
+// хука — "2 кадра подряд с одинаковой шириной" — не помогла на реальном
+// проде, обводка по-прежнему уезжала влево): ChainExpression рисуется
+// ВНУТРИ DiagramBlock (WalkthroughLog.tsx), чья entrance-анимация —
+// `scale: 0.94 → 1`, `transition:{duration:0.35}` — БЕЗ явного `ease`
+// использует дефолтный framer-motion `"easeInOut"`, у которого скорость
+// изменения ОКОЛО НУЛЯ и в самом НАЧАЛЕ перехода, и в самом конце (не
+// только в конце). Из-за этого "2 кадра подряд без изменений" — ложное
+// срабатывание, которое почти ГАРАНТИРОВАННО происходит уже на первых
+// 2-3 кадрах (буквально в первые ~30-50мс), когда scale ещё ~0.94, а НЕ
+// когда переход реально доигран. Раз transform-origin всей строки — её
+// СОБСТВЕННЫЙ центр (см. ChainExpression, содержимое центрировано внутри
+// w-full DiagramBlock), недокрученный scale сдвигает "combo"-маркер
+// (который стоит НЕ точно по центру строки) заметно ближе к центру, чем
+// его истинная (scale=1) позиция — отсюда стабильно повторяющийся,
+// направленный сдвиг обводки, а не случайный джиттер. ResizeObserver эту
+// разницу не ловит (transform не меняет layout-размер), а простая
+// "стабильность по кадрам" ловит именно ЭТУ ложную плато-точку в начале
+// перехода. Исправлено — измерение принимается только ПОСЛЕ того, как с
+// момента монтирования прошло заведомо больше времени, чем длится сама
+// entrance-анимация (350мс) — считается по `performance.now()`, не по
+// количеству кадров (не зависит от реальной частоты обновления экрана).
+const MEASURE_MIN_DELAY_MS = 550
+
 function useStableMarkerRect(containerRef: React.RefObject<HTMLDivElement | null>, marker: string) {
     const [rects, setRects] = useState<{ cRect: DOMRect; eRect: DOMRect } | null>(null)
 
@@ -123,6 +134,7 @@ function useStableMarkerRect(containerRef: React.RefObject<HTMLDivElement | null
         let prevWidth: number | null = null
         let stableCount = 0
         let cancelled = false
+        const startedAt = performance.now()
 
         const measureNow = () => {
             const el = container.querySelector<HTMLElement>(`[data-marker="${marker}"]`)
@@ -132,7 +144,10 @@ function useStableMarkerRect(containerRef: React.RefObject<HTMLDivElement | null
 
         const tick = () => {
             const el = container.querySelector<HTMLElement>(`[data-marker="${marker}"]`)
-            if (el) {
+            // Ничего не принимаем как "стабильное", пока не прошло
+            // MEASURE_MIN_DELAY_MS реального времени — см. комментарий
+            // выше про ложное плато в начале easeInOut-перехода.
+            if (el && performance.now() - startedAt >= MEASURE_MIN_DELAY_MS) {
                 const eRect = el.getBoundingClientRect()
                 const cRect = container.getBoundingClientRect()
                 if (prevWidth !== null && Math.abs(eRect.width - prevWidth) < 0.5) {
@@ -155,16 +170,11 @@ function useStableMarkerRect(containerRef: React.RefObject<HTMLDivElement | null
         }
         rafId = requestAnimationFrame(tick)
 
-        // Реальный баг, пойманный пользователем живьём: обводка "3 log₃"
-        // рисовалась заметно левее реального текста, залезая на соседнюю
-        // "2". Причина — веб-шрифт (Nunito) может подмениться (FOUT/FOIT)
-        // УЖЕ ПОСЛЕ того, как ширина маркера успела "стабилизироваться" на
-        // паре кадров подряд в ЕЩЁ fallback-шрифте (ложная стабильность —
-        // stableCount ловит совпадение двух подряд идущих кадров, а не
-        // истинную финальную геометрию). document.fonts.ready гарантированно
-        // резолвится ПОСЛЕ применения всех шрифтов страницы — форсируем
-        // свежий замер сразу после него, независимо от того, что ранняя
-        // "стабильность" уже сработала.
+        // document.fonts.ready — доп. подстраховка НА СЛУЧАЙ, если веб-
+        // шрифт (Nunito) всё же подменится (FOUT/FOIT) уже ПОСЛЕ основного
+        // замера выше — резолвится гарантированно после применения всех
+        // шрифтов страницы, форсирует свежий замер независимо от того,
+        // что rAF-поллинг уже успел отдать rects раньше.
         document.fonts?.ready?.then(() => {
             if (cancelled) return
             const fresh = measureNow()
@@ -717,17 +727,12 @@ export const TypeLogComboWalk = ({ onAnswer, onComplete }: Props) => {
                                             )
                                         })}
                                     </div>
-                                    <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#A1D15122] text-[#A1D151]">
+                                    <FieryFeedbackBanner fiery={isCurrent && isFieryMilestoneTrial(i)}>
                                         {pickTrialFeedback(t)}
-                                    </div>
+                                    </FieryFeedbackBanner>
                                 </>
                             )}
                             {isCurrent && checked && <LocalAnswerConfetti />}
-                            {/* "Огненная" анимация-подбадривание — только на
-                                milestone-упражнениях (1-е, затем каждое 4-е —
-                                см. isFieryMilestoneTrial), поверх обычного
-                                confetti. */}
-                            {isCurrent && checked && isFieryMilestoneTrial(i) && <FieryCelebration />}
                         </Fragment>
                         </SceneWrapper>
                     )

@@ -46,10 +46,11 @@ import {
     ACTIVE_COLOR, WRONG_COLOR, CORRECT_COLOR, ATTENTION_COLOR,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     BlinkingExclaim, SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
-    isFieryMilestoneTrial, FieryCelebration,
+    isFieryMilestoneTrial,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
+import { LOTTIE_STEP_BY_STEP_FIERY_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
 import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
 
 // lottie-react трогает document на импорте — без ssr:false падает на
@@ -300,16 +301,38 @@ const OptionsHint = ({ wrongFlash }: { wrongFlash: string | null }) => (
 
 // Похвала за верный ответ — детерминированно из seed (не Math.random()
 // прямо в рендере, см. тот же приём в type-sinwalk.tsx/type-logwalk.tsx).
-const FeedbackBanner = ({ correct, correctText = '', seed }: { correct: boolean; correctText?: string; seed: number }) => (
-    <div
-        className={cn(
-            'flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center',
-            correct ? 'bg-[#A1D15122] text-[#A1D151]' : 'bg-[#DC605B22] text-[#DC605B]'
-        )}
-    >
-        {correct ? CORRECT_FEEDBACK_PHRASES[Math.abs(seed) % CORRECT_FEEDBACK_PHRASES.length] : correctText}
-    </div>
-)
+// fiery — только для финальной тренировки ("Бывает ли такой логарифм?",
+// см. вызов ниже с isFieryMilestoneTrial) и только когда ответ верный —
+// крупнее по высоте, слева зацикленный (loop, без остановки) Lottie-
+// ролик из тех же 7 файлов, что и в остальных 8 walkthrough-разборах (см.
+// FieryFeedbackBanner в WalkthroughLog.tsx) — тут не переиспользован
+// напрямую, т.к. у LOGDEFWALK уже своя локальная Lottie-инфраструктура
+// (см. paperPolice/Lottie выше) и своя форма feedback-баннера (correct/
+// correctText вместо детей).
+const FeedbackBanner = ({ correct, correctText = '', seed, fiery = false }: { correct: boolean; correctText?: string; seed: number; fiery?: boolean }) => {
+    const [lottieData] = useState(() => (fiery && correct ? getRandomLottie(LOTTIE_STEP_BY_STEP_FIERY_LIST) : null))
+    const text = correct ? CORRECT_FEEDBACK_PHRASES[Math.abs(seed) % CORRECT_FEEDBACK_PHRASES.length] : correctText
+    if (fiery && correct) {
+        return (
+            <div className="flex items-center gap-3 rounded-xl px-4 py-5 font-bold w-full justify-center bg-[#A1D15122] text-[#A1D151]">
+                <div className="w-14 h-14 md:w-16 md:h-16 shrink-0">
+                    <Lottie animationData={lottieData} loop autoplay />
+                </div>
+                <span className="text-lg md:text-xl">{text}</span>
+            </div>
+        )
+    }
+    return (
+        <div
+            className={cn(
+                'flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center',
+                correct ? 'bg-[#A1D15122] text-[#A1D151]' : 'bg-[#DC605B22] text-[#DC605B]'
+            )}
+        >
+            {text}
+        </div>
+    )
+}
 
 // Печатаемая строка с ОДНИМ встроенным стикером внутри текста (не число
 // в формуле, а слово — например "степень") — по прямой просьбе
@@ -841,13 +864,9 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                                         correct={guess === item.correct}
                                         correctText={item.correct ? 'Неверно — такой логарифм существует.' : 'Неверно — такого логарифма не бывает.'}
                                         seed={i * 19 + (guess ? 1 : 0)}
+                                        fiery={isFieryMilestoneTrial(i)}
                                     />
                                     {confettiFor === `exist-${i}` && <LocalAnswerConfetti />}
-                                    {/* "Огненная" анимация-подбадривание — только на
-                                        milestone-упражнениях (1-е, затем каждое 4-е —
-                                        см. isFieryMilestoneTrial), поверх обычного
-                                        confetti. */}
-                                    {confettiFor === `exist-${i}` && isFieryMilestoneTrial(i) && <FieryCelebration />}
                                 </>
                             )}
                         </Fragment>

@@ -304,36 +304,43 @@ export const LocalAnswerConfetti = () => {
     )
 }
 
-// Milestone-проверка для "огненной" анимации-подбадривания
-// (FieryCelebration ниже) в тренировочных заданиях разбора — по прямой
-// просьбе пользователя: на первом упражнении (1/N) и далее на каждом
-// четвёртом (1, 4, 8, 12...). trialIndex — 0-индексированный (как везде
-// в этих файлах: `i`/`trialIndex` в цикле по trials/trialConfigs), внутри
-// переводится в порядковый номер упражнения (1-индекс) для сравнения.
+// Milestone-проверка для "огненного" оформления фидбек-плашки
+// (FieryFeedbackBanner ниже) в тренировочных заданиях разбора — по
+// прямой просьбе пользователя: на первом упражнении (1/N) и далее на
+// каждом четвёртом (1, 4, 8, 12...). trialIndex — 0-индексированный (как
+// везде в этих файлах: `i`/`trialIndex` в цикле по trials/trialConfigs),
+// внутри переводится в порядковый номер упражнения (1-индекс) для
+// сравнения.
 export function isFieryMilestoneTrial(trialIndex: number): boolean {
     const n = trialIndex + 1
     return n === 1 || n % 4 === 0
 }
 
-// "Огненная" анимация-подбадривание — редкий, более выразительный акцент
-// поверх обычного LocalAnswerConfetti, показывается ТОЛЬКО на milestone-
-// заданиях (см. isFieryMilestoneTrial у вызывающей стороны — сам
-// компонент ничего не проверяет, родитель монтирует его условно). Каждое
-// появление выбирает СВОЙ случайный файл из 7 присланных пользователем
-// (public/Lottie/stepByStepFiery/) — не персистентный на весь урок,
-// родитель монтирует этот компонент заново на каждый milestone. Играет
-// один раз (loop=false) и самоубирается по СОБСТВЕННОМУ событию
-// завершения анимации (onComplete из lottie-react), а не по таймеру —
-// надёжнее произвольно угаданной длительности.
-export const FieryCelebration = () => {
-    const [lottieData] = useState(() => getRandomLottie(LOTTIE_STEP_BY_STEP_FIERY_LIST))
-    const [done, setDone] = useState(false)
-    if (done) return null
-    return (
-        <div className="pointer-events-none fixed inset-0 z-[65] flex items-center justify-center">
-            <div className="w-48 h-48 md:w-64 md:h-64">
-                <Lottie animationData={lottieData} loop={false} autoplay onComplete={() => setDone(true)} />
+// Плашка с фидбеком на верный ответ тренировочного задания. Обычная
+// (fiery=false) — тонкая однострочная плашка, как и была всегда.
+// "Огненная" (fiery=true, только на milestone-заданиях — см.
+// isFieryMilestoneTrial) — крупнее по высоте, текст сдвинут правее, а
+// слева — зацикленный (loop, без остановки, пока плашка на экране)
+// Lottie-ролик, случайно выбранный из 7 присланных пользователем
+// (public/Lottie/stepByStepFiery/). Раньше "огненный" эффект был
+// отдельным fullscreen-оверлеем (`FieryCelebration`) поверх всего экрана —
+// по прямой просьбе пользователя (сливался с фоном, слишком навязчиво)
+// заменён на этот инлайн-вариант внутри самой плашки.
+export const FieryFeedbackBanner = ({ children, fiery = false }: { children: React.ReactNode; fiery?: boolean }) => {
+    const [lottieData] = useState(() => (fiery ? getRandomLottie(LOTTIE_STEP_BY_STEP_FIERY_LIST) : null))
+    if (!fiery) {
+        return (
+            <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#A1D15122] text-[#A1D151]">
+                {children}
             </div>
+        )
+    }
+    return (
+        <div className="flex items-center gap-3 rounded-xl px-4 py-5 font-bold w-full justify-center bg-[#A1D15122] text-[#A1D151]">
+            <div className="w-14 h-14 md:w-16 md:h-16 shrink-0">
+                <Lottie animationData={lottieData} loop autoplay />
+            </div>
+            <span className="text-lg md:text-xl">{children}</span>
         </div>
     )
 }
