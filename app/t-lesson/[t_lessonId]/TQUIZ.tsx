@@ -1025,6 +1025,7 @@ export default function TQuiz({
             playCorrectSound={playCorrectSound}
             score={score}
             isBossStage={isBossStage}
+            streak={streak}
             roundKey={roundNumber}
           />
         </div>

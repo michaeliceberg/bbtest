@@ -21,9 +21,22 @@ import { motion } from 'framer-motion'
 type Props = {
     hp: number // 0-100, оставшееся здоровье босса
     hit: boolean // true сразу после верного ответа — момент удара
+    streak?: number // серия верных подряд — каждый 5-й ответ подряд = крит-удар
 }
 
-export const TrainerBossBar = ({ hp, hit }: Props) => {
+const CRIT_EVERY = 5
+
+export const TrainerBossBar = ({ hp, hit, streak = 0 }: Props) => {
+    const [critKey, setCritKey] = useState(0)
+    const [showCrit, setShowCrit] = useState(false)
+    useEffect(() => {
+        if (streak <= 0 || streak % CRIT_EVERY !== 0) return
+        setShowCrit(true)
+        setCritKey((k) => k + 1)
+        const t = setTimeout(() => setShowCrit(false), 1400)
+        return () => clearTimeout(t)
+    }, [streak])
+
     const [flash, setFlash] = useState(false)
     // Простой remount-key вместо AnimatePresence — в этом проекте
     // AnimatePresence иногда не завершает exit-анимацию (см. CLAUDE.md),
@@ -56,10 +69,22 @@ export const TrainerBossBar = ({ hp, hit }: Props) => {
                     className="h-full rounded-full overflow-hidden"
                     animate={{
                         width: `${clampedHp}%`,
-                        backgroundColor: flash ? '#FF8A8A' : '#DC605B',
+                        backgroundColor: flash ? (showCrit ? '#FFD84D' : '#FF8A8A') : '#DC605B',
                     }}
                     transition={{ duration: 0.4, ease: 'easeOut' }}
                 />
+                {showCrit && (
+                    <motion.div
+                        key={`crit-${critKey}`}
+                        initial={{ opacity: 0, scale: 0.4, rotate: -8 }}
+                        animate={{ opacity: [0, 1, 1, 0], scale: [0.4, 1.4, 1.15, 1.15], rotate: [-8, 4, -2, 0], y: [0, -6, -14, -26] }}
+                        transition={{ duration: 1.4, ease: 'easeOut' }}
+                        className="absolute -top-9 right-2 pointer-events-none px-2.5 py-0.5 rounded-lg font-black text-sm tracking-wide text-[#412402] shadow-lg"
+                        style={{ background: 'linear-gradient(135deg, #FFD84D, #FF9F1C)', boxShadow: '0 0 18px 4px rgba(255,159,28,0.6)' }}
+                    >
+                        💥 КРИТ ×{Math.round(streak / CRIT_EVERY) + 1}!
+                    </motion.div>
+                )}
                 {showLoot && (
                     <motion.div
                         key={lootKey}

@@ -74,6 +74,7 @@ interface QuestionProps {
   // HP-босс на финальном ("корона") этапе темы — чисто визуальный слой.
   score?: number,
   isBossStage?: boolean,
+  streak?: number,
 
   // Номер раунда "работы над ошибками" (0 — основной проход, 1+ — раунды
   // повтора, см. TQUIZ.tsx). Нужен ТОЛЬКО для remount-ключа ниже:
@@ -98,6 +99,7 @@ export default function TrainerQuestion({
 
   score = 0,
   isBossStage = false,
+  streak = 0,
   roundKey = 0,
 
 }: QuestionProps) {
@@ -559,6 +561,7 @@ export default function TrainerQuestion({
         <TrainerBossBar
           hp={bossHp}
           hit={isRightPrevious === true}
+          streak={streak}
         />
       )}
 
