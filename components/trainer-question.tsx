@@ -31,6 +31,7 @@ import { TypeLogPowWalk } from "@/app/t-lesson/[t_lessonId]/type-logpowwalk"
 import { TypeLogSwapWalk } from "@/app/t-lesson/[t_lessonId]/type-logswapwalk"
 import { TypeLogDivWalk } from "@/app/t-lesson/[t_lessonId]/type-logdivwalk"
 import { TypeLogComboWalk } from "@/app/t-lesson/[t_lessonId]/type-logcombowalk"
+import { TypeLogFlipWalk } from "@/app/t-lesson/[t_lessonId]/type-logflipwalk"
 import { TypeWorkbook } from "@/app/t-lesson/[t_lessonId]/type-workbook"
 import { TypeConstructor } from "@/app/t-lesson/[t_lessonId]/type-constructor"
 
@@ -377,6 +378,12 @@ export default function TrainerQuestion({
         // type-logcombowalk.tsx.
         return <TypeLogComboWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
 
+      case "LOGFLIPWALK":
+        // Тот же принцип, что и у LOGCOMBOWALK/LOGDIVWALK — разбор
+        // "перевёртыша" логарифма (log_a(b) = 1/log_b(a)). См.
+        // type-logflipwalk.tsx.
+        return <TypeLogFlipWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
+
       case "TRIGTABLE":
         // select-then-submit, тот же контракт, что у ASSIST/INSERT/SCROLL —
         // пользователь может менять заполненные пропуски ДО нажатия общей
@@ -654,20 +661,20 @@ export default function TrainerQuestion({
 
       {/* Кнопка внизу - фиксированная. У CHECK, FRACTRICK, SINWALK,
           LOGWALK, LOGDEFWALK, LOGSUBWALK, LOGPOWWALK, LOGSWAPWALK,
-          LOGDIVWALK и LOGCOMBOWALK её нет вообще (не только disabled) —
-          все самодостаточные и владеют подтверждением сами: CHECK —
-          вообще без подтверждения (клик по ведру/галочке сразу
+          LOGDIVWALK, LOGCOMBOWALK и LOGFLIPWALK её нет вообще (не только
+          disabled) — все самодостаточные и владеют подтверждением сами:
+          CHECK — вообще без подтверждения (клик по ведру/галочке сразу
           засчитывает ответ), FRACTRICK — со своими ДВУМЯ внутренними
           кнопками "Ответить" (по одной на каждый из 2 этапов, см.
           type-fractrick.tsx), SINWALK/LOGWALK/LOGDEFWALK/LOGSUBWALK/
-          LOGPOWWALK/LOGSWAPWALK/LOGDIVWALK/LOGCOMBOWALK — своей кнопкой
-          "Дальше" на протяжении ВСЕГО прохождения (и обучающих шагов, и
-          тренировочных заданий) — общая кнопка внизу тут была бы лишней/
-          непонятной disabled-заглушкой "ответить", по прямой просьбе
-          пользователя. TRIGTABLE (как ASSIST/INSERT/SCROLL) —
-          select-then-submit: общая кнопка сначала "Ответить" (когда все
-          пропуски заполнены), затем "далее"/"понятно". */}
-      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "SINWALK" && question.questionType !== "LOGWALK" && question.questionType !== "LOGDEFWALK" && question.questionType !== "LOGSUBWALK" && question.questionType !== "LOGPOWWALK" && question.questionType !== "LOGSWAPWALK" && question.questionType !== "LOGDIVWALK" && question.questionType !== "LOGCOMBOWALK" && (
+          LOGPOWWALK/LOGSWAPWALK/LOGDIVWALK/LOGCOMBOWALK/LOGFLIPWALK —
+          своей кнопкой "Дальше" на протяжении ВСЕГО прохождения (и
+          обучающих шагов, и тренировочных заданий) — общая кнопка внизу
+          тут была бы лишней/непонятной disabled-заглушкой "ответить", по
+          прямой просьбе пользователя. TRIGTABLE (как ASSIST/INSERT/
+          SCROLL) — select-then-submit: общая кнопка сначала "Ответить"
+          (когда все пропуски заполнены), затем "далее"/"понятно". */}
+      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "SINWALK" && question.questionType !== "LOGWALK" && question.questionType !== "LOGDEFWALK" && question.questionType !== "LOGSUBWALK" && question.questionType !== "LOGPOWWALK" && question.questionType !== "LOGSWAPWALK" && question.questionType !== "LOGDIVWALK" && question.questionType !== "LOGCOMBOWALK" && question.questionType !== "LOGFLIPWALK" && (
       <div className="px-4 pb-4 pt-2 bg-[#151F24] relative">
         {/* Notification фон который выезжает при правильном ответе */}
         {answerState === "correct" && (

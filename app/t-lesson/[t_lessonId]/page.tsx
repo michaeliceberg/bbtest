@@ -833,6 +833,26 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             };
         }
 
+        if (t_challenge.type === 'LOGFLIPWALK') {
+            // Тот же самодостаточный принцип, что у LOGCOMBOWALK/
+            // LOGDIVWALK — разбор "перевёртыша" логарифма (log_a(b) =
+            // 1/log_b(a)) на фиксированном примере 8/2, тренировочные
+            // задания генерируются на лету внутри type-logflipwalk.tsx.
+            return {
+                questionType: 'LOGFLIPWALK' as const,
+                question: t_challenge.question,
+                imageSrc: t_challenge.imageSrc,
+                options: [],
+                numRans: t_challenge.numRans,
+                optionsQ: [],
+                optionsA: [],
+                optionsConstructRight: [],
+                difficulty: t_challenge.difficulty,
+                correctAnswer: 'right',
+                timeLimit: 999,
+            };
+        }
+
         if (t_challenge.type === 'LOGSWAPWALK') {
             // Тот же самодостаточный принцип, что у LOGWALK/LOGSUBWALK/
             // LOGPOWWALK — разбор тождества "логарифм в степени"
