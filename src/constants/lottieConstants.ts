@@ -58,6 +58,13 @@ import LottieTestFinalSoso3 from '@/public/Lottie/test/final-soso3.json'
 import LottieTestFinalBad1 from '@/public/Lottie/test/final-bad1.json'
 import LottieTestFinalBad2 from '@/public/Lottie/test/final-bad2.json'
 import LottieTestPizza from '@/public/Lottie/test/pizza.json'
+import LottieStepByStepFiery1 from '@/public/Lottie/stepByStepFiery/fiery1.json'
+import LottieStepByStepFiery2 from '@/public/Lottie/stepByStepFiery/fiery2.json'
+import LottieStepByStepFiery3 from '@/public/Lottie/stepByStepFiery/fiery3.json'
+import LottieStepByStepFiery4 from '@/public/Lottie/stepByStepFiery/fiery4.json'
+import LottieStepByStepFiery5 from '@/public/Lottie/stepByStepFiery/fiery5.json'
+import LottieStepByStepFiery6 from '@/public/Lottie/stepByStepFiery/fiery6.json'
+import LottieStepByStepFiery7 from '@/public/Lottie/stepByStepFiery/fiery7.json'
 
 // Группировка по назначению
 export const LOTTIE_START_LIST = [
@@ -213,5 +220,20 @@ export const getDistinctRandomLotties = <T,>(list: readonly T[], count: number):
 export const getRandomLottie = (lottieList: readonly any[]) => {
   return lottieList[Math.floor(Math.random() * lottieList.length)]
 }
+
+// "Огненная" анимация-подбадривание поверх обычного конфетти в
+// тренировочных заданиях stepbystep-разборов (SINWALK/LOGWALK/...) — по
+// прямой просьбе пользователя, на 1-ом и каждом 4-ом упражнении (см.
+// isFieryMilestoneTrial в WalkthroughLog.tsx). Каждое срабатывание берёт
+// СВОЙ случайный файл из этих 7, не один персистентный на весь урок.
+export const LOTTIE_STEP_BY_STEP_FIERY_LIST = [
+  LottieStepByStepFiery1,
+  LottieStepByStepFiery2,
+  LottieStepByStepFiery3,
+  LottieStepByStepFiery4,
+  LottieStepByStepFiery5,
+  LottieStepByStepFiery6,
+  LottieStepByStepFiery7,
+] as const
 
 

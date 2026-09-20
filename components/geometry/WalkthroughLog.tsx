@@ -15,6 +15,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
+import dynamic from 'next/dynamic'
 import Latex from 'react-latex-next'
 import Confetti from 'react-confetti'
 import { useWindowSize } from 'react-use'
@@ -22,7 +23,13 @@ import { ArrowLeft, RotateCcw } from 'lucide-react'
 import { HighlightWord } from './WalkthroughMarker'
 import { Typewriter } from './Typewriter'
 import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors'
+import { LOTTIE_STEP_BY_STEP_FIERY_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
 import { cn } from '@/lib/utils'
+
+// lottie-react трогает document при монтировании — статический импорт в
+// SSR-путь уже не раз ронял dev/prod в этом проекте (см. CLAUDE.md,
+// TrainerMascot.tsx и др.), поэтому всегда через dynamic(ssr:false).
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 
 // Единый "цвет внимания" ("смотри сюда"/"важно") для всех разборов по
 // шагам — оранжевый из «Палитры ggege» (см. CLAUDE.md), используется и
@@ -294,6 +301,40 @@ export const LocalAnswerConfetti = () => {
             gravity={0.25}
             style={{ position: 'fixed', top: 0, left: 0, pointerEvents: 'none', zIndex: 60 }}
         />
+    )
+}
+
+// Milestone-проверка для "огненной" анимации-подбадривания
+// (FieryCelebration ниже) в тренировочных заданиях разбора — по прямой
+// просьбе пользователя: на первом упражнении (1/N) и далее на каждом
+// четвёртом (1, 4, 8, 12...). trialIndex — 0-индексированный (как везде
+// в этих файлах: `i`/`trialIndex` в цикле по trials/trialConfigs), внутри
+// переводится в порядковый номер упражнения (1-индекс) для сравнения.
+export function isFieryMilestoneTrial(trialIndex: number): boolean {
+    const n = trialIndex + 1
+    return n === 1 || n % 4 === 0
+}
+
+// "Огненная" анимация-подбадривание — редкий, более выразительный акцент
+// поверх обычного LocalAnswerConfetti, показывается ТОЛЬКО на milestone-
+// заданиях (см. isFieryMilestoneTrial у вызывающей стороны — сам
+// компонент ничего не проверяет, родитель монтирует его условно). Каждое
+// появление выбирает СВОЙ случайный файл из 7 присланных пользователем
+// (public/Lottie/stepByStepFiery/) — не персистентный на весь урок,
+// родитель монтирует этот компонент заново на каждый milestone. Играет
+// один раз (loop=false) и самоубирается по СОБСТВЕННОМУ событию
+// завершения анимации (onComplete из lottie-react), а не по таймеру —
+// надёжнее произвольно угаданной длительности.
+export const FieryCelebration = () => {
+    const [lottieData] = useState(() => getRandomLottie(LOTTIE_STEP_BY_STEP_FIERY_LIST))
+    const [done, setDone] = useState(false)
+    if (done) return null
+    return (
+        <div className="pointer-events-none fixed inset-0 z-[65] flex items-center justify-center">
+            <div className="w-48 h-48 md:w-64 md:h-64">
+                <Lottie animationData={lottieData} loop={false} autoplay onComplete={() => setDone(true)} />
+            </div>
+        </div>
     )
 }
 

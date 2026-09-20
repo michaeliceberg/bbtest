@@ -40,6 +40,7 @@ import {
     TypedLine, TypedKeyPhraseLine, DiagramBlock, pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
+    isFieryMilestoneTrial, FieryCelebration,
 } from '@/components/geometry/WalkthroughLog'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 
@@ -448,6 +449,11 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
                                 ТЕКУЩЕЕ задание — естественно размонтируется
                                 при переходе к следующему. */}
                             {isCurrent && isDone && <LocalAnswerConfetti />}
+                            {/* "Огненная" анимация-подбадривание — только на
+                                milestone-упражнениях (1-е, затем каждое 4-е —
+                                см. isFieryMilestoneTrial), поверх обычного
+                                confetti. */}
+                            {isCurrent && isDone && isFieryMilestoneTrial(i) && <FieryCelebration />}
                         </div>
                         </SceneWrapper>
                     )

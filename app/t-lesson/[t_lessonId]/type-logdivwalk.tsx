@@ -38,6 +38,7 @@ import {
     ACTIVE_COLOR, CORRECT_COLOR,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
+    isFieryMilestoneTrial, FieryCelebration,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -722,6 +723,11 @@ export const TypeLogDivWalk = ({ onAnswer, onComplete }: Props) => {
                                 </>
                             )}
                             {isCurrent && isDone && <LocalAnswerConfetti />}
+                            {/* "Огненная" анимация-подбадривание — только на
+                                milestone-упражнениях (1-е, затем каждое 4-е —
+                                см. isFieryMilestoneTrial), поверх обычного
+                                confetti. */}
+                            {isCurrent && isDone && isFieryMilestoneTrial(i) && <FieryCelebration />}
                         </Fragment>
                         </SceneWrapper>
                     )

@@ -38,6 +38,7 @@ import {
     ACTIVE_COLOR, CORRECT_COLOR, ATTENTION_COLOR,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
+    isFieryMilestoneTrial, FieryCelebration,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -121,6 +122,13 @@ function useStableMarkerRect(containerRef: React.RefObject<HTMLDivElement | null
         let frame = 0
         let prevWidth: number | null = null
         let stableCount = 0
+        let cancelled = false
+
+        const measureNow = () => {
+            const el = container.querySelector<HTMLElement>(`[data-marker="${marker}"]`)
+            if (!el) return null
+            return { cRect: container.getBoundingClientRect(), eRect: el.getBoundingClientRect() }
+        }
 
         const tick = () => {
             const el = container.querySelector<HTMLElement>(`[data-marker="${marker}"]`)
@@ -147,18 +155,37 @@ function useStableMarkerRect(containerRef: React.RefObject<HTMLDivElement | null
         }
         rafId = requestAnimationFrame(tick)
 
-        // ResizeObserver — доп. подстраховка НА СЛУЧАЙ настоящего resize
-        // УЖЕ ПОСЛЕ того, как поллинг выше остановился (например, юзер
-        // изменил размер окна) — сам поллинг к этому моменту уже не
-        // работает (rAF-цикл завершён).
-        const observer = new ResizeObserver(() => {
-            const el = container.querySelector<HTMLElement>(`[data-marker="${marker}"]`)
-            if (!el) return
-            setRects({ cRect: container.getBoundingClientRect(), eRect: el.getBoundingClientRect() })
+        // Реальный баг, пойманный пользователем живьём: обводка "3 log₃"
+        // рисовалась заметно левее реального текста, залезая на соседнюю
+        // "2". Причина — веб-шрифт (Nunito) может подмениться (FOUT/FOIT)
+        // УЖЕ ПОСЛЕ того, как ширина маркера успела "стабилизироваться" на
+        // паре кадров подряд в ЕЩЁ fallback-шрифте (ложная стабильность —
+        // stableCount ловит совпадение двух подряд идущих кадров, а не
+        // истинную финальную геометрию). document.fonts.ready гарантированно
+        // резолвится ПОСЛЕ применения всех шрифтов страницы — форсируем
+        // свежий замер сразу после него, независимо от того, что ранняя
+        // "стабильность" уже сработала.
+        document.fonts?.ready?.then(() => {
+            if (cancelled) return
+            const fresh = measureNow()
+            if (fresh) setRects(fresh)
         })
+
+        // ResizeObserver — наблюдаем ЗА САМИМ МАРКЕРОМ, не только за
+        // контейнером: контейнер — на всю ширину (w-full), его border-box
+        // не меняется от того, что содержимое ВНУТРИ рефлоуится
+        // (font-swap и т.п.), а маркер как раз и есть тот элемент, чья
+        // ширина при этом реально меняется — раньше отслеживался только
+        // контейнер, и такой сдвиг маркера ResizeObserver не ловил вовсе.
+        const el = container.querySelector<HTMLElement>(`[data-marker="${marker}"]`)
+        const observer = new ResizeObserver(() => {
+            const fresh = measureNow()
+            if (fresh) setRects(fresh)
+        })
+        if (el) observer.observe(el)
         observer.observe(container)
 
-        return () => { cancelAnimationFrame(rafId); observer.disconnect() }
+        return () => { cancelled = true; cancelAnimationFrame(rafId); observer.disconnect() }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
@@ -205,11 +232,12 @@ const ComboCircle = ({
     )
 }
 
-// Диагональная зачёркивающая линия поверх обведённой области — та же
-// техника (диагональ из левого-нижнего в правый-верхний угол), что уже
-// использует StrikeThrough в LOGDIVWALK, только измерение через
-// useStableMarkerRect (надёжнее фиксированного таймаута — см. комментарий
-// у самого хука выше).
+// Диагональная зачёркивающая линия поверх обведённой области — из
+// ЛЕВОГО-ВЕРХНЕГО угла в ПРАВЫЙ-НИЖНИЙ (по прямой просьбе пользователя —
+// раньше шла снизу-слева вверх-направо и цепляла соседние цифры сверху;
+// такое направление ближе к "низу" области, не задевает текст выше).
+// Измерение через useStableMarkerRect (надёжнее фиксированного таймаута —
+// см. комментарий у самого хука выше).
 const ComboStrike = ({
     containerRef, marker, color,
 }: { containerRef: React.RefObject<HTMLDivElement | null>; marker: string; color: string }) => {
@@ -218,9 +246,9 @@ const ComboStrike = ({
     const { cRect, eRect } = rects
     const pad = 10
     const x1 = eRect.left - cRect.left - pad
-    const y1 = eRect.bottom - cRect.top + pad
+    const y1 = eRect.top - cRect.top - pad
     const x2 = eRect.right - cRect.left + pad
-    const y2 = eRect.top - cRect.top - pad
+    const y2 = eRect.bottom - cRect.top + pad
     return (
         <svg className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible', width: '100%', height: '100%' }}>
             <motion.line
@@ -695,6 +723,11 @@ export const TypeLogComboWalk = ({ onAnswer, onComplete }: Props) => {
                                 </>
                             )}
                             {isCurrent && checked && <LocalAnswerConfetti />}
+                            {/* "Огненная" анимация-подбадривание — только на
+                                milestone-упражнениях (1-е, затем каждое 4-е —
+                                см. isFieryMilestoneTrial), поверх обычного
+                                confetti. */}
+                            {isCurrent && checked && isFieryMilestoneTrial(i) && <FieryCelebration />}
                         </Fragment>
                         </SceneWrapper>
                     )
