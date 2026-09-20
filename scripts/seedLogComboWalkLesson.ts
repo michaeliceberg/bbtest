@@ -22,7 +22,7 @@ import { eq } from "drizzle-orm"
 import { t_lessons, t_challenges } from "@/db/schema"
 
 const LOG_UNIT_ID = 16
-const LESSON_TITLE = "Комбо логарифмов"
+const LESSON_TITLE = "К-к-комбо логарифмов"
 // Уроки с этими названиями всегда идут первыми (order 1-6) — новый урок
 // вставляется СРАЗУ после них, всё остальное сдвигается.
 const FIXED_LEADING_TITLES = [

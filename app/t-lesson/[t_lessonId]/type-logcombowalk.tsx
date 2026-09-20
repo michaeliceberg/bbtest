@@ -12,7 +12,8 @@
 // 0. "log₂3 · log₃4 = ?" — просто условие.
 // 1. "К-к-комбо! Если видим такую конструкцию..." — обводим СОВПАДАЮЩУЮ
 //    часть: аргумент первого лога (3) и основание второго (log₃) —
-//    единая овальная обводка вокруг "3 · log₃".
+//    единая обводка прямоугольником со скруглёнными углами вокруг
+//    "3 · log₃".
 // 2. Пауза, затем зачёркиваем ту же обведённую часть (аргумент и
 //    основание совпали — сокращаются).
 // 3. Зачёркнутая часть становится бледной, а числа СНАРУЖИ (2 и 4)
@@ -42,9 +43,6 @@ import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 
 const SCENE_TRANSITION_PAUSE_MS = 1000
-// Длительность красного баннера "попробуй ещё" на неверный клик — тот же
-// тайминг, что уже проверен в TangentialQuadWalkthrough.tsx.
-const WRONG_FLASH_MS = 1200
 
 type Props = {
     question: QuestionType
@@ -167,31 +165,35 @@ function useStableMarkerRect(containerRef: React.RefObject<HTMLDivElement | null
     return rects
 }
 
-// Овальная обводка вокруг data-marker'а — рисует не линию/дугу, а
-// <motion.ellipse> — framer-motion умеет анимировать pathLength напрямую
-// на примитивах ellipse/rect/circle, готовый path не нужен считать
-// вручную.
+// Обводка прямоугольником со скруглёнными углами вокруг data-marker'а —
+// <motion.rect> с rx/ry, framer-motion умеет анимировать pathLength
+// напрямую на примитивах rect/ellipse/circle, готовый path не нужен
+// считать вручную. Раньше был овал — по прямой просьбе пользователя
+// заменён на прямоугольник (точнее облегает прямоугольную область текста,
+// овал слева/справа "срезал" её неточно).
 const ComboCircle = ({
     containerRef, marker, color,
 }: { containerRef: React.RefObject<HTMLDivElement | null>; marker: string; color: string }) => {
     const rects = useStableMarkerRect(containerRef, marker)
     if (!rects) return null
     const { cRect, eRect } = rects
-    const padX = 12
-    const padY = 10
+    const padX = 10
+    const padY = 8
     const box = {
-        cx: eRect.left + eRect.width / 2 - cRect.left,
-        cy: eRect.top + eRect.height / 2 - cRect.top,
-        rx: eRect.width / 2 + padX,
-        ry: eRect.height / 2 + padY,
+        x: eRect.left - cRect.left - padX,
+        y: eRect.top - cRect.top - padY,
+        width: eRect.width + padX * 2,
+        height: eRect.height + padY * 2,
     }
     return (
         <svg className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible', width: '100%', height: '100%' }}>
-            <motion.ellipse
-                cx={box.cx}
-                cy={box.cy}
-                rx={box.rx}
-                ry={box.ry}
+            <motion.rect
+                x={box.x}
+                y={box.y}
+                width={box.width}
+                height={box.height}
+                rx={14}
+                ry={14}
                 stroke={color}
                 strokeWidth={3}
                 fill="none"
@@ -203,32 +205,29 @@ const ComboCircle = ({
     )
 }
 
-// Горизонтальная "зачёркивающая" черта через вертикальный центр
-// data-marker'а — для ШИРОКОЙ (не квадратной) области диагональная линия
-// (как у StrikeThrough в LOGDIVWALK) читалась бы слишком пологой и
-// невыразительной; классический горизонтальный "cancel bar" тут
-// однозначнее.
+// Диагональная зачёркивающая линия поверх обведённой области — та же
+// техника (диагональ из левого-нижнего в правый-верхний угол), что уже
+// использует StrikeThrough в LOGDIVWALK, только измерение через
+// useStableMarkerRect (надёжнее фиксированного таймаута — см. комментарий
+// у самого хука выше).
 const ComboStrike = ({
     containerRef, marker, color,
 }: { containerRef: React.RefObject<HTMLDivElement | null>; marker: string; color: string }) => {
     const rects = useStableMarkerRect(containerRef, marker)
     if (!rects) return null
     const { cRect, eRect } = rects
-    const overshoot = 14
-    const y = eRect.top + eRect.height / 2 - cRect.top
-    const line = {
-        x1: eRect.left - cRect.left - overshoot,
-        y1: y,
-        x2: eRect.right - cRect.left + overshoot,
-        y2: y,
-    }
+    const pad = 10
+    const x1 = eRect.left - cRect.left - pad
+    const y1 = eRect.bottom - cRect.top + pad
+    const x2 = eRect.right - cRect.left + pad
+    const y2 = eRect.top - cRect.top - pad
     return (
         <svg className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible', width: '100%', height: '100%' }}>
             <motion.line
-                x1={line.x1}
-                y1={line.y1}
-                x2={line.x2}
-                y2={line.y2}
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
                 stroke={color}
                 strokeWidth={3.5}
                 strokeLinecap="round"
@@ -432,8 +431,12 @@ export const TypeLogComboWalk = ({ onAnswer, onComplete }: Props) => {
     // Режим "пробуй, пока не угадаешь" — неверно нажатые варианты ТЕКУЩЕГО
     // задания накапливаются здесь (красятся красным + блокируются), пока
     // пользователь не найдёт верный; сбрасывается при переходе к новому
-    // заданию/откате назад. wrongFlash — транзиентный красный баннер под
-    // вариантами на каждый неверный клик, гаснет сам через WRONG_FLASH_MS.
+    // заданию/откате назад. wrongFlash — сообщение под вариантами на
+    // неверный клик; ПЕРСИСТЕНТНОЕ (не гаснет само по таймеру) — раньше
+    // авто-скрывалось через WRONG_FLASH_MS и тут же подменялось обратно
+    // нейтральной подсказкой "Кликни на вариант выше" в футере, что
+    // читалось как "сообщение исчезло само" — по прямой просьбе
+    // пользователя теперь остаётся на экране до следующего клика.
     const [wrongTried, setWrongTried] = useState<ComboOption[]>([])
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
 
@@ -454,7 +457,6 @@ export const TypeLogComboWalk = ({ onAnswer, onComplete }: Props) => {
             setHadMistake(true)
             setWrongTried((prev) => [...prev, option])
             setWrongFlash(pickWrongTryPhrase())
-            setTimeout(() => setWrongFlash(null), WRONG_FLASH_MS)
         }
     }
 
@@ -662,10 +664,12 @@ export const TypeLogComboWalk = ({ onAnswer, onComplete }: Props) => {
                                             )
                                         })}
                                     </div>
-                                    {wrongFlash && (
+                                    {wrongFlash ? (
                                         <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">
                                             <X className="w-5 h-5" /> {wrongFlash}
                                         </div>
+                                    ) : (
+                                        <p className="text-sm text-[#9AA7B0] text-center">Кликни на вариант выше</p>
                                     )}
                                 </>
                             )}
@@ -713,9 +717,7 @@ export const TypeLogComboWalk = ({ onAnswer, onComplete }: Props) => {
                         {trialIndex + 1 >= trials.length ? 'Готово' : trialNextLabel}
                     </button>
                 </div>
-            ) : (
-                <p className="text-sm text-[#9AA7B0] text-center">Кликни на вариант выше</p>
-            )}
+            ) : null}
         </div>
     )
 }

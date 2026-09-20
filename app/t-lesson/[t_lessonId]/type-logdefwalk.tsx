@@ -34,11 +34,12 @@
 import { Fragment, useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
+import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
 import {
     DiagramBlock,
-    pickWalkthroughNextLabel, pickWalkthroughWrongLabel, CORRECT_FEEDBACK_PHRASES,
+    pickWalkthroughNextLabel, pickWalkthroughWrongLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     ACTIVE_COLOR, WRONG_COLOR, CORRECT_COLOR, ATTENTION_COLOR,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     BlinkingExclaim, SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
@@ -137,19 +138,44 @@ const PickedValue = ({ value, isCorrect }: { value: number; isCorrect: boolean }
 
 const QuestionMark = () => <span style={{ color: ACTIVE_COLOR }} className="font-black">?</span>
 
-const OptionButton = ({ value, onClick }: { value: number; onClick: () => void }) => (
+// Режим "пробуй, пока не угадаешь" (та же механика, что и у LOGCOMBOWALK) —
+// неверно нажатые варианты красятся красным и блокируются, остальные
+// остаются кликабельны.
+const OptionButton = ({
+    value, onClick, disabled, state = 'idle',
+}: { value: number; onClick?: () => void; disabled?: boolean; state?: 'idle' | 'wrong' }) => (
     <button
         type="button"
         onClick={onClick}
-        className="min-w-[64px] py-3 px-4 rounded-xl border-2 border-[#3A464E] bg-[#161F23] text-[#F2F7FB] text-lg md:text-xl font-bold hover:border-[#4A90D9] transition-colors"
+        disabled={disabled}
+        className={cn(
+            'min-w-[64px] py-3 px-4 rounded-xl border-2 text-lg md:text-xl font-bold transition-colors',
+            state === 'wrong'
+                ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]'
+                : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]',
+        )}
     >
         {value}
     </button>
 )
 
+// Персистентное сообщение под вариантами — та же строка, что и в
+// LOGCOMBOWALK: по умолчанию нейтральная подсказка, после первого
+// неверного клика — красный баннер со случайной зумерской фразой,
+// остаётся на экране (не гаснет само) до следующего клика.
+const OptionsHint = ({ wrongFlash }: { wrongFlash: string | null }) => (
+    wrongFlash ? (
+        <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">
+            <X className="w-5 h-5" /> {wrongFlash}
+        </div>
+    ) : (
+        <p className="text-sm text-[#9AA7B0] text-center">Кликни на вариант выше</p>
+    )
+)
+
 // Похвала за верный ответ — детерминированно из seed (не Math.random()
 // прямо в рендере, см. тот же приём в type-sinwalk.tsx/type-logwalk.tsx).
-const FeedbackBanner = ({ correct, correctText, seed }: { correct: boolean; correctText: string; seed: number }) => (
+const FeedbackBanner = ({ correct, correctText = '', seed }: { correct: boolean; correctText?: string; seed: number }) => (
     <div
         className={cn(
             'flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center',
@@ -305,8 +331,15 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
     const [advancing, setAdvancing] = useState(false)
 
     // Ответы квизов 0-4 — ПО ИНДЕКСУ ШАГА, не общее состояние (см.
-    // комментарий в начале файла про накопительный лог).
+    // комментарий в начале файла про накопительный лог). Значение
+    // попадает сюда ТОЛЬКО когда оно верное (см. handleQuizPick) — режим
+    // "пробуй, пока не угадаешь", та же механика, что и у LOGCOMBOWALK.
     const [quizAnswers, setQuizAnswers] = useState<(number | null)[]>(Array(5).fill(null))
+    // Неверно нажатые варианты ТЕКУЩЕГО (единственного активного на данный
+    // момент — шаги 0-4 линейны) квиза + персистентное сообщение под
+    // вариантами — сбрасываются при переходе на следующий шаг/откате назад.
+    const [quizWrongTried, setQuizWrongTried] = useState<number[]>([])
+    const [quizWrongFlash, setQuizWrongFlash] = useState<string | null>(null)
 
     const [existIndex, setExistIndex] = useState(0)
     const [existAnswers, setExistAnswers] = useState<(boolean | null)[]>(Array(EXIST_ITEMS.length).fill(null))
@@ -330,14 +363,19 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
 
     const handleQuizPick = (stepIdx: number, value: number, correct: number) => {
         if (quizAnswers[stepIdx] !== null) return
+        if (quizWrongTried.includes(value)) return
+        if (value !== correct) {
+            setHadMistake(true)
+            setQuizWrongTried((prev) => [...prev, value])
+            setQuizWrongFlash(pickWrongTryPhrase())
+            return
+        }
         const next = [...quizAnswers]
         next[stepIdx] = value
         setQuizAnswers(next)
-        if (value !== correct) {
-            setHadMistake(true)
-        } else {
-            setConfettiFor(`step-${stepIdx}`)
-        }
+        setConfettiFor(`step-${stepIdx}`)
+        setQuizWrongTried([])
+        setQuizWrongFlash(null)
         // Шаг 0 (определение) не открывает "Дальше" сразу — сначала должна
         // допечататься реплика-раскрытие определения (см. её onSettled).
         if (stepIdx !== 0) setStepReady(true)
@@ -368,6 +406,8 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                 setStep((s) => s + 1)
                 setStepReady(false)
             }
+            setQuizWrongTried([])
+            setQuizWrongFlash(null)
             setAdvancing(false)
         }, SCENE_TRANSITION_PAUSE_MS)
     }
@@ -444,6 +484,8 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
             setStepReady(false)
             if (idx <= 4) {
                 setQuizAnswers((prev) => { const next = [...prev]; next[idx] = null; return next })
+                setQuizWrongTried([])
+                setQuizWrongFlash(null)
             }
         }
     }
@@ -462,15 +504,27 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                             </FormulaRow>
                         </DiagramBlock>
                         {quizAnswers[0] === null && (
-                            <div className="flex flex-wrap justify-center gap-3">
-                                {DEFINE_OPTIONS.map((num) => (
-                                    <OptionButton key={num} value={num} onClick={() => handleQuizPick(0, num, DEFINE_CORRECT)} />
-                                ))}
-                            </div>
+                            <>
+                                <div className="flex flex-wrap justify-center gap-3">
+                                    {DEFINE_OPTIONS.map((num) => {
+                                        const isWrong = quizWrongTried.includes(num)
+                                        return (
+                                            <OptionButton
+                                                key={num}
+                                                value={num}
+                                                state={isWrong ? 'wrong' : 'idle'}
+                                                disabled={isWrong}
+                                                onClick={() => handleQuizPick(0, num, DEFINE_CORRECT)}
+                                            />
+                                        )
+                                    })}
+                                </div>
+                                <OptionsHint wrongFlash={quizWrongFlash} />
+                            </>
                         )}
                         {quizAnswers[0] !== null && (
                             <>
-                                <FeedbackBanner correct={quizAnswers[0] === DEFINE_CORRECT} correctText="Не то — 2³=8." seed={quizAnswers[0]} />
+                                <FeedbackBanner correct seed={quizAnswers[0]} />
                                 {confettiFor === 'step-0' && <LocalAnswerConfetti />}
                                 <DiagramBlock>
                                     <FormulaRow>
@@ -513,15 +567,27 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                                     </FormulaRow>
                                 </DiagramBlock>
                                 {answer === null && (
-                                    <div className="flex flex-wrap justify-center gap-3">
-                                        {def.options.map((num) => (
-                                            <OptionButton key={num} value={num} onClick={() => handleQuizPick(i, num, def.correct)} />
-                                        ))}
-                                    </div>
+                                    <>
+                                        <div className="flex flex-wrap justify-center gap-3">
+                                            {def.options.map((num) => {
+                                                const isWrong = quizWrongTried.includes(num)
+                                                return (
+                                                    <OptionButton
+                                                        key={num}
+                                                        value={num}
+                                                        state={isWrong ? 'wrong' : 'idle'}
+                                                        disabled={isWrong}
+                                                        onClick={() => handleQuizPick(i, num, def.correct)}
+                                                    />
+                                                )
+                                            })}
+                                        </div>
+                                        <OptionsHint wrongFlash={quizWrongFlash} />
+                                    </>
                                 )}
                                 {answer !== null && (
                                     <>
-                                        <FeedbackBanner correct={answer === def.correct} correctText={`Не то — log${def.base}(${def.arg})=${def.correct}.`} seed={answer + i * 11} />
+                                        <FeedbackBanner correct seed={answer + i * 11} />
                                         {confettiFor === `step-${i}` && <LocalAnswerConfetti />}
                                     </>
                                 )}
@@ -657,7 +723,6 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                     <div className="w-full flex items-center gap-2">
                         <ReplayButton onClick={handleReplay} disabled={advancing} />
                         <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
-                        <p className="flex-1 text-sm text-[#9AA7B0] text-center">Кликни на вариант выше</p>
                     </div>
                 ) : (
                     <div className="w-full flex items-center gap-2">
