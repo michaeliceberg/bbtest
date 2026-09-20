@@ -14,7 +14,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil, Lock, Link2, BookOpen } from 'lucide-react';
+import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil, Lock, ChevronDown, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
@@ -63,6 +63,8 @@ const mixWithWhite = (hex: string, k: number): string => {
     const mix = (c: number) => Math.round(c + (255 - c) * k);
     return `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
 };
+// Юниты, переименованные на карте, но с прежним названием темы в справочнике.
+const REFERENCE_ALIAS: Record<string, string> = { '8 свойств логарифмов': 'Логарифмы' };
 const DONE_GRADIENT = 'linear-gradient(135deg, #7C3AED 0%, #C026D3 100%)';
 const DONE_BORDER = '#C4B5FD';
 const DONE_GLOW = '0 0 12px -2px rgba(167, 139, 250, 0.55)';
@@ -132,6 +134,8 @@ export type SkillTopic = {
     // группировки соседних карточек в одну рамку, на логику разблокировки
     // не влияет.
     chainLinked?: boolean;
+    blockTitle?: string | null;
+    isLastActive?: boolean;
 };
 
 interface Props {
@@ -171,6 +175,7 @@ const SkullIcon = ({ dim, hue = 0 }: { dim?: boolean; hue?: number }) => {
 }
 
 const StageIcon = ({
+    accent = '#EF9F27',
     isBoss,
     isBossExam = false,
     skullHue = 0,
@@ -182,6 +187,7 @@ const StageIcon = ({
     color,
     dim = false,
 }: {
+    accent?: string;
     isBoss: boolean;
     isBossExam?: boolean;
     skullHue?: number;
@@ -217,7 +223,7 @@ const StageIcon = ({
                 {stepNumber != null && (
                     <span
                         className={`absolute -bottom-1.5 -right-1.5 min-w-[13px] h-[13px] px-0.5 rounded-full flex items-center justify-center text-[9px] font-black leading-none transition-[filter,opacity] duration-300 ${dim ? 'grayscale opacity-60' : ''}`}
-                        style={{ backgroundColor: '#412402', color: '#FFE9A8', border: '1px solid #FFE9A8' }}
+                        style={{ backgroundColor: '#0F171A', color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.7)' }}
                     >
                         {stepNumber}
                     </span>
@@ -229,16 +235,16 @@ const StageIcon = ({
         : isMythic
             ? <img src="/chests/myth0001.svg" alt="" className={`w-6 h-6 transition-[filter,opacity] duration-300 ${dim ? 'grayscale opacity-50' : ''}`} />
         : isChest
-            ? <Gift className={`w-4 h-4 transition-[filter,opacity] duration-300 ${dim ? 'grayscale opacity-50' : ''}`} style={{ color: dim ? undefined : '#EF9F27' }} />
+            ? <Gift className={`w-4 h-4 transition-[filter,opacity] duration-300 ${dim ? 'grayscale opacity-50' : ''}`} style={{ color: dim ? undefined : accent }} />
             : isBoss
                 ? <span className={`text-base leading-none transition-[filter,opacity] duration-300 ${dim ? 'grayscale opacity-50' : ''}`}>👹</span>
                 : <Icon className="w-4 h-4 transition-colors duration-300" style={{ color }} />
 );
 
-const BossGiftBadge = () => (
+const BossGiftBadge = ({ color = '#EF9F27' }: { color?: string }) => (
     <span
         className="absolute -top-2 -right-2 w-4 h-4 rounded flex items-center justify-center"
-        style={{ backgroundColor: '#EF9F27' }}
+        style={{ backgroundColor: color }}
     >
         <Gift className="w-2.5 h-2.5" style={{ color: '#412402' }} />
     </span>
@@ -249,16 +255,14 @@ const BossGiftBadge = () => (
 // подсветка, что уже используется в question-bubble.tsx, просто в
 // золотой палитре вместо цвета юнита, и с более быстрым пульсом (чтобы
 // сразу бросалось в глаза на карте, а не только при наведении).
-const ChestGlow = ({ mega = false, children }: { mega?: boolean; children: React.ReactNode }) => (
+const ChestGlow = ({ mega = false, color = '#EF9F27', children }: { mega?: boolean; color?: string; children: React.ReactNode }) => (
     <div className="relative w-9 h-9">
         <motion.div
             animate={{ opacity: [0.35, 0.8, 0.35], scale: [0.9, mega ? 1.35 : 1.15, 0.9] }}
             transition={{ duration: mega ? 1.6 : 2, repeat: Infinity, ease: 'easeInOut' }}
             className="absolute -inset-2 rounded-full pointer-events-none"
             style={{
-                background: mega
-                    ? 'radial-gradient(circle, #FFD46090 0%, #FFD46000 70%)'
-                    : 'radial-gradient(circle, #EF9F2790 0%, #EF9F2700 70%)',
+                background: `radial-gradient(circle, ${hexToRgba(color, mega ? 0.6 : 0.5)} 0%, ${hexToRgba(color, 0)} 70%)`,
             }}
         />
         {children}
@@ -337,16 +341,6 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
     const [highlightedTopic, setHighlightedTopic] = useState<string | null>(null);
     const topicScrollStartedRef = React.useRef(false);
 
-    useEffect(() => {
-        if (!topicParam || topicScrollStartedRef.current) return;
-        const node = topicRefs.current[topicParam];
-        if (!node) return;
-        topicScrollStartedRef.current = true;
-        node.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setHighlightedTopic(topicParam);
-        const t = setTimeout(() => setHighlightedTopic(null), 2200);
-        return () => clearTimeout(t);
-    }, [topicParam, topics]);
 
     useEffect(() => {
         if (startedRef.current) return;
@@ -392,17 +386,47 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
     // не входящие в цепочку, рендерятся как раньше, поодиночке. Работает
     // на ЛЮБОМ наборе юнитов с t_units.unlockAfterTUnitId — не завязано
     // на конкретные id/названия.
-    type RenderGroup = { kind: 'solo'; topic: SkillTopic } | { kind: 'chain'; topics: SkillTopic[] };
+    type RenderGroup = { kind: 'solo'; topic: SkillTopic } | { kind: 'block'; title: string; topics: SkillTopic[] };
     const renderGroups: RenderGroup[] = [];
     for (const topic of topics) {
-        if (topic.chainLinked) {
+        if (topic.blockTitle) {
             const last = renderGroups[renderGroups.length - 1];
-            if (last && last.kind === 'chain') { last.topics.push(topic); continue; }
-            renderGroups.push({ kind: 'chain', topics: [topic] });
+            if (last && last.kind === 'block' && last.title === topic.blockTitle) { last.topics.push(topic); continue; }
+            renderGroups.push({ kind: 'block', title: topic.blockTitle, topics: [topic] });
         } else {
             renderGroups.push({ kind: 'solo', topic });
         }
     }
+
+    // Развёрнутые блоки: по умолчанию — только тот, где пользователь решал
+    // последним (иначе первый блок).
+    const blockTitles = renderGroups.filter((g): g is Extract<RenderGroup, { kind: 'block' }> => g.kind === 'block');
+    const defaultOpenBlock = (blockTitles.find((g) => g.topics.some((t) => t.isLastActive)) ?? blockTitles[0])?.title ?? null;
+    const [openBlocks, setOpenBlocks] = useState<Set<string>>(() => new Set(defaultOpenBlock ? [defaultOpenBlock] : []));
+    const toggleBlock = (title: string) => setOpenBlocks((prev) => {
+        const next = new Set(prev);
+        if (next.has(title)) next.delete(title); else next.add(title);
+        return next;
+    });
+    // Переход из справочника — раскрываем блок с нужной темой.
+    useEffect(() => {
+        if (!topicParam) return;
+        const g = blockTitles.find((b) => b.topics.some((t) => t.title === topicParam || REFERENCE_ALIAS[t.title] === topicParam));
+        if (g) setOpenBlocks((prev) => (prev.has(g.title) ? prev : new Set(prev).add(g.title)));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [topicParam]);
+
+    useEffect(() => {
+        if (!topicParam || topicScrollStartedRef.current) return;
+        const key = Object.keys(topicRefs.current).find((k) => k === topicParam || REFERENCE_ALIAS[k] === topicParam);
+        const node = key ? topicRefs.current[key] : null;
+        if (!node) return;
+        topicScrollStartedRef.current = true;
+        node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setHighlightedTopic(key ?? topicParam);
+        const t = setTimeout(() => setHighlightedTopic(null), 2200);
+        return () => clearTimeout(t);
+    }, [topicParam, topics, openBlocks]);
 
     // Карточка одной темы — вынесена в функцию (не отдельный компонент:
     // нужен доступ по замыканию к состоянию reveal-анимации/рефам выше,
@@ -447,12 +471,12 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                         <div className="flex items-center gap-2 mb-2.5 min-w-0">
                             <span className="w-1.5 h-5 rounded-full flex-shrink-0" style={{ background: `linear-gradient(180deg, ${accent.button}, ${accent.bottom})` }} />
                             <span className="text-base font-extrabold truncate" style={{ color: accent.button }}>{topic.title}</span>
-                            <span className="text-xs font-bold flex-shrink-0" style={{ color: hexToRgba(accent.button, 0.85) }}>{topic.percentage}%</span>
-                            {topic.chainLinked && (
-                                <span title="Часть цепочки тригонометрии" className="flex-shrink-0">
-                                    <Link2 className="w-3 h-3 text-[#A78BFA]" />
-                                </span>
-                            )}
+                            {(() => {
+                                const examStage = topic.stages.find((st) => st.isBossExam);
+                                if (!examStage) return <span className="text-xs font-bold flex-shrink-0" style={{ color: hexToRgba(accent.button, 0.85) }}>{topic.percentage}%</span>;
+                                const rank = getBossRank(examStage.bossWins ?? 0);
+                                return rank ? <span className="text-xs font-black flex-shrink-0 px-2 py-0.5 rounded-full" style={{ color: rank.color, backgroundColor: hexToRgba(rank.color, 0.15) }}>{rank.title}</span> : null;
+                            })()}
                             {isAdmin && (
                                 <Link
                                     href={`/admin/t-unit-review/${topic.id}`}
@@ -587,11 +611,11 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                         href={stageHref}
                                                                         className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                         style={{
-                                                                            background: isStepByStep ? STEPBYSTEP_GRADIENT : UNLOCKED_BG,
-                                                                            border: `2px solid ${isStepByStep ? STEPBYSTEP_BORDER : UNLOCKED_BORDER}`,
-                                                                            boxShadow: isStepByStep ? STEPBYSTEP_GLOW : undefined,
+                                                                            background: UNLOCKED_BG,
+                                                                            border: `2px solid ${accent.button}`,
+                                                                            boxShadow: undefined,
                                                                         }}
-                                                                        icon={<StageIcon isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={UNLOCKED_BORDER} />}
+                                                                        icon={<StageIcon accent={accent.button} isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={accent.button} />}
                                                                     />
                                                                 </motion.div>
                                                                 <motion.div
@@ -604,12 +628,12 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                         href={stageHref}
                                                                         className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                         style={{
-                                                                            background: isStepByStep ? STEPBYSTEP_GRADIENT : doneGradient,
-                                                                            border: `2px solid ${isStepByStep ? STEPBYSTEP_BORDER : doneBorder}`,
-                                                                            boxShadow: isStepByStep ? STEPBYSTEP_GLOW : doneGlow,
+                                                                            background: doneGradient,
+                                                                            border: `2px solid ${doneBorder}`,
+                                                                            boxShadow: doneGlow,
                                                                         }}
-                                                                        icon={<StageIcon isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={DONE_ICON_COLOR} />}
-                                                                        extra={isBoss ? <BossGiftBadge /> : null}
+                                                                        icon={<StageIcon accent={accent.button} isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={DONE_ICON_COLOR} />}
+                                                                        extra={isBoss ? <BossGiftBadge color={accent.button} /> : null}
                                                                     />
                                                                 </motion.div>
                                                             </div>
@@ -627,9 +651,9 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                 >
                                                                     <div
                                                                         className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
-                                                                        style={{ border: `2px solid ${isStepByStep ? STEPBYSTEP_LOCKED_BORDER : LOCKED_BORDER}` }}
+                                                                        style={{ border: `2px solid ${LOCKED_BORDER}` }}
                                                                     >
-                                                                        <StageIcon isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
+                                                                        <StageIcon accent={accent.button} isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
                                                                     </div>
                                                                 </motion.div>
                                                                 <motion.div
@@ -642,11 +666,11 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                         href={stageHref}
                                                                         className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                         style={{
-                                                                            background: isStepByStep ? STEPBYSTEP_GRADIENT : UNLOCKED_BG,
-                                                                            border: `2px solid ${isStepByStep ? STEPBYSTEP_BORDER : UNLOCKED_BORDER}`,
-                                                                            boxShadow: isStepByStep ? STEPBYSTEP_GLOW : undefined,
+                                                                            background: UNLOCKED_BG,
+                                                                            border: `2px solid ${accent.button}`,
+                                                                            boxShadow: undefined,
                                                                         }}
-                                                                        icon={<StageIcon isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={UNLOCKED_BORDER} />}
+                                                                        icon={<StageIcon accent={accent.button} isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={accent.button} />}
                                                                     />
                                                                 </motion.div>
                                                             </div>
@@ -657,22 +681,22 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                 href={stageHref}
                                                                 className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                 style={{
-                                                                    background: isStepByStep ? STEPBYSTEP_GRADIENT : (done ? doneGradient : UNLOCKED_BG),
-                                                                    border: `2px solid ${isStepByStep ? STEPBYSTEP_BORDER : (done ? doneBorder : UNLOCKED_BORDER)}`,
-                                                                    boxShadow: isStepByStep ? STEPBYSTEP_GLOW : (done ? doneGlow : undefined),
+                                                                    background: (done ? doneGradient : UNLOCKED_BG),
+                                                                    border: `2px solid ${(done ? doneBorder : accent.button)}`,
+                                                                    boxShadow: (done ? doneGlow : undefined),
                                                                 }}
-                                                                icon={<StageIcon isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={done ? DONE_ICON_COLOR : UNLOCKED_BORDER} />}
-                                                                extra={isBoss && done ? <BossGiftBadge /> : null}
+                                                                icon={<StageIcon accent={accent.button} isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={done ? DONE_ICON_COLOR : accent.button} />}
+                                                                extra={isBoss && done ? <BossGiftBadge color={accent.button} /> : null}
                                                             />
                                                         );
                                                     } else {
                                                         stageBox = (
                                                             <div
                                                                 className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
-                                                                style={{ border: `2px solid ${isStepByStep ? STEPBYSTEP_LOCKED_BORDER : LOCKED_BORDER}` }}
+                                                                style={{ border: `2px solid ${LOCKED_BORDER}` }}
                                                                 title={s.extraLocked && s.extraLockedPrereqTitle ? `Сначала пройди «${s.extraLockedPrereqTitle}»` : undefined}
                                                             >
-                                                                <StageIcon isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
+                                                                <StageIcon accent={accent.button} isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
                                                             </div>
                                                         );
                                                     }
@@ -697,14 +721,12 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                         <span className="text-[10px] font-bold" style={{ color: getBossRank(s.bossWins ?? 0)?.color }}>{getBossRank(s.bossWins ?? 0)?.title}</span>
                                                                     </span>
                                                                 )}
-                                                                {isStepByStep
-                                                                    ? <ChestGlow>{stageBox}</ChestGlow>
-                                                                    : isMythic
-                                                                        ? <ChestGlow mega>{stageBox}</ChestGlow>
+                                                                {isMythic
+                                                                        ? <ChestGlow mega color={accent.button}>{stageBox}</ChestGlow>
                                                                     : isChest
-                                                                        ? <ChestGlow>{stageBox}</ChestGlow>
+                                                                        ? <ChestGlow color={accent.button}>{stageBox}</ChestGlow>
                                                                         : isMegaChest
-                                                                            ? <ChestGlow mega>{stageBox}</ChestGlow>
+                                                                            ? <ChestGlow mega color={accent.button}>{stageBox}</ChestGlow>
                                                                             : isFrontier
                                                                                 ? <RippleGlow>{stageBox}</RippleGlow>
                                                                                 : stageBox}
@@ -777,7 +799,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                             justify-end здесь автоматически даёт тот же правый край). */}
                         <div className="flex justify-end mt-2">
                             <Link
-                                href={`/reference?topic=${encodeURIComponent(topic.title)}`}
+                                href={`/reference?topic=${encodeURIComponent(REFERENCE_ALIAS[topic.title] ?? topic.title)}`}
                                 // h-8 фиксирует ОБЩУЮ высоту кнопки — иначе при
                                 // нажатии (active:border-b-2, было border-b-4) сама
                                 // высота элемента сокращалась на 2px и весь контент
@@ -801,28 +823,31 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                 {renderGroups.map((group, i) => (
                     group.kind === 'solo'
                         ? renderTopicCard(group.topic, GROUP_ACCENTS[i % GROUP_ACCENTS.length])
-                        : (
-                            <div
-                                key={`chain-${group.topics[0].id}-${i}`}
-                                className="rounded-2xl border-2 p-2.5"
-                                style={{ borderColor: GROUP_ACCENTS[i % GROUP_ACCENTS.length].button, backgroundColor: hexToRgba(GROUP_ACCENTS[i % GROUP_ACCENTS.length].button, 0.08) }}
-                            >
-                                {/* Заголовок группы — по прямой просьбе пользователя,
-                                    настоящий заголовок (не мелкая подпись-иконка, как
-                                    было раньше). Название пока захардкожено — единственная
-                                    существующая цепочка (курс "Математика-11"); если
-                                    появится вторая цепочка в другом курсе, эту строку
-                                    стоит вынести в вычисляемое/настраиваемое поле у
-                                    корневой темы цепочки, а не плодить if по названию. */}
-                                <div className="flex items-center gap-2 px-1 mb-2.5">
-                                    <Link2 className="w-4 h-4 flex-shrink-0" style={{ color: GROUP_ACCENTS[i % GROUP_ACCENTS.length].button }} />
-                                    <h2 className="text-lg font-black tracking-wide" style={{ color: GROUP_ACCENTS[i % GROUP_ACCENTS.length].button }}>Блок Тригонометрия</h2>
+                        : (() => {
+                            const accent = GROUP_ACCENTS[i % GROUP_ACCENTS.length];
+                            const isOpen = openBlocks.has(group.title);
+                            return (
+                                <div
+                                    key={`block-${group.title}-${i}`}
+                                    className="rounded-2xl border-2 p-2.5"
+                                    style={{ borderColor: accent.button, backgroundColor: hexToRgba(accent.button, 0.08) }}
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleBlock(group.title)}
+                                        className="w-full flex items-center gap-2 px-1"
+                                    >
+                                        <h2 className="text-lg font-black tracking-wide" style={{ color: accent.button }}>Блок {group.title}</h2>
+                                        <ChevronDown className={`w-5 h-5 ml-auto transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} style={{ color: accent.button }} />
+                                    </button>
+                                    {isOpen && (
+                                        <div className="flex flex-col gap-2.5 mt-2.5">
+                                            {group.topics.map((t) => renderTopicCard(t, accent, true))}
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="flex flex-col gap-2.5">
-                                    {group.topics.map((t) => renderTopicCard(t, GROUP_ACCENTS[i % GROUP_ACCENTS.length], true))}
-                                </div>
-                            </div>
-                        )
+                            );
+                        })()
                 ))}
             </div>
         </div>

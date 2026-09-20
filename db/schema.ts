@@ -371,6 +371,9 @@ export const t_units = pgTable('t_units', {
 	// ВСЕМ лессонам предка (если unlockAfterLessonOrder=null).
 	unlockAfterTUnitId: integer('unlock_after_t_unit_id'),
 	unlockAfterLessonOrder: integer('unlock_after_lesson_order'),
+	// Название блока, в который визуально сгруппирован юнит на карте
+	// скиллов (соседние юниты с одинаковым block_title — один сворачиваемый блок).
+	blockTitle: text('block_title'),
 });
 
 export const t_lessons = pgTable('t_lessons', {

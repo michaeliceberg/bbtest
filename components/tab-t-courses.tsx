@@ -37,6 +37,7 @@ type Props = {
         // подавляющего большинства юнитов не задана.
         unlockAfterTUnitId: number | null;
         unlockAfterLessonOrder: number | null;
+        blockTitle: string | null;
         t_lessons: {
             id: number;
             title: string;
@@ -274,6 +275,20 @@ export const TabTCourses = ({
                         }
                     })
 
+                    // Юнит, где пользователь решал последним — его блок
+                    // разворачивается по умолчанию.
+                    let lastActiveUnitId: number | null = null
+                    {
+                        const lessonToUnit = new Map<number, number>()
+                        unitsInCourse.forEach((u) => u.t_lessons.forEach((l) => lessonToUnit.set(l.id, u.id)))
+                        let latest = 0
+                        t_lessonProgress.forEach((p) => {
+                            const uid = lessonToUnit.get(p.t_lessonId)
+                            const ts = new Date(p.dateDone).getTime()
+                            if (uid && ts > latest) { latest = ts; lastActiveUnitId = uid }
+                        })
+                    }
+
                     const topics: SkillTopic[] = unitsInCourse.map((t_unit) => {
                         // Раньше не сортировалось вообще — порядок этапов
                         // (в т.ч. "какой из них последний-босс" и раскладка
@@ -337,6 +352,8 @@ export const TabTCourses = ({
                             lockPrereqTitle,
                             lockPrereqPartial,
                             chainLinked: chainMemberIds.has(t_unit.id),
+                            blockTitle: t_unit.blockTitle ?? null,
+                            isLastActive: t_unit.id === lastActiveUnitId,
                         }
                     })
 
