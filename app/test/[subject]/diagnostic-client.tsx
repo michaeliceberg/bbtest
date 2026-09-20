@@ -301,12 +301,13 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 						<p className="text-[#9AA7B0]">
 							{questions.length} {declensionRu(questions.length, 'вопрос', 'вопроса', 'вопросов')}, около {Math.max(2, Math.round(questions.length * 0.5))} минут. Узнайте, к чему вы уже готовы — и что стоит подтянуть.
 						</p>
-						<div className="flex flex-col items-center gap-1 mt-2">
+						<div className="flex flex-row items-center justify-center gap-3 mt-2">
 							<Lottie animationData={LOTTIE_TEST_PIZZA} loop autoplay className="w-32 h-32 shrink-0" />
-							<p className="text-2xl font-black leading-tight">
-								<span className="text-amber-300">А ещё вы можете выиграть</span>
+							<p className="text-2xl font-black leading-tight text-left">
+								<span className="text-amber-300">А ещё вы можете</span>
 								<br />
-								<span className="text-fuchsia-400 text-3xl">пиццу!</span>
+								<span className="text-amber-300">выиграть </span>
+								<span className="text-fuchsia-400">пиццу!</span>
 							</p>
 						</div>
 						<Button
