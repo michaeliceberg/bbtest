@@ -23,7 +23,7 @@ export const PizzaProgress = ({ collected, size = 140 }: Props) => {
 	const left = MAX_PIZZA_SLICES - clamped
 
 	return (
-		<div className="flex items-center justify-center gap-4">
+		<div className="flex w-full items-center justify-center gap-4">
 			<div className="relative shrink-0" style={{ width: size, height: size }}>
 				{Array.from({ length: MAX_PIZZA_SLICES }, (_, i) => {
 					const sliceIndex = i + 1
@@ -47,14 +47,16 @@ export const PizzaProgress = ({ collected, size = 140 }: Props) => {
 				<span className="text-5xl font-black leading-none text-yellow-300">
 					{clamped}/{MAX_PIZZA_SLICES}
 				</span>
-				<span className="flex items-start gap-1.5 text-xs text-[#9AA7B0] leading-snug">
-					{/* eslint-disable-next-line @next/next/no-img-element */}
-					<img src="/dodo-icon.svg" alt="Додо" className="w-5 h-5 shrink-0" />
+				<span className="flex items-end gap-1.5 text-xs text-[#9AA7B0] leading-snug">
 					<span>
-						{isComplete
-							? 'Пицца собрана — промокод в Додо!'
-							: `Собери ещё ${left} и получи промокод в Додо`}
+						{isComplete ? (
+							<>Пицца собрана —<br />промокод в Додо!</>
+						) : (
+							<>Собери ещё {left} и получи<br />промокод в Додо</>
+						)}
 					</span>
+					{/* eslint-disable-next-line @next/next/no-img-element */}
+					<img src="/dodo-icon.svg" alt="Додо" className="w-6 h-6 shrink-0" />
 				</span>
 			</div>
 		</div>
