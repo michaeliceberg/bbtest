@@ -806,7 +806,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
         <div className="w-full max-w-xl mx-auto">
             <div className="flex flex-col gap-3">
                 {renderGroups.length > 1 && (
-                    <div className="flex gap-1 p-1 rounded-2xl bg-[#232F34] overflow-x-auto">
+                    <div className="flex flex-wrap gap-1 p-1 rounded-2xl bg-[#232F34]">
                         {renderGroups.map((g) => {
                             const key = groupKey(g);
                             const isActive = key === activeGroupKey;
@@ -815,7 +815,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                     key={key}
                                     type="button"
                                     onClick={() => setActiveGroupKey(key)}
-                                    className="relative flex-1 whitespace-nowrap px-4 py-2 rounded-xl text-sm font-extrabold transition-colors"
+                                    className="relative flex-grow whitespace-nowrap px-3 py-2 rounded-xl text-sm font-extrabold transition-colors"
                                     style={{ color: isActive ? '#FFFFFF' : '#9AA7B0' }}
                                 >
                                     {isActive && (
