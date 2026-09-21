@@ -54,7 +54,7 @@ const COLUMNS_PER_ROW = 4;
 import { hexToRgba } from '@/src/constants/lessonButtonColors';
 type GroupAccent = { button: string; bottom: string };
 // Цвета блоков/тем по кругу из общей палитры ggege (CLAUDE.md).
-const GROUP_ACCENTS: GroupAccent[] = [GGEGE_PALETTE.green];
+const GROUP_ACCENTS: GroupAccent[] = [GGEGE_PALETTE.blue];
 const mixWithWhite = (hex: string, k: number): string => {
     const n = parseInt(hex.slice(1), 16);
     const mix = (c: number) => Math.round(c + (255 - c) * k);
