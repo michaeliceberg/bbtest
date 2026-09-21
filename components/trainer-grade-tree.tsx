@@ -165,7 +165,7 @@ const SkullIcon = ({ dim, hue = 0 }: { dim?: boolean; hue?: number }) => {
         fetch('/Lottie/trainerLessonButtons/fireSkull.json').then((r) => r.json()).then(setData).catch(() => {})
     }, [])
     return (
-        <span className={`w-7 h-7 inline-block ${dim ? 'grayscale opacity-50' : ''}`} style={hue && !dim ? { filter: `hue-rotate(${hue}deg)` } : undefined}>
+        <span className={`w-10 h-10 inline-block ${dim ? 'grayscale opacity-50' : ''}`} style={hue && !dim ? { filter: `hue-rotate(${hue}deg)` } : undefined}>
             {data ? <Lottie animationData={data} loop autoplay /> : null}
         </span>
     )
@@ -596,9 +596,9 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                         href={stageHref}
                                                                         className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                         style={{
-                                                                            background: UNLOCKED_BG,
-                                                                            border: `2px solid ${accent.button}`,
-                                                                            boxShadow: undefined,
+                                                                            background: isBossExam ? 'transparent' : UNLOCKED_BG,
+                                                                            border: isBossExam ? '2px solid transparent' : `2px solid ${accent.button}`,
+                                                                            boxShadow: isBossExam ? 'none' : undefined,
                                                                         }}
                                                                         icon={<StageIcon accent={accent.button} isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={accent.button} />}
                                                                     />
@@ -613,9 +613,9 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                         href={stageHref}
                                                                         className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                         style={{
-                                                                            background: doneGradient,
-                                                                            border: `2px solid ${doneBorder}`,
-                                                                            boxShadow: doneGlow,
+                                                                            background: isBossExam ? 'transparent' : doneGradient,
+                                                                            border: isBossExam ? '2px solid transparent' : `2px solid ${doneBorder}`,
+                                                                            boxShadow: isBossExam ? 'none' : doneGlow,
                                                                         }}
                                                                         icon={<StageIcon accent={accent.button} isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={DONE_ICON_COLOR} />}
                                                                         extra={isBoss ? <BossGiftBadge color={accent.button} /> : null}
@@ -636,7 +636,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                 >
                                                                     <div
                                                                         className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
-                                                                        style={{ border: `2px solid ${LOCKED_BORDER}` }}
+                                                                        style={{ border: isBossExam ? '2px solid transparent' : `2px solid ${LOCKED_BORDER}` }}
                                                                     >
                                                                         <StageIcon accent={accent.button} isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
                                                                     </div>
@@ -651,9 +651,9 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                         href={stageHref}
                                                                         className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                         style={{
-                                                                            background: UNLOCKED_BG,
-                                                                            border: `2px solid ${accent.button}`,
-                                                                            boxShadow: undefined,
+                                                                            background: isBossExam ? 'transparent' : UNLOCKED_BG,
+                                                                            border: isBossExam ? '2px solid transparent' : `2px solid ${accent.button}`,
+                                                                            boxShadow: isBossExam ? 'none' : undefined,
                                                                         }}
                                                                         icon={<StageIcon accent={accent.button} isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={accent.button} />}
                                                                     />
@@ -666,9 +666,9 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                 href={stageHref}
                                                                 className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                 style={{
-                                                                    background: (done ? doneGradient : UNLOCKED_BG),
-                                                                    border: `2px solid ${(done ? doneBorder : accent.button)}`,
-                                                                    boxShadow: (done ? doneGlow : undefined),
+                                                                    background: isBossExam ? 'transparent' : (done ? doneGradient : UNLOCKED_BG),
+                                                                    border: isBossExam ? '2px solid transparent' : `2px solid ${(done ? doneBorder : accent.button)}`,
+                                                                    boxShadow: isBossExam ? 'none' : (done ? doneGlow : undefined),
                                                                 }}
                                                                 icon={<StageIcon accent={accent.button} isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={done ? DONE_ICON_COLOR : accent.button} />}
                                                                 extra={isBoss && done ? <BossGiftBadge color={accent.button} /> : null}
@@ -678,7 +678,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                         stageBox = (
                                                             <div
                                                                 className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
-                                                                style={{ border: `2px solid ${LOCKED_BORDER}` }}
+                                                                style={{ border: isBossExam ? '2px solid transparent' : `2px solid ${LOCKED_BORDER}` }}
                                                                 title={s.extraLocked && s.extraLockedPrereqTitle ? `Сначала пройди «${s.extraLockedPrereqTitle}»` : undefined}
                                                             >
                                                                 <StageIcon accent={accent.button} isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={LOCKED_ICON_COLOR} dim />
