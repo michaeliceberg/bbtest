@@ -264,7 +264,7 @@ const TLearnPage = async () => {
                     </div>
 
                     <TabTCourses
-                        t_courses={t_courses}
+                        t_courses={activeTCourse ? [activeTCourse] : t_courses}
                         t_units={t_units}
                         t_lessonProgress={t_lessonProgress}
                         TRatingUsers={TRatingUsers}

@@ -147,6 +147,7 @@ export const TabTCourses = ({
     // настоящее чтение localStorage — только внутри useEffect после
     // монтирования (та же причина, что и у прошлых hydration-фиксов в
     // этом проекте — localStorage недоступен на сервере).
+    // Табы курсов убраны — курс определяется активным курсом задачника.
     const ACTIVE_T_COURSE_TAB_KEY = 'trainerActiveTCourseTab'
     const [activeTab, setActiveTab] = useState<string | null>(null)
 
@@ -229,19 +230,6 @@ export const TabTCourses = ({
                     пользователя, "аккуратнее"), не узкая центрированная
                     группа: TabsList сам w-full+flex, каждый TabsTrigger —
                     flex-1, чтобы вкладки равномерно делили всю ширину. */}
-                <div className="mb-6">
-                    <TabsList className="w-full flex bg-[#232F34] rounded-xl p-1">
-                        {t_courses.map((t_course, index) => (
-                            <TabsTrigger
-                                key={index * 21983}
-                                value={t_course.title}
-                                className="flex-1 data-[state=active]:bg-[#151F23] data-[state=active]:shadow-sm px-4 py-2"
-                            >
-                                {t_course.title.split(' ')[0]}
-                            </TabsTrigger>
-                        ))}
-                    </TabsList>
-                </div>
 
                 {/* Контент для каждого курса */}
                 {t_courses.map((t_course, indexCourse) => {

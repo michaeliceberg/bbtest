@@ -395,18 +395,18 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
         }
     }
 
-    // Развёрнутые блоки: по умолчанию — только тот, где пользователь решал
-    // последним (иначе первый блок).
-    const blockTitles = renderGroups.filter((g): g is Extract<RenderGroup, { kind: 'block' }> => g.kind === 'block');
-    const defaultOpenBlock = (blockTitles.find((g) => g.topics.some((t) => t.isLastActive)) ?? blockTitles[0])?.title ?? null;
-    const [openBlocks, setOpenBlocks] = useState<Set<string>>(() => new Set(defaultOpenBlock ? [defaultOpenBlock] : []));
-    // Аккордеон: открыт всегда максимум один блок.
-    const toggleBlock = (title: string) => setOpenBlocks((prev) => (prev.has(title) ? new Set<string>() : new Set([title])));
-    // Переход из справочника — раскрываем блок с нужной темой.
+    // Табы юнитов (блоков): активен тот, где пользователь решал последним
+    // (иначе первый). Показывается содержимое только активного таба.
+    const groupKey = (g: RenderGroup) => (g.kind === 'block' ? g.title : `solo-${g.topic.id}`);
+    const groupLabel = (g: RenderGroup) => (g.kind === 'block' ? g.title : g.topic.title);
+    const groupTopics = (g: RenderGroup) => (g.kind === 'block' ? g.topics : [g.topic]);
+    const defaultGroup = renderGroups.find((g) => groupTopics(g).some((t) => t.isLastActive)) ?? renderGroups[0];
+    const [activeGroupKey, setActiveGroupKey] = useState<string | null>(defaultGroup ? groupKey(defaultGroup) : null);
+    // Переход из справочника — переключаемся на таб с нужной темой.
     useEffect(() => {
         if (!topicParam) return;
-        const g = blockTitles.find((b) => b.topics.some((t) => t.title === topicParam || REFERENCE_ALIAS[t.title] === topicParam));
-        if (g) setOpenBlocks(new Set([g.title]));
+        const g = renderGroups.find((b) => groupTopics(b).some((t) => t.title === topicParam || REFERENCE_ALIAS[t.title] === topicParam));
+        if (g) setActiveGroupKey(groupKey(g));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [topicParam]);
 
@@ -420,7 +420,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
         setHighlightedTopic(key ?? topicParam);
         const t = setTimeout(() => setHighlightedTopic(null), 2200);
         return () => clearTimeout(t);
-    }, [topicParam, topics, openBlocks]);
+    }, [topicParam, topics, activeGroupKey]);
 
     // Карточка одной темы — вынесена в функцию (не отдельный компонент:
     // нужен доступ по замыканию к состоянию reveal-анимации/рефам выше,
@@ -804,41 +804,50 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
 
     return (
         <div className="w-full max-w-xl mx-auto">
-            <div className="flex flex-col gap-2.5">
-                {renderGroups.map((group, i) => (
-                    group.kind === 'solo'
-                        ? renderTopicCard(group.topic, GROUP_ACCENTS[i % GROUP_ACCENTS.length])
-                        : (() => {
-                            const accent = GROUP_ACCENTS[i % GROUP_ACCENTS.length];
-                            const isOpen = openBlocks.has(group.title);
+            <div className="flex flex-col gap-3">
+                {renderGroups.length > 1 && (
+                    <div className="flex gap-1 p-1 rounded-2xl bg-[#232F34] overflow-x-auto">
+                        {renderGroups.map((g) => {
+                            const key = groupKey(g);
+                            const isActive = key === activeGroupKey;
                             return (
-                                <div
-                                    key={`block-${group.title}-${i}`}
-                                    className="rounded-2xl border-2 p-2.5"
-                                    style={{ borderColor: accent.button, backgroundColor: hexToRgba(accent.button, 0.08) }}
+                                <button
+                                    key={key}
+                                    type="button"
+                                    onClick={() => setActiveGroupKey(key)}
+                                    className="relative flex-1 whitespace-nowrap px-4 py-2 rounded-xl text-sm font-extrabold transition-colors"
+                                    style={{ color: isActive ? '#FFFFFF' : '#9AA7B0' }}
                                 >
-                                    <button
-                                        type="button"
-                                        onClick={() => toggleBlock(group.title)}
-                                        className="w-full flex items-center gap-2 px-1"
-                                    >
-                                        <h2 className="text-lg font-black tracking-wide" style={{ color: accent.button }}>{group.title}</h2>
-                                        <ChevronDown className={`w-5 h-5 ml-auto transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} style={{ color: accent.button }} />
-                                    </button>
-                                    <motion.div
-                                        initial={false}
-                                        animate={{ height: isOpen ? 'auto' : 0, opacity: isOpen ? 1 : 0 }}
-                                        transition={{ type: 'spring', stiffness: 260, damping: 24, mass: 0.9, opacity: { duration: 0.25 } }}
-                                        style={{ overflow: 'hidden' }}
-                                    >
-                                        <div className="flex flex-col gap-2.5 pt-2.5">
-                                            {group.topics.map((t) => renderTopicCard(t, accent, true, group.title))}
-                                        </div>
-                                    </motion.div>
-                                </div>
+                                    {isActive && (
+                                        <motion.span
+                                            layoutId="trainer-unit-tab-pill"
+                                            className="absolute inset-0 rounded-xl"
+                                            style={{ background: `linear-gradient(135deg, ${GROUP_ACCENTS[0].button}, ${GROUP_ACCENTS[0].bottom})`, boxShadow: `0 4px 14px -4px ${hexToRgba(GROUP_ACCENTS[0].button, 0.7)}` }}
+                                            transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                                        />
+                                    )}
+                                    <span className="relative z-10">{groupLabel(g)}</span>
+                                </button>
                             );
-                        })()
-                ))}
+                        })}
+                    </div>
+                )}
+                {renderGroups.map((g) => {
+                    const key = groupKey(g);
+                    if (key !== activeGroupKey) return null;
+                    const accent = GROUP_ACCENTS[0];
+                    return (
+                        <motion.div
+                            key={key}
+                            initial={{ opacity: 0, y: 14 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+                            className="flex flex-col gap-2.5"
+                        >
+                            {groupTopics(g).map((t) => renderTopicCard(t, accent, false, groupLabel(g)))}
+                        </motion.div>
+                    );
+                })}
             </div>
         </div>
     );
