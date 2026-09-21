@@ -242,7 +242,7 @@ const TLearnPage = async () => {
             </StickyWrapper>
 
             <FeedWrapper>
-                <Header title="Тренажёр" />
+                <Header title={activeTCourse ? `Тренажёр ${activeTCourse.title}` : "Тренажёр"} />
 
                 <div className='mt-2 lg:mt-5'>
                     <StreakRiskBanner streak={currentStreakForRisk} hasExtendedToday={hasExtendedStreakToday} />

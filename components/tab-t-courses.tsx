@@ -347,9 +347,6 @@ export const TabTCourses = ({
 
                     return (
                     <TabsContent key={indexCourse * 19339} value={t_course.title} className="mt-0">
-                        <h2 className="text-center text-lg font-bold text-[#F2F7FB] mb-3">
-                            {t_course.title.split(' ')[1] ?? t_course.title}
-                        </h2>
 
                         {t_course.title === 'Арифметика' && (
                             <div className="flex flex-wrap justify-center gap-3 mb-4">
