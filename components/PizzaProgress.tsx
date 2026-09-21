@@ -29,11 +29,14 @@ export const PizzaProgress = ({ collected, size = 140 }: Props) => {
 	// Наведение (или тап) — пицца раскручивается с ускорением, делает 2
 	// оборота с затуханием, перекручивает на 20°, откатывается на 5° назад и встаёт ровно.
 	const controls = useAnimationControls()
+	const counterControls = useAnimationControls()
 	const spinning = useRef(false)
 	const spin = async () => {
 		if (spinning.current) return
 		spinning.current = true
 		await controls.start({ rotate: 740, transition: { duration: 1.8, ease: [0.55, 0, 0.15, 1] } })
+		// Счётчик «6/8» пружинит (увеличивается и уменьшается) в момент доворотов.
+		counterControls.start({ scale: [1, 1.4, 0.9, 1.15, 1], transition: { duration: 0.9, ease: 'easeOut' } })
 		await controls.start({ rotate: 715, transition: { duration: 0.35, ease: 'easeInOut' } })
 		await controls.start({ rotate: 720, transition: { duration: 0.3, ease: 'easeInOut' } })
 		controls.set({ rotate: 0 })
@@ -62,9 +65,9 @@ export const PizzaProgress = ({ collected, size = 140 }: Props) => {
 				})}
 			</motion.div>
 			<div className="flex flex-col gap-1.5 min-w-0">
-				<span className="text-5xl font-black leading-none text-yellow-300">
+				<motion.span animate={counterControls} className="text-5xl font-black leading-none text-yellow-300 origin-left">
 					{clamped}/{MAX_PIZZA_SLICES}
-				</span>
+				</motion.span>
 				<span className="flex items-end gap-2 text-base font-semibold text-[#C9D3D9] leading-snug">
 					<span>
 						{isComplete ? (
