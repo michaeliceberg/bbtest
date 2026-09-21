@@ -1,3 +1,5 @@
+'use client'
+
 // components/PizzaProgress.tsx
 //
 // 8 кусочков пиццы (public/pizzaSVG/pizza_8_N.svg), собранных из кейсов
