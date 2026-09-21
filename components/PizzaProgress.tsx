@@ -47,7 +47,7 @@ export const PizzaProgress = ({ collected, size = 140 }: Props) => {
 				<span className="text-5xl font-black leading-none text-yellow-300">
 					{clamped}/{MAX_PIZZA_SLICES}
 				</span>
-				<span className="flex items-end gap-1.5 text-xs text-[#9AA7B0] leading-snug">
+				<span className="flex items-end gap-2 text-base font-semibold text-[#C9D3D9] leading-snug">
 					<span>
 						{isComplete ? (
 							<>Пицца собрана —<br />промокод в Додо!</>
@@ -56,7 +56,7 @@ export const PizzaProgress = ({ collected, size = 140 }: Props) => {
 						)}
 					</span>
 					{/* eslint-disable-next-line @next/next/no-img-element */}
-					<img src="/dodo-icon.svg" alt="Додо" className="w-6 h-6 shrink-0" />
+					<img src="/dodo-icon.svg" alt="Додо" className="w-10 h-10 shrink-0" />
 				</span>
 			</div>
 		</div>
