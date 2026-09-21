@@ -9,6 +9,8 @@
 // Собрал все 8 — открывается право заказать настоящую пиццу (сама заявка
 // на заказ — отдельная, ещё не реализованная фича, см. CLAUDE.md).
 
+import { useRef } from 'react'
+import { motion, useAnimationControls } from 'framer-motion'
 import { MAX_PIZZA_SLICES } from '@/lib/caseRewards'
 
 type Props = {
@@ -22,9 +24,22 @@ export const PizzaProgress = ({ collected, size = 140 }: Props) => {
 
 	const left = MAX_PIZZA_SLICES - clamped
 
+	// Наведение (или тап) — пицца раскручивается с ускорением, делает 2
+	// оборота с затуханием, чуть перекручивает (на 15°) и возвращается.
+	const controls = useAnimationControls()
+	const spinning = useRef(false)
+	const spin = async () => {
+		if (spinning.current) return
+		spinning.current = true
+		await controls.start({ rotate: 735, transition: { duration: 1.8, ease: [0.55, 0, 0.15, 1] } })
+		await controls.start({ rotate: 720, transition: { duration: 0.4, ease: 'easeInOut' } })
+		controls.set({ rotate: 0 })
+		spinning.current = false
+	}
+
 	return (
-		<div className="flex w-full items-center justify-center gap-4">
-			<div className="relative shrink-0" style={{ width: size, height: size }}>
+		<div className="flex w-full items-center justify-center gap-4" onMouseEnter={spin} onClick={spin}>
+			<motion.div animate={controls} className="relative shrink-0" style={{ width: size, height: size }}>
 				{Array.from({ length: MAX_PIZZA_SLICES }, (_, i) => {
 					const sliceIndex = i + 1
 					const isCollected = sliceIndex <= clamped
@@ -42,7 +57,7 @@ export const PizzaProgress = ({ collected, size = 140 }: Props) => {
 						/>
 					)
 				})}
-			</div>
+			</motion.div>
 			<div className="flex flex-col gap-1.5 min-w-0">
 				<span className="text-5xl font-black leading-none text-yellow-300">
 					{clamped}/{MAX_PIZZA_SLICES}

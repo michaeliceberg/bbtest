@@ -231,9 +231,7 @@ const StageIcon = ({
             ? <SkullIcon dim={dim} hue={skullHue} />
         : isMythic
             ? <img src="/chests/myth0001.svg" alt="" className={`w-6 h-6 transition-[filter,opacity] duration-300 ${dim ? 'grayscale opacity-50' : ''}`} />
-        : isChest
-            ? <Gift className={`w-4 h-4 transition-[filter,opacity] duration-300 ${dim ? 'grayscale opacity-50' : ''}`} style={{ color: dim ? undefined : accent }} />
-            : isBoss
+        : isBoss
                 ? <span className={`text-base leading-none transition-[filter,opacity] duration-300 ${dim ? 'grayscale opacity-50' : ''}`}>👹</span>
                 : <Icon className="w-4 h-4 transition-colors duration-300" style={{ color }} />
 );
@@ -618,7 +616,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                             boxShadow: isBossExam ? 'none' : doneGlow,
                                                                         }}
                                                                         icon={<StageIcon accent={accent.button} isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={DONE_ICON_COLOR} />}
-                                                                        extra={isBoss ? <BossGiftBadge color={accent.button} /> : null}
+                                                                        extra={isBoss ? null : null}
                                                                     />
                                                                 </motion.div>
                                                             </div>
@@ -671,7 +669,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                     boxShadow: isBossExam ? 'none' : (done ? doneGlow : undefined),
                                                                 }}
                                                                 icon={<StageIcon accent={accent.button} isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={done ? DONE_ICON_COLOR : accent.button} />}
-                                                                extra={isBoss && done ? <BossGiftBadge color={accent.button} /> : null}
+                                                                extra={isBoss && done ? null : null}
                                                             />
                                                         );
                                                     } else {
