@@ -27,14 +27,15 @@ export const PizzaProgress = ({ collected, size = 140 }: Props) => {
 	const left = MAX_PIZZA_SLICES - clamped
 
 	// Наведение (или тап) — пицца раскручивается с ускорением, делает 2
-	// оборота с затуханием, чуть перекручивает (на 15°) и возвращается.
+	// оборота с затуханием, перекручивает на 20°, откатывается на 5° назад и встаёт ровно.
 	const controls = useAnimationControls()
 	const spinning = useRef(false)
 	const spin = async () => {
 		if (spinning.current) return
 		spinning.current = true
-		await controls.start({ rotate: 735, transition: { duration: 1.8, ease: [0.55, 0, 0.15, 1] } })
-		await controls.start({ rotate: 720, transition: { duration: 0.4, ease: 'easeInOut' } })
+		await controls.start({ rotate: 740, transition: { duration: 1.8, ease: [0.55, 0, 0.15, 1] } })
+		await controls.start({ rotate: 715, transition: { duration: 0.35, ease: 'easeInOut' } })
+		await controls.start({ rotate: 720, transition: { duration: 0.3, ease: 'easeInOut' } })
 		controls.set({ rotate: 0 })
 		spinning.current = false
 	}
