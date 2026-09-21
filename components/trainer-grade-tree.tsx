@@ -54,10 +54,7 @@ const COLUMNS_PER_ROW = 4;
 import { hexToRgba } from '@/src/constants/lessonButtonColors';
 type GroupAccent = { button: string; bottom: string };
 // Цвета блоков/тем по кругу из общей палитры ggege (CLAUDE.md).
-const GROUP_ACCENTS: GroupAccent[] = [
-    GGEGE_PALETTE.purple, GGEGE_PALETTE.blue, GGEGE_PALETTE.green,
-    GGEGE_PALETTE.orange, GGEGE_PALETTE.raspberry, GGEGE_PALETTE.teal,
-];
+const GROUP_ACCENTS: GroupAccent[] = [GGEGE_PALETTE.green];
 const mixWithWhite = (hex: string, k: number): string => {
     const n = parseInt(hex.slice(1), 16);
     const mix = (c: number) => Math.round(c + (255 - c) * k);
@@ -403,16 +400,13 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
     const blockTitles = renderGroups.filter((g): g is Extract<RenderGroup, { kind: 'block' }> => g.kind === 'block');
     const defaultOpenBlock = (blockTitles.find((g) => g.topics.some((t) => t.isLastActive)) ?? blockTitles[0])?.title ?? null;
     const [openBlocks, setOpenBlocks] = useState<Set<string>>(() => new Set(defaultOpenBlock ? [defaultOpenBlock] : []));
-    const toggleBlock = (title: string) => setOpenBlocks((prev) => {
-        const next = new Set(prev);
-        if (next.has(title)) next.delete(title); else next.add(title);
-        return next;
-    });
+    // Аккордеон: открыт всегда максимум один блок.
+    const toggleBlock = (title: string) => setOpenBlocks((prev) => (prev.has(title) ? new Set<string>() : new Set([title])));
     // Переход из справочника — раскрываем блок с нужной темой.
     useEffect(() => {
         if (!topicParam) return;
         const g = blockTitles.find((b) => b.topics.some((t) => t.title === topicParam || REFERENCE_ALIAS[t.title] === topicParam));
-        if (g) setOpenBlocks((prev) => (prev.has(g.title) ? prev : new Set(prev).add(g.title)));
+        if (g) setOpenBlocks(new Set([g.title]));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [topicParam]);
 
@@ -422,7 +416,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
         const node = key ? topicRefs.current[key] : null;
         if (!node) return;
         topicScrollStartedRef.current = true;
-        node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => node.scrollIntoView({ behavior: 'smooth', block: 'center' }), 500);
         setHighlightedTopic(key ?? topicParam);
         const t = setTimeout(() => setHighlightedTopic(null), 2200);
         return () => clearTimeout(t);
@@ -432,7 +426,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
     // нужен доступ по замыканию к состоянию reveal-анимации/рефам выше,
     // без прокидывания десятка пропсов), вызывается из ДВУХ мест —
     // одиночная тема и тема внутри chain-группы (см. return ниже).
-    const renderTopicCard = (topic: SkillTopic, accent: GroupAccent, nested = false) => {
+    const renderTopicCard = (topic: SkillTopic, accent: GroupAccent, nested = false, blockTitle?: string) => {
         const doneGradient = `linear-gradient(135deg, ${accent.button} 0%, ${accent.bottom} 100%)`;
         const doneBorder = mixWithWhite(accent.button, 0.5);
         const doneGlow = `0 0 12px -2px ${hexToRgba(accent.button, 0.6)}`;
@@ -470,22 +464,13 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                     >
                         <div className="flex items-center gap-2 mb-2.5 min-w-0">
                             <span className="w-1.5 h-5 rounded-full flex-shrink-0" style={{ background: `linear-gradient(180deg, ${accent.button}, ${accent.bottom})` }} />
-                            <span className="text-base font-extrabold truncate" style={{ color: accent.button }}>{topic.title}</span>
+                            {topic.title !== blockTitle && <span className="text-base font-extrabold truncate" style={{ color: accent.button }}>{topic.title}</span>}
                             {(() => {
                                 const examStage = topic.stages.find((st) => st.isBossExam);
-                                if (!examStage) return <span className="text-xs font-bold flex-shrink-0" style={{ color: hexToRgba(accent.button, 0.85) }}>{topic.percentage}%</span>;
+                                if (!examStage) return <span className="text-xs font-bold flex-shrink-0 ml-auto" style={{ color: hexToRgba(accent.button, 0.85) }}>{topic.percentage}%</span>;
                                 const rank = getBossRank(examStage.bossWins ?? 0);
-                                return rank ? <span className="text-xs font-black flex-shrink-0 px-2 py-0.5 rounded-full" style={{ color: rank.color, backgroundColor: hexToRgba(rank.color, 0.15) }}>{rank.title}</span> : null;
+                                return rank ? <span className="text-xs font-black flex-shrink-0 px-2 py-0.5 rounded-full ml-auto" style={{ color: rank.color, backgroundColor: hexToRgba(rank.color, 0.15) }}>{rank.title}</span> : null;
                             })()}
-                            {isAdmin && (
-                                <Link
-                                    href={`/admin/t-unit-review/${topic.id}`}
-                                    title="Редактировать задачи темы"
-                                    className="ml-auto flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-md text-[#9AA7B0] hover:text-[#F2F7FB] hover:bg-[#232F34] transition-colors"
-                                >
-                                    <Pencil className="w-3.5 h-3.5" />
-                                </Link>
-                            )}
                         </div>
 
                         {topic.stages.length > 0 && (() => {
@@ -837,14 +822,19 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                         onClick={() => toggleBlock(group.title)}
                                         className="w-full flex items-center gap-2 px-1"
                                     >
-                                        <h2 className="text-lg font-black tracking-wide" style={{ color: accent.button }}>Блок {group.title}</h2>
+                                        <h2 className="text-lg font-black tracking-wide" style={{ color: accent.button }}>{group.title}</h2>
                                         <ChevronDown className={`w-5 h-5 ml-auto transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} style={{ color: accent.button }} />
                                     </button>
-                                    {isOpen && (
-                                        <div className="flex flex-col gap-2.5 mt-2.5">
-                                            {group.topics.map((t) => renderTopicCard(t, accent, true))}
+                                    <motion.div
+                                        initial={false}
+                                        animate={{ height: isOpen ? 'auto' : 0, opacity: isOpen ? 1 : 0 }}
+                                        transition={{ type: 'spring', stiffness: 260, damping: 24, mass: 0.9, opacity: { duration: 0.25 } }}
+                                        style={{ overflow: 'hidden' }}
+                                    >
+                                        <div className="flex flex-col gap-2.5 pt-2.5">
+                                            {group.topics.map((t) => renderTopicCard(t, accent, true, group.title))}
                                         </div>
-                                    )}
+                                    </motion.div>
                                 </div>
                             );
                         })()
