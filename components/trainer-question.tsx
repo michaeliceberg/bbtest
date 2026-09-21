@@ -32,6 +32,7 @@ import { TypeLogSwapWalk } from "@/app/t-lesson/[t_lessonId]/type-logswapwalk"
 import { TypeLogDivWalk } from "@/app/t-lesson/[t_lessonId]/type-logdivwalk"
 import { TypeLogComboWalk } from "@/app/t-lesson/[t_lessonId]/type-logcombowalk"
 import { TypeLogFlipWalk } from "@/app/t-lesson/[t_lessonId]/type-logflipwalk"
+import { TypeFaradayWalk } from "@/app/t-lesson/[t_lessonId]/type-faradaywalk"
 import { TypeWorkbook } from "@/app/t-lesson/[t_lessonId]/type-workbook"
 import { TypeConstructor } from "@/app/t-lesson/[t_lessonId]/type-constructor"
 
@@ -386,6 +387,10 @@ export default function TrainerQuestion({
         // type-logflipwalk.tsx.
         return <TypeLogFlipWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
 
+      case "FARADAYWALK":
+        // Интерактивная песочница "магнит + кольцо" — закон Фарадея. См. type-faradaywalk.tsx.
+        return <TypeFaradayWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
+
       case "TRIGTABLE":
         // select-then-submit, тот же контракт, что у ASSIST/INSERT/SCROLL —
         // пользователь может менять заполненные пропуски ДО нажатия общей
@@ -677,7 +682,7 @@ export default function TrainerQuestion({
           прямой просьбе пользователя. TRIGTABLE (как ASSIST/INSERT/
           SCROLL) — select-then-submit: общая кнопка сначала "Ответить"
           (когда все пропуски заполнены), затем "далее"/"понятно". */}
-      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "SINWALK" && question.questionType !== "LOGWALK" && question.questionType !== "LOGDEFWALK" && question.questionType !== "LOGSUBWALK" && question.questionType !== "LOGPOWWALK" && question.questionType !== "LOGSWAPWALK" && question.questionType !== "LOGDIVWALK" && question.questionType !== "LOGCOMBOWALK" && question.questionType !== "LOGFLIPWALK" && (
+      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "SINWALK" && question.questionType !== "LOGWALK" && question.questionType !== "LOGDEFWALK" && question.questionType !== "LOGSUBWALK" && question.questionType !== "LOGPOWWALK" && question.questionType !== "LOGSWAPWALK" && question.questionType !== "LOGDIVWALK" && question.questionType !== "LOGCOMBOWALK" && question.questionType !== "LOGFLIPWALK" && question.questionType !== "FARADAYWALK" && (
       <div className="px-4 pb-4 pt-2 bg-[#151F24] relative">
         {/* Notification фон который выезжает при правильном ответе */}
         {answerState === "correct" && (
