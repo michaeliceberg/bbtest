@@ -91,7 +91,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
     setPendingCourse(courseId)
     onAfterCourseChange?.()
     startTransition(async () => {
-      await switchCourse(courseId)
+      await switchCourse(courseId, pathname.startsWith('/trainer') ? '/trainer' : undefined)
       router.refresh()
     })
   }
