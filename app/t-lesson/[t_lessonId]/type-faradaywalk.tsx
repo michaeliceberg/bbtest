@@ -308,14 +308,20 @@ const FIELD_RX_LIST = [60, 95, 135]
 // — именно поэтому стикер уезжал в (0,0), угол canvas'а, несмотря на
 // корректно посчитанные x/y (см. тот же гэтча, уже задокументированный в
 // CLAUDE.md для motion.g в геометрических разборах).
-const FieldBLabel = ({ x, y, color, delay }: { x: number; y: number; color: string; delay: number }) => (
+// solidBg — по умолчанию полупрозрачная цветная подложка (как и раньше);
+// риски-сцена передаёт true — там стикер плавает поверх бирюзовой дуги
+// кольца, и полупрозрачный фон просвечивал/сливался с ней (по прямой
+// просьбе пользователя) — непрозрачный тёмный фон панели (тот же
+// нейтральный `#161F23`, что везде в проекте — фон карточек/плашек)
+// гарантированно не сливается ни с чем под собой, независимо от цвета.
+const FieldBLabel = ({ x, y, color, delay, solidBg = false }: { x: number; y: number; color: string; delay: number; solidBg?: boolean }) => (
     <g transform={`translate(${x},${y})`}>
         <motion.g
             initial={{ opacity: 0, scale: 2.4 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: 'spring', stiffness: 320, damping: 15, delay }}
         >
-            <rect x={-14} y={-14} width={28} height={28} rx={7} fill={hexToRgba(color, 0.18)} stroke={color} strokeWidth={2} />
+            <rect x={-14} y={-14} width={28} height={28} rx={7} fill={solidBg ? '#161F23' : hexToRgba(color, 0.18)} stroke={color} strokeWidth={2} />
             <text x={0} y={6} textAnchor="middle" fontSize={16} fontWeight={800} fill={color}>B</text>
         </motion.g>
     </g>
@@ -509,9 +515,14 @@ const DirectionDiagram = () => {
 // размазана по области кольца", имитация перспективы того же типа, что
 // уже даёт сжатие самого эллипса по Ry).
 const TealRing = ({
-    cx, cy, rx, ry, hatched = false, animateIn = false, uid, sScaleY = 0.6,
-}: { cx: number; cy: number; rx: number; ry: number; hatched?: boolean; animateIn?: boolean; uid: string; sScaleY?: number }) => {
+    cx, cy, rx, ry, hatched = false, showS, animateIn = false, uid, sScaleY = 0.6,
+}: { cx: number; cy: number; rx: number; ry: number; hatched?: boolean; showS?: boolean; animateIn?: boolean; uid: string; sScaleY?: number }) => {
     const clipId = `ring-clip-${uid}`
+    // showS по умолчанию совпадает со старым поведением (штриховка и
+    // стикер S всегда шли вместе) — независимый проп понадобился
+    // риски-сцене: там штриховка убрана (сливалась со стрелочками поля),
+    // но сам стикер S нужен оставить.
+    const showSFinal = showS ?? hatched
     return (
         <g>
             {hatched && (
@@ -548,7 +559,7 @@ const TealRing = ({
             ) : (
                 <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="none" stroke={RING_COLOR} strokeWidth={5} />
             )}
-            {hatched && (
+            {showSFinal && (
                 <motion.g
                     initial={{ opacity: 0, scale: 3 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -628,7 +639,8 @@ const DIST_LABEL_GAP = 22
 // перспективу (дальнее — короче/меньше, ближнее — длиннее/крупнее), тот
 // же принцип, что уже даёт сжатие самого эллипса кольца по Ry.
 const DIST_ARROW_ROW_DY = [-14, 0, 14]
-const DIST_ARROW_ROW_LEN = [18, 24, 30]
+const DIST_ARROW_ROW_LEN = [26, 34, 42]
+const DIST_ARROW_STROKE_WIDTH = 3.2
 const DIST_ARROW_COL_FRAC = [-0.55, 0, 0.55]
 
 type DistArrowPoint = { x: number; yBase: number; len: number; dist: number }
@@ -680,11 +692,13 @@ const DistanceDiagram = ({ selectedIndex, onSelect }: { selectedIndex: number; o
                     />
                 ))}
 
-                {/* Кольцо — бирюзовое, с заштрихованной площадью и
-                    стикером "S" внутри (та же визуализация, что и в
-                    сценах "металлическое кольцо"/"площадь S" выше) —
-                    статично, не зависит от выбранной риски. */}
-                <TealRing cx={DIST_TRACK_X} cy={DIST_RING_CY} rx={DIST_RING_RX} ry={DIST_RING_RY} hatched uid="dist" sScaleY={0.55} />
+                {/* Кольцо — бирюзовое, СО стикером "S" внутри, но БЕЗ
+                    штриховки площади (по прямой просьбе пользователя —
+                    штриховка визуально сливалась с синими 3D-стрелками
+                    поля, которые теперь тоже лежат В ПРЕДЕЛАХ эллипса
+                    кольца, см. DIST_ARROW_GRID ниже) — статично, не
+                    зависит от выбранной риски. */}
+                <TealRing cx={DIST_TRACK_X} cy={DIST_RING_CY} rx={DIST_RING_RX} ry={DIST_RING_RY} showS uid="dist" sScaleY={0.55} />
 
                 {DIST_ARROW_GRID.map((pt, i) => {
                     const visible = pt.dist <= visibleHalf
@@ -693,14 +707,18 @@ const DistanceDiagram = ({ selectedIndex, onSelect }: { selectedIndex: number; o
                     // часть — шеврон), шахта уходит вверх на её длину —
                     // короче у дальнего ряда, длиннее у ближнего (см.
                     // DIST_ARROW_ROW_LEN) — та же лёгкая перспектива, что
-                    // и у самого сжатого по Ry эллипса кольца.
-                    const chevronBase = pt.yBase - pt.len * 0.22
+                    // и у самого сжатого по Ry эллипса кольца. Длиннее и
+                    // толще (DIST_ARROW_STROKE_WIDTH), чем в первой
+                    // версии, — по прямой просьбе пользователя, чтобы
+                    // явно выделяться на фоне кольца.
+                    const chevronBase = pt.yBase - pt.len * 0.26
                     const shaftTop = pt.yBase - pt.len
+                    const chevronHalf = 4.6
                     return (
-                        <motion.g key={i} animate={{ opacity: visible ? 0.9 : 0 }} transition={{ duration: 0.4 }}>
-                            <line x1={x} y1={shaftTop} x2={x} y2={chevronBase} stroke={FIELD_COLOR} strokeWidth={2} strokeLinecap="round" />
-                            <path d={`M${x - 4},${chevronBase} L${x},${pt.yBase} L${x + 4},${chevronBase}`} fill="none"
-                                stroke={FIELD_COLOR} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                        <motion.g key={i} animate={{ opacity: visible ? 0.95 : 0 }} transition={{ duration: 0.4 }}>
+                            <line x1={x} y1={shaftTop} x2={x} y2={chevronBase} stroke={FIELD_COLOR} strokeWidth={DIST_ARROW_STROKE_WIDTH} strokeLinecap="round" />
+                            <path d={`M${x - chevronHalf},${chevronBase} L${x},${pt.yBase} L${x + chevronHalf},${chevronBase}`} fill="none"
+                                stroke={FIELD_COLOR} strokeWidth={DIST_ARROW_STROKE_WIDTH} strokeLinecap="round" strokeLinejoin="round" />
                         </motion.g>
                     )
                 })}
@@ -713,7 +731,7 @@ const DistanceDiagram = ({ selectedIndex, onSelect }: { selectedIndex: number; o
                     animate={{ x: bLabelX, y: bLabelY }}
                     transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
                 >
-                    <FieldBLabel x={0} y={0} color={FIELD_COLOR} delay={0.3} />
+                    <FieldBLabel x={0} y={0} color={FIELD_COLOR} delay={0.3} solidBg />
                 </motion.g>
 
                 {/* Магнит — едет между рисками (framer-motion x/y-моушены
@@ -1104,11 +1122,14 @@ const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
                         <Fragment key={`step-7-${nonceFor('step-7')}`}>
                             <TypedLineWithParts
                                 parts={[
-                                    { text: 'Придвинь магнит к кольцу — заметь, чем ' },
+                                    { text: 'Придвинь магнит к кольцу — заметь,' },
+                                    { break: true },
+                                    { text: 'чем ' },
                                     { bold: 'БЛИЖЕ' },
                                     { text: ' магнит к кольцу, тем ' },
                                     { bold: 'БОЛЬШЕ' },
-                                    { text: ' магнитное поле ' },
+                                    { break: true },
+                                    { text: 'магнитное поле ' },
                                     { sticker: 'B', color: FIELD_COLOR },
                                     { text: '.' },
                                 ]}
