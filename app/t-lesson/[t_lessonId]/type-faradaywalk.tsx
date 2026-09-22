@@ -593,25 +593,48 @@ const RingIntroDiagram = ({ hatched }: { hatched: boolean }) => (
 // БОЛЬШЕ стрелочек-силовых линий видно над кольцом — "перетекание" между
 // состояниями через прозрачность каждой отдельной стрелки (не кросс-фейд
 // целых картинок), плавно и без изломов.
-const DIST_TRACK_X = 110
-const DIST_TICK_Y = [30, 95, 160] // далеко, средне, близко
+// Все размеры увеличены (по прямой просьбе пользователя — длиннее
+// вертикальная линия с рисками, бОльшего диаметра кольцо): риски
+// раздвинуты вдвое дальше друг от друга (было 65, стало 110), кольцо
+// заметно крупнее (rx 58→90, ry 14→24). Всё, что ниже последней риски
+// (стрелочки поля, кольцо), сдвинуто вниз на ту же дельту, что выросла
+// длина трека — зазор "магнит у ближней риски / верх стрелочек"
+// остаётся визуально тем же, что и в исходной версии.
+const DIST_TRACK_X = 120
+const DIST_TICK_Y = [30, 140, 250] // далеко, средне, близко
 const DIST_MAG_W = 32
 const DIST_MAG_H = 48
-const DIST_RING_CY = 245
-const DIST_RING_RX = 58
-const DIST_RING_RY = 14
+const DIST_ARROW_Y1 = 282
+const DIST_ARROW_Y2 = 306
+const DIST_ARROW_TIP_Y1 = 300
+const DIST_ARROW_TIP_Y2 = 310
+const DIST_ARROW_MID_Y = 294
+const DIST_RING_CY = 350
+const DIST_RING_RX = 90
+const DIST_RING_RY = 24
 // 9 позиций стрелок (симметрично вокруг центра); VISIBLE_HALF — сколько
 // от центра видно на каждой риске: далеко=1 стрелка, средне=5, близко=9 —
 // тот же принцип "больше линий = ближе магнит", что и у bs1/bs2/bs3.
 const DIST_ARROW_OFFSETS = [-56, -42, -28, -14, 0, 14, 28, 42, 56]
 const DIST_VISIBLE_HALF = [0, 2, 4]
+const DIST_LABEL_GAP = 22
 
 const DistanceDiagram = ({ selectedIndex, onSelect }: { selectedIndex: number; onSelect: (i: number) => void }) => {
     const magTop = DIST_TICK_Y[selectedIndex] - DIST_MAG_H / 2
     const visibleHalf = DIST_VISIBLE_HALF[selectedIndex]
+    // Стикер "B" — всегда рядом с крайней ПРАВОЙ ВИДИМОЙ стрелочкой поля
+    // (по прямой просьбе пользователя): у дальней риски (visibleHalf=0)
+    // видна только центральная стрелка (offset 0) — B рядом с ней; у
+    // средней (visibleHalf=2) — рядом с новой крайней видимой (offset
+    // 28); у ближней (visibleHalf=4, максимум поля) — как и раньше,
+    // справа от самой правой из всех 9 (offset 56). Индекс 4+visibleHalf
+    // в DIST_ARROW_OFFSETS всегда даёт именно этот offset, т.к. массив
+    // симметричен вокруг центрального индекса 4=offset 0.
+    const rightmostVisibleOffset = DIST_ARROW_OFFSETS[4 + visibleHalf]
+    const bLabelX = DIST_TRACK_X + rightmostVisibleOffset + DIST_LABEL_GAP
     return (
         <div className="flex w-full justify-center py-2">
-            <svg viewBox="0 0 220 280" className="h-[280px] w-[220px]">
+            <svg viewBox="0 0 240 400" className="h-[420px] w-[252px]">
                 <line x1={DIST_TRACK_X} y1={DIST_TICK_Y[0]} x2={DIST_TRACK_X} y2={DIST_TICK_Y[2]}
                     stroke="#3A464E" strokeWidth={4} strokeLinecap="round" />
                 {DIST_TICK_Y.map((y, i) => (
@@ -636,15 +659,23 @@ const DistanceDiagram = ({ selectedIndex, onSelect }: { selectedIndex: number; o
                     const x = DIST_TRACK_X + dx
                     return (
                         <motion.g key={i} animate={{ opacity: visible ? 0.9 : 0 }} transition={{ duration: 0.4 }}>
-                            <line x1={x} y1={192} x2={x} y2={216} stroke={FIELD_COLOR} strokeWidth={2} strokeLinecap="round" />
-                            <path d={`M${x - 4},${210} L${x},${220} L${x + 4},${210}`} fill="none"
+                            <line x1={x} y1={DIST_ARROW_Y1} x2={x} y2={DIST_ARROW_Y2} stroke={FIELD_COLOR} strokeWidth={2} strokeLinecap="round" />
+                            <path d={`M${x - 4},${DIST_ARROW_TIP_Y1} L${x},${DIST_ARROW_TIP_Y2} L${x + 4},${DIST_ARROW_TIP_Y1}`} fill="none"
                                 stroke={FIELD_COLOR} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                         </motion.g>
                     )
                 })}
-                {/* Стикер "B" — справа от силовых линий (синих стрелочек)
-                    магнитного поля, по прямой просьбе пользователя. */}
-                <FieldBLabel x={DIST_TRACK_X + 56 + 22} y={204} color={FIELD_COLOR} delay={0.3} />
+                {/* Стикер "B" — рядом с крайней видимой стрелочкой поля,
+                    подстраивается под выбранную риску (см. rightmostVisibleOffset
+                    выше). Позиционирующий x/y — на motion.g через x/y
+                    framer-motion motion-values (не raw transform-строка),
+                    та же безопасная техника, что и у самого магнита ниже. */}
+                <motion.g
+                    animate={{ x: bLabelX, y: DIST_ARROW_MID_Y }}
+                    transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                >
+                    <FieldBLabel x={0} y={0} color={FIELD_COLOR} delay={0.3} />
+                </motion.g>
 
                 {/* Магнит — едет между рисками (framer-motion x/y-моушены
                     компонуются между собой сами, без риска затирания
@@ -832,6 +863,13 @@ const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
                 {step >= 5 && (
                     <SceneWrapper key="step-5" innerRef={sceneRef('step-5')} active={isSceneActive('step-5')}>
                         <Fragment key={`step-5-${nonceFor('step-5')}`}>
+                            <TypedLineWithParts
+                                parts={[
+                                    { text: 'А это металлическое ' },
+                                    { sticker: 'кольцо', color: RING_COLOR },
+                                    { text: '.' },
+                                ]}
+                            />
                             <DiagramBlock>
                                 <RingIntroDiagram hatched={false} />
                             </DiagramBlock>
