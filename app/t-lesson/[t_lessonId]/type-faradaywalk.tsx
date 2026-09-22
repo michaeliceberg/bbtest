@@ -641,7 +641,23 @@ const DIST_LABEL_GAP = 22
 const DIST_ARROW_ROW_DY = [-14, 0, 14]
 const DIST_ARROW_ROW_LEN = [26, 34, 42]
 const DIST_ARROW_STROKE_WIDTH = 3.2
-const DIST_ARROW_COL_FRAC = [-0.55, 0, 0.55]
+// Раньше все 3 ряда использовали ОДИН И ТОТ ЖЕ набор долей ширины
+// (cf=[-0.55,0,0.55]) — из-за этого центральная колонка (cf=0) ВСЕГДА
+// давала x=0 независимо от ряда (0×что-угодно=0), и три "центральные"
+// стрелки трёх рядов физически стояли на одной вертикальной линии,
+// сливаясь визуально в одну — та самая жалоба пользователя ("три
+// стрелки на одной вертикальной линии"/"много стрелочек по одной
+// линии"). Исправлено — у КАЖДОГО ряда своя, намеренно НЕ симметричная
+// тройка долей (не просто зеркальное -0.55/0/0.55) — ни один x не
+// повторяется ни в одном другом ряду ни при какой комбинации рядов, то
+// есть НИКАКАЯ пара точек сетки не может визуально слиться в одну
+// линию, при этом сама 3×3-структура (и её "дистанция от центра" для
+// логики видимости риски) не меняется — только фактические x-координаты.
+const DIST_ARROW_ROW_COLS = [
+    [-0.62, 0.06, 0.68],
+    [-0.7, -0.1, 0.52],
+    [-0.42, 0.22, 0.7],
+]
 
 type DistArrowPoint = { x: number; yBase: number; len: number; dist: number }
 
@@ -650,13 +666,15 @@ type DistArrowPoint = { x: number; yBase: number; len: number; dist: number }
 // добавляет их), 4 у 4 угловых (риска "близко" добавляет и их) — та же
 // семантика, что и раньше была у линейных офсетов DIST_ARROW_OFFSETS,
 // просто обобщённая на 2D-сетку 3×3: сравнение `dist<=visibleHalf`
-// работает без изменений.
+// работает без изменений (индекс (ri,ci), а не фактический x, задаёт
+// группировку — поэтому смена самих x на несимметричные значения выше
+// никак не ломает семантику видимости по рискам).
 function buildDistArrowGrid(): DistArrowPoint[] {
     const pts: DistArrowPoint[] = []
     DIST_ARROW_ROW_DY.forEach((dy, ri) => {
         const t = dy / DIST_RING_RY
         const rowHalfWidth = DIST_RING_RX * Math.sqrt(Math.max(0, 1 - t * t))
-        DIST_ARROW_COL_FRAC.forEach((cf, ci) => {
+        DIST_ARROW_ROW_COLS[ri].forEach((cf, ci) => {
             const dist = ri === 1 && ci === 1 ? 0 : ri === 1 || ci === 1 ? 2 : 4
             pts.push({ x: cf * rowHalfWidth, yBase: DIST_RING_CY + dy, len: DIST_ARROW_ROW_LEN[ri], dist })
         })
@@ -711,12 +729,24 @@ const DistanceDiagram = ({ selectedIndex, onSelect }: { selectedIndex: number; o
                     // толще (DIST_ARROW_STROKE_WIDTH), чем в первой
                     // версии, — по прямой просьбе пользователя, чтобы
                     // явно выделяться на фоне кольца.
+                    // Шахта (line) раньше заканчивалась НЕ в самом острие
+                    // (pt.yBase), а чуть выше — в chevronBase, тогда как
+                    // "галочка" (шеврон) своими двумя лучами упирается в
+                    // ТОЧКУ chevronBase (сверху) слева/справа от центра —
+                    // визуально "|" повисал в промежутке между двумя
+                    // рожками галочки, не касаясь ни одного из них
+                    // (жалоба пользователя "| и v выглядят отдельно").
+                    // Исправлено — шахта продлена до pt.yBase (самого
+                    // острия), точно совпадающего со средней вершиной
+                    // шеврона: оба штриха физически сходятся в ОДНОЙ
+                    // точке, скруглённые концы/сочленения (round) там
+                    // визуально сливаются в единую стрелку.
                     const chevronBase = pt.yBase - pt.len * 0.26
                     const shaftTop = pt.yBase - pt.len
                     const chevronHalf = 4.6
                     return (
                         <motion.g key={i} animate={{ opacity: visible ? 0.95 : 0 }} transition={{ duration: 0.4 }}>
-                            <line x1={x} y1={shaftTop} x2={x} y2={chevronBase} stroke={FIELD_COLOR} strokeWidth={DIST_ARROW_STROKE_WIDTH} strokeLinecap="round" />
+                            <line x1={x} y1={shaftTop} x2={x} y2={pt.yBase} stroke={FIELD_COLOR} strokeWidth={DIST_ARROW_STROKE_WIDTH} strokeLinecap="round" />
                             <path d={`M${x - chevronHalf},${chevronBase} L${x},${pt.yBase} L${x + chevronHalf},${chevronBase}`} fill="none"
                                 stroke={FIELD_COLOR} strokeWidth={DIST_ARROW_STROKE_WIDTH} strokeLinecap="round" strokeLinejoin="round" />
                         </motion.g>
