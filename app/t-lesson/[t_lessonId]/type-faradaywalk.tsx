@@ -12,8 +12,16 @@
 // 0. "Смотри — это магнит." — просто картинка магнита, без подсветки.
 // 1. "Магнит создаёт вокруг себя [магнитное поле] — обозначается буквой
 //    [B]." — оба стикером (синий, FIELD_COLOR); диаграмма дорисовывает
-//    силовые линии магнита ТЕМ ЖЕ цветом; затем "Магнитное поле
-//    измеряется в [Тесла (Тл)]."
+//    силовые линии магнита ТЕМ ЖЕ цветом (линии уходят сначала ВНИЗ от
+//    полюса, затем большим радиусом возвращаются наверх — по прямой
+//    просьбе пользователя, по мотивам визуального языка "стрелочка бежит
+//    по линии", как в референсах течения тока по проводу — см.
+//    FlowArrows ниже); затем "Магнитное поле измеряется в [Тесла (Тл)]."
+// 2. "У магнита есть [северный] полюс [N]." — линии поля бледнеют,
+//    нижний край магнита подсвечивается синим (тот же NORTH_COLOR, что
+//    и стикер), верхний остаётся бледным.
+// 3. "И [южный] полюс [S]." — аналогично наоборот: всё бледное, кроме
+//    верхнего края — он красным (SOUTH_COLOR), тем же цветом стикер.
 //
 // После знакомства (INTRO_CONCEPT_STEPS шагов) — фаза 'hands':
 // та же интерактивная песочница "магнит+кольцо+графики Φ(t)/I(t)", что
@@ -33,7 +41,7 @@ import {
     DiagramBlock, TypedLine,
     pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
-    isFieryMilestoneTrial, FieryFeedbackBanner, CORRECT_COLOR, WRONG_COLOR, ACTIVE_COLOR,
+    isFieryMilestoneTrial, FieryFeedbackBanner, CORRECT_COLOR, WRONG_COLOR, ACTIVE_COLOR, PENDING_COLOR,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
@@ -51,6 +59,12 @@ type Props = {
 // вводим отдельно от прочих", см. CLAUDE.md).
 const FIELD_COLOR = GGEGE_PALETTE.blue.button
 
+// Полюса магнита — свои цвета (сцены 2/3): северный тем же синим, что и
+// поле/буква B (одна история — "поле выходит здесь"); южный — красным
+// (по прямой просьбе пользователя, "северный синим, южный красным").
+const NORTH_COLOR = FIELD_COLOR
+const SOUTH_COLOR = WRONG_COLOR
+
 const FLUX_COLOR = GGEGE_PALETTE.purple.button
 const CURRENT_COLOR = GGEGE_PALETTE.orange.button
 const CURRENT_COLOR_REV = GGEGE_PALETTE.teal.button
@@ -62,7 +76,7 @@ const shuffle = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5)
 // ФАЗА "concept" — знакомство с объектами, по одному, накопительный лог.
 // ===================================================================
 
-const INTRO_CONCEPT_STEPS = 2
+const INTRO_CONCEPT_STEPS = 4
 const CONCEPT_PAUSE_MS = 1000
 
 // Стикер — тот же визуальный язык, что уже устоялся во всех *WALK
@@ -119,52 +133,153 @@ const MagnetShape = ({ x, top }: { x: number; top: number }) => (
     </g>
 )
 
-// Силовые линии магнита — симметричные эллиптические дуги от полюса N
-// (снизу) к полюсу S (сверху), огибающие магнит слева и справа (вне
-// магнита поле идёт от N к S, тот же школьный "виток" вокруг стержня).
-// Каждая следующая линия — шире (больше rx), рисуется с задержкой —
-// протяжно (pathLength 0→1), тем же цветом, что и стикер "B" в тексте.
-const MagnetFieldLines = ({ x, top, color }: { x: number; top: number; color: string }) => {
-    const yN = top + MAG_H
-    const yS = top
-    const ry = (yN - yS) / 2
-    const cy = (yN + yS) / 2
-    const loops = [1.35, 1.85, 2.35]
+// Магнит для сцен-полюсов (2/3) — нейтральный серый корпус (не
+// путается с "постоянным" сине-красным MagnetShape из сцены 0/1), два
+// подписанных края (N снизу, S сверху), АКТИВНЫЙ край подсвечивается
+// своим цветом (NORTH_COLOR/SOUTH_COLOR) с пульсирующей рамкой, второй —
+// бледно-серый — тот же "прожектор" приём, что уже используют угловые
+// индикаторы геометрических разборов (см. WalkthroughLog.tsx).
+const POLE_PALE = '#3A464E'
+const MagnetPoleShape = ({ x, top, highlight }: { x: number; top: number; highlight: 'N' | 'S' }) => {
+    const sColor = highlight === 'S' ? SOUTH_COLOR : POLE_PALE
+    const nColor = highlight === 'N' ? NORTH_COLOR : POLE_PALE
     return (
         <g>
-            {loops.map((mult, i) => {
-                const rx = ry * mult
-                return [-1, 1].map((side) => {
-                    const sweep = side === -1 ? 1 : 0
-                    const d = `M ${x} ${yN} A ${rx} ${ry} 0 0 ${sweep} ${x} ${yS}`
-                    const arrowX = x + side * rx
-                    return (
-                        <g key={`${i}-${side}`}>
-                            <motion.path
-                                d={d}
-                                stroke={color}
-                                strokeWidth={2}
-                                fill="none"
-                                strokeLinecap="round"
-                                initial={{ pathLength: 0, opacity: 0 }}
-                                animate={{ pathLength: 1, opacity: 0.85 }}
-                                transition={{ duration: 0.7, ease: 'easeInOut', delay: i * 0.22 }}
-                            />
-                            <motion.path
-                                d={`M ${arrowX - 4} ${cy + 4} L ${arrowX} ${cy - 4} L ${arrowX + 4} ${cy + 4}`}
-                                stroke={color}
-                                strokeWidth={2}
-                                fill="none"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 0.9 }}
-                                transition={{ duration: 0.3, delay: i * 0.22 + 0.6 }}
-                            />
-                        </g>
-                    )
-                })
-            })}
+            <motion.rect x={x - MAG_W / 2} y={top} width={MAG_W} height={MAG_H / 2} rx={5}
+                animate={{ fill: sColor }} transition={{ duration: 0.5 }} />
+            <motion.rect x={x - MAG_W / 2} y={top + MAG_H / 2} width={MAG_W} height={MAG_H / 2} rx={5}
+                animate={{ fill: nColor }} transition={{ duration: 0.5 }} />
+            {highlight === 'S' && (
+                <motion.rect x={x - MAG_W / 2 - 3} y={top - 3} width={MAG_W + 6} height={MAG_H / 2 + 6} rx={7}
+                    fill="none" stroke={SOUTH_COLOR} strokeWidth={2.5}
+                    animate={{ opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }} />
+            )}
+            {highlight === 'N' && (
+                <motion.rect x={x - MAG_W / 2 - 3} y={top + MAG_H / 2 - 3} width={MAG_W + 6} height={MAG_H / 2 + 6} rx={7}
+                    fill="none" stroke={NORTH_COLOR} strokeWidth={2.5}
+                    animate={{ opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }} />
+            )}
+            <text x={x} y={top + 21} textAnchor="middle" fontSize={16} fontWeight={800} fill={highlight === 'S' ? '#fff' : '#9AA7B0'}>S</text>
+            <text x={x} y={top + MAG_H - 10} textAnchor="middle" fontSize={16} fontWeight={800} fill={highlight === 'N' ? '#fff' : '#9AA7B0'}>N</text>
+        </g>
+    )
+}
+
+// ===== Силовые линии магнита =====
+//
+// Форма (по прямой просьбе пользователя) — линия выходит из полюса N
+// (снизу магнита) сначала ВНИЗ, а затем большим радиусом возвращается
+// наверх, к полюсу S — кубическая кривая Безье, а не просто дуга: первый
+// контрольная точка тянет старт строго вниз, вторая — широко в сторону
+// и чуть выше полюса S, отчего линия визуально "уходит, огибает и
+// возвращается".
+type Bezier = { p0: { x: number; y: number }; p1: { x: number; y: number }; p2: { x: number; y: number }; p3: { x: number; y: number } }
+
+function buildFieldLine(x: number, yN: number, yS: number, side: -1 | 1, rx: number): Bezier {
+    const dip = 42
+    return {
+        p0: { x, y: yN },
+        p1: { x: x + side * 10, y: yN + dip },
+        p2: { x: x + side * rx, y: yS - 6 },
+        p3: { x, y: yS },
+    }
+}
+
+function bezierPoint(b: Bezier, t: number) {
+    const mt = 1 - t
+    const a = mt * mt * mt, bb = 3 * mt * mt * t, c = 3 * mt * t * t, d = t * t * t
+    return {
+        x: a * b.p0.x + bb * b.p1.x + c * b.p2.x + d * b.p3.x,
+        y: a * b.p0.y + bb * b.p1.y + c * b.p2.y + d * b.p3.y,
+    }
+}
+
+function bezierAngleDeg(b: Bezier, t: number) {
+    const mt = 1 - t
+    const dx = 3 * mt * mt * (b.p1.x - b.p0.x) + 6 * mt * t * (b.p2.x - b.p1.x) + 3 * t * t * (b.p3.x - b.p2.x)
+    const dy = 3 * mt * mt * (b.p1.y - b.p0.y) + 6 * mt * t * (b.p2.y - b.p1.y) + 3 * t * t * (b.p3.y - b.p2.y)
+    return (Math.atan2(dy, dx) * 180) / Math.PI
+}
+
+const bezierPath = (b: Bezier) =>
+    `M ${b.p0.x} ${b.p0.y} C ${b.p1.x} ${b.p1.y}, ${b.p2.x} ${b.p2.y}, ${b.p3.x} ${b.p3.y}`
+
+// "Течёт" по линии поля — маленькие стрелочки, бегущие вдоль кривой (тот
+// же приём, что показывает направление тока/поля на референс-анимациях
+// движения по проводу — маленькие маркеры друг за другом), а не просто
+// статичный наконечник. Считается АНАЛИТИЧЕСКИ по параметру кривой (не
+// CSS offset-path — тот же принцип, что и остальная физика в этом файле:
+// setInterval, не requestAnimationFrame, чтобы не замирать в фоновых
+// вкладках, см. комментарий у Sandbox). fade у краёв пути — маркер не
+// обрывается резко на стыке.
+const FLOW_PERIOD_MS = 1800
+const FLOW_TICK_MS = 40
+const FLOW_PHASES = [0, 1 / 3, 2 / 3]
+
+const FlowArrows = ({ lines, color }: { lines: Bezier[]; color: string }) => {
+    const [t, setT] = useState(0)
+    useEffect(() => {
+        const start = performance.now()
+        const id = setInterval(() => {
+            setT(((performance.now() - start) % FLOW_PERIOD_MS) / FLOW_PERIOD_MS)
+        }, FLOW_TICK_MS)
+        return () => clearInterval(id)
+    }, [])
+    return (
+        <g>
+            {lines.map((b, li) => FLOW_PHASES.map((phase, mi) => {
+                const tt = (t + phase) % 1
+                const pos = bezierPoint(b, tt)
+                const angle = bezierAngleDeg(b, tt)
+                const fade = Math.min(1, tt * 9, (1 - tt) * 9)
+                return (
+                    <path
+                        key={`${li}-${mi}`}
+                        d="M-4,-3 L5,0 L-4,3 Z"
+                        fill={color}
+                        opacity={fade}
+                        transform={`translate(${pos.x},${pos.y}) rotate(${angle})`}
+                    />
+                )
+            }))}
+        </g>
+    )
+}
+
+// Силовые линии магнита целиком — draw-in анимация формы, затем (для
+// flowing=true) бегущие стрелочки поверх. pale=true (сцены-полюса) —
+// тускло-серые, без движения — фокус смещён на полюса, не на поток.
+const MagnetFieldLines = ({ x, top, color, flowing = false }: { x: number; top: number; color: string; flowing?: boolean }) => {
+    const yN = top + MAG_H
+    const yS = top
+    const rxList = [55, 75, 95]
+    const [started, setStarted] = useState(false)
+    useEffect(() => {
+        if (!flowing) return
+        const t = setTimeout(() => setStarted(true), rxList.length * 220 + 900)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [flowing])
+
+    const lines: Bezier[] = []
+    rxList.forEach((rx) => { ([-1, 1] as const).forEach((side) => { lines.push(buildFieldLine(x, yN, yS, side, rx)) }) })
+
+    return (
+        <g>
+            {lines.map((b, i) => (
+                <motion.path
+                    key={i}
+                    d={bezierPath(b)}
+                    stroke={color}
+                    strokeWidth={2}
+                    fill="none"
+                    strokeLinecap="round"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 0.85 }}
+                    transition={{ duration: 0.7, ease: 'easeInOut', delay: Math.floor(i / 2) * 0.22 }}
+                />
+            ))}
+            {flowing && started && <FlowArrows lines={lines} color={color} />}
         </g>
     )
 }
@@ -174,8 +289,19 @@ const MagnetFieldLines = ({ x, top, color }: { x: number; top: number; color: st
 const MagnetIntroDiagram = ({ withField }: { withField: boolean }) => (
     <div className="flex w-full justify-center py-2">
         <svg viewBox="0 0 220 190" className="h-[190px] w-[220px]">
-            {withField && <MagnetFieldLines x={110} top={63} color={FIELD_COLOR} />}
+            {withField && <MagnetFieldLines x={110} top={63} color={FIELD_COLOR} flowing />}
             <MagnetShape x={110} top={63} />
+        </svg>
+    </div>
+)
+
+// Диаграмма сцен-полюсов (2/3) — тот же магнит, но нейтральный, с одним
+// подсвеченным краем, поле бледное и неподвижное.
+const MagnetPoleDiagram = ({ highlight }: { highlight: 'N' | 'S' }) => (
+    <div className="flex w-full justify-center py-2">
+        <svg viewBox="0 0 220 190" className="h-[190px] w-[220px]">
+            <MagnetFieldLines x={110} top={63} color={PENDING_COLOR} />
+            <MagnetPoleShape x={110} top={63} highlight={highlight} />
         </svg>
     </div>
 )
@@ -249,6 +375,50 @@ const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
                                 parts={[
                                     { text: 'Магнитное поле измеряется в ' },
                                     { sticker: 'Тесла (Тл)', color: FIELD_COLOR },
+                                    { text: '.' },
+                                ]}
+                                onSettled={() => setStepReady(true)}
+                            />
+                        </Fragment>
+                    </SceneWrapper>
+                )}
+
+                {/* Шаг 2 — у магнита есть северный полюс N (линии
+                    бледнеют, подсвечивается нижний край магнита синим). */}
+                {step >= 2 && (
+                    <SceneWrapper key="step-2" innerRef={sceneRef('step-2')} active={isSceneActive('step-2')}>
+                        <Fragment key={`step-2-${nonceFor('step-2')}`}>
+                            <DiagramBlock>
+                                <MagnetPoleDiagram highlight="N" />
+                            </DiagramBlock>
+                            <TypedLineWithParts
+                                parts={[
+                                    { text: 'У магнита есть ' },
+                                    { sticker: 'северный', color: NORTH_COLOR },
+                                    { text: ' полюс ' },
+                                    { sticker: 'N', color: NORTH_COLOR },
+                                    { text: '.' },
+                                ]}
+                                onSettled={() => setStepReady(true)}
+                            />
+                        </Fragment>
+                    </SceneWrapper>
+                )}
+
+                {/* Шаг 3 — и южный полюс S (наоборот: всё бледное, кроме
+                    верхнего края магнита, он красный). */}
+                {step >= 3 && (
+                    <SceneWrapper key="step-3" innerRef={sceneRef('step-3')} active={isSceneActive('step-3')}>
+                        <Fragment key={`step-3-${nonceFor('step-3')}`}>
+                            <DiagramBlock>
+                                <MagnetPoleDiagram highlight="S" />
+                            </DiagramBlock>
+                            <TypedLineWithParts
+                                parts={[
+                                    { text: 'И ' },
+                                    { sticker: 'южный', color: SOUTH_COLOR },
+                                    { text: ' полюс ' },
+                                    { sticker: 'S', color: SOUTH_COLOR },
                                     { text: '.' },
                                 ]}
                                 onSettled={() => setStepReady(true)}
