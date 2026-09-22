@@ -239,14 +239,22 @@ function multiPath(segs: Bezier[]) {
     return `M ${first.x} ${first.y} ${rest}`
 }
 
-// Опорные точки одной силовой линии: N (ровно на полюсе) → глубоко вниз
-// (почти строго под N — "не сворачивая сразу") → широкая точка сбоку на
-// полпути наверх (большой радиус разворота) → S (ровно на полюсе,
-// "заходит сверху").
-function fieldLineWaypoints(cx: number, yN: number, yS: number, side: -1 | 1, rx: number, dip: number): Pt[] {
-    const deepest = { x: cx + side * rx * 0.18, y: yN + dip }
-    const wide = { x: cx + side * rx, y: yS + dip * 0.4 }
-    return [{ x: cx, y: yN }, deepest, wide, { x: cx, y: yS }]
+// Опорные точки одной силовой линии — по прямой просьбе пользователя,
+// СИММЕТРИЧНО относительно горизонтальной оси через центр магнита: N
+// (ровно на полюсе) → плечо на полной ширине rx (D ниже N) → зеркальное
+// плечо на ТОЙ ЖЕ ширине (D выше S — зеркальное отражение первого плеча
+// относительно центра магнита) → S (ровно на полюсе). Проверено
+// численно (прямой пересчёт кривой в Node) — оба плеча уже на полной
+// ширине (не "18% ширины", как в прежней версии — та давала линию,
+// подолгу идущую впритык к центру, визуально пересекающую сам магнит,
+// именно это и раскритиковал пользователь на скриншоте) — линия
+// заметно отходит от центра уже на первых ~10-15% пути, дальше плавно
+// (Катмулл-Ром = гладкая, без изломов по построению) расходится до
+// макс. ширины и симметрично сходится к S.
+function fieldLineWaypoints(cx: number, yN: number, yS: number, side: -1 | 1, rx: number, D: number): Pt[] {
+    const shoulderLow = { x: cx + side * rx, y: yN + D }
+    const shoulderHigh = { x: cx + side * rx, y: yS - D }
+    return [{ x: cx, y: yN }, shoulderLow, shoulderHigh, { x: cx, y: yS }]
 }
 
 // "Течёт" по линии поля — маленькие стрелочки, бегущие вдоль кривой (тот
@@ -291,12 +299,12 @@ const FlowArrows = ({ lines, color }: { lines: Bezier[][]; color: string }) => {
     )
 }
 
-// Три вложенных линии — шире (rx) И "длиннее вниз" (dip) с каждым
+// Три вложенных линии — шире (rx) И выше/ниже (D, симметрично) с каждым
 // следующим номером, тот же принцип нестинга, что на референсе.
-const FIELD_LOOPS: { rx: number; dip: number }[] = [
-    { rx: 55, dip: 110 },
-    { rx: 85, dip: 150 },
-    { rx: 115, dip: 180 },
+const FIELD_LOOPS: { rx: number; D: number }[] = [
+    { rx: 55, D: 100 },
+    { rx: 85, D: 140 },
+    { rx: 115, D: 175 },
 ]
 
 // Силовые линии магнита целиком — draw-in анимация формы, затем (для
@@ -314,9 +322,9 @@ const MagnetFieldLines = ({ x, top, color, flowing = false }: { x: number; top: 
     }, [flowing])
 
     const lines: Bezier[][] = []
-    FIELD_LOOPS.forEach(({ rx, dip }) => {
+    FIELD_LOOPS.forEach(({ rx, D }) => {
         ([-1, 1] as const).forEach((side) => {
-            lines.push(catmullRomSegments(fieldLineWaypoints(x, yN, yS, side, rx, dip)))
+            lines.push(catmullRomSegments(fieldLineWaypoints(x, yN, yS, side, rx, D)))
         })
     })
 
