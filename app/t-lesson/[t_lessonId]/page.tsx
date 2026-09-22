@@ -925,6 +925,26 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             };
         }
 
+        if (t_challenge.type === 'DIRWALK') {
+            // Тот же самодостаточный принцип, что у FARADAYWALK/SINWALK —
+            // разбор "направление магнитного поля" вокруг прямого провода
+            // и вокруг кольца (правило буравчика/крышечки от колы). См.
+            // type-dirwalk.tsx.
+            return {
+                questionType: 'DIRWALK' as const,
+                question: t_challenge.question,
+                imageSrc: t_challenge.imageSrc,
+                options: [],
+                numRans: t_challenge.numRans,
+                optionsQ: [],
+                optionsA: [],
+                optionsConstructRight: [],
+                difficulty: t_challenge.difficulty,
+                correctAnswer: 'right',
+                timeLimit: 999,
+            };
+        }
+
         if (t_challenge.type === 'LOGSWAPWALK') {
             // Тот же самодостаточный принцип, что у LOGWALK/LOGSUBWALK/
             // LOGPOWWALK — разбор тождества "логарифм в степени"

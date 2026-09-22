@@ -33,6 +33,7 @@ import { TypeLogDivWalk } from "@/app/t-lesson/[t_lessonId]/type-logdivwalk"
 import { TypeLogComboWalk } from "@/app/t-lesson/[t_lessonId]/type-logcombowalk"
 import { TypeLogFlipWalk } from "@/app/t-lesson/[t_lessonId]/type-logflipwalk"
 import { TypeFaradayWalk } from "@/app/t-lesson/[t_lessonId]/type-faradaywalk"
+import { TypeDirWalk } from "@/app/t-lesson/[t_lessonId]/type-dirwalk"
 import { TypeWorkbook } from "@/app/t-lesson/[t_lessonId]/type-workbook"
 import { TypeConstructor } from "@/app/t-lesson/[t_lessonId]/type-constructor"
 
@@ -391,6 +392,11 @@ export default function TrainerQuestion({
         // Интерактивная песочница "магнит + кольцо" — закон Фарадея. См. type-faradaywalk.tsx.
         return <TypeFaradayWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
 
+      case "DIRWALK":
+        // Направление магнитного поля вокруг прямого провода и кольца —
+        // правило буравчика/крышечки от колы. См. type-dirwalk.tsx.
+        return <TypeDirWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
+
       case "TRIGTABLE":
         // select-then-submit, тот же контракт, что у ASSIST/INSERT/SCROLL —
         // пользователь может менять заполненные пропуски ДО нажатия общей
@@ -626,6 +632,12 @@ export default function TrainerQuestion({
                 // просьбе пользователя показывает короткую тему шага.
                 : question.questionType === "FARADAYWALK"
                 ? "Магнитное поле"
+                // DIRWALK хранит в question заголовок урока ("Направление
+                // магнитного поля") — облако вместо него по прямой
+                // просьбе пользователя показывает короткую тему шага, тот
+                // же приём, что уже у FARADAYWALK выше.
+                : question.questionType === "DIRWALK"
+                ? "Направление поля"
                 : question.questionType !== "WORKBOOK" &&
                   question.questionType !== "RUSSIANDICTANT" &&
                   question.questionType !== "SWIPE" &&
@@ -687,7 +699,7 @@ export default function TrainerQuestion({
           прямой просьбе пользователя. TRIGTABLE (как ASSIST/INSERT/
           SCROLL) — select-then-submit: общая кнопка сначала "Ответить"
           (когда все пропуски заполнены), затем "далее"/"понятно". */}
-      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "SINWALK" && question.questionType !== "LOGWALK" && question.questionType !== "LOGDEFWALK" && question.questionType !== "LOGSUBWALK" && question.questionType !== "LOGPOWWALK" && question.questionType !== "LOGSWAPWALK" && question.questionType !== "LOGDIVWALK" && question.questionType !== "LOGCOMBOWALK" && question.questionType !== "LOGFLIPWALK" && question.questionType !== "FARADAYWALK" && (
+      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "SINWALK" && question.questionType !== "LOGWALK" && question.questionType !== "LOGDEFWALK" && question.questionType !== "LOGSUBWALK" && question.questionType !== "LOGPOWWALK" && question.questionType !== "LOGSWAPWALK" && question.questionType !== "LOGDIVWALK" && question.questionType !== "LOGCOMBOWALK" && question.questionType !== "LOGFLIPWALK" && question.questionType !== "FARADAYWALK" && question.questionType !== "DIRWALK" && (
       <div className="px-4 pb-4 pt-2 bg-[#151F24] relative">
         {/* Notification фон который выезжает при правильном ответе */}
         {answerState === "correct" && (
