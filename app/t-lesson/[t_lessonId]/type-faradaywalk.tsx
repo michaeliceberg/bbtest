@@ -270,16 +270,34 @@ const FlowArrows = ({ lines, cx, color }: { lines: { a: Ellipse; side: -1 | 1 }[
 // автоматически "выше" тоже, без отдельной настройки).
 const FIELD_RX_LIST = [60, 95, 135]
 
+// Стикер "B" рядом с самой крайней дугой — по прямой просьбе пользователя,
+// подписываем сами линии как линии поля B (тот же визуальный язык, что и
+// у HTML-стикера Sticker в тексте — цветная рамка+подложка+жирная буква,
+// только это SVG-версия, встроенная прямо в диаграмму).
+const FieldBLabel = ({ x, y, color, delay }: { x: number; y: number; color: string; delay: number }) => (
+    <motion.g
+        initial={{ opacity: 0, scale: 2.4 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 15, delay }}
+        transform={`translate(${x},${y})`}
+    >
+        <rect x={-14} y={-14} width={28} height={28} rx={7} fill={hexToRgba(color, 0.18)} stroke={color} strokeWidth={2} />
+        <text x={0} y={6} textAnchor="middle" fontSize={16} fontWeight={800} fill={color}>B</text>
+    </motion.g>
+)
+
 // Силовые линии магнита целиком — draw-in анимация формы, затем (для
-// flowing=true) бегущие стрелочки поверх. pale=true (сцены-полюса) —
-// тускло-серые, без движения — фокус смещён на полюса, не на поток.
+// flowing=true) бегущие стрелочки поверх и стикеры "B" у крайних дуг.
+// pale=true (сцены-полюса) — тускло-серые, без движения, без стикеров —
+// фокус смещён на полюса, не на поток.
 const MagnetFieldLines = ({ x, top, color, flowing = false }: { x: number; top: number; color: string; flowing?: boolean }) => {
     const yN = top + MAG_H
     const yS = top
     const [started, setStarted] = useState(false)
+    const entranceMs = FIELD_RX_LIST.length * 220 + 900
     useEffect(() => {
         if (!flowing) return
-        const t = setTimeout(() => setStarted(true), FIELD_RX_LIST.length * 220 + 900)
+        const t = setTimeout(() => setStarted(true), entranceMs)
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [flowing])
@@ -289,6 +307,9 @@ const MagnetFieldLines = ({ x, top, color, flowing = false }: { x: number; top: 
         const a = buildRightEllipse(x, yN, yS, rx, FIELD_STRETCH)
         ;([-1, 1] as const).forEach((side) => { lines.push({ a, side }) })
     })
+    const outerRx = FIELD_RX_LIST[FIELD_RX_LIST.length - 1]
+    const cy = (yN + yS) / 2
+    const labelGap = 20
 
     return (
         <g>
@@ -306,14 +327,22 @@ const MagnetFieldLines = ({ x, top, color, flowing = false }: { x: number; top: 
                     transition={{ duration: 0.9, ease: 'easeInOut', delay: Math.floor(i / 2) * 0.22 }}
                 />
             ))}
+            {flowing && (
+                <>
+                    <FieldBLabel x={x + outerRx + labelGap} y={cy} color={color} delay={entranceMs / 1000} />
+                    <FieldBLabel x={x - outerRx - labelGap} y={cy} color={color} delay={entranceMs / 1000} />
+                </>
+            )}
             {flowing && started && <FlowArrows lines={lines} cx={x} color={color} />}
         </g>
     )
 }
 
 // Полотно диаграммы — увеличено (по прямой просьбе пользователя), сам
-// магнит внутри — прежнего размера (MAG_W/MAG_H не менялись).
-const FIELD_VIEW_W = 320
+// магнит внутри — прежнего размера (MAG_W/MAG_H не менялись). Ширина
+// (FIELD_VIEW_W) чуть больше 2×MAG_CX+2×outerRx — запас под стикеры "B"
+// правее/левее крайних дуг.
+const FIELD_VIEW_W = 360
 const FIELD_VIEW_H = 480
 const MAG_CX = FIELD_VIEW_W / 2
 const MAG_TOP = 208
@@ -322,7 +351,7 @@ const MAG_TOP = 208
 // SVG-полотна (без кольца — оно появится в следующей сцене).
 const MagnetIntroDiagram = ({ withField }: { withField: boolean }) => (
     <div className="flex w-full justify-center py-2">
-        <svg viewBox={`0 0 ${FIELD_VIEW_W} ${FIELD_VIEW_H}`} className="h-[360px] w-[240px]">
+        <svg viewBox={`0 0 ${FIELD_VIEW_W} ${FIELD_VIEW_H}`} className="h-[360px] w-[270px]">
             {withField && <MagnetFieldLines x={MAG_CX} top={MAG_TOP} color={FIELD_COLOR} flowing />}
             <MagnetShape x={MAG_CX} top={MAG_TOP} />
         </svg>
@@ -333,7 +362,7 @@ const MagnetIntroDiagram = ({ withField }: { withField: boolean }) => (
 // подсвеченным краем, поле бледное и неподвижное.
 const MagnetPoleDiagram = ({ highlight }: { highlight: 'N' | 'S' }) => (
     <div className="flex w-full justify-center py-2">
-        <svg viewBox={`0 0 ${FIELD_VIEW_W} ${FIELD_VIEW_H}`} className="h-[360px] w-[240px]">
+        <svg viewBox={`0 0 ${FIELD_VIEW_W} ${FIELD_VIEW_H}`} className="h-[360px] w-[270px]">
             <MagnetFieldLines x={MAG_CX} top={MAG_TOP} color={PENDING_COLOR} />
             <MagnetPoleShape x={MAG_CX} top={MAG_TOP} highlight={highlight} />
         </svg>
