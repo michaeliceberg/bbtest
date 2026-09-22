@@ -167,25 +167,19 @@ const MagnetPoleShape = ({ x, top, highlight }: { x: number; top: number; highli
 
 // ===== Силовые линии магнита =====
 //
-// По прямой просьбе пользователя (референс — классическая схема поля
-// магнитного диполя, вложенные эллипсы вокруг магнита) — линии стали
-// НАСТОЯЩИМИ эллиптическими дугами (не кубическая кривая с "изломом", как
-// раньше): каждая дуга идёт от точки далеко НИЖЕ магнита до точки далеко
-// ВЫШЕ него, огибая его сбоку — у самих полюсов (близко к центру дуги по
-// высоте) она проходит почти вертикально, без резкого "крюка", а вдали
-// от магнита плавно закругляется. ry (вертикальный радиус) заметно
-// больше rx (горизонтального) — линии вытянуты по вертикали; сама дуга
-// втрое длиннее прежней версии, полотно диаграммы — тоже больше, размер
-// самого магнита не менялся.
-//
-// Рисуется как ломаная из ARC_SAMPLES точек, посчитанных по параметру t
-// (не через SVG `A`-команду) — гарантированно совпадает с точками, по
-// которым бежит FlowArrows (та же формула), без риска рассинхрона
-// направления sweep-флага.
+// По присланному пользователем референсу (классическая схема поля
+// магнитного диполя) — семейство НАСТОЯЩИХ эллиптических дуг с ОБЩЕЙ
+// парой точек схождения сверху и снизу (одна и та же высота для всех
+// линий — apexTop/apexBottom), магнит просто стоит в центре, линии его
+// не касаются, только огибают сбоку — шире (rx) с каждым следующим
+// вложенным контуром, высота (ry) у всех ОДНА и та же.
 type Arc = { cx: number; cy: number; rx: number; ry: number; side: -1 | 1 }
 
-// t=0 — низ дуги (cx, cy+ry), t=1 — верх дуги (cx, cy-ry), между ними —
-// половина эллипса в сторону `side`.
+// t=0 — нижняя точка схождения (cx, cy+ry), t=1 — верхняя (cx, cy-ry),
+// между ними — половина эллипса в сторону `side`. Настоящая эллиптическая
+// дуга (не кубическая кривая с контрольными "рычагами", которые к
+// реальной форме не имеют отношения) — гарантированно проходит именно
+// там, где посчитано.
 function arcPoint(a: Arc, t: number) {
     const theta = t * Math.PI
     return { x: a.cx + a.side * a.rx * Math.sin(theta), y: a.cy + a.ry * Math.cos(theta) }
@@ -196,7 +190,7 @@ function arcAngleDeg(a: Arc, t: number) {
     const dy = -a.ry * Math.sin(theta)
     return (Math.atan2(dy, dx) * 180) / Math.PI
 }
-const ARC_SAMPLES = 40
+const ARC_SAMPLES = 48
 const arcPath = (a: Arc) =>
     Array.from({ length: ARC_SAMPLES + 1 }, (_, i) => arcPoint(a, i / ARC_SAMPLES))
         .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
@@ -244,13 +238,10 @@ const FlowArrows = ({ lines, color }: { lines: Arc[]; color: string }) => {
     )
 }
 
-// Три вложенных петли (rx растёт медленнее ry — линии вытянуты по
-// вертикали, ry втрое больше половины высоты магнита, MAG_H/2=32).
-const FIELD_LOOPS: { rx: number; ry: number }[] = [
-    { rx: 60, ry: 140 },
-    { rx: 85, ry: 180 },
-    { rx: 110, ry: 220 },
-]
+// Вертикальный радиус ОДИН на все линии (общая точка схождения сверху и
+// снизу) — растёт только горизонтальный (rx) с каждым вложенным контуром.
+const FIELD_RY = 210
+const FIELD_RX_LIST = [55, 90, 125]
 
 // Силовые линии магнита целиком — draw-in анимация формы, затем (для
 // flowing=true) бегущие стрелочки поверх. pale=true (сцены-полюса) —
@@ -259,13 +250,13 @@ const MagnetFieldLines = ({ cx, cy, color, flowing = false }: { cx: number; cy: 
     const [started, setStarted] = useState(false)
     useEffect(() => {
         if (!flowing) return
-        const t = setTimeout(() => setStarted(true), FIELD_LOOPS.length * 220 + 900)
+        const t = setTimeout(() => setStarted(true), FIELD_RX_LIST.length * 220 + 900)
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [flowing])
 
     const lines: Arc[] = []
-    FIELD_LOOPS.forEach(({ rx, ry }) => { ([-1, 1] as const).forEach((side) => { lines.push({ cx, cy, rx, ry, side }) }) })
+    FIELD_RX_LIST.forEach((rx) => { ([-1, 1] as const).forEach((side) => { lines.push({ cx, cy, rx, ry: FIELD_RY, side }) }) })
 
     return (
         <g>
