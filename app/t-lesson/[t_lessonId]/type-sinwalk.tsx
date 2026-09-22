@@ -33,6 +33,7 @@ import type { QuestionType } from './page'
 import {
     RightTriangleDiagram, oppositeLegOf,
     HYPOTENUSE_COLOR, LEG_COLOR,
+    ZOOM_TOTAL_S, PAN_TOTAL_S, SIDE_DRAW_DURATION,
     type AlphaVertex, type SideId,
 } from '@/components/geometry/RightTriangleDiagram'
 import { MARKER_COLOR, MARKER_COLOR_GREEN } from '@/components/geometry/WalkthroughMarker'
@@ -49,6 +50,29 @@ import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 // чтобы глаз успевал заметить "это новая сцена", а не воспринимал переход
 // как непрерывное продолжение предыдущей.
 const SCENE_TRANSITION_PAUSE_MS = 1000
+
+// Пауза МЕЖДУ окончанием СОБСТВЕННОЙ анимации диаграммы этого шага (зум-
+// цикл/дорисовка стороны+bounce подписи) и появлением печатаемого текста
+// ниже — по прямой просьбе пользователя ("сначала анимация, потом пауза,
+// потом текст"), а не одновременно, как раньше. Тот же порядок величины,
+// что и SCENE_TRANSITION_PAUSE_MS выше.
+const DIAGRAM_TO_TEXT_PAUSE_MS = 900
+
+// Момент, когда СОБСТВЕННАЯ анимация диаграммы каждого из шагов 2-4
+// полностью устаканивается (не только когда элемент появляется, а когда
+// ВЕСЬ цикл — включая zoom-аут — закончился, см. CLAUDE.md "если шаг
+// сопровождается zoom-эффектом... любые подписи должны ждать, пока
+// зум-цикл ПОЛНОСТЬЮ завершится"):
+// — шаг 2 (гипотенуза, без zoomFocus) — линия дорисовывается
+//   SIDE_DRAW_DURATION, подпись начинает bounce-появляться сразу после
+//   (delay=SIDE_DRAW_DURATION) и сама занимает ~0.6с (spring) — общий
+//   запас с небольшим буфером.
+const STEP2_SETTLE_MS = (SIDE_DRAW_DURATION + 0.6) * 1000
+// — шаг 3 (угол α, zoomFocus="alpha") — полный зум-цикл ZOOM_TOTAL_S.
+const STEP3_SETTLE_MS = ZOOM_TOTAL_S * 1000
+// — шаг 4 (противолежащий катет, zoomFocus="alphaToOppositeLeg") —
+//   полный цикл панорамы PAN_TOTAL_S.
+const STEP4_SETTLE_MS = PAN_TOTAL_S * 1000
 
 type Props = {
     question: QuestionType
@@ -101,6 +125,85 @@ const makeTrialConfigs = (n: number): TrialConfig[] => {
 // клика "Дальше", чтобы дать время рассмотреть рисунок, прежде чем идти
 // дальше (см. handleIntroNext).
 const INTRO_STEPS = 5
+
+// Шаг 2 (гипотенуза) — диаграмма монтируется и проигрывает СВОЮ анимацию
+// (дорисовка стороны + bounce подписи) сама по себе; текст появляется
+// ТОЛЬКО после того, как она устоялась + доп. пауза (по прямой просьбе
+// пользователя — не одновременно с анимацией).
+const Step2Scene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [textVisible, setTextVisible] = useState(false)
+    useEffect(() => {
+        const t = setTimeout(() => setTextVisible(true), STEP2_SETTLE_MS + DIAGRAM_TO_TEXT_PAUSE_MS)
+        return () => clearTimeout(t)
+    }, [])
+    return (
+        <>
+            <DiagramBlock>
+                <RightTriangleDiagram rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown />
+            </DiagramBlock>
+            {textVisible && (
+                <TypedKeyPhraseLine
+                    before="Сторона напротив прямого угла — самая длинная сторона треугольника. Она называется "
+                    phrase="гипотенуза"
+                    color={HYPOTENUSE_COLOR}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// Шаг 3 (угол α) — та же логика: ждём полный zoom-цикл диаграммы
+// (STEP3_SETTLE_MS = ZOOM_TOTAL_S), потом паузу, потом текст.
+const Step3Scene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [textVisible, setTextVisible] = useState(false)
+    useEffect(() => {
+        const t = setTimeout(() => setTextVisible(true), STEP3_SETTLE_MS + DIAGRAM_TO_TEXT_PAUSE_MS)
+        return () => clearTimeout(t)
+    }, [])
+    return (
+        <>
+            <DiagramBlock>
+                <RightTriangleDiagram rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown alphaVertex="P" zoomFocus="alpha" />
+            </DiagramBlock>
+            {textVisible && (
+                <TypedLine
+                    className="w-full text-base md:text-lg text-[#F2F7FB]"
+                    text="Теперь выберем один из двух других углов — назовём его α (альфа)."
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// Шаг 4 (противолежащий катет) — ждём полный цикл панорамы диаграммы
+// (STEP4_SETTLE_MS = PAN_TOTAL_S), потом паузу, потом текст.
+const Step4Scene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [textVisible, setTextVisible] = useState(false)
+    useEffect(() => {
+        const t = setTimeout(() => setTextVisible(true), STEP4_SETTLE_MS + DIAGRAM_TO_TEXT_PAUSE_MS)
+        return () => clearTimeout(t)
+    }, [])
+    return (
+        <>
+            <DiagramBlock>
+                <RightTriangleDiagram
+                    rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown alphaVertex="P" zoomFocus="alphaToOppositeLeg"
+                    oppositeLegHighlighted oppositeLegLabelShown
+                />
+            </DiagramBlock>
+            {textVisible && (
+                <TypedKeyPhraseLine
+                    before="Катет напротив угла α называется "
+                    phrase="противолежащий катет"
+                    color={LEG_COLOR}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
 
 export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
     const [phase, setPhase] = useState<'intro' | 'practice'>('intro')
@@ -313,36 +416,23 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
                     </SceneWrapper>
                 )}
 
-                {/* Шаг 2 — гипотенуза (ключевая фраза, подпись вдоль стороны). */}
+                {/* Шаг 2 — гипотенуза (ключевая фраза, подпись вдоль стороны).
+                    Текст ждёт, пока диаграмма сама себя доиграет (Step2Scene). */}
                 {step >= 2 && (
                     <SceneWrapper key="step-2" innerRef={sceneRef('step-2')} active={isSceneActive('step-2')}>
                         <Fragment key={`step-2-${replayNonceFor('step-2')}`}>
-                            <DiagramBlock>
-                                <RightTriangleDiagram rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown />
-                            </DiagramBlock>
-                            <TypedKeyPhraseLine
-                                before="Сторона напротив прямого угла — самая длинная сторона треугольника. Она называется "
-                                phrase="гипотенуза"
-                                color={HYPOTENUSE_COLOR}
-                                onSettled={() => setStepReady(true)}
-                            />
+                            <Step2Scene onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}
 
                 {/* Шаг 3 — выбираем угол α (тоже с zoom-эффектом на саму
-                    вершину, где рисуется дуга угла). */}
+                    вершину, где рисуется дуга угла) — текст ждёт полного
+                    zoom-цикла (Step3Scene). */}
                 {step >= 3 && (
                     <SceneWrapper key="step-3" innerRef={sceneRef('step-3')} active={isSceneActive('step-3')}>
                         <Fragment key={`step-3-${replayNonceFor('step-3')}`}>
-                            <DiagramBlock>
-                                <RightTriangleDiagram rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown alphaVertex="P" zoomFocus="alpha" />
-                            </DiagramBlock>
-                            <TypedLine
-                                className="w-full text-base md:text-lg text-[#F2F7FB]"
-                                text="Теперь выберем один из двух других углов — назовём его α (альфа)."
-                                onSettled={() => setStepReady(true)}
-                            />
+                            <Step3Scene onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}
@@ -352,22 +442,12 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
                     прибытия зелёная подпись "катет" на этой стороне
                     сменяется на "противолежащий катет" — В ТОМ ЖЕ зелёном
                     формате (без золотого/мигающего акцента, по прямой
-                    просьбе пользователя убрать этот эффект). */}
+                    просьбе пользователя убрать этот эффект). Текст ждёт
+                    полного цикла панорамы (Step4Scene). */}
                 {step >= 4 && (
                     <SceneWrapper key="step-4" innerRef={sceneRef('step-4')} active={isSceneActive('step-4')}>
                         <Fragment key={`step-4-${replayNonceFor('step-4')}`}>
-                            <DiagramBlock>
-                                <RightTriangleDiagram
-                                    rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown alphaVertex="P" zoomFocus="alphaToOppositeLeg"
-                                    oppositeLegHighlighted oppositeLegLabelShown
-                                />
-                            </DiagramBlock>
-                            <TypedKeyPhraseLine
-                                before="Катет напротив угла α называется "
-                                phrase="противолежащий катет"
-                                color={LEG_COLOR}
-                                onSettled={() => setStepReady(true)}
-                            />
+                            <Step4Scene onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}

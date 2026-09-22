@@ -151,10 +151,18 @@ const angleAlongLine = (a: Pt, b: Pt): number => {
 // в CLAUDE.md — а в браузере пользователя, где rAF тикает нормально, поворот
 // стирался). Обёртка-<g> не анимируется framer'ом вообще, поэтому её
 // transform гарантированно остаётся как задано.
+// `lines` (вместо `text`) — по прямой просьбе пользователя для "противолежащий
+// катет": слово не помещается вдоль катета одной строкой, рисуется ДВУМЯ
+// (каждая своим <tspan> с явным y, а не dy — не полагаемся на то, что
+// framer-motion корректно анимирует относительные смещения между tspan'ами
+// одного motion.text, только на абсолютные x/y самого текста).
 const SideLabel = ({
-    a, b, labelPt, active, color, text, fontSize = 17, pulse = false, delay = 0,
-}: { a: Pt; b: Pt; labelPt: Pt; active: boolean; color: string; text: string; fontSize?: number; pulse?: boolean; delay?: number }) => {
+    a, b, labelPt, active, color, text, lines, fontSize = 17, pulse = false, delay = 0,
+}: { a: Pt; b: Pt; labelPt: Pt; active: boolean; color: string; text?: string; lines?: string[]; fontSize?: number; pulse?: boolean; delay?: number }) => {
     const rotation = angleAlongLine(a, b)
+    const lineHeight = fontSize * 1.2
+    const rows = lines ?? [text ?? '']
+    const firstY = labelPt.y - ((rows.length - 1) * lineHeight) / 2
     return (
         <g transform={`rotate(${rotation} ${labelPt.x} ${labelPt.y})`}>
             <motion.text
@@ -177,7 +185,11 @@ const SideLabel = ({
                         ? { opacity: { duration: 1.3, repeat: Infinity, ease: 'easeInOut', delay }, scale: { type: 'spring', duration: 0.6, bounce: 0.45, delay } }
                         : { type: 'spring', duration: 0.6, bounce: 0.45, delay: active ? delay : 0 }
                 }
-            >{text}</motion.text>
+            >
+                {rows.map((row, i) => (
+                    <tspan key={i} x={labelPt.x} y={firstY + i * lineHeight} textAnchor="middle" dominantBaseline="middle">{row}</tspan>
+                ))}
+            </motion.text>
         </g>
     )
 }
@@ -229,21 +241,21 @@ export type RightTriangleVisual = {
 // рисуется, затем отдаляется обратно. Доли времени (times) заданы под
 // framer-motion keyframe-анимацию с общей длительностью ZOOM_TOTAL_S.
 const ZOOM_SCALE = 2.3
-const ZOOM_TOTAL_S = 2.7 // было 1.8, +50% по просьбе пользователя — резче не читалась смена картинки
+export const ZOOM_TOTAL_S = 2.7 // было 1.8, +50% по просьбе пользователя — резче не читалась смена картинки
 const ZOOM_IN_FRACTION = 0.35   // к этому моменту камера уже приблизилась
 const ZOOM_OUT_START_FRACTION = 0.65 // с этого момента начинает отдаляться
 
 // Тайминг для 'alphaToOppositeLeg' — отдельный, подольше (два "дубля"
 // камеры вместо одного): зум на α → пауза → панорама к катету → держим
 // кадр → отдаляемся.
-const PAN_TOTAL_S = 3.6 // было 2.4, +50% — тот же принцип, что и у ZOOM_TOTAL_S выше
+export const PAN_TOTAL_S = 3.6 // было 2.4, +50% — тот же принцип, что и у ZOOM_TOTAL_S выше
 const PAN_ARRIVE_ALPHA_FRACTION = 0.2   // камера уже у α
 const PAN_ARRIVE_LEG_FRACTION = 0.55    // панорама к катету завершена — здесь проявляется "swap"
 const PAN_OUT_START_FRACTION = 0.8      // отсюда начинает отдаляться
 
 // Длительность "дорисовки" подсвеченной обучающей стороны (гипотенуза/
 // противолежащий катет) — см. "стандарт" подсветки стороны в JSX ниже.
-const SIDE_DRAW_DURATION = 0.9
+export const SIDE_DRAW_DURATION = 0.9
 
 // Задержка между появлением подписи "катет" на первой и на второй стороне
 // — по прямой просьбе пользователя, обе подписи должны появляться
@@ -304,6 +316,11 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
     const hypLabelPt = outward(hypMid, R, 26)
     const legRQLabelPt = outward(legRQMid, P, 22)
     const legRPLabelPt = outward(legRPMid, Q, 18)
+    // "противолежащий катет" теперь в ДВЕ строки (см. SideLabel.lines) —
+    // отступ заметно больше, чем у обычной однострочной "катет", чтобы обе
+    // строки уместились, не наезжая на саму сторону треугольника.
+    const legRQLabelPtWide = outward(legRQMid, P, 40)
+    const legRPLabelPtWide = outward(legRPMid, Q, 34)
 
     // Маленький квадратик прямого угла — из единичных векторов вдоль
     // обеих сторон, исходящих из R (корректно поворачивается вместе с
@@ -550,14 +567,18 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                 {/* Раньше золотая и мигающая — по прямой просьбе пользователя
                     убран этот акцент, "противолежащий катет" теперь в ТОМ ЖЕ
                     формате, что и обычный зелёный "катет" ниже (тот же цвет,
-                    без pulse) — просто другой текст на той же стороне. */}
+                    без pulse) — просто другой текст на той же стороне.
+                    В 2 строки ("противолежащий"/"катет", см. SideLabel.lines)
+                    с увеличенным отступом (legRQLabelPtWide/legRPLabelPtWide)
+                    — по прямой просьбе пользователя, одной строкой слово не
+                    помещалось вдоль катета. */}
                 <SideLabel
                     a={R}
                     b={alphaVertex === 'P' ? Q : P}
-                    labelPt={alphaVertex === 'P' ? legRQLabelPt : legRPLabelPt}
+                    labelPt={alphaVertex === 'P' ? legRQLabelPtWide : legRPLabelPtWide}
                     active={oppositeLegLabelShown && effectiveOppositeLegHighlighted}
                     color={LEG_COLOR}
-                    text="противолежащий катет"
+                    lines={['противолежащий', 'катет']}
                     fontSize={15}
                     delay={effectiveOppositeLegHighlighted ? SIDE_DRAW_DURATION : 0}
                 />
