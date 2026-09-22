@@ -7,17 +7,22 @@
 // onAnswer/onComplete РОВНО один раз в конце; общая нижняя кнопка скрыта.
 //
 // Сюжет — прямая инструкция пользователя, на фиксированном примере
-// log₂9 / log₂3 = log₃9:
+// log₂9 / log₂3 = log₃9. Шаги 1-3 (Step1Scene/Step2Scene/Step3Scene)
+// раскрываются СТРОГО последовательно, битами с паузами (по прямой
+// просьбе пользователя, "а не пачкой"):
 // 0. "log₂9 / log₂3 = ?" — просто условие (дробь: log₂9 сверху, log₂3
 //    снизу).
-// 1. "Заметим — у числителя и знаменателя одинаковые основания." — обе
-//    двойки (основания) становятся стикерами ОДНОГО цвета.
-// 2. "Одинаковые основания сокращаются — вычёркиваем log₂ сверху и
-//    снизу." — диагональная зачёркивающая линия ТОГО ЖЕ цвета поверх
-//    "log₂" в числителе И в знаменателе (сами 9 и 3 остаются нетронуты).
-// 3. "Получится: log₃9." — итоговое выражение (то, что осталось внизу —
-//    3 — становится новым основанием; то, что осталось наверху — 9 —
-//    новым аргументом).
+// 1. Формула (основания уже стикерами) → пауза → текст "Заметим — у
+//    числителя и знаменателя одинаковые основания 2." (2 — тоже стикер).
+// 2. Формула (не зачёркнута) → пауза → вычёркиваем log₂ сверху и снизу →
+//    пауза → текст "...вычёркиваем log₂..." (log₂ — тоже стикер).
+// 3. "Сборка" нового логарифма — 6 битов: только ЛЕВАЯ часть уравнения
+//    (дробь+"=") → пауза → вычёркиваем log₂ → пауза → зачёркнутые log₂
+//    сереют (тускнеют) → пауза → дорисовывается ПРАВАЯ часть "= log₃9" →
+//    пауза → обе угловые стрелки (9→9, 3→3) слева направо → пауза →
+//    текст с добавленными стикерами 9/3 ("оставшееся наверху число 9...
+//    оставшееся внизу 3...").
+// 4. "Получится: log₃9." — итоговое выражение.
 //
 // После разбора — тренировочные задания с НОВЫМИ случайными числами
 // (log_a x / log_a y = ?), нужно кликнуть верную формулу-ответ среди 4
@@ -78,7 +83,7 @@ const NumSticker = ({ value, color, small = false }: { value: number | string; c
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 320, damping: 15 }}
         className={cn(
-            'inline-flex items-center justify-center rounded-lg border-2 font-extrabold align-middle',
+            'inline-flex items-center justify-center rounded-lg border-2 font-extrabold align-middle transition-colors duration-500',
             small ? 'px-1 text-[0.6em]' : 'px-1.5 py-0.5',
             'leading-none',
         )}
@@ -242,6 +247,55 @@ const TravelArrow = ({
     )
 }
 
+// Пауза между битами сцены — тот же ≥800мс стандарт, что и во всех
+// остальных walkthrough-разборах. По прямой просьбе пользователя шаги 1-3
+// раскрываются СТРОГО последовательно, битами с паузами, не всё разом.
+const STEP_PAUSE_MS = 900
+// Столько реально рисуется StrikeThrough (750мс задержка измерения + 0.2с
+// delay + 0.5с сама draw-анимация).
+const STRIKE_DRAW_MS = 1450
+// Столько реально рисуется TravelArrow (750мс задержка измерения + 0.2с
+// delay + 0.8с сама draw-анимация).
+const ARROW_DRAW_MS = 1750
+// Длительность CSS-перехода "log₂ → серый" (см. transition-colors на
+// NumSticker/тексте "log" в DimmableLogTerm ниже) — не draw-анимация SVG,
+// просто плавная смена цвета.
+const DIM_TRANSITION_MS = 500
+// Пружинное появление новой пары стикеров (правая часть уравнения) —
+// достаточно времени, чтобы bounce-вход NumSticker осел, прежде чем
+// начинать следующий бит.
+const RHS_SETTLE_MS = 400
+// Тот же приглушённый серый, что уже используется в этом файле для
+// нейтральных технических подписей (см. "Тренировка" ниже) — сюда же
+// уходит зачёркнутое "log₂" после сокращения.
+const GREY_COLOR = '#5C6B73'
+
+// Печатаемая строка с НЕСКОЛЬКИМИ встроенными стикерами внутри текста —
+// та же техника, что и TypedLineWithParts в LOGCOMBOWALK/FARADAYWALK (у
+// этого семейства файлов нет общего экспорта, каждый несёт свою копию):
+// Typewriter печатает ПЛОСКУЮ строку (значения стикеров как обычный
+// текст), после onDone вид подменяется на размеченную версию.
+type TypedLinePart = { text: string } | { sticker: number | string; color: string }
+
+const TypedLineWithParts = ({ parts, onSettled }: { parts: TypedLinePart[]; onSettled?: () => void }) => {
+    const [typed, setTyped] = useState(false)
+    const plainText = parts.map((p) => ('text' in p ? p.text : String(p.sticker))).join('')
+    return (
+        <div className="w-full text-base md:text-lg text-[#F2F7FB]">
+            {!typed ? (
+                <Typewriter text={plainText} onDone={() => { setTyped(true); setTimeout(() => onSettled?.(), 450) }} />
+            ) : (
+                <>
+                    {parts.map((p, i) => ('text' in p
+                        ? <span key={i}>{p.text}</span>
+                        : <NumSticker key={i} value={p.sticker} color={p.color} />
+                    ))}
+                </>
+            )}
+        </div>
+    )
+}
+
 // Дробь "log_a x / log_a y = ?" — основной вид условия на шагах 0-2.
 // baseColor/strike применяются к ОБОИМ основаниям сразу (они всегда
 // подсвечиваются/зачёркиваются парой, не по отдельности).
@@ -268,42 +322,160 @@ const FullExpression = ({
     </div>
 )
 
-// Шаг "сборки" нового логарифма — повторяет ЗАЧЁРКНУТУЮ дробь (log₂
-// сверху и снизу, как на шаге 2), но теперь числа-аргументы (9 и 3) ТОЖЕ
-// стикеры, и правее рисуется "= log₃(9)" стикерами тех же цветов. Угловые
-// стрелки 9→9 и 3→3 показывают, что новый логарифм СОБРАН из тех же
-// самых чисел, просто в новой роли — по прямой просьбе пользователя
-// ("чтобы понятно было, как собрался новый логарифм").
-const AssembleExpression = ({ containerRef }: { containerRef: React.RefObject<HTMLDivElement> }) => (
-    <div ref={containerRef} className="relative w-full flex items-center justify-center gap-3 flex-wrap text-2xl md:text-3xl font-extrabold py-2 pt-10 pb-12">
-        <span className="inline-flex flex-col items-center leading-none">
-            <span className="pb-2 border-b-2 border-[#F2F7FB]/70 px-2">
-                <span data-marker="log-num" className="inline-flex items-baseline">
-                    <Plain>log</Plain>
-                    <sub className="ml-0.5"><NumSticker value={EX.a} color={BASE_COLOR} small /></sub>
-                </span>
-                <span className="ml-1" data-marker="left-x"><NumSticker value={EX.x} color={ARG_COLOR_X} small /></span>
-            </span>
-            <span className="pt-2 px-2">
-                <span data-marker="log-den" className="inline-flex items-baseline">
-                    <Plain>log</Plain>
-                    <sub className="ml-0.5"><NumSticker value={EX.a} color={BASE_COLOR} small /></sub>
-                </span>
-                <span className="ml-1" data-marker="left-y"><NumSticker value={EX.y} color={ARG_COLOR_Y} small /></span>
-            </span>
+// Числитель/знаменатель ЛЕВОЙ дроби на шаге "сборки" — "log" + основание
+// (стикер, зачёркивается на phase>=1, СЕРЕЕТ на phase>=2) + аргумент
+// (свой цвет, ARG_COLOR_X/Y, нужен для последующей стрелки). dimmed —
+// плавный CSS-переход (transition-colors), не отдельная draw-анимация.
+const DimmableLogTerm = ({
+    arg, argColor, argMarker, strikeMarker, dimmed,
+}: { arg: number; argColor: string; argMarker: string; strikeMarker: string; dimmed: boolean }) => (
+    <span className="inline-flex items-baseline whitespace-nowrap">
+        <span data-marker={strikeMarker} className="inline-flex items-baseline">
+            <span className="transition-colors duration-500" style={{ color: dimmed ? GREY_COLOR : '#F2F7FB' }}>log</span>
+            <sub className="ml-0.5"><NumSticker value={EX.a} color={dimmed ? GREY_COLOR : BASE_COLOR} small /></sub>
         </span>
-        <Plain>=</Plain>
-        <span className="inline-flex items-baseline whitespace-nowrap">
-            <Plain>log</Plain>
-            <sub className="ml-0.5" data-marker="right-y"><NumSticker value={EX.y} color={ARG_COLOR_Y} small /></sub>
-            <span className="ml-1" data-marker="right-x"><NumSticker value={EX.x} color={ARG_COLOR_X} small /></span>
-        </span>
-        <StrikeThrough containerRef={containerRef} marker="log-num" color={BASE_COLOR} />
-        <StrikeThrough containerRef={containerRef} marker="log-den" color={BASE_COLOR} />
-        <TravelArrow containerRef={containerRef} fromMarker="left-x" toMarker="right-x" color={ARG_COLOR_X} curve="up" />
-        <TravelArrow containerRef={containerRef} fromMarker="left-y" toMarker="right-y" color={ARG_COLOR_Y} curve="down" />
-    </div>
+        <span className="ml-1" data-marker={argMarker}><NumSticker value={arg} color={argColor} small /></span>
+    </span>
 )
+
+// Шаг 3 ("сборка" нового логарифма) — по прямой просьбе пользователя
+// раскрывается СТРОГО последовательно, в 6 битах: (0) только ЛЕВАЯ часть
+// уравнения (дробь + "=", ещё не зачёркнута) → пауза → (1) вычёркиваем
+// log₂ сверху и снизу → пауза → (2) зачёркнутые log₂ сереют (dimmed) →
+// пауза → (3) дорисовывается ПРАВАЯ часть "= log₃(9)" → пауза → (4) обе
+// угловые стрелки (9→9, 3→3) → пауза → (5) текст с добавленными
+// стикерами 9/3. pt-10/pb-12 — запас под обе дуги стрелок (одна выше,
+// одна ниже формулы), тот же приём, что уже был у исходной статичной
+// версии этой сцены.
+const Step3Scene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const ref = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (phase === 1) {
+            const t = setTimeout(() => setPhase(2), STRIKE_DRAW_MS + STEP_PAUSE_MS)
+            return () => clearTimeout(t)
+        }
+        if (phase === 2) {
+            const t = setTimeout(() => setPhase(3), DIM_TRANSITION_MS + STEP_PAUSE_MS)
+            return () => clearTimeout(t)
+        }
+        if (phase === 3) {
+            const t = setTimeout(() => setPhase(4), RHS_SETTLE_MS + STEP_PAUSE_MS)
+            return () => clearTimeout(t)
+        }
+        if (phase === 4) {
+            const t = setTimeout(() => setPhase(5), ARROW_DRAW_MS + STEP_PAUSE_MS)
+            return () => clearTimeout(t)
+        }
+    }, [phase])
+
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 1)), STEP_PAUSE_MS)}>
+                <div ref={ref} className="relative w-full flex items-center justify-center gap-3 flex-wrap text-2xl md:text-3xl font-extrabold py-2 pt-10 pb-12">
+                    <span className="inline-flex flex-col items-center leading-none">
+                        <span className="pb-2 border-b-2 border-[#F2F7FB]/70 px-2">
+                            <DimmableLogTerm arg={EX.x} argColor={ARG_COLOR_X} argMarker="left-x" strikeMarker="log-num" dimmed={phase >= 2} />
+                        </span>
+                        <span className="pt-2 px-2">
+                            <DimmableLogTerm arg={EX.y} argColor={ARG_COLOR_Y} argMarker="left-y" strikeMarker="log-den" dimmed={phase >= 2} />
+                        </span>
+                    </span>
+                    <Plain>=</Plain>
+                    {phase >= 3 && (
+                        <span className="inline-flex items-baseline whitespace-nowrap">
+                            <Plain>log</Plain>
+                            <sub className="ml-0.5" data-marker="right-y"><NumSticker value={EX.y} color={ARG_COLOR_Y} small /></sub>
+                            <span className="ml-1" data-marker="right-x"><NumSticker value={EX.x} color={ARG_COLOR_X} small /></span>
+                        </span>
+                    )}
+                    {phase >= 1 && (
+                        <>
+                            <StrikeThrough containerRef={ref} marker="log-num" color={BASE_COLOR} />
+                            <StrikeThrough containerRef={ref} marker="log-den" color={BASE_COLOR} />
+                        </>
+                    )}
+                    {phase >= 4 && (
+                        <>
+                            <TravelArrow containerRef={ref} fromMarker="left-x" toMarker="right-x" color={ARG_COLOR_X} curve="up" />
+                            <TravelArrow containerRef={ref} fromMarker="left-y" toMarker="right-y" color={ARG_COLOR_Y} curve="down" />
+                        </>
+                    )}
+                </div>
+            </DiagramBlock>
+            {phase >= 5 && (
+                <TypedLineWithParts
+                    parts={[
+                        { text: 'Оставшееся наверху число ' },
+                        { sticker: EX.x, color: ARG_COLOR_X },
+                        { text: ' становится новым аргументом, оставшееся внизу ' },
+                        { sticker: EX.y, color: ARG_COLOR_Y },
+                        { text: ' — новым основанием.' },
+                    ]}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// Шаг 1 — формула (основания уже стикерами) сразу → пауза → текст со
+// стикером основания в конце (по прямой просьбе пользователя — "2
+// добавить").
+const Step1Scene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [textVisible, setTextVisible] = useState(false)
+    const ref = useRef<HTMLDivElement>(null)
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setTextVisible(true), STEP_PAUSE_MS)}>
+                <FullExpression baseColor={BASE_COLOR} containerRef={ref} />
+            </DiagramBlock>
+            {textVisible && (
+                <TypedLineWithParts
+                    parts={[
+                        { text: 'Заметим — у числителя и знаменателя одинаковые основания ' },
+                        { sticker: EX.a, color: BASE_COLOR },
+                        { text: '.' },
+                    ]}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// Шаг 2 — формула (не зачёркнута) сразу → пауза → вычёркиваем log₂ →
+// пауза → текст со стикером "log₂" внутри (по прямой просьбе
+// пользователя — "выделяем стикером").
+const Step2Scene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const ref = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (phase !== 1) return
+        const t = setTimeout(() => setPhase(2), STRIKE_DRAW_MS + STEP_PAUSE_MS)
+        return () => clearTimeout(t)
+    }, [phase])
+
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 1)), STEP_PAUSE_MS)}>
+                <FullExpression baseColor={BASE_COLOR} strike={phase >= 1} containerRef={ref} />
+            </DiagramBlock>
+            {phase >= 2 && (
+                <TypedLineWithParts
+                    parts={[
+                        { text: 'Одинаковые основания сокращаются — вычёркиваем ' },
+                        { sticker: 'log₂', color: BASE_COLOR },
+                        { text: ' сверху и снизу.' },
+                    ]}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
 
 // Финальная строка "Получится: log₃9" — та же структура, что у AnswerLine
 // в LOGSUBWALK/LOGWALK.
@@ -462,12 +634,9 @@ export const TypeLogDivWalk = ({ onAnswer, onComplete }: Props) => {
     const [wrongTried, setWrongTried] = useState<LogOption[]>([])
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
 
-    // Контейнеры каждой сцены с формулой — FullExpression сама решает,
-    // нужно ли что-то измерять внутри (зачёркивание — только на шаге 2).
+    // Контейнер шага 0 (просто условие) — шаги 1-3 теперь владеют своим
+    // контейнером сами внутри Step1Scene/Step2Scene/Step3Scene.
     const step0Ref = useRef<HTMLDivElement>(null)
-    const step1Ref = useRef<HTMLDivElement>(null)
-    const step2Ref = useRef<HTMLDivElement>(null)
-    const step3Ref = useRef<HTMLDivElement>(null)
 
     const currentCorrectOption: LogOption = { base: trials[trialIndex].y, arg: trials[trialIndex].x }
 
@@ -578,55 +747,31 @@ export const TypeLogDivWalk = ({ onAnswer, onComplete }: Props) => {
                     </Fragment>
                 </SceneWrapper>
 
-                {/* Шаг 1 — оба основания (двойки) становятся стикерами
-                    ОДНОГО цвета. */}
+                {/* Шаг 1 — формула сразу → пауза → текст (Step1Scene). */}
                 {step >= 1 && (
                     <SceneWrapper key="step-1" innerRef={sceneRef('step-1')} active={isSceneActive('step-1')}>
                         <Fragment key={`step-1-${nonceFor('step-1')}`}>
-                            <DiagramBlock>
-                                <FullExpression baseColor={BASE_COLOR} containerRef={step1Ref} />
-                            </DiagramBlock>
-                            <TypedLine
-                                className="w-full text-base md:text-lg text-[#F2F7FB]"
-                                text="Заметим — у числителя и знаменателя одинаковые основания."
-                                onSettled={() => setStepReady(true)}
-                            />
+                            <Step1Scene onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}
 
-                {/* Шаг 2 — одинаковые основания сокращаются: log₂
-                    зачёркивается и сверху, и снизу (9 и 3 остаются). */}
+                {/* Шаг 2 — формула сразу → пауза → вычёркивание → пауза →
+                    текст (Step2Scene). */}
                 {step >= 2 && (
                     <SceneWrapper key="step-2" innerRef={sceneRef('step-2')} active={isSceneActive('step-2')}>
                         <Fragment key={`step-2-${nonceFor('step-2')}`}>
-                            <DiagramBlock>
-                                <FullExpression baseColor={BASE_COLOR} strike containerRef={step2Ref} />
-                            </DiagramBlock>
-                            <TypedLine
-                                className="w-full text-base md:text-lg text-[#F2F7FB]"
-                                text="Одинаковые основания сокращаются — вычёркиваем log₂ сверху и снизу."
-                                onSettled={() => setStepReady(true)}
-                            />
+                            <Step2Scene onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}
 
-                {/* Шаг 3 — сборка нового логарифма: та же зачёркнутая дробь,
-                    но 9 и 3 теперь тоже стикеры, справа "= log₃(9)", и
-                    угловые стрелки 9→9, 3→3 показывают, откуда взялись
-                    аргумент и основание нового логарифма. */}
+                {/* Шаг 3 — сборка нового логарифма, 6 последовательных битов
+                    (см. Step3Scene). */}
                 {step >= 3 && (
                     <SceneWrapper key="step-3" innerRef={sceneRef('step-3')} active={isSceneActive('step-3')}>
                         <Fragment key={`step-3-${nonceFor('step-3')}`}>
-                            <DiagramBlock>
-                                <AssembleExpression containerRef={step3Ref} />
-                            </DiagramBlock>
-                            <TypedLine
-                                className="w-full text-base md:text-lg text-[#F2F7FB]"
-                                text="Оставшееся наверху число становится новым аргументом, оставшееся внизу — новым основанием."
-                                onSettled={() => setStepReady(true)}
-                            />
+                            <Step3Scene onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}
