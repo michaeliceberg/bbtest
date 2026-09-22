@@ -8,16 +8,21 @@
 // скрыта.
 //
 // Сюжет — прямая инструкция пользователя ("К-к-комбо конструкция"), на
-// фиксированном примере log₂3 · log₃4 = log₂4:
+// фиксированном примере log₂3 · log₃4 = log₂4. Шаги 1-3 (Step1Scene/
+// Step2Scene/Step3Scene) раскрываются СТРОГО последовательно, битами с
+// паузами (по прямой просьбе пользователя, "а не пачкой"):
 // 0. "log₂3 · log₃4 = ?" — просто условие.
-// 1. "К-к-комбо! Если видим такую конструкцию..." — обводим СОВПАДАЮЩУЮ
-//    часть: аргумент первого лога (3) и основание второго (log₃) —
-//    единая обводка прямоугольником со скруглёнными углами вокруг
-//    "3 · log₃".
-// 2. Пауза, затем зачёркиваем ту же обведённую часть (аргумент и
-//    основание совпали — сокращаются).
-// 3. Зачёркнутая часть становится бледной, а числа СНАРУЖИ (2 и 4)
-//    становятся цветными стикерами.
+// 1. Формула → пауза → обводим СОВПАДАЮЩУЮ часть: аргумент первого лога
+//    (3) и основание второго (log₃) — единая обводка прямоугольником со
+//    скруглёнными углами вокруг "3 · log₃" → пауза → текст "К-к-комбо!
+//    Если видим такую конструкцию...".
+// 2. Формула → пауза → обводим → пауза → зачёркиваем ту же обведённую
+//    часть (аргумент и основание совпали — сокращаются) → пауза →
+//    обведённая часть становится бледной (числа СНАРУЖИ пока НЕ трогаем)
+//    → пауза → текст "Аргумент первого и основание второго совпадают...".
+// 3. Итоговый вид сразу (обведено/зачёркнуто/бледно, числа СНАРУЖИ — 2 и
+//    4 — уже цветные стикеры) → пауза → текст "Остались только 2 и 4..."
+//    с ТЕМИ ЖЕ числами ещё раз стикерами внутри предложения.
 // 4. "Получилось: log₂4." — итог.
 //
 // После разбора — тренировочные задания с НОВЫМИ случайными числами
@@ -278,24 +283,35 @@ const ComboStrike = ({
 }
 
 // Основная строка примера "log_a b · log_b c = ?" — один компонент на ВСЕ
-// 4 диаграммных шага, различаются только stage:
-// 'plain'   — просто условие, без акцентов (шаг 0).
-// 'circled' — combo-часть (b · log_b) обведена овалом (шаг 1).
-// 'struck'  — то же + горизонтальная зачёркивающая черта (шаг 2).
-// 'faded'   — combo-часть приглушена (opacity), a/c снаружи — стикеры (шаг 3).
+// диаграммные шаги, каждый визуальный акцент — свой независимый флаг (не
+// единый "stage", как раньше) — нужно, чтобы каждая сцена могла раскрывать
+// их СВОИМ порядком/паузами (по прямой просьбе пользователя):
+// circled       — combo-часть (b · log_b) обведена прямоугольником.
+// struck        — то же + диагональная зачёркивающая черта.
+// comboFaded    — combo-часть приглушена (opacity), САМА ПО СЕБЕ, БЕЗ
+//                 превращения a/c снаружи в стикеры (нужно шагу 2 — "мы на
+//                 это уже не должны смотреть", числа снаружи туда ещё не
+//                 добрались).
+// outerStickers — a/c снаружи становятся цветными стикерами (шаг 3).
 const ChainExpression = ({
-    containerRef, stage,
-}: { containerRef: React.RefObject<HTMLDivElement>; stage: 'plain' | 'circled' | 'struck' | 'faded' }) => (
+    containerRef, circled = false, struck = false, comboFaded = false, outerStickers = false,
+}: {
+    containerRef: React.RefObject<HTMLDivElement>
+    circled?: boolean
+    struck?: boolean
+    comboFaded?: boolean
+    outerStickers?: boolean
+}) => (
     <div ref={containerRef} className="relative w-full flex items-center justify-center gap-2 flex-wrap text-2xl md:text-3xl font-extrabold py-2">
         <span className="inline-flex items-baseline whitespace-nowrap">
             <Plain>log</Plain>
             <sub className="ml-0.5">
-                {stage === 'faded' ? <NumSticker value={EX.a} color={OUTER_A_COLOR} small /> : <Plain>{EX.a}</Plain>}
+                {outerStickers ? <NumSticker value={EX.a} color={OUTER_A_COLOR} small /> : <Plain>{EX.a}</Plain>}
             </sub>
             <span
                 data-marker="combo"
                 className="inline-flex items-baseline ml-1 rounded transition-opacity duration-500"
-                style={{ opacity: stage === 'faded' ? 0.32 : 1 }}
+                style={{ opacity: comboFaded ? 0.32 : 1 }}
             >
                 <Plain>{EX.b}</Plain>
                 <Plain>&nbsp;·&nbsp;</Plain>
@@ -303,17 +319,13 @@ const ChainExpression = ({
                 <sub className="ml-0.5"><Plain>{EX.b}</Plain></sub>
             </span>
             <span className="ml-1">
-                {stage === 'faded' ? <NumSticker value={EX.c} color={OUTER_C_COLOR} small /> : <Plain>{EX.c}</Plain>}
+                {outerStickers ? <NumSticker value={EX.c} color={OUTER_C_COLOR} small /> : <Plain>{EX.c}</Plain>}
             </span>
         </span>
         <Plain>=</Plain>
         <QuestionMark />
-        {(stage === 'circled' || stage === 'struck') && (
-            <ComboCircle containerRef={containerRef} marker="combo" color={COMBO_COLOR} />
-        )}
-        {stage === 'struck' && (
-            <ComboStrike containerRef={containerRef} marker="combo" color={COMBO_COLOR} />
-        )}
+        {circled && <ComboCircle containerRef={containerRef} marker="combo" color={COMBO_COLOR} />}
+        {struck && <ComboStrike containerRef={containerRef} marker="combo" color={COMBO_COLOR} />}
     </div>
 )
 
@@ -368,6 +380,125 @@ const ResultLine = ({ onSettled }: { onSettled?: () => void }) => {
                 </>
             )}
         </div>
+    )
+}
+
+// Пауза между битами сцены — тот же ≥800мс стандарт, что и во всех
+// остальных walkthrough-разборах. По прямой просьбе пользователя шаги 1-3
+// раскрываются СТРОГО последовательно, битами с паузами, не всё разом.
+const STEP_PAUSE_MS = 900
+// Столько реально рисуется ComboCircle (useStableMarkerRect принимает
+// измерение не раньше MEASURE_MIN_DELAY_MS=550 + пара кадров стабилизации,
+// затем 0.7с сама draw-анимация rect, без задержки).
+const CIRCLE_DRAW_MS = 1300
+// То же для ComboStrike (тот же MEASURE_MIN_DELAY_MS + 0.2с delay + 0.45с
+// сама draw-анимация линии).
+const STRIKE_DRAW_MS = 1250
+// Длительность CSS-перехода "combo-часть тускнеет" (transition-opacity на
+// data-marker="combo" в ChainExpression) — не draw-анимация SVG, просто
+// плавная смена прозрачности.
+const DIM_TRANSITION_MS = 500
+
+// Шаг 1 — формула (без обводки) сразу → пауза → обводим совпадающую часть
+// → пауза → текст "К-к-комбо!..." (текст не менялся, только сequencing).
+const Step1Scene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const ref = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (phase !== 1) return
+        const t = setTimeout(() => setPhase(2), CIRCLE_DRAW_MS + STEP_PAUSE_MS)
+        return () => clearTimeout(t)
+    }, [phase])
+
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 1)), STEP_PAUSE_MS)}>
+                <ChainExpression containerRef={ref} circled={phase >= 1} />
+            </DiagramBlock>
+            {phase >= 2 && (
+                <TypedLineWithParts
+                    parts={[
+                        { text: 'К-к-комбо! Если видим такую конструкцию с ' },
+                        { sticker: 'одинаковыми', color: COMBO_COLOR },
+                        { text: ' числами — в данном случае это цифры ' },
+                        { sticker: EX.b, color: COMBO_COLOR },
+                        { text: ' и ' },
+                        { sticker: EX.b, color: COMBO_COLOR },
+                        { text: '.' },
+                    ]}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// Шаг 2 — формула сразу → пауза → обводим → пауза → зачёркиваем → пауза →
+// обведённая часть тускнеет ("мы на это уже не должны смотреть", БЕЗ
+// превращения a/c снаружи в стикеры — то ещё впереди, шаг 3) → пауза →
+// текст.
+const Step2Scene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const ref = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (phase === 1) {
+            const t = setTimeout(() => setPhase(2), CIRCLE_DRAW_MS + STEP_PAUSE_MS)
+            return () => clearTimeout(t)
+        }
+        if (phase === 2) {
+            const t = setTimeout(() => setPhase(3), STRIKE_DRAW_MS + STEP_PAUSE_MS)
+            return () => clearTimeout(t)
+        }
+        if (phase === 3) {
+            const t = setTimeout(() => setPhase(4), DIM_TRANSITION_MS + STEP_PAUSE_MS)
+            return () => clearTimeout(t)
+        }
+    }, [phase])
+
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 1)), STEP_PAUSE_MS)}>
+                <ChainExpression containerRef={ref} circled={phase >= 1} struck={phase >= 2} comboFaded={phase >= 3} />
+            </DiagramBlock>
+            {phase >= 4 && (
+                <TypedLine
+                    className="w-full text-base md:text-lg text-[#F2F7FB]"
+                    text="Аргумент первого и основание второго совпадают — значит, вычёркиваем их."
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// Шаг 3 — сразу пишем формулу в уже полностью упрощённом виде (обведено,
+// зачёркнуто, combo-часть блёклая, a/c снаружи — уже стикеры — та же
+// визуальная точка, на которой закончился шаг 2, плюс сами стикеры) →
+// пауза → текст с ДОБАВЛЕННЫМИ стикерами 2/4 внутри предложения (по
+// прямой просьбе пользователя).
+const Step3Scene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [textVisible, setTextVisible] = useState(false)
+    const ref = useRef<HTMLDivElement>(null)
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setTextVisible(true), STEP_PAUSE_MS)}>
+                <ChainExpression containerRef={ref} circled struck comboFaded outerStickers />
+            </DiagramBlock>
+            {textVisible && (
+                <TypedLineWithParts
+                    parts={[
+                        { text: 'Остались только ' },
+                        { sticker: EX.a, color: OUTER_A_COLOR },
+                        { text: ' и ' },
+                        { sticker: EX.c, color: OUTER_C_COLOR },
+                        { text: ' — это и есть новый логарифм.' },
+                    ]}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
     )
 }
 
@@ -507,9 +638,6 @@ export const TypeLogComboWalk = ({ onAnswer, onComplete }: Props) => {
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
 
     const step0Ref = useRef<HTMLDivElement>(null)
-    const step1Ref = useRef<HTMLDivElement>(null)
-    const step2Ref = useRef<HTMLDivElement>(null)
-    const step3Ref = useRef<HTMLDivElement>(null)
 
     const currentCorrectOption: ComboOption = { base: trials[trialIndex].a, arg: trials[trialIndex].c }
 
@@ -614,64 +742,37 @@ export const TypeLogComboWalk = ({ onAnswer, onComplete }: Props) => {
                 <SceneWrapper key="step-0" innerRef={sceneRef('step-0')} active={isSceneActive('step-0')}>
                     <Fragment key={`step-0-${nonceFor('step-0')}`}>
                         <DiagramBlock onSettled={() => setStepReady(true)}>
-                            <ChainExpression containerRef={step0Ref} stage="plain" />
+                            <ChainExpression containerRef={step0Ref} />
                         </DiagramBlock>
                     </Fragment>
                 </SceneWrapper>
 
-                {/* Шаг 1 — "К-к-комбо!" — обводим совпадающую часть
-                    (аргумент первого лога = основание второго). */}
+                {/* Шаг 1 — "К-к-комбо!" — формула сразу → пауза → обводим
+                    совпадающую часть → пауза → текст (Step1Scene). */}
                 {step >= 1 && (
                     <SceneWrapper key="step-1" innerRef={sceneRef('step-1')} active={isSceneActive('step-1')}>
                         <Fragment key={`step-1-${nonceFor('step-1')}`}>
-                            <DiagramBlock>
-                                <ChainExpression containerRef={step1Ref} stage="circled" />
-                            </DiagramBlock>
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'К-к-комбо! Если видим такую конструкцию с ' },
-                                    { sticker: 'одинаковыми', color: COMBO_COLOR },
-                                    { text: ' числами — в данном случае это цифры ' },
-                                    { sticker: EX.b, color: COMBO_COLOR },
-                                    { text: ' и ' },
-                                    { sticker: EX.b, color: COMBO_COLOR },
-                                    { text: '.' },
-                                ]}
-                                onSettled={() => setStepReady(true)}
-                            />
+                            <Step1Scene onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}
 
-                {/* Шаг 2 — вычёркиваем обведённое (совпало — сокращается). */}
+                {/* Шаг 2 — формула → пауза → обводим → пауза → вычёркиваем →
+                    пауза → тускнеет → пауза → текст (Step2Scene). */}
                 {step >= 2 && (
                     <SceneWrapper key="step-2" innerRef={sceneRef('step-2')} active={isSceneActive('step-2')}>
                         <Fragment key={`step-2-${nonceFor('step-2')}`}>
-                            <DiagramBlock>
-                                <ChainExpression containerRef={step2Ref} stage="struck" />
-                            </DiagramBlock>
-                            <TypedLine
-                                className="w-full text-base md:text-lg text-[#F2F7FB]"
-                                text="Аргумент первого и основание второго совпадают — значит, вычёркиваем их."
-                                onSettled={() => setStepReady(true)}
-                            />
+                            <Step2Scene onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}
 
-                {/* Шаг 3 — вычеркнутое бледнеет, числа снаружи (2 и 4)
-                    становятся стикерами. */}
+                {/* Шаг 3 — итоговый вид (обведено/зачёркнуто/тускло/
+                    стикеры) сразу → пауза → текст (Step3Scene). */}
                 {step >= 3 && (
                     <SceneWrapper key="step-3" innerRef={sceneRef('step-3')} active={isSceneActive('step-3')}>
                         <Fragment key={`step-3-${nonceFor('step-3')}`}>
-                            <DiagramBlock>
-                                <ChainExpression containerRef={step3Ref} stage="faded" />
-                            </DiagramBlock>
-                            <TypedLine
-                                className="w-full text-base md:text-lg text-[#F2F7FB]"
-                                text="Осталось только снаружи — 2 и 4 — это и есть новый логарифм."
-                                onSettled={() => setStepReady(true)}
-                            />
+                            <Step3Scene onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}
