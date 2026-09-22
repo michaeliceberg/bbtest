@@ -105,10 +105,14 @@ const Sticker = ({ value, color }: { value: React.ReactNode; color: string }) =>
 // же техника, что и TypedLineWithParts в LOGCOMBOWALK: Typewriter
 // печатает ПЛОСКУЮ строку (значения стикеров как обычный текст), после
 // onDone вид подменяется на размеченную версию.
-type LinePart = { text: string } | { sticker: string; color: string }
+// break:true — печатается Typewriter'ом как обычный пробел (чтобы не
+// путать анимацию печати), а после onDone превращается в настоящий
+// перенос строки — нужно, когда фраза должна принудительно ломаться в
+// конкретном месте, а не просто естественным word-wrap по ширине.
+type LinePart = { text: string } | { sticker: string; color: string } | { break: true }
 const TypedLineWithParts = ({ parts, onSettled }: { parts: LinePart[]; onSettled?: () => void }) => {
     const [typed, setTyped] = useState(false)
-    const plainText = parts.map((p) => ('text' in p ? p.text : p.sticker)).join('')
+    const plainText = parts.map((p) => ('text' in p ? p.text : 'sticker' in p ? p.sticker : ' ')).join('')
     return (
         <div className="w-full text-center text-base md:text-lg text-[#F2F7FB]">
             {!typed ? (
@@ -117,7 +121,9 @@ const TypedLineWithParts = ({ parts, onSettled }: { parts: LinePart[]; onSettled
                 <>
                     {parts.map((p, i) => ('text' in p
                         ? <span key={i}>{p.text}</span>
-                        : <Sticker key={i} value={p.sticker} color={p.color} />
+                        : 'sticker' in p
+                            ? <Sticker key={i} value={p.sticker} color={p.color} />
+                            : <br key={i} />
                     ))}
                 </>
             )}
@@ -439,6 +445,22 @@ const DirectionDiagram = () => {
                     animate={{ pathLength: 1, opacity: 0.9 }}
                     transition={{ duration: 0.6, ease: 'easeInOut' }}
                 />
+                {/* Стикер "B" над бегущей стрелкой — той же техникой, что
+                    и FieldBLabel выше: позиционирующий transform на
+                    СТАТИЧНОМ внешнем <g>, анимация (scale/opacity) на
+                    вложенном motion.g — иначе framer-motion стирает
+                    вручную заданный transform (тот же баг, уже пойманный
+                    и исправленный у стикеров сцены 1). */}
+                <g transform={`translate(${(DIR_X1 + DIR_X2) / 2},${DIR_Y - 24})`}>
+                    <motion.g
+                        initial={{ opacity: 0, scale: 2.4 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 320, damping: 15, delay: 0.6 }}
+                    >
+                        <rect x={-13} y={-13} width={26} height={26} rx={6} fill={hexToRgba(FIELD_COLOR, 0.18)} stroke={FIELD_COLOR} strokeWidth={2} />
+                        <text x={0} y={5} textAnchor="middle" fontSize={15} fontWeight={800} fill={FIELD_COLOR}>B</text>
+                    </motion.g>
+                </g>
                 {phases.map((phase, i) => {
                     const tt = (t + phase) % 1
                     const x = DIR_X1 + (DIR_X2 - DIR_X1) * tt
@@ -585,7 +607,9 @@ const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
                             <DiagramBlock><DirectionRememberBanner /></DiagramBlock>
                             <TypedLineWithParts
                                 parts={[
-                                    { text: 'Линии магнитного поля всегда идут от ' },
+                                    { text: 'Линии магнитного поля всегда идут' },
+                                    { break: true },
+                                    { text: 'от ' },
                                     { sticker: 'N', color: NORTH_COLOR },
                                     { text: ' (северный) к ' },
                                     { sticker: 'S', color: SOUTH_COLOR },
