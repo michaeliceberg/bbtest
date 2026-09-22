@@ -11,13 +11,19 @@
 //
 // Сюжет — тот же порядок шагов, что у LOGWALK, на ОБРАТНОМ примере
 // (log₂15 - log₂5 = log₂3 — та же тройка чисел 2/3/5/15, что и в LOGWALK,
-// просто в обратную сторону: 3·5=15 там, 15÷5=3 здесь):
+// просто в обратную сторону: 3·5=15 там, 15÷5=3 здесь). Шаги 1-3
+// (BaseMatchScene/ArgumentsScene) раскрываются СТРОГО последовательно,
+// битами с паузами (та же правка, что и в LOGWALK, "а не всё разом") —
+// сначала диаграмма, потом пауза, потом рисуется стрелка, потом ещё
+// пауза, и только потом текст:
 // 1. Пишем крупно "log₂15 - log₂5 =" — просто условие.
-// 2. Обводим ОБА основания (двойки) как стикер — одинаковое основание.
-// 3. Дописываем справа "= log₂" — то же основание.
-// 4. Обводим аргументы 15 и 5 РАЗНЫМИ цветами — стрелка от "-" слева к
-//    "÷" справа показывает "разность превращается в частное".
-//    "= log₂(15÷5)".
+// 2. Обводим ОБА основания (двойки) как стикер → угловая стрелка между
+//    ними → текст "заметим одинаковое основание".
+// 3. Дописываем справа "= log₂" (то же основание) → угловая стрелка с
+//    ТРЕМЯ указателями → текст "получится тот же основание".
+// 4. Обводим аргументы 15 и 5 РАЗНЫМИ цветами → стрелка от "-" слева к
+//    "÷" справа (мост ВЫШЕ формулы, показывает "разность превращается в
+//    частное", "= log₂(15÷5)") → текст "аргументы надо разделить".
 // 5. Считаем: "Ответ: log₂3".
 //
 // После разбора — тренировочные задания с НОВЫМИ случайными числами
@@ -404,6 +410,94 @@ const BaseMatchArrow = ({
     )
 }
 
+// Пауза между тем, как стрелка ДОРИСОВАЛАСЬ, и появлением текста — по
+// прямой просьбе пользователя (та же правка, что уже сделана в LOGWALK,
+// "как складывать логарифмы") обе сцены с BaseMatchArrow (шаги 1 и 2)
+// раскрываются строго последовательно: диаграмма+стрелка → пауза → текст.
+const BASE_MATCH_PAUSE_MS = 900
+// Столько реально рисуется BaseMatchArrow (750мс задержка измерения +
+// 0.2с delay + 0.8с сама draw-анимация, см. BaseMatchArrow выше).
+const BASE_MATCH_ARROW_DRAW_MS = 1750
+
+// Общая обёртка для шагов 1 и 2 — диаграмма+стрелка мгновенно, текст
+// появляется только ПОСЛЕ того, как стрелка полностью дорисовалась (+
+// пауза). Formula передаётся children'ом (разная у шага 1/2), markers —
+// на какие основания указывает стрелка. Та же структура, что BaseMatchScene
+// в type-logwalk.tsx.
+const BaseMatchScene = ({
+    markers, formula, textBefore, textAfter = '', onSettled,
+}: {
+    markers: string[]
+    formula: React.ReactNode
+    textBefore: string
+    textAfter?: string
+    onSettled?: () => void
+}) => {
+    const [textVisible, setTextVisible] = useState(false)
+    const ref = useRef<HTMLDivElement>(null)
+    useEffect(() => {
+        const t = setTimeout(() => setTextVisible(true), BASE_MATCH_ARROW_DRAW_MS + BASE_MATCH_PAUSE_MS)
+        return () => clearTimeout(t)
+    }, [])
+    return (
+        <>
+            <DiagramBlock>
+                <div ref={ref} className="relative w-full pb-9">
+                    {formula}
+                    <BaseMatchArrow containerRef={ref} markers={markers} color={BASE_COLOR} />
+                </div>
+            </DiagramBlock>
+            {textVisible && (
+                <TypedLineWithSticker
+                    before={textBefore}
+                    stickerValue={2}
+                    stickerColor={BASE_COLOR}
+                    after={textAfter}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// Шаг 3 — та же строгая последовательность: сначала сам пример (формула с
+// уже раскрашенными аргументами, БЕЗ стрелки) → пауза → рисуется стрелка
+// "-"→"÷" → пауза → текст-объяснение "разделить". "pt-10" на контейнере —
+// ArgumentsArrow строит мост ВЫШЕ формулы (в отличие от BaseMatchArrow,
+// который снизу) — без запаса сверху стрелка налезала на текст ПРЕДЫДУЩЕЙ
+// сцены (тот же реальный баг, что уже пойман пользователем и исправлен в
+// LOGWALK тем же приёмом).
+const ArgumentsScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const ref = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (phase !== 1) return
+        const t = setTimeout(() => setPhase(2), BASE_MATCH_ARROW_DRAW_MS + BASE_MATCH_PAUSE_MS)
+        return () => clearTimeout(t)
+    }, [phase])
+
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 1)), BASE_MATCH_PAUSE_MS)}>
+                <div ref={ref} className="relative w-full pt-10">
+                    <ExampleFormula baseHighlighted arg1Color={ARG_COLOR_X} arg2Color={ARG_COLOR_Y} showRightSide showQuotient showResult={false} />
+                    {phase >= 1 && <ArgumentsArrow containerRef={ref} />}
+                </div>
+            </DiagramBlock>
+            {phase >= 2 && (
+                <TypedKeyPhraseLine
+                    before="Так как логарифмы вычитаются, то аргументы надо "
+                    phrase="разделить"
+                    color={ATTENTION_COLOR}
+                    highlight
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
 // ===== Тренировочные задания — новые случайные (a, x, y), x КРАТНО y —
 // нужно кликнуть верное число (x÷y) среди вариантов. =====
 
@@ -535,12 +629,6 @@ export const TypeLogSubWalk = ({ onAnswer, onComplete }: Props) => {
     // Конфетти на финальный "Ответ: log₂3" — та же причина, что в LOGWALK.
     const [showAnswerConfetti, setShowAnswerConfetti] = useState(false)
 
-    // Контейнеры шагов 1/2 — нужны BaseMatchArrow (см. там же комментарий);
-    // шаг 3 (аргументы 15/5) — ArgumentsArrow.
-    const step1Ref = useRef<HTMLDivElement>(null)
-    const step2Ref = useRef<HTMLDivElement>(null)
-    const step3Ref = useRef<HTMLDivElement>(null)
-
     const currentCorrectValue = trials[trialIndex].q
 
     const handleOptionClick = (value: number) => {
@@ -662,16 +750,10 @@ export const TypeLogSubWalk = ({ onAnswer, onComplete }: Props) => {
                 {step >= 1 && (
                     <SceneWrapper key="step-1" innerRef={sceneRef('step-1')} active={isSceneActive('step-1')}>
                         <Fragment key={`step-1-${nonceFor('step-1')}`}>
-                            <DiagramBlock>
-                                <div ref={step1Ref} className="relative w-full pb-9">
-                                    <ExampleFormula baseHighlighted showRightSide={false} showQuotient={false} showResult={false} />
-                                    <BaseMatchArrow containerRef={step1Ref} markers={['base1', 'base2']} color={BASE_COLOR} />
-                                </div>
-                            </DiagramBlock>
-                            <TypedLineWithSticker
-                                before="Заметим что у них одинаковое основание - это "
-                                stickerValue={2}
-                                stickerColor={BASE_COLOR}
+                            <BaseMatchScene
+                                markers={['base1', 'base2']}
+                                formula={<ExampleFormula baseHighlighted showRightSide={false} showQuotient={false} showResult={false} />}
+                                textBefore="Заметим что у них одинаковое основание - это "
                                 onSettled={() => setStepReady(true)}
                             />
                         </Fragment>
@@ -684,16 +766,10 @@ export const TypeLogSubWalk = ({ onAnswer, onComplete }: Props) => {
                 {step >= 2 && (
                     <SceneWrapper key="step-2" innerRef={sceneRef('step-2')} active={isSceneActive('step-2')}>
                         <Fragment key={`step-2-${nonceFor('step-2')}`}>
-                            <DiagramBlock>
-                                <div ref={step2Ref} className="relative w-full pb-9">
-                                    <ExampleFormula baseHighlighted showRightSide showQuotient={false} showResult={false} />
-                                    <BaseMatchArrow containerRef={step2Ref} markers={['base1', 'base2', 'base3']} color={BASE_COLOR} />
-                                </div>
-                            </DiagramBlock>
-                            <TypedLineWithSticker
-                                before="Поэтому получится логарифм с тем же основанием "
-                                stickerValue={2}
-                                stickerColor={BASE_COLOR}
+                            <BaseMatchScene
+                                markers={['base1', 'base2', 'base3']}
+                                formula={<ExampleFormula baseHighlighted showRightSide showQuotient={false} showResult={false} />}
+                                textBefore="Поэтому получится логарифм с тем же основанием "
                                 onSettled={() => setStepReady(true)}
                             />
                         </Fragment>
@@ -705,19 +781,7 @@ export const TypeLogSubWalk = ({ onAnswer, onComplete }: Props) => {
                 {step >= 3 && (
                     <SceneWrapper key="step-3" innerRef={sceneRef('step-3')} active={isSceneActive('step-3')}>
                         <Fragment key={`step-3-${nonceFor('step-3')}`}>
-                            <DiagramBlock>
-                                <div ref={step3Ref} className="relative w-full">
-                                    <ExampleFormula baseHighlighted arg1Color={ARG_COLOR_X} arg2Color={ARG_COLOR_Y} showRightSide showQuotient showResult={false} />
-                                    <ArgumentsArrow containerRef={step3Ref} />
-                                </div>
-                            </DiagramBlock>
-                            <TypedKeyPhraseLine
-                                before="Так как логарифмы вычитаются, то аргументы надо "
-                                phrase="разделить"
-                                color={ATTENTION_COLOR}
-                                highlight
-                                onSettled={() => setStepReady(true)}
-                            />
+                            <ArgumentsScene onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}
