@@ -1,29 +1,43 @@
 // app/t-lesson/[t_lessonId]/type-faradaywalk.tsx
 //
-// Тип FARADAYWALK — пошаговая песочница "магнит + кольцо" (закон
-// Фарадея). Модель упрощена: поток Φ линейно зависит от положения
-// магнита p (Φ = p), поэтому график Φ(t) повторяет движение, а ток
-// I ~ dΦ/dt — это "наклон" графика Φ(t).
+// Тип FARADAYWALK — интерактивный разбор "закон Фарадея" (тема
+// "Электродинамика"). По прямой просьбе пользователя — тот же стиль
+// "детального знакомства", что и в математических разборах (SINWALK/
+// LOGWALK и т.д.): объекты вводятся ПО ОДНОМУ, накопительным логом
+// (SceneWrapper/useSceneFocus/useReplayNonces/BackButton — прошлые сцены
+// тускнеют, не исчезают), с печатаемым текстом и цветными стикерами на
+// ключевых терминах.
 //
-// Этапы (по одной идее): 0 магнит стоит → I=0; 1 едет ровно → Φ прямая,
-// I постоянен; 2 вдвое быстрее → I вдвое больше; 3 разгоняется → Φ парабола,
-// I растёт линейно; 4 формула ε=−ΔΦ/Δt; 5 своя очередь (зажги лампочку);
-// 6 вопросы. Этапы 0-3 — магнит едет сам по программе (кнопка "Запустить").
-// Симуляция на setInterval (не rAF).
+// Сюжет фазы 'concept' (знакомство с объектами по одному):
+// 0. "Смотри — это магнит." — просто картинка магнита, без подсветки.
+// 1. "Магнит создаёт вокруг себя [магнитное поле] — обозначается буквой
+//    [B]." — оба стикером (синий, FIELD_COLOR); диаграмма дорисовывает
+//    силовые линии магнита ТЕМ ЖЕ цветом; затем "Магнитное поле
+//    измеряется в [Тесла (Тл)]."
+//
+// После знакомства (INTRO_CONCEPT_STEPS шагов) — фаза 'hands':
+// та же интерактивная песочница "магнит+кольцо+графики Φ(t)/I(t)", что
+// была реализована раньше в этом файле (см. историю сессии) — магнит
+// едет САМ по 4 программам (стоит/едет ровно/вдвое быстрее/разгоняется),
+// затем формула ε=−ΔΦ/Δt, "своя очередь" (свободное перетаскивание) и
+// 5 вопросов-проверок. Оставлена БЕЗ изменений — переставлена местами,
+// не переписана.
 
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import Latex from 'react-latex-next'
-import { Check } from 'lucide-react'
 import type { QuestionType } from './page'
 import {
+    DiagramBlock, TypedLine,
     pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     isFieryMilestoneTrial, FieryFeedbackBanner, CORRECT_COLOR, WRONG_COLOR, ACTIVE_COLOR,
+    SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
 } from '@/components/geometry/WalkthroughLog'
-import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors'
+import { Typewriter } from '@/components/geometry/Typewriter'
+import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
 
 type Props = {
@@ -32,14 +46,243 @@ type Props = {
     onComplete: (isCorrect: boolean) => void
 }
 
+// Магнитное поле B — отдельная величина, вводимая своим цветом (та же
+// роль, что синий уже играет в палитре ggege — "угол/величина, которую
+// вводим отдельно от прочих", см. CLAUDE.md).
+const FIELD_COLOR = GGEGE_PALETTE.blue.button
+
 const FLUX_COLOR = GGEGE_PALETTE.purple.button
 const CURRENT_COLOR = GGEGE_PALETTE.orange.button
 const CURRENT_COLOR_REV = GGEGE_PALETTE.teal.button
 
+const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
+const shuffle = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5)
+
+// ===================================================================
+// ФАЗА "concept" — знакомство с объектами, по одному, накопительный лог.
+// ===================================================================
+
+const INTRO_CONCEPT_STEPS = 2
+const CONCEPT_PAUSE_MS = 1000
+
+// Стикер — тот же визуальный язык, что уже устоялся во всех *WALK
+// разборах (bounce-появление, цветная рамка+подложка, БЕЗ KaTeX — тут
+// нет формул, только слова/буквы).
+const Sticker = ({ value, color }: { value: React.ReactNode; color: string }) => (
+    <motion.span
+        initial={{ scale: 2.4, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 15 }}
+        className="inline-flex items-center justify-center rounded-lg border-2 px-1.5 py-0.5 font-extrabold align-middle leading-none"
+        style={{ borderColor: color, backgroundColor: hexToRgba(color, 0.18), color }}
+    >
+        {value}
+    </motion.span>
+)
+
+// Печатаемая строка с НЕСКОЛЬКИМИ стикерами в произвольных местах — та
+// же техника, что и TypedLineWithParts в LOGCOMBOWALK: Typewriter
+// печатает ПЛОСКУЮ строку (значения стикеров как обычный текст), после
+// onDone вид подменяется на размеченную версию.
+type LinePart = { text: string } | { sticker: string; color: string }
+const TypedLineWithParts = ({ parts, onSettled }: { parts: LinePart[]; onSettled?: () => void }) => {
+    const [typed, setTyped] = useState(false)
+    const plainText = parts.map((p) => ('text' in p ? p.text : p.sticker)).join('')
+    return (
+        <div className="w-full text-center text-base md:text-lg text-[#F2F7FB]">
+            {!typed ? (
+                <Typewriter text={plainText} onDone={() => { setTyped(true); setTimeout(() => onSettled?.(), 450) }} />
+            ) : (
+                <>
+                    {parts.map((p, i) => ('text' in p
+                        ? <span key={i}>{p.text}</span>
+                        : <Sticker key={i} value={p.sticker} color={p.color} />
+                    ))}
+                </>
+            )}
+        </div>
+    )
+}
+
+// Геометрия магнита (общая для intro-диаграммы и hands-on песочницы).
+const MAG_W = 40
+const MAG_H = 64
+
+// Магнит сам по себе (S сверху синий, N снизу красный) — переиспользуется
+// и в сцене 0 (без поля), и в сцене 1 (с полем), и в hands-on песочнице.
+const MagnetShape = ({ x, top }: { x: number; top: number }) => (
+    <g>
+        <rect x={x - MAG_W / 2} y={top} width={MAG_W} height={MAG_H / 2} rx={5} fill="#4A90D9" />
+        <rect x={x - MAG_W / 2} y={top + MAG_H / 2} width={MAG_W} height={MAG_H / 2} rx={5} fill="#DC605B" />
+        <text x={x} y={top + 21} textAnchor="middle" fontSize={16} fontWeight={800} fill="#fff">S</text>
+        <text x={x} y={top + MAG_H - 10} textAnchor="middle" fontSize={16} fontWeight={800} fill="#fff">N</text>
+    </g>
+)
+
+// Силовые линии магнита — симметричные эллиптические дуги от полюса N
+// (снизу) к полюсу S (сверху), огибающие магнит слева и справа (вне
+// магнита поле идёт от N к S, тот же школьный "виток" вокруг стержня).
+// Каждая следующая линия — шире (больше rx), рисуется с задержкой —
+// протяжно (pathLength 0→1), тем же цветом, что и стикер "B" в тексте.
+const MagnetFieldLines = ({ x, top, color }: { x: number; top: number; color: string }) => {
+    const yN = top + MAG_H
+    const yS = top
+    const ry = (yN - yS) / 2
+    const cy = (yN + yS) / 2
+    const loops = [1.35, 1.85, 2.35]
+    return (
+        <g>
+            {loops.map((mult, i) => {
+                const rx = ry * mult
+                return [-1, 1].map((side) => {
+                    const sweep = side === -1 ? 1 : 0
+                    const d = `M ${x} ${yN} A ${rx} ${ry} 0 0 ${sweep} ${x} ${yS}`
+                    const arrowX = x + side * rx
+                    return (
+                        <g key={`${i}-${side}`}>
+                            <motion.path
+                                d={d}
+                                stroke={color}
+                                strokeWidth={2}
+                                fill="none"
+                                strokeLinecap="round"
+                                initial={{ pathLength: 0, opacity: 0 }}
+                                animate={{ pathLength: 1, opacity: 0.85 }}
+                                transition={{ duration: 0.7, ease: 'easeInOut', delay: i * 0.22 }}
+                            />
+                            <motion.path
+                                d={`M ${arrowX - 4} ${cy + 4} L ${arrowX} ${cy - 4} L ${arrowX + 4} ${cy + 4}`}
+                                stroke={color}
+                                strokeWidth={2}
+                                fill="none"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 0.9 }}
+                                transition={{ duration: 0.3, delay: i * 0.22 + 0.6 }}
+                            />
+                        </g>
+                    )
+                })
+            })}
+        </g>
+    )
+}
+
+// Диаграмма-снимок сцены 0/1 — магнит по центру своего собственного
+// небольшого SVG-полотна (без кольца — оно появится в следующей сцене).
+const MagnetIntroDiagram = ({ withField }: { withField: boolean }) => (
+    <div className="flex w-full justify-center py-2">
+        <svg viewBox="0 0 220 190" className="h-[190px] w-[220px]">
+            {withField && <MagnetFieldLines x={110} top={63} color={FIELD_COLOR} />}
+            <MagnetShape x={110} top={63} />
+        </svg>
+    </div>
+)
+
+const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
+    const [step, setStep] = useState(0)
+    const [stepReady, setStepReady] = useState(false)
+    const [advancing, setAdvancing] = useState(false)
+    const [nextLabel, setNextLabel] = useState('Дальше')
+    useEffect(() => { setNextLabel(pickWalkthroughNextLabel('Дальше')) }, [step])
+
+    const { bump: bumpNonce, nonceFor } = useReplayNonces()
+    const latestSceneKey = `step-${step}`
+    const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, stepReady)
+    const canGoBack = step > 0
+    const handleReplay = () => bumpNonce(latestSceneKey)
+    const handleBack = () => {
+        if (advancing || step === 0) return
+        const target = step - 1
+        bumpNonce(`step-${target}`)
+        setStep(target)
+        setStepReady(false)
+    }
+
+    const handleNext = () => {
+        if (advancing) return
+        setAdvancing(true)
+        setTimeout(() => {
+            if (step + 1 >= INTRO_CONCEPT_STEPS) {
+                onDone()
+            } else {
+                setStep((s) => s + 1)
+                setStepReady(false)
+            }
+            setAdvancing(false)
+        }, CONCEPT_PAUSE_MS)
+    }
+
+    return (
+        <div className="mx-auto flex w-full max-w-md flex-col items-center gap-4 px-1 pb-8">
+            <div className="w-full flex flex-col gap-4">
+                {/* Шаг 0 — просто знакомство с магнитом, без подсветки. */}
+                <SceneWrapper key="step-0" innerRef={sceneRef('step-0')} active={isSceneActive('step-0')}>
+                    <Fragment key={`step-0-${nonceFor('step-0')}`}>
+                        <TypedLine text="Смотри — это магнит." className="w-full text-center text-base md:text-lg text-[#F2F7FB]" />
+                        <DiagramBlock onSettled={() => setStepReady(true)}>
+                            <MagnetIntroDiagram withField={false} />
+                        </DiagramBlock>
+                    </Fragment>
+                </SceneWrapper>
+
+                {/* Шаг 1 — магнит создаёт вокруг себя магнитное поле B;
+                    диаграмма дорисовывает силовые линии тем же цветом;
+                    затем единица измерения — Тесла (Тл). */}
+                {step >= 1 && (
+                    <SceneWrapper key="step-1" innerRef={sceneRef('step-1')} active={isSceneActive('step-1')}>
+                        <Fragment key={`step-1-${nonceFor('step-1')}`}>
+                            <TypedLineWithParts
+                                parts={[
+                                    { text: 'Магнит создаёт вокруг себя ' },
+                                    { sticker: 'магнитное поле', color: FIELD_COLOR },
+                                    { text: ' — обозначается буквой ' },
+                                    { sticker: 'B', color: FIELD_COLOR },
+                                    { text: '.' },
+                                ]}
+                            />
+                            <DiagramBlock>
+                                <MagnetIntroDiagram withField />
+                            </DiagramBlock>
+                            <TypedLineWithParts
+                                parts={[
+                                    { text: 'Магнитное поле измеряется в ' },
+                                    { sticker: 'Тесла (Тл)', color: FIELD_COLOR },
+                                    { text: '.' },
+                                ]}
+                                onSettled={() => setStepReady(true)}
+                            />
+                        </Fragment>
+                    </SceneWrapper>
+                )}
+            </div>
+
+            <div className="w-full flex items-center gap-2">
+                <ReplayButton onClick={handleReplay} disabled={advancing} />
+                <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
+                <button
+                    type="button"
+                    onClick={handleNext}
+                    disabled={!stepReady || advancing}
+                    className={walkthroughButtonClass(stepReady && !advancing)}
+                    style={walkthroughButtonStyle(stepReady && !advancing)}
+                >
+                    {nextLabel}
+                </button>
+            </div>
+        </div>
+    )
+}
+
+// ===================================================================
+// ФАЗА "hands" — интерактивная песочница (магнит едет сам по программе,
+// затем формула, затем своя очередь, затем вопросы). Без изменений
+// относительно предыдущей версии файла — просто вынесена под свою фазу.
+// ===================================================================
+
 // Геометрия сцены (viewBox 0 0 200 250).
 const SCENE_H = 250
-const MAG_W = 34
-const MAG_H = 56
 const TOP_MIN = 6
 const TOP_MAX = 118
 const RING_CY = 176
@@ -51,12 +294,6 @@ const TICK_MS = 33
 const B_MAX_MT = 50
 const PHI_MAX_MKWB = 100
 
-const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
-const shuffle = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5)
-
-
-// ===== Программы движения (этапы 0-3) =====
-
 const V_REF = 0.4 // скорость p/с, при которой I = 1
 type Profile = { T: number; p: (t: number) => number; v: (t: number) => number }
 const PROFILES: Profile[] = [
@@ -65,8 +302,6 @@ const PROFILES: Profile[] = [
     { T: 6, p: (t) => (t < 3 ? 0.05 + 0.08 * t : 0.29 + 0.16 * (t - 3)), v: (t) => (t < 3 ? 0.08 : 0.16) }, // вдвое быстрее
     { T: 5, p: (t) => 0.05 + 0.03 * t * t, v: (t) => 0.06 * t }, // разгон
 ]
-
-// ===== Песочница =====
 
 type SandboxProps = {
     mode: 'auto' | 'manual'
@@ -95,7 +330,6 @@ const Sandbox = ({ mode, profile, runKey, onFinish, onLamp }: SandboxProps) => {
     const profRef = useRef(profile); profRef.current = profile
     const cb = useRef({ onFinish, onLamp }); cb.current = { onFinish, onLamp }
 
-    // Запуск программы (или сброс графиков в ручном режиме).
     useEffect(() => {
         phiHist.current = []; curHist.current = []; tRef.current = 0; curRef.current = 0; prevPRef.current = null
         if (mode === 'auto' && profile) {
@@ -221,12 +455,7 @@ const Sandbox = ({ mode, profile, runKey, onFinish, onLamp }: SandboxProps) => {
                     <circle cx={100} cy={232} r={11} fill={absI > 0.08 ? '#FFE9A8' : '#2A343A'}
                         stroke={absI > 0.08 ? CURRENT_COLOR : '#4A5760'} strokeWidth={3}
                         opacity={absI > 0.08 ? 0.5 + 0.5 * Math.min(1, absI * 1.6) : 1} />
-                    <g style={{ cursor: mode === 'manual' ? 'grab' : 'default' }}>
-                        <rect x={100 - MAG_W / 2} y={top} width={MAG_W} height={MAG_H / 2} rx={5} fill="#4A90D9" />
-                        <rect x={100 - MAG_W / 2} y={top + MAG_H / 2} width={MAG_W} height={MAG_H / 2} rx={5} fill="#DC605B" />
-                        <text x={100} y={top + 19} textAnchor="middle" fontSize={15} fontWeight={800} fill="#fff">S</text>
-                        <text x={100} y={top + MAG_H - 9} textAnchor="middle" fontSize={15} fontWeight={800} fill="#fff">N</text>
-                    </g>
+                    <MagnetShape x={100} top={top} />
                     {mode === 'manual' && !touched && (
                         <text x={100 + MAG_W / 2 + 8} y={top + MAG_H / 2 + 4} fontSize={13} fontWeight={800} fill="#F2F7FB">↕ тяни</text>
                     )}
@@ -252,8 +481,6 @@ const Sandbox = ({ mode, profile, runKey, onFinish, onLamp }: SandboxProps) => {
         </div>
     )
 }
-
-// ===== Проверочные вопросы =====
 
 type QuizQ = { q: string; options: string[]; correct: number; explain: string }
 const QUIZ: QuizQ[] = [
@@ -291,7 +518,6 @@ const QUIZ: QuizQ[] = [
 
 const QuizPart = ({ onFinish }: { onFinish: (hadMistake: boolean) => void }) => {
     const [i, setI] = useState(0)
-    // Порядок вариантов — свой на каждый вопрос, фиксируется на монтирование.
     const orders = useMemo(() => QUIZ.map((qq) => shuffle(qq.options.map((_, k) => k))), [])
     const [wrongTried, setWrongTried] = useState<number[]>([])
     const [flash, setFlash] = useState<string | null>(null)
@@ -363,46 +589,50 @@ const QuizPart = ({ onFinish }: { onFinish: (hadMistake: boolean) => void }) => 
     )
 }
 
-// ===== Основной компонент =====
-
-type Stage = { title: string; hint: string; done: string; prof?: number }
-const STAGES: Stage[] = [
-    { prof: 0, title: 'Магнит стоит', hint: 'Нажми «Запустить» и смотри на графики: магнит просто лежит над кольцом.', done: 'Поток Φ не меняется — график ровный, тока нет. Лампочка не горит.' },
-    { prof: 1, title: 'Магнит едет ровно', hint: 'Теперь магнит движется с постоянной скоростью. Что будет с потоком и током?', done: 'Поток растёт равномерно (прямая), а ток постоянный: ровная линия, но не ноль!' },
-    { prof: 2, title: 'А если быстрее?', hint: 'Сначала магнит едет медленно, потом вдвое быстрее. Смотри на график тока.', done: 'Быстрее — круче Φ(t) — больше ток. Вдвое быстрее — вдвое больше ток.' },
-    { prof: 3, title: 'Магнит разгоняется', hint: 'Скорость магнита всё время растёт. Что с током?', done: 'Φ(t) — парабола, круче и круче. Ток растёт линейно: ток — это наклон графика потока.' },
+const STAGE_TEXT: { title: string; hint: string; done: string }[] = [
+    {
+        title: 'Магнит и кольцо',
+        hint: 'Нажми «Запустить» и смотри на графики: магнит просто лежит над кольцом.',
+        done: 'Поток Φ не меняется — график ровный, тока нет. Лампочка не горит.',
+    },
+    {
+        title: 'Магнит едет ровно',
+        hint: 'Теперь магнит движется с постоянной скоростью. Что будет с потоком и током?',
+        done: 'Поток растёт равномерно (прямая), а ток постоянный: ровная линия, но не ноль!',
+    },
+    {
+        title: 'А если быстрее?',
+        hint: 'Сначала магнит едет медленно, потом вдвое быстрее. Смотри на график тока.',
+        done: 'Быстрее — круче Φ(t) — больше ток. Вдвое быстрее — вдвое больше ток.',
+    },
+    {
+        title: 'Магнит разгоняется',
+        hint: 'Скорость магнита всё время растёт. Что с током?',
+        done: 'Φ(t) — парабола, круче и круче. Ток растёт линейно: ток — это наклон графика потока.',
+    },
 ]
-// 4 — формула, 5 — своя очередь, 6 — вопросы.
 
-export const TypeFaradayWalk = ({ onAnswer, onComplete }: Props) => {
+const HandsPhase = ({ onFinish }: { onFinish: (hadMistake: boolean) => void }) => {
     const [stage, setStage] = useState(0)
     const [runKey, setRunKey] = useState(0)
     const [ran, setRan] = useState(false)
     const [running, setRunning] = useState(false)
     const [lamp, setLamp] = useState(false)
-    const finishedRef = useRef(false)
     const [label, setLabel] = useState('Дальше')
     useEffect(() => { setLabel(pickWalkthroughNextLabel('Дальше')) }, [stage])
 
     const go = (n: number) => { setStage(n); setRan(false); setRunning(false); setLamp(false); setRunKey(0) }
     const start = () => { setRunning(true); setRunKey((k) => k + 1) }
 
-    const handleFinish = (hadMistake: boolean) => {
-        if (finishedRef.current) return
-        finishedRef.current = true
-        onComplete(!hadMistake)
-        onAnswer(hadMistake ? 'wrong' : 'right')
-    }
-
     if (stage === 6) {
         return (
             <div className="mx-auto w-full max-w-md px-1 pb-8">
-                <QuizPart onFinish={handleFinish} />
+                <QuizPart onFinish={onFinish} />
             </div>
         )
     }
 
-    const st = stage < 4 ? STAGES[stage] : null
+    const st = stage < 4 ? STAGE_TEXT[stage] : null
     const canNext = stage < 4 ? ran : stage === 4 ? true : lamp
     const isAuto = stage < 4
 
@@ -412,7 +642,7 @@ export const TypeFaradayWalk = ({ onAnswer, onComplete }: Props) => {
                 <Sandbox
                     key={`sb-${stage}`}
                     mode={isAuto ? 'auto' : 'manual'}
-                    profile={isAuto ? PROFILES[STAGES[stage].prof!] : undefined}
+                    profile={isAuto ? PROFILES[stage] : undefined}
                     runKey={runKey}
                     onFinish={() => { setRan(true); setRunning(false) }}
                     onLamp={() => setLamp(true)}
@@ -481,4 +711,23 @@ export const TypeFaradayWalk = ({ onAnswer, onComplete }: Props) => {
             </button>
         </div>
     )
+}
+
+// ===== Основной компонент =====
+
+export const TypeFaradayWalk = ({ onAnswer, onComplete }: Props) => {
+    const [phase, setPhase] = useState<'concept' | 'hands'>('concept')
+    const finishedRef = useRef(false)
+
+    const handleFinish = (hadMistake: boolean) => {
+        if (finishedRef.current) return
+        finishedRef.current = true
+        onComplete(!hadMistake)
+        onAnswer(hadMistake ? 'wrong' : 'right')
+    }
+
+    if (phase === 'concept') {
+        return <ConceptPhase onDone={() => setPhase('hands')} />
+    }
+    return <HandsPhase onFinish={handleFinish} />
 }
