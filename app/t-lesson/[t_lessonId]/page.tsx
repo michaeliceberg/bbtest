@@ -6,6 +6,7 @@ import { Shuffle2, ShuffleTS } from "@/usefulFunctions"
 import { pickInsertBlank, corruptFormulaLetter, extractLetterCandidates } from "@/lib/formulaLetters"
 import { getFormulaIconKey } from "@/lib/formulaIcons"
 import { getTopicSticker } from "@/lib/topicStickers"
+import { STEP_BY_STEP_CHALLENGE_TYPES } from "@/lib/trainerStageFlags"
 import { getStageQueryParams, isBossExamStage } from "@/lib/trainerStageFlags"
 import TQuiz from "@/app/t-lesson/[t_lessonId]/TQUIZ"
 import { allTypesCT, tChallengeMistakes } from "@/db/schema";
@@ -668,7 +669,13 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // выровненного массива, что и у contentTiers выше: считаем по
     // ИСХОДНОМУ t_challenge (вопрос+варианты) ДО основного .map(), клеим
     // вторым проходом ниже — не трогая ни одну из веток рендер-типов.
-    const topicStickers = lessonChallenges.map((c) => getTopicSticker({
+    // Самодостаточным *WALK-разборам (SINWALK/LOGWALK/.../FARADAYWALK) —
+    // никогда: у них своя диаграмма, а текст question (заголовок урока,
+    // не физическая формула) может случайно совпасть с чужим правилом
+    // (FARADAYWALK — "Закон Фарадея" матчился на induction.svg, реальный
+    // баг, найденный пользователем — магнит-в-катушке поверх собственной
+    // сцены с магнитом).
+    const topicStickers = lessonChallenges.map((c) => STEP_BY_STEP_CHALLENGE_TYPES.has(c.type) ? undefined : getTopicSticker({
         question: c.question,
         t_challengeOptions: c.t_challengeOptions.map((o) => ({ text: o.text, correct: o.correct })),
     }, t_lesson.t_unitId));

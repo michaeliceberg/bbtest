@@ -621,6 +621,11 @@ export default function TrainerQuestion({
               // облако задаёт задание, просто здесь оно не текст-специфично.
               question.questionType === "PICMATCH"
                 ? "Какая формула соответствует картинке?"
+                // FARADAYWALK хранит в question заголовок урока ("Закон
+                // Фарадея: двигай магнит") — облако вместо него по прямой
+                // просьбе пользователя показывает короткую тему шага.
+                : question.questionType === "FARADAYWALK"
+                ? "Магнитное поле"
                 : question.questionType !== "WORKBOOK" &&
                   question.questionType !== "RUSSIANDICTANT" &&
                   question.questionType !== "SWIPE" &&

@@ -25,7 +25,12 @@ export const isMythicStage = (title: string): boolean => /мифич/i.test(titl
 // этого типа — используется для отдельного визуального акцента на карте
 // скиллов тренажёра (золотая иконка книги вместо обычного яйца/щита/...,
 // см. trainer-grade-tree.tsx, по прямой просьбе пользователя, 2026-09-19).
-const STEP_BY_STEP_CHALLENGE_TYPES = new Set(['SINWALK', 'LOGWALK', 'LOGDEFWALK', 'LOGSUBWALK', 'LOGPOWWALK', 'LOGSWAPWALK', 'LOGDIVWALK', 'LOGCOMBOWALK', 'LOGFLIPWALK', 'FARADAYWALK']);
+// export — переиспользуется и в app/t-lesson/[t_lessonId]/page.tsx, чтобы
+// не прицеплять "картинку темы" (topicSticker) самодостаточным разборам —
+// у них своя диаграмма, чужая generic-иллюстрация только путает (см.
+// FARADAYWALK — "Закон Фарадея" случайно матчился на induction.svg через
+// getTopicSticker по тексту вопроса, реальный баг, найденный пользователем).
+export const STEP_BY_STEP_CHALLENGE_TYPES = new Set(['SINWALK', 'LOGWALK', 'LOGDEFWALK', 'LOGSUBWALK', 'LOGPOWWALK', 'LOGSWAPWALK', 'LOGDIVWALK', 'LOGCOMBOWALK', 'LOGFLIPWALK', 'FARADAYWALK']);
 
 export function isStepByStepLesson(challengeTypes: string[]): boolean {
     return challengeTypes.some((t) => STEP_BY_STEP_CHALLENGE_TYPES.has(t));
