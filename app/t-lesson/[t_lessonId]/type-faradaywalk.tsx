@@ -91,7 +91,7 @@ const shuffle = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5)
 // ФАЗА "concept" — знакомство с объектами, по одному, накопительный лог.
 // ===================================================================
 
-const INTRO_CONCEPT_STEPS = 8
+const INTRO_CONCEPT_STEPS = 9
 const CONCEPT_PAUSE_MS = 1000
 
 // Стикер — тот же визуальный язык, что уже устоялся во всех *WALK
@@ -708,6 +708,55 @@ const DistanceScene = ({ onSettled }: { onSettled?: () => void }) => {
     return <DistanceDiagram selectedIndex={selectedIndex} onSelect={handleSelect} />
 }
 
+// ===== Сцена "поток Ф" — страница делится пополам: слева магнитное поле
+// (стрелочки + стикер B), справа металлическое кольцо (заштрихованное,
+// со стикером S) — оба уже знакомых объекта РЯДОМ, чтобы наглядно ввести
+// формулу Φ=B·S как произведение того, что слева, на то, что справа.
+// Пунктирный разделитель посередине — тот же визуальный язык, что уже
+// использует CONNECT в тренажёре для "это две отдельные половины" (см.
+// CLAUDE.md).
+const FLUX_MINI_W = 130
+const FLUX_MINI_H = 130
+
+const FluxArrowsDiagram = () => (
+    <svg viewBox={`0 0 ${FLUX_MINI_W} ${FLUX_MINI_H}`} className="h-[130px] w-[130px]">
+        {[-20, 0, 20].map((dx, i) => {
+            const x = 45 + dx
+            return (
+                <g key={i}>
+                    <line x1={x} y1={16} x2={x} y2={82} stroke={FIELD_COLOR} strokeWidth={2.5} strokeLinecap="round" />
+                    <path d={`M${x - 5},${72} L${x},${86} L${x + 5},${72}`} fill="none"
+                        stroke={FIELD_COLOR} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+                </g>
+            )
+        })}
+        <FieldBLabel x={45 + 20 + 26} y={49} color={FIELD_COLOR} delay={0.3} />
+    </svg>
+)
+
+const FluxRingDiagram = () => (
+    <svg viewBox={`0 0 ${FLUX_MINI_W} ${FLUX_MINI_H}`} className="h-[130px] w-[130px]">
+        <TealRing cx={65} cy={65} rx={52} ry={16} hatched animateIn uid="flux-mini" sScaleY={0.55} />
+    </svg>
+)
+
+const FluxSplitDiagram = () => (
+    <div className="flex w-full items-start justify-center gap-3">
+        <div className="flex flex-1 flex-col items-center gap-1.5">
+            <div className="text-sm font-bold text-[#F2F7FB]">Магнитное поле</div>
+            <FluxArrowsDiagram />
+        </div>
+        <div className="mt-6 self-stretch border-l-2 border-dashed border-[#3A464E]" />
+        <div className="flex flex-1 flex-col items-center gap-1.5">
+            <div className="flex items-center gap-1.5 text-sm font-bold text-[#F2F7FB]">
+                <span>Металлическое кольцо</span>
+                <Sticker value="S" color={RING_COLOR} />
+            </div>
+            <FluxRingDiagram />
+        </div>
+    </div>
+)
+
 const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
     const [step, setStep] = useState(0)
     const [stepReady, setStepReady] = useState(false)
@@ -922,6 +971,56 @@ const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
                             <DiagramBlock>
                                 <DistanceScene onSettled={() => setStepReady(true)} />
                             </DiagramBlock>
+                        </Fragment>
+                    </SceneWrapper>
+                )}
+
+                {/* Шаг 8 — поток Φ: страница делится пополам (магнитное
+                    поле слева / кольцо справа — оба уже знакомых объекта
+                    рядом), затем формула Φ=B·S, затем единица измерения
+                    (Вебер — по факту это СИ-единица магнитного потока;
+                    пользователь в исходной просьбе написал "Фарадеях" —
+                    это единица ЁМКОСТИ конденсатора, не потока, скорее
+                    всего перепутано из-за того, что "Ф" — сокращение и
+                    греческой буквы Φ, и русского "Фарад" одновременно;
+                    исправлено на физически верную единицу, тот же
+                    Вебер/мкВб, что уже используется в hands-on
+                    песочнице этого же файла чуть ниже). */}
+                {step >= 8 && (
+                    <SceneWrapper key="step-8" innerRef={sceneRef('step-8')} active={isSceneActive('step-8')}>
+                        <Fragment key={`step-8-${nonceFor('step-8')}`}>
+                            <TypedLineWithParts
+                                parts={[
+                                    { text: 'Теперь введём ' },
+                                    { sticker: 'поток', color: FLUX_COLOR },
+                                    { text: ' магнитного поля — обозначается буквой ' },
+                                    { sticker: 'Φ', color: FLUX_COLOR },
+                                    { text: '.' },
+                                ]}
+                            />
+                            <DiagramBlock>
+                                <FluxSplitDiagram />
+                            </DiagramBlock>
+                            <TypedLineWithParts
+                                parts={[
+                                    { sticker: 'Φ', color: FLUX_COLOR },
+                                    { text: ' = ' },
+                                    { sticker: 'B', color: FIELD_COLOR },
+                                    { text: ' · ' },
+                                    { sticker: 'S', color: RING_COLOR },
+                                    { text: '.' },
+                                ]}
+                            />
+                            <TypedLineWithParts
+                                parts={[
+                                    { text: 'Поток ' },
+                                    { sticker: 'Φ', color: FLUX_COLOR },
+                                    { text: ' измеряется в ' },
+                                    { sticker: 'Вебер (Вб)', color: FLUX_COLOR },
+                                    { text: '.' },
+                                ]}
+                                onSettled={() => setStepReady(true)}
+                            />
                         </Fragment>
                     </SceneWrapper>
                 )}
