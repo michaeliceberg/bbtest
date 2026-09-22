@@ -1210,6 +1210,259 @@ const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
 }
 
 // ===================================================================
+// ФАЗА "quiz" — короткая проверка понимания СРАЗУ после знакомства с
+// объектами (ConceptPhase), ДО практической песочницы (HandsPhase) — по
+// прямой просьбе пользователя, тот же формат "1/N, 2/N..." + огненная
+// Lottie-анимация на каждом 4-м задании, что уже устоялся в разборах
+// логарифмов (LOGCOMBOWALK/LOGDIVWALK и др., см. CLAUDE.md) —
+// переиспользует ТЕ ЖЕ хелперы (SceneWrapper/useSceneFocus/
+// useReplayNonces/BackButton/ReplayButton/isFieryMilestoneTrial/
+// FieryFeedbackBanner/pickWrongTryPhrase/pickWalkthroughNextLabel), уже
+// импортированные в начало этого файла.
+//
+// Вопросы — ФИКСИРОВАННЫЙ набор (в отличие от LOGCOMBOWALK, который
+// генерирует новые случайные числа на каждую попытку) — это прямая
+// проверка того, что только что рассказано в ConceptPhase (цвет N,
+// направление B, единицы B/Φ, формула Φ), а не тренировка на новых
+// данных, поэтому набор один и тот же при каждом прохождении.
+// ===================================================================
+
+type ConceptQuizItem = {
+    renderPrompt: () => React.ReactNode
+    renderOptions: () => [React.ReactNode, React.ReactNode]
+    correct: 0 | 1
+    feedback: string
+}
+
+const CONCEPT_QUIZ: ConceptQuizItem[] = [
+    {
+        renderPrompt: () => <>Буква <Sticker value="N" color={NORTH_COLOR} /> (в красном стикере) — это</>,
+        renderOptions: () => ['Северный полюс', 'Южный полюс'],
+        correct: 0,
+        feedback: 'N — это северный полюс, красный стикер.',
+    },
+    {
+        renderPrompt: () => <>Линии поля <Sticker value="B" color={FIELD_COLOR} /> направлены</>,
+        renderOptions: () => [
+            <span key="ns" className="inline-flex items-center gap-1.5">от <Sticker value="N" color={NORTH_COLOR} /> к <Sticker value="S" color={SOUTH_COLOR} /></span>,
+            <span key="sn" className="inline-flex items-center gap-1.5">от <Sticker value="S" color={SOUTH_COLOR} /> к <Sticker value="N" color={NORTH_COLOR} /></span>,
+        ],
+        correct: 0,
+        feedback: 'Линии магнитного поля всегда идут от N к S.',
+    },
+    {
+        renderPrompt: () => <><Sticker value="B" color={FIELD_COLOR} /> измеряется в</>,
+        renderOptions: () => ['Тесла', 'Вебер'],
+        correct: 0,
+        feedback: 'B измеряется в Тесла (Тл).',
+    },
+    {
+        renderPrompt: () => <><Sticker value="Φ" color={FLUX_COLOR} /> измеряется в</>,
+        renderOptions: () => ['Тесла', 'Вебер'],
+        correct: 1,
+        feedback: 'Φ (поток) измеряется в Веберах (Вб), не в Тесла.',
+    },
+    {
+        renderPrompt: () => <><Sticker value="Φ" color={FLUX_COLOR} /> = </>,
+        renderOptions: () => ['B · S', 'B : S'],
+        correct: 0,
+        feedback: 'Поток Φ = B · S — умножение, не деление.',
+    },
+]
+
+const CONCEPT_QUIZ_TITLE = 'Проверим себя'
+
+// Кнопка-вариант — та же псевдо-3D-рамка/палитра, что и у MiniAnswerButton
+// в LOGCOMBOWALK/LOGDIVWALK, но принимает произвольный ReactNode (не
+// только "формулу"), т.к. варианты здесь — короткие фразы и мини-строки
+// со стикерами N/S.
+const QuizAnswerButton = ({
+    children, onClick, disabled, state,
+}: { children: React.ReactNode; onClick?: () => void; disabled?: boolean; state: 'idle' | 'correct' | 'wrong' }) => (
+    <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        className={cn(
+            'flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl border-2 text-base md:text-lg font-bold text-center transition-colors',
+            state === 'correct' && 'border-[#A1D151] bg-[#A1D15122] text-[#A1D151]',
+            state === 'wrong' && 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]',
+            state === 'idle' && 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]',
+        )}
+    >
+        {children}
+    </button>
+)
+
+const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void }) => {
+    const [trialIndex, setTrialIndex] = useState(0)
+    const [checked, setChecked] = useState(false)
+    // "Пробуй, пока не угадаешь" — тот же режим, что и у всех остальных
+    // *WALK-тренировок: неверно нажатый вариант красится красным и
+    // блокируется, остальные остаются кликабельны.
+    const [wrongTried, setWrongTried] = useState<number[]>([])
+    const [wrongFlash, setWrongFlash] = useState<string | null>(null)
+    const [hadMistake, setHadMistake] = useState(false)
+    const [advancing, setAdvancing] = useState(false)
+    const [nextLabel, setNextLabel] = useState('Дальше')
+
+    const { bump: bumpNonce, nonceFor } = useReplayNonces()
+    const latestSceneKey = `q-${trialIndex}`
+    const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, checked)
+    // Back ограничен ЭТОЙ фазой (не переходит обратно в ConceptPhase) —
+    // это два самостоятельных top-level шага state-машины TypeFaradayWalk
+    // (см. ниже), не одна общая цепочка сцен, как в LOGCOMBOWALK, где
+    // intro/practice — части ОДНОГО компонента с общим списком сцен.
+    const canGoBack = trialIndex > 0
+    const handleReplay = () => bumpNonce(latestSceneKey)
+    const handleBack = () => {
+        if (advancing || trialIndex === 0) return
+        const target = trialIndex - 1
+        bumpNonce(`q-${target}`)
+        setTrialIndex(target)
+        setChecked(false)
+        setWrongTried([])
+        setWrongFlash(null)
+    }
+
+    const handlePick = (i: number, k: number) => {
+        if (checked || wrongTried.includes(k)) return
+        if (k === CONCEPT_QUIZ[i].correct) {
+            setChecked(true)
+            setNextLabel(pickWalkthroughNextLabel(trialIndex + 1 >= CONCEPT_QUIZ.length ? 'Готово' : 'Дальше'))
+        } else {
+            setHadMistake(true)
+            setWrongTried((w) => [...w, k])
+            setWrongFlash(pickWrongTryPhrase())
+        }
+    }
+
+    const handleNext = () => {
+        if (advancing) return
+        setAdvancing(true)
+        setTimeout(() => {
+            const isLast = trialIndex + 1 >= CONCEPT_QUIZ.length
+            if (isLast) {
+                setAdvancing(false)
+                onDone(hadMistake)
+                return
+            }
+            setTrialIndex((i) => i + 1)
+            setChecked(false)
+            setWrongTried([])
+            setWrongFlash(null)
+            setAdvancing(false)
+        }, CONCEPT_PAUSE_MS)
+    }
+
+    return (
+        <div className="mx-auto flex w-full max-w-md flex-col items-center gap-4 px-1 pb-8">
+            <div className="w-full flex flex-col gap-4">
+                {Array.from({ length: trialIndex + 1 }).map((_, i) => {
+                    const qq = CONCEPT_QUIZ[i]
+                    const isCurrent = i === trialIndex
+                    const isDone = i < trialIndex || (isCurrent && checked)
+                    const opts = qq.renderOptions()
+                    return (
+                        <SceneWrapper key={`q-${i}`} innerRef={sceneRef(`q-${i}`)} active={isSceneActive(`q-${i}`)}>
+                            <Fragment key={`q-${i}-${nonceFor(`q-${i}`)}`}>
+                                {i === 0 && (
+                                    <div className="w-full flex items-center gap-3" aria-hidden>
+                                        <div className="flex-1 h-px bg-[#3A464E]" />
+                                        <span className="text-xs font-bold uppercase tracking-wide text-[#5C6B73]">{CONCEPT_QUIZ_TITLE}</span>
+                                        <div className="flex-1 h-px bg-[#3A464E]" />
+                                    </div>
+                                )}
+                                <div className="relative w-full flex items-center justify-center">
+                                    <div
+                                        className="absolute left-0 top-1/2 -translate-y-1/2 shrink-0 flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
+                                        style={{
+                                            borderColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.55),
+                                            backgroundColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.16),
+                                            color: GGEGE_PALETTE.purple.button,
+                                        }}
+                                    >
+                                        <span>{i + 1}</span>
+                                        <span className="opacity-50 font-normal">/</span>
+                                        <span>{CONCEPT_QUIZ.length}</span>
+                                    </div>
+                                    <p className="w-full text-base md:text-lg text-[#F2F7FB] text-center font-bold">
+                                        {qq.renderPrompt()}
+                                    </p>
+                                </div>
+                                {isCurrent && !checked && (
+                                    <>
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {opts.map((opt, oi) => {
+                                                const isWrongTriedOpt = wrongTried.includes(oi)
+                                                return (
+                                                    <QuizAnswerButton
+                                                        key={oi}
+                                                        state={isWrongTriedOpt ? 'wrong' : 'idle'}
+                                                        disabled={isWrongTriedOpt}
+                                                        onClick={() => handlePick(i, oi)}
+                                                    >
+                                                        {opt}
+                                                    </QuizAnswerButton>
+                                                )
+                                            })}
+                                        </div>
+                                        {wrongFlash && (
+                                            <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">
+                                                {wrongFlash}
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                                {isDone && (
+                                    <>
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {opts.map((opt, oi) => {
+                                                const isCorrectOpt = oi === qq.correct
+                                                const isWrongTriedOpt = isCurrent && wrongTried.includes(oi)
+                                                return (
+                                                    <QuizAnswerButton
+                                                        key={oi}
+                                                        disabled
+                                                        state={isCorrectOpt ? 'correct' : (isWrongTriedOpt ? 'wrong' : 'idle')}
+                                                    >
+                                                        {opt}
+                                                    </QuizAnswerButton>
+                                                )
+                                            })}
+                                        </div>
+                                        <FieryFeedbackBanner fiery={isCurrent && isFieryMilestoneTrial(i)}>
+                                            {qq.feedback}
+                                        </FieryFeedbackBanner>
+                                    </>
+                                )}
+                                {isCurrent && checked && <LocalAnswerConfetti />}
+                            </Fragment>
+                        </SceneWrapper>
+                    )
+                })}
+            </div>
+
+            {checked && (
+                <div className="w-full flex items-center gap-2">
+                    <ReplayButton onClick={handleReplay} disabled={advancing} />
+                    <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
+                    <button
+                        type="button"
+                        onClick={handleNext}
+                        disabled={advancing}
+                        className={walkthroughButtonClass(!advancing)}
+                        style={walkthroughButtonStyle(!advancing)}
+                    >
+                        {trialIndex + 1 >= CONCEPT_QUIZ.length ? 'Готово' : nextLabel}
+                    </button>
+                </div>
+            )}
+        </div>
+    )
+}
+
+// ===================================================================
 // ФАЗА "hands" — интерактивная песочница (магнит едет сам по программе,
 // затем формула, затем своя очередь, затем вопросы). Без изменений
 // относительно предыдущей версии файла — просто вынесена под свою фазу.
@@ -1650,18 +1903,35 @@ const HandsPhase = ({ onFinish }: { onFinish: (hadMistake: boolean) => void }) =
 // ===== Основной компонент =====
 
 export const TypeFaradayWalk = ({ onAnswer, onComplete }: Props) => {
-    const [phase, setPhase] = useState<'concept' | 'hands'>('concept')
+    const [phase, setPhase] = useState<'concept' | 'quiz' | 'hands'>('concept')
+    // Ошибка в коротком квизе (фаза 'quiz') запоминается здесь и
+    // учитывается в ИТОГОВОМ результате наравне с ошибкой в финальном
+    // "Проверим себя" hands-фазы (QuizPart) — тот же принцип, что и во
+    // всех остальных *WALK-разборах: "работа над ошибками" реагирует на
+    // любую ошибку по всему прохождению, не только в последней части.
+    const [hadMistakeInQuiz, setHadMistakeInQuiz] = useState(false)
     const finishedRef = useRef(false)
 
     const handleFinish = (hadMistake: boolean) => {
         if (finishedRef.current) return
         finishedRef.current = true
-        onComplete(!hadMistake)
-        onAnswer(hadMistake ? 'wrong' : 'right')
+        const overallMistake = hadMistake || hadMistakeInQuiz
+        onComplete(!overallMistake)
+        onAnswer(overallMistake ? 'wrong' : 'right')
     }
 
     if (phase === 'concept') {
-        return <ConceptPhase onDone={() => setPhase('hands')} />
+        return <ConceptPhase onDone={() => setPhase('quiz')} />
+    }
+    if (phase === 'quiz') {
+        return (
+            <ConceptQuizPhase
+                onDone={(hadMistake) => {
+                    setHadMistakeInQuiz(hadMistake)
+                    setPhase('hands')
+                }}
+            />
+        )
     }
     return <HandsPhase onFinish={handleFinish} />
 }
