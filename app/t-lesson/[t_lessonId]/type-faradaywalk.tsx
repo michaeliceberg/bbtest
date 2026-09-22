@@ -167,40 +167,93 @@ const MagnetPoleShape = ({ x, top, highlight }: { x: number; top: number; highli
 
 // ===== Силовые линии магнита =====
 //
-// По присланному пользователем референсу (классическая схема поля
-// магнитного диполя) — семейство НАСТОЯЩИХ эллиптических дуг с ОБЩЕЙ
-// парой точек схождения сверху и снизу (одна и та же высота для всех
-// линий — apexTop/apexBottom), магнит просто стоит в центре, линии его
-// не касаются, только огибают сбоку — шире (rx) с каждым следующим
-// вложенным контуром, высота (ry) у всех ОДНА и та же.
-type Arc = { cx: number; cy: number; rx: number; ry: number; side: -1 | 1 }
+// По прямой просьбе пользователя — линия ПРИВЯЗАНА к самим полюсам
+// (сходится РОВНО в магните, не в точке над ним): выходит из полюса N
+// (снизу), какое-то время идёт почти прямо ВНИЗ (не сворачивая сразу),
+// затем большим радиусом поднимается наверх и длинной дугой заходит в
+// магнит сверху, в полюс S — оба конца кривой ЛЕЖАТ на самих полюсах.
+//
+// ВАЖНО: обычная кубическая кривая Безье с контрольными точками "далеко
+// снизу"/"широко сбоку" НЕ проходит через сами контрольные точки (это
+// просто "рычаги", которые лишь притягивают кривую — реальная кривая
+// заметно ближе к отрезку между концами, чем кажется по расположению
+// хендлов) — так получался слишком куцый результат, пойманный прямым
+// замером getBBox() в браузере. Кривая построена сплайном Катмулла-Рома
+// (`catmullRomSegments`) — гарантированно ПРОХОДИТ через каждую из 4
+// явных опорных точек (N → точка глубоко внизу → широкая точка сбоку на
+// полпути наверх → S), 3 кубических сегмента, касательные согласованы в
+// стыках (G1-гладкость, без изломов).
+type Pt = { x: number; y: number }
+type Bezier = { p0: Pt; p1: Pt; p2: Pt; p3: Pt }
 
-// t=0 — нижняя точка схождения (cx, cy+ry), t=1 — верхняя (cx, cy-ry),
-// между ними — половина эллипса в сторону `side`. Настоящая эллиптическая
-// дуга (не кубическая кривая с контрольными "рычагами", которые к
-// реальной форме не имеют отношения) — гарантированно проходит именно
-// там, где посчитано.
-function arcPoint(a: Arc, t: number) {
-    const theta = t * Math.PI
-    return { x: a.cx + a.side * a.rx * Math.sin(theta), y: a.cy + a.ry * Math.cos(theta) }
+// Стандартная (uniform, tension=1/6) конверсия Катмулла-Рома в цепочку
+// кубических Безье — кривая проходит через КАЖДУЮ точку `points`, концы
+// зажаты дублированием крайних точек (без "перелёта" за пределы кривой).
+function catmullRomSegments(points: Pt[]): Bezier[] {
+    const padded = [points[0], ...points, points[points.length - 1]]
+    const segments: Bezier[] = []
+    for (let i = 1; i < padded.length - 2; i++) {
+        const p0 = padded[i - 1], p1 = padded[i], p2 = padded[i + 1], p3 = padded[i + 2]
+        segments.push({
+            p0: p1,
+            p1: { x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6 },
+            p2: { x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6 },
+            p3: p2,
+        })
+    }
+    return segments
 }
-function arcAngleDeg(a: Arc, t: number) {
-    const theta = t * Math.PI
-    const dx = a.side * a.rx * Math.cos(theta)
-    const dy = -a.ry * Math.sin(theta)
+
+function segBezierPoint(b: Bezier, t: number): Pt {
+    const mt = 1 - t
+    const a = mt * mt * mt, bb = 3 * mt * mt * t, c = 3 * mt * t * t, d = t * t * t
+    return {
+        x: a * b.p0.x + bb * b.p1.x + c * b.p2.x + d * b.p3.x,
+        y: a * b.p0.y + bb * b.p1.y + c * b.p2.y + d * b.p3.y,
+    }
+}
+function segBezierAngleDeg(b: Bezier, t: number) {
+    const mt = 1 - t
+    const dx = 3 * mt * mt * (b.p1.x - b.p0.x) + 6 * mt * t * (b.p2.x - b.p1.x) + 3 * t * t * (b.p3.x - b.p2.x)
+    const dy = 3 * mt * mt * (b.p1.y - b.p0.y) + 6 * mt * t * (b.p2.y - b.p1.y) + 3 * t * t * (b.p3.y - b.p2.y)
     return (Math.atan2(dy, dx) * 180) / Math.PI
 }
-const ARC_SAMPLES = 48
-const arcPath = (a: Arc) =>
-    Array.from({ length: ARC_SAMPLES + 1 }, (_, i) => arcPoint(a, i / ARC_SAMPLES))
-        .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
-        .join(' ')
 
-// "Течёт" по линии поля — маленькие стрелочки, бегущие вдоль дуги (тот же
-// приём, что показывает направление тока/поля на референс-анимациях
+// Точка/угол по ВСЕЙ цепочке сегментов сразу — t∈[0,1] линейно делится
+// на сегменты (не идеально равномерно по длине дуги, но для декоративного
+// "течения" стрелок этого достаточно — глазом неровность скорости между
+// сегментами не читается).
+function multiPoint(segs: Bezier[], t: number): Pt {
+    const scaled = t * segs.length
+    const idx = Math.min(segs.length - 1, Math.floor(scaled))
+    return segBezierPoint(segs[idx], scaled - idx)
+}
+function multiAngleDeg(segs: Bezier[], t: number) {
+    const scaled = t * segs.length
+    const idx = Math.min(segs.length - 1, Math.floor(scaled))
+    return segBezierAngleDeg(segs[idx], scaled - idx)
+}
+function multiPath(segs: Bezier[]) {
+    const first = segs[0].p0
+    const rest = segs.map((s) => `C ${s.p1.x} ${s.p1.y}, ${s.p2.x} ${s.p2.y}, ${s.p3.x} ${s.p3.y}`).join(' ')
+    return `M ${first.x} ${first.y} ${rest}`
+}
+
+// Опорные точки одной силовой линии: N (ровно на полюсе) → глубоко вниз
+// (почти строго под N — "не сворачивая сразу") → широкая точка сбоку на
+// полпути наверх (большой радиус разворота) → S (ровно на полюсе,
+// "заходит сверху").
+function fieldLineWaypoints(cx: number, yN: number, yS: number, side: -1 | 1, rx: number, dip: number): Pt[] {
+    const deepest = { x: cx + side * rx * 0.18, y: yN + dip }
+    const wide = { x: cx + side * rx, y: yS + dip * 0.4 }
+    return [{ x: cx, y: yN }, deepest, wide, { x: cx, y: yS }]
+}
+
+// "Течёт" по линии поля — маленькие стрелочки, бегущие вдоль кривой (тот
+// же приём, что показывает направление тока/поля на референс-анимациях
 // движения по проводу — маленькие маркеры друг за другом), а не просто
-// статичный наконечник. Считается АНАЛИТИЧЕСКИ по параметру дуги (не CSS
-// offset-path — тот же принцип, что и остальная физика в этом файле:
+// статичный наконечник. Считается АНАЛИТИЧЕСКИ по параметру кривой (не
+// CSS offset-path — тот же принцип, что и остальная физика в этом файле:
 // setInterval, не requestAnimationFrame, чтобы не замирать в фоновых
 // вкладках, см. комментарий у Sandbox). fade у краёв пути — маркер не
 // обрывается резко на стыке.
@@ -208,7 +261,7 @@ const FLOW_PERIOD_MS = 2400
 const FLOW_TICK_MS = 40
 const FLOW_PHASES = [0, 1 / 3, 2 / 3]
 
-const FlowArrows = ({ lines, color }: { lines: Arc[]; color: string }) => {
+const FlowArrows = ({ lines, color }: { lines: Bezier[][]; color: string }) => {
     const [t, setT] = useState(0)
     useEffect(() => {
         const start = performance.now()
@@ -219,10 +272,10 @@ const FlowArrows = ({ lines, color }: { lines: Arc[]; color: string }) => {
     }, [])
     return (
         <g>
-            {lines.map((a, li) => FLOW_PHASES.map((phase, mi) => {
+            {lines.map((segs, li) => FLOW_PHASES.map((phase, mi) => {
                 const tt = (t + phase) % 1
-                const pos = arcPoint(a, tt)
-                const angle = arcAngleDeg(a, tt)
+                const pos = multiPoint(segs, tt)
+                const angle = multiAngleDeg(segs, tt)
                 const fade = Math.min(1, tt * 9, (1 - tt) * 9)
                 return (
                     <path
@@ -238,37 +291,45 @@ const FlowArrows = ({ lines, color }: { lines: Arc[]; color: string }) => {
     )
 }
 
-// Вертикальный радиус ОДИН на все линии (общая точка схождения сверху и
-// снизу) — растёт только горизонтальный (rx) с каждым вложенным контуром.
-const FIELD_RY = 210
-const FIELD_RX_LIST = [55, 90, 125]
+// Три вложенных линии — шире (rx) И "длиннее вниз" (dip) с каждым
+// следующим номером, тот же принцип нестинга, что на референсе.
+const FIELD_LOOPS: { rx: number; dip: number }[] = [
+    { rx: 55, dip: 110 },
+    { rx: 85, dip: 150 },
+    { rx: 115, dip: 180 },
+]
 
 // Силовые линии магнита целиком — draw-in анимация формы, затем (для
 // flowing=true) бегущие стрелочки поверх. pale=true (сцены-полюса) —
 // тускло-серые, без движения — фокус смещён на полюса, не на поток.
-const MagnetFieldLines = ({ cx, cy, color, flowing = false }: { cx: number; cy: number; color: string; flowing?: boolean }) => {
+const MagnetFieldLines = ({ x, top, color, flowing = false }: { x: number; top: number; color: string; flowing?: boolean }) => {
+    const yN = top + MAG_H
+    const yS = top
     const [started, setStarted] = useState(false)
     useEffect(() => {
         if (!flowing) return
-        const t = setTimeout(() => setStarted(true), FIELD_RX_LIST.length * 220 + 900)
+        const t = setTimeout(() => setStarted(true), FIELD_LOOPS.length * 220 + 900)
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [flowing])
 
-    const lines: Arc[] = []
-    FIELD_RX_LIST.forEach((rx) => { ([-1, 1] as const).forEach((side) => { lines.push({ cx, cy, rx, ry: FIELD_RY, side }) }) })
+    const lines: Bezier[][] = []
+    FIELD_LOOPS.forEach(({ rx, dip }) => {
+        ([-1, 1] as const).forEach((side) => {
+            lines.push(catmullRomSegments(fieldLineWaypoints(x, yN, yS, side, rx, dip)))
+        })
+    })
 
     return (
         <g>
-            {lines.map((a, i) => (
+            {lines.map((segs, i) => (
                 <motion.path
                     key={i}
-                    d={arcPath(a)}
+                    d={multiPath(segs)}
                     stroke={color}
                     strokeWidth={2}
                     fill="none"
                     strokeLinecap="round"
-                    strokeLinejoin="round"
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: 1, opacity: 0.85 }}
                     transition={{ duration: 0.9, ease: 'easeInOut', delay: Math.floor(i / 2) * 0.22 }}
@@ -285,14 +346,13 @@ const FIELD_VIEW_W = 320
 const FIELD_VIEW_H = 480
 const MAG_CX = FIELD_VIEW_W / 2
 const MAG_TOP = 208
-const MAG_CY = MAG_TOP + MAG_H / 2
 
 // Диаграмма-снимок сцены 0/1 — магнит по центру своего собственного
 // SVG-полотна (без кольца — оно появится в следующей сцене).
 const MagnetIntroDiagram = ({ withField }: { withField: boolean }) => (
     <div className="flex w-full justify-center py-2">
         <svg viewBox={`0 0 ${FIELD_VIEW_W} ${FIELD_VIEW_H}`} className="h-[360px] w-[240px]">
-            {withField && <MagnetFieldLines cx={MAG_CX} cy={MAG_CY} color={FIELD_COLOR} flowing />}
+            {withField && <MagnetFieldLines x={MAG_CX} top={MAG_TOP} color={FIELD_COLOR} flowing />}
             <MagnetShape x={MAG_CX} top={MAG_TOP} />
         </svg>
     </div>
@@ -303,7 +363,7 @@ const MagnetIntroDiagram = ({ withField }: { withField: boolean }) => (
 const MagnetPoleDiagram = ({ highlight }: { highlight: 'N' | 'S' }) => (
     <div className="flex w-full justify-center py-2">
         <svg viewBox={`0 0 ${FIELD_VIEW_W} ${FIELD_VIEW_H}`} className="h-[360px] w-[240px]">
-            <MagnetFieldLines cx={MAG_CX} cy={MAG_CY} color={PENDING_COLOR} />
+            <MagnetFieldLines x={MAG_CX} top={MAG_TOP} color={PENDING_COLOR} />
             <MagnetPoleShape x={MAG_CX} top={MAG_TOP} highlight={highlight} />
         </svg>
     </div>
