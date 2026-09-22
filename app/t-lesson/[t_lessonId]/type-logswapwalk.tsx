@@ -8,12 +8,18 @@
 // общая нижняя кнопка скрыта — своя кнопка "Дальше"/"Готово" на
 // протяжении всего прохождения.
 //
-// Сюжет — прямая инструкция пользователя, на ДВУХ фиксированных примерах:
+// Сюжет — прямая инструкция пользователя, на ДВУХ фиксированных примерах.
+// Шаги 1/2/4 (SwapArrowScene/SwapResultScene) раскрываются СТРОГО
+// последовательно, битами с паузами (по прямой просьбе пользователя, "а
+// не пачкой") — формула → пауза → [стрелка → пауза →] текст:
 // 1. "8^(log₂3) = ?" — просто условие.
-// 2. То же самое, но 8 и 3 — стикеры РАЗНЫХ цветов + угловая двусторонняя
-//    стрелка между ними ("их можно менять местами").
-// 3. "Получается: 3^(log₂8)." — те же цвета, просто на новых местах.
-// 4-6. То же самое на примере "25^(log₅4) = ? → 4^(log₅25)".
+// 2. То же самое, но 8 и 3 — стикеры РАЗНЫХ цветов → пауза → угловая
+//    двусторонняя стрелка между ними → пауза → текст "можно менять
+//    местами".
+// 3. "Получается: 3^(log₂8)." → пауза → текст — те же цвета, просто на
+//    новых местах.
+// 4-6. То же самое на примере "25^(log₅4) = ? → 4^(log₅25)" (шаг 5 не
+//    менялся — пользователь описал только 1/2/4).
 //
 // После разбора — тренировочные задания с НОВЫМИ случайными числами
 // (a^{log_b c} = ?), нужно кликнуть верную формулу-ответ среди 4
@@ -226,6 +232,73 @@ const DoubleArrow = ({
     )
 }
 
+// Пауза между битами сцены — тот же ≥800мс стандарт, что и во всех
+// остальных walkthrough-разборах. По прямой просьбе пользователя шаги 1/4
+// (пример → стрелка → текст) и шаг 2 (результат → текст) раскрываются
+// СТРОГО последовательно, не всё разом, как раньше.
+const STEP_PAUSE_MS = 900
+// Столько реально рисуется DoubleArrow (750мс задержка измерения + 0.2с
+// delay + 0.8с сама draw-анимация, см. DoubleArrow выше).
+const ARROW_DRAW_MS = 1750
+
+// Шаги 1/4 — формула (числа уже стикерами) сразу → пауза → рисуется
+// двусторонняя стрелка → пауза → текст "можно менять местами". pt-10 (как
+// и раньше) — запас сверху, чтобы дуга стрелки не налезала на условие
+// ПРЕДЫДУЩЕЙ сцены.
+const SwapArrowScene = ({
+    a, b, c, text, onSettled,
+}: { a: number; b: number; c: number; text: string; onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const ref = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (phase !== 1) return
+        const t = setTimeout(() => setPhase(2), ARROW_DRAW_MS + STEP_PAUSE_MS)
+        return () => clearTimeout(t)
+    }, [phase])
+
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 1)), STEP_PAUSE_MS)}>
+                <div ref={ref} className="relative w-full pt-10">
+                    <PowLogExpr a={a} b={b} c={c} outerColor={A_COLOR} argColor={C_COLOR} />
+                    {phase >= 1 && <DoubleArrow containerRef={ref} fromMarker="outer" toMarker="arg" color={ACTIVE_COLOR} />}
+                </div>
+            </DiagramBlock>
+            {phase >= 2 && (
+                <TypedLine
+                    className="w-full text-base md:text-lg text-[#F2F7FB]"
+                    text={text}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// Шаг 2 — формула-результат сразу → пауза → текст. Шаг 5 (аналогичная
+// сцена второго примера) НЕ трогался — пользователь описал только шаги
+// 1/2/4.
+const SwapResultScene = ({
+    a, b, c, text, onSettled,
+}: { a: number; b: number; c: number; text: string; onSettled?: () => void }) => {
+    const [textVisible, setTextVisible] = useState(false)
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setTextVisible(true), STEP_PAUSE_MS)}>
+                <PowLogExpr a={a} b={b} c={c} outerColor={C_COLOR} argColor={A_COLOR} />
+            </DiagramBlock>
+            {textVisible && (
+                <TypedLine
+                    className="w-full text-base md:text-lg text-[#F2F7FB]"
+                    text={text}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
 // ===== Тренировочные задания — новые случайные (a, b, c), нужно кликнуть
 // верную формулу-ответ (c^{log_b a}) среди 4 вариантов. =====
 
@@ -342,10 +415,6 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
     // блокируются, wrongFlash — ПЕРСИСТЕНТНОЕ сообщение под вариантами.
     const [wrongTried, setWrongTried] = useState<SwapOption[]>([])
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
-
-    // Контейнеры сцен со стрелкой (шаг 1 — пример 1, шаг 4 — пример 2).
-    const arrow1Ref = useRef<HTMLDivElement>(null)
-    const arrow2Ref = useRef<HTMLDivElement>(null)
 
     const currentCorrectOption = trials[trialIndex].options.find(
         (o) => sameOption(o, { outer: trials[trialIndex].c, base: trials[trialIndex].b, arg: trials[trialIndex].a })
@@ -468,18 +537,8 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
                 {step >= 1 && (
                     <SceneWrapper key="step-1" innerRef={sceneRef('step-1')} active={isSceneActive('step-1')}>
                         <Fragment key={`step-1-${nonceFor('step-1')}`}>
-                            <DiagramBlock>
-                                {/* pt-10 — запас сверху, чтобы дуга стрелки
-                                    (мост выше обоих концов) не налезала на
-                                    условие ШАГА 0 над этой сценой (тот же
-                                    фикс, что уже применён в LOGPOWWALK). */}
-                                <div ref={arrow1Ref} className="relative w-full pt-10">
-                                    <PowLogExpr a={EX1.a} b={EX1.b} c={EX1.c} outerColor={A_COLOR} argColor={C_COLOR} />
-                                    <DoubleArrow containerRef={arrow1Ref} fromMarker="outer" toMarker="arg" color={ACTIVE_COLOR} />
-                                </div>
-                            </DiagramBlock>
-                            <TypedLine
-                                className="w-full text-base md:text-lg text-[#F2F7FB]"
+                            <SwapArrowScene
+                                a={EX1.a} b={EX1.b} c={EX1.c}
                                 text="Числа 8 и 3 можно поменять местами."
                                 onSettled={() => setStepReady(true)}
                             />
@@ -493,11 +552,8 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
                 {step >= 2 && (
                     <SceneWrapper key="step-2" innerRef={sceneRef('step-2')} active={isSceneActive('step-2')}>
                         <Fragment key={`step-2-${nonceFor('step-2')}`}>
-                            <DiagramBlock>
-                                <PowLogExpr a={EX1.c} b={EX1.b} c={EX1.a} outerColor={C_COLOR} argColor={A_COLOR} />
-                            </DiagramBlock>
-                            <TypedLine
-                                className="w-full text-base md:text-lg text-[#F2F7FB]"
+                            <SwapResultScene
+                                a={EX1.c} b={EX1.b} c={EX1.a}
                                 text="Хоп — 8 и 3 поменялись местами (и это законно)."
                                 onSettled={() => setStepReady(true)}
                             />
@@ -521,14 +577,8 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
                 {step >= 4 && (
                     <SceneWrapper key="step-4" innerRef={sceneRef('step-4')} active={isSceneActive('step-4')}>
                         <Fragment key={`step-4-${nonceFor('step-4')}`}>
-                            <DiagramBlock>
-                                <div ref={arrow2Ref} className="relative w-full pt-10">
-                                    <PowLogExpr a={EX2.a} b={EX2.b} c={EX2.c} outerColor={A_COLOR} argColor={C_COLOR} />
-                                    <DoubleArrow containerRef={arrow2Ref} fromMarker="outer" toMarker="arg" color={ACTIVE_COLOR} />
-                                </div>
-                            </DiagramBlock>
-                            <TypedLine
-                                className="w-full text-base md:text-lg text-[#F2F7FB]"
+                            <SwapArrowScene
+                                a={EX2.a} b={EX2.b} c={EX2.c}
                                 text="Аналогично можно поменять местами 25 и 4."
                                 onSettled={() => setStepReady(true)}
                             />
