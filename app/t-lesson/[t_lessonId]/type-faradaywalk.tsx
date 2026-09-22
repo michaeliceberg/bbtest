@@ -23,26 +23,27 @@
 // 3. "И [южный] полюс [S]." — аналогично наоборот: всё бледное, кроме
 //    верхнего края — он красным (SOUTH_COLOR), тем же цветом стикер.
 //
-// После знакомства (INTRO_CONCEPT_STEPS шагов) — фаза 'hands':
-// та же интерактивная песочница "магнит+кольцо+графики Φ(t)/I(t)", что
-// была реализована раньше в этом файле (см. историю сессии) — магнит
-// едет САМ по 4 программам (стоит/едет ровно/вдвое быстрее/разгоняется),
-// затем формула ε=−ΔΦ/Δt, "своя очередь" (свободное перетаскивание) и
-// 5 вопросов-проверок. Оставлена БЕЗ изменений — переставлена местами,
-// не переписана.
+// После знакомства (INTRO_CONCEPT_STEPS шагов) — фаза 'quiz'
+// (ConceptQuizPhase): короткая фиксированная проверка понимания (5
+// бинарных вопросов, тот же формат "1/N + огненный Lottie на каждом
+// 4-м", что и в разборах логарифмов) — ей же урок и заканчивается.
+// Старая интерактивная песочница "магнит+кольцо+графики Φ(t)/I(t)"
+// (фаза 'hands' — магнит едет сам по 4 программам, формула ε=−ΔΦ/Δt,
+// "своя очередь", финальный числовой квиз) убрана ЦЕЛИКОМ по прямой
+// просьбе пользователя (2026-09-22) — дублировала уже более наглядно
+// объяснённый материал.
 
 'use client'
 
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
-import Latex from 'react-latex-next'
 import type { QuestionType } from './page'
 import {
     DiagramBlock, TypedLine,
     pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
-    isFieryMilestoneTrial, FieryFeedbackBanner, CORRECT_COLOR, WRONG_COLOR, ACTIVE_COLOR, PENDING_COLOR,
+    isFieryMilestoneTrial, FieryFeedbackBanner, CORRECT_COLOR, WRONG_COLOR, PENDING_COLOR,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
@@ -81,11 +82,6 @@ const SOUTH_COLOR = FIELD_COLOR
 const RING_COLOR = GGEGE_PALETTE.teal.button
 
 const FLUX_COLOR = GGEGE_PALETTE.purple.button
-const CURRENT_COLOR = GGEGE_PALETTE.orange.button
-const CURRENT_COLOR_REV = GGEGE_PALETTE.teal.button
-
-const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
-const shuffle = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5)
 
 // ===================================================================
 // ФАЗА "concept" — знакомство с объектами, по одному, накопительный лог.
@@ -889,8 +885,30 @@ const FluxScene = ({ onSettled }: { onSettled?: () => void }) => {
         return () => clearTimeout(t)
     }, [phase])
 
+    // Эта сцена — единственная во всём файле, растущая через 6 отдельных
+    // внутренних фаз (intro → "для этого понадобятся" → левая половина →
+    // правая половина → формула → единица измерения) — а внешний
+    // useSceneFocus (ConceptPhase) переcкроллит только ДВАЖДЫ: сразу по
+    // входу в шаг (контент ещё почти пуст) и один раз в самом конце
+    // (когда stepReady). На узком мобильном экране, где вся сцена целиком
+    // выше высоты вьюпорта, этих двух точек мало — контент, дописанный
+    // МЕЖДУ ними (диаграммы/формула), рос уже НИЖЕ того места, куда
+    // проскроллило по начальному (маленькому) размеру, и ничего не
+    // подтягивало эту растущую нижнюю часть в кадр до самого конца — по
+    // жалобе пользователя "не влезает в экран телефона, рисуется где-то
+    // снизу". Добавлен ЛОКАЛЬНЫЙ, дополнительный докскролл на КАЖДУЮ
+    // смену phase — не вместо внешнего механизма, а в ДОПОЛНЕНИЕ к нему:
+    // `scrollIntoView({block:'nearest'})` не дёргает вид, если элемент и
+    // так виден, и лишь мягко подтягивает НИЖНИЙ (растущий) край в кадр,
+    // если он успел уйти за пределы экрана — тот же принцип, что уже
+    // используется по всему проекту (см. useSceneFocus), просто чаще.
+    const rootRef = useRef<HTMLDivElement>(null)
+    useEffect(() => {
+        rootRef.current?.scrollIntoView({ behavior: 'auto', block: 'nearest' })
+    }, [phase])
+
     return (
-        <>
+        <div ref={rootRef} className="w-full flex flex-col gap-4">
             <TypedLineWithParts
                 parts={[
                     { text: 'Теперь введём ' },
@@ -939,7 +957,7 @@ const FluxScene = ({ onSettled }: { onSettled?: () => void }) => {
                     onSettled={onSettled}
                 />
             )}
-        </>
+        </div>
     )
 }
 
@@ -1236,7 +1254,7 @@ type ConceptQuizItem = {
 
 const CONCEPT_QUIZ: ConceptQuizItem[] = [
     {
-        renderPrompt: () => <>Буква <Sticker value="N" color={NORTH_COLOR} /> (в красном стикере) — это</>,
+        renderPrompt: () => <>Буква <Sticker value="N" color={NORTH_COLOR} /> — это</>,
         renderOptions: () => ['Северный полюс', 'Южный полюс'],
         correct: 0,
         feedback: 'N — это северный полюс, красный стикер.',
@@ -1260,7 +1278,7 @@ const CONCEPT_QUIZ: ConceptQuizItem[] = [
         renderPrompt: () => <><Sticker value="Φ" color={FLUX_COLOR} /> измеряется в</>,
         renderOptions: () => ['Тесла', 'Вебер'],
         correct: 1,
-        feedback: 'Φ (поток) измеряется в Веберах (Вб), не в Тесла.',
+        feedback: 'Φ (поток) измеряется в Веберах (Вб).',
     },
     {
         renderPrompt: () => <><Sticker value="Φ" color={FLUX_COLOR} /> = </>,
@@ -1269,6 +1287,18 @@ const CONCEPT_QUIZ: ConceptQuizItem[] = [
         feedback: 'Поток Φ = B · S — умножение, не деление.',
     },
 ]
+
+// Зумерская похвала при верном ответе — та же общая CORRECT_FEEDBACK_
+// PHRASES, что уже используется ВЕЗДЕ в степбайстеп-разборах (по прямой
+// просьбе пользователя — раньше здесь показывался только сухой
+// разъясняющий текст qq.feedback, без неё). Детерминированный выбор по
+// индексу вопроса (не Math.random() внутри рендера — тот перевыбирал бы
+// новую фразу на каждый посторонний ре-рендер, пока фидбек уже показан)
+// — тот же принцип, что и у pickTrialFeedback в LOGCOMBOWALK: набор
+// вопросов здесь фиксирован (не генерируется заново), поэтому простого
+// mod по индексу достаточно для стабильного результата.
+const pickQuizFeedbackPhrase = (i: number): string =>
+    CORRECT_FEEDBACK_PHRASES[i % CORRECT_FEEDBACK_PHRASES.length]
 
 const CONCEPT_QUIZ_TITLE = 'Проверим себя'
 
@@ -1432,7 +1462,12 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
                                             })}
                                         </div>
                                         <FieryFeedbackBanner fiery={isCurrent && isFieryMilestoneTrial(i)}>
-                                            {qq.feedback}
+                                            <div className="text-center">
+                                                <div className="font-extrabold" style={{ color: CORRECT_COLOR }}>
+                                                    {pickQuizFeedbackPhrase(i)}
+                                                </div>
+                                                <div className="mt-1 text-sm text-[#F2F7FB]">{qq.feedback}</div>
+                                            </div>
                                         </FieryFeedbackBanner>
                                     </>
                                 )}
@@ -1462,476 +1497,33 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
     )
 }
 
-// ===================================================================
-// ФАЗА "hands" — интерактивная песочница (магнит едет сам по программе,
-// затем формула, затем своя очередь, затем вопросы). Без изменений
-// относительно предыдущей версии файла — просто вынесена под свою фазу.
-// ===================================================================
-
-// Геометрия сцены (viewBox 0 0 200 250).
-const SCENE_H = 250
-const TOP_MIN = 6
-const TOP_MAX = 118
-const RING_CY = 176
-const RING_RX = 64
-const RING_RY = 11
-
-const HISTORY = 150 // окно ~5 c при 30 Гц (ручной режим)
-const TICK_MS = 33
-const B_MAX_MT = 50
-const PHI_MAX_MKWB = 100
-
-const V_REF = 0.4 // скорость p/с, при которой I = 1
-type Profile = { T: number; p: (t: number) => number; v: (t: number) => number }
-const PROFILES: Profile[] = [
-    { T: 4, p: () => 0.5, v: () => 0 }, // стоит
-    { T: 5, p: (t) => 0.1 + 0.15 * t, v: () => 0.15 }, // ровно
-    { T: 6, p: (t) => (t < 3 ? 0.05 + 0.08 * t : 0.29 + 0.16 * (t - 3)), v: (t) => (t < 3 ? 0.08 : 0.16) }, // вдвое быстрее
-    { T: 5, p: (t) => 0.05 + 0.03 * t * t, v: (t) => 0.06 * t }, // разгон
-]
-
-type SandboxProps = {
-    mode: 'auto' | 'manual'
-    profile?: Profile
-    runKey: number // смена запускает программу заново
-    onFinish?: () => void
-    onLamp?: () => void
-}
-
-const Sandbox = ({ mode, profile, runKey, onFinish, onLamp }: SandboxProps) => {
-    const pRef = useRef(0.3) // положение магнита 0 (далеко) .. 1 (у кольца)
-    const draggingRef = useRef(false)
-    const grabRef = useRef(0)
-    const svgRef = useRef<SVGSVGElement>(null)
-    const prevPRef = useRef<number | null>(null)
-    const prevTimeRef = useRef(0)
-    const curRef = useRef(0)
-    const phaseRef = useRef(0)
-    const tRef = useRef(0)
-    const runningRef = useRef(false)
-    const phiHist = useRef<number[]>([])
-    const curHist = useRef<number[]>([])
-    const [, setTick] = useState(0)
-    const [touched, setTouched] = useState(false)
-    const modeRef = useRef(mode); modeRef.current = mode
-    const profRef = useRef(profile); profRef.current = profile
-    const cb = useRef({ onFinish, onLamp }); cb.current = { onFinish, onLamp }
-
-    useEffect(() => {
-        phiHist.current = []; curHist.current = []; tRef.current = 0; curRef.current = 0; prevPRef.current = null
-        if (mode === 'auto' && profile) {
-            pRef.current = profile.p(0)
-            runningRef.current = runKey > 0
-        } else {
-            runningRef.current = false
-            if (mode === 'manual') pRef.current = 0.3
-        }
-        setTick((x) => x + 1)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [runKey, mode])
-
-    useEffect(() => {
-        prevTimeRef.current = performance.now()
-        const id = setInterval(() => {
-            const now = performance.now()
-            const dt = Math.max(0.001, (now - prevTimeRef.current) / 1000)
-            prevTimeRef.current = now
-            if (modeRef.current === 'auto') {
-                const pr = profRef.current
-                if (!pr || !runningRef.current) return
-                tRef.current = Math.min(pr.T, tRef.current + dt)
-                pRef.current = pr.p(tRef.current)
-                curRef.current = pr.v(tRef.current) / V_REF
-                phiHist.current.push(pRef.current); curHist.current.push(curRef.current)
-                phaseRef.current += curRef.current * 40 * dt * 8
-                if (tRef.current >= pr.T) { runningRef.current = false; cb.current.onFinish?.() }
-            } else {
-                const p = pRef.current
-                const rate = prevPRef.current == null ? 0 : (p - prevPRef.current) / dt
-                prevPRef.current = p
-                curRef.current = curRef.current * 0.55 + clamp(rate / V_REF, -1, 1) * 0.45
-                if (Math.abs(curRef.current) < 0.01) curRef.current = 0
-                phaseRef.current += curRef.current * 40 * dt * 8
-                phiHist.current.push(p); curHist.current.push(curRef.current)
-                if (phiHist.current.length > HISTORY) { phiHist.current.shift(); curHist.current.shift() }
-                if (Math.abs(curRef.current) > 0.3) cb.current.onLamp?.()
-            }
-            setTick((x) => x + 1)
-        }, TICK_MS)
-        return () => clearInterval(id)
-    }, [])
-
-    const toSvgY = (clientY: number) => {
-        const r = svgRef.current!.getBoundingClientRect()
-        return (clientY - r.top) * (SCENE_H / r.height)
-    }
-    const topOf = (p: number) => TOP_MIN + p * (TOP_MAX - TOP_MIN)
-    const onDown = (e: React.PointerEvent<SVGSVGElement>) => {
-        if (mode !== 'manual') return
-        const y = toSvgY(e.clientY)
-        const top = topOf(pRef.current)
-        if (y < top - 14 || y > top + MAG_H + 14) return
-        draggingRef.current = true
-        grabRef.current = y - top
-        try { svgRef.current!.setPointerCapture(e.pointerId) } catch { /* синтетические события */ }
-        setTouched(true)
-    }
-    const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
-        if (!draggingRef.current) return
-        pRef.current = clamp((toSvgY(e.clientY) - grabRef.current - TOP_MIN) / (TOP_MAX - TOP_MIN), 0, 1)
-    }
-    const onUp = () => { draggingRef.current = false }
-
-    const p = pRef.current
-    const top = topOf(p)
-    const I = curRef.current
-    const absI = Math.abs(I)
-    const curColor = I >= 0 ? CURRENT_COLOR : CURRENT_COLOR_REV
-    const magBottom = top + MAG_H
-    const bMt = p * B_MAX_MT
-    const phiMk = p * PHI_MAX_MKWB
-
-    const auto = mode === 'auto'
-    const total = auto && profile ? Math.round((profile.T * 1000) / TICK_MS) : HISTORY
-    const chartPath = (arr: number[], w: number, h: number, lo: number, hi: number) =>
-        arr.map((v, i) => `${i === 0 ? 'M' : 'L'}${((i / (total - 1)) * w).toFixed(1)},${(h - ((v - lo) / (hi - lo)) * h).toFixed(1)}`).join(' ')
-    const iLo = auto ? -0.1 : -1
-
-    const lines = [-24, -12, 0, 12, 24]
-    const showThrough = magBottom < RING_CY - 4
-
-    return (
-        <div className="w-full rounded-2xl border-2 border-[#3A464E] bg-[#161F23] p-2">
-            <div className="flex items-center justify-between px-1 pb-1 text-[11px] font-bold text-[#9AA7B0]">
-                <span>B = <span className="text-white">{bMt.toFixed(0)} мТ</span></span>
-                <span>Φ = B·S = <span style={{ color: FLUX_COLOR }}>{phiMk.toFixed(0)} мкВб</span></span>
-                <span>S = const</span>
-            </div>
-            <div className="flex items-stretch gap-2">
-                <svg
-                    ref={svgRef}
-                    viewBox={`0 0 200 ${SCENE_H}`}
-                    className="w-[44%] shrink-0 select-none"
-                    style={{ touchAction: mode === 'manual' ? 'none' : 'auto' }}
-                    onPointerDown={onDown}
-                    onPointerMove={onMove}
-                    onPointerUp={onUp}
-                    onPointerCancel={onUp}
-                >
-                    {showThrough && lines.map((dx, i) => (
-                        <g key={i} opacity={0.12 + 0.88 * p}>
-                            <line x1={100 + dx * 0.6} y1={magBottom} x2={100 + dx} y2={RING_CY + 22}
-                                stroke={FLUX_COLOR} strokeWidth={1.6} strokeDasharray="4 4" />
-                            <path d={`M${100 + dx - 4},${RING_CY + 12} L${100 + dx},${RING_CY + 22} L${100 + dx + 4},${RING_CY + 12}`}
-                                fill="none" stroke={FLUX_COLOR} strokeWidth={1.6} />
-                        </g>
-                    ))}
-                    <ellipse cx={100} cy={RING_CY} rx={RING_RX} ry={RING_RY} fill="none" stroke="#4A5760" strokeWidth={5} />
-                    {absI > 0.02 && (
-                        <>
-                            <ellipse cx={100} cy={RING_CY} rx={RING_RX} ry={RING_RY} fill="none"
-                                stroke={curColor} strokeWidth={4 + 8 * absI} opacity={0.15 + 0.3 * absI} />
-                            <ellipse cx={100} cy={RING_CY} rx={RING_RX} ry={RING_RY} fill="none"
-                                stroke={curColor} strokeWidth={3 + 3 * absI} strokeLinecap="round"
-                                strokeDasharray="14 14" strokeDashoffset={phaseRef.current}
-                                opacity={Math.min(1, 0.4 + absI * 2)} />
-                        </>
-                    )}
-                    <line x1={100} y1={RING_CY + RING_RY} x2={100} y2={218} stroke="#4A5760" strokeWidth={3} />
-                    <circle cx={100} cy={232} r={10 + 10 * absI} fill={CURRENT_COLOR} opacity={Math.min(0.5, absI * 0.6)} />
-                    <circle cx={100} cy={232} r={11} fill={absI > 0.08 ? '#FFE9A8' : '#2A343A'}
-                        stroke={absI > 0.08 ? CURRENT_COLOR : '#4A5760'} strokeWidth={3}
-                        opacity={absI > 0.08 ? 0.5 + 0.5 * Math.min(1, absI * 1.6) : 1} />
-                    <MagnetShape x={100} top={top} />
-                    {mode === 'manual' && !touched && (
-                        <text x={100 + MAG_W / 2 + 8} y={top + MAG_H / 2 + 4} fontSize={13} fontWeight={800} fill="#F2F7FB">↕ тяни</text>
-                    )}
-                </svg>
-
-                <div className="flex flex-1 flex-col gap-2 min-w-0">
-                    <div className="rounded-xl bg-[#0F171A] p-1">
-                        <div className="px-1 text-[11px] font-bold" style={{ color: FLUX_COLOR }}>Φ(t) — поток</div>
-                        <svg viewBox="0 0 180 80" className="w-full">
-                            <line x1={0} y1={79} x2={180} y2={79} stroke="#3A464E" />
-                            <path d={chartPath(phiHist.current, 180, 76, 0, 1)} fill="none" stroke={FLUX_COLOR} strokeWidth={2.4} strokeLinejoin="round" />
-                        </svg>
-                    </div>
-                    <div className="rounded-xl bg-[#0F171A] p-1">
-                        <div className="px-1 text-[11px] font-bold" style={{ color: curColor }}>I(t) — ток в кольце</div>
-                        <svg viewBox="0 0 180 80" className="w-full">
-                            <line x1={0} y1={76 - ((0 - iLo) / (1 - iLo)) * 76} x2={180} y2={76 - ((0 - iLo) / (1 - iLo)) * 76} stroke="#3A464E" strokeDasharray="3 3" />
-                            <path d={chartPath(curHist.current, 180, 76, iLo, 1)} fill="none" stroke={CURRENT_COLOR} strokeWidth={2.4} strokeLinejoin="round" />
-                        </svg>
-                    </div>
-                </div>
-            </div>
-        </div>
-    )
-}
-
-type QuizQ = { q: string; options: string[]; correct: number; explain: string }
-const QUIZ: QuizQ[] = [
-    {
-        q: 'Магнит неподвижно лежит на кольце. Есть ли ток в кольце?',
-        options: ['Нет — поток не меняется', 'Да — поток же большой', 'Да, но слабый', 'Зависит от цвета магнита'],
-        correct: 0,
-        explain: 'ΔΦ = 0, значит ε = 0. Ток создаёт только изменение потока.',
-    },
-    {
-        q: 'Магнит едет с постоянной скоростью — график Φ(t) прямая наклонная линия. Какой ток?',
-        options: ['Постоянный, не равный нулю', 'Нулевой', 'Растёт всё сильнее', 'Убывает до нуля'],
-        correct: 0,
-        explain: 'Прямая — поток растёт равномерно, ΔΦ/Δt одинаково всё время, значит ток постоянный.',
-    },
-    {
-        q: 'Магнит стал ехать вдвое быстрее. Что стало с током?',
-        options: ['Не изменился', 'Уменьшился вдвое', 'Стал вдвое больше', 'Пропал'],
-        correct: 2,
-        explain: 'Поток меняется вдвое быстрее — ΔΦ/Δt вдвое больше, и ток вдвое больше.',
-    },
-    {
-        q: 'Магнит разгоняется, график Φ(t) — парабола (круче и круче). Что с током?',
-        options: ['Постоянный', 'Линейно растёт', 'Равен нулю', 'Линейно убывает'],
-        correct: 1,
-        explain: 'Наклон Φ(t) всё время растёт — значит и ток (ЭДС) растёт.',
-    },
-    {
-        q: 'Поток через контур вырос с 2 Вб до 8 Вб за 3 с. Чему равна ЭДС индукции (по модулю)?',
-        options: ['2 В', '6 В', '3 В', '0,5 В'],
-        correct: 0,
-        explain: 'ε = ΔΦ/Δt = (8 − 2)/3 = 2 В.',
-    },
-]
-
-const QuizPart = ({ onFinish }: { onFinish: (hadMistake: boolean) => void }) => {
-    const [i, setI] = useState(0)
-    const orders = useMemo(() => QUIZ.map((qq) => shuffle(qq.options.map((_, k) => k))), [])
-    const [wrongTried, setWrongTried] = useState<number[]>([])
-    const [flash, setFlash] = useState<string | null>(null)
-    const [done, setDone] = useState(false)
-    const [hadMistake, setHadMistake] = useState(false)
-    const [nextLabel, setNextLabel] = useState('Дальше')
-    const qq = QUIZ[i]
-    const isLast = i === QUIZ.length - 1
-
-    const pickOpt = (k: number) => {
-        if (done || wrongTried.includes(k)) return
-        if (k === qq.correct) {
-            setDone(true); setFlash(null)
-            setNextLabel(pickWalkthroughNextLabel(isLast ? 'Готово' : 'Дальше'))
-        } else {
-            setHadMistake(true)
-            setWrongTried((w) => [...w, k])
-            setFlash(pickWrongTryPhrase())
-        }
-    }
-    const next = () => {
-        if (isLast) { onFinish(hadMistake); return }
-        setI(i + 1); setWrongTried([]); setFlash(null); setDone(false)
-    }
-
-    return (
-        <div className="flex w-full flex-col gap-3">
-            <div className="text-center text-xs font-bold text-[#9AA7B0]">Проверим себя · {i + 1}/{QUIZ.length}</div>
-            <div className="rounded-2xl border-2 border-[#3A464E] bg-[#161F23] p-4 text-center text-lg font-bold text-white">{qq.q}</div>
-            <div className="grid grid-cols-1 gap-2">
-                {orders[i].map((k) => {
-                    const isWrong = wrongTried.includes(k)
-                    const isRight = done && k === qq.correct
-                    return (
-                        <button
-                            key={k}
-                            disabled={isWrong || done}
-                            onClick={() => pickOpt(k)}
-                            className={cn('rounded-xl border-2 px-3 py-3 text-left font-bold transition-colors',
-                                isRight ? 'text-[#A1D151]' : isWrong ? 'text-[#DC605B]' : 'text-white')}
-                            style={{
-                                borderColor: isRight ? CORRECT_COLOR : isWrong ? WRONG_COLOR : '#3A464E',
-                                background: isRight ? `${CORRECT_COLOR}22` : isWrong ? `${WRONG_COLOR}22` : '#161F23',
-                            }}
-                        >
-                            {qq.options[k]}
-                        </button>
-                    )
-                })}
-            </div>
-            {flash && !done && (
-                <div className="rounded-xl px-3 py-2 text-center text-sm font-bold" style={{ background: `${WRONG_COLOR}22`, color: WRONG_COLOR }}>{flash}</div>
-            )}
-            {done && (
-                <>
-                    <LocalAnswerConfetti />
-                    <FieryFeedbackBanner fiery={isFieryMilestoneTrial(i)}>
-                        <div className="text-center">
-                            <div className="font-extrabold" style={{ color: CORRECT_COLOR }}>
-                                {CORRECT_FEEDBACK_PHRASES[Math.floor(Math.random() * CORRECT_FEEDBACK_PHRASES.length)]}
-                            </div>
-                            <div className="mt-1 text-sm text-[#F2F7FB]">{qq.explain}</div>
-                        </div>
-                    </FieryFeedbackBanner>
-                    <button onClick={next} className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>{nextLabel}</button>
-                </>
-            )}
-        </div>
-    )
-}
-
-const STAGE_TEXT: { title: string; hint: string; done: string }[] = [
-    {
-        title: 'Магнит и кольцо',
-        hint: 'Нажми «Запустить» и смотри на графики: магнит просто лежит над кольцом.',
-        done: 'Поток Φ не меняется — график ровный, тока нет. Лампочка не горит.',
-    },
-    {
-        title: 'Магнит едет ровно',
-        hint: 'Теперь магнит движется с постоянной скоростью. Что будет с потоком и током?',
-        done: 'Поток растёт равномерно (прямая), а ток постоянный: ровная линия, но не ноль!',
-    },
-    {
-        title: 'А если быстрее?',
-        hint: 'Сначала магнит едет медленно, потом вдвое быстрее. Смотри на график тока.',
-        done: 'Быстрее — круче Φ(t) — больше ток. Вдвое быстрее — вдвое больше ток.',
-    },
-    {
-        title: 'Магнит разгоняется',
-        hint: 'Скорость магнита всё время растёт. Что с током?',
-        done: 'Φ(t) — парабола, круче и круче. Ток растёт линейно: ток — это наклон графика потока.',
-    },
-]
-
-const HandsPhase = ({ onFinish }: { onFinish: (hadMistake: boolean) => void }) => {
-    const [stage, setStage] = useState(0)
-    const [runKey, setRunKey] = useState(0)
-    const [ran, setRan] = useState(false)
-    const [running, setRunning] = useState(false)
-    const [lamp, setLamp] = useState(false)
-    const [label, setLabel] = useState('Дальше')
-    useEffect(() => { setLabel(pickWalkthroughNextLabel('Дальше')) }, [stage])
-
-    const go = (n: number) => { setStage(n); setRan(false); setRunning(false); setLamp(false); setRunKey(0) }
-    const start = () => { setRunning(true); setRunKey((k) => k + 1) }
-
-    if (stage === 6) {
-        return (
-            <div className="mx-auto w-full max-w-md px-1 pb-8">
-                <QuizPart onFinish={onFinish} />
-            </div>
-        )
-    }
-
-    const st = stage < 4 ? STAGE_TEXT[stage] : null
-    const canNext = stage < 4 ? ran : stage === 4 ? true : lamp
-    const isAuto = stage < 4
-
-    return (
-        <div className="mx-auto flex w-full max-w-md flex-col gap-3 px-1 pb-8">
-            {stage !== 4 && (
-                <Sandbox
-                    key={`sb-${stage}`}
-                    mode={isAuto ? 'auto' : 'manual'}
-                    profile={isAuto ? PROFILES[stage] : undefined}
-                    runKey={runKey}
-                    onFinish={() => { setRan(true); setRunning(false) }}
-                    onLamp={() => setLamp(true)}
-                />
-            )}
-
-            {st && (
-                <motion.div key={`tx-${stage}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-2">
-                    <div className="text-center text-xs font-bold text-[#9AA7B0]">Шаг {stage + 1} из 6</div>
-                    <div className="text-center text-xl font-extrabold text-white">{st.title}</div>
-                    <div className="text-center text-base text-[#D5DEE3]">{st.hint}</div>
-                    {ran && (
-                        <motion.div initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }}
-                            className="rounded-xl border-2 px-3 py-2 text-center font-bold"
-                            style={{ borderColor: CORRECT_COLOR, background: `${CORRECT_COLOR}1A`, color: '#E7F5C8' }}>
-                            {st.done}
-                        </motion.div>
-                    )}
-                    <button
-                        disabled={running}
-                        onClick={start}
-                        className={walkthroughButtonClass(!running)}
-                        style={walkthroughButtonStyle(!running)}
-                    >
-                        {running ? 'Идёт…' : ran ? '↻ Ещё раз' : '▶ Запустить'}
-                    </button>
-                </motion.div>
-            )}
-
-            {stage === 4 && (
-                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-3">
-                    <div className="text-center text-xs font-bold text-[#9AA7B0]">Шаг 5 из 6</div>
-                    <div className="text-center text-xl font-extrabold text-white">Закон Фарадея</div>
-                    <div className="rounded-2xl border-2 p-4 text-center text-2xl" style={{ borderColor: ACTIVE_COLOR, background: `${ACTIVE_COLOR}14` }}>
-                        <Latex>{'$\\varepsilon = -\\dfrac{\\Delta\\Phi}{\\Delta t}$'}</Latex>
-                    </div>
-                    <div className="text-center text-base text-[#D5DEE3]">
-                        ЭДС индукции — это <b style={{ color: FLUX_COLOR }}>скорость изменения потока</b>, то есть
-                        «наклон» графика Φ(t). Ровная линия — тока нет, прямая наклонная — ток постоянный,
-                        круче — ток больше. Знак «−» только про направление тока.
-                    </div>
-                </motion.div>
-            )}
-
-            {stage === 5 && (
-                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-2">
-                    <div className="text-center text-xs font-bold text-[#9AA7B0]">Шаг 6 из 6</div>
-                    <div className="text-center text-xl font-extrabold text-white">Твоя очередь</div>
-                    <div className="text-center text-base text-[#D5DEE3]">Потяни магнит сам — зажги лампочку и посмотри, как ток повторяет наклон потока.</div>
-                    {lamp && (
-                        <div className="rounded-xl border-2 px-3 py-2 text-center font-bold"
-                            style={{ borderColor: CORRECT_COLOR, background: `${CORRECT_COLOR}1A`, color: '#E7F5C8' }}>
-                            Лампочка горит! Движешь магнит — поток меняется — есть ток.
-                        </div>
-                    )}
-                </motion.div>
-            )}
-
-            <button
-                disabled={!canNext}
-                onClick={() => go(stage + 1)}
-                className={walkthroughButtonClass(canNext)}
-                style={walkthroughButtonStyle(canNext)}
-            >
-                {stage === 5 ? 'Проверим себя' : stage === 4 ? 'Попробовать самому' : label}
-            </button>
-        </div>
-    )
-}
-
 // ===== Основной компонент =====
 
 export const TypeFaradayWalk = ({ onAnswer, onComplete }: Props) => {
-    const [phase, setPhase] = useState<'concept' | 'quiz' | 'hands'>('concept')
-    // Ошибка в коротком квизе (фаза 'quiz') запоминается здесь и
-    // учитывается в ИТОГОВОМ результате наравне с ошибкой в финальном
-    // "Проверим себя" hands-фазы (QuizPart) — тот же принцип, что и во
-    // всех остальных *WALK-разборах: "работа над ошибками" реагирует на
-    // любую ошибку по всему прохождению, не только в последней части.
-    const [hadMistakeInQuiz, setHadMistakeInQuiz] = useState(false)
+    const [phase, setPhase] = useState<'concept' | 'quiz'>('concept')
     const finishedRef = useRef(false)
 
+    // По прямой просьбе пользователя (2026-09-22) — старая фаза 'hands'
+    // (интерактивная песочница: 4 авто-программы + формула ε=-ΔΦ/Δt +
+    // "своя очередь" + финальный числовой квиз про расчёт ЭДС) убрана
+    // ЦЕЛИКОМ — новые сцены ConceptPhase (детальное знакомство) и
+    // ConceptQuizPhase (проверка понимания) уже покрывают материал
+    // подробнее и нагляднее, а старая песочница дублировала его же более
+    // грубым способом. Вместе с фазой удалены ВСЕ её приватные
+    // зависимости, ставшие мёртвым кодом (Sandbox/HandsPhase/QuizPart/
+    // QUIZ/STAGE_TEXT/PROFILES и связанные геометрические константы) —
+    // не оставлены как "неиспользуемый, но рабочий" код (см. другие
+    // прецеденты в CLAUDE.md), т.к. это сотни строк, которые иначе
+    // гарантированно завалили бы eslint no-unused-vars.
     const handleFinish = (hadMistake: boolean) => {
         if (finishedRef.current) return
         finishedRef.current = true
-        const overallMistake = hadMistake || hadMistakeInQuiz
-        onComplete(!overallMistake)
-        onAnswer(overallMistake ? 'wrong' : 'right')
+        onComplete(!hadMistake)
+        onAnswer(hadMistake ? 'wrong' : 'right')
     }
 
     if (phase === 'concept') {
         return <ConceptPhase onDone={() => setPhase('quiz')} />
     }
-    if (phase === 'quiz') {
-        return (
-            <ConceptQuizPhase
-                onDone={(hadMistake) => {
-                    setHadMistakeInQuiz(hadMistake)
-                    setPhase('hands')
-                }}
-            />
-        )
-    }
-    return <HandsPhase onFinish={handleFinish} />
+    return <ConceptQuizPhase onDone={handleFinish} />
 }
