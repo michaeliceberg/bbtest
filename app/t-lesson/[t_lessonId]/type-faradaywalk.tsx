@@ -740,22 +740,109 @@ const FluxRingDiagram = () => (
     </svg>
 )
 
-const FluxSplitDiagram = () => (
+// showRight=false — только левая половина (магнитное поле), она же
+// первой попадает под DiagramBlock снаружи (см. FluxScene ниже) и
+// получает свою entrance-анимацию оттуда. Правая половина + разделитель
+// появляются ПОЗЖЕ, отдельным условным рендером — их СОБСТВЕННАЯ
+// entrance-анимация (fade+scale, тот же язык, что и у DiagramBlock)
+// нужна, т.к. DiagramBlock анимирует только СВОЙ момент монтирования, не
+// последующие изменения содержимого внутри уже смонтированного блока.
+const FluxSplitDiagram = ({ showRight }: { showRight: boolean }) => (
     <div className="flex w-full items-start justify-center gap-3">
         <div className="flex flex-1 flex-col items-center gap-1.5">
             <div className="text-sm font-bold text-[#F2F7FB]">Магнитное поле</div>
             <FluxArrowsDiagram />
         </div>
-        <div className="mt-6 self-stretch border-l-2 border-dashed border-[#3A464E]" />
-        <div className="flex flex-1 flex-col items-center gap-1.5">
-            <div className="flex items-center gap-1.5 text-sm font-bold text-[#F2F7FB]">
-                <span>Металлическое кольцо</span>
-                <Sticker value="S" color={RING_COLOR} />
-            </div>
-            <FluxRingDiagram />
-        </div>
+        {showRight && (
+            <>
+                <motion.div
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}
+                    className="mt-6 self-stretch border-l-2 border-dashed border-[#3A464E]"
+                />
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35 }}
+                    className="flex flex-1 flex-col items-center gap-1.5"
+                >
+                    <div className="flex items-center gap-1.5 text-sm font-bold text-[#F2F7FB]">
+                        <span>Металлическое кольцо</span>
+                        <Sticker value="S" color={RING_COLOR} />
+                    </div>
+                    <FluxRingDiagram />
+                </motion.div>
+            </>
+        )}
     </div>
 )
+
+// Пауза между битами сцены — тот же ≥800мс стандарт, что и везде в
+// проекте для разборов по шагам (см. CLAUDE.md, "Управление шагами").
+const FLUX_PAUSE_MS = 900
+// Сколько реально длится entrance правой половины (fade+scale контейнера
+// 0.35с + draw-in самого кольца 0.8с + spring-появление стикера S с
+// задержкой 0.9с) — ждём её ПОЛНОСТЬЮ, прежде чем добавлять паузу перед
+// формулой (тот же принцип "не начинать следующий бит, пока не доиграл
+// предыдущий", что уже задокументирован в CLAUDE.md для zoom-циклов).
+const FLUX_RIGHT_ENTRANCE_MS = 1400
+
+// Сама сцена "поток Φ" — по прямой просьбе пользователя раскрывается
+// СТРОГО последовательно (не всё сразу, как в первой версии): текст →
+// пауза → левая половина → пауза → правая половина → пауза → формула →
+// единица измерения. Управляется локальным phase (0..4), а не пропом
+// step ConceptPhase — это внутренняя хореография ОДНОЙ сцены, верхний
+// уровень (step/stepReady) знает только про итоговую готовность.
+const FluxScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    useEffect(() => {
+        if (phase !== 2) return
+        const t = setTimeout(() => setPhase(3), FLUX_RIGHT_ENTRANCE_MS + FLUX_PAUSE_MS)
+        return () => clearTimeout(t)
+    }, [phase])
+
+    return (
+        <>
+            <TypedLineWithParts
+                parts={[
+                    { text: 'Теперь введём ' },
+                    { sticker: 'поток', color: FLUX_COLOR },
+                    { text: ' магнитного поля — обозначается буквой ' },
+                    { sticker: 'Φ', color: FLUX_COLOR },
+                    { text: '.' },
+                ]}
+                onSettled={() => setTimeout(() => setPhase(1), FLUX_PAUSE_MS)}
+            />
+            {phase >= 1 && (
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 2)), FLUX_PAUSE_MS)}>
+                    <FluxSplitDiagram showRight={phase >= 2} />
+                </DiagramBlock>
+            )}
+            {phase >= 3 && (
+                <TypedLineWithParts
+                    parts={[
+                        { sticker: 'Φ', color: FLUX_COLOR },
+                        { text: ' = ' },
+                        { sticker: 'B', color: FIELD_COLOR },
+                        { text: ' · ' },
+                        { sticker: 'S', color: RING_COLOR },
+                        { text: '.' },
+                    ]}
+                    onSettled={() => setTimeout(() => setPhase(4), FLUX_PAUSE_MS)}
+                />
+            )}
+            {phase >= 4 && (
+                <TypedLineWithParts
+                    parts={[
+                        { text: 'Поток ' },
+                        { sticker: 'Φ', color: FLUX_COLOR },
+                        { text: ' измеряется в ' },
+                        { sticker: 'Вб', color: FLUX_COLOR },
+                        { text: ' (Веберах).' },
+                    ]}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
 
 const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
     const [step, setStep] = useState(0)
@@ -975,52 +1062,22 @@ const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
                     </SceneWrapper>
                 )}
 
-                {/* Шаг 8 — поток Φ: страница делится пополам (магнитное
-                    поле слева / кольцо справа — оба уже знакомых объекта
-                    рядом), затем формула Φ=B·S, затем единица измерения
-                    (Вебер — по факту это СИ-единица магнитного потока;
-                    пользователь в исходной просьбе написал "Фарадеях" —
-                    это единица ЁМКОСТИ конденсатора, не потока, скорее
-                    всего перепутано из-за того, что "Ф" — сокращение и
-                    греческой буквы Φ, и русского "Фарад" одновременно;
-                    исправлено на физически верную единицу, тот же
-                    Вебер/мкВб, что уже используется в hands-on
-                    песочнице этого же файла чуть ниже). */}
+                {/* Шаг 8 — поток Φ: строго последовательно (текст → пауза
+                    → левая половина → пауза → правая половина → пауза →
+                    формула → единица измерения) — вся хореография внутри
+                    FluxScene (см. выше), сцена ConceptPhase лишь ждёт её
+                    итоговой готовности. Единица измерения — Вебер, не
+                    "Фарадеях", как было в исходной формулировке
+                    пользователя: Фарад — единица ЁМКОСТИ конденсатора, а
+                    не потока; похоже на путаницу из-за того, что "Ф" —
+                    сокращение и греческой буквы Φ, и слова "Фарад"
+                    одновременно — исправлено на физически верную
+                    единицу, тот же Вебер/мкВб, что уже используется в
+                    hands-on песочнице этого же файла чуть ниже. */}
                 {step >= 8 && (
                     <SceneWrapper key="step-8" innerRef={sceneRef('step-8')} active={isSceneActive('step-8')}>
                         <Fragment key={`step-8-${nonceFor('step-8')}`}>
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'Теперь введём ' },
-                                    { sticker: 'поток', color: FLUX_COLOR },
-                                    { text: ' магнитного поля — обозначается буквой ' },
-                                    { sticker: 'Φ', color: FLUX_COLOR },
-                                    { text: '.' },
-                                ]}
-                            />
-                            <DiagramBlock>
-                                <FluxSplitDiagram />
-                            </DiagramBlock>
-                            <TypedLineWithParts
-                                parts={[
-                                    { sticker: 'Φ', color: FLUX_COLOR },
-                                    { text: ' = ' },
-                                    { sticker: 'B', color: FIELD_COLOR },
-                                    { text: ' · ' },
-                                    { sticker: 'S', color: RING_COLOR },
-                                    { text: '.' },
-                                ]}
-                            />
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'Поток ' },
-                                    { sticker: 'Φ', color: FLUX_COLOR },
-                                    { text: ' измеряется в ' },
-                                    { sticker: 'Вебер (Вб)', color: FLUX_COLOR },
-                                    { text: '.' },
-                                ]}
-                                onSettled={() => setStepReady(true)}
-                            />
+                            <FluxScene onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}
