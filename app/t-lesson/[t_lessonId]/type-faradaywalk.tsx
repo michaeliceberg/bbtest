@@ -167,50 +167,57 @@ const MagnetPoleShape = ({ x, top, highlight }: { x: number; top: number; highli
 
 // ===== Силовые линии магнита =====
 //
-// По прямой просьбе пользователя — НАСТОЯЩАЯ дуга окружности (не кривая
-// Безье/сплайн — та давала либо "куцую" форму, либо "крылья бабочки" с
-// заострением у самого магнита, см. историю сессии), гарантированно
-// круглая и гладкая (нулевая кривизна-разрыв в принципе, это буквально
-// окружность): для каждой линии находится ЕДИНСТВЕННАЯ окружность,
-// проходящая через ТРИ точки — полюс N, полюс S и точку максимальной
-// ширины (rx на высоте центра магнита) — и берётся её дуга от N до S.
-// Симметрична относительно горизонтальной оси через центр магнита
-// АВТОМАТИЧЕСКИ (все три опорные точки сами симметричны: N/S — зеркальны
-// друг другу, точка ширины — на самой оси симметрии). Строится ТОЛЬКО
-// для правой стороны (side=+1); левая — точное зеркальное отражение
-// правой по x (см. arcPoint) — так надёжнее чем пересчитывать формулу
-// отдельно на знак side (был найден и исправлен реальный баг: при
-// прямой подстановке side=-1 в общую формулу точка "макс. ширины"
-// оказывалась на угле 180°, а не 0°, и жёстко захардкоженная
-// интерполяция углов "напролом" через 0° давала кривую, идущую НЕ через
-// эту точку — проверено численным пересчётом в Node до применения).
-type Arc = { h: number; k: number; R: number; thetaN: number; thetaS: number }
+// По прямой просьбе пользователя — НАСТОЯЩИЙ эллипс (не окружность — та
+// была первым шагом, гарантированно круглая, но пользователь попросил
+// растянуть её по вертикали, сохранив ту же гладкость/симметрию, "как
+// сейчас, но овалом"): для каждой линии находится ЕДИНСТВЕННЫЙ эллипс с
+// заданным отношением полуосей FIELD_STRETCH=Ry/Rx, проходящий через ТРИ
+// точки — полюс N, полюс S и точку максимальной ширины (rx на высоте
+// центра магнита). Симметричен относительно горизонтальной оси через
+// центр магнита АВТОМАТИЧЕСКИ (все три опорные точки сами симметричны).
+// Строится ТОЛЬКО для правой стороны (side=+1); левая — точное
+// зеркальное отражение правой по x (см. ellPoint) — та же техника, что и
+// раньше для окружности (см. историю сессии — прямая подстановка
+// side=-1 в общую формулу давала точку максимальной ширины на угле 180°,
+// а не 0°, что ломало интерполяцию; отражение готовой правой половины
+// полностью обходит эту проблему).
+//
+// Вывод формулы (Rx для заданного rx и stretch=Ry/Rx): из системы
+// "эллипс с центром (h,cy) и полуосями (Rx,Ry=stretch*Rx) проходит через
+// Q=(cx+rx,cy) и N=(cx,yN)" — Rx = rx/2 + halfSpan²/(2·stretch²·rx), где
+// halfSpan = (yN-yS)/2 (половина расстояния между полюсами). При
+// stretch=1 это в точности сводится к прежней формуле радиуса окружности
+// (проверено численно) — эллипс, а не другая форма.
+type Ellipse = { h: number; k: number; Rx: number; Ry: number; thetaN: number; thetaS: number }
 
-function buildRightArc(cx: number, yN: number, yS: number, rx: number): Arc {
+const FIELD_STRETCH = 2 // Ry/Rx — во сколько раз выше окружности (по прямой просьбе пользователя)
+
+function buildRightEllipse(cx: number, yN: number, yS: number, rx: number, stretch: number): Ellipse {
     const cy = (yN + yS) / 2
     const halfSpan = (yN - yS) / 2
-    const u = (rx * rx - halfSpan * halfSpan) / (2 * rx)
-    const h = cx + u
-    const R = Math.sqrt(u * u + halfSpan * halfSpan)
-    return { h, k: cy, R, thetaN: Math.atan2(yN - cy, cx - h), thetaS: Math.atan2(yS - cy, cx - h) }
+    const Rx = rx / 2 + (halfSpan * halfSpan) / (2 * stretch * stretch * rx)
+    const Ry = stretch * Rx
+    const h = cx + rx - Rx
+    const v = cx - h
+    return { h, k: cy, Rx, Ry, thetaN: Math.atan2(halfSpan / Ry, v / Rx), thetaS: Math.atan2(-halfSpan / Ry, v / Rx) }
 }
 
-function arcPoint(a: Arc, cx: number, side: -1 | 1, t: number) {
-    const theta = a.thetaN + (a.thetaS - a.thetaN) * t
-    const rightX = a.h + a.R * Math.cos(theta)
-    return { x: side === 1 ? rightX : 2 * cx - rightX, y: a.k + a.R * Math.sin(theta) }
+function arcPoint(e: Ellipse, cx: number, side: -1 | 1, t: number) {
+    const theta = e.thetaN + (e.thetaS - e.thetaN) * t
+    const rightX = e.h + e.Rx * Math.cos(theta)
+    return { x: side === 1 ? rightX : 2 * cx - rightX, y: e.k + e.Ry * Math.sin(theta) }
 }
-function arcAngleDeg(a: Arc, cx: number, side: -1 | 1, t: number) {
-    const theta = a.thetaN + (a.thetaS - a.thetaN) * t
-    const dTheta = a.thetaS - a.thetaN
-    const dxRight = -Math.sin(theta) * dTheta
-    const dy = Math.cos(theta) * dTheta
+function arcAngleDeg(e: Ellipse, cx: number, side: -1 | 1, t: number) {
+    const theta = e.thetaN + (e.thetaS - e.thetaN) * t
+    const dTheta = e.thetaS - e.thetaN
+    const dxRight = -e.Rx * Math.sin(theta) * dTheta
+    const dy = e.Ry * Math.cos(theta) * dTheta
     const dx = side === 1 ? dxRight : -dxRight
     return (Math.atan2(dy, dx) * 180) / Math.PI
 }
 const ARC_SAMPLES = 48
-const arcPath = (a: Arc, cx: number, side: -1 | 1) =>
-    Array.from({ length: ARC_SAMPLES + 1 }, (_, i) => arcPoint(a, cx, side, i / ARC_SAMPLES))
+const arcPath = (e: Ellipse, cx: number, side: -1 | 1) =>
+    Array.from({ length: ARC_SAMPLES + 1 }, (_, i) => arcPoint(e, cx, side, i / ARC_SAMPLES))
         .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
         .join(' ')
 
@@ -226,7 +233,7 @@ const FLOW_PERIOD_MS = 2400
 const FLOW_TICK_MS = 40
 const FLOW_PHASES = [0, 1 / 3, 2 / 3]
 
-const FlowArrows = ({ lines, cx, color }: { lines: { a: Arc; side: -1 | 1 }[]; cx: number; color: string }) => {
+const FlowArrows = ({ lines, cx, color }: { lines: { a: Ellipse; side: -1 | 1 }[]; cx: number; color: string }) => {
     const [t, setT] = useState(0)
     useEffect(() => {
         const start = performance.now()
@@ -277,9 +284,9 @@ const MagnetFieldLines = ({ x, top, color, flowing = false }: { x: number; top: 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [flowing])
 
-    const lines: { a: Arc; side: -1 | 1 }[] = []
+    const lines: { a: Ellipse; side: -1 | 1 }[] = []
     FIELD_RX_LIST.forEach((rx) => {
-        const a = buildRightArc(x, yN, yS, rx)
+        const a = buildRightEllipse(x, yN, yS, rx, FIELD_STRETCH)
         ;([-1, 1] as const).forEach((side) => { lines.push({ a, side }) })
     })
 
