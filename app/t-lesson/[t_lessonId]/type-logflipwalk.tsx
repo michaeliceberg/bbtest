@@ -8,13 +8,15 @@
 // onAnswer/onComplete РОВНО один раз в конце; общая нижняя кнопка скрыта.
 //
 // Сюжет — прямая инструкция пользователя, на фиксированном примере
-// log₈2 = 1/log₂8:
+// log₈2 = 1/log₂8. Обе intro-сцены (Step0Scene/Step1Scene) раскрываются
+// СТРОГО последовательно (по прямой просьбе пользователя, "а не всё
+// разом") — формула сразу → пауза → текст:
 // 0. "log₈2" — просто условие (8 и 2 — стикеры РАЗНЫХ цветов), без "=?"
 //    (это не квиз с выбором ответа — ответ раскрывается сразу на
-//    следующем шаге). Текст: "Как поменять местами 8 и 2?"
+//    следующем шаге) → пауза → текст: "Как поменять местами 8 и 2?"
 // 1. "log₈2 = 1/log₂8" — ТЕ ЖЕ два стикера, просто основание/аргумент
-//    поменялись местами и весь новый логарифм уехал в знаменатель.
-//    Текст: "Надо логарифм просто закинуть в знаменатель!"
+//    поменялись местами и весь новый логарифм уехал в знаменатель →
+//    пауза → текст: "Надо логарифм просто закинуть в знаменатель!"
 //
 // После разбора — тренировочные задания с НОВЫМИ случайными числами
 // (log_a(b) = ?), нужно кликнуть верную формулу-ответ среди 4 вариантов
@@ -101,10 +103,23 @@ const LogTerm = ({ base, arg }: { base: React.ReactNode; arg: React.ReactNode })
 // Дробь "числитель / знаменатель" — та же CSS-подложка (нижняя граница
 // числителя = черта дроби), что уже используется в LOGDIVWALK/
 // LOGPOWWALK/LOGSUBWALK для стековой записи 1/logₓ(y).
+//
+// БЕЗ "items-center" на контейнере — реальный баг, найденный пользователем
+// ("черта дроби очень короткая, будто просто под цифрой 1 нарисована"):
+// "items-center" на inline-flex flex-col разрешает КАЖДОЙ строке (числитель/
+// знаменатель) иметь СВОЮ собственную ширину (shrink-to-fit) — поэтому
+// border-bottom числителя был ровно по ширине "1", а не по ширине куда
+// более широкого знаменателя-логарифма. Без этого класса срабатывает
+// дефолтный "align-items: stretch" — контейнер авто-подстраивается под
+// ширину САМОГО ШИРОКОГО ребёнка (числителя ИЛИ знаменателя), и ОБЕ строки
+// растягиваются до этой ОБЩЕЙ ширины — черта дроби становится соразмерна
+// знаменателю, как и должно быть у настоящей дроби. "justify-center" на
+// каждой строке — центрирует более узкое содержимое (обычно "1") внутри
+// теперь уже общей ширины.
 const Fraction = ({ num, den }: { num: React.ReactNode; den: React.ReactNode }) => (
-    <span className="inline-flex flex-col items-center leading-none align-middle">
-        <span className="pb-1 border-b-2 border-[#F2F7FB]/70 px-1">{num}</span>
-        <span className="pt-1 px-1">{den}</span>
+    <span className="inline-flex flex-col leading-none align-middle">
+        <span className="pb-1 border-b-2 border-[#F2F7FB]/70 px-1 flex justify-center">{num}</span>
+        <span className="pt-1 px-1 flex justify-center">{den}</span>
     </span>
 )
 
@@ -133,6 +148,53 @@ const FlipExpression = ({ stage }: { stage: 'plain' | 'flipped' }) => (
         )}
     </div>
 )
+
+// Пауза между формулой и текстом — по прямой просьбе пользователя обе
+// intro-сцены раскрываются СТРОГО последовательно (формула сразу → пауза →
+// текст), не всё разом, как раньше.
+const STEP_PAUSE_MS = 900
+
+// Шаг 0 — "log₈2" сразу → пауза → текст "Как поменять местами 8 и 2?".
+const Step0Scene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [textVisible, setTextVisible] = useState(false)
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setTextVisible(true), STEP_PAUSE_MS)}>
+                <FlipExpression stage="plain" />
+            </DiagramBlock>
+            {textVisible && (
+                <TypedLine
+                    className="w-full text-base md:text-lg text-[#F2F7FB]"
+                    text={`Как поменять местами ${EX.a} и ${EX.b}?`}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// Шаг 1 — "log₈2 = 1/log₂8" сразу → пауза → текст "Надо логарифм просто
+// закинуть в знаменатель!" (+ конфетти вместе с текстом, как и раньше).
+const Step1Scene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [textVisible, setTextVisible] = useState(false)
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setTextVisible(true), STEP_PAUSE_MS)}>
+                <FlipExpression stage="flipped" />
+            </DiagramBlock>
+            {textVisible && (
+                <>
+                    <TypedLine
+                        className="w-full text-base md:text-lg text-[#F2F7FB]"
+                        text="Надо логарифм просто закинуть в знаменатель!"
+                        onSettled={onSettled}
+                    />
+                    <LocalAnswerConfetti />
+                </>
+            )}
+        </>
+    )
+}
 
 // ===== Тренировочные задания — новые случайные (a, b) — нужно
 // кликнуть верную формулу "1/log_b(a)" среди 4 вариантов. =====
@@ -346,34 +408,21 @@ export const TypeLogFlipWalk = ({ onAnswer, onComplete }: Props) => {
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
             <div className="w-full flex flex-col gap-4">
                 {/* Шаг 0 — просто условие "log₈2" (без "=?" — это не квиз,
-                    ответ раскрывается на следующем шаге), стикеры + вопрос. */}
+                    ответ раскрывается на следующем шаге), стикеры → пауза →
+                    вопрос (Step0Scene). */}
                 <SceneWrapper key="step-0" innerRef={sceneRef('step-0')} active={isSceneActive('step-0')}>
                     <Fragment key={`step-0-${nonceFor('step-0')}`}>
-                        <DiagramBlock>
-                            <FlipExpression stage="plain" />
-                        </DiagramBlock>
-                        <TypedLine
-                            className="w-full text-base md:text-lg text-[#F2F7FB]"
-                            text={`Как поменять местами ${EX.a} и ${EX.b}?`}
-                            onSettled={() => setStepReady(true)}
-                        />
+                        <Step0Scene onSettled={() => setStepReady(true)} />
                     </Fragment>
                 </SceneWrapper>
 
                 {/* Шаг 1 — раскрытие: "log₈2 = 1/log₂8" (те же 2 стикера,
-                    роли поменялись, весь логарифм уехал в знаменатель). */}
+                    роли поменялись, весь логарифм уехал в знаменатель) →
+                    пауза → текст (Step1Scene). */}
                 {step >= 1 && (
                     <SceneWrapper key="step-1" innerRef={sceneRef('step-1')} active={isSceneActive('step-1')}>
                         <Fragment key={`step-1-${nonceFor('step-1')}`}>
-                            <DiagramBlock>
-                                <FlipExpression stage="flipped" />
-                            </DiagramBlock>
-                            <TypedLine
-                                className="w-full text-base md:text-lg text-[#F2F7FB]"
-                                text="Надо логарифм просто закинуть в знаменатель!"
-                                onSettled={() => setStepReady(true)}
-                            />
-                            <LocalAnswerConfetti />
+                            <Step1Scene onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}
