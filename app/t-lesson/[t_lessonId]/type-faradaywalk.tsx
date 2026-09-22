@@ -85,7 +85,7 @@ const shuffle = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5)
 // ФАЗА "concept" — знакомство с объектами, по одному, накопительный лог.
 // ===================================================================
 
-const INTRO_CONCEPT_STEPS = 5
+const INTRO_CONCEPT_STEPS = 6
 const CONCEPT_PAUSE_MS = 1000
 
 // Стикер — тот же визуальный язык, что уже устоялся во всех *WALK
@@ -472,6 +472,94 @@ const DirectionDiagram = () => {
     )
 }
 
+// ===== Сцена "расстояние" — вертикальный риски-слайдер (тот же визуальный
+// язык, что у тренажёрного типа SCROLL — трек + 3 риски + плавно едущий
+// бегунок, только вертикально вместо горизонтали) + диаграмма плотности
+// силовых линий, проходящих через кольцо снизу. По референсу пользователя
+// (bs1/bs2/bs3) — не встроены как картинки (это сторонний экспорт из
+// векторного редактора, судя по сигнатуре Layer0_0_FILL/Layer1_0_FILL,
+// та же история, что и с прошлым присланным SVG в этой сессии), а
+// переосмыслены своим кодом: чем ближе магнит (риска ближе к кольцу), тем
+// БОЛЬШЕ стрелочек-силовых линий видно над кольцом — "перетекание" между
+// состояниями через прозрачность каждой отдельной стрелки (не кросс-фейд
+// целых картинок), плавно и без изломов.
+const DIST_TRACK_X = 110
+const DIST_TICK_Y = [30, 95, 160] // далеко, средне, близко
+const DIST_MAG_W = 32
+const DIST_MAG_H = 48
+const DIST_RING_CY = 245
+const DIST_RING_RX = 58
+const DIST_RING_RY = 14
+// 9 позиций стрелок (симметрично вокруг центра); VISIBLE_HALF — сколько
+// от центра видно на каждой риске: далеко=1 стрелка, средне=5, близко=9 —
+// тот же принцип "больше линий = ближе магнит", что и у bs1/bs2/bs3.
+const DIST_ARROW_OFFSETS = [-56, -42, -28, -14, 0, 14, 28, 42, 56]
+const DIST_VISIBLE_HALF = [0, 2, 4]
+
+const DistanceDiagram = ({ selectedIndex, onSelect }: { selectedIndex: number; onSelect: (i: number) => void }) => {
+    const magTop = DIST_TICK_Y[selectedIndex] - DIST_MAG_H / 2
+    const visibleHalf = DIST_VISIBLE_HALF[selectedIndex]
+    return (
+        <div className="flex w-full justify-center py-2">
+            <svg viewBox="0 0 220 280" className="h-[280px] w-[220px]">
+                <line x1={DIST_TRACK_X} y1={DIST_TICK_Y[0]} x2={DIST_TRACK_X} y2={DIST_TICK_Y[2]}
+                    stroke="#3A464E" strokeWidth={4} strokeLinecap="round" />
+                {DIST_TICK_Y.map((y, i) => (
+                    <circle
+                        key={i}
+                        cx={DIST_TRACK_X} cy={y} r={i === selectedIndex ? 9 : 7}
+                        fill={i === selectedIndex ? FIELD_COLOR : '#161F23'}
+                        stroke={i === selectedIndex ? FIELD_COLOR : '#3A464E'} strokeWidth={2.5}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => onSelect(i)}
+                    />
+                ))}
+
+                <ellipse cx={DIST_TRACK_X} cy={DIST_RING_CY} rx={DIST_RING_RX} ry={DIST_RING_RY} fill="none" stroke="#4A5760" strokeWidth={5} />
+
+                {DIST_ARROW_OFFSETS.map((dx, i) => {
+                    const visible = Math.abs(i - 4) <= visibleHalf
+                    const x = DIST_TRACK_X + dx
+                    return (
+                        <motion.g key={i} animate={{ opacity: visible ? 0.9 : 0 }} transition={{ duration: 0.4 }}>
+                            <line x1={x} y1={192} x2={x} y2={216} stroke={FIELD_COLOR} strokeWidth={2} strokeLinecap="round" />
+                            <path d={`M${x - 4},${210} L${x},${220} L${x + 4},${210}`} fill="none"
+                                stroke={FIELD_COLOR} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                        </motion.g>
+                    )
+                })}
+
+                {/* Магнит — едет между рисками (framer-motion x/y-моушены
+                    компонуются между собой сами, без риска затирания
+                    transform-атрибута, см. фикс стикеров выше). */}
+                <motion.g
+                    animate={{ y: magTop }}
+                    transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
+                    style={{ x: DIST_TRACK_X - DIST_MAG_W / 2 }}
+                >
+                    <rect width={DIST_MAG_W} height={DIST_MAG_H / 2} rx={5} fill={SOUTH_COLOR} />
+                    <rect y={DIST_MAG_H / 2} width={DIST_MAG_W} height={DIST_MAG_H / 2} rx={5} fill={NORTH_COLOR} />
+                    <text x={DIST_MAG_W / 2} y={DIST_MAG_H / 4 + 5} textAnchor="middle" fontSize={13} fontWeight={800} fill="#fff">S</text>
+                    <text x={DIST_MAG_W / 2} y={DIST_MAG_H * 0.75 + 5} textAnchor="middle" fontSize={13} fontWeight={800} fill="#fff">N</text>
+                </motion.g>
+            </svg>
+        </div>
+    )
+}
+
+// Обёртка с состоянием — магнит стартует на дальней риске (слабое поле),
+// готовность шага наступает после ПЕРВОГО клика пользователя по риске
+// (то же требование "потрогать самому", что и у HandsPhase дальше).
+const DistanceScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [selectedIndex, setSelectedIndex] = useState(0)
+    const [hasInteracted, setHasInteracted] = useState(false)
+    const handleSelect = (i: number) => {
+        setSelectedIndex(i)
+        if (!hasInteracted) { setHasInteracted(true); onSettled?.() }
+    }
+    return <DistanceDiagram selectedIndex={selectedIndex} onSelect={handleSelect} />
+}
+
 const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
     const [step, setStep] = useState(0)
     const [stepReady, setStepReady] = useState(false)
@@ -615,6 +703,24 @@ const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
                             />
                             <DiagramBlock onSettled={() => setStepReady(true)}>
                                 <DirectionDiagram />
+                            </DiagramBlock>
+                        </Fragment>
+                    </SceneWrapper>
+                )}
+
+                {/* Шаг 5 — сам потрогай: магнит едет между 3 рисками
+                    (клик по риске — плавно, с разгоном/торможением,
+                    как в тренажёрном SCROLL, только вертикально); чем
+                    ближе к кольцу — тем больше силовых линий видно. */}
+                {step >= 5 && (
+                    <SceneWrapper key="step-5" innerRef={sceneRef('step-5')} active={isSceneActive('step-5')}>
+                        <Fragment key={`step-5-${nonceFor('step-5')}`}>
+                            <TypedLine
+                                text="Подвинь магнит по рискам — смотри, как меняется поле у кольца."
+                                className="w-full text-center text-base md:text-lg text-[#F2F7FB]"
+                            />
+                            <DiagramBlock>
+                                <DistanceScene onSettled={() => setStepReady(true)} />
                             </DiagramBlock>
                         </Fragment>
                     </SceneWrapper>
