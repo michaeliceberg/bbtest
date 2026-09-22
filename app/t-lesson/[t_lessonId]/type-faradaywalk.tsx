@@ -42,8 +42,8 @@ import {
     DiagramBlock, TypedLine,
     pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
-    isFieryMilestoneTrial, FieryFeedbackBanner, CORRECT_COLOR, WRONG_COLOR, ACTIVE_COLOR, ATTENTION_COLOR, PENDING_COLOR,
-    BlinkingExclaim, SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
+    isFieryMilestoneTrial, FieryFeedbackBanner, CORRECT_COLOR, WRONG_COLOR, ACTIVE_COLOR, PENDING_COLOR,
+    SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -74,6 +74,12 @@ const FIELD_COLOR = GGEGE_PALETTE.blue.button
 const NORTH_COLOR = WRONG_COLOR
 const SOUTH_COLOR = FIELD_COLOR
 
+// Кольцо (сцены "металлическое кольцо"/"площадь S" + DistanceScene) —
+// бирюзовый, свободный от остальных ролей цвет в палитре ggege (см.
+// CLAUDE.md — raspberry/teal "пока используются только на /learn...
+// свободны для новой роли").
+const RING_COLOR = GGEGE_PALETTE.teal.button
+
 const FLUX_COLOR = GGEGE_PALETTE.purple.button
 const CURRENT_COLOR = GGEGE_PALETTE.orange.button
 const CURRENT_COLOR_REV = GGEGE_PALETTE.teal.button
@@ -85,7 +91,7 @@ const shuffle = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5)
 // ФАЗА "concept" — знакомство с объектами, по одному, накопительный лог.
 // ===================================================================
 
-const INTRO_CONCEPT_STEPS = 6
+const INTRO_CONCEPT_STEPS = 8
 const CONCEPT_PAUSE_MS = 1000
 
 // Стикер — тот же визуальный язык, что уже устоялся во всех *WALK
@@ -394,17 +400,30 @@ const MagnetPoleDiagram = ({ highlight }: { highlight: 'N' | 'S' }) => (
 
 // "ВНИМАААААНИЕ!" — тот же визуальный язык, что уже устоялся в разборах
 // "Логарифмы" (см. type-logdefwalk.tsx, RememberBanner) для важных правил:
-// Lottie "полицейский с бумагой" крупно слева + оранжевая плашка с
-// мигающим "!" справа. По прямой просьбе пользователя — "как у нас в
-// математике Логарифмы... с лотти".
+// Lottie "полицейский с бумагой" крупно слева + плашка с мигающим "!"
+// справа. По прямой просьбе пользователя — красная рамка (стандартный
+// "красный" в палитре ggege — WRONG_COLOR, та же feedback-семантика, что
+// уже используется по всему проекту, см. CLAUDE.md), не оранжевая. "!" —
+// свой локальный (не общий BlinkingExclaim из WalkthroughLog.tsx — тот
+// хардкожен в ATTENTION_COLOR/оранжевый без пропа цвета), чтобы не
+// расходиться с новым красным цветом рамки.
+const RedExclaim = () => (
+    <motion.span
+        className="inline-block ml-1 font-black"
+        style={{ color: WRONG_COLOR }}
+        animate={{ opacity: [1, 0.25, 1] }}
+        transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
+    >!</motion.span>
+)
+
 const DirectionRememberBanner = () => (
     <div className="w-full flex items-center gap-3">
         <Lottie animationData={paperPolice} loop autoplay className="w-16 h-16 md:w-20 md:h-20 shrink-0" />
         <div
             className="flex-1 flex items-center justify-center rounded-xl px-4 py-3 font-black text-lg text-center"
-            style={{ backgroundColor: hexToRgba(ATTENTION_COLOR, 0.16), border: `2px solid ${ATTENTION_COLOR}`, color: ATTENTION_COLOR }}
+            style={{ backgroundColor: hexToRgba(WRONG_COLOR, 0.16), border: `2px solid ${WRONG_COLOR}`, color: WRONG_COLOR }}
         >
-            <span>ЗАПОМНИ<BlinkingExclaim /></span>
+            <span>ЗАПОМНИ<RedExclaim /></span>
         </div>
     </div>
 )
@@ -472,6 +491,97 @@ const DirectionDiagram = () => {
     )
 }
 
+// ===== Металлическое кольцо (бирюзовое) — площадь S =====
+//
+// Переиспользуемый визуал кольца: ellipse бирюзового цвета (draw-in
+// анимация), опционально — заштрихованная область внутри (диагональные
+// линии, обрезанные по эллипсу через clipPath — id уникален на каждый
+// вызов через `uid`, иначе несколько одновременно смонтированных колец
+// в накопительном логе разбора конфликтовали бы за один и тот же id) и
+// боксовый бирюзовый стикер "S" ПОВЕРХ, слегка искажённый (skew+сжатие
+// по вертикали через matrix — по прямой просьбе пользователя, "как бы
+// размазана по области кольца", имитация перспективы того же типа, что
+// уже даёт сжатие самого эллипса по Ry).
+const TealRing = ({
+    cx, cy, rx, ry, hatched = false, animateIn = false, uid, sScaleY = 0.6,
+}: { cx: number; cy: number; rx: number; ry: number; hatched?: boolean; animateIn?: boolean; uid: string; sScaleY?: number }) => {
+    const clipId = `ring-clip-${uid}`
+    return (
+        <g>
+            {hatched && (
+                <>
+                    <defs>
+                        <clipPath id={clipId}><ellipse cx={cx} cy={cy} rx={Math.max(0, rx - 3)} ry={Math.max(0, ry - 3)} /></clipPath>
+                    </defs>
+                    <g clipPath={`url(#${clipId})`}>
+                        {Array.from({ length: 12 }, (_, i) => {
+                            const t = i / 11
+                            const x = cx - rx + t * 2 * rx
+                            return (
+                                <motion.line
+                                    key={i}
+                                    x1={x - ry * 1.4} y1={cy - ry * 1.6}
+                                    x2={x + ry * 1.4} y2={cy + ry * 1.6}
+                                    stroke={RING_COLOR} strokeWidth={1.6}
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 0.4 }}
+                                    transition={{ duration: 0.35, delay: 0.04 * i }}
+                                />
+                            )
+                        })}
+                    </g>
+                </>
+            )}
+            {animateIn ? (
+                <motion.ellipse
+                    cx={cx} cy={cy} rx={rx} ry={ry} fill="none" stroke={RING_COLOR} strokeWidth={5}
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 1 }}
+                    transition={{ duration: 0.8, ease: 'easeInOut' }}
+                />
+            ) : (
+                <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="none" stroke={RING_COLOR} strokeWidth={5} />
+            )}
+            {hatched && (
+                <motion.g
+                    initial={{ opacity: 0, scale: 3 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 240, damping: 17, delay: animateIn ? 0.9 : 0 }}
+                >
+                    {/* transform на СТАТИЧНОМ внутреннем <g> — не на самом
+                        motion.g (тот же гэтча framer-motion, уже
+                        задокументированный выше для FieldBLabel). */}
+                    <g transform={`translate(${cx},${cy}) matrix(1,0,0.22,${sScaleY},0,0)`}>
+                        <rect x={-16} y={-16} width={32} height={32} rx={7} fill={hexToRgba(RING_COLOR, 0.22)} stroke={RING_COLOR} strokeWidth={2.2} />
+                        <text x={0} y={6} textAnchor="middle" fontSize={20} fontWeight={800} fill={RING_COLOR}>S</text>
+                    </g>
+                </motion.g>
+            )}
+        </g>
+    )
+}
+
+const RING_INTRO_W = 260
+const RING_INTRO_H = 160
+const RING_INTRO_CX = 130
+const RING_INTRO_CY = 82
+const RING_INTRO_RX = 95
+const RING_INTRO_RY = 30
+
+// Диаграмма сцен "кольцо"/"площадь S" — та же геометрия, hatched=false
+// (просто кольцо) для первой сцены, hatched=true (штриховка+стикер S)
+// для второй.
+const RingIntroDiagram = ({ hatched }: { hatched: boolean }) => (
+    <div className="flex w-full justify-center py-2">
+        <svg viewBox={`0 0 ${RING_INTRO_W} ${RING_INTRO_H}`} className="h-[170px] w-[276px]">
+            <TealRing
+                cx={RING_INTRO_CX} cy={RING_INTRO_CY} rx={RING_INTRO_RX} ry={RING_INTRO_RY}
+                hatched={hatched} animateIn={!hatched} uid="intro" sScaleY={0.5}
+            />
+        </svg>
+    </div>
+)
+
 // ===== Сцена "расстояние" — вертикальный риски-слайдер (тот же визуальный
 // язык, что у тренажёрного типа SCROLL — трек + 3 риски + плавно едущий
 // бегунок, только вертикально вместо горизонтали) + диаграмма плотности
@@ -515,7 +625,11 @@ const DistanceDiagram = ({ selectedIndex, onSelect }: { selectedIndex: number; o
                     />
                 ))}
 
-                <ellipse cx={DIST_TRACK_X} cy={DIST_RING_CY} rx={DIST_RING_RX} ry={DIST_RING_RY} fill="none" stroke="#4A5760" strokeWidth={5} />
+                {/* Кольцо — бирюзовое, с заштрихованной площадью и
+                    стикером "S" внутри (та же визуализация, что и в
+                    сценах "металлическое кольцо"/"площадь S" выше) —
+                    статично, не зависит от выбранной риски. */}
+                <TealRing cx={DIST_TRACK_X} cy={DIST_RING_CY} rx={DIST_RING_RX} ry={DIST_RING_RY} hatched uid="dist" sScaleY={0.55} />
 
                 {DIST_ARROW_OFFSETS.map((dx, i) => {
                     const visible = Math.abs(i - 4) <= visibleHalf
@@ -528,6 +642,9 @@ const DistanceDiagram = ({ selectedIndex, onSelect }: { selectedIndex: number; o
                         </motion.g>
                     )
                 })}
+                {/* Стикер "B" — справа от силовых линий (синих стрелочек)
+                    магнитного поля, по прямой просьбе пользователя. */}
+                <FieldBLabel x={DIST_TRACK_X + 56 + 22} y={204} color={FIELD_COLOR} delay={0.3} />
 
                 {/* Магнит — едет между рисками (framer-motion x/y-моушены
                     компонуются между собой сами, без риска затирания
@@ -708,13 +825,58 @@ const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
                     </SceneWrapper>
                 )}
 
-                {/* Шаг 5 — сам потрогай: магнит едет между 3 рисками
-                    (клик по риске — плавно, с разгоном/торможением,
-                    как в тренажёрном SCROLL, только вертикально); чем
-                    ближе к кольцу — тем больше силовых линий видно. */}
+                {/* Шаг 5 — знакомство с кольцом: просто рисуем бирюзовое
+                    кольцо, объясняем, что оно металлическое (значит
+                    проводит электричество) — без этого свойства кольцо
+                    было бы декоративной картинкой, не частью физики. */}
                 {step >= 5 && (
                     <SceneWrapper key="step-5" innerRef={sceneRef('step-5')} active={isSceneActive('step-5')}>
                         <Fragment key={`step-5-${nonceFor('step-5')}`}>
+                            <DiagramBlock>
+                                <RingIntroDiagram hatched={false} />
+                            </DiagramBlock>
+                            <TypedLine
+                                text="Важно что оно металлическое!"
+                                className="w-full text-center text-base md:text-lg font-extrabold text-[#F2F7FB]"
+                            />
+                            <TypedLine
+                                text="Чтобы проводило электричество."
+                                className="w-full text-center text-base md:text-lg text-[#F2F7FB]"
+                                onSettled={() => setStepReady(true)}
+                            />
+                        </Fragment>
+                    </SceneWrapper>
+                )}
+
+                {/* Шаг 6 — у кольца самое главное — его площадь S:
+                    заштриховываем область внутри кольца, буква S —
+                    бирюзовым стикером внутри, слегка искажённая
+                    ("размазанная" по площади, имитация перспективы). */}
+                {step >= 6 && (
+                    <SceneWrapper key="step-6" innerRef={sceneRef('step-6')} active={isSceneActive('step-6')}>
+                        <Fragment key={`step-6-${nonceFor('step-6')}`}>
+                            <DiagramBlock>
+                                <RingIntroDiagram hatched />
+                            </DiagramBlock>
+                            <TypedLineWithParts
+                                parts={[
+                                    { text: 'У кольца самое главное — его площадь ' },
+                                    { sticker: 'S', color: RING_COLOR },
+                                    { text: '.' },
+                                ]}
+                                onSettled={() => setStepReady(true)}
+                            />
+                        </Fragment>
+                    </SceneWrapper>
+                )}
+
+                {/* Шаг 7 — сам потрогай: магнит едет между 3 рисками
+                    (клик по риске — плавно, с разгоном/торможением,
+                    как в тренажёрном SCROLL, только вертикально); чем
+                    ближе к кольцу — тем больше силовых линий видно. */}
+                {step >= 7 && (
+                    <SceneWrapper key="step-7" innerRef={sceneRef('step-7')} active={isSceneActive('step-7')}>
+                        <Fragment key={`step-7-${nonceFor('step-7')}`}>
                             <TypedLine
                                 text="Подвинь магнит по рискам — смотри, как меняется поле у кольца."
                                 className="w-full text-center text-base md:text-lg text-[#F2F7FB]"
