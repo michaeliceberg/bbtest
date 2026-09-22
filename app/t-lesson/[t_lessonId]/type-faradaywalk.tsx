@@ -117,10 +117,14 @@ const Sticker = ({ value, color }: { value: React.ReactNode; color: string }) =>
 // путать анимацию печати), а после onDone превращается в настоящий
 // перенос строки — нужно, когда фраза должна принудительно ломаться в
 // конкретном месте, а не просто естественным word-wrap по ширине.
-type LinePart = { text: string } | { sticker: string; color: string } | { break: true }
+// bold — обычный жирный текст БЕЗ цветной рамки/подложки (отличается от
+// sticker — тот всегда цветной боксовый акцент на термине-объекте вроде
+// B/S/Φ/"поток"/"кольцо"; bold — просто смысловое усиление слова внутри
+// обычного предложения, например "БЛИЖЕ"/"БОЛЬШЕ" в сравнении).
+type LinePart = { text: string } | { sticker: string; color: string } | { break: true } | { bold: string }
 const TypedLineWithParts = ({ parts, onSettled }: { parts: LinePart[]; onSettled?: () => void }) => {
     const [typed, setTyped] = useState(false)
-    const plainText = parts.map((p) => ('text' in p ? p.text : 'sticker' in p ? p.sticker : ' ')).join('')
+    const plainText = parts.map((p) => ('text' in p ? p.text : 'sticker' in p ? p.sticker : 'bold' in p ? p.bold : ' ')).join('')
     return (
         <div className="w-full text-center text-base md:text-lg text-[#F2F7FB]">
             {!typed ? (
@@ -131,7 +135,9 @@ const TypedLineWithParts = ({ parts, onSettled }: { parts: LinePart[]; onSettled
                         ? <span key={i}>{p.text}</span>
                         : 'sticker' in p
                             ? <Sticker key={i} value={p.sticker} color={p.color} />
-                            : <br key={i} />
+                            : 'bold' in p
+                                ? <strong key={i} className="font-extrabold">{p.bold}</strong>
+                                : <br key={i} />
                     ))}
                 </>
             )}
@@ -604,34 +610,60 @@ const DIST_TRACK_X = 120
 const DIST_TICK_Y = [30, 140, 250] // далеко, средне, близко
 const DIST_MAG_W = 32
 const DIST_MAG_H = 48
-const DIST_ARROW_Y1 = 282
-const DIST_ARROW_Y2 = 306
-const DIST_ARROW_TIP_Y1 = 300
-const DIST_ARROW_TIP_Y2 = 310
-const DIST_ARROW_MID_Y = 294
 const DIST_RING_CY = 350
 const DIST_RING_RX = 90
 const DIST_RING_RY = 24
-// 9 позиций стрелок (симметрично вокруг центра); VISIBLE_HALF — сколько
-// от центра видно на каждой риске: далеко=1 стрелка, средне=5, близко=9 —
-// тот же принцип "больше линий = ближе магнит", что и у bs1/bs2/bs3.
-const DIST_ARROW_OFFSETS = [-56, -42, -28, -14, 0, 14, 28, 42, 56]
-const DIST_VISIBLE_HALF = [0, 2, 4]
+const DIST_VISIBLE_HALF = [0, 2, 4] // далеко/средне/близко — порог "дистанции" точки от центра сетки (см. ниже)
 const DIST_LABEL_GAP = 22
+
+// ===== Стрелочки поля — не одна плоская строка, а сетка ТОЧЕК ВНУТРИ
+// самого эллипса кольца, по прямой просьбе пользователя ("не плоско, а
+// трёхмерно по площади кольца"). 3 "ряда" по высоте эллипса (дальний
+// край/экватор/ближний край — dy от центра кольца) + по 3 точки в каждом
+// ряду по ширине, ограниченной формулой эллипса НА ЭТОЙ высоте
+// (x²/rx²+y²/ry²=1 → на высоте dy доступная полуширина = rx·√(1−(dy/ry)²))
+// — поэтому крайние (не средний) ряды физически УЖЕ, как и положено
+// сечению эллипса не по экватору. Длина стрелки тоже растёт от дальнего
+// ряда к ближнему (18→24→30) — простой, но узнаваемый намёк на
+// перспективу (дальнее — короче/меньше, ближнее — длиннее/крупнее), тот
+// же принцип, что уже даёт сжатие самого эллипса кольца по Ry.
+const DIST_ARROW_ROW_DY = [-14, 0, 14]
+const DIST_ARROW_ROW_LEN = [18, 24, 30]
+const DIST_ARROW_COL_FRAC = [-0.55, 0, 0.55]
+
+type DistArrowPoint = { x: number; yBase: number; len: number; dist: number }
+
+// "Дистанция" точки от центра сетки — 0 у самой центральной (видна
+// первой, риска "далеко"), 2 у 4 соседей "крестом" (риска "средне"
+// добавляет их), 4 у 4 угловых (риска "близко" добавляет и их) — та же
+// семантика, что и раньше была у линейных офсетов DIST_ARROW_OFFSETS,
+// просто обобщённая на 2D-сетку 3×3: сравнение `dist<=visibleHalf`
+// работает без изменений.
+function buildDistArrowGrid(): DistArrowPoint[] {
+    const pts: DistArrowPoint[] = []
+    DIST_ARROW_ROW_DY.forEach((dy, ri) => {
+        const t = dy / DIST_RING_RY
+        const rowHalfWidth = DIST_RING_RX * Math.sqrt(Math.max(0, 1 - t * t))
+        DIST_ARROW_COL_FRAC.forEach((cf, ci) => {
+            const dist = ri === 1 && ci === 1 ? 0 : ri === 1 || ci === 1 ? 2 : 4
+            pts.push({ x: cf * rowHalfWidth, yBase: DIST_RING_CY + dy, len: DIST_ARROW_ROW_LEN[ri], dist })
+        })
+    })
+    return pts
+}
+const DIST_ARROW_GRID = buildDistArrowGrid()
 
 const DistanceDiagram = ({ selectedIndex, onSelect }: { selectedIndex: number; onSelect: (i: number) => void }) => {
     const magTop = DIST_TICK_Y[selectedIndex] - DIST_MAG_H / 2
     const visibleHalf = DIST_VISIBLE_HALF[selectedIndex]
     // Стикер "B" — всегда рядом с крайней ПРАВОЙ ВИДИМОЙ стрелочкой поля
-    // (по прямой просьбе пользователя): у дальней риски (visibleHalf=0)
-    // видна только центральная стрелка (offset 0) — B рядом с ней; у
-    // средней (visibleHalf=2) — рядом с новой крайней видимой (offset
-    // 28); у ближней (visibleHalf=4, максимум поля) — как и раньше,
-    // справа от самой правой из всех 9 (offset 56). Индекс 4+visibleHalf
-    // в DIST_ARROW_OFFSETS всегда даёт именно этот offset, т.к. массив
-    // симметричен вокруг центрального индекса 4=offset 0.
-    const rightmostVisibleOffset = DIST_ARROW_OFFSETS[4 + visibleHalf]
-    const bLabelX = DIST_TRACK_X + rightmostVisibleOffset + DIST_LABEL_GAP
+    // (по прямой просьбе пользователя) — теперь ищем максимум x СРЕДИ
+    // ВИДИМЫХ точек сетки (не берём фиксированный индекс, т.к. у 2D-сетки
+    // "самая правая видимая" может оказаться в любом из 3 рядов в
+    // зависимости от того, сколько точек сейчас показано).
+    const visiblePts = DIST_ARROW_GRID.filter((p) => p.dist <= visibleHalf)
+    const bLabelX = DIST_TRACK_X + Math.max(...visiblePts.map((p) => p.x)) + DIST_LABEL_GAP
+    const bLabelY = DIST_RING_CY - 24
     return (
         <div className="flex w-full justify-center py-2">
             <svg viewBox="0 0 240 400" className="h-[420px] w-[252px]">
@@ -654,24 +686,31 @@ const DistanceDiagram = ({ selectedIndex, onSelect }: { selectedIndex: number; o
                     статично, не зависит от выбранной риски. */}
                 <TealRing cx={DIST_TRACK_X} cy={DIST_RING_CY} rx={DIST_RING_RX} ry={DIST_RING_RY} hatched uid="dist" sScaleY={0.55} />
 
-                {DIST_ARROW_OFFSETS.map((dx, i) => {
-                    const visible = Math.abs(i - 4) <= visibleHalf
-                    const x = DIST_TRACK_X + dx
+                {DIST_ARROW_GRID.map((pt, i) => {
+                    const visible = pt.dist <= visibleHalf
+                    const x = DIST_TRACK_X + pt.x
+                    // Стрелка "приземляется" ровно в точку сетки (яркая
+                    // часть — шеврон), шахта уходит вверх на её длину —
+                    // короче у дальнего ряда, длиннее у ближнего (см.
+                    // DIST_ARROW_ROW_LEN) — та же лёгкая перспектива, что
+                    // и у самого сжатого по Ry эллипса кольца.
+                    const chevronBase = pt.yBase - pt.len * 0.22
+                    const shaftTop = pt.yBase - pt.len
                     return (
                         <motion.g key={i} animate={{ opacity: visible ? 0.9 : 0 }} transition={{ duration: 0.4 }}>
-                            <line x1={x} y1={DIST_ARROW_Y1} x2={x} y2={DIST_ARROW_Y2} stroke={FIELD_COLOR} strokeWidth={2} strokeLinecap="round" />
-                            <path d={`M${x - 4},${DIST_ARROW_TIP_Y1} L${x},${DIST_ARROW_TIP_Y2} L${x + 4},${DIST_ARROW_TIP_Y1}`} fill="none"
+                            <line x1={x} y1={shaftTop} x2={x} y2={chevronBase} stroke={FIELD_COLOR} strokeWidth={2} strokeLinecap="round" />
+                            <path d={`M${x - 4},${chevronBase} L${x},${pt.yBase} L${x + 4},${chevronBase}`} fill="none"
                                 stroke={FIELD_COLOR} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                         </motion.g>
                     )
                 })}
                 {/* Стикер "B" — рядом с крайней видимой стрелочкой поля,
-                    подстраивается под выбранную риску (см. rightmostVisibleOffset
+                    подстраивается под выбранную риску (см. bLabelX/Y
                     выше). Позиционирующий x/y — на motion.g через x/y
                     framer-motion motion-values (не raw transform-строка),
                     та же безопасная техника, что и у самого магнита ниже. */}
                 <motion.g
-                    animate={{ x: bLabelX, y: DIST_ARROW_MID_Y }}
+                    animate={{ x: bLabelX, y: bLabelY }}
                     transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
                 >
                     <FieldBLabel x={0} y={0} color={FIELD_COLOR} delay={0.3} />
@@ -750,7 +789,10 @@ const FluxRingDiagram = () => (
 const FluxSplitDiagram = ({ showRight }: { showRight: boolean }) => (
     <div className="flex w-full items-start justify-center gap-3">
         <div className="flex flex-1 flex-col items-center gap-1.5">
-            <div className="text-sm font-bold text-[#F2F7FB]">Магнитное поле</div>
+            <div className="flex items-center gap-1.5 text-sm font-bold text-[#F2F7FB]">
+                <span>Магнитное поле</span>
+                <Sticker value="B" color={FIELD_COLOR} />
+            </div>
             <FluxArrowsDiagram />
         </div>
         {showRight && (
@@ -785,16 +827,17 @@ const FLUX_PAUSE_MS = 900
 const FLUX_RIGHT_ENTRANCE_MS = 1400
 
 // Сама сцена "поток Φ" — по прямой просьбе пользователя раскрывается
-// СТРОГО последовательно (не всё сразу, как в первой версии): текст →
-// пауза → левая половина → пауза → правая половина → пауза → формула →
-// единица измерения. Управляется локальным phase (0..4), а не пропом
-// step ConceptPhase — это внутренняя хореография ОДНОЙ сцены, верхний
-// уровень (step/stepReady) знает только про итоговую готовность.
+// СТРОГО последовательно (не всё сразу): интро-текст → пауза →
+// "Для этого понадобятся:" → пауза → левая половина → пауза → правая
+// половина → пауза → формула → единица измерения. Управляется локальным
+// phase (0..5), а не пропом step ConceptPhase — это внутренняя
+// хореография ОДНОЙ сцены, верхний уровень (step/stepReady) знает
+// только про итоговую готовность.
 const FluxScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
     useEffect(() => {
-        if (phase !== 2) return
-        const t = setTimeout(() => setPhase(3), FLUX_RIGHT_ENTRANCE_MS + FLUX_PAUSE_MS)
+        if (phase !== 3) return
+        const t = setTimeout(() => setPhase(4), FLUX_RIGHT_ENTRANCE_MS + FLUX_PAUSE_MS)
         return () => clearTimeout(t)
     }, [phase])
 
@@ -811,13 +854,21 @@ const FluxScene = ({ onSettled }: { onSettled?: () => void }) => {
                 onSettled={() => setTimeout(() => setPhase(1), FLUX_PAUSE_MS)}
             />
             {phase >= 1 && (
-                <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 2)), FLUX_PAUSE_MS)}>
-                    <FluxSplitDiagram showRight={phase >= 2} />
+                <TypedLine
+                    text="Для этого понадобятся:"
+                    className="w-full text-center text-base md:text-lg text-[#F2F7FB]"
+                    onSettled={() => setTimeout(() => setPhase(2), FLUX_PAUSE_MS)}
+                />
+            )}
+            {phase >= 2 && (
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 3)), FLUX_PAUSE_MS)}>
+                    <FluxSplitDiagram showRight={phase >= 3} />
                 </DiagramBlock>
             )}
-            {phase >= 3 && (
+            {phase >= 4 && (
                 <TypedLineWithParts
                     parts={[
+                        { text: 'Поток ' },
                         { sticker: 'Φ', color: FLUX_COLOR },
                         { text: ' = ' },
                         { sticker: 'B', color: FIELD_COLOR },
@@ -825,10 +876,10 @@ const FluxScene = ({ onSettled }: { onSettled?: () => void }) => {
                         { sticker: 'S', color: RING_COLOR },
                         { text: '.' },
                     ]}
-                    onSettled={() => setTimeout(() => setPhase(4), FLUX_PAUSE_MS)}
+                    onSettled={() => setTimeout(() => setPhase(5), FLUX_PAUSE_MS)}
                 />
             )}
-            {phase >= 4 && (
+            {phase >= 5 && (
                 <TypedLineWithParts
                     parts={[
                         { text: 'Поток ' },
@@ -1051,9 +1102,16 @@ const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
                 {step >= 7 && (
                     <SceneWrapper key="step-7" innerRef={sceneRef('step-7')} active={isSceneActive('step-7')}>
                         <Fragment key={`step-7-${nonceFor('step-7')}`}>
-                            <TypedLine
-                                text="Подвинь магнит по рискам — смотри, как меняется поле у кольца."
-                                className="w-full text-center text-base md:text-lg text-[#F2F7FB]"
+                            <TypedLineWithParts
+                                parts={[
+                                    { text: 'Придвинь магнит к кольцу — заметь, чем ' },
+                                    { bold: 'БЛИЖЕ' },
+                                    { text: ' магнит к кольцу, тем ' },
+                                    { bold: 'БОЛЬШЕ' },
+                                    { text: ' магнитное поле ' },
+                                    { sticker: 'B', color: FIELD_COLOR },
+                                    { text: '.' },
+                                ]}
                             />
                             <DiagramBlock>
                                 <DistanceScene onSettled={() => setStepReady(true)} />
