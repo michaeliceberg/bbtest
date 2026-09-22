@@ -34,6 +34,7 @@
 'use client'
 
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import Latex from 'react-latex-next'
 import type { QuestionType } from './page'
@@ -41,12 +42,18 @@ import {
     DiagramBlock, TypedLine,
     pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
-    isFieryMilestoneTrial, FieryFeedbackBanner, CORRECT_COLOR, WRONG_COLOR, ACTIVE_COLOR, PENDING_COLOR,
-    SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
+    isFieryMilestoneTrial, FieryFeedbackBanner, CORRECT_COLOR, WRONG_COLOR, ACTIVE_COLOR, ATTENTION_COLOR, PENDING_COLOR,
+    BlinkingExclaim, SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
+import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
+
+// lottie-react трогает document на импорте — без ssr:false падает на
+// сервере (та же SSR-ловушка, что уже чинили у TrainerMascot/question-
+// bubble/type-logdefwalk.tsx и др., см. CLAUDE.md).
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 
 type Props = {
     question: QuestionType
@@ -76,7 +83,7 @@ const shuffle = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5)
 // ФАЗА "concept" — знакомство с объектами, по одному, накопительный лог.
 // ===================================================================
 
-const INTRO_CONCEPT_STEPS = 4
+const INTRO_CONCEPT_STEPS = 5
 const CONCEPT_PAUSE_MS = 1000
 
 // Стикер — тот же визуальный язык, что уже устоялся во всех *WALK
@@ -274,16 +281,24 @@ const FIELD_RX_LIST = [60, 95, 135]
 // подписываем сами линии как линии поля B (тот же визуальный язык, что и
 // у HTML-стикера Sticker в тексте — цветная рамка+подложка+жирная буква,
 // только это SVG-версия, встроенная прямо в диаграмму).
+// ВАЖНО: позиционирующий transform ("куда поставить стикер") — на
+// СТАТИЧНОМ внешнем <g>, а не на самом motion.g. framer-motion для
+// анимируемой группы перезаписывает transform/style СВОИМИ motion-values
+// (нужными для scale) и стирает любой вручную заданный transform-атрибут
+// — именно поэтому стикер уезжал в (0,0), угол canvas'а, несмотря на
+// корректно посчитанные x/y (см. тот же гэтча, уже задокументированный в
+// CLAUDE.md для motion.g в геометрических разборах).
 const FieldBLabel = ({ x, y, color, delay }: { x: number; y: number; color: string; delay: number }) => (
-    <motion.g
-        initial={{ opacity: 0, scale: 2.4 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: 'spring', stiffness: 320, damping: 15, delay }}
-        transform={`translate(${x},${y})`}
-    >
-        <rect x={-14} y={-14} width={28} height={28} rx={7} fill={hexToRgba(color, 0.18)} stroke={color} strokeWidth={2} />
-        <text x={0} y={6} textAnchor="middle" fontSize={16} fontWeight={800} fill={color}>B</text>
-    </motion.g>
+    <g transform={`translate(${x},${y})`}>
+        <motion.g
+            initial={{ opacity: 0, scale: 2.4 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 15, delay }}
+        >
+            <rect x={-14} y={-14} width={28} height={28} rx={7} fill={hexToRgba(color, 0.18)} stroke={color} strokeWidth={2} />
+            <text x={0} y={6} textAnchor="middle" fontSize={16} fontWeight={800} fill={color}>B</text>
+        </motion.g>
+    </g>
 )
 
 // Силовые линии магнита целиком — draw-in анимация формы, затем (для
@@ -368,6 +383,75 @@ const MagnetPoleDiagram = ({ highlight }: { highlight: 'N' | 'S' }) => (
         </svg>
     </div>
 )
+
+// "ВНИМАААААНИЕ!" — тот же визуальный язык, что уже устоялся в разборах
+// "Логарифмы" (см. type-logdefwalk.tsx, RememberBanner) для важных правил:
+// Lottie "полицейский с бумагой" крупно слева + оранжевая плашка с
+// мигающим "!" справа. По прямой просьбе пользователя — "как у нас в
+// математике Логарифмы... с лотти".
+const DirectionRememberBanner = () => (
+    <div className="w-full flex items-center gap-3">
+        <Lottie animationData={paperPolice} loop autoplay className="w-16 h-16 md:w-20 md:h-20 shrink-0" />
+        <div
+            className="flex-1 flex items-center justify-center rounded-xl px-4 py-3 font-black text-lg text-center"
+            style={{ backgroundColor: hexToRgba(ATTENTION_COLOR, 0.16), border: `2px solid ${ATTENTION_COLOR}`, color: ATTENTION_COLOR }}
+        >
+            <span>ЗАПОМНИ<BlinkingExclaim /></span>
+        </div>
+    </div>
+)
+
+// Упрощённая горизонтальная схема направления поля — по прямой просьбе
+// пользователя: "распиленный" магнит (N красным слева, S синим справа),
+// одна прямая горизонтальная линия между ними, стрелочка бежит по ней
+// слева направо (тот же принцип "течёт по линии", что и FlowArrows выше,
+// но для прямого отрезка — линейная интерполяция, не эллипс).
+const DIR_X1 = 68, DIR_X2 = 172, DIR_Y = 50
+
+const DirectionDiagram = () => {
+    const [t, setT] = useState(0)
+    useEffect(() => {
+        const start = performance.now()
+        const id = setInterval(() => {
+            setT(((performance.now() - start) % FLOW_PERIOD_MS) / FLOW_PERIOD_MS)
+        }, FLOW_TICK_MS)
+        return () => clearInterval(id)
+    }, [])
+    const phases = [0, 0.5]
+    return (
+        <div className="flex w-full justify-center py-3">
+            <svg viewBox="0 0 240 100" className="h-[105px] w-[252px]">
+                {/* Пользователь явно попросил именно "красный N слева и
+                    синий S справа" — ЗЕРКАЛЬНО той раскраске, что была у
+                    подсветки полюсов на вертикальном магните выше
+                    (там N=синий/SOUTH=красный, см. сцены 2/3) — здесь
+                    намеренно SOUTH_COLOR/NORTH_COLOR используются
+                    "наоборот" (SOUTH_COLOR=красный красит N,
+                    NORTH_COLOR=синий красит S), а не новые hex-значения. */}
+                <rect x={20} y={30} width={40} height={40} rx={7} fill={SOUTH_COLOR} />
+                <text x={40} y={56} textAnchor="middle" fontSize={17} fontWeight={800} fill="#fff">N</text>
+                <rect x={180} y={30} width={40} height={40} rx={7} fill={NORTH_COLOR} />
+                <text x={200} y={56} textAnchor="middle" fontSize={17} fontWeight={800} fill="#fff">S</text>
+                <motion.line
+                    x1={DIR_X1} y1={DIR_Y} x2={DIR_X2} y2={DIR_Y}
+                    stroke={FIELD_COLOR} strokeWidth={2.5} strokeLinecap="round"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 0.9 }}
+                    transition={{ duration: 0.6, ease: 'easeInOut' }}
+                />
+                {phases.map((phase, i) => {
+                    const tt = (t + phase) % 1
+                    const x = DIR_X1 + (DIR_X2 - DIR_X1) * tt
+                    const fade = Math.min(1, tt * 8, (1 - tt) * 8)
+                    return (
+                        <path key={i} d="M-4,-3 L5,0 L-4,3 Z" fill={FIELD_COLOR} opacity={fade}
+                            transform={`translate(${x},${DIR_Y})`} />
+                    )
+                })}
+            </svg>
+        </div>
+    )
+}
 
 const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
     const [step, setStep] = useState(0)
@@ -486,6 +570,31 @@ const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
                                 ]}
                                 onSettled={() => setStepReady(true)}
                             />
+                        </Fragment>
+                    </SceneWrapper>
+                )}
+
+                {/* Шаг 4 — важное правило направления: линии поля всегда
+                    идут от N к S. Баннер "ЗАПОМНИ!" (тот же стиль, что в
+                    разборе логарифмов) + упрощённая горизонтальная схема
+                    "распиленного" магнита с бегущей слева направо
+                    стрелочкой. */}
+                {step >= 4 && (
+                    <SceneWrapper key="step-4" innerRef={sceneRef('step-4')} active={isSceneActive('step-4')}>
+                        <Fragment key={`step-4-${nonceFor('step-4')}`}>
+                            <DiagramBlock><DirectionRememberBanner /></DiagramBlock>
+                            <TypedLineWithParts
+                                parts={[
+                                    { text: 'Линии магнитного поля всегда идут от ' },
+                                    { sticker: 'N', color: NORTH_COLOR },
+                                    { text: ' (северный) к ' },
+                                    { sticker: 'S', color: SOUTH_COLOR },
+                                    { text: ' (южный).' },
+                                ]}
+                            />
+                            <DiagramBlock onSettled={() => setStepReady(true)}>
+                                <DirectionDiagram />
+                            </DiagramBlock>
                         </Fragment>
                     </SceneWrapper>
                 )}
