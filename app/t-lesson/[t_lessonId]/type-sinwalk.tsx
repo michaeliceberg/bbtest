@@ -384,7 +384,12 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
                     свой <h2> с тем же текстом раньше был лишним повтором. */}
                 <SceneWrapper key="step-0" innerRef={sceneRef('step-0')} active={isSceneActive('step-0')}>
                     <Fragment key={`step-0-${replayNonceFor('step-0')}`}>
-                        <DiagramBlock><RightTriangleDiagram /></DiagramBlock>
+                        {/* compact — узкий viewBox без запаса под произвольный
+                            поворот (тут его и не будет — просто голый
+                            треугольник, никакого zoomFocus/вращения), по
+                            прямой просьбе пользователя убрать огромный
+                            пустой отступ сверху/снизу на самой первой сцене. */}
+                        <DiagramBlock><RightTriangleDiagram compact /></DiagramBlock>
                         <TypedLine
                             className="w-full text-base md:text-lg text-[#F2F7FB]"
                             text="Это прямоугольный треугольник — у него есть прямой угол."

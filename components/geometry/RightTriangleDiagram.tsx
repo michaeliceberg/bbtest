@@ -105,6 +105,22 @@ export const computeTriangle = (rotationDeg: number, mirror: boolean) => {
     return { R: place(localR), P: place(localP), Q: place(localQ) }
 }
 
+// Узкое "окно камеры" вокруг НЕПОВЁРНУТОГО треугольника (rotationDeg=0,
+// mirror=false) — считается один раз из тех же самых координат, что даёт
+// computeTriangle, с запасом под маркер прямого угла (доп. 20px от R) и
+// подписи сторон (легко умещаются в этом отступе). Используется ТОЛЬКО
+// компонентом с compact=true (см. RightTriangleVisual.compact) — не
+// заменяет полный CANVAS×CANVAS viewBox по умолчанию.
+const COMPACT_VIEW_BOX = (() => {
+    const { R, P, Q } = computeTriangle(0, false)
+    const pad = 44
+    const minX = Math.min(R.x, P.x, Q.x) - pad
+    const maxX = Math.max(R.x, P.x, Q.x) + pad
+    const minY = Math.min(R.y, P.y, Q.y) - pad
+    const maxY = Math.max(R.y, P.y, Q.y) + pad
+    return `${minX} ${minY} ${maxX - minX} ${maxY - minY}`
+})()
+
 const numberBounce = {
     initial: { opacity: 0, scale: 4 },
     animate: { opacity: 1, scale: 1 },
@@ -235,6 +251,18 @@ export type RightTriangleVisual = {
     wrongSides?: SideId[]
     correctSide?: SideId | null
     checked?: boolean
+    // Компактный viewBox (обрезанный вокруг НЕПОВЁРНУТОГО треугольника,
+    // без запаса под произвольное вращение) — по прямой просьбе
+    // пользователя убрать огромный пустой отступ вокруг треугольника на
+    // самой первой сцене SINWALK (просто "нарисован треугольник, без
+    // подсветок/зумов", zoomFocus=null, rotationDeg=0, mirror=false).
+    // ТОЛЬКО меняет "окно камеры" (viewBox) — все координаты/анимации
+    // остаются в той же исходной системе 0..CANVAS, поэтому применять
+    // это на сценах С zoomFocus или в ТРЕНИРОВОЧНЫХ (повёрнутых) кадрах
+    // нельзя: увеличенный масштаб зума/произвольный поворот могут вывести
+    // контент за пределы этого узкого окна и обрезать его — полный
+    // CANVAS-запас там нужен по-прежнему.
+    compact?: boolean
 }
 
 // Тайминг zoom-эффекта — камера зумит внутрь, держит кадр, пока элемент
@@ -279,6 +307,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
         wrongSides = [],
         correctSide = null,
         checked = false,
+        compact = false,
     } = props
 
     // Пока камера не "доехала" до цели (zoomFocus задан) — элемент,
@@ -411,7 +440,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
 
     return (
         <div className="flex items-center justify-center py-2 px-2 mb-2 bg-[#161F23] rounded-xl overflow-hidden">
-            <svg viewBox={`0 0 ${CANVAS} ${CANVAS}`} width="100%" height="auto" style={{ maxWidth: 580 }}>
+            <svg viewBox={compact ? COMPACT_VIEW_BOX : `0 0 ${CANVAS} ${CANVAS}`} width="100%" height="auto" style={{ maxWidth: 580 }}>
                 <motion.g
                     animate={panOffset ? {
                         // Зум на α → пауза → панорама (тот же scale, x/y едут
