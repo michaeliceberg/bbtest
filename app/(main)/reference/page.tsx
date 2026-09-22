@@ -43,20 +43,31 @@ const ReferencePage = async () => {
         getReferenceEntries(PHYSICS_COURSE_ID),
         getReferenceEntries(MATH_COURSE_ID),
     ]);
-    // По прямой просьбе пользователя — справочник разделён на разделы по
-    // предмету (вкладки "Физика-11"/"Математика-11", те же названия, что
-    // уже используются как заголовки вкладок предмета в /trainer), а не
-    // одним общим списком тем вперемешку. Тег добавляется здесь, на
-    // сервере — раз мы и так знаем источник (какой courseId дал каждую
-    // группу), нет смысла гадать предмет по названию темы на клиенте.
+    // Разделы по предмету — тег добавляется здесь, на сервере — раз мы и
+    // так знаем источник (какой courseId дал каждую группу), нет смысла
+    // гадать предмет по названию темы на клиенте. Названия совпадают с
+    // courses.title ("ЕГЭ Физика"/"ЕГЭ Математика").
+    const PHYSICS_SUBJECT = 'ЕГЭ Физика';
+    const MATH_SUBJECT = 'ЕГЭ Математика';
     const entries = [
-        ...physicsEntries.map((e) => ({ ...e, subject: 'Физика-11' })),
-        ...mathEntries.map((e) => ({ ...e, subject: 'Математика-11' })),
+        ...physicsEntries.map((e) => ({ ...e, subject: PHYSICS_SUBJECT })),
+        ...mathEntries.map((e) => ({ ...e, subject: MATH_SUBJECT })),
     ];
+
+    // По прямой просьбе пользователя (2026-09-23) — больше не показываем
+    // отдельный переключатель предмета, а сразу открываем раздел,
+    // соответствующий активному курсу задачника (та же идея, что уже
+    // реализована в /trainer через resolveActiveTCourse — там курс тоже
+    // молча решает, какая тема тренажёра открыта). Курс без своего
+    // раздела справочника (ЛНИП/ОГЭ) — фоллбэк на физику, тот же порядок,
+    // что был у subjects[0] раньше.
+    const defaultSubject =
+        userProgress.activeCourse.id === MATH_COURSE_ID ? MATH_SUBJECT : PHYSICS_SUBJECT;
 
     return (
         <ReferenceBrowser
             entries={entries}
+            defaultSubject={defaultSubject}
             userProgress={{
                 activeCourse: userProgress.activeCourse,
                 hearts: userProgress.hearts,

@@ -1,6 +1,6 @@
 'use client'
 
-import { Dumbbell, Flame, Home, Trophy, TrendingUp, Award, ShoppingBag, ChevronDown, ChevronUp, LogOut, Settings, Library } from 'lucide-react'
+import { Dumbbell, Flame, Home, ChevronDown, ChevronUp, LogOut, Settings, Library } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from './ui/button'
 import Link from 'next/link'
@@ -71,10 +71,12 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
     { label: 'Задачник', href: '/learn', icon: Home },
     { label: 'Тренажёр', href: '/trainer', icon: Dumbbell, badge: hasTrainerQuest },
     { label: 'Справочник', href: '/reference', icon: Library },
-    { label: 'Магазин', href: '/shop', icon: ShoppingBag },
-    { label: 'Достижения', href: '/achievements', icon: Award },
-    { label: 'Лидеры', href: '/leaderboard', icon: Trophy },
-    { label: 'Прогресс', href: '/progress', icon: TrendingUp },
+    // Временно скрыты по прямой просьбе пользователя (2026-09-23) —
+    // оставлены в коде закомментированными, не удалены.
+    // { label: 'Магазин', href: '/shop', icon: ShoppingBag },
+    // { label: 'Достижения', href: '/achievements', icon: Award },
+    // { label: 'Лидеры', href: '/leaderboard', icon: Trophy },
+    // { label: 'Прогресс', href: '/progress', icon: TrendingUp },
   ]
   
   const setPendingCourse = useCourseSwitchStore((s) => s.setPending)

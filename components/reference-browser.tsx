@@ -28,7 +28,6 @@ import { StickyWrapper } from './sticky-wrapper'
 import { FeedWrapper } from './feed-wrapper'
 import { UserProgress } from './user-progress'
 import { courses } from '@/db/schema'
-import { Tabs, TabsList, TabsTrigger } from './ui/tabs'
 import { RightTriangleRefDiagram, SIDE_COLORS } from './geometry/RightTriangleRefDiagram'
 import { hexToRgba } from '@/src/constants/lessonButtonColors'
 
@@ -41,9 +40,11 @@ export type ReferenceEntryData = {
     unit: string | null
     formula: string
     imageSrc: string | null
-    // "Физика-11"/"Математика-11" — то же название, что и у вкладки
-    // предмета в /trainer (см. app/(main)/reference/page.tsx). Разделяет
-    // справочник на отдельные разделы, а не общий список тем вперемешку.
+    // "ЕГЭ Физика"/"ЕГЭ Математика" — то же название, что и у курса
+    // задачника (см. app/(main)/reference/page.tsx). Разделяет справочник
+    // на отдельные разделы, а не общий список тем вперемешку — раздел
+    // выбирается автоматически по активному курсу, без ручного
+    // переключателя (см. defaultSubject ниже).
     subject: string
 }
 
@@ -196,28 +197,25 @@ const HtmlLetterSticker = ({ letter }: { letter: 'a' | 'b' | 'c' }) => {
 // формульный рендер ниже это НЕ трогает для любых других формул темы).
 const SIDE_RATIO_RE = /^\\dfrac\{([abc])\}\{([abc])\}$/
 
-export const ReferenceBrowser = ({ entries, userProgress }: { entries: ReferenceEntryData[]; userProgress: UserProgressData }) => {
-    // Порядок вкладок — порядок первого появления в entries (физика
-    // вставлена на сервере первой, см. page.tsx) — тот же порядок,
-    // что уже был у смешанного списка раньше, ничего заново сортировать
-    // не нужно.
-    const subjects = useMemo(() => Array.from(new Set(entries.map((e) => e.subject))), [entries])
-
+export const ReferenceBrowser = ({ entries, userProgress, defaultSubject }: { entries: ReferenceEntryData[]; userProgress: UserProgressData; defaultSubject?: string }) => {
     // Переход из /trainer?... → /reference?topic=Тема (ссылка "Справочник"
     // у карточки темы в trainer-grade-tree.tsx) — сразу открывает нужную
     // тему И нужный ПРЕДМЕТ (иначе тема пропала бы из списка активного по
     // умолчанию предмета, а фильтр молча откатился бы на "Все темы").
-    // Инициализация из URL один раз при монтировании (не useEffect) —
+    // Без topic в URL — раздел определяется активным курсом задачника
+    // (defaultSubject с сервера, см. app/(main)/reference/page.tsx), без
+    // ручного переключателя — та же идея, что уже применена в /trainer.
+    // Инициализация из URL/пропа один раз при монтировании (не useEffect) —
     // иначе экран на долю секунды мигнул бы дефолтным предметом/темой
     // перед тем, как переключиться.
     const searchParams = useSearchParams()
     const topicParam = searchParams.get('topic')
-    const [activeSubject, setActiveSubject] = useState<string>(() => {
+    const [activeSubject] = useState<string>(() => {
         if (topicParam) {
             const match = entries.find((e) => e.topic === topicParam)
             if (match) return match.subject
         }
-        return subjects[0] ?? ''
+        return defaultSubject ?? entries[0]?.subject ?? ''
     })
     const [activeTopic, setActiveTopic] = useState<string>(() =>
         topicParam && entries.some((e) => e.topic === topicParam) ? topicParam : 'all'
@@ -226,12 +224,6 @@ export const ReferenceBrowser = ({ entries, userProgress }: { entries: Reference
 
     const subjectEntries = useMemo(() => entries.filter((e) => e.subject === activeSubject), [entries, activeSubject])
     const topics = useMemo(() => Array.from(new Set(subjectEntries.map((e) => e.topic))), [subjectEntries])
-
-    const handleSubjectChange = (subject: string) => {
-        setActiveSubject(subject)
-        setActiveTopic('all')
-        setQuery('')
-    }
 
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase()
@@ -285,25 +277,6 @@ export const ReferenceBrowser = ({ entries, userProgress }: { entries: Reference
                 <div className="mb-4">
                     <h1 className="text-3xl font-bold">Справочник</h1>
                 </div>
-
-                {/* Разделы по предмету — раньше темы физики и математики
-                    шли одним общим списком вперемешку, по прямой просьбе
-                    пользователя разделены на вкладки. */}
-                {subjects.length > 1 && (
-                    <Tabs value={activeSubject} onValueChange={handleSubjectChange} className="mb-6">
-                        <TabsList className="bg-[#232F34] rounded-xl p-1">
-                            {subjects.map((s) => (
-                                <TabsTrigger
-                                    key={s}
-                                    value={s}
-                                    className="data-[state=active]:bg-[#151F23] data-[state=active]:shadow-sm px-4 py-2"
-                                >
-                                    {s}
-                                </TabsTrigger>
-                            ))}
-                        </TabsList>
-                    </Tabs>
-                )}
 
                 <FiltersPanel {...filtersProps} className="lg:hidden mb-4" />
 
