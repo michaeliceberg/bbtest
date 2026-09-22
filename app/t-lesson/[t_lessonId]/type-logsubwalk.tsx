@@ -38,7 +38,7 @@ import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
 import {
-    TypedKeyPhraseLine, DiagramBlock,
+    DiagramBlock,
     pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     ACTIVE_COLOR, WRONG_COLOR, CORRECT_COLOR, ATTENTION_COLOR,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
@@ -72,7 +72,7 @@ const pick = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.le
 // ===== Общие строительные блоки формулы (HTML+CSS, без KaTeX — та же
 // причина, что и в LOGWALK). =====
 
-const NumSticker = ({ value, color, small = false }: { value: number; color: string; small?: boolean }) => (
+const NumSticker = ({ value, color, small = false }: { value: number | string; color: string; small?: boolean }) => (
     <motion.span
         initial={{ scale: 2.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -198,7 +198,7 @@ const ExampleFormula = ({ baseHighlighted, arg1Color, arg2Color, showRightSide, 
 const TypedLineWithSticker = ({
     before, stickerValue, stickerColor, after = '', onSettled,
 }: {
-    before: string; stickerValue: number; stickerColor: string; after?: string; onSettled?: () => void
+    before: string; stickerValue: number | string; stickerColor: string; after?: string; onSettled?: () => void
 }) => {
     const [typed, setTyped] = useState(false)
     return (
@@ -251,9 +251,12 @@ const AnswerLine = ({ onSettled }: { onSettled?: () => void }) => {
 // пользователем — "стрелка залезает на цифры со стикерами").
 const ARROW_TIP_GAP = 8
 
-// Кривая стрелка от "-" (левая часть — вычитаем логарифмы) к "÷" (правая
-// часть — аргументы делятся) — та же техника измерения по факту отрисовки
-// (data-marker), что и в LOGWALK, только markers "minus"/"divide".
+// Угловая (elbow) стрелка от "-" (левая часть — вычитаем логарифмы) к "÷"
+// (правая часть — аргументы делятся) — та же техника измерения по факту
+// отрисовки (data-marker) и тот же угловой стиль (buildElbowPath, см.
+// ниже), что и у ArgumentsArrow в LOGWALK — по прямой просьбе пользователя
+// заменена с гладкой дуги на "нашу" угловую, только markers "minus"/
+// "divide" здесь свои.
 const ArgumentsArrow = ({ containerRef }: { containerRef: React.RefObject<HTMLDivElement | null> }) => {
     const [d, setD] = useState<string | null>(null)
 
@@ -271,9 +274,8 @@ const ArgumentsArrow = ({ containerRef }: { containerRef: React.RefObject<HTMLDi
             const y1 = pRect.top - cRect.top - ARROW_TIP_GAP
             const x2 = mRect.left + mRect.width / 2 - cRect.left
             const y2 = mRect.top - cRect.top - ARROW_TIP_GAP
-            const midX = (x1 + x2) / 2
-            const midY = Math.min(y1, y2) - 34
-            setD(`M ${x1} ${y1} Q ${midX} ${midY} ${x2} ${y2}`)
+            const bridgeY = Math.min(y1, y2) - 26
+            setD(buildElbowPath(x1, y1, x2, y2, bridgeY))
         }
         const t = setTimeout(measure, 750)
         window.addEventListener('resize', measure)
@@ -295,6 +297,7 @@ const ArgumentsArrow = ({ containerRef }: { containerRef: React.RefObject<HTMLDi
                 strokeWidth={2.5}
                 fill="none"
                 strokeLinecap="round"
+                strokeLinejoin="round"
                 markerEnd="url(#logsubwalk-arrowhead)"
                 initial={{ pathLength: 0, opacity: 0 }}
                 animate={{ pathLength: 1, opacity: 1 }}
@@ -486,11 +489,11 @@ const ArgumentsScene = ({ onSettled }: { onSettled?: () => void }) => {
                 </div>
             </DiagramBlock>
             {phase >= 2 && (
-                <TypedKeyPhraseLine
+                <TypedLineWithSticker
                     before="Так как логарифмы вычитаются, то аргументы надо "
-                    phrase="разделить"
-                    color={ATTENTION_COLOR}
-                    highlight
+                    stickerValue="разделить"
+                    stickerColor={ATTENTION_COLOR}
+                    after="."
                     onSettled={onSettled}
                 />
             )}
