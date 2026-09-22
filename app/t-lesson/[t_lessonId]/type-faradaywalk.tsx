@@ -167,101 +167,58 @@ const MagnetPoleShape = ({ x, top, highlight }: { x: number; top: number; highli
 
 // ===== Силовые линии магнита =====
 //
-// По прямой просьбе пользователя — линия ПРИВЯЗАНА к самим полюсам
-// (сходится РОВНО в магните, не в точке над ним): выходит из полюса N
-// (снизу), какое-то время идёт почти прямо ВНИЗ (не сворачивая сразу),
-// затем большим радиусом поднимается наверх и длинной дугой заходит в
-// магнит сверху, в полюс S — оба конца кривой ЛЕЖАТ на самих полюсах.
-//
-// ВАЖНО: обычная кубическая кривая Безье с контрольными точками "далеко
-// снизу"/"широко сбоку" НЕ проходит через сами контрольные точки (это
-// просто "рычаги", которые лишь притягивают кривую — реальная кривая
-// заметно ближе к отрезку между концами, чем кажется по расположению
-// хендлов) — так получался слишком куцый результат, пойманный прямым
-// замером getBBox() в браузере. Кривая построена сплайном Катмулла-Рома
-// (`catmullRomSegments`) — гарантированно ПРОХОДИТ через каждую из 4
-// явных опорных точек (N → точка глубоко внизу → широкая точка сбоку на
-// полпути наверх → S), 3 кубических сегмента, касательные согласованы в
-// стыках (G1-гладкость, без изломов).
-type Pt = { x: number; y: number }
-type Bezier = { p0: Pt; p1: Pt; p2: Pt; p3: Pt }
+// По прямой просьбе пользователя — НАСТОЯЩАЯ дуга окружности (не кривая
+// Безье/сплайн — та давала либо "куцую" форму, либо "крылья бабочки" с
+// заострением у самого магнита, см. историю сессии), гарантированно
+// круглая и гладкая (нулевая кривизна-разрыв в принципе, это буквально
+// окружность): для каждой линии находится ЕДИНСТВЕННАЯ окружность,
+// проходящая через ТРИ точки — полюс N, полюс S и точку максимальной
+// ширины (rx на высоте центра магнита) — и берётся её дуга от N до S.
+// Симметрична относительно горизонтальной оси через центр магнита
+// АВТОМАТИЧЕСКИ (все три опорные точки сами симметричны: N/S — зеркальны
+// друг другу, точка ширины — на самой оси симметрии). Строится ТОЛЬКО
+// для правой стороны (side=+1); левая — точное зеркальное отражение
+// правой по x (см. arcPoint) — так надёжнее чем пересчитывать формулу
+// отдельно на знак side (был найден и исправлен реальный баг: при
+// прямой подстановке side=-1 в общую формулу точка "макс. ширины"
+// оказывалась на угле 180°, а не 0°, и жёстко захардкоженная
+// интерполяция углов "напролом" через 0° давала кривую, идущую НЕ через
+// эту точку — проверено численным пересчётом в Node до применения).
+type Arc = { h: number; k: number; R: number; thetaN: number; thetaS: number }
 
-// Стандартная (uniform, tension=1/6) конверсия Катмулла-Рома в цепочку
-// кубических Безье — кривая проходит через КАЖДУЮ точку `points`, концы
-// зажаты дублированием крайних точек (без "перелёта" за пределы кривой).
-function catmullRomSegments(points: Pt[]): Bezier[] {
-    const padded = [points[0], ...points, points[points.length - 1]]
-    const segments: Bezier[] = []
-    for (let i = 1; i < padded.length - 2; i++) {
-        const p0 = padded[i - 1], p1 = padded[i], p2 = padded[i + 1], p3 = padded[i + 2]
-        segments.push({
-            p0: p1,
-            p1: { x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6 },
-            p2: { x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6 },
-            p3: p2,
-        })
-    }
-    return segments
+function buildRightArc(cx: number, yN: number, yS: number, rx: number): Arc {
+    const cy = (yN + yS) / 2
+    const halfSpan = (yN - yS) / 2
+    const u = (rx * rx - halfSpan * halfSpan) / (2 * rx)
+    const h = cx + u
+    const R = Math.sqrt(u * u + halfSpan * halfSpan)
+    return { h, k: cy, R, thetaN: Math.atan2(yN - cy, cx - h), thetaS: Math.atan2(yS - cy, cx - h) }
 }
 
-function segBezierPoint(b: Bezier, t: number): Pt {
-    const mt = 1 - t
-    const a = mt * mt * mt, bb = 3 * mt * mt * t, c = 3 * mt * t * t, d = t * t * t
-    return {
-        x: a * b.p0.x + bb * b.p1.x + c * b.p2.x + d * b.p3.x,
-        y: a * b.p0.y + bb * b.p1.y + c * b.p2.y + d * b.p3.y,
-    }
+function arcPoint(a: Arc, cx: number, side: -1 | 1, t: number) {
+    const theta = a.thetaN + (a.thetaS - a.thetaN) * t
+    const rightX = a.h + a.R * Math.cos(theta)
+    return { x: side === 1 ? rightX : 2 * cx - rightX, y: a.k + a.R * Math.sin(theta) }
 }
-function segBezierAngleDeg(b: Bezier, t: number) {
-    const mt = 1 - t
-    const dx = 3 * mt * mt * (b.p1.x - b.p0.x) + 6 * mt * t * (b.p2.x - b.p1.x) + 3 * t * t * (b.p3.x - b.p2.x)
-    const dy = 3 * mt * mt * (b.p1.y - b.p0.y) + 6 * mt * t * (b.p2.y - b.p1.y) + 3 * t * t * (b.p3.y - b.p2.y)
+function arcAngleDeg(a: Arc, cx: number, side: -1 | 1, t: number) {
+    const theta = a.thetaN + (a.thetaS - a.thetaN) * t
+    const dTheta = a.thetaS - a.thetaN
+    const dxRight = -Math.sin(theta) * dTheta
+    const dy = Math.cos(theta) * dTheta
+    const dx = side === 1 ? dxRight : -dxRight
     return (Math.atan2(dy, dx) * 180) / Math.PI
 }
+const ARC_SAMPLES = 48
+const arcPath = (a: Arc, cx: number, side: -1 | 1) =>
+    Array.from({ length: ARC_SAMPLES + 1 }, (_, i) => arcPoint(a, cx, side, i / ARC_SAMPLES))
+        .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
+        .join(' ')
 
-// Точка/угол по ВСЕЙ цепочке сегментов сразу — t∈[0,1] линейно делится
-// на сегменты (не идеально равномерно по длине дуги, но для декоративного
-// "течения" стрелок этого достаточно — глазом неровность скорости между
-// сегментами не читается).
-function multiPoint(segs: Bezier[], t: number): Pt {
-    const scaled = t * segs.length
-    const idx = Math.min(segs.length - 1, Math.floor(scaled))
-    return segBezierPoint(segs[idx], scaled - idx)
-}
-function multiAngleDeg(segs: Bezier[], t: number) {
-    const scaled = t * segs.length
-    const idx = Math.min(segs.length - 1, Math.floor(scaled))
-    return segBezierAngleDeg(segs[idx], scaled - idx)
-}
-function multiPath(segs: Bezier[]) {
-    const first = segs[0].p0
-    const rest = segs.map((s) => `C ${s.p1.x} ${s.p1.y}, ${s.p2.x} ${s.p2.y}, ${s.p3.x} ${s.p3.y}`).join(' ')
-    return `M ${first.x} ${first.y} ${rest}`
-}
-
-// Опорные точки одной силовой линии — по прямой просьбе пользователя,
-// СИММЕТРИЧНО относительно горизонтальной оси через центр магнита: N
-// (ровно на полюсе) → плечо на полной ширине rx (D ниже N) → зеркальное
-// плечо на ТОЙ ЖЕ ширине (D выше S — зеркальное отражение первого плеча
-// относительно центра магнита) → S (ровно на полюсе). Проверено
-// численно (прямой пересчёт кривой в Node) — оба плеча уже на полной
-// ширине (не "18% ширины", как в прежней версии — та давала линию,
-// подолгу идущую впритык к центру, визуально пересекающую сам магнит,
-// именно это и раскритиковал пользователь на скриншоте) — линия
-// заметно отходит от центра уже на первых ~10-15% пути, дальше плавно
-// (Катмулл-Ром = гладкая, без изломов по построению) расходится до
-// макс. ширины и симметрично сходится к S.
-function fieldLineWaypoints(cx: number, yN: number, yS: number, side: -1 | 1, rx: number, D: number): Pt[] {
-    const shoulderLow = { x: cx + side * rx, y: yN + D }
-    const shoulderHigh = { x: cx + side * rx, y: yS - D }
-    return [{ x: cx, y: yN }, shoulderLow, shoulderHigh, { x: cx, y: yS }]
-}
-
-// "Течёт" по линии поля — маленькие стрелочки, бегущие вдоль кривой (тот
-// же приём, что показывает направление тока/поля на референс-анимациях
+// "Течёт" по линии поля — маленькие стрелочки, бегущие вдоль дуги (тот же
+// приём, что показывает направление тока/поля на референс-анимациях
 // движения по проводу — маленькие маркеры друг за другом), а не просто
-// статичный наконечник. Считается АНАЛИТИЧЕСКИ по параметру кривой (не
-// CSS offset-path — тот же принцип, что и остальная физика в этом файле:
+// статичный наконечник. Считается АНАЛИТИЧЕСКИ по параметру дуги (не CSS
+// offset-path — тот же принцип, что и остальная физика в этом файле:
 // setInterval, не requestAnimationFrame, чтобы не замирать в фоновых
 // вкладках, см. комментарий у Sandbox). fade у краёв пути — маркер не
 // обрывается резко на стыке.
@@ -269,7 +226,7 @@ const FLOW_PERIOD_MS = 2400
 const FLOW_TICK_MS = 40
 const FLOW_PHASES = [0, 1 / 3, 2 / 3]
 
-const FlowArrows = ({ lines, color }: { lines: Bezier[][]; color: string }) => {
+const FlowArrows = ({ lines, cx, color }: { lines: { a: Arc; side: -1 | 1 }[]; cx: number; color: string }) => {
     const [t, setT] = useState(0)
     useEffect(() => {
         const start = performance.now()
@@ -280,10 +237,10 @@ const FlowArrows = ({ lines, color }: { lines: Bezier[][]; color: string }) => {
     }, [])
     return (
         <g>
-            {lines.map((segs, li) => FLOW_PHASES.map((phase, mi) => {
+            {lines.map(({ a, side }, li) => FLOW_PHASES.map((phase, mi) => {
                 const tt = (t + phase) % 1
-                const pos = multiPoint(segs, tt)
-                const angle = multiAngleDeg(segs, tt)
+                const pos = arcPoint(a, cx, side, tt)
+                const angle = arcAngleDeg(a, cx, side, tt)
                 const fade = Math.min(1, tt * 9, (1 - tt) * 9)
                 return (
                     <path
@@ -299,13 +256,12 @@ const FlowArrows = ({ lines, color }: { lines: Bezier[][]; color: string }) => {
     )
 }
 
-// Три вложенных линии — шире (rx) И выше/ниже (D, симметрично) с каждым
-// следующим номером, тот же принцип нестинга, что на референсе.
-const FIELD_LOOPS: { rx: number; D: number }[] = [
-    { rx: 55, D: 100 },
-    { rx: 85, D: 140 },
-    { rx: 115, D: 175 },
-]
+// Три вложенных линии — только ширина (rx) растёт с каждым следующим
+// номером; высота/форма — не отдельный параметр, а естественное
+// следствие геометрии окружности (шире линия — на бОльшую окружность
+// приходится опираться, чтобы пройти через те же N/S — значит она
+// автоматически "выше" тоже, без отдельной настройки).
+const FIELD_RX_LIST = [60, 95, 135]
 
 // Силовые линии магнита целиком — draw-in анимация формы, затем (для
 // flowing=true) бегущие стрелочки поверх. pale=true (сцены-полюса) —
@@ -316,34 +272,34 @@ const MagnetFieldLines = ({ x, top, color, flowing = false }: { x: number; top: 
     const [started, setStarted] = useState(false)
     useEffect(() => {
         if (!flowing) return
-        const t = setTimeout(() => setStarted(true), FIELD_LOOPS.length * 220 + 900)
+        const t = setTimeout(() => setStarted(true), FIELD_RX_LIST.length * 220 + 900)
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [flowing])
 
-    const lines: Bezier[][] = []
-    FIELD_LOOPS.forEach(({ rx, D }) => {
-        ([-1, 1] as const).forEach((side) => {
-            lines.push(catmullRomSegments(fieldLineWaypoints(x, yN, yS, side, rx, D)))
-        })
+    const lines: { a: Arc; side: -1 | 1 }[] = []
+    FIELD_RX_LIST.forEach((rx) => {
+        const a = buildRightArc(x, yN, yS, rx)
+        ;([-1, 1] as const).forEach((side) => { lines.push({ a, side }) })
     })
 
     return (
         <g>
-            {lines.map((segs, i) => (
+            {lines.map(({ a, side }, i) => (
                 <motion.path
                     key={i}
-                    d={multiPath(segs)}
+                    d={arcPath(a, x, side)}
                     stroke={color}
                     strokeWidth={2}
                     fill="none"
                     strokeLinecap="round"
+                    strokeLinejoin="round"
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: 1, opacity: 0.85 }}
                     transition={{ duration: 0.9, ease: 'easeInOut', delay: Math.floor(i / 2) * 0.22 }}
                 />
             ))}
-            {flowing && started && <FlowArrows lines={lines} color={color} />}
+            {flowing && started && <FlowArrows lines={lines} cx={x} color={color} />}
         </g>
     )
 }
