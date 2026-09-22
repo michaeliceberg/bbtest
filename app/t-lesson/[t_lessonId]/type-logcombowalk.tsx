@@ -473,18 +473,18 @@ const Step2Scene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-// Шаг 3 — сразу пишем формулу в уже полностью упрощённом виде (обведено,
-// зачёркнуто, combo-часть блёклая, a/c снаружи — уже стикеры — та же
-// визуальная точка, на которой закончился шаг 2, плюс сами стикеры) →
-// пауза → текст с ДОБАВЛЕННЫМИ стикерами 2/4 внутри предложения (по
-// прямой просьбе пользователя).
+// Шаг 3 — сразу пишем формулу в уже полностью упрощённом виде (обводка и
+// зачёркивание убраны — они уже сделали своё дело на шаге 2, здесь важна
+// только сама combo-часть блёклая + a/c снаружи стикерами) → пауза →
+// текст с ДОБАВЛЕННЫМИ стикерами 2/4 внутри предложения (по прямой
+// просьбе пользователя).
 const Step3Scene = ({ onSettled }: { onSettled?: () => void }) => {
     const [textVisible, setTextVisible] = useState(false)
     const ref = useRef<HTMLDivElement>(null)
     return (
         <>
             <DiagramBlock onSettled={() => setTimeout(() => setTextVisible(true), STEP_PAUSE_MS)}>
-                <ChainExpression containerRef={ref} circled struck comboFaded outerStickers />
+                <ChainExpression containerRef={ref} comboFaded outerStickers />
             </DiagramBlock>
             {textVisible && (
                 <TypedLineWithParts
