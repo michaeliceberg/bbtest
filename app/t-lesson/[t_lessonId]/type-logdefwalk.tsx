@@ -8,13 +8,14 @@
 // скрыта — своя кнопка "Дальше"/"Готово" на протяжении всего прохождения.
 //
 // Сюжет — прямая инструкция пользователя:
-// 1. "2³ = ?" — мини-викторина (варианты ответа). После выбора 8:
-//    равенство повторяется ЕЩЁ РАЗ ("2³=8"), строкой ниже — "Тогда
-//    log₂8=3" — теперь стикером выделена ТОЛЬКО степень "3" в ОБЕИХ
-//    строках (не все 2/8/3, как раньше), угловая стрелка соединяет два
-//    "3" глазом (см. DefinitionBridge/DefinitionArrow), затем текст
-//    "логарифм показывает СТЕПЕНЬ (стикер того же цвета, что "3"), в
-//    которую надо возвести 2, чтобы получить 8".
+// 1. "2³ = ?" — мини-викторина (варианты ответа). После выбора 8 —
+//    раскрытие СТРОГО последовательно, битами с паузами (см.
+//    DefinitionSequence/DefinitionArrow): равенство повторяется ЕЩЁ РАЗ
+//    ("2³=8") → пауза → строкой ниже "Тогда log₂8=3" (стикером выделена
+//    ТОЛЬКО степень "3" в ОБЕИХ строках) → пауза → угловая стрелка
+//    соединяет два "3" глазом → пауза → текст "логарифм показывает
+//    СТЕПЕНЬ (стикер того же цвета, что "3"), в которую надо возвести 2,
+//    чтобы получить 8".
 // 2. Практика — 4 мини-викторины: log₅25=?, log₆36=?, log₁₀1000=?,
 //    log₂16=?.
 // 3. "ЗАПОМНИ!" — в логарифм нельзя подставлять отрицательные числа
@@ -221,32 +222,82 @@ const DefinitionArrow = ({
     )
 }
 
-// Мост "2³=8 → log₂8=3" — повторяет само равенство ещё раз (по прямой
-// просьбе пользователя — "лучше написать тут ещё раз"), только теперь
-// стикером выделена ТОЛЬКО цифра 3 (в обеих строках — степень сверху,
-// результат снизу), а не все три числа сразу — угловая стрелка соединяет
-// два "3" глазом, показывая, что это одно и то же число.
-const DefinitionBridge = ({ containerRef }: { containerRef: React.RefObject<HTMLDivElement> }) => (
-    <div ref={containerRef} className="relative w-full flex flex-col items-center gap-5 py-2">
-        <FormulaRow>
-            <span className="inline-flex items-baseline whitespace-nowrap">
-                <Plain>2</Plain>
-                <Exp><span data-marker="exp3"><Sticker value={3} color={RESULT_COLOR} /></span></Exp>
-            </span>
-            <Plain>=</Plain>
-            <Plain>8</Plain>
-        </FormulaRow>
-        <FormulaRow>
-            <Plain>Тогда</Plain>
-            <LogExpr
-                base={<Plain>2</Plain>}
-                arg={<Plain>8</Plain>}
-                tail={<><Plain>=</Plain><span data-marker="result3" className="inline-flex items-baseline ml-1"><Sticker value={3} color={RESULT_COLOR} /></span></>}
-            />
-        </FormulaRow>
-        <DefinitionArrow containerRef={containerRef} fromMarker="exp3" toMarker="result3" color={RESULT_COLOR} />
-    </div>
-)
+// Пауза между битами сцены — тот же ≥800мс стандарт, что и везде в
+// проекте для разборов по шагам (см. CLAUDE.md, "Управление шагами").
+const DEFINE_PAUSE_MS = 900
+// Сколько реально длится отрисовка DefinitionArrow (750мс задержка перед
+// измерением маркеров + 0.2с delay + 0.8с сама draw-анимация) — ждём её
+// ПОЛНОСТЬЮ, прежде чем показывать следующий бит (тот же принцип "не
+// начинать следующий бит, пока не доиграл предыдущий", что уже применён
+// в FluxScene, type-faradaywalk.tsx).
+const ARROW_DRAW_MS = 1750
+
+// Мост "2³=8 → log₂8=3" — раскрывается СТРОГО последовательно (по прямой
+// просьбе пользователя, "а не пачкой"): "2³=8" → пауза → "Тогда log₂8=3"
+// → пауза → угловая стрелка от верхнего "3" к нижнему → пауза → итоговая
+// фраза-объяснение. Управляется локальным phase (0..3), а не внешним
+// step — тот же паттерн, что FluxScene в type-faradaywalk.tsx. Стикером
+// выделена ТОЛЬКО цифра 3 (степень сверху, результат снизу), не все три
+// числа сразу — угловая стрелка соединяет два "3" глазом, показывая, что
+// это одно и то же число.
+const DefinitionSequence = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const containerRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (phase !== 2) return
+        const t = setTimeout(() => setPhase(3), ARROW_DRAW_MS + DEFINE_PAUSE_MS)
+        return () => clearTimeout(t)
+    }, [phase])
+
+    // Сцена растёт через несколько внутренних фаз, пока внешний
+    // useSceneFocus скроллит только на вход в шаг и на самый конец —
+    // тот же локальный докскролл на каждую фазу, что уже чинил ту же
+    // проблему в FluxScene (FARADAYWALK).
+    useEffect(() => {
+        containerRef.current?.scrollIntoView({ behavior: 'auto', block: 'nearest' })
+    }, [phase])
+
+    return (
+        <div ref={containerRef} className="relative w-full flex flex-col items-center gap-5 py-2">
+            <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 1)), DEFINE_PAUSE_MS)}>
+                <FormulaRow>
+                    <span className="inline-flex items-baseline whitespace-nowrap">
+                        <Plain>2</Plain>
+                        <Exp><span data-marker="exp3"><Sticker value={3} color={RESULT_COLOR} /></span></Exp>
+                    </span>
+                    <Plain>=</Plain>
+                    <Plain>8</Plain>
+                </FormulaRow>
+            </DiagramBlock>
+            {phase >= 1 && (
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 2)), DEFINE_PAUSE_MS)}>
+                    <FormulaRow>
+                        <Plain>Тогда</Plain>
+                        <LogExpr
+                            base={<Plain>2</Plain>}
+                            arg={<Plain>8</Plain>}
+                            tail={<><Plain>=</Plain><span data-marker="result3" className="inline-flex items-baseline ml-1"><Sticker value={3} color={RESULT_COLOR} /></span></>}
+                        />
+                    </FormulaRow>
+                </DiagramBlock>
+            )}
+            {phase >= 2 && (
+                <DefinitionArrow containerRef={containerRef} fromMarker="exp3" toMarker="result3" color={RESULT_COLOR} />
+            )}
+            {phase >= 3 && (
+                <TypedLineWithSticker
+                    before="То есть логарифм показывает "
+                    stickerContent="степень"
+                    plainTextForTyping="степень"
+                    stickerColor={RESULT_COLOR}
+                    after=", в которую надо возвести 2, чтобы получить 8."
+                    onSettled={onSettled}
+                />
+            )}
+        </div>
+    )
+}
 
 // Показывает выбранное число цветом по итогу проверки — тот же приём,
 // что и в LOGWALK (выбор подставляется в формулу и красится сразу).
@@ -508,8 +559,6 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
     const [quizWrongTried, setQuizWrongTried] = useState<number[]>([])
     const [quizWrongFlash, setQuizWrongFlash] = useState<string | null>(null)
 
-    const defBridgeRef = useRef<HTMLDivElement>(null)
-
     const [existIndex, setExistIndex] = useState(0)
     const [existAnswers, setExistAnswers] = useState<(boolean | null)[]>(Array(EXIST_ITEMS.length).fill(null))
     const [existChecked, setExistChecked] = useState(false)
@@ -695,17 +744,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                             <>
                                 <FeedbackBanner correct seed={quizAnswers[0]} />
                                 {confettiFor === 'step-0' && <LocalAnswerConfetti />}
-                                <DiagramBlock>
-                                    <DefinitionBridge containerRef={defBridgeRef} />
-                                </DiagramBlock>
-                                <TypedLineWithSticker
-                                    before="То есть логарифм показывает "
-                                    stickerContent="степень"
-                                    plainTextForTyping="степень"
-                                    stickerColor={RESULT_COLOR}
-                                    after=", в которую надо возвести 2, чтобы получить 8."
-                                    onSettled={() => setStepReady(true)}
-                                />
+                                <DefinitionSequence onSettled={() => setStepReady(true)} />
                             </>
                         )}
                     </Fragment>
