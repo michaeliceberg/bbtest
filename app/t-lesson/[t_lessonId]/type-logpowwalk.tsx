@@ -8,19 +8,23 @@
 // протяжении всего прохождения.
 //
 // Сюжет — прямая инструкция пользователя, на ОДНОМ фиксированном примере
-// с однозначными числами (a=2, n=3, b=5, m=7 — log₂³5⁷):
+// с однозначными числами (a=2, n=3, b=5, m=7 — log₂³5⁷). Шаги 1-3
+// (Step1Scene/Step2Scene/Step3Scene) раскрываются СТРОГО последовательно,
+// битами с паузами (та же правка, что и в LOGWALK/LOGSUBWALK, "а не всё
+// разом") — формула → пауза → [стрелка → пауза →] текст:
 // 1. Пишем крупно "log_{2³}5⁷ = ?" — просто условие.
 // 2. Обводим ОБА показателя степени (3 и 7) как стикеры — РАЗНЫМИ
 //    цветами (та же причина, что и у аргументов x/y в LOGWALK —
 //    одинаковый цвет читался бы как "это одно и то же число"): m=7
-//    (показатель аргумента) — teal, n=3 (показатель основания) — raspberry.
-// 3. "Эти степени можно снести перед логарифмом" — 7 (показатель
-//    аргумента) становится ЧИСЛИТЕЛЕМ дроби, стрелка от 7-в-степени к
-//    7-в-числителе (реальные координаты, тот же приём measure+quadratic
-//    bezier, что уже в ArgumentsArrow LOGWALK/LOGSUBWALK — направление
-//    считается по факту отрисовки, не подгоняется вручную).
-// 4. "А 3 (показатель основания) становится ЗНАМЕНАТЕЛЕМ" — отдельная
-//    сцена, отдельная стрелка от 3-в-степени к 3-в-знаменателе.
+//    (показатель аргумента) — teal, n=3 (показатель основания) — raspberry
+//    → пауза → текст "у этого логарифма два показателя степени".
+// 3. "Эти степени можно снести перед логарифмом" — формула ("=7/?logₐb")
+//    → пауза → стрелка от 7-в-степени к 7-в-числителе (реальные
+//    координаты, тот же приём measure+quadratic bezier, что уже в
+//    ArgumentsArrow LOGWALK/LOGSUBWALK) → пауза → текст.
+// 4. "А 3 (показатель основания) становится ЗНАМЕНАТЕЛЕМ" — та же
+//    последовательность, отдельная стрелка от 3-в-степени к
+//    3-в-знаменателе.
 // 5. "Ответ: 7/3 log₂5".
 //
 // После разбора — тренировочные задания с НОВЫМИ случайными числами
@@ -406,6 +410,108 @@ const AnswerLine = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
+// Пауза между битами сцены — тот же ≥800мс стандарт, что и во всех
+// остальных walkthrough-разборах. По прямой просьбе пользователя шаги 1-3
+// этого разбора раскрываются СТРОГО последовательно (формула → пауза →
+// [стрелка → пауза →] текст), не всё разом, как раньше.
+const STEP_PAUSE_MS = 900
+// Столько реально рисуется TravelArrow (750мс задержка измерения + 0.2с
+// delay + 0.8с сама draw-анимация, см. TravelArrow выше).
+const ARROW_DRAW_MS = 1750
+
+// Шаг 1 — формула (степени уже стикерами) появляется сразу, текст —
+// только ПОСЛЕ паузы.
+const Step1Scene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [textVisible, setTextVisible] = useState(false)
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setTextVisible(true), STEP_PAUSE_MS)}>
+                <PowFormula exponentsAsStickers showRHS={false} numeratorFilled={false} denominatorFilled={false} />
+            </DiagramBlock>
+            {textVisible && (
+                <TypedLine
+                    className="w-full text-base md:text-lg text-[#F2F7FB]"
+                    text="У этого логарифма два показателя степени — у основания и у аргумента."
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// Шаг 2 — формула ("= 7/? logₐb") сразу → пауза → рисуется стрелка от
+// показателя-аргумента к числителю → пауза → текст. pt-10 (как и раньше) —
+// запас сверху, чтобы дуга стрелки (мост выше обоих концов) не налезала на
+// текст ПРЕДЫДУЩЕЙ сцены.
+const Step2Scene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const ref = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (phase !== 1) return
+        const t = setTimeout(() => setPhase(2), ARROW_DRAW_MS + STEP_PAUSE_MS)
+        return () => clearTimeout(t)
+    }, [phase])
+
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 1)), STEP_PAUSE_MS)}>
+                <div ref={ref} className="relative w-full pt-10">
+                    <PowFormula exponentsAsStickers showRHS numeratorFilled denominatorFilled={false} />
+                    {phase >= 1 && <TravelArrow containerRef={ref} fromMarker="exp-m" toMarker="num-target" color={M_COLOR} />}
+                </div>
+            </DiagramBlock>
+            {phase >= 2 && (
+                <TypedLineWithSticker
+                    before="Показатели степени можно перенести перед логарифмом. Показатель аргумента "
+                    leadNumber={M}
+                    leadMid=" становится "
+                    word="числителем"
+                    after=" дроби."
+                    color={M_COLOR}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// Шаг 3 — та же последовательность, стрелка от показателя-основания к
+// знаменателю (curve="down"). pb-12 (как и раньше) — запас снизу под мост
+// стрелки + собственный текст ЭТОЙ сцены.
+const Step3Scene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const ref = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (phase !== 1) return
+        const t = setTimeout(() => setPhase(2), ARROW_DRAW_MS + STEP_PAUSE_MS)
+        return () => clearTimeout(t)
+    }, [phase])
+
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 1)), STEP_PAUSE_MS)}>
+                <div ref={ref} className="relative w-full pb-12">
+                    <PowFormula exponentsAsStickers showRHS numeratorFilled denominatorFilled />
+                    {phase >= 1 && <TravelArrow containerRef={ref} fromMarker="exp-n" toMarker="den-target" color={N_COLOR} curve="down" />}
+                </div>
+            </DiagramBlock>
+            {phase >= 2 && (
+                <TypedLineWithSticker
+                    before="А показатель основания "
+                    leadNumber={N}
+                    leadMid=" становится "
+                    word="знаменателем"
+                    after="."
+                    color={N_COLOR}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
 // ===== Тренировочные задания — новые случайные (a, n, b, m), нужно
 // кликнуть верную формулу-ответ (m/n · log_a b) среди 4 вариантов. =====
 
@@ -528,10 +634,6 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
     const [wrongTried, setWrongTried] = useState<PowOption[]>([])
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
 
-    // Контейнеры шагов 2 и 3 — каждому своя стрелка (числитель/знаменатель),
-    // TravelArrow измеряет data-marker'ы внутри СВОЕГО контейнера.
-    const step2Ref = useRef<HTMLDivElement>(null)
-    const step3Ref = useRef<HTMLDivElement>(null)
 
     const currentCorrectOption = trials[trialIndex].options.find(
         (o) => sameOption(o, { frac: [trials[trialIndex].m, trials[trialIndex].n], base: trials[trialIndex].a, arg: trials[trialIndex].b })
@@ -650,73 +752,32 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
                     </Fragment>
                 </SceneWrapper>
 
-                {/* Шаг 1 — показатели степени 3 и 7 становятся стикерами. */}
+                {/* Шаг 1 — показатели степени 3 и 7 становятся стикерами;
+                    формула → пауза → текст (см. Step1Scene). */}
                 {step >= 1 && (
                     <SceneWrapper key="step-1" innerRef={sceneRef('step-1')} active={isSceneActive('step-1')}>
                         <Fragment key={`step-1-${nonceFor('step-1')}`}>
-                            <DiagramBlock>
-                                <PowFormula exponentsAsStickers showRHS={false} numeratorFilled={false} denominatorFilled={false} />
-                            </DiagramBlock>
-                            <TypedLine
-                                className="w-full text-base md:text-lg text-[#F2F7FB]"
-                                text="У этого логарифма два показателя степени — у основания и у аргумента."
-                                onSettled={() => setStepReady(true)}
-                            />
+                            <Step1Scene onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}
 
-                {/* Шаг 2 — 7 (показатель аргумента) сносится в числитель,
-                    стрелка от 7-в-степени к 7-в-числителе. */}
+                {/* Шаг 2 — 7 (показатель аргумента) сносится в числитель;
+                    формула → пауза → стрелка → пауза → текст (Step2Scene). */}
                 {step >= 2 && (
                     <SceneWrapper key="step-2" innerRef={sceneRef('step-2')} active={isSceneActive('step-2')}>
                         <Fragment key={`step-2-${nonceFor('step-2')}`}>
-                            <DiagramBlock>
-                                {/* pt-10 — запас сверху, чтобы дуга стрелки (мост
-                                    выше обоих концов) не налезала на текст
-                                    ПРЕДЫДУЩЕЙ сцены над этой (баг, найденный
-                                    пользователем). */}
-                                <div ref={step2Ref} className="relative w-full pt-10">
-                                    <PowFormula exponentsAsStickers showRHS numeratorFilled denominatorFilled={false} />
-                                    <TravelArrow containerRef={step2Ref} fromMarker="exp-m" toMarker="num-target" color={M_COLOR} />
-                                </div>
-                            </DiagramBlock>
-                            <TypedLineWithSticker
-                                before="Показатели степени можно перенести перед логарифмом. Показатель аргумента "
-                                leadNumber={M}
-                                leadMid=" становится "
-                                word="числителем"
-                                after=" дроби."
-                                color={M_COLOR}
-                                onSettled={() => setStepReady(true)}
-                            />
+                            <Step2Scene onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}
 
-                {/* Шаг 3 — 3 (показатель основания) сносится в знаменатель,
-                    стрелка от 3-в-степени к 3-в-знаменателе. */}
+                {/* Шаг 3 — 3 (показатель основания) сносится в знаменатель;
+                    формула → пауза → стрелка → пауза → текст (Step3Scene). */}
                 {step >= 3 && (
                     <SceneWrapper key="step-3" innerRef={sceneRef('step-3')} active={isSceneActive('step-3')}>
                         <Fragment key={`step-3-${nonceFor('step-3')}`}>
-                            <DiagramBlock>
-                                {/* pb-12 — запас снизу, чтобы дуга стрелки (мост
-                                    ниже обоих концов) не налезала на текст ПОД
-                                    диаграммой этой же сцены. */}
-                                <div ref={step3Ref} className="relative w-full pb-12">
-                                    <PowFormula exponentsAsStickers showRHS numeratorFilled denominatorFilled />
-                                    <TravelArrow containerRef={step3Ref} fromMarker="exp-n" toMarker="den-target" color={N_COLOR} curve="down" />
-                                </div>
-                            </DiagramBlock>
-                            <TypedLineWithSticker
-                                before="А показатель основания "
-                                leadNumber={N}
-                                leadMid=" становится "
-                                word="знаменателем"
-                                after="."
-                                color={N_COLOR}
-                                onSettled={() => setStepReady(true)}
-                            />
+                            <Step3Scene onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}
