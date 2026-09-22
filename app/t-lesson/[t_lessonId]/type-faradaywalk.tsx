@@ -66,11 +66,13 @@ type Props = {
 // вводим отдельно от прочих", см. CLAUDE.md).
 const FIELD_COLOR = GGEGE_PALETTE.blue.button
 
-// Полюса магнита — свои цвета (сцены 2/3): северный тем же синим, что и
-// поле/буква B (одна история — "поле выходит здесь"); южный — красным
-// (по прямой просьбе пользователя, "северный синим, южный красным").
-const NORTH_COLOR = FIELD_COLOR
-const SOUTH_COLOR = WRONG_COLOR
+// Полюса магнита — свои цвета (сцены 2/3): северный красным, южный
+// синим — стандартная раскраска компаса/магнита (по прямой просьбе
+// пользователя — было наоборот, исправлено). Переиспользуют уже
+// существующие в проекте hex-значения (WRONG_COLOR/FIELD_COLOR), не
+// изобретают новые.
+const NORTH_COLOR = WRONG_COLOR
+const SOUTH_COLOR = FIELD_COLOR
 
 const FLUX_COLOR = GGEGE_PALETTE.purple.button
 const CURRENT_COLOR = GGEGE_PALETTE.orange.button
@@ -427,16 +429,11 @@ const DirectionDiagram = () => {
     return (
         <div className="flex w-full justify-center py-3">
             <svg viewBox="0 0 240 100" className="h-[105px] w-[252px]">
-                {/* Пользователь явно попросил именно "красный N слева и
-                    синий S справа" — ЗЕРКАЛЬНО той раскраске, что была у
-                    подсветки полюсов на вертикальном магните выше
-                    (там N=синий/SOUTH=красный, см. сцены 2/3) — здесь
-                    намеренно SOUTH_COLOR/NORTH_COLOR используются
-                    "наоборот" (SOUTH_COLOR=красный красит N,
-                    NORTH_COLOR=синий красит S), а не новые hex-значения. */}
-                <rect x={20} y={30} width={40} height={40} rx={7} fill={SOUTH_COLOR} />
+                {/* N — красный (NORTH_COLOR), S — синий (SOUTH_COLOR) —
+                    та же стандартная раскраска, что и в сценах 2/3. */}
+                <rect x={20} y={30} width={40} height={40} rx={7} fill={NORTH_COLOR} />
                 <text x={40} y={56} textAnchor="middle" fontSize={17} fontWeight={800} fill="#fff">N</text>
-                <rect x={180} y={30} width={40} height={40} rx={7} fill={NORTH_COLOR} />
+                <rect x={180} y={30} width={40} height={40} rx={7} fill={SOUTH_COLOR} />
                 <text x={200} y={56} textAnchor="middle" fontSize={17} fontWeight={800} fill="#fff">S</text>
                 <motion.line
                     x1={DIR_X1} y1={DIR_Y} x2={DIR_X2} y2={DIR_Y}
