@@ -363,6 +363,24 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
     // стрелки-подписи, и для точки, откуда стрелка "выезжает".
     const outward = (mid: Pt, third: Pt, dist: number): Pt => add(mid, scale(norm(sub(mid, third)), dist))
 
+    // СТРОГО перпендикулярный отступ от стороны (a→b), в отличие от
+    // outward() выше — та толкает точку от третьей вершины по прямой
+    // "mid→third", что для этого треугольника (третья вершина не строго
+    // напротив середины стороны) даёт ДИАГОНАЛЬНЫЙ снос вдоль самой
+    // стороны: реальный баг, пойманный пользователем — 2-строчная подпись
+    // "прилежащий катет" визуально съезжала не по центру катета, а чуть
+    // вбок. Здесь считается настоящий перпендикуляр к (b-a), а знак
+    // (какая из двух перпендикулярных сторон — "наружу") выбирается через
+    // скалярное произведение с направлением на третью вершину, тем же
+    // смыслом, что и раньше ("подальше от неё"), но без диагонального сноса.
+    const outwardPerp = (a: Pt, b: Pt, mid: Pt, third: Pt, dist: number): Pt => {
+        const dir = norm(sub(b, a))
+        let perp = { x: -dir.y, y: dir.x }
+        const toThird = sub(third, mid)
+        if (perp.x * toThird.x + perp.y * toThird.y > 0) perp = { x: -perp.x, y: -perp.y }
+        return add(mid, scale(perp, dist))
+    }
+
     // Отступы уменьшены относительно прежней версии со стрелками — без
     // стрелки подписи не нужно держать далеко от линии, только не
     // перекрывать саму сторону. По прямой просьбе пользователя ("подписи
@@ -372,11 +390,13 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
     const hypLabelPt = outward(hypMid, R, 26)
     const legRQLabelPt = outward(legRQMid, P, 22)
     const legRPLabelPt = outward(legRPMid, Q, 18)
-    // "противолежащий катет" теперь в ДВЕ строки (см. SideLabel.lines) —
-    // отступ заметно больше, чем у обычной однострочной "катет", чтобы обе
-    // строки уместились, не наезжая на саму сторону треугольника.
-    const legRQLabelPtWide = outward(legRQMid, P, 40)
-    const legRPLabelPtWide = outward(legRPMid, Q, 34)
+    // "противолежащий"/"прилежащий катет" — ДВЕ строки (см. SideLabel.
+    // lines), поэтому и центрирование (outwardPerp, не outward — см. выше)
+    // важнее, и отступ заметно больше однострочной "катет" (обе строки не
+    // наезжают на саму сторону), а по прямой просьбе пользователя ("текст
+    // очень близко") — ещё чуть дальше, чем было.
+    const legRQLabelPtWide = outwardPerp(R, Q, legRQMid, P, 50)
+    const legRPLabelPtWide = outwardPerp(R, P, legRPMid, Q, 44)
 
     // Маленький квадратик прямого угла — из единичных векторов вдоль
     // обеих сторон, исходящих из R (корректно поворачивается вместе с

@@ -27,7 +27,7 @@
 
 'use client'
 
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Check, X } from 'lucide-react'
 import type { QuestionType } from './page'
@@ -301,15 +301,26 @@ const AdjacentRecapScene = ({ onSettled }: { onSettled?: () => void }) => {
 }
 
 // Шаг "adj-1" — второй катет (рядом с α, "нижний" на этой диаграмме —
-// R-P) получает своё название. Диаграмма показывает его СНАЧАЛА обычным
-// зелёным "катет" (как и раньше), а ровно В МОМЕНТ, когда слово
-// "прилежащий" в тексте допечатывается и превращается в стикер (onTyped,
-// см. TypedLineWithSticker выше) — катет подсвечивается и
-// переименовывается в "прилежащий катет" (тот же "стандарт подсветки
-// стороны", что уже используется для противолежащего катета: толстая
-// цветная линия поверх базовой + 2-строчная подпись).
+// R-P) получает своё название. По прямой просьбе пользователя — ТРИ
+// РАЗНЕСЁННЫХ ВО ВРЕМЕНИ БИТА, не одновременно: (1) сначала доигрывает
+// СОБСТВЕННАЯ entrance-анимация диаграммы (гипотенуза+противолежащий
+// катет рисуются при монтировании — тот же STEP2_SETTLE_MS, что и в
+// AdjacentRecapScene выше), прилежащий катет всё ещё обычный зелёный
+// "катет"; (2) только ПОТОМ (после паузы) начинает печататься текст;
+// (3) и только ПОСЛЕ ТОГО, как текст полностью допечатан (не одновременно
+// со стикером "прилежащий" в тексте, как было раньше) — ещё одна пауза, и
+// уже тогда катет подсвечивается/переименовывается в "прилежащий катет"
+// (тот же "стандарт подсветки стороны" — толстая линия + 2-строчная
+// подпись). onSettled (разблокирует кнопку) ждёт ВСЮ цепочку целиком —
+// до конца собственной draw+bounce анимации самого прилежащего катета,
+// не раньше.
 const AdjacentSwapScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [textVisible, setTextVisible] = useState(false)
     const [swapped, setSwapped] = useState(false)
+    useEffect(() => {
+        const t = setTimeout(() => setTextVisible(true), STEP2_SETTLE_MS + DIAGRAM_TO_TEXT_PAUSE_MS)
+        return () => clearTimeout(t)
+    }, [])
     return (
         <>
             <DiagramBlock>
@@ -319,15 +330,21 @@ const AdjacentSwapScene = ({ onSettled }: { onSettled?: () => void }) => {
                     adjacentLegHighlighted={swapped} adjacentLegLabelShown={swapped}
                 />
             </DiagramBlock>
-            <TypedLineWithSticker
-                before="Катет рядом с углом α называется "
-                plainTextForTyping="прилежащий"
-                stickerContent="прилежащий"
-                stickerColor={ADJACENT_LEG_COLOR}
-                after="."
-                onTyped={() => setSwapped(true)}
-                onSettled={onSettled}
-            />
+            {textVisible && (
+                <TypedLineWithSticker
+                    before="Катет рядом с углом α называется "
+                    plainTextForTyping="прилежащий"
+                    stickerContent="прилежащий"
+                    stickerColor={ADJACENT_LEG_COLOR}
+                    after="."
+                    onTyped={() => {
+                        setTimeout(() => {
+                            setSwapped(true)
+                            setTimeout(() => onSettled?.(), STEP2_SETTLE_MS)
+                        }, DIAGRAM_TO_TEXT_PAUSE_MS)
+                    }}
+                />
+            )}
         </>
     )
 }
@@ -559,29 +576,53 @@ export const TypeSinWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) =>
         jumpToScene(target)
     }
 
-    // ===== Админская "карта сцен" (справа от урока) — по прямой просьбе
-    // пользователя: при тестировании не прощёлкивать урок с нуля, а
-    // прыгнуть сразу в нужную сцену. Полный список ключей в ПОРЯДКЕ
-    // прохождения — те же ключи, что использует latestSceneKey/
-    // prevSceneKeyOf выше, просто перечислены все разом, а не только
-    // "предыдущий". trialConfigs.length (не TRIAL_COUNT) — на случай,
-    // если реальное число тренировочных заданий когда-нибудь начнёт
-    // отличаться от начального.
-    const allSceneKeys = [
-        ...Array.from({ length: INTRO_STEPS }, (_, i) => `step-${i}`),
-        ...Array.from({ length: trialConfigs.length }, (_, i) => `trial-${i}`),
-        ...Array.from({ length: ADJACENT_STEPS }, (_, i) => `adj-${i}`),
+    // ===== Админская "карта этапов" (справа от урока, вертикальный
+    // слайдер-кружочками — та же идея, что уже проверена в ChallengeNav
+    // (app/lesson/challenge-nav.tsx, /lesson/376): активный пункт всегда
+    // автоскроллится в кадр через scrollIntoView, просто здесь — по
+    // вертикали (block:'center', не inline:'center') и кружочками вместо
+    // нумерованных квадратов. По прямой просьбе пользователя — ВСЕ 4
+    // тренировочных задания схлопнуты в ОДИН кружок-ссылку на первое
+    // задание блока (иначе не хватало места; если позже появится второй
+    // такой блок задач — для него нужен свой отдельный entry этой же
+    // формы, сейчас в компоненте структурно ровно один блок практики).
+    // Каждый entry знает СВОЙ цвет и активен ли он ПРЯМО СЕЙЧАС — то же
+    // сравнение с phase/step/trialIndex/adjStep, что уже используют
+    // isSceneActive/latestSceneKey выше, просто на уровне ГРУППЫ, а не
+    // отдельной сцены (вся практика активна, пока phase==='practice',
+    // независимо от того, какое именно задание внутри блока сейчас).
+    const sceneMapEntries: { dotKey: string; label: string; jumpKey: string; isActive: boolean; color: string }[] = [
+        ...Array.from({ length: INTRO_STEPS }, (_, i) => ({
+            dotKey: `step-${i}`,
+            label: ['Треугольник', 'Прямой угол', 'Гипотенуза', 'Угол α', 'Противолежащий катет'][i] ?? `Шаг ${i + 1}`,
+            jumpKey: `step-${i}`,
+            isActive: phase === 'intro' && step === i,
+            color: '#8B98A1',
+        })),
+        {
+            dotKey: 'practice-block',
+            label: `Тренировка (${trialConfigs.length} заданий)`,
+            jumpKey: 'trial-0',
+            isActive: phase === 'practice',
+            color: GGEGE_PALETTE.blue.button,
+        },
+        ...Array.from({ length: ADJACENT_STEPS }, (_, i) => ({
+            dotKey: `adj-${i}`,
+            label: ['Recap: противолежащий катет', 'Прилежащий катет'][i] ?? `Adj ${i + 1}`,
+            jumpKey: `adj-${i}`,
+            isActive: phase === 'adjacent' && adjStep === i,
+            color: ADJACENT_LEG_COLOR,
+        })),
     ]
-    const STEP_LABELS = ['Треугольник', 'Прямой угол', 'Гипотенуза', 'Угол α', 'Противолежащий катет']
-    const ADJ_LABELS = ['Recap: противолежащий катет', 'Прилежащий катет']
-    const sceneLabel = (key: string): string => {
-        if (key.startsWith('step-')) return STEP_LABELS[Number(key.slice('step-'.length))] ?? key
-        if (key.startsWith('trial-')) return `Тренировка ${Number(key.slice('trial-'.length)) + 1}`
-        if (key.startsWith('adj-')) return ADJ_LABELS[Number(key.slice('adj-'.length))] ?? key
-        return key
-    }
-    const sceneDotColor = (key: string): string =>
-        key.startsWith('adj-') ? ADJACENT_LEG_COLOR : key.startsWith('trial-') ? GGEGE_PALETTE.blue.button : '#8B98A1'
+    const activeSceneMapIndex = sceneMapEntries.findIndex((e) => e.isActive)
+    // Автопрокрутка карты этапов к активному кружку — тот же ref+
+    // scrollIntoView паттерн, что уже проверен в ChallengeNav, срабатывает
+    // на КАЖДУЮ смену активной сцены (не только на монтирование), поэтому
+    // "слайдится" при переходе между ЛЮБЫМИ этапами, не только с первого.
+    const activeDotRef = useRef<HTMLButtonElement>(null)
+    useEffect(() => {
+        activeDotRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
+    }, [latestSceneKey])
 
     return (
         <div className={`w-full mx-auto flex flex-row items-start gap-3 ${isAdmin ? 'max-w-[46rem]' : 'max-w-2xl'}`}>
@@ -820,40 +861,47 @@ export const TypeSinWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) =>
             )}
         </div>
 
-        {/* Админская карта сцен — sticky-колонка справа (внутри того же
+        {/* Админская карта этапов — sticky-колонка справа (внутри того же
             overflow-y-auto контейнера, что и весь урок, см. trainer-
             question.tsx, — поэтому sticky "следует" за скроллом лога, а
             не fixed относительно viewport: framer-motion-обёртки выше по
             дереву задают transform, который сделал бы position:fixed
-            позиционированным относительно НИХ, а не окна). Кружок —
-            текущая сцена (крупнее, залит цветом фазы), клик — мгновенный
-            прыжок (jumpToScene), не только на соседнюю. Видна ТОЛЬКО
-            isAdmin — обычным ученикам не рендерится вовсе. */}
+            позиционированным относительно НИХ, а не окна). Сама колонка
+            кружков — СВОЙ вертикальный overflow-y-auto с ограниченной
+            высотой (max-h) + автоскролл активного в центр (activeDotRef,
+            см. выше) — тот же "слайдер, где всегда видно текущую позицию"
+            приём, что и в ChallengeNav (/lesson/376), просто по вертикали
+            и кружочками, а не горизонтальной строкой нумерованных кнопок.
+            Видна ТОЛЬКО isAdmin — обычным ученикам не рендерится вовсе. */}
         {isAdmin && (
             <div className="shrink-0 sticky top-4 flex flex-col items-center gap-1.5 py-2">
-                <div className="text-[9px] text-[#6B7A83] font-bold tracking-wide mb-1">СЦЕНЫ</div>
-                {allSceneKeys.map((key) => {
-                    const isCurrentScene = key === latestSceneKey
-                    const color = sceneDotColor(key)
-                    return (
+                <div className="text-[9px] text-[#6B7A83] font-bold tracking-wide mb-1">ЭТАПЫ</div>
+                <div
+                    className="flex flex-col items-center gap-2 max-h-[46vh] overflow-y-auto py-1 [&::-webkit-scrollbar]:hidden"
+                    style={{ scrollbarWidth: 'none' }}
+                >
+                    {sceneMapEntries.map((entry) => (
                         <button
-                            key={key}
+                            key={entry.dotKey}
+                            ref={entry.isActive ? activeDotRef : undefined}
                             type="button"
-                            title={sceneLabel(key)}
-                            onClick={() => jumpToScene(key)}
+                            title={entry.label}
+                            onClick={() => jumpToScene(entry.jumpKey)}
                             disabled={advancing}
-                            className="rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="rounded-full transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
                             style={{
-                                width: isCurrentScene ? 16 : 9,
-                                height: isCurrentScene ? 16 : 9,
-                                backgroundColor: isCurrentScene ? color : hexToRgba(color, 0.4),
-                                border: isCurrentScene ? '2px solid #F2F7FB' : 'none',
+                                width: entry.isActive ? 16 : 9,
+                                height: entry.isActive ? 16 : 9,
+                                backgroundColor: entry.isActive ? entry.color : hexToRgba(entry.color, 0.4),
+                                border: entry.isActive ? '2px solid #F2F7FB' : 'none',
                             }}
                         />
-                    )
-                })}
+                    ))}
+                </div>
                 <div className="text-[9px] text-[#6B7A83] mt-1 whitespace-nowrap">
-                    {allSceneKeys.indexOf(latestSceneKey) + 1}/{allSceneKeys.length}
+                    {phase === 'practice'
+                        ? `Тренировка ${trialIndex + 1}/${trialConfigs.length}`
+                        : `${activeSceneMapIndex + 1}/${sceneMapEntries.length}`}
                 </div>
             </div>
         )}
