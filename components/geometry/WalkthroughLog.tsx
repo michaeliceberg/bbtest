@@ -22,7 +22,7 @@ import { useWindowSize } from 'react-use'
 import { ArrowLeft, RotateCcw } from 'lucide-react'
 import { HighlightWord } from './WalkthroughMarker'
 import { Typewriter } from './Typewriter'
-import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors'
+import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { LOTTIE_STEP_BY_STEP_FIERY_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
 import { cn } from '@/lib/utils'
 
@@ -322,6 +322,105 @@ export const ReplayButton = ({ onClick, disabled }: { onClick: () => void; disab
         <RotateCcw className="w-5 h-5" />
     </button>
 )
+
+// ===== Админская "карта этапов" — ШАБЛОННЫЙ переиспользуемый компонент
+// (по прямой просьбе пользователя, утверждён на SINWALK 2026-09-23) —
+// вертикальный столбик пронумерованных кружков-ссылок, позволяющий
+// admin'у прыгать в любую сцену разбора, не проходя урок заново. Любой
+// новый *WALK-разбор подключает его ОДНОЙ строкой:
+//   {isAdmin && <AdminSceneMap entries={...} onJump={jumpToScene} disabled={advancing} />}
+// без единого доп. ref/effect в самом файле разбора — вся логика (в т.ч.
+// автоскролл активного кружка и позиционирование панели) — здесь.
+//
+// Цветовая конвенция (см. историю в CLAUDE.md): вводные/обучающие сцены —
+// нейтральный серый (MAP_INTRO_COLOR), а ВЕСЬ тренировочный блок
+// (сколько бы заданий в нём ни было) — ОДИН кружок красного цвета
+// (MAP_PRACTICE_COLOR), не по кружку на каждое упражнение — иначе карта
+// быстро раздувается для уроков с большим числом тренировочных заданий.
+// Любые сцены ПОСЛЕ тренировки (recap/новый материал и т.п.) — снова
+// серые, как и вводные, если явно не задумана своя роль.
+export const MAP_INTRO_COLOR = '#8B98A1'
+export const MAP_PRACTICE_COLOR = '#DC605B'
+
+export type AdminMapEntry = { dotKey: string; label: string; jumpKey: string; isActive: boolean; color: string }
+
+export const AdminSceneMap = ({ entries, onJump, disabled }: { entries: AdminMapEntry[]; onJump: (jumpKey: string) => void; disabled?: boolean }) => {
+    // position:sticky для этой панели на практике НЕ работает — ближайший
+    // "overflow-y-auto" предок (motion.div вопроса в components/trainer-
+    // question.tsx) сам никогда не скроллится (его высота просто растёт
+    // вместе с контентом внутри min-h-screen, а не h-screen с реально
+    // ограниченной высотой) — реальный скролл идёт на уровне <html>.
+    // sticky, посчитанный относительно якоря, который сам никогда не
+    // скроллится, не отражает реальный скролл страницы вообще
+    // (подтверждено живьём — top уезжал в -474px при scrollY=614) — карта
+    // просто уезжала за пределы экрана вместо того, чтобы "тащиться" за
+    // пользователем. Исправлено настоящим position:fixed — он всегда
+    // честно относительно вьюпорта. Узкий spacer остаётся в потоке
+    // (резервирует место в родительском flex-row, чтобы основной контент
+    // не растягивался в область панели), видимая панель — fixed с left,
+    // посчитанным по позиции spacer'а (top у fixed вычислять не нужно —
+    // он и так всегда 16px от вьюпорта, независимо от скролла).
+    const sidebarSpacerRef = useRef<HTMLDivElement>(null)
+    const [sidebarLeft, setSidebarLeft] = useState<number | null>(null)
+    useEffect(() => {
+        const update = () => {
+            if (sidebarSpacerRef.current) setSidebarLeft(sidebarSpacerRef.current.getBoundingClientRect().left)
+        }
+        update()
+        window.addEventListener('resize', update)
+        return () => window.removeEventListener('resize', update)
+    }, [])
+
+    // Автопрокрутка карты к активному кружку — тот же ref+scrollIntoView
+    // паттерн, что уже проверен в ChallengeNav (/lesson/376), срабатывает
+    // на КАЖДУЮ смену активной сцены. Панель — настоящий position:fixed,
+    // поэтому этот scrollIntoView трогает ТОЛЬКО собственный маленький
+    // overflow-y-auto список кружков, не всю страницу.
+    const activeDotRef = useRef<HTMLButtonElement>(null)
+    const activeIdx = entries.findIndex((e) => e.isActive)
+    const activeKey = entries[activeIdx]?.dotKey
+    useEffect(() => {
+        activeDotRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
+    }, [activeKey])
+
+    return (
+        <>
+            <div ref={sidebarSpacerRef} className="shrink-0 w-11" />
+            {sidebarLeft !== null && (
+                <div className="fixed z-30 flex flex-col items-center gap-1.5 py-2 w-11" style={{ top: 16, left: sidebarLeft }}>
+                    <div className="text-[9px] text-[#6B7A83] font-bold tracking-wide mb-1">ЭТАПЫ</div>
+                    <div
+                        className="flex flex-col items-center gap-2 max-h-[70vh] overflow-y-auto py-1 [&::-webkit-scrollbar]:hidden"
+                        style={{ scrollbarWidth: 'none' }}
+                    >
+                        {entries.map((entry, idx) => (
+                            <button
+                                key={entry.dotKey}
+                                ref={entry.isActive ? activeDotRef : undefined}
+                                type="button"
+                                title={entry.label}
+                                onClick={() => onJump(entry.jumpKey)}
+                                disabled={disabled}
+                                className="rounded-full transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 flex items-center justify-center font-black leading-none"
+                                style={{
+                                    width: entry.isActive ? 22 : 16,
+                                    height: entry.isActive ? 22 : 16,
+                                    fontSize: entry.isActive ? 10 : 8,
+                                    backgroundColor: entry.isActive ? entry.color : hexToRgba(entry.color, 0.4),
+                                    border: entry.isActive ? '2px solid #F2F7FB' : 'none',
+                                    color: '#F2F7FB',
+                                }}
+                            >
+                                {idx + 1}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="text-[9px] text-[#6B7A83] mt-1 whitespace-nowrap">{activeIdx + 1}/{entries.length}</div>
+                </div>
+            )}
+        </>
+    )
+}
 
 // Конфетти на "локальный" верный ответ ВНУТРИ разбора по шагам — по
 // прямой просьбе пользователя, во ВСЕХ таких разборах (SINWALK, LOGWALK
