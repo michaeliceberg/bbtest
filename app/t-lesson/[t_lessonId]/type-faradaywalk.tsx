@@ -293,6 +293,13 @@ const FlowArrows = ({ lines, cx, color }: { lines: { a: Ellipse; side: -1 | 1 }[
 // автоматически "выше" тоже, без отдельной настройки).
 const FIELD_RX_LIST = [60, 95, 135]
 
+// Сколько реально осядет отрисовка силовых линий (draw-in штрихов —
+// см. transition в MagnetFieldLines ниже, duration 0.9с с шагом delay
+// floor(i/2)*0.22с на 6 линий) — переиспользуется и самой диаграммой
+// (когда начинать бегущие стрелочки/стикеры B), и сценами разбора (когда
+// считать "анимация нарисована" и переходить дальше по паузе).
+const FIELD_LINES_SETTLE_MS = FIELD_RX_LIST.length * 220 + 900
+
 // Стикер "B" рядом с самой крайней дугой — по прямой просьбе пользователя,
 // подписываем сами линии как линии поля B (тот же визуальный язык, что и
 // у HTML-стикера Sticker в тексте — цветная рамка+подложка+жирная буква,
@@ -331,7 +338,7 @@ const MagnetFieldLines = ({ x, top, color, flowing = false }: { x: number; top: 
     const yN = top + MAG_H
     const yS = top
     const [started, setStarted] = useState(false)
-    const entranceMs = FIELD_RX_LIST.length * 220 + 900
+    const entranceMs = FIELD_LINES_SETTLE_MS
     useEffect(() => {
         if (!flowing) return
         const t = setTimeout(() => setStarted(true), entranceMs)
@@ -385,10 +392,13 @@ const MAG_CX = FIELD_VIEW_W / 2
 const MAG_TOP = 208
 
 // Диаграмма-снимок сцены 0/1 — магнит по центру своего собственного
-// SVG-полотна (без кольца — оно появится в следующей сцене).
+// SVG-полотна (без кольца — оно появится в следующей сцене). Рендер-размер
+// увеличен на 50% (540×405, было 360×270) по прямой просьбе пользователя —
+// viewBox (внутренняя геометрия) не менялся, только то, во сколько раз она
+// растянута на экране.
 const MagnetIntroDiagram = ({ withField }: { withField: boolean }) => (
     <div className="flex w-full justify-center py-2">
-        <svg viewBox={`0 0 ${FIELD_VIEW_W} ${FIELD_VIEW_H}`} className="h-[360px] w-[270px]">
+        <svg viewBox={`0 0 ${FIELD_VIEW_W} ${FIELD_VIEW_H}`} className="h-[540px] w-[405px]">
             {withField && <MagnetFieldLines x={MAG_CX} top={MAG_TOP} color={FIELD_COLOR} flowing />}
             <MagnetShape x={MAG_CX} top={MAG_TOP} />
         </svg>
@@ -961,6 +971,203 @@ const FluxScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
+// ===== Сцены ConceptPhase — по прямой просьбе пользователя (2026-09-23)
+// каждая раскрывается СТРОГО последовательно: сначала диаграмма/анимация,
+// пауза, потом текст (а не всё разом, как раньше) — тот же принцип,
+// уже применённый ко всем *WALK-разборам логарифмов. Длительность паузы
+// до/после текста — уже существующий CONCEPT_PAUSE_MS; для сцен, где
+// диаграмма сама что-то рисует (не просто fade-in), пауза до текста
+// дополнительно ждёт FIELD_LINES_SETTLE_MS/время draw-in кольца — чтобы
+// текст появлялся ПОСЛЕ того, как анимация реально дорисовалась, а не
+// поверх ещё рисующейся картинки.
+
+// Шаг 1 — магнит с полем сразу → пауза (дожидаясь конца draw-in силовых
+// линий) → текст про поле B → пауза → текст про единицу измерения.
+const Step1Scene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setPhase(1), FIELD_LINES_SETTLE_MS + CONCEPT_PAUSE_MS)}>
+                <MagnetIntroDiagram withField />
+            </DiagramBlock>
+            {phase >= 1 && (
+                <TypedLineWithParts
+                    parts={[
+                        { text: 'Магнит создаёт вокруг себя ' },
+                        { sticker: 'магнитное поле', color: FIELD_COLOR },
+                        { text: ' — обозначается буквой ' },
+                        { sticker: 'B', color: FIELD_COLOR },
+                        { text: '.' },
+                    ]}
+                    onSettled={() => setTimeout(() => setPhase(2), CONCEPT_PAUSE_MS)}
+                />
+            )}
+            {phase >= 2 && (
+                <TypedLineWithParts
+                    parts={[
+                        { text: 'Магнитное поле измеряется в ' },
+                        { sticker: 'Тесла (Тл)', color: FIELD_COLOR },
+                        { text: '.' },
+                    ]}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// Шаги 2/3 — общий компонент (структура идентична, отличаются только
+// highlight/подсвечиваемое слово/цвет): диаграмма сразу → пауза (ждём
+// draw-in бледных силовых линий) → текст.
+const PoleScene = ({
+    highlight, leadWord, color, onSettled,
+}: { highlight: 'N' | 'S'; leadWord: string; color: string; onSettled?: () => void }) => {
+    const [textVisible, setTextVisible] = useState(false)
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setTextVisible(true), FIELD_LINES_SETTLE_MS + CONCEPT_PAUSE_MS)}>
+                <MagnetPoleDiagram highlight={highlight} />
+            </DiagramBlock>
+            {textVisible && (
+                <TypedLineWithParts
+                    parts={[
+                        { text: highlight === 'N' ? 'У магнита есть ' : 'И ' },
+                        { sticker: leadWord, color },
+                        { text: ' полюс ' },
+                        { sticker: highlight, color },
+                        { text: '.' },
+                    ]}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// Шаг 4 — баннер "ЗАПОМНИ!" (Лотти) сразу → пауза → текст про направление
+// N→S → пауза → схема "распиленного" магнита с бегущей стрелкой.
+const Step4Scene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setPhase(1), CONCEPT_PAUSE_MS)}>
+                <DirectionRememberBanner />
+            </DiagramBlock>
+            {phase >= 1 && (
+                <TypedLineWithParts
+                    parts={[
+                        { text: 'Линии магнитного поля всегда идут' },
+                        { break: true },
+                        { text: 'от ' },
+                        { sticker: 'N', color: NORTH_COLOR },
+                        { text: ' (северный) к ' },
+                        { sticker: 'S', color: SOUTH_COLOR },
+                        { text: ' (южный).' },
+                    ]}
+                    onSettled={() => setTimeout(() => setPhase(2), CONCEPT_PAUSE_MS)}
+                />
+            )}
+            {phase >= 2 && (
+                <DiagramBlock onSettled={onSettled}>
+                    <DirectionDiagram />
+                </DiagramBlock>
+            )}
+        </>
+    )
+}
+
+// Шаг 5 — текст "это кольцо" сразу → пауза → рисуем кольцо (draw-in) →
+// пауза (ждём завершения draw-in) → пара текстов "Важно.../Чтобы..."
+// (печатаются друг за другом, не параллельно).
+const Step5Scene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    return (
+        <>
+            <TypedLineWithParts
+                parts={[
+                    { text: 'А это металлическое ' },
+                    { sticker: 'кольцо', color: RING_COLOR },
+                    { text: '.' },
+                ]}
+                onSettled={() => setTimeout(() => setPhase(1), CONCEPT_PAUSE_MS)}
+            />
+            {phase >= 1 && (
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 800 + CONCEPT_PAUSE_MS)}>
+                    <RingIntroDiagram hatched={false} />
+                </DiagramBlock>
+            )}
+            {phase >= 2 && (
+                <TypedLine
+                    text="Важно что оно металлическое!"
+                    className="w-full text-center text-base md:text-lg font-extrabold text-[#F2F7FB]"
+                    onSettled={() => setPhase(3)}
+                />
+            )}
+            {phase >= 3 && (
+                <TypedLine
+                    text="Чтобы проводило электричество."
+                    className="w-full text-center text-base md:text-lg text-[#F2F7FB]"
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// Шаг 6 — кольцо (заштрихованное, со стикером S) сразу → пауза → текст.
+const Step6Scene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [textVisible, setTextVisible] = useState(false)
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setTextVisible(true), 800 + CONCEPT_PAUSE_MS)}>
+                <RingIntroDiagram hatched />
+            </DiagramBlock>
+            {textVisible && (
+                <TypedLineWithParts
+                    parts={[
+                        { text: 'У кольца самое главное — его площадь ' },
+                        { sticker: 'S', color: RING_COLOR },
+                        { text: '.' },
+                    ]}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// Шаг 7 — риски-диаграмма (все объекты: магнит, риски, кольцо, стрелочки
+// поля) сразу → пауза → текст. "Дальше" остаётся гейтиться РЕАЛЬНЫМ
+// взаимодействием пользователя с риской (DistanceScene.onSettled,
+// см. её определение выше) — НЕЗАВИСИМО от таймера текста: onReady
+// приходит из DistanceScene по клику, не по паузе.
+const Step7Scene = ({ onReady }: { onReady: () => void }) => {
+    const [textVisible, setTextVisible] = useState(false)
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setTextVisible(true), CONCEPT_PAUSE_MS)}>
+                <DistanceScene onSettled={onReady} />
+            </DiagramBlock>
+            {textVisible && (
+                <TypedLineWithParts
+                    parts={[
+                        { text: 'Придвинь магнит к кольцу — заметь,' },
+                        { break: true },
+                        { text: 'чем ' },
+                        { bold: 'БЛИЖЕ' },
+                        { text: ' магнит к кольцу, тем ' },
+                        { bold: 'БОЛЬШЕ' },
+                        { break: true },
+                        { text: 'магнитное поле ' },
+                        { sticker: 'B', color: FIELD_COLOR },
+                        { text: '.' },
+                    ]}
+                />
+            )}
+        </>
+    )
+}
+
 const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
     const [step, setStep] = useState(0)
     const [stepReady, setStepReady] = useState(false)
@@ -1008,183 +1215,70 @@ const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
                     </Fragment>
                 </SceneWrapper>
 
-                {/* Шаг 1 — магнит создаёт вокруг себя магнитное поле B;
-                    диаграмма дорисовывает силовые линии тем же цветом;
-                    затем единица измерения — Тесла (Тл). */}
+                {/* Шаг 1 — магнит с полем → пауза → "магнитное поле B" →
+                    пауза → единица измерения (Step1Scene). */}
                 {step >= 1 && (
                     <SceneWrapper key="step-1" innerRef={sceneRef('step-1')} active={isSceneActive('step-1')}>
                         <Fragment key={`step-1-${nonceFor('step-1')}`}>
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'Магнит создаёт вокруг себя ' },
-                                    { sticker: 'магнитное поле', color: FIELD_COLOR },
-                                    { text: ' — обозначается буквой ' },
-                                    { sticker: 'B', color: FIELD_COLOR },
-                                    { text: '.' },
-                                ]}
-                            />
-                            <DiagramBlock>
-                                <MagnetIntroDiagram withField />
-                            </DiagramBlock>
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'Магнитное поле измеряется в ' },
-                                    { sticker: 'Тесла (Тл)', color: FIELD_COLOR },
-                                    { text: '.' },
-                                ]}
-                                onSettled={() => setStepReady(true)}
-                            />
+                            <Step1Scene onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}
 
-                {/* Шаг 2 — у магнита есть северный полюс N (линии
-                    бледнеют, подсвечивается нижний край магнита синим). */}
+                {/* Шаг 2 — северный полюс N → пауза → текст (PoleScene). */}
                 {step >= 2 && (
                     <SceneWrapper key="step-2" innerRef={sceneRef('step-2')} active={isSceneActive('step-2')}>
                         <Fragment key={`step-2-${nonceFor('step-2')}`}>
-                            <DiagramBlock>
-                                <MagnetPoleDiagram highlight="N" />
-                            </DiagramBlock>
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'У магнита есть ' },
-                                    { sticker: 'северный', color: NORTH_COLOR },
-                                    { text: ' полюс ' },
-                                    { sticker: 'N', color: NORTH_COLOR },
-                                    { text: '.' },
-                                ]}
-                                onSettled={() => setStepReady(true)}
-                            />
+                            <PoleScene highlight="N" leadWord="северный" color={NORTH_COLOR} onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}
 
-                {/* Шаг 3 — и южный полюс S (наоборот: всё бледное, кроме
-                    верхнего края магнита, он красный). */}
+                {/* Шаг 3 — южный полюс S → пауза → текст (PoleScene). */}
                 {step >= 3 && (
                     <SceneWrapper key="step-3" innerRef={sceneRef('step-3')} active={isSceneActive('step-3')}>
                         <Fragment key={`step-3-${nonceFor('step-3')}`}>
-                            <DiagramBlock>
-                                <MagnetPoleDiagram highlight="S" />
-                            </DiagramBlock>
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'И ' },
-                                    { sticker: 'южный', color: SOUTH_COLOR },
-                                    { text: ' полюс ' },
-                                    { sticker: 'S', color: SOUTH_COLOR },
-                                    { text: '.' },
-                                ]}
-                                onSettled={() => setStepReady(true)}
-                            />
+                            <PoleScene highlight="S" leadWord="южный" color={SOUTH_COLOR} onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}
 
-                {/* Шаг 4 — важное правило направления: линии поля всегда
-                    идут от N к S. Баннер "ЗАПОМНИ!" (тот же стиль, что в
-                    разборе логарифмов) + упрощённая горизонтальная схема
-                    "распиленного" магнита с бегущей слева направо
-                    стрелочкой. */}
+                {/* Шаг 4 — баннер ЗАПОМНИ → пауза → текст N→S → пауза →
+                    схема направления (Step4Scene). */}
                 {step >= 4 && (
                     <SceneWrapper key="step-4" innerRef={sceneRef('step-4')} active={isSceneActive('step-4')}>
                         <Fragment key={`step-4-${nonceFor('step-4')}`}>
-                            <DiagramBlock><DirectionRememberBanner /></DiagramBlock>
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'Линии магнитного поля всегда идут' },
-                                    { break: true },
-                                    { text: 'от ' },
-                                    { sticker: 'N', color: NORTH_COLOR },
-                                    { text: ' (северный) к ' },
-                                    { sticker: 'S', color: SOUTH_COLOR },
-                                    { text: ' (южный).' },
-                                ]}
-                            />
-                            <DiagramBlock onSettled={() => setStepReady(true)}>
-                                <DirectionDiagram />
-                            </DiagramBlock>
+                            <Step4Scene onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}
 
-                {/* Шаг 5 — знакомство с кольцом: просто рисуем бирюзовое
-                    кольцо, объясняем, что оно металлическое (значит
-                    проводит электричество) — без этого свойства кольцо
-                    было бы декоративной картинкой, не частью физики. */}
+                {/* Шаг 5 — "это кольцо" → пауза → кольцо → пауза →
+                    "Важно.../Чтобы..." (Step5Scene). */}
                 {step >= 5 && (
                     <SceneWrapper key="step-5" innerRef={sceneRef('step-5')} active={isSceneActive('step-5')}>
                         <Fragment key={`step-5-${nonceFor('step-5')}`}>
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'А это металлическое ' },
-                                    { sticker: 'кольцо', color: RING_COLOR },
-                                    { text: '.' },
-                                ]}
-                            />
-                            <DiagramBlock>
-                                <RingIntroDiagram hatched={false} />
-                            </DiagramBlock>
-                            <TypedLine
-                                text="Важно что оно металлическое!"
-                                className="w-full text-center text-base md:text-lg font-extrabold text-[#F2F7FB]"
-                            />
-                            <TypedLine
-                                text="Чтобы проводило электричество."
-                                className="w-full text-center text-base md:text-lg text-[#F2F7FB]"
-                                onSettled={() => setStepReady(true)}
-                            />
+                            <Step5Scene onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}
 
-                {/* Шаг 6 — у кольца самое главное — его площадь S:
-                    заштриховываем область внутри кольца, буква S —
-                    бирюзовым стикером внутри, слегка искажённая
-                    ("размазанная" по площади, имитация перспективы). */}
+                {/* Шаг 6 — кольцо (площадь S) → пауза → текст (Step6Scene). */}
                 {step >= 6 && (
                     <SceneWrapper key="step-6" innerRef={sceneRef('step-6')} active={isSceneActive('step-6')}>
                         <Fragment key={`step-6-${nonceFor('step-6')}`}>
-                            <DiagramBlock>
-                                <RingIntroDiagram hatched />
-                            </DiagramBlock>
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'У кольца самое главное — его площадь ' },
-                                    { sticker: 'S', color: RING_COLOR },
-                                    { text: '.' },
-                                ]}
-                                onSettled={() => setStepReady(true)}
-                            />
+                            <Step6Scene onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}
 
-                {/* Шаг 7 — сам потрогай: магнит едет между 3 рисками
-                    (клик по риске — плавно, с разгоном/торможением,
-                    как в тренажёрном SCROLL, только вертикально); чем
-                    ближе к кольцу — тем больше силовых линий видно. */}
+                {/* Шаг 7 — сам потрогай: риски-диаграмма → пауза → текст
+                    (Step7Scene). "Дальше" гейтится реальным кликом по
+                    риске (DistanceScene.onSettled), не таймером. */}
                 {step >= 7 && (
                     <SceneWrapper key="step-7" innerRef={sceneRef('step-7')} active={isSceneActive('step-7')}>
                         <Fragment key={`step-7-${nonceFor('step-7')}`}>
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'Придвинь магнит к кольцу — заметь,' },
-                                    { break: true },
-                                    { text: 'чем ' },
-                                    { bold: 'БЛИЖЕ' },
-                                    { text: ' магнит к кольцу, тем ' },
-                                    { bold: 'БОЛЬШЕ' },
-                                    { break: true },
-                                    { text: 'магнитное поле ' },
-                                    { sticker: 'B', color: FIELD_COLOR },
-                                    { text: '.' },
-                                ]}
-                            />
-                            <DiagramBlock>
-                                <DistanceScene onSettled={() => setStepReady(true)} />
-                            </DiagramBlock>
+                            <Step7Scene onReady={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}
