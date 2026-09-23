@@ -14,6 +14,13 @@ import { useSession, signOut } from 'next-auth/react'
 import { UnitCardLottie } from '@/components/unit-card-lottie'
 import { useCourseSwitchStore } from '@/store/course-switch-store'
 
+// Цвета вордмарка "ggege" (public/ggegelogo.svg) — сэмплированы напрямую
+// из отрисованного логотипа (замер getBBox()/fill по <use>-элементам):
+// левая половина ("gg") — фиолетовая, правая ("ege") — зелёная. Девиз в
+// сайдбаре повторяет эту же пару, чтобы читаться как продолжение логотипа.
+const LOGO_PURPLE = '#A74CE8'
+const LOGO_GREEN = '#22A22F'
+
 // Форма курса, которую реально собирает и передаёт app/(main)/layout.tsx —
 // это не сырая строка таблицы courses, а агрегированные данные для сайдбара.
 export type SidebarCourse = {
@@ -204,10 +211,21 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
         </div>
       </Link>
 
-      {/* Девиз проекта — по прямой просьбе пользователя, под логотипом,
-          над кнопкой выбора курса. */}
-      <div className='pl-4 pb-4 text-sm font-extrabold bg-gradient-to-r from-[#7C3AED] to-[#C026D3] bg-clip-text text-transparent'>
-        ГГ ЕГЭшечке
+      {/* Девиз проекта — под логотипом, в цветах самого вордмарка
+          (фиолетовый — "gg", зелёный — "ege", см. LOGO_PURPLE/LOGO_GREEN
+          выше) — читается как прямое продолжение логотипа, а не отдельная
+          подпись. Тонкий градиентный разделитель ниже (те же два цвета по
+          краям) визуально отделяет шапку с логотипом от пунктов меню —
+          по прямой просьбе пользователя. */}
+      <div className='px-4 pb-4'>
+        <div className='text-lg font-extrabold tracking-wide leading-none'>
+          <span style={{ color: LOGO_PURPLE }}>ГГ</span>{' '}
+          <span style={{ color: LOGO_GREEN }}>ЕГЭшечке</span>
+        </div>
+        <div
+          className='mt-3 h-[3px] w-full rounded-full'
+          style={{ background: `linear-gradient(to right, ${LOGO_PURPLE}, #3A464E, ${LOGO_GREEN})` }}
+        />
       </div>
 
       {courses.length > 0 && (
