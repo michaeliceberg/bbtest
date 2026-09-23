@@ -186,6 +186,22 @@ export function useSceneFocus(latestKey: string, contentSettled: boolean, topPad
     const isActive = (key: string) => key === latestKey
     const sceneRef = (key: string) => (el: HTMLDivElement | null) => { refs.current[key] = el }
 
+    // САМАЯ ПЕРВАЯ сцена лога рендерится СРАЗУ под уже видимым облаком
+    // маскота (см. trainer-question.tsx) — по прямой жалобе пользователя
+    // (2026-09-23, FARADAYWALK) ей НЕ нужны ни верхний паддинг контейнера
+    // (создавал "огромное пустое пространство" перед текстом первой сцены),
+    // ни автоскролл-центрирование — для высоких первых сцен (увеличенный
+    // магнит) скролл уводил страницу ВНИЗ настолько, что облако с Лотти
+    // пропадало из вида. Запоминаем ключ самой первой сцены ОДИН раз (при
+    // первом рендере, синхронно, не в эффекте) и, пока latestKey всё ещё
+    // указывает на неё — полностью пропускаем и паддинг, и скролл (эффект
+    // на неё срабатывает дважды — на появление и на contentSettled, оба
+    // раза должны быть пропущены). Начиная со ВТОРОЙ сцены — обычное
+    // поведение, как и раньше: пользователь уже пролистал лог, мазкот
+    // выше уже не единственная точка внимания.
+    const firstKeyRef = useRef<string | null>(null)
+    if (firstKeyRef.current === null) firstKeyRef.current = latestKey
+
     // Скроллим к САМОЙ СЦЕНЕ (не к маркеру в конце лога) — раньше
     // useStickToBottom целился в пустой `endRef`, стоящий ПОСЛЕДНИМ в
     // потоке (сразу за ним в DOM только кнопочная панель) — центрировать
@@ -206,6 +222,7 @@ export function useSceneFocus(latestKey: string, contentSettled: boolean, topPad
     useEffect(() => {
         const el = refs.current[latestKey]
         if (!el) return
+        if (latestKey === firstKeyRef.current) return
         const container = el.parentElement?.parentElement
         if (container && !container.dataset.scrollPad) {
             container.dataset.scrollPad = '1'
