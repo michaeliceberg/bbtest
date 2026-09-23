@@ -7,7 +7,6 @@ import { useEffect } from "react"
 import React from "react"
 import 'katex/dist/katex.min.css';
 import { Check, X } from 'lucide-react';
-import { playSound } from "@/lib/sound";
 
 
 interface AnimatedOptionButtonProps {
@@ -138,10 +137,6 @@ export const AnimatedOptionButton = ({
 
   const handleClick = () => {
     if (disabled) return
-    // Звук клика по варианту ответа — по прямой просьбе пользователя, во
-    // всех типах тренажёра, использующих эту кнопку (ASSIST/INSERT/
-    // PICMATCH/FRACTRICK/TRIGTABLE).
-    playSound('/click6.wav')
     onClick()
   }
 

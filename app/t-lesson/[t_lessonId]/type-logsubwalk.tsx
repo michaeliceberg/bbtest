@@ -47,6 +47,7 @@ import {
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
+import { playSound } from '@/lib/sound'
 
 // Пауза ПОСЛЕ клика "Дальше", ДО начала новой сцены — тот же приём и то
 // же значение, что у LOGWALK/SINWALK.
@@ -635,6 +636,7 @@ export const TypeLogSubWalk = ({ onAnswer, onComplete }: Props) => {
     const currentCorrectValue = trials[trialIndex].q
 
     const handleOptionClick = (value: number) => {
+        playSound('/click6.wav')
         if (checked) return
         if (wrongTried.includes(value)) return
         if (value === currentCorrectValue) {

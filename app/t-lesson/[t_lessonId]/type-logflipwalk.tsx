@@ -42,6 +42,7 @@ import {
     isFieryMilestoneTrial, FieryFeedbackBanner,
 } from '@/components/geometry/WalkthroughLog'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
+import { playSound } from '@/lib/sound'
 
 const SCENE_TRANSITION_PAUSE_MS = 1000
 
@@ -374,6 +375,7 @@ export const TypeLogFlipWalk = ({ onAnswer, onComplete }: Props) => {
     const currentCorrectOption: FlipOption = { flipped: true, reciprocal: true }
 
     const handleOptionClick = (option: FlipOption) => {
+        playSound('/click6.wav')
         if (checked) return
         if (wrongTried.some((w) => sameOption(w, option))) return
         if (sameOption(option, currentCorrectOption)) {

@@ -8,7 +8,6 @@ import Latex from 'react-latex-next';
 import 'katex/dist/katex.min.css';
 import { motion, AnimatePresence } from 'framer-motion'
 import { Check, X } from 'lucide-react'
-import { playSound } from '@/lib/sound'
 
 type Props = {
     question: QuestionType
@@ -147,16 +146,12 @@ export const TypeConnect = ({ question, onAnswer, onAllPairsMatched }: Props) =>
 
     const handleOptionQClick = (id: number, pair: number) => {
         if (listOptionsIdDoneRight.includes(id)) return
-        // Звук клика по варианту — тот же, что и у AnimatedOptionButton
-        // (ASSIST/INSERT/...), по прямой просьбе пользователя.
-        playSound('/click6.wav')
         setSelectedOptionQId(id)
         setSelectedOptionQPair(pair)
     }
 
     const handleOptionAClick = (id: number, pair: number) => {
         if (listOptionsIdDoneRight.includes(id)) return
-        playSound('/click6.wav')
         setSelectedOptionAId(id)
         setSelectedOptionAPair(pair)
     }

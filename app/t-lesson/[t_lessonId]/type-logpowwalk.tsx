@@ -50,6 +50,7 @@ import {
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
+import { playSound } from '@/lib/sound'
 
 // Тот же приём и то же значение, что у SINWALK/LOGWALK/LOGSUBWALK.
 const SCENE_TRANSITION_PAUSE_MS = 1000
@@ -640,6 +641,7 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
     )!
 
     const handleOptionClick = (option: PowOption) => {
+        playSound('/click6.wav')
         if (checked) return
         if (wrongTried.some((w) => sameOption(w, option))) return
         if (sameOption(option, currentCorrectOption)) {

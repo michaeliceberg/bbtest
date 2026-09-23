@@ -46,6 +46,7 @@ import {
 } from '@/components/geometry/WalkthroughLog'
 import { hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
+import { playSound } from '@/lib/sound'
 
 type Props = {
     question: QuestionType
@@ -319,6 +320,7 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
     }
 
     const handlePoolClick = (value: number) => {
+        playSound('/click6.wav')
         if (checked) return
         setWrongFlash(null)
         if (activeSlot === 'num') {

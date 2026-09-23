@@ -53,6 +53,7 @@ import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { LOTTIE_STEP_BY_STEP_FIERY_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
 import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
+import { playSound } from '@/lib/sound'
 
 // lottie-react трогает document на импорте — без ssr:false падает на
 // сервере (та же SSR-ловушка, что уже чинили у TrainerMascot/
@@ -580,6 +581,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
     }, [confettiFor])
 
     const handleQuizPick = (stepIdx: number, value: number, correct: number) => {
+        playSound('/click6.wav')
         if (quizAnswers[stepIdx] !== null) return
         if (quizWrongTried.includes(value)) return
         if (value !== correct) {
@@ -600,6 +602,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
     }
 
     const handleExistPick = (guess: boolean) => {
+        playSound('/click6.wav')
         if (existChecked) return
         const next = [...existAnswers]
         next[existIndex] = guess

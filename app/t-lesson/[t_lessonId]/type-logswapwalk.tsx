@@ -43,6 +43,7 @@ import {
     isFieryMilestoneTrial, FieryFeedbackBanner,
 } from '@/components/geometry/WalkthroughLog'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
+import { playSound } from '@/lib/sound'
 
 // Тот же приём и то же значение, что у SINWALK/LOGWALK/LOGSUBWALK/
 // LOGPOWWALK.
@@ -421,6 +422,7 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
     )!
 
     const handleOptionClick = (option: SwapOption) => {
+        playSound('/click6.wav')
         if (checked) return
         if (wrongTried.some((w) => sameOption(w, option))) return
         if (sameOption(option, currentCorrectOption)) {
