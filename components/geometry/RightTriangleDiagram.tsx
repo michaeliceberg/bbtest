@@ -549,11 +549,29 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
     // подсветки стороны: базовая белая линия остаётся видна, поверх
     // дорисовывается цветная с эффектом замедления). sideProps отвечает
     // только за интерактивные (тренировочные) состояния — клик/проверка.
+    //
+    // Цвет верного ответа — РОЛЕВОЙ (LEG_COLOR/ADJACENT_LEG_COLOR/
+    // HYPOTENUSE_COLOR), не универсальный CORRECT_COLOR — реальный баг,
+    // найденный пользователем: задание "Кликни по прилежащему катету"
+    // (розовый ADJACENT_LEG_COLOR в самой инструкции/стикере) при верном
+    // клике красило сторону обычным зелёным CORRECT_COLOR — нет
+    // соответствия с тем, что подписано в задании. correctColorFor
+    // определяет роль стороны через alphaVertex (тот же oppositeLegOf/
+    // adjacentLegOf, что уже использует сам TypeSinWalk для correctSide),
+    // без alphaVertex (сторона — не катет относительно какого-то угла)
+    // остаётся универсальный зелёный.
+    const correctColorFor = (side: SideId): string => {
+        if (!alphaVertex) return CORRECT_COLOR
+        if (side === oppositeLegOf(alphaVertex)) return LEG_COLOR
+        if (side === adjacentLegOf(alphaVertex)) return ADJACENT_LEG_COLOR
+        return HYPOTENUSE_COLOR
+    }
+
     const sideProps = (side: SideId) => {
         let stroke = EDGE
         let width = 6
         if (checked && side === correctSide) {
-            stroke = CORRECT_COLOR
+            stroke = correctColorFor(side)
             width = 9
         } else if (wrongSides.includes(side)) {
             stroke = WRONG_COLOR
