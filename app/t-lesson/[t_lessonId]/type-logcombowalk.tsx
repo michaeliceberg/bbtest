@@ -434,21 +434,22 @@ const Step1Scene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-// Шаг 2 — формула сразу → пауза → обводим → пауза → зачёркиваем → пауза →
-// обведённая часть тускнеет ("мы на это уже не должны смотреть", БЕЗ
-// превращения a/c снаружи в стикеры — то ещё впереди, шаг 3) → пауза →
-// текст.
+// Шаг 2 — формула сразу → пауза → обводим → ЗАЧЁРКИВАЕМ СРАЗУ (без паузы
+// между обводкой и зачёркиванием, по прямой просьбе пользователя) →
+// ОБЕСЦВЕЧИВАЕМ СРАЗУ (без паузы между зачёркиванием и обесцвечиванием,
+// та же просьба) → пауза → текст. Только ПЕРВАЯ пауза (перед обводкой) и
+// ПОСЛЕДНЯЯ (перед текстом) остаются — они не убирались.
 const Step2Scene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
     const ref = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         if (phase === 1) {
-            const t = setTimeout(() => setPhase(2), CIRCLE_DRAW_MS + STEP_PAUSE_MS)
+            const t = setTimeout(() => setPhase(2), CIRCLE_DRAW_MS)
             return () => clearTimeout(t)
         }
         if (phase === 2) {
-            const t = setTimeout(() => setPhase(3), STRIKE_DRAW_MS + STEP_PAUSE_MS)
+            const t = setTimeout(() => setPhase(3), STRIKE_DRAW_MS)
             return () => clearTimeout(t)
         }
         if (phase === 3) {
