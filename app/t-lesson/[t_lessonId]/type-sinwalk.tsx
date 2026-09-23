@@ -644,6 +644,7 @@ export const TypeSinWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) =>
     // MAP_INTRO_COLOR, как и вводные шаги (раньше был отдельный ADJACENT_
     // LEG_COLOR — тот остаётся только у подсветки САМОЙ диаграммы/стикера
     // "прилежащий", не у точки на карте).
+    const practice2Count = trialConfigs.length - PRACTICE1_COUNT
     const sceneMapEntries: AdminMapEntry[] = [
         ...Array.from({ length: INTRO_STEPS }, (_, i) => ({
             dotKey: `step-${i}`,
@@ -652,11 +653,16 @@ export const TypeSinWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) =>
             isActive: phase === 'intro' && step === i,
             color: MAP_INTRO_COLOR,
         })),
+        // Блок 1 практики — ОТДЕЛЬНЫЙ пункт карты (этап 6), не общий на всю
+        // практику: теперь между двумя блоками практики стоит сцена
+        // "Прилежащий катет" (этап 7), и по прямой просьбе пользователя
+        // карта должна отражать эту структуру (6 → блок 1, 7 → прилежащий
+        // катет, 8 → блок 2), а не сваливать оба блока в один пункт 6.
         {
-            dotKey: 'practice-block',
-            label: `Тренировка (${trialConfigs.length} заданий)`,
+            dotKey: 'practice-block-1',
+            label: `Тренировка 1 (${PRACTICE1_COUNT} заданий)`,
             jumpKey: 'trial-0',
-            isActive: phase === 'practice',
+            isActive: phase === 'practice' && trialIndex < PRACTICE1_COUNT,
             color: MAP_PRACTICE_COLOR,
         },
         ...Array.from({ length: ADJACENT_STEPS }, (_, i) => ({
@@ -666,6 +672,15 @@ export const TypeSinWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) =>
             isActive: phase === 'adjacent' && adjStep === i,
             color: MAP_INTRO_COLOR,
         })),
+        // Блок 2 практики — этап 8, jumpKey сразу на первое задание блока 2
+        // (не trial-0), чтобы прыжок с карты не откатывал обратно в блок 1.
+        {
+            dotKey: 'practice-block-2',
+            label: `Тренировка 2 (${practice2Count} заданий)`,
+            jumpKey: `trial-${PRACTICE1_COUNT}`,
+            isActive: phase === 'practice' && trialIndex >= PRACTICE1_COUNT,
+            color: MAP_PRACTICE_COLOR,
+        },
     ]
 
     // Одна задача практики (и блок 1 — только противолежащий, и блок 2 —
