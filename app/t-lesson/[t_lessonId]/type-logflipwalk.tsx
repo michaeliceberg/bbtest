@@ -123,30 +123,57 @@ const Fraction = ({ num, den }: { num: React.ReactNode; den: React.ReactNode }) 
     </span>
 )
 
-// Основная строка примера — 'plain' (шаг 0, "log₈2", без "=") и
-// 'flipped' (шаг 1, "log₈2 = 1/log₂8") — на ОБОИХ шагах 8 и 2 стикеры
-// своего цвета, просто на шаге 1 роли (основание/аргумент) поменялись.
-const FlipExpression = ({ stage }: { stage: 'plain' | 'flipped' }) => (
+// Основная строка примера — просто "log₈2", 8 и 2 стикеры своего цвета
+// (используется на шаге 0; шаг 1 теперь строит правую часть сам, поэтапно
+// — см. Step1Scene/DroppingDenominator/AnimatedFraction ниже).
+const FlipExpression = () => (
     <div className="w-full flex items-center justify-center gap-2 flex-wrap text-2xl md:text-3xl font-extrabold py-2">
         <LogTerm
             base={<NumSticker value={EX.a} color={A_COLOR} small />}
             arg={<NumSticker value={EX.b} color={B_COLOR} />}
         />
-        {stage === 'flipped' && (
-            <>
-                <Plain>=</Plain>
-                <Fraction
-                    num={<Plain>1</Plain>}
-                    den={
-                        <LogTerm
-                            base={<NumSticker value={EX.b} color={B_COLOR} small />}
-                            arg={<NumSticker value={EX.a} color={A_COLOR} />}
-                        />
-                    }
-                />
-            </>
-        )}
     </div>
+)
+
+// Знаменатель "log₂8" — монтируется ТОЛЬКО когда правая часть должна
+// появиться (см. Step1Scene, phase>=1), поэтому entrance-анимация
+// (падение сверху вниз, по прямой просьбе пользователя "логарифм надо
+// ОПУСТИТЬ вниз в знаменатель") проигрывается один раз, на самом
+// монтировании — framer не повторяет initial→animate на последующих
+// ре-рендерах того же узла (см. AnimatedFraction ниже, где ТОТ ЖЕ узел
+// остаётся смонтирован, пока меняется соседняя черта/"1").
+const DroppingDenominator = () => (
+    <motion.span
+        initial={{ y: -40, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', duration: 0.5, bounce: 0.35 }}
+        className="inline-block"
+    >
+        <LogTerm
+            base={<NumSticker value={EX.b} color={B_COLOR} small />}
+            arg={<NumSticker value={EX.a} color={A_COLOR} />}
+        />
+    </motion.span>
+)
+
+// Дробь с отдельно управляемой видимостью числителя/черты — сам "den"
+// (знаменатель) монтируется в этой ЖЕ обёртке сразу (падает через
+// DroppingDenominator, см. выше), а верхняя строка ("1" + border-b,
+// т.е. сама черта дроби) появляется ПОЗЖЕ, отдельным тактом —
+// barVisible переключается на ТОМ ЖЕ, уже смонтированном узле (не
+// ремонт), поэтому явный initial/animate-переход, а не mount-анимация.
+const AnimatedFraction = ({ den, barVisible }: { den: React.ReactNode; barVisible: boolean }) => (
+    <span className="inline-flex flex-col leading-none align-middle">
+        <motion.span
+            initial={{ opacity: 0, y: -10 }}
+            animate={barVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
+            transition={{ type: 'spring', duration: 0.4, bounce: 0.4 }}
+            className="pb-1 border-b-2 border-[#F2F7FB]/70 px-1 flex justify-center"
+        >
+            <Plain>1</Plain>
+        </motion.span>
+        <span className="pt-1 px-1 flex justify-center">{den}</span>
+    </span>
 )
 
 // Пауза между формулой и текстом — по прямой просьбе пользователя обе
@@ -160,7 +187,7 @@ const Step0Scene = ({ onSettled }: { onSettled?: () => void }) => {
     return (
         <>
             <DiagramBlock onSettled={() => setTimeout(() => setTextVisible(true), STEP_PAUSE_MS)}>
-                <FlipExpression stage="plain" />
+                <FlipExpression />
             </DiagramBlock>
             {textVisible && (
                 <TypedLine
@@ -173,16 +200,52 @@ const Step0Scene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-// Шаг 1 — "log₈2 = 1/log₂8" сразу → пауза → текст "Надо логарифм просто
-// закинуть в знаменатель!" (+ конфетти вместе с текстом, как и раньше).
+// Длительности собственных анимаций правой части (с запасом сверху
+// значений transition, чтобы следующий такт не стартовал раньше, чем
+// предыдущий реально доиграл — тот же принцип, что и у остальных *WALK
+// файлов).
+const DENOM_DROP_MS = 600
+const BAR_POP_MS = 500
+
+// Шаг 1 — по прямой просьбе пользователя раскрывается в НЕСКОЛЬКО
+// строго последовательных тактов, а не всё сразу:
+// phase 0 — только левая часть "log₈2 =" (сразу, ждём DiagramBlock).
+// phase 1 (после паузы) — знаменатель "log₂8" падает сверху вниз на своё
+//   место (DroppingDenominator), черты дроби/"1" ещё не видно.
+// phase 2 (после того как знаменатель упал + пауза) — черта дроби и "1"
+//   проявляются НАД уже упавшим знаменателем (AnimatedFraction.barVisible).
+// phase 3 (после ещё одной паузы) — текст "Надо логарифм просто закинуть
+//   в знаменатель!" + конфетти, как и раньше.
 const Step1Scene = ({ onSettled }: { onSettled?: () => void }) => {
-    const [textVisible, setTextVisible] = useState(false)
+    const [phase, setPhase] = useState(0)
+    useEffect(() => {
+        if (phase === 1) {
+            const t = setTimeout(() => setPhase(2), DENOM_DROP_MS + STEP_PAUSE_MS)
+            return () => clearTimeout(t)
+        }
+        if (phase === 2) {
+            const t = setTimeout(() => setPhase(3), BAR_POP_MS + STEP_PAUSE_MS)
+            return () => clearTimeout(t)
+        }
+    }, [phase])
+
     return (
         <>
-            <DiagramBlock onSettled={() => setTimeout(() => setTextVisible(true), STEP_PAUSE_MS)}>
-                <FlipExpression stage="flipped" />
+            <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 1)), STEP_PAUSE_MS)}>
+                <div className="w-full flex items-center justify-center gap-2 flex-wrap text-2xl md:text-3xl font-extrabold py-2">
+                    <LogTerm
+                        base={<NumSticker value={EX.a} color={A_COLOR} small />}
+                        arg={<NumSticker value={EX.b} color={B_COLOR} />}
+                    />
+                    {phase >= 1 && (
+                        <>
+                            <Plain>=</Plain>
+                            <AnimatedFraction barVisible={phase >= 2} den={<DroppingDenominator />} />
+                        </>
+                    )}
+                </div>
             </DiagramBlock>
-            {textVisible && (
+            {phase >= 3 && (
                 <>
                     <TypedLine
                         className="w-full text-base md:text-lg text-[#F2F7FB]"
