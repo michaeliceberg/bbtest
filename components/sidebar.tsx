@@ -206,24 +206,18 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
   return (
     <div className={cn('flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-[#151F23]', className)}>
       <Link href='/learn'>
-        <div className='pt-8 pl-4 pb-1 flex items-center gap-x-3 cursor-pointer hover:opacity-80 transition-opacity'>
+        <div className='pt-8 pl-4 pb-4 flex items-center gap-x-3 cursor-pointer hover:opacity-80 transition-opacity'>
           <Image src="/ggegelogo.svg" height={32} width={64} alt="ggege" className="h-auto w-auto" />
         </div>
       </Link>
 
-      {/* Девиз проекта — под логотипом, в цветах самого вордмарка
-          (фиолетовый — "gg", зелёный — "ege", см. LOGO_PURPLE/LOGO_GREEN
-          выше) — читается как прямое продолжение логотипа, а не отдельная
-          подпись. Тонкий градиентный разделитель ниже (те же два цвета по
-          краям) визуально отделяет шапку с логотипом от пунктов меню —
-          по прямой просьбе пользователя. */}
+      {/* Девиз "ГГ ЕГЭшечке" убран по прямой просьбе пользователя —
+          оставлен только градиентный разделитель (те же цвета логотипа
+          по краям, см. LOGO_PURPLE/LOGO_GREEN выше), который визуально
+          отделяет шапку с логотипом от пунктов меню. */}
       <div className='px-4 pb-4'>
-        <div className='text-lg font-extrabold tracking-wide leading-none'>
-          <span style={{ color: LOGO_PURPLE }}>ГГ</span>{' '}
-          <span style={{ color: LOGO_GREEN }}>ЕГЭшечке</span>
-        </div>
         <div
-          className='mt-3 h-[3px] w-full rounded-full'
+          className='h-[3px] w-full rounded-full'
           style={{ background: `linear-gradient(to right, ${LOGO_PURPLE}, #3A464E, ${LOGO_GREEN})` }}
         />
       </div>
