@@ -1,3 +1,6 @@
+'use client'
+
+import { usePathname } from 'next/navigation'
 import { MobileSidebar } from './modal-sidebar'
 import type { SidebarCourse } from './sidebar'
 
@@ -11,6 +14,21 @@ type Props = {
 }
 
 export const MobileHeader = ({ courseTitle, courses, activeCourseId, hasTrainerQuest, userName, userImageSrc }: Props) => {
+	// По прямой просьбе пользователя (2026-09-23) — единственный заголовок
+	// на телефоне (страничные Header'ы /learn и /trainer скрыты на
+	// мобильном, см. их файлы) получает префикс раздела, чтобы не быть
+	// голым названием курса: "Задачник ЕГЭ Физика" на /learn, "Тренажёр
+	// ЕГЭ Физика" на /trainer. На остальных страницах — как раньше, без
+	// префикса.
+	const pathname = usePathname()
+	const displayTitle = courseTitle
+		? pathname?.startsWith('/trainer')
+			? `Тренажёр ${courseTitle}`
+			: pathname?.startsWith('/learn')
+				? `Задачник ${courseTitle}`
+				: courseTitle
+		: undefined
+
 	return (
 		<nav className='lg:hidden fixed px-4 h-[50px] flex items-center bg-[#151F23] border-b border-[#3A464E] top-0 w-full z-50'>
 			<MobileSidebar
@@ -20,9 +38,9 @@ export const MobileHeader = ({ courseTitle, courses, activeCourseId, hasTrainerQ
 				userName={userName}
 				userImageSrc={userImageSrc}
 			/>
-			{courseTitle && (
+			{displayTitle && (
 				<span className='absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[60%] truncate font-bold text-sm text-[#F2F7FB]'>
-					{courseTitle}
+					{displayTitle}
 				</span>
 			)}
 		</nav>
