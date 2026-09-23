@@ -638,6 +638,13 @@ export default function TrainerQuestion({
                 // же приём, что уже у FARADAYWALK выше.
                 : question.questionType === "DIRWALK"
                 ? "Направление поля"
+                // SINWALK хранит в question заголовок урока ("Что такое
+                // синус угла?" — заголовок ПЕРВОГО, sin/cos/tg-урока темы,
+                // не отражает содержимое ИМЕННО этого разбора про катеты)
+                // — облако вместо него показывает тему шага, тот же приём,
+                // что уже у FARADAYWALK/DIRWALK выше.
+                : question.questionType === "SINWALK"
+                ? "Противолежащий и прилежащий катеты"
                 : question.questionType !== "WORKBOOK" &&
                   question.questionType !== "RUSSIANDICTANT" &&
                   question.questionType !== "SWIPE" &&

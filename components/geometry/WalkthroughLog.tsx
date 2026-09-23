@@ -396,7 +396,14 @@ export const FieryFeedbackBanner = ({ children, fiery = false }: { children: Rea
                 {lottieReady && <Lottie animationData={lottieData} loop autoplay />}
             </div>
             <div className="relative flex-1 min-w-0 px-4 py-2.5 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]">
-                <span className="text-[#A1D151] font-bold text-base md:text-lg break-words">{children}</span>
+                {/* flex items-center — children здесь обычно "иконка +
+                    текст" (например <Check/> + фраза), а Tailwind preflight
+                    ставит svg { display:block } по умолчанию: без flex
+                    иконка переносилась бы на свою строку (блочный элемент),
+                    отсюда и баг "галочка сверху-слева, текст отдельно
+                    снизу-по центру" — та же раскладка, что уже у обычной
+                    (не fiery) ветки этого компонента выше. */}
+                <span className="flex items-center gap-2 text-[#A1D151] font-bold text-base md:text-lg break-words">{children}</span>
                 <div className="absolute -left-3 top-1/2 -translate-y-1/2 text-[#3A464E] text-xl font-bold">&lt;</div>
             </div>
         </div>

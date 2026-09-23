@@ -28,6 +28,7 @@
 'use client'
 
 import { Fragment, useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 import { Check, X } from 'lucide-react'
 import type { QuestionType } from './page'
 import {
@@ -36,6 +37,7 @@ import {
     ZOOM_TOTAL_S, PAN_TOTAL_S, SIDE_DRAW_DURATION,
     type AlphaVertex, type SideId,
 } from '@/components/geometry/RightTriangleDiagram'
+import { Typewriter } from '@/components/geometry/Typewriter'
 import { MARKER_COLOR, MARKER_COLOR_GREEN } from '@/components/geometry/WalkthroughMarker'
 import {
     TypedLine, TypedKeyPhraseLine, DiagramBlock, pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
@@ -126,6 +128,13 @@ const makeTrialConfigs = (n: number): TrialConfig[] => {
 // дальше (см. handleIntroNext).
 const INTRO_STEPS = 5
 
+// Число сцен "adjacent"-фазы (после тренировки) — по прямой просьбе
+// пользователя: adj-0 напоминает уже известный "противолежащий катет" на
+// полной картинке, adj-1 вводит "прилежащий катет". Настоящее завершение
+// урока (onComplete/onAnswer) теперь происходит ЗДЕСЬ, не в конце
+// практики — см. handleAdjacentNext/handleNextTrial ниже.
+const ADJACENT_STEPS = 2
+
 // Шаг 2 (гипотенуза) — диаграмма монтируется и проигрывает СВОЮ анимацию
 // (дорисовка стороны + bounce подписи) сама по себе; текст появляется
 // ТОЛЬКО после того, как она устоялась + доп. пауза (по прямой просьбе
@@ -205,9 +214,129 @@ const Step4Scene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
+// ===== Боксовый стикер для слова "прилежащий" — тот же визуальный язык,
+// что уже устоялся в LOG*WALK-разборах (Sticker/TypedLineWithSticker) —
+// локальная копия, общего экспорта этих утилит нет (каждый *WALK-файл
+// несёт свою). =====
+const Sticker = ({ value, color }: { value: React.ReactNode; color: string }) => (
+    <motion.span
+        initial={{ scale: 2.4, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 15 }}
+        className="inline-flex items-center justify-center rounded-lg border-2 font-extrabold align-middle px-1.5 py-0.5 leading-none"
+        style={{ borderColor: color, backgroundColor: hexToRgba(color, 0.18), color }}
+    >
+        {value}
+    </motion.span>
+)
+
+// Печатаемая строка с ОДНИМ встроенным стикером-словом — Typewriter
+// печатает ПЛОСКИЙ текст (без разметки), а по завершении печати (onTyped
+// — РОВНО в этот момент, не после доп. паузы) заменяется на размеченную
+// версию со стикером. onTyped отдельно от onSettled (которая срабатывает
+// на 450мс позже) — по прямой просьбе пользователя диаграмма должна
+// поменяться "в этот момент", т.е. синхронно с появлением стикера, а не
+// с задержкой, которая используется для продвижения общего флоу.
+const TypedLineWithSticker = ({
+    before, stickerContent, plainTextForTyping, stickerColor, after = '', onTyped, onSettled,
+}: {
+    before: string; stickerContent: React.ReactNode; plainTextForTyping: string; stickerColor: string; after?: string; onTyped?: () => void; onSettled?: () => void
+}) => {
+    const [typed, setTyped] = useState(false)
+    return (
+        <div className="w-full text-base md:text-lg text-[#F2F7FB]">
+            {!typed ? (
+                <Typewriter
+                    text={`${before}${plainTextForTyping}${after}`}
+                    onDone={() => { setTyped(true); onTyped?.(); setTimeout(() => onSettled?.(), 450) }}
+                />
+            ) : (
+                <>
+                    {before}
+                    <Sticker value={stickerContent} color={stickerColor} />
+                    {after}
+                </>
+            )}
+        </div>
+    )
+}
+
+// Шаг "adj-0" (recap, после тренировки) — та же картинка, что уже
+// установлена в Step4Scene (противолежащий катет уже подписан), БЕЗ
+// zoomFocus — это напоминание уже известного факта, не первое знакомство,
+// камере незачем ехать. Текст ждёт устаканивания собственной анимации
+// диаграммы (линии+bounce подписей — та же STEP2_SETTLE_MS, что и у
+// гипотенузы, поскольку и гипотенуза, и противолежащий катет рисуются с
+// тем же SIDE_DRAW_DURATION, просто теперь оба сразу, не по очереди).
+const AdjacentRecapScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [textVisible, setTextVisible] = useState(false)
+    useEffect(() => {
+        const t = setTimeout(() => setTextVisible(true), STEP2_SETTLE_MS + DIAGRAM_TO_TEXT_PAUSE_MS)
+        return () => clearTimeout(t)
+    }, [])
+    return (
+        <>
+            <DiagramBlock>
+                <RightTriangleDiagram
+                    compact rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown
+                    alphaVertex="P" oppositeLegHighlighted oppositeLegLabelShown
+                />
+            </DiagramBlock>
+            {textVisible && (
+                <TypedKeyPhraseLine
+                    before="Катет напротив угла α называется "
+                    phrase="противолежащий катет"
+                    color={LEG_COLOR}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// Шаг "adj-1" — второй катет (рядом с α, "нижний" на этой диаграмме —
+// R-P) получает своё название. Диаграмма показывает его СНАЧАЛА обычным
+// зелёным "катет" (как и раньше), а ровно В МОМЕНТ, когда слово
+// "прилежащий" в тексте допечатывается и превращается в стикер (onTyped,
+// см. TypedLineWithSticker выше) — катет подсвечивается и
+// переименовывается в "прилежащий катет" (тот же "стандарт подсветки
+// стороны", что уже используется для противолежащего катета: толстая
+// цветная линия поверх базовой + 2-строчная подпись).
+const AdjacentSwapScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [swapped, setSwapped] = useState(false)
+    return (
+        <>
+            <DiagramBlock>
+                <RightTriangleDiagram
+                    compact rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown
+                    alphaVertex="P" oppositeLegHighlighted oppositeLegLabelShown
+                    adjacentLegHighlighted={swapped} adjacentLegLabelShown={swapped}
+                />
+            </DiagramBlock>
+            <TypedLineWithSticker
+                before="Катет рядом с углом α называется "
+                plainTextForTyping="прилежащий"
+                stickerContent="прилежащий"
+                stickerColor={LEG_COLOR}
+                after="."
+                onTyped={() => setSwapped(true)}
+                onSettled={onSettled}
+            />
+        </>
+    )
+}
+
 export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
-    const [phase, setPhase] = useState<'intro' | 'practice'>('intro')
+    const [phase, setPhase] = useState<'intro' | 'practice' | 'adjacent'>('intro')
     const [hadMistake, setHadMistake] = useState(false)
+
+    // "adjacent"-фаза (2 сцены ПОСЛЕ тренировки, см. ADJACENT_STEPS выше)
+    // — та же схема, что и у обучающего step/stepReady/introNextLabel
+    // ниже, только под свою фазу: adjStep продвигается ТОЛЬКО по клику
+    // "Дальше", adjStepReady включается, когда сцена доиграла (текст
+    // допечатан).
+    const [adjStep, setAdjStep] = useState(0)
+    const [adjStepReady, setAdjStepReady] = useState(false)
 
     // Текущий обучающий шаг (0..INTRO_STEPS-1) — продвигается ТОЛЬКО по
     // клику "Дальше"; stepReady включается, когда печать текста текущего
@@ -252,7 +381,7 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
     // от перехода дальше, только от явного клика "повторить"/"назад"
     // ИМЕННО на этом шаге.
     const { bump: bumpNonce, nonceFor: replayNonceFor } = useReplayNonces()
-    const currentReplayKey = phase === 'intro' ? `step-${step}` : `trial-${trialIndex}`
+    const currentReplayKey = phase === 'intro' ? `step-${step}` : phase === 'practice' ? `trial-${trialIndex}` : `adj-${adjStep}`
     const handleReplay = () => bumpNonce(currentReplayKey)
 
     const currentCorrectSide = oppositeLegOf(trialConfigs[trialIndex].alphaVertex)
@@ -276,21 +405,42 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
         setTimeout(() => {
             const isLastInList = trialIndex + 1 >= trialConfigs.length
             if (isLastInList) {
+                // Урок больше НЕ заканчивается здесь — по прямой просьбе
+                // пользователя после тренировки идут ещё 2 сцены (adjacent
+                // фаза, см. ADJACENT_STEPS) про прилежащий катет; настоящее
+                // завершение (onComplete/onAnswer) теперь в
+                // handleAdjacentNext ниже.
                 setAdvancing(false)
-                // onComplete — только красит маскота/локальный статус
-                // ВНУТРИ trainer-question.tsx, сам урок дальше не
-                // двигает. Настоящее завершение вопроса (счёт/сердечки/
-                // переход дальше в TQUIZ.tsx) — только через onAnswer,
-                // как у CHECK/FRACTRICK (тех же самодостаточных типов).
-                const isFullyCorrect = !hadMistake
-                onComplete(isFullyCorrect)
-                onAnswer(isFullyCorrect ? 'right' : 'wrong')
+                setPhase('adjacent')
                 return
             }
             setTrialIndex((i) => i + 1)
             setChecked(false)
             setWrongTried([])
             setWrongFlash(null)
+            setAdvancing(false)
+        }, SCENE_TRANSITION_PAUSE_MS)
+    }
+
+    // Клик "Дальше"/"Готово" в adjacent-фазе — тот же паттерн паузы, что и
+    // у handleIntroNext/handleNextTrial. На последней сцене (adjStep+1 >=
+    // ADJACENT_STEPS) — настоящее завершение урока: onComplete красит
+    // маскота/локальный статус ВНУТРИ trainer-question.tsx, onAnswer —
+    // реальный переход дальше в TQUIZ.tsx (та же пара вызовов, что раньше
+    // была в конце практики, просто теперь после ещё двух сцен).
+    const handleAdjacentNext = () => {
+        if (advancing) return
+        setAdvancing(true)
+        setTimeout(() => {
+            if (adjStep + 1 >= ADJACENT_STEPS) {
+                setAdvancing(false)
+                const isFullyCorrect = !hadMistake
+                onComplete(isFullyCorrect)
+                onAnswer(isFullyCorrect ? 'right' : 'wrong')
+                return
+            }
+            setAdjStep((s) => s + 1)
+            setAdjStepReady(false)
             setAdvancing(false)
         }, SCENE_TRANSITION_PAUSE_MS)
     }
@@ -326,13 +476,19 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
     // (режим "пробуй, пока не угадаешь"), тон всегда поздравительный.
     const [introNextLabel, setIntroNextLabel] = useState('Дальше')
     const [trialNextLabel, setTrialNextLabel] = useState('Дальше')
+    const [adjNextLabel, setAdjNextLabel] = useState('Дальше')
     useEffect(() => { setIntroNextLabel(pickWalkthroughNextLabel('Дальше')) }, [step])
+    useEffect(() => { setAdjNextLabel(pickWalkthroughNextLabel('Дальше')) }, [adjStep])
 
     // Затемнение прошлых сцен + автоскролл к новой (см. useSceneFocus в
     // WalkthroughLog.tsx) — ключи сцен СТАБИЛЬНЫЕ (`step-N`/`trial-N`, без
     // replayNonce), иначе клик "Повторить" сбрасывал бы ref.
-    const latestSceneKey = phase === 'intro' ? `step-${step}` : `trial-${trialIndex}`
+    const latestSceneKey = phase === 'intro' ? `step-${step}` : phase === 'practice' ? `trial-${trialIndex}` : `adj-${adjStep}`
     const prevSceneKeyOf = (key: string): string | null => {
+        if (key.startsWith('adj-')) {
+            const idx = Number(key.slice('adj-'.length))
+            return idx > 0 ? `adj-${idx - 1}` : `trial-${trialConfigs.length - 1}`
+        }
         if (key.startsWith('trial-')) {
             const idx = Number(key.slice('trial-'.length))
             return idx > 0 ? `trial-${idx - 1}` : `step-${INTRO_STEPS - 1}`
@@ -343,7 +499,7 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
         }
         return null
     }
-    const contentSettled = phase === 'intro' ? stepReady : checked
+    const contentSettled = phase === 'intro' ? stepReady : phase === 'practice' ? checked : adjStepReady
     // topPaddingVh=6 (было 22 по умолчанию) — по прямой просьбе пользователя
     // "рисовать треугольник выше": шаг 0 (голый треугольник, compact
     // viewBox, см. RightTriangleDiagram.compact) — короткая сцена, и
@@ -368,8 +524,14 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
         const target = prevSceneKeyOf(latestSceneKey)
         if (!target) return
         bumpNonce(target)
-        if (target.startsWith('trial-')) {
+        if (target.startsWith('adj-')) {
+            const idx = Number(target.slice('adj-'.length))
+            setPhase('adjacent')
+            setAdjStep(idx)
+            setAdjStepReady(false)
+        } else if (target.startsWith('trial-')) {
             const idx = Number(target.slice('trial-'.length))
+            setPhase('practice')
             setTrialIndex(idx)
             setChecked(false)
             setWrongTried([])
@@ -464,7 +626,14 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
                     </SceneWrapper>
                 )}
 
-                {phase === 'practice' && Array.from({ length: trialIndex + 1 }).map((_, i) => {
+                {/* (phase === 'practice' || 'adjacent') — не только
+                    'practice': как только фаза переходит в 'adjacent'
+                    (тренировка пройдена), уже показанные задания НЕ должны
+                    исчезать из DOM (тот же принцип "накопительного лога",
+                    что и у шагов 0-4 выше, которые вообще не проверяют
+                    phase) — просто тускнеют, как и остальные пройденные
+                    сцены. */}
+                {(phase === 'practice' || phase === 'adjacent') && Array.from({ length: trialIndex + 1 }).map((_, i) => {
                     const cfg = trialConfigs[i]
                     const isCurrent = i === trialIndex
                     const isDone = i < trialIndex || (isCurrent && checked)
@@ -538,13 +707,41 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
                             {/* Конфетти на верный ответ — по прямой просьбе
                                 пользователя, во всех step-by-step разборах
                                 (см. LocalAnswerConfetti). Только пока это
-                                ТЕКУЩЕЕ задание — естественно размонтируется
-                                при переходе к следующему. */}
-                            {isCurrent && isDone && <LocalAnswerConfetti />}
+                                ТЕКУЩЕЕ задание И мы ещё в самой практике —
+                                естественно размонтируется при переходе к
+                                следующему заданию ИЛИ (для ПОСЛЕДНЕГО
+                                задания, у которого trialIndex/isCurrent
+                                больше не меняются) при переходе в adjacent-
+                                фазу — без явной проверки phase конфетти
+                                иначе осталось бы висеть бессрочно, т.к. на
+                                последнем задании isCurrent никогда не
+                                становится false. */}
+                            {isCurrent && isDone && phase === 'practice' && <LocalAnswerConfetti />}
                         </div>
                         </SceneWrapper>
                     )
                 })}
+
+                {/* Adjacent-фаза (2 сцены ПОСЛЕ тренировки, см. ADJACENT_
+                    STEPS) — adj-0 напоминает уже известный противолежащий
+                    катет на полной картинке (AdjacentRecapScene), adj-1
+                    вводит прилежащий катет (AdjacentSwapScene). Гейтится
+                    `phase === 'adjacent'` — попасть сюда можно только ПОСЛЕ
+                    полностью пройденной тренировки. */}
+                {phase === 'adjacent' && adjStep >= 0 && (
+                    <SceneWrapper key="adj-0" innerRef={sceneRef('adj-0')} active={isSceneActive('adj-0')}>
+                        <Fragment key={`adj-0-${replayNonceFor('adj-0')}`}>
+                            <AdjacentRecapScene onSettled={() => setAdjStepReady(true)} />
+                        </Fragment>
+                    </SceneWrapper>
+                )}
+                {phase === 'adjacent' && adjStep >= 1 && (
+                    <SceneWrapper key="adj-1" innerRef={sceneRef('adj-1')} active={isSceneActive('adj-1')}>
+                        <Fragment key={`adj-1-${replayNonceFor('adj-1')}`}>
+                            <AdjacentSwapScene onSettled={() => setAdjStepReady(true)} />
+                        </Fragment>
+                    </SceneWrapper>
+                )}
             </div>
 
             {phase === 'intro' ? (
@@ -555,19 +752,32 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
                         {introNextLabel}
                     </button>
                 </div>
-            ) : checked ? (
+            ) : phase === 'practice' ? (
+                checked ? (
+                    <div className="w-full flex items-center gap-2">
+                        <ReplayButton onClick={handleReplay} disabled={advancing} />
+                        <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
+                        <button type="button" onClick={handleNextTrial} disabled={advancing} className={walkthroughButtonClass(!advancing)} style={walkthroughButtonStyle(!advancing)}>
+                            {/* "Готово" здесь больше НЕ используется — после
+                                тренировки идёт ещё adjacent-фаза (см. ниже),
+                                значит ни один клик в практике не является
+                                настоящим концом урока. */}
+                            {trialNextLabel}
+                        </button>
+                    </div>
+                ) : null
+            ) : (
                 <div className="w-full flex items-center gap-2">
                     <ReplayButton onClick={handleReplay} disabled={advancing} />
                     <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
-                    <button type="button" onClick={handleNextTrial} disabled={advancing} className={walkthroughButtonClass(!advancing)} style={walkthroughButtonStyle(!advancing)}>
-                        {/* "Готово" — на последнем по счёту задании (checked
-                            здесь всегда означает "отвечено верно" — режим
-                            "пробуй, пока не угадаешь" не даёт завершить
-                            задание неверным ответом). */}
-                        {trialIndex + 1 >= trialConfigs.length ? 'Готово' : trialNextLabel}
+                    <button type="button" onClick={handleAdjacentNext} disabled={!adjStepReady || advancing} className={walkthroughButtonClass(adjStepReady && !advancing)} style={walkthroughButtonStyle(adjStepReady && !advancing)}>
+                        {/* "Готово" — на последней (по счёту) adjacent-сцене
+                            это уже настоящий конец урока, см.
+                            handleAdjacentNext. */}
+                        {adjStep + 1 >= ADJACENT_STEPS ? 'Готово' : adjNextLabel}
                     </button>
                 </div>
-            ) : null}
+            )}
         </div>
     )
 }

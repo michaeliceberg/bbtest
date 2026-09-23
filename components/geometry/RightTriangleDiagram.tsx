@@ -247,6 +247,13 @@ export type RightTriangleVisual = {
     alphaVertex?: AlphaVertex | null
     oppositeLegHighlighted?: boolean
     oppositeLegLabelShown?: boolean
+    // Второй катет — тот, что КАСАЕТСЯ α ("прилежащий катет", по прямой
+    // просьбе пользователя добавлено симметрично противолежащему катету
+    // выше, см. adjacentLegOf) — та же пара highlighted/labelShown, тот
+    // же "стандарт подсветки стороны" (толстая цветная линия поверх
+    // базовой + 2-строчная подпись, тот же LEG_COLOR).
+    adjacentLegHighlighted?: boolean
+    adjacentLegLabelShown?: boolean
     zoomFocus?: ZoomFocus
     // Тренировочный режим — стороны кликабельны, подсвечиваются по итогу проверки.
     interactive?: boolean
@@ -310,6 +317,8 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
         alphaVertex = null,
         oppositeLegHighlighted = false,
         oppositeLegLabelShown = false,
+        adjacentLegHighlighted = false,
+        adjacentLegLabelShown = false,
         zoomFocus = null,
         interactive = false,
         onSideClick,
@@ -438,6 +447,12 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
             const wideLabelPt = alphaVertex === 'P' ? legRQLabelPtWide : legRPLabelPtWide
             const rot = angleAlongLine(R, alphaVertex === 'P' ? Q : P)
             const fp = textFootprint('противолежащий', 15)
+            growBox(rotatedTextBounds(wideLabelPt, rot, fp.w, fp.h * 2))
+        }
+        if (adjacentLegHighlighted && adjacentLegLabelShown && alphaVertex) {
+            const wideLabelPt = alphaVertex === 'P' ? legRPLabelPtWide : legRQLabelPtWide
+            const rot = angleAlongLine(R, alphaVertex === 'P' ? P : Q)
+            const fp = textFootprint('прилежащий', 15)
             growBox(rotatedTextBounds(wideLabelPt, rot, fp.w, fp.h * 2))
         }
         if (legsLabelShown) {
@@ -683,6 +698,32 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     delay={effectiveOppositeLegHighlighted ? SIDE_DRAW_DURATION : 0}
                 />
 
+                {/* "Прилежащий катет" — второй катет, касающийся α — тот
+                    же "стандарт подсветки стороны", что и у противолежащего
+                    катета выше: толстая цветная линия поверх базовой +
+                    2-строчная подпись. Появляется БЕЗ zoomFocus (просто по
+                    adjacentLegHighlighted) — см. TypeSinWalk, подсветка
+                    включается синхронно с моментом, когда в тексте
+                    появляется стикер "прилежащий". */}
+                <motion.line
+                    x1={R.x} y1={R.y}
+                    x2={alphaVertex === 'P' ? P.x : Q.x} y2={alphaVertex === 'P' ? P.y : Q.y}
+                    stroke={LEG_COLOR} strokeWidth={11} strokeLinecap="round"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: adjacentLegHighlighted ? 1 : 0, opacity: adjacentLegHighlighted ? 1 : 0 }}
+                    transition={{ duration: SIDE_DRAW_DURATION, ease: 'easeOut' }}
+                />
+                <SideLabel
+                    a={R}
+                    b={alphaVertex === 'P' ? P : Q}
+                    labelPt={alphaVertex === 'P' ? legRPLabelPtWide : legRQLabelPtWide}
+                    active={adjacentLegLabelShown && adjacentLegHighlighted}
+                    color={LEG_COLOR}
+                    lines={['прилежащий', 'катет']}
+                    fontSize={15}
+                    delay={adjacentLegHighlighted ? SIDE_DRAW_DURATION : 0}
+                />
+
                 {/* Общая зелёная подпись "катет" на КАЖДОЙ стороне-катете —
                     появляется ПОСЛЕ того, как камера полностью отдалилась
                     (не одновременно с зум-аутом — по прямой просьбе
@@ -695,13 +736,17 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     ярлык, сменивший только текст. */}
                 <SideLabel
                     a={R} b={P} labelPt={legRPLabelPt}
-                    active={legsLabelShown && !(alphaVertex && oppositeLegOf(alphaVertex) === 'legRP' && effectiveOppositeLegHighlighted)}
+                    active={legsLabelShown
+                        && !(alphaVertex && oppositeLegOf(alphaVertex) === 'legRP' && effectiveOppositeLegHighlighted)
+                        && !(alphaVertex && adjacentLegOf(alphaVertex) === 'legRP' && adjacentLegHighlighted)}
                     color={LEG_COLOR} text="катет" fontSize={16}
                     delay={legsBaseDelay}
                 />
                 <SideLabel
                     a={R} b={Q} labelPt={legRQLabelPt}
-                    active={legsLabelShown && !(alphaVertex && oppositeLegOf(alphaVertex) === 'legRQ' && effectiveOppositeLegHighlighted)}
+                    active={legsLabelShown
+                        && !(alphaVertex && oppositeLegOf(alphaVertex) === 'legRQ' && effectiveOppositeLegHighlighted)
+                        && !(alphaVertex && adjacentLegOf(alphaVertex) === 'legRQ' && adjacentLegHighlighted)}
                     color={LEG_COLOR} text="катет" fontSize={16}
                     delay={legsBaseDelay + LEGS_LABEL_STAGGER_S}
                 />
