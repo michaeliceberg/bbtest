@@ -139,7 +139,7 @@ const Step2Scene = ({ onSettled }: { onSettled?: () => void }) => {
     return (
         <>
             <DiagramBlock>
-                <RightTriangleDiagram rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown />
+                <RightTriangleDiagram compact rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown />
             </DiagramBlock>
             {textVisible && (
                 <TypedKeyPhraseLine
@@ -164,7 +164,7 @@ const Step3Scene = ({ onSettled }: { onSettled?: () => void }) => {
     return (
         <>
             <DiagramBlock>
-                <RightTriangleDiagram rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown alphaVertex="P" zoomFocus="alpha" />
+                <RightTriangleDiagram compact rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown alphaVertex="P" zoomFocus="alpha" />
             </DiagramBlock>
             {textVisible && (
                 <TypedLine
@@ -189,7 +189,7 @@ const Step4Scene = ({ onSettled }: { onSettled?: () => void }) => {
         <>
             <DiagramBlock>
                 <RightTriangleDiagram
-                    rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown alphaVertex="P" zoomFocus="alphaToOppositeLeg"
+                    compact rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown alphaVertex="P" zoomFocus="alphaToOppositeLeg"
                     oppositeLegHighlighted oppositeLegLabelShown
                 />
             </DiagramBlock>
@@ -416,7 +416,7 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
                 {step >= 1 && (
                     <SceneWrapper key="step-1" innerRef={sceneRef('step-1')} active={isSceneActive('step-1')}>
                         <Fragment key={`step-1-${replayNonceFor('step-1')}`}>
-                            <DiagramBlock><RightTriangleDiagram rightAngleMarkShown legsLabelShown zoomFocus="rightAngle" /></DiagramBlock>
+                            <DiagramBlock><RightTriangleDiagram compact rightAngleMarkShown legsLabelShown zoomFocus="rightAngle" /></DiagramBlock>
                             <TypedKeyPhraseLine
                                 before="Вот он — прямой угол между двумя "
                                 phrase="катетами"

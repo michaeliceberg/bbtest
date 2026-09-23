@@ -105,22 +105,6 @@ export const computeTriangle = (rotationDeg: number, mirror: boolean) => {
     return { R: place(localR), P: place(localP), Q: place(localQ) }
 }
 
-// Узкое "окно камеры" вокруг НЕПОВЁРНУТОГО треугольника (rotationDeg=0,
-// mirror=false) — считается один раз из тех же самых координат, что даёт
-// computeTriangle, с запасом под маркер прямого угла (доп. 20px от R) и
-// подписи сторон (легко умещаются в этом отступе). Используется ТОЛЬКО
-// компонентом с compact=true (см. RightTriangleVisual.compact) — не
-// заменяет полный CANVAS×CANVAS viewBox по умолчанию.
-const COMPACT_VIEW_BOX = (() => {
-    const { R, P, Q } = computeTriangle(0, false)
-    const pad = 44
-    const minX = Math.min(R.x, P.x, Q.x) - pad
-    const maxX = Math.max(R.x, P.x, Q.x) + pad
-    const minY = Math.min(R.y, P.y, Q.y) - pad
-    const maxY = Math.max(R.y, P.y, Q.y) + pad
-    return `${minX} ${minY} ${maxX - minX} ${maxY - minY}`
-})()
-
 const numberBounce = {
     initial: { opacity: 0, scale: 4 },
     animate: { opacity: 1, scale: 1 },
@@ -147,6 +131,31 @@ const angleAlongLine = (a: Pt, b: Pt): number => {
     else if (deg < -90) deg += 180
     return deg
 }
+
+// Границы ПОВЁРНУТОГО прямоугольника текста (та же rotate(...), что и у
+// SideLabel) вокруг labelPt — нужны для "компактного" viewBox (compact),
+// чтобы обрезать канваc НЕ ПРОСТО по точкам-якорям подписей, а с учётом
+// реального места, которое сам текст займёт после поворота (у длинных
+// повёрнутых на ±90° подписей вроде "противолежащий" это заметно больше,
+// чем просто пара пикселей вокруг точки). `w`/`h` — грубая, заведомо
+// щедрая оценка размера НЕповёрнутого текста (не точная метрика шрифта —
+// небольшой запас тут безопаснее точности).
+const rotatedTextBounds = (labelPt: Pt, rotationDeg: number, w: number, h: number) => {
+    const rad = (rotationDeg * Math.PI) / 180
+    const cos = Math.cos(rad)
+    const sin = Math.sin(rad)
+    const corners: Pt[] = [
+        { x: -w / 2, y: -h / 2 }, { x: w / 2, y: -h / 2 },
+        { x: w / 2, y: h / 2 }, { x: -w / 2, y: h / 2 },
+    ].map((c) => ({ x: labelPt.x + c.x * cos - c.y * sin, y: labelPt.y + c.x * sin + c.y * cos }))
+    return {
+        minX: Math.min(...corners.map((c) => c.x)), maxX: Math.max(...corners.map((c) => c.x)),
+        minY: Math.min(...corners.map((c) => c.y)), maxY: Math.max(...corners.map((c) => c.y)),
+    }
+}
+// Щедрая оценка ширины/высоты текста для rotatedTextBounds — 0.66em на
+// символ (жирный Nunito кириллицей шире латиницы) + запас по высоте.
+const textFootprint = (text: string, fontSize: number) => ({ w: text.length * fontSize * 0.66, h: fontSize * 1.3 })
 
 // Подпись стороны, развёрнутая вдоль неё (гипотенуза/противолежащий
 // катет) — сама позиция+поворот+цвет читаются как принадлежность к
@@ -380,6 +389,68 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
         return { p1, p2, control, labelPt }
     })()
 
+    // compact (см. RightTriangleVisual.compact) — ТОЛЬКО когда сцена в
+    // покое: без zoomFocus — сразу (нечему мешать), с zoomFocus —
+    // переключается на компактный viewBox лишь ПОСЛЕ того, как камера
+    // полностью вернулась (включая зум-аут) — settledForCompact. Пока
+    // камера активна, canvas должен оставаться полноразмерным: зум
+    // увеличивает всё содержимое в ZOOM_SCALE раз, и узкое окно обрежет
+    // именно то, что должно быть в фокусе.
+    const [settledForCompact, setSettledForCompact] = useState(!zoomFocus)
+    useEffect(() => {
+        if (!zoomFocus) return
+        const totalMs = (zoomFocus === 'alphaToOppositeLeg' ? PAN_TOTAL_S : ZOOM_TOTAL_S) * 1000
+        const t = setTimeout(() => setSettledForCompact(true), totalMs)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    // Компактный viewBox считается из ФАКТИЧЕСКИ показанных в покое
+    // элементов (вершины + маркер прямого угла + активные подписи,
+    // включая реальные габариты повёрнутого текста через
+    // rotatedTextBounds/textFootprint), а не по одним только вершинам
+    // треугольника — иначе длинные подписи вроде "противолежащий катет"
+    // обрезались бы новым узким окном.
+    const compactViewBox = compact ? (() => {
+        const pad = 40
+        let minX = Math.min(R.x, P.x, Q.x)
+        let maxX = Math.max(R.x, P.x, Q.x)
+        let minY = Math.min(R.y, P.y, Q.y)
+        let maxY = Math.max(R.y, P.y, Q.y)
+        const grow = (pt: Pt) => {
+            minX = Math.min(minX, pt.x); maxX = Math.max(maxX, pt.x)
+            minY = Math.min(minY, pt.y); maxY = Math.max(maxY, pt.y)
+        }
+        const growBox = (b: { minX: number; maxX: number; minY: number; maxY: number }) => {
+            minX = Math.min(minX, b.minX); maxX = Math.max(maxX, b.maxX)
+            minY = Math.min(minY, b.minY); maxY = Math.max(maxY, b.maxY)
+        }
+        if (rightAngleMarkShown) { grow(m1); grow(m2); grow(m3) }
+        if (alphaVertex && alphaArc) {
+            const fp = textFootprint('α', 24)
+            growBox(rotatedTextBounds(alphaArc.labelPt, 0, fp.w, fp.h))
+        }
+        if (hypotenuseHighlighted && hypotenuseLabelShown) {
+            const fp = textFootprint('гипотенуза', 17)
+            growBox(rotatedTextBounds(hypLabelPt, angleAlongLine(P, Q), fp.w, fp.h))
+        }
+        if (oppositeLegHighlighted && oppositeLegLabelShown && alphaVertex) {
+            const wideLabelPt = alphaVertex === 'P' ? legRQLabelPtWide : legRPLabelPtWide
+            const rot = angleAlongLine(R, alphaVertex === 'P' ? Q : P)
+            const fp = textFootprint('противолежащий', 15)
+            growBox(rotatedTextBounds(wideLabelPt, rot, fp.w, fp.h * 2))
+        }
+        if (legsLabelShown) {
+            const rpActive = !(alphaVertex && oppositeLegOf(alphaVertex) === 'legRP' && oppositeLegHighlighted)
+            const rqActive = !(alphaVertex && oppositeLegOf(alphaVertex) === 'legRQ' && oppositeLegHighlighted)
+            const fp = textFootprint('катет', 16)
+            if (rpActive) growBox(rotatedTextBounds(legRPLabelPt, angleAlongLine(R, P), fp.w, fp.h))
+            if (rqActive) growBox(rotatedTextBounds(legRQLabelPt, angleAlongLine(R, Q), fp.w, fp.h))
+        }
+        minX -= pad; maxX += pad; minY -= pad; maxY += pad
+        return `${minX} ${minY} ${maxX - minX} ${maxY - minY}`
+    })() : null
+
     // Показывать элемент СРАЗУ, если он не является целью текущего zoom
     // (например уже введённая гипотенуза на шаге "выбираем угол α" — не
     // ждёт никакого зума), либо только когда камера уже "доехала" до
@@ -440,7 +511,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
 
     return (
         <div className="flex items-center justify-center py-2 px-2 mb-2 bg-[#161F23] rounded-xl overflow-hidden">
-            <svg viewBox={compact ? COMPACT_VIEW_BOX : `0 0 ${CANVAS} ${CANVAS}`} width="100%" height="auto" style={{ maxWidth: 580 }}>
+            <svg viewBox={compact && settledForCompact && compactViewBox ? compactViewBox : `0 0 ${CANVAS} ${CANVAS}`} width="100%" height="auto" style={{ maxWidth: 580 }}>
                 <motion.g
                     animate={panOffset ? {
                         // Зум на α → пауза → панорама (тот же scale, x/y едут
