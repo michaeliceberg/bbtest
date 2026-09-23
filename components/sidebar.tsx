@@ -199,10 +199,16 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
   return (
     <div className={cn('flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-[#151F23]', className)}>
       <Link href='/learn'>
-        <div className='pt-8 pl-4 pb-4 flex items-center gap-x-3 cursor-pointer hover:opacity-80 transition-opacity'>
+        <div className='pt-8 pl-4 pb-1 flex items-center gap-x-3 cursor-pointer hover:opacity-80 transition-opacity'>
           <Image src="/ggegelogo.svg" height={32} width={64} alt="ggege" className="h-auto w-auto" />
         </div>
       </Link>
+
+      {/* Девиз проекта — по прямой просьбе пользователя, под логотипом,
+          над кнопкой выбора курса. */}
+      <div className='pl-4 pb-4 text-sm font-extrabold bg-gradient-to-r from-[#7C3AED] to-[#C026D3] bg-clip-text text-transparent'>
+        ГГ ЕГЭшечке
+      </div>
 
       {courses.length > 0 && (
         <div className="px-2 mb-4">
