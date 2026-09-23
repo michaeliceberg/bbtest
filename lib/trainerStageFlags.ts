@@ -30,7 +30,7 @@ export const isMythicStage = (title: string): boolean => /мифич/i.test(titl
 // у них своя диаграмма, чужая generic-иллюстрация только путает (см.
 // FARADAYWALK — "Закон Фарадея" случайно матчился на induction.svg через
 // getTopicSticker по тексту вопроса, реальный баг, найденный пользователем).
-export const STEP_BY_STEP_CHALLENGE_TYPES = new Set(['SINWALK', 'LOGWALK', 'LOGDEFWALK', 'LOGSUBWALK', 'LOGPOWWALK', 'LOGSWAPWALK', 'LOGDIVWALK', 'LOGCOMBOWALK', 'LOGFLIPWALK', 'FARADAYWALK', 'DIRWALK']);
+export const STEP_BY_STEP_CHALLENGE_TYPES = new Set(['SINWALK', 'LOGWALK', 'LOGDEFWALK', 'LOGSUBWALK', 'LOGPOWWALK', 'LOGSWAPWALK', 'LOGDIVWALK', 'LOGCOMBOWALK', 'LOGFLIPWALK', 'FARADAYWALK', 'DIRWALK', 'SINCOSDEFWALK']);
 
 export function isStepByStepLesson(challengeTypes: string[]): boolean {
     return challengeTypes.some((t) => STEP_BY_STEP_CHALLENGE_TYPES.has(t));

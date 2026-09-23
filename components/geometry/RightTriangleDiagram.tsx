@@ -288,6 +288,18 @@ export type RightTriangleVisual = {
     // контент за пределы этого узкого окна и обрезать его — полный
     // CANVAS-запас там нужен по-прежнему.
     compact?: boolean
+    // Числовые подписи сторон — для урока sin/cos (TypeSinCosDefWalk),
+    // где стороны подписаны своими ДЛИНАМИ, а не ролями "катет"/
+    // "гипотенуза" (та система, catetLabelShown/hypotenuseLabelShown и
+    // т.п. выше, — из другого урока, SINWALK, и НЕ пересекается с этим
+    // пропом: ученик здесь сам определяет роль стороны по её положению
+    // относительно α, диаграмма не подсказывает её цветом/названием).
+    // Работает при СВОБОДНОМ повороте (короткие 1-2-значные числа
+    // стабильны под любым углом, в отличие от длинных слов — см. header
+    // комментарий файла), подписи НЕ разворачиваются вдоль стороны (в
+    // отличие от SideLabel) — короткие цифры читаются надёжнее прямо,
+    // без поворота текста.
+    sideNumberLabels?: Partial<Record<SideId, number>>
 }
 
 // Тайминг zoom-эффекта — камера зумит внутрь, держит кадр, пока элемент
@@ -335,6 +347,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
         correctSide = null,
         checked = false,
         compact = false,
+        sideNumberLabels,
     } = props
 
     // Пока камера не "доехала" до цели (zoomFocus задан) — элемент,
@@ -779,6 +792,28 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     color={LEG_COLOR} text="катет" fontSize={16}
                     delay={legsBaseDelay + LEGS_LABEL_STAGGER_S}
                 />
+
+                {/* Числовые подписи сторон (sideNumberLabels, см. проп выше)
+                    — bounce-появление (тот же numberBounce, что уже
+                    используется для "α" выше), БЕЗ поворота вдоль стороны
+                    (короткие цифры читаются надёжнее прямо). */}
+                {sideNumberLabels && (['hyp', 'legRP', 'legRQ'] as SideId[]).map((side) => {
+                    const value = sideNumberLabels[side]
+                    if (value === undefined) return null
+                    const labelPt = side === 'hyp' ? hypLabelPt : side === 'legRP' ? legRPLabelPt : legRQLabelPt
+                    return (
+                        <motion.text
+                            key={side}
+                            x={labelPt.x} y={labelPt.y}
+                            textAnchor="middle" dominantBaseline="middle"
+                            fontFamily="var(--font-nunito), sans-serif"
+                            fontSize={19} fontWeight={800} fill={TEXT}
+                            initial={numberBounce.initial}
+                            animate={numberBounce.animate}
+                            transition={numberBounce.transition}
+                        >{value}</motion.text>
+                    )
+                })}
 
                 {/* Вершины — маленькие точки, чтобы стороны читались как
                     отрезки одной фигуры, а не как три отдельные линии. */}
