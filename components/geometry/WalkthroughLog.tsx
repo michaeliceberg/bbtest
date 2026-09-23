@@ -173,7 +173,15 @@ export const walkthroughButtonStyle = (enabled: boolean): { boxShadow: string } 
 // откат состояния — уникальный для каждого разбора (свои квизы/answers)
 // и реализован в каждом type-*walk.tsx отдельно, эта функция уже не
 // про него.
-export function useSceneFocus(latestKey: string, contentSettled: boolean) {
+// `topPaddingVh` — необязательный, по умолчанию 22 (см. комментарий ниже)
+// — величина верхнего отступа контейнера разбора в vh. Параметризован
+// (а не жёстко зашит), потому что для НЕКОТОРЫХ разборов (см. SINWALK —
+// короткая первая сцена "просто треугольник", по прямой просьбе
+// пользователя "рисовать треугольник выше") 22vh пустого места перед
+// самой первой, короткой сценой слишком много — остальные вызовы этого
+// хука (LOGWALK/LOGDEFWALK/.../TrapezoidWalkthrough и т.д.) не передают
+// этот параметр и получают ТОЧНО прежнее поведение.
+export function useSceneFocus(latestKey: string, contentSettled: boolean, topPaddingVh: number = 22) {
     const refs = useRef<Record<string, HTMLDivElement | null>>({})
     const isActive = (key: string) => key === latestKey
     const sceneRef = (key: string) => (el: HTMLDivElement | null) => { refs.current[key] = el }
@@ -202,7 +210,7 @@ export function useSceneFocus(latestKey: string, contentSettled: boolean) {
         if (container && !container.dataset.scrollPad) {
             container.dataset.scrollPad = '1'
             container.style.paddingBottom = '60vh'
-            container.style.paddingTop = '22vh'
+            container.style.paddingTop = `${topPaddingVh}vh`
         }
         const rect = el.getBoundingClientRect()
         const vh = window.innerHeight

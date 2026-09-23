@@ -344,7 +344,14 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
         return null
     }
     const contentSettled = phase === 'intro' ? stepReady : checked
-    const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, contentSettled)
+    // topPaddingVh=6 (было 22 по умолчанию) — по прямой просьбе пользователя
+    // "рисовать треугольник выше": шаг 0 (голый треугольник, compact
+    // viewBox, см. RightTriangleDiagram.compact) — короткая сцена, и
+    // стандартные 22vh пустого места перед ней оставляли слишком большой
+    // отступ сверху. Остальные шаги/тренировка по-прежнему центрируются
+    // тем же скроллом (см. delta в useSceneFocus) — уменьшился только
+    // стартовый ЗАПАС места, а не сама логика центрирования.
+    const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, contentSettled, 6)
     const canGoBack = prevSceneKeyOf(latestSceneKey) !== null
 
     // "Назад" — по прямой просьбе пользователя (2026-09-19) РЕАЛЬНЫЙ откат
