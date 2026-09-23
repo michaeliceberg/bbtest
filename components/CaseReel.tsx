@@ -18,6 +18,7 @@ import Confetti from 'react-confetti'
 import { useWindowSize } from 'react-use'
 import { Gift, Sparkles } from 'lucide-react'
 import { openCase, type OpenCaseResult } from '@/actions/open-case'
+import { playSound } from '@/lib/sound'
 import {
   getCasePool, isJackpotReward, pickWeightedReward, rewardEmoji, rewardLabel, type CaseReward,
   LESSON_CASE_TIER_STYLE, LESSON_CASE_TIER_ICON, type LessonCaseTier,
@@ -191,6 +192,13 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
         if (phase !== 'idle') return
         setPhase('spinning')
         setError(null)
+        // Звук рулетки — на нажатие "Крутить" и на всю анимацию барабана,
+        // по прямой просьбе пользователя. Файл (~6.2с) короче самой
+        // анимации (SPIN_DURATION=8с) — специально не растягивается
+        // playbackRate'ом (сбило бы тон), спин просто доигрывает молча
+        // последние ~1.8с, что совпадает с моментом, когда лента и так уже
+        // визуально замедляется.
+        playSound('/roulete.wav')
 
         const result = await (spinAction ? spinAction() : openCase(isMega)).catch(() => null)
         if (!result || !result.success) {
