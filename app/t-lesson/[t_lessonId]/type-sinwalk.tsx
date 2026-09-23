@@ -33,7 +33,7 @@ import { Check, X } from 'lucide-react'
 import type { QuestionType } from './page'
 import {
     RightTriangleDiagram, oppositeLegOf,
-    HYPOTENUSE_COLOR, LEG_COLOR,
+    HYPOTENUSE_COLOR, LEG_COLOR, ADJACENT_LEG_COLOR,
     ZOOM_TOTAL_S, PAN_TOTAL_S, SIDE_DRAW_DURATION,
     type AlphaVertex, type SideId,
 } from '@/components/geometry/RightTriangleDiagram'
@@ -80,6 +80,12 @@ type Props = {
     question: QuestionType
     onAnswer: (answer: string) => void
     onComplete: (isCorrect: boolean) => void
+    // Админская "карта сцен" справа — по прямой просьбе пользователя,
+    // чтобы при тестировании не прощёлкивать весь урок заново, а прыгать
+    // сразу в любую сцену (см. jumpToScene ниже). Обычные ученики её не
+    // видят — гейтится реальным серверным userProgress.isAdmin, не
+    // клиентским предположением.
+    isAdmin?: boolean
 }
 
 // НАЧАЛЬНОЕ число заданий практики — реальное число может вырасти по
@@ -317,7 +323,7 @@ const AdjacentSwapScene = ({ onSettled }: { onSettled?: () => void }) => {
                 before="Катет рядом с углом α называется "
                 plainTextForTyping="прилежащий"
                 stickerContent="прилежащий"
-                stickerColor={LEG_COLOR}
+                stickerColor={ADJACENT_LEG_COLOR}
                 after="."
                 onTyped={() => setSwapped(true)}
                 onSettled={onSettled}
@@ -326,7 +332,7 @@ const AdjacentSwapScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
+export const TypeSinWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) => {
     const [phase, setPhase] = useState<'intro' | 'practice' | 'adjacent'>('intro')
     const [hadMistake, setHadMistake] = useState(false)
 
@@ -519,10 +525,13 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
     // которой кликнули "назад") сами исчезают из DOM — рендер-условие
     // `step >= i`/`trialIndex+1` уже не покрывает их, отдельно "стирать"
     // ничего не нужно.
-    const handleBack = () => {
+    // Применить состояние ЛЮБОЙ сцены по её ключу — общая точка для
+    // "назад" (откат на СОСЕДНЮЮ предыдущую) и админской карты сцен
+    // (прыжок в ПРОИЗВОЛЬНУЮ, не обязательно соседнюю, см. ниже) — раньше
+    // это было только внутри handleBack, здесь вынесено, чтобы не
+    // дублировать те же 3 ветки применения состояния дважды.
+    const jumpToScene = (target: string) => {
         if (advancing) return
-        const target = prevSceneKeyOf(latestSceneKey)
-        if (!target) return
         bumpNonce(target)
         if (target.startsWith('adj-')) {
             const idx = Number(target.slice('adj-'.length))
@@ -544,8 +553,39 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
         }
     }
 
+    const handleBack = () => {
+        const target = prevSceneKeyOf(latestSceneKey)
+        if (!target) return
+        jumpToScene(target)
+    }
+
+    // ===== Админская "карта сцен" (справа от урока) — по прямой просьбе
+    // пользователя: при тестировании не прощёлкивать урок с нуля, а
+    // прыгнуть сразу в нужную сцену. Полный список ключей в ПОРЯДКЕ
+    // прохождения — те же ключи, что использует latestSceneKey/
+    // prevSceneKeyOf выше, просто перечислены все разом, а не только
+    // "предыдущий". trialConfigs.length (не TRIAL_COUNT) — на случай,
+    // если реальное число тренировочных заданий когда-нибудь начнёт
+    // отличаться от начального.
+    const allSceneKeys = [
+        ...Array.from({ length: INTRO_STEPS }, (_, i) => `step-${i}`),
+        ...Array.from({ length: trialConfigs.length }, (_, i) => `trial-${i}`),
+        ...Array.from({ length: ADJACENT_STEPS }, (_, i) => `adj-${i}`),
+    ]
+    const STEP_LABELS = ['Треугольник', 'Прямой угол', 'Гипотенуза', 'Угол α', 'Противолежащий катет']
+    const ADJ_LABELS = ['Recap: противолежащий катет', 'Прилежащий катет']
+    const sceneLabel = (key: string): string => {
+        if (key.startsWith('step-')) return STEP_LABELS[Number(key.slice('step-'.length))] ?? key
+        if (key.startsWith('trial-')) return `Тренировка ${Number(key.slice('trial-'.length)) + 1}`
+        if (key.startsWith('adj-')) return ADJ_LABELS[Number(key.slice('adj-'.length))] ?? key
+        return key
+    }
+    const sceneDotColor = (key: string): string =>
+        key.startsWith('adj-') ? ADJACENT_LEG_COLOR : key.startsWith('trial-') ? GGEGE_PALETTE.blue.button : '#8B98A1'
+
     return (
-        <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
+        <div className={`w-full mx-auto flex flex-row items-start gap-3 ${isAdmin ? 'max-w-[46rem]' : 'max-w-2xl'}`}>
+        <div className="min-w-0 flex-1 flex flex-col items-center gap-4">
             <div className="w-full flex flex-col gap-4">
                 {/* Шаг 0 — просто треугольник. Заголовок вопроса ("Что такое
                     синус угла?") здесь НЕ дублируется — его уже показывает
@@ -778,6 +818,45 @@ export const TypeSinWalk = ({ onAnswer, onComplete }: Props) => {
                     </button>
                 </div>
             )}
+        </div>
+
+        {/* Админская карта сцен — sticky-колонка справа (внутри того же
+            overflow-y-auto контейнера, что и весь урок, см. trainer-
+            question.tsx, — поэтому sticky "следует" за скроллом лога, а
+            не fixed относительно viewport: framer-motion-обёртки выше по
+            дереву задают transform, который сделал бы position:fixed
+            позиционированным относительно НИХ, а не окна). Кружок —
+            текущая сцена (крупнее, залит цветом фазы), клик — мгновенный
+            прыжок (jumpToScene), не только на соседнюю. Видна ТОЛЬКО
+            isAdmin — обычным ученикам не рендерится вовсе. */}
+        {isAdmin && (
+            <div className="shrink-0 sticky top-4 flex flex-col items-center gap-1.5 py-2">
+                <div className="text-[9px] text-[#6B7A83] font-bold tracking-wide mb-1">СЦЕНЫ</div>
+                {allSceneKeys.map((key) => {
+                    const isCurrentScene = key === latestSceneKey
+                    const color = sceneDotColor(key)
+                    return (
+                        <button
+                            key={key}
+                            type="button"
+                            title={sceneLabel(key)}
+                            onClick={() => jumpToScene(key)}
+                            disabled={advancing}
+                            className="rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                            style={{
+                                width: isCurrentScene ? 16 : 9,
+                                height: isCurrentScene ? 16 : 9,
+                                backgroundColor: isCurrentScene ? color : hexToRgba(color, 0.4),
+                                border: isCurrentScene ? '2px solid #F2F7FB' : 'none',
+                            }}
+                        />
+                    )
+                })}
+                <div className="text-[9px] text-[#6B7A83] mt-1 whitespace-nowrap">
+                    {allSceneKeys.indexOf(latestSceneKey) + 1}/{allSceneKeys.length}
+                </div>
+            </div>
+        )}
         </div>
     )
 }

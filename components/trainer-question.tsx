@@ -87,6 +87,10 @@ interface QuestionProps {
   // компонент (риск залипшего состояния, тот же класс бага, что уже
   // чинили раньше — см. CLAUDE.md).
   roundKey?: number,
+
+  // Админская "карта сцен" (см. TypeSinWalk) — прыжок в любую сцену
+  // степбайстеп-разбора без прощёлкивания урока.
+  isAdmin?: boolean,
 }
 
 export default function TrainerQuestion({
@@ -103,6 +107,7 @@ export default function TrainerQuestion({
   isBossStage = false,
   streak = 0,
   roundKey = 0,
+  isAdmin = false,
 
 }: QuestionProps) {
 
@@ -338,7 +343,7 @@ export default function TrainerQuestion({
         // и CHECK/FRACTRICK (реальный баг: раньше onAnswer тут вообще не
         // вызывался — "Готово" ничего не делал, урок не мог закончиться).
         // См. type-sinwalk.tsx.
-        return <TypeSinWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
+        return <TypeSinWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} isAdmin={isAdmin} />
 
       case "LOGWALK":
         // Тот же принцип, что и у SINWALK (см. комментарий выше) — только

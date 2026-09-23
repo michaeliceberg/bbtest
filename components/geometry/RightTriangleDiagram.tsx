@@ -52,6 +52,15 @@ export const OPPOSITE_LEG_COLOR = '#FBBF24'
 // мигающий акцент и оставить единый зелёный формат. Экспортируется —
 // TypeSinWalk красит тем же цветом текст соответствующей фразы.
 export const LEG_COLOR = GGEGE_PALETTE.green.button
+// "Прилежащий катет" — по прямой просьбе пользователя СВОЙ, контрастный
+// цвет (не зелёный, как обычный "катет"/"противолежащий катет", и не
+// фиолетовый, как гипотенуза — иначе прилежащий катет визуально сливался
+// бы с уже занятыми ролями). Малиновый — единственный ещё не занятый в
+// этой диаграмме цвет палитры ggege (бирюзовый слишком близок по тону к
+// зелёному, остальные четыре уже заняты: оранжевый=угол R, синий=α,
+// фиолетовый=гипотенуза, зелёный=катет/противолежащий катет), поэтому
+// даёт наибольший контраст против уже занятых цветов.
+export const ADJACENT_LEG_COLOR = GGEGE_PALETTE.raspberry.button
 // CORRECT_COLOR/WRONG_COLOR — НЕ из палитры ggege намеренно: это тот же
 // зелёный/красный, что используется ВЕЗДЕ в тренажёре для верно/неверно
 // (отдельная, устоявшаяся семантическая система, см. CLAUDE.md «Палитра
@@ -708,7 +717,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                 <motion.line
                     x1={R.x} y1={R.y}
                     x2={alphaVertex === 'P' ? P.x : Q.x} y2={alphaVertex === 'P' ? P.y : Q.y}
-                    stroke={LEG_COLOR} strokeWidth={11} strokeLinecap="round"
+                    stroke={ADJACENT_LEG_COLOR} strokeWidth={11} strokeLinecap="round"
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: adjacentLegHighlighted ? 1 : 0, opacity: adjacentLegHighlighted ? 1 : 0 }}
                     transition={{ duration: SIDE_DRAW_DURATION, ease: 'easeOut' }}
@@ -718,7 +727,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     b={alphaVertex === 'P' ? P : Q}
                     labelPt={alphaVertex === 'P' ? legRPLabelPtWide : legRQLabelPtWide}
                     active={adjacentLegLabelShown && adjacentLegHighlighted}
-                    color={LEG_COLOR}
+                    color={ADJACENT_LEG_COLOR}
                     lines={['прилежащий', 'катет']}
                     fontSize={15}
                     delay={adjacentLegHighlighted ? SIDE_DRAW_DURATION : 0}

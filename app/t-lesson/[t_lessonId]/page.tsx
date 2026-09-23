@@ -1748,6 +1748,11 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             isMythicStage={isMythicStage}
             isBossExam={isBossExam}
             nextTLessonHref={nextTLessonHref}
+            // Админская "карта сцен" в степбайстеп-разборах (SINWALK и
+            // т.п., см. TypeSinWalk) — прыжок в любую сцену без
+            // прощёлкивания урока, тот же паттерн isAdmin-проверки, что
+            // уже используется на /learn (userProgress.isAdmin===1).
+            isAdmin={userProgress.isAdmin === 1}
         />
     );
 }

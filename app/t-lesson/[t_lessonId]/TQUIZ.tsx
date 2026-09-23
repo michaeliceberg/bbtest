@@ -138,6 +138,9 @@ type Props = {
   // показывается вовсе, см. ниже). Считается на сервере (page.tsx), т.к.
   // там уже есть отсортированный список этапов темы.
   nextTLessonHref?: string | null,
+  // Админская "карта сцен" в степбайстеп-разборах — см. TrainerQuestion/
+  // TypeSinWalk.
+  isAdmin?: boolean,
 }
 
 export default function TQuiz({
@@ -152,6 +155,7 @@ export default function TQuiz({
   isMythicStage,
   isBossExam,
   nextTLessonHref,
+  isAdmin,
 }: Props) {
 
   const router = useRouter()
@@ -1027,6 +1031,7 @@ export default function TQuiz({
             isBossStage={isBossStage}
             streak={streak}
             roundKey={roundNumber}
+            isAdmin={isAdmin}
           />
         </div>
       )}
