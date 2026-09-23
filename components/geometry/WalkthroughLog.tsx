@@ -344,7 +344,23 @@ export const MAP_PRACTICE_COLOR = '#DC605B'
 
 export type AdminMapEntry = { dotKey: string; label: string; jumpKey: string; isActive: boolean; color: string }
 
-export const AdminSceneMap = ({ entries, onJump, disabled }: { entries: AdminMapEntry[]; onJump: (jumpKey: string) => void; disabled?: boolean }) => {
+// Ширина панели (кружки + подписи) — совпадает с шириной spacer'а ниже
+// (w-11 = 44px), одна константа вместо двух мест, которые могли бы
+// разойтись.
+const MAP_PANEL_WIDTH_PX = 44
+// Суммарный горизонтальный отступ ОТ ВЬЮПОРТА до самого max-w-контейнера
+// разбора — сумма ВСЕХ обёрточных px-* на пути от <body> до этого
+// контейнера. Общий для ЛЮБОГО *WALK-разбора, т.к. все они рендерятся
+// внутри ОДНОЙ и той же общей "оболочки вопроса"
+// (components/trainer-question.tsx): px-4 (16px) на моушн-обёртке
+// вопроса + px-1 (4px) на обёртке над ней = 20px с каждой стороны. Если
+// эта оболочка когда-нибудь поменяет свои паддинги — поправить только
+// здесь, один раз на все разборы.
+const QUESTION_SHELL_INSET_PX = 20
+
+export const AdminSceneMap = ({
+    entries, onJump, disabled, containerMaxWidthRem = 46,
+}: { entries: AdminMapEntry[]; onJump: (jumpKey: string) => void; disabled?: boolean; containerMaxWidthRem?: number }) => {
     // position:sticky для этой панели на практике НЕ работает — ближайший
     // "overflow-y-auto" предок (motion.div вопроса в components/trainer-
     // question.tsx) сам никогда не скроллится (его высота просто растёт
@@ -355,21 +371,35 @@ export const AdminSceneMap = ({ entries, onJump, disabled }: { entries: AdminMap
     // (подтверждено живьём — top уезжал в -474px при scrollY=614) — карта
     // просто уезжала за пределы экрана вместо того, чтобы "тащиться" за
     // пользователем. Исправлено настоящим position:fixed — он всегда
-    // честно относительно вьюпорта. Узкий spacer остаётся в потоке
-    // (резервирует место в родительском flex-row, чтобы основной контент
-    // не растягивался в область панели), видимая панель — fixed с left,
-    // посчитанным по позиции spacer'а (top у fixed вычислять не нужно —
-    // он и так всегда 16px от вьюпорта, независимо от скролла).
-    const sidebarSpacerRef = useRef<HTMLDivElement>(null)
-    const [sidebarLeft, setSidebarLeft] = useState<number | null>(null)
-    useEffect(() => {
-        const update = () => {
-            if (sidebarSpacerRef.current) setSidebarLeft(sidebarSpacerRef.current.getBoundingClientRect().left)
-        }
-        update()
-        window.addEventListener('resize', update)
-        return () => window.removeEventListener('resize', update)
-    }, [])
+    // честно относительно вьюпорта, "прикноплен" к экрану независимо от
+    // прокрутки. Вертикально — по прямой просьбе пользователя, по центру
+    // экрана (top:50%+translateY(-50%)), а не у верхнего края.
+    //
+    // Горизонталь (left) — ЧИСТЫЙ CSS calc(), НЕ JS-замер через ref. Первая
+    // версия мерила позицию spacer'а через getBoundingClientRect() в
+    // эффекте — и на телефоне после первой загрузки панель иногда не
+    // появлялась вовсе (поворот экрана её "чинил"). Причина глубже, чем
+    // просто "рано измерили": контейнер вопроса — framer-motion motion.div
+    // со slide-in анимацией (x:100→0); ЛЮБОЙ ненулевой transform на
+    // предке — по спецификации CSS — на время своего действия делает ЕГО
+    // (а не вьюпорт) точкой отсчёта для ВСЕХ потомков с position:fixed.
+    // Пока анимация играет (обычно доли секунды, но эффект тот же
+    // механизм, что и сам баг), JS-замер попадал на непрогнозируемый
+    // момент — то до, то после того как transform схлопнется обратно в
+    // "none". Чистый calc() эту гонку не устраняет полностью (доля
+    // секунды self-fix, как и у самого слайда текста), зато не зависит ни
+    // от какого асинхронного момента ПОСЛЕ анимации — тот же результат,
+    // что и у измерения, но БЕЗ состояния/эффекта/ререндера. Формула:
+    // контейнер разбора — max-w-{containerMaxWidthRem}rem, отцентрирован
+    // (mx-auto) внутри доступной ширины (100vw минус общий отступ
+    // QUESTION_SHELL_INSET_PX с каждой стороны) — при СИММЕТРИЧНЫХ
+    // отступах слева/справа центр контейнера совпадает с центром вьюпорта
+    // (50vw) независимо от величины отступа, поэтому правый край
+    // контейнера = 50vw + containerWidth/2, а left панели = этот край
+    // минус её собственная ширина (панель — последний элемент в
+    // flex-row, физически прижата к правому краю контейнера).
+    const containerWidthCss = `min(calc(100vw - ${QUESTION_SHELL_INSET_PX * 2}px), ${containerMaxWidthRem}rem)`
+    const panelLeftCss = `calc(50vw + (${containerWidthCss}) / 2 - ${MAP_PANEL_WIDTH_PX}px)`
 
     // Автопрокрутка карты к активному кружку — тот же ref+scrollIntoView
     // паттерн, что уже проверен в ChallengeNav (/lesson/376), срабатывает
@@ -385,39 +415,40 @@ export const AdminSceneMap = ({ entries, onJump, disabled }: { entries: AdminMap
 
     return (
         <>
-            <div ref={sidebarSpacerRef} className="shrink-0 w-11" />
-            {sidebarLeft !== null && (
-                <div className="fixed z-30 flex flex-col items-center gap-1.5 py-2 w-11" style={{ top: 16, left: sidebarLeft }}>
-                    <div className="text-[9px] text-[#6B7A83] font-bold tracking-wide mb-1">ЭТАПЫ</div>
-                    <div
-                        className="flex flex-col items-center gap-2 max-h-[70vh] overflow-y-auto py-1 [&::-webkit-scrollbar]:hidden"
-                        style={{ scrollbarWidth: 'none' }}
-                    >
-                        {entries.map((entry, idx) => (
-                            <button
-                                key={entry.dotKey}
-                                ref={entry.isActive ? activeDotRef : undefined}
-                                type="button"
-                                title={entry.label}
-                                onClick={() => onJump(entry.jumpKey)}
-                                disabled={disabled}
-                                className="rounded-full transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 flex items-center justify-center font-black leading-none"
-                                style={{
-                                    width: entry.isActive ? 22 : 16,
-                                    height: entry.isActive ? 22 : 16,
-                                    fontSize: entry.isActive ? 10 : 8,
-                                    backgroundColor: entry.isActive ? entry.color : hexToRgba(entry.color, 0.4),
-                                    border: entry.isActive ? '2px solid #F2F7FB' : 'none',
-                                    color: '#F2F7FB',
-                                }}
-                            >
-                                {idx + 1}
-                            </button>
-                        ))}
-                    </div>
-                    <div className="text-[9px] text-[#6B7A83] mt-1 whitespace-nowrap">{activeIdx + 1}/{entries.length}</div>
+            <div className="shrink-0" style={{ width: MAP_PANEL_WIDTH_PX }} />
+            <div
+                className="fixed z-30 flex flex-col items-center gap-1.5 py-2"
+                style={{ top: '50%', left: panelLeftCss, transform: 'translateY(-50%)', width: MAP_PANEL_WIDTH_PX }}
+            >
+                <div className="text-[9px] text-[#6B7A83] font-bold tracking-wide mb-1">ЭТАПЫ</div>
+                <div
+                    className="flex flex-col items-center gap-2 max-h-[70vh] overflow-y-auto py-1 [&::-webkit-scrollbar]:hidden"
+                    style={{ scrollbarWidth: 'none' }}
+                >
+                    {entries.map((entry, idx) => (
+                        <button
+                            key={entry.dotKey}
+                            ref={entry.isActive ? activeDotRef : undefined}
+                            type="button"
+                            title={entry.label}
+                            onClick={() => onJump(entry.jumpKey)}
+                            disabled={disabled}
+                            className="rounded-full transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 flex items-center justify-center font-black leading-none"
+                            style={{
+                                width: entry.isActive ? 22 : 16,
+                                height: entry.isActive ? 22 : 16,
+                                fontSize: entry.isActive ? 10 : 8,
+                                backgroundColor: entry.isActive ? entry.color : hexToRgba(entry.color, 0.4),
+                                border: entry.isActive ? '2px solid #F2F7FB' : 'none',
+                                color: '#F2F7FB',
+                            }}
+                        >
+                            {idx + 1}
+                        </button>
+                    ))}
                 </div>
-            )}
+                <div className="text-[9px] text-[#6B7A83] mt-1 whitespace-nowrap">{activeIdx + 1}/{entries.length}</div>
+            </div>
         </>
     )
 }
