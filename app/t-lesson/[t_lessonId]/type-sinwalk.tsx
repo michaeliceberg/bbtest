@@ -581,16 +581,14 @@ export const TypeSinWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) =>
     // (app/lesson/challenge-nav.tsx, /lesson/376): активный пункт всегда
     // автоскроллится в кадр через scrollIntoView, просто здесь — по
     // вертикали (block:'center', не inline:'center') и кружочками вместо
-    // нумерованных квадратов. По прямой просьбе пользователя — ВСЕ 4
-    // тренировочных задания схлопнуты в ОДИН кружок-ссылку на первое
-    // задание блока (иначе не хватало места; если позже появится второй
-    // такой блок задач — для него нужен свой отдельный entry этой же
-    // формы, сейчас в компоненте структурно ровно один блок практики).
-    // Каждый entry знает СВОЙ цвет и активен ли он ПРЯМО СЕЙЧАС — то же
-    // сравнение с phase/step/trialIndex/adjStep, что уже используют
-    // isSceneActive/latestSceneKey выше, просто на уровне ГРУППЫ, а не
-    // отдельной сцены (вся практика активна, пока phase==='practice',
-    // независимо от того, какое именно задание внутри блока сейчас).
+    // нумерованных квадратов. Раньше все 4 тренировочных задания были
+    // схлопнуты в ОДИН кружок-ссылку на первое задание блока — по прямой
+    // жалобе пользователя ("отображены не все этапы") это оказалось
+    // реальным пробелом: с карты нельзя было прыгнуть конкретно на 2-е/
+    // 3-е/4-е задание практики, только на первое. Теперь у КАЖДОГО
+    // тренировочного задания — свой отдельный кружок, как и у остальных
+    // сцен (trialConfigs.map, не Array.from(INTRO_STEPS)-подобная заглушка
+    // на всю практику разом).
     const sceneMapEntries: { dotKey: string; label: string; jumpKey: string; isActive: boolean; color: string }[] = [
         ...Array.from({ length: INTRO_STEPS }, (_, i) => ({
             dotKey: `step-${i}`,
@@ -599,13 +597,13 @@ export const TypeSinWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) =>
             isActive: phase === 'intro' && step === i,
             color: '#8B98A1',
         })),
-        {
-            dotKey: 'practice-block',
-            label: `Тренировка (${trialConfigs.length} заданий)`,
-            jumpKey: 'trial-0',
-            isActive: phase === 'practice',
+        ...trialConfigs.map((_, i) => ({
+            dotKey: `trial-${i}`,
+            label: `Тренировка ${i + 1}/${trialConfigs.length}`,
+            jumpKey: `trial-${i}`,
+            isActive: phase === 'practice' && trialIndex === i,
             color: GGEGE_PALETTE.blue.button,
-        },
+        })),
         ...Array.from({ length: ADJACENT_STEPS }, (_, i) => ({
             dotKey: `adj-${i}`,
             label: ['Recap: противолежащий катет', 'Прилежащий катет'][i] ?? `Adj ${i + 1}`,
@@ -617,14 +615,52 @@ export const TypeSinWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) =>
     const activeSceneMapIndex = sceneMapEntries.findIndex((e) => e.isActive)
     // Автопрокрутка карты этапов к активному кружку — тот же ref+
     // scrollIntoView паттерн, что уже проверен в ChallengeNav, срабатывает
-    // на КАЖДУЮ смену активной сцены (не только на монтирование), поэтому
-    // "слайдится" при переходе между ЛЮБЫМИ этапами, не только с первого.
+    // на КАЖДУЮ смену активной сцены (не только на монтирование). Теперь,
+    // когда сама панель — настоящий position:fixed (см. sidebarLeft ниже),
+    // этот scrollIntoView трогает ТОЛЬКО собственный маленький overflow-y-
+    // auto список кружков — до фикса он периодически утаскивал за собой
+    // ещё и всю страницу (см. комментарий у sidebarLeft), что и давало
+    // "кривой" двойной скролл при клике по карте.
     const activeDotRef = useRef<HTMLButtonElement>(null)
     useEffect(() => {
         activeDotRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
     }, [latestSceneKey])
 
+    // position:sticky для этой панели на практике НЕ работал — несмотря на
+    // комментарий (в предыдущей версии), что панель живёт "внутри того же
+    // overflow-y-auto контейнера, что и весь урок": тот контейнер (сам
+    // motion.div вопроса в components/trainer-question.tsx) на самом деле
+    // НИКОГДА не скроллится САМ ПО СЕБЕ — его собственная высота просто
+    // растёт вместе с содержимым (flex-1 внутри min-h-screen, а не h-screen
+    // с реально ограниченной высотой), поэтому его scrollTop всегда 0, а
+    // РЕАЛЬНЫЙ скролл идёт на уровне <html>. position:sticky, посчитанный
+    // относительно якоря, который сам никогда не скроллится, не отражает
+    // реальный скролл страницы вообще — подтверждено живьём (top уезжал в
+    // -474px при scrollY=614) — карта просто уезжала за пределы экрана
+    // вместо того, чтобы "тащиться" вместе с пользователем (ровно жалоба
+    // "при переходе к новому этапу тащить за собой карту этапов").
+    // Исправлено переходом на настоящий position:fixed — он всегда честно
+    // относительно вьюпорта и не зависит от того, какой из вложенных
+    // overflow-y-auto контейнеров браузер сочтёт "ближайшим скролл-
+    // контейнером" для sticky. Узкий spacer остаётся в потоке (резервирует
+    // место в flex-row, чтобы основной контент не растягивался в область
+    // панели), видимая панель рендерится fixed с left, посчитанным по
+    // позиции spacer'а (top у fixed не нужно вычислять — он и так всегда
+    // 16px от вьюпорта, независимо от скролла).
+    const sidebarSpacerRef = useRef<HTMLDivElement>(null)
+    const [sidebarLeft, setSidebarLeft] = useState<number | null>(null)
+    useEffect(() => {
+        if (!isAdmin) return
+        const update = () => {
+            if (sidebarSpacerRef.current) setSidebarLeft(sidebarSpacerRef.current.getBoundingClientRect().left)
+        }
+        update()
+        window.addEventListener('resize', update)
+        return () => window.removeEventListener('resize', update)
+    }, [isAdmin])
+
     return (
+        <>
         <div className={`w-full mx-auto flex flex-row items-start gap-3 ${isAdmin ? 'max-w-[46rem]' : 'max-w-2xl'}`}>
         <div className="min-w-0 flex-1 flex flex-col items-center gap-4">
             <div className="w-full flex flex-col gap-4">
@@ -861,26 +897,37 @@ export const TypeSinWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) =>
             )}
         </div>
 
-        {/* Админская карта этапов — sticky-колонка справа (внутри того же
-            overflow-y-auto контейнера, что и весь урок, см. trainer-
-            question.tsx, — поэтому sticky "следует" за скроллом лога, а
-            не fixed относительно viewport: framer-motion-обёртки выше по
-            дереву задают transform, который сделал бы position:fixed
-            позиционированным относительно НИХ, а не окна). Сама колонка
-            кружков — СВОЙ вертикальный overflow-y-auto с ограниченной
-            высотой (max-h) + автоскролл активного в центр (activeDotRef,
-            см. выше) — тот же "слайдер, где всегда видно текущую позицию"
-            приём, что и в ChallengeNav (/lesson/376), просто по вертикали
-            и кружочками, а не горизонтальной строкой нумерованных кнопок.
-            Видна ТОЛЬКО isAdmin — обычным ученикам не рендерится вовсе. */}
-        {isAdmin && (
-            <div className="shrink-0 sticky top-4 flex flex-col items-center gap-1.5 py-2">
+        {/* Spacer — в потоке flex-row, только резервирует место под панель
+            (см. sidebarLeft выше), чтобы основной контент (min-w-0
+            flex-1) не растягивался в её область. Сама видимая панель
+            теперь position:fixed и рендерится НИЖЕ, вне flex-row. */}
+        {isAdmin && <div ref={sidebarSpacerRef} className="shrink-0 w-11" />}
+        </div>
+
+        {/* Админская карта этапов — настоящий position:fixed (см.
+            подробный комментарий у sidebarLeft выше про то, почему
+            sticky здесь не работал), поэтому теперь честно "тащится" за
+            пользователем при любой прокрутке, а не уезжает за пределы
+            экрана. Сама колонка кружков — СВОЙ вертикальный overflow-y-
+            auto с ограниченной высотой (max-h) + автоскролл активного в
+            центр (activeDotRef, см. выше) — тот же "слайдер, где всегда
+            видно текущую позицию" приём, что и в ChallengeNav
+            (/lesson/376), просто по вертикали и кружочками, а не
+            горизонтальной строкой нумерованных кнопок. В каждом кружке —
+            мелкая цифра сквозного номера этапа (idx+1), по прямой
+            просьбе пользователя. Видна ТОЛЬКО isAdmin — обычным ученикам
+            не рендерится вовсе. */}
+        {isAdmin && sidebarLeft !== null && (
+            <div
+                className="fixed z-30 flex flex-col items-center gap-1.5 py-2 w-11"
+                style={{ top: 16, left: sidebarLeft }}
+            >
                 <div className="text-[9px] text-[#6B7A83] font-bold tracking-wide mb-1">ЭТАПЫ</div>
                 <div
-                    className="flex flex-col items-center gap-2 max-h-[46vh] overflow-y-auto py-1 [&::-webkit-scrollbar]:hidden"
+                    className="flex flex-col items-center gap-2 max-h-[70vh] overflow-y-auto py-1 [&::-webkit-scrollbar]:hidden"
                     style={{ scrollbarWidth: 'none' }}
                 >
-                    {sceneMapEntries.map((entry) => (
+                    {sceneMapEntries.map((entry, idx) => (
                         <button
                             key={entry.dotKey}
                             ref={entry.isActive ? activeDotRef : undefined}
@@ -888,23 +935,25 @@ export const TypeSinWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) =>
                             title={entry.label}
                             onClick={() => jumpToScene(entry.jumpKey)}
                             disabled={advancing}
-                            className="rounded-full transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                            className="rounded-full transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 flex items-center justify-center font-black leading-none"
                             style={{
-                                width: entry.isActive ? 16 : 9,
-                                height: entry.isActive ? 16 : 9,
+                                width: entry.isActive ? 22 : 16,
+                                height: entry.isActive ? 22 : 16,
+                                fontSize: entry.isActive ? 10 : 8,
                                 backgroundColor: entry.isActive ? entry.color : hexToRgba(entry.color, 0.4),
                                 border: entry.isActive ? '2px solid #F2F7FB' : 'none',
+                                color: '#F2F7FB',
                             }}
-                        />
+                        >
+                            {idx + 1}
+                        </button>
                     ))}
                 </div>
                 <div className="text-[9px] text-[#6B7A83] mt-1 whitespace-nowrap">
-                    {phase === 'practice'
-                        ? `Тренировка ${trialIndex + 1}/${trialConfigs.length}`
-                        : `${activeSceneMapIndex + 1}/${sceneMapEntries.length}`}
+                    {activeSceneMapIndex + 1}/{sceneMapEntries.length}
                 </div>
             </div>
         )}
-        </div>
+        </>
     )
 }
