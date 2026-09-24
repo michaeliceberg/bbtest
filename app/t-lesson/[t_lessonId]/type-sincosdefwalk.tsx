@@ -13,7 +13,10 @@
 //    (стикеры на словах, настоящая дробь). Затем 3 задания на sin.
 // 2. Сцена "формула cos": тот же треугольник, но подписан прилежащий катет
 //    (противолежащий — нет), под ним "cos α = прилежащий/гипотенуза".
-//    Затем 3 задания на cos. Порядок сцен — см. SCENES.
+//    Затем 3 задания на cos.
+// 3. Сцена "формула tg": подписаны оба катета, гипотенуза без подписи,
+//    "tg α = противолежащий/прилежащий", затем 3 задания на tg.
+//    Порядок сцен — см. SCENES.
 // Тренировка (3+3 задания, см. makeTrials) —
 //    НОВЫЙ треугольник на каждое задание, стороны подписаны ЧИСЛАМИ
 //    (случайная пифагорова тройка 3-4-5/5-12-13/6-8-10, случайный угол α,
@@ -134,14 +137,25 @@ const ConceptScene = ({ kind, onSettled }: { kind: Kind; onSettled?: () => void 
         return () => clearTimeout(t)
     }, [])
     const isSin = kind === 'sin'
+    const isTg = kind === 'tg'
+    // На каждой сцене подписано только то, что входит в формулу: sin —
+    // противолежащий+гипотенуза, cos — прилежащий+гипотенуза, tg — оба
+    // катета (гипотенуза без подписи и подсветки).
+    const formulas: Record<Kind, { label: string; num: { text: string; color: string }; den: { text: string; color: string } }> = {
+        sin: { label: 'sin α', num: { text: 'противолежащий', color: LEG_COLOR }, den: { text: 'гипотенуза', color: HYPOTENUSE_COLOR } },
+        cos: { label: 'cos α', num: { text: 'прилежащий', color: ADJACENT_LEG_COLOR }, den: { text: 'гипотенуза', color: HYPOTENUSE_COLOR } },
+        tg: { label: 'tg α', num: { text: 'противолежащий', color: LEG_COLOR }, den: { text: 'прилежащий', color: ADJACENT_LEG_COLOR } },
+    }
+    const f = formulas[kind]
     return (
         <div className="w-full flex flex-col items-center gap-4">
             <div className="w-full max-w-[460px]">
                 <DiagramBlock>
                     <RightTriangleDiagram
-                        compact rightAngleMarkShown hypotenuseHighlighted hypotenuseLabelShown
+                        compact rightAngleMarkShown
+                        hypotenuseHighlighted={!isTg} hypotenuseLabelShown={!isTg}
                         alphaVertex="P"
-                        oppositeLegHighlighted={isSin} oppositeLegLabelShown={isSin}
+                        oppositeLegHighlighted={isSin || isTg} oppositeLegLabelShown={isSin || isTg}
                         adjacentLegHighlighted={!isSin} adjacentLegLabelShown={!isSin}
                     />
                 </DiagramBlock>
@@ -149,11 +163,9 @@ const ConceptScene = ({ kind, onSettled }: { kind: Kind; onSettled?: () => void 
             <div className="w-full flex justify-center">
                 {formulaVisible && (
                     <TypedFractionLine
-                        label={isSin ? 'sin α' : 'cos α'}
-                        numerator={isSin
-                            ? { text: 'противолежащий', color: LEG_COLOR }
-                            : { text: 'прилежащий', color: ADJACENT_LEG_COLOR }}
-                        denominator={{ text: 'гипотенуза', color: HYPOTENUSE_COLOR }}
+                        label={f.label}
+                        numerator={f.num}
+                        denominator={f.den}
                         onSettled={onSettled}
                     />
                 )}
@@ -174,7 +186,7 @@ const TRIPLES: [number, number, number][] = [[3, 4, 5], [5, 12, 13], [6, 8, 10]]
 const ROTATIONS = [35, -35, 55, -55, 75, -75, 110, -110, 140, -140, 160, -160]
 const pick = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)]
 
-type Kind = 'sin' | 'cos'
+type Kind = 'sin' | 'cos' | 'tg'
 type TrialConfig = {
     legRPValue: number
     legRQValue: number
@@ -187,17 +199,22 @@ type TrialConfig = {
 
 const oppositeValueOf = (cfg: TrialConfig) => (cfg.alphaVertex === 'P' ? cfg.legRQValue : cfg.legRPValue)
 const adjacentValueOf = (cfg: TrialConfig) => (cfg.alphaVertex === 'P' ? cfg.legRPValue : cfg.legRQValue)
-const correctNumerator = (cfg: TrialConfig) => (cfg.kind === 'sin' ? oppositeValueOf(cfg) : adjacentValueOf(cfg))
-const correctDenominator = (cfg: TrialConfig) => cfg.hypValue
+const correctNumerator = (cfg: TrialConfig) => (cfg.kind === 'cos' ? adjacentValueOf(cfg) : oppositeValueOf(cfg))
+// tg α = противолежащий / прилежащий, sin и cos — делим на гипотенузу.
+const correctDenominator = (cfg: TrialConfig) => (cfg.kind === 'tg' ? adjacentValueOf(cfg) : cfg.hypValue)
 
 // Сначала 3 задания на sin (сразу после сцены "формула sin"), затем
 // 3 на cos (сразу после сцены "формула cos") — см. SCENES ниже.
-const KIND_LIST: Kind[] = ['sin', 'sin', 'sin', 'cos', 'cos', 'cos']
+const KIND_LIST: Kind[] = ['sin', 'sin', 'sin', 'cos', 'cos', 'cos', 'tg', 'tg', 'tg']
 const TRIALS_PER_BLOCK = 3
 
 // Порядок сцен урока: формула sin → 3 тренировки sin → формула cos →
 // 3 тренировки cos.
-const SCENES = ['intro-sin', 'trial-0', 'trial-1', 'trial-2', 'intro-cos', 'trial-3', 'trial-4', 'trial-5'] as const
+const SCENES = [
+    'intro-sin', 'trial-0', 'trial-1', 'trial-2',
+    'intro-cos', 'trial-3', 'trial-4', 'trial-5',
+    'intro-tg', 'trial-6', 'trial-7', 'trial-8',
+] as const
 type SceneKey = typeof SCENES[number]
 const trialIdxOf = (key: string): number | null => (key.startsWith('trial-') ? Number(key.slice('trial-'.length)) : null)
 
@@ -230,7 +247,7 @@ const makeTrials = (): TrialConfig[] => {
 // же принцип, что и pickTrialFeedback в SINWALK — не Math.random() прямо
 // в рендере, чтобы фраза не "мигала" на посторонних ре-рендерах).
 const pickTrialFeedback = (cfg: TrialConfig): string => {
-    const seed = cfg.rotationDeg * 3 + cfg.hypValue * 7 + (cfg.mirror ? 17 : 0) + (cfg.kind === 'sin' ? 5 : 0)
+    const seed = cfg.rotationDeg * 3 + cfg.hypValue * 7 + (cfg.mirror ? 17 : 0) + (cfg.kind === 'sin' ? 5 : cfg.kind === 'tg' ? 11 : 0)
     return CORRECT_FEEDBACK_PHRASES[Math.abs(seed) % CORRECT_FEEDBACK_PHRASES.length]
 }
 
@@ -390,11 +407,14 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
     }
 
     const cosIntroIdx = SCENES.indexOf('intro-cos')
+    const tgIntroIdx = SCENES.indexOf('intro-tg')
     const sceneMapEntries: AdminMapEntry[] = [
         { dotKey: 'intro-sin', label: 'Формула sin', jumpKey: 'intro-sin', isActive: sceneIdx === 0, color: MAP_INTRO_COLOR },
         { dotKey: 'practice-sin', label: `Тренировка sin (${TRIALS_PER_BLOCK})`, jumpKey: 'trial-0', isActive: sceneIdx > 0 && sceneIdx < cosIntroIdx, color: MAP_PRACTICE_COLOR },
         { dotKey: 'intro-cos', label: 'Формула cos', jumpKey: 'intro-cos', isActive: sceneIdx === cosIntroIdx, color: MAP_INTRO_COLOR },
-        { dotKey: 'practice-cos', label: `Тренировка cos (${TRIALS_PER_BLOCK})`, jumpKey: 'trial-3', isActive: sceneIdx > cosIntroIdx, color: MAP_PRACTICE_COLOR },
+        { dotKey: 'practice-cos', label: `Тренировка cos (${TRIALS_PER_BLOCK})`, jumpKey: 'trial-3', isActive: sceneIdx > cosIntroIdx && sceneIdx < tgIntroIdx, color: MAP_PRACTICE_COLOR },
+        { dotKey: 'intro-tg', label: 'Формула tg', jumpKey: 'intro-tg', isActive: sceneIdx === tgIntroIdx, color: MAP_INTRO_COLOR },
+        { dotKey: 'practice-tg', label: `Тренировка tg (${TRIALS_PER_BLOCK})`, jumpKey: 'trial-6', isActive: sceneIdx > tgIntroIdx, color: MAP_PRACTICE_COLOR },
     ]
 
     const renderIntro = (key: SceneKey, kind: Kind) => (
@@ -499,7 +519,7 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
                 {SCENES.slice(0, sceneIdx + 1).map((key) => {
                     const ti = trialIdxOf(key)
                     if (ti !== null) return renderTrial(ti)
-                    return renderIntro(key, key === 'intro-sin' ? 'sin' : 'cos')
+                    return renderIntro(key, key.slice('intro-'.length) as Kind)
                 })}
             </div>
 
