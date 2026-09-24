@@ -140,19 +140,22 @@ const LESSON_CASE_TIER_ACCENT: Record<LessonCaseTier, string> = {
     mega: '#FF8A00',
 }
 
-// Кнопка "Крутить" в том же премиальном стиле, что и окно барабана:
-// металлическая градиентная рамка, тёмное "стекло" внутри, свечение и
-// текст/иконка в цвет редкости кейса, пульсация свечения + бегущий блик.
-const SpinButton = ({ accent, onClick }: { accent: string; onClick: () => void }) => (
+// Кнопки кейса ("Крутить"/"Продолжить") в том же премиальном стиле, что
+// и окно барабана: металлическая градиентная рамка, тёмное "стекло"
+// внутри, текст/иконка в цвет редкости, пульсирующее свечение + блик.
+// Свечение вокруг — светлое на ярких фонах (rare/mythic/mega): свечение
+// в цвет редкости на фоне того же цвета не видно; на тёмном common —
+// в цвет акцента (как понравилось пользователю).
+const CaseButton = ({ accent, glow, onClick, children }: { accent: string; glow: string; onClick: () => void; children: React.ReactNode }) => (
     <motion.button
         onClick={onClick}
         whileHover={{ scale: 1.04 }}
         whileTap={{ scale: 0.96, y: 2 }}
         animate={{
             boxShadow: [
-                `0 10px 28px rgba(0,0,0,0.5), 0 0 10px ${accent}55`,
-                `0 10px 28px rgba(0,0,0,0.5), 0 0 26px ${accent}AA`,
-                `0 10px 28px rgba(0,0,0,0.5), 0 0 10px ${accent}55`,
+                `0 10px 28px rgba(0,0,0,0.5), 0 0 10px ${glow}55`,
+                `0 10px 28px rgba(0,0,0,0.5), 0 0 28px ${glow}BB`,
+                `0 10px 28px rgba(0,0,0,0.5), 0 0 10px ${glow}55`,
             ],
         }}
         transition={{ boxShadow: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' } }}
@@ -163,8 +166,7 @@ const SpinButton = ({ accent, onClick }: { accent: string; onClick: () => void }
             className="animate-shine-sweep flex items-center gap-2.5 px-10 py-3.5 rounded-[14px] bg-gradient-to-b from-[#1C282E] to-[#0C1215] font-black text-lg uppercase tracking-[0.12em] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
             style={{ color: accent, textShadow: `0 0 12px ${accent}99` }}
         >
-            <Sparkles className="w-5 h-5" />
-            Крутить
+            {children}
         </span>
     </motion.button>
 )
@@ -216,6 +218,8 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
     // получения результата от сервера), а не на каждый ре-рендер.
     const reactionVideoRef = useRef<string>(OK_REACTION_FILES[0])
     const { width, height } = useWindowSize()
+    const accent = tier ? LESSON_CASE_TIER_ACCENT[tier] : '#4A90D9'
+    const glow = !tier || tier === 'common' ? accent : '#FFFFFF'
 
     useEffect(() => {
         if (!windowRef.current) return
@@ -356,7 +360,12 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
 
             {error && <p className="relative z-10 text-sm text-red-400">{error}</p>}
 
-            {phase === 'idle' && <SpinButton accent={tier ? LESSON_CASE_TIER_ACCENT[tier] : '#4A90D9'} onClick={handleSpin} />}
+            {phase === 'idle' && (
+                <CaseButton accent={accent} glow={glow} onClick={handleSpin}>
+                    <Sparkles className="w-5 h-5" />
+                    Крутить
+                </CaseButton>
+            )}
 
             {phase === 'spinning' && (
                 <div className={"relative z-10 px-8 py-3.5 font-bold uppercase tracking-wide " + (tier ? "text-white" : "text-[#9AA7B0]")}>
@@ -392,14 +401,13 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                             🍕 Ты собрал все 8 кусочков пиццы! Скоро сможешь заказать настоящую пиццу.
                         </p>
                     )}
-                    <motion.button
+                    <CaseButton
+                        accent={accent}
+                        glow={glow}
                         onClick={() => onDone({ reward: wonReward, justMaxedPizza: (result && result.success && result.justMaxedPizza) || false })}
-                        whileHover={{ scale: 1.04 }}
-                        whileTap={{ scale: 0.97 }}
-                        className="px-8 py-3 rounded-xl border-2 border-b-4 active:border-b-2 bg-gradient-to-b from-[#6BB236] to-[#4A8322] border-[#3D6B1B] text-white font-bold uppercase tracking-wide shadow-[0_0_18px_rgba(95,161,47,0.4)]"
                     >
                         Продолжить
-                    </motion.button>
+                    </CaseButton>
                 </motion.div>
             )}
         </div>
