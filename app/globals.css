@@ -453,3 +453,22 @@ body {
 .katex, .katex * {
   font-family: var(--font-nunito), sans-serif !important;
 }
+/* Блик по кнопке "Крутить" кейса (components/CaseReel.tsx) — тот же
+   cta-shine-sweep, но без пульсации тени (свечение задаётся инлайном
+   в цвет редкости кейса). */
+.animate-shine-sweep {
+  position: relative;
+  overflow: hidden;
+}
+.animate-shine-sweep::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  transform: skewX(-20deg);
+  animation: cta-shine-sweep 3.2s ease-in-out infinite;
+  pointer-events: none;
+}

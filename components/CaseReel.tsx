@@ -130,6 +130,45 @@ const RewardVideo = ({ src, glow }: { src: string; glow?: string }) => {
     )
 }
 
+// Акцент кнопки "Крутить" в тон фону страницы по редкости кейса
+// (LESSON_CASE_TIER_PAGE_BG) — у common фон почти чёрный, поэтому акцент
+// светлее самого фона, иначе кнопка бы растворилась.
+const LESSON_CASE_TIER_ACCENT: Record<LessonCaseTier, string> = {
+    common: '#8FA3AE',
+    rare: '#00C5FF',
+    mythic: '#A868FC',
+    mega: '#FF8A00',
+}
+
+// Кнопка "Крутить" в том же премиальном стиле, что и окно барабана:
+// металлическая градиентная рамка, тёмное "стекло" внутри, свечение и
+// текст/иконка в цвет редкости кейса, пульсация свечения + бегущий блик.
+const SpinButton = ({ accent, onClick }: { accent: string; onClick: () => void }) => (
+    <motion.button
+        onClick={onClick}
+        whileHover={{ scale: 1.04 }}
+        whileTap={{ scale: 0.96, y: 2 }}
+        animate={{
+            boxShadow: [
+                `0 10px 28px rgba(0,0,0,0.5), 0 0 10px ${accent}55`,
+                `0 10px 28px rgba(0,0,0,0.5), 0 0 26px ${accent}AA`,
+                `0 10px 28px rgba(0,0,0,0.5), 0 0 10px ${accent}55`,
+            ],
+        }}
+        transition={{ boxShadow: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' } }}
+        className="relative z-10 rounded-2xl p-[2px]"
+        style={{ background: `linear-gradient(180deg, ${accent} 0%, #2A363C 55%, #141C20 100%)` }}
+    >
+        <span
+            className="animate-shine-sweep flex items-center gap-2.5 px-10 py-3.5 rounded-[14px] bg-gradient-to-b from-[#1C282E] to-[#0C1215] font-black text-lg uppercase tracking-[0.12em] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
+            style={{ color: accent, textShadow: `0 0 12px ${accent}99` }}
+        >
+            <Sparkles className="w-5 h-5" />
+            Крутить
+        </span>
+    </motion.button>
+)
+
 type Props = {
     isMega: boolean
     onDone: (result: { reward: CaseReward; justMaxedPizza: boolean }) => void
@@ -317,18 +356,7 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
 
             {error && <p className="relative z-10 text-sm text-red-400">{error}</p>}
 
-            {phase === 'idle' && (
-                <motion.button
-                    onClick={handleSpin}
-                    style={{ position: 'relative', zIndex: 10 }}
-                    whileHover={{ scale: 1.04 }}
-                    whileTap={{ scale: 0.97 }}
-                    className="flex items-center gap-2 px-8 py-3.5 rounded-xl border-2 border-b-4 active:border-b-2 bg-gradient-to-b from-[#5CA6E8] to-[#3A73AD] border-[#2E5C8A] text-white font-bold uppercase tracking-wide shadow-[0_0_22px_rgba(74,144,217,0.45)]"
-                >
-                    <Sparkles className="w-5 h-5" />
-                    Крутить
-                </motion.button>
-            )}
+            {phase === 'idle' && <SpinButton accent={tier ? LESSON_CASE_TIER_ACCENT[tier] : '#4A90D9'} onClick={handleSpin} />}
 
             {phase === 'spinning' && (
                 <div className={"relative z-10 px-8 py-3.5 font-bold uppercase tracking-wide " + (tier ? "text-white" : "text-[#9AA7B0]")}>
