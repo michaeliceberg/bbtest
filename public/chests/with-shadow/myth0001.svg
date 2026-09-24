@@ -1,6 +1,15 @@
 
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="none" x="0px" y="0px" width="274px" height="222px" viewBox="-2.9 -2.2 274.4 221.7">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="none" x="0px" y="0px" width="268px" height="233px" viewBox="0 0 268 233">
 <defs>
+<g id="Layer3_0_FILL">
+<path fill="#9C5CF8" fill-opacity="0.8980392156862745" stroke="none" d="
+M 10.25 221.3
+Q 9 231.55 21.95 233.1
+L 241.65 233.1
+Q 254.6 231.55 253.35 221.3
+L 242.1 125.5 21.55 125.5 10.25 221.3 Z"/>
+</g>
+
 <g id="chest_3_0_Layer0_0_FILL">
 <path fill="#8244C5" stroke="none" d="
 M 67.45 157.6
@@ -161,6 +170,10 @@ L 226.9 107.6
 Q 226.2 100.05 224.95 92.65 Z"/>
 </g>
 </defs>
+
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Layer3_0_FILL"/>
+</g>
 
 <g transform="matrix( 1, 0, 0, 1, 0,0) ">
 <g transform="matrix( 1, 0, 0, 1, 0,0) ">

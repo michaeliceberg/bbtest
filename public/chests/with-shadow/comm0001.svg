@@ -1,6 +1,15 @@
 
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="none" x="0px" y="0px" width="250px" height="207px" viewBox="-2.0 -2.0 249.8 207.1">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="none" x="0px" y="0px" width="245px" height="216px" viewBox="0 0 245 216">
 <defs>
+<g id="ten_1_0_Layer0_0_FILL">
+<path fill="#394148" fill-opacity="0.8980392156862745" stroke="none" d="
+M 224.2 111.2
+Q 239.65 111.6 241 99.35
+L 241 0 0 0 0 99.35
+Q 1.35 111.6 16.8 111.2
+L 224.2 111.2 Z"/>
+</g>
+
 <g id="Layer11_0_FILL">
 <path fill="#B86C03" stroke="none" d="
 M 55.85 161.7
@@ -116,6 +125,12 @@ M 138.9 128.25
 Q 132.1 122.5 122.7 122.55 113 122.5 106.3 128.1 99.65 133.8 99.7 141.9 99.7 149.9 106.4 155.5 113.05 161.35 122.75 161.3 132.3 161.3 139.05 155.6 145.65 149.9 145.65 141.8 145.7 133.8 138.9 128.25 Z"/>
 </g>
 </defs>
+
+<g transform="matrix( 1, 0, 0, 1, 4.15,105.2) ">
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#ten_1_0_Layer0_0_FILL"/>
+</g>
+</g>
 
 <g transform="matrix( 1, 0, 0, 1, 0,0) ">
 <use xlink:href="#Layer11_0_FILL"/>
