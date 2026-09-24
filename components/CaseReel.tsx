@@ -288,7 +288,11 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                 пользователя) — fixed-слой под контентом (z-0, контент z-10). */}
             {tier && (
                 <div className="fixed inset-0 z-0 pointer-events-none" style={{ backgroundColor: LESSON_CASE_TIER_PAGE_BG[tier] }}>
-                    <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 30%, rgba(255,255,255,0.18), transparent 60%)' }} />
+                    {/* Подсветка позади ящика + затемнение к краям (виньетка) —
+                        как понравилось пользователю на тёмном common; на ярких
+                        фонах без виньетки подсветка не читалась. */}
+                    <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 30%, rgba(255,255,255,0.22), transparent 55%)' }} />
+                    <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 30%, transparent 30%, rgba(0,0,0,0.55) 100%)' }} />
                 </div>
             )}
             {isJackpot && <Confetti width={width} height={height} recycle={false} numberOfPieces={260} />}
