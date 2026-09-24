@@ -53,9 +53,9 @@ export const Header = ({ dbUserName }: Props) => {
           <div className='flex items-center gap-x-4'>
             {session && (
               <div className='flex items-center gap-x-2'>
-                <div className='flex items-center gap-x-2 bg-gradient-to-r from-green-50 to-emerald-50 px-3 py-1.5 rounded-full'>
-                  <User className='h-4 w-4 text-green-600' />
-                  <span className='text-sm font-semibold text-green-700'>
+                <div className='flex items-center gap-x-2 rounded-full border border-[#3A464E] bg-[#1C282E] px-3 py-1.5'>
+                  <User className='h-4 w-4 text-[#78C93C]' />
+                  <span className='text-sm font-semibold text-[#F2F7FB]'>
                     {userName}
                   </span>
                 </div>

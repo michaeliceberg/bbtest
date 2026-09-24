@@ -1,20 +1,9 @@
-import { Button } from '@/components/ui/button'
-
 export const Footer = () => {
 	return (
-		<footer className='hidden lg:block h-20 w-full border-t-2 border-[#3A464E] p-2'>
-			<div className='max-w-screen-lg mx-auto flex items-center justify-evenly h-full'>
-				<Button size='lg' variant='ghost' className='w-full'>
-					Математика
-				</Button>
-
-				<Button size='lg' variant='ghost' className='w-full'>
-					Физика
-				</Button>
-
-				<Button size='lg' variant='ghost' className='w-full'>
-					Информатика
-				</Button>
+		<footer className='w-full border-t border-[#3A464E]/60 py-5'>
+			<div className='max-w-screen-lg mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-[#5C6B73]'>
+				<span>ggege · подготовка к ЕГЭ и ОГЭ</span>
+				<span>Математика · Физика</span>
 			</div>
 		</footer>
 	)
