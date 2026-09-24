@@ -664,7 +664,7 @@ export default function TrainerQuestion({
                 // ("Синусы Косинусы Тангенсы") — тот же приём, что и у
                 // SINWALK/FARADAYWALK/DIRWALK выше.
                 : question.questionType === "SINCOSDEFWALK"
-                ? "Синус и косинус угла"
+                ? "Синус, косинус и тангенс"
                 : question.questionType !== "WORKBOOK" &&
                   question.questionType !== "RUSSIANDICTANT" &&
                   question.questionType !== "SWIPE" &&
