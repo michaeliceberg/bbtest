@@ -18,6 +18,7 @@ import Confetti from 'react-confetti'
 import { useWindowSize } from 'react-use'
 import { Gift, Sparkles } from 'lucide-react'
 import { openCase, type OpenCaseResult } from '@/actions/open-case'
+import { useRive, Layout, Fit, Alignment } from '@rive-app/react-webgl2'
 import { playSound } from '@/lib/sound'
 import {
   getCasePool, getLessonCasePool, isJackpotReward, pickWeightedReward, rewardEmoji, rewardLabel, type CaseReward,
@@ -171,6 +172,21 @@ const CaseButton = ({ accent, glow, onClick, children }: { accent: string; glow:
     </motion.button>
 )
 
+// Взлетающие звёзды на заднем фоне кейса (Rive, public/rive/stars-<tier>.riv).
+// Оригинал пользователя — public/rive/originals/stars.riv: у вариантов фон
+// артборда сделан прозрачным (байт альфы цвета #282828), у rare/mythic/mega
+// цвет звёзд перекрашен в светлый тон фона страницы (common — исходный цвет).
+// Растянуты на весь экран (Fit.Cover), полупрозрачные.
+const CaseStars = ({ tier }: { tier: LessonCaseTier }) => {
+    const { RiveComponent } = useRive({
+        src: `/rive/stars-${tier}.riv`,
+        stateMachines: 'State Machine 1',
+        autoplay: true,
+        layout: new Layout({ fit: Fit.Cover, alignment: Alignment.Center }),
+    })
+    return <RiveComponent className="absolute inset-0 w-full h-full opacity-70" />
+}
+
 type Props = {
     isMega: boolean
     onDone: (result: { reward: CaseReward; justMaxedPizza: boolean }) => void
@@ -294,6 +310,7 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                         фонах без виньетки подсветка не читалась. */}
                     <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 30%, rgba(255,255,255,0.22), transparent 55%)' }} />
                     <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 30%, transparent 30%, rgba(0,0,0,0.55) 100%)' }} />
+                    <CaseStars tier={tier} />
                 </div>
             )}
             {isJackpot && <Confetti width={width} height={height} recycle={false} numberOfPieces={260} />}
