@@ -281,14 +281,31 @@ const ValueChip = ({
 
 // Пустой пропуск, ждущий число — активный (сейчас сюда попадёт следующий
 // клик по пулу) пульсирует синим, неактивный — тускло-серый.
-const EmptySlot = ({ active }: { active: boolean }) => (
-    <div className={cn(
-        CHIP_BASE, 'border-dashed',
-        active ? 'border-[#4A90D9] text-[#4A90D9] animate-pulse' : 'border-[#3A464E] text-[#5A6A72]',
-    )}>
-        ?
+// hint — подсказка вместо "?" (только в 1-м задании блока): сокращённое
+// название стороны её же цветом ("против"/"прилеж"/"гипот").
+const EmptySlot = ({ active, hint }: { active: boolean; hint?: { text: string; color: string } }) => (
+    <div
+        className={cn(
+            CHIP_BASE, 'border-dashed',
+            hint && 'w-auto min-w-11 px-2 text-sm font-extrabold',
+            !hint && (active ? 'border-[#4A90D9] text-[#4A90D9]' : 'border-[#3A464E] text-[#5A6A72]'),
+            active && 'animate-pulse',
+        )}
+        style={hint ? { borderColor: hint.color, color: hint.color, backgroundColor: hexToRgba(hint.color, 0.1) } : undefined}
+    >
+        {hint ? hint.text : '?'}
     </div>
 )
+
+const SIDE_HINT = {
+    opp: { text: 'против', color: LEG_COLOR },
+    adj: { text: 'прилеж', color: ADJACENT_LEG_COLOR },
+    hyp: { text: 'гипот', color: HYPOTENUSE_COLOR },
+}
+const slotHintsOf = (kind: Kind) =>
+    kind === 'sin' ? { num: SIDE_HINT.opp, den: SIDE_HINT.hyp }
+        : kind === 'cos' ? { num: SIDE_HINT.adj, den: SIDE_HINT.hyp }
+            : { num: SIDE_HINT.opp, den: SIDE_HINT.adj }
 
 // Уже проверенное (верное) задание — застывший, не интерактивный вид: и
 // для ПРОШЛЫХ заданий в накопительном логе, и для ТЕКУЩЕГО сразу после
@@ -439,6 +456,7 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
         // стороны, что входят в формулу (sin — противолежащий+гипотенуза,
         // cos — прилежащий+гипотенуза, tg — оба катета). Во 2-м и 3-м — нет.
         const hint = localIdx === 0
+        const slotHints = hint ? slotHintsOf(t.kind) : null
 
         return (
             <SceneWrapper key={`trial-${i}`} innerRef={sceneRef(`trial-${i}`)} active={isSceneActive(`trial-${i}`)}>
@@ -479,14 +497,14 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
                     </div>
                 </div>
                 {/* Дробь и пул чисел — в одну строку (экономия высоты). */}
-                <div className="flex items-center justify-center gap-4 flex-wrap">
+                <div className="flex items-center justify-center gap-x-10 gap-y-5 flex-wrap">
                 <div className="flex items-center justify-center gap-2 text-xl md:text-2xl font-bold text-[#F2F7FB]">
                     <span>{t.kind} α = </span>
                     <div className="inline-flex flex-col items-stretch">
                         {showInteractive ? (
                             numerator !== null
                                 ? <ValueChip value={numerator} layoutId={`chip-t${i}-${numerator}`} tone={wrongFlash ? 'wrong' : 'selected'} onClick={() => handleClearSlot('num')} />
-                                : <EmptySlot active={activeSlot === 'num'} />
+                                : <EmptySlot active={activeSlot === 'num'} hint={slotHints?.num} />
                         ) : (
                             <StaticChip value={corrNum} />
                         )}
@@ -494,7 +512,7 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
                         {showInteractive ? (
                             denominator !== null
                                 ? <ValueChip value={denominator} layoutId={`chip-t${i}-${denominator}`} tone={wrongFlash ? 'wrong' : 'selected'} onClick={() => handleClearSlot('den')} />
-                                : <EmptySlot active={activeSlot === 'den'} />
+                                : <EmptySlot active={activeSlot === 'den'} hint={slotHints?.den} />
                         ) : (
                             <StaticChip value={corrDen} />
                         )}
