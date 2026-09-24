@@ -8,12 +8,13 @@
 // свою внутреннюю хореографию и зовёт onComplete РОВНО один раз в конце.
 //
 // Сюжет — прямая инструкция пользователя:
-// 1. Треугольник (тот же, что в SINWALK — гипотенуза+противолежащий+
-//    прилежащий катет все подписаны и подсвечены) слева, справа —
-//    формулы "sin α = противолежащий/гипотенуза" (стикеры на словах,
-//    как настоящая дробь — числитель над знаменателем), с паузой —
-//    "cos α = прилежащий/гипотенуза".
-// 2. Тренировка (6 заданий, 3 sin + 3 cos вперемешку, см. makeTrials) —
+// 1. Сцена "формула sin": треугольник сверху (подписаны только гипотенуза
+//    и противолежащий катет), под ним "sin α = противолежащий/гипотенуза"
+//    (стикеры на словах, настоящая дробь). Затем 3 задания на sin.
+// 2. Сцена "формула cos": тот же треугольник, но подписан прилежащий катет
+//    (противолежащий — нет), под ним "cos α = прилежащий/гипотенуза".
+//    Затем 3 задания на cos. Порядок сцен — см. SCENES.
+// Тренировка (3+3 задания, см. makeTrials) —
 //    НОВЫЙ треугольник на каждое задание, стороны подписаны ЧИСЛАМИ
 //    (случайная пифагорова тройка 3-4-5/5-12-13/6-8-10, случайный угол α,
 //    случайный поворот/зеркало — та же идея визуального разнообразия,
@@ -106,7 +107,7 @@ const TypedFractionLine = ({
 }) => {
     const [typed, setTyped] = useState(false)
     return (
-        <div className="w-full text-lg md:text-xl font-bold text-[#F2F7FB] flex items-center flex-wrap gap-1">
+        <div className="w-full text-lg md:text-xl font-bold text-[#F2F7FB] flex items-center justify-center flex-wrap gap-1">
             {!typed ? (
                 <Typewriter text={`${label} = `} onDone={() => { setTyped(true); setTimeout(() => onSettled?.(), 450) }} />
             ) : (
@@ -119,40 +120,36 @@ const TypedFractionLine = ({
     )
 }
 
-// Сцена-концепция: треугольник (уже полностью подписанный/подсвеченный,
-// как в конце SINWALK) слева, "sin α = .../..." и (с паузой, через
-// onSettled-цепочку) "cos α = .../..." справа.
-const ConceptScene = ({ onSettled }: { onSettled?: () => void }) => {
-    const [sinVisible, setSinVisible] = useState(false)
-    const [cosVisible, setCosVisible] = useState(false)
+// Сцена-концепция: треугольник СВЕРХУ, под ним формула — ТОЛЬКО одна
+// (sin или cos, по прямой просьбе пользователя: сначала говорим только про
+// sin, потом отдельной сценой — только про cos). На треугольнике подписан и
+// подсвечен ТОЛЬКО тот катет, который входит в формулу этой сцены.
+const ConceptScene = ({ kind, onSettled }: { kind: Kind; onSettled?: () => void }) => {
+    const [formulaVisible, setFormulaVisible] = useState(false)
     useEffect(() => {
-        const t = setTimeout(() => setSinVisible(true), CONCEPT_SETTLE_MS + DIAGRAM_TO_TEXT_PAUSE_MS)
+        const t = setTimeout(() => setFormulaVisible(true), CONCEPT_SETTLE_MS + DIAGRAM_TO_TEXT_PAUSE_MS)
         return () => clearTimeout(t)
     }, [])
+    const isSin = kind === 'sin'
     return (
-        <div className="w-full flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6">
-            <div className="w-full md:w-auto md:shrink-0 md:max-w-[280px]">
+        <div className="w-full flex flex-col items-center gap-4">
+            <div className="w-full max-w-[320px]">
                 <DiagramBlock>
                     <RightTriangleDiagram
-                        compact rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown
-                        alphaVertex="P" oppositeLegHighlighted oppositeLegLabelShown
-                        adjacentLegHighlighted adjacentLegLabelShown
+                        compact rightAngleMarkShown hypotenuseHighlighted hypotenuseLabelShown
+                        alphaVertex="P"
+                        oppositeLegHighlighted={isSin} oppositeLegLabelShown={isSin}
+                        adjacentLegHighlighted={!isSin} adjacentLegLabelShown={!isSin}
                     />
                 </DiagramBlock>
             </div>
-            <div className="flex flex-col gap-4 w-full md:pt-6">
-                {sinVisible && (
+            <div className="w-full flex justify-center">
+                {formulaVisible && (
                     <TypedFractionLine
-                        label="sin α"
-                        numerator={{ text: 'противолежащий', color: LEG_COLOR }}
-                        denominator={{ text: 'гипотенуза', color: HYPOTENUSE_COLOR }}
-                        onSettled={() => setCosVisible(true)}
-                    />
-                )}
-                {cosVisible && (
-                    <TypedFractionLine
-                        label="cos α"
-                        numerator={{ text: 'прилежащий', color: ADJACENT_LEG_COLOR }}
+                        label={isSin ? 'sin α' : 'cos α'}
+                        numerator={isSin
+                            ? { text: 'противолежащий', color: LEG_COLOR }
+                            : { text: 'прилежащий', color: ADJACENT_LEG_COLOR }}
                         denominator={{ text: 'гипотенуза', color: HYPOTENUSE_COLOR }}
                         onSettled={onSettled}
                     />
@@ -190,21 +187,19 @@ const adjacentValueOf = (cfg: TrialConfig) => (cfg.alphaVertex === 'P' ? cfg.leg
 const correctNumerator = (cfg: TrialConfig) => (cfg.kind === 'sin' ? oppositeValueOf(cfg) : adjacentValueOf(cfg))
 const correctDenominator = (cfg: TrialConfig) => cfg.hypValue
 
-// 3 задания на sin + 3 на cos (по прямой просьбе пользователя — "в любом
-// порядке"), порядок перемешан один раз при монтировании урока.
+// Сначала 3 задания на sin (сразу после сцены "формула sin"), затем
+// 3 на cos (сразу после сцены "формула cos") — см. SCENES ниже.
 const KIND_LIST: Kind[] = ['sin', 'sin', 'sin', 'cos', 'cos', 'cos']
+const TRIALS_PER_BLOCK = 3
 
-const shuffle = <T,>(arr: T[]): T[] => {
-    const copy = [...arr]
-    for (let i = copy.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1))
-        ;[copy[i], copy[j]] = [copy[j], copy[i]]
-    }
-    return copy
-}
+// Порядок сцен урока: формула sin → 3 тренировки sin → формула cos →
+// 3 тренировки cos.
+const SCENES = ['intro-sin', 'trial-0', 'trial-1', 'trial-2', 'intro-cos', 'trial-3', 'trial-4', 'trial-5'] as const
+type SceneKey = typeof SCENES[number]
+const trialIdxOf = (key: string): number | null => (key.startsWith('trial-') ? Number(key.slice('trial-'.length)) : null)
 
 const makeTrials = (): TrialConfig[] => {
-    const kinds = shuffle(KIND_LIST)
+    const kinds = KIND_LIST
     let lastRotation: number | null = null
     return kinds.map((kind) => {
         const [a, b, hyp] = pick(TRIPLES)
@@ -284,32 +279,36 @@ const StaticChip = ({ value }: { value: number }) => (
 )
 
 export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) => {
-    const [phase, setPhase] = useState<'intro' | 'practice'>('intro')
-    const [introReady, setIntroReady] = useState(false)
+    const [sceneIdx, setSceneIdx] = useState(0)
+    const [readyIntros, setReadyIntros] = useState<Record<string, boolean>>({})
     const [advancing, setAdvancing] = useState(false)
     const [hadMistake, setHadMistake] = useState(false)
 
     const [trials] = useState<TrialConfig[]>(() => makeTrials())
-    const [trialIndex, setTrialIndex] = useState(0)
     const [numerator, setNumerator] = useState<number | null>(null)
     const [denominator, setDenominator] = useState<number | null>(null)
     const [activeSlot, setActiveSlot] = useState<'num' | 'den'>('num')
     const [checked, setChecked] = useState(false)
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
 
-    const { bump: bumpNonce, nonceFor: replayNonceFor } = useReplayNonces()
-    const currentReplayKey = phase === 'intro' ? 'intro-0' : `trial-${trialIndex}`
-    const handleReplay = () => bumpNonce(currentReplayKey)
+    const latestSceneKey: SceneKey = SCENES[sceneIdx]
+    const currentTrialIdx = trialIdxOf(latestSceneKey)
+    const isIntro = currentTrialIdx === null
+    const isLastScene = sceneIdx + 1 >= SCENES.length
 
-    const cfg = trials[trialIndex]
+    const { bump: bumpNonce, nonceFor: replayNonceFor } = useReplayNonces()
+    const handleReplay = () => {
+        if (isIntro) setReadyIntros((r) => ({ ...r, [latestSceneKey]: false }))
+        bumpNonce(latestSceneKey)
+    }
+
+    const cfg = currentTrialIdx !== null ? trials[currentTrialIdx] : null
 
     // Клик по числу в пуле — заполняет активный пропуск; если ОБА пропуска
-    // после этого заполнены, сразу проверяет пару (та же "мгновенная
-    // проверка", что и у клика по стороне в SINWALK — без отдельной
-    // кнопки "Ответить"). round-robin активного пропуска — тот же принцип,
-    // что уже применяется в INSERT/TRIGTABLE для нескольких пропусков.
+    // после этого заполнены, сразу проверяет пару (мгновенная проверка, без
+    // кнопки "Ответить"). round-robin активного пропуска — как в INSERT.
     const evaluate = (numVal: number | null, denVal: number | null) => {
-        if (numVal === null || denVal === null) return
+        if (numVal === null || denVal === null || !cfg) return
         if (numVal === correctNumerator(cfg) && denVal === correctDenominator(cfg)) {
             setChecked(true)
             setWrongFlash(null)
@@ -341,105 +340,78 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
         else { setDenominator(null); setActiveSlot('den') }
     }
 
-    const handleNextTrial = () => {
+    const resetTrialState = () => {
+        setNumerator(null)
+        setDenominator(null)
+        setActiveSlot('num')
+        setChecked(false)
+        setWrongFlash(null)
+    }
+
+    const handleNext = () => {
         if (advancing) return
         setAdvancing(true)
         setTimeout(() => {
-            const isLastOverall = trialIndex + 1 >= trials.length
-            if (isLastOverall) {
-                setAdvancing(false)
+            setAdvancing(false)
+            if (isLastScene) {
                 const isFullyCorrect = !hadMistake
                 onComplete(isFullyCorrect)
                 onAnswer(isFullyCorrect ? 'right' : 'wrong')
                 return
             }
-            setTrialIndex((i) => i + 1)
-            setNumerator(null)
-            setDenominator(null)
-            setActiveSlot('num')
-            setChecked(false)
-            setWrongFlash(null)
-            setAdvancing(false)
+            resetTrialState()
+            setSceneIdx((i) => i + 1)
         }, SCENE_TRANSITION_PAUSE_MS)
     }
 
-    const handleIntroNext = () => {
-        if (advancing) return
-        setAdvancing(true)
-        setTimeout(() => {
-            setPhase('practice')
-            setAdvancing(false)
-        }, SCENE_TRANSITION_PAUSE_MS)
-    }
-
-    // Подпись кнопки "Дальше" — иногда варьируется (см. WALKTHROUGH_NEXT_
-    // PHRASES), выбирается ТОЛЬКО в момент верного ответа (тот же принцип,
-    // что и в SINWALK — тон всегда поздравительный, т.к. кнопка появляется
-    // только ПОСЛЕ того, как пара найдена верно).
+    // Подпись кнопки "Дальше" после верного ответа — иногда живая фраза.
     const [trialNextLabel, setTrialNextLabel] = useState('Дальше')
 
-    const latestSceneKey = phase === 'intro' ? 'intro-0' : `trial-${trialIndex}`
-    const prevSceneKeyOf = (key: string): string | null => {
-        if (key.startsWith('trial-')) {
-            const idx = Number(key.slice('trial-'.length))
-            return idx > 0 ? `trial-${idx - 1}` : 'intro-0'
-        }
-        return null
-    }
-    const contentSettled = phase === 'intro' ? introReady : checked
+    const contentSettled = isIntro ? !!readyIntros[latestSceneKey] : checked
     const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, contentSettled, 6)
-    const canGoBack = prevSceneKeyOf(latestSceneKey) !== null
+    const canGoBack = sceneIdx > 0
 
     const jumpToScene = (target: string) => {
         if (advancing) return
+        const idx = SCENES.indexOf(target as SceneKey)
+        if (idx < 0) return
         bumpNonce(target)
-        if (target.startsWith('trial-')) {
-            const idx = Number(target.slice('trial-'.length))
-            setPhase('practice')
-            setTrialIndex(idx)
-            setNumerator(null)
-            setDenominator(null)
-            setActiveSlot('num')
-            setChecked(false)
-            setWrongFlash(null)
-        } else if (target === 'intro-0') {
-            setPhase('intro')
-            setIntroReady(false)
-        }
+        resetTrialState()
+        if (trialIdxOf(target) === null) setReadyIntros((r) => ({ ...r, [target]: false }))
+        setSceneIdx(idx)
     }
 
     const handleBack = () => {
-        const target = prevSceneKeyOf(latestSceneKey)
-        if (!target) return
-        jumpToScene(target)
+        if (!canGoBack) return
+        jumpToScene(SCENES[sceneIdx - 1])
     }
 
+    const cosIntroIdx = SCENES.indexOf('intro-cos')
     const sceneMapEntries: AdminMapEntry[] = [
-        {
-            dotKey: 'intro-0',
-            label: 'Формулы sin и cos',
-            jumpKey: 'intro-0',
-            isActive: phase === 'intro',
-            color: MAP_INTRO_COLOR,
-        },
-        {
-            dotKey: 'practice-block',
-            label: `Тренировка (${trials.length} заданий)`,
-            jumpKey: 'trial-0',
-            isActive: phase === 'practice',
-            color: MAP_PRACTICE_COLOR,
-        },
+        { dotKey: 'intro-sin', label: 'Формула sin', jumpKey: 'intro-sin', isActive: sceneIdx === 0, color: MAP_INTRO_COLOR },
+        { dotKey: 'practice-sin', label: `Тренировка sin (${TRIALS_PER_BLOCK})`, jumpKey: 'trial-0', isActive: sceneIdx > 0 && sceneIdx < cosIntroIdx, color: MAP_PRACTICE_COLOR },
+        { dotKey: 'intro-cos', label: 'Формула cos', jumpKey: 'intro-cos', isActive: sceneIdx === cosIntroIdx, color: MAP_INTRO_COLOR },
+        { dotKey: 'practice-cos', label: `Тренировка cos (${TRIALS_PER_BLOCK})`, jumpKey: 'trial-3', isActive: sceneIdx > cosIntroIdx, color: MAP_PRACTICE_COLOR },
     ]
+
+    const renderIntro = (key: SceneKey, kind: Kind) => (
+        <SceneWrapper key={key} innerRef={sceneRef(key)} active={isSceneActive(key)}>
+            <Fragment key={`${key}-${replayNonceFor(key)}`}>
+                <ConceptScene kind={kind} onSettled={() => setReadyIntros((r) => ({ ...r, [key]: true }))} />
+            </Fragment>
+        </SceneWrapper>
+    )
 
     const renderTrial = (i: number) => {
         const t = trials[i]
-        const isCurrent = i === trialIndex
-        const isDone = i < trialIndex || (isCurrent && checked)
+        const isCurrent = i === currentTrialIdx
+        const isDone = !isCurrent || checked
         const showInteractive = isCurrent && !checked
         const corrNum = correctNumerator(t)
         const corrDen = correctDenominator(t)
         const poolValues = [t.legRPValue, t.legRQValue, t.hypValue]
         const dividerColor = isDone ? '#A1D151' : (showInteractive && wrongFlash) ? '#DC605B' : '#F2F7FB'
+        const localIdx = i % TRIALS_PER_BLOCK
 
         return (
             <SceneWrapper key={`trial-${i}`} innerRef={sceneRef(`trial-${i}`)} active={isSceneActive(`trial-${i}`)}>
@@ -453,9 +425,9 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
                             color: '#C385F7',
                         }}
                     >
-                        <span>{i + 1}</span>
+                        <span>{localIdx + 1}</span>
                         <span className="opacity-50 font-normal">/</span>
-                        <span>{trials.length}</span>
+                        <span>{TRIALS_PER_BLOCK}</span>
                     </div>
                     <p className="flex-1 text-base md:text-lg text-[#F2F7FB]">Заполни дробь по треугольнику.</p>
                 </div>
@@ -497,18 +469,15 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
                             ))}
                     </div>
                 )}
-                {/* Персистентное сообщение на неверную пару — та же
-                    механика "пробуй, пока не угадаешь", что и во ВСЕХ
-                    остальных разборах этого семейства (SINWALK/
-                    LOGCOMBOWALK) — числа НЕ блокируются, кликом по ним
-                    можно вернуть их в пул и попробовать другую пару. */}
+                {/* "Пробуй, пока не угадаешь" — числа НЕ блокируются, кликом
+                    по ним можно вернуть их в пул и попробовать другую пару. */}
                 {showInteractive && wrongFlash && (
                     <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">
                         <X className="w-5 h-5" /> {wrongFlash}
                     </div>
                 )}
                 {isDone && (
-                    <FieryFeedbackBanner fiery={isCurrent && isFieryMilestoneTrial(i)}>
+                    <FieryFeedbackBanner fiery={isCurrent && isFieryMilestoneTrial(localIdx)}>
                         <Check className="w-5 h-5" /> {pickTrialFeedback(t)}
                     </FieryFeedbackBanner>
                 )}
@@ -518,49 +487,40 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
         )
     }
 
+    const nextEnabled = isIntro ? !!readyIntros[latestSceneKey] && !advancing : checked && !advancing
+
     return (
         <div className={`w-full mx-auto flex flex-row items-start gap-3 ${isAdmin ? 'max-w-[46rem]' : 'max-w-2xl'}`}>
         <div className="min-w-0 flex-1 flex flex-col items-center gap-4">
             <div className="w-full flex flex-col gap-4">
-                <SceneWrapper key="intro-0" innerRef={sceneRef('intro-0')} active={isSceneActive('intro-0')}>
-                    <Fragment key={`intro-0-${replayNonceFor('intro-0')}`}>
-                        <ConceptScene onSettled={() => setIntroReady(true)} />
-                    </Fragment>
-                </SceneWrapper>
-
-                {phase === 'practice' && Array.from({ length: trialIndex + 1 }).map((_, i) => renderTrial(i))}
+                {SCENES.slice(0, sceneIdx + 1).map((key) => {
+                    const ti = trialIdxOf(key)
+                    if (ti !== null) return renderTrial(ti)
+                    return renderIntro(key, key === 'intro-sin' ? 'sin' : 'cos')
+                })}
             </div>
 
-            {phase === 'intro' ? (
+            {isIntro || checked ? (
                 <div className="w-full flex items-center gap-2">
                     <ReplayButton onClick={handleReplay} disabled={advancing} />
-                    <button type="button" onClick={handleIntroNext} disabled={!introReady || advancing} className={walkthroughButtonClass(introReady && !advancing)} style={walkthroughButtonStyle(introReady && !advancing)}>
-                        Дальше
+                    <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (!isIntro) setTrialNextLabel(pickWalkthroughNextLabel(isLastScene ? 'Готово' : 'Дальше'))
+                            handleNext()
+                        }}
+                        disabled={!nextEnabled}
+                        className={walkthroughButtonClass(nextEnabled)}
+                        style={walkthroughButtonStyle(nextEnabled)}
+                    >
+                        {isIntro ? 'Дальше' : isLastScene ? 'Готово' : trialNextLabel}
                     </button>
                 </div>
             ) : (
-                checked ? (
-                    <div className="w-full flex items-center gap-2">
-                        <ReplayButton onClick={handleReplay} disabled={advancing} />
-                        <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setTrialNextLabel(pickWalkthroughNextLabel(trialIndex + 1 >= trials.length ? 'Готово' : 'Дальше'))
-                                handleNextTrial()
-                            }}
-                            disabled={advancing}
-                            className={walkthroughButtonClass(!advancing)}
-                            style={walkthroughButtonStyle(!advancing)}
-                        >
-                            {trialIndex + 1 >= trials.length ? 'Готово' : trialNextLabel}
-                        </button>
-                    </div>
-                ) : (
-                    <div className="w-full flex items-center gap-2">
-                        <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
-                    </div>
-                )
+                <div className="w-full flex items-center gap-2">
+                    <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
+                </div>
             )}
         </div>
 
