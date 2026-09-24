@@ -57,6 +57,7 @@ import { TrainerMascot } from "./TrainerMascot"
 import { TrainerBossBar } from "./trainer-boss-bar"
 import { LOTTIE_BOSS_DEATH_LIST, LOTTIE_BOSS_DEATH_LOW_HP, getRandomLottie } from "@/src/constants/lottieConstants"
 import { pickNextButtonLabel } from "@/usefulFunctions"
+import { STEP_BY_STEP_CHALLENGE_TYPES } from "@/lib/trainerStageFlags"
 
 
 
@@ -705,7 +706,11 @@ export default function TrainerQuestion({
             посередине оставшегося пространства между картинкой и кнопкой
             "ответить" внизу (раньше просто лепились сразу под картинкой,
             оставляя много пустого места ниже). */}
-        <div className="flex-1 flex flex-col justify-center px-1 py-2 min-h-0">
+        {/* У step-by-step разборов содержимое прижато к верху (сразу под
+            облаком маскота), а не центрировано по вертикали — иначе над
+            первой сценой оставалось большое пустое место и на телефоне
+            она не влезала в экран. */}
+        <div className={`flex-1 flex flex-col ${STEP_BY_STEP_CHALLENGE_TYPES.has(question.questionType) ? 'justify-start' : 'justify-center'} px-1 py-2 min-h-0`}>
           {renderMainContent()}
         </div>
         </motion.div>

@@ -84,12 +84,15 @@ const Sticker = ({ value, color }: { value: React.ReactNode; color: string }) =>
 // стикера и разделительная черта лежат в flex-col с items-stretch, черта
 // автоматически растягивается до ширины САМОГО широкого стикера (тот же
 // приём, что классический CSS-фрокшн-бар).
+// Черта дроби заметно толще и выступает за края стикеров с обеих сторон
+// (по жалобе пользователя: между двумя стикерами тонкую черту почти не было
+// видно — непонятно, что одно делится на другое).
 const StaticFraction = ({
     numerator, denominator,
 }: { numerator: { text: string; color: string }; denominator: { text: string; color: string } }) => (
-    <span className="inline-flex flex-col items-stretch mx-1 align-middle">
+    <span className="inline-flex flex-col items-center mx-4 align-middle">
         <Sticker value={numerator.text} color={numerator.color} />
-        <span className="h-0.5 my-1 rounded bg-[#F2F7FB]" />
+        <span className="self-stretch -mx-3 h-[5px] my-2.5 rounded-full bg-[#F2F7FB]" />
         <Sticker value={denominator.text} color={denominator.color} />
     </span>
 )
@@ -133,7 +136,7 @@ const ConceptScene = ({ kind, onSettled }: { kind: Kind; onSettled?: () => void 
     const isSin = kind === 'sin'
     return (
         <div className="w-full flex flex-col items-center gap-4">
-            <div className="w-full max-w-[320px]">
+            <div className="w-full max-w-[460px]">
                 <DiagramBlock>
                     <RightTriangleDiagram
                         compact rightAngleMarkShown hypotenuseHighlighted hypotenuseLabelShown
@@ -429,7 +432,7 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
                         <span className="opacity-50 font-normal">/</span>
                         <span>{TRIALS_PER_BLOCK}</span>
                     </div>
-                    <p className="flex-1 text-base md:text-lg text-[#F2F7FB]">Заполни дробь по треугольнику.</p>
+                    <p className="flex-1 text-base md:text-lg text-[#F2F7FB]">Чему равен {t.kind} α?</p>
                 </div>
                 <DiagramBlock>
                     <RightTriangleDiagram
