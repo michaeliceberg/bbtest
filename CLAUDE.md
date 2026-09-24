@@ -11953,3 +11953,16 @@ span` показывает единственный видимый текст "�
 `STEP_BY_STEP_CHALLENGE_TYPES` контейнер `justify-start` (раньше `justify-center` давал
 пустое место над первой сценой во всех step-by-step). Звук `click6.wav` — только на
 клик по вариантам в *WALK-разборах (убран из AnimatedOptionButton/CONNECT).
+
+## LEGFINDWALK «Как найти катет» (урок 487) (2026-09-24)
+
+Тема «Геометрия: sin, cos, tg» (t_unit 14), order=3 — после SINWALK и SINCOSDEFWALK.
+`app/t-lesson/[t_lessonId]/type-legfindwalk.tsx`, сид `scripts/seedLegFindWalkLesson.ts`.
+Сцены: треугольник → α → стикер «гипотенуза»; ЗАПОМНИ! + «Противолежащий катет =
+[гипотенуза]·[sin α]» → рисунок с подписью [гип]·[sin α] на катете; «А прилежащий
+катет = [гипотенуза]·[cos α]» → рисунок с подписью [гип]·[cos α]. sin α — цветом
+противолежащего катета (LEG_COLOR), cos α — прилежащего (ADJACENT_LEG_COLOR).
+Тренировка: 6 заданий (3 opp + 3 adj вперемешку), дана гипотенуза числом и угол в
+градусах, искомый катет помечен «x»; 4 варианта: гип·sin, гип·cos, гип/(sin|cos), гип·tg.
+`RightTriangleDiagram` получил пропы `sideStickerLabels` (подписи сторон SVG-стикерами,
+горизонтально снаружи стороны, учитываются в compact viewBox) и `alphaText` (вместо «α»).
