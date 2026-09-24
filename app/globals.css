@@ -404,9 +404,12 @@ body {
   overflow: hidden;
   animation: cta-pulse-glow 2.6s ease-in-out infinite;
 }
+/* Блик двигается через transform (а не left) — не вызывает перерисовку
+   на каждом кадре; на iPhone/Safari анимация left давала ~10 fps.
+   Старт left:-60%, ширина 40% → до left:130% это сдвиг на 475% своей ширины. */
 @keyframes cta-shine-sweep {
-  0%, 15% { left: -60%; }
-  55%, 100% { left: 130%; }
+  0%, 15% { transform: translateX(0) skewX(-20deg); }
+  55%, 100% { transform: translateX(475%) skewX(-20deg); }
 }
 .animate-cta-pulse::after {
   content: '';
@@ -418,6 +421,7 @@ body {
   background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.45), transparent);
   transform: skewX(-20deg);
   animation: cta-shine-sweep 2.6s ease-in-out infinite;
+  will-change: transform;
   pointer-events: none;
 }
 
@@ -470,6 +474,7 @@ body {
   background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.28), transparent);
   transform: skewX(-20deg);
   animation: cta-shine-sweep 3.2s ease-in-out infinite;
+  will-change: transform;
   pointer-events: none;
 }
 
@@ -485,4 +490,15 @@ body {
 .animate-chest-idle-bounce {
   animation: chest-idle-bounce 1.6s ease-in-out infinite;
   transform-origin: 50% 70%;
+}
+
+/* Пульсирующее свечение премиальных кнопок — анимируется только opacity
+   отдельного слоя (дёшево для GPU), а не box-shadow (перерисовка каждый кадр). */
+@keyframes glow-pulse-opacity {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+.animate-glow-pulse {
+  animation: glow-pulse-opacity 2.4s ease-in-out infinite;
+  will-change: opacity;
 }

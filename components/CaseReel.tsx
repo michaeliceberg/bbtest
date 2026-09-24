@@ -152,19 +152,18 @@ const CaseButton = ({ accent, glow, onClick, children }: { accent: string; glow:
         onClick={onClick}
         whileHover={{ scale: 1.04 }}
         whileTap={{ scale: 0.96, y: 2 }}
-        animate={{
-            boxShadow: [
-                `0 10px 28px rgba(0,0,0,0.5), 0 0 10px ${glow}55`,
-                `0 10px 28px rgba(0,0,0,0.5), 0 0 28px ${glow}BB`,
-                `0 10px 28px rgba(0,0,0,0.5), 0 0 10px ${glow}55`,
-            ],
-        }}
-        transition={{ boxShadow: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' } }}
-        className="relative z-10 rounded-2xl p-[2px]"
+        className="relative z-10 rounded-2xl p-[2px] shadow-[0_10px_28px_rgba(0,0,0,0.5)]"
         style={{ background: `linear-gradient(180deg, ${accent} 0%, #2A363C 55%, #141C20 100%)` }}
     >
+        {/* Свечение — отдельный слой, пульсирует только opacity (CSS): анимация
+            самого box-shadow на iPhone давала ~10 fps. */}
         <span
-            className="animate-shine-sweep flex items-center gap-2.5 px-10 py-3.5 rounded-[14px] bg-gradient-to-b from-[#1C282E] to-[#0C1215] font-black text-lg uppercase tracking-[0.12em] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
+            aria-hidden
+            className="animate-glow-pulse pointer-events-none absolute inset-0 rounded-2xl"
+            style={{ boxShadow: `0 0 28px ${glow}BB` }}
+        />
+        <span
+            className="animate-shine-sweep relative flex items-center gap-2.5 px-10 py-3.5 rounded-[14px] bg-gradient-to-b from-[#1C282E] to-[#0C1215] font-black text-lg uppercase tracking-[0.12em] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
             style={{ color: accent, textShadow: `0 0 12px ${accent}99` }}
         >
             {children}

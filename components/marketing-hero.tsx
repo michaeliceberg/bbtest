@@ -43,29 +43,32 @@ const PremiumButton = ({ children, onClick, href }: { children: React.ReactNode;
     </span>
   );
   const frame: HTMLMotionProps<'div'> & HTMLMotionProps<'button'> = {
-    className: 'relative block w-full rounded-2xl p-[2px]',
+    className: 'relative block w-full rounded-2xl p-[2px] shadow-[0_10px_28px_rgba(0,0,0,0.5)]',
     style: { background: `linear-gradient(180deg, ${CTA_ACCENT} 0%, #2A363C 55%, #141C20 100%)` },
     whileHover: { scale: 1.03 },
     whileTap: { scale: 0.97, y: 2 },
-    animate: {
-      boxShadow: [
-        `0 10px 28px rgba(0,0,0,0.5), 0 0 10px ${CTA_ACCENT}55`,
-        `0 10px 28px rgba(0,0,0,0.5), 0 0 28px ${CTA_ACCENT}AA`,
-        `0 10px 28px rgba(0,0,0,0.5), 0 0 10px ${CTA_ACCENT}55`,
-      ],
-    },
-    transition: { boxShadow: { duration: 2.4, repeat: Infinity, ease: 'easeInOut' } },
   };
+  // Свечение — отдельный статичный слой с тенью, пульсирует только его
+  // opacity (CSS), а не сам box-shadow: на iPhone анимация box-shadow лагала.
+  const glow = (
+    <span
+      aria-hidden
+      className='animate-glow-pulse pointer-events-none absolute inset-0 rounded-2xl'
+      style={{ boxShadow: `0 0 28px ${CTA_ACCENT}AA` }}
+    />
+  );
   if (href) {
     return (
       <motion.div {...frame}>
-        <Link href={href} className='block'>{inner}</Link>
+        {glow}
+        <Link href={href} className='relative block'>{inner}</Link>
       </motion.div>
     );
   }
   return (
     <motion.button type='button' onClick={onClick} {...frame}>
-      {inner}
+      {glow}
+      <span className='relative block'>{inner}</span>
     </motion.button>
   );
 };
@@ -80,12 +83,12 @@ export const MarketingHero = ({ dbUserName }: Props) => {
       {/* Фон: свечения в цветах логотипа + затемнение к краям */}
       <div className='pointer-events-none absolute inset-0 -z-0'>
         <div
-          className='absolute left-1/2 top-[8%] h-[520px] w-[520px] -translate-x-[85%] rounded-full blur-3xl opacity-40'
-          style={{ background: `radial-gradient(closest-side, ${LOGO_PURPLE}, transparent)` }}
+          className='absolute left-1/2 top-[8%] h-[560px] w-[560px] -translate-x-[85%] opacity-40'
+          style={{ background: `radial-gradient(closest-side, ${LOGO_PURPLE}, ${LOGO_PURPLE}55 45%, transparent)` }}
         />
         <div
-          className='absolute left-1/2 top-[18%] h-[480px] w-[480px] -translate-x-[10%] rounded-full blur-3xl opacity-30'
-          style={{ background: `radial-gradient(closest-side, ${LOGO_GREEN}, transparent)` }}
+          className='absolute left-1/2 top-[18%] h-[520px] w-[520px] -translate-x-[10%] opacity-30'
+          style={{ background: `radial-gradient(closest-side, ${LOGO_GREEN}, ${LOGO_GREEN}55 45%, transparent)` }}
         />
         <div className='absolute inset-0' style={{ background: 'radial-gradient(ellipse at 50% 35%, transparent 35%, rgba(0,0,0,0.55) 100%)' }} />
       </div>
@@ -98,8 +101,8 @@ export const MarketingHero = ({ dbUserName }: Props) => {
           transition={{ type: 'spring', bounce: 0.45, duration: 0.8 }}
         >
           <div
-            className='absolute inset-[12%] rounded-full blur-2xl'
-            style={{ background: `radial-gradient(closest-side, rgba(255,255,255,0.18), transparent)` }}
+            className='absolute inset-0'
+            style={{ background: `radial-gradient(closest-side, rgba(255,255,255,0.16), transparent)` }}
           />
           <Lottie animationData={LottieHelloBread} loop style={{ width: '100%', height: '100%', position: 'relative' }} />
         </motion.div>

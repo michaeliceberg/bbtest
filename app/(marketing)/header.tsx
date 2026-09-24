@@ -35,8 +35,8 @@ export const Header = ({ dbUserName }: Props) => {
       <header 
         className={`fixed top-0 w-full z-50 transition-all duration-300 ${
           isScrolled 
-            ? 'bg-[#151F23]/95 backdrop-blur-md shadow-lg border-b border-[#3A464E]' 
-            : 'bg-[#151F23]/80 backdrop-blur-sm border-b-2 border-[#3A464E]'
+            ? 'bg-[#151F23]/95 lg:backdrop-blur-md shadow-lg border-b border-[#3A464E]' 
+            : 'bg-[#151F23]/95 lg:bg-[#151F23]/80 lg:backdrop-blur-sm border-b-2 border-[#3A464E]'
         }`}
       >
         <div className='lg:max-w-screen-lg mx-auto px-4 h-20 flex items-center justify-between'>
