@@ -310,7 +310,13 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                         фонах без виньетки подсветка не читалась. */}
                     <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 30%, rgba(255,255,255,0.22), transparent 55%)' }} />
                     <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 30%, transparent 30%, rgba(0,0,0,0.55) 100%)' }} />
-                    <CaseStars tier={tier} />
+                    {/* Звёзды плавно гаснут после нажатия «Крутить». */}
+                    <div
+                        className="absolute inset-0 transition-opacity duration-700 ease-out"
+                        style={{ opacity: phase === 'idle' ? 1 : 0 }}
+                    >
+                        <CaseStars tier={tier} />
+                    </div>
                 </div>
             )}
             {isJackpot && <Confetti width={width} height={height} recycle={false} numberOfPieces={260} />}
