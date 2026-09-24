@@ -175,6 +175,7 @@ export default function TQuiz({
   const [combo, setCombo] = useState<number | null>(null)
   const [lightningStrikeKey, setLightningStrikeKey] = useState(0)
   const [lightningStrikeActive, setLightningStrikeActive] = useState(false)
+  const [lightningVariant, setLightningVariant] = useState<'yellow' | 'blue'>('yellow')
   const [showLightning, setShowLightning] = useState(false)
   const [showStreakCelebration, setShowStreakCelebration] = useState(false)
   // Какой именно рубеж серии сейчас празднуем — 3 или 7 (см.
@@ -600,7 +601,11 @@ export default function TQuiz({
           }
           if (newStreak >= 5 && newStreak % 5 === 0) {
             setCombo(newStreak)
-            // Удар молнии (1с, 24 кадра пользователя) — на каждые 5 подряд.
+          }
+          // Удар молнии: 8 подряд (и 16, 24…) — синяя (36 кадров, 1.5с);
+          // 5 подряд (и 10, 15…) — жёлтая (24 кадра, 1с). При совпадении — синяя.
+          if (newStreak % 8 === 0 || newStreak % 5 === 0) {
+            setLightningVariant(newStreak % 8 === 0 ? 'blue' : 'yellow')
             setLightningStrikeKey(k => k + 1)
             setLightningStrikeActive(true)
           }
@@ -966,7 +971,7 @@ export default function TQuiz({
       />
       <ComboBanner combo={combo} onDone={() => setCombo(null)} />
       {lightningStrikeActive && (
-        <LightningStrike key={lightningStrikeKey} onDone={() => setLightningStrikeActive(false)} />
+        <LightningStrike key={lightningStrikeKey} variant={lightningVariant} onDone={() => setLightningStrikeActive(false)} />
       )}
 
       {showStreakCelebration ? (
