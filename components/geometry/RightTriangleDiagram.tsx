@@ -305,6 +305,9 @@ export type RightTriangleVisual = {
     // же визуальный язык, что HTML-стикеры разборов), часть без цвета —
     // обычным текстом (например "·"). Горизонтально, снаружи стороны.
     sideStickerLabels?: Partial<Record<SideId, StickerPart[]>>
+    // Стороны, у которых ряд стикеров повёрнут ВДОЛЬ стороны и уменьшен
+    // (STICKER_ALONG_SCALE) — например "гипотенуза" вдоль наклонной стороны.
+    sideStickerAlong?: SideId[]
     // Подпись угла вместо "α" (например "37°" в тренировке LEGFINDWALK).
     alphaText?: string
 }
@@ -329,11 +332,13 @@ const hexA = (hex: string, a: number) => {
 // Ряд стикеров с центром в (cx, cy). Позиционирующий transform — на
 // статичном внешнем <g>, анимация масштаба — на вложенном motion.g (иначе
 // framer-motion перезаписывает transform, см. CLAUDE.md).
-const StickerRow = ({ cx, cy, parts }: { cx: number; cy: number; parts: StickerPart[] }) => {
+const STICKER_ALONG_SCALE = 0.72
+
+const StickerRow = ({ cx, cy, parts, rotation = 0, scale: k = 1 }: { cx: number; cy: number; parts: StickerPart[]; rotation?: number; scale?: number }) => {
     const total = stickerRowWidth(parts)
     let x = -total / 2
     return (
-        <g transform={`translate(${cx} ${cy})`}>
+        <g transform={`translate(${cx} ${cy}) rotate(${rotation}) scale(${k})`}>
             <motion.g
                 initial={{ opacity: 0, scale: 2.2 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -413,6 +418,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
         compact = false,
         sideNumberLabels,
         sideStickerLabels,
+        sideStickerAlong = [],
         alphaText = 'α',
     } = props
 
@@ -487,8 +493,17 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
         const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
         const unit = sub(outwardPerp(a, b, mid, third, 1), mid)
         const w = stickerRowWidth(parts), h = STICKER_H
+        if (sideStickerAlong.includes(side)) {
+            // Повёрнут вдоль стороны: от стороны отступаем на полвысоты.
+            return add(mid, scale(unit, 10 + (h * STICKER_ALONG_SCALE) / 2))
+        }
         const reach = Math.abs(unit.x) * w / 2 + Math.abs(unit.y) * h / 2
         return add(mid, scale(unit, 12 + reach))
+    }
+    const stickerRotation = (side: SideId): number => {
+        if (!sideStickerAlong.includes(side)) return 0
+        const [a, b] = side === 'hyp' ? [P, Q] : side === 'legRP' ? [R, P] : [R, Q]
+        return angleAlongLine(a, b)
     }
 
     // Маленький квадратик прямого угла — из единичных векторов вдоль
@@ -589,8 +604,8 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                 const parts = sideStickerLabels[side]
                 if (!parts) return
                 const c = stickerCenter(side, parts)
-                const w = stickerRowWidth(parts)
-                growBox({ minX: c.x - w / 2, maxX: c.x + w / 2, minY: c.y - STICKER_H / 2, maxY: c.y + STICKER_H / 2 })
+                const k = sideStickerAlong.includes(side) ? STICKER_ALONG_SCALE : 1
+                growBox(rotatedTextBounds(c, stickerRotation(side), stickerRowWidth(parts) * k, STICKER_H * k))
             })
         }
         // Числовые подписи сторон (тренировка SINCOSDEFWALK) — тоже внутрь окна.
@@ -936,7 +951,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     const parts = sideStickerLabels[side]
                     if (!parts || parts.length === 0) return null
                     const c = stickerCenter(side, parts)
-                    return <StickerRow key={`st-${side}-${parts.map((p) => p.text).join('|')}`} cx={c.x} cy={c.y} parts={parts} />
+                    return <StickerRow key={`st-${side}-${parts.map((p) => p.text).join('|')}`} cx={c.x} cy={c.y} parts={parts} rotation={stickerRotation(side)} scale={sideStickerAlong.includes(side) ? STICKER_ALONG_SCALE : 1} />
                 })}
 
                 {/* Вершины — маленькие точки, чтобы стороны читались как

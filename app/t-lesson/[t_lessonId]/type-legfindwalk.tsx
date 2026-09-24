@@ -5,7 +5,8 @@
 // остальные *WALK: сам ведёт хореографию и зовёт onComplete один раз в конце.
 //
 // Сюжет (прямая инструкция пользователя):
-// 1. Прямоугольный треугольник → угол α → гипотенуза стикером.
+// 1. Прямоугольный треугольник → угол α → гипотенуза (стикер вдоль стороны)
+//    → "А как нам найти [противолежащий] катет?" → катет подсвечен + "?".
 // 2. ЗАПОМНИ! "Противолежащий катет = [гипотенуза] · [sin α]" (sin α — цветом
 //    противолежащего катета) → на рисунке противолежащий катет подписан
 //    [гип] · [sin α].
@@ -23,7 +24,7 @@ import { motion } from 'framer-motion'
 import { Check, X } from 'lucide-react'
 import type { QuestionType } from './page'
 import {
-    RightTriangleDiagram, LEG_COLOR, ADJACENT_LEG_COLOR, HYPOTENUSE_COLOR,
+    RightTriangleDiagram, LEG_COLOR, ADJACENT_LEG_COLOR, HYPOTENUSE_COLOR, SIDE_DRAW_DURATION,
     oppositeLegOf, adjacentLegOf,
     type AlphaVertex, type StickerPart, type SideId,
 } from '@/components/geometry/RightTriangleDiagram'
@@ -54,7 +55,7 @@ const SCENE_TRANSITION_PAUSE_MS = 1000
 // Паузы поэтапного появления на первой сцене: треугольник → α → гипотенуза.
 const INTRO_ALPHA_AT_MS = 1300
 const INTRO_HYP_AT_MS = 2600
-const INTRO_SETTLED_AT_MS = 3700
+const INTRO_SETTLED_AT_MS = 3700 // здесь начинает печататься вопрос
 const DIAGRAM_SETTLE_MS = 1400
 
 // ===== Стикеры (тот же визуальный язык, что в остальных *WALK) =====
@@ -123,28 +124,48 @@ const DiagramFrame = ({ children, maxW = 420 }: { children: React.ReactNode; max
     </div>
 )
 
-// Сцена 1: треугольник → α → гипотенуза стикером (поочерёдно).
+// Сцена 1: треугольник → α → гипотенуза (маленький стикер вдоль стороны) →
+// "А как нам найти [противолежащий] катет?" → подсвечивается противолежащий
+// катет и рядом с ним стикер "?" его цвета.
 const IntroTriangleScene = ({ onSettled }: { onSettled: () => void }) => {
     const [alphaShown, setAlphaShown] = useState(false)
     const [hypShown, setHypShown] = useState(false)
+    const [askShown, setAskShown] = useState(false)
+    const [oppShown, setOppShown] = useState(false)
+    const [qShown, setQShown] = useState(false)
     useEffect(() => {
         const t1 = setTimeout(() => setAlphaShown(true), INTRO_ALPHA_AT_MS)
         const t2 = setTimeout(() => setHypShown(true), INTRO_HYP_AT_MS)
-        const t3 = setTimeout(onSettled, INTRO_SETTLED_AT_MS)
+        const t3 = setTimeout(() => setAskShown(true), INTRO_SETTLED_AT_MS)
         return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
+    const handleAskDone = () => {
+        setTimeout(() => setOppShown(true), 500)
+        setTimeout(() => setQShown(true), 500 + SIDE_DRAW_DURATION * 1000 + 200)
+        setTimeout(onSettled, 500 + SIDE_DRAW_DURATION * 1000 + 1000)
+    }
+    const stickers: Partial<Record<SideId, StickerPart[]>> = {}
+    if (hypShown) stickers.hyp = [HYP_STICKER]
+    if (qShown) stickers[INTRO_OPP] = [{ text: '?', color: LEG_COLOR }]
     return (
         <div className="w-full flex flex-col gap-3">
-            <TypedLineWithParts parts={[{ text: 'Нарисуем прямоугольный треугольник.' }]} />
             <DiagramFrame>
                 <RightTriangleDiagram
                     compact rightAngleMarkShown
                     alphaVertex={alphaShown ? INTRO_ALPHA : null}
                     hypotenuseHighlighted={hypShown}
-                    sideStickerLabels={hypShown ? { hyp: [HYP_STICKER] } : undefined}
+                    oppositeLegHighlighted={oppShown}
+                    sideStickerLabels={stickers}
+                    sideStickerAlong={['hyp']}
                 />
             </DiagramFrame>
+            {askShown && (
+                <TypedLineWithParts
+                    className="text-lg md:text-xl font-bold"
+                    parts={[{ text: 'А как нам найти ' }, { sticker: 'противолежащий', color: LEG_COLOR }, { text: ' катет?' }]}
+                    onSettled={handleAskDone}
+                />
+            )}
         </div>
     )
 }
