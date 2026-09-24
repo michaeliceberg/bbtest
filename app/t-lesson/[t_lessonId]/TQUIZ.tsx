@@ -13,6 +13,7 @@ import LottieThunderStrike from '@/public/Lottie/ggege/LottieThunderStrike.json'
 
 const WinStreakModal = dynamic(() => import("../../../components/win-streak-modal"), { ssr: false })
 const ComboBanner = dynamic(() => import("../../../components/combo-banner"), { ssr: false })
+const LightningStrike = dynamic(() => import("../../../components/LightningStrike"), { ssr: false })
 const StreakLightning = dynamic(() => import("../../../components/streak-lightning").then(mod => mod.StreakLightning), { ssr: false })
 const StreakCelebrationScreen = dynamic(() => import("../../../components/streak-celebration-screen").then(mod => mod.StreakCelebrationScreen), { ssr: false })
 import { toast } from "sonner"
@@ -172,6 +173,8 @@ export default function TQuiz({
   const [streak, setStreak] = useState(0)
   const [effect, setEffect] = useState<StreakEffect | null>(null)
   const [combo, setCombo] = useState<number | null>(null)
+  const [lightningStrikeKey, setLightningStrikeKey] = useState(0)
+  const [lightningStrikeActive, setLightningStrikeActive] = useState(false)
   const [showLightning, setShowLightning] = useState(false)
   const [showStreakCelebration, setShowStreakCelebration] = useState(false)
   // Какой именно рубеж серии сейчас празднуем — 3 или 7 (см.
@@ -597,6 +600,9 @@ export default function TQuiz({
           }
           if (newStreak >= 5 && newStreak % 5 === 0) {
             setCombo(newStreak)
+            // Удар молнии (1с, 24 кадра пользователя) — на каждые 5 подряд.
+            setLightningStrikeKey(k => k + 1)
+            setLightningStrikeActive(true)
           }
           return newStreak
         })
@@ -959,6 +965,9 @@ export default function TQuiz({
         count={celebrationMilestone}
       />
       <ComboBanner combo={combo} onDone={() => setCombo(null)} />
+      {lightningStrikeActive && (
+        <LightningStrike key={lightningStrikeKey} onDone={() => setLightningStrikeActive(false)} />
+      )}
 
       {showStreakCelebration ? (
         <StreakCelebrationScreen

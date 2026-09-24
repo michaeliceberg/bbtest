@@ -502,3 +502,16 @@ body {
   animation: glow-pulse-opacity 2.4s ease-in-out infinite;
   will-change: opacity;
 }
+
+/* Вспышка экрана при ударе молнии (components/LightningStrike.tsx, 1с) */
+@keyframes lightning-flash {
+  0%, 20% { opacity: 0; }
+  30% { opacity: 1; }
+  45% { opacity: 0.2; }
+  55% { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+.animate-lightning-flash {
+  animation: lightning-flash 1s linear forwards;
+  will-change: opacity;
+}
