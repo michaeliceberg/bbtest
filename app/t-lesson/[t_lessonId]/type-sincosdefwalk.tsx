@@ -251,7 +251,7 @@ const pickTrialFeedback = (cfg: TrialConfig): string => {
     return CORRECT_FEEDBACK_PHRASES[Math.abs(seed) % CORRECT_FEEDBACK_PHRASES.length]
 }
 
-const CHIP_BASE = 'w-12 h-12 rounded-lg border-2 flex items-center justify-center text-lg font-black shrink-0'
+const CHIP_BASE = 'w-11 h-11 rounded-lg border-2 flex items-center justify-center text-lg font-black shrink-0'
 
 // Число, которое можно кликнуть — либо лежит в пуле снизу, либо уже стоит
 // в числителе/знаменателе дроби. Один и тот же layoutId у ОБОИХ мест, где
@@ -435,13 +435,17 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
         const poolValues = [t.legRPValue, t.legRQValue, t.hypValue]
         const dividerColor = isDone ? '#A1D151' : (showInteractive && wrongFlash) ? '#DC605B' : '#F2F7FB'
         const localIdx = i % TRIALS_PER_BLOCK
+        // Подсказка в ПЕРВОМ задании каждого блока: подсвечены ровно те
+        // стороны, что входят в формулу (sin — противолежащий+гипотенуза,
+        // cos — прилежащий+гипотенуза, tg — оба катета). Во 2-м и 3-м — нет.
+        const hint = localIdx === 0
 
         return (
             <SceneWrapper key={`trial-${i}`} innerRef={sceneRef(`trial-${i}`)} active={isSceneActive(`trial-${i}`)}>
             <div key={`trial-${i}-${replayNonceFor(`trial-${i}`)}`} className="w-full flex flex-col gap-3">
                 <div className="flex items-center gap-3 w-full">
                     <div
-                        className="shrink-0 flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
+                        className="shrink-0 flex items-center gap-0.5 px-3 h-8 rounded-full border-2 font-black text-sm tabular-nums"
                         style={{
                             borderColor: hexToRgba('#C385F7', 0.55),
                             backgroundColor: hexToRgba('#C385F7', 0.16),
@@ -454,15 +458,28 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
                     </div>
                     <p className="flex-1 text-base md:text-lg text-[#F2F7FB]">Чему равен {t.kind} α?</p>
                 </div>
-                <DiagramBlock>
-                    <RightTriangleDiagram
-                        rotationDeg={t.rotationDeg}
-                        mirror={t.mirror}
-                        rightAngleMarkShown
-                        alphaVertex={t.alphaVertex}
-                        sideNumberLabels={{ legRP: t.legRPValue, legRQ: t.legRQValue, hyp: t.hypValue }}
-                    />
-                </DiagramBlock>
+                {/* compact — окно SVG по фактическому содержимому (без запаса
+                    под произвольный поворот), max-h — чтобы вся сцена
+                    задания влезала в экран телефона. */}
+                <div className="w-full flex justify-center">
+                    <div className="w-full max-w-[340px] [&_svg]:max-h-[30vh]">
+                        <DiagramBlock>
+                            <RightTriangleDiagram
+                                compact
+                                rotationDeg={t.rotationDeg}
+                                mirror={t.mirror}
+                                rightAngleMarkShown
+                                alphaVertex={t.alphaVertex}
+                                sideNumberLabels={{ legRP: t.legRPValue, legRQ: t.legRQValue, hyp: t.hypValue }}
+                                oppositeLegHighlighted={hint && t.kind !== 'cos'}
+                                adjacentLegHighlighted={hint && t.kind !== 'sin'}
+                                hypotenuseHighlighted={hint && t.kind !== 'tg'}
+                            />
+                        </DiagramBlock>
+                    </div>
+                </div>
+                {/* Дробь и пул чисел — в одну строку (экономия высоты). */}
+                <div className="flex items-center justify-center gap-4 flex-wrap">
                 <div className="flex items-center justify-center gap-2 text-xl md:text-2xl font-bold text-[#F2F7FB]">
                     <span>{t.kind} α = </span>
                     <div className="inline-flex flex-col items-stretch">
@@ -484,7 +501,7 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
                     </div>
                 </div>
                 {showInteractive && (
-                    <div className="flex items-center justify-center gap-3">
+                    <div className="flex items-center justify-center gap-2">
                         {poolValues
                             .filter((v) => v !== numerator && v !== denominator)
                             .map((v) => (
@@ -492,6 +509,7 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
                             ))}
                     </div>
                 )}
+                </div>
                 {/* "Пробуй, пока не угадаешь" — числа НЕ блокируются, кликом
                     по ним можно вернуть их в пул и попробовать другую пару. */}
                 {showInteractive && wrongFlash && (

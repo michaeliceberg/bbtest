@@ -504,6 +504,14 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
             if (rpActive) growBox(rotatedTextBounds(legRPLabelPt, angleAlongLine(R, P), fp.w, fp.h))
             if (rqActive) growBox(rotatedTextBounds(legRQLabelPt, angleAlongLine(R, Q), fp.w, fp.h))
         }
+        // Числовые подписи сторон (тренировка SINCOSDEFWALK) — тоже внутрь окна.
+        if (sideNumberLabels) {
+            const numPt: Record<SideId, Pt> = { hyp: hypLabelPt, legRP: legRPLabelPt, legRQ: legRQLabelPt }
+            ;(Object.keys(sideNumberLabels) as SideId[]).forEach((side) => {
+                const fp = textFootprint(String(sideNumberLabels[side]), 19)
+                growBox(rotatedTextBounds(numPt[side], 0, fp.w, fp.h))
+            })
+        }
         minX -= pad; maxX += pad; minY -= pad; maxY += pad
         return `${minX} ${minY} ${maxX - minX} ${maxY - minY}`
     })() : null
