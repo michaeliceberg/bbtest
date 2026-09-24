@@ -194,6 +194,7 @@ type Props = {
 
 export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title, tier }: Props) => {
     const [phase, setPhase] = useState<Phase>('idle')
+    const [chestEntered, setChestEntered] = useState(false)
     const basePool = poolOverride ?? (tier ? getLessonCasePool(tier) : getCasePool(isMega))
     const [strip, setStrip] = useState<CaseReward[]>(() => {
         const pool = basePool
@@ -308,14 +309,20 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
             {tier ? (
                 <div className="relative z-10 flex flex-col items-center gap-1 text-white">
                     {title && <span className="text-sm font-bold opacity-90 [text-shadow:0_1px_4px_rgba(0,0,0,0.45)]">{title}</span>}
-                    <motion.img
-                        src={LESSON_CASE_TIER_ICON[tier]}
-                        alt=""
-                        className="w-44 h-auto drop-shadow-[0_8px_18px_rgba(0,0,0,0.35)]"
-                        initial={{ scale: 0.6, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ type: 'spring', bounce: 0.5, duration: 0.7 }}
-                    />
+                    {/* После пружинного появления — бесконечное покачивание-
+                        bounce, пока не нажали «Крутить» (CSS-анимация на
+                        обёртке: framer владеет transform самой картинки). */}
+                    <div className={chestEntered && phase === 'idle' ? 'animate-chest-idle-bounce' : ''}>
+                        <motion.img
+                            src={LESSON_CASE_TIER_ICON[tier]}
+                            alt=""
+                            className="w-44 h-auto drop-shadow-[0_8px_18px_rgba(0,0,0,0.35)]"
+                            initial={{ scale: 0.6, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ type: 'spring', bounce: 0.5, duration: 0.7 }}
+                            onAnimationComplete={() => setChestEntered(true)}
+                        />
+                    </div>
                     <span className="text-4xl font-black tracking-wide uppercase [text-shadow:0_2px_8px_rgba(0,0,0,0.45)]">
                         {LESSON_CASE_TIER_LABEL[tier]}
                     </span>

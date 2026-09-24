@@ -472,3 +472,17 @@ body {
   animation: cta-shine-sweep 3.2s ease-in-out infinite;
   pointer-events: none;
 }
+
+/* Сундук кейса ждёт нажатия «Крутить» (components/CaseReel.tsx) —
+   бесконечный мягкий bounce в духе пружинного появления. */
+@keyframes chest-idle-bounce {
+  0%, 100% { transform: scale(1); }
+  20% { transform: scale(1.1); }
+  35% { transform: scale(0.96); }
+  48% { transform: scale(1.03); }
+  60% { transform: scale(1); }
+}
+.animate-chest-idle-bounce {
+  animation: chest-idle-bounce 1.6s ease-in-out infinite;
+  transform-origin: 50% 70%;
+}
