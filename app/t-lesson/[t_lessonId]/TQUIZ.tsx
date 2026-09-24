@@ -32,7 +32,7 @@ import { useQuizAudio } from "@/app/hooks/useQuizAudio"
 import { reportLessonQuestSignals } from "@/actions/generate-trainer-quest"
 import { ChestReward } from "@/components/ChestReward"
 import { CaseReel } from "@/components/CaseReel"
-import { rewardLabel, getLessonCasePool, LESSON_CASE_TIER_TITLES, type CaseReward, type LessonCaseTier } from "@/lib/caseRewards"
+import { rewardLabel, getLessonCasePool, type CaseReward, type LessonCaseTier } from "@/lib/caseRewards"
 import { rollLessonCaseTier } from "@/actions/roll-lesson-case"
 import { openLessonCase } from "@/actions/open-case"
 import { TrainerQuestRewardsScreen, QuestRewardsData } from "@/components/trainer-quest-rewards-screen"
@@ -868,7 +868,7 @@ export default function TQuiz({
         isMega={lessonCaseTier !== 'common'}
         pool={getLessonCasePool(lessonCaseTier)}
         spinAction={() => openLessonCase(lessonCaseTier)}
-        title={chainBonusLength ? `🔥 Серия x${chainBonusLength} — Мифический кейс!` : LESSON_CASE_TIER_TITLES[lessonCaseTier]}
+        title={chainBonusLength ? `🔥 Серия x${chainBonusLength}` : undefined}
         tier={lessonCaseTier}
         onDone={({ reward }) => {
           setWonLessonCaseReward(reward)

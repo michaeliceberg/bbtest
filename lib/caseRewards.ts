@@ -70,7 +70,7 @@ export const getCasePool = (isMega: boolean): CaseReward[] => (isMega ? MEGA_CAS
 // - mythic — НОВЫЙ, самый щедрый пул: заметно выше шанс пиццы (~28%
 //   суммарно против ~6% у mega) — по прямой просьбе пользователя
 //   ("а в таком сундуке с бОльшей вероятностью падает пицца").
-export type LessonCaseTier = 'common' | 'rare' | 'mythic'
+export type LessonCaseTier = 'common' | 'rare' | 'mythic' | 'mega'
 
 export const MYTHIC_CASE_POOL: CaseReward[] = [
 	{ kind: 'coins', amount: 100, weight: 20 },
@@ -82,8 +82,22 @@ export const MYTHIC_CASE_POOL: CaseReward[] = [
 	{ kind: 'pizza', amount: 2, weight: 10 },
 ]
 
+// МЕГА-кейс (2026-09-24, по прямой просьбе пользователя) — ещё реже
+// mythic (в 3 раза, см. TIER_WEIGHTS в actions/roll-lesson-case.ts),
+// подарки в 1.5 раза больше mythic (округление вверх). Не путать с
+// MEGA_CASE_POOL выше — тот исторически пул позиционного 👑 мегакейса/rare.
+export const MEGA_TIER_CASE_POOL: CaseReward[] = [
+	{ kind: 'coins', amount: 150, weight: 20 },
+	{ kind: 'coins', amount: 225, weight: 16 },
+	{ kind: 'coins', amount: 375, weight: 10 },
+	{ kind: 'gems', amount: 3, weight: 16 },
+	{ kind: 'gems', amount: 5, weight: 10 },
+	{ kind: 'pizza', amount: 2, weight: 18 },
+	{ kind: 'pizza', amount: 3, weight: 10 },
+]
+
 export const getLessonCasePool = (tier: LessonCaseTier): CaseReward[] =>
-	tier === 'mythic' ? MYTHIC_CASE_POOL : tier === 'rare' ? MEGA_CASE_POOL : REGULAR_CASE_POOL
+	tier === 'mega' ? MEGA_TIER_CASE_POOL : tier === 'mythic' ? MYTHIC_CASE_POOL : tier === 'rare' ? MEGA_CASE_POOL : REGULAR_CASE_POOL
 
 // Заголовок над барабаном — по прямой просьбе пользователя (2026-09-18)
 // "Обычный" приведён к тому же формату "<редкость> кейс", что уже был у
@@ -92,6 +106,7 @@ export const LESSON_CASE_TIER_TITLES: Record<LessonCaseTier, string> = {
 	common: 'Обычный кейс',
 	rare: 'Редкий кейс',
 	mythic: 'Мифический кейс!',
+	mega: 'МЕГА кейс!',
 }
 
 // Иконка самого КЕЙСА (не награды внутри) по редкости — те же SVG, что
@@ -102,6 +117,7 @@ export const LESSON_CASE_TIER_ICON: Record<LessonCaseTier, string> = {
 	common: '/chests/comm0001.svg',
 	rare: '/chests/rare0001.svg',
 	mythic: '/chests/myth0001.svg',
+	mega: '/chests/mega0001.svg',
 }
 
 // Цвет редкости самого КЕЙСА (не награды внутри него) — по прямой просьбе
@@ -112,12 +128,24 @@ export const LESSON_CASE_TIER_STYLE: Record<LessonCaseTier, { color: string; bg:
 	common: { color: '#9CA3AF', bg: 'rgba(156,163,175,0.14)', border: 'rgba(156,163,175,0.5)' },
 	rare: { color: '#38BDF8', bg: 'rgba(56,189,248,0.14)', border: 'rgba(56,189,248,0.5)' },
 	mythic: { color: '#FBBF24', bg: 'rgba(251,191,36,0.14)', border: 'rgba(251,191,36,0.5)' },
+	mega: { color: '#FF8A00', bg: 'rgba(255,138,0,0.14)', border: 'rgba(255,138,0,0.5)' },
 }
 
+// Крупное название кейса над барабаном (CaseReel, когда задан tier).
 export const LESSON_CASE_TIER_LABEL: Record<LessonCaseTier, string> = {
-	common: 'ОБЫЧНЫЙ',
-	rare: 'РЕДКИЙ',
-	mythic: 'МИФИЧЕСКИЙ',
+	common: 'Обычный',
+	rare: 'Редкий',
+	mythic: 'Мифический',
+	mega: 'МЕГА',
+}
+
+// Фон ВСЕЙ страницы, пока открыт кейс (по прямой просьбе пользователя,
+// RGB 0..1 переведены в hex).
+export const LESSON_CASE_TIER_PAGE_BG: Record<LessonCaseTier, string> = {
+	common: '#131D22',
+	rare: '#00C5FF',
+	mythic: '#A868FC',
+	mega: '#FF8A00',
 }
 
 // Кейс за номер телефона на анонимном диагностическом тесте

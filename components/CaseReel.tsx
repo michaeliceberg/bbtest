@@ -20,8 +20,8 @@ import { Gift, Sparkles } from 'lucide-react'
 import { openCase, type OpenCaseResult } from '@/actions/open-case'
 import { playSound } from '@/lib/sound'
 import {
-  getCasePool, isJackpotReward, pickWeightedReward, rewardEmoji, rewardLabel, type CaseReward,
-  LESSON_CASE_TIER_STYLE, LESSON_CASE_TIER_ICON, type LessonCaseTier,
+  getCasePool, getLessonCasePool, isJackpotReward, pickWeightedReward, rewardEmoji, rewardLabel, type CaseReward,
+  LESSON_CASE_TIER_ICON, LESSON_CASE_TIER_LABEL, LESSON_CASE_TIER_PAGE_BG, type LessonCaseTier,
 } from '@/lib/caseRewards'
 import LottieCoins from '@/public/Lottie/LottieCoins.json'
 import LottieGems from '@/public/Lottie/LottieGems.json'
@@ -153,8 +153,9 @@ type Props = {
 
 export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title, tier }: Props) => {
     const [phase, setPhase] = useState<Phase>('idle')
+    const basePool = poolOverride ?? (tier ? getLessonCasePool(tier) : getCasePool(isMega))
     const [strip, setStrip] = useState<CaseReward[]>(() => {
-        const pool = poolOverride ?? getCasePool(isMega)
+        const pool = basePool
         return Array.from({ length: STRIP_LENGTH }, () => pickWeightedReward(pool))
     })
     const [translateX, setTranslateX] = useState(0)
@@ -236,10 +237,17 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
     const wonRarity = wonReward ? RARITY_STYLE[wonReward.kind] : null
     // Джекпот (пицца или максимум монет/гемов для этого пула) — повод
     // для конфетти, по просьбе пользователя.
-    const isJackpot = phase === 'revealed' && wonReward ? isJackpotReward(wonReward, poolOverride ?? getCasePool(isMega)) : false
+    const isJackpot = phase === 'revealed' && wonReward ? isJackpotReward(wonReward, basePool) : false
 
     return (
-        <div className="w-full max-w-md mx-auto px-4 py-6 flex flex-col items-center gap-5">
+        <div className="relative w-full max-w-md mx-auto px-4 py-6 flex flex-col items-center gap-5">
+            {/* Фон ВСЕЙ страницы в цвет редкости кейса (по прямой просьбе
+                пользователя) — fixed-слой под контентом (z-0, контент z-10). */}
+            {tier && (
+                <div className="fixed inset-0 z-0 pointer-events-none" style={{ backgroundColor: LESSON_CASE_TIER_PAGE_BG[tier] }}>
+                    <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 30%, rgba(255,255,255,0.18), transparent 60%)' }} />
+                </div>
+            )}
             {isJackpot && <Confetti width={width} height={height} recycle={false} numberOfPieces={260} />}
             {/* Заголовок — по прямой просьбе пользователя (2026-09-18)
                 отдельная рамка-бейдж "ОБЫЧНЫЙ КЕЙС" над этой строкой убрана
@@ -250,19 +258,32 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                 Gift; у позиционных кейса/мегакейса на карте скиллов и
                 мегакейса за горячий вопрос (tier не задан, только isMega)
                 — Gift не тронут, как и было. */}
-            <div className="flex items-center gap-2.5 text-[#F2F7FB]">
-                {tier ? (
-                    <img src={LESSON_CASE_TIER_ICON[tier]} alt="" className="w-9 h-9 shrink-0" />
-                ) : (
+            {tier ? (
+                <div className="relative z-10 flex flex-col items-center gap-1 text-white">
+                    {title && <span className="text-sm font-bold opacity-90 [text-shadow:0_1px_4px_rgba(0,0,0,0.45)]">{title}</span>}
+                    <motion.img
+                        src={LESSON_CASE_TIER_ICON[tier]}
+                        alt=""
+                        className="w-44 h-auto drop-shadow-[0_8px_18px_rgba(0,0,0,0.35)]"
+                        initial={{ scale: 0.6, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: 'spring', bounce: 0.5, duration: 0.7 }}
+                    />
+                    <span className="text-4xl font-black tracking-wide uppercase [text-shadow:0_2px_8px_rgba(0,0,0,0.45)]">
+                        {LESSON_CASE_TIER_LABEL[tier]}
+                    </span>
+                </div>
+            ) : (
+                <div className="flex items-center gap-2.5 text-[#F2F7FB]">
                     <Gift className={isMega ? 'w-6 h-6 text-[#FFD460]' : 'w-5 h-5 text-[#EF9F27]'} />
-                )}
-                <span className="font-black text-lg tracking-wide" style={tier ? { color: LESSON_CASE_TIER_STYLE[tier].color } : undefined}>{title ?? (isMega ? 'Мегакейс' : 'Кейс')}</span>
-            </div>
+                    <span className="font-black text-lg tracking-wide">{title ?? (isMega ? 'Мегакейс' : 'Кейс')}</span>
+                </div>
+            )}
 
             {/* Окно барабана — резиновая ширина (заполняет мобильный экран со
                 стандартными отступами px-4 у обёртки), премиальная рамка с
                 градиентом + мягкое свечение снаружи. */}
-            <div className="relative w-full rounded-2xl p-[2px] bg-gradient-to-b from-[#5A6B76] via-[#2A363C] to-[#141C20] shadow-[0_10px_34px_rgba(0,0,0,0.55)]">
+            <div className="relative z-10 w-full rounded-2xl p-[2px] bg-gradient-to-b from-[#5A6B76] via-[#2A363C] to-[#141C20] shadow-[0_10px_34px_rgba(0,0,0,0.55)]">
                 <div
                     ref={windowRef}
                     className="relative w-full overflow-hidden rounded-[14px] bg-gradient-to-b from-[#1C282E] to-[#0C1215]"
@@ -294,11 +315,12 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                 </div>
             </div>
 
-            {error && <p className="text-sm text-red-400">{error}</p>}
+            {error && <p className="relative z-10 text-sm text-red-400">{error}</p>}
 
             {phase === 'idle' && (
                 <motion.button
                     onClick={handleSpin}
+                    style={{ position: 'relative', zIndex: 10 }}
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.97 }}
                     className="flex items-center gap-2 px-8 py-3.5 rounded-xl border-2 border-b-4 active:border-b-2 bg-gradient-to-b from-[#5CA6E8] to-[#3A73AD] border-[#2E5C8A] text-white font-bold uppercase tracking-wide shadow-[0_0_22px_rgba(74,144,217,0.45)]"
@@ -309,7 +331,7 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
             )}
 
             {phase === 'spinning' && (
-                <div className="px-8 py-3.5 text-[#9AA7B0] font-bold uppercase tracking-wide">
+                <div className={"relative z-10 px-8 py-3.5 font-bold uppercase tracking-wide " + (tier ? "text-white" : "text-[#9AA7B0]")}>
                     Крутим...
                 </div>
             )}
@@ -318,7 +340,7 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                 <motion.div
                     initial={{ opacity: 0, scale: 0.85 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="flex flex-col items-center gap-4"
+                    className="relative z-10 flex flex-col items-center gap-4"
                 >
                     {/* Реакция-видео (WebM, зацикленное) — "Pizza time!" на
                         дроп пиццы, иначе случайный ролик из ok1..ok7 — по
@@ -333,7 +355,7 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                             className="absolute inset-0 rounded-full blur-2xl opacity-60"
                             style={{ background: `radial-gradient(closest-side, ${wonRarity.text}66, transparent 75%)` }}
                         />
-                        <p className="relative text-xl font-black" style={{ color: wonRarity.text }}>
+                        <p className={"relative text-xl font-black " + (tier ? "px-4 py-1.5 rounded-xl bg-[#0C1215]/80" : "")} style={{ color: wonRarity.text }}>
                             {rewardLabel(wonReward)}
                         </p>
                     </div>

@@ -48,6 +48,8 @@ const TIER_WEIGHTS: [LessonCaseTier, number][] = [
 	['common', 80],
 	['rare', 17],
 	['mythic', 3],
+	// МЕГА — в 3 раза реже mythic.
+	['mega', 1],
 ];
 
 function pickWeightedTier(): LessonCaseTier {
