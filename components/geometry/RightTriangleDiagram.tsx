@@ -300,6 +300,70 @@ export type RightTriangleVisual = {
     // отличие от SideLabel) — короткие цифры читаются надёжнее прямо,
     // без поворота текста.
     sideNumberLabels?: Partial<Record<SideId, number>>
+    // Подписи сторон "стикерами" (LEGFINDWALK): цепочка частей — цветная
+    // часть рисуется боксовым стикером (рамка+полупрозрачная заливка, тот
+    // же визуальный язык, что HTML-стикеры разборов), часть без цвета —
+    // обычным текстом (например "·"). Горизонтально, снаружи стороны.
+    sideStickerLabels?: Partial<Record<SideId, StickerPart[]>>
+    // Подпись угла вместо "α" (например "37°" в тренировке LEGFINDWALK).
+    alphaText?: string
+}
+
+export type StickerPart = { text: string; color?: string }
+
+const STICKER_FONT = 21
+const STICKER_H = 36
+const STICKER_PAD_X = 8
+const STICKER_GAP = 5
+const stickerPartWidth = (p: StickerPart) =>
+    p.color ? p.text.length * STICKER_FONT * 0.6 + STICKER_PAD_X * 2 : p.text.length * STICKER_FONT * 0.5
+const stickerRowWidth = (parts: StickerPart[]) =>
+    parts.reduce((w, p) => w + stickerPartWidth(p), 0) + STICKER_GAP * Math.max(0, parts.length - 1)
+
+const hexA = (hex: string, a: number) => {
+    const h = hex.replace('#', '')
+    const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16)
+    return `rgba(${r}, ${g}, ${b}, ${a})`
+}
+
+// Ряд стикеров с центром в (cx, cy). Позиционирующий transform — на
+// статичном внешнем <g>, анимация масштаба — на вложенном motion.g (иначе
+// framer-motion перезаписывает transform, см. CLAUDE.md).
+const StickerRow = ({ cx, cy, parts }: { cx: number; cy: number; parts: StickerPart[] }) => {
+    const total = stickerRowWidth(parts)
+    let x = -total / 2
+    return (
+        <g transform={`translate(${cx} ${cy})`}>
+            <motion.g
+                initial={{ opacity: 0, scale: 2.2 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: 'spring', stiffness: 320, damping: 15 }}
+            >
+                {parts.map((p, i) => {
+                    const w = stickerPartWidth(p)
+                    const left = x
+                    x += w + STICKER_GAP
+                    return (
+                        <g key={i}>
+                            {p.color && (
+                                <rect
+                                    x={left} y={-STICKER_H / 2} width={w} height={STICKER_H} rx={7}
+                                    fill={hexA(p.color, 0.18)} stroke={p.color} strokeWidth={2}
+                                />
+                            )}
+                            <text
+                                x={left + w / 2} y={1}
+                                textAnchor="middle" dominantBaseline="middle"
+                                fontFamily="var(--font-nunito), sans-serif"
+                                fontSize={STICKER_FONT} fontWeight={800}
+                                fill={p.color ?? TEXT}
+                            >{p.text}</text>
+                        </g>
+                    )
+                })}
+            </motion.g>
+        </g>
+    )
 }
 
 // Тайминг zoom-эффекта — камера зумит внутрь, держит кадр, пока элемент
@@ -348,6 +412,8 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
         checked = false,
         compact = false,
         sideNumberLabels,
+        sideStickerLabels,
+        alphaText = 'α',
     } = props
 
     // Пока камера не "доехала" до цели (zoomFocus задан) — элемент,
@@ -411,6 +477,20 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
     const legRQLabelPtWide = outwardPerp(R, Q, legRQMid, P, 50)
     const legRPLabelPtWide = outwardPerp(R, P, legRPMid, Q, 44)
 
+    // Центр ряда стикеров: от середины стороны строго перпендикулярно
+    // наружу на зазор + "проекцию" половины прямоугольника ряда на эту
+    // нормаль — горизонтальный ряд не наезжает на сторону при любом
+    // наклоне (вертикальный катет — сдвиг на полширины, горизонтальный —
+    // на полвысоты).
+    const stickerCenter = (side: SideId, parts: StickerPart[]): Pt => {
+        const [a, b, third] = side === 'hyp' ? [P, Q, R] : side === 'legRP' ? [R, P, Q] : [R, Q, P]
+        const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+        const unit = sub(outwardPerp(a, b, mid, third, 1), mid)
+        const w = stickerRowWidth(parts), h = STICKER_H
+        const reach = Math.abs(unit.x) * w / 2 + Math.abs(unit.y) * h / 2
+        return add(mid, scale(unit, 12 + reach))
+    }
+
     // Маленький квадратик прямого угла — из единичных векторов вдоль
     // обеих сторон, исходящих из R (корректно поворачивается вместе с
     // треугольником, т.к. считается из уже повёрнутых координат, не из
@@ -436,7 +516,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
         const p2 = add(V, scale(dir2, r))
         const bis = norm(add(dir1, dir2))
         const control = add(V, scale(bis, r * 1.3))
-        const labelPt = add(V, scale(bis, r + 22))
+        const labelPt = add(V, scale(bis, r + 22 + Math.max(0, alphaText.length - 1) * 7))
         return { p1, p2, control, labelPt }
     })()
 
@@ -478,7 +558,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
         }
         if (rightAngleMarkShown) { grow(m1); grow(m2); grow(m3) }
         if (alphaVertex && alphaArc) {
-            const fp = textFootprint('α', 24)
+            const fp = textFootprint(alphaText, 24)
             growBox(rotatedTextBounds(alphaArc.labelPt, 0, fp.w, fp.h))
         }
         if (hypotenuseHighlighted && hypotenuseLabelShown) {
@@ -503,6 +583,15 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
             const fp = textFootprint('катет', 16)
             if (rpActive) growBox(rotatedTextBounds(legRPLabelPt, angleAlongLine(R, P), fp.w, fp.h))
             if (rqActive) growBox(rotatedTextBounds(legRQLabelPt, angleAlongLine(R, Q), fp.w, fp.h))
+        }
+        if (sideStickerLabels) {
+            (Object.keys(sideStickerLabels) as SideId[]).forEach((side) => {
+                const parts = sideStickerLabels[side]
+                if (!parts) return
+                const c = stickerCenter(side, parts)
+                const w = stickerRowWidth(parts)
+                growBox({ minX: c.x - w / 2, maxX: c.x + w / 2, minY: c.y - STICKER_H / 2, maxY: c.y + STICKER_H / 2 })
+            })
         }
         // Числовые подписи сторон (тренировка SINCOSDEFWALK) — тоже внутрь окна.
         if (sideNumberLabels) {
@@ -653,12 +742,14 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                         <motion.text
                             x={alphaArc.labelPt.x} y={alphaArc.labelPt.y}
                             textAnchor="middle" dominantBaseline="middle"
-                            fontFamily="Georgia, serif" fontStyle="italic" fontSize={24} fontWeight={700}
+                            fontFamily={alphaText === 'α' ? 'Georgia, serif' : 'var(--font-nunito), sans-serif'}
+                            fontStyle={alphaText === 'α' ? 'italic' : 'normal'}
+                            fontSize={alphaText === 'α' ? 24 : 20} fontWeight={alphaText === 'α' ? 700 : 800}
                             fill={ALPHA_COLOR}
                             initial={numberBounce.initial}
                             animate={numberBounce.animate}
                             transition={numberBounce.transition}
-                        >α</motion.text>
+                        >{alphaText}</motion.text>
                     </>
                 )}
 
@@ -839,6 +930,13 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                             transition={numberBounce.transition}
                         >{value}</motion.text>
                     )
+                })}
+
+                {sideStickerLabels && (['hyp', 'legRP', 'legRQ'] as SideId[]).map((side) => {
+                    const parts = sideStickerLabels[side]
+                    if (!parts || parts.length === 0) return null
+                    const c = stickerCenter(side, parts)
+                    return <StickerRow key={`st-${side}-${parts.map((p) => p.text).join('|')}`} cx={c.x} cy={c.y} parts={parts} />
                 })}
 
                 {/* Вершины — маленькие точки, чтобы стороны читались как
