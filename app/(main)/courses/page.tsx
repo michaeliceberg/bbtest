@@ -8,8 +8,8 @@ const CoursePage = async () => {
 	const [courses, userProgress] = await Promise.all([coursesData, userProgressData]);
 
 	return (
-		<div className='h-full max-w-[912px] px-3 mx-auto'>
-			<h1 className='text-2xl font-bold text-neutral-700'>Выберите курс</h1>
+		<div className='h-full max-w-[640px] px-3 mx-auto'>
+			<h1 className='text-2xl font-extrabold text-[#F2F7FB]'>Выберите курс</h1>
 			<List courses={courses} activeCourseId={userProgress?.activeCourseId} />
 		</div>
 	);
