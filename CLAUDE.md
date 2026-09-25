@@ -12069,3 +12069,6 @@ Nunito 900 с кириллицей (`lib/fonts.ts` — отдельный экз
 `.animate-combo-label-in/out`). Старый `ComboBanner` на кратных 5 больше не вызывается.
 Звук барабана кейса — `/roulete.m4a` (AAC 192 кбит/с из `public/sounds-originals/roulete.wav`,
 1,1 МБ → 155 КБ), предзагружается при открытии урока (TQUIZ) и при появлении кейса (CaseReel).
+На ответах, где бьёт молния (`isLightningStreak(n)`: кратные 5 или 8), стандартный звук
+«верно» НЕ играет — только звук молнии (`playCorrectSoundUnlessLightning` в TQUIZ, в т.ч.
+для CONNECT, где звук играет раньше — в `TrainerQuestion` при совпадении последней пары).

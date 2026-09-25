@@ -14,6 +14,8 @@ import LottieThunderStrike from '@/public/Lottie/ggege/LottieThunderStrike.json'
 
 const WinStreakModal = dynamic(() => import("../../../components/win-streak-modal"), { ssr: false })
 const ComboBanner = dynamic(() => import("../../../components/combo-banner"), { ssr: false })
+// Серия, на которой бьёт молния (кратные 5 — жёлтая, кратные 8 — синяя).
+const isLightningStreak = (n: number) => n > 0 && (n % 5 === 0 || n % 8 === 0)
 const LightningStrike = dynamic(() => import("../../../components/LightningStrike"), { ssr: false })
 const StreakLightning = dynamic(() => import("../../../components/streak-lightning").then(mod => mod.StreakLightning), { ssr: false })
 const StreakCelebrationScreen = dynamic(() => import("../../../components/streak-celebration-screen").then(mod => mod.StreakCelebrationScreen), { ssr: false })
@@ -392,6 +394,14 @@ export default function TQuiz({
   
   // Оборачиваем функции в useCallback
   const playCorrectSound = useCallback(() => playAudio('correct'), [playAudio])
+  // Серия, на которой бьёт молния (кратные 5 — жёлтая, кратные 8 — синяя).
+  // На этих ответах стандартный звук «верно» НЕ играет — только звук молнии.
+  const streakRef = useRef(0)
+  useEffect(() => { streakRef.current = streak }, [streak])
+  const playCorrectSoundUnlessLightning = useCallback(() => {
+    if (isLightningStreak(streakRef.current + 1)) return
+    playCorrectSound()
+  }, [playCorrectSound])
   const playIncorrectSound = useCallback(() => playAudio('incorrect'), [playAudio])
   const playFinishSound = useCallback(() => playAudio('finish'), [playAudio])
 
@@ -592,7 +602,7 @@ export default function TQuiz({
       if (answerIsRight) {
         // Для CONNECT звук и анимация уже были в handleAllPairsMatched
         if (questions[currentQuestionIndex].questionType !== 'CONNECT') {
-          playCorrectSound()
+          playCorrectSoundUnlessLightning()
           setIsRightPrevious(true)
         }
         setRandomEmotionLottie(getRandomLottie(LOTTIE_EMOTION_RIGHT_LIST))
@@ -613,7 +623,7 @@ export default function TQuiz({
           // старый маленький ComboBanner на кратных 5 больше не вызывается.
           // Удар молнии: 8 подряд (и 16, 24…) — синяя (36 кадров, 1.5с);
           // 5 подряд (и 10, 15…) — жёлтая (24 кадра, 1с). При совпадении — синяя.
-          if (newStreak % 8 === 0 || newStreak % 5 === 0) {
+          if (isLightningStreak(newStreak)) {
             setLightningVariant(newStreak % 8 === 0 ? 'blue' : 'yellow')
             setLightningLabel(`КОМБО x${newStreak}`)
             setLightningStrikeKey(k => k + 1)
@@ -712,7 +722,7 @@ export default function TQuiz({
     }
   }, [
     isProcessing, quizCompleted, currentQuestionIndex, questions,
-    playCorrectSound, playIncorrectSound, sleep, goToNextQuestion,
+    playCorrectSoundUnlessLightning, playIncorrectSound, sleep, goToNextQuestion,
   ])
 
   const handleTimeout = useCallback(async () => {
@@ -1050,7 +1060,7 @@ export default function TQuiz({
             isRightList={isRightList}
             isRightPrevious={isRightPrevious}
             randomEmotionLottie={randomEmotionLottie}
-            playCorrectSound={playCorrectSound}
+            playCorrectSound={playCorrectSoundUnlessLightning}
             score={score}
             isBossStage={isBossStage}
             streak={streak}
