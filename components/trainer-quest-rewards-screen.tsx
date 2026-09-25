@@ -26,6 +26,7 @@ import { getLessonCasePool, LESSON_CASE_TIER_ICON, type LessonCaseTier } from '@
 import { claimQuestCase, type DailyQuest, type DailyQuestKey, type DailyQuestsData } from '@/actions/generate-trainer-quest'
 import { RollingNumber } from '@/components/rolling-number'
 import { openLessonCase } from '@/actions/open-case'
+import { COZY, COZY_ACCENT } from '@/lib/cozyTheme'
 
 export type QuestRewardsData = DailyQuestsData | null
 
@@ -150,33 +151,7 @@ const QuestRow = ({ q, index }: { q: DailyQuest; index: number }) => {
 
 // ── Стиль «cozy»: тёплый, мультяшный, в духе Minecraft ─────────────────────
 // Плоские «блоки» с толстой нижней гранью, тёплые тёмные тона камня/дерева,
-// спокойные пастельные цвета редкости, прогресс-бар «из кубиков».
-const COZY_ACCENT: Record<LessonCaseTier, { fill: string; edge: string }> = {
-    common: { fill: '#D9C4A3', edge: '#9C8468' }, // песок
-    rare: { fill: '#8FD3F0', edge: '#4F97B8' }, // небо
-    mythic: { fill: '#C9AEF5', edge: '#8E6FC7' }, // лаванда
-    mega: { fill: '#FFB67A', edge: '#C77A3E' }, // персик
-}
-const COZY = {
-    card: '#2D2A27',
-    cardEdge: '#1C1A18',
-    cardBorder: '#4A433B',
-    title: '#FFF1DC',
-    track: '#1B1916',
-    honey: '#F2C35B',
-    honeyCard: '#4A3719',
-    honeyEdge: '#2E2210',
-    honeyBorder: '#E0A83E',
-    wood: '#4A3626',
-    woodEdge: '#2C2016',
-    woodBorder: '#6B4F37',
-    grass: '#7CC456',
-    grassEdge: '#4E8A33',
-}
-
-// Сегменты «кубиков» поверх заливки прогресс-бара.
-const BLOCK_SEGMENTS = 'repeating-linear-gradient(90deg, transparent 0 14px, rgba(0,0,0,0.22) 14px 16px)'
-
+// спокойные пастельные цвета редкости, сплошной прогресс-бар.
 const CozyQuestRow = ({ q, index }: { q: DailyQuest; index: number }) => {
     const a = COZY_ACCENT[q.tier]
     const percent = Math.min(100, (q.progress / q.target) * 100)
@@ -203,7 +178,7 @@ const CozyQuestRow = ({ q, index }: { q: DailyQuest; index: number }) => {
                 <div className="relative h-5 flex-1 overflow-hidden rounded-md" style={{ background: COZY.track, boxShadow: 'inset 0 2px 0 rgba(0,0,0,0.35)' }}>
                     <motion.div
                         className="h-full"
-                        style={{ background: `${BLOCK_SEGMENTS}, ${gold ? COZY.honey : q.done ? a.fill : '#6B645B'}` }}
+                        style={{ background: gold ? COZY.honey : q.done ? a.fill : '#6B645B' }}
                         initial={{ width: 0 }}
                         animate={{ width: `${percent}%` }}
                         transition={{ delay: 0.4 + index * 0.15, duration: 0.7, ease: 'easeOut' }}
@@ -251,6 +226,7 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
                 tier={opening.tier}
                 pool={getLessonCasePool(opening.tier)}
                 spinAction={() => (demo ? openLessonCase(opening.tier) : claimQuestCase(t_lessonId, key))}
+                theme={theme}
                 title={`Квест: ${questTitle(opening)}`}
                 onDone={() => {
                     const next = quests.map((q) => (q.key === key ? { ...q, claimed: true } : q))

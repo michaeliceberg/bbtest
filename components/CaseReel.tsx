@@ -24,6 +24,7 @@ import {
   getCasePool, getLessonCasePool, isJackpotReward, pickWeightedReward, rewardEmoji, rewardLabel, type CaseReward,
   LESSON_CASE_TIER_ICON, LESSON_CASE_TIER_LABEL, LESSON_CASE_TIER_PAGE_BG, type LessonCaseTier,
 } from '@/lib/caseRewards'
+import { COZY, COZY_ACCENT, COZY_PAGE_BG, type UiTheme } from '@/lib/cozyTheme'
 import LottieCoins from '@/public/Lottie/LottieCoins.json'
 import LottieGems from '@/public/Lottie/LottieGems.json'
 
@@ -77,15 +78,34 @@ const RARITY_STYLE: Record<CaseReward['kind'], { cell: string; glow: string; tex
     },
 }
 
-const RewardCell = ({ reward, highlighted }: { reward: CaseReward; highlighted?: boolean }) => {
+// Тёплый стиль «cozy»: плоская ячейка-блок, цветная обводка по типу награды.
+const COZY_CELL: Record<CaseReward['kind'], { border: string; text: string }> = {
+    coins: { border: '#C9A15A', text: '#F2C35B' },
+    gems: { border: '#6FB8D8', text: '#8FD3F0' },
+    pizza: { border: '#E8955A', text: '#FFB67A' },
+}
+
+const RewardCell = ({ reward, highlighted, cozy }: { reward: CaseReward; highlighted?: boolean; cozy?: boolean }) => {
     const rarity = RARITY_STYLE[reward.kind]
     return (
         <motion.div
             className={
-                'shrink-0 w-24 h-24 rounded-xl border-2 flex flex-col items-center justify-center gap-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ' +
-                (highlighted ? 'bg-gradient-to-b from-[#4A3B12] to-[#2A2008] border-[#FFD460]' : rarity.cell + ' ' + rarity.glow)
+                cozy
+                    ? 'shrink-0 w-24 h-24 rounded-xl flex flex-col items-center justify-center gap-1'
+                    : 'shrink-0 w-24 h-24 rounded-xl border-2 flex flex-col items-center justify-center gap-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ' +
+                      (highlighted ? 'bg-gradient-to-b from-[#4A3B12] to-[#2A2008] border-[#FFD460]' : rarity.cell + ' ' + rarity.glow)
             }
-            style={{ width: ITEM_WIDTH, height: ITEM_WIDTH }}
+            style={
+                cozy
+                    ? {
+                          width: ITEM_WIDTH,
+                          height: ITEM_WIDTH - 4,
+                          background: highlighted ? COZY.honeyCard : COZY.card,
+                          border: `3px solid ${highlighted ? COZY.honeyBorder : COZY_CELL[reward.kind].border}`,
+                          boxShadow: `0 4px 0 ${highlighted ? COZY.honeyEdge : COZY.cardEdge}`,
+                      }
+                    : { width: ITEM_WIDTH, height: ITEM_WIDTH }
+            }
             animate={highlighted ? { boxShadow: ['0 0 8px rgba(255,212,96,0.3)', '0 0 22px rgba(255,212,96,0.7)', '0 0 8px rgba(255,212,96,0.3)'] } : undefined}
             transition={highlighted ? { duration: 1.4, repeat: Infinity, ease: 'easeInOut' } : undefined}
         >
@@ -97,7 +117,7 @@ const RewardCell = ({ reward, highlighted }: { reward: CaseReward; highlighted?:
             {reward.kind === 'coins' && <Lottie animationData={LottieCoins} loop autoplay={!!highlighted} className="w-10 h-10" />}
             {reward.kind === 'gems' && <Lottie animationData={LottieGems} loop autoplay={!!highlighted} className="w-9 h-9" />}
             {reward.kind === 'pizza' && <span className="text-3xl leading-none">{rewardEmoji(reward)}</span>}
-            <span className="text-[11px] font-bold whitespace-nowrap" style={{ color: highlighted ? '#FFD460' : rarity.text }}>
+            <span className="text-[11px] font-bold whitespace-nowrap" style={{ color: cozy ? (highlighted ? COZY.honey : COZY_CELL[reward.kind].text) : highlighted ? '#FFD460' : rarity.text }}>
                 {reward.kind === 'pizza' ? `x${reward.amount}` : `+${reward.amount}`}
             </span>
         </motion.div>
@@ -190,6 +210,19 @@ export const CaseStars = ({ tier }: { tier: LessonCaseTier }) => {
     return <RiveComponent className="absolute inset-0 w-full h-full opacity-70" />
 }
 
+// Кнопка тёплого стиля: плоский пастельный блок с толстой нижней гранью,
+// при нажатии «утапливается».
+const CozyButton = ({ fill, edge, onClick, children }: { fill: string; edge: string; onClick: () => void; children: React.ReactNode }) => (
+    <motion.button
+        onClick={onClick}
+        whileTap={{ y: 5, boxShadow: `0 1px 0 ${edge}` }}
+        className="relative z-10 flex items-center gap-2.5 rounded-xl px-10 py-3.5 font-black text-lg uppercase tracking-[0.08em]"
+        style={{ background: fill, color: COZY.darkText, boxShadow: `0 6px 0 ${edge}` }}
+    >
+        {children}
+    </motion.button>
+)
+
 type Props = {
     isMega: boolean
     onDone: (result: { reward: CaseReward; justMaxedPizza: boolean }) => void
@@ -209,9 +242,12 @@ type Props = {
     // этот проп не передаётся. По прямой просьбе пользователя — над
     // барабаном должно быть явно видно, какая именно это редкость.
     tier?: LessonCaseTier
+    // Оформление: игровое (по умолчанию) или тёплое «cozy» (lib/cozyTheme.ts).
+    theme?: UiTheme
 }
 
-export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title, tier }: Props) => {
+export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title, tier, theme = 'metal' }: Props) => {
+    const cozy = theme === 'cozy'
     const [phase, setPhase] = useState<Phase>('idle')
     const [chestEntered, setChestEntered] = useState(false)
     const basePool = poolOverride ?? (tier ? getLessonCasePool(tier) : getCasePool(isMega))
@@ -244,6 +280,8 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
     }, [])
     const accent = tier ? LESSON_CASE_TIER_ACCENT[tier] : '#4A90D9'
     const glow = !tier || tier === 'common' ? accent : '#FFFFFF'
+    // Тёплый стиль: кнопка «Крутить» — пастельный цвет редкости (или трава).
+    const cozyFill = tier ? COZY_ACCENT[tier] : { fill: COZY.grass, edge: COZY.grassEdge }
 
     useEffect(() => {
         if (!windowRef.current) return
@@ -313,7 +351,7 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
             {/* Фон ВСЕЙ страницы в цвет редкости кейса (по прямой просьбе
                 пользователя) — fixed-слой под контентом (z-0, контент z-10). */}
             {tier && (
-                <div className="fixed inset-0 z-0 pointer-events-none" style={{ backgroundColor: LESSON_CASE_TIER_PAGE_BG[tier] }}>
+                <div className="fixed inset-0 z-0 pointer-events-none" style={{ backgroundColor: cozy ? COZY_PAGE_BG[tier] : LESSON_CASE_TIER_PAGE_BG[tier] }}>
                     {/* Подсветка позади ящика + затемнение к краям (виньетка) —
                         как понравилось пользователю на тёмном common; на ярких
                         фонах без виньетки подсветка не читалась. */}
@@ -355,7 +393,10 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                             onAnimationComplete={() => setChestEntered(true)}
                         />
                     </div>
-                    <span className="text-4xl font-black tracking-wide uppercase [text-shadow:0_2px_8px_rgba(0,0,0,0.45)]">
+                    <span
+                        className="text-4xl font-black tracking-wide uppercase [text-shadow:0_2px_8px_rgba(0,0,0,0.45)]"
+                        style={cozy ? { color: COZY.headline, textShadow: `0 3px 0 ${COZY.headlineShadow}, 0 6px 0 rgba(0,0,0,0.3)` } : undefined}
+                    >
                         {LESSON_CASE_TIER_LABEL[tier]}
                     </span>
                 </div>
@@ -369,15 +410,18 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
             {/* Окно барабана — резиновая ширина (заполняет мобильный экран со
                 стандартными отступами px-4 у обёртки), премиальная рамка с
                 градиентом + мягкое свечение снаружи. */}
-            <div className="relative z-10 w-full rounded-2xl p-[2px] bg-gradient-to-b from-[#5A6B76] via-[#2A363C] to-[#141C20] shadow-[0_10px_34px_rgba(0,0,0,0.55)]">
+            <div
+                className={cozy ? 'relative z-10 w-full rounded-xl' : 'relative z-10 w-full rounded-2xl p-[2px] bg-gradient-to-b from-[#5A6B76] via-[#2A363C] to-[#141C20] shadow-[0_10px_34px_rgba(0,0,0,0.55)]'}
+                style={cozy ? { border: `3px solid ${COZY.woodBorder}`, boxShadow: `0 6px 0 ${COZY.woodEdge}`, background: COZY.wood } : undefined}
+            >
                 <div
                     ref={windowRef}
-                    className="relative w-full overflow-hidden rounded-[14px] bg-gradient-to-b from-[#1C282E] to-[#0C1215]"
-                    style={{ height: ITEM_WIDTH + 16 }}
+                    className={cozy ? 'relative w-full overflow-hidden rounded-lg' : 'relative w-full overflow-hidden rounded-[14px] bg-gradient-to-b from-[#1C282E] to-[#0C1215]'}
+                    style={cozy ? { height: ITEM_WIDTH + 16, background: COZY.track } : { height: ITEM_WIDTH + 16 }}
                 >
                     {/* Указатель по центру окна */}
-                    <div className="absolute left-1/2 top-0 bottom-0 -translate-x-1/2 w-0.5 bg-[#4A90D9] z-30 shadow-[0_0_8px_rgba(74,144,217,0.8)]" />
-                    <div className="absolute left-1/2 -top-1 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-[#4A90D9] z-30" />
+                    <div className="absolute left-1/2 top-0 bottom-0 -translate-x-1/2 w-0.5 z-30" style={cozy ? { background: COZY.headline } : { background: '#4A90D9', boxShadow: '0 0 8px rgba(74,144,217,0.8)' }} />
+                    <div className="absolute left-1/2 -top-1 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] z-30" style={{ borderTopColor: cozy ? COZY.headline : '#4A90D9' }} />
 
                     <motion.div
                         className="absolute top-2 left-0 flex gap-3 px-0"
@@ -390,25 +434,31 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                         onAnimationComplete={handleAnimationComplete}
                     >
                         {strip.map((reward, i) => (
-                            <RewardCell key={i} reward={reward} highlighted={phase === 'revealed' && i === TARGET_INDEX} />
+                            <RewardCell key={i} reward={reward} cozy={cozy} highlighted={phase === 'revealed' && i === TARGET_INDEX} />
                         ))}
                     </motion.div>
 
                     {/* Затухающие "маски" по краям окна — прячут резкий обрез
                         ленты слева/справа, классический приём кейс-барабанов. */}
-                    <div className="pointer-events-none absolute inset-y-0 left-0 w-10 z-20 bg-gradient-to-r from-[#0C1215] to-transparent" />
-                    <div className="pointer-events-none absolute inset-y-0 right-0 w-10 z-20 bg-gradient-to-l from-[#0C1215] to-transparent" />
+                    <div className="pointer-events-none absolute inset-y-0 left-0 w-10 z-20" style={{ background: `linear-gradient(to right, ${cozy ? COZY.track : '#0C1215'}, transparent)` }} />
+                    <div className="pointer-events-none absolute inset-y-0 right-0 w-10 z-20" style={{ background: `linear-gradient(to left, ${cozy ? COZY.track : '#0C1215'}, transparent)` }} />
                 </div>
             </div>
 
             {error && <p className="relative z-10 text-sm text-red-400">{error}</p>}
 
-            {phase === 'idle' && (
-                <CaseButton accent={accent} glow={glow} onClick={handleSpin}>
-                    <Sparkles className="w-5 h-5" />
-                    Крутить
-                </CaseButton>
-            )}
+            {phase === 'idle' &&
+                (cozy ? (
+                    <CozyButton fill={cozyFill.fill} edge={cozyFill.edge} onClick={handleSpin}>
+                        <Sparkles className="w-5 h-5" />
+                        Крутить
+                    </CozyButton>
+                ) : (
+                    <CaseButton accent={accent} glow={glow} onClick={handleSpin}>
+                        <Sparkles className="w-5 h-5" />
+                        Крутить
+                    </CaseButton>
+                ))}
 
             {phase === 'spinning' && (
                 <div className={"relative z-10 px-8 py-3.5 font-bold uppercase tracking-wide " + (tier ? "text-white" : "text-[#9AA7B0]")}>
@@ -435,7 +485,7 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                             className="absolute inset-0 rounded-full blur-2xl opacity-60"
                             style={{ background: `radial-gradient(closest-side, ${wonRarity.text}66, transparent 75%)` }}
                         />
-                        <p className={"relative text-xl font-black " + (tier ? "px-4 py-1.5 rounded-xl bg-[#0C1215]/80" : "")} style={{ color: wonRarity.text }}>
+                        <p className={"relative text-xl font-black " + (tier || cozy ? "px-4 py-1.5 rounded-xl" : "")} style={cozy ? { color: COZY.headline, background: COZY.card, border: `3px solid ${COZY.cardBorder}`, boxShadow: `0 4px 0 ${COZY.cardEdge}` } : tier ? { color: wonRarity.text, background: 'rgba(12,18,21,0.8)' } : { color: wonRarity.text }}>
                             {rewardLabel(wonReward)}
                         </p>
                     </div>
@@ -444,13 +494,23 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                             🍕 Ты собрал все 8 кусочков пиццы! Скоро сможешь заказать настоящую пиццу.
                         </p>
                     )}
-                    <CaseButton
-                        accent={accent}
-                        glow={glow}
-                        onClick={() => onDone({ reward: wonReward, justMaxedPizza: (result && result.success && result.justMaxedPizza) || false })}
-                    >
-                        Продолжить
-                    </CaseButton>
+                    {cozy ? (
+                        <CozyButton
+                            fill={COZY.grass}
+                            edge={COZY.grassEdge}
+                            onClick={() => onDone({ reward: wonReward, justMaxedPizza: (result && result.success && result.justMaxedPizza) || false })}
+                        >
+                            Продолжить
+                        </CozyButton>
+                    ) : (
+                        <CaseButton
+                            accent={accent}
+                            glow={glow}
+                            onClick={() => onDone({ reward: wonReward, justMaxedPizza: (result && result.success && result.justMaxedPizza) || false })}
+                        >
+                            Продолжить
+                        </CaseButton>
+                    )}
                 </motion.div>
             )}
         </div>

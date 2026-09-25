@@ -27,6 +27,8 @@ export default function TestCaseReelPage() {
     const [variant, setVariant] = useState<Variant | null>(null)
     const [done, setDone] = useState<{ reward: CaseReward; justMaxedPizza: boolean } | null>(null)
     const [key, setKey] = useState(0)
+    // Стиль барабана: игровой (по умолчанию) или тёплый «cozy».
+    const [cozy, setCozy] = useState(false)
 
     const start = (v: Variant) => {
         setVariant(v)
@@ -55,9 +57,10 @@ export default function TestCaseReelPage() {
                             spinAction={() => openLessonCase(variant.tier)}
                             title={variant.chain ? `🔥 Серия x${variant.chain}` : undefined}
                             onDone={(r) => setDone(r)}
+                            theme={cozy ? 'cozy' : 'metal'}
                         />
                     ) : (
-                        <CaseReel key={key} isMega={variant.isMega} onDone={(r) => setDone(r)} />
+                        <CaseReel key={key} isMega={variant.isMega} onDone={(r) => setDone(r)} theme={cozy ? 'cozy' : 'metal'} />
                     )}
                 </div>
             </div>
@@ -68,6 +71,20 @@ export default function TestCaseReelPage() {
         <div className="min-h-screen bg-[#0F1419] text-white p-6">
             <div className="max-w-xl mx-auto">
                 <h1 className="text-2xl font-bold mb-2">Тест кейсов</h1>
+                <div className="mb-4 flex gap-2">
+                    {[
+                        { label: 'Игровой стиль', value: false },
+                        { label: 'Тёплый стиль', value: true },
+                    ].map((o) => (
+                        <button
+                            key={o.label}
+                            onClick={() => setCozy(o.value)}
+                            className={`flex-1 rounded-xl border-2 px-3 py-2 text-sm font-bold ${cozy === o.value ? 'border-[#78C93C] text-white' : 'border-[#3A464E] text-[#9AA7B0]'}`}
+                        >
+                            {o.label}
+                        </button>
+                    ))}
+                </div>
                 <p className="text-sm text-[#9AA7B0] mb-6">
                     Кейсы открываются настоящим запросом к серверу — награда реально
                     начисляется текущему пользователю (монеты/гемы/пицца).
