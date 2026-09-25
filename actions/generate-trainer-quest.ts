@@ -316,7 +316,8 @@ export type DailyQuest = {
     tier: LessonCaseTier;
     streakDays?: number | null;
 };
-export type DailyQuestsData = { quests: DailyQuest[]; monthPoints: number; monthIndex: number };
+// earnedNow — сколько квест-поинтов начислено именно этим вызовом (для «+N квест-поинт!»).
+export type DailyQuestsData = { quests: DailyQuest[]; monthPoints: number; monthIndex: number; earnedNow: number };
 
 const COMBO8_TARGET = 3;
 const QUEST_TIER: Record<DailyQuestKey, LessonCaseTier> = { streak: 'common', perfect: 'rare', combo8: 'mythic', hw: 'mega' };
@@ -357,10 +358,13 @@ async function buildDailyQuests(userId: string, tCourseId: number, quest: typeof
 
     // +1 квест-поинт за каждый выполненный квест (повтор в тот же день — игнор).
     const done = list.filter((q) => q.done);
+    let earnedNow = 0;
     if (done.length > 0) {
-        await db.insert(questPoints)
+        const inserted = await db.insert(questPoints)
             .values(done.map((q) => ({ userId, questKey: q.key, date: today })))
-            .onConflictDoNothing();
+            .onConflictDoNothing()
+            .returning({ id: questPoints.id });
+        earnedNow = inserted.length;
     }
 
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -368,7 +372,7 @@ async function buildDailyQuests(userId: string, tCourseId: number, quest: typeof
         .from(questPoints)
         .where(and(eq(questPoints.userId, userId), gte(questPoints.date, monthStart)));
 
-    return { quests: list, monthPoints: count, monthIndex: today.getMonth() };
+    return { quests: list, monthPoints: count, monthIndex: today.getMonth(), earnedNow };
 }
 
 async function getOrCreateTodayQuest(userId: string, t_lessonId: number) {

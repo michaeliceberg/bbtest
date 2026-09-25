@@ -16,7 +16,8 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
 import { declensionRu } from '@/usefulFunctions'
@@ -27,6 +28,29 @@ import { RollingNumber } from '@/components/rolling-number'
 import { openLessonCase } from '@/actions/open-case'
 
 export type QuestRewardsData = DailyQuestsData | null
+
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
+
+// Горящие Lottie (public/Lottie/numbers) грузятся по запросу — по ~100 КБ,
+// нужна одна цифра и звезда, не весь набор.
+const useLottieFile = (src: string | null) => {
+    const [data, setData] = useState<object | null>(null)
+    useEffect(() => {
+        if (!src) return
+        let alive = true
+        fetch(src)
+            .then((r) => r.json())
+            .then((d) => alive && setData(d))
+            .catch(() => {})
+        return () => {
+            alive = false
+        }
+    }, [src])
+    return data
+}
+
+// Огненная палитра экрана квестов.
+const FIRE_GRADIENT = 'linear-gradient(90deg, #FFD23F, #FF7A1A 55%, #FF3D2E)'
 
 const MONTHS = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь']
 
@@ -86,14 +110,14 @@ const QuestRow = ({ q, index }: { q: DailyQuest; index: number }) => {
                 />
             )}
             <div
-                className={`relative rounded-[14px] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${gold ? 'animate-shine-sweep' : ''}`}
+                className={`relative rounded-[14px] px-4 pt-3.5 pb-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${gold ? 'animate-shine-sweep' : ''}`}
                 style={{ background: gold ? 'linear-gradient(180deg, #3A2E10 0%, #1A1406 100%)' : 'linear-gradient(180deg, #1C282E 0%, #0C1215 100%)' }}
             >
-                <p className="text-sm font-extrabold leading-tight" style={{ color: gold ? '#FFE9A8' : '#F2F7FB' }}>
+                <p className="text-base font-black leading-none" style={{ color: gold ? '#FFE9A8' : '#F2F7FB' }}>
                     {questTitle(q)}
                 </p>
-                <div className="mt-2 flex items-center gap-3">
-                    <div className="h-2.5 flex-1 overflow-hidden rounded-full" style={{ background: gold ? '#5A4410' : '#2A3A4A' }}>
+                <div className="mt-3 flex items-center gap-3">
+                    <div className="relative h-5 flex-1 overflow-hidden rounded-full" style={{ background: gold ? '#5A4410' : '#2A3A4A' }}>
                         <motion.div
                             className="h-full rounded-full"
                             style={{ background: gold ? 'linear-gradient(90deg, #D4A017, #FFE9A8)' : q.done ? accent : '#5A6B76' }}
@@ -101,6 +125,12 @@ const QuestRow = ({ q, index }: { q: DailyQuest; index: number }) => {
                             animate={{ width: `${percent}%` }}
                             transition={{ delay: 0.4 + index * 0.15, duration: 0.7, ease: 'easeOut' }}
                         />
+                        <span
+                            className="absolute inset-0 flex items-center justify-center text-xs font-black tabular-nums text-white"
+                            style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+                        >
+                            {q.progress}/{q.target}
+                        </span>
                     </div>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -118,6 +148,9 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
     const [quests, setQuests] = useState<DailyQuest[]>(data?.quests ?? [])
     const [opening, setOpening] = useState<DailyQuest | null>(null)
     const monthName = MONTHS[data?.monthIndex ?? new Date().getMonth()]
+    const earned = Math.min(9, data?.earnedNow ?? 0)
+    const digitLottie = useLottieFile(earned > 0 ? `/Lottie/numbers/burn${earned}.json` : null)
+    const starLottie = useLottieFile('/Lottie/numbers/burnStar.json')
 
     // Выполненные квесты с неоткрытыми кейсами — открываются по «Дальше»
     // автоматически, по очереди, от менее редких к более редким.
@@ -152,21 +185,34 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
     return (
         <div className="relative min-h-screen text-[#F2F7FB] flex flex-col overflow-x-clip">
             <div className="fixed inset-0 z-0 pointer-events-none" style={{ backgroundColor: '#131D22' }}>
-                <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 15%, #A868FC2E, transparent 55%)' }} />
+                <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 12%, #FF7A1A33, transparent 55%)' }} />
                 <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 30%, transparent 30%, rgba(0,0,0,0.6) 100%)' }} />
             </div>
 
             <div className="relative z-10 flex flex-col gap-3 px-4 pt-8">
+                {/* Заголовок в огненном стиле: «+N квест-поинт!» с горящей цифрой
+                    (public/Lottie/numbers/burnN.json); если за этот урок новых
+                    поинтов нет — просто «Квесты дня». */}
                 <motion.h1
                     initial={{ opacity: 0, y: 10, scale: 0.9 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ type: 'spring', bounce: 0.4, duration: 0.6 }}
-                    className="text-center text-3xl font-black bg-clip-text text-transparent"
-                    style={{ backgroundImage: 'linear-gradient(90deg, #FBBF24, #A868FC)' }}
+                    className="flex items-center justify-center gap-1 text-3xl font-black"
                 >
-                    Квесты дня
+                    {earned > 0 ? (
+                        <>
+                            <span className="bg-clip-text text-transparent" style={{ backgroundImage: FIRE_GRADIENT }}>+</span>
+                            <span className="relative -my-3 inline-block h-16 w-12">
+                                {digitLottie && <Lottie animationData={digitLottie} loop autoplay className="h-full w-full" />}
+                            </span>
+                            <span className="bg-clip-text text-transparent" style={{ backgroundImage: FIRE_GRADIENT }}>
+                                {declensionRu(earned, 'квест-поинт', 'квест-поинта', 'квест-поинтов')}!
+                            </span>
+                        </>
+                    ) : (
+                        <span className="bg-clip-text text-transparent" style={{ backgroundImage: FIRE_GRADIENT }}>Квесты дня</span>
+                    )}
                 </motion.h1>
-                <p className="text-center text-sm text-[#9AA7B0]">Выполняй квесты — открывай кейсы.</p>
 
                 <div className="mt-2 flex flex-col gap-3">
                     {quests.map((q, i) => (
@@ -184,9 +230,11 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
                     <span className="text-sm font-bold text-[#D5DEE5]">
                         Квест-поинты за {monthName}
                     </span>
-                    <span className="flex items-center gap-1.5 text-[#FBBF24]" style={{ textShadow: '0 0 12px #FBBF2499' }}>
-                        ⭐
+                    <span className="flex items-center gap-1 text-[#FFB020]" style={{ textShadow: '0 0 12px #FF7A1A99' }}>
                         <RollingNumber value={String(data?.monthPoints ?? 0)} start className="text-2xl font-black" />
+                        <span className="-my-2 inline-block h-10 w-10">
+                            {starLottie && <Lottie animationData={starLottie} loop autoplay className="h-full w-full" />}
+                        </span>
                     </span>
                 </motion.div>
             </div>
