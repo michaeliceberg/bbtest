@@ -152,17 +152,31 @@ const PointBadge = ({ delay, cozy, questKey, gone }: { delay: number; cozy?: boo
 // вверх, затем с ускорением падает. Координаты — центр значка на сундуке и
 // точка падения на плашке (fixed, в пикселях экрана).
 type Flight = { id: string; from: { x: number; y: number }; to: { x: number; y: number } }
-const FLIGHT_S = 0.85
+const FLIGHT_S = 0.9
+const APEX_PX = 110
+const FLIGHT_STEPS = 24
 const FlyingPoint = ({ f, cozy, onLand }: { f: Flight; cozy?: boolean; onLand: () => void }) => {
     const dx = f.to.x - f.from.x
     const dy = f.to.y - f.from.y
+    // Настоящая парабола, как у тела, брошенного под углом к горизонту:
+    // x растёт равномерно, y(t) = −a·t + b·t² (b — «гравитация»), вершина на
+    // APEX_PX выше старта, в t=1 — точка падения. Кривая задана плотными
+    // ключевыми кадрами с линейной интерполяцией.
+    const H = APEX_PX
+    const a = 2 * H + 2 * Math.sqrt(H * H + H * Math.max(dy, 0))
+    const b = a + dy
+    const ts = Array.from({ length: FLIGHT_STEPS + 1 }, (_, i) => i / FLIGHT_STEPS)
     return (
         <motion.span
             className={'pointer-events-none fixed z-[80] ' + BADGE_CLASS}
             style={{ ...badgeStyle(cozy), left: f.from.x - 16, top: f.from.y - 10 }}
             initial={{ x: 0, y: 0, scale: 1 }}
-            animate={{ x: [0, dx * 0.35, dx], y: [0, -70, dy], scale: [1, 1.35, 0.8] }}
-            transition={{ duration: FLIGHT_S, times: [0, 0.35, 1], ease: ['easeOut', 'easeIn'] }}
+            animate={{
+                x: ts.map((t) => dx * t),
+                y: ts.map((t) => -a * t + b * t * t),
+                scale: ts.map((t) => 1 + 0.35 * Math.sin(Math.PI * t) - 0.2 * t),
+            }}
+            transition={{ duration: FLIGHT_S, ease: 'linear' }}
             onAnimationComplete={onLand}
         >
             +1
