@@ -37,7 +37,7 @@ export default function TestQuestsCozyPage() {
                 theme="cozy"
                 data={{
                     monthIndex: new Date().getMonth(),
-                    monthPoints: 7,
+                    monthPoints: 9,
                     earnedNow: 2,
                     quests: [
                         { key: 'streak', progress: 1, target: 1, done: true, claimed: false, tier: 'common', streakDays: 3, prevProgress: 0, pointNow: true },

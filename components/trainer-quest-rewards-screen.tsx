@@ -16,15 +16,14 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
-import { motion } from 'framer-motion'
+import { motion, useAnimationControls } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
 import { declensionRu } from '@/usefulFunctions'
 import { CaseReel } from '@/components/CaseReel'
 import { getLessonCasePool, LESSON_CASE_TIER_ICON, type LessonCaseTier } from '@/lib/caseRewards'
 import { claimQuestCase, type DailyQuest, type DailyQuestKey, type DailyQuestsData } from '@/actions/generate-trainer-quest'
-import { RollingNumber } from '@/components/rolling-number'
 import { openLessonCase } from '@/actions/open-case'
 import { COZY, COZY_ACCENT } from '@/lib/cozyTheme'
 import { playSound, preloadSound, QUEST_SWOOSH_SOUND, QUEST_DONE_SOUND } from '@/lib/sound'
@@ -129,25 +128,51 @@ const buildTimings = (quests: DailyQuest[]): RowTiming[] => {
 // «+1» квест-поинт на карточке квеста, выполненного именно в этом уроке
 // (из них складывается «+N квест-поинт!» в заголовке). Появляется с отскоком
 // после заполнения прогресс-бара.
-const PointBadge = ({ delay, cozy }: { delay: number; cozy?: boolean }) => (
+const badgeStyle = (cozy?: boolean): React.CSSProperties =>
+    cozy
+        ? { color: '#3A2A12', background: '#FFD27A', boxShadow: '0 3px 0 #B8862E' }
+        : { color: '#FFF3C4', background: 'linear-gradient(90deg, #FF7A1A, #FF3D2E)', boxShadow: '0 0 12px #FF7A1A88' }
+const BADGE_CLASS = 'w-8 rounded-lg py-0.5 text-center text-sm font-black leading-none'
+
+// gone — значок уже улетел на плашку квест-поинтов (см. FlyingPoint).
+const PointBadge = ({ delay, cozy, questKey, gone }: { delay: number; cozy?: boolean; questKey: string; gone?: boolean }) => (
     <motion.span
+        data-quest-badge={questKey}
         initial={{ opacity: 0, scale: 2.4, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ delay, type: 'spring', bounce: 0.55, duration: 0.6 }}
-        className="absolute -top-5 left-1/2 z-10 -ml-4 w-8 rounded-lg py-0.5 text-center text-sm font-black leading-none"
-        style={
-            cozy
-                ? { color: '#3A2A12', background: '#FFD27A', boxShadow: '0 3px 0 #B8862E' }
-                : { color: '#FFF3C4', background: 'linear-gradient(90deg, #FF7A1A, #FF3D2E)', boxShadow: '0 0 12px #FF7A1A88' }
-        }
+        animate={{ opacity: gone ? 0 : 1, scale: 1, y: 0 }}
+        transition={gone ? { duration: 0 } : { delay, type: 'spring', bounce: 0.55, duration: 0.6 }}
+        className={'absolute -top-5 left-1/2 z-10 -ml-4 ' + BADGE_CLASS}
+        style={badgeStyle(cozy)}
     >
         +1
     </motion.span>
 )
 
+// «+1», летящий по дуге от сундука к плашке квест-поинтов: сначала подлетает
+// вверх, затем с ускорением падает. Координаты — центр значка на сундуке и
+// точка падения на плашке (fixed, в пикселях экрана).
+type Flight = { id: string; from: { x: number; y: number }; to: { x: number; y: number } }
+const FLIGHT_S = 0.85
+const FlyingPoint = ({ f, cozy, onLand }: { f: Flight; cozy?: boolean; onLand: () => void }) => {
+    const dx = f.to.x - f.from.x
+    const dy = f.to.y - f.from.y
+    return (
+        <motion.span
+            className={'pointer-events-none fixed z-[80] ' + BADGE_CLASS}
+            style={{ ...badgeStyle(cozy), left: f.from.x - 16, top: f.from.y - 10 }}
+            initial={{ x: 0, y: 0, scale: 1 }}
+            animate={{ x: [0, dx * 0.35, dx], y: [0, -70, dy], scale: [1, 1.35, 0.8] }}
+            transition={{ duration: FLIGHT_S, times: [0, 0.35, 1], ease: ['easeOut', 'easeIn'] }}
+            onAnimationComplete={onLand}
+        >
+            +1
+        </motion.span>
+    )
+}
+
 // Упрощённая карточка: название, под ним прогресс-бар и справа сундук.
 // Кейс получен — карточка золотая и блестит (без надписей).
-const QuestRow = ({ q, index, timing }: { q: DailyQuest; index: number; timing: RowTiming }) => {
+const QuestRow = ({ q, index, timing, gone }: { q: DailyQuest; index: number; timing: RowTiming; gone?: boolean }) => {
     const accent = TIER_ACCENT[q.tier]
     const percent = Math.min(100, (q.progress / q.target) * 100)
     const changed = timing.fillDelay !== null
@@ -195,7 +220,7 @@ const QuestRow = ({ q, index, timing }: { q: DailyQuest; index: number; timing: 
                         </span>
                     </div>
                     <div className="relative shrink-0">
-                        {timing.badgeDelay !== null && <PointBadge delay={timing.badgeDelay} />}
+                        {timing.badgeDelay !== null && <PointBadge delay={timing.badgeDelay} questKey={q.key} gone={gone} />}
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                             src={LESSON_CASE_TIER_ICON[q.tier]}
@@ -213,7 +238,7 @@ const QuestRow = ({ q, index, timing }: { q: DailyQuest; index: number; timing: 
 // ── Стиль «cozy»: тёплый, мультяшный, в духе Minecraft ─────────────────────
 // Плоские «блоки» с толстой нижней гранью, тёплые тёмные тона камня/дерева,
 // спокойные пастельные цвета редкости, сплошной прогресс-бар.
-const CozyQuestRow = ({ q, index, timing }: { q: DailyQuest; index: number; timing: RowTiming }) => {
+const CozyQuestRow = ({ q, index, timing, gone }: { q: DailyQuest; index: number; timing: RowTiming; gone?: boolean }) => {
     const a = COZY_ACCENT[q.tier]
     const percent = Math.min(100, (q.progress / q.target) * 100)
     const changed = timing.fillDelay !== null
@@ -256,7 +281,7 @@ const CozyQuestRow = ({ q, index, timing }: { q: DailyQuest; index: number; timi
                     </span>
                 </div>
                 <div className="relative shrink-0">
-                    {timing.badgeDelay !== null && <PointBadge delay={timing.badgeDelay} cozy />}
+                    {timing.badgeDelay !== null && <PointBadge delay={timing.badgeDelay} questKey={q.key} gone={gone} cozy />}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                         src={LESSON_CASE_TIER_ICON[q.tier]}
@@ -297,6 +322,47 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
     }, [opening])
     const rowTiming = (i: number, q: DailyQuest): RowTiming =>
         introDone ? { fillDelay: null, badgeDelay: q.pointNow ? 0 : null } : timings[i] ?? NO_ANIM
+
+    // После всех баров и «+1» — значки по очереди улетают по дуге на плашку
+    // «Квест-поинты за месяц»; на каждом приземлении плашка пружинит, а число
+    // крупно подпрыгивает и растёт на 1 (monthPoints уже включает earnedNow).
+    const flyKeys = (data?.quests ?? []).filter((q) => q.pointNow).map((q) => q.key)
+    const totalPoints = data?.monthPoints ?? 0
+    const [landed, setLanded] = useState(0)
+    const [flights, setFlights] = useState<Flight[]>([])
+    const [goneKeys, setGoneKeys] = useState<string[]>([])
+    const plateRef = useRef<HTMLDivElement>(null)
+    const plateControls = useAnimationControls()
+    const shownPoints = introDone ? totalPoints : totalPoints - flyKeys.length + landed
+    useEffect(() => {
+        if (flyKeys.length === 0) return
+        const badgesEnd = Math.max(0, ...timings.map((t) => t.badgeDelay ?? 0)) + 0.7
+        const ids = flyKeys.map((key, k) =>
+            setTimeout(() => {
+                const badge = document.querySelector(`[data-quest-badge="${key}"]`)
+                const plate = plateRef.current
+                if (!badge || !plate) return
+                const b = badge.getBoundingClientRect()
+                const p = plate.getBoundingClientRect()
+                // Своя точка падения для каждого сундука — равномерно по плашке.
+                const frac = flyKeys.length === 1 ? 0.5 : 0.2 + (0.6 * k) / (flyKeys.length - 1)
+                setGoneKeys((g) => [...g, key])
+                setFlights((f) => [...f, {
+                    id: key,
+                    from: { x: b.left + b.width / 2, y: b.top + b.height / 2 },
+                    to: { x: p.left + p.width * frac, y: p.top + p.height / 2 },
+                }])
+            }, (badgesEnd + k * 0.9) * 1000),
+        )
+        return () => ids.forEach(clearTimeout)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [timings])
+    const handleLand = (id: string) => {
+        setFlights((f) => f.filter((x) => x.id !== id))
+        setLanded((n) => n + 1)
+        playSound(QUEST_DONE_SOUND)
+        plateControls.start({ scale: [1, 1.07, 0.97, 1], transition: { duration: 0.45 } })
+    }
 
     // Выполненные квесты с неоткрытыми кейсами — открываются по «Дальше»
     // автоматически, по очереди, от менее редких к более редким.
@@ -363,11 +429,16 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
 
                 <div className="mt-2 flex flex-col gap-3">
                     {quests.map((q, i) => (
-                        cozy ? <CozyQuestRow key={q.key} q={q} index={i} timing={rowTiming(i, q)} /> : <QuestRow key={q.key} q={q} index={i} timing={rowTiming(i, q)} />
+                        cozy ? <CozyQuestRow key={q.key} q={q} index={i} timing={rowTiming(i, q)} gone={introDone || goneKeys.includes(q.key)} /> : <QuestRow key={q.key} q={q} index={i} timing={rowTiming(i, q)} gone={introDone || goneKeys.includes(q.key)} />
                     ))}
                 </div>
 
+                {flights.map((f) => (
+                    <FlyingPoint key={f.id} f={f} cozy={cozy} onLand={() => handleLand(f.id)} />
+                ))}
+
                 {/* Квест-поинты за месяц */}
+                <motion.div ref={plateRef} animate={plateControls}>
                 <motion.div
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -379,11 +450,20 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
                         Квест-поинты за {monthName}
                     </span>
                     <span className="flex items-center gap-1 text-[#FFB020]">
-                        <RollingNumber value={String(data?.monthPoints ?? 0)} start className="text-2xl font-black" />
+                        <motion.span
+                            key={shownPoints}
+                            initial={landed > 0 && !introDone ? { scale: 2.6 } : false}
+                            animate={{ scale: 1 }}
+                            transition={{ type: 'spring', bounce: 0.6, duration: 0.6 }}
+                            className="inline-block text-2xl font-black tabular-nums"
+                        >
+                            {shownPoints}
+                        </motion.span>
                         <span className="-my-2 inline-block h-10 w-10">
                             {starLottie && <Lottie animationData={starLottie} loop autoplay className="h-full w-full" />}
                         </span>
                     </span>
+                </motion.div>
                 </motion.div>
             </div>
 
