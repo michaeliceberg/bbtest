@@ -27,8 +27,8 @@ const MILESTONE_COPY: Record<number, { title: string; subtitle: string; accent: 
   7: { title: 'Огонь!', subtitle: 'ответов подряд!', accent: '#EF9F27', cozyEdge: '#C77A3E' },
 }
 
-const ENTER_S = 0.75
-const EXIT_S = 0.55
+const ENTER_S = 0.2
+const EXIT_S = 0.1
 // Страховка: если Lottie не сообщит о конце цикла (не загрузился и т.п.).
 const HOLD_FALLBACK_MS = 4000
 
@@ -80,9 +80,9 @@ export const StreakCelebrationScreen = ({ animationData, onNext, milestone, them
               onNext()
             }
           }}
-          className="flex flex-col items-center text-center"
+          className="-mt-16 sm:-mt-20 flex flex-col items-center text-center"
         >
-          <div className="relative h-72 w-72 sm:h-96 sm:w-96">
+          <div className="relative aspect-square w-[min(94vw,30rem)]">
             {!cozy && (
               <div className="absolute inset-0 rounded-full" style={{ background: `radial-gradient(closest-side, ${copy.accent}55, transparent)` }} />
             )}
@@ -97,7 +97,7 @@ export const StreakCelebrationScreen = ({ animationData, onNext, milestone, them
           </div>
 
           <div
-            className="-mt-4 text-8xl sm:text-9xl font-black leading-none"
+            className="mt-8 text-9xl sm:text-[10rem] font-black leading-none"
             style={
               cozy
                 ? { color: '#FFF1DC', textShadow: `0 5px 0 ${copy.cozyEdge}, 0 10px 0 rgba(0,0,0,0.3)` }
@@ -106,11 +106,11 @@ export const StreakCelebrationScreen = ({ animationData, onNext, milestone, them
           >
             {milestone}
           </div>
-          <p className="mt-2 text-3xl sm:text-4xl font-black uppercase tracking-wide" style={{ color: cozy ? '#FFF1DC' : '#F2F7FB' }}>
+          <p className="mt-3 text-4xl sm:text-5xl font-black uppercase tracking-wide" style={{ color: cozy ? '#FFF1DC' : '#F2F7FB' }}>
             {copy.subtitle}
           </p>
           <p
-            className="mt-3 text-3xl font-black"
+            className="mt-4 text-4xl sm:text-5xl font-black"
             style={cozy ? { color: COZY.headline, textShadow: `0 3px 0 ${COZY.headlineShadow}` } : { color: copy.accent, textShadow: `0 0 16px ${copy.accent}AA` }}
           >
             {copy.title}
