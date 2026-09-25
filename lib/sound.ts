@@ -105,3 +105,44 @@ export function preloadSound(src: string) {
     if (typeof window === 'undefined') return
     void loadBuffer(src)
 }
+
+// Сыграть звук и узнать, когда он закончился (окна-мемы закрываются по концу
+// звука). Возвращает stop() — остановить без вызова onEnded. Если звук не
+// удалось запустить — onEnded вызывается сразу, чтобы окно не «зависло».
+export function playSoundTracked(src: string, onEnded?: () => void, volume = 1): () => void {
+    if (typeof window === 'undefined') return () => {}
+    let stopped = false
+    const done = () => {
+        if (!stopped) onEnded?.()
+    }
+    const c = getContext()
+    const buf = bufferCache.get(src)
+    if (c && buf) {
+        if (c.state !== 'running') c.resume().catch(() => {})
+        const node = c.createBufferSource()
+        node.buffer = buf
+        const gain = c.createGain()
+        gain.gain.value = volume
+        node.connect(gain).connect(c.destination)
+        node.onended = done
+        node.start()
+        return () => {
+            stopped = true
+            try {
+                node.stop()
+            } catch {
+                /* уже остановлен */
+            }
+        }
+    }
+    const audio = new Audio(src)
+    audio.volume = volume
+    audio.onended = done
+    audio.play().catch(done)
+    void loadBuffer(src)
+    return () => {
+        stopped = true
+        audio.onended = null
+        audio.pause()
+    }
+}

@@ -12,15 +12,15 @@ export type StreakEffect = {
   export const memeEffects = [
     {
         image: "/Avatars/cat1.jpg",
-        audio: "/MemesAudio/meme-right-nice.WAV"
+        audio: "/MemesAudio/meme-right-nice.m4a"
     },
     {
         image: "/MemesImage/meme-right-chinazes.jpg",
-        audio: "/MemesAudio/meme-right-chinazes.WAV"
+        audio: "/MemesAudio/meme-right-chinazes.m4a"
     },
     {
         image: "/MemesImage/meme-wrong-pacankuspehy.jpeg",
-        audio: "/MemesAudio/meme-wrong-pacankuspehy.WAV"
+        audio: "/MemesAudio/meme-wrong-pacankuspehy.m4a"
     }
   ]
 

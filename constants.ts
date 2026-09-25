@@ -213,10 +213,10 @@ export const triangleGdeSinCosTg = [
 
 
 export const FINISH_AUDIO_SRC_LIST = [
-  '/MemesAudio/meme-right-chetko.WAV',
-  '/MemesAudio/meme-right-chinazes.WAV',
-  '/MemesAudio/meme-right-umeetemogete.WAV',
-  '/MemesAudio/meme-right-clapping.WAV',
-  '/MemesAudio/meme-right-gtapassed.WAV',
-  '/MemesAudio/meme-right-nice.WAV',
+  '/MemesAudio/meme-right-chetko.m4a',
+  '/MemesAudio/meme-right-chinazes.m4a',
+  '/MemesAudio/meme-right-umeetemogete.m4a',
+  '/MemesAudio/meme-right-clapping.m4a',
+  '/MemesAudio/meme-right-gtapassed.m4a',
+  '/MemesAudio/meme-right-nice.m4a',
 ] as const;

@@ -389,7 +389,8 @@ export default function TQuiz({
     isRight: true,
   }])
 
-  const finishAudio = FINISH_AUDIO_SRC_LIST[Math.floor(Math.random() * FINISH_AUDIO_SRC_LIST.length)];
+  // Выбирается один раз на урок (раньше — заново на каждой перерисовке).
+  const [finishAudio] = useState(() => FINISH_AUDIO_SRC_LIST[Math.floor(Math.random() * FINISH_AUDIO_SRC_LIST.length)])
   const { play: playAudio } = useQuizAudio(finishAudio)
   
   // Оборачиваем функции в useCallback

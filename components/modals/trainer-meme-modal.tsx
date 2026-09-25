@@ -11,6 +11,7 @@
 
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
+import { playSoundTracked } from '@/lib/sound'
 
 import {
     Dialog,
@@ -71,7 +72,7 @@ const getRandomItem = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.le
 export const TrainerMemeModal = () => {
     const { isOpen, variant, close } = useTrainerMemeModal()
     const [isClient, setIsClient] = useState(false)
-    const audioRef = useRef<HTMLAudioElement | null>(null)
+    const stopAudioRef = useRef<(() => void) | null>(null)
     const [shouldClose, setShouldClose] = useState(false)
     const [pair, setPair] = useState<MemePair | null>(null)
 
@@ -88,30 +89,19 @@ export const TrainerMemeModal = () => {
     }, [isOpen, variant])
 
     useEffect(() => {
+        // Через lib/sound.ts (Web Audio) — без задержки на iPhone.
         if (isOpen && pair) {
-            if (audioRef.current) {
-                audioRef.current.pause()
-                audioRef.current.currentTime = 0
-                audioRef.current.onended = null
-            }
-
+            stopAudioRef.current?.()
             const onDone = () => {
                 if (shouldClose) return
                 setShouldClose(true)
                 setTimeout(() => close(), 300)
             }
-
-            audioRef.current = new Audio(pair.audio)
-            audioRef.current.onended = onDone
-            audioRef.current.play().catch(() => onDone())
+            stopAudioRef.current = playSoundTracked(pair.audio, onDone)
         }
-
         return () => {
-            if (audioRef.current) {
-                audioRef.current.pause()
-                audioRef.current.onended = null
-                audioRef.current = null
-            }
+            stopAudioRef.current?.()
+            stopAudioRef.current = null
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, pair])

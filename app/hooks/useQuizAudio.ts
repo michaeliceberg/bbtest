@@ -58,32 +58,25 @@
 
 
 
-// hooks/useQuizAudio.ts - упрощенная версия с динамическим созданием
-import { useCallback, useRef } from "react"
+// hooks/useQuizAudio.ts — звуки «верно/неверно/финиш» тренажёра.
+// Через lib/sound.ts (Web Audio, предзагрузка и раскодирование заранее):
+// через HTMLAudioElement на iPhone звук заметно запаздывал после нажатия.
+import { useCallback, useEffect } from "react"
+import { playSound, preloadSound } from "@/lib/sound"
 
 export const useQuizAudio = (finishAudioSrc: string) => {
-  const audioCache = useRef<Map<string, HTMLAudioElement>>(new Map())
-
-  const getAudio = useCallback((type: string, src: string) => {
-    if (!audioCache.current.has(type)) {
-      audioCache.current.set(type, new Audio(src))
-    }
-    return audioCache.current.get(type)!
-  }, [])
+  useEffect(() => {
+    preloadSound('/correct.wav')
+    preloadSound('/incorrect.wav')
+    preloadSound(finishAudioSrc)
+  }, [finishAudioSrc])
 
   const play = useCallback((type: 'correct' | 'incorrect' | 'finish') => {
-    const src = type === 'correct' ? '/correct.wav' 
-      : type === 'incorrect' ? '/incorrect.wav' 
+    const src = type === 'correct' ? '/correct.wav'
+      : type === 'incorrect' ? '/incorrect.wav'
       : finishAudioSrc
-    
-    const audio = getAudio(type, src)
-    audio.currentTime = 0
-    
-    // Важно: не используем .catch, чтобы не засорять консоль
-    audio.play().catch(() => {
-      // Игнорируем ошибки автовоспроизведения
-    })
-  }, [getAudio, finishAudioSrc])
+    playSound(src)
+  }, [finishAudioSrc])
 
   return { play }
 }

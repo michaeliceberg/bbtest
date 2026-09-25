@@ -3,6 +3,8 @@
 'use client';
 
 import { motion } from "framer-motion";
+import { playSound, preloadSound } from "@/lib/sound";
+import { rightAudioList, wrongAudioList } from "@/lib/memeAudio";
 import { SuperType, challengeOptions, challengeProgress, challenges } from "@/db/schema";
 import { useEffect, useState, useTransition, useRef } from "react";
 import { Header } from "./header";
@@ -207,9 +209,6 @@ export const Quiz = ({
     const { width, height } = useWindowSize()
     const router = useRouter()
 
-    const finishAudioRef = useRef<HTMLAudioElement | null>(null)
-    const correctAudioRef = useRef<HTMLAudioElement | null>(null)
-    const incorrectAudioRef = useRef<HTMLAudioElement | null>(null)
 
     const [pending, startTransition] = useTransition()
     const [lessonId] = useState(initialLessonId)
@@ -286,54 +285,21 @@ export const Quiz = ({
         return roll < KEYBOARD_RATIO_PERCENT ? 'KEYBOARD' : challenge.type
     })()
 
-    // Инициализация аудио
+    // Звуки через lib/sound.ts (Web Audio): заранее скачиваются и раскодируются,
+    // играют без задержки (через HTMLAudioElement на iPhone звук запаздывал).
+    // /finish.wav в проекте нет — звук финала молча не играет (так было и раньше).
+    // Звуки окон правильного/неправильного ответа (мемы) — тоже заранее,
+    // но только здесь, в уроке задачника (сами окна смонтированы на всём сайте).
     useEffect(() => {
-        finishAudioRef.current = new Audio('/finish.wav')
-        correctAudioRef.current = new Audio('/correct.wav')
-        incorrectAudioRef.current = new Audio('/incorrect.wav')
-
-        return () => {
-            if (finishAudioRef.current) {
-                finishAudioRef.current.pause()
-                finishAudioRef.current = null
-            }
-            if (correctAudioRef.current) {
-                correctAudioRef.current.pause()
-                correctAudioRef.current = null
-            }
-            if (incorrectAudioRef.current) {
-                incorrectAudioRef.current.pause()
-                incorrectAudioRef.current = null
-            }
-        }
+        preloadSound('/correct.wav')
+        preloadSound('/incorrect.wav')
+        rightAudioList.forEach(preloadSound)
+        wrongAudioList.forEach(preloadSound)
     }, [])
 
-    const playFinishSound = () => {
-        if (finishAudioRef.current) {
-            finishAudioRef.current.currentTime = 0
-            finishAudioRef.current.play().catch(error => {
-                console.error('Ошибка воспроизведения finish аудио:', error)
-            })
-        }
-    }
-
-    const playCorrectSound = () => {
-        if (correctAudioRef.current) {
-            correctAudioRef.current.currentTime = 0
-            correctAudioRef.current.play().catch(error => {
-                console.error('Ошибка воспроизведения correct аудио:', error)
-            })
-        }
-    }
-
-    const playIncorrectSound = () => {
-        if (incorrectAudioRef.current) {
-            incorrectAudioRef.current.currentTime = 0
-            incorrectAudioRef.current.play().catch(error => {
-                console.error('Ошибка воспроизведения incorrect аудио:', error)
-            })
-        }
-    }
+    const playFinishSound = () => playSound('/finish.wav')
+    const playCorrectSound = () => playSound('/correct.wav')
+    const playIncorrectSound = () => playSound('/incorrect.wav')
 
     useEffect(() => {
         if (challenges.length === challengesDone.length) {

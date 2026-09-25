@@ -5,6 +5,8 @@
 import Image from 'next/image'
 import Lottie, { LottieRefCurrentProps } from 'lottie-react'
 import { useRef, useEffect, useState, useCallback } from 'react'
+import { playSoundTracked } from '@/lib/sound'
+import { wrongAudioList } from '@/lib/memeAudio'
 import {
     Dialog,
     DialogContent,
@@ -31,19 +33,6 @@ const wrongLottieList = [
     LottieDeathWrongShakeHead
 ]
 
-const wrongAudioList = [
-    '/MemesAudio/meme-wrong-kid.WAV', 
-    '/MemesAudio/meme-wrong-sharish.WAV',
-    '/MemesAudio/meme-wrong-polnomochia.WAV',
-    '/MemesAudio/meme-wrong-ponovoy.WAV', 
-    '/MemesAudio/meme-wrong-shirokuiu.WAV', 
-    '/MemesAudio/meme-wrong-tivtiraesh.WAV', 
-    '/MemesAudio/meme-wrong-tipereputal.WAV',
-    '/MemesAudio/meme-wrong-pacankuspehy.WAV',
-    '/MemesAudio/meme-wrong-shokoladnevinovat.WAV',
-    '/MemesAudio/meme-wrong-etofiaskobratan.WAV',
-    '/MemesAudio/meme-wrong-skolko.WAV',
-]
 
 const wrongImageList = [
     '/MemesImage/meme-wrong-kid.jpg', 
@@ -84,7 +73,7 @@ export const WrongAnswerModal = () => {
     const lottieRef = useRef<LottieRefCurrentProps>(null)
     const { isOpen, close } = useWrongAnswerModal()
     const [isClient, setIsClient] = useState(false)
-    const audioRef = useRef<HTMLAudioElement | null>(null)
+    const stopAudioRef = useRef<(() => void) | null>(null)
     const [shouldClose, setShouldClose] = useState(false)
     
     const [randomWrongAudio, setRandomWrongAudio] = useState<string>('')
@@ -123,30 +112,14 @@ export const WrongAnswerModal = () => {
     }, [])
 
     useEffect(() => {
+        // Через lib/sound.ts (Web Audio) — без задержки на iPhone.
         if (isOpen && randomWrongAudio) {
-            if (audioRef.current) {
-                audioRef.current.pause()
-                audioRef.current.currentTime = 0
-                audioRef.current.onended = null
-            }
-            
-            audioRef.current = new Audio(randomWrongAudio)
-            audioRef.current.onended = () => {
-                setIsAudioComplete(true)
-            }
-            
-            audioRef.current.play().catch(error => {
-                console.error('Ошибка воспроизведения аудио:', error)
-                setIsAudioComplete(true)
-            })
+            stopAudioRef.current?.()
+            stopAudioRef.current = playSoundTracked(randomWrongAudio, () => setIsAudioComplete(true))
         }
-        
         return () => {
-            if (audioRef.current) {
-                audioRef.current.pause()
-                audioRef.current.onended = null
-                audioRef.current = null
-            }
+            stopAudioRef.current?.()
+            stopAudioRef.current = null
         }
     }, [isOpen, randomWrongAudio])
 

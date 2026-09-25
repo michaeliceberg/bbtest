@@ -5,6 +5,8 @@
 import Image from 'next/image'
 import Lottie, { LottieRefCurrentProps } from 'lottie-react'
 import { useRef, useEffect, useState } from 'react'
+import { playSoundTracked } from '@/lib/sound'
+import { rightAudioList } from '@/lib/memeAudio'
 import LottieCoins from '@/public/Lottie/LottieCoins.json'
 
 import {
@@ -19,15 +21,6 @@ import {
 import { Button } from '../ui/button'
 import { useRightAnswerModal } from '@/store/use-rightanswer-modal'
 
-const rightAudioList = [
-    '/MemesAudio/meme-right-chinazes.WAV',
-    '/MemesAudio/meme-right-clapping.WAV', 
-    '/MemesAudio/meme-right-estestvenno.WAV',
-    '/MemesAudio/meme-right-gtapassed.WAV',
-    '/MemesAudio/meme-right-nice.WAV', 
-    '/MemesAudio/meme-right-umeetemogete.WAV', 
-    '/MemesAudio/meme-right-chetko.WAV',
-]
 
 const rightImageList = [
     '/MemesImage/meme-right-papich.jpg', 
@@ -75,7 +68,7 @@ export const RightAnswerModal = () => {
     const coinsRef = useRef<LottieRefCurrentProps>(null)
     const { isOpen, close } = useRightAnswerModal()
     const [isClient, setIsClient] = useState(false)
-    const audioRef = useRef<HTMLAudioElement | null>(null)
+    const stopAudioRef = useRef<(() => void) | null>(null)
     const [shouldClose, setShouldClose] = useState(false)
     
     // 🔥 Состояния для замороженных значений
@@ -139,31 +132,15 @@ export const RightAnswerModal = () => {
     }, []);
 
     useEffect(() => {
+        // Через lib/sound.ts (Web Audio) — без задержки на iPhone.
         if (isOpen && randomRightAudio) {
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current.currentTime = 0;
-                audioRef.current.onended = null;
-            }
-            
-            audioRef.current = new Audio(randomRightAudio);
-            audioRef.current.onended = () => {
-                setIsAudioComplete(true);
-            };
-            
-            audioRef.current.play().catch(error => {
-                console.error('Ошибка воспроизведения аудио:', error);
-                setIsAudioComplete(true);
-            });
+            stopAudioRef.current?.()
+            stopAudioRef.current = playSoundTracked(randomRightAudio, () => setIsAudioComplete(true))
         }
-        
         return () => {
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current.onended = null;
-                audioRef.current = null;
-            }
-        };
+            stopAudioRef.current?.()
+            stopAudioRef.current = null
+        }
     }, [isOpen, randomRightAudio]);
 
     if (!isClient) {
