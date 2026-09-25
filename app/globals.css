@@ -540,3 +540,23 @@ body {
   animation: combo-label-out 0.4s ease-in both;
   will-change: transform, opacity;
 }
+
+/* Прогресс-бар тренажёра в режиме серии (components/trainer-progress-bar.tsx):
+   бегущий блик и искры — только transform/opacity. */
+@keyframes progress-shine {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(420%); }
+}
+.animate-progress-shine {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  animation: progress-shine 1.6s ease-in-out infinite;
+  will-change: transform;
+}
+@keyframes progress-spark {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--spark-dx), var(--spark-dy)) scale(0.3); opacity: 0; }
+}
+.animate-progress-spark {
+  animation: progress-spark 600ms ease-out forwards;
+  will-change: transform, opacity;
+}

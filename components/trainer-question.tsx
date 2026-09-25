@@ -2,6 +2,7 @@
 
 // components/trainer-question.tsx
 
+import TrainerProgressBar from '@/components/trainer-progress-bar'
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import dynamic from "next/dynamic"
 
@@ -577,15 +578,11 @@ export default function TrainerQuestion({
         </button>
 
         {/* Прогресс-бар */}
-        <div className="flex-1 bg-[#2A3A4A] rounded-full h-2 overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-300 ease-out"
-            style={{
-              width: `${((questions.indexOf(question) + 1) / questions.length) * 100}%`,
-              backgroundColor: '#A1D151'
-            }}
-          />
-        </div>
+        {/* Во время серии (5+/8+ подряд) полоска «горит» цветом молнии. */}
+        <TrainerProgressBar
+          percent={((questions.indexOf(question) + 1) / questions.length) * 100}
+          streak={streak}
+        />
       </div>
 
       {isBossStage && (
