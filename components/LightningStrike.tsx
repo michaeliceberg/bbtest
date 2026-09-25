@@ -20,8 +20,8 @@ export type LightningVariant = 'yellow' | 'blue'
 // stroke — обводка надписи: цвет молнии, но заметно темнее, чтобы белые
 // буквы не сливались с самой молнией.
 const VARIANTS: Record<LightningVariant, { set: LightningSet; sound: string; flash: string; stroke: string }> = {
-    yellow: { set: LIGHTNING_YELLOW, sound: '/StrikeSnd.m4a', flash: '#FFE042', stroke: '#B07A00' },
-    blue: { set: LIGHTNING_BLUE, sound: '/StrikeBlueSound.m4a', flash: '#6BFFFF', stroke: '#0A7FA0' },
+    yellow: { set: LIGHTNING_YELLOW, sound: '/StrikeSnd.m4a', flash: '#FFE042', stroke: '#D69C12' },
+    blue: { set: LIGHTNING_BLUE, sound: '/StrikeBlueSound.m4a', flash: '#6BFFFF', stroke: '#1C9CC4' },
 }
 
 // Надпись (label) держится ещё столько после окончания молнии (по просьбе
@@ -31,6 +31,14 @@ const LABEL_HOLD_MS = 0
 const LABEL_OUT_MS = 400
 
 const FPS = 24
+
+// Толщина обводки надписи и её построение кольцом из 16 теней.
+const OUTLINE_PX = 4
+const outlineShadow = (color: string, r: number) =>
+    Array.from({ length: 16 }, (_, i) => {
+        const a = (i / 16) * Math.PI * 2
+        return `${(Math.cos(a) * r).toFixed(2)}px ${(Math.sin(a) * r).toFixed(2)}px 0 ${color}`
+    }).join(', ')
 
 // Звуки молний (AAC 192 кбит/с из WAV-оригиналов, public/sounds-originals/) —
 // вызывать при открытии урока, чтобы первый удар не ждал загрузки звука.
@@ -98,9 +106,9 @@ export const LightningStrike = ({ variant = 'yellow', label, onDone }: { variant
                     <span
                         className={`${nunitoCyrillicBlack.className} ${labelOut ? 'animate-combo-label-out' : 'animate-combo-label-in'} select-none whitespace-nowrap text-white`}
                         style={{
-                            WebkitTextStroke: `14px ${stroke}`,
-                            paintOrder: 'stroke fill',
-                            textShadow: `0 4px 0 ${stroke}, 0 8px 18px rgba(0,0,0,0.45)`,
+                            // Обводка — кольцо теней (без -webkit-text-stroke: тот рисует
+                            // острые стыки и даёт «шипы» на углах жирных букв).
+                            textShadow: `${outlineShadow(stroke, OUTLINE_PX)}, 0 ${OUTLINE_PX + 2}px 0 ${stroke}, 0 6px 16px rgba(0,0,0,0.45)`,
                             letterSpacing: '0.02em',
                             fontSize: 'clamp(22px, 7vw, 44px)',
                             lineHeight: 1,
