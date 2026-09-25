@@ -24,9 +24,10 @@ const VARIANTS: Record<LightningVariant, { set: LightningSet; sound: string; fla
     blue: { set: LIGHTNING_BLUE, sound: '/StrikeBlueSound.wav', flash: '#6BFFFF', stroke: '#0A7FA0' },
 }
 
-// Надпись (label) держится ещё столько после окончания молнии, затем
+// Надпись (label) держится ещё столько после окончания молнии (по просьбе
+// пользователя — 0: уходит сразу, как кончилась молния), затем
 // bounce-исчезает (LABEL_OUT_MS), и только потом onDone.
-const LABEL_HOLD_MS = 1000
+const LABEL_HOLD_MS = 0
 const LABEL_OUT_MS = 400
 
 const FPS = 24
@@ -91,11 +92,11 @@ export const LightningStrike = ({ variant = 'yellow', label, onDone }: { variant
                     <span
                         className={`${nunitoCyrillicBlack.className} ${labelOut ? 'animate-combo-label-out' : 'animate-combo-label-in'} select-none whitespace-nowrap text-white`}
                         style={{
-                            WebkitTextStroke: `10px ${stroke}`,
+                            WebkitTextStroke: `14px ${stroke}`,
                             paintOrder: 'stroke fill',
-                            textShadow: `0 6px 0 ${stroke}, 0 10px 24px rgba(0,0,0,0.45)`,
+                            textShadow: `0 4px 0 ${stroke}, 0 8px 18px rgba(0,0,0,0.45)`,
                             letterSpacing: '0.02em',
-                            fontSize: 'clamp(40px, 14vw, 88px)',
+                            fontSize: 'clamp(22px, 7vw, 44px)',
                             lineHeight: 1,
                         }}
                     >
