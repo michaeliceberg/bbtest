@@ -8,6 +8,7 @@ import { useSession } from 'next-auth/react';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { LoginDialog } from '@/components/login-dialog';
 import LottieHelloBread from '@/public/LottieHelloBread.json';
+import { COZY, type UiTheme } from '@/lib/cozyTheme';
 
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
 
@@ -29,6 +30,9 @@ type Props = {
   // session.user.name, который NextAuth заполняет один раз при входе и не
   // обновляет (для входа по телефону там номер, а не имя из /account).
   dbUserName?: string | null;
+  // 'metal' — текущий игровой стиль (по умолчанию), 'cozy' — тёплый
+  // мультяшный (пробный, /test-home-cozy).
+  theme?: UiTheme;
 };
 
 // Кнопка в стиле кнопок кейса (components/CaseReel.tsx): металлическая
@@ -73,7 +77,136 @@ const PremiumButton = ({ children, onClick, href }: { children: React.ReactNode;
   );
 };
 
-export const MarketingHero = ({ dbUserName }: Props) => {
+// Кнопка тёплого стиля: плоский блок с толстой нижней гранью, «утапливается».
+const CozyCta = ({ children, onClick, href, fill = COZY.grass, edge = COZY.grassEdge, color = COZY.darkText }: {
+  children: React.ReactNode; onClick?: () => void; href?: string; fill?: string; edge?: string; color?: string;
+}) => {
+  const props = {
+    whileTap: { y: 5, boxShadow: `0 1px 0 ${edge}` },
+    className: 'flex w-full items-center justify-center gap-2.5 whitespace-nowrap rounded-xl px-5 py-4 font-black text-base lg:text-lg uppercase tracking-[0.08em]',
+    style: { background: fill, color, boxShadow: `0 6px 0 ${edge}` },
+  };
+  if (href) {
+    return (
+      <Link href={href} className='block'>
+        <motion.span {...props}>{children}</motion.span>
+      </Link>
+    );
+  }
+  return <motion.button type='button' onClick={onClick} {...props}>{children}</motion.button>;
+};
+
+export const MarketingHero = (props: Props) =>
+  props.theme === 'cozy' ? <CozyMarketingHero {...props} /> : <MetalMarketingHero {...props} />;
+
+// ── Тёплый стиль «cozy» ───────────────────────────────────────────────────
+const CozyMarketingHero = ({ dbUserName }: Props) => {
+  const { data: session } = useSession();
+  const userName = dbUserName || session?.user?.name;
+  const [loginOpen, setLoginOpen] = useState(false);
+  const headline = { color: COZY.title, textShadow: `0 3px 0 ${COZY.headlineShadow}, 0 6px 0 rgba(0,0,0,0.35)` };
+  const accentLine = { color: COZY.headline, textShadow: `0 3px 0 ${COZY.headlineShadow}, 0 6px 0 rgba(0,0,0,0.35)` };
+
+  return (
+    <div className='relative w-full flex-1 flex flex-col items-center overflow-x-clip'>
+      {/* Тёплый фон: тёмный «камень» + мягкий свет, как от лампы */}
+      <div className='pointer-events-none fixed inset-0 -z-10' style={{ backgroundColor: '#221E1A' }}>
+        <div className='absolute inset-0' style={{ background: 'radial-gradient(ellipse at 50% 20%, #FFB67A2E, transparent 60%)' }} />
+        <div className='absolute inset-0' style={{ background: 'radial-gradient(ellipse at 50% 35%, transparent 35%, rgba(0,0,0,0.5) 100%)' }} />
+      </div>
+
+      <div className='relative z-10 max-w-[988px] w-full flex flex-col lg:flex-row items-center justify-center px-4 pt-6 lg:pt-14 gap-4 lg:gap-10'>
+        <motion.div
+          className='relative w-[220px] h-[220px] lg:w-[380px] lg:h-[380px] shrink-0 rounded-3xl'
+          initial={{ scale: 0.7, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', bounce: 0.45, duration: 0.8 }}
+          style={{ background: COZY.card, border: `4px solid ${COZY.cardBorder}`, boxShadow: `0 8px 0 ${COZY.cardEdge}` }}
+        >
+          <div className='absolute inset-0 rounded-3xl' style={{ background: 'radial-gradient(closest-side, #FFB67A33, transparent)' }} />
+          <Lottie animationData={LottieHelloBread} loop style={{ width: '100%', height: '100%', position: 'relative' }} />
+        </motion.div>
+
+        <motion.div
+          className='flex flex-col items-center lg:items-start gap-y-6 max-w-[440px] w-full'
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.15 }}
+        >
+          <span
+            className='inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-black uppercase tracking-[0.15em]'
+            style={{ background: COZY.wood, color: '#FFE8C7', border: `2px solid ${COZY.woodBorder}`, boxShadow: `0 3px 0 ${COZY.woodEdge}` }}
+          >
+            <Sparkles className='h-3.5 w-3.5' style={{ color: COZY.honey }} />
+            ЕГЭ · ОГЭ · ЛНИП
+          </span>
+
+          <h1 className='text-3xl lg:text-5xl font-black leading-tight text-center lg:text-left' style={headline}>
+            {userName ? 'С возвращением,' : 'Привет! Давай'}
+            <br />
+            <span style={accentLine}>{userName ? `${userName}!` : 'учиться вместе!'}</span>
+          </h1>
+
+          <p className='text-base lg:text-lg font-semibold text-center lg:text-left' style={{ color: '#D9C4A3' }}>
+            {userName
+              ? 'Готов продолжить? У тебя отлично получается 🌟'
+              : 'Задачи, тренажёры и разборы по шагам — как игра, только к экзамену. У тебя всё получится ❤️'}
+          </p>
+
+          <div className='flex flex-col items-stretch gap-y-4 w-full max-w-[340px]'>
+            {userName ? (
+              <CozyCta href='/learn'>
+                Продолжаем учиться
+                <ArrowRight className='h-5 w-5' />
+              </CozyCta>
+            ) : (
+              <>
+                <CozyCta onClick={() => setLoginOpen(true)}>
+                  Начать учиться
+                  <ArrowRight className='h-5 w-5' />
+                </CozyCta>
+                <CozyCta href='/test' fill={COZY.card} edge={COZY.cardEdge} color={COZY.title}>
+                  <span className='whitespace-normal text-center text-sm normal-case tracking-normal'>Пройти бесплатный тест без регистрации</span>
+                </CozyCta>
+              </>
+            )}
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Витрина курсов — баннеры в деревянных рамках */}
+      <div className='relative z-10 w-full max-w-[988px] px-4 pt-12 pb-10'>
+        <div className='mb-4 flex items-center gap-3'>
+          <h2 className='text-sm font-black uppercase tracking-[0.15em]' style={{ color: COZY.headline }}>Курсы</h2>
+          <div className='h-[3px] flex-1 rounded-full' style={{ background: `linear-gradient(90deg, ${COZY.woodBorder}, transparent)` }} />
+        </div>
+        <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4'>
+          {COURSE_BANNERS.map((c, i) => (
+            <motion.div
+              key={c.src}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.3 + i * 0.08 }}
+              whileHover={{ y: -3 }}
+              className='overflow-hidden rounded-xl'
+              style={{ background: COZY.wood, border: `3px solid ${COZY.woodBorder}`, boxShadow: `0 6px 0 ${COZY.woodEdge}` }}
+            >
+              <div className='relative aspect-square w-full overflow-hidden'>
+                <Image src={c.src} alt={c.title} fill sizes='(max-width: 640px) 50vw, 200px' className='object-cover' />
+              </div>
+              <p className='px-2 py-2 text-center text-xs lg:text-sm font-black' style={{ color: '#FFE8C7' }}>{c.title}</p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      <LoginDialog open={loginOpen} onOpenChange={setLoginOpen} />
+    </div>
+  );
+};
+
+// ── Игровой стиль (текущий) ───────────────────────────────────────────────
+const MetalMarketingHero = ({ dbUserName }: Props) => {
   const { data: session } = useSession();
   const userName = dbUserName || session?.user?.name;
   const [loginOpen, setLoginOpen] = useState(false);
