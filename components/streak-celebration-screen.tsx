@@ -3,7 +3,7 @@
 // Экран «N ответов подряд» внутри урока тренажёра (рубеж 3 — см.
 // STREAK_MILESTONES в TQUIZ.tsx). Без кнопки (2026-09-26): крупный Lottie
 // вместе с надписью прилетает слева с замедлением в центр, Lottie проигрывает
-// один цикл, затем всё улетает вправо с ускорением, и экран сам закрывается
+// 1,5 секунды (не весь цикл), затем всё улетает вправо с ускорением, и экран сам закрывается
 // (onNext → следующий вопрос). Два стиля фона: 'metal' (игровой) и 'cozy'
 // (тёплый). Тест: /test-streak-screen.
 
@@ -29,8 +29,8 @@ const MILESTONE_COPY: Record<number, { title: string; subtitle: string; accent: 
 
 const ENTER_S = 0.2
 const EXIT_S = 0.1
-// Страховка: если Lottie не сообщит о конце цикла (не загрузился и т.п.).
-const HOLD_FALLBACK_MS = 4000
+// Сколько Lottie играет в центре — не ждём конца цикла (по просьбе пользователя).
+const HOLD_MS = 1500
 
 type Phase = 'in' | 'hold' | 'out'
 
@@ -40,8 +40,6 @@ export const StreakCelebrationScreen = ({ animationData, onNext, milestone, them
   const [phase, setPhase] = useState<Phase>('in')
   const lottieRef = useRef<any>(null)
   const doneRef = useRef(false)
-  const phaseRef = useRef<Phase>('in')
-  phaseRef.current = phase
 
   const leave = () => setPhase((p) => (p === 'out' ? p : 'out'))
 
@@ -49,7 +47,7 @@ export const StreakCelebrationScreen = ({ animationData, onNext, milestone, them
   useEffect(() => {
     if (phase !== 'hold') return
     lottieRef.current?.goToAndPlay(0, true)
-    const t = setTimeout(leave, HOLD_FALLBACK_MS)
+    const t = setTimeout(leave, HOLD_MS)
     return () => clearTimeout(t)
   }, [phase])
 
@@ -91,7 +89,6 @@ export const StreakCelebrationScreen = ({ animationData, onNext, milestone, them
               animationData={animationData}
               loop={false}
               autoplay={false}
-              onComplete={() => phaseRef.current === 'hold' && leave()}
               className="relative h-full w-full"
             />
           </div>
