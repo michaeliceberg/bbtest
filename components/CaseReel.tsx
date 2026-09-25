@@ -421,7 +421,7 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                         />
                     </div>
                     <span
-                        className="text-4xl font-black tracking-wide uppercase [text-shadow:0_2px_8px_rgba(0,0,0,0.45)]"
+                        className="mt-3 text-4xl font-black tracking-wide uppercase [text-shadow:0_2px_8px_rgba(0,0,0,0.45)]"
                         style={cozy ? { color: COZY.headline, textShadow: `0 3px 0 ${COZY.headlineShadow}, 0 6px 0 rgba(0,0,0,0.3)` } : undefined}
                     >
                         {LESSON_CASE_TIER_LABEL[tier]}
@@ -438,7 +438,7 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                 стандартными отступами px-4 у обёртки), премиальная рамка с
                 градиентом + мягкое свечение снаружи. */}
             <div
-                className={cozy ? 'relative z-10 w-full rounded-xl' : 'relative z-10 w-full rounded-2xl p-[2px] bg-gradient-to-b from-[#5A6B76] via-[#2A363C] to-[#141C20] shadow-[0_10px_34px_rgba(0,0,0,0.55)]'}
+                className={(tier ? 'mt-6 ' : '') + (cozy ? 'relative z-10 w-full rounded-xl' : 'relative z-10 w-full rounded-2xl p-[2px] bg-gradient-to-b from-[#5A6B76] via-[#2A363C] to-[#141C20] shadow-[0_10px_34px_rgba(0,0,0,0.55)]')}
                 style={cozy ? { border: `3px solid ${COZY.woodBorder}`, boxShadow: `0 6px 0 ${COZY.woodEdge}`, background: COZY.wood } : undefined}
             >
                 <div
@@ -509,7 +509,11 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                             className="absolute inset-0 rounded-full opacity-60"
                             style={{ background: `radial-gradient(closest-side, ${wonRarity.text}55, transparent 75%)` }}
                         />
-                        <div className="relative w-28 h-28 flex items-center justify-center">
+                        {/* У Lottie монет/гемов рисунок занимает только середину
+                            кадра (~25–73% ширины) — отрицательные поля по бокам
+                            убирают пустоту, иначе группа «иконка + число»
+                            визуально съезжала вправо от центра кнопки. */}
+                        <div className={"relative w-28 h-28 flex items-center justify-center " + (wonReward.kind === 'pizza' ? '' : '-ml-6 -mr-7')}>
                             {wonReward.kind === 'coins' && <Lottie animationData={LottieCoins} loop autoplay className="w-28 h-28" />}
                             {wonReward.kind === 'gems' && <Lottie animationData={LottieGems} loop autoplay className="w-24 h-24" />}
                             {wonReward.kind === 'pizza' && <span className="text-7xl leading-none">{rewardEmoji(wonReward)}</span>}
