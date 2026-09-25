@@ -23,7 +23,7 @@ export type LightningVariant = 'yellow' | 'blue'
 // выше, чтобы занимала больше экрана; по просьбе пользователя 2026-09-26).
 const VARIANTS: Record<LightningVariant, { set: LightningSet; sound: string; flash: string; stroke: string; heightScale: number }> = {
     yellow: { set: LIGHTNING_YELLOW, sound: '/StrikeSnd.m4a', flash: '#FFE042', stroke: '#D69C12', heightScale: 1 },
-    blue: { set: LIGHTNING_BLUE, sound: '/StrikeBlueSound.m4a', flash: '#6BFFFF', stroke: '#1C9CC4', heightScale: 1.35 },
+    blue: { set: LIGHTNING_BLUE, sound: '/StrikeBlueSound.m4a', flash: '#6BFFFF', stroke: '#1C9CC4', heightScale: 1.15 },
 }
 
 // Надпись (label) держится ещё столько после окончания молнии (по просьбе
@@ -102,7 +102,7 @@ export const LightningStrike = ({ variant = 'yellow', label, onDone }: { variant
                 считал ширину инлайн-SVG нулевой. */}
             {!boltDone && <svg viewBox={set.viewBox} preserveAspectRatio="xMidYMax meet" width="100%" height="100%" overflow="visible" className="absolute inset-0 h-full w-full overflow-visible">
                 {/* Толще на 50%: растяжение по горизонтали вокруг центра кадра;
-                    по вертикали — heightScale вверх от нижнего края (у синей 1.35,
+                    по вертикали — heightScale вверх от нижнего края (у синей 1.15,
                     верх выходит за кадр — overflow visible, обрезает сам экран). */}
                 <g transform={`translate(${vbCenterX} ${vbHeight}) scale(${BOLT_WIDTH_SCALE} ${heightScale}) translate(${-vbCenterX} ${-vbHeight}) translate(${f.tx} ${f.ty})`}>
                     {f.paths.map((p, i) => (
