@@ -21,7 +21,7 @@ import { openCase, type OpenCaseResult } from '@/actions/open-case'
 import { useRive, Layout, Fit, Alignment } from '@rive-app/react-webgl2'
 import { playSound, preloadSound, CASE_PRIZE_SOUND } from '@/lib/sound'
 import {
-  getCasePool, getLessonCasePool, isJackpotReward, pickWeightedReward, rewardEmoji, rewardLabel, type CaseReward,
+  getCasePool, getLessonCasePool, isJackpotReward, pickWeightedReward, rewardEmoji, type CaseReward,
   LESSON_CASE_TIER_ICON, LESSON_CASE_TIER_LABEL, LESSON_CASE_TIER_PAGE_BG, type LessonCaseTier,
 } from '@/lib/caseRewards'
 import { COZY, COZY_ACCENT, COZY_PAGE_BG, type UiTheme } from '@/lib/cozyTheme'
@@ -124,36 +124,12 @@ const RewardCell = ({ reward, highlighted, cozy }: { reward: CaseReward; highlig
     )
 }
 
-// Не-пиццевые реакции — по одному случайному ролику на показ (не
-// перевыбирается на каждый ре-рендер), см. RewardVideo ниже.
-const OK_REACTION_FILES = ['ok1.webm', 'ok2.webm', 'ok3.webm', 'ok4.webm', 'ok5.webm', 'ok6.webm', 'ok7.webm']
-
-// Пробует проиграть со звуком (реальный клик по "Крутить" — настоящий
-// user gesture, браузер обычно это разрешает); если политика браузера
-// всё же заблокирует автовоспроизведение со звуком — тихо повторяет
-// попытку без звука, чтобы ролик показался в любом случае, а не пропал.
-// Крутится по кругу (loop), пока не сменится награда — реакция короткая,
-// а карточка результата может провисеть на экране заметно дольше.
-const RewardVideo = ({ src, glow }: { src: string; glow?: string }) => {
-    const ref = useRef<HTMLVideoElement>(null)
-    useEffect(() => {
-        const el = ref.current
-        if (!el) return
-        el.play().catch(() => {
-            el.muted = true
-            el.play().catch(() => {})
-        })
-    }, [src])
-    return (
-        <video
-            ref={ref}
-            src={src}
-            loop
-            playsInline
-            className={'w-full max-w-[240px] h-auto rounded-xl ' + (glow ?? '')}
-        />
-    )
-}
+// Зумерские благодарности на кнопке после выигрыша — вместо "Продолжить".
+const THANKS_PHRASES = [
+    'Благодарочка!', 'Мерси!', 'Грасиас!', 'Сенкью вери мач!', 'Пасиба, чётко!', 'Данке шён!',
+    'Респект!', 'Лови лайк!', 'Кайф, спасибо!', 'Аригато!', 'Имба, беру!', 'Сяп-сяп!',
+    'Сохраню в сердечко!', 'Обожаю!', 'Лучший подгон!', 'Спасибо, бро!',
+]
 
 // Акцент кнопки "Крутить" в тон фону страницы по редкости кейса
 // (LESSON_CASE_TIER_PAGE_BG) — у common фон почти чёрный, поэтому акцент
@@ -207,6 +183,13 @@ export const CaseStars = ({ tier }: { tier: LessonCaseTier }) => {
         autoplay: true,
         layout: new Layout({ fit: Fit.Cover, alignment: Alignment.Center }),
     })
+    // Холст Rive иногда меряет контейнер до раскладки и остаётся 0×0 (звёзды
+    // не видны — поймано на экране «Квесты дня»). Rive слушает window resize —
+    // несколько раз после монтирования заставляем его перемерить контейнер.
+    useEffect(() => {
+        const timers = [50, 300, 1000].map((ms) => setTimeout(() => window.dispatchEvent(new Event('resize')), ms))
+        return () => timers.forEach(clearTimeout)
+    }, [])
     return <RiveComponent className="absolute inset-0 w-full h-full opacity-70" />
 }
 
@@ -272,7 +255,7 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
     const jitterRef = useRef((Math.random() - 0.5) * (ITEM_WIDTH * 0.84))
     // Случайная не-пиццевая реакция выбирается ОДИН раз за спин (в момент
     // получения результата от сервера), а не на каждый ре-рендер.
-    const reactionVideoRef = useRef<string>(OK_REACTION_FILES[0])
+    const [thanksLabel, setThanksLabel] = useState(THANKS_PHRASES[0])
     const { width, height } = useWindowSize()
     useEffect(() => {
         preloadSound(ROULETTE_SOUND)
@@ -313,9 +296,7 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
             return
         }
         finalResultRef.current = result
-        if (result.reward.kind !== 'pizza') {
-            reactionVideoRef.current = OK_REACTION_FILES[Math.floor(Math.random() * OK_REACTION_FILES.length)]
-        }
+        setThanksLabel(THANKS_PHRASES[Math.floor(Math.random() * THANKS_PHRASES.length)])
 
         // Финальная награда — НЕ последний элемент ленты (см. TARGET_INDEX),
         // остальные — та же случайная "витрина" для разнообразия картинки,
@@ -472,22 +453,28 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                     animate={{ opacity: 1, scale: 1 }}
                     className="relative z-10 flex flex-col items-center gap-4"
                 >
-                    {/* Реакция-видео (WebM, зацикленное) — "Pizza time!" на
-                        дроп пиццы, иначе случайный ролик из ok1..ok7 — по
-                        просьбе пользователя. */}
-                    {wonReward.kind === 'pizza' ? (
-                        <RewardVideo src="/webm/pizzaTime.webm" glow="shadow-[0_0_24px_rgba(255,212,96,0.35)]" />
-                    ) : (
-                        <RewardVideo src={`/webm/${reactionVideoRef.current}`} />
-                    )}
-                    <div className="relative flex items-center justify-center">
+                    {/* Награда: крупная иконка (Lottie монет/гемов, для пиццы —
+                        эмодзи) + крупная жирная сумма справа. Видео-реакции
+                        (webm) убраны по просьбе пользователя. */}
+                    <div className="relative flex items-center justify-center gap-3">
                         <div
-                            className="absolute inset-0 rounded-full blur-2xl opacity-60"
-                            style={{ background: `radial-gradient(closest-side, ${wonRarity.text}66, transparent 75%)` }}
+                            className="absolute inset-0 rounded-full opacity-60"
+                            style={{ background: `radial-gradient(closest-side, ${wonRarity.text}55, transparent 75%)` }}
                         />
-                        <p className={"relative text-xl font-black " + (tier || cozy ? "px-4 py-1.5 rounded-xl" : "")} style={cozy ? { color: COZY.headline, background: COZY.card, border: `3px solid ${COZY.cardBorder}`, boxShadow: `0 4px 0 ${COZY.cardEdge}` } : tier ? { color: wonRarity.text, background: 'rgba(12,18,21,0.8)' } : { color: wonRarity.text }}>
-                            {rewardLabel(wonReward)}
-                        </p>
+                        <div className="relative w-28 h-28 flex items-center justify-center">
+                            {wonReward.kind === 'coins' && <Lottie animationData={LottieCoins} loop autoplay className="w-28 h-28" />}
+                            {wonReward.kind === 'gems' && <Lottie animationData={LottieGems} loop autoplay className="w-24 h-24" />}
+                            {wonReward.kind === 'pizza' && <span className="text-7xl leading-none">{rewardEmoji(wonReward)}</span>}
+                        </div>
+                        <span
+                            className="relative text-6xl font-black leading-none"
+                            style={{
+                                color: cozy ? COZY.headline : tier ? '#FFFFFF' : wonRarity.text,
+                                textShadow: cozy ? `0 4px 0 ${COZY.cardEdge}` : '0 2px 8px rgba(0,0,0,0.45)',
+                            }}
+                        >
+                            {wonReward.kind === 'pizza' ? `x${wonReward.amount}` : `+${wonReward.amount}`}
+                        </span>
                     </div>
                     {result && result.success && result.justMaxedPizza && (
                         <p className="text-sm font-bold text-center text-[#F2A6D0] max-w-xs">
@@ -500,7 +487,7 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                             edge={COZY.grassEdge}
                             onClick={() => onDone({ reward: wonReward, justMaxedPizza: (result && result.success && result.justMaxedPizza) || false })}
                         >
-                            Продолжить
+                            {thanksLabel}
                         </CozyButton>
                     ) : (
                         <CaseButton
@@ -508,7 +495,7 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                             glow={glow}
                             onClick={() => onDone({ reward: wonReward, justMaxedPizza: (result && result.success && result.justMaxedPizza) || false })}
                         >
-                            Продолжить
+                            {thanksLabel}
                         </CaseButton>
                     )}
                 </motion.div>

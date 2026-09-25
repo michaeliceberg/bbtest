@@ -227,7 +227,6 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
                 pool={getLessonCasePool(opening.tier)}
                 spinAction={() => (demo ? openLessonCase(opening.tier) : claimQuestCase(t_lessonId, key))}
                 theme={theme}
-                title={`Квест: ${questTitle(opening)}`}
                 onDone={() => {
                     const next = quests.map((q) => (q.key === key ? { ...q, claimed: true } : q))
                     setQuests(next)
