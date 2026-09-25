@@ -14,7 +14,7 @@ import { useSession, signOut } from 'next-auth/react'
 import { UnitCardLottie } from '@/components/unit-card-lottie'
 import { useCourseSwitchStore } from '@/store/course-switch-store'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { COZY, type UiTheme } from '@/lib/cozyTheme'
+import { COZY, COZY_WOOD_TILE, type UiTheme } from '@/lib/cozyTheme'
 import { useUiThemeLive } from '@/lib/uiTheme'
 
 // Цвета вордмарка "ggege" (public/ggegelogo.svg) — сэмплированы напрямую
@@ -61,12 +61,12 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
   const rootStyle = cozy ? { background: COZY.bg, borderColor: COZY.cardBorder } : undefined
   const navButtonClass = (isActive: boolean) =>
     cozy
-      ? cn('justify-start h-[52px] w-full rounded-xl border-2 transition-none', isActive ? '' : 'border-transparent hover:bg-[#2A2A27]')
+      ? cn('justify-start h-[52px] w-full rounded-xl border-2 transition-none', isActive ? '' : 'border-transparent hover:bg-[#2D2A27]')
       : 'justify-start h-[52px] w-full'
   const navButtonStyle = (isActive: boolean) =>
-    cozy && isActive ? { background: COZY.card, borderColor: COZY.honeyBorder, boxShadow: `0 4px 0 ${COZY.cardEdge}` } : undefined
+    cozy && isActive ? { background: COZY.card, borderColor: COZY_WOOD_TILE.button, boxShadow: `0 4px 0 ${COZY.cardEdge}` } : undefined
   const navText = cozy ? { color: COZY.title } : undefined
-  const navIcon = (isActive: boolean) => (cozy ? { color: isActive ? COZY.honey : COZY.textSoft } : undefined)
+  const navIcon = (isActive: boolean) => (cozy ? { color: isActive ? '#E2C7A5' : COZY.textSoft } : undefined)
   const pathname = usePathname()
   const router = useRouter()
   const { data: session } = useSession()
@@ -236,7 +236,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
       <div className='px-4 pb-4'>
         <div
           className='h-[3px] w-full rounded-full'
-          style={{ background: cozy ? `linear-gradient(to right, ${COZY.cardBorder}, ${COZY.honeyBorder}, ${COZY.cardBorder})` : `linear-gradient(to right, ${LOGO_PURPLE}, #3A464E, ${LOGO_GREEN})` }}
+          style={{ background: cozy ? `linear-gradient(to right, ${COZY.cardBorder}, ${COZY_WOOD_TILE.button}, ${COZY.cardBorder})` : `linear-gradient(to right, ${LOGO_PURPLE}, #3A464E, ${LOGO_GREEN})` }}
         />
       </div>
 
@@ -262,7 +262,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
                 </span>
               )}
             </div>
-            {isCoursesOpen ? <ChevronUp className="h-4 w-4 text-green-400 flex-shrink-0" style={cozy ? { color: COZY.honey } : undefined} /> : <ChevronDown className="h-4 w-4 text-green-400 flex-shrink-0" style={cozy ? { color: COZY.honey } : undefined} />}
+            {isCoursesOpen ? <ChevronUp className="h-4 w-4 text-green-400 flex-shrink-0" style={cozy ? { color: '#E2C7A5' } : undefined} /> : <ChevronDown className="h-4 w-4 text-green-400 flex-shrink-0" style={cozy ? { color: '#E2C7A5' } : undefined} />}
           </button>
 
           <AnimatePresence initial={false}>
@@ -283,7 +283,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
                       {groupCourses.map((course) => (
                         <button key={course.id} onClick={() => handleCourseChange(course.id)}
                           className={cn('w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm active:scale-[0.98]',
-                            displayedCourseId === course.id ? (cozy ? "bg-[#2F3A2D] text-[#D8E8D2]" : "bg-green-500/15 text-green-300") : (cozy ? "hover:bg-[#2A2A27] text-[#C8C1B5]" : "hover:bg-[#232F34] text-[#9AA7B0]"))}>
+                            displayedCourseId === course.id ? (cozy ? "bg-[#3A342D] text-[#FFF1DC]" : "bg-green-500/15 text-green-300") : (cozy ? "hover:bg-[#2D2A27] text-[#D9C4A3]" : "hover:bg-[#232F34] text-[#9AA7B0]"))}>
                           <span className="flex-1 min-w-0 text-left truncate">{course.title}</span>
                           {course.streak && (
                             <span className="flex items-center gap-1 text-xs text-orange-300 flex-shrink-0">

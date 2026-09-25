@@ -130,7 +130,7 @@ const buildTimings = (quests: DailyQuest[]): RowTiming[] => {
 // после заполнения прогресс-бара.
 const badgeStyle = (cozy?: boolean): React.CSSProperties =>
     cozy
-        ? { color: '#23301F', background: '#BFD8B6', boxShadow: '0 3px 0 #6E9A72' }
+        ? { color: '#3A2A12', background: '#FFD27A', boxShadow: '0 3px 0 #B8862E' }
         : { color: '#FFF3C4', background: 'linear-gradient(90deg, #FF7A1A, #FF3D2E)', boxShadow: '0 0 12px #FF7A1A88' }
 const BADGE_CLASS = 'w-8 rounded-lg py-0.5 text-center text-sm font-black leading-none'
 
@@ -274,7 +274,7 @@ const CozyQuestRow = ({ q, index, timing, gone }: { q: DailyQuest; index: number
             }}
         >
             <div className="flex items-center justify-between gap-2">
-                <p className="text-base font-black leading-none" style={{ color: gold ? '#D8E8D2' : COZY.title }}>
+                <p className="text-base font-black leading-none" style={{ color: gold ? '#FFE3A3' : COZY.title }}>
                     {questTitle(q)}
                 </p>
             </div>
@@ -412,7 +412,7 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
     return (
         <div className="relative min-h-screen text-[#F2F7FB] flex flex-col overflow-x-clip">
             <div className="fixed inset-0 z-0 pointer-events-none" style={{ backgroundColor: '#131D22' }}>
-                <div className="absolute inset-0" style={{ background: cozy ? 'radial-gradient(ellipse at 50% 10%, #E6DED112, transparent 60%)' : 'radial-gradient(ellipse at 50% 12%, #FF7A1A33, transparent 55%)' }} />
+                <div className="absolute inset-0" style={{ background: cozy ? 'radial-gradient(ellipse at 50% 10%, #FFB67A26, transparent 60%)' : 'radial-gradient(ellipse at 50% 12%, #FF7A1A33, transparent 55%)' }} />
                 <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 30%, transparent 30%, rgba(0,0,0,0.6) 100%)' }} />
             </div>
 
@@ -425,7 +425,7 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ type: 'spring', bounce: 0.4, duration: 0.6 }}
                     className="flex items-center justify-center gap-1 text-3xl font-black"
-                    style={cozy ? { color: '#EDE3D2', textShadow: '0 3px 0 #4A3F33, 0 6px 0 rgba(0,0,0,0.35)' } : undefined}
+                    style={cozy ? { color: '#FFE08A', textShadow: '0 3px 0 #8A4B14, 0 6px 0 rgba(0,0,0,0.35)' } : undefined}
                 >
                     {earned > 0 ? (
                         <>
@@ -461,7 +461,7 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
                     className={cozy ? 'mt-3 flex items-center justify-between rounded-xl px-4 py-3' : 'mt-2 flex items-center justify-between rounded-2xl border border-[#3A464E] bg-[#151F23]/80 px-4 py-3'}
                     style={cozy ? { background: COZY.wood, border: `3px solid ${COZY.woodBorder}`, boxShadow: `0 6px 0 ${COZY.woodEdge}` } : undefined}
                 >
-                    <span className="text-sm font-bold" style={{ color: cozy ? '#E6DED1' : '#D5DEE5' }}>
+                    <span className="text-sm font-bold" style={{ color: cozy ? '#FFE8C7' : '#D5DEE5' }}>
                         Квест-поинты за {monthName}
                     </span>
                     <span className="flex items-center gap-1 text-[#FFB020]">
@@ -522,7 +522,7 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
                     <button
                         onClick={onSecondary}
                         className={cozy ? 'w-full rounded-xl px-6 py-3 text-sm font-black uppercase tracking-[0.08em] active:translate-y-1' : 'w-full rounded-2xl border-2 border-[#3A464E] bg-[#151F23]/80 px-6 py-3 text-sm font-bold uppercase tracking-[0.1em] text-[#D5DEE5] transition-colors hover:border-[#5A6B76]'}
-                        style={cozy ? { background: COZY.card, color: '#E6DED1', border: `3px solid ${COZY.cardBorder}`, boxShadow: `0 5px 0 ${COZY.cardEdge}` } : undefined}
+                        style={cozy ? { background: COZY.card, color: '#FFE8C7', border: `3px solid ${COZY.cardBorder}`, boxShadow: `0 5px 0 ${COZY.cardEdge}` } : undefined}
                     >
                         {secondaryLabel}
                     </button>

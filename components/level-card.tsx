@@ -109,7 +109,7 @@ export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact', theme = 'me
                 нечитаемого состояния (см. textGroupMinWidth выше). */}
             <div className="relative flex flex-wrap items-center gap-3 min-w-0">
                 <div className={`flex items-center gap-3 flex-1 ${textGroupMinWidth}`}>
-                    <div className={`shrink-0 overflow-hidden ${cozy ? 'rounded-xl' : 'rounded-full bg-white/5 ring-2 ring-violet-400/40'} ${mascotSize}`} style={cozy ? { background: '#34342F', border: '3px solid #C9AEF5' } : undefined}>
+                    <div className={`shrink-0 overflow-hidden ${cozy ? 'rounded-xl' : 'rounded-full bg-white/5 ring-2 ring-violet-400/40'} ${mascotSize}`} style={cozy ? { background: '#3A342D', border: '3px solid #C9AEF5' } : undefined}>
                         {mascotData && <Lottie animationData={mascotData} loop autoplay />}
                     </div>
 
@@ -118,14 +118,14 @@ export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact', theme = 'me
                             <Sparkles className={isFull ? 'h-5 w-5 shrink-0' : 'h-4 w-4 shrink-0'} style={{ color: cozy ? COZY.honey : '#A78BFA' }} />
                             <span className={`font-extrabold whitespace-nowrap ${isFull ? 'text-lg' : ''}`} style={{ color: cozy ? COZY.title : '#F2F7FB' }}>Уровень {level}</span>
                         </div>
-                        <p className={`mb-2 ${isFull ? 'text-sm' : 'text-xs truncate'}`} style={{ color: cozy ? '#C8C1B5' : '#C9B8F5' }}>{motivation}</p>
+                        <p className={`mb-2 ${isFull ? 'text-sm' : 'text-xs truncate'}`} style={{ color: cozy ? '#D9C4A3' : '#C9B8F5' }}>{motivation}</p>
                         <div className={`w-full overflow-hidden ${cozy ? 'rounded-md' : 'rounded-full'} ${isFull ? 'h-3' : cozy ? 'h-2.5' : 'h-1.5'}`} style={{ backgroundColor: cozy ? COZY.track : 'rgba(167,139,250,0.2)' }}>
                             <div
                                 className={cozy ? 'h-full transition-all duration-500' : 'h-full rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-400 transition-all duration-500'}
                                 style={{ width: `${progressPercent}%`, ...(cozy ? { background: '#C9AEF5' } : {}) }}
                             />
                         </div>
-                        <p className={`mt-1 ${isFull ? 'text-sm' : 'text-[10px]'}`} style={{ color: cozy ? '#9A948A' : '#9AA7B0' }}>{xpIntoLevel}/{xpForNextLevel} XP</p>
+                        <p className={`mt-1 ${isFull ? 'text-sm' : 'text-[10px]'}`} style={{ color: cozy ? '#B8A68E' : '#9AA7B0' }}>{xpIntoLevel}/{xpForNextLevel} XP</p>
                     </div>
                 </div>
 
@@ -137,9 +137,9 @@ export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact', theme = 'me
                         style={cozy ? { background: COZY.wood, border: `2px solid ${COZY.woodBorder}`, boxShadow: `0 4px 0 ${COZY.woodEdge}` } : undefined}
                     >
                         <span className={isFull ? 'text-3xl leading-none' : 'text-xl leading-none'}>🎁</span>
-                        <span className={`font-bold leading-tight ${cozy ? '' : 'text-amber-400'} ${isFull ? 'text-sm' : 'text-[11px]'}`} style={cozy ? { color: COZY.honey } : undefined}>Ур. {level + 1}</span>
+                        <span className={`font-bold text-amber-400 leading-tight ${isFull ? 'text-sm' : 'text-[11px]'}`}>Ур. {level + 1}</span>
                         <span className={`text-[#9AA7B0] leading-tight ${isFull ? 'text-xs' : 'text-[10px]'}`}>Ещё {xpLeft} XP</span>
-                        <span className={`font-bold leading-tight ${cozy ? '' : 'text-amber-400'} ${isFull ? 'text-xs' : 'text-[10px]'}`} style={cozy ? { color: COZY.honey } : undefined}>+{LEVEL_UP_GEM_REWARD}💎</span>
+                        <span className={`font-bold text-amber-400 leading-tight ${isFull ? 'text-xs' : 'text-[10px]'}`}>+{LEVEL_UP_GEM_REWARD}💎</span>
                     </div>
                 </div>
             </div>
