@@ -19,7 +19,7 @@ import { useWindowSize } from 'react-use'
 import { Gift, Sparkles } from 'lucide-react'
 import { openCase, type OpenCaseResult } from '@/actions/open-case'
 import { useRive, Layout, Fit, Alignment } from '@rive-app/react-webgl2'
-import { playSound } from '@/lib/sound'
+import { playSound, preloadSound } from '@/lib/sound'
 import {
   getCasePool, getLessonCasePool, isJackpotReward, pickWeightedReward, rewardEmoji, rewardLabel, type CaseReward,
   LESSON_CASE_TIER_ICON, LESSON_CASE_TIER_LABEL, LESSON_CASE_TIER_PAGE_BG, type LessonCaseTier,
@@ -42,6 +42,10 @@ const STRIP_LENGTH = 40 // достаточно длинная лента, чт�
 // тренажёра, см. trainer-question.tsx) — реальная ширина измеряется
 // через ref в момент запуска, а не жёстко зашита в код.
 const FALLBACK_WINDOW_WIDTH = 320 // на случай, если измерить ширину почему-то не удалось
+// Звук барабана — AAC 192 кбит/с из WAV-оригинала (public/sounds-originals/roulete.wav,
+// 1.1 МБ → ~150 КБ); предзагружается при появлении кейса, чтобы звук стартовал
+// ровно с нажатием «Крутить», а не после скачивания.
+const ROULETTE_SOUND = '/roulete.m4a'
 const SPIN_DURATION = 8 // сек — по просьбе пользователя, для более плавного затухания
 // Награда останавливается НЕ на последней ячейке ленты — так после
 // остановки в окне видно ещё несколько ячеек СПРАВА от выигрыша (могут
@@ -234,6 +238,7 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
     // получения результата от сервера), а не на каждый ре-рендер.
     const reactionVideoRef = useRef<string>(OK_REACTION_FILES[0])
     const { width, height } = useWindowSize()
+    useEffect(() => preloadSound(ROULETTE_SOUND), [])
     const accent = tier ? LESSON_CASE_TIER_ACCENT[tier] : '#4A90D9'
     const glow = !tier || tier === 'common' ? accent : '#FFFFFF'
 
@@ -258,7 +263,7 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
         // playbackRate'ом (сбило бы тон), спин просто доигрывает молча
         // последние ~1.8с, что совпадает с моментом, когда лента и так уже
         // визуально замедляется.
-        playSound('/roulete.wav')
+        playSound(ROULETTE_SOUND)
 
         const result = await (spinAction ? spinAction() : openCase(isMega)).catch(() => null)
         if (!result || !result.success) {

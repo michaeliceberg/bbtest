@@ -12066,3 +12066,5 @@ Nunito 900 с кириллицей (`lib/fonts.ts` — отдельный экз
 фолбэком), обводка — тёмный тон цвета молнии (`paint-order: stroke fill`), bounce-
 появление с ударом, bounce-исчезание сразу после конца молнии (итого ~1.4с), размер `clamp(22px,7vw,44px)`, обводка 14px (CSS
 `.animate-combo-label-in/out`). Старый `ComboBanner` на кратных 5 больше не вызывается.
+Звук барабана кейса — `/roulete.m4a` (AAC 192 кбит/с из `public/sounds-originals/roulete.wav`,
+1,1 МБ → 155 КБ), предзагружается при открытии урока (TQUIZ) и при появлении кейса (CaseReel).

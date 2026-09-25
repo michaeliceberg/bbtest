@@ -183,6 +183,8 @@ export default function TQuiz({
   useEffect(() => {
     preloadSound('/StrikeSnd.m4a')
     preloadSound('/StrikeBlueSound.m4a')
+    // Звук барабана кейса (кейс открывается в конце урока).
+    preloadSound('/roulete.m4a')
   }, [])
   const [showLightning, setShowLightning] = useState(false)
   const [showStreakCelebration, setShowStreakCelebration] = useState(false)
