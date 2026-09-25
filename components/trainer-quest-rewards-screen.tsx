@@ -230,7 +230,7 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
                     <span className="text-sm font-bold text-[#D5DEE5]">
                         Квест-поинты за {monthName}
                     </span>
-                    <span className="flex items-center gap-1 text-[#FFB020]" style={{ textShadow: '0 0 12px #FF7A1A99' }}>
+                    <span className="flex items-center gap-1 text-[#FFB020]">
                         <RollingNumber value={String(data?.monthPoints ?? 0)} start className="text-2xl font-black" />
                         <span className="-my-2 inline-block h-10 w-10">
                             {starLottie && <Lottie animationData={starLottie} loop autoplay className="h-full w-full" />}
