@@ -156,6 +156,8 @@ export const TEST_WIN_SOUND = '/snd-harp-trump-win.mp3'
 export const CASE_PRIZE_SOUND = '/snd-unboxing-prize.mp3'
 // Экран «Квесты дня»: заполнение прогресс-бара / «+1» над сундуком.
 export const QUEST_SWOOSH_SOUND = '/snd-progress-water.mp3'
-export const QUEST_DONE_SOUND = '/snd-plus1-appear.mp3'
+export const QUEST_DONE_SOUND = '/snd-plus1-appear2.mp3'
 // «+1» долетел до плашки квест-поинтов (вместе с отскоком числа).
 export const QUEST_LAND_SOUND = '/snd-progress-plus1-fall.mp3'
+// Экран «Новый уровень!» (components/level-up-screen.tsx).
+export const LEVEL_UP_SOUND = '/snd-lvlup.mp3'
