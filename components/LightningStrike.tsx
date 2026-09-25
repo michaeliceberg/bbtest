@@ -19,9 +19,11 @@ export type LightningVariant = 'yellow' | 'blue'
 
 // stroke — обводка надписи: цвет молнии, но заметно темнее, чтобы белые
 // буквы не сливались с самой молнией.
-const VARIANTS: Record<LightningVariant, { set: LightningSet; sound: string; flash: string; stroke: string }> = {
-    yellow: { set: LIGHTNING_YELLOW, sound: '/StrikeSnd.m4a', flash: '#FFE042', stroke: '#D69C12' },
-    blue: { set: LIGHTNING_BLUE, sound: '/StrikeBlueSound.m4a', flash: '#6BFFFF', stroke: '#1C9CC4' },
+// heightScale — растяжение по вертикали вверх от нижнего края (синяя, 8 подряд, —
+// выше, чтобы занимала больше экрана; по просьбе пользователя 2026-09-26).
+const VARIANTS: Record<LightningVariant, { set: LightningSet; sound: string; flash: string; stroke: string; heightScale: number }> = {
+    yellow: { set: LIGHTNING_YELLOW, sound: '/StrikeSnd.m4a', flash: '#FFE042', stroke: '#D69C12', heightScale: 1 },
+    blue: { set: LIGHTNING_BLUE, sound: '/StrikeBlueSound.m4a', flash: '#6BFFFF', stroke: '#1C9CC4', heightScale: 1.35 },
 }
 
 // Надпись (label) держится ещё столько после окончания молнии (по просьбе
@@ -49,7 +51,7 @@ export const preloadLightningSounds = () => {
 }
 
 export const LightningStrike = ({ variant = 'yellow', label, onDone }: { variant?: LightningVariant; label?: string; onDone: () => void }) => {
-    const { set, sound, flash, stroke } = VARIANTS[variant]
+    const { set, sound, flash, stroke, heightScale } = VARIANTS[variant]
     const [frame, setFrame] = useState(0)
     const [boltDone, setBoltDone] = useState(false)
     const [labelOut, setLabelOut] = useState(false)
@@ -87,6 +89,7 @@ export const LightningStrike = ({ variant = 'yellow', label, onDone }: { variant
 
     const f = set.frames[frame]
     const vbCenterX = Number(set.viewBox.split(' ')[2]) / 2
+    const vbHeight = Number(set.viewBox.split(' ')[3])
     const durationS = set.frames.length / FPS
     return (
         <div className="pointer-events-none fixed inset-0 z-[65]">
@@ -97,10 +100,11 @@ export const LightningStrike = ({ variant = 'yellow', label, onDone }: { variant
             />
             {/* Явные размеры на весь экран: при h-full + w-auto Safari на iPhone
                 считал ширину инлайн-SVG нулевой. */}
-            {!boltDone && <svg viewBox={set.viewBox} preserveAspectRatio="xMidYMax meet" width="100%" height="100%" className="absolute inset-0 h-full w-full">
-                {/* Толще на 50%: растяжение по горизонтали вокруг центра кадра
-                    (высота прежняя, сужение к кончикам сохраняется). */}
-                <g transform={`translate(${vbCenterX} 0) scale(${BOLT_WIDTH_SCALE} 1) translate(${-vbCenterX} 0) translate(${f.tx} ${f.ty})`}>
+            {!boltDone && <svg viewBox={set.viewBox} preserveAspectRatio="xMidYMax meet" width="100%" height="100%" overflow="visible" className="absolute inset-0 h-full w-full overflow-visible">
+                {/* Толще на 50%: растяжение по горизонтали вокруг центра кадра;
+                    по вертикали — heightScale вверх от нижнего края (у синей 1.35,
+                    верх выходит за кадр — overflow visible, обрезает сам экран). */}
+                <g transform={`translate(${vbCenterX} ${vbHeight}) scale(${BOLT_WIDTH_SCALE} ${heightScale}) translate(${-vbCenterX} ${-vbHeight}) translate(${f.tx} ${f.ty})`}>
                     {f.paths.map((p, i) => (
                         <path key={i} d={p.d} fill={p.fill} />
                     ))}
