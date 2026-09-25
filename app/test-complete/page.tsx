@@ -11,11 +11,20 @@ export default function TestCompletePage() {
     const [key, setKey] = useState(0)
     const [chain, setChain] = useState(false)
     const [lottie] = useState(() => getRandomLottie(LOTTIE_STREAK_CHARACTER_LIST))
+    const [cozy, setCozy] = useState(false)
 
     return (
         <div className="w-full max-w-xl mx-auto">
+            {/* Переключатель стиля для теста */}
+            <button
+                onClick={() => { setCozy((c) => !c); setKey((k) => k + 1) }}
+                className="fixed top-3 right-3 z-50 rounded-lg bg-black/60 px-3 py-2 text-xs font-bold text-white"
+            >
+                {cozy ? '🎮 Игровой' : '🏡 Тёплый'}
+            </button>
             <TrainerLessonCompleteScreen
                 key={key}
+                theme={cozy ? 'cozy' : 'metal'}
                 lottieData={lottie}
                 streak={6}
                 xp={50}

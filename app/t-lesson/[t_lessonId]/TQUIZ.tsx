@@ -964,6 +964,7 @@ export default function TQuiz({
               высоту, из-за которой TrainerLessonCompleteScreen не влезал
               на телефонный экран без скролла. */}
           <TrainerLessonCompleteScreen
+            theme={uiTheme}
             lottieData={randomStreakCharacterLottie}
             streak={maxStreakRef.current}
             xp={earnedXp}

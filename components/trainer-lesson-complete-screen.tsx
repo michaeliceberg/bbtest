@@ -22,6 +22,7 @@ import { declensionRu } from '@/usefulFunctions'
 import { playSound, WIN_SOUND } from '@/lib/sound'
 import { RollingNumber } from '@/components/rolling-number'
 import { CaseStars } from '@/components/CaseReel'
+import { COZY, COZY_ACCENT, type UiTheme } from '@/lib/cozyTheme'
 
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 
@@ -37,6 +38,9 @@ type Props = {
     // "Ударный час" ещё не дошёл до рубежа (см. actions/roll-lesson-case.ts,
     // TQUIZ.tsx) — вместо заголовка "Вы запустили серию!".
     chainHint?: { count: number; remaining: number } | null
+    // Стиль: игровой (по умолчанию) или тёплый «cozy» — плоские блоки с
+    // толстой нижней гранью, тёплый фон, без звёзд и неона.
+    theme?: UiTheme
 }
 
 // мин:сек, без долей секунды.
@@ -50,6 +54,26 @@ const formatElapsed = (seconds: number) => {
 const CARD_FIRST_MS = 900
 const CARD_STEP_MS = 750
 const BUTTONS_AFTER_MS = 500
+
+const CozyStatCard = ({
+    label, value, icon, color, edge, shown,
+}: { label: string; value: string; icon: React.ReactNode; color: string; edge: string; shown: boolean }) => (
+    <motion.div
+        initial={{ opacity: 0, y: 18, scale: 0.8 }}
+        animate={shown ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 18, scale: 0.8 }}
+        transition={{ type: 'spring', bounce: 0.45, duration: 0.6 }}
+        className="flex flex-1 flex-col items-center gap-1.5 rounded-xl px-1 py-3"
+        style={{ background: COZY.card, border: `3px solid ${color}`, boxShadow: `0 6px 0 ${edge}` }}
+    >
+        <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.1em]" style={{ color }}>
+            {label}
+        </span>
+        <span className="flex items-center gap-1.5" style={{ color: COZY.title, textShadow: `0 2px 0 ${edge}` }}>
+            <span style={{ color }}>{icon}</span>
+            <RollingNumber value={value} start={shown} className="text-2xl sm:text-3xl font-black" />
+        </span>
+    </motion.div>
+)
 
 const StatCard = ({
     label, value, icon, color, shown,
@@ -82,8 +106,9 @@ const StatCard = ({
 )
 
 export const TrainerLessonCompleteScreen = ({
-    lottieData, streak, xp, elapsedSeconds, primaryLabel, onPrimary, secondaryLabel, onSecondary, chainHint,
+    lottieData, streak, xp, elapsedSeconds, primaryLabel, onPrimary, secondaryLabel, onSecondary, chainHint, theme = 'metal',
 }: Props) => {
+    const cozy = theme === 'cozy'
     const streakWord = declensionRu(streak, 'верный ответ', 'верных ответа', 'верных ответов')
     const lessonsWord = chainHint ? declensionRu(chainHint.remaining, 'урок', 'урока', 'уроков') : ''
 
@@ -103,10 +128,10 @@ export const TrainerLessonCompleteScreen = ({
     return (
         <div className="relative min-h-screen text-[#F2F7FB] flex flex-col overflow-x-clip">
             {/* Фон на весь экран: как у экрана кейсов */}
-            <div className="fixed inset-0 z-0 pointer-events-none" style={{ backgroundColor: '#131D22' }}>
-                <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 50% 25%, ${accent}33, transparent 55%)` }} />
+            <div className="fixed inset-0 z-0 pointer-events-none" style={{ backgroundColor: cozy ? COZY.bg : '#131D22' }}>
+                <div className="absolute inset-0" style={{ background: cozy ? 'radial-gradient(ellipse at 50% 25%, #FFB67A26, transparent 60%)' : `radial-gradient(ellipse at 50% 25%, ${accent}33, transparent 55%)` }} />
                 <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 30%, transparent 30%, rgba(0,0,0,0.6) 100%)' }} />
-                <CaseStars tier="common" />
+                {!cozy && <CaseStars tier="common" />}
             </div>
 
             <div className="relative z-10 flex flex-col items-center pt-6 px-4 shrink-0">
@@ -116,7 +141,12 @@ export const TrainerLessonCompleteScreen = ({
                     transition={{ type: 'spring', bounce: 0.5, duration: 0.8 }}
                     className="relative w-56 h-56 sm:w-72 sm:h-72"
                 >
-                    <div className="absolute inset-0" style={{ background: 'radial-gradient(closest-side, rgba(255,255,255,0.18), transparent)' }} />
+                    <div
+                        className={cozy ? 'absolute inset-4 rounded-3xl' : 'absolute inset-0'}
+                        style={cozy
+                            ? { background: COZY.card, border: `4px solid ${COZY.cardBorder}`, boxShadow: `0 8px 0 ${COZY.cardEdge}` }
+                            : { background: 'radial-gradient(closest-side, rgba(255,255,255,0.18), transparent)' }}
+                    />
                     <Lottie animationData={lottieData} loop autoplay className="relative w-full h-full" />
                 </motion.div>
 
@@ -128,10 +158,13 @@ export const TrainerLessonCompleteScreen = ({
                 >
                     {chainHint ? (
                         <>
-                            <h1 className="text-3xl sm:text-4xl font-black [text-shadow:0_2px_12px_rgba(0,0,0,0.5)]" style={{ color: '#FBBF24' }}>
+                            <h1
+                                className="text-3xl sm:text-4xl font-black [text-shadow:0_2px_12px_rgba(0,0,0,0.5)]"
+                                style={cozy ? { color: COZY.headline, textShadow: `0 3px 0 ${COZY.headlineShadow}, 0 6px 0 rgba(0,0,0,0.35)` } : { color: '#FBBF24' }}
+                            >
                                 Серия x{chainHint.count} без остановки!
                             </h1>
-                            <p className="text-base sm:text-lg text-[#D5DEE5] mt-2">
+                            <p className="text-base sm:text-lg mt-2" style={{ color: cozy ? COZY.textSoft : '#D5DEE5' }}>
                                 Ещё {chainHint.remaining} {lessonsWord} без ошибок — и гарантированный мифический кейс!
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src="/chests/myth0001.svg" alt="" className="inline-block w-6 h-6 sm:w-7 sm:h-7 ml-1.5 -mb-1.5 align-middle" />
@@ -140,12 +173,14 @@ export const TrainerLessonCompleteScreen = ({
                     ) : (
                         <>
                             <h1
-                                className="text-3xl sm:text-4xl font-black bg-clip-text text-transparent"
-                                style={{ backgroundImage: 'linear-gradient(90deg, #38BDF8, #A78BFA)' }}
+                                className={cozy ? 'text-3xl sm:text-4xl font-black' : 'text-3xl sm:text-4xl font-black bg-clip-text text-transparent'}
+                                style={cozy
+                                    ? { color: COZY.headline, textShadow: `0 3px 0 ${COZY.headlineShadow}, 0 6px 0 rgba(0,0,0,0.35)` }
+                                    : { backgroundImage: 'linear-gradient(90deg, #38BDF8, #A78BFA)' }}
                             >
                                 Вы запустили серию!
                             </h1>
-                            <p className="text-base sm:text-lg text-[#D5DEE5] mt-2">
+                            <p className="text-base sm:text-lg mt-2" style={{ color: cozy ? COZY.textSoft : '#D5DEE5' }}>
                                 {streak} {streakWord} подряд? Так держать!
                             </p>
                         </>
@@ -154,11 +189,19 @@ export const TrainerLessonCompleteScreen = ({
             </div>
 
             <div className="relative z-10 flex-1 flex flex-col justify-center px-4 py-4 min-h-0">
+                {cozy ? (
+                <div className="flex gap-3 w-full">
+                    <CozyStatCard label="Очки опыта" value={`${xp}`} icon={<Zap className="w-5 h-5" fill="currentColor" />} color={COZY_ACCENT.mega.fill} edge={COZY_ACCENT.mega.edge} shown={shownCards >= 1} />
+                    <CozyStatCard label="Серия" value={`x${streak}`} icon={<Target className="w-5 h-5" />} color={COZY_ACCENT.rare.fill} edge={COZY_ACCENT.rare.edge} shown={shownCards >= 2} />
+                    <CozyStatCard label="Время" value={formatElapsed(elapsedSeconds)} icon={<Timer className="w-5 h-5" />} color={COZY.grass} edge={COZY.grassEdge} shown={shownCards >= 3} />
+                </div>
+                ) : (
                 <div className="flex gap-3 w-full">
                     <StatCard label="Очки опыта" value={`${xp}`} icon={<Zap className="w-5 h-5" fill="currentColor" />} color="#FBBF24" shown={shownCards >= 1} />
                     <StatCard label="Серия" value={`x${streak}`} icon={<Target className="w-5 h-5" />} color="#38BDF8" shown={shownCards >= 2} />
                     <StatCard label="Время" value={formatElapsed(elapsedSeconds)} icon={<Timer className="w-5 h-5" />} color="#34D399" shown={shownCards >= 3} />
                 </div>
+                )}
             </div>
 
             <motion.div
@@ -168,14 +211,29 @@ export const TrainerLessonCompleteScreen = ({
                 className="relative z-10 px-4 pb-4 pt-2 shrink-0 flex flex-col gap-3"
                 style={{ pointerEvents: buttonsShown ? 'auto' : 'none' }}
             >
+                {cozy ? (
+                    <motion.button
+                        onClick={onPrimary}
+                        whileTap={{ y: 5, boxShadow: `0 1px 0 ${COZY.grassEdge}` }}
+                        className="flex w-full items-center justify-center gap-2.5 rounded-xl px-8 py-4 font-black text-lg uppercase tracking-[0.08em]"
+                        style={{ background: COZY.grass, color: COZY.darkText, boxShadow: `0 6px 0 ${COZY.grassEdge}` }}
+                    >
+                        {primaryLabel}
+                        <ArrowRight className="h-5 w-5" />
+                    </motion.button>
+                ) : (
                 <PremiumButton onClick={onPrimary} accent="#78C93C">
                     {primaryLabel}
                     <ArrowRight className="h-5 w-5" />
                 </PremiumButton>
+                )}
                 {secondaryLabel && onSecondary && (
                     <button
                         onClick={onSecondary}
-                        className="w-full rounded-2xl border-2 border-[#3A464E] bg-[#151F23]/80 px-6 py-3 text-sm font-bold uppercase tracking-[0.1em] text-[#D5DEE5] transition-colors hover:border-[#5A6B76]"
+                        className={cozy
+                            ? 'w-full rounded-xl px-6 py-3 text-sm font-bold uppercase tracking-[0.1em]'
+                            : 'w-full rounded-2xl border-2 border-[#3A464E] bg-[#151F23]/80 px-6 py-3 text-sm font-bold uppercase tracking-[0.1em] text-[#D5DEE5] transition-colors hover:border-[#5A6B76]'}
+                        style={cozy ? { background: COZY.wood, color: '#FFE8C7', border: `3px solid ${COZY.woodBorder}`, boxShadow: `0 5px 0 ${COZY.woodEdge}` } : undefined}
                     >
                         {secondaryLabel}
                     </button>
