@@ -3,8 +3,8 @@
 // Тестовая страница молний тренажёра (components/LightningStrike.tsx):
 // кнопка — удар молнии со звуком, как при 5 подряд (жёлтая) и 8 подряд (синяя).
 
-import { useState } from 'react'
-import LightningStrike, { type LightningVariant } from '@/components/LightningStrike'
+import { useEffect, useState } from 'react'
+import LightningStrike, { preloadLightningSounds, type LightningVariant } from '@/components/LightningStrike'
 
 const BUTTONS: { variant: LightningVariant; label: string; hint: string; color: string }[] = [
     { variant: 'yellow', label: 'Обычная молния', hint: '5 подряд · 1 с', color: '#FFE042' },
@@ -13,6 +13,7 @@ const BUTTONS: { variant: LightningVariant; label: string; hint: string; color: 
 
 export default function TestLightningPage() {
     const [strike, setStrike] = useState<{ key: number; variant: LightningVariant } | null>(null)
+    useEffect(() => preloadLightningSounds(), [])
 
     return (
         <div className="min-h-screen bg-[#0F1419] text-white p-6">

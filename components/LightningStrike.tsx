@@ -3,15 +3,15 @@
 // Удар молнии в тренажёре — покадровая анимация из SVG-кадров пользователя,
 // 24 fps (кадры: components/lightning-frames.ts, генерируются
 // scripts/genLightningFrames.py из public/SVGs/manyStrikes[Blue]/*.svg).
-//   yellow — 24 кадра (1с), 5 подряд, звук /StrikeSnd.wav
-//   blue   — 36 кадров (1.5с), 8 подряд, звук /StrikeBlueSound.wav
+//   yellow — 24 кадра (1с), 5 подряд, звук /StrikeSnd.m4a
+//   blue   — 36 кадров (1.5с), 8 подряд, звук /StrikeBlueSound.m4a
 // Кадры переключаются setInterval'ом (не rAF): одна смена <path> за кадр —
 // дёшево и на iPhone. Показывается поверх экрана (TQUIZ.tsx).
 
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { playSound } from '@/lib/sound'
+import { playSound, preloadSound } from '@/lib/sound'
 import { nunitoCyrillicBlack } from '@/lib/fonts'
 import { LIGHTNING_BLUE, LIGHTNING_YELLOW, type LightningSet } from '@/components/lightning-frames'
 
@@ -20,8 +20,8 @@ export type LightningVariant = 'yellow' | 'blue'
 // stroke — обводка надписи: цвет молнии, но заметно темнее, чтобы белые
 // буквы не сливались с самой молнией.
 const VARIANTS: Record<LightningVariant, { set: LightningSet; sound: string; flash: string; stroke: string }> = {
-    yellow: { set: LIGHTNING_YELLOW, sound: '/StrikeSnd.wav', flash: '#FFE042', stroke: '#B07A00' },
-    blue: { set: LIGHTNING_BLUE, sound: '/StrikeBlueSound.wav', flash: '#6BFFFF', stroke: '#0A7FA0' },
+    yellow: { set: LIGHTNING_YELLOW, sound: '/StrikeSnd.m4a', flash: '#FFE042', stroke: '#B07A00' },
+    blue: { set: LIGHTNING_BLUE, sound: '/StrikeBlueSound.m4a', flash: '#6BFFFF', stroke: '#0A7FA0' },
 }
 
 // Надпись (label) держится ещё столько после окончания молнии (по просьбе
@@ -31,6 +31,12 @@ const LABEL_HOLD_MS = 0
 const LABEL_OUT_MS = 400
 
 const FPS = 24
+
+// Звуки молний (AAC 192 кбит/с из WAV-оригиналов, public/sounds-originals/) —
+// вызывать при открытии урока, чтобы первый удар не ждал загрузки звука.
+export const preloadLightningSounds = () => {
+    Object.values(VARIANTS).forEach((v) => preloadSound(v.sound))
+}
 
 export const LightningStrike = ({ variant = 'yellow', label, onDone }: { variant?: LightningVariant; label?: string; onDone: () => void }) => {
     const { set, sound, flash, stroke } = VARIANTS[variant]

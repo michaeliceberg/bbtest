@@ -5,6 +5,7 @@
 import React, { useEffect, useState, useRef, useCallback } from "react"
 import { motion } from "framer-motion"
 import dynamic from "next/dynamic"
+import { preloadSound } from "@/lib/sound"
 import Confetti from "react-confetti"
 import { useWindowSize } from "react-use"
 import TrainerQuestion from "../../../components/trainer-question"
@@ -177,6 +178,12 @@ export default function TQuiz({
   const [lightningStrikeActive, setLightningStrikeActive] = useState(false)
   const [lightningVariant, setLightningVariant] = useState<'yellow' | 'blue'>('yellow')
   const [lightningLabel, setLightningLabel] = useState<string | undefined>(undefined)
+  // Звуки молний грузим заранее, при открытии урока (не импортируем сам
+  // LightningStrike статически — он лениво подгружается через dynamic).
+  useEffect(() => {
+    preloadSound('/StrikeSnd.m4a')
+    preloadSound('/StrikeBlueSound.m4a')
+  }, [])
   const [showLightning, setShowLightning] = useState(false)
   const [showStreakCelebration, setShowStreakCelebration] = useState(false)
   // Какой именно рубеж серии сейчас празднуем — 3 или 7 (см.

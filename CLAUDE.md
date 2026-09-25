@@ -12048,8 +12048,11 @@ span` показывает единственный видимый текст "�
 
 `components/LightningStrike.tsx` (`variant: 'yellow' | 'blue'`) — покадровая анимация
 24 fps из SVG пользователя: жёлтая — `public/SVGs/manyStrikes/` (24 кадра, 1с, звук
-`/StrikeSnd.wav`), синяя — `public/SVGs/manyStrikesBlue/` (36 кадров, 1.5с, звук
-`/StrikeBlueSound.wav`). Кадры лежат в `components/lightning-frames.ts`, который
+`/StrikeSnd.m4a`), синяя — `public/SVGs/manyStrikesBlue/` (36 кадров, 1.5с, звук
+`/StrikeBlueSound.m4a`). Звуки — AAC 192 кбит/с 44,1 кГц (`afconvert -f m4af -d aac -s 0
+-b 192000`) из WAV-оригиналов `public/sounds-originals/`; предзагружаются при открытии
+урока (`preloadSound` в `lib/sound.ts`). Не сжимать звуки понижением частоты/разрядности
+(16 кГц/8 бит — глухо и с шипением). Кадры лежат в `components/lightning-frames.ts`, который
 ГЕНЕРИРУЕТСЯ `python3 scripts/genLightningFrames.py` (при замене/добавлении кадров —
 перезапустить; берутся только залитые пути, hairline-обводки экспорта отбрасываются;
 атрибут ищется как ` d="` — без пробела regex цеплял `id="Layer0_0_FILL"` и все

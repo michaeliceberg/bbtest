@@ -22,3 +22,13 @@ export function playSound(src: string, volume = 1) {
     audio.currentTime = 0
     audio.play().catch(() => {})
 }
+
+// Заранее скачать и положить в кэш звук, чтобы первый play() не ждал сети
+// (например, звуки молний — при открытии урока тренажёра).
+export function preloadSound(src: string) {
+    if (typeof window === 'undefined' || cache.has(src)) return
+    const audio = new Audio(src)
+    audio.preload = 'auto'
+    audio.load()
+    cache.set(src, audio)
+}
