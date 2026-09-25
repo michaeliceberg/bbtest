@@ -46,14 +46,8 @@ export const StreakCelebrationScreen = ({ animationData, onNext, milestone, them
         transition={{ type: 'spring', bounce: 0.5, duration: 0.7 }}
         className="relative h-52 w-52"
       >
-        <div
-          className={cozy ? 'absolute inset-0 rounded-3xl' : 'absolute inset-0 rounded-full'}
-          style={
-            cozy
-              ? { background: COZY.card, border: `4px solid ${COZY.cardBorder}`, boxShadow: `0 8px 0 ${COZY.cardEdge}` }
-              : { background: `radial-gradient(closest-side, ${copy.accent}55, transparent)` }
-          }
-        />
+        {/* Тёплый стиль — Lottie прямо на фоне, без подложки. */}
+        {!cozy && <div className="absolute inset-0 rounded-full" style={{ background: `radial-gradient(closest-side, ${copy.accent}55, transparent)` }} />}
         <Lottie animationData={animationData} loop autoplay className="relative h-full w-full" />
       </motion.div>
 

@@ -141,12 +141,8 @@ export const TrainerLessonCompleteScreen = ({
                     transition={{ type: 'spring', bounce: 0.5, duration: 0.8 }}
                     className="relative w-56 h-56 sm:w-72 sm:h-72"
                 >
-                    <div
-                        className={cozy ? 'absolute inset-4 rounded-3xl' : 'absolute inset-0'}
-                        style={cozy
-                            ? { background: COZY.card, border: `4px solid ${COZY.cardBorder}`, boxShadow: `0 8px 0 ${COZY.cardEdge}` }
-                            : { background: 'radial-gradient(closest-side, rgba(255,255,255,0.18), transparent)' }}
-                    />
+                    {/* Тёплый стиль — Lottie прямо на фоне, без подложки. */}
+                    {!cozy && <div className="absolute inset-0" style={{ background: 'radial-gradient(closest-side, rgba(255,255,255,0.18), transparent)' }} />}
                     <Lottie animationData={lottieData} loop autoplay className="relative w-full h-full" />
                 </motion.div>
 

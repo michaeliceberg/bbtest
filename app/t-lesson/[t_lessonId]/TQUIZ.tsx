@@ -171,6 +171,12 @@ export default function TQuiz({
   // механики, случайно совпавшее название переменной.
   const triggerDailyStreakToast = useStreakCelebrationStore((state) => state.showStreakCelebration)
   const showLevelUp = useLevelUpStore((state) => state.showLevelUp)
+  const levelUpQueueLength = useLevelUpStore((state) => state.queue.length)
+  // Новый уровень за этот урок показывается ПОСЛЕ экрана итогов (по «Дальше»),
+  // а не поверх него: событие копится здесь, дальше — кейсы/квесты, когда
+  // экран уровня закроют.
+  const pendingLevelUpRef = useRef<{ oldLevel: number; newLevel: number; gems: number } | null>(null)
+  const [waitingLevelUp, setWaitingLevelUp] = useState(false)
   const showQuestComplete = useQuestCompleteStore((state) => state.showQuestComplete)
 
   const [streak, setStreak] = useState(0)
@@ -329,13 +335,28 @@ export default function TQuiz({
   // Кнопка «Дальше» на итогах: сперва мегакейс за угаданный горячий вопрос
   // (если был), потом запланированный кейс, потом «Квесты дня».
   const continueAfterSummary = useCallback(() => {
+    const lvl = pendingLevelUpRef.current
+    if (lvl) {
+      pendingLevelUpRef.current = null
+      showLevelUp(lvl.oldLevel, lvl.newLevel, lvl.gems)
+      setWaitingLevelUp(true)
+      return
+    }
     if (hotQuestionWonRef.current) {
       hotQuestionWonRef.current = false
       setShowHotCaseReel(true)
       return
     }
     openPlannedCase()
-  }, [openPlannedCase])
+  }, [openPlannedCase, showLevelUp])
+
+  // Экран нового уровня закрыли — продолжаем финал (кейсы/квесты).
+  useEffect(() => {
+    if (waitingLevelUp && levelUpQueueLength === 0) {
+      setWaitingLevelUp(false)
+      continueAfterSummary()
+    }
+  }, [waitingLevelUp, levelUpQueueLength, continueAfterSummary])
 
   // Флаг для предотвращения двойной обработки
   const [isProcessing, setIsProcessing] = useState(false)
@@ -521,7 +542,7 @@ export default function TQuiz({
       bossWinsRef.current = progressResult?.bossWins ?? 0
       if (progressResult?.leveledUp && progressResult.newLevel) {
         const gained = progressResult.levelsGained ?? 1
-        showLevelUp(progressResult.newLevel - gained, progressResult.newLevel, progressResult.levelUpGems ?? 0)
+        pendingLevelUpRef.current = { oldLevel: progressResult.newLevel - gained, newLevel: progressResult.newLevel, gems: progressResult.levelUpGems ?? 0 }
       }
       // Урок тренажёра продлевает ТОТ ЖЕ курсовый стрик, что и задачи в
       // задачнике (см. lib/streak.ts) — streakExtended==true только если

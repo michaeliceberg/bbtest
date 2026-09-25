@@ -99,14 +99,8 @@ export const LevelUpScreen = ({ event, onClose, theme = 'metal', overlay = true 
                 transition={{ type: 'spring', bounce: 0.5, duration: 0.7, delay: 0.1 }}
                 className="relative mt-4 h-44 w-44"
             >
-                <div
-                    className={cozy ? 'absolute inset-0 rounded-3xl' : 'absolute inset-0 rounded-full'}
-                    style={
-                        cozy
-                            ? { background: COZY.card, border: `4px solid ${COZY.cardBorder}`, boxShadow: `0 8px 0 ${COZY.cardEdge}` }
-                            : { background: `radial-gradient(closest-side, ${ACCENT}55, transparent)` }
-                    }
-                />
+                {/* Тёплый стиль — Lottie прямо на фоне, без подложки. */}
+                {!cozy && <div className="absolute inset-0 rounded-full" style={{ background: `radial-gradient(closest-side, ${ACCENT}55, transparent)` }} />}
                 {lottie && <Lottie animationData={lottie} loop autoplay className="relative h-full w-full" />}
             </motion.div>
 
