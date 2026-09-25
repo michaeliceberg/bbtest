@@ -615,7 +615,7 @@ export default function TQuiz({
           // 5 подряд (и 10, 15…) — жёлтая (24 кадра, 1с). При совпадении — синяя.
           if (newStreak % 8 === 0 || newStreak % 5 === 0) {
             setLightningVariant(newStreak % 8 === 0 ? 'blue' : 'yellow')
-            setLightningLabel(newStreak % 5 === 0 ? `КОМБО x${newStreak}` : undefined)
+            setLightningLabel(`КОМБО x${newStreak}`)
             setLightningStrikeKey(k => k + 1)
             setLightningStrikeActive(true)
           }

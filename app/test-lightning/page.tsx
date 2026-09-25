@@ -39,7 +39,7 @@ export default function TestLightningPage() {
                 ))}
             </div>
             {strike && (
-                <LightningStrike key={strike.key} variant={strike.variant} label={strike.variant === 'yellow' ? 'КОМБО x5' : undefined} onDone={() => setStrike(null)} />
+                <LightningStrike key={strike.key} variant={strike.variant} label={strike.variant === 'yellow' ? 'КОМБО x5' : 'КОМБО x8'} onDone={() => setStrike(null)} />
             )}
         </div>
     )
