@@ -2,7 +2,7 @@
 
 // components/trainer-question.tsx
 
-import TrainerProgressBar from '@/components/trainer-progress-bar'
+import TrainerProgressBar, { streakMode, COMBO_BLUE_GRADIENT } from '@/components/trainer-progress-bar'
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import dynamic from "next/dynamic"
 
@@ -520,7 +520,14 @@ export default function TrainerQuestion({
     }
   };
 
+  // Серия 8+ (синяя молния): кнопка в стиле голубого прогресс-бара.
+  // После ошибки остаётся красной «понятно» (ошибка и так сбрасывает серию).
+  const comboBlue = streakMode(streak) === 'blue' && answerState !== "incorrect"
+  const comboBlueActive = comboBlue && (answerState === "correct" || answerState === "selected")
+
   const getButtonColor = () => {
+    if (comboBlueActive) return "animate-shine-sweep"
+    if (comboBlue) return "bg-[#12303A]"
     if (answerState === "correct" || answerState === "selected") {
       return "bg-[#A1D151] active:bg-[#876E4A]"
     } else if (answerState === "incorrect") {
@@ -530,6 +537,8 @@ export default function TrainerQuestion({
   }
 
   const getButtonTextColor = () => {
+    if (comboBlueActive) return "text-[#06303C]"
+    if (comboBlue) return "text-[#BFF6FF]"
     if (answerState === "correct" || answerState === "incorrect" || answerState === "selected") {
       return "text-[#151F24]"
     }
@@ -791,13 +800,19 @@ export default function TrainerQuestion({
             shadow-lg relative
             transform active:translate-y-1
           `}
-          style={{
-            boxShadow: answerState === "correct"
-              ? "0 4px 0 #876E4A"
-              : answerState === "incorrect"
-              ? "0 4px 0 #C8524E"
-              : "0 4px 0 #1A2A3A"
-          }}
+          style={
+            comboBlueActive
+              ? { background: COMBO_BLUE_GRADIENT, boxShadow: "0 4px 0 #157FA0, 0 0 18px rgba(107,255,255,0.55)" }
+              : comboBlue
+              ? { boxShadow: "0 4px 0 #0E2A33, inset 0 0 0 2px #1C9CC4, 0 0 12px rgba(107,255,255,0.25)" }
+              : {
+                  boxShadow: answerState === "correct"
+                    ? "0 4px 0 #876E4A"
+                    : answerState === "incorrect"
+                    ? "0 4px 0 #C8524E"
+                    : "0 4px 0 #1A2A3A"
+                }
+          }
         >
           {getButtonText()}
         </button>

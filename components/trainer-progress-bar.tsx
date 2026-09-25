@@ -19,6 +19,9 @@ import { useEffect, useRef, useState } from 'react'
 
 type Mode = 'normal' | 'yellow' | 'blue'
 
+// Голубой градиент серии 8+ — общий с кнопкой «ответить» (trainer-question.tsx).
+export const COMBO_BLUE_GRADIENT = 'linear-gradient(90deg, #1C9CC4 0%, #6BFFFF 60%, #DFFFFF 100%)'
+
 const MODE_STYLE: Record<Exclude<Mode, 'normal'>, { gradient: string; glow: string; spark: string; hot: string }> = {
     yellow: {
         gradient: 'linear-gradient(90deg, #F5B300 0%, #FFE042 60%, #FFF6B0 100%)',
@@ -27,7 +30,7 @@ const MODE_STYLE: Record<Exclude<Mode, 'normal'>, { gradient: string; glow: stri
         hot: '#FFF8D0',
     },
     blue: {
-        gradient: 'linear-gradient(90deg, #1C9CC4 0%, #6BFFFF 60%, #DFFFFF 100%)',
+        gradient: COMBO_BLUE_GRADIENT,
         glow: 'rgba(107,255,255,0.75)',
         spark: '#6BFFFF',
         hot: '#E8FFFF',
@@ -41,6 +44,7 @@ const INTENSITY: Record<Exclude<Mode, 'normal'>, { tipDelay: [number, number]; e
 }
 
 const MAX_PARTICLES = 28
+
 
 export const streakMode = (streak: number): Mode => (streak >= 8 ? 'blue' : streak >= 5 ? 'yellow' : 'normal')
 
