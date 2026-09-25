@@ -53,7 +53,7 @@ import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { LOTTIE_STEP_BY_STEP_FIERY_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
 import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
-import { playSound } from '@/lib/sound'
+import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 
 // lottie-react трогает document на импорте — без ssr:false падает на
 // сервере (та же SSR-ловушка, что уже чинили у TrainerMascot/
@@ -585,6 +585,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
         if (quizAnswers[stepIdx] !== null) return
         if (quizWrongTried.includes(value)) return
         if (value !== correct) {
+            playSound(WRONG_ANSWER_SOUND)
             setHadMistake(true)
             setQuizWrongTried((prev) => [...prev, value])
             setQuizWrongFlash(pickWrongTryPhrase())
@@ -609,6 +610,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
         setExistAnswers(next)
         setExistChecked(true)
         if (guess !== EXIST_ITEMS[existIndex].correct) {
+            playSound(WRONG_ANSWER_SOUND)
             setHadMistake(true)
             setExistNextLabel(pickWalkthroughWrongLabel('Дальше'))
         } else {

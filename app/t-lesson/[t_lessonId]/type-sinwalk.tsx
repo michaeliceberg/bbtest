@@ -57,7 +57,7 @@ import {
     AdminSceneMap, MAP_INTRO_COLOR, MAP_PRACTICE_COLOR, type AdminMapEntry,
 } from '@/components/geometry/WalkthroughLog'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
-import { playSound } from '@/lib/sound'
+import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 
 // Пауза ПОСЛЕ клика "Дальше", ДО начала новой анимации следующей сцены
 // (зума, дорисовки стороны и т.п.) — по прямой просьбе пользователя,
@@ -449,6 +449,7 @@ export const TypeSinWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) =>
             setChecked(true)
             setTrialNextLabel(pickWalkthroughNextLabel('Дальше'))
         } else {
+            playSound(WRONG_ANSWER_SOUND)
             setHadMistake(true)
             setWrongTried((prev) => [...prev, side])
             setWrongFlash(pickWrongTryPhrase())

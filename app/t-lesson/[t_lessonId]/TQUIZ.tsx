@@ -5,7 +5,7 @@
 import React, { useEffect, useState, useRef, useCallback } from "react"
 import { motion } from "framer-motion"
 import dynamic from "next/dynamic"
-import { preloadSound } from "@/lib/sound"
+import { preloadSound, WIN_SOUND } from "@/lib/sound"
 import Confetti from "react-confetti"
 import { useWindowSize } from "react-use"
 import TrainerQuestion from "../../../components/trainer-question"
@@ -187,6 +187,7 @@ export default function TQuiz({
     preloadSound('/StrikeBlueSound.m4a')
     // Звук барабана кейса (кейс открывается в конце урока).
     preloadSound('/roulete.m4a')
+    preloadSound(WIN_SOUND)
   }, [])
   const [showLightning, setShowLightning] = useState(false)
   const [showStreakCelebration, setShowStreakCelebration] = useState(false)
@@ -335,6 +336,10 @@ export default function TQuiz({
   // рендере (аргумент useRef игнорируется на последующих) — не требует
   // отдельного useEffect.
   const lessonStartRef = useRef(Date.now())
+  // Момент последнего ответа — время урока считается до него (без экранов
+  // наград/кейса и без простоя на экране итогов; раньше считалось до момента
+  // показа итогов и росло при каждой перерисовке — пользователь видел «804:10»).
+  const lastAnswerAtRef = useRef<number | null>(null)
 
   // "Работа над ошибками" — по завершении обычного прохода, если были
   // неверные ответы, урок не заканчивается, а повторяет именно эти
@@ -546,6 +551,7 @@ export default function TQuiz({
     if (isProcessing || quizCompleted) return
     if (processedQuestionsRef.current.has(currentQuestionIndex)) return
     processedQuestionsRef.current.add(currentQuestionIndex)
+    lastAnswerAtRef.current = Date.now()
 
     // "Горячий вопрос" — факультативный, НЕ входит в счёт/сердечки/
     // finishList/работу над ошибками (см. type-hot.tsx: сам компонент уже
@@ -924,7 +930,7 @@ export default function TQuiz({
     const numQuestions = finishList.length
     const numQuestionsRight = finishList.filter(el => el.isRight).length
     const message = `✅ ${userName}  ${t_lessonTitle} ${numQuestionsRight - 1} / ${numQuestions - 1}`
-    const elapsedSeconds = Math.max(0, Math.round((Date.now() - lessonStartRef.current) / 1000))
+    const elapsedSeconds = Math.max(0, Math.round(((lastAnswerAtRef.current ?? Date.now()) - lessonStartRef.current) / 1000))
     const earnedXp = xpForAmount(TRAINER_LESSON_TRAINING_PTS)
 
     return (

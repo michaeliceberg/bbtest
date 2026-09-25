@@ -146,3 +146,8 @@ export function playSoundTracked(src: string, onEnded?: () => void, volume = 1):
         audio.pause()
     }
 }
+
+// Общие звуки ответа — один источник правды для тренажёра, задачника и
+// пошаговых разборов (*WALK).
+export const WRONG_ANSWER_SOUND = '/snd-answer-wrong.mp3'
+export const WIN_SOUND = '/snd-harp-win.mp3'

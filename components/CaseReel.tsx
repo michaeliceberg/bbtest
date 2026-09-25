@@ -180,7 +180,7 @@ const CaseButton = ({ accent, glow, onClick, children }: { accent: string; glow:
 // артборда сделан прозрачным (байт альфы цвета #282828), у rare/mythic/mega
 // цвет звёзд перекрашен в светлый тон фона страницы (common — исходный цвет).
 // Растянуты на весь экран (Fit.Cover), полупрозрачные.
-const CaseStars = ({ tier }: { tier: LessonCaseTier }) => {
+export const CaseStars = ({ tier }: { tier: LessonCaseTier }) => {
     const { RiveComponent } = useRive({
         src: `/rive/stars-${tier}.riv`,
         stateMachines: 'State Machine 1',

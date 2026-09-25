@@ -39,7 +39,7 @@ import {
 import { hexToRgba } from '@/src/constants/lessonButtonColors'
 import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
 import { cn } from '@/lib/utils'
-import { playSound } from '@/lib/sound'
+import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 
 // lottie-react трогает document на импорте — только ssr:false.
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
@@ -338,6 +338,7 @@ export const TypeLegFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
             setWrongFlash(null)
             setNextLabel(pickWalkthroughNextLabel(isLastScene ? 'Готово' : 'Дальше'))
         } else {
+            playSound(WRONG_ANSWER_SOUND)
             setHadMistake(true)
             setWrongTried((w) => [...w, opt.text])
             setWrongFlash(pickWrongTryPhrase())

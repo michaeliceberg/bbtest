@@ -3,7 +3,7 @@
 'use client';
 
 import { motion } from "framer-motion";
-import { playSound, preloadSound } from "@/lib/sound";
+import { playSound, preloadSound, WRONG_ANSWER_SOUND } from "@/lib/sound";
 import { rightAudioList, wrongAudioList } from "@/lib/memeAudio";
 import { SuperType, challengeOptions, challengeProgress, challenges } from "@/db/schema";
 import { useEffect, useState, useTransition, useRef } from "react";
@@ -292,14 +292,14 @@ export const Quiz = ({
     // но только здесь, в уроке задачника (сами окна смонтированы на всём сайте).
     useEffect(() => {
         preloadSound('/correct.wav')
-        preloadSound('/incorrect.wav')
+        preloadSound(WRONG_ANSWER_SOUND)
         rightAudioList.forEach(preloadSound)
         wrongAudioList.forEach(preloadSound)
     }, [])
 
     const playFinishSound = () => playSound('/finish.wav')
     const playCorrectSound = () => playSound('/correct.wav')
-    const playIncorrectSound = () => playSound('/incorrect.wav')
+    const playIncorrectSound = () => playSound(WRONG_ANSWER_SOUND)
 
     useEffect(() => {
         if (challenges.length === challengesDone.length) {

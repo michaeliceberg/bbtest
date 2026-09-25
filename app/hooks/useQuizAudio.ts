@@ -62,18 +62,18 @@
 // Через lib/sound.ts (Web Audio, предзагрузка и раскодирование заранее):
 // через HTMLAudioElement на iPhone звук заметно запаздывал после нажатия.
 import { useCallback, useEffect } from "react"
-import { playSound, preloadSound } from "@/lib/sound"
+import { playSound, preloadSound, WRONG_ANSWER_SOUND } from "@/lib/sound"
 
 export const useQuizAudio = (finishAudioSrc: string) => {
   useEffect(() => {
     preloadSound('/correct.wav')
-    preloadSound('/incorrect.wav')
+    preloadSound(WRONG_ANSWER_SOUND)
     preloadSound(finishAudioSrc)
   }, [finishAudioSrc])
 
   const play = useCallback((type: 'correct' | 'incorrect' | 'finish') => {
     const src = type === 'correct' ? '/correct.wav'
-      : type === 'incorrect' ? '/incorrect.wav'
+      : type === 'incorrect' ? WRONG_ANSWER_SOUND
       : finishAudioSrc
     playSound(src)
   }, [finishAudioSrc])

@@ -62,7 +62,7 @@ import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
 import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
-import { playSound } from '@/lib/sound'
+import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 
 // lottie-react трогает document на импорте — без ssr:false падает на
 // сервере (та же SSR-ловушка, что уже чинили у TrainerMascot/question-
@@ -785,6 +785,7 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
             setChecked(true)
             setNextLabel(pickWalkthroughNextLabel(trialIndex + 1 >= CONCEPT_QUIZ.length ? 'Готово' : 'Дальше'))
         } else {
+            playSound(WRONG_ANSWER_SOUND)
             setHadMistake(true)
             setWrongTried((w) => [...w, k])
             setWrongFlash(pickWrongTryPhrase())

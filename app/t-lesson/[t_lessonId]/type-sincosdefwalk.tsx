@@ -50,7 +50,7 @@ import {
 } from '@/components/geometry/WalkthroughLog'
 import { hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
-import { playSound } from '@/lib/sound'
+import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 
 type Props = {
     question: QuestionType
@@ -350,6 +350,7 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
             setChecked(true)
             setWrongFlash(null)
         } else {
+            playSound(WRONG_ANSWER_SOUND)
             setHadMistake(true)
             setWrongFlash(pickWrongTryPhrase())
         }

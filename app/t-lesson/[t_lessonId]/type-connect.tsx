@@ -2,6 +2,7 @@
 
 'use client'
 
+import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import React, { useEffect, useState } from 'react'
 import { QuestionType } from './page'
 import Latex from 'react-latex-next';
@@ -131,7 +132,8 @@ export const TypeConnect = ({ question, onAnswer, onAllPairsMatched }: Props) =>
                 setShowSuccess(true)
                 setTimeout(() => setShowSuccess(false), 300)
             } else {
-                // Неправильный ответ - просто показываем ошибку и сбрасываем выбор
+                // Неправильный ответ - звук ошибки, показываем ошибку и сбрасываем выбор
+                playSound(WRONG_ANSWER_SOUND)
                 setShowError(true)
                 setTimeout(() => setShowError(false), 500)
             }

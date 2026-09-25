@@ -1,23 +1,27 @@
 // components/trainer-lesson-complete-screen.tsx
 //
-// Экран завершения урока тренажёра — по прямой просьбе пользователя,
-// редизайн по присланному скриншоту (Duolingo-style "серия" экран):
-// персонаж сверху, заголовок "Вы запустили серию!" + подзаголовок с
-// реальным числом верных ответов подряд, три карточки-статистики (очки
-// опыта / серия / время) и одна главная кнопка снизу. Заменяет прежний
-// плоский экран "Завершено! / Правильно X из Y".
+// Экран завершения урока тренажёра — в премиальном стиле экрана кейсов
+// (components/CaseReel.tsx): тёмный фон со свечениями и виньеткой,
+// взлетающие звёзды (Rive, CaseStars), подсветка позади маскота, карточки в
+// металлической рамке. Статистика (очки опыта / серия / время) появляется
+// ПО ОЧЕРЕДИ, у каждой цифры прокручиваются как барабан (RollingNumber, в
+// духе motion.dev «Number Trend»). При открытии — звук арфы (WIN_SOUND).
 //
-// Все три цифры — честные, посчитанные в TQUIZ.tsx за время реальной
-// попытки (maxStreakRef/xpForAmount(TRAINER_LESSON_TRAINING_PTS)/
-// Date.now()-lessonStartRef.current), не выдуманные здесь.
+// Все три цифры — честные, посчитанные в TQUIZ.tsx за реальную попытку
+// (maxStreakRef / xpForAmount(TRAINER_LESSON_TRAINING_PTS) / время от
+// открытия урока до последнего ответа).
+// Анимации — только transform/opacity (дёшево на iPhone, см. CLAUDE.md).
 
 'use client'
 
+import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
-import { Zap, Target, Timer } from 'lucide-react'
-import { Button } from './ui/button'
+import { Zap, Target, Timer, ArrowRight } from 'lucide-react'
 import { declensionRu } from '@/usefulFunctions'
+import { playSound, WIN_SOUND } from '@/lib/sound'
+import { RollingNumber } from '@/components/rolling-number'
+import { CaseStars } from '@/components/CaseReel'
 
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 
@@ -31,41 +35,48 @@ type Props = {
     secondaryLabel?: string
     onSecondary?: () => void
     // "Ударный час" ещё не дошёл до рубежа (см. actions/roll-lesson-case.ts,
-    // TQUIZ.tsx) — раньше показывалось отдельной мелкой строкой НАД этим
-    // экраном (`text-xs`, легко пропускалась). По прямой просьбе
-    // пользователя — теперь занимает место самого заголовка "Вы запустили
-    // серию!" (тот же крупный формат) + сундук вместо маскота-персонажа.
+    // TQUIZ.tsx) — вместо заголовка "Вы запустили серию!".
     chainHint?: { count: number; remaining: number } | null
 }
 
+// мин:сек, без долей секунды.
 const formatElapsed = (seconds: number) => {
     const m = Math.floor(seconds / 60)
-    const s = seconds % 60
+    const s = Math.floor(seconds % 60)
     return `${m}:${String(s).padStart(2, '0')}`
 }
 
-// Карточка-статистика — цветная плашка-заголовок сверху ("ОЧКИ ОПЫТА" и
-// т.п.) + бордер-бокс с иконкой и значением снизу, тем же цветом. Три
-// цвета зафиксированы под конкретный смысл (жёлтый=опыт, синий=серия,
-// зелёный=скорость), как на присланном скриншоте — не через общую
-// tone-палитру проекта (TONE_STYLE в trainer-quest-rewards-screen.tsx),
-// т.к. тут смысл карточек другой (не редкость награды, а тип метрики).
+// Тайминг последовательного появления (мс от открытия экрана).
+const CARD_FIRST_MS = 900
+const CARD_STEP_MS = 750
+const BUTTONS_AFTER_MS = 500
+
 const StatCard = ({
-    label, value, icon, color, delay,
-}: { label: string; value: string; icon: React.ReactNode; color: string; delay: number }) => (
+    label, value, icon, color, shown,
+}: { label: string; value: string; icon: React.ReactNode; color: string; shown: boolean }) => (
     <motion.div
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay, duration: 0.35 }}
-        className="flex-1 flex flex-col items-stretch rounded-2xl overflow-hidden"
-        style={{ border: `2px solid ${color}` }}
+        initial={{ opacity: 0, y: 18, scale: 0.8 }}
+        animate={shown ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 18, scale: 0.8 }}
+        transition={{ type: 'spring', bounce: 0.45, duration: 0.6 }}
+        className="relative flex-1 rounded-2xl p-[2px] shadow-[0_10px_28px_rgba(0,0,0,0.5)]"
+        style={{ background: `linear-gradient(180deg, ${color} 0%, #2A363C 55%, #141C20 100%)` }}
     >
-        <div className="text-center text-[10px] sm:text-xs font-black uppercase tracking-tight py-1.5" style={{ backgroundColor: color, color: '#151F24' }}>
-            {label}
-        </div>
-        <div className="flex items-center justify-center gap-1.5 py-2.5" style={{ backgroundColor: `${color}1A` }}>
-            <span style={{ color }}>{icon}</span>
-            <span className="font-black text-lg sm:text-xl" style={{ color }}>{value}</span>
+        {/* Свечение карточки — отдельный слой, пульсирует только opacity */}
+        {shown && (
+            <span
+                aria-hidden
+                className="animate-glow-pulse pointer-events-none absolute inset-0 rounded-2xl"
+                style={{ boxShadow: `0 0 22px ${color}88` }}
+            />
+        )}
+        <div className="relative flex h-full flex-col items-center gap-1.5 rounded-[14px] bg-gradient-to-b from-[#1C282E] to-[#0C1215] px-1 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.12em]" style={{ color }}>
+                {label}
+            </span>
+            <span className="flex items-center gap-1.5" style={{ color, textShadow: `0 0 12px ${color}99` }}>
+                {icon}
+                <RollingNumber value={value} start={shown} className="text-2xl sm:text-3xl font-black" />
+            </span>
         </div>
     </motion.div>
 )
@@ -76,60 +87,65 @@ export const TrainerLessonCompleteScreen = ({
     const streakWord = declensionRu(streak, 'верный ответ', 'верных ответа', 'верных ответов')
     const lessonsWord = chainHint ? declensionRu(chainHint.remaining, 'урок', 'урока', 'уроков') : ''
 
+    // Сколько карточек уже показано (0..3) + кнопки.
+    const [shownCards, setShownCards] = useState(0)
+    const [buttonsShown, setButtonsShown] = useState(false)
+
+    useEffect(() => {
+        playSound(WIN_SOUND)
+        const timers = [0, 1, 2].map((i) => window.setTimeout(() => setShownCards(i + 1), CARD_FIRST_MS + i * CARD_STEP_MS))
+        timers.push(window.setTimeout(() => setButtonsShown(true), CARD_FIRST_MS + 2 * CARD_STEP_MS + BUTTONS_AFTER_MS))
+        return () => timers.forEach((t) => window.clearTimeout(t))
+    }, [])
+
+    const accent = chainHint ? '#FBBF24' : '#38BDF8'
+
     return (
-        // Тот же каркас "min-h-screen flex flex-col", что уже используют
-        // обычные вопросы тренажёра (components/trainer-question.tsx) —
-        // по прямой просьбе пользователя кнопки внизу должны сидеть ровно
-        // там же, где стандартная кнопка "ответить": она пришита к низу
-        // не через position:fixed, а тем, что ЭТОТ блок — единственный
-        // НЕ-flex-1 сосед под flex-1 серединой, поэтому просто прижимается
-        // книзу естественным потоком flex.
-        <div className="min-h-screen bg-[#151F24] text-[#F2F7FB] flex flex-col">
-            <div className="flex flex-col items-center pt-8 px-4 shrink-0">
+        <div className="relative min-h-screen text-[#F2F7FB] flex flex-col overflow-x-clip">
+            {/* Фон на весь экран: как у экрана кейсов */}
+            <div className="fixed inset-0 z-0 pointer-events-none" style={{ backgroundColor: '#131D22' }}>
+                <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 50% 25%, ${accent}33, transparent 55%)` }} />
+                <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 30%, transparent 30%, rgba(0,0,0,0.6) 100%)' }} />
+                <CaseStars tier="common" />
+            </div>
+
+            <div className="relative z-10 flex flex-col items-center pt-6 px-4 shrink-0">
                 <motion.div
-                    initial={{ scale: 0, opacity: 0 }}
+                    initial={{ scale: 0.3, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-                    className="w-64 h-64 sm:w-80 sm:h-80"
+                    transition={{ type: 'spring', bounce: 0.5, duration: 0.8 }}
+                    className="relative w-56 h-56 sm:w-72 sm:h-72"
                 >
-                    {/* Тот же случайный маскот-персонаж, что и в обычном
-                        (не "ударный час") варианте экрана — по прямой просьбе
-                        пользователя, ранее здесь при активном chainHint
-                        рисовался статичный сундук вместо него, оказалось
-                        менее живым. Сундук теперь только маленькой иконкой
-                        внутри текста ниже (там, где написано "мифический
-                        кейс"), не заменяет самого маскота. */}
-                    <Lottie animationData={lottieData} loop autoplay className="w-full h-full" />
+                    <div className="absolute inset-0" style={{ background: 'radial-gradient(closest-side, rgba(255,255,255,0.18), transparent)' }} />
+                    <Lottie animationData={lottieData} loop autoplay className="relative w-full h-full" />
                 </motion.div>
 
                 <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15, duration: 0.35 }}
+                    initial={{ opacity: 0, y: 12, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ delay: 0.35, type: 'spring', bounce: 0.4, duration: 0.6 }}
                     className="text-center"
                 >
                     {chainHint ? (
                         <>
-                            <h1 className="text-2xl sm:text-3xl font-extrabold" style={{ color: '#FBBF24' }}>
+                            <h1 className="text-3xl sm:text-4xl font-black [text-shadow:0_2px_12px_rgba(0,0,0,0.5)]" style={{ color: '#FBBF24' }}>
                                 Серия x{chainHint.count} без остановки!
                             </h1>
-                            <p className="text-base sm:text-lg text-[#F2F7FB] mt-2">
+                            <p className="text-base sm:text-lg text-[#D5DEE5] mt-2">
                                 Ещё {chainHint.remaining} {lessonsWord} без ошибок — и гарантированный мифический кейс!
-                                {/* Маленькая иконка мифического сундука прямо в
-                                    тексте, там, где про него говорится — по
-                                    прямой просьбе пользователя ("вот тут надо
-                                    было нарисовать кейс"), не отдельной крупной
-                                    картинкой вместо маскота. */}
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src="/chests/myth0001.svg" alt="" className="inline-block w-6 h-6 sm:w-7 sm:h-7 ml-1.5 -mb-1.5 align-middle" />
                             </p>
                         </>
                     ) : (
                         <>
-                            <h1 className="text-2xl sm:text-3xl font-extrabold" style={{ color: '#38BDF8' }}>
+                            <h1
+                                className="text-3xl sm:text-4xl font-black bg-clip-text text-transparent"
+                                style={{ backgroundImage: 'linear-gradient(90deg, #38BDF8, #A78BFA)' }}
+                            >
                                 Вы запустили серию!
                             </h1>
-                            <p className="text-base sm:text-lg text-[#F2F7FB] mt-2">
+                            <p className="text-base sm:text-lg text-[#D5DEE5] mt-2">
                                 {streak} {streakWord} подряд? Так держать!
                             </p>
                         </>
@@ -137,33 +153,53 @@ export const TrainerLessonCompleteScreen = ({
                 </motion.div>
             </div>
 
-            {/* Статистика — посередине ОСТАВШЕГОСЯ пространства между
-                персонажем и кнопками (не сразу под текстом), тот же приём
-                justify-center на flex-1, что уже применяется для вариантов
-                ответа обычного вопроса (см. коммент в trainer-question.tsx). */}
-            <div className="flex-1 flex flex-col justify-center px-4 min-h-0">
+            <div className="relative z-10 flex-1 flex flex-col justify-center px-4 py-4 min-h-0">
                 <div className="flex gap-3 w-full">
-                    <StatCard label="Очки опыта" value={`${xp}`} icon={<Zap className="w-5 h-5" fill="currentColor" />} color="#FBBF24" delay={0.3} />
-                    <StatCard label="Серия" value={`x${streak}`} icon={<Target className="w-5 h-5" />} color="#38BDF8" delay={0.4} />
-                    <StatCard label="Быстро" value={formatElapsed(elapsedSeconds)} icon={<Timer className="w-5 h-5" />} color="#34D399" delay={0.5} />
+                    <StatCard label="Очки опыта" value={`${xp}`} icon={<Zap className="w-5 h-5" fill="currentColor" />} color="#FBBF24" shown={shownCards >= 1} />
+                    <StatCard label="Серия" value={`x${streak}`} icon={<Target className="w-5 h-5" />} color="#38BDF8" shown={shownCards >= 2} />
+                    <StatCard label="Время" value={formatElapsed(elapsedSeconds)} icon={<Timer className="w-5 h-5" />} color="#34D399" shown={shownCards >= 3} />
                 </div>
             </div>
 
             <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6, duration: 0.35 }}
-                className="px-4 pb-4 pt-2 shrink-0"
+                initial={{ opacity: 0, y: 14 }}
+                animate={buttonsShown ? { opacity: 1, y: 0 } : { opacity: 0, y: 14 }}
+                transition={{ duration: 0.35 }}
+                className="relative z-10 px-4 pb-4 pt-2 shrink-0 flex flex-col gap-3"
+                style={{ pointerEvents: buttonsShown ? 'auto' : 'none' }}
             >
-                <Button onClick={onPrimary} variant="primary" className="w-full">
+                <PremiumButton onClick={onPrimary} accent="#78C93C">
                     {primaryLabel}
-                </Button>
+                    <ArrowRight className="h-5 w-5" />
+                </PremiumButton>
                 {secondaryLabel && onSecondary && (
-                    <Button onClick={onSecondary} variant="primaryOutline" className="w-full mt-3">
+                    <button
+                        onClick={onSecondary}
+                        className="w-full rounded-2xl border-2 border-[#3A464E] bg-[#151F23]/80 px-6 py-3 text-sm font-bold uppercase tracking-[0.1em] text-[#D5DEE5] transition-colors hover:border-[#5A6B76]"
+                    >
                         {secondaryLabel}
-                    </Button>
+                    </button>
                 )}
             </motion.div>
         </div>
     )
 }
+
+// Кнопка в стиле кнопок кейса: металлическая рамка, тёмное стекло, цветной
+// текст, пульсирующее свечение (opacity) и блик.
+const PremiumButton = ({ children, onClick, accent }: { children: React.ReactNode; onClick: () => void; accent: string }) => (
+    <motion.button
+        onClick={onClick}
+        whileTap={{ scale: 0.97, y: 2 }}
+        className="relative w-full rounded-2xl p-[2px] shadow-[0_10px_28px_rgba(0,0,0,0.5)]"
+        style={{ background: `linear-gradient(180deg, ${accent} 0%, #2A363C 55%, #141C20 100%)` }}
+    >
+        <span aria-hidden className="animate-glow-pulse pointer-events-none absolute inset-0 rounded-2xl" style={{ boxShadow: `0 0 26px ${accent}AA` }} />
+        <span
+            className="animate-shine-sweep relative flex items-center justify-center gap-2.5 rounded-[14px] bg-gradient-to-b from-[#1C282E] to-[#0C1215] px-8 py-4 font-black text-lg uppercase tracking-[0.1em] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
+            style={{ color: accent, textShadow: `0 0 12px ${accent}99` }}
+        >
+            {children}
+        </span>
+    </motion.button>
+)
