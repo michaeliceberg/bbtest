@@ -126,9 +126,12 @@ const RewardCell = ({ reward, highlighted, cozy }: { reward: CaseReward; highlig
 
 // Зумерские благодарности на кнопке после выигрыша — вместо "Продолжить".
 const THANKS_PHRASES = [
-    'Благодарочка!', 'Мерси!', 'Грасиас!', 'Сенкью вери мач!', 'Пасиба, чётко!', 'Данке шён!',
-    'Респект!', 'Лови лайк!', 'Кайф, спасибо!', 'Аригато!', 'Имба, беру!', 'Сяп-сяп!',
-    'Сохраню в сердечко!', 'Обожаю!', 'Лучший подгон!', 'Спасибо, бро!',
+    'Благодарочка!', 'Мерси!', 'Грасиас!', 'Пасиба, чётко!', 'Респект!',
+    'Имба!', 'Сохраню в сердечко!', 'Обожаю!', 'Лучший подгон!', 'Спасибо, бро!',
+]
+// Отдельные фразы, когда выпала пицца.
+const PIZZA_THANKS_PHRASES = [
+    'Объедение!', 'Ом-ном', 'Мням-мням', 'Пицца-тайм!', 'Вкуснятина!', 'Слюнки текут!', 'Бегу за соусом!', 'Мамма миа!',
 ]
 
 // Акцент кнопки "Крутить" в тон фону страницы по редкости кейса
@@ -204,6 +207,48 @@ const CozyButton = ({ fill, edge, onClick, children }: { fill: string; edge: str
     >
         {children}
     </motion.button>
+)
+
+// «Вдавленная» кнопка на время вращения барабана — та же кнопка, что
+// «Крутить», но утопленная: без нижней грани/свечения, внутренняя тень,
+// приглушённый текст и бегущие точки. Не кликается.
+const SpinDots = () => (
+    <span className="inline-flex w-6 justify-start">
+        {[0, 1, 2].map((i) => (
+            <span key={i} className="animate-pulse" style={{ animationDelay: `${i * 0.2}s` }}>.</span>
+        ))}
+    </span>
+)
+
+const CozyPressedButton = ({ fill, edge, children }: { fill: string; edge: string; children: React.ReactNode }) => (
+    <div
+        aria-live="polite"
+        className="relative z-10 flex items-center rounded-xl px-10 py-3.5 font-black text-lg uppercase tracking-[0.08em] translate-y-[5px] select-none"
+        style={{
+            background: edge,
+            color: fill,
+            boxShadow: `0 1px 0 ${edge}, inset 0 4px 0 rgba(0,0,0,0.28), inset 0 -2px 0 ${fill}33`,
+        }}
+    >
+        {children}
+        <SpinDots />
+    </div>
+)
+
+const CasePressedButton = ({ accent, children }: { accent: string; children: React.ReactNode }) => (
+    <div
+        aria-live="polite"
+        className="relative z-10 rounded-2xl p-[2px] translate-y-[2px] scale-[0.97] select-none"
+        style={{ background: `linear-gradient(180deg, #141C20 0%, #2A363C 45%, ${accent}66 100%)` }}
+    >
+        <span
+            className="flex items-center px-10 py-3.5 rounded-[14px] bg-gradient-to-b from-[#070B0D] to-[#141C20] font-black text-lg uppercase tracking-[0.12em] shadow-[inset_0_4px_10px_rgba(0,0,0,0.75)]"
+            style={{ color: `${accent}AA` }}
+        >
+            {children}
+            <SpinDots />
+        </span>
+    </div>
 )
 
 type Props = {
@@ -296,7 +341,8 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
             return
         }
         finalResultRef.current = result
-        setThanksLabel(THANKS_PHRASES[Math.floor(Math.random() * THANKS_PHRASES.length)])
+        const phrases = result.reward.kind === 'pizza' ? PIZZA_THANKS_PHRASES : THANKS_PHRASES
+        setThanksLabel(phrases[Math.floor(Math.random() * phrases.length)])
 
         // Финальная награда — НЕ последний элемент ленты (см. TARGET_INDEX),
         // остальные — та же случайная "витрина" для разнообразия картинки,
@@ -442,9 +488,11 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                 ))}
 
             {phase === 'spinning' && (
-                <div className={"relative z-10 px-8 py-3.5 font-bold uppercase tracking-wide " + (tier ? "text-white" : "text-[#9AA7B0]")}>
-                    Крутим...
-                </div>
+                cozy ? (
+                    <CozyPressedButton fill={cozyFill.fill} edge={cozyFill.edge}>Крутим</CozyPressedButton>
+                ) : (
+                    <CasePressedButton accent={accent}>Крутим</CasePressedButton>
+                )
             )}
 
             {phase === 'revealed' && wonReward && wonRarity && (
@@ -467,7 +515,9 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                             {wonReward.kind === 'pizza' && <span className="text-7xl leading-none">{rewardEmoji(wonReward)}</span>}
                         </div>
                         <span
-                            className="relative text-6xl font-black leading-none"
+                            // Картинка монет в Lottie-кадре (стопка ~y 300–500 из 600) сидит ниже центра —
+                            // опускаем число, чтобы оно было на одном уровне с иконкой.
+                            className={"relative text-6xl font-black leading-none " + (wonReward.kind === 'coins' ? 'translate-y-[12px]' : '')}
                             style={{
                                 color: cozy ? COZY.headline : tier ? '#FFFFFF' : wonRarity.text,
                                 textShadow: cozy ? `0 4px 0 ${COZY.cardEdge}` : '0 2px 8px rgba(0,0,0,0.45)',
