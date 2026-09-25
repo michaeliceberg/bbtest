@@ -10,14 +10,12 @@ import Confetti from "react-confetti"
 import { useWindowSize } from "react-use"
 import TrainerQuestion from "../../../components/trainer-question"
 import { Button } from "../../../components/ui/button"
-import LottieThunderStrike from '@/public/Lottie/ggege/LottieThunderStrike.json'
 
 const WinStreakModal = dynamic(() => import("../../../components/win-streak-modal"), { ssr: false })
 const ComboBanner = dynamic(() => import("../../../components/combo-banner"), { ssr: false })
 // Серия, на которой бьёт молния (кратные 5 — жёлтая, кратные 8 — синяя).
 const isLightningStreak = (n: number) => n > 0 && (n % 5 === 0 || n % 8 === 0)
 const LightningStrike = dynamic(() => import("../../../components/LightningStrike"), { ssr: false })
-const StreakLightning = dynamic(() => import("../../../components/streak-lightning").then(mod => mod.StreakLightning), { ssr: false })
 const StreakCelebrationScreen = dynamic(() => import("../../../components/streak-celebration-screen").then(mod => mod.StreakCelebrationScreen), { ssr: false })
 import { toast } from "sonner"
 import { useUiTheme } from "@/lib/uiTheme"
@@ -193,7 +191,6 @@ export default function TQuiz({
     // Щелчок по вариантам в пошаговых разборах (*WALK).
     preloadSound('/click6.wav')
   }, [])
-  const [showLightning, setShowLightning] = useState(false)
   const [showStreakCelebration, setShowStreakCelebration] = useState(false)
   // Какой именно рубеж серии сейчас празднуем — 3 или 7 (см.
   // STREAK_MILESTONES ниже). Молния/экран поздравления — общие
@@ -636,11 +633,9 @@ export default function TQuiz({
           if ((STREAK_MILESTONES as readonly number[]).includes(newStreak)) {
             setCelebrationMilestone(newStreak)
             setRandomStreakCharacterLottie(getRandomLottie(LOTTIE_STREAK_CHARACTER_LIST))
-            setShowLightning(true)
-            // Показываем экран поздравления после небольшой задержки
-            setTimeout(() => {
-              setShowStreakCelebration(true)
-            }, 600)
+            // Сразу экран поздравления (Lottie + число + «ответа подряд!» + «Молодец!») —
+            // Lottie-молния с надписью «N ПОДРЯД!» перед ним убрана по просьбе пользователя.
+            setShowStreakCelebration(true)
           }
           // Надпись «КОМБО xN» теперь рисует сама молния (LightningStrike label) —
           // старый маленький ComboBanner на кратных 5 больше не вызывается.
@@ -1004,12 +999,6 @@ export default function TQuiz({
 
   return (
     <>
-      <StreakLightning
-        isVisible={showLightning}
-        onComplete={() => setShowLightning(false)}
-        animationData={LottieThunderStrike}
-        count={celebrationMilestone}
-      />
       <ComboBanner combo={combo} onDone={() => setCombo(null)} />
       {lightningStrikeActive && (
         <LightningStrike key={lightningStrikeKey} variant={lightningVariant} label={lightningLabel} onDone={() => setLightningStrikeActive(false)} />
