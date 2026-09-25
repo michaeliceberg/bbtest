@@ -19,7 +19,7 @@ import { useWindowSize } from 'react-use'
 import { Gift, Sparkles } from 'lucide-react'
 import { openCase, type OpenCaseResult } from '@/actions/open-case'
 import { useRive, Layout, Fit, Alignment } from '@rive-app/react-webgl2'
-import { playSound, preloadSound, CASE_PRIZE_SOUND } from '@/lib/sound'
+import { playSound, preloadSound, CASE_PRIZE_SOUND, CHEST_DROP_SOUND } from '@/lib/sound'
 import {
   getCasePool, getLessonCasePool, isJackpotReward, pickWeightedReward, rewardEmoji, type CaseReward,
   LESSON_CASE_TIER_ICON, LESSON_CASE_TIER_LABEL, LESSON_CASE_TIER_PAGE_BG, type LessonCaseTier,
@@ -174,6 +174,41 @@ const CaseButton = ({ accent, glow, onClick, children }: { accent: string; glow:
     </motion.button>
 )
 
+// Падение сундука кейса: длительность и ключевые моменты (удар о землю —
+// на CHEST_DROP_TIMES[1], тогда же звук и пыль).
+const CHEST_DROP_S = 0.95
+const CHEST_DROP_TIMES = [0, 0.5, 0.7, 0.85, 1]
+const CHEST_LAND_MS = CHEST_DROP_S * CHEST_DROP_TIMES[1] * 1000
+
+// Облачко пыли в момент приземления: клубы разлетаются в стороны от низа
+// сундука, растут и тают (только transform/opacity).
+const DUST_PUFFS = [
+    { x: -130, y: -18, s: 1.5, d: 0 },
+    { x: -95, y: -34, s: 1.2, d: 0.03 },
+    { x: -60, y: -10, s: 1.0, d: 0.05 },
+    { x: -150, y: -4, s: 1.1, d: 0.06 },
+    { x: 130, y: -18, s: 1.5, d: 0 },
+    { x: 95, y: -34, s: 1.2, d: 0.03 },
+    { x: 60, y: -10, s: 1.0, d: 0.05 },
+    { x: 150, y: -4, s: 1.1, d: 0.06 },
+    { x: -25, y: -40, s: 0.8, d: 0.04 },
+    { x: 25, y: -40, s: 0.8, d: 0.04 },
+]
+const DustBurst = ({ cozy }: { cozy: boolean }) => (
+    <div className="pointer-events-none absolute bottom-1 left-1/2 z-0">
+        {DUST_PUFFS.map((p, i) => (
+            <motion.span
+                key={i}
+                className="absolute -ml-5 -mt-5 h-10 w-10 rounded-full"
+                style={{ background: cozy ? 'radial-gradient(circle, rgba(214,196,168,0.85), rgba(214,196,168,0) 70%)' : 'radial-gradient(circle, rgba(230,236,240,0.8), rgba(230,236,240,0) 70%)' }}
+                initial={{ x: 0, y: 0, scale: 0.3, opacity: 0.9 }}
+                animate={{ x: p.x, y: p.y, scale: p.s * 1.6, opacity: 0 }}
+                transition={{ duration: 0.75, delay: p.d, ease: 'easeOut' }}
+            />
+        ))}
+    </div>
+)
+
 // Взлетающие звёзды на заднем фоне кейса (Rive, public/rive/stars-<tier>.riv).
 // Оригинал пользователя — public/rive/originals/stars.riv: у вариантов фон
 // артборда сделан прозрачным (байт альфы цвета #282828), у rare/mythic/mega
@@ -278,6 +313,16 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
     const cozy = theme === 'cozy'
     const [phase, setPhase] = useState<Phase>('idle')
     const [chestEntered, setChestEntered] = useState(false)
+    // Сундук падает сверху: в момент приземления — звук и облачко пыли.
+    const [chestLanded, setChestLanded] = useState(false)
+    useEffect(() => {
+        if (!tier) return
+        const t = setTimeout(() => {
+            setChestLanded(true)
+            playSound(CHEST_DROP_SOUND)
+        }, CHEST_LAND_MS)
+        return () => clearTimeout(t)
+    }, [tier])
     const basePool = poolOverride ?? (tier ? getLessonCasePool(tier) : getCasePool(isMega))
     const [strip, setStrip] = useState<CaseReward[]>(() => {
         const pool = basePool
@@ -305,6 +350,7 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
     useEffect(() => {
         preloadSound(ROULETTE_SOUND)
         preloadSound(CASE_PRIZE_SOUND)
+        preloadSound(CHEST_DROP_SOUND)
     }, [])
     const accent = tier ? LESSON_CASE_TIER_ACCENT[tier] : '#4A90D9'
     const glow = !tier || tier === 'common' ? accent : '#FFFFFF'
@@ -410,15 +456,25 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                         bounce, пока не нажали «Крутить» (CSS-анимация на
                         обёртке: framer владеет transform самой картинки). */}
                     <div className={chestEntered && phase === 'idle' ? 'animate-chest-idle-bounce' : ''}>
-                        <motion.img
-                            src={LESSON_CASE_TIER_ICON[tier]}
-                            alt=""
-                            className="w-44 h-auto drop-shadow-[0_8px_18px_rgba(0,0,0,0.35)]"
-                            initial={{ scale: 0.6, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ type: 'spring', bounce: 0.5, duration: 0.7 }}
-                            onAnimationComplete={() => setChestEntered(true)}
-                        />
+                        <div className="relative">
+                            {chestLanded && <DustBurst cozy={cozy} />}
+                            {/* Падение сверху с ускорением → удар о землю (сплющивание)
+                                → небольшой отскок → встал. */}
+                            <motion.img
+                                src={LESSON_CASE_TIER_ICON[tier]}
+                                alt=""
+                                className="relative w-44 h-auto drop-shadow-[0_8px_18px_rgba(0,0,0,0.35)]"
+                                style={{ transformOrigin: '50% 100%' }}
+                                initial={{ y: '-70vh', scaleX: 1, scaleY: 1 }}
+                                animate={{
+                                    y: ['-70vh', '0vh', '-4vh', '0vh', '0vh'],
+                                    scaleX: [0.95, 1.18, 0.96, 1.05, 1],
+                                    scaleY: [1.08, 0.8, 1.05, 0.95, 1],
+                                }}
+                                transition={{ duration: CHEST_DROP_S, times: CHEST_DROP_TIMES, ease: ['easeIn', 'easeOut', 'easeIn', 'easeOut'] }}
+                                onAnimationComplete={() => setChestEntered(true)}
+                            />
+                        </div>
                     </div>
                     <span
                         className="mt-3 text-4xl font-black tracking-wide uppercase [text-shadow:0_2px_8px_rgba(0,0,0,0.45)]"

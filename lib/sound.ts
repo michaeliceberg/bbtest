@@ -161,3 +161,5 @@ export const QUEST_DONE_SOUND = '/snd-plus1-appear2.mp3'
 export const QUEST_LAND_SOUND = '/snd-progress-plus1-fall.mp3'
 // Экран «Новый уровень!» (components/level-up-screen.tsx).
 export const LEVEL_UP_SOUND = '/snd-lvlup.mp3'
+// Сундук кейса падает сверху и приземляется (components/CaseReel.tsx).
+export const CHEST_DROP_SOUND = '/snd-drop-chest.mp3'
