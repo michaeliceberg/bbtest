@@ -31,6 +31,8 @@ const LABEL_HOLD_MS = 0
 const LABEL_OUT_MS = 400
 
 const FPS = 24
+// Молния толще оригинала на 50% (по просьбе пользователя).
+const BOLT_WIDTH_SCALE = 1.5
 
 // Толщина обводки надписи и её построение кольцом из 16 теней.
 const OUTLINE_PX = 4
@@ -84,6 +86,7 @@ export const LightningStrike = ({ variant = 'yellow', label, onDone }: { variant
     }, [set, sound, label])
 
     const f = set.frames[frame]
+    const vbCenterX = Number(set.viewBox.split(' ')[2]) / 2
     const durationS = set.frames.length / FPS
     return (
         <div className="pointer-events-none fixed inset-0 z-[65]">
@@ -95,7 +98,9 @@ export const LightningStrike = ({ variant = 'yellow', label, onDone }: { variant
             {/* Явные размеры на весь экран: при h-full + w-auto Safari на iPhone
                 считал ширину инлайн-SVG нулевой. */}
             {!boltDone && <svg viewBox={set.viewBox} preserveAspectRatio="xMidYMax meet" width="100%" height="100%" className="absolute inset-0 h-full w-full">
-                <g transform={`translate(${f.tx} ${f.ty})`}>
+                {/* Толще на 50%: растяжение по горизонтали вокруг центра кадра
+                    (высота прежняя, сужение к кончикам сохраняется). */}
+                <g transform={`translate(${vbCenterX} 0) scale(${BOLT_WIDTH_SCALE} 1) translate(${-vbCenterX} 0) translate(${f.tx} ${f.ty})`}>
                     {f.paths.map((p, i) => (
                         <path key={i} d={p.d} fill={p.fill} />
                     ))}
