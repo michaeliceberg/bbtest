@@ -199,7 +199,7 @@ const QuestRow = ({ q, index, timing, gone }: { q: DailyQuest; index: number; ti
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ delay: 0.2 + index * 0.15, type: 'spring', bounce: 0.4, duration: 0.6 }}
             className="relative rounded-2xl p-[2px] shadow-[0_10px_28px_rgba(0,0,0,0.45)]"
-            style={{ background: gold ? GOLD_FRAME : `linear-gradient(180deg, ${ready ? accent : '#5A6B76'} 0%, #2A363C 55%, #141C20 100%)` }}
+            style={{ background: gold ? GOLD_FRAME : `linear-gradient(180deg, ${accent} 0%, #2A363C 55%, #141C20 100%)` }}
         >
             {(gold || ready) && (
                 <span
@@ -221,7 +221,7 @@ const QuestRow = ({ q, index, timing, gone }: { q: DailyQuest; index: number; ti
                     <div className="relative h-5 flex-1 overflow-hidden rounded-full" style={{ background: gold ? '#5A4410' : '#2A3A4A' }}>
                         <motion.div
                             className="h-full rounded-full"
-                            style={{ background: gold ? 'linear-gradient(90deg, #D4A017, #FFE9A8)' : q.done ? accent : '#5A6B76' }}
+                            style={{ background: gold ? 'linear-gradient(90deg, #D4A017, #FFE9A8)' : accent }}
                             initial={{ width: `${changed ? prevPercent : percent}%` }}
                             animate={{ width: `${percent}%` }}
                             transition={changed ? { delay: timing.fillDelay ?? 0, duration: FILL_S, ease: 'easeOut' } : { duration: 0 }}
@@ -239,7 +239,7 @@ const QuestRow = ({ q, index, timing, gone }: { q: DailyQuest; index: number; ti
                         <img
                             src={LESSON_CASE_TIER_ICON[q.tier]}
                             alt=""
-                            className={`h-11 w-11 object-contain ${ready ? 'animate-chest-idle-bounce' : ''} ${!q.done ? 'opacity-50 grayscale' : ''}`}
+                            className={`h-11 w-11 object-contain ${ready ? 'animate-chest-idle-bounce' : ''} `}
                         />
                     </div>
                 </div>
@@ -259,8 +259,9 @@ const CozyQuestRow = ({ q, index, timing, gone }: { q: DailyQuest; index: number
     const { prevPercent } = progressChange(q)
     const ready = q.done && !q.claimed
     const gold = q.claimed
-    const border = gold ? COZY.honeyBorder : ready ? a.fill : COZY.cardBorder
-    const edge = gold ? COZY.honeyEdge : ready ? a.edge : COZY.cardEdge
+    // Все квесты — активного вида (цвет своей награды); выполнен и кейс получен — золотой.
+    const border = gold ? COZY.honeyBorder : a.fill
+    const edge = gold ? COZY.honeyEdge : a.edge
     return (
         <motion.div
             initial={{ opacity: 0, y: 16, scale: 0.92 }}
@@ -282,7 +283,7 @@ const CozyQuestRow = ({ q, index, timing, gone }: { q: DailyQuest; index: number
                 <div className="relative h-5 flex-1 overflow-hidden rounded-md" style={{ background: COZY.track, boxShadow: 'inset 0 2px 0 rgba(0,0,0,0.35)' }}>
                     <motion.div
                         className="h-full"
-                        style={{ background: gold ? COZY.honey : q.done ? a.fill : '#6B645B' }}
+                        style={{ background: gold ? COZY.honey : a.fill }}
                         initial={{ width: `${changed ? prevPercent : percent}%` }}
                         animate={{ width: `${percent}%` }}
                         transition={changed ? { delay: timing.fillDelay ?? 0, duration: FILL_S, ease: 'easeOut' } : { duration: 0 }}
@@ -300,7 +301,7 @@ const CozyQuestRow = ({ q, index, timing, gone }: { q: DailyQuest; index: number
                     <img
                         src={LESSON_CASE_TIER_ICON[q.tier]}
                         alt=""
-                        className={`h-11 w-11 object-contain ${ready ? 'animate-chest-idle-bounce' : ''} ${!q.done ? 'opacity-50 grayscale' : ''}`}
+                        className={`h-11 w-11 object-contain ${ready ? 'animate-chest-idle-bounce' : ''} `}
                     />
                 </div>
             </div>
