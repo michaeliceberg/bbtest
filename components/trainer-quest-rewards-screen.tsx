@@ -26,7 +26,7 @@ import { getLessonCasePool, LESSON_CASE_TIER_ICON, type LessonCaseTier } from '@
 import { claimQuestCase, type DailyQuest, type DailyQuestKey, type DailyQuestsData } from '@/actions/generate-trainer-quest'
 import { openLessonCase } from '@/actions/open-case'
 import { COZY, COZY_ACCENT } from '@/lib/cozyTheme'
-import { playSound, preloadSound, QUEST_SWOOSH_SOUND, QUEST_DONE_SOUND } from '@/lib/sound'
+import { playSound, preloadSound, QUEST_SWOOSH_SOUND, QUEST_DONE_SOUND, QUEST_LAND_SOUND } from '@/lib/sound'
 
 export type QuestRewardsData = DailyQuestsData | null
 
@@ -324,6 +324,7 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
     useEffect(() => {
         preloadSound(QUEST_SWOOSH_SOUND)
         preloadSound(QUEST_DONE_SOUND)
+        preloadSound(QUEST_LAND_SOUND)
         const ids: ReturnType<typeof setTimeout>[] = []
         timings.forEach((tm) => {
             if (tm.fillDelay !== null) ids.push(setTimeout(() => playSound(QUEST_SWOOSH_SOUND), tm.fillDelay * 1000))
@@ -374,7 +375,7 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
     const handleLand = (id: string) => {
         setFlights((f) => f.filter((x) => x.id !== id))
         setLanded((n) => n + 1)
-        playSound(QUEST_DONE_SOUND)
+        playSound(QUEST_LAND_SOUND)
         plateControls.start({ scale: [1, 1.07, 0.97, 1], transition: { duration: 0.45 } })
     }
 
