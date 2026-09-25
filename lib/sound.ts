@@ -154,3 +154,6 @@ export const WIN_SOUND = '/snd-harp-win.mp3'
 export const TEST_LOSE_SOUND = '/snd-harp-loose.mp3'
 export const TEST_WIN_SOUND = '/snd-harp-trump-win.mp3'
 export const CASE_PRIZE_SOUND = '/snd-unboxing-prize.mp3'
+// Экран «Квесты дня»: заполнение прогресс-бара / «+1» над сундуком.
+export const QUEST_SWOOSH_SOUND = '/snd-swoosh-progress.mp3'
+export const QUEST_DONE_SOUND = '/snd-done-progress.mp3'

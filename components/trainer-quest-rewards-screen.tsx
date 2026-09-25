@@ -27,6 +27,7 @@ import { claimQuestCase, type DailyQuest, type DailyQuestKey, type DailyQuestsDa
 import { RollingNumber } from '@/components/rolling-number'
 import { openLessonCase } from '@/actions/open-case'
 import { COZY, COZY_ACCENT } from '@/lib/cozyTheme'
+import { playSound, preloadSound, QUEST_SWOOSH_SOUND, QUEST_DONE_SOUND } from '@/lib/sound'
 
 export type QuestRewardsData = DailyQuestsData | null
 
@@ -98,15 +99,42 @@ const progressChange = (q: DailyQuest) => {
     return { changed: prev !== q.progress, prevPercent: Math.min(100, (prev / q.target) * 100) }
 }
 
+// Поочерёдная анимация квестов: у изменившихся квестов по очереди сверху
+// вниз — заполнение бара (звук swoosh), затем «+1» над сундуком (звук done),
+// и только потом следующий. null — без анимации (факт сразу).
+type RowTiming = { fillDelay: number | null; badgeDelay: number | null }
+const FILL_S = 0.9
+const NO_ANIM: RowTiming = { fillDelay: null, badgeDelay: null }
+
+const buildTimings = (quests: DailyQuest[]): RowTiming[] => {
+    // Старт — после появления всех карточек.
+    let t = 0.3 + quests.length * 0.15 + 0.4
+    return quests.map((q) => {
+        const changed = (q.prevProgress ?? q.progress) !== q.progress
+        if (!changed && !q.pointNow) return NO_ANIM
+        const timing: RowTiming = { fillDelay: null, badgeDelay: null }
+        if (changed) {
+            timing.fillDelay = t
+            t += FILL_S
+        }
+        if (q.pointNow) {
+            timing.badgeDelay = t
+            t += 0.55
+        }
+        t += 0.25
+        return timing
+    })
+}
+
 // «+1» квест-поинт на карточке квеста, выполненного именно в этом уроке
 // (из них складывается «+N квест-поинт!» в заголовке). Появляется с отскоком
 // после заполнения прогресс-бара.
 const PointBadge = ({ delay, cozy }: { delay: number; cozy?: boolean }) => (
     <motion.span
-        initial={{ opacity: 0, scale: 2.4 }}
-        animate={{ opacity: 1, scale: 1 }}
+        initial={{ opacity: 0, scale: 2.4, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ delay, type: 'spring', bounce: 0.55, duration: 0.6 }}
-        className="shrink-0 rounded-lg px-2 py-0.5 text-sm font-black leading-none"
+        className="absolute -top-5 left-1/2 z-10 -ml-4 w-8 rounded-lg py-0.5 text-center text-sm font-black leading-none"
         style={
             cozy
                 ? { color: '#3A2A12', background: '#FFD27A', boxShadow: '0 3px 0 #B8862E' }
@@ -119,10 +147,11 @@ const PointBadge = ({ delay, cozy }: { delay: number; cozy?: boolean }) => (
 
 // Упрощённая карточка: название, под ним прогресс-бар и справа сундук.
 // Кейс получен — карточка золотая и блестит (без надписей).
-const QuestRow = ({ q, index }: { q: DailyQuest; index: number }) => {
+const QuestRow = ({ q, index, timing }: { q: DailyQuest; index: number; timing: RowTiming }) => {
     const accent = TIER_ACCENT[q.tier]
     const percent = Math.min(100, (q.progress / q.target) * 100)
-    const { changed, prevPercent } = progressChange(q)
+    const changed = timing.fillDelay !== null
+    const { prevPercent } = progressChange(q)
     const ready = q.done && !q.claimed
     const gold = q.claimed
     return (
@@ -148,7 +177,6 @@ const QuestRow = ({ q, index }: { q: DailyQuest; index: number }) => {
                     <p className="text-base font-black leading-none" style={{ color: gold ? '#FFE9A8' : '#F2F7FB' }}>
                         {questTitle(q)}
                     </p>
-                    {q.pointNow && <PointBadge delay={1.5 + index * 0.15} />}
                 </div>
                 <div className="mt-3 flex items-center gap-3">
                     <div className="relative h-5 flex-1 overflow-hidden rounded-full" style={{ background: gold ? '#5A4410' : '#2A3A4A' }}>
@@ -157,7 +185,7 @@ const QuestRow = ({ q, index }: { q: DailyQuest; index: number }) => {
                             style={{ background: gold ? 'linear-gradient(90deg, #D4A017, #FFE9A8)' : q.done ? accent : '#5A6B76' }}
                             initial={{ width: `${changed ? prevPercent : percent}%` }}
                             animate={{ width: `${percent}%` }}
-                            transition={changed ? { delay: 0.7 + index * 0.15, duration: 0.9, ease: 'easeOut' } : { duration: 0 }}
+                            transition={changed ? { delay: timing.fillDelay ?? 0, duration: FILL_S, ease: 'easeOut' } : { duration: 0 }}
                         />
                         <span
                             className="absolute inset-0 flex items-center justify-center text-xs font-black tabular-nums text-white"
@@ -166,12 +194,15 @@ const QuestRow = ({ q, index }: { q: DailyQuest; index: number }) => {
                             {q.progress}/{q.target}
                         </span>
                     </div>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                        src={LESSON_CASE_TIER_ICON[q.tier]}
-                        alt=""
-                        className={`h-11 w-11 shrink-0 object-contain ${ready ? 'animate-chest-idle-bounce' : ''} ${!q.done ? 'opacity-50 grayscale' : ''}`}
-                    />
+                    <div className="relative shrink-0">
+                        {timing.badgeDelay !== null && <PointBadge delay={timing.badgeDelay} />}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src={LESSON_CASE_TIER_ICON[q.tier]}
+                            alt=""
+                            className={`h-11 w-11 object-contain ${ready ? 'animate-chest-idle-bounce' : ''} ${!q.done ? 'opacity-50 grayscale' : ''}`}
+                        />
+                    </div>
                 </div>
             </div>
         </motion.div>
@@ -182,10 +213,11 @@ const QuestRow = ({ q, index }: { q: DailyQuest; index: number }) => {
 // ── Стиль «cozy»: тёплый, мультяшный, в духе Minecraft ─────────────────────
 // Плоские «блоки» с толстой нижней гранью, тёплые тёмные тона камня/дерева,
 // спокойные пастельные цвета редкости, сплошной прогресс-бар.
-const CozyQuestRow = ({ q, index }: { q: DailyQuest; index: number }) => {
+const CozyQuestRow = ({ q, index, timing }: { q: DailyQuest; index: number; timing: RowTiming }) => {
     const a = COZY_ACCENT[q.tier]
     const percent = Math.min(100, (q.progress / q.target) * 100)
-    const { changed, prevPercent } = progressChange(q)
+    const changed = timing.fillDelay !== null
+    const { prevPercent } = progressChange(q)
     const ready = q.done && !q.claimed
     const gold = q.claimed
     const border = gold ? COZY.honeyBorder : ready ? a.fill : COZY.cardBorder
@@ -206,7 +238,6 @@ const CozyQuestRow = ({ q, index }: { q: DailyQuest; index: number }) => {
                 <p className="text-base font-black leading-none" style={{ color: gold ? '#FFE3A3' : COZY.title }}>
                     {questTitle(q)}
                 </p>
-                {q.pointNow && <PointBadge delay={1.5 + index * 0.15} cozy />}
             </div>
             <div className="mt-3 flex items-center gap-3">
                 <div className="relative h-5 flex-1 overflow-hidden rounded-md" style={{ background: COZY.track, boxShadow: 'inset 0 2px 0 rgba(0,0,0,0.35)' }}>
@@ -215,7 +246,7 @@ const CozyQuestRow = ({ q, index }: { q: DailyQuest; index: number }) => {
                         style={{ background: gold ? COZY.honey : q.done ? a.fill : '#6B645B' }}
                         initial={{ width: `${changed ? prevPercent : percent}%` }}
                         animate={{ width: `${percent}%` }}
-                        transition={changed ? { delay: 0.7 + index * 0.15, duration: 0.9, ease: 'easeOut' } : { duration: 0 }}
+                        transition={changed ? { delay: timing.fillDelay ?? 0, duration: FILL_S, ease: 'easeOut' } : { duration: 0 }}
                     />
                     <span
                         className="absolute inset-0 flex items-center justify-center text-xs font-black tabular-nums"
@@ -224,12 +255,15 @@ const CozyQuestRow = ({ q, index }: { q: DailyQuest; index: number }) => {
                         {q.progress}/{q.target}
                     </span>
                 </div>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                    src={LESSON_CASE_TIER_ICON[q.tier]}
-                    alt=""
-                    className={`h-11 w-11 shrink-0 object-contain ${ready ? 'animate-chest-idle-bounce' : ''} ${!q.done ? 'opacity-50 grayscale' : ''}`}
-                />
+                <div className="relative shrink-0">
+                    {timing.badgeDelay !== null && <PointBadge delay={timing.badgeDelay} cozy />}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src={LESSON_CASE_TIER_ICON[q.tier]}
+                        alt=""
+                        className={`h-11 w-11 object-contain ${ready ? 'animate-chest-idle-bounce' : ''} ${!q.done ? 'opacity-50 grayscale' : ''}`}
+                    />
+                </div>
             </div>
         </motion.div>
     )
@@ -243,6 +277,26 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
     const earned = Math.min(9, data?.earnedNow ?? 0)
     const digitLottie = useLottieFile(earned > 0 ? `/Lottie/numbers/burn${earned}.json` : null)
     const starLottie = useLottieFile('/Lottie/numbers/burnStar.json')
+
+    // Расписание считается один раз; после возврата с кейса анимация не
+    // повторяется — показываем факт (и уже появившиеся «+1»).
+    const [timings] = useState<RowTiming[]>(() => buildTimings(data?.quests ?? []))
+    const [introDone, setIntroDone] = useState(false)
+    useEffect(() => {
+        preloadSound(QUEST_SWOOSH_SOUND)
+        preloadSound(QUEST_DONE_SOUND)
+        const ids: ReturnType<typeof setTimeout>[] = []
+        timings.forEach((tm) => {
+            if (tm.fillDelay !== null) ids.push(setTimeout(() => playSound(QUEST_SWOOSH_SOUND), tm.fillDelay * 1000))
+            if (tm.badgeDelay !== null) ids.push(setTimeout(() => playSound(QUEST_DONE_SOUND), tm.badgeDelay * 1000))
+        })
+        return () => ids.forEach(clearTimeout)
+    }, [timings])
+    useEffect(() => {
+        if (opening) setIntroDone(true)
+    }, [opening])
+    const rowTiming = (i: number, q: DailyQuest): RowTiming =>
+        introDone ? { fillDelay: null, badgeDelay: q.pointNow ? 0 : null } : timings[i] ?? NO_ANIM
 
     // Выполненные квесты с неоткрытыми кейсами — открываются по «Дальше»
     // автоматически, по очереди, от менее редких к более редким.
@@ -309,7 +363,7 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
 
                 <div className="mt-2 flex flex-col gap-3">
                     {quests.map((q, i) => (
-                        cozy ? <CozyQuestRow key={q.key} q={q} index={i} /> : <QuestRow key={q.key} q={q} index={i} />
+                        cozy ? <CozyQuestRow key={q.key} q={q} index={i} timing={rowTiming(i, q)} /> : <QuestRow key={q.key} q={q} index={i} timing={rowTiming(i, q)} />
                     ))}
                 </div>
 
