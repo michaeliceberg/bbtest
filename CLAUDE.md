@@ -12201,3 +12201,16 @@ date; уникально), +1 за каждый выполненный квес�
 курсов в деревянных рамках. Экран «Квесты дня»: анимация по очереди (бар — swoosh
 `/snd-swoosh-progress.mp3`, затем «+1» над сундуком — `/snd-done-progress.mp3`); тестовые
 страницы квестов стартуют по кнопке (иначе браузер глушит звук).
+
+## Полноэкранные поздравления в двух стилях (2026-09-25)
+
+`components/celebration-shell.tsx` — общий каркас (фон, свечение акцента, звёзды `CaseStars`
+в игровом стиле, конфетти, кнопка снизу; `theme: 'metal' | 'cozy'`). На нём:
+- `components/level-up-screen.tsx` — «Новый уровень!» во весь экран (вместо модалки
+  `level-up-modal.tsx`, которая больше не используется), персонаж `public/Lottie/lvl/lvlN.json`,
+  «было → стало», гемы, звук `LEVEL_UP_SOUND` (`/snd-lvlup.mp3`). Глобально показывается через
+  `level-up-modal-provider.tsx` (стиль пока всегда игровой).
+- `components/streak-celebration-screen.tsx` — «3/7 ответов подряд» (проп `theme`, TQUIZ пока
+  не передаёт — игровой).
+Тесты: `/test-level-up`, `/test-streak-screen` (кнопки обоих стилей). Звук «+1» на экране
+квестов — `/snd-plus1-appear2.mp3`, бара — `/snd-progress-water.mp3`, падения — `/snd-progress-plus1-fall.mp3`.
