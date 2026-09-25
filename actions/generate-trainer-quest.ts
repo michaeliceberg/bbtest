@@ -315,6 +315,11 @@ export type DailyQuest = {
     claimed: boolean;
     tier: LessonCaseTier;
     streakDays?: number | null;
+    // Прогресс ДО этого урока — экран анимирует заполнение только у квестов,
+    // где он изменился (от prevProgress до progress); нет поля — без анимации.
+    prevProgress?: number;
+    // Квест принёс квест-поинт именно сейчас (для «+1» на карточке).
+    pointNow?: boolean;
 };
 // earnedNow — сколько квест-поинтов начислено именно этим вызовом (для «+N квест-поинт!»).
 export type DailyQuestsData = { quests: DailyQuest[]; monthPoints: number; monthIndex: number; earnedNow: number };
@@ -324,7 +329,7 @@ const QUEST_TIER: Record<DailyQuestKey, LessonCaseTier> = { streak: 'common', pe
 
 // Состояние квестов дня для пользователя/темы: считает прогресс, начисляет
 // квест-поинты за выполненные (уникально user+key+date — повтор игнорируется).
-async function buildDailyQuests(userId: string, tCourseId: number, quest: typeof trainerQuests.$inferSelect, today: Date): Promise<DailyQuestsData> {
+async function buildDailyQuests(userId: string, tCourseId: number, quest: typeof trainerQuests.$inferSelect, today: Date, prev?: { perfect: number; combo8: number }): Promise<DailyQuestsData> {
     const claimed = new Set((quest.claimedQuests ?? '').split(',').filter(Boolean));
     const tCourse = await db.query.t_courses.findFirst({ where: eq(t_courses.id, tCourseId) });
 
@@ -359,12 +364,25 @@ async function buildDailyQuests(userId: string, tCourseId: number, quest: typeof
     // +1 квест-поинт за каждый выполненный квест (повтор в тот же день — игнор).
     const done = list.filter((q) => q.done);
     let earnedNow = 0;
+    const pointKeys = new Set<string>();
     if (done.length > 0) {
         const inserted = await db.insert(questPoints)
             .values(done.map((q) => ({ userId, questKey: q.key, date: today })))
             .onConflictDoNothing()
-            .returning({ id: questPoints.id });
+            .returning({ questKey: questPoints.questKey });
         earnedNow = inserted.length;
+        inserted.forEach((r) => pointKeys.add(r.questKey));
+    }
+    // Прогресс до урока (только когда вызов — из конца урока, prev передан):
+    // perfect/combo8 — значения счётчиков до обновления; серия и ДЗ — если квест
+    // выполнился именно сейчас (поинт начислен сейчас), значит шаг был последним.
+    if (prev) {
+        for (const q of list) {
+            q.pointNow = pointKeys.has(q.key);
+            if (q.key === 'perfect') q.prevProgress = Math.min(prev.perfect, q.target);
+            else if (q.key === 'combo8') q.prevProgress = Math.min(prev.combo8, q.target);
+            else q.prevProgress = q.pointNow ? q.target - 1 : q.progress;
+        }
     }
 
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -412,7 +430,10 @@ export async function reportLessonQuestSignals(t_lessonId: number, maxStreak: nu
         .where(eq(trainerQuests.id, quest.id))
         .returning();
 
-    return buildDailyQuests(userId, tCourseId, updated ?? quest, today);
+    return buildDailyQuests(userId, tCourseId, updated ?? quest, today, {
+        perfect: quest.perfectLessonCount ?? 0,
+        combo8: quest.combo8Count ?? 0,
+    });
 }
 
 // Забрать кейс за выполненный квест дня: сервер сам проверяет, что квест

@@ -24,8 +24,8 @@ export default function TestQuestsCozyPage() {
                     monthPoints: 7,
                     earnedNow: 2,
                     quests: [
-                        { key: 'streak', progress: 1, target: 1, done: true, claimed: false, tier: 'common', streakDays: 3 },
-                        { key: 'perfect', progress: 2, target: 2, done: true, claimed: false, tier: 'rare' },
+                        { key: 'streak', progress: 1, target: 1, done: true, claimed: false, tier: 'common', streakDays: 3, prevProgress: 0, pointNow: true },
+                        { key: 'perfect', progress: 2, target: 2, done: true, claimed: false, tier: 'rare', prevProgress: 1, pointNow: true },
                         { key: 'combo8', progress: 3, target: 3, done: true, claimed: true, tier: 'mythic' },
                         { key: 'hw', progress: 0, target: 1, done: false, claimed: false, tier: 'mega' },
                     ],

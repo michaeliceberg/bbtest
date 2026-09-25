@@ -91,11 +91,38 @@ const TIER_ORDER: LessonCaseTier[] = ['common', 'rare', 'mythic', 'mega']
 // Золотая рамка карточки, чей кейс уже получен.
 const GOLD_FRAME = 'linear-gradient(135deg, #FFE9A8 0%, #D4A017 35%, #FFF3C4 55%, #B8860B 100%)'
 
+// Изменился ли прогресс квеста за этот урок — только такие бары заполняются
+// анимацией (от прошлого значения к новому), остальные сразу показывают факт.
+const progressChange = (q: DailyQuest) => {
+    const prev = q.prevProgress ?? q.progress
+    return { changed: prev !== q.progress, prevPercent: Math.min(100, (prev / q.target) * 100) }
+}
+
+// «+1» квест-поинт на карточке квеста, выполненного именно в этом уроке
+// (из них складывается «+N квест-поинт!» в заголовке). Появляется с отскоком
+// после заполнения прогресс-бара.
+const PointBadge = ({ delay, cozy }: { delay: number; cozy?: boolean }) => (
+    <motion.span
+        initial={{ opacity: 0, scale: 2.4 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay, type: 'spring', bounce: 0.55, duration: 0.6 }}
+        className="shrink-0 rounded-lg px-2 py-0.5 text-sm font-black leading-none"
+        style={
+            cozy
+                ? { color: '#3A2A12', background: '#FFD27A', boxShadow: '0 3px 0 #B8862E' }
+                : { color: '#FFF3C4', background: 'linear-gradient(90deg, #FF7A1A, #FF3D2E)', boxShadow: '0 0 12px #FF7A1A88' }
+        }
+    >
+        +1
+    </motion.span>
+)
+
 // Упрощённая карточка: название, под ним прогресс-бар и справа сундук.
 // Кейс получен — карточка золотая и блестит (без надписей).
 const QuestRow = ({ q, index }: { q: DailyQuest; index: number }) => {
     const accent = TIER_ACCENT[q.tier]
     const percent = Math.min(100, (q.progress / q.target) * 100)
+    const { changed, prevPercent } = progressChange(q)
     const ready = q.done && !q.claimed
     const gold = q.claimed
     return (
@@ -117,17 +144,20 @@ const QuestRow = ({ q, index }: { q: DailyQuest; index: number }) => {
                 className={`relative rounded-[14px] px-4 pt-3.5 pb-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${gold ? 'animate-shine-sweep' : ''}`}
                 style={{ background: gold ? 'linear-gradient(180deg, #3A2E10 0%, #1A1406 100%)' : 'linear-gradient(180deg, #1C282E 0%, #0C1215 100%)' }}
             >
-                <p className="text-base font-black leading-none" style={{ color: gold ? '#FFE9A8' : '#F2F7FB' }}>
-                    {questTitle(q)}
-                </p>
+                <div className="flex items-center justify-between gap-2">
+                    <p className="text-base font-black leading-none" style={{ color: gold ? '#FFE9A8' : '#F2F7FB' }}>
+                        {questTitle(q)}
+                    </p>
+                    {q.pointNow && <PointBadge delay={1.5 + index * 0.15} />}
+                </div>
                 <div className="mt-3 flex items-center gap-3">
                     <div className="relative h-5 flex-1 overflow-hidden rounded-full" style={{ background: gold ? '#5A4410' : '#2A3A4A' }}>
                         <motion.div
                             className="h-full rounded-full"
                             style={{ background: gold ? 'linear-gradient(90deg, #D4A017, #FFE9A8)' : q.done ? accent : '#5A6B76' }}
-                            initial={{ width: 0 }}
+                            initial={{ width: `${changed ? prevPercent : percent}%` }}
                             animate={{ width: `${percent}%` }}
-                            transition={{ delay: 0.4 + index * 0.15, duration: 0.7, ease: 'easeOut' }}
+                            transition={changed ? { delay: 0.7 + index * 0.15, duration: 0.9, ease: 'easeOut' } : { duration: 0 }}
                         />
                         <span
                             className="absolute inset-0 flex items-center justify-center text-xs font-black tabular-nums text-white"
@@ -155,6 +185,7 @@ const QuestRow = ({ q, index }: { q: DailyQuest; index: number }) => {
 const CozyQuestRow = ({ q, index }: { q: DailyQuest; index: number }) => {
     const a = COZY_ACCENT[q.tier]
     const percent = Math.min(100, (q.progress / q.target) * 100)
+    const { changed, prevPercent } = progressChange(q)
     const ready = q.done && !q.claimed
     const gold = q.claimed
     const border = gold ? COZY.honeyBorder : ready ? a.fill : COZY.cardBorder
@@ -171,17 +202,20 @@ const CozyQuestRow = ({ q, index }: { q: DailyQuest; index: number }) => {
                 boxShadow: `0 6px 0 ${edge}`,
             }}
         >
-            <p className="text-base font-black leading-none" style={{ color: gold ? '#FFE3A3' : COZY.title }}>
-                {questTitle(q)}
-            </p>
+            <div className="flex items-center justify-between gap-2">
+                <p className="text-base font-black leading-none" style={{ color: gold ? '#FFE3A3' : COZY.title }}>
+                    {questTitle(q)}
+                </p>
+                {q.pointNow && <PointBadge delay={1.5 + index * 0.15} cozy />}
+            </div>
             <div className="mt-3 flex items-center gap-3">
                 <div className="relative h-5 flex-1 overflow-hidden rounded-md" style={{ background: COZY.track, boxShadow: 'inset 0 2px 0 rgba(0,0,0,0.35)' }}>
                     <motion.div
                         className="h-full"
                         style={{ background: gold ? COZY.honey : q.done ? a.fill : '#6B645B' }}
-                        initial={{ width: 0 }}
+                        initial={{ width: `${changed ? prevPercent : percent}%` }}
                         animate={{ width: `${percent}%` }}
-                        transition={{ delay: 0.4 + index * 0.15, duration: 0.7, ease: 'easeOut' }}
+                        transition={changed ? { delay: 0.7 + index * 0.15, duration: 0.9, ease: 'easeOut' } : { duration: 0 }}
                     />
                     <span
                         className="absolute inset-0 flex items-center justify-center text-xs font-black tabular-nums"
