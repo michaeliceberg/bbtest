@@ -176,6 +176,7 @@ export default function TQuiz({
   const [lightningStrikeKey, setLightningStrikeKey] = useState(0)
   const [lightningStrikeActive, setLightningStrikeActive] = useState(false)
   const [lightningVariant, setLightningVariant] = useState<'yellow' | 'blue'>('yellow')
+  const [lightningLabel, setLightningLabel] = useState<string | undefined>(undefined)
   const [showLightning, setShowLightning] = useState(false)
   const [showStreakCelebration, setShowStreakCelebration] = useState(false)
   // Какой именно рубеж серии сейчас празднуем — 3 или 7 (см.
@@ -599,13 +600,13 @@ export default function TQuiz({
               setShowStreakCelebration(true)
             }, 600)
           }
-          if (newStreak >= 5 && newStreak % 5 === 0) {
-            setCombo(newStreak)
-          }
+          // Надпись «КОМБО xN» теперь рисует сама молния (LightningStrike label) —
+          // старый маленький ComboBanner на кратных 5 больше не вызывается.
           // Удар молнии: 8 подряд (и 16, 24…) — синяя (36 кадров, 1.5с);
           // 5 подряд (и 10, 15…) — жёлтая (24 кадра, 1с). При совпадении — синяя.
           if (newStreak % 8 === 0 || newStreak % 5 === 0) {
             setLightningVariant(newStreak % 8 === 0 ? 'blue' : 'yellow')
+            setLightningLabel(newStreak % 5 === 0 ? `КОМБО x${newStreak}` : undefined)
             setLightningStrikeKey(k => k + 1)
             setLightningStrikeActive(true)
           }
@@ -971,7 +972,7 @@ export default function TQuiz({
       />
       <ComboBanner combo={combo} onDone={() => setCombo(null)} />
       {lightningStrikeActive && (
-        <LightningStrike key={lightningStrikeKey} variant={lightningVariant} onDone={() => setLightningStrikeActive(false)} />
+        <LightningStrike key={lightningStrikeKey} variant={lightningVariant} label={lightningLabel} onDone={() => setLightningStrikeActive(false)} />
       )}
 
       {showStreakCelebration ? (

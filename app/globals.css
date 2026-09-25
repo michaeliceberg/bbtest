@@ -515,3 +515,28 @@ body {
   animation: lightning-flash 1s linear forwards;
   will-change: opacity;
 }
+
+/* Надпись «КОМБО xN» поверх удара молнии (components/LightningStrike.tsx):
+   bounce-появление и bounce-исчезание, только transform/opacity (дёшево на iPhone). */
+@keyframes combo-label-in {
+  0% { transform: scale(0.2); opacity: 0; }
+  55% { transform: scale(1.25); opacity: 1; }
+  75% { transform: scale(0.92); }
+  90% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes combo-label-out {
+  0% { transform: scale(1); opacity: 1; }
+  35% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(0); opacity: 0; }
+}
+.animate-combo-label-in {
+  display: inline-block;
+  animation: combo-label-in 0.6s ease-out both;
+  will-change: transform, opacity;
+}
+.animate-combo-label-out {
+  display: inline-block;
+  animation: combo-label-out 0.4s ease-in both;
+  will-change: transform, opacity;
+}
