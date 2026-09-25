@@ -5,6 +5,7 @@ import { Sidebar } from '@/components/sidebar'
 import { auth } from '@/lib/server-auth'
 import { getUserCourses, getUserCourseStreak, getUserHomework, getTodayTrainerQuest, getUserProgress } from '@/db/queries'
 import { cookies } from 'next/headers'
+import { getUiTheme } from '@/lib/uiThemeServer'
 
 import 'katex/dist/katex.min.css'
 
@@ -18,7 +19,7 @@ const MainLayout = async ({ children }: Props) => {
         return (
             <>
                 <MobileHeader />
-                <Sidebar className='hidden lg:flex' />
+                <Sidebar className='hidden lg:flex' theme={getUiTheme()} />
                 <main className='lg:pl-[280px] h-full pt-[50px] lg:pt-0'>
                     <div className='max-w-[1056px] mx-auto pt-6 h-full'>{children}</div>
                 </main>
@@ -37,7 +38,7 @@ const MainLayout = async ({ children }: Props) => {
         return (
             <>
                 <MobileHeader userName={userProgressRow?.userName} userImageSrc={userProgressRow?.userImageSrc} />
-                <Sidebar className='hidden lg:flex' userName={userProgressRow?.userName} userImageSrc={userProgressRow?.userImageSrc} />
+                <Sidebar className='hidden lg:flex' theme={getUiTheme()} userName={userProgressRow?.userName} userImageSrc={userProgressRow?.userImageSrc} />
                 <main className='lg:pl-[280px] h-full pt-[50px] lg:pt-0'>
                     <div className='max-w-[1056px] mx-auto pt-6 h-full'>{children}</div>
                 </main>
@@ -120,6 +121,7 @@ const MainLayout = async ({ children }: Props) => {
             />
             <Sidebar
                 className='hidden lg:flex'
+                theme={getUiTheme()}
                 courses={coursesWithData}
                 activeCourseId={activeCourseId}
                 hasHomework={hasHomework}

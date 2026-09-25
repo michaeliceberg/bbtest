@@ -13,11 +13,11 @@ export const Header = ({ title, cozy = false }: Props) => {
 	return (
 		<div
 			className='hidden lg:flex sticky top-0 pb-3 pt-[28px] mt-[-28px] items-center justify-center border-b-2 mb-5 text-neutral-400 z-50'
-			style={{ background: cozy ? '#221E1A' : '#151F23', borderColor: cozy ? '#4A433B' : undefined }}
+			style={{ background: cozy ? '#1D1E1C' : '#151F23', borderColor: cozy ? '#403F3A' : undefined }}
 		>
 			<h1
 				className='font-black text-lg'
-				style={cozy ? { color: '#FFE08A', textShadow: '0 2px 0 #8A4B14' } : { color: '#F2F7FB' }}
+				style={cozy ? { color: '#EDE3D2', textShadow: '0 2px 0 #4A3F33' } : { color: '#F2F7FB' }}
 			>
 				{title}
 			</h1>

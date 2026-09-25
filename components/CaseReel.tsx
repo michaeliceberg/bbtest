@@ -80,9 +80,9 @@ const RARITY_STYLE: Record<CaseReward['kind'], { cell: string; glow: string; tex
 
 // Тёплый стиль «cozy»: плоская ячейка-блок, цветная обводка по типу награды.
 const COZY_CELL: Record<CaseReward['kind'], { border: string; text: string }> = {
-    coins: { border: '#C9A15A', text: '#F2C35B' },
+    coins: { border: '#9E8A5E', text: '#D9C08A' },
     gems: { border: '#6FB8D8', text: '#8FD3F0' },
-    pizza: { border: '#E8955A', text: '#FFB67A' },
+    pizza: { border: '#E8955A', text: '#E2B38E' },
 }
 
 const RewardCell = ({ reward, highlighted, cozy }: { reward: CaseReward; highlighted?: boolean; cozy?: boolean }) => {

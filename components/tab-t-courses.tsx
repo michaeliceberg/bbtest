@@ -357,7 +357,7 @@ export const TabTCourses = ({
                                 <Link
                                     href="/trainer-speed"
                                     className={theme === 'cozy'
-                                        ? "flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-b-4 active:border-b-2 transition-colors font-bold text-[#FFF1DC]"
+                                        ? "flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-b-4 active:border-b-2 transition-colors font-bold text-[#F1ECE3]"
                                         : "flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-b-4 active:border-b-2 bg-[#161F23] border-[#3A464E] hover:bg-[#232F34] transition-colors font-bold text-[#F2F7FB]"}
                                     style={theme === 'cozy' ? { background: '#2D2A27', borderColor: '#1C1A18' } : undefined}
                                 >
@@ -367,7 +367,7 @@ export const TabTCourses = ({
                                 <Link
                                     href="/trainer-chain"
                                     className={theme === 'cozy'
-                                        ? "flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-b-4 active:border-b-2 transition-colors font-bold text-[#FFF1DC]"
+                                        ? "flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-b-4 active:border-b-2 transition-colors font-bold text-[#F1ECE3]"
                                         : "flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-b-4 active:border-b-2 bg-[#161F23] border-[#3A464E] hover:bg-[#232F34] transition-colors font-bold text-[#F2F7FB]"}
                                     style={theme === 'cozy' ? { background: '#2D2A27', borderColor: '#1C1A18' } : undefined}
                                 >

@@ -158,15 +158,15 @@ const TREE_VARS: Record<UiTheme, React.CSSProperties> = {
         '--tg-frontier': '#2DD4BF',
     } as React.CSSProperties,
     cozy: {
-        '--tg-unlocked-bg': '#3A342D',
-        '--tg-locked': '#4A433B',
+        '--tg-unlocked-bg': '#34342F',
+        '--tg-locked': '#403F3A',
         '--tg-locked-icon': '#6B645B',
         '--tg-done-icon': '#3A2412',
         '--tg-frontier': '#7CC456',
     } as React.CSSProperties,
 }
 // Акцент юнитов в тёплом стиле — медовый.
-const COZY_TREE_ACCENT: GroupAccent = { button: '#F2C35B', bottom: '#B8862E' };
+const COZY_TREE_ACCENT: GroupAccent = { button: '#A9C8A0', bottom: '#6E9A72' };
 
 const chunkStages = (stages: SkillStage[], size: number): SkillStage[][] => {
     const rows: SkillStage[][] = [];
@@ -465,7 +465,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal' }: P
                 <div
                     key={topic.id}
                     className={cozy ? "rounded-xl px-4 py-3 border-2 border-dashed" : "bg-[#161B20] rounded-2xl px-4 py-3 border border-dashed border-[#333F47]"}
-                    style={cozy ? { background: '#262320', borderColor: '#4A433B' } : undefined}
+                    style={cozy ? { background: '#222220', borderColor: '#403F3A' } : undefined}
                 >
                     <div className="flex items-center gap-2 min-w-0">
                         <Lock className="w-3.5 h-3.5 text-[#56646C] flex-shrink-0" />
@@ -822,7 +822,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal' }: P
                                 // с явной высотой border-box просто "съедает" разницу
                                 // толщины нижней рамки, сама кнопка не меняет размер.
                                 className={cozy
-                                    ? "flex items-center justify-center gap-1 h-8 px-2.5 rounded-lg border-2 border-b-4 active:border-b-2 transition-colors text-xs font-bold text-[#FFE8C7] hover:text-white"
+                                    ? "flex items-center justify-center gap-1 h-8 px-2.5 rounded-lg border-2 border-b-4 active:border-b-2 transition-colors text-xs font-bold text-[#E6DED1] hover:text-white"
                                     : "flex items-center justify-center gap-1 h-8 px-2.5 rounded-lg border-2 border-b-4 active:border-b-2 bg-[#161F23] border-[#3A464E] text-[#9AA7B0] hover:text-[#F2F7FB] transition-colors text-xs font-bold"}
                                 style={cozy ? { background: COZY.wood, borderColor: COZY.woodEdge } : undefined}
                                 title={`Справочник — ${topic.title}`}
@@ -852,7 +852,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal' }: P
                                     type="button"
                                     onClick={() => setActiveGroupKey(key)}
                                     className="relative flex-grow whitespace-nowrap px-3 py-2 rounded-xl text-sm font-extrabold transition-colors"
-                                    style={{ color: isActive ? (cozy ? COZY.darkText : '#FFFFFF') : (cozy ? '#D9C4A3' : '#9AA7B0') }}
+                                    style={{ color: isActive ? (cozy ? COZY.darkText : '#FFFFFF') : (cozy ? '#C8C1B5' : '#9AA7B0') }}
                                 >
                                     {isActive && (
                                         <motion.span

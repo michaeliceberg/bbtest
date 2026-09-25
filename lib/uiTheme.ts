@@ -38,3 +38,16 @@ export const useUiTheme = (): UiTheme => {
     }, [])
     return theme
 }
+
+// То же, но до монтирования — null (чтобы компонент, получивший стиль с
+// сервера пропом, не мигал «игровым» при гидратации).
+export const useUiThemeLive = (): UiTheme | null => {
+    const [theme, setTheme] = useState<UiTheme | null>(null)
+    useEffect(() => {
+        const sync = () => setTheme(readUiThemeCookie())
+        sync()
+        window.addEventListener('uitheme-change', sync)
+        return () => window.removeEventListener('uitheme-change', sync)
+    }, [])
+    return theme
+}

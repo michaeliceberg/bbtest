@@ -23,7 +23,7 @@ interface StreakCelebrationScreenProps {
 // Текст/акцент по рубежу серии — 3 и 7 не должны выглядеть одинаково.
 const MILESTONE_COPY: Record<number, { title: string; subtitle: string; accent: string; stars: LessonCaseTier; cozyFill: string; cozyEdge: string }> = {
   3: { title: 'Молодец!', subtitle: 'ответа подряд!', accent: '#C386F8', stars: 'mythic', cozyFill: '#C9AEF5', cozyEdge: '#8E6FC7' },
-  7: { title: 'Огонь!', subtitle: 'ответов подряд!', accent: '#EF9F27', stars: 'mega', cozyFill: '#FFB67A', cozyEdge: '#C77A3E' },
+  7: { title: 'Огонь!', subtitle: 'ответов подряд!', accent: '#EF9F27', stars: 'mega', cozyFill: '#E2B38E', cozyEdge: '#A77A57' },
 }
 
 export const StreakCelebrationScreen = ({ animationData, onNext, milestone, theme = 'metal' }: StreakCelebrationScreenProps) => {
@@ -65,7 +65,7 @@ export const StreakCelebrationScreen = ({ animationData, onNext, milestone, them
         className="mt-5 text-8xl font-black leading-none"
         style={
           cozy
-            ? { color: '#FFF1DC', textShadow: `0 5px 0 ${copy.cozyEdge}, 0 10px 0 rgba(0,0,0,0.3)` }
+            ? { color: '#F1ECE3', textShadow: `0 5px 0 ${copy.cozyEdge}, 0 10px 0 rgba(0,0,0,0.3)` }
             : { color: '#FFFFFF', textShadow: `0 0 28px ${copy.accent}, 0 0 60px ${copy.accent}88` }
         }
       >
@@ -77,7 +77,7 @@ export const StreakCelebrationScreen = ({ animationData, onNext, milestone, them
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.5 }}
         className="mt-2 text-2xl font-black uppercase tracking-wide"
-        style={cozy ? { color: '#FFF1DC' } : { color: '#F2F7FB' }}
+        style={cozy ? { color: '#F1ECE3' } : { color: '#F2F7FB' }}
       >
         {copy.subtitle}
       </motion.p>

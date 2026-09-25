@@ -67,10 +67,10 @@ export const PizzaProgress = ({ collected, size = 140, cozy = false }: Props) =>
 				})}
 			</motion.div>
 			<div className="flex flex-col gap-1.5 min-w-0">
-				<motion.span animate={counterControls} className="text-5xl font-black leading-none text-yellow-300 origin-left">
+				<motion.span animate={counterControls} className={`text-5xl font-black leading-none origin-left ${cozy ? '' : 'text-yellow-300'}`} style={cozy ? { color: '#EDE3D2', textShadow: '0 3px 0 #4A3F33' } : undefined}>
 					{clamped}/{MAX_PIZZA_SLICES}
 				</motion.span>
-				<span className="flex items-end gap-2 text-base font-semibold leading-snug" style={{ color: cozy ? '#FFE8C7' : '#C9D3D9' }}>
+				<span className="flex items-end gap-2 text-base font-semibold leading-snug" style={{ color: cozy ? '#E6DED1' : '#C9D3D9' }}>
 					<span>
 						{isComplete ? (
 							<>Пицца собрана —<br />промокод в Додо!</>

@@ -44,12 +44,12 @@ export const CelebrationShell = ({
     return (
         <div className={(overlay ? 'fixed inset-0 z-[70] ' : 'relative min-h-screen ') + 'flex flex-col overflow-hidden text-[#F2F7FB]'}>
             {/* Фон */}
-            <div className="pointer-events-none absolute inset-0" style={{ backgroundColor: cozy ? '#221E1A' : '#131D22' }}>
+            <div className="pointer-events-none absolute inset-0" style={{ backgroundColor: cozy ? '#1D1E1C' : '#131D22' }}>
                 <div
                     className="absolute inset-0"
                     style={{
                         background: cozy
-                            ? 'radial-gradient(ellipse at 50% 32%, #FFB67A30, transparent 60%)'
+                            ? 'radial-gradient(ellipse at 50% 32%, #E6DED112, transparent 60%)'
                             : `radial-gradient(ellipse at 50% 32%, ${accent}40, transparent 58%)`,
                     }}
                 />
@@ -68,7 +68,7 @@ export const CelebrationShell = ({
                     numberOfPieces={240}
                     recycle={false}
                     gravity={0.25}
-                    colors={cozy ? ['#FFE08A', '#F2C35B', '#FFB67A', '#7CC456', '#C9AEF5'] : ['#A78BFA', '#818CF8', '#F2F7FB', '#FBBF24', '#34D399']}
+                    colors={cozy ? ['#EDE3D2', '#A9C8A0', '#E2B38E', '#7CC456', '#C9AEF5'] : ['#A78BFA', '#818CF8', '#F2F7FB', '#FBBF24', '#34D399']}
                 />
             )}
 

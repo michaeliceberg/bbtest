@@ -110,8 +110,8 @@ const CozyMarketingHero = ({ dbUserName }: Props) => {
   return (
     <div className='relative w-full flex-1 flex flex-col items-center overflow-x-clip'>
       {/* Тёплый фон: тёмный «камень» + мягкий свет, как от лампы */}
-      <div className='pointer-events-none fixed inset-0 -z-10' style={{ backgroundColor: '#221E1A' }}>
-        <div className='absolute inset-0' style={{ background: 'radial-gradient(ellipse at 50% 20%, #FFB67A2E, transparent 60%)' }} />
+      <div className='pointer-events-none fixed inset-0 -z-10' style={{ backgroundColor: '#1D1E1C' }}>
+        <div className='absolute inset-0' style={{ background: 'radial-gradient(ellipse at 50% 20%, #E6DED112, transparent 60%)' }} />
         <div className='absolute inset-0' style={{ background: 'radial-gradient(ellipse at 50% 35%, transparent 35%, rgba(0,0,0,0.5) 100%)' }} />
       </div>
 
@@ -123,7 +123,7 @@ const CozyMarketingHero = ({ dbUserName }: Props) => {
           transition={{ type: 'spring', bounce: 0.45, duration: 0.8 }}
           style={{ background: COZY.card, border: `4px solid ${COZY.cardBorder}`, boxShadow: `0 8px 0 ${COZY.cardEdge}` }}
         >
-          <div className='absolute inset-0 rounded-3xl' style={{ background: 'radial-gradient(closest-side, #FFB67A33, transparent)' }} />
+          <div className='absolute inset-0 rounded-3xl' style={{ background: 'radial-gradient(closest-side, #E6DED112, transparent)' }} />
           <Lottie animationData={LottieHelloBread} loop style={{ width: '100%', height: '100%', position: 'relative' }} />
         </motion.div>
 
@@ -135,7 +135,7 @@ const CozyMarketingHero = ({ dbUserName }: Props) => {
         >
           <span
             className='inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-black uppercase tracking-[0.15em]'
-            style={{ background: COZY.wood, color: '#FFE8C7', border: `2px solid ${COZY.woodBorder}`, boxShadow: `0 3px 0 ${COZY.woodEdge}` }}
+            style={{ background: COZY.wood, color: '#E6DED1', border: `2px solid ${COZY.woodBorder}`, boxShadow: `0 3px 0 ${COZY.woodEdge}` }}
           >
             <Sparkles className='h-3.5 w-3.5' style={{ color: COZY.honey }} />
             ЕГЭ · ОГЭ · ЛНИП
@@ -147,7 +147,7 @@ const CozyMarketingHero = ({ dbUserName }: Props) => {
             <span style={accentLine}>{userName ? `${userName}!` : 'учиться вместе!'}</span>
           </h1>
 
-          <p className='text-base lg:text-lg font-semibold text-center lg:text-left' style={{ color: '#D9C4A3' }}>
+          <p className='text-base lg:text-lg font-semibold text-center lg:text-left' style={{ color: '#C8C1B5' }}>
             {userName
               ? 'Готов продолжить? У тебя отлично получается 🌟'
               : 'Задачи, тренажёры и разборы по шагам — как игра, только к экзамену. У тебя всё получится ❤️'}
@@ -194,7 +194,7 @@ const CozyMarketingHero = ({ dbUserName }: Props) => {
               <div className='relative aspect-square w-full overflow-hidden'>
                 <Image src={c.src} alt={c.title} fill sizes='(max-width: 640px) 50vw, 200px' className='object-cover' />
               </div>
-              <p className='px-2 py-2 text-center text-xs lg:text-sm font-black' style={{ color: '#FFE8C7' }}>{c.title}</p>
+              <p className='px-2 py-2 text-center text-xs lg:text-sm font-black' style={{ color: '#E6DED1' }}>{c.title}</p>
             </motion.div>
           ))}
         </div>

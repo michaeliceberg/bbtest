@@ -225,8 +225,8 @@ const TLearnPage = async () => {
         <div className='flex flex-row-reverse gap-[48px] px-6'>
             {/* Тёплый стиль — тёплый фон на всю страницу (под контентом). */}
             {cozy && (
-                <div className='pointer-events-none fixed inset-0 -z-10' style={{ backgroundColor: '#221E1A' }}>
-                    <div className='absolute inset-0' style={{ background: 'radial-gradient(ellipse at 50% 10%, #FFB67A1F, transparent 60%)' }} />
+                <div className='pointer-events-none fixed inset-0 -z-10' style={{ backgroundColor: '#1D1E1C' }}>
+                    <div className='absolute inset-0' style={{ background: 'radial-gradient(ellipse at 50% 10%, #E6DED112, transparent 60%)' }} />
                 </div>
             )}
             <StickyWrapper>

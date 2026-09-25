@@ -67,7 +67,7 @@ export const LevelUpScreen = ({ event, onClose, theme = 'metal', overlay = true 
         ? { color: COZY.headline, textShadow: `0 3px 0 ${COZY.headlineShadow}, 0 6px 0 rgba(0,0,0,0.35)` }
         : { color: '#EDE4FF', textShadow: `0 0 18px ${ACCENT}AA` }
     const numberStyle = cozy
-        ? { color: '#FFF1DC', textShadow: `0 5px 0 ${COZY.headlineShadow}, 0 10px 0 rgba(0,0,0,0.3)` }
+        ? { color: '#F1ECE3', textShadow: `0 5px 0 ${COZY.headlineShadow}, 0 10px 0 rgba(0,0,0,0.3)` }
         : { color: '#FFFFFF', textShadow: `0 0 28px ${ACCENT}, 0 0 60px ${ACCENT}88` }
 
     return (
@@ -117,7 +117,7 @@ export const LevelUpScreen = ({ event, onClose, theme = 'metal', overlay = true 
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.3 }}
                     className="text-4xl font-black line-through decoration-4"
-                    style={{ color: cozy ? '#8C7B66' : '#5C6B73' }}
+                    style={{ color: cozy ? '#7A756D' : '#5C6B73' }}
                 >
                     {event.oldLevel}
                 </motion.span>
@@ -138,7 +138,7 @@ export const LevelUpScreen = ({ event, onClose, theme = 'metal', overlay = true 
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7 }}
                 className="mt-4 text-lg font-bold"
-                style={{ color: cozy ? '#D9C4A3' : '#9AA7B0' }}
+                style={{ color: cozy ? '#C8C1B5' : '#9AA7B0' }}
             >
                 Теперь ты на уровне {event.newLevel}
             </motion.p>

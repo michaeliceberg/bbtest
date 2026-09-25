@@ -14,6 +14,8 @@ import { useSession, signOut } from 'next-auth/react'
 import { UnitCardLottie } from '@/components/unit-card-lottie'
 import { useCourseSwitchStore } from '@/store/course-switch-store'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { COZY, type UiTheme } from '@/lib/cozyTheme'
+import { useUiThemeLive } from '@/lib/uiTheme'
 
 // Цвета вордмарка "ggege" (public/ggegelogo.svg) — сэмплированы напрямую
 // из отрисованного логотипа (замер getBBox()/fill по <use>-элементам):
@@ -34,6 +36,8 @@ export type SidebarCourse = {
 }
 
 interface SidebarProps {
+  // Стиль оформления с сервера (cookie uiTheme); после монтирования — живое значение.
+  theme?: UiTheme
   courses?: SidebarCourse[]
   activeCourseId?: number | null
   hasTrainerQuest?: boolean
@@ -50,7 +54,19 @@ interface SidebarProps {
   onAfterCourseChange?: () => void
 }
 
-export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest = false, className, userName, userImageSrc, onAfterCourseChange }: SidebarProps) => {
+export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest = false, className, userName, userImageSrc, onAfterCourseChange, theme }: SidebarProps) => {
+  const liveTheme = useUiThemeLive()
+  const cozy = (liveTheme ?? theme ?? 'metal') === 'cozy'
+  // Тёплый стиль: фон/рамка сайдбара, пункты меню (активный — карточка-блок).
+  const rootStyle = cozy ? { background: COZY.bg, borderColor: COZY.cardBorder } : undefined
+  const navButtonClass = (isActive: boolean) =>
+    cozy
+      ? cn('justify-start h-[52px] w-full rounded-xl border-2 transition-none', isActive ? '' : 'border-transparent hover:bg-[#2A2A27]')
+      : 'justify-start h-[52px] w-full'
+  const navButtonStyle = (isActive: boolean) =>
+    cozy && isActive ? { background: COZY.card, borderColor: COZY.honeyBorder, boxShadow: `0 4px 0 ${COZY.cardEdge}` } : undefined
+  const navText = cozy ? { color: COZY.title } : undefined
+  const navIcon = (isActive: boolean) => (cozy ? { color: isActive ? COZY.honey : COZY.textSoft } : undefined)
   const pathname = usePathname()
   const router = useRouter()
   const { data: session } = useSession()
@@ -180,7 +196,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
 
   if (courses.length === 0) {
     return (
-      <div className={cn('flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-[#151F23]', className)}>
+      <div className={cn('flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-[#151F23]', className)} style={rootStyle}>
         <div className='pt-8 pl-4 pb-7 flex items-center gap-x-3'>
           <Image src="/ggegelogo.svg" height={32} width={64} alt="ggege" className="h-auto w-auto" />
         </div>
@@ -190,23 +206,23 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
             const Icon = item.icon
             return (
               <TransitionLink key={item.href} href={item.href}>
-                <Button variant={isActive ? 'sidebarOutline' : 'sidebar'} className="justify-start h-[52px] w-full">
-                  <Icon className="mr-3 h-5 w-5 text-[#9AA7B0]" />
-                  <span className="text-sm text-[#F2F7FB]">{item.label}</span>
+                <Button variant={cozy ? 'sidebar' : isActive ? 'sidebarOutline' : 'sidebar'} className={navButtonClass(isActive)} style={navButtonStyle(isActive)}>
+                  <Icon className="mr-3 h-5 w-5 text-[#9AA7B0]" style={navIcon(isActive)} />
+                  <span className="text-sm text-[#F2F7FB]" style={navText}>{item.label}</span>
                 </Button>
               </TransitionLink>
             )
           })}
         </div>
 
-        <ThemeSwitch />
+        <ThemeSwitch cozy={cozy} />
         {userMenu}
       </div>
     )
   }
   
   return (
-    <div className={cn('flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-[#151F23]', className)}>
+    <div className={cn('flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-[#151F23]', className)} style={rootStyle}>
       <Link href='/learn'>
         <div className='pt-8 pl-4 pb-4 flex items-center gap-x-3 cursor-pointer hover:opacity-80 transition-opacity'>
           <Image src="/ggegelogo.svg" height={32} width={64} alt="ggege" className="h-auto w-auto" />
@@ -220,7 +236,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
       <div className='px-4 pb-4'>
         <div
           className='h-[3px] w-full rounded-full'
-          style={{ background: `linear-gradient(to right, ${LOGO_PURPLE}, #3A464E, ${LOGO_GREEN})` }}
+          style={{ background: cozy ? `linear-gradient(to right, ${COZY.cardBorder}, ${COZY.honeyBorder}, ${COZY.cardBorder})` : `linear-gradient(to right, ${LOGO_PURPLE}, #3A464E, ${LOGO_GREEN})` }}
         />
       </div>
 
@@ -229,15 +245,16 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
           <div className="px-1 mb-1.5 text-[10px] font-bold tracking-widest text-[#5A6A72] uppercase">Курс</div>
           <button
             onClick={() => setIsCoursesOpen(!isCoursesOpen)}
-            className={cn(
+            className={cozy ? 'w-full flex items-center justify-between p-3 rounded-xl border-2' : cn(
               'w-full flex items-center justify-between p-3 rounded-xl transition-all duration-200 border',
               isCoursesOpen
                 ? 'border-green-400/70 shadow-[0_0_16px_2px_rgba(74,222,128,0.4)] bg-[#1A2B22]'
                 : 'border-green-400/25 shadow-[0_0_10px_1px_rgba(74,222,128,0.15)] hover:border-green-400/50 hover:shadow-[0_0_14px_2px_rgba(74,222,128,0.3)] bg-[#1A2B22]/50'
             )}
+            style={cozy ? { background: COZY.card, borderColor: COZY.cardBorder, boxShadow: `0 4px 0 ${COZY.cardEdge}` } : undefined}
           >
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <span className="font-medium text-green-300 truncate">{activeCourse?.title || 'Выберите курс'}</span>
+              <span className="font-medium text-green-300 truncate" style={cozy ? { color: COZY.title } : undefined}>{activeCourse?.title || 'Выберите курс'}</span>
               {activeCourse?.streak && (
                 <span className="flex items-center gap-1 text-xs text-orange-300 flex-shrink-0">
                   <Flame className="h-3 w-3 text-orange-400" />
@@ -245,7 +262,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
                 </span>
               )}
             </div>
-            {isCoursesOpen ? <ChevronUp className="h-4 w-4 text-green-400 flex-shrink-0" /> : <ChevronDown className="h-4 w-4 text-green-400 flex-shrink-0" />}
+            {isCoursesOpen ? <ChevronUp className="h-4 w-4 text-green-400 flex-shrink-0" style={cozy ? { color: COZY.honey } : undefined} /> : <ChevronDown className="h-4 w-4 text-green-400 flex-shrink-0" style={cozy ? { color: COZY.honey } : undefined} />}
           </button>
 
           <AnimatePresence initial={false}>
@@ -266,7 +283,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
                       {groupCourses.map((course) => (
                         <button key={course.id} onClick={() => handleCourseChange(course.id)}
                           className={cn('w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm active:scale-[0.98]',
-                            displayedCourseId === course.id ? "bg-green-500/15 text-green-300" : "hover:bg-[#232F34] text-[#9AA7B0]")}>
+                            displayedCourseId === course.id ? (cozy ? "bg-[#2F3A2D] text-[#D8E8D2]" : "bg-green-500/15 text-green-300") : (cozy ? "hover:bg-[#2A2A27] text-[#C8C1B5]" : "hover:bg-[#232F34] text-[#9AA7B0]"))}>
                           <span className="flex-1 min-w-0 text-left truncate">{course.title}</span>
                           {course.streak && (
                             <span className="flex items-center gap-1 text-xs text-orange-300 flex-shrink-0">
@@ -291,9 +308,9 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
           const Icon = item.icon
           return (
             <TransitionLink key={item.href} href={item.href}>
-              <Button variant={isActive ? 'sidebarOutline' : 'sidebar'} className="justify-start h-[52px] w-full">
-                <Icon className="mr-3 h-5 w-5 text-[#9AA7B0]" />
-                <span className="text-sm text-[#F2F7FB]">{item.label}</span>
+              <Button variant={cozy ? 'sidebar' : isActive ? 'sidebarOutline' : 'sidebar'} className={navButtonClass(isActive)} style={navButtonStyle(isActive)}>
+                <Icon className="mr-3 h-5 w-5 text-[#9AA7B0]" style={navIcon(isActive)} />
+                <span className="text-sm text-[#F2F7FB]" style={navText}>{item.label}</span>
                 {item.badge && <div className="ml-auto h-5 w-5 rounded-full bg-red-500"></div>}
               </Button>
             </TransitionLink>
@@ -301,7 +318,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
         })}
       </div>
 
-      <ThemeSwitch />
+      <ThemeSwitch cozy={cozy} />
       {userMenu}
     </div>
   )
