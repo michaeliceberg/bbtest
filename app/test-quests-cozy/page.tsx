@@ -12,6 +12,22 @@ import { TrainerQuestRewardsScreen } from '@/components/trainer-quest-rewards-sc
 
 export default function TestQuestsCozyPage() {
     const [key, setKey] = useState(0)
+    // Браузер не даёт играть звук, пока пользователь ни разу не нажал на
+    // страницу, — поэтому экран запускается по кнопке (в уроке перед экраном
+    // квестов всегда есть клик «Дальше», там это не нужно).
+    const [started, setStarted] = useState(false)
+    if (!started) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-[#131D22]">
+                <button
+                    onClick={() => setStarted(true)}
+                    className="rounded-xl bg-[#78C93C] px-8 py-4 text-lg font-black uppercase text-[#1B2A10] shadow-[0_6px_0_#60A12F] active:translate-y-1 active:shadow-[0_2px_0_#60A12F]"
+                >
+                    ▶ Запустить со звуком
+                </button>
+            </div>
+        )
+    }
     return (
         <div className="w-full max-w-xl mx-auto">
             <TrainerQuestRewardsScreen
