@@ -12,6 +12,7 @@
 
 'use client';
 
+import { COZY, type UiTheme } from '@/lib/cozyTheme';
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil, Lock, ChevronDown, BookOpen } from 'lucide-react';
@@ -65,11 +66,11 @@ const REFERENCE_ALIAS: Record<string, string> = { '8 свойств логари
 const DONE_GRADIENT = 'linear-gradient(135deg, #7C3AED 0%, #C026D3 100%)';
 const DONE_BORDER = '#C4B5FD';
 const DONE_GLOW = '0 0 12px -2px rgba(167, 139, 250, 0.55)';
-const DONE_ICON_COLOR = '#F5F0FF';
+const DONE_ICON_COLOR = 'var(--tg-done-icon)';
 const UNLOCKED_BORDER = '#4897D1';
-const UNLOCKED_BG = '#232F35';
-const LOCKED_BORDER = '#3A464E';
-const LOCKED_ICON_COLOR = '#56646C';
+const UNLOCKED_BG = 'var(--tg-unlocked-bg)';
+const LOCKED_BORDER = 'var(--tg-locked)';
+const LOCKED_ICON_COLOR = 'var(--tg-locked-icon)';
 // Премиальный золотой фон для этапов-разборов "по шагам" (isStepByStep) —
 // по прямой просьбе пользователя ("фон золотым, иконку белой, чтобы лучше
 // отличалось от остальных tlessons") красится сам квадратик, а не только
@@ -90,7 +91,7 @@ const STEPBYSTEP_LOCKED_BORDER = 'rgba(201, 165, 68, 0.3)';
 // Цвет подсказки "сюда нажать дальше" (см. RippleGlow ниже) — намеренно
 // отдельный, третий акцент, не пересекающийся ни с violet "done", ни с
 // gold "chest", ни с обычной синей рамкой разблокированного этапа.
-const FRONTIER_RING_COLOR = '#2DD4BF';
+const FRONTIER_RING_COLOR = 'var(--tg-frontier)';
 
 export type SkillStage = {
     id: number;
@@ -142,7 +143,30 @@ interface Props {
     // последовательно все проходить"), тот же принцип, что уже применён
     // для юнитов основного курса (app/(main)/learn/unit.tsx).
     isAdmin?: boolean;
+    // Стиль оформления: игровой (по умолчанию) или тёплый «cozy».
+    theme?: UiTheme;
 }
+
+// Цвета карты в двух стилях — через CSS-переменные на корне карты, чтобы
+// вложенные компоненты (иконки, подсказки) не таскали проп стиля.
+const TREE_VARS: Record<UiTheme, React.CSSProperties> = {
+    metal: {
+        '--tg-unlocked-bg': '#232F35',
+        '--tg-locked': '#3A464E',
+        '--tg-locked-icon': '#56646C',
+        '--tg-done-icon': '#F5F0FF',
+        '--tg-frontier': '#2DD4BF',
+    } as React.CSSProperties,
+    cozy: {
+        '--tg-unlocked-bg': '#3A342D',
+        '--tg-locked': '#4A433B',
+        '--tg-locked-icon': '#6B645B',
+        '--tg-done-icon': '#3A2412',
+        '--tg-frontier': '#7CC456',
+    } as React.CSSProperties,
+}
+// Акцент юнитов в тёплом стиле — медовый.
+const COZY_TREE_ACCENT: GroupAccent = { button: '#F2C35B', bottom: '#B8862E' };
 
 const chunkStages = (stages: SkillStage[], size: number): SkillStage[][] => {
     const rows: SkillStage[][] = [];
@@ -294,7 +318,9 @@ const RippleGlow = ({ children }: { children: React.ReactNode }) => (
 // 300-500мс), чтобы анимация не началась "за кадром", пока страница ещё едет.
 const SCROLL_SETTLE_MS = 500;
 
-export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
+export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal' }: Props) => {
+    const cozy = theme === 'cozy';
+    const ACC: GroupAccent = cozy ? COZY_TREE_ACCENT : GROUP_ACCENTS[0];
     // Reveal-анимация "только что прошёл этот этап" — сигнал приходит из
     // app/t-lesson/[t_lessonId]/TQUIZ.tsx (handleFinishLesson) через
     // sessionStorage, читается ровно один раз при монтировании и сразу
@@ -425,9 +451,10 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
     // без прокидывания десятка пропсов), вызывается из ДВУХ мест —
     // одиночная тема и тема внутри chain-группы (см. return ниже).
     const renderTopicCard = (topic: SkillTopic, accent: GroupAccent, nested = false, blockTitle?: string) => {
-        const doneGradient = `linear-gradient(135deg, ${accent.button} 0%, ${accent.bottom} 100%)`;
-        const doneBorder = mixWithWhite(accent.button, 0.5);
-        const doneGlow = `0 0 12px -2px ${hexToRgba(accent.button, 0.6)}`;
+        // Тёплый стиль: пройденный этап — плоский медовый блок с нижней гранью.
+        const doneGradient = cozy ? accent.button : `linear-gradient(135deg, ${accent.button} 0%, ${accent.bottom} 100%)`;
+        const doneBorder = cozy ? accent.bottom : mixWithWhite(accent.button, 0.5);
+        const doneGlow = cozy ? `0 3px 0 ${accent.bottom}` : `0 0 12px -2px ${hexToRgba(accent.button, 0.6)}`;
         // Тема залочена целиком (межюнитная зависимость, см.
         // t_units.unlockAfterTUnitId) — вместо обычной сетки этапов
         // показываем один плейсхолдер с пояснением, что именно нужно
@@ -437,7 +464,8 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
             return (
                 <div
                     key={topic.id}
-                    className="bg-[#161B20] rounded-2xl px-4 py-3 border border-dashed border-[#333F47]"
+                    className={cozy ? "rounded-xl px-4 py-3 border-2 border-dashed" : "bg-[#161B20] rounded-2xl px-4 py-3 border border-dashed border-[#333F47]"}
+                    style={cozy ? { background: '#262320', borderColor: '#4A433B' } : undefined}
                 >
                     <div className="flex items-center gap-2 min-w-0">
                         <Lock className="w-3.5 h-3.5 text-[#56646C] flex-shrink-0" />
@@ -454,8 +482,12 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                     <div
                         key={topic.id}
                         ref={(el) => { topicRefs.current[topic.title] = el; }}
-                        className="bg-[#1A252B] rounded-2xl px-4 py-3 transition-shadow duration-300"
-                        style={{
+                        className={cozy ? "rounded-xl px-4 py-3 transition-shadow duration-300" : "bg-[#1A252B] rounded-2xl px-4 py-3 transition-shadow duration-300"}
+                        style={cozy ? {
+                            background: COZY.card,
+                            border: `3px solid ${COZY.cardBorder}`,
+                            boxShadow: highlightedTopic === topic.title ? `0 0 0 3px ${accent.button}, 0 6px 0 ${COZY.cardEdge}` : `0 6px 0 ${COZY.cardEdge}`,
+                        } : {
                             ...(nested ? {} : { border: `2px solid ${hexToRgba(accent.button, 0.7)}`, backgroundImage: `linear-gradient(180deg, ${hexToRgba(accent.button, 0.09)}, transparent 60%)` }),
                             ...(highlightedTopic === topic.title ? { boxShadow: '0 0 0 2px #4A90D9' } : {}),
                         }}
@@ -666,7 +698,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                                                 style={{
                                                                     background: isBossExam ? 'transparent' : (done ? doneGradient : UNLOCKED_BG),
                                                                     border: isBossExam ? '2px solid transparent' : `2px solid ${(done ? doneBorder : accent.button)}`,
-                                                                    boxShadow: isBossExam ? 'none' : (done ? doneGlow : undefined),
+                                                                    boxShadow: isBossExam ? 'none' : (done ? doneGlow : (cozy ? `0 3px 0 ${accent.bottom}` : undefined)),
                                                                 }}
                                                                 icon={<StageIcon accent={accent.button} isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={done ? DONE_ICON_COLOR : accent.button} />}
                                                                 extra={isBoss && done ? null : null}
@@ -789,7 +821,10 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                 // страницы НИЖЕ (следующая тема/группа) подскакивал —
                                 // с явной высотой border-box просто "съедает" разницу
                                 // толщины нижней рамки, сама кнопка не меняет размер.
-                                className="flex items-center justify-center gap-1 h-8 px-2.5 rounded-lg border-2 border-b-4 active:border-b-2 bg-[#161F23] border-[#3A464E] text-[#9AA7B0] hover:text-[#F2F7FB] transition-colors text-xs font-bold"
+                                className={cozy
+                                    ? "flex items-center justify-center gap-1 h-8 px-2.5 rounded-lg border-2 border-b-4 active:border-b-2 transition-colors text-xs font-bold text-[#FFE8C7] hover:text-white"
+                                    : "flex items-center justify-center gap-1 h-8 px-2.5 rounded-lg border-2 border-b-4 active:border-b-2 bg-[#161F23] border-[#3A464E] text-[#9AA7B0] hover:text-[#F2F7FB] transition-colors text-xs font-bold"}
+                                style={cozy ? { background: COZY.wood, borderColor: COZY.woodEdge } : undefined}
                                 title={`Справочник — ${topic.title}`}
                             >
                                 <Library className="w-3.5 h-3.5" />
@@ -801,10 +836,13 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
     };
 
     return (
-        <div className="w-full max-w-xl mx-auto">
+        <div className="w-full max-w-xl mx-auto" style={TREE_VARS[theme]}>
             <div className="flex flex-col gap-3">
                 {renderGroups.length > 1 && (
-                    <div className="flex flex-wrap gap-1 p-1 rounded-2xl bg-[#232F34]">
+                    <div
+                        className={cozy ? "flex flex-wrap gap-1 p-1 rounded-xl" : "flex flex-wrap gap-1 p-1 rounded-2xl bg-[#232F34]"}
+                        style={cozy ? { background: COZY.card, border: `3px solid ${COZY.cardBorder}`, boxShadow: `0 5px 0 ${COZY.cardEdge}` } : undefined}
+                    >
                         {renderGroups.map((g) => {
                             const key = groupKey(g);
                             const isActive = key === activeGroupKey;
@@ -814,13 +852,15 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                                     type="button"
                                     onClick={() => setActiveGroupKey(key)}
                                     className="relative flex-grow whitespace-nowrap px-3 py-2 rounded-xl text-sm font-extrabold transition-colors"
-                                    style={{ color: isActive ? '#FFFFFF' : '#9AA7B0' }}
+                                    style={{ color: isActive ? (cozy ? COZY.darkText : '#FFFFFF') : (cozy ? '#D9C4A3' : '#9AA7B0') }}
                                 >
                                     {isActive && (
                                         <motion.span
                                             layoutId="trainer-unit-tab-pill"
-                                            className="absolute inset-0 rounded-xl"
-                                            style={{ background: `linear-gradient(135deg, ${GROUP_ACCENTS[0].button}, ${GROUP_ACCENTS[0].bottom})`, boxShadow: `0 4px 14px -4px ${hexToRgba(GROUP_ACCENTS[0].button, 0.7)}` }}
+                                            className={cozy ? "absolute inset-0 rounded-lg" : "absolute inset-0 rounded-xl"}
+                                            style={cozy
+                                                ? { background: ACC.button, boxShadow: `0 3px 0 ${ACC.bottom}` }
+                                                : { background: `linear-gradient(135deg, ${GROUP_ACCENTS[0].button}, ${GROUP_ACCENTS[0].bottom})`, boxShadow: `0 4px 14px -4px ${hexToRgba(GROUP_ACCENTS[0].button, 0.7)}` }}
                                             transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                                         />
                                     )}
@@ -833,7 +873,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false }: Props) => {
                 {renderGroups.map((g) => {
                     const key = groupKey(g);
                     if (key !== activeGroupKey) return null;
-                    const accent = GROUP_ACCENTS[0];
+                    const accent = ACC;
                     return (
                         <motion.div
                             key={key}

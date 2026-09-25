@@ -30,6 +30,8 @@ import { StreakRiskBanner } from '@/components/streak-risk-banner';
 import { PizzaProgress } from '@/components/PizzaProgress';
 import { getUserCourseProgress } from '@/db/queries';
 import { HIDDEN_T_COURSE_IDS, resolveActiveTCourse, sortTCoursesForTabs } from '@/lib/trainer-topic';
+import { getUiTheme } from '@/lib/uiThemeServer';
+import { COZY } from '@/lib/cozyTheme';
 
 const TLearnPage = async () => {
     const session = await auth();
@@ -215,8 +217,18 @@ const TLearnPage = async () => {
         hasExtendedStreakToday = !!lastActive && lastActive.getTime() === todayForStreak.getTime();
     }
 
+    // Стиль оформления (переключатель в сайдбаре, cookie uiTheme).
+    const uiTheme = getUiTheme();
+    const cozy = uiTheme === 'cozy';
+
     return (
         <div className='flex flex-row-reverse gap-[48px] px-6'>
+            {/* Тёплый стиль — тёплый фон на всю страницу (под контентом). */}
+            {cozy && (
+                <div className='pointer-events-none fixed inset-0 -z-10' style={{ backgroundColor: '#221E1A' }}>
+                    <div className='absolute inset-0' style={{ background: 'radial-gradient(ellipse at 50% 10%, #FFB67A1F, transparent 60%)' }} />
+                </div>
+            )}
             <StickyWrapper>
                 <UserProgress
                     activeCourse={userProgress.activeCourse}
@@ -242,21 +254,24 @@ const TLearnPage = async () => {
             </StickyWrapper>
 
             <FeedWrapper>
-                <Header title={activeTCourse ? `Тренажёр ${activeTCourse.title}` : "Тренажёр"} />
+                <Header title={activeTCourse ? `Тренажёр ${activeTCourse.title}` : "Тренажёр"} cozy={cozy} />
 
                 <div className='mt-2 lg:mt-5'>
                     <StreakRiskBanner streak={currentStreakForRisk} hasExtendedToday={hasExtendedStreakToday} />
 
                     <div className='mb-4'>
-                        <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} />
+                        <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} theme={uiTheme} />
                     </div>
 
                     {/* Кусочки пиццы из кейсов (components/CaseReel.tsx) — общий
                         счётчик 0-8 на пользователя, см. lib/caseRewards.ts. В
                         основной колонке (не в сайдбаре) — тот же принцип, что
                         и у LevelCard: сайдбар скрыт на мобильном (hidden lg:block). */}
-                    <div className='mb-4 flex justify-center'>
-                        <PizzaProgress collected={currentPizzaSlices} />
+                    <div
+                        className={cozy ? 'mb-5 flex justify-center rounded-xl px-3 py-3' : 'mb-4 flex justify-center'}
+                        style={cozy ? { background: COZY.card, border: `3px solid ${COZY.cardBorder}`, boxShadow: `0 6px 0 ${COZY.cardEdge}` } : undefined}
+                    >
+                        <PizzaProgress collected={currentPizzaSlices} cozy={cozy} />
                     </div>
 
                     <div className='content-center mx-auto justify-center text-center align-middle'>
@@ -275,6 +290,7 @@ const TLearnPage = async () => {
                         all_t_lessonProgress={all_t_lessonProgress}
                         this_class_id={userProgress.classId}
                         isAdmin={userProgress.isAdmin === 1}
+                        theme={uiTheme}
                     />
                 </div>
             </FeedWrapper>

@@ -13,6 +13,7 @@ import { switchCourse } from '@/actions/switch-course'
 import { useSession, signOut } from 'next-auth/react'
 import { UnitCardLottie } from '@/components/unit-card-lottie'
 import { useCourseSwitchStore } from '@/store/course-switch-store'
+import { ThemeSwitch } from '@/components/theme-switch'
 
 // Цвета вордмарка "ggege" (public/ggegelogo.svg) — сэмплированы напрямую
 // из отрисованного логотипа (замер getBBox()/fill по <use>-элементам):
@@ -198,6 +199,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
           })}
         </div>
 
+        <ThemeSwitch />
         {userMenu}
       </div>
     )
@@ -299,6 +301,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
         })}
       </div>
 
+      <ThemeSwitch />
       {userMenu}
     </div>
   )

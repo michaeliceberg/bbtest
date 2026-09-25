@@ -18,9 +18,11 @@ import { MAX_PIZZA_SLICES } from '@/lib/caseRewards'
 type Props = {
 	collected: number
 	size?: number
+	// Тёплый стиль — кремовый текст подписи.
+	cozy?: boolean
 }
 
-export const PizzaProgress = ({ collected, size = 140 }: Props) => {
+export const PizzaProgress = ({ collected, size = 140, cozy = false }: Props) => {
 	const clamped = Math.max(0, Math.min(MAX_PIZZA_SLICES, collected))
 	const isComplete = clamped >= MAX_PIZZA_SLICES
 
@@ -68,7 +70,7 @@ export const PizzaProgress = ({ collected, size = 140 }: Props) => {
 				<motion.span animate={counterControls} className="text-5xl font-black leading-none text-yellow-300 origin-left">
 					{clamped}/{MAX_PIZZA_SLICES}
 				</motion.span>
-				<span className="flex items-end gap-2 text-base font-semibold text-[#C9D3D9] leading-snug">
+				<span className="flex items-end gap-2 text-base font-semibold leading-snug" style={{ color: cozy ? '#FFE8C7' : '#C9D3D9' }}>
 					<span>
 						{isComplete ? (
 							<>Пицца собрана —<br />промокод в Додо!</>

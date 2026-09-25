@@ -20,6 +20,7 @@ const LightningStrike = dynamic(() => import("../../../components/LightningStrik
 const StreakLightning = dynamic(() => import("../../../components/streak-lightning").then(mod => mod.StreakLightning), { ssr: false })
 const StreakCelebrationScreen = dynamic(() => import("../../../components/streak-celebration-screen").then(mod => mod.StreakCelebrationScreen), { ssr: false })
 import { toast } from "sonner"
+import { useUiTheme } from "@/lib/uiTheme"
 import { upsertTrainerLessonProgress } from "@/actions/user-progress"
 import { recordChallengeResult } from "@/actions/record-challenge-result"
 import { Separator } from "../../../components/ui/separator"
@@ -207,6 +208,8 @@ export default function TQuiz({
   // пользователя раньше был всегда один и тот же (LottiePaperFly),
   // теперь случайный из 6 при каждом реальном показе.
   const [randomStreakCharacterLottie, setRandomStreakCharacterLottie] = useState(() => getRandomLottie(LOTTIE_STREAK_CHARACTER_LIST))
+  // Стиль оформления, выбранный в сайдбаре (cookie uiTheme) — для экранов финала/кейсов/серий.
+  const uiTheme = useUiTheme()
   const [quizStarted, setQuizStarted] = useState(true)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [score, setScore] = useState(0)
@@ -865,6 +868,7 @@ export default function TQuiz({
           onPrimary={nextTLessonHref ? handleNextLesson : handleFinishLesson}
           secondaryLabel={nextTLessonHref ? 'Завершить' : undefined}
           onSecondary={nextTLessonHref ? handleFinishLesson : undefined}
+          theme={uiTheme}
         />
       </div>
     )
@@ -884,6 +888,7 @@ export default function TQuiz({
   if (showHotCaseReel) {
     return (
       <CaseReel
+        theme={uiTheme}
         isMega={true}
         onDone={({ reward }) => {
           setWonHotCaseReward(reward)
@@ -897,6 +902,7 @@ export default function TQuiz({
   if (showCaseReel) {
     return (
       <CaseReel
+        theme={uiTheme}
         isMega={!!isMegaChestStage}
         onDone={({ reward }) => {
           setWonCaseReward(reward)
@@ -910,6 +916,7 @@ export default function TQuiz({
   if (showLessonCaseReel && lessonCaseTier) {
     return (
       <CaseReel
+        theme={uiTheme}
         isMega={lessonCaseTier !== 'common'}
         pool={getLessonCasePool(lessonCaseTier)}
         spinAction={() => openLessonCase(lessonCaseTier)}
@@ -1010,6 +1017,7 @@ export default function TQuiz({
 
       {showStreakCelebration ? (
         <StreakCelebrationScreen
+          theme={uiTheme}
           animationData={randomStreakCharacterLottie}
           milestone={celebrationMilestone}
           onNext={async () => {

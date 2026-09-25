@@ -17,6 +17,7 @@ import Link from "next/link";
 import { Infinity as InfinityIcon, Zap } from "lucide-react";
 import { Button } from "./ui/button";
 import { TrainerGradeTree, SkillTopic } from "./trainer-grade-tree";
+import type { UiTheme } from "@/lib/cozyTheme";
 import { isStepByStepLesson, isBossExamStage } from "@/lib/trainerStageFlags";
 
 type Props = {
@@ -104,6 +105,8 @@ type Props = {
     // проходить последовательно) — тот же приём, что уже есть для юнитов
     // основного курса (см. isAdmin в app/(main)/learn/unit.tsx).
     isAdmin?: boolean,
+    // Стиль оформления (lib/uiTheme.ts): игровой или тёплый.
+    theme?: UiTheme,
 
     all_t_lessonProgress: {
         id: number;
@@ -129,6 +132,7 @@ export const TabTCourses = ({
     this_class_id,
     all_t_lessonProgress,
     isAdmin = false,
+    theme = 'metal',
 }: Props) => {
     const [showFormulas, setShowFormulas] = useState(false)
 
@@ -352,14 +356,20 @@ export const TabTCourses = ({
                             <div className="flex flex-wrap justify-center gap-3 mb-4">
                                 <Link
                                     href="/trainer-speed"
-                                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-b-4 active:border-b-2 bg-[#161F23] border-[#3A464E] hover:bg-[#232F34] transition-colors font-bold text-[#F2F7FB]"
+                                    className={theme === 'cozy'
+                                        ? "flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-b-4 active:border-b-2 transition-colors font-bold text-[#FFF1DC]"
+                                        : "flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-b-4 active:border-b-2 bg-[#161F23] border-[#3A464E] hover:bg-[#232F34] transition-colors font-bold text-[#F2F7FB]"}
+                                    style={theme === 'cozy' ? { background: '#2D2A27', borderColor: '#1C1A18' } : undefined}
                                 >
                                     <Zap className="w-5 h-5 text-[#E8A23D]" />
                                     Таблица умножения на скорость
                                 </Link>
                                 <Link
                                     href="/trainer-chain"
-                                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-b-4 active:border-b-2 bg-[#161F23] border-[#3A464E] hover:bg-[#232F34] transition-colors font-bold text-[#F2F7FB]"
+                                    className={theme === 'cozy'
+                                        ? "flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-b-4 active:border-b-2 transition-colors font-bold text-[#FFF1DC]"
+                                        : "flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-b-4 active:border-b-2 bg-[#161F23] border-[#3A464E] hover:bg-[#232F34] transition-colors font-bold text-[#F2F7FB]"}
+                                    style={theme === 'cozy' ? { background: '#2D2A27', borderColor: '#1C1A18' } : undefined}
                                 >
                                     <InfinityIcon className="w-5 h-5 text-[#4A90D9]" />
                                     Бесконечная цепочка на умножение
@@ -368,7 +378,7 @@ export const TabTCourses = ({
                         )}
 
                         <div className="w-full mt-2">
-                            <TrainerGradeTree topics={topics} isAdmin={isAdmin} />
+                            <TrainerGradeTree topics={topics} isAdmin={isAdmin} theme={theme} />
                         </div>
 
                         {/* "Показать все формулы" — убрано по просьбе пользователя (2026-09-03):
