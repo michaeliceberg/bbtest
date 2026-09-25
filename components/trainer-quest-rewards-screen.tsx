@@ -2,26 +2,29 @@
 //
 // Экран «Квесты дня» — ПОСЛЕДНИЙ в цепочке финала урока тренажёра
 // (итоги → рулетка, если выпала → этот экран), показывается после любого
-// урока. Премиальный стиль экрана кейсов (фон, звёзды, металлические рамки).
+// урока. Премиальный стиль экрана кейсов (фон, металлические рамки), без звёзд.
 //
 // Квесты (дневные, начинаются заново каждый день; считает сервер —
 // actions/generate-trainer-quest.ts, reportLessonQuestSignals):
 //   Продли серию дней → Обычный кейс; 2 урока без ошибок → Редкий;
 //   КОМБО 8 в трёх уроках → Мифический; ДЗ на сегодня (если есть) → МЕГА.
-// Выполненный квест: кнопка «Открыть кейс» → барабан (CaseReel) нужной
-// редкости, награду решает сервер (claimQuestCase), раз в день на квест.
+// Карточка: название, прогресс-бар и сундук справа; кейс получен — золотая
+// блестящая карточка. Неоткрытые кейсы выполненных квестов открываются по
+// «Дальше» автоматически, по очереди от менее редких к более редким
+// (CaseReel; награду решает сервер — claimQuestCase, раз в день на квест).
 // Каждый выполненный квест = +1 квест-поинт; внизу — сумма за месяц.
 
 'use client'
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowRight, Check } from 'lucide-react'
-import { daysWord, declensionRu } from '@/usefulFunctions'
-import { CaseReel, CaseStars } from '@/components/CaseReel'
-import { getLessonCasePool, LESSON_CASE_TIER_ICON, LESSON_CASE_TIER_LABEL, type LessonCaseTier } from '@/lib/caseRewards'
+import { ArrowRight } from 'lucide-react'
+import { declensionRu } from '@/usefulFunctions'
+import { CaseReel } from '@/components/CaseReel'
+import { getLessonCasePool, LESSON_CASE_TIER_ICON, type LessonCaseTier } from '@/lib/caseRewards'
 import { claimQuestCase, type DailyQuest, type DailyQuestKey, type DailyQuestsData } from '@/actions/generate-trainer-quest'
 import { RollingNumber } from '@/components/rolling-number'
+import { openLessonCase } from '@/actions/open-case'
 
 export type QuestRewardsData = DailyQuestsData | null
 
@@ -49,89 +52,98 @@ type Props = {
     onPrimary: () => void
     secondaryLabel?: string
     onSecondary?: () => void
+    // Только для тестовой страницы /test-quests: кейсы открываются обычным
+    // openLessonCase (данные примерные — серверная проверка квеста бы отказала).
+    demo?: boolean
 }
 
-const QuestRow = ({ q, index, onOpen }: { q: DailyQuest; index: number; onOpen: () => void }) => {
+// Порядок автоматического открытия кейсов — от менее редких к более редким.
+const TIER_ORDER: LessonCaseTier[] = ['common', 'rare', 'mythic', 'mega']
+
+// Золотая рамка карточки, чей кейс уже получен.
+const GOLD_FRAME = 'linear-gradient(135deg, #FFE9A8 0%, #D4A017 35%, #FFF3C4 55%, #B8860B 100%)'
+
+// Упрощённая карточка: название, под ним прогресс-бар и справа сундук.
+// Кейс получен — карточка золотая и блестит (без надписей).
+const QuestRow = ({ q, index }: { q: DailyQuest; index: number }) => {
     const accent = TIER_ACCENT[q.tier]
     const percent = Math.min(100, (q.progress / q.target) * 100)
-    const canOpen = q.done && !q.claimed
+    const ready = q.done && !q.claimed
+    const gold = q.claimed
     return (
         <motion.div
             initial={{ opacity: 0, y: 16, scale: 0.92 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ delay: 0.25 + index * 0.18, type: 'spring', bounce: 0.4, duration: 0.6 }}
+            transition={{ delay: 0.2 + index * 0.15, type: 'spring', bounce: 0.4, duration: 0.6 }}
             className="relative rounded-2xl p-[2px] shadow-[0_10px_28px_rgba(0,0,0,0.45)]"
-            style={{ background: `linear-gradient(180deg, ${q.done ? accent : '#5A6B76'} 0%, #2A363C 55%, #141C20 100%)` }}
+            style={{ background: gold ? GOLD_FRAME : `linear-gradient(180deg, ${ready ? accent : '#5A6B76'} 0%, #2A363C 55%, #141C20 100%)` }}
         >
-            {canOpen && (
-                <span aria-hidden className="animate-glow-pulse pointer-events-none absolute inset-0 rounded-2xl" style={{ boxShadow: `0 0 22px ${accent}99` }} />
-            )}
-            <div className="relative flex items-center gap-3 rounded-[14px] bg-gradient-to-b from-[#1C282E] to-[#0C1215] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                    src={LESSON_CASE_TIER_ICON[q.tier]}
-                    alt=""
-                    className={`h-12 w-12 shrink-0 object-contain ${canOpen ? 'animate-chest-idle-bounce' : ''} ${q.claimed ? 'opacity-40' : ''}`}
+            {(gold || ready) && (
+                <span
+                    aria-hidden
+                    className="animate-glow-pulse pointer-events-none absolute inset-0 rounded-2xl"
+                    style={{ boxShadow: `0 0 22px ${gold ? '#FBBF24AA' : accent + '99'}` }}
                 />
-                <div className="min-w-0 flex-1">
-                    <p className="text-sm font-extrabold text-[#F2F7FB] leading-tight">{questTitle(q)}</p>
-                    <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: accent }}>
-                        {LESSON_CASE_TIER_LABEL[q.tier]} кейс
-                        {q.key === 'streak' && q.streakDays ? <span className="text-[#9AA7B0] normal-case tracking-normal"> · 🔥 {q.streakDays} {daysWord(q.streakDays)} подряд</span> : null}
-                    </p>
-                    <div className="mt-2 flex items-center gap-2">
-                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#2A3A4A]">
-                            <motion.div
-                                className="h-full rounded-full"
-                                style={{ background: q.done ? accent : '#5A6B76' }}
-                                initial={{ width: 0 }}
-                                animate={{ width: `${percent}%` }}
-                                transition={{ delay: 0.45 + index * 0.18, duration: 0.7, ease: 'easeOut' }}
-                            />
-                        </div>
-                        <span className="text-xs font-black tabular-nums text-[#D5DEE5]">
-                            {q.progress}/{q.target}
-                        </span>
+            )}
+            <div
+                className={`relative rounded-[14px] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${gold ? 'animate-shine-sweep' : ''}`}
+                style={{ background: gold ? 'linear-gradient(180deg, #3A2E10 0%, #1A1406 100%)' : 'linear-gradient(180deg, #1C282E 0%, #0C1215 100%)' }}
+            >
+                <p className="text-sm font-extrabold leading-tight" style={{ color: gold ? '#FFE9A8' : '#F2F7FB' }}>
+                    {questTitle(q)}
+                </p>
+                <div className="mt-2 flex items-center gap-3">
+                    <div className="h-2.5 flex-1 overflow-hidden rounded-full" style={{ background: gold ? '#5A4410' : '#2A3A4A' }}>
+                        <motion.div
+                            className="h-full rounded-full"
+                            style={{ background: gold ? 'linear-gradient(90deg, #D4A017, #FFE9A8)' : q.done ? accent : '#5A6B76' }}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${percent}%` }}
+                            transition={{ delay: 0.4 + index * 0.15, duration: 0.7, ease: 'easeOut' }}
+                        />
                     </div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src={LESSON_CASE_TIER_ICON[q.tier]}
+                        alt=""
+                        className={`h-11 w-11 shrink-0 object-contain ${ready ? 'animate-chest-idle-bounce' : ''} ${!q.done ? 'opacity-50 grayscale' : ''}`}
+                    />
                 </div>
-                {canOpen ? (
-                    <motion.button
-                        onClick={onOpen}
-                        whileTap={{ scale: 0.95, y: 1 }}
-                        className="shrink-0 rounded-xl p-[2px]"
-                        style={{ background: `linear-gradient(180deg, ${accent} 0%, #2A363C 100%)` }}
-                    >
-                        <span className="animate-shine-sweep block rounded-[10px] bg-[#0C1215] px-3 py-2 text-xs font-black uppercase tracking-[0.08em]" style={{ color: accent }}>
-                            Открыть
-                        </span>
-                    </motion.button>
-                ) : q.claimed ? (
-                    <span className="flex shrink-0 items-center gap-1 text-xs font-bold text-[#78C93C]">
-                        <Check className="h-4 w-4" strokeWidth={3} /> Получено
-                    </span>
-                ) : null}
             </div>
         </motion.div>
     )
 }
 
-export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPrimary, secondaryLabel, onSecondary }: Props) => {
+export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPrimary, secondaryLabel, onSecondary, demo }: Props) => {
     const [quests, setQuests] = useState<DailyQuest[]>(data?.quests ?? [])
     const [opening, setOpening] = useState<DailyQuest | null>(null)
     const monthName = MONTHS[data?.monthIndex ?? new Date().getMonth()]
+
+    // Выполненные квесты с неоткрытыми кейсами — открываются по «Дальше»
+    // автоматически, по очереди, от менее редких к более редким.
+    const pending = quests
+        .filter((q) => q.done && !q.claimed)
+        .sort((a, b) => TIER_ORDER.indexOf(a.tier) - TIER_ORDER.indexOf(b.tier))
+    const hasPending = pending.length > 0
 
     if (opening) {
         const key: DailyQuestKey = opening.key
         return (
             <CaseReel
+                key={key}
                 isMega={opening.tier !== 'common'}
                 tier={opening.tier}
                 pool={getLessonCasePool(opening.tier)}
-                spinAction={() => claimQuestCase(t_lessonId, key)}
+                spinAction={() => (demo ? openLessonCase(opening.tier) : claimQuestCase(t_lessonId, key))}
                 title={`Квест: ${questTitle(opening)}`}
                 onDone={() => {
-                    setQuests((prev) => prev.map((q) => (q.key === key ? { ...q, claimed: true } : q)))
-                    setOpening(null)
+                    const next = quests.map((q) => (q.key === key ? { ...q, claimed: true } : q))
+                    setQuests(next)
+                    // Следующий неоткрытый кейс — сразу, иначе назад к квестам.
+                    const nextPending = next
+                        .filter((q) => q.done && !q.claimed)
+                        .sort((a, b) => TIER_ORDER.indexOf(a.tier) - TIER_ORDER.indexOf(b.tier))[0]
+                    setOpening(nextPending ?? null)
                 }}
             />
         )
@@ -142,7 +154,6 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
             <div className="fixed inset-0 z-0 pointer-events-none" style={{ backgroundColor: '#131D22' }}>
                 <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 15%, #A868FC2E, transparent 55%)' }} />
                 <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 30%, transparent 30%, rgba(0,0,0,0.6) 100%)' }} />
-                <CaseStars tier="common" />
             </div>
 
             <div className="relative z-10 flex flex-col gap-3 px-4 pt-8">
@@ -155,11 +166,11 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
                 >
                     Квесты дня
                 </motion.h1>
-                <p className="text-center text-sm text-[#9AA7B0]">Выполняй квесты — открывай кейсы. Завтра — новые.</p>
+                <p className="text-center text-sm text-[#9AA7B0]">Выполняй квесты — открывай кейсы.</p>
 
                 <div className="mt-2 flex flex-col gap-3">
                     {quests.map((q, i) => (
-                        <QuestRow key={q.key} q={q} index={i} onOpen={() => setOpening(q)} />
+                        <QuestRow key={q.key} q={q} index={i} />
                     ))}
                 </div>
 
@@ -167,7 +178,7 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
                 <motion.div
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 + quests.length * 0.18 + 0.2, duration: 0.4 }}
+                    transition={{ delay: 0.3 + quests.length * 0.15 + 0.2, duration: 0.4 }}
                     className="mt-2 flex items-center justify-between rounded-2xl border border-[#3A464E] bg-[#151F23]/80 px-4 py-3"
                 >
                     <span className="text-sm font-bold text-[#D5DEE5]">
@@ -185,11 +196,11 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
             <motion.div
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 + quests.length * 0.18, duration: 0.35 }}
+                transition={{ delay: 0.6 + quests.length * 0.15, duration: 0.35 }}
                 className="relative z-10 flex flex-col gap-3 px-4 pb-4 pt-4"
             >
                 <motion.button
-                    onClick={onPrimary}
+                    onClick={hasPending ? () => setOpening(pending[0]) : onPrimary}
                     whileTap={{ scale: 0.97, y: 2 }}
                     className="relative w-full rounded-2xl p-[2px] shadow-[0_10px_28px_rgba(0,0,0,0.5)]"
                     style={{ background: 'linear-gradient(180deg, #78C93C 0%, #2A363C 55%, #141C20 100%)' }}
@@ -199,11 +210,12 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
                         className="animate-shine-sweep relative flex items-center justify-center gap-2.5 rounded-[14px] bg-gradient-to-b from-[#1C282E] to-[#0C1215] px-8 py-4 font-black text-lg uppercase tracking-[0.1em]"
                         style={{ color: '#78C93C', textShadow: '0 0 12px #78C93C99' }}
                     >
-                        {primaryLabel}
+                        {hasPending ? 'Дальше' : primaryLabel}
                         <ArrowRight className="h-5 w-5" />
                     </span>
                 </motion.button>
-                {secondaryLabel && onSecondary && (
+                {/* «Завершить» — только когда все кейсы открыты, чтобы их не пропустили. */}
+                {!hasPending && secondaryLabel && onSecondary && (
                     <button
                         onClick={onSecondary}
                         className="w-full rounded-2xl border-2 border-[#3A464E] bg-[#151F23]/80 px-6 py-3 text-sm font-bold uppercase tracking-[0.1em] text-[#D5DEE5] transition-colors hover:border-[#5A6B76]"
