@@ -12125,3 +12125,8 @@ TQUIZ). Время урока — мин:сек, от открытия урок�
 Звук неправильного ответа — `WRONG_ANSWER_SOUND` (`/snd-answer-wrong.mp3`) везде:
 тренажёр (`useQuizAudio`), задачник, неверная пара CONNECT, все *WALK-разборы (рядом с
 `setHadMistake(true)`).
+Звуки итога бесплатного теста (`app/test/[subject]/diagnostic-client.tsx`): <20% верных —
+`TEST_LOSE_SOUND` (`/snd-harp-loose.mp3`), иначе `TEST_WIN_SOUND` (`/snd-harp-trump-win.mp3`),
+один раз при переходе на результат, предзагрузка при открытии теста. Кейс: `CASE_PRIZE_SOUND`
+(`/snd-unboxing-prize.mp3`) в момент остановки барабана. Все звуки урока тренажёра
+(молнии, барабан, приз, арфа, щелчок `click6.wav`, верно/неверно) предзагружаются в TQUIZ.

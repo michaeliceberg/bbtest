@@ -26,6 +26,7 @@ import { openDiagnosticCase } from '@/actions/open-diagnostic-case';
 import { DIAGNOSTIC_CASE_POOL, rewardEmoji, rewardLabel, type CaseReward } from '@/lib/caseRewards';
 import { DIAGNOSTIC_SUBJECT_LABEL, shuffle, type DiagnosticQuestion, type DiagnosticSubject } from '@/lib/diagnostic';
 import { declensionRu } from '@/usefulFunctions';
+import { playSound, preloadSound, TEST_LOSE_SOUND, TEST_WIN_SOUND } from '@/lib/sound';
 import {
 	LOTTIE_TEST_RESULT_BEST_LIST,
 	LOTTIE_TEST_RESULT_SOSO_LIST,
@@ -187,6 +188,22 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 	useEffect(() => {
 		import('lottie-react').then(() => setIntroReady(true));
 	}, []);
+	// Звук итога теста: меньше 20% верных — «проигрыш» (арфа вниз), иначе —
+	// «победа» (арфа + труба). Оба грузятся заранее, при открытии теста (Web
+	// Audio — мгновенно и на iPhone). Играет один раз при переходе на результат.
+	useEffect(() => {
+		preloadSound(TEST_LOSE_SOUND);
+		preloadSound(TEST_WIN_SOUND);
+	}, []);
+	const resultSoundPlayedRef = useRef(false);
+	useEffect(() => {
+		if (phase !== 'result' || resultSoundPlayedRef.current) return;
+		resultSoundPlayedRef.current = true;
+		const ratio = questions.length > 0 ? score / questions.length : 0;
+		playSound(ratio < 0.2 ? TEST_LOSE_SOUND : TEST_WIN_SOUND);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [phase]);
+
 	const [resultLottieData, setResultLottieData] = useState<unknown>(null);
 	const [resultPhrase, setResultPhrase] = useState<string | null>(null);
 	useEffect(() => {

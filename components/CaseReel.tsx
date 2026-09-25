@@ -19,7 +19,7 @@ import { useWindowSize } from 'react-use'
 import { Gift, Sparkles } from 'lucide-react'
 import { openCase, type OpenCaseResult } from '@/actions/open-case'
 import { useRive, Layout, Fit, Alignment } from '@rive-app/react-webgl2'
-import { playSound, preloadSound } from '@/lib/sound'
+import { playSound, preloadSound, CASE_PRIZE_SOUND } from '@/lib/sound'
 import {
   getCasePool, getLessonCasePool, isJackpotReward, pickWeightedReward, rewardEmoji, rewardLabel, type CaseReward,
   LESSON_CASE_TIER_ICON, LESSON_CASE_TIER_LABEL, LESSON_CASE_TIER_PAGE_BG, type LessonCaseTier,
@@ -238,7 +238,10 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
     // получения результата от сервера), а не на каждый ре-рендер.
     const reactionVideoRef = useRef<string>(OK_REACTION_FILES[0])
     const { width, height } = useWindowSize()
-    useEffect(() => preloadSound(ROULETTE_SOUND), [])
+    useEffect(() => {
+        preloadSound(ROULETTE_SOUND)
+        preloadSound(CASE_PRIZE_SOUND)
+    }, [])
     const accent = tier ? LESSON_CASE_TIER_ACCENT[tier] : '#4A90D9'
     const glow = !tier || tier === 'common' ? accent : '#FFFFFF'
 
@@ -293,6 +296,8 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
 
     const handleAnimationComplete = useCallback(() => {
         if (phase !== 'spinning') return
+        // Звук «приз!» — ровно в момент, когда барабан встал на награде.
+        playSound(CASE_PRIZE_SOUND)
         setPhase('revealed')
     }, [phase])
 

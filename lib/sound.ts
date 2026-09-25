@@ -151,3 +151,6 @@ export function playSoundTracked(src: string, onEnded?: () => void, volume = 1):
 // пошаговых разборов (*WALK).
 export const WRONG_ANSWER_SOUND = '/snd-answer-wrong.mp3'
 export const WIN_SOUND = '/snd-harp-win.mp3'
+export const TEST_LOSE_SOUND = '/snd-harp-loose.mp3'
+export const TEST_WIN_SOUND = '/snd-harp-trump-win.mp3'
+export const CASE_PRIZE_SOUND = '/snd-unboxing-prize.mp3'

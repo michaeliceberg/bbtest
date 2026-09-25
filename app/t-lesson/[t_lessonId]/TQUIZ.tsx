@@ -5,7 +5,7 @@
 import React, { useEffect, useState, useRef, useCallback } from "react"
 import { motion } from "framer-motion"
 import dynamic from "next/dynamic"
-import { preloadSound, WIN_SOUND } from "@/lib/sound"
+import { preloadSound, WIN_SOUND, CASE_PRIZE_SOUND } from "@/lib/sound"
 import Confetti from "react-confetti"
 import { useWindowSize } from "react-use"
 import TrainerQuestion from "../../../components/trainer-question"
@@ -188,6 +188,9 @@ export default function TQuiz({
     // Звук барабана кейса (кейс открывается в конце урока).
     preloadSound('/roulete.m4a')
     preloadSound(WIN_SOUND)
+    preloadSound(CASE_PRIZE_SOUND)
+    // Щелчок по вариантам в пошаговых разборах (*WALK).
+    preloadSound('/click6.wav')
   }, [])
   const [showLightning, setShowLightning] = useState(false)
   const [showStreakCelebration, setShowStreakCelebration] = useState(false)
