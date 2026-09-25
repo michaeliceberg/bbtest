@@ -262,37 +262,48 @@ export default function TQuiz({
   // и какой редкости, ДО того как мы вообще покажем барабан — иначе
   // модифицированный клиент мог бы просто игнорировать "не выпало".
   const bossWinsRef = useRef(0)
-  const proceedToStageCaseOrFinish = useCallback(async () => {
-    if (isChestStage || isMegaChestStage) {
-      setShowCaseReel(true)
-      return
-    }
+  // Порядок финала урока (2026-09-25, по просьбе пользователя):
+  //   итоги («Серия…», quizCompleted) → рулетка кейса (если выпал) → «Квесты дня».
+  // Решение «какой кейс и выпал ли» принимается СРАЗУ в конце урока
+  // (planFinishCase) — чтобы итоги уже знали подсказку «ударного часа»,
+  // а сам барабан открывается уже после итогов (openPlannedCase).
+  type PlannedCase = { kind: 'positional' } | { kind: 'lesson'; tier: LessonCaseTier; chainBonus: number | null } | null
+  const plannedCaseRef = useRef<PlannedCase>(null)
+  // Основной проход урока без единой ошибки (для квеста «2 урока без ошибок»).
+  const mainPassPerfectRef = useRef(false)
+  const planFinishCase = useCallback(async (): Promise<PlannedCase> => {
+    if (isChestStage || isMegaChestStage) return { kind: 'positional' }
     // Босс-экзамен: за каждые 3 победы — редкий сундук.
-    if (isBossExam && bossWinsRef.current > 0 && bossWinsRef.current % 3 === 0) {
-      setLessonCaseTier('rare')
-      setShowLessonCaseReel(true)
-      return
-    }
-    if (isMythicStage) {
-      setLessonCaseTier('mythic')
-      setShowLessonCaseReel(true)
-      return
-    }
-    // Ошибки основного прохода — scoreRef (не state score, см. комментарий
-    // у самого scoreRef выше: goToNextQuestion читает его же по той же
-    // причине, closure может быть устаревшим) против полного исходного
-    // набора БЕЗ горячего вопроса (scorableCount, см. верх файла).
+    if (isBossExam && bossWinsRef.current > 0 && bossWinsRef.current % 3 === 0) return { kind: 'lesson', tier: 'rare', chainBonus: null }
+    if (isMythicStage) return { kind: 'lesson', tier: 'mythic', chainBonus: null }
+    // Ошибки основного прохода — scoreRef против полного исходного набора
+    // БЕЗ горячего вопроса (scorableCount, см. верх файла).
     const mistakes = Math.max(0, scorableCount(questions1) - scoreRef.current)
     const result = await rollLessonCaseTier(mistakes)
     setChainHint({ count: result.chainCount, alive: result.chainAlive })
     if (result.tier) {
-      setLessonCaseTier(result.tier)
       setChainBonusLength(result.chainBonus?.length ?? null)
-      setShowLessonCaseReel(true)
-    } else {
-      setQuizCompleted(true)
+      return { kind: 'lesson', tier: result.tier, chainBonus: result.chainBonus?.length ?? null }
     }
+    return null
   }, [isChestStage, isMegaChestStage, isMythicStage, isBossExam, questions1])
+
+  // После итогов (и мегакейса горячего вопроса) — запланированный кейс,
+  // затем «Квесты дня».
+  const openPlannedCase = useCallback(() => {
+    const planned = plannedCaseRef.current
+    plannedCaseRef.current = null
+    if (planned?.kind === 'positional') {
+      setShowCaseReel(true)
+      return
+    }
+    if (planned?.kind === 'lesson') {
+      setLessonCaseTier(planned.tier)
+      setShowLessonCaseReel(true)
+      return
+    }
+    setShowQuestRewardsScreen(true)
+  }, [])
 
   // Точка "первого прихода" на завершение урока (после основного прохода
   // ИЛИ после успешной работы над ошибками, независимо от итогового
@@ -301,17 +312,29 @@ export default function TQuiz({
   // На обычных этапах — сразу финальный экран; на кейс-этапах — сперва
   // барабан (components/CaseReel.tsx), а quizCompleted выставляется уже
   // ПОСЛЕ того, как пользователь его прокрутит (см. onDone у CaseReel ниже).
-  const finishOrOpenCase = useCallback(() => {
+  // Конец урока: сервер учитывает урок в квестах дня и решает кейс, затем
+  // показываются итоги.
+  const prepareFinish = useCallback(async () => {
+    const isPerfect = mainPassPerfectRef.current
+    const [quests, planned] = await Promise.all([
+      reportLessonQuestSignals(t_lessonId, maxStreakRef.current, isPerfect).catch(() => null),
+      planFinishCase().catch(() => null),
+    ])
+    setQuestRewardsData(quests)
+    plannedCaseRef.current = planned
+    setQuizCompleted(true)
+  }, [questions1, t_lessonId, planFinishCase])
+
+  // Кнопка «Дальше» на итогах: сперва мегакейс за угаданный горячий вопрос
+  // (если был), потом запланированный кейс, потом «Квесты дня».
+  const continueAfterSummary = useCallback(() => {
     if (hotQuestionWonRef.current) {
-      // Потребляем флаг сразу — эта функция может теоретически вызваться
-      // ещё раз в рамках того же урока (см. onOpenChest у quest rewards
-      // screen), повторный показ мегакейса за ТОТ ЖЕ горячий вопрос не нужен.
       hotQuestionWonRef.current = false
       setShowHotCaseReel(true)
       return
     }
-    proceedToStageCaseOrFinish()
-  }, [proceedToStageCaseOrFinish])
+    openPlannedCase()
+  }, [openPlannedCase])
 
   // Флаг для предотвращения двойной обработки
   const [isProcessing, setIsProcessing] = useState(false)
@@ -430,12 +453,9 @@ export default function TQuiz({
     isRightListRef.current = isRightList
   }, [isRightList])
 
-  useEffect(() => {
-    if (quizCompleted && !hasPlayedFinishSoundRef.current) {
-      hasPlayedFinishSoundRef.current = true
-      playFinishSound()
-    }
-  }, [quizCompleted, playFinishSound])
+  // Мем-звук финиша при показе итогов убран (2026-09-25): на экране итогов
+  // теперь своя музыка — арфа WIN_SOUND (trainer-lesson-complete-screen.tsx),
+  // звуки накладывались.
 
   useEffect(() => {
     setRandomStartLottie(getRandomLottie(LOTTIE_START_LIST))
@@ -488,6 +508,7 @@ export default function TQuiz({
 
       const finalScore = scoreRef.current
       const total = scorableCount(questions)
+      mainPassPerfectRef.current = total > 0 && finalScore === total
       console.log('🏁 Основной проход завершён! score:', finalScore, 'total (без HOT):', total)
       const doneRightPercent = Math.round(finalScore / total * 100)
 
@@ -517,17 +538,7 @@ export default function TQuiz({
       }
       await updateQuestProgress()
 
-      // Идеальный результат — mistakeQueue по построению пуст (ни одной
-      // ошибки не было). Перед сундуком — экран ближайших наград
-      // (см. components/trainer-quest-rewards-screen.tsx); сам сундук
-      // открывается по клику на его кнопке (см. onOpenChest ниже).
-      if (finalScore === total) {
-        console.log('✅ Идеальный результат — показываем экран наград')
-        const rewards = await reportLessonQuestSignals(t_lessonId, maxStreakRef.current).catch(() => null)
-        setQuestRewardsData(rewards)
-        setShowQuestRewardsScreen(true)
-        return
-      }
+      // Идеальный результат — mistakeQueue пуст, сразу к финалу (ниже).
     }
 
     // Остались невыученные ошибки за только что законченный раунд —
@@ -539,10 +550,9 @@ export default function TQuiz({
     }
 
     // Ошибок для повтора больше нет (либо их не было вовсе, либо "работа
-    // над ошибками" только что успешно закончилась) — финальный экран
-    // (или барабан кейса, если этап это подразумевает — см. finishOrOpenCase).
-    finishOrOpenCase()
-  }, [currentQuestionIndex, questions.length, t_lessonId, updateQuestProgress, startMistakeReviewRound, finishOrOpenCase])
+    // над ошибками" только что успешно закончилась) — финал (см. prepareFinish).
+    await prepareFinish()
+  }, [currentQuestionIndex, questions.length, t_lessonId, updateQuestProgress, startMistakeReviewRound, prepareFinish])
 
   const handleAnswer = useCallback(async (answer: string) => {
     // Для ASSIST: если это "next", просто переходим к следующему вопросу
@@ -847,22 +857,16 @@ export default function TQuiz({
 
   if (showQuestRewardsScreen) {
     return (
-      <TrainerQuestRewardsScreen
-        data={questRewardsData}
-        hasCase={!!(isChestStage || isMegaChestStage)}
-        onOpenChest={() => {
-          // Rive-анимация сундука (components/ChestReward.tsx) глючила на
-          // телефонах — тап не долетал до конца, пользователь застревал
-          // на этом экране без возможности продолжить (баг с preventDefault
-          // на touchstart, глушащим синтетический click, см. коммент в
-          // самом ChestReward.tsx). По просьбе пользователя (2026-09-01)
-          // сундук временно пропускается целиком — сразу на финальный
-          // экран (или барабан кейса, см. finishOrOpenCase), тем же путём,
-          // что раньше шёл после клика по сундуку.
-          setShowQuestRewardsScreen(false)
-          finishOrOpenCase()
-        }}
-      />
+      <div className="w-full max-w-xl mx-auto">
+        <TrainerQuestRewardsScreen
+          data={questRewardsData}
+          t_lessonId={t_lessonId}
+          primaryLabel={nextTLessonHref ? 'Следующий урок' : 'Завершить'}
+          onPrimary={nextTLessonHref ? handleNextLesson : handleFinishLesson}
+          secondaryLabel={nextTLessonHref ? 'Завершить' : undefined}
+          onSecondary={nextTLessonHref ? handleFinishLesson : undefined}
+        />
+      </div>
     )
   }
 
@@ -884,7 +888,7 @@ export default function TQuiz({
         onDone={({ reward }) => {
           setWonHotCaseReward(reward)
           setShowHotCaseReel(false)
-          proceedToStageCaseOrFinish()
+          openPlannedCase()
         }}
       />
     )
@@ -897,7 +901,7 @@ export default function TQuiz({
         onDone={({ reward }) => {
           setWonCaseReward(reward)
           setShowCaseReel(false)
-          setQuizCompleted(true)
+          setShowQuestRewardsScreen(true)
         }}
       />
     )
@@ -914,7 +918,7 @@ export default function TQuiz({
         onDone={({ reward }) => {
           setWonLessonCaseReward(reward)
           setShowLessonCaseReel(false)
-          setQuizCompleted(true)
+          setShowQuestRewardsScreen(true)
         }}
       />
     )
@@ -961,10 +965,10 @@ export default function TQuiz({
             streak={maxStreakRef.current}
             xp={earnedXp}
             elapsedSeconds={elapsedSeconds}
-            primaryLabel={nextTLessonHref ? 'Следующий урок' : 'Завершить'}
-            onPrimary={nextTLessonHref ? handleNextLesson : handleFinishLesson}
-            secondaryLabel={nextTLessonHref ? 'Завершить' : undefined}
-            onSecondary={nextTLessonHref ? handleFinishLesson : undefined}
+            // Итоги — первый экран финала; дальше рулетка (если есть) и «Квесты дня»,
+            // где уже кнопки «Следующий урок»/«Завершить».
+            primaryLabel="Дальше"
+            onPrimary={continueAfterSummary}
             // "Ударный час" ещё не дошёл до рубежа — подсказка, сколько
             // уроков подряд БЕЗ ошибок осталось до гарантированного mythic
             // (см. actions/roll-lesson-case.ts). Раньше показывалась

@@ -812,9 +812,24 @@ export const trainerQuests = pgTable('trainer_quests', {
     // reportLessonQuestSignals).
     streak5Count: integer('streak5_count').notNull().default(0),
     perfectLessonCount: integer('perfect_lesson_count').notNull().default(0),
+    // Квест «КОМБО 8 в трёх уроках» (2026-09-25): число уроков сегодня с серией 8+.
+    combo8Count: integer('combo8_count').notNull().default(0),
+    // Ключи квестов, за которые кейс уже забран сегодня (CSV: streak,perfect,combo8,hw).
+    claimedQuests: text('claimed_quests').notNull().default(''),
 
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Квест-поинты (2026-09-25): +1 за каждый выполненный квест дня экрана квестов
+// тренажёра. Одна строка = один квест в один день (уникально по user+key+date) —
+// лог для аналитики активности по месяцам («за сентябрь: N»).
+export const questPoints = pgTable('quest_points', {
+    id: serial('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    questKey: text('quest_key').notNull(),
+    date: timestamp('date').notNull(),
+    createdAt: timestamp('created_at').defaultNow(),
 });
 
 // Стрик по тренажеру

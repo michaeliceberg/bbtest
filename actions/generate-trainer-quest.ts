@@ -3,7 +3,9 @@
 'use server';
 
 import db from '@/db/drizzle';
-import { trainerQuests, t_lessons, t_units, t_courses, trainerStreaks, userHomework, t_lessonProgress, userDailyStats, userProgress } from '@/db/schema';
+import { trainerQuests, t_lessons, t_units, t_courses, trainerStreaks, userHomework, t_lessonProgress, userDailyStats, userProgress, questPoints } from '@/db/schema';
+import { getLessonCasePool, type LessonCaseTier } from '@/lib/caseRewards';
+import { applyCaseReward, type OpenCaseResult } from '@/lib/caseApply';
 import { and, eq, gte, inArray, lt, sql, desc } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { getCourseStreak } from '@/lib/streak';
@@ -288,7 +290,6 @@ async function updateTrainerStreak(userId: string, tCourseId: number) {
 // (components/trainer-quest-rewards-screen.tsx) — фиксированные, не
 // настраиваются по теме/пользователю (то же самое, что уже сделано для
 // generateDailyTrainerQuest's questCount=3..5, просто константы попроще).
-const STREAK5_TARGET = 2;
 const PERFECT_TARGET = 2;
 
 // Вызывается ровно один раз при завершении урока тренажёра С ИДЕАЛЬНЫМ
@@ -302,83 +303,139 @@ const PERFECT_TARGET = 2;
 // конкретным списком tLessonIds дневного квеста) — эти два счётчика растут
 // от ЛЮБОГО урока темы, пройденного сегодня, независимо от того, входил
 // ли он в основной список из 3-5 уроков.
-export async function reportLessonQuestSignals(t_lessonId: number, maxStreak: number) {
-    const session = await auth();
-    if (!session?.user?.id) return null;
-    const userId = session.user.id;
+// Квесты дня экрана квестов тренажёра (2026-09-25). Каждый — со своей
+// наградой-кейсом (tier) и +1 квест-поинт при выполнении (questPoints, для
+// аналитики по месяцам). Кейс забирается кнопкой на экране (claimQuestCase).
+export type DailyQuestKey = 'streak' | 'perfect' | 'combo8' | 'hw';
+export type DailyQuest = {
+    key: DailyQuestKey;
+    progress: number;
+    target: number;
+    done: boolean;
+    claimed: boolean;
+    tier: LessonCaseTier;
+    streakDays?: number | null;
+};
+export type DailyQuestsData = { quests: DailyQuest[]; monthPoints: number; monthIndex: number };
 
+const COMBO8_TARGET = 3;
+const QUEST_TIER: Record<DailyQuestKey, LessonCaseTier> = { streak: 'common', perfect: 'rare', combo8: 'mythic', hw: 'mega' };
+
+// Состояние квестов дня для пользователя/темы: считает прогресс, начисляет
+// квест-поинты за выполненные (уникально user+key+date — повтор игнорируется).
+async function buildDailyQuests(userId: string, tCourseId: number, quest: typeof trainerQuests.$inferSelect, today: Date): Promise<DailyQuestsData> {
+    const claimed = new Set((quest.claimedQuests ?? '').split(',').filter(Boolean));
+    const tCourse = await db.query.t_courses.findFirst({ where: eq(t_courses.id, tCourseId) });
+
+    let courseStreak: number | null = null;
+    let hw: { done: number; total: number } | null = null;
+    if (tCourse?.courseId) {
+        courseStreak = await getCourseStreak(userId, tCourse.courseId);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const rows = await db.select({ status: userHomework.status })
+            .from(userHomework)
+            .where(and(
+                eq(userHomework.userId, userId),
+                eq(userHomework.courseId, tCourse.courseId),
+                gte(userHomework.dueDate, today),
+                lt(userHomework.dueDate, tomorrow),
+            ));
+        if (rows.length > 0) hw = { total: rows.length, done: rows.filter((r) => r.status === 'completed').length };
+    }
+
+    const perfect = quest.perfectLessonCount ?? 0;
+    const combo8 = quest.combo8Count ?? 0;
+    const list: DailyQuest[] = [
+        // Урок тренажёра завершён сегодня — день серии уже засчитан.
+        { key: 'streak', progress: 1, target: 1, done: true, claimed: claimed.has('streak'), tier: QUEST_TIER.streak, streakDays: courseStreak },
+        { key: 'perfect', progress: Math.min(perfect, PERFECT_TARGET), target: PERFECT_TARGET, done: perfect >= PERFECT_TARGET, claimed: claimed.has('perfect'), tier: QUEST_TIER.perfect },
+        { key: 'combo8', progress: Math.min(combo8, COMBO8_TARGET), target: COMBO8_TARGET, done: combo8 >= COMBO8_TARGET, claimed: claimed.has('combo8'), tier: QUEST_TIER.combo8 },
+    ];
+    // Квест ДЗ — только если на сегодня есть домашние задания.
+    if (hw) list.push({ key: 'hw', progress: hw.done, target: hw.total, done: hw.done >= hw.total, claimed: claimed.has('hw'), tier: QUEST_TIER.hw });
+
+    // +1 квест-поинт за каждый выполненный квест (повтор в тот же день — игнор).
+    const done = list.filter((q) => q.done);
+    if (done.length > 0) {
+        await db.insert(questPoints)
+            .values(done.map((q) => ({ userId, questKey: q.key, date: today })))
+            .onConflictDoNothing();
+    }
+
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const [{ count }] = await db.select({ count: sql<number>`count(*)::int` })
+        .from(questPoints)
+        .where(and(eq(questPoints.userId, userId), gte(questPoints.date, monthStart)));
+
+    return { quests: list, monthPoints: count, monthIndex: today.getMonth() };
+}
+
+async function getOrCreateTodayQuest(userId: string, t_lessonId: number) {
     const lesson = await db.query.t_lessons.findFirst({
         where: eq(t_lessons.id, t_lessonId),
         with: { t_unit: true },
     });
     const tCourseId = lesson?.t_unit?.t_courseId;
     if (!tCourseId) return null;
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
     let quest = (await db.query.trainerQuests.findFirst({
-        where: and(
-            eq(trainerQuests.userId, userId),
-            eq(trainerQuests.tCourseId, tCourseId),
-            eq(trainerQuests.date, today)
-        ),
+        where: and(eq(trainerQuests.userId, userId), eq(trainerQuests.tCourseId, tCourseId), eq(trainerQuests.date, today)),
     })) ?? null;
+    // Урок мог быть пройден раньше первого визита на /trainer сегодня.
+    if (!quest) quest = (await generateDailyTrainerQuest(tCourseId)) ?? null;
+    if (!quest) return null;
+    return { quest, tCourseId, today };
+}
 
-    // Урок мог быть пройден раньше первого визита на /trainer сегодня
-    // (например, по прямой ссылке) — тогда дневной строки квеста ещё нет,
-    // создаём её тем же путём, что и сама страница /trainer.
-    if (!quest) {
-        quest = await generateDailyTrainerQuest(tCourseId);
-        if (!quest) return null;
-    }
+// Вызывается в конце урока тренажёра (после основного прохода и работы над
+// ошибками): учитывает урок в квестах дня и возвращает их состояние.
+export async function reportLessonQuestSignals(t_lessonId: number, maxStreak: number, isPerfect: boolean): Promise<DailyQuestsData | null> {
+    const session = await auth();
+    if (!session?.user?.id) return null;
+    const userId = session.user.id;
+    const ctx = await getOrCreateTodayQuest(userId, t_lessonId);
+    if (!ctx) return null;
+    const { quest, tCourseId, today } = ctx;
 
-    const newStreak5Count = Math.min((quest.streak5Count ?? 0) + (maxStreak >= 5 ? 1 : 0), STREAK5_TARGET);
-    const newPerfectCount = Math.min((quest.perfectLessonCount ?? 0) + 1, PERFECT_TARGET);
-
-    await db.update(trainerQuests)
+    const [updated] = await db.update(trainerQuests)
         .set({
-            streak5Count: newStreak5Count,
-            perfectLessonCount: newPerfectCount,
+            perfectLessonCount: Math.min((quest.perfectLessonCount ?? 0) + (isPerfect ? 1 : 0), PERFECT_TARGET),
+            combo8Count: Math.min((quest.combo8Count ?? 0) + (maxStreak >= 8 ? 1 : 0), COMBO8_TARGET),
             updatedAt: new Date(),
         })
-        .where(eq(trainerQuests.id, quest.id));
+        .where(eq(trainerQuests.id, quest.id))
+        .returning();
 
-    // Домашка за текущий месяц — только если у этого t_course есть
-    // привязанный основной курс (t_courses.courseId, nullable). Без
-    // привязки честно возвращаем null, а не 0/0 (которое выглядело бы как
-    // "всё сделано", хотя на деле просто нечего было бы считать).
-    let hwDone: number | null = null;
-    let hwTotal: number | null = null;
-    // "Продли серию дней" (первая карточка экрана наград) — реальный
-    // курсовый стрик (lib/streak.ts), а не заглушка. Уже продлён на
-    // сегодня к этому моменту: upsertTrainerLessonProgress этой же
-    // попытки вызывается РАНЬШЕ (см. TQUIZ.tsx), поэтому здесь только
-    // читаем, не бампаем повторно.
-    let courseStreak: number | null = null;
-    const tCourse = await db.query.t_courses.findFirst({ where: eq(t_courses.id, tCourseId) });
-    if (tCourse?.courseId) {
-        courseStreak = await getCourseStreak(userId, tCourse.courseId);
+    return buildDailyQuests(userId, tCourseId, updated ?? quest, today);
+}
 
-        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-        const rows = await db.select({ status: userHomework.status })
-            .from(userHomework)
-            .where(and(
-                eq(userHomework.userId, userId),
-                eq(userHomework.courseId, tCourse.courseId),
-                gte(userHomework.assignedAt, monthStart)
-            ));
-        hwTotal = rows.length;
-        hwDone = rows.filter((r) => r.status === 'completed').length;
-    }
+// Забрать кейс за выполненный квест дня: сервер сам проверяет, что квест
+// выполнен и кейс ещё не забран сегодня, отмечает его и выдаёт награду
+// (редкость — по квесту, см. QUEST_TIER). Клиент только крутит барабан.
+export async function claimQuestCase(t_lessonId: number, key: DailyQuestKey): Promise<OpenCaseResult> {
+    const session = await auth();
+    if (!session?.user?.id) return { success: false, error: 'Не авторизован' };
+    const userId = session.user.id;
+    const ctx = await getOrCreateTodayQuest(userId, t_lessonId);
+    if (!ctx) return { success: false, error: 'Квест не найден' };
+    const { quest, tCourseId, today } = ctx;
 
-    return {
-        streak5Count: newStreak5Count,
-        streak5Target: STREAK5_TARGET,
-        perfectLessonCount: newPerfectCount,
-        perfectTarget: PERFECT_TARGET,
-        hwDone,
-        hwTotal,
-        courseStreak,
-    };
+    const data = await buildDailyQuests(userId, tCourseId, quest, today);
+    const q = data.quests.find((x) => x.key === key);
+    if (!q || !q.done) return { success: false, error: 'Квест ещё не выполнен' };
+    if (q.claimed) return { success: false, error: 'Кейс уже получен' };
+
+    // Отмечаем, только если ключа ещё нет (защита от двойного клика).
+    const marked = await db.update(trainerQuests)
+        .set({ claimedQuests: sql`CASE WHEN ${trainerQuests.claimedQuests} = '' THEN ${key} ELSE ${trainerQuests.claimedQuests} || ',' || ${key} END` })
+        .where(and(
+            eq(trainerQuests.id, quest.id),
+            sql`NOT (',' || ${trainerQuests.claimedQuests} || ',' LIKE ${'%,' + key + ',%'})`,
+        ))
+        .returning({ id: trainerQuests.id });
+    if (marked.length === 0) return { success: false, error: 'Кейс уже получен' };
+
+    return applyCaseReward(getLessonCasePool(q.tier));
 }
