@@ -49,6 +49,7 @@ import {
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
+import { declensionRu } from '@/usefulFunctions'
 import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 
@@ -611,6 +612,14 @@ const DS_RING_RY = 22
 const DS_MAG_CENTER = [170, 280, 360] // центр магнита: далеко / средне / близко
 const DS_LEVELS = ['слабое', 'среднее', 'сильное']
 const DS_LEVEL_W = [22, 58, 100]
+// Стрелки поля B сквозь кольцо: 9 точек внутри эллипса кольца (2 ряда —
+// «глубина» кольца), видимость по близости магнита: далеко 2, средне 5, близко 9.
+const DS_ARROWS = [
+    { dx: -15, dy: -8, lvl: 0 }, { dx: 15, dy: 8, lvl: 0 },
+    { dx: -45, dy: 8, lvl: 1 }, { dx: 45, dy: -8, lvl: 1 }, { dx: 0, dy: 0, lvl: 1 },
+    { dx: -70, dy: -4, lvl: 2 }, { dx: 70, dy: 4, lvl: 2 }, { dx: -35, dy: -10, lvl: 2 }, { dx: 35, dy: 10, lvl: 2 },
+]
+const DS_ARROW_LEN = 46
 const DistanceScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [idx, setIdx] = useState(0)
     const [done, setDone] = useState(false)
@@ -626,9 +635,22 @@ const DistanceScene = ({ onSettled }: { onSettled?: () => void }) => {
             <svg viewBox={`0 0 ${DS_W} ${DS_H}`} className="w-full max-w-[330px] h-auto overflow-hidden">
                 <path d={back} fill="none" stroke={RING_COLOR} strokeWidth={6} />
                 <motion.g animate={{ y: DS_MAG_CENTER[idx] - (MAG_TOP + MAG_H / 2) }} initial={{ y: DS_MAG_CENTER[0] - (MAG_TOP + MAG_H / 2) }} transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}>
-                    <MagnetFieldLines x={MAG_CX} top={MAG_TOP} color={FIELD_COLOR} flowing />
+                    <g opacity={0.45}>
+                        <MagnetFieldLines x={MAG_CX} top={MAG_TOP} color={FIELD_COLOR} flowing />
+                    </g>
                     <MagnetShape x={MAG_CX} top={MAG_TOP} />
                 </motion.g>
+                {DS_ARROWS.map((ar, i) => {
+                    const x = DS_RING_CX + ar.dx
+                    const yTip = DS_RING_CY + ar.dy + 18
+                    const yTop = yTip - DS_ARROW_LEN
+                    return (
+                        <motion.g key={i} initial={{ opacity: 0 }} animate={{ opacity: ar.lvl <= idx ? 1 : 0 }} transition={{ duration: 0.35, delay: ar.lvl <= idx ? 0.35 + i * 0.04 : 0 }}>
+                            <line x1={x} y1={yTop} x2={x} y2={yTip} stroke={FIELD_COLOR} strokeWidth={4} strokeLinecap="round" />
+                            <path d={`M${x - 7},${yTip - 11} L${x},${yTip} L${x + 7},${yTip - 11}`} fill="none" stroke={FIELD_COLOR} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
+                        </motion.g>
+                    )
+                })}
                 <path d={front} fill="none" stroke={RING_COLOR} strokeWidth={6} />
                 {idx === 2 && (
                     <motion.ellipse cx={DS_RING_CX} cy={DS_RING_CY} rx={DS_RING_RX + 8} ry={DS_RING_RY + 6} fill="none" stroke={RING_COLOR} strokeWidth={3}
@@ -637,8 +659,8 @@ const DistanceScene = ({ onSettled }: { onSettled?: () => void }) => {
             </svg>
             <div className="w-full max-w-xs flex flex-col gap-1">
                 <div className="flex items-center justify-between text-sm font-black" style={{ color: FIELD_COLOR }}>
-                    <span>Поле B у кольца</span>
-                    <span>{DS_LEVELS[idx]}</span>
+                    <span>Поле B у кольца: {DS_LEVELS[idx]}</span>
+                    <span>{DS_ARROWS.filter((a) => a.lvl <= idx).length} {declensionRu(DS_ARROWS.filter((a) => a.lvl <= idx).length, 'стрелка', 'стрелки', 'стрелок')}</span>
                 </div>
                 <div className="h-4 w-full rounded-full bg-[#232F34] overflow-hidden">
                     <motion.div className="h-full rounded-full" style={{ backgroundColor: FIELD_COLOR }} animate={{ width: `${DS_LEVEL_W[idx]}%` }} transition={{ duration: 0.5 }} />
@@ -1295,6 +1317,10 @@ const FluxGameScene = ({ onSettled }: { onSettled?: () => void }) => {
                     <div className="w-full flex flex-col items-center gap-3">
                         <svg viewBox={`0 0 ${FG_W} 250`} className="h-[250px] w-[260px]">
                             <motion.g animate={{ y: FG_MAG_TOPS[mag] }} transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }} style={{ x: FG_W / 2 - DIST_MAG_W / 2 }}>
+                                {/* Бледные силовые линии магнита (как в сцене про поле B) — фон, яркие только стрелки, которые считаем. */}
+                                <g opacity={0.28} transform={`translate(${DIST_MAG_W / 2},${DIST_MAG_H / 2}) scale(0.75) translate(${-MAG_CX},${-(MAG_TOP + MAG_H / 2)})`}>
+                                    <MagnetFieldLines x={MAG_CX} top={MAG_TOP} color={FIELD_COLOR} />
+                                </g>
                                 <rect width={DIST_MAG_W} height={DIST_MAG_H / 2} rx={5} fill={SOUTH_COLOR} />
                                 <rect y={DIST_MAG_H / 2} width={DIST_MAG_W} height={DIST_MAG_H / 2} rx={5} fill={NORTH_COLOR} />
                                 <text x={DIST_MAG_W / 2} y={DIST_MAG_H / 4 + 5} textAnchor="middle" fontSize={13} fontWeight={800} fill="#fff">S</text>
@@ -1316,7 +1342,7 @@ const FluxGameScene = ({ onSettled }: { onSettled?: () => void }) => {
                         <div className="w-full max-w-xs flex flex-col gap-1">
                             <div className="flex items-center justify-between text-sm font-black">
                                 <span style={{ color: FLUX_COLOR }}>Поток Φ</span>
-                                <span style={{ color: FLUX_COLOR }}>{count} стрелок</span>
+                                <span style={{ color: FLUX_COLOR }}>{count} {declensionRu(count, 'стрелка', 'стрелки', 'стрелок')}</span>
                             </div>
                             <div className="h-4 w-full rounded-full bg-[#232F34] overflow-hidden">
                                 <motion.div className="h-full rounded-full" style={{ backgroundColor: FLUX_COLOR }}
