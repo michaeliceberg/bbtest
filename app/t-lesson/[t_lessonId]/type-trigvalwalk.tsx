@@ -141,6 +141,7 @@ const TrigTable = ({ fns, cell, highlight }: { fns: Fn[]; cell: (fn: Fn, i: numb
                     {ANGLES.map((a, i) => (
                         <div
                             key={a}
+                            data-cell={`${fn}-${i}`}
                             className="flex h-20 items-center justify-center rounded-xl border-2 transition-opacity duration-500"
                             style={{
                                 borderColor: highlight === i ? FN_COLOR[fn] : hexToRgba(FN_COLOR[fn], 0.35),
@@ -359,12 +360,16 @@ const SinLadderScene = ({ onSettled }: { onSettled?: () => void }) => {
 }
 
 // Майкл Джексон лунной походкой проходит по строке косинуса справа налево
-// (public/video/mj-moonwalk.mp4, 186×140, со звуком — если браузер не даст
-// звук, играет без него).
-const MOONWALK_S = 3.2
-const Moonwalker = ({ onDone }: { onDone: () => void }) => {
+// (public/video/mj-moonwalk.mp4, 186×140, ~5.8 с, со звуком — если браузер не
+// даст звук, играет без него). Идёт ровно всё время ролика: от середины
+// ячейки cos 60° до середины ячейки cos 30°.
+const MOONWALK_FALLBACK_S = 5.8
+const VIDEO_H = 80 // px — высота строки таблицы (h-20)
+const VIDEO_W = Math.round((VIDEO_H * 186) / 140)
+const Moonwalker = ({ fromX, toX, onDone }: { fromX: number; toX: number; onDone: () => void }) => {
     const ref = useRef<HTMLVideoElement>(null)
     const doneRef = useRef(false)
+    const [duration, setDuration] = useState<number | null>(null)
     const finish = () => {
         if (doneRef.current) return
         doneRef.current = true
@@ -372,27 +377,38 @@ const Moonwalker = ({ onDone }: { onDone: () => void }) => {
     }
     useEffect(() => {
         const el = ref.current
-        if (el) {
+        if (!el) return
+        const start = () => {
+            setDuration(Number.isFinite(el.duration) && el.duration > 0 ? el.duration : MOONWALK_FALLBACK_S)
             el.play().catch(() => {
                 el.muted = true
                 el.play().catch(() => {})
             })
         }
-        // Страховка: если анимация не сообщит о завершении — всё равно идём дальше.
-        const t = setTimeout(finish, MOONWALK_S * 1000 + 400)
+        if (el.readyState >= 1) start()
+        else el.addEventListener('loadedmetadata', start, { once: true })
+        // Если метаданные не пришли — стартуем с расчётной длительностью.
+        const t = setTimeout(() => setDuration((d) => d ?? MOONWALK_FALLBACK_S), 1500)
+        return () => clearTimeout(t)
+    }, [])
+    // Ролик закончился — дошли до cos 30°. Страховка по таймеру — если
+    // событие не придёт.
+    useEffect(() => {
+        if (duration === null) return
+        const t = setTimeout(finish, duration * 1000 + 400)
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, [duration])
     return (
         <motion.div
-            className="pointer-events-none absolute inset-y-0 left-0 w-full"
-            initial={{ x: '92%' }}
-            animate={{ x: '-8%' }}
-            transition={{ duration: MOONWALK_S, ease: 'linear' }}
-            onAnimationComplete={finish}
+            className="pointer-events-none absolute top-0 left-0"
+            style={{ width: VIDEO_W, height: VIDEO_H }}
+            initial={{ x: fromX - VIDEO_W / 2 }}
+            animate={duration !== null ? { x: toX - VIDEO_W / 2 } : { x: fromX - VIDEO_W / 2 }}
+            transition={duration !== null ? { duration, ease: 'linear' } : { duration: 0 }}
         >
             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-            <video ref={ref} src="/video/mj-moonwalk.mp4" playsInline loop className="h-full w-auto rounded-lg" />
+            <video ref={ref} src="/video/mj-moonwalk.mp4" playsInline onEnded={finish} className="h-full w-full rounded-lg object-cover" />
         </motion.div>
     )
 }
@@ -402,6 +418,20 @@ const Moonwalker = ({ onDone }: { onDone: () => void }) => {
 const CosMirrorScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0) // 0 таблица, 1 фраза, 2 походка, 3 заполнение
     const [walked, setWalked] = useState(false)
+    const wrapRef = useRef<HTMLDivElement>(null)
+    // Середины ячеек cos 60° и cos 30° относительно обёртки таблицы.
+    const [path, setPath] = useState<{ from: number; to: number } | null>(null)
+    useEffect(() => {
+        if (phase !== 2) return
+        const wrap = wrapRef.current
+        const c60 = wrap?.querySelector('[data-cell="cos-2"]')
+        const c30 = wrap?.querySelector('[data-cell="cos-0"]')
+        if (!wrap || !c60 || !c30) return
+        const w = wrap.getBoundingClientRect()
+        const r60 = c60.getBoundingClientRect()
+        const r30 = c30.getBoundingClientRect()
+        setPath({ from: r60.left + r60.width / 2 - w.left, to: r30.left + r30.width / 2 - w.left })
+    }, [phase])
     useEffect(() => {
         if (phase === 3) {
             const t = setTimeout(() => onSettled?.(), 2200)
@@ -412,7 +442,7 @@ const CosMirrorScene = ({ onSettled }: { onSettled?: () => void }) => {
     return (
         <>
             <DiagramBlock onSettled={() => setTimeout(() => setPhase(1), 700)}>
-                <div className="relative w-full">
+                <div ref={wrapRef} className="relative w-full">
                     <TrigTable
                         fns={['sin', 'cos']}
                         cell={(fn, i) => (
@@ -428,9 +458,9 @@ const CosMirrorScene = ({ onSettled }: { onSettled?: () => void }) => {
                         )}
                     />
                     {/* Строка косинуса — нижние 80px таблицы (h-20) + отступ py-2. */}
-                    {phase === 2 && !walked && (
-                        <div className="absolute inset-x-0 bottom-2 h-20 overflow-hidden">
-                            <Moonwalker onDone={() => { setWalked(true); setPhase(3) }} />
+                    {phase === 2 && !walked && path && (
+                        <div className="absolute inset-x-0 bottom-2 h-20">
+                            <Moonwalker fromX={path.from} toX={path.to} onDone={() => { setWalked(true); setPhase(3) }} />
                         </div>
                     )}
                 </div>
