@@ -945,6 +945,23 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             };
         }
 
+        if (t_challenge.type === 'TRIGSCWALK' || t_challenge.type === 'TRIGTGWALK') {
+            // Разборы «Таблица 30°, 45°, 60°» — самодостаточные, см. type-trigvalwalk.tsx.
+            return {
+                questionType: t_challenge.type,
+                question: t_challenge.question,
+                imageSrc: t_challenge.imageSrc,
+                options: [],
+                numRans: t_challenge.numRans,
+                optionsQ: [],
+                optionsA: [],
+                optionsConstructRight: [],
+                difficulty: t_challenge.difficulty,
+                correctAnswer: 'right',
+                timeLimit: 999,
+            };
+        }
+
         if (t_challenge.type === 'LEGFINDWALK') {
             // "Как найти катет" — самодостаточный разбор, см. type-legfindwalk.tsx.
             return {
