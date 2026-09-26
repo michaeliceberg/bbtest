@@ -3,9 +3,11 @@
 // Разборы по шагам «Таблица 30°, 45°, 60°» (юнит t_unit=18) — два типа на
 // одном компоненте:
 //   TRIGSCWALK — «Три волшебных угла»: 30/45/60 (+ игра «нажми по порядку»),
-//                синус — «лесенка» √1, √2, √3 над 2, √1 = 1, косинус — та же
+//                синус — «лесенка» √1, √2, √3 над 2, косинус — та же
 //                лесенка справа налево.
-//   TRIGTGWALK — тангенс = синус : косинус, по столбцам 45° → 60° → 30°,
+//   TRIGTGWALK — тангенс = синус : косинус, по столбцам 30° → 45° → 60°:
+//                столбец подсвечен, синус и косинус «падают» из таблицы
+//                вниз в деление, результат вписывается в строку tg;
 //                итог: «маленький — 1 — большой».
 // Тот же самодостаточный принцип, что у остальных *WALK: компонент сам
 // ведёт хореографию, зовёт onAnswer/onComplete один раз в конце; общая
@@ -20,7 +22,7 @@ import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
 import {
-    TypedLine, DiagramBlock, BlinkingExclaim,
+    TypedLine, DiagramBlock,
     pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
@@ -121,12 +123,13 @@ const AngleSticker = ({ a, big = false }: { a: number; big?: boolean }) => (
 )
 
 // Кусок таблицы: шапка с углами + строки функций. cell(fn, i) — содержимое ячейки.
-const TrigTable = ({ fns, cell }: { fns: Fn[]; cell: (fn: Fn, i: number) => React.ReactNode }) => (
+// highlight — номер столбца, который подсвечен (остальные приглушены).
+const TrigTable = ({ fns, cell, highlight }: { fns: Fn[]; cell: (fn: Fn, i: number) => React.ReactNode; highlight?: number }) => (
     <div className="w-full flex justify-center py-2">
         <div className="grid grid-cols-[3.5rem_repeat(3,minmax(4.5rem,6.5rem))] gap-1.5 text-xl md:text-2xl font-extrabold text-[#F2F7FB]">
             <div />
-            {ANGLES.map((a) => (
-                <div key={a} className="flex h-12 items-center justify-center">
+            {ANGLES.map((a, i) => (
+                <div key={a} className="flex h-12 items-center justify-center transition-opacity duration-500" style={{ opacity: highlight === undefined || highlight === i ? 1 : 0.3 }}>
                     <AngleSticker a={a} />
                 </div>
             ))}
@@ -138,8 +141,13 @@ const TrigTable = ({ fns, cell }: { fns: Fn[]; cell: (fn: Fn, i: number) => Reac
                     {ANGLES.map((a, i) => (
                         <div
                             key={a}
-                            className="flex h-20 items-center justify-center rounded-xl border-2"
-                            style={{ borderColor: hexToRgba(FN_COLOR[fn], 0.35), backgroundColor: hexToRgba(FN_COLOR[fn], 0.06) }}
+                            className="flex h-20 items-center justify-center rounded-xl border-2 transition-opacity duration-500"
+                            style={{
+                                borderColor: highlight === i ? FN_COLOR[fn] : hexToRgba(FN_COLOR[fn], 0.35),
+                                backgroundColor: hexToRgba(FN_COLOR[fn], highlight === i ? 0.16 : 0.06),
+                                boxShadow: highlight === i ? `0 0 14px ${hexToRgba(FN_COLOR[fn], 0.45)}` : undefined,
+                                opacity: highlight === undefined || highlight === i ? 1 : 0.3,
+                            }}
                         >
                             {cell(fn, i)}
                         </div>
@@ -147,18 +155,6 @@ const TrigTable = ({ fns, cell }: { fns: Fn[]; cell: (fn: Fn, i: number) => Reac
                 </Fragment>
             ))}
         </div>
-    </div>
-)
-
-const RememberBanner = ({ children }: { children: React.ReactNode }) => (
-    <div
-        className="w-full flex flex-col items-center gap-1 rounded-2xl border-2 px-4 py-3 text-center"
-        style={{ borderColor: ATTENTION, backgroundColor: hexToRgba(ATTENTION, 0.12) }}
-    >
-        <span className="flex items-center gap-1 text-lg font-black tracking-wide" style={{ color: ATTENTION }}>
-            ЗАПОМНИ <BlinkingExclaim />
-        </span>
-        <span className="text-xl md:text-2xl font-extrabold text-[#F2F7FB]">{children}</span>
     </div>
 )
 
@@ -305,43 +301,6 @@ const SinLadderScene = ({ onSettled }: { onSettled?: () => void }) => (
     />
 )
 
-// √1 = 1 → sin 30° = 1/2.
-const RootOneScene = ({ onSettled }: { onSettled?: () => void }) => {
-    const [swapped, setSwapped] = useState(false)
-    useEffect(() => {
-        const t = setTimeout(() => setSwapped(true), 1600)
-        return () => clearTimeout(t)
-    }, [])
-    return (
-        <SeqScene
-            diagramMs={2200}
-            diagram={
-                <div className="w-full flex flex-col items-center gap-3">
-                    <RememberBanner>
-                        <Num s="√1" /> = 1
-                    </RememberBanner>
-                    <TrigTable
-                        fns={['sin']}
-                        cell={(_fn, i) => (
-                            <span style={{ color: FN_COLOR.sin }}>
-                                {i === 0 ? (
-                                    <Pop key={swapped ? 'one' : 'root'}>
-                                        <Frac num={<Num s={swapped ? '1' : '√1'} />} den={<span>2</span>} />
-                                    </Pop>
-                                ) : (
-                                    <ValView v={VALUES.sin[i]} />
-                                )}
-                            </span>
-                        )}
-                    />
-                </div>
-            }
-            lines={['Поэтому sin 30° = 1/2.']}
-            onSettled={onSettled}
-        />
-    )
-}
-
 // Косинус — та же лесенка справа налево.
 const CosMirrorScene = ({ onSettled }: { onSettled?: () => void }) => (
     <SeqScene
@@ -363,7 +322,7 @@ const CosMirrorScene = ({ onSettled }: { onSettled?: () => void }) => (
                 )}
             />
         }
-        lines={['Косинус — та же лесенка, только справа налево.', 'У 30° и 60° синус и косинус меняются местами.']}
+        lines={['Косинус — та же лесенка, только справа налево.']}
         onSettled={onSettled}
     />
 )
@@ -380,32 +339,65 @@ const TgIntroScene = ({ onSettled }: { onSettled?: () => void }) => (
                 )}
             />
         }
-        lines={['Синус и косинус ты уже знаешь.', 'Тангенс — это синус, делённый на косинус.']}
+        lines={['Синус и косинус ты уже знаешь.', 'Нижнюю строку — тангенс — построим по двум верхним.']}
         onSettled={onSettled}
     />
 )
 
-// «tg A° = sin : cos = результат» для одного столбца.
-const TgColumnScene = ({ i, extra, lines, onSettled }: { i: number; extra?: React.ReactNode; lines: string[]; onSettled?: () => void }) => (
+// Столбец тангенса: таблица с подсвеченным столбцом → из неё вниз «падают»
+// синус, потом косинус, между ними «:», затем результат; он же вписывается
+// в строку tg таблицы. Уже посчитанные столбцы (done) в строке tg заполнены.
+const DROP = { y: -120, opacity: 0 }
+const Drop = ({ delay, children }: { delay: number; children: React.ReactNode }) => (
+    <motion.span
+        initial={DROP}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 18, delay }}
+        className="inline-flex"
+    >
+        {children}
+    </motion.span>
+)
+const TgColumnScene = ({ i, done, lines, onSettled }: { i: number; done: number[]; lines: string[]; onSettled?: () => void }) => (
     <SeqScene
-        diagramMs={2000}
+        diagramMs={3600}
         diagram={
-            <div className="w-full flex items-center justify-center gap-2 flex-wrap text-2xl md:text-3xl font-extrabold py-3 text-[#F2F7FB]">
-                <span style={{ color: FN_COLOR.tg }}>tg</span>
-                <AngleSticker a={ANGLES[i]} />
-                <span>=</span>
-                <Pop delay={0.3}>
-                    <span style={{ color: FN_COLOR.sin }}><ValView v={VALUES.sin[i]} /></span>
-                </Pop>
-                <Pop delay={0.6}><span>:</span></Pop>
-                <Pop delay={0.9}>
-                    <span style={{ color: FN_COLOR.cos }}><ValView v={VALUES.cos[i]} /></span>
-                </Pop>
-                {extra}
-                <Pop delay={1.5}><span>=</span></Pop>
-                <Pop delay={1.6}>
-                    <span style={{ color: FN_COLOR.tg }}><ValView v={VALUES.tg[i]} /></span>
-                </Pop>
+            <div className="w-full flex flex-col items-center">
+                <TrigTable
+                    fns={['sin', 'cos', 'tg']}
+                    highlight={i}
+                    cell={(fn, j) => (
+                        <span style={{ color: FN_COLOR[fn] }}>
+                            {fn !== 'tg' ? (
+                                <ValView v={VALUES[fn][j]} />
+                            ) : done.includes(j) ? (
+                                <ValView v={VALUES.tg[j]} />
+                            ) : j === i ? (
+                                <Pop key="res" delay={3.1}>
+                                    <ValView v={VALUES.tg[j]} />
+                                </Pop>
+                            ) : (
+                                <span className="font-black">?</span>
+                            )}
+                        </span>
+                    )}
+                />
+                <div className="w-full flex items-center justify-center gap-2 flex-wrap text-2xl md:text-3xl font-extrabold pt-2 pb-3 text-[#F2F7FB]">
+                    <span style={{ color: FN_COLOR.tg }}>tg</span>
+                    <AngleSticker a={ANGLES[i]} />
+                    <span>=</span>
+                    <Drop delay={0.7}>
+                        <span style={{ color: FN_COLOR.sin }}><ValView v={VALUES.sin[i]} /></span>
+                    </Drop>
+                    <Pop delay={1.4}><span>:</span></Pop>
+                    <Drop delay={1.8}>
+                        <span style={{ color: FN_COLOR.cos }}><ValView v={VALUES.cos[i]} /></span>
+                    </Drop>
+                    <Pop delay={2.5}><span>=</span></Pop>
+                    <Pop delay={2.7}>
+                        <span style={{ color: FN_COLOR.tg }}><ValView v={VALUES.tg[i]} /></span>
+                    </Pop>
+                </div>
             </div>
         }
         lines={lines}
@@ -532,12 +524,18 @@ export const TypeTrigValWalk = ({ onAnswer, onComplete, mode }: Props) => {
     const scenes = useMemo(
         () =>
             mode === 'sincos'
-                ? [IntroAnglesScene, OrderGameScene, SinLadderScene, RootOneScene, CosMirrorScene]
+                ? [IntroAnglesScene, OrderGameScene, SinLadderScene, CosMirrorScene]
                 : [
                     TgIntroScene,
-                    (p: { onSettled?: () => void }) => <TgColumnScene i={1} lines={['Одинаковые числа делим друг на друга — получается 1!']} {...p} />,
-                    (p: { onSettled?: () => void }) => <TgColumnScene i={2} lines={['Двойки сокращаются — остаётся √3.']} {...p} />,
-                    (p: { onSettled?: () => void }) => <TgColumnScene i={0} lines={['Двойки сокращаются — получается 1/√3.', 'А 1/√3 — это то же самое, что √3/3.']} {...p} />,
+                    (p: { onSettled?: () => void }) => (
+                        <TgColumnScene i={0} done={[]} lines={['Смотри: тангенс — это синус : косинус из того же столбика.', 'Двойки сокращаются — получается 1/√3, то есть √3/3.']} {...p} />
+                    ),
+                    (p: { onSettled?: () => void }) => (
+                        <TgColumnScene i={1} done={[0]} lines={['Одинаковые числа делим друг на друга — получается 1!']} {...p} />
+                    ),
+                    (p: { onSettled?: () => void }) => (
+                        <TgColumnScene i={2} done={[0, 1]} lines={['Двойки сокращаются — остаётся √3.']} {...p} />
+                    ),
                     TgFullScene,
                 ],
         [mode],

@@ -937,7 +937,7 @@ export default function TQuiz({
         isMega={lessonCaseTier !== 'common'}
         pool={getLessonCasePool(lessonCaseTier)}
         spinAction={() => openLessonCase(lessonCaseTier)}
-        title={chainBonusLength ? `🔥 Серия x${chainBonusLength}` : undefined}
+        // Причину выдачи кейса («Серия xN») над сундуком не пишем — договорённость с пользователем.
         tier={lessonCaseTier}
         onDone={({ reward }) => {
           setWonLessonCaseReward(reward)
