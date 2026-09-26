@@ -4,7 +4,8 @@
 // одном компоненте:
 //   TRIGSCWALK — «Три волшебных угла»: 30/45/60 (+ игра «нажми по порядку»),
 //                синус — «лесенка» √1, √2, √3 над 2, косинус — та же
-//                лесенка справа налево.
+//                лесенка справа налево. Между ними — «Собери паззл»: таблицу
+//                углов и синусов заполняют перемешанными кнопками.
 //   TRIGTGWALK — тангенс = синус : косинус, по столбцам 30° → 45° → 60°:
 //                столбец подсвечен, синус и косинус «падают» из таблицы
 //                вниз в деление, результат вписывается в строку tg;
@@ -359,6 +360,125 @@ const SinLadderScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
+// «Собери паззл»: пустая таблица (углы + строка sin), снизу перемешанные
+// кнопки 30°, 45°, 60°, 1/2, √2/2, √3/2. Подсвечивается ячейка, которую
+// надо заполнить: сначала углы слева направо, потом синусы слева направо.
+// Неверная кнопка — ячейка и кнопка вспыхивают красным.
+type PuzzleToken = { key: string; kind: 'angle'; a: number } | { key: string; kind: 'val'; v: V }
+const PUZZLE_TARGETS: string[] = [...ANGLES.map((a) => `a${a}`), ...VALUES.sin.map((v) => `v${vKey(v)}`)]
+const PUZZLE_TOKENS: PuzzleToken[] = [
+    ...ANGLES.map((a) => ({ key: `a${a}`, kind: 'angle' as const, a })),
+    ...VALUES.sin.map((v) => ({ key: `v${vKey(v)}`, kind: 'val' as const, v })),
+]
+const PUZZLE_WRONG_MS = 700
+const SinPuzzleScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [ready, setReady] = useState(false)
+    const [order] = useState(() => shuffle(PUZZLE_TOKENS))
+    const [filled, setFilled] = useState(0) // сколько ячеек уже заполнено (по порядку PUZZLE_TARGETS)
+    const [wrongKey, setWrongKey] = useState<string | null>(null)
+    const [wrongNonce, setWrongNonce] = useState(0)
+    const done = filled >= PUZZLE_TARGETS.length
+    useEffect(() => {
+        if (!wrongKey) return
+        const t = setTimeout(() => setWrongKey(null), PUZZLE_WRONG_MS)
+        return () => clearTimeout(t)
+    }, [wrongKey, wrongNonce])
+    const tap = (tok: PuzzleToken) => {
+        if (done) return
+        playSound('/click6.wav')
+        if (tok.key === PUZZLE_TARGETS[filled]) {
+            const next = filled + 1
+            setFilled(next)
+            setWrongKey(null)
+            if (next >= PUZZLE_TARGETS.length) setTimeout(() => onSettled?.(), 1000)
+        } else {
+            playSound(WRONG_ANSWER_SOUND)
+            setWrongKey(tok.key)
+            setWrongNonce((n) => n + 1)
+        }
+    }
+    const placed = new Set(PUZZLE_TARGETS.slice(0, filled))
+    // Слот таблицы: idx 0..2 — углы, 3..5 — синусы.
+    const slotStyle = (idx: number, color: string): React.CSSProperties => {
+        const isCur = !done && idx === filled
+        const isWrong = isCur && wrongKey !== null
+        const isFilled = idx < filled
+        const c = isWrong ? '#DC605B' : isCur ? ATTENTION : color
+        return {
+            borderColor: isFilled ? hexToRgba(color, 0.55) : isCur || isWrong ? c : '#3A464E',
+            borderStyle: isFilled ? 'solid' : 'dashed',
+            backgroundColor: isWrong ? hexToRgba('#DC605B', 0.2) : isCur ? hexToRgba(ATTENTION, 0.14) : isFilled ? hexToRgba(color, 0.08) : 'transparent',
+            boxShadow: isCur ? `0 0 14px ${hexToRgba(c, 0.5)}` : undefined,
+        }
+    }
+    const rowDim = (row: 0 | 1) => (done ? 1 : (filled < 3 ? 0 : 1) === row ? 1 : 0.45)
+    return (
+        <>
+            <BigLine>Собери паззл!</BigLine>
+            <TypedLine className={TEXT} text="Заполни таблицу: сначала углы, потом синусы — слева направо." onSettled={() => setReady(true)} delayAfter={200} />
+            {ready && (
+                <DiagramBlock>
+                    <div className="w-full flex flex-col items-center gap-5 py-2">
+                        <div className="grid grid-cols-[3.5rem_repeat(3,minmax(4.5rem,6.5rem))] gap-1.5 text-xl md:text-2xl font-extrabold text-[#F2F7FB]">
+                            <div />
+                            {ANGLES.map((a, i) => (
+                                <motion.div
+                                    key={`h-${i}-${filled === i ? wrongNonce : 0}`}
+                                    animate={filled === i && wrongKey ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
+                                    transition={{ duration: 0.35 }}
+                                    className="flex h-12 items-center justify-center rounded-xl border-2 transition-[opacity,background-color,border-color] duration-300"
+                                    style={{ ...slotStyle(i, ANGLE_COLOR[a]), opacity: rowDim(0) }}
+                                >
+                                    {i < filled && <Pop><AngleSticker a={a} /></Pop>}
+                                </motion.div>
+                            ))}
+                            <div className="flex items-center justify-center text-lg md:text-xl font-black transition-opacity duration-300" style={{ color: FN_COLOR.sin, opacity: rowDim(1) }}>
+                                sin
+                            </div>
+                            {VALUES.sin.map((v, i) => (
+                                <motion.div
+                                    key={`s-${i}-${filled === 3 + i ? wrongNonce : 0}`}
+                                    animate={filled === 3 + i && wrongKey ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
+                                    transition={{ duration: 0.35 }}
+                                    className="flex h-20 items-center justify-center rounded-xl border-2 transition-[opacity,background-color,border-color] duration-300"
+                                    style={{ ...slotStyle(3 + i, FN_COLOR.sin), opacity: rowDim(1) }}
+                                >
+                                    {3 + i < filled && <Pop><span style={{ color: FN_COLOR.sin }}><ValView v={v} /></span></Pop>}
+                                </motion.div>
+                            ))}
+                        </div>
+                        {!done && (
+                            <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
+                                {order.map((tok) => {
+                                    const used = placed.has(tok.key)
+                                    const isWrong = wrongKey === tok.key
+                                    return (
+                                        <button
+                                            key={tok.key}
+                                            type="button"
+                                            onClick={() => tap(tok)}
+                                            disabled={used}
+                                            className={cn(
+                                                'flex min-h-[72px] items-center justify-center rounded-xl border-2 text-xl md:text-2xl font-extrabold transition-[opacity,border-color,background-color] duration-200',
+                                                used && 'opacity-0 pointer-events-none',
+                                                isWrong ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]' : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]',
+                                            )}
+                                        >
+                                            {tok.kind === 'angle' ? <AngleSticker a={tok.a} /> : <ValView v={tok.v} />}
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        )}
+                        {done && <p className="text-lg font-black text-[#A1D151]">Таблица синусов собрана!</p>}
+                    </div>
+                    {done && <LocalAnswerConfetti />}
+                </DiagramBlock>
+            )}
+        </>
+    )
+}
+
 // Майкл Джексон лунной походкой проходит по строке косинуса справа налево
 // (public/video/mj-moonwalk.mp4, 186×140, ~5.8 с, со звуком — если браузер не
 // даст звук, играет без него). Идёт ровно всё время ролика: от середины
@@ -670,7 +790,7 @@ export const TypeTrigValWalk = ({ onAnswer, onComplete, mode }: Props) => {
     const scenes = useMemo(
         () =>
             mode === 'sincos'
-                ? [IntroAnglesScene, OrderGameScene, SinLadderScene, CosMirrorScene]
+                ? [IntroAnglesScene, OrderGameScene, SinLadderScene, SinPuzzleScene, CosMirrorScene]
                 : [
                     TgIntroScene,
                     (p: { onSettled?: () => void }) => (
