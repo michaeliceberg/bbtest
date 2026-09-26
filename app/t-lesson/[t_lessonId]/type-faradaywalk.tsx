@@ -785,12 +785,25 @@ const Step1Scene = ({ onSettled }: { onSettled?: () => void }) => {
 
 // Полюса — ОДНА сцена, магнит не перерисовывается: сначала подсвечен N,
 // потом он гаснет и подсвечивается S. Текст — сразу, без паузы.
+// Картинка-ассоциация (стикер с белой обводкой, public/lesson-pics/*).
+const MnemonicPic = ({ src, alt }: { src: string; alt: string }) => (
+    <motion.img
+        src={src}
+        alt={alt}
+        initial={{ scale: 0, rotate: -12, opacity: 0 }}
+        animate={{ scale: 1, rotate: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 14 }}
+        className="mx-auto h-32 w-32 md:h-36 md:w-36"
+    />
+)
+
 const PolesScene = ({ onSettled }: { onSettled?: () => void }) => {
-    const [phase, setPhase] = useState(0) // 0 N-текст, 1 компас, 2 S
+    // 0 N-текст, 1 фраза про компас, 2 картинка компаса, 3 S-текст, 4 картинка South Park
+    const [phase, setPhase] = useState(0)
     return (
         <>
             <DiagramBlock>
-                <MagnetPoleDiagram highlight={phase >= 2 ? 'S' : 'N'} />
+                <MagnetPoleDiagram highlight={phase >= 3 ? 'S' : 'N'} />
             </DiagramBlock>
             <TypedLineWithParts
                 parts={[
@@ -803,18 +816,20 @@ const PolesScene = ({ onSettled }: { onSettled?: () => void }) => {
                 <TypedLine
                     text="Красная стрелка компаса всегда смотрит на север — поэтому N красный 🧭"
                     className="w-full text-center text-base md:text-lg text-[#F2F7FB]"
-                    onSettled={() => setTimeout(() => setPhase(2), 600)}
+                    onSettled={() => { setPhase(2); setTimeout(() => setPhase(3), 1400) }}
                 />
             )}
-            {phase >= 2 && (
+            {phase >= 2 && <MnemonicPic src="/lesson-pics/compass.webp" alt="Компас: красная стрелка смотрит на N" />}
+            {phase >= 3 && (
                 <TypedLineWithParts
                     parts={[
                         { text: 'И ' }, { sticker: 'южный', color: SOUTH_COLOR }, { text: ' полюс ' },
                         { sticker: 'S', color: SOUTH_COLOR }, { text: ' — от South (Саус), «юг». Как в «South Park» 😄' },
                     ]}
-                    onSettled={onSettled}
+                    onSettled={() => { setPhase(4); setTimeout(() => onSettled?.(), 900) }}
                 />
             )}
+            {phase >= 4 && <MnemonicPic src="/lesson-pics/southpark.webp" alt="South Park" />}
         </>
     )
 }
