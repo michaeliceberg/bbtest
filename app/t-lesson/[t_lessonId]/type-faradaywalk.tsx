@@ -898,14 +898,18 @@ const shuffleArr = <T,>(arr: T[]): T[] => {
     return a
 }
 const TAP_HINT = GGEGE_PALETTE.orange.button
-const IRON = '#9AA7B0'
 
-// Шаг 0 — «Нажми на магнит»: к нему прилетают железные шарики.
-const TAP_BALLS = [
-    { from: { x: 80, y: 320 }, to: { x: 166, y: 283 } },
-    { from: { x: 285, y: 330 }, to: { x: 194, y: 283 } },
-    { from: { x: 95, y: 170 }, to: { x: 168, y: 198 } },
-    { from: { x: 270, y: 165 }, to: { x: 192, y: 198 } },
+// Шаг 0 — «Нажми на магнит»: к нему прилетают «железные» игровые
+// предметы-стикеры (public/magnet-items/*.webp — вырезаны из картинок
+// пользователя через Apple Vision, белая контурная обводка). Картинки
+// взяты из игр/фильма — при желании заменить своими рисунками с теми же
+// именами файлов.
+const TAP_ITEM = 58
+const TAP_ITEMS = [
+    { src: '/magnet-items/ironman.webp', from: { x: 92, y: 172, r: -20 }, to: { x: 150, y: 214, r: -12 } },
+    { src: '/magnet-items/sword.webp', from: { x: 272, y: 168, r: 25 }, to: { x: 210, y: 214, r: 10 } },
+    { src: '/magnet-items/robot.webp', from: { x: 84, y: 318, r: 15 }, to: { x: 150, y: 268, r: 8 } },
+    { src: '/magnet-items/rifle.webp', from: { x: 280, y: 322, r: -15 }, to: { x: 210, y: 268, r: -8 } },
 ]
 const MagnetTapScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0) // 0 текст, 1 ждём нажатия, 2 шарики прилетели
@@ -915,15 +919,7 @@ const MagnetTapScene = ({ onSettled }: { onSettled?: () => void }) => {
             {phase >= 1 && (
                 <DiagramBlock>
                     <div className="flex w-full justify-center py-2">
-                        <svg viewBox="60 140 240 210" className="h-[250px] w-[286px]">
-                            {TAP_BALLS.map((b, i) => (
-                                <motion.circle
-                                    key={i} r={8} fill={IRON} stroke="#5C6B73" strokeWidth={2}
-                                    initial={{ cx: b.from.x, cy: b.from.y }}
-                                    animate={phase >= 2 ? { cx: b.to.x, cy: b.to.y } : { cx: b.from.x, cy: b.from.y }}
-                                    transition={phase >= 2 ? { delay: 0.15 * i, duration: 0.45, ease: [0.55, 0, 1, 0.45] } : { duration: 0 }}
-                                />
-                            ))}
+                        <svg viewBox="50 130 260 230" className="h-[270px] w-[305px]">
                             <motion.g
                                 style={{ cursor: phase === 1 ? 'pointer' : 'default' }}
                                 onClick={() => {
@@ -942,6 +938,20 @@ const MagnetTapScene = ({ onSettled }: { onSettled?: () => void }) => {
                                 )}
                                 <MagnetShape x={MAG_CX} top={MAG_TOP} />
                             </motion.g>
+                            {TAP_ITEMS.map((it, i) => (
+                                <motion.g
+                                    key={it.src}
+                                    initial={{ x: it.from.x, y: it.from.y, rotate: it.from.r }}
+                                    animate={phase >= 2
+                                        ? { x: it.to.x, y: it.to.y, rotate: it.to.r }
+                                        : { x: it.from.x, y: [it.from.y, it.from.y - 5, it.from.y], rotate: it.from.r }}
+                                    transition={phase >= 2
+                                        ? { delay: 0.15 * i, duration: 0.45, ease: [0.55, 0, 1, 0.45] }
+                                        : { y: { duration: 1.6 + i * 0.2, repeat: Infinity, ease: 'easeInOut' } }}
+                                >
+                                    <image href={it.src} x={-TAP_ITEM / 2} y={-TAP_ITEM / 2} width={TAP_ITEM} height={TAP_ITEM} />
+                                </motion.g>
+                            ))}
                         </svg>
                     </div>
                     {phase === 1 && <p className="text-center text-sm font-bold" style={{ color: TAP_HINT }}>👆 нажми на магнит</p>}
@@ -949,7 +959,7 @@ const MagnetTapScene = ({ onSettled }: { onSettled?: () => void }) => {
             )}
             {phase >= 2 && (
                 <TypedLine
-                    text="Бум! Железо само прилипло. Значит, вокруг магнита есть что-то невидимое…"
+                    text="Бум! Всё железное само прилипло — даже Железный человек 😄 Значит, вокруг магнита есть что-то невидимое…"
                     className="w-full text-center text-base md:text-lg text-[#F2F7FB]"
                 />
             )}
