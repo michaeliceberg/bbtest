@@ -425,10 +425,12 @@ const MagnetPoleDiagram = ({ highlight }: { highlight: 'N' | 'S' }) => (
 // свой локальный (не общий BlinkingExclaim из WalkthroughLog.tsx — тот
 // хардкожен в ATTENTION_COLOR/оранжевый без пропа цвета), чтобы не
 // расходиться с новым красным цветом рамки.
+// «ЗАПОМНИ!» — тёплый солнечный цвет (красный читался как «ошибка»).
+const REMEMBER_COLOR = '#F2C35B'
 const RedExclaim = () => (
     <motion.span
         className="inline-block ml-1 font-black"
-        style={{ color: WRONG_COLOR }}
+        style={{ color: REMEMBER_COLOR }}
         animate={{ opacity: [1, 0.25, 1] }}
         transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
     >!</motion.span>
@@ -439,7 +441,7 @@ const DirectionRememberBanner = () => (
         <Lottie animationData={paperPolice} loop autoplay className="w-16 h-16 md:w-20 md:h-20 shrink-0" />
         <div
             className="flex-1 flex items-center justify-center rounded-xl px-4 py-3 font-black text-lg text-center"
-            style={{ backgroundColor: hexToRgba(WRONG_COLOR, 0.16), border: `2px solid ${WRONG_COLOR}`, color: WRONG_COLOR }}
+            style={{ backgroundColor: hexToRgba(REMEMBER_COLOR, 0.16), border: `2px solid ${REMEMBER_COLOR}`, color: REMEMBER_COLOR }}
         >
             <span>ЗАПОМНИ<RedExclaim /></span>
         </div>
@@ -592,381 +594,159 @@ const RING_INTRO_RX = 95
 const RING_INTRO_RY = 30
 
 
-// ===== Сцена "расстояние" — вертикальный риски-слайдер (тот же визуальный
-// язык, что у тренажёрного типа SCROLL — трек + 3 риски + плавно едущий
-// бегунок, только вертикально вместо горизонтали) + диаграмма плотности
-// силовых линий, проходящих через кольцо снизу. По референсу пользователя
-// (bs1/bs2/bs3) — не встроены как картинки (это сторонний экспорт из
-// векторного редактора, судя по сигнатуре Layer0_0_FILL/Layer1_0_FILL,
-// та же история, что и с прошлым присланным SVG в этой сессии), а
-// переосмыслены своим кодом: чем ближе магнит (риска ближе к кольцу), тем
-// БОЛЬШЕ стрелочек-силовых линий видно над кольцом — "перетекание" между
-// состояниями через прозрачность каждой отдельной стрелки (не кросс-фейд
-// целых картинок), плавно и без изломов.
-// Все размеры увеличены (по прямой просьбе пользователя — длиннее
-// вертикальная линия с рисками, бОльшего диаметра кольцо): риски
-// раздвинуты вдвое дальше друг от друга (было 65, стало 110), кольцо
-// заметно крупнее (rx 58→90, ry 14→24). Всё, что ниже последней риски
-// (стрелочки поля, кольцо), сдвинуто вниз на ту же дельту, что выросла
-// длина трека — зазор "магнит у ближней риски / верх стрелочек"
-// остаётся визуально тем же, что и в исходной версии.
-const DIST_TRACK_X = 120
-const DIST_TICK_Y = [30, 140, 250] // далеко, средне, близко
+// Размер маленького магнита в финальной игре «сделай поток максимальным».
 const DIST_MAG_W = 32
 const DIST_MAG_H = 48
-const DIST_RING_CY = 350
-const DIST_RING_RX = 90
-const DIST_RING_RY = 24
-const DIST_VISIBLE_HALF = [0, 2, 4] // далеко/средне/близко — порог "дистанции" точки от центра сетки (см. ниже)
-const DIST_LABEL_GAP = 22
 
-// ===== Стрелочки поля — не одна плоская строка, а сетка ТОЧЕК ВНУТРИ
-// самого эллипса кольца, по прямой просьбе пользователя ("не плоско, а
-// трёхмерно по площади кольца"). 3 "ряда" по высоте эллипса (дальний
-// край/экватор/ближний край — dy от центра кольца) + по 3 точки в каждом
-// ряду по ширине, ограниченной формулой эллипса НА ЭТОЙ высоте
-// (x²/rx²+y²/ry²=1 → на высоте dy доступная полуширина = rx·√(1−(dy/ry)²))
-// — поэтому крайние (не средний) ряды физически УЖЕ, как и положено
-// сечению эллипса не по экватору. Длина стрелки тоже растёт от дальнего
-// ряда к ближнему (18→24→30) — простой, но узнаваемый намёк на
-// перспективу (дальнее — короче/меньше, ближнее — длиннее/крупнее), тот
-// же принцип, что уже даёт сжатие самого эллипса кольца по Ry.
-const DIST_ARROW_ROW_DY = [-14, 0, 14]
-const DIST_ARROW_ROW_LEN = [26, 34, 42]
-const DIST_ARROW_STROKE_WIDTH = 3.2
-// Раньше все 3 ряда использовали ОДИН И ТОТ ЖЕ набор долей ширины
-// (cf=[-0.55,0,0.55]) — из-за этого центральная колонка (cf=0) ВСЕГДА
-// давала x=0 независимо от ряда (0×что-угодно=0), и три "центральные"
-// стрелки трёх рядов физически стояли на одной вертикальной линии,
-// сливаясь визуально в одну — та самая жалоба пользователя ("три
-// стрелки на одной вертикальной линии"/"много стрелочек по одной
-// линии"). Исправлено — у КАЖДОГО ряда своя, намеренно НЕ симметричная
-// тройка долей (не просто зеркальное -0.55/0/0.55) — ни один x не
-// повторяется ни в одном другом ряду ни при какой комбинации рядов, то
-// есть НИКАКАЯ пара точек сетки не может визуально слиться в одну
-// линию, при этом сама 3×3-структура (и её "дистанция от центра" для
-// логики видимости риски) не меняется — только фактические x-координаты.
-const DIST_ARROW_ROW_COLS = [
-    [-0.62, 0.06, 0.68],
-    [-0.7, -0.1, 0.52],
-    [-0.42, 0.22, 0.7],
-]
-
-type DistArrowPoint = { x: number; yBase: number; len: number; dist: number }
-
-// "Дистанция" точки от центра сетки — 0 у самой центральной (видна
-// первой, риска "далеко"), 2 у 4 соседей "крестом" (риска "средне"
-// добавляет их), 4 у 4 угловых (риска "близко" добавляет и их) — та же
-// семантика, что и раньше была у линейных офсетов DIST_ARROW_OFFSETS,
-// просто обобщённая на 2D-сетку 3×3: сравнение `dist<=visibleHalf`
-// работает без изменений (индекс (ri,ci), а не фактический x, задаёт
-// группировку — поэтому смена самих x на несимметричные значения выше
-// никак не ломает семантику видимости по рискам).
-function buildDistArrowGrid(): DistArrowPoint[] {
-    const pts: DistArrowPoint[] = []
-    DIST_ARROW_ROW_DY.forEach((dy, ri) => {
-        const t = dy / DIST_RING_RY
-        const rowHalfWidth = DIST_RING_RX * Math.sqrt(Math.max(0, 1 - t * t))
-        DIST_ARROW_ROW_COLS[ri].forEach((cf, ci) => {
-            const dist = ri === 1 && ci === 1 ? 0 : ri === 1 || ci === 1 ? 2 : 4
-            pts.push({ x: cf * rowHalfWidth, yBase: DIST_RING_CY + dy, len: DIST_ARROW_ROW_LEN[ri], dist })
-        })
-    })
-    return pts
-}
-const DIST_ARROW_GRID = buildDistArrowGrid()
-
-const DistanceDiagram = ({ selectedIndex, onSelect }: { selectedIndex: number; onSelect: (i: number) => void }) => {
-    const magTop = DIST_TICK_Y[selectedIndex] - DIST_MAG_H / 2
-    const visibleHalf = DIST_VISIBLE_HALF[selectedIndex]
-    // Стикер "B" — всегда рядом с крайней ПРАВОЙ ВИДИМОЙ стрелочкой поля
-    // (по прямой просьбе пользователя) — теперь ищем максимум x СРЕДИ
-    // ВИДИМЫХ точек сетки (не берём фиксированный индекс, т.к. у 2D-сетки
-    // "самая правая видимая" может оказаться в любом из 3 рядов в
-    // зависимости от того, сколько точек сейчас показано).
-    const visiblePts = DIST_ARROW_GRID.filter((p) => p.dist <= visibleHalf)
-    const bLabelX = DIST_TRACK_X + Math.max(...visiblePts.map((p) => p.x)) + DIST_LABEL_GAP
-    const bLabelY = DIST_RING_CY - 24
+// Сцена «придвинь магнит» (перерисована 2026-09-26): магнит СО СВОИМИ
+// силовыми линиями едет к кольцу, кольцо «объёмное» (задняя половина под
+// линиями, передняя — поверх), три кнопки далеко/средне/близко вместо
+// палки с рисками, шкала «поле B у кольца». Готово — когда магнит близко.
+const DS_W = 360
+const DS_H = 470
+const DS_RING_CX = MAG_CX
+const DS_RING_CY = 420
+const DS_RING_RX = 95
+const DS_RING_RY = 22
+const DS_MAG_CENTER = [170, 280, 360] // центр магнита: далеко / средне / близко
+const DS_LEVELS = ['слабое', 'среднее', 'сильное']
+const DS_LEVEL_W = [22, 58, 100]
+const DistanceScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [idx, setIdx] = useState(0)
+    const [done, setDone] = useState(false)
+    const pick = (i: number) => {
+        playSound('/click6.wav')
+        setIdx(i)
+        if (i === 2 && !done) { setDone(true); onSettled?.() }
+    }
+    const back = `M ${DS_RING_CX - DS_RING_RX} ${DS_RING_CY} A ${DS_RING_RX} ${DS_RING_RY} 0 0 1 ${DS_RING_CX + DS_RING_RX} ${DS_RING_CY}`
+    const front = `M ${DS_RING_CX - DS_RING_RX} ${DS_RING_CY} A ${DS_RING_RX} ${DS_RING_RY} 0 0 0 ${DS_RING_CX + DS_RING_RX} ${DS_RING_CY}`
     return (
-        <div className="flex w-full justify-center py-2">
-            <svg viewBox="0 0 240 400" className="h-[420px] w-[252px]">
-                <line x1={DIST_TRACK_X} y1={DIST_TICK_Y[0]} x2={DIST_TRACK_X} y2={DIST_TICK_Y[2]}
-                    stroke="#3A464E" strokeWidth={4} strokeLinecap="round" />
-                {DIST_TICK_Y.map((y, i) => (
-                    <circle
-                        key={i}
-                        cx={DIST_TRACK_X} cy={y} r={i === selectedIndex ? 9 : 7}
-                        fill={i === selectedIndex ? FIELD_COLOR : '#161F23'}
-                        stroke={i === selectedIndex ? FIELD_COLOR : '#3A464E'} strokeWidth={2.5}
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => onSelect(i)}
-                    />
-                ))}
-
-                {/* Кольцо — бирюзовое, СО стикером "S" внутри, но БЕЗ
-                    штриховки площади (по прямой просьбе пользователя —
-                    штриховка визуально сливалась с синими 3D-стрелками
-                    поля, которые теперь тоже лежат В ПРЕДЕЛАХ эллипса
-                    кольца, см. DIST_ARROW_GRID ниже) — статично, не
-                    зависит от выбранной риски. */}
-                <TealRing cx={DIST_TRACK_X} cy={DIST_RING_CY} rx={DIST_RING_RX} ry={DIST_RING_RY} showS uid="dist" sScaleY={0.55} />
-
-                {DIST_ARROW_GRID.map((pt, i) => {
-                    const visible = pt.dist <= visibleHalf
-                    const x = DIST_TRACK_X + pt.x
-                    // Стрелка "приземляется" ровно в точку сетки (яркая
-                    // часть — шеврон), шахта уходит вверх на её длину —
-                    // короче у дальнего ряда, длиннее у ближнего (см.
-                    // DIST_ARROW_ROW_LEN) — та же лёгкая перспектива, что
-                    // и у самого сжатого по Ry эллипса кольца. Длиннее и
-                    // толще (DIST_ARROW_STROKE_WIDTH), чем в первой
-                    // версии, — по прямой просьбе пользователя, чтобы
-                    // явно выделяться на фоне кольца.
-                    // Шахта (line) раньше заканчивалась НЕ в самом острие
-                    // (pt.yBase), а чуть выше — в chevronBase, тогда как
-                    // "галочка" (шеврон) своими двумя лучами упирается в
-                    // ТОЧКУ chevronBase (сверху) слева/справа от центра —
-                    // визуально "|" повисал в промежутке между двумя
-                    // рожками галочки, не касаясь ни одного из них
-                    // (жалоба пользователя "| и v выглядят отдельно").
-                    // Исправлено — шахта продлена до pt.yBase (самого
-                    // острия), точно совпадающего со средней вершиной
-                    // шеврона: оба штриха физически сходятся в ОДНОЙ
-                    // точке, скруглённые концы/сочленения (round) там
-                    // визуально сливаются в единую стрелку.
-                    const chevronBase = pt.yBase - pt.len * 0.26
-                    const shaftTop = pt.yBase - pt.len
-                    const chevronHalf = 4.6
-                    return (
-                        <motion.g key={i} animate={{ opacity: visible ? 0.95 : 0 }} transition={{ duration: 0.4 }}>
-                            <line x1={x} y1={shaftTop} x2={x} y2={pt.yBase} stroke={FIELD_COLOR} strokeWidth={DIST_ARROW_STROKE_WIDTH} strokeLinecap="round" />
-                            <path d={`M${x - chevronHalf},${chevronBase} L${x},${pt.yBase} L${x + chevronHalf},${chevronBase}`} fill="none"
-                                stroke={FIELD_COLOR} strokeWidth={DIST_ARROW_STROKE_WIDTH} strokeLinecap="round" strokeLinejoin="round" />
-                        </motion.g>
-                    )
-                })}
-                {/* Стикер "B" — рядом с крайней видимой стрелочкой поля,
-                    подстраивается под выбранную риску (см. bLabelX/Y
-                    выше). Позиционирующий x/y — на motion.g через x/y
-                    framer-motion motion-values (не raw transform-строка),
-                    та же безопасная техника, что и у самого магнита ниже. */}
-                <motion.g
-                    animate={{ x: bLabelX, y: bLabelY }}
-                    transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                >
-                    <FieldBLabel x={0} y={0} color={FIELD_COLOR} delay={0.3} solidBg />
+        <div className="w-full flex flex-col items-center gap-3">
+            <svg viewBox={`0 0 ${DS_W} ${DS_H}`} className="w-full max-w-[330px] h-auto overflow-hidden">
+                <path d={back} fill="none" stroke={RING_COLOR} strokeWidth={6} />
+                <motion.g animate={{ y: DS_MAG_CENTER[idx] - (MAG_TOP + MAG_H / 2) }} initial={{ y: DS_MAG_CENTER[0] - (MAG_TOP + MAG_H / 2) }} transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}>
+                    <MagnetFieldLines x={MAG_CX} top={MAG_TOP} color={FIELD_COLOR} flowing />
+                    <MagnetShape x={MAG_CX} top={MAG_TOP} />
                 </motion.g>
-
-                {/* Магнит — едет между рисками (framer-motion x/y-моушены
-                    компонуются между собой сами, без риска затирания
-                    transform-атрибута, см. фикс стикеров выше). */}
-                <motion.g
-                    animate={{ y: magTop }}
-                    transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
-                    style={{ x: DIST_TRACK_X - DIST_MAG_W / 2 }}
-                >
-                    <rect width={DIST_MAG_W} height={DIST_MAG_H / 2} rx={5} fill={SOUTH_COLOR} />
-                    <rect y={DIST_MAG_H / 2} width={DIST_MAG_W} height={DIST_MAG_H / 2} rx={5} fill={NORTH_COLOR} />
-                    <text x={DIST_MAG_W / 2} y={DIST_MAG_H / 4 + 5} textAnchor="middle" fontSize={13} fontWeight={800} fill="#fff">S</text>
-                    <text x={DIST_MAG_W / 2} y={DIST_MAG_H * 0.75 + 5} textAnchor="middle" fontSize={13} fontWeight={800} fill="#fff">N</text>
-                </motion.g>
+                <path d={front} fill="none" stroke={RING_COLOR} strokeWidth={6} />
+                {idx === 2 && (
+                    <motion.ellipse cx={DS_RING_CX} cy={DS_RING_CY} rx={DS_RING_RX + 8} ry={DS_RING_RY + 6} fill="none" stroke={RING_COLOR} strokeWidth={3}
+                        animate={{ opacity: [0.2, 0.9, 0.2] }} transition={{ duration: 1.2, repeat: Infinity }} />
+                )}
             </svg>
+            <div className="w-full max-w-xs flex flex-col gap-1">
+                <div className="flex items-center justify-between text-sm font-black" style={{ color: FIELD_COLOR }}>
+                    <span>Поле B у кольца</span>
+                    <span>{DS_LEVELS[idx]}</span>
+                </div>
+                <div className="h-4 w-full rounded-full bg-[#232F34] overflow-hidden">
+                    <motion.div className="h-full rounded-full" style={{ backgroundColor: FIELD_COLOR }} animate={{ width: `${DS_LEVEL_W[idx]}%` }} transition={{ duration: 0.5 }} />
+                </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2 w-full max-w-xs">
+                {['далеко', 'средне', 'близко'].map((o, i) => (
+                    <button
+                        key={o}
+                        type="button"
+                        onClick={() => pick(i)}
+                        className={cn('rounded-lg border-2 py-2.5 text-sm font-black transition-colors', i === 2 && !done && 'animate-pulse')}
+                        style={{ borderColor: idx === i ? FIELD_COLOR : '#3A464E', backgroundColor: idx === i ? hexToRgba(FIELD_COLOR, 0.2) : '#161F23', color: idx === i ? FIELD_COLOR : '#9AA7B0' }}
+                    >
+                        {o}
+                    </button>
+                ))}
+            </div>
         </div>
     )
 }
 
-// Обёртка с состоянием — магнит стартует на дальней риске (слабое поле),
-// готовность шага наступает после ПЕРВОГО клика пользователя по риске
-// (то же требование "потрогать самому", что и у HandsPhase дальше).
-const DistanceScene = ({ onSettled }: { onSettled?: () => void }) => {
-    const [selectedIndex, setSelectedIndex] = useState(0)
-    const [hasInteracted, setHasInteracted] = useState(false)
-    const handleSelect = (i: number) => {
-        setSelectedIndex(i)
-        if (!hasInteracted) { setHasInteracted(true); onSettled?.() }
-    }
-    return <DistanceDiagram selectedIndex={selectedIndex} onSelect={handleSelect} />
-}
-
-// ===== Сцена "поток Ф" — страница делится пополам: слева магнитное поле
-// (стрелочки + стикер B), справа металлическое кольцо (заштрихованное,
-// со стикером S) — оба уже знакомых объекта РЯДОМ, чтобы наглядно ввести
-// формулу Φ=B·S как произведение того, что слева, на то, что справа.
-// Пунктирный разделитель посередине — тот же визуальный язык, что уже
-// использует CONNECT в тренажёре для "это две отдельные половины" (см.
-// CLAUDE.md).
-const FLUX_MINI_W = 130
-const FLUX_MINI_H = 130
-
-const FluxArrowsDiagram = () => (
-    <svg viewBox={`0 0 ${FLUX_MINI_W} ${FLUX_MINI_H}`} className="h-[130px] w-[130px]">
-        {[-20, 0, 20].map((dx, i) => {
-            const x = 45 + dx
-            return (
-                <g key={i}>
-                    <line x1={x} y1={16} x2={x} y2={82} stroke={FIELD_COLOR} strokeWidth={2.5} strokeLinecap="round" />
-                    <path d={`M${x - 5},${72} L${x},${86} L${x + 5},${72}`} fill="none"
-                        stroke={FIELD_COLOR} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-                </g>
-            )
-        })}
-        <FieldBLabel x={45 + 20 + 26} y={49} color={FIELD_COLOR} delay={0.3} />
+// Сцена «поток Φ» (упрощена 2026-09-26): поле B × кольцо S = поток Φ —
+// три карточки появляются по очереди, потом объяснение и единица.
+const FluxMiniField = () => (
+    <svg viewBox="0 0 100 100" className="h-[78px] w-[78px] md:h-[92px] md:w-[92px]">
+        {[30, 50, 70].map((x) => (
+            <g key={x}>
+                <line x1={x} y1={12} x2={x} y2={84} stroke={FIELD_COLOR} strokeWidth={4} strokeLinecap="round" />
+                <path d={`M${x - 7},${74} L${x},${86} L${x + 7},${74}`} fill="none" stroke={FIELD_COLOR} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
+            </g>
+        ))}
     </svg>
 )
-
-const FluxRingDiagram = () => (
-    <svg viewBox={`0 0 ${FLUX_MINI_W} ${FLUX_MINI_H}`} className="h-[130px] w-[130px]">
-        <TealRing cx={65} cy={65} rx={52} ry={16} hatched animateIn uid="flux-mini" sScaleY={0.55} />
+const FluxMiniRing = () => (
+    <svg viewBox="0 0 100 100" className="h-[78px] w-[78px] md:h-[92px] md:w-[92px]">
+        <TealRing cx={50} cy={50} rx={42} ry={16} hatched uid="flux-card" />
     </svg>
 )
-
-// showRight=false — только левая половина (магнитное поле), она же
-// первой попадает под DiagramBlock снаружи (см. FluxScene ниже) и
-// получает свою entrance-анимацию оттуда. Правая половина + разделитель
-// появляются ПОЗЖЕ, отдельным условным рендером — их СОБСТВЕННАЯ
-// entrance-анимация (fade+scale, тот же язык, что и у DiagramBlock)
-// нужна, т.к. DiagramBlock анимирует только СВОЙ момент монтирования, не
-// последующие изменения содержимого внутри уже смонтированного блока.
-const FluxSplitDiagram = ({ showRight }: { showRight: boolean }) => (
-    <div className="flex w-full items-start justify-center gap-3">
-        <div className="flex flex-1 flex-col items-center gap-1.5">
-            <div className="flex items-center gap-1.5 text-sm font-bold text-[#F2F7FB]">
-                <span>Магнитное поле</span>
-                <Sticker value="B" color={FIELD_COLOR} />
-            </div>
-            <FluxArrowsDiagram />
-        </div>
-        {showRight && (
-            <>
-                <motion.div
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}
-                    className="mt-6 self-stretch border-l-2 border-dashed border-[#3A464E]"
-                />
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35 }}
-                    className="flex flex-1 flex-col items-center gap-1.5"
-                >
-                    <div className="flex items-center gap-1.5 text-sm font-bold text-[#F2F7FB]">
-                        <span>Металлическое кольцо</span>
-                        <Sticker value="S" color={RING_COLOR} />
-                    </div>
-                    <FluxRingDiagram />
-                </motion.div>
-            </>
-        )}
-    </div>
+const FluxMiniPhi = () => (
+    <svg viewBox="0 0 100 100" className="h-[78px] w-[78px] md:h-[92px] md:w-[92px]">
+        <path d="M 8 58 A 42 16 0 0 1 92 58" fill="none" stroke={RING_COLOR} strokeWidth={5} />
+        {[32, 50, 68].map((x) => (
+            <g key={x}>
+                <line x1={x} y1={8} x2={x} y2={88} stroke={FIELD_COLOR} strokeWidth={4} strokeLinecap="round" />
+                <path d={`M${x - 7},${78} L${x},${90} L${x + 7},${78}`} fill="none" stroke={FIELD_COLOR} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
+            </g>
+        ))}
+        <path d="M 8 58 A 42 16 0 0 0 92 58" fill="none" stroke={RING_COLOR} strokeWidth={5} />
+    </svg>
 )
-
-// Пауза между битами сцены — тот же ≥800мс стандарт, что и везде в
-// проекте для разборов по шагам (см. CLAUDE.md, "Управление шагами").
-const FLUX_PAUSE_MS = 900
-// Сколько реально длится entrance правой половины (fade+scale контейнера
-// 0.35с + draw-in самого кольца 0.8с + spring-появление стикера S с
-// задержкой 0.9с) — ждём её ПОЛНОСТЬЮ, прежде чем добавлять паузу перед
-// формулой (тот же принцип "не начинать следующий бит, пока не доиграл
-// предыдущий", что уже задокументирован в CLAUDE.md для zoom-циклов).
-const FLUX_RIGHT_ENTRANCE_MS = 1400
-
-// Сама сцена "поток Φ" — по прямой просьбе пользователя раскрывается
-// СТРОГО последовательно (не всё сразу): интро-текст → пауза →
-// "Для этого понадобятся:" → пауза → левая половина → пауза → правая
-// половина → пауза → формула → единица измерения. Управляется локальным
-// phase (0..5), а не пропом step ConceptPhase — это внутренняя
-// хореография ОДНОЙ сцены, верхний уровень (step/stepReady) знает
-// только про итоговую готовность.
-const FluxScene = ({ onSettled }: { onSettled?: () => void }) => {
+const FluxCard = ({ children, label, color, delay }: { children: React.ReactNode; label: string; color: string; delay: number }) => (
+    <motion.div
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 16, delay }}
+        className="flex flex-col items-center gap-1 rounded-xl border-2 p-1.5"
+        style={{ borderColor: hexToRgba(color, 0.6), backgroundColor: hexToRgba(color, 0.08) }}
+    >
+        {children}
+        <span className="text-lg font-black" style={{ color }}>{label}</span>
+    </motion.div>
+)
+const FluxSign = ({ children, delay }: { children: React.ReactNode; delay: number }) => (
+    <motion.span initial={{ scale: 3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5, delay }} className="text-3xl font-black text-[#F2F7FB]">
+        {children}
+    </motion.span>
+)
+const FluxSimpleScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
-    useEffect(() => {
-        if (phase !== 3) return
-        const t = setTimeout(() => setPhase(4), FLUX_RIGHT_ENTRANCE_MS + FLUX_PAUSE_MS)
-        return () => clearTimeout(t)
-    }, [phase])
-
-    // Эта сцена — единственная во всём файле, растущая через 6 отдельных
-    // внутренних фаз (intro → "для этого понадобятся" → левая половина →
-    // правая половина → формула → единица измерения) — а внешний
-    // useSceneFocus (ConceptPhase) переcкроллит только ДВАЖДЫ: сразу по
-    // входу в шаг (контент ещё почти пуст) и один раз в самом конце
-    // (когда stepReady). На узком мобильном экране, где вся сцена целиком
-    // выше высоты вьюпорта, этих двух точек мало — контент, дописанный
-    // МЕЖДУ ними (диаграммы/формула), рос уже НИЖЕ того места, куда
-    // проскроллило по начальному (маленькому) размеру, и ничего не
-    // подтягивало эту растущую нижнюю часть в кадр до самого конца — по
-    // жалобе пользователя "не влезает в экран телефона, рисуется где-то
-    // снизу". Добавлен ЛОКАЛЬНЫЙ, дополнительный докскролл на КАЖДУЮ
-    // смену phase — не вместо внешнего механизма, а в ДОПОЛНЕНИЕ к нему:
-    // `scrollIntoView({block:'nearest'})` не дёргает вид, если элемент и
-    // так виден, и лишь мягко подтягивает НИЖНИЙ (растущий) край в кадр,
-    // если он успел уйти за пределы экрана — тот же принцип, что уже
-    // используется по всему проекту (см. useSceneFocus), просто чаще.
-    const rootRef = useRef<HTMLDivElement>(null)
-    useEffect(() => {
-        rootRef.current?.scrollIntoView({ behavior: 'auto', block: 'nearest' })
-    }, [phase])
-
     return (
-        <div ref={rootRef} className="w-full flex flex-col gap-4">
+        <>
             <TypedLineWithParts
-                parts={[
-                    { text: 'Теперь введём ' },
-                    { sticker: 'поток', color: FLUX_COLOR },
-                    { text: ' магнитного поля — обозначается буквой ' },
-                    { sticker: 'Φ', color: FLUX_COLOR },
-                    { text: '.' },
-                ]}
-                onSettled={() => setTimeout(() => setPhase(1), FLUX_PAUSE_MS)}
+                parts={[{ text: 'Теперь введём ' }, { sticker: 'поток', color: FLUX_COLOR }, { text: ' магнитного поля — буква ' }, { sticker: 'Φ', color: FLUX_COLOR }, { text: '.' }]}
+                onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
-                <TypedLine
-                    text="Для этого понадобятся:"
-                    className="w-full text-center text-base md:text-lg text-[#F2F7FB]"
-                    onSettled={() => setTimeout(() => setPhase(2), FLUX_PAUSE_MS)}
-                />
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 2600)}>
+                    <div className="w-full flex items-center justify-center gap-1.5 py-2">
+                        <FluxCard label="B" color={FIELD_COLOR} delay={0.2}><FluxMiniField /></FluxCard>
+                        <FluxSign delay={0.8}>×</FluxSign>
+                        <FluxCard label="S" color={RING_COLOR} delay={1.2}><FluxMiniRing /></FluxCard>
+                        <FluxSign delay={1.8}>=</FluxSign>
+                        <FluxCard label="Φ" color={FLUX_COLOR} delay={2.2}><FluxMiniPhi /></FluxCard>
+                    </div>
+                </DiagramBlock>
             )}
             {phase >= 2 && (
-                <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 3)), FLUX_PAUSE_MS)}>
-                    <FluxSplitDiagram showRight={phase >= 3} />
-                </DiagramBlock>
+                <TypedLineWithParts
+                    parts={[{ text: 'Поток — это сколько поля ' }, { sticker: 'B', color: FIELD_COLOR }, { text: ' проходит сквозь кольцо площадью ' }, { sticker: 'S', color: RING_COLOR }, { text: '.' }]}
+                    onSettled={() => setPhase(3)}
+                />
+            )}
+            {phase >= 3 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Чтобы найти поток — перемножь: ' }, { sticker: 'Φ = B · S', color: FLUX_COLOR }]}
+                    onSettled={() => setPhase(4)}
+                />
             )}
             {phase >= 4 && (
                 <TypedLineWithParts
-                    parts={[
-                        { text: 'Поток ' },
-                        { sticker: 'Φ', color: FLUX_COLOR },
-                        { text: ' = ' },
-                        { sticker: 'B', color: FIELD_COLOR },
-                        { text: ' · ' },
-                        { sticker: 'S', color: RING_COLOR },
-                        { text: '.' },
-                    ]}
-                    onSettled={() => setTimeout(() => setPhase(5), FLUX_PAUSE_MS)}
-                />
-            )}
-            {phase >= 5 && (
-                <TypedLineWithParts
-                    parts={[
-                        { text: 'Поток ' },
-                        { sticker: 'Φ', color: FLUX_COLOR },
-                        { text: ' измеряется в ' },
-                        { sticker: 'Вб', color: FLUX_COLOR },
-                        { text: ' (Веберах).' },
-                    ]}
+                    parts={[{ text: 'Поток ' }, { sticker: 'Φ', color: FLUX_COLOR }, { text: ' измеряется в ' }, { sticker: 'Вб', color: FLUX_COLOR }, { text: ' (Веберах).' }]}
                     onSettled={onSettled}
                 />
             )}
-        </div>
+        </>
     )
 }
-
-// ===== Сцены ConceptPhase — по прямой просьбе пользователя (2026-09-23)
-// каждая раскрывается СТРОГО последовательно: сначала диаграмма/анимация,
-// пауза, потом текст (а не всё разом, как раньше) — тот же принцип,
-// уже применённый ко всем *WALK-разборам логарифмов. Длительность паузы
-// до/после текста — уже существующий CONCEPT_PAUSE_MS; для сцен, где
-// диаграмма сама что-то рисует (не просто fade-in), пауза до текста
-// дополнительно ждёт FIELD_LINES_SETTLE_MS/время draw-in кольца — чтобы
-// текст появлялся ПОСЛЕ того, как анимация реально дорисовалась, а не
-// поверх ещё рисующейся картинки.
 
 // Шаг 1 — магнит с полем сразу → пауза (дожидаясь конца draw-in силовых
 // линий) → текст про поле B → пауза → текст про единицу измерения.
@@ -1003,26 +783,34 @@ const Step1Scene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-// Шаги 2/3 — общий компонент (структура идентична, отличаются только
-// highlight/подсвечиваемое слово/цвет): диаграмма сразу → пауза (ждём
-// draw-in бледных силовых линий) → текст.
-const PoleScene = ({
-    highlight, leadWord, color, onSettled,
-}: { highlight: 'N' | 'S'; leadWord: string; color: string; onSettled?: () => void }) => {
-    const [textVisible, setTextVisible] = useState(false)
+// Полюса — ОДНА сцена, магнит не перерисовывается: сначала подсвечен N,
+// потом он гаснет и подсвечивается S. Текст — сразу, без паузы.
+const PolesScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0) // 0 N-текст, 1 компас, 2 S
     return (
         <>
-            <DiagramBlock onSettled={() => setTimeout(() => setTextVisible(true), FIELD_LINES_SETTLE_MS + CONCEPT_PAUSE_MS)}>
-                <MagnetPoleDiagram highlight={highlight} />
+            <DiagramBlock>
+                <MagnetPoleDiagram highlight={phase >= 2 ? 'S' : 'N'} />
             </DiagramBlock>
-            {textVisible && (
+            <TypedLineWithParts
+                parts={[
+                    { text: 'У магнита есть ' }, { sticker: 'северный', color: NORTH_COLOR }, { text: ' полюс ' },
+                    { sticker: 'N', color: NORTH_COLOR }, { text: ' — от английского North (Норт), «север».' },
+                ]}
+                onSettled={() => setPhase(1)}
+            />
+            {phase >= 1 && (
+                <TypedLine
+                    text="Красная стрелка компаса всегда смотрит на север — поэтому N красный 🧭"
+                    className="w-full text-center text-base md:text-lg text-[#F2F7FB]"
+                    onSettled={() => setTimeout(() => setPhase(2), 600)}
+                />
+            )}
+            {phase >= 2 && (
                 <TypedLineWithParts
                     parts={[
-                        { text: highlight === 'N' ? 'У магнита есть ' : 'И ' },
-                        { sticker: leadWord, color },
-                        { text: ' полюс ' },
-                        { sticker: highlight, color },
-                        { text: '.' },
+                        { text: 'И ' }, { sticker: 'южный', color: SOUTH_COLOR }, { text: ' полюс ' },
+                        { sticker: 'S', color: SOUTH_COLOR }, { text: ' — от South (Саус), «юг». Как в «South Park» 😄' },
                     ]}
                     onSettled={onSettled}
                 />
@@ -1175,6 +963,8 @@ const PoleGameScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [ready, setReady] = useState(false)
     const [order] = useState<Pole[]>(() => shuffleArr<Pole>(['N', 'S']))
     const [chips] = useState<Pole[]>(() => shuffleArr<Pole>(['N', 'S']))
+    // Магнит может быть перевёрнут — N не «всегда снизу», узнаём по цвету.
+    const [nTop] = useState(() => Math.random() < 0.5)
     const [filled, setFilled] = useState(0)
     const [wrong, setWrong] = useState<Pole | null>(null)
     const done = filled >= 2
@@ -1198,14 +988,14 @@ const PoleGameScene = ({ onSettled }: { onSettled?: () => void }) => {
         }
     }
     const half = (p: Pole) => {
-        const y = p === 'S' ? MAG_TOP : MAG_TOP + MAG_H / 2
+        const onTop = (p === 'N') === nTop
+        const y = onTop ? MAG_TOP : MAG_TOP + MAG_H / 2
         const col = p === 'N' ? NORTH_COLOR : SOUTH_COLOR
         const isCur = cur === p
-        const glow = isCur ? (wrong ? WRONG_COLOR : TAP_HINT) : null
+        const glow = isCur ? (wrong ? WRONG_COLOR : '#F2F7FB') : null
         return (
             <g key={p}>
-                <motion.rect x={MAG_CX - MAG_W / 2} y={y} width={MAG_W} height={MAG_H / 2} rx={5}
-                    animate={{ fill: labeled(p) ? col : POLE_PALE }} transition={{ duration: 0.4 }} />
+                <rect x={MAG_CX - MAG_W / 2} y={y} width={MAG_W} height={MAG_H / 2} rx={5} fill={col} />
                 {glow && (
                     <motion.rect x={MAG_CX - MAG_W / 2 - 4} y={y - 4} width={MAG_W + 8} height={MAG_H / 2 + 8} rx={8}
                         fill="none" stroke={glow} strokeWidth={3}
@@ -1223,10 +1013,11 @@ const PoleGameScene = ({ onSettled }: { onSettled?: () => void }) => {
             {ready && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col items-center gap-3">
-                        <p className="text-sm text-[#9AA7B0] text-center">{done ? ' ' : 'Какой это полюс? Подсвечен оранжевым.'}</p>
+                        <p className="text-sm text-[#9AA7B0] text-center">{done ? ' ' : 'Какая буква у выделенного полюса? Подсказка — цвет!'}</p>
                         <svg viewBox="110 170 140 140" className="h-[200px] w-[200px]">
                             {half('S')}
                             {half('N')}
+                            {nTop && <text x={MAG_CX} y={MAG_TOP + MAG_H + 26} textAnchor="middle" fontSize={11} fill="#9AA7B0">(магнит перевернули)</text>}
                         </svg>
                         {!done ? (
                             <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
@@ -1248,7 +1039,7 @@ const PoleGameScene = ({ onSettled }: { onSettled?: () => void }) => {
                                 ))}
                             </div>
                         ) : (
-                            <p className="text-lg font-black text-[#A1D151]">N — северный, S — южный. Отлично!</p>
+                            <p className="text-lg font-black text-[#A1D151]">Красный — N, синий — S. Ты гений 🧠</p>
                         )}
                     </div>
                     {done && <LocalAnswerConfetti />}
@@ -1261,8 +1052,8 @@ const PoleGameScene = ({ onSettled }: { onSettled?: () => void }) => {
 // «Какое кольцо подойдёт?» — дерево / резина / металл.
 type RingKind = 'wood' | 'rubber' | 'metal'
 const RING_KINDS: Record<RingKind, { title: string; color: string; wrong?: string }> = {
-    wood: { title: 'деревянное', color: '#A0703F', wrong: 'Дерево не проводит ток!' },
-    rubber: { title: 'резиновое', color: '#6B7079', wrong: 'Резина не проводит ток!' },
+    wood: { title: 'деревянное', color: '#A0703F', wrong: 'Дерево не проводит ток! Зато из него классные табуретки 🪑' },
+    rubber: { title: 'резиновое', color: '#6B7079', wrong: 'Резина не проводит ток — она для мячиков и калош 🏀' },
     metal: { title: 'металлическое', color: RING_COLOR },
 }
 const RingChoiceScene = ({ onSettled }: { onSettled?: () => void }) => {
@@ -1409,50 +1200,52 @@ const RingSizeScene = ({ onSettled }: { onSettled?: () => void }) => {
 // проходят только те, что внутри эллипса (= поток Φ = B·S).
 const FG_W = 260
 const FG_RING_CY = 212
-const FG_RING = { small: { rx: 52, ry: 15 }, big: { rx: 102, ry: 28 } }
+const FG_RINGS = [{ rx: 52, ry: 15 }, { rx: 78, ry: 22 }, { rx: 102, ry: 28 }]
 const FG_COLS = Array.from({ length: 11 }, (_, i) => -110 + i * 22)
 const FG_ROWS = [-14, 0, 14]
-const FG_MAG_TOP = { far: 16, close: 96 }
+const FG_MAG_TOPS = [16, 56, 96] // далеко / средне / близко
+// Плотность поля: какие столбцы стрелок есть при каждом положении магнита.
+const fgColumnExists = (mag: number, c: number) => (mag === 2 ? true : mag === 1 ? c % 2 === 0 : c % 4 === 0)
 const FluxGameScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
-    const [close, setClose] = useState(false)
-    const [big, setBig] = useState(false)
+    const [mag, setMag] = useState(0)
+    const [ringIdx, setRingIdx] = useState(0)
     const [won, setWon] = useState(false)
-    const ring = big ? FG_RING.big : FG_RING.small
+    const ring = FG_RINGS[ringIdx]
     const arrows = FG_ROWS.flatMap((dy, r) => FG_COLS.map((x, c) => {
         const xs = x + (r % 2 ? 11 : 0)
-        const exists = close || c % 2 === 0
+        const exists = fgColumnExists(mag, c)
         const inside = (xs / ring.rx) ** 2 + (dy / ring.ry) ** 2 <= 1
         return { key: `${r}-${c}`, x: FG_W / 2 + xs, y: FG_RING_CY + dy, exists, inside }
     })).filter((a) => a.x > 8 && a.x < FG_W - 8)
     const count = arrows.filter((a) => a.exists && a.inside).length
     const maxCount = FG_ROWS.flatMap((dy, r) => FG_COLS.map((x) => x + (r % 2 ? 11 : 0))
-        .filter((xs) => (xs / FG_RING.big.rx) ** 2 + (dy / FG_RING.big.ry) ** 2 <= 1)).length
+        .filter((xs) => (xs / FG_RINGS[2].rx) ** 2 + (dy / FG_RINGS[2].ry) ** 2 <= 1)).length
     useEffect(() => {
-        if (close && big) setWon(true)
-    }, [close, big])
+        if (mag === 2 && ringIdx === 2) setWon(true)
+    }, [mag, ringIdx])
     useEffect(() => {
         if (!won) return
         const t = setTimeout(() => setPhase(3), 1200)
         return () => clearTimeout(t)
     }, [won])
-    const toggle = (kind: 'mag' | 'ring', v: boolean) => {
+    const toggle = (kind: 'mag' | 'ring', v: number) => {
         if (won) return
         playSound('/click6.wav')
-        if (kind === 'mag') setClose(v)
-        else setBig(v)
+        if (kind === 'mag') setMag(v)
+        else setRingIdx(v)
     }
-    const Seg = ({ label, value, options, onPick, color }: { label: string; value: boolean; options: [string, string]; onPick: (v: boolean) => void; color: string }) => (
+    const Seg = ({ label, value, options, onPick, color }: { label: string; value: number; options: string[]; onPick: (v: number) => void; color: string }) => (
         <div className="flex flex-col gap-1 w-full">
             <span className="text-xs font-bold text-[#9AA7B0] text-center">{label}</span>
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-3 gap-1.5">
                 {options.map((o, i) => {
-                    const on = value === (i === 1)
+                    const on = value === i
                     return (
                         <button
                             key={o}
                             type="button"
-                            onClick={() => onPick(i === 1)}
+                            onClick={() => onPick(i)}
                             className="rounded-lg border-2 py-2 text-sm font-black transition-colors"
                             style={{ borderColor: on ? color : '#3A464E', backgroundColor: on ? hexToRgba(color, 0.2) : '#161F23', color: on ? color : '#9AA7B0' }}
                         >
@@ -1476,7 +1269,7 @@ const FluxGameScene = ({ onSettled }: { onSettled?: () => void }) => {
                 <DiagramBlock>
                     <div className="w-full flex flex-col items-center gap-3">
                         <svg viewBox={`0 0 ${FG_W} 250`} className="h-[250px] w-[260px]">
-                            <motion.g animate={{ y: close ? FG_MAG_TOP.close : FG_MAG_TOP.far }} transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }} style={{ x: FG_W / 2 - DIST_MAG_W / 2 }}>
+                            <motion.g animate={{ y: FG_MAG_TOPS[mag] }} transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }} style={{ x: FG_W / 2 - DIST_MAG_W / 2 }}>
                                 <rect width={DIST_MAG_W} height={DIST_MAG_H / 2} rx={5} fill={SOUTH_COLOR} />
                                 <rect y={DIST_MAG_H / 2} width={DIST_MAG_W} height={DIST_MAG_H / 2} rx={5} fill={NORTH_COLOR} />
                                 <text x={DIST_MAG_W / 2} y={DIST_MAG_H / 4 + 5} textAnchor="middle" fontSize={13} fontWeight={800} fill="#fff">S</text>
@@ -1506,10 +1299,10 @@ const FluxGameScene = ({ onSettled }: { onSettled?: () => void }) => {
                             </div>
                         </div>
                         <div className="w-full max-w-xs flex flex-col gap-2">
-                            <Seg label="Магнит (поле B)" value={close} options={['далеко', 'близко']} onPick={(v) => toggle('mag', v)} color={FIELD_COLOR} />
-                            <Seg label="Кольцо (площадь S)" value={big} options={['маленькое', 'большое']} onPick={(v) => toggle('ring', v)} color={RING_COLOR} />
+                            <Seg label="Магнит (поле B)" value={mag} options={['далеко', 'средне', 'близко']} onPick={(v) => toggle('mag', v)} color={FIELD_COLOR} />
+                            <Seg label="Кольцо (площадь S)" value={ringIdx} options={['маленькое', 'среднее', 'большое']} onPick={(v) => toggle('ring', v)} color={RING_COLOR} />
                         </div>
-                        {won && <p className="text-lg font-black text-[#A1D151]">Максимум! 🔥</p>}
+                        {won && <p className="text-lg font-black text-[#A1D151] text-center">Максимум! 🔥 Ты повелитель магнитов 🧲</p>}
                     </div>
                     {won && <LocalAnswerConfetti />}
                 </DiagramBlock>
@@ -1527,13 +1320,11 @@ const FluxGameScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-const Step0PoleN = ({ onSettled }: { onSettled?: () => void }) => <PoleScene highlight="N" leadWord="северный" color={NORTH_COLOR} onSettled={onSettled} />
-const Step0PoleS = ({ onSettled }: { onSettled?: () => void }) => <PoleScene highlight="S" leadWord="южный" color={SOUTH_COLOR} onSettled={onSettled} />
 const DistanceStep = ({ onSettled }: { onSettled?: () => void }) => <Step7Scene onReady={() => onSettled?.()} />
 
 const CONCEPT_SCENES = [
-    MagnetTapScene, Step1Scene, Step0PoleN, Step0PoleS, PoleGameScene, Step4Scene,
-    RingChoiceScene, RingSizeScene, DistanceStep, FluxScene, FluxGameScene,
+    MagnetTapScene, Step1Scene, PolesScene, PoleGameScene, Step4Scene,
+    RingChoiceScene, RingSizeScene, DistanceStep, FluxSimpleScene, FluxGameScene,
 ]
 
 const INTRO_CONCEPT_STEPS = CONCEPT_SCENES.length
@@ -1623,8 +1414,8 @@ const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
 
 type ConceptQuizItem = {
     renderPrompt: () => React.ReactNode
-    renderOptions: () => [React.ReactNode, React.ReactNode]
-    correct: 0 | 1
+    renderOptions: () => React.ReactNode[]
+    correct: number
     feedback: string
 }
 
@@ -1667,6 +1458,13 @@ const CONCEPT_QUIZ: ConceptQuizItem[] = [
         renderOptions: () => ['B · S', 'B : S'],
         correct: 0,
         feedback: 'Поток Φ = B · S — умножение, не деление.',
+    },
+    {
+        // Бонус — для хорошего настроения: единственный вариант ответа.
+        renderPrompt: () => <>Бонус! Кто молодец? 😎</>,
+        renderOptions: () => ['Я молодец! 🎉'],
+        correct: 0,
+        feedback: 'Конечно ты! Закон Фарадея покорён 🏆',
     },
 ]
 
