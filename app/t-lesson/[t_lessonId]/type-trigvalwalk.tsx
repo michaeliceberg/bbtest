@@ -20,7 +20,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { X } from 'lucide-react'
+import { ArrowLeft, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
 import {
@@ -32,6 +32,7 @@ import {
 } from '@/components/geometry/WalkthroughLog'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
+import { Typewriter } from '@/components/geometry/Typewriter'
 
 const SCENE_TRANSITION_PAUSE_MS = 1000
 const TRIAL_COUNT = 6
@@ -187,32 +188,29 @@ const SeqScene = ({ diagram, diagramMs = 900, lines, onSettled, confetti }: {
 }
 
 // ===== Сцены «синус и косинус» =====
-const IntroAnglesScene = ({ onSettled }: { onSettled?: () => void }) => (
-    <SeqScene
-        diagramMs={1900}
-        diagram={
-            <div className="w-full flex flex-col items-center gap-5 py-3">
-                <motion.p
-                    initial={{ scale: 0.6, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: 'spring', bounce: 0.5, duration: 0.6 }}
-                    className="text-2xl md:text-3xl font-black text-center text-[#F2F7FB]"
-                >
-                    Запомни <span style={{ color: ATTENTION }}>ТРИ ВОЛШЕБНЫХ</span> угла!
-                </motion.p>
-                <div className="flex items-center gap-3">
-                    {ANGLES.map((a, i) => (
-                        <Pop key={a} delay={0.6 + i * 0.4}>
-                            <AngleSticker a={a} big />
-                        </Pop>
-                    ))}
-                </div>
-            </div>
-        }
-        lines={['Именно в таком порядке: каждый следующий на 15° больше.']}
-        onSettled={onSettled}
-    />
-)
+const IntroAnglesScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0) // 0 фраза, 1 углы, 2 строка
+    return (
+        <>
+            <TypedBig
+                parts={[{ text: 'Запомни ' }, { text: 'ТРИ ВОЛШЕБНЫХ', color: ATTENTION }, { text: ' угла!' }]}
+                onDone={() => setPhase(1)}
+            />
+            {phase >= 1 && (
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 1500)}>
+                    <div className="w-full flex items-center justify-center gap-3 py-3">
+                        {ANGLES.map((a, i) => (
+                            <Pop key={a} delay={0.2 + i * 0.4}>
+                                <AngleSticker a={a} big />
+                            </Pop>
+                        ))}
+                    </div>
+                </DiagramBlock>
+            )}
+            {phase >= 2 && <TypedLine className={TEXT} text="Именно в таком порядке: каждый следующий на 15° больше." onSettled={onSettled} />}
+        </>
+    )
+}
 
 // Мини-игра: нажми углы по порядку.
 const OrderGameScene = ({ onSettled }: { onSettled?: () => void }) => {
@@ -297,42 +295,59 @@ const SplitFrac = ({ num, den, showNum, showDen, numDelay = 0, denDelay = 0 }: {
     </span>
 )
 
-// Крупная «запомни»-фраза.
-const BigLine = ({ children }: { children: React.ReactNode }) => (
-    <motion.div
-        initial={{ scale: 0.6, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', bounce: 0.5, duration: 0.6 }}
-        className="w-full text-center text-2xl md:text-3xl font-black text-[#F2F7FB]"
-    >
-        {children}
-    </motion.div>
-)
+// Крупная фраза с печатанием: сначала печатается целиком белым (Typewriter),
+// после печати куски раскрашиваются (parts[].color). onDone — после паузы
+// на прочтение.
+type BigPart = { text: string; color?: string; className?: string }
+const TypedBig = ({ parts, onDone, readMs = 500 }: { parts: BigPart[]; onDone?: () => void; readMs?: number }) => {
+    const [typed, setTyped] = useState(false)
+    return (
+        <div className="w-full text-center text-2xl md:text-3xl font-black text-[#F2F7FB]">
+            {!typed ? (
+                <Typewriter
+                    text={parts.map((p) => p.text).join('')}
+                    onDone={() => { setTyped(true); setTimeout(() => onDone?.(), readMs) }}
+                />
+            ) : (
+                parts.map((p, i) => (
+                    <span key={i} className={p.className} style={p.color ? { color: p.color } : undefined}>{p.text}</span>
+                ))
+            )}
+        </div>
+    )
+}
 
 // Синус по шагам: «sin — ЛЕСЕНКА ВВЕРХ √1, √2, √3» → числители в таблице →
 // «и всё делим на 2» → знаменатели 2 в каждой ячейке по очереди.
-const SIN_PHASES_MS = [1800, 2000, 1400, 1800] // 0→1 фраза, 1→2 числители, 2→3 фраза, 3→4 знаменатели
+// Фазы: 0 печать фразы → -1 лесенка √ (ждём) → 1 числители → 2 печать
+// «делим на 2» → 3 знаменатели → 4 готово. Переходы после печати — по
+// событию окончания печати, остальные — по таймеру.
 const SinLadderScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
+    const [ladder, setLadder] = useState(false)
     useEffect(() => {
-        if (phase >= SIN_PHASES_MS.length) {
-            const t = setTimeout(() => onSettled?.(), 400)
-            return () => clearTimeout(t)
-        }
-        const t = setTimeout(() => setPhase((p) => p + 1), SIN_PHASES_MS[phase])
+        let t: ReturnType<typeof setTimeout> | undefined
+        if (phase === 0 && ladder) t = setTimeout(() => setPhase(1), 1900)
+        if (phase === 1) t = setTimeout(() => setPhase(2), 2000)
+        if (phase === 3) t = setTimeout(() => setPhase(4), 1800)
+        if (phase === 4) t = setTimeout(() => onSettled?.(), 400)
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [phase])
+    }, [phase, ladder])
     return (
         <>
-            <BigLine>
-                Запомни: <span style={{ color: FN_COLOR.sin }}>sin</span> — это <span style={{ color: ATTENTION }}>ЛЕСЕНКА ВВЕРХ</span>
-                <div className="mt-2 flex items-center justify-center gap-4" style={{ color: FN_COLOR.sin }}>
+            <TypedBig
+                parts={[{ text: 'Запомни: ' }, { text: 'sin', color: FN_COLOR.sin }, { text: ' — это ' }, { text: 'ЛЕСЕНКА ВВЕРХ', color: ATTENTION }]}
+                onDone={() => setLadder(true)}
+                readMs={200}
+            />
+            {ladder && (
+                <div className="flex items-center justify-center gap-4 text-2xl md:text-3xl font-black" style={{ color: FN_COLOR.sin }}>
                     {['√1', '√2', '√3'].map((n, i) => (
-                        <Pop key={n} delay={0.5 + i * 0.35}><Num s={n} /></Pop>
+                        <Pop key={n} delay={0.1 + i * 0.35}><Num s={n} /></Pop>
                     ))}
                 </div>
-            </BigLine>
+            )}
             {phase >= 1 && (
                 <DiagramBlock>
                     <TrigTable
@@ -353,9 +368,11 @@ const SinLadderScene = ({ onSettled }: { onSettled?: () => void }) => {
                 </DiagramBlock>
             )}
             {phase >= 2 && (
-                <BigLine>
-                    И всё делим на <span className="text-6xl md:text-7xl align-middle" style={{ color: FN_COLOR.sin }}>2</span>
-                </BigLine>
+                <TypedBig
+                    parts={[{ text: 'И всё делим на ' }, { text: '2', color: FN_COLOR.sin, className: 'text-6xl md:text-7xl align-middle' }]}
+                    onDone={() => setPhase(3)}
+                    readMs={300}
+                />
             )}
         </>
     )
@@ -385,6 +402,7 @@ const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled }: {
     subtitle: string
     onSettled?: () => void
 }) => {
+    const [titled, setTitled] = useState(false)
     const [ready, setReady] = useState(false)
     // Клетки для заполнения — построчно, слева направо.
     const [targets] = useState<PuzzleCell[]>(() => {
@@ -452,8 +470,8 @@ const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled }: {
     }
     return (
         <>
-            <BigLine>Собери паззл!</BigLine>
-            <TypedLine className={TEXT} text={subtitle} onSettled={() => setReady(true)} delayAfter={200} />
+            <TypedBig parts={[{ text: 'Собери паззл!' }]} onDone={() => setTitled(true)} readMs={200} />
+            {titled && <TypedLine className={TEXT} text={subtitle} onSettled={() => setReady(true)} delayAfter={200} />}
             {ready && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col items-center gap-5 py-2">
@@ -580,13 +598,13 @@ const Moonwalker = ({ fromX, toX, onDone }: { fromX: number; toX: number; onDone
 // Косинус: таблица с пустой строкой cos → фраза → лунная походка справа
 // налево по строке → заполняем ячейки справа налево.
 const CosMirrorScene = ({ onSettled }: { onSettled?: () => void }) => {
-    const [phase, setPhase] = useState(0) // 0 таблица, 1 фраза, 2 походка, 3 заполнение
+    const [phase, setPhase] = useState(0) // 0 таблица, 1 печать фразы, 2 стрелка ←, 3 походка, 4 заполнение
     const [walked, setWalked] = useState(false)
     const wrapRef = useRef<HTMLDivElement>(null)
     // Середины ячеек cos 60° и cos 30° относительно обёртки таблицы.
     const [path, setPath] = useState<{ from: number; to: number } | null>(null)
     useEffect(() => {
-        if (phase !== 2) return
+        if (phase !== 3) return
         const wrap = wrapRef.current
         const c60 = wrap?.querySelector('[data-cell="cos-2"]')
         const c30 = wrap?.querySelector('[data-cell="cos-0"]')
@@ -596,14 +614,14 @@ const CosMirrorScene = ({ onSettled }: { onSettled?: () => void }) => {
         const r30 = c30.getBoundingClientRect()
         setPath({ from: r60.left + r60.width / 2 - w.left, to: r30.left + r30.width / 2 - w.left })
     }, [phase])
-    // Крупная фраза «...НАОБОРОТ» — даём прочитать, потом лунная походка.
+    // Стрелка ← в клетке cos 60° — пауза, потом лунная походка.
     useEffect(() => {
-        if (phase !== 1) return
-        const t = setTimeout(() => setPhase((p) => Math.max(p, 2)), 1800)
+        if (phase !== 2) return
+        const t = setTimeout(() => setPhase(3), 1800)
         return () => clearTimeout(t)
     }, [phase])
     useEffect(() => {
-        if (phase === 3) {
+        if (phase === 4) {
             const t = setTimeout(() => onSettled?.(), 2200)
             return () => clearTimeout(t)
         }
@@ -619,28 +637,34 @@ const CosMirrorScene = ({ onSettled }: { onSettled?: () => void }) => {
                             <span style={{ color: FN_COLOR[fn] }}>
                                 {fn === 'sin' ? (
                                     <ValView v={VALUES.sin[i]} />
-                                ) : phase >= 3 ? (
+                                ) : phase >= 4 ? (
                                     <Pop delay={0.2 + (2 - i) * 0.5}>
                                         <ValView v={VALUES.cos[i]} />
+                                    </Pop>
+                                ) : phase === 2 && i === 2 ? (
+                                    <Pop>
+                                        <ArrowLeft className="w-14 h-14" strokeWidth={3.5} style={{ color: ATTENTION }} />
                                     </Pop>
                                 ) : null}
                             </span>
                         )}
                     />
                     {/* Строка косинуса — нижние 80px таблицы (h-20) + отступ py-2. */}
-                    {phase === 2 && !walked && path && (
+                    {phase === 3 && !walked && path && (
                         <div className="absolute inset-x-0 bottom-2 h-20">
-                            <Moonwalker fromX={path.from} toX={path.to} onDone={() => { setWalked(true); setPhase(3) }} />
+                            <Moonwalker fromX={path.from} toX={path.to} onDone={() => { setWalked(true); setPhase(4) }} />
                         </div>
                     )}
                 </div>
             </DiagramBlock>
             {phase >= 1 && (
-                <BigLine>
-                    <span style={{ color: FN_COLOR.cos }}>Косинус</span> — та же лесенка, только <span style={{ color: ATTENTION }}>НАОБОРОТ</span>
-                </BigLine>
+                <TypedBig
+                    parts={[{ text: 'Косинус', color: FN_COLOR.cos }, { text: ' — та же лесенка, только ' }, { text: 'НАОБОРОТ', color: ATTENTION }]}
+                    onDone={() => setPhase((p) => Math.max(p, 2))}
+                    readMs={600}
+                />
             )}
-            {phase >= 3 && <LocalAnswerConfetti />}
+            {phase >= 4 && <LocalAnswerConfetti />}
         </>
     )
 }
