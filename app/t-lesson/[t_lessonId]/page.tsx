@@ -945,7 +945,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             };
         }
 
-        if (t_challenge.type === 'TRIGSCWALK' || t_challenge.type === 'TRIGTGWALK') {
+        if (t_challenge.type === 'TRIGSCWALK' || t_challenge.type === 'TRIGTGWALK' || t_challenge.type === 'TRIGCIRCWALK') {
             // Разборы «Таблица 30°, 45°, 60°» — самодостаточные, см. type-trigvalwalk.tsx.
             return {
                 questionType: t_challenge.type,
