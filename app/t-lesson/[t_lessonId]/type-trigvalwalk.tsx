@@ -16,7 +16,7 @@
 
 'use client'
 
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -277,55 +277,171 @@ const OrderGameScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-// Синус: сначала двойки-знаменатели, потом лесенка √1, √2, √3.
-const SinLadderScene = ({ onSettled }: { onSettled?: () => void }) => (
-    <SeqScene
-        diagramMs={2600}
-        diagram={
-            <TrigTable
-                fns={['sin']}
-                cell={(_fn, i) => (
-                    <span className="inline-flex flex-col leading-none" style={{ color: FN_COLOR.sin }}>
-                        <Pop delay={1.3 + i * 0.5} className="justify-center pb-1 border-b-2 border-current px-1">
-                            <Num s={i === 0 ? '√1' : `√${i + 1}`} />
-                        </Pop>
-                        <Pop delay={0.3 + i * 0.2} className="justify-center pt-1 px-1">
-                            <span>2</span>
-                        </Pop>
-                    </span>
-                )}
-            />
-        }
-        lines={['Синус — это лесенка вверх: √1, √2, √3, и всё делим на 2.', 'Угол растёт — синус растёт.']}
-        onSettled={onSettled}
-    />
+// Ячейка-дробь, у которой числитель и знаменатель (с чертой) появляются
+// по отдельности: showNum / showDen, delay — задержка появления.
+const SplitFrac = ({ num, den, showNum, showDen, numDelay = 0, denDelay = 0 }: {
+    num: string; den: string; showNum: boolean; showDen: boolean; numDelay?: number; denDelay?: number
+}) => (
+    <span className="inline-flex flex-col items-stretch leading-none">
+        <span className="flex h-7 justify-center px-1 pb-1">{showNum && <Pop delay={numDelay}><Num s={num} /></Pop>}</span>
+        <span className="flex h-7 justify-center px-1 pt-1">
+            {showDen && (
+                <Pop delay={denDelay} className="w-full justify-center border-t-2 border-current pt-1">
+                    <Num s={den} />
+                </Pop>
+            )}
+        </span>
+    </span>
 )
 
-// Косинус — та же лесенка справа налево.
-const CosMirrorScene = ({ onSettled }: { onSettled?: () => void }) => (
-    <SeqScene
-        diagramMs={2000}
-        confetti
-        diagram={
-            <TrigTable
-                fns={['sin', 'cos']}
-                cell={(fn, i) => (
-                    <span style={{ color: FN_COLOR[fn] }}>
-                        {fn === 'sin' ? (
-                            <ValView v={VALUES.sin[i]} />
-                        ) : (
-                            <Pop delay={0.4 + (2 - i) * 0.5}>
-                                <ValView v={VALUES.cos[i]} />
-                            </Pop>
-                        )}
-                    </span>
-                )}
-            />
-        }
-        lines={['Косинус — та же лесенка, только справа налево.']}
-        onSettled={onSettled}
-    />
+// Крупная «запомни»-фраза.
+const BigLine = ({ children }: { children: React.ReactNode }) => (
+    <motion.div
+        initial={{ scale: 0.6, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', bounce: 0.5, duration: 0.6 }}
+        className="w-full text-center text-2xl md:text-3xl font-black text-[#F2F7FB]"
+    >
+        {children}
+    </motion.div>
 )
+
+// Синус по шагам: «sin — ЛЕСЕНКА ВВЕРХ √1, √2, √3» → числители в таблице →
+// «и всё делим на 2» → знаменатели 2 в каждой ячейке по очереди.
+const SIN_PHASES_MS = [1800, 2000, 1400, 1800] // 0→1 фраза, 1→2 числители, 2→3 фраза, 3→4 знаменатели
+const SinLadderScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    useEffect(() => {
+        if (phase >= SIN_PHASES_MS.length) {
+            const t = setTimeout(() => onSettled?.(), 400)
+            return () => clearTimeout(t)
+        }
+        const t = setTimeout(() => setPhase((p) => p + 1), SIN_PHASES_MS[phase])
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phase])
+    return (
+        <>
+            <BigLine>
+                Запомни: <span style={{ color: FN_COLOR.sin }}>sin</span> — это <span style={{ color: ATTENTION }}>ЛЕСЕНКА ВВЕРХ</span>
+                <div className="mt-2 flex items-center justify-center gap-4" style={{ color: FN_COLOR.sin }}>
+                    {['√1', '√2', '√3'].map((n, i) => (
+                        <Pop key={n} delay={0.5 + i * 0.35}><Num s={n} /></Pop>
+                    ))}
+                </div>
+            </BigLine>
+            {phase >= 1 && (
+                <DiagramBlock>
+                    <TrigTable
+                        fns={['sin']}
+                        cell={(_fn, i) => (
+                            <span style={{ color: FN_COLOR.sin }}>
+                                <SplitFrac
+                                    num={`√${i + 1}`}
+                                    den="2"
+                                    showNum={phase >= 1}
+                                    numDelay={0.3 + i * 0.5}
+                                    showDen={phase >= 3}
+                                    denDelay={0.3 + i * 0.45}
+                                />
+                            </span>
+                        )}
+                    />
+                </DiagramBlock>
+            )}
+            {phase >= 2 && (
+                <BigLine>
+                    И всё делим на <span className="text-6xl md:text-7xl align-middle" style={{ color: FN_COLOR.sin }}>2</span>
+                </BigLine>
+            )}
+        </>
+    )
+}
+
+// Майкл Джексон лунной походкой проходит по строке косинуса справа налево
+// (public/video/mj-moonwalk.mp4, 186×140, со звуком — если браузер не даст
+// звук, играет без него).
+const MOONWALK_S = 3.2
+const Moonwalker = ({ onDone }: { onDone: () => void }) => {
+    const ref = useRef<HTMLVideoElement>(null)
+    const doneRef = useRef(false)
+    const finish = () => {
+        if (doneRef.current) return
+        doneRef.current = true
+        onDone()
+    }
+    useEffect(() => {
+        const el = ref.current
+        if (el) {
+            el.play().catch(() => {
+                el.muted = true
+                el.play().catch(() => {})
+            })
+        }
+        // Страховка: если анимация не сообщит о завершении — всё равно идём дальше.
+        const t = setTimeout(finish, MOONWALK_S * 1000 + 400)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+    return (
+        <motion.div
+            className="pointer-events-none absolute inset-y-0 left-0 w-full"
+            initial={{ x: '92%' }}
+            animate={{ x: '-8%' }}
+            transition={{ duration: MOONWALK_S, ease: 'linear' }}
+            onAnimationComplete={finish}
+        >
+            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+            <video ref={ref} src="/video/mj-moonwalk.mp4" playsInline loop className="h-full w-auto rounded-lg" />
+        </motion.div>
+    )
+}
+
+// Косинус: таблица с пустой строкой cos → фраза → лунная походка справа
+// налево по строке → заполняем ячейки справа налево.
+const CosMirrorScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0) // 0 таблица, 1 фраза, 2 походка, 3 заполнение
+    const [walked, setWalked] = useState(false)
+    useEffect(() => {
+        if (phase === 3) {
+            const t = setTimeout(() => onSettled?.(), 2200)
+            return () => clearTimeout(t)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phase])
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setPhase(1), 700)}>
+                <div className="relative w-full">
+                    <TrigTable
+                        fns={['sin', 'cos']}
+                        cell={(fn, i) => (
+                            <span style={{ color: FN_COLOR[fn] }}>
+                                {fn === 'sin' ? (
+                                    <ValView v={VALUES.sin[i]} />
+                                ) : phase >= 3 ? (
+                                    <Pop delay={0.2 + (2 - i) * 0.5}>
+                                        <ValView v={VALUES.cos[i]} />
+                                    </Pop>
+                                ) : null}
+                            </span>
+                        )}
+                    />
+                    {/* Строка косинуса — нижние 80px таблицы (h-20) + отступ py-2. */}
+                    {phase === 2 && !walked && (
+                        <div className="absolute inset-x-0 bottom-2 h-20 overflow-hidden">
+                            <Moonwalker onDone={() => { setWalked(true); setPhase(3) }} />
+                        </div>
+                    )}
+                </div>
+            </DiagramBlock>
+            {phase >= 1 && (
+                <TypedLine className={TEXT} text="Косинус — та же лесенка, только справа налево." onSettled={() => setPhase((p) => Math.max(p, 2))} />
+            )}
+            {phase >= 3 && <LocalAnswerConfetti />}
+        </>
+    )
+}
 
 // ===== Сцены «тангенс» =====
 const TgIntroScene = ({ onSettled }: { onSettled?: () => void }) => (
