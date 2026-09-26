@@ -5,7 +5,8 @@
 //   TRIGSCWALK — «Три волшебных угла»: 30/45/60 (+ игра «нажми по порядку»),
 //                синус — «лесенка» √1, √2, √3 над 2, косинус — та же
 //                лесенка справа налево. Между ними — «Собери паззл»: таблицу
-//                углов и синусов заполняют перемешанными кнопками.
+//                углов и синусов заполняют перемешанными кнопками; после
+//                косинуса — второй паззл 3×3 с тремя готовыми клетками.
 //   TRIGTGWALK — тангенс = синус : косинус, по столбцам 30° → 45° → 60°:
 //                столбец подсвечен, синус и косинус «падают» из таблицы
 //                вниз в деление, результат вписывается в строку tg;
@@ -360,122 +361,165 @@ const SinLadderScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-// «Собери паззл»: пустая таблица (углы + строка sin), снизу перемешанные
-// кнопки 30°, 45°, 60°, 1/2, √2/2, √3/2. Подсвечивается ячейка, которую
-// надо заполнить: сначала углы слева направо, потом синусы слева направо.
-// Неверная кнопка — ячейка и кнопка вспыхивают красным.
-type PuzzleToken = { key: string; kind: 'angle'; a: number } | { key: string; kind: 'val'; v: V }
-const PUZZLE_TARGETS: string[] = [...ANGLES.map((a) => `a${a}`), ...VALUES.sin.map((v) => `v${vKey(v)}`)]
-const PUZZLE_TOKENS: PuzzleToken[] = [
-    ...ANGLES.map((a) => ({ key: `a${a}`, kind: 'angle' as const, a })),
-    ...VALUES.sin.map((v) => ({ key: `v${vKey(v)}`, kind: 'val' as const, v })),
-]
+// «Собери паззл»: таблица (строка углов + строки функций), часть клеток
+// может быть уже заполнена. Снизу — перемешанные кнопки со значениями
+// пустых клеток. Подсвечивается клетка, которую надо заполнить: построчно,
+// слева направо. Неверная кнопка — клетка и кнопка вспыхивают красным.
+// Одинаковые значения (1/2 у sin 30° и cos 60°) взаимозаменяемы —
+// сравниваем по значению, не по конкретной кнопке.
+type PuzzleRow = 'angle' | Fn
+type PuzzleCell = { row: number; col: number; key: string }
+const cellKey = (row: PuzzleRow, col: number) => (row === 'angle' ? `a${ANGLES[col]}` : `v${vKey(VALUES[row][col])}`)
 const PUZZLE_WRONG_MS = 700
-const SinPuzzleScene = ({ onSettled }: { onSettled?: () => void }) => {
+const CellContent = ({ row, col }: { row: PuzzleRow; col: number }) =>
+    row === 'angle' ? <AngleSticker a={ANGLES[col]} /> : <span style={{ color: FN_COLOR[row] }}><ValView v={VALUES[row][col]} /></span>
+const TokenView = ({ k }: { k: string }) => {
+    if (k.startsWith('a')) return <AngleSticker a={Number(k.slice(1))} />
+    const [num, den] = k.slice(1).split('/')
+    return <ValView v={{ num, den: den || undefined }} />
+}
+
+const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled }: {
+    rows: PuzzleRow[]
+    prefilled: (r: number, c: number) => boolean
+    subtitle: string
+    onSettled?: () => void
+}) => {
     const [ready, setReady] = useState(false)
-    const [order] = useState(() => shuffle(PUZZLE_TOKENS))
-    const [filled, setFilled] = useState(0) // сколько ячеек уже заполнено (по порядку PUZZLE_TARGETS)
-    const [wrongKey, setWrongKey] = useState<string | null>(null)
+    // Клетки для заполнения — построчно, слева направо.
+    const [targets] = useState<PuzzleCell[]>(() => {
+        const out: PuzzleCell[] = []
+        rows.forEach((row, r) => ANGLES.forEach((_, c) => { if (!prefilled(r, c)) out.push({ row: r, col: c, key: cellKey(row, c) }) }))
+        return out
+    })
+    const [tokens] = useState(() => shuffle(targets.map((t, i) => ({ id: i, key: t.key }))))
+    const [used, setUsed] = useState<number[]>([])
+    const [wrongId, setWrongId] = useState<number | null>(null)
     const [wrongNonce, setWrongNonce] = useState(0)
-    const done = filled >= PUZZLE_TARGETS.length
+    const filled = used.length
+    const done = filled >= targets.length
+    const cur = done ? null : targets[filled]
     useEffect(() => {
-        if (!wrongKey) return
-        const t = setTimeout(() => setWrongKey(null), PUZZLE_WRONG_MS)
+        if (wrongId === null) return
+        const t = setTimeout(() => setWrongId(null), PUZZLE_WRONG_MS)
         return () => clearTimeout(t)
-    }, [wrongKey, wrongNonce])
-    const tap = (tok: PuzzleToken) => {
-        if (done) return
+    }, [wrongId, wrongNonce])
+    const tap = (tok: { id: number; key: string }) => {
+        if (done || !cur) return
         playSound('/click6.wav')
-        if (tok.key === PUZZLE_TARGETS[filled]) {
-            const next = filled + 1
-            setFilled(next)
-            setWrongKey(null)
-            if (next >= PUZZLE_TARGETS.length) setTimeout(() => onSettled?.(), 1000)
+        if (tok.key === cur.key) {
+            const next = [...used, tok.id]
+            setUsed(next)
+            setWrongId(null)
+            if (next.length >= targets.length) setTimeout(() => onSettled?.(), 1000)
         } else {
             playSound(WRONG_ANSWER_SOUND)
-            setWrongKey(tok.key)
+            setWrongId(tok.id)
             setWrongNonce((n) => n + 1)
         }
     }
-    const placed = new Set(PUZZLE_TARGETS.slice(0, filled))
-    // Слот таблицы: idx 0..2 — углы, 3..5 — синусы.
-    const slotStyle = (idx: number, color: string): React.CSSProperties => {
-        const isCur = !done && idx === filled
-        const isWrong = isCur && wrongKey !== null
-        const isFilled = idx < filled
-        const c = isWrong ? '#DC605B' : isCur ? ATTENTION : color
+    const targetIndex = (r: number, c: number) => targets.findIndex((t) => t.row === r && t.col === c)
+    const cellStyle = (r: number, c: number, color: string): React.CSSProperties => {
+        const ti = targetIndex(r, c)
+        const isFilled = ti === -1 || ti < filled
+        const isCur = cur?.row === r && cur?.col === c
+        const isWrong = isCur && wrongId !== null
+        const c2 = isWrong ? '#DC605B' : isCur ? ATTENTION : color
         return {
-            borderColor: isFilled ? hexToRgba(color, 0.55) : isCur || isWrong ? c : '#3A464E',
+            borderColor: isFilled ? hexToRgba(color, 0.55) : isCur ? c2 : '#3A464E',
             borderStyle: isFilled ? 'solid' : 'dashed',
             backgroundColor: isWrong ? hexToRgba('#DC605B', 0.2) : isCur ? hexToRgba(ATTENTION, 0.14) : isFilled ? hexToRgba(color, 0.08) : 'transparent',
-            boxShadow: isCur ? `0 0 14px ${hexToRgba(c, 0.5)}` : undefined,
+            boxShadow: isCur ? `0 0 14px ${hexToRgba(c2, 0.5)}` : undefined,
+            opacity: done || !cur || cur.row === r ? 1 : 0.45,
         }
     }
-    const rowDim = (row: 0 | 1) => (done ? 1 : (filled < 3 ? 0 : 1) === row ? 1 : 0.45)
+    const renderCell = (r: number, c: number) => {
+        const row = rows[r]
+        const color = row === 'angle' ? ANGLE_COLOR[ANGLES[c]] : FN_COLOR[row]
+        const ti = targetIndex(r, c)
+        const isCur = cur?.row === r && cur?.col === c
+        return (
+            <motion.div
+                key={`${r}-${c}-${isCur ? wrongNonce : 0}`}
+                animate={isCur && wrongId !== null ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
+                transition={{ duration: 0.35 }}
+                className={cn('flex items-center justify-center rounded-xl border-2 transition-[opacity,background-color,border-color] duration-300', row === 'angle' ? 'h-12' : 'h-20')}
+                style={cellStyle(r, c, color)}
+            >
+                {ti === -1 ? <CellContent row={row} col={c} /> : ti < filled ? <Pop><CellContent row={row} col={c} /></Pop> : null}
+            </motion.div>
+        )
+    }
     return (
         <>
             <BigLine>Собери паззл!</BigLine>
-            <TypedLine className={TEXT} text="Заполни таблицу: сначала углы, потом синусы — слева направо." onSettled={() => setReady(true)} delayAfter={200} />
+            <TypedLine className={TEXT} text={subtitle} onSettled={() => setReady(true)} delayAfter={200} />
             {ready && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col items-center gap-5 py-2">
                         <div className="grid grid-cols-[3.5rem_repeat(3,minmax(4.5rem,6.5rem))] gap-1.5 text-xl md:text-2xl font-extrabold text-[#F2F7FB]">
-                            <div />
-                            {ANGLES.map((a, i) => (
-                                <motion.div
-                                    key={`h-${i}-${filled === i ? wrongNonce : 0}`}
-                                    animate={filled === i && wrongKey ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
-                                    transition={{ duration: 0.35 }}
-                                    className="flex h-12 items-center justify-center rounded-xl border-2 transition-[opacity,background-color,border-color] duration-300"
-                                    style={{ ...slotStyle(i, ANGLE_COLOR[a]), opacity: rowDim(0) }}
-                                >
-                                    {i < filled && <Pop><AngleSticker a={a} /></Pop>}
-                                </motion.div>
-                            ))}
-                            <div className="flex items-center justify-center text-lg md:text-xl font-black transition-opacity duration-300" style={{ color: FN_COLOR.sin, opacity: rowDim(1) }}>
-                                sin
-                            </div>
-                            {VALUES.sin.map((v, i) => (
-                                <motion.div
-                                    key={`s-${i}-${filled === 3 + i ? wrongNonce : 0}`}
-                                    animate={filled === 3 + i && wrongKey ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
-                                    transition={{ duration: 0.35 }}
-                                    className="flex h-20 items-center justify-center rounded-xl border-2 transition-[opacity,background-color,border-color] duration-300"
-                                    style={{ ...slotStyle(3 + i, FN_COLOR.sin), opacity: rowDim(1) }}
-                                >
-                                    {3 + i < filled && <Pop><span style={{ color: FN_COLOR.sin }}><ValView v={v} /></span></Pop>}
-                                </motion.div>
+                            {rows.map((row, r) => (
+                                <Fragment key={r}>
+                                    {row === 'angle' ? <div /> : (
+                                        <div
+                                            className="flex items-center justify-center text-lg md:text-xl font-black transition-opacity duration-300"
+                                            style={{ color: FN_COLOR[row], opacity: done || !cur || cur.row === r ? 1 : 0.45 }}
+                                        >
+                                            {row}
+                                        </div>
+                                    )}
+                                    {ANGLES.map((_, c) => <Fragment key={c}>{renderCell(r, c)}</Fragment>)}
+                                </Fragment>
                             ))}
                         </div>
                         {!done && (
                             <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
-                                {order.map((tok) => {
-                                    const used = placed.has(tok.key)
-                                    const isWrong = wrongKey === tok.key
+                                {tokens.map((tok) => {
+                                    const isUsed = used.includes(tok.id)
+                                    const isWrong = wrongId === tok.id
                                     return (
                                         <button
-                                            key={tok.key}
+                                            key={tok.id}
                                             type="button"
                                             onClick={() => tap(tok)}
-                                            disabled={used}
+                                            disabled={isUsed}
                                             className={cn(
                                                 'flex min-h-[72px] items-center justify-center rounded-xl border-2 text-xl md:text-2xl font-extrabold transition-[opacity,border-color,background-color] duration-200',
-                                                used && 'opacity-0 pointer-events-none',
+                                                isUsed && 'opacity-0 pointer-events-none',
                                                 isWrong ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]' : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]',
                                             )}
                                         >
-                                            {tok.kind === 'angle' ? <AngleSticker a={tok.a} /> : <ValView v={tok.v} />}
+                                            <TokenView k={tok.key} />
                                         </button>
                                     )
                                 })}
                             </div>
                         )}
-                        {done && <p className="text-lg font-black text-[#A1D151]">Таблица синусов собрана!</p>}
+                        {done && <p className="text-lg font-black text-[#A1D151]">Таблица собрана!</p>}
                     </div>
                     {done && <LocalAnswerConfetti />}
                 </DiagramBlock>
             )}
         </>
+    )
+}
+
+// Паззл 1: пустая таблица углов и синусов.
+const SinPuzzleScene = ({ onSettled }: { onSettled?: () => void }) => (
+    <TablePuzzleScene rows={['angle', 'sin']} prefilled={() => false} subtitle="Заполни таблицу: сначала углы, потом синусы — слева направо." onSettled={onSettled} />
+)
+
+// Паззл 2: таблица 3×3 (углы, sin, cos), 3 клетки уже стоят — по одной в
+// каждой строке и все в разных столбцах (случайная перестановка столбцов).
+const FullPuzzleScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [perm] = useState(() => shuffle([0, 1, 2]))
+    return (
+        <TablePuzzleScene
+            rows={['angle', 'sin', 'cos']}
+            prefilled={(r, c) => perm[r] === c}
+            subtitle="Теперь вся таблица! Часть клеток уже на месте — заполни остальные."
+            onSettled={onSettled}
+        />
     )
 }
 
@@ -552,6 +596,12 @@ const CosMirrorScene = ({ onSettled }: { onSettled?: () => void }) => {
         const r30 = c30.getBoundingClientRect()
         setPath({ from: r60.left + r60.width / 2 - w.left, to: r30.left + r30.width / 2 - w.left })
     }, [phase])
+    // Крупная фраза «...НАОБОРОТ» — даём прочитать, потом лунная походка.
+    useEffect(() => {
+        if (phase !== 1) return
+        const t = setTimeout(() => setPhase((p) => Math.max(p, 2)), 1800)
+        return () => clearTimeout(t)
+    }, [phase])
     useEffect(() => {
         if (phase === 3) {
             const t = setTimeout(() => onSettled?.(), 2200)
@@ -586,7 +636,9 @@ const CosMirrorScene = ({ onSettled }: { onSettled?: () => void }) => {
                 </div>
             </DiagramBlock>
             {phase >= 1 && (
-                <TypedLine className={TEXT} text="Косинус — та же лесенка, только справа налево." onSettled={() => setPhase((p) => Math.max(p, 2))} />
+                <BigLine>
+                    <span style={{ color: FN_COLOR.cos }}>Косинус</span> — та же лесенка, только <span style={{ color: ATTENTION }}>НАОБОРОТ</span>
+                </BigLine>
             )}
             {phase >= 3 && <LocalAnswerConfetti />}
         </>
@@ -790,7 +842,7 @@ export const TypeTrigValWalk = ({ onAnswer, onComplete, mode }: Props) => {
     const scenes = useMemo(
         () =>
             mode === 'sincos'
-                ? [IntroAnglesScene, OrderGameScene, SinLadderScene, SinPuzzleScene, CosMirrorScene]
+                ? [IntroAnglesScene, OrderGameScene, SinLadderScene, SinPuzzleScene, CosMirrorScene, FullPuzzleScene]
                 : [
                     TgIntroScene,
                     (p: { onSettled?: () => void }) => (
