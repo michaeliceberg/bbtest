@@ -1,49 +1,17 @@
 // app/t-lesson/[t_lessonId]/type-dirwalk.tsx
 //
-// Тип DIRWALK — интерактивный разбор "направление магнитного поля" (тема
-// "Электродинамика"). По прямой просьбе пользователя — объясняет, как
-// найти направление поля B вокруг ПРЯМОГО провода с током и вокруг
-// провода, свёрнутого в КОЛЬЦО, через правило буравчика/отвёртки —
-// объяснённое через аналогию "крышечка от бутылки колы" (крутишь по
-// часовой — закручивается в бутылку, уходит от тебя; против часовой —
-// выкручивается, идёт к тебе).
+// Тип DIRWALK — интерактивный разбор «направление магнитного поля вокруг
+// прямого провода с током, правило правой руки» (тема «Электродинамика»).
+// Стиль — как у остальных *WALK: накопительный лог сцен
+// (SceneWrapper/useSceneFocus/useReplayNonces/BackButton), печатаемый текст,
+// цветные стикеры. Ток — малиновый, поле B — синий (как в FARADAYWALK),
+// правило/подсказки — оранжевый.
 //
-// Тот же стиль "детального знакомства", что и в остальных *WALK-разборах
-// (SINWALK/LOGWALK/FARADAYWALK и т.д.): объекты вводятся ПО ОДНОМУ,
-// накопительным логом (SceneWrapper/useSceneFocus/useReplayNonces/
-// BackButton — прошлые сцены тускнеют, не исчезают), с печатаемым
-// текстом и цветными стикерами на ключевых терминах.
-//
-// Физика (проверена аналитически, закон Био-Савара dB ∝ dl×r̂, не "на
-// глаз"): ток вправо (в плоскости листа) → над проводом поле ВЫХОДИТ к
-// зрителю (•), под проводом — УХОДИТ от зрителя (×). Вывод — через
-// правило буравчика, применённое ВДОЛЬ провода (смотрим по направлению
-// тока — он "уходит", как закручиваемая крышка → поле крутится ПО
-// ЧАСОВОЙ с этой точки зрения → переводится в вид "сбоку" как •/× выше).
-// Для КОЛЬЦА (ток по часовой, если смотреть лицом к кольцу — та же
-// ориентация, что и у зрителя) — крышечная аналогия применяется НАПРЯМУЮ,
-// без доп. смены точки зрения: по часовой = закручивается = поле в
-// центре УХОДИТ от зрителя (×) — красивое следствие: для кольца не нужен
-// шаг "посмотри вдоль", в отличие от прямого провода.
-//
-// Сюжет фазы 'concept' (10 шагов):
-// 0. Прямой провод, ток вправо (без поля).
-// 1. Вокруг провода есть магнитное поле B — тускло-пунктирные кольца
-//    вдоль провода + единица измерения (Тесла).
-// 2. Название правила — "буравчика" (или "отвёртки").
-// 3. ЗАПОМНИ! — аналогия с крышечкой (два мини-варианта: по/против
-//    часовой → уходит/идёт).
-// 4. Применение: смотрим ВДОЛЬ провода (по направлению тока — он уходит,
-//    как закручиваемая крышка) → поле крутится по часовой.
-// 5. Перевод обратно в "вид сбоку": над проводом • (к тебе), под
-//    проводом × (от тебя) + мнемоника про оперение/остриё стрелы.
-// 6. Кольцо: ток по часовой (как смотрим).
-// 7. Тут правило работает НАПРЯМУЮ — та же точка зрения, что и у зрителя.
-// 8. Поле в центре кольца — от тебя (×).
-// 9. Контраст: против часовой — поле было бы к тебе (•).
-//
-// После знакомства — фаза 'quiz' (тот же формат "1/N + огненный Lottie на
-// каждом 4-м", что и во всех *WALK-разборах).
+// Переделан 2026-09-27 (пользователь: «непонятно, анимация плохая») —
+// сцены-массив CONCEPT_SCENES, как FARADAYWALK: опыт Эрстеда (компасы,
+// «Включить ток») → кольца поля B → «Развернуть ток» → ЗАПОМНИ: правило
+// правой руки (👍) → игра «куда поле спереди провода?» (4 раунда) → как
+// рисуют • и × в задачах. Потом квиз (+бонус «Кто красавчик?»).
 
 'use client'
 
@@ -55,7 +23,7 @@ import {
     DiagramBlock, TypedLine,
     pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
-    isFieryMilestoneTrial, FieryFeedbackBanner, CORRECT_COLOR, WRONG_COLOR,
+    isFieryMilestoneTrial, FieryFeedbackBanner, CORRECT_COLOR,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
@@ -90,7 +58,6 @@ const RULE_COLOR = GGEGE_PALETTE.orange.button
 // ФАЗА "concept" — знакомство, по одному объекту, накопительный лог.
 // ===================================================================
 
-const INTRO_CONCEPT_STEPS = 10
 const CONCEPT_PAUSE_MS = 1000
 
 // Стикер — тот же визуальный язык, что уже устоялся во всех *WALK
@@ -158,236 +125,355 @@ const SvgTag = ({ x, y, text, color, delay = 0 }: { x: number; y: number; text: 
     </g>
 )
 
-// Символы поля — точка (поле выходит К зрителю) и крестик (поле уходит
-// ОТ зрителя), тот же стандартный физический значок, что и в учебниках.
-// r/size параметризованы — покрупнее для центра кольца, помельче для
-// прямого провода.
-const FieldDot = ({ x, y, delay, r = 9 }: { x: number; y: number; delay: number; r?: number }) => (
-    <motion.circle cx={x} cy={y} r={r} fill={FIELD_COLOR}
-        initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 320, damping: 15, delay }} />
-)
-const FieldCross = ({ x, y, delay, size = 7 }: { x: number; y: number; delay: number; size?: number }) => (
-    <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 320, damping: 15, delay }}>
-        <line x1={x - size} y1={y - size} x2={x + size} y2={y + size} stroke={FIELD_COLOR} strokeWidth={4} strokeLinecap="round" />
-        <line x1={x - size} y1={y + size} x2={x + size} y2={y - size} stroke={FIELD_COLOR} strokeWidth={4} strokeLinecap="round" />
-    </motion.g>
-)
+// ===== Провод с током (вид «сбоку-сверху», в перспективе) =====
+// Провод вертикальный. Ток вверх (cur=1) → поле B крутится ПРОТИВ часовой
+// стрелки, если смотреть сверху; на экране (кольцо-эллипс в перспективе)
+// тоже против часовой: спереди (низ эллипса) → вправо, слева — к зрителю
+// (•), справа — от зрителя (×). Проверено по B ∝ I·(ŷ × r̂).
+// Ток вниз (cur=-1) — всё наоборот. cur=0 — тока нет.
+type Cur = 1 | -1 | 0
+const W_W = 320, W_H = 360, W_CX = 160, W_TOP = 24, W_BOT = 336
+const RING_RX = 92, RING_RY = 22
+const RING_YS = [104, 190, 276]
+const MID_Y = 190
+const REMEMBER_COLOR = '#F2C35B'
 
-// ===== Прямой провод =====
-const WIRE_VIEW_W = 340
-const WIRE_VIEW_H = 200
-const WIRE_X1 = 50
-const WIRE_X2 = 290
-const WIRE_Y = 100
+// Касательная к эллипсу в точке параметра θ (градусы, экранные) по направлению поля.
+function ringTangentDeg(thetaDeg: number, cur: Cur) {
+    const t = (thetaDeg * Math.PI) / 180
+    const dx = RING_RX * Math.sin(t) * (cur === -1 ? -1 : 1)
+    const dy = -RING_RY * Math.cos(t) * (cur === -1 ? -1 : 1)
+    return (Math.atan2(dy, dx) * 180) / Math.PI
+}
+const ringPt = (cy: number, thetaDeg: number) => {
+    const t = (thetaDeg * Math.PI) / 180
+    return { x: W_CX + RING_RX * Math.cos(t), y: cy + RING_RY * Math.sin(t) }
+}
 
-type WireDir = 'right' | 'left'
-
-const WireArrow = ({ dir }: { dir: WireDir }) => {
-    const headX = dir === 'right' ? WIRE_X2 : WIRE_X1
-    const tailX = dir === 'right' ? WIRE_X1 : WIRE_X2
-    const sign = dir === 'right' ? 1 : -1
+// Ток — бегущие шевроны вдоль провода.
+const CurrentFlow = ({ cur }: { cur: Cur }) => {
+    if (cur === 0) return null
+    const up = cur === 1
+    const ys = Array.from({ length: 8 }, (_, i) => W_TOP - 60 + i * 60)
     return (
-        <g>
-            <motion.line
-                x1={tailX} y1={WIRE_Y} x2={headX - 14 * sign} y2={WIRE_Y}
-                stroke={CURRENT_COLOR} strokeWidth={6} strokeLinecap="round"
-                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6, ease: 'easeInOut' }}
-            />
-            <path d={`M ${headX - 14 * sign},${WIRE_Y - 8} L ${headX},${WIRE_Y} L ${headX - 14 * sign},${WIRE_Y + 8} Z`} fill={CURRENT_COLOR} />
-            <text x={(WIRE_X1 + WIRE_X2) / 2} y={WIRE_Y - 20} textAnchor="middle" fontSize={17} fontWeight={800} fill={CURRENT_COLOR}>I</text>
+        <g clipPath="url(#dir-wire-clip)">
+            <motion.g key={cur} animate={{ y: up ? [0, -60] : [0, 60] }} transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }}>
+                {ys.map((y) => (
+                    <path key={y} d={up ? `M${W_CX - 7},${y + 8} L${W_CX},${y} L${W_CX + 7},${y + 8}` : `M${W_CX - 7},${y - 8} L${W_CX},${y} L${W_CX + 7},${y - 8}`}
+                        fill="none" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+                ))}
+            </motion.g>
         </g>
     )
 }
 
-// Тускло-пунктирные кольца вдоль провода — не буквально круг (в 2D-виде
-// сбоку кольца поля вокруг ГОРИЗОНТАЛЬНОГО провода видны рёбром, как
-// узкие вертикальные эллипсы) — просто намёк на "поле обвивает провод",
-// без претензии на точную 3D-проекцию.
-const WireRings = () => {
-    const cxs = [WIRE_X1 + (WIRE_X2 - WIRE_X1) * 0.25, WIRE_X1 + (WIRE_X2 - WIRE_X1) * 0.5, WIRE_X1 + (WIRE_X2 - WIRE_X1) * 0.75]
+// Кольцо поля: пунктир бежит в сторону поля, шеврон спереди.
+const FieldRing = ({ cy, cur, dir = true, highlight = false }: { cy: number; cur: Cur; dir?: boolean; highlight?: boolean }) => {
+    const front = ringPt(cy, 90)
+    const ang = ringTangentDeg(90, cur)
     return (
         <g>
-            {cxs.map((cx, i) => (
-                <motion.ellipse key={i} cx={cx} cy={WIRE_Y} rx={14} ry={48} fill="none" stroke={FIELD_COLOR} strokeWidth={2}
-                    strokeDasharray="6 5" initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 0.55 }}
-                    transition={{ duration: 0.7, ease: 'easeInOut', delay: i * 0.15 }} />
+            <motion.ellipse cx={W_CX} cy={cy} rx={RING_RX} ry={RING_RY} fill="none" stroke={FIELD_COLOR}
+                strokeWidth={highlight ? 4 : 3} strokeDasharray="10 8" strokeLinecap="round"
+                initial={{ opacity: 0 }}
+                animate={dir && cur !== 0 ? { opacity: 1, strokeDashoffset: cur === 1 ? [0, 36] : [0, -36] } : { opacity: 1 }}
+                transition={dir && cur !== 0 ? { opacity: { duration: 0.5 }, strokeDashoffset: { duration: 1.1, repeat: Infinity, ease: 'linear' } } : { duration: 0.5 }} />
+            {dir && cur !== 0 && (
+                <g transform={`translate(${front.x},${front.y}) rotate(${ang})`}>
+                    <motion.path key={cur} d="M-9,-9 L3,0 L-9,9" fill="none" stroke={FIELD_COLOR} strokeWidth={4.5} strokeLinecap="round" strokeLinejoin="round"
+                        initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', bounce: 0.5 }} />
+                </g>
+            )}
+        </g>
+    )
+}
+
+// Компас: стрелка (красный конец = N) сначала вся смотрит «на север»,
+// при токе — по касательной к кольцу, по направлению поля.
+const COMPASS_THETAS = [0, 55, 125, 180, 235, 305]
+const Compass = ({ thetaDeg, cur }: { thetaDeg: number; cur: Cur }) => {
+    const p = ringPt(MID_Y, thetaDeg)
+    const rot = cur === 0 ? -60 : ringTangentDeg(thetaDeg, cur)
+    return (
+        <g transform={`translate(${p.x},${p.y})`}>
+            <circle r={14} fill="#F2F7FB" stroke="#9AA7B0" strokeWidth={2} />
+            {/* CSS-поворот с «перелётом» (кривая с overshoot) — стрелка покачивается и встаёт по полю. */}
+            <g style={{ transform: `rotate(${rot}deg)`, transformOrigin: '0px 0px', transition: 'transform 1s cubic-bezier(0.34, 1.8, 0.5, 1)' }}>
+                <path d="M0,-3.5 L11,0 L0,3.5 Z" fill="#DC605B" />
+                <path d="M0,-3.5 L-11,0 L0,3.5 Z" fill="#53ADEF" />
+            </g>
+            <circle r={2} fill="#161F23" />
+        </g>
+    )
+}
+
+const WireScene = ({ cur, rings = [], compasses = false, hand = false, dotCross = false, hideDir = false }: {
+    cur: Cur; rings?: number[]; compasses?: boolean; hand?: boolean; dotCross?: boolean; hideDir?: boolean
+}) => (
+    <div className="flex w-full justify-center py-1">
+        <svg viewBox={`0 0 ${W_W} ${W_H}`} className="w-full max-w-[300px] h-auto">
+            <defs>
+                <clipPath id="dir-wire-clip"><rect x={W_CX - 6} y={W_TOP} width={12} height={W_BOT - W_TOP} rx={6} /></clipPath>
+            </defs>
+            {rings.map((cy) => <FieldRing key={cy} cy={cy} cur={cur} dir={!hideDir} highlight={dotCross && cy === MID_Y} />)}
+            {/* провод поверх колец */}
+            <motion.rect x={W_CX - 6} y={W_TOP} width={12} height={W_BOT - W_TOP} rx={6}
+                animate={{ fill: cur === 0 ? '#5C6B73' : CURRENT_COLOR }} transition={{ duration: 0.4 }} />
+            <CurrentFlow cur={cur} />
+            {/* передняя часть колец — поверх провода (провод «внутри» кольца) */}
+            {rings.map((cy) => (
+                <path key={`f${cy}`} d={`M ${W_CX - 14} ${cy + RING_RY - 1.2} Q ${W_CX} ${cy + RING_RY + 0.6} ${W_CX + 14} ${cy + RING_RY - 1.2}`}
+                    fill="none" stroke={FIELD_COLOR} strokeWidth={3} />
             ))}
-        </g>
-    )
-}
-
-const WireDiagram = ({ direction, showRings = false, showResult = false }: { direction: WireDir; showRings?: boolean; showResult?: boolean }) => {
-    const midX = (WIRE_X1 + WIRE_X2) / 2
-    return (
-        <div className="flex w-full justify-center py-3">
-            <svg viewBox={`0 0 ${WIRE_VIEW_W} ${WIRE_VIEW_H}`} className="h-[190px] w-[323px]">
-                {showRings && <WireRings />}
-                {showResult && (
-                    <>
-                        <FieldDot x={midX} y={WIRE_Y - 60} delay={0.2} />
-                        <text x={midX} y={WIRE_Y - 78} textAnchor="middle" fontSize={13} fontWeight={700} fill={FIELD_COLOR}>К тебе</text>
-                        <FieldCross x={midX} y={WIRE_Y + 60} delay={0.5} />
-                        <text x={midX} y={WIRE_Y + 92} textAnchor="middle" fontSize={13} fontWeight={700} fill={FIELD_COLOR}>От тебя</text>
-                    </>
-                )}
-                <WireArrow dir={direction} />
-            </svg>
-        </div>
-    )
-}
-
-// ===== Абстрактная "крутящаяся" стрелка (для крышечки/взгляда вдоль
-// провода) — партиальная дуга с наконечником НА КОНЦЕ, направление
-// вращения задаётся sweep-flag (в SVG с y-вниз возрастание угла по
-// часовой стрелке на экране — проверено аналитически). =====
-function polarPoint(cx: number, cy: number, r: number, deg: number) {
-    const rad = (deg * Math.PI) / 180
-    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }
-}
-type RotDir = 'cw' | 'ccw'
-const RotArrow = ({ cx, cy, r, dir, color, startDeg = -100, sweepDeg = 300, delay = 0 }: {
-    cx: number; cy: number; r: number; dir: RotDir; color: string; startDeg?: number; sweepDeg?: number; delay?: number
-}) => {
-    const endDeg = dir === 'cw' ? startDeg + sweepDeg : startDeg - sweepDeg
-    const start = polarPoint(cx, cy, r, startDeg)
-    const end = polarPoint(cx, cy, r, endDeg)
-    const sweepFlag = dir === 'cw' ? 1 : 0
-    const largeArc = sweepDeg > 180 ? 1 : 0
-    const rad = (endDeg * Math.PI) / 180
-    const sign = dir === 'cw' ? 1 : -1
-    const tdx = -Math.sin(rad) * sign
-    const tdy = Math.cos(rad) * sign
-    const angleDeg = (Math.atan2(tdy, tdx) * 180) / Math.PI
-    return (
-        <g>
-            <motion.path
-                d={`M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} ${sweepFlag} ${end.x} ${end.y}`}
-                stroke={color} strokeWidth={5} fill="none" strokeLinecap="round"
-                initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }}
-                transition={{ duration: 0.8, ease: 'easeInOut', delay }}
-            />
-            <motion.path
-                d="M-7,-6 L8,0 L-7,6 Z" fill={color}
-                initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: delay + 0.8, type: 'spring', stiffness: 300, damping: 14 }}
-                transform={`translate(${end.x},${end.y}) rotate(${angleDeg})`}
-            />
-        </g>
-    )
-}
-
-// ===== Крышечка от бутылки колы — мини-иконка, переиспользуется и в
-// сцене-объяснении (S3, два варианта рядом), и в сцене-напоминании перед
-// кольцом (S7, один вариант). =====
-const CapMiniDiagram = ({ dir, label }: { dir: RotDir; label: string }) => (
-    <div className="flex flex-col items-center gap-1.5">
-        <svg viewBox="0 0 100 110" className="h-[110px] w-[100px]">
-            {dir === 'ccw' && <path d="M50,8 L42,24 L58,24 Z" fill={RULE_COLOR} />}
-            {[0, 60, 120, 180, 240, 300].map((deg) => {
-                const p1 = polarPoint(50, 55, 16, deg)
-                const p2 = polarPoint(50, 55, 22, deg)
-                return <line key={deg} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke={RULE_COLOR} strokeWidth={2} opacity={0.5} />
-            })}
-            <circle cx={50} cy={55} r={16} fill="none" stroke={RULE_COLOR} strokeWidth={3} />
-            <RotArrow cx={50} cy={55} r={30} dir={dir} color={RULE_COLOR} startDeg={-70} sweepDeg={280} />
-            {dir === 'cw' && <path d="M50,102 L42,86 L58,86 Z" fill={RULE_COLOR} />}
+            {cur !== 0 && (
+                <g transform={`translate(${W_CX + 24},${cur === 1 ? W_TOP + 16 : W_BOT - 16})`}>
+                    <SvgTag x={0} y={0} text="I" color={CURRENT_COLOR} />
+                </g>
+            )}
+            {compasses && COMPASS_THETAS.map((t) => <Compass key={t} thetaDeg={t} cur={cur} />)}
+            {rings.length > 0 && !hideDir && cur !== 0 && <SvgTag x={W_CX + RING_RX + 20} y={RING_YS[0]} text="B" color={FIELD_COLOR} delay={0.6} />}
+            {hand && (
+                <motion.text x={W_CX - 4} y={MID_Y + 34} textAnchor="middle" fontSize={78}
+                    initial={{ opacity: 0, scale: 2.2 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', bounce: 0.5, delay: 0.3 }}
+                    style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
+                    {cur === -1 ? '👎' : '👍'}
+                </motion.text>
+            )}
+            {dotCross && (
+                <>
+                    <g transform={`translate(${ringPt(MID_Y, 180).x},${MID_Y})`}>
+                        <motion.g initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', bounce: 0.55, delay: 0.3 }}>
+                            <circle r={15} fill="#161F23" stroke={FIELD_COLOR} strokeWidth={3} />
+                            <circle r={5} fill={FIELD_COLOR} />
+                        </motion.g>
+                    </g>
+                    <g transform={`translate(${ringPt(MID_Y, 0).x},${MID_Y})`}>
+                        <motion.g initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', bounce: 0.55, delay: 1.1 }}>
+                            <circle r={15} fill="#161F23" stroke={FIELD_COLOR} strokeWidth={3} />
+                            <path d="M-7,-7 L7,7 M-7,7 L7,-7" stroke={FIELD_COLOR} strokeWidth={3.5} strokeLinecap="round" />
+                        </motion.g>
+                    </g>
+                </>
+            )}
         </svg>
-        <span className="text-xs font-bold text-center" style={{ color: RULE_COLOR }}>{label}</span>
     </div>
 )
 
-// "ЗАПОМНИ!" — тот же визуальный язык, что уже устоялся в разборах
-// "Логарифмы"/FARADAYWALK: Lottie "полицейский с бумагой" крупно слева +
-// плашка с мигающим "!" справа, красная рамка (стандартный "красный"
-// feedback-палитры проекта — WRONG_COLOR, см. CLAUDE.md).
-const RedExclaim = () => (
-    <motion.span
-        className="inline-block ml-1 font-black"
-        style={{ color: WRONG_COLOR }}
-        animate={{ opacity: [1, 0.25, 1] }}
-        transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
-    >!</motion.span>
+const BigBtn = ({ children, onClick, color, pulse = true }: { children: React.ReactNode; onClick: () => void; color: string; pulse?: boolean }) => (
+    <button
+        type="button"
+        onClick={() => { playSound('/click6.wav'); onClick() }}
+        className={cn('mx-auto flex items-center gap-2 rounded-xl border-2 px-5 py-3 text-lg font-black', pulse && 'animate-pulse')}
+        style={{ borderColor: color, backgroundColor: hexToRgba(color, 0.16), color }}
+    >
+        {children}
+    </button>
 )
+
+const TEXT_CLS = 'w-full text-center text-base md:text-lg text-[#F2F7FB]'
+
+// 0. Опыт Эрстеда: компасы вокруг провода, «Включить ток».
+const OerstedScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const [cur, setCur] = useState<Cur>(0)
+    return (
+        <>
+            <TypedLineWithParts
+                parts={[{ text: 'Провод торчит из стола, вокруг лежат ' }, { sticker: 'компасы', color: RULE_COLOR }, { text: '. Все смотрят на север.' }]}
+                onSettled={() => setPhase(1)}
+            />
+            {phase >= 1 && (
+                <DiagramBlock>
+                    <WireScene cur={cur} compasses />
+                    {cur === 0 && (
+                        <BigBtn color={CURRENT_COLOR} onClick={() => { setCur(1); setTimeout(() => setPhase(2), 1600) }}>⚡ Включить ток</BigBtn>
+                    )}
+                </DiagramBlock>
+            )}
+            {phase >= 2 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Вжух! Стрелки компасов развернулись ' }, { bold: 'ПО КРУГУ' }, { text: ' вокруг провода 🧭' }]}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// 1. Поле B кольцами вокруг провода.
+const RingsScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setPhase(1), 700)}>
+                <WireScene cur={1} rings={RING_YS} />
+            </DiagramBlock>
+            {phase >= 1 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Значит, ' }, { sticker: 'ток', color: CURRENT_COLOR }, { text: ' создаёт вокруг провода ' }, { sticker: 'магнитное поле B', color: FIELD_COLOR }, { text: '. Оно обвивает провод кольцами — как хула-хуп 😄' }]}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// 2. Поменяй направление тока.
+const FlipScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const [cur, setCur] = useState<Cur>(1)
+    const [flipped, setFlipped] = useState(false)
+    return (
+        <>
+            <TypedLine text="А что будет, если пустить ток в другую сторону? Жми!" className={TEXT_CLS} onSettled={() => setPhase(1)} delayAfter={200} />
+            {phase >= 1 && (
+                <DiagramBlock>
+                    <WireScene cur={cur} rings={RING_YS} compasses />
+                    <BigBtn color={CURRENT_COLOR} pulse={!flipped} onClick={() => {
+                        setCur((c) => (c === 1 ? -1 : 1))
+                        if (!flipped) { setFlipped(true); setTimeout(() => setPhase(2), 1400) }
+                    }}>⇅ Развернуть ток</BigBtn>
+                </DiagramBlock>
+            )}
+            {phase >= 2 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Ток развернулся — и поле закрутилось в ' }, { bold: 'ДРУГУЮ СТОРОНУ' }, { text: '! И компасы тоже.' }]}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// 3. ЗАПОМНИ: правило правой руки.
 const RememberBanner = () => (
     <div className="w-full flex items-center gap-3">
         <Lottie animationData={paperPolice} loop autoplay className="w-16 h-16 md:w-20 md:h-20 shrink-0" />
-        <div
-            className="flex-1 flex items-center justify-center rounded-xl px-4 py-3 font-black text-lg text-center"
-            style={{ backgroundColor: hexToRgba(WRONG_COLOR, 0.16), border: `2px solid ${WRONG_COLOR}`, color: WRONG_COLOR }}
-        >
-            <span>ЗАПОМНИ<RedExclaim /></span>
+        <div className="flex-1 flex items-center justify-center rounded-xl px-4 py-3 font-black text-lg text-center"
+            style={{ backgroundColor: hexToRgba(REMEMBER_COLOR, 0.16), border: `2px solid ${REMEMBER_COLOR}`, color: REMEMBER_COLOR }}>
+            ЗАПОМНИ!
         </div>
     </div>
 )
-
-const CapDiagram = () => (
-    <div className="flex w-full items-start justify-center gap-6 py-2">
-        <CapMiniDiagram dir="cw" label="По часовой — уходит от тебя" />
-        <CapMiniDiagram dir="ccw" label="Против часовой — идёт к тебе" />
-    </div>
-)
-
-// ===== Вид "вдоль провода" — по направлению тока: круглый значок
-// провода (⊗-стиль — круг+крест, малиновым — это ток, уходящий от
-// зрителя этого вида) + крутящаяся синяя стрелка вокруг него (поле B). =====
-const EndViewDiagram = () => (
-    <div className="flex w-full justify-center py-3">
-        <svg viewBox="0 0 220 220" className="h-[200px] w-[200px]">
-            <RotArrow cx={110} cy={110} r={62} dir="cw" color={FIELD_COLOR} />
-            <circle cx={110} cy={110} r={17} fill="none" stroke={CURRENT_COLOR} strokeWidth={3} />
-            <line x1={101} y1={101} x2={119} y2={119} stroke={CURRENT_COLOR} strokeWidth={3} strokeLinecap="round" />
-            <line x1={101} y1={119} x2={119} y2={101} stroke={CURRENT_COLOR} strokeWidth={3} strokeLinecap="round" />
-            <SvgTag x={110 + 62 + 22} y={110 - 44} text="B" color={FIELD_COLOR} delay={1.1} />
-            <text x={110} y={195} textAnchor="middle" fontSize={13} fontWeight={700} fill={CURRENT_COLOR}>ток (уходит от тебя)</text>
-        </svg>
-    </div>
-)
-
-// ===== Кольцо — полноценная замкнутая петля (не дуга) + направляющие
-// шевроны-стрелочки вдоль неё, статичные, но с bounce-появлением. =====
-function ellipsePoint(cx: number, cy: number, rx: number, ry: number, deg: number) {
-    const rad = (deg * Math.PI) / 180
-    return { x: cx + rx * Math.cos(rad), y: cy + ry * Math.sin(rad) }
+const HandScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setPhase(1), 500)}><RememberBanner /></DiagramBlock>
+            {phase >= 1 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Правило ' }, { sticker: 'правой руки', color: RULE_COLOR }, { text: ': обхвати провод правой рукой — большой палец по ' }, { sticker: 'току', color: CURRENT_COLOR }, { text: '.' }]}
+                    onSettled={() => setPhase(2)}
+                />
+            )}
+            {phase >= 2 && (
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase(3), 1200)}>
+                    <WireScene cur={1} rings={[MID_Y]} hand />
+                </DiagramBlock>
+            )}
+            {phase >= 3 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Согнутые пальцы покажут, куда крутится ' }, { sticker: 'поле B', color: FIELD_COLOR }, { text: '. Лайк 👍 — и всё понятно!' }]}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
 }
-function ellipseTangentDeg(deg: number, dir: RotDir) {
-    const rad = (deg * Math.PI) / 180
-    const sign = dir === 'cw' ? 1 : -1
-    const dx = -Math.sin(rad) * sign
-    const dy = Math.cos(rad) * sign
-    return (Math.atan2(dy, dx) * 180) / Math.PI
+
+// 4. Игра: куда направлено поле спереди провода?
+const GAME_ROUNDS = 4
+const FieldGameScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const [rounds] = useState<Cur[]>(() => {
+        const r: Cur[] = [1, -1, 1, -1]
+        for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]] }
+        return r
+    })
+    const [round, setRound] = useState(0)
+    const [solved, setSolved] = useState(false)
+    const [wrong, setWrong] = useState<string | null>(null)
+    const [wrongBtn, setWrongBtn] = useState<'L' | 'R' | null>(null)
+    const done = round >= GAME_ROUNDS
+    const cur = rounds[Math.min(round, GAME_ROUNDS - 1)]
+    const pick = (side: 'L' | 'R') => {
+        if (solved || done) return
+        playSound('/click6.wav')
+        const correct = cur === 1 ? 'R' : 'L'
+        if (side === correct) {
+            setSolved(true); setWrong(null); setWrongBtn(null)
+            setTimeout(() => {
+                setSolved(false)
+                setRound((r) => r + 1)
+                if (round + 1 >= GAME_ROUNDS) setTimeout(() => onSettled?.(), 600)
+            }, 1200)
+        } else {
+            playSound(WRONG_ANSWER_SOUND)
+            setWrongBtn(side)
+            setWrong(cur === 1 ? 'Мимо! Большой палец вверх 👍 — пальцы спереди идут вправо' : 'Мимо! Палец вниз 👎 — пальцы спереди идут влево')
+        }
+    }
+    return (
+        <>
+            <TypedLine text="Проверь себя! Куда направлено поле СПЕРЕДИ провода?" className={cn(TEXT_CLS, 'font-extrabold')} onSettled={() => setPhase(1)} delayAfter={200} />
+            {phase >= 1 && (
+                <DiagramBlock>
+                    <div className="w-full flex flex-col items-center gap-3">
+                        <p className="text-sm font-black" style={{ color: '#9AA7B0' }}>{done ? 'Все 4 угаданы!' : `Раунд ${round + 1} из ${GAME_ROUNDS} · ток ${cur === 1 ? 'ВВЕРХ' : 'ВНИЗ'}`}</p>
+                        <WireScene key={round} cur={cur} rings={[MID_Y]} hideDir={!solved && !done} />
+                        {!done && (
+                            <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
+                                {(['L', 'R'] as const).map((s) => (
+                                    <button key={s} type="button" onClick={() => pick(s)} disabled={solved}
+                                        className={cn('min-h-[60px] rounded-xl border-2 text-xl font-black transition-colors',
+                                            solved && (s === (cur === 1 ? 'R' : 'L')) ? 'border-[#A1D151] bg-[#A1D15122] text-[#A1D151]'
+                                                : wrongBtn === s ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]'
+                                                    : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]')}>
+                                        {s === 'L' ? '← влево' : 'вправо →'}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        {wrong && !solved && <div className="rounded-xl px-4 py-2 text-sm font-bold text-center bg-[#DC605B22] text-[#DC605B]">{wrong}</div>}
+                        {done && <p className="text-lg font-black text-[#A1D151]">Ты мастер правой руки 🤙</p>}
+                    </div>
+                    {done && <LocalAnswerConfetti />}
+                </DiagramBlock>
+            )}
+        </>
+    )
 }
-const LOOP_CHEVRON_ANGLES = [-60, 60, 180]
-const LoopWire = ({ cx, cy, rx, ry, dir }: { cx: number; cy: number; rx: number; ry: number; dir: RotDir }) => (
-    <g>
-        <motion.ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="none" stroke={CURRENT_COLOR} strokeWidth={5}
-            initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }} transition={{ duration: 0.8, ease: 'easeInOut' }} />
-        {LOOP_CHEVRON_ANGLES.map((deg, i) => {
-            const p = ellipsePoint(cx, cy, rx, ry, deg)
-            const rot = ellipseTangentDeg(deg, dir)
-            return (
-                <motion.path key={i} d="M-6,-5 L7,0 L-6,5 Z" fill={CURRENT_COLOR}
-                    initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.9 + i * 0.15, type: 'spring', stiffness: 300, damping: 14 }}
-                    transform={`translate(${p.x},${p.y}) rotate(${rot})`} />
-            )
-        })}
-    </g>
-)
 
-const LOOP_CX = 110, LOOP_CY = 100, LOOP_RX = 85, LOOP_RY = 55
+// 5. Как рисуют в задачах: • и ×.
+const DotCrossScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    return (
+        <>
+            <TypedLine text="В задачах ЕГЭ поле рисуют значками. Смотри:" className={TEXT_CLS} onSettled={() => setPhase(1)} delayAfter={200} />
+            {phase >= 1 && (
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 1600)}>
+                    <WireScene cur={1} rings={[MID_Y]} dotCross />
+                </DiagramBlock>
+            )}
+            {phase >= 2 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Слева поле летит ' }, { bold: 'НА ТЕБЯ' }, { text: ' — рисуют точкой ' }, { sticker: '•', color: FIELD_COLOR }, { text: '. Справа — ' }, { bold: 'ОТ ТЕБЯ' }, { text: ', крестиком ' }, { sticker: '×', color: FIELD_COLOR }, { text: '.' }]}
+                    onSettled={() => setPhase(3)}
+                />
+            )}
+            {phase >= 3 && (
+                <TypedLine
+                    text="Как стрела 🏹: остриё летит на тебя — точка, оперение улетает от тебя — крестик."
+                    className={TEXT_CLS}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
 
-const LoopDiagram = ({ dir, centerSymbol }: { dir: RotDir; centerSymbol?: 'dot' | 'cross' }) => (
-    <div className="flex w-full justify-center py-3">
-        <svg viewBox="0 0 220 200" className="h-[182px] w-[200px]">
-            <LoopWire cx={LOOP_CX} cy={LOOP_CY} rx={LOOP_RX} ry={LOOP_RY} dir={dir} />
-            {centerSymbol === 'cross' && <FieldCross x={LOOP_CX} y={LOOP_CY} delay={1.4} size={13} />}
-            {centerSymbol === 'dot' && <FieldDot x={LOOP_CX} y={LOOP_CY} delay={1.4} r={15} />}
-            {centerSymbol && <SvgTag x={LOOP_CX + 44} y={LOOP_CY - 40} text="B" color={FIELD_COLOR} delay={1.6} />}
-        </svg>
-    </div>
-)
+const CONCEPT_SCENES = [OerstedScene, RingsScene, FlipScene, HandScene, FieldGameScene, DotCrossScene]
+const INTRO_CONCEPT_STEPS = CONCEPT_SCENES.length
 
 const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
     const [step, setStep] = useState(0)
@@ -400,7 +486,7 @@ const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
     const latestSceneKey = `step-${step}`
     const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, stepReady)
     const canGoBack = step > 0
-    const handleReplay = () => bumpNonce(latestSceneKey)
+    const handleReplay = () => { bumpNonce(latestSceneKey); setStepReady(false) }
     const handleBack = () => {
         if (advancing || step === 0) return
         const target = step - 1
@@ -408,17 +494,12 @@ const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
         setStep(target)
         setStepReady(false)
     }
-
     const handleNext = () => {
         if (advancing) return
         setAdvancing(true)
         setTimeout(() => {
-            if (step + 1 >= INTRO_CONCEPT_STEPS) {
-                onDone()
-            } else {
-                setStep((s) => s + 1)
-                setStepReady(false)
-            }
+            if (step + 1 >= INTRO_CONCEPT_STEPS) onDone()
+            else { setStep((s) => s + 1); setStepReady(false) }
             setAdvancing(false)
         }, CONCEPT_PAUSE_MS)
     }
@@ -426,249 +507,21 @@ const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
     return (
         <div className="mx-auto flex w-full max-w-md flex-col items-center gap-4 px-1 pb-8">
             <div className="w-full flex flex-col gap-4">
-                {/* Шаг 0 — просто прямой провод, ток вправо, без поля. */}
-                <SceneWrapper key="step-0" innerRef={sceneRef('step-0')} active={isSceneActive('step-0')}>
-                    <Fragment key={`step-0-${nonceFor('step-0')}`}>
-                        <TypedLineWithParts
-                            parts={[
-                                { text: 'Вот прямой провод — по нему течёт ' },
-                                { sticker: 'ток', color: CURRENT_COLOR },
-                                { text: ', например, вправо.' },
-                            ]}
-                        />
-                        <DiagramBlock onSettled={() => setStepReady(true)}>
-                            <WireDiagram direction="right" />
-                        </DiagramBlock>
-                    </Fragment>
-                </SceneWrapper>
-
-                {/* Шаг 1 — вокруг любого провода с током есть магнитное
-                    поле B (тускло-пунктирные кольца), единица — Тесла. */}
-                {step >= 1 && (
-                    <SceneWrapper key="step-1" innerRef={sceneRef('step-1')} active={isSceneActive('step-1')}>
-                        <Fragment key={`step-1-${nonceFor('step-1')}`}>
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'Вокруг ЛЮБОГО провода с ' },
-                                    { sticker: 'током', color: CURRENT_COLOR },
-                                    { text: ' есть ' },
-                                    { sticker: 'магнитное поле', color: FIELD_COLOR },
-                                    { text: ' — оно как бы обвивает провод кольцами.' },
-                                ]}
-                            />
-                            <DiagramBlock>
-                                <WireDiagram direction="right" showRings />
-                            </DiagramBlock>
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'Измеряется в ' },
-                                    { sticker: 'Тесла (Тл)', color: FIELD_COLOR },
-                                    { text: '.' },
-                                ]}
-                                onSettled={() => setStepReady(true)}
-                            />
-                        </Fragment>
-                    </SceneWrapper>
-                )}
-
-                {/* Шаг 2 — название правила. */}
-                {step >= 2 && (
-                    <SceneWrapper key="step-2" innerRef={sceneRef('step-2')} active={isSceneActive('step-2')}>
-                        <Fragment key={`step-2-${nonceFor('step-2')}`}>
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'Куда именно закручивается ' },
-                                    { sticker: 'поле', color: FIELD_COLOR },
-                                    { text: ' — покажет правило ' },
-                                    { sticker: 'буравчика', color: RULE_COLOR },
-                                    { text: ' (или «отвёртки»).' },
-                                ]}
-                                onSettled={() => setStepReady(true)}
-                            />
-                        </Fragment>
-                    </SceneWrapper>
-                )}
-
-                {/* Шаг 3 — ЗАПОМНИ! Аналогия с крышечкой от бутылки колы:
-                    по часовой — закручивается, уходит от тебя; против
-                    часовой — выкручивается, идёт к тебе. */}
-                {step >= 3 && (
-                    <SceneWrapper key="step-3" innerRef={sceneRef('step-3')} active={isSceneActive('step-3')}>
-                        <Fragment key={`step-3-${nonceFor('step-3')}`}>
-                            <DiagramBlock><RememberBanner /></DiagramBlock>
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'Представь, что закручиваешь ' },
-                                    { sticker: 'крышечку', color: RULE_COLOR },
-                                    { text: ' от бутылки колы:' },
-                                ]}
-                            />
-                            <DiagramBlock onSettled={() => setStepReady(true)}>
-                                <CapDiagram />
-                            </DiagramBlock>
-                        </Fragment>
-                    </SceneWrapper>
-                )}
-
-                {/* Шаг 4 — применяем к проводу: смотрим ВДОЛЬ него, по
-                    направлению тока (он уходит от нас, как закручиваемая
-                    крышка) → поле крутится по часовой. */}
-                {step >= 4 && (
-                    <SceneWrapper key="step-4" innerRef={sceneRef('step-4')} active={isSceneActive('step-4')}>
-                        <Fragment key={`step-4-${nonceFor('step-4')}`}>
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'Представь, что смотришь ' },
-                                    { bold: 'ВДОЛЬ' },
-                                    { text: ' провода —' },
-                                    { break: true },
-                                    { text: 'по направлению тока (он уходит от тебя, как закручиваемая крышка).' },
-                                ]}
-                            />
-                            <DiagramBlock>
-                                <EndViewDiagram />
-                            </DiagramBlock>
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'Значит поле ' },
-                                    { sticker: 'B', color: FIELD_COLOR },
-                                    { text: ' крутится ' },
-                                    { bold: 'ПО ЧАСОВОЙ' },
-                                    { text: '.' },
-                                ]}
-                                onSettled={() => setStepReady(true)}
-                            />
-                        </Fragment>
-                    </SceneWrapper>
-                )}
-
-                {/* Шаг 5 — переводим обратно в "вид сбоку" (как рисуем
-                    обычно): над проводом поле выходит к тебе (•), под
-                    проводом — уходит от тебя (×) + мнемоника про
-                    оперение/остриё стрелы. */}
-                {step >= 5 && (
-                    <SceneWrapper key="step-5" innerRef={sceneRef('step-5')} active={isSceneActive('step-5')}>
-                        <Fragment key={`step-5-${nonceFor('step-5')}`}>
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'А если посмотреть на провод ' },
-                                    { bold: 'СБОКУ' },
-                                    { text: ' (как мы обычно рисуем) — получится вот что:' },
-                                ]}
-                            />
-                            <DiagramBlock>
-                                <WireDiagram direction="right" showResult />
-                            </DiagramBlock>
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'Значок ' },
-                                    { sticker: '×', color: FIELD_COLOR },
-                                    { text: ' — как оперение улетающей стрелы, ' },
-                                    { sticker: '•', color: FIELD_COLOR },
-                                    { text: ' — остриё летящей на тебя.' },
-                                ]}
-                                onSettled={() => setStepReady(true)}
-                            />
-                        </Fragment>
-                    </SceneWrapper>
-                )}
-
-                {/* Шаг 6 — провод, свёрнутый в кольцо, ток по часовой
-                    (как мы смотрим на рисунок). */}
-                {step >= 6 && (
-                    <SceneWrapper key="step-6" innerRef={sceneRef('step-6')} active={isSceneActive('step-6')}>
-                        <Fragment key={`step-6-${nonceFor('step-6')}`}>
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'Теперь — провод, свёрнутый в ' },
-                                    { sticker: 'кольцо', color: CURRENT_COLOR },
-                                    { text: '. Ток идёт ' },
-                                    { sticker: 'по часовой', color: CURRENT_COLOR },
-                                    { text: '.' },
-                                ]}
-                            />
-                            <DiagramBlock onSettled={() => setStepReady(true)}>
-                                <LoopDiagram dir="cw" />
-                            </DiagramBlock>
-                        </Fragment>
-                    </SceneWrapper>
-                )}
-
-                {/* Шаг 7 — тут правило "крышечки" работает НАПРЯМУЮ, без
-                    доп. смены точки зрения — ты и так смотришь на кольцо
-                    лицом к нему, прямо как на крышку сверху. */}
-                {step >= 7 && (
-                    <SceneWrapper key="step-7" innerRef={sceneRef('step-7')} active={isSceneActive('step-7')}>
-                        <Fragment key={`step-7-${nonceFor('step-7')}`}>
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'Тут правило ' },
-                                    { sticker: 'крышечки', color: RULE_COLOR },
-                                    { text: ' работает ' },
-                                    { bold: 'НАПРЯМУЮ' },
-                                    { text: ' — ты и так смотришь на кольцо лицом к нему, прямо как на крышку сверху!' },
-                                ]}
-                            />
-                            <DiagramBlock onSettled={() => setStepReady(true)}>
-                                <CapMiniDiagram dir="cw" label="По часовой — уходит от тебя" />
-                            </DiagramBlock>
-                        </Fragment>
-                    </SceneWrapper>
-                )}
-
-                {/* Шаг 8 — значит поле в центре кольца направлено от
-                    тебя, вглубь страницы (×). */}
-                {step >= 8 && (
-                    <SceneWrapper key="step-8" innerRef={sceneRef('step-8')} active={isSceneActive('step-8')}>
-                        <Fragment key={`step-8-${nonceFor('step-8')}`}>
-                            <DiagramBlock>
-                                <LoopDiagram dir="cw" centerSymbol="cross" />
-                            </DiagramBlock>
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'Значит ' },
-                                    { sticker: 'B', color: FIELD_COLOR },
-                                    { text: ' в центре кольца направлено ' },
-                                    { bold: 'ОТ ТЕБЯ' },
-                                    { text: ' — в глубь страницы.' },
-                                ]}
-                                onSettled={() => setStepReady(true)}
-                            />
-                        </Fragment>
-                    </SceneWrapper>
-                )}
-
-                {/* Шаг 9 — контраст: против часовой поле было бы к тебе. */}
-                {step >= 9 && (
-                    <SceneWrapper key="step-9" innerRef={sceneRef('step-9')} active={isSceneActive('step-9')}>
-                        <Fragment key={`step-9-${nonceFor('step-9')}`}>
-                            <TypedLineWithParts
-                                parts={[
-                                    { text: 'А если бы ток шёл ' },
-                                    { bold: 'ПРОТИВ' },
-                                    { text: ' часовой — поле было бы направлено ' },
-                                    { bold: 'К ТЕБЕ' },
-                                    { text: '.' },
-                                ]}
-                            />
-                            <DiagramBlock onSettled={() => setStepReady(true)}>
-                                <LoopDiagram dir="ccw" centerSymbol="dot" />
-                            </DiagramBlock>
-                        </Fragment>
-                    </SceneWrapper>
+                {CONCEPT_SCENES.map((Scene, i) =>
+                    step >= i ? (
+                        <SceneWrapper key={`step-${i}`} innerRef={sceneRef(`step-${i}`)} active={isSceneActive(`step-${i}`)}>
+                            <Fragment key={`step-${i}-${nonceFor(`step-${i}`)}`}>
+                                <Scene onSettled={() => i === step && setStepReady(true)} />
+                            </Fragment>
+                        </SceneWrapper>
+                    ) : null,
                 )}
             </div>
-
             <div className="w-full flex items-center gap-2">
                 <ReplayButton onClick={handleReplay} disabled={advancing} />
                 <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
-                <button
-                    type="button"
-                    onClick={handleNext}
-                    disabled={!stepReady || advancing}
-                    className={walkthroughButtonClass(stepReady && !advancing)}
-                    style={walkthroughButtonStyle(stepReady && !advancing)}
-                >
+                <button type="button" onClick={handleNext} disabled={!stepReady || advancing}
+                    className={walkthroughButtonClass(stepReady && !advancing)} style={walkthroughButtonStyle(stepReady && !advancing)}>
                     {nextLabel}
                 </button>
             </div>
@@ -677,57 +530,52 @@ const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
 }
 
 // ===================================================================
-// ФАЗА "quiz" — короткая фиксированная проверка понимания (5 бинарных
-// вопросов, тот же формат "1/N + огненный Lottie на каждом 4-м", что и
-// во всех остальных *WALK-разборах). Переиспользует те же хелперы.
+// ФАЗА "quiz"
 // ===================================================================
 
 type ConceptQuizItem = {
     renderPrompt: () => React.ReactNode
-    renderOptions: () => [React.ReactNode, React.ReactNode]
-    correct: 0 | 1
+    renderOptions: () => React.ReactNode[]
+    correct: number
     feedback: string
 }
 
 const CONCEPT_QUIZ: ConceptQuizItem[] = [
     {
-        renderPrompt: () => <>Ток в проводе течёт <b>ВЛЕВО</b>. Что <b>НАД</b> проводом?</>,
-        renderOptions: () => [
-            <span key="a" className="inline-flex items-center gap-1.5">Поле уходит от тебя (<Sticker value="×" color={FIELD_COLOR} />)</span>,
-            <span key="b" className="inline-flex items-center gap-1.5">Поле идёт к тебе (<Sticker value="•" color={FIELD_COLOR} />)</span>,
-        ],
+        renderPrompt: () => <>Как называется правило для направления поля вокруг провода?</>,
+        renderOptions: () => ['Правило правой руки', 'Правило левой ноги'],
         correct: 0,
-        feedback: 'Ток влево — противоположность нашему примеру, значит над проводом всё наоборот: поле уходит от тебя (×).',
+        feedback: 'Правило правой руки: большой палец — по току.',
     },
     {
-        renderPrompt: () => <>Ток течёт <b>ВПРАВО</b> (как в нашем примере). Что <b>ПОД</b> проводом?</>,
-        renderOptions: () => [
-            <span key="a" className="inline-flex items-center gap-1.5">Поле уходит от тебя (<Sticker value="×" color={FIELD_COLOR} />)</span>,
-            <span key="b" className="inline-flex items-center gap-1.5">Поле идёт к тебе (<Sticker value="•" color={FIELD_COLOR} />)</span>,
-        ],
+        renderPrompt: () => <>Большой палец правой руки показывает направление…</>,
+        renderOptions: () => [<span key="a">тока <Sticker value="I" color={CURRENT_COLOR} /></span>, <span key="b">поля <Sticker value="B" color={FIELD_COLOR} /></span>],
         correct: 0,
-        feedback: 'Под проводом (ток вправо) поле уходит от тебя — туда же, куда указывает крестик ×.',
+        feedback: 'Палец — по току, согнутые пальцы — по полю.',
     },
     {
-        renderPrompt: () => <>В кольце ток течёт <b>ПРОТИВ</b> часовой стрелки. Куда направлено поле в центре?</>,
-        renderOptions: () => [
-            <span key="a" className="inline-flex items-center gap-1.5">К тебе (<Sticker value="•" color={FIELD_COLOR} />)</span>,
-            <span key="b" className="inline-flex items-center gap-1.5">От тебя (<Sticker value="×" color={FIELD_COLOR} />)</span>,
-        ],
+        renderPrompt: () => <>Ток в вертикальном проводе течёт <b>ВВЕРХ</b>. Куда направлено поле <b>спереди</b> провода?</>,
+        renderOptions: () => ['вправо →', '← влево'],
         correct: 0,
-        feedback: 'Против часовой — крышка выкручивается, идёт к тебе. Поле в центре — тоже к тебе (•).',
+        feedback: '👍 палец вверх — пальцы спереди идут вправо.',
     },
     {
-        renderPrompt: () => <>Как называется это правило?</>,
-        renderOptions: () => ['Правило буравчика', 'Правило Ленца'],
-        correct: 0,
-        feedback: 'Верно — правило буравчика (или «отвёртки»).',
+        renderPrompt: () => <>Ток течёт <b>ВНИЗ</b>. Куда направлено поле <b>спереди</b> провода?</>,
+        renderOptions: () => ['вправо →', '← влево'],
+        correct: 1,
+        feedback: '👎 палец вниз — поле крутится в другую сторону, спереди влево.',
     },
     {
         renderPrompt: () => <>Что означает значок <Sticker value="×" color={FIELD_COLOR} /> на рисунке поля?</>,
-        renderOptions: () => ['Поле уходит от тебя, в глубь страницы', 'Поле идёт к тебе, из страницы'],
+        renderOptions: () => ['Поле уходит от тебя', 'Поле летит на тебя'],
         correct: 0,
-        feedback: '× — как оперение стрелы, летящей от тебя.',
+        feedback: '× — оперение стрелы, которая улетает от тебя.',
+    },
+    {
+        renderPrompt: () => <>Бонус! Кто красавчик? 😎</>,
+        renderOptions: () => ['Я красавчик! 🔥'],
+        correct: 0,
+        feedback: 'Без вариантов — ты! Правая рука теперь твоё секретное оружие 🤙',
     },
 ]
 
