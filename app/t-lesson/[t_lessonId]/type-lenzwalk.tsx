@@ -610,36 +610,155 @@ const ChatScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-// 3. Битва: придвигаем — своё поле против.
+// 3. Битва в стиле Mortal Kombat (вид сбоку): слева горизонтальный магнит
+// бьёт своим полем B вправо, справа кольцо (ось горизонтальна, видим его
+// ребром) бьёт СВОИМ полем B влево, по кольцу бежит индукционный ток.
+// Физика: N смотрит на кольцо → поле магнита у кольца направлено вправо;
+// магнит приближается → поток растёт → поле кольца влево (навстречу).
+// Правая рука: палец влево → на ближней к нам (правой на рисунке) половине
+// кольца ток идёт ВВЕРХ.
+const MK_W = 360, MK_H = 250
+const MK_Y = 145
+const MK_RING_X = 300, MK_RING_RX = 18, MK_RING_RY = 66
+const MK_MAG_W = 96, MK_MAG_H = 40
+const MK_ROWS = [MK_Y - 34, MK_Y, MK_Y + 34]
+
+const HArrow = ({ x1, x2, y, color, width = 4 }: { x1: number; x2: number; y: number; color: string; width?: number }) => {
+    const s = x2 > x1 ? 1 : -1
+    return (
+        <g>
+            <line x1={x1} y1={y} x2={x2} y2={y} stroke={color} strokeWidth={width} strokeLinecap="round" />
+            <path d={`M ${x2 - 10 * s} ${y - 8} L ${x2} ${y} L ${x2 - 10 * s} ${y + 8}`} fill="none" stroke={color} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" />
+        </g>
+    )
+}
+const SvgSticker = ({ x, y, text, color }: { x: number; y: number; text: string; color: string }) => (
+    <g transform={`translate(${x},${y})`}>
+        <rect x={-14} y={-13} width={28} height={26} rx={7} fill="#161F23" stroke={color} strokeWidth={2.5} />
+        <text x={0} y={6} textAnchor="middle" fontSize={16} fontWeight={900} fill={color}>{text}</text>
+    </g>
+)
+const HpBar = ({ label, color, align, hit }: { label: string; color: string; align: 'left' | 'right'; hit: boolean }) => (
+    <div className={cn('flex-1 flex flex-col gap-1', align === 'right' && 'items-end')}>
+        <span className="text-xs font-black uppercase tracking-widest" style={{ color }}>{label}</span>
+        <motion.div className="h-3 w-full rounded-sm border-2 border-[#F2C35B] bg-[#3A1414] overflow-hidden"
+            animate={hit ? { x: [0, -3, 3, -2, 0] } : { x: 0 }} transition={hit ? { duration: 0.3, repeat: Infinity } : {}}>
+            <div className={cn('h-full', align === 'right' && 'ml-auto')} style={{ width: '100%', background: `linear-gradient(90deg, ${color}, #F2C35B)` }} />
+        </motion.div>
+    </div>
+)
+
+const MkView = ({ pos, fighting }: { pos: number; fighting: boolean }) => {
+    const magX = 14 + pos * 70
+    const faceX = magX + MK_MAG_W
+    const clashX = faceX + (MK_RING_X - MK_RING_RX - faceX) / 2
+    const ringFront = `M ${MK_RING_X} ${MK_Y - MK_RING_RY} A ${MK_RING_RX} ${MK_RING_RY} 0 0 1 ${MK_RING_X} ${MK_Y + MK_RING_RY}`
+    const ringBack = `M ${MK_RING_X} ${MK_Y - MK_RING_RY} A ${MK_RING_RX} ${MK_RING_RY} 0 0 0 ${MK_RING_X} ${MK_Y + MK_RING_RY}`
+    return (
+        <div className="w-full flex flex-col gap-2 rounded-2xl border-2 border-[#3A464E] bg-[#0E1418] p-3">
+            <div className="flex items-start gap-3">
+                <HpBar label="Магнит" color={FIELD_COLOR} align="left" hit={fighting} />
+                <span className="pt-4 text-sm font-black text-[#F2C35B]">VS</span>
+                <HpBar label="Кольцо" color={CURRENT_COLOR} align="right" hit={fighting} />
+            </div>
+            <svg viewBox={`0 0 ${MK_W} ${MK_H}`} className="w-full h-auto">
+                {/* пол арены */}
+                <line x1={0} y1={MK_H - 22} x2={MK_W} y2={MK_H - 22} stroke="#3A464E" strokeWidth={2} strokeDasharray="6 8" />
+                {/* задняя половина кольца */}
+                <path d={ringBack} fill="none" stroke={fighting ? CURRENT_COLOR : RING_COLOR} strokeWidth={6} opacity={0.5} />
+                {/* атака магнита: поле B вправо */}
+                {MK_ROWS.map((y, i) => (
+                    <g key={`m${y}`} opacity={0.95}>
+                        <HArrow x1={faceX + 6} x2={fighting ? clashX - 6 : MK_RING_X + 30} y={y} color={FIELD_COLOR} />
+                        {fighting && (
+                            <motion.line x1={faceX + 6} y1={y} x2={clashX - 8} y2={y} stroke="#fff" strokeWidth={2} strokeDasharray="4 14"
+                                animate={{ strokeDashoffset: [0, -36] }} transition={{ duration: 0.45, repeat: Infinity, ease: 'linear', delay: i * 0.1 }} />
+                        )}
+                    </g>
+                ))}
+                <SvgSticker x={faceX + 30} y={MK_ROWS[0] - 26} text="B" color={FIELD_COLOR} />
+                {/* ответ кольца: своё поле B влево */}
+                {fighting && MK_ROWS.map((y, i) => (
+                    <g key={`r${y}`}>
+                        <motion.g initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 + i * 0.08 }}>
+                            <HArrow x1={MK_RING_X - 6} x2={clashX + 6} y={y} color={OWN_COLOR} width={5} />
+                            <motion.line x1={MK_RING_X - 8} y1={y} x2={clashX + 8} y2={y} stroke="#fff" strokeWidth={2} strokeDasharray="4 14"
+                                animate={{ strokeDashoffset: [0, 36] }} transition={{ duration: 0.45, repeat: Infinity, ease: 'linear', delay: i * 0.1 }} />
+                        </motion.g>
+                    </g>
+                ))}
+                {fighting && <SvgSticker x={MK_RING_X - 44} y={MK_ROWS[2] + 28} text="B" color={OWN_COLOR} />}
+                {/* столкновение */}
+                {fighting && (
+                    <g transform={`translate(${clashX},${MK_Y})`}>
+                        <motion.g animate={{ scale: [0.8, 1.25, 0.9], rotate: [0, 12, -8] }} transition={{ duration: 0.35, repeat: Infinity }}
+                            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
+                            <text x={0} y={10} textAnchor="middle" fontSize={34}>💥</text>
+                        </motion.g>
+                    </g>
+                )}
+                {/* магнит: S слева, N смотрит на кольцо */}
+                <motion.g animate={fighting ? { x: [0, 3, 0] } : { x: 0 }} transition={fighting ? { duration: 0.2, repeat: Infinity } : {}}>
+                    <rect x={magX} y={MK_Y - MK_MAG_H / 2} width={MK_MAG_W / 2} height={MK_MAG_H} rx={6} fill={SOUTH_COLOR} />
+                    <rect x={magX + MK_MAG_W / 2} y={MK_Y - MK_MAG_H / 2} width={MK_MAG_W / 2} height={MK_MAG_H} rx={6} fill={NORTH_COLOR} />
+                    <rect x={magX + MK_MAG_W / 2 - 6} y={MK_Y - MK_MAG_H / 2} width={12} height={MK_MAG_H} fill={NORTH_COLOR} />
+                    <text x={magX + MK_MAG_W / 4} y={MK_Y + 7} textAnchor="middle" fontSize={20} fontWeight={900} fill="#fff">S</text>
+                    <text x={magX + (MK_MAG_W * 3) / 4} y={MK_Y + 7} textAnchor="middle" fontSize={20} fontWeight={900} fill="#fff">N</text>
+                </motion.g>
+                {fighting && (
+                    <text x={magX + MK_MAG_W / 2} y={MK_Y + MK_MAG_H / 2 + 30} textAnchor="middle" fontSize={22} fontWeight={900} fill={RULE_COLOR}>➡</text>
+                )}
+                {/* передняя половина кольца + бегущий ток */}
+                <path d={ringFront} fill="none" stroke={fighting ? CURRENT_COLOR : RING_COLOR} strokeWidth={7} strokeLinecap="round" />
+                {fighting && (
+                    <>
+                        <motion.path d={ringFront} fill="none" stroke="#fff" strokeWidth={3} strokeDasharray="6 16" strokeLinecap="round"
+                            animate={{ strokeDashoffset: [0, 44] }} transition={{ duration: 0.5, repeat: Infinity, ease: 'linear' }} />
+                        {/* ток на ближней половине идёт вверх */}
+                        <g transform={`translate(${MK_RING_X + MK_RING_RX + 18},${MK_Y})`}>
+                            <line x1={0} y1={24} x2={0} y2={-24} stroke={CURRENT_COLOR} strokeWidth={5} strokeLinecap="round" />
+                            <path d="M -10 -12 L 0 -26 L 10 -12" fill="none" stroke={CURRENT_COLOR} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
+                        </g>
+                        <SvgSticker x={MK_RING_X + MK_RING_RX + 18} y={MK_Y + 50} text="I" color={CURRENT_COLOR} />
+                    </>
+                )}
+            </svg>
+        </div>
+    )
+}
+
 const BattleScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
-    const mag = useMagnet(0.1)
+    const mag = useMagnet(0)
     const [done, setDone] = useState(false)
     const hadMove = useRef(false)
     useEffect(() => {
         if (mag.move === 1) hadMove.current = true
         else if (mag.move === 0 && hadMove.current && !done) { setDone(true); setTimeout(() => setPhase(2), 800) }
     }, [mag.move, done])
+    const fighting = mag.move === 1
+    // баннер «FIGHT!» → через ~0.8 с арена (таймером, не onAnimationComplete —
+    // тот не срабатывает, если анимация не доиграла)
+    useEffect(() => { const t = setTimeout(() => setPhase((p) => Math.max(p, 1)), 800); return () => clearTimeout(t) }, [])
     return (
         <>
-            <TypedLine text="В бой! Зажми и толкай магнит к кольцу ⚔️" className={cn(TEXT_CLS, 'font-extrabold')} onSettled={() => setPhase(1)} delayAfter={200} />
+            <motion.div initial={{ scale: 3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5, duration: 0.6 }}
+                className="text-center text-3xl md:text-4xl font-black tracking-widest" style={{ color: '#F2C35B', textShadow: '0 3px 0 #8A4B14' }}>
+                ROUND 1 · FIGHT!
+            </motion.div>
             {phase >= 1 && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col gap-2">
-                        <LenzView pos={mag.pos} move={mag.move} showOwn battle />
-                        <Bubble
-                            text={mag.move === 1 ? '😤 Не пройдёшь! Щиты ВВЕРХ!' : mag.move === -1 ? '😭 Куда?! Не уходи!' : '😌 Отбились. Можно выдохнуть'}
-                            color={mag.move !== 0 ? OWN_COLOR : '#9AA7B0'}
-                        />
+                        <MkView pos={mag.pos} fighting={fighting} />
                         <div className="flex gap-2">
-                            <HoldBtn color={RULE_COLOR} pulse={!done} onStart={() => { if (mag.pos >= 1) mag.jump(0.1); mag.start(1) }} onRelease={mag.release}>⬇ Зажми: в атаку</HoldBtn>
+                            <HoldBtn color={RULE_COLOR} pulse={!done} onStart={() => { if (mag.pos >= 1) mag.jump(0); mag.start(1) }} onRelease={mag.release}>⚔️ Зажми — атака!</HoldBtn>
                         </div>
                     </div>
                 </DiagramBlock>
             )}
             {phase >= 2 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Поле магнита ' }, { sticker: 'B ⬇', color: FIELD_COLOR }, { text: ' давит вниз, а ' }, { sticker: 'B кольца ⬆', color: OWN_COLOR }, { text: ' упирается вверх. Кольцо ' }, { bold: 'МЕШАЕТ' }, { text: ' потоку расти 🛡️' }]}
+                    parts={[{ text: 'Магнит бьёт полем ' }, { sticker: 'B ➡', color: FIELD_COLOR }, { text: ', а кольцо запускает ток ' }, { sticker: 'I', color: CURRENT_COLOR }, { text: ' и отвечает своим полем ' }, { sticker: 'B ⬅', color: OWN_COLOR }, { text: ' навстречу. Кольцо ' }, { bold: 'МЕШАЕТ' }, { text: ' потоку расти.' }]}
                     onSettled={onSettled}
                 />
             )}
