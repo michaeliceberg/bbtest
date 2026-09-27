@@ -530,20 +530,38 @@ const IntroScene = ({ onSettled }: { onSettled?: () => void }) => {
 // 2. Чат: зачем кольцо это делает.
 type ChatMsg = { who: 'magnet' | 'ring'; emoji: string; text: React.ReactNode }
 const CHAT: ChatMsg[] = [
-    { who: 'magnet', emoji: '😈', text: <>Моя армия поля <Sticker value="B" color={FIELD_COLOR} /> идёт на вас! Поток, расти!</> },
-    { who: 'ring', emoji: '😱', text: <>ВНИМАНИЕ! ТРЕВОГА! ПОТОК <Sticker value="Φ" color={GGEGE_PALETTE.purple.button} /> МЕНЯЕТСЯ!! А надо, чтоб был постоянный!</> },
-    { who: 'ring', emoji: '😤', text: <>Всем по постам! Запускаем СВОЙ ток <Sticker value="I" color={CURRENT_COLOR} /> — он создаст СВОЁ поле <Sticker value="B" color={OWN_COLOR} />. Против врага! 🛡️</> },
+    { who: 'magnet', emoji: '😈', text: <>Моя армия поля <Sticker value="B" color={FIELD_COLOR} /> идёт на вас! Поток <Sticker value="Φ" color={GGEGE_PALETTE.purple.button} />, растииии!</> },
+    { who: 'ring', emoji: '😱', text: <>ВНИМАНИЕ! ТРЕВОГА! ПОТОК <Sticker value="Φ" color={GGEGE_PALETTE.purple.button} /> МЕНЯЕТСЯ!! НЕ ДОПУЩУУУ!</> },
+    { who: 'ring', emoji: '😤', text: <>Всем постам! Запускаем СВОЙ ток <Sticker value="I" color={CURRENT_COLOR} /> — он создаст СВОЁ ИНДУКЦИОННОЕ поле <Sticker value="B" color={OWN_COLOR} />. Против врага!</> },
     { who: 'magnet', emoji: '😠', text: 'Эй, вы чего сопротивляетесь?!' },
 ]
+const CHAT_TYPING_MS = 1100
+const CHAT_GAP_MS = 700
+// Три прыгающие точки «печатает…»
+const TypingDots = () => (
+    <span className="inline-flex items-center gap-1">
+        печатает
+        {[0, 1, 2].map((i) => (
+            <motion.span key={i} className="inline-block w-1.5 h-1.5 rounded-full bg-current"
+                animate={{ y: [0, -4, 0], opacity: [0.4, 1, 0.4] }} transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.15 }} />
+        ))}
+    </span>
+)
 const ChatScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
     const [shown, setShown] = useState(0)
+    const [typing, setTyping] = useState(false)
+    // Как в мессенджере: «печатает…» → сообщение → пауза → следующий «печатает…».
     useEffect(() => {
         if (phase < 1) return
         if (shown >= CHAT.length) { const t = setTimeout(() => setPhase(2), 600); return () => clearTimeout(t) }
-        const t = setTimeout(() => setShown((s) => s + 1), shown === 0 ? 200 : 1500)
+        if (!typing) {
+            const t = setTimeout(() => setTyping(true), shown === 0 ? 200 : CHAT_GAP_MS)
+            return () => clearTimeout(t)
+        }
+        const t = setTimeout(() => { setTyping(false); setShown((s) => s + 1) }, CHAT_TYPING_MS)
         return () => clearTimeout(t)
-    }, [phase, shown])
+    }, [phase, shown, typing])
     return (
         <>
             <TypedLineWithParts
@@ -565,6 +583,21 @@ const ChatScene = ({ onSettled }: { onSettled?: () => void }) => {
                             </div>
                         </motion.div>
                     ))}
+                    {typing && shown < CHAT.length && (() => {
+                        const m = CHAT[shown]
+                        const color = m.who === 'magnet' ? FIELD_COLOR : OWN_COLOR
+                        return (
+                            <motion.div key={`typing${shown}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                                className={cn('flex items-end gap-2', m.who === 'ring' && 'flex-row-reverse')}>
+                                <div className="text-3xl leading-none shrink-0 opacity-60">{m.emoji}</div>
+                                <div className="rounded-2xl px-3 py-2 text-sm font-bold"
+                                    style={{ backgroundColor: hexToRgba(color, 0.1), color, border: `2px dashed ${hexToRgba(color, 0.6)}` }}>
+                                    <div className="text-[11px] font-black opacity-70 mb-0.5">{m.who === 'magnet' ? 'Магнит' : 'Кольцо'}</div>
+                                    <TypingDots />
+                                </div>
+                            </motion.div>
+                        )
+                    })()}
                 </div>
             )}
             {phase >= 2 && (
