@@ -207,9 +207,8 @@ const Compass = ({ thetaDeg, cur }: { thetaDeg: number; cur: Cur }) => {
     )
 }
 
-// Схема «правой руки» вместо эмодзи 👍 (эмодзи рисуется по-разному на разных
-// устройствах — часто это ЛЕВАЯ рука, и направление пальцев по нему не
-// прочитать). Большой палец — толстая оранжевая стрелка, согнутые пальцы —
+// Правая рука — картинка public/hands/right-{up,down}.webp (не эмодзи 👍:
+// он на многих устройствах левая рука). Согнутые пальцы —
 // дуга с наконечником по передней половине эллипса. dirRight: передняя часть
 // дуги идёт вправо (θ 160°→20°) или влево (20°→160°).
 function curlArc(cx: number, cy: number, rx: number, ry: number, dirRight: boolean) {
@@ -226,18 +225,22 @@ function curlArc(cx: number, cy: number, rx: number, ry: number, dirRight: boole
     return { d: `M ${pts.join(' L ')}`, end: { x: cx + rx * Math.cos(te), y: cy + ry * Math.sin(te) }, ang }
 }
 const HAND_COLOR = '#F09B38'
-const RightHandHint = ({ cx, cy, rx, ry, thumbUp, curlRight, thumbX, thumbY0, thumbY1 }: {
-    cx: number; cy: number; rx: number; ry: number; thumbUp: boolean; curlRight: boolean; thumbX: number; thumbY0: number; thumbY1: number
+const RightHandHint = ({ cx, cy, rx, ry, thumbUp, curlRight }: {
+    cx: number; cy: number; rx: number; ry: number; thumbUp: boolean; curlRight: boolean
 }) => {
     const arc = curlArc(cx, cy, rx, ry, curlRight)
-    const tipY = thumbUp ? Math.min(thumbY0, thumbY1) : Math.max(thumbY0, thumbY1)
-    const baseY = thumbUp ? Math.max(thumbY0, thumbY1) : Math.min(thumbY0, thumbY1)
-    const s = thumbUp ? 1 : -1
+    // Картинка правой руки (public/hands, нарисована пользователем): большой палец
+    // вверх/вниз, согнутые пальцы спереди идут вправо (палец вверх) / влево (вниз).
+    const HAND = 78
     return (
         <g>
-            <line x1={thumbX} y1={baseY} x2={thumbX} y2={tipY} stroke={HAND_COLOR} strokeWidth={9} strokeLinecap="round" opacity={0.95} />
-            <path d={`M ${thumbX - 13} ${tipY + 14 * s} L ${thumbX} ${tipY} L ${thumbX + 13} ${tipY + 14 * s}`} fill="none" stroke={HAND_COLOR} strokeWidth={9} strokeLinecap="round" strokeLinejoin="round" />
-            <text x={thumbX + 16} y={tipY + 16 * s + 4} fontSize={12} fontWeight={900} fill={HAND_COLOR}>палец</text>
+            <g transform={`translate(${cx - rx - 40},${cy - HAND - 34})`}>
+                <motion.image key={thumbUp ? 'up' : 'down'} href={thumbUp ? '/hands/right-up.webp' : '/hands/right-down.webp'}
+                    x={0} y={0} width={HAND} height={HAND}
+                    initial={{ opacity: 0, scale: 0.4 }} animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: 'spring', bounce: 0.5, duration: 0.6 }}
+                    style={{ transformBox: 'fill-box', transformOrigin: 'center' }} />
+            </g>
             <path d={arc.d} fill="none" stroke={HAND_COLOR} strokeWidth={6} strokeLinecap="round" strokeDasharray="1 0" />
             <g transform={`translate(${arc.end.x},${arc.end.y}) rotate(${arc.ang})`}>
                 <path d="M -12 -10 L 2 0 L -12 10" fill="none" stroke={HAND_COLOR} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" />
@@ -275,8 +278,7 @@ const WireScene = ({ cur, rings = [], compasses = false, hand = false, dotCross 
             {hand && cur !== 0 && (
                 // Правая рука: палец — по току (вдоль провода), пальцы — по полю.
                 // Ток вверх → поле спереди вправо (см. ringTangentDeg).
-                <RightHandHint cx={W_CX} cy={MID_Y} rx={RING_RX + 14} ry={RING_RY + 10} thumbUp={cur === 1} curlRight={cur === 1}
-                    thumbX={W_CX + 26} thumbY0={MID_Y - 70} thumbY1={MID_Y + 70} />
+                <RightHandHint cx={W_CX} cy={MID_Y} rx={RING_RX + 14} ry={RING_RY + 10} thumbUp={cur === 1} curlRight={cur === 1} />
             )}
             {dotCross && (
                 <>
