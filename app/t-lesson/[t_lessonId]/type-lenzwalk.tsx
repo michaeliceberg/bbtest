@@ -215,7 +215,7 @@ const RightHandHint = ({ cx, cy, rx, ry, thumbUp, curlRight }: {
 }
 
 // ===== Диаграмма: магнит над кольцом =====
-const V_W = 320, V_H = 380, CX = 160
+const V_W = 320, V_H = 440, CX = 160
 const RING_CY = 300, RING_RX = 92, RING_RY = 24
 const MAG_W = 48, MAG_H = 104
 const magTopOf = (pos: number) => 20 + pos * 128
@@ -275,6 +275,7 @@ type LenzViewProps = {
     showExt?: boolean       // стрелки поля магнита сквозь кольцо (поток)
     fieldLines?: boolean    // бледные силовые линии вокруг магнита
     devil?: boolean         // рожица на магните (в спокойных вступительных сценах выключаем)
+    moveArrow?: boolean     // стрелка ⬆/⬇ у магнита (направление движения)
 }
 
 const faceOf = (move: Move, pole: Pole, battle: boolean) => {
@@ -285,7 +286,7 @@ const faceOf = (move: Move, pole: Pole, battle: boolean) => {
     return '😭'
 }
 
-const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, battle = false, hideAnswer = false, face = true, speed = 1, showForce = false, wobble = true, handHint = false, showExt = true, fieldLines = false, devil = true }: LenzViewProps) => {
+const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, battle = false, hideAnswer = false, face = true, speed = 1, showForce = false, wobble = true, handHint = false, showExt = true, fieldLines = false, devil = true, moveArrow = true }: LenzViewProps) => {
     const magTop = magTopOf(pos)
     const ext = extDirOf(pole)
     const own = ownDirOf(pole, move)
@@ -386,7 +387,7 @@ const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, 
                     </g>
                 )}
                 {/* стрелка движения магнита */}
-                {moving && (
+                {moving && moveArrow && (
                     <text x={CX - MAG_W / 2 - 26} y={magTop + MAG_H / 2 + 8} textAnchor="middle" fontSize={24} fontWeight={900} fill={RULE_COLOR}>
                         {move > 0 ? '⬇' : '⬆'}
                     </text>
@@ -402,20 +403,48 @@ const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, 
                         </motion.text>
                     </g>
                 )}
-                {/* амперметр */}
-                {showCurrent && (
-                    <g transform={`translate(${46},${RING_CY + 56})`}>
-                        <path d="M -30 0 A 30 30 0 0 1 30 0" fill="#161F23" stroke="#9AA7B0" strokeWidth={2.5} />
-                        <line x1={0} y1={-30} x2={0} y2={-24} stroke="#9AA7B0" strokeWidth={2} />
-                        <g style={{ transform: `rotate(${hideAnswer ? 0 : needle}deg)`, transformOrigin: '0px 0px', transition: 'transform 0.25s cubic-bezier(0.34, 1.6, 0.5, 1)' }}>
-                            <line x1={0} y1={0} x2={0} y2={-26} stroke={CURRENT_COLOR} strokeWidth={3.5} strokeLinecap="round" />
-                        </g>
-                        <circle r={3.5} fill="#F2F7FB" />
-                        <text x={0} y={16} textAnchor="middle" fontSize={11} fontWeight={800} fill="#9AA7B0">ток</text>
-                    </g>
-                )}
+                {/* амперметр: крупно, под кольцом, подключён к кольцу проводами */}
+                {showCurrent && <Ammeter needle={hideAnswer ? 0 : needle} on={currentOn} />}
             </svg>
         </div>
+    )
+}
+
+// Амперметр под кольцом: провода от кольца, шкала «− 0 +», толстая стрелка.
+// При токе стрелка отклоняется (вправо/влево по направлению тока), шкала подсвечивается.
+const AM_CX = CX, AM_CY = 420, AM_R = 50
+const Ammeter = ({ needle, on }: { needle: number; on: boolean }) => {
+    const ticks = [-80, -60, -40, -20, 0, 20, 40, 60, 80]
+    const pt = (deg: number, r: number) => {
+        const t = ((deg - 90) * Math.PI) / 180
+        return { x: AM_CX + r * Math.cos(t), y: AM_CY + r * Math.sin(t) }
+    }
+    const wireCol = on ? CURRENT_COLOR : '#5C6B73'
+    return (
+        <g>
+            {/* провода от кольца к клеммам */}
+            <path d={`M ${CX - RING_RX + 6} ${RING_CY + 8} L ${CX - RING_RX + 6} ${AM_CY - 8} L ${AM_CX - AM_R - 8} ${AM_CY - 8}`} fill="none" stroke={wireCol} strokeWidth={3} strokeLinejoin="round" />
+            <path d={`M ${CX + RING_RX - 6} ${RING_CY + 8} L ${CX + RING_RX - 6} ${AM_CY - 8} L ${AM_CX + AM_R + 8} ${AM_CY - 8}`} fill="none" stroke={wireCol} strokeWidth={3} strokeLinejoin="round" />
+            {/* корпус */}
+            <rect x={AM_CX - AM_R - 12} y={AM_CY - AM_R - 12} width={(AM_R + 12) * 2} height={AM_R + 24} rx={12}
+                fill="#11191D" stroke={on ? CURRENT_COLOR : '#3A464E'} strokeWidth={3} />
+            {/* шкала */}
+            <path d={`M ${pt(-80, AM_R).x} ${pt(-80, AM_R).y} A ${AM_R} ${AM_R} 0 0 1 ${pt(80, AM_R).x} ${pt(80, AM_R).y}`}
+                fill="none" stroke={on ? CURRENT_COLOR : '#5C6B73'} strokeWidth={3} />
+            {ticks.map((d) => {
+                const a = pt(d, AM_R), b = pt(d, d === 0 ? AM_R - 12 : AM_R - 7)
+                return <line key={d} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#9AA7B0" strokeWidth={d === 0 ? 3 : 2} strokeLinecap="round" />
+            })}
+            <text x={pt(-70, AM_R - 18).x} y={pt(-70, AM_R - 18).y + 5} textAnchor="middle" fontSize={14} fontWeight={900} fill="#9AA7B0">−</text>
+            <text x={pt(0, AM_R - 22).x} y={pt(0, AM_R - 22).y + 5} textAnchor="middle" fontSize={13} fontWeight={900} fill="#F2F7FB">0</text>
+            <text x={pt(70, AM_R - 18).x} y={pt(70, AM_R - 18).y + 5} textAnchor="middle" fontSize={14} fontWeight={900} fill="#9AA7B0">+</text>
+            {/* стрелка */}
+            <g style={{ transform: `rotate(${needle}deg)`, transformOrigin: `${AM_CX}px ${AM_CY}px`, transition: 'transform 0.3s cubic-bezier(0.34, 1.6, 0.5, 1)' }}>
+                <line x1={AM_CX} y1={AM_CY + 6} x2={AM_CX} y2={AM_CY - AM_R + 4} stroke={CURRENT_COLOR} strokeWidth={5} strokeLinecap="round" />
+            </g>
+            <circle cx={AM_CX} cy={AM_CY} r={6} fill="#F2F7FB" />
+            <text x={AM_CX + 24} y={AM_CY - 4} textAnchor="middle" fontSize={13} fontWeight={900} fill="#9AA7B0">A</text>
+        </g>
     )
 }
 
@@ -431,12 +460,23 @@ const HoldBtn = ({ children, color, onStart, onRelease, pulse = false, disabled 
         onPointerLeave={onRelease}
         onPointerCancel={onRelease}
         onContextMenu={(e) => e.preventDefault()}
-        className={cn('flex-1 select-none touch-none rounded-xl border-2 px-3 py-3 text-base font-black disabled:opacity-40', pulse && 'animate-pulse')}
-        style={{ borderColor: color, backgroundColor: hexToRgba(color, 0.16), color }}
+        className={cn(
+            'relative flex-1 select-none touch-none rounded-2xl px-3 py-3 text-base font-black text-white disabled:opacity-40',
+            'shadow-[0_5px_0_var(--edge)] active:translate-y-[3px] active:shadow-[0_2px_0_var(--edge)] transition-[transform,box-shadow] duration-75',
+        )}
+        style={{ backgroundColor: color, ['--edge' as string]: darken(color) }}
     >
-        {children}
+        {/* мягкое «дыхание» кнопки, пока её ещё не нажимали: кольцо свечения (только opacity/transform) */}
+        {pulse && <span aria-hidden className="pointer-events-none absolute -inset-1 rounded-[18px] border-2 animate-ping opacity-40" style={{ borderColor: color }} />}
+        <span className="relative">{children}</span>
     </button>
 )
+// Цвет нижней грани объёмной кнопки: тот же тон, темнее на ~25%.
+function darken(hex: string) {
+    const n = parseInt(hex.replace('#', ''), 16)
+    const r = Math.round(((n >> 16) & 255) * 0.72), g = Math.round(((n >> 8) & 255) * 0.72), b = Math.round((n & 255) * 0.72)
+    return `rgb(${r}, ${g}, ${b})`
+}
 
 // Реплика кольца под картинкой (живёт по состоянию движения).
 const Bubble = ({ text, color }: { text: string; color: string }) => (
@@ -470,7 +510,7 @@ const IntroScene = ({ onSettled }: { onSettled?: () => void }) => {
             {phase >= 1 && (
                 <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 1400)}>
                     <div className="w-full flex flex-col gap-2">
-                        <LenzView pos={mag.pos} move={mag.move} fieldLines showExt={phase >= 3} showCurrent={phase >= 3} face={false} devil={false} />
+                        <LenzView pos={mag.pos} move={mag.move} fieldLines showExt={phase >= 3} showCurrent={phase >= 3} face={false} devil={false} moveArrow={false} />
                         {phase >= 4 && (
                             <motion.div className="flex gap-3" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
                                 <HoldBtn color={RULE_COLOR} pulse={!pushed} onStart={() => mag.start(1)} onRelease={mag.release} disabled={mag.pos >= 1}>
@@ -645,7 +685,16 @@ const HpBar = ({ label, color, align, hit }: { label: string; color: string; ali
 const MkView = ({ pos, fighting }: { pos: number; fighting: boolean }) => {
     const magX = 14 + pos * 70
     const faceX = magX + MK_MAG_W
-    const clashX = faceX + (MK_RING_X - MK_RING_RX - faceX) / 2
+    // Длина стрелок постоянная; СИЛА поля — толщина/яркость. Чем ближе магнит,
+    // тем сильнее его поле у кольца и тем быстрее меняется поток → тем сильнее
+    // индукционный ток и его поле B_инд. Поэтому обе «атаки» растут с pos.
+    const ARROW_LEN = 44
+    const magTip = faceX + 6 + ARROW_LEN
+    const ringTip = MK_RING_X - 6 - ARROW_LEN
+    const clashX = (magTip + ringTip) / 2
+    const magW = 2.5 + pos * 4.5
+    const indW = 2.5 + pos * 4.5
+    const magOp = 0.55 + pos * 0.45
     const ringFront = `M ${MK_RING_X} ${MK_Y - MK_RING_RY} A ${MK_RING_RX} ${MK_RING_RY} 0 0 1 ${MK_RING_X} ${MK_Y + MK_RING_RY}`
     const ringBack = `M ${MK_RING_X} ${MK_Y - MK_RING_RY} A ${MK_RING_RX} ${MK_RING_RY} 0 0 0 ${MK_RING_X} ${MK_Y + MK_RING_RY}`
     return (
@@ -661,23 +710,17 @@ const MkView = ({ pos, fighting }: { pos: number; fighting: boolean }) => {
                 {/* задняя половина кольца */}
                 <path d={ringBack} fill="none" stroke={fighting ? CURRENT_COLOR : RING_COLOR} strokeWidth={6} opacity={0.5} />
                 {/* атака магнита: поле B вправо */}
-                {MK_ROWS.map((y, i) => (
-                    <g key={`m${y}`} opacity={0.95}>
-                        <HArrow x1={faceX + 6} x2={fighting ? clashX - 6 : MK_RING_X + 30} y={y} color={FIELD_COLOR} />
-                        {fighting && (
-                            <motion.line x1={faceX + 6} y1={y} x2={clashX - 8} y2={y} stroke="#fff" strokeWidth={2} strokeDasharray="4 14"
-                                animate={{ strokeDashoffset: [0, -36] }} transition={{ duration: 0.45, repeat: Infinity, ease: 'linear', delay: i * 0.1 }} />
-                        )}
+                {MK_ROWS.map((y) => (
+                    <g key={`m${y}`} opacity={magOp}>
+                        <HArrow x1={faceX + 6} x2={magTip} y={y} color={FIELD_COLOR} width={magW} />
                     </g>
                 ))}
                 <SvgSticker x={faceX + 30} y={MK_ROWS[0] - 26} text="B" color={FIELD_COLOR} />
                 {/* ответ кольца: своё поле B влево */}
                 {fighting && MK_ROWS.map((y, i) => (
                     <g key={`r${y}`}>
-                        <motion.g initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 + i * 0.08 }}>
-                            <HArrow x1={MK_RING_X - 6} x2={clashX + 6} y={y} color={OWN_COLOR} width={5} />
-                            <motion.line x1={MK_RING_X - 8} y1={y} x2={clashX + 8} y2={y} stroke="#fff" strokeWidth={2} strokeDasharray="4 14"
-                                animate={{ strokeDashoffset: [0, 36] }} transition={{ duration: 0.45, repeat: Infinity, ease: 'linear', delay: i * 0.1 }} />
+                        <motion.g initial={{ opacity: 0, x: 20 }} animate={{ opacity: 0.55 + pos * 0.45, x: 0 }} transition={{ delay: 0.15 + i * 0.08 }}>
+                            <HArrow x1={MK_RING_X - 6} x2={ringTip} y={y} color={OWN_COLOR} width={indW} />
                         </motion.g>
                     </g>
                 ))}
@@ -705,12 +748,7 @@ const MkView = ({ pos, fighting }: { pos: number; fighting: boolean }) => {
                     <>
                         <motion.path d={ringFront} fill="none" stroke="#fff" strokeWidth={3} strokeDasharray="6 16" strokeLinecap="round"
                             animate={{ strokeDashoffset: [0, 44] }} transition={{ duration: 0.5, repeat: Infinity, ease: 'linear' }} />
-                        {/* ток на ближней половине идёт вверх */}
-                        <g transform={`translate(${MK_RING_X + MK_RING_RX + 18},${MK_Y})`}>
-                            <line x1={0} y1={24} x2={0} y2={-24} stroke={CURRENT_COLOR} strokeWidth={5} strokeLinecap="round" />
-                            <path d="M -10 -12 L 0 -26 L 10 -12" fill="none" stroke={CURRENT_COLOR} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
-                        </g>
-                        <SvgSticker x={MK_RING_X + MK_RING_RX + 18} y={MK_Y + 50} text="I" color={CURRENT_COLOR} />
+                        <SvgSticker x={MK_RING_X + MK_RING_RX - 4} y={MK_Y + MK_RING_RY + 22} text="I" sub="инд" color={CURRENT_COLOR} />
                     </>
                 )}
             </svg>
@@ -742,7 +780,7 @@ const BattleScene = ({ onSettled }: { onSettled?: () => void }) => {
                     <div className="w-full flex flex-col gap-2">
                         <MkView pos={mag.pos} fighting={fighting} />
                         <div className="flex gap-2">
-                            <HoldBtn color={RULE_COLOR} pulse={!done} onStart={() => { if (mag.pos >= 1) mag.jump(0); mag.start(1, MK_SPEED) }} onRelease={mag.release}>⚔️ Зажми — атака!</HoldBtn>
+                            <HoldBtn color={RULE_COLOR} pulse={!done} onStart={() => { if (mag.pos >= 1) mag.jump(0); mag.start(1, MK_SPEED) }} onRelease={mag.release}>👆 Нажми и держи — атака!</HoldBtn>
                         </div>
                     </div>
                 </DiagramBlock>
