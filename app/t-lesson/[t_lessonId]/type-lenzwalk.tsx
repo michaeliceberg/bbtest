@@ -25,6 +25,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
+import { ArrowDown, ArrowUp } from 'lucide-react'
 import type { QuestionType } from './page'
 import {
     DiagramBlock, TypedLine,
@@ -337,6 +338,16 @@ const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, 
                             <path d="M-8,-9 L4,0 L-8,9" fill="none" stroke="#fff" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
                         </g>
                         <text x={CX + RING_RX + 4} y={RING_CY + RING_RY + 20} fontSize={15} fontWeight={900} fill={CURRENT_COLOR}>I</text>
+                        {/* крупная стрелка направления тока под кольцом */}
+                        <g transform={`translate(${CX},${RING_CY + RING_RY + 22})`}>
+                            <motion.g key={`dir${flowRight}`} initial={{ scale: 0.3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                                transition={{ type: 'spring', bounce: 0.55, duration: 0.45 }} style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
+                                <g transform={`rotate(${flowRight ? 0 : 180})`}>
+                                    <line x1={-38} y1={0} x2={30} y2={0} stroke={CURRENT_COLOR} strokeWidth={6} strokeLinecap="round" />
+                                    <path d="M 18 -13 L 34 0 L 18 13" fill="none" stroke={CURRENT_COLOR} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" />
+                                </g>
+                            </motion.g>
+                        </g>
                     </>
                 )}
                 {handHint && moving && !hideAnswer && (
@@ -451,13 +462,18 @@ const Bubble = ({ text, color }: { text: string; color: string }) => (
 
 // ===== Сцены =====
 
-// 0. Вступление: магнит → его поле → поток сквозь кольцо → а ток есть?
-// Сначала честно ставим вопрос «можно ли получить ток от магнита без
-// батарейки», и только потом показываем амперметр на нуле — так «тока нет»
-// становится ответом на вопрос, а не странным заявлением.
-const RestScene = ({ onSettled }: { onSettled?: () => void }) => {
+// 0. Вступление: магнит → стрелки B сквозь кольцо (поток) → «НАЖМИ и держи».
+// Ученик сам двигает магнит и сам замечает: ток (стрелка на кольце и стрелка
+// амперметра) есть только пока магнит едет. Никаких подсказок-реплик.
+const IntroScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
-    const next = (p: number, ms = 700) => () => setTimeout(() => setPhase(p), ms)
+    const mag = useMagnet(0.35)
+    const [pushed, setPushed] = useState(false)
+    const hadMove = useRef(false)
+    useEffect(() => {
+        if (mag.move !== 0) hadMove.current = true
+        else if (hadMove.current && !pushed) { setPushed(true); setTimeout(() => setPhase(5), 1200) }
+    }, [mag.move, pushed])
     return (
         <>
             <TypedLineWithParts
@@ -465,76 +481,47 @@ const RestScene = ({ onSettled }: { onSettled?: () => void }) => {
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
-                <DiagramBlock onSettled={next(2, 1400)}>
-                    <LenzView pos={0.45} move={0} fieldLines showExt={phase >= 3} showCurrent={phase >= 5} face={false} devil={false} />
-                </DiagramBlock>
-            )}
-            {phase >= 2 && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Сквозь кольцо проходят стрелки поля ' }, { sticker: 'B', color: FIELD_COLOR }, { text: '. Сколько их проходит — это и есть ' }, { sticker: 'поток Φ', color: GGEGE_PALETTE.purple.button }, { text: '.' }]}
-                    onSettled={() => { setPhase(3); setTimeout(() => setPhase(4), 1600) }}
-                />
-            )}
-            {phase >= 4 && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Вопрос: можно ли получить ' }, { sticker: 'ток', color: CURRENT_COLOR }, { text: ' в кольце без батарейки — только с помощью магнита? Подключим ' }, { bold: 'амперметр' }, { text: '.' }]}
-                    onSettled={() => { setPhase(5); setTimeout(() => setPhase(6), 1300) }}
-                />
-            )}
-            {phase >= 6 && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Магнит просто висит — стрелка на ' }, { bold: 'нуле' }, { text: '. Поток есть, а тока нет. Значит, одного потока мало. Попробуем магнит ' }, { bold: 'подвигать' }, { text: '.' }]}
-                    onSettled={onSettled}
-                />
-            )}
-        </>
-    )
-}
-
-// 1. Зажми и двигай — ток только пока едет.
-const PushScene = ({ onSettled }: { onSettled?: () => void }) => {
-    const [phase, setPhase] = useState(0)
-    const mag = useMagnet(0.1)
-    const [pushed, setPushed] = useState(false)
-    const hadMove = useRef(false)
-    useEffect(() => {
-        if (mag.move !== 0) hadMove.current = true
-        else if (hadMove.current && !pushed) { setPushed(true); setTimeout(() => setPhase(2), 900) }
-    }, [mag.move, pushed])
-    return (
-        <>
-            <TypedLineWithParts
-                parts={[{ bold: 'ЗАЖМИ' }, { text: ' кнопку — магнит поедет к кольцу. Отпусти — остановится. Смотри на ' }, { sticker: 'амперметр', color: CURRENT_COLOR }, { text: '!' }]}
-                onSettled={() => setPhase(1)}
-            />
-            {phase >= 1 && (
-                <DiagramBlock>
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 1400)}>
                     <div className="w-full flex flex-col gap-2">
-                        <LenzView pos={mag.pos} move={mag.move} face={false} devil={false} />
-                        <Bubble
-                            text={mag.move !== 0 ? 'Магнит едет → поток меняется → ток есть' : 'Магнит стоит → поток не меняется → тока нет'}
-                            color={mag.move !== 0 ? CURRENT_COLOR : '#9AA7B0'}
-                        />
-                        <div className="flex gap-2">
-                            <HoldBtn color={RULE_COLOR} pulse={!pushed} onStart={() => mag.start(1)} onRelease={mag.release} disabled={mag.pos >= 1}>⬇ Зажми: к кольцу</HoldBtn>
-                            <HoldBtn color={RULE_COLOR} onStart={() => mag.start(-1)} onRelease={mag.release} disabled={mag.pos <= 0}>⬆ Зажми: от кольца</HoldBtn>
-                        </div>
+                        <LenzView pos={mag.pos} move={mag.move} fieldLines showExt={phase >= 3} showCurrent={phase >= 3} face={false} devil={false} />
+                        {phase >= 4 && (
+                            <motion.div className="flex gap-3" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                                <HoldBtn color={RULE_COLOR} pulse={!pushed} onStart={() => mag.start(1)} onRelease={mag.release} disabled={mag.pos >= 1}>
+                                    <span className="flex justify-center"><ArrowDown size={30} strokeWidth={3} /></span>
+                                </HoldBtn>
+                                <HoldBtn color={RULE_COLOR} pulse={!pushed} onStart={() => mag.start(-1)} onRelease={mag.release} disabled={mag.pos <= 0}>
+                                    <span className="flex justify-center"><ArrowUp size={30} strokeWidth={3} /></span>
+                                </HoldBtn>
+                            </motion.div>
+                        )}
                     </div>
                 </DiagramBlock>
             )}
             {phase >= 2 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Заметил? Пока магнит ' }, { bold: 'ЕХАЛ' }, { text: ' — в кольце бежал ' }, { sticker: 'ток', color: CURRENT_COLOR }, { text: '. Встал — ток ' }, { bold: 'ПРОПАЛ' }, { text: ', хотя поток большой!' }]}
-                    onSettled={() => setPhase(3)}
+                    parts={[{ text: 'Сквозь кольцо проходят стрелки поля ' }, { sticker: 'B', color: FIELD_COLOR }, { text: ' — это и есть ' }, { sticker: 'поток Φ', color: GGEGE_PALETTE.purple.button }, { text: '.' }]}
+                    onSettled={() => { setPhase(3); setTimeout(() => setPhase(4), 1500) }}
                 />
             )}
-            {phase >= 3 && (
-                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1600)}>
+            {phase >= 4 && (
+                <TypedLineWithParts parts={[{ bold: 'НАЖМИ и держи' }]} />
+            )}
+            {phase >= 5 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Оказывается: когда ' }, { bold: 'двигаем' }, { text: ' магнит — в кольце возникает ' }, { sticker: 'ток', color: CURRENT_COLOR }, { text: '. Магнит стоит — тока ' }, { bold: 'нет' }, { text: ', хотя поток есть.' }]}
+                    onSettled={() => setPhase(6)}
+                />
+            )}
+            {phase >= 6 && (
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase(7), 1600)}>
                     <InsightCard>
                         Ток появляется <InsightWord>ТОЛЬКО</InsightWord>, когда поток Φ <InsightWord>МЕНЯЕТСЯ</InsightWord>.
                         <br />Такой ток называют <InsightWord color="#FF9AC8">индукционным</InsightWord>.
                     </InsightCard>
                 </DiagramBlock>
+            )}
+            {phase >= 7 && (
+                <TypedLineWithParts parts={[{ text: 'А ' }, { bold: 'почему' }, { text: ' он возникает? Сейчас разберёмся.' }]} onSettled={onSettled} />
             )}
         </>
     )
@@ -560,7 +547,7 @@ const ChatScene = ({ onSettled }: { onSettled?: () => void }) => {
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'Почему так? Кольцо — жуткий ' }, { bold: 'консерватор' }, { text: '. Ему надо, чтобы поток был ' }, { bold: 'ПОСТОЯННЫЙ' }, { text: '. Подслушаем их чат 👀' }]}
+                parts={[{ text: 'Магнит приближается — внешнее поле ' }, { sticker: 'B', color: FIELD_COLOR }, { text: ' растёт: армия ' }, { bold: 'наступает' }, { text: '. Поток ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ' увеличивается, а кольцо ' }, { bold: 'не хочет' }, { text: ', чтобы поток менялся. Подслушаем их чат 👀' }]}
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
@@ -1020,7 +1007,7 @@ const SpeedScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-const CONCEPT_SCENES = [RestScene, PushScene, ChatScene, BattleScene, PullScene, LenzRuleScene, RepelScene, SpeedScene, HandScene, GameScene]
+const CONCEPT_SCENES = [IntroScene, ChatScene, BattleScene, PullScene, LenzRuleScene, RepelScene, SpeedScene, HandScene, GameScene]
 const INTRO_CONCEPT_STEPS = CONCEPT_SCENES.length
 
 const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
