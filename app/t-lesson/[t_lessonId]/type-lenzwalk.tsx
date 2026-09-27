@@ -215,7 +215,7 @@ const RightHandHint = ({ cx, cy, rx, ry, thumbUp, curlRight }: {
 }
 
 // ===== Диаграмма: магнит над кольцом =====
-const V_W = 320, V_H = 440, CX = 160
+const V_W = 320, V_H = 478, CX = 160
 const RING_CY = 300, RING_RX = 92, RING_RY = 24
 const MAG_W = 48, MAG_H = 104
 const magTopOf = (pos: number) => 20 + pos * 128
@@ -226,8 +226,9 @@ const magTopOf = (pos: number) => 20 + pos * 128
 // дальняя часть кольца (стрелка короче/тоньше), dy > 0 — ближняя (длиннее).
 // Магнит наверху — 1 стрелка по центру; по мере приближения равномерно
 // добавляются всё дальше от центра (все x разные — стрелки не сливаются).
-const EXT_PTS: [number, number][] = [[0, 0], [36, -9], [-36, 9], [-22, -14], [22, 14], [62, 4], [-62, -4], [-52, 12], [52, -12]]
-const extCountOf = (pos: number) => 1 + Math.round(pos * (EXT_PTS.length - 1))
+// Добавляются ПАРАМИ симметрично (слева и справа одновременно): 1 → 3 → 5 → 7 → 9.
+const EXT_PTS: [number, number][] = [[0, 0], [-26, -12], [26, 12], [-42, 10], [42, -10], [-58, -6], [58, 6], [-72, 5], [72, -5]]
+const extCountOf = (pos: number) => 1 + 2 * Math.round(pos * ((EXT_PTS.length - 1) / 2))
 const Arrow3D = ({ dx, dy, dir, color }: { dx: number; dy: number; dir: number; color: string }) => {
     const x = CX + dx, cy = RING_CY + dy
     const len = 70 + dy * 1.6
@@ -355,7 +356,9 @@ const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, 
                             strokeDasharray="6 18" strokeLinecap="round"
                             animate={{ strokeDashoffset: flowRight ? [0, -48] : [0, 48] }}
                             transition={{ duration: 0.6 / speed, repeat: Infinity, ease: 'linear' }} />
-                        <text x={CX + RING_RX + 4} y={RING_CY + RING_RY + 20} fontSize={15} fontWeight={900} fill={CURRENT_COLOR}>I</text>
+                        <g transform={`translate(${CX + RING_RX + 18},${RING_CY + RING_RY + 14})`}>
+                            <PulseSticker text="I" color={CURRENT_COLOR} />
+                        </g>
                     </>
                 )}
                 {handHint && moving && !hideAnswer && (
@@ -430,9 +433,21 @@ const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, 
     )
 }
 
+// Стикер, который пульсирует, пока идёт ток (исчезает вместе с током).
+const PulseSticker = ({ text, color }: { text: string; color: string }) => {
+    const w = text.length > 1 ? 38 : 28
+    return (
+        <motion.g initial={{ scale: 0 }} animate={{ scale: [1, 1.18, 1] }} transition={{ duration: 0.8, repeat: Infinity, ease: 'easeInOut' }}
+            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
+            <rect x={-w / 2} y={-13} width={w} height={26} rx={7} fill="#161F23" stroke={color} strokeWidth={2.5} />
+            <text x={0} y={6} textAnchor="middle" fontSize={16} fontWeight={900} fill={color}>{text}</text>
+        </motion.g>
+    )
+}
+
 // Амперметр под кольцом: провода от кольца, шкала «− 0 +», толстая стрелка.
 // При токе стрелка отклоняется (вправо/влево по направлению тока), шкала подсвечивается.
-const AM_CX = CX, AM_CY = 420, AM_R = 50
+const AM_CX = CX, AM_CY = 458, AM_R = 50
 const Ammeter = ({ needle, on }: { needle: number; on: boolean }) => {
     const ticks = [-80, -60, -40, -20, 0, 20, 40, 60, 80]
     const pt = (deg: number, r: number) => {
@@ -463,7 +478,12 @@ const Ammeter = ({ needle, on }: { needle: number; on: boolean }) => {
                 <line x1={AM_CX} y1={AM_CY + 6} x2={AM_CX} y2={AM_CY - AM_R + 4} stroke={CURRENT_COLOR} strokeWidth={5} strokeLinecap="round" />
             </g>
             <circle cx={AM_CX} cy={AM_CY} r={6} fill="#F2F7FB" />
-            <text x={AM_CX + 24} y={AM_CY - 4} textAnchor="middle" fontSize={13} fontWeight={900} fill="#9AA7B0">A</text>
+            {/* пульсирующий стикер направления тока: стрелка вправо → I+ справа, влево → I− слева */}
+            {needle !== 0 && (
+                <g transform={`translate(${AM_CX + (needle > 0 ? 32 : -32)},${AM_CY - 8})`}>
+                    <PulseSticker text={needle > 0 ? 'I+' : 'I−'} color={CURRENT_COLOR} />
+                </g>
+            )}
         </g>
     )
 }
@@ -546,6 +566,7 @@ const IntroScene = ({ onSettled }: { onSettled?: () => void }) => {
                             <HoldBtn className="flex-none h-16 px-0" color={RULE_COLOR} pulse={phase >= 4 && !pushed} onStart={() => mag.start(1, INTRO_SPEED)} onRelease={mag.release} disabled={mag.pos >= 1}>
                                 <span className="flex justify-center"><ArrowDown size={32} strokeWidth={3} /></span>
                             </HoldBtn>
+                            <span className="-mt-1 text-center text-[11px] font-black leading-tight text-[#9AA7B0]">нажми<br />и держи</span>
                         </motion.div>
                     </div>
                 </DiagramBlock>
@@ -555,9 +576,6 @@ const IntroScene = ({ onSettled }: { onSettled?: () => void }) => {
                     parts={[{ text: 'Стрелки ' }, { sticker: 'B', color: FIELD_COLOR }, { text: ' сквозь кольцо — это ' }, { sticker: 'поток Φ', color: GGEGE_PALETTE.purple.button }, { text: '.' }]}
                     onSettled={() => { setPhase(3); setTimeout(() => setPhase(4), 1500) }}
                 />
-            )}
-            {phase >= 4 && (
-                <TypedLineWithParts parts={[{ bold: 'НАЖМИ и держи' }]} />
             )}
             {phase >= 5 && (
                 <TypedLineWithParts
