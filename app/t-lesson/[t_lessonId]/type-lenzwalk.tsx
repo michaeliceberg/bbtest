@@ -687,18 +687,21 @@ const HpBar = ({ label, color, align, hit }: { label: string; color: string; ali
 )
 
 const MkView = ({ pos, fighting }: { pos: number; fighting: boolean }) => {
-    const magX = 14 + pos * 70
+    const magX = 14 + pos * 40
     const faceX = magX + MK_MAG_W
     // Длина стрелок постоянная; СИЛА поля — толщина/яркость. Чем ближе магнит,
     // тем сильнее его поле у кольца и тем быстрее меняется поток → тем сильнее
     // индукционный ток и его поле B_инд. Поэтому обе «атаки» растут с pos.
-    const ARROW_LEN = 44
+    const ARROW_LEN = 56
     const magTip = faceX + 6 + ARROW_LEN
-    const ringTip = MK_RING_X - 6 - ARROW_LEN
+    // стрелки кольца стартуют от ЛЕВОГО края кольца, а не поверх него —
+    // иначе малиновые стрелки сливаются с малиновым (током) кольцом
+    const ringStart = MK_RING_X - MK_RING_RX - 6
+    const ringTip = ringStart - ARROW_LEN
     const clashX = (magTip + ringTip) / 2
-    const magW = 2.5 + pos * 4.5
-    const indW = 2.5 + pos * 4.5
-    const magOp = 0.55 + pos * 0.45
+    const magW = 3.5 + pos * 4.5
+    const indW = 3.5 + pos * 4.5
+    const magOp = 0.75 + pos * 0.25
     const ringFront = `M ${MK_RING_X} ${MK_Y - MK_RING_RY} A ${MK_RING_RX} ${MK_RING_RY} 0 0 1 ${MK_RING_X} ${MK_Y + MK_RING_RY}`
     const ringBack = `M ${MK_RING_X} ${MK_Y - MK_RING_RY} A ${MK_RING_RX} ${MK_RING_RY} 0 0 0 ${MK_RING_X} ${MK_Y + MK_RING_RY}`
     return (
@@ -723,8 +726,8 @@ const MkView = ({ pos, fighting }: { pos: number; fighting: boolean }) => {
                 {/* ответ кольца: своё поле B влево */}
                 {fighting && MK_ROWS.map((y, i) => (
                     <g key={`r${y}`}>
-                        <motion.g initial={{ opacity: 0, x: 20 }} animate={{ opacity: 0.55 + pos * 0.45, x: 0 }} transition={{ delay: 0.15 + i * 0.08 }}>
-                            <HArrow x1={MK_RING_X - 6} x2={ringTip} y={y} color={OWN_COLOR} width={indW} />
+                        <motion.g initial={{ opacity: 0, x: 20 }} animate={{ opacity: 0.75 + pos * 0.25, x: 0 }} transition={{ delay: 0.15 + i * 0.08 }}>
+                            <HArrow x1={ringStart} x2={ringTip} y={y} color={OWN_COLOR} width={indW} />
                         </motion.g>
                     </g>
                 ))}
