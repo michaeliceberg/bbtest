@@ -334,20 +334,7 @@ const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, 
                             strokeDasharray="6 18" strokeLinecap="round"
                             animate={{ strokeDashoffset: flowRight ? [0, -48] : [0, 48] }}
                             transition={{ duration: 0.6 / speed, repeat: Infinity, ease: 'linear' }} />
-                        <g transform={`translate(${CX},${RING_CY + RING_RY}) rotate(${flowRight ? 0 : 180})`}>
-                            <path d="M-8,-9 L4,0 L-8,9" fill="none" stroke="#fff" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
-                        </g>
                         <text x={CX + RING_RX + 4} y={RING_CY + RING_RY + 20} fontSize={15} fontWeight={900} fill={CURRENT_COLOR}>I</text>
-                        {/* крупная стрелка направления тока под кольцом */}
-                        <g transform={`translate(${CX},${RING_CY + RING_RY + 22})`}>
-                            <motion.g key={`dir${flowRight}`} initial={{ scale: 0.3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                                transition={{ type: 'spring', bounce: 0.55, duration: 0.45 }} style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
-                                <g transform={`rotate(${flowRight ? 0 : 180})`}>
-                                    <line x1={-38} y1={0} x2={30} y2={0} stroke={CURRENT_COLOR} strokeWidth={6} strokeLinecap="round" />
-                                    <path d="M 18 -13 L 34 0 L 18 13" fill="none" stroke={CURRENT_COLOR} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" />
-                                </g>
-                            </motion.g>
-                        </g>
                     </>
                 )}
                 {handHint && moving && !hideAnswer && (
