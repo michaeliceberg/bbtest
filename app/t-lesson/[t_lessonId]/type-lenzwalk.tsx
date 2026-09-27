@@ -1,0 +1,999 @@
+// app/t-lesson/[t_lessonId]/type-lenzwalk.tsx
+//
+// Тип LENZWALK — интерактивный разбор «индукционный ток и правило Ленца»
+// (тема «Электродинамика», сразу после FARADAYWALK/DIRWALK). Стиль — как у
+// FARADAYWALK/DIRWALK: массив сцен CONCEPT_SCENES, накопительный лог,
+// мини-игры руками, эмоции.
+//
+// Главная идея — ток появляется ТОЛЬКО пока поток Φ МЕНЯЕТСЯ: ученик сам
+// ЗАЖИМАЕТ кнопку, магнит едет, пока кнопка зажата — в кольце бежит ток и
+// дёргается стрелка амперметра; отпустил — магнит встал, ток пропал.
+// Аналогия: магнит — злой босс 😈 с армией стрелок B; кольцо — упрямый
+// консерватор: «ТРЕВОГА! ПОТОК МЕНЯЕТСЯ!» 😱 → поднимает свой ток и своё
+// поле B (зелёные щиты 🛡️) против натиска ⚔️; магнит уходит — кольцо
+// плачет 😭 «не уходи!» и своим полем тянет поток обратно.
+//
+// Физика (проверено): кольцо горизонтальное, магнит сверху. N внизу → поле
+// магнита в кольце ВНИЗ. Приближаем → Φ растёт → своё поле кольца ВВЕРХ
+// (против). Удаляем → своё поле ВНИЗ (как у магнита). S внизу — наоборот.
+// Своё поле вверх ⇔ ток против часовой, если смотреть сверху ⇔ на экране
+// (эллипс в перспективе) передняя часть кольца течёт ВПРАВО — та же
+// конвенция, что в DIRWALK (ток вверх → спереди вправо).
+
+'use client'
+
+import { Fragment, useEffect, useRef, useState } from 'react'
+import dynamic from 'next/dynamic'
+import { motion } from 'framer-motion'
+import type { QuestionType } from './page'
+import {
+    DiagramBlock, TypedLine,
+    pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
+    walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
+    isFieryMilestoneTrial, FieryFeedbackBanner, CORRECT_COLOR,
+    SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
+} from '@/components/geometry/WalkthroughLog'
+import { Typewriter } from '@/components/geometry/Typewriter'
+import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
+import { cn } from '@/lib/utils'
+import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
+import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
+
+// lottie-react трогает document на импорте — только ssr:false (см. CLAUDE.md).
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
+
+type Props = {
+    question: QuestionType
+    onAnswer: (answer: string) => void
+    onComplete: (isCorrect: boolean) => void
+}
+
+// Цвета ролей: поле магнита B — синий (как в FARADAYWALK/DIRWALK), ток —
+// малиновый (как в DIRWALK), СВОЁ поле кольца — зелёный, кольцо — бирюзовое
+// (как в FARADAYWALK), полюса N красный / S синий.
+const FIELD_COLOR = GGEGE_PALETTE.blue.button
+const CURRENT_COLOR = GGEGE_PALETTE.raspberry.button
+const OWN_COLOR = GGEGE_PALETTE.green.button
+const RING_COLOR = GGEGE_PALETTE.teal.button
+const RULE_COLOR = GGEGE_PALETTE.orange.button
+const NORTH_COLOR = '#DC605B'
+const SOUTH_COLOR = '#53ADEF'
+const REMEMBER_COLOR = '#F2C35B'
+const CONCEPT_PAUSE_MS = 1000
+const TEXT_CLS = 'w-full text-center text-base md:text-lg text-[#F2F7FB]'
+
+// ===== Общие мелочи (своя копия в каждом *WALK — конвенция проекта) =====
+
+const Sticker = ({ value, color }: { value: React.ReactNode; color: string }) => (
+    <motion.span
+        initial={{ scale: 2.4, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 15 }}
+        className="inline-flex items-center justify-center rounded-lg border-2 px-1.5 py-0.5 font-extrabold align-middle leading-none"
+        style={{ borderColor: color, backgroundColor: hexToRgba(color, 0.18), color }}
+    >
+        {value}
+    </motion.span>
+)
+
+type LinePart = { text: string } | { sticker: string; color: string } | { break: true } | { bold: string }
+const TypedLineWithParts = ({ parts, onSettled }: { parts: LinePart[]; onSettled?: () => void }) => {
+    const [typed, setTyped] = useState(false)
+    const plainText = parts.map((p) => ('text' in p ? p.text : 'sticker' in p ? p.sticker : 'bold' in p ? p.bold : ' ')).join('')
+    return (
+        <div className={TEXT_CLS}>
+            {!typed ? (
+                <Typewriter text={plainText} onDone={() => { setTyped(true); setTimeout(() => onSettled?.(), 450) }} />
+            ) : (
+                <>
+                    {parts.map((p, i) => ('text' in p
+                        ? <span key={i}>{p.text}</span>
+                        : 'sticker' in p
+                            ? <Sticker key={i} value={p.sticker} color={p.color} />
+                            : 'bold' in p
+                                ? <strong key={i} className="font-extrabold">{p.bold}</strong>
+                                : <br key={i} />
+                    ))}
+                </>
+            )}
+        </div>
+    )
+}
+
+const RememberBanner = () => (
+    <div className="w-full flex items-center gap-3">
+        <Lottie animationData={paperPolice} loop autoplay className="w-16 h-16 md:w-20 md:h-20 shrink-0" />
+        <div className="flex-1 flex items-center justify-center rounded-xl px-4 py-3 font-black text-lg text-center"
+            style={{ backgroundColor: hexToRgba(REMEMBER_COLOR, 0.16), border: `2px solid ${REMEMBER_COLOR}`, color: REMEMBER_COLOR }}>
+            ЗАПОМНИ!
+        </div>
+    </div>
+)
+
+// ===== Модель движения магнита =====
+// pos 0 (далеко) … 1 (близко). move: +1 приближается, −1 удаляется, 0 стоит.
+// Движение на setInterval (не rAF) — не замирает в фоне (тот же приём,
+// что в FARADAYWALK).
+type Move = 1 | -1 | 0
+type Pole = 'N' | 'S'
+const STEP = 0.018
+const TICK_MS = 30
+const MIN_MOVE_MS = 450
+
+function useMagnet(initial: number) {
+    const [pos, setPos] = useState(initial)
+    const [move, setMove] = useState<Move>(0)
+    const posRef = useRef(initial)
+    const timer = useRef<ReturnType<typeof setInterval> | null>(null)
+    const startedAt = useRef(0)
+    const releaseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    const stop = () => {
+        if (timer.current) clearInterval(timer.current)
+        timer.current = null
+        setMove(0)
+    }
+    const start = (dir: 1 | -1) => {
+        if (releaseTimer.current) clearTimeout(releaseTimer.current)
+        if (timer.current) clearInterval(timer.current)
+        startedAt.current = Date.now()
+        setMove(dir)
+        timer.current = setInterval(() => {
+            const next = Math.max(0, Math.min(1, posRef.current + dir * STEP))
+            posRef.current = next
+            setPos(next)
+            if (next === 0 || next === 1) stop()
+        }, TICK_MS)
+    }
+    // Короткий тап тоже должен что-то показать — держим движение ≥ MIN_MOVE_MS.
+    const release = () => {
+        const left = MIN_MOVE_MS - (Date.now() - startedAt.current)
+        if (left > 0) releaseTimer.current = setTimeout(stop, left)
+        else stop()
+    }
+    const jump = (p: number) => { posRef.current = p; setPos(p) }
+    useEffect(() => () => {
+        if (timer.current) clearInterval(timer.current)
+        if (releaseTimer.current) clearTimeout(releaseTimer.current)
+    }, [])
+    return { pos, move, start, release, stop, jump }
+}
+
+// Направление поля магнита В КОЛЬЦЕ: N внизу → вниз (−1), S внизу → вверх (+1).
+const extDirOf = (pole: Pole) => (pole === 'N' ? -1 : 1)
+// Своё поле кольца: против роста потока, по его убыванию.
+const ownDirOf = (pole: Pole, move: Move) => (move === 0 ? 0 : -extDirOf(pole) * move)
+
+// ===== Диаграмма: магнит над кольцом =====
+const V_W = 320, V_H = 380, CX = 160
+const RING_CY = 300, RING_RX = 92, RING_RY = 24
+const MAG_W = 48, MAG_H = 104
+const magTopOf = (pos: number) => 20 + pos * 128
+
+// Позиции стрелок поля магнита сквозь кольцо (от центра к краям) —
+// с приближением их больше (поток растёт).
+const EXT_XS = [0, -34, 34, -64, 64, -18, 18, -50, 50]
+const extCountOf = (pos: number) => 2 + Math.round(pos * 7)
+const OWN_XS = [-44, 0, 44]
+
+const ringBackPath = `M ${CX - RING_RX} ${RING_CY} A ${RING_RX} ${RING_RY} 0 0 1 ${CX + RING_RX} ${RING_CY}`
+const ringFrontPath = `M ${CX - RING_RX} ${RING_CY} A ${RING_RX} ${RING_RY} 0 0 0 ${CX + RING_RX} ${RING_CY}`
+
+const VArrow = ({ x, dir, color, len = 70, width = 3.2 }: { x: number; dir: number; color: string; len?: number; width?: number }) => {
+    const y1 = RING_CY - len / 2, y2 = RING_CY + len / 2
+    const tip = dir < 0 ? y2 : y1
+    const s = dir < 0 ? -1 : 1
+    return (
+        <g>
+            <line x1={x} y1={y1} x2={x} y2={y2} stroke={color} strokeWidth={width} strokeLinecap="round" />
+            <path d={`M ${x - 7} ${tip + 9 * s} L ${x} ${tip} L ${x + 7} ${tip + 9 * s}`} fill="none" stroke={color} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" />
+        </g>
+    )
+}
+
+type LenzViewProps = {
+    pos: number
+    move: Move
+    pole?: Pole
+    showCurrent?: boolean   // ток в кольце + амперметр
+    showOwn?: boolean       // своё поле кольца (зелёные щиты)
+    battle?: boolean        // мечи в центре при столкновении
+    hideAnswer?: boolean    // игра: прячем ток/своё поле до ответа
+    face?: boolean          // эмоция кольца
+}
+
+const faceOf = (move: Move, pole: Pole, battle: boolean) => {
+    if (move === 0) return '😌'
+    const own = ownDirOf(pole, move)
+    const growing = own === -extDirOf(pole)
+    if (growing) return battle ? '😤' : '😱'
+    return '😭'
+}
+
+const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, battle = false, hideAnswer = false, face = true }: LenzViewProps) => {
+    const magTop = magTopOf(pos)
+    const ext = extDirOf(pole)
+    const own = ownDirOf(pole, move)
+    const moving = move !== 0
+    const currentOn = showCurrent && moving && !hideAnswer
+    const bottomColor = pole === 'N' ? NORTH_COLOR : SOUTH_COLOR
+    const topColor = pole === 'N' ? SOUTH_COLOR : NORTH_COLOR
+    const extN = extCountOf(pos)
+    // ток: своё поле вверх → спереди вправо (см. шапку файла)
+    const flowRight = own > 0
+    const needle = currentOn ? (flowRight ? 42 : -42) : 0
+
+    return (
+        <div className="relative flex w-full justify-center py-1">
+            <svg viewBox={`0 0 ${V_W} ${V_H}`} className="w-full max-w-[320px] h-auto">
+                {/* задняя половина кольца */}
+                <path d={ringBackPath} fill="none" stroke={currentOn ? CURRENT_COLOR : RING_COLOR} strokeWidth={7} strokeLinecap="round" />
+                {/* поле магнита сквозь кольцо */}
+                {EXT_XS.slice(0, extN).map((dx) => (
+                    <g key={`e${dx}`} opacity={0.9}><VArrow x={CX + dx} dir={ext} color={FIELD_COLOR} /></g>
+                ))}
+                {/* своё поле кольца — зелёные щиты */}
+                {showOwn && moving && !hideAnswer && OWN_XS.map((dx, i) => (
+                    <g key={`o${dx}`}>
+                        <motion.g initial={{ opacity: 0, scale: 0.4 }} animate={{ opacity: 1, scale: 1 }}
+                            transition={{ type: 'spring', bounce: 0.5, delay: i * 0.08 }}
+                            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
+                            <VArrow x={CX + dx + 12} dir={own} color={OWN_COLOR} len={92} width={4.5} />
+                            <text x={CX + dx + 12} y={own > 0 ? RING_CY + 62 : RING_CY - 52} textAnchor="middle" fontSize={18}>🛡️</text>
+                        </motion.g>
+                    </g>
+                ))}
+                {/* передняя половина кольца */}
+                <path d={ringFrontPath} fill="none" stroke={currentOn ? CURRENT_COLOR : RING_COLOR} strokeWidth={7} strokeLinecap="round" />
+                {currentOn && (
+                    <>
+                        <motion.path key={`flow${own}`} d={ringFrontPath} fill="none" stroke="#fff" strokeWidth={3}
+                            strokeDasharray="6 18" strokeLinecap="round"
+                            animate={{ strokeDashoffset: flowRight ? [0, -48] : [0, 48] }}
+                            transition={{ duration: 0.6, repeat: Infinity, ease: 'linear' }} />
+                        <g transform={`translate(${CX},${RING_CY + RING_RY}) rotate(${flowRight ? 0 : 180})`}>
+                            <path d="M-8,-9 L4,0 L-8,9" fill="none" stroke="#fff" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
+                        </g>
+                        <text x={CX + RING_RX + 4} y={RING_CY + RING_RY + 20} fontSize={15} fontWeight={900} fill={CURRENT_COLOR}>I</text>
+                    </>
+                )}
+                {battle && moving && showOwn && !hideAnswer && (
+                    <g transform={`translate(${CX - 12},${RING_CY - 4})`}>
+                        <motion.g animate={{ rotate: [-12, 12, -12], scale: [1, 1.18, 1] }} transition={{ duration: 0.35, repeat: Infinity }}
+                            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
+                            <image href="/magnet-items/sword.webp" x={-26} y={-26} width={52} height={52} />
+                        </motion.g>
+                        <text x={0} y={-34} textAnchor="middle" fontSize={22}>💥</text>
+                    </g>
+                )}
+                {/* магнит */}
+                <g transform={`translate(${CX - MAG_W / 2},${magTop})`}>
+                    <rect x={0} y={0} width={MAG_W} height={MAG_H / 2} rx={6} fill={topColor} />
+                    <rect x={0} y={MAG_H / 2} width={MAG_W} height={MAG_H / 2} rx={6} fill={bottomColor} />
+                    <rect x={0} y={MAG_H / 2 - 6} width={MAG_W} height={12} fill={bottomColor} />
+                    <text x={MAG_W / 2} y={MAG_H / 4 + 7} textAnchor="middle" fontSize={20} fontWeight={900} fill="#fff">{pole === 'N' ? 'S' : 'N'}</text>
+                    <text x={MAG_W / 2} y={(MAG_H * 3) / 4 + 7} textAnchor="middle" fontSize={20} fontWeight={900} fill="#fff">{pole}</text>
+                    <text x={MAG_W + 20} y={30} textAnchor="middle" fontSize={26}>😈</text>
+                </g>
+                {/* стрелка движения магнита */}
+                {moving && (
+                    <text x={CX - MAG_W / 2 - 26} y={magTop + MAG_H / 2 + 8} textAnchor="middle" fontSize={24} fontWeight={900} fill={RULE_COLOR}>
+                        {move > 0 ? '⬇' : '⬆'}
+                    </text>
+                )}
+                {/* эмоция кольца */}
+                {face && (
+                    <text x={CX + RING_RX + 30} y={RING_CY - 10} textAnchor="middle" fontSize={34}>{hideAnswer ? '🤔' : faceOf(move, pole, battle)}</text>
+                )}
+                {/* амперметр */}
+                {showCurrent && (
+                    <g transform={`translate(${46},${RING_CY + 56})`}>
+                        <path d="M -30 0 A 30 30 0 0 1 30 0" fill="#161F23" stroke="#9AA7B0" strokeWidth={2.5} />
+                        <line x1={0} y1={-30} x2={0} y2={-24} stroke="#9AA7B0" strokeWidth={2} />
+                        <g style={{ transform: `rotate(${hideAnswer ? 0 : needle}deg)`, transformOrigin: '0px 0px', transition: 'transform 0.25s cubic-bezier(0.34, 1.6, 0.5, 1)' }}>
+                            <line x1={0} y1={0} x2={0} y2={-26} stroke={CURRENT_COLOR} strokeWidth={3.5} strokeLinecap="round" />
+                        </g>
+                        <circle r={3.5} fill="#F2F7FB" />
+                        <text x={0} y={16} textAnchor="middle" fontSize={11} fontWeight={800} fill="#9AA7B0">ток</text>
+                    </g>
+                )}
+            </svg>
+        </div>
+    )
+}
+
+// Кнопка «зажми, чтобы двигать».
+const HoldBtn = ({ children, color, onStart, onRelease, pulse = false, disabled = false }: {
+    children: React.ReactNode; color: string; onStart: () => void; onRelease: () => void; pulse?: boolean; disabled?: boolean
+}) => (
+    <button
+        type="button"
+        disabled={disabled}
+        onPointerDown={(e) => { e.preventDefault(); if (!disabled) { playSound('/click6.wav'); onStart() } }}
+        onPointerUp={onRelease}
+        onPointerLeave={onRelease}
+        onPointerCancel={onRelease}
+        onContextMenu={(e) => e.preventDefault()}
+        className={cn('flex-1 select-none touch-none rounded-xl border-2 px-3 py-3 text-base font-black disabled:opacity-40', pulse && 'animate-pulse')}
+        style={{ borderColor: color, backgroundColor: hexToRgba(color, 0.16), color }}
+    >
+        {children}
+    </button>
+)
+
+// Реплика кольца под картинкой (живёт по состоянию движения).
+const Bubble = ({ text, color }: { text: string; color: string }) => (
+    <motion.div key={text} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
+        className="mx-auto rounded-2xl border-2 px-4 py-2 text-center text-sm md:text-base font-black"
+        style={{ borderColor: color, backgroundColor: hexToRgba(color, 0.14), color }}>
+        {text}
+    </motion.div>
+)
+
+// ===== Сцены =====
+
+// 0. Магнит просто висит — поток есть, тока нет.
+const RestScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    return (
+        <>
+            <TypedLineWithParts
+                parts={[{ text: 'Помнишь ' }, { sticker: 'поток Φ', color: GGEGE_PALETTE.purple.button }, { text: '? Магнит висит над ' }, { sticker: 'кольцом', color: RING_COLOR }, { text: ' — сквозь кольцо идут стрелки поля ' }, { sticker: 'B', color: FIELD_COLOR }, { text: '.' }]}
+                onSettled={() => setPhase(1)}
+            />
+            {phase >= 1 && (
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 700)}>
+                    <LenzView pos={0.45} move={0} />
+                </DiagramBlock>
+            )}
+            {phase >= 2 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Поток есть. А ' }, { sticker: 'ток', color: CURRENT_COLOR }, { text: ' в кольце? ' }, { bold: 'НЕТУ' }, { text: '. Стрелка амперметра на нуле, кольцо чилит 😌' }]}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// 1. Зажми и двигай — ток только пока едет.
+const PushScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const mag = useMagnet(0.1)
+    const [pushed, setPushed] = useState(false)
+    const hadMove = useRef(false)
+    useEffect(() => {
+        if (mag.move !== 0) hadMove.current = true
+        else if (hadMove.current && !pushed) { setPushed(true); setTimeout(() => setPhase(2), 900) }
+    }, [mag.move, pushed])
+    return (
+        <>
+            <TypedLineWithParts
+                parts={[{ bold: 'ЗАЖМИ' }, { text: ' кнопку — магнит поедет к кольцу. Отпусти — остановится. Смотри на ' }, { sticker: 'амперметр', color: CURRENT_COLOR }, { text: '!' }]}
+                onSettled={() => setPhase(1)}
+            />
+            {phase >= 1 && (
+                <DiagramBlock>
+                    <div className="w-full flex flex-col gap-2">
+                        <LenzView pos={mag.pos} move={mag.move} />
+                        <Bubble
+                            text={mag.move !== 0 ? '😱 Эй! Что-то меняется! Бежим!' : pushed ? '😌 Фух… всё встало. Ток — всё.' : '😌 Чилю…'}
+                            color={mag.move !== 0 ? CURRENT_COLOR : '#9AA7B0'}
+                        />
+                        <div className="flex gap-2">
+                            <HoldBtn color={RULE_COLOR} pulse={!pushed} onStart={() => mag.start(1)} onRelease={mag.release} disabled={mag.pos >= 1}>⬇ Зажми: к кольцу</HoldBtn>
+                            <HoldBtn color={RULE_COLOR} onStart={() => mag.start(-1)} onRelease={mag.release} disabled={mag.pos <= 0}>⬆ Зажми: от кольца</HoldBtn>
+                        </div>
+                    </div>
+                </DiagramBlock>
+            )}
+            {phase >= 2 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Заметил? Пока магнит ' }, { bold: 'ЕХАЛ' }, { text: ' — в кольце бежал ' }, { sticker: 'ток', color: CURRENT_COLOR }, { text: '. Встал — ток ' }, { bold: 'ПРОПАЛ' }, { text: ', хотя поток большой!' }]}
+                    onSettled={() => setPhase(3)}
+                />
+            )}
+            {phase >= 3 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Ток рождается, только когда поток ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ' ' }, { bold: 'МЕНЯЕТСЯ' }, { text: '. Его зовут ' }, { sticker: 'индукционный ток', color: CURRENT_COLOR }, { text: '.' }]}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// 2. Чат: зачем кольцо это делает.
+type ChatMsg = { who: 'magnet' | 'ring'; emoji: string; text: string }
+const CHAT: ChatMsg[] = [
+    { who: 'magnet', emoji: '😈', text: 'Моя армия поля B идёт на вас! Поток, расти!' },
+    { who: 'ring', emoji: '😱', text: 'ВНИМАНИЕ! ТРЕВОГА! ПОТОК МЕНЯЕТСЯ!! А надо, чтоб был постоянный!' },
+    { who: 'ring', emoji: '😤', text: 'Всем по постам! Запускаем СВОЙ ток — он создаст СВОЁ поле B. Против врага! 🛡️' },
+    { who: 'magnet', emoji: '😠', text: 'Эй, вы чего сопротивляетесь?!' },
+]
+const ChatScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const [shown, setShown] = useState(0)
+    useEffect(() => {
+        if (phase < 1) return
+        if (shown >= CHAT.length) { const t = setTimeout(() => setPhase(2), 600); return () => clearTimeout(t) }
+        const t = setTimeout(() => setShown((s) => s + 1), shown === 0 ? 200 : 1500)
+        return () => clearTimeout(t)
+    }, [phase, shown])
+    return (
+        <>
+            <TypedLineWithParts
+                parts={[{ text: 'Почему так? Кольцо — жуткий ' }, { bold: 'консерватор' }, { text: '. Ему надо, чтобы поток был ' }, { bold: 'ПОСТОЯННЫЙ' }, { text: '. Подслушаем их чат 👀' }]}
+                onSettled={() => setPhase(1)}
+            />
+            {phase >= 1 && (
+                <div className="w-full flex flex-col gap-2 rounded-2xl border-2 border-[#3A464E] bg-[#11191D] p-3">
+                    {CHAT.slice(0, shown).map((m, i) => (
+                        <motion.div key={i} initial={{ opacity: 0, y: 12, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', bounce: 0.4 }}
+                            className={cn('flex items-end gap-2', m.who === 'ring' && 'flex-row-reverse')}>
+                            <div className="text-3xl leading-none shrink-0">{m.emoji}</div>
+                            <div className="max-w-[78%] rounded-2xl px-3 py-2 text-sm md:text-base font-bold"
+                                style={m.who === 'magnet'
+                                    ? { backgroundColor: hexToRgba(FIELD_COLOR, 0.18), color: '#F2F7FB', border: `2px solid ${FIELD_COLOR}` }
+                                    : { backgroundColor: hexToRgba(OWN_COLOR, 0.16), color: '#F2F7FB', border: `2px solid ${OWN_COLOR}` }}>
+                                <div className="text-[11px] font-black opacity-70 mb-0.5">{m.who === 'magnet' ? 'Магнит' : 'Кольцо'}</div>
+                                {m.text}
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+            )}
+            {phase >= 2 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Вот так ' }, { sticker: 'индукционный ток', color: CURRENT_COLOR }, { text: ' создаёт своё поле ' }, { sticker: 'B кольца', color: OWN_COLOR }, { text: ' — оно дерётся с полем магнита.' }]}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// 3. Битва: придвигаем — своё поле против.
+const BattleScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const mag = useMagnet(0.1)
+    const [done, setDone] = useState(false)
+    const hadMove = useRef(false)
+    useEffect(() => {
+        if (mag.move === 1) hadMove.current = true
+        else if (mag.move === 0 && hadMove.current && !done) { setDone(true); setTimeout(() => setPhase(2), 800) }
+    }, [mag.move, done])
+    return (
+        <>
+            <TypedLine text="В бой! Зажми и толкай магнит к кольцу ⚔️" className={cn(TEXT_CLS, 'font-extrabold')} onSettled={() => setPhase(1)} delayAfter={200} />
+            {phase >= 1 && (
+                <DiagramBlock>
+                    <div className="w-full flex flex-col gap-2">
+                        <LenzView pos={mag.pos} move={mag.move} showOwn battle />
+                        <Bubble
+                            text={mag.move === 1 ? '😤 Не пройдёшь! Щиты ВВЕРХ!' : mag.move === -1 ? '😭 Куда?! Не уходи!' : '😌 Отбились. Можно выдохнуть'}
+                            color={mag.move !== 0 ? OWN_COLOR : '#9AA7B0'}
+                        />
+                        <div className="flex gap-2">
+                            <HoldBtn color={RULE_COLOR} pulse={!done} onStart={() => { if (mag.pos >= 1) mag.jump(0.1); mag.start(1) }} onRelease={mag.release}>⬇ Зажми: в атаку</HoldBtn>
+                        </div>
+                    </div>
+                </DiagramBlock>
+            )}
+            {phase >= 2 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Поле магнита ' }, { sticker: 'B ⬇', color: FIELD_COLOR }, { text: ' давит вниз, а ' }, { sticker: 'B кольца ⬆', color: OWN_COLOR }, { text: ' упирается вверх. Кольцо ' }, { bold: 'МЕШАЕТ' }, { text: ' потоку расти 🛡️' }]}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// 4. Уходит — кольцо плачет и держит.
+const PullScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const mag = useMagnet(0.95)
+    const [done, setDone] = useState(false)
+    const hadMove = useRef(false)
+    useEffect(() => {
+        if (mag.move === -1) hadMove.current = true
+        else if (mag.move === 0 && hadMove.current && !done) { setDone(true); setTimeout(() => setPhase(2), 800) }
+    }, [mag.move, done])
+    return (
+        <>
+            <TypedLine text="А теперь наоборот: зажми и УВОДИ магнит от кольца." className={cn(TEXT_CLS, 'font-extrabold')} onSettled={() => setPhase(1)} delayAfter={200} />
+            {phase >= 1 && (
+                <DiagramBlock>
+                    <div className="w-full flex flex-col gap-2">
+                        <LenzView pos={mag.pos} move={mag.move} showOwn />
+                        <Bubble
+                            text={mag.move === -1 ? '😭 НЕТ! Поток падает! Не уходи, держу!' : '🥺 …он ушёл'}
+                            color={mag.move !== 0 ? CURRENT_COLOR : '#9AA7B0'}
+                        />
+                        <div className="flex gap-2">
+                            <HoldBtn color={RULE_COLOR} pulse={!done} onStart={() => { if (mag.pos <= 0) mag.jump(0.95); mag.start(-1) }} onRelease={mag.release}>⬆ Зажми: уводи</HoldBtn>
+                        </div>
+                    </div>
+                </DiagramBlock>
+            )}
+            {phase >= 2 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Видел? Теперь ' }, { sticker: 'B кольца', color: OWN_COLOR }, { text: ' смотрит ' }, { bold: 'ТУДА ЖЕ' }, { text: ', что и поле магнита — кольцо пытается удержать уходящий поток. И ' }, { sticker: 'ток', color: CURRENT_COLOR }, { text: ' побежал в другую сторону!' }]}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// 5. ЗАПОМНИ: правило Ленца.
+const LenzRuleScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setPhase(1), 500)}><RememberBanner /></DiagramBlock>
+            {phase >= 1 && (
+                <TypedLineWithParts
+                    parts={[{ sticker: 'Правило Ленца', color: RULE_COLOR }, { text: ': индукционный ток своим полем всегда ' }, { bold: 'МЕШАЕТ' }, { text: ' изменению потока.' }]}
+                    onSettled={() => setPhase(2)}
+                />
+            )}
+            {phase >= 2 && (
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase(3), 400)}>
+                    <div className="grid grid-cols-2 gap-3 w-full">
+                        <div className="rounded-xl border-2 p-3 text-center" style={{ borderColor: OWN_COLOR, backgroundColor: hexToRgba(OWN_COLOR, 0.1) }}>
+                            <div className="text-3xl">😤</div>
+                            <div className="font-black text-[#F2F7FB] mt-1">Поток растёт</div>
+                            <div className="text-sm font-bold mt-1" style={{ color: OWN_COLOR }}>своё B — ПРОТИВ</div>
+                        </div>
+                        <div className="rounded-xl border-2 p-3 text-center" style={{ borderColor: CURRENT_COLOR, backgroundColor: hexToRgba(CURRENT_COLOR, 0.1) }}>
+                            <div className="text-3xl">😭</div>
+                            <div className="font-black text-[#F2F7FB] mt-1">Поток падает</div>
+                            <div className="text-sm font-bold mt-1" style={{ color: CURRENT_COLOR }}>своё B — ТУДА ЖЕ</div>
+                        </div>
+                    </div>
+                </DiagramBlock>
+            )}
+            {phase >= 3 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Кольцо — жадина 🍕: ' }, { bold: 'приходит — не пускает, уходит — не отпускает' }, { text: '.' }]}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// 6. Куда бежит ток: правая рука, большой палец по СВОЕМУ полю кольца.
+const HandScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const [move, setMove] = useState<Move>(1)
+    useEffect(() => {
+        if (phase < 1) return
+        const t = setInterval(() => setMove((m) => (m === 1 ? -1 : 1)), 2600)
+        return () => clearInterval(t)
+    }, [phase])
+    return (
+        <>
+            <TypedLineWithParts
+                parts={[{ text: 'А куда бежит ток? ' }, { sticker: 'Правая рука', color: RULE_COLOR }, { text: ' 👍: большой палец — по ' }, { sticker: 'B кольца', color: OWN_COLOR }, { text: ', согнутые пальцы покажут ' }, { sticker: 'ток', color: CURRENT_COLOR }, { text: '.' }]}
+                onSettled={() => setPhase(1)}
+            />
+            {phase >= 1 && (
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 2400)}>
+                    <div className="w-full flex flex-col items-center gap-1">
+                        <LenzView pos={0.55} move={move} showOwn face={false} />
+                        <div className="text-4xl leading-none -mt-2">{move === 1 ? '👍' : '👎'}</div>
+                        <p className="text-sm font-bold text-[#9AA7B0] text-center">
+                            {move === 1 ? 'Магнит приближается: B кольца вверх → ток спереди вправо' : 'Магнит уходит: B кольца вниз → ток спереди влево'}
+                        </p>
+                    </div>
+                </DiagramBlock>
+            )}
+            {phase >= 2 && (
+                <TypedLine text="Тот самый лайк из урока про направление поля — только теперь палец смотрит по полю кольца." className={TEXT_CLS} onSettled={onSettled} />
+            )}
+        </>
+    )
+}
+
+// 7. Игра: куда смотрит своё поле кольца (или тока нет).
+type Round = { pole: Pole; move: Move }
+const GAME_BASE: Round[] = [
+    { pole: 'N', move: 1 }, { pole: 'N', move: -1 }, { pole: 'S', move: 1 }, { pole: 'S', move: -1 }, { pole: 'N', move: 0 },
+]
+type Ans = 'up' | 'down' | 'none'
+const answerOf = (r: Round): Ans => {
+    const o = ownDirOf(r.pole, r.move)
+    return o === 0 ? 'none' : o > 0 ? 'up' : 'down'
+}
+const hintOf = (r: Round) => {
+    if (r.move === 0) return 'Магнит стоит — поток не меняется, кольцу не с чем бороться 😴'
+    const growing = r.move === 1
+    const ext = extDirOf(r.pole) > 0 ? 'вверх' : 'вниз'
+    return growing
+        ? `Поле магнита в кольце ${ext}, поток растёт — своё поле ПРОТИВ`
+        : `Поле магнита в кольце ${ext}, поток падает — своё поле ТУДА ЖЕ`
+}
+const GameScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const [rounds] = useState<Round[]>(() => {
+        const r = [...GAME_BASE]
+        for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]] }
+        return r
+    })
+    const [round, setRound] = useState(0)
+    const [solved, setSolved] = useState(false)
+    const [wrong, setWrong] = useState<string | null>(null)
+    const [wrongBtn, setWrongBtn] = useState<Ans | null>(null)
+    const [pos, setPos] = useState(0.5)
+    const done = round >= rounds.length
+    const r = rounds[Math.min(round, rounds.length - 1)]
+
+    // Магнит «ездит» по кругу: приближается/удаляется, стоит — стоит.
+    useEffect(() => {
+        if (done) return
+        if (r.move === 0) { setPos(0.55); return }
+        let p = r.move === 1 ? 0.15 : 0.9
+        setPos(p)
+        const t = setInterval(() => {
+            p += r.move * 0.02
+            if (r.move === 1 && p > 0.9) p = 0.15
+            if (r.move === -1 && p < 0.15) p = 0.9
+            setPos(p)
+        }, 40)
+        return () => clearInterval(t)
+    }, [round, done, r.move])
+
+    const pick = (a: Ans) => {
+        if (solved || done) return
+        playSound('/click6.wav')
+        if (a === answerOf(r)) {
+            setSolved(true); setWrong(null); setWrongBtn(null)
+            setTimeout(() => {
+                setSolved(false)
+                setRound((x) => x + 1)
+                if (round + 1 >= rounds.length) setTimeout(() => onSettled?.(), 600)
+            }, 1500)
+        } else {
+            playSound(WRONG_ANSWER_SOUND)
+            setWrongBtn(a)
+            setWrong(`Мимо! ${hintOf(r)}`)
+        }
+    }
+    const BTNS: { a: Ans; label: string }[] = [{ a: 'up', label: '⬆ вверх' }, { a: 'down', label: '⬇ вниз' }, { a: 'none', label: '😴 тока нет' }]
+    return (
+        <>
+            <TypedLine text="Проверь себя! Куда смотрит СВОЁ поле кольца?" className={cn(TEXT_CLS, 'font-extrabold')} onSettled={() => setPhase(1)} delayAfter={200} />
+            {phase >= 1 && (
+                <DiagramBlock>
+                    <div className="w-full flex flex-col items-center gap-2">
+                        <p className="text-sm font-black text-center" style={{ color: '#9AA7B0' }}>
+                            {done ? 'Все раунды пройдены!' : `Раунд ${round + 1} из ${rounds.length} · внизу полюс ${r.pole} · магнит ${r.move === 1 ? 'приближается ⬇' : r.move === -1 ? 'удаляется ⬆' : 'стоит'}`}
+                        </p>
+                        <LenzView key={round} pos={pos} move={r.move} pole={r.pole} showOwn hideAnswer={!solved && !done} />
+                        {!done && (
+                            <div className="grid grid-cols-3 gap-2 w-full">
+                                {BTNS.map(({ a, label }) => (
+                                    <button key={a} type="button" onClick={() => pick(a)} disabled={solved}
+                                        className={cn('min-h-[56px] rounded-xl border-2 text-base font-black transition-colors',
+                                            solved && a === answerOf(r) ? 'border-[#A1D151] bg-[#A1D15122] text-[#A1D151]'
+                                                : wrongBtn === a ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]'
+                                                    : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]')}>
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        {wrong && !solved && <div className="rounded-xl px-4 py-2 text-sm font-bold text-center bg-[#DC605B22] text-[#DC605B]">{wrong}</div>}
+                        {done && <p className="text-lg font-black text-[#A1D151]">Ты понял кольцо лучше, чем оно само 🧠</p>}
+                    </div>
+                    {done && <LocalAnswerConfetti />}
+                </DiagramBlock>
+            )}
+        </>
+    )
+}
+
+const CONCEPT_SCENES = [RestScene, PushScene, ChatScene, BattleScene, PullScene, LenzRuleScene, HandScene, GameScene]
+const INTRO_CONCEPT_STEPS = CONCEPT_SCENES.length
+
+const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
+    const [step, setStep] = useState(0)
+    const [stepReady, setStepReady] = useState(false)
+    const [advancing, setAdvancing] = useState(false)
+    const [nextLabel, setNextLabel] = useState('Дальше')
+    useEffect(() => { setNextLabel(pickWalkthroughNextLabel('Дальше')) }, [step])
+
+    const { bump: bumpNonce, nonceFor } = useReplayNonces()
+    const latestSceneKey = `step-${step}`
+    const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, stepReady)
+    const canGoBack = step > 0
+    const handleReplay = () => { bumpNonce(latestSceneKey); setStepReady(false) }
+    const handleBack = () => {
+        if (advancing || step === 0) return
+        const target = step - 1
+        bumpNonce(`step-${target}`)
+        setStep(target)
+        setStepReady(false)
+    }
+    const handleNext = () => {
+        if (advancing) return
+        setAdvancing(true)
+        setTimeout(() => {
+            if (step + 1 >= INTRO_CONCEPT_STEPS) onDone()
+            else { setStep((s) => s + 1); setStepReady(false) }
+            setAdvancing(false)
+        }, CONCEPT_PAUSE_MS)
+    }
+
+    return (
+        <div className="mx-auto flex w-full max-w-md flex-col items-center gap-4 px-1 pb-8">
+            <div className="w-full flex flex-col gap-4">
+                {CONCEPT_SCENES.map((Scene, i) =>
+                    step >= i ? (
+                        <SceneWrapper key={`step-${i}`} innerRef={sceneRef(`step-${i}`)} active={isSceneActive(`step-${i}`)}>
+                            <Fragment key={`step-${i}-${nonceFor(`step-${i}`)}`}>
+                                <Scene onSettled={() => i === step && setStepReady(true)} />
+                            </Fragment>
+                        </SceneWrapper>
+                    ) : null,
+                )}
+            </div>
+            <div className="w-full flex items-center gap-2">
+                <ReplayButton onClick={handleReplay} disabled={advancing} />
+                <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
+                <button type="button" onClick={handleNext} disabled={!stepReady || advancing}
+                    className={walkthroughButtonClass(stepReady && !advancing)} style={walkthroughButtonStyle(stepReady && !advancing)}>
+                    {nextLabel}
+                </button>
+            </div>
+        </div>
+    )
+}
+
+// ===================================================================
+// ФАЗА "quiz"
+// ===================================================================
+
+type ConceptQuizItem = {
+    renderPrompt: () => React.ReactNode
+    renderOptions: () => React.ReactNode[]
+    correct: number
+    feedback: string
+}
+
+const CONCEPT_QUIZ: ConceptQuizItem[] = [
+    {
+        renderPrompt: () => <>Когда в кольце появляется индукционный ток?</>,
+        renderOptions: () => ['Когда поток Φ большой', 'Когда поток Φ меняется'],
+        correct: 1,
+        feedback: 'Ток есть, только пока поток МЕНЯЕТСЯ.',
+    },
+    {
+        renderPrompt: () => <>Сильный магнит лежит неподвижно прямо в кольце. Ток в кольце есть?</>,
+        renderOptions: () => ['Нет — поток не меняется', 'Да — поле же огромное'],
+        correct: 0,
+        feedback: 'Магнит стоит → поток постоянный → тока нет. Кольцо чилит 😌',
+    },
+    {
+        renderPrompt: () => <>Индукционный ток своим полем…</>,
+        renderOptions: () => ['помогает потоку меняться', 'мешает потоку меняться'],
+        correct: 1,
+        feedback: 'Правило Ленца: всегда МЕШАЕТ изменению потока.',
+    },
+    {
+        renderPrompt: () => <>Магнит <b>приближают</b> к кольцу. Своё поле кольца направлено…</>,
+        renderOptions: () => ['против поля магнита', 'так же, как поле магнита'],
+        correct: 0,
+        feedback: 'Поток растёт → кольцо ставит щиты против 🛡️',
+    },
+    {
+        renderPrompt: () => <>Магнит <b>уводят</b> от кольца. Своё поле кольца направлено…</>,
+        renderOptions: () => ['против поля магнита', 'так же, как поле магнита'],
+        correct: 1,
+        feedback: 'Поток падает → кольцо «держит» его, поле туда же 😭',
+    },
+    {
+        renderPrompt: () => <>Как называется это правило?</>,
+        renderOptions: () => ['Правило Ленца', 'Правило ленивца 🦥'],
+        correct: 0,
+        feedback: 'Эмилий Ленц, 1834 год. Хотя ленивец тоже не любит перемены 😄',
+    },
+    {
+        renderPrompt: () => <>Бонус! Кто сопротивляется изменениям круче кольца? 😏</>,
+        renderOptions: () => ['Я, когда будильник звонит в 7:00 😴'],
+        correct: 0,
+        feedback: 'Правило Ленца в чистом виде — ты своим полем мешаешь утру наступить 😂',
+    },
+]
+
+const pickQuizFeedbackPhrase = (i: number): string =>
+    CORRECT_FEEDBACK_PHRASES[i % CORRECT_FEEDBACK_PHRASES.length]
+
+const QuizAnswerButton = ({
+    children, onClick, disabled, state,
+}: { children: React.ReactNode; onClick?: () => void; disabled?: boolean; state: 'idle' | 'correct' | 'wrong' }) => (
+    <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        className={cn(
+            'flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl border-2 text-base md:text-lg font-bold text-center transition-colors',
+            state === 'correct' && 'border-[#A1D151] bg-[#A1D15122] text-[#A1D151]',
+            state === 'wrong' && 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]',
+            state === 'idle' && 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]',
+        )}
+    >
+        {children}
+    </button>
+)
+
+const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void }) => {
+    const [trialIndex, setTrialIndex] = useState(0)
+    const [checked, setChecked] = useState(false)
+    const [wrongTried, setWrongTried] = useState<number[]>([])
+    const [wrongFlash, setWrongFlash] = useState<string | null>(null)
+    const [hadMistake, setHadMistake] = useState(false)
+    const [advancing, setAdvancing] = useState(false)
+    const [nextLabel, setNextLabel] = useState('Дальше')
+
+    const { bump: bumpNonce, nonceFor } = useReplayNonces()
+    const latestSceneKey = `q-${trialIndex}`
+    const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, checked)
+    const canGoBack = trialIndex > 0
+    const handleReplay = () => bumpNonce(latestSceneKey)
+    const handleBack = () => {
+        if (advancing || trialIndex === 0) return
+        const target = trialIndex - 1
+        bumpNonce(`q-${target}`)
+        setTrialIndex(target)
+        setChecked(false)
+        setWrongTried([])
+        setWrongFlash(null)
+    }
+
+    const handlePick = (i: number, k: number) => {
+        playSound('/click6.wav')
+        if (checked || wrongTried.includes(k)) return
+        if (k === CONCEPT_QUIZ[i].correct) {
+            setChecked(true)
+            setNextLabel(pickWalkthroughNextLabel(trialIndex + 1 >= CONCEPT_QUIZ.length ? 'Готово' : 'Дальше'))
+        } else {
+            playSound(WRONG_ANSWER_SOUND)
+            setHadMistake(true)
+            setWrongTried((w) => [...w, k])
+            setWrongFlash(pickWrongTryPhrase())
+        }
+    }
+
+    const handleNext = () => {
+        if (advancing) return
+        setAdvancing(true)
+        setTimeout(() => {
+            if (trialIndex + 1 >= CONCEPT_QUIZ.length) {
+                setAdvancing(false)
+                onDone(hadMistake)
+                return
+            }
+            setTrialIndex((i) => i + 1)
+            setChecked(false)
+            setWrongTried([])
+            setWrongFlash(null)
+            setAdvancing(false)
+        }, CONCEPT_PAUSE_MS)
+    }
+
+    return (
+        <div className="mx-auto flex w-full max-w-md flex-col items-center gap-4 px-1 pb-8">
+            <div className="w-full flex flex-col gap-4">
+                {Array.from({ length: trialIndex + 1 }).map((_, i) => {
+                    const qq = CONCEPT_QUIZ[i]
+                    const isCurrent = i === trialIndex
+                    const isDone = i < trialIndex || (isCurrent && checked)
+                    const opts = qq.renderOptions()
+                    return (
+                        <SceneWrapper key={`q-${i}`} innerRef={sceneRef(`q-${i}`)} active={isSceneActive(`q-${i}`)}>
+                            <Fragment key={`q-${i}-${nonceFor(`q-${i}`)}`}>
+                                {i === 0 && (
+                                    <div className="w-full flex items-center gap-3" aria-hidden>
+                                        <div className="flex-1 h-px bg-[#3A464E]" />
+                                        <span className="text-xs font-bold uppercase tracking-wide text-[#5C6B73]">Проверим себя</span>
+                                        <div className="flex-1 h-px bg-[#3A464E]" />
+                                    </div>
+                                )}
+                                <div className="relative w-full flex items-center justify-center">
+                                    <div
+                                        className="absolute left-0 top-1/2 -translate-y-1/2 shrink-0 flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
+                                        style={{
+                                            borderColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.55),
+                                            backgroundColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.16),
+                                            color: GGEGE_PALETTE.purple.button,
+                                        }}
+                                    >
+                                        <span>{i + 1}</span>
+                                        <span className="opacity-50 font-normal">/</span>
+                                        <span>{CONCEPT_QUIZ.length}</span>
+                                    </div>
+                                    <p className="w-full pl-16 text-base md:text-lg text-[#F2F7FB] text-center font-bold">
+                                        {qq.renderPrompt()}
+                                    </p>
+                                </div>
+                                {isCurrent && !checked && (
+                                    <>
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {opts.map((opt, oi) => {
+                                                const isWrongTriedOpt = wrongTried.includes(oi)
+                                                return (
+                                                    <QuizAnswerButton key={oi} state={isWrongTriedOpt ? 'wrong' : 'idle'}
+                                                        disabled={isWrongTriedOpt} onClick={() => handlePick(i, oi)}>
+                                                        {opt}
+                                                    </QuizAnswerButton>
+                                                )
+                                            })}
+                                        </div>
+                                        {wrongFlash && (
+                                            <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">
+                                                {wrongFlash}
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                                {isDone && (
+                                    <>
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {opts.map((opt, oi) => {
+                                                const isCorrectOpt = oi === qq.correct
+                                                const isWrongTriedOpt = isCurrent && wrongTried.includes(oi)
+                                                return (
+                                                    <QuizAnswerButton key={oi} disabled
+                                                        state={isCorrectOpt ? 'correct' : (isWrongTriedOpt ? 'wrong' : 'idle')}>
+                                                        {opt}
+                                                    </QuizAnswerButton>
+                                                )
+                                            })}
+                                        </div>
+                                        <FieryFeedbackBanner fiery={isCurrent && isFieryMilestoneTrial(i)}>
+                                            <div className="text-center">
+                                                <div className="font-extrabold" style={{ color: CORRECT_COLOR }}>{pickQuizFeedbackPhrase(i)}</div>
+                                                <div className="mt-1 text-sm text-[#F2F7FB]">{qq.feedback}</div>
+                                            </div>
+                                        </FieryFeedbackBanner>
+                                    </>
+                                )}
+                                {isCurrent && checked && <LocalAnswerConfetti />}
+                            </Fragment>
+                        </SceneWrapper>
+                    )
+                })}
+            </div>
+
+            {checked && (
+                <div className="w-full flex items-center gap-2">
+                    <ReplayButton onClick={handleReplay} disabled={advancing} />
+                    <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
+                    <button type="button" onClick={handleNext} disabled={advancing}
+                        className={walkthroughButtonClass(!advancing)} style={walkthroughButtonStyle(!advancing)}>
+                        {trialIndex + 1 >= CONCEPT_QUIZ.length ? 'Готово' : nextLabel}
+                    </button>
+                </div>
+            )}
+        </div>
+    )
+}
+
+// ===== Основной компонент =====
+
+export const TypeLenzWalk = ({ onAnswer, onComplete }: Props) => {
+    const [phase, setPhase] = useState<'concept' | 'quiz'>('concept')
+    const finishedRef = useRef(false)
+    const handleFinish = (hadMistake: boolean) => {
+        if (finishedRef.current) return
+        finishedRef.current = true
+        onComplete(!hadMistake)
+        onAnswer(hadMistake ? 'wrong' : 'right')
+    }
+    if (phase === 'concept') return <ConceptPhase onDone={() => setPhase('quiz')} />
+    return <ConceptQuizPhase onDone={handleFinish} />
+}

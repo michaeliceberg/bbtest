@@ -925,6 +925,23 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             };
         }
 
+        if (t_challenge.type === 'LENZWALK') {
+            // Индукционный ток и правило Ленца — самодостаточный разбор, см. type-lenzwalk.tsx.
+            return {
+                questionType: 'LENZWALK' as const,
+                question: t_challenge.question,
+                imageSrc: t_challenge.imageSrc,
+                options: [],
+                numRans: t_challenge.numRans,
+                optionsQ: [],
+                optionsA: [],
+                optionsConstructRight: [],
+                difficulty: t_challenge.difficulty,
+                correctAnswer: 'right',
+                timeLimit: 999,
+            };
+        }
+
         if (t_challenge.type === 'DIRWALK') {
             // Тот же самодостаточный принцип, что у FARADAYWALK/SINWALK —
             // разбор "направление магнитного поля" вокруг прямого провода

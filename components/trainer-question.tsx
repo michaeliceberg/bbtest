@@ -35,6 +35,7 @@ import { TypeLogComboWalk } from "@/app/t-lesson/[t_lessonId]/type-logcombowalk"
 import { TypeLogFlipWalk } from "@/app/t-lesson/[t_lessonId]/type-logflipwalk"
 import { TypeFaradayWalk } from "@/app/t-lesson/[t_lessonId]/type-faradaywalk"
 import { TypeDirWalk } from "@/app/t-lesson/[t_lessonId]/type-dirwalk"
+import { TypeLenzWalk } from "@/app/t-lesson/[t_lessonId]/type-lenzwalk"
 import { TypeSinCosDefWalk } from "@/app/t-lesson/[t_lessonId]/type-sincosdefwalk"
 import { TypeLegFindWalk } from "@/app/t-lesson/[t_lessonId]/type-legfindwalk"
 import { TypeTrigValWalk } from "@/app/t-lesson/[t_lessonId]/type-trigvalwalk"
@@ -408,6 +409,10 @@ export default function TrainerQuestion({
         // правило буравчика/крышечки от колы. См. type-dirwalk.tsx.
         return <TypeDirWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
 
+      case "LENZWALK":
+        // Индукционный ток и правило Ленца — магнит vs кольцо. См. type-lenzwalk.tsx.
+        return <TypeLenzWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
+
       case "TRIGSCWALK":
         // «Три волшебных угла»: синус и косинус 30°/45°/60° — см. type-trigvalwalk.tsx.
         return <TypeTrigValWalk mode="sincos" question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
@@ -678,6 +683,8 @@ export default function TrainerQuestion({
                 // же приём, что уже у FARADAYWALK выше.
                 : question.questionType === "DIRWALK"
                 ? "Направление поля"
+                : question.questionType === "LENZWALK"
+                ? "Индукционный ток"
                 // SINWALK хранит в question заголовок урока ("Что такое
                 // синус угла?" — заголовок ПЕРВОГО, sin/cos/tg-урока темы,
                 // не отражает содержимое ИМЕННО этого разбора про катеты)
@@ -757,7 +764,7 @@ export default function TrainerQuestion({
           прямой просьбе пользователя. TRIGTABLE (как ASSIST/INSERT/
           SCROLL) — select-then-submit: общая кнопка сначала "Ответить"
           (когда все пропуски заполнены), затем "далее"/"понятно". */}
-      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "SINWALK" && question.questionType !== "LOGWALK" && question.questionType !== "LOGDEFWALK" && question.questionType !== "LOGSUBWALK" && question.questionType !== "LOGPOWWALK" && question.questionType !== "LOGSWAPWALK" && question.questionType !== "LOGDIVWALK" && question.questionType !== "LOGCOMBOWALK" && question.questionType !== "LOGFLIPWALK" && question.questionType !== "FARADAYWALK" && question.questionType !== "DIRWALK" && question.questionType !== "SINCOSDEFWALK" && question.questionType !== "LEGFINDWALK" && question.questionType !== "TRIGSCWALK" && question.questionType !== "TRIGTGWALK" && question.questionType !== "TRIGCIRCWALK" && (
+      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "SINWALK" && question.questionType !== "LOGWALK" && question.questionType !== "LOGDEFWALK" && question.questionType !== "LOGSUBWALK" && question.questionType !== "LOGPOWWALK" && question.questionType !== "LOGSWAPWALK" && question.questionType !== "LOGDIVWALK" && question.questionType !== "LOGCOMBOWALK" && question.questionType !== "LOGFLIPWALK" && question.questionType !== "FARADAYWALK" && question.questionType !== "DIRWALK" && question.questionType !== "LENZWALK" && question.questionType !== "SINCOSDEFWALK" && question.questionType !== "LEGFINDWALK" && question.questionType !== "TRIGSCWALK" && question.questionType !== "TRIGTGWALK" && question.questionType !== "TRIGCIRCWALK" && (
       <div className="px-4 pb-4 pt-2 bg-[#151F24] relative">
         {/* Notification фон который выезжает при правильном ответе */}
         {answerState === "correct" && (
