@@ -34,7 +34,7 @@ import {
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
-import { InsightCard, InsightWord, CharacterCard } from '@/components/geometry/WalkthroughCards'
+import { InsightCard, InsightWord } from '@/components/geometry/WalkthroughCards'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
 import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
@@ -240,6 +240,24 @@ const VArrow = ({ x, dir, color, len = 70, width = 3.2 }: { x: number; dir: numb
     )
 }
 
+// Бледные силовые линии вокруг магнита (как на схеме полосового магнита):
+// каждая петля выходит из нижнего полюса, огибает магнит сбоку и входит в верхний.
+const MagnetFieldLoops = ({ magTop, pole }: { magTop: number; pole: Pole }) => {
+    const yb = magTop + MAG_H - 4, yt = magTop + 4
+    const loops = [34, 62, 92]
+    return (
+        <g opacity={0.35}>
+            {loops.flatMap((w, i) => [1, -1].map((side) => (
+                <motion.path key={`${w}${side}`}
+                    d={`M ${CX} ${yb} C ${CX + side * w * 1.35} ${yb + 40 + i * 30}, ${CX + side * w * 1.35} ${yt - 40 - i * 30}, ${CX} ${yt}`}
+                    fill="none" stroke={FIELD_COLOR} strokeWidth={2.2}
+                    initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.9, delay: i * 0.15 }} />
+            )))}
+            <text x={CX + 62 * 1.35 + 18} y={magTop + MAG_H / 2 + 5} fontSize={14} fontWeight={900} fill={FIELD_COLOR}>B</text>
+        </g>
+    )
+}
+
 type LenzViewProps = {
     pos: number
     move: Move
@@ -253,6 +271,9 @@ type LenzViewProps = {
     showForce?: boolean     // кольцо отталкивает/тянет магнит (следствие Ленца)
     wobble?: boolean        // дрожание магнита при showForce (в стоп-кадре выключаем)
     handHint?: boolean      // схема правой руки: палец по своему B, пальцы по току
+    showExt?: boolean       // стрелки поля магнита сквозь кольцо (поток)
+    fieldLines?: boolean    // бледные силовые линии вокруг магнита
+    devil?: boolean         // рожица на магните (в спокойных вступительных сценах выключаем)
 }
 
 const faceOf = (move: Move, pole: Pole, battle: boolean) => {
@@ -263,7 +284,7 @@ const faceOf = (move: Move, pole: Pole, battle: boolean) => {
     return '😭'
 }
 
-const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, battle = false, hideAnswer = false, face = true, speed = 1, showForce = false, wobble = true, handHint = false }: LenzViewProps) => {
+const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, battle = false, hideAnswer = false, face = true, speed = 1, showForce = false, wobble = true, handHint = false, showExt = true, fieldLines = false, devil = true }: LenzViewProps) => {
     const magTop = magTopOf(pos)
     const ext = extDirOf(pole)
     const own = ownDirOf(pole, move)
@@ -283,9 +304,15 @@ const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, 
             <svg viewBox={`0 0 ${V_W} ${V_H}`} className="w-full max-w-[320px] h-auto">
                 {/* задняя половина кольца */}
                 <path d={ringBackPath} fill="none" stroke={currentOn ? CURRENT_COLOR : RING_COLOR} strokeWidth={7} strokeLinecap="round" />
+                {/* бледные силовые линии магнита: выходят из N, огибают магнит и входят в S */}
+                {fieldLines && <MagnetFieldLoops magTop={magTop} pole={pole} />}
                 {/* поле магнита сквозь кольцо */}
-                {EXT_XS.slice(0, extN).map((dx) => (
-                    <g key={`e${dx}`} opacity={0.9}><VArrow x={CX + dx} dir={ext} color={FIELD_COLOR} /></g>
+                {showExt && EXT_XS.slice(0, extN).map((dx, i) => (
+                    <g key={`e${dx}`}>
+                        <motion.g initial={{ opacity: 0 }} animate={{ opacity: 0.9 }} transition={{ duration: 0.35, delay: i * 0.12 }}>
+                            <VArrow x={CX + dx} dir={ext} color={FIELD_COLOR} />
+                        </motion.g>
+                    </g>
                 ))}
                 {/* своё поле кольца — зелёные щиты */}
                 {showOwn && moving && !hideAnswer && OWN_XS.map((dx, i) => (
@@ -335,11 +362,11 @@ const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, 
                     <rect x={0} y={MAG_H / 2 - 6} width={MAG_W} height={12} fill={bottomColor} />
                     <text x={MAG_W / 2} y={MAG_H / 4 + 7} textAnchor="middle" fontSize={20} fontWeight={900} fill="#fff">{pole === 'N' ? 'S' : 'N'}</text>
                     <text x={MAG_W / 2} y={(MAG_H * 3) / 4 + 7} textAnchor="middle" fontSize={20} fontWeight={900} fill="#fff">{pole}</text>
-                    <motion.text key={showForce && moving ? `f${move}` : 'devil'} x={MAG_W + 22} y={30} textAnchor="middle" fontSize={34}
+                    {devil && <motion.text key={showForce && moving ? `f${move}` : 'devil'} x={MAG_W + 22} y={30} textAnchor="middle" fontSize={34}
                         initial={{ scale: 0.3 }} animate={{ scale: 1 }} transition={{ type: 'spring', bounce: 0.6, duration: 0.45 }}
                         style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
                         {showForce && moving ? (move > 0 ? '😣' : '😯') : '😈'}
-                    </motion.text>
+                    </motion.text>}
                   </motion.g>
                 </g>
                 {/* сила от кольца на магнит */}
@@ -424,23 +451,39 @@ const Bubble = ({ text, color }: { text: string; color: string }) => (
 
 // ===== Сцены =====
 
-// 0. Магнит просто висит — поток есть, тока нет.
+// 0. Вступление: магнит → его поле → поток сквозь кольцо → а ток есть?
+// Сначала честно ставим вопрос «можно ли получить ток от магнита без
+// батарейки», и только потом показываем амперметр на нуле — так «тока нет»
+// становится ответом на вопрос, а не странным заявлением.
 const RestScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
+    const next = (p: number, ms = 700) => () => setTimeout(() => setPhase(p), ms)
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'Помнишь ' }, { sticker: 'поток Φ', color: GGEGE_PALETTE.purple.button }, { text: '? Магнит висит над ' }, { sticker: 'кольцом', color: RING_COLOR }, { text: ' — сквозь кольцо идут стрелки поля ' }, { sticker: 'B', color: FIELD_COLOR }, { text: '.' }]}
+                parts={[{ text: 'Помнишь ' }, { sticker: 'поток Φ', color: GGEGE_PALETTE.purple.button }, { text: '? Магнит висит над металлическим ' }, { sticker: 'кольцом', color: RING_COLOR }, { text: '.' }]}
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
-                <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 700)}>
-                    <LenzView pos={0.45} move={0} />
+                <DiagramBlock onSettled={next(2, 1400)}>
+                    <LenzView pos={0.45} move={0} fieldLines showExt={phase >= 3} showCurrent={phase >= 5} face={false} devil={false} />
                 </DiagramBlock>
             )}
             {phase >= 2 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Поток есть. А ' }, { sticker: 'ток', color: CURRENT_COLOR }, { text: ' в кольце? ' }, { bold: 'НЕТУ' }, { text: '. Стрелка амперметра на нуле, кольцо чилит 😌' }]}
+                    parts={[{ text: 'Сквозь кольцо проходят стрелки поля ' }, { sticker: 'B', color: FIELD_COLOR }, { text: '. Сколько их проходит — это и есть ' }, { sticker: 'поток Φ', color: GGEGE_PALETTE.purple.button }, { text: '.' }]}
+                    onSettled={() => { setPhase(3); setTimeout(() => setPhase(4), 1600) }}
+                />
+            )}
+            {phase >= 4 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Вопрос: можно ли получить ' }, { sticker: 'ток', color: CURRENT_COLOR }, { text: ' в кольце без батарейки — только с помощью магнита? Подключим ' }, { bold: 'амперметр' }, { text: '.' }]}
+                    onSettled={() => { setPhase(5); setTimeout(() => setPhase(6), 1300) }}
+                />
+            )}
+            {phase >= 6 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Магнит просто висит — стрелка на ' }, { bold: 'нуле' }, { text: '. Поток есть, а тока нет. Значит, одного потока мало. Попробуем магнит ' }, { bold: 'подвигать' }, { text: '.' }]}
                     onSettled={onSettled}
                 />
             )}
@@ -467,9 +510,9 @@ const PushScene = ({ onSettled }: { onSettled?: () => void }) => {
             {phase >= 1 && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col gap-2">
-                        <LenzView pos={mag.pos} move={mag.move} />
+                        <LenzView pos={mag.pos} move={mag.move} face={false} devil={false} />
                         <Bubble
-                            text={mag.move !== 0 ? '😱 Эй! Что-то меняется! Бежим!' : pushed ? '😌 Фух… всё встало. Ток — всё.' : '😌 Чилю…'}
+                            text={mag.move !== 0 ? 'Магнит едет → поток меняется → ток есть' : 'Магнит стоит → поток не меняется → тока нет'}
                             color={mag.move !== 0 ? CURRENT_COLOR : '#9AA7B0'}
                         />
                         <div className="flex gap-2">
@@ -486,28 +529,11 @@ const PushScene = ({ onSettled }: { onSettled?: () => void }) => {
                 />
             )}
             {phase >= 3 && (
-                <DiagramBlock onSettled={() => setTimeout(() => setPhase(4), 1600)}>
+                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1600)}>
                     <InsightCard>
                         Ток появляется <InsightWord>ТОЛЬКО</InsightWord>, когда поток Φ <InsightWord>МЕНЯЕТСЯ</InsightWord>.
-                        <br />Его зовут <InsightWord color="#FF9AC8">индукционный ток</InsightWord>.
+                        <br />Такой ток называют <InsightWord color="#FF9AC8">индукционным</InsightWord>.
                     </InsightCard>
-                </DiagramBlock>
-            )}
-            {phase >= 4 && (
-                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 2200)}>
-                    <CharacterCard
-                        avatar="🫡"
-                        badge="⚡"
-                        title="Его Сопротивлейшество"
-                        name="ИНДУКЦИОННЫЙ ТОК"
-                        accent="#FF9AC8"
-                        tagline="Командир партизан кольца. Спит, пока всё спокойно, — и мгновенно поднимает отряд, стоит потоку дрогнуть."
-                        stats={[
-                            { icon: '🎯', label: 'Появляется', value: 'только когда Φ меняется' },
-                            { icon: '🛡️', label: 'Суперсила', value: 'мешать изменениям' },
-                            { icon: '😴', label: 'Слабость', value: 'магнит стоит — спит' },
-                        ]}
-                    />
                 </DiagramBlock>
             )}
         </>
@@ -1073,7 +1099,7 @@ const CONCEPT_QUIZ: ConceptQuizItem[] = [
         renderPrompt: () => <>Сильный магнит лежит неподвижно прямо в кольце. Ток в кольце есть?</>,
         renderOptions: () => ['Нет — поток не меняется', 'Да — поле же огромное'],
         correct: 0,
-        feedback: 'Магнит стоит → поток постоянный → тока нет. Кольцо чилит 😌',
+        feedback: 'Магнит стоит → поток постоянный → тока нет.',
     },
     {
         renderPrompt: () => <>Индукционный ток своим полем…</>,
