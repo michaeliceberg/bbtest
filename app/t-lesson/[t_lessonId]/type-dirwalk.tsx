@@ -303,7 +303,7 @@ const WireScene = ({ cur, rings = [], compasses = false, hand = false, dotCross 
 const BigBtn = ({ children, onClick, color, pulse = true }: { children: React.ReactNode; onClick: () => void; color: string; pulse?: boolean }) => (
     <button
         type="button"
-        onClick={() => { playSound('/click6.wav'); onClick() }}
+        onClick={() => { onClick() }}
         className={cn('mx-auto flex items-center gap-2 rounded-xl border-2 px-5 py-3 text-lg font-black', pulse && 'animate-pulse')}
         style={{ borderColor: color, backgroundColor: hexToRgba(color, 0.16), color }}
     >
@@ -439,7 +439,6 @@ const FieldGameScene = ({ onSettled }: { onSettled?: () => void }) => {
     const cur = rounds[Math.min(round, GAME_ROUNDS - 1)]
     const pick = (side: 'L' | 'R') => {
         if (solved || done) return
-        playSound('/click6.wav')
         const correct = cur === 1 ? 'R' : 'L'
         if (side === correct) {
             setSolved(true); setWrong(null); setWrongBtn(null)
@@ -668,7 +667,6 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
     }
 
     const handlePick = (i: number, k: number) => {
-        playSound('/click6.wav')
         if (checked || wrongTried.includes(k)) return
         if (k === CONCEPT_QUIZ[i].correct) {
             setChecked(true)

@@ -581,7 +581,6 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
     }, [confettiFor])
 
     const handleQuizPick = (stepIdx: number, value: number, correct: number) => {
-        playSound('/click6.wav')
         if (quizAnswers[stepIdx] !== null) return
         if (quizWrongTried.includes(value)) return
         if (value !== correct) {
@@ -603,7 +602,6 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
     }
 
     const handleExistPick = (guess: boolean) => {
-        playSound('/click6.wav')
         if (existChecked) return
         const next = [...existAnswers]
         next[existIndex] = guess

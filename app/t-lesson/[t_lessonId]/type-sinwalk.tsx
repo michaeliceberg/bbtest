@@ -442,7 +442,6 @@ export const TypeSinWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) =>
     const currentCorrectSide = correctSideFor(trialConfigs[trialIndex])
 
     const handleSideClick = (side: SideId) => {
-        playSound('/click6.wav')
         if (checked) return
         if (wrongTried.includes(side)) return
         if (side === currentCorrectSide) {

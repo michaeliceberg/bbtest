@@ -422,7 +422,6 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
     )!
 
     const handleOptionClick = (option: SwapOption) => {
-        playSound('/click6.wav')
         if (checked) return
         if (wrongTried.some((w) => sameOption(w, option))) return
         if (sameOption(option, currentCorrectOption)) {

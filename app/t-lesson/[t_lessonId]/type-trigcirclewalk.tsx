@@ -307,7 +307,6 @@ const AxisGameScene = ({ onSettled }: { onSettled?: () => void }) => {
     }, [wrong])
     const tap = (a: Axis) => {
         if (done) return
-        playSound('/click6.wav')
         if (a === cur) {
             setFilled(filled + 1)
             setWrong(null)
@@ -384,7 +383,7 @@ const AngleBadge = ({ rad, deg, color }: { rad: string; deg: string; color: stri
 const CutButton = ({ label, onClick }: { label: string; onClick: () => void }) => (
     <button
         type="button"
-        onClick={() => { playSound('/click6.wav'); onClick() }}
+        onClick={() => { onClick() }}
         className="flex items-center gap-2 rounded-xl border-2 px-5 py-3 text-lg font-black animate-pulse"
         style={{ borderColor: ATTENTION, backgroundColor: hexToRgba(ATTENTION, 0.16), color: ATTENTION }}
     >
@@ -447,7 +446,6 @@ const SignScene = ({ onSettled }: { onSettled?: () => void }) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [both])
     const press = (k: 'plus' | 'minus') => {
-        playSound('/click6.wav')
         setShown(k)
         setTried((t) => ({ ...t, [k]: true }))
     }
@@ -539,7 +537,7 @@ const TgScene = ({ onSettled }: { onSettled?: () => void }) => {
                 <div className="w-full flex justify-center">
                     <button
                         type="button"
-                        onClick={() => { playSound('/click6.wav'); setPhase(4) }}
+                        onClick={() => { setPhase(4) }}
                         className="rounded-xl border-2 px-5 py-3 text-lg font-black animate-pulse"
                         style={{ borderColor: TG_COLOR, backgroundColor: hexToRgba(TG_COLOR, 0.16), color: TG_COLOR }}
                     >
@@ -589,7 +587,6 @@ export const TypeTrigCircleWalk = ({ onAnswer, onComplete }: Props) => {
     useEffect(() => { setIntroNextLabel(pickWalkthroughNextLabel('Дальше')) }, [step])
 
     const handleOptionClick = (t: Trial, o: string) => {
-        playSound('/click6.wav')
         if (checked || wrongTried.includes(o)) return
         if (o === t.correct) {
             setChecked(true)

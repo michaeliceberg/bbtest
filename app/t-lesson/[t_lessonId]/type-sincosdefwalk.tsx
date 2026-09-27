@@ -357,7 +357,6 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
     }
 
     const handlePoolClick = (value: number) => {
-        playSound('/click6.wav')
         if (checked) return
         setWrongFlash(null)
         if (activeSlot === 'num') {

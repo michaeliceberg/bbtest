@@ -439,7 +439,7 @@ const HoldBtn = ({ children, color, onStart, onRelease, pulse = false, disabled 
     <button
         type="button"
         disabled={disabled}
-        onPointerDown={(e) => { e.preventDefault(); if (!disabled) { playSound('/click6.wav'); onStart() } }}
+        onPointerDown={(e) => { e.preventDefault(); if (!disabled) { onStart() } }}
         onPointerUp={onRelease}
         onPointerLeave={onRelease}
         onPointerCancel={onRelease}
@@ -928,7 +928,6 @@ const GameScene = ({ onSettled }: { onSettled?: () => void }) => {
 
     const pick = (a: Ans) => {
         if (solved || done) return
-        playSound('/click6.wav')
         if (a === answerOf(r)) {
             setSolved(true); setWrong(null); setWrongBtn(null)
             setTimeout(() => {
@@ -1031,7 +1030,6 @@ const RepelScene = ({ onSettled }: { onSettled?: () => void }) => {
     }
     const run = (d: 1 | -1) => {
         if (stage !== 'idle') return
-        playSound('/click6.wav')
         setDir(d)
         // стартуем с понятной позиции
         posRef.current = d === 1 ? 0.3 : 0.75; setPos(posRef.current)
@@ -1334,7 +1332,6 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
     }
 
     const handlePick = (i: number, k: number) => {
-        playSound('/click6.wav')
         if (checked || wrongTried.includes(k)) return
         if (k === CONCEPT_QUIZ[i].correct) {
             setChecked(true)

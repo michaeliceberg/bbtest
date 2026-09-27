@@ -221,7 +221,6 @@ const OrderGameScene = ({ onSettled }: { onSettled?: () => void }) => {
     const done = picked.length === ANGLES.length
     const tap = (a: number) => {
         if (done || picked.includes(a)) return
-        playSound('/click6.wav')
         if (a === ANGLES[picked.length]) {
             const next = [...picked, a]
             setPicked(next)
@@ -424,7 +423,6 @@ const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled }: {
     }, [wrongId, wrongNonce])
     const tap = (tok: { id: number; key: string }) => {
         if (done || !cur) return
-        playSound('/click6.wav')
         if (tok.key === cur.key) {
             const next = [...used, tok.id]
             setUsed(next)
@@ -901,7 +899,6 @@ export const TypeTrigValWalk = ({ onAnswer, onComplete, mode }: Props) => {
     useEffect(() => { setIntroNextLabel(pickWalkthroughNextLabel('Дальше')) }, [step])
 
     const handleOptionClick = (t: Trial, o: Opt) => {
-        playSound('/click6.wav')
         if (checked) return
         const k = optKey(o)
         if (wrongTried.includes(k)) return

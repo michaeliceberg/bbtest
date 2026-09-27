@@ -642,7 +642,6 @@ export const TypeLogDivWalk = ({ onAnswer, onComplete }: Props) => {
     const currentCorrectOption: LogOption = { base: trials[trialIndex].y, arg: trials[trialIndex].x }
 
     const handleOptionClick = (option: LogOption) => {
-        playSound('/click6.wav')
         if (checked) return
         if (wrongTried.some((w) => sameOption(w, option))) return
         if (sameOption(option, currentCorrectOption)) {

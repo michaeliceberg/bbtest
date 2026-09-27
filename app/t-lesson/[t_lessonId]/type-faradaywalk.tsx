@@ -624,7 +624,6 @@ const DistanceScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [idx, setIdx] = useState(0)
     const [done, setDone] = useState(false)
     const pick = (i: number) => {
-        playSound('/click6.wav')
         setIdx(i)
         if (i === 2 && !done) { setDone(true); onSettled?.() }
     }
@@ -961,7 +960,6 @@ const MagnetTapScene = ({ onSettled }: { onSettled?: () => void }) => {
                                 style={{ cursor: phase === 1 ? 'pointer' : 'default' }}
                                 onClick={() => {
                                     if (phase !== 1) return
-                                    playSound('/click6.wav')
                                     setPhase(2)
                                     setTimeout(() => onSettled?.(), 1600)
                                 }}
@@ -1024,7 +1022,6 @@ const PoleGameScene = ({ onSettled }: { onSettled?: () => void }) => {
     }, [wrong])
     const tap = (p: Pole) => {
         if (done) return
-        playSound('/click6.wav')
         if (p === cur) {
             setFilled(filled + 1)
             setWrong(null)
@@ -1111,7 +1108,6 @@ const RingChoiceScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [picked, setPicked] = useState(false)
     const pick = (k: RingKind) => {
         if (picked || wrongTried.includes(k)) return
-        playSound('/click6.wav')
         if (k === 'metal') {
             setPicked(true)
             setMsg(null)
@@ -1183,7 +1179,6 @@ const RingSizeScene = ({ onSettled }: { onSettled?: () => void }) => {
     const change = (d: number) => {
         const n = Math.max(0, Math.min(RING_SIZES.length - 1, size + d))
         if (n === size) return
-        playSound('/click6.wav')
         setSize(n)
         if (n === RING_SIZES.length - 1 && !maxed) {
             setMaxed(true)
@@ -1278,7 +1273,6 @@ const FluxGameScene = ({ onSettled }: { onSettled?: () => void }) => {
     }, [won])
     const toggle = (kind: 'mag' | 'ring', v: number) => {
         if (won) return
-        playSound('/click6.wav')
         if (kind === 'mag') setMag(v)
         else setRingIdx(v)
     }
@@ -1587,7 +1581,6 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
     }
 
     const handlePick = (i: number, k: number) => {
-        playSound('/click6.wav')
         if (checked || wrongTried.includes(k)) return
         if (k === CONCEPT_QUIZ[i].correct) {
             setChecked(true)

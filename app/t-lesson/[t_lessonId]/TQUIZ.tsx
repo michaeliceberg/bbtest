@@ -196,7 +196,6 @@ export default function TQuiz({
     preloadSound(WIN_SOUND)
     preloadSound(CASE_PRIZE_SOUND)
     // Щелчок по вариантам в пошаговых разборах (*WALK).
-    preloadSound('/click6.wav')
   }, [])
   const [showStreakCelebration, setShowStreakCelebration] = useState(false)
   // Какой именно рубеж серии сейчас празднуем — 3 или 7 (см.

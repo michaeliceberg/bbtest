@@ -331,7 +331,6 @@ export const TypeLegFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
     }
 
     const handleOptionClick = (opt: TrialOption) => {
-        playSound('/click6.wav')
         if (checked || wrongTried.includes(opt.text)) return
         if (opt.correct) {
             setChecked(true)

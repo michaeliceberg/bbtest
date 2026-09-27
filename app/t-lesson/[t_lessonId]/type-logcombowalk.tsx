@@ -644,7 +644,6 @@ export const TypeLogComboWalk = ({ onAnswer, onComplete }: Props) => {
     const currentCorrectOption: ComboOption = { base: trials[trialIndex].a, arg: trials[trialIndex].c }
 
     const handleOptionClick = (option: ComboOption) => {
-        playSound('/click6.wav')
         if (checked) return
         if (wrongTried.some((w) => sameOption(w, option))) return
         if (sameOption(option, currentCorrectOption)) {

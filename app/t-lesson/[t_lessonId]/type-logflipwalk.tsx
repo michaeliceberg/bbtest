@@ -375,7 +375,6 @@ export const TypeLogFlipWalk = ({ onAnswer, onComplete }: Props) => {
     const currentCorrectOption: FlipOption = { flipped: true, reciprocal: true }
 
     const handleOptionClick = (option: FlipOption) => {
-        playSound('/click6.wav')
         if (checked) return
         if (wrongTried.some((w) => sameOption(w, option))) return
         if (sameOption(option, currentCorrectOption)) {

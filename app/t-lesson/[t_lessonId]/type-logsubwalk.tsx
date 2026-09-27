@@ -636,7 +636,6 @@ export const TypeLogSubWalk = ({ onAnswer, onComplete }: Props) => {
     const currentCorrectValue = trials[trialIndex].q
 
     const handleOptionClick = (value: number) => {
-        playSound('/click6.wav')
         if (checked) return
         if (wrongTried.includes(value)) return
         if (value === currentCorrectValue) {
