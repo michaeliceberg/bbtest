@@ -207,6 +207,46 @@ const Compass = ({ thetaDeg, cur }: { thetaDeg: number; cur: Cur }) => {
     )
 }
 
+// Схема «правой руки» вместо эмодзи 👍 (эмодзи рисуется по-разному на разных
+// устройствах — часто это ЛЕВАЯ рука, и направление пальцев по нему не
+// прочитать). Большой палец — толстая оранжевая стрелка, согнутые пальцы —
+// дуга с наконечником по передней половине эллипса. dirRight: передняя часть
+// дуги идёт вправо (θ 160°→20°) или влево (20°→160°).
+function curlArc(cx: number, cy: number, rx: number, ry: number, dirRight: boolean) {
+    const from = dirRight ? 160 : 20, to = dirRight ? 20 : 160
+    const pts: string[] = []
+    for (let i = 0; i <= 24; i++) {
+        const t = ((from + (to - from) * (i / 24)) * Math.PI) / 180
+        pts.push(`${(cx + rx * Math.cos(t)).toFixed(1)},${(cy + ry * Math.sin(t)).toFixed(1)}`)
+    }
+    const te = (to * Math.PI) / 180
+    const s = dirRight ? -1 : 1 // d(theta) знак
+    const dx = -rx * Math.sin(te) * s, dy = ry * Math.cos(te) * s
+    const ang = (Math.atan2(dy, dx) * 180) / Math.PI
+    return { d: `M ${pts.join(' L ')}`, end: { x: cx + rx * Math.cos(te), y: cy + ry * Math.sin(te) }, ang }
+}
+const HAND_COLOR = '#F09B38'
+const RightHandHint = ({ cx, cy, rx, ry, thumbUp, curlRight, thumbX, thumbY0, thumbY1 }: {
+    cx: number; cy: number; rx: number; ry: number; thumbUp: boolean; curlRight: boolean; thumbX: number; thumbY0: number; thumbY1: number
+}) => {
+    const arc = curlArc(cx, cy, rx, ry, curlRight)
+    const tipY = thumbUp ? Math.min(thumbY0, thumbY1) : Math.max(thumbY0, thumbY1)
+    const baseY = thumbUp ? Math.max(thumbY0, thumbY1) : Math.min(thumbY0, thumbY1)
+    const s = thumbUp ? 1 : -1
+    return (
+        <g>
+            <line x1={thumbX} y1={baseY} x2={thumbX} y2={tipY} stroke={HAND_COLOR} strokeWidth={9} strokeLinecap="round" opacity={0.95} />
+            <path d={`M ${thumbX - 13} ${tipY + 14 * s} L ${thumbX} ${tipY} L ${thumbX + 13} ${tipY + 14 * s}`} fill="none" stroke={HAND_COLOR} strokeWidth={9} strokeLinecap="round" strokeLinejoin="round" />
+            <text x={thumbX + 16} y={tipY + 16 * s + 4} fontSize={12} fontWeight={900} fill={HAND_COLOR}>палец</text>
+            <path d={arc.d} fill="none" stroke={HAND_COLOR} strokeWidth={6} strokeLinecap="round" strokeDasharray="1 0" />
+            <g transform={`translate(${arc.end.x},${arc.end.y}) rotate(${arc.ang})`}>
+                <path d="M -12 -10 L 2 0 L -12 10" fill="none" stroke={HAND_COLOR} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" />
+            </g>
+            <text x={cx} y={cy + ry + 22} textAnchor="middle" fontSize={12} fontWeight={900} fill={HAND_COLOR}>пальцы</text>
+        </g>
+    )
+}
+
 const WireScene = ({ cur, rings = [], compasses = false, hand = false, dotCross = false, hideDir = false }: {
     cur: Cur; rings?: number[]; compasses?: boolean; hand?: boolean; dotCross?: boolean; hideDir?: boolean
 }) => (
@@ -232,12 +272,11 @@ const WireScene = ({ cur, rings = [], compasses = false, hand = false, dotCross 
             )}
             {compasses && COMPASS_THETAS.map((t) => <Compass key={t} thetaDeg={t} cur={cur} />)}
             {rings.length > 0 && !hideDir && cur !== 0 && <SvgTag x={W_CX + RING_RX + 20} y={RING_YS[0]} text="B" color={FIELD_COLOR} delay={0.6} />}
-            {hand && (
-                <motion.text x={W_CX - 4} y={MID_Y + 34} textAnchor="middle" fontSize={78}
-                    initial={{ opacity: 0, scale: 2.2 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', bounce: 0.5, delay: 0.3 }}
-                    style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
-                    {cur === -1 ? '👎' : '👍'}
-                </motion.text>
+            {hand && cur !== 0 && (
+                // Правая рука: палец — по току (вдоль провода), пальцы — по полю.
+                // Ток вверх → поле спереди вправо (см. ringTangentDeg).
+                <RightHandHint cx={W_CX} cy={MID_Y} rx={RING_RX + 14} ry={RING_RY + 10} thumbUp={cur === 1} curlRight={cur === 1}
+                    thumbX={W_CX + 26} thumbY0={MID_Y - 70} thumbY1={MID_Y + 70} />
             )}
             {dotCross && (
                 <>
@@ -373,7 +412,7 @@ const HandScene = ({ onSettled }: { onSettled?: () => void }) => {
             )}
             {phase >= 3 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Согнутые пальцы покажут, куда крутится ' }, { sticker: 'поле B', color: FIELD_COLOR }, { text: '. Лайк 👍 — и всё понятно!' }]}
+                    parts={[{ text: 'Согнутые пальцы покажут, куда крутится ' }, { sticker: 'поле B', color: FIELD_COLOR }, { text: '. Палец вверх — пальцы спереди идут вправо ✋' }]}
                     onSettled={onSettled}
                 />
             )}
@@ -410,7 +449,7 @@ const FieldGameScene = ({ onSettled }: { onSettled?: () => void }) => {
         } else {
             playSound(WRONG_ANSWER_SOUND)
             setWrongBtn(side)
-            setWrong(cur === 1 ? 'Мимо! Большой палец вверх 👍 — пальцы спереди идут вправо' : 'Мимо! Палец вниз 👎 — пальцы спереди идут влево')
+            setWrong(cur === 1 ? 'Мимо! Большой палец ВВЕРХ — согнутые пальцы спереди идут вправо' : 'Мимо! Большой палец ВНИЗ — согнутые пальцы спереди идут влево')
         }
     }
     return (
@@ -557,13 +596,13 @@ const CONCEPT_QUIZ: ConceptQuizItem[] = [
         renderPrompt: () => <>Ток в вертикальном проводе течёт <b>ВВЕРХ</b>. Куда направлено поле <b>спереди</b> провода?</>,
         renderOptions: () => ['вправо →', '← влево'],
         correct: 0,
-        feedback: '👍 палец вверх — пальцы спереди идут вправо.',
+        feedback: 'Палец вверх — согнутые пальцы спереди идут вправо.',
     },
     {
         renderPrompt: () => <>Ток течёт <b>ВНИЗ</b>. Куда направлено поле <b>спереди</b> провода?</>,
         renderOptions: () => ['вправо →', '← влево'],
         correct: 1,
-        feedback: '👎 палец вниз — поле крутится в другую сторону, спереди влево.',
+        feedback: 'Палец вниз — поле крутится в другую сторону, спереди влево.',
     },
     {
         renderPrompt: () => <>Что означает значок <Sticker value="×" color={FIELD_COLOR} /> на рисунке поля?</>,

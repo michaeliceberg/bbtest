@@ -170,6 +170,46 @@ const extDirOf = (pole: Pole) => (pole === 'N' ? -1 : 1)
 // Своё поле кольца: против роста потока, по его убыванию.
 const ownDirOf = (pole: Pole, move: Move) => (move === 0 ? 0 : -extDirOf(pole) * move)
 
+// Схема «правой руки» вместо эмодзи 👍 (эмодзи рисуется по-разному на разных
+// устройствах — часто это ЛЕВАЯ рука, и направление пальцев по нему не
+// прочитать). Большой палец — толстая оранжевая стрелка, согнутые пальцы —
+// дуга с наконечником по передней половине эллипса. dirRight: передняя часть
+// дуги идёт вправо (θ 160°→20°) или влево (20°→160°).
+function curlArc(cx: number, cy: number, rx: number, ry: number, dirRight: boolean) {
+    const from = dirRight ? 160 : 20, to = dirRight ? 20 : 160
+    const pts: string[] = []
+    for (let i = 0; i <= 24; i++) {
+        const t = ((from + (to - from) * (i / 24)) * Math.PI) / 180
+        pts.push(`${(cx + rx * Math.cos(t)).toFixed(1)},${(cy + ry * Math.sin(t)).toFixed(1)}`)
+    }
+    const te = (to * Math.PI) / 180
+    const s = dirRight ? -1 : 1 // d(theta) знак
+    const dx = -rx * Math.sin(te) * s, dy = ry * Math.cos(te) * s
+    const ang = (Math.atan2(dy, dx) * 180) / Math.PI
+    return { d: `M ${pts.join(' L ')}`, end: { x: cx + rx * Math.cos(te), y: cy + ry * Math.sin(te) }, ang }
+}
+const HAND_COLOR = '#F09B38'
+const RightHandHint = ({ cx, cy, rx, ry, thumbUp, curlRight, thumbX, thumbY0, thumbY1 }: {
+    cx: number; cy: number; rx: number; ry: number; thumbUp: boolean; curlRight: boolean; thumbX: number; thumbY0: number; thumbY1: number
+}) => {
+    const arc = curlArc(cx, cy, rx, ry, curlRight)
+    const tipY = thumbUp ? Math.min(thumbY0, thumbY1) : Math.max(thumbY0, thumbY1)
+    const baseY = thumbUp ? Math.max(thumbY0, thumbY1) : Math.min(thumbY0, thumbY1)
+    const s = thumbUp ? 1 : -1
+    return (
+        <g>
+            <line x1={thumbX} y1={baseY} x2={thumbX} y2={tipY} stroke={HAND_COLOR} strokeWidth={9} strokeLinecap="round" opacity={0.95} />
+            <path d={`M ${thumbX - 13} ${tipY + 14 * s} L ${thumbX} ${tipY} L ${thumbX + 13} ${tipY + 14 * s}`} fill="none" stroke={HAND_COLOR} strokeWidth={9} strokeLinecap="round" strokeLinejoin="round" />
+            <text x={thumbX + 16} y={tipY + 16 * s + 4} fontSize={12} fontWeight={900} fill={HAND_COLOR}>палец</text>
+            <path d={arc.d} fill="none" stroke={HAND_COLOR} strokeWidth={6} strokeLinecap="round" strokeDasharray="1 0" />
+            <g transform={`translate(${arc.end.x},${arc.end.y}) rotate(${arc.ang})`}>
+                <path d="M -12 -10 L 2 0 L -12 10" fill="none" stroke={HAND_COLOR} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" />
+            </g>
+            <text x={cx} y={cy + ry + 22} textAnchor="middle" fontSize={12} fontWeight={900} fill={HAND_COLOR}>пальцы</text>
+        </g>
+    )
+}
+
 // ===== Диаграмма: магнит над кольцом =====
 const V_W = 320, V_H = 380, CX = 160
 const RING_CY = 300, RING_RX = 92, RING_RY = 24
@@ -208,6 +248,8 @@ type LenzViewProps = {
     face?: boolean          // эмоция кольца
     speed?: number          // скорость магнита → сила тока (стрелка, бег тока)
     showForce?: boolean     // кольцо отталкивает/тянет магнит (следствие Ленца)
+    wobble?: boolean        // дрожание магнита при showForce (в стоп-кадре выключаем)
+    handHint?: boolean      // схема правой руки: палец по своему B, пальцы по току
 }
 
 const faceOf = (move: Move, pole: Pole, battle: boolean) => {
@@ -218,7 +260,7 @@ const faceOf = (move: Move, pole: Pole, battle: boolean) => {
     return '😭'
 }
 
-const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, battle = false, hideAnswer = false, face = true, speed = 1, showForce = false }: LenzViewProps) => {
+const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, battle = false, hideAnswer = false, face = true, speed = 1, showForce = false, wobble = true, handHint = false }: LenzViewProps) => {
     const magTop = magTopOf(pos)
     const ext = extDirOf(pole)
     const own = ownDirOf(pole, move)
@@ -267,6 +309,10 @@ const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, 
                         <text x={CX + RING_RX + 4} y={RING_CY + RING_RY + 20} fontSize={15} fontWeight={900} fill={CURRENT_COLOR}>I</text>
                     </>
                 )}
+                {handHint && moving && !hideAnswer && (
+                    <RightHandHint cx={CX} cy={RING_CY} rx={RING_RX + 18} ry={RING_RY + 12} thumbUp={own > 0} curlRight={own > 0}
+                        thumbX={CX - 34} thumbY0={RING_CY - 62} thumbY1={RING_CY + 62} />
+                )}
                 {battle && moving && showOwn && !hideAnswer && (
                     <g transform={`translate(${CX - 12},${RING_CY - 4})`}>
                         <motion.g animate={{ rotate: [-12, 12, -12], scale: [1, 1.18, 1] }} transition={{ duration: 0.35, repeat: Infinity }}
@@ -279,9 +325,9 @@ const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, 
                 {/* магнит */}
                 <g transform={`translate(${CX - MAG_W / 2},${magTop})`}>
                   {/* Отдача: кольцо толкает магнит назад (приближаем) или тянет (уводим) — магнит «дрожит» навстречу силе. */}
-                  <motion.g key={`recoil${showForce && moving ? move : 0}`}
-                    animate={showForce && moving ? { y: move > 0 ? [0, -6, 0] : [0, 6, 0] } : { y: 0 }}
-                    transition={showForce && moving ? { duration: 0.22, repeat: Infinity } : { duration: 0.2 }}>
+                  <motion.g key={`recoil${showForce && wobble && moving ? move : 0}`}
+                    animate={showForce && wobble && moving ? { y: move > 0 ? [0, -6, 0] : [0, 6, 0] } : { y: 0 }}
+                    transition={showForce && wobble && moving ? { duration: 0.22, repeat: Infinity } : { duration: 0.2 }}>
                     <rect x={0} y={0} width={MAG_W} height={MAG_H / 2} rx={6} fill={topColor} />
                     <rect x={0} y={MAG_H / 2} width={MAG_W} height={MAG_H / 2} rx={6} fill={bottomColor} />
                     <rect x={0} y={MAG_H / 2 - 6} width={MAG_W} height={12} fill={bottomColor} />
@@ -641,14 +687,13 @@ const HandScene = ({ onSettled }: { onSettled?: () => void }) => {
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'А куда бежит ток? ' }, { sticker: 'Правая рука', color: RULE_COLOR }, { text: ' 👍: большой палец — по ' }, { sticker: 'B кольца', color: OWN_COLOR }, { text: ', согнутые пальцы покажут ' }, { sticker: 'ток', color: CURRENT_COLOR }, { text: '.' }]}
+                parts={[{ text: 'А куда бежит ток? ' }, { sticker: 'Правая рука', color: RULE_COLOR }, { text: ' ✋: большой палец — по ' }, { sticker: 'B кольца', color: OWN_COLOR }, { text: ', согнутые пальцы покажут ' }, { sticker: 'ток', color: CURRENT_COLOR }, { text: '.' }]}
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
                 <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 2400)}>
                     <div className="w-full flex flex-col items-center gap-1">
-                        <LenzView pos={0.55} move={move} showOwn face={false} />
-                        <div className="text-4xl leading-none -mt-2">{move === 1 ? '👍' : '👎'}</div>
+                        <LenzView pos={0.55} move={move} showOwn face={false} handHint />
                         <p className="text-sm font-bold text-[#9AA7B0] text-center">
                             {move === 1 ? 'Магнит приближается: B кольца вверх → ток спереди вправо' : 'Магнит уходит: B кольца вниз → ток спереди влево'}
                         </p>
@@ -656,7 +701,7 @@ const HandScene = ({ onSettled }: { onSettled?: () => void }) => {
                 </DiagramBlock>
             )}
             {phase >= 2 && (
-                <TypedLine text="Тот самый лайк из урока про направление поля — только теперь палец смотрит по полю кольца." className={TEXT_CLS} onSettled={onSettled} />
+                <TypedLine text="То же правило правой руки, что и в уроке про направление поля, — только теперь большой палец смотрит по полю кольца." className={TEXT_CLS} onSettled={onSettled} />
             )}
         </>
     )
@@ -760,37 +805,112 @@ const GameScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-// «Кольцо отталкивает магнит» — следствие правила Ленца.
+// «Кольцо отталкивает магнит» — следствие правила Ленца. Показываем ОДИН
+// причинно-следственный цикл, а не непрерывное дрожание (пользователь: «не
+// понятно, почему магнит дёргается»): толчок → СТОП-КАДР (ток бежит, своё поле
+// кольца стоит, стрелка силы) → реплика кольца (Гэндальф «You shall not pass»)
+// → магнит отбрасывает назад. С уводом — «Вернись! Не отпутю!» → тянет обратно.
+type RepelStage = 'idle' | 'moving' | 'freeze' | 'recoil'
+const RepelSpeech = ({ dir }: { dir: 1 | -1 }) => (
+    <motion.div initial={{ scale: 0.4, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} transition={{ type: 'spring', bounce: 0.55 }}
+        className="relative mx-auto w-full rounded-2xl border-2 px-4 py-3"
+        style={{ borderColor: OWN_COLOR, backgroundColor: hexToRgba(OWN_COLOR, 0.14) }}>
+        <div className="flex items-center gap-3">
+            <motion.div className="text-5xl leading-none shrink-0"
+                animate={{ rotate: dir === 1 ? [0, -12, 8, 0] : [0, 10, -10, 0] }} transition={{ duration: 0.6, delay: 0.2 }}>
+                {dir === 1 ? '🧙‍♂️' : '😭'}
+            </motion.div>
+            <div className="text-left">
+                <div className="text-[11px] font-black opacity-70 text-[#F2F7FB]">Кольцо</div>
+                {dir === 1 ? (
+                    <>
+                        <p className="font-black text-[#F2F7FB]">СТОПЭ! ✋ Не надо мне тут увеличивать поток через меня! НЕ ХОТЮЮ! НЕ ПУТЮЮЮ! 😤</p>
+                        <p className="mt-1 text-lg font-black" style={{ color: '#FFE08A' }}>YOU SHALL NOT PASS! 🪄💥</p>
+                    </>
+                ) : (
+                    <>
+                        <p className="font-black text-[#F2F7FB]">НУ КУДА ЖЕ ТЫ?! 🥺 Поток, не уходи! ВЕРНИСЬ!</p>
+                        <p className="mt-1 text-lg font-black" style={{ color: '#FFE08A' }}>НЕ ОТПУТЮ!!! 🫂💔</p>
+                    </>
+                )}
+            </div>
+        </div>
+    </motion.div>
+)
 const RepelScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
-    const mag = useMagnet(0.2)
+    const [pos, setPos] = useState(0.35)
+    const [dir, setDir] = useState<1 | -1>(1)
+    const [stage, setStage] = useState<RepelStage>('idle')
     const [tried, setTried] = useState<{ push: boolean; pull: boolean }>({ push: false, pull: false })
-    const last = useRef<Move>(0)
-    useEffect(() => {
-        if (mag.move !== 0) { last.current = mag.move; return }
-        if (last.current === 1) setTried((t) => ({ ...t, push: true }))
-        if (last.current === -1) setTried((t) => ({ ...t, pull: true }))
-        last.current = 0
-    }, [mag.move])
+    const posRef = useRef(0.35)
+    const timers = useRef<ReturnType<typeof setTimeout>[]>([])
+    const tick = useRef<ReturnType<typeof setInterval> | null>(null)
+    useEffect(() => () => { timers.current.forEach(clearTimeout); if (tick.current) clearInterval(tick.current) }, [])
+    const glide = (to: number, ms: number) => {
+        if (tick.current) clearInterval(tick.current)
+        const from = posRef.current, t0 = Date.now()
+        tick.current = setInterval(() => {
+            const k = Math.min(1, (Date.now() - t0) / ms)
+            const eased = 1 - (1 - k) * (1 - k)
+            posRef.current = from + (to - from) * eased
+            setPos(posRef.current)
+            if (k >= 1 && tick.current) { clearInterval(tick.current); tick.current = null }
+        }, 30)
+    }
+    const run = (d: 1 | -1) => {
+        if (stage !== 'idle') return
+        playSound('/click6.wav')
+        setDir(d)
+        // стартуем с понятной позиции
+        posRef.current = d === 1 ? 0.3 : 0.75; setPos(posRef.current)
+        setStage('moving')
+        glide(d === 1 ? 0.62 : 0.45, 700)
+        const at = (ms: number, f: () => void) => timers.current.push(setTimeout(f, ms))
+        at(750, () => setStage('freeze'))                                  // стоп-кадр: кольцо отвечает
+        at(3900, () => { setStage('recoil'); glide(d === 1 ? 0.5 : 0.58, 350) }) // отдача: отбросило / притянуло
+        at(4700, () => { setStage('idle'); setTried((t) => (d === 1 ? { ...t, push: true } : { ...t, pull: true })) })
+    }
     const both = tried.push && tried.pull
-    useEffect(() => { if (both && phase === 1) { const t = setTimeout(() => setPhase(2), 700); return () => clearTimeout(t) } }, [both, phase])
+    useEffect(() => { if (both && phase === 1) { const t = setTimeout(() => setPhase(2), 600); return () => clearTimeout(t) } }, [both, phase])
+    // В стоп-кадре показываем, что происходит «в эту долю секунды»: ток бежит, своё поле стоит, сила от кольца.
+    const viewMove: Move = stage === 'moving' || stage === 'freeze' ? dir : 0
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'А ещё кольцо не просто защищается — оно ' }, { bold: 'ТОЛКАЕТСЯ' }, { text: '! Двигай магнит туда-сюда и смотри на него 👀' }]}
+                parts={[{ text: 'А ещё кольцо не просто защищается — оно ' }, { bold: 'ТОЛКАЕТСЯ' }, { text: '! Разберём по кадрам 🎬' }]}
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col gap-2">
-                        <LenzView pos={mag.pos} move={mag.move} showOwn showForce />
-                        <Bubble
-                            text={mag.move === 1 ? '😤 Отойди от меня! Толкаю!' : mag.move === -1 ? '😭 Стой! Вернись! Тяну к себе!' : both ? '😌 Ну вот, поговорили' : '😌 Попробуй подвинуть'}
-                            color={mag.move !== 0 ? OWN_COLOR : '#9AA7B0'}
-                        />
+                        <div className="relative">
+                            <LenzView pos={pos} move={viewMove} showOwn showForce={stage === 'freeze'} wobble={false} />
+                            {stage === 'freeze' && (
+                                <motion.div initial={{ scale: 1.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
+                                    className="absolute left-2 top-2 rounded-lg px-2 py-1 text-xs font-black"
+                                    style={{ background: '#FFE08A', color: '#3A2412', boxShadow: '0 3px 0 #8A4B14' }}>
+                                    ⏸ СТОП-КАДР
+                                </motion.div>
+                            )}
+                            {stage === 'recoil' && (
+                                <motion.div initial={{ scale: 1.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                                    className="absolute left-2 top-2 rounded-lg px-2 py-1 text-xs font-black"
+                                    style={{ background: OWN_COLOR, color: '#fff' }}>
+                                    {dir === 1 ? '💥 БАМ! Отбросило' : '🧲 Вжух! Притянуло'}
+                                </motion.div>
+                            )}
+                        </div>
+                        {stage === 'freeze' || stage === 'recoil'
+                            ? <RepelSpeech key={dir} dir={dir} />
+                            : <Bubble text={stage === 'moving' ? (dir === 1 ? '😈 Вперёд, к кольцу!' : '😈 Ухожу…') : both ? '😌 Ну вот, всё понятно' : '👇 Жми кнопку и смотри по кадрам'} color={stage === 'moving' ? CURRENT_COLOR : '#9AA7B0'} />}
                         <div className="flex gap-2">
-                            <HoldBtn color={RULE_COLOR} pulse={!tried.push} onStart={() => mag.start(1)} onRelease={mag.release} disabled={mag.pos >= 1}>⬇ Зажми: к кольцу</HoldBtn>
-                            <HoldBtn color={RULE_COLOR} pulse={tried.push && !tried.pull} onStart={() => mag.start(-1)} onRelease={mag.release} disabled={mag.pos <= 0}>⬆ Зажми: от кольца</HoldBtn>
+                            <button type="button" onClick={() => run(1)} disabled={stage !== 'idle'}
+                                className={cn('flex-1 rounded-xl border-2 px-3 py-3 text-base font-black disabled:opacity-40', !tried.push && stage === 'idle' && 'animate-pulse')}
+                                style={{ borderColor: RULE_COLOR, backgroundColor: hexToRgba(RULE_COLOR, 0.16), color: RULE_COLOR }}>⬇ Толкни к кольцу</button>
+                            <button type="button" onClick={() => run(-1)} disabled={stage !== 'idle' || !tried.push}
+                                className={cn('flex-1 rounded-xl border-2 px-3 py-3 text-base font-black disabled:opacity-40', tried.push && !tried.pull && stage === 'idle' && 'animate-pulse')}
+                                style={{ borderColor: RULE_COLOR, backgroundColor: hexToRgba(RULE_COLOR, 0.16), color: RULE_COLOR }}>⬆ Утащи от кольца</button>
                         </div>
                     </div>
                 </DiagramBlock>
@@ -798,8 +918,8 @@ const RepelScene = ({ onSettled }: { onSettled?: () => void }) => {
             {phase >= 2 && (
                 <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1600)}>
                     <InsightCard>
-                        Приближаешь — кольцо <InsightWord>отталкивает</InsightWord>, уводишь — <InsightWord>тянет назад</InsightWord>.
-                        <br /><span className="text-base font-bold">Магнит двигать тяжелее — твоя работа и превращается в энергию тока ⚡ Энергия из ниоткуда не берётся!</span>
+                        Приближаешь — кольцо <InsightWord>отталкивает</InsightWord> 🧙‍♂️, уводишь — <InsightWord>тянет назад</InsightWord> 😭.
+                        <br /><span className="text-base font-bold">Вот почему магнит «дёргается». Двигать его тяжелее — твоя работа и превращается в энергию тока ⚡ Энергия из ниоткуда не берётся!</span>
                     </InsightCard>
                 </DiagramBlock>
             )}
