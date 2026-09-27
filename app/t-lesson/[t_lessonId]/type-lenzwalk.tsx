@@ -449,8 +449,8 @@ const Ammeter = ({ needle, on }: { needle: number; on: boolean }) => {
 }
 
 // Кнопка «зажми, чтобы двигать».
-const HoldBtn = ({ children, color, onStart, onRelease, pulse = false, disabled = false }: {
-    children: React.ReactNode; color: string; onStart: () => void; onRelease: () => void; pulse?: boolean; disabled?: boolean
+const HoldBtn = ({ children, color, onStart, onRelease, pulse = false, disabled = false, className }: {
+    children: React.ReactNode; color: string; onStart: () => void; onRelease: () => void; pulse?: boolean; disabled?: boolean; className?: string
 }) => (
     <button
         type="button"
@@ -463,6 +463,7 @@ const HoldBtn = ({ children, color, onStart, onRelease, pulse = false, disabled 
         className={cn(
             'relative flex-1 select-none touch-none rounded-2xl px-3 py-3 text-base font-black text-white disabled:opacity-40',
             'shadow-[0_5px_0_var(--edge)] active:translate-y-[3px] active:shadow-[0_2px_0_var(--edge)] transition-[transform,box-shadow] duration-75',
+            className,
         )}
         style={{ backgroundColor: color, ['--edge' as string]: darken(color) }}
     >
@@ -509,18 +510,21 @@ const IntroScene = ({ onSettled }: { onSettled?: () => void }) => {
             />
             {phase >= 1 && (
                 <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 1400)}>
-                    <div className="w-full flex flex-col gap-2">
-                        <LenzView pos={mag.pos} move={mag.move} fieldLines showExt={phase >= 3} showCurrent={phase >= 3} face={false} devil={false} moveArrow={false} />
-                        {phase >= 4 && (
-                            <motion.div className="flex gap-3" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-                                <HoldBtn color={RULE_COLOR} pulse={!pushed} onStart={() => mag.start(1)} onRelease={mag.release} disabled={mag.pos >= 1}>
-                                    <span className="flex justify-center"><ArrowDown size={30} strokeWidth={3} /></span>
-                                </HoldBtn>
-                                <HoldBtn color={RULE_COLOR} pulse={!pushed} onStart={() => mag.start(-1)} onRelease={mag.release} disabled={mag.pos <= 0}>
-                                    <span className="flex justify-center"><ArrowUp size={30} strokeWidth={3} /></span>
-                                </HoldBtn>
-                            </motion.div>
-                        )}
+                    {/* как в лифте: кнопки вверх/вниз справа от картинки */}
+                    <div className="w-full flex items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                            <LenzView pos={mag.pos} move={mag.move} fieldLines showExt={phase >= 3} showCurrent={phase >= 3} face={false} devil={false} moveArrow={false} />
+                        </div>
+                        <motion.div className="mt-[18%] flex w-16 shrink-0 flex-col gap-4"
+                            initial={false} animate={{ opacity: phase >= 4 ? 1 : 0, x: phase >= 4 ? 0 : 12 }}
+                            style={{ pointerEvents: phase >= 4 ? 'auto' : 'none' }}>
+                            <HoldBtn className="flex-none h-16 px-0" color={RULE_COLOR} pulse={phase >= 4 && !pushed} onStart={() => mag.start(-1)} onRelease={mag.release} disabled={mag.pos <= 0}>
+                                <span className="flex justify-center"><ArrowUp size={32} strokeWidth={3} /></span>
+                            </HoldBtn>
+                            <HoldBtn className="flex-none h-16 px-0" color={RULE_COLOR} pulse={phase >= 4 && !pushed} onStart={() => mag.start(1)} onRelease={mag.release} disabled={mag.pos >= 1}>
+                                <span className="flex justify-center"><ArrowDown size={32} strokeWidth={3} /></span>
+                            </HoldBtn>
+                        </motion.div>
                     </div>
                 </DiagramBlock>
             )}
