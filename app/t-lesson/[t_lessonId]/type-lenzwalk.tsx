@@ -25,7 +25,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
-import { ArrowDown, ArrowUp } from 'lucide-react'
+import { ArrowDown, ArrowRight, ArrowUp } from 'lucide-react'
 import type { QuestionType } from './page'
 import {
     DiagramBlock, TypedLine,
@@ -222,8 +222,27 @@ const magTopOf = (pos: number) => 20 + pos * 128
 
 // Позиции стрелок поля магнита сквозь кольцо (от центра к краям) —
 // с приближением их больше (поток растёт).
-const EXT_XS = [0, -34, 34, -64, 64, -18, 18, -50, 50]
-const extCountOf = (pos: number) => 2 + Math.round(pos * 7)
+// «3D»: точки внутри эллипса кольца (dx, dy), от центра к краям. dy < 0 —
+// дальняя часть кольца (стрелка короче/тоньше), dy > 0 — ближняя (длиннее).
+// Магнит наверху — 1 стрелка по центру; по мере приближения равномерно
+// добавляются всё дальше от центра (все x разные — стрелки не сливаются).
+const EXT_PTS: [number, number][] = [[0, 0], [36, -9], [-36, 9], [-22, -14], [22, 14], [62, 4], [-62, -4], [-52, 12], [52, -12]]
+const extCountOf = (pos: number) => 1 + Math.round(pos * (EXT_PTS.length - 1))
+const Arrow3D = ({ dx, dy, dir, color }: { dx: number; dy: number; dir: number; color: string }) => {
+    const x = CX + dx, cy = RING_CY + dy
+    const len = 70 + dy * 1.6
+    const w = 3.2 + dy * 0.06
+    const y1 = cy - len / 2, y2 = cy + len / 2
+    const tip = dir < 0 ? y2 : y1
+    const s = dir < 0 ? -1 : 1
+    const head = 6 + dy * 0.12
+    return (
+        <g opacity={0.75 + (dy + 14) / 28 * 0.25}>
+            <line x1={x} y1={y1} x2={x} y2={y2} stroke={color} strokeWidth={w} strokeLinecap="round" />
+            <path d={`M ${x - head} ${tip + (head + 2) * s} L ${x} ${tip} L ${x + head} ${tip + (head + 2) * s}`} fill="none" stroke={color} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" />
+        </g>
+    )
+}
 const OWN_XS = [-44, 0, 44]
 
 const ringBackPath = `M ${CX - RING_RX} ${RING_CY} A ${RING_RX} ${RING_RY} 0 0 1 ${CX + RING_RX} ${RING_CY}`
@@ -309,10 +328,11 @@ const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, 
                 {/* бледные силовые линии магнита: выходят из N, огибают магнит и входят в S */}
                 {fieldLines && <MagnetFieldLoops magTop={magTop} pole={pole} />}
                 {/* поле магнита сквозь кольцо */}
-                {showExt && EXT_XS.slice(0, extN).map((dx, i) => (
+                {showExt && EXT_PTS.slice(0, extN).slice().sort((a, b) => a[1] - b[1]).map(([dx, dy]) => (
                     <g key={`e${dx}`}>
-                        <motion.g initial={{ opacity: 0 }} animate={{ opacity: 0.9 }} transition={{ duration: 0.35, delay: i * 0.12 }}>
-                            <VArrow x={CX + dx} dir={ext} color={FIELD_COLOR} />
+                        <motion.g initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', bounce: 0.45, duration: 0.45 }}
+                            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
+                            <Arrow3D dx={dx} dy={dy} dir={ext} color={FIELD_COLOR} />
                         </motion.g>
                     </g>
                 ))}
@@ -493,9 +513,11 @@ const Bubble = ({ text, color }: { text: string; color: string }) => (
 // 0. Вступление: магнит → стрелки B сквозь кольцо (поток) → «НАЖМИ и держи».
 // Ученик сам двигает магнит и сам замечает: ток (стрелка на кольце и стрелка
 // амперметра) есть только пока магнит едет. Никаких подсказок-реплик.
+// магнит во вступлении едет медленно — успеть увидеть и движение, и ток
+const INTRO_SPEED = 0.4
 const IntroScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
-    const mag = useMagnet(0.35)
+    const mag = useMagnet(0)
     const [pushed, setPushed] = useState(false)
     const hadMove = useRef(false)
     useEffect(() => {
@@ -518,10 +540,10 @@ const IntroScene = ({ onSettled }: { onSettled?: () => void }) => {
                         <motion.div className="mt-[18%] flex w-16 shrink-0 flex-col gap-4"
                             initial={false} animate={{ opacity: phase >= 4 ? 1 : 0, x: phase >= 4 ? 0 : 12 }}
                             style={{ pointerEvents: phase >= 4 ? 'auto' : 'none' }}>
-                            <HoldBtn className="flex-none h-16 px-0" color={RULE_COLOR} pulse={phase >= 4 && !pushed} onStart={() => mag.start(-1)} onRelease={mag.release} disabled={mag.pos <= 0}>
+                            <HoldBtn className="flex-none h-16 px-0" color={RULE_COLOR} pulse={phase >= 4 && !pushed} onStart={() => mag.start(-1, INTRO_SPEED)} onRelease={mag.release} disabled={mag.pos <= 0}>
                                 <span className="flex justify-center"><ArrowUp size={32} strokeWidth={3} /></span>
                             </HoldBtn>
-                            <HoldBtn className="flex-none h-16 px-0" color={RULE_COLOR} pulse={phase >= 4 && !pushed} onStart={() => mag.start(1)} onRelease={mag.release} disabled={mag.pos >= 1}>
+                            <HoldBtn className="flex-none h-16 px-0" color={RULE_COLOR} pulse={phase >= 4 && !pushed} onStart={() => mag.start(1, INTRO_SPEED)} onRelease={mag.release} disabled={mag.pos >= 1}>
                                 <span className="flex justify-center"><ArrowDown size={32} strokeWidth={3} /></span>
                             </HoldBtn>
                         </motion.div>
@@ -807,7 +829,7 @@ const BattleScene = ({ onSettled }: { onSettled?: () => void }) => {
                     <div className="w-full flex flex-col gap-2">
                         <MkView pos={mag.pos} fighting={fighting} />
                         <div className="flex gap-2">
-                            <HoldBtn color={RULE_COLOR} pulse={!done} onStart={() => { if (mag.pos >= 1) mag.jump(0); mag.start(1, MK_SPEED) }} onRelease={mag.release}>👆 Нажми и держи — атака!</HoldBtn>
+                            <HoldBtn color={RULE_COLOR} pulse={!done} onStart={() => { if (mag.pos >= 1) mag.jump(0); mag.start(1, MK_SPEED) }} onRelease={mag.release}><span className="inline-flex items-center gap-2">В атаку на кольцо! <ArrowRight size={22} strokeWidth={3} /></span></HoldBtn>
                         </div>
                     </div>
                 </DiagramBlock>
