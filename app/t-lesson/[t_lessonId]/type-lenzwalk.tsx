@@ -652,7 +652,10 @@ const MK_W = 360, MK_H = 250
 const MK_Y = 145
 const MK_RING_X = 300, MK_RING_RX = 18, MK_RING_RY = 66
 const MK_MAG_W = 96, MK_MAG_H = 40
-const MK_ROWS = [MK_Y - 34, MK_Y, MK_Y + 34]
+// синие (поток): по мере приближения добавляются от центра к краям
+const MK_BLUE_ROWS = [0, -26, 26, -52, 52]
+// красные (B_инд): при ровном движении их всегда одинаково
+const MK_RED_ROWS = [-13, 13]
 // магнит в битве едет медленнее (≈5 с на весь путь) — успеть рассмотреть поединок
 const MK_SPEED = 0.33
 
@@ -686,12 +689,23 @@ const HpBar = ({ label, color, align, hit }: { label: string; color: string; ali
     </div>
 )
 
+const MkMeter = ({ label, value, color, note }: { label: string; value: number; color: string; note: string }) => (
+    <div className="flex items-center gap-2 text-xs font-black">
+        <span className="w-[46%] shrink-0 text-left" style={{ color }}>{label}</span>
+        <div className="relative h-3 flex-1 overflow-hidden rounded-full bg-[#1E2A30]">
+            <div className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-300" style={{ width: `${Math.round(value * 100)}%`, backgroundColor: color }} />
+        </div>
+        <span className="w-[72px] shrink-0 text-right text-[#9AA7B0]">{note}</span>
+    </div>
+)
+
 const MkView = ({ pos, fighting }: { pos: number; fighting: boolean }) => {
     const magX = 14 + pos * 40
     const faceX = magX + MK_MAG_W
-    // Длина стрелок постоянная; СИЛА поля — толщина/яркость. Чем ближе магнит,
-    // тем сильнее его поле у кольца и тем быстрее меняется поток → тем сильнее
-    // индукционный ток и его поле B_инд. Поэтому обе «атаки» растут с pos.
+    // Метафора (идеализация «поток растёт равномерно», как в уроке Фарадея):
+    //   КОЛИЧЕСТВО синих стрелок = поток Φ — растёт по мере приближения магнита;
+    //   КОЛИЧЕСТВО красных = B_инд ∝ ΔΦ/Δt — зависит от того, как БЫСТРО
+    //   прибавляются синие: магнит едет ровно → красных всегда 2, встал → 0.
     const ARROW_LEN = 56
     const magTip = faceX + 6 + ARROW_LEN
     // стрелки кольца стартуют от ЛЕВОГО края кольца, а не поверх него —
@@ -699,9 +713,7 @@ const MkView = ({ pos, fighting }: { pos: number; fighting: boolean }) => {
     const ringStart = MK_RING_X - MK_RING_RX - 6
     const ringTip = ringStart - ARROW_LEN
     const clashX = (magTip + ringTip) / 2
-    const magW = 3.5 + pos * 4.5
-    const indW = 3.5 + pos * 4.5
-    const magOp = 0.75 + pos * 0.25
+    const blueN = 1 + Math.round(pos * (MK_BLUE_ROWS.length - 1))
     const ringFront = `M ${MK_RING_X} ${MK_Y - MK_RING_RY} A ${MK_RING_RX} ${MK_RING_RY} 0 0 1 ${MK_RING_X} ${MK_Y + MK_RING_RY}`
     const ringBack = `M ${MK_RING_X} ${MK_Y - MK_RING_RY} A ${MK_RING_RX} ${MK_RING_RY} 0 0 0 ${MK_RING_X} ${MK_Y + MK_RING_RY}`
     return (
@@ -717,21 +729,24 @@ const MkView = ({ pos, fighting }: { pos: number; fighting: boolean }) => {
                 {/* задняя половина кольца */}
                 <path d={ringBack} fill="none" stroke={fighting ? CURRENT_COLOR : RING_COLOR} strokeWidth={6} opacity={0.5} />
                 {/* атака магнита: поле B вправо */}
-                {MK_ROWS.map((y) => (
-                    <g key={`m${y}`} opacity={magOp}>
-                        <HArrow x1={faceX + 6} x2={magTip} y={y} color={FIELD_COLOR} width={magW} />
-                    </g>
-                ))}
-                <SvgSticker x={faceX + 30} y={MK_ROWS[0] - 26} text="B" color={FIELD_COLOR} />
-                {/* ответ кольца: своё поле B влево */}
-                {fighting && MK_ROWS.map((y, i) => (
-                    <g key={`r${y}`}>
-                        <motion.g initial={{ opacity: 0, x: 20 }} animate={{ opacity: 0.75 + pos * 0.25, x: 0 }} transition={{ delay: 0.15 + i * 0.08 }}>
-                            <HArrow x1={ringStart} x2={ringTip} y={y} color={OWN_COLOR} width={indW} />
+                {MK_BLUE_ROWS.slice(0, blueN).map((dy) => (
+                    <g key={`m${dy}`}>
+                        <motion.g initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', bounce: 0.5, duration: 0.4 }}
+                            style={{ transformBox: 'fill-box', transformOrigin: 'left center' }}>
+                            <HArrow x1={faceX + 6} x2={magTip} y={MK_Y + dy} color={FIELD_COLOR} width={4.5} />
                         </motion.g>
                     </g>
                 ))}
-                {fighting && <SvgSticker x={MK_RING_X - 52} y={MK_ROWS[0] - 26} text="B" sub="инд" color={OWN_COLOR} />}
+                <SvgSticker x={faceX + 30} y={MK_Y - 78} text="B" color={FIELD_COLOR} />
+                {/* ответ кольца: своё поле B влево */}
+                {fighting && MK_RED_ROWS.map((dy, i) => (
+                    <g key={`r${dy}`}>
+                        <motion.g initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.08 }}>
+                            <HArrow x1={ringStart} x2={ringTip} y={MK_Y + dy} color={OWN_COLOR} width={5} />
+                        </motion.g>
+                    </g>
+                ))}
+                {fighting && <SvgSticker x={MK_RING_X - 52} y={MK_Y - 78} text="B" sub="инд" color={OWN_COLOR} />}
                 {/* столкновение */}
                 {fighting && (
                     <g transform={`translate(${clashX},${MK_Y})`}>
@@ -759,6 +774,11 @@ const MkView = ({ pos, fighting }: { pos: number; fighting: boolean }) => {
                     </>
                 )}
             </svg>
+            {/* шкалы: поток растёт, а скорость его изменения (и ток) при ровном движении постоянна */}
+            <div className="flex flex-col gap-1.5 px-1">
+                <MkMeter label="Поток Φ" value={blueN / MK_BLUE_ROWS.length} color={GGEGE_PALETTE.purple.button} note={fighting ? 'растёт' : 'не меняется'} />
+                <MkMeter label="Скорость изменения Φ → I инд" value={fighting ? 0.45 : 0} color={CURRENT_COLOR} note={fighting ? 'постоянная' : '0'} />
+            </div>
         </div>
     )
 }
@@ -794,7 +814,7 @@ const BattleScene = ({ onSettled }: { onSettled?: () => void }) => {
             )}
             {phase >= 2 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Магнит бьёт полем ' }, { sticker: 'B ➡', color: FIELD_COLOR }, { text: ', а кольцо запускает ток ' }, { sticker: 'I', color: CURRENT_COLOR }, { text: ' и отвечает своим полем ' }, { sticker: 'B инд ⬅', color: OWN_COLOR }, { text: ' навстречу. Кольцо ' }, { bold: 'МЕШАЕТ' }, { text: ' потоку расти.' }]}
+                    parts={[{ text: 'Заметил? Синих стрелок (поток ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ') становилось ' }, { bold: 'больше' }, { text: ', а красных ' }, { sticker: 'B инд', color: OWN_COLOR }, { text: ' — всё время ' }, { bold: 'столько же' }, { text: '. Кольцо отвечает не на сам поток, а на то, ' }, { bold: 'как быстро' }, { text: ' он меняется. Магнит встал — ответа нет.' }]}
                     onSettled={onSettled}
                 />
             )}
