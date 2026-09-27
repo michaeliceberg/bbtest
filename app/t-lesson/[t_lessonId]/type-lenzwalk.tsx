@@ -123,6 +123,7 @@ const MIN_MOVE_MS = 450
 function useMagnet(initial: number) {
     const [pos, setPos] = useState(initial)
     const [move, setMove] = useState<Move>(0)
+    const [speed, setSpeed] = useState(1)
     const posRef = useRef(initial)
     const timer = useRef<ReturnType<typeof setInterval> | null>(null)
     const startedAt = useRef(0)
@@ -133,13 +134,15 @@ function useMagnet(initial: number) {
         timer.current = null
         setMove(0)
     }
-    const start = (dir: 1 | -1) => {
+    // speed: множитель скорости (1 — обычная). От неё зависит сила тока.
+    const start = (dir: 1 | -1, spd = 1) => {
+        setSpeed(spd)
         if (releaseTimer.current) clearTimeout(releaseTimer.current)
         if (timer.current) clearInterval(timer.current)
         startedAt.current = Date.now()
         setMove(dir)
         timer.current = setInterval(() => {
-            const next = Math.max(0, Math.min(1, posRef.current + dir * STEP))
+            const next = Math.max(0, Math.min(1, posRef.current + dir * STEP * spd))
             posRef.current = next
             setPos(next)
             if (next === 0 || next === 1) stop()
@@ -156,7 +159,7 @@ function useMagnet(initial: number) {
         if (timer.current) clearInterval(timer.current)
         if (releaseTimer.current) clearTimeout(releaseTimer.current)
     }, [])
-    return { pos, move, start, release, stop, jump }
+    return { pos, move, speed, start, release, stop, jump }
 }
 
 // Направление поля магнита В КОЛЬЦЕ: N внизу → вниз (−1), S внизу → вверх (+1).
@@ -200,6 +203,8 @@ type LenzViewProps = {
     battle?: boolean        // мечи в центре при столкновении
     hideAnswer?: boolean    // игра: прячем ток/своё поле до ответа
     face?: boolean          // эмоция кольца
+    speed?: number          // скорость магнита → сила тока (стрелка, бег тока)
+    showForce?: boolean     // кольцо отталкивает/тянет магнит (следствие Ленца)
 }
 
 const faceOf = (move: Move, pole: Pole, battle: boolean) => {
@@ -210,7 +215,7 @@ const faceOf = (move: Move, pole: Pole, battle: boolean) => {
     return '😭'
 }
 
-const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, battle = false, hideAnswer = false, face = true }: LenzViewProps) => {
+const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, battle = false, hideAnswer = false, face = true, speed = 1, showForce = false }: LenzViewProps) => {
     const magTop = magTopOf(pos)
     const ext = extDirOf(pole)
     const own = ownDirOf(pole, move)
@@ -221,7 +226,9 @@ const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, 
     const extN = extCountOf(pos)
     // ток: своё поле вверх → спереди вправо (см. шапку файла)
     const flowRight = own > 0
-    const needle = currentOn ? (flowRight ? 42 : -42) : 0
+    // ЭДС ∝ ΔΦ/Δt: чем быстрее едет магнит, тем сильнее отклоняется стрелка.
+    const amp = Math.min(82, 40 * speed)
+    const needle = currentOn ? (flowRight ? amp : -amp) : 0
 
     return (
         <div className="relative flex w-full justify-center py-1">
@@ -250,7 +257,7 @@ const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, 
                         <motion.path key={`flow${own}`} d={ringFrontPath} fill="none" stroke="#fff" strokeWidth={3}
                             strokeDasharray="6 18" strokeLinecap="round"
                             animate={{ strokeDashoffset: flowRight ? [0, -48] : [0, 48] }}
-                            transition={{ duration: 0.6, repeat: Infinity, ease: 'linear' }} />
+                            transition={{ duration: 0.6 / speed, repeat: Infinity, ease: 'linear' }} />
                         <g transform={`translate(${CX},${RING_CY + RING_RY}) rotate(${flowRight ? 0 : 180})`}>
                             <path d="M-8,-9 L4,0 L-8,9" fill="none" stroke="#fff" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
                         </g>
@@ -268,13 +275,40 @@ const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, 
                 )}
                 {/* магнит */}
                 <g transform={`translate(${CX - MAG_W / 2},${magTop})`}>
+                  {/* Отдача: кольцо толкает магнит назад (приближаем) или тянет (уводим) — магнит «дрожит» навстречу силе. */}
+                  <motion.g key={`recoil${showForce && moving ? move : 0}`}
+                    animate={showForce && moving ? { y: move > 0 ? [0, -6, 0] : [0, 6, 0] } : { y: 0 }}
+                    transition={showForce && moving ? { duration: 0.22, repeat: Infinity } : { duration: 0.2 }}>
                     <rect x={0} y={0} width={MAG_W} height={MAG_H / 2} rx={6} fill={topColor} />
                     <rect x={0} y={MAG_H / 2} width={MAG_W} height={MAG_H / 2} rx={6} fill={bottomColor} />
                     <rect x={0} y={MAG_H / 2 - 6} width={MAG_W} height={12} fill={bottomColor} />
                     <text x={MAG_W / 2} y={MAG_H / 4 + 7} textAnchor="middle" fontSize={20} fontWeight={900} fill="#fff">{pole === 'N' ? 'S' : 'N'}</text>
                     <text x={MAG_W / 2} y={(MAG_H * 3) / 4 + 7} textAnchor="middle" fontSize={20} fontWeight={900} fill="#fff">{pole}</text>
-                    <text x={MAG_W + 20} y={30} textAnchor="middle" fontSize={26}>😈</text>
+                    <motion.text key={showForce && moving ? `f${move}` : 'devil'} x={MAG_W + 22} y={30} textAnchor="middle" fontSize={34}
+                        initial={{ scale: 0.3 }} animate={{ scale: 1 }} transition={{ type: 'spring', bounce: 0.6, duration: 0.45 }}
+                        style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
+                        {showForce && moving ? (move > 0 ? '😣' : '😯') : '😈'}
+                    </motion.text>
+                  </motion.g>
                 </g>
+                {/* сила от кольца на магнит */}
+                {showForce && moving && (
+                    <g>
+                        {move > 0 ? (
+                            <>
+                                <line x1={CX} y1={magTop - 4} x2={CX} y2={magTop - 34} stroke={OWN_COLOR} strokeWidth={5} strokeLinecap="round" />
+                                <path d={`M ${CX - 9} ${magTop - 24} L ${CX} ${magTop - 36} L ${CX + 9} ${magTop - 24}`} fill="none" stroke={OWN_COLOR} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
+                                <text x={CX - 46} y={magTop + 4} textAnchor="end" fontSize={14} fontWeight={900} fill={OWN_COLOR}>отталкивает!</text>
+                            </>
+                        ) : (
+                            <>
+                                <line x1={CX} y1={magTop + MAG_H + 4} x2={CX} y2={magTop + MAG_H + 34} stroke={OWN_COLOR} strokeWidth={5} strokeLinecap="round" />
+                                <path d={`M ${CX - 9} ${magTop + MAG_H + 24} L ${CX} ${magTop + MAG_H + 36} L ${CX + 9} ${magTop + MAG_H + 24}`} fill="none" stroke={OWN_COLOR} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
+                                <text x={CX - 46} y={magTop + MAG_H + 26} textAnchor="end" fontSize={14} fontWeight={900} fill={OWN_COLOR}>тянет назад!</text>
+                            </>
+                        )}
+                    </g>
+                )}
                 {/* стрелка движения магнита */}
                 {moving && (
                     <text x={CX - MAG_W / 2 - 26} y={magTop + MAG_H / 2 + 8} textAnchor="middle" fontSize={24} fontWeight={900} fill={RULE_COLOR}>
@@ -283,7 +317,14 @@ const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, 
                 )}
                 {/* эмоция кольца */}
                 {face && (
-                    <text x={CX + RING_RX + 30} y={RING_CY - 10} textAnchor="middle" fontSize={34}>{hideAnswer ? '🤔' : faceOf(move, pole, battle)}</text>
+                    <g transform={`translate(${CX + RING_RX + 28},${RING_CY - 12})`}>
+                        {/* эмодзи-эмоция кольца: крупно, «прыгает» при каждой смене */}
+                        <motion.text key={hideAnswer ? 'q' : faceOf(move, pole, battle)} x={0} y={0} textAnchor="middle" dominantBaseline="middle" fontSize={46}
+                            initial={{ scale: 0.3 }} animate={{ scale: 1 }} transition={{ type: 'spring', bounce: 0.6, duration: 0.45 }}
+                            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
+                            {hideAnswer ? '🤔' : faceOf(move, pole, battle)}
+                        </motion.text>
+                    </g>
                 )}
                 {/* амперметр */}
                 {showCurrent && (
@@ -696,7 +737,116 @@ const GameScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-const CONCEPT_SCENES = [RestScene, PushScene, ChatScene, BattleScene, PullScene, LenzRuleScene, HandScene, GameScene]
+// «Кольцо отталкивает магнит» — следствие правила Ленца.
+const RepelScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const mag = useMagnet(0.2)
+    const [tried, setTried] = useState<{ push: boolean; pull: boolean }>({ push: false, pull: false })
+    const last = useRef<Move>(0)
+    useEffect(() => {
+        if (mag.move !== 0) { last.current = mag.move; return }
+        if (last.current === 1) setTried((t) => ({ ...t, push: true }))
+        if (last.current === -1) setTried((t) => ({ ...t, pull: true }))
+        last.current = 0
+    }, [mag.move])
+    const both = tried.push && tried.pull
+    useEffect(() => { if (both && phase === 1) { const t = setTimeout(() => setPhase(2), 700); return () => clearTimeout(t) } }, [both, phase])
+    return (
+        <>
+            <TypedLineWithParts
+                parts={[{ text: 'А ещё кольцо не просто защищается — оно ' }, { bold: 'ТОЛКАЕТСЯ' }, { text: '! Двигай магнит туда-сюда и смотри на него 👀' }]}
+                onSettled={() => setPhase(1)}
+            />
+            {phase >= 1 && (
+                <DiagramBlock>
+                    <div className="w-full flex flex-col gap-2">
+                        <LenzView pos={mag.pos} move={mag.move} showOwn showForce />
+                        <Bubble
+                            text={mag.move === 1 ? '😤 Отойди от меня! Толкаю!' : mag.move === -1 ? '😭 Стой! Вернись! Тяну к себе!' : both ? '😌 Ну вот, поговорили' : '😌 Попробуй подвинуть'}
+                            color={mag.move !== 0 ? OWN_COLOR : '#9AA7B0'}
+                        />
+                        <div className="flex gap-2">
+                            <HoldBtn color={RULE_COLOR} pulse={!tried.push} onStart={() => mag.start(1)} onRelease={mag.release} disabled={mag.pos >= 1}>⬇ Зажми: к кольцу</HoldBtn>
+                            <HoldBtn color={RULE_COLOR} pulse={tried.push && !tried.pull} onStart={() => mag.start(-1)} onRelease={mag.release} disabled={mag.pos <= 0}>⬆ Зажми: от кольца</HoldBtn>
+                        </div>
+                    </div>
+                </DiagramBlock>
+            )}
+            {phase >= 2 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Приближаешь — кольцо ' }, { sticker: 'отталкивает', color: OWN_COLOR }, { text: ', уводишь — ' }, { sticker: 'тянет назад', color: OWN_COLOR }, { text: '. Магнит двигать чуть тяжелее: твоя работа и превращается в энергию тока ⚡ Энергия из ниоткуда не берётся!' }]}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+// Скорость → сила тока: ε = −ΔΦ/Δt.
+const SpeedScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const mag = useMagnet(0.05)
+    const [tried, setTried] = useState<{ slow: boolean; fast: boolean }>({ slow: false, fast: false })
+    const lastSpeed = useRef(0)
+    useEffect(() => {
+        if (mag.move === 1) { lastSpeed.current = mag.speed; return }
+        if (mag.move === 0 && lastSpeed.current) {
+            if (lastSpeed.current < 1) setTried((t) => ({ ...t, slow: true }))
+            if (lastSpeed.current > 1) setTried((t) => ({ ...t, fast: true }))
+            lastSpeed.current = 0
+        }
+    }, [mag.move, mag.speed])
+    const both = tried.slow && tried.fast
+    useEffect(() => { if (both && phase === 1) { const t = setTimeout(() => setPhase(2), 700); return () => clearTimeout(t) } }, [both, phase])
+    const moving = mag.move !== 0
+    const bubble = !moving
+        ? (both ? '😌 Разница видна?' : '😌 Сравни медленно и быстро')
+        : mag.move === -1 ? '🙂 Возвращаем магнит'
+            : mag.speed < 1 ? '🐢 Медленно… ток слабенький, стрелка чуть дрогнула' : '🚀 БЫСТРО! Ток ОГОГО, стрелка улетела!'
+    return (
+        <>
+            <TypedLineWithParts
+                parts={[{ text: 'Эксперимент: толкни магнит ' }, { bold: 'МЕДЛЕННО' }, { text: ', а потом ' }, { bold: 'БЫСТРО' }, { text: '. Где ' }, { sticker: 'ток', color: CURRENT_COLOR }, { text: ' сильнее?' }]}
+                onSettled={() => setPhase(1)}
+            />
+            {phase >= 1 && (
+                <DiagramBlock>
+                    <div className="w-full flex flex-col gap-2">
+                        <LenzView pos={mag.pos} move={mag.move} speed={mag.speed} showOwn />
+                        <Bubble text={bubble} color={moving ? CURRENT_COLOR : '#9AA7B0'} />
+                        <div className="flex gap-2">
+                            <HoldBtn color={OWN_COLOR} pulse={!tried.slow} onStart={() => mag.start(1, 0.45)} onRelease={mag.release} disabled={mag.pos >= 1}>🐢 Медленно</HoldBtn>
+                            <HoldBtn color={CURRENT_COLOR} pulse={tried.slow && !tried.fast} onStart={() => mag.start(1, 2.1)} onRelease={mag.release} disabled={mag.pos >= 1}>🚀 Быстро</HoldBtn>
+                        </div>
+                        <HoldBtn color="#9AA7B0" onStart={() => mag.start(-1, 1.6)} onRelease={mag.release} disabled={mag.pos <= 0}>⬆ Зажми: вернуть магнит наверх</HoldBtn>
+                    </div>
+                </DiagramBlock>
+            )}
+            {phase >= 2 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Чем ' }, { bold: 'БЫСТРЕЕ' }, { text: ' меняется поток, тем сильнее ток. Это и есть закон Фарадея:' }]}
+                    onSettled={() => setPhase(3)}
+                />
+            )}
+            {phase >= 3 && (
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase(4), 500)}>
+                    <div className="mx-auto rounded-2xl border-2 px-5 py-3 text-2xl md:text-3xl font-black text-center"
+                        style={{ borderColor: GGEGE_PALETTE.purple.button, backgroundColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.12), color: '#F2F7FB' }}>
+                        ε = <span style={{ color: OWN_COLOR }}>−</span> <span style={{ color: GGEGE_PALETTE.purple.button }}>ΔΦ</span> / <span style={{ color: RULE_COLOR }}>Δt</span>
+                    </div>
+                </DiagramBlock>
+            )}
+            {phase >= 4 && (
+                <TypedLineWithParts
+                    parts={[{ sticker: 'ΔΦ', color: GGEGE_PALETTE.purple.button }, { text: ' — насколько изменился поток, ' }, { sticker: 'Δt', color: RULE_COLOR }, { text: ' — за сколько времени. А ' }, { sticker: 'минус', color: OWN_COLOR }, { text: ' — это и есть правило Ленца: кольцо сопротивляется 🛡️' }]}
+                    onSettled={onSettled}
+                />
+            )}
+        </>
+    )
+}
+
+const CONCEPT_SCENES = [RestScene, PushScene, ChatScene, BattleScene, PullScene, LenzRuleScene, RepelScene, SpeedScene, HandScene, GameScene]
 const INTRO_CONCEPT_STEPS = CONCEPT_SCENES.length
 
 const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
@@ -794,6 +944,18 @@ const CONCEPT_QUIZ: ConceptQuizItem[] = [
         renderOptions: () => ['против поля магнита', 'так же, как поле магнита'],
         correct: 1,
         feedback: 'Поток падает → кольцо «держит» его, поле туда же 😭',
+    },
+    {
+        renderPrompt: () => <>Магнит толкнули к кольцу в 2 раза <b>быстрее</b>. Ток в кольце…</>,
+        renderOptions: () => ['такой же', 'сильнее'],
+        correct: 1,
+        feedback: 'ΔΦ та же, а Δt меньше → ε = −ΔΦ/Δt больше 🚀',
+    },
+    {
+        renderPrompt: () => <>Магнит приближают к кольцу. Кольцо магнит…</>,
+        renderOptions: () => ['отталкивает', 'притягивает'],
+        correct: 0,
+        feedback: 'Приходит — не пускает: кольцо толкает магнит назад 😤',
     },
     {
         renderPrompt: () => <>Как называется это правило?</>,
