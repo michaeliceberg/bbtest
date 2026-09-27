@@ -527,7 +527,7 @@ const IntroScene = ({ onSettled }: { onSettled?: () => void }) => {
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'Помнишь ' }, { sticker: 'поток Φ', color: GGEGE_PALETTE.purple.button }, { text: '? Магнит висит над металлическим ' }, { sticker: 'кольцом', color: RING_COLOR }, { text: '.' }]}
+                parts={[{ text: 'Магнит над ' }, { sticker: 'кольцом', color: RING_COLOR }, { text: '.' }]}
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
@@ -552,7 +552,7 @@ const IntroScene = ({ onSettled }: { onSettled?: () => void }) => {
             )}
             {phase >= 2 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Сквозь кольцо проходят стрелки поля ' }, { sticker: 'B', color: FIELD_COLOR }, { text: ' — это и есть ' }, { sticker: 'поток Φ', color: GGEGE_PALETTE.purple.button }, { text: '.' }]}
+                    parts={[{ text: 'Стрелки ' }, { sticker: 'B', color: FIELD_COLOR }, { text: ' сквозь кольцо — это ' }, { sticker: 'поток Φ', color: GGEGE_PALETTE.purple.button }, { text: '.' }]}
                     onSettled={() => { setPhase(3); setTimeout(() => setPhase(4), 1500) }}
                 />
             )}
@@ -561,20 +561,20 @@ const IntroScene = ({ onSettled }: { onSettled?: () => void }) => {
             )}
             {phase >= 5 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Оказывается: когда ' }, { bold: 'двигаем' }, { text: ' магнит — в кольце возникает ' }, { sticker: 'ток', color: CURRENT_COLOR }, { text: '. Магнит стоит — тока ' }, { bold: 'нет' }, { text: ', хотя поток есть.' }]}
+                    parts={[{ text: 'Двигаешь — ' }, { sticker: 'ток', color: CURRENT_COLOR }, { text: ' есть. Стоишь — ' }, { bold: 'нет' }, { text: '.' }]}
                     onSettled={() => setPhase(6)}
                 />
             )}
             {phase >= 6 && (
                 <DiagramBlock onSettled={() => setTimeout(() => setPhase(7), 1600)}>
                     <InsightCard>
-                        Ток появляется <InsightWord>ТОЛЬКО</InsightWord>, когда поток Φ <InsightWord>МЕНЯЕТСЯ</InsightWord>.
-                        <br />Такой ток называют <InsightWord color="#FF9AC8">индукционным</InsightWord>.
+                        Ток — только пока Φ <InsightWord>МЕНЯЕТСЯ</InsightWord>.
+                        <br /><InsightWord color="#FF9AC8">Индукционный ток</InsightWord>
                     </InsightCard>
                 </DiagramBlock>
             )}
             {phase >= 7 && (
-                <TypedLineWithParts parts={[{ text: 'А ' }, { bold: 'почему' }, { text: ' он возникает? Сейчас разберёмся.' }]} onSettled={onSettled} />
+                <TypedLineWithParts parts={[{ bold: 'А почему?' }, { text: ' 🤔' }]} onSettled={onSettled} />
             )}
         </>
     )
@@ -618,7 +618,7 @@ const ChatScene = ({ onSettled }: { onSettled?: () => void }) => {
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'Магнит приближается — внешнее поле ' }, { sticker: 'B', color: FIELD_COLOR }, { text: ' растёт: армия ' }, { bold: 'наступает' }, { text: '. Поток ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ' увеличивается, а кольцо ' }, { bold: 'не хочет' }, { text: ', чтобы поток менялся. Подслушаем их чат 👀' }]}
+                parts={[{ text: 'Магнит наступает — ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ' растёт. Кольцу это ' }, { bold: 'НЕ НРАВИТСЯ' }, { text: ' 👀' }]}
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
@@ -655,7 +655,7 @@ const ChatScene = ({ onSettled }: { onSettled?: () => void }) => {
             )}
             {phase >= 2 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Вот так ' }, { sticker: 'индукционный ток', color: CURRENT_COLOR }, { text: ' создаёт своё поле ' }, { sticker: 'B кольца', color: OWN_COLOR }, { text: ' — оно дерётся с полем магнита.' }]}
+                    parts={[{ text: 'Ток кольца создаёт своё поле ' }, { sticker: 'B инд', color: OWN_COLOR }, { text: ' — против магнита.' }]}
                     onSettled={onSettled}
                 />
             )}
@@ -708,16 +708,6 @@ const HpBar = ({ label, color, align, hit }: { label: string; color: string; ali
             animate={hit ? { x: [0, -3, 3, -2, 0] } : { x: 0 }} transition={hit ? { duration: 0.3, repeat: Infinity } : {}}>
             <div className={cn('h-full', align === 'right' && 'ml-auto')} style={{ width: '100%', background: `linear-gradient(90deg, ${color}, #F2C35B)` }} />
         </motion.div>
-    </div>
-)
-
-const MkMeter = ({ label, value, color, note }: { label: string; value: number; color: string; note: string }) => (
-    <div className="flex items-center gap-2 text-xs font-black">
-        <span className="w-[46%] shrink-0 text-left" style={{ color }}>{label}</span>
-        <div className="relative h-3 flex-1 overflow-hidden rounded-full bg-[#1E2A30]">
-            <div className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-300" style={{ width: `${Math.round(value * 100)}%`, backgroundColor: color }} />
-        </div>
-        <span className="w-[72px] shrink-0 text-right text-[#9AA7B0]">{note}</span>
     </div>
 )
 
@@ -796,11 +786,6 @@ const MkView = ({ pos, fighting }: { pos: number; fighting: boolean }) => {
                     </>
                 )}
             </svg>
-            {/* шкалы: поток растёт, а скорость его изменения (и ток) при ровном движении постоянна */}
-            <div className="flex flex-col gap-1.5 px-1">
-                <MkMeter label="Поток Φ" value={blueN / MK_BLUE_ROWS.length} color={GGEGE_PALETTE.purple.button} note={fighting ? 'растёт' : 'не меняется'} />
-                <MkMeter label="Скорость изменения Φ → I инд" value={fighting ? 0.45 : 0} color={CURRENT_COLOR} note={fighting ? 'постоянная' : '0'} />
-            </div>
         </div>
     )
 }
@@ -836,7 +821,7 @@ const BattleScene = ({ onSettled }: { onSettled?: () => void }) => {
             )}
             {phase >= 2 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Заметил? Синих стрелок (поток ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ') становилось ' }, { bold: 'больше' }, { text: ', а красных ' }, { sticker: 'B инд', color: OWN_COLOR }, { text: ' — всё время ' }, { bold: 'столько же' }, { text: '. Кольцо отвечает не на сам поток, а на то, ' }, { bold: 'как быстро' }, { text: ' он меняется. Магнит встал — ответа нет.' }]}
+                    parts={[{ text: 'Синих всё ' }, { bold: 'больше' }, { text: ', красных — ' }, { bold: 'столько же' }, { text: '. Кольцу важно, ' }, { bold: 'как быстро' }, { text: ' меняется ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: '.' }]}
                     onSettled={onSettled}
                 />
             )}
