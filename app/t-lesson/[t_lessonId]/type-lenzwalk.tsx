@@ -34,6 +34,7 @@ import {
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
+import { InsightCard, InsightWord, CharacterCard } from '@/components/geometry/WalkthroughCards'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
 import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
@@ -53,7 +54,9 @@ type Props = {
 // (как в FARADAYWALK), полюса N красный / S синий.
 const FIELD_COLOR = GGEGE_PALETTE.blue.button
 const CURRENT_COLOR = GGEGE_PALETTE.raspberry.button
-const OWN_COLOR = GGEGE_PALETTE.green.button
+// Своё поле кольца — в цвет индукционного тока I (по просьбе пользователя:
+// поле рождается током, одинаковый цвет даёт смысловую связь).
+const OWN_COLOR = CURRENT_COLOR
 const RING_COLOR = GGEGE_PALETTE.teal.button
 const RULE_COLOR = GGEGE_PALETTE.orange.button
 const NORTH_COLOR = '#DC605B'
@@ -435,21 +438,40 @@ const PushScene = ({ onSettled }: { onSettled?: () => void }) => {
                 />
             )}
             {phase >= 3 && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Ток рождается, только когда поток ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ' ' }, { bold: 'МЕНЯЕТСЯ' }, { text: '. Его зовут ' }, { sticker: 'индукционный ток', color: CURRENT_COLOR }, { text: '.' }]}
-                    onSettled={onSettled}
-                />
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase(4), 1600)}>
+                    <InsightCard>
+                        Ток появляется <InsightWord>ТОЛЬКО</InsightWord>, когда поток Φ <InsightWord>МЕНЯЕТСЯ</InsightWord>.
+                        <br />Его зовут <InsightWord color="#FF9AC8">индукционный ток</InsightWord>.
+                    </InsightCard>
+                </DiagramBlock>
+            )}
+            {phase >= 4 && (
+                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 2200)}>
+                    <CharacterCard
+                        avatar="🫡"
+                        badge="⚡"
+                        title="Его Сопротивлейшество"
+                        name="ИНДУКЦИОННЫЙ ТОК"
+                        accent="#FF9AC8"
+                        tagline="Командир партизан кольца. Спит, пока всё спокойно, — и мгновенно поднимает отряд, стоит потоку дрогнуть."
+                        stats={[
+                            { icon: '🎯', label: 'Появляется', value: 'только когда Φ меняется' },
+                            { icon: '🛡️', label: 'Суперсила', value: 'мешать изменениям' },
+                            { icon: '😴', label: 'Слабость', value: 'магнит стоит — спит' },
+                        ]}
+                    />
+                </DiagramBlock>
             )}
         </>
     )
 }
 
 // 2. Чат: зачем кольцо это делает.
-type ChatMsg = { who: 'magnet' | 'ring'; emoji: string; text: string }
+type ChatMsg = { who: 'magnet' | 'ring'; emoji: string; text: React.ReactNode }
 const CHAT: ChatMsg[] = [
-    { who: 'magnet', emoji: '😈', text: 'Моя армия поля B идёт на вас! Поток, расти!' },
-    { who: 'ring', emoji: '😱', text: 'ВНИМАНИЕ! ТРЕВОГА! ПОТОК МЕНЯЕТСЯ!! А надо, чтоб был постоянный!' },
-    { who: 'ring', emoji: '😤', text: 'Всем по постам! Запускаем СВОЙ ток — он создаст СВОЁ поле B. Против врага! 🛡️' },
+    { who: 'magnet', emoji: '😈', text: <>Моя армия поля <Sticker value="B" color={FIELD_COLOR} /> идёт на вас! Поток, расти!</> },
+    { who: 'ring', emoji: '😱', text: <>ВНИМАНИЕ! ТРЕВОГА! ПОТОК <Sticker value="Φ" color={GGEGE_PALETTE.purple.button} /> МЕНЯЕТСЯ!! А надо, чтоб был постоянный!</> },
+    { who: 'ring', emoji: '😤', text: <>Всем по постам! Запускаем СВОЙ ток <Sticker value="I" color={CURRENT_COLOR} /> — он создаст СВОЁ поле <Sticker value="B" color={OWN_COLOR} />. Против врага! 🛡️</> },
     { who: 'magnet', emoji: '😠', text: 'Эй, вы чего сопротивляетесь?!' },
 ]
 const ChatScene = ({ onSettled }: { onSettled?: () => void }) => {
@@ -597,10 +619,11 @@ const LenzRuleScene = ({ onSettled }: { onSettled?: () => void }) => {
                 </DiagramBlock>
             )}
             {phase >= 3 && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Кольцо — жадина 🍕: ' }, { bold: 'приходит — не пускает, уходит — не отпускает' }, { text: '.' }]}
-                    onSettled={onSettled}
-                />
+                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1400)}>
+                    <InsightCard label="🍕 Кольцо — жадина">
+                        Приходит — <InsightWord>не пускает</InsightWord>,<br />уходит — <InsightWord>не отпускает</InsightWord>.
+                    </InsightCard>
+                </DiagramBlock>
             )}
         </>
     )
@@ -773,10 +796,12 @@ const RepelScene = ({ onSettled }: { onSettled?: () => void }) => {
                 </DiagramBlock>
             )}
             {phase >= 2 && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Приближаешь — кольцо ' }, { sticker: 'отталкивает', color: OWN_COLOR }, { text: ', уводишь — ' }, { sticker: 'тянет назад', color: OWN_COLOR }, { text: '. Магнит двигать чуть тяжелее: твоя работа и превращается в энергию тока ⚡ Энергия из ниоткуда не берётся!' }]}
-                    onSettled={onSettled}
-                />
+                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1600)}>
+                    <InsightCard>
+                        Приближаешь — кольцо <InsightWord>отталкивает</InsightWord>, уводишь — <InsightWord>тянет назад</InsightWord>.
+                        <br /><span className="text-base font-bold">Магнит двигать тяжелее — твоя работа и превращается в энергию тока ⚡ Энергия из ниоткуда не берётся!</span>
+                    </InsightCard>
+                </DiagramBlock>
             )}
         </>
     )
@@ -815,7 +840,7 @@ const SpeedScene = ({ onSettled }: { onSettled?: () => void }) => {
                         <LenzView pos={mag.pos} move={mag.move} speed={mag.speed} showOwn />
                         <Bubble text={bubble} color={moving ? CURRENT_COLOR : '#9AA7B0'} />
                         <div className="flex gap-2">
-                            <HoldBtn color={OWN_COLOR} pulse={!tried.slow} onStart={() => mag.start(1, 0.45)} onRelease={mag.release} disabled={mag.pos >= 1}>🐢 Медленно</HoldBtn>
+                            <HoldBtn color={GGEGE_PALETTE.green.button} pulse={!tried.slow} onStart={() => mag.start(1, 0.45)} onRelease={mag.release} disabled={mag.pos >= 1}>🐢 Медленно</HoldBtn>
                             <HoldBtn color={CURRENT_COLOR} pulse={tried.slow && !tried.fast} onStart={() => mag.start(1, 2.1)} onRelease={mag.release} disabled={mag.pos >= 1}>🚀 Быстро</HoldBtn>
                         </div>
                         <HoldBtn color="#9AA7B0" onStart={() => mag.start(-1, 1.6)} onRelease={mag.release} disabled={mag.pos <= 0}>⬆ Зажми: вернуть магнит наверх</HoldBtn>
@@ -830,10 +855,11 @@ const SpeedScene = ({ onSettled }: { onSettled?: () => void }) => {
             )}
             {phase >= 3 && (
                 <DiagramBlock onSettled={() => setTimeout(() => setPhase(4), 500)}>
-                    <div className="mx-auto rounded-2xl border-2 px-5 py-3 text-2xl md:text-3xl font-black text-center"
-                        style={{ borderColor: GGEGE_PALETTE.purple.button, backgroundColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.12), color: '#F2F7FB' }}>
-                        ε = <span style={{ color: OWN_COLOR }}>−</span> <span style={{ color: GGEGE_PALETTE.purple.button }}>ΔΦ</span> / <span style={{ color: RULE_COLOR }}>Δt</span>
-                    </div>
+                    <InsightCard label="⚡ Закон Фарадея">
+                        <span className="text-3xl md:text-4xl font-black">
+                            ε = <InsightWord color="#FF9AC8">−</InsightWord> <InsightWord color="#D8BBFF">ΔΦ</InsightWord> / <InsightWord>Δt</InsightWord>
+                        </span>
+                    </InsightCard>
                 </DiagramBlock>
             )}
             {phase >= 4 && (
