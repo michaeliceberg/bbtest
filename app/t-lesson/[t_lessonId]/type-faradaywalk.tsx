@@ -606,12 +606,13 @@ const DIST_MAG_H = 48
 // линиями, передняя — поверх), три кнопки далеко/средне/близко вместо
 // палки с рисками, шкала «поле B у кольца». Готово — когда магнит близко.
 const DS_W = 360
-const DS_H = 500
+const DS_H = 460
 const DS_RING_CX = MAG_CX
-const DS_RING_CY = 420
+const DS_RING_CY = 380
 const DS_RING_RX = 95
 const DS_RING_RY = 22
-const DS_MAG_CENTER = [150, 250, 330] // центр магнита: далеко / средне / близко
+// магнит едет по чуть-чуть и в «близко» не упирается в кольцо — стрелка B не сливается с магнитом
+const DS_MAG_CENTER = [196, 233, 270] // центр магнита: далеко / средне / близко
 const DS_LEVELS = ['слабое', 'среднее', 'сильное']
 const DS_LEVEL_W = [22, 58, 100]
 // Поле B у кольца — ОДНА толстая стрелка сквозь центр кольца (идея
@@ -682,46 +683,132 @@ const DistanceScene = ({ onSettled }: { onSettled?: () => void }) => {
 // площадь кольца S, высота — длина стрелки B. Φ = B·S, как объём V = S·h.
 const FC_W = 280, FC_H = 240, FC_CX = 140, FC_CY = 118
 const FC_RX = 78, FC_RY = 20, FC_LEN = 160
-const FluxCylinderDiagram = ({ showCyl }: { showCyl: boolean }) => (
-    <svg viewBox={`0 0 ${FC_W} ${FC_H}`} className="w-full max-w-[300px] h-auto">
-        {showCyl && (
-            <motion.g initial={{ scaleY: 0, opacity: 0 }} animate={{ scaleY: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.35, duration: 0.9 }}
-                style={{ transformBox: 'view-box', transformOrigin: `${FC_CX}px ${FC_CY}px` }}>
-                <FluxCylinder cx={FC_CX} cy={FC_CY} radius={FC_RX} depth={FC_RY} length={FC_LEN} color={FLUX_COLOR} />
-            </motion.g>
-        )}
-        <path d={`M ${FC_CX - FC_RX} ${FC_CY} A ${FC_RX} ${FC_RY} 0 0 1 ${FC_CX + FC_RX} ${FC_CY}`} fill="none" stroke={RING_COLOR} strokeWidth={6} />
-        <FieldArrow x1={FC_CX} y1={FC_CY - FC_LEN / 2} x2={FC_CX} y2={FC_CY + FC_LEN / 2} color={FIELD_COLOR} width={7} />
-        <path d={`M ${FC_CX - FC_RX} ${FC_CY} A ${FC_RX} ${FC_RY} 0 0 0 ${FC_CX + FC_RX} ${FC_CY}`} fill="none" stroke={RING_COLOR} strokeWidth={6} />
-        <SvgTag x={FC_CX + 26} y={FC_CY - FC_LEN / 2 + 14} text="B" color={FIELD_COLOR} />
-        <SvgTag x={FC_CX - FC_RX - 4} y={FC_CY + 26} text="S" color={RING_COLOR} />
-        {showCyl && (
-            <motion.g initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', bounce: 0.55, delay: 0.9 }}
-                style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
-                <SvgTag x={FC_CX + FC_RX + 2} y={FC_CY - 50} text="Φ" color={FLUX_COLOR} />
-            </motion.g>
-        )}
-    </svg>
+// Поэтапная постройка цилиндра (просьба пользователя 2026-09-28): стрелка B →
+// стикер B → кольцо → стикер S → пунктир верхнего основания → пунктир нижнего
+// → заливка с bounce → стикер Φ → крупная подпись «поток — ЦИЛИНДР из S и B».
+// Таймеры setTimeout (не onAnimationComplete — см. CLAUDE.md про rAF).
+const FC_STAGE_MS = [0, 800, 1500, 2500, 3200, 4200, 5200, 6100, 6800]
+const DashedEllipseDraw = ({ cx, cy, rx, ry, uid }: { cx: number; cy: number; rx: number; ry: number; uid: string }) => (
+    <g>
+        <defs>
+            <mask id={`fc-mask-${uid}`} maskUnits="userSpaceOnUse">
+                <motion.ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="none" stroke="#fff" strokeWidth={12}
+                    initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.8, ease: 'easeInOut' }} />
+            </mask>
+        </defs>
+        <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="none" stroke={FLUX_COLOR} strokeWidth={3} strokeDasharray="7 6" mask={`url(#fc-mask-${uid})`} />
+    </g>
 )
+const BounceTag = ({ x, y, text, color }: { x: number; y: number; text: string; color: string }) => (
+    <g transform={`translate(${x},${y})`}>
+        <motion.g initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', bounce: 0.6, duration: 0.55 }}>
+            <SvgTag x={0} y={0} text={text} color={color} />
+        </motion.g>
+    </g>
+)
+const FluxBuildDiagram = ({ onDone }: { onDone: () => void }) => {
+    const [stage, setStage] = useState(0)
+    useEffect(() => {
+        const ts = FC_STAGE_MS.map((ms, i) => setTimeout(() => setStage(i + 1), ms))
+        ts.push(setTimeout(onDone, FC_STAGE_MS[FC_STAGE_MS.length - 1] + 900))
+        return () => ts.forEach(clearTimeout)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+    const yt = FC_CY - FC_LEN / 2, yb = FC_CY + FC_LEN / 2
+    const ringBack = `M ${FC_CX - FC_RX} ${FC_CY} A ${FC_RX} ${FC_RY} 0 0 1 ${FC_CX + FC_RX} ${FC_CY}`
+    const ringFront = `M ${FC_CX - FC_RX} ${FC_CY} A ${FC_RX} ${FC_RY} 0 0 0 ${FC_CX + FC_RX} ${FC_CY}`
+    const body = `M ${FC_CX - FC_RX} ${yt} L ${FC_CX - FC_RX} ${yb} A ${FC_RX} ${FC_RY} 0 0 0 ${FC_CX + FC_RX} ${yb} L ${FC_CX + FC_RX} ${yt} A ${FC_RX} ${FC_RY} 0 0 1 ${FC_CX - FC_RX} ${yt} Z`
+    return (
+        <div className="w-full flex flex-col items-center gap-2">
+            <svg viewBox={`0 0 ${FC_W} ${FC_H}`} className="w-full max-w-[300px] h-auto overflow-visible">
+                {/* 7: заливка цилиндра с bounce */}
+                {stage >= 7 && (
+                    <motion.g initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5, duration: 0.7 }}
+                        style={{ transformBox: 'view-box', transformOrigin: `${FC_CX}px ${FC_CY}px` }}>
+                        <path d={body} fill={hexToRgba(FLUX_COLOR, 0.24)} />
+                        <ellipse cx={FC_CX} cy={yt} rx={FC_RX} ry={FC_RY} fill={hexToRgba(FLUX_COLOR, 0.3)} />
+                        <line x1={FC_CX - FC_RX} y1={yt} x2={FC_CX - FC_RX} y2={yb} stroke={FLUX_COLOR} strokeWidth={3} />
+                        <line x1={FC_CX + FC_RX} y1={yt} x2={FC_CX + FC_RX} y2={yb} stroke={FLUX_COLOR} strokeWidth={3} />
+                    </motion.g>
+                )}
+                {/* 5, 6: пунктиром верхнее и нижнее основания */}
+                {stage >= 5 && <DashedEllipseDraw cx={FC_CX} cy={yt} rx={FC_RX} ry={FC_RY} uid="top" />}
+                {stage >= 6 && <DashedEllipseDraw cx={FC_CX} cy={yb} rx={FC_RX} ry={FC_RY} uid="bot" />}
+                {/* 3: кольцо (задняя половина под стрелкой) */}
+                {stage >= 3 && <motion.path d={ringBack} fill="none" stroke={RING_COLOR} strokeWidth={6} strokeLinecap="round"
+                    initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.4, ease: 'easeIn' }} />}
+                {/* 1: стрелка B «рисуется» сверху вниз */}
+                {stage >= 1 && (
+                    <motion.g initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+                        style={{ transformBox: 'view-box', transformOrigin: `${FC_CX}px ${yt}px` }}>
+                        <FieldArrow x1={FC_CX} y1={yt} x2={FC_CX} y2={yb} color={FIELD_COLOR} width={7} />
+                    </motion.g>
+                )}
+                {stage >= 3 && <motion.path d={ringFront} fill="none" stroke={RING_COLOR} strokeWidth={6} strokeLinecap="round"
+                    initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.4, delay: 0.4, ease: 'easeOut' }} />}
+                {stage >= 2 && <BounceTag x={FC_CX + 26} y={yt + 22} text="B" color={FIELD_COLOR} />}
+                {stage >= 4 && <BounceTag x={FC_CX - FC_RX - 22} y={FC_CY} text="S" color={RING_COLOR} />}
+                {stage >= 8 && <BounceTag x={FC_CX + FC_RX + 24} y={FC_CY - 30} text="Φ" color={FLUX_COLOR} />}
+            </svg>
+            {stage >= 9 && (
+                <motion.div initial={{ scale: 2.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5, duration: 0.6 }}
+                    className="text-center text-xl md:text-2xl font-black text-[#F2F7FB] leading-snug">
+                    Поток — это <span style={{ color: FLUX_COLOR }}>ЦИЛИНДР</span>
+                    <br />из <Sticker value="S" color={RING_COLOR} /> и <Sticker value="B" color={FIELD_COLOR} />
+                </motion.div>
+            )}
+        </div>
+    )
+}
+
+// Интрига перед потоком: «Поговорим о главном… Ты готов?» — два варианта, оба «да».
+const READY_ANSWERS = ['ДА, капитан! 🫡', 'ДА ДА ДААА 🔥']
+const IntrigueScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const [picked, setPicked] = useState<number | null>(null)
+    const pick = (i: number) => {
+        if (picked !== null) return
+        setPicked(i)
+        setTimeout(() => onSettled?.(), 900)
+    }
+    return (
+        <>
+            <TypedLineWithParts
+                parts={[{ text: 'Теперь давай поговорим о ' }, { bold: 'главном' }, { text: '… Ты готов? 😏' }]}
+                onSettled={() => setPhase(1)}
+            />
+            {phase >= 1 && (
+                <DiagramBlock>
+                    <div className="w-full grid grid-cols-2 gap-3">
+                        {READY_ANSWERS.map((t, i) => (
+                            <motion.button key={t} type="button" onClick={() => pick(i)}
+                                initial={{ scale: 0 }} animate={picked === i ? { scale: [1, 1.15, 1] } : { scale: 1, opacity: picked !== null ? 0.4 : 1 }}
+                                transition={{ type: 'spring', bounce: 0.55, delay: picked === null ? i * 0.15 : 0 }}
+                                className={cn('min-h-[56px] rounded-xl border-2 px-2 text-base font-black', picked === null && 'animate-pulse')}
+                                style={{ borderColor: FLUX_COLOR, backgroundColor: hexToRgba(FLUX_COLOR, picked === i ? 0.35 : 0.14), color: '#F2F7FB' }}>
+                                {t}
+                            </motion.button>
+                        ))}
+                    </div>
+                    {picked !== null && <LocalAnswerConfetti />}
+                </DiagramBlock>
+            )}
+        </>
+    )
+}
 
 const FluxSimpleScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'Теперь введём ' }, { sticker: 'поток', color: FLUX_COLOR }, { text: ' магнитного поля — буква ' }, { sticker: 'Φ', color: FLUX_COLOR }, { text: '.' }]}
+                parts={[{ text: 'Введём ' }, { sticker: 'ПОТОК', color: FLUX_COLOR }, { text: ' магнитного поля — буква ' }, { sticker: 'Φ', color: FLUX_COLOR }]}
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
-                <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 700)}>
-                    <FluxCylinderDiagram showCyl={phase >= 2} />
+                <DiagramBlock>
+                    <FluxBuildDiagram onDone={() => setPhase(3)} />
                 </DiagramBlock>
-            )}
-            {phase >= 2 && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Поток — это ' }, { bold: 'цилиндр' }, { text: ': ширина — кольцо ' }, { sticker: 'S', color: RING_COLOR }, { text: ', высота — стрелка ' }, { sticker: 'B', color: FIELD_COLOR }, { text: '.' }]}
-                    onSettled={() => setTimeout(() => setPhase(3), 600)}
-                />
             )}
             {phase >= 3 && (
                 <TypedLineWithParts
@@ -1243,8 +1330,8 @@ const RingChoiceScene = ({ onSettled }: { onSettled?: () => void }) => {
 }
 
 // «Растяни кольцо» — площадь S растёт.
-const RING_SIZES = [0.45, 0.72, 1]
-const RING_SIZE_NAMES = ['маленькая', 'средняя', 'большая']
+const RING_SIZES = [0.4, 0.6, 0.8, 1]
+const RING_SIZE_NAMES = ['крошечная', 'маленькая', 'средняя', 'большая']
 const RingSizeScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
     const [size, setSize] = useState(0)
@@ -1423,7 +1510,7 @@ const DistanceStep = ({ onSettled }: { onSettled?: () => void }) => <Step7Scene 
 
 const CONCEPT_SCENES = [
     MagnetTapScene, Step1Scene, PolesScene, PoleGameScene, Step4Scene,
-    RingChoiceScene, RingSizeScene, DistanceStep, FluxSimpleScene, FluxCompareScene, FluxGameScene,
+    RingChoiceScene, RingSizeScene, DistanceStep, IntrigueScene, FluxSimpleScene, FluxCompareScene, FluxGameScene,
 ]
 
 const INTRO_CONCEPT_STEPS = CONCEPT_SCENES.length
