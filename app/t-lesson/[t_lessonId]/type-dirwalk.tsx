@@ -339,7 +339,7 @@ const TEXT_CLS = 'w-full text-center text-base md:text-lg text-[#F2F7FB]'
 // смотрит ВПРАВО (от провода) — поле провода перпендикулярно земному, стрелка
 // честно поворачивается на 90° (вверх). Колебания — затухающие keyframes.
 const NEEDLE_RED = '#DC605B'
-const BC_W = 320, BC_H = 320, BC_WX = 92, BC_CX = 222, BC_CY = 210, BC_R = 64
+const BC_W = 210, BC_H = 300, BC_WX = 22, BC_CX = 132, BC_CY = 150, BC_R = 64
 const NEEDLE_OFF = 90, NEEDLE_ON = 0
 // С справа, дальше по часовой: В снизу, Ю слева, З сверху
 const COMPASS_LETTERS: [string, number][] = [['С', 90], ['В', 180], ['Ю', 270], ['З', 0]]
@@ -380,12 +380,13 @@ const BigCompassScene = ({ onSettled }: { onSettled?: () => void }) => {
             {phase >= 1 && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col items-center gap-3">
-                        <div className="relative w-full max-w-[300px]">
-                            <svg viewBox={`0 0 ${BC_W} ${BC_H}`} className="w-full h-auto">
+                        {/* слева провод, правее компас, ещё правее — ДиКаприо (место зарезервировано) */}
+                        <div className="w-full flex items-center justify-center gap-2">
+                            <svg viewBox={`0 0 ${BC_W} ${BC_H}`} className="w-[56%] max-w-[230px] h-auto shrink-0">
                                 <motion.rect x={BC_WX - 7} y={10} width={14} height={BC_H - 20} rx={7}
                                     animate={{ fill: on ? CURRENT_COLOR : '#5C6B73' }} transition={{ duration: 0.3 }} />
                                 {on && <WireChevrons x={BC_WX} y1={10} y2={BC_H - 10} up id="bc-wire" />}
-                                {on && <SvgTag x={BC_WX - 28} y={34} text="I" color={CURRENT_COLOR} />}
+                                {on && <SvgTag x={BC_WX + 26} y={30} text="I" color={CURRENT_COLOR} />}
                                 {/* компас справа от провода, север смотрит вправо (от провода) */}
                                 <circle cx={BC_CX} cy={BC_CY} r={BC_R + 8} fill="#C9CFD3" />
                                 <circle cx={BC_CX} cy={BC_CY} r={BC_R} fill="#F2F7FB" stroke="#9AA7B0" strokeWidth={3} />
@@ -404,13 +405,13 @@ const BigCompassScene = ({ onSettled }: { onSettled?: () => void }) => {
                                     </motion.g>
                                 </g>
                             </svg>
-                            {/* ДиКаприо присматривается, пока течёт ток */}
-                            {on && (
-                                <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
-                                    className="absolute right-0 top-0 w-28" style={{ transformOrigin: 'top right' }}>
-                                    <video src="/video/dicaprio-look.mp4" autoPlay loop muted playsInline className="pointer-events-none w-full rounded-2xl" />
-                                </motion.div>
-                            )}
+                            <div className="w-[42%] max-w-[170px] aspect-square shrink-0">
+                                {on && (
+                                    <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}>
+                                        <video src="/video/dicaprio-look.mp4" autoPlay loop muted playsInline className="pointer-events-none w-full rounded-2xl" />
+                                    </motion.div>
+                                )}
+                            </div>
                         </div>
                         <PowerSwitch on={on} onToggle={toggle} />
                         {toggles === 0 && <p className="text-sm font-black text-[#9AA7B0] animate-pulse">Щёлкни рубильник 👆</p>}
