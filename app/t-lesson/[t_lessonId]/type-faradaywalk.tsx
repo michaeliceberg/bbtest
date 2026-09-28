@@ -867,7 +867,7 @@ const SceneReplyButton = ({ children, onClick }: { children: React.ReactNode; on
         {children}
     </motion.button>
 )
-// Этапы: 1 кот думает · 2 формула V · 3 кот колдует · 4 кот ушёл, формула Φ · 5 танцы · 6 кнопка
+// Этапы: 1 кот думает · 2 формула V · 3 кот колдует · 4 кот ушёл, формула Φ · 5 «Похоже!» · 6 танцы · 7 кнопка
 const FormulaMatchBlock = ({ onDone }: { onDone: () => void }) => {
     const [stage, setStage] = useState(0)
     const [answered, setAnswered] = useState(false)
@@ -882,7 +882,8 @@ const FormulaMatchBlock = ({ onDone }: { onDone: () => void }) => {
     const afterMagic = () => once(3, () => {
         setStage(4)
         later(() => setStage(5), 1300)
-        later(() => setStage(6), 2800)
+        later(() => setStage(6), 2500)
+        later(() => setStage(7), 4000)
     })
     useEffect(() => {
         if (stage === 1) later(afterThinking, 3600)
@@ -923,6 +924,12 @@ const FormulaMatchBlock = ({ onDone }: { onDone: () => void }) => {
                             </div>
                         </div>
                         {stage >= 5 && (
+                            <motion.p initial={{ scale: 2.2, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
+                                className="text-center text-lg md:text-xl font-black text-[#F2F7FB]">
+                                Похоже! Не правда ли? 😏
+                            </motion.p>
+                        )}
+                        {stage >= 6 && (
                             <div className="w-full flex items-end justify-around">
                                 <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
                                     className="w-24" style={{ rotate: -14 }}>
@@ -934,7 +941,7 @@ const FormulaMatchBlock = ({ onDone }: { onDone: () => void }) => {
                                 </motion.div>
                             </div>
                         )}
-                        {stage >= 6 && !answered && (
+                        {stage >= 7 && !answered && (
                             <SceneReplyButton onClick={() => { setAnswered(true); onDone() }}>Агась 👌</SceneReplyButton>
                         )}
                     </div>
@@ -1072,6 +1079,8 @@ const FluxCompareScene = ({ onSettled }: { onSettled?: () => void }) => {
                         {[0, 1, 2].map((i) => (
                             <Fragment key={i}><br /><Sticker value="ПОТОК" color={FLUX_COLOR} /> <InsightWord>ДОЛЖЕН НЕ МЕНЯТЬСЯ</InsightWord></Fragment>
                         ))}
+                        <video src="/video/mcconaughey.webm" autoPlay loop muted playsInline
+                            className="pointer-events-none mx-auto mt-3 block w-32 md:w-36 aspect-square object-contain" />
                     </InsightCard>
                 </DiagramBlock>
             )}
@@ -1623,10 +1632,7 @@ const FluxGameScene = ({ onSettled }: { onSettled?: () => void }) => {
                         </svg>
                         <div className="w-full max-w-xs flex flex-col gap-1">
                             <div className="flex items-center justify-between text-sm font-black">
-                                <span style={{ color: FLUX_COLOR }}>Поток Φ = B · S</span>
-                                <span style={{ color: FLUX_COLOR }}>
-                                    <span style={{ color: FIELD_COLOR }}>{B}</span> · <span style={{ color: RING_COLOR }}>{S}</span> = {phi}
-                                </span>
+                                <span style={{ color: FLUX_COLOR }}>Поток Φ</span>
                             </div>
                             <div className="h-4 w-full rounded-full bg-[#232F34] overflow-hidden">
                                 <motion.div className="h-full rounded-full" style={{ backgroundColor: FLUX_COLOR }}
@@ -1648,8 +1654,14 @@ const FluxGameScene = ({ onSettled }: { onSettled?: () => void }) => {
                         { text: 'Длиннее ' }, { sticker: 'B', color: FIELD_COLOR }, { text: ' и шире ' }, { sticker: 'S', color: RING_COLOR },
                         { text: ' — больше цилиндр: ' }, { sticker: 'Φ = B · S', color: FLUX_COLOR },
                     ]}
-                    onSettled={onSettled}
+                    onSettled={() => setPhase(4)}
                 />
+            )}
+            {phase >= 4 && (
+                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1200)}>
+                    <video src="/video/dicaprio-applause.mp4" autoPlay loop muted playsInline
+                        className="pointer-events-none mx-auto w-full max-w-[220px] aspect-square rounded-2xl object-cover" />
+                </DiagramBlock>
             )}
         </>
     )
