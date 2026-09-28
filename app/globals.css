@@ -578,3 +578,18 @@ body {
   animation: progress-flare 0.7s ease-out forwards;
   will-change: transform, opacity;
 }
+
+/* Дарт Вейдер «колдует» поле в FARADAYWALK — мелкая дрожь (только transform) */
+@keyframes vader-cast {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  20% { transform: translate(-1.5px, 1px) rotate(-1deg); }
+  40% { transform: translate(1.5px, -1px) rotate(0.8deg); }
+  60% { transform: translate(-1px, -1.5px) rotate(-0.6deg); }
+  80% { transform: translate(1px, 1.5px) rotate(1deg); }
+}
+.animate-vader-cast { animation: vader-cast 0.28s linear infinite; }
+@keyframes vader-spark {
+  0%, 100% { opacity: 0; transform: scale(0.5) translateX(0); }
+  50% { opacity: 1; transform: scale(1.2) translateX(-8px); }
+}
+.animate-vader-spark { animation: vader-spark 1.05s ease-in-out infinite; }

@@ -399,12 +399,33 @@ const MAG_TOP = 208
 // увеличен на 50% (540×405, было 360×270) по прямой просьбе пользователя —
 // viewBox (внутренняя геометрия) не менялся, только то, во сколько раз она
 // растянута на экране.
-const MagnetIntroDiagram = ({ withField }: { withField: boolean }) => (
+// Дарт Вейдер «колдует» поле (просьба пользователя 2026-09-28): стикер
+// public/lesson-pics/vader.webp справа от магнита, рука тянется к магниту,
+// сам мелко трясётся (CSS .animate-vader-cast), у руки мерцают синие искры.
+const VaderCaster = () => (
+    <motion.div className="pointer-events-none absolute -right-2 top-[44%] w-[118px] md:w-[136px]"
+        initial={{ scale: 0, opacity: 0, x: 30 }} animate={{ scale: 1, opacity: 1, x: 0 }}
+        transition={{ type: 'spring', bounce: 0.5, duration: 0.7 }}>
+        <div className="relative animate-vader-cast">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/lesson-pics/vader.webp" alt="Дарт Вейдер" className="w-full h-auto" draggable={false} />
+            {[0, 1, 2].map((i) => (
+                <span key={i} className="absolute text-lg animate-vader-spark"
+                    style={{ left: `${-10 - i * 12}%`, top: `${30 + (i % 2) * 14}%`, animationDelay: `${i * 0.35}s`, color: FIELD_COLOR }}>✦</span>
+            ))}
+        </div>
+    </motion.div>
+)
+
+const MagnetIntroDiagram = ({ withField, vader = false }: { withField: boolean; vader?: boolean }) => (
     <div className="flex w-full justify-center py-2">
-        <svg viewBox={`0 0 ${FIELD_VIEW_W} ${FIELD_VIEW_H}`} className="h-[540px] w-[405px]">
-            {withField && <MagnetFieldLines x={MAG_CX} top={MAG_TOP} color={FIELD_COLOR} flowing />}
-            <MagnetShape x={MAG_CX} top={MAG_TOP} />
-        </svg>
+        <div className="relative">
+            <svg viewBox={`0 0 ${FIELD_VIEW_W} ${FIELD_VIEW_H}`} className="h-[540px] w-[405px]">
+                {withField && <MagnetFieldLines x={MAG_CX} top={MAG_TOP} color={FIELD_COLOR} flowing />}
+                <MagnetShape x={MAG_CX} top={MAG_TOP} />
+            </svg>
+            {vader && <VaderCaster />}
+        </div>
     </div>
 )
 
@@ -619,6 +640,7 @@ const DS_LEVEL_W = [22, 58, 100]
 // пользователя 2026-09-28): длина ∝ B, растёт симметрично вверх и вниз —
 // середина стрелки всегда в центре кольца.
 const DS_ARROW_LEN = [44, 78, 112]
+const DS_BOUNCE = { type: 'spring' as const, stiffness: 260, damping: 11, delay: 0.3 }
 const DistanceScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [idx, setIdx] = useState(0)
     const [done, setDone] = useState(false)
@@ -639,14 +661,18 @@ const DistanceScene = ({ onSettled }: { onSettled?: () => void }) => {
                     </g>
                     <MagnetShape x={MAG_CX} top={MAG_TOP} />
                 </motion.g>
-                {/* стрелка B: растёт симметрично от центра кольца */}
-                <motion.g key={idx} initial={{ scaleY: idx === 0 ? 0 : DS_ARROW_LEN[idx - 1] / DS_ARROW_LEN[idx] }} animate={{ scaleY: 1 }}
-                    transition={{ type: 'spring', bounce: 0.45, duration: 0.6, delay: 0.35 }}
-                    style={{ transformBox: 'view-box', transformOrigin: `${DS_RING_CX}px ${DS_RING_CY}px` }}>
-                    <FieldArrow x1={DS_RING_CX} y1={DS_RING_CY - half} x2={DS_RING_CX} y2={DS_RING_CY + half} color={FIELD_COLOR} width={7} />
+                {/* стрелка B: ОДНА и та же стрелка меняет длину с bounce (не пересоздаётся) —
+                    концы едут симметрично от центра кольца */}
+                <motion.line x1={DS_RING_CX} x2={DS_RING_CX} stroke={FIELD_COLOR} strokeWidth={7} strokeLinecap="round"
+                    initial={false} animate={{ y1: DS_RING_CY - half, y2: DS_RING_CY + half - 12 }} transition={DS_BOUNCE} />
+                <motion.g initial={false} animate={{ y: half }} transition={DS_BOUNCE}>
+                    <path d={`M ${DS_RING_CX - 11} ${DS_RING_CY - 13} L ${DS_RING_CX} ${DS_RING_CY} L ${DS_RING_CX + 11} ${DS_RING_CY - 13} Z`}
+                        fill={FIELD_COLOR} stroke={FIELD_COLOR} strokeWidth={2} strokeLinejoin="round" />
                 </motion.g>
                 <path d={front} fill="none" stroke={RING_COLOR} strokeWidth={6} />
-                <SvgTag x={DS_RING_CX + 26} y={DS_RING_CY - half + 6} text="B" color={FIELD_COLOR} />
+                <motion.g initial={false} animate={{ y: -half }} transition={DS_BOUNCE}>
+                    <SvgTag x={DS_RING_CX + 26} y={DS_RING_CY + 6} text="B" color={FIELD_COLOR} />
+                </motion.g>
                 {idx === 2 && (
                     <motion.ellipse cx={DS_RING_CX} cy={DS_RING_CY} rx={DS_RING_RX + 8} ry={DS_RING_RY + 6} fill="none" stroke={RING_COLOR} strokeWidth={3}
                         animate={{ opacity: [0.2, 0.9, 0.2] }} transition={{ duration: 1.2, repeat: Infinity }} />
@@ -936,7 +962,7 @@ const Step1Scene = ({ onSettled }: { onSettled?: () => void }) => {
     return (
         <>
             <DiagramBlock onSettled={() => setTimeout(() => setPhase(1), FIELD_LINES_SETTLE_MS + CONCEPT_PAUSE_MS)}>
-                <MagnetIntroDiagram withField />
+                <MagnetIntroDiagram withField vader />
             </DiagramBlock>
             {phase >= 1 && (
                 <TypedLineWithParts
@@ -994,9 +1020,8 @@ const PolesScene = ({ onSettled }: { onSettled?: () => void }) => {
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
-                <TypedLine
-                    text="Красная стрелка компаса всегда смотрит на север — поэтому N красный 🧭"
-                    className="w-full text-center text-base md:text-lg text-[#F2F7FB]"
+                <TypedLineWithParts
+                    parts={[{ sticker: 'Красная', color: NORTH_COLOR }, { text: ' стрелка компаса всегда смотрит на север — поэтому ' }, { sticker: 'N красный', color: NORTH_COLOR }]}
                     onSettled={() => { setPhase(2); setTimeout(() => setPhase(3), 1400) }}
                 />
             )}
