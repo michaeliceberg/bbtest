@@ -477,7 +477,7 @@ const HandRuleScene = ({ onSettled }: { onSettled?: () => void }) => {
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
-                <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 900)}>
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase(3), 1500)}>
                     <div className="w-full flex flex-col items-center gap-2">
                         <HandGrip cur={cur} />
                         {phase >= 3 && (
@@ -489,19 +489,13 @@ const HandRuleScene = ({ onSettled }: { onSettled?: () => void }) => {
                     </div>
                 </DiagramBlock>
             )}
-            {phase >= 2 && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Большой палец — по ' }, { sticker: 'току I', color: CURRENT_COLOR }, { break: true }, { text: 'Остальные крутят ' }, { sticker: 'поле B', color: FIELD_COLOR }]}
-                    onSettled={() => setPhase(3)}
-                />
-            )}
             {phase >= 4 && (
                 <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 900)}>
                     <RememberBanner />
                     <div className="mt-3">
                         <InsightCard label="✋ Правило правой руки">
                             Большой палец — <InsightWord color="#FF9AC8">по току</InsightWord>,
-                            <br />пальцы — <InsightWord color="#8FD0FF">как крутится поле</InsightWord>
+                            <br />Остальные пальцы <InsightWord color="#8FD0FF">крутят поле B</InsightWord>
                         </InsightCard>
                     </div>
                 </DiagramBlock>
