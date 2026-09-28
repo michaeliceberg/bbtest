@@ -406,16 +406,29 @@ const VaderCaster = () => (
     <motion.div className="pointer-events-none absolute right-3 md:-right-14 top-[62%] w-[96px] md:w-[136px]"
         initial={{ scale: 0, opacity: 0, x: 30 }} animate={{ scale: 1, opacity: 1, x: 0 }}
         transition={{ type: 'spring', bounce: 0.5, duration: 0.7 }}>
-        {/* поворот на статичной обёртке (framer затирает transform анимируемого узла) */}
-        <div style={{ transform: 'rotate(20deg)' }}>
+        {/* дрожь — общая для облачка и стикера (качаются синхронно); поворот —
+            только у картинки, на статичной обёртке (framer затирает transform анимируемого узла) */}
         <div className="relative animate-vader-cast">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/lesson-pics/vader.webp" alt="Дарт Вейдер" className="w-full h-auto" draggable={false} />
-            {[0, 1, 2].map((i) => (
-                <span key={i} className="absolute text-lg animate-vader-spark"
-                    style={{ left: `${-10 - i * 12}%`, top: `${30 + (i % 2) * 14}%`, animationDelay: `${i * 0.35}s`, color: FIELD_COLOR }}>✦</span>
-            ))}
-        </div>
+            {/* облачко прижато к правому краю стикера — на телефоне не вылезает за экран */}
+            <div className="absolute bottom-full right-0 mb-1 w-max max-w-[150px]">
+            <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', bounce: 0.55, delay: 0.8 }} style={{ transformOrigin: 'bottom right' }}>
+                <div className="relative rounded-2xl border-2 bg-[#161F23] px-3 py-1.5 text-center text-xs md:text-sm font-black text-[#F2F7FB]"
+                    style={{ borderColor: FIELD_COLOR }}>
+                    Я чувствую силу…
+                    <span className="absolute -bottom-[7px] right-9 h-3 w-3 rotate-45 border-b-2 border-r-2 bg-[#161F23]"
+                        style={{ borderColor: FIELD_COLOR }} />
+                </div>
+            </motion.div>
+            </div>
+            <div className="relative" style={{ transform: 'rotate(20deg)' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/lesson-pics/vader.webp" alt="Дарт Вейдер" className="w-full h-auto" draggable={false} />
+                {[0, 1, 2].map((i) => (
+                    <span key={i} className="absolute text-lg animate-vader-spark"
+                        style={{ left: `${-10 - i * 12}%`, top: `${30 + (i % 2) * 14}%`, animationDelay: `${i * 0.35}s`, color: FIELD_COLOR }}>✦</span>
+                ))}
+            </div>
         </div>
     </motion.div>
 )
