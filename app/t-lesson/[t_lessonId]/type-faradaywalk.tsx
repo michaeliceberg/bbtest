@@ -1069,7 +1069,9 @@ const FluxCompareScene = ({ onSettled }: { onSettled?: () => void }) => {
                 <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1200)}>
                     <InsightCard label="💡 Главное">
                         Всё, что надо знать про <Sticker value="ПОТОК" color={FLUX_COLOR} /> —
-                        <br /><Sticker value="ПОТОК" color={FLUX_COLOR} /> <InsightWord>ДОЛЖЕН НЕ МЕНЯТЬСЯ</InsightWord>
+                        {[0, 1, 2].map((i) => (
+                            <Fragment key={i}><br /><Sticker value="ПОТОК" color={FLUX_COLOR} /> <InsightWord>ДОЛЖЕН НЕ МЕНЯТЬСЯ</InsightWord></Fragment>
+                        ))}
                     </InsightCard>
                 </DiagramBlock>
             )}
