@@ -47,6 +47,8 @@ import {
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
+import { FluxCylinder, FieldArrow, SvgTag } from '@/components/geometry/FluxCylinder'
+import { InsightCard, InsightWord } from '@/components/geometry/WalkthroughCards'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
 import { declensionRu } from '@/usefulFunctions'
@@ -604,22 +606,18 @@ const DIST_MAG_H = 48
 // линиями, передняя — поверх), три кнопки далеко/средне/близко вместо
 // палки с рисками, шкала «поле B у кольца». Готово — когда магнит близко.
 const DS_W = 360
-const DS_H = 470
+const DS_H = 500
 const DS_RING_CX = MAG_CX
 const DS_RING_CY = 420
 const DS_RING_RX = 95
 const DS_RING_RY = 22
-const DS_MAG_CENTER = [170, 280, 360] // центр магнита: далеко / средне / близко
+const DS_MAG_CENTER = [150, 250, 330] // центр магнита: далеко / средне / близко
 const DS_LEVELS = ['слабое', 'среднее', 'сильное']
 const DS_LEVEL_W = [22, 58, 100]
-// Стрелки поля B сквозь кольцо: 9 точек внутри эллипса кольца (2 ряда —
-// «глубина» кольца), видимость по близости магнита: далеко 2, средне 5, близко 9.
-const DS_ARROWS = [
-    { dx: -15, dy: -8, lvl: 0 }, { dx: 15, dy: 8, lvl: 0 },
-    { dx: -45, dy: 8, lvl: 1 }, { dx: 45, dy: -8, lvl: 1 }, { dx: 0, dy: 0, lvl: 1 },
-    { dx: -70, dy: -4, lvl: 2 }, { dx: 70, dy: 4, lvl: 2 }, { dx: -35, dy: -10, lvl: 2 }, { dx: 35, dy: 10, lvl: 2 },
-]
-const DS_ARROW_LEN = 46
+// Поле B у кольца — ОДНА толстая стрелка сквозь центр кольца (идея
+// пользователя 2026-09-28): длина ∝ B, растёт симметрично вверх и вниз —
+// середина стрелки всегда в центре кольца.
+const DS_ARROW_LEN = [44, 78, 112]
 const DistanceScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [idx, setIdx] = useState(0)
     const [done, setDone] = useState(false)
@@ -629,28 +627,25 @@ const DistanceScene = ({ onSettled }: { onSettled?: () => void }) => {
     }
     const back = `M ${DS_RING_CX - DS_RING_RX} ${DS_RING_CY} A ${DS_RING_RX} ${DS_RING_RY} 0 0 1 ${DS_RING_CX + DS_RING_RX} ${DS_RING_CY}`
     const front = `M ${DS_RING_CX - DS_RING_RX} ${DS_RING_CY} A ${DS_RING_RX} ${DS_RING_RY} 0 0 0 ${DS_RING_CX + DS_RING_RX} ${DS_RING_CY}`
+    const half = DS_ARROW_LEN[idx] / 2
     return (
         <div className="w-full flex flex-col items-center gap-3">
             <svg viewBox={`0 0 ${DS_W} ${DS_H}`} className="w-full max-w-[330px] h-auto overflow-hidden">
                 <path d={back} fill="none" stroke={RING_COLOR} strokeWidth={6} />
                 <motion.g animate={{ y: DS_MAG_CENTER[idx] - (MAG_TOP + MAG_H / 2) }} initial={{ y: DS_MAG_CENTER[0] - (MAG_TOP + MAG_H / 2) }} transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}>
-                    <g opacity={0.45}>
+                    <g opacity={0.35}>
                         <MagnetFieldLines x={MAG_CX} top={MAG_TOP} color={FIELD_COLOR} flowing />
                     </g>
                     <MagnetShape x={MAG_CX} top={MAG_TOP} />
                 </motion.g>
-                {DS_ARROWS.map((ar, i) => {
-                    const x = DS_RING_CX + ar.dx
-                    const yTip = DS_RING_CY + ar.dy + 18
-                    const yTop = yTip - DS_ARROW_LEN
-                    return (
-                        <motion.g key={i} initial={{ opacity: 0 }} animate={{ opacity: ar.lvl <= idx ? 1 : 0 }} transition={{ duration: 0.35, delay: ar.lvl <= idx ? 0.35 + i * 0.04 : 0 }}>
-                            <line x1={x} y1={yTop} x2={x} y2={yTip} stroke={FIELD_COLOR} strokeWidth={4} strokeLinecap="round" />
-                            <path d={`M${x - 7},${yTip - 11} L${x},${yTip} L${x + 7},${yTip - 11}`} fill="none" stroke={FIELD_COLOR} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
-                        </motion.g>
-                    )
-                })}
+                {/* стрелка B: растёт симметрично от центра кольца */}
+                <motion.g key={idx} initial={{ scaleY: idx === 0 ? 0 : DS_ARROW_LEN[idx - 1] / DS_ARROW_LEN[idx] }} animate={{ scaleY: 1 }}
+                    transition={{ type: 'spring', bounce: 0.45, duration: 0.6, delay: 0.35 }}
+                    style={{ transformBox: 'view-box', transformOrigin: `${DS_RING_CX}px ${DS_RING_CY}px` }}>
+                    <FieldArrow x1={DS_RING_CX} y1={DS_RING_CY - half} x2={DS_RING_CX} y2={DS_RING_CY + half} color={FIELD_COLOR} width={7} />
+                </motion.g>
                 <path d={front} fill="none" stroke={RING_COLOR} strokeWidth={6} />
+                <SvgTag x={DS_RING_CX + 26} y={DS_RING_CY - half + 6} text="B" color={FIELD_COLOR} />
                 {idx === 2 && (
                     <motion.ellipse cx={DS_RING_CX} cy={DS_RING_CY} rx={DS_RING_RX + 8} ry={DS_RING_RY + 6} fill="none" stroke={RING_COLOR} strokeWidth={3}
                         animate={{ opacity: [0.2, 0.9, 0.2] }} transition={{ duration: 1.2, repeat: Infinity }} />
@@ -658,8 +653,8 @@ const DistanceScene = ({ onSettled }: { onSettled?: () => void }) => {
             </svg>
             <div className="w-full max-w-xs flex flex-col gap-1">
                 <div className="flex items-center justify-between text-sm font-black" style={{ color: FIELD_COLOR }}>
-                    <span>Поле B у кольца: {DS_LEVELS[idx]}</span>
-                    <span>{DS_ARROWS.filter((a) => a.lvl <= idx).length} {declensionRu(DS_ARROWS.filter((a) => a.lvl <= idx).length, 'стрелка', 'стрелки', 'стрелок')}</span>
+                    <span>Поле B у кольца</span>
+                    <span>{DS_LEVELS[idx]}</span>
                 </div>
                 <div className="h-4 w-full rounded-full bg-[#232F34] overflow-hidden">
                     <motion.div className="h-full rounded-full" style={{ backgroundColor: FIELD_COLOR }} animate={{ width: `${DS_LEVEL_W[idx]}%` }} transition={{ duration: 0.5 }} />
@@ -682,52 +677,33 @@ const DistanceScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-// Сцена «поток Φ» (упрощена 2026-09-26): поле B × кольцо S = поток Φ —
-// три карточки появляются по очереди, потом объяснение и единица.
-const FluxMiniField = () => (
-    <svg viewBox="0 0 100 100" className="h-[78px] w-[78px] md:h-[92px] md:w-[92px]">
-        {[30, 50, 70].map((x) => (
-            <g key={x}>
-                <line x1={x} y1={12} x2={x} y2={84} stroke={FIELD_COLOR} strokeWidth={4} strokeLinecap="round" />
-                <path d={`M${x - 7},${74} L${x},${86} L${x + 7},${74}`} fill="none" stroke={FIELD_COLOR} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
-            </g>
-        ))}
+// Сцена «поток Φ» (2026-09-28, идея пользователя): поток — это ЦИЛИНДР.
+// Кольцо + стрелка B сквозь него → вокруг вырастает цилиндр: основание —
+// площадь кольца S, высота — длина стрелки B. Φ = B·S, как объём V = S·h.
+const FC_W = 280, FC_H = 240, FC_CX = 140, FC_CY = 118
+const FC_RX = 78, FC_RY = 20, FC_LEN = 160
+const FluxCylinderDiagram = ({ showCyl }: { showCyl: boolean }) => (
+    <svg viewBox={`0 0 ${FC_W} ${FC_H}`} className="w-full max-w-[300px] h-auto">
+        {showCyl && (
+            <motion.g initial={{ scaleY: 0, opacity: 0 }} animate={{ scaleY: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.35, duration: 0.9 }}
+                style={{ transformBox: 'view-box', transformOrigin: `${FC_CX}px ${FC_CY}px` }}>
+                <FluxCylinder cx={FC_CX} cy={FC_CY} radius={FC_RX} depth={FC_RY} length={FC_LEN} color={FLUX_COLOR} />
+            </motion.g>
+        )}
+        <path d={`M ${FC_CX - FC_RX} ${FC_CY} A ${FC_RX} ${FC_RY} 0 0 1 ${FC_CX + FC_RX} ${FC_CY}`} fill="none" stroke={RING_COLOR} strokeWidth={6} />
+        <FieldArrow x1={FC_CX} y1={FC_CY - FC_LEN / 2} x2={FC_CX} y2={FC_CY + FC_LEN / 2} color={FIELD_COLOR} width={7} />
+        <path d={`M ${FC_CX - FC_RX} ${FC_CY} A ${FC_RX} ${FC_RY} 0 0 0 ${FC_CX + FC_RX} ${FC_CY}`} fill="none" stroke={RING_COLOR} strokeWidth={6} />
+        <SvgTag x={FC_CX + 26} y={FC_CY - FC_LEN / 2 + 14} text="B" color={FIELD_COLOR} />
+        <SvgTag x={FC_CX - FC_RX - 4} y={FC_CY + 26} text="S" color={RING_COLOR} />
+        {showCyl && (
+            <motion.g initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', bounce: 0.55, delay: 0.9 }}
+                style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
+                <SvgTag x={FC_CX + FC_RX + 2} y={FC_CY - 50} text="Φ" color={FLUX_COLOR} />
+            </motion.g>
+        )}
     </svg>
 )
-const FluxMiniRing = () => (
-    <svg viewBox="0 0 100 100" className="h-[78px] w-[78px] md:h-[92px] md:w-[92px]">
-        <TealRing cx={50} cy={50} rx={42} ry={16} hatched uid="flux-card" />
-    </svg>
-)
-const FluxMiniPhi = () => (
-    <svg viewBox="0 0 100 100" className="h-[78px] w-[78px] md:h-[92px] md:w-[92px]">
-        <path d="M 8 58 A 42 16 0 0 1 92 58" fill="none" stroke={RING_COLOR} strokeWidth={5} />
-        {[32, 50, 68].map((x) => (
-            <g key={x}>
-                <line x1={x} y1={8} x2={x} y2={88} stroke={FIELD_COLOR} strokeWidth={4} strokeLinecap="round" />
-                <path d={`M${x - 7},${78} L${x},${90} L${x + 7},${78}`} fill="none" stroke={FIELD_COLOR} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
-            </g>
-        ))}
-        <path d="M 8 58 A 42 16 0 0 0 92 58" fill="none" stroke={RING_COLOR} strokeWidth={5} />
-    </svg>
-)
-const FluxCard = ({ children, label, color, delay }: { children: React.ReactNode; label: string; color: string; delay: number }) => (
-    <motion.div
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 16, delay }}
-        className="flex flex-col items-center gap-1 rounded-xl border-2 p-1.5"
-        style={{ borderColor: hexToRgba(color, 0.6), backgroundColor: hexToRgba(color, 0.08) }}
-    >
-        {children}
-        <span className="text-lg font-black" style={{ color }}>{label}</span>
-    </motion.div>
-)
-const FluxSign = ({ children, delay }: { children: React.ReactNode; delay: number }) => (
-    <motion.span initial={{ scale: 3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5, delay }} className="text-3xl font-black text-[#F2F7FB]">
-        {children}
-    </motion.span>
-)
+
 const FluxSimpleScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
     return (
@@ -737,26 +713,20 @@ const FluxSimpleScene = ({ onSettled }: { onSettled?: () => void }) => {
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
-                <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 2600)}>
-                    <div className="w-full flex items-center justify-center gap-1.5 py-2">
-                        <FluxCard label="B" color={FIELD_COLOR} delay={0.2}><FluxMiniField /></FluxCard>
-                        <FluxSign delay={0.8}>×</FluxSign>
-                        <FluxCard label="S" color={RING_COLOR} delay={1.2}><FluxMiniRing /></FluxCard>
-                        <FluxSign delay={1.8}>=</FluxSign>
-                        <FluxCard label="Φ" color={FLUX_COLOR} delay={2.2}><FluxMiniPhi /></FluxCard>
-                    </div>
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 700)}>
+                    <FluxCylinderDiagram showCyl={phase >= 2} />
                 </DiagramBlock>
             )}
             {phase >= 2 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Поток — это сколько поля ' }, { sticker: 'B', color: FIELD_COLOR }, { text: ' проходит сквозь кольцо площадью ' }, { sticker: 'S', color: RING_COLOR }, { text: '.' }]}
-                    onSettled={() => setPhase(3)}
+                    parts={[{ text: 'Поток — это ' }, { bold: 'цилиндр' }, { text: ': ширина — кольцо ' }, { sticker: 'S', color: RING_COLOR }, { text: ', высота — стрелка ' }, { sticker: 'B', color: FIELD_COLOR }, { text: '.' }]}
+                    onSettled={() => setTimeout(() => setPhase(3), 600)}
                 />
             )}
             {phase >= 3 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Чтобы найти поток — перемножь: ' }, { sticker: 'Φ = B · S', color: FLUX_COLOR }]}
-                    onSettled={() => setPhase(4)}
+                    parts={[{ text: 'Объём цилиндра ' }, { sticker: 'V = S · h', color: '#9AA7B0' }, { text: ' — и поток ' }, { sticker: 'Φ = B · S', color: FLUX_COLOR }]}
+                    onSettled={() => setTimeout(() => setPhase(4), 600)}
                 />
             )}
             {phase >= 4 && (
@@ -764,6 +734,109 @@ const FluxSimpleScene = ({ onSettled }: { onSettled?: () => void }) => {
                     parts={[{ text: 'Поток ' }, { sticker: 'Φ', color: FLUX_COLOR }, { text: ' измеряется в ' }, { sticker: 'Вб', color: FLUX_COLOR }, { text: ' (Веберах).' }]}
                     onSettled={onSettled}
                 />
+            )}
+        </>
+    )
+}
+
+// Мини-игра «Где поток больше?»: два цилиндра, ученик сравнивает объёмы.
+// Толщина цилиндра ∝ √S (площадь дна ∝ S), высота ∝ B. Третий раунд —
+// сплющенный широкий vs узкий длинный с РАВНЫМ объёмом → «одинаково».
+type CmpCyl = { S: number; B: number }
+type CmpRound = { l: CmpCyl; r: CmpCyl; ans: 'l' | 'r' | 'eq' }
+const CMP_ROUNDS: CmpRound[] = [
+    { l: { S: 2, B: 1 }, r: { S: 2, B: 3 }, ans: 'r' },
+    { l: { S: 4, B: 2 }, r: { S: 1, B: 2 }, ans: 'l' },
+    { l: { S: 4, B: 1 }, r: { S: 1, B: 4 }, ans: 'eq' },
+]
+const CMP_WIN = ['Выше — больше! 📏', 'Шире — больше! 🍩', 'Одинаково! 4 = 4 🤯']
+const CMP_WRONG = ['Прищурься 👀 — какой объёмнее?', 'Мимо! Сравни объёмы 🥤', 'Хм… а если посчитать B · S? 🧮']
+const CmpCylSvg = ({ c, state }: { c: CmpCyl; state: 'idle' | 'win' }) => {
+    const r = 20 * Math.sqrt(c.S), h = 26 * c.B
+    const color = state === 'win' ? '#A1D151' : FLUX_COLOR
+    return (
+        <svg viewBox="0 0 120 150" className="w-full max-w-[130px] h-auto">
+            <FluxCylinder cx={60} cy={75} radius={r} depth={r * 0.3} length={h} color={color} />
+            <FieldArrow x1={60} y1={75 - h / 2} x2={60} y2={75 + h / 2} color={FIELD_COLOR} width={4} head={7} />
+        </svg>
+    )
+}
+const FluxCompareScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const [round, setRound] = useState(0)
+    const [won, setWon] = useState(false)
+    const [wrong, setWrong] = useState<string | null>(null)
+    const [shake, setShake] = useState(0)
+    const R = CMP_ROUNDS[Math.min(round, CMP_ROUNDS.length - 1)]
+    const pick = (a: 'l' | 'r' | 'eq') => {
+        if (won || phase !== 1) return
+        if (a === R.ans) {
+            setWon(true); setWrong(null)
+            setTimeout(() => {
+                if (round + 1 >= CMP_ROUNDS.length) setPhase(2)
+                else { setRound((x) => x + 1); setWon(false) }
+            }, 1300)
+        } else {
+            playSound(WRONG_ANSWER_SOUND)
+            setWrong(CMP_WRONG[round]); setShake((k) => k + 1)
+        }
+    }
+    const btn = (a: 'l' | 'r' | 'eq', label: string) => (
+        <button key={a} type="button" onClick={() => pick(a)}
+            className="rounded-xl border-2 py-2.5 text-sm font-black transition-colors"
+            style={won && a === R.ans
+                ? { borderColor: '#A1D151', backgroundColor: hexToRgba('#A1D151', 0.2), color: '#A1D151' }
+                : { borderColor: '#3A464E', backgroundColor: '#161F23', color: '#F2F7FB' }}>
+            {label}
+        </button>
+    )
+    return (
+        <>
+            <TypedLineWithParts parts={[{ text: 'Где поток ' }, { sticker: 'Φ', color: FLUX_COLOR }, { text: ' больше? Сравни цилиндры 👀' }]} onSettled={() => setPhase(1)} />
+            {phase >= 1 && (
+                <DiagramBlock>
+                    <div className="w-full flex flex-col items-center gap-3">
+                        <span className="text-xs font-black text-[#9AA7B0]">Раунд {Math.min(round + 1, CMP_ROUNDS.length)} / {CMP_ROUNDS.length}</span>
+                        <motion.div key={`${round}-${shake}`} className="w-full grid grid-cols-2 gap-3"
+                            initial={{ x: 0 }} animate={shake ? { x: [0, -8, 8, -5, 0] } : { x: 0 }} transition={{ duration: 0.35 }}>
+                            {(['l', 'r'] as const).map((side) => {
+                                const c = R[side]
+                                const win = won && (R.ans === side || R.ans === 'eq')
+                                return (
+                                    <div key={side} className="flex flex-col items-center gap-1 rounded-xl border-2 p-2"
+                                        style={{ borderColor: win ? '#A1D151' : '#3A464E', backgroundColor: '#11191D' }}>
+                                        <CmpCylSvg c={c} state={win ? 'win' : 'idle'} />
+                                        <span className="text-sm font-black text-[#F2F7FB]">
+                                            <span style={{ color: RING_COLOR }}>S = {c.S}</span> · <span style={{ color: FIELD_COLOR }}>B = {c.B}</span>
+                                        </span>
+                                        {won && <span className="text-sm font-black" style={{ color: FLUX_COLOR }}>Φ = {c.S * c.B}</span>}
+                                    </div>
+                                )
+                            })}
+                        </motion.div>
+                        <div className="w-full grid grid-cols-3 gap-2">
+                            {btn('l', '⬅ Левый')}
+                            {btn('eq', '🟰 Поровну')}
+                            {btn('r', 'Правый ➡')}
+                        </div>
+                        {won && <p className="text-base font-black text-[#A1D151] text-center">{CMP_WIN[round]}</p>}
+                        {!won && wrong && <p className="text-sm font-bold text-[#DC605B] text-center">{wrong}</p>}
+                    </div>
+                    {won && <LocalAnswerConfetti />}
+                </DiagramBlock>
+            )}
+            {phase >= 2 && (
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase(3), 600)}>
+                    <DirectionRememberBanner />
+                </DiagramBlock>
+            )}
+            {phase >= 3 && (
+                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1200)}>
+                    <InsightCard label="💡 Главное">
+                        Поток <InsightWord>должен НЕ МЕНЯТЬСЯ</InsightWord>.
+                        <br />Цилиндр любит свой объём 🥤
+                    </InsightCard>
+                </DiagramBlock>
             )}
         </>
     )
@@ -1238,31 +1311,22 @@ const RingSizeScene = ({ onSettled }: { onSettled?: () => void }) => {
 }
 
 // Финал: «Сделай поток Φ максимальным» — магнит близко/далеко, кольцо
-// маленькое/большое. Поле — сетка стрелок (плотность = B), через кольцо
-// проходят только те, что внутри эллипса (= поток Φ = B·S).
+// маленькое/большое. Поле B — одна стрелка сквозь кольцо (длина ∝ B), вокруг
+// — цилиндр потока (дно = кольцо S, высота = B). Φ = B·S — объём цилиндра.
 const FG_W = 260
+const FG_H = 300
 const FG_RING_CY = 212
 const FG_RINGS = [{ rx: 52, ry: 15 }, { rx: 78, ry: 22 }, { rx: 102, ry: 28 }]
-const FG_COLS = Array.from({ length: 11 }, (_, i) => -110 + i * 22)
-const FG_ROWS = [-14, 0, 14]
 const FG_MAG_TOPS = [16, 56, 96] // далеко / средне / близко
-// Плотность поля: какие столбцы стрелок есть при каждом положении магнита.
-const fgColumnExists = (mag: number, c: number) => (mag === 2 ? true : mag === 1 ? c % 2 === 0 : c % 4 === 0)
+const FG_ARROW_LEN = [40, 70, 100]
 const FluxGameScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
     const [mag, setMag] = useState(0)
     const [ringIdx, setRingIdx] = useState(0)
     const [won, setWon] = useState(false)
     const ring = FG_RINGS[ringIdx]
-    const arrows = FG_ROWS.flatMap((dy, r) => FG_COLS.map((x, c) => {
-        const xs = x + (r % 2 ? 11 : 0)
-        const exists = fgColumnExists(mag, c)
-        const inside = (xs / ring.rx) ** 2 + (dy / ring.ry) ** 2 <= 1
-        return { key: `${r}-${c}`, x: FG_W / 2 + xs, y: FG_RING_CY + dy, exists, inside }
-    })).filter((a) => a.x > 8 && a.x < FG_W - 8)
-    const count = arrows.filter((a) => a.exists && a.inside).length
-    const maxCount = FG_ROWS.flatMap((dy, r) => FG_COLS.map((x) => x + (r % 2 ? 11 : 0))
-        .filter((xs) => (xs / FG_RINGS[2].rx) ** 2 + (dy / FG_RINGS[2].ry) ** 2 <= 1)).length
+    const len = FG_ARROW_LEN[mag]
+    const B = mag + 1, S = ringIdx + 1, phi = B * S
     useEffect(() => {
         if (mag === 2 && ringIdx === 2) setWon(true)
     }, [mag, ringIdx])
@@ -1300,19 +1364,15 @@ const FluxGameScene = ({ onSettled }: { onSettled?: () => void }) => {
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'Финал! Сделай поток ' }, { sticker: 'Φ', color: FLUX_COLOR }, { text: ' МАКСИМАЛЬНЫМ.' }]}
-                onSettled={() => setPhase(1)}
+                parts={[{ text: 'Финал! Сделай поток ' }, { sticker: 'Φ', color: FLUX_COLOR }, { text: ' МАКСИМАЛЬНЫМ 💪' }]}
+                onSettled={() => setPhase(2)}
             />
-            {phase >= 1 && (
-                <TypedLine text="Двигай магнит и меняй кольцо — считай стрелки, которые проходят сквозь него." className="w-full text-center text-base text-[#F2F7FB]" onSettled={() => setPhase(2)} delayAfter={200} />
-            )}
             {phase >= 2 && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col items-center gap-3">
-                        <svg viewBox={`0 0 ${FG_W} 250`} className="h-[250px] w-[260px]">
+                        <svg viewBox={`0 0 ${FG_W} ${FG_H}`} className="h-[300px] w-[260px]">
                             <motion.g animate={{ y: FG_MAG_TOPS[mag] }} transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }} style={{ x: FG_W / 2 - DIST_MAG_W / 2 }}>
-                                {/* Бледные силовые линии магнита (как в сцене про поле B) — фон, яркие только стрелки, которые считаем. */}
-                                <g opacity={0.28} transform={`translate(${DIST_MAG_W / 2},${DIST_MAG_H / 2}) scale(0.75) translate(${-MAG_CX},${-(MAG_TOP + MAG_H / 2)})`}>
+                                <g opacity={0.22} transform={`translate(${DIST_MAG_W / 2},${DIST_MAG_H / 2}) scale(0.75) translate(${-MAG_CX},${-(MAG_TOP + MAG_H / 2)})`}>
                                     <MagnetFieldLines x={MAG_CX} top={MAG_TOP} color={FIELD_COLOR} />
                                 </g>
                                 <rect width={DIST_MAG_W} height={DIST_MAG_H / 2} rx={5} fill={SOUTH_COLOR} />
@@ -1320,34 +1380,28 @@ const FluxGameScene = ({ onSettled }: { onSettled?: () => void }) => {
                                 <text x={DIST_MAG_W / 2} y={DIST_MAG_H / 4 + 5} textAnchor="middle" fontSize={13} fontWeight={800} fill="#fff">S</text>
                                 <text x={DIST_MAG_W / 2} y={DIST_MAG_H * 0.75 + 5} textAnchor="middle" fontSize={13} fontWeight={800} fill="#fff">N</text>
                             </motion.g>
-                            <motion.ellipse cx={FG_W / 2} cy={FG_RING_CY} fill={hexToRgba(RING_COLOR, 0.1)} stroke={RING_COLOR} strokeWidth={5}
-                                animate={{ rx: ring.rx, ry: ring.ry }} transition={{ type: 'spring', stiffness: 220, damping: 18 }} />
-                            {arrows.map((a) => {
-                                const len = 30
-                                const color = a.inside ? FIELD_COLOR : '#5C6B73'
-                                return (
-                                    <motion.g key={a.key} animate={{ opacity: a.exists ? (a.inside ? 1 : 0.35) : 0 }} transition={{ duration: 0.35 }}>
-                                        <line x1={a.x} y1={a.y - len} x2={a.x} y2={a.y} stroke={color} strokeWidth={2.8} strokeLinecap="round" />
-                                        <path d={`M${a.x - 4},${a.y - 8} L${a.x},${a.y} L${a.x + 4},${a.y - 8}`} fill="none" stroke={color} strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" />
-                                    </motion.g>
-                                )
-                            })}
+                            <FluxCylinder cx={FG_W / 2} cy={FG_RING_CY} radius={ring.rx} depth={ring.ry} length={len} color={won ? '#A1D151' : FLUX_COLOR} />
+                            <path d={`M ${FG_W / 2 - ring.rx} ${FG_RING_CY} A ${ring.rx} ${ring.ry} 0 0 1 ${FG_W / 2 + ring.rx} ${FG_RING_CY}`} fill="none" stroke={RING_COLOR} strokeWidth={5} />
+                            <FieldArrow x1={FG_W / 2} y1={FG_RING_CY - len / 2} x2={FG_W / 2} y2={FG_RING_CY + len / 2} color={FIELD_COLOR} width={6} head={9} />
+                            <path d={`M ${FG_W / 2 - ring.rx} ${FG_RING_CY} A ${ring.rx} ${ring.ry} 0 0 0 ${FG_W / 2 + ring.rx} ${FG_RING_CY}`} fill="none" stroke={RING_COLOR} strokeWidth={5} />
                         </svg>
                         <div className="w-full max-w-xs flex flex-col gap-1">
                             <div className="flex items-center justify-between text-sm font-black">
-                                <span style={{ color: FLUX_COLOR }}>Поток Φ</span>
-                                <span style={{ color: FLUX_COLOR }}>{count} {declensionRu(count, 'стрелка', 'стрелки', 'стрелок')}</span>
+                                <span style={{ color: FLUX_COLOR }}>Поток Φ = B · S</span>
+                                <span style={{ color: FLUX_COLOR }}>
+                                    <span style={{ color: FIELD_COLOR }}>{B}</span> · <span style={{ color: RING_COLOR }}>{S}</span> = {phi}
+                                </span>
                             </div>
                             <div className="h-4 w-full rounded-full bg-[#232F34] overflow-hidden">
                                 <motion.div className="h-full rounded-full" style={{ backgroundColor: FLUX_COLOR }}
-                                    animate={{ width: `${Math.round((count / maxCount) * 100)}%` }} transition={{ duration: 0.45 }} />
+                                    animate={{ width: `${Math.round((phi / 9) * 100)}%` }} transition={{ duration: 0.45 }} />
                             </div>
                         </div>
                         <div className="w-full max-w-xs flex flex-col gap-2">
                             <Seg label="Магнит (поле B)" value={mag} options={['далеко', 'средне', 'близко']} onPick={(v) => toggle('mag', v)} color={FIELD_COLOR} />
                             <Seg label="Кольцо (площадь S)" value={ringIdx} options={['маленькое', 'среднее', 'большое']} onPick={(v) => toggle('ring', v)} color={RING_COLOR} />
                         </div>
-                        {won && <p className="text-lg font-black text-[#A1D151] text-center">Максимум! 🔥 Ты повелитель магнитов 🧲</p>}
+                        {won && <p className="text-lg font-black text-[#A1D151] text-center">Максимум! 🔥 Самый жирный цилиндр 🥤</p>}
                     </div>
                     {won && <LocalAnswerConfetti />}
                 </DiagramBlock>
@@ -1355,8 +1409,8 @@ const FluxGameScene = ({ onSettled }: { onSettled?: () => void }) => {
             {phase >= 3 && (
                 <TypedLineWithParts
                     parts={[
-                        { text: 'Больше ' }, { sticker: 'B', color: FIELD_COLOR }, { text: ' и больше ' }, { sticker: 'S', color: RING_COLOR },
-                        { text: ' — больше поток: ' }, { sticker: 'Φ = B · S', color: FLUX_COLOR },
+                        { text: 'Длиннее ' }, { sticker: 'B', color: FIELD_COLOR }, { text: ' и шире ' }, { sticker: 'S', color: RING_COLOR },
+                        { text: ' — больше цилиндр: ' }, { sticker: 'Φ = B · S', color: FLUX_COLOR },
                     ]}
                     onSettled={onSettled}
                 />
@@ -1369,7 +1423,7 @@ const DistanceStep = ({ onSettled }: { onSettled?: () => void }) => <Step7Scene 
 
 const CONCEPT_SCENES = [
     MagnetTapScene, Step1Scene, PolesScene, PoleGameScene, Step4Scene,
-    RingChoiceScene, RingSizeScene, DistanceStep, FluxSimpleScene, FluxGameScene,
+    RingChoiceScene, RingSizeScene, DistanceStep, FluxSimpleScene, FluxCompareScene, FluxGameScene,
 ]
 
 const INTRO_CONCEPT_STEPS = CONCEPT_SCENES.length
@@ -1503,6 +1557,26 @@ const CONCEPT_QUIZ: ConceptQuizItem[] = [
         renderOptions: () => ['B · S', 'B : S'],
         correct: 0,
         feedback: 'Поток Φ = B · S — умножение, не деление.',
+    },
+    // «Вдолбить» главное (просьба пользователя): 3 раза подряд один и тот же
+    // вопрос, во 2-м и 3-м — нелепые варианты, ответ очевиден.
+    {
+        renderPrompt: () => <>Что должно быть с потоком <Sticker value="Φ" color={FLUX_COLOR} />?</>,
+        renderOptions: () => ['Увеличиваться', 'Не меняться', 'Уменьшаться'],
+        correct: 1,
+        feedback: 'Поток должен НЕ меняться. Запомни!',
+    },
+    {
+        renderPrompt: () => <>А что должно быть с потоком <Sticker value="Φ" color={FLUX_COLOR} />? 🤨</>,
+        renderOptions: () => ['Не меняться', 'Танцевать ламбаду 💃', 'Уйти в отпуск 🏖️'],
+        correct: 0,
+        feedback: 'Правильно — НЕ меняться. Никаких ламбад.',
+    },
+    {
+        renderPrompt: () => <>Ну и последний раз: поток <Sticker value="Φ" color={FLUX_COLOR} /> должен…</>,
+        renderOptions: () => ['Стать котиком 🐱', 'Съесть бургер 🍔', 'Не меняться'],
+        correct: 2,
+        feedback: 'НЕ МЕНЯТЬСЯ! Теперь ты точно не забудешь 🧠',
     },
     {
         // Бонус — для хорошего настроения: единственный вариант ответа.

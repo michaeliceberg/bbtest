@@ -36,6 +36,7 @@ import {
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { InsightCard, InsightWord } from '@/components/geometry/WalkthroughCards'
+import { FluxCylinder, FieldArrow } from '@/components/geometry/FluxCylinder'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
 import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
@@ -220,30 +221,6 @@ const RING_CY = 300, RING_RX = 92, RING_RY = 24
 const MAG_W = 48, MAG_H = 104
 const magTopOf = (pos: number) => 20 + pos * 128
 
-// Позиции стрелок поля магнита сквозь кольцо (от центра к краям) —
-// с приближением их больше (поток растёт).
-// «3D»: точки внутри эллипса кольца (dx, dy), от центра к краям. dy < 0 —
-// дальняя часть кольца (стрелка короче/тоньше), dy > 0 — ближняя (длиннее).
-// Магнит наверху — 1 стрелка по центру; по мере приближения равномерно
-// добавляются всё дальше от центра (все x разные — стрелки не сливаются).
-// Добавляются ПАРАМИ симметрично (слева и справа одновременно): 1 → 3 → 5 → 7 → 9.
-const EXT_PTS: [number, number][] = [[0, 0], [-26, -12], [26, 12], [-42, 10], [42, -10], [-58, -6], [58, 6], [-72, 5], [72, -5]]
-const extCountOf = (pos: number) => 1 + 2 * Math.round(pos * ((EXT_PTS.length - 1) / 2))
-const Arrow3D = ({ dx, dy, dir, color }: { dx: number; dy: number; dir: number; color: string }) => {
-    const x = CX + dx, cy = RING_CY + dy
-    const len = 70 + dy * 1.6
-    const w = 3.2 + dy * 0.06
-    const y1 = cy - len / 2, y2 = cy + len / 2
-    const tip = dir < 0 ? y2 : y1
-    const s = dir < 0 ? -1 : 1
-    const head = 6 + dy * 0.12
-    return (
-        <g opacity={0.75 + (dy + 14) / 28 * 0.25}>
-            <line x1={x} y1={y1} x2={x} y2={y2} stroke={color} strokeWidth={w} strokeLinecap="round" />
-            <path d={`M ${x - head} ${tip + (head + 2) * s} L ${x} ${tip} L ${x + head} ${tip + (head + 2) * s}`} fill="none" stroke={color} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" />
-        </g>
-    )
-}
 const OWN_XS = [-44, 0, 44]
 
 const ringBackPath = `M ${CX - RING_RX} ${RING_CY} A ${RING_RX} ${RING_RY} 0 0 1 ${CX + RING_RX} ${RING_CY}`
@@ -314,7 +291,8 @@ const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, 
     const currentOn = showCurrent && moving && !hideAnswer
     const bottomColor = pole === 'N' ? NORTH_COLOR : SOUTH_COLOR
     const topColor = pole === 'N' ? SOUTH_COLOR : NORTH_COLOR
-    const extN = extCountOf(pos)
+    // поле B сквозь кольцо — одна стрелка, длина ∝ близости магнита, середина — в центре кольца
+    const extLen = 34 + pos * 58
     // ток: своё поле вверх → спереди вправо (см. шапку файла)
     const flowRight = own > 0
     // ЭДС ∝ ΔΦ/Δt: чем быстрее едет магнит, тем сильнее отклоняется стрелка.
@@ -329,14 +307,10 @@ const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, 
                 {/* бледные силовые линии магнита: выходят из N, огибают магнит и входят в S */}
                 {fieldLines && <MagnetFieldLoops magTop={magTop} pole={pole} />}
                 {/* поле магнита сквозь кольцо */}
-                {showExt && EXT_PTS.slice(0, extN).slice().sort((a, b) => a[1] - b[1]).map(([dx, dy]) => (
-                    <g key={`e${dx}`}>
-                        <motion.g initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', bounce: 0.45, duration: 0.45 }}
-                            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
-                            <Arrow3D dx={dx} dy={dy} dir={ext} color={FIELD_COLOR} />
-                        </motion.g>
-                    </g>
-                ))}
+                {showExt && (
+                    <FieldArrow x1={CX} y1={ext < 0 ? RING_CY - extLen / 2 : RING_CY + extLen / 2} x2={CX} y2={ext < 0 ? RING_CY + extLen / 2 : RING_CY - extLen / 2}
+                        color={FIELD_COLOR} width={7} />
+                )}
                 {/* своё поле кольца — зелёные щиты */}
                 {showOwn && moving && !hideAnswer && OWN_XS.map((dx, i) => (
                     <g key={`o${dx}`}>
@@ -573,7 +547,7 @@ const IntroScene = ({ onSettled }: { onSettled?: () => void }) => {
             )}
             {phase >= 2 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Стрелки ' }, { sticker: 'B', color: FIELD_COLOR }, { text: ' сквозь кольцо — это ' }, { sticker: 'поток Φ', color: GGEGE_PALETTE.purple.button }, { text: '.' }]}
+                    parts={[{ text: 'Стрелка ' }, { sticker: 'B', color: FIELD_COLOR }, { text: ' пронизывает кольцо.' }]}
                     onSettled={() => { setPhase(3); setTimeout(() => setPhase(4), 1500) }}
                 />
             )}
@@ -598,13 +572,14 @@ const IntroScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-// 2. Чат: зачем кольцо это делает.
+// 2. Чат прямо на арене (идея пользователя 2026-09-28): магнит и кольцо
+// переписываются облачками над своими бойцами → «ROUND 1 · FIGHT!» → битва.
 type ChatMsg = { who: 'magnet' | 'ring'; emoji: string; text: React.ReactNode }
 const CHAT: ChatMsg[] = [
-    { who: 'magnet', emoji: '😈', text: <>Моя армия поля <Sticker value="B" color={FIELD_COLOR} /> идёт на вас! Поток <Sticker value="Φ" color={GGEGE_PALETTE.purple.button} />, растииии!</> },
-    { who: 'ring', emoji: '😱', text: <>ВНИМАНИЕ! ТРЕВОГА! ПОТОК <Sticker value="Φ" color={GGEGE_PALETTE.purple.button} /> МЕНЯЕТСЯ!! НЕ ДОПУЩУУУ!</> },
-    { who: 'ring', emoji: '😤', text: <>Всем постам! Запускаем СВОЙ ток <Sticker value="I" color={CURRENT_COLOR} /> — он создаст СВОЁ ИНДУКЦИОННОЕ поле <Sticker value="B" color={OWN_COLOR} />. Против врага!</> },
-    { who: 'magnet', emoji: '😠', text: 'Эй, вы чего сопротивляетесь?!' },
+    { who: 'magnet', emoji: '😈', text: <>Нападаю! Моё поле <Sticker value="B" color={FIELD_COLOR} /> растёт!</> },
+    { who: 'ring', emoji: '😱', text: <>ТРЕВОГА! Поток <Sticker value="Φ" color={GGEGE_PALETTE.purple.button} /> меняется! НЕ ДОПУЩУ!</> },
+    { who: 'ring', emoji: '😤', text: <>Запускаю ток <Sticker value="I" color={CURRENT_COLOR} /> — моё <Sticker value="B инд" color={OWN_COLOR} /> против тебя!</> },
+    { who: 'magnet', emoji: '😠', text: 'Ах так?! Ну держись!' },
 ]
 const CHAT_TYPING_MS = 1100
 const CHAT_GAP_MS = 700
@@ -618,69 +593,6 @@ const TypingDots = () => (
         ))}
     </span>
 )
-const ChatScene = ({ onSettled }: { onSettled?: () => void }) => {
-    const [phase, setPhase] = useState(0)
-    const [shown, setShown] = useState(0)
-    const [typing, setTyping] = useState(false)
-    // Как в мессенджере: «печатает…» → сообщение → пауза → следующий «печатает…».
-    useEffect(() => {
-        if (phase < 1) return
-        if (shown >= CHAT.length) { const t = setTimeout(() => setPhase(2), 600); return () => clearTimeout(t) }
-        if (!typing) {
-            const t = setTimeout(() => setTyping(true), shown === 0 ? 200 : CHAT_GAP_MS)
-            return () => clearTimeout(t)
-        }
-        const t = setTimeout(() => { setTyping(false); setShown((s) => s + 1) }, CHAT_TYPING_MS)
-        return () => clearTimeout(t)
-    }, [phase, shown, typing])
-    return (
-        <>
-            <TypedLineWithParts
-                parts={[{ text: 'Магнит наступает — ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ' растёт. Кольцу это ' }, { bold: 'НЕ НРАВИТСЯ' }, { text: ' 👀' }]}
-                onSettled={() => setPhase(1)}
-            />
-            {phase >= 1 && (
-                <div className="w-full flex flex-col gap-2 rounded-2xl border-2 border-[#3A464E] bg-[#11191D] p-3">
-                    {CHAT.slice(0, shown).map((m, i) => (
-                        <motion.div key={i} initial={{ opacity: 0, y: 12, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', bounce: 0.4 }}
-                            className={cn('flex items-end gap-2', m.who === 'ring' && 'flex-row-reverse')}>
-                            <div className="text-3xl leading-none shrink-0">{m.emoji}</div>
-                            <div className="max-w-[78%] rounded-2xl px-3 py-2 text-sm md:text-base font-bold"
-                                style={m.who === 'magnet'
-                                    ? { backgroundColor: hexToRgba(FIELD_COLOR, 0.18), color: '#F2F7FB', border: `2px solid ${FIELD_COLOR}` }
-                                    : { backgroundColor: hexToRgba(OWN_COLOR, 0.16), color: '#F2F7FB', border: `2px solid ${OWN_COLOR}` }}>
-                                <div className="text-[11px] font-black opacity-70 mb-0.5">{m.who === 'magnet' ? 'Магнит' : 'Кольцо'}</div>
-                                {m.text}
-                            </div>
-                        </motion.div>
-                    ))}
-                    {typing && shown < CHAT.length && (() => {
-                        const m = CHAT[shown]
-                        const color = m.who === 'magnet' ? FIELD_COLOR : OWN_COLOR
-                        return (
-                            <motion.div key={`typing${shown}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                                className={cn('flex items-end gap-2', m.who === 'ring' && 'flex-row-reverse')}>
-                                <div className="text-3xl leading-none shrink-0 opacity-60">{m.emoji}</div>
-                                <div className="rounded-2xl px-3 py-2 text-sm font-bold"
-                                    style={{ backgroundColor: hexToRgba(color, 0.1), color, border: `2px dashed ${hexToRgba(color, 0.6)}` }}>
-                                    <div className="text-[11px] font-black opacity-70 mb-0.5">{m.who === 'magnet' ? 'Магнит' : 'Кольцо'}</div>
-                                    <TypingDots />
-                                </div>
-                            </motion.div>
-                        )
-                    })()}
-                </div>
-            )}
-            {phase >= 2 && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Ток кольца создаёт своё поле ' }, { sticker: 'B инд', color: OWN_COLOR }, { text: ' — против магнита.' }]}
-                    onSettled={onSettled}
-                />
-            )}
-        </>
-    )
-}
-
 // 3. Битва в стиле Mortal Kombat (вид сбоку): слева горизонтальный магнит
 // бьёт своим полем B вправо, справа кольцо (ось горизонтальна, видим его
 // ребром) бьёт СВОИМ полем B влево, по кольцу бежит индукционный ток.
@@ -692,10 +604,6 @@ const MK_W = 360, MK_H = 250
 const MK_Y = 145
 const MK_RING_X = 300, MK_RING_RX = 18, MK_RING_RY = 66
 const MK_MAG_W = 96, MK_MAG_H = 40
-// синие (поток): по мере приближения добавляются от центра к краям
-const MK_BLUE_ROWS = [0, -26, 26, -52, 52]
-// красные (B_инд): при ровном движении их всегда одинаково
-const MK_RED_ROWS = [-13, 13]
 // магнит в битве едет медленнее (≈5 с на весь путь) — успеть рассмотреть поединок
 const MK_SPEED = 0.33
 
@@ -729,21 +637,22 @@ const HpBar = ({ label, color, align, hit }: { label: string; color: string; ali
     </div>
 )
 
-const MkView = ({ pos, fighting }: { pos: number; fighting: boolean }) => {
+const MkView = ({ pos, fighting, chat, banner }: { pos: number; fighting: boolean; chat?: React.ReactNode; banner?: React.ReactNode }) => {
     const magX = 14 + pos * 40
     const faceX = magX + MK_MAG_W
     // Метафора (идеализация «поток растёт равномерно», как в уроке Фарадея):
     //   КОЛИЧЕСТВО синих стрелок = поток Φ — растёт по мере приближения магнита;
     //   КОЛИЧЕСТВО красных = B_инд ∝ ΔΦ/Δt — зависит от того, как БЫСТРО
     //   прибавляются синие: магнит едет ровно → красных всегда 2, встал → 0.
+    // Одна стрелка B (идея пользователя 2026-09-28): длина ∝ полю — растёт по
+    // мере приближения. Стрелка кольца B_инд — одна и та же длина.
     const ARROW_LEN = 56
-    const magTip = faceX + 6 + ARROW_LEN
+    const magTip = faceX + 6 + 36 + pos * 40
     // стрелки кольца стартуют от ЛЕВОГО края кольца, а не поверх него —
     // иначе малиновые стрелки сливаются с малиновым (током) кольцом
     const ringStart = MK_RING_X - MK_RING_RX - 6
     const ringTip = ringStart - ARROW_LEN
     const clashX = (magTip + ringTip) / 2
-    const blueN = 1 + Math.round(pos * (MK_BLUE_ROWS.length - 1))
     const ringFront = `M ${MK_RING_X} ${MK_Y - MK_RING_RY} A ${MK_RING_RX} ${MK_RING_RY} 0 0 1 ${MK_RING_X} ${MK_Y + MK_RING_RY}`
     const ringBack = `M ${MK_RING_X} ${MK_Y - MK_RING_RY} A ${MK_RING_RX} ${MK_RING_RY} 0 0 0 ${MK_RING_X} ${MK_Y + MK_RING_RY}`
     return (
@@ -753,29 +662,23 @@ const MkView = ({ pos, fighting }: { pos: number; fighting: boolean }) => {
                 <span className="pt-4 text-sm font-black text-[#F2C35B]">VS</span>
                 <HpBar label="Кольцо" color={CURRENT_COLOR} align="right" hit={fighting} />
             </div>
+            {chat}
+            <div className="relative">
+            {banner}
             <svg viewBox={`0 0 ${MK_W} ${MK_H}`} className="w-full h-auto">
                 {/* пол арены */}
                 <line x1={0} y1={MK_H - 22} x2={MK_W} y2={MK_H - 22} stroke="#3A464E" strokeWidth={2} strokeDasharray="6 8" />
                 {/* задняя половина кольца */}
                 <path d={ringBack} fill="none" stroke={fighting ? CURRENT_COLOR : RING_COLOR} strokeWidth={6} opacity={0.5} />
                 {/* атака магнита: поле B вправо */}
-                {MK_BLUE_ROWS.slice(0, blueN).map((dy) => (
-                    <g key={`m${dy}`}>
-                        <motion.g initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', bounce: 0.5, duration: 0.4 }}
-                            style={{ transformBox: 'fill-box', transformOrigin: 'left center' }}>
-                            <HArrow x1={faceX + 6} x2={magTip} y={MK_Y + dy} color={FIELD_COLOR} width={4.5} />
-                        </motion.g>
-                    </g>
-                ))}
+                <FieldArrow x1={faceX + 6} y1={MK_Y} x2={magTip} y2={MK_Y} color={FIELD_COLOR} width={7} head={10} />
                 <SvgSticker x={faceX + 30} y={MK_Y - 78} text="B" color={FIELD_COLOR} />
                 {/* ответ кольца: своё поле B влево */}
-                {fighting && MK_RED_ROWS.map((dy, i) => (
-                    <g key={`r${dy}`}>
-                        <motion.g initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.08 }}>
-                            <HArrow x1={ringStart} x2={ringTip} y={MK_Y + dy} color={OWN_COLOR} width={5} />
-                        </motion.g>
-                    </g>
-                ))}
+                {fighting && (
+                    <motion.g initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
+                        <FieldArrow x1={ringStart} y1={MK_Y} x2={ringTip} y2={MK_Y} color={OWN_COLOR} width={7} head={10} />
+                    </motion.g>
+                )}
                 {fighting && <SvgSticker x={MK_RING_X - 52} y={MK_Y - 78} text="B" sub="инд" color={OWN_COLOR} />}
                 {/* столкновение */}
                 {fighting && (
@@ -804,7 +707,22 @@ const MkView = ({ pos, fighting }: { pos: number; fighting: boolean }) => {
                     </>
                 )}
             </svg>
+            </div>
         </div>
+    )
+}
+
+const ChatBubble = ({ m, typing }: { m: ChatMsg; typing?: boolean }) => {
+    const color = m.who === 'magnet' ? FIELD_COLOR : OWN_COLOR
+    return (
+        <motion.div key={typing ? 'typing' : String(m.text)} initial={{ opacity: 0, y: 10, scale: 0.85 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', bounce: 0.45 }}
+            className={cn('relative flex items-end gap-1.5', m.who === 'ring' && 'flex-row-reverse')}>
+            <div className="text-2xl leading-none shrink-0">{m.emoji}</div>
+            <div className="rounded-2xl px-2.5 py-1.5 text-xs md:text-sm font-bold text-[#F2F7FB]"
+                style={{ backgroundColor: hexToRgba(color, typing ? 0.08 : 0.18), border: `2px ${typing ? 'dashed' : 'solid'} ${color}` }}>
+                {typing ? <span style={{ color }}><TypingDots /></span> : m.text}
+            </div>
+        </motion.div>
     )
 }
 
@@ -813,33 +731,69 @@ const BattleScene = ({ onSettled }: { onSettled?: () => void }) => {
     const mag = useMagnet(0)
     const [done, setDone] = useState(false)
     const hadMove = useRef(false)
+    const [shown, setShown] = useState(0)
+    const [typing, setTyping] = useState(false)
+    const [banner, setBanner] = useState(false)
+    // переписка: «печатает…» → сообщение → пауза → следующее; потом FIGHT!
+    useEffect(() => {
+        if (phase !== 1) return
+        if (shown >= CHAT.length) {
+            const t1 = setTimeout(() => setBanner(true), 500)
+            const t2 = setTimeout(() => { setBanner(false); setPhase(2) }, 2100)
+            return () => { clearTimeout(t1); clearTimeout(t2) }
+        }
+        if (!typing) {
+            const t = setTimeout(() => setTyping(true), shown === 0 ? 300 : CHAT_GAP_MS)
+            return () => clearTimeout(t)
+        }
+        const t = setTimeout(() => { setTyping(false); setShown((x) => x + 1) }, CHAT_TYPING_MS)
+        return () => clearTimeout(t)
+    }, [phase, shown, typing])
     useEffect(() => {
         if (mag.move === 1) hadMove.current = true
-        else if (mag.move === 0 && hadMove.current && !done) { setDone(true); setTimeout(() => setPhase(2), 800) }
+        else if (mag.move === 0 && hadMove.current && !done) { setDone(true); setTimeout(() => setPhase(3), 800) }
     }, [mag.move, done])
     const fighting = mag.move === 1
-    // баннер «FIGHT!» → через ~0.8 с арена (таймером, не onAnimationComplete —
-    // тот не срабатывает, если анимация не доиграла)
-    useEffect(() => { const t = setTimeout(() => setPhase((p) => Math.max(p, 1)), 800); return () => clearTimeout(t) }, [])
+    // реплики стороной-столбиком: старые не пропадают, пока «печатает» следующая
+    const sideOf = (who: ChatMsg['who']) => (
+        <div className="flex flex-col gap-1.5">
+            {CHAT.slice(0, shown).map((m, i) => (m.who === who ? <ChatBubble key={i} m={m} /> : null))}
+            {typing && CHAT[shown]?.who === who && <ChatBubble m={CHAT[shown]} typing />}
+        </div>
+    )
     return (
         <>
-            <motion.div initial={{ scale: 3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5, duration: 0.6 }}
-                className="text-center text-3xl md:text-4xl font-black tracking-widest" style={{ color: '#F2C35B', textShadow: '0 3px 0 #8A4B14' }}>
-                ROUND 1 · FIGHT!
-            </motion.div>
+            <TypedLineWithParts
+                parts={[{ text: 'Магнит наступает — ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ' растёт. Кольцу это ' }, { bold: 'НЕ НРАВИТСЯ' }, { text: ' 👀' }]}
+                onSettled={() => setPhase(1)}
+            />
             {phase >= 1 && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col gap-2">
-                        <MkView pos={mag.pos} fighting={fighting} />
-                        <div className="flex gap-2">
-                            <HoldBtn color={RULE_COLOR} pulse={!done} onStart={() => { if (mag.pos >= 1) mag.jump(0); mag.start(1, MK_SPEED) }} onRelease={mag.release}><span className="inline-flex items-center gap-2">В атаку на кольцо! <ArrowRight size={22} strokeWidth={3} /></span></HoldBtn>
-                        </div>
+                        <MkView pos={mag.pos} fighting={fighting}
+                            chat={phase < 2 ? (
+                                <div className="grid grid-cols-2 gap-2 items-end">
+                                    {sideOf('magnet')}
+                                    {sideOf('ring')}
+                                </div>
+                            ) : null}
+                            banner={banner ? (
+                                <motion.div initial={{ scale: 3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5, duration: 0.6 }}
+                                    className="absolute inset-0 z-10 flex items-center justify-center text-center text-3xl md:text-4xl font-black tracking-widest pointer-events-none"
+                                    style={{ color: '#F2C35B', textShadow: '0 3px 0 #8A4B14' }}>
+                                    ROUND 1<br />FIGHT!
+                                </motion.div>
+                            ) : null}
+                        />
+                        <motion.div className="flex gap-2" initial={false} animate={{ opacity: phase >= 2 ? 1 : 0 }} style={{ pointerEvents: phase >= 2 ? 'auto' : 'none' }}>
+                            <HoldBtn color={RULE_COLOR} pulse={phase >= 2 && !done} onStart={() => { if (mag.pos >= 1) mag.jump(0); mag.start(1, MK_SPEED) }} onRelease={mag.release}><span className="inline-flex items-center gap-2">В атаку на кольцо! <ArrowRight size={22} strokeWidth={3} /></span></HoldBtn>
+                        </motion.div>
                     </div>
                 </DiagramBlock>
             )}
-            {phase >= 2 && (
+            {phase >= 3 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Синих всё ' }, { bold: 'больше' }, { text: ', красных — ' }, { bold: 'столько же' }, { text: '. Кольцу важно, ' }, { bold: 'как быстро' }, { text: ' меняется ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: '.' }]}
+                    parts={[{ text: 'Синяя стрелка ' }, { bold: 'растёт' }, { text: ' — кольцо ' }, { bold: 'не сдаётся' }, { text: ' 🛡️' }]}
                     onSettled={onSettled}
                 />
             )}
@@ -847,121 +801,177 @@ const BattleScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-// 3б. Куда направлено B_инд: «корректирует» поток. Магнит двигается по шагам,
-// фиолетовая полоса = поток Φ. Шаг ближе → полоса длиннее на ΔΦ, под ней от
-// нового края стрелка B_инд НАЗАД, к прежнему Φ₀ (гасит прибавку). Шаг
-// дальше → полоса короче на ΔΦ, стрелка B_инд вперёд (добавляет недостающее).
-// Кольцо пока бледное — оно понадобится, когда разберём направление тока.
-const FB_W = 360, FB_H = 250
-const FB_X0 = 24, FB_BAR_Y = 132, FB_BAR_H = 34
-const FB_STEPS = 4
-const fbLen = (step: number) => 96 + step * 52
-const fbMagX = (step: number) => 16 + step * 44
-const FB_MAG_W = 84, FB_MAG_H = 30, FB_MAG_Y = 58
-const FB_CHANGE_MS = 2600
+// 3б. Куда направлено B_инд (идея пользователя 2026-09-28): поток — УПРУГИЙ
+// цилиндр (дно — кольцо S, длина — поле B), как пружина. Ученик сам тянет
+// правый край: растянул → отпустил → «стоп-кадр» ~1 с: пунктир от края и
+// стрелка B_инд НАЗАД к исходной длине → цилиндр пружинит обратно. Потом
+// то же со сжатием — стрелка B_инд вперёд. Поток хочет НЕ меняться.
+const EL_W = 360, EL_H = 236
+const EL_X0 = 56, EL_CY = 92, EL_R = 44, EL_D = 13
+const EL_L0 = 150, EL_LMAX = 280, EL_LMIN = 52
+const EL_PHOTO_MS = 1100
+type ElMode = 'stretch' | 'compress' | 'done'
+type ElPhoto = { x: number } | null
 
-const FluxBalanceView = ({ step, prev, changeKey, showChange }: { step: number; prev: number; changeKey: number; showChange: boolean }) => {
+const ElasticView = ({ len, photo, mode, returning, svgRef, onDown, dragging }: {
+    len: number; photo: ElPhoto; mode: ElMode; returning: boolean
+    svgRef: React.RefObject<SVGSVGElement>; onDown: (e: React.PointerEvent) => void; dragging: boolean
+}) => {
     const PHI = GGEGE_PALETTE.purple.button
-    const xOld = FB_X0 + fbLen(prev)
-    const xNew = FB_X0 + fbLen(step)
-    const grew = xNew > xOld
-    const changed = showChange && xNew !== xOld
-    const solidEnd = changed ? Math.min(xOld, xNew) : xNew
-    const magX = fbMagX(step)
+    const xr = EL_X0 + len
+    const xOrig = EL_X0 + EL_L0
+    const showArrow = photo !== null
+    const arrowFrom = photo ? photo.x : xr
     return (
-        <svg viewBox={`0 0 ${FB_W} ${FB_H}`} className="w-full max-w-[380px] h-auto">
-            {/* кольцо — бледное, пока не важно */}
-            <g opacity={0.22}>
-                <ellipse cx={330} cy={FB_MAG_Y + FB_MAG_H / 2} rx={11} ry={40} fill="none" stroke={RING_COLOR} strokeWidth={5} />
-            </g>
-            {/* магнит: N смотрит на кольцо */}
-            <motion.g animate={{ x: magX }} initial={false} transition={{ type: 'spring', bounce: 0.3, duration: 0.5 }}>
-                <rect x={0} y={FB_MAG_Y} width={FB_MAG_W / 2} height={FB_MAG_H} rx={5} fill={SOUTH_COLOR} />
-                <rect x={FB_MAG_W / 2} y={FB_MAG_Y} width={FB_MAG_W / 2} height={FB_MAG_H} rx={5} fill={NORTH_COLOR} />
-                <rect x={FB_MAG_W / 2 - 5} y={FB_MAG_Y} width={10} height={FB_MAG_H} fill={NORTH_COLOR} />
-                <text x={FB_MAG_W / 4} y={FB_MAG_Y + 21} textAnchor="middle" fontSize={16} fontWeight={900} fill="#fff">S</text>
-                <text x={(FB_MAG_W * 3) / 4} y={FB_MAG_Y + 21} textAnchor="middle" fontSize={16} fontWeight={900} fill="#fff">N</text>
-            </motion.g>
-            {/* поток Φ: сплошная часть */}
-            <motion.rect x={FB_X0} y={FB_BAR_Y} height={FB_BAR_H} rx={6} fill={PHI} initial={false}
-                animate={{ width: solidEnd - FB_X0 }} transition={{ duration: 0.4 }} />
-            <text x={FB_X0 + 14} y={FB_BAR_Y + 23} fontSize={17} fontWeight={900} fill="#fff">Φ</text>
-            {changed && (
-                <g key={`chg${changeKey}`}>
-                    {/* кусок ΔΦ: прибавка (полупрозрачная) или убыль (пунктирный контур) */}
-                    {grew ? (
-                        <motion.rect x={xOld} y={FB_BAR_Y} height={FB_BAR_H} rx={4} fill={hexToRgba(PHI, 0.55)} stroke={PHI} strokeWidth={2}
-                            initial={{ width: 0 }} animate={{ width: xNew - xOld }} transition={{ duration: 0.45 }} />
-                    ) : (
-                        <rect x={xNew} y={FB_BAR_Y} width={xOld - xNew} height={FB_BAR_H} rx={4} fill="none" stroke={PHI} strokeWidth={2} strokeDasharray="5 5" opacity={0.8} />
-                    )}
-                    {/* выносные пунктиры */}
-                    {[xOld, xNew].map((x) => (
-                        <line key={x} x1={x} y1={FB_BAR_Y - 22} x2={x} y2={FB_BAR_Y + FB_BAR_H + 62} stroke="#9AA7B0" strokeWidth={1.8} strokeDasharray="4 4" />
+        <svg ref={svgRef} viewBox={`0 0 ${EL_W} ${EL_H}`} className="w-full max-w-[380px] h-auto select-none" style={{ touchAction: 'none' }}>
+            {/* призрак исходного цилиндра — в стоп-кадре */}
+            {photo && <FluxCylinder cx={EL_X0 + EL_L0 / 2} cy={EL_CY} radius={EL_R} depth={EL_D} length={EL_L0} orient="h" color="#9AA7B0" fill={0} dashed />}
+            <FluxCylinder cx={EL_X0 + len / 2} cy={EL_CY} radius={EL_R} depth={EL_D} length={len} orient="h" color={PHI} />
+            <FieldArrow x1={EL_X0 + 4} y1={EL_CY} x2={xr - 6} y2={EL_CY} color={FIELD_COLOR} width={6} head={9} />
+            {/* кольцо — дно цилиндра */}
+            <ellipse cx={EL_X0} cy={EL_CY} rx={EL_D} ry={EL_R} fill="none" stroke={RING_COLOR} strokeWidth={6} />
+            <SvgSticker x={EL_X0 - 4} y={EL_CY + EL_R + 22} text="S" color={RING_COLOR} />
+            <SvgSticker x={EL_X0 + 40} y={EL_CY - EL_R - 18} text="Φ" color={PHI} />
+            {/* стоп-кадр: пунктиры от края вниз + стрелка B_инд к исходной длине */}
+            {showArrow && (
+                <g>
+                    {[arrowFrom, xOrig].map((x, i) => (
+                        <line key={i} x1={x} y1={EL_CY - EL_R - 6} x2={x} y2={EL_H - 30} stroke="#9AA7B0" strokeWidth={1.8} strokeDasharray="4 4" />
                     ))}
-                    <text x={(xOld + xNew) / 2} y={FB_BAR_Y - 8} textAnchor="middle" fontSize={15} fontWeight={900} fill={PHI}>{grew ? '+ΔΦ' : '−ΔΦ'}</text>
-                    {/* B_инд: от нового края назад к прежнему Φ₀ */}
-                    <motion.g initial={{ opacity: 0, x: grew ? 14 : -14 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5, type: 'spring', bounce: 0.45 }}>
-                        <HArrow x1={xNew} x2={xOld + (grew ? 2 : -2)} y={FB_BAR_Y + FB_BAR_H + 34} color={OWN_COLOR} width={6} />
-                        <SvgSticker x={(xOld + xNew) / 2} y={FB_BAR_Y + FB_BAR_H + 62} text="B" sub="инд" color={OWN_COLOR} />
+                    <motion.g initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
+                        style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
+                        <HArrow x1={arrowFrom} x2={xOrig + (arrowFrom > xOrig ? 3 : -3)} y={EL_H - 50} color={OWN_COLOR} width={6} />
+                        <SvgSticker x={(arrowFrom + xOrig) / 2} y={EL_H - 20} text="B" sub="инд" color={OWN_COLOR} />
                     </motion.g>
+                </g>
+            )}
+            {photo && !returning && (
+                <>
+                    <motion.rect x={0} y={0} width={EL_W} height={EL_H} fill="#fff" initial={{ opacity: 0.55 }} animate={{ opacity: 0 }} transition={{ duration: 0.35 }} pointerEvents="none" />
+                    <text x={EL_W - 8} y={20} textAnchor="end" fontSize={14} fontWeight={900} fill="#F2C35B">📸 СТОП-КАДР</text>
+                </>
+            )}
+            {/* ручка: правый край цилиндра */}
+            {mode !== 'done' && !photo && (
+                <g onPointerDown={onDown} style={{ cursor: dragging ? 'grabbing' : 'grab' }}>
+                    {!dragging && (
+                        <motion.circle cx={xr} cy={EL_CY} r={22} fill="none" stroke={RULE_COLOR} strokeWidth={3}
+                            animate={{ scale: [1, 1.35, 1], opacity: [0.8, 0, 0.8] }} transition={{ duration: 1.3, repeat: Infinity }}
+                            style={{ transformBox: 'fill-box', transformOrigin: 'center' }} />
+                    )}
+                    <circle cx={xr} cy={EL_CY} r={20} fill={RULE_COLOR} stroke="#fff" strokeWidth={3} />
+                    <text x={xr} y={EL_CY + 6} textAnchor="middle" fontSize={16} fontWeight={900} fill="#fff">{mode === 'stretch' ? '➡' : '⬅'}</text>
+                    <circle cx={xr} cy={EL_CY} r={34} fill="transparent" />
                 </g>
             )}
         </svg>
     )
 }
 
-const FluxBalanceScene = ({ onSettled }: { onSettled?: () => void }) => {
+const ElasticFluxScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
-    const [step, setStep] = useState(0)
-    const [prev, setPrev] = useState(0)
-    const [changeKey, setChangeKey] = useState(0)
-    const [showChange, setShowChange] = useState(false)
-    const [tried, setTried] = useState({ closer: false, farther: false })
-    const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const go = (d: 1 | -1) => {
-        const next = step + d
-        if (next < 0 || next >= FB_STEPS) return
-        setPrev(step); setStep(next); setChangeKey((k) => k + 1); setShowChange(true)
-        setTried((t) => ({ ...t, [d > 0 ? 'closer' : 'farther']: true }))
-        if (hideTimer.current) clearTimeout(hideTimer.current)
-        // ток и B_инд живут, только пока поток меняется
-        hideTimer.current = setTimeout(() => setShowChange(false), FB_CHANGE_MS)
+    const [mode, setMode] = useState<ElMode>('stretch')
+    const [len, setLen] = useState(EL_L0)
+    const [dragging, setDragging] = useState(false)
+    const [photo, setPhoto] = useState<ElPhoto>(null)
+    const [returning, setReturning] = useState(false)
+    const svgRef = useRef<SVGSVGElement>(null)
+    const lenRef = useRef(EL_L0)
+    const modeRef = useRef<ElMode>('stretch')
+    const timers = useRef<ReturnType<typeof setTimeout>[]>([])
+    const spring = useRef<ReturnType<typeof setInterval> | null>(null)
+    useEffect(() => () => { timers.current.forEach(clearTimeout); if (spring.current) clearInterval(spring.current) }, [])
+    const later = (fn: () => void, ms: number) => { timers.current.push(setTimeout(fn, ms)) }
+    const setL = (v: number) => { lenRef.current = v; setLen(v) }
+
+    const toSvgX = (clientX: number, clientY: number) => {
+        const svg = svgRef.current
+        const ctm = svg?.getScreenCTM()
+        if (!svg || !ctm) return null
+        const pt = svg.createSVGPoint()
+        pt.x = clientX; pt.y = clientY
+        return pt.matrixTransform(ctm.inverse()).x
     }
-    useEffect(() => () => { if (hideTimer.current) clearTimeout(hideTimer.current) }, [])
-    const bothTried = tried.closer && tried.farther
-    useEffect(() => {
-        if (bothTried && phase < 2) { const t = setTimeout(() => setPhase(2), FB_CHANGE_MS + 200); return () => clearTimeout(t) }
-    }, [bothTried, phase])
-    const btn = 'flex-1 flex items-center justify-center gap-2 rounded-2xl py-3 text-base font-black text-white select-none shadow-[0_5px_0_var(--edge)] active:translate-y-[3px] active:shadow-[0_2px_0_var(--edge)] disabled:opacity-40'
+    // Пружина обратно к исходной длине (setInterval, не rAF — не замирает в фоне).
+    const springBack = (onEnd: () => void) => {
+        let v = 0
+        if (spring.current) clearInterval(spring.current)
+        spring.current = setInterval(() => {
+            v = (v + (EL_L0 - lenRef.current) * 0.16) * 0.74
+            const next = lenRef.current + v
+            if (Math.abs(EL_L0 - next) < 0.6 && Math.abs(v) < 0.6) {
+                if (spring.current) clearInterval(spring.current)
+                spring.current = null
+                setL(EL_L0); onEnd()
+            } else setL(next)
+        }, 16)
+    }
+    const onDown = (e: React.PointerEvent) => {
+        if (modeRef.current === 'done' || photo) return
+        e.preventDefault()
+        svgRef.current?.setPointerCapture?.(e.pointerId)
+        setDragging(true)
+    }
+    const onMove = (e: React.PointerEvent) => {
+        if (!dragging) return
+        const x = toSvgX(e.clientX, e.clientY)
+        if (x === null) return
+        const raw = x - EL_X0
+        const v = modeRef.current === 'stretch' ? Math.min(EL_LMAX, Math.max(EL_L0, raw)) : Math.max(EL_LMIN, Math.min(EL_L0, raw))
+        setL(v)
+    }
+    const onUp = () => {
+        if (!dragging) return
+        setDragging(false)
+        const delta = lenRef.current - EL_L0
+        if (Math.abs(delta) < 20) { springBack(() => {}); return }
+        const m = modeRef.current
+        setPhoto({ x: EL_X0 + lenRef.current })
+        later(() => {
+            setReturning(true)
+            springBack(() => later(() => {
+                setPhoto(null); setReturning(false)
+                if (m === 'stretch') { modeRef.current = 'compress'; setMode('compress'); setPhase(2) }
+                else { modeRef.current = 'done'; setMode('done'); setPhase(4) }
+            }, 700))
+        }, EL_PHOTO_MS)
+    }
+
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'Фиолетовая полоса — ' }, { sticker: 'поток Φ', color: GGEGE_PALETTE.purple.button }, { text: '. Двигай магнит.' }]}
+                parts={[{ text: 'Поток ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ' — цилиндр. Он ' }, { bold: 'упругий' }, { text: ', как пружина 🌀' }]}
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
                 <DiagramBlock>
-                    <div className="w-full flex flex-col items-center gap-3">
-                        <FluxBalanceView step={step} prev={prev} changeKey={changeKey} showChange={showChange} />
-                        <div className="flex w-full gap-3">
-                            <button type="button" className={btn} disabled={step <= 0} onClick={() => go(-1)}
-                                style={{ backgroundColor: RULE_COLOR, ['--edge' as string]: darken(RULE_COLOR) }}>
-                                <ArrowLeft size={22} strokeWidth={3} /> дальше
-                            </button>
-                            <button type="button" className={btn} disabled={step >= FB_STEPS - 1} onClick={() => go(1)}
-                                style={{ backgroundColor: RULE_COLOR, ['--edge' as string]: darken(RULE_COLOR) }}>
-                                ближе <ArrowRight size={22} strokeWidth={3} />
-                            </button>
-                        </div>
+                    <div className="w-full flex flex-col items-center gap-2" onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} style={{ touchAction: 'none' }}>
+                        <ElasticView len={len} photo={photo} mode={mode} returning={returning} svgRef={svgRef} onDown={onDown} dragging={dragging} />
+                        {mode !== 'done' && !photo && (
+                            <p className="text-sm font-black text-center" style={{ color: RULE_COLOR }}>
+                                {mode === 'stretch' ? 'Тяни край вправо ➡ и отпусти' : '⬅ Теперь сожми: тяни влево и отпусти'}
+                            </p>
+                        )}
                     </div>
                 </DiagramBlock>
             )}
             {phase >= 2 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Растянули — ' }, { sticker: 'B инд', color: OWN_COLOR }, { text: ' тянет ' }, { bold: 'назад' }, { text: ' ⬅' }]}
+                    onSettled={() => setPhase((p) => Math.max(p, 3))}
+                />
+            )}
+            {phase >= 4 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Сжали — ' }, { sticker: 'B инд', color: OWN_COLOR }, { text: ' толкает ' }, { bold: 'вперёд' }, { text: ' ➡' }]}
+                    onSettled={() => setPhase(5)}
+                />
+            )}
+            {phase >= 5 && (
                 <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1400)}>
                     <InsightCard>
-                        Φ растёт — <InsightWord color="#FF9AC8">B инд</InsightWord> гасит ⬅
-                        <br />Φ падает — <InsightWord color="#FF9AC8">B инд</InsightWord> добавляет ➡
+                        Поток хочет <InsightWord>НЕ МЕНЯТЬСЯ</InsightWord>.
+                        <br /><InsightWord color="#FF9AC8">B инд</InsightWord> — пружина, которая возвращает его обратно.
                     </InsightCard>
                 </DiagramBlock>
             )}
@@ -1360,7 +1370,7 @@ const SpeedScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-const CONCEPT_SCENES = [IntroScene, FluxBalanceScene, ChatScene, BattleScene, PullScene, LenzRuleScene, RepelScene, SpeedScene, HandScene, GameScene]
+const CONCEPT_SCENES = [IntroScene, ElasticFluxScene, BattleScene, PullScene, LenzRuleScene, RepelScene, SpeedScene, HandScene, GameScene]
 const INTRO_CONCEPT_STEPS = CONCEPT_SCENES.length
 
 const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
