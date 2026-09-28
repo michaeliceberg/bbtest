@@ -598,6 +598,34 @@ const GripGameScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
+// Стрела (public/lesson-pics/arrow.webp, хвост слева, остриё справа): под
+// хвостом — крестик (оперение улетает от тебя), под остриём — точка (летит на тебя).
+const EndBadge = ({ kind, label, delay }: { kind: 'dot' | 'cross'; label: string; delay: number }) => (
+    <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.55, delay }}
+        className="flex flex-col items-center gap-1">
+        <svg viewBox="-20 -20 40 40" className="h-11 w-11">
+            <circle r={17} fill="#161F23" stroke={FIELD_COLOR} strokeWidth={3} />
+            {kind === 'dot'
+                ? <circle r={6} fill={FIELD_COLOR} />
+                : <path d="M-8,-8 L8,8 M-8,8 L8,-8" stroke={FIELD_COLOR} strokeWidth={3.5} strokeLinecap="round" />}
+        </svg>
+        <span className="whitespace-pre-line text-xs md:text-sm font-black text-center leading-tight" style={{ color: FIELD_COLOR }}>{label}</span>
+    </motion.div>
+)
+const ArrowDotCross = () => (
+    <div className="w-full flex flex-col items-center gap-2">
+        <motion.div initial={{ x: -40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ type: 'spring', bounce: 0.35, duration: 0.7 }}
+            className="w-full max-w-[340px]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/lesson-pics/arrow.webp" alt="Стрела" className="w-full h-auto" draggable={false} />
+        </motion.div>
+        <div className="w-full max-w-[340px] flex justify-between px-1">
+            <EndBadge kind="cross" label={'хвост —\nот тебя'} delay={0.6} />
+            <EndBadge kind="dot" label={'остриё —\nна тебя'} delay={1.1} />
+        </div>
+    </div>
+)
+
 // 4. Как рисуют в задачах: • и ×.
 const DotCrossScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
@@ -616,7 +644,12 @@ const DotCrossScene = ({ onSettled }: { onSettled?: () => void }) => {
                 />
             )}
             {phase >= 3 && (
-                <TypedLine text="Как стрела 🏹: видишь остриё — точка, видишь хвост — крестик." className={TEXT_CLS} onSettled={onSettled} />
+                <TypedLine text="Как стрела 🏹: видишь остриё — точка, видишь хвост — крестик." className={TEXT_CLS} onSettled={() => setPhase(4)} />
+            )}
+            {phase >= 4 && (
+                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1400)}>
+                    <ArrowDotCross />
+                </DiagramBlock>
             )}
         </>
     )
