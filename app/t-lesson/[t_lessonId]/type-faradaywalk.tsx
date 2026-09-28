@@ -829,6 +829,83 @@ const IntrigueScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
+// «Поток — ТОЧНО ТАКАЯ ЖЕ формула, как объём цилиндра» (просьба пользователя
+// 2026-09-28): V = S · H (кот думает) → кот колдует → из-под формулы выезжает
+// Φ = S · B — столбцы совпадают: V↔Φ (фиолетовый), S↔S (бирюзовый), H↔B
+// (синий) → «ТОЧНО ТАКАЯ ЖЕ!» и танцующие коты по бокам.
+const CatVideo = ({ src, className }: { src: string; className?: string }) => (
+    <video src={src} autoPlay loop muted playsInline className={cn('pointer-events-none aspect-square object-contain', className)} />
+)
+const FormulaRow = ({ cells }: { cells: { v: string; color?: string }[] }) => (
+    <div className="grid grid-cols-5 items-center justify-items-center gap-1 text-2xl md:text-3xl font-black text-[#F2F7FB]">
+        {cells.map((c, i) => (c.color ? <Sticker key={i} value={c.v} color={c.color} /> : <span key={i}>{c.v}</span>))}
+    </div>
+)
+const FM_STAGE_MS = [0, 1600, 2700, 4000]
+const FormulaMatchBlock = ({ onDone }: { onDone: () => void }) => {
+    const [started, setStarted] = useState(false)
+    const [stage, setStage] = useState(0)
+    useEffect(() => {
+        if (!started) return
+        const ts = FM_STAGE_MS.map((ms, i) => setTimeout(() => setStage(i + 1), ms))
+        ts.push(setTimeout(onDone, FM_STAGE_MS[FM_STAGE_MS.length - 1] + 1600))
+        return () => ts.forEach(clearTimeout)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [started])
+    const H_COLOR = FIELD_COLOR
+    return (
+        <>
+            <TypedLineWithParts parts={[{ text: 'Надеюсь, ты помнишь формулу объёма цилиндра 🤓' }]} onSettled={() => setStarted(true)} />
+            {started && <DiagramBlock>
+                <div className="w-full flex flex-col gap-2">
+                    <div className="grid grid-cols-[1fr_auto] items-center gap-x-2">
+                        {/* обе формулы вплотную друг под другом: нижняя выезжает из-под верхней */}
+                        <div className="flex flex-col gap-2">
+                            <div className="relative z-10 rounded-xl bg-[#161F23] py-1">
+                                <FormulaRow cells={[{ v: 'V', color: FLUX_COLOR }, { v: '=' }, { v: 'S', color: RING_COLOR }, { v: '·' }, { v: 'H', color: H_COLOR }]} />
+                            </div>
+                            <div className="relative z-0 min-h-[44px]">
+                                {stage >= 3 && (
+                                    <motion.div initial={{ y: -48, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+                                        transition={{ type: 'spring', stiffness: 140, damping: 13 }}>
+                                        <FormulaRow cells={[{ v: 'Φ', color: FLUX_COLOR }, { v: '=' }, { v: 'S', color: RING_COLOR }, { v: '·' }, { v: 'B', color: FIELD_COLOR }]} />
+                                    </motion.div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="flex w-20 md:w-24 flex-col gap-1">
+                            <CatVideo src="/video/cat-thinking.webm" className="w-full" />
+                            <div className="aspect-square w-full">
+                                {stage >= 2 && (
+                                    <motion.div initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', bounce: 0.55 }}>
+                                        <CatVideo src="/video/cat-magic.webm" className="w-full" />
+                                    </motion.div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                    {stage >= 4 && (
+                        <div className="relative flex min-h-[96px] items-center justify-center">
+                            <motion.div initial={{ scale: 0, x: -30 }} animate={{ scale: 1, x: 0 }} transition={{ type: 'spring', bounce: 0.5, delay: 0.25 }}
+                                className="absolute left-0 top-0 w-20">
+                                <div className="animate-cat-dance-left"><CatVideo src="/video/cat-dance-1.webm" className="w-full" /></div>
+                            </motion.div>
+                            <motion.div initial={{ scale: 3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
+                                className="text-center text-xl md:text-2xl font-black" style={{ color: FLUX_COLOR }}>
+                                ТОЧНО ТАКАЯ ЖЕ! 🤯
+                            </motion.div>
+                            <motion.div initial={{ scale: 0, x: 30 }} animate={{ scale: 1, x: 0 }} transition={{ type: 'spring', bounce: 0.5, delay: 0.45 }}
+                                className="absolute right-0 bottom-0 w-20">
+                                <div className="animate-cat-dance-right"><CatVideo src="/video/cat-dance-2.webm" className="w-full" /></div>
+                            </motion.div>
+                        </div>
+                    )}
+                </div>
+            </DiagramBlock>}
+        </>
+    )
+}
+
 const FluxSimpleScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
     return (
@@ -843,10 +920,7 @@ const FluxSimpleScene = ({ onSettled }: { onSettled?: () => void }) => {
                 </DiagramBlock>
             )}
             {phase >= 3 && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Объём цилиндра ' }, { sticker: 'V = S · h', color: '#9AA7B0' }, { text: ' — и поток ' }, { sticker: 'Φ = B · S', color: FLUX_COLOR }]}
-                    onSettled={() => setTimeout(() => setPhase(4), 600)}
-                />
+                <FormulaMatchBlock onDone={() => setPhase(4)} />
             )}
             {phase >= 4 && (
                 <TypedLineWithParts
@@ -911,7 +985,7 @@ const FluxCompareScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
     return (
         <>
-            <TypedLineWithParts parts={[{ text: 'Где поток ' }, { sticker: 'Φ', color: FLUX_COLOR }, { text: ' больше? Сравни цилиндры 👀' }]} onSettled={() => setPhase(1)} />
+            <TypedLineWithParts parts={[{ text: 'Где поток ' }, { sticker: 'Φ', color: FLUX_COLOR }, { text: ' больше? Посчитай и сравни цилиндры 👀' }]} onSettled={() => setPhase(1)} />
             {phase >= 1 && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col items-center gap-3">
@@ -925,8 +999,9 @@ const FluxCompareScene = ({ onSettled }: { onSettled?: () => void }) => {
                                     <div key={side} className="flex flex-col items-center gap-1 rounded-xl border-2 p-2"
                                         style={{ borderColor: win ? '#A1D151' : '#3A464E', backgroundColor: '#11191D' }}>
                                         <CmpCylSvg c={c} state={win ? 'win' : 'idle'} />
-                                        <span className="text-sm font-black text-[#F2F7FB]">
-                                            <span style={{ color: RING_COLOR }}>S = {c.S}</span> · <span style={{ color: FIELD_COLOR }}>B = {c.B}</span>
+                                        <span className="flex items-center gap-3 text-sm font-black text-[#F2F7FB]">
+                                            <span className="inline-flex items-center gap-1"><Sticker value="S" color={RING_COLOR} /> = {c.S}</span>
+                                            <span className="inline-flex items-center gap-1"><Sticker value="B" color={FIELD_COLOR} /> = {c.B}</span>
                                         </span>
                                         {won && <span className="text-sm font-black" style={{ color: FLUX_COLOR }}>Φ = {c.S * c.B}</span>}
                                     </div>
