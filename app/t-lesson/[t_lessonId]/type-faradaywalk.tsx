@@ -787,8 +787,13 @@ const FluxBuildDiagram = ({ onDone }: { onDone: () => void }) => {
     )
 }
 
-// Интрига перед потоком: «Поговорим о главном… Ты готов?» — два варианта, оба «да».
-const READY_ANSWERS = ['ДА, капитан! 🫡', 'ДА ДА ДААА 🔥']
+// Интрига перед потоком: «Поговорим о главном… Ты готов?» — вместо текстовых
+// ответов две кнопки-видео: Месси и Роналду (public/video/football-*.webm).
+// Неважно, кого выберет ученик — урок просто идёт дальше.
+const READY_VIDEOS = [
+    { src: '/video/football-messi.webm', name: 'Месси' },
+    { src: '/video/football-ronaldo.webm', name: 'Роналду' },
+]
 const IntrigueScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
     const [picked, setPicked] = useState<number | null>(null)
@@ -806,13 +811,14 @@ const IntrigueScene = ({ onSettled }: { onSettled?: () => void }) => {
             {phase >= 1 && (
                 <DiagramBlock>
                     <div className="w-full grid grid-cols-2 gap-3">
-                        {READY_ANSWERS.map((t, i) => (
-                            <motion.button key={t} type="button" onClick={() => pick(i)}
-                                initial={{ scale: 0 }} animate={picked === i ? { scale: [1, 1.15, 1] } : { scale: 1, opacity: picked !== null ? 0.4 : 1 }}
+                        {READY_VIDEOS.map((v, i) => (
+                            <motion.button key={v.src} type="button" onClick={() => pick(i)} aria-label={v.name}
+                                initial={{ scale: 0 }} animate={picked === i ? { scale: [1, 1.12, 1] } : { scale: 1, opacity: picked !== null ? 0.4 : 1 }}
                                 transition={{ type: 'spring', bounce: 0.55, delay: picked === null ? i * 0.15 : 0 }}
-                                className={cn('min-h-[56px] rounded-xl border-2 px-2 text-base font-black', picked === null && 'animate-pulse')}
-                                style={{ borderColor: FLUX_COLOR, backgroundColor: hexToRgba(FLUX_COLOR, picked === i ? 0.35 : 0.14), color: '#F2F7FB' }}>
-                                {t}
+                                className="flex flex-col items-center gap-1 overflow-hidden rounded-2xl border-2 p-1.5"
+                                style={{ borderColor: FLUX_COLOR, backgroundColor: hexToRgba(FLUX_COLOR, picked === i ? 0.35 : 0.12), boxShadow: `0 5px 0 ${GGEGE_PALETTE.purple.bottom}` }}>
+                                <video src={v.src} autoPlay loop muted playsInline className="pointer-events-none w-full aspect-square rounded-xl object-cover" />
+                                <span className="text-sm font-black text-[#F2F7FB]">{v.name}</span>
                             </motion.button>
                         ))}
                     </div>
