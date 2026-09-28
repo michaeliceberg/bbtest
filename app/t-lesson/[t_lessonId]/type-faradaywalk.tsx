@@ -782,7 +782,7 @@ const FluxBuildDiagram = ({ onDone }: { onDone: () => void }) => {
             {stage >= 9 && (
                 <motion.div initial={{ scale: 2.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5, duration: 0.6 }}
                     className="text-center text-xl md:text-2xl font-black text-[#F2F7FB] leading-snug">
-                    Поток — это <span style={{ color: FLUX_COLOR }}>ЦИЛИНДР</span>
+                    <Sticker value="ПОТОК Φ" color={FLUX_COLOR} /> — это <span style={{ color: FLUX_COLOR }}>ЦИЛИНДР</span>
                     <br />из <Sticker value="S" color={RING_COLOR} /> и <Sticker value="B" color={FIELD_COLOR} />
                 </motion.div>
             )}
@@ -831,79 +831,102 @@ const IntrigueScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-// «Поток — ТОЧНО ТАКАЯ ЖЕ формула, как объём цилиндра» (просьба пользователя
-// 2026-09-28): V = S · H (кот думает) → кот колдует → из-под формулы выезжает
-// Φ = S · B — столбцы совпадают: V↔Φ (фиолетовый), S↔S (бирюзовый), H↔B
-// (синий) → «ТОЧНО ТАКАЯ ЖЕ!» и танцующие коты по бокам.
-const CatVideo = ({ src, className }: { src: string; className?: string }) => (
-    <video src={src} autoPlay loop muted playsInline className={cn('pointer-events-none aspect-square object-contain', className)} />
+// «Поток — такая же формула, как объём цилиндра» (просьба пользователя
+// 2026-09-28): «Надеюсь, ты помнишь…» → кот думает (1 раз, замирает на
+// последнем кадре) → пауза → V = S · H → кот-волшебник колдует 1 раз и
+// исчезает → из-под формулы выезжает Φ = S · B (столбцы совпадают по цветам)
+// → танцующие коты (стоят с наклоном, сами не трясём) → кнопка «Агась».
+const CatVideo = ({ src, className, once = false, onEnded }: { src: string; className?: string; once?: boolean; onEnded?: () => void }) => (
+    <video src={src} autoPlay loop={!once} muted playsInline onEnded={onEnded}
+        className={cn('pointer-events-none aspect-square object-contain', className)} />
 )
 const FormulaRow = ({ cells }: { cells: { v: string; color?: string }[] }) => (
     <div className="grid grid-cols-5 items-center justify-items-center gap-1 text-2xl md:text-3xl font-black text-[#F2F7FB]">
         {cells.map((c, i) => (c.color ? <Sticker key={i} value={c.v} color={c.color} /> : <span key={i}>{c.v}</span>))}
     </div>
 )
-const FM_STAGE_MS = [0, 1600, 2700, 4000]
+// Кнопка-реплика внутри сцены («Ага, понял», «Агась») — продолжает сцену.
+const SceneReplyButton = ({ children, onClick }: { children: React.ReactNode; onClick: () => void }) => (
+    <motion.button type="button" onClick={onClick}
+        initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.55 }}
+        className="mx-auto rounded-2xl px-8 py-3 text-lg font-black text-white active:translate-y-[3px]"
+        style={{ backgroundColor: FLUX_COLOR, boxShadow: `0 5px 0 ${GGEGE_PALETTE.purple.bottom}` }}>
+        {children}
+    </motion.button>
+)
+// Этапы: 1 кот думает · 2 формула V · 3 кот колдует · 4 кот ушёл, формула Φ · 5 танцы · 6 кнопка
 const FormulaMatchBlock = ({ onDone }: { onDone: () => void }) => {
-    const [started, setStarted] = useState(false)
     const [stage, setStage] = useState(0)
+    const [answered, setAnswered] = useState(false)
+    const timers = useRef<ReturnType<typeof setTimeout>[]>([])
+    const doneRef = useRef<Record<number, boolean>>({})
+    useEffect(() => () => timers.current.forEach(clearTimeout), [])
+    const later = (fn: () => void, ms: number) => { timers.current.push(setTimeout(fn, ms)) }
+    // переход «после конца видео» — по событию ended ИЛИ по страховочному таймеру
+    // (метаданные webm бывают кривые, автоплей может не стартовать)
+    const once = (key: number, fn: () => void) => { if (doneRef.current[key]) return; doneRef.current[key] = true; fn() }
+    const afterThinking = () => once(1, () => { later(() => setStage(2), 900); later(() => setStage(3), 2100) })
+    const afterMagic = () => once(3, () => {
+        setStage(4)
+        later(() => setStage(5), 1300)
+        later(() => setStage(6), 2800)
+    })
     useEffect(() => {
-        if (!started) return
-        const ts = FM_STAGE_MS.map((ms, i) => setTimeout(() => setStage(i + 1), ms))
-        ts.push(setTimeout(onDone, FM_STAGE_MS[FM_STAGE_MS.length - 1] + 1600))
-        return () => ts.forEach(clearTimeout)
+        if (stage === 1) later(afterThinking, 3600)
+        if (stage === 3) later(afterMagic, 3500)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [started])
-    const H_COLOR = FIELD_COLOR
+    }, [stage])
     return (
         <>
-            <TypedLineWithParts parts={[{ text: 'Надеюсь, ты помнишь формулу объёма цилиндра 🤓' }]} onSettled={() => setStarted(true)} />
-            {started && <DiagramBlock>
-                <div className="w-full flex flex-col gap-2">
-                    <div className="grid grid-cols-[1fr_auto] items-center gap-x-2">
-                        {/* обе формулы вплотную друг под другом: нижняя выезжает из-под верхней */}
-                        <div className="flex flex-col gap-2">
-                            <div className="relative z-10 rounded-xl bg-[#161F23] py-1">
-                                <FormulaRow cells={[{ v: 'V', color: FLUX_COLOR }, { v: '=' }, { v: 'S', color: RING_COLOR }, { v: '·' }, { v: 'H', color: H_COLOR }]} />
+            <TypedLineWithParts parts={[{ text: 'Надеюсь, ты помнишь формулу объёма цилиндра 🤓' }]} onSettled={() => setStage(1)} />
+            {stage >= 1 && (
+                <DiagramBlock>
+                    <div className="w-full flex flex-col items-center gap-2">
+                        <CatVideo src="/video/cat-thinking.webm" once onEnded={afterThinking} className="w-24 md:w-28" />
+                        <div className="w-full grid grid-cols-[1fr_auto] items-center gap-x-2">
+                            <div className="flex flex-col gap-2">
+                                <div className="relative z-10 min-h-[44px] rounded-xl bg-[#161F23] py-1">
+                                    {stage >= 2 && (
+                                        <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}>
+                                            <FormulaRow cells={[{ v: 'V', color: FLUX_COLOR }, { v: '=' }, { v: 'S', color: RING_COLOR }, { v: '·' }, { v: 'H', color: FIELD_COLOR }]} />
+                                        </motion.div>
+                                    )}
+                                </div>
+                                <div className="relative z-0 min-h-[44px]">
+                                    {stage >= 4 && (
+                                        <motion.div initial={{ y: -48, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+                                            transition={{ type: 'spring', stiffness: 140, damping: 13 }}>
+                                            <FormulaRow cells={[{ v: 'Φ', color: FLUX_COLOR }, { v: '=' }, { v: 'S', color: RING_COLOR }, { v: '·' }, { v: 'B', color: FIELD_COLOR }]} />
+                                        </motion.div>
+                                    )}
+                                </div>
                             </div>
-                            <div className="relative z-0 min-h-[44px]">
-                                {stage >= 3 && (
-                                    <motion.div initial={{ y: -48, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-                                        transition={{ type: 'spring', stiffness: 140, damping: 13 }}>
-                                        <FormulaRow cells={[{ v: 'Φ', color: FLUX_COLOR }, { v: '=' }, { v: 'S', color: RING_COLOR }, { v: '·' }, { v: 'B', color: FIELD_COLOR }]} />
-                                    </motion.div>
-                                )}
-                            </div>
-                        </div>
-                        <div className="flex w-20 md:w-24 flex-col gap-1">
-                            <CatVideo src="/video/cat-thinking.webm" className="w-full" />
-                            <div className="aspect-square w-full">
-                                {stage >= 2 && (
+                            <div className="aspect-square w-20 md:w-24">
+                                {stage === 3 && (
                                     <motion.div initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', bounce: 0.55 }}>
-                                        <CatVideo src="/video/cat-magic.webm" className="w-full" />
+                                        <CatVideo src="/video/cat-magic.webm" once onEnded={afterMagic} className="w-full" />
                                     </motion.div>
                                 )}
                             </div>
                         </div>
+                        {stage >= 5 && (
+                            <div className="w-full flex items-end justify-around">
+                                <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
+                                    className="w-24" style={{ rotate: -14 }}>
+                                    <CatVideo src="/video/cat-dance-1.webm" className="w-full" />
+                                </motion.div>
+                                <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5, delay: 0.2 }}
+                                    className="w-24 mb-3" style={{ rotate: 12 }}>
+                                    <CatVideo src="/video/cat-dance-2.webm" className="w-full" />
+                                </motion.div>
+                            </div>
+                        )}
+                        {stage >= 6 && !answered && (
+                            <SceneReplyButton onClick={() => { setAnswered(true); onDone() }}>Агась 👌</SceneReplyButton>
+                        )}
                     </div>
-                    {stage >= 4 && (
-                        <div className="relative flex min-h-[96px] items-center justify-center">
-                            <motion.div initial={{ scale: 0, x: -30 }} animate={{ scale: 1, x: 0 }} transition={{ type: 'spring', bounce: 0.5, delay: 0.25 }}
-                                className="absolute left-0 top-0 w-20">
-                                <div className="animate-cat-dance-left"><CatVideo src="/video/cat-dance-1.webm" className="w-full" /></div>
-                            </motion.div>
-                            <motion.div initial={{ scale: 3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
-                                className="text-center text-xl md:text-2xl font-black" style={{ color: FLUX_COLOR }}>
-                                ТОЧНО ТАКАЯ ЖЕ! 🤯
-                            </motion.div>
-                            <motion.div initial={{ scale: 0, x: 30 }} animate={{ scale: 1, x: 0 }} transition={{ type: 'spring', bounce: 0.5, delay: 0.45 }}
-                                className="absolute right-0 bottom-0 w-20">
-                                <div className="animate-cat-dance-right"><CatVideo src="/video/cat-dance-2.webm" className="w-full" /></div>
-                            </motion.div>
-                        </div>
-                    )}
-                </div>
-            </DiagramBlock>}
+                </DiagramBlock>
+            )}
         </>
     )
 }
@@ -918,7 +941,10 @@ const FluxSimpleScene = ({ onSettled }: { onSettled?: () => void }) => {
             />
             {phase >= 1 && (
                 <DiagramBlock>
-                    <FluxBuildDiagram onDone={() => setPhase(3)} />
+                    <div className="w-full flex flex-col items-center gap-3">
+                        <FluxBuildDiagram onDone={() => setPhase(2)} />
+                        {phase === 2 && <SceneReplyButton onClick={() => setPhase(3)}>Ага, понял 👍</SceneReplyButton>}
+                    </div>
                 </DiagramBlock>
             )}
             {phase >= 3 && (
@@ -926,7 +952,7 @@ const FluxSimpleScene = ({ onSettled }: { onSettled?: () => void }) => {
             )}
             {phase >= 4 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Поток ' }, { sticker: 'Φ', color: FLUX_COLOR }, { text: ' измеряется в ' }, { sticker: 'Вб', color: FLUX_COLOR }, { text: ' (Веберах).' }]}
+                    parts={[{ text: 'Кстати, ' }, { sticker: 'Поток Φ', color: FLUX_COLOR }, { text: ' измеряется в ' }, { sticker: 'Вб', color: FLUX_COLOR }, { text: ' (Веберах).' }]}
                     onSettled={onSettled}
                 />
             )}
