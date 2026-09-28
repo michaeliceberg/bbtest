@@ -1055,8 +1055,8 @@ const FluxCompareScene = ({ onSettled }: { onSettled?: () => void }) => {
             {phase >= 3 && (
                 <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1200)}>
                     <InsightCard label="💡 Главное">
-                        Поток <InsightWord>должен НЕ МЕНЯТЬСЯ</InsightWord>.
-                        <br />Цилиндр любит свой объём 🥤
+                        Всё, что надо знать про <Sticker value="ПОТОК" color={FLUX_COLOR} /> —
+                        <br /><Sticker value="ПОТОК" color={FLUX_COLOR} /> <InsightWord>ДОЛЖЕН НЕ МЕНЯТЬСЯ</InsightWord>
                     </InsightCard>
                 </DiagramBlock>
             )}
