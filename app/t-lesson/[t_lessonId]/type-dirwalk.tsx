@@ -236,17 +236,23 @@ const WireScene = ({ cur, rings = [], dotCross = false, hideDir = false }: {
 
 
 // ===== Рука-стикер, продетая проводом (идея пользователя 2026-09-29) =====
-// Картинки public/hands/right-{up,down}.webp, повёрнуты на ±22°, чтобы
-// большой палец стоял ровно вдоль провода. Провод рисуется ЗА рукой —
+// Картинки public/hands/glove-{up,down}.webp (мультяшная перчатка,
+// большой палец вдоль провода). Провод рисуется ЗА рукой —
 // кулак его закрывает, выглядит как «провод продет сквозь кулак».
 // Поле B — кольцо вокруг кулака: задняя половина за рукой, передняя
 // поверх, по ней бегут чёрточки и шеврон в сторону согнутых пальцев.
 // Ток вверх → пальцы спереди идут вправо; ток вниз → влево.
 const HG_W = 320, HG_H = 400
-const HG_OX = 30, HG_OY = 70, HG_IMG = 256
-const HG_WX = HG_OX + 98
-const HG_RX = 84, HG_RY = 22
-const hgRingY = (cur: Cur) => (cur === 1 ? HG_OY + 134 : HG_OY + 106)
+// Перчатка (public/hands/glove-{up,down}.webp, 347×447): уже повёрнута так, что
+// стержень вертикален; ось провода — 42.9% ширины картинки, середина кулака — 65%
+// высоты (у перевёрнутой «вниз» — зеркально: 57.1% / 35%). Нарисована ПРАВОЙ
+// (исходник пользователя был левой рукой — отзеркален, иначе правило наоборот).
+const HG_IMG_W = 200, HG_IMG_H = 200 * 447 / 347
+const HG_WX = 150
+const HG_IMG_Y = (HG_H - HG_IMG_H) / 2
+const hgImgX = (cur: Cur) => HG_WX - (cur === 1 ? 0.429 : 0.571) * HG_IMG_W
+const HG_RX = 96, HG_RY = 24
+const hgRingY = (cur: Cur) => HG_IMG_Y + (cur === 1 ? 0.62 : 0.38) * HG_IMG_H
 
 // Кольцо поля вокруг провода: back — задняя половина, front — передняя с бегущими чёрточками.
 const GripRing = ({ cx, cy, rx, ry, dirRight, part, color = FIELD_COLOR, width = 5 }: {
@@ -303,9 +309,8 @@ const HandGrip = ({ cur, showRing = true, showHand = true }: { cur: Cur; showRin
             <rect x={HG_WX - 7} y={10} width={14} height={HG_H - 20} rx={7} fill={CURRENT_COLOR} />
             <WireChevrons x={HG_WX} y1={10} y2={HG_H - 10} up={up} id={`hg-wire-${up ? 'u' : 'd'}`} />
             {showHand && (
-                <motion.image key={up ? 'up' : 'down'} href={up ? '/hands/right-up.webp' : '/hands/right-down.webp'}
-                    x={HG_OX} y={HG_OY} width={HG_IMG} height={HG_IMG}
-                    transform={`rotate(${up ? 22 : -22} ${HG_OX + HG_IMG / 2} ${HG_OY + HG_IMG / 2})`}
+                <motion.image key={up ? 'up' : 'down'} href={up ? '/hands/glove-up.webp' : '/hands/glove-down.webp'}
+                    x={hgImgX(cur)} y={HG_IMG_Y} width={HG_IMG_W} height={HG_IMG_H}
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }} />
             )}
             {showRing && (
@@ -527,7 +532,7 @@ const GripGameScene = ({ onSettled }: { onSettled?: () => void }) => {
                                 <div className="grid w-full max-w-xs grid-cols-2 gap-3">
                                     {ordered(hands).map((up) => optBtn(`h${up}`, () => pickHand(up),
                                         // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={up ? '/hands/right-up.webp' : '/hands/right-down.webp'} alt={up ? 'палец вверх' : 'палец вниз'} className="h-16 w-16" draggable={false} />))}
+                                        <img src={up ? '/hands/glove-up.webp' : '/hands/glove-down.webp'} alt={up ? 'палец вверх' : 'палец вниз'} className="h-16 w-auto" draggable={false} />))}
                                 </div>
                             </>
                         )}
