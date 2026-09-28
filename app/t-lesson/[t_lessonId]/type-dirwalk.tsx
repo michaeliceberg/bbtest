@@ -140,13 +140,6 @@ const RING_YS = [104, 190, 276]
 const MID_Y = 190
 const REMEMBER_COLOR = '#F2C35B'
 
-// Касательная к эллипсу в точке параметра θ (градусы, экранные) по направлению поля.
-function ringTangentDeg(thetaDeg: number, cur: Cur) {
-    const t = (thetaDeg * Math.PI) / 180
-    const dx = RING_RX * Math.sin(t) * (cur === -1 ? -1 : 1)
-    const dy = -RING_RY * Math.cos(t) * (cur === -1 ? -1 : 1)
-    return (Math.atan2(dy, dx) * 180) / Math.PI
-}
 const ringPt = (cy: number, thetaDeg: number) => {
     const t = (thetaDeg * Math.PI) / 180
     return { x: W_CX + RING_RX * Math.cos(t), y: cy + RING_RY * Math.sin(t) }
@@ -169,27 +162,6 @@ const CurrentFlow = ({ cur }: { cur: Cur }) => {
     )
 }
 
-// Кольцо поля: пунктир бежит в сторону поля, шеврон спереди.
-const FieldRing = ({ cy, cur, dir = true, highlight = false }: { cy: number; cur: Cur; dir?: boolean; highlight?: boolean }) => {
-    const front = ringPt(cy, 90)
-    const ang = ringTangentDeg(90, cur)
-    return (
-        <g>
-            <motion.ellipse cx={W_CX} cy={cy} rx={RING_RX} ry={RING_RY} fill="none" stroke={FIELD_COLOR}
-                strokeWidth={highlight ? 4 : 3} strokeDasharray="10 8" strokeLinecap="round"
-                initial={{ opacity: 0 }}
-                animate={dir && cur !== 0 ? { opacity: 1, strokeDashoffset: cur === 1 ? [0, 36] : [0, -36] } : { opacity: 1 }}
-                transition={dir && cur !== 0 ? { opacity: { duration: 0.5 }, strokeDashoffset: { duration: 1.1, repeat: Infinity, ease: 'linear' } } : { duration: 0.5 }} />
-            {dir && cur !== 0 && (
-                <g transform={`translate(${front.x},${front.y}) rotate(${ang})`}>
-                    <motion.path key={cur} d="M-9,-9 L3,0 L-9,9" fill="none" stroke={FIELD_COLOR} strokeWidth={4.5} strokeLinecap="round" strokeLinejoin="round"
-                        initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', bounce: 0.5 }} />
-                </g>
-            )}
-        </g>
-    )
-}
-
 const WireScene = ({ cur, rings = [], dotCross = false, hideDir = false }: {
     cur: Cur; rings?: number[]; dotCross?: boolean; hideDir?: boolean
 }) => (
@@ -198,15 +170,21 @@ const WireScene = ({ cur, rings = [], dotCross = false, hideDir = false }: {
             <defs>
                 <clipPath id="dir-wire-clip"><rect x={W_CX - 6} y={W_TOP} width={12} height={W_BOT - W_TOP} rx={6} /></clipPath>
             </defs>
-            {rings.map((cy) => <FieldRing key={cy} cy={cy} cur={cur} dir={!hideDir} highlight={dotCross && cy === MID_Y} />)}
+            {rings.map((cy) => <GripRing key={`b${cy}`} cx={W_CX} cy={cy} rx={RING_RX} ry={RING_RY} dirRight={cur === 1} part="back" width={4} />)}
             {/* провод поверх колец */}
             <motion.rect x={W_CX - 6} y={W_TOP} width={12} height={W_BOT - W_TOP} rx={6}
                 animate={{ fill: cur === 0 ? '#5C6B73' : CURRENT_COLOR }} transition={{ duration: 0.4 }} />
             <CurrentFlow cur={cur} />
-            {/* передняя часть колец — поверх провода (провод «внутри» кольца) */}
-            {rings.map((cy) => (
-                <path key={`f${cy}`} d={`M ${W_CX - 14} ${cy + RING_RY - 1.2} Q ${W_CX} ${cy + RING_RY + 0.6} ${W_CX + 14} ${cy + RING_RY - 1.2}`}
-                    fill="none" stroke={FIELD_COLOR} strokeWidth={3} />
+            {/* передняя половина колец — ПОВЕРХ провода (провод внутри кольца). При развороте
+                тока кольца «вспыхивают» (ремонт по key), чтобы смена направления бросалась в глаза. */}
+            {rings.map((cy, i) => (
+                <motion.g key={`f${cy}-${cur}`} initial={{ opacity: 0.2, scale: 1.18 }} animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: 'spring', bounce: 0.5, duration: 0.6, delay: i * 0.08 }}
+                    style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
+                    {hideDir
+                        ? <path d={`M ${W_CX - RING_RX} ${cy} A ${RING_RX} ${RING_RY} 0 0 0 ${W_CX + RING_RX} ${cy}`} fill="none" stroke={FIELD_COLOR} strokeWidth={4} />
+                        : <GripRing cx={W_CX} cy={cy} rx={RING_RX} ry={RING_RY} dirRight={cur === 1} part="front" width={4} />}
+                </motion.g>
             ))}
             {cur !== 0 && (
                 <g transform={`translate(${W_CX + 24},${cur === 1 ? W_TOP + 16 : W_BOT - 16})`}>
@@ -243,16 +221,23 @@ const WireScene = ({ cur, rings = [], dotCross = false, hideDir = false }: {
 // поверх, по ней бегут чёрточки и шеврон в сторону согнутых пальцев.
 // Ток вверх → пальцы спереди идут вправо; ток вниз → влево.
 const HG_W = 320, HG_H = 400
-// Рука (public/hands/grip-{up,down}.webp, 696×872 исходник): рисунок пользователя,
-// ОТЗЕРКАЛЕН (присланы левые руки — правило вышло бы наоборот). Видны ногти —
-// пальцы спереди загибаются вправо. Провод проходит через ложбинку кулака:
-// ось — 49.6% ширины, кольцо — на 40% высоты («вниз» = поворот на 180°).
-const HG_IMG_W = 210, HG_IMG_H = 210 * 872 / 696
+// Руки — рисунки пользователя, ОТЗЕРКАЛЕНЫ (присланы левые — правило вышло бы
+// наоборот). Вверх: public/hands/grip-up.webp — видны ногти, пальцы спереди идут
+// вправо; повёрнута так, что большой палец строго вертикален вдоль провода.
+// Вниз: public/hands/grip-down.webp — ТЫЛЬНАЯ сторона, палец вниз (отдельная
+// картинка, не повёрнутая копия первой). Провод идёт вплотную к большому пальцу,
+// со стороны кулака. frac — доли ширины/высоты картинки.
 const HG_WX = 150
-const HG_IMG_Y = (HG_H - HG_IMG_H) / 2
-const hgImgX = (cur: Cur) => HG_WX - (cur === 1 ? 0.496 : 0.504) * HG_IMG_W
+const HG_IMG_W = 210
+const HG_IMG = {
+    up: { src: '/hands/grip-up.webp', h: 210 * 442 / 380, axis: 0.471, ring: 0.50 },
+    down: { src: '/hands/grip-down.webp', h: 210 * 454 / 380, axis: 0.473, ring: 0.46 },
+}
+const hgImg = (cur: Cur) => (cur === 1 ? HG_IMG.up : HG_IMG.down)
+const hgImgY = (cur: Cur) => (HG_H - hgImg(cur).h) / 2
+const hgImgX = (cur: Cur) => HG_WX - hgImg(cur).axis * HG_IMG_W
 const HG_RX = 100, HG_RY = 24
-const hgRingY = (cur: Cur) => HG_IMG_Y + (cur === 1 ? 0.40 : 0.60) * HG_IMG_H
+const hgRingY = (cur: Cur) => hgImgY(cur) + hgImg(cur).ring * hgImg(cur).h
 
 // Кольцо поля вокруг провода: back — задняя половина, front — передняя с бегущими чёрточками.
 const GripRing = ({ cx, cy, rx, ry, dirRight, part, color = FIELD_COLOR, width = 5 }: {
@@ -309,8 +294,8 @@ const HandGrip = ({ cur, showRing = true, showHand = true }: { cur: Cur; showRin
             <rect x={HG_WX - 7} y={10} width={14} height={HG_H - 20} rx={7} fill={CURRENT_COLOR} />
             <WireChevrons x={HG_WX} y1={10} y2={HG_H - 10} up={up} id={`hg-wire-${up ? 'u' : 'd'}`} />
             {showHand && (
-                <motion.image key={up ? 'up' : 'down'} href={up ? '/hands/grip-up.webp' : '/hands/grip-down.webp'}
-                    x={hgImgX(cur)} y={HG_IMG_Y} width={HG_IMG_W} height={HG_IMG_H}
+                <motion.image key={up ? 'up' : 'down'} href={hgImg(cur).src}
+                    x={hgImgX(cur)} y={hgImgY(cur)} width={HG_IMG_W} height={hgImg(cur).h}
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }} />
             )}
             {showRing && (
@@ -346,49 +331,102 @@ const BigBtn = ({ children, onClick, color, pulse = true }: { children: React.Re
 
 const TEXT_CLS = 'w-full text-center text-base md:text-lg text-[#F2F7FB]'
 
-// 0. Один БОЛЬШОЙ компас перед проводом. Включил ток — стрелку повернуло.
-// Компас стоит прямо перед проводом: при токе вверх поле там идёт вправо.
-const BC_W = 320, BC_H = 320, BC_WX = 160, BC_CY = 215, BC_R = 70
+// 0. История открытия (просьба пользователя 2026-09-29): «Однажды заметили»
+// (ДиКаприо присматривается — 2 раза и исчезает) → «что СТРЕЛКА компаса
+// ОТКЛОНЯЕТСЯ, если рядом течёт ТОК» → рубильник-тумблер (как radix switch с
+// motion.dev) — ученик сам включает/выключает, стрелка ходит туда-обратно.
+// Компас СБОКУ от провода (не на проводе). Ток в этой сцене течёт вниз:
+// справа от провода поле тогда направлено «к нам» — на лежащем компасе это
+// низ циферблата, стрелка разворачивается (физически честно).
+const NEEDLE_RED = '#DC605B'
+const BC_W = 320, BC_H = 300, BC_WX = 92, BC_CX = 222, BC_CY = 150, BC_R = 64
+const DICAPRIO_LOOPS = 2
+const PowerSwitch = ({ on, onToggle }: { on: boolean; onToggle: () => void }) => (
+    <button type="button" role="switch" aria-checked={on} onClick={onToggle}
+        className="mx-auto flex items-center gap-3 select-none">
+        <span className="text-base font-black" style={{ color: on ? '#5C6B73' : '#F2F7FB' }}>ВЫКЛ</span>
+        <span className="relative flex h-10 w-[72px] items-center rounded-full p-1 transition-colors duration-300"
+            style={{ backgroundColor: on ? CURRENT_COLOR : '#3A464E' }}>
+            <motion.span className="block h-8 w-8 rounded-full bg-white shadow-md"
+                animate={{ x: on ? 32 : 0 }} transition={{ type: 'spring', stiffness: 700, damping: 30 }} />
+        </span>
+        <span className="text-base font-black" style={{ color: on ? CURRENT_COLOR : '#5C6B73' }}>ВКЛ ⚡</span>
+    </button>
+)
 const BigCompassScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
     const [on, setOn] = useState(false)
+    const [toggles, setToggles] = useState(0)
+    const loops = useRef(0)
+    const dicaprioDone = useRef(false)
+    const settled = useRef(false)
+    const finishDicaprio = () => {
+        if (dicaprioDone.current) return
+        dicaprioDone.current = true
+        setPhase(2)
+    }
+    useEffect(() => {
+        if (phase !== 1) return
+        const t = setTimeout(finishDicaprio, 7000) // страховка, если видео не проиграется
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phase])
+    const toggle = () => {
+        setOn((v) => !v)
+        setToggles((n) => {
+            const next = n + 1
+            // включил и выключил хотя бы раз — можно дальше (играться можно сколько угодно)
+            if (next >= 2 && !settled.current) { settled.current = true; setTimeout(() => onSettled?.(), 900) }
+            return next
+        })
+    }
     return (
         <>
-            <TypedLineWithParts
-                parts={[{ text: 'Провод 🔌 и ' }, { sticker: 'компас', color: RULE_COLOR }, { text: '. Стрелка смотрит на север.' }]}
-                onSettled={() => setPhase(1)}
-            />
-            {phase >= 1 && (
+            <TypedLineWithParts parts={[{ text: 'Однажды заметили…' }]} onSettled={() => setPhase(1)} />
+            {phase === 1 && (
+                <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.45 }}
+                    className="mx-auto">
+                    <video src="/video/dicaprio-look.mp4" autoPlay muted playsInline
+                        onEnded={(e) => {
+                            loops.current += 1
+                            if (loops.current >= DICAPRIO_LOOPS) finishDicaprio()
+                            else { e.currentTarget.currentTime = 0; e.currentTarget.play().catch(() => finishDicaprio()) }
+                        }}
+                        className="pointer-events-none w-48 rounded-2xl" />
+                </motion.div>
+            )}
+            {phase >= 2 && (
+                <TypedLineWithParts
+                    parts={[{ text: '…что ' }, { sticker: 'СТРЕЛКА', color: NEEDLE_RED }, { text: ' компаса ' }, { bold: 'ОТКЛОНЯЕТСЯ' }, { text: ', если рядом течёт ' }, { sticker: 'ТОК', color: CURRENT_COLOR }]}
+                    onSettled={() => setPhase(3)}
+                />
+            )}
+            {phase >= 3 && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col items-center gap-3">
                         <svg viewBox={`0 0 ${BC_W} ${BC_H}`} className="w-full max-w-[300px] h-auto">
                             <motion.rect x={BC_WX - 7} y={10} width={14} height={BC_H - 20} rx={7}
-                                animate={{ fill: on ? CURRENT_COLOR : '#5C6B73' }} transition={{ duration: 0.4 }} />
-                            {on && <WireChevrons x={BC_WX} y1={10} y2={BC_H - 10} up id="bc-wire" />}
-                            {on && <SvgTag x={BC_WX + 26} y={34} text="I" color={CURRENT_COLOR} />}
-                            {/* компас перед проводом */}
-                            <circle cx={BC_WX} cy={BC_CY} r={BC_R + 8} fill="#C9CFD3" />
-                            <circle cx={BC_WX} cy={BC_CY} r={BC_R} fill="#F2F7FB" stroke="#9AA7B0" strokeWidth={3} />
+                                animate={{ fill: on ? CURRENT_COLOR : '#5C6B73' }} transition={{ duration: 0.3 }} />
+                            {on && <WireChevrons x={BC_WX} y1={10} y2={BC_H - 10} up={false} id="bc-wire" />}
+                            {on && <SvgTag x={BC_WX - 28} y={BC_H - 34} text="I" color={CURRENT_COLOR} />}
+                            {/* компас справа от провода */}
+                            <circle cx={BC_CX} cy={BC_CY} r={BC_R + 8} fill="#C9CFD3" />
+                            <circle cx={BC_CX} cy={BC_CY} r={BC_R} fill="#F2F7FB" stroke="#9AA7B0" strokeWidth={3} />
                             {['С', 'В', 'Ю', 'З'].map((t, i) => {
-                                const a = (i * Math.PI) / 2
-                                return <text key={t} x={BC_WX + Math.sin(a) * (BC_R - 16)} y={BC_CY - Math.cos(a) * (BC_R - 16) + 6} textAnchor="middle" fontSize={16} fontWeight={900} fill="#5C6B73">{t}</text>
+                                const ang = (i * Math.PI) / 2
+                                return <text key={t} x={BC_CX + Math.sin(ang) * (BC_R - 15)} y={BC_CY - Math.cos(ang) * (BC_R - 15) + 6} textAnchor="middle" fontSize={15} fontWeight={900} fill="#5C6B73">{t}</text>
                             })}
-                            {/* стрелка: CSS-поворот с перелётом (как у компасов раньше) */}
-                            <g style={{ transform: `translate(${BC_WX}px, ${BC_CY}px) rotate(${on ? 90 : 0}deg)`, transition: 'transform 1.2s cubic-bezier(0.34, 1.8, 0.5, 1)' }}>
-                                <path d="M -9 0 L 0 -52 L 9 0 Z" fill="#DC605B" />
-                                <path d="M -9 0 L 0 52 L 9 0 Z" fill="#53ADEF" />
-                                <circle r={6} fill="#161F23" />
+                            {/* стрелка: CSS-поворот с перелётом */}
+                            <g style={{ transform: `translate(${BC_CX}px, ${BC_CY}px) rotate(${on ? 180 : 0}deg)`, transition: 'transform 1s cubic-bezier(0.34, 1.6, 0.5, 1)' }}>
+                                <path d="M -8 0 L 0 -46 L 8 0 Z" fill={NEEDLE_RED} />
+                                <path d="M -8 0 L 0 46 L 8 0 Z" fill="#53ADEF" />
+                                <circle r={5} fill="#161F23" />
                             </g>
                         </svg>
-                        {!on && <BigBtn color={CURRENT_COLOR} onClick={() => { setOn(true); setTimeout(() => setPhase(2), 1600) }}>⚡ Включить ток</BigBtn>}
+                        <PowerSwitch on={on} onToggle={toggle} />
+                        {toggles === 0 && <p className="text-sm font-black text-[#9AA7B0] animate-pulse">Щёлкни рубильник 👆</p>}
                     </div>
                 </DiagramBlock>
-            )}
-            {phase >= 2 && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Опа! Стрелку ' }, { bold: 'повернуло' }, { text: ' 😳 Значит, вокруг тока есть ' }, { sticker: 'магнитное поле B', color: FIELD_COLOR }]}
-                    onSettled={onSettled}
-                />
             )}
         </>
     )
@@ -405,6 +443,11 @@ const RingsFlipScene = ({ onSettled }: { onSettled?: () => void }) => {
                 parts={[{ text: 'Поле ' }, { sticker: 'B', color: FIELD_COLOR }, { text: ' крутится вокруг провода — как хула-хуп 🌀' }]}
                 onSettled={() => setPhase(1)}
             />
+            {phase >= 1 && (
+                <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.45 }} className="mx-auto">
+                    <video src="/video/hula-hoop-flintstones.mp4" autoPlay loop muted playsInline className="pointer-events-none w-56 rounded-2xl" />
+                </motion.div>
+            )}
             {phase >= 1 && (
                 <DiagramBlock>
                     <WireScene cur={cur} rings={RING_YS} />
@@ -532,7 +575,7 @@ const GripGameScene = ({ onSettled }: { onSettled?: () => void }) => {
                                 <div className="grid w-full max-w-xs grid-cols-2 gap-3">
                                     {ordered(hands).map((up) => optBtn(`h${up}`, () => pickHand(up),
                                         // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={up ? '/hands/thumb-up.webp' : '/hands/thumb-down.webp'} alt={up ? 'палец вверх' : 'палец вниз'} className="h-16 w-auto" draggable={false} />))}
+                                        <img src={up ? '/hands/grip-up.webp' : '/hands/grip-down.webp'} alt={up ? 'палец вверх' : 'палец вниз'} className="h-16 w-auto" draggable={false} />))}
                                 </div>
                             </>
                         )}
