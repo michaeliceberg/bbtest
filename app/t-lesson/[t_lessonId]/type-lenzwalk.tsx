@@ -25,7 +25,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
-import { ArrowDown, ArrowRight, ArrowUp } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp } from 'lucide-react'
 import type { QuestionType } from './page'
 import {
     DiagramBlock, TypedLine,
@@ -847,6 +847,128 @@ const BattleScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
+// 3б. Куда направлено B_инд: «корректирует» поток. Магнит двигается по шагам,
+// фиолетовая полоса = поток Φ. Шаг ближе → полоса длиннее на ΔΦ, под ней от
+// нового края стрелка B_инд НАЗАД, к прежнему Φ₀ (гасит прибавку). Шаг
+// дальше → полоса короче на ΔΦ, стрелка B_инд вперёд (добавляет недостающее).
+// Кольцо пока бледное — оно понадобится, когда разберём направление тока.
+const FB_W = 360, FB_H = 250
+const FB_X0 = 24, FB_BAR_Y = 132, FB_BAR_H = 34
+const FB_STEPS = 4
+const fbLen = (step: number) => 96 + step * 52
+const fbMagX = (step: number) => 16 + step * 44
+const FB_MAG_W = 84, FB_MAG_H = 30, FB_MAG_Y = 58
+const FB_CHANGE_MS = 2600
+
+const FluxBalanceView = ({ step, prev, changeKey, showChange }: { step: number; prev: number; changeKey: number; showChange: boolean }) => {
+    const PHI = GGEGE_PALETTE.purple.button
+    const xOld = FB_X0 + fbLen(prev)
+    const xNew = FB_X0 + fbLen(step)
+    const grew = xNew > xOld
+    const changed = showChange && xNew !== xOld
+    const solidEnd = changed ? Math.min(xOld, xNew) : xNew
+    const magX = fbMagX(step)
+    return (
+        <svg viewBox={`0 0 ${FB_W} ${FB_H}`} className="w-full max-w-[380px] h-auto">
+            {/* кольцо — бледное, пока не важно */}
+            <g opacity={0.22}>
+                <ellipse cx={330} cy={FB_MAG_Y + FB_MAG_H / 2} rx={11} ry={40} fill="none" stroke={RING_COLOR} strokeWidth={5} />
+            </g>
+            {/* магнит: N смотрит на кольцо */}
+            <motion.g animate={{ x: magX }} initial={false} transition={{ type: 'spring', bounce: 0.3, duration: 0.5 }}>
+                <rect x={0} y={FB_MAG_Y} width={FB_MAG_W / 2} height={FB_MAG_H} rx={5} fill={SOUTH_COLOR} />
+                <rect x={FB_MAG_W / 2} y={FB_MAG_Y} width={FB_MAG_W / 2} height={FB_MAG_H} rx={5} fill={NORTH_COLOR} />
+                <rect x={FB_MAG_W / 2 - 5} y={FB_MAG_Y} width={10} height={FB_MAG_H} fill={NORTH_COLOR} />
+                <text x={FB_MAG_W / 4} y={FB_MAG_Y + 21} textAnchor="middle" fontSize={16} fontWeight={900} fill="#fff">S</text>
+                <text x={(FB_MAG_W * 3) / 4} y={FB_MAG_Y + 21} textAnchor="middle" fontSize={16} fontWeight={900} fill="#fff">N</text>
+            </motion.g>
+            {/* поток Φ: сплошная часть */}
+            <motion.rect x={FB_X0} y={FB_BAR_Y} height={FB_BAR_H} rx={6} fill={PHI} initial={false}
+                animate={{ width: solidEnd - FB_X0 }} transition={{ duration: 0.4 }} />
+            <text x={FB_X0 + 14} y={FB_BAR_Y + 23} fontSize={17} fontWeight={900} fill="#fff">Φ</text>
+            {changed && (
+                <g key={`chg${changeKey}`}>
+                    {/* кусок ΔΦ: прибавка (полупрозрачная) или убыль (пунктирный контур) */}
+                    {grew ? (
+                        <motion.rect x={xOld} y={FB_BAR_Y} height={FB_BAR_H} rx={4} fill={hexToRgba(PHI, 0.55)} stroke={PHI} strokeWidth={2}
+                            initial={{ width: 0 }} animate={{ width: xNew - xOld }} transition={{ duration: 0.45 }} />
+                    ) : (
+                        <rect x={xNew} y={FB_BAR_Y} width={xOld - xNew} height={FB_BAR_H} rx={4} fill="none" stroke={PHI} strokeWidth={2} strokeDasharray="5 5" opacity={0.8} />
+                    )}
+                    {/* выносные пунктиры */}
+                    {[xOld, xNew].map((x) => (
+                        <line key={x} x1={x} y1={FB_BAR_Y - 22} x2={x} y2={FB_BAR_Y + FB_BAR_H + 62} stroke="#9AA7B0" strokeWidth={1.8} strokeDasharray="4 4" />
+                    ))}
+                    <text x={(xOld + xNew) / 2} y={FB_BAR_Y - 8} textAnchor="middle" fontSize={15} fontWeight={900} fill={PHI}>{grew ? '+ΔΦ' : '−ΔΦ'}</text>
+                    {/* B_инд: от нового края назад к прежнему Φ₀ */}
+                    <motion.g initial={{ opacity: 0, x: grew ? 14 : -14 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5, type: 'spring', bounce: 0.45 }}>
+                        <HArrow x1={xNew} x2={xOld + (grew ? 2 : -2)} y={FB_BAR_Y + FB_BAR_H + 34} color={OWN_COLOR} width={6} />
+                        <SvgSticker x={(xOld + xNew) / 2} y={FB_BAR_Y + FB_BAR_H + 62} text="B" sub="инд" color={OWN_COLOR} />
+                    </motion.g>
+                </g>
+            )}
+        </svg>
+    )
+}
+
+const FluxBalanceScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const [step, setStep] = useState(0)
+    const [prev, setPrev] = useState(0)
+    const [changeKey, setChangeKey] = useState(0)
+    const [showChange, setShowChange] = useState(false)
+    const [tried, setTried] = useState({ closer: false, farther: false })
+    const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const go = (d: 1 | -1) => {
+        const next = step + d
+        if (next < 0 || next >= FB_STEPS) return
+        setPrev(step); setStep(next); setChangeKey((k) => k + 1); setShowChange(true)
+        setTried((t) => ({ ...t, [d > 0 ? 'closer' : 'farther']: true }))
+        if (hideTimer.current) clearTimeout(hideTimer.current)
+        // ток и B_инд живут, только пока поток меняется
+        hideTimer.current = setTimeout(() => setShowChange(false), FB_CHANGE_MS)
+    }
+    useEffect(() => () => { if (hideTimer.current) clearTimeout(hideTimer.current) }, [])
+    const bothTried = tried.closer && tried.farther
+    useEffect(() => {
+        if (bothTried && phase < 2) { const t = setTimeout(() => setPhase(2), FB_CHANGE_MS + 200); return () => clearTimeout(t) }
+    }, [bothTried, phase])
+    const btn = 'flex-1 flex items-center justify-center gap-2 rounded-2xl py-3 text-base font-black text-white select-none shadow-[0_5px_0_var(--edge)] active:translate-y-[3px] active:shadow-[0_2px_0_var(--edge)] disabled:opacity-40'
+    return (
+        <>
+            <TypedLineWithParts
+                parts={[{ text: 'Фиолетовая полоса — ' }, { sticker: 'поток Φ', color: GGEGE_PALETTE.purple.button }, { text: '. Двигай магнит.' }]}
+                onSettled={() => setPhase(1)}
+            />
+            {phase >= 1 && (
+                <DiagramBlock>
+                    <div className="w-full flex flex-col items-center gap-3">
+                        <FluxBalanceView step={step} prev={prev} changeKey={changeKey} showChange={showChange} />
+                        <div className="flex w-full gap-3">
+                            <button type="button" className={btn} disabled={step <= 0} onClick={() => go(-1)}
+                                style={{ backgroundColor: RULE_COLOR, ['--edge' as string]: darken(RULE_COLOR) }}>
+                                <ArrowLeft size={22} strokeWidth={3} /> дальше
+                            </button>
+                            <button type="button" className={btn} disabled={step >= FB_STEPS - 1} onClick={() => go(1)}
+                                style={{ backgroundColor: RULE_COLOR, ['--edge' as string]: darken(RULE_COLOR) }}>
+                                ближе <ArrowRight size={22} strokeWidth={3} />
+                            </button>
+                        </div>
+                    </div>
+                </DiagramBlock>
+            )}
+            {phase >= 2 && (
+                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1400)}>
+                    <InsightCard>
+                        Φ растёт — <InsightWord color="#FF9AC8">B инд</InsightWord> гасит ⬅
+                        <br />Φ падает — <InsightWord color="#FF9AC8">B инд</InsightWord> добавляет ➡
+                    </InsightCard>
+                </DiagramBlock>
+            )}
+        </>
+    )
+}
+
 // 4. Уходит — кольцо плачет и держит.
 const PullScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
@@ -1238,7 +1360,7 @@ const SpeedScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-const CONCEPT_SCENES = [IntroScene, ChatScene, BattleScene, PullScene, LenzRuleScene, RepelScene, SpeedScene, HandScene, GameScene]
+const CONCEPT_SCENES = [IntroScene, FluxBalanceScene, ChatScene, BattleScene, PullScene, LenzRuleScene, RepelScene, SpeedScene, HandScene, GameScene]
 const INTRO_CONCEPT_STEPS = CONCEPT_SCENES.length
 
 const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
