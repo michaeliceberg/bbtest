@@ -7,11 +7,12 @@
 // цветные стикеры. Ток — малиновый, поле B — синий (как в FARADAYWALK),
 // правило/подсказки — оранжевый.
 //
-// Переделан 2026-09-27 (пользователь: «непонятно, анимация плохая») —
-// сцены-массив CONCEPT_SCENES, как FARADAYWALK: опыт Эрстеда (компасы,
-// «Включить ток») → кольца поля B → «Развернуть ток» → ЗАПОМНИ: правило
-// правой руки (👍) → игра «куда поле спереди провода?» (4 раунда) → как
-// рисуют • и × в задачах. Потом квиз (+бонус «Кто красавчик?»).
+// Переделан 2026-09-29 (пользователь: «сложно, хочу проще, с юмором, меньше слов»):
+// один БОЛЬШОЙ компас перед проводом → кольца поля + «Развернуть ток» →
+// правая рука-стикер, продетая проводом (кольцо поля вокруг кулака) →
+// игра «Хватай провод»: выбрать руку (палец по току), потом кольцо (куда
+// крутится поле) — без слова «спереди» → значки • и ×. Квиз с кольцами-
+// картинками вместо «куда поле спереди провода».
 
 'use client'
 
@@ -27,6 +28,7 @@ import {
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
+import { InsightCard, InsightWord } from '@/components/geometry/WalkthroughCards'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
 import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
@@ -188,70 +190,8 @@ const FieldRing = ({ cy, cur, dir = true, highlight = false }: { cy: number; cur
     )
 }
 
-// Компас: стрелка (красный конец = N) сначала вся смотрит «на север»,
-// при токе — по касательной к кольцу, по направлению поля.
-const COMPASS_THETAS = [0, 55, 125, 180, 235, 305]
-const Compass = ({ thetaDeg, cur }: { thetaDeg: number; cur: Cur }) => {
-    const p = ringPt(MID_Y, thetaDeg)
-    const rot = cur === 0 ? -60 : ringTangentDeg(thetaDeg, cur)
-    return (
-        <g transform={`translate(${p.x},${p.y})`}>
-            <circle r={14} fill="#F2F7FB" stroke="#9AA7B0" strokeWidth={2} />
-            {/* CSS-поворот с «перелётом» (кривая с overshoot) — стрелка покачивается и встаёт по полю. */}
-            <g style={{ transform: `rotate(${rot}deg)`, transformOrigin: '0px 0px', transition: 'transform 1s cubic-bezier(0.34, 1.8, 0.5, 1)' }}>
-                <path d="M0,-3.5 L11,0 L0,3.5 Z" fill="#DC605B" />
-                <path d="M0,-3.5 L-11,0 L0,3.5 Z" fill="#53ADEF" />
-            </g>
-            <circle r={2} fill="#161F23" />
-        </g>
-    )
-}
-
-// Правая рука — картинка public/hands/right-{up,down}.webp (не эмодзи 👍:
-// он на многих устройствах левая рука). Согнутые пальцы —
-// дуга с наконечником по передней половине эллипса. dirRight: передняя часть
-// дуги идёт вправо (θ 160°→20°) или влево (20°→160°).
-function curlArc(cx: number, cy: number, rx: number, ry: number, dirRight: boolean) {
-    const from = dirRight ? 160 : 20, to = dirRight ? 20 : 160
-    const pts: string[] = []
-    for (let i = 0; i <= 24; i++) {
-        const t = ((from + (to - from) * (i / 24)) * Math.PI) / 180
-        pts.push(`${(cx + rx * Math.cos(t)).toFixed(1)},${(cy + ry * Math.sin(t)).toFixed(1)}`)
-    }
-    const te = (to * Math.PI) / 180
-    const s = dirRight ? -1 : 1 // d(theta) знак
-    const dx = -rx * Math.sin(te) * s, dy = ry * Math.cos(te) * s
-    const ang = (Math.atan2(dy, dx) * 180) / Math.PI
-    return { d: `M ${pts.join(' L ')}`, end: { x: cx + rx * Math.cos(te), y: cy + ry * Math.sin(te) }, ang }
-}
-const HAND_COLOR = '#F09B38'
-const RightHandHint = ({ cx, cy, rx, ry, thumbUp, curlRight }: {
-    cx: number; cy: number; rx: number; ry: number; thumbUp: boolean; curlRight: boolean
-}) => {
-    const arc = curlArc(cx, cy, rx, ry, curlRight)
-    // Картинка правой руки (public/hands, нарисована пользователем): большой палец
-    // вверх/вниз, согнутые пальцы спереди идут вправо (палец вверх) / влево (вниз).
-    const HAND = 78
-    return (
-        <g>
-            <g transform={`translate(${cx - rx - 40},${cy - HAND - 34})`}>
-                <motion.image key={thumbUp ? 'up' : 'down'} href={thumbUp ? '/hands/right-up.webp' : '/hands/right-down.webp'}
-                    x={0} y={0} width={HAND} height={HAND}
-                    initial={{ opacity: 0, scale: 0.4 }} animate={{ opacity: 1, scale: 1 }}
-                    transition={{ type: 'spring', bounce: 0.5, duration: 0.6 }}
-                    style={{ transformBox: 'fill-box', transformOrigin: 'center' }} />
-            </g>
-            <path d={arc.d} fill="none" stroke={HAND_COLOR} strokeWidth={6} strokeLinecap="round" strokeDasharray="1 0" />
-            <g transform={`translate(${arc.end.x},${arc.end.y}) rotate(${arc.ang})`}>
-                <path d="M -12 -10 L 2 0 L -12 10" fill="none" stroke={HAND_COLOR} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" />
-            </g>
-            <text x={cx} y={cy + ry + 22} textAnchor="middle" fontSize={12} fontWeight={900} fill={HAND_COLOR}>пальцы</text>
-        </g>
-    )
-}
-
-const WireScene = ({ cur, rings = [], compasses = false, hand = false, dotCross = false, hideDir = false }: {
-    cur: Cur; rings?: number[]; compasses?: boolean; hand?: boolean; dotCross?: boolean; hideDir?: boolean
+const WireScene = ({ cur, rings = [], dotCross = false, hideDir = false }: {
+    cur: Cur; rings?: number[]; dotCross?: boolean; hideDir?: boolean
 }) => (
     <div className="flex w-full justify-center py-1">
         <svg viewBox={`0 0 ${W_W} ${W_H}`} className="w-full max-w-[300px] h-auto">
@@ -273,13 +213,7 @@ const WireScene = ({ cur, rings = [], compasses = false, hand = false, dotCross 
                     <SvgTag x={0} y={0} text="I" color={CURRENT_COLOR} />
                 </g>
             )}
-            {compasses && COMPASS_THETAS.map((t) => <Compass key={t} thetaDeg={t} cur={cur} />)}
             {rings.length > 0 && !hideDir && cur !== 0 && <SvgTag x={W_CX + RING_RX + 20} y={RING_YS[0]} text="B" color={FIELD_COLOR} delay={0.6} />}
-            {hand && cur !== 0 && (
-                // Правая рука: палец — по току (вдоль провода), пальцы — по полю.
-                // Ток вверх → поле спереди вправо (см. ringTangentDeg).
-                <RightHandHint cx={W_CX} cy={MID_Y} rx={RING_RX + 14} ry={RING_RY + 10} thumbUp={cur === 1} curlRight={cur === 1} />
-            )}
             {dotCross && (
                 <>
                     <g transform={`translate(${ringPt(MID_Y, 180).x},${MID_Y})`}>
@@ -300,6 +234,100 @@ const WireScene = ({ cur, rings = [], compasses = false, hand = false, dotCross 
     </div>
 )
 
+
+// ===== Рука-стикер, продетая проводом (идея пользователя 2026-09-29) =====
+// Картинки public/hands/right-{up,down}.webp, повёрнуты на ±22°, чтобы
+// большой палец стоял ровно вдоль провода. Провод рисуется ЗА рукой —
+// кулак его закрывает, выглядит как «провод продет сквозь кулак».
+// Поле B — кольцо вокруг кулака: задняя половина за рукой, передняя
+// поверх, по ней бегут чёрточки и шеврон в сторону согнутых пальцев.
+// Ток вверх → пальцы спереди идут вправо; ток вниз → влево.
+const HG_W = 320, HG_H = 400
+const HG_OX = 30, HG_OY = 70, HG_IMG = 256
+const HG_WX = HG_OX + 98
+const HG_RX = 84, HG_RY = 22
+const hgRingY = (cur: Cur) => (cur === 1 ? HG_OY + 134 : HG_OY + 106)
+
+// Кольцо поля вокруг провода: back — задняя половина, front — передняя с бегущими чёрточками.
+const GripRing = ({ cx, cy, rx, ry, dirRight, part, color = FIELD_COLOR, width = 5 }: {
+    cx: number; cy: number; rx: number; ry: number; dirRight: boolean; part: 'back' | 'front'; color?: string; width?: number
+}) => {
+    if (part === 'back') {
+        return <path d={`M ${cx - rx} ${cy} A ${rx} ${ry} 0 0 1 ${cx + rx} ${cy}`} fill="none" stroke={color} strokeWidth={width - 1} strokeDasharray="6 7" opacity={0.55} />
+    }
+    const d = `M ${cx - rx} ${cy} A ${rx} ${ry} 0 0 0 ${cx + rx} ${cy}`
+    return (
+        <g>
+            <path d={d} fill="none" stroke={color} strokeWidth={width} strokeLinecap="round" />
+            <motion.path d={d} fill="none" stroke="#fff" strokeWidth={width * 0.5} strokeLinecap="round" strokeDasharray="4 14"
+                animate={{ strokeDashoffset: dirRight ? [0, -36] : [0, 36] }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} />
+            {/* шеврон сбоку от провода (не на нём) — по касательной, в сторону движения */}
+            {(() => {
+                const th = ((dirRight ? 50 : 130) * Math.PI) / 180
+                const px = cx + rx * Math.cos(th), py = cy + ry * Math.sin(th)
+                const dx = dirRight ? rx * Math.sin(th) : -rx * Math.sin(th)
+                const dy = dirRight ? -ry * Math.cos(th) : ry * Math.cos(th)
+                const ang = (Math.atan2(dy, dx) * 180) / Math.PI
+                return (
+                    <g transform={`translate(${px},${py}) rotate(${ang})`}>
+                        <path d="M -8 -10 L 6 0 L -8 10" fill="none" stroke={color} strokeWidth={width + 1} strokeLinecap="round" strokeLinejoin="round" />
+                    </g>
+                )
+            })()}
+        </g>
+    )
+}
+
+// Бегущий ток по вертикальному проводу (шевроны), в пределах [y1, y2].
+const WireChevrons = ({ x, y1, y2, up, id }: { x: number; y1: number; y2: number; up: boolean; id: string }) => {
+    const ys = Array.from({ length: Math.ceil((y2 - y1) / 44) + 3 }, (_, i) => y1 - 44 + i * 44)
+    return (
+        <g clipPath={`url(#${id})`}>
+            <defs><clipPath id={id}><rect x={x - 8} y={y1} width={16} height={y2 - y1} /></clipPath></defs>
+            <motion.g key={up ? 'u' : 'd'} animate={{ y: up ? [0, -44] : [0, 44] }} transition={{ duration: 0.7, repeat: Infinity, ease: 'linear' }}>
+                {ys.map((y) => (
+                    <path key={y} d={up ? `M${x - 6},${y + 7} L${x},${y} L${x + 6},${y + 7}` : `M${x - 6},${y - 7} L${x},${y} L${x + 6},${y - 7}`}
+                        fill="none" stroke="#fff" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" />
+                ))}
+            </motion.g>
+        </g>
+    )
+}
+
+const HandGrip = ({ cur, showRing = true, showHand = true }: { cur: Cur; showRing?: boolean; showHand?: boolean }) => {
+    const up = cur === 1
+    const cy = hgRingY(cur)
+    return (
+        <svg viewBox={`0 0 ${HG_W} ${HG_H}`} className="w-full max-w-[300px] h-auto">
+            {showRing && <GripRing cx={HG_WX} cy={cy} rx={HG_RX} ry={HG_RY} dirRight={up} part="back" />}
+            <rect x={HG_WX - 7} y={10} width={14} height={HG_H - 20} rx={7} fill={CURRENT_COLOR} />
+            <WireChevrons x={HG_WX} y1={10} y2={HG_H - 10} up={up} id={`hg-wire-${up ? 'u' : 'd'}`} />
+            {showHand && (
+                <motion.image key={up ? 'up' : 'down'} href={up ? '/hands/right-up.webp' : '/hands/right-down.webp'}
+                    x={HG_OX} y={HG_OY} width={HG_IMG} height={HG_IMG}
+                    transform={`rotate(${up ? 22 : -22} ${HG_OX + HG_IMG / 2} ${HG_OY + HG_IMG / 2})`}
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }} />
+            )}
+            {showRing && (
+                <motion.g key={`ring${cur}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.2 }}>
+                    <GripRing cx={HG_WX} cy={cy} rx={HG_RX} ry={HG_RY} dirRight={up} part="front" />
+                    <SvgTag x={HG_WX + HG_RX + 18} y={cy} text="B" color={FIELD_COLOR} />
+                </motion.g>
+            )}
+            <SvgTag x={HG_WX - 28} y={up ? 30 : HG_H - 30} text="I" color={CURRENT_COLOR} />
+        </svg>
+    )
+}
+
+// Маленькое кольцо-вариант ответа: куда бегут чёрточки спереди.
+const MiniRing = ({ dirRight }: { dirRight: boolean }) => (
+    <svg viewBox="0 0 150 70" className="h-16 w-auto">
+        <GripRing cx={75} cy={35} rx={56} ry={15} dirRight={dirRight} part="back" width={4} />
+        <rect x={71} y={4} width={8} height={62} rx={4} fill="#5C6B73" />
+        <GripRing cx={75} cy={35} rx={56} ry={15} dirRight={dirRight} part="front" width={4} />
+    </svg>
+)
+
 const BigBtn = ({ children, onClick, color, pulse = true }: { children: React.ReactNode; onClick: () => void; color: string; pulse?: boolean }) => (
     <button
         type="button"
@@ -313,27 +341,47 @@ const BigBtn = ({ children, onClick, color, pulse = true }: { children: React.Re
 
 const TEXT_CLS = 'w-full text-center text-base md:text-lg text-[#F2F7FB]'
 
-// 0. Опыт Эрстеда: компасы вокруг провода, «Включить ток».
-const OerstedScene = ({ onSettled }: { onSettled?: () => void }) => {
+// 0. Один БОЛЬШОЙ компас перед проводом. Включил ток — стрелку повернуло.
+// Компас стоит прямо перед проводом: при токе вверх поле там идёт вправо.
+const BC_W = 320, BC_H = 320, BC_WX = 160, BC_CY = 215, BC_R = 70
+const BigCompassScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
-    const [cur, setCur] = useState<Cur>(0)
+    const [on, setOn] = useState(false)
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'Провод торчит из стола, вокруг лежат ' }, { sticker: 'компасы', color: RULE_COLOR }, { text: '. Все смотрят на север.' }]}
+                parts={[{ text: 'Провод 🔌 и ' }, { sticker: 'компас', color: RULE_COLOR }, { text: '. Стрелка смотрит на север.' }]}
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
                 <DiagramBlock>
-                    <WireScene cur={cur} compasses />
-                    {cur === 0 && (
-                        <BigBtn color={CURRENT_COLOR} onClick={() => { setCur(1); setTimeout(() => setPhase(2), 1600) }}>⚡ Включить ток</BigBtn>
-                    )}
+                    <div className="w-full flex flex-col items-center gap-3">
+                        <svg viewBox={`0 0 ${BC_W} ${BC_H}`} className="w-full max-w-[300px] h-auto">
+                            <motion.rect x={BC_WX - 7} y={10} width={14} height={BC_H - 20} rx={7}
+                                animate={{ fill: on ? CURRENT_COLOR : '#5C6B73' }} transition={{ duration: 0.4 }} />
+                            {on && <WireChevrons x={BC_WX} y1={10} y2={BC_H - 10} up id="bc-wire" />}
+                            {on && <SvgTag x={BC_WX + 26} y={34} text="I" color={CURRENT_COLOR} />}
+                            {/* компас перед проводом */}
+                            <circle cx={BC_WX} cy={BC_CY} r={BC_R + 8} fill="#C9CFD3" />
+                            <circle cx={BC_WX} cy={BC_CY} r={BC_R} fill="#F2F7FB" stroke="#9AA7B0" strokeWidth={3} />
+                            {['С', 'В', 'Ю', 'З'].map((t, i) => {
+                                const a = (i * Math.PI) / 2
+                                return <text key={t} x={BC_WX + Math.sin(a) * (BC_R - 16)} y={BC_CY - Math.cos(a) * (BC_R - 16) + 6} textAnchor="middle" fontSize={16} fontWeight={900} fill="#5C6B73">{t}</text>
+                            })}
+                            {/* стрелка: CSS-поворот с перелётом (как у компасов раньше) */}
+                            <g style={{ transform: `translate(${BC_WX}px, ${BC_CY}px) rotate(${on ? 90 : 0}deg)`, transition: 'transform 1.2s cubic-bezier(0.34, 1.8, 0.5, 1)' }}>
+                                <path d="M -9 0 L 0 -52 L 9 0 Z" fill="#DC605B" />
+                                <path d="M -9 0 L 0 52 L 9 0 Z" fill="#53ADEF" />
+                                <circle r={6} fill="#161F23" />
+                            </g>
+                        </svg>
+                        {!on && <BigBtn color={CURRENT_COLOR} onClick={() => { setOn(true); setTimeout(() => setPhase(2), 1600) }}>⚡ Включить ток</BigBtn>}
+                    </div>
                 </DiagramBlock>
             )}
             {phase >= 2 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Вжух! Стрелки компасов развернулись ' }, { bold: 'ПО КРУГУ' }, { text: ' вокруг провода 🧭' }]}
+                    parts={[{ text: 'Опа! Стрелку ' }, { bold: 'повернуло' }, { text: ' 😳 Значит, вокруг тока есть ' }, { sticker: 'магнитное поле B', color: FIELD_COLOR }]}
                     onSettled={onSettled}
                 />
             )}
@@ -341,35 +389,20 @@ const OerstedScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-// 1. Поле B кольцами вокруг провода.
-const RingsScene = ({ onSettled }: { onSettled?: () => void }) => {
-    const [phase, setPhase] = useState(0)
-    return (
-        <>
-            <DiagramBlock onSettled={() => setTimeout(() => setPhase(1), 700)}>
-                <WireScene cur={1} rings={RING_YS} />
-            </DiagramBlock>
-            {phase >= 1 && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Значит, ' }, { sticker: 'ток', color: CURRENT_COLOR }, { text: ' создаёт вокруг провода ' }, { sticker: 'магнитное поле B', color: FIELD_COLOR }, { text: '. Оно обвивает провод кольцами — как хула-хуп 😄' }]}
-                    onSettled={onSettled}
-                />
-            )}
-        </>
-    )
-}
-
-// 2. Поменяй направление тока.
-const FlipScene = ({ onSettled }: { onSettled?: () => void }) => {
+// 1. Поле кольцами вокруг провода + «Развернуть ток».
+const RingsFlipScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
     const [cur, setCur] = useState<Cur>(1)
     const [flipped, setFlipped] = useState(false)
     return (
         <>
-            <TypedLine text="А что будет, если пустить ток в другую сторону? Жми!" className={TEXT_CLS} onSettled={() => setPhase(1)} delayAfter={200} />
+            <TypedLineWithParts
+                parts={[{ text: 'Поле ' }, { sticker: 'B', color: FIELD_COLOR }, { text: ' крутится вокруг провода — как хула-хуп 🌀' }]}
+                onSettled={() => setPhase(1)}
+            />
             {phase >= 1 && (
                 <DiagramBlock>
-                    <WireScene cur={cur} rings={RING_YS} compasses />
+                    <WireScene cur={cur} rings={RING_YS} />
                     <BigBtn color={CURRENT_COLOR} pulse={!flipped} onClick={() => {
                         setCur((c) => (c === 1 ? -1 : 1))
                         if (!flipped) { setFlipped(true); setTimeout(() => setPhase(2), 1400) }
@@ -378,7 +411,7 @@ const FlipScene = ({ onSettled }: { onSettled?: () => void }) => {
             )}
             {phase >= 2 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Ток развернулся — и поле закрутилось в ' }, { bold: 'ДРУГУЮ СТОРОНУ' }, { text: '! И компасы тоже.' }]}
+                    parts={[{ text: 'Ток в другую сторону — поле крутится в ' }, { bold: 'другую сторону' }, { text: ' 🔄' }]}
                     onSettled={onSettled}
                 />
             )}
@@ -386,7 +419,7 @@ const FlipScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-// 3. ЗАПОМНИ: правило правой руки.
+// 2. ЗАПОМНИ: правая рука, продетая проводом.
 const RememberBanner = () => (
     <div className="w-full flex items-center gap-3">
         <Lottie animationData={paperPolice} loop autoplay className="w-16 h-16 md:w-20 md:h-20 shrink-0" />
@@ -396,100 +429,133 @@ const RememberBanner = () => (
         </div>
     </div>
 )
-const HandScene = ({ onSettled }: { onSettled?: () => void }) => {
+const HandRuleScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
+    const [cur, setCur] = useState<Cur>(1)
+    const [flipped, setFlipped] = useState(false)
     return (
         <>
-            <DiagramBlock onSettled={() => setTimeout(() => setPhase(1), 500)}><RememberBanner /></DiagramBlock>
+            <TypedLineWithParts
+                parts={[{ text: 'А куда крутится? Спросим ' }, { sticker: 'правую руку', color: RULE_COLOR }, { text: ' ✋' }]}
+                onSettled={() => setPhase(1)}
+            />
             {phase >= 1 && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Правило ' }, { sticker: 'правой руки', color: RULE_COLOR }, { text: ': обхвати провод правой рукой — большой палец по ' }, { sticker: 'току', color: CURRENT_COLOR }, { text: '.' }]}
-                    onSettled={() => setPhase(2)}
-                />
-            )}
-            {phase >= 2 && (
-                <DiagramBlock onSettled={() => setTimeout(() => setPhase(3), 1200)}>
-                    <WireScene cur={1} rings={[MID_Y]} hand />
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 900)}>
+                    <div className="w-full flex flex-col items-center gap-2">
+                        <HandGrip cur={cur} />
+                        {phase >= 3 && (
+                            <BigBtn color={CURRENT_COLOR} pulse={!flipped} onClick={() => {
+                                setCur((c) => (c === 1 ? -1 : 1))
+                                if (!flipped) { setFlipped(true); setTimeout(() => setPhase(4), 1500) }
+                            }}>⇅ Развернуть ток</BigBtn>
+                        )}
+                    </div>
                 </DiagramBlock>
             )}
-            {phase >= 3 && (
+            {phase >= 2 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Согнутые пальцы покажут, куда крутится ' }, { sticker: 'поле B', color: FIELD_COLOR }, { text: '. Палец вверх — пальцы спереди идут вправо ✋' }]}
-                    onSettled={onSettled}
+                    parts={[{ text: 'Большой палец — по ' }, { sticker: 'току I', color: CURRENT_COLOR }, { break: true }, { text: 'Пальцы крутят ' }, { sticker: 'поле B', color: FIELD_COLOR }]}
+                    onSettled={() => setPhase(3)}
                 />
+            )}
+            {phase >= 4 && (
+                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 900)}>
+                    <RememberBanner />
+                    <div className="mt-3">
+                        <InsightCard label="✋ Правило правой руки">
+                            Большой палец — <InsightWord color="#FF9AC8">по току</InsightWord>,
+                            <br />пальцы — <InsightWord color="#8FD0FF">как крутится поле</InsightWord>
+                        </InsightCard>
+                    </div>
+                </DiagramBlock>
             )}
         </>
     )
 }
 
-// 4. Игра: куда направлено поле спереди провода?
-const GAME_ROUNDS = 4
-const FieldGameScene = ({ onSettled }: { onSettled?: () => void }) => {
+// 3. Игра «Хватай провод»: 1) какой рукой схватить (палец по току),
+// 2) куда закрутится поле — выбрать кольцо. Никаких «спереди».
+const GRIP_ROUNDS: Cur[] = [1, -1, 1]
+const GripGameScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
-    const [rounds] = useState<Cur[]>(() => {
-        const r: Cur[] = [1, -1, 1, -1]
-        for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]] }
-        return r
-    })
+    const [rounds] = useState<Cur[]>(() => (Math.random() < 0.5 ? GRIP_ROUNDS : GRIP_ROUNDS.map((c) => (c === 1 ? -1 : 1) as Cur)))
     const [round, setRound] = useState(0)
-    const [solved, setSolved] = useState(false)
+    const [step, setStep] = useState<'hand' | 'ring' | 'ok'>('hand')
     const [wrong, setWrong] = useState<string | null>(null)
-    const [wrongBtn, setWrongBtn] = useState<'L' | 'R' | null>(null)
-    const done = round >= GAME_ROUNDS
-    const cur = rounds[Math.min(round, GAME_ROUNDS - 1)]
-    const pick = (side: 'L' | 'R') => {
-        if (solved || done) return
-        const correct = cur === 1 ? 'R' : 'L'
-        if (side === correct) {
-            setSolved(true); setWrong(null); setWrongBtn(null)
-            setTimeout(() => {
-                setSolved(false)
-                setRound((r) => r + 1)
-                if (round + 1 >= GAME_ROUNDS) setTimeout(() => onSettled?.(), 600)
-            }, 1200)
-        } else {
-            playSound(WRONG_ANSWER_SOUND)
-            setWrongBtn(side)
-            setWrong(cur === 1 ? 'Мимо! Большой палец ВВЕРХ — согнутые пальцы спереди идут вправо' : 'Мимо! Большой палец ВНИЗ — согнутые пальцы спереди идут влево')
-        }
+    const [wrongKey, setWrongKey] = useState<string | null>(null)
+    const done = round >= rounds.length
+    const cur = rounds[Math.min(round, rounds.length - 1)]
+    // порядок вариантов перемешан, но стабилен в пределах раунда
+    const [flipOpts] = useState<boolean[]>(() => rounds.map(() => Math.random() < 0.5))
+    const miss = (key: string, text: string) => { playSound(WRONG_ANSWER_SOUND); setWrongKey(key); setWrong(text) }
+    const pickHand = (thumbUp: boolean) => {
+        if (step !== 'hand') return
+        if (thumbUp === (cur === 1)) { setWrong(null); setWrongKey(null); setStep('ring') }
+        else miss(`h${thumbUp}`, 'Большой палец должен смотреть туда, куда бежит ток ⚡')
     }
+    const pickRing = (right: boolean) => {
+        if (step !== 'ring') return
+        if (right === (cur === 1)) {
+            setWrong(null); setWrongKey(null); setStep('ok')
+            setTimeout(() => {
+                setRound((r) => r + 1); setStep('hand')
+                if (round + 1 >= rounds.length) setTimeout(() => onSettled?.(), 700)
+            }, 1500)
+        } else miss(`r${right}`, 'Посмотри, куда загнуты пальцы 👀')
+    }
+    const optBtn = (key: string, onClick: () => void, children: React.ReactNode) => (
+        <button key={key} type="button" onClick={onClick}
+            className={cn('flex min-h-[72px] items-center justify-center rounded-xl border-2 p-1 transition-colors',
+                wrongKey === key ? 'border-[#DC605B] bg-[#DC605B22]' : 'border-[#3A464E] bg-[#161F23] hover:border-[#4A90D9]')}>
+            {children}
+        </button>
+    )
+    const hands = [true, false]
+    const rings = [true, false]
+    const ordered = <T,>(arr: T[]) => (flipOpts[Math.min(round, rounds.length - 1)] ? [...arr].reverse() : arr)
     return (
         <>
-            <TypedLine text="Проверь себя! Куда направлено поле СПЕРЕДИ провода?" className={cn(TEXT_CLS, 'font-extrabold')} onSettled={() => setPhase(1)} delayAfter={200} />
+            <TypedLine text="Твоя очередь! Хватай провод 🤜" className={cn(TEXT_CLS, 'font-extrabold')} onSettled={() => setPhase(1)} delayAfter={200} />
             {phase >= 1 && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col items-center gap-3">
-                        <p className="text-sm font-black" style={{ color: '#9AA7B0' }}>{done ? 'Все 4 угаданы!' : `Раунд ${round + 1} из ${GAME_ROUNDS} · ток ${cur === 1 ? 'ВВЕРХ' : 'ВНИЗ'}`}</p>
-                        <WireScene key={round} cur={cur} rings={[MID_Y]} hideDir={!solved && !done} />
-                        {!done && (
-                            <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
-                                {(['L', 'R'] as const).map((s) => (
-                                    <button key={s} type="button" onClick={() => pick(s)} disabled={solved}
-                                        className={cn('min-h-[60px] rounded-xl border-2 text-xl font-black transition-colors',
-                                            solved && (s === (cur === 1 ? 'R' : 'L')) ? 'border-[#A1D151] bg-[#A1D15122] text-[#A1D151]'
-                                                : wrongBtn === s ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]'
-                                                    : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]')}>
-                                        {s === 'L' ? '← влево' : 'вправо →'}
-                                    </button>
-                                ))}
-                            </div>
+                        <p className="text-sm font-black text-[#9AA7B0]">{done ? 'Все раунды пройдены!' : `Раунд ${round + 1} из ${rounds.length}`}</p>
+                        <HandGrip key={`${round}-${cur}`} cur={cur} showHand={step !== 'hand'} showRing={step === 'ok' || done} />
+                        {!done && step === 'hand' && (
+                            <>
+                                <p className="text-base font-black text-[#F2F7FB]">Как схватить провод?</p>
+                                <div className="grid w-full max-w-xs grid-cols-2 gap-3">
+                                    {ordered(hands).map((up) => optBtn(`h${up}`, () => pickHand(up),
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img src={up ? '/hands/right-up.webp' : '/hands/right-down.webp'} alt={up ? 'палец вверх' : 'палец вниз'} className="h-16 w-16" draggable={false} />))}
+                                </div>
+                            </>
                         )}
-                        {wrong && !solved && <div className="rounded-xl px-4 py-2 text-sm font-bold text-center bg-[#DC605B22] text-[#DC605B]">{wrong}</div>}
-                        {done && <p className="text-lg font-black text-[#A1D151]">Ты мастер правой руки 🤙</p>}
+                        {!done && step === 'ring' && (
+                            <>
+                                <p className="text-base font-black text-[#F2F7FB]">Куда крутится поле <span style={{ color: FIELD_COLOR }}>B</span>?</p>
+                                <div className="grid w-full max-w-xs grid-cols-2 gap-3">
+                                    {ordered(rings).map((right) => optBtn(`r${right}`, () => pickRing(right), <MiniRing dirRight={right} />))}
+                                </div>
+                            </>
+                        )}
+                        {step === 'ok' && !done && <p className="text-lg font-black text-[#A1D151]">Точно! 🔥</p>}
+                        {wrong && step !== 'ok' && <div className="rounded-xl px-4 py-2 text-sm font-bold text-center bg-[#DC605B22] text-[#DC605B]">{wrong}</div>}
+                        {done && <p className="text-lg font-black text-[#A1D151]">Правая рука прокачана 💪</p>}
                     </div>
-                    {done && <LocalAnswerConfetti />}
+                    {(step === 'ok' || done) && <LocalAnswerConfetti />}
                 </DiagramBlock>
             )}
         </>
     )
 }
 
-// 5. Как рисуют в задачах: • и ×.
+// 4. Как рисуют в задачах: • и ×.
 const DotCrossScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
     return (
         <>
-            <TypedLine text="В задачах ЕГЭ поле рисуют значками. Смотри:" className={TEXT_CLS} onSettled={() => setPhase(1)} delayAfter={200} />
+            <TypedLine text="В задачах ЕГЭ поле рисуют значками:" className={TEXT_CLS} onSettled={() => setPhase(1)} delayAfter={200} />
             {phase >= 1 && (
                 <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 1600)}>
                     <WireScene cur={1} rings={[MID_Y]} dotCross />
@@ -497,22 +563,19 @@ const DotCrossScene = ({ onSettled }: { onSettled?: () => void }) => {
             )}
             {phase >= 2 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Слева поле летит ' }, { bold: 'НА ТЕБЯ' }, { text: ' — рисуют точкой ' }, { sticker: '•', color: FIELD_COLOR }, { text: '. Справа — ' }, { bold: 'ОТ ТЕБЯ' }, { text: ', крестиком ' }, { sticker: '×', color: FIELD_COLOR }, { text: '.' }]}
+                    parts={[{ sticker: '•', color: FIELD_COLOR }, { text: ' — поле летит ' }, { bold: 'НА ТЕБЯ' }, { break: true }, { sticker: '×', color: FIELD_COLOR }, { text: ' — поле летит ' }, { bold: 'ОТ ТЕБЯ' }]}
                     onSettled={() => setPhase(3)}
                 />
             )}
             {phase >= 3 && (
-                <TypedLine
-                    text="Как стрела 🏹: остриё летит на тебя — точка, оперение улетает от тебя — крестик."
-                    className={TEXT_CLS}
-                    onSettled={onSettled}
-                />
+                <TypedLine text="Как стрела 🏹: видишь остриё — точка, видишь хвост — крестик." className={TEXT_CLS} onSettled={onSettled} />
             )}
         </>
     )
 }
 
-const CONCEPT_SCENES = [OerstedScene, RingsScene, FlipScene, HandScene, FieldGameScene, DotCrossScene]
+const CONCEPT_SCENES = [BigCompassScene, RingsFlipScene, HandRuleScene, GripGameScene, DotCrossScene]
+
 const INTRO_CONCEPT_STEPS = CONCEPT_SCENES.length
 
 const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
@@ -591,19 +654,19 @@ const CONCEPT_QUIZ: ConceptQuizItem[] = [
         renderPrompt: () => <>Большой палец правой руки показывает направление…</>,
         renderOptions: () => [<span key="a">тока <Sticker value="I" color={CURRENT_COLOR} /></span>, <span key="b">поля <Sticker value="B" color={FIELD_COLOR} /></span>],
         correct: 0,
-        feedback: 'Палец — по току, согнутые пальцы — по полю.',
+        feedback: 'Палец — по току, пальцы — как крутится поле.',
     },
     {
-        renderPrompt: () => <>Ток в вертикальном проводе течёт <b>ВВЕРХ</b>. Куда направлено поле <b>спереди</b> провода?</>,
-        renderOptions: () => ['вправо →', '← влево'],
+        renderPrompt: () => <>Ток бежит <b>ВВЕРХ ⬆</b>. Как закрутится поле <Sticker value="B" color={FIELD_COLOR} />?</>,
+        renderOptions: () => [<MiniRing key="r" dirRight />, <MiniRing key="l" dirRight={false} />],
         correct: 0,
-        feedback: 'Палец вверх — согнутые пальцы спереди идут вправо.',
+        feedback: 'Палец вверх — пальцы крутят поле вот так.',
     },
     {
-        renderPrompt: () => <>Ток течёт <b>ВНИЗ</b>. Куда направлено поле <b>спереди</b> провода?</>,
-        renderOptions: () => ['вправо →', '← влево'],
+        renderPrompt: () => <>Ток бежит <b>ВНИЗ ⬇</b>. Как закрутится поле <Sticker value="B" color={FIELD_COLOR} />?</>,
+        renderOptions: () => [<MiniRing key="r" dirRight />, <MiniRing key="l" dirRight={false} />],
         correct: 1,
-        feedback: 'Палец вниз — поле крутится в другую сторону, спереди влево.',
+        feedback: 'Палец вниз — поле крутится в другую сторону.',
     },
     {
         renderPrompt: () => <>Что означает значок <Sticker value="×" color={FIELD_COLOR} /> на рисунке поля?</>,
@@ -728,7 +791,7 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
                                         <span className="opacity-50 font-normal">/</span>
                                         <span>{CONCEPT_QUIZ.length}</span>
                                     </div>
-                                    <p className="w-full text-base md:text-lg text-[#F2F7FB] text-center font-bold">
+                                    <p className="w-full px-16 text-base md:text-lg text-[#F2F7FB] text-center font-bold">
                                         {qq.renderPrompt()}
                                     </p>
                                 </div>

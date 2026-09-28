@@ -1964,7 +1964,7 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
                                         <span className="opacity-50 font-normal">/</span>
                                         <span>{CONCEPT_QUIZ.length}</span>
                                     </div>
-                                    <p className="w-full text-base md:text-lg text-[#F2F7FB] text-center font-bold">
+                                    <p className="w-full px-16 text-base md:text-lg text-[#F2F7FB] text-center font-bold">
                                         {qq.renderPrompt()}
                                     </p>
                                 </div>
