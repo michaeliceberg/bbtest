@@ -587,7 +587,7 @@ body {
   60% { transform: translate(-1px, -1.5px) rotate(-0.6deg); }
   80% { transform: translate(1px, 1.5px) rotate(1deg); }
 }
-.animate-vader-cast { animation: vader-cast 0.28s linear infinite; }
+.animate-vader-cast { animation: vader-cast 1.6s ease-in-out infinite; }
 @keyframes vader-spark {
   0%, 100% { opacity: 0; transform: scale(0.5) translateX(0); }
   50% { opacity: 1; transform: scale(1.2) translateX(-8px); }

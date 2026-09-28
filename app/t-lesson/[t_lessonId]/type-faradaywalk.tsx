@@ -403,9 +403,11 @@ const MAG_TOP = 208
 // public/lesson-pics/vader.webp справа от магнита, рука тянется к магниту,
 // сам мелко трясётся (CSS .animate-vader-cast), у руки мерцают синие искры.
 const VaderCaster = () => (
-    <motion.div className="pointer-events-none absolute -right-2 top-[44%] w-[118px] md:w-[136px]"
+    <motion.div className="pointer-events-none absolute right-3 md:-right-14 top-[62%] w-[96px] md:w-[136px]"
         initial={{ scale: 0, opacity: 0, x: 30 }} animate={{ scale: 1, opacity: 1, x: 0 }}
         transition={{ type: 'spring', bounce: 0.5, duration: 0.7 }}>
+        {/* поворот на статичной обёртке (framer затирает transform анимируемого узла) */}
+        <div style={{ transform: 'rotate(20deg)' }}>
         <div className="relative animate-vader-cast">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/lesson-pics/vader.webp" alt="Дарт Вейдер" className="w-full h-auto" draggable={false} />
@@ -413,6 +415,7 @@ const VaderCaster = () => (
                 <span key={i} className="absolute text-lg animate-vader-spark"
                     style={{ left: `${-10 - i * 12}%`, top: `${30 + (i % 2) * 14}%`, animationDelay: `${i * 0.35}s`, color: FIELD_COLOR }}>✦</span>
             ))}
+        </div>
         </div>
     </motion.div>
 )
@@ -815,10 +818,9 @@ const IntrigueScene = ({ onSettled }: { onSettled?: () => void }) => {
                             <motion.button key={v.src} type="button" onClick={() => pick(i)} aria-label={v.name}
                                 initial={{ scale: 0 }} animate={picked === i ? { scale: [1, 1.12, 1] } : { scale: 1, opacity: picked !== null ? 0.4 : 1 }}
                                 transition={{ type: 'spring', bounce: 0.55, delay: picked === null ? i * 0.15 : 0 }}
-                                className="flex flex-col items-center gap-1 overflow-hidden rounded-2xl border-2 p-1.5"
+                                className="flex flex-col items-center overflow-hidden rounded-2xl border-2 p-1.5"
                                 style={{ borderColor: FLUX_COLOR, backgroundColor: hexToRgba(FLUX_COLOR, picked === i ? 0.35 : 0.12), boxShadow: `0 5px 0 ${GGEGE_PALETTE.purple.bottom}` }}>
                                 <video src={v.src} autoPlay loop muted playsInline className="pointer-events-none w-full aspect-square rounded-xl object-cover" />
-                                <span className="text-sm font-black text-[#F2F7FB]">{v.name}</span>
                             </motion.button>
                         ))}
                     </div>
