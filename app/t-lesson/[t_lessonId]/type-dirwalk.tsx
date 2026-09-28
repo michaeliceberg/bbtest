@@ -331,16 +331,23 @@ const BigBtn = ({ children, onClick, color, pulse = true }: { children: React.Re
 
 const TEXT_CLS = 'w-full text-center text-base md:text-lg text-[#F2F7FB]'
 
-// 0. История открытия (просьба пользователя 2026-09-29): «Однажды заметили»
-// (ДиКаприо присматривается — 2 раза и исчезает) → «что СТРЕЛКА компаса
-// ОТКЛОНЯЕТСЯ, если рядом течёт ТОК» → рубильник-тумблер (как radix switch с
-// motion.dev) — ученик сам включает/выключает, стрелка ходит туда-обратно.
-// Компас СБОКУ от провода (не на проводе). Ток в этой сцене течёт вниз:
-// справа от провода поле тогда направлено «к нам» — на лежащем компасе это
-// низ циферблата, стрелка разворачивается (физически честно).
+// 0. История открытия: «Однажды заметили, что СТРЕЛКА компаса ОТКЛОНЯЕТСЯ,
+// если рядом течёт ТОК» → рубильник-тумблер (как radix switch с motion.dev):
+// ученик сам включает/выключает. Пока ток включён — справа ДиКаприо
+// присматривается (зациклен), выключил — исчезает.
+// Физика: компас СПРАВА от провода, ток вверх → поле там направлено «от нас»
+// (на лежащем компасе — вверх по циферблату). Компас повёрнут так, что север
+// смотрит ВПРАВО (от провода) — поле провода перпендикулярно земному, стрелка
+// честно поворачивается на 90° (вверх). Колебания — затухающие keyframes.
 const NEEDLE_RED = '#DC605B'
-const BC_W = 320, BC_H = 300, BC_WX = 92, BC_CX = 222, BC_CY = 150, BC_R = 64
-const DICAPRIO_LOOPS = 2
+const BC_W = 320, BC_H = 320, BC_WX = 92, BC_CX = 222, BC_CY = 210, BC_R = 64
+const NEEDLE_OFF = 90, NEEDLE_ON = 0
+// С справа, дальше по часовой: В снизу, Ю слева, З сверху
+const COMPASS_LETTERS: [string, number][] = [['С', 90], ['В', 180], ['Ю', 270], ['З', 0]]
+const swingKeys = (from: number, to: number) => {
+    const d = to - from
+    return [from, to + d * 0.35, to - d * 0.22, to + d * 0.13, to - d * 0.07, to + d * 0.03, to]
+}
 const PowerSwitch = ({ on, onToggle }: { on: boolean; onToggle: () => void }) => (
     <button type="button" role="switch" aria-checked={on} onClick={onToggle}
         className="mx-auto flex items-center gap-3 select-none">
@@ -357,72 +364,55 @@ const BigCompassScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
     const [on, setOn] = useState(false)
     const [toggles, setToggles] = useState(0)
-    const loops = useRef(0)
-    const dicaprioDone = useRef(false)
     const settled = useRef(false)
-    const finishDicaprio = () => {
-        if (dicaprioDone.current) return
-        dicaprioDone.current = true
-        setPhase(2)
-    }
-    useEffect(() => {
-        if (phase !== 1) return
-        const t = setTimeout(finishDicaprio, 7000) // страховка, если видео не проиграется
-        return () => clearTimeout(t)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [phase])
     const toggle = () => {
         setOn((v) => !v)
-        setToggles((n) => {
-            const next = n + 1
-            // включил и выключил хотя бы раз — можно дальше (играться можно сколько угодно)
-            if (next >= 2 && !settled.current) { settled.current = true; setTimeout(() => onSettled?.(), 900) }
-            return next
-        })
+        const next = toggles + 1
+        setToggles(next)
+        // включил и выключил хотя бы раз — можно дальше (играться можно сколько угодно)
+        if (next >= 2 && !settled.current) { settled.current = true; setTimeout(() => onSettled?.(), 900) }
     }
     return (
         <>
-            <TypedLineWithParts parts={[{ text: 'Однажды заметили…' }]} onSettled={() => setPhase(1)} />
-            {phase === 1 && (
-                <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.45 }}
-                    className="mx-auto">
-                    <video src="/video/dicaprio-look.mp4" autoPlay muted playsInline
-                        onEnded={(e) => {
-                            loops.current += 1
-                            if (loops.current >= DICAPRIO_LOOPS) finishDicaprio()
-                            else { e.currentTarget.currentTime = 0; e.currentTarget.play().catch(() => finishDicaprio()) }
-                        }}
-                        className="pointer-events-none w-48 rounded-2xl" />
-                </motion.div>
-            )}
-            {phase >= 2 && (
-                <TypedLineWithParts
-                    parts={[{ text: '…что ' }, { sticker: 'СТРЕЛКА', color: NEEDLE_RED }, { text: ' компаса ' }, { bold: 'ОТКЛОНЯЕТСЯ' }, { text: ', если рядом течёт ' }, { sticker: 'ТОК', color: CURRENT_COLOR }]}
-                    onSettled={() => setPhase(3)}
-                />
-            )}
-            {phase >= 3 && (
+            <TypedLineWithParts
+                parts={[{ text: 'Однажды заметили, что ' }, { sticker: 'СТРЕЛКА', color: NEEDLE_RED }, { text: ' компаса ' }, { bold: 'ОТКЛОНЯЕТСЯ' }, { text: ', если рядом течёт ' }, { sticker: 'ТОК', color: CURRENT_COLOR }]}
+                onSettled={() => setPhase(1)}
+            />
+            {phase >= 1 && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col items-center gap-3">
-                        <svg viewBox={`0 0 ${BC_W} ${BC_H}`} className="w-full max-w-[300px] h-auto">
-                            <motion.rect x={BC_WX - 7} y={10} width={14} height={BC_H - 20} rx={7}
-                                animate={{ fill: on ? CURRENT_COLOR : '#5C6B73' }} transition={{ duration: 0.3 }} />
-                            {on && <WireChevrons x={BC_WX} y1={10} y2={BC_H - 10} up={false} id="bc-wire" />}
-                            {on && <SvgTag x={BC_WX - 28} y={BC_H - 34} text="I" color={CURRENT_COLOR} />}
-                            {/* компас справа от провода */}
-                            <circle cx={BC_CX} cy={BC_CY} r={BC_R + 8} fill="#C9CFD3" />
-                            <circle cx={BC_CX} cy={BC_CY} r={BC_R} fill="#F2F7FB" stroke="#9AA7B0" strokeWidth={3} />
-                            {['С', 'В', 'Ю', 'З'].map((t, i) => {
-                                const ang = (i * Math.PI) / 2
-                                return <text key={t} x={BC_CX + Math.sin(ang) * (BC_R - 15)} y={BC_CY - Math.cos(ang) * (BC_R - 15) + 6} textAnchor="middle" fontSize={15} fontWeight={900} fill="#5C6B73">{t}</text>
-                            })}
-                            {/* стрелка: CSS-поворот с перелётом */}
-                            <g style={{ transform: `translate(${BC_CX}px, ${BC_CY}px) rotate(${on ? 180 : 0}deg)`, transition: 'transform 1s cubic-bezier(0.34, 1.6, 0.5, 1)' }}>
-                                <path d="M -8 0 L 0 -46 L 8 0 Z" fill={NEEDLE_RED} />
-                                <path d="M -8 0 L 0 46 L 8 0 Z" fill="#53ADEF" />
-                                <circle r={5} fill="#161F23" />
-                            </g>
-                        </svg>
+                        <div className="relative w-full max-w-[300px]">
+                            <svg viewBox={`0 0 ${BC_W} ${BC_H}`} className="w-full h-auto">
+                                <motion.rect x={BC_WX - 7} y={10} width={14} height={BC_H - 20} rx={7}
+                                    animate={{ fill: on ? CURRENT_COLOR : '#5C6B73' }} transition={{ duration: 0.3 }} />
+                                {on && <WireChevrons x={BC_WX} y1={10} y2={BC_H - 10} up id="bc-wire" />}
+                                {on && <SvgTag x={BC_WX - 28} y={34} text="I" color={CURRENT_COLOR} />}
+                                {/* компас справа от провода, север смотрит вправо (от провода) */}
+                                <circle cx={BC_CX} cy={BC_CY} r={BC_R + 8} fill="#C9CFD3" />
+                                <circle cx={BC_CX} cy={BC_CY} r={BC_R} fill="#F2F7FB" stroke="#9AA7B0" strokeWidth={3} />
+                                {COMPASS_LETTERS.map(([t, deg]) => {
+                                    const ang = (deg * Math.PI) / 180
+                                    return <text key={t} x={BC_CX + Math.sin(ang) * (BC_R - 15)} y={BC_CY - Math.cos(ang) * (BC_R - 15) + 6} textAnchor="middle" fontSize={15} fontWeight={900} fill="#5C6B73">{t}</text>
+                                })}
+                                <g transform={`translate(${BC_CX},${BC_CY})`}>
+                                    <motion.g initial={{ rotate: NEEDLE_OFF }}
+                                        animate={{ rotate: toggles === 0 ? NEEDLE_OFF : on ? swingKeys(NEEDLE_OFF, NEEDLE_ON) : swingKeys(NEEDLE_ON, NEEDLE_OFF) }}
+                                        transition={{ duration: 1.8, ease: 'easeOut', times: [0, 0.2, 0.38, 0.55, 0.7, 0.85, 1] }}
+                                        style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
+                                        <path d="M -8 0 L 0 -46 L 8 0 Z" fill={NEEDLE_RED} />
+                                        <path d="M -8 0 L 0 46 L 8 0 Z" fill="#53ADEF" />
+                                        <circle r={5} fill="#161F23" />
+                                    </motion.g>
+                                </g>
+                            </svg>
+                            {/* ДиКаприо присматривается, пока течёт ток */}
+                            {on && (
+                                <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
+                                    className="absolute right-0 top-0 w-28" style={{ transformOrigin: 'top right' }}>
+                                    <video src="/video/dicaprio-look.mp4" autoPlay loop muted playsInline className="pointer-events-none w-full rounded-2xl" />
+                                </motion.div>
+                            )}
+                        </div>
                         <PowerSwitch on={on} onToggle={toggle} />
                         {toggles === 0 && <p className="text-sm font-black text-[#9AA7B0] animate-pulse">Щёлкни рубильник 👆</p>}
                     </div>
@@ -502,7 +492,7 @@ const HandRuleScene = ({ onSettled }: { onSettled?: () => void }) => {
             )}
             {phase >= 2 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Большой палец — по ' }, { sticker: 'току I', color: CURRENT_COLOR }, { break: true }, { text: 'Пальцы крутят ' }, { sticker: 'поле B', color: FIELD_COLOR }]}
+                    parts={[{ text: 'Большой палец — по ' }, { sticker: 'току I', color: CURRENT_COLOR }, { break: true }, { text: 'Остальные крутят ' }, { sticker: 'поле B', color: FIELD_COLOR }]}
                     onSettled={() => setPhase(3)}
                 />
             )}
