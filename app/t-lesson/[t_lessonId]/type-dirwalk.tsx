@@ -438,7 +438,7 @@ const RingsFlipScene = ({ onSettled }: { onSettled?: () => void }) => {
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'Поле ' }, { sticker: 'B', color: FIELD_COLOR }, { text: ' крутится вокруг провода — как хула-хуп 🌀' }]}
+                parts={[{ sticker: 'Магнитное поле B', color: FIELD_COLOR }, { text: ' крутится вокруг провода — как хула-хуп 🌀' }]}
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
