@@ -522,7 +522,7 @@ const IntroScene = ({ onSettled }: { onSettled?: () => void }) => {
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'Магнит над ' }, { sticker: 'кольцом', color: RING_COLOR }, { text: '.' }]}
+                parts={[{ text: 'А теперь на ' }, { bold: 'настоящем' }, { text: ' магните 🧲 Магнит над ' }, { sticker: 'кольцом', color: RING_COLOR }, { text: '.' }]}
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
@@ -554,20 +554,20 @@ const IntroScene = ({ onSettled }: { onSettled?: () => void }) => {
             )}
             {phase >= 5 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Двигаешь — ' }, { sticker: 'ток', color: CURRENT_COLOR }, { text: ' есть. Стоишь — ' }, { bold: 'нет' }, { text: '.' }]}
+                    parts={[{ text: 'Двигаешь — поток ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ' меняется — и в кольце ' }, { bold: 'ВКЛЮЧАЕТСЯ' }, { text: ' ' }, { sticker: 'I инд', color: CURRENT_COLOR }, { text: ' ⚡ Стоишь — ' }, { bold: 'тишина' }, { text: ' 😴' }]}
                     onSettled={() => setPhase(6)}
                 />
             )}
             {phase >= 6 && (
                 <DiagramBlock onSettled={() => setTimeout(() => setPhase(7), 1600)}>
                     <InsightCard>
-                        Ток — только пока Φ <InsightWord>МЕНЯЕТСЯ</InsightWord>.
-                        <br /><InsightWord color="#FF9AC8">Индукционный ток</InsightWord>
+                        Нет изменения Φ — нет работы кольцу.
+                        <br /><InsightWord color="#FF9AC8">Индукционный ток</InsightWord> живёт, только пока Φ <InsightWord>МЕНЯЕТСЯ</InsightWord>.
                     </InsightCard>
                 </DiagramBlock>
             )}
             {phase >= 7 && (
-                <TypedLineWithParts parts={[{ bold: 'А почему?' }, { text: ' 🤔' }]} onSettled={onSettled} />
+                <TypedLineWithParts parts={[{ text: 'А теперь — ' }, { bold: 'драка' }, { text: ' магнита с кольцом. Смотри, кто кого 🥊' }]} onSettled={onSettled} />
             )}
         </>
     )
@@ -941,7 +941,7 @@ const ElasticFluxScene = ({ onSettled }: { onSettled?: () => void }) => {
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'Поток ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ' — цилиндр. Он ' }, { bold: 'упругий' }, { text: ', как пружина 🌀' }]}
+                parts={[{ text: 'Окей, ломаем! Поток ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ' — наш цилиндр. Попробуй его ' }, { bold: 'растянуть' }, { text: ' 💪' }]}
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
@@ -971,8 +971,8 @@ const ElasticFluxScene = ({ onSettled }: { onSettled?: () => void }) => {
             {phase >= 5 && (
                 <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1400)}>
                     <InsightCard>
-                        Поток хочет <InsightWord>НЕ МЕНЯТЬСЯ</InsightWord>.
-                        <br /><InsightWord color="#FF9AC8">B инд</InsightWord> — пружина, которая возвращает его обратно.
+                        Не вышло 😅 Поток <InsightWord>НЕ ДАЁТ</InsightWord> себя менять.
+                        <br />Его возвращает обратно <InsightWord color="#FF9AC8">B инд</InsightWord> — поле-«пружина».
                     </InsightCard>
                 </DiagramBlock>
             )}
@@ -1371,7 +1371,144 @@ const SpeedScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-const CONCEPT_SCENES = [IntroScene, ElasticFluxScene, BattleScene, PullScene, LenzRuleScene, RepelScene, SpeedScene, HandScene, GameScene]
+// ===== Новое начало (2026-09-29): от закона урока Фарадея к индукционному току =====
+
+// Кнопка-реплика ученика (продолжить сцену своим «ответом»).
+const ReplyBtn = ({ children, onClick, color = RULE_COLOR }: { children: React.ReactNode; onClick: () => void; color?: string }) => (
+    <motion.button type="button" onClick={onClick}
+        initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.55 }}
+        className="mx-auto rounded-2xl px-6 py-3 text-lg font-black text-white shadow-[0_5px_0_var(--edge)] active:translate-y-[3px] active:shadow-[0_2px_0_var(--edge)] transition-[transform,box-shadow] duration-75"
+        style={{ backgroundColor: color, ['--edge' as string]: darken(color) }}>
+        {children}
+    </motion.button>
+)
+
+// 0. «Помнишь? Поток НЕ должен меняться. Это закон. …А если захочется поменять?»
+const HookScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const [chosen, setChosen] = useState(false)
+    const PHI = GGEGE_PALETTE.purple.button
+    return (
+        <>
+            <TypedLineWithParts
+                parts={[{ text: 'Помнишь? Поток ' }, { sticker: 'Φ', color: PHI }, { text: ' должен ' }, { bold: 'НЕ МЕНЯТЬСЯ' }, { text: '!' }]}
+                onSettled={() => setPhase(1)}
+            />
+            {phase >= 1 && (
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 900)}>
+                    <div className="relative w-full flex justify-center">
+                        <svg viewBox="0 0 320 200" className="w-full max-w-[300px] h-auto">
+                            <FluxCylinder cx={160} cy={96} radius={62} depth={16} length={130} orient="v" color={PHI} />
+                            <FieldArrow x1={160} y1={40} x2={160} y2={156} color={FIELD_COLOR} width={6} head={10} />
+                            <ellipse cx={160} cy={161} rx={62} ry={16} fill="none" stroke={RING_COLOR} strokeWidth={6} />
+                            <SvgSticker x={250} y={96} text="Φ" color={PHI} />
+                        </svg>
+                        {/* печать «ЗАКОН» */}
+                        <motion.div initial={{ scale: 3.2, opacity: 0, rotate: -30 }} animate={{ scale: 1, opacity: 1, rotate: -12 }}
+                            transition={{ delay: 0.5, type: 'spring', bounce: 0.45 }}
+                            className="absolute left-2 top-3 rounded-lg border-[3px] px-2 py-1 text-base font-black tracking-widest"
+                            style={{ borderColor: '#DC605B', color: '#DC605B', backgroundColor: 'rgba(220,96,91,0.12)' }}>
+                            🔒 ЗАКОН
+                        </motion.div>
+                    </div>
+                </DiagramBlock>
+            )}
+            {phase >= 2 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Это закон. Природа за ним следит строже, чем завуч на входе 👮' }]}
+                    onSettled={() => setPhase(3)}
+                />
+            )}
+            {phase >= 3 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Но что если… нам ' }, { bold: 'захочется' }, { text: ' его поменять? 😈' }]}
+                    onSettled={() => setPhase(4)}
+                />
+            )}
+            {phase >= 4 && !chosen && (
+                <ReplyBtn onClick={() => { setChosen(true); setTimeout(() => onSettled?.(), 300) }}>Хочу! Ломаем 😈</ReplyBtn>
+            )}
+        </>
+    )
+}
+
+// 2. Кто делает B инд? Само кольцо: в нём включается ТОК, а ток создаёт поле
+// (как в уроке про правую руку). Ученик сам жмёт «включить ток».
+// Ток спереди вправо ⇔ поле кольца вверх (конвенция файла, см. шапку).
+const WHO_CX = 160, WHO_CY = 150, WHO_RX = 96, WHO_RY = 26
+const WhoScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    const [on, setOn] = useState(false)
+    const back = `M ${WHO_CX - WHO_RX} ${WHO_CY} A ${WHO_RX} ${WHO_RY} 0 0 1 ${WHO_CX + WHO_RX} ${WHO_CY}`
+    const front = `M ${WHO_CX - WHO_RX} ${WHO_CY} A ${WHO_RX} ${WHO_RY} 0 0 0 ${WHO_CX + WHO_RX} ${WHO_CY}`
+    const ringCol = on ? CURRENT_COLOR : RING_COLOR
+    const turnOn = () => {
+        if (on) return
+        setOn(true)
+        setTimeout(() => setPhase(3), 1800)
+    }
+    return (
+        <>
+            <TypedLineWithParts
+                parts={[{ text: 'Стоп. А кто вообще делает это ' }, { sticker: 'B инд', color: OWN_COLOR }, { text: '? 🤔' }]}
+                onSettled={() => setPhase(1)}
+            />
+            {phase >= 1 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Само ' }, { sticker: 'кольцо', color: RING_COLOR }, { text: '! Сначала в нём включается ' }, { sticker: 'ток', color: CURRENT_COLOR }, { text: '. Жми 👇' }]}
+                    onSettled={() => setPhase(2)}
+                />
+            )}
+            {phase >= 2 && (
+                <DiagramBlock>
+                    <div className="w-full flex flex-col items-center gap-3">
+                        <svg viewBox="0 0 320 250" className="w-full max-w-[320px] h-auto">
+                            <path d={back} fill="none" stroke={ringCol} strokeWidth={7} strokeLinecap="round" />
+                            {on && (
+                                <motion.g initial={{ opacity: 0, scaleY: 0.1 }} animate={{ opacity: 1, scaleY: 1 }}
+                                    transition={{ delay: 0.7, type: 'spring', bounce: 0.4 }}
+                                    style={{ transformBox: 'fill-box', transformOrigin: 'bottom' }}>
+                                    <FieldArrow x1={WHO_CX} y1={WHO_CY + 60} x2={WHO_CX} y2={WHO_CY - 110} color={OWN_COLOR} width={7} head={11} />
+                                </motion.g>
+                            )}
+                            <path d={front} fill="none" stroke={ringCol} strokeWidth={7} strokeLinecap="round" />
+                            {on && (
+                                <>
+                                    <motion.path d={front} fill="none" stroke="#fff" strokeWidth={3} strokeDasharray="6 18" strokeLinecap="round"
+                                        animate={{ strokeDashoffset: [0, -48] }} transition={{ duration: 0.6, repeat: Infinity, ease: 'linear' }} />
+                                    <g transform={`translate(${WHO_CX + WHO_RX + 4},${WHO_CY + WHO_RY + 18})`}>
+                                        <PulseSticker text="I инд" color={CURRENT_COLOR} />
+                                    </g>
+                                    <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1 }}>
+                                        <SvgSticker x={WHO_CX + 44} y={WHO_CY - 92} text="B" sub="инд" color={OWN_COLOR} />
+                                    </motion.g>
+                                </>
+                            )}
+                        </svg>
+                        {!on && <ReplyBtn onClick={turnOn} color={CURRENT_COLOR}>⚡ Включить ток</ReplyBtn>}
+                    </div>
+                </DiagramBlock>
+            )}
+            {phase >= 3 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Ток бежит по кольцу — и рождает поле ' }, { sticker: 'B инд', color: OWN_COLOR }, { text: '. Как в уроке про правую руку 🤙' }]}
+                    onSettled={() => setPhase(4)}
+                />
+            )}
+            {phase >= 4 && (
+                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1400)}>
+                    <InsightCard label="🛡️ Цепочка защиты">
+                        Φ пытается измениться →<br />в кольце включается <InsightWord color="#FF9AC8">ток I инд</InsightWord> →<br />
+                        он делает <InsightWord color="#FF9AC8">B инд</InsightWord> → поток <InsightWord>держится</InsightWord>.
+                        <br /><span className="text-base font-bold">Этот ток и зовут <b>индукционным</b>.</span>
+                    </InsightCard>
+                </DiagramBlock>
+            )}
+        </>
+    )
+}
+
+const CONCEPT_SCENES = [HookScene, ElasticFluxScene, WhoScene, IntroScene, BattleScene, PullScene, LenzRuleScene, RepelScene, SpeedScene, HandScene, GameScene]
 const INTRO_CONCEPT_STEPS = CONCEPT_SCENES.length
 
 const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
