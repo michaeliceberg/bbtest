@@ -47,6 +47,7 @@ import {
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     isFieryMilestoneTrial, FieryFeedbackBanner,
     AdminSceneMap, MAP_INTRO_COLOR, MAP_PRACTICE_COLOR, type AdminMapEntry,
+    useWalkthroughCombo,
 } from '@/components/geometry/WalkthroughLog'
 import { hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
@@ -341,17 +342,24 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
 
     const cfg = currentTrialIdx !== null ? trials[currentTrialIdx] : null
 
+    // молнии «КОМБО»: засчитываем только задания, решённые с первой попытки
+    const registerCombo = useWalkthroughCombo()
+    const trialMissRef = useRef(false)
+    useEffect(() => { trialMissRef.current = false }, [currentTrialIdx])
+
     // Клик по числу в пуле — заполняет активный пропуск; если ОБА пропуска
     // после этого заполнены, сразу проверяет пару (мгновенная проверка, без
     // кнопки "Ответить"). round-robin активного пропуска — как в INSERT.
     const evaluate = (numVal: number | null, denVal: number | null) => {
         if (numVal === null || denVal === null || !cfg) return
         if (numVal === correctNumerator(cfg) && denVal === correctDenominator(cfg)) {
+            registerCombo(!trialMissRef.current)
             setChecked(true)
             setWrongFlash(null)
         } else {
             playSound(WRONG_ANSWER_SOUND)
             setHadMistake(true)
+            trialMissRef.current = true
             setWrongFlash(pickWrongTryPhrase())
         }
     }

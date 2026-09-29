@@ -197,6 +197,19 @@ export default function TQuiz({
     preloadSound(CASE_PRIZE_SOUND)
     // Щелчок по вариантам в пошаговых разборах (*WALK).
   }, [])
+  // Молнии из пошаговых разборов (*WALK): разбор сам считает задания подряд с первой
+  // попытки и шлёт событие (useWalkthroughCombo) — рисуем тот же удар молнии.
+  useEffect(() => {
+    const onCombo = (e: Event) => {
+      const n = (e as CustomEvent<{ n: number }>).detail?.n ?? 0
+      setLightningVariant(n % 8 === 0 ? 'blue' : 'yellow')
+      setLightningLabel(`КОМБО x${n}`)
+      setLightningStrikeKey(k => k + 1)
+      setLightningStrikeActive(true)
+    }
+    window.addEventListener('walkthrough-combo', onCombo)
+    return () => window.removeEventListener('walkthrough-combo', onCombo)
+  }, [])
   const [showStreakCelebration, setShowStreakCelebration] = useState(false)
   // Какой именно рубеж серии сейчас празднуем — 3 или 7 (см.
   // STREAK_MILESTONES ниже). Молния/экран поздравления — общие

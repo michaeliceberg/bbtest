@@ -13,7 +13,7 @@
 // цитата с оранжевой пометкой "Условие" рядом. Если диаграмма меняется —
 // рисуется НОВый экземпляр ниже, старый не трогается.
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import dynamic from 'next/dynamic'
 import Latex from 'react-latex-next'
@@ -246,6 +246,22 @@ export function useSceneFocus(latestKey: string, contentSettled: boolean, topPad
 // NumSticker bounce — проигралась заново, а не осталась в уже
 // осевшем состоянии). Key самой сцены/SceneWrapper — СТАБИЛЬНЫЙ (`step-N`,
 // без nonce), а вложенный внутрь неё контент — `key={`step-N-${nonceFor('step-N')}`}`.
+// Молнии «КОМБО» в разборах (как в обычном тренажёре): считаем задания подряд,
+// решённые С ПЕРВОЙ попытки. 5 (10, 15…) — жёлтая, 8 (16…) — синяя. Ошибка
+// обнуляет серию. Молнию рисует TQUIZ (слушает событие) — тем же LightningStrike.
+export const WALKTHROUGH_COMBO_EVENT = 'walkthrough-combo'
+export function useWalkthroughCombo() {
+    const streak = useRef(0)
+    return useCallback((firstTry: boolean) => {
+        if (!firstTry) { streak.current = 0; return }
+        streak.current += 1
+        const n = streak.current
+        if (n % 5 === 0 || n % 8 === 0) {
+            window.dispatchEvent(new CustomEvent(WALKTHROUGH_COMBO_EVENT, { detail: { n } }))
+        }
+    }, [])
+}
+
 export function useReplayNonces() {
     const [nonces, setNonces] = useState<Record<string, number>>({})
     const bump = (key: string) => setNonces((prev) => ({ ...prev, [key]: (prev[key] ?? 0) + 1 }))

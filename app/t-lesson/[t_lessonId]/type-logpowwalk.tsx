@@ -47,6 +47,7 @@ import {
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     isFieryMilestoneTrial, FieryFeedbackBanner,
+    useWalkthroughCombo,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -633,6 +634,7 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
     // wrongFlash — ПЕРСИСТЕНТНОЕ сообщение под вариантами (не гаснет по
     // таймеру).
     const [wrongTried, setWrongTried] = useState<PowOption[]>([])
+    const registerCombo = useWalkthroughCombo()
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
 
 
@@ -644,6 +646,7 @@ export const TypeLogPowWalk = ({ onAnswer, onComplete }: Props) => {
         if (checked) return
         if (wrongTried.some((w) => sameOption(w, option))) return
         if (sameOption(option, currentCorrectOption)) {
+            registerCombo(wrongTried.length === 0)
             setChecked(true)
             setTrialNextLabel(pickWalkthroughNextLabel('Дальше'))
         } else {

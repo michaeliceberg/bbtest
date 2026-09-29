@@ -40,6 +40,7 @@ import {
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     isFieryMilestoneTrial, FieryFeedbackBanner,
+    useWalkthroughCombo,
 } from '@/components/geometry/WalkthroughLog'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
@@ -370,6 +371,7 @@ export const TypeLogFlipWalk = ({ onAnswer, onComplete }: Props) => {
     // сообщение под вариантами (не гаснет по таймеру, остаётся до
     // следующего клика).
     const [wrongTried, setWrongTried] = useState<FlipOption[]>([])
+    const registerCombo = useWalkthroughCombo()
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
 
     const currentCorrectOption: FlipOption = { flipped: true, reciprocal: true }
@@ -378,6 +380,7 @@ export const TypeLogFlipWalk = ({ onAnswer, onComplete }: Props) => {
         if (checked) return
         if (wrongTried.some((w) => sameOption(w, option))) return
         if (sameOption(option, currentCorrectOption)) {
+            registerCombo(wrongTried.length === 0)
             setChecked(true)
             setTrialNextLabel(pickWalkthroughNextLabel('Дальше'))
         } else {

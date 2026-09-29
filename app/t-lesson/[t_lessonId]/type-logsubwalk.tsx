@@ -44,6 +44,7 @@ import {
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     isFieryMilestoneTrial, FieryFeedbackBanner,
+    useWalkthroughCombo,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -629,6 +630,7 @@ export const TypeLogSubWalk = ({ onAnswer, onComplete }: Props) => {
     // ТЕКУЩЕГО задания красятся красным и блокируются, wrongFlash —
     // ПЕРСИСТЕНТНОЕ сообщение под вариантами (не гаснет по таймеру).
     const [wrongTried, setWrongTried] = useState<number[]>([])
+    const registerCombo = useWalkthroughCombo()
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
     // Конфетти на финальный "Ответ: log₂3" — та же причина, что в LOGWALK.
     const [showAnswerConfetti, setShowAnswerConfetti] = useState(false)
@@ -639,6 +641,7 @@ export const TypeLogSubWalk = ({ onAnswer, onComplete }: Props) => {
         if (checked) return
         if (wrongTried.includes(value)) return
         if (value === currentCorrectValue) {
+            registerCombo(wrongTried.length === 0)
             setChecked(true)
             setTrialNextLabel(pickWalkthroughNextLabel('Дальше'))
         } else {

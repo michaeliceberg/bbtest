@@ -29,6 +29,7 @@ import {
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     isFieryMilestoneTrial, FieryFeedbackBanner,
+    useWalkthroughCombo,
 } from '@/components/geometry/WalkthroughLog'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
@@ -892,6 +893,7 @@ export const TypeTrigValWalk = ({ onAnswer, onComplete, mode }: Props) => {
     const [trialIndex, setTrialIndex] = useState(0)
     const [checked, setChecked] = useState(false)
     const [wrongTried, setWrongTried] = useState<string[]>([])
+    const registerCombo = useWalkthroughCombo()
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
 
     const [introNextLabel, setIntroNextLabel] = useState('Дальше')
@@ -903,6 +905,7 @@ export const TypeTrigValWalk = ({ onAnswer, onComplete, mode }: Props) => {
         const k = optKey(o)
         if (wrongTried.includes(k)) return
         if (k === correctOptKey(t)) {
+            registerCombo(wrongTried.length === 0)
             setChecked(true)
             setTrialNextLabel(pickWalkthroughNextLabel('Дальше'))
         } else {

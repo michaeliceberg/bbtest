@@ -26,6 +26,7 @@ import {
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     isFieryMilestoneTrial, FieryFeedbackBanner,
+    useWalkthroughCombo,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -580,6 +581,7 @@ export const TypeTrigCircleWalk = ({ onAnswer, onComplete }: Props) => {
     const [trialIndex, setTrialIndex] = useState(0)
     const [checked, setChecked] = useState(false)
     const [wrongTried, setWrongTried] = useState<string[]>([])
+    const registerCombo = useWalkthroughCombo()
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
 
     const [introNextLabel, setIntroNextLabel] = useState('Дальше')
@@ -589,6 +591,7 @@ export const TypeTrigCircleWalk = ({ onAnswer, onComplete }: Props) => {
     const handleOptionClick = (t: Trial, o: string) => {
         if (checked || wrongTried.includes(o)) return
         if (o === t.correct) {
+            registerCombo(wrongTried.length === 0)
             setChecked(true)
             setTrialNextLabel(pickWalkthroughNextLabel('Дальше'))
         } else {

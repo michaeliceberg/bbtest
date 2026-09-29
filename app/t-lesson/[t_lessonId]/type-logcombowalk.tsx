@@ -44,6 +44,7 @@ import {
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     isFieryMilestoneTrial, FieryFeedbackBanner,
+    useWalkthroughCombo,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -637,6 +638,7 @@ export const TypeLogComboWalk = ({ onAnswer, onComplete }: Props) => {
     // читалось как "сообщение исчезло само" — по прямой просьбе
     // пользователя теперь остаётся на экране до следующего клика.
     const [wrongTried, setWrongTried] = useState<ComboOption[]>([])
+    const registerCombo = useWalkthroughCombo()
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
 
     const step0Ref = useRef<HTMLDivElement>(null)
@@ -647,6 +649,7 @@ export const TypeLogComboWalk = ({ onAnswer, onComplete }: Props) => {
         if (checked) return
         if (wrongTried.some((w) => sameOption(w, option))) return
         if (sameOption(option, currentCorrectOption)) {
+            registerCombo(wrongTried.length === 0)
             setChecked(true)
             setTrialNextLabel(pickWalkthroughNextLabel('Дальше'))
         } else {

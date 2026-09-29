@@ -48,6 +48,7 @@ import {
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     BlinkingExclaim, SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     isFieryMilestoneTrial, useLottieModuleReady,
+    useWalkthroughCombo,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -559,6 +560,8 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
     // вариантами — сбрасываются при переходе на следующий шаг/откате назад.
     const [quizWrongTried, setQuizWrongTried] = useState<number[]>([])
     const [quizWrongFlash, setQuizWrongFlash] = useState<string | null>(null)
+    // молнии «КОМБО»: задания подряд с первой попытки (вводное «2³=?» не считаем)
+    const registerCombo = useWalkthroughCombo()
 
     const [existIndex, setExistIndex] = useState(0)
     const [existAnswers, setExistAnswers] = useState<(boolean | null)[]>(Array(EXIST_ITEMS.length).fill(null))
@@ -590,6 +593,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
             setQuizWrongFlash(pickWrongTryPhrase())
             return
         }
+        if (stepIdx !== 0) registerCombo(quizWrongTried.length === 0)
         const next = [...quizAnswers]
         next[stepIdx] = value
         setQuizAnswers(next)
@@ -607,6 +611,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
         next[existIndex] = guess
         setExistAnswers(next)
         setExistChecked(true)
+        registerCombo(guess === EXIST_ITEMS[existIndex].correct)
         if (guess !== EXIST_ITEMS[existIndex].correct) {
             playSound(WRONG_ANSWER_SOUND)
             setHadMistake(true)

@@ -33,6 +33,7 @@ import {
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     isFieryMilestoneTrial, FieryFeedbackBanner, CORRECT_COLOR,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
+    useWalkthroughCombo,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { InsightCard, InsightWord } from '@/components/geometry/WalkthroughCards'
@@ -1520,6 +1521,7 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
     const [trialIndex, setTrialIndex] = useState(0)
     const [checked, setChecked] = useState(false)
     const [wrongTried, setWrongTried] = useState<number[]>([])
+    const registerCombo = useWalkthroughCombo()
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
     const [hadMistake, setHadMistake] = useState(false)
     const [advancing, setAdvancing] = useState(false)
@@ -1543,6 +1545,7 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
     const handlePick = (i: number, k: number) => {
         if (checked || wrongTried.includes(k)) return
         if (k === CONCEPT_QUIZ[i].correct) {
+            registerCombo(wrongTried.length === 0)
             setChecked(true)
             setNextLabel(pickWalkthroughNextLabel(trialIndex + 1 >= CONCEPT_QUIZ.length ? 'Готово' : 'Дальше'))
         } else {

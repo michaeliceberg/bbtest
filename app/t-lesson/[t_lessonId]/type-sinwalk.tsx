@@ -55,6 +55,7 @@ import {
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     isFieryMilestoneTrial, FieryFeedbackBanner,
     AdminSceneMap, MAP_INTRO_COLOR, MAP_PRACTICE_COLOR, type AdminMapEntry,
+    useWalkthroughCombo,
 } from '@/components/geometry/WalkthroughLog'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
@@ -413,6 +414,7 @@ export const TypeSinWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) =>
     // wrongFlash — ПЕРСИСТЕНТНОЕ сообщение под диаграммой на неверный
     // клик (не гаснет по таймеру, остаётся до следующего клика).
     const [wrongTried, setWrongTried] = useState<SideId[]>([])
+    const registerCombo = useWalkthroughCombo()
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
 
     // Счётчики "повторов" — ОТДЕЛЬНЫЙ nonce на каждый шаг/задание
@@ -445,6 +447,7 @@ export const TypeSinWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) =>
         if (checked) return
         if (wrongTried.includes(side)) return
         if (side === currentCorrectSide) {
+            registerCombo(wrongTried.length === 0)
             setChecked(true)
             setTrialNextLabel(pickWalkthroughNextLabel('Дальше'))
         } else {

@@ -35,6 +35,7 @@ import {
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     isFieryMilestoneTrial, FieryFeedbackBanner, BlinkingExclaim, ATTENTION_COLOR, ACTIVE_COLOR,
     AdminSceneMap, MAP_INTRO_COLOR, MAP_PRACTICE_COLOR, type AdminMapEntry,
+    useWalkthroughCombo,
 } from '@/components/geometry/WalkthroughLog'
 import { hexToRgba } from '@/src/constants/lessonButtonColors'
 import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
@@ -281,6 +282,7 @@ export const TypeLegFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
 
     const [trials] = useState<TrialConfig[]>(() => makeTrials())
     const [wrongTried, setWrongTried] = useState<string[]>([])
+    const registerCombo = useWalkthroughCombo()
     const [checked, setChecked] = useState(false)
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
     const [nextLabel, setNextLabel] = useState('Дальше')
@@ -333,6 +335,7 @@ export const TypeLegFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
     const handleOptionClick = (opt: TrialOption) => {
         if (checked || wrongTried.includes(opt.text)) return
         if (opt.correct) {
+            registerCombo(wrongTried.length === 0)
             setChecked(true)
             setWrongFlash(null)
             setNextLabel(pickWalkthroughNextLabel(isLastScene ? 'Готово' : 'Дальше'))

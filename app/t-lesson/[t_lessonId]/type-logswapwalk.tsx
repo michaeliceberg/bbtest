@@ -41,6 +41,7 @@ import {
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     isFieryMilestoneTrial, FieryFeedbackBanner,
+    useWalkthroughCombo,
 } from '@/components/geometry/WalkthroughLog'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
@@ -415,6 +416,7 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
     // неверно нажатые формулы ТЕКУЩЕГО задания красятся красным и
     // блокируются, wrongFlash — ПЕРСИСТЕНТНОЕ сообщение под вариантами.
     const [wrongTried, setWrongTried] = useState<SwapOption[]>([])
+    const registerCombo = useWalkthroughCombo()
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
 
     const currentCorrectOption = trials[trialIndex].options.find(
@@ -425,6 +427,7 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
         if (checked) return
         if (wrongTried.some((w) => sameOption(w, option))) return
         if (sameOption(option, currentCorrectOption)) {
+            registerCombo(wrongTried.length === 0)
             setChecked(true)
             setTrialNextLabel(pickWalkthroughNextLabel('Дальше'))
         } else {

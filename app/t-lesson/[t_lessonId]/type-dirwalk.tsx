@@ -26,6 +26,7 @@ import {
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     isFieryMilestoneTrial, FieryFeedbackBanner, CORRECT_COLOR,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
+    useWalkthroughCombo,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { InsightCard, InsightWord } from '@/components/geometry/WalkthroughCards'
@@ -563,7 +564,8 @@ const GripGameScene = ({ onSettled }: { onSettled?: () => void }) => {
                 <DiagramBlock>
                     <div className="w-full flex flex-col items-center gap-3">
                         <p className="text-sm font-black text-[#9AA7B0]">{done ? 'Все раунды пройдены!' : `Раунд ${round + 1} из ${rounds.length}`}</p>
-                        <HandGrip key={`${round}-${cur}`} cur={cur} showHand={step !== 'hand'} showRing={step === 'ok' || done} />
+                        {/* после всех раундов провод с полем убираем — уже потренировались */}
+                        {!done && <HandGrip key={`${round}-${cur}`} cur={cur} showHand={step !== 'hand'} showRing={step === 'ok'} />}
                         {!done && step === 'hand' && (
                             <>
                                 <p className="text-base font-black text-[#F2F7FB]">Как схватить провод?</p>
@@ -585,7 +587,7 @@ const GripGameScene = ({ onSettled }: { onSettled?: () => void }) => {
                         {step === 'ok' && !done && <p className="text-lg font-black text-[#A1D151]">Точно! 🔥</p>}
                         {step === 'handOk' && <p className="text-lg font-black text-[#A1D151]">Верно! Палец по току ✋</p>}
                         {wrong && step !== 'ok' && <div className="rounded-xl px-4 py-2 text-sm font-bold text-center bg-[#DC605B22] text-[#DC605B]">{wrong}</div>}
-                        {done && <p className="text-lg font-black text-[#A1D151]">Правая рука прокачана 💪</p>}
+                        {done && <p className="text-lg font-black text-[#A1D151]">ТВОЯ Правая рука прокачана 💪</p>}
                         {done && (
                             // на видео левая рука — отражаем по горизонтали (scaleX(-1)), чтобы была правая
                             <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5, delay: 0.3 }}>
@@ -615,22 +617,26 @@ const EndBadge = ({ kind, label, delay }: { kind: 'dot' | 'cross'; label: string
         <span className="whitespace-pre-line text-xs md:text-sm font-black text-center leading-tight" style={{ color: FIELD_COLOR }}>{label}</span>
     </motion.div>
 )
-const ArrowDotCross = () => (
-    <div className="w-full flex flex-col items-center gap-2">
-        <motion.div initial={{ x: -40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ type: 'spring', bounce: 0.35, duration: 0.7 }}
+// Стрела: после паузы прилетает слева направо с ЗАМЕДЛЕНИЕМ; когда ученик жмёт
+// «Дальше» (leaving) — сначала улетает вправо с РАЗГОНОМ, потом обычный переход.
+const ArrowDotCross = ({ leaving = false }: { leaving?: boolean }) => (
+    <div className="w-full flex flex-col items-center gap-2 overflow-x-clip">
+        <motion.div initial={{ x: '-140%' }}
+            animate={leaving ? { x: '160%' } : { x: 0 }}
+            transition={leaving ? { duration: 0.6, ease: [0.7, 0, 0.84, 0] } : { duration: 1.1, ease: [0.16, 1, 0.3, 1], delay: 0.6 }}
             className="w-full max-w-[340px]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/lesson-pics/arrow.webp" alt="Стрела" className="w-full h-auto" draggable={false} />
         </motion.div>
         <div className="w-full max-w-[340px] flex justify-between px-1">
-            <EndBadge kind="cross" label={'хвост —\nот тебя'} delay={0.6} />
-            <EndBadge kind="dot" label={'остриё —\nна тебя'} delay={1.1} />
+            <EndBadge kind="cross" label={'хвост —\nот тебя'} delay={1.8} />
+            <EndBadge kind="dot" label={'остриё —\nна тебя'} delay={2.2} />
         </div>
     </div>
 )
 
 // 4. Как рисуют в задачах: • и ×.
-const DotCrossScene = ({ onSettled }: { onSettled?: () => void }) => {
+const DotCrossScene = ({ onSettled, leaving }: { onSettled?: () => void; leaving?: boolean }) => {
     const [phase, setPhase] = useState(0)
     return (
         <>
@@ -650,8 +656,8 @@ const DotCrossScene = ({ onSettled }: { onSettled?: () => void }) => {
                 <TypedLine text="Как стрела 🏹: остриё выглядит, как точка, а хвост — как крестик." className={TEXT_CLS} onSettled={() => setPhase(4)} />
             )}
             {phase >= 4 && (
-                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1400)}>
-                    <ArrowDotCross />
+                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 2600)}>
+                    <ArrowDotCross leaving={leaving} />
                 </DiagramBlock>
             )}
         </>
@@ -698,7 +704,7 @@ const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
                     step >= i ? (
                         <SceneWrapper key={`step-${i}`} innerRef={sceneRef(`step-${i}`)} active={isSceneActive(`step-${i}`)}>
                             <Fragment key={`step-${i}-${nonceFor(`step-${i}`)}`}>
-                                <Scene onSettled={() => i === step && setStepReady(true)} />
+                                <Scene onSettled={() => i === step && setStepReady(true)} leaving={advancing && i === step} />
                             </Fragment>
                         </SceneWrapper>
                     ) : null,
@@ -729,7 +735,7 @@ type ConceptQuizItem = {
 
 const CONCEPT_QUIZ: ConceptQuizItem[] = [
     {
-        renderPrompt: () => <>Как называется правило для направления поля вокруг провода?</>,
+        renderPrompt: () => <>Как называется <Sticker value="правило" color={REMEMBER_COLOR} /> для направления поля вокруг провода?</>,
         renderOptions: () => ['Правило правой руки', 'Правило левой ноги'],
         correct: 0,
         feedback: 'Правило правой руки: большой палец — по току.',
@@ -793,6 +799,7 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
     const [trialIndex, setTrialIndex] = useState(0)
     const [checked, setChecked] = useState(false)
     const [wrongTried, setWrongTried] = useState<number[]>([])
+    const registerCombo = useWalkthroughCombo()
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
     const [hadMistake, setHadMistake] = useState(false)
     const [advancing, setAdvancing] = useState(false)
@@ -816,6 +823,7 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
     const handlePick = (i: number, k: number) => {
         if (checked || wrongTried.includes(k)) return
         if (k === CONCEPT_QUIZ[i].correct) {
+            registerCombo(wrongTried.length === 0)
             setChecked(true)
             setNextLabel(pickWalkthroughNextLabel(trialIndex + 1 >= CONCEPT_QUIZ.length ? 'Готово' : 'Дальше'))
         } else {

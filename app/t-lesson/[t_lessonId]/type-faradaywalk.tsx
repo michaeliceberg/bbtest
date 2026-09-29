@@ -45,6 +45,7 @@ import {
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     isFieryMilestoneTrial, FieryFeedbackBanner, CORRECT_COLOR, WRONG_COLOR, PENDING_COLOR,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
+    useWalkthroughCombo,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { FluxCylinder, FieldArrow, SvgTag } from '@/components/geometry/FluxCylinder'
@@ -1883,6 +1884,7 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
     const [advancing, setAdvancing] = useState(false)
     const [nextLabel, setNextLabel] = useState('Дальше')
 
+    const registerCombo = useWalkthroughCombo()
     const { bump: bumpNonce, nonceFor } = useReplayNonces()
     const latestSceneKey = `q-${trialIndex}`
     const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, checked)
@@ -1905,6 +1907,7 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
     const handlePick = (i: number, k: number) => {
         if (checked || wrongTried.includes(k)) return
         if (k === CONCEPT_QUIZ[i].correct) {
+            registerCombo(wrongTried.length === 0)
             setChecked(true)
             setNextLabel(pickWalkthroughNextLabel(trialIndex + 1 >= CONCEPT_QUIZ.length ? 'Готово' : 'Дальше'))
         } else {
