@@ -15,6 +15,7 @@
 import { COZY, COZY_WOOD_TILE, type UiTheme } from '@/lib/cozyTheme';
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
 import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil, Lock, ChevronDown, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -145,6 +146,9 @@ interface Props {
     isAdmin?: boolean;
     // Стиль оформления: игровой (по умолчанию) или тёплый «cozy».
     theme?: UiTheme;
+    // Открыт только этот таб (название темы/блока), остальные видны, но
+    // заблокированы (просьба пользователя: в «ЕГЭ Физика» пока только Электродинамика).
+    onlyActiveGroup?: string;
 }
 
 // Цвета карты в двух стилях — через CSS-переменные на корне карты, чтобы
@@ -318,7 +322,7 @@ const RippleGlow = ({ children }: { children: React.ReactNode }) => (
 // 300-500мс), чтобы анимация не началась "за кадром", пока страница ещё едет.
 const SCROLL_SETTLE_MS = 500;
 
-export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal' }: Props) => {
+export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onlyActiveGroup }: Props) => {
     const cozy = theme === 'cozy';
     const ACC: GroupAccent = cozy ? COZY_TREE_ACCENT : GROUP_ACCENTS[0];
     // Reveal-анимация "только что прошёл этот этап" — сигнал приходит из
@@ -424,13 +428,16 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal' }: P
     const groupKey = (g: RenderGroup) => (g.kind === 'block' ? g.title : `solo-${g.topic.id}`);
     const groupLabel = (g: RenderGroup) => (g.kind === 'block' ? g.title : g.topic.title);
     const groupTopics = (g: RenderGroup) => (g.kind === 'block' ? g.topics : [g.topic]);
-    const defaultGroup = renderGroups.find((g) => groupTopics(g).some((t) => t.isLastActive)) ?? renderGroups[0];
+    const isGroupLocked = (g: RenderGroup) => !!onlyActiveGroup && groupLabel(g) !== onlyActiveGroup;
+    const defaultGroup = (onlyActiveGroup ? renderGroups.find((g) => groupLabel(g) === onlyActiveGroup) : undefined)
+        ?? renderGroups.find((g) => !isGroupLocked(g) && groupTopics(g).some((t) => t.isLastActive))
+        ?? renderGroups.find((g) => !isGroupLocked(g)) ?? renderGroups[0];
     const [activeGroupKey, setActiveGroupKey] = useState<string | null>(defaultGroup ? groupKey(defaultGroup) : null);
     // Переход из справочника — переключаемся на таб с нужной темой.
     useEffect(() => {
         if (!topicParam) return;
         const g = renderGroups.find((b) => groupTopics(b).some((t) => t.title === topicParam || REFERENCE_ALIAS[t.title] === topicParam));
-        if (g) setActiveGroupKey(groupKey(g));
+        if (g && !isGroupLocked(g)) setActiveGroupKey(groupKey(g));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [topicParam]);
 
@@ -846,12 +853,15 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal' }: P
                         {renderGroups.map((g) => {
                             const key = groupKey(g);
                             const isActive = key === activeGroupKey;
+                            const locked = isGroupLocked(g);
                             return (
                                 <button
                                     key={key}
                                     type="button"
-                                    onClick={() => setActiveGroupKey(key)}
-                                    className="relative flex-grow whitespace-nowrap px-3 py-2 rounded-xl text-sm font-extrabold transition-colors"
+                                    disabled={locked}
+                                    onClick={() => { if (!locked) setActiveGroupKey(key); }}
+                                    title={locked ? 'Скоро откроется' : undefined}
+                                    className={cn("relative flex-grow whitespace-nowrap px-3 py-2 rounded-xl text-sm font-extrabold transition-colors", locked && "opacity-40 cursor-not-allowed")}
                                     style={{ color: isActive ? (cozy ? COZY.darkText : '#FFFFFF') : (cozy ? '#D9C4A3' : '#9AA7B0') }}
                                 >
                                     {isActive && (
@@ -864,7 +874,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal' }: P
                                             transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                                         />
                                     )}
-                                    <span className="relative z-10">{groupLabel(g)}</span>
+                                    <span className="relative z-10 inline-flex items-center gap-1">{locked && <Lock className="h-3.5 w-3.5" />}{groupLabel(g)}</span>
                                 </button>
                             );
                         })}

@@ -17,6 +17,7 @@ import Link from "next/link";
 import { Infinity as InfinityIcon, Zap } from "lucide-react";
 import { Button } from "./ui/button";
 import { TrainerGradeTree, SkillTopic } from "./trainer-grade-tree";
+import { TRAINER_ONLY_ACTIVE_GROUP } from "@/lib/trainer-topic";
 import type { UiTheme } from "@/lib/cozyTheme";
 import { isStepByStepLesson, isBossExamStage } from "@/lib/trainerStageFlags";
 
@@ -378,7 +379,7 @@ export const TabTCourses = ({
                         )}
 
                         <div className="w-full mt-2">
-                            <TrainerGradeTree topics={topics} isAdmin={isAdmin} theme={theme} />
+                            <TrainerGradeTree topics={topics} isAdmin={isAdmin} theme={theme} onlyActiveGroup={TRAINER_ONLY_ACTIVE_GROUP[t_course.title]} />
                         </div>
 
                         {/* "Показать все формулы" — убрано по просьбе пользователя (2026-09-03):

@@ -48,3 +48,10 @@ export function resolveActiveTCourse<T extends { id: number; courseId: number | 
     const visible = allTCourses.filter((tc) => !HIDDEN_T_COURSE_IDS.includes(tc.id));
     return visible.find((tc) => tc.courseId === activeCourseId) ?? visible[0];
 }
+
+// В каком тренажёре открыта только одна тема (остальные вкладки видны, но
+// заблокированы) — просьба пользователя 2026-09-29: сначала проходят
+// Электродинамику (там три пошаговых урока).
+export const TRAINER_ONLY_ACTIVE_GROUP: Record<string, string> = {
+    'ЕГЭ Физика': 'Электродинамика',
+}

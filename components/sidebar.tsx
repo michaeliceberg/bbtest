@@ -1,6 +1,6 @@
 'use client'
 
-import { Dumbbell, Flame, Home, ChevronDown, ChevronUp, LogOut, Settings, Library } from 'lucide-react'
+import { Dumbbell, Flame, Home, ChevronDown, ChevronUp, LogOut, Settings, Library, Lock } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from './ui/button'
 import Link from 'next/link'
@@ -92,8 +92,10 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
   }, [displayedCourseId, courses])
 
   const navItems = [
-    { label: 'Задачник', href: '/learn', icon: Home },
+    // Тренажёр — первым; Задачник пока неактивен (просьба пользователя 2026-09-29:
+    // сначала проходят тренажёр).
     { label: 'Тренажёр', href: '/trainer', icon: Dumbbell, badge: hasTrainerQuest },
+    { label: 'Задачник', href: '/learn', icon: Home, disabled: true },
     { label: 'Справочник', href: '/reference', icon: Library },
     // Временно скрыты по прямой просьбе пользователя (2026-09-23) —
     // оставлены в коде закомментированными, не удалены.
@@ -204,6 +206,13 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
           {navItems.map((item) => {
             const isActive = pathname === item.href
             const Icon = item.icon
+            if (item.disabled) return (
+              <Button key={item.href} variant='sidebar' disabled title='Скоро откроется' className={cn(navButtonClass(false), 'opacity-40 cursor-not-allowed')} style={navButtonStyle(false)}>
+                <Icon className="mr-3 h-5 w-5 text-[#9AA7B0]" style={navIcon(false)} />
+                <span className="text-sm text-[#F2F7FB]" style={navText}>{item.label}</span>
+                <Lock className="ml-auto h-4 w-4 text-[#9AA7B0]" />
+              </Button>
+            )
             return (
               <TransitionLink key={item.href} href={item.href}>
                 <Button variant={cozy ? 'sidebar' : isActive ? 'sidebarOutline' : 'sidebar'} className={navButtonClass(isActive)} style={navButtonStyle(isActive)}>
@@ -223,7 +232,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
   
   return (
     <div className={cn('flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-[#151F23]', className)} style={rootStyle}>
-      <Link href='/learn'>
+      <Link href='/trainer'>
         <div className='pt-8 pl-4 pb-4 flex items-center gap-x-3 cursor-pointer hover:opacity-80 transition-opacity'>
           <Image src="/ggegelogo.svg" height={32} width={64} alt="ggege" className="h-auto w-auto" />
         </div>
@@ -306,6 +315,13 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
         {navItems.map((item) => {
           const isActive = pathname === item.href
           const Icon = item.icon
+          if (item.disabled) return (
+            <Button key={item.href} variant='sidebar' disabled title='Скоро откроется' className={cn(navButtonClass(false), 'opacity-40 cursor-not-allowed')} style={navButtonStyle(false)}>
+              <Icon className="mr-3 h-5 w-5 text-[#9AA7B0]" style={navIcon(false)} />
+              <span className="text-sm text-[#F2F7FB]" style={navText}>{item.label}</span>
+              <Lock className="ml-auto h-4 w-4 text-[#9AA7B0]" />
+            </Button>
+          )
           return (
             <TransitionLink key={item.href} href={item.href}>
               <Button variant={cozy ? 'sidebar' : isActive ? 'sidebarOutline' : 'sidebar'} className={navButtonClass(isActive)} style={navButtonStyle(isActive)}>
