@@ -536,11 +536,23 @@ const EL_W = 360, EL_H = 236
 const EL_X0 = 56, EL_CY = 92, EL_R = 44, EL_D = 13
 const EL_L0 = 150, EL_LMAX = 280, EL_LMIN = 52
 const EL_FREE_TRIES = 2
-// Свободная игра (после обеих «Агась») пружинит ЕЩЁ медленнее обычной, чтобы
-// успеть заметить, как стрелка B инд укорачивается по мере возврата
-// (просьба пользователя — обычная скорость release() слишком быстрая).
-const EL_FREE_SPRING_K = 0.012
-const EL_FREE_SPRING_DAMPING = 0.9
+// Возврат к исходной длине — ЧИСТОЕ затухание без перехлёста (пользователь
+// поймал баг: старая модель "пружина" (масса+вязкость) физически ПЕРЕЛЕТАЛА
+// через исходную длину и делала bounce на конце — неправильно, цилиндр
+// должен только тормозить, никогда не проходя границу EL_L0). rate — доля
+// оставшегося расстояния, проходимая за один тик (16мс); экспоненциальный
+// подход к цели по построению не может сменить знак (перелететь), сам темп
+// естественно замедляется по мере приближения — это и есть "с замедлением".
+const EL_RETURN_RATE = 0.08
+// Свободная игра (после обеих «Агась») — по прямой просьбе пользователя
+// в 5 РАЗ медленнее, чем была раньше (не медленнее EL_RETURN_RATE выше —
+// та уже сама новая и без overshoot; здесь берём именно старую "медленную"
+// скорость свободной игры и делим время её возврата на 5). Проверено
+// численно (не на глаз — анимации в этом инструментарии не тикают
+// надёжно): старая пружинная модель свободной игры доезжала до цели за
+// ~86 тиков по 16мс (~1.4с), это значение подобрано так, чтобы новая
+// (без overshoot) модель доезжала за ~5× дольше (~430 тиков, ~7с).
+const EL_FREE_RETURN_RATE = 0.012
 type ElMode = 'stretch' | 'compress' | 'free' | 'done'
 
 const ElasticView = ({ len, mode, arrowOn, frozen, svgRef, onDown, dragging }: {
@@ -626,19 +638,22 @@ const ElasticFluxScene = ({ onSettled }: { onSettled?: () => void }) => {
         pt.x = clientX; pt.y = clientY
         return pt.matrixTransform(ctm.inverse()).x
     }
-    // Мягкая пружина обратно к исходной длине, медленно — чтобы было видно,
-    // как стрелка B инд укорачивается (setInterval, не rAF — не замирает в фоне).
-    const springBack = (onEnd: () => void, k = 0.035, damping = 0.86) => {
-        let v = 0
+    // Возврат к исходной длине — экспоненциальное затухание (первого порядка,
+    // без массы/скорости), НЕ пружина: на каждом тике проходим долю `rate` от
+    // оставшегося расстояния до EL_L0. Знак расстояния никогда не меняется —
+    // цилиндр физически не может перелететь через исходную длину, а сам шаг
+    // естественно уменьшается по мере приближения (та самая "деселерация",
+    // без bounce на конце — реальный баг старой пружинной модели, пойманный
+    // пользователем).
+    const springBack = (onEnd: () => void, rate = EL_RETURN_RATE) => {
         if (spring.current) clearInterval(spring.current)
         spring.current = setInterval(() => {
-            v = (v + (EL_L0 - lenRef.current) * k) * damping
-            const next = lenRef.current + v
-            if (Math.abs(EL_L0 - next) < 0.5 && Math.abs(v) < 0.3) {
+            const diff = EL_L0 - lenRef.current
+            if (Math.abs(diff) < 0.5) {
                 if (spring.current) clearInterval(spring.current)
                 spring.current = null
                 setL(EL_L0); onEnd()
-            } else setL(next)
+            } else setL(lenRef.current + diff * rate)
         }, 16)
     }
     const onDown = (e: React.PointerEvent) => {
@@ -673,7 +688,7 @@ const ElasticFluxScene = ({ onSettled }: { onSettled?: () => void }) => {
                 freeLeftRef.current -= 1
                 setFreeLeft(freeLeftRef.current)
                 if (freeLeftRef.current <= 0) { setM('done'); setPhase(7) }
-            }, EL_FREE_SPRING_K, EL_FREE_SPRING_DAMPING)
+            }, EL_FREE_RETURN_RATE)
             return
         }
         // обучающие шаги: стоп-кадр держим, пока ученик не нажмёт «Агась»
