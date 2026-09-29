@@ -296,7 +296,7 @@ export const TypeLegFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
 
     const { bump: bumpNonce, nonceFor: replayNonceFor } = useReplayNonces()
     const contentSettled = isIntro ? !!ready[latestSceneKey] : checked
-    const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, contentSettled, 6)
+    const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, contentSettled)
 
     const resetTrial = () => {
         setWrongTried([])

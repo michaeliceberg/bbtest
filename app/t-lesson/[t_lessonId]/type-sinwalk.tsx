@@ -584,7 +584,7 @@ export const TypeSinWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) =>
     // отступ сверху. Остальные шаги/тренировка по-прежнему центрируются
     // тем же скроллом (см. delta в useSceneFocus) — уменьшился только
     // стартовый ЗАПАС места, а не сама логика центрирования.
-    const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, contentSettled, 6)
+    const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, contentSettled)
     const canGoBack = prevSceneKeyOf(latestSceneKey) !== null
 
     // "Назад" — по прямой просьбе пользователя (2026-09-19) РЕАЛЬНЫЙ откат

@@ -413,7 +413,7 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
     const [trialNextLabel, setTrialNextLabel] = useState('Дальше')
 
     const contentSettled = isIntro ? !!readyIntros[latestSceneKey] : checked
-    const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, contentSettled, 6)
+    const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, contentSettled)
     const canGoBack = sceneIdx > 0
 
     const jumpToScene = (target: string) => {

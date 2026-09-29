@@ -536,6 +536,11 @@ const EL_W = 360, EL_H = 236
 const EL_X0 = 56, EL_CY = 92, EL_R = 44, EL_D = 13
 const EL_L0 = 150, EL_LMAX = 280, EL_LMIN = 52
 const EL_FREE_TRIES = 2
+// Свободная игра (после обеих «Агась») пружинит ЕЩЁ медленнее обычной, чтобы
+// успеть заметить, как стрелка B инд укорачивается по мере возврата
+// (просьба пользователя — обычная скорость release() слишком быстрая).
+const EL_FREE_SPRING_K = 0.012
+const EL_FREE_SPRING_DAMPING = 0.9
 type ElMode = 'stretch' | 'compress' | 'free' | 'done'
 
 const ElasticView = ({ len, mode, arrowOn, frozen, svgRef, onDown, dragging }: {
@@ -600,6 +605,9 @@ const ElasticFluxScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [arrowOn, setArrowOn] = useState(false)
     const [frozen, setFrozen] = useState(false)
     const [freeLeft, setFreeLeft] = useState(EL_FREE_TRIES)
+    // Прячем текст «Растянули/Сжали — B инд...» сразу по клику «Агась» —
+    // чтобы не отвлекал, пока цилиндр пружинит обратно (просьба пользователя).
+    const [hideMsg, setHideMsg] = useState<{ stretch: boolean; compress: boolean }>({ stretch: false, compress: false })
     const svgRef = useRef<SVGSVGElement>(null)
     const lenRef = useRef(EL_L0)
     const modeRef = useRef<ElMode>('stretch')
@@ -620,11 +628,11 @@ const ElasticFluxScene = ({ onSettled }: { onSettled?: () => void }) => {
     }
     // Мягкая пружина обратно к исходной длине, медленно — чтобы было видно,
     // как стрелка B инд укорачивается (setInterval, не rAF — не замирает в фоне).
-    const springBack = (onEnd: () => void) => {
+    const springBack = (onEnd: () => void, k = 0.035, damping = 0.86) => {
         let v = 0
         if (spring.current) clearInterval(spring.current)
         spring.current = setInterval(() => {
-            v = (v + (EL_L0 - lenRef.current) * 0.035) * 0.86
+            v = (v + (EL_L0 - lenRef.current) * k) * damping
             const next = lenRef.current + v
             if (Math.abs(EL_L0 - next) < 0.5 && Math.abs(v) < 0.3) {
                 if (spring.current) clearInterval(spring.current)
@@ -657,13 +665,15 @@ const ElasticFluxScene = ({ onSettled }: { onSettled?: () => void }) => {
         setArrowOn(true)
         const m = modeRef.current
         if (m === 'free') {
-            // свободная игра: без стоп-кадра, сразу медленно возвращаемся
+            // свободная игра: без стоп-кадра, СИЛЬНО медленно возвращаемся —
+            // чтобы успеть заметить, как B инд укорачивается (просьба
+            // пользователя, обычная скорость слишком быстрая для этого).
             springBack(() => {
                 setArrowOn(false); busy.current = false
                 freeLeftRef.current -= 1
                 setFreeLeft(freeLeftRef.current)
                 if (freeLeftRef.current <= 0) { setM('done'); setPhase(7) }
-            })
+            }, EL_FREE_SPRING_K, EL_FREE_SPRING_DAMPING)
             return
         }
         // обучающие шаги: стоп-кадр держим, пока ученик не нажмёт «Агась»
@@ -673,6 +683,9 @@ const ElasticFluxScene = ({ onSettled }: { onSettled?: () => void }) => {
     const release = () => {
         const m = modeRef.current
         setFrozen(false)
+        // Прячем текст «Растянули/Сжали — B инд...» сразу по клику — не
+        // отвлекает, пока цилиндр пружинит обратно.
+        setHideMsg((h) => ({ ...h, [m]: true }))
         springBack(() => {
             setArrowOn(false); busy.current = false
             if (m === 'stretch') { setM('compress'); setPhase((p) => Math.max(p, 3)) }
@@ -700,13 +713,13 @@ const ElasticFluxScene = ({ onSettled }: { onSettled?: () => void }) => {
                     </div>
                 </DiagramBlock>
             )}
-            {phase >= 2 && (
+            {phase >= 2 && !hideMsg.stretch && (
                 <TypedLineWithParts
                     parts={[{ text: 'Растянули — ' }, { sticker: 'B инд', color: OWN_COLOR }, { text: ' сжимает ' }, { bold: 'назад' }, { text: ' ⬅' }]}
                     onSettled={() => setPhase((p) => Math.max(p, 3))}
                 />
             )}
-            {phase >= 4 && (
+            {phase >= 4 && !hideMsg.compress && (
                 <TypedLineWithParts
                     parts={[{ text: 'Сжали — ' }, { sticker: 'B инд', color: OWN_COLOR }, { text: ' растягивает ' }, { bold: 'обратно' }, { text: ' ➡' }]}
                     onSettled={() => setPhase((p) => Math.max(p, 5))}
@@ -723,7 +736,7 @@ const ElasticFluxScene = ({ onSettled }: { onSettled?: () => void }) => {
                     <InsightCard>
                         Вмешалось <InsightWord color="#FF9AC8">B инд</InsightWord> — <InsightWord>индукционное</InsightWord> магнитное поле.
                         <br />Как пружинка, оно возвращает поток <InsightWord color="#D8BBFF">Φ</InsightWord> обратно.
-                        <br /><span className="text-base font-bold">Прям как токсичные отношения: тянешь — сжимается, давишь — отталкивает 💔🤡</span>
+                        <br /><span className="text-base font-bold">Прям как эспандер в спортзале — сколько ни тяни, он тянет обратно 💪</span>
                     </InsightCard>
                 </DiagramBlock>
             )}
@@ -747,6 +760,13 @@ const ReplyBtn = ({ children, onClick, color = RULE_COLOR }: { children: React.R
 const HookScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
     const PHI = GGEGE_PALETTE.purple.button
+    const videoRef = useRef<HTMLVideoElement>(null)
+    // Останавливаем видео Амбридж, как только сцена уходит дальше — иначе
+    // зацикленное видео тихо продолжает крутиться и грузит CPU в фоне
+    // (просьба пользователя).
+    useEffect(() => {
+        if (phase >= 4) videoRef.current?.pause()
+    }, [phase])
     return (
         <>
             <TypedLineWithParts
@@ -780,7 +800,7 @@ const HookScene = ({ onSettled }: { onSettled?: () => void }) => {
             )}
             {phase >= 3 && (
                 <DiagramBlock onSettled={() => setTimeout(() => setPhase(4), 1600)}>
-                    <video src="/video/umbridge.mp4" autoPlay loop muted playsInline
+                    <video ref={videoRef} src="/video/umbridge.mp4" autoPlay loop muted playsInline
                         className="pointer-events-none mx-auto w-full max-w-[220px] aspect-square rounded-2xl object-cover" />
                 </DiagramBlock>
             )}
@@ -794,20 +814,32 @@ const HookScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-// 2. Кто делает B инд? Само кольцо: в нём включается ТОК, а ток создаёт поле
-// (как в уроке про правую руку). Ученик сам жмёт «включить ток».
+// 2. Кто делает B инд? Само кольцо: сначала в нём включается ТОК (ученик сам
+// жмёт «включить ток»), затем по ПРАВИЛУ ПРАВОЙ РУКИ этот ток создаёт своё
+// поле B инд (сначала рисуем руку, потом, с паузой, само поле). Каждый шаг
+// подтверждается нашей стандартной кнопкой-реплаем «Понятно» (как «Агась»
+// в ElasticFluxScene), не автотаймером.
 // Ток спереди вправо ⇔ поле кольца вверх (конвенция файла, см. шапку).
 const WHO_CX = 160, WHO_CY = 150, WHO_RX = 96, WHO_RY = 26
 const WhoScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
-    const [on, setOn] = useState(false)
+    const [currentOn, setCurrentOn] = useState(false)
+    // 0 — ничего · 1 — рука нарисована · 2 — рука + поле B инд
+    const [handPhase, setHandPhase] = useState<0 | 1 | 2>(0)
+    const [ruleTextDone, setRuleTextDone] = useState(false)
     const back = `M ${WHO_CX - WHO_RX} ${WHO_CY} A ${WHO_RX} ${WHO_RY} 0 0 1 ${WHO_CX + WHO_RX} ${WHO_CY}`
     const front = `M ${WHO_CX - WHO_RX} ${WHO_CY} A ${WHO_RX} ${WHO_RY} 0 0 0 ${WHO_CX + WHO_RX} ${WHO_CY}`
-    const ringCol = on ? CURRENT_COLOR : RING_COLOR
-    const turnOn = () => {
-        if (on) return
-        setOn(true)
-        setTimeout(() => setPhase(3), 1800)
+    const ringCol = currentOn ? CURRENT_COLOR : RING_COLOR
+    const startCurrent = () => {
+        if (currentOn) return
+        setCurrentOn(true)
+    }
+    // Первое «Понятно» — включает разбор правила правой руки: сразу рисуем
+    // руку, а через паузу — поле B инд (просьба пользователя).
+    const showRule = () => {
+        setPhase(3)
+        setHandPhase(1)
+        setTimeout(() => setHandPhase(2), 1100)
     }
     return (
         <>
@@ -826,43 +858,53 @@ const WhoScene = ({ onSettled }: { onSettled?: () => void }) => {
                     <div className="w-full flex flex-col items-center gap-3">
                         <svg viewBox="0 0 320 250" className="w-full max-w-[320px] h-auto">
                             <path d={back} fill="none" stroke={ringCol} strokeWidth={7} strokeLinecap="round" />
-                            {on && (
+                            {handPhase >= 2 && (
                                 <motion.g initial={{ opacity: 0, scaleY: 0.1 }} animate={{ opacity: 1, scaleY: 1 }}
-                                    transition={{ delay: 0.7, type: 'spring', bounce: 0.4 }}
+                                    transition={{ type: 'spring', bounce: 0.4 }}
                                     style={{ transformBox: 'fill-box', transformOrigin: 'bottom' }}>
                                     <FieldArrow x1={WHO_CX} y1={WHO_CY + 60} x2={WHO_CX} y2={WHO_CY - 110} color={OWN_COLOR} width={7} head={11} />
                                 </motion.g>
                             )}
                             <path d={front} fill="none" stroke={ringCol} strokeWidth={7} strokeLinecap="round" />
-                            {on && (
+                            {currentOn && (
                                 <>
                                     <motion.path d={front} fill="none" stroke="#fff" strokeWidth={3} strokeDasharray="6 18" strokeLinecap="round"
                                         animate={{ strokeDashoffset: [0, -48] }} transition={{ duration: 0.6, repeat: Infinity, ease: 'linear' }} />
                                     <g transform={`translate(${WHO_CX + WHO_RX + 4},${WHO_CY + WHO_RY + 18})`}>
                                         <PulseSticker text="I инд" color={CURRENT_COLOR} />
                                     </g>
-                                    <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1 }}>
-                                        <SvgSticker x={WHO_CX + 44} y={WHO_CY - 92} text="B" sub="инд" color={OWN_COLOR} />
-                                    </motion.g>
                                 </>
                             )}
+                            {handPhase >= 1 && (
+                                <RightHandHint cx={WHO_CX} cy={WHO_CY} rx={WHO_RX + 18} ry={WHO_RY + 12} thumbUp curlRight />
+                            )}
+                            {handPhase >= 2 && (
+                                <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}>
+                                    <SvgSticker x={WHO_CX + 44} y={WHO_CY - 92} text="B" sub="инд" color={OWN_COLOR} />
+                                </motion.g>
+                            )}
                         </svg>
-                        {!on && <ReplyBtn onClick={turnOn} color={CURRENT_COLOR}>⚡ Включить ток</ReplyBtn>}
+                        {!currentOn && <ReplyBtn onClick={startCurrent} color={CURRENT_COLOR}>⚡ Включить ток</ReplyBtn>}
+                        {currentOn && phase === 2 && <ReplyBtn onClick={showRule}>Понятно</ReplyBtn>}
                     </div>
                 </DiagramBlock>
             )}
             {phase >= 3 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Ток бежит по кольцу — и рождает поле ' }, { sticker: 'B инд', color: OWN_COLOR }, { text: '. Как в уроке про правую руку 🤙' }]}
-                    onSettled={() => setPhase(4)}
+                    parts={[{ text: 'По ' }, { sticker: 'ПРАВИЛУ ПРАВОЙ РУКИ', color: REMEMBER_COLOR }, { text: ' включается ' }, { sticker: 'B инд', color: OWN_COLOR }, { text: '!' }]}
+                    onSettled={() => setRuleTextDone(true)}
                 />
+            )}
+            {phase === 3 && ruleTextDone && handPhase === 2 && (
+                <ReplyBtn onClick={() => setPhase(4)}>Понятно</ReplyBtn>
             )}
             {phase >= 4 && (
                 <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1400)}>
                     <InsightCard label="🛡️ Цепочка защиты">
-                        Φ пытается измениться →<br />в кольце включается <InsightWord color="#FF9AC8">ток I инд</InsightWord> →<br />
-                        он делает <InsightWord color="#FF9AC8">B инд</InsightWord> → поток <InsightWord>держится</InsightWord>.
-                        <br /><span className="text-base font-bold">Этот ток — <b>индукционный</b>.</span>
+                        Φ пытается измениться →<br />
+                        в кольце включается <Sticker value="ток I" color={CURRENT_COLOR} /> →<br />
+                        ток создаёт <Sticker value="ИНДУКЦИОННОЕ ПОЛЕ B" color={OWN_COLOR} /> →<br />
+                        поток <InsightWord>восстанавливается</InsightWord>.
                     </InsightCard>
                 </DiagramBlock>
             )}
