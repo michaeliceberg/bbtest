@@ -415,7 +415,7 @@ const VaderCaster = () => (
                 transition={{ type: 'spring', bounce: 0.55, delay: 0.8 }} style={{ transformOrigin: 'bottom right' }}>
                 <div className="relative rounded-2xl border-2 bg-[#161F23] px-3 py-1.5 text-center text-xs md:text-sm font-black text-[#F2F7FB]"
                     style={{ borderColor: FIELD_COLOR }}>
-                    Я чувствую силу…
+                    Я чувствую Тесла…
                     <span className="absolute -bottom-[7px] right-9 h-3 w-3 rotate-45 border-b-2 border-r-2 bg-[#161F23]"
                         style={{ borderColor: FIELD_COLOR }} />
                 </div>
