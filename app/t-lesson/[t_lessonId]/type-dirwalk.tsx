@@ -635,6 +635,78 @@ const ArrowDotCross = ({ leaving = false }: { leaving?: boolean }) => (
     </div>
 )
 
+// Мини-игра «на тебя / от тебя» (3 весёлых вопроса в зумерском стиле).
+type DotSym = 'dot' | 'cross'
+const SymIcon = ({ kind, size = 44 }: { kind: DotSym; size?: number }) => (
+    <svg viewBox="-20 -20 40 40" style={{ width: size, height: size }}>
+        <circle r={17} fill="#161F23" stroke={FIELD_COLOR} strokeWidth={3} />
+        {kind === 'dot'
+            ? <circle r={6} fill={FIELD_COLOR} />
+            : <path d="M-8,-8 L8,8 M-8,8 L8,-8" stroke={FIELD_COLOR} strokeWidth={3.5} strokeLinecap="round" />}
+    </svg>
+)
+type DotQ = { prompt: React.ReactNode; options: { key: string; node: React.ReactNode }[]; correct: string; win: string; miss: string }
+const DOT_QUIZ: DotQ[] = [
+    {
+        prompt: <>Стрела летит тебе <b>прямо в лицо</b> 😱 Что ты видишь?</>,
+        options: [{ key: 'dot', node: <SymIcon kind="dot" /> }, { key: 'cross', node: <SymIcon kind="cross" /> }],
+        correct: 'dot', win: 'Остриё — точка! Уклонился 🥷', miss: 'Хвост у стрелы сзади, бро 🙃',
+    },
+    {
+        prompt: <span className="inline-flex items-center gap-2 justify-center flex-wrap">Видишь <SymIcon kind="cross" size={34} /> — поле летит…</span>,
+        options: [{ key: 'to', node: 'на тебя 🫵' }, { key: 'from', node: 'от тебя 👋' }],
+        correct: 'from', win: 'Крестик — хвост, улетело. Пока-пока 👋', miss: 'Крестик — это хвост, он улетает 🏹',
+    },
+    {
+        prompt: <>Краш уходит от тебя в закат 🌅💔 Какой значок?</>,
+        options: [{ key: 'dot', node: <SymIcon kind="dot" /> }, { key: 'cross', node: <SymIcon kind="cross" /> }],
+        correct: 'cross', win: 'Крестик. Больно, но верно 😭', miss: 'Уходит ОТ тебя — видно хвост ✖️',
+    },
+]
+const DotCrossGame = ({ onDone }: { onDone: () => void }) => {
+    const [qi, setQi] = useState(0)
+    const [wrong, setWrong] = useState<string | null>(null)
+    const [won, setWon] = useState(false)
+    const done = qi >= DOT_QUIZ.length
+    const q = DOT_QUIZ[Math.min(qi, DOT_QUIZ.length - 1)]
+    const pick = (key: string) => {
+        if (won || done) return
+        if (key === q.correct) {
+            setWrong(null); setWon(true)
+            setTimeout(() => {
+                setWon(false)
+                setQi((x) => x + 1)
+                if (qi + 1 >= DOT_QUIZ.length) onDone()
+            }, 2000)
+        } else {
+            playSound(WRONG_ANSWER_SOUND)
+            setWrong(key)
+        }
+    }
+    if (done) return <p className="text-center text-lg font-black text-[#A1D151]">Точки и крестики — изи 😎</p>
+    return (
+        <div className="w-full flex flex-col items-center gap-3">
+            <span className="text-xs font-black text-[#9AA7B0]">{qi + 1} / {DOT_QUIZ.length}</span>
+            <motion.p key={qi} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
+                className="text-center text-base md:text-lg font-bold text-[#F2F7FB]">{q.prompt}</motion.p>
+            <div className="grid w-full max-w-xs grid-cols-2 gap-3">
+                {q.options.map((o) => (
+                    <button key={`${qi}-${o.key}`} type="button" onClick={() => pick(o.key)}
+                        className={cn('flex min-h-[64px] items-center justify-center rounded-xl border-2 text-lg font-black transition-colors',
+                            won && o.key === q.correct ? 'border-[#A1D151] bg-[#A1D15122] text-[#A1D151]'
+                                : wrong === o.key ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]'
+                                    : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]')}>
+                        {o.node}
+                    </button>
+                ))}
+            </div>
+            {won && <p className="text-center text-base font-black text-[#A1D151]">{q.win}</p>}
+            {!won && wrong && <p className="text-center text-sm font-bold text-[#DC605B]">{q.miss}</p>}
+            {won && <LocalAnswerConfetti />}
+        </div>
+    )
+}
+
 // 4. Как рисуют в задачах: • и ×.
 const DotCrossScene = ({ onSettled, leaving }: { onSettled?: () => void; leaving?: boolean }) => {
     const [phase, setPhase] = useState(0)
@@ -656,8 +728,13 @@ const DotCrossScene = ({ onSettled, leaving }: { onSettled?: () => void; leaving
                 <TypedLine text="Как стрела 🏹: остриё выглядит, как точка, а хвост — как крестик." className={TEXT_CLS} onSettled={() => setPhase(4)} />
             )}
             {phase >= 4 && (
-                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 2600)}>
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase(5), 2600)}>
                     <ArrowDotCross leaving={leaving} />
+                </DiagramBlock>
+            )}
+            {phase >= 5 && (
+                <DiagramBlock>
+                    <DotCrossGame onDone={() => setTimeout(() => onSettled?.(), 600)} />
                 </DiagramBlock>
             )}
         </>
