@@ -1,6 +1,6 @@
 // app/t-lesson/[t_lessonId]/page.tsx
 
-import { getAllTLessonProgress, getAllUsersProgress, getTLesson, getUserProgress, getHotQuestionsForUnit } from "@/db/queries"
+import { getAllTLessonProgress, getAllUsersProgress, getTLesson, getTLessonPublic, getUserProgress, getHotQuestionsForUnit } from "@/db/queries"
 import { redirect } from "next/navigation"
 import { Shuffle2, ShuffleTS } from "@/usefulFunctions"
 import { pickInsertBlank, corruptFormulaLetter, extractLetterCandidates } from "@/lib/formulaLetters"
@@ -8,10 +8,25 @@ import { getFormulaIconKey } from "@/lib/formulaIcons"
 import { getTopicSticker } from "@/lib/topicStickers"
 import { STEP_BY_STEP_CHALLENGE_TYPES } from "@/lib/trainerStageFlags"
 import { getStageQueryParams, isBossExamStage } from "@/lib/trainerStageFlags"
+import { pickGuestNickname } from "@/lib/nickname"
 import TQuiz from "@/app/t-lesson/[t_lessonId]/TQUIZ"
 import { allTypesCT, tChallengeMistakes } from "@/db/schema";
 import db from "@/db/drizzle";
 import { eq } from "drizzle-orm";
+
+// Единственный урок тренажёра, открытый анонимным (не залогиненным)
+// посетителям — бесплатная "пробная" воронка (см. обсуждение с
+// пользователем, 2026-09-29): человек проходит настоящий интерактивный
+// разбор без регистрации, в конце открывается кейс с призом, а
+// зарегистрироваться предлагается уже ПОСЛЕ показа приза, чтобы его
+// "забрать" (actions/guest-lesson.ts). Один конкретный урок, не общий
+// признак "публичности" на схеме — проще завести здесь, чем городить
+// новое поле БД ради единственного случая.
+// НЕ export — Next.js App Router разрешает у page.tsx только
+// определённый набор именованных экспортов (metadata/generateStaticParams
+// и т.п.), любой другой ломает генерацию типов маршрутов
+// (.next/types/.../page.ts, "does not satisfy the constraint").
+const PUBLIC_TRIAL_T_LESSON_ID = 485;
 
 // Только для type='MULTISTEP' — один шаг многошагового задания (см.
 // CLAUDE.md "тренажёр Арифметики", приём "0,75×32 → перевести в дробь →
@@ -287,18 +302,25 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     const isMythicStage = searchParams?.mythic === '1';
 
     const [
-        t_lesson,
         userProgress,
         all_t_lessonProgress,
         allUsersProgress,
     ] = await Promise.all([
-        getTLesson(t_lessonId),
         getUserProgress(),
         getAllTLessonProgress(),
         getAllUsersProgress(),
     ]);
 
-    if (!t_lesson || !userProgress) {
+    // Единственное исключение из "нужна сессия" — анонимный посетитель на
+    // PUBLIC_TRIAL_T_LESSON_ID (см. константу выше): вместо getTLesson()
+    // (жёсткий auth()-гейт) берём getTLessonPublic() — тот же запрос без
+    // гейта. Залогиненный пользователь на этом же уроке идёт обычным путём
+    // (isGuest=false), поведение для него не меняется вообще.
+    const isGuest = !userProgress && t_lessonId === PUBLIC_TRIAL_T_LESSON_ID;
+    const t_lesson = isGuest ? await getTLessonPublic(t_lessonId) : await getTLesson(t_lessonId);
+    const guestNickname = isGuest ? pickGuestNickname() : null;
+
+    if (!t_lesson || (!userProgress && !isGuest)) {
         redirect('/trainer');
     }
 
@@ -328,7 +350,10 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // уроков темы (кроме самих разборов), чтобы босса можно было
     // проходить много раз по кругу.
     const isBossExam = isBossExamStage(t_lesson.title);
-    if (isBossExam) {
+    // userProgress гарантированно не null здесь — босс-экзамен никогда не
+    // является PUBLIC_TRIAL_T_LESSON_ID (проверка isGuest только для него),
+    // но TS этого не знает после ослабления типа выше — явная проверка.
+    if (isBossExam && userProgress) {
         const pool = t_lesson.t_unit.t_lessons
             .filter((l) => l.id !== t_lesson.id)
             .flatMap((l) => l.t_challenges)
@@ -1756,7 +1781,10 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // НЕ самая первая (эффект внезапной вставки посреди решения, а не
     // "первый же вопрос урока").
     const HOT_QUESTION_CHANCE = 0.1;
-    if (questions[0].questionType !== 'GEOSIN' && hotQuestionsPool.length > 0 && Math.random() < HOT_QUESTION_CHANCE) {
+    // Гостю (PUBLIC_TRIAL_T_LESSON_ID, см. isGuest выше) "горячий вопрос"
+    // не показываем — его мегакейс-награда (openLessonCase) требует
+    // сессию и просто no-op'нется без неё, только сбивая с толку.
+    if (!isGuest && questions[0].questionType !== 'GEOSIN' && hotQuestionsPool.length > 0 && Math.random() < HOT_QUESTION_CHANCE) {
         const hotSource = hotQuestionsPool[Math.floor(Math.random() * hotQuestionsPool.length)];
         // Верхняя граница слайдера — случайно в 4-25 раз больше правильного
         // ответа, КАЖДЫЙ РАЗ новая (а не фиксированная под конкретный
@@ -1811,7 +1839,8 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             t_lessonId={t_lesson.id}
             t_lessonTitle={t_lesson.title}
             questions1={questions}
-            userName={userProgress.userName}
+            userName={isGuest ? guestNickname! : userProgress!.userName}
+            isGuest={isGuest}
             stage={stageParam}
             isBossStage={isBossStage}
             isChestStage={isChestStage}
@@ -1823,7 +1852,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             // т.п., см. TypeSinWalk) — прыжок в любую сцену без
             // прощёлкивания урока, тот же паттерн isAdmin-проверки, что
             // уже используется на /learn (userProgress.isAdmin===1).
-            isAdmin={userProgress.isAdmin === 1}
+            isAdmin={isGuest ? false : userProgress!.isAdmin === 1}
         />
     );
 }

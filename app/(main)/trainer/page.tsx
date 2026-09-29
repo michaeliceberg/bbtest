@@ -32,6 +32,7 @@ import { getUserCourseProgress, getUserCourses } from '@/db/queries';
 import { HIDDEN_T_COURSE_IDS, pickActiveCourseId, resolveActiveTCourse, sortTCoursesForTabs } from '@/lib/trainer-topic';
 import { getUiTheme } from '@/lib/uiThemeServer';
 import { COZY } from '@/lib/cozyTheme';
+import { GuestRewardClaimer } from '@/components/guest-reward-claimer';
 
 const TLearnPage = async () => {
     const session = await auth();
@@ -255,6 +256,7 @@ const TLearnPage = async () => {
             </StickyWrapper>
 
             <FeedWrapper>
+                <GuestRewardClaimer />
                 <Header title={activeTCourse ? `Тренажёр ${activeTCourse.title}` : "Тренажёр"} cozy={cozy} />
 
                 <div className='mt-2 lg:mt-5'>

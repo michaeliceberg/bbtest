@@ -45,6 +45,7 @@ import { useLevelUpStore } from "@/store/use-level-up-store"
 import { useQuestCompleteStore } from "@/store/use-quest-complete-store"
 import { xpForAmount } from "@/lib/xp"
 import { TrainerLessonCompleteScreen } from "@/components/trainer-lesson-complete-screen"
+import { GuestRewardScreen } from "@/components/guest-reward-screen"
 
 // "Горячий вопрос" (questionType 'HOT', см. type-hot.tsx) — факультативный,
 // не входит в счёт/сердечки/работу над ошибками (см. handleAnswer). Везде,
@@ -145,6 +146,12 @@ type Props = {
   // Админская "карта сцен" в степбайстеп-разборах — см. TrainerQuestion/
   // TypeSinWalk.
   isAdmin?: boolean,
+  // Анонимный гость PUBLIC_TRIAL_T_LESSON_ID (см. app/t-lesson/
+  // [t_lessonId]/page.tsx) — никакой сессии нет, поэтому прогресс/квест
+  // дня/ударный час не пишутся вовсе (см. goToNextQuestion/prepareFinish
+  // ниже), а финальный экран наград — GuestRewardScreen (кейс с призом +
+  // CTA "зарегистрируйся, чтобы забрать") вместо TrainerQuestRewardsScreen.
+  isGuest?: boolean,
 }
 
 export default function TQuiz({
@@ -160,6 +167,7 @@ export default function TQuiz({
   isBossExam,
   nextTLessonHref,
   isAdmin,
+  isGuest,
 }: Props) {
 
   const router = useRouter()
@@ -334,6 +342,15 @@ export default function TQuiz({
   // Конец урока: сервер учитывает урок в квестах дня и решает кейс, затем
   // показываются итоги.
   const prepareFinish = useCallback(async () => {
+    // Гостю (isGuest) квесты дня/ударный час не считаются вообще — оба
+    // сервер-экшена ниже уже no-op'нутся без сессии, но незачем даже
+    // их дёргать: plannedCaseRef остаётся null, значит openPlannedCase()
+    // упадёт в ветку "иначе" ниже, где мы рендерим GuestRewardScreen
+    // вместо TrainerQuestRewardsScreen (см. JSX ниже).
+    if (isGuest) {
+      setQuizCompleted(true)
+      return
+    }
     const isPerfect = mainPassPerfectRef.current
     const [quests, planned] = await Promise.all([
       reportLessonQuestSignals(t_lessonId, maxStreakRef.current, isPerfect).catch(() => null),
@@ -342,7 +359,7 @@ export default function TQuiz({
     setQuestRewardsData(quests)
     plannedCaseRef.current = planned
     setQuizCompleted(true)
-  }, [questions1, t_lessonId, planFinishCase])
+  }, [questions1, t_lessonId, planFinishCase, isGuest])
 
   // Кнопка «Дальше» на итогах: сперва мегакейс за угаданный горячий вопрос
   // (если был), потом запланированный кейс, потом «Квесты дня».
@@ -546,29 +563,36 @@ export default function TQuiz({
       console.log('🏁 Основной проход завершён! score:', finalScore, 'total (без HOT):', total)
       const doneRightPercent = Math.round(finalScore / total * 100)
 
-      const progressResult = await upsertTrainerLessonProgress(t_lessonId, doneRightPercent, TRAINER_LESSON_TRAINING_PTS, finalScore, total - finalScore, stage)
-        .catch(() => {
-          toast.error('Что-то пошло не так! Результат не добавлен в базу данных.')
-          return null
-        })
-      bossWinsRef.current = progressResult?.bossWins ?? 0
-      if (progressResult?.leveledUp && progressResult.newLevel) {
-        const gained = progressResult.levelsGained ?? 1
-        pendingLevelUpRef.current = { oldLevel: progressResult.newLevel - gained, newLevel: progressResult.newLevel, gems: progressResult.levelUpGems ?? 0 }
-      }
-      // Урок тренажёра продлевает ТОТ ЖЕ курсовый стрик, что и задачи в
-      // задачнике (см. lib/streak.ts) — streakExtended==true только если
-      // это первый успех за сегодня, продливший серию на новый день.
-      if (progressResult?.streakExtended && progressResult.newStreak) {
-        triggerDailyStreakToast(progressResult.newStreak)
-      }
-      progressResult?.newAchievements?.forEach((ach) => showAchievement(ach))
-      // Квест дня мог закрыться именно этой попыткой (первый из двух
-      // пунктов, "пройди урок тренажёра", или оба разом если "реши
-      // задачу курса" уже был выполнен сегодня раньше) — модалка вместо
-      // тихого тоста, как и при повышении уровня.
-      if (progressResult?.questJustCompleted && progressResult.questStreak) {
-        showQuestComplete(progressResult.questStreak, progressResult.questPointsReward ?? 0)
+      // Гость (isGuest) не имеет сессии — прогресс/XP/ачивки/стрик/квест
+      // дня для него не имеют смысла (см. GuestRewardScreen ниже, кейс с
+      // призом выдаётся отдельным путём в prepareFinish). Без этой ветки
+      // upsertTrainerLessonProgress всё равно бы упал в .catch (throw без
+      // сессии) — но лучше не дёргать её вовсе, чем ловить лишнюю ошибку.
+      if (!isGuest) {
+        const progressResult = await upsertTrainerLessonProgress(t_lessonId, doneRightPercent, TRAINER_LESSON_TRAINING_PTS, finalScore, total - finalScore, stage)
+          .catch(() => {
+            toast.error('Что-то пошло не так! Результат не добавлен в базу данных.')
+            return null
+          })
+        bossWinsRef.current = progressResult?.bossWins ?? 0
+        if (progressResult?.leveledUp && progressResult.newLevel) {
+          const gained = progressResult.levelsGained ?? 1
+          pendingLevelUpRef.current = { oldLevel: progressResult.newLevel - gained, newLevel: progressResult.newLevel, gems: progressResult.levelUpGems ?? 0 }
+        }
+        // Урок тренажёра продлевает ТОТ ЖЕ курсовый стрик, что и задачи в
+        // задачнике (см. lib/streak.ts) — streakExtended==true только если
+        // это первый успех за сегодня, продливший серию на новый день.
+        if (progressResult?.streakExtended && progressResult.newStreak) {
+          triggerDailyStreakToast(progressResult.newStreak)
+        }
+        progressResult?.newAchievements?.forEach((ach) => showAchievement(ach))
+        // Квест дня мог закрыться именно этой попыткой (первый из двух
+        // пунктов, "пройди урок тренажёра", или оба разом если "реши
+        // задачу курса" уже был выполнен сегодня раньше) — модалка вместо
+        // тихого тоста, как и при повышении уровня.
+        if (progressResult?.questJustCompleted && progressResult.questStreak) {
+          showQuestComplete(progressResult.questStreak, progressResult.questPointsReward ?? 0)
+        }
       }
       await updateQuestProgress()
 
@@ -586,7 +610,7 @@ export default function TQuiz({
     // Ошибок для повтора больше нет (либо их не было вовсе, либо "работа
     // над ошибками" только что успешно закончилась) — финал (см. prepareFinish).
     await prepareFinish()
-  }, [currentQuestionIndex, questions.length, t_lessonId, updateQuestProgress, startMistakeReviewRound, prepareFinish])
+  }, [currentQuestionIndex, questions.length, t_lessonId, updateQuestProgress, startMistakeReviewRound, prepareFinish, isGuest, stage])
 
   const handleAnswer = useCallback(async (answer: string) => {
     // Для ASSIST: если это "next", просто переходим к следующему вопросу
@@ -888,6 +912,16 @@ export default function TQuiz({
   console.log('Рендер: quizCompleted:', quizCompleted, 'showChestReward:', showChestReward)
 
   if (showQuestRewardsScreen) {
+    // Гость (isGuest) не имеет ни квестов дня, ни "следующего урока" (это
+    // единственный открытый ему урок) — вместо TrainerQuestRewardsScreen
+    // показываем кейс-с-призом + CTA регистрации (см. actions/guest-
+    // lesson.ts). plannedCaseRef всегда null для гостя (prepareFinish
+    // пропускает planFinishCase выше), поэтому именно эта ветка и
+    // срабатывает через openPlannedCase() — никаких доп. изменений в
+    // самой state-машине не потребовалось.
+    if (isGuest) {
+      return <GuestRewardScreen t_lessonId={t_lessonId} nickname={userName} theme={uiTheme} />
+    }
     return (
       <div className="w-full max-w-xl mx-auto">
         <TrainerQuestRewardsScreen

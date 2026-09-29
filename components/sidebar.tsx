@@ -1,6 +1,6 @@
 'use client'
 
-import { Dumbbell, Flame, Swords, ChevronDown, ChevronUp, LogOut, Settings, Library, Lock } from 'lucide-react'
+import { Dumbbell, Flame, Swords, ChevronDown, ChevronUp, LogOut, Settings, Library, Lock, BadgeCheck } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from './ui/button'
 import Link from 'next/link'
@@ -54,9 +54,13 @@ interface SidebarProps {
   onAfterCourseChange?: () => void
   // Задачник закрыт, пока не пройдены 3 разбора электродинамики (lib/learn-unlock.ts)
   learnLocked?: boolean
+  // Бейдж-галочка "амбассадор" (userProgress.isAmbassador) — реальные
+  // ученики-евангелисты, продвигающие приложение среди одноклассников,
+  // включается вручную точечным SQL, не автоматически.
+  isAmbassador?: boolean
 }
 
-export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest = false, className, userName, userImageSrc, onAfterCourseChange, theme, learnLocked = false }: SidebarProps) => {
+export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest = false, className, userName, userImageSrc, onAfterCourseChange, theme, learnLocked = false, isAmbassador = false }: SidebarProps) => {
   const liveTheme = useUiThemeLive()
   const cozy = (liveTheme ?? theme ?? 'metal') === 'cozy'
   // Тёплый стиль: фон/рамка сайдбара, пункты меню (активный — карточка-блок).
@@ -190,8 +194,9 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
         ) : (
           <UnitCardLottie progress={0} size={32} className="rounded-full bg-[#232F34] flex-shrink-0" />
         )}
-        <span className="text-sm text-[#F2F7FB] truncate flex-1 text-left">
-          {userName || session.user.name || 'Ученик'}
+        <span className="text-sm text-[#F2F7FB] truncate flex-1 text-left flex items-center gap-1">
+          <span className="truncate">{userName || session.user.name || 'Ученик'}</span>
+          {isAmbassador && <BadgeCheck className="h-4 w-4 text-sky-400 shrink-0" aria-label="Амбассадор" />}
         </span>
       </button>
     </div>

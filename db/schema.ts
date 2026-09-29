@@ -125,6 +125,10 @@ export const userProgress = pgTable('user_progress', {
 	// ВНУТРИ текущей цепочки — не даёт повторно награждать за тот же
 	// рубеж, если пользователь продолжает цепочку дальше без начала новой.
 	trainerChainMilestone: integer('trainer_chain_milestone').notNull().default(0),
+	// Бейдж-галочка "амбассадор" — реальные ученики-евангелисты, продвигающие
+	// приложение среди одноклассников (по прямой договорённости с
+	// пользователем). Выдаётся вручную точечным SQL, автоматики нет.
+	isAmbassador: boolean('is_ambassador').notNull().default(false),
 });
 
 // ===== USER COURSE PROGRESS (прогресс по конкретному курсу) =====
@@ -1026,6 +1030,29 @@ export const diagnosticLeads = pgTable('diagnostic_leads', {
 	// вопрос теста (не влияет на score/weakUnit), см. diagnostic-client.tsx.
 	// Nullable — старые лиды, засеянные до этой фичи, его не имеют.
 	targetScore: integer('target_score'),
+	createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Анонимный доступ к ОДНОМУ бесплатному пробному уроку тренажёра
+// (сейчас — t_lesson id=485, "Направление магнитного поля", см.
+// PUBLIC_TRIAL_T_LESSON_ID в app/t-lesson/[t_lessonId]/page.tsx). Тот же
+// принцип, что diagnosticLeads/openDiagnosticCase выше (никакой сессии,
+// идентичность чисто по `id`), но с ключевым отличием: кейс открывается и
+// показывает приз СРАЗУ по завершении урока (без Telegram-гейта), и приз
+// сохраняется тут же (reward_kind/reward_amount), а не перевыпадает при
+// каждом заходе — чтобы после регистрации можно было перенести именно
+// ЭТОТ, уже показанный приз на реальный аккаунт (см. actions/guest-
+// lesson.ts, claimGuestLeadReward). claimedByUserId/claimedAt проставляются
+// один раз в момент такого переноса.
+export const guestLessonLeads = pgTable('guest_lesson_leads', {
+	id: serial('id').primaryKey(),
+	tLessonId: integer('t_lesson_id').notNull(),
+	nickname: text('nickname').notNull(),
+	caseOpened: boolean('case_opened').notNull().default(false),
+	rewardKind: text('reward_kind'),
+	rewardAmount: integer('reward_amount'),
+	claimedByUserId: text('claimed_by_user_id'),
+	claimedAt: timestamp('claimed_at'),
 	createdAt: timestamp('created_at').defaultNow(),
 });
 

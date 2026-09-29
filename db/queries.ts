@@ -836,6 +836,44 @@ export const getTLesson = cache(async (t_lessonId: number) => {
   return { ...data };
 });
 
+// Тот же запрос, что и getTLesson выше, но БЕЗ auth()-гейта — для
+// анонимного доступа к ОДНОМУ бесплатному пробному уроку (см.
+// PUBLIC_TRIAL_T_LESSON_ID в app/t-lesson/[t_lessonId]/page.tsx). Сам SQL
+// не завязан на userId вообще (фильтр только по t_lessonId) — auth() в
+// getTLesson был чистым гейтом "залогинен ли посетитель", не реальной
+// зависимостью данных, поэтому безопасно продублировать запрос без него,
+// а не пытаться параметризовать одну функцию флагом "публичный/приватный".
+export const getTLessonPublic = cache(async (t_lessonId: number) => {
+  const data = await db.query.t_lessons.findFirst({
+    where: eq(t_lessons.id, t_lessonId),
+    with: {
+      t_challenges: {
+        orderBy: (challenges, { asc }) => [asc(challenges.order)],
+        with: {
+          t_challengeOptions: true,
+        },
+      },
+      t_unit: {
+        with: {
+          t_lessons: {
+            orderBy: (l, { asc }) => [asc(l.order)],
+            with: {
+              t_challenges: {
+                with: {
+                  t_challengeOptions: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!data || !data.t_challenges) return null;
+  return { ...data };
+});
+
 // "Горячий вопрос" — привязан к ТЕМЕ (t_unit), не к конкретному этапу,
 // см. db/schema.ts t_hot_questions. Пустой массив (тема без ни одного
 // заведённого горячего вопроса) — штатный случай, page.tsx просто не
