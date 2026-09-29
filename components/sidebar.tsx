@@ -1,6 +1,6 @@
 'use client'
 
-import { Dumbbell, Flame, Swords, ChevronDown, ChevronUp, LogOut, Settings, Library, Lock, BadgeCheck } from 'lucide-react'
+import { Dumbbell, Flame, Swords, ChevronDown, ChevronUp, LogOut, Settings, Library, Lock, BadgeCheck, Shield } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from './ui/button'
 import Link from 'next/link'
@@ -103,6 +103,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
     { label: 'Тренажёр', href: '/trainer', icon: Dumbbell, badge: hasTrainerQuest },
     { label: 'Задачник', href: '/learn', icon: Swords, disabled: learnLocked },
     { label: 'Справочник', href: '/reference', icon: Library },
+    { label: 'Банда', href: '/gang', icon: Shield },
     // Временно скрыты по прямой просьбе пользователя (2026-09-23) —
     // оставлены в коде закомментированными, не удалены.
     // { label: 'Магазин', href: '/shop', icon: ShoppingBag },

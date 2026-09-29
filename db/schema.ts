@@ -1147,3 +1147,26 @@ export const tChallengeMistakes = pgTable('t_challenge_mistakes', {
 	wrongCount: integer('wrong_count').notNull().default(0),
 	updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
+
+// Недельная битва банд (2026-09-30). Неделя — пн 00:00–вс 24:00 по
+// времени БД (Europe/Moscow), считается date_trunc('week', ...) в SQL
+// (lib/gangWeek.ts). Итоги прошлой недели подводятся "лениво" — при первом
+// заходе на /gang или /gangs после её окончания.
+export const gangWeekWinners = pgTable('gang_week_winners', {
+	weekStart: timestamp('week_start').primaryKey(),
+	// null — на неделе ни одна банда не набрала очков, награды нет.
+	gangId: integer('gang_id').references(() => gangs.id, { onDelete: 'set null' }),
+	score: integer('score').notNull().default(0),
+	settledAt: timestamp('settled_at').defaultNow(),
+});
+
+// Приз победителям недели — редкий кейс каждому участнику банды-победителя
+// (состав на момент подведения итогов). claimed — кейс уже открыт.
+export const gangWeekRewards = pgTable('gang_week_rewards', {
+	id: serial('id').primaryKey(),
+	weekStart: timestamp('week_start').notNull(),
+	userId: text('user_id').notNull(),
+	gangId: integer('gang_id'),
+	claimed: boolean('claimed').notNull().default(false),
+	claimedAt: timestamp('claimed_at'),
+});
