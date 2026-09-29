@@ -635,7 +635,7 @@ const ArrowDotCross = ({ leaving = false }: { leaving?: boolean }) => (
     </div>
 )
 
-// Мини-игра «на тебя / от тебя» (3 весёлых вопроса в зумерском стиле).
+// Мини-игра «на тебя / от тебя» (4 весёлых вопроса в зумерском стиле).
 type DotSym = 'dot' | 'cross'
 const SymIcon = ({ kind, size = 44 }: { kind: DotSym; size?: number }) => (
     <svg viewBox="-20 -20 40 40" style={{ width: size, height: size }}>
@@ -645,7 +645,9 @@ const SymIcon = ({ kind, size = 44 }: { kind: DotSym; size?: number }) => (
             : <path d="M-8,-8 L8,8 M-8,8 L8,-8" stroke={FIELD_COLOR} strokeWidth={3.5} strokeLinecap="round" />}
     </svg>
 )
-type DotQ = { prompt: React.ReactNode; options: { key: string; node: React.ReactNode }[]; correct: string; win: string; miss: string }
+// video — зацикленный ролик над вопросом, крутится, пока не ответили верно
+// (см. пункты 3/4: «Краш уходит...» / «T-800 идёт на тебя»).
+type DotQ = { prompt: React.ReactNode; options: { key: string; node: React.ReactNode }[]; correct: string; win: string; miss: string; video?: string }
 const DOT_QUIZ: DotQ[] = [
     {
         prompt: <>Стрела летит тебе <b>прямо в лицо</b> 😱 Что ты видишь?</>,
@@ -661,6 +663,13 @@ const DOT_QUIZ: DotQ[] = [
         prompt: <>Краш уходит от тебя в закат 🌅💔 Какой значок?</>,
         options: [{ key: 'dot', node: <SymIcon kind="dot" /> }, { key: 'cross', node: <SymIcon kind="cross" /> }],
         correct: 'cross', win: 'Крестик. Больно, но верно 😭', miss: 'Уходит ОТ тебя — видно хвост ✖️',
+        video: '/video/jungkook-cute-bye.mp4',
+    },
+    {
+        prompt: <>T-800 идёт <b>на тебя</b> 🔫</>,
+        options: [{ key: 'cross', node: <SymIcon kind="cross" /> }, { key: 'dot', node: <SymIcon kind="dot" /> }],
+        correct: 'dot', win: 'Точка — он летит прямо на тебя, беги! 🏃💨', miss: 'Не отвертеться: идёт НА тебя — это точка 🎯',
+        video: '/video/arnold-terminator-roses.mp4',
     },
 ]
 const DotCrossGame = ({ onDone }: { onDone: () => void }) => {
@@ -687,6 +696,14 @@ const DotCrossGame = ({ onDone }: { onDone: () => void }) => {
     return (
         <div className="w-full flex flex-col items-center gap-3">
             <span className="text-xs font-black text-[#9AA7B0]">{qi + 1} / {DOT_QUIZ.length}</span>
+            {q.video && !won && (
+                <motion.video
+                    key={`${qi}-video`}
+                    initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
+                    src={q.video} autoPlay loop muted playsInline
+                    className="pointer-events-none w-40 rounded-2xl"
+                />
+            )}
             <motion.p key={qi} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
                 className="text-center text-base md:text-lg font-bold text-[#F2F7FB]">{q.prompt}</motion.p>
             <div className="grid w-full max-w-xs grid-cols-2 gap-3">
@@ -808,6 +825,9 @@ type ConceptQuizItem = {
     renderOptions: () => React.ReactNode[]
     correct: number
     feedback: string
+    // Опциональная картинка над вопросом (мнемоника/шутка) — рендерится
+    // ТОЛЬКО у этого конкретного вопроса, см. renderImage в JSX ниже.
+    renderImage?: () => React.ReactNode
 }
 
 const CONCEPT_QUIZ: ConceptQuizItem[] = [
@@ -822,6 +842,8 @@ const CONCEPT_QUIZ: ConceptQuizItem[] = [
         renderOptions: () => [<span key="a">тока <Sticker value="I" color={CURRENT_COLOR} /></span>, <span key="b">поля <Sticker value="B" color={FIELD_COLOR} /></span>],
         correct: 0,
         feedback: 'Палец — по току, пальцы — как крутится поле.',
+        // eslint-disable-next-line @next/next/no-img-element
+        renderImage: () => <img src="/lesson-pics/vault-boy-thumb.webp" alt="Палец вверх" className="h-24 w-24" draggable={false} />,
     },
     {
         renderPrompt: () => <>Ток бежит <b>ВВЕРХ ⬆</b>. Как закрутится поле <Sticker value="B" color={FIELD_COLOR} />?</>,
@@ -840,6 +862,12 @@ const CONCEPT_QUIZ: ConceptQuizItem[] = [
         renderOptions: () => ['Поле уходит от тебя', 'Поле летит на тебя'],
         correct: 0,
         feedback: '× — оперение стрелы, которая улетает от тебя.',
+    },
+    {
+        renderPrompt: () => <>100 баллов ЕГЭ по Физике летит… 🎯</>,
+        renderOptions: () => [<span key="a" className="inline-flex items-center gap-1.5">точка <SymIcon kind="dot" size={28} /></span>, <span key="b" className="inline-flex items-center gap-1.5">крестик <SymIcon kind="cross" size={28} /></span>],
+        correct: 0,
+        feedback: 'Точка — эти 100 баллов летят прямо К ТЕБЕ. Не сомневайся 🥹',
     },
     {
         renderPrompt: () => <>Бонус! Кто красавчик? 😎</>,
@@ -946,6 +974,11 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
                                         <span className="text-xs font-bold uppercase tracking-wide text-[#5C6B73]">{CONCEPT_QUIZ_TITLE}</span>
                                         <div className="flex-1 h-px bg-[#3A464E]" />
                                     </div>
+                                )}
+                                {qq.renderImage && (
+                                    <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}>
+                                        {qq.renderImage()}
+                                    </motion.div>
                                 )}
                                 <div className="relative w-full flex items-center justify-center">
                                     <div
