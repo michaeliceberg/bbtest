@@ -761,12 +761,20 @@ const HookScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
     const PHI = GGEGE_PALETTE.purple.button
     const videoRef = useRef<HTMLVideoElement>(null)
-    // Останавливаем видео Амбридж, как только сцена уходит дальше — иначе
-    // зацикленное видео тихо продолжает крутиться и грузит CPU в фоне
-    // (просьба пользователя).
-    useEffect(() => {
-        if (phase >= 4) videoRef.current?.pause()
-    }, [phase])
+    // Видео Амбридж играет РОВНО 2 раза и останавливается — по прямой
+    // просьбе пользователя, вместо бесконечного `loop` (тот грузил CPU в
+    // фоне, см. более раннюю запись). Без `loop`-атрибута видео само
+    // ставится на паузу на последнем кадре после 2-го `ended`, отдельного
+    // `pause()` не нужно — просто не вызываем play() снова.
+    const playCountRef = useRef(0)
+    const handleEnded = () => {
+        playCountRef.current += 1
+        if (playCountRef.current < 2) {
+            videoRef.current?.play()
+        } else {
+            setPhase((p) => Math.max(p, 4))
+        }
+    }
     return (
         <>
             <TypedLineWithParts
@@ -799,8 +807,8 @@ const HookScene = ({ onSettled }: { onSettled?: () => void }) => {
                 />
             )}
             {phase >= 3 && (
-                <DiagramBlock onSettled={() => setTimeout(() => setPhase(4), 1600)}>
-                    <video ref={videoRef} src="/video/umbridge.mp4" autoPlay loop muted playsInline
+                <DiagramBlock>
+                    <video ref={videoRef} src="/video/umbridge.mp4" autoPlay muted playsInline onEnded={handleEnded}
                         className="pointer-events-none mx-auto w-full max-w-[220px] aspect-square rounded-2xl object-cover" />
                 </DiagramBlock>
             )}
