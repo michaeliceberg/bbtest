@@ -52,9 +52,11 @@ interface SidebarProps {
   // чтобы плавно закрыться (redirect на /learn не всегда меняет pathname,
   // если пользователь уже был на /learn — тогда сайдбар сам не закрывался).
   onAfterCourseChange?: () => void
+  // Задачник закрыт, пока не пройдены 3 разбора электродинамики (lib/learn-unlock.ts)
+  learnLocked?: boolean
 }
 
-export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest = false, className, userName, userImageSrc, onAfterCourseChange, theme }: SidebarProps) => {
+export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest = false, className, userName, userImageSrc, onAfterCourseChange, theme, learnLocked = false }: SidebarProps) => {
   const liveTheme = useUiThemeLive()
   const cozy = (liveTheme ?? theme ?? 'metal') === 'cozy'
   // Тёплый стиль: фон/рамка сайдбара, пункты меню (активный — карточка-блок).
@@ -92,10 +94,10 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
   }, [displayedCourseId, courses])
 
   const navItems = [
-    // Тренажёр — первым; Задачник пока неактивен (просьба пользователя 2026-09-29:
-    // сначала проходят тренажёр).
+    // Тренажёр — первым (просьба пользователя 2026-09-29). disabled: true —
+    // сделать пункт неактивным (приглушён, замок, не ссылка).
     { label: 'Тренажёр', href: '/trainer', icon: Dumbbell, badge: hasTrainerQuest },
-    { label: 'Задачник', href: '/learn', icon: Home, disabled: true },
+    { label: 'Задачник', href: '/learn', icon: Home, disabled: learnLocked },
     { label: 'Справочник', href: '/reference', icon: Library },
     // Временно скрыты по прямой просьбе пользователя (2026-09-23) —
     // оставлены в коде закомментированными, не удалены.
@@ -207,7 +209,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
             const isActive = pathname === item.href
             const Icon = item.icon
             if (item.disabled) return (
-              <Button key={item.href} variant='sidebar' disabled title='Скоро откроется' className={cn(navButtonClass(false), 'opacity-40 cursor-not-allowed')} style={navButtonStyle(false)}>
+              <Button key={item.href} variant='sidebar' disabled title='Откроется после 3 разборов электродинамики' className={cn(navButtonClass(false), 'opacity-40 cursor-not-allowed')} style={navButtonStyle(false)}>
                 <Icon className="mr-3 h-5 w-5 text-[#9AA7B0]" style={navIcon(false)} />
                 <span className="text-sm text-[#F2F7FB]" style={navText}>{item.label}</span>
                 <Lock className="ml-auto h-4 w-4 text-[#9AA7B0]" />
@@ -316,7 +318,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
           const isActive = pathname === item.href
           const Icon = item.icon
           if (item.disabled) return (
-            <Button key={item.href} variant='sidebar' disabled title='Скоро откроется' className={cn(navButtonClass(false), 'opacity-40 cursor-not-allowed')} style={navButtonStyle(false)}>
+            <Button key={item.href} variant='sidebar' disabled title='Откроется после 3 разборов электродинамики' className={cn(navButtonClass(false), 'opacity-40 cursor-not-allowed')} style={navButtonStyle(false)}>
               <Icon className="mr-3 h-5 w-5 text-[#9AA7B0]" style={navIcon(false)} />
               <span className="text-sm text-[#F2F7FB]" style={navText}>{item.label}</span>
               <Lock className="ml-auto h-4 w-4 text-[#9AA7B0]" />

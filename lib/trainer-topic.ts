@@ -55,3 +55,25 @@ export function resolveActiveTCourse<T extends { id: number; courseId: number | 
 export const TRAINER_ONLY_ACTIVE_GROUP: Record<string, string> = {
     'ЕГЭ Физика': 'Электродинамика',
 }
+
+// Какой курс считать активным — ОДНА функция для сайдбара (layout), /trainer и
+// /learn (баг 2026-09-29: без cookie сайдбар брал первый курс списка, а тренажёр —
+// курс из профиля; cookie с курсом не из списка ученика — сайдбар молча показывал
+// другой курс). Порядок: cookie (если курс есть у ученика) → курс из профиля (если
+// есть у ученика) → первый курс ученика.
+export function pickActiveCourseId(
+    cookieValue: string | undefined,
+    userCourseIds: number[],
+    profileCourseId: number | null | undefined,
+): number | undefined {
+    const fromCookie = cookieValue ? parseInt(cookieValue) : NaN
+    if (!Number.isNaN(fromCookie) && userCourseIds.includes(fromCookie)) return fromCookie
+    if (profileCourseId != null && userCourseIds.includes(profileCourseId)) return profileCourseId
+    return userCourseIds[0]
+}
+
+// Задачник: в каком курсе открыт только один юнит (courseId → часть названия
+// юнита). Остальные юниты заблокированы, /learn сам скроллит к открытому.
+export const LEARN_ONLY_UNIT: Record<number, string> = {
+    12: 'Закон Кулона', // ЕГЭ Физика → «11. Закон Кулона, закон сохранения заряда»
+}

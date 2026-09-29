@@ -1,11 +1,14 @@
 // app/(main)/layout.tsx
 
+import { pickActiveCourseId } from '@/lib/trainer-topic'
 import { MobileHeader } from '@/components/mobile-header'
 import { Sidebar } from '@/components/sidebar'
 import { auth } from '@/lib/server-auth'
 import { getUserCourses, getUserCourseStreak, getUserHomework, getTodayTrainerQuest, getUserProgress } from '@/db/queries'
 import { cookies } from 'next/headers'
 import { getUiTheme } from '@/lib/uiThemeServer'
+import { isLearnUnlocked } from '@/lib/learn-unlock'
+import { LearnUnlockCelebration } from '@/components/learn-unlock-celebration'
 
 import 'katex/dist/katex.min.css'
 
@@ -49,13 +52,9 @@ const MainLayout = async ({ children }: Props) => {
     // Получаем активный курс из cookies
     const cookieStore = cookies()
     const savedCourseId = cookieStore.get('activeCourseId')?.value
-    let activeCourseId = savedCourseId ? parseInt(savedCourseId) : allCourses[0]?.id
-    
-    // Проверяем существование курса
-    const courseExists = allCourses.some(c => c.id === activeCourseId)
-    if (!courseExists) {
-        activeCourseId = allCourses[0]?.id
-    }
+    // Общая логика с /trainer и /learn (lib/trainer-topic.ts → pickActiveCourseId)
+    // allCourses здесь не пуст (пустой список обработан выше)
+    const activeCourseId = pickActiveCourseId(savedCourseId, allCourses.map(c => c.id), userProgressRow?.activeCourseId) ?? allCourses[0].id
     
     // Получаем данные для всех курсов
     const coursesWithData = await Promise.all(
@@ -107,6 +106,10 @@ const MainLayout = async ({ children }: Props) => {
     console.log(`🔴 Активный курс ${activeCourseId}: hasTrainerQuest=${hasTrainerQuest}, trainerQuest=${activeTrainerQuest}`)
 
     
+    // Задачник открывается после 3 разборов электродинамики (lib/learn-unlock.ts).
+    const learnDone = await isLearnUnlocked(userId, false)
+    const learnLocked = !learnDone && userProgressRow?.isAdmin !== 1
+
     const activeCourseTitle = coursesWithData.find(c => c.id === activeCourseId)?.title
 
     return (
@@ -118,6 +121,7 @@ const MainLayout = async ({ children }: Props) => {
                 hasTrainerQuest={hasTrainerQuest}
                 userName={userProgressRow?.userName}
                 userImageSrc={userProgressRow?.userImageSrc}
+                learnLocked={learnLocked}
             />
             <Sidebar
                 className='hidden lg:flex'
@@ -129,10 +133,12 @@ const MainLayout = async ({ children }: Props) => {
                 trainerQuestProgress={trainerQuestProgress}
                 userName={userProgressRow?.userName}
                 userImageSrc={userProgressRow?.userImageSrc}
+                learnLocked={learnLocked}
             />
             <main className='lg:pl-[280px] h-full pt-[50px] lg:pt-0'>
                 <div className='max-w-[1056px] mx-auto pt-6 h-full'>{children}</div>
             </main>
+            {learnDone && <LearnUnlockCelebration />}
         </>
     )
 }

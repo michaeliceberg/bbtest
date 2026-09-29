@@ -28,8 +28,8 @@ import { LevelCard } from '@/components/level-card';
 import { getLvlLottieCount } from '@/lib/lvl-lottie';
 import { StreakRiskBanner } from '@/components/streak-risk-banner';
 import { PizzaProgress } from '@/components/PizzaProgress';
-import { getUserCourseProgress } from '@/db/queries';
-import { HIDDEN_T_COURSE_IDS, resolveActiveTCourse, sortTCoursesForTabs } from '@/lib/trainer-topic';
+import { getUserCourseProgress, getUserCourses } from '@/db/queries';
+import { HIDDEN_T_COURSE_IDS, pickActiveCourseId, resolveActiveTCourse, sortTCoursesForTabs } from '@/lib/trainer-topic';
 import { getUiTheme } from '@/lib/uiThemeServer';
 import { COZY } from '@/lib/cozyTheme';
 
@@ -186,10 +186,11 @@ const TLearnPage = async () => {
     // поиск по courseId БЕЗ фильтра скрытых тем) — из-за этого "Квест дня"
     // мог показывать разные темы тренажёра и рассинхронное состояние
     // "пройди урок тренажёра" (см. CLAUDE.md, полный разбор обоих случаев).
-    const activeCourseIdFromCookie = cookies().get('activeCourseId')?.value;
-    const resolvedActiveCourseId = activeCourseIdFromCookie
-        ? parseInt(activeCourseIdFromCookie)
-        : userProgress.activeCourse.id;
+    // Та же функция выбора курса, что и в сайдбаре (layout) — иначе сайдбар и
+    // тренажёр могли показывать разные курсы (баг 2026-09-29).
+    const userCourseIds = (await getUserCourses()).map((c) => c.id);
+    const resolvedActiveCourseId = pickActiveCourseId(cookies().get('activeCourseId')?.value, userCourseIds, userProgress.activeCourse.id)
+        ?? userProgress.activeCourse.id;
     const activeTCourse = resolveActiveTCourse(t_coursesRaw, resolvedActiveCourseId);
     const dailyQuest = activeTCourse ? await getDailyQuestStatus(activeTCourse.id) : null;
     const questHistory = activeTCourse ? await getRecentQuestHistory(activeTCourse.id) : [];

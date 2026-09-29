@@ -14,11 +14,13 @@ import { useSearchParams } from 'next/navigation'
 
 type Props = {
     lessonId: number | null
+    // скроллить всегда при открытии (не только после переключения курса)
+    always?: boolean
 }
 
-export const ScrollToLesson = ({ lessonId }: Props) => {
+export const ScrollToLesson = ({ lessonId, always = false }: Props) => {
     const searchParams = useSearchParams()
-    const shouldScroll = searchParams.get('switched') === '1'
+    const shouldScroll = always || searchParams.get('switched') === '1'
 
     useEffect(() => {
         if (!shouldScroll) return
@@ -30,11 +32,11 @@ export const ScrollToLesson = ({ lessonId }: Props) => {
                     block: 'center',
                 })
             }
-            window.history.replaceState(null, '', '/learn')
-        }, 300)
+            if (searchParams.get('switched') === '1') window.history.replaceState(null, '', '/learn')
+        }, always ? 700 : 300)
 
         return () => clearTimeout(timer)
-    }, [shouldScroll, lessonId])
+    }, [shouldScroll, lessonId, always, searchParams])
 
     return null
 }

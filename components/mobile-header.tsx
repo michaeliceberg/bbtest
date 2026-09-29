@@ -11,9 +11,10 @@ type Props = {
 	hasTrainerQuest?: boolean
 	userName?: string
 	userImageSrc?: string
+	learnLocked?: boolean
 }
 
-export const MobileHeader = ({ courseTitle, courses, activeCourseId, hasTrainerQuest, userName, userImageSrc }: Props) => {
+export const MobileHeader = ({ courseTitle, courses, activeCourseId, hasTrainerQuest, userName, userImageSrc, learnLocked }: Props) => {
 	// По прямой просьбе пользователя (2026-09-23) — единственный заголовок
 	// на телефоне (страничные Header'ы /learn и /trainer скрыты на
 	// мобильном, см. их файлы) получает префикс раздела, чтобы не быть
@@ -37,6 +38,7 @@ export const MobileHeader = ({ courseTitle, courses, activeCourseId, hasTrainerQ
 				hasTrainerQuest={hasTrainerQuest}
 				userName={userName}
 				userImageSrc={userImageSrc}
+				learnLocked={learnLocked}
 			/>
 			{displayTitle && (
 				<span className='absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[60%] truncate font-bold text-sm text-[#F2F7FB]'>

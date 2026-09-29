@@ -10,6 +10,7 @@ import {
   getTodayStats,
   getUserAllStatsByCourse,
   getUserCourseProgress,
+  getUserCourses,
   getUserHomework,
   getUserProgress
 } from '@/db/queries';
@@ -31,8 +32,9 @@ import { getLvlLottieCount } from '@/lib/lvl-lottie';
 import { StreakRiskBanner } from '@/components/streak-risk-banner';
 import { TrainerQuestCard } from '@/components/trainer-quest-card';
 import { getDailyQuestStatus, getRecentQuestHistory } from '@/actions/generate-trainer-quest';
-import { resolveActiveTCourse } from '@/lib/trainer-topic';
+import { LEARN_ONLY_UNIT, pickActiveCourseId, resolveActiveTCourse } from '@/lib/trainer-topic';
 import { Suspense } from 'react';
+import { isLearnUnlocked } from '@/lib/learn-unlock';
 import { CourseProgressStrip } from '@/components/course-progress-strip';
 
 const bgList = [
@@ -84,14 +86,17 @@ const LearnPage = async () => {
     redirect('/courses');
   }
 
-  let activeCourse = userProgress.activeCourse;
-  
-  if (activeCourseIdFromCookie) {
-    const foundCourse = allCourses.find(c => c.id === parseInt(activeCourseIdFromCookie));
-    if (foundCourse) {
-      activeCourse = foundCourse;
-    }
+  // Задачник закрыт до прохождения 3 разборов электродинамики (lib/learn-unlock.ts).
+  if (!(await isLearnUnlocked(userId, userProgress.isAdmin === 1))) {
+    redirect('/trainer');
   }
+
+  // Та же функция выбора курса, что в сайдбаре и тренажёре (lib/trainer-topic.ts).
+  const userCourseIds = (await getUserCourses()).map((c) => c.id);
+  const pickedId = pickActiveCourseId(activeCourseIdFromCookie, userCourseIds, userProgress.activeCourse?.id);
+  let activeCourse = userProgress.activeCourse;
+  const foundCourse = pickedId != null ? allCourses.find(c => c.id === pickedId) : undefined;
+  if (foundCourse) activeCourse = foundCourse;
   
   if (!activeCourse) {
     redirect('/courses');
@@ -340,10 +345,22 @@ const LearnPage = async () => {
   const dailyQuest = linkedTCourse ? await getDailyQuestStatus(linkedTCourse.id) : null;
   const questHistory = linkedTCourse ? await getRecentQuestHistory(linkedTCourse.id) : [];
 
+  // Фокус (просьба пользователя 2026-09-29): в некоторых курсах открыт только
+  // один юнит — остальные заблокированы, страница сама скроллит к нему.
+  const focusUnitMatch = LEARN_ONLY_UNIT[activeCourseId];
+  const focusUnit = focusUnitMatch ? unitsWithFormattedLessons.find((u) => u.title.includes(focusUnitMatch)) : undefined;
+  const isForcedLocked = (unitId: number) => !!focusUnit && unitId !== focusUnit.id;
+  const unitUnlocked = (u: { id: number; isUnlocked: boolean }) => (focusUnit ? u.id === focusUnit.id : u.isUnlocked);
+  const focusScrollLessonId = focusUnit
+    ? (focusUnit.lessons?.find((l: { id: number }) => l.id === lastTouchedLessonId)?.id ?? focusUnit.lessons?.[0]?.id ?? null)
+    : null;
+
   return (
     <LearnWrapper courseId={activeCourseId}>
       <Suspense fallback={null}>
-        <ScrollToLesson lessonId={lastTouchedLessonId} />
+        {focusUnit
+          ? <ScrollToLesson lessonId={focusScrollLessonId} always />
+          : <ScrollToLesson lessonId={lastTouchedLessonId} />}
       </Suspense>
       <div className='flex flex-row-reverse gap-[48px] px-6'>
         <StickyWrapper>
@@ -409,8 +426,8 @@ const LearnPage = async () => {
                   title: unit.title,
                   order: unit.order,
                   percent,
-                  isUnlocked: unit.isUnlocked,
-                  isCompleted: unit.isCompleted,
+                  isUnlocked: unitUnlocked(unit),
+                  isCompleted: isForcedLocked(unit.id) ? false : unit.isCompleted,
                   firstLessonId: unit.lessons?.[0]?.id ?? null,
                 };
               })}
@@ -434,8 +451,8 @@ const LearnPage = async () => {
                   missedCIds={teacherMissedCIds}
                   dailyMissedCIds={dailyMissedCIds}
                   homeworkStatusMap={homeworkStatusMap}
-                  isUnlocked={unit.isUnlocked}
-                  isCompleted={unit.isCompleted}
+                  isUnlocked={unitUnlocked(unit)}
+                  isCompleted={isForcedLocked(unit.id) ? false : unit.isCompleted}
                   unitProgressPercent={unit.percent}
                   needMoreLessons={unit.needMoreLessons}
                   isNextUnitUnlocked={unit.isNextUnitUnlocked}
