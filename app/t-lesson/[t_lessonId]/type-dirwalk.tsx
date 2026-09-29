@@ -516,11 +516,13 @@ const HandRuleScene = ({ onSettled }: { onSettled?: () => void }) => {
 // 3. Игра «Хватай провод»: 1) какой рукой схватить (палец по току),
 // 2) куда закрутится поле — выбрать кольцо. Никаких «спереди».
 const GRIP_ROUNDS: Cur[] = [1, -1, 1]
+// пауза после верного ответа, чтобы успеть рассмотреть (просьба пользователя)
+const GRIP_PAUSE_MS = 2000
 const GripGameScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
     const [rounds] = useState<Cur[]>(() => (Math.random() < 0.5 ? GRIP_ROUNDS : GRIP_ROUNDS.map((c) => (c === 1 ? -1 : 1) as Cur)))
     const [round, setRound] = useState(0)
-    const [step, setStep] = useState<'hand' | 'ring' | 'ok'>('hand')
+    const [step, setStep] = useState<'hand' | 'handOk' | 'ring' | 'ok'>('hand')
     const [wrong, setWrong] = useState<string | null>(null)
     const [wrongKey, setWrongKey] = useState<string | null>(null)
     const done = round >= rounds.length
@@ -530,7 +532,8 @@ const GripGameScene = ({ onSettled }: { onSettled?: () => void }) => {
     const miss = (key: string, text: string) => { playSound(WRONG_ANSWER_SOUND); setWrongKey(key); setWrong(text) }
     const pickHand = (thumbUp: boolean) => {
         if (step !== 'hand') return
-        if (thumbUp === (cur === 1)) { setWrong(null); setWrongKey(null); setStep('ring') }
+        // пауза: рука хватает провод, «Верно!» — и только потом следующий вопрос
+        if (thumbUp === (cur === 1)) { setWrong(null); setWrongKey(null); setStep('handOk'); setTimeout(() => setStep('ring'), GRIP_PAUSE_MS) }
         else miss(`h${thumbUp}`, 'Большой палец должен смотреть туда, куда бежит ток ⚡')
     }
     const pickRing = (right: boolean) => {
@@ -540,7 +543,7 @@ const GripGameScene = ({ onSettled }: { onSettled?: () => void }) => {
             setTimeout(() => {
                 setRound((r) => r + 1); setStep('hand')
                 if (round + 1 >= rounds.length) setTimeout(() => onSettled?.(), 700)
-            }, 1500)
+            }, GRIP_PAUSE_MS + 1500)
         } else miss(`r${right}`, 'Посмотри, куда загнуты пальцы 👀')
     }
     const optBtn = (key: string, onClick: () => void, children: React.ReactNode) => (
@@ -580,6 +583,7 @@ const GripGameScene = ({ onSettled }: { onSettled?: () => void }) => {
                             </>
                         )}
                         {step === 'ok' && !done && <p className="text-lg font-black text-[#A1D151]">Точно! 🔥</p>}
+                        {step === 'handOk' && <p className="text-lg font-black text-[#A1D151]">Верно! Палец по току ✋</p>}
                         {wrong && step !== 'ok' && <div className="rounded-xl px-4 py-2 text-sm font-bold text-center bg-[#DC605B22] text-[#DC605B]">{wrong}</div>}
                         {done && <p className="text-lg font-black text-[#A1D151]">Правая рука прокачана 💪</p>}
                     </div>
