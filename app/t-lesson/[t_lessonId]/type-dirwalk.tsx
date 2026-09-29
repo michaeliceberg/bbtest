@@ -290,13 +290,14 @@ const HandGrip = ({ cur, showRing = true, showHand = true }: { cur: Cur; showRin
     return (
         <svg viewBox={`0 0 ${HG_W} ${HG_H}`} className="w-full max-w-[300px] h-auto">
             {showRing && <GripRing cx={HG_WX} cy={cy} rx={HG_RX} ry={HG_RY} dirRight={up} part="back" />}
-            <rect x={HG_WX - 7} y={10} width={14} height={HG_H - 20} rx={7} fill={CURRENT_COLOR} />
-            <WireChevrons x={HG_WX} y1={10} y2={HG_H - 10} up={up} id={`hg-wire-${up ? 'u' : 'd'}`} />
             {showHand && (
                 <motion.image key={up ? 'up' : 'down'} href={hgImg(cur).src}
                     x={hgImgX(cur)} y={hgImgY(cur)} width={HG_IMG_W} height={hgImg(cur).h}
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }} />
             )}
+            {/* провод с током — ПОВЕРХ руки (просьба пользователя: так лучше видно ток) */}
+            <rect x={HG_WX - 7} y={10} width={14} height={HG_H - 20} rx={7} fill={CURRENT_COLOR} />
+            <WireChevrons x={HG_WX} y1={10} y2={HG_H - 10} up={up} id={`hg-wire-${up ? 'u' : 'd'}`} />
             {showRing && (
                 <motion.g key={`ring${cur}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.2 }}>
                     <GripRing cx={HG_WX} cy={cy} rx={HG_RX} ry={HG_RY} dirRight={up} part="front" />
