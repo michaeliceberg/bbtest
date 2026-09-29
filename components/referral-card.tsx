@@ -3,6 +3,7 @@
 'use client';
 
 import { useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Button } from './ui/button';
 import { getReferralLink } from '@/lib/referral';
 import { Users, Copy, Check, Share2 } from 'lucide-react';
@@ -46,8 +47,14 @@ export const ReferralCard = ({ userId }: Props) => {
                 Пригласи друга
             </h3>
             <p className="text-sm text-[#9AA7B0]">
-                Отправь другу ссылку — когда он зарегистрируется, тебе достанется пицца 🍕
+                Друг сканирует QR-код с твоего экрана или открывает ссылку. Когда он зарегистрируется,
+                тебе достанется 1–3 кусочка пиццы 🍕, а другу — 1–2 кусочка.
             </p>
+
+            {/* QR — чтобы в классе просто сканировать экран друг друга камерой, без пересылки ссылки в мессенджере. */}
+            <div className="flex justify-center py-3 bg-white rounded-lg">
+                <QRCodeSVG value={referralLink} size={200} marginSize={2} />
+            </div>
 
             <Button type="button" variant="secondary" className="w-full" onClick={shareLink}>
                 <Share2 className="h-4 w-4 mr-2" />
