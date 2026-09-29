@@ -449,7 +449,7 @@ const RingsFlipScene = ({ onSettled }: { onSettled?: () => void }) => {
             )}
             {phase >= 2 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Ток в другую сторону — поле крутится в ' }, { bold: 'другую сторону' }, { text: ' 🔄' }]}
+                    parts={[{ text: 'Если ' }, { sticker: 'ток', color: CURRENT_COLOR }, { text: ' поменяем в другую сторону — то и ' }, { sticker: 'поле', color: FIELD_COLOR }, { text: ' закрутится в ' }, { bold: 'другую сторону' }, { text: ' 🔄' }]}
                     onSettled={onSettled}
                 />
             )}
@@ -474,7 +474,7 @@ const HandRuleScene = ({ onSettled }: { onSettled?: () => void }) => {
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'А куда крутится? Спросим ' }, { sticker: 'правую руку', color: RULE_COLOR }, { text: ' ✋' }]}
+                parts={[{ text: 'А куда крутится ' }, { sticker: 'поле B', color: FIELD_COLOR }, { text: '? Спросим ' }, { sticker: 'правую руку', color: RULE_COLOR }, { text: ' ✋' }]}
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
