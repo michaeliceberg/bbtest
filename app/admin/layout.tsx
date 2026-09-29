@@ -50,6 +50,12 @@ export default async function AdminLayout({
           >
             🎓 Тренажеры (Trainers)
           </a>
+          <a
+            href="/admin/funnel"
+            className="px-4 py-2 rounded text-[#9AA7B0] text-sm hover:bg-[#232F34] transition"
+          >
+            📈 Воронка
+          </a>
         </div>
       </nav>
 

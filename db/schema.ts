@@ -143,6 +143,9 @@ export const userProgress = pgTable('user_progress', {
 	// pizzaSlices (lib/caseApply.ts, applyResolvedReward) — атомарно забран
 	// из dodo_promo_codes ниже. Null, пока не собраны все 8 кусочков.
 	dodoPromoCode: text('dodo_promo_code'),
+	// Дата регистрации (первого создания userProgress). Добавлена 2026-09-30 для
+	// /admin/funnel — у пользователей, созданных раньше, NULL.
+	createdAt: timestamp('created_at').defaultNow(),
 });
 
 // Пул промокодов Додо Пиццы для автовыдачи при 8/8 кусочков пиццы —
