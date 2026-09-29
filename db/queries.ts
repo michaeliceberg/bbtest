@@ -17,6 +17,8 @@ import {
   trainerQuests,
   identities,
   questPoints,
+  gangs,
+  gangMembers,
 } from './schema';
 import { auth } from '@/lib/auth';
 
@@ -86,6 +88,52 @@ export const getQuestPointsTotalLifetime = cache(async (userId: string) => {
     .from(questPoints)
     .where(eq(questPoints.userId, userId));
   return count;
+});
+
+// Фаза 3 (банды, 2026-09-29) — членство userId в банде (роль + сама банда),
+// или null. Используется и для проверки "уже в банде" при createGang, и в
+// upsertUserProgress для проверки роли РЕФЕРЕРА (пригласил ли лидер/капо).
+export const getGangMembership = cache(async (userId: string) => {
+  const membership = await db.query.gangMembers.findFirst({
+    where: eq(gangMembers.userId, userId),
+    with: { gang: true },
+  });
+  return membership ?? null;
+});
+
+// Полный состав банды, глава первым, затем капо, затем рядовые — для
+// экрана /gang (components/gang-roster.tsx).
+export const getGangRoster = cache(async (gangId: number) => {
+  const members = await db.query.gangMembers.findMany({
+    where: eq(gangMembers.gangId, gangId),
+  });
+  const roleOrder: Record<string, number> = { leader: 0, kapo: 1, member: 2 };
+  const sorted = [...members].sort((a, b) => (roleOrder[a.role] ?? 3) - (roleOrder[b.role] ?? 3));
+
+  const withProgress = await Promise.all(sorted.map(async (m) => {
+    const progress = await db.query.userProgress.findFirst({ where: eq(userProgress.userId, m.userId) });
+    const questsTotal = await getQuestPointsTotalLifetime(m.userId);
+    return {
+      userId: m.userId,
+      role: m.role,
+      joinedAt: m.joinedAt,
+      userName: progress?.userName ?? 'Ученик',
+      ggStickers: progress?.ggStickers ?? 0,
+      questsTotal,
+    };
+  }));
+
+  return withProgress;
+});
+
+// Все банды с готовым ростером — для лидерборда /gangs (сортировка по
+// рейтингу — на стороне вызывающего кода, lib/gangRating.ts).
+export const getAllGangsWithRoster = cache(async () => {
+  const allGangs = await db.query.gangs.findMany();
+  return Promise.all(allGangs.map(async (gang) => ({
+    gang,
+    roster: await getGangRoster(gang.id),
+  })));
 });
 
 // ============================================

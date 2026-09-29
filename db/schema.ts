@@ -1082,6 +1082,44 @@ export const guestLessonLeads = pgTable('guest_lesson_leads', {
 	createdAt: timestamp('created_at').defaultNow(),
 });
 
+// Фаза 3 реферальной воронки (2026-09-29, MVP-срез, см. CLAUDE.md) — банды.
+// Приглашение переиспользует ту же реферальную ссылку/cookie, что и Фаза 2
+// (lib/referral.ts, actions/user-progress.ts) — эти таблицы только хранят
+// саму банду и членство/роли, никакой отдельной механики приглашения нет.
+export const gangs = pgTable('gangs', {
+	id: serial('id').primaryKey(),
+	name: text('name').notNull(),
+	emoji: text('emoji').notNull().default('🔥'),
+	// Исторический факт "кто создал" — НЕ источник правды "кто сейчас глава"
+	// (это gangMembers.role==='leader', см. ниже). В MVP лидерство не
+	// передаётся и банда не удаляется, поэтому на практике они всегда совпадают.
+	creatorUserId: text('creator_user_id').notNull(),
+	createdAt: timestamp('created_at').defaultNow(),
+});
+
+// UNIQUE на userId — один пользователь состоит ровно в одной банде
+// одновременно (простое правило для MVP, без явной проверки в коде).
+export const gangMembers = pgTable('gang_members', {
+	id: serial('id').primaryKey(),
+	gangId: integer('gang_id').notNull().references(() => gangs.id, { onDelete: 'cascade' }),
+	userId: text('user_id').notNull().unique(),
+	// 'leader' | 'kapo' | 'member' — обычная text-колонка, не enum (тот же
+	// принцип конвенции, что и у category в achievements/lessonType и т.п.).
+	role: text('role').notNull().default('member'),
+	joinedAt: timestamp('joined_at').defaultNow(),
+});
+
+export const gangsRelations = relations(gangs, ({ many }) => ({
+	members: many(gangMembers),
+}));
+
+export const gangMembersRelations = relations(gangMembers, ({ one }) => ({
+	gang: one(gangs, {
+		fields: [gangMembers.gangId],
+		references: [gangs.id],
+	}),
+}));
+
 
 // db/schema.ts - добавить в файл после определения таблиц
 

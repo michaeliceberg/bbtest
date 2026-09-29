@@ -1,14 +1,16 @@
 // app/(main)/account/page.tsx
 
 import { auth } from '@/lib/server-auth'
-import { getUserProgress } from '@/db/queries'
+import { getUserProgress, getGangMembership } from '@/db/queries'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
+import Link from 'next/link'
 import { AccountLinking } from '@/components/account-linking'
 import { FaceBuilder } from '@/components/face-builder'
 import { NameEditor } from '@/components/name-editor'
 import { ParentBindCode } from '@/components/parent-bind-code'
 import { ReferralCard } from '@/components/referral-card'
+import { Button } from '@/components/ui/button'
 
 const AccountPage = async () => {
     const session = await auth()
@@ -16,6 +18,8 @@ const AccountPage = async () => {
 
     const userProgress = await getUserProgress()
     if (!userProgress) redirect('/')
+
+    const gangMembership = await getGangMembership(userProgress.userId)
 
     return (
         <div className="max-w-[600px] mx-auto px-4 pb-10 flex flex-col gap-8">
@@ -40,6 +44,20 @@ const AccountPage = async () => {
                 <Suspense fallback={null}>
                     <AccountLinking />
                 </Suspense>
+            </div>
+
+            <div className="rounded-xl border border-[#3A464E] bg-[#151F23] shadow-sm p-4 space-y-3">
+                <h3 className="font-bold text-[#F2F7FB] flex items-center gap-2">
+                    {gangMembership ? `${gangMembership.gang.emoji} ${gangMembership.gang.name}` : 'Моя банда'}
+                </h3>
+                <p className="text-sm text-[#9AA7B0]">
+                    {gangMembership ? 'Приглашай друзей, назначай капо и следи за рейтингом банды.' : 'Ты ещё не в банде — создай свою или вступи по ссылке друга!'}
+                </p>
+                <Link href="/gang">
+                    <Button type="button" variant="secondary" className="w-full">
+                        {gangMembership ? 'Открыть банду' : 'Создать банду'}
+                    </Button>
+                </Link>
             </div>
 
             <ReferralCard userId={userProgress.userId} />

@@ -1,8 +1,8 @@
 'use server';
 
 import db from '@/db/drizzle';
-import { getCourseById, getUserProgress, getUserProgressById, getQuestPointsTotalLifetime } from '@/db/queries';
-import { challengeProgress, challenges, t_lessonProgress, t_lessons, userProgress } from '@/db/schema';
+import { getCourseById, getUserProgress, getUserProgressById, getQuestPointsTotalLifetime, getGangMembership } from '@/db/queries';
+import { challengeProgress, challenges, t_lessonProgress, t_lessons, userProgress, gangMembers } from '@/db/schema';
 import { auth } from '@/lib/auth';
 // import { auth, currentUser } from '@clerk/nextjs/server';
 import { and, eq, sql } from 'drizzle-orm';
@@ -80,9 +80,11 @@ export const upsertUserProgress = async (courseId: number) => {
 	if (invitedByUserId) {
 		cookieStore.delete(REFERRAL_COOKIE);
 
-		// Небольшой приветственный бонус новичку — символический, не
-		// основной стимул (основной — пицца рефереру, ниже).
-		await applyResolvedReward(userId, { kind: 'gems', amount: 1, weight: 0 }).catch(() => null);
+		// Приветственный бонус новичку — по прямой просьбе пользователя
+		// (мид-тёрн правка, 2026-09-29): 1-2 кусочка пиццы рандомом,
+		// преимущественно 1, реже 2 (80/20) — было +1 гем.
+		const refereeBonusAmount = Math.random() < 0.2 ? 2 : 1;
+		await applyResolvedReward(userId, { kind: 'pizza', amount: refereeBonusAmount, weight: 0 }).catch(() => null);
 
 		// Бонус рефереру масштабируется по его уровню/активности (идея
 		// пользователя) — реферер может не существовать/быть удалён,
@@ -93,6 +95,20 @@ export const upsertUserProgress = async (courseId: number) => {
 			const referrerQuestsTotal = await getQuestPointsTotalLifetime(invitedByUserId);
 			const bonusAmount = computeReferralBonus(referrerLevel, referrerQuestsTotal);
 			await applyResolvedReward(invitedByUserId, { kind: 'pizza', amount: bonusAmount, weight: 0 }).catch(() => null);
+		}
+
+		// Банды (Фаза 3, MVP, 2026-09-29) — та же ссылка/cookie удваивается
+		// как приглашение в банду, ЕСЛИ у реферера роль leader/kapo. Обычный
+		// участник (role='member') или человек без банды по той же ссылке
+		// даёт только персональный бонус выше — вступления не происходит
+		// вовсе, никакой отдельной проверки прав не нужно.
+		const referrerMembership = await getGangMembership(invitedByUserId);
+		if (referrerMembership && (referrerMembership.role === 'leader' || referrerMembership.role === 'kapo')) {
+			await db.insert(gangMembers).values({
+				gangId: referrerMembership.gangId,
+				userId,
+				role: 'member',
+			}).onConflictDoNothing();
 		}
 	}
 
