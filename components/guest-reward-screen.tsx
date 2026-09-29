@@ -23,10 +23,12 @@ const LoginDialog = dynamic(() => import('@/components/login-dialog').then((m) =
 type Props = {
 	t_lessonId: number;
 	nickname: string;
+	// id плиток экрана "Что тебе заходит?" (lib/vibes.ts) — пишем в лид для статистики.
+	vibes?: string[];
 	theme: UiTheme;
 };
 
-export const GuestRewardScreen = ({ t_lessonId, nickname, theme }: Props) => {
+export const GuestRewardScreen = ({ t_lessonId, nickname, vibes, theme }: Props) => {
 	const [leadId, setLeadId] = useState<number | null>(null);
 	const [wonReward, setWonReward] = useState<CaseReward | null>(null);
 	const [loginOpen, setLoginOpen] = useState(false);
@@ -44,8 +46,8 @@ export const GuestRewardScreen = ({ t_lessonId, nickname, theme }: Props) => {
 	useEffect(() => {
 		if (createdRef.current) return
 		createdRef.current = true
-		createGuestLead(t_lessonId, nickname).then(({ leadId }) => setLeadId(leadId));
-	}, [t_lessonId, nickname]);
+		createGuestLead(t_lessonId, nickname, vibes ?? []).then(({ leadId }) => setLeadId(leadId));
+	}, [t_lessonId, nickname, vibes]);
 
 	return (
 		<div className="w-full max-w-xl mx-auto flex flex-col items-center gap-4 py-6 px-2">

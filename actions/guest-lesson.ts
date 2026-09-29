@@ -30,10 +30,11 @@ const GUEST_LEAD_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 // components/guest-reward-screen.tsx) — не по клику, тот же приём, что и
 // у startDiagnosticTelegramLead (actions/diagnostic.ts), чтобы к моменту
 // клика по "Крутить" лид уже существовал.
-export async function createGuestLead(tLessonId: number, nickname: string) {
+export async function createGuestLead(tLessonId: number, nickname: string, vibes: string[] = []) {
 	const [row] = await db.insert(guestLessonLeads).values({
 		tLessonId,
 		nickname,
+		vibes: vibes.slice(0, 5).join(',') || null,
 	}).returning({ id: guestLessonLeads.id });
 
 	const jar = await cookies();

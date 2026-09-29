@@ -46,6 +46,7 @@ import { useQuestCompleteStore } from "@/store/use-quest-complete-store"
 import { xpForAmount } from "@/lib/xp"
 import { TrainerLessonCompleteScreen } from "@/components/trainer-lesson-complete-screen"
 import { GuestRewardScreen } from "@/components/guest-reward-screen"
+import { GuestVibePicker, GUEST_NICKNAME_STORAGE_KEY, GUEST_VIBES_STORAGE_KEY } from "@/components/guest-vibe-picker"
 
 // "Горячий вопрос" (questionType 'HOT', см. type-hot.tsx) — факультативный,
 // не входит в счёт/сердечки/работу над ошибками (см. handleAnswer). Везде,
@@ -171,6 +172,25 @@ export default function TQuiz({
 }: Props) {
 
   const router = useRouter()
+  // Гость: перед уроком экран "Что тебе заходит?" (components/guest-vibe-
+  // picker.tsx) — позывной из выбранных увлечений. 'checking' — пока не
+  // прочитали localStorage (уже выбирал раньше — экран не показываем).
+  const [vibeStage, setVibeStage] = useState<'checking' | 'picker' | 'done'>(isGuest ? 'checking' : 'done')
+  const [guestNickname, setGuestNickname] = useState(userName)
+  const [guestVibes, setGuestVibes] = useState<string[]>([])
+  useEffect(() => {
+    if (!isGuest) return
+    try {
+      const nick = localStorage.getItem(GUEST_NICKNAME_STORAGE_KEY)
+      if (nick) {
+        setGuestNickname(nick)
+        setGuestVibes((localStorage.getItem(GUEST_VIBES_STORAGE_KEY) ?? '').split(',').filter(Boolean))
+        setVibeStage('done')
+        return
+      }
+    } catch { /* нет доступа к localStorage — покажем выбор */ }
+    setVibeStage('picker')
+  }, [isGuest])
   const showAchievement = useAchievementStore((state) => state.showAchievement)
   // Название с префиксом "daily" не просто так — showStreakCelebration/
   // setShowStreakCelebration (state ниже) уже заняты СОВСЕМ другим
@@ -911,6 +931,22 @@ export default function TQuiz({
 
   console.log('Рендер: quizCompleted:', quizCompleted, 'showChestReward:', showChestReward)
 
+  if (isGuest && vibeStage === 'checking') {
+    return <div className="min-h-[100dvh]" />
+  }
+  if (isGuest && vibeStage === 'picker') {
+    return (
+      <GuestVibePicker
+        onDone={(nick, vibes) => {
+          setGuestNickname(nick)
+          setGuestVibes(vibes)
+          lessonStartRef.current = Date.now()
+          setVibeStage('done')
+        }}
+      />
+    )
+  }
+
   if (showQuestRewardsScreen) {
     // Гость (isGuest) не имеет ни квестов дня, ни "следующего урока" (это
     // единственный открытый ему урок) — вместо TrainerQuestRewardsScreen
@@ -920,7 +956,7 @@ export default function TQuiz({
     // срабатывает через openPlannedCase() — никаких доп. изменений в
     // самой state-машине не потребовалось.
     if (isGuest) {
-      return <GuestRewardScreen t_lessonId={t_lessonId} nickname={userName} theme={uiTheme} />
+      return <GuestRewardScreen t_lessonId={t_lessonId} nickname={guestNickname} vibes={guestVibes} theme={uiTheme} />
     }
     return (
       <div className="w-full max-w-xl mx-auto">

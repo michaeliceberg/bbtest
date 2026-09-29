@@ -1074,6 +1074,8 @@ export const guestLessonLeads = pgTable('guest_lesson_leads', {
 	id: serial('id').primaryKey(),
 	tLessonId: integer('t_lesson_id').notNull(),
 	nickname: text('nickname').notNull(),
+	// Выбор на экране "Что тебе заходит?" (lib/vibes.ts), id через запятую.
+	vibes: text('vibes'),
 	caseOpened: boolean('case_opened').notNull().default(false),
 	rewardKind: text('reward_kind'),
 	rewardAmount: integer('reward_amount'),
