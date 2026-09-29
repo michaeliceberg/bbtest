@@ -603,6 +603,18 @@ const GripGameScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
+// Кнопка-реплика внутри сцены («Агась») — тот же приём, что уже
+// используется в FARADAYWALK (SceneReplyButton) — продолжает сцену по
+// клику, а не автоматически, чтобы дать время прочитать.
+const SceneReplyButton = ({ children, onClick }: { children: React.ReactNode; onClick: () => void }) => (
+    <motion.button type="button" onClick={onClick}
+        initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.55 }}
+        className="mx-auto rounded-2xl px-8 py-3 text-lg font-black text-white active:translate-y-[3px]"
+        style={{ backgroundColor: FIELD_COLOR, boxShadow: `0 5px 0 ${GGEGE_PALETTE.blue.bottom}` }}>
+        {children}
+    </motion.button>
+)
+
 // Стрела (public/lesson-pics/arrow.webp, хвост слева, остриё справа): под
 // хвостом — крестик (оперение улетает от тебя), под остриём — точка (летит на тебя).
 const EndBadge = ({ kind, label, delay }: { kind: 'dot' | 'cross'; label: string; delay: number }) => (
@@ -666,7 +678,7 @@ const DOT_QUIZ: DotQ[] = [
         video: '/video/jungkook-cute-bye.mp4',
     },
     {
-        prompt: <>T-800 идёт <b>на тебя</b> 🔫</>,
+        prompt: <>T-800 идёт <b>на тебя</b> 🔫 Пиу-пиу</>,
         options: [{ key: 'cross', node: <SymIcon kind="cross" /> }, { key: 'dot', node: <SymIcon kind="dot" /> }],
         correct: 'dot', win: 'Точка — он летит прямо на тебя, беги! 🏃💨', miss: 'Не отвертеться: идёт НА тебя — это точка 🎯',
         video: '/video/arnold-terminator-roses.mp4',
@@ -727,6 +739,7 @@ const DotCrossGame = ({ onDone }: { onDone: () => void }) => {
 // 4. Как рисуют в задачах: • и ×.
 const DotCrossScene = ({ onSettled, leaving }: { onSettled?: () => void; leaving?: boolean }) => {
     const [phase, setPhase] = useState(0)
+    const [legendTyped, setLegendTyped] = useState(false)
     return (
         <>
             <TypedLine text="В задачах ЕГЭ поле рисуют значками:" className={TEXT_CLS} onSettled={() => setPhase(1)} delayAfter={200} />
@@ -738,8 +751,11 @@ const DotCrossScene = ({ onSettled, leaving }: { onSettled?: () => void; leaving
             {phase >= 2 && (
                 <TypedLineWithParts
                     parts={[{ sticker: '•', color: FIELD_COLOR }, { text: ' — поле летит ' }, { bold: 'НА ТЕБЯ' }, { break: true }, { sticker: '×', color: FIELD_COLOR }, { text: ' — поле летит ' }, { bold: 'ОТ ТЕБЯ' }]}
-                    onSettled={() => setPhase(3)}
+                    onSettled={() => setLegendTyped(true)}
                 />
+            )}
+            {phase === 2 && legendTyped && (
+                <SceneReplyButton onClick={() => setPhase(3)}>Агась 👌</SceneReplyButton>
             )}
             {phase >= 3 && (
                 <TypedLine text="Как стрела 🏹: остриё выглядит, как точка, а хвост — как крестик." className={TEXT_CLS} onSettled={() => setPhase(4)} />
@@ -843,7 +859,7 @@ const CONCEPT_QUIZ: ConceptQuizItem[] = [
         correct: 0,
         feedback: 'Палец — по току, пальцы — как крутится поле.',
         // eslint-disable-next-line @next/next/no-img-element
-        renderImage: () => <img src="/lesson-pics/vault-boy-thumb.webp" alt="Палец вверх" className="h-24 w-24" draggable={false} />,
+        renderImage: () => <img src="/lesson-pics/vault-boy-thumb.webp" alt="Палец вверх" className="h-16 w-16 md:h-20 md:w-20 rounded-lg" draggable={false} />,
     },
     {
         renderPrompt: () => <>Ток бежит <b>ВВЕРХ ⬆</b>. Как закрутится поле <Sticker value="B" color={FIELD_COLOR} />?</>,
@@ -975,12 +991,7 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
                                         <div className="flex-1 h-px bg-[#3A464E]" />
                                     </div>
                                 )}
-                                {qq.renderImage && (
-                                    <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}>
-                                        {qq.renderImage()}
-                                    </motion.div>
-                                )}
-                                <div className="relative w-full flex items-center justify-center">
+                                <div className="relative w-full flex items-center gap-2">
                                     <div
                                         className="absolute left-0 top-1/2 -translate-y-1/2 shrink-0 flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
                                         style={{
@@ -993,9 +1004,20 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
                                         <span className="opacity-50 font-normal">/</span>
                                         <span>{CONCEPT_QUIZ.length}</span>
                                     </div>
-                                    <p className="w-full px-16 text-base md:text-lg text-[#F2F7FB] text-center font-bold">
+                                    <p className={cn(
+                                        'flex-1 min-w-0 pl-16 text-base md:text-lg text-[#F2F7FB] text-center font-bold',
+                                        qq.renderImage ? 'pr-1' : 'pr-16',
+                                    )}>
                                         {qq.renderPrompt()}
                                     </p>
+                                    {qq.renderImage && (
+                                        <motion.div
+                                            initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
+                                            className="shrink-0"
+                                        >
+                                            {qq.renderImage()}
+                                        </motion.div>
+                                    )}
                                 </div>
                                 {isCurrent && !checked && (
                                     <>
