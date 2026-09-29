@@ -370,6 +370,7 @@ const LearnPage = async () => {
             points={currentPoints}
             gems={currentGems}
             xp={currentXp}
+            ggStickers={userProgress.ggStickers}
             hasActiveSubscription={false}
           />
 

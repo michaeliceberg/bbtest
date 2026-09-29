@@ -238,6 +238,7 @@ const TLearnPage = async () => {
                     points={currentPoints}
                     gems={currentGems}
                     xp={currentXp}
+                    ggStickers={userProgress.ggStickers}
                     hasActiveSubscription={false}
                 />
 
@@ -274,7 +275,7 @@ const TLearnPage = async () => {
                         className={cozy ? 'mb-5 flex justify-center rounded-xl px-3 py-3' : 'mb-4 flex justify-center'}
                         style={cozy ? { background: COZY.card, border: `3px solid ${COZY.cardBorder}`, boxShadow: `0 6px 0 ${COZY.cardEdge}` } : undefined}
                     >
-                        <PizzaProgress collected={currentPizzaSlices} cozy={cozy} />
+                        <PizzaProgress collected={currentPizzaSlices} cozy={cozy} dodoPromoCode={userProgress.dodoPromoCode} />
                     </div>
 
                     <div className='content-center mx-auto justify-center text-center align-middle'>

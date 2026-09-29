@@ -33,6 +33,7 @@ const ShopPage = async () => {
                     points={userProgress.points}
                     gems={userProgress.gems}
                     xp={userProgress.xp}
+                    ggStickers={userProgress.ggStickers}
                     hasActiveSubscription={false}
                 />
             </StickyWrapper>

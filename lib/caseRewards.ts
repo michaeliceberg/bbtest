@@ -12,7 +12,11 @@
 
 import { declensionRu } from '@/usefulFunctions'
 
-export type CaseRewardKind = 'coins' | 'gems' | 'pizza'
+// 'gg' — gg-стикеры, декоративная "мистическая" валюта (Фаза 2 реферальной
+// воронки, 2026-09-29) — назначение сознательно не объясняется пользователю
+// (видимый счётчик с интригой, components/user-progress.tsx), просто редкий
+// доп. дроп из кейсов.
+export type CaseRewardKind = 'coins' | 'gems' | 'pizza' | 'gg'
 
 export type CaseReward = {
 	kind: CaseRewardKind
@@ -39,6 +43,7 @@ export const REGULAR_CASE_POOL: CaseReward[] = [
 	{ kind: 'gems', amount: 2, weight: 8 },
 	{ kind: 'gems', amount: 3, weight: 3 },
 	{ kind: 'pizza', amount: 1, weight: 3 },
+	{ kind: 'gg', amount: 1, weight: 4 },
 ]
 
 // Мегакейс (👑 финальный этап темы) — шанс пиццы ~6%, вдвое чаще, чем в
@@ -53,6 +58,7 @@ export const MEGA_CASE_POOL: CaseReward[] = [
 	{ kind: 'gems', amount: 3, weight: 4 },
 	{ kind: 'pizza', amount: 1, weight: 5 },
 	{ kind: 'pizza', amount: 2, weight: 1 },
+	{ kind: 'gg', amount: 1, weight: 4 },
 ]
 
 export const getCasePool = (isMega: boolean): CaseReward[] => (isMega ? MEGA_CASE_POOL : REGULAR_CASE_POOL)
@@ -80,6 +86,7 @@ export const MYTHIC_CASE_POOL: CaseReward[] = [
 	{ kind: 'gems', amount: 3, weight: 10 },
 	{ kind: 'pizza', amount: 1, weight: 18 },
 	{ kind: 'pizza', amount: 2, weight: 10 },
+	{ kind: 'gg', amount: 1, weight: 6 },
 ]
 
 // МЕГА-кейс (2026-09-24, по прямой просьбе пользователя) — ещё реже
@@ -94,6 +101,7 @@ export const MEGA_TIER_CASE_POOL: CaseReward[] = [
 	{ kind: 'gems', amount: 5, weight: 10 },
 	{ kind: 'pizza', amount: 2, weight: 18 },
 	{ kind: 'pizza', amount: 3, weight: 10 },
+	{ kind: 'gg', amount: 1, weight: 6 },
 ]
 
 export const getLessonCasePool = (tier: LessonCaseTier): CaseReward[] =>
@@ -158,6 +166,7 @@ export const DIAGNOSTIC_CASE_POOL: CaseReward[] = [
 	{ kind: 'gems', amount: 2, weight: 20 },
 	{ kind: 'pizza', amount: 1, weight: 30 },
 	{ kind: 'pizza', amount: 2, weight: 10 },
+	{ kind: 'gg', amount: 1, weight: 8 },
 ]
 
 // "Джекпот" — повод для конфетти на реакции барабана: пицца (любое
@@ -187,11 +196,13 @@ export const pickWeightedReward = (pool: CaseReward[]): CaseReward => {
 export const rewardLabel = (reward: CaseReward): string => {
 	if (reward.kind === 'coins') return `+${reward.amount} ${declensionRu(reward.amount, 'монета', 'монеты', 'монет')}`
 	if (reward.kind === 'gems') return `+${reward.amount} ${declensionRu(reward.amount, 'гем', 'гема', 'гемов')}`
+	if (reward.kind === 'gg') return `+${reward.amount} gg-${declensionRu(reward.amount, 'стикер', 'стикера', 'стикеров')}`
 	return `+${reward.amount} ${declensionRu(reward.amount, 'кусочек', 'кусочка', 'кусочков')} пиццы`
 }
 
 export const rewardEmoji = (reward: CaseReward): string => {
 	if (reward.kind === 'coins') return '🪙'
 	if (reward.kind === 'gems') return '💎'
+	if (reward.kind === 'gg') return '🎴'
 	return '🍕'
 }

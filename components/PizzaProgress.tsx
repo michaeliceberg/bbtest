@@ -20,9 +20,13 @@ type Props = {
 	size?: number
 	// Тёплый стиль — кремовый текст подписи.
 	cozy?: boolean
+	// Промокод, уже назначенный автоматически (lib/caseApply.ts,
+	// applyResolvedReward) — Фаза 2, 2026-09-29. Показывается вместо
+	// общей фразы "промокод в Додо", как только collected>=8.
+	dodoPromoCode?: string | null
 }
 
-export const PizzaProgress = ({ collected, size = 140, cozy = false }: Props) => {
+export const PizzaProgress = ({ collected, size = 140, cozy = false, dodoPromoCode = null }: Props) => {
 	const clamped = Math.max(0, Math.min(MAX_PIZZA_SLICES, collected))
 	const isComplete = clamped >= MAX_PIZZA_SLICES
 
@@ -73,7 +77,11 @@ export const PizzaProgress = ({ collected, size = 140, cozy = false }: Props) =>
 				<span className="flex items-end gap-2 text-base font-semibold leading-snug" style={{ color: cozy ? '#FFE8C7' : '#C9D3D9' }}>
 					<span>
 						{isComplete ? (
-							<>Пицца собрана —<br />промокод в Додо!</>
+							dodoPromoCode ? (
+								<>Пицца собрана! Промокод:<br /><span className="font-mono text-yellow-300">{dodoPromoCode}</span></>
+							) : (
+								<>Пицца собрана —<br />промокод в Додо!</>
+							)
 						) : (
 							<>Собери ещё {left} и получи<br />промокод в Додо</>
 						)}

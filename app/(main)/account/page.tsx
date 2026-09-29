@@ -8,6 +8,7 @@ import { AccountLinking } from '@/components/account-linking'
 import { FaceBuilder } from '@/components/face-builder'
 import { NameEditor } from '@/components/name-editor'
 import { ParentBindCode } from '@/components/parent-bind-code'
+import { ReferralCard } from '@/components/referral-card'
 
 const AccountPage = async () => {
     const session = await auth()
@@ -40,6 +41,8 @@ const AccountPage = async () => {
                     <AccountLinking />
                 </Suspense>
             </div>
+
+            <ReferralCard userId={userProgress.userId} />
 
             <ParentBindCode userId={userProgress.userId} userName={userProgress.userName} />
         </div>

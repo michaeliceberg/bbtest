@@ -54,6 +54,7 @@ type UserProgressData = {
     points: number
     gems: number
     xp: number
+    ggStickers: number
 }
 
 // Разные акцентные цвета по темам — чисто навигационная функция (быстро
@@ -268,6 +269,7 @@ export const ReferenceBrowser = ({ entries, userProgress, defaultSubject }: { en
                     points={userProgress.points}
                     gems={userProgress.gems}
                     xp={userProgress.xp}
+                    ggStickers={userProgress.ggStickers}
                     hasActiveSubscription={false}
                 />
                 <FiltersPanel {...filtersProps} layout="sidebar" />

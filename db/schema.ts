@@ -129,6 +129,32 @@ export const userProgress = pgTable('user_progress', {
 	// приложение среди одноклассников (по прямой договорённости с
 	// пользователем). Выдаётся вручную точечным SQL, автоматики нет.
 	isAmbassador: boolean('is_ambassador').notNull().default(false),
+	// Фаза 2 реферальной воронки (2026-09-29) — кто пригласил этого
+	// пользователя (raw userId из реферальной ссылки ?ref=<userId>, см.
+	// lib/referral.ts/components/referral-catcher.tsx), проставляется один
+	// раз при первом создании userProgress (actions/user-progress.ts,
+	// upsertUserProgress). Задел на Фазу 3 (банды) — там же пригодится.
+	invitedByUserId: text('invited_by_user_id'),
+	// "Мистическая" декоративная валюта — назначение сознательно не
+	// раскрыто пользователю (видимый счётчик с интригой, по прямой просьбе
+	// пользователя), капает из кейсов как редкий доп. дроп (lib/caseRewards.ts).
+	ggStickers: integer('gg_stickers').notNull().default(0),
+	// Промокод Додо Пиццы, назначенный автоматически при достижении 8/8
+	// pizzaSlices (lib/caseApply.ts, applyResolvedReward) — атомарно забран
+	// из dodo_promo_codes ниже. Null, пока не собраны все 8 кусочков.
+	dodoPromoCode: text('dodo_promo_code'),
+});
+
+// Пул промокодов Додо Пиццы для автовыдачи при 8/8 кусочков пиццы —
+// плейсхолдер-коды на 100 строк (scripts/seed-dodo-codes.ts), заменяются
+// на настоящие позже точечным UPDATE/новым сидом той же таблицы, без
+// правок кода выдачи (см. applyResolvedReward в lib/caseApply.ts).
+export const dodoPromoCodes = pgTable('dodo_promo_codes', {
+	id: serial('id').primaryKey(),
+	code: text('code').notNull().unique(),
+	assignedToUserId: text('assigned_to_user_id'),
+	assignedAt: timestamp('assigned_at'),
+	createdAt: timestamp('created_at').defaultNow(),
 });
 
 // ===== USER COURSE PROGRESS (прогресс по конкретному курсу) =====

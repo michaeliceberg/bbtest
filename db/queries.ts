@@ -16,6 +16,7 @@ import {
   userMines,
   trainerQuests,
   identities,
+  questPoints,
 } from './schema';
 import { auth } from '@/lib/auth';
 
@@ -61,6 +62,30 @@ export const getUserProgress = cache(async () => {
     },
   });
   return data;
+});
+
+// Тот же запрос, что и getUserProgress выше, но для ПРОИЗВОЛЬНОГО userId,
+// не только текущей сессии — нужна для реферальной воронки (Фаза 2,
+// 2026-09-29): при регистрации нового пользователя считаем бонус
+// РЕФЕРЕРУ (его уровень/квесты), а не текущему (только что созданному)
+// юзеру. Без auth()-гейта — вызывается только из уже авторизованных
+// серверных экшенов, где сам userId уже проверен/доверен вызывающей стороной.
+export const getUserProgressById = cache(async (userId: string) => {
+  const data = await db.query.userProgress.findFirst({
+    where: eq(userProgress.userId, userId),
+  });
+  return data;
+});
+
+// Лайфтайм-счётчик выполненных квестов дня (без фильтра по дате, в
+// отличие от помесячного inline-запроса в generate-trainer-quest.ts) —
+// нужен для масштабирования реферального бонуса по "активности"
+// приглашающего (Фаза 2).
+export const getQuestPointsTotalLifetime = cache(async (userId: string) => {
+  const [{ count }] = await db.select({ count: sql<number>`count(*)::int` })
+    .from(questPoints)
+    .where(eq(questPoints.userId, userId));
+  return count;
 });
 
 // ============================================

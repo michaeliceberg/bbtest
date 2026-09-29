@@ -3,7 +3,7 @@ import dynamic from 'next/dynamic';
 import { courses } from '@/db/schema';
 import Image from '@/node_modules/next/image';
 import Link from '@/node_modules/next/link';
-import { InfinityIcon } from 'lucide-react';
+import { InfinityIcon, Sticker } from 'lucide-react';
 import { Button } from './ui/button';
 import LottieCoins from '@/public/Lottie/LottieCoins.json'
 import LottieGems from '@/public/Lottie/LottieGems.json'
@@ -19,10 +19,15 @@ type Props = {
 	points: number;
 	gems: number;
 	xp: number;
+	// gg-стикеры — "мистическая" валюта (Фаза 2, 2026-09-29), назначение
+	// нарочно не объясняется ученику — виден только растущий счётчик,
+	// без явного лейбла/подсказки, что это. Необязательный (default 0) —
+	// не все места рендера UserProgress передают эту цифру.
+	ggStickers?: number;
 	hasActiveSubscription: boolean;
 	theme?: 'light' | 'dark';
 };
-export const UserProgress = ({ activeCourse, hearts, points, gems, xp, hasActiveSubscription, theme = 'light' }: Props) => {
+export const UserProgress = ({ activeCourse, hearts, points, gems, xp, ggStickers = 0, hasActiveSubscription, theme = 'light' }: Props) => {
 	const isDark = theme === 'dark';
 	const { level, progressPercent } = getLevelInfo(xp);
 
@@ -81,6 +86,14 @@ export const UserProgress = ({ activeCourse, hearts, points, gems, xp, hasActive
 			</Link>
 
 
+
+			{/* gg-стикеры — "мистическая" валюта, назначение нарочно не
+				объясняется (см. Props выше) — просто растущий счётчик,
+				чтобы вызывать вопрос "а зачем они" у самого ученика. */}
+			<div className={cn('flex items-center px-2 text-violet-400', ghostHover)} title="gg-стикеры">
+				<Sticker className='h-5 w-5 mr-2' />
+				{ggStickers}
+			</div>
 
 			<Link href='/shop'>
 				<Button variant='ghost' className={cn('text-rose-500', ghostHover)}>

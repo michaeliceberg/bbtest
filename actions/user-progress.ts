@@ -1,17 +1,20 @@
 'use server';
 
 import db from '@/db/drizzle';
-import { getCourseById, getUserProgress } from '@/db/queries';
+import { getCourseById, getUserProgress, getUserProgressById, getQuestPointsTotalLifetime } from '@/db/queries';
 import { challengeProgress, challenges, t_lessonProgress, t_lessons, userProgress } from '@/db/schema';
 import { auth } from '@/lib/auth';
 // import { auth, currentUser } from '@clerk/nextjs/server';
 import { and, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { xpForAmount, getLevelUpInfo } from '@/lib/xp';
+import { cookies } from 'next/headers';
+import { xpForAmount, getLevelUpInfo, getLevelInfo } from '@/lib/xp';
 import { recalculateAchievements } from './check-achievements';
 import { bumpCourseStreak } from '@/lib/streak';
 import { getDailyQuestStatus } from './generate-trainer-quest';
+import { applyResolvedReward } from '@/lib/caseApply';
+import { REFERRAL_COOKIE, computeReferralBonus } from '@/lib/referral';
 
 const POINTS_TO_REFILL = 10
 
@@ -55,13 +58,43 @@ export const upsertUserProgress = async (courseId: number) => {
 		redirect('/learn');
 	}
 
+	// Реферальная атрибуция (Фаза 2, 2026-09-29) — cookie ставится
+	// components/referral-catcher.tsx при заходе по ?ref=<userId>
+	// (lib/referral.ts). Читаем ДО инсерта, т.к. это гарантированно первая
+	// когда-либо запись userProgress для userId (existingUserProgress
+	// проверен выше) — единственный правильный момент атрибуции.
+	const cookieStore = cookies();
+	const referredBy = cookieStore.get(REFERRAL_COOKIE)?.value || null;
+	// Антифрод — сам себя не реферишь (тот же userId по какой-то причине).
+	const invitedByUserId = referredBy && referredBy !== userId ? referredBy : null;
+
 	await db.insert(userProgress).values({
 		userId,
 		activeCourseId: courseId,
 		userName: session.user.name || 'Ученик',
 		userImageSrc: '/mascot.svg',
+		invitedByUserId,
 
 	});
+
+	if (invitedByUserId) {
+		cookieStore.delete(REFERRAL_COOKIE);
+
+		// Небольшой приветственный бонус новичку — символический, не
+		// основной стимул (основной — пицца рефереру, ниже).
+		await applyResolvedReward(userId, { kind: 'gems', amount: 1, weight: 0 }).catch(() => null);
+
+		// Бонус рефереру масштабируется по его уровню/активности (идея
+		// пользователя) — реферер может не существовать/быть удалён,
+		// тогда просто тихо пропускаем (не блокируем регистрацию новичка).
+		const referrerProgress = await getUserProgressById(invitedByUserId);
+		if (referrerProgress) {
+			const referrerLevel = getLevelInfo(referrerProgress.xp).level;
+			const referrerQuestsTotal = await getQuestPointsTotalLifetime(invitedByUserId);
+			const bonusAmount = computeReferralBonus(referrerLevel, referrerQuestsTotal);
+			await applyResolvedReward(invitedByUserId, { kind: 'pizza', amount: bonusAmount, weight: 0 }).catch(() => null);
+		}
+	}
 
 	revalidatePath('/courses');
 	revalidatePath('/learn');

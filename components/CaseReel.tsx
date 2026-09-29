@@ -76,6 +76,14 @@ const RARITY_STYLE: Record<CaseReward['kind'], { cell: string; glow: string; tex
         glow: 'shadow-[0_0_18px_rgba(255,212,96,0.45)]',
         text: '#FFD460',
     },
+    // gg-стикеры — "мистическая" валюта (Фаза 2, 2026-09-29), тот же
+    // премиальный фиолетовый, что уже закреплён в проекте за интригой/
+    // редкими дропами (LevelCard, кейс-барабан и т.п.).
+    gg: {
+        cell: 'bg-gradient-to-b from-[#2E2352] to-[#1B1635] border-[#8B5CF6]',
+        glow: 'shadow-[0_0_16px_rgba(167,139,250,0.4)]',
+        text: '#C4B5FD',
+    },
 }
 
 // Тёплый стиль «cozy»: плоская ячейка-блок, цветная обводка по типу награды.
@@ -83,6 +91,7 @@ const COZY_CELL: Record<CaseReward['kind'], { border: string; text: string }> = 
     coins: { border: '#C9A15A', text: '#F2C35B' },
     gems: { border: '#6FB8D8', text: '#8FD3F0' },
     pizza: { border: '#E8955A', text: '#FFB67A' },
+    gg: { border: '#A78BFA', text: '#C4B5FD' },
 }
 
 const RewardCell = ({ reward, highlighted, cozy }: { reward: CaseReward; highlighted?: boolean; cozy?: boolean }) => {
