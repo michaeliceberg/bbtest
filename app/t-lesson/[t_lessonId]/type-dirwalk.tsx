@@ -640,7 +640,7 @@ const DotCrossScene = ({ onSettled }: { onSettled?: () => void }) => {
                 />
             )}
             {phase >= 3 && (
-                <TypedLine text="Как стрела 🏹: видишь остриё — точка, видишь хвост — крестик." className={TEXT_CLS} onSettled={() => setPhase(4)} />
+                <TypedLine text="Как стрела 🏹: остриё выглядит, как точка, а хвост — как крестик." className={TEXT_CLS} onSettled={() => setPhase(4)} />
             )}
             {phase >= 4 && (
                 <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1400)}>
