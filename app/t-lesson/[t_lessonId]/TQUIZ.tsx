@@ -46,6 +46,10 @@ import { useQuestCompleteStore } from "@/store/use-quest-complete-store"
 import { xpForAmount } from "@/lib/xp"
 import { TrainerLessonCompleteScreen } from "@/components/trainer-lesson-complete-screen"
 import { GuestRewardScreen } from "@/components/guest-reward-screen"
+import { useSession } from "next-auth/react"
+import { QRCodeCanvas } from "qrcode.react"
+import { shareStoryImage } from "@/components/share-story-button"
+import { getReferralLink } from "@/lib/referral"
 import { GuestVibePicker, GUEST_NICKNAME_STORAGE_KEY, GUEST_VIBES_STORAGE_KEY } from "@/components/guest-vibe-picker"
 
 // "Горячий вопрос" (questionType 'HOT', см. type-hot.tsx) — факультативный,
@@ -172,6 +176,9 @@ export default function TQuiz({
 }: Props) {
 
   const router = useRouter()
+  // "Поделиться в сторис" на итогах урока — QR ведёт по реферальной ссылке ученика.
+  const { data: session } = useSession()
+  const shareQrRef = useRef<HTMLDivElement>(null)
   // Гость: перед уроком экран "Что тебе заходит?" (components/guest-vibe-
   // picker.tsx) — позывной из выбранных увлечений. 'checking' — пока не
   // прочитали localStorage (уже выбирал раньше — экран не показываем).
@@ -1066,6 +1073,9 @@ export default function TQuiz({
               (CaseReel) на своём экране результата, и добавлял лишнюю
               высоту, из-за которой TrainerLessonCompleteScreen не влезал
               на телефонный экран без скролла. */}
+          <div ref={shareQrRef} className="hidden" aria-hidden>
+            <QRCodeCanvas value={session?.user?.id ? getReferralLink(session.user.id) : 'https://ggege.ru'} size={460} marginSize={1} />
+          </div>
           <TrainerLessonCompleteScreen
             theme={uiTheme}
             lottieData={randomStreakCharacterLottie}
@@ -1076,6 +1086,20 @@ export default function TQuiz({
             // где уже кнопки «Следующий урок»/«Завершить».
             primaryLabel="Дальше"
             onPrimary={continueAfterSummary}
+            secondaryLabel="📸 Поделиться"
+            onSecondary={() => {
+              const m = Math.floor(elapsedSeconds / 60)
+              const sec = String(elapsedSeconds % 60).padStart(2, '0')
+              shareStoryImage(
+                {
+                  title: 'Урок пройден!',
+                  big: t_lessonTitle,
+                  prize: `⏱ ${m}:${sec}${maxStreakRef.current >= 3 ? ` · 🔥 ${maxStreakRef.current} подряд` : ''}`,
+                  url: session?.user?.id ? getReferralLink(session.user.id) : 'https://ggege.ru',
+                },
+                shareQrRef.current?.querySelector('canvas') ?? null,
+              )
+            }}
             // "Ударный час" ещё не дошёл до рубежа — подсказка, сколько
             // уроков подряд БЕЗ ошибок осталось до гарантированного mythic
             // (см. actions/roll-lesson-case.ts). Раньше показывалась
