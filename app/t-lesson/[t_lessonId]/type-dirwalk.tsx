@@ -587,7 +587,7 @@ const GripGameScene = ({ onSettled }: { onSettled?: () => void }) => {
                         {step === 'ok' && !done && <p className="text-lg font-black text-[#A1D151]">Точно! 🔥</p>}
                         {step === 'handOk' && <p className="text-lg font-black text-[#A1D151]">Верно! Палец по току ✋</p>}
                         {wrong && step !== 'ok' && <div className="rounded-xl px-4 py-2 text-sm font-bold text-center bg-[#DC605B22] text-[#DC605B]">{wrong}</div>}
-                        {done && <p className="text-lg font-black text-[#A1D151]">ТВОЯ Правая рука прокачана 💪</p>}
+                        {done && <p className="text-lg font-black text-[#A1D151]">ТВОЯ Правая рука ПУШКА 💪</p>}
                         {done && (
                             // на видео левая рука — отражаем по горизонтали (scaleX(-1)), чтобы была правая
                             <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5, delay: 0.3 }}>
