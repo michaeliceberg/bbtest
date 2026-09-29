@@ -586,6 +586,13 @@ const GripGameScene = ({ onSettled }: { onSettled?: () => void }) => {
                         {step === 'handOk' && <p className="text-lg font-black text-[#A1D151]">Верно! Палец по току ✋</p>}
                         {wrong && step !== 'ok' && <div className="rounded-xl px-4 py-2 text-sm font-bold text-center bg-[#DC605B22] text-[#DC605B]">{wrong}</div>}
                         {done && <p className="text-lg font-black text-[#A1D151]">Правая рука прокачана 💪</p>}
+                        {done && (
+                            // на видео левая рука — отражаем по горизонтали (scaleX(-1)), чтобы была правая
+                            <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5, delay: 0.3 }}>
+                                <video src="/video/right-hand-pumped.webm" autoPlay loop muted playsInline
+                                    className="pointer-events-none w-44 rounded-2xl" style={{ transform: 'scaleX(-1)' }} />
+                            </motion.div>
+                        )}
                     </div>
                     {(step === 'ok' || done) && <LocalAnswerConfetti />}
                 </DiagramBlock>
