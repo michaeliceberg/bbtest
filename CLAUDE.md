@@ -12602,3 +12602,5 @@ B_инд назад к прежнему Φ₀ (растёт → B_инд вле�
 кнопка ведёт на `/learn`. В физике на /learn открыт только юнит «11. Закон Кулона…»
 (`LEARN_ONLY_UNIT`), автоскролл к нему (`ScrollToLesson always`). Курс сайдбара, /trainer и
 /learn выбирается одной функцией `pickActiveCourseId` (lib/trainer-topic.ts).
+Иконка «Задачника» в сайдбаре — ⚔️ `Swords` (lucide), вместо домика (выбор пользователя из
+8 «зумерских» вариантов: Trophy/Crown/Target/Swords/Rocket/Flame/Zap/Gamepad2, 2026-09-29).

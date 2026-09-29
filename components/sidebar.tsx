@@ -1,6 +1,6 @@
 'use client'
 
-import { Dumbbell, Flame, Home, ChevronDown, ChevronUp, LogOut, Settings, Library, Lock } from 'lucide-react'
+import { Dumbbell, Flame, Swords, ChevronDown, ChevronUp, LogOut, Settings, Library, Lock } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from './ui/button'
 import Link from 'next/link'
@@ -97,7 +97,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
     // Тренажёр — первым (просьба пользователя 2026-09-29). disabled: true —
     // сделать пункт неактивным (приглушён, замок, не ссылка).
     { label: 'Тренажёр', href: '/trainer', icon: Dumbbell, badge: hasTrainerQuest },
-    { label: 'Задачник', href: '/learn', icon: Home, disabled: learnLocked },
+    { label: 'Задачник', href: '/learn', icon: Swords, disabled: learnLocked },
     { label: 'Справочник', href: '/reference', icon: Library },
     // Временно скрыты по прямой просьбе пользователя (2026-09-23) —
     // оставлены в коде закомментированными, не удалены.
