@@ -525,58 +525,57 @@ const SvgSticker = ({ x, y, text, sub, color }: { x: number; y: number; text: st
         </g>
     )
 }
-// 3б. Куда направлено B_инд (идея пользователя 2026-09-28): поток — УПРУГИЙ
-// цилиндр (дно — кольцо S, длина — поле B), как пружина. Ученик сам тянет
-// правый край: растянул → отпустил → «стоп-кадр» ~1 с: пунктир от края и
-// стрелка B_инд НАЗАД к исходной длине → цилиндр пружинит обратно. Потом
-// то же со сжатием — стрелка B_инд вперёд. Поток хочет НЕ меняться.
+// 3б. Поток — УПРУГИЙ цилиндр (дно — кольцо S, длина — поле B), как пружина.
+// Сценарий (правки пользователя 2026-09-30):
+//  1) растянул → отпустил → СТОП-КАДР остаётся (пунктиры + стрелка B инд
+//     назад) → «Растянули — B инд сжимает назад» → кнопка «Агась» → цилиндр
+//     пружинит обратно; 2) то же со сжатием; 3) свободная игра: тянешь или
+//     сжимаешь сам (2 раза) — стрелка B инд появляется сразу и, пока цилиндр
+//     медленно возвращается, укорачивается до нуля, подпись едет вместе с ней.
 const EL_W = 360, EL_H = 236
 const EL_X0 = 56, EL_CY = 92, EL_R = 44, EL_D = 13
 const EL_L0 = 150, EL_LMAX = 280, EL_LMIN = 52
-const EL_PHOTO_MS = 1100
-type ElMode = 'stretch' | 'compress' | 'done'
-type ElPhoto = { x: number } | null
+const EL_FREE_TRIES = 2
+type ElMode = 'stretch' | 'compress' | 'free' | 'done'
 
-const ElasticView = ({ len, photo, mode, returning, svgRef, onDown, dragging }: {
-    len: number; photo: ElPhoto; mode: ElMode; returning: boolean
+const ElasticView = ({ len, mode, arrowOn, frozen, svgRef, onDown, dragging }: {
+    len: number; mode: ElMode; arrowOn: boolean; frozen: boolean
     svgRef: React.RefObject<SVGSVGElement>; onDown: (e: React.PointerEvent) => void; dragging: boolean
 }) => {
     const PHI = GGEGE_PALETTE.purple.button
     const xr = EL_X0 + len
     const xOrig = EL_X0 + EL_L0
-    const showArrow = photo !== null
-    const arrowFrom = photo ? photo.x : xr
+    const showArrow = arrowOn && Math.abs(xr - xOrig) > 8
     return (
         <svg ref={svgRef} viewBox={`0 0 ${EL_W} ${EL_H}`} className="w-full max-w-[380px] h-auto select-none" style={{ touchAction: 'none' }}>
-            {/* призрак исходного цилиндра — в стоп-кадре */}
-            {photo && <FluxCylinder cx={EL_X0 + EL_L0 / 2} cy={EL_CY} radius={EL_R} depth={EL_D} length={EL_L0} orient="h" color="#9AA7B0" fill={0} dashed />}
+            {/* призрак исходного цилиндра — пока работает B инд */}
+            {arrowOn && <FluxCylinder cx={EL_X0 + EL_L0 / 2} cy={EL_CY} radius={EL_R} depth={EL_D} length={EL_L0} orient="h" color="#9AA7B0" fill={0} dashed />}
             <FluxCylinder cx={EL_X0 + len / 2} cy={EL_CY} radius={EL_R} depth={EL_D} length={len} orient="h" color={PHI} />
             <FieldArrow x1={EL_X0 + 4} y1={EL_CY} x2={xr - 6} y2={EL_CY} color={FIELD_COLOR} width={6} head={9} />
             {/* кольцо — дно цилиндра */}
             <ellipse cx={EL_X0} cy={EL_CY} rx={EL_D} ry={EL_R} fill="none" stroke={RING_COLOR} strokeWidth={6} />
             <SvgSticker x={EL_X0 - 4} y={EL_CY + EL_R + 22} text="S" color={RING_COLOR} />
             <SvgSticker x={EL_X0 + 40} y={EL_CY - EL_R - 18} text="Φ" color={PHI} />
-            {/* стоп-кадр: пунктиры от края вниз + стрелка B_инд к исходной длине */}
+            {/* пунктиры от края и от исходной длины + стрелка B инд к исходной длине */}
             {showArrow && (
                 <g>
-                    {[arrowFrom, xOrig].map((x, i) => (
+                    {[xr, xOrig].map((x, i) => (
                         <line key={i} x1={x} y1={EL_CY - EL_R - 6} x2={x} y2={EL_H - 30} stroke="#9AA7B0" strokeWidth={1.8} strokeDasharray="4 4" />
                     ))}
-                    <motion.g initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
-                        style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
-                        <HArrow x1={arrowFrom} x2={xOrig + (arrowFrom > xOrig ? 3 : -3)} y={EL_H - 50} color={OWN_COLOR} width={6} />
-                        <SvgSticker x={(arrowFrom + xOrig) / 2} y={EL_H - 20} text="B" sub="инд" color={OWN_COLOR} />
+                    <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25 }}>
+                        <HArrow x1={xr} x2={xOrig + (xr > xOrig ? 3 : -3)} y={EL_H - 50} color={OWN_COLOR} width={6} />
+                        <SvgSticker x={(xr + xOrig) / 2} y={EL_H - 20} text="B" sub="инд" color={OWN_COLOR} />
                     </motion.g>
                 </g>
             )}
-            {photo && !returning && (
+            {frozen && (
                 <>
                     <motion.rect x={0} y={0} width={EL_W} height={EL_H} fill="#fff" initial={{ opacity: 0.55 }} animate={{ opacity: 0 }} transition={{ duration: 0.35 }} pointerEvents="none" />
                     <text x={EL_W - 8} y={20} textAnchor="end" fontSize={14} fontWeight={900} fill="#F2C35B">📸 СТОП-КАДР</text>
                 </>
             )}
             {/* ручка: правый край цилиндра */}
-            {mode !== 'done' && !photo && (
+            {mode !== 'done' && !arrowOn && (
                 <g onPointerDown={onDown} style={{ cursor: dragging ? 'grabbing' : 'grab' }}>
                     {!dragging && (
                         <motion.circle cx={xr} cy={EL_CY} r={22} fill="none" stroke={RULE_COLOR} strokeWidth={3}
@@ -584,7 +583,7 @@ const ElasticView = ({ len, photo, mode, returning, svgRef, onDown, dragging }: 
                             style={{ transformBox: 'fill-box', transformOrigin: 'center' }} />
                     )}
                     <circle cx={xr} cy={EL_CY} r={20} fill={RULE_COLOR} stroke="#fff" strokeWidth={3} />
-                    <text x={xr} y={EL_CY + 6} textAnchor="middle" fontSize={16} fontWeight={900} fill="#fff">{mode === 'stretch' ? '➡' : '⬅'}</text>
+                    <text x={xr} y={EL_CY + 6} textAnchor="middle" fontSize={16} fontWeight={900} fill="#fff">{mode === 'stretch' ? '➡' : mode === 'compress' ? '⬅' : '⬌'}</text>
                     <circle cx={xr} cy={EL_CY} r={34} fill="transparent" />
                 </g>
             )}
@@ -593,20 +592,23 @@ const ElasticView = ({ len, photo, mode, returning, svgRef, onDown, dragging }: 
 }
 
 const ElasticFluxScene = ({ onSettled }: { onSettled?: () => void }) => {
+    // phase: 0 интро · 1 цилиндр · 2 текст «растянули» · 3 «Агась» · 4 текст «сжали» · 5 «Агась» · 6 свободная игра · 7 вывод
     const [phase, setPhase] = useState(0)
     const [mode, setMode] = useState<ElMode>('stretch')
     const [len, setLen] = useState(EL_L0)
     const [dragging, setDragging] = useState(false)
-    const [photo, setPhoto] = useState<ElPhoto>(null)
-    const [returning, setReturning] = useState(false)
+    const [arrowOn, setArrowOn] = useState(false)
+    const [frozen, setFrozen] = useState(false)
+    const [freeLeft, setFreeLeft] = useState(EL_FREE_TRIES)
     const svgRef = useRef<SVGSVGElement>(null)
     const lenRef = useRef(EL_L0)
     const modeRef = useRef<ElMode>('stretch')
-    const timers = useRef<ReturnType<typeof setTimeout>[]>([])
+    const busy = useRef(false)
+    const freeLeftRef = useRef(EL_FREE_TRIES)
     const spring = useRef<ReturnType<typeof setInterval> | null>(null)
-    useEffect(() => () => { timers.current.forEach(clearTimeout); if (spring.current) clearInterval(spring.current) }, [])
-    const later = (fn: () => void, ms: number) => { timers.current.push(setTimeout(fn, ms)) }
+    useEffect(() => () => { if (spring.current) clearInterval(spring.current) }, [])
     const setL = (v: number) => { lenRef.current = v; setLen(v) }
+    const setM = (m: ElMode) => { modeRef.current = m; setMode(m) }
 
     const toSvgX = (clientX: number, clientY: number) => {
         const svg = svgRef.current
@@ -616,14 +618,15 @@ const ElasticFluxScene = ({ onSettled }: { onSettled?: () => void }) => {
         pt.x = clientX; pt.y = clientY
         return pt.matrixTransform(ctm.inverse()).x
     }
-    // Пружина обратно к исходной длине (setInterval, не rAF — не замирает в фоне).
+    // Мягкая пружина обратно к исходной длине, медленно — чтобы было видно,
+    // как стрелка B инд укорачивается (setInterval, не rAF — не замирает в фоне).
     const springBack = (onEnd: () => void) => {
         let v = 0
         if (spring.current) clearInterval(spring.current)
         spring.current = setInterval(() => {
-            v = (v + (EL_L0 - lenRef.current) * 0.16) * 0.74
+            v = (v + (EL_L0 - lenRef.current) * 0.035) * 0.86
             const next = lenRef.current + v
-            if (Math.abs(EL_L0 - next) < 0.6 && Math.abs(v) < 0.6) {
+            if (Math.abs(EL_L0 - next) < 0.5 && Math.abs(v) < 0.3) {
                 if (spring.current) clearInterval(spring.current)
                 spring.current = null
                 setL(EL_L0); onEnd()
@@ -631,7 +634,7 @@ const ElasticFluxScene = ({ onSettled }: { onSettled?: () => void }) => {
         }, 16)
     }
     const onDown = (e: React.PointerEvent) => {
-        if (modeRef.current === 'done' || photo) return
+        if (modeRef.current === 'done' || busy.current) return
         e.preventDefault()
         svgRef.current?.setPointerCapture?.(e.pointerId)
         setDragging(true)
@@ -641,25 +644,45 @@ const ElasticFluxScene = ({ onSettled }: { onSettled?: () => void }) => {
         const x = toSvgX(e.clientX, e.clientY)
         if (x === null) return
         const raw = x - EL_X0
-        const v = modeRef.current === 'stretch' ? Math.min(EL_LMAX, Math.max(EL_L0, raw)) : Math.max(EL_LMIN, Math.min(EL_L0, raw))
-        setL(v)
+        const m = modeRef.current
+        const lo = m === 'stretch' ? EL_L0 : EL_LMIN
+        const hi = m === 'compress' ? EL_L0 : EL_LMAX
+        setL(Math.max(lo, Math.min(hi, raw)))
     }
     const onUp = () => {
         if (!dragging) return
         setDragging(false)
-        const delta = lenRef.current - EL_L0
-        if (Math.abs(delta) < 20) { springBack(() => {}); return }
+        if (Math.abs(lenRef.current - EL_L0) < 20) { springBack(() => {}); return }
+        busy.current = true
+        setArrowOn(true)
         const m = modeRef.current
-        setPhoto({ x: EL_X0 + lenRef.current })
-        later(() => {
-            setReturning(true)
-            springBack(() => later(() => {
-                setPhoto(null); setReturning(false)
-                if (m === 'stretch') { modeRef.current = 'compress'; setMode('compress'); setPhase(2) }
-                else { modeRef.current = 'done'; setMode('done'); setPhase(4) }
-            }, 700))
-        }, EL_PHOTO_MS)
+        if (m === 'free') {
+            // свободная игра: без стоп-кадра, сразу медленно возвращаемся
+            springBack(() => {
+                setArrowOn(false); busy.current = false
+                freeLeftRef.current -= 1
+                setFreeLeft(freeLeftRef.current)
+                if (freeLeftRef.current <= 0) { setM('done'); setPhase(7) }
+            })
+            return
+        }
+        // обучающие шаги: стоп-кадр держим, пока ученик не нажмёт «Агась»
+        setFrozen(true)
+        setPhase(m === 'stretch' ? 2 : 4)
     }
+    const release = () => {
+        const m = modeRef.current
+        setFrozen(false)
+        springBack(() => {
+            setArrowOn(false); busy.current = false
+            if (m === 'stretch') { setM('compress'); setPhase((p) => Math.max(p, 3)) }
+            else { setM('free'); setPhase(6) }
+        })
+    }
+    const waitingAgas = frozen && ((mode === 'stretch' && phase >= 3) || (mode === 'compress' && phase >= 5))
+    const hint = mode === 'stretch' ? 'Тяни край вправо ➡ и отпусти'
+        : mode === 'compress' ? '⬅ Теперь сожми: тяни влево и отпусти'
+            : `Тяни ➡ или сжимай ⬅ сам — ещё ${freeLeft} ${freeLeft === 1 ? 'раз' : 'раза'}`
 
     return (
         <>
@@ -670,32 +693,37 @@ const ElasticFluxScene = ({ onSettled }: { onSettled?: () => void }) => {
             {phase >= 1 && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col items-center gap-2" onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} style={{ touchAction: 'none' }}>
-                        <ElasticView len={len} photo={photo} mode={mode} returning={returning} svgRef={svgRef} onDown={onDown} dragging={dragging} />
-                        {mode !== 'done' && !photo && (
-                            <p className="text-sm font-black text-center" style={{ color: RULE_COLOR }}>
-                                {mode === 'stretch' ? 'Тяни край вправо ➡ и отпусти' : '⬅ Теперь сожми: тяни влево и отпусти'}
-                            </p>
+                        <ElasticView len={len} mode={mode} arrowOn={arrowOn} frozen={frozen} svgRef={svgRef} onDown={onDown} dragging={dragging} />
+                        {mode !== 'done' && !arrowOn && (
+                            <p className="text-sm font-black text-center" style={{ color: RULE_COLOR }}>{hint}</p>
                         )}
                     </div>
                 </DiagramBlock>
             )}
             {phase >= 2 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Растянули — ' }, { sticker: 'B инд', color: OWN_COLOR }, { text: ' тянет ' }, { bold: 'назад' }, { text: ' ⬅' }]}
+                    parts={[{ text: 'Растянули — ' }, { sticker: 'B инд', color: OWN_COLOR }, { text: ' сжимает ' }, { bold: 'назад' }, { text: ' ⬅' }]}
                     onSettled={() => setPhase((p) => Math.max(p, 3))}
                 />
             )}
             {phase >= 4 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Сжали — ' }, { sticker: 'B инд', color: OWN_COLOR }, { text: ' толкает ' }, { bold: 'вперёд' }, { text: ' ➡' }]}
-                    onSettled={() => setPhase(5)}
+                    parts={[{ text: 'Сжали — ' }, { sticker: 'B инд', color: OWN_COLOR }, { text: ' растягивает ' }, { bold: 'обратно' }, { text: ' ➡' }]}
+                    onSettled={() => setPhase((p) => Math.max(p, 5))}
                 />
             )}
-            {phase >= 5 && (
+            {waitingAgas && <ReplyBtn onClick={release}>Агась 👌</ReplyBtn>}
+            {phase >= 6 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Теперь сам: тяни или сжимай — смотри, как ' }, { sticker: 'B инд', color: OWN_COLOR }, { text: ' возвращает всё назад 🔁' }]}
+                />
+            )}
+            {phase >= 7 && (
                 <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1400)}>
                     <InsightCard>
-                        Не вышло 😅 Поток <InsightWord>НЕ ДАЁТ</InsightWord> себя менять.
-                        <br />Его возвращает обратно <InsightWord color="#FF9AC8">B инд</InsightWord> — поле-«пружина».
+                        Вмешалось <InsightWord color="#FF9AC8">B инд</InsightWord> — <InsightWord>индукционное</InsightWord> магнитное поле.
+                        <br />Как пружинка, оно возвращает поток <InsightWord color="#D8BBFF">Φ</InsightWord> обратно.
+                        <br /><span className="text-base font-bold">Прям как токсичные отношения: тянешь — сжимается, давишь — отталкивает 💔🤡</span>
                     </InsightCard>
                 </DiagramBlock>
             )}
@@ -751,6 +779,12 @@ const HookScene = ({ onSettled }: { onSettled?: () => void }) => {
                 />
             )}
             {phase >= 3 && (
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase(4), 1600)}>
+                    <video src="/video/umbridge.mp4" autoPlay loop muted playsInline
+                        className="pointer-events-none mx-auto w-full max-w-[220px] aspect-square rounded-2xl object-cover" />
+                </DiagramBlock>
+            )}
+            {phase >= 4 && (
                 <TypedLineWithParts
                     parts={[{ text: 'Но что если… нам ' }, { bold: 'захочется' }, { text: ' его нарушить? 😈' }]}
                     onSettled={onSettled}
