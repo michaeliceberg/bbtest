@@ -3,15 +3,16 @@
 // Тип LENZWALK — интерактивный разбор «индукционный ток и правило Ленца»
 // (тема «Электродинамика», сразу после FARADAYWALK/DIRWALK). Стиль — как у
 // FARADAYWALK/DIRWALK: массив сцен CONCEPT_SCENES, накопительный лог,
-// мини-игры руками, эмоции.
+// мини-игры руками.
 //
-// Главная идея — ток появляется ТОЛЬКО пока поток Φ МЕНЯЕТСЯ: ученик сам
-// ЗАЖИМАЕТ кнопку, магнит едет, пока кнопка зажата — в кольце бежит ток и
-// дёргается стрелка амперметра; отпустил — магнит встал, ток пропал.
-// Аналогия: магнит — злой босс 😈 с армией стрелок B; кольцо — упрямый
-// консерватор: «ТРЕВОГА! ПОТОК МЕНЯЕТСЯ!» 😱 → поднимает свой ток и своё
-// поле B (зелёные щиты 🛡️) против натиска ⚔️; магнит уходит — кольцо
-// плачет 😭 «не уходи!» и своим полем тянет поток обратно.
+// Сцены: HookScene («поток Φ не должен меняться… а если нарушить?») →
+// TrainCylinderScene — тянем цилиндр потока Φ, а к нему рычагом (штоком)
+// приделан вагон 🚃 на рельсах; чем ТЯЖЕЛЕЕ вагон, тем заметнее он
+// отстаёт от мишени (там, где сейчас палец) — прямая механическая
+// аналогия «индуктивность L = масса вагона»: лёгкий вагон почти не
+// отстаёт (слабое B инд), тяжёлый — заметно тормозит рывок (сильное
+// B инд). Дальше WhoScene (кто делает B инд — само кольцо через правило
+// правой руки) → SpeedMagnetScene (скорость магнита → сила тока).
 //
 // Физика (проверено): кольцо горизонтальное, магнит сверху. N внизу → поле
 // магнита в кольце ВНИЗ. Приближаем → Φ растёт → своё поле кольца ВВЕРХ
@@ -525,123 +526,142 @@ const SvgSticker = ({ x, y, text, sub, color }: { x: number; y: number; text: st
         </g>
     )
 }
-// 3б. Поток — УПРУГИЙ цилиндр (дно — кольцо S, длина — поле B), как пружина.
-// Сценарий (правки пользователя 2026-09-30):
-//  1) растянул → отпустил → СТОП-КАДР остаётся (пунктиры + стрелка B инд
-//     назад) → «Растянули — B инд сжимает назад» → кнопка «Агась» → цилиндр
-//     пружинит обратно; 2) то же со сжатием; 3) свободная игра: тянешь или
-//     сжимаешь сам (2 раза) — стрелка B инд появляется сразу и, пока цилиндр
-//     медленно возвращается, укорачивается до нуля, подпись едет вместе с ней.
-const EL_W = 360, EL_H = 236
-const EL_X0 = 56, EL_CY = 92, EL_R = 44, EL_D = 13
-const EL_L0 = 150, EL_LMAX = 280, EL_LMIN = 52
-const EL_FREE_TRIES = 2
-// Возврат к исходной длине — ЧИСТОЕ затухание без перехлёста (пользователь
-// поймал баг: старая модель "пружина" (масса+вязкость) физически ПЕРЕЛЕТАЛА
-// через исходную длину и делала bounce на конце — неправильно, цилиндр
-// должен только тормозить, никогда не проходя границу EL_L0). rate — доля
-// оставшегося расстояния, проходимая за один тик (16мс); экспоненциальный
-// подход к цели по построению не может сменить знак (перелететь), сам темп
-// естественно замедляется по мере приближения — это и есть "с замедлением".
-const EL_RETURN_RATE = 0.08
-// Свободная игра (после обеих «Агась») — по прямой просьбе пользователя
-// в 5 РАЗ медленнее, чем была раньше (не медленнее EL_RETURN_RATE выше —
-// та уже сама новая и без overshoot; здесь берём именно старую "медленную"
-// скорость свободной игры и делим время её возврата на 5). Проверено
-// численно (не на глаз — анимации в этом инструментарии не тикают
-// надёжно): старая пружинная модель свободной игры доезжала до цели за
-// ~86 тиков по 16мс (~1.4с), это значение подобрано так, чтобы новая
-// (без overshoot) модель доезжала за ~5× дольше (~430 тиков, ~7с).
-const EL_FREE_RETURN_RATE = 0.012
-// Порог, при котором анимация "доезжает" и останавливается точно на EL_L0,
-// а не продолжает бесконечно приближаться. Экспоненциальное затухание тем и
-// коварно, что ПОСЛЕДНИЕ единицы расстояния — самые "дорогие" по времени:
-// каждый тик срезает фиксированную ДОЛЮ оставшегося пути, так что чем ближе
-// к цели, тем дольше (в тиках) уходит на то же визуально незаметное
-// перемещение. Пользователь поймал именно это — "последние 2-3мм идут
-// слишком долго, хотя на картинке уже почти ничего не меняется". Раньше
-// порог был 0.5 — животный "хвост" уходил на доездку от заметного расстояния
-// до почти неотличимого от EL_L0 (у EL_FREE_RETURN_RATE это лишние ~2.4с).
-// Порог поднят до 3 (те самые "2-3мм", что пользователь сам назвал
-// визуально незаметными) — обрубает именно невидимый хвост, не трогая
-// видимую часть замедления и не создавая заметного "скачка" в конце.
-const EL_SNAP_THRESHOLD = 3
-type ElMode = 'stretch' | 'compress' | 'free' | 'done'
+// 3б. Поток — цилиндр (дно — кольцо S, длина — поле B), а к его поршню
+// ШТОКОМ приделан вагон 🚃 на рельсах — прямая механическая аналогия
+// «инерция вагона = индуктивность L» (обсуждение с пользователем,
+// метафора «поршень+вагон» из ChatGPT-диалога, 2026-09-30). Тянешь
+// цилиндр рукой — рука двигает МИШЕНЬ (пунктирный призрак) мгновенно, а
+// НАСТОЯЩИЙ поток (сплошной цилиндр + вагон под ним) непрерывно ДОГОНЯЕТ
+// мишень с задержкой — темп погони зависит от массы вагона (переключатель
+// 🪶/🚂). Разрыв между мишенью и настоящим значением — это и есть B инд:
+// пока он есть, вагон дёргается/отстаёт; лёгкий вагон почти не отстаёт
+// (слабая индуктивность), тяжёлый — заметно тормозит любой рывок.
+const TR_W = 320, TR_H = 300
+const TR_X0 = 60, TR_CY = 72, TR_R = 36, TR_D = 11
+const TR_LMIN = 30, TR_LMAX = 210, TR_L0 = 110
+const TR_RAIL_Y = 252
+const WAGON_W = 74, WAGON_H = 44
+// Непрерывная погоня (первого порядка, без массы/скорости — тот же
+// принцип "чистого затухания без перехлёста", что уже проверен и
+// одобрен пользователем): на каждом тике проходим долю rate от
+// оставшегося расстояния до мишени. rate ЗАВИСИТ ОТ МАССЫ вагона —
+// лёгкий вагон почти сразу оказывается там, где рука; тяжёлый заметно
+// отстаёт даже от медленных движений, не говоря про резкие рывки.
+const TR_RATE: Record<'light' | 'heavy', number> = { light: 0.16, heavy: 0.026 }
+const TR_SNAP = 1.2
+// Минимальный размах рывка (в тех же единицах, что и длина цилиндра),
+// чтобы засчитать попытку «потянул этой массой» — отсекает случайные
+// микро-клики по ручке.
+const TR_DRAG_MIN = 34
 
-const ElasticView = ({ len, mode, arrowOn, frozen, svgRef, onDown, dragging }: {
-    len: number; mode: ElMode; arrowOn: boolean; frozen: boolean
+// Вагон на рельсах: наклон (SVG rotate вокруг точки контакта с рельсом —
+// НЕ CSS transform-origin, чтобы не словить гэтчу transformBox для SVG,
+// см. комментарии в других *WALK этого проекта) пропорционален разрыву
+// между мишенью и настоящим положением — вагон «откидывается» назад при
+// резком рывке, как пассажир при разгоне.
+const Wagon = ({ x, tilt }: { x: number; tilt: number }) => (
+    <g transform={`translate(${x},${TR_RAIL_Y}) rotate(${tilt})`}>
+        <rect x={-WAGON_W / 2} y={-WAGON_H} width={WAGON_W} height={WAGON_H} rx={8} fill="#5C6B73" stroke="#F2F7FB" strokeWidth={2} />
+        <rect x={-WAGON_W / 2 + 6} y={-WAGON_H + 8} width={WAGON_W - 12} height={16} rx={4} fill="#3A464E" />
+        <circle cx={-WAGON_W / 2 + 16} cy={0} r={9} fill="#161F23" stroke="#F2F7FB" strokeWidth={2} />
+        <circle cx={WAGON_W / 2 - 16} cy={0} r={9} fill="#161F23" stroke="#F2F7FB" strokeWidth={2} />
+        <text x={0} y={-WAGON_H / 2 + 6} textAnchor="middle" fontSize={22}>🚃</text>
+    </g>
+)
+
+const TrainCylinderView = ({ targetLen, actualLen, svgRef, onDown, dragging }: {
+    targetLen: number; actualLen: number
     svgRef: React.RefObject<SVGSVGElement>; onDown: (e: React.PointerEvent) => void; dragging: boolean
 }) => {
     const PHI = GGEGE_PALETTE.purple.button
-    const xr = EL_X0 + len
-    const xOrig = EL_X0 + EL_L0
-    const showArrow = arrowOn && Math.abs(xr - xOrig) > 8
+    const xTarget = TR_X0 + targetLen
+    const xActual = TR_X0 + actualLen
+    const gap = xTarget - xActual
+    const showGap = Math.abs(gap) > 8
+    // Наклон вагона — «откидывается» против направления рывка (инерция).
+    const tilt = Math.max(-16, Math.min(16, -gap * 0.3))
     return (
-        <svg ref={svgRef} viewBox={`0 0 ${EL_W} ${EL_H}`} className="w-full max-w-[380px] h-auto select-none" style={{ touchAction: 'none' }}>
-            {/* призрак исходного цилиндра — пока работает B инд */}
-            {arrowOn && <FluxCylinder cx={EL_X0 + EL_L0 / 2} cy={EL_CY} radius={EL_R} depth={EL_D} length={EL_L0} orient="h" color="#9AA7B0" fill={0} dashed />}
-            <FluxCylinder cx={EL_X0 + len / 2} cy={EL_CY} radius={EL_R} depth={EL_D} length={len} orient="h" color={PHI} />
-            <FieldArrow x1={EL_X0 + 4} y1={EL_CY} x2={xr - 6} y2={EL_CY} color={FIELD_COLOR} width={6} head={9} />
-            {/* кольцо — дно цилиндра */}
-            <ellipse cx={EL_X0} cy={EL_CY} rx={EL_D} ry={EL_R} fill="none" stroke={RING_COLOR} strokeWidth={6} />
-            <SvgSticker x={EL_X0 - 4} y={EL_CY + EL_R + 22} text="S" color={RING_COLOR} />
-            <SvgSticker x={EL_X0 + 40} y={EL_CY - EL_R - 18} text="Φ" color={PHI} />
-            {/* пунктиры от края и от исходной длины + стрелка B инд к исходной длине */}
-            {showArrow && (
-                <g>
-                    {[xr, xOrig].map((x, i) => (
-                        <line key={i} x1={x} y1={EL_CY - EL_R - 6} x2={x} y2={EL_H - 30} stroke="#9AA7B0" strokeWidth={1.8} strokeDasharray="4 4" />
-                    ))}
-                    <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25 }}>
-                        <HArrow x1={xr} x2={xOrig + (xr > xOrig ? 3 : -3)} y={EL_H - 50} color={OWN_COLOR} width={6} />
-                        <SvgSticker x={(xr + xOrig) / 2} y={EL_H - 20} text="B" sub="инд" color={OWN_COLOR} />
-                    </motion.g>
-                </g>
+        <svg ref={svgRef} viewBox={`0 0 ${TR_W} ${TR_H}`} className="w-full max-w-[340px] h-auto select-none" style={{ touchAction: 'none' }}>
+            {/* мишень — пунктирный призрак там, где сейчас палец */}
+            <FluxCylinder cx={TR_X0 + targetLen / 2} cy={TR_CY} radius={TR_R} depth={TR_D} length={targetLen} orient="h" color="#9AA7B0" fill={0} dashed />
+            {/* настоящий поток — с задержкой */}
+            <FluxCylinder cx={TR_X0 + actualLen / 2} cy={TR_CY} radius={TR_R} depth={TR_D} length={actualLen} orient="h" color={PHI} />
+            <FieldArrow x1={TR_X0 + 4} y1={TR_CY} x2={xActual - 6} y2={TR_CY} color={FIELD_COLOR} width={5} head={8} />
+            <ellipse cx={TR_X0} cy={TR_CY} rx={TR_D} ry={TR_R} fill="none" stroke={RING_COLOR} strokeWidth={5} />
+            <SvgSticker x={TR_X0 - 2} y={TR_CY + TR_R + 20} text="S" color={RING_COLOR} />
+            <SvgSticker x={TR_X0 + 34} y={TR_CY - TR_R - 16} text="Φ" color={PHI} />
+            {showGap && (
+                <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }}>
+                    <HArrow x1={xTarget} x2={xActual + (xTarget > xActual ? 3 : -3)} y={TR_CY + TR_R + 34} color={OWN_COLOR} width={5} />
+                    <SvgSticker x={(xTarget + xActual) / 2} y={TR_CY + TR_R + 52} text="B" sub="инд" color={OWN_COLOR} />
+                </motion.g>
             )}
-            {frozen && (
-                <>
-                    <motion.rect x={0} y={0} width={EL_W} height={EL_H} fill="#fff" initial={{ opacity: 0.55 }} animate={{ opacity: 0 }} transition={{ duration: 0.35 }} pointerEvents="none" />
-                    <text x={EL_W - 8} y={20} textAnchor="end" fontSize={14} fontWeight={900} fill="#F2C35B">📸 СТОП-КАДР</text>
-                </>
-            )}
-            {/* ручка: правый край цилиндра */}
-            {mode !== 'done' && !arrowOn && (
-                <g onPointerDown={onDown} style={{ cursor: dragging ? 'grabbing' : 'grab' }}>
-                    {!dragging && (
-                        <motion.circle cx={xr} cy={EL_CY} r={22} fill="none" stroke={RULE_COLOR} strokeWidth={3}
-                            animate={{ scale: [1, 1.35, 1], opacity: [0.8, 0, 0.8] }} transition={{ duration: 1.3, repeat: Infinity }}
-                            style={{ transformBox: 'fill-box', transformOrigin: 'center' }} />
-                    )}
-                    <circle cx={xr} cy={EL_CY} r={20} fill={RULE_COLOR} stroke="#fff" strokeWidth={3} />
-                    <text x={xr} y={EL_CY + 6} textAnchor="middle" fontSize={16} fontWeight={900} fill="#fff">{mode === 'stretch' ? '➡' : mode === 'compress' ? '⬅' : '⬌'}</text>
-                    <circle cx={xr} cy={EL_CY} r={34} fill="transparent" />
-                </g>
-            )}
+            {/* шток — от поршня (настоящего, не целевого значения) вниз к вагону */}
+            <line x1={xActual} y1={TR_CY + TR_R + 6} x2={xActual} y2={TR_RAIL_Y - 46} stroke="#5C6B73" strokeWidth={3} strokeDasharray="5 5" />
+            {/* рельс + тень вагона */}
+            <line x1={TR_X0 + TR_LMIN - 20} y1={TR_RAIL_Y + 9} x2={TR_X0 + TR_LMAX + 20} y2={TR_RAIL_Y + 9} stroke="#3A464E" strokeWidth={4} strokeLinecap="round" />
+            <ellipse cx={xActual} cy={TR_RAIL_Y + 5} rx={WAGON_W / 2 + 6} ry={6} fill="#000" opacity={0.22} />
+            <Wagon x={xActual} tilt={tilt} />
+            {/* ручка — тащим МИШЕНЬ, не сам поток */}
+            <g onPointerDown={onDown} style={{ cursor: dragging ? 'grabbing' : 'grab' }}>
+                {!dragging && (
+                    <motion.circle cx={xTarget} cy={TR_CY} r={22} fill="none" stroke={RULE_COLOR} strokeWidth={3}
+                        animate={{ scale: [1, 1.35, 1], opacity: [0.8, 0, 0.8] }} transition={{ duration: 1.3, repeat: Infinity }}
+                        style={{ transformBox: 'fill-box', transformOrigin: 'center' }} />
+                )}
+                <circle cx={xTarget} cy={TR_CY} r={20} fill={RULE_COLOR} stroke="#fff" strokeWidth={3} />
+                <text x={xTarget} y={TR_CY + 6} textAnchor="middle" fontSize={16} fontWeight={900} fill="#fff">✋</text>
+                <circle cx={xTarget} cy={TR_CY} r={34} fill="transparent" />
+            </g>
         </svg>
     )
 }
 
-const ElasticFluxScene = ({ onSettled }: { onSettled?: () => void }) => {
-    // phase: 0 интро · 1 цилиндр · 2 текст «растянули» · 3 «Агась» · 4 текст «сжали» · 5 «Агась» · 6 свободная игра · 7 вывод
+// Кнопка-переключатель массы вагона (клик, не зажим — в отличие от HoldBtn).
+const MassBtn = ({ active, pulse, color, onClick, children }: {
+    active: boolean; pulse?: boolean; color: string; onClick: () => void; children: React.ReactNode
+}) => (
+    <button type="button" onClick={onClick}
+        className={cn(
+            'relative flex-1 select-none rounded-2xl px-3 py-3 text-base font-black shadow-[0_5px_0_var(--edge)] active:translate-y-[3px] active:shadow-[0_2px_0_var(--edge)] transition-[transform,box-shadow,background-color] duration-75',
+            active ? 'text-white' : 'text-[#F2F7FB]',
+        )}
+        style={{ backgroundColor: active ? color : '#161F23', border: active ? 'none' : `2px solid ${color}`, ['--edge' as string]: active ? darken(color) : '#0C1215' }}
+    >
+        {pulse && !active && <span aria-hidden className="pointer-events-none absolute -inset-1 rounded-[18px] border-2 animate-ping opacity-40" style={{ borderColor: color }} />}
+        <span className="relative">{children}</span>
+    </button>
+)
+
+const TrainCylinderScene = ({ onSettled }: { onSettled?: () => void }) => {
+    // phase: 0 интро · 1 диаграмма · 2 вывод
     const [phase, setPhase] = useState(0)
-    const [mode, setMode] = useState<ElMode>('stretch')
-    const [len, setLen] = useState(EL_L0)
+    const [targetLen, setTargetLen] = useState(TR_L0)
+    const [actualLen, setActualLen] = useState(TR_L0)
+    const [mass, setMass] = useState<'light' | 'heavy'>('light')
     const [dragging, setDragging] = useState(false)
-    const [arrowOn, setArrowOn] = useState(false)
-    const [frozen, setFrozen] = useState(false)
-    const [freeLeft, setFreeLeft] = useState(EL_FREE_TRIES)
-    // Прячем текст «Растянули/Сжали — B инд...» сразу по клику «Агась» —
-    // чтобы не отвлекал, пока цилиндр пружинит обратно (просьба пользователя).
-    const [hideMsg, setHideMsg] = useState<{ stretch: boolean; compress: boolean }>({ stretch: false, compress: false })
+    const [tried, setTried] = useState<{ light: boolean; heavy: boolean }>({ light: false, heavy: false })
     const svgRef = useRef<SVGSVGElement>(null)
-    const lenRef = useRef(EL_L0)
-    const modeRef = useRef<ElMode>('stretch')
-    const busy = useRef(false)
-    const freeLeftRef = useRef(EL_FREE_TRIES)
-    const spring = useRef<ReturnType<typeof setInterval> | null>(null)
-    useEffect(() => () => { if (spring.current) clearInterval(spring.current) }, [])
-    const setL = (v: number) => { lenRef.current = v; setLen(v) }
-    const setM = (m: ElMode) => { modeRef.current = m; setMode(m) }
+    const targetRef = useRef(TR_L0)
+    const actualRef = useRef(TR_L0)
+    const massRef = useRef<'light' | 'heavy'>('light')
+    const dragStartRef = useRef(TR_L0)
+
+    // Непрерывная погоня: настоящее значение всегда стремится к мишени,
+    // темп зависит от текущей массы. После того как разрыв схлопнулся до
+    // TR_SNAP — просто ничего не делаем (без лишних setState).
+    useEffect(() => {
+        const timer = setInterval(() => {
+            const diff = targetRef.current - actualRef.current
+            if (Math.abs(diff) < TR_SNAP) {
+                if (actualRef.current !== targetRef.current) { actualRef.current = targetRef.current; setActualLen(actualRef.current) }
+                return
+            }
+            actualRef.current += diff * TR_RATE[massRef.current]
+            setActualLen(actualRef.current)
+        }, 16)
+        return () => clearInterval(timer)
+    }, [])
 
     const toSvgX = (clientX: number, clientY: number) => {
         const svg = svgRef.current
@@ -651,120 +671,59 @@ const ElasticFluxScene = ({ onSettled }: { onSettled?: () => void }) => {
         pt.x = clientX; pt.y = clientY
         return pt.matrixTransform(ctm.inverse()).x
     }
-    // Возврат к исходной длине — экспоненциальное затухание (первого порядка,
-    // без массы/скорости), НЕ пружина: на каждом тике проходим долю `rate` от
-    // оставшегося расстояния до EL_L0. Знак расстояния никогда не меняется —
-    // цилиндр физически не может перелететь через исходную длину, а сам шаг
-    // естественно уменьшается по мере приближения (та самая "деселерация",
-    // без bounce на конце — реальный баг старой пружинной модели, пойманный
-    // пользователем).
-    const springBack = (onEnd: () => void, rate = EL_RETURN_RATE) => {
-        if (spring.current) clearInterval(spring.current)
-        spring.current = setInterval(() => {
-            const diff = EL_L0 - lenRef.current
-            if (Math.abs(diff) < EL_SNAP_THRESHOLD) {
-                if (spring.current) clearInterval(spring.current)
-                spring.current = null
-                setL(EL_L0); onEnd()
-            } else setL(lenRef.current + diff * rate)
-        }, 16)
-    }
     const onDown = (e: React.PointerEvent) => {
-        if (modeRef.current === 'done' || busy.current) return
         e.preventDefault()
         svgRef.current?.setPointerCapture?.(e.pointerId)
+        dragStartRef.current = targetRef.current
         setDragging(true)
     }
     const onMove = (e: React.PointerEvent) => {
         if (!dragging) return
         const x = toSvgX(e.clientX, e.clientY)
         if (x === null) return
-        const raw = x - EL_X0
-        const m = modeRef.current
-        const lo = m === 'stretch' ? EL_L0 : EL_LMIN
-        const hi = m === 'compress' ? EL_L0 : EL_LMAX
-        setL(Math.max(lo, Math.min(hi, raw)))
+        const raw = Math.max(TR_LMIN, Math.min(TR_LMAX, x - TR_X0))
+        targetRef.current = raw
+        setTargetLen(raw)
     }
     const onUp = () => {
         if (!dragging) return
         setDragging(false)
-        if (Math.abs(lenRef.current - EL_L0) < 20) { springBack(() => {}); return }
-        busy.current = true
-        setArrowOn(true)
-        const m = modeRef.current
-        if (m === 'free') {
-            // свободная игра: без стоп-кадра, СИЛЬНО медленно возвращаемся —
-            // чтобы успеть заметить, как B инд укорачивается (просьба
-            // пользователя, обычная скорость слишком быстрая для этого).
-            springBack(() => {
-                setArrowOn(false); busy.current = false
-                freeLeftRef.current -= 1
-                setFreeLeft(freeLeftRef.current)
-                if (freeLeftRef.current <= 0) { setM('done'); setPhase(7) }
-            }, EL_FREE_RETURN_RATE)
-            return
-        }
-        // обучающие шаги: стоп-кадр держим, пока ученик не нажмёт «Агась»
-        setFrozen(true)
-        setPhase(m === 'stretch' ? 2 : 4)
+        const delta = Math.abs(targetRef.current - dragStartRef.current)
+        if (delta >= TR_DRAG_MIN) setTried((t) => (t[massRef.current] ? t : { ...t, [massRef.current]: true }))
     }
-    const release = () => {
-        const m = modeRef.current
-        setFrozen(false)
-        // Прячем текст «Растянули/Сжали — B инд...» сразу по клику — не
-        // отвлекает, пока цилиндр пружинит обратно.
-        setHideMsg((h) => ({ ...h, [m]: true }))
-        springBack(() => {
-            setArrowOn(false); busy.current = false
-            if (m === 'stretch') { setM('compress'); setPhase((p) => Math.max(p, 3)) }
-            else { setM('free'); setPhase(6) }
-        })
-    }
-    const waitingAgas = frozen && ((mode === 'stretch' && phase >= 3) || (mode === 'compress' && phase >= 5))
-    const hint = mode === 'stretch' ? 'Тяни край вправо ➡ и отпусти'
-        : mode === 'compress' ? '⬅ Теперь сожми: тяни влево и отпусти'
-            : `Тяни ➡ или сжимай ⬅ сам — ещё ${freeLeft} ${freeLeft === 1 ? 'раз' : 'раза'}`
+    const pickMass = (m: 'light' | 'heavy') => { massRef.current = m; setMass(m) }
+
+    const both = tried.light && tried.heavy
+    useEffect(() => { if (both && phase === 1) { const t = setTimeout(() => setPhase(2), 700); return () => clearTimeout(t) } }, [both, phase])
+
+    const hint = !tried.light ? '🪶 Лёгкий вагон уже выбран — потяни цилиндр туда-сюда'
+        : !tried.heavy ? 'Теперь переключи на 🚂 тяжёлый и дёрни резко'
+            : ''
 
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'Окей, нарушаем! Поток ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ' — наш цилиндр. Попробуй его ' }, { bold: 'растянуть' }, { text: ' 💪' }]}
+                parts={[{ text: 'Приделаем к потоку ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ' вагон 🚃 — потянешь цилиндр, вагон поедет следом' }]}
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
                 <DiagramBlock>
-                    <div className="w-full flex flex-col items-center gap-2" onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} style={{ touchAction: 'none' }}>
-                        <ElasticView len={len} mode={mode} arrowOn={arrowOn} frozen={frozen} svgRef={svgRef} onDown={onDown} dragging={dragging} />
-                        {mode !== 'done' && !arrowOn && (
-                            <p className="text-sm font-black text-center" style={{ color: RULE_COLOR }}>{hint}</p>
-                        )}
+                    <div className="w-full flex flex-col items-center gap-3" onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} style={{ touchAction: 'none' }}>
+                        <TrainCylinderView targetLen={targetLen} actualLen={actualLen} svgRef={svgRef} onDown={onDown} dragging={dragging} />
+                        <div className="flex gap-2 w-full">
+                            <MassBtn active={mass === 'light'} pulse={!tried.light} color={GGEGE_PALETTE.green.button} onClick={() => pickMass('light')}>🪶 Лёгкий вагон</MassBtn>
+                            <MassBtn active={mass === 'heavy'} pulse={tried.light && !tried.heavy} color={CURRENT_COLOR} onClick={() => pickMass('heavy')}>🚂 Тяжёлый вагон</MassBtn>
+                        </div>
+                        {hint && <p className="text-sm font-black text-center" style={{ color: RULE_COLOR }}>{hint}</p>}
                     </div>
                 </DiagramBlock>
             )}
-            {phase >= 2 && !hideMsg.stretch && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Растянули — ' }, { sticker: 'B инд', color: OWN_COLOR }, { text: ' сжимает ' }, { bold: 'назад' }, { text: ' ⬅' }]}
-                    onSettled={() => setPhase((p) => Math.max(p, 3))}
-                />
-            )}
-            {phase >= 4 && !hideMsg.compress && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Сжали — ' }, { sticker: 'B инд', color: OWN_COLOR }, { text: ' растягивает ' }, { bold: 'обратно' }, { text: ' ➡' }]}
-                    onSettled={() => setPhase((p) => Math.max(p, 5))}
-                />
-            )}
-            {waitingAgas && <ReplyBtn onClick={release}>Агась 👌</ReplyBtn>}
-            {phase >= 6 && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Теперь сам: тяни или сжимай — смотри, как ' }, { sticker: 'B инд', color: OWN_COLOR }, { text: ' возвращает всё назад 🔁' }]}
-                />
-            )}
-            {phase >= 7 && (
+            {phase >= 2 && (
                 <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1400)}>
                     <InsightCard>
-                        Вмешалось <InsightWord color="#FF9AC8">B инд</InsightWord> — <InsightWord>индукционное</InsightWord> магнитное поле.
-                        <br />Как пружинка, оно возвращает поток <InsightWord color="#D8BBFF">Φ</InsightWord> обратно.
-                        <br /><span className="text-base font-bold">Прям как эспандер в спортзале — сколько ни тяни, он тянет обратно 💪</span>
+                        Масса вагона — это <InsightWord color="#FF9AC8">индуктивность</InsightWord>.
+                        <br />🪶 Лёгкий вагон почти не отстаёт — <InsightWord>B инд</InsightWord> слабое.
+                        <br />🚂 Тяжёлый сильно тормозит рывок — <InsightWord color="#D8BBFF">B инд</InsightWord> мощное.
                     </InsightCard>
                 </DiagramBlock>
             )}
@@ -998,7 +957,7 @@ const SpeedMagnetScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-const CONCEPT_SCENES = [HookScene, ElasticFluxScene, WhoScene, SpeedMagnetScene]
+const CONCEPT_SCENES = [HookScene, TrainCylinderScene, WhoScene, SpeedMagnetScene]
 const INTRO_CONCEPT_STEPS = CONCEPT_SCENES.length
 
 const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
