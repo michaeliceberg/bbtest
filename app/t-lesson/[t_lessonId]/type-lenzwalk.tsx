@@ -1747,7 +1747,170 @@ const ZoneGameScene = ({ onSettled }: { onSettled?: () => void }) => {
 }
 
 
-const CONCEPT_SCENES = [HookScene, FluxMotionScene, MassScene, TrainCylinderScene, ZoneGameScene, StuckScene, WhoScene, SpeedMagnetScene]
+// ===== Сцена «Стоп-кадр: кто мешает потоку» (2026-10-01) =====
+// Без метафор (просьба пользователя). Честная картинка:
+//  • синяя стрелка B — поле МАГНИТА у кольца: двинул магнит — выросла СРАЗУ;
+//  • фиолетовый цилиндр Φ — настоящий поток: растёт медленно (индуктивность огромная);
+//  • красная стрелка B инд — разница «хочет − есть», направлена ПРОТИВ изменения.
+// Раунд 1: придвинуть магнит → ~1 с роста → СТОП-КАДР, обводка «фломастером»
+// вокруг B инд + «Нам мешает ИНДУКЦИОННОЕ поле» → «Понятно» → доезжает.
+// Раунд 2: отодвинуть — то же зеркально (B инд смотрит вперёд).
+const FR_W = 480, FR_H = 270
+const FR_RX = 210, FR_CY = 92, FR_R = 34, FR_D = 10
+const FR_LEN_FAR = 40, FR_LEN_NEAR = 240          // длина цилиндра на экране: магнит далеко / близко
+const FR_MAG_FAR = 70, FR_MAG_NEAR = 158          // центр магнита
+const FR_MAG_W = 64, FR_MAG_H = 30
+const FR_RATE = 0.008                             // огромная индуктивность: τ ≈ 2 с
+const FR_FREEZE_PROGRESS = 0.25, FR_FREEZE_MIN_MS = 900
+const FR_ARROW_Y = FR_CY + FR_R + 26
+// «фломастер»: чуть неровный овал с нахлёстом концов
+const markerLoop = (cx: number, cy: number, rx: number, ry: number) => {
+    const pts: string[] = []
+    const a0 = -2.2, a1 = a0 + Math.PI * 2 + 0.55
+    for (let i = 0; i <= 64; i++) {
+        const a = a0 + ((a1 - a0) * i) / 64
+        const k = 1 + 0.05 * Math.sin(a * 3 + 1) + 0.03 * Math.sin(a * 7) + (i / 64) * 0.07
+        pts.push(`${(cx + rx * k * Math.cos(a)).toFixed(1)} ${(cy + ry * k * Math.sin(a)).toFixed(1)}`)
+    }
+    return `M ${pts.join(' L ')}`
+}
+type FrStage = 'intro' | 'ready' | 'r1' | 'freeze1' | 'go1' | 'mid' | 'r2' | 'freeze2' | 'go2' | 'done'
+const FreezeFrameScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const PHI = GGEGE_PALETTE.purple.button
+    const [stage, setStage] = useState<FrStage>('intro')
+    const [ext, setExt] = useState(FR_LEN_FAR)      // поле магнита (сразу)
+    const [net, setNet] = useState(FR_LEN_FAR)      // настоящий поток (лениво)
+    const [textReady, setTextReady] = useState(false)
+    const extRef = useRef(FR_LEN_FAR), netRef = useRef(FR_LEN_FAR)
+    const stageRef = useRef<FrStage>('intro')
+    stageRef.current = stage
+    const roundStart = useRef({ t: 0, from: FR_LEN_FAR })
+    useEffect(() => {
+        const id = setInterval(() => {
+            const st = stageRef.current
+            if (st !== 'r1' && st !== 'go1' && st !== 'r2' && st !== 'go2') return
+            const d = extRef.current - netRef.current
+            if (Math.abs(d) < 1.5) {
+                netRef.current = extRef.current; setNet(netRef.current)
+                if (st === 'go1') setStage('mid')
+                if (st === 'go2') setStage('done')
+                return
+            }
+            netRef.current += d * FR_RATE
+            setNet(netRef.current)
+            if (st === 'r1' || st === 'r2') {
+                const total = extRef.current - roundStart.current.from
+                const prog = (netRef.current - roundStart.current.from) / total
+                if (prog >= FR_FREEZE_PROGRESS && Date.now() - roundStart.current.t >= FR_FREEZE_MIN_MS) {
+                    setTextReady(false)
+                    setStage(st === 'r1' ? 'freeze1' : 'freeze2')
+                }
+            }
+        }, 16)
+        return () => clearInterval(id)
+    }, [])
+    const move = (near: boolean) => {
+        const target = near ? FR_LEN_NEAR : FR_LEN_FAR
+        roundStart.current = { t: Date.now(), from: netRef.current }
+        extRef.current = target; setExt(target)
+        setStage(near ? 'r1' : 'r2')
+    }
+    const frozen = stage === 'freeze1' || stage === 'freeze2'
+    const magX = FR_MAG_FAR + ((ext - FR_LEN_FAR) / (FR_LEN_NEAR - FR_LEN_FAR)) * (FR_MAG_NEAR - FR_MAG_FAR)
+    const xExt = FR_RX + ext, xNet = FR_RX + net
+    const gap = ext - net
+    const showInd = Math.abs(gap) > 6
+    const arrowL = Math.min(xExt, xNet), arrowR = Math.max(xExt, xNet)
+    const dim = frozen ? 0.35 : 1
+    const after = (s: FrStage[]) => s.includes(stage)
+    return (
+        <>
+            <TypedLineWithParts
+                parts={[{ text: 'Придвинь 🧲 магнит к кольцу — увеличим поток ' }, { sticker: 'Φ', color: PHI }, { text: '.' }]}
+                onSettled={() => setStage((s) => (s === 'intro' ? 'ready' : s))}
+            />
+            <DiagramBlock>
+                <svg viewBox={`0 0 ${FR_W} ${FR_H}`} className="w-full max-w-[460px] h-auto select-none">
+                    <g opacity={dim} style={{ transition: 'opacity 0.35s' }}>
+                        {/* магнит (едет быстро) */}
+                        <motion.g animate={{ x: magX }} transition={{ type: 'spring', stiffness: 170, damping: 20 }}>
+                            <rect x={-FR_MAG_W / 2} y={FR_CY - FR_MAG_H / 2} width={FR_MAG_W / 2} height={FR_MAG_H} rx={5} fill={SOUTH_COLOR} />
+                            <rect x={0} y={FR_CY - FR_MAG_H / 2} width={FR_MAG_W / 2} height={FR_MAG_H} rx={5} fill={NORTH_COLOR} />
+                            <text x={-FR_MAG_W / 4} y={FR_CY + 6} textAnchor="middle" fontSize={16} fontWeight={900} fill="#fff">S</text>
+                            <text x={FR_MAG_W / 4} y={FR_CY + 6} textAnchor="middle" fontSize={16} fontWeight={900} fill="#fff">N</text>
+                        </motion.g>
+                        {/* настоящий поток */}
+                        <FluxCylinder cx={FR_RX + net / 2} cy={FR_CY} radius={FR_R} depth={FR_D} length={net} orient="h" color={PHI} />
+                        <ellipse cx={FR_RX} cy={FR_CY} rx={FR_D} ry={FR_R} fill="none" stroke={RING_COLOR} strokeWidth={5} />
+                        {/* поле магнита — сразу */}
+                        <FieldArrow x1={FR_RX + 4} y1={FR_CY} x2={xExt - 4} y2={FR_CY} color={FIELD_COLOR} width={5} head={9} />
+                        <SvgSticker x={Math.min(xExt + 20, FR_W - 18)} y={FR_CY} text="B" color={FIELD_COLOR} />
+                        <SvgSticker x={FR_RX + 28} y={FR_CY - FR_R - 16} text="Φ" color={PHI} />
+                        <SvgSticker x={FR_RX - 2} y={FR_CY + FR_R + 58} text="S" color={RING_COLOR} />
+                    </g>
+                    {/* B инд — не тускнеет на стоп-кадре: на неё смотрим */}
+                    {showInd && (
+                        <g>
+                            <HArrow x1={xExt} x2={xNet + (xExt > xNet ? 3 : -3)} y={FR_ARROW_Y} color={OWN_COLOR} width={6} />
+                            <SvgSticker x={(arrowL + arrowR) / 2} y={FR_ARROW_Y + 26} text="B" sub="инд" color={OWN_COLOR} />
+                        </g>
+                    )}
+                    {/* обводка фломастером */}
+                    {frozen && (
+                        <motion.path d={markerLoop((arrowL + arrowR) / 2, FR_ARROW_Y + 12, (arrowR - arrowL) / 2 + 26, 34)}
+                            fill="none" stroke="#FF4D4D" strokeWidth={4.5} strokeLinecap="round" strokeLinejoin="round"
+                            initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: 1 }} transition={{ duration: 0.8, ease: 'easeInOut', delay: 0.25 }} />
+                    )}
+                    {frozen && (
+                        <motion.g initial={{ scale: 1.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
+                            style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
+                            <rect x={12} y={10} width={118} height={28} rx={8} fill="#161F23" stroke="#F2F7FB" strokeWidth={2} />
+                            <text x={71} y={29} textAnchor="middle" fontSize={14} fontWeight={900} fill="#F2F7FB">⏸ СТОП-КАДР</text>
+                        </motion.g>
+                    )}
+                </svg>
+            </DiagramBlock>
+            {(frozen || after(['go1', 'mid', 'r2', 'freeze2', 'go2', 'done'])) && (
+                <div style={{ opacity: stage === 'freeze1' ? 1 : 0.4, transition: 'opacity 0.5s' }}>
+                    <TypedLineWithParts
+                        parts={[{ text: 'Нам мешает ' }, { bold: 'ИНДУКЦИОННОЕ' }, { text: ' поле ' }, { sticker: 'B инд', color: OWN_COLOR }]}
+                        onSettled={() => setTextReady(true)}
+                    />
+                </div>
+            )}
+            {after(['mid', 'r2', 'freeze2', 'go2', 'done']) && (
+                <div style={{ opacity: stage === 'mid' ? 1 : 0.4, transition: 'opacity 0.5s' }}>
+                    <TypedLineWithParts parts={[{ text: 'Дотянулся — но медленно 😴 А теперь ' }, { bold: 'отодвинь' }, { text: ' магнит.' }]} />
+                </div>
+            )}
+            {after(['freeze2', 'go2', 'done']) && (
+                <div style={{ opacity: stage === 'freeze2' ? 1 : 0.4, transition: 'opacity 0.5s' }}>
+                    <TypedLineWithParts
+                        parts={[{ text: 'Опять ' }, { sticker: 'B инд', color: OWN_COLOR }, { text: '! Теперь не даёт потоку ' }, { bold: 'уменьшиться' }, { text: '.' }]}
+                        onSettled={() => setTextReady(true)}
+                    />
+                </div>
+            )}
+            {stage === 'done' && (
+                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1200)}>
+                    <InsightCard>
+                        Поток меняется — но <InsightWord>медленно</InsightWord> 😴
+                        <br />Мешает <InsightWord color="#FF9AC8">ИНДУКЦИОННОЕ поле B инд</InsightWord> — в любую сторону.
+                    </InsightCard>
+                </DiagramBlock>
+            )}
+            {stage === 'ready' && <ReplyBtn color={FIELD_COLOR} onClick={() => move(true)}>🧲 Придвинуть</ReplyBtn>}
+            {stage === 'mid' && <ReplyBtn color={FIELD_COLOR} onClick={() => move(false)}>🧲 Отодвинуть</ReplyBtn>}
+            {frozen && textReady && (
+                <ReplyBtn onClick={() => setStage(stage === 'freeze1' ? 'go1' : 'go2')}>Понятно ▶️</ReplyBtn>
+            )}
+        </>
+    )
+}
+
+// Метафоры (шарик/валун/жёлоб/игра) сняты с показа 2026-10-01 — код сохранён, вернуть можно сюда.
+export const LENZ_SHELVED_SCENES = [FluxMotionScene, MassScene, TrainCylinderScene, ZoneGameScene]
+const CONCEPT_SCENES = [HookScene, FreezeFrameScene, StuckScene, WhoScene, SpeedMagnetScene]
 const INTRO_CONCEPT_STEPS = CONCEPT_SCENES.length
 
 const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
