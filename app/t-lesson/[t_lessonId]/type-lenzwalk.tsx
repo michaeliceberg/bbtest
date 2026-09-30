@@ -1151,7 +1151,7 @@ const StuckScene = ({ onSettled }: { onSettled?: () => void }) => {
             />
             {phase >= 1 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Ты 3 часа залип в скролле — поток идёт ровно, никто не мешает 😌' }]}
+                    parts={[{ text: 'Ты на пару часов залип на чиле — поток идёт ровно, никто не мешает 😌' }]}
                     onSettled={() => setPhase(2)}
                 />
             )}
@@ -1330,13 +1330,13 @@ const SpeedMagnetScene = ({ onSettled }: { onSettled?: () => void }) => {
 
 // ===== Игры на жёлобе (2026-09-30) =====
 // Общая ручка цилиндра Φ + погоня настоящего потока за «газом».
-const useFluxHandle = (mass: 'light' | 'heavy', initial = TR_L0) => {
+const useFluxHandle = (mass: 'light' | 'heavy', initial = TR_L0, initialActual = initial) => {
     const [targetLen, setTargetLen] = useState(initial)
-    const [actualLen, setActualLen] = useState(initial)
+    const [actualLen, setActualLen] = useState(initialActual)
     const [dragging, setDragging] = useState(false)
     const svgRef = useRef<SVGSVGElement>(null)
     const targetRef = useRef(initial)
-    const actualRef = useRef(initial)
+    const actualRef = useRef(initialActual)
     const massRef = useRef(mass)
     massRef.current = mass
     useEffect(() => {
@@ -1413,13 +1413,19 @@ const ZoneCenter = ({ inside, prog, won }: { inside: boolean; prog: number; won:
 }
 const ZoneRound = ({ mass, onWin }: { mass: 'light' | 'heavy'; onWin: () => void }) => {
     const V0 = 0.35
-    const h = useFluxHandle(mass, speedToLen(V0))
-    const angRef = useRef(-Math.PI / 2)
+    // Старт со случайным СИЛЬНЫМ толчком: шарик на другой стороне кольца от зоны
+    // и летит либо почти на максимуме, либо почти стоит — сразу надо бороться.
+    const [kick] = useState(() => ({
+        ang: -Math.PI / 2 + Math.PI * (0.65 + Math.random() * 0.7),
+        v: Math.random() < 0.5 ? 0.9 + Math.random() * 0.1 : Math.random() * 0.08,
+    }))
+    const h = useFluxHandle(mass, speedToLen(V0), speedToLen(kick.v))
+    const angRef = useRef(kick.ang)
     const zoneRef = useRef(-Math.PI / 2)
     const tRef = useRef(0)
     const progRef = useRef(0)
     const wonRef = useRef(false)
-    const [zone, setZone] = useState<GrooveZone>({ center: -Math.PI / 2, half: ZONE_HALF[mass], inside: true })
+    const [zone, setZone] = useState<GrooveZone>({ center: -Math.PI / 2, half: ZONE_HALF[mass], inside: false })
     const [prog, setProg] = useState(0)
     const [giveUp, setGiveUp] = useState(false)
     useEffect(() => {
@@ -1445,7 +1451,7 @@ const ZoneRound = ({ mass, onWin }: { mass: 'light' | 'heavy'; onWin: () => void
     return (
         <div className="w-full flex flex-col items-center gap-3" onPointerMove={h.onMove} onPointerUp={h.onUp} onPointerCancel={h.onUp} style={{ touchAction: 'none' }}>
             <GrooveView targetLen={h.targetLen} actualLen={h.actualLen} mass={mass} svgRef={h.svgRef} onDown={h.onDown} dragging={h.dragging} angRef={angRef} zone={zone}
-                center={<ZoneCenter inside={zone.inside} prog={prog} won={won} />} />
+                startAng={kick.ang} center={<ZoneCenter inside={zone.inside} prog={prog} won={won} />} />
             {giveUp && !won && <ReplyBtn color="#5C6B73" onClick={onWin}>Сдаюсь 🏳️</ReplyBtn>}
         </div>
     )
@@ -1487,12 +1493,15 @@ const ZoneGameScene = ({ onSettled }: { onSettled?: () => void }) => {
 // «Кто дальше укатится?»: ОДНО кольцо, шарик и валун уже едут вместе, в одной
 // точке, с одинаковой скоростью (валун полупрозрачный под шариком — видно, что
 // они совпадают). По «СТОП» каждый тормозит сам; тормозной путь подсвечен дугой
-// своего цвета. Тормоза подобраны симуляцией: при v=0.6 шарик ≈ 60° (~3 с),
-// валун ≈ 230° (~7 с, с выраженным затуханием).
+// своего цвета. «СТОП» = убрали магнит. Тормозит ВЯЗКОЕ трение (жёлоб с мёдом),
+// одинаковое для обоих: сила ∝ скорости → экспонента с τ = m/b — ровно как у
+// тока τ = L/R (трение ↔ сопротивление R кольца, масса ↔ индуктивность L).
+// Сухое трение тут было бы НЕВЕРНО: тормозной путь от массы не зависел бы.
+// Путь в метрах: радиус жёлоба 2 м (круг = 2π·2 ≈ 12.6 м).
 const RACE_CY = 175, RACE_H = 350, RACE_V0 = 0.6
-const raceBrake = (v: number, m: 'light' | 'heavy') => Math.max(0, m === 'light'
-    ? v - Math.max(v * 0.025, 0.0004)
-    : v - Math.max(v * 0.004 * Math.sqrt(v / 0.16), 0.0008))
+const RACE_RADIUS_M = 2
+const RACE_TAU: Record<'light' | 'heavy', number> = { light: 40, heavy: 160 } // тиков; валун в 4 раза «тяжелее»
+const raceBrake = (v: number, m: 'light' | 'heavy') => v * (1 - 1 / RACE_TAU[m])
 type RaceBody = { ang: number; v: number; braking: boolean; stopAng: number }
 const StopRaceScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0) // 0 интро · 1 едут вместе · 2 тормозят · 3 оба встали
@@ -1510,7 +1519,7 @@ const StopRaceScene = ({ onSettled }: { onSettled?: () => void }) => {
             let moving = false
             for (const m of ['light', 'heavy'] as const) {
                 const b = bodies.current[m]
-                if (b.v <= 0.004) { b.v = 0; continue }
+                if (b.v <= 0.012) { b.v = 0; continue }
                 b.ang += (b.v * 2 * Math.PI) / GR_LAP_TICKS
                 if (b.braking) b.v = raceBrake(b.v, m)
                 moving = true
@@ -1526,7 +1535,7 @@ const StopRaceScene = ({ onSettled }: { onSettled?: () => void }) => {
     }
     const again = () => { bodies.current = mk(); setPhase(1) }
     const L = bodies.current.light, H = bodies.current.heavy
-    const deg = (b: RaceBody) => Math.round(((b.ang - b.stopAng) * 180) / Math.PI)
+    const meters = (b: RaceBody) => ((b.ang - b.stopAng) * RACE_RADIUS_M).toFixed(1)
     const pt = (a: number, r: number) => ({ x: GR_CX + r * Math.cos(a), y: RACE_CY + r * Math.sin(a) })
     const arc = (a1: number, a2: number, r: number) => {
         const p1 = pt(a1, r), p2 = pt(a2, r)
@@ -1559,7 +1568,7 @@ const StopRaceScene = ({ onSettled }: { onSettled?: () => void }) => {
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: '⚪ Шарик и 🪨 валун едут ' }, { bold: 'вместе' }, { text: ', с одинаковой скоростью. Жми ' }, { bold: 'СТОП' }, { text: ' — кто дальше укатится?' }]}
+                parts={[{ text: '⚪ Шарик и 🪨 валун едут ' }, { bold: 'вместе' }, { text: ' — магнит держит у обоих одинаковый поток. Убери магнит — кто дальше укатится?' }]}
                 onSettled={() => setPhase((p) => Math.max(p, 1))}
             />
             {phase >= 1 && (
@@ -1580,11 +1589,28 @@ const StopRaceScene = ({ onSettled }: { onSettled?: () => void }) => {
                             {ball(L, false)}
                             {bArrow(H, GR_R + GR_W / 2 + 14, 'bh')}
                             {bArrow(L, GR_R - GR_W / 2 - 14, 'bl')}
-                            <text x={GR_CX} y={RACE_CY - 8} textAnchor="middle" fontSize={16} fontWeight={900} fill="#F2F7FB">⚪ {phase >= 2 ? `${deg(L)}°` : ''}</text>
-                            <text x={GR_CX} y={RACE_CY + 20} textAnchor="middle" fontSize={16} fontWeight={900} fill="#9AA7B0">🪨 {phase >= 2 ? `${deg(H)}°` : ''}</text>
+                            {phase < 2 ? (
+                                <text x={GR_CX} y={RACE_CY + 6} textAnchor="middle" fontSize={16} fontWeight={900} fill={FIELD_COLOR}>🧲 магнит держит поток</text>
+                            ) : (
+                                <>
+                                    <text x={GR_CX} y={RACE_CY - 8} textAnchor="middle" fontSize={17} fontWeight={900} fill="#F2F7FB">⚪ {meters(L)} м</text>
+                                    <text x={GR_CX} y={RACE_CY + 20} textAnchor="middle" fontSize={17} fontWeight={900} fill="#9AA7B0">🪨 {meters(H)} м</text>
+                                </>
+                            )}
                         </svg>
-                        {phase === 1 && <ReplyBtn color="#DC605B" onClick={stop}>🛑 СТОП!</ReplyBtn>}
-                        {phase === 2 && <p className="text-sm font-black text-[#9AA7B0]">Тормозят… 🪨 валун не хочет останавливаться 🫠</p>}
+                        {/* поток = скорость: полоски гаснут вместе с шариками */}
+                        <div className="w-full max-w-[340px] space-y-1.5">
+                            {(['light', 'heavy'] as const).map((m) => (
+                                <div key={m} className="flex items-center gap-2 text-sm font-black">
+                                    <span className="w-12 shrink-0" style={{ color: m === 'heavy' ? '#9AA7B0' : '#F2F7FB' }}>{m === 'heavy' ? '🪨' : '⚪'} Φ</span>
+                                    <div className="h-3 flex-1 rounded-full bg-[#26343A] overflow-hidden">
+                                        <div className="h-full rounded-full" style={{ width: `${(bodies.current[m].v / RACE_V0) * 100}%`, backgroundColor: GGEGE_PALETTE.purple.button }} />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        {phase === 1 && <ReplyBtn color="#DC605B" onClick={stop}>🧲 Убрать магнит — СТОП!</ReplyBtn>}
+                        {phase === 2 && <p className="text-sm font-black text-[#9AA7B0] text-center">Магнита нет — а поток ещё «катится»… 🪨 валун не хочет останавливаться 🫠</p>}
                         {phase === 3 && <ReplyBtn color="#5C6B73" onClick={again}>🔁 Ещё раз</ReplyBtn>}
                     </div>
                 </DiagramBlock>
@@ -1592,9 +1618,9 @@ const StopRaceScene = ({ onSettled }: { onSettled?: () => void }) => {
             {phase >= 3 && (
                 <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1200)}>
                     <InsightCard>
-                        Скорость была <InsightWord>одинаковая</InsightWord>, а валун укатился в разы дальше.
-                        <br />Его <InsightWord color="#FF9AC8">B инд</InsightWord> толкало вперёд — не давало потоку упасть.
-                        <br />Больше индуктивность → дольше «катится» поток.
+                        Убрали магнит — поток хочет в ноль, но <InsightWord color="#FF9AC8">индукционный ток</InsightWord> его ещё держит.
+                        <br />Гасит его <InsightWord>сопротивление R</InsightWord> кольца (ток → тепло 🔥) — как трение гасит шарик.
+                        <br />Трение одинаковое, а валун тяжелее → катится дольше. Так и поток: больше <InsightWord color="#D8BBFF">индуктивность L</InsightWord> → дольше «докатывается».
                     </InsightCard>
                 </DiagramBlock>
             )}
