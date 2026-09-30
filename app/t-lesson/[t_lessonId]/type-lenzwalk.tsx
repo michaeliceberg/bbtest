@@ -412,13 +412,13 @@ const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, 
 }
 
 // Стикер, который пульсирует, пока идёт ток (исчезает вместе с током).
-const PulseSticker = ({ text, color }: { text: string; color: string }) => {
-    const w = text.length > 1 ? 38 : 28
+const PulseSticker = ({ text, sub, color }: { text: string; sub?: string; color: string }) => {
+    const w = sub ? 50 : text.length > 1 ? 38 : 28
     return (
         <motion.g initial={{ scale: 0 }} animate={{ scale: [1, 1.18, 1] }} transition={{ duration: 0.8, repeat: Infinity, ease: 'easeInOut' }}
             style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
             <rect x={-w / 2} y={-13} width={w} height={26} rx={7} fill="#161F23" stroke={color} strokeWidth={2.5} />
-            <text x={0} y={6} textAnchor="middle" fontSize={16} fontWeight={900} fill={color}>{text}</text>
+            <text x={0} y={6} textAnchor="middle" fontSize={16} fontWeight={900} fill={color}>{text}{sub && <tspan fontSize={10} dy={4}>{sub}</tspan>}</text>
         </motion.g>
     )
 }
@@ -1265,10 +1265,10 @@ const TrainCylinderScene = ({ onSettled }: { onSettled?: () => void }) => {
                 <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1600)}>
                     <div className="w-full rounded-xl border-2 px-4 py-3 text-center" style={{ borderColor: REMEMBER_COLOR, backgroundColor: hexToRgba(REMEMBER_COLOR, 0.12) }}>
                         <div className="text-sm font-bold" style={{ color: '#F2F7FB' }}>
-                            🔒 Поток НЕ ЛЮБИТ МЕНЯТЬСЯ
+                            Поток НЕ ЛЮБИТ МЕНЯТЬСЯ
                         </div>
                         <div className="mt-1 text-lg font-black" style={{ color: REMEMBER_COLOR }}>
-                            🔄 Меняется — но неохотно, <span className="underline">лениво</span> 😴
+                            Меняется очень неохотно, <span className="underline">лениво</span> 😴
                         </div>
                     </div>
                 </DiagramBlock>
@@ -1361,39 +1361,53 @@ const HookScene = ({ onSettled }: { onSettled?: () => void }) => {
 // именно РЕЗКОЙ СМЕНЕ потока — в любую сторону. Ровно как залипание в
 // скролле: пока действие устоялось — сопротивления нет вообще, оно
 // появляется только в момент резкого «выключить»/«включить».
-// Видео-реакция внутри сцены «залипания»: играет по кругу, пока это текущий
-// бит сцены, и встаёт на паузу, когда история идёт дальше (не греть CPU).
-const StuckVideo = ({ src, active }: { src: string; active: boolean }) => {
-    const ref = useRef<HTMLVideoElement>(null)
-    useEffect(() => { const v = ref.current; if (!v) return; if (active) v.play().catch(() => {}); else v.pause() }, [active])
+// Видео-реакция внутри сцены «залипания»: играет ОДИН раз и останавливается
+// на последнем кадре; по окончании — следующая фраза (страховочный таймер, если
+// автозапуск заблокирован). Всё, что уже было, тускнеет — внимание на новом.
+const StuckVideo = ({ src, onEnded }: { src: string; onEnded: () => void }) => {
+    const done = useRef(false)
+    const fire = () => { if (!done.current) { done.current = true; setTimeout(onEnded, 400) } }
+    useEffect(() => { const t = setTimeout(fire, 9000); return () => clearTimeout(t) })
     return (
-        <video ref={ref} src={src} autoPlay loop muted playsInline
+        <video src={src} autoPlay muted playsInline onEnded={fire}
             className="pointer-events-none mx-auto w-full max-w-[240px] rounded-2xl object-cover" />
     )
 }
-const STUCK_VIDEO_HOLD_MS = 2600
 const StuckScene = ({ onSettled }: { onSettled?: () => void }) => {
     // 0 интро · 1 «залип» · 2 капибара · 3 «выдёргивают» · 4 чику · 5 «гулять» · 6 Понасенков · 7 «тащат обратно» · 8 злой Понасенков · 9 вывод
     const [phase, setPhase] = useState(0)
     const next = (n: number, delay = 0) => () => setTimeout(() => setPhase((p) => Math.max(p, n)), delay)
+    // «такт» = фраза + её видео; всё из прошлых тактов — тусклое
+    const beat = (ph: number) => (ph === 0 ? -1 : Math.floor((ph - 1) / 2))
+    const curBeat = phase >= 9 ? 99 : beat(phase)
+    const dim = (ph: number) => ({ opacity: beat(ph) < curBeat ? 0.35 : 1, transition: 'opacity 0.5s' })
     const vid = (at: number, src: string) => phase >= at && (
-        <DiagramBlock onSettled={next(at + 1, STUCK_VIDEO_HOLD_MS)}>
-            <StuckVideo src={src} active={phase <= at + 1} />
-        </DiagramBlock>
+        <div style={dim(at)}>
+            <DiagramBlock>
+                <StuckVideo src={src} onEnded={next(at + 1)} />
+            </DiagramBlock>
+        </div>
+    )
+    const line = (at: number, text: string, then: number) => phase >= at && (
+        <div style={dim(at)}>
+            <TypedLineWithParts parts={[{ text }]} onSettled={next(then)} />
+        </div>
     )
     return (
         <>
-            <TypedLineWithParts
-                parts={[{ text: 'А теперь та же ' }, { sticker: 'индуктивность', color: OWN_COLOR }, { text: ', только у ЧЕЛОВЕКА 📱' }]}
-                onSettled={next(1)}
-            />
-            {phase >= 1 && <TypedLineWithParts parts={[{ text: 'Ты на пару часов залип на чиле — поток идёт ровно, никто не мешает 😌' }]} onSettled={next(2)} />}
+            <div style={dim(0)}>
+                <TypedLineWithParts
+                    parts={[{ text: 'А теперь та же ' }, { sticker: 'индуктивность', color: OWN_COLOR }, { text: ', только у ЧЕЛОВЕКА 📱' }]}
+                    onSettled={next(1)}
+                />
+            </div>
+            {line(1, 'Ты на пару часов залип на чиле — поток идёт ровно, никто не мешает 😌', 2)}
             {vid(2, '/video/stuck-kapibara.webm')}
-            {phase >= 3 && <TypedLineWithParts parts={[{ text: 'Тебя РЕЗКО выдёргивают — «Хорош сидеть!» Ты сопротивляешься 😤' }]} onSettled={next(4)} />}
+            {line(3, 'Тебя РЕЗКО выдёргивают — «Хорош сидеть!» Ты сопротивляешься 😤', 4)}
             {vid(4, '/video/stuck-angry-chikoo.mp4')}
-            {phase >= 5 && <TypedLineWithParts parts={[{ text: 'Встал, пошёл гулять — наслаждаешься прогулочкой 🚶' }]} onSettled={next(6)} />}
+            {line(5, 'Встал, пошёл гулять — наслаждаешься прогулочкой 🚶', 6)}
             {vid(6, '/video/stuck-ponasenkov.mp4')}
-            {phase >= 7 && <TypedLineWithParts parts={[{ text: 'И тут тебя РЕЗКО тащат обратно. Ты СНОВА сопротивляешься 😤' }]} onSettled={next(8)} />}
+            {line(7, 'И тут тебя РЕЗКО тащат обратно. Ты СНОВА сопротивляешься 😤', 8)}
             {vid(8, '/video/stuck-ponasenkov-angry.mp4')}
             {phase >= 9 && (
                 <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1400)}>
@@ -1415,6 +1429,12 @@ const StuckScene = ({ onSettled }: { onSettled?: () => void }) => {
 // в ElasticFluxScene), не автотаймером.
 // Ток спереди вправо ⇔ поле кольца вверх (конвенция файла, см. шапку).
 const WHO_CX = 160, WHO_CY = 150, WHO_RX = 96, WHO_RY = 26
+// Рука — как в уроке «Направление магнитного поля» (DIRWALK): та же картинка
+// public/hands/grip-up.webp (обхват, большой палец строго вертикален, пальцы
+// спереди идут вправо). Здесь «провод» — ось кольца со стрелкой B инд: палец
+// вдоль B инд, пальцы — по току кольца. Доли axis/ring — из DIRWALK (HG_IMG.up).
+const WHO_HAND_W = 200, WHO_HAND_H = WHO_HAND_W * 442 / 380
+const WHO_HAND_X = WHO_CX - 0.471 * WHO_HAND_W, WHO_HAND_Y = WHO_CY - 0.5 * WHO_HAND_H
 const WhoScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
     const [currentOn, setCurrentOn] = useState(false)
@@ -1450,8 +1470,12 @@ const WhoScene = ({ onSettled }: { onSettled?: () => void }) => {
             {phase >= 2 && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col items-center gap-3">
-                        <svg viewBox="0 0 320 250" className="w-full max-w-[320px] h-auto">
+                        <svg viewBox="0 0 320 290" className="w-full max-w-[320px] h-auto">
                             <path d={back} fill="none" stroke={ringCol} strokeWidth={7} strokeLinecap="round" />
+                            {handPhase >= 1 && (
+                                <motion.image href="/hands/grip-up.webp" x={WHO_HAND_X} y={WHO_HAND_Y} width={WHO_HAND_W} height={WHO_HAND_H}
+                                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }} />
+                            )}
                             {handPhase >= 2 && (
                                 <motion.g initial={{ opacity: 0, scaleY: 0.1 }} animate={{ opacity: 1, scaleY: 1 }}
                                     transition={{ type: 'spring', bounce: 0.4 }}
@@ -1464,17 +1488,14 @@ const WhoScene = ({ onSettled }: { onSettled?: () => void }) => {
                                 <>
                                     <motion.path d={front} fill="none" stroke="#fff" strokeWidth={3} strokeDasharray="6 18" strokeLinecap="round"
                                         animate={{ strokeDashoffset: [0, -48] }} transition={{ duration: 0.6, repeat: Infinity, ease: 'linear' }} />
-                                    <g transform={`translate(${WHO_CX + WHO_RX + 4},${WHO_CY + WHO_RY + 18})`}>
-                                        <PulseSticker text="I инд" color={CURRENT_COLOR} />
+                                    <g transform={`translate(${WHO_CX - WHO_RX - 2},${WHO_CY + WHO_RY + 22})`}>
+                                        <PulseSticker text="I" sub="инд" color={CURRENT_COLOR} />
                                     </g>
                                 </>
                             )}
-                            {handPhase >= 1 && (
-                                <RightHandHint cx={WHO_CX} cy={WHO_CY} rx={WHO_RX + 18} ry={WHO_RY + 12} thumbUp curlRight />
-                            )}
                             {handPhase >= 2 && (
                                 <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}>
-                                    <SvgSticker x={WHO_CX + 44} y={WHO_CY - 92} text="B" sub="инд" color={OWN_COLOR} />
+                                    <SvgSticker x={WHO_CX - 50} y={WHO_CY - 96} text="B" sub="инд" color={OWN_COLOR} />
                                 </motion.g>
                             )}
                         </svg>
@@ -1725,145 +1746,8 @@ const ZoneGameScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-// «Кто дальше укатится?»: ОДНО кольцо, шарик и валун уже едут вместе, в одной
-// точке, с одинаковой скоростью (валун полупрозрачный под шариком — видно, что
-// они совпадают). По «СТОП» каждый тормозит сам; тормозной путь подсвечен дугой
-// своего цвета. «СТОП» = убрали магнит. Тормозит ВЯЗКОЕ трение (жёлоб с мёдом),
-// одинаковое для обоих: сила ∝ скорости → экспонента с τ = m/b — ровно как у
-// тока τ = L/R (трение ↔ сопротивление R кольца, масса ↔ индуктивность L).
-// Сухое трение тут было бы НЕВЕРНО: тормозной путь от массы не зависел бы.
-// Путь в метрах: радиус жёлоба 2 м (круг = 2π·2 ≈ 12.6 м).
-const RACE_CY = 175, RACE_H = 350, RACE_V0 = 0.6
-const RACE_RADIUS_M = 2
-const RACE_TAU: Record<'light' | 'heavy', number> = { light: 40, heavy: 160 } // тиков; валун в 4 раза «тяжелее»
-const raceBrake = (v: number, m: 'light' | 'heavy') => v * (1 - 1 / RACE_TAU[m])
-type RaceBody = { ang: number; v: number; braking: boolean; stopAng: number }
-const StopRaceScene = ({ onSettled }: { onSettled?: () => void }) => {
-    const [phase, setPhase] = useState(0) // 0 интро · 1 едут вместе · 2 тормозят · 3 оба встали
-    const mk = (): Record<'light' | 'heavy', RaceBody> => ({
-        light: { ang: -Math.PI / 2, v: RACE_V0, braking: false, stopAng: 0 },
-        heavy: { ang: -Math.PI / 2, v: RACE_V0, braking: false, stopAng: 0 },
-    })
-    const bodies = useRef(mk())
-    const [, force] = useState(0)
-    const phaseRef = useRef(0)
-    phaseRef.current = phase
-    useEffect(() => {
-        const id = setInterval(() => {
-            if (phaseRef.current < 1) return
-            let moving = false
-            for (const m of ['light', 'heavy'] as const) {
-                const b = bodies.current[m]
-                if (b.v <= 0.012) { b.v = 0; continue }
-                b.ang += (b.v * 2 * Math.PI) / GR_LAP_TICKS
-                if (b.braking) b.v = raceBrake(b.v, m)
-                moving = true
-            }
-            force((x) => x + 1)
-            if (!moving && phaseRef.current === 2) setPhase(3)
-        }, 16)
-        return () => clearInterval(id)
-    }, [])
-    const stop = () => {
-        for (const m of ['light', 'heavy'] as const) { const b = bodies.current[m]; b.braking = true; b.stopAng = b.ang }
-        setPhase(2)
-    }
-    const again = () => { bodies.current = mk(); setPhase(1) }
-    const L = bodies.current.light, H = bodies.current.heavy
-    const meters = (b: RaceBody) => ((b.ang - b.stopAng) * RACE_RADIUS_M).toFixed(1)
-    const pt = (a: number, r: number) => ({ x: GR_CX + r * Math.cos(a), y: RACE_CY + r * Math.sin(a) })
-    const arc = (a1: number, a2: number, r: number) => {
-        const p1 = pt(a1, r), p2 = pt(a2, r)
-        return `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} A ${r} ${r} 0 ${a2 - a1 > Math.PI ? 1 : 0} 1 ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`
-    }
-    const bArrow = (b: RaceBody, r: number, key: string) => {
-        if (!b.braking || b.v <= 0.02) return null
-        const base = pt(b.ang, r), fx = -Math.sin(b.ang), fy = Math.cos(b.ang)
-        const len = 16 + b.v * 50
-        const tip = { x: base.x + fx * len, y: base.y + fy * len }
-        const ha = (Math.atan2(fy, fx) * 180) / Math.PI
-        return (
-            <g key={key}>
-                <line x1={base.x} y1={base.y} x2={tip.x} y2={tip.y} stroke={OWN_COLOR} strokeWidth={4} strokeLinecap="round" />
-                <g transform={`translate(${tip.x},${tip.y}) rotate(${ha})`}>
-                    <path d="M -9 -7 L 2 0 L -9 7" fill="none" stroke={OWN_COLOR} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
-                </g>
-            </g>
-        )
-    }
-    const ball = (b: RaceBody, heavy: boolean) => {
-        const p = pt(b.ang, GR_R), br = GR_BALL_R[heavy ? 'heavy' : 'light']
-        return (
-            <g opacity={heavy ? 0.55 : 1}>
-                <circle cx={p.x} cy={p.y} r={br} fill={heavy ? '#7E868B' : '#F2F7FB'} stroke={heavy ? '#4E5559' : '#C9D3D9'} strokeWidth={2} />
-            </g>
-        )
-    }
-    const stopP1 = pt(L.stopAng, GR_R - GR_W / 2 - 4), stopP2 = pt(L.stopAng, GR_R + GR_W / 2 + 4)
-    return (
-        <>
-            <TypedLineWithParts
-                parts={[{ text: '⚪ Шарик и 🪨 валун едут ' }, { bold: 'вместе' }, { text: ' — магнит держит у обоих одинаковый поток. Убери магнит — кто дальше укатится?' }]}
-                onSettled={() => setPhase((p) => Math.max(p, 1))}
-            />
-            {phase >= 1 && (
-                <DiagramBlock>
-                    <div className="w-full flex flex-col items-center gap-3">
-                        <svg viewBox={`0 0 ${TR_W} ${RACE_H}`} className="w-full max-w-[400px] h-auto select-none">
-                            <circle cx={GR_CX} cy={RACE_CY} r={GR_R} fill="none" stroke="#3A464E" strokeWidth={GR_W + 6} />
-                            <circle cx={GR_CX} cy={RACE_CY} r={GR_R} fill="none" stroke="#1B262B" strokeWidth={GR_W} />
-                            {phase >= 2 && (
-                                <>
-                                    {/* тормозной путь: валун — по внешнему краю, шарик — по внутреннему */}
-                                    <path d={arc(H.stopAng, H.ang, GR_R + 12)} fill="none" stroke="#9AA7B0" strokeWidth={6} strokeLinecap="round" opacity={0.7} />
-                                    <path d={arc(L.stopAng, L.ang, GR_R - 12)} fill="none" stroke="#F2F7FB" strokeWidth={6} strokeLinecap="round" opacity={0.85} />
-                                    <line x1={stopP1.x} y1={stopP1.y} x2={stopP2.x} y2={stopP2.y} stroke="#DC605B" strokeWidth={4} strokeLinecap="round" />
-                                </>
-                            )}
-                            {ball(H, true)}
-                            {ball(L, false)}
-                            {bArrow(H, GR_R + GR_W / 2 + 14, 'bh')}
-                            {bArrow(L, GR_R - GR_W / 2 - 14, 'bl')}
-                            {phase < 2 ? (
-                                <text x={GR_CX} y={RACE_CY + 6} textAnchor="middle" fontSize={16} fontWeight={900} fill={FIELD_COLOR}>🧲 магнит держит поток</text>
-                            ) : (
-                                <>
-                                    <text x={GR_CX} y={RACE_CY - 8} textAnchor="middle" fontSize={17} fontWeight={900} fill="#F2F7FB">⚪ {meters(L)} м</text>
-                                    <text x={GR_CX} y={RACE_CY + 20} textAnchor="middle" fontSize={17} fontWeight={900} fill="#9AA7B0">🪨 {meters(H)} м</text>
-                                </>
-                            )}
-                        </svg>
-                        {/* поток = скорость: полоски гаснут вместе с шариками */}
-                        <div className="w-full max-w-[340px] space-y-1.5">
-                            {(['light', 'heavy'] as const).map((m) => (
-                                <div key={m} className="flex items-center gap-2 text-sm font-black">
-                                    <span className="w-12 shrink-0" style={{ color: m === 'heavy' ? '#9AA7B0' : '#F2F7FB' }}>{m === 'heavy' ? '🪨' : '⚪'} Φ</span>
-                                    <div className="h-3 flex-1 rounded-full bg-[#26343A] overflow-hidden">
-                                        <div className="h-full rounded-full" style={{ width: `${(bodies.current[m].v / RACE_V0) * 100}%`, backgroundColor: GGEGE_PALETTE.purple.button }} />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        {phase === 1 && <ReplyBtn color="#DC605B" onClick={stop}>🧲 Убрать магнит — СТОП!</ReplyBtn>}
-                        {phase === 2 && <p className="text-sm font-black text-[#9AA7B0] text-center">Магнита нет — а поток ещё «катится»… 🪨 валун не хочет останавливаться 🫠</p>}
-                        {phase === 3 && <ReplyBtn color="#5C6B73" onClick={again}>🔁 Ещё раз</ReplyBtn>}
-                    </div>
-                </DiagramBlock>
-            )}
-            {phase >= 3 && (
-                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1200)}>
-                    <InsightCard>
-                        Убрали магнит — поток хочет упасть в ноль, но кольцо не даёт резко: <InsightWord color="#FF9AC8">B инд</InsightWord> ещё держит его.
-                        <br />Тяжёлый валун катится дольше лёгкого шарика.
-                        <br />Так и поток: чем больше <InsightWord color="#D8BBFF">индуктивность</InsightWord> («масса»), тем дольше он «докатывается».
-                    </InsightCard>
-                </DiagramBlock>
-            )}
-        </>
-    )
-}
 
-const CONCEPT_SCENES = [HookScene, FluxMotionScene, MassScene, TrainCylinderScene, StopRaceScene, ZoneGameScene, StuckScene, WhoScene, SpeedMagnetScene]
+const CONCEPT_SCENES = [HookScene, FluxMotionScene, MassScene, TrainCylinderScene, ZoneGameScene, StuckScene, WhoScene, SpeedMagnetScene]
 const INTRO_CONCEPT_STEPS = CONCEPT_SCENES.length
 
 const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
