@@ -1078,7 +1078,7 @@ const FluxCompareScene = ({ onSettled }: { onSettled?: () => void }) => {
                     <InsightCard label="💡 Главное">
                         Всё, что надо знать про <Sticker value="ПОТОК" color={FLUX_COLOR} /> —
                         {[0, 1, 2].map((i) => (
-                            <Fragment key={i}><br /><Sticker value="ПОТОК" color={FLUX_COLOR} /> <InsightWord>ДОЛЖЕН НЕ МЕНЯТЬСЯ</InsightWord></Fragment>
+                            <Fragment key={i}><br /><Sticker value="ПОТОК" color={FLUX_COLOR} /> <InsightWord>НЕ ЛЮБИТ МЕНЯТЬСЯ</InsightWord></Fragment>
                         ))}
                         <video src="/video/mcconaughey.webm" autoPlay loop muted playsInline
                             className="pointer-events-none mx-auto mt-3 block w-32 md:w-36 aspect-square object-contain" />
@@ -1810,22 +1810,22 @@ const CONCEPT_QUIZ: ConceptQuizItem[] = [
     // «Вдолбить» главное (просьба пользователя): 3 раза подряд один и тот же
     // вопрос, во 2-м и 3-м — нелепые варианты, ответ очевиден.
     {
-        renderPrompt: () => <>Что должно быть с потоком <Sticker value="Φ" color={FLUX_COLOR} />?</>,
-        renderOptions: () => ['Увеличиваться', 'Не меняться', 'Уменьшаться'],
+        renderPrompt: () => <>Что НЕ ЛЮБИТ поток <Sticker value="Φ" color={FLUX_COLOR} />?</>,
+        renderOptions: () => ['Котиков 🐱', 'Меняться', 'Когда его зовут «Фи» 😤'],
         correct: 1,
-        feedback: 'Поток должен НЕ меняться. Запомни!',
+        feedback: 'Поток НЕ ЛЮБИТ МЕНЯТЬСЯ. Запомни!',
     },
     {
-        renderPrompt: () => <>А что должно быть с потоком <Sticker value="Φ" color={FLUX_COLOR} />? 🤨</>,
-        renderOptions: () => ['Не меняться', 'Танцевать ламбаду 💃', 'Уйти в отпуск 🏖️'],
+        renderPrompt: () => <>А что НЕ ЛЮБИТ поток <Sticker value="Φ" color={FLUX_COLOR} />? 🤨</>,
+        renderOptions: () => ['Меняться', 'Понедельники 😩', 'Ананасы в пицце 🍍'],
         correct: 0,
-        feedback: 'Правильно — НЕ меняться. Никаких ламбад.',
+        feedback: 'Правильно — не любит меняться. Ананасы он ещё терпит.',
     },
     {
-        renderPrompt: () => <>Ну и последний раз: поток <Sticker value="Φ" color={FLUX_COLOR} /> должен…</>,
-        renderOptions: () => ['Стать котиком 🐱', 'Съесть бургер 🍔', 'Не меняться'],
+        renderPrompt: () => <>Ну и последний раз: поток <Sticker value="Φ" color={FLUX_COLOR} /> не любит…</>,
+        renderOptions: () => ['Рано вставать ⏰', 'Когда трогают его вещи 😠', 'Меняться'],
         correct: 2,
-        feedback: 'НЕ МЕНЯТЬСЯ! Теперь ты точно не забудешь 🧠',
+        feedback: 'НЕ ЛЮБИТ МЕНЯТЬСЯ! Теперь ты точно не забудешь 🧠',
     },
     {
         // Бонус — для хорошего настроения: единственный вариант ответа.

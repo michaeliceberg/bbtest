@@ -43,6 +43,7 @@ import { FluxCylinder, FieldArrow } from '@/components/geometry/FluxCylinder'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
 import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
+import facepalm from '@/public/Lottie/stepByStep/facepalm.json'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 
 // lottie-react трогает document на импорте — только ssr:false (см. CLAUDE.md).
@@ -1012,7 +1013,9 @@ const TrainCylinderScene = ({ onSettled }: { onSettled?: () => void }) => {
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'Приделаем к потоку ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: G ? ' жёлоб. Двигай 🧲 магнит к кольцу: поле B сильнее → цилиндр длиннее → шарик катится быстрее' : ' спидометр 🚲🚙 — тянешь цилиндр, стрелка следует за рукой' }]}
+                parts={G
+                    ? [{ bold: 'ПОТОК' }, { text: ' ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ' — это как ' }, { bold: 'ИМПУЛЬС' }, { text: ' в механике. Двигай 🧲 магнит к кольцу: поле ' }, { sticker: 'B', color: FIELD_COLOR }, { text: ' сильнее → увеличиваем ' }, { sticker: 'ПОТОК Φ', color: GGEGE_PALETTE.purple.button }, { text: ' → шарик катится быстрее' }]
+                    : [{ text: 'Приделаем к потоку ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ' спидометр 🚲🚙 — тянешь цилиндр, стрелка следует за рукой' }]}
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
@@ -1032,9 +1035,10 @@ const TrainCylinderScene = ({ onSettled }: { onSettled?: () => void }) => {
             {phase >= 2 && (
                 <DiagramBlock onSettled={() => setTimeout(() => setPhase(3), 1600)}>
                     <InsightCard>
-                        <InsightWord color="#FF9AC8">Индуктивность</InsightWord> — это <InsightWord color="#D8BBFF">МАССА</InsightWord>.
+                        <InsightWord color="#FF9AC8">Индуктивность</InsightWord> — как <InsightWord color="#D8BBFF">МАССА</InsightWord>.
                         <br />{G ? '⚪ Лёгкий шарик' : '🚲 Велик лёгкий'} — его скорость менять <InsightWord>легко</InsightWord>.
                         <br />{G ? '🪨 Тяжёлый валун' : '🚙 Гелик тяжёлый'} — его тяжело разогнать/затормозить.
+                        <br />Именно <InsightWord color="#FF9AC8">ИНДУКТИВНОСТЬ</InsightWord> мешает <InsightWord>РЕЗКО</InsightWord> менять скорость.
                     </InsightCard>
                 </DiagramBlock>
             )}
@@ -1044,11 +1048,11 @@ const TrainCylinderScene = ({ onSettled }: { onSettled?: () => void }) => {
             {phase >= 3 && (
                 <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1600)}>
                     <div className="w-full rounded-xl border-2 px-4 py-3 text-center" style={{ borderColor: REMEMBER_COLOR, backgroundColor: hexToRgba(REMEMBER_COLOR, 0.12) }}>
-                        <div className="text-sm font-bold line-through opacity-50" style={{ color: '#DC605B' }}>
-                            🔒 Поток должен НЕ МЕНЯТЬСЯ
+                        <div className="text-sm font-bold" style={{ color: '#F2F7FB' }}>
+                            🔒 Поток НЕ ЛЮБИТ МЕНЯТЬСЯ
                         </div>
                         <div className="mt-1 text-lg font-black" style={{ color: REMEMBER_COLOR }}>
-                            🔄 На самом деле: поток МЕНЯЕТСЯ — просто <span className="underline">лениво</span> 😴
+                            🔄 Меняется — но неохотно, <span className="underline">лениво</span> 😴
                         </div>
                     </div>
                 </DiagramBlock>
@@ -1091,7 +1095,7 @@ const HookScene = ({ onSettled }: { onSettled?: () => void }) => {
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'Помнишь? Поток ' }, { sticker: 'Φ', color: PHI }, { text: ' должен ' }, { bold: 'НЕ МЕНЯТЬСЯ' }, { text: '!' }]}
+                parts={[{ text: 'Помнишь? Поток ' }, { sticker: 'Φ', color: PHI }, { text: ' ' }, { bold: 'НЕ ЛЮБИТ МЕНЯТЬСЯ' }, { text: '!' }]}
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
@@ -1127,7 +1131,7 @@ const HookScene = ({ onSettled }: { onSettled?: () => void }) => {
             )}
             {phase >= 4 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Но что если… нам ' }, { bold: 'захочется' }, { text: ' его нарушить? 😈' }]}
+                    parts={[{ text: 'Но что если… нам ' }, { bold: 'захочется' }, { text: ' его всё-таки поменять? 😈' }]}
                     onSettled={onSettled}
                 />
             )}
@@ -1452,7 +1456,7 @@ const ZoneRound = ({ mass, onWin }: { mass: 'light' | 'heavy'; onWin: () => void
             setZone({ center: zoneRef.current, half: ZONE_HALF[mass], inside })
             setProg(Math.min(1, progRef.current / ZONE_GOAL_TICKS))
         }, 16)
-        const g = setTimeout(() => setGiveUp(true), 45000)
+        const g = setTimeout(() => setGiveUp(true), 30000)
         return () => { clearInterval(id); clearTimeout(g) }
     }, [mass, onWin])
     const won = prog >= 1
@@ -1460,7 +1464,14 @@ const ZoneRound = ({ mass, onWin }: { mass: 'light' | 'heavy'; onWin: () => void
         <div className="w-full flex flex-col items-center gap-3" onPointerMove={h.onMove} onPointerUp={h.onUp} onPointerCancel={h.onUp} style={{ touchAction: 'none' }}>
             <GrooveView targetLen={h.targetLen} actualLen={h.actualLen} mass={mass} svgRef={h.svgRef} onDown={h.onDown} dragging={h.dragging} angRef={angRef} zone={zone}
                 startAng={kick.ang} center={<ZoneCenter inside={zone.inside} prog={prog} won={won} />} />
-            {giveUp && !won && <ReplyBtn color="#5C6B73" onClick={onWin}>Сдаюсь 🏳️</ReplyBtn>}
+            {giveUp && !won && (
+                <ReplyBtn color="#5C6B73" onClick={onWin}>
+                    <span className="flex items-center gap-2">
+                        <Lottie animationData={facepalm} loop autoplay className="w-9 h-9 -my-2 shrink-0" />
+                        Сдаюсь 🏳️
+                    </span>
+                </ReplyBtn>
+            )}
         </div>
     )
 }
