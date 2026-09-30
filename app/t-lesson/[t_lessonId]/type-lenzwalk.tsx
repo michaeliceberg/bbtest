@@ -612,6 +612,47 @@ const VEHICLE_WHEELS: Record<'light' | 'heavy', { fx: number; fy: number; fr: nu
     heavy: [{ fx: 0.218, fy: 0.766, fr: 0.13 }, { fx: 0.816, fy: 0.766, fr: 0.13 }],
 }
 const VEHICLE_FLIP: Record<'light' | 'heavy', boolean> = { light: false, heavy: true }
+// Линии ветра (обтекание) в локальных координатах транспорта (центр = 0,0).
+// Все пути — от носа к хвосту. Картинки в той же ориентации, что и на экране
+// (Гелик уже отражён), колёса — из VEHICLE_WHEELS.
+const windPaths = (mass: 'light' | 'heavy', w: number, h: number): string[] => {
+    const X = (fx: number) => (-w / 2 + fx * w).toFixed(1)
+    const Y = (fy: number) => (-h / 2 + fy * h).toFixed(1)
+    const [rear, front] = VEHICLE_WHEELS[mass]
+    const R = (mass === 'light' ? 0.317 : 0.168) * h   // внешний радиус шины
+    const rcx = -w / 2 + rear.fx * w, rcy = -h / 2 + rear.fy * h
+    const fcx = -w / 2 + front.fx * w, fcy = -h / 2 + front.fy * h
+    const pt = (cx: number, cy: number, r: number, deg: number) => {
+        const t = (deg * Math.PI) / 180
+        return `${(cx + r * Math.cos(t)).toFixed(1)} ${(cy + r * Math.sin(t)).toFixed(1)}`
+    }
+    // дуга вокруг колеса: уменьшение угла = против часовой на экране (sweep 0)
+    const arc = (cx: number, cy: number, r: number, a2: number) => `A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 0 ${pt(cx, cy, r, a2)}`
+    if (mass === 'light') {
+        const g = 7
+        return [
+            // спереди: воздух набегает и поднимается над передним колесом
+            `M ${(fcx + R + 38).toFixed(1)} ${(fcy - R * 0.35).toFixed(1)} Q ${(fcx + R + 10).toFixed(1)} ${(fcy - R * 0.45).toFixed(1)} ${pt(fcx, fcy, R + g, -30)}`,
+            // сверху-сзади: огибает заднее колесо по дуге и уходит назад
+            `M ${pt(rcx, rcy, R + g, -60)} ${arc(rcx, rcy, R + g, -165)} Q ${(rcx - R - 24).toFixed(1)} ${(rcy - (R + g) * 0.1).toFixed(1)} ${(rcx - R - 44).toFixed(1)} ${(rcy + 2).toFixed(1)}`,
+            // низ-сзади: короткая прямая у земли
+            `M ${(rcx - R - 6).toFixed(1)} ${(rcy + R * 0.6).toFixed(1)} L ${(rcx - R - 34).toFixed(1)} ${(rcy + R * 0.6).toFixed(1)}`,
+        ]
+    }
+    return [
+        // спереди у бампера
+        `M ${X(1.22)} ${Y(0.62)} L ${X(1.03)} ${Y(0.62)}`,
+        // над капотом: набегает, поднимается по лобовому стеклу, дальше над крышей
+        `M ${X(1.16)} ${Y(0.34)} Q ${X(0.8)} ${Y(0.32)} ${X(0.66)} ${Y(0.0)} L ${X(0.42)} ${Y(-0.03)}`,
+        // с кормы: срывается с крыши и опускается за машину
+        `M ${X(0.1)} ${Y(-0.02)} Q ${X(-0.06)} ${Y(0.0)} ${X(-0.26)} ${Y(0.14)}`,
+        // сзади посередине
+        `M ${X(-0.03)} ${Y(0.42)} L ${X(-0.28)} ${Y(0.42)}`,
+        // огибает заднее колесо сзади-снизу
+        `M ${pt(rcx, rcy, R + 6, -115)} ${arc(rcx, rcy, R + 6, -180)} Q ${(rcx - R - 22).toFixed(1)} ${rcy.toFixed(1)} ${(rcx - R - 40).toFixed(1)} ${rcy.toFixed(1)}`,
+    ]
+}
+
 const Vehicle = ({ x, y, tilt, mass, speed, scale = 1 }: { x: number; y: number; tilt: number; mass: 'light' | 'heavy'; speed: number; scale?: number }) => {
     const w = VEHICLE_DIMS[mass].w * scale, h = VEHICLE_DIMS[mass].h * scale
     const speedRef = useRef(speed)
@@ -625,24 +666,27 @@ const Vehicle = ({ x, y, tilt, mass, speed, scale = 1 }: { x: number; y: number;
         }, 16)
         return () => clearInterval(id)
     }, [])
-    // тряска: небольшая, растёт со скоростью; у велика чуть сильнее (лёгкий)
-    const amp = speed * (mass === 'light' ? 1.6 : 1.1)
-    // мелкая тряска + лёгкие подскоки на кочках (только вверх, чуть-чуть)
-    const hop = -Math.abs(Math.sin(phase * 0.35)) * speed * (mass === 'light' ? 3.5 : 2.5)
-    const shakeY = Math.sin(phase * 0.95) * amp + hop
-    const shakeR = Math.sin(phase * 0.65) * amp * 0.5
+    // Тряска растёт со скоростью. Гелик — мелкая дрожь + подскоки на кочках
+    // (уменьшены: сильная рябь резала глаз). Велик — без дрожи, только
+    // плавное покачивание по синусу (без «удара» |sin| внизу).
+    const heavy = mass === 'heavy'
+    const amp = speed * (heavy ? 0.6 : 0.25)
+    const hop = heavy
+        ? -Math.abs(Math.sin(phase * 0.35)) * speed * 1.7
+        : (Math.cos(phase * 0.22) - 1) * speed * 1.2
+    const shakeY = Math.sin(phase * (heavy ? 0.95 : 0.3)) * amp + hop
+    const shakeR = Math.sin(phase * (heavy ? 0.65 : 0.2)) * amp * 0.5
     return (
         <g>
-            {/* ветер позади — бегущий пунктир: линия идёт от транспорта влево,
-                offset уменьшается → штрихи убегают назад, быстрее при большей скорости */}
-            {[0, 1, 2].map((i) => (
-                <line key={i} x1={x - w / 2 - 4} y1={y - h * 0.25 + i * h * 0.25} x2={x - w / 2 - 4 - (i === 1 ? 46 : 32)} y2={y - h * 0.25 + i * h * 0.25}
-                    stroke="#9AA7B0" strokeWidth={2.5} strokeLinecap="round" strokeDasharray="9 7"
-                    strokeDashoffset={-phase * 1.5 - i * 5} opacity={Math.min(1, speed * 1.4) * 0.8} />
-            ))}
         <g transform={`translate(${x},${y + shakeY}) rotate(${tilt + shakeR})`}>
             <image href={VEHICLE_SRC[mass]} x={-w / 2} y={-h / 2} width={w} height={h} preserveAspectRatio="xMidYMid meet"
                 transform={VEHICLE_FLIP[mass] ? 'scale(-1,1)' : undefined} />
+            {/* ветер — линии обтекания по форме транспорта; пути идут СПЕРЕДИ НАЗАД,
+                offset уменьшается → штрихи бегут назад, быстрее при большей скорости */}
+            {windPaths(mass, w, h).map((d, i) => (
+                <path key={`w${i}`} d={d} fill="none" stroke="#9AA7B0" strokeWidth={2.2} strokeLinecap="round" strokeDasharray="8 6"
+                    strokeDashoffset={-phase * 1.5 - i * 4} opacity={Math.min(1, speed * 1.4) * 0.75} />
+            ))}
             {VEHICLE_WHEELS[mass].map((wh, i) => {
                 const r = wh.fr * h
                 const circ = 2 * Math.PI * r
@@ -686,7 +730,9 @@ const TrainCylinderView = ({ targetLen, actualLen, mass, svgRef, onDown, draggin
     // Наклон иконки транспорта — та же «откидывается против рывка»
     // логика, что и раньше, просто теперь применена к статичной иконке
     // (лёгкий «живой» акцент, а не имитация реального движения).
-    const tilt = Math.max(-10, Math.min(10, -gap * 0.2))
+    // Гелик наклоняется меньше (тяжёлый, низкий центр тяжести)
+    const tiltMax = mass === 'heavy' ? 6 : 10
+    const tilt = Math.max(-tiltMax, Math.min(tiltMax, -gap * (mass === 'heavy' ? 0.12 : 0.2)))
     // транспорт — крупно под циферблатом, чтобы было видно крутящиеся колёса
     const VSCALE = 1.2
     const iconY = GAUGE_CY + 20 + VEHICLE_DIMS[mass].h * VSCALE / 2 + 12
