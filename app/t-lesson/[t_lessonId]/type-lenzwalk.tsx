@@ -527,29 +527,59 @@ const SvgSticker = ({ x, y, text, sub, color }: { x: number; y: number; text: st
         </g>
     )
 }
-// 3б. Поток — цилиндр (дно — кольцо S, длина — поле B), а к его поршню
-// ШТОКОМ приделан транспорт на рельсах — прямая механическая аналогия
-// «вес транспорта = индуктивность L» (обсуждение с пользователем,
-// метафора «поршень+вагон» из ChatGPT-диалога, 2026-09-30; по просьбе
-// пользователя вагон заменён на 🚲 велосипед / 🚙 Гелик — веселее и
-// сразу понятно, что тяжелее). Тянешь цилиндр рукой — рука двигает
-// МИШЕНЬ (пунктирный призрак) мгновенно, а НАСТОЯЩИЙ поток (сплошной
-// цилиндр + транспорт под ним) непрерывно ДОГОНЯЕТ мишень с задержкой —
-// темп погони зависит от выбранного транспорта. Разрыв между мишенью и
-// настоящим значением — это и есть B инд: пока он есть, транспорт
-// дёргается/отстаёт; велосипед почти не отстаёт (слабая индуктивность),
-// Гелик — заметно тормозит любой рывок.
-// Канвас расширен по просьбе пользователя («больше места разгоняться») —
-// раньше был TR_W=320/TR_LMAX=210, теперь трасса почти в 2 раза длиннее.
-const TR_W = 480, TR_H = 320
+// 3б. Поток — цилиндр (дно — кольцо S, длина — поле B). ВАЖНАЯ ФИЗИЧЕСКАЯ
+// ПРАВКА (поймана пользователем, 2026-09-30): цилиндр Φ = L·I — по
+// электромеханической аналогии (V↔F, I↔v, L↔m) это Φ = L·I ↔ m·v = p —
+// ИМПУЛЬС, не координата! Значит транспорт не должен «уезжать» по
+// рельсам (координата x) — когда цилиндр перестаёт расти, машина должна
+// ехать дальше с новой ПОСТОЯННОЙ скоростью, а не стоять. Рельсы для
+// этого физически неверны (и упираются в край экрана — нам просто
+// некуда её катить). Правильная визуализация — СПИДОМЕТР: стрелка =
+// скорость v = Φ/m (при фиксированной массе — прямо пропорциональна
+// цилиндру). Транспорт (🚲 Велик / 🚙 Гелик) статично стоит рядом,
+// стрелка спидометра непрерывно ДОГОНЯЕТ мишень (пунктирная стрелка) —
+// та же самая физика погони с задержкой, что и раньше, просто рисуется
+// по кругу, а не по прямой. Разрыв между стрелками — B инд: при разгоне
+// это «дуло, светящее в лицо» (мешает расти), при торможении —
+// «двигатель, толкающий сзади» (мешает падать) — направление само
+// переключается через тот же gap, без отдельной логики.
+const TR_W = 480, TR_H = 380
 const TR_X0 = 60, TR_CY = 72, TR_R = 36, TR_D = 11
 const TR_LMIN = 30, TR_LMAX = 340, TR_L0 = 150
-const TR_RAIL_Y = 268
+// Спидометр: центр, радиус, угловой диапазон (° в конвенции gaugePt —
+// 0° = вверх, ±90° = вправо/влево, тот же приём, что уже в Ammeter этого
+// файла). −100°/100° — чуть больше полукруга, как у настоящего спидометра.
+const GAUGE_CX = 230, GAUGE_CY = 280, GAUGE_R = 92
+const GAUGE_DEG_MIN = -100, GAUGE_DEG_MAX = 100
+const GAUGE_TICKS = [-100, -75, -50, -25, 0, 25, 50, 75, 100]
+const angleOf = (len: number) => GAUGE_DEG_MIN + (GAUGE_DEG_MAX - GAUGE_DEG_MIN) * (len - TR_LMIN) / (TR_LMAX - TR_LMIN)
+const gaugePt = (deg: number, r: number) => {
+    const t = ((deg - 90) * Math.PI) / 180
+    return { x: GAUGE_CX + r * Math.cos(t), y: GAUGE_CY + r * Math.sin(t) }
+}
+// Дуга между двумя углами + касательная в конце (для наконечника
+// стрелки-дуги B инд) — тот же аналитический приём, что уже даёт
+// curlArc() выше в этом файле для RightHandHint, просто обобщён на
+// произвольные from/to (не жёстко 160°/20°).
+function gaugeArc(fromDeg: number, toDeg: number, r: number) {
+    const steps = 16
+    const pts: string[] = []
+    for (let i = 0; i <= steps; i++) {
+        const d = fromDeg + (toDeg - fromDeg) * (i / steps)
+        const p = gaugePt(d, r)
+        pts.push(`${p.x.toFixed(1)},${p.y.toFixed(1)}`)
+    }
+    const te = ((toDeg - 90) * Math.PI) / 180
+    const s = toDeg >= fromDeg ? 1 : -1
+    const dx = -Math.sin(te) * s, dy = Math.cos(te) * s
+    const ang = (Math.atan2(dy, dx) * 180) / Math.PI
+    return { d: `M ${pts.join(' L ')}`, end: gaugePt(toDeg, r), ang }
+}
 // Картинки — реальные фото, вырезанные Vision (без фона), см.
 // public/vehicles/. Высота считается из ширины по реальным пропорциям
 // файлов, чтобы не искажать транспорт.
 const VEHICLE_SRC: Record<'light' | 'heavy', string> = { light: '/vehicles/bike.webp', heavy: '/vehicles/gelik.webp' }
-const VEHICLE_DIMS: Record<'light' | 'heavy', { w: number; h: number }> = { light: { w: 96, h: 60 }, heavy: { w: 172, h: 78 } }
+const VEHICLE_DIMS: Record<'light' | 'heavy', { w: number; h: number }> = { light: { w: 96, h: 56 }, heavy: { w: 172, h: 78 } }
 // Непрерывная погоня (первого порядка, без массы/скорости — тот же
 // принцип "чистого затухания без перехлёста", что уже проверен и
 // одобрен пользователем): на каждом тике проходим долю rate от
@@ -567,19 +597,15 @@ const TR_SNAP = 1.2
 // тоже приподнят, чтобы остаться такой же ЛЁГКОЙ ДОЛЕЙ трассы.
 const TR_DRAG_MIN = 60
 
-// Транспорт на рельсах: наклон (SVG rotate вокруг точки контакта с
-// рельсом — НЕ CSS transform-origin, чтобы не словить гэтчу
-// transformBox для SVG, см. комментарии в других *WALK этого проекта)
-// пропорционален разрыву между мишенью и настоящим положением —
-// транспорт «откидывается» назад при резком рывке, как пассажир при
-// разгоне. Картинка — просто <image>, без искусственного контура (в
-// отличие от «летающих» стикеров магнита — тут это часть схемы, а не
-// отдельно парящий предмет).
-const Vehicle = ({ x, tilt, mass }: { x: number; tilt: number; mass: 'light' | 'heavy' }) => {
-    const { w, h } = VEHICLE_DIMS[mass]
+// Транспорт — теперь СТАТИЧНАЯ иконка (не едет по рельсам, см. правку
+// выше), центрированная в точке (x,y), с лёгким наклоном (SVG rotate
+// вокруг СВОЕГО центра — атрибут-transform, не CSS, поэтому гэтча
+// transformBox для SVG тут в принципе не может возникнуть).
+const Vehicle = ({ x, y, tilt, mass, scale = 1 }: { x: number; y: number; tilt: number; mass: 'light' | 'heavy'; scale?: number }) => {
+    const w = VEHICLE_DIMS[mass].w * scale, h = VEHICLE_DIMS[mass].h * scale
     return (
-        <g transform={`translate(${x},${TR_RAIL_Y}) rotate(${tilt})`}>
-            <image href={VEHICLE_SRC[mass]} x={-w / 2} y={-h} width={w} height={h} preserveAspectRatio="xMidYMax meet" />
+        <g transform={`translate(${x},${y}) rotate(${tilt})`}>
+            <image href={VEHICLE_SRC[mass]} x={-w / 2} y={-h / 2} width={w} height={h} preserveAspectRatio="xMidYMid meet" />
         </g>
     )
 }
@@ -593,12 +619,26 @@ const TrainCylinderView = ({ targetLen, actualLen, mass, svgRef, onDown, draggin
     const xActual = TR_X0 + actualLen
     const gap = xTarget - xActual
     const showGap = Math.abs(gap) > 8
-    // Наклон транспорта — «откидывается» против направления рывка
-    // (инерция); чуть слабее, чем у нарисованного вагона — на реальной
-    // фотографии сильный поворот смотрится неестественно.
+    const targetDeg = angleOf(targetLen)
+    const actualDeg = angleOf(actualLen)
+    // Стрелка — цвет Φ (не по массе транспорта!): раскраска по массе
+    // конфликтовала с OWN_COLOR у Гелика (тот же raspberry, что и B инд)
+    // — стрелка и дуга B инд сливались в один цвет и переставали
+    // различаться на глаз. Фиолетовый однозначно свободен от коллизий
+    // с любым другим цветом этой сцены и физически точен — стрелка это
+    // и есть Φ, просто нарисованная по кругу.
+    const needleColor = PHI
+    const needleTip = gaugePt(actualDeg, GAUGE_R - 16)
+    const ghostTip = gaugePt(targetDeg, GAUGE_R - 16)
+    const fraction = Math.max(0, Math.min(1, (actualLen - TR_LMIN) / (TR_LMAX - TR_LMIN)))
+    // Наклон иконки транспорта — та же «откидывается против рывка»
+    // логика, что и раньше, просто теперь применена к статичной иконке
+    // (лёгкий «живой» акцент, а не имитация реального движения).
     const tilt = Math.max(-10, Math.min(10, -gap * 0.2))
-    const vehicleW = VEHICLE_DIMS[mass].w
-    const vehicleH = VEHICLE_DIMS[mass].h
+    const iconY = GAUGE_CY + 40
+    const dialArc = gaugeArc(GAUGE_DEG_MIN, GAUGE_DEG_MAX, GAUGE_R)
+    const bArc = gaugeArc(targetDeg, actualDeg, GAUGE_R - 34)
+    const bMid = gaugePt((targetDeg + actualDeg) / 2, GAUGE_R - 34)
     return (
         <svg ref={svgRef} viewBox={`0 0 ${TR_W} ${TR_H}`} className="w-full max-w-[440px] h-auto select-none" style={{ touchAction: 'none' }}>
             {/* мишень — пунктирный призрак там, где сейчас палец */}
@@ -609,19 +649,42 @@ const TrainCylinderView = ({ targetLen, actualLen, mass, svgRef, onDown, draggin
             <ellipse cx={TR_X0} cy={TR_CY} rx={TR_D} ry={TR_R} fill="none" stroke={RING_COLOR} strokeWidth={5} />
             <SvgSticker x={TR_X0 - 2} y={TR_CY + TR_R + 20} text="S" color={RING_COLOR} />
             <SvgSticker x={TR_X0 + 34} y={TR_CY - TR_R - 16} text="Φ" color={PHI} />
+            {/* короткий «привод» от цилиндра к спидометру — фиксированная точка, не мишень/актуал */}
+            <line x1={GAUGE_CX} y1={TR_CY + TR_R + 6} x2={GAUGE_CX} y2={GAUGE_CY - GAUGE_R - 14} stroke="#5C6B73" strokeWidth={3} strokeDasharray="5 5" />
+            {/* циферблат */}
+            <path d={dialArc.d} fill="none" stroke="#3A464E" strokeWidth={5} strokeLinecap="round" />
+            {GAUGE_TICKS.map((d) => {
+                const a = gaugePt(d, GAUGE_R), b = gaugePt(d, GAUGE_R - (d === 0 ? 13 : 8))
+                return <line key={d} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#9AA7B0" strokeWidth={d === 0 ? 3 : 2} strokeLinecap="round" />
+            })}
+            <text x={gaugePt(GAUGE_DEG_MIN, GAUGE_R + 20).x} y={gaugePt(GAUGE_DEG_MIN, GAUGE_R + 20).y + 5} textAnchor="middle" fontSize={18} aria-hidden>🐢</text>
+            <text x={gaugePt(GAUGE_DEG_MAX, GAUGE_R + 20).x} y={gaugePt(GAUGE_DEG_MAX, GAUGE_R + 20).y + 5} textAnchor="middle" fontSize={18} aria-hidden>💨</text>
+            {/* B инд — цветная дуга между мишенью и настоящей скоростью:
+                при разгоне (мишень впереди) указывает НАЗАД — «дуло в лицо»,
+                при торможении (мишень позади) — ВПЕРЁД — «толкает сзади».
+                Направление переключается само — тот же gap, что и раньше. */}
             {showGap && (
                 <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }}>
-                    <HArrow x1={xTarget} x2={xActual + (xTarget > xActual ? 3 : -3)} y={TR_CY + TR_R + 34} color={OWN_COLOR} width={5} />
-                    <SvgSticker x={(xTarget + xActual) / 2} y={TR_CY + TR_R + 52} text="B" sub="инд" color={OWN_COLOR} />
+                    <path d={bArc.d} fill="none" stroke={OWN_COLOR} strokeWidth={5} strokeLinecap="round" />
+                    <g transform={`translate(${bArc.end.x},${bArc.end.y}) rotate(${bArc.ang})`}>
+                        <path d="M -11 -9 L 2 0 L -11 9" fill="none" stroke={OWN_COLOR} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
+                    </g>
+                    <SvgSticker x={bMid.x} y={bMid.y - 16} text="B" sub="инд" color={OWN_COLOR} />
                 </motion.g>
             )}
-            {/* шток — от поршня (настоящего, не целевого значения) вниз к транспорту */}
-            <line x1={xActual} y1={TR_CY + TR_R + 6} x2={xActual} y2={TR_RAIL_Y - vehicleH - 8} stroke="#5C6B73" strokeWidth={3} strokeDasharray="5 5" />
-            {/* рельс + тень транспорта */}
-            <line x1={TR_X0 + TR_LMIN - 30} y1={TR_RAIL_Y + 9} x2={TR_X0 + TR_LMAX + VEHICLE_DIMS.heavy.w / 2 + 20} y2={TR_RAIL_Y + 9} stroke="#3A464E" strokeWidth={4} strokeLinecap="round" />
-            <ellipse cx={xActual} cy={TR_RAIL_Y + 5} rx={vehicleW / 2 + 6} ry={6} fill="#000" opacity={0.22} />
-            <Vehicle x={xActual} tilt={tilt} mass={mass} />
-            {/* ручка — тащим МИШЕНЬ, не сам поток */}
+            {/* мишень — пунктирная тонкая стрелка */}
+            <line x1={GAUGE_CX} y1={GAUGE_CY} x2={ghostTip.x} y2={ghostTip.y} stroke="#9AA7B0" strokeWidth={2.5} strokeDasharray="4 4" strokeLinecap="round" />
+            {/* настоящая стрелка — с задержкой, цвет по выбранному транспорту */}
+            <line x1={GAUGE_CX} y1={GAUGE_CY} x2={needleTip.x} y2={needleTip.y} stroke={needleColor} strokeWidth={5} strokeLinecap="round" />
+            <circle cx={GAUGE_CX} cy={GAUGE_CY} r={7} fill={needleColor} stroke="#fff" strokeWidth={2} />
+            {/* транспорт — статичная иконка под спидометром, с намёком на движение */}
+            {[0, 1, 2].map((i) => (
+                <line key={i} x1={GAUGE_CX - VEHICLE_DIMS[mass].w * 0.31 * 0.62 - 8} y1={iconY - 10 + i * 10}
+                    x2={GAUGE_CX - VEHICLE_DIMS[mass].w * 0.31 * 0.62 - 22} y2={iconY - 10 + i * 10}
+                    stroke="#5C6B73" strokeWidth={2} strokeLinecap="round" opacity={fraction * 0.7} />
+            ))}
+            <Vehicle x={GAUGE_CX} y={iconY} tilt={tilt} mass={mass} scale={0.62} />
+            {/* ручка — тащим МИШЕНЬ (педаль газ/тормоз), не саму скорость */}
             <g onPointerDown={onDown} style={{ cursor: dragging ? 'grabbing' : 'grab' }}>
                 {!dragging && (
                     <motion.circle cx={xTarget} cy={TR_CY} r={22} fill="none" stroke={RULE_COLOR} strokeWidth={3}
@@ -715,14 +778,14 @@ const TrainCylinderScene = ({ onSettled }: { onSettled?: () => void }) => {
     const both = tried.light && tried.heavy
     useEffect(() => { if (both && phase === 1) { const t = setTimeout(() => setPhase(2), 700); return () => clearTimeout(t) } }, [both, phase])
 
-    const hint = !tried.light ? '🚲 Велосипед уже выбран — потяни цилиндр туда-сюда'
+    const hint = !tried.light ? '🚲 Велик уже выбран — тяни цилиндр вправо (газ) или влево (тормоз)'
         : !tried.heavy ? 'Теперь переключи на 🚙 Гелик и дёрни резко'
             : ''
 
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'Приделаем к потоку ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ' транспорт 🚲🚙 — потянешь цилиндр, он поедет следом' }]}
+                parts={[{ text: 'Приделаем к потоку ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ' спидометр 🚲🚙 — тянешь цилиндр, стрелка следует за рукой' }]}
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
@@ -730,7 +793,7 @@ const TrainCylinderScene = ({ onSettled }: { onSettled?: () => void }) => {
                     <div className="w-full flex flex-col items-center gap-3" onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} style={{ touchAction: 'none' }}>
                         <TrainCylinderView targetLen={targetLen} actualLen={actualLen} mass={mass} svgRef={svgRef} onDown={onDown} dragging={dragging} />
                         <div className="flex gap-2 w-full">
-                            <MassBtn active={mass === 'light'} pulse={!tried.light} color={GGEGE_PALETTE.green.button} onClick={() => pickMass('light')}>🚲 Велосипед</MassBtn>
+                            <MassBtn active={mass === 'light'} pulse={!tried.light} color={GGEGE_PALETTE.green.button} onClick={() => pickMass('light')}>🚲 Велик</MassBtn>
                             <MassBtn active={mass === 'heavy'} pulse={tried.light && !tried.heavy} color={CURRENT_COLOR} onClick={() => pickMass('heavy')}>🚙 Гелик</MassBtn>
                         </div>
                         {hint && <p className="text-sm font-black text-center" style={{ color: RULE_COLOR }}>{hint}</p>}
@@ -740,9 +803,9 @@ const TrainCylinderScene = ({ onSettled }: { onSettled?: () => void }) => {
             {phase >= 2 && (
                 <DiagramBlock onSettled={() => setTimeout(() => setPhase(3), 1600)}>
                     <InsightCard>
-                        Вес транспорта — это <InsightWord color="#FF9AC8">индуктивность</InsightWord>.
-                        <br />🚲 Велосипед почти не отстаёт — <InsightWord>B инд</InsightWord> слабое.
-                        <br />🚙 Гелик сильно тормозит рывок — <InsightWord color="#D8BBFF">B инд</InsightWord> мощное.
+                        <InsightWord color="#FF9AC8">Индуктивность</InsightWord> — это <InsightWord color="#D8BBFF">МАССА</InsightWord>.
+                        <br />🚲 Велик лёгкий — его скорость менять <InsightWord>легко</InsightWord>.
+                        <br />🚙 Гелик тяжёлый — его тяжело разогнать/затормозить.
                     </InsightCard>
                 </DiagramBlock>
             )}
@@ -838,6 +901,51 @@ const HookScene = ({ onSettled }: { onSettled?: () => void }) => {
                     parts={[{ text: 'Но что если… нам ' }, { bold: 'захочется' }, { text: ' его нарушить? 😈' }]}
                     onSettled={onSettled}
                 />
+            )}
+        </>
+    )
+}
+
+// 1.5. «Индуктивность у человека» — та же идея, но с ДРУГОГО угла
+// (просьба пользователя, жизненная метафора). Ключевая мысль: индуктивность
+// мешает не самому потоку (человек прекрасно «живёт» и сидя, и гуляя), а
+// именно РЕЗКОЙ СМЕНЕ потока — в любую сторону. Ровно как залипание в
+// скролле: пока действие устоялось — сопротивления нет вообще, оно
+// появляется только в момент резкого «выключить»/«включить».
+const StuckScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0)
+    return (
+        <>
+            <TypedLineWithParts
+                parts={[{ text: 'А теперь та же ' }, { sticker: 'индуктивность', color: OWN_COLOR }, { text: ', только у ЧЕЛОВЕКА 📱' }]}
+                onSettled={() => setPhase(1)}
+            />
+            {phase >= 1 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Ты 3 часа залип в скролле — поток идёт ровно, никто не мешает 😌' }]}
+                    onSettled={() => setPhase(2)}
+                />
+            )}
+            {phase >= 2 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Тебя РЕЗКО выдёргивают — «Хорош сидеть!» Ты сопротивляешься 😤' }]}
+                    onSettled={() => setPhase(3)}
+                />
+            )}
+            {phase >= 3 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Встал, пошёл гулять — тебя РЕЗКО тащат обратно. Ты СНОВА сопротивляешься 😤' }]}
+                    onSettled={() => setPhase(4)}
+                />
+            )}
+            {phase >= 4 && (
+                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1400)}>
+                    <InsightCard>
+                        Дело не в том, что лень <InsightWord>ДВИГАТЬСЯ</InsightWord> — ты и сидел, и шёл, оба состояния «жили» спокойно.
+                        <br />Дело в том, что лень <InsightWord color="#FF9AC8">МЕНЯТЬ</InsightWord> то, что уже идёт — в любую сторону.
+                        <br />Это и есть <InsightWord color="#D8BBFF">индуктивность</InsightWord>: сопротивление РЕЗКОЙ смене, а не самому потоку.
+                    </InsightCard>
+                </DiagramBlock>
             )}
         </>
     )
@@ -991,7 +1099,7 @@ const SpeedMagnetScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-const CONCEPT_SCENES = [HookScene, TrainCylinderScene, WhoScene, SpeedMagnetScene]
+const CONCEPT_SCENES = [HookScene, TrainCylinderScene, StuckScene, WhoScene, SpeedMagnetScene]
 const INTRO_CONCEPT_STEPS = CONCEPT_SCENES.length
 
 const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
@@ -1071,6 +1179,12 @@ const CONCEPT_QUIZ: ConceptQuizItem[] = [
         renderOptions: () => ['Нет — поток не меняется', 'Да — поле же огромное'],
         correct: 0,
         feedback: 'Магнит стоит → поток постоянный → тока нет 😴',
+    },
+    {
+        renderPrompt: () => <>Ты спокойно скроллишь ленту (поток действий не меняется). Индуктивность в этот момент…</>,
+        renderOptions: () => ['мешает — сопротивление есть всегда', 'не мешает — сопротивления нет вообще'],
+        correct: 1,
+        feedback: 'Ровно как в кольце: пока поток НЕ меняется — сопротивления нет, даже если сам поток огромный.',
     },
     {
         renderPrompt: () => <>Магнит толкнули к кольцу в 2 раза <b>быстрее</b>. Ток в кольце…</>,
