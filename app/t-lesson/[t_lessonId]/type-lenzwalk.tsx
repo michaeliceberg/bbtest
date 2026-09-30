@@ -547,7 +547,11 @@ const WAGON_W = 74, WAGON_H = 44
 // оставшегося расстояния до мишени. rate ЗАВИСИТ ОТ МАССЫ вагона —
 // лёгкий вагон почти сразу оказывается там, где рука; тяжёлый заметно
 // отстаёт даже от медленных движений, не говоря про резкие рывки.
-const TR_RATE: Record<'light' | 'heavy', number> = { light: 0.16, heavy: 0.026 }
+// Тяжёлый вагон — в 1.5 раза тяжелее (просьба пользователя после первой
+// живой проверки): rate обратно пропорционален массе, поэтому темп
+// погони поделен на 1.5 (0.026 → ~0.0173) — тот же вагон отстаёт заметно
+// сильнее и дольше при том же рывке.
+const TR_RATE: Record<'light' | 'heavy', number> = { light: 0.16, heavy: 0.0173 }
 const TR_SNAP = 1.2
 // Минимальный размах рывка (в тех же единицах, что и длина цилиндра),
 // чтобы засчитать попытку «потянул этой массой» — отсекает случайные
@@ -719,12 +723,27 @@ const TrainCylinderScene = ({ onSettled }: { onSettled?: () => void }) => {
                 </DiagramBlock>
             )}
             {phase >= 2 && (
-                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1400)}>
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase(3), 1600)}>
                     <InsightCard>
                         Масса вагона — это <InsightWord color="#FF9AC8">индуктивность</InsightWord>.
                         <br />🪶 Лёгкий вагон почти не отстаёт — <InsightWord>B инд</InsightWord> слабое.
                         <br />🚂 Тяжёлый сильно тормозит рывок — <InsightWord color="#D8BBFF">B инд</InsightWord> мощное.
                     </InsightCard>
+                </DiagramBlock>
+            )}
+            {/* Закрываем крючок из HookScene: старый «закон» (поток НЕ должен
+                меняться) на самом деле неточный — исправляем его тем же
+                визуальным языком (перечёркнутая красная плашка → новая). */}
+            {phase >= 3 && (
+                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1600)}>
+                    <div className="w-full rounded-xl border-2 px-4 py-3 text-center" style={{ borderColor: REMEMBER_COLOR, backgroundColor: hexToRgba(REMEMBER_COLOR, 0.12) }}>
+                        <div className="text-sm font-bold line-through opacity-50" style={{ color: '#DC605B' }}>
+                            🔒 Поток должен НЕ МЕНЯТЬСЯ
+                        </div>
+                        <div className="mt-1 text-lg font-black" style={{ color: REMEMBER_COLOR }}>
+                            🔄 На самом деле: поток МЕНЯЕТСЯ — просто <span className="underline">лениво</span> 😴
+                        </div>
+                    </div>
                 </DiagramBlock>
             )}
         </>
