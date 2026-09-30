@@ -755,6 +755,127 @@ const TrainCylinderView = ({ targetLen, actualLen, mass, svgRef, onDown, draggin
 }
 
 // Кнопка-переключатель массы вагона (клик, не зажим — в отличие от HoldBtn).
+// ===== Метафора 2 (2026-09-30): жёлоб-кольцо, вид сверху =====
+// Скорость шарика по кругу = длина цилиндра Φ (Φ ↔ импульс m·v). Кольцо —
+// дорога без края: отпустил ручку — шарик держит новую скорость. Лёгкий
+// шарик для пинг-понга догоняет «газ» почти сразу, каменный валун — лениво
+// (тот же TR_RATE, что у велика/Гелика). У шарика: шлейф (длина = скорость),
+// вращающиеся пятна (катится, а не скользит) и стрелка B инд по касательной:
+// при разгоне смотрит назад, при торможении — вперёд.
+// Прежняя метафора (велик/Гелик + спидометр) сохранена — TrainCylinderView,
+// переключатель ELASTIC_METAPHOR ниже.
+const ELASTIC_METAPHOR = 'groove' as 'vehicle' | 'groove'
+const GR_CX = 240, GR_CY = 282, GR_R = 118, GR_W = 42
+const GR_BALL_R: Record<'light' | 'heavy', number> = { light: 11, heavy: 18 }
+const GR_LAP_TICKS = 140 // полный круг на максимальной скорости ≈ 2.2 с (тик 16 мс)
+const grPt = (a: number, r: number) => ({ x: GR_CX + r * Math.cos(a), y: GR_CY + r * Math.sin(a) })
+// дуга по часовой (угол растёт) от a1 до a2 на радиусе r
+const grArc = (a1: number, a2: number, r: number) => {
+    const p1 = grPt(a1, r), p2 = grPt(a2, r)
+    const large = a2 - a1 > Math.PI ? 1 : 0
+    return `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} A ${r} ${r} 0 ${large} 1 ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`
+}
+
+const GrooveView = ({ targetLen, actualLen, mass, svgRef, onDown, dragging }: {
+    targetLen: number; actualLen: number; mass: 'light' | 'heavy'
+    svgRef: React.RefObject<SVGSVGElement>; onDown: (e: React.PointerEvent) => void; dragging: boolean
+}) => {
+    const PHI = GGEGE_PALETTE.purple.button
+    const xTarget = TR_X0 + targetLen
+    const xActual = TR_X0 + actualLen
+    const speed = Math.max(0, Math.min(1, (actualLen - TR_LMIN) / (TR_LMAX - TR_LMIN)))
+    const gap = targetLen - actualLen
+    // угол шарика копится своим интервалом — катится и при постоянной скорости
+    const speedRef = useRef(speed)
+    speedRef.current = speed
+    const [ang, setAng] = useState(-Math.PI / 2)
+    useEffect(() => {
+        const id = setInterval(() => {
+            const v = speedRef.current
+            if (v > 0.005) setAng((a) => a + (v * 2 * Math.PI) / GR_LAP_TICKS)
+        }, 16)
+        return () => clearInterval(id)
+    }, [])
+    const br = GR_BALL_R[mass]
+    const heavy = mass === 'heavy'
+    // валун чуть «гуляет» поперёк жёлоба — тяжёлый, трётся о стенки
+    const wobble = heavy ? Math.sin(ang * 23) * speed * 1.5 : 0
+    const ball = grPt(ang, GR_R + wobble)
+    // «катится»: поворот пятен = пройденный путь / радиус шарика
+    const spinDeg = ((ang * GR_R) / br) * (180 / Math.PI)
+    const trailLen = speed * 1.1 // рад
+    // касательная по ходу движения (по часовой): (-sin, cos)
+    const fx = -Math.sin(ang), fy = Math.cos(ang)
+    const showB = Math.abs(gap) > 8
+    const bLen = Math.min(78, Math.abs(gap) * 0.45 + 18)
+    const bDir = gap > 0 ? -1 : 1 // разгон → назад, торможение → вперёд
+    const bBase = grPt(ang, GR_R + GR_W / 2 + 16)
+    const bTip = { x: bBase.x + fx * bDir * bLen, y: bBase.y + fy * bDir * bLen }
+    const bAng = (Math.atan2(fy * bDir, fx * bDir) * 180) / Math.PI
+    const ballFill = heavy ? '#7E868B' : '#F2F7FB'
+    const trailColor = heavy ? '#9AA7B0' : '#F2F7FB'
+    return (
+        <svg ref={svgRef} viewBox={`0 0 ${TR_W} ${TR_H}`} className="w-full max-w-[440px] h-auto select-none" style={{ touchAction: 'none' }}>
+            {/* цилиндр потока — «газ»: его длина = скорость, к которой стремится шарик */}
+            <FluxCylinder cx={TR_X0 + targetLen / 2} cy={TR_CY} radius={TR_R} depth={TR_D} length={targetLen} orient="h" color="#9AA7B0" fill={0} dashed />
+            <FluxCylinder cx={TR_X0 + actualLen / 2} cy={TR_CY} radius={TR_R} depth={TR_D} length={actualLen} orient="h" color={PHI} />
+            <FieldArrow x1={TR_X0 + 4} y1={TR_CY} x2={xActual - 6} y2={TR_CY} color={FIELD_COLOR} width={5} head={8} />
+            <ellipse cx={TR_X0} cy={TR_CY} rx={TR_D} ry={TR_R} fill="none" stroke={RING_COLOR} strokeWidth={5} />
+            <SvgSticker x={TR_X0 - 2} y={TR_CY + TR_R + 20} text="S" color={RING_COLOR} />
+            <SvgSticker x={TR_X0 + 34} y={TR_CY - TR_R - 16} text="Φ" color={PHI} />
+            {/* жёлоб — вид сверху */}
+            <circle cx={GR_CX} cy={GR_CY} r={GR_R} fill="none" stroke="#3A464E" strokeWidth={GR_W + 6} />
+            <circle cx={GR_CX} cy={GR_CY} r={GR_R} fill="none" stroke="#1B262B" strokeWidth={GR_W} />
+            <circle cx={GR_CX} cy={GR_CY} r={GR_R} fill="none" stroke="#26343A" strokeWidth={2} strokeDasharray="3 10" />
+            {/* шлейф — длина = скорость; три слоя, ярче у самого шарика */}
+            {speed > 0.02 && [1, 0.6, 0.3].map((k, i) => (
+                <path key={i} d={grArc(ang - trailLen * k, ang, GR_R)} fill="none" stroke={trailColor}
+                    strokeWidth={br * 1.3} strokeLinecap="round" opacity={0.1 + i * 0.08} />
+            ))}
+            {/* шарик / валун */}
+            <g transform={`translate(${ball.x.toFixed(1)},${ball.y.toFixed(1)})`}>
+                <circle r={br + 2} fill="#000" opacity={0.25} transform="translate(2,3)" />
+                <circle r={br} fill={ballFill} stroke={heavy ? '#4E5559' : '#C9D3D9'} strokeWidth={2} />
+                <g transform={`rotate(${spinDeg.toFixed(1)})`}>
+                    {heavy ? (
+                        <>
+                            <path d={`M ${-br * 0.6} ${-br * 0.2} L ${-br * 0.1} ${br * 0.15} L ${br * 0.3} ${-br * 0.35}`} fill="none" stroke="#4E5559" strokeWidth={2} strokeLinecap="round" />
+                            <circle cx={br * 0.35} cy={br * 0.45} r={br * 0.18} fill="#5F676B" />
+                            <circle cx={-br * 0.45} cy={br * 0.5} r={br * 0.12} fill="#5F676B" />
+                        </>
+                    ) : (
+                        <>
+                            <circle cx={br * 0.45} cy={0} r={br * 0.22} fill={GGEGE_PALETTE.orange.button} />
+                            <circle cx={-br * 0.45} cy={0} r={br * 0.22} fill={GGEGE_PALETTE.orange.button} opacity={0.6} />
+                        </>
+                    )}
+                </g>
+            </g>
+            {/* B инд — по касательной у шарика, снаружи жёлоба */}
+            {showB && (
+                <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }}>
+                    <line x1={bBase.x} y1={bBase.y} x2={bTip.x} y2={bTip.y} stroke={OWN_COLOR} strokeWidth={5} strokeLinecap="round" />
+                    <g transform={`translate(${bTip.x},${bTip.y}) rotate(${bAng})`}>
+                        <path d="M -11 -9 L 2 0 L -11 9" fill="none" stroke={OWN_COLOR} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
+                    </g>
+                    <SvgSticker x={(bBase.x + bTip.x) / 2 + (bBase.x - GR_CX) * 0.14} y={(bBase.y + bTip.y) / 2 + (bBase.y - GR_CY) * 0.14} text="B" color={OWN_COLOR} />
+                </motion.g>
+            )}
+            {/* ручка — тащим МИШЕНЬ (газ/тормоз) */}
+            <g onPointerDown={onDown} style={{ cursor: dragging ? 'grabbing' : 'grab' }}>
+                {!dragging && (
+                    <motion.circle cx={xTarget} cy={TR_CY} r={22} fill="none" stroke={RULE_COLOR} strokeWidth={3}
+                        animate={{ scale: [1, 1.35, 1], opacity: [0.8, 0, 0.8] }} transition={{ duration: 1.3, repeat: Infinity }}
+                        style={{ transformBox: 'fill-box', transformOrigin: 'center' }} />
+                )}
+                <circle cx={xTarget} cy={TR_CY} r={20} fill={RULE_COLOR} stroke="#fff" strokeWidth={3} />
+                <text x={xTarget} y={TR_CY + 6} textAnchor="middle" fontSize={16} fontWeight={900} fill="#fff">✋</text>
+                <circle cx={xTarget} cy={TR_CY} r={34} fill="transparent" />
+            </g>
+        </svg>
+    )
+}
+
 const MassBtn = ({ active, pulse, color, onClick, children }: {
     active: boolean; pulse?: boolean; color: string; onClick: () => void; children: React.ReactNode
 }) => (
@@ -833,23 +954,26 @@ const TrainCylinderScene = ({ onSettled }: { onSettled?: () => void }) => {
     const both = tried.light && tried.heavy
     useEffect(() => { if (both && phase === 1) { const t = setTimeout(() => setPhase(2), 700); return () => clearTimeout(t) } }, [both, phase])
 
-    const hint = !tried.light ? '🚲 Велик уже выбран — тяни цилиндр вправо (газ) или влево (тормоз)'
-        : !tried.heavy ? 'Теперь переключи на 🚙 Гелик и дёрни резко'
+    const G = ELASTIC_METAPHOR === 'groove'
+    const hint = !tried.light ? (G ? '⚪ Шарик уже выбран — тяни цилиндр вправо (газ) или влево (тормоз)' : '🚲 Велик уже выбран — тяни цилиндр вправо (газ) или влево (тормоз)')
+        : !tried.heavy ? (G ? 'Теперь переключи на 🪨 Валун и дёрни резко' : 'Теперь переключи на 🚙 Гелик и дёрни резко')
             : ''
 
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'Приделаем к потоку ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ' спидометр 🚲🚙 — тянешь цилиндр, стрелка следует за рукой' }]}
+                parts={[{ text: 'Приделаем к потоку ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: G ? ' жёлоб: чем длиннее цилиндр — тем быстрее катится шарик по кругу' : ' спидометр 🚲🚙 — тянешь цилиндр, стрелка следует за рукой' }]}
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col items-center gap-3" onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} style={{ touchAction: 'none' }}>
-                        <TrainCylinderView targetLen={targetLen} actualLen={actualLen} mass={mass} svgRef={svgRef} onDown={onDown} dragging={dragging} />
+                        {G
+                            ? <GrooveView targetLen={targetLen} actualLen={actualLen} mass={mass} svgRef={svgRef} onDown={onDown} dragging={dragging} />
+                            : <TrainCylinderView targetLen={targetLen} actualLen={actualLen} mass={mass} svgRef={svgRef} onDown={onDown} dragging={dragging} />}
                         <div className="flex gap-2 w-full">
-                            <MassBtn active={mass === 'light'} pulse={!tried.light} color={GGEGE_PALETTE.green.button} onClick={() => pickMass('light')}>🚲 Велик</MassBtn>
-                            <MassBtn active={mass === 'heavy'} pulse={tried.light && !tried.heavy} color={CURRENT_COLOR} onClick={() => pickMass('heavy')}>🚙 Гелик</MassBtn>
+                            <MassBtn active={mass === 'light'} pulse={!tried.light} color={GGEGE_PALETTE.green.button} onClick={() => pickMass('light')}>{G ? '⚪ Шарик' : '🚲 Велик'}</MassBtn>
+                            <MassBtn active={mass === 'heavy'} pulse={tried.light && !tried.heavy} color={CURRENT_COLOR} onClick={() => pickMass('heavy')}>{G ? '🪨 Валун' : '🚙 Гелик'}</MassBtn>
                         </div>
                         {hint && <p className="text-sm font-black text-center" style={{ color: RULE_COLOR }}>{hint}</p>}
                     </div>
@@ -859,8 +983,8 @@ const TrainCylinderScene = ({ onSettled }: { onSettled?: () => void }) => {
                 <DiagramBlock onSettled={() => setTimeout(() => setPhase(3), 1600)}>
                     <InsightCard>
                         <InsightWord color="#FF9AC8">Индуктивность</InsightWord> — это <InsightWord color="#D8BBFF">МАССА</InsightWord>.
-                        <br />🚲 Велик лёгкий — его скорость менять <InsightWord>легко</InsightWord>.
-                        <br />🚙 Гелик тяжёлый — его тяжело разогнать/затормозить.
+                        <br />{G ? '⚪ Лёгкий шарик' : '🚲 Велик лёгкий'} — его скорость менять <InsightWord>легко</InsightWord>.
+                        <br />{G ? '🪨 Тяжёлый валун' : '🚙 Гелик тяжёлый'} — его тяжело разогнать/затормозить.
                     </InsightCard>
                 </DiagramBlock>
             )}
