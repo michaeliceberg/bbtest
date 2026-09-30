@@ -593,6 +593,18 @@ const VEHICLE_DIMS: Record<'light' | 'heavy', { w: number; h: number }> = { ligh
 // 2026-09-30 (2): валун ещё в 2 раза инертнее: 0.0115 → 0.00575.
 const TR_RATE: Record<'light' | 'heavy', number> = { light: 0.16, heavy: 0.00575 }
 const TR_SNAP = 1.2
+// Шаг погони «настоящее → мишень». Шарик — обычное экспоненциальное
+// приближение. Валун — с «выраженным затуханием» (просьба пользователя:
+// экспонента с маленьким темпом выглядела почти линейной): шаг ∝ diff·√|diff|,
+// т.е. при большом рывке валун заметно двигается сразу, а дальше всё сильнее
+// вязнет и долго-долго доползает до цели. Перелёта нет (знак diff не меняется).
+const TR_HEAVY_K = 0.00835, TR_HEAVY_D = 50, TR_HEAVY_SNAP = 4
+const chaseStep = (actual: number, target: number, mass: 'light' | 'heavy') => {
+    const diff = target - actual
+    if (mass === 'light') return Math.abs(diff) < TR_SNAP ? target : actual + diff * TR_RATE.light
+    if (Math.abs(diff) < TR_HEAVY_SNAP) return target
+    return actual + diff * TR_HEAVY_K * Math.sqrt(Math.abs(diff) / TR_HEAVY_D)
+}
 // Минимальный размах рывка (в тех же единицах, что и длина цилиндра),
 // чтобы засчитать попытку «потянул этим транспортом» — отсекает
 // случайные микро-клики по ручке. Трасса выросла почти вдвое — порог
@@ -766,7 +778,7 @@ const TrainCylinderView = ({ targetLen, actualLen, mass, svgRef, onDown, draggin
 // Прежняя метафора (велик/Гелик + спидометр) сохранена — TrainCylinderView,
 // переключатель ELASTIC_METAPHOR ниже.
 const ELASTIC_METAPHOR = 'groove' as 'vehicle' | 'groove'
-const GR_CX = 240, GR_CY = 282, GR_R = 118, GR_W = 42
+const GR_CX = 240, GR_CY = 322, GR_R = 118, GR_W = 42, GR_H = 470
 const GR_BALL_R: Record<'light' | 'heavy', number> = { light: 11, heavy: 18 }
 const GR_LAP_TICKS = 140 // полный круг на максимальной скорости ≈ 2.2 с (тик 16 мс)
 const grPt = (a: number, r: number) => ({ x: GR_CX + r * Math.cos(a), y: GR_CY + r * Math.sin(a) })
@@ -777,9 +789,11 @@ const grArc = (a1: number, a2: number, r: number) => {
     return `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} A ${r} ${r} 0 ${large} 1 ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`
 }
 
-const GrooveView = ({ targetLen, actualLen, mass, svgRef, onDown, dragging }: {
+type GrooveZone = { center: number; half: number; inside: boolean }
+const GrooveView = ({ targetLen, actualLen, mass, svgRef, onDown, dragging, angRef, zone, startAng = -Math.PI / 2 }: {
     targetLen: number; actualLen: number; mass: 'light' | 'heavy'
     svgRef: React.RefObject<SVGSVGElement>; onDown: (e: React.PointerEvent) => void; dragging: boolean
+    angRef?: React.MutableRefObject<number>; zone?: GrooveZone; startAng?: number
 }) => {
     const PHI = GGEGE_PALETTE.purple.button
     const xTarget = TR_X0 + targetLen
@@ -789,14 +803,19 @@ const GrooveView = ({ targetLen, actualLen, mass, svgRef, onDown, dragging }: {
     // угол шарика копится своим интервалом — катится и при постоянной скорости
     const speedRef = useRef(speed)
     speedRef.current = speed
-    const [ang, setAng] = useState(-Math.PI / 2)
+    const [ang, setAng] = useState(startAng)
+    const angLocal = useRef(startAng)
     useEffect(() => {
         const id = setInterval(() => {
             const v = speedRef.current
-            if (v > 0.005) setAng((a) => a + (v * 2 * Math.PI) / GR_LAP_TICKS)
+            if (v > 0.005) {
+                angLocal.current += (v * 2 * Math.PI) / GR_LAP_TICKS
+                if (angRef) angRef.current = angLocal.current
+                setAng(angLocal.current)
+            }
         }, 16)
         return () => clearInterval(id)
-    }, [])
+    }, [angRef])
     const br = GR_BALL_R[mass]
     const heavy = mass === 'heavy'
     // валун чуть «гуляет» поперёк жёлоба — тяжёлый, трётся о стенки
@@ -816,7 +835,7 @@ const GrooveView = ({ targetLen, actualLen, mass, svgRef, onDown, dragging }: {
     const ballFill = heavy ? '#7E868B' : '#F2F7FB'
     const trailColor = heavy ? '#9AA7B0' : '#F2F7FB'
     return (
-        <svg ref={svgRef} viewBox={`0 0 ${TR_W} ${TR_H}`} className="w-full max-w-[440px] h-auto select-none" style={{ touchAction: 'none' }}>
+        <svg ref={svgRef} viewBox={`0 0 ${TR_W} ${GR_H}`} className="w-full max-w-[440px] h-auto select-none" style={{ touchAction: 'none' }}>
             {/* цилиндр потока — «газ»: его длина = скорость, к которой стремится шарик */}
             <FluxCylinder cx={TR_X0 + targetLen / 2} cy={TR_CY} radius={TR_R} depth={TR_D} length={targetLen} orient="h" color="#9AA7B0" fill={0} dashed />
             <FluxCylinder cx={TR_X0 + actualLen / 2} cy={TR_CY} radius={TR_R} depth={TR_D} length={actualLen} orient="h" color={PHI} />
@@ -824,10 +843,22 @@ const GrooveView = ({ targetLen, actualLen, mass, svgRef, onDown, dragging }: {
             <ellipse cx={TR_X0} cy={TR_CY} rx={TR_D} ry={TR_R} fill="none" stroke={RING_COLOR} strokeWidth={5} />
             <SvgSticker x={TR_X0 - 2} y={TR_CY + TR_R + 20} text="S" color={RING_COLOR} />
             <SvgSticker x={TR_X0 + 34} y={TR_CY - TR_R - 16} text="Φ" color={PHI} />
+            {/* B инд у цилиндра — от «хочу» (призрак) к настоящему потоку: тянет поток назад
+                при разгоне и вперёд при торможении — мешает ему меняться */}
+            {Math.abs(gap) > 8 && (
+                <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }}>
+                    <HArrow x1={xTarget} x2={xActual + (xTarget > xActual ? 3 : -3)} y={TR_CY + TR_R + 26} color={OWN_COLOR} width={5} />
+                    <SvgSticker x={(xTarget + xActual) / 2} y={TR_CY + TR_R + 46} text="B" sub="инд" color={OWN_COLOR} />
+                </motion.g>
+            )}
             {/* жёлоб — вид сверху */}
             <circle cx={GR_CX} cy={GR_CY} r={GR_R} fill="none" stroke="#3A464E" strokeWidth={GR_W + 6} />
             <circle cx={GR_CX} cy={GR_CY} r={GR_R} fill="none" stroke="#1B262B" strokeWidth={GR_W} />
             <circle cx={GR_CX} cy={GR_CY} r={GR_R} fill="none" stroke="#26343A" strokeWidth={2} strokeDasharray="3 10" />
+            {zone && (
+                <path d={grArc(zone.center - zone.half, zone.center + zone.half, GR_R)} fill="none"
+                    stroke={zone.inside ? GGEGE_PALETTE.green.button : RULE_COLOR} strokeWidth={GR_W - 4} opacity={0.35} />
+            )}
             {/* шлейф — длина = скорость; три слоя, ярче у самого шарика */}
             {speed > 0.02 && [1, 0.6, 0.3].map((k, i) => (
                 <path key={i} d={grArc(ang - trailLen * k, ang, GR_R)} fill="none" stroke={trailColor}
@@ -911,12 +942,8 @@ const TrainCylinderScene = ({ onSettled }: { onSettled?: () => void }) => {
     // TR_SNAP — просто ничего не делаем (без лишних setState).
     useEffect(() => {
         const timer = setInterval(() => {
-            const diff = targetRef.current - actualRef.current
-            if (Math.abs(diff) < TR_SNAP) {
-                if (actualRef.current !== targetRef.current) { actualRef.current = targetRef.current; setActualLen(actualRef.current) }
-                return
-            }
-            actualRef.current += diff * TR_RATE[massRef.current]
+            if (actualRef.current === targetRef.current) return
+            actualRef.current = chaseStep(actualRef.current, targetRef.current, massRef.current)
             setActualLen(actualRef.current)
         }, 16)
         return () => clearInterval(timer)
@@ -1279,7 +1306,283 @@ const SpeedMagnetScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-const CONCEPT_SCENES = [HookScene, TrainCylinderScene, StuckScene, WhoScene, SpeedMagnetScene]
+// ===== Игры на жёлобе (2026-09-30) =====
+// Общая ручка цилиндра Φ + погоня настоящего потока за «газом».
+const useFluxHandle = (mass: 'light' | 'heavy', initial = TR_L0) => {
+    const [targetLen, setTargetLen] = useState(initial)
+    const [actualLen, setActualLen] = useState(initial)
+    const [dragging, setDragging] = useState(false)
+    const svgRef = useRef<SVGSVGElement>(null)
+    const targetRef = useRef(initial)
+    const actualRef = useRef(initial)
+    const massRef = useRef(mass)
+    massRef.current = mass
+    useEffect(() => {
+        const timer = setInterval(() => {
+            if (actualRef.current === targetRef.current) return
+            actualRef.current = chaseStep(actualRef.current, targetRef.current, massRef.current)
+            setActualLen(actualRef.current)
+        }, 16)
+        return () => clearInterval(timer)
+    }, [])
+    const reset = (len: number) => {
+        targetRef.current = len; actualRef.current = len
+        setTargetLen(len); setActualLen(len)
+    }
+    const onDown = (e: React.PointerEvent) => {
+        e.preventDefault()
+        svgRef.current?.setPointerCapture?.(e.pointerId)
+        setDragging(true)
+    }
+    const onMove = (e: React.PointerEvent) => {
+        if (!dragging) return
+        const svg = svgRef.current, ctm = svg?.getScreenCTM()
+        if (!svg || !ctm) return
+        const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
+        const x = pt.matrixTransform(ctm.inverse()).x
+        const raw = Math.max(TR_LMIN, Math.min(TR_LMAX, x - TR_X0))
+        targetRef.current = raw; setTargetLen(raw)
+    }
+    const onUp = () => setDragging(false)
+    return { targetLen, actualLen, dragging, svgRef, onDown, onMove, onUp, reset, actualRef }
+}
+const lenToSpeed = (len: number) => Math.max(0, Math.min(1, (len - TR_LMIN) / (TR_LMAX - TR_LMIN)))
+const speedToLen = (v: number) => TR_LMIN + v * (TR_LMAX - TR_LMIN)
+
+// Мини-игра «Удержи в зоне»: по жёлобу едет подсвеченный сектор, его скорость
+// плавно меняется. Ручкой Φ держи шарик внутри 5 секунд. С шариком легко, с
+// валуном — надо газовать и тормозить ЗАРАНЕЕ.
+const ZONE_GOAL_TICKS = 5000 / 16
+const ZONE_HALF: Record<'light' | 'heavy', number> = { light: 0.42, heavy: 0.55 }
+// Скорость зоны меняется РЫВКАМИ каждые 3.5 с (за 0.5 с). Шарик успевает сразу,
+// валун — только если газовать/тормозить с запасом (проверено симуляцией:
+// «повторяй скорость зоны» на валуне не проходит, «перегазуй» — за ~10 с).
+const ZONE_SEQ = [0.35, 0.8, 0.3, 0.9, 0.25, 0.75, 0.4, 0.85]
+const ZONE_SEG = 3.5, ZONE_RAMP = 0.5
+const zoneSpeedAt = (t: number) => {
+    const i = Math.floor(t / ZONE_SEG), f = t - i * ZONE_SEG
+    const cur = ZONE_SEQ[i % ZONE_SEQ.length]
+    if (i === 0 || f >= ZONE_RAMP) return cur
+    const prev = ZONE_SEQ[(i - 1) % ZONE_SEQ.length]
+    return prev + (cur - prev) * (f / ZONE_RAMP)
+}
+const ZoneRound = ({ mass, onWin }: { mass: 'light' | 'heavy'; onWin: () => void }) => {
+    const V0 = 0.35
+    const h = useFluxHandle(mass, speedToLen(V0))
+    const angRef = useRef(-Math.PI / 2)
+    const zoneRef = useRef(-Math.PI / 2)
+    const tRef = useRef(0)
+    const progRef = useRef(0)
+    const wonRef = useRef(false)
+    const [zone, setZone] = useState<GrooveZone>({ center: -Math.PI / 2, half: ZONE_HALF[mass], inside: true })
+    const [prog, setProg] = useState(0)
+    const [giveUp, setGiveUp] = useState(false)
+    const segRef = useRef(0)
+    const [shout, setShout] = useState<string | null>(null)
+    useEffect(() => {
+        const id = setInterval(() => {
+            tRef.current += 1
+            const t = tRef.current / 62.5 // секунды
+            const v = zoneSpeedAt(t)
+            const seg = Math.floor(t / ZONE_SEG)
+            if (seg !== segRef.current) {
+                const up = ZONE_SEQ[seg % ZONE_SEQ.length] > ZONE_SEQ[(seg - 1 + ZONE_SEQ.length) % ZONE_SEQ.length]
+                segRef.current = seg
+                setShout(`${seg}|${up ? '⚡ Зона ускорилась!' : '🐌 Зона тормозит!'}`)
+            }
+            zoneRef.current += (v * 2 * Math.PI) / GR_LAP_TICKS
+            let d = angRef.current - zoneRef.current
+            d = Math.atan2(Math.sin(d), Math.cos(d))
+            const inside = Math.abs(d) <= ZONE_HALF[mass]
+            if (!wonRef.current) {
+                progRef.current = inside ? progRef.current + 1 : Math.max(0, progRef.current - 0.5)
+                if (progRef.current >= ZONE_GOAL_TICKS) { wonRef.current = true; setTimeout(onWin, 600) }
+            }
+            setZone({ center: zoneRef.current, half: ZONE_HALF[mass], inside })
+            setProg(Math.min(1, progRef.current / ZONE_GOAL_TICKS))
+        }, 16)
+        const g = setTimeout(() => setGiveUp(true), 45000)
+        return () => { clearInterval(id); clearTimeout(g) }
+    }, [mass, onWin])
+    const won = prog >= 1
+    return (
+        <div className="w-full flex flex-col items-center gap-3" onPointerMove={h.onMove} onPointerUp={h.onUp} onPointerCancel={h.onUp} style={{ touchAction: 'none' }}>
+            <GrooveView targetLen={h.targetLen} actualLen={h.actualLen} mass={mass} svgRef={h.svgRef} onDown={h.onDown} dragging={h.dragging} angRef={angRef} zone={zone} />
+            <div className="w-full max-w-[360px]">
+                <div className="flex justify-between text-sm font-black mb-1">
+                    <span style={{ color: zone.inside ? GGEGE_PALETTE.green.button : '#9AA7B0' }}>{won ? '🏆 Зачёт!' : zone.inside ? '✅ В зоне' : '⚠️ Вне зоны'}</span>
+                    {shout && !won && <motion.span key={shout} initial={{ scale: 1.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-[#F2C35B]">{shout.split('|')[1]}</motion.span>}
+                    <span className="text-[#9AA7B0]">{Math.round(prog * 5 * 10) / 10} / 5 с</span>
+                </div>
+                <div className="h-4 w-full rounded-full bg-[#26343A] overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${prog * 100}%`, backgroundColor: GGEGE_PALETTE.green.button, transition: 'width 80ms linear' }} />
+                </div>
+            </div>
+            {giveUp && !won && <ReplyBtn color="#5C6B73" onClick={onWin}>Сдаюсь 🏳️</ReplyBtn>}
+        </div>
+    )
+}
+const ZoneGameScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0) // 0 интро · 1 шарик · 2 текст валун · 3 валун · 4 вывод
+    const winLight = useRef(() => setPhase((p) => Math.max(p, 2))).current
+    const winHeavy = useRef(() => setPhase((p) => Math.max(p, 4))).current
+    return (
+        <>
+            <TypedLineWithParts
+                parts={[{ text: 'Игра: держи ⚪ шарик в ' }, { sticker: 'зелёной зоне', color: GGEGE_PALETTE.green.button }, { text: ' 5 секунд. Зона то ускоряется, то тормозит 😏' }]}
+                onSettled={() => setPhase((p) => Math.max(p, 1))}
+            />
+            {phase >= 1 && phase < 3 && (
+                <DiagramBlock><ZoneRound mass="light" onWin={winLight} /></DiagramBlock>
+            )}
+            {phase >= 2 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Легко? А теперь то же самое с 🪨 ' }, { bold: 'ВАЛУНОМ' }, { text: ' 😈' }]}
+                    onSettled={() => setPhase((p) => Math.max(p, 3))}
+                />
+            )}
+            {phase >= 3 && phase < 4 && (
+                <DiagramBlock><ZoneRound mass="heavy" onWin={winHeavy} /></DiagramBlock>
+            )}
+            {phase >= 4 && (
+                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1200)}>
+                    <InsightCard>
+                        С валуном приходится газовать и тормозить <InsightWord>ЗАРАНЕЕ</InsightWord> 🧠
+                        <br />Большая <InsightWord color="#FF9AC8">индуктивность</InsightWord> не даёт потоку меняться резко.
+                    </InsightCard>
+                </DiagramBlock>
+            )}
+        </>
+    )
+}
+
+// «Кто раньше встанет?»: две дорожки — внутри ⚪ шарик, снаружи 🪨 валун.
+// «Разогнать» → оба к максимуму; «Стоп!» → оба к нулю. Шарик встаёт сразу,
+// валун ещё долго катится со стрелкой B вперёд.
+const RACE_R: Record<'light' | 'heavy', number> = { light: 70, heavy: 132 }
+const RACE_W = 30
+const RACE_CY = 175, RACE_H = 350
+const RaceView = ({ lens, targets }: { lens: Record<'light' | 'heavy', number>; targets: Record<'light' | 'heavy', number> }) => {
+    const angs = useRef({ light: -Math.PI / 2, heavy: -Math.PI / 2 })
+    const lensRef = useRef(lens)
+    lensRef.current = lens
+    const [, force] = useState(0)
+    useEffect(() => {
+        const id = setInterval(() => {
+            let moved = false
+            for (const m of ['light', 'heavy'] as const) {
+                const v = lenToSpeed(lensRef.current[m])
+                // одинаковая ЛИНЕЙНАЯ скорость на разных радиусах
+                if (v > 0.003) { angs.current[m] += ((v * 2 * Math.PI) / GR_LAP_TICKS) * (GR_R / RACE_R[m]); moved = true }
+            }
+            if (moved) force((x) => x + 1)
+        }, 16)
+        return () => clearInterval(id)
+    }, [])
+    const pt = (a: number, r: number) => ({ x: GR_CX + r * Math.cos(a), y: RACE_CY + r * Math.sin(a) })
+    return (
+        <svg viewBox={`0 0 ${TR_W} ${RACE_H}`} className="w-full max-w-[400px] h-auto select-none">
+            {(['light', 'heavy'] as const).map((m) => (
+                <g key={m}>
+                    <circle cx={GR_CX} cy={RACE_CY} r={RACE_R[m]} fill="none" stroke="#3A464E" strokeWidth={RACE_W + 6} />
+                    <circle cx={GR_CX} cy={RACE_CY} r={RACE_R[m]} fill="none" stroke="#1B262B" strokeWidth={RACE_W} />
+                </g>
+            ))}
+            {(['light', 'heavy'] as const).map((m) => {
+                const a = angs.current[m], r = RACE_R[m], br = m === 'heavy' ? 14 : 9
+                const v = lenToSpeed(lens[m])
+                const b = pt(a, r)
+                const gap = targets[m] - lens[m]
+                const fx = -Math.sin(a), fy = Math.cos(a)
+                const dir = gap > 0 ? -1 : 1
+                const L = Math.min(60, Math.abs(gap) * 0.3 + 14)
+                const base = pt(a, r + (m === 'heavy' ? RACE_W / 2 + 14 : -RACE_W / 2 - 14))
+                const tip = { x: base.x + fx * dir * L, y: base.y + fy * dir * L }
+                const ha = (Math.atan2(fy * dir, fx * dir) * 180) / Math.PI
+                const trail = v * 1.1 * (GR_R / r)
+                const p1 = pt(a - trail, r)
+                return (
+                    <g key={m}>
+                        {v > 0.02 && <path d={`M ${p1.x} ${p1.y} A ${r} ${r} 0 ${trail > Math.PI ? 1 : 0} 1 ${b.x} ${b.y}`} fill="none" stroke={m === 'heavy' ? '#9AA7B0' : '#F2F7FB'} strokeWidth={br * 1.3} strokeLinecap="round" opacity={0.2} />}
+                        <circle cx={b.x} cy={b.y} r={br} fill={m === 'heavy' ? '#7E868B' : '#F2F7FB'} stroke={m === 'heavy' ? '#4E5559' : '#C9D3D9'} strokeWidth={2} />
+                        {Math.abs(gap) > 10 && (
+                            <g>
+                                <line x1={base.x} y1={base.y} x2={tip.x} y2={tip.y} stroke={OWN_COLOR} strokeWidth={4} strokeLinecap="round" />
+                                <g transform={`translate(${tip.x},${tip.y}) rotate(${ha})`}>
+                                    <path d="M -9 -7 L 2 0 L -9 7" fill="none" stroke={OWN_COLOR} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
+                                </g>
+                            </g>
+                        )}
+                    </g>
+                )
+            })}
+            <text x={GR_CX} y={RACE_CY + 6} textAnchor="middle" fontSize={15} fontWeight={900} fill="#9AA7B0">⚪ внутри · 🪨 снаружи</text>
+        </svg>
+    )
+}
+const StopRaceScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0) // 0 интро · 1 кнопка «разогнать» · 2 разгон · 3 «стоп» · 4 тормозят · 5 оба встали
+    const L0 = TR_LMIN
+    const [targets, setTargets] = useState({ light: L0, heavy: L0 })
+    const [lens, setLens] = useState({ light: L0, heavy: L0 })
+    const lensRef = useRef(lens), tgtRef = useRef(targets)
+    const stopAt = useRef(0)
+    const [stops, setStops] = useState<{ light: number | null; heavy: number | null }>({ light: null, heavy: null })
+    useEffect(() => {
+        const id = setInterval(() => {
+            const n = { light: chaseStep(lensRef.current.light, tgtRef.current.light, 'light'), heavy: chaseStep(lensRef.current.heavy, tgtRef.current.heavy, 'heavy') }
+            if (n.light !== lensRef.current.light || n.heavy !== lensRef.current.heavy) { lensRef.current = n; setLens(n) }
+        }, 16)
+        return () => clearInterval(id)
+    }, [])
+    const go = (v: number) => { const t = { light: v, heavy: v }; tgtRef.current = t; setTargets(t) }
+    // разогнались → показать «Стоп»
+    useEffect(() => { if (phase === 2 && lenToSpeed(lens.heavy) >= 0.85) setPhase(3) }, [phase, lens.heavy])
+    // засекаем, кто сколько катился после «Стоп»
+    useEffect(() => {
+        if (phase !== 4) return
+        const now = Date.now()
+        setStops((s) => ({
+            light: s.light ?? (lenToSpeed(lens.light) < 0.02 ? (now - stopAt.current) / 1000 : null),
+            heavy: s.heavy ?? (lenToSpeed(lens.heavy) < 0.02 ? (now - stopAt.current) / 1000 : null),
+        }))
+    }, [phase, lens, L0])
+    useEffect(() => { if (phase === 4 && stops.light !== null && stops.heavy !== null) setPhase(5) }, [phase, stops])
+    return (
+        <>
+            <TypedLineWithParts
+                parts={[{ text: 'Гонка наоборот: разгоним ⚪ шарик и 🪨 валун, а потом нажмём ' }, { bold: 'СТОП' }, { text: '. Кто раньше встанет?' }]}
+                onSettled={() => setPhase((p) => Math.max(p, 1))}
+            />
+            {phase >= 1 && (
+                <DiagramBlock>
+                    <div className="w-full flex flex-col items-center gap-3">
+                        <RaceView lens={lens} targets={targets} />
+                        {phase === 1 && <ReplyBtn color={GGEGE_PALETTE.green.button} onClick={() => { go(TR_LMAX); setPhase(2) }}>🚀 Разогнать</ReplyBtn>}
+                        {phase === 2 && <p className="text-sm font-black text-[#9AA7B0]">⚪ уже летит… 🪨 валун раскручивается 😤</p>}
+                        {phase === 3 && <ReplyBtn color="#DC605B" onClick={() => { stopAt.current = Date.now(); go(L0); setPhase(4) }}>🛑 СТОП!</ReplyBtn>}
+                        {phase >= 4 && (
+                            <div className="text-sm font-black text-center space-y-1">
+                                <div>⚪ Шарик: {stops.light !== null ? `встал за ${stops.light.toFixed(1)} с` : 'тормозит…'}</div>
+                                <div>🪨 Валун: {stops.heavy !== null ? `встал за ${stops.heavy.toFixed(1)} с` : 'всё ещё катится… 🫠'}</div>
+                            </div>
+                        )}
+                    </div>
+                </DiagramBlock>
+            )}
+            {phase >= 5 && (
+                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1200)}>
+                    <InsightCard>
+                        Стрелка <InsightWord color="#FF9AC8">B инд</InsightWord> у валуна толкала его <InsightWord>ВПЕРЁД</InsightWord> — не давала остановиться.
+                        <br />Больше индуктивность → дольше «катится» поток.
+                    </InsightCard>
+                </DiagramBlock>
+            )}
+        </>
+    )
+}
+
+const CONCEPT_SCENES = [HookScene, TrainCylinderScene, StopRaceScene, ZoneGameScene, StuckScene, WhoScene, SpeedMagnetScene]
 const INTRO_CONCEPT_STEPS = CONCEPT_SCENES.length
 
 const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
