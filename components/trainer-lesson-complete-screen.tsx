@@ -35,6 +35,9 @@ type Props = {
     onPrimary: () => void
     secondaryLabel?: string
     onSecondary?: () => void
+    // Вторая дополнительная кнопка рядом с secondary (в один ряд).
+    tertiaryLabel?: string
+    onTertiary?: () => void
     // "Ударный час" ещё не дошёл до рубежа (см. actions/roll-lesson-case.ts,
     // TQUIZ.tsx) — вместо заголовка "Вы запустили серию!".
     chainHint?: { count: number; remaining: number } | null
@@ -106,7 +109,7 @@ const StatCard = ({
 )
 
 export const TrainerLessonCompleteScreen = ({
-    lottieData, streak, xp, elapsedSeconds, primaryLabel, onPrimary, secondaryLabel, onSecondary, chainHint, theme = 'metal',
+    lottieData, streak, xp, elapsedSeconds, primaryLabel, onPrimary, secondaryLabel, onSecondary, tertiaryLabel, onTertiary, chainHint, theme = 'metal',
 }: Props) => {
     const cozy = theme === 'cozy'
     const streakWord = declensionRu(streak, 'верный ответ', 'верных ответа', 'верных ответов')
@@ -223,16 +226,24 @@ export const TrainerLessonCompleteScreen = ({
                     <ArrowRight className="h-5 w-5" />
                 </PremiumButton>
                 )}
-                {secondaryLabel && onSecondary && (
-                    <button
-                        onClick={onSecondary}
-                        className={cozy
-                            ? 'w-full rounded-xl px-6 py-3 text-sm font-bold uppercase tracking-[0.1em]'
-                            : 'w-full rounded-2xl border-2 border-[#3A464E] bg-[#151F23]/80 px-6 py-3 text-sm font-bold uppercase tracking-[0.1em] text-[#D5DEE5] transition-colors hover:border-[#5A6B76]'}
-                        style={cozy ? { background: COZY.wood, color: '#FFE8C7', border: `3px solid ${COZY.woodBorder}`, boxShadow: `0 5px 0 ${COZY.woodEdge}` } : undefined}
-                    >
-                        {secondaryLabel}
-                    </button>
+                {((secondaryLabel && onSecondary) || (tertiaryLabel && onTertiary)) && (
+                    <div className="flex gap-3">
+                        {[
+                            secondaryLabel && onSecondary ? { label: secondaryLabel, on: onSecondary } : null,
+                            tertiaryLabel && onTertiary ? { label: tertiaryLabel, on: onTertiary } : null,
+                        ].filter((b): b is { label: string; on: () => void } => !!b).map((b) => (
+                            <button
+                                key={b.label}
+                                onClick={b.on}
+                                className={cozy
+                                    ? 'flex-1 rounded-xl px-3 py-3 text-sm font-bold uppercase tracking-[0.06em]'
+                                    : 'flex-1 rounded-2xl border-2 border-[#3A464E] bg-[#151F23]/80 px-3 py-3 text-sm font-bold uppercase tracking-[0.06em] text-[#D5DEE5] transition-colors hover:border-[#5A6B76]'}
+                                style={cozy ? { background: COZY.wood, color: '#FFE8C7', border: `3px solid ${COZY.woodBorder}`, boxShadow: `0 5px 0 ${COZY.woodEdge}` } : undefined}
+                            >
+                                {b.label}
+                            </button>
+                        ))}
+                    </div>
                 )}
             </motion.div>
         </div>

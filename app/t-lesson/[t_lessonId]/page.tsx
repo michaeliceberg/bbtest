@@ -1,3 +1,4 @@
+import { ReferralCatcher } from '@/components/referral-catcher';
 // app/t-lesson/[t_lessonId]/page.tsx
 
 import { getAllTLessonProgress, getAllUsersProgress, getTLesson, getTLessonPublic, getUserProgress, getHotQuestionsForUnit } from "@/db/queries"
@@ -1835,6 +1836,9 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     usersStat.sort((a, b) => b.DR_DRP - a.DR_DRP);
 
     return (
+        <>
+        {/* ?ref= из приглашения в пробный урок — ставит cookie referredBy */}
+        <ReferralCatcher />
         <TQuiz
             t_lessonId={t_lesson.id}
             t_lessonTitle={t_lesson.title}
@@ -1854,6 +1858,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             // уже используется на /learn (userProgress.isAdmin===1).
             isAdmin={isGuest ? false : userProgress!.isAdmin === 1}
         />
+        </>
     );
 }
 

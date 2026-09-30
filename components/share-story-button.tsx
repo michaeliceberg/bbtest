@@ -143,7 +143,10 @@ export const shareStoryImage = async (data: StoryCardData, qrCanvas: HTMLCanvasE
 	const file = new File([blob], 'ggege.png', { type: 'image/png' });
 	if (navigator.canShare?.({ files: [file] })) {
 		try {
-			await navigator.share({ files: [file], text: `${data.big} — ${data.url}` });
+			// Только файл, без текста: Telegram и др. при файле+тексте часто
+			// отправляют один текст и теряют картинку. Ссылка — отдельной кнопкой
+			// (shareInviteLink), а в картинке есть QR.
+			await navigator.share({ files: [file] });
 		} catch { /* закрыли меню — ок */ }
 		return;
 	}
@@ -152,6 +155,27 @@ export const shareStoryImage = async (data: StoryCardData, qrCanvas: HTMLCanvasE
 	a.download = 'ggege.png';
 	a.click();
 	setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+};
+
+// Делится ТЕКСТОМ со ссылкой (для личных сообщений: Telegram и т.п.).
+// Ссылка вставлена прямо в текст — поле url часть мессенджеров игнорирует.
+// Если меню «Поделиться» нет (десктоп) — копируем в буфер.
+export const shareInviteLink = async (text: string, url: string): Promise<'shared' | 'copied' | 'failed'> => {
+	const message = `${text}\n${url}`;
+	if (typeof navigator !== 'undefined' && navigator.share) {
+		try {
+			await navigator.share({ text: message });
+			return 'shared';
+		} catch {
+			return 'failed';
+		}
+	}
+	try {
+		await navigator.clipboard.writeText(message);
+		return 'copied';
+	} catch {
+		return 'failed';
+	}
 };
 
 type Props = {

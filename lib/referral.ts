@@ -24,3 +24,11 @@ export const computeReferralBonus = (referrerLevel: number, referrerQuestsTotal:
 	if (referrerQuestsTotal >= REFERRAL_BONUS_QUESTS_THRESHOLD) bonus += 1
 	return Math.min(3, bonus)
 }
+
+// Приглашение друга ведёт не на главную, а сразу в пробный урок (id=485,
+// открыт без регистрации — см. app/t-lesson/[t_lessonId]/page.tsx): друг
+// сразу играет, в конце кейс и «зарегистрируйся — забери приз». ?ref= ловит
+// ReferralCatcher на странице урока, атрибуция та же, что у getReferralLink.
+export const TRIAL_T_LESSON_ID = 485
+export const getTrialInviteLink = (userId?: string | null): string =>
+	`https://ggege.ru/t-lesson/${TRIAL_T_LESSON_ID}${userId ? `?ref=${encodeURIComponent(userId)}` : ''}`

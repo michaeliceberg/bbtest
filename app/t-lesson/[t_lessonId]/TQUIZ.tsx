@@ -48,8 +48,8 @@ import { TrainerLessonCompleteScreen } from "@/components/trainer-lesson-complet
 import { GuestRewardScreen } from "@/components/guest-reward-screen"
 import { useSession } from "next-auth/react"
 import { QRCodeCanvas } from "qrcode.react"
-import { shareStoryImage } from "@/components/share-story-button"
-import { getReferralLink } from "@/lib/referral"
+import { shareStoryImage, shareInviteLink } from "@/components/share-story-button"
+import { getTrialInviteLink } from "@/lib/referral"
 import { GuestVibePicker, GUEST_NICKNAME_STORAGE_KEY, GUEST_VIBES_STORAGE_KEY } from "@/components/guest-vibe-picker"
 
 // "Горячий вопрос" (questionType 'HOT', см. type-hot.tsx) — факультативный,
@@ -1074,7 +1074,7 @@ export default function TQuiz({
               высоту, из-за которой TrainerLessonCompleteScreen не влезал
               на телефонный экран без скролла. */}
           <div ref={shareQrRef} className="hidden" aria-hidden>
-            <QRCodeCanvas value={session?.user?.id ? getReferralLink(session.user.id) : 'https://ggege.ru'} size={460} marginSize={1} />
+            <QRCodeCanvas value={getTrialInviteLink(session?.user?.id)} size={460} marginSize={1} />
           </div>
           <TrainerLessonCompleteScreen
             theme={uiTheme}
@@ -1086,8 +1086,19 @@ export default function TQuiz({
             // где уже кнопки «Следующий урок»/«Завершить».
             primaryLabel="Дальше"
             onPrimary={continueAfterSummary}
-            secondaryLabel="📸 Поделиться"
-            onSecondary={() => {
+            // Ссылка ведёт в пробный урок 485 (без регистрации) с ?ref= —
+            // друг сразу играет. «Поделиться» — текст со ссылкой (в личку),
+            // «В сторис» — только картинка с QR.
+            secondaryLabel="📤 Позвать друга"
+            onSecondary={async () => {
+              const res = await shareInviteLink(
+                `Прошёл урок «${t_lessonTitle}» в ggege 🔥${maxStreakRef.current >= 3 ? ` ${maxStreakRef.current} подряд без ошибок!` : ''} Сможешь круче? В конце — кейс с пиццей 🍕`,
+                getTrialInviteLink(session?.user?.id),
+              )
+              if (res === 'copied') toast.success('Ссылка скопирована — отправь другу')
+            }}
+            tertiaryLabel="📸 В сторис"
+            onTertiary={() => {
               const m = Math.floor(elapsedSeconds / 60)
               const sec = String(elapsedSeconds % 60).padStart(2, '0')
               shareStoryImage(
@@ -1095,7 +1106,8 @@ export default function TQuiz({
                   title: 'Урок пройден!',
                   big: t_lessonTitle,
                   prize: `⏱ ${m}:${sec}${maxStreakRef.current >= 3 ? ` · 🔥 ${maxStreakRef.current} подряд` : ''}`,
-                  url: session?.user?.id ? getReferralLink(session.user.id) : 'https://ggege.ru',
+                  caption: 'Сможешь круче? Там кейс с пиццей 👇',
+                  url: getTrialInviteLink(session?.user?.id),
                 },
                 shareQrRef.current?.querySelector('canvas') ?? null,
               )
