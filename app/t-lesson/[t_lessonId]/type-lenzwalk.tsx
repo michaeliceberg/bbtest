@@ -803,10 +803,10 @@ const grArc = (a1: number, a2: number, r: number) => {
 }
 
 type GrooveZone = { center: number; half: number; inside: boolean }
-const GrooveView = ({ targetLen, actualLen, mass, svgRef, onDown, dragging, angRef, zone, startAng = -Math.PI / 2 }: {
+const GrooveView = ({ targetLen, actualLen, mass, svgRef, onDown, dragging, angRef, zone, startAng = -Math.PI / 2, center }: {
     targetLen: number; actualLen: number; mass: 'light' | 'heavy'
     svgRef: React.RefObject<SVGSVGElement>; onDown: (e: React.PointerEvent) => void; dragging: boolean
-    angRef?: React.MutableRefObject<number>; zone?: GrooveZone; startAng?: number
+    angRef?: React.MutableRefObject<number>; zone?: GrooveZone; startAng?: number; center?: React.ReactNode
 }) => {
     const PHI = GGEGE_PALETTE.purple.button
     const dT = targetLen * GR_SCALE, dA = actualLen * GR_SCALE
@@ -877,6 +877,7 @@ const GrooveView = ({ targetLen, actualLen, mass, svgRef, onDown, dragging, angR
                 <path d={grArc(zone.center - zone.half, zone.center + zone.half, GR_R)} fill="none"
                     stroke={zone.inside ? GGEGE_PALETTE.green.button : RULE_COLOR} strokeWidth={GR_W - 4} opacity={0.35} />
             )}
+            {center && <g transform={`translate(${GR_CX},${GR_CY})`}>{center}</g>}
             {/* шлейф — длина = скорость; три слоя, ярче у самого шарика */}
             {speed > 0.02 && [1, 0.6, 0.3].map((k, i) => (
                 <path key={i} d={grArc(ang - trailLen * k, ang, GR_R)} fill="none" stroke={trailColor}
@@ -1388,6 +1389,28 @@ const zoneSpeedAt = (t: number) => {
     const prev = ZONE_SEQ[(i - 1) % ZONE_SEQ.length]
     return prev + (cur - prev) * (f / ZONE_RAMP)
 }
+// Индикатор в центре кольца (туда и смотрит игрок): зелёная галочка / красный
+// пульсирующий крестик + кольцо прогресса 5 секунд вокруг.
+const ZoneCenter = ({ inside, prog, won }: { inside: boolean; prog: number; won: boolean }) => {
+    const R = 46, C = 2 * Math.PI * R
+    const ok = inside || won
+    const col = ok ? GGEGE_PALETTE.green.button : '#DC605B'
+    return (
+        <g>
+            <circle r={R} fill="none" stroke="#26343A" strokeWidth={8} />
+            <circle r={R} fill="none" stroke={GGEGE_PALETTE.green.button} strokeWidth={8} strokeLinecap="round"
+                strokeDasharray={`${C * prog} ${C}`} transform="rotate(-90)" />
+            {ok ? (
+                <path d="M -18 0 L -5 13 L 20 -14" fill="none" stroke={col} strokeWidth={9} strokeLinecap="round" strokeLinejoin="round" />
+            ) : (
+                <motion.g animate={{ scale: [1, 1.25, 1], opacity: [1, 0.55, 1] }} transition={{ duration: 0.7, repeat: Infinity }}>
+                    <path d="M -15 -15 L 15 15 M 15 -15 L -15 15" fill="none" stroke={col} strokeWidth={9} strokeLinecap="round" />
+                </motion.g>
+            )}
+            {won && <text y={R + 30} textAnchor="middle" fontSize={18} fontWeight={900} fill={GGEGE_PALETTE.green.button}>🏆 Зачёт!</text>}
+        </g>
+    )
+}
 const ZoneRound = ({ mass, onWin }: { mass: 'light' | 'heavy'; onWin: () => void }) => {
     const V0 = 0.35
     const h = useFluxHandle(mass, speedToLen(V0))
@@ -1399,19 +1422,11 @@ const ZoneRound = ({ mass, onWin }: { mass: 'light' | 'heavy'; onWin: () => void
     const [zone, setZone] = useState<GrooveZone>({ center: -Math.PI / 2, half: ZONE_HALF[mass], inside: true })
     const [prog, setProg] = useState(0)
     const [giveUp, setGiveUp] = useState(false)
-    const segRef = useRef(0)
-    const [shout, setShout] = useState<string | null>(null)
     useEffect(() => {
         const id = setInterval(() => {
             tRef.current += 1
             const t = tRef.current / 62.5 // секунды
             const v = zoneSpeedAt(t)
-            const seg = Math.floor(t / ZONE_SEG)
-            if (seg !== segRef.current) {
-                const up = ZONE_SEQ[seg % ZONE_SEQ.length] > ZONE_SEQ[(seg - 1 + ZONE_SEQ.length) % ZONE_SEQ.length]
-                segRef.current = seg
-                setShout(`${seg}|${up ? '⚡ Зона ускорилась!' : '🐌 Зона тормозит!'}`)
-            }
             zoneRef.current += (v * 2 * Math.PI) / GR_LAP_TICKS
             let d = angRef.current - zoneRef.current
             d = Math.atan2(Math.sin(d), Math.cos(d))
@@ -1429,17 +1444,8 @@ const ZoneRound = ({ mass, onWin }: { mass: 'light' | 'heavy'; onWin: () => void
     const won = prog >= 1
     return (
         <div className="w-full flex flex-col items-center gap-3" onPointerMove={h.onMove} onPointerUp={h.onUp} onPointerCancel={h.onUp} style={{ touchAction: 'none' }}>
-            <GrooveView targetLen={h.targetLen} actualLen={h.actualLen} mass={mass} svgRef={h.svgRef} onDown={h.onDown} dragging={h.dragging} angRef={angRef} zone={zone} />
-            <div className="w-full max-w-[360px]">
-                <div className="flex justify-between text-sm font-black mb-1">
-                    <span style={{ color: zone.inside ? GGEGE_PALETTE.green.button : '#9AA7B0' }}>{won ? '🏆 Зачёт!' : zone.inside ? '✅ В зоне' : '⚠️ Вне зоны'}</span>
-                    {shout && !won && <motion.span key={shout} initial={{ scale: 1.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-[#F2C35B]">{shout.split('|')[1]}</motion.span>}
-                    <span className="text-[#9AA7B0]">{Math.round(prog * 5 * 10) / 10} / 5 с</span>
-                </div>
-                <div className="h-4 w-full rounded-full bg-[#26343A] overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width: `${prog * 100}%`, backgroundColor: GGEGE_PALETTE.green.button, transition: 'width 80ms linear' }} />
-                </div>
-            </div>
+            <GrooveView targetLen={h.targetLen} actualLen={h.actualLen} mass={mass} svgRef={h.svgRef} onDown={h.onDown} dragging={h.dragging} angRef={angRef} zone={zone}
+                center={<ZoneCenter inside={zone.inside} prog={prog} won={won} />} />
             {giveUp && !won && <ReplyBtn color="#5C6B73" onClick={onWin}>Сдаюсь 🏳️</ReplyBtn>}
         </div>
     )
@@ -1478,124 +1484,116 @@ const ZoneGameScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-// «Кто раньше встанет?»: две дорожки — внутри ⚪ шарик, снаружи 🪨 валун.
-// «Разогнать» → оба к максимуму; «Стоп!» → оба к нулю. Шарик встаёт сразу,
-// валун ещё долго катится со стрелкой B вперёд.
-const RACE_R: Record<'light' | 'heavy', number> = { light: 70, heavy: 132 }
-const RACE_W = 30
-const RACE_CY = 175, RACE_H = 350
-const RaceView = ({ lens, targets }: { lens: Record<'light' | 'heavy', number>; targets: Record<'light' | 'heavy', number> }) => {
-    const angs = useRef({ light: -Math.PI / 2, heavy: -Math.PI / 2 })
-    const lensRef = useRef(lens)
-    lensRef.current = lens
-    const [, force] = useState(0)
-    useEffect(() => {
-        const id = setInterval(() => {
-            let moved = false
-            for (const m of ['light', 'heavy'] as const) {
-                const v = lenToSpeed(lensRef.current[m])
-                // одинаковая ЛИНЕЙНАЯ скорость на разных радиусах
-                if (v > 0.003) { angs.current[m] += ((v * 2 * Math.PI) / GR_LAP_TICKS) * (GR_R / RACE_R[m]); moved = true }
-            }
-            if (moved) force((x) => x + 1)
-        }, 16)
-        return () => clearInterval(id)
-    }, [])
-    const pt = (a: number, r: number) => ({ x: GR_CX + r * Math.cos(a), y: RACE_CY + r * Math.sin(a) })
-    return (
-        <svg viewBox={`0 0 ${TR_W} ${RACE_H}`} className="w-full max-w-[400px] h-auto select-none">
-            {(['light', 'heavy'] as const).map((m) => (
-                <g key={m}>
-                    <circle cx={GR_CX} cy={RACE_CY} r={RACE_R[m]} fill="none" stroke="#3A464E" strokeWidth={RACE_W + 6} />
-                    <circle cx={GR_CX} cy={RACE_CY} r={RACE_R[m]} fill="none" stroke="#1B262B" strokeWidth={RACE_W} />
-                </g>
-            ))}
-            {(['light', 'heavy'] as const).map((m) => {
-                const a = angs.current[m], r = RACE_R[m], br = m === 'heavy' ? 14 : 9
-                const v = lenToSpeed(lens[m])
-                const b = pt(a, r)
-                const gap = targets[m] - lens[m]
-                const fx = -Math.sin(a), fy = Math.cos(a)
-                const dir = gap > 0 ? -1 : 1
-                const L = Math.min(60, Math.abs(gap) * 0.3 + 14)
-                const base = pt(a, r + (m === 'heavy' ? RACE_W / 2 + 14 : -RACE_W / 2 - 14))
-                const tip = { x: base.x + fx * dir * L, y: base.y + fy * dir * L }
-                const ha = (Math.atan2(fy * dir, fx * dir) * 180) / Math.PI
-                const trail = v * 1.1 * (GR_R / r)
-                const p1 = pt(a - trail, r)
-                return (
-                    <g key={m}>
-                        {v > 0.02 && <path d={`M ${p1.x} ${p1.y} A ${r} ${r} 0 ${trail > Math.PI ? 1 : 0} 1 ${b.x} ${b.y}`} fill="none" stroke={m === 'heavy' ? '#9AA7B0' : '#F2F7FB'} strokeWidth={br * 1.3} strokeLinecap="round" opacity={0.2} />}
-                        <circle cx={b.x} cy={b.y} r={br} fill={m === 'heavy' ? '#7E868B' : '#F2F7FB'} stroke={m === 'heavy' ? '#4E5559' : '#C9D3D9'} strokeWidth={2} />
-                        {Math.abs(gap) > 10 && (
-                            <g>
-                                <line x1={base.x} y1={base.y} x2={tip.x} y2={tip.y} stroke={OWN_COLOR} strokeWidth={4} strokeLinecap="round" />
-                                <g transform={`translate(${tip.x},${tip.y}) rotate(${ha})`}>
-                                    <path d="M -9 -7 L 2 0 L -9 7" fill="none" stroke={OWN_COLOR} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
-                                </g>
-                            </g>
-                        )}
-                    </g>
-                )
-            })}
-            <text x={GR_CX} y={RACE_CY + 6} textAnchor="middle" fontSize={15} fontWeight={900} fill="#9AA7B0">⚪ внутри · 🪨 снаружи</text>
-        </svg>
-    )
-}
+// «Кто дальше укатится?»: ОДНО кольцо, шарик и валун уже едут вместе, в одной
+// точке, с одинаковой скоростью (валун полупрозрачный под шариком — видно, что
+// они совпадают). По «СТОП» каждый тормозит сам; тормозной путь подсвечен дугой
+// своего цвета. Тормоза подобраны симуляцией: при v=0.6 шарик ≈ 60° (~3 с),
+// валун ≈ 230° (~7 с, с выраженным затуханием).
+const RACE_CY = 175, RACE_H = 350, RACE_V0 = 0.6
+const raceBrake = (v: number, m: 'light' | 'heavy') => Math.max(0, m === 'light'
+    ? v - Math.max(v * 0.025, 0.0004)
+    : v - Math.max(v * 0.004 * Math.sqrt(v / 0.16), 0.0008))
+type RaceBody = { ang: number; v: number; braking: boolean; stopAng: number }
 const StopRaceScene = ({ onSettled }: { onSettled?: () => void }) => {
-    const [phase, setPhase] = useState(0) // 0 интро · 1 кнопка «разогнать» · 2 разгон · 3 «стоп» · 4 тормозят · 5 оба встали
-    const L0 = TR_LMIN
-    const [targets, setTargets] = useState({ light: L0, heavy: L0 })
-    const [lens, setLens] = useState({ light: L0, heavy: L0 })
-    const lensRef = useRef(lens), tgtRef = useRef(targets)
-    const stopAt = useRef(0)
-    const [stops, setStops] = useState<{ light: number | null; heavy: number | null }>({ light: null, heavy: null })
+    const [phase, setPhase] = useState(0) // 0 интро · 1 едут вместе · 2 тормозят · 3 оба встали
+    const mk = (): Record<'light' | 'heavy', RaceBody> => ({
+        light: { ang: -Math.PI / 2, v: RACE_V0, braking: false, stopAng: 0 },
+        heavy: { ang: -Math.PI / 2, v: RACE_V0, braking: false, stopAng: 0 },
+    })
+    const bodies = useRef(mk())
+    const [, force] = useState(0)
+    const phaseRef = useRef(0)
+    phaseRef.current = phase
     useEffect(() => {
         const id = setInterval(() => {
-            const n = { light: chaseStep(lensRef.current.light, tgtRef.current.light, 'light'), heavy: chaseStep(lensRef.current.heavy, tgtRef.current.heavy, 'heavy') }
-            if (n.light !== lensRef.current.light || n.heavy !== lensRef.current.heavy) { lensRef.current = n; setLens(n) }
+            if (phaseRef.current < 1) return
+            let moving = false
+            for (const m of ['light', 'heavy'] as const) {
+                const b = bodies.current[m]
+                if (b.v <= 0.004) { b.v = 0; continue }
+                b.ang += (b.v * 2 * Math.PI) / GR_LAP_TICKS
+                if (b.braking) b.v = raceBrake(b.v, m)
+                moving = true
+            }
+            force((x) => x + 1)
+            if (!moving && phaseRef.current === 2) setPhase(3)
         }, 16)
         return () => clearInterval(id)
     }, [])
-    const go = (v: number) => { const t = { light: v, heavy: v }; tgtRef.current = t; setTargets(t) }
-    // разогнались → показать «Стоп»
-    useEffect(() => { if (phase === 2 && lenToSpeed(lens.heavy) >= 0.85) setPhase(3) }, [phase, lens.heavy])
-    // засекаем, кто сколько катился после «Стоп»
-    useEffect(() => {
-        if (phase !== 4) return
-        const now = Date.now()
-        setStops((s) => ({
-            light: s.light ?? (lenToSpeed(lens.light) < 0.02 ? (now - stopAt.current) / 1000 : null),
-            heavy: s.heavy ?? (lenToSpeed(lens.heavy) < 0.02 ? (now - stopAt.current) / 1000 : null),
-        }))
-    }, [phase, lens, L0])
-    useEffect(() => { if (phase === 4 && stops.light !== null && stops.heavy !== null) setPhase(5) }, [phase, stops])
+    const stop = () => {
+        for (const m of ['light', 'heavy'] as const) { const b = bodies.current[m]; b.braking = true; b.stopAng = b.ang }
+        setPhase(2)
+    }
+    const again = () => { bodies.current = mk(); setPhase(1) }
+    const L = bodies.current.light, H = bodies.current.heavy
+    const deg = (b: RaceBody) => Math.round(((b.ang - b.stopAng) * 180) / Math.PI)
+    const pt = (a: number, r: number) => ({ x: GR_CX + r * Math.cos(a), y: RACE_CY + r * Math.sin(a) })
+    const arc = (a1: number, a2: number, r: number) => {
+        const p1 = pt(a1, r), p2 = pt(a2, r)
+        return `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} A ${r} ${r} 0 ${a2 - a1 > Math.PI ? 1 : 0} 1 ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`
+    }
+    const bArrow = (b: RaceBody, r: number, key: string) => {
+        if (!b.braking || b.v <= 0.02) return null
+        const base = pt(b.ang, r), fx = -Math.sin(b.ang), fy = Math.cos(b.ang)
+        const len = 16 + b.v * 50
+        const tip = { x: base.x + fx * len, y: base.y + fy * len }
+        const ha = (Math.atan2(fy, fx) * 180) / Math.PI
+        return (
+            <g key={key}>
+                <line x1={base.x} y1={base.y} x2={tip.x} y2={tip.y} stroke={OWN_COLOR} strokeWidth={4} strokeLinecap="round" />
+                <g transform={`translate(${tip.x},${tip.y}) rotate(${ha})`}>
+                    <path d="M -9 -7 L 2 0 L -9 7" fill="none" stroke={OWN_COLOR} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
+                </g>
+            </g>
+        )
+    }
+    const ball = (b: RaceBody, heavy: boolean) => {
+        const p = pt(b.ang, GR_R), br = GR_BALL_R[heavy ? 'heavy' : 'light']
+        return (
+            <g opacity={heavy ? 0.55 : 1}>
+                <circle cx={p.x} cy={p.y} r={br} fill={heavy ? '#7E868B' : '#F2F7FB'} stroke={heavy ? '#4E5559' : '#C9D3D9'} strokeWidth={2} />
+            </g>
+        )
+    }
+    const stopP1 = pt(L.stopAng, GR_R - GR_W / 2 - 4), stopP2 = pt(L.stopAng, GR_R + GR_W / 2 + 4)
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'Гонка наоборот: разгоним ⚪ шарик и 🪨 валун, а потом нажмём ' }, { bold: 'СТОП' }, { text: '. Кто раньше встанет?' }]}
+                parts={[{ text: '⚪ Шарик и 🪨 валун едут ' }, { bold: 'вместе' }, { text: ', с одинаковой скоростью. Жми ' }, { bold: 'СТОП' }, { text: ' — кто дальше укатится?' }]}
                 onSettled={() => setPhase((p) => Math.max(p, 1))}
             />
             {phase >= 1 && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col items-center gap-3">
-                        <RaceView lens={lens} targets={targets} />
-                        {phase === 1 && <ReplyBtn color={GGEGE_PALETTE.green.button} onClick={() => { go(TR_LMAX); setPhase(2) }}>🚀 Разогнать</ReplyBtn>}
-                        {phase === 2 && <p className="text-sm font-black text-[#9AA7B0]">⚪ уже летит… 🪨 валун раскручивается 😤</p>}
-                        {phase === 3 && <ReplyBtn color="#DC605B" onClick={() => { stopAt.current = Date.now(); go(L0); setPhase(4) }}>🛑 СТОП!</ReplyBtn>}
-                        {phase >= 4 && (
-                            <div className="text-sm font-black text-center space-y-1">
-                                <div>⚪ Шарик: {stops.light !== null ? `встал за ${stops.light.toFixed(1)} с` : 'тормозит…'}</div>
-                                <div>🪨 Валун: {stops.heavy !== null ? `встал за ${stops.heavy.toFixed(1)} с` : 'всё ещё катится… 🫠'}</div>
-                            </div>
-                        )}
+                        <svg viewBox={`0 0 ${TR_W} ${RACE_H}`} className="w-full max-w-[400px] h-auto select-none">
+                            <circle cx={GR_CX} cy={RACE_CY} r={GR_R} fill="none" stroke="#3A464E" strokeWidth={GR_W + 6} />
+                            <circle cx={GR_CX} cy={RACE_CY} r={GR_R} fill="none" stroke="#1B262B" strokeWidth={GR_W} />
+                            {phase >= 2 && (
+                                <>
+                                    {/* тормозной путь: валун — по внешнему краю, шарик — по внутреннему */}
+                                    <path d={arc(H.stopAng, H.ang, GR_R + 12)} fill="none" stroke="#9AA7B0" strokeWidth={6} strokeLinecap="round" opacity={0.7} />
+                                    <path d={arc(L.stopAng, L.ang, GR_R - 12)} fill="none" stroke="#F2F7FB" strokeWidth={6} strokeLinecap="round" opacity={0.85} />
+                                    <line x1={stopP1.x} y1={stopP1.y} x2={stopP2.x} y2={stopP2.y} stroke="#DC605B" strokeWidth={4} strokeLinecap="round" />
+                                </>
+                            )}
+                            {ball(H, true)}
+                            {ball(L, false)}
+                            {bArrow(H, GR_R + GR_W / 2 + 14, 'bh')}
+                            {bArrow(L, GR_R - GR_W / 2 - 14, 'bl')}
+                            <text x={GR_CX} y={RACE_CY - 8} textAnchor="middle" fontSize={16} fontWeight={900} fill="#F2F7FB">⚪ {phase >= 2 ? `${deg(L)}°` : ''}</text>
+                            <text x={GR_CX} y={RACE_CY + 20} textAnchor="middle" fontSize={16} fontWeight={900} fill="#9AA7B0">🪨 {phase >= 2 ? `${deg(H)}°` : ''}</text>
+                        </svg>
+                        {phase === 1 && <ReplyBtn color="#DC605B" onClick={stop}>🛑 СТОП!</ReplyBtn>}
+                        {phase === 2 && <p className="text-sm font-black text-[#9AA7B0]">Тормозят… 🪨 валун не хочет останавливаться 🫠</p>}
+                        {phase === 3 && <ReplyBtn color="#5C6B73" onClick={again}>🔁 Ещё раз</ReplyBtn>}
                     </div>
                 </DiagramBlock>
             )}
-            {phase >= 5 && (
+            {phase >= 3 && (
                 <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1200)}>
                     <InsightCard>
-                        Стрелка <InsightWord color="#FF9AC8">B инд</InsightWord> у валуна толкала его <InsightWord>ВПЕРЁД</InsightWord> — не давала остановиться.
+                        Скорость была <InsightWord>одинаковая</InsightWord>, а валун укатился в разы дальше.
+                        <br />Его <InsightWord color="#FF9AC8">B инд</InsightWord> толкало вперёд — не давало потоку упасть.
                         <br />Больше индуктивность → дольше «катится» поток.
                     </InsightCard>
                 </DiagramBlock>
