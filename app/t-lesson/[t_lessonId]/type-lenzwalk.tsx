@@ -589,7 +589,8 @@ const VEHICLE_DIMS: Record<'light' | 'heavy', { w: number; h: number }> = { ligh
 // Гелик — в 1.5 раза «тяжелее» старого вагона (просьба пользователя
 // после первой живой проверки): rate обратно пропорционален массе,
 // поэтому темп погони поделен на 1.5 (0.026 → ~0.0173).
-const TR_RATE: Record<'light' | 'heavy', number> = { light: 0.16, heavy: 0.0173 }
+// 2026-09-30: Гелик ещё в 1.5 раза инертнее (просьба пользователя): 0.0173 → 0.0115.
+const TR_RATE: Record<'light' | 'heavy', number> = { light: 0.16, heavy: 0.0115 }
 const TR_SNAP = 1.2
 // Минимальный размах рывка (в тех же единицах, что и длина цилиндра),
 // чтобы засчитать попытку «потянул этим транспортом» — отсекает
@@ -619,22 +620,33 @@ const Vehicle = ({ x, y, tilt, mass, speed, scale = 1 }: { x: number; y: number;
     useEffect(() => {
         const id = setInterval(() => {
             const v = speedRef.current
-            if (v > 0.01) setPhase((p) => p + v * 5)
-        }, 33)
+            // квадратично: на малой скорости колёса еле крутятся, на большой — вихрем
+            if (v > 0.01) setPhase((p) => p + v * v * 4)
+        }, 16)
         return () => clearInterval(id)
     }, [])
     // тряска: небольшая, растёт со скоростью; у велика чуть сильнее (лёгкий)
     const amp = speed * (mass === 'light' ? 1.6 : 1.1)
-    const shakeY = Math.sin(phase * 1.9) * amp
-    const shakeR = Math.sin(phase * 1.3) * amp * 0.5
+    // мелкая тряска + лёгкие подскоки на кочках (только вверх, чуть-чуть)
+    const hop = -Math.abs(Math.sin(phase * 0.35)) * speed * (mass === 'light' ? 3.5 : 2.5)
+    const shakeY = Math.sin(phase * 0.95) * amp + hop
+    const shakeR = Math.sin(phase * 0.65) * amp * 0.5
     return (
+        <g>
+            {/* ветер позади — бегущий пунктир: линия идёт от транспорта влево,
+                offset уменьшается → штрихи убегают назад, быстрее при большей скорости */}
+            {[0, 1, 2].map((i) => (
+                <line key={i} x1={x - w / 2 - 4} y1={y - h * 0.25 + i * h * 0.25} x2={x - w / 2 - 4 - (i === 1 ? 46 : 32)} y2={y - h * 0.25 + i * h * 0.25}
+                    stroke="#9AA7B0" strokeWidth={2.5} strokeLinecap="round" strokeDasharray="9 7"
+                    strokeDashoffset={-phase * 1.5 - i * 5} opacity={Math.min(1, speed * 1.4) * 0.8} />
+            ))}
         <g transform={`translate(${x},${y + shakeY}) rotate(${tilt + shakeR})`}>
             <image href={VEHICLE_SRC[mass]} x={-w / 2} y={-h / 2} width={w} height={h} preserveAspectRatio="xMidYMid meet"
                 transform={VEHICLE_FLIP[mass] ? 'scale(-1,1)' : undefined} />
             {VEHICLE_WHEELS[mass].map((wh, i) => {
                 const r = wh.fr * h
                 const circ = 2 * Math.PI * r
-                const dash = circ / 10
+                const dash = circ / 6 // шаг за кадр (≤4) заметно меньше пол-периода — без стробоскопа
                 return (
                     <g key={i}>
                         {/* SVG-окружность рисуется по часовой → уменьшаем offset = колесо крутится по часовой = едет вправо */}
@@ -645,6 +657,7 @@ const Vehicle = ({ x, y, tilt, mass, speed, scale = 1 }: { x: number; y: number;
                     </g>
                 )
             })}
+        </g>
         </g>
     )
 }
@@ -677,7 +690,6 @@ const TrainCylinderView = ({ targetLen, actualLen, mass, svgRef, onDown, draggin
     // транспорт — крупно под циферблатом, чтобы было видно крутящиеся колёса
     const VSCALE = 1.2
     const iconY = GAUGE_CY + 20 + VEHICLE_DIMS[mass].h * VSCALE / 2 + 12
-    const halfW = VEHICLE_DIMS[mass].w * VSCALE / 2
     const dialArc = gaugeArc(GAUGE_DEG_MIN, GAUGE_DEG_MAX, GAUGE_R)
     const bArc = gaugeArc(targetDeg, actualDeg, GAUGE_R - 34)
     const bMid = gaugePt((targetDeg + actualDeg) / 2, GAUGE_R - 34)
@@ -711,7 +723,7 @@ const TrainCylinderView = ({ targetLen, actualLen, mass, svgRef, onDown, draggin
                     <g transform={`translate(${bArc.end.x},${bArc.end.y}) rotate(${bArc.ang})`}>
                         <path d="M -11 -9 L 2 0 L -11 9" fill="none" stroke={OWN_COLOR} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
                     </g>
-                    <SvgSticker x={bMid.x} y={bMid.y - 16} text="B" sub="инд" color={OWN_COLOR} />
+                    <SvgSticker x={bMid.x} y={bMid.y - 16} text="B" color={OWN_COLOR} />
                 </motion.g>
             )}
             {/* мишень — пунктирная тонкая стрелка */}
@@ -720,11 +732,6 @@ const TrainCylinderView = ({ targetLen, actualLen, mass, svgRef, onDown, draggin
             <line x1={GAUGE_CX} y1={GAUGE_CY} x2={needleTip.x} y2={needleTip.y} stroke={needleColor} strokeWidth={5} strokeLinecap="round" />
             <circle cx={GAUGE_CX} cy={GAUGE_CY} r={7} fill={needleColor} stroke="#fff" strokeWidth={2} />
             {/* транспорт — статичная иконка под спидометром, с намёком на движение */}
-            {[0, 1, 2].map((i) => (
-                <line key={i} x1={GAUGE_CX - halfW - 6} y1={iconY - 14 + i * 12}
-                    x2={GAUGE_CX - halfW - 26} y2={iconY - 14 + i * 12}
-                    stroke="#5C6B73" strokeWidth={2} strokeLinecap="round" opacity={fraction * 0.7} />
-            ))}
             <Vehicle x={GAUGE_CX} y={iconY} tilt={tilt} mass={mass} speed={fraction} scale={VSCALE} />
             {/* ручка — тащим МИШЕНЬ (педаль газ/тормоз), не саму скорость */}
             <g onPointerDown={onDown} style={{ cursor: dragging ? 'grabbing' : 'grab' }}>
