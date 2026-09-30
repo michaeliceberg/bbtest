@@ -1141,33 +1141,41 @@ const HookScene = ({ onSettled }: { onSettled?: () => void }) => {
 // именно РЕЗКОЙ СМЕНЕ потока — в любую сторону. Ровно как залипание в
 // скролле: пока действие устоялось — сопротивления нет вообще, оно
 // появляется только в момент резкого «выключить»/«включить».
+// Видео-реакция внутри сцены «залипания»: играет по кругу, пока это текущий
+// бит сцены, и встаёт на паузу, когда история идёт дальше (не греть CPU).
+const StuckVideo = ({ src, active }: { src: string; active: boolean }) => {
+    const ref = useRef<HTMLVideoElement>(null)
+    useEffect(() => { const v = ref.current; if (!v) return; if (active) v.play().catch(() => {}); else v.pause() }, [active])
+    return (
+        <video ref={ref} src={src} autoPlay loop muted playsInline
+            className="pointer-events-none mx-auto w-full max-w-[240px] rounded-2xl object-cover" />
+    )
+}
+const STUCK_VIDEO_HOLD_MS = 2600
 const StuckScene = ({ onSettled }: { onSettled?: () => void }) => {
+    // 0 интро · 1 «залип» · 2 капибара · 3 «выдёргивают» · 4 чику · 5 «гулять» · 6 Понасенков · 7 «тащат обратно» · 8 злой Понасенков · 9 вывод
     const [phase, setPhase] = useState(0)
+    const next = (n: number, delay = 0) => () => setTimeout(() => setPhase((p) => Math.max(p, n)), delay)
+    const vid = (at: number, src: string) => phase >= at && (
+        <DiagramBlock onSettled={next(at + 1, STUCK_VIDEO_HOLD_MS)}>
+            <StuckVideo src={src} active={phase <= at + 1} />
+        </DiagramBlock>
+    )
     return (
         <>
             <TypedLineWithParts
                 parts={[{ text: 'А теперь та же ' }, { sticker: 'индуктивность', color: OWN_COLOR }, { text: ', только у ЧЕЛОВЕКА 📱' }]}
-                onSettled={() => setPhase(1)}
+                onSettled={next(1)}
             />
-            {phase >= 1 && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Ты на пару часов залип на чиле — поток идёт ровно, никто не мешает 😌' }]}
-                    onSettled={() => setPhase(2)}
-                />
-            )}
-            {phase >= 2 && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Тебя РЕЗКО выдёргивают — «Хорош сидеть!» Ты сопротивляешься 😤' }]}
-                    onSettled={() => setPhase(3)}
-                />
-            )}
-            {phase >= 3 && (
-                <TypedLineWithParts
-                    parts={[{ text: 'Встал, пошёл гулять — тебя РЕЗКО тащат обратно. Ты СНОВА сопротивляешься 😤' }]}
-                    onSettled={() => setPhase(4)}
-                />
-            )}
-            {phase >= 4 && (
+            {phase >= 1 && <TypedLineWithParts parts={[{ text: 'Ты на пару часов залип на чиле — поток идёт ровно, никто не мешает 😌' }]} onSettled={next(2)} />}
+            {vid(2, '/video/stuck-kapibara.webm')}
+            {phase >= 3 && <TypedLineWithParts parts={[{ text: 'Тебя РЕЗКО выдёргивают — «Хорош сидеть!» Ты сопротивляешься 😤' }]} onSettled={next(4)} />}
+            {vid(4, '/video/stuck-angry-chikoo.mp4')}
+            {phase >= 5 && <TypedLineWithParts parts={[{ text: 'Встал, пошёл гулять — наслаждаешься прогулочкой 🚶' }]} onSettled={next(6)} />}
+            {vid(6, '/video/stuck-ponasenkov.mp4')}
+            {phase >= 7 && <TypedLineWithParts parts={[{ text: 'И тут тебя РЕЗКО тащат обратно. Ты СНОВА сопротивляешься 😤' }]} onSettled={next(8)} />}
+            {vid(8, '/video/stuck-ponasenkov-angry.mp4')}
+            {phase >= 9 && (
                 <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1400)}>
                     <InsightCard>
                         Дело не в том, что лень <InsightWord>ДВИГАТЬСЯ</InsightWord> — ты и сидел, и шёл, оба состояния «жили» спокойно.
@@ -1618,9 +1626,9 @@ const StopRaceScene = ({ onSettled }: { onSettled?: () => void }) => {
             {phase >= 3 && (
                 <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1200)}>
                     <InsightCard>
-                        Убрали магнит — поток хочет в ноль, но <InsightWord color="#FF9AC8">индукционный ток</InsightWord> его ещё держит.
-                        <br />Гасит его <InsightWord>сопротивление R</InsightWord> кольца (ток → тепло 🔥) — как трение гасит шарик.
-                        <br />Трение одинаковое, а валун тяжелее → катится дольше. Так и поток: больше <InsightWord color="#D8BBFF">индуктивность L</InsightWord> → дольше «докатывается».
+                        Убрали магнит — поток хочет упасть в ноль, но кольцо не даёт резко: <InsightWord color="#FF9AC8">B инд</InsightWord> ещё держит его.
+                        <br />Тяжёлый валун катится дольше лёгкого шарика.
+                        <br />Так и поток: чем больше <InsightWord color="#D8BBFF">индуктивность</InsightWord> («масса»), тем дольше он «докатывается».
                     </InsightCard>
                 </DiagramBlock>
             )}
