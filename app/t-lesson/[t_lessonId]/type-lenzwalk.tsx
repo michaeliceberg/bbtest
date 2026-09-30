@@ -780,6 +780,19 @@ const TrainCylinderView = ({ targetLen, actualLen, mass, svgRef, onDown, draggin
 const ELASTIC_METAPHOR = 'groove' as 'vehicle' | 'groove'
 const GR_CX = 240, GR_CY = 322, GR_R = 118, GR_W = 42, GR_H = 470
 const GR_BALL_R: Record<'light' | 'heavy', number> = { light: 11, heavy: 18 }
+// Цилиндр в жёлобе: кольцо S стоит правее (GR_RX), слева — МАГНИТ, северным
+// полюсом к кольцу. Его поле проходит сквозь кольцо вправо = цилиндр Φ. Ручка —
+// сам магнит: ближе к кольцу → B больше → цилиндр длиннее → шарик быстрее
+// (просьба пользователя: «мы же двигаем магнит», а не тянем дно цилиндра).
+// Длина цилиндра на экране = len · GR_SCALE (чтобы влезли магнит и цилиндр).
+const GR_RX = 205, GR_SCALE = 0.78
+const GR_MAG_W = 64, GR_MAG_H = 30
+const GR_MAG_MIN = 42, GR_MAG_MAX = GR_RX - 16 - GR_MAG_W / 2 // центр магнита: далеко … вплотную
+const lenToMagX = (len: number) => GR_MAG_MIN + ((len - TR_LMIN) / (TR_LMAX - TR_LMIN)) * (GR_MAG_MAX - GR_MAG_MIN)
+const grooveXToLen = (x: number) => {
+    const f = Math.max(0, Math.min(1, (x - GR_MAG_MIN) / (GR_MAG_MAX - GR_MAG_MIN)))
+    return TR_LMIN + f * (TR_LMAX - TR_LMIN)
+}
 const GR_LAP_TICKS = 140 // полный круг на максимальной скорости ≈ 2.2 с (тик 16 мс)
 const grPt = (a: number, r: number) => ({ x: GR_CX + r * Math.cos(a), y: GR_CY + r * Math.sin(a) })
 // дуга по часовой (угол растёт) от a1 до a2 на радиусе r
@@ -796,8 +809,10 @@ const GrooveView = ({ targetLen, actualLen, mass, svgRef, onDown, dragging, angR
     angRef?: React.MutableRefObject<number>; zone?: GrooveZone; startAng?: number
 }) => {
     const PHI = GGEGE_PALETTE.purple.button
-    const xTarget = TR_X0 + targetLen
-    const xActual = TR_X0 + actualLen
+    const dT = targetLen * GR_SCALE, dA = actualLen * GR_SCALE
+    const xTarget = GR_RX + dT
+    const xActual = GR_RX + dA
+    const magX = lenToMagX(targetLen)
     const speed = Math.max(0, Math.min(1, (actualLen - TR_LMIN) / (TR_LMAX - TR_LMIN)))
     const gap = targetLen - actualLen
     // угол шарика копится своим интервалом — катится и при постоянной скорости
@@ -837,12 +852,15 @@ const GrooveView = ({ targetLen, actualLen, mass, svgRef, onDown, dragging, angR
     return (
         <svg ref={svgRef} viewBox={`0 0 ${TR_W} ${GR_H}`} className="w-full max-w-[440px] h-auto select-none" style={{ touchAction: 'none' }}>
             {/* цилиндр потока — «газ»: его длина = скорость, к которой стремится шарик */}
-            <FluxCylinder cx={TR_X0 + targetLen / 2} cy={TR_CY} radius={TR_R} depth={TR_D} length={targetLen} orient="h" color="#9AA7B0" fill={0} dashed />
-            <FluxCylinder cx={TR_X0 + actualLen / 2} cy={TR_CY} radius={TR_R} depth={TR_D} length={actualLen} orient="h" color={PHI} />
-            <FieldArrow x1={TR_X0 + 4} y1={TR_CY} x2={xActual - 6} y2={TR_CY} color={FIELD_COLOR} width={5} head={8} />
-            <ellipse cx={TR_X0} cy={TR_CY} rx={TR_D} ry={TR_R} fill="none" stroke={RING_COLOR} strokeWidth={5} />
-            <SvgSticker x={TR_X0 - 2} y={TR_CY + TR_R + 20} text="S" color={RING_COLOR} />
-            <SvgSticker x={TR_X0 + 34} y={TR_CY - TR_R - 16} text="Φ" color={PHI} />
+            <FluxCylinder cx={GR_RX + dT / 2} cy={TR_CY} radius={TR_R} depth={TR_D} length={dT} orient="h" color="#9AA7B0" fill={0} dashed />
+            <FluxCylinder cx={GR_RX + dA / 2} cy={TR_CY} radius={TR_R} depth={TR_D} length={dA} orient="h" color={PHI} />
+            <FieldArrow x1={GR_RX + 4} y1={TR_CY} x2={xActual - 6} y2={TR_CY} color={FIELD_COLOR} width={5} head={8} />
+            <ellipse cx={GR_RX} cy={TR_CY} rx={TR_D} ry={TR_R} fill="none" stroke={RING_COLOR} strokeWidth={5} />
+            {dA > 70 && <SvgSticker x={GR_RX + dA / 2} y={TR_CY - 17} text="B" color={FIELD_COLOR} />}
+            <SvgSticker x={GR_RX - 2} y={TR_CY + TR_R + 20} text="S" color={RING_COLOR} />
+            <SvgSticker x={GR_RX + 30} y={TR_CY - TR_R - 16} text="Φ" color={PHI} />
+            {/* поле магнита до кольца — бледный пунктир */}
+            <line x1={magX + GR_MAG_W / 2 + 4} y1={TR_CY} x2={GR_RX - 8} y2={TR_CY} stroke={FIELD_COLOR} strokeWidth={3} strokeDasharray="4 6" opacity={0.5} />
             {/* B инд у цилиндра — от «хочу» (призрак) к настоящему потоку: тянет поток назад
                 при разгоне и вперёд при торможении — мешает ему меняться */}
             {Math.abs(gap) > 8 && (
@@ -893,16 +911,20 @@ const GrooveView = ({ targetLen, actualLen, mass, svgRef, onDown, dragging, angR
                     <SvgSticker x={(bBase.x + bTip.x) / 2 + (bBase.x - GR_CX) * 0.14} y={(bBase.y + bTip.y) / 2 + (bBase.y - GR_CY) * 0.14} text="B" color={OWN_COLOR} />
                 </motion.g>
             )}
-            {/* ручка — тащим МИШЕНЬ (газ/тормоз) */}
+            {/* МАГНИТ — ручка: двигаешь к кольцу / от кольца */}
             <g onPointerDown={onDown} style={{ cursor: dragging ? 'grabbing' : 'grab' }}>
                 {!dragging && (
-                    <motion.circle cx={xTarget} cy={TR_CY} r={22} fill="none" stroke={RULE_COLOR} strokeWidth={3}
-                        animate={{ scale: [1, 1.35, 1], opacity: [0.8, 0, 0.8] }} transition={{ duration: 1.3, repeat: Infinity }}
+                    <motion.rect x={magX - GR_MAG_W / 2 - 4} y={TR_CY - GR_MAG_H / 2 - 4} width={GR_MAG_W + 8} height={GR_MAG_H + 8} rx={10}
+                        fill="none" stroke={RULE_COLOR} strokeWidth={3}
+                        animate={{ scale: [1, 1.18, 1], opacity: [0.8, 0, 0.8] }} transition={{ duration: 1.3, repeat: Infinity }}
                         style={{ transformBox: 'fill-box', transformOrigin: 'center' }} />
                 )}
-                <circle cx={xTarget} cy={TR_CY} r={20} fill={RULE_COLOR} stroke="#fff" strokeWidth={3} />
-                <text x={xTarget} y={TR_CY + 6} textAnchor="middle" fontSize={16} fontWeight={900} fill="#fff">✋</text>
-                <circle cx={xTarget} cy={TR_CY} r={34} fill="transparent" />
+                <rect x={magX - GR_MAG_W / 2} y={TR_CY - GR_MAG_H / 2} width={GR_MAG_W / 2} height={GR_MAG_H} rx={5} fill={SOUTH_COLOR} />
+                <rect x={magX} y={TR_CY - GR_MAG_H / 2} width={GR_MAG_W / 2} height={GR_MAG_H} rx={5} fill={NORTH_COLOR} />
+                <text x={magX - GR_MAG_W / 4} y={TR_CY + 6} textAnchor="middle" fontSize={16} fontWeight={900} fill="#fff">S</text>
+                <text x={magX + GR_MAG_W / 4} y={TR_CY + 6} textAnchor="middle" fontSize={16} fontWeight={900} fill="#fff">N</text>
+                <text x={magX} y={TR_CY - GR_MAG_H / 2 - 12} textAnchor="middle" fontSize={16} fill="#9AA7B0">⇄</text>
+                <rect x={magX - GR_MAG_W / 2 - 14} y={TR_CY - GR_MAG_H / 2 - 22} width={GR_MAG_W + 28} height={GR_MAG_H + 44} fill="transparent" />
             </g>
         </svg>
     )
@@ -967,7 +989,7 @@ const TrainCylinderScene = ({ onSettled }: { onSettled?: () => void }) => {
         if (!dragging) return
         const x = toSvgX(e.clientX, e.clientY)
         if (x === null) return
-        const raw = Math.max(TR_LMIN, Math.min(TR_LMAX, x - TR_X0))
+        const raw = ELASTIC_METAPHOR === 'groove' ? grooveXToLen(x) : Math.max(TR_LMIN, Math.min(TR_LMAX, x - TR_X0))
         targetRef.current = raw
         setTargetLen(raw)
     }
@@ -983,14 +1005,14 @@ const TrainCylinderScene = ({ onSettled }: { onSettled?: () => void }) => {
     useEffect(() => { if (both && phase === 1) { const t = setTimeout(() => setPhase(2), 700); return () => clearTimeout(t) } }, [both, phase])
 
     const G = ELASTIC_METAPHOR === 'groove'
-    const hint = !tried.light ? (G ? '⚪ Шарик уже выбран — тяни цилиндр вправо (газ) или влево (тормоз)' : '🚲 Велик уже выбран — тяни цилиндр вправо (газ) или влево (тормоз)')
+    const hint = !tried.light ? (G ? '⚪ Шарик уже выбран — двигай магнит к кольцу (газ) или от кольца (тормоз)' : '🚲 Велик уже выбран — тяни цилиндр вправо (газ) или влево (тормоз)')
         : !tried.heavy ? (G ? 'Теперь переключи на 🪨 Валун и дёрни резко' : 'Теперь переключи на 🚙 Гелик и дёрни резко')
             : ''
 
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'Приделаем к потоку ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: G ? ' жёлоб: чем длиннее цилиндр — тем быстрее катится шарик по кругу' : ' спидометр 🚲🚙 — тянешь цилиндр, стрелка следует за рукой' }]}
+                parts={[{ text: 'Приделаем к потоку ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: G ? ' жёлоб. Двигай 🧲 магнит к кольцу: поле B сильнее → цилиндр длиннее → шарик катится быстрее' : ' спидометр 🚲🚙 — тянешь цилиндр, стрелка следует за рукой' }]}
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
@@ -1340,7 +1362,7 @@ const useFluxHandle = (mass: 'light' | 'heavy', initial = TR_L0) => {
         if (!svg || !ctm) return
         const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY
         const x = pt.matrixTransform(ctm.inverse()).x
-        const raw = Math.max(TR_LMIN, Math.min(TR_LMAX, x - TR_X0))
+        const raw = grooveXToLen(x)
         targetRef.current = raw; setTargetLen(raw)
     }
     const onUp = () => setDragging(false)
