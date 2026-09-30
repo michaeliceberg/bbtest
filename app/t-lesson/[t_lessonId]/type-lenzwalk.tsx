@@ -924,7 +924,6 @@ const GrooveView = ({ targetLen, actualLen, mass, svgRef, onDown, dragging, angR
                 <rect x={magX} y={TR_CY - GR_MAG_H / 2} width={GR_MAG_W / 2} height={GR_MAG_H} rx={5} fill={NORTH_COLOR} />
                 <text x={magX - GR_MAG_W / 4} y={TR_CY + 6} textAnchor="middle" fontSize={16} fontWeight={900} fill="#fff">S</text>
                 <text x={magX + GR_MAG_W / 4} y={TR_CY + 6} textAnchor="middle" fontSize={16} fontWeight={900} fill="#fff">N</text>
-                <text x={magX} y={TR_CY - GR_MAG_H / 2 - 12} textAnchor="middle" fontSize={16} fill="#9AA7B0">⇄</text>
                 <rect x={magX - GR_MAG_W / 2 - 14} y={TR_CY - GR_MAG_H / 2 - 22} width={GR_MAG_W + 28} height={GR_MAG_H + 44} fill="transparent" />
             </g>
         </svg>
@@ -1376,7 +1375,8 @@ const speedToLen = (v: number) => TR_LMIN + v * (TR_LMAX - TR_LMIN)
 // плавно меняется. Ручкой Φ держи шарик внутри 5 секунд. С шариком легко, с
 // валуном — надо газовать и тормозить ЗАРАНЕЕ.
 const ZONE_GOAL_TICKS = 5000 / 16
-const ZONE_HALF: Record<'light' | 'heavy', number> = { light: 0.42, heavy: 0.55 }
+// 2026-09-30: шарику зону шире (легче), валуну уже (труднее) — по просьбе пользователя.
+const ZONE_HALF: Record<'light' | 'heavy', number> = { light: 0.55, heavy: 0.45 }
 // Скорость зоны меняется РЫВКАМИ каждые 3.5 с (за 0.5 с). Шарик успевает сразу,
 // валун — только если газовать/тормозить с запасом (проверено симуляцией:
 // «повторяй скорость зоны» на валуне не проходит, «перегазуй» — за ~10 с).
@@ -1457,7 +1457,7 @@ const ZoneGameScene = ({ onSettled }: { onSettled?: () => void }) => {
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'Игра: держи ⚪ шарик в ' }, { sticker: 'зелёной зоне', color: GGEGE_PALETTE.green.button }, { text: ' 5 секунд. Зона то ускоряется, то тормозит 😏' }]}
+                parts={[{ bold: '⚔️ СРАЗИСЬ С ИНДУКТИВНОСТЬЮ!' }, { break: true }, { text: 'Держи ⚪ шарик в ' }, { sticker: 'зелёной зоне', color: GGEGE_PALETTE.green.button }, { text: ' 5 секунд. Зона то ускоряется, то тормозит 😏' }]}
                 onSettled={() => setPhase((p) => Math.max(p, 1))}
             />
             {phase >= 1 && phase < 3 && (
