@@ -543,7 +543,7 @@ const SvgSticker = ({ x, y, text, sub, color }: { x: number; y: number; text: st
 // это «дуло, светящее в лицо» (мешает расти), при торможении —
 // «двигатель, толкающий сзади» (мешает падать) — направление само
 // переключается через тот же gap, без отдельной логики.
-const TR_W = 480, TR_H = 380
+const TR_W = 480, TR_H = 440
 const TR_X0 = 60, TR_CY = 72, TR_R = 36, TR_D = 11
 const TR_LMIN = 30, TR_LMAX = 340, TR_L0 = 150
 // Спидометр: центр, радиус, угловой диапазон (° в конвенции gaugePt —
@@ -597,15 +597,54 @@ const TR_SNAP = 1.2
 // тоже приподнят, чтобы остаться такой же ЛЁГКОЙ ДОЛЕЙ трассы.
 const TR_DRAG_MIN = 60
 
-// Транспорт — теперь СТАТИЧНАЯ иконка (не едет по рельсам, см. правку
-// выше), центрированная в точке (x,y), с лёгким наклоном (SVG rotate
-// вокруг СВОЕГО центра — атрибут-transform, не CSS, поэтому гэтча
-// transformBox для SVG тут в принципе не может возникнуть).
-const Vehicle = ({ x, y, tilt, mass, scale = 1 }: { x: number; y: number; tilt: number; mass: 'light' | 'heavy'; scale?: number }) => {
+// Транспорт — иконка под спидометром, которая «едет вправо»: колёса
+// крутятся бегущим пунктиром (тот же приём, что у тока в кольце), корпус
+// мелко трясётся. Скорость вращения/тряски = speed (0..1, та же доля, что
+// у стрелки спидометра). Фаза копится своим setInterval (не rAF — не
+// замирает в фоне) и продолжает крутиться при постоянной скорости, даже
+// когда родитель уже не перерисовывается.
+// Колёса — в долях размера картинки (замерено по альфе файлов). Гелик в
+// файле смотрит ВЛЕВО — рисуем его отражённым (scale(-1,1)), координаты
+// колёс даны уже для отражённой картинки.
+const VEHICLE_WHEELS: Record<'light' | 'heavy', { fx: number; fy: number; fr: number }[]> = {
+    light: [{ fx: 0.207, fy: 0.638, fr: 0.27 }, { fx: 0.793, fy: 0.638, fr: 0.27 }],
+    heavy: [{ fx: 0.218, fy: 0.766, fr: 0.13 }, { fx: 0.816, fy: 0.766, fr: 0.13 }],
+}
+const VEHICLE_FLIP: Record<'light' | 'heavy', boolean> = { light: false, heavy: true }
+const Vehicle = ({ x, y, tilt, mass, speed, scale = 1 }: { x: number; y: number; tilt: number; mass: 'light' | 'heavy'; speed: number; scale?: number }) => {
     const w = VEHICLE_DIMS[mass].w * scale, h = VEHICLE_DIMS[mass].h * scale
+    const speedRef = useRef(speed)
+    speedRef.current = speed
+    const [phase, setPhase] = useState(0)
+    useEffect(() => {
+        const id = setInterval(() => {
+            const v = speedRef.current
+            if (v > 0.01) setPhase((p) => p + v * 5)
+        }, 33)
+        return () => clearInterval(id)
+    }, [])
+    // тряска: небольшая, растёт со скоростью; у велика чуть сильнее (лёгкий)
+    const amp = speed * (mass === 'light' ? 1.6 : 1.1)
+    const shakeY = Math.sin(phase * 1.9) * amp
+    const shakeR = Math.sin(phase * 1.3) * amp * 0.5
     return (
-        <g transform={`translate(${x},${y}) rotate(${tilt})`}>
-            <image href={VEHICLE_SRC[mass]} x={-w / 2} y={-h / 2} width={w} height={h} preserveAspectRatio="xMidYMid meet" />
+        <g transform={`translate(${x},${y + shakeY}) rotate(${tilt + shakeR})`}>
+            <image href={VEHICLE_SRC[mass]} x={-w / 2} y={-h / 2} width={w} height={h} preserveAspectRatio="xMidYMid meet"
+                transform={VEHICLE_FLIP[mass] ? 'scale(-1,1)' : undefined} />
+            {VEHICLE_WHEELS[mass].map((wh, i) => {
+                const r = wh.fr * h
+                const circ = 2 * Math.PI * r
+                const dash = circ / 10
+                return (
+                    <g key={i}>
+                        {/* SVG-окружность рисуется по часовой → уменьшаем offset = колесо крутится по часовой = едет вправо */}
+                        <circle cx={-w / 2 + wh.fx * w} cy={-h / 2 + wh.fy * h} r={r} fill="none" stroke="#F2F7FB" strokeWidth={Math.max(1.6, r * 0.16)}
+                            strokeDasharray={`${dash * 0.45} ${dash * 0.55}`} strokeDashoffset={-phase} strokeLinecap="round" opacity={0.85} />
+                        <circle cx={-w / 2 + wh.fx * w} cy={-h / 2 + wh.fy * h} r={r * 0.55} fill="none" stroke="#F2F7FB" strokeWidth={Math.max(1.2, r * 0.1)}
+                            strokeDasharray={`${dash * 0.25} ${dash * 0.3}`} strokeDashoffset={-phase * 0.55} strokeLinecap="round" opacity={0.6} />
+                    </g>
+                )
+            })}
         </g>
     )
 }
@@ -635,7 +674,10 @@ const TrainCylinderView = ({ targetLen, actualLen, mass, svgRef, onDown, draggin
     // логика, что и раньше, просто теперь применена к статичной иконке
     // (лёгкий «живой» акцент, а не имитация реального движения).
     const tilt = Math.max(-10, Math.min(10, -gap * 0.2))
-    const iconY = GAUGE_CY + 40
+    // транспорт — крупно под циферблатом, чтобы было видно крутящиеся колёса
+    const VSCALE = 1.2
+    const iconY = GAUGE_CY + 20 + VEHICLE_DIMS[mass].h * VSCALE / 2 + 12
+    const halfW = VEHICLE_DIMS[mass].w * VSCALE / 2
     const dialArc = gaugeArc(GAUGE_DEG_MIN, GAUGE_DEG_MAX, GAUGE_R)
     const bArc = gaugeArc(targetDeg, actualDeg, GAUGE_R - 34)
     const bMid = gaugePt((targetDeg + actualDeg) / 2, GAUGE_R - 34)
@@ -679,11 +721,11 @@ const TrainCylinderView = ({ targetLen, actualLen, mass, svgRef, onDown, draggin
             <circle cx={GAUGE_CX} cy={GAUGE_CY} r={7} fill={needleColor} stroke="#fff" strokeWidth={2} />
             {/* транспорт — статичная иконка под спидометром, с намёком на движение */}
             {[0, 1, 2].map((i) => (
-                <line key={i} x1={GAUGE_CX - VEHICLE_DIMS[mass].w * 0.31 * 0.62 - 8} y1={iconY - 10 + i * 10}
-                    x2={GAUGE_CX - VEHICLE_DIMS[mass].w * 0.31 * 0.62 - 22} y2={iconY - 10 + i * 10}
+                <line key={i} x1={GAUGE_CX - halfW - 6} y1={iconY - 14 + i * 12}
+                    x2={GAUGE_CX - halfW - 26} y2={iconY - 14 + i * 12}
                     stroke="#5C6B73" strokeWidth={2} strokeLinecap="round" opacity={fraction * 0.7} />
             ))}
-            <Vehicle x={GAUGE_CX} y={iconY} tilt={tilt} mass={mass} scale={0.62} />
+            <Vehicle x={GAUGE_CX} y={iconY} tilt={tilt} mass={mass} speed={fraction} scale={VSCALE} />
             {/* ручка — тащим МИШЕНЬ (педаль газ/тормоз), не саму скорость */}
             <g onPointerDown={onDown} style={{ cursor: dragging ? 'grabbing' : 'grab' }}>
                 {!dragging && (
