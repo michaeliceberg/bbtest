@@ -946,6 +946,217 @@ const MassBtn = ({ active, pulse, color, onClick, children }: {
     </button>
 )
 
+// ===== Лесенка к жёлобу (2026-10-01): просьба пользователя — «проще, линейнее,
+// меньше слов, на каждом шаге проверка понимания». Сначала «поток = движение»,
+// потом чистая механика «лёгкое/тяжёлое», и только потом всё вместе с магнитом.
+
+// Мини-проверка: вопросы по одному, два варианта; ошибка — красная вспышка и
+// «ещё раз» (в ошибки урока НЕ идёт, как и остальные мини-игры).
+type MiniQ = { q: React.ReactNode; options: React.ReactNode[]; correct: number }
+const MiniQuiz = ({ questions, onDone }: { questions: MiniQ[]; onDone: () => void }) => {
+    const [idx, setIdx] = useState(0)
+    const [wrong, setWrong] = useState<number | null>(null)
+    const [right, setRight] = useState(false)
+    const doneRef = useRef(false)
+    const q = questions[Math.min(idx, questions.length - 1)]
+    const pick = (i: number) => {
+        if (right) return
+        if (i !== q.correct) {
+            playSound(WRONG_ANSWER_SOUND); setWrong(i); setTimeout(() => setWrong(null), 700); return
+        }
+        setRight(true)
+        setTimeout(() => {
+            setRight(false)
+            if (idx + 1 >= questions.length) { if (!doneRef.current) { doneRef.current = true; onDone() } }
+            setIdx((x) => Math.min(x + 1, questions.length))
+        }, 750)
+    }
+    if (idx >= questions.length) {
+        return <div className="w-full text-center text-lg font-black" style={{ color: GGEGE_PALETTE.green.button }}>✅ Всё верно!</div>
+    }
+    return (
+        <div className="w-full flex flex-col items-center gap-3">
+            <div className="text-xs font-black text-[#9AA7B0]">Проверка {idx + 1}/{questions.length}</div>
+            <div className="text-lg font-black text-center">{q.q}</div>
+            <div className="flex gap-2 w-full">
+                {q.options.map((o, i) => {
+                    const isRight = right && i === q.correct, isWrong = wrong === i
+                    const col = isRight ? GGEGE_PALETTE.green.button : isWrong ? '#DC605B' : '#3A464E'
+                    return (
+                        <motion.button key={`${idx}-${i}`} type="button" onClick={() => pick(i)}
+                            animate={isWrong ? { x: [0, -8, 8, -5, 5, 0] } : { x: 0 }} transition={{ duration: 0.35 }}
+                            className="flex-1 rounded-2xl border-2 border-b-4 px-3 py-3 text-base font-black text-white active:border-b-2"
+                            style={{ borderColor: col, backgroundColor: isRight || isWrong ? hexToRgba(col, 0.2) : '#161F23' }}>
+                            {o}
+                        </motion.button>
+                    )
+                })}
+            </div>
+            {wrong !== null && <div className="text-sm font-black" style={{ color: '#DC605B' }}>Не-а, попробуй ещё 🙃</div>}
+        </div>
+    )
+}
+
+// Кольцо-жёлоб с шариком (вид сверху) — простая версия без магнита/цилиндра.
+// speed 0..1 = линейная скорость (одинаковая «на вид» при любом радиусе).
+const MiniRingTrack = ({ cx, cy, r, mass, speed }: { cx: number; cy: number; r: number; mass: 'light' | 'heavy'; speed: number }) => {
+    const speedRef = useRef(speed)
+    speedRef.current = speed
+    const angRef = useRef(-Math.PI / 2)
+    const [ang, setAng] = useState(-Math.PI / 2)
+    useEffect(() => {
+        const id = setInterval(() => {
+            const v = speedRef.current
+            if (v > 0.005) { angRef.current += ((v * 2 * Math.PI) / GR_LAP_TICKS) * (GR_R / r); setAng(angRef.current) }
+        }, 16)
+        return () => clearInterval(id)
+    }, [r])
+    const heavy = mass === 'heavy', br = GR_BALL_R[mass] * (r < 100 ? 0.85 : 1), W = 34
+    const p = { x: cx + r * Math.cos(ang), y: cy + r * Math.sin(ang) }
+    const trail = speed * 1.1 * (GR_R / r)
+    const t0 = { x: cx + r * Math.cos(ang - trail), y: cy + r * Math.sin(ang - trail) }
+    return (
+        <g>
+            <circle cx={cx} cy={cy} r={r} fill="none" stroke="#3A464E" strokeWidth={W + 6} />
+            <circle cx={cx} cy={cy} r={r} fill="none" stroke="#1B262B" strokeWidth={W} />
+            {speed > 0.02 && <path d={`M ${t0.x} ${t0.y} A ${r} ${r} 0 ${trail > Math.PI ? 1 : 0} 1 ${p.x} ${p.y}`} fill="none"
+                stroke={heavy ? '#9AA7B0' : '#F2F7FB'} strokeWidth={br * 1.3} strokeLinecap="round" opacity={0.22} />}
+            <circle cx={p.x} cy={p.y} r={br} fill={heavy ? '#7E868B' : '#F2F7FB'} stroke={heavy ? '#4E5559' : '#C9D3D9'} strokeWidth={2} />
+        </g>
+    )
+}
+const SpeedBar = ({ v, color, label }: { v: number; color: string; label: React.ReactNode }) => (
+    <div className="flex items-center gap-2 text-sm font-black w-full">
+        <span className="shrink-0 w-16">{label}</span>
+        <div className="h-3 flex-1 rounded-full bg-[#26343A] overflow-hidden">
+            <div className="h-full rounded-full" style={{ width: `${Math.round(v * 100)}%`, backgroundColor: color }} />
+        </div>
+    </div>
+)
+
+// Ступенька 1: «Есть поток — есть движение». Три уровня Φ, шарик едет с той же скоростью.
+const PHI_LEVELS = [0, 0.3, 0.9]
+const FLUX_MOTION_QUIZ: MiniQ[] = [
+    { q: <>Поток <b>Φ = 0</b>. Шарик…</>, options: ['😴 стоит', '🏃 катится'], correct: 0 },
+    { q: <>Поток <b>больше</b> → шарик…</>, options: ['🐢 медленнее', '🚀 быстрее'], correct: 1 },
+]
+const FluxMotionScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const PHI = GGEGE_PALETTE.purple.button
+    const [phase, setPhase] = useState(0)
+    const [level, setLevel] = useState(0)
+    const [tried, setTried] = useState<boolean[]>([false, false, false])
+    const [v, setV] = useState(0)
+    const vRef = useRef(0), tgtRef = useRef(0)
+    useEffect(() => {
+        const id = setInterval(() => {
+            const d = tgtRef.current - vRef.current
+            if (Math.abs(d) < 0.003) return
+            vRef.current += d * 0.12; setV(vRef.current)
+        }, 16)
+        return () => clearInterval(id)
+    }, [])
+    const pick = (i: number) => { setLevel(i); tgtRef.current = PHI_LEVELS[i]; setTried((t) => t.map((x, k) => x || k === i)) }
+    const allTried = tried.every(Boolean)
+    useEffect(() => { if (allTried && phase === 1) { const t = setTimeout(() => setPhase(2), 900); return () => clearTimeout(t) } }, [allTried, phase])
+    const len = 12 + v * 230
+    return (
+        <>
+            <TypedLineWithParts
+                parts={[{ text: 'Поток ' }, { sticker: 'Φ', color: PHI }, { text: ' — как скорость шарика. Есть поток — есть ' }, { bold: 'движение' }, { text: '.' }]}
+                onSettled={() => setPhase((p) => Math.max(p, 1))}
+            />
+            {phase >= 1 && (
+                <DiagramBlock>
+                    <div className="w-full flex flex-col items-center gap-3">
+                        <svg viewBox="0 0 480 400" className="w-full max-w-[400px] h-auto select-none">
+                            <FluxCylinder cx={120 + len / 2} cy={56} radius={30} depth={9} length={len} orient="h" color={PHI} />
+                            <ellipse cx={120} cy={56} rx={9} ry={30} fill="none" stroke={RING_COLOR} strokeWidth={4} />
+                            <SvgSticker x={92} y={56} text="Φ" color={PHI} />
+                            <MiniRingTrack cx={240} cy={255} r={110} mass="light" speed={v} />
+                        </svg>
+                        <div className="flex gap-2 w-full">
+                            {['Φ = 0', 'мало', 'много'].map((t, i) => (
+                                <MassBtn key={i} active={level === i} pulse={!tried[i]} color={PHI} onClick={() => pick(i)}>{t}</MassBtn>
+                            ))}
+                        </div>
+                    </div>
+                </DiagramBlock>
+            )}
+            {phase >= 2 && (
+                <DiagramBlock>
+                    <MiniQuiz questions={FLUX_MOTION_QUIZ} onDone={() => setTimeout(() => onSettled?.(), 600)} />
+                </DiagramBlock>
+            )}
+        </>
+    )
+}
+
+// Ступенька 2: чистая механика. Два одинаковых кольца: ⚪ шарик и 🪨 валун.
+// «Разогнать» — оба тянутся к максимуму, «Тормоз» — к нулю. Шарик — сразу, валун — лениво.
+const MASS_RATE: Record<'light' | 'heavy', number> = { light: 0.09, heavy: 0.012 }
+const MASS_QUIZ: MiniQ[] = [
+    { q: 'Кого легче разогнать?', options: ['⚪ шарик', '🪨 валун'], correct: 0 },
+    { q: 'Кого труднее остановить?', options: ['⚪ шарик', '🪨 валун'], correct: 1 },
+]
+const MassScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0) // 0 интро · 1 «разогнать» · 2 разгон · 3 «тормоз» · 4 тормозят · 5 проверка
+    const [vs, setVs] = useState({ light: 0, heavy: 0 })
+    const vRef = useRef({ light: 0, heavy: 0 }), tgt = useRef(0)
+    useEffect(() => {
+        const id = setInterval(() => {
+            const n = { ...vRef.current }
+            let changed = false
+            for (const m of ['light', 'heavy'] as const) {
+                const d = tgt.current - n[m]
+                if (Math.abs(d) < 0.004) { if (n[m] !== tgt.current) { n[m] = tgt.current; changed = true } continue }
+                n[m] += d * MASS_RATE[m]; changed = true
+            }
+            if (changed) { vRef.current = n; setVs(n) }
+        }, 16)
+        return () => clearInterval(id)
+    }, [])
+    useEffect(() => { if (phase === 2 && vs.heavy > 0.9) setPhase(3) }, [phase, vs.heavy])
+    useEffect(() => { if (phase === 4 && vs.heavy < 0.04) setPhase(5) }, [phase, vs.heavy])
+    return (
+        <>
+            <TypedLineWithParts
+                parts={[{ text: 'Теперь просто механика. ⚪ Лёгкий шарик и 🪨 тяжёлый валун.' }]}
+                onSettled={() => setPhase((p) => Math.max(p, 1))}
+            />
+            {phase >= 1 && (
+                <DiagramBlock>
+                    <div className="w-full flex flex-col items-center gap-3">
+                        <svg viewBox="0 0 480 220" className="w-full max-w-[420px] h-auto select-none">
+                            <MiniRingTrack cx={122} cy={110} r={82} mass="light" speed={vs.light} />
+                            <MiniRingTrack cx={358} cy={110} r={82} mass="heavy" speed={vs.heavy} />
+                            <text x={122} y={116} textAnchor="middle" fontSize={26}>⚪</text>
+                            <text x={358} y={118} textAnchor="middle" fontSize={26}>🪨</text>
+                        </svg>
+                        <div className="w-full max-w-[360px] space-y-1.5">
+                            <SpeedBar v={vs.light} color="#F2F7FB" label="⚪ скорость" />
+                            <SpeedBar v={vs.heavy} color="#9AA7B0" label="🪨 скорость" />
+                        </div>
+                        {phase === 1 && <ReplyBtn color={GGEGE_PALETTE.green.button} onClick={() => { tgt.current = 1; setPhase(2) }}>💨 Разогнать</ReplyBtn>}
+                        {phase === 3 && <ReplyBtn color="#DC605B" onClick={() => { tgt.current = 0; setPhase(4) }}>🛑 Тормоз</ReplyBtn>}
+                        {(phase === 2 || phase === 4) && <p className="text-sm font-black text-[#9AA7B0]">Смотри на валун 👀</p>}
+                    </div>
+                </DiagramBlock>
+            )}
+            {phase >= 5 && (
+                <DiagramBlock>
+                    <MiniQuiz questions={MASS_QUIZ} onDone={() => setTimeout(() => onSettled?.(), 600)} />
+                </DiagramBlock>
+            )}
+        </>
+    )
+}
+
+// Проверка после «всё вместе» (жёлоб с магнитом).
+const MASS_LINK_QUIZ: MiniQ[] = [
+    { q: 'Индуктивность — это как…', options: ['🏋️ масса', '🎨 цвет'], correct: 0 },
+    { q: 'Индуктивность большая. Поток меняется…', options: ['⚡ мгновенно', '😴 лениво'], correct: 1 },
+]
+
 const TrainCylinderScene = ({ onSettled }: { onSettled?: () => void }) => {
     // phase: 0 интро · 1 диаграмма · 2 вывод
     const [phase, setPhase] = useState(0)
@@ -1014,7 +1225,7 @@ const TrainCylinderScene = ({ onSettled }: { onSettled?: () => void }) => {
         <>
             <TypedLineWithParts
                 parts={G
-                    ? [{ bold: 'ПОТОК' }, { text: ' ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ' — это как ' }, { bold: 'ИМПУЛЬС' }, { text: ' в механике. Двигай 🧲 магнит к кольцу: поле ' }, { sticker: 'B', color: FIELD_COLOR }, { text: ' сильнее → увеличиваем ' }, { sticker: 'ПОТОК Φ', color: GGEGE_PALETTE.purple.button }, { text: ' → шарик катится быстрее' }]
+                    ? [{ text: 'Всё вместе: двигай 🧲 магнит → меняется поток ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: '.' }]
                     : [{ text: 'Приделаем к потоку ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ' спидометр 🚲🚙 — тянешь цилиндр, стрелка следует за рукой' }]}
                 onSettled={() => setPhase(1)}
             />
@@ -1033,7 +1244,7 @@ const TrainCylinderScene = ({ onSettled }: { onSettled?: () => void }) => {
                 </DiagramBlock>
             )}
             {phase >= 2 && (
-                <DiagramBlock onSettled={() => setTimeout(() => setPhase(3), 1600)}>
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase(3), 1200)}>
                     <InsightCard>
                         <InsightWord color="#FF9AC8">Индуктивность</InsightWord> — как <InsightWord color="#D8BBFF">МАССА</InsightWord>.
                         <br />{G ? '⚪ Лёгкий шарик' : '🚲 Велик лёгкий'} — его скорость менять <InsightWord>легко</InsightWord>.
@@ -1046,6 +1257,11 @@ const TrainCylinderScene = ({ onSettled }: { onSettled?: () => void }) => {
                 меняться) на самом деле неточный — исправляем его тем же
                 визуальным языком (перечёркнутая красная плашка → новая). */}
             {phase >= 3 && (
+                <DiagramBlock>
+                    <MiniQuiz questions={MASS_LINK_QUIZ} onDone={() => setPhase((p) => Math.max(p, 4))} />
+                </DiagramBlock>
+            )}
+            {phase >= 4 && (
                 <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1600)}>
                     <div className="w-full rounded-xl border-2 px-4 py-3 text-center" style={{ borderColor: REMEMBER_COLOR, backgroundColor: hexToRgba(REMEMBER_COLOR, 0.12) }}>
                         <div className="text-sm font-bold" style={{ color: '#F2F7FB' }}>
@@ -1647,7 +1863,7 @@ const StopRaceScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-const CONCEPT_SCENES = [HookScene, TrainCylinderScene, StopRaceScene, ZoneGameScene, StuckScene, WhoScene, SpeedMagnetScene]
+const CONCEPT_SCENES = [HookScene, FluxMotionScene, MassScene, TrainCylinderScene, StopRaceScene, ZoneGameScene, StuckScene, WhoScene, SpeedMagnetScene]
 const INTRO_CONCEPT_STEPS = CONCEPT_SCENES.length
 
 const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
