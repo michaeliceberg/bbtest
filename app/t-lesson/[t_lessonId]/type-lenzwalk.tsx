@@ -7,12 +7,13 @@
 //
 // Сцены: HookScene («поток Φ не должен меняться… а если нарушить?») →
 // TrainCylinderScene — тянем цилиндр потока Φ, а к нему рычагом (штоком)
-// приделан вагон 🚃 на рельсах; чем ТЯЖЕЛЕЕ вагон, тем заметнее он
-// отстаёт от мишени (там, где сейчас палец) — прямая механическая
-// аналогия «индуктивность L = масса вагона»: лёгкий вагон почти не
-// отстаёт (слабое B инд), тяжёлый — заметно тормозит рывок (сильное
-// B инд). Дальше WhoScene (кто делает B инд — само кольцо через правило
-// правой руки) → SpeedMagnetScene (скорость магнита → сила тока).
+// приделан транспорт (🚲 велосипед / 🚙 Гелик) на рельсах; чем ТЯЖЕЛЕЕ
+// выбранный транспорт, тем заметнее он отстаёт от мишени (там, где
+// сейчас палец) — прямая механическая аналогия «индуктивность L = вес
+// транспорта»: велосипед почти не отстаёт (слабое B инд), Гелик —
+// заметно тормозит рывок (сильное B инд). Дальше WhoScene (кто делает
+// B инд — само кольцо через правило правой руки) → SpeedMagnetScene
+// (скорость магнита → сила тока).
 //
 // Физика (проверено): кольцо горизонтальное, магнит сверху. N внизу → поле
 // магнита в кольце ВНИЗ. Приближаем → Φ растёт → своё поле кольца ВВЕРХ
@@ -527,54 +528,64 @@ const SvgSticker = ({ x, y, text, sub, color }: { x: number; y: number; text: st
     )
 }
 // 3б. Поток — цилиндр (дно — кольцо S, длина — поле B), а к его поршню
-// ШТОКОМ приделан вагон 🚃 на рельсах — прямая механическая аналогия
-// «инерция вагона = индуктивность L» (обсуждение с пользователем,
-// метафора «поршень+вагон» из ChatGPT-диалога, 2026-09-30). Тянешь
-// цилиндр рукой — рука двигает МИШЕНЬ (пунктирный призрак) мгновенно, а
-// НАСТОЯЩИЙ поток (сплошной цилиндр + вагон под ним) непрерывно ДОГОНЯЕТ
-// мишень с задержкой — темп погони зависит от массы вагона (переключатель
-// 🪶/🚂). Разрыв между мишенью и настоящим значением — это и есть B инд:
-// пока он есть, вагон дёргается/отстаёт; лёгкий вагон почти не отстаёт
-// (слабая индуктивность), тяжёлый — заметно тормозит любой рывок.
-const TR_W = 320, TR_H = 300
+// ШТОКОМ приделан транспорт на рельсах — прямая механическая аналогия
+// «вес транспорта = индуктивность L» (обсуждение с пользователем,
+// метафора «поршень+вагон» из ChatGPT-диалога, 2026-09-30; по просьбе
+// пользователя вагон заменён на 🚲 велосипед / 🚙 Гелик — веселее и
+// сразу понятно, что тяжелее). Тянешь цилиндр рукой — рука двигает
+// МИШЕНЬ (пунктирный призрак) мгновенно, а НАСТОЯЩИЙ поток (сплошной
+// цилиндр + транспорт под ним) непрерывно ДОГОНЯЕТ мишень с задержкой —
+// темп погони зависит от выбранного транспорта. Разрыв между мишенью и
+// настоящим значением — это и есть B инд: пока он есть, транспорт
+// дёргается/отстаёт; велосипед почти не отстаёт (слабая индуктивность),
+// Гелик — заметно тормозит любой рывок.
+// Канвас расширен по просьбе пользователя («больше места разгоняться») —
+// раньше был TR_W=320/TR_LMAX=210, теперь трасса почти в 2 раза длиннее.
+const TR_W = 480, TR_H = 320
 const TR_X0 = 60, TR_CY = 72, TR_R = 36, TR_D = 11
-const TR_LMIN = 30, TR_LMAX = 210, TR_L0 = 110
-const TR_RAIL_Y = 252
-const WAGON_W = 74, WAGON_H = 44
+const TR_LMIN = 30, TR_LMAX = 340, TR_L0 = 150
+const TR_RAIL_Y = 268
+// Картинки — реальные фото, вырезанные Vision (без фона), см.
+// public/vehicles/. Высота считается из ширины по реальным пропорциям
+// файлов, чтобы не искажать транспорт.
+const VEHICLE_SRC: Record<'light' | 'heavy', string> = { light: '/vehicles/bike.webp', heavy: '/vehicles/gelik.webp' }
+const VEHICLE_DIMS: Record<'light' | 'heavy', { w: number; h: number }> = { light: { w: 96, h: 60 }, heavy: { w: 172, h: 78 } }
 // Непрерывная погоня (первого порядка, без массы/скорости — тот же
 // принцип "чистого затухания без перехлёста", что уже проверен и
 // одобрен пользователем): на каждом тике проходим долю rate от
-// оставшегося расстояния до мишени. rate ЗАВИСИТ ОТ МАССЫ вагона —
-// лёгкий вагон почти сразу оказывается там, где рука; тяжёлый заметно
+// оставшегося расстояния до мишени. rate ЗАВИСИТ ОТ ВЕСА транспорта —
+// велосипед почти сразу оказывается там, где рука; Гелик заметно
 // отстаёт даже от медленных движений, не говоря про резкие рывки.
-// Тяжёлый вагон — в 1.5 раза тяжелее (просьба пользователя после первой
-// живой проверки): rate обратно пропорционален массе, поэтому темп
-// погони поделен на 1.5 (0.026 → ~0.0173) — тот же вагон отстаёт заметно
-// сильнее и дольше при том же рывке.
+// Гелик — в 1.5 раза «тяжелее» старого вагона (просьба пользователя
+// после первой живой проверки): rate обратно пропорционален массе,
+// поэтому темп погони поделен на 1.5 (0.026 → ~0.0173).
 const TR_RATE: Record<'light' | 'heavy', number> = { light: 0.16, heavy: 0.0173 }
 const TR_SNAP = 1.2
 // Минимальный размах рывка (в тех же единицах, что и длина цилиндра),
-// чтобы засчитать попытку «потянул этой массой» — отсекает случайные
-// микро-клики по ручке.
-const TR_DRAG_MIN = 34
+// чтобы засчитать попытку «потянул этим транспортом» — отсекает
+// случайные микро-клики по ручке. Трасса выросла почти вдвое — порог
+// тоже приподнят, чтобы остаться такой же ЛЁГКОЙ ДОЛЕЙ трассы.
+const TR_DRAG_MIN = 60
 
-// Вагон на рельсах: наклон (SVG rotate вокруг точки контакта с рельсом —
-// НЕ CSS transform-origin, чтобы не словить гэтчу transformBox для SVG,
-// см. комментарии в других *WALK этого проекта) пропорционален разрыву
-// между мишенью и настоящим положением — вагон «откидывается» назад при
-// резком рывке, как пассажир при разгоне.
-const Wagon = ({ x, tilt }: { x: number; tilt: number }) => (
-    <g transform={`translate(${x},${TR_RAIL_Y}) rotate(${tilt})`}>
-        <rect x={-WAGON_W / 2} y={-WAGON_H} width={WAGON_W} height={WAGON_H} rx={8} fill="#5C6B73" stroke="#F2F7FB" strokeWidth={2} />
-        <rect x={-WAGON_W / 2 + 6} y={-WAGON_H + 8} width={WAGON_W - 12} height={16} rx={4} fill="#3A464E" />
-        <circle cx={-WAGON_W / 2 + 16} cy={0} r={9} fill="#161F23" stroke="#F2F7FB" strokeWidth={2} />
-        <circle cx={WAGON_W / 2 - 16} cy={0} r={9} fill="#161F23" stroke="#F2F7FB" strokeWidth={2} />
-        <text x={0} y={-WAGON_H / 2 + 6} textAnchor="middle" fontSize={22}>🚃</text>
-    </g>
-)
+// Транспорт на рельсах: наклон (SVG rotate вокруг точки контакта с
+// рельсом — НЕ CSS transform-origin, чтобы не словить гэтчу
+// transformBox для SVG, см. комментарии в других *WALK этого проекта)
+// пропорционален разрыву между мишенью и настоящим положением —
+// транспорт «откидывается» назад при резком рывке, как пассажир при
+// разгоне. Картинка — просто <image>, без искусственного контура (в
+// отличие от «летающих» стикеров магнита — тут это часть схемы, а не
+// отдельно парящий предмет).
+const Vehicle = ({ x, tilt, mass }: { x: number; tilt: number; mass: 'light' | 'heavy' }) => {
+    const { w, h } = VEHICLE_DIMS[mass]
+    return (
+        <g transform={`translate(${x},${TR_RAIL_Y}) rotate(${tilt})`}>
+            <image href={VEHICLE_SRC[mass]} x={-w / 2} y={-h} width={w} height={h} preserveAspectRatio="xMidYMax meet" />
+        </g>
+    )
+}
 
-const TrainCylinderView = ({ targetLen, actualLen, svgRef, onDown, dragging }: {
-    targetLen: number; actualLen: number
+const TrainCylinderView = ({ targetLen, actualLen, mass, svgRef, onDown, dragging }: {
+    targetLen: number; actualLen: number; mass: 'light' | 'heavy'
     svgRef: React.RefObject<SVGSVGElement>; onDown: (e: React.PointerEvent) => void; dragging: boolean
 }) => {
     const PHI = GGEGE_PALETTE.purple.button
@@ -582,10 +593,14 @@ const TrainCylinderView = ({ targetLen, actualLen, svgRef, onDown, dragging }: {
     const xActual = TR_X0 + actualLen
     const gap = xTarget - xActual
     const showGap = Math.abs(gap) > 8
-    // Наклон вагона — «откидывается» против направления рывка (инерция).
-    const tilt = Math.max(-16, Math.min(16, -gap * 0.3))
+    // Наклон транспорта — «откидывается» против направления рывка
+    // (инерция); чуть слабее, чем у нарисованного вагона — на реальной
+    // фотографии сильный поворот смотрится неестественно.
+    const tilt = Math.max(-10, Math.min(10, -gap * 0.2))
+    const vehicleW = VEHICLE_DIMS[mass].w
+    const vehicleH = VEHICLE_DIMS[mass].h
     return (
-        <svg ref={svgRef} viewBox={`0 0 ${TR_W} ${TR_H}`} className="w-full max-w-[340px] h-auto select-none" style={{ touchAction: 'none' }}>
+        <svg ref={svgRef} viewBox={`0 0 ${TR_W} ${TR_H}`} className="w-full max-w-[440px] h-auto select-none" style={{ touchAction: 'none' }}>
             {/* мишень — пунктирный призрак там, где сейчас палец */}
             <FluxCylinder cx={TR_X0 + targetLen / 2} cy={TR_CY} radius={TR_R} depth={TR_D} length={targetLen} orient="h" color="#9AA7B0" fill={0} dashed />
             {/* настоящий поток — с задержкой */}
@@ -600,12 +615,12 @@ const TrainCylinderView = ({ targetLen, actualLen, svgRef, onDown, dragging }: {
                     <SvgSticker x={(xTarget + xActual) / 2} y={TR_CY + TR_R + 52} text="B" sub="инд" color={OWN_COLOR} />
                 </motion.g>
             )}
-            {/* шток — от поршня (настоящего, не целевого значения) вниз к вагону */}
-            <line x1={xActual} y1={TR_CY + TR_R + 6} x2={xActual} y2={TR_RAIL_Y - 46} stroke="#5C6B73" strokeWidth={3} strokeDasharray="5 5" />
-            {/* рельс + тень вагона */}
-            <line x1={TR_X0 + TR_LMIN - 20} y1={TR_RAIL_Y + 9} x2={TR_X0 + TR_LMAX + 20} y2={TR_RAIL_Y + 9} stroke="#3A464E" strokeWidth={4} strokeLinecap="round" />
-            <ellipse cx={xActual} cy={TR_RAIL_Y + 5} rx={WAGON_W / 2 + 6} ry={6} fill="#000" opacity={0.22} />
-            <Wagon x={xActual} tilt={tilt} />
+            {/* шток — от поршня (настоящего, не целевого значения) вниз к транспорту */}
+            <line x1={xActual} y1={TR_CY + TR_R + 6} x2={xActual} y2={TR_RAIL_Y - vehicleH - 8} stroke="#5C6B73" strokeWidth={3} strokeDasharray="5 5" />
+            {/* рельс + тень транспорта */}
+            <line x1={TR_X0 + TR_LMIN - 30} y1={TR_RAIL_Y + 9} x2={TR_X0 + TR_LMAX + VEHICLE_DIMS.heavy.w / 2 + 20} y2={TR_RAIL_Y + 9} stroke="#3A464E" strokeWidth={4} strokeLinecap="round" />
+            <ellipse cx={xActual} cy={TR_RAIL_Y + 5} rx={vehicleW / 2 + 6} ry={6} fill="#000" opacity={0.22} />
+            <Vehicle x={xActual} tilt={tilt} mass={mass} />
             {/* ручка — тащим МИШЕНЬ, не сам поток */}
             <g onPointerDown={onDown} style={{ cursor: dragging ? 'grabbing' : 'grab' }}>
                 {!dragging && (
@@ -700,23 +715,23 @@ const TrainCylinderScene = ({ onSettled }: { onSettled?: () => void }) => {
     const both = tried.light && tried.heavy
     useEffect(() => { if (both && phase === 1) { const t = setTimeout(() => setPhase(2), 700); return () => clearTimeout(t) } }, [both, phase])
 
-    const hint = !tried.light ? '🪶 Лёгкий вагон уже выбран — потяни цилиндр туда-сюда'
-        : !tried.heavy ? 'Теперь переключи на 🚂 тяжёлый и дёрни резко'
+    const hint = !tried.light ? '🚲 Велосипед уже выбран — потяни цилиндр туда-сюда'
+        : !tried.heavy ? 'Теперь переключи на 🚙 Гелик и дёрни резко'
             : ''
 
     return (
         <>
             <TypedLineWithParts
-                parts={[{ text: 'Приделаем к потоку ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ' вагон 🚃 — потянешь цилиндр, вагон поедет следом' }]}
+                parts={[{ text: 'Приделаем к потоку ' }, { sticker: 'Φ', color: GGEGE_PALETTE.purple.button }, { text: ' транспорт 🚲🚙 — потянешь цилиндр, он поедет следом' }]}
                 onSettled={() => setPhase(1)}
             />
             {phase >= 1 && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col items-center gap-3" onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} style={{ touchAction: 'none' }}>
-                        <TrainCylinderView targetLen={targetLen} actualLen={actualLen} svgRef={svgRef} onDown={onDown} dragging={dragging} />
+                        <TrainCylinderView targetLen={targetLen} actualLen={actualLen} mass={mass} svgRef={svgRef} onDown={onDown} dragging={dragging} />
                         <div className="flex gap-2 w-full">
-                            <MassBtn active={mass === 'light'} pulse={!tried.light} color={GGEGE_PALETTE.green.button} onClick={() => pickMass('light')}>🪶 Лёгкий вагон</MassBtn>
-                            <MassBtn active={mass === 'heavy'} pulse={tried.light && !tried.heavy} color={CURRENT_COLOR} onClick={() => pickMass('heavy')}>🚂 Тяжёлый вагон</MassBtn>
+                            <MassBtn active={mass === 'light'} pulse={!tried.light} color={GGEGE_PALETTE.green.button} onClick={() => pickMass('light')}>🚲 Велосипед</MassBtn>
+                            <MassBtn active={mass === 'heavy'} pulse={tried.light && !tried.heavy} color={CURRENT_COLOR} onClick={() => pickMass('heavy')}>🚙 Гелик</MassBtn>
                         </div>
                         {hint && <p className="text-sm font-black text-center" style={{ color: RULE_COLOR }}>{hint}</p>}
                     </div>
@@ -725,9 +740,9 @@ const TrainCylinderScene = ({ onSettled }: { onSettled?: () => void }) => {
             {phase >= 2 && (
                 <DiagramBlock onSettled={() => setTimeout(() => setPhase(3), 1600)}>
                     <InsightCard>
-                        Масса вагона — это <InsightWord color="#FF9AC8">индуктивность</InsightWord>.
-                        <br />🪶 Лёгкий вагон почти не отстаёт — <InsightWord>B инд</InsightWord> слабое.
-                        <br />🚂 Тяжёлый сильно тормозит рывок — <InsightWord color="#D8BBFF">B инд</InsightWord> мощное.
+                        Вес транспорта — это <InsightWord color="#FF9AC8">индуктивность</InsightWord>.
+                        <br />🚲 Велосипед почти не отстаёт — <InsightWord>B инд</InsightWord> слабое.
+                        <br />🚙 Гелик сильно тормозит рывок — <InsightWord color="#D8BBFF">B инд</InsightWord> мощное.
                     </InsightCard>
                 </DiagramBlock>
             )}
