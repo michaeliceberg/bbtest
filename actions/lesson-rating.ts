@@ -32,7 +32,7 @@ export async function submitLessonRating(tLessonId: number, score: number, comme
 		const lesson = await db.query.t_lessons.findFirst({ where: eq(t_lessons.id, tLessonId), columns: { title: true } });
 		const opt = LESSON_RATING_OPTIONS[score - 1];
 		await sendMessageToTelegram(
-			`${opt.emoji} Урок «${lesson?.title ?? tLessonId}» (id ${tLessonId}) оценили: ${score}/4 — ${opt.label}` +
+			`${opt.emoji} Урок «${lesson?.title ?? tLessonId}» (id ${tLessonId}) оценили: ${score + 1}/5 — ${opt.label}` +
 			(cleanComment ? `\nНепонятно: ${cleanComment}` : '') +
 			(userId ? `\nКто: ${session?.user?.name ?? userId}` : '\n(гость)'),
 		).catch(() => null);

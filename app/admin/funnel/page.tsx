@@ -87,7 +87,7 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 	// худшие сверху: их и надо переделывать.
 	const ratings = await q(sql`
 		SELECT r.t_lesson_id AS id, max(l.title) AS title, count(*) AS cnt,
-			round(avg(r.score)::numeric, 2) AS avg,
+			round(avg(r.score + 1)::numeric, 2) AS avg,
 			count(*) FILTER (WHERE r.score <= 2) AS bad
 		FROM lesson_ratings r LEFT JOIN t_lessons l ON l.id = r.t_lesson_id
 		GROUP BY r.t_lesson_id ORDER BY avg ASC, cnt DESC`)
@@ -209,14 +209,14 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 					)}
 				</Card>
 
-				<Card title="⭐ Оценки уроков (понятность 1–4)">
+				<Card title="⭐ Оценки уроков (понятность 2–5)">
 					{ratings.length === 0 ? <Empty /> : (
 						<ul className="space-y-1.5 text-sm">
 							{ratings.map((r) => (
 								<li key={String(r.id)} className="flex justify-between gap-2">
 									<span className="truncate">{String(r.title ?? r.id)}</span>
 									<span className="whitespace-nowrap">
-										<b style={{ color: n(r.avg) < 2.5 ? '#DC605B' : n(r.avg) < 3.3 ? '#F09B38' : '#78C93C' }}>{String(r.avg)}</b>
+										<b style={{ color: n(r.avg) < 3.5 ? '#DC605B' : n(r.avg) < 4.3 ? '#F09B38' : '#78C93C' }}>{String(r.avg)}</b>
 										<span className="text-[#9AA7B0]"> · {n(r.cnt)} оц.{n(r.bad) > 0 ? ` · 👎 ${n(r.bad)}` : ''}</span>
 									</span>
 								</li>
@@ -228,7 +228,7 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 							<p className="text-xs text-[#9AA7B0] font-bold">Что непонятно:</p>
 							{ratingComments.map((c, i) => (
 								<div key={i} className="rounded-lg bg-[#0E1519] p-2 text-sm">
-									<p className="text-xs text-[#9AA7B0]">{String(c.title ?? '')} · оценка {n(c.score)}</p>
+									<p className="text-xs text-[#9AA7B0]">{String(c.title ?? '')} · оценка {n(c.score) + 1}</p>
 									<p>{String(c.comment)}</p>
 								</div>
 							))}

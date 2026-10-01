@@ -16,7 +16,7 @@
 
 'use client'
 
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import type { QuestionType } from './page'
@@ -587,7 +587,7 @@ const GripGameScene = ({ onSettled }: { onSettled?: () => void }) => {
                         {step === 'ok' && !done && <p className="text-lg font-black text-[#A1D151]">Точно! 🔥</p>}
                         {step === 'handOk' && <p className="text-lg font-black text-[#A1D151]">Верно! Палец по току ✋</p>}
                         {wrong && step !== 'ok' && <div className="rounded-xl px-4 py-2 text-sm font-bold text-center bg-[#DC605B22] text-[#DC605B]">{wrong}</div>}
-                        {done && <p className="text-lg font-black text-[#A1D151]">ТВОЯ Правая рука ПУШКА 💪</p>}
+                        {done && <p className="text-lg font-black text-[#A1D151]">ТВОЯ Правая - ПУШКА 💪</p>}
                         {done && (
                             // на видео левая рука — отражаем по горизонтали (scaleX(-1)), чтобы была правая
                             <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5, delay: 0.3 }}>
@@ -647,7 +647,7 @@ const ArrowDotCross = ({ leaving = false }: { leaving?: boolean }) => (
     </div>
 )
 
-// Мини-игра «на тебя / от тебя» (4 весёлых вопроса в зумерском стиле).
+// Мини-игра «на тебя / от тебя» (5 весёлых вопросов в зумерском стиле).
 type DotSym = 'dot' | 'cross'
 const SymIcon = ({ kind, size = 44 }: { kind: DotSym; size?: number }) => (
     <svg viewBox="-20 -20 40 40" style={{ width: size, height: size }}>
@@ -660,7 +660,7 @@ const SymIcon = ({ kind, size = 44 }: { kind: DotSym; size?: number }) => (
 // video — зацикленный ролик над вопросом, крутится, пока не ответили верно
 // (см. пункты 3/4: «Краш уходит...» / «T-800 идёт на тебя»).
 type DotQ = { prompt: React.ReactNode; options: { key: string; node: React.ReactNode }[]; correct: string; win: string; miss: string; video?: string }
-const DOT_QUIZ: DotQ[] = [
+const DOT_QUIZ_BASE: DotQ[] = [
     {
         prompt: <>Стрела летит тебе <b>прямо в лицо</b> 😱 Что ты видишь?</>,
         options: [{ key: 'dot', node: <SymIcon kind="dot" /> }, { key: 'cross', node: <SymIcon kind="cross" /> }],
@@ -680,11 +680,36 @@ const DOT_QUIZ: DotQ[] = [
     {
         prompt: <>T-800 идёт <b>на тебя</b> 🔫 Пиу-пиу</>,
         options: [{ key: 'cross', node: <SymIcon kind="cross" /> }, { key: 'dot', node: <SymIcon kind="dot" /> }],
-        correct: 'dot', win: 'Точка — он летит прямо на тебя, беги! 🏃💨', miss: 'Не отвертеться: идёт НА тебя — это точка 🎯',
+        correct: 'dot', win: 'Точка — он идёт прямо на тебя. Хочет тебя аннигилировать, беги! 🏃💨', miss: 'Не отвертеться: идёт НА тебя — это точка 🎯',
         video: '/video/arnold-terminator-roses.mp4',
     },
 ]
+// Провод с током (вверх/вниз) и «?» справа — что там: точка или крестик?
+// Правило правой руки: ток вверх → справа поле уходит ОТ тебя (×), ток вниз → НА тебя (•).
+const WireQuestionPic = ({ cur }: { cur: 1 | -1 }) => {
+    const up = cur === 1
+    return (
+        <svg viewBox="0 0 160 150" className="w-36 h-auto">
+            <line x1={60} y1={10} x2={60} y2={140} stroke={CURRENT_COLOR} strokeWidth={6} strokeLinecap="round" />
+            <path d={up ? 'M48,38 L60,18 L72,38' : 'M48,112 L60,132 L72,112'} fill="none" stroke={CURRENT_COLOR} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" />
+            <text x={36} y={82} textAnchor="middle" fontSize={22} fontWeight={900} fill={CURRENT_COLOR} style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>I</text>
+            <circle cx={118} cy={75} r={20} fill="#161F23" stroke={FIELD_COLOR} strokeWidth={3} strokeDasharray="5 4" />
+            <text x={118} y={84} textAnchor="middle" fontSize={26} fontWeight={900} fill={FIELD_COLOR} style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>?</text>
+        </svg>
+    )
+}
+const makeWireQuestion = (cur: 1 | -1): DotQ => ({
+    prompt: <span className="flex flex-col items-center gap-2"><WireQuestionPic cur={cur} />Ток {cur === 1 ? 'вверх' : 'вниз'}. Что справа от провода?</span>,
+    options: [{ key: 'dot', node: <SymIcon kind="dot" /> }, { key: 'cross', node: <SymIcon kind="cross" /> }],
+    correct: cur === 1 ? 'cross' : 'dot',
+    win: cur === 1 ? 'Крестик! Справа поле уходит от тебя ✖️' : 'Точка! Справа поле летит на тебя •',
+    miss: 'Хватай провод правой рукой 💪 — пальцы покажут',
+})
+
 const DotCrossGame = ({ onDone }: { onDone: () => void }) => {
+    // 3-й вопрос — провод со случайным направлением тока (после двух про стрелу).
+    const [wireCur] = useState<1 | -1>(() => (Math.random() < 0.5 ? 1 : -1))
+    const DOT_QUIZ = useMemo(() => [...DOT_QUIZ_BASE.slice(0, 2), makeWireQuestion(wireCur), ...DOT_QUIZ_BASE.slice(2)], [wireCur])
     const [qi, setQi] = useState(0)
     const [wrong, setWrong] = useState<string | null>(null)
     const [won, setWon] = useState(false)
