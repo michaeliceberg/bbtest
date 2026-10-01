@@ -6,7 +6,8 @@
 // (прилагательное от одной плитки + существительное от другой), а не
 // полностью случайно (lib/nickname.ts — фоллбэк, если экран пропущен).
 //
-// Бренды и игры — только текстом (без логотипов/картинок), как упоминание.
+// У игр — маленькие картинки (public/vibes/*.webp, по просьбе пользователя
+// 2026-10-01; чужой арт — решение пользователя), у остальных — эмодзи.
 
 export type VibeCategory = 'gadgets' | 'games' | 'music' | 'food' | 'sport' | 'hobby'
 
@@ -17,6 +18,8 @@ export type Vibe = {
 	category: VibeCategory
 	adj: string
 	noun: string
+	// Картинка вместо эмодзи на плитке.
+	image?: string
 }
 
 export const VIBE_CATEGORIES: { id: VibeCategory; title: string }[] = [
@@ -30,12 +33,12 @@ export const VIBE_CATEGORIES: { id: VibeCategory; title: string }[] = [
 
 export const VIBES: Vibe[] = [
 	// Игры
-	{ id: 'minecraft', emoji: '⛏️', label: 'Майнкрафт', category: 'games', adj: 'Кубический', noun: 'Крафтер' },
-	{ id: 'cs', emoji: '🎯', label: 'КС', category: 'games', adj: 'Хедшотный', noun: 'Снайпер' },
-	{ id: 'dota', emoji: '⚔️', label: 'Дота', category: 'games', adj: 'Мидовый', noun: 'Керри' },
-	{ id: 'brawl', emoji: '💥', label: 'Бравл Старс', category: 'games', adj: 'Звёздный', noun: 'Бравлер' },
-	{ id: 'roblox', emoji: '🧱', label: 'Роблокс', category: 'games', adj: 'Пиксельный', noun: 'Роблоксер' },
-	{ id: 'racing', emoji: '🏎️', label: 'Гонки', category: 'games', adj: 'Турбированный', noun: 'Гонщик' },
+	{ id: 'minecraft', emoji: '⛏️', label: 'Майнкрафт', category: 'games', adj: 'Кубический', noun: 'Крафтер', image: '/vibes/minecraft.webp' },
+	{ id: 'cs', emoji: '🎯', label: 'КС', category: 'games', adj: 'Хедшотный', noun: 'Снайпер', image: '/vibes/cs.webp' },
+	{ id: 'dota', emoji: '⚔️', label: 'Дота', category: 'games', adj: 'Мидовый', noun: 'Керри', image: '/vibes/dota.webp' },
+	{ id: 'brawl', emoji: '💥', label: 'Бравл Старс', category: 'games', adj: 'Звёздный', noun: 'Бравлер', image: '/vibes/brawl.webp' },
+	{ id: 'roblox', emoji: '🧱', label: 'Роблокс', category: 'games', adj: 'Пиксельный', noun: 'Роблоксер', image: '/vibes/roblox.webp' },
+	{ id: 'pubg', emoji: '🪂', label: 'Пабг', category: 'games', adj: 'Десантный', noun: 'Выживший', image: '/vibes/pubg.webp' },
 	// Музыка
 	{ id: 'rap', emoji: '🎤', label: 'Рэп', category: 'music', adj: 'Битовый', noun: 'Рэпер' },
 	{ id: 'phonk', emoji: '🚗', label: 'Фонк', category: 'music', adj: 'Фонковый', noun: 'Дрифтер' },

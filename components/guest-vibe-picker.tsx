@@ -55,7 +55,14 @@ export const GuestVibePicker = ({ onDone, subtitle }: Props) => {
 		return (
 			<div className="w-full max-w-xl mx-auto min-h-[100dvh] flex flex-col items-center justify-center gap-6 px-4 py-8 text-center">
 				<div className="flex gap-2 text-3xl">
-					{chosen.map((v) => <span key={v.id}>{v.emoji}</span>)}
+					{chosen.map((v) =>
+						v.image ? (
+							// eslint-disable-next-line @next/next/no-img-element
+							<img key={v.id} src={v.image} alt="" className="h-10 w-10 rounded-lg object-cover" />
+						) : (
+							<span key={v.id}>{v.emoji}</span>
+						),
+					)}
 				</div>
 				<p className="text-[#9AA7B0]">Твой позывной:</p>
 				<motion.p
@@ -122,7 +129,12 @@ export const GuestVibePicker = ({ onDone, subtitle }: Props) => {
 											: 'bg-[#151F23] border-[#3A464E] text-[#C7D0D6]'
 									} ${full ? 'opacity-40' : ''}`}
 								>
-									<span className="text-3xl leading-none">{v.emoji}</span>
+									{v.image ? (
+										// eslint-disable-next-line @next/next/no-img-element
+										<img src={v.image} alt="" className="h-12 w-12 rounded-xl object-cover" />
+									) : (
+										<span className="text-3xl leading-none">{v.emoji}</span>
+									)}
 									<span className="text-xs sm:text-sm font-bold leading-tight text-center">{v.label}</span>
 								</motion.button>
 							);
