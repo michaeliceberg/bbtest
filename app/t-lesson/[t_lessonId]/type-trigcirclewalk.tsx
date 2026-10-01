@@ -51,6 +51,7 @@ const SIN_COLOR = GGEGE_PALETTE.blue.button
 const ARC_COLOR = GGEGE_PALETTE.purple.button
 const HOME_COLOR = '#F2C35B'
 const REMEMBER_COLOR = '#F2C35B'
+const PICK_COLOR = '#F09B38'
 const PLUS_COLOR = '#A1D151'
 const MINUS_COLOR = '#DC605B'
 const PI = Math.PI
@@ -60,9 +61,26 @@ const VIDEO_MOONWALK = '/video/mj-moonwalk.mp4'
 const FROG_HOUSE = '/lesson-pics/frog-house.webp'
 const POINTER_STICKER = '/lesson-pics/zhirinovsky-point.webp'
 
-// Вместо «Дальше» — всегда смешное слово (просьба пользователя).
-const FUN_NEXT = ['Агась', 'Го!', 'Понял-принял', 'Изи', 'Погнали', 'ГААААЗ', 'Фармим дальше', 'Ясно-понятно', 'Ок, бро', 'Вкатился', 'База', 'Жми на газ']
-const pickFun = () => FUN_NEXT[Math.floor(Math.random() * FUN_NEXT.length)]
+// Вместо «Дальше» — всегда смешное слово (просьба пользователя). Колода без
+// повторов: пока не выпадут все фразы, ни одна не повторится. «ГААААЗ» — редкая
+// (одна из ~40).
+const FUN_NEXT = [
+    'Агась', 'Го!', 'Понял-принял', 'Изи', 'Погнали', 'Фармим дальше', 'Ясно-понятно', 'Ок, бро', 'Вкатился', 'База',
+    'Жми на газ', 'Чётко', 'Без базара', 'Понятно, го', 'Окей-окей', 'Принято', 'Летс го', 'Записал', 'Схавал',
+    'Кайф, дальше', 'Чекнул', 'Залетаем', 'Врубился', 'Мотаю на ус', 'Всё по фактам', 'Дошло', 'Так-так, дальше',
+    'Логично', 'Ну го', 'Зашло', 'Опа, понял', 'Красиво', 'Едем дальше', 'Шарю', 'Агонь', 'Изи катка',
+    'Ещё!', 'Гоу-гоу', 'Вот это да', 'ГААААЗ',
+]
+let funDeck: string[] = []
+let lastFun = ''
+const pickFun = () => {
+    if (funDeck.length === 0) {
+        funDeck = shuffle(FUN_NEXT)
+        if (funDeck[funDeck.length - 1] === lastFun) funDeck.unshift(funDeck.pop()!)
+    }
+    lastFun = funDeck.pop()!
+    return lastFun
+}
 const pickPraise = () => CORRECT_FEEDBACK_PHRASES[Math.floor(Math.random() * CORRECT_FEEDBACK_PHRASES.length)]
 const VIDEO_APPLAUSE = '/video/dicaprio-applause.mp4'
 
@@ -159,6 +177,16 @@ const OptionGrid = ({ options, wrong, onPick, render }: { options: string[]; wro
                 {render ? render(o) : o}
             </button>
         ))}
+    </div>
+)
+
+// Плашка «1/4» слева, фиолетовая — как в тренировках других уроков.
+const RoundBadge = ({ n, total }: { n: number; total: number }) => (
+    <div
+        className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
+        style={{ borderColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.55), backgroundColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.16), color: GGEGE_PALETTE.purple.button }}
+    >
+        <span>{n}</span><span className="opacity-50 font-normal">/</span><span>{total}</span>
     </div>
 )
 
@@ -271,12 +299,14 @@ type CanvasProps = {
     onAxisPick?: (axis: Axis) => void
     axisFlash?: { axis: Axis; color: string } | null
     glowValue?: { axis: Axis; v: 1 | -1 } | null
+    dirPick?: { onPick: (d: 'up' | 'down') => void; wrong: 'up' | 'down' | null } | null
+    blinkDots?: boolean
 }
 const LABEL_STYLE = { fontFamily: 'var(--font-nunito), sans-serif', fontWeight: 900 } as const
 
 // Домик — стикер «Это мой дом» (лягушка под книгой) в точке окружности под углом a.
-const HOUSE_SIZE = 58
-const House = ({ a = 0, state = 'idle', onClick, bounce = true }: { a?: number; state?: 'idle' | 'wrong' | 'right'; onClick?: () => void; bounce?: boolean }) => {
+const HOUSE_SIZE = 46
+const House = ({ a = 0, state = 'idle', onClick, bounce = false }: { a?: number; state?: 'idle' | 'wrong' | 'right'; onClick?: () => void; bounce?: boolean }) => {
     const { x, y } = pt(a)
     return (
         <g transform={`translate(${x} ${y})`} onClick={onClick} style={onClick ? { cursor: 'pointer' } : undefined}>
@@ -299,7 +329,7 @@ const UNIT_LABELS = [
 const CircleCanvas = ({
     axes = true, axisLabels = { cos: true, sin: true }, drawCircle = false, house = false, bigArrow = false,
     houses = [], onHousePick, arcs = [], segments = [], marks = [], units = 0, dots, hitDots = [], traveler = null,
-    onCirclePick, onAxisPick, axisFlash = null, glowValue = null,
+    onCirclePick, onAxisPick, axisFlash = null, glowValue = null, dirPick = null, blinkDots = false,
 }: CanvasProps) => {
     const svgRef = useRef<SVGSVGElement>(null)
     const pick = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -391,8 +421,29 @@ const CircleCanvas = ({
                 </g>
             ))}
             {dotList.map((i) => (
-                <circle key={`d-${i}`} cx={pt(STD_ANGLES[i]).x} cy={pt(STD_ANGLES[i]).y} r={5} fill="#5C6B73" />
+                blinkDots ? (
+                    // Крупные мигающие оранжевые точки — «кликни сюда» (как магнит в уроке 484).
+                    <g key={`d-${i}`} transform={`translate(${pt(STD_ANGLES[i]).x} ${pt(STD_ANGLES[i]).y})`}>
+                        <circle r={15} fill={hexToRgba(PICK_COLOR, 0.35)} className="animate-ping" style={{ transformBox: 'fill-box', transformOrigin: 'center' }} />
+                        <circle r={10} fill={PICK_COLOR} stroke="#F2F7FB" strokeWidth={2} />
+                    </g>
+                ) : (
+                    <circle key={`d-${i}`} cx={pt(STD_ANGLES[i]).x} cy={pt(STD_ANGLES[i]).y} r={5} fill="#5C6B73" />
+                )
             ))}
+            {dirPick && (['up', 'down'] as const).map((d) => {
+                const to = d === 'up' ? PI / 4 : -PI / 4
+                const color = dirPick.wrong === d ? MINUS_COLOR : PICK_COLOR
+                const tip = pt(to)
+                const dir = tangentDir(to)
+                return (
+                    <g key={`dp-${d}`} onClick={() => dirPick.onPick(d)} style={{ cursor: 'pointer' }} className={dirPick.wrong === d ? undefined : 'animate-pulse'}>
+                        <path d={arcPath(to)} fill="none" stroke="transparent" strokeWidth={34} />
+                        <path d={arcPath(to)} fill="none" stroke={color} strokeWidth={8} strokeLinecap="round" />
+                        <Arrowhead x={tip.x + dir.dx * 8} y={tip.y + dir.dy * 8} {...dir} color={color} size={18} />
+                    </g>
+                )
+            })}
             {hitDots.map((h) => (
                 <motion.circle key={`h-${h.idx}-${h.color}`} cx={pt(STD_ANGLES[h.idx]).x} cy={pt(STD_ANGLES[h.idx]).y} fill={h.color}
                     initial={{ r: 0 }} animate={{ r: 9 }} transition={{ type: 'spring', bounce: 0.6 }} />
@@ -419,14 +470,12 @@ const CircleCanvas = ({
             )}
             {house && <House />}
             {houses.map((h) => (
-                <House key={`hs-${h.a}`} a={h.a} bounce={h.state === 'right'} state={h.state}
+                <House key={`hs-${h.a}`} a={h.a} state={h.state}
                     onClick={onHousePick ? () => onHousePick(h.a) : undefined} />
             ))}
             {bigArrow && (
-                <g className="animate-arrow-nudge">
-                    <motion.image href={POINTER_STICKER} x={C + 56} y={C - 124} width={96} height={90}
-                        initial={{ opacity: 0, scale: 0.4 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', bounce: 0.5 }} />
-                </g>
+                // Просто стикер: Жириновский сверху справа, рукой на домик.
+                <image href={POINTER_STICKER} x={C + 72} y={C - 100} width={78} height={73} />
             )}
             <circle cx={C} cy={C} r={4} fill="#F2F7FB" />
         </svg>
@@ -569,19 +618,18 @@ const DirQuizScene = ({ onSettled }: SceneProps) => {
     const [ready, setReady] = useState(false)
     const [step, setStep] = useState(0) // 0 домик, 1 плюс, 2 минус, 3 готово
     const [wrongHouse, setWrongHouse] = useFlash<number>()
-    const [wrongOpt, setWrongOpt] = useFlash<string>()
-    const [opts] = useState(() => shuffle(['⬆ Вверх', '⬇ Вниз']))
+    const [wrongDir, setWrongDir] = useFlash<'up' | 'down'>()
     const pickHouse = (a: number) => {
         if (step !== 0) return
         if (a === 0) setStep(1)
         else { playSound(WRONG_ANSWER_SOUND); setWrongHouse(a) }
     }
-    const pickDir = (o: string) => {
-        const need = step === 1 ? '⬆ Вверх' : '⬇ Вниз'
-        if (o === need) {
+    const pickDir = (d: 'up' | 'down') => {
+        const need = step === 1 ? 'up' : 'down'
+        if (d === need) {
             setStep(step + 1)
             if (step + 1 >= 3) setTimeout(() => onSettled?.(), 1200)
-        } else { playSound(WRONG_ANSWER_SOUND); setWrongOpt(o) }
+        } else { playSound(WRONG_ANSWER_SOUND); setWrongDir(d) }
     }
     return (
         <>
@@ -598,13 +646,17 @@ const DirQuizScene = ({ onSettled }: SceneProps) => {
                         <CircleCanvas
                             houses={(step > 0 ? [0] : HOUSE_ANGLES).map((a) => ({ a, state: wrongHouse === a ? 'wrong' : step > 0 ? 'right' : 'idle' }))}
                             onHousePick={step === 0 ? pickHouse : undefined}
+                            dirPick={step === 1 || step === 2 ? { onPick: pickDir, wrong: wrongDir } : null}
                             arcs={[
-                                ...(step >= 2 ? [{ to: PI / 4, color: PLUS_COLOR, key: 'q-up', sign: '+' as const }] : []),
+                                ...(step >= 3 ? [{ to: PI / 4, color: PLUS_COLOR, key: 'q-up', sign: '+' as const }] : []),
                                 ...(step >= 3 ? [{ to: -PI / 4, color: MINUS_COLOR, key: 'q-down', sign: '−' as const }] : []),
                             ]}
                         />
-                        <div className="h-7 text-sm font-bold text-[#DC605B]">{wrongHouse !== null && 'Это не он! Домик всегда СПРАВА 🏠'}</div>
-                        {(step === 1 || step === 2) && <OptionGrid options={opts} wrong={wrongOpt} onPick={pickDir} />}
+                        <div className="h-7 text-sm font-bold text-[#DC605B]">
+                            {wrongHouse !== null && 'Это не он! Домик всегда СПРАВА 🏠'}
+                            {wrongDir !== null && 'Мимо! Плюс — вверх, минус — вниз 🙃'}
+                        </div>
+                        {(step === 1 || step === 2) && <p className="text-sm text-[#9AA7B0]">Кликни по стрелке на окружности</p>}
                     </div>
                     {step >= 3 && <LocalAnswerConfetti />}
                 </DiagramBlock>
@@ -613,23 +665,66 @@ const DirQuizScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-// 6. Что такое π — без тригонометрической окружности: просто дуга-полукруг,
-// потом табличка кусочков, которая заполняется по строчке.
-const HalfArc = () => {
-    const r = 110
-    const cx = 150
-    const cy = 150
+// 6. Что такое π — без тригонометрической окружности. Одна и та же картинка:
+// полукруг (π = 180° внутри) → дорисовываем до круга (2π = 360°) → режем на 4
+// (π/2) → по очереди π/6, π/4, π/3. Потом «Агась» и табличка.
+type PiStage = 0 | 1 | 2 | 3 | 4 | 5 | 6
+const PI_R = 110
+const PI_C = { x: 150, y: 150 }
+const ppt = (a: number, r = PI_R) => ({ x: PI_C.x + r * Math.cos(a), y: PI_C.y - r * Math.sin(a) })
+const PiCircle = ({ stage }: { stage: PiStage }) => {
+    const { x: cx, y: cy } = PI_C
+    const r = PI_R
+    const big = (text: string, y: number, color = ARC_COLOR, key = text) => (
+        <g transform={`translate(${cx} ${y})`}>
+            <motion.g key={key} initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3, type: 'spring', bounce: 0.6 }}>
+                <text textAnchor="middle" dominantBaseline="central" fontSize={30} fill={color} style={LABEL_STYLE}>{text}</text>
+            </motion.g>
+        </g>
+    )
+    const radius = (a: number, color: string, key: string) => (
+        <motion.line key={key} x1={cx} y1={cy} x2={ppt(a).x} y2={ppt(a).y} stroke={color} strokeWidth={3} strokeDasharray="6 5"
+            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.5 }} />
+    )
+    const label = (a: number, text: string, color: string) => (
+        <g key={`l-${text}`} transform={`translate(${ppt(a, r + 26).x} ${ppt(a, r + 26).y})`}>
+            <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.4, type: 'spring', bounce: 0.6 }}>
+                <text textAnchor="middle" dominantBaseline="central" fontSize={20} fill={color} style={LABEL_STYLE}>{text}</text>
+            </motion.g>
+        </g>
+    )
     return (
-        <svg viewBox="0 0 300 180" className="w-full max-w-[340px] h-auto mx-auto block">
-            <circle cx={cx} cy={cy} r={r} fill="none" stroke="#3A464E" strokeWidth={2} strokeDasharray="4 6" />
-            <motion.path d={`M ${cx + r} ${cy} A ${r} ${r} 0 0 0 ${cx - r} ${cy}`} fill="none" stroke={ARC_COLOR} strokeWidth={8} strokeLinecap="round"
-                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.4, ease: 'easeInOut' }} />
-            <line x1={cx - r - 10} y1={cy} x2={cx + r + 10} y2={cy} stroke="#5C6B73" strokeWidth={2} />
-            <g transform={`translate(${cx} ${cy - r - 4})`}>
-                <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 1.4, type: 'spring', bounce: 0.6 }}>
-                    <text textAnchor="middle" y={-8} fontSize={34} fill={ARC_COLOR} style={LABEL_STYLE}>π = 180°</text>
-                </motion.g>
-            </g>
+        <svg viewBox="0 0 300 300" className="w-full max-w-[340px] h-auto mx-auto block">
+            {stage <= 1 && <circle cx={cx} cy={cy} r={r} fill="none" stroke="#3A464E" strokeWidth={2} strokeDasharray="4 6" />}
+            {/* Полукруг */}
+            <motion.path d={`M ${cx + r} ${cy} A ${r} ${r} 0 0 0 ${cx - r} ${cy} L ${cx + r} ${cy} Z`} fill={hexToRgba(ARC_COLOR, stage === 0 ? 0.16 : 0)}
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} />
+            <motion.path d={`M ${cx + r} ${cy} A ${r} ${r} 0 0 0 ${cx - r} ${cy}`} fill="none" stroke={ARC_COLOR} strokeWidth={7} strokeLinecap="round"
+                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.3, ease: 'easeInOut' }} />
+            {/* Дорисовываем до полного круга */}
+            {stage >= 1 && (
+                <motion.path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${cx + r} ${cy}`} fill="none" stroke={ARC_COLOR} strokeWidth={7} strokeLinecap="round"
+                    initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.3, ease: 'easeInOut' }} />
+            )}
+            {stage === 1 && <circle cx={cx} cy={cy} r={r} fill={hexToRgba(ARC_COLOR, 0.12)} />}
+            {/* Режем на 4 и выделяем четвертинку */}
+            {stage >= 2 && (
+                <>
+                    <motion.path d={`M ${cx} ${cy} L ${cx + r} ${cy} A ${r} ${r} 0 0 0 ${cx} ${cy - r} Z`} fill={hexToRgba(SIN_COLOR, 0.2)}
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} />
+                    {radius(0, '#F2F7FB', 'c0')}{radius(PI / 2, '#F2F7FB', 'c1')}{radius(PI, '#F2F7FB', 'c2')}{radius((3 * PI) / 2, '#F2F7FB', 'c3')}
+                </>
+            )}
+            {stage >= 4 && radius(PI / 6, COS_COLOR, 'r6')}
+            {stage >= 5 && radius(PI / 4, PLUS_COLOR, 'r4')}
+            {stage >= 6 && radius(PI / 3, PICK_COLOR, 'r3')}
+            {stage >= 4 && label(PI / 6, 'π/6', COS_COLOR)}
+            {stage >= 5 && label(PI / 4, 'π/4', PLUS_COLOR)}
+            {stage >= 6 && label(PI / 3, 'π/3', PICK_COLOR)}
+            {stage >= 2 && stage < 4 && label(PI / 4, 'π/2', SIN_COLOR)}
+            {stage === 0 && big('π = 180°', cy - r / 2.4, ARC_COLOR, 's0')}
+            {stage === 1 && big('2π = 360°', cy, ARC_COLOR, 's1')}
+            <circle cx={cx} cy={cy} r={4} fill="#F2F7FB" />
         </svg>
     )
 }
@@ -651,37 +746,55 @@ const MiniPie = ({ frac }: { frac: number }) => {
 }
 
 const PI_TABLE: { frac: number; rad: string; name: string; deg: string }[] = [
-    { frac: 1, rad: '2π', name: 'вся окружность', deg: '360°' },
+    { frac: 1, rad: '2π', name: 'целая', deg: '360°' },
     { frac: 1 / 2, rad: 'π', name: 'половина', deg: '180°' },
     { frac: 1 / 4, rad: 'π/2', name: 'четверть', deg: '90°' },
-    { frac: 1 / 6, rad: 'π/3', name: 'π на 3 куска', deg: '60°' },
-    { frac: 1 / 8, rad: 'π/4', name: 'π на 4 куска', deg: '45°' },
-    { frac: 1 / 12, rad: 'π/6', name: 'π на 6 кусков', deg: '30°' },
+    { frac: 1 / 6, rad: 'π/3', name: '180° : 3', deg: '60°' },
+    { frac: 1 / 8, rad: 'π/4', name: '180° : 4', deg: '45°' },
+    { frac: 1 / 12, rad: 'π/6', name: '180° : 6', deg: '30°' },
 ]
 
 const PiScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
+    const [stage, setStage] = useState<PiStage>(0)
     const [rows, setRows] = useState(0)
+    // Картинка: полукруг → (пауза) круг → 4 части → π/6 → π/4 → π/3 → «Агась».
     useEffect(() => {
-        if (phase < 3 || rows >= PI_TABLE.length) return
-        const t = setTimeout(() => setRows((n) => n + 1), rows === 0 ? 300 : 1100)
+        if (phase !== 2) return
+        if (stage >= 6) { const t = setTimeout(() => setPhase(3), 1200); return () => clearTimeout(t) }
+        const t = setTimeout(() => setStage((st) => (st === 2 ? 4 : st + 1) as PiStage), stage === 0 ? 2600 : 2000)
+        return () => clearTimeout(t)
+    }, [phase, stage])
+    useEffect(() => {
+        if (phase < 4 || rows >= PI_TABLE.length) return
+        const t = setTimeout(() => setRows((n) => n + 1), rows === 0 ? 300 : 1000)
         return () => clearTimeout(t)
     }, [phase, rows])
     useEffect(() => {
-        if (rows >= PI_TABLE.length) { const t = setTimeout(() => onSettled?.(), 1200); return () => clearTimeout(t) }
+        if (rows >= PI_TABLE.length) { const t = setTimeout(() => onSettled?.(), 1000); return () => clearTimeout(t) }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [rows])
+    const caption =
+        stage === 0 ? null
+            : stage === 1 ? 'Дорисуем до круга — это 2π'
+                : stage === 2 ? 'Режем на 4 части — кусочек π/2 = 90°'
+                    : 'А ещё мельче: π/6, π/4, π/3'
     return (
         <>
             <RememberBanner>π = 180°</RememberBanner>
             <TypedBig parts={[{ text: 'π — это ' }, { text: 'ПОЛОВИНА', color: ARC_COLOR }, { text: ' окружности' }]} onDone={() => setPhase(1)} />
             {phase >= 1 && (
-                <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 1800)}>
-                    <HalfArc />
+                <DiagramBlock onSettled={() => setPhase(2)}>
+                    <div className="w-full flex flex-col items-center gap-2">
+                        <PiCircle stage={stage} />
+                        <div className="h-8 flex items-center justify-center text-lg font-black text-[#F2F7FB]">
+                            {caption && <Pop key={caption}><span>{caption}</span></Pop>}
+                        </div>
+                        {phase === 3 && <ActionButton color={PLUS_COLOR} onClick={() => setPhase(4)}>Агась 👌</ActionButton>}
+                    </div>
                 </DiagramBlock>
             )}
-            {phase >= 2 && <TypedBig parts={[{ text: 'Режем дальше 🍕' }]} onDone={() => setPhase(3)} readMs={200} />}
-            {phase >= 3 && (
+            {phase >= 4 && (
                 <DiagramBlock>
                     <div className="w-full max-w-sm mx-auto rounded-2xl border-2 border-[#3A464E] bg-[#161F23] overflow-hidden">
                         {PI_TABLE.slice(0, rows).map((r, i) => (
@@ -694,7 +807,7 @@ const PiScene = ({ onSettled }: SceneProps) => {
                             >
                                 <MiniPie frac={r.frac} />
                                 <span className="w-16 text-2xl font-black" style={{ color: ARC_COLOR }}><Rad s={r.rad} /></span>
-                                <span className="flex-1 text-sm text-[#9AA7B0]">{r.name}</span>
+                                <span className="flex-1 text-base font-bold text-[#9AA7B0]">{r.name}</span>
                                 <span className="text-xl font-black text-[#F2F7FB]">{r.deg}</span>
                             </motion.div>
                         ))}
@@ -738,14 +851,17 @@ const FindGameScene = ({ onSettled }: SceneProps) => {
             {ready && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col items-center gap-2">
-                        <div className="h-16 flex items-center justify-center gap-3 text-lg font-bold text-[#9AA7B0]">
+                        <div className="relative w-full h-16 flex items-center justify-center">
+                            {cur && <RoundBadge n={round + 1} total={FIND_ROUNDS.length} />}
                             {cur ? (
-                                <>Где угол <span className="text-4xl font-black" style={{ color: ARC_COLOR }}><Rad s={cur.label} /></span>? <span className="text-sm tabular-nums">{round + 1}/{FIND_ROUNDS.length}</span></>
+                                <Pop key={`f${round}`}>
+                                    <span className="flex items-center gap-2 text-xl font-black text-[#F2F7FB]">Где угол <span className="text-4xl" style={{ color: ARC_COLOR }}><Rad s={cur.label} /></span>?</span>
+                                </Pop>
                             ) : (
                                 <span className="text-xl font-black text-[#A1D151]">Снайпер! 🎯</span>
                             )}
                         </div>
-                        <CircleCanvas house dots="quarters" marks={placed} hitDots={wrongIdx !== null ? [{ idx: wrongIdx, color: MINUS_COLOR }] : []} onCirclePick={done ? undefined : onPick} />
+                        <CircleCanvas house dots={done ? undefined : 'quarters'} blinkDots marks={placed} hitDots={wrongIdx !== null ? [{ idx: wrongIdx, color: MINUS_COLOR }] : []} onCirclePick={done ? undefined : onPick} />
                         <div className="h-8 flex items-center">
                             {hint && <span className="flex items-center gap-1 font-bold text-[#DC605B]"><X className="w-4 h-4" /> {hint}</span>}
                         </div>
@@ -1026,7 +1142,7 @@ export const TypeTrigCircleWalk = ({ onAnswer, onComplete }: Props) => {
             ]
             return (
                 <DiagramBlock>
-                    <CircleCanvas house units={4} dots="quarters" hitDots={hits} onCirclePick={isCurrent && !isDone ? (idx) => answer(idx === target, String(idx)) : undefined} />
+                    <CircleCanvas house units={4} dots={isDone ? undefined : 'quarters'} blinkDots hitDots={hits} onCirclePick={isCurrent && !isDone ? (idx) => answer(idx === target, String(idx)) : undefined} />
                 </DiagramBlock>
             )
         }
