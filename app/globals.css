@@ -593,3 +593,12 @@ body {
   50% { opacity: 1; transform: scale(1.2) translateX(-8px); }
 }
 .animate-vader-spark { animation: vader-spark 1.05s ease-in-out infinite; }
+
+/* Стрелка-указатель «смотри сюда» (урок 490): покачивается к цели и обратно. */
+@keyframes arrow-nudge {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-7px, 7px); }
+}
+.animate-arrow-nudge {
+  animation: arrow-nudge 0.9s ease-in-out infinite;
+}
