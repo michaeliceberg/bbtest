@@ -17,6 +17,8 @@ const q = async (query: ReturnType<typeof sql>) => (await db.execute(query)) as 
 const n = (v: unknown) => Number(v ?? 0)
 const pct = (a: number, b: number) => (b > 0 ? `${Math.round((a / b) * 100)}%` : '—')
 
+const HEATMAP_WEEKS = 26
+
 const PERIODS = [
 	{ key: '7', label: '7 дней' },
 	{ key: '30', label: '30 дней' },
@@ -59,11 +61,43 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 			count(*) FILTER (WHERE case_opened) AS opened
 		FROM diagnostic_leads WHERE created_at >= ${since}`)
 
+	// Активность — только ученики: прохождения админов (ты и тестовые
+	// аккаунты) считаем отдельно, иначе они забивают всю статистику.
+	// Каждая строка t_lesson_progress — одно прохождение (повторы тоже).
 	const [activity] = await q(sql`
-		SELECT count(DISTINCT user_id) FILTER (WHERE date_done >= now() - interval '1 day') AS dau,
-			count(DISTINCT user_id) FILTER (WHERE date_done >= now() - interval '7 days') AS wau,
-			count(*) FILTER (WHERE date_done >= ${since} AND training_pts > 0) AS lessons
-		FROM t_lesson_progress`)
+		SELECT count(DISTINCT p.user_id) FILTER (WHERE coalesce(u.is_admin, 0) = 0 AND date_done >= now() - interval '1 day') AS dau,
+			count(DISTINCT p.user_id) FILTER (WHERE coalesce(u.is_admin, 0) = 0 AND date_done >= now() - interval '7 days') AS wau,
+			count(*) FILTER (WHERE coalesce(u.is_admin, 0) = 0 AND date_done >= ${since} AND training_pts > 0) AS lessons,
+			count(*) FILTER (WHERE coalesce(u.is_admin, 0) <> 0 AND date_done >= ${since} AND training_pts > 0) AS admin_lessons
+		FROM t_lesson_progress p LEFT JOIN user_progress u ON u.user_id = p.user_id`)
+
+	// Календарь активности (как у GitHub): последние HEATMAP_WEEKS недель,
+	// день по Москве. date_done/created_at — timestamp без зоны, пишутся в UTC.
+	const heatRows = await q(sql`
+		WITH lessons AS (
+			SELECT ((p.date_done AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Moscow')::date AS d,
+				count(*) AS lessons, count(DISTINCT p.user_id) AS users
+			FROM t_lesson_progress p LEFT JOIN user_progress u ON u.user_id = p.user_id
+			WHERE p.training_pts > 0 AND coalesce(u.is_admin, 0) = 0
+				AND p.date_done >= now() - interval '${sql.raw(String(HEATMAP_WEEKS * 7 + 7))} days'
+			GROUP BY 1),
+		guests AS (
+			SELECT ((created_at AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Moscow')::date AS d, count(*) AS guests
+			FROM guest_lesson_leads
+			WHERE created_at >= now() - interval '${sql.raw(String(HEATMAP_WEEKS * 7 + 7))} days'
+			GROUP BY 1),
+		-- Новый ученик = день его первого появления: регистрация
+		-- (created_at есть только с 30.09.2026) или первый урок тренажёра.
+		firsts AS (
+			SELECT ((least(u.created_at, min(p.date_done)) AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Moscow')::date AS d
+			FROM user_progress u LEFT JOIN t_lesson_progress p ON p.user_id = u.user_id
+			WHERE coalesce(u.is_admin, 0) = 0
+			GROUP BY u.user_id, u.created_at),
+		news AS (SELECT d, count(*) AS new_users FROM firsts WHERE d IS NOT NULL GROUP BY d)
+		SELECT to_char(coalesce(l.d, g.d, n.d), 'YYYY-MM-DD') AS day,
+			coalesce(l.lessons, 0) AS lessons, coalesce(l.users, 0) AS users,
+			coalesce(g.guests, 0) AS guests, coalesce(n.new_users, 0) AS new_users
+		FROM lessons l FULL JOIN guests g ON g.d = l.d FULL JOIN news n ON n.d = coalesce(l.d, g.d)`)
 
 	const gangs = await q(sql`
 		SELECT g.id, g.emoji, g.name, count(m.id) AS members
@@ -163,9 +197,11 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 			<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
 				<Stat label="Активны сегодня" value={n(activity.dau)} />
 				<Stat label="Активны за 7 дней" value={n(activity.wau)} />
-				<Stat label="Уроков тренажёра за период" value={n(activity.lessons)} />
+				<Stat label={`Уроков тренажёра за период (учениками; ещё ${n(activity.admin_lessons)} — твои/тестовые)`} value={n(activity.lessons)} />
 				<Stat label="Всего учеников" value={n(reg.total_users)} />
 			</div>
+
+			<ActivityHeatmap rows={heatRows} />
 
 			<Card title="🎁 Пробный урок (гости, урок 485)">
 				<div className="space-y-2">
@@ -343,3 +379,90 @@ const Stat = ({ label, value, small }: { label: string; value: number | string; 
 )
 
 const Empty = () => <p className="text-sm text-[#6B7A83]">Пока пусто</p>
+
+// ── Календарь активности ─────────────────────────────────────────────────
+
+const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
+const HEAT = ['#232F34', '#2B4A63', '#3B6D96', '#4D8FC4', '#6FB3EA']
+
+const moscowToday = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Moscow' })
+const addDays = (iso: string, k: number) => {
+	const d = new Date(`${iso}T00:00:00Z`)
+	d.setUTCDate(d.getUTCDate() + k)
+	return d.toISOString().slice(0, 10)
+}
+const fmtDay = (iso: string) => {
+	const d = new Date(`${iso}T00:00:00Z`)
+	return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`
+}
+
+const ActivityHeatmap = ({ rows }: { rows: Row[] }) => {
+	const byDay = new Map(rows.map((r) => [String(r.day), r]))
+	const today = moscowToday()
+	// Сетка начинается с понедельника, HEATMAP_WEEKS недель назад.
+	const weekday = (new Date(`${today}T00:00:00Z`).getUTCDay() + 6) % 7 // 0 = пн
+	const start = addDays(today, -weekday - (HEATMAP_WEEKS - 1) * 7)
+
+	const cells: { day: string; act: number; lessons: number; users: number; guests: number; news: number; future: boolean }[] = []
+	for (let i = 0; i < HEATMAP_WEEKS * 7; i++) {
+		const day = addDays(start, i)
+		const r = byDay.get(day)
+		const lessons = n(r?.lessons), guests = n(r?.guests)
+		cells.push({ day, lessons, guests, act: lessons + guests, users: n(r?.users), news: n(r?.new_users), future: day > today })
+	}
+	const real = cells.filter((c) => !c.future)
+	const max = Math.max(1, ...real.map((c) => c.act))
+	const level = (a: number) => (a === 0 ? 0 : Math.min(4, Math.ceil((a / max) * 4)))
+	const activeDays = real.filter((c) => c.act > 0).length
+	const newDays = real.filter((c) => c.news > 0).length
+	const totalNew = real.reduce((s, c) => s + c.news, 0)
+	const peak = real.reduce((b, c) => (c.act > b.act ? c : b), real[0])
+
+	return (
+		<Card title="🗓️ Активность по дням">
+			<div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+				<Stat label="Активных дней" value={activeDays} small />
+				<Stat label="Дней с новыми учениками" value={newDays} small />
+				<Stat label="Новых учеников" value={totalNew} small />
+				<Stat label="Пиковый день" value={peak && peak.act > 0 ? `${fmtDay(peak.day)} · ${peak.act}` : '—'} small />
+			</div>
+			<div className="overflow-x-auto">
+				<div
+					className="grid grid-flow-col gap-[3px] min-w-[420px]"
+					style={{ gridTemplateRows: 'repeat(7, minmax(0, 1fr))', gridTemplateColumns: `repeat(${HEATMAP_WEEKS}, minmax(0, 1fr))` }}
+				>
+					{cells.map((c) => (
+						<div
+							key={c.day}
+							title={
+								c.future
+									? ''
+									: `${fmtDay(c.day)}: уроков ${c.lessons}, учеников ${c.users}, гостей на пробном ${c.guests}` +
+										(c.news ? `, новых учеников ${c.news}` : '')
+							}
+							className="relative aspect-square rounded-[3px]"
+							style={{
+								backgroundColor: c.future ? 'transparent' : HEAT[level(c.act)],
+								boxShadow: c.news ? 'inset 0 0 0 2px #78C93C' : undefined,
+							}}
+						>
+							{c.news > 0 && <span className="absolute inset-0 m-auto h-1.5 w-1.5 rounded-full bg-[#78C93C]" />}
+						</div>
+					))}
+				</div>
+			</div>
+			<div className="flex flex-wrap items-center justify-between gap-3 mt-3 text-xs text-[#9AA7B0]">
+				<span className="flex items-center gap-1.5">
+					<span className="h-3 w-3 rounded-[3px] bg-[#232F34]" style={{ boxShadow: 'inset 0 0 0 2px #78C93C' }} />
+					зелёная рамка — в этот день пришли новые ученики
+				</span>
+				<span className="flex items-center gap-1">
+					меньше {HEAT.map((h) => <span key={h} className="h-3 w-3 rounded-[3px]" style={{ backgroundColor: h }} />)} больше
+				</span>
+			</div>
+			<p className="text-xs text-[#6B7A83] mt-2">
+				Цвет — уроки тренажёра учеников + гости на пробном уроке. Твои и тестовые прохождения не считаются. Наведи на день — подробности.
+			</p>
+		</Card>
+	)
+}
