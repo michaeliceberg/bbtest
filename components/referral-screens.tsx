@@ -42,31 +42,90 @@ export const PizzaPie = ({ collected, highlight = 0, size = 150 }: { collected: 
 	</div>
 )
 
-export const ReferralWelcome = ({ inviterNickname }: { inviterNickname: string | null }) => {
+const WELCOME_ACCENT = '#FBBF24'
+const WELCOME_STEPS = ['Направление поля', 'Закон Фарадея', 'Правило Ленца']
+
+export const ReferralWelcome = ({ inviterNickname, theme = 'metal', onStart }: { inviterNickname: string | null; theme?: UiTheme; onStart?: () => void }) => {
 	const [open, setOpen] = useState(true)
 	if (!open) return null
+	const cozy = theme === 'cozy'
+	const start = () => {
+		setOpen(false)
+		onStart?.()
+	}
 	return (
-		<div className="fixed inset-0 z-[80] flex flex-col items-center justify-center gap-5 bg-[#131D22]/95 px-6 text-center text-[#F2F7FB]">
-			{inviterNickname && (
-				<p className="text-base text-[#9AA7B0]">
-					Тебя позвал <span className="font-extrabold text-yellow-300">{inviterNickname}</span> 🤝
-				</p>
-			)}
-			<h1 className="text-2xl sm:text-3xl font-black leading-tight">
-				Пройди 3 урока Электродинамики ЕГЭ —<br />и получишь кусочек пиццы 🍕
-			</h1>
-			<PizzaPie collected={1} highlight={1} size={170} />
-			<p className="text-lg font-bold">
-				Собери все 8 кусочков —<br />получи промокод в <span className="text-[#FF8A00]">Додо Пиццу</span>
-			</p>
-			<button
-				type="button"
-				onClick={() => setOpen(false)}
-				className="mt-2 w-full max-w-sm rounded-2xl py-4 font-black text-lg uppercase tracking-wider text-[#0E1519]"
-				style={{ background: '#78C93C', boxShadow: '0 5px 0 #4E8A33' }}
-			>
-				Погнали! 🚀
-			</button>
+		<div className="fixed inset-0 z-[80] overflow-y-auto">
+			<CelebrationShell theme={theme} accent={WELCOME_ACCENT} starsTier="mega" buttonLabel="Погнали! 🚀" onButton={start}>
+				{inviterNickname && (
+					<motion.div
+						initial={{ y: -16, opacity: 0 }}
+						animate={{ y: 0, opacity: 1 }}
+						transition={{ duration: 0.4 }}
+						className="mb-4 rounded-full border px-4 py-1.5 text-sm font-bold"
+						style={{ borderColor: `${WELCOME_ACCENT}66`, background: `${WELCOME_ACCENT}14`, color: cozy ? COZY.title : '#D5DEE5' }}
+					>
+						🤝 Тебя позвал <span className="font-extrabold text-yellow-300">{inviterNickname}</span>
+					</motion.div>
+				)}
+
+				<motion.h1
+					initial={{ scale: 0.6, opacity: 0 }}
+					animate={{ scale: 1, opacity: 1 }}
+					transition={{ type: 'spring', bounce: 0.45, delay: 0.1 }}
+					className="text-[1.7rem] sm:text-4xl font-black leading-tight"
+					style={{ color: cozy ? COZY.title : '#F2F7FB' }}
+				>
+					Пройди 3 урока —<br />
+					<span className="text-yellow-300">получи кусочек пиццы</span> 🍕
+				</motion.h1>
+
+				<div className="relative my-6">
+					<div aria-hidden className="animate-glow-pulse absolute inset-[-18%] rounded-full" style={{ background: `radial-gradient(circle, ${WELCOME_ACCENT}55, transparent 65%)` }} />
+					<div className="animate-chest-idle-bounce relative">
+						<PizzaPie collected={1} highlight={1} size={190} />
+					</div>
+				</div>
+
+				<div className="flex w-full max-w-sm flex-col gap-2">
+					{WELCOME_STEPS.map((title, i) => (
+						<motion.div
+							key={title}
+							initial={{ x: -30, opacity: 0 }}
+							animate={{ x: 0, opacity: 1 }}
+							transition={{ delay: 0.6 + i * 0.15, duration: 0.35 }}
+							className="flex items-center gap-3 rounded-xl border px-3 py-2 text-left"
+							style={{
+								borderColor: i === 0 ? WELCOME_ACCENT : '#3A464E',
+								background: i === 0 ? `${WELCOME_ACCENT}1F` : '#161F23CC',
+							}}
+						>
+							<span
+								className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-black"
+								style={{ background: i === 0 ? WELCOME_ACCENT : '#2A363C', color: i === 0 ? '#3A2400' : '#9AA7B0' }}
+							>
+								{i + 1}
+							</span>
+							<span className="flex-1 font-bold text-[#F2F7FB]">{title}</span>
+							{i === 0 ? (
+								<span className="text-xs font-black uppercase" style={{ color: WELCOME_ACCENT }}>сейчас</span>
+							) : i === WELCOME_STEPS.length - 1 ? (
+								<span className="text-lg">🍕</span>
+							) : null}
+						</motion.div>
+					))}
+				</div>
+
+				<motion.p
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					transition={{ delay: 1.2 }}
+					className="mt-5 flex items-center justify-center gap-2 text-sm font-bold text-[#9AA7B0]"
+				>
+					{/* eslint-disable-next-line @next/next/no-img-element */}
+					<img src="/dodo-icon.svg" alt="" className="h-6 w-6" />
+					Собери 8 кусочков — промокод в <span className="text-[#FF8A00]">Додо Пиццу</span>
+				</motion.p>
+			</CelebrationShell>
 		</div>
 	)
 }

@@ -8,7 +8,7 @@ import dynamic from 'next/dynamic'
 
 const LessonLoading = dynamic(() => import('@/components/lesson-loading').then(mod => mod.LessonLoading), { ssr: false })
 
-const SIDEBAR_LOTTIE_LOADERS = [
+export const SIDEBAR_LOTTIE_LOADERS = [
     '/LottieLoader/HP angry snake hugs.json',
     '/LottieLoader/HP cool guy Full.json',
     '/LottieLoader/HP hurry.json',
