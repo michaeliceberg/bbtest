@@ -1,8 +1,8 @@
 'use server';
 
 // actions/lesson-rating.ts — оценка урока учеником (см. lessonRatings в схеме).
-// Один ученик — одна оценка на урок (повторная перезаписывает). Плохая оценка
-// с комментарием сразу летит админу в Telegram.
+// Один ученик — одна оценка на урок (повторная перезаписывает). Любая оценка
+// (с комментарием, если есть) сразу летит админу в Telegram.
 
 import { and, eq } from 'drizzle-orm';
 import db from '@/db/drizzle';
@@ -28,13 +28,13 @@ export async function submitLessonRating(tLessonId: number, score: number, comme
 		await db.insert(lessonRatings).values({ tLessonId, userId, score, comment: cleanComment });
 	}
 
-	if (score <= 2) {
+	{
 		const lesson = await db.query.t_lessons.findFirst({ where: eq(t_lessons.id, tLessonId), columns: { title: true } });
 		const opt = LESSON_RATING_OPTIONS[score - 1];
 		await sendMessageToTelegram(
-			`${opt.emoji} Урок «${lesson?.title ?? tLessonId}» (id ${tLessonId}) оценили: ${opt.label}` +
+			`${opt.emoji} Урок «${lesson?.title ?? tLessonId}» (id ${tLessonId}) оценили: ${score}/4 — ${opt.label}` +
 			(cleanComment ? `\nНепонятно: ${cleanComment}` : '') +
-			(userId ? '' : '\n(гость)'),
+			(userId ? `\nКто: ${session?.user?.name ?? userId}` : '\n(гость)'),
 		).catch(() => null);
 	}
 	return { ok: true };
