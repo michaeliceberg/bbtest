@@ -1175,3 +1175,15 @@ export const gangWeekRewards = pgTable('gang_week_rewards', {
 	claimed: boolean('claimed').notNull().default(false),
 	claimedAt: timestamp('claimed_at'),
 });
+
+// Оценка урока учеником («Насколько понятен был урок?», 1–4) — показывается
+// после пошаговых разборов (*WALK). user_id null — гость пробного урока.
+// comment — «что было непонятно», только для плохих оценок.
+export const lessonRatings = pgTable('lesson_ratings', {
+	id: serial('id').primaryKey(),
+	tLessonId: integer('t_lesson_id').notNull().references(() => t_lessons.id, { onDelete: 'cascade' }),
+	userId: text('user_id'),
+	score: integer('score').notNull(),
+	comment: text('comment'),
+	createdAt: timestamp('created_at').notNull().defaultNow(),
+});

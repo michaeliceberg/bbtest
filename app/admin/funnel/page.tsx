@@ -83,6 +83,20 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 	const [pizza] = await q(sql`
 		SELECT count(*) FILTER (WHERE pizza_slices >= 6) AS close_to_full FROM user_progress`)
 
+	// Оценки уроков (components/lesson-rating-screen.tsx) — за всё время,
+	// худшие сверху: их и надо переделывать.
+	const ratings = await q(sql`
+		SELECT r.t_lesson_id AS id, max(l.title) AS title, count(*) AS cnt,
+			round(avg(r.score)::numeric, 2) AS avg,
+			count(*) FILTER (WHERE r.score <= 2) AS bad
+		FROM lesson_ratings r LEFT JOIN t_lessons l ON l.id = r.t_lesson_id
+		GROUP BY r.t_lesson_id ORDER BY avg ASC, cnt DESC`)
+
+	const ratingComments = await q(sql`
+		SELECT r.score, r.comment, r.created_at, l.title FROM lesson_ratings r
+		LEFT JOIN t_lessons l ON l.id = r.t_lesson_id
+		WHERE r.comment IS NOT NULL ORDER BY r.created_at DESC LIMIT 15`)
+
 	const vibeLabel = (id: string) => {
 		const v = VIBES.find((x) => x.id === id)
 		return v ? `${v.emoji} ${v.label}` : id
@@ -192,6 +206,33 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 								</li>
 							))}
 						</ul>
+					)}
+				</Card>
+
+				<Card title="⭐ Оценки уроков (понятность 1–4)">
+					{ratings.length === 0 ? <Empty /> : (
+						<ul className="space-y-1.5 text-sm">
+							{ratings.map((r) => (
+								<li key={String(r.id)} className="flex justify-between gap-2">
+									<span className="truncate">{String(r.title ?? r.id)}</span>
+									<span className="whitespace-nowrap">
+										<b style={{ color: n(r.avg) < 2.5 ? '#DC605B' : n(r.avg) < 3.3 ? '#F09B38' : '#78C93C' }}>{String(r.avg)}</b>
+										<span className="text-[#9AA7B0]"> · {n(r.cnt)} оц.{n(r.bad) > 0 ? ` · 👎 ${n(r.bad)}` : ''}</span>
+									</span>
+								</li>
+							))}
+						</ul>
+					)}
+					{ratingComments.length > 0 && (
+						<div className="mt-4 space-y-2">
+							<p className="text-xs text-[#9AA7B0] font-bold">Что непонятно:</p>
+							{ratingComments.map((c, i) => (
+								<div key={i} className="rounded-lg bg-[#0E1519] p-2 text-sm">
+									<p className="text-xs text-[#9AA7B0]">{String(c.title ?? '')} · оценка {n(c.score)}</p>
+									<p>{String(c.comment)}</p>
+								</div>
+							))}
+						</div>
 					)}
 				</Card>
 

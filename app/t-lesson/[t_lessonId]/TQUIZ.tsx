@@ -2,7 +2,7 @@
 
 "use client"
 
-import React, { useEffect, useState, useRef, useCallback } from "react"
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { motion } from "framer-motion"
 import dynamic from "next/dynamic"
 import { preloadSound, WIN_SOUND, CASE_PRIZE_SOUND } from "@/lib/sound"
@@ -19,6 +19,8 @@ const LightningStrike = dynamic(() => import("../../../components/LightningStrik
 const StreakCelebrationScreen = dynamic(() => import("../../../components/streak-celebration-screen").then(mod => mod.StreakCelebrationScreen), { ssr: false })
 import { toast } from "sonner"
 import { useUiTheme } from "@/lib/uiTheme"
+import { LessonRatingScreen } from "@/components/lesson-rating-screen"
+import { isStepByStepLesson } from "@/lib/trainerStageFlags"
 import { upsertTrainerLessonProgress } from "@/actions/user-progress"
 import { recordChallengeResult } from "@/actions/record-challenge-result"
 import { Separator } from "../../../components/ui/separator"
@@ -157,6 +159,7 @@ type Props = {
   // ниже), а финальный экран наград — GuestRewardScreen (кейс с призом +
   // CTA "зарегистрируйся, чтобы забрать") вместо TrainerQuestRewardsScreen.
   isGuest?: boolean,
+  lessonAlreadyRated?: boolean,
   invite?: { code: string; nickname: string } | null,
 }
 
@@ -174,6 +177,7 @@ export default function TQuiz({
   nextTLessonHref,
   isAdmin,
   isGuest,
+  lessonAlreadyRated,
   invite,
 }: Props) {
 
@@ -369,7 +373,20 @@ export default function TQuiz({
   // ПОСЛЕ того, как пользователь его прокрутит (см. onDone у CaseReel ниже).
   // Конец урока: сервер учитывает урок в квестах дня и решает кейс, затем
   // показываются итоги.
+  // Оценка урока («Насколько понятен был урок?») — после пошаговых разборов,
+  // перед итогами; один раз на урок (lessonAlreadyRated приходит с сервера).
+  const [showLessonRating, setShowLessonRating] = useState(false)
+  const lessonRatedRef = useRef(!!lessonAlreadyRated)
+  const needsLessonRating = useMemo(
+    () => isStepByStepLesson(questions1.map((q) => q.questionType)),
+    [questions1],
+  )
+
   const prepareFinish = useCallback(async () => {
+    if (needsLessonRating && !lessonRatedRef.current) {
+      setShowLessonRating(true)
+      return
+    }
     // Гостю (isGuest) квесты дня/ударный час не считаются вообще — оба
     // сервер-экшена ниже уже no-op'нутся без сессии, но незачем даже
     // их дёргать: plannedCaseRef остаётся null, значит openPlannedCase()
@@ -387,7 +404,7 @@ export default function TQuiz({
     setQuestRewardsData(quests)
     plannedCaseRef.current = planned
     setQuizCompleted(true)
-  }, [questions1, t_lessonId, planFinishCase, isGuest])
+  }, [questions1, t_lessonId, planFinishCase, isGuest, needsLessonRating])
 
   // Кнопка «Дальше» на итогах: сперва мегакейс за угаданный горячий вопрос
   // (если был), потом запланированный кейс, потом «Квесты дня».
@@ -950,6 +967,20 @@ export default function TQuiz({
           setGuestVibes(vibes)
           lessonStartRef.current = Date.now()
           setVibeStage('done')
+        }}
+      />
+    )
+  }
+
+  if (showLessonRating) {
+    return (
+      <LessonRatingScreen
+        tLessonId={t_lessonId}
+        theme={uiTheme}
+        onDone={() => {
+          lessonRatedRef.current = true
+          setShowLessonRating(false)
+          prepareFinish()
         }}
       />
     )

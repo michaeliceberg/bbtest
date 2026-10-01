@@ -13140,3 +13140,11 @@ persistent currents) — а кольцо в этом уроке явно обы�
 `setReferralCookie` переводит код в userId (httpOnly cookie). В ссылках больше нет userId (там бывает телефон):
 `user_progress.invite_code`/`nickname` (прямой SQL), заводятся лениво `getOrCreateInvite` (lib/invite.ts);
 /account и QR банды тоже на коде. Старые ссылки `?ref=<userId>` работают, если такой ученик есть.
+
+## Оценка урока «Насколько понятен был урок?» (2026-10-01)
+После пошаговых разборов (урок содержит тип из `STEP_BY_STEP_CHALLENGE_TYPES`), после бонус-вопроса, перед итогами —
+`components/lesson-rating-screen.tsx` (4 варианта из `lib/lessonRating.ts`: 😵‍💫 Мозг.exe не отвечает / 🤨 Ну такое… /
+😎 Норм, вкатился / 🤯 База! Всё изи; на 1–2 — поле «что было непонятно»; «Пропустить»). Встроено в `prepareFinish`
+(TQUIZ.tsx), спрашиваем один раз на урок (`lessonAlreadyRated` из page.tsx). Таблица `lesson_ratings` (прямой SQL,
+user_id null = гость; повторная оценка ученика перезаписывает). Оценка 1–2 → сообщение админу в Telegram.
+Сводка — `/admin/funnel`, карточка «⭐ Оценки уроков»: средняя оценка по урокам (худшие сверху) + последние комментарии.

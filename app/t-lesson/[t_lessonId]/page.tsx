@@ -12,9 +12,9 @@ import { STEP_BY_STEP_CHALLENGE_TYPES } from "@/lib/trainerStageFlags"
 import { getStageQueryParams, isBossExamStage } from "@/lib/trainerStageFlags"
 import { pickGuestNickname } from "@/lib/nickname"
 import TQuiz from "@/app/t-lesson/[t_lessonId]/TQUIZ"
-import { allTypesCT, tChallengeMistakes } from "@/db/schema";
+import { allTypesCT, tChallengeMistakes, lessonRatings } from "@/db/schema";
 import db from "@/db/drizzle";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 // Единственный урок тренажёра, открытый анонимным (не залогиненным)
 // посетителям — бесплатная "пробная" воронка (см. обсуждение с
@@ -323,6 +323,13 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     const guestNickname = isGuest ? pickGuestNickname() : null;
     // Код приглашения + позывной для «Позвать друга» на итогах урока.
     const invite = userProgress ? await getOrCreateInvite(userProgress.userId) : null;
+    // Оценку урока спрашиваем один раз (см. LessonRatingScreen).
+    const lessonAlreadyRated = userProgress
+        ? !!(await db.query.lessonRatings.findFirst({
+            where: and(eq(lessonRatings.userId, userProgress.userId), eq(lessonRatings.tLessonId, t_lessonId)),
+            columns: { id: true },
+        }))
+        : false;
 
     if (!t_lesson || (!userProgress && !isGuest)) {
         redirect('/trainer');
@@ -1849,6 +1856,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             userName={isGuest ? guestNickname! : userProgress!.userName}
             isGuest={isGuest}
             invite={invite}
+            lessonAlreadyRated={lessonAlreadyRated}
             stage={stageParam}
             isBossStage={isBossStage}
             isChestStage={isChestStage}
