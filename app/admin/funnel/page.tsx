@@ -71,6 +71,16 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 			count(*) FILTER (WHERE coalesce(u.is_admin, 0) <> 0 AND date_done >= ${since} AND training_pts > 0) AS admin_lessons
 		FROM t_lesson_progress p LEFT JOIN user_progress u ON u.user_id = p.user_id`)
 
+	// Топ-10 учеников по числу РАЗНЫХ пройденных уроков тренажёра за период
+	// (повторы одного урока не считаются; админы и тестовые не участвуют).
+	const topLearners = await q(sql`
+		SELECT p.user_id AS uid, max(u.user_name) AS name,
+			count(DISTINCT p.t_lesson_id) AS distinct_lessons, count(*) AS passes,
+			to_char(max((p.date_done AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Moscow'), 'DD.MM') AS last_day
+		FROM t_lesson_progress p LEFT JOIN user_progress u ON u.user_id = p.user_id
+		WHERE p.training_pts > 0 AND coalesce(u.is_admin, 0) = 0 AND p.date_done >= ${since}
+		GROUP BY p.user_id ORDER BY distinct_lessons DESC, passes DESC LIMIT 10`)
+
 	// Календарь активности (как у GitHub): последние HEATMAP_WEEKS недель,
 	// день по Москве. date_done/created_at — timestamp без зоны, пишутся в UTC.
 	const heatRows = await q(sql`
@@ -202,6 +212,28 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 			</div>
 
 			<ActivityHeatmap rows={heatRows} />
+
+			<Card title="🏆 Топ-10 учеников по разным урокам тренажёра">
+				{topLearners.length === 0 ? (
+					<Empty />
+				) : (
+					<div className="space-y-1.5">
+						{topLearners.map((r, i) => (
+							<div key={String(r.uid)} className="flex items-center gap-3 text-sm">
+								<span className="w-6 text-right font-bold text-[#9AA7B0]">{['🥇', '🥈', '🥉'][i] ?? i + 1}</span>
+								<span className="flex-1 truncate">{String(r.name ?? r.uid)}</span>
+								<span className="font-extrabold">{n(r.distinct_lessons)}</span>
+								<span className="w-28 text-xs text-[#6B7A83]">
+									{n(r.passes)} прохожд. · {String(r.last_day ?? '')}
+								</span>
+							</div>
+						))}
+						<p className="text-xs text-[#6B7A83] pt-1">
+							Число — разные уроки (повторы не в счёт), справа — все прохождения и последний день. Твои и тестовые не считаются.
+						</p>
+					</div>
+				)}
+			</Card>
 
 			<Card title="🎁 Пробный урок (гости, урок 485)">
 				<div className="space-y-2">
