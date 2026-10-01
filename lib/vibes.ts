@@ -33,12 +33,12 @@ export const VIBE_CATEGORIES: { id: VibeCategory; title: string }[] = [
 
 export const VIBES: Vibe[] = [
 	// Игры
-	{ id: 'minecraft', emoji: '⛏️', label: 'Майнкрафт', category: 'games', adj: 'Кубический', noun: 'Крафтер', image: '/vibes/minecraft.webp' },
-	{ id: 'cs', emoji: '🎯', label: 'КС', category: 'games', adj: 'Хедшотный', noun: 'Снайпер', image: '/vibes/cs.webp' },
-	{ id: 'dota', emoji: '⚔️', label: 'Дота', category: 'games', adj: 'Мидовый', noun: 'Керри', image: '/vibes/dota.webp' },
+	{ id: 'minecraft', emoji: '⛏️', label: 'Майнкрафт', category: 'games', adj: 'Кубический', noun: 'Крафтер', image: '/vibes/minecraft.webp?v=2' },
+	{ id: 'cs', emoji: '🎯', label: 'КС', category: 'games', adj: 'Хедшотный', noun: 'Снайпер', image: '/vibes/cs.webp?v=2' },
+	{ id: 'dota', emoji: '⚔️', label: 'Дота', category: 'games', adj: 'Мидовый', noun: 'Керри', image: '/vibes/dota.webp?v=2' },
 	{ id: 'brawl', emoji: '💥', label: 'Бравл Старс', category: 'games', adj: 'Звёздный', noun: 'Бравлер', image: '/vibes/brawl.webp' },
-	{ id: 'roblox', emoji: '🧱', label: 'Роблокс', category: 'games', adj: 'Пиксельный', noun: 'Роблоксер', image: '/vibes/roblox.webp' },
-	{ id: 'pubg', emoji: '🪂', label: 'Пабг', category: 'games', adj: 'Десантный', noun: 'Выживший', image: '/vibes/pubg.webp' },
+	{ id: 'roblox', emoji: '🧱', label: 'Роблокс', category: 'games', adj: 'Пиксельный', noun: 'Роблоксер', image: '/vibes/roblox.webp?v=2' },
+	{ id: 'pubg', emoji: '🪂', label: 'Пабг', category: 'games', adj: 'Десантный', noun: 'Выживший', image: '/vibes/pubg.webp?v=2' },
 	// Музыка
 	{ id: 'rap', emoji: '🎤', label: 'Рэп', category: 'music', adj: 'Битовый', noun: 'Рэпер' },
 	{ id: 'phonk', emoji: '🚗', label: 'Фонк', category: 'music', adj: 'Фонковый', noun: 'Дрифтер' },
