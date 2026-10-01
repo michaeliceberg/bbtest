@@ -1854,7 +1854,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         <>
         {/* ?ref= из приглашения в пробный урок — ставит cookie referredBy */}
         <ReferralCatcher />
-        {isGuest && searchParams?.ref && <ReferralWelcome inviterNickname={inviter?.nickname ?? null} />}
+        {isGuest && searchParams?.ref && <ReferralWelcome inviterNickname={inviter?.nickname ?? null} theme="cozy" />}
         <TQuiz
             t_lessonId={t_lesson.id}
             t_lessonTitle={t_lesson.title}

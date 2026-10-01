@@ -43,7 +43,7 @@ export const PizzaPie = ({ collected, highlight = 0, size = 150 }: { collected: 
 )
 
 const WELCOME_ACCENT = '#FBBF24'
-const WELCOME_STEPS = ['Направление поля', 'Закон Фарадея', 'Правило Ленца']
+const WELCOME_STEPS = ['Ток крутит поле 🌀', 'Фарадей — наш брат 🤝', 'Ленц — душнила, но база 🧱']
 
 export const ReferralWelcome = ({ inviterNickname, theme = 'metal', onStart }: { inviterNickname: string | null; theme?: UiTheme; onStart?: () => void }) => {
 	const [open, setOpen] = useState(true)
@@ -55,7 +55,7 @@ export const ReferralWelcome = ({ inviterNickname, theme = 'metal', onStart }: {
 	}
 	return (
 		<div className="fixed inset-0 z-[80] overflow-y-auto">
-			<CelebrationShell theme={theme} accent={WELCOME_ACCENT} starsTier="mega" buttonLabel="Погнали! 🚀" onButton={start}>
+			<CelebrationShell theme={theme} accent={WELCOME_ACCENT} starsTier="mega" buttonLabel="ГААААЗ" shinyButton onButton={start}>
 				{inviterNickname && (
 					<motion.div
 						initial={{ y: -16, opacity: 0 }}

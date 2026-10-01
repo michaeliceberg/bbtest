@@ -31,11 +31,13 @@ type Props = {
     // fixed — поверх всего приложения (глобальный экран уровня); иначе
     // обычный блок во весь экран (экран внутри урока).
     overlay?: boolean
+    // Блестящая кнопка игрового стиля даже в тёплом стиле.
+    shinyButton?: boolean
     children: React.ReactNode
 }
 
 export const CelebrationShell = ({
-    theme = 'metal', accent, starsTier, confetti, buttonLabel, onButton, cozyButton, overlay, children,
+    theme = 'metal', accent, starsTier, confetti, buttonLabel, onButton, cozyButton, overlay, shinyButton, children,
 }: Props) => {
     const cozy = theme === 'cozy'
     const { width, height } = useWindowSize()
@@ -81,7 +83,7 @@ export const CelebrationShell = ({
                     transition={{ delay: 0.9, duration: 0.4 }}
                     className="w-full max-w-sm"
                 >
-                    {cozy ? (
+                    {cozy && !shinyButton ? (
                         <motion.button
                             onClick={onButton}
                             whileTap={{ y: 5, boxShadow: `0 1px 0 ${btn.edge}` }}
