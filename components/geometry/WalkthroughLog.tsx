@@ -144,9 +144,13 @@ export const pickWrongTryPhrase = (): string => {
 // не только по py-* (см. их же комментарий: без явной высоты кнопки
 // расходились на 2px — 50px у иконочных vs 52px у этой, пойман
 // пользователем визуально).
+// Пока на кнопку нельзя нажать (идёт печать/анимация сцены) — она ПОЛНОСТЬЮ
+// прозрачна и некликабельна, но место под неё сохранено (ряд не прыгает).
+// Проявляется, когда уже можно жать (просьба пользователя 2026-10-01: «зачем
+// видеть кнопку и её текст заранее, если на неё ещё нельзя нажать»).
 export const walkthroughButtonClass = (enabled: boolean) => cn(
-    'flex-1 h-[52px] flex items-center justify-center rounded-lg font-bold text-lg transition-all duration-200 active:translate-y-1',
-    enabled ? 'bg-[#A1D151] text-[#151F24] cursor-pointer' : 'bg-[#3A464E] text-[#F2F7FB] cursor-not-allowed opacity-90',
+    'flex-1 h-[52px] flex items-center justify-center rounded-lg font-bold text-lg transition-all duration-300 active:translate-y-1',
+    enabled ? 'bg-[#A1D151] text-[#151F24] cursor-pointer opacity-100 scale-100' : 'bg-[#A1D151] text-[#151F24] opacity-0 scale-95 pointer-events-none',
 );
 export const walkthroughButtonStyle = (enabled: boolean): { boxShadow: string } => ({
     boxShadow: enabled ? '0 4px 0 #876E4A' : '0 4px 0 #1A2A3A',
