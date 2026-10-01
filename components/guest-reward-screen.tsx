@@ -16,7 +16,8 @@ import { Button } from '@/components/ui/button';
 import { CaseReel } from '@/components/CaseReel';
 import { shareInviteLink } from '@/components/share-story-button';
 import { getInviteLink } from '@/lib/referral';
-import { createGuestLead, openGuestLeadCase } from '@/actions/guest-lesson';
+import { createGuestLead, openGuestLeadCase, updateGuestLeadVibes } from '@/actions/guest-lesson';
+import { GuestVibePicker, GUEST_NICKNAME_STORAGE_KEY } from '@/components/guest-vibe-picker';
 import { DIAGNOSTIC_CASE_POOL, rewardEmoji, rewardLabel, type CaseReward } from '@/lib/caseRewards';
 import type { UiTheme } from '@/lib/cozyTheme';
 
@@ -30,7 +31,11 @@ type Props = {
 	theme: UiTheme;
 };
 
-export const GuestRewardScreen = ({ t_lessonId, nickname, vibes, theme }: Props) => {
+export const GuestRewardScreen = ({ t_lessonId, nickname: initialNickname, vibes, theme }: Props) => {
+	const [nickname, setNickname] = useState(initialNickname);
+	// После приза — экран "Что тебе заходит?" (позывной из увлечений), если
+	// гость его ещё не проходил (позывной уже сохранён в localStorage).
+	const [vibeStage, setVibeStage] = useState<'pending' | 'picker' | 'done'>('pending');
 	const [leadId, setLeadId] = useState<number | null>(null);
 	const [wonReward, setWonReward] = useState<CaseReward | null>(null);
 	const [loginOpen, setLoginOpen] = useState(false);
@@ -51,6 +56,26 @@ export const GuestRewardScreen = ({ t_lessonId, nickname, vibes, theme }: Props)
 		createGuestLead(t_lessonId, nickname, vibes ?? []).then(({ leadId }) => setLeadId(leadId));
 	}, [t_lessonId, nickname, vibes]);
 
+	const onCaseDone = (reward: CaseReward) => {
+		setWonReward(reward);
+		let picked = false;
+		try { picked = !!localStorage.getItem(GUEST_NICKNAME_STORAGE_KEY); } catch { /* нет доступа — покажем выбор */ }
+		setVibeStage(picked ? 'done' : 'picker');
+	};
+
+	if (wonReward && vibeStage === 'picker') {
+		return (
+			<GuestVibePicker
+				subtitle={`Приз твой: ${rewardEmoji(wonReward)} ${rewardLabel(wonReward)}! Теперь придумаем тебе позывной`}
+				onDone={(nick, picked) => {
+					setNickname(nick);
+					setVibeStage('done');
+					updateGuestLeadVibes(nick, picked).catch(() => null);
+				}}
+			/>
+		);
+	}
+
 	return (
 		<div className="w-full max-w-xl mx-auto flex flex-col items-center gap-4 py-6 px-2">
 			<div className="text-center">
@@ -66,7 +91,7 @@ export const GuestRewardScreen = ({ t_lessonId, nickname, vibes, theme }: Props)
 						pool={DIAGNOSTIC_CASE_POOL}
 						title="Твой приз"
 						spinAction={() => openGuestLeadCase(leadId)}
-						onDone={({ reward }) => setWonReward(reward)}
+						onDone={({ reward }) => onCaseDone(reward)}
 					/>
 				</div>
 			)}

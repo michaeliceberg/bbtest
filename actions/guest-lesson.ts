@@ -48,6 +48,19 @@ export async function createGuestLead(tLessonId: number, nickname: string, vibes
 	return { leadId: row.id };
 }
 
+// Экран "Что тебе заходит?" показывается ПОСЛЕ открытия кейса — выбор и
+// новый позывной дописываем в уже созданный лид (лид — из cookie, не с
+// клиента, чтобы нельзя было переписать чужой).
+export async function updateGuestLeadVibes(nickname: string, vibes: string[]) {
+	const jar = await cookies();
+	const leadId = Number(jar.get(GUEST_LEAD_COOKIE)?.value);
+	if (!Number.isFinite(leadId) || leadId <= 0) return { ok: false };
+	await db.update(guestLessonLeads)
+		.set({ nickname: nickname.slice(0, 80), vibes: vibes.slice(0, 5).join(',') || null })
+		.where(eq(guestLessonLeads.id, leadId));
+	return { ok: true };
+}
+
 // spinAction для CaseReel — без auth(), как и openDiagnosticCase. Приз
 // пишется прямо в строку лида (reward_kind/reward_amount), не в
 // userProgress — реального аккаунта ещё нет.

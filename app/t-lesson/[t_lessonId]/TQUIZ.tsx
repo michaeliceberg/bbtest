@@ -198,11 +198,11 @@ export default function TQuiz({
       if (nick) {
         setGuestNickname(nick)
         setGuestVibes((localStorage.getItem(GUEST_VIBES_STORAGE_KEY) ?? '').split(',').filter(Boolean))
-        setVibeStage('done')
-        return
       }
-    } catch { /* нет доступа к localStorage — покажем выбор */ }
-    setVibeStage('picker')
+    } catch { /* нет доступа к localStorage */ }
+    // Экран "Что тебе заходит?" теперь после кейса (GuestRewardScreen) —
+    // урок начинается сразу, с серверным позывным.
+    setVibeStage('done')
   }, [isGuest])
   const showAchievement = useAchievementStore((state) => state.showAchievement)
   // Название с префиксом "daily" не просто так — showStreakCelebration/

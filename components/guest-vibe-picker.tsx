@@ -2,8 +2,8 @@
 
 // components/guest-vibe-picker.tsx
 //
-// Экран "Что тебе заходит?" ПЕРЕД пробным уроком гостя (TQUIZ.tsx,
-// isGuest): 3-5 плиток (игры, музыка, гаджеты, еда, спорт, увлечения) →
+// Экран "Что тебе заходит?" после открытия кейса пробного урока гостя
+// (components/guest-reward-screen.tsx; раньше был перед уроком): 3-5 плиток (игры, музыка, гаджеты, еда, спорт, увлечения) →
 // позывной из выбора (lib/vibes.ts) с кнопкой "Ещё вариант" → урок.
 // Выбор и позывной сохраняются в localStorage — при повторном заходе
 // экран не показывается второй раз; выбор уходит в guest_lesson_leads.vibes.
@@ -18,9 +18,11 @@ export const GUEST_NICKNAME_STORAGE_KEY = 'guestVibeNickname';
 
 type Props = {
 	onDone: (nickname: string, vibes: string[]) => void;
+	// Подзаголовок под "Что тебе заходит?" (после кейса — про выбитый приз).
+	subtitle?: string;
 };
 
-export const GuestVibePicker = ({ onDone }: Props) => {
+export const GuestVibePicker = ({ onDone, subtitle }: Props) => {
 	const [selected, setSelected] = useState<string[]>([]);
 	const [nickname, setNickname] = useState<string | null>(null);
 	const [rollKey, setRollKey] = useState(0);
@@ -95,6 +97,7 @@ export const GuestVibePicker = ({ onDone }: Props) => {
 		<div className="w-full max-w-xl mx-auto flex flex-col gap-5 px-4 pt-6 pb-32">
 			<div className="text-center">
 				<h1 className="text-2xl sm:text-3xl font-extrabold text-[#F2F7FB]">Что тебе заходит? 😎</h1>
+				{subtitle && <p className="text-yellow-300 font-bold mt-2">{subtitle}</p>}
 				<p className="text-[#9AA7B0] mt-1">Выбери от {VIBE_MIN} до {VIBE_MAX} — придумаем тебе позывной</p>
 			</div>
 

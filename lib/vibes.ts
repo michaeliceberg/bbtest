@@ -21,11 +21,11 @@ export type Vibe = {
 
 export const VIBE_CATEGORIES: { id: VibeCategory; title: string }[] = [
 	{ id: 'games', title: 'Игры' },
-	{ id: 'music', title: 'Музыка' },
-	{ id: 'gadgets', title: 'Гаджеты' },
 	{ id: 'food', title: 'Еда' },
 	{ id: 'sport', title: 'Спорт' },
 	{ id: 'hobby', title: 'Увлечения' },
+	{ id: 'music', title: 'Музыка' },
+	{ id: 'gadgets', title: 'Гаджеты' },
 ]
 
 export const VIBES: Vibe[] = [

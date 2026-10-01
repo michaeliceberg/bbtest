@@ -7,6 +7,7 @@
 import { useState } from 'react'
 import { ReferralWelcome } from '@/components/referral-screens'
 import { LessonLoading } from '@/components/lesson-loading'
+import { GuestVibePicker } from '@/components/guest-vibe-picker'
 import { SIDEBAR_LOTTIE_LOADERS } from '@/utils/TransitionLink'
 import type { UiTheme } from '@/lib/cozyTheme'
 
@@ -15,6 +16,10 @@ const btn = 'rounded-xl px-5 py-3 font-black uppercase text-sm'
 export default function TestReferralWelcomePage() {
 	const [shown, setShown] = useState<{ theme: UiTheme; nick: string | null; key: number } | null>(null)
 	const [loading, setLoading] = useState(false)
+	const [vibes, setVibes] = useState(false)
+	if (vibes) {
+		return <GuestVibePicker subtitle="Приз твой: 💎 +2 гема! Теперь придумаем тебе позывной" onDone={() => setVibes(false)} />
+	}
 	if (loading) {
 		return (
 			<div onClick={() => setLoading(false)}>
@@ -36,6 +41,9 @@ export default function TestReferralWelcomePage() {
 			</button>
 			<button className={btn + ' bg-[#2A363C] text-[#D5DEE5]'} onClick={() => setShown({ theme: 'metal', nick: null, key: Date.now() })}>
 				▶ Без имени пригласившего
+			</button>
+			<button className={btn + ' bg-[#2A363C] text-[#D5DEE5]'} onClick={() => setVibes(true)}>
+				😎 «Что тебе заходит?» (после кейса)
 			</button>
 			<button className={btn + ' bg-[#2A363C] text-[#D5DEE5]'} onClick={() => setLoading(true)}>
 				⏳ Заставка загрузки (клик — закрыть)
