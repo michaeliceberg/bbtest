@@ -33,6 +33,9 @@ import { HIDDEN_T_COURSE_IDS, pickActiveCourseId, resolveActiveTCourse, sortTCou
 import { getUiTheme } from '@/lib/uiThemeServer';
 import { COZY } from '@/lib/cozyTheme';
 import { GuestRewardClaimer } from '@/components/guest-reward-claimer';
+import { ReferralCashbackScreen } from '@/components/referral-screens';
+import { getUnseenCashback } from '@/lib/referralRewards';
+import { LEARN_UNLOCK_T_LESSONS } from '@/lib/learn-unlock';
 
 const TLearnPage = async () => {
     const session = await auth();
@@ -201,6 +204,12 @@ const TLearnPage = async () => {
     const currentHearts = userProgress.hearts;
     const currentXp = userProgress.xp;
     const currentPizzaSlices = userProgress.pizzaSlices;
+    // Реферальная пицца (lib/referralRewards.ts): кэшбэк пригласившему и
+    // прогресс приглашённого к своему кусочку (3 урока электродинамики).
+    const cashback = await getUnseenCashback(userProgress.userId).catch(() => []);
+    const referralLessonsLeft = userProgress.invitedByUserId && !userProgress.referralRewardedAt
+        ? LEARN_UNLOCK_T_LESSONS.filter((id) => !t_lessonProgress.some((p) => p.t_lessonId === id && p.trainingPts > 0)).length
+        : 0;
 
     // "Ударный режим под угрозой" (components/streak-risk-banner.tsx) —
     // тот же единый курсовый стрик, что и на /learn (см. lib/streak.ts),
@@ -258,6 +267,7 @@ const TLearnPage = async () => {
 
             <FeedWrapper>
                 <GuestRewardClaimer />
+                {cashback.length > 0 && <ReferralCashbackScreen items={cashback} theme={uiTheme} />}
                 <Header title={activeTCourse ? `Тренажёр ${activeTCourse.title}` : "Тренажёр"} cozy={cozy} />
 
                 <div className='mt-2 lg:mt-5'>
@@ -275,8 +285,13 @@ const TLearnPage = async () => {
                         className={cozy ? 'mb-5 flex justify-center rounded-xl px-3 py-3' : 'mb-4 flex justify-center'}
                         style={cozy ? { background: COZY.card, border: `3px solid ${COZY.cardBorder}`, boxShadow: `0 6px 0 ${COZY.cardEdge}` } : undefined}
                     >
-                        <PizzaProgress collected={currentPizzaSlices} cozy={cozy} dodoPromoCode={userProgress.dodoPromoCode} />
+                        <PizzaProgress collected={currentPizzaSlices} cozy={cozy} dodoPromoCode={userProgress.dodoPromoCode} eighths={userProgress.pizzaEighths} />
                     </div>
+                    {referralLessonsLeft > 0 && (
+                        <div className='mb-4 rounded-xl border-2 border-yellow-400/50 bg-yellow-400/10 px-4 py-3 text-center font-bold text-yellow-200'>
+                            🍕 Пройди ещё {referralLessonsLeft} {referralLessonsLeft === 1 ? 'урок' : 'урока'} Электродинамики — и получишь кусочек пиццы!
+                        </div>
+                    )}
 
                     <div className='content-center mx-auto justify-center text-center align-middle'>
                         <HwTopBanner missedCIds={missedLIds} variant='trainer' />

@@ -24,9 +24,11 @@ type Props = {
 	// applyResolvedReward) — Фаза 2, 2026-09-29. Показывается вместо
 	// общей фразы "промокод в Додо", как только collected>=8.
 	dodoPromoCode?: string | null
+	// Дробная часть (восьмые) от реферальной лестницы — «+½ в копилке».
+	eighths?: number
 }
 
-export const PizzaProgress = ({ collected, size = 140, cozy = false, dodoPromoCode = null }: Props) => {
+export const PizzaProgress = ({ collected, size = 140, cozy = false, dodoPromoCode = null, eighths = 0 }: Props) => {
 	const clamped = Math.max(0, Math.min(MAX_PIZZA_SLICES, collected))
 	const isComplete = clamped >= MAX_PIZZA_SLICES
 
@@ -89,6 +91,11 @@ export const PizzaProgress = ({ collected, size = 140, cozy = false, dodoPromoCo
 					{/* eslint-disable-next-line @next/next/no-img-element */}
 					<img src="/dodo-icon.svg" alt="Додо" className="w-10 h-10 shrink-0" />
 				</span>
+				{eighths > 0 && !isComplete && (
+					<span className="text-sm font-bold text-yellow-300/80">
+						+ {eighths === 4 ? '½' : eighths === 2 ? '¼' : eighths === 6 ? '¾' : `${eighths}/8`} кусочка в копилке
+					</span>
+				)}
 			</div>
 		</div>
 	)

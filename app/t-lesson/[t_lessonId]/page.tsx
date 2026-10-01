@@ -1,5 +1,6 @@
 import { ReferralCatcher } from '@/components/referral-catcher';
-import { getOrCreateInvite } from '@/lib/invite';
+import { getOrCreateInvite, resolveInviteCode } from '@/lib/invite';
+import { ReferralWelcome } from '@/components/referral-screens';
 // app/t-lesson/[t_lessonId]/page.tsx
 
 import { getAllTLessonProgress, getAllUsersProgress, getTLesson, getTLessonPublic, getUserProgress, getHotQuestionsForUnit } from "@/db/queries"
@@ -276,6 +277,7 @@ type Props = {
         chest?: string
         megachest?: string
         mythic?: string
+        ref?: string
     }
 }
 
@@ -1845,10 +1847,14 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
 
     usersStat.sort((a, b) => b.DR_DRP - a.DR_DRP);
 
+    // Гость по приглашению — экран «Пройди 3 урока — получишь кусочек пиццы».
+    const inviter = isGuest && searchParams?.ref ? await resolveInviteCode(searchParams.ref).catch(() => null) : null;
+
     return (
         <>
         {/* ?ref= из приглашения в пробный урок — ставит cookie referredBy */}
         <ReferralCatcher />
+        {isGuest && searchParams?.ref && <ReferralWelcome inviterNickname={inviter?.nickname ?? null} />}
         <TQuiz
             t_lessonId={t_lesson.id}
             t_lessonTitle={t_lesson.title}

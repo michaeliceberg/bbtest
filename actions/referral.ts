@@ -13,6 +13,10 @@ import { cookies } from 'next/headers';
 import { REFERRAL_COOKIE, REFERRAL_COOKIE_MAX_AGE } from '@/lib/referral';
 import { resolveInviteCode } from '@/lib/invite';
 import { getUserProgressById } from '@/db/queries';
+import { and, eq, inArray } from 'drizzle-orm';
+import db from '@/db/drizzle';
+import { referralRewards } from '@/db/schema';
+import { auth } from '@/lib/auth';
 
 // ref — короткий код приглашения (lib/invite.ts) или, по старым ссылкам,
 // сам userId. В cookie кладём userId (httpOnly — в браузере друга не виден).
@@ -32,4 +36,12 @@ export async function setReferralCookie(ref: string) {
 		httpOnly: true,
 		path: '/',
 	});
+}
+
+// Экран «Тебе кэшбэк от …» на /trainer закрыли — больше не показываем.
+export async function markCashbackSeen(ids: number[]) {
+	const session = await auth();
+	if (!session?.user?.id || !ids.length) return;
+	await db.update(referralRewards).set({ seenAt: new Date() })
+		.where(and(eq(referralRewards.beneficiaryUserId, session.user.id), inArray(referralRewards.id, ids)));
 }

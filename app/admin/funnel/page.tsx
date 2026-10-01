@@ -75,6 +75,41 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 			count(*) FILTER (WHERE assigned_to_user_id IS NULL) AS free
 		FROM dodo_promo_codes`)
 
+	// Дерево приглашений (за всё время) — кто кого привёл, ветки раскрываются.
+	const treeUsers = await q(sql`
+		SELECT user_id, user_name, nickname, invited_by_user_id, referral_rewarded_at IS NOT NULL AS done
+		FROM user_progress
+		WHERE invited_by_user_id IS NOT NULL
+			OR user_id IN (SELECT invited_by_user_id FROM user_progress WHERE invited_by_user_id IS NOT NULL)`)
+	const earnedRows = await q(sql`
+		SELECT beneficiary_user_id AS uid, sum(eighths) AS e FROM referral_rewards WHERE level >= 1 GROUP BY 1`)
+	const earned = new Map(earnedRows.map((r) => [String(r.uid), n(r.e)]))
+	const nodes = new Map<string, TreeNode>()
+	for (const r of treeUsers) {
+		nodes.set(String(r.user_id), {
+			id: String(r.user_id),
+			name: String(r.nickname ?? r.user_name ?? r.user_id),
+			realName: r.nickname && r.user_name ? String(r.user_name) : null,
+			done: !!r.done,
+			eighths: earned.get(String(r.user_id)) ?? 0,
+			children: [],
+		})
+	}
+	const roots: TreeNode[] = []
+	for (const r of treeUsers) {
+		const node = nodes.get(String(r.user_id))!
+		const parent = r.invited_by_user_id ? nodes.get(String(r.invited_by_user_id)) : undefined
+		if (parent && parent !== node) parent.children.push(node)
+		else roots.push(node)
+	}
+	const sizeOf = (t: TreeNode, seen = new Set<string>()): number => {
+		if (seen.has(t.id)) return 0
+		seen.add(t.id)
+		return t.children.reduce((a, c) => a + 1 + sizeOf(c, seen), 0)
+	}
+	roots.sort((a, b) => sizeOf(b) - sizeOf(a))
+	const treeRoots = roots.filter((r) => r.children.length > 0)
+
 	const dodoList = await q(sql`
 		SELECT d.code, d.assigned_at, u.user_name FROM dodo_promo_codes d
 		LEFT JOIN user_progress u ON u.user_id = d.assigned_to_user_id
@@ -183,6 +218,17 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 					<p className="text-xs text-[#6B7A83] mt-3">Дата регистрации записывается с 30.09.2026 — у более ранних учеников её нет.</p>
 				</Card>
 
+				<Card title="🌳 Дерево приглашений (всё время)">
+					{treeRoots.length === 0 ? <Empty /> : (
+						<div className="space-y-1 text-sm">
+							{treeRoots.map((t) => <TreeBranch key={t.id} node={t} depth={0} sizeOf={sizeOf} />)}
+						</div>
+					)}
+					<p className="text-xs text-[#6B7A83] mt-3">
+						В скобках: привёл сам / всего в ветке. ✅ — прошёл 3 урока Электродинамики (пицца по ветке раздана). 🍕 — сколько заработал на приглашениях.
+					</p>
+				</Card>
+
 				<Card title="🧪 Диагностический тест (/test)">
 					<div className="grid grid-cols-3 gap-3">
 						<Stat label="Прошли" value={n(diag.leads)} small />
@@ -250,6 +296,35 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 				</Card>
 			</div>
 		</div>
+	)
+}
+
+type TreeNode = { id: string; name: string; realName: string | null; done: boolean; eighths: number; children: TreeNode[] }
+
+const pizzaLabel = (e: number) => {
+	const whole = Math.floor(e / 8)
+	const frac = e % 8
+	const f = frac === 4 ? '½' : frac === 2 ? '¼' : frac === 6 ? '¾' : frac ? `${frac}/8` : ''
+	return `${whole || ''}${f}` || '0'
+}
+
+const TreeBranch = ({ node, depth, sizeOf }: { node: TreeNode; depth: number; sizeOf: (t: TreeNode) => number }) => {
+	const label = (
+		<span className="inline-flex flex-wrap items-center gap-x-2">
+			<span className="font-bold">{node.done ? '✅ ' : ''}{node.name}</span>
+			{node.realName && <span className="text-xs text-[#6B7A83]">{node.realName}</span>}
+			{node.children.length > 0 && <span className="text-xs text-[#9AA7B0]">({node.children.length} / {sizeOf(node)})</span>}
+			{node.eighths > 0 && <span className="text-xs text-yellow-300">🍕 {pizzaLabel(node.eighths)}</span>}
+		</span>
+	)
+	if (node.children.length === 0 || depth > 8) return <div className="pl-5 py-0.5">{label}</div>
+	return (
+		<details className="py-0.5" >
+			<summary className="cursor-pointer select-none">{label}</summary>
+			<div className="ml-3 border-l border-[#3A464E] pl-2">
+				{node.children.map((c) => <TreeBranch key={c.id} node={c} depth={depth + 1} sizeOf={sizeOf} />)}
+			</div>
+		</details>
 	)
 }
 

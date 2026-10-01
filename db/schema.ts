@@ -148,6 +148,12 @@ export const userProgress = pgTable('user_progress', {
 	// pizzaSlices (lib/caseApply.ts, applyResolvedReward) — атомарно забран
 	// из dodo_promo_codes ниже. Null, пока не собраны все 8 кусочков.
 	dodoPromoCode: text('dodo_promo_code'),
+	// Дробная часть пиццы в восьмых (0–7) — реферальная лестница даёт ½ и ¼
+	// кусочка (lib/referralRewards.ts). Набралось 8/8 — превращается в целый кусочек.
+	pizzaEighths: integer('pizza_eighths').notNull().default(0),
+	// Когда приглашённый прошёл 3 разбора электродинамики и по ветке раздали
+	// пиццу (lib/referralRewards.ts). Null — ещё не раздавали.
+	referralRewardedAt: timestamp('referral_rewarded_at'),
 	// Дата регистрации (первого создания userProgress). Добавлена 2026-09-30 для
 	// /admin/funnel — у пользователей, созданных раньше, NULL.
 	createdAt: timestamp('created_at').defaultNow(),
@@ -157,6 +163,19 @@ export const userProgress = pgTable('user_progress', {
 // плейсхолдер-коды на 100 строк (scripts/seed-dodo-codes.ts), заменяются
 // на настоящие позже точечным UPDATE/новым сидом той же таблицы, без
 // правок кода выдачи (см. applyResolvedReward в lib/caseApply.ts).
+// Начисления реферальной пиццы: level 0 — сам приглашённый (1–2 кусочка),
+// 1 — тот, кто его пригласил (1 кусочек), 2 — ½, 3 — ¼. seenAt — показан
+// экран «Тебе кэшбэк от …» (только для level ≥ 1).
+export const referralRewards = pgTable('referral_rewards', {
+	id: serial('id').primaryKey(),
+	beneficiaryUserId: text('beneficiary_user_id').notNull(),
+	sourceUserId: text('source_user_id').notNull(),
+	level: integer('level').notNull(),
+	eighths: integer('eighths').notNull(),
+	createdAt: timestamp('created_at').notNull().defaultNow(),
+	seenAt: timestamp('seen_at'),
+});
+
 export const dodoPromoCodes = pgTable('dodo_promo_codes', {
 	id: serial('id').primaryKey(),
 	code: text('code').notNull().unique(),

@@ -1,7 +1,7 @@
 'use server';
 
 import db from '@/db/drizzle';
-import { getCourseById, getUserProgress, getUserProgressById, getQuestPointsTotalLifetime, getGangMembership } from '@/db/queries';
+import { getCourseById, getUserProgress, getGangMembership } from '@/db/queries';
 import { challengeProgress, challenges, t_lessonProgress, t_lessons, userProgress, gangMembers } from '@/db/schema';
 import { auth } from '@/lib/auth';
 // import { auth, currentUser } from '@clerk/nextjs/server';
@@ -9,12 +9,13 @@ import { and, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { xpForAmount, getLevelUpInfo, getLevelInfo } from '@/lib/xp';
+import { xpForAmount, getLevelUpInfo } from '@/lib/xp';
 import { recalculateAchievements } from './check-achievements';
 import { bumpCourseStreak } from '@/lib/streak';
 import { getDailyQuestStatus } from './generate-trainer-quest';
-import { applyResolvedReward } from '@/lib/caseApply';
-import { REFERRAL_COOKIE, computeReferralBonus } from '@/lib/referral';
+import { REFERRAL_COOKIE } from '@/lib/referral';
+import { grantReferralChainRewards, type ReferralWelcomeGift } from '@/lib/referralRewards';
+import { LEARN_UNLOCK_T_LESSONS } from '@/lib/learn-unlock';
 
 const POINTS_TO_REFILL = 10
 
@@ -80,22 +81,9 @@ export const upsertUserProgress = async (courseId: number) => {
 	if (invitedByUserId) {
 		cookieStore.delete(REFERRAL_COOKIE);
 
-		// Приветственный бонус новичку — по прямой просьбе пользователя
-		// (мид-тёрн правка, 2026-09-29): 1-2 кусочка пиццы рандомом,
-		// преимущественно 1, реже 2 (80/20) — было +1 гем.
-		const refereeBonusAmount = Math.random() < 0.2 ? 2 : 1;
-		await applyResolvedReward(userId, { kind: 'pizza', amount: refereeBonusAmount, weight: 0 }).catch(() => null);
-
-		// Бонус рефереру масштабируется по его уровню/активности (идея
-		// пользователя) — реферер может не существовать/быть удалён,
-		// тогда просто тихо пропускаем (не блокируем регистрацию новичка).
-		const referrerProgress = await getUserProgressById(invitedByUserId);
-		if (referrerProgress) {
-			const referrerLevel = getLevelInfo(referrerProgress.xp).level;
-			const referrerQuestsTotal = await getQuestPointsTotalLifetime(invitedByUserId);
-			const bonusAmount = computeReferralBonus(referrerLevel, referrerQuestsTotal);
-			await applyResolvedReward(invitedByUserId, { kind: 'pizza', amount: bonusAmount, weight: 0 }).catch(() => null);
-		}
+		// Пицца по приглашению теперь НЕ при регистрации, а когда новичок пройдёт
+		// 3 разбора электродинамики (lib/referralRewards.ts, вызывается из
+		// upsertTrainerLessonProgress ниже) — и ему, и вверх по ветке.
 
 		// Банды (Фаза 3, MVP, 2026-09-29) — та же ссылка/cookie удваивается
 		// как приглашение в банду, ЕСЛИ у реферера роль leader/kapo. Обычный
@@ -336,6 +324,7 @@ export const upsertTrainerLessonProgress = async (
 	let questJustCompleted = false;
 	let questStreak: number | undefined;
 	let questPointsReward: number | undefined;
+	let referralGift: ReferralWelcomeGift | null = null;
 
 	if (trainingPts > 0) {
 		const earnedXp = xpForAmount(trainingPts);
@@ -388,6 +377,12 @@ export const upsertTrainerLessonProgress = async (
 			questStreak = questStatus?.streak;
 			questPointsReward = questStatus?.pointsReward;
 		}
+
+		// Приглашённый прошёл все 3 разбора электродинамики — раздаём пиццу ему
+		// и вверх по ветке (один раз).
+		if (LEARN_UNLOCK_T_LESSONS.includes(t_lessonId)) {
+			referralGift = await grantReferralChainRewards(userId).catch(() => null);
+		}
 	}
 
 	revalidatePath('/trainer');
@@ -403,7 +398,7 @@ export const upsertTrainerLessonProgress = async (
 		.where(and(eq(t_lessonProgress.userId, userId), eq(t_lessonProgress.t_lessonId, t_lessonId), sql`${t_lessonProgress.trainingPts} > 0`));
 	const bossWins = winsRows[0]?.n ?? 0;
 
-	return { leveledUp, newLevel, levelUpGems, levelsGained, newAchievements, streakExtended, newStreak, questJustCompleted, questStreak, questPointsReward, bossWins };
+	return { leveledUp, newLevel, levelUpGems, levelsGained, newAchievements, streakExtended, newStreak, questJustCompleted, questStreak, questPointsReward, bossWins, referralGift };
 };
 
 

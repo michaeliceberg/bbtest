@@ -13,9 +13,9 @@
 // его на реальный аккаунт после регистрации.
 
 import { cookies } from 'next/headers';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import db from '@/db/drizzle';
-import { guestLessonLeads } from '@/db/schema';
+import { guestLessonLeads, t_lessonProgress } from '@/db/schema';
 import { auth } from '@/lib/auth';
 import { DIAGNOSTIC_CASE_POOL, pickWeightedReward, type CaseReward } from '@/lib/caseRewards';
 import { applyResolvedReward } from '@/lib/caseApply';
@@ -106,6 +106,22 @@ export async function claimGuestLeadReward(): Promise<ClaimGuestRewardResult> {
 		claimedByUserId: session.user.id,
 		claimedAt: new Date(),
 	}).where(eq(guestLessonLeads.id, leadId));
+
+	// Урок, пройденный гостем, засчитываем и аккаунту — он входит в «3 урока
+	// электродинамики» для реферальной пиццы (lib/referralRewards.ts) и открытия задачника.
+	const already = await db.query.t_lessonProgress.findFirst({
+		where: and(eq(t_lessonProgress.userId, session.user.id), eq(t_lessonProgress.t_lessonId, lead.tLessonId)),
+	});
+	if (!already) {
+		await db.insert(t_lessonProgress).values({
+			userId: session.user.id,
+			t_lessonId: lead.tLessonId,
+			doneRightPercent: 100,
+			trainingPts: 50,
+			doneRight: 0,
+			doneWrong: 0,
+		}).catch(() => null);
+	}
 
 	jar.delete(GUEST_LEAD_COOKIE);
 

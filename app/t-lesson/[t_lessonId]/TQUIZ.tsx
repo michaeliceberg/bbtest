@@ -47,6 +47,7 @@ import { useLevelUpStore } from "@/store/use-level-up-store"
 import { useQuestCompleteStore } from "@/store/use-quest-complete-store"
 import { xpForAmount } from "@/lib/xp"
 import { TrainerLessonCompleteScreen } from "@/components/trainer-lesson-complete-screen"
+import { ReferralGiftScreen } from "@/components/referral-screens"
 import { GuestRewardScreen } from "@/components/guest-reward-screen"
 import { useSession } from "next-auth/react"
 import { shareInviteLink } from "@/components/share-story-button"
@@ -376,6 +377,9 @@ export default function TQuiz({
   // Оценка урока («Насколько понятен был урок?») — после пошаговых разборов,
   // перед итогами; один раз на урок (lessonAlreadyRated приходит с сервера).
   const [showLessonRating, setShowLessonRating] = useState(false)
+  // Реферальная пицца (lib/referralRewards.ts): экран после итогов урока.
+  const pendingReferralGiftRef = useRef<{ slices: number; lucky: boolean; nickname: string; pizzaNow: number } | null>(null)
+  const [referralGift, setReferralGift] = useState<{ slices: number; lucky: boolean; nickname: string; pizzaNow: number } | null>(null)
   const lessonRatedRef = useRef(!!lessonAlreadyRated)
   const needsLessonRating = useMemo(
     () => isStepByStepLesson(questions1.map((q) => q.questionType)),
@@ -409,6 +413,12 @@ export default function TQuiz({
   // Кнопка «Дальше» на итогах: сперва мегакейс за угаданный горячий вопрос
   // (если был), потом запланированный кейс, потом «Квесты дня».
   const continueAfterSummary = useCallback(() => {
+    // Приглашённый только что прошёл 3-й урок электродинамики — сперва «Красавчик!».
+    if (pendingReferralGiftRef.current) {
+      setReferralGift(pendingReferralGiftRef.current)
+      pendingReferralGiftRef.current = null
+      return
+    }
     const lvl = pendingLevelUpRef.current
     if (lvl) {
       pendingLevelUpRef.current = null
@@ -620,6 +630,7 @@ export default function TQuiz({
             return null
           })
         bossWinsRef.current = progressResult?.bossWins ?? 0
+        if (progressResult?.referralGift) pendingReferralGiftRef.current = progressResult.referralGift
         if (progressResult?.leveledUp && progressResult.newLevel) {
           const gained = progressResult.levelsGained ?? 1
           pendingLevelUpRef.current = { oldLevel: progressResult.newLevel - gained, newLevel: progressResult.newLevel, gems: progressResult.levelUpGems ?? 0 }
@@ -967,6 +978,19 @@ export default function TQuiz({
           setGuestVibes(vibes)
           lessonStartRef.current = Date.now()
           setVibeStage('done')
+        }}
+      />
+    )
+  }
+
+  if (referralGift) {
+    return (
+      <ReferralGiftScreen
+        gift={referralGift}
+        theme={uiTheme}
+        onNext={() => {
+          setReferralGift(null)
+          continueAfterSummary()
         }}
       />
     )
