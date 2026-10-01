@@ -10,7 +10,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { submitLessonRating } from '@/actions/lesson-rating'
-import { LESSON_RATING_OPTIONS } from '@/lib/lessonRating'
+import { LESSON_RATING_OPTIONS, TOP_RATING_STICKERS } from '@/lib/lessonRating'
 import { COZY, type UiTheme } from '@/lib/cozyTheme'
 
 type Props = {
@@ -25,6 +25,9 @@ const ACCENTS = ['#DC605B', '#F09B38', '#53ADEF', '#78C93C']
 export const LessonRatingScreen = ({ tLessonId, theme = 'metal', onDone }: Props) => {
 	const cozy = theme === 'cozy'
 	const [score, setScore] = useState<number | null>(null)
+	// Экран монтируется только на клиенте (после урока) — случайный выбор безопасен.
+	const [sticker] = useState(() => TOP_RATING_STICKERS[Math.floor(Math.random() * TOP_RATING_STICKERS.length)])
+	const topScore = LESSON_RATING_OPTIONS.length
 	const [comment, setComment] = useState('')
 	const [sending, setSending] = useState(false)
 
@@ -45,12 +48,16 @@ export const LessonRatingScreen = ({ tLessonId, theme = 'metal', onDone }: Props
 		>
 			<div className="w-full max-w-md flex-1 flex flex-col items-center justify-center gap-6">
 				<motion.div
+					key={score ?? 0}
 					initial={{ scale: 0.4, opacity: 0 }}
 					animate={{ scale: 1, opacity: 1 }}
 					transition={{ type: 'spring', bounce: 0.5 }}
 					className="text-6xl"
 				>
-					{score != null ? LESSON_RATING_OPTIONS[score - 1].emoji : '🤔'}
+					{score === topScore ? (
+						// eslint-disable-next-line @next/next/no-img-element
+						<img src={sticker.src} alt="" className="h-36 w-36 object-contain" />
+					) : score != null ? LESSON_RATING_OPTIONS[score - 1].emoji : '🤔'}
 				</motion.div>
 				<h1
 					className="text-2xl sm:text-3xl font-extrabold text-center"
@@ -77,9 +84,14 @@ export const LessonRatingScreen = ({ tLessonId, theme = 'metal', onDone }: Props
 									boxShadow: `0 4px 0 ${selected ? c : cozy ? COZY.cardEdge : '#0E1519'}`,
 								}}
 							>
-								<span className="text-4xl leading-none">{o.emoji}</span>
+								{o.score === topScore ? (
+									// eslint-disable-next-line @next/next/no-img-element
+									<img src={sticker.src} alt="" className="h-14 w-14 object-contain -my-2" />
+								) : (
+									<span className="text-4xl leading-none">{o.emoji}</span>
+								)}
 								<span className="font-extrabold text-sm" style={{ color: selected ? c : cozy ? COZY.title : '#F2F7FB' }}>
-									{o.label}
+									{o.score === topScore ? sticker.label : o.label}
 								</span>
 								<span className="text-xs" style={{ color: cozy ? COZY.textSoft : '#9AA7B0' }}>{o.hint}</span>
 							</motion.button>
