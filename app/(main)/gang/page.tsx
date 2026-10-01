@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { computeGangRating } from '@/lib/gangRating';
 import { CreateGangForm } from '@/components/create-gang-form';
 import { GangQrCard } from '@/components/gang-qr-card';
+import { getOrCreateInvite } from '@/lib/invite';
 import { GangRoster } from '@/components/gang-roster';
 import { GangLeaveButton } from '@/components/gang-leave-button';
 import { GangWeekCaseCard } from '@/components/gang-week-case-card';
@@ -25,6 +26,7 @@ const GangPage = async () => {
     await settleLastGangWeek();
     const hasWeekReward = await hasUnclaimedGangWeekReward(userId);
     const membership = await getGangMembership(userId);
+    const invite = membership ? await getOrCreateInvite(userId) : null;
 
     if (!membership) {
         return (
@@ -69,7 +71,7 @@ const GangPage = async () => {
                 <span className="text-sm font-bold text-violet-300 shrink-0">Рейтинг →</span>
             </Link>
 
-            {canInvite && <GangQrCard userId={userId} gangName={membership.gang.name} />}
+            {canInvite && invite && <GangQrCard inviteCode={invite.code} gangName={membership.gang.name} />}
 
             <GangRoster gangId={membership.gangId} members={roster} currentUserId={userId} isLeader={isLeader} />
 

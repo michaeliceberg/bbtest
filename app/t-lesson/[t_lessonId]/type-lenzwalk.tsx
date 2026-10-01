@@ -322,7 +322,6 @@ const LenzView = ({ pos, move, pole = 'N', showCurrent = true, showOwn = false, 
                             transition={{ type: 'spring', bounce: 0.5, delay: i * 0.08 }}
                             style={{ transformBox: 'fill-box', transformOrigin: 'center' }}>
                             <VArrow x={CX + dx + 12} dir={own} color={OWN_COLOR} len={92} width={4.5} />
-                            <text x={CX + dx + 12} y={own > 0 ? RING_CY + 62 : RING_CY - 52} textAnchor="middle" fontSize={18}>🛡️</text>
                         </motion.g>
                     </g>
                 ))}
@@ -1407,7 +1406,7 @@ const StuckScene = ({ onSettled }: { onSettled?: () => void }) => {
             {vid(4, '/video/stuck-angry-chikoo.mp4')}
             {line(5, 'Встал, пошёл гулять — наслаждаешься прогулочкой 🚶', 6)}
             {vid(6, '/video/stuck-ponasenkov.mp4')}
-            {line(7, 'И тут тебя РЕЗКО тащат обратно. Ты СНОВА сопротивляешься 😤', 8)}
+            {line(7, 'И тут тебя РЕЗКО тащат обратно ДОМОЙ. Ты СНОВА сопротивляешься 😤', 8)}
             {vid(8, '/video/stuck-ponasenkov-angry.mp4')}
             {phase >= 9 && (
                 <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1400)}>
@@ -1515,11 +1514,11 @@ const WhoScene = ({ onSettled }: { onSettled?: () => void }) => {
             )}
             {phase >= 4 && (
                 <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1400)}>
-                    <InsightCard label="🛡️ Цепочка защиты">
+                    <InsightCard label="Цепочка защиты">
                         Φ пытается измениться →<br />
                         в кольце включается <Sticker value="ток I" color={CURRENT_COLOR} /> →<br />
                         ток создаёт <Sticker value="ИНДУКЦИОННОЕ ПОЛЕ B" color={OWN_COLOR} /> →<br />
-                        поток <InsightWord>восстанавливается</InsightWord>.
+                        и поток <InsightWord>мЕЕЕЕдленно, неохотно</InsightWord> начинает меняться.
                     </InsightCard>
                 </DiagramBlock>
             )}

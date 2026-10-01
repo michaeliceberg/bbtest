@@ -10,6 +10,7 @@ import { FaceBuilder } from '@/components/face-builder'
 import { NameEditor } from '@/components/name-editor'
 import { ParentBindCode } from '@/components/parent-bind-code'
 import { ReferralCard } from '@/components/referral-card'
+import { getOrCreateInvite } from '@/lib/invite'
 import { Button } from '@/components/ui/button'
 
 const AccountPage = async () => {
@@ -20,6 +21,7 @@ const AccountPage = async () => {
     if (!userProgress) redirect('/')
 
     const gangMembership = await getGangMembership(userProgress.userId)
+    const invite = await getOrCreateInvite(userProgress.userId)
 
     return (
         <div className="max-w-[600px] mx-auto px-4 pb-10 flex flex-col gap-8">
@@ -60,7 +62,7 @@ const AccountPage = async () => {
                 </Link>
             </div>
 
-            <ReferralCard userId={userProgress.userId} />
+            {invite && <ReferralCard inviteCode={invite.code} />}
 
             <ParentBindCode userId={userProgress.userId} userName={userProgress.userName} />
         </div>

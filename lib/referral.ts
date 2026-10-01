@@ -9,7 +9,9 @@
 export const REFERRAL_COOKIE = 'referredBy'
 export const REFERRAL_COOKIE_MAX_AGE = 60 * 60 * 24 * 30 // 30 дней
 
-export const getReferralLink = (userId: string): string => `https://ggege.ru/?ref=${userId}`
+// code — короткий код приглашения (lib/invite.ts), НЕ userId: в userId бывает
+// телефон.
+export const getReferralLink = (code: string): string => `https://ggege.ru/?ref=${code}`
 
 // Бонус рефереру за нового ученика — пицца (по прямой просьбе
 // пользователя, "ощутимая награда"): база 1 кусочек, +1 при уровне ≥5,
@@ -25,10 +27,16 @@ export const computeReferralBonus = (referrerLevel: number, referrerQuestsTotal:
 	return Math.min(3, bonus)
 }
 
-// Приглашение друга ведёт не на главную, а сразу в пробный урок (id=485,
-// открыт без регистрации — см. app/t-lesson/[t_lessonId]/page.tsx): друг
-// сразу играет, в конце кейс и «зарегистрируйся — забери приз». ?ref= ловит
-// ReferralCatcher на странице урока, атрибуция та же, что у getReferralLink.
+// Приглашение друга после урока: ggege.ru/i/КОД — страница с картинкой-превью
+// для мессенджеров (app/i/[code]), сама переводит в пробный урок 485.
+// l/t/s — урок, время (сек), серия: попадают в картинку-превью.
 export const TRIAL_T_LESSON_ID = 485
-export const getTrialInviteLink = (userId?: string | null): string =>
-	`https://ggege.ru/t-lesson/${TRIAL_T_LESSON_ID}${userId ? `?ref=${encodeURIComponent(userId)}` : ''}`
+export const getInviteLink = (code: string | null | undefined, extra?: { l?: number; t?: number; s?: number }): string => {
+	if (!code) return `https://ggege.ru/t-lesson/${TRIAL_T_LESSON_ID}`
+	const q = new URLSearchParams()
+	if (extra?.l) q.set('l', String(extra.l))
+	if (extra?.t) q.set('t', String(extra.t))
+	if (extra?.s && extra.s >= 3) q.set('s', String(extra.s))
+	const qs = q.toString()
+	return `https://ggege.ru/i/${code}${qs ? `?${qs}` : ''}`
+}

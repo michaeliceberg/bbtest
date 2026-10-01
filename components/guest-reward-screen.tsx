@@ -14,8 +14,8 @@ import dynamic from 'next/dynamic';
 import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CaseReel } from '@/components/CaseReel';
-import { ShareStoryButton, shareInviteLink } from '@/components/share-story-button';
-import { getTrialInviteLink } from '@/lib/referral';
+import { shareInviteLink } from '@/components/share-story-button';
+import { getInviteLink } from '@/lib/referral';
 import { createGuestLead, openGuestLeadCase } from '@/actions/guest-lesson';
 import { DIAGNOSTIC_CASE_POOL, rewardEmoji, rewardLabel, type CaseReward } from '@/lib/caseRewards';
 import type { UiTheme } from '@/lib/cozyTheme';
@@ -80,21 +80,15 @@ export const GuestRewardScreen = ({ t_lessonId, nickname, vibes, theme }: Props)
 						</p>
 					</div>
 
-					<ShareStoryButton
-						label="Похвастаться в сторис"
-						data={{
-							title: 'Мой позывной',
-							big: nickname,
-							prize: `Выбил ${rewardEmoji(wonReward)} ${rewardLabel(wonReward)}`,
-							url: getTrialInviteLink(),
-						}}
-					/>
 					<button
 						type="button"
-						onClick={() => shareInviteLink(`Я «${nickname}» и выбил ${rewardEmoji(wonReward)} ${rewardLabel(wonReward)} за урок физики 🔥 Сможешь круче?`, getTrialInviteLink())}
+						onClick={() => shareInviteLink(
+							`🍕 ЗАРАБОТАЙ НАМ ПИЦЦУ!\n\n😎 ${nickname}\n⚡ Выбил ${rewardEmoji(wonReward)} ${rewardLabel(wonReward)} за урок физики\n\n👇 Пройди урок по ссылке — регистрация не нужна.\n\nСлабо выбить круче? 😏`,
+							getInviteLink(null),
+						)}
 						className="w-full h-12 rounded-2xl bg-[#232F34] text-[#F2F7FB] font-bold border-2 border-b-4 border-[#3A464E] active:border-b-2"
 					>
-						📤 Позвать друга
+						🍕 Позвать друга
 					</button>
 
 					<div className="w-full rounded-xl border-2 border-sky-500/50 bg-sky-500/10 p-3">

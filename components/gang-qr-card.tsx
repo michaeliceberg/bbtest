@@ -9,7 +9,7 @@ import { getReferralLink } from '@/lib/referral';
 import { Copy, Check, Share2, QrCode } from 'lucide-react';
 
 type Props = {
-    userId: string;
+    inviteCode: string;
     gangName: string;
 };
 
@@ -17,10 +17,10 @@ type Props = {
 // у главы/капо она ДОПОЛНИТЕЛЬНО удваивается как приглашение в банду (см.
 // actions/user-progress.ts, upsertUserProgress) — новая, отдельная механика
 // приглашения не нужна, тут только визуал (QR + copy/share, тот же UX-паттерн).
-export const GangQrCard = ({ userId, gangName }: Props) => {
+export const GangQrCard = ({ inviteCode, gangName }: Props) => {
     const [copied, setCopied] = useState(false);
 
-    const link = getReferralLink(userId);
+    const link = getReferralLink(inviteCode);
 
     const copyToClipboard = () => {
         navigator.clipboard.writeText(link);

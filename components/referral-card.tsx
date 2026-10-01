@@ -9,15 +9,15 @@ import { getReferralLink } from '@/lib/referral';
 import { Users, Copy, Check, Share2 } from 'lucide-react';
 
 type Props = {
-    userId: string;
+    inviteCode: string;
 };
 
 // 1-в-1 UX-паттерн components/parent-bind-code.tsx (Share2/Copy, navigator.share
 // с фолбэком на clipboard) — не изобретаем новый.
-export const ReferralCard = ({ userId }: Props) => {
+export const ReferralCard = ({ inviteCode }: Props) => {
     const [copied, setCopied] = useState(false);
 
-    const referralLink = getReferralLink(userId);
+    const referralLink = getReferralLink(inviteCode);
 
     const copyToClipboard = () => {
         navigator.clipboard.writeText(referralLink);

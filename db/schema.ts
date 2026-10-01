@@ -88,6 +88,11 @@ export const userProgress = pgTable('user_progress', {
 	// сверх 8 конвертируется в бонусные монеты (см. actions/open-case.ts),
 	// чтобы "лишний" дроп не пропадал зря.
 	pizzaSlices: integer('pizza_slices').notNull().default(0),
+	// Короткий код приглашения (ggege.ru/i/КОД) — вместо userId (там телефон)
+	// в ссылках. И позывной ученика для приглашений. Оба заводятся лениво,
+	// см. lib/invite.ts.
+	inviteCode: text('invite_code').unique(),
+	nickname: text('nickname'),
 	isAdmin: integer('is_admin').notNull().default(0),
 	classId: integer('class_id').references(() => classes.id, { onDelete: 'cascade' }),
 	isOnMeme: integer('is_on_meme').notNull().default(1),

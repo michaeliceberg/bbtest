@@ -47,9 +47,9 @@ import { xpForAmount } from "@/lib/xp"
 import { TrainerLessonCompleteScreen } from "@/components/trainer-lesson-complete-screen"
 import { GuestRewardScreen } from "@/components/guest-reward-screen"
 import { useSession } from "next-auth/react"
-import { QRCodeCanvas } from "qrcode.react"
-import { shareStoryImage, shareInviteLink } from "@/components/share-story-button"
-import { getTrialInviteLink } from "@/lib/referral"
+import { shareInviteLink } from "@/components/share-story-button"
+import { buildInviteMessage } from "@/lib/inviteMessage"
+import { getInviteLink } from "@/lib/referral"
 import { GuestVibePicker, GUEST_NICKNAME_STORAGE_KEY, GUEST_VIBES_STORAGE_KEY } from "@/components/guest-vibe-picker"
 
 // "Горячий вопрос" (questionType 'HOT', см. type-hot.tsx) — факультативный,
@@ -157,6 +157,7 @@ type Props = {
   // ниже), а финальный экран наград — GuestRewardScreen (кейс с призом +
   // CTA "зарегистрируйся, чтобы забрать") вместо TrainerQuestRewardsScreen.
   isGuest?: boolean,
+  invite?: { code: string; nickname: string } | null,
 }
 
 export default function TQuiz({
@@ -173,12 +174,12 @@ export default function TQuiz({
   nextTLessonHref,
   isAdmin,
   isGuest,
+  invite,
 }: Props) {
 
   const router = useRouter()
   // "Поделиться в сторис" на итогах урока — QR ведёт по реферальной ссылке ученика.
   const { data: session } = useSession()
-  const shareQrRef = useRef<HTMLDivElement>(null)
   // Гость: перед уроком экран "Что тебе заходит?" (components/guest-vibe-
   // picker.tsx) — позывной из выбранных увлечений. 'checking' — пока не
   // прочитали localStorage (уже выбирал раньше — экран не показываем).
@@ -1073,9 +1074,6 @@ export default function TQuiz({
               (CaseReel) на своём экране результата, и добавлял лишнюю
               высоту, из-за которой TrainerLessonCompleteScreen не влезал
               на телефонный экран без скролла. */}
-          <div ref={shareQrRef} className="hidden" aria-hidden>
-            <QRCodeCanvas value={getTrialInviteLink(session?.user?.id)} size={460} marginSize={1} />
-          </div>
           <TrainerLessonCompleteScreen
             theme={uiTheme}
             lottieData={randomStreakCharacterLottie}
@@ -1086,31 +1084,22 @@ export default function TQuiz({
             // где уже кнопки «Следующий урок»/«Завершить».
             primaryLabel="Дальше"
             onPrimary={continueAfterSummary}
-            // Ссылка ведёт в пробный урок 485 (без регистрации) с ?ref= —
-            // друг сразу играет. «Поделиться» — текст со ссылкой (в личку),
-            // «В сторис» — только картинка с QR.
-            secondaryLabel="📤 Позвать друга"
+            // Одна кнопка: сообщение с позывным и ссылкой ggege.ru/i/КОД.
+            // Картинку мессенджер подтягивает сам из превью ссылки
+            // (app/i/[code]/opengraph) — так текст и картинка приходят
+            // одним сообщением.
+            secondaryLabel="🍕 Позвать друга"
             onSecondary={async () => {
               const res = await shareInviteLink(
-                `Прошёл урок «${t_lessonTitle}» в ggege 🔥${maxStreakRef.current >= 3 ? ` ${maxStreakRef.current} подряд без ошибок!` : ''} Сможешь круче? В конце — кейс с пиццей 🍕`,
-                getTrialInviteLink(session?.user?.id),
+                buildInviteMessage({
+                  nickname: invite?.nickname ?? null,
+                  lessonTitle: t_lessonTitle,
+                  seconds: elapsedSeconds,
+                  streak: maxStreakRef.current,
+                }),
+                getInviteLink(invite?.code, { l: t_lessonId, t: elapsedSeconds, s: maxStreakRef.current }),
               )
               if (res === 'copied') toast.success('Ссылка скопирована — отправь другу')
-            }}
-            tertiaryLabel="📸 В сторис"
-            onTertiary={() => {
-              const m = Math.floor(elapsedSeconds / 60)
-              const sec = String(elapsedSeconds % 60).padStart(2, '0')
-              shareStoryImage(
-                {
-                  title: 'Урок пройден!',
-                  big: t_lessonTitle,
-                  prize: `⏱ ${m}:${sec}${maxStreakRef.current >= 3 ? ` · 🔥 ${maxStreakRef.current} подряд` : ''}`,
-                  caption: 'Сможешь круче? Там кейс с пиццей 👇',
-                  url: getTrialInviteLink(session?.user?.id),
-                },
-                shareQrRef.current?.querySelector('canvas') ?? null,
-              )
             }}
             // "Ударный час" ещё не дошёл до рубежа — подсказка, сколько
             // уроков подряд БЕЗ ошибок осталось до гарантированного mythic

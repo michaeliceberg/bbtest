@@ -1,4 +1,5 @@
 import { ReferralCatcher } from '@/components/referral-catcher';
+import { getOrCreateInvite } from '@/lib/invite';
 // app/t-lesson/[t_lessonId]/page.tsx
 
 import { getAllTLessonProgress, getAllUsersProgress, getTLesson, getTLessonPublic, getUserProgress, getHotQuestionsForUnit } from "@/db/queries"
@@ -320,6 +321,8 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     const isGuest = !userProgress && t_lessonId === PUBLIC_TRIAL_T_LESSON_ID;
     const t_lesson = isGuest ? await getTLessonPublic(t_lessonId) : await getTLesson(t_lessonId);
     const guestNickname = isGuest ? pickGuestNickname() : null;
+    // Код приглашения + позывной для «Позвать друга» на итогах урока.
+    const invite = userProgress ? await getOrCreateInvite(userProgress.userId) : null;
 
     if (!t_lesson || (!userProgress && !isGuest)) {
         redirect('/trainer');
@@ -1845,6 +1848,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             questions1={questions}
             userName={isGuest ? guestNickname! : userProgress!.userName}
             isGuest={isGuest}
+            invite={invite}
             stage={stageParam}
             isBossStage={isBossStage}
             isChestStage={isChestStage}
