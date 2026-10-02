@@ -398,12 +398,18 @@ const CircleCanvas = ({
                         )
                     })}
                     {axisLabels.cos && (!axisShow || axisShow.cos) && (
-                        <motion.text key="lc" x={C + AX + 14} y={C + 36} textAnchor="end" fontSize={22} fill={axisColor('cos')} style={LABEL_STYLE}
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }}>cos</motion.text>
+                        <g transform={`translate(${C + AX - 4} ${C + 34})`}>
+                            <motion.g key="lc" initial={axisShow ? { scale: 0 } : { opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 8 }}>
+                                <text textAnchor="middle" dominantBaseline="central" fontSize={axisShow ? 26 : 22} fill={axisColor('cos')} style={LABEL_STYLE}>cos</text>
+                            </motion.g>
+                        </g>
                     )}
                     {axisLabels.sin && (!axisShow || axisShow.sin) && (
-                        <motion.text key="ls" x={C + 26} y={C - AX + 10} textAnchor="middle" fontSize={22} fill={axisColor('sin')} style={LABEL_STYLE}
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }}>sin</motion.text>
+                        <g transform={`translate(${C + 28} ${C - AX + 6})`}>
+                            <motion.g key="ls" initial={axisShow ? { scale: 0 } : { opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 8 }}>
+                                <text textAnchor="middle" dominantBaseline="central" fontSize={axisShow ? 26 : 22} fill={axisColor('sin')} style={LABEL_STYLE}>sin</text>
+                            </motion.g>
+                        </g>
                     )}
                     <line x1={C - AX} y1={C} x2={C + AX} y2={C} stroke="transparent" strokeWidth={24} {...hit('cos')} />
                     <line x1={C} y1={C + AX} x2={C} y2={C - AX} stroke="transparent" strokeWidth={24} {...hit('sin')} />
@@ -525,20 +531,29 @@ type SceneProps = { onSettled?: () => void }
 
 // 1. Что такое тригонометрическая окружность.
 const IntroScene = ({ onSettled }: SceneProps) => {
+    // 1 окружность → 2 стрелка cos (bounce) → 3 подпись cos → 4 текст про cos →
+    // 5 стрелка sin → 6 подпись sin → 7 текст про sin.
     const [phase, setPhase] = useState(0)
+    useEffect(() => {
+        const next: Record<number, [number, number]> = { 2: [3, 900], 3: [4, 700], 5: [6, 900], 6: [7, 700] }
+        const step = next[phase]
+        if (!step) return
+        const t = setTimeout(() => setPhase(step[0]), step[1])
+        return () => clearTimeout(t)
+    }, [phase])
     return (
         <>
             <TypedBig parts={[{ text: 'Это ' }, { text: 'тригонометрическая окружность', color: ARC_COLOR }]} onDone={() => setPhase(1)} />
             {phase >= 1 && (
-                <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 1000)}>
-                    <CircleCanvas drawCircle axisShow={{ cos: phase >= 3, sin: phase >= 5 }} axisLabels={{ cos: phase >= 3, sin: phase >= 5 }} />
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 1200)}>
+                    <CircleCanvas drawCircle axisShow={{ cos: phase >= 2, sin: phase >= 5 }} axisLabels={{ cos: phase >= 3, sin: phase >= 6 }} />
                 </DiagramBlock>
             )}
-            {phase >= 2 && (
-                <TypedBig parts={[{ text: 'Стрелка ВПРАВО — ВСЕГДА ' }, { text: 'косинус', color: COS_COLOR }]} onDone={() => { setPhase(3); setTimeout(() => setPhase(4), 1600) }} readMs={100} />
-            )}
             {phase >= 4 && (
-                <TypedBig parts={[{ text: 'Стрелка ВВЕРХ — ВСЕГДА ' }, { text: 'синус', color: SIN_COLOR }]} onDone={() => { setPhase(5); setTimeout(() => onSettled?.(), 1400) }} readMs={100} />
+                <TypedBig parts={[{ text: 'Стрелка ВПРАВО — ВСЕГДА ' }, { text: 'косинус', color: COS_COLOR }]} onDone={() => setTimeout(() => setPhase(5), 800)} readMs={100} />
+            )}
+            {phase >= 7 && (
+                <TypedBig parts={[{ text: 'Стрелка ВВЕРХ — ВСЕГДА ' }, { text: 'синус', color: SIN_COLOR }]} onDone={() => setTimeout(() => onSettled?.(), 1000)} readMs={100} />
             )}
         </>
     )
