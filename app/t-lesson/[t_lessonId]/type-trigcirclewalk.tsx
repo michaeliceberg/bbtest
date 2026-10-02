@@ -59,7 +59,7 @@ const PI = Math.PI
 const TEXT = 'w-full text-base md:text-lg text-[#F2F7FB]'
 
 const HOUSE_STICKER = '/lesson-pics/house-sticker.webp'
-const WALKER_STICKER = '/lesson-pics/dicaprio-walk.webp'
+const WALKER_STICKER = '/lesson-pics/dicaprio-walk2.webp'
 
 // Вместо «Дальше» — всегда смешное слово (просьба пользователя). Колода без
 // повторов: пока не выпадут все фразы, ни одна не повторится. «ГААААЗ» — редкая
@@ -1023,8 +1023,8 @@ const walkPath = (t0: number, t1: number, dir: 1 | -1) => {
     }
     return `M ${pts[0]} L ${pts.slice(1).join(' L ')}`
 }
-const WALKER_W = 30
-const WALKER_H = 70
+const WALKER_W = 48
+const WALKER_H = 49
 const WALKER_R = R + 26
 // Идущий человечек: едет по дуге (угол анимируется), сам стоит вертикально.
 const Walker = ({ angle }: { angle: number }) => {
