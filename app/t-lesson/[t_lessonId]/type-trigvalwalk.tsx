@@ -806,7 +806,7 @@ const Slot = () => <span className="inline-flex h-14 w-16 rounded-lg border-2 bo
 
 // Обводка «фломастером» + стикер-подпись над ней («берём синус»).
 const MARKER_PATH = 'M 86 24 C 66 0, 16 4, 7 44 C 0 86, 58 102, 90 80 C 104 64, 99 34, 72 18'
-const MarkerCircle = ({ label, color }: { label: string; color: string }) => (
+const MarkerCircle = ({ label, color, labelDelay = 1.6 }: { label: string; color: string; labelDelay?: number }) => (
     <>
         <svg className="pointer-events-none absolute -inset-3 z-10 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: 'calc(100% + 24px)', height: 'calc(100% + 24px)' }}>
             <motion.path
@@ -822,7 +822,7 @@ const MarkerCircle = ({ label, color }: { label: string; color: string }) => (
             />
         </svg>
         <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-3 -translate-x-1/2 whitespace-nowrap">
-            <Pop delay={1.6}>
+            <Pop delay={labelDelay}>
                 <span className="rounded-lg border-2 px-2 py-0.5 text-sm md:text-base font-black" style={{ borderColor: color, backgroundColor: '#161F23', color }}>
                     {label}
                 </span>
@@ -831,12 +831,16 @@ const MarkerCircle = ({ label, color }: { label: string; color: string }) => (
     </>
 )
 
-const TgColumnFlyScene = ({ i, travolta, intro, introFrac, onSettled, active = true }: {
+const TgColumnFlyScene = ({ i, travolta, intro, introFrac, fast, calc = 'calculating', onSettled, active = true }: {
     i: number
     travolta?: boolean
     intro?: BigPart[]
     // Вместо фразы — «Тангенс = синус / косинус» дробью.
     introFrac?: boolean
+    // Уже понятно, что делаем: без кнопок и с короткими паузами.
+    fast?: boolean
+    // Видео во время «считаем...»: calculating (широкое) или calculating2 (квадратное, ~1 с — играет дважды).
+    calc?: 'calculating' | 'calculating2'
     onSettled?: () => void
     // Сцена текущая (Траволта танцует, пока не нажали «Дальше»).
     active?: boolean
@@ -849,7 +853,9 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, onSettled, active = t
     const [phase, setPhase] = useState(0)
     useEffect(() => {
         // 3/6: обводка (0.7 с) → пауза → стикер (1.6 с) → пауза → падение.
-        const next: Record<number, number> = { 3: 3600, 4: 1300, 5: 1000, 6: 3600, 7: 1300, 10: 1100, 11: 1200, 12: 1400 }
+        const next: Record<number, number> = fast
+            ? { 3: 2200, 4: 1000, 5: 500, 6: 2200, 7: 1000, 8: 400, 10: 800, 11: 900, 12: 1200 }
+            : { 3: 3600, 4: 1300, 5: 1000, 6: 3600, 7: 1300, 10: 1100, 11: 1200, 12: 1400 }
         if (!(phase in next)) return
         const t = setTimeout(() => setPhase(phase + 1), next[phase])
         return () => clearTimeout(t)
@@ -866,9 +872,10 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, onSettled, active = t
     // Дробь «Тангенс = синус / косинус»: части появляются по очереди.
     useEffect(() => {
         if (phase !== 1 || !introFrac) return
-        const t = setTimeout(() => setPhase((p) => Math.max(p, 2)), 2400)
+        const t = setTimeout(() => setPhase((p) => Math.max(p, fast ? 3 : 2)), fast ? 2000 : 2400)
         return () => clearTimeout(t)
-    }, [phase, introFrac])
+    }, [phase, introFrac, fast])
+    const calcPlays = useRef(0)
     // Зумерские подписи вместо «Ок» — новая на каждую кнопку.
     const okLabel = useMemo(() => pickFunNextLabel(), [phase])
     // Страховка, если видео calculating не доиграет.
@@ -894,7 +901,7 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, onSettled, active = t
                                 return flown ? null : (
                                     <motion.span layoutId={fn === 'sin' ? sinId : cosId} transition={FLY} className="relative inline-flex">
                                         <ValBox v={VALUES[fn][j]} color={FN_COLOR[fn]} />
-                                        {circled && <MarkerCircle label={fn === 'sin' ? 'берём синус' : 'берём косинус'} color={FN_COLOR[fn]} />}
+                                        {circled && <MarkerCircle label={fn === 'sin' ? 'берём синус' : 'берём косинус'} color={FN_COLOR[fn]} labelDelay={fast ? 0.8 : 1.6} />}
                                     </motion.span>
                                 )
                             }
@@ -963,12 +970,20 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, onSettled, active = t
                             <span className="text-base md:text-lg font-black text-[#F2C35B]">считаем...</span>
                             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                             <video
-                                src="/video/calculating.mp4"
+                                src={`/video/${calc}.mp4`}
                                 autoPlay
                                 muted
                                 playsInline
-                                onEnded={() => setPhase((p) => Math.max(p, 10))}
-                                className="h-24 w-[170px] max-w-none shrink-0 rounded-lg object-cover"
+                                onEnded={(e) => {
+                                    calcPlays.current += 1
+                                    // Короткий ролик (calculating2, ~1 с) — играем дважды.
+                                    if (calc === 'calculating2' && calcPlays.current < 2) {
+                                        e.currentTarget.play().catch(() => {})
+                                        return
+                                    }
+                                    setPhase((p) => Math.max(p, 10))
+                                }}
+                                className={cn('max-w-none shrink-0 rounded-lg object-cover', calc === 'calculating2' ? 'h-28 w-28' : 'h-24 w-[170px]')}
                             />
                         </Pop>
                     )}
@@ -991,7 +1006,7 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, onSettled, active = t
                     {phase >= 12 && <span className="opacity-30" style={{ color: TG }}><ValView v={VALUES.tg[i]} /></span>}
                 </motion.div>
             )}
-            {phase === 8 && (
+            {phase === 8 && !fast && (
                 <div className="flex justify-center"><AgasButton label={okLabel} onClick={() => setPhase(phase + 1)} /></div>
             )}
             {phase >= 13 && <LocalAnswerConfetti />}
@@ -1111,8 +1126,9 @@ export const TypeTrigValWalk = ({ onAnswer, onComplete, mode }: Props) => {
                     (p: { onSettled?: () => void; active?: boolean }) => (
                         <TgColumnFlyScene
                             i={1}
-                            travolta
                             introFrac
+                            fast
+                            calc="calculating2"
                             {...p}
                         />
                     ),
