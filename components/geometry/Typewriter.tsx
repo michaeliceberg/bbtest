@@ -42,9 +42,11 @@ type Props = {
     className?: string
     startDelay?: number
     cursor?: boolean
+    // Во сколько раз медленнее печатать (1 — обычно).
+    slow?: number
 }
 
-export const Typewriter = ({ text, onDone, className, startDelay = 0, cursor = true }: Props) => {
+export const Typewriter = ({ text, onDone, className, startDelay = 0, cursor = true, slow = 1 }: Props) => {
     const [shown, setShown] = useState(0)
     const onDoneRef = useRef(onDone)
     onDoneRef.current = onDone
@@ -64,7 +66,7 @@ export const Typewriter = ({ text, onDone, className, startDelay = 0, cursor = t
                 if (cancelled) return
                 setShown(i + 1)
                 step(i + 1)
-            }, charDelay(text, i))
+            }, charDelay(text, i) * slow)
         }
 
         const kickoff = setTimeout(() => step(0), startDelay)

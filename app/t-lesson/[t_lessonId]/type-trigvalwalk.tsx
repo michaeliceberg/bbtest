@@ -65,15 +65,15 @@ const vKey = (v: V) => `${v.num}/${v.den ?? ''}`
 // Цвета: каждый угол — свой цвет (как стикеры в интро), строки функций — свой.
 const ANGLE_COLOR: Record<number, string> = {
     30: GGEGE_PALETTE.teal.button,
-    45: GGEGE_PALETTE.blue.button,
+    45: GGEGE_PALETTE.raspberry.button,
     60: GGEGE_PALETTE.purple.button,
 }
 const FN_COLOR: Record<Fn, string> = {
-    sin: GGEGE_PALETTE.orange.button,
+    sin: GGEGE_PALETTE.blue.button, // как в уроке 490 (оранжевый пользователю не нравится)
     cos: GGEGE_PALETTE.green.button,
     tg: GGEGE_PALETTE.raspberry.button,
 }
-const ATTENTION = GGEGE_PALETTE.orange.button
+const ATTENTION = '#F2C35B'
 
 const pick = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)]
 function shuffle<T>(arr: T[]): T[] {
@@ -129,13 +129,13 @@ const AngleSticker = ({ a, big = false }: { a: number; big?: boolean }) => (
 
 // Кусок таблицы: шапка с углами + строки функций. cell(fn, i) — содержимое ячейки.
 // highlight — номер столбца, который подсвечен (остальные приглушены).
-const TrigTable = ({ fns, cell, highlight }: { fns: Fn[]; cell: (fn: Fn, i: number) => React.ReactNode; highlight?: number }) => (
+const TrigTable = ({ fns, cell, highlight, popAngles }: { fns: Fn[]; cell: (fn: Fn, i: number) => React.ReactNode; highlight?: number; popAngles?: boolean }) => (
     <div className="w-full flex justify-center py-2">
         <div className="grid grid-cols-[3.5rem_repeat(3,minmax(4.5rem,6.5rem))] gap-1.5 text-xl md:text-2xl font-extrabold text-[#F2F7FB]">
             <div />
             {ANGLES.map((a, i) => (
                 <div key={a} className="flex h-12 items-center justify-center transition-opacity duration-500" style={{ opacity: highlight === undefined || highlight === i ? 1 : 0.3 }}>
-                    <AngleSticker a={a} />
+                    {popAngles ? <Pop delay={0.3 + i * 0.7}><AngleSticker a={a} /></Pop> : <AngleSticker a={a} />}
                 </div>
             ))}
             {fns.map((fn) => (
@@ -300,13 +300,14 @@ const SplitFrac = ({ num, den, showNum, showDen, numDelay = 0, denDelay = 0 }: {
 // после печати куски раскрашиваются (parts[].color). onDone — после паузы
 // на прочтение.
 type BigPart = { text: string; color?: string; className?: string }
-const TypedBig = ({ parts, onDone, readMs = 500 }: { parts: BigPart[]; onDone?: () => void; readMs?: number }) => {
+const TypedBig = ({ parts, onDone, readMs = 500, slow }: { parts: BigPart[]; onDone?: () => void; readMs?: number; slow?: number }) => {
     const [typed, setTyped] = useState(false)
     return (
         <div className="w-full text-center text-2xl md:text-3xl font-black text-[#F2F7FB]">
             {!typed ? (
                 <Typewriter
                     text={parts.map((p) => p.text).join('')}
+                    slow={slow}
                     onDone={() => { setTyped(true); setTimeout(() => onDone?.(), readMs) }}
                 />
             ) : (
@@ -318,61 +319,73 @@ const TypedBig = ({ parts, onDone, readMs = 500 }: { parts: BigPart[]; onDone?: 
     )
 }
 
-// Синус по шагам: «sin — ЛЕСЕНКА ВВЕРХ √1, √2, √3» → числители в таблице →
-// «и всё делим на 2» → знаменатели 2 в каждой ячейке по очереди.
-// Фазы: 0 печать фразы → -1 лесенка √ (ждём) → 1 числители → 2 печать
-// «делим на 2» → 3 знаменатели → 4 готово. Переходы после печати — по
-// событию окончания печати, остальные — по таймеру.
+// Синус по шагам (по просьбе пользователя, 2026-10-02 — медленнее и с паузами):
+// «sin — ЛЕСЕНКА ВВЕРХ √1, √2, √3» → кнопка «Агась» → таблица: по очереди
+// 30°, 45°, 60° → числители √1, √2, √3 → «Агась» → «И всё делим на 2» → три двойки.
+// Фазы: 0 печать фразы → 1 лесенка → 2 ждём «Агась» → 3 таблица (углы) →
+// 4 числители → 5 ждём «Агась» → 6 печать «делим на 2» → 7 двойки → 8 готово.
+const AgasButton = ({ onClick }: { onClick: () => void }) => (
+    <Pop>
+        <button type="button" onClick={onClick} className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>
+            Агась
+        </button>
+    </Pop>
+)
 const SinLadderScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
-    const [ladder, setLadder] = useState(false)
     useEffect(() => {
         let t: ReturnType<typeof setTimeout> | undefined
-        if (phase === 0 && ladder) t = setTimeout(() => setPhase(1), 1900)
-        if (phase === 1) t = setTimeout(() => setPhase(2), 2000)
-        if (phase === 3) t = setTimeout(() => setPhase(4), 1800)
-        if (phase === 4) t = setTimeout(() => onSettled?.(), 400)
+        if (phase === 1) t = setTimeout(() => setPhase(2), 2600) // лесенка проявилась
+        if (phase === 3) t = setTimeout(() => setPhase(4), 2800) // углы по очереди
+        if (phase === 4) t = setTimeout(() => setPhase(5), 2900) // числители по очереди
+        if (phase === 7) t = setTimeout(() => setPhase(8), 2600) // двойки по очереди
+        if (phase === 8) t = setTimeout(() => onSettled?.(), 400)
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [phase, ladder])
+    }, [phase])
     return (
         <>
             <TypedBig
                 parts={[{ text: 'Запомни: ' }, { text: 'sin', color: FN_COLOR.sin }, { text: ' — это ' }, { text: 'ЛЕСЕНКА ВВЕРХ', color: ATTENTION }]}
-                onDone={() => setLadder(true)}
-                readMs={200}
+                onDone={() => setPhase(1)}
+                readMs={500}
+                slow={1.8}
             />
-            {ladder && (
-                <div className="flex items-center justify-center gap-4 text-2xl md:text-3xl font-black" style={{ color: FN_COLOR.sin }}>
+            {phase >= 1 && (
+                <div className="flex items-center justify-center gap-5 text-3xl md:text-4xl font-black" style={{ color: FN_COLOR.sin }}>
                     {['√1', '√2', '√3'].map((n, i) => (
-                        <Pop key={n} delay={0.1 + i * 0.35}><Num s={n} /></Pop>
+                        <Pop key={n} delay={0.3 + i * 0.7}><Num s={n} /></Pop>
                     ))}
                 </div>
             )}
-            {phase >= 1 && (
+            {phase === 2 && <div className="flex justify-center"><AgasButton onClick={() => setPhase(3)} /></div>}
+            {phase >= 3 && (
                 <DiagramBlock>
                     <TrigTable
                         fns={['sin']}
+                        popAngles
                         cell={(_fn, i) => (
                             <span style={{ color: FN_COLOR.sin }}>
                                 <SplitFrac
                                     num={`√${i + 1}`}
                                     den="2"
-                                    showNum={phase >= 1}
-                                    numDelay={0.3 + i * 0.5}
-                                    showDen={phase >= 3}
-                                    denDelay={0.3 + i * 0.45}
+                                    showNum={phase >= 4}
+                                    numDelay={0.3 + i * 0.7}
+                                    showDen={phase >= 7}
+                                    denDelay={0.3 + i * 0.7}
                                 />
                             </span>
                         )}
                     />
                 </DiagramBlock>
             )}
-            {phase >= 2 && (
+            {phase === 5 && <div className="flex justify-center"><AgasButton onClick={() => setPhase(6)} /></div>}
+            {phase >= 6 && (
                 <TypedBig
                     parts={[{ text: 'И всё делим на ' }, { text: '2', color: FN_COLOR.sin, className: 'text-6xl md:text-7xl align-middle' }]}
-                    onDone={() => setPhase(3)}
-                    readMs={300}
+                    onDone={() => setPhase(7)}
+                    readMs={600}
+                    slow={1.8}
                 />
             )}
         </>
