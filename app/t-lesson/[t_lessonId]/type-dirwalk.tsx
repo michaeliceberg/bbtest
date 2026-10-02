@@ -16,6 +16,8 @@
 
 'use client'
 
+import { AlphaVideo } from '@/components/alpha-video'
+
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
 import dynamic from 'next/dynamic'
@@ -531,7 +533,7 @@ const GripGameScene = ({ onSettled }: { onSettled?: () => void }) => {
     const cur = rounds[Math.min(round, rounds.length - 1)]
     // порядок вариантов перемешан, но стабилен в пределах раунда
     const [flipOpts] = useState<boolean[]>(() => rounds.map(() => Math.random() < 0.5))
-    const miss = (key: string, text: string) => { playSound(WRONG_ANSWER_SOUND); setWrongKey(key); setWrong(text) }
+    const miss = (key: string, text: string) => { playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false); setWrongKey(key); setWrong(text) }
     const pickHand = (thumbUp: boolean) => {
         if (step !== 'hand') return
         // пауза: рука хватает провод, «Верно!» — и только потом следующий вопрос
@@ -592,7 +594,7 @@ const GripGameScene = ({ onSettled }: { onSettled?: () => void }) => {
                         {done && (
                             // на видео левая рука — отражаем по горизонтали (scaleX(-1)), чтобы была правая
                             <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5, delay: 0.3 }}>
-                                <video src="/video/right-hand-pumped.webm" autoPlay loop muted playsInline
+                                <AlphaVideo src="/video/right-hand-pumped.webm" autoPlay loop muted playsInline
                                     className="pointer-events-none w-44 rounded-2xl" style={{ transform: 'scaleX(-1)' }} />
                             </motion.div>
                         )}
@@ -726,7 +728,7 @@ const DotCrossGame = ({ onDone }: { onDone: () => void }) => {
                 if (qi + 1 >= DOT_QUIZ.length) onDone()
             }, 2000)
         } else {
-            playSound(WRONG_ANSWER_SOUND)
+            playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false)
             setWrong(key)
         }
     }

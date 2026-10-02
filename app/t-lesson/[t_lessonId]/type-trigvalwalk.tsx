@@ -18,6 +18,8 @@
 
 'use client'
 
+import { AlphaVideo } from '@/components/alpha-video'
+
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
 import { LayoutGroup, motion } from 'framer-motion'
@@ -229,10 +231,12 @@ const OrderGameScene = ({ onSettled }: { onSettled?: () => void }) => {
             const next = [...picked, a]
             setPicked(next)
             setFlash(null)
+            showAnswerMeme(true)
             if (next.length === ANGLES.length) setTimeout(() => onSettled?.(), 900)
         } else {
             playSound(WRONG_ANSWER_SOUND)
             setFlash(pickWrongTryPhrase())
+            showAnswerMeme(false)
         }
     }
     return (
@@ -448,11 +452,13 @@ const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled, extraRows, foo
             const next = [...used, tok.id]
             setUsed(next)
             setWrongId(null)
+            showAnswerMeme(true)
             if (next.length >= targets.length) setTimeout(() => onSettled?.(), 1000)
         } else {
             playSound(WRONG_ANSWER_SOUND)
             setWrongId(tok.id)
             setWrongNonce((n) => n + 1)
+            showAnswerMeme(false)
         }
     }
     const targetIndex = (r: number, c: number) => targets.findIndex((t) => t.row === r && t.col === c)
@@ -754,7 +760,7 @@ const TgDockRow = ({ travolta }: { travolta?: boolean }) => (
                 {travolta && c === 0 && (
                     <Pop>
                         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                        <video src="/video/travolta.webm" autoPlay loop muted playsInline className="h-[72px] w-[72px] max-w-none shrink-0 rounded-lg object-cover" />
+                        <AlphaVideo src="/video/travolta.webm" autoPlay loop muted playsInline className="h-[72px] w-[72px] max-w-none shrink-0 rounded-lg object-cover" />
                     </Pop>
                 )}
             </motion.div>
@@ -916,7 +922,7 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, fast, calc = 'calcula
                                             <span className="pointer-events-none absolute left-full top-1/2 ml-4 h-[84px] w-[84px] -translate-y-1/2">
                                                 <Pop>
                                                     {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                                                    <video src="/video/travolta-dancing.webm" autoPlay loop muted playsInline className="h-[84px] w-[84px] max-w-none shrink-0 rounded-lg object-cover" />
+                                                    <AlphaVideo src="/video/travolta-dancing.webm" autoPlay loop muted playsInline className="h-[84px] w-[84px] max-w-none shrink-0 rounded-lg object-cover" />
                                                 </Pop>
                                             </span>
                                         )}

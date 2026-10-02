@@ -35,6 +35,8 @@
 
 'use client'
 
+import { AlphaVideo } from '@/components/alpha-video'
+
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
 import dynamic from 'next/dynamic'
@@ -835,7 +837,7 @@ const IntrigueScene = ({ onSettled }: { onSettled?: () => void }) => {
                                 transition={{ type: 'spring', bounce: 0.55, delay: picked === null ? i * 0.15 : 0 }}
                                 className="flex flex-col items-center overflow-hidden rounded-2xl border-2 p-1.5"
                                 style={{ borderColor: FLUX_COLOR, backgroundColor: hexToRgba(FLUX_COLOR, picked === i ? 0.35 : 0.12), boxShadow: `0 5px 0 ${GGEGE_PALETTE.purple.bottom}` }}>
-                                <video src={v.src} autoPlay loop muted playsInline className="pointer-events-none w-full aspect-square rounded-xl object-cover" />
+                                <AlphaVideo src={v.src} autoPlay loop muted playsInline className="pointer-events-none w-full aspect-square rounded-xl object-cover" />
                             </motion.button>
                         ))}
                     </div>
@@ -852,7 +854,7 @@ const IntrigueScene = ({ onSettled }: { onSettled?: () => void }) => {
 // исчезает → из-под формулы выезжает Φ = S · B (столбцы совпадают по цветам)
 // → танцующие коты (стоят с наклоном, сами не трясём) → кнопка «Агась».
 const CatVideo = ({ src, className, once = false, onEnded }: { src: string; className?: string; once?: boolean; onEnded?: () => void }) => (
-    <video src={src} autoPlay loop={!once} muted playsInline onEnded={onEnded}
+    <AlphaVideo src={src} autoPlay loop={!once} muted playsInline onEnded={onEnded}
         className={cn('pointer-events-none aspect-square object-contain', className)} />
 )
 const FormulaRow = ({ cells }: { cells: { v: string; color?: string }[] }) => (
@@ -1020,7 +1022,7 @@ const FluxCompareScene = ({ onSettled }: { onSettled?: () => void }) => {
                 else { setRound((x) => x + 1); setWon(false) }
             }, 1300)
         } else {
-            playSound(WRONG_ANSWER_SOUND)
+            playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false)
             setWrong(CMP_WRONG[round]); setShake((k) => k + 1)
         }
     }
@@ -1347,7 +1349,7 @@ const PoleGameScene = ({ onSettled }: { onSettled?: () => void }) => {
             setWrong(null)
             if (filled + 1 >= 2) setTimeout(() => onSettled?.(), 1100)
         } else {
-            playSound(WRONG_ANSWER_SOUND)
+            playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false)
             setWrong(p)
         }
     }
@@ -1433,7 +1435,7 @@ const RingChoiceScene = ({ onSettled }: { onSettled?: () => void }) => {
             setMsg(null)
             setTimeout(() => setPhase(2), 900)
         } else {
-            playSound(WRONG_ANSWER_SOUND)
+            playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false)
             setWrongTried((w) => [...w, k])
             setMsg(RING_KINDS[k].wrong!)
         }

@@ -962,7 +962,7 @@ const MiniQuiz = ({ questions, onDone }: { questions: MiniQ[]; onDone: () => voi
     const pick = (i: number) => {
         if (right) return
         if (i !== q.correct) {
-            playSound(WRONG_ANSWER_SOUND); setWrong(i); setTimeout(() => setWrong(null), 700); return
+            playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false); setWrong(i); setTimeout(() => setWrong(null), 700); return
         }
         setRight(true)
         setTimeout(() => {
