@@ -133,12 +133,14 @@ const AngleSticker = ({ a, big = false }: { a: number; big?: boolean }) => (
 
 // Кусок таблицы: шапка с углами + строки функций. cell(fn, i) — содержимое ячейки.
 // highlight — номер столбца, который подсвечен (остальные приглушены).
-const TrigTable = ({ fns, cell, highlight, popAngles }: { fns: Fn[]; cell: (fn: Fn, i: number) => React.ReactNode; highlight?: number; popAngles?: boolean }) => (
+// focusCells — ключи ячеек («sin-0», «cos-2»), которые подсвечены; остальные
+// ячейки и шапка на это время серые.
+const TrigTable = ({ fns, cell, highlight, popAngles, focusCells }: { fns: Fn[]; cell: (fn: Fn, i: number) => React.ReactNode; highlight?: number; popAngles?: boolean; focusCells?: string[] }) => (
     <div className="w-full flex justify-center py-2">
         <div className="grid grid-cols-[3.5rem_repeat(3,minmax(4.5rem,6.5rem))] gap-1.5 text-xl md:text-2xl font-extrabold text-[#F2F7FB]">
             <div />
             {ANGLES.map((a, i) => (
-                <div key={a} className="flex h-12 items-center justify-center transition-opacity duration-500" style={{ opacity: highlight === undefined || highlight === i ? 1 : 0.3 }}>
+                <div key={a} className="flex h-12 items-center justify-center transition-opacity duration-500" style={{ opacity: focusCells ? 0.25 : highlight === undefined || highlight === i ? 1 : 0.3, filter: focusCells ? 'grayscale(1)' : undefined }}>
                     {popAngles ? <Pop delay={0.3 + i * 0.7}><AngleSticker a={a} /></Pop> : <AngleSticker a={a} />}
                 </div>
             ))}
@@ -147,21 +149,26 @@ const TrigTable = ({ fns, cell, highlight, popAngles }: { fns: Fn[]; cell: (fn: 
                     <div className="flex items-center justify-center text-lg md:text-xl font-black" style={{ color: FN_COLOR[fn] }}>
                         {fn}
                     </div>
-                    {ANGLES.map((a, i) => (
+                    {ANGLES.map((a, i) => {
+                        const focused = focusCells ? focusCells.includes(`${fn}-${i}`) : highlight === i
+                        const dim = focusCells ? !focused : !(highlight === undefined || highlight === i)
+                        return (
                         <div
                             key={a}
                             data-cell={`${fn}-${i}`}
-                            className="flex h-20 items-center justify-center rounded-xl border-2 transition-opacity duration-500"
+                            className="flex h-20 items-center justify-center rounded-xl border-2 transition-[opacity,filter,border-color,background-color,box-shadow] duration-500"
                             style={{
-                                borderColor: highlight === i ? FN_COLOR[fn] : hexToRgba(FN_COLOR[fn], 0.35),
-                                backgroundColor: hexToRgba(FN_COLOR[fn], highlight === i ? 0.16 : 0.06),
-                                boxShadow: highlight === i ? `0 0 14px ${hexToRgba(FN_COLOR[fn], 0.45)}` : undefined,
-                                opacity: highlight === undefined || highlight === i ? 1 : 0.3,
+                                borderColor: focused ? FN_COLOR[fn] : hexToRgba(FN_COLOR[fn], 0.35),
+                                backgroundColor: hexToRgba(FN_COLOR[fn], focused ? 0.16 : 0.06),
+                                boxShadow: focused ? `0 0 14px ${hexToRgba(FN_COLOR[fn], 0.45)}` : undefined,
+                                opacity: dim ? (focusCells ? 0.25 : 0.3) : 1,
+                                filter: focusCells && dim ? 'grayscale(1)' : undefined,
                             }}
                         >
                             {cell(fn, i)}
                         </div>
-                    ))}
+                        )
+                    })}
                 </Fragment>
             ))}
         </div>
@@ -572,37 +579,28 @@ const FullPuzzleScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-// Косинус: «зеркало». Копии значений из строки синуса (оранжевые) вылетают
-// вниз в строку косинуса и приземляются в ЗЕРКАЛЬНЫЕ ячейки — первая в
-// последнюю, последняя в первую, пути перекрещиваются «Х». При посадке
-// значение перекрашивается из цвета sin в цвет cos.
-const FLIGHT_S = 1.5
-const FLIGHT_STAGGER_S = 0.18
+// Косинус: «зеркало». Пара за парой: подсвечены ячейка синуса (sin 30°=1/2)
+// и пустая зеркальная ячейка косинуса (cos 60°), всё остальное серое; в
+// подсвеченной ячейке косинуса с отскоком появляется то же значение. Дальше
+// 45° ↔ 45°, потом sin 60° → cos 30°.
+const PAIR_HILITE_MS = 1100 // пауза на подсветку пары до появления значения
+const PAIR_HOLD_MS = 1500 // сколько держим пару после появления значения
 const CosMirrorScene = ({ onSettled }: { onSettled?: () => void }) => {
-    const [phase, setPhase] = useState(0) // 0 таблица, 1 печать фразы, 2 полёт копий, 4 готово
-    const wrapRef = useRef<HTMLDivElement>(null)
-    // Смещение «из ячейки sin-(2−i) в ячейку cos-i» (центр к центру), px.
-    const [deltas, setDeltas] = useState<{ dx: number; dy: number }[] | null>(null)
+    const [phase, setPhase] = useState(0) // 0 таблица, 1 печать фразы, 2 пары, 4 готово
+    const [pair, setPair] = useState<number | null>(null) // какая пара подсвечена: sin-p ↔ cos-(2−p)
+    const [landed, setLanded] = useState(0) // сколько значений косинуса уже появилось
     useEffect(() => {
         if (phase !== 2) return
-        const wrap = wrapRef.current
-        if (!wrap) return
-        const center = (sel: string) => {
-            const el = wrap.querySelector(sel)
-            if (!el) return null
-            const r = el.getBoundingClientRect()
-            return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+        const timers: ReturnType<typeof setTimeout>[] = []
+        let t = 0
+        for (let p = 0; p < 3; p++) {
+            timers.push(setTimeout(() => setPair(p), t))
+            t += PAIR_HILITE_MS
+            timers.push(setTimeout(() => setLanded(p + 1), t))
+            t += PAIR_HOLD_MS
         }
-        const next: { dx: number; dy: number }[] = []
-        for (let i = 0; i < 3; i++) {
-            const from = center(`[data-cell="sin-${2 - i}"]`)
-            const to = center(`[data-cell="cos-${i}"]`)
-            if (!from || !to) return
-            next.push({ dx: from.x - to.x, dy: from.y - to.y })
-        }
-        setDeltas(next)
-        const t = setTimeout(() => setPhase(4), (FLIGHT_S + FLIGHT_STAGGER_S * 2) * 1000 + 300)
-        return () => clearTimeout(t)
+        timers.push(setTimeout(() => { setPair(null); setPhase(4) }, t))
+        return () => timers.forEach(clearTimeout)
     }, [phase])
     useEffect(() => {
         if (phase === 4) {
@@ -614,28 +612,18 @@ const CosMirrorScene = ({ onSettled }: { onSettled?: () => void }) => {
     return (
         <>
             <DiagramBlock onSettled={() => setTimeout(() => setPhase(1), 700)}>
-                <div ref={wrapRef} className="relative w-full">
+                <div className="relative w-full">
                     <TrigTable
                         fns={['sin', 'cos']}
+                        focusCells={pair === null ? undefined : [`sin-${pair}`, `cos-${2 - pair}`]}
                         cell={(fn, i) => (
                             <span style={{ color: FN_COLOR[fn] }}>
                                 {fn === 'sin' ? (
                                     <ValView v={VALUES.sin[i]} />
-                                ) : deltas ? (
-                                    // Центральная (45°) летит прямо вниз, крайние — дугой в разные стороны,
-                                    // чтобы не наезжать друг на друга в середине пути.
-                                    <motion.span
-                                        className="relative z-10 inline-flex"
-                                        initial={{ x: deltas[i].dx, y: deltas[i].dy, color: FN_COLOR.sin }}
-                                        animate={{
-                                            x: 0,
-                                            y: i === 1 ? 0 : [deltas[i].dy, deltas[i].dy / 2 + (i === 0 ? -30 : 30), 0],
-                                            color: FN_COLOR.cos,
-                                        }}
-                                        transition={{ duration: FLIGHT_S, delay: i * FLIGHT_STAGGER_S, ease: 'easeInOut' }}
-                                    >
+                                ) : landed > 2 - i ? (
+                                    <Pop>
                                         <ValView v={VALUES.cos[i]} />
-                                    </motion.span>
+                                    </Pop>
                                 ) : null}
                             </span>
                         )}
