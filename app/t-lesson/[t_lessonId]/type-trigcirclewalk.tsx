@@ -35,7 +35,6 @@ import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
-import houseLottie from '@/public/Lottie/stepByStep/house.json'
 
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 
@@ -59,7 +58,7 @@ const PI = Math.PI
 const TEXT = 'w-full text-base md:text-lg text-[#F2F7FB]'
 
 const VIDEO_MOONWALK = '/video/mj-moonwalk.mp4'
-const POINTER_STICKER = '/lesson-pics/dicaprio-point.webp'
+const HOUSE_STICKER = '/lesson-pics/house-sticker.webp'
 
 // Вместо «Дальше» — всегда смешное слово (просьба пользователя). Колода без
 // повторов: пока не выпадут все фразы, ни одна не повторится. «ГААААЗ» — редкая
@@ -285,7 +284,6 @@ type CanvasProps = {
     axisLabels?: { cos?: boolean; sin?: boolean }
     drawCircle?: boolean
     house?: boolean
-    bigArrow?: boolean
     houses?: { a: number; state: 'idle' | 'wrong' | 'right' }[]
     onHousePick?: (a: number) => void
     arcs?: ArcSpec[]
@@ -301,7 +299,6 @@ type CanvasProps = {
     glowValue?: { axis: Axis; v: 1 | -1 } | null
     dirPick?: { onPick?: (d: 'up' | 'down') => void; wrong: 'up' | 'down' | null; done: ('up' | 'down')[] } | null
     blinkDots?: boolean
-    wide?: boolean
 }
 const LABEL_STYLE = { fontFamily: 'var(--font-nunito), sans-serif', fontWeight: 900 } as const
 
@@ -313,9 +310,9 @@ const House = ({ a = 0, state = 'idle', onClick, bounce = false }: { a?: number;
         <g transform={`translate(${x} ${y})`} onClick={onClick} style={onClick ? { cursor: 'pointer' } : undefined}>
             <g className={bounce ? 'animate-chest-idle-bounce' : undefined} style={{ transformBox: 'fill-box' }}>
                 {state !== 'idle' && <circle r={HOUSE_SIZE / 2 + 4} fill={hexToRgba(state === 'wrong' ? MINUS_COLOR : PLUS_COLOR, 0.3)} stroke={state === 'wrong' ? MINUS_COLOR : PLUS_COLOR} strokeWidth={3} />}
-                <foreignObject x={-HOUSE_SIZE / 2} y={-HOUSE_SIZE / 2} width={HOUSE_SIZE} height={HOUSE_SIZE} style={{ pointerEvents: 'none' }}>
-                    <Lottie animationData={houseLottie} loop={false} autoplay className="w-full h-full" />
-                </foreignObject>
+                <image href={HOUSE_STICKER} x={-HOUSE_SIZE / 2} y={-HOUSE_SIZE / 2} width={HOUSE_SIZE} height={HOUSE_SIZE * 0.89} />
+                {/* Зона клика — прозрачный круг поверх картинки */}
+                {onClick && <circle r={HOUSE_SIZE / 2 + 6} fill="transparent" />}
             </g>
         </g>
     )
@@ -330,9 +327,9 @@ const UNIT_LABELS = [
 ]
 
 const CircleCanvas = ({
-    axes = true, axisLabels = { cos: true, sin: true }, drawCircle = false, house = false, bigArrow = false,
+    axes = true, axisLabels = { cos: true, sin: true }, drawCircle = false, house = false,
     houses = [], onHousePick, arcs = [], segments = [], marks = [], units = 0, dots, hitDots = [], traveler = null,
-    onCirclePick, onAxisPick, axisFlash = null, glowValue = null, dirPick = null, blinkDots = false, wide = false,
+    onCirclePick, onAxisPick, axisFlash = null, glowValue = null, dirPick = null, blinkDots = false,
 }: CanvasProps) => {
     const svgRef = useRef<SVGSVGElement>(null)
     const pick = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -352,7 +349,7 @@ const CircleCanvas = ({
     const hit = (a: Axis) => (onAxisPick ? { onClick: () => onAxisPick(a), style: { cursor: 'pointer' } } : {})
     const dotList = dots === 'all' ? STD_ANGLES.map((_, i) => i) : dots === 'quarters' ? QUARTER_IDX : []
     return (
-        <svg ref={svgRef} viewBox={wide ? '-90 0 480 300' : '0 0 300 300'} className={cn('w-full max-w-[360px] h-auto mx-auto block select-none overflow-visible', onCirclePick && 'cursor-pointer')} onPointerDown={pick}>
+        <svg ref={svgRef} viewBox="0 0 300 300" className={cn('w-full max-w-[360px] h-auto mx-auto block select-none overflow-visible', onCirclePick && 'cursor-pointer')} onPointerDown={pick}>
             {arcs.map((arc) => (
                 <motion.path key={`s-${arc.key}`} d={`M ${C} ${C} L ${pt(0).x} ${pt(0).y} ${arcPath(arc.to).replace(/^M [^A]+/, '')} Z`}
                     fill={hexToRgba(arc.color, 0.14)} initial={{ opacity: 0 }} animate={{ opacity: Math.abs(arc.to) < 2 * PI - 1e-6 ? 1 : 0.6 }} transition={{ duration: 0.6, delay: 0.5 }} />
@@ -491,11 +488,6 @@ const CircleCanvas = ({
                 <House key={`hs-${h.a}`} a={h.a} state={h.state}
                     onClick={onHousePick ? () => onHousePick(h.a) : undefined} />
             ))}
-            {bigArrow && (
-                // Просто стикер: Жириновский сверху справа, рукой на домик.
-                <motion.image href={POINTER_STICKER} x={C + R + 18} y={C - 38} width={130} height={96}
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }} />
-            )}
             <circle cx={C} cy={C} r={4} fill="#F2F7FB" />
         </svg>
     )
@@ -596,8 +588,8 @@ const HomeScene = ({ onSettled }: SceneProps) => {
         <>
             <TypedBig parts={[{ text: 'Все углы откладываются ' }, { text: 'СПРАВА', color: PLUS_COLOR }]} onDone={() => setPhase(1)} />
             {phase >= 1 && (
-                <DiagramBlock onSettled={() => setTimeout(() => { setPhase(2); setTimeout(() => onSettled?.(), 1500) }, 1200)}>
-                    <CircleCanvas wide house bigArrow={phase >= 2} />
+                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1200)}>
+                    <CircleCanvas house />
                 </DiagramBlock>
             )}
         </>
