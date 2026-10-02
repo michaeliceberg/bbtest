@@ -731,7 +731,7 @@ const TgFullScene = ({ onSettled }: { onSettled?: () => void }) => (
 //    (общий layoutId — framer сам ведёт элемент между местами).
 const TG = FN_COLOR.tg
 
-const TgDockRow = () => (
+const TgDockRow = ({ travolta }: { travolta?: boolean }) => (
     <>
         <motion.div
             initial={{ y: 280, opacity: 0 }}
@@ -750,14 +750,21 @@ const TgDockRow = () => (
                 transition={{ type: 'spring', stiffness: 150, damping: 11, delay: 0.04 * (c + 1) }}
                 className="flex h-20 items-center justify-center rounded-xl border-2"
                 style={{ borderColor: hexToRgba(TG, 0.6), borderStyle: 'dashed', backgroundColor: hexToRgba(TG, 0.06) }}
-            />
+            >
+                {travolta && c === 0 && (
+                    <Pop>
+                        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                        <video src="/video/travolta.webm" autoPlay loop muted playsInline className="h-[72px] w-[72px] max-w-none shrink-0 rounded-lg object-cover" />
+                    </Pop>
+                )}
+            </motion.div>
         ))}
     </>
 )
 
 const TgBuildScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [perm] = useState(() => shuffle([0, 1, 2]))
-    const [phase, setPhase] = useState(0) // 0 паззл, 1 ждём «Агась», 2 стыковка, 3 вопрос
+    const [phase, setPhase] = useState(0) // 0 паззл, 1 ждём «Агась», 2 стыковка, 3 вопрос, 4 Траволта в tg 30°
     useEffect(() => {
         if (phase !== 2) return
         const t = setTimeout(() => setPhase(3), 1500)
@@ -769,14 +776,14 @@ const TgBuildScene = ({ onSettled }: { onSettled?: () => void }) => {
             prefilled={(r, c) => perm[r] === c}
             subtitle="Сначала соберём знакомую таблицу: углы, синусы и косинусы."
             onSettled={() => setPhase((p) => Math.max(p, 1))}
-            extraRows={phase >= 2 ? <TgDockRow /> : null}
+            extraRows={phase >= 2 ? <TgDockRow travolta={phase >= 4} /> : null}
             footer={
                 phase === 1 ? (
                     <AgasButton onClick={() => setPhase(2)} />
                 ) : phase >= 3 ? (
                     <TypedBig
                         parts={[{ text: 'А чему равен ' }, { text: 'тангенс', color: TG }, { text: '?' }]}
-                        onDone={() => onSettled?.()}
+                        onDone={() => { setPhase(4); setTimeout(() => onSettled?.(), 1200) }}
                         readMs={400}
                     />
                 ) : null
@@ -842,7 +849,7 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, onSettled, active = t
     const [phase, setPhase] = useState(0)
     useEffect(() => {
         // 3/6: обводка (0.7 с) → пауза → стикер (1.6 с) → пауза → падение.
-        const next: Record<number, number> = { 3: 3600, 4: 1300, 6: 3600, 7: 1300, 10: 1100, 11: 1200, 12: 1400 }
+        const next: Record<number, number> = { 3: 3600, 4: 1300, 5: 1000, 6: 3600, 7: 1300, 10: 1100, 11: 1200, 12: 1400 }
         if (!(phase in next)) return
         const t = setTimeout(() => setPhase(phase + 1), next[phase])
         return () => clearTimeout(t)
@@ -910,10 +917,7 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, onSettled, active = t
                                     </span>
                                 )
                             }
-                            return travolta ? (
-                                // eslint-disable-next-line jsx-a11y/media-has-caption
-                                <video src="/video/travolta.webm" autoPlay loop muted playsInline className="h-[72px] w-[72px] rounded-lg object-cover" />
-                            ) : null
+                            return null
                         }}
                     />
                 </div>
@@ -955,7 +959,8 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, onSettled, active = t
                     </span>
                     {phase >= 9 && <Pop><span>=</span></Pop>}
                     {phase === 9 && (
-                        <Pop>
+                        <Pop className="flex-col items-center gap-1">
+                            <span className="text-base md:text-lg font-black text-[#F2C35B]">считаем...</span>
                             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                             <video
                                 src="/video/calculating.mp4"
@@ -963,7 +968,7 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, onSettled, active = t
                                 muted
                                 playsInline
                                 onEnded={() => setPhase((p) => Math.max(p, 10))}
-                                className="h-16 w-28 max-w-none shrink-0 rounded-lg object-cover"
+                                className="h-24 w-[170px] max-w-none shrink-0 rounded-lg object-cover"
                             />
                         </Pop>
                     )}
@@ -986,7 +991,7 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, onSettled, active = t
                     {phase >= 12 && <span className="opacity-30" style={{ color: TG }}><ValView v={VALUES.tg[i]} /></span>}
                 </motion.div>
             )}
-            {(phase === 5 || phase === 8) && (
+            {phase === 8 && (
                 <div className="flex justify-center"><AgasButton label={okLabel} onClick={() => setPhase(phase + 1)} /></div>
             )}
             {phase >= 13 && <LocalAnswerConfetti />}
@@ -1106,7 +1111,8 @@ export const TypeTrigValWalk = ({ onAnswer, onComplete, mode }: Props) => {
                     (p: { onSettled?: () => void; active?: boolean }) => (
                         <TgColumnFlyScene
                             i={1}
-                            intro={[{ text: 'Теперь ' }, { text: '45°', color: ANGLE_COLOR[45] }, { text: ' — так же!' }]}
+                            travolta
+                            introFrac
                             {...p}
                         />
                     ),
