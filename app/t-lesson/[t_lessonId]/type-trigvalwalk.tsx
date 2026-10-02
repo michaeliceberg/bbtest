@@ -326,10 +326,10 @@ const TypedBig = ({ parts, onDone, readMs = 500, slow }: { parts: BigPart[]; onD
 // 30°, 45°, 60° → числители √1, √2, √3 → «Агась» → «И всё делим на 2» → три двойки.
 // Фазы: 0 печать фразы → 1 лесенка → 2 ждём «Агась» → 3 таблица (углы) →
 // 4 числители → 5 ждём «Агась» → 6 печать «делим на 2» → 7 двойки → 8 готово.
-const AgasButton = ({ onClick }: { onClick: () => void }) => (
+const AgasButton = ({ onClick, label = 'Агась' }: { onClick: () => void; label?: string }) => (
     <Pop className="w-full max-w-xs">
         <button type="button" onClick={onClick} className={cn(walkthroughButtonClass(true), 'w-full px-8')} style={walkthroughButtonStyle(true)}>
-            Агась
+            {label}
         </button>
     </Pop>
 )
@@ -786,7 +786,7 @@ const TgBuildScene = ({ onSettled }: { onSettled?: () => void }) => {
 }
 
 // Значение в рамке-квадратике (именно он «летает»).
-const ValBox = ({ v, color, framed = true }: { v: V; color: string; framed?: boolean }) => (
+const ValBox = ({ v, color, framed = false }: { v: V; color: string; framed?: boolean }) => (
     <span
         className="inline-flex items-center justify-center rounded-lg border-2 px-1.5 py-1 transition-colors duration-500"
         style={{ color, borderColor: framed ? color : 'transparent', backgroundColor: framed ? hexToRgba(color, 0.14) : 'transparent' }}
@@ -797,6 +797,33 @@ const ValBox = ({ v, color, framed = true }: { v: V; color: string; framed?: boo
 const FLY = { type: 'spring' as const, stiffness: 120, damping: 16 }
 const Slot = () => <span className="inline-flex h-14 w-16 rounded-lg border-2 border-dashed border-[#3A464E]" />
 
+// Обводка «фломастером» + стикер-подпись над ней («берём синус»).
+const MARKER_PATH = 'M 86 24 C 66 0, 16 4, 7 44 C 0 86, 58 102, 90 80 C 104 64, 99 34, 72 18'
+const MarkerCircle = ({ label, color }: { label: string; color: string }) => (
+    <>
+        <svg className="pointer-events-none absolute -inset-3 z-10 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: 'calc(100% + 24px)', height: 'calc(100% + 24px)' }}>
+            <motion.path
+                d={MARKER_PATH}
+                fill="none"
+                stroke={ATTENTION}
+                strokeWidth={4}
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 0.7, ease: 'easeInOut' }}
+            />
+        </svg>
+        <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-3 -translate-x-1/2 whitespace-nowrap">
+            <Pop delay={0.6}>
+                <span className="rounded-lg border-2 px-2 py-0.5 text-sm md:text-base font-black" style={{ borderColor: color, backgroundColor: '#161F23', color }}>
+                    {label}
+                </span>
+            </Pop>
+        </span>
+    </>
+)
+
 const TgColumnFlyScene = ({ i, travolta, intro, outro, onSettled }: {
     i: number
     travolta?: boolean
@@ -804,11 +831,13 @@ const TgColumnFlyScene = ({ i, travolta, intro, outro, onSettled }: {
     outro: string
     onSettled?: () => void
 }) => {
-    // 0 таблица, 1 фраза, 2 формула, 3 синус летит, 4 косинус летит,
-    // 5 «= результат», 6 рамка, 7 результат летит в таблицу, 8 вывод
+    // 0 таблица, 1 фраза, 2 ждём «Агась», 3 формула + обводка синуса,
+    // 4 синус летит в числитель, 5 ждём «Ок», 6 обводка косинуса,
+    // 7 косинус летит в знаменатель, 8 ждём «Ок», 9 «= результат»,
+    // 10 рамка, 11 результат летит в таблицу, 12 вывод
     const [phase, setPhase] = useState(0)
     useEffect(() => {
-        const next: Record<number, number> = { 2: 900, 3: 1400, 4: 1400, 5: 1100, 6: 1200, 7: 1400 }
+        const next: Record<number, number> = { 3: 2000, 4: 1300, 6: 2000, 7: 1300, 9: 1100, 10: 1200, 11: 1400 }
         if (!(phase in next)) return
         const t = setTimeout(() => setPhase(phase + 1), next[phase])
         return () => clearTimeout(t)
@@ -816,27 +845,30 @@ const TgColumnFlyScene = ({ i, travolta, intro, outro, onSettled }: {
     const sinId = `tg-sin-${i}`
     const cosId = `tg-cos-${i}`
     const resId = `tg-res-${i}`
+    const sinFlown = phase >= 4
+    const cosFlown = phase >= 7
     return (
         <LayoutGroup id={`tg-col-${i}`}>
             <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 1)), 600)}>
-                <div className="w-full flex flex-col items-center">
+                <div className="w-full flex flex-col items-center pt-6">
                     <TrigTable
                         fns={['sin', 'cos', 'tg']}
                         highlight={i}
                         cell={(fn, j) => {
                             if (fn === 'sin' || fn === 'cos') {
-                                const id = fn === 'sin' ? sinId : cosId
-                                const flown = j === i && phase >= (fn === 'sin' ? 3 : 4)
                                 if (j !== i) return <span style={{ color: FN_COLOR[fn] }}><ValView v={VALUES[fn][j]} /></span>
+                                const flown = fn === 'sin' ? sinFlown : cosFlown
+                                const circled = fn === 'sin' ? phase === 3 : phase === 6
                                 return flown ? null : (
-                                    <motion.span layoutId={id} transition={FLY} className="inline-flex">
+                                    <motion.span layoutId={fn === 'sin' ? sinId : cosId} transition={FLY} className="relative inline-flex">
                                         <ValBox v={VALUES[fn][j]} color={FN_COLOR[fn]} />
+                                        {circled && <MarkerCircle label={fn === 'sin' ? 'берём синус' : 'берём косинус'} color={FN_COLOR[fn]} />}
                                     </motion.span>
                                 )
                             }
                             if (j < i) return <span style={{ color: TG }}><ValView v={VALUES.tg[j]} /></span>
                             if (j > i) return null
-                            if (phase >= 7) {
+                            if (phase >= 11) {
                                 return (
                                     <motion.span layoutId={resId} transition={FLY} className="inline-flex">
                                         <ValBox v={VALUES.tg[i]} color={TG} />
@@ -852,7 +884,8 @@ const TgColumnFlyScene = ({ i, travolta, intro, outro, onSettled }: {
                 </div>
             </DiagramBlock>
             {phase >= 1 && <TypedBig parts={intro} onDone={() => setPhase((p) => Math.max(p, 2))} readMs={300} />}
-            {phase >= 2 && (
+            {phase === 2 && <div className="flex justify-center"><AgasButton onClick={() => setPhase(3)} /></div>}
+            {phase >= 3 && (
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -862,35 +895,43 @@ const TgColumnFlyScene = ({ i, travolta, intro, outro, onSettled }: {
                     <AngleSticker a={ANGLES[i]} />
                     <span>=</span>
                     <span className="inline-flex flex-col items-center gap-1.5">
-                        {phase >= 3 ? (
+                        {sinFlown ? (
                             <motion.span layoutId={sinId} transition={FLY} className="inline-flex">
                                 <ValBox v={VALUES.sin[i]} color={FN_COLOR.sin} />
                             </motion.span>
                         ) : <Slot />}
                         <span className="h-[3px] w-24 rounded-full bg-[#F2F7FB]" />
-                        {phase >= 4 ? (
+                        {cosFlown ? (
                             <motion.span layoutId={cosId} transition={FLY} className="inline-flex">
                                 <ValBox v={VALUES.cos[i]} color={FN_COLOR.cos} />
                             </motion.span>
                         ) : <Slot />}
                     </span>
-                    {phase >= 5 && <Pop><span>=</span></Pop>}
-                    {phase >= 5 && phase < 7 && (
+                    {phase >= 9 && <Pop><span>=</span></Pop>}
+                    {phase >= 9 && phase < 11 && (
                         <motion.span
                             layoutId={resId}
                             transition={FLY}
                             initial={{ scale: 2.4, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            className="inline-flex"
+                            className="relative inline-flex"
                         >
-                            <ValBox v={VALUES.tg[i]} color={TG} framed={phase >= 6} />
+                            <ValBox v={VALUES.tg[i]} color={TG} />
+                            {phase === 10 && (
+                                <svg className="pointer-events-none absolute -inset-3 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: 'calc(100% + 24px)', height: 'calc(100% + 24px)' }}>
+                                    <motion.path d={MARKER_PATH} fill="none" stroke={ATTENTION} strokeWidth={4} strokeLinecap="round" vectorEffect="non-scaling-stroke" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.7 }} />
+                                </svg>
+                            )}
                         </motion.span>
                     )}
-                    {phase >= 7 && <span className="opacity-30" style={{ color: TG }}><ValView v={VALUES.tg[i]} /></span>}
+                    {phase >= 11 && <span className="opacity-30" style={{ color: TG }}><ValView v={VALUES.tg[i]} /></span>}
                 </motion.div>
             )}
-            {phase >= 8 && <TypedLine className={TEXT} text={outro} onSettled={() => onSettled?.()} />}
-            {phase >= 8 && <LocalAnswerConfetti />}
+            {(phase === 5 || phase === 8) && (
+                <div className="flex justify-center"><AgasButton label="Ок" onClick={() => setPhase(phase + 1)} /></div>
+            )}
+            {phase >= 12 && <TypedLine className={TEXT} text={outro} onSettled={() => onSettled?.()} />}
+            {phase >= 12 && <LocalAnswerConfetti />}
         </LayoutGroup>
     )
 }
