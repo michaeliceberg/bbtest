@@ -19,7 +19,7 @@
 
 import { Fragment, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
-import { motion } from 'framer-motion'
+import { animate, motion, useMotionValue, useTransform } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
@@ -553,10 +553,10 @@ const IntroScene = ({ onSettled }: SceneProps) => {
                 </DiagramBlock>
             )}
             {phase >= 4 && (
-                <TypedBig parts={[{ text: 'Стрелка ВПРАВО — ВСЕГДА ' }, { text: 'косинус', color: COS_COLOR }]} onDone={() => setTimeout(() => setPhase(5), 800)} readMs={100} />
+                <TypedBig parts={[{ text: 'Стрелка ВПРАВО — ' }, { text: 'косинус', color: COS_COLOR }]} onDone={() => setTimeout(() => setPhase(5), 800)} readMs={100} />
             )}
             {phase >= 7 && (
-                <TypedBig parts={[{ text: 'Стрелка ВВЕРХ — ВСЕГДА ' }, { text: 'синус', color: SIN_COLOR }]} onDone={() => setTimeout(() => onSettled?.(), 1000)} readMs={100} />
+                <TypedBig parts={[{ text: 'Стрелка ВВЕРХ — ' }, { text: 'синус', color: SIN_COLOR }]} onDone={() => setTimeout(() => onSettled?.(), 1000)} readMs={100} />
             )}
         </>
     )
@@ -714,64 +714,111 @@ const DirQuizScene = ({ onSettled }: SceneProps) => {
 }
 
 // 6. Что такое π — без тригонометрической окружности. Одна и та же картинка:
-// полукруг (π = 180° внутри) → дорисовываем до круга (2π = 360°) → режем на 4
-// (π/2) → по очереди π/6, π/4, π/3. Потом «Агась» и табличка.
-type PiStage = 0 | 1 | 2 | 3 | 4 | 5 | 6
+// 0 полукруг (π = 180°) → 1 дорисовываем круг (2π = 360°) → 2 отрезаем
+// четверть как кусок торта, остальные 3/4 смахиваются влево-вниз → 3 это π/2 →
+// 4 режем четверть на 3 кусочка → 5 два верхних отбрасываем, осталось π/6 →
+// 6 тянем за верхний край до π/4 → 7 ещё тянем до π/3. Потом «Агась» и табличка.
+type PiStage = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
 const PI_R = 110
 const PI_C = { x: 150, y: 150 }
 const ppt = (a: number, r = PI_R) => ({ x: PI_C.x + r * Math.cos(a), y: PI_C.y - r * Math.sin(a) })
+// Сектор/дуга от a0 до a1 против часовой.
+const pieSector = (a0: number, a1: number) => {
+    const p0 = ppt(a0)
+    const p1 = ppt(a1)
+    return `M ${PI_C.x} ${PI_C.y} L ${p0.x} ${p0.y} A ${PI_R} ${PI_R} 0 ${a1 - a0 > PI ? 1 : 0} 0 ${p1.x} ${p1.y} Z`
+}
+const pieArc = (a0: number, a1: number) => {
+    const p0 = ppt(a0)
+    const p1 = ppt(a1)
+    return `M ${p0.x} ${p0.y} A ${PI_R} ${PI_R} 0 ${a1 - a0 > PI ? 1 : 0} 0 ${p1.x} ${p1.y}`
+}
+const PIECE_TARGET: Partial<Record<PiStage, number>> = { 5: PI / 6, 6: PI / 4, 7: PI / 3 }
+
 const PiCircle = ({ stage }: { stage: PiStage }) => {
     const { x: cx, y: cy } = PI_C
     const r = PI_R
-    const big = (text: string, y: number, color = ARC_COLOR, key = text) => (
+    // Угол «растягиваемого» кусочка: π/6 → π/4 → π/3, плавно, за верхний край.
+    const ang = useMotionValue(PI / 6)
+    useEffect(() => {
+        const target = PIECE_TARGET[stage]
+        if (target === undefined) return
+        const ctrl = animate(ang, target, { duration: 1.3, ease: [0.4, 0, 0.2, 1] })
+        return () => ctrl.stop()
+    }, [stage, ang])
+    const pieceFill = useTransform(ang, (a) => pieSector(0, a))
+    const pieceArc = useTransform(ang, (a) => pieArc(0, a))
+    const pieceEdgeX = useTransform(ang, (a) => ppt(a).x)
+    const pieceEdgeY = useTransform(ang, (a) => ppt(a).y)
+    const big = (text: string, y: number, key: string) => (
         <g transform={`translate(${cx} ${y})`}>
             <motion.g key={key} initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3, type: 'spring', bounce: 0.6 }}>
-                <text textAnchor="middle" dominantBaseline="central" fontSize={30} fill={color} style={LABEL_STYLE}>{text}</text>
+                <text textAnchor="middle" dominantBaseline="central" fontSize={30} fill={ARC_COLOR} style={LABEL_STYLE}>{text}</text>
             </motion.g>
         </g>
     )
-    const radius = (a: number, color: string, key: string) => (
-        <motion.line key={key} x1={cx} y1={cy} x2={ppt(a).x} y2={ppt(a).y} stroke={color} strokeWidth={3} strokeDasharray="6 5"
-            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.5 }} />
-    )
-    const label = (a: number, text: string, color: string) => (
-        <g key={`l-${text}`} transform={`translate(${ppt(a, r + 26).x} ${ppt(a, r + 26).y})`}>
-            <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.4, type: 'spring', bounce: 0.6 }}>
-                <text textAnchor="middle" dominantBaseline="central" fontSize={20} fill={color} style={LABEL_STYLE}>{text}</text>
-            </motion.g>
-        </g>
+    const cut = (a: number, key: string, delay = 0) => (
+        <motion.line key={key} x1={cx} y1={cy} x2={ppt(a).x} y2={ppt(a).y} stroke="#F2F7FB" strokeWidth={3}
+            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.5, delay }} />
     )
     return (
-        <svg viewBox="0 0 300 300" className="w-full max-w-[340px] h-auto mx-auto block">
+        <svg viewBox="0 0 300 300" className="w-full max-w-[340px] h-auto mx-auto block overflow-visible">
             {stage <= 1 && <circle cx={cx} cy={cy} r={r} fill="none" stroke="#3A464E" strokeWidth={2} strokeDasharray="4 6" />}
-            {/* Полукруг */}
-            <motion.path d={`M ${cx + r} ${cy} A ${r} ${r} 0 0 0 ${cx - r} ${cy} L ${cx + r} ${cy} Z`} fill={hexToRgba(ARC_COLOR, stage === 0 ? 0.16 : 0)}
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} />
-            <motion.path d={`M ${cx + r} ${cy} A ${r} ${r} 0 0 0 ${cx - r} ${cy}`} fill="none" stroke={ARC_COLOR} strokeWidth={7} strokeLinecap="round"
-                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.3, ease: 'easeInOut' }} />
-            {/* Дорисовываем до полного круга */}
-            {stage >= 1 && (
-                <motion.path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${cx + r} ${cy}`} fill="none" stroke={ARC_COLOR} strokeWidth={7} strokeLinecap="round"
-                    initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.3, ease: 'easeInOut' }} />
-            )}
-            {stage === 1 && <circle cx={cx} cy={cy} r={r} fill={hexToRgba(ARC_COLOR, 0.12)} />}
-            {/* Режем на 4 и выделяем четвертинку */}
-            {stage >= 2 && (
+            {stage <= 1 && (
                 <>
-                    <motion.path d={`M ${cx} ${cy} L ${cx + r} ${cy} A ${r} ${r} 0 0 0 ${cx} ${cy - r} Z`} fill={hexToRgba(SIN_COLOR, 0.2)}
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} />
-                    {radius(0, '#F2F7FB', 'c0')}{radius(PI / 2, '#F2F7FB', 'c1')}{radius(PI, '#F2F7FB', 'c2')}{radius((3 * PI) / 2, '#F2F7FB', 'c3')}
+                    {/* Полукруг */}
+                    <motion.path d={`M ${cx + r} ${cy} A ${r} ${r} 0 0 0 ${cx - r} ${cy} L ${cx + r} ${cy} Z`} fill={hexToRgba(ARC_COLOR, stage === 0 ? 0.16 : 0)}
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} />
+                    <motion.path d={`M ${cx + r} ${cy} A ${r} ${r} 0 0 0 ${cx - r} ${cy}`} fill="none" stroke={ARC_COLOR} strokeWidth={7} strokeLinecap="round"
+                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.3, ease: 'easeInOut' }} />
                 </>
             )}
-            {stage >= 4 && radius(PI / 6, COS_COLOR, 'r6')}
-            {stage >= 5 && radius(PI / 4, PLUS_COLOR, 'r4')}
-            {stage >= 6 && radius(PI / 3, PICK_COLOR, 'r3')}
-            {stage >= 4 && label(PI / 6, 'π/6', COS_COLOR)}
-            {stage >= 5 && label(PI / 4, 'π/4', PLUS_COLOR)}
-            {stage >= 6 && label(PI / 3, 'π/3', PICK_COLOR)}
-            {stage >= 2 && stage < 4 && label(PI / 4, 'π/2', SIN_COLOR)}
-            {stage === 0 && big('π = 180°', cy - r / 2.4, ARC_COLOR, 's0')}
-            {stage === 1 && big('2π = 360°', cy, ARC_COLOR, 's1')}
+            {/* Дорисовываем до полного круга */}
+            {stage === 1 && (
+                <>
+                    <motion.path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${cx + r} ${cy}`} fill="none" stroke={ARC_COLOR} strokeWidth={7} strokeLinecap="round"
+                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.3, ease: 'easeInOut' }} />
+                    <circle cx={cx} cy={cy} r={r} fill={hexToRgba(ARC_COLOR, 0.12)} />
+                </>
+            )}
+            {/* Отрезаем четверть: 3/4 смахиваются влево-вниз */}
+            {stage === 2 && (
+                <motion.g initial={{ x: 0, y: 0, opacity: 1 }} animate={{ x: -90, y: 90, opacity: 0 }} transition={{ delay: 0.9, duration: 1.1, ease: [0.4, 0, 0.6, 1] }}>
+                    <path d={pieSector(PI / 2, 2 * PI)} fill={hexToRgba(ARC_COLOR, 0.12)} />
+                    <path d={pieArc(PI / 2, 2 * PI)} fill="none" stroke={ARC_COLOR} strokeWidth={7} strokeLinecap="round" />
+                </motion.g>
+            )}
+            {/* Четверть (π/2) */}
+            {stage >= 2 && stage <= 4 && (
+                <>
+                    <path d={pieSector(0, PI / 2)} fill={hexToRgba(ARC_COLOR, stage >= 3 ? 0.22 : 0.12)} />
+                    <path d={pieArc(0, PI / 2)} fill="none" stroke={ARC_COLOR} strokeWidth={7} strokeLinecap="round" />
+                    {stage === 2 && <>{cut(0, 'c0')}{cut(PI / 2, 'c90')}</>}
+                </>
+            )}
+            {/* Режем четверть на 3 кусочка */}
+            {stage === 4 && <>{cut(PI / 6, 'c30')}{cut(PI / 3, 'c60', 0.4)}</>}
+            {/* Два верхних кусочка отбрасываем вверх */}
+            {stage === 5 && (
+                <motion.g initial={{ x: 0, y: 0, opacity: 1 }} animate={{ x: 50, y: -90, opacity: 0 }} transition={{ delay: 0.2, duration: 1, ease: [0.4, 0, 0.6, 1] }}>
+                    <path d={pieSector(PI / 6, PI / 2)} fill={hexToRgba(ARC_COLOR, 0.22)} stroke="#F2F7FB" strokeWidth={2} />
+                    <path d={pieArc(PI / 6, PI / 2)} fill="none" stroke={ARC_COLOR} strokeWidth={7} strokeLinecap="round" />
+                </motion.g>
+            )}
+            {/* Оставшийся кусочек — растягивается за верхний край */}
+            {stage >= 5 && (
+                <>
+                    <motion.path d={pieceFill} fill={hexToRgba(ARC_COLOR, 0.28)} />
+                    <motion.path d={pieceArc} fill="none" stroke={ARC_COLOR} strokeWidth={7} strokeLinecap="round" />
+                    <line x1={cx} y1={cy} x2={cx + r} y2={cy} stroke="#F2F7FB" strokeWidth={3} />
+                    <motion.line x1={cx} y1={cy} x2={pieceEdgeX} y2={pieceEdgeY} stroke="#F2F7FB" strokeWidth={3} />
+                    {stage >= 6 && (
+                        <motion.circle cx={pieceEdgeX} cy={pieceEdgeY} r={9} fill={PICK_COLOR} stroke="#F2F7FB" strokeWidth={2} />
+                    )}
+                </>
+            )}
+            {stage === 0 && big('π = 180°', cy - r / 2.4, 's0')}
+            {stage === 1 && big('2π = 360°', cy, 's1')}
             <circle cx={cx} cy={cy} r={4} fill="#F2F7FB" />
         </svg>
     )
@@ -806,12 +853,14 @@ const PiScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
     const [stage, setStage] = useState<PiStage>(0)
     const [rows, setRows] = useState(0)
-    // Картинка: полукруг → (пауза) круг → 4 части → π/6 → π/4 → π/3 → «Агась».
+    // Картинка: полукруг → круг → четверть → 3 кусочка → π/6 → π/4 → π/3 → «Агась».
+    const STAGE_MS: Record<number, number> = { 0: 2600, 1: 2400, 2: 2600, 3: 1800, 4: 1800, 5: 2400, 6: 2400 }
     useEffect(() => {
         if (phase !== 2) return
-        if (stage >= 6) { const t = setTimeout(() => setPhase(3), 1200); return () => clearTimeout(t) }
-        const t = setTimeout(() => setStage((st) => (st === 2 ? 4 : st + 1) as PiStage), stage === 0 ? 2600 : 2000)
+        if (stage >= 7) { const t = setTimeout(() => setPhase(3), 1800); return () => clearTimeout(t) }
+        const t = setTimeout(() => setStage((st) => (st + 1) as PiStage), STAGE_MS[stage])
         return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [phase, stage])
     useEffect(() => {
         if (phase < 4 || rows >= PI_TABLE.length) return
@@ -822,11 +871,16 @@ const PiScene = ({ onSettled }: SceneProps) => {
         if (rows >= PI_TABLE.length) { const t = setTimeout(() => onSettled?.(), 1000); return () => clearTimeout(t) }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [rows])
-    const caption =
-        stage === 0 ? null
-            : stage === 1 ? 'Дорисуем до круга — это 2π'
-                : stage === 2 ? 'Режем на 4 части — кусочек π/2 = 90°'
-                    : 'А ещё мельче: π/6, π/4, π/3'
+    const CAPTIONS: Record<number, React.ReactNode> = {
+        1: <span>Дорисуем до круга</span>,
+        2: <span>Отрежем кусочек, как торт 🍰</span>,
+        3: <span className="text-3xl" style={{ color: ARC_COLOR }}><Rad s="π/2" /> = 90°</span>,
+        4: <span>Режем на 3 кусочка ✂</span>,
+        5: <span className="text-3xl" style={{ color: ARC_COLOR }}><Rad s="π/6" /> = 30°</span>,
+        6: <span className="text-3xl" style={{ color: ARC_COLOR }}><Rad s="π/4" /> = 45°</span>,
+        7: <span className="text-3xl" style={{ color: ARC_COLOR }}><Rad s="π/3" /> = 60°</span>,
+    }
+    const caption = CAPTIONS[stage] ?? null
     return (
         <>
             <RememberBanner>π = 180°</RememberBanner>
@@ -835,8 +889,8 @@ const PiScene = ({ onSettled }: SceneProps) => {
                 <DiagramBlock onSettled={() => setPhase(2)}>
                     <div className="w-full flex flex-col items-center gap-2">
                         <PiCircle stage={stage} />
-                        <div className="h-8 flex items-center justify-center text-lg font-black text-[#F2F7FB]">
-                            {caption && <Pop key={caption}><span>{caption}</span></Pop>}
+                        <div className="h-14 flex items-center justify-center text-lg font-black text-[#F2F7FB]">
+                            {caption && <Pop key={`cap-${stage}`}>{caption}</Pop>}
                         </div>
                         {phase === 3 && <ActionButton color={PLUS_COLOR} onClick={() => setPhase(4)}>Агась 👌</ActionButton>}
                     </div>
