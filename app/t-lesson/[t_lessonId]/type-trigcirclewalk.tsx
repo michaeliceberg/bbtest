@@ -746,6 +746,8 @@ const pieArc = (a0: number, a1: number) => {
 }
 const PIECE_TARGET: Partial<Record<PiStage, number>> = { 5: PI / 6, 6: PI / 4, 7: PI / 3 }
 
+const PI_FADED = '#4A565D'
+
 const PiCircle = ({ stage }: { stage: PiStage }) => {
     const { x: cx, y: cy } = PI_C
     const r = PI_R
@@ -780,8 +782,10 @@ const PiCircle = ({ stage }: { stage: PiStage }) => {
                     {/* Полукруг */}
                     <motion.path d={`M ${cx + r} ${cy} A ${r} ${r} 0 0 0 ${cx - r} ${cy} L ${cx + r} ${cy} Z`} fill={hexToRgba(ARC_COLOR, stage === 0 ? 0.16 : 0)}
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} />
-                    <motion.path d={`M ${cx + r} ${cy} A ${r} ${r} 0 0 0 ${cx - r} ${cy}`} fill="none" stroke={ARC_COLOR} strokeWidth={7} strokeLinecap="round"
-                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.3, ease: 'easeInOut' }} />
+                    {/* Когда дорисовываем полный круг (2π), прежняя половина (π) сереет — не отвлекает. */}
+                    <motion.path d={`M ${cx + r} ${cy} A ${r} ${r} 0 0 0 ${cx - r} ${cy}`} fill="none" strokeWidth={7} strokeLinecap="round"
+                        initial={{ pathLength: 0, stroke: ARC_COLOR }} animate={{ pathLength: 1, stroke: stage === 1 ? PI_FADED : ARC_COLOR }}
+                        transition={{ pathLength: { duration: 1.3, ease: 'easeInOut' }, stroke: { duration: 0.6 } }} />
                 </>
             )}
             {/* Дорисовываем до полного круга */}
