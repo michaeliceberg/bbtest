@@ -27,6 +27,7 @@ import {
 import { COZY, COZY_ACCENT, COZY_PAGE_BG, type UiTheme } from '@/lib/cozyTheme'
 import LottieCoins from '@/public/Lottie/LottieCoins.json'
 import LottieGems from '@/public/Lottie/LottieGems.json'
+import LottieGG from '@/public/Lottie/LottieGG.json'
 
 // Те же самые lottie-анимации монет/гемов, что уже используются в шапке
 // (components/user-progress.tsx) и магазине — вместо голых эмодзи,
@@ -125,6 +126,7 @@ const RewardCell = ({ reward, highlighted, cozy }: { reward: CaseReward; highlig
                 прокрутке, и по прямой просьбе пользователя. */}
             {reward.kind === 'coins' && <Lottie animationData={LottieCoins} loop autoplay={!!highlighted} className="w-10 h-10" />}
             {reward.kind === 'gems' && <Lottie animationData={LottieGems} loop autoplay={!!highlighted} className="w-9 h-9" />}
+            {reward.kind === 'gg' && <Lottie animationData={LottieGG} loop autoplay={!!highlighted} className="w-10 h-10" />}
             {reward.kind === 'pizza' && <span className="text-3xl leading-none">{rewardEmoji(reward)}</span>}
             <span className="text-[11px] font-bold whitespace-nowrap" style={{ color: cozy ? (highlighted ? COZY.honey : COZY_CELL[reward.kind].text) : highlighted ? '#FFD460' : rarity.text }}>
                 {reward.kind === 'pizza' ? `x${reward.amount}` : `+${reward.amount}`}
@@ -581,6 +583,7 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                         <div className={"relative w-28 h-28 flex items-center justify-center " + (wonReward.kind === 'pizza' ? '' : '-ml-6 -mr-7')}>
                             {wonReward.kind === 'coins' && <Lottie animationData={LottieCoins} loop autoplay className="w-28 h-28" />}
                             {wonReward.kind === 'gems' && <Lottie animationData={LottieGems} loop autoplay className="w-24 h-24" />}
+                            {wonReward.kind === 'gg' && <Lottie animationData={LottieGG} loop autoplay className="w-24 h-24" />}
                             {wonReward.kind === 'pizza' && <span className="text-7xl leading-none">{rewardEmoji(wonReward)}</span>}
                         </div>
                         <span

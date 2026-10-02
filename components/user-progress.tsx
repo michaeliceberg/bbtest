@@ -3,10 +3,11 @@ import dynamic from 'next/dynamic';
 import { courses } from '@/db/schema';
 import Image from '@/node_modules/next/image';
 import Link from '@/node_modules/next/link';
-import { InfinityIcon, Sticker } from 'lucide-react';
+import { InfinityIcon } from 'lucide-react';
 import { Button } from './ui/button';
 import LottieCoins from '@/public/Lottie/LottieCoins.json'
 import LottieGems from '@/public/Lottie/LottieGems.json'
+import LottieGG from '@/public/Lottie/LottieGG.json'
 import { cn } from '@/lib/utils';
 import { getLevelInfo } from '@/lib/xp';
 
@@ -91,7 +92,7 @@ export const UserProgress = ({ activeCourse, hearts, points, gems, xp, ggSticker
 				объясняется (см. Props выше) — просто растущий счётчик,
 				чтобы вызывать вопрос "а зачем они" у самого ученика. */}
 			<div className={cn('flex items-center px-2 text-violet-400', ghostHover)} title="gg-стикеры">
-				<Sticker className='h-5 w-5 mr-2' />
+				<Lottie className="h-9 w-9 mr-1" animationData={ LottieGG } />
 				{ggStickers}
 			</div>
 
