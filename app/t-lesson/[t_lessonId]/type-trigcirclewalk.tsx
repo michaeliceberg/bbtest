@@ -302,21 +302,24 @@ type CanvasProps = {
     blinkDots?: boolean
     // Показ осей по одной с bounce (сцена-вступление).
     axisShow?: { cos: boolean; sin: boolean }
+    housePop?: boolean
 }
 const LABEL_STYLE = { fontFamily: 'var(--font-nunito), sans-serif', fontWeight: 900 } as const
 
 // Домик — стикер «Это мой дом» (лягушка под книгой) в точке окружности под углом a.
-const HOUSE_SIZE = 46
-const House = ({ a = 0, state = 'idle', onClick, bounce = false }: { a?: number; state?: 'idle' | 'wrong' | 'right'; onClick?: () => void; bounce?: boolean }) => {
+const HOUSE_SIZE = 36
+const House = ({ a = 0, state = 'idle', onClick, bounce = false, pop = false }: { a?: number; state?: 'idle' | 'wrong' | 'right'; onClick?: () => void; bounce?: boolean; pop?: boolean }) => {
     const { x, y } = pt(a)
     return (
         <g transform={`translate(${x} ${y})`} onClick={onClick} style={onClick ? { cursor: 'pointer' } : undefined}>
+            <motion.g initial={pop ? { scale: 0 } : false} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 8 }}>
             <g className={bounce ? 'animate-chest-idle-bounce' : undefined} style={{ transformBox: 'fill-box' }}>
                 {state !== 'idle' && <circle r={HOUSE_SIZE / 2 + 4} fill={hexToRgba(state === 'wrong' ? MINUS_COLOR : PLUS_COLOR, 0.3)} stroke={state === 'wrong' ? MINUS_COLOR : PLUS_COLOR} strokeWidth={3} />}
-                <image href={HOUSE_STICKER} x={-HOUSE_SIZE / 2} y={-HOUSE_SIZE / 2} width={HOUSE_SIZE} height={HOUSE_SIZE * 0.89} />
+                <image href={HOUSE_STICKER} x={-HOUSE_SIZE / 2} y={-HOUSE_SIZE / 2} width={HOUSE_SIZE} height={HOUSE_SIZE * 0.87} />
                 {/* Зона клика — прозрачный круг поверх картинки */}
                 {onClick && <circle r={HOUSE_SIZE / 2 + 6} fill="transparent" />}
             </g>
+            </motion.g>
         </g>
     )
 }
@@ -332,7 +335,7 @@ const UNIT_LABELS = [
 const CircleCanvas = ({
     axes = true, axisLabels = { cos: true, sin: true }, drawCircle = false, house = false,
     houses = [], onHousePick, arcs = [], segments = [], marks = [], units = 0, dots, hitDots = [], traveler = null,
-    onCirclePick, onAxisPick, axisFlash = null, glowValue = null, dirPick = null, blinkDots = false, axisShow,
+    onCirclePick, onAxisPick, axisFlash = null, glowValue = null, dirPick = null, blinkDots = false, axisShow, housePop = false,
 }: CanvasProps) => {
     const svgRef = useRef<SVGSVGElement>(null)
     const pick = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -516,7 +519,7 @@ const CircleCanvas = ({
                     <circle cx={C + R} cy={C} r={9} fill={ARC_COLOR} stroke="#F2F7FB" strokeWidth={2} />
                 </g>
             )}
-            {house && <House />}
+            {house && <House pop={housePop} />}
             {houses.map((h) => (
                 <House key={`hs-${h.a}`} a={h.a} state={h.state}
                     onClick={onHousePick ? () => onHousePick(h.a) : undefined} />
@@ -627,8 +630,8 @@ const HomeScene = ({ onSettled }: SceneProps) => {
         <>
             <TypedBig parts={[{ text: 'Все углы откладываются ' }, { text: 'СПРАВА', color: PLUS_COLOR }]} onDone={() => setPhase(1)} />
             {phase >= 1 && (
-                <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1200)}>
-                    <CircleCanvas house />
+                <DiagramBlock onSettled={() => setTimeout(() => { setPhase(2); setTimeout(() => onSettled?.(), 1200) }, 500)}>
+                    <CircleCanvas house={phase >= 2} housePop />
                 </DiagramBlock>
             )}
         </>
