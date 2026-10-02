@@ -12326,6 +12326,13 @@ cos/sin, ошибка — красным) → «режем окружность�
 sin(−π/2), клик sin = 1, cos 2π, бонус. Для локальной проверки урока dev-сервер нужен с большей памятью — конфиг
 `lingo-dev-bigmem` в .claude/launch.json (NODE_OPTIONS=--max-old-space-size=8192), иначе Next падает при компиляции t-lesson.
 
+## Облачко-мем после ответа (2026-10-02)
+`components/answer-meme-burst.tsx`: на странице один `<AnswerMemeLayer />`, в обработчике ответа `showAnswerMeme(isCorrect)`.
+Стикер из `public/answer-meme-wrong/N.webp` (39 шт.) или `public/answer-meme-right/N.webp` (21 шт.) вылетает из точки
+последнего касания (слушаем pointerdown на window), поднимается с bounce, мигает подсветкой (красной/зелёной), через 3 с
+исчезает. Неверно — всегда, верно — с шансом 20%. При добавлении файлов обновить `RIGHT_COUNT`/`WRONG_COUNT` (имена 1..N).
+Подключено пока только в уроке 490 (TRIGCIRCWALK). Тест: `/test-answer-meme`.
+
 ## FARADAYWALK (урок 484) стал интерактивным (2026-09-26)
 
 По просьбе пользователя («скучный, сделай как окружность»). ConceptPhase теперь — массив
