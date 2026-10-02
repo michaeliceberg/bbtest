@@ -2,11 +2,11 @@
 
 // components/answer-meme-burst.tsx
 //
-// Облачко-мем после ответа: вылетает из точки, куда нажал ученик, с bounce
-// поднимается вверх, пару раз мигает подсветкой (красной — неверно, зелёной —
-// верно) и через 3 секунды исчезает. Картинки — public/answer-meme-right/N.webp
+// Облачко-мем после ответа: появляется с bounce из точки, куда нажал ученик, и
+// сразу улетает вверх «как дым» — покачивается, уменьшается, мигает подсветкой
+// (красной — неверно, зелёной — верно) и за 3 секунды растворяется. Картинки — public/answer-meme-right/N.webp
 // и public/answer-meme-wrong/N.webp (стикеры 512×512).
-// На неверный ответ — всегда, на верный — с шансом 20%.
+// На неверный ответ — всегда, на верный — с шансом 33%.
 //
 // Использование: на странице один раз <AnswerMemeLayer />, дальше
 // showAnswerMeme(isCorrect) в обработчике ответа. Точку берём из последнего
@@ -18,7 +18,7 @@ import { motion } from 'framer-motion'
 
 const RIGHT_COUNT = 21
 const WRONG_COUNT = 39
-const RIGHT_CHANCE = 0.2
+const RIGHT_CHANCE = 0.33
 const SHOW_MS = 3000
 const SIZE = 132
 
@@ -52,37 +52,51 @@ export const showAnswerMeme = (correct: boolean, opts?: { force?: boolean; x?: n
 }
 
 const BurstView = ({ b, onDone }: { b: Burst; onDone: () => void }) => {
-    const [leaving, setLeaving] = useState(false)
     useEffect(() => {
-        const t1 = setTimeout(() => setLeaving(true), SHOW_MS)
-        const t2 = setTimeout(onDone, SHOW_MS + 450)
-        return () => { clearTimeout(t1); clearTimeout(t2) }
+        const t = setTimeout(onDone, SHOW_MS + 200)
+        return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
     const glow = b.correct ? RIGHT_GLOW : WRONG_GLOW
     // Не даём облачку уехать за край экрана.
     const vw = window.innerWidth
     const x = Math.min(Math.max(b.x, SIZE / 2 + 8), vw - SIZE / 2 - 8)
-    const y = Math.max(b.y, SIZE + 70)
+    const y = Math.max(b.y, SIZE + 40)
+    const sec = SHOW_MS / 1000
     return (
         <div className="pointer-events-none fixed z-[90]" style={{ left: x, top: y, width: 0, height: 0 }}>
+            {/* Полёт «как дым»: всё время поднимается вверх, покачивается,
+                уменьшается и в конце растворяется. */}
             <motion.div
                 className="absolute"
                 style={{ width: SIZE, height: SIZE, left: -SIZE / 2, top: -SIZE / 2 }}
-                initial={{ scale: 0, y: 0, opacity: 0 }}
-                animate={leaving ? { scale: 0.5, y: -110, opacity: 0 } : { scale: 1, y: -80, opacity: 1 }}
-                transition={leaving ? { duration: 0.4, ease: 'easeIn' } : { type: 'spring', stiffness: 260, damping: 13 }}
+                initial={{ y: 0, x: 0, scale: 1, opacity: 1 }}
+                animate={{ y: -260, x: [0, 12, -10, 8, -4], scale: 0.3, opacity: [1, 1, 1, 0] }}
+                transition={{
+                    y: { duration: sec, ease: [0.2, 0.6, 0.4, 1] },
+                    x: { duration: sec, ease: 'easeInOut' },
+                    scale: { duration: sec, ease: 'easeIn' },
+                    opacity: { duration: sec, times: [0, 0.5, 0.7, 1] },
+                }}
             >
-                {/* Подсветка: мигает пару раз */}
+                {/* Появление из точки — с bounce */}
                 <motion.div
-                    className="absolute inset-[-14%] rounded-full"
-                    style={{ background: `radial-gradient(circle, ${glow}AA 0%, ${glow}55 45%, transparent 70%)` }}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: [0, 1, 0.25, 1, 0.25, 0.7] }}
-                    transition={{ duration: 1.4, times: [0, 0.15, 0.35, 0.55, 0.75, 1] }}
-                />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={b.src} alt="" className="relative w-full h-full object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)]" draggable={false} />
+                    className="relative w-full h-full"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 12 }}
+                >
+                    {/* Подсветка: мигает пару раз */}
+                    <motion.div
+                        className="absolute inset-[-14%] rounded-full"
+                        style={{ background: `radial-gradient(circle, ${glow}AA 0%, ${glow}55 45%, transparent 70%)` }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: [0, 1, 0.25, 1, 0.25, 0.6] }}
+                        transition={{ duration: 1.4, times: [0, 0.15, 0.35, 0.55, 0.75, 1] }}
+                    />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={b.src} alt="" className="relative w-full h-full object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)]" draggable={false} />
+                </motion.div>
             </motion.div>
         </div>
     )

@@ -16,7 +16,7 @@ export default function TestAnswerMemePage() {
 				<button className={btn + ' bg-[#DC605B22] border-[#DC605B] text-[#DC605B]'} onClick={() => showAnswerMeme(false)}>❌ Неверно</button>
 				<button className={btn + ' bg-[#A1D15122] border-[#A1D151] text-[#A1D151]'} onClick={() => showAnswerMeme(true, { force: true })}>✅ Верно (всегда)</button>
 			</div>
-			<button className={btn + ' bg-[#232F34] border-[#3A464E] text-[#D5DEE5]'} onClick={() => showAnswerMeme(true)}>✅ Верно как в уроке (шанс 20%)</button>
+			<button className={btn + ' bg-[#232F34] border-[#3A464E] text-[#D5DEE5]'} onClick={() => showAnswerMeme(true)}>✅ Верно как в уроке (шанс 33%)</button>
 			<div className="grid grid-cols-3 gap-3 w-full max-w-md mt-8">
 				{Array.from({ length: 6 }, (_, i) => (
 					<button key={i} className={btn + ' bg-[#161F23] border-[#3A464E] text-[#9AA7B0]'} onClick={() => showAnswerMeme(i % 2 === 0, { force: true })}>

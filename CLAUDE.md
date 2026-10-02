@@ -12330,7 +12330,7 @@ sin(−π/2), клик sin = 1, cos 2π, бонус. Для локальной �
 `components/answer-meme-burst.tsx`: на странице один `<AnswerMemeLayer />`, в обработчике ответа `showAnswerMeme(isCorrect)`.
 Стикер из `public/answer-meme-wrong/N.webp` (39 шт.) или `public/answer-meme-right/N.webp` (21 шт.) вылетает из точки
 последнего касания (слушаем pointerdown на window), поднимается с bounce, мигает подсветкой (красной/зелёной), через 3 с
-исчезает. Неверно — всегда, верно — с шансом 20%. При добавлении файлов обновить `RIGHT_COUNT`/`WRONG_COUNT` (имена 1..N).
+исчезает. Неверно — всегда, верно — с шансом 33%. При добавлении файлов обновить `RIGHT_COUNT`/`WRONG_COUNT` (имена 1..N).
 Подключено пока только в уроке 490 (TRIGCIRCWALK). Тест: `/test-answer-meme`.
 
 ## FARADAYWALK (урок 484) стал интерактивным (2026-09-26)
