@@ -35,6 +35,7 @@ import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
+import houseLottie from '@/public/Lottie/stepByStep/house.json'
 
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 
@@ -58,8 +59,7 @@ const PI = Math.PI
 const TEXT = 'w-full text-base md:text-lg text-[#F2F7FB]'
 
 const VIDEO_MOONWALK = '/video/mj-moonwalk.mp4'
-const FROG_HOUSE = '/lesson-pics/frog-house.webp'
-const POINTER_STICKER = '/lesson-pics/zhirinovsky-point.webp'
+const POINTER_STICKER = '/lesson-pics/dicaprio-point.webp'
 
 // Вместо «Дальше» — всегда смешное слово (просьба пользователя). Колода без
 // повторов: пока не выпадут все фразы, ни одна не повторится. «ГААААЗ» — редкая
@@ -299,8 +299,9 @@ type CanvasProps = {
     onAxisPick?: (axis: Axis) => void
     axisFlash?: { axis: Axis; color: string } | null
     glowValue?: { axis: Axis; v: 1 | -1 } | null
-    dirPick?: { onPick: (d: 'up' | 'down') => void; wrong: 'up' | 'down' | null } | null
+    dirPick?: { onPick?: (d: 'up' | 'down') => void; wrong: 'up' | 'down' | null; done: ('up' | 'down')[] } | null
     blinkDots?: boolean
+    wide?: boolean
 }
 const LABEL_STYLE = { fontFamily: 'var(--font-nunito), sans-serif', fontWeight: 900 } as const
 
@@ -312,7 +313,9 @@ const House = ({ a = 0, state = 'idle', onClick, bounce = false }: { a?: number;
         <g transform={`translate(${x} ${y})`} onClick={onClick} style={onClick ? { cursor: 'pointer' } : undefined}>
             <g className={bounce ? 'animate-chest-idle-bounce' : undefined} style={{ transformBox: 'fill-box' }}>
                 {state !== 'idle' && <circle r={HOUSE_SIZE / 2 + 4} fill={hexToRgba(state === 'wrong' ? MINUS_COLOR : PLUS_COLOR, 0.3)} stroke={state === 'wrong' ? MINUS_COLOR : PLUS_COLOR} strokeWidth={3} />}
-                <image href={FROG_HOUSE} x={-HOUSE_SIZE / 2} y={-HOUSE_SIZE / 2} width={HOUSE_SIZE} height={HOUSE_SIZE} />
+                <foreignObject x={-HOUSE_SIZE / 2} y={-HOUSE_SIZE / 2} width={HOUSE_SIZE} height={HOUSE_SIZE} style={{ pointerEvents: 'none' }}>
+                    <Lottie animationData={houseLottie} loop={false} autoplay className="w-full h-full" />
+                </foreignObject>
             </g>
         </g>
     )
@@ -329,7 +332,7 @@ const UNIT_LABELS = [
 const CircleCanvas = ({
     axes = true, axisLabels = { cos: true, sin: true }, drawCircle = false, house = false, bigArrow = false,
     houses = [], onHousePick, arcs = [], segments = [], marks = [], units = 0, dots, hitDots = [], traveler = null,
-    onCirclePick, onAxisPick, axisFlash = null, glowValue = null, dirPick = null, blinkDots = false,
+    onCirclePick, onAxisPick, axisFlash = null, glowValue = null, dirPick = null, blinkDots = false, wide = false,
 }: CanvasProps) => {
     const svgRef = useRef<SVGSVGElement>(null)
     const pick = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -349,19 +352,22 @@ const CircleCanvas = ({
     const hit = (a: Axis) => (onAxisPick ? { onClick: () => onAxisPick(a), style: { cursor: 'pointer' } } : {})
     const dotList = dots === 'all' ? STD_ANGLES.map((_, i) => i) : dots === 'quarters' ? QUARTER_IDX : []
     return (
-        <svg ref={svgRef} viewBox="0 0 300 300" className={cn('w-full max-w-[360px] h-auto mx-auto block select-none overflow-visible', onCirclePick && 'cursor-pointer')} onPointerDown={pick}>
+        <svg ref={svgRef} viewBox={wide ? '-90 0 480 300' : '0 0 300 300'} className={cn('w-full max-w-[360px] h-auto mx-auto block select-none overflow-visible', onCirclePick && 'cursor-pointer')} onPointerDown={pick}>
             {arcs.map((arc) => (
                 <motion.path key={`s-${arc.key}`} d={`M ${C} ${C} L ${pt(0).x} ${pt(0).y} ${arcPath(arc.to).replace(/^M [^A]+/, '')} Z`}
                     fill={hexToRgba(arc.color, 0.14)} initial={{ opacity: 0 }} animate={{ opacity: Math.abs(arc.to) < 2 * PI - 1e-6 ? 1 : 0.6 }} transition={{ duration: 0.6, delay: 0.5 }} />
             ))}
-            <motion.circle cx={C} cy={C} r={R} fill="none" stroke="#F2F7FB" strokeWidth={3}
+            {/* Путь идёт от точки справа ПРОТИВ часовой — так и рисуется */}
+            <motion.path d={arcPath(2 * PI)} fill="none" stroke="#F2F7FB" strokeWidth={3}
                 initial={drawCircle ? { pathLength: 0 } : false} animate={{ pathLength: 1 }} transition={{ duration: 1.2, ease: 'easeInOut' }} />
             {axes && (
                 <>
                     {axisFlash && (
-                        axisFlash.axis === 'cos'
-                            ? <line x1={C - AX} y1={C} x2={C + AX} y2={C} stroke={hexToRgba(axisFlash.color, 0.35)} strokeWidth={14} strokeLinecap="round" />
-                            : <line x1={C} y1={C + AX} x2={C} y2={C - AX} stroke={hexToRgba(axisFlash.color, 0.35)} strokeWidth={14} strokeLinecap="round" />
+                        <motion.line key={`fl-${axisFlash.axis}-${axisFlash.color}`}
+                            x1={axisFlash.axis === 'cos' ? C - AX : C} y1={axisFlash.axis === 'cos' ? C : C + AX}
+                            x2={axisFlash.axis === 'cos' ? C + AX : C} y2={axisFlash.axis === 'cos' ? C : C - AX}
+                            stroke={hexToRgba(axisFlash.color, 0.45)} strokeLinecap="round"
+                            initial={{ strokeWidth: 2 }} animate={{ strokeWidth: 16 }} transition={{ type: 'spring', stiffness: 380, damping: 9 }} />
                     )}
                     <line x1={C - AX} y1={C} x2={C + AX - 4} y2={C} stroke={axisColor('cos')} strokeWidth={3} />
                     <Arrowhead x={C + AX + 4} y={C} dx={1} dy={0} color={axisColor('cos')} size={12} />
@@ -433,15 +439,27 @@ const CircleCanvas = ({
             ))}
             {dirPick && (['up', 'down'] as const).map((d) => {
                 const to = d === 'up' ? PI / 4 : -PI / 4
-                const color = dirPick.wrong === d ? MINUS_COLOR : PICK_COLOR
+                const isDone = dirPick.done.includes(d)
+                const color = isDone ? (d === 'up' ? PLUS_COLOR : MINUS_COLOR) : dirPick.wrong === d ? MINUS_COLOR : PICK_COLOR
                 const tip = pt(to)
                 const dir = tangentDir(to)
+                const sp = pt(to / 2, R + 32)
+                const clickable = !isDone && !!dirPick.onPick
                 return (
-                    <g key={`dp-${d}`} onClick={() => dirPick.onPick(d)} style={{ cursor: 'pointer' }} className={dirPick.wrong === d ? undefined : 'animate-pulse'}>
+                    <motion.g key={`dp-${d}-${isDone}`} onClick={clickable ? () => dirPick.onPick?.(d) : undefined}
+                        style={clickable ? { cursor: 'pointer' } : undefined}
+                        className={clickable && dirPick.wrong !== d ? 'animate-pulse' : undefined}
+                        initial={isDone ? { scale: 1.4 } : false} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 8 }}>
                         <path d={arcPath(to)} fill="none" stroke="transparent" strokeWidth={34} />
-                        <path d={arcPath(to)} fill="none" stroke={color} strokeWidth={8} strokeLinecap="round" />
-                        <Arrowhead x={tip.x + dir.dx * 8} y={tip.y + dir.dy * 8} {...dir} color={color} size={18} />
-                    </g>
+                        <path d={arcPath(to)} fill="none" stroke={color} strokeWidth={isDone ? 10 : 8} strokeLinecap="round" />
+                        <Arrowhead x={tip.x + dir.dx * 8} y={tip.y + dir.dy * 8} {...dir} color={color} size={isDone ? 20 : 18} />
+                        {isDone && (
+                            <g transform={`translate(${sp.x} ${sp.y})`}>
+                                <circle r={17} fill={hexToRgba(color, 0.25)} stroke={color} strokeWidth={2.5} />
+                                <text textAnchor="middle" dominantBaseline="central" fontSize={28} fill={color} style={LABEL_STYLE}>{d === 'up' ? '+' : '−'}</text>
+                            </g>
+                        )}
+                    </motion.g>
                 )
             })}
             {hitDots.map((h) => (
@@ -475,7 +493,8 @@ const CircleCanvas = ({
             ))}
             {bigArrow && (
                 // Просто стикер: Жириновский сверху справа, рукой на домик.
-                <image href={POINTER_STICKER} x={C + 72} y={C - 100} width={78} height={73} />
+                <motion.image href={POINTER_STICKER} x={C + R + 18} y={C - 38} width={130} height={96}
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }} />
             )}
             <circle cx={C} cy={C} r={4} fill="#F2F7FB" />
         </svg>
@@ -513,7 +532,7 @@ const IntroScene = ({ onSettled }: SceneProps) => {
 // 2. Игра: укажи ось (2 раунда, после верного — похвала).
 const AXIS_ROUNDS: Axis[] = ['sin', 'cos']
 const AxisGameScene = ({ onSettled }: SceneProps) => {
-    const [ready, setReady] = useState(false)
+    const ready = true
     const [round, setRound] = useState(0)
     const [wrong, setWrong] = useFlash<Axis>()
     const [right, setRight] = useState<Axis | null>(null)
@@ -538,7 +557,6 @@ const AxisGameScene = ({ onSettled }: SceneProps) => {
     }
     return (
         <>
-            <TypedBig parts={[{ text: 'Проверим! Кликай по оси 👆' }]} onDone={() => setReady(true)} readMs={200} />
             {ready && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col items-center gap-2">
@@ -553,7 +571,7 @@ const AxisGameScene = ({ onSettled }: SceneProps) => {
                         </div>
                         <CircleCanvas
                             axisLabels={{ cos: done, sin: done }}
-                            axisFlash={right ? { axis: right, color: PLUS_COLOR } : wrong ? { axis: wrong, color: MINUS_COLOR } : null}
+                            axisFlash={right ? { axis: right, color: right === 'cos' ? COS_COLOR : SIN_COLOR } : wrong ? { axis: wrong, color: MINUS_COLOR } : null}
                             onAxisPick={done ? undefined : pick}
                         />
                         <div className="h-9 flex items-center justify-center text-xl font-black">
@@ -578,11 +596,10 @@ const HomeScene = ({ onSettled }: SceneProps) => {
         <>
             <TypedBig parts={[{ text: 'Все углы откладываются ' }, { text: 'СПРАВА', color: PLUS_COLOR }]} onDone={() => setPhase(1)} />
             {phase >= 1 && (
-                <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 1400)}>
-                    <CircleCanvas bigArrow house={phase >= 2} />
+                <DiagramBlock onSettled={() => setTimeout(() => { setPhase(2); setTimeout(() => onSettled?.(), 1500) }, 1200)}>
+                    <CircleCanvas wide house bigArrow={phase >= 2} />
                 </DiagramBlock>
             )}
-            {phase >= 2 && <TypedLine className={TEXT} text="Вот здесь их ДОМИК 🏠 Отсюда стартует любой угол." onSettled={onSettled} />}
         </>
     )
 }
@@ -646,11 +663,7 @@ const DirQuizScene = ({ onSettled }: SceneProps) => {
                         <CircleCanvas
                             houses={(step > 0 ? [0] : HOUSE_ANGLES).map((a) => ({ a, state: wrongHouse === a ? 'wrong' : step > 0 ? 'right' : 'idle' }))}
                             onHousePick={step === 0 ? pickHouse : undefined}
-                            dirPick={step === 1 || step === 2 ? { onPick: pickDir, wrong: wrongDir } : null}
-                            arcs={[
-                                ...(step >= 3 ? [{ to: PI / 4, color: PLUS_COLOR, key: 'q-up', sign: '+' as const }] : []),
-                                ...(step >= 3 ? [{ to: -PI / 4, color: MINUS_COLOR, key: 'q-down', sign: '−' as const }] : []),
-                            ]}
+                            dirPick={step >= 1 ? { onPick: step < 3 ? pickDir : undefined, wrong: wrongDir, done: step >= 3 ? ['up', 'down'] : step >= 2 ? ['up'] : [] } : null}
                         />
                         <div className="h-7 text-sm font-bold text-[#DC605B]">
                             {wrongHouse !== null && 'Это не он! Домик всегда СПРАВА 🏠'}
