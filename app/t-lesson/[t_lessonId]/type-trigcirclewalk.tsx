@@ -60,6 +60,7 @@ const TEXT = 'w-full text-base md:text-lg text-[#F2F7FB]'
 
 const VIDEO_MOONWALK = '/video/mj-moonwalk.mp4'
 const HOUSE_STICKER = '/lesson-pics/house-sticker.webp'
+const WALKER_STICKER = '/lesson-pics/dicaprio-walk.webp'
 
 // Вместо «Дальше» — всегда смешное слово (просьба пользователя). Колода без
 // повторов: пока не выпадут все фразы, ни одна не повторится. «ГААААЗ» — редкая
@@ -276,7 +277,8 @@ const nearestQuarter = (a: number) => {
     return best
 }
 
-type Mark = { key: string; a: number; label: string; color: string }
+// boxed — подпись стикером, сдвинута по окружности, чтобы не лечь на ось.
+type Mark = { key: string; a: number; label: string; color: string; boxed?: boolean }
 type Axis = 'cos' | 'sin'
 type ArcSpec = { to: number; color: string; key: string; sign?: '+' | '−' }
 
@@ -285,7 +287,7 @@ type CanvasProps = {
     axisLabels?: { cos?: boolean; sin?: boolean }
     drawCircle?: boolean
     house?: boolean
-    houses?: { a: number; state: 'idle' | 'wrong' | 'right' }[]
+    houses?: { a: number; state: 'idle' | 'wrong' | 'right'; popDelay?: number }[]
     onHousePick?: (a: number) => void
     arcs?: ArcSpec[]
     segments?: { a0: number; a1: number; r?: number; key: string; color?: string }[]
@@ -303,16 +305,17 @@ type CanvasProps = {
     // Показ осей по одной с bounce (сцена-вступление).
     axisShow?: { cos: boolean; sin: boolean }
     housePop?: boolean
+    walker?: number | null
 }
 const LABEL_STYLE = { fontFamily: 'var(--font-nunito), sans-serif', fontWeight: 900 } as const
 
 // Домик — стикер «Это мой дом» (лягушка под книгой) в точке окружности под углом a.
 const HOUSE_SIZE = 36
-const House = ({ a = 0, state = 'idle', onClick, bounce = false, pop = false }: { a?: number; state?: 'idle' | 'wrong' | 'right'; onClick?: () => void; bounce?: boolean; pop?: boolean }) => {
+const House = ({ a = 0, state = 'idle', onClick, bounce = false, pop = false, popDelay = 0 }: { a?: number; state?: 'idle' | 'wrong' | 'right'; onClick?: () => void; bounce?: boolean; pop?: boolean; popDelay?: number }) => {
     const { x, y } = pt(a)
     return (
         <g transform={`translate(${x} ${y})`} onClick={onClick} style={onClick ? { cursor: 'pointer' } : undefined}>
-            <motion.g initial={pop ? { scale: 0 } : false} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 8 }}>
+            <motion.g initial={pop ? { scale: 0 } : false} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 8, delay: popDelay }}>
             <g className={bounce ? 'animate-chest-idle-bounce' : undefined} style={{ transformBox: 'fill-box' }}>
                 {state !== 'idle' && <circle r={HOUSE_SIZE / 2 + 4} fill={hexToRgba(state === 'wrong' ? MINUS_COLOR : PLUS_COLOR, 0.3)} stroke={state === 'wrong' ? MINUS_COLOR : PLUS_COLOR} strokeWidth={3} />}
                 <image href={HOUSE_STICKER} x={-HOUSE_SIZE / 2} y={-HOUSE_SIZE / 2} width={HOUSE_SIZE} height={HOUSE_SIZE * 0.87} />
@@ -335,13 +338,13 @@ const UNIT_LABELS = [
 const CircleCanvas = ({
     axes = true, axisLabels = { cos: true, sin: true }, drawCircle = false, house = false,
     houses = [], onHousePick, arcs = [], segments = [], marks = [], units = 0, dots, hitDots = [], traveler = null,
-    onCirclePick, onAxisPick, axisFlash = null, glowValue = null, dirPick = null, blinkDots = false, axisShow, housePop = false,
+    onCirclePick, onAxisPick, axisFlash = null, glowValue = null, dirPick = null, blinkDots = false, axisShow, housePop = false, walker = null,
 }: CanvasProps) => {
     const svgRef = useRef<SVGSVGElement>(null)
     const pick = (e: React.PointerEvent<SVGSVGElement>) => {
         if (!onCirclePick || !svgRef.current) return
         const r = svgRef.current.getBoundingClientRect()
-        const x = ((e.clientX - r.left) / r.width) * 300
+        const x = ((e.clientX - r.left) / r.width) * 360 - 30
         const y = ((e.clientY - r.top) / r.height) * 300
         if (Math.hypot(x - C, y - C) < 30) return
         const a = Math.atan2(C - y, x - C)
@@ -355,7 +358,7 @@ const CircleCanvas = ({
     const hit = (a: Axis) => (onAxisPick ? { onClick: () => onAxisPick(a), style: { cursor: 'pointer' } } : {})
     const dotList = dots === 'all' ? STD_ANGLES.map((_, i) => i) : dots === 'quarters' ? QUARTER_IDX : []
     return (
-        <svg ref={svgRef} viewBox="0 0 300 300" className={cn('w-full max-w-[360px] h-auto mx-auto block select-none overflow-visible', onCirclePick && 'cursor-pointer')} onPointerDown={pick}>
+        <svg ref={svgRef} viewBox="-30 0 360 300" className={cn('w-full max-w-[360px] h-auto mx-auto block select-none overflow-visible', onCirclePick && 'cursor-pointer')} onPointerDown={pick}>
             {arcs.map((arc) => (
                 <motion.path key={`s-${arc.key}`} d={`M ${C} ${C} L ${pt(0).x} ${pt(0).y} ${arcPath(arc.to).replace(/^M [^A]+/, '')} Z`}
                     fill={hexToRgba(arc.color, 0.14)} initial={{ opacity: 0 }} animate={{ opacity: Math.abs(arc.to) < 2 * PI - 1e-6 ? 1 : 0.6 }} transition={{ duration: 0.6, delay: 0.5 }} />
@@ -401,9 +404,9 @@ const CircleCanvas = ({
                         )
                     })}
                     {axisLabels.cos && (!axisShow || axisShow.cos) && (
-                        <g transform={`translate(${C + AX - 4} ${C + 34})`}>
+                        <g transform={`translate(${C + AX + 12} ${C})`}>
                             <motion.g key="lc" initial={axisShow ? { scale: 0 } : { opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 8 }}>
-                                <text textAnchor="middle" dominantBaseline="central" fontSize={axisShow ? 26 : 22} fill={axisColor('cos')} style={LABEL_STYLE}>cos</text>
+                                <text textAnchor="start" dominantBaseline="central" fontSize={axisShow ? 26 : 22} fill={axisColor('cos')} style={LABEL_STYLE}>cos</text>
                             </motion.g>
                         </g>
                     )}
@@ -501,13 +504,15 @@ const CircleCanvas = ({
             ))}
             {marks.map((m) => {
                 const p = pt(m.a)
-                const l = pt(m.a, LABEL_R)
+                const l = m.boxed ? pt(m.a + 0.42, R + 22) : pt(m.a, LABEL_R)
+                const w = m.label.length * 11 + 14
                 return (
                     <g key={m.key}>
-                        <motion.circle fill={m.color} initial={{ r: 0, cx: p.x, cy: p.y }} animate={{ r: 6, cx: p.x, cy: p.y }} transition={{ type: 'spring', bounce: 0.5, duration: 0.9 }} />
+                        <motion.circle fill={m.color} initial={{ r: 0, cx: p.x, cy: p.y }} animate={{ r: m.boxed ? 9 : 6, cx: p.x, cy: p.y }} transition={{ type: 'spring', bounce: 0.5, duration: 0.9 }} />
                         <g transform={`translate(${l.x} ${l.y})`}>
                             <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.6, delay: 0.2 }}>
-                                <text textAnchor="middle" dominantBaseline="central" fontSize={20} fill={m.color} style={LABEL_STYLE}>{m.label}</text>
+                                {m.boxed && <rect x={-w / 2} y={-14} width={w} height={28} rx={8} fill={hexToRgba(m.color, 0.2)} stroke={m.color} strokeWidth={2} />}
+                                <text textAnchor="middle" dominantBaseline="central" fontSize={m.boxed ? 17 : 20} fill={m.color} style={LABEL_STYLE}>{m.label}</text>
                             </motion.g>
                         </g>
                     </g>
@@ -520,8 +525,9 @@ const CircleCanvas = ({
                 </g>
             )}
             {house && <House pop={housePop} />}
+            {walker !== null && <Walker angle={walker} />}
             {houses.map((h) => (
-                <House key={`hs-${h.a}`} a={h.a} state={h.state}
+                <House key={`hs-${h.a}`} a={h.a} state={h.state} pop={h.popDelay !== undefined} popDelay={h.popDelay}
                     onClick={onHousePick ? () => onHousePick(h.a) : undefined} />
             ))}
             <circle cx={C} cy={C} r={4} fill="#F2F7FB" />
@@ -670,6 +676,10 @@ const DirQuizScene = ({ onSettled }: SceneProps) => {
     const [step, setStep] = useState(0) // 0 домик, 1 плюс, 2 минус, 3 готово
     const [wrongHouse, setWrongHouse] = useFlash<number>()
     const [wrongDir, setWrongDir] = useFlash<'up' | 'down'>()
+    const [houseDelays] = useState(() => {
+        const order = shuffle([0, 1, 2, 3])
+        return HOUSE_ANGLES.map((_, i) => 0.15 + order.indexOf(i) * 0.35)
+    })
     const pickHouse = (a: number) => {
         if (step !== 0) return
         if (a === 0) { showAnswerMeme(true); setStep(1) }
@@ -696,7 +706,7 @@ const DirQuizScene = ({ onSettled }: SceneProps) => {
                             {step >= 3 && <span className="text-[#A1D151]">Красава! Домик справа, плюс вверх, минус вниз 🏠</span>}
                         </p>
                         <CircleCanvas
-                            houses={(step > 0 ? [0] : HOUSE_ANGLES).map((a) => ({ a, state: wrongHouse === a ? 'wrong' : step > 0 ? 'right' : 'idle' }))}
+                            houses={(step > 0 ? [0] : HOUSE_ANGLES).map((a, i) => ({ a, state: wrongHouse === a ? 'wrong' : step > 0 ? 'right' : 'idle', popDelay: step > 0 ? undefined : houseDelays[i] }))}
                             onHousePick={step === 0 ? pickHouse : undefined}
                             dirPick={step >= 1 ? { onPick: step < 3 ? pickDir : undefined, wrong: wrongDir, done: step >= 3 ? ['up', 'down'] : step >= 2 ? ['up'] : [] } : null}
                         />
@@ -854,14 +864,23 @@ const PiScene = ({ onSettled }: SceneProps) => {
     const [stage, setStage] = useState<PiStage>(0)
     const [rows, setRows] = useState(0)
     // Картинка: полукруг → круг → четверть → 3 кусочка → π/6 → π/4 → π/3 → «Агась».
-    const STAGE_MS: Record<number, number> = { 0: 2600, 1: 2400, 2: 2600, 3: 1800, 4: 1800, 5: 2400, 6: 2400 }
+    // Каждый шаг — по кнопке («Агась» и т.п.), чтобы ученик успел рассмотреть угол.
+    // Кнопка появляется, когда анимация шага доиграла.
+    const STAGE_MS: Record<number, number> = { 0: 1800, 1: 1600, 2: 2200, 3: 900, 4: 1200, 5: 1400, 6: 1500, 7: 1500 }
+    const [stageReady, setStageReady] = useState(false)
+    const [stageLabel, setStageLabel] = useState('Агась')
     useEffect(() => {
         if (phase !== 2) return
-        if (stage >= 7) { const t = setTimeout(() => setPhase(3), 1800); return () => clearTimeout(t) }
-        const t = setTimeout(() => setStage((st) => (st + 1) as PiStage), STAGE_MS[stage])
+        setStageReady(false)
+        const t = setTimeout(() => { setStageLabel(pickFun()); setStageReady(true) }, STAGE_MS[stage])
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [phase, stage])
+    const nextStage = () => {
+        setStageReady(false)
+        if (stage >= 7) setPhase(4)
+        else setStage((st) => (st + 1) as PiStage)
+    }
     useEffect(() => {
         if (phase < 4 || rows >= PI_TABLE.length) return
         const t = setTimeout(() => setRows((n) => n + 1), rows === 0 ? 300 : 1000)
@@ -874,11 +893,11 @@ const PiScene = ({ onSettled }: SceneProps) => {
     const CAPTIONS: Record<number, React.ReactNode> = {
         1: <span>Дорисуем до круга</span>,
         2: <span>Отрежем кусочек, как торт 🍰</span>,
-        3: <span className="text-3xl" style={{ color: ARC_COLOR }}><Rad s="π/2" /> = 90°</span>,
+        3: <span className="inline-flex items-center gap-2 text-3xl" style={{ color: ARC_COLOR }}><Rad s="π/2" /><span>= 90°</span></span>,
         4: <span>Режем на 3 кусочка ✂</span>,
-        5: <span className="text-3xl" style={{ color: ARC_COLOR }}><Rad s="π/6" /> = 30°</span>,
-        6: <span className="text-3xl" style={{ color: ARC_COLOR }}><Rad s="π/4" /> = 45°</span>,
-        7: <span className="text-3xl" style={{ color: ARC_COLOR }}><Rad s="π/3" /> = 60°</span>,
+        5: <span className="inline-flex items-center gap-2 text-3xl" style={{ color: ARC_COLOR }}><Rad s="π/6" /><span>= 30°</span></span>,
+        6: <span className="inline-flex items-center gap-2 text-3xl" style={{ color: ARC_COLOR }}><Rad s="π/4" /><span>= 45°</span></span>,
+        7: <span className="inline-flex items-center gap-2 text-3xl" style={{ color: ARC_COLOR }}><Rad s="π/3" /><span>= 60°</span></span>,
     }
     const caption = CAPTIONS[stage] ?? null
     return (
@@ -892,7 +911,9 @@ const PiScene = ({ onSettled }: SceneProps) => {
                         <div className="h-14 flex items-center justify-center text-lg font-black text-[#F2F7FB]">
                             {caption && <Pop key={`cap-${stage}`}>{caption}</Pop>}
                         </div>
-                        {phase === 3 && <ActionButton color={PLUS_COLOR} onClick={() => setPhase(4)}>Агась 👌</ActionButton>}
+                        <div className="h-14 flex items-center">
+                            {phase === 2 && stageReady && <ActionButton color={PLUS_COLOR} onClick={nextStage}>{stageLabel}</ActionButton>}
+                        </div>
                     </div>
                 </DiagramBlock>
             )}
@@ -934,7 +955,7 @@ const FindGameScene = ({ onSettled }: SceneProps) => {
     const [hint, setHint] = useState<string | null>(null)
     const done = round >= FIND_ROUNDS.length
     const cur = done ? null : FIND_ROUNDS[round]
-    const placed: Mark[] = FIND_ROUNDS.slice(0, round).map((r) => ({ key: r.label, a: r.a, label: r.label, color: PLUS_COLOR }))
+    const placed: Mark[] = FIND_ROUNDS.slice(0, round).map((r) => ({ key: r.label, a: r.a, label: r.label, color: PLUS_COLOR, boxed: true }))
     const onPick = (idx: number) => {
         if (!cur) return
         if (idx === nearestStd(cur.a)) {
@@ -976,20 +997,35 @@ const FindGameScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-// 8. Шаги: 3π/2 вверх, −5π/2 вниз.
-const StepWalk = ({ count, dir, labels, onDone }: { count: number; dir: 1 | -1; labels: string[]; onDone: () => void }) => {
+// 8. Шаги: 3π/2 вверх, −5π/2 вниз. По окружности шагает стикер ДиКаприо.
+const WALKER_W = 30
+const WALKER_H = 70
+const WALKER_R = R + 26
+// Идущий человечек: едет по дуге (угол анимируется), сам стоит вертикально.
+const Walker = ({ angle }: { angle: number }) => {
+    const ang = useMotionValue(0)
+    useEffect(() => {
+        const ctrl = animate(ang, angle, { duration: 0.9, ease: [0.45, 0, 0.55, 1] })
+        return () => ctrl.stop()
+    }, [angle, ang])
+    const x = useTransform(ang, (a) => C + WALKER_R * Math.cos(a) - WALKER_W / 2)
+    const y = useTransform(ang, (a) => C - WALKER_R * Math.sin(a) - WALKER_H / 2)
+    return <motion.image href={WALKER_STICKER} x={x} y={y} width={WALKER_W} height={WALKER_H} />
+}
+
+const StepWalk = ({ count, dir, onDone }: { count: number; dir: 1 | -1; onDone: () => void }) => {
     const [steps, setSteps] = useState(0)
     const done = steps >= count
     useEffect(() => {
         if (!done) return
-        const t = setTimeout(onDone, 1200)
+        const t = setTimeout(onDone, 1400)
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [done])
     const color = dir > 0 ? PLUS_COLOR : MINUS_COLOR
     const segments = Array.from({ length: steps }, (_, j) => {
         const k = j + 1
-        const r = k > 4 ? R + 12 : R
+        const r = k > 4 ? R + 10 : R
         if (dir > 0) {
             const a0 = ((k - 1) % 4) * (PI / 2)
             return { a0, a1: a0 + PI / 2, r, key: `p${k}`, color }
@@ -999,11 +1035,21 @@ const StepWalk = ({ count, dir, labels, onDone }: { count: number; dir: 1 | -1; 
     })
     return (
         <div className="w-full flex flex-col items-center gap-3">
-            <div className="h-12 flex items-center justify-center text-2xl font-black" style={{ color }}>
-                {steps > 0 ? <Pop key={steps}><span>Шаг {steps}: <Rad s={labels[steps - 1]} /></span></Pop> : <span className="text-base text-[#9AA7B0] font-bold">Жми «Шаг» — идём по π/2</span>}
+            {/* Крупно: «2 · π/2» — цифра шагов с bounce */}
+            <div className="h-16 flex items-center justify-center gap-2 text-4xl font-black" style={{ color }}>
+                {steps > 0 ? (
+                    <>
+                        {dir < 0 && <span>−</span>}
+                        <Pop key={steps}><span>{steps}</span></Pop>
+                        <span className="text-2xl text-[#9AA7B0]">·</span>
+                        <Rad s="π/2" />
+                    </>
+                ) : (
+                    <span className="text-base text-[#9AA7B0] font-bold">Жми «Шаг» — идём по π/2</span>
+                )}
             </div>
-            <CircleCanvas house segments={segments} traveler={(dir * steps * PI) / 2} />
-            {!done && <ActionButton color={color} onClick={() => setSteps((s) => s + 1)}>{dir > 0 ? '⬆' : '⬇'} Шаг ({steps}/{count})</ActionButton>}
+            <CircleCanvas house segments={segments} walker={(dir * steps * PI) / 2} />
+            {!done && <ActionButton color={color} onClick={() => setSteps((st) => st + 1)}>👣 Шаг ({steps}/{count})</ActionButton>}
         </div>
     )
 }
@@ -1014,7 +1060,7 @@ const StepsScene = ({ onSettled }: SceneProps) => {
             <TypedBig parts={[{ text: 'Где угол ' }, { text: '3π/2', color: PLUS_COLOR }, { text: '? Это 3 раза по π/2' }]} onDone={() => setPhase(1)} />
             {phase >= 1 && (
                 <DiagramBlock>
-                    <StepWalk count={3} dir={1} labels={['π/2', 'π', '3π/2']} onDone={() => setPhase(2)} />
+                    <StepWalk count={3} dir={1} onDone={() => setPhase(2)} />
                 </DiagramBlock>
             )}
             {phase >= 2 && <TypedLine className={TEXT} text="Три шага вверх — и мы внизу. Вот он, 3π/2." onSettled={() => setPhase(3)} delayAfter={300} />}
@@ -1023,7 +1069,7 @@ const StepsScene = ({ onSettled }: SceneProps) => {
             )}
             {phase >= 4 && (
                 <DiagramBlock>
-                    <StepWalk count={5} dir={-1} labels={['−π/2', '−π', '−3π/2', '−2π', '−5π/2']} onDone={() => setPhase(5)} />
+                    <StepWalk count={5} dir={-1} onDone={() => setPhase(5)} />
                 </DiagramBlock>
             )}
             {phase >= 5 && (
