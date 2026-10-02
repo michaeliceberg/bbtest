@@ -3,8 +3,8 @@
 // components/answer-meme-burst.tsx
 //
 // Облачко-мем после ответа: появляется с bounce из точки, куда нажал ученик, и
-// сразу улетает вверх «как дым» — покачивается, уменьшается, мигает подсветкой
-// (красной — неверно, зелёной — верно) и за 3 секунды растворяется. Картинки — public/answer-meme-right/N.webp
+// плавно поднимается вверх, мигая подсветкой (красной — неверно, зелёной — верно);
+// через 3 секунды рывком, с ускорением, улетает вверх и схлопывается в точку. Картинки — public/answer-meme-right/N.webp
 // и public/answer-meme-wrong/N.webp (стикеры 512×512).
 // На неверный ответ — всегда, на верный — с шансом 33%.
 //
@@ -65,18 +65,18 @@ const BurstView = ({ b, onDone }: { b: Burst; onDone: () => void }) => {
     const sec = SHOW_MS / 1000
     return (
         <div className="pointer-events-none fixed z-[90]" style={{ left: x, top: y, width: 0, height: 0 }}>
-            {/* Полёт «как дым»: всё время поднимается вверх, покачивается,
-                уменьшается и в конце растворяется. */}
+            {/* Плавно поднимается вверх, в конце рывком улетает вверх и схлопывается в точку. */}
             <motion.div
                 className="absolute"
                 style={{ width: SIZE, height: SIZE, left: -SIZE / 2, top: -SIZE / 2 }}
                 initial={{ y: 0, x: 0, scale: 1, opacity: 1 }}
-                animate={{ y: -130, x: [0, 12, -10, 8, -4], scale: 0.3, opacity: [1, 1, 1, 0] }}
+                animate={{ y: [0, -130, -240], scale: [1, 1, 0], opacity: [1, 1, 0] }}
                 transition={{
-                    y: { duration: sec, ease: [0.2, 0.6, 0.4, 1] },
-                    x: { duration: sec, ease: 'easeInOut' },
-                    scale: { duration: sec, ease: 'easeIn' },
-                    opacity: { duration: sec, times: [0, 0.5, 0.7, 1] },
+                    // Плавный подъём, а в конце — рывок вверх с ускорением.
+                    y: { duration: sec, times: [0, 0.88, 1], ease: [[0.2, 0.6, 0.4, 1], [0.6, 0, 1, 0.4]] },
+                    // Держит размер, а в конце резко, с ускорением, схлопывается в точку.
+                    scale: { duration: sec, times: [0, 0.88, 1], ease: ['linear', [0.6, 0, 1, 0.4]] },
+                    opacity: { duration: sec, times: [0, 0.95, 1] },
                 }}
             >
                 {/* Появление из точки — с bounce */}
