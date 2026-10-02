@@ -19,6 +19,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { showAnswerMeme } from '@/components/answer-meme-burst'
 import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import { Check, X } from 'lucide-react'
@@ -336,12 +337,14 @@ export const TypeLegFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
         if (checked || wrongTried.includes(opt.text)) return
         if (opt.correct) {
             registerCombo(wrongTried.length === 0)
+            showAnswerMeme(true)
             setChecked(true)
             setWrongFlash(null)
             setNextLabel(pickWalkthroughNextLabel(isLastScene ? 'Готово' : 'Дальше'))
         } else {
             playSound(WRONG_ANSWER_SOUND)
             setHadMistake(true)
+            showAnswerMeme(false)
             setWrongTried((w) => [...w, opt.text])
             setWrongFlash(pickWrongTryPhrase())
         }

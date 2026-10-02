@@ -63,6 +63,7 @@ import { TrainerBossBar } from "./trainer-boss-bar"
 import { LOTTIE_BOSS_DEATH_LIST, LOTTIE_BOSS_DEATH_LOW_HP, getRandomLottie } from "@/src/constants/lottieConstants"
 import { pickNextButtonLabel } from "@/usefulFunctions"
 import { STEP_BY_STEP_CHALLENGE_TYPES } from "@/lib/trainerStageFlags"
+import { AnswerMemeLayer } from "@/components/answer-meme-burst"
 
 
 
@@ -592,6 +593,8 @@ export default function TrainerQuestion({
     // внешнем контейнере экрана, а не точечно под каждую анимацию (тот же
     // приём, что уже применялся для LearnWrapper, см. CLAUDE.md).
     <div className="min-h-screen overflow-x-hidden bg-[#151F24] text-[#F2F7FB] flex flex-col">
+      {/* Облачко-мем после ответа в пошаговых разборах (showAnswerMeme). */}
+      <AnswerMemeLayer />
 
       {/* Крестик и прогресс-бар (не анимируются). Сердечки убраны по
           просьбе пользователя — механика жизней в тренажёре не нужна,

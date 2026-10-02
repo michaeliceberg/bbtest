@@ -33,6 +33,7 @@
 'use client'
 
 import { Fragment, useEffect, useRef, useState } from 'react'
+import { showAnswerMeme } from '@/components/answer-meme-burst'
 import { motion } from 'framer-motion'
 import { Check, X } from 'lucide-react'
 import type { QuestionType } from './page'
@@ -354,11 +355,13 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
         if (numVal === null || denVal === null || !cfg) return
         if (numVal === correctNumerator(cfg) && denVal === correctDenominator(cfg)) {
             registerCombo(!trialMissRef.current)
+            showAnswerMeme(true)
             setChecked(true)
             setWrongFlash(null)
         } else {
             playSound(WRONG_ANSWER_SOUND)
             setHadMistake(true)
+            showAnswerMeme(false)
             trialMissRef.current = true
             setWrongFlash(pickWrongTryPhrase())
         }

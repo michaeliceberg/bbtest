@@ -25,6 +25,7 @@
 'use client'
 
 import { Fragment, useEffect, useRef, useState } from 'react'
+import { showAnswerMeme } from '@/components/answer-meme-burst'
 import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp } from 'lucide-react'
@@ -2066,11 +2067,13 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
         if (checked || wrongTried.includes(k)) return
         if (k === CONCEPT_QUIZ[i].correct) {
             registerCombo(wrongTried.length === 0)
+            showAnswerMeme(true)
             setChecked(true)
             setNextLabel(pickWalkthroughNextLabel(trialIndex + 1 >= CONCEPT_QUIZ.length ? 'Готово' : 'Дальше'))
         } else {
             playSound(WRONG_ANSWER_SOUND)
             setHadMistake(true)
+            showAnswerMeme(false)
             setWrongTried((w) => [...w, k])
             setWrongFlash(pickWrongTryPhrase())
         }

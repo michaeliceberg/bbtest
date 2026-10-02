@@ -36,6 +36,7 @@
 'use client'
 
 import { Fragment, useEffect, useRef, useState } from 'react'
+import { showAnswerMeme } from '@/components/answer-meme-burst'
 import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
@@ -589,11 +590,13 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
         if (value !== correct) {
             playSound(WRONG_ANSWER_SOUND)
             setHadMistake(true)
+            showAnswerMeme(false)
             setQuizWrongTried((prev) => [...prev, value])
             setQuizWrongFlash(pickWrongTryPhrase())
             return
         }
         if (stepIdx !== 0) registerCombo(quizWrongTried.length === 0)
+        showAnswerMeme(true)
         const next = [...quizAnswers]
         next[stepIdx] = value
         setQuizAnswers(next)
@@ -615,8 +618,10 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
         if (guess !== EXIST_ITEMS[existIndex].correct) {
             playSound(WRONG_ANSWER_SOUND)
             setHadMistake(true)
+            showAnswerMeme(false)
             setExistNextLabel(pickWalkthroughWrongLabel('Дальше'))
         } else {
+            showAnswerMeme(true)
             setConfettiFor(`exist-${existIndex}`)
             setExistNextLabel(pickWalkthroughNextLabel('Дальше'))
         }

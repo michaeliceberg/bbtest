@@ -29,6 +29,7 @@
 'use client'
 
 import { Fragment, useEffect, useState } from 'react'
+import { showAnswerMeme } from '@/components/answer-meme-burst'
 import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -381,11 +382,13 @@ export const TypeLogFlipWalk = ({ onAnswer, onComplete }: Props) => {
         if (wrongTried.some((w) => sameOption(w, option))) return
         if (sameOption(option, currentCorrectOption)) {
             registerCombo(wrongTried.length === 0)
+            showAnswerMeme(true)
             setChecked(true)
             setTrialNextLabel(pickWalkthroughNextLabel('Дальше'))
         } else {
             playSound(WRONG_ANSWER_SOUND)
             setHadMistake(true)
+            showAnswerMeme(false)
             setWrongTried((prev) => [...prev, option])
             setWrongFlash(pickWrongTryPhrase())
         }

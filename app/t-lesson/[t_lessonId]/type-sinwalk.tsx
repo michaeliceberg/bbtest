@@ -38,6 +38,7 @@
 'use client'
 
 import { Fragment, useEffect, useRef, useState } from 'react'
+import { showAnswerMeme } from '@/components/answer-meme-burst'
 import { motion } from 'framer-motion'
 import { Check, X } from 'lucide-react'
 import type { QuestionType } from './page'
@@ -448,11 +449,13 @@ export const TypeSinWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) =>
         if (wrongTried.includes(side)) return
         if (side === currentCorrectSide) {
             registerCombo(wrongTried.length === 0)
+            showAnswerMeme(true)
             setChecked(true)
             setTrialNextLabel(pickWalkthroughNextLabel('Дальше'))
         } else {
             playSound(WRONG_ANSWER_SOUND)
             setHadMistake(true)
+            showAnswerMeme(false)
             setWrongTried((prev) => [...prev, side])
             setWrongFlash(pickWrongTryPhrase())
         }

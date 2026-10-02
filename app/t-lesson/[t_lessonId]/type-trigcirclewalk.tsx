@@ -34,7 +34,7 @@ import {
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
-import { AnswerMemeLayer, showAnswerMeme } from '@/components/answer-meme-burst'
+import { showAnswerMeme } from '@/components/answer-meme-burst'
 import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
 
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
@@ -1437,7 +1437,6 @@ export const TypeTrigCircleWalk = ({ onAnswer, onComplete }: Props) => {
 
     return (
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
-            <AnswerMemeLayer />
             <div className="w-full flex flex-col gap-4">
                 {SCENES.map((Scene, i) =>
                     step >= i ? (
