@@ -34,6 +34,7 @@ import {
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
+import { AnswerMemeLayer, showAnswerMeme } from '@/components/answer-meme-burst'
 import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
 
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
@@ -299,6 +300,8 @@ type CanvasProps = {
     glowValue?: { axis: Axis; v: 1 | -1 } | null
     dirPick?: { onPick?: (d: 'up' | 'down') => void; wrong: 'up' | 'down' | null; done: ('up' | 'down')[] } | null
     blinkDots?: boolean
+    // Показ осей по одной с bounce (сцена-вступление).
+    axisShow?: { cos: boolean; sin: boolean }
 }
 const LABEL_STYLE = { fontFamily: 'var(--font-nunito), sans-serif', fontWeight: 900 } as const
 
@@ -329,7 +332,7 @@ const UNIT_LABELS = [
 const CircleCanvas = ({
     axes = true, axisLabels = { cos: true, sin: true }, drawCircle = false, house = false,
     houses = [], onHousePick, arcs = [], segments = [], marks = [], units = 0, dots, hitDots = [], traveler = null,
-    onCirclePick, onAxisPick, axisFlash = null, glowValue = null, dirPick = null, blinkDots = false,
+    onCirclePick, onAxisPick, axisFlash = null, glowValue = null, dirPick = null, blinkDots = false, axisShow,
 }: CanvasProps) => {
     const svgRef = useRef<SVGSVGElement>(null)
     const pick = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -366,15 +369,39 @@ const CircleCanvas = ({
                             stroke={hexToRgba(axisFlash.color, 0.45)} strokeLinecap="round"
                             initial={{ strokeWidth: 2 }} animate={{ strokeWidth: 16 }} transition={{ type: 'spring', stiffness: 380, damping: 9 }} />
                     )}
-                    <line x1={C - AX} y1={C} x2={C + AX - 4} y2={C} stroke={axisColor('cos')} strokeWidth={3} />
-                    <Arrowhead x={C + AX + 4} y={C} dx={1} dy={0} color={axisColor('cos')} size={12} />
-                    <line x1={C} y1={C + AX} x2={C} y2={C - AX + 4} stroke={axisColor('sin')} strokeWidth={3} />
-                    <Arrowhead x={C} y={C - AX - 4} dx={0} dy={-1} color={axisColor('sin')} size={12} />
-                    {axisLabels.cos && (
+                    {(['cos', 'sin'] as const).map((ax) => {
+                        if (axisShow && !axisShow[ax]) return null
+                        const isCos = ax === 'cos'
+                        const hint = !!onAxisPick && axisFlash?.axis !== ax
+                        return (
+                            <motion.g key={`ax-${ax}`}
+                                initial={axisShow ? { scale: 0, opacity: 0 } : false}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ type: 'spring', stiffness: 300, damping: 7 }}>
+                                {/* «Кликни на меня» — серое мигание оси */}
+                                {hint && (
+                                    <line className="animate-pulse" x1={isCos ? C - AX : C} y1={isCos ? C : C + AX} x2={isCos ? C + AX : C} y2={isCos ? C : C - AX}
+                                        stroke="rgba(154, 167, 176, 0.45)" strokeWidth={16} strokeLinecap="round" />
+                                )}
+                                {isCos ? (
+                                    <>
+                                        <line x1={C - AX} y1={C} x2={C + AX - 4} y2={C} stroke={axisColor('cos')} strokeWidth={4} />
+                                        <Arrowhead x={C + AX + 4} y={C} dx={1} dy={0} color={axisColor('cos')} size={14} />
+                                    </>
+                                ) : (
+                                    <>
+                                        <line x1={C} y1={C + AX} x2={C} y2={C - AX + 4} stroke={axisColor('sin')} strokeWidth={4} />
+                                        <Arrowhead x={C} y={C - AX - 4} dx={0} dy={-1} color={axisColor('sin')} size={14} />
+                                    </>
+                                )}
+                            </motion.g>
+                        )
+                    })}
+                    {axisLabels.cos && (!axisShow || axisShow.cos) && (
                         <motion.text key="lc" x={C + AX + 14} y={C + 36} textAnchor="end" fontSize={22} fill={axisColor('cos')} style={LABEL_STYLE}
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }}>cos</motion.text>
                     )}
-                    {axisLabels.sin && (
+                    {axisLabels.sin && (!axisShow || axisShow.sin) && (
                         <motion.text key="ls" x={C + 26} y={C - AX + 10} textAnchor="middle" fontSize={22} fill={axisColor('sin')} style={LABEL_STYLE}
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }}>sin</motion.text>
                     )}
@@ -499,23 +526,19 @@ type SceneProps = { onSettled?: () => void }
 // 1. Что такое тригонометрическая окружность.
 const IntroScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
-    useEffect(() => {
-        if (phase === 2) { const t = setTimeout(() => setPhase(3), 1200); return () => clearTimeout(t) }
-        if (phase === 3) { const t = setTimeout(() => setPhase(4), 1200); return () => clearTimeout(t) }
-    }, [phase])
     return (
         <>
             <TypedBig parts={[{ text: 'Это ' }, { text: 'тригонометрическая окружность', color: ARC_COLOR }]} onDone={() => setPhase(1)} />
             {phase >= 1 && (
                 <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 1000)}>
-                    <CircleCanvas drawCircle axisLabels={{ cos: phase >= 3, sin: phase >= 4 }} />
+                    <CircleCanvas drawCircle axisShow={{ cos: phase >= 3, sin: phase >= 5 }} axisLabels={{ cos: phase >= 3, sin: phase >= 5 }} />
                 </DiagramBlock>
             )}
             {phase >= 2 && (
-                <TypedBig
-                    parts={[{ text: 'Стрелка ВПРАВО — ВСЕГДА ' }, { text: 'косинус', color: COS_COLOR }, { text: '. Стрелка ВВЕРХ — ВСЕГДА ' }, { text: 'синус', color: SIN_COLOR }]}
-                    onDone={() => setTimeout(() => onSettled?.(), 1400)}
-                />
+                <TypedBig parts={[{ text: 'Стрелка ВПРАВО — ВСЕГДА ' }, { text: 'косинус', color: COS_COLOR }]} onDone={() => { setPhase(3); setTimeout(() => setPhase(4), 1600) }} readMs={100} />
+            )}
+            {phase >= 4 && (
+                <TypedBig parts={[{ text: 'Стрелка ВВЕРХ — ВСЕГДА ' }, { text: 'синус', color: SIN_COLOR }]} onDone={() => { setPhase(5); setTimeout(() => onSettled?.(), 1400) }} readMs={100} />
             )}
         </>
     )
@@ -534,6 +557,7 @@ const AxisGameScene = ({ onSettled }: SceneProps) => {
     const pick = (a: Axis) => {
         if (!cur || right) return
         if (a === cur) {
+            showAnswerMeme(true)
             setRight(a)
             setPraise(pickPraise())
             setTimeout(() => {
@@ -543,7 +567,7 @@ const AxisGameScene = ({ onSettled }: SceneProps) => {
                 if (round + 1 >= AXIS_ROUNDS.length) setTimeout(() => onSettled?.(), 900)
             }, 1300)
         } else {
-            playSound(WRONG_ANSWER_SOUND)
+            playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false)
             setWrong(a)
         }
     }
@@ -558,7 +582,7 @@ const AxisGameScene = ({ onSettled }: SceneProps) => {
                                     <span>Где ось <span style={{ color: cur === 'cos' ? COS_COLOR : SIN_COLOR }}>{cur === 'cos' ? 'КОСИНУСА' : 'СИНУСА'}</span>?</span>
                                 </Pop>
                             ) : (
-                                <Pop key="done"><span className="text-[#A1D151]">Оси знаешь! 💪</span></Pop>
+                                <Pop key="done"><span className="text-[#A1D151]">Оси в кармане! 😎</span></Pop>
                             )}
                         </div>
                         <CircleCanvas
@@ -630,15 +654,16 @@ const DirQuizScene = ({ onSettled }: SceneProps) => {
     const [wrongDir, setWrongDir] = useFlash<'up' | 'down'>()
     const pickHouse = (a: number) => {
         if (step !== 0) return
-        if (a === 0) setStep(1)
-        else { playSound(WRONG_ANSWER_SOUND); setWrongHouse(a) }
+        if (a === 0) { showAnswerMeme(true); setStep(1) }
+        else { playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false); setWrongHouse(a) }
     }
     const pickDir = (d: 'up' | 'down') => {
         const need = step === 1 ? 'up' : 'down'
         if (d === need) {
+            showAnswerMeme(true)
             setStep(step + 1)
             if (step + 1 >= 3) setTimeout(() => onSettled?.(), 1200)
-        } else { playSound(WRONG_ANSWER_SOUND); setWrongDir(d) }
+        } else { playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false); setWrongDir(d) }
     }
     return (
         <>
@@ -841,11 +866,12 @@ const FindGameScene = ({ onSettled }: SceneProps) => {
     const onPick = (idx: number) => {
         if (!cur) return
         if (idx === nearestStd(cur.a)) {
+            showAnswerMeme(true)
             setHint(null)
             setRound(round + 1)
             if (round + 1 >= FIND_ROUNDS.length) setTimeout(() => onSettled?.(), 1200)
         } else {
-            playSound(WRONG_ANSWER_SOUND)
+            playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false)
             setWrongIdx(idx)
             setHint(pickWrongTryPhrase())
         }
@@ -970,8 +996,8 @@ const SinScene = ({ onSettled }: SceneProps) => {
     const [opts] = useState(() => shuffle(['1', '0', '−1']))
     const pick = (o: string) => {
         if (phase !== 4) return
-        if (o === '1') setPhase(5)
-        else { playSound(WRONG_ANSWER_SOUND); setWrong(o) }
+        if (o === '1') { showAnswerMeme(true); setPhase(5) }
+        else { playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false); setWrong(o) }
     }
     useEffect(() => {
         if (phase === 2) { const t = setTimeout(() => setPhase(3), 1300); return () => clearTimeout(t) }
@@ -1052,11 +1078,12 @@ export const TypeTrigCircleWalk = ({ onAnswer, onComplete }: Props) => {
     const answer = (ok: boolean, key: string, joke?: string) => {
         if (checked || wrongTried.includes(key)) return
         if (ok) {
+            showAnswerMeme(true)
             registerCombo(wrongTried.length === 0)
             setChecked(true)
             setTrialNextLabel(pickFun())
         } else {
-            playSound(WRONG_ANSWER_SOUND)
+            playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false)
             setHadMistake(true)
             setWrongTried((prev) => [...prev, key])
             setWrongFlash(joke ?? pickWrongTryPhrase())
@@ -1186,6 +1213,7 @@ export const TypeTrigCircleWalk = ({ onAnswer, onComplete }: Props) => {
 
     return (
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
+            <AnswerMemeLayer />
             <div className="w-full flex flex-col gap-4">
                 {SCENES.map((Scene, i) =>
                     step >= i ? (
