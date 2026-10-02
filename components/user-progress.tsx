@@ -91,10 +91,10 @@ export const UserProgress = ({ activeCourse, hearts, points, gems, xp, ggSticker
 			{/* gg-стикеры — "мистическая" валюта, назначение нарочно не
 				объясняется (см. Props выше) — просто растущий счётчик,
 				чтобы вызывать вопрос "а зачем они" у самого ученика. */}
-			<div className={cn('flex items-center px-2 text-violet-400', ghostHover)} title="gg-стикеры">
+			<Button variant='ghost' className={cn('text-[#FF7300]', ghostHover)} title="gg-стикеры">
 				<Lottie className="h-9 w-9 mr-1" animationData={ LottieGG } />
 				{ggStickers}
-			</div>
+			</Button>
 
 			<Link href='/shop'>
 				<Button variant='ghost' className={cn('text-rose-500', ghostHover)}>
