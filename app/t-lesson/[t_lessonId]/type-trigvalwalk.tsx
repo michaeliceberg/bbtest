@@ -760,7 +760,7 @@ const TgDockRow = ({ travolta }: { travolta?: boolean }) => (
                 {travolta && c === 0 && (
                     <Pop>
                         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                        <AlphaVideo src="/video/travolta.webm" autoPlay loop muted playsInline className="h-[72px] w-[72px] max-w-none shrink-0 rounded-lg object-cover" />
+                        <video src="/video/travolta-confused.mp4" autoPlay loop muted playsInline className="h-[72px] w-[72px] max-w-none shrink-0 rounded-lg object-cover" />
                     </Pop>
                 )}
             </motion.div>
@@ -1056,22 +1056,29 @@ const TgFlipFinishScene = ({ onSettled }: { onSettled?: () => void }) => {
                     {phase >= 1 && arrow && (
                         <>
                             <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible">
-                                <defs>
-                                    <marker id="tg-flip-head" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-                                        <path d="M0 0 L10 5 L0 10 z" fill={ATTENTION} />
-                                    </marker>
-                                </defs>
                                 <motion.path
                                     d={`M ${arrow.x1} ${arrow.y} Q ${(arrow.x1 + arrow.x2) / 2} ${arrow.y + 46} ${arrow.x2} ${arrow.y}`}
                                     fill="none"
                                     stroke={ATTENTION}
                                     strokeWidth={4}
                                     strokeLinecap="round"
-                                    markerEnd="url(#tg-flip-head)"
                                     initial={{ pathLength: 0 }}
                                     animate={{ pathLength: 1 }}
                                     transition={{ duration: 0.8, ease: 'easeInOut' }}
                                 />
+                                {/* Кончик дорисовывается ПОСЛЕ дуги — по касательной в конце кривой. */}
+                                <g transform={`translate(${arrow.x2} ${arrow.y}) rotate(${(Math.atan2(-46, (arrow.x2 - arrow.x1) / 2) * 180) / Math.PI})`}>
+                                    <motion.path
+                                        d="M -12 -8 L 2 0 L -12 8 z"
+                                        fill={ATTENTION}
+                                        stroke={ATTENTION}
+                                        strokeWidth={2}
+                                        strokeLinejoin="round"
+                                        initial={{ opacity: 0, scale: 0 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ delay: 0.75, type: 'spring', stiffness: 500, damping: 18 }}
+                                    />
+                                </g>
                             </svg>
                             <span
                                 className="pointer-events-none absolute -translate-x-1/2"
