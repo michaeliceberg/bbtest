@@ -54,12 +54,14 @@ const ANGLES = [30, 45, 60] as const
 const VALUES: Record<Fn, V[]> = {
     sin: [{ num: '1', den: '2' }, { num: '√2', den: '2' }, { num: '√3', den: '2' }],
     cos: [{ num: '√3', den: '2' }, { num: '√2', den: '2' }, { num: '1', den: '2' }],
-    tg: [{ num: '√3', den: '3' }, { num: '1' }, { num: '√3' }],
+    tg: [{ num: '1', den: '√3' }, { num: '1' }, { num: '√3' }],
 }
 const ALL_DISTINCT: V[] = [
     { num: '1', den: '2' }, { num: '√2', den: '2' }, { num: '√3', den: '2' },
-    { num: '√3', den: '3' }, { num: '1' }, { num: '√3' },
+    { num: '1', den: '√3' }, { num: '1' }, { num: '√3' },
 ]
+// Значения синуса/косинуса — в уроке про sin/cos только они (тангенс ещё не проходили).
+const SINCOS_DISTINCT: V[] = ALL_DISTINCT.slice(0, 3)
 const vKey = (v: V) => `${v.num}/${v.den ?? ''}`
 
 // Цвета: каждый угол — свой цвет (как стикеры в интро), строки функций — свой.
@@ -793,8 +795,12 @@ type Trial =
 
 const optKey = (o: Opt) => (o.kind === 'val' ? `v:${vKey(o.v)}` : `a:${o.a}`)
 
-const makeValueTrial = (fn: Fn, ai: number): Trial => {
+const makeValueTrial = (fn: Fn, ai: number, mode: Mode): Trial => {
     const correct = VALUES[fn][ai]
+    // Урок про sin/cos: ровно 3 варианта — 1/2, √2/2, √3/2 (без значений тангенса).
+    if (mode === 'sincos') {
+        return { kind: 'value', fn, ai, options: shuffle(SINCOS_DISTINCT).map((v) => ({ kind: 'val', v } as Opt)) }
+    }
     // Приоритет — правдоподобные ошибки: та же строка (другой угол) и другая
     // функция того же угла.
     const pool: V[] = []
@@ -824,7 +830,7 @@ const makeTrials = (mode: Mode): Trial[] => {
             const fn = i < 2 ? pick(fnsMain) : pick(fnsMix)
             const ai = Math.floor(Math.random() * 3)
             // У тангенса угол по значению однозначен; у sin/cos тоже (30/45/60).
-            t = kinds[i] === 'value' ? makeValueTrial(fn, ai) : makeAngleTrial(fn, ai)
+            t = kinds[i] === 'value' ? makeValueTrial(fn, ai, mode) : makeAngleTrial(fn, ai)
             guard++
         } while (`${t.kind}${t.fn}${t.ai}` === prev && guard < 8)
         prev = `${t.kind}${t.fn}${t.ai}`
@@ -883,7 +889,7 @@ export const TypeTrigValWalk = ({ onAnswer, onComplete, mode }: Props) => {
                 : [
                     TgIntroScene,
                     (p: { onSettled?: () => void }) => (
-                        <TgColumnScene i={0} done={[]} lines={['Смотри: тангенс — это синус : косинус из того же столбика.', 'Двойки сокращаются — получается 1/√3, то есть √3/3.']} {...p} />
+                        <TgColumnScene i={0} done={[]} lines={['Смотри: тангенс — это синус : косинус из того же столбика.', 'Двойки сокращаются — получается 1/√3.']} {...p} />
                     ),
                     (p: { onSettled?: () => void }) => (
                         <TgColumnScene i={1} done={[0]} lines={['Одинаковые числа делим друг на друга — получается 1!']} {...p} />
