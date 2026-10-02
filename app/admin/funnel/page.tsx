@@ -113,6 +113,14 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 		SELECT g.id, g.emoji, g.name, count(m.id) AS members
 		FROM gangs g LEFT JOIN gang_members m ON m.gang_id = g.id
 		GROUP BY g.id ORDER BY members DESC, g.id LIMIT 10`)
+	// Участники банд (раскрываются по клику): позывной/имя, роль, сколько разных уроков тренажёра прошёл.
+	const gangMembers = gangs.length === 0 ? [] : await q(sql`
+		SELECT m.gang_id, m.role, u.user_name, u.nickname,
+			(SELECT count(DISTINCT p.t_lesson_id) FROM t_lesson_progress p WHERE p.user_id = m.user_id AND p.training_pts > 0) AS lessons,
+			(SELECT max(p.date_done) FROM t_lesson_progress p WHERE p.user_id = m.user_id) AS last_at
+		FROM gang_members m LEFT JOIN user_progress u ON u.user_id = m.user_id
+		WHERE m.gang_id IN (${sql.join(gangs.map((g) => sql`${Number(g.id)}`), sql`, `)})
+		ORDER BY CASE m.role WHEN 'leader' THEN 0 WHEN 'kapo' THEN 1 ELSE 2 END, lessons DESC`)
 
 	const [dodo] = await q(sql`
 		SELECT count(*) FILTER (WHERE assigned_to_user_id IS NOT NULL) AS assigned,
@@ -354,9 +362,28 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 					{gangs.length === 0 ? <Empty /> : (
 						<ul className="space-y-1.5 text-sm">
 							{gangs.map((g) => (
-								<li key={String(g.id)} className="flex justify-between">
-									<span>{String(g.emoji)} {String(g.name)}</span>
-									<span className="font-bold">{n(g.members)} чел.</span>
+								<li key={String(g.id)}>
+									<details>
+										<summary className="flex justify-between cursor-pointer list-none">
+											<span>▸ {String(g.emoji)} {String(g.name)}</span>
+											<span className="font-bold">{n(g.members)} чел.</span>
+										</summary>
+										<ul className="mt-1 mb-2 ml-4 space-y-1 text-xs text-[#C9D3D9]">
+											{gangMembers.filter((m) => Number(m.gang_id) === Number(g.id)).map((m, i) => (
+												<li key={i} className="flex justify-between gap-2">
+													<span>
+														{m.role === 'leader' ? '👑 ' : m.role === 'kapo' ? '🛡️ ' : ''}
+														{String(m.nickname ?? m.user_name ?? 'без имени')}
+														{m.nickname && m.user_name ? <span className="text-[#7A8A93]"> ({String(m.user_name)})</span> : null}
+													</span>
+													<span className="whitespace-nowrap">
+														{n(m.lessons)} ур.
+														{m.last_at ? <span className="text-[#7A8A93]"> · {new Date(String(m.last_at)).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span> : null}
+													</span>
+												</li>
+											))}
+										</ul>
+									</details>
 								</li>
 							))}
 						</ul>
