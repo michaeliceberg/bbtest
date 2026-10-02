@@ -71,7 +71,7 @@ const BurstView = ({ b, onDone }: { b: Burst; onDone: () => void }) => {
                 className="absolute"
                 style={{ width: SIZE, height: SIZE, left: -SIZE / 2, top: -SIZE / 2 }}
                 initial={{ y: 0, x: 0, scale: 1, opacity: 1 }}
-                animate={{ y: -260, x: [0, 12, -10, 8, -4], scale: 0.3, opacity: [1, 1, 1, 0] }}
+                animate={{ y: -130, x: [0, 12, -10, 8, -4], scale: 0.3, opacity: [1, 1, 1, 0] }}
                 transition={{
                     y: { duration: sec, ease: [0.2, 0.6, 0.4, 1] },
                     x: { duration: sec, ease: 'easeInOut' },
