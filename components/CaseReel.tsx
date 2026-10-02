@@ -19,7 +19,7 @@ import { useWindowSize } from 'react-use'
 import { Gift, Sparkles } from 'lucide-react'
 import { openCase, type OpenCaseResult } from '@/actions/open-case'
 import { useRive, Layout, Fit, Alignment } from '@rive-app/react-webgl2'
-import { playSound, preloadSound, CASE_PRIZE_SOUND, CHEST_DROP_SOUND, GEM_DROP_SOUND } from '@/lib/sound'
+import { playSound, preloadSound, CASE_PRIZE_SOUND, CHEST_DROP_SOUND, GEM_DROP_SOUND, COIN_DROP_SOUND } from '@/lib/sound'
 import {
   getCasePool, getLessonCasePool, isJackpotReward, pickWeightedReward, rewardEmoji, type CaseReward,
   LESSON_CASE_TIER_ICON, LESSON_CASE_TIER_LABEL, LESSON_CASE_TIER_PAGE_BG, type LessonCaseTier,
@@ -362,6 +362,7 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
         preloadSound(ROULETTE_SOUND)
         preloadSound(CASE_PRIZE_SOUND)
         preloadSound(GEM_DROP_SOUND)
+        preloadSound(COIN_DROP_SOUND)
         preloadSound(CHEST_DROP_SOUND)
     }, [])
     const accent = tier ? LESSON_CASE_TIER_ACCENT[tier] : '#4A90D9'
@@ -421,7 +422,8 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
         if (phase !== 'spinning') return
         // Звук «приз!» — ровно в момент, когда барабан встал на награде.
         const won = finalResultRef.current
-        playSound(won && won.success && won.reward.kind === 'gems' ? GEM_DROP_SOUND : CASE_PRIZE_SOUND)
+        const kind = won && won.success ? won.reward.kind : null
+        playSound(kind === 'gems' ? GEM_DROP_SOUND : kind === 'coins' ? COIN_DROP_SOUND : CASE_PRIZE_SOUND)
         setPhase('revealed')
     }, [phase])
 
