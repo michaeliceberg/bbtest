@@ -675,12 +675,19 @@ const DirQuizScene = ({ onSettled }: SceneProps) => {
     const [step, setStep] = useState(0) // 0 домик, 1 плюс, 2 минус, 3 готово
     const [wrongHouse, setWrongHouse] = useFlash<number>()
     const [wrongDir, setWrongDir] = useFlash<'up' | 'down'>()
+    // Вопрос «Где настоящий домик?» — только после того, как появились все 4 домика.
+    const [housesShown, setHousesShown] = useState(false)
+    useEffect(() => {
+        if (!ready) return
+        const t = setTimeout(() => setHousesShown(true), 2000)
+        return () => clearTimeout(t)
+    }, [ready])
     const [houseDelays] = useState(() => {
         const order = shuffle([0, 1, 2, 3])
         return HOUSE_ANGLES.map((_, i) => 0.15 + order.indexOf(i) * 0.35)
     })
     const pickHouse = (a: number) => {
-        if (step !== 0) return
+        if (step !== 0 || !housesShown) return
         if (a === 0) { showAnswerMeme(true); setStep(1) }
         else { playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false); setWrongHouse(a) }
     }
@@ -698,8 +705,8 @@ const DirQuizScene = ({ onSettled }: SceneProps) => {
             {ready && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col items-center gap-3">
-                        <p className="text-xl font-black text-center">
-                            {step === 0 && <Pop key="h"><span>Где настоящий домик?</span></Pop>}
+                        <p className="text-xl font-black text-center min-h-[28px]">
+                            {step === 0 && housesShown && <Pop key="h"><span>Где настоящий домик?</span></Pop>}
                             {step === 1 && <Pop key="p"><span>Куда строим <span style={{ color: PLUS_COLOR }}>ПОЛОЖИТЕЛЬНЫЕ</span> углы?</span></Pop>}
                             {step === 2 && <Pop key="m"><span>Куда строим <span style={{ color: MINUS_COLOR }}>ОТРИЦАТЕЛЬНЫЕ</span> углы?</span></Pop>}
                             {step >= 3 && <span className="text-[#A1D151]">Красава! Домик справа, плюс вверх, минус вниз 🏠</span>}
@@ -982,7 +989,7 @@ const FindGameScene = ({ onSettled }: SceneProps) => {
     }
     return (
         <>
-            <TypedBig parts={[{ text: 'Игра: найди угол! 🎯' }]} onDone={() => setReady(true)} readMs={200} />
+            <TypedBig parts={[{ text: 'Мини-игра: найди угол!' }]} onDone={() => setReady(true)} readMs={200} />
             {ready && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col items-center gap-2">
@@ -1054,22 +1061,26 @@ const StepWalk = ({ count, dir, onDone }: { count: number; dir: 1 | -1; onDone: 
         d: walkPath((j * PI) / 2, ((j + 1) * PI) / 2, dir),
     }))
     return (
-        <div className="w-full flex flex-col items-center gap-3">
-            {/* Крупно: «2 · π/2» — цифра шагов с bounce */}
-            <div className="h-16 flex items-center justify-center gap-2 text-4xl font-black" style={{ color }}>
-                {steps > 0 ? (
+        <div className="w-full flex flex-col items-center gap-1">
+            <div className="relative w-full">
+            {/* Крупно дробью: числитель «kπ» (k — с bounce), знаменатель 2. Стоит в
+                пустом левом верхнем углу картинки — места по высоте не занимает. */}
+            <div className="absolute left-1 top-0 z-10 flex items-center gap-1 text-4xl font-black" style={{ color }}>
+                {steps > 0 && (
                     <>
                         {dir < 0 && <span>−</span>}
-                        <Pop key={steps}><span>{steps}</span></Pop>
-                        <span className="text-2xl text-[#9AA7B0]">·</span>
-                        <Rad s="π/2" />
+                        <span className="inline-flex flex-col leading-none items-center">
+                            <span className="pb-1 border-b-[3px] border-current px-1 flex items-end">
+                                <Pop key={steps}><span>{steps}</span></Pop><span>π</span>
+                            </span>
+                            <span className="pt-1">2</span>
+                        </span>
                     </>
-                ) : (
-                    <span className="text-base text-[#9AA7B0] font-bold">Жми «Шаг» — идём по π/2</span>
                 )}
             </div>
             <CircleCanvas house segments={segments} walker={(dir * steps * PI) / 2} />
-            {!done && <ActionButton color={color} onClick={() => setSteps((st) => st + 1)}>👣 Шаг ({steps}/{count})</ActionButton>}
+            </div>
+            {!done && <ActionButton color={color} onClick={() => setSteps((st) => st + 1)}>{dir > 0 ? '⬆' : '⬇'} Шаг ({steps}/{count})</ActionButton>}
         </div>
     )
 }
@@ -1077,17 +1088,17 @@ const StepsScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
     return (
         <>
-            <TypedBig parts={[{ text: 'Где угол ' }, { text: '3π/2', color: PLUS_COLOR }, { text: '? Это 3 раза по π/2' }]} onDone={() => setPhase(1)} />
-            {phase >= 1 && (
+            <TypedBig parts={[{ text: 'А как найти угол ' }, { text: '3π/2', color: PLUS_COLOR }, { text: '?' }]} onDone={() => setPhase(1)} readMs={300} />
+            {phase >= 1 && <TypedBig parts={[{ text: 'Да это же 3 раза по π/2!' }]} onDone={() => setPhase(2)} readMs={300} />}
+            {phase >= 2 && (
                 <DiagramBlock>
-                    <StepWalk count={3} dir={1} onDone={() => setPhase(2)} />
+                    <StepWalk count={3} dir={1} onDone={() => setPhase(3)} />
                 </DiagramBlock>
             )}
-            {phase >= 2 && <TypedLine className={TEXT} text="Три шага вверх — и мы внизу. Вот он, 3π/2." onSettled={() => setPhase(3)} delayAfter={300} />}
-            {phase >= 3 && (
-                <TypedBig parts={[{ text: 'А где ' }, { text: '−5π/2', color: MINUS_COLOR }, { text: '? Это угол МИНУС — значит идём ВНИЗ. ЛЕТС ГО! 🚀' }]} onDone={() => setPhase(4)} />
-            )}
-            {phase >= 4 && (
+            {phase >= 3 && <TypedBig parts={[{ text: '3 шага в ' }, { text: 'ПЛЮС', color: PLUS_COLOR }, { text: ' — и мы на месте!' }]} onDone={() => setPhase(4)} readMs={400} />}
+            {phase >= 4 && <TypedBig parts={[{ text: 'А как теперь прийти в ' }, { text: '−5π/2', color: MINUS_COLOR }, { text: '?' }]} onDone={() => setPhase(5)} readMs={300} />}
+            {phase >= 5 && <TypedBig parts={[{ text: 'Это 5 шагов в ' }, { text: 'МИНУС', color: MINUS_COLOR }, { text: '!' }]} onDone={() => setPhase(6)} readMs={300} />}
+            {phase >= 6 && (
                 <DiagramBlock>
                     <StepWalk count={5} dir={-1} onDone={() => onSettled?.()} />
                 </DiagramBlock>
