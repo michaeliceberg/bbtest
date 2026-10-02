@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
 import {
     TypedLine, DiagramBlock,
-    pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
+    pickWalkthroughNextLabel, pickFunNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     isFieryMilestoneTrial, FieryFeedbackBanner,
@@ -824,22 +824,25 @@ const MarkerCircle = ({ label, color }: { label: string; color: string }) => (
     </>
 )
 
-const TgColumnFlyScene = ({ i, travolta, intro, introFrac, onSettled }: {
+const TgColumnFlyScene = ({ i, travolta, intro, introFrac, onSettled, active = true }: {
     i: number
     travolta?: boolean
     intro?: BigPart[]
     // Вместо фразы — «Тангенс = синус / косинус» дробью.
     introFrac?: boolean
     onSettled?: () => void
+    // Сцена текущая (Траволта танцует, пока не нажали «Дальше»).
+    active?: boolean
 }) => {
     // 0 таблица, 1 фраза, 2 ждём «Агась», 3 формула + обводка синуса,
     // 4 синус летит в числитель, 5 ждём «Ок», 6 обводка косинуса,
-    // 7 косинус летит в знаменатель, 8 ждём «Ок», 9 «= результат»,
+    // 7 косинус летит в знаменатель, 8 ждём «Ок», 9 «=» + видео calculating,
+    // 10 результат (дальше — рамка 11, полёт 12, готово 13)
     // 10 рамка, 11 результат летит в таблицу, 12 вывод
     const [phase, setPhase] = useState(0)
     useEffect(() => {
         // 3/6: обводка (0.7 с) → пауза → стикер (1.6 с) → пауза → падение.
-        const next: Record<number, number> = { 3: 3600, 4: 1300, 6: 3600, 7: 1300, 9: 1100, 10: 1200, 11: 1400 }
+        const next: Record<number, number> = { 3: 3600, 4: 1300, 6: 3600, 7: 1300, 10: 1100, 11: 1200, 12: 1400 }
         if (!(phase in next)) return
         const t = setTimeout(() => setPhase(phase + 1), next[phase])
         return () => clearTimeout(t)
@@ -848,7 +851,7 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, onSettled }: {
     const cosId = `tg-cos-${i}`
     const resId = `tg-res-${i}`
     useEffect(() => {
-        if (phase !== 12) return
+        if (phase !== 13) return
         const t = setTimeout(() => onSettled?.(), 900)
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -859,6 +862,14 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, onSettled }: {
         const t = setTimeout(() => setPhase((p) => Math.max(p, 2)), 2400)
         return () => clearTimeout(t)
     }, [phase, introFrac])
+    // Зумерские подписи вместо «Ок» — новая на каждую кнопку.
+    const okLabel = useMemo(() => pickFunNextLabel(), [phase])
+    // Страховка, если видео calculating не доиграет.
+    useEffect(() => {
+        if (phase !== 9) return
+        const t = setTimeout(() => setPhase((p) => Math.max(p, 10)), 7000)
+        return () => clearTimeout(t)
+    }, [phase])
     const sinFlown = phase >= 4
     const cosFlown = phase >= 7
     return (
@@ -882,11 +893,21 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, onSettled }: {
                             }
                             if (j < i) return <span style={{ color: TG }}><ValView v={VALUES.tg[j]} /></span>
                             if (j > i) return null
-                            if (phase >= 11) {
+                            if (phase >= 12) {
                                 return (
-                                    <motion.span layoutId={resId} transition={FLY} className="inline-flex">
-                                        <ValBox v={VALUES.tg[i]} color={TG} />
-                                    </motion.span>
+                                    <span className="relative inline-flex">
+                                        <motion.span layoutId={resId} transition={FLY} className="inline-flex">
+                                            <ValBox v={VALUES.tg[i]} color={TG} />
+                                        </motion.span>
+                                        {travolta && phase >= 13 && active && (
+                                            <span className="pointer-events-none absolute left-full top-1/2 ml-4 h-[84px] w-[84px] -translate-y-1/2">
+                                                <Pop>
+                                                    {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                                                    <video src="/video/travolta-dancing.webm" autoPlay loop muted playsInline className="h-[84px] w-[84px] max-w-none shrink-0 rounded-lg object-cover" />
+                                                </Pop>
+                                            </span>
+                                        )}
+                                    </span>
                                 )
                             }
                             return travolta ? (
@@ -933,7 +954,20 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, onSettled }: {
                         ) : <Slot />}
                     </span>
                     {phase >= 9 && <Pop><span>=</span></Pop>}
-                    {phase >= 9 && phase < 11 && (
+                    {phase === 9 && (
+                        <Pop>
+                            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                            <video
+                                src="/video/calculating.mp4"
+                                autoPlay
+                                muted
+                                playsInline
+                                onEnded={() => setPhase((p) => Math.max(p, 10))}
+                                className="h-16 w-28 max-w-none shrink-0 rounded-lg object-cover"
+                            />
+                        </Pop>
+                    )}
+                    {phase >= 10 && phase < 12 && (
                         <motion.span
                             layoutId={resId}
                             transition={FLY}
@@ -942,20 +976,20 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, onSettled }: {
                             className="relative inline-flex"
                         >
                             <ValBox v={VALUES.tg[i]} color={TG} />
-                            {phase === 10 && (
+                            {phase === 11 && (
                                 <svg className="pointer-events-none absolute -inset-3 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: 'calc(100% + 24px)', height: 'calc(100% + 24px)' }}>
                                     <motion.path d={MARKER_PATH} fill="none" stroke={ATTENTION} strokeWidth={4} strokeLinecap="round" vectorEffect="non-scaling-stroke" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.7 }} />
                                 </svg>
                             )}
                         </motion.span>
                     )}
-                    {phase >= 11 && <span className="opacity-30" style={{ color: TG }}><ValView v={VALUES.tg[i]} /></span>}
+                    {phase >= 12 && <span className="opacity-30" style={{ color: TG }}><ValView v={VALUES.tg[i]} /></span>}
                 </motion.div>
             )}
             {(phase === 5 || phase === 8) && (
-                <div className="flex justify-center"><AgasButton label="Ок" onClick={() => setPhase(phase + 1)} /></div>
+                <div className="flex justify-center"><AgasButton label={okLabel} onClick={() => setPhase(phase + 1)} /></div>
             )}
-            {phase >= 12 && <LocalAnswerConfetti />}
+            {phase >= 13 && <LocalAnswerConfetti />}
         </LayoutGroup>
     )
 }
@@ -1061,7 +1095,7 @@ export const TypeTrigValWalk = ({ onAnswer, onComplete, mode }: Props) => {
                 ? [IntroAnglesScene, OrderGameScene, SinLadderScene, SinPuzzleScene, CosMirrorScene, FullPuzzleScene]
                 : [
                     TgBuildScene,
-                    (p: { onSettled?: () => void }) => (
+                    (p: { onSettled?: () => void; active?: boolean }) => (
                         <TgColumnFlyScene
                             i={0}
                             travolta
@@ -1069,14 +1103,14 @@ export const TypeTrigValWalk = ({ onAnswer, onComplete, mode }: Props) => {
                             {...p}
                         />
                     ),
-                    (p: { onSettled?: () => void }) => (
+                    (p: { onSettled?: () => void; active?: boolean }) => (
                         <TgColumnFlyScene
                             i={1}
                             intro={[{ text: 'Теперь ' }, { text: '45°', color: ANGLE_COLOR[45] }, { text: ' — так же!' }]}
                             {...p}
                         />
                     ),
-                    (p: { onSettled?: () => void }) => (
+                    (p: { onSettled?: () => void; active?: boolean }) => (
                         <TgColumnFlyScene
                             i={2}
                             intro={[{ text: 'И ' }, { text: '60°', color: ANGLE_COLOR[60] }]}
@@ -1197,7 +1231,10 @@ export const TypeTrigValWalk = ({ onAnswer, onComplete, mode }: Props) => {
                     step >= i ? (
                         <SceneWrapper key={`step-${i}`} innerRef={sceneRef(`step-${i}`)} active={isSceneActive(`step-${i}`)}>
                             <Fragment key={`step-${i}-${nonceFor(`step-${i}`)}`}>
-                                <Scene onSettled={() => i === step && setStepReady(true)} />
+                                {(() => {
+                                    const S = Scene as React.ComponentType<{ onSettled?: () => void; active?: boolean }>
+                                    return <S onSettled={() => i === step && setStepReady(true)} active={phase === 'intro' && i === step} />
+                                })()}
                             </Fragment>
                         </SceneWrapper>
                     ) : null,
