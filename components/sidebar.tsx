@@ -1,6 +1,6 @@
 'use client'
 
-import { Dumbbell, Flame, Swords, ChevronDown, ChevronUp, LogOut, Settings, Library, Lock, BadgeCheck, Shield } from 'lucide-react'
+import { Dumbbell, Flame, Swords, ChevronDown, ChevronUp, LogOut, Settings, Library, Lock, BadgeCheck, Shield, BarChart3 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from './ui/button'
 import Link from 'next/link'
@@ -54,13 +54,14 @@ interface SidebarProps {
   onAfterCourseChange?: () => void
   // Задачник закрыт, пока не пройдены 3 разбора электродинамики (lib/learn-unlock.ts)
   learnLocked?: boolean
+  isAdmin?: boolean
   // Бейдж-галочка "амбассадор" (userProgress.isAmbassador) — реальные
   // ученики-евангелисты, продвигающие приложение среди одноклассников,
   // включается вручную точечным SQL, не автоматически.
   isAmbassador?: boolean
 }
 
-export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest = false, className, userName, userImageSrc, onAfterCourseChange, theme, learnLocked = false, isAmbassador = false }: SidebarProps) => {
+export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest = false, className, userName, userImageSrc, onAfterCourseChange, theme, learnLocked = false, isAmbassador = false, isAdmin = false }: SidebarProps) => {
   const liveTheme = useUiThemeLive()
   const cozy = (liveTheme ?? theme ?? 'metal') === 'cozy'
   // Тёплый стиль: фон/рамка сайдбара, пункты меню (активный — карточка-блок).
@@ -104,6 +105,8 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
     { label: 'Задачник', href: '/learn', icon: Swords, disabled: learnLocked },
     { label: 'Справочник', href: '/reference', icon: Library },
     { label: 'Банда', href: '/gang', icon: Shield },
+    // Только админам — статистика (воронка) с телефона.
+    ...(isAdmin ? [{ label: 'Админка', href: '/admin/funnel', icon: BarChart3 }] : []),
     // Временно скрыты по прямой просьбе пользователя (2026-09-23) —
     // оставлены в коде закомментированными, не удалены.
     // { label: 'Магазин', href: '/shop', icon: ShoppingBag },

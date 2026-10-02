@@ -16,7 +16,8 @@ import { pickGuestNickname } from "@/lib/nickname"
 import TQuiz from "@/app/t-lesson/[t_lessonId]/TQUIZ"
 import { allTypesCT, tChallengeMistakes, lessonRatings } from "@/db/schema";
 import db from "@/db/drizzle";
-import { and, eq } from "drizzle-orm";
+import { and, eq, gt } from "drizzle-orm";
+import { LESSON_CONTENT_UPDATED_AT } from "@/lib/lessonRating";
 
 // Единственный урок тренажёра, открытый анонимным (не залогиненным)
 // посетителям — бесплатная "пробная" воронка (см. обсуждение с
@@ -326,10 +327,16 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     const guestNickname = isGuest ? pickGuestNickname() : null;
     // Код приглашения + позывной для «Позвать друга» на итогах урока.
     const invite = userProgress ? await getOrCreateInvite(userProgress.userId) : null;
-    // Оценку урока спрашиваем один раз (см. LessonRatingScreen).
+    // Оценку урока спрашиваем один раз (см. LessonRatingScreen) — и ещё раз,
+    // если урок переделали после оценки (LESSON_CONTENT_UPDATED_AT).
+    const lessonUpdatedAt = LESSON_CONTENT_UPDATED_AT[t_lessonId];
     const lessonAlreadyRated = userProgress
         ? !!(await db.query.lessonRatings.findFirst({
-            where: and(eq(lessonRatings.userId, userProgress.userId), eq(lessonRatings.tLessonId, t_lessonId)),
+            where: and(
+                eq(lessonRatings.userId, userProgress.userId),
+                eq(lessonRatings.tLessonId, t_lessonId),
+                lessonUpdatedAt ? gt(lessonRatings.createdAt, new Date(lessonUpdatedAt)) : undefined,
+            ),
             columns: { id: true },
         }))
         : false;

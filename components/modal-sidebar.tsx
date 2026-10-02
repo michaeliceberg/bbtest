@@ -14,9 +14,10 @@ type Props = {
 	userName?: string
 	userImageSrc?: string
 	learnLocked?: boolean
+	isAdmin?: boolean
 }
 
-export const MobileSidebar = ({ courses, activeCourseId, hasTrainerQuest, userName, userImageSrc, learnLocked }: Props) => {
+export const MobileSidebar = ({ courses, activeCourseId, hasTrainerQuest, userName, userImageSrc, learnLocked, isAdmin }: Props) => {
 	const [open, setOpen] = useState(false)
 	const pathname = usePathname()
 
@@ -39,6 +40,7 @@ export const MobileSidebar = ({ courses, activeCourseId, hasTrainerQuest, userNa
 					userName={userName}
 					userImageSrc={userImageSrc}
 					learnLocked={learnLocked}
+					isAdmin={isAdmin}
 					onAfterCourseChange={() => setOpen(false)}
 				/>
 			</SheetContent>

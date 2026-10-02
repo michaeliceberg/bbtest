@@ -40,8 +40,8 @@ const MainLayout = async ({ children }: Props) => {
     if (!allCourses.length) {
         return (
             <>
-                <MobileHeader userName={userProgressRow?.userName} userImageSrc={userProgressRow?.userImageSrc} />
-                <Sidebar className='hidden lg:flex' theme={getUiTheme()} userName={userProgressRow?.userName} userImageSrc={userProgressRow?.userImageSrc} isAmbassador={userProgressRow?.isAmbassador} />
+                <MobileHeader userName={userProgressRow?.userName} userImageSrc={userProgressRow?.userImageSrc} isAdmin={userProgressRow?.isAdmin === 1} />
+                <Sidebar className='hidden lg:flex' theme={getUiTheme()} userName={userProgressRow?.userName} userImageSrc={userProgressRow?.userImageSrc} isAmbassador={userProgressRow?.isAmbassador} isAdmin={userProgressRow?.isAdmin === 1} />
                 <main className='lg:pl-[280px] h-full pt-[50px] lg:pt-0'>
                     <div className='max-w-[1056px] mx-auto pt-6 h-full'>{children}</div>
                 </main>
@@ -122,6 +122,7 @@ const MainLayout = async ({ children }: Props) => {
                 userName={userProgressRow?.userName}
                 userImageSrc={userProgressRow?.userImageSrc}
                 learnLocked={learnLocked}
+                isAdmin={userProgressRow?.isAdmin === 1}
             />
             <Sidebar
                 className='hidden lg:flex'
@@ -135,6 +136,7 @@ const MainLayout = async ({ children }: Props) => {
                 userImageSrc={userProgressRow?.userImageSrc}
                 learnLocked={learnLocked}
                 isAmbassador={userProgressRow?.isAmbassador}
+                isAdmin={userProgressRow?.isAdmin === 1}
             />
             <main className='lg:pl-[280px] h-full pt-[50px] lg:pt-0'>
                 <div className='max-w-[1056px] mx-auto pt-6 h-full'>{children}</div>

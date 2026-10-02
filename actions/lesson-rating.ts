@@ -4,12 +4,12 @@
 // Один ученик — одна оценка на урок (повторная перезаписывает). Любая оценка
 // (с комментарием, если есть) сразу летит админу в Telegram.
 
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gt } from 'drizzle-orm';
 import db from '@/db/drizzle';
 import { lessonRatings, t_lessons } from '@/db/schema';
 import { auth } from '@/lib/server-auth';
 import { sendMessageToTelegram } from '@/utils/telegram';
-import { LESSON_RATING_OPTIONS } from '@/lib/lessonRating';
+import { LESSON_CONTENT_UPDATED_AT, LESSON_RATING_OPTIONS } from '@/lib/lessonRating';
 
 export async function submitLessonRating(tLessonId: number, score: number, comment?: string) {
 	if (!Number.isInteger(score) || score < 1 || score > LESSON_RATING_OPTIONS.length) return { ok: false };
@@ -17,9 +17,16 @@ export async function submitLessonRating(tLessonId: number, score: number, comme
 	const userId = session?.user?.id ?? null;
 	const cleanComment = comment?.trim().slice(0, 1000) || null;
 
+	// Если урок переделали после прошлой оценки (LESSON_CONTENT_UPDATED_AT) —
+	// новая оценка идёт отдельной строкой, старая остаётся в истории.
+	const updatedAt = LESSON_CONTENT_UPDATED_AT[tLessonId];
 	const existing = userId
 		? await db.query.lessonRatings.findFirst({
-			where: and(eq(lessonRatings.userId, userId), eq(lessonRatings.tLessonId, tLessonId)),
+			where: and(
+				eq(lessonRatings.userId, userId),
+				eq(lessonRatings.tLessonId, tLessonId),
+				updatedAt ? gt(lessonRatings.createdAt, new Date(updatedAt)) : undefined,
+			),
 		})
 		: null;
 	if (existing) {
