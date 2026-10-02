@@ -839,7 +839,7 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, fast, calc = 'calcula
     introFrac?: boolean
     // Уже понятно, что делаем: без кнопок и с короткими паузами.
     fast?: boolean
-    // Видео во время «считаем...»: calculating (широкое) или calculating2 (квадратное, ~1 с — играет дважды).
+    // Видео во время вычисления: calculating (с подписью «считаем...») или calculating2 (без подписи, зеркально).
     calc?: 'calculating' | 'calculating2'
     onSettled?: () => void
     // Сцена текущая (Траволта танцует, пока не нажали «Дальше»).
@@ -875,13 +875,12 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, fast, calc = 'calcula
         const t = setTimeout(() => setPhase((p) => Math.max(p, fast ? 3 : 2)), fast ? 2000 : 2400)
         return () => clearTimeout(t)
     }, [phase, introFrac, fast])
-    const calcPlays = useRef(0)
     // Зумерские подписи вместо «Ок» — новая на каждую кнопку.
     const okLabel = useMemo(() => pickFunNextLabel(), [phase])
     // Страховка, если видео calculating не доиграет.
     useEffect(() => {
         if (phase !== 9) return
-        const t = setTimeout(() => setPhase((p) => Math.max(p, 10)), 7000)
+        const t = setTimeout(() => setPhase((p) => Math.max(p, 10)), 9000)
         return () => clearTimeout(t)
     }, [phase])
     const sinFlown = phase >= 4
@@ -967,23 +966,16 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, fast, calc = 'calcula
                     {phase >= 9 && <Pop><span>=</span></Pop>}
                     {phase === 9 && (
                         <Pop className="flex-col items-center gap-1">
-                            <span className="text-base md:text-lg font-black text-[#F2C35B]">считаем...</span>
+                            {calc === 'calculating' && <span className="text-base md:text-lg font-black text-[#F2C35B]">считаем...</span>}
                             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                             <video
                                 src={`/video/${calc}.mp4`}
                                 autoPlay
                                 muted
                                 playsInline
-                                onEnded={(e) => {
-                                    calcPlays.current += 1
-                                    // Короткий ролик (calculating2, ~1 с) — играем дважды.
-                                    if (calc === 'calculating2' && calcPlays.current < 2) {
-                                        e.currentTarget.play().catch(() => {})
-                                        return
-                                    }
-                                    setPhase((p) => Math.max(p, 10))
-                                }}
-                                className={cn('max-w-none shrink-0 rounded-lg object-cover', calc === 'calculating2' ? 'h-28 w-28' : 'h-24 w-[170px]')}
+                                onEnded={() => setPhase((p) => Math.max(p, 10))}
+                                // calculating2 — зеркально по горизонтали.
+                                className={cn('max-w-none shrink-0 rounded-lg object-cover', calc === 'calculating2' ? 'h-28 w-[130px] -scale-x-100' : 'h-24 w-[170px]')}
                             />
                         </Pop>
                     )}
@@ -1011,6 +1003,106 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, fast, calc = 'calcula
             )}
             {phase >= 13 && <LocalAnswerConfetti />}
         </LayoutGroup>
+    )
+}
+
+
+// 60°: стрелка от tg 30° к tg 60° с подписью «переверни» → √3 в tg 60° →
+// по таблице пробегает блик → «ГОТОВО!» и справа «Осталось запомнить» + Дикаприо.
+const TgFlipFinishScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [phase, setPhase] = useState(0) // 0 таблица, 1 стрелка, 2 √3, 3 блик, 4 ГОТОВО
+    const wrapRef = useRef<HTMLDivElement>(null)
+    const [arrow, setArrow] = useState<{ x1: number; x2: number; y: number } | null>(null)
+    useEffect(() => {
+        const next: Record<number, number> = { 1: 1800, 2: 1300, 3: 1200, 4: 1800 }
+        if (!(phase in next)) return
+        const t = setTimeout(() => (phase === 4 ? onSettled?.() : setPhase(phase + 1)), next[phase])
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phase])
+    useEffect(() => {
+        if (phase !== 1) return
+        const w = wrapRef.current
+        const a = w?.querySelector('[data-cell="tg-0"]')
+        const b = w?.querySelector('[data-cell="tg-2"]')
+        if (!w || !a || !b) return
+        const wr = w.getBoundingClientRect()
+        const ar = a.getBoundingClientRect()
+        const br = b.getBoundingClientRect()
+        setArrow({ x1: ar.left + ar.width / 2 - wr.left, x2: br.left + br.width / 2 - wr.left, y: ar.bottom - wr.top + 4 })
+    }, [phase])
+    return (
+        <>
+            <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 1)), 600)}>
+                <div ref={wrapRef} className="relative w-full pb-14">
+                    <TrigTable
+                        fns={['sin', 'cos', 'tg']}
+                        cell={(fn, j) =>
+                            fn !== 'tg' ? (
+                                <span style={{ color: FN_COLOR[fn] }}><ValView v={VALUES[fn][j]} /></span>
+                            ) : j < 2 ? (
+                                <span style={{ color: TG }}><ValView v={VALUES.tg[j]} /></span>
+                            ) : phase >= 2 ? (
+                                <Pop><span style={{ color: TG }}><ValView v={VALUES.tg[2]} /></span></Pop>
+                            ) : null
+                        }
+                    />
+                    {phase >= 1 && arrow && (
+                        <>
+                            <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible">
+                                <defs>
+                                    <marker id="tg-flip-head" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                                        <path d="M0 0 L10 5 L0 10 z" fill={ATTENTION} />
+                                    </marker>
+                                </defs>
+                                <motion.path
+                                    d={`M ${arrow.x1} ${arrow.y} Q ${(arrow.x1 + arrow.x2) / 2} ${arrow.y + 46} ${arrow.x2} ${arrow.y}`}
+                                    fill="none"
+                                    stroke={ATTENTION}
+                                    strokeWidth={4}
+                                    strokeLinecap="round"
+                                    markerEnd="url(#tg-flip-head)"
+                                    initial={{ pathLength: 0 }}
+                                    animate={{ pathLength: 1 }}
+                                    transition={{ duration: 0.8, ease: 'easeInOut' }}
+                                />
+                            </svg>
+                            <span
+                                className="pointer-events-none absolute -translate-x-1/2"
+                                style={{ left: (arrow.x1 + arrow.x2) / 2, top: arrow.y + 28 }}
+                            >
+                                <Pop delay={0.7}>
+                                    <span className="text-lg md:text-xl font-black" style={{ color: ATTENTION }}>переверни</span>
+                                </Pop>
+                            </span>
+                        </>
+                    )}
+                    {/* Блик: светлая диагональная полоса слева направо по всей таблице. */}
+                    {phase >= 3 && (
+                        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl">
+                            <motion.div
+                                className="absolute inset-y-0 w-1/4"
+                                style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent)', skewX: -20 }}
+                                initial={{ left: '-30%' }}
+                                animate={{ left: '120%' }}
+                                transition={{ duration: 1, ease: 'easeInOut' }}
+                            />
+                        </div>
+                    )}
+                </div>
+            </DiagramBlock>
+            {phase >= 4 && (
+                <div className="w-full flex items-center justify-center gap-5">
+                    <Pop><span className="text-4xl md:text-5xl font-black text-[#A1D151]">ГОТОВО!</span></Pop>
+                    <Pop delay={0.5} className="flex-col items-center gap-1">
+                        <span className="text-base md:text-lg font-black text-[#F2F7FB]">Осталось запомнить</span>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/lesson-pics/dicaprio-point.webp" alt="" className="h-28 w-28 object-contain" draggable={false} />
+                    </Pop>
+                </div>
+            )}
+            {phase >= 4 && <LocalAnswerConfetti />}
+        </>
     )
 }
 
@@ -1132,14 +1224,7 @@ export const TypeTrigValWalk = ({ onAnswer, onComplete, mode }: Props) => {
                             {...p}
                         />
                     ),
-                    (p: { onSettled?: () => void; active?: boolean }) => (
-                        <TgColumnFlyScene
-                            i={2}
-                            intro={[{ text: 'И ' }, { text: '60°', color: ANGLE_COLOR[60] }]}
-                            {...p}
-                        />
-                    ),
-                    TgFullScene,
+                    TgFlipFinishScene,
                 ],
         [mode],
     )
