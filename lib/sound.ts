@@ -149,11 +149,13 @@ export function playSoundTracked(src: string, onEnded?: () => void, volume = 1):
 
 // Общие звуки ответа — один источник правды для тренажёра, задачника и
 // пошаговых разборов (*WALK).
-export const WRONG_ANSWER_SOUND = '/snd-answer-wrong.mp3'
+export const WRONG_ANSWER_SOUND = '/snd-wrong-answer-click.mp3'
 export const WIN_SOUND = '/snd-harp-win.mp3'
 export const TEST_LOSE_SOUND = '/snd-harp-loose.mp3'
 export const TEST_WIN_SOUND = '/snd-harp-trump-win.mp3'
 export const CASE_PRIZE_SOUND = '/snd-unboxing-prize.mp3'
+// Выпал гем из кейса — свой звук вместо общего «приз!».
+export const GEM_DROP_SOUND = '/snd-gem-drop.mp3'
 // Экран «Квесты дня»: заполнение прогресс-бара / «+1» над сундуком.
 export const QUEST_SWOOSH_SOUND = '/snd-progress-water.mp3'
 export const QUEST_DONE_SOUND = '/snd-plus1-appear2.mp3'
