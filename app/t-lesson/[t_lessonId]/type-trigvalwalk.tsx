@@ -528,7 +528,7 @@ const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled, extraRows, foo
                             {done && extraRows}
                         </div>
                         {!done && (
-                            <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
+                            <div className="grid grid-cols-3 gap-2 w-full max-w-sm">
                                 {tokens.map((tok) => {
                                     const isUsed = used.includes(tok.id)
                                     const isWrong = wrongId === tok.id
@@ -539,7 +539,7 @@ const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled, extraRows, foo
                                             onClick={() => tap(tok)}
                                             disabled={isUsed}
                                             className={cn(
-                                                'flex min-h-[72px] items-center justify-center rounded-xl border-2 text-xl md:text-2xl font-extrabold transition-[opacity,border-color,background-color] duration-200',
+                                                'flex min-h-[56px] items-center justify-center rounded-xl border-2 text-lg md:text-xl font-extrabold transition-[opacity,border-color,background-color] duration-200',
                                                 isUsed && 'opacity-0 pointer-events-none',
                                                 isWrong ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]' : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]',
                                             )}
@@ -1141,7 +1141,7 @@ const OptButton = ({ o, onClick, disabled, state }: { o: Opt; onClick?: () => vo
         onClick={onClick}
         disabled={disabled}
         className={cn(
-            'flex min-h-[72px] items-center justify-center py-3 px-3 rounded-xl border-2 text-xl md:text-2xl font-extrabold transition-colors',
+            'flex min-h-[52px] items-center justify-center py-2 px-2 rounded-xl border-2 text-lg md:text-xl font-extrabold transition-colors',
             state === 'correct' && 'border-[#A1D151] bg-[#A1D15122] text-[#A1D151]',
             state === 'wrong' && 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]',
             state === 'idle' && 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]',
@@ -1337,7 +1337,7 @@ export const TypeTrigValWalk = ({ onAnswer, onComplete, mode }: Props) => {
                                 <DiagramBlock>
                                     <TrialPrompt t={t} />
                                 </DiagramBlock>
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid w-full max-w-sm mx-auto gap-2" style={{ gridTemplateColumns: `repeat(${t.options.length}, minmax(0, 1fr))` }}>
                                     {t.options.map((o) => {
                                         const k = optKey(o)
                                         const isWrong = isCurrent && wrongTried.includes(k)
