@@ -325,8 +325,8 @@ const TypedBig = ({ parts, onDone, readMs = 500, slow }: { parts: BigPart[]; onD
 // Фазы: 0 печать фразы → 1 лесенка → 2 ждём «Агась» → 3 таблица (углы) →
 // 4 числители → 5 ждём «Агась» → 6 печать «делим на 2» → 7 двойки → 8 готово.
 const AgasButton = ({ onClick }: { onClick: () => void }) => (
-    <Pop>
-        <button type="button" onClick={onClick} className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>
+    <Pop className="w-full max-w-xs">
+        <button type="button" onClick={onClick} className={cn(walkthroughButtonClass(true), 'w-full px-8')} style={walkthroughButtonStyle(true)}>
             Агась
         </button>
     </Pop>
