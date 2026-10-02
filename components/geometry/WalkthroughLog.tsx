@@ -76,12 +76,34 @@ export const WALKTHROUGH_NEXT_PHRASES = [
 
 // defaultLabel — обычное "Дальше"/"Готово" и т.п., chance — как часто
 // вместо него показывать одну из фраз выше.
-export const pickWalkthroughNextLabel = (defaultLabel: string, chance: number = 0.4): string => {
-    if (Math.random() < chance) {
-        return WALKTHROUGH_NEXT_PHRASES[Math.floor(Math.random() * WALKTHROUGH_NEXT_PHRASES.length)];
+// Вместо «Дальше» — всегда смешное слово (просьба пользователя, 2026-10-02:
+// «как в математике» — сперва было только в уроке 490). Колода без повторов:
+// пока не выпадут все фразы, ни одна не повторится. «ГААААЗ» — редкая.
+export const FUN_NEXT_PHRASES = [
+    'Агась', 'Го!', 'Понял-принял', 'Изи', 'Погнали', 'Фармим дальше', 'Ясно-понятно', 'Ок, бро', 'Вкатился', 'База',
+    'Жми на газ', 'Чётко', 'Без базара', 'Понятно, го', 'Окей-окей', 'Принято', 'Летс го', 'Записал',
+    'Кайф, дальше', 'Чекнул', 'Залетаем', 'Врубился', 'Мотаю на ус', 'Всё по фактам', 'Дошло', 'Так-так, дальше',
+    'Логично', 'Ну го', 'Зашло', 'Опа, понял', 'Красиво', 'Едем дальше', 'Шарю', 'Агонь', 'Изи катка',
+    'Ещё!', 'Гоу-гоу', 'Вот это да', 'ГААААЗ',
+];
+let funDeck: string[] = [];
+let lastFun = '';
+export const pickFunNextLabel = (): string => {
+    if (funDeck.length === 0) {
+        funDeck = [...FUN_NEXT_PHRASES];
+        for (let i = funDeck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [funDeck[i], funDeck[j]] = [funDeck[j], funDeck[i]];
+        }
+        if (funDeck[funDeck.length - 1] === lastFun) funDeck.unshift(funDeck.pop()!);
     }
-    return defaultLabel;
+    lastFun = funDeck.pop()!;
+    return lastFun;
 };
+
+// Аргументы оставлены для совместимости — теперь всегда смешное слово.
+// eslint-disable-next-line no-unused-vars
+export const pickWalkthroughNextLabel = (_defaultLabel: string, _chance?: number): string => pickFunNextLabel();
 
 // Подписи той же кнопки "Дальше", но ПОСЛЕ НЕВЕРНОГО ответа тренировочного
 // задания — по прямой просьбе пользователя (2026-09-19, "текст будет не

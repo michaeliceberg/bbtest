@@ -30,6 +30,7 @@ import {
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     isFieryMilestoneTrial, FieryFeedbackBanner,
     useWalkthroughCombo,
+    pickFunNextLabel,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -61,26 +62,7 @@ const TEXT = 'w-full text-base md:text-lg text-[#F2F7FB]'
 const HOUSE_STICKER = '/lesson-pics/house-sticker.webp'
 const WALKER_STICKER = '/lesson-pics/dicaprio-walk2.webp'
 
-// Вместо «Дальше» — всегда смешное слово (просьба пользователя). Колода без
-// повторов: пока не выпадут все фразы, ни одна не повторится. «ГААААЗ» — редкая
-// (одна из ~40).
-const FUN_NEXT = [
-    'Агась', 'Го!', 'Понял-принял', 'Изи', 'Погнали', 'Фармим дальше', 'Ясно-понятно', 'Ок, бро', 'Вкатился', 'База',
-    'Жми на газ', 'Чётко', 'Без базара', 'Понятно, го', 'Окей-окей', 'Принято', 'Летс го', 'Записал',
-    'Кайф, дальше', 'Чекнул', 'Залетаем', 'Врубился', 'Мотаю на ус', 'Всё по фактам', 'Дошло', 'Так-так, дальше',
-    'Логично', 'Ну го', 'Зашло', 'Опа, понял', 'Красиво', 'Едем дальше', 'Шарю', 'Агонь', 'Изи катка',
-    'Ещё!', 'Гоу-гоу', 'Вот это да', 'ГААААЗ',
-]
-let funDeck: string[] = []
-let lastFun = ''
-const pickFun = () => {
-    if (funDeck.length === 0) {
-        funDeck = shuffle(FUN_NEXT)
-        if (funDeck[funDeck.length - 1] === lastFun) funDeck.unshift(funDeck.pop()!)
-    }
-    lastFun = funDeck.pop()!
-    return lastFun
-}
+const pickFun = pickFunNextLabel
 const pickPraise = () => CORRECT_FEEDBACK_PHRASES[Math.floor(Math.random() * CORRECT_FEEDBACK_PHRASES.length)]
 const VIDEO_APPLAUSE = '/video/dicaprio-applause.mp4'
 
