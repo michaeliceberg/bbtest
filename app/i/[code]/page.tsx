@@ -7,9 +7,11 @@
 
 import type { Metadata } from 'next'
 import { InviteRedirect } from './invite-redirect'
-import { TRIAL_T_LESSON_ID } from '@/lib/referral'
+import { TRIAL_TRACKS, type TrialSubject } from '@/lib/trialTracks'
 
-type Props = { params: { code: string }; searchParams: { l?: string; t?: string; s?: string } }
+type Props = { params: { code: string }; searchParams: { l?: string; t?: string; s?: string; c?: string } }
+
+const subjectOf = (sp: Props['searchParams']): TrialSubject => (sp.c === 'm' ? 'math' : 'physics')
 
 const BASE = 'https://ggege.ru'
 
@@ -20,7 +22,7 @@ export const generateMetadata = ({ params, searchParams }: Props): Metadata => {
 	if (searchParams.s) q.set('s', searchParams.s)
 	const image = `${BASE}/api/og/invite?${q.toString()}`
 	const title = '🍕 Заработай нам пиццу!'
-	const description = 'Пройди урок физики без регистрации. Сможешь круче?'
+	const description = `Пройди урок ${TRIAL_TRACKS[subjectOf(searchParams)].lessonGen} без регистрации. Сможешь круче?`
 	return {
 		title,
 		description,
@@ -29,8 +31,8 @@ export const generateMetadata = ({ params, searchParams }: Props): Metadata => {
 	}
 }
 
-const InvitePage = ({ params }: Props) => (
-	<InviteRedirect href={`/t-lesson/${TRIAL_T_LESSON_ID}?ref=${encodeURIComponent(params.code)}`} />
+const InvitePage = ({ params, searchParams }: Props) => (
+	<InviteRedirect href={`/t-lesson/${TRIAL_TRACKS[subjectOf(searchParams)].trial}?ref=${encodeURIComponent(params.code)}`} />
 )
 
 export default InvitePage

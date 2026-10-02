@@ -14,6 +14,7 @@ import { CelebrationShell } from '@/components/celebration-shell'
 import { markCashbackSeen } from '@/actions/referral'
 import { MAX_PIZZA_SLICES } from '@/lib/caseRewards'
 import { COZY, type UiTheme } from '@/lib/cozyTheme'
+import { TRIAL_TRACKS, type TrialSubject } from '@/lib/trialTracks'
 
 const LUCKY_COLOR = '#FBBF24'
 
@@ -43,9 +44,9 @@ export const PizzaPie = ({ collected, highlight = 0, size = 150 }: { collected: 
 )
 
 const WELCOME_ACCENT = '#FBBF24'
-const WELCOME_STEPS = ['Ток крутит поле 🌀', 'Фарадей — наш брат 🤝', 'Ленц — душнила, но база 🧱']
 
-export const ReferralWelcome = ({ inviterNickname, theme = 'metal', onStart }: { inviterNickname: string | null; theme?: UiTheme; onStart?: () => void }) => {
+export const ReferralWelcome = ({ inviterNickname, theme = 'metal', onStart, subject = 'physics' }: { inviterNickname: string | null; theme?: UiTheme; onStart?: () => void; subject?: TrialSubject }) => {
+	const WELCOME_STEPS = TRIAL_TRACKS[subject].steps
 	const [open, setOpen] = useState(true)
 	if (!open) return null
 	const cozy = theme === 'cozy'
@@ -205,7 +206,7 @@ export const ReferralCashbackScreen = ({ items, theme = 'metal' }: { items: Cash
 					</li>
 				))}
 			</ul>
-			<p className="mt-5 text-base text-[#C9D3D9]">Твой друг прошёл 3 урока Электродинамики — пицца твоя. Зови ещё! 🤝</p>
+			<p className="mt-5 text-base text-[#C9D3D9]">Твой друг прошёл 3 урока — пицца твоя. Зови ещё! 🤝</p>
 		</CelebrationShell>
 	)
 }

@@ -1,5 +1,7 @@
 // lib/referral.ts
 //
+import { TRIAL_TRACKS, type TrialSubject } from '@/lib/trialTracks'
+
 // Базовая реферальная ссылка (Фаза 2, 2026-09-29, один уровень — без
 // банд/ролей, это Фаза 3). Ссылка несёт ПОЛНЫЙ userId (не короткий
 // производный код, как в utils/telegram.ts's generateBindCode) —
@@ -30,10 +32,12 @@ export const computeReferralBonus = (referrerLevel: number, referrerQuestsTotal:
 // Приглашение друга после урока: ggege.ru/i/КОД — страница с картинкой-превью
 // для мессенджеров (app/i/[code]), сама переводит в пробный урок 485.
 // l/t/s — урок, время (сек), серия: попадают в картинку-превью.
-export const TRIAL_T_LESSON_ID = 485
-export const getInviteLink = (code: string | null | undefined, extra?: { l?: number; t?: number; s?: number }): string => {
-	if (!code) return `https://ggege.ru/t-lesson/${TRIAL_T_LESSON_ID}`
+// c=m — приглашение в пробный урок математики (490), без c — физики (485).
+export const TRIAL_T_LESSON_ID = TRIAL_TRACKS.physics.trial
+export const getInviteLink = (code: string | null | undefined, extra?: { l?: number; t?: number; s?: number }, subject: TrialSubject = 'physics'): string => {
+	if (!code) return `https://ggege.ru/t-lesson/${TRIAL_TRACKS[subject].trial}`
 	const q = new URLSearchParams()
+	if (subject === 'math') q.set('c', 'm')
 	if (extra?.l) q.set('l', String(extra.l))
 	if (extra?.t) q.set('t', String(extra.t))
 	if (extra?.s && extra.s >= 3) q.set('s', String(extra.s))

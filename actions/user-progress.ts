@@ -15,7 +15,7 @@ import { bumpCourseStreak } from '@/lib/streak';
 import { getDailyQuestStatus } from './generate-trainer-quest';
 import { REFERRAL_COOKIE } from '@/lib/referral';
 import { grantReferralChainRewards, type ReferralWelcomeGift } from '@/lib/referralRewards';
-import { LEARN_UNLOCK_T_LESSONS } from '@/lib/learn-unlock';
+import { ALL_TRACK_LESSONS } from '@/lib/trialTracks';
 
 const POINTS_TO_REFILL = 10
 
@@ -380,7 +380,7 @@ export const upsertTrainerLessonProgress = async (
 
 		// Приглашённый прошёл все 3 разбора электродинамики — раздаём пиццу ему
 		// и вверх по ветке (один раз).
-		if (LEARN_UNLOCK_T_LESSONS.includes(t_lessonId)) {
+		if (ALL_TRACK_LESSONS.includes(t_lessonId)) {
 			referralGift = await grantReferralChainRewards(userId).catch(() => null);
 		}
 	}

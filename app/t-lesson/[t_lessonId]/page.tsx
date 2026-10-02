@@ -1,3 +1,4 @@
+import { PUBLIC_TRIAL_T_LESSON_IDS, subjectByLesson, subjectByTCourse } from '@/lib/trialTracks';
 import { ReferralCatcher } from '@/components/referral-catcher';
 import { getOrCreateInvite, resolveInviteCode } from '@/lib/invite';
 import { ReferralWelcome } from '@/components/referral-screens';
@@ -29,7 +30,7 @@ import { and, eq } from "drizzle-orm";
 // определённый набор именованных экспортов (metadata/generateStaticParams
 // и т.п.), любой другой ломает генерацию типов маршрутов
 // (.next/types/.../page.ts, "does not satisfy the constraint").
-const PUBLIC_TRIAL_T_LESSON_ID = 485;
+// Уроки без регистрации — по одному на предмет: PUBLIC_TRIAL_T_LESSON_IDS (lib/trialTracks.ts).
 
 // Только для type='MULTISTEP' — один шаг многошагового задания (см.
 // CLAUDE.md "тренажёр Арифметики", приём "0,75×32 → перевести в дробь →
@@ -320,7 +321,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // (жёсткий auth()-гейт) берём getTLessonPublic() — тот же запрос без
     // гейта. Залогиненный пользователь на этом же уроке идёт обычным путём
     // (isGuest=false), поведение для него не меняется вообще.
-    const isGuest = !userProgress && t_lessonId === PUBLIC_TRIAL_T_LESSON_ID;
+    const isGuest = !userProgress && PUBLIC_TRIAL_T_LESSON_IDS.includes(t_lessonId);
     const t_lesson = isGuest ? await getTLessonPublic(t_lessonId) : await getTLesson(t_lessonId);
     const guestNickname = isGuest ? pickGuestNickname() : null;
     // Код приглашения + позывной для «Позвать друга» на итогах урока.
@@ -1854,13 +1855,14 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         <>
         {/* ?ref= из приглашения в пробный урок — ставит cookie referredBy */}
         <ReferralCatcher />
-        {isGuest && searchParams?.ref && <ReferralWelcome inviterNickname={inviter?.nickname ?? null} theme="cozy" />}
+        {isGuest && searchParams?.ref && <ReferralWelcome inviterNickname={inviter?.nickname ?? null} theme="cozy" subject={subjectByLesson(t_lessonId)} />}
         <TQuiz
             t_lessonId={t_lesson.id}
             t_lessonTitle={t_lesson.title}
             questions1={questions}
             userName={isGuest ? guestNickname! : userProgress!.userName}
             isGuest={isGuest}
+            inviteSubject={subjectByTCourse(t_lesson.t_unit.t_courseId)}
             invite={invite}
             lessonAlreadyRated={lessonAlreadyRated}
             stage={stageParam}

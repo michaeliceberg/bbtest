@@ -15,7 +15,7 @@ import { and, eq, isNull, sql } from 'drizzle-orm'
 import db from '@/db/drizzle'
 import { identities, referralRewards, userProgress } from '@/db/schema'
 import { applyResolvedReward } from '@/lib/caseApply'
-import { isLearnUnlocked } from '@/lib/learn-unlock'
+import { referralLessonsLeft } from '@/lib/learn-unlock'
 import { getOrCreateInvite } from '@/lib/invite'
 import { sendMessageToTelegram } from '@/utils/telegram'
 
@@ -59,7 +59,7 @@ async function notifyTelegram(userId: string, text: string) {
 
 export type ReferralWelcomeGift = { slices: number; lucky: boolean; nickname: string; pizzaNow: number }
 
-// Вызывается после каждого завершённого урока из LEARN_UNLOCK_T_LESSONS.
+// Вызывается после каждого завершённого урока из ALL_TRACK_LESSONS (lib/trialTracks.ts).
 // Раздаёт пиццу по ветке ровно один раз (атомарно метит referral_rewarded_at).
 export async function grantReferralChainRewards(userId: string): Promise<ReferralWelcomeGift | null> {
 	const me = await db.query.userProgress.findFirst({
@@ -67,7 +67,7 @@ export async function grantReferralChainRewards(userId: string): Promise<Referra
 		columns: { invitedByUserId: true, referralRewardedAt: true },
 	})
 	if (!me?.invitedByUserId || me.referralRewardedAt) return null
-	if (!(await isLearnUnlocked(userId, false))) return null
+	if ((await referralLessonsLeft(userId)) > 0) return null
 
 	const claimed = await db.update(userProgress)
 		.set({ referralRewardedAt: new Date() })
@@ -102,7 +102,7 @@ export async function grantReferralChainRewards(userId: string): Promise<Referra
 		current = up.invitedByUserId
 	}
 
-	await sendMessageToTelegram(`🍕 Реферал дошёл до конца: "${nickname}" прошёл 3 урока электродинамики (+${slices}${lucky ? ', счастливчик' : ''}), пицца раздана по ветке.`).catch(() => null)
+	await sendMessageToTelegram(`🍕 Реферал дошёл до конца: "${nickname}" прошёл 3 урока (физика или тригонометрия) (+${slices}${lucky ? ', счастливчик' : ''}), пицца раздана по ветке.`).catch(() => null)
 
 	return { slices, lucky, nickname, pizzaNow }
 }

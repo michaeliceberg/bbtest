@@ -35,7 +35,7 @@ import { COZY } from '@/lib/cozyTheme';
 import { GuestRewardClaimer } from '@/components/guest-reward-claimer';
 import { ReferralCashbackScreen } from '@/components/referral-screens';
 import { getUnseenCashback } from '@/lib/referralRewards';
-import { LEARN_UNLOCK_T_LESSONS } from '@/lib/learn-unlock';
+import { TRIAL_SUBJECTS, TRIAL_TRACKS, subjectByTCourse } from '@/lib/trialTracks';
 
 const TLearnPage = async () => {
     const session = await auth();
@@ -208,8 +208,16 @@ const TLearnPage = async () => {
     // прогресс приглашённого к своему кусочку (3 урока электродинамики).
     const cashback = await getUnseenCashback(userProgress.userId).catch(() => []);
     const referralLessonsLeft = userProgress.invitedByUserId && !userProgress.referralRewardedAt
-        ? LEARN_UNLOCK_T_LESSONS.filter((id) => !t_lessonProgress.some((p) => p.t_lessonId === id && p.trainingPts > 0)).length
+        ? Math.min(...TRIAL_SUBJECTS.map((s) => TRIAL_TRACKS[s].lessons.filter((id) => !t_lessonProgress.some((p) => p.t_lessonId === id && p.trainingPts > 0)).length))
         : 0;
+    // Какой трек показать в плашке: тот, что ближе к концу; при равенстве — предмет открытого тренажёра.
+    const referralTopic = (() => {
+        const left = (s: typeof TRIAL_SUBJECTS[number]) => TRIAL_TRACKS[s].lessons.filter((id) => !t_lessonProgress.some((p) => p.t_lessonId === id && p.trainingPts > 0)).length;
+        const own = subjectByTCourse(activeTCourse?.id);
+        const best = left(own) === referralLessonsLeft ? own : TRIAL_SUBJECTS.find((s) => left(s) === referralLessonsLeft) ?? own;
+        return TRIAL_TRACKS[best].topicGen;
+    })();
+
 
     // "Ударный режим под угрозой" (components/streak-risk-banner.tsx) —
     // тот же единый курсовый стрик, что и на /learn (см. lib/streak.ts),
@@ -289,7 +297,7 @@ const TLearnPage = async () => {
                     </div>
                     {referralLessonsLeft > 0 && (
                         <div className='mb-4 rounded-xl border-2 border-yellow-400/50 bg-yellow-400/10 px-4 py-3 text-center font-bold text-yellow-200'>
-                            🍕 Пройди ещё {referralLessonsLeft} {referralLessonsLeft === 1 ? 'урок' : 'урока'} Электродинамики — и получишь кусочек пиццы!
+                            🍕 Пройди ещё {referralLessonsLeft} {referralLessonsLeft === 1 ? 'урок' : 'урока'} {referralTopic} — и получишь кусочек пиццы!
                         </div>
                     )}
 

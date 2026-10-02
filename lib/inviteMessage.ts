@@ -5,9 +5,11 @@
 // Ссылку добавляет shareInviteLink последней строкой: по ней мессенджер
 // рисует картинку-превью (app/i/[code]).
 
-const HOOKS = [
-	'Я тут физику прохожу и пиццу фармлю 🍕',
-	'Нашёл приложение, где за физику дают пиццу. Без шуток 🍕',
+import { TRIAL_TRACKS, type TrialSubject } from '@/lib/trialTracks'
+
+const hooksFor = (subject: TrialSubject) => [
+	`Я тут ${TRIAL_TRACKS[subject].subjectAcc} прохожу и пиццу фармлю 🍕`,
+	`Нашёл приложение, где за ${TRIAL_TRACKS[subject].subjectAcc} дают пиццу. Без шуток 🍕`,
 	'Залетай, тут ЕГЭ решают за пиццу 🍕',
 ]
 
@@ -18,12 +20,15 @@ export const buildInviteMessage = ({
 	lessonTitle,
 	seconds,
 	streak,
+	subject = 'physics',
 }: {
 	nickname: string | null
 	lessonTitle: string
 	seconds: number
 	streak: number
+	subject?: TrialSubject
 }) => {
+	const HOOKS = hooksFor(subject)
 	const hook = HOOKS[Math.floor(Math.random() * HOOKS.length)]
 	const lines = [
 		'🍕 ЗАРАБОТАЙ НАМ ПИЦЦУ!',
@@ -34,7 +39,7 @@ export const buildInviteMessage = ({
 		`⚡ «${lessonTitle}» — за ${formatSeconds(seconds)}${streak >= 3 ? `, ${streak} подряд без ошибок` : ''}`,
 		'',
 		'👇 Пройди урок по ссылке — регистрация не нужна.',
-		'Пройдёшь 3 урока Электродинамики — кусочек пиццы получим ОБА 🤝',
+		`Пройдёшь 3 урока ${TRIAL_TRACKS[subject].topicGen} — кусочек пиццы получим ОБА 🤝`,
 		'',
 		'Слабо побить мой результат? 😏',
 	]

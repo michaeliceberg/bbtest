@@ -53,6 +53,7 @@ import { useSession } from "next-auth/react"
 import { shareInviteLink } from "@/components/share-story-button"
 import { buildInviteMessage } from "@/lib/inviteMessage"
 import { getInviteLink } from "@/lib/referral"
+import type { TrialSubject } from "@/lib/trialTracks"
 import { GuestVibePicker, GUEST_NICKNAME_STORAGE_KEY, GUEST_VIBES_STORAGE_KEY } from "@/components/guest-vibe-picker"
 
 // "Горячий вопрос" (questionType 'HOT', см. type-hot.tsx) — факультативный,
@@ -160,6 +161,7 @@ type Props = {
   // ниже), а финальный экран наград — GuestRewardScreen (кейс с призом +
   // CTA "зарегистрируйся, чтобы забрать") вместо TrainerQuestRewardsScreen.
   isGuest?: boolean,
+  inviteSubject?: TrialSubject,
   lessonAlreadyRated?: boolean,
   invite?: { code: string; nickname: string } | null,
 }
@@ -178,6 +180,7 @@ export default function TQuiz({
   nextTLessonHref,
   isAdmin,
   isGuest,
+  inviteSubject = 'physics',
   lessonAlreadyRated,
   invite,
 }: Props) {
@@ -1151,8 +1154,9 @@ export default function TQuiz({
                   lessonTitle: t_lessonTitle,
                   seconds: elapsedSeconds,
                   streak: maxStreakRef.current,
+                  subject: inviteSubject,
                 }),
-                getInviteLink(invite?.code, { l: t_lessonId, t: elapsedSeconds, s: maxStreakRef.current }),
+                getInviteLink(invite?.code, { l: t_lessonId, t: elapsedSeconds, s: maxStreakRef.current }, inviteSubject),
               )
               if (res === 'copied') toast.success('Ссылка скопирована — отправь другу')
             }}
