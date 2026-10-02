@@ -815,7 +815,7 @@ const MarkerCircle = ({ label, color }: { label: string; color: string }) => (
             />
         </svg>
         <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-3 -translate-x-1/2 whitespace-nowrap">
-            <Pop delay={0.6}>
+            <Pop delay={1.6}>
                 <span className="rounded-lg border-2 px-2 py-0.5 text-sm md:text-base font-black" style={{ borderColor: color, backgroundColor: '#161F23', color }}>
                     {label}
                 </span>
@@ -824,11 +824,12 @@ const MarkerCircle = ({ label, color }: { label: string; color: string }) => (
     </>
 )
 
-const TgColumnFlyScene = ({ i, travolta, intro, outro, onSettled }: {
+const TgColumnFlyScene = ({ i, travolta, intro, introFrac, onSettled }: {
     i: number
     travolta?: boolean
-    intro: BigPart[]
-    outro: string
+    intro?: BigPart[]
+    // Вместо фразы — «Тангенс = синус / косинус» дробью.
+    introFrac?: boolean
     onSettled?: () => void
 }) => {
     // 0 таблица, 1 фраза, 2 ждём «Агась», 3 формула + обводка синуса,
@@ -837,7 +838,8 @@ const TgColumnFlyScene = ({ i, travolta, intro, outro, onSettled }: {
     // 10 рамка, 11 результат летит в таблицу, 12 вывод
     const [phase, setPhase] = useState(0)
     useEffect(() => {
-        const next: Record<number, number> = { 3: 2000, 4: 1300, 6: 2000, 7: 1300, 9: 1100, 10: 1200, 11: 1400 }
+        // 3/6: обводка (0.7 с) → пауза → стикер (1.6 с) → пауза → падение.
+        const next: Record<number, number> = { 3: 3600, 4: 1300, 6: 3600, 7: 1300, 9: 1100, 10: 1200, 11: 1400 }
         if (!(phase in next)) return
         const t = setTimeout(() => setPhase(phase + 1), next[phase])
         return () => clearTimeout(t)
@@ -845,6 +847,18 @@ const TgColumnFlyScene = ({ i, travolta, intro, outro, onSettled }: {
     const sinId = `tg-sin-${i}`
     const cosId = `tg-cos-${i}`
     const resId = `tg-res-${i}`
+    useEffect(() => {
+        if (phase !== 12) return
+        const t = setTimeout(() => onSettled?.(), 900)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phase])
+    // Дробь «Тангенс = синус / косинус»: части появляются по очереди.
+    useEffect(() => {
+        if (phase !== 1 || !introFrac) return
+        const t = setTimeout(() => setPhase((p) => Math.max(p, 2)), 2400)
+        return () => clearTimeout(t)
+    }, [phase, introFrac])
     const sinFlown = phase >= 4
     const cosFlown = phase >= 7
     return (
@@ -883,7 +897,18 @@ const TgColumnFlyScene = ({ i, travolta, intro, outro, onSettled }: {
                     />
                 </div>
             </DiagramBlock>
-            {phase >= 1 && <TypedBig parts={intro} onDone={() => setPhase((p) => Math.max(p, 2))} readMs={300} />}
+            {phase >= 1 && introFrac && (
+                <div className="w-full flex items-center justify-center gap-3 text-2xl md:text-3xl font-black text-[#F2F7FB]">
+                    <Pop><span style={{ color: TG }}>Тангенс</span></Pop>
+                    <Pop delay={0.4}><span>=</span></Pop>
+                    <span className="inline-flex flex-col items-center gap-1">
+                        <Pop delay={0.8}><span style={{ color: FN_COLOR.sin }}>синус</span></Pop>
+                        <Pop delay={1.1}><span className="h-[3px] w-28 rounded-full bg-[#F2F7FB]" /></Pop>
+                        <Pop delay={1.4}><span style={{ color: FN_COLOR.cos }}>косинус</span></Pop>
+                    </span>
+                </div>
+            )}
+            {phase >= 1 && !introFrac && intro && <TypedBig parts={intro} onDone={() => setPhase((p) => Math.max(p, 2))} readMs={300} />}
             {phase === 2 && <div className="flex justify-center"><AgasButton onClick={() => setPhase(3)} /></div>}
             {phase >= 3 && (
                 <motion.div
@@ -930,7 +955,6 @@ const TgColumnFlyScene = ({ i, travolta, intro, outro, onSettled }: {
             {(phase === 5 || phase === 8) && (
                 <div className="flex justify-center"><AgasButton label="Ок" onClick={() => setPhase(phase + 1)} /></div>
             )}
-            {phase >= 12 && <TypedLine className={TEXT} text={outro} onSettled={() => onSettled?.()} />}
             {phase >= 12 && <LocalAnswerConfetti />}
         </LayoutGroup>
     )
@@ -1041,8 +1065,7 @@ export const TypeTrigValWalk = ({ onAnswer, onComplete, mode }: Props) => {
                         <TgColumnFlyScene
                             i={0}
                             travolta
-                            intro={[{ text: 'Тангенс', color: TG }, { text: ' — это ' }, { text: 'синус', color: FN_COLOR.sin }, { text: ' / ' }, { text: 'косинус', color: FN_COLOR.cos }]}
-                            outro="Двойки сократились — tg 30° = 1/√3!"
+                            introFrac
                             {...p}
                         />
                     ),
@@ -1050,7 +1073,6 @@ export const TypeTrigValWalk = ({ onAnswer, onComplete, mode }: Props) => {
                         <TgColumnFlyScene
                             i={1}
                             intro={[{ text: 'Теперь ' }, { text: '45°', color: ANGLE_COLOR[45] }, { text: ' — так же!' }]}
-                            outro="Одинаковые числа делим друг на друга — получается 1!"
                             {...p}
                         />
                     ),
@@ -1058,7 +1080,6 @@ export const TypeTrigValWalk = ({ onAnswer, onComplete, mode }: Props) => {
                         <TgColumnFlyScene
                             i={2}
                             intro={[{ text: 'И ' }, { text: '60°', color: ANGLE_COLOR[60] }]}
-                            outro="Двойки сокращаются — остаётся √3."
                             {...p}
                         />
                     ),
