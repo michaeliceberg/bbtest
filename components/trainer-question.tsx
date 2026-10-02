@@ -688,6 +688,8 @@ export default function TrainerQuestion({
                 ? "Направление поля"
                 : question.questionType === "LENZWALK"
                 ? "Индукционный ток"
+                : question.questionType === "TRIGTGWALK"
+                ? "Тангенс"
                 // SINWALK хранит в question заголовок урока ("Что такое
                 // синус угла?" — заголовок ПЕРВОГО, sin/cos/tg-урока темы,
                 // не отражает содержимое ИМЕННО этого разбора про катеты)

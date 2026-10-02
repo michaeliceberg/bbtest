@@ -7,9 +7,9 @@
 //                лесенка справа налево. Между ними — «Собери паззл»: таблицу
 //                углов и синусов заполняют перемешанными кнопками; после
 //                косинуса — второй паззл 3×3 с тремя готовыми клетками.
-//   TRIGTGWALK — тангенс = синус : косинус, по столбцам 30° → 45° → 60°:
-//                столбец подсвечен, синус и косинус «падают» из таблицы
-//                вниз в деление, результат вписывается в строку tg;
+//   TRIGTGWALK — сначала паззл «углы/sin/cos», потом снизу пристыковывается
+//                строка tg; по столбцам 30° → 45° → 60° квадратики синуса и
+//                косинуса улетают в дробь, результат — в клетку tg;
 //                итог: «маленький — 1 — большой».
 // Тот же самодостаточный принцип, что у остальных *WALK: компонент сам
 // ведёт хореографию, зовёт onAnswer/onComplete один раз в конце; общая
@@ -20,7 +20,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
-import { motion } from 'framer-motion'
+import { LayoutGroup, motion } from 'framer-motion'
 import { ArrowLeft, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
@@ -412,11 +412,15 @@ const TokenView = ({ k }: { k: string }) => {
     return <ValView v={{ num, den: den || undefined }} />
 }
 
-const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled }: {
+const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled, extraRows, footer }: {
     rows: PuzzleRow[]
     prefilled: (r: number, c: number) => boolean
     subtitle: string
     onSettled?: () => void
+    // Доп. строки в той же сетке (строка tg «пристыковывается» после сборки).
+    extraRows?: React.ReactNode
+    // Всё, что идёт под таблицей после сборки (кнопка «Агась», фраза).
+    footer?: React.ReactNode
 }) => {
     const [titled, setTitled] = useState(false)
     const [ready, setReady] = useState(false)
@@ -471,7 +475,10 @@ const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled }: {
         const color = row === 'angle' ? ANGLE_COLOR[ANGLES[c]] : FN_COLOR[row]
         const ti = targetIndex(r, c)
         const isCur = cur?.row === r && cur?.col === c
+        // Текущая клетка мягко «дышит» (обёртка, т.к. transform самой клетки
+        // занят тряской framer-motion).
         return (
+            <div className={cn('relative', isCur && wrongId === null && 'animate-puzzle-cell-pulse')}>
             <motion.div
                 key={`${r}-${c}-${isCur ? wrongNonce : 0}`}
                 animate={isCur && wrongId !== null ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
@@ -481,6 +488,7 @@ const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled }: {
             >
                 {ti === -1 ? <CellContent row={row} col={c} /> : ti < filled ? <Pop><CellContent row={row} col={c} /></Pop> : null}
             </motion.div>
+            </div>
         )
     }
     return (
@@ -504,6 +512,7 @@ const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled }: {
                                     {ANGLES.map((_, c) => <Fragment key={c}>{renderCell(r, c)}</Fragment>)}
                                 </Fragment>
                             ))}
+                            {done && extraRows}
                         </div>
                         {!done && (
                             <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
@@ -529,6 +538,7 @@ const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled }: {
                             </div>
                         )}
                         {done && <p className="text-lg font-black text-[#A1D151]">Таблица собрана!</p>}
+                        {done && footer}
                     </div>
                     {done && <LocalAnswerConfetti />}
                 </DiagramBlock>
@@ -685,83 +695,6 @@ const CosMirrorScene = ({ onSettled }: { onSettled?: () => void }) => {
 }
 
 // ===== Сцены «тангенс» =====
-const TgIntroScene = ({ onSettled }: { onSettled?: () => void }) => (
-    <SeqScene
-        diagramMs={600}
-        diagram={
-            <TrigTable
-                fns={['sin', 'cos', 'tg']}
-                cell={(fn, i) => (
-                    <span style={{ color: FN_COLOR[fn] }}>{fn === 'tg' ? <span className="font-black">?</span> : <ValView v={VALUES[fn][i]} />}</span>
-                )}
-            />
-        }
-        lines={['Синус и косинус ты уже знаешь.', 'Нижнюю строку — тангенс — построим по двум верхним.']}
-        onSettled={onSettled}
-    />
-)
-
-// Столбец тангенса: таблица с подсвеченным столбцом → из неё вниз «падают»
-// синус, потом косинус, между ними «:», затем результат; он же вписывается
-// в строку tg таблицы. Уже посчитанные столбцы (done) в строке tg заполнены.
-const DROP = { y: -120, opacity: 0 }
-const Drop = ({ delay, children }: { delay: number; children: React.ReactNode }) => (
-    <motion.span
-        initial={DROP}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 260, damping: 18, delay }}
-        className="inline-flex"
-    >
-        {children}
-    </motion.span>
-)
-const TgColumnScene = ({ i, done, lines, onSettled }: { i: number; done: number[]; lines: string[]; onSettled?: () => void }) => (
-    <SeqScene
-        diagramMs={3600}
-        diagram={
-            <div className="w-full flex flex-col items-center">
-                <TrigTable
-                    fns={['sin', 'cos', 'tg']}
-                    highlight={i}
-                    cell={(fn, j) => (
-                        <span style={{ color: FN_COLOR[fn] }}>
-                            {fn !== 'tg' ? (
-                                <ValView v={VALUES[fn][j]} />
-                            ) : done.includes(j) ? (
-                                <ValView v={VALUES.tg[j]} />
-                            ) : j === i ? (
-                                <Pop key="res" delay={3.1}>
-                                    <ValView v={VALUES.tg[j]} />
-                                </Pop>
-                            ) : (
-                                <span className="font-black">?</span>
-                            )}
-                        </span>
-                    )}
-                />
-                <div className="w-full flex items-center justify-center gap-2 flex-wrap text-2xl md:text-3xl font-extrabold pt-2 pb-3 text-[#F2F7FB]">
-                    <span style={{ color: FN_COLOR.tg }}>tg</span>
-                    <AngleSticker a={ANGLES[i]} />
-                    <span>=</span>
-                    <Drop delay={0.7}>
-                        <span style={{ color: FN_COLOR.sin }}><ValView v={VALUES.sin[i]} /></span>
-                    </Drop>
-                    <Pop delay={1.4}><span>:</span></Pop>
-                    <Drop delay={1.8}>
-                        <span style={{ color: FN_COLOR.cos }}><ValView v={VALUES.cos[i]} /></span>
-                    </Drop>
-                    <Pop delay={2.5}><span>=</span></Pop>
-                    <Pop delay={2.7}>
-                        <span style={{ color: FN_COLOR.tg }}><ValView v={VALUES.tg[i]} /></span>
-                    </Pop>
-                </div>
-            </div>
-        }
-        lines={lines}
-        onSettled={onSettled}
-    />
-)
-
 const TgFullScene = ({ onSettled }: { onSettled?: () => void }) => (
     <SeqScene
         diagramMs={1800}
@@ -786,6 +719,181 @@ const TgFullScene = ({ onSettled }: { onSettled?: () => void }) => (
         onSettled={onSettled}
     />
 )
+
+// ===== Тангенс по-новому (2026-10-02, сценарий пользователя) =====
+// 1) Собираем таблицу углы/sin/cos (тот же паззл, что в уроке 488) →
+//    «Агась» → снизу «пристыковывается» строка tg с пустыми клетками →
+//    «А чему равен тангенс?».
+// 2) По столбцам 30° → 45° → 60°: остальные столбцы приглушены; в клетке
+//    tg 30° — Траволта (озирается: где тангенс?). Квадратик синуса
+//    улетает из таблицы в числитель дроби, косинуса — в знаменатель,
+//    «= результат», результат обводится и улетает в клетку tg
+//    (общий layoutId — framer сам ведёт элемент между местами).
+const TG = FN_COLOR.tg
+
+const TgDockRow = () => (
+    <>
+        <motion.div
+            initial={{ y: 280, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 150, damping: 11 }}
+            className="flex items-center justify-center text-lg md:text-xl font-black"
+            style={{ color: TG }}
+        >
+            tg
+        </motion.div>
+        {ANGLES.map((a, c) => (
+            <motion.div
+                key={a}
+                initial={{ y: 280, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 150, damping: 11, delay: 0.04 * (c + 1) }}
+                className="flex h-20 items-center justify-center rounded-xl border-2"
+                style={{ borderColor: hexToRgba(TG, 0.6), borderStyle: 'dashed', backgroundColor: hexToRgba(TG, 0.06) }}
+            />
+        ))}
+    </>
+)
+
+const TgBuildScene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [perm] = useState(() => shuffle([0, 1, 2]))
+    const [phase, setPhase] = useState(0) // 0 паззл, 1 ждём «Агась», 2 стыковка, 3 вопрос
+    useEffect(() => {
+        if (phase !== 2) return
+        const t = setTimeout(() => setPhase(3), 1500)
+        return () => clearTimeout(t)
+    }, [phase])
+    return (
+        <TablePuzzleScene
+            rows={['angle', 'sin', 'cos']}
+            prefilled={(r, c) => perm[r] === c}
+            subtitle="Сначала соберём знакомую таблицу: углы, синусы и косинусы."
+            onSettled={() => setPhase((p) => Math.max(p, 1))}
+            extraRows={phase >= 2 ? <TgDockRow /> : null}
+            footer={
+                phase === 1 ? (
+                    <AgasButton onClick={() => setPhase(2)} />
+                ) : phase >= 3 ? (
+                    <TypedBig
+                        parts={[{ text: 'А чему равен ' }, { text: 'тангенс', color: TG }, { text: '?' }]}
+                        onDone={() => onSettled?.()}
+                        readMs={400}
+                    />
+                ) : null
+            }
+        />
+    )
+}
+
+// Значение в рамке-квадратике (именно он «летает»).
+const ValBox = ({ v, color, framed = true }: { v: V; color: string; framed?: boolean }) => (
+    <span
+        className="inline-flex items-center justify-center rounded-lg border-2 px-1.5 py-1 transition-colors duration-500"
+        style={{ color, borderColor: framed ? color : 'transparent', backgroundColor: framed ? hexToRgba(color, 0.14) : 'transparent' }}
+    >
+        <ValView v={v} />
+    </span>
+)
+const FLY = { type: 'spring' as const, stiffness: 120, damping: 16 }
+const Slot = () => <span className="inline-flex h-14 w-16 rounded-lg border-2 border-dashed border-[#3A464E]" />
+
+const TgColumnFlyScene = ({ i, travolta, intro, outro, onSettled }: {
+    i: number
+    travolta?: boolean
+    intro: BigPart[]
+    outro: string
+    onSettled?: () => void
+}) => {
+    // 0 таблица, 1 фраза, 2 формула, 3 синус летит, 4 косинус летит,
+    // 5 «= результат», 6 рамка, 7 результат летит в таблицу, 8 вывод
+    const [phase, setPhase] = useState(0)
+    useEffect(() => {
+        const next: Record<number, number> = { 2: 900, 3: 1400, 4: 1400, 5: 1100, 6: 1200, 7: 1400 }
+        if (!(phase in next)) return
+        const t = setTimeout(() => setPhase(phase + 1), next[phase])
+        return () => clearTimeout(t)
+    }, [phase])
+    const sinId = `tg-sin-${i}`
+    const cosId = `tg-cos-${i}`
+    const resId = `tg-res-${i}`
+    return (
+        <LayoutGroup id={`tg-col-${i}`}>
+            <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 1)), 600)}>
+                <div className="w-full flex flex-col items-center">
+                    <TrigTable
+                        fns={['sin', 'cos', 'tg']}
+                        highlight={i}
+                        cell={(fn, j) => {
+                            if (fn === 'sin' || fn === 'cos') {
+                                const id = fn === 'sin' ? sinId : cosId
+                                const flown = j === i && phase >= (fn === 'sin' ? 3 : 4)
+                                if (j !== i) return <span style={{ color: FN_COLOR[fn] }}><ValView v={VALUES[fn][j]} /></span>
+                                return flown ? null : (
+                                    <motion.span layoutId={id} transition={FLY} className="inline-flex">
+                                        <ValBox v={VALUES[fn][j]} color={FN_COLOR[fn]} />
+                                    </motion.span>
+                                )
+                            }
+                            if (j < i) return <span style={{ color: TG }}><ValView v={VALUES.tg[j]} /></span>
+                            if (j > i) return null
+                            if (phase >= 7) {
+                                return (
+                                    <motion.span layoutId={resId} transition={FLY} className="inline-flex">
+                                        <ValBox v={VALUES.tg[i]} color={TG} />
+                                    </motion.span>
+                                )
+                            }
+                            return travolta ? (
+                                // eslint-disable-next-line jsx-a11y/media-has-caption
+                                <video src="/video/travolta.webm" autoPlay loop muted playsInline className="h-[72px] w-[72px] rounded-lg object-cover" />
+                            ) : null
+                        }}
+                    />
+                </div>
+            </DiagramBlock>
+            {phase >= 1 && <TypedBig parts={intro} onDone={() => setPhase((p) => Math.max(p, 2))} readMs={300} />}
+            {phase >= 2 && (
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="w-full flex items-center justify-center gap-3 text-2xl md:text-3xl font-extrabold text-[#F2F7FB] py-2"
+                >
+                    <span style={{ color: TG }}>tg</span>
+                    <AngleSticker a={ANGLES[i]} />
+                    <span>=</span>
+                    <span className="inline-flex flex-col items-center gap-1.5">
+                        {phase >= 3 ? (
+                            <motion.span layoutId={sinId} transition={FLY} className="inline-flex">
+                                <ValBox v={VALUES.sin[i]} color={FN_COLOR.sin} />
+                            </motion.span>
+                        ) : <Slot />}
+                        <span className="h-[3px] w-24 rounded-full bg-[#F2F7FB]" />
+                        {phase >= 4 ? (
+                            <motion.span layoutId={cosId} transition={FLY} className="inline-flex">
+                                <ValBox v={VALUES.cos[i]} color={FN_COLOR.cos} />
+                            </motion.span>
+                        ) : <Slot />}
+                    </span>
+                    {phase >= 5 && <Pop><span>=</span></Pop>}
+                    {phase >= 5 && phase < 7 && (
+                        <motion.span
+                            layoutId={resId}
+                            transition={FLY}
+                            initial={{ scale: 2.4, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="inline-flex"
+                        >
+                            <ValBox v={VALUES.tg[i]} color={TG} framed={phase >= 6} />
+                        </motion.span>
+                    )}
+                    {phase >= 7 && <span className="opacity-30" style={{ color: TG }}><ValView v={VALUES.tg[i]} /></span>}
+                </motion.div>
+            )}
+            {phase >= 8 && <TypedLine className={TEXT} text={outro} onSettled={() => onSettled?.()} />}
+            {phase >= 8 && <LocalAnswerConfetti />}
+        </LayoutGroup>
+    )
+}
 
 // ===== Тренировка =====
 type Opt = { kind: 'val'; v: V } | { kind: 'ang'; a: number }
@@ -887,15 +995,31 @@ export const TypeTrigValWalk = ({ onAnswer, onComplete, mode }: Props) => {
             mode === 'sincos'
                 ? [IntroAnglesScene, OrderGameScene, SinLadderScene, SinPuzzleScene, CosMirrorScene, FullPuzzleScene]
                 : [
-                    TgIntroScene,
+                    TgBuildScene,
                     (p: { onSettled?: () => void }) => (
-                        <TgColumnScene i={0} done={[]} lines={['Смотри: тангенс — это синус : косинус из того же столбика.', 'Двойки сокращаются — получается 1/√3.']} {...p} />
+                        <TgColumnFlyScene
+                            i={0}
+                            travolta
+                            intro={[{ text: 'Тангенс', color: TG }, { text: ' — это ' }, { text: 'синус', color: FN_COLOR.sin }, { text: ' / ' }, { text: 'косинус', color: FN_COLOR.cos }]}
+                            outro="Двойки сократились — tg 30° = 1/√3!"
+                            {...p}
+                        />
                     ),
                     (p: { onSettled?: () => void }) => (
-                        <TgColumnScene i={1} done={[0]} lines={['Одинаковые числа делим друг на друга — получается 1!']} {...p} />
+                        <TgColumnFlyScene
+                            i={1}
+                            intro={[{ text: 'Теперь ' }, { text: '45°', color: ANGLE_COLOR[45] }, { text: ' — так же!' }]}
+                            outro="Одинаковые числа делим друг на друга — получается 1!"
+                            {...p}
+                        />
                     ),
                     (p: { onSettled?: () => void }) => (
-                        <TgColumnScene i={2} done={[0, 1]} lines={['Двойки сокращаются — остаётся √3.']} {...p} />
+                        <TgColumnFlyScene
+                            i={2}
+                            intro={[{ text: 'И ' }, { text: '60°', color: ANGLE_COLOR[60] }]}
+                            outro="Двойки сокращаются — остаётся √3."
+                            {...p}
+                        />
                     ),
                     TgFullScene,
                 ],

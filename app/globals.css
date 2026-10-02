@@ -602,3 +602,12 @@ body {
 .animate-arrow-nudge {
   animation: arrow-nudge 0.9s ease-in-out infinite;
 }
+
+/* Клетка паззла, которую сейчас заполняем, — мягко «дышит» (только transform). */
+@keyframes puzzle-cell-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.07); }
+}
+.animate-puzzle-cell-pulse {
+  animation: puzzle-cell-pulse 1.1s ease-in-out infinite;
+}
