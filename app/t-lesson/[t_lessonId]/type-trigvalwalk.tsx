@@ -23,7 +23,7 @@ import { AlphaVideo } from '@/components/alpha-video'
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
 import { LayoutGroup, motion } from 'framer-motion'
-import { ArrowLeft, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
 import {
@@ -572,83 +572,36 @@ const FullPuzzleScene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-// Майкл Джексон лунной походкой проходит по строке косинуса справа налево
-// (public/video/mj-moonwalk.mp4, 186×140, ~5.8 с, со звуком — если браузер не
-// даст звук, играет без него). Идёт ровно всё время ролика: от середины
-// ячейки cos 60° до середины ячейки cos 30°.
-const MOONWALK_FALLBACK_S = 5.8
-const VIDEO_H = 80 // px — высота строки таблицы (h-20)
-const VIDEO_W = Math.round((VIDEO_H * 186) / 140)
-const Moonwalker = ({ fromX, toX, onDone }: { fromX: number; toX: number; onDone: () => void }) => {
-    const ref = useRef<HTMLVideoElement>(null)
-    const doneRef = useRef(false)
-    const [duration, setDuration] = useState<number | null>(null)
-    const finish = () => {
-        if (doneRef.current) return
-        doneRef.current = true
-        onDone()
-    }
-    useEffect(() => {
-        const el = ref.current
-        if (!el) return
-        const start = () => {
-            setDuration(Number.isFinite(el.duration) && el.duration > 0 ? el.duration : MOONWALK_FALLBACK_S)
-            el.play().catch(() => {
-                el.muted = true
-                el.play().catch(() => {})
-            })
-        }
-        if (el.readyState >= 1) start()
-        else el.addEventListener('loadedmetadata', start, { once: true })
-        // Если метаданные не пришли — стартуем с расчётной длительностью.
-        const t = setTimeout(() => setDuration((d) => d ?? MOONWALK_FALLBACK_S), 1500)
-        return () => clearTimeout(t)
-    }, [])
-    // Ролик закончился — дошли до cos 30°. Страховка по таймеру — если
-    // событие не придёт.
-    useEffect(() => {
-        if (duration === null) return
-        const t = setTimeout(finish, duration * 1000 + 400)
-        return () => clearTimeout(t)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [duration])
-    return (
-        <motion.div
-            className="pointer-events-none absolute top-0 left-0"
-            style={{ width: VIDEO_W, height: VIDEO_H }}
-            initial={{ x: fromX - VIDEO_W / 2 }}
-            animate={duration !== null ? { x: toX - VIDEO_W / 2 } : { x: fromX - VIDEO_W / 2 }}
-            transition={duration !== null ? { duration, ease: 'linear' } : { duration: 0 }}
-        >
-            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-            <video ref={ref} src="/video/mj-moonwalk.mp4" playsInline onEnded={finish} className="h-full w-full rounded-lg object-cover" />
-        </motion.div>
-    )
-}
-
-// Косинус: таблица с пустой строкой cos → фраза → лунная походка справа
-// налево по строке → заполняем ячейки справа налево.
+// Косинус: «зеркало». Копии значений из строки синуса (оранжевые) вылетают
+// вниз в строку косинуса и приземляются в ЗЕРКАЛЬНЫЕ ячейки — первая в
+// последнюю, последняя в первую, пути перекрещиваются «Х». При посадке
+// значение перекрашивается из цвета sin в цвет cos.
+const FLIGHT_S = 1.5
+const FLIGHT_STAGGER_S = 0.18
 const CosMirrorScene = ({ onSettled }: { onSettled?: () => void }) => {
-    const [phase, setPhase] = useState(0) // 0 таблица, 1 печать фразы, 2 стрелка ←, 3 походка, 4 заполнение
-    const [walked, setWalked] = useState(false)
+    const [phase, setPhase] = useState(0) // 0 таблица, 1 печать фразы, 2 полёт копий, 4 готово
     const wrapRef = useRef<HTMLDivElement>(null)
-    // Середины ячеек cos 60° и cos 30° относительно обёртки таблицы.
-    const [path, setPath] = useState<{ from: number; to: number } | null>(null)
-    useEffect(() => {
-        if (phase !== 3) return
-        const wrap = wrapRef.current
-        const c60 = wrap?.querySelector('[data-cell="cos-2"]')
-        const c30 = wrap?.querySelector('[data-cell="cos-0"]')
-        if (!wrap || !c60 || !c30) return
-        const w = wrap.getBoundingClientRect()
-        const r60 = c60.getBoundingClientRect()
-        const r30 = c30.getBoundingClientRect()
-        setPath({ from: r60.left + r60.width / 2 - w.left, to: r30.left + r30.width / 2 - w.left })
-    }, [phase])
-    // Стрелка ← в клетке cos 60° — пауза, потом лунная походка.
+    // Смещение «из ячейки sin-(2−i) в ячейку cos-i» (центр к центру), px.
+    const [deltas, setDeltas] = useState<{ dx: number; dy: number }[] | null>(null)
     useEffect(() => {
         if (phase !== 2) return
-        const t = setTimeout(() => setPhase(3), 1800)
+        const wrap = wrapRef.current
+        if (!wrap) return
+        const center = (sel: string) => {
+            const el = wrap.querySelector(sel)
+            if (!el) return null
+            const r = el.getBoundingClientRect()
+            return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+        }
+        const next: { dx: number; dy: number }[] = []
+        for (let i = 0; i < 3; i++) {
+            const from = center(`[data-cell="sin-${2 - i}"]`)
+            const to = center(`[data-cell="cos-${i}"]`)
+            if (!from || !to) return
+            next.push({ dx: from.x - to.x, dy: from.y - to.y })
+        }
+        setDeltas(next)
+        const t = setTimeout(() => setPhase(4), (FLIGHT_S + FLIGHT_STAGGER_S * 2) * 1000 + 300)
         return () => clearTimeout(t)
     }, [phase])
     useEffect(() => {
@@ -668,24 +621,25 @@ const CosMirrorScene = ({ onSettled }: { onSettled?: () => void }) => {
                             <span style={{ color: FN_COLOR[fn] }}>
                                 {fn === 'sin' ? (
                                     <ValView v={VALUES.sin[i]} />
-                                ) : phase >= 4 ? (
-                                    <Pop delay={0.2 + (2 - i) * 0.5}>
+                                ) : deltas ? (
+                                    // Центральная (45°) летит прямо вниз, крайние — дугой в разные стороны,
+                                    // чтобы не наезжать друг на друга в середине пути.
+                                    <motion.span
+                                        className="relative z-10 inline-flex"
+                                        initial={{ x: deltas[i].dx, y: deltas[i].dy, color: FN_COLOR.sin }}
+                                        animate={{
+                                            x: 0,
+                                            y: i === 1 ? 0 : [deltas[i].dy, deltas[i].dy / 2 + (i === 0 ? -30 : 30), 0],
+                                            color: FN_COLOR.cos,
+                                        }}
+                                        transition={{ duration: FLIGHT_S, delay: i * FLIGHT_STAGGER_S, ease: 'easeInOut' }}
+                                    >
                                         <ValView v={VALUES.cos[i]} />
-                                    </Pop>
-                                ) : phase === 2 && i === 2 ? (
-                                    <Pop>
-                                        <ArrowLeft className="w-14 h-14" strokeWidth={3.5} style={{ color: ATTENTION }} />
-                                    </Pop>
+                                    </motion.span>
                                 ) : null}
                             </span>
                         )}
                     />
-                    {/* Строка косинуса — нижние 80px таблицы (h-20) + отступ py-2. */}
-                    {phase === 3 && !walked && path && (
-                        <div className="absolute inset-x-0 bottom-2 h-20">
-                            <Moonwalker fromX={path.from} toX={path.to} onDone={() => { setWalked(true); setPhase(4) }} />
-                        </div>
-                    )}
                 </div>
             </DiagramBlock>
             {phase >= 1 && (
