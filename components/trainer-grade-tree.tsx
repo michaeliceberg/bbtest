@@ -631,6 +631,9 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                                                 >
                                                                     <TrainerStageLink
                                                                         href={stageHref}
+                                                                        title={s.title}
+                                                                        subtitle={`${topic.title} · этап ${trueIdx + 1}`}
+                                                                        accent={accent.button}
                                                                         className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                         style={{
                                                                             background: isBossExam ? 'transparent' : UNLOCKED_BG,
@@ -648,6 +651,9 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                                                 >
                                                                     <TrainerStageLink
                                                                         href={stageHref}
+                                                                        title={s.title}
+                                                                        subtitle={`${topic.title} · этап ${trueIdx + 1}`}
+                                                                        accent={accent.button}
                                                                         className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                         style={{
                                                                             background: isBossExam ? 'transparent' : doneGradient,
@@ -686,6 +692,9 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                                                 >
                                                                     <TrainerStageLink
                                                                         href={stageHref}
+                                                                        title={s.title}
+                                                                        subtitle={`${topic.title} · этап ${trueIdx + 1}`}
+                                                                        accent={accent.button}
                                                                         className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                         style={{
                                                                             background: isBossExam ? 'transparent' : UNLOCKED_BG,
@@ -701,6 +710,9 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                                         stageBox = (
                                                             <TrainerStageLink
                                                                 href={stageHref}
+                                                                title={s.title}
+                                                                subtitle={`${topic.title} · этап ${trueIdx + 1}`}
+                                                                accent={accent.button}
                                                                 className="relative flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-transform hover:scale-105"
                                                                 style={{
                                                                     background: isBossExam ? 'transparent' : (done ? doneGradient : UNLOCKED_BG),

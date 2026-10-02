@@ -64,19 +64,12 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 
-const SCALE_FACTOR = 5;
+const SCALE_FACTOR = 4.2;
 const FADE_DURATION = 0.18;
 // Совпадает с `duration` spring-перехода ниже (0.45с) + небольшой запас,
 // чтобы последние доли перехлёста точно успели визуально осесть — не
 // framer-motion'овский onAnimationComplete, см. комментарий в шапке файла.
 const REVEAL_DELAY = 480;
-// Если целевая страница не успела смонтироваться сразу после
-// REVEAL_DELAY (router.push уже вызван, но pathname ещё не сменился —
-// см. STUCK_DELAY ниже), раньше квадратик просто застывал увеличенным
-// и статичным — пользователь принял это за зависание. Через STUCK_DELAY
-// после начала ожидания включаем лёгкое покачивание влево-вправо, пока
-// страница не откроется по-настоящему.
-const STUCK_DELAY = 300;
 
 type Phase = 'idle' | 'bouncing' | 'fading';
 
@@ -91,17 +84,20 @@ type Props = {
     // Доп. контент квадратика (бейдж-подарок и т.п.) — рисуется только
     // в самом квадратике, не участвует в анимации.
     extra?: React.ReactNode;
+    // Подписи на экране загрузки: название урока и «тема · этап N».
+    title?: string;
+    subtitle?: string;
+    // Цвет юнита — кольцо, свечение и полоска загрузки.
+    accent?: string;
 };
 
-export const TrainerStageLink = ({ href, className, style, icon, extra }: Props) => {
+export const TrainerStageLink = ({ href, className, style, icon, extra, title, subtitle, accent = '#53ADEF' }: Props) => {
     const ref = useRef<HTMLAnchorElement>(null);
     const router = useRouter();
     const pathname = usePathname();
     const [rect, setRect] = useState<DOMRect | null>(null);
     const [phase, setPhase] = useState<Phase>('idle');
     const [mounted, setMounted] = useState(false);
-    const [isStuck, setIsStuck] = useState(false);
-    const stuckTimerRef = useRef<ReturnType<typeof setTimeout>>();
     // Успели ли уже реально вызвать router.push для текущего клика — до
     // этого момента pathname меняться не может, проверять его в эффекте
     // ниже нет смысла (и опасно: pathname мог случайно совпасть с целью
@@ -116,7 +112,6 @@ export const TrainerStageLink = ({ href, className, style, icon, extra }: Props)
         return () => {
             if (timerRef.current) clearTimeout(timerRef.current);
             if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
-            if (stuckTimerRef.current) clearTimeout(stuckTimerRef.current);
         };
     }, []);
 
@@ -132,12 +127,8 @@ export const TrainerStageLink = ({ href, className, style, icon, extra }: Props)
         revealTimerRef.current = setTimeout(() => {
             pushedRef.current = true;
             router.push(href);
-            // Навигация запущена, но целевая страница может ещё какое-то
-            // время монтироваться (медленная сеть, непрогретый маршрут) —
-            // если за STUCK_DELAY страница так и не сменилась, включаем
-            // покачивание (см. isStuck ниже), чтобы застывший увеличенный
-            // квадратик не читался как зависание.
-            stuckTimerRef.current = setTimeout(() => setIsStuck(true), STUCK_DELAY);
+            // Пока урок грузится, на экране крутится кольцо и бегает полоска
+            // загрузки (см. overlay ниже) — зависанием это не выглядит.
         }, REVEAL_DELAY);
         return () => clearTimeout(revealTimerRef.current);
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -153,8 +144,6 @@ export const TrainerStageLink = ({ href, className, style, icon, extra }: Props)
         if (!pushedRef.current) return;
         if (pathname !== targetPathname) return;
 
-        if (stuckTimerRef.current) clearTimeout(stuckTimerRef.current);
-        setIsStuck(false);
         timerRef.current = setTimeout(() => setPhase('fading'), 0);
         return () => clearTimeout(timerRef.current);
     }, [pathname, targetPathname, phase]);
@@ -177,7 +166,6 @@ export const TrainerStageLink = ({ href, className, style, icon, extra }: Props)
 
         setRect(r);
         pushedRef.current = false;
-        setIsStuck(false);
         setPhase('bouncing');
         // router.push() здесь намеренно НЕ вызывается — см. REVEAL_DELAY-эффект выше.
     };
@@ -196,48 +184,86 @@ export const TrainerStageLink = ({ href, className, style, icon, extra }: Props)
     // Портал прямо в <body> — та же причина, что и в TransitionLink.tsx:
     // fixed внутри анимированного (framer-motion transform) предка может
     // "прилипнуть" не ко всему экрану.
+    // Экран загрузки (2026-10-03, «премиальнее, чем покачивание»): экран
+    // затемняется с подсветкой цветом юнита, плитка выезжает в центр с
+    // bounce, вокруг неё крутится светящееся кольцо, по плитке бегает блик,
+    // под ней — «тема · этап N», название урока и бегущая полоска. Всё
+    // крутящееся — CSS transform (плавно на iPhone, см. CLAUDE.md про fps).
+    const tileSize = rect ? rect.width * SCALE_FACTOR : 0;
+    const ringSize = tileSize + 44;
+    const fading = phase === 'fading';
     const overlay = mounted && phase !== 'idle' && rect
         ? createPortal(
-            <motion.div
-                className="fixed z-[70] flex items-center justify-center overflow-hidden pointer-events-none rounded-xl"
-                style={{
-                    top: rect.top,
-                    left: rect.left,
-                    width: rect.width,
-                    height: rect.height,
-                    // style?.background покрывает и обычный backgroundColor,
-                    // и CSS-градиент (done-квадратики теперь красятся
-                    // градиентом, см. trainer-grade-tree.tsx) — раньше сюда
-                    // копировался только backgroundColor, из-за чего
-                    // увеличенная копия done-квадратика при анимации
-                    // оставалась вообще без фона.
-                    background: style?.background ?? style?.backgroundColor,
-                    border: style?.border,
-                    boxSizing: 'border-box',
-                }}
-                initial={{ x: 0, y: 0, scale: 1, opacity: 1 }}
-                animate={
-                    phase === 'fading'
-                        ? { x: centerDelta.x, y: centerDelta.y, scale: SCALE_FACTOR, opacity: 0 }
-                        : isStuck
-                            // Навигация уже запущена, но целевая страница ещё
-                            // не смонтировалась — лёгкое покачивание влево-
-                            // вправо вместо статично замершего квадратика,
-                            // чтобы было понятно, что мы всё ещё грузим урок,
-                            // а не зависли.
-                            ? { x: [centerDelta.x - 6, centerDelta.x + 6, centerDelta.x - 6], y: centerDelta.y, scale: SCALE_FACTOR, opacity: 1 }
-                            : { x: centerDelta.x, y: centerDelta.y, scale: SCALE_FACTOR, opacity: 1 }
-                }
-                transition={
-                    phase === 'fading'
-                        ? { opacity: { duration: FADE_DURATION, ease: 'easeIn' } }
-                        : isStuck
-                            ? { x: { duration: 1.1, repeat: Infinity, ease: 'easeInOut' } }
-                            : { type: 'spring', duration: 0.45, bounce: 0.5 }
-                }
-            >
-                {icon}
-            </motion.div>,
+            <div className="fixed inset-0 z-[70] pointer-events-none">
+                <motion.div
+                    className="absolute inset-0"
+                    style={{ background: `radial-gradient(circle at 50% 50%, ${accent}55 0%, #0E1518F2 55%, #0E1518 100%)` }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: fading ? 0 : 1 }}
+                    transition={{ duration: fading ? FADE_DURATION : 0.3 }}
+                />
+                {/* Кольцо и свечение вокруг плитки (в центре экрана) */}
+                <motion.div
+                    className="absolute left-1/2 top-1/2"
+                    style={{ width: ringSize, height: ringSize, marginLeft: -ringSize / 2, marginTop: -ringSize / 2 }}
+                    initial={{ opacity: 0, scale: 0.6 }}
+                    animate={{ opacity: fading ? 0 : 1, scale: 1 }}
+                    transition={{ delay: fading ? 0 : 0.3, type: 'spring', stiffness: 260, damping: 18 }}
+                >
+                    <div
+                        className="absolute inset-[-30%] rounded-full animate-glow-pulse"
+                        style={{ background: `radial-gradient(circle, ${accent}66 0%, ${accent}22 40%, transparent 68%)` }}
+                    />
+                    <div
+                        className="absolute inset-0 rounded-full animate-stage-ring"
+                        style={{
+                            background: `conic-gradient(from 0deg, transparent 0deg, ${accent} 90deg, #FFFFFF 140deg, ${accent} 190deg, transparent 300deg)`,
+                            WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px))',
+                            mask: 'radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px))',
+                        }}
+                    />
+                </motion.div>
+                {/* Сама плитка — из точки клика в центр */}
+                <motion.div
+                    className="absolute flex items-center justify-center overflow-hidden rounded-xl"
+                    style={{
+                        top: rect.top,
+                        left: rect.left,
+                        width: rect.width,
+                        height: rect.height,
+                        background: style?.background ?? style?.backgroundColor,
+                        border: style?.border,
+                        boxSizing: 'border-box',
+                    }}
+                    initial={{ x: 0, y: 0, scale: 1, opacity: 1 }}
+                    animate={{ x: centerDelta.x, y: centerDelta.y, scale: SCALE_FACTOR, opacity: fading ? 0 : 1 }}
+                    transition={fading ? { opacity: { duration: FADE_DURATION, ease: 'easeIn' } } : { type: 'spring', duration: 0.45, bounce: 0.5 }}
+                >
+                    {icon}
+                    <span
+                        className="absolute inset-y-0 left-0 w-1/3 animate-stage-tile-shine"
+                        style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent)' }}
+                    />
+                </motion.div>
+                {/* Подписи и полоска загрузки */}
+                <motion.div
+                    className="absolute left-1/2 w-[min(90vw,22rem)] -translate-x-1/2 flex flex-col items-center gap-2 text-center"
+                    style={{ top: `calc(50% + ${ringSize / 2 + 22}px)` }}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: fading ? 0 : 1, y: 0 }}
+                    transition={{ delay: fading ? 0 : 0.35, type: 'spring', stiffness: 300, damping: 22 }}
+                >
+                    {subtitle && (
+                        <span className="text-xs font-bold uppercase tracking-widest" style={{ color: accent }}>{subtitle}</span>
+                    )}
+                    {title && (
+                        <span className="text-xl md:text-2xl font-extrabold text-[#F2F7FB] leading-tight">{title}</span>
+                    )}
+                    <div className="mt-1 h-1.5 w-40 rounded-full bg-white/10 overflow-hidden">
+                        <div className="h-full w-1/3 rounded-full animate-stage-load-bar" style={{ background: `linear-gradient(90deg, transparent, ${accent}, #FFFFFF)` }} />
+                    </div>
+                </motion.div>
+            </div>,
             document.body
         )
         : null;
