@@ -4,7 +4,7 @@
 //
 // Облачко-мем после ответа: появляется с bounce из точки, куда нажал ученик, и
 // плавно поднимается вверх, мигая подсветкой (красной — неверно, зелёной — верно);
-// через 3 секунды рывком, с ускорением, улетает вверх и схлопывается в точку. Картинки — public/answer-meme-right/N.webp
+// через 2 секунды резко, с ускорением, улетает вверх и схлопывается в точку. Картинки — public/answer-meme-right/N.webp
 // и public/answer-meme-wrong/N.webp (стикеры 512×512).
 // На неверный ответ — всегда, на верный — с шансом 33%.
 //
@@ -19,7 +19,7 @@ import { motion } from 'framer-motion'
 const RIGHT_COUNT = 21
 const WRONG_COUNT = 39
 const RIGHT_CHANCE = 0.33
-const SHOW_MS = 3000
+const SHOW_MS = 2000
 const SIZE = 132
 
 const RIGHT_GLOW = '#A1D151'
@@ -73,10 +73,10 @@ const BurstView = ({ b, onDone }: { b: Burst; onDone: () => void }) => {
                 animate={{ y: [0, -130, -240], scale: [1, 1, 0], opacity: [1, 1, 0] }}
                 transition={{
                     // Плавный подъём, а в конце — рывок вверх с ускорением.
-                    y: { duration: sec, times: [0, 0.88, 1], ease: [[0.2, 0.6, 0.4, 1], [0.6, 0, 1, 0.4]] },
+                    y: { duration: sec, times: [0, 0.9, 1], ease: ['linear', [0.7, 0, 1, 0.3]] },
                     // Держит размер, а в конце резко, с ускорением, схлопывается в точку.
-                    scale: { duration: sec, times: [0, 0.88, 1], ease: ['linear', [0.6, 0, 1, 0.4]] },
-                    opacity: { duration: sec, times: [0, 0.95, 1] },
+                    scale: { duration: sec, times: [0, 0.9, 1], ease: ['linear', [0.7, 0, 1, 0.3]] },
+                    opacity: { duration: sec, times: [0, 0.97, 1] },
                 }}
             >
                 {/* Появление из точки — с bounce */}

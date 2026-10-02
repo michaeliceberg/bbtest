@@ -11,7 +11,7 @@ export default function TestAnswerMemePage() {
 	return (
 		<div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-[#131D22] p-4 text-center">
 			<AnswerMemeLayer />
-			<p className="text-[#9AA7B0] font-bold max-w-sm">Жми кнопки в разных местах экрана — облачко вылетает из точки нажатия и исчезает через 3 секунды</p>
+			<p className="text-[#9AA7B0] font-bold max-w-sm">Жми кнопки в разных местах экрана — облачко вылетает из точки нажатия и исчезает через 2 секунды</p>
 			<div className="grid grid-cols-2 gap-4 w-full max-w-md">
 				<button className={btn + ' bg-[#DC605B22] border-[#DC605B] text-[#DC605B]'} onClick={() => showAnswerMeme(false)}>❌ Неверно</button>
 				<button className={btn + ' bg-[#A1D15122] border-[#A1D151] text-[#A1D151]'} onClick={() => showAnswerMeme(true, { force: true })}>✅ Верно (всегда)</button>
