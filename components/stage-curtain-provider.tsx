@@ -17,7 +17,7 @@ import { useStageCurtainStore } from '@/store/use-stage-curtain-store';
 const SWEEP_S = 0.6; // время заезда/выезда полосы
 const LAG_S = 0.12; // отставание тёмной полосы от акцентной
 const COVER_MS = (SWEEP_S + LAG_S) * 1000; // экран полностью закрыт
-const MIN_SHOW_MS = 1000; // минимум показываем загрузку
+const MIN_SHOW_MS = 2000; // минимум показываем загрузку
 const MAX_WAIT_MS = 15000; // страховка, если маршрут так и не сменился
 const OUT_MS = (SWEEP_S + LAG_S) * 1000 + 100;
 const EASE = [0.76, 0, 0.24, 1] as const;
@@ -79,7 +79,7 @@ export const StageCurtainProvider = () => {
             {/* Акцентная полоса — идёт первой */}
             <motion.div
                 className="absolute top-0 h-full"
-                style={{ left: -slant, width, clipPath: clip, background: accent }}
+                style={{ left: -slant, width, clipPath: clip, background: `color-mix(in srgb, ${accent} 55%, #ffffff)` }}
                 {...curtainProps(0, LAG_S)}
             />
             {/* Тёмная полоса с загрузкой */}
@@ -89,7 +89,7 @@ export const StageCurtainProvider = () => {
                     left: -slant,
                     width,
                     clipPath: clip,
-                    background: `radial-gradient(circle at 50% 50%, ${accent}55 0%, #0E1518 62%)`,
+                    background: `radial-gradient(circle at 50% 45%, rgba(255,255,255,0.22) 0%, transparent 60%), linear-gradient(160deg, ${accent} 0%, color-mix(in srgb, ${accent} 72%, #000000) 100%)`,
                 }}
                 {...curtainProps(LAG_S, 0)}
             >
@@ -103,12 +103,12 @@ export const StageCurtainProvider = () => {
                     >
                         <div
                             className="absolute inset-[-30%] rounded-full animate-glow-pulse"
-                            style={{ background: `radial-gradient(circle, ${accent}66 0%, ${accent}22 40%, transparent 68%)` }}
+                            style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.1) 40%, transparent 68%)' }}
                         />
                         <div
                             className="absolute inset-0 rounded-full animate-stage-ring"
                             style={{
-                                background: `conic-gradient(from 0deg, transparent 0deg, ${accent} 90deg, #FFFFFF 140deg, ${accent} 190deg, transparent 300deg)`,
+                                background: `conic-gradient(from 0deg, transparent 0deg, rgba(255,255,255,0.5) 90deg, #FFFFFF 140deg, rgba(255,255,255,0.5) 190deg, transparent 300deg)`,
                                 WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px))',
                                 mask: 'radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px))',
                             }}
@@ -132,23 +132,28 @@ export const StageCurtainProvider = () => {
                             />
                         </div>
                     </motion.div>
-                    <motion.div
-                        className="absolute left-1/2 w-[min(90vw,22rem)] -translate-x-1/2 flex flex-col items-center gap-2 text-center"
+                    {/* Центрирование — статичной обёрткой: motion перезаписывает transform и стёр бы -translate-x-1/2 */}
+                    <div
+                        className="absolute left-0 right-0 flex justify-center px-4"
                         style={{ top: `calc(50% + ${ringSize / 2 + 22}px)` }}
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.55, type: 'spring', stiffness: 300, damping: 22 }}
                     >
-                        {payload.subtitle && (
-                            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: accent }}>{payload.subtitle}</span>
-                        )}
-                        {payload.title && (
-                            <span className="text-xl md:text-2xl font-extrabold text-[#F2F7FB] leading-tight">{payload.title}</span>
-                        )}
-                        <div className="mt-1 h-1.5 w-40 rounded-full bg-white/10 overflow-hidden">
-                            <div className="h-full w-1/3 rounded-full animate-stage-load-bar" style={{ background: `linear-gradient(90deg, transparent, ${accent}, #FFFFFF)` }} />
-                        </div>
-                    </motion.div>
+                        <motion.div
+                            className="w-full max-w-[22rem] flex flex-col items-center gap-2 text-center"
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.55, type: 'spring', stiffness: 300, damping: 22 }}
+                        >
+                            {payload.subtitle && (
+                                <span className="text-xs font-bold uppercase tracking-widest text-white/85">{payload.subtitle}</span>
+                            )}
+                            {payload.title && (
+                                <span className="text-xl md:text-2xl font-extrabold text-white leading-tight" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.35)' }}>{payload.title}</span>
+                            )}
+                            <div className="mt-1 h-1.5 w-40 rounded-full bg-white/25 overflow-hidden">
+                                <div className="h-full w-1/3 rounded-full animate-stage-load-bar" style={{ background: 'linear-gradient(90deg, transparent, #FFFFFF)' }} />
+                            </div>
+                        </motion.div>
+                    </div>
                 </div>
             </motion.div>
         </div>
