@@ -36,7 +36,8 @@ const EDGE = '#F2F7FB'
 // Прямой угол — оранжевый: под тёплую палитру, не занят другими
 // смыслами в этой диаграмме (фиолетовый=гипотенуза, зелёный=катет,
 // синий=угол α).
-const RIGHT_ANGLE_COLOR = GGEGE_PALETTE.orange.button
+// (2026-10: по просьбе пользователя — обычный белый, как и стороны, не оранжевый.)
+const RIGHT_ANGLE_COLOR = EDGE
 // Угол α — ключевой элемент урока, должен бросаться в глаза на тёмном
 // фоне — синий из палитры, не занят другими смыслами здесь.
 const ALPHA_COLOR = GGEGE_PALETTE.blue.button
@@ -310,6 +311,17 @@ export type RightTriangleVisual = {
     sideStickerAlong?: SideId[]
     // Подпись угла вместо "α" (например "37°" в тренировке LEGFINDWALK).
     alphaText?: string
+    // Стрелка от прямого угла к гипотенузе: рисуется ПЕРЕД гипотенузой.
+    hypotenuseArrow?: boolean
+    // «Фломастер» вокруг острых углов (P/Q), рисуется по появлению в списке.
+    angleMarkers?: AlphaVertex[]
+    angleMarkersHidden?: boolean
+    // α задана (для расчёта окна), но пока не показана.
+    alphaShown?: boolean
+    // α «вылетает» из вершины к своему месту (bounce).
+    alphaFlyFromVertex?: boolean
+    // Задержка (с) подписей «катет»; по умолчанию — после зума или сразу.
+    legsLabelDelay?: number
 }
 
 export type StickerPart = { text: string; color?: string }
@@ -391,6 +403,27 @@ const PAN_OUT_START_FRACTION = 0.8      // отсюда начинает отд�
 // противолежащий катет) — см. "стандарт" подсветки стороны в JSX ниже.
 export const SIDE_DRAW_DURATION = 0.9
 
+// Стрелка от прямого угла к гипотенузе (hypotenuseArrow): сначала рисуется
+// она, и только потом — сама гипотенуза и подпись.
+const HYP_ARROW_DELAY_S = 0.2
+const HYP_ARROW_DRAW_S = 0.8
+export const HYP_ARROW_TOTAL_S = 1.2
+
+// «Фломастер» — обводка угла (как FreezeFrameScene в LENZWALK): чуть неровный
+// овал с нахлёстом концов.
+const markerLoop = (cx: number, cy: number, r: number) => {
+    const pts: string[] = []
+    const a0 = -2.2, a1 = a0 + Math.PI * 2 + 0.55
+    for (let i = 0; i <= 64; i++) {
+        const a = a0 + ((a1 - a0) * i) / 64
+        const k = 1 + 0.05 * Math.sin(a * 3 + 1) + 0.03 * Math.sin(a * 7) + (i / 64) * 0.07
+        pts.push(`${(cx + r * k * Math.cos(a)).toFixed(1)} ${(cy + r * k * Math.sin(a)).toFixed(1)}`)
+    }
+    return `M ${pts.join(' L ')}`
+}
+const ANGLE_MARKER_R = 40
+const ANGLE_MARKER_COLOR = '#FF4D4D'
+
 // Задержка между появлением подписи "катет" на первой и на второй стороне
 // — по прямой просьбе пользователя, обе подписи должны появляться
 // ПООЧЕРЁДНО, не одновременно.
@@ -420,6 +453,12 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
         sideStickerLabels,
         sideStickerAlong = [],
         alphaText = 'α',
+        hypotenuseArrow = false,
+        angleMarkers = [],
+        angleMarkersHidden = false,
+        alphaShown = true,
+        alphaFlyFromVertex = false,
+        legsLabelDelay,
     } = props
 
     // Пока камера не "доехала" до цели (zoomFocus задан) — элемент,
@@ -576,6 +615,14 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
             const fp = textFootprint(alphaText, 24)
             growBox(rotatedTextBounds(alphaArc.labelPt, 0, fp.w, fp.h))
         }
+        angleMarkers.forEach((v) => {
+            const V = v === 'P' ? P : Q
+            const other = v === 'P' ? Q : P
+            const bis = norm(add(norm(sub(R, V)), norm(sub(other, V))))
+            const c = add(V, scale(bis, 14))
+            grow({ x: c.x - ANGLE_MARKER_R * 1.25, y: c.y - ANGLE_MARKER_R * 1.25 })
+            grow({ x: c.x + ANGLE_MARKER_R * 1.25, y: c.y + ANGLE_MARKER_R * 1.25 })
+        })
         if (hypotenuseHighlighted && hypotenuseLabelShown) {
             const fp = textFootprint('гипотенуза', 17)
             growBox(rotatedTextBounds(hypLabelPt, angleAlongLine(P, Q), fp.w, fp.h))
@@ -625,7 +672,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
     // ждёт никакого зума), либо только когда камера уже "доехала" до
     // цели (revealed) — если ИМЕННО этот элемент и есть цель зума.
     const effectiveRightAngleMarkShown = zoomFocus === 'rightAngle' ? rightAngleMarkShown && revealed : rightAngleMarkShown
-    const showAlphaArc = alphaArc !== null && (zoomFocus === 'alpha' ? revealed : true)
+    const showAlphaArc = alphaArc !== null && alphaShown && (zoomFocus === 'alpha' ? revealed : true)
     // Золотая подсветка противолежащего катета (линия+подпись) — если
     // ИМЕННО в этом снимке камера панорамирует к нему ('alphaToOppositeLeg'),
     // ждёт, пока панорама доедет (revealed); иначе, как и раньше, сразу.
@@ -654,7 +701,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
     // в исходное положение (весь ZOOM_TOTAL_S), а не только фазу
     // "приблизились" (ZOOM_IN_FRACTION). Вторая подпись — ещё позже, см.
     // LEGS_LABEL_STAGGER_S у каждого вызова SideLabel ниже.
-    const legsBaseDelay = zoomFocus === 'rightAngle' ? ZOOM_TOTAL_S : 0
+    const legsBaseDelay = legsLabelDelay ?? (zoomFocus === 'rightAngle' ? ZOOM_TOTAL_S : 0)
 
     // Подсветка гипотенузы/противолежащего катета в обучающих кадрах
     // ТЕПЕРЬ не здесь — см. отдельные overlay-линии в JSX ниже ("стандарт"
@@ -754,17 +801,34 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                             animate={{ pathLength: 1, opacity: 1 }}
                             transition={{ duration: 0.5, ease: 'easeOut' }}
                         />
-                        <motion.text
-                            x={alphaArc.labelPt.x} y={alphaArc.labelPt.y}
-                            textAnchor="middle" dominantBaseline="middle"
-                            fontFamily={alphaText === 'α' ? 'Georgia, serif' : 'var(--font-nunito), sans-serif'}
-                            fontStyle={alphaText === 'α' ? 'italic' : 'normal'}
-                            fontSize={alphaText === 'α' ? 24 : 20} fontWeight={alphaText === 'α' ? 700 : 800}
-                            fill={ALPHA_COLOR}
-                            initial={numberBounce.initial}
-                            animate={numberBounce.animate}
-                            transition={numberBounce.transition}
-                        >{alphaText}</motion.text>
+                        {alphaFlyFromVertex ? (
+                            <motion.g
+                                initial={{ x: alphaPoint.x - alphaArc.labelPt.x, y: alphaPoint.y - alphaArc.labelPt.y, opacity: 0 }}
+                                animate={{ x: 0, y: 0, opacity: 1 }}
+                                transition={{ type: 'spring', duration: 0.9, bounce: 0.55 }}
+                            >
+                                <text
+                                    x={alphaArc.labelPt.x} y={alphaArc.labelPt.y}
+                                    textAnchor="middle" dominantBaseline="middle"
+                                    fontFamily={alphaText === 'α' ? 'Georgia, serif' : 'var(--font-nunito), sans-serif'}
+                                    fontStyle={alphaText === 'α' ? 'italic' : 'normal'}
+                                    fontSize={alphaText === 'α' ? 24 : 20} fontWeight={alphaText === 'α' ? 700 : 800}
+                                    fill={ALPHA_COLOR}
+                                >{alphaText}</text>
+                            </motion.g>
+                        ) : (
+                            <motion.text
+                                x={alphaArc.labelPt.x} y={alphaArc.labelPt.y}
+                                textAnchor="middle" dominantBaseline="middle"
+                                fontFamily={alphaText === 'α' ? 'Georgia, serif' : 'var(--font-nunito), sans-serif'}
+                                fontStyle={alphaText === 'α' ? 'italic' : 'normal'}
+                                fontSize={alphaText === 'α' ? 24 : 20} fontWeight={alphaText === 'α' ? 700 : 800}
+                                fill={ALPHA_COLOR}
+                                initial={numberBounce.initial}
+                                animate={numberBounce.animate}
+                                transition={numberBounce.transition}
+                            >{alphaText}</motion.text>
+                        )}
                     </>
                 )}
 
@@ -832,17 +896,47 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     pathLength 0→1 с ease-out (эффект замедления к концу),
                     заметно толще базовой. Подпись появляется bounce'ом
                     ТОЛЬКО ПОСЛЕ того как линия уже дорисовалась (delay). */}
+                {hypotenuseArrow && (() => {
+                    // Стрелка от прямого угла к гипотенузе — по перпендикуляру (высота).
+                    const ab = sub(Q, P)
+                    const t = ((R.x - P.x) * ab.x + (R.y - P.y) * ab.y) / (ab.x * ab.x + ab.y * ab.y)
+                    const F = { x: P.x + ab.x * t, y: P.y + ab.y * t }
+                    const u = norm(sub(F, R))
+                    const from = add(R, scale(u, 32))
+                    const to = sub(F, scale(u, 14))
+                    const perp = { x: -u.y, y: u.x }
+                    const h1 = add(sub(to, scale(u, 12)), scale(perp, 8))
+                    const h2 = sub(sub(to, scale(u, 12)), scale(perp, 8))
+                    return (
+                        <>
+                            <motion.line
+                                x1={from.x} y1={from.y} x2={to.x} y2={to.y}
+                                stroke={HYPOTENUSE_COLOR} strokeWidth={4} strokeLinecap="round"
+                                initial={{ pathLength: 0, opacity: 0 }}
+                                animate={{ pathLength: 1, opacity: 1 }}
+                                transition={{ duration: HYP_ARROW_DRAW_S, delay: HYP_ARROW_DELAY_S, ease: 'easeInOut' }}
+                            />
+                            <motion.polygon
+                                points={`${to.x},${to.y} ${h1.x},${h1.y} ${h2.x},${h2.y}`}
+                                fill={HYPOTENUSE_COLOR}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0.2, delay: HYP_ARROW_DELAY_S + HYP_ARROW_DRAW_S }}
+                            />
+                        </>
+                    )
+                })()}
                 <motion.line
                     x1={P.x} y1={P.y} x2={Q.x} y2={Q.y}
                     stroke={HYPOTENUSE_COLOR} strokeWidth={11} strokeLinecap="round"
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: hypotenuseHighlighted ? 1 : 0, opacity: hypotenuseHighlighted ? 1 : 0 }}
-                    transition={{ duration: SIDE_DRAW_DURATION, ease: 'easeOut' }}
+                    transition={{ duration: SIDE_DRAW_DURATION, ease: 'easeOut', delay: hypotenuseArrow && hypotenuseHighlighted ? HYP_ARROW_TOTAL_S : 0 }}
                 />
                 <SideLabel
                     a={P} b={Q} labelPt={hypLabelPt}
                     active={hypotenuseLabelShown} color={HYPOTENUSE_COLOR} text="гипотенуза"
-                    delay={hypotenuseHighlighted ? SIDE_DRAW_DURATION : 0}
+                    delay={hypotenuseHighlighted ? SIDE_DRAW_DURATION + (hypotenuseArrow ? HYP_ARROW_TOTAL_S : 0) : 0}
                 />
 
                 <motion.line
@@ -952,6 +1046,24 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     if (!parts || parts.length === 0) return null
                     const c = stickerCenter(side, parts)
                     return <StickerRow key={`st-${side}-${parts.map((p) => p.text).join('|')}`} cx={c.x} cy={c.y} parts={parts} rotation={stickerRotation(side)} scale={sideStickerAlong.includes(side) ? STICKER_ALONG_SCALE : 1} />
+                })}
+
+                {/* «Фломастер» вокруг выбранных острых углов */}
+                {angleMarkers.map((v) => {
+                    const V = v === 'P' ? P : Q
+                    const other = v === 'P' ? Q : P
+                    const bis = norm(add(norm(sub(R, V)), norm(sub(other, V))))
+                    const c = add(V, scale(bis, 14))
+                    return (
+                        <motion.path
+                            key={`am-${v}`}
+                            d={markerLoop(c.x, c.y, ANGLE_MARKER_R)}
+                            fill="none" stroke={ANGLE_MARKER_COLOR} strokeWidth={4.5} strokeLinecap="round" strokeLinejoin="round"
+                            initial={{ pathLength: 0, opacity: 1 }}
+                            animate={{ pathLength: 1, opacity: angleMarkersHidden ? 0 : 1 }}
+                            transition={{ pathLength: { duration: 0.8, ease: 'easeInOut' }, opacity: { duration: 0.4 } }}
+                        />
+                    )
                 })}
 
                 {/* Вершины — маленькие точки, чтобы стороны читались как

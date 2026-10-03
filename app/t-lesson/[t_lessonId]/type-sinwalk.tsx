@@ -45,7 +45,7 @@ import type { QuestionType } from './page'
 import {
     RightTriangleDiagram, oppositeLegOf, adjacentLegOf,
     HYPOTENUSE_COLOR, LEG_COLOR, ADJACENT_LEG_COLOR,
-    ZOOM_TOTAL_S, PAN_TOTAL_S, SIDE_DRAW_DURATION,
+    ZOOM_TOTAL_S, PAN_TOTAL_S, SIDE_DRAW_DURATION, HYP_ARROW_TOTAL_S,
     type AlphaVertex, type SideId,
 } from '@/components/geometry/RightTriangleDiagram'
 import { Typewriter } from '@/components/geometry/Typewriter'
@@ -84,8 +84,8 @@ const DIAGRAM_TO_TEXT_PAUSE_MS = 900
 //   (delay=SIDE_DRAW_DURATION) и сама занимает ~0.6с (spring) — общий
 //   запас с небольшим буфером.
 const STEP2_SETTLE_MS = (SIDE_DRAW_DURATION + 0.6) * 1000
-// — шаг 3 (угол α, zoomFocus="alpha") — полный зум-цикл ZOOM_TOTAL_S.
-const STEP3_SETTLE_MS = ZOOM_TOTAL_S * 1000
+// Сам шаг 2 (гипотенуза) теперь сначала рисует стрелку от прямого угла.
+const STEP2_ARROW_SETTLE_MS = (HYP_ARROW_TOTAL_S + SIDE_DRAW_DURATION + 0.6) * 1000
 // — шаг 4 (противолежащий катет, zoomFocus="alphaToOppositeLeg") —
 //   полный цикл панорамы PAN_TOTAL_S.
 const STEP4_SETTLE_MS = PAN_TOTAL_S * 1000
@@ -179,17 +179,17 @@ const ADJACENT_STEPS = 1
 const Step2Scene = ({ onSettled }: { onSettled?: () => void }) => {
     const [textVisible, setTextVisible] = useState(false)
     useEffect(() => {
-        const t = setTimeout(() => setTextVisible(true), STEP2_SETTLE_MS + DIAGRAM_TO_TEXT_PAUSE_MS)
+        const t = setTimeout(() => setTextVisible(true), STEP2_ARROW_SETTLE_MS + DIAGRAM_TO_TEXT_PAUSE_MS)
         return () => clearTimeout(t)
     }, [])
     return (
         <>
             <DiagramBlock>
-                <RightTriangleDiagram compact rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown />
+                <RightTriangleDiagram compact rightAngleMarkShown legsLabelShown hypotenuseArrow hypotenuseHighlighted hypotenuseLabelShown />
             </DiagramBlock>
             {textVisible && (
                 <TypedKeyPhraseLine
-                    before="Сторона напротив прямого угла — самая длинная сторона треугольника. Она называется "
+                    before="Сторона напротив прямого угла — самая длинная и называется "
                     phrase="гипотенуза"
                     color={HYPOTENUSE_COLOR}
                     onSettled={onSettled}
@@ -199,24 +199,40 @@ const Step2Scene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-// Шаг 3 (угол α) — та же логика: ждём полный zoom-цикл диаграммы
-// (STEP3_SETTLE_MS = ZOOM_TOTAL_S), потом паузу, потом текст.
+// Шаг 3 (угол α): без зума. «Фломастером» по очереди обводим оба острых
+// угла → печатается «Выберем любой из двух углов. Например нижний.» → фломастер
+// гаснет, из нижнего угла с bounce вылетает α.
 const Step3Scene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [markers, setMarkers] = useState<AlphaVertex[]>([])
     const [textVisible, setTextVisible] = useState(false)
+    const [fade, setFade] = useState(false)
+    const [alphaOn, setAlphaOn] = useState(false)
     useEffect(() => {
-        const t = setTimeout(() => setTextVisible(true), STEP3_SETTLE_MS + DIAGRAM_TO_TEXT_PAUSE_MS)
-        return () => clearTimeout(t)
+        const timers = [
+            setTimeout(() => setMarkers(['P']), 500),
+            setTimeout(() => setMarkers(['P', 'Q']), 500 + 1300),
+            setTimeout(() => setTextVisible(true), 500 + 1300 + 1300),
+        ]
+        return () => timers.forEach(clearTimeout)
     }, [])
+    const handleTyped = () => {
+        setTimeout(() => { setFade(true); setAlphaOn(true) }, 500)
+        setTimeout(() => onSettled?.(), 500 + 1000)
+    }
     return (
         <>
             <DiagramBlock>
-                <RightTriangleDiagram compact rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown alphaVertex="P" zoomFocus="alpha" />
+                <RightTriangleDiagram
+                    compact rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown
+                    alphaVertex="P" alphaShown={alphaOn} alphaFlyFromVertex
+                    angleMarkers={markers} angleMarkersHidden={fade}
+                />
             </DiagramBlock>
             {textVisible && (
                 <TypedLine
                     className="w-full text-base md:text-lg text-[#F2F7FB]"
-                    text="Теперь выберем один из двух других углов — назовём его α (альфа)."
-                    onSettled={onSettled}
+                    text="Выберем любой из двух углов. Например нижний."
+                    onSettled={handleTyped}
                 />
             )}
         </>
@@ -795,7 +811,7 @@ export const TypeSinWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) =>
                         <DiagramBlock><RightTriangleDiagram compact /></DiagramBlock>
                         <TypedLine
                             className="w-full text-base md:text-lg text-[#F2F7FB]"
-                            text="Это прямоугольный треугольник — у него есть прямой угол."
+                            text="Это прямоугольный треугольник"
                             onSettled={() => setStepReady(true)}
                         />
                     </Fragment>
@@ -812,9 +828,9 @@ export const TypeSinWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) =>
                 {step >= 1 && (
                     <SceneWrapper key="step-1" innerRef={sceneRef('step-1')} active={isSceneActive('step-1')}>
                         <Fragment key={`step-1-${replayNonceFor('step-1')}`}>
-                            <DiagramBlock><RightTriangleDiagram compact rightAngleMarkShown legsLabelShown zoomFocus="rightAngle" /></DiagramBlock>
+                            <DiagramBlock><RightTriangleDiagram compact rightAngleMarkShown legsLabelShown legsLabelDelay={0.8} /></DiagramBlock>
                             <TypedKeyPhraseLine
-                                before="Вот он — прямой угол между двумя "
+                                before="У него есть прямой угол. Находится между двумя "
                                 phrase="катетами"
                                 after=" треугольника."
                                 color={MARKER_COLOR_GREEN}
