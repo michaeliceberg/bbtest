@@ -312,16 +312,36 @@ export function useReplayNonces() {
 // replay-nonce конкретного разбора, см. SINWALK) — иначе клик "Повторить"
 // пересоздавал бы саму обёртку вместе с DOM-узлом, который нужен для
 // скролла "назад", вместо того чтобы пересоздавать только содержимое.
-export const SceneWrapper = ({ active, innerRef, children }: { active: boolean; innerRef?: React.Ref<HTMLDivElement>; children: React.ReactNode }) => (
-    <motion.div
-        ref={innerRef}
-        animate={{ opacity: active ? 1 : 0.4 }}
-        transition={{ duration: 0.6, ease: 'easeInOut' }}
-        className="w-full flex flex-col gap-4"
-    >
-        {children}
-    </motion.div>
-)
+export const SceneWrapper = ({ active, innerRef, children }: { active: boolean; innerRef?: React.Ref<HTMLDivElement>; children: React.ReactNode }) => {
+    const localRef = useRef<HTMLDivElement | null>(null)
+    const setRef = useCallback((el: HTMLDivElement | null) => {
+        localRef.current = el
+        if (typeof innerRef === 'function') innerRef(el)
+        else if (innerRef) (innerRef as React.MutableRefObject<HTMLDivElement | null>).current = el
+    }, [innerRef])
+    // Ушли к новой сцене — ролики прошлой не просто тускнеют, а останавливаются
+    // (иначе зацикленные видео продолжают крутиться и отвлекать/греть процессор).
+    // Observer — на случай, если видео смонтируется в уже неактивной сцене.
+    useEffect(() => {
+        const el = localRef.current
+        if (active || !el) return
+        const pauseAll = () => el.querySelectorAll('video').forEach((v) => { if (!v.paused) v.pause() })
+        pauseAll()
+        const mo = new MutationObserver(pauseAll)
+        mo.observe(el, { childList: true, subtree: true })
+        return () => mo.disconnect()
+    }, [active])
+    return (
+        <motion.div
+            ref={setRef}
+            animate={{ opacity: active ? 1 : 0.4 }}
+            transition={{ duration: 0.6, ease: 'easeInOut' }}
+            className="w-full flex flex-col gap-4"
+        >
+            {children}
+        </motion.div>
+    )
+}
 
 // Общий визуальный язык квадратных иконочных кнопок (Back/Replay) — та
 // же boxShadow-"ступенька" + active:translate-y-1, что и у зелёной
