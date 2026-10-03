@@ -21,6 +21,7 @@ const RightAnswerModal = dynamic(() => import('@/components/modals/rightanswer-m
 const AchievementToastProvider = dynamic(() => import('@/components/achievement-toast-provider').then(mod => ({ default: mod.AchievementToastProvider })), { ssr: false });
 const StreakCelebrationToastProvider = dynamic(() => import('@/components/streak-celebration-toast-provider').then(mod => ({ default: mod.StreakCelebrationToastProvider })), { ssr: false });
 const LevelUpModalProvider = dynamic(() => import('@/components/level-up-modal-provider').then(mod => ({ default: mod.LevelUpModalProvider })), { ssr: false });
+const StageCurtainProvider = dynamic(() => import('@/components/stage-curtain-provider').then(mod => ({ default: mod.StageCurtainProvider })), { ssr: false });
 const QuestCompleteModalProvider = dynamic(() => import('@/components/quest-complete-modal-provider').then(mod => ({ default: mod.QuestCompleteModalProvider })), { ssr: false });
 // TrainerMemeModal — по прямой просьбе пользователя больше не
 // монтируется (отвлекала во время решения тренажёра). Компонент/стор
@@ -61,6 +62,7 @@ export default function RootLayout({
 				<StreakCelebrationToastProvider />
 				<LevelUpModalProvider />
 				<QuestCompleteModalProvider />
+				<StageCurtainProvider />
 			</body>
 		</html>
 	);
