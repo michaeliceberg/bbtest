@@ -200,9 +200,39 @@ const SeqScene = ({ diagram, diagramMs = 900, lines, onSettled, confetti }: {
     )
 }
 
+// Ролик играет один раз; по концу (или по страховочному таймеру) зовём onDone.
+const OnceVideo = ({ src, alpha, className, safetyMs, onDone }: {
+    src: string
+    alpha?: boolean
+    className?: string
+    safetyMs: number
+    onDone?: () => void
+}) => {
+    const doneRef = useRef(false)
+    const finish = () => {
+        if (doneRef.current) return
+        doneRef.current = true
+        onDone?.()
+    }
+    useEffect(() => {
+        const t = setTimeout(finish, safetyMs)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+    const common = { autoPlay: true, muted: true, playsInline: true, onEnded: finish, className }
+    return (
+        <Pop>
+            {alpha ? <AlphaVideo src={src} {...common} /> : (
+                // eslint-disable-next-line jsx-a11y/media-has-caption
+                <video src={src} {...common} />
+            )}
+        </Pop>
+    )
+}
+
 // ===== Сцены «синус и косинус» =====
 const IntroAnglesScene = ({ onSettled }: { onSettled?: () => void }) => {
-    const [phase, setPhase] = useState(0) // 0 фраза, 1 углы, 2 строка
+    const [phase, setPhase] = useState(0) // 0 фраза, 1 углы, 2 строка, 3 ролик
     return (
         <>
             <TypedBig
@@ -220,7 +250,12 @@ const IntroAnglesScene = ({ onSettled }: { onSettled?: () => void }) => {
                     </div>
                 </DiagramBlock>
             )}
-            {phase >= 2 && <TypedLine className={TEXT} text="Именно в таком порядке: каждый следующий на 15° больше." onSettled={onSettled} />}
+            {phase >= 2 && <TypedLine className={TEXT} text="Именно в таком порядке: каждый следующий на 15° больше." onSettled={() => setPhase(3)} />}
+            {phase >= 3 && (
+                <div className="flex w-full justify-center">
+                    <OnceVideo src="/video/thanos-marvel-future-fight.mp4" safetyMs={2600} className="h-48 w-48 max-w-none rounded-xl object-cover" onDone={() => setTimeout(() => onSettled?.(), 400)} />
+                </div>
+            )}
         </>
     )
 }
@@ -423,7 +458,7 @@ const TokenView = ({ k }: { k: string }) => {
     return <ValView v={{ num, den: den || undefined }} />
 }
 
-const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled, extraRows, footer }: {
+const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled, extraRows, footer, doneText, doneVideo }: {
     rows: PuzzleRow[]
     prefilled: (r: number, c: number) => boolean
     subtitle: string
@@ -432,6 +467,9 @@ const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled, extraRows, foo
     extraRows?: React.ReactNode
     // Всё, что идёт под таблицей после сборки (кнопка «Агась», фраза).
     footer?: React.ReactNode
+    doneText?: string
+    // Ролик после сборки: onSettled зовётся по его окончании.
+    doneVideo?: { src: string; alpha?: boolean; className: string; safetyMs: number }
 }) => {
     const [titled, setTitled] = useState(false)
     const [ready, setReady] = useState(false)
@@ -460,7 +498,7 @@ const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled, extraRows, foo
             setUsed(next)
             setWrongId(null)
             showAnswerMeme(true)
-            if (next.length >= targets.length) setTimeout(() => onSettled?.(), 1000)
+            if (next.length >= targets.length && !doneVideo) setTimeout(() => onSettled?.(), 1000)
         } else {
             playSound(WRONG_ANSWER_SOUND)
             setWrongId(tok.id)
@@ -550,7 +588,10 @@ const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled, extraRows, foo
                                 })}
                             </div>
                         )}
-                        {done && <p className="text-lg font-black text-[#A1D151]">Таблица собрана!</p>}
+                        {done && <p className="text-lg font-black text-[#A1D151]">{doneText ?? 'Таблица собрана!'}</p>}
+                        {done && doneVideo && (
+                            <OnceVideo {...doneVideo} onDone={() => setTimeout(() => onSettled?.(), 400)} />
+                        )}
                         {done && footer}
                     </div>
                     {done && <LocalAnswerConfetti />}
@@ -562,7 +603,10 @@ const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled, extraRows, foo
 
 // Паззл 1: пустая таблица углов и синусов.
 const SinPuzzleScene = ({ onSettled }: { onSettled?: () => void }) => (
-    <TablePuzzleScene rows={['angle', 'sin']} prefilled={() => false} subtitle="Заполни таблицу: сначала углы, потом синусы — слева направо." onSettled={onSettled} />
+    <TablePuzzleScene rows={['angle', 'sin']} prefilled={() => false} subtitle="Заполни таблицу: сначала углы, потом синусы — слева направо." onSettled={onSettled}
+        doneText="Камни Таноса на месте!"
+        doneVideo={{ src: '/video/thanos-impossible.mp4', className: 'w-full max-w-[300px] rounded-xl', safetyMs: 4200 }}
+    />
 )
 
 // Паззл 2: таблица 3×3 (углы, sin, cos), 3 клетки уже стоят — по одной в
@@ -575,6 +619,7 @@ const FullPuzzleScene = ({ onSettled }: { onSettled?: () => void }) => {
             prefilled={(r, c) => perm[r] === c}
             subtitle="Теперь вся таблица! Часть клеток уже на месте — заполни остальные."
             onSettled={onSettled}
+            doneVideo={{ src: '/video/thanos-kalmar.webm', alpha: true, className: 'h-40 w-40 max-w-none', safetyMs: 2400 }}
         />
     )
 }

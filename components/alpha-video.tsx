@@ -13,7 +13,7 @@ import { useEffect, useState, type VideoHTMLAttributes } from 'react'
 
 const ALPHA = new Set([
     'travolta', 'travolta-dancing', 'cat-dance-1', 'cat-dance-2', 'cat-thinking',
-    'football-ronaldo', 'right-hand-pumped',
+    'football-ronaldo', 'right-hand-pumped', 'thanos-kalmar',
 ])
 
 const needsHevc = () => {
