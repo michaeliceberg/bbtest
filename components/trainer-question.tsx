@@ -63,6 +63,7 @@ import { TrainerBossBar } from "./trainer-boss-bar"
 import { LOTTIE_BOSS_DEATH_LIST, LOTTIE_BOSS_DEATH_LOW_HP, getRandomLottie } from "@/src/constants/lottieConstants"
 import { pickNextButtonLabel } from "@/usefulFunctions"
 import { STEP_BY_STEP_CHALLENGE_TYPES } from "@/lib/trainerStageFlags"
+import { useStageCurtainStore } from "@/store/use-stage-curtain-store"
 import { AnswerMemeLayer } from "@/components/answer-meme-burst"
 
 
@@ -118,8 +119,7 @@ export default function TrainerQuestion({
   isAdmin = false,
 
 }: QuestionProps) {
-
-
+  const curtainActive = useStageCurtainStore((s) => !!s.payload)
 
   const buttonRefs = {
     ref0: useRef<HTMLButtonElement>(null),
@@ -750,7 +750,8 @@ export default function TrainerQuestion({
             первой сценой оставалось большое пустое место и на телефоне
             она не влезала в экран. */}
         <div className={`flex-1 flex flex-col ${STEP_BY_STEP_CHALLENGE_TYPES.has(question.questionType) ? 'justify-start' : 'justify-center'} px-1 py-2 min-h-0`}>
-          {renderMainContent()}
+          {/* Пока шторка перехода (components/stage-curtain-provider.tsx) не уехала — сцену не начинаем */}
+          {curtainActive ? null : renderMainContent()}
         </div>
         </motion.div>
 

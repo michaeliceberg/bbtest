@@ -154,7 +154,7 @@ const ConceptScene = ({ kind, onSettled }: { kind: Kind; onSettled?: () => void 
             <div className="w-full max-w-[460px]">
                 <DiagramBlock>
                     <RightTriangleDiagram
-                        compact rightAngleMarkShown
+                        compact rightAngleMarkShown alphaColor={WHITE}
                         hypotenuseHighlighted={!isTg} hypotenuseLabelShown={!isTg}
                         alphaVertex="P"
                         oppositeLegHighlighted={isSin || isTg} oppositeLegLabelShown={isSin || isTg}
@@ -172,6 +172,175 @@ const ConceptScene = ({ kind, onSettled }: { kind: Kind; onSettled?: () => void 
                     />
                 )}
             </div>
+        </div>
+    )
+}
+
+// ===== Сцена «формула sin» — последовательно (2026-10, по просьбе
+// пользователя): треугольник с белым прямым углом и белым α → гипотенуза
+// + подпись → противолежащий катет + подпись → кнопка «А что такое
+// синус?» → печатается «sin α =» → подпись «противолежащий катет»
+// (повёрнутая, в две строки) переезжает в числитель дроби, поворачиваясь и
+// вытягиваясь в одну строку → так же «гипотенуза» едет в знаменатель. =====
+const WHITE = '#F2F7FB'
+const SIN_STEP_GAP_MS = 500
+const LABEL_SETTLE_MS = (SIDE_DRAW_DURATION + 0.6) * 1000
+const FLY_S = 1.0
+
+type SinStage = 'diagram' | 'formula'
+type Flight = { sx: number; sy: number; rot: number; dx: number; dy: number; lines: string[]; one: string; color: string }
+
+const FlyingLabel = ({ f, onLanded }: { f: Flight; onLanded: () => void }) => (
+    <div className="absolute pointer-events-none z-10 -translate-x-1/2 -translate-y-1/2" style={{ left: f.sx, top: f.sy }}>
+        <motion.div
+            initial={{ x: 0, y: 0, rotate: f.rot }}
+            animate={{ x: f.dx, y: f.dy, rotate: 0 }}
+            transition={{ duration: FLY_S, ease: [0.4, 0, 0.2, 1] }}
+            onAnimationComplete={onLanded}
+            className="relative"
+        >
+            <motion.div
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center font-extrabold leading-tight whitespace-nowrap"
+                style={{ color: f.color, fontSize: 15, fontFamily: 'var(--font-nunito), sans-serif' }}
+                initial={{ opacity: 1 }}
+                animate={{ opacity: 0 }}
+                transition={{ duration: 0.45, delay: 0.1 }}
+            >
+                {f.lines.map((l) => <div key={l}>{l}</div>)}
+            </motion.div>
+            <motion.span
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 inline-flex items-center justify-center rounded-lg border-2 font-extrabold px-2 py-1 leading-none whitespace-nowrap text-lg md:text-xl"
+                style={{ borderColor: f.color, backgroundColor: hexToRgba(f.color, 0.18), color: f.color }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+            >
+                {f.one}
+            </motion.span>
+        </motion.div>
+    </div>
+)
+
+const SinConceptScene = ({
+    stage, onDiagramSettled, onFormulaSettled,
+}: { stage: SinStage; onDiagramSettled?: () => void; onFormulaSettled?: () => void }) => {
+    const rootRef = useRef<HTMLDivElement>(null)
+    const numRef = useRef<HTMLDivElement>(null)
+    const denRef = useRef<HTMLDivElement>(null)
+    const [hypOn, setHypOn] = useState(false)
+    const [oppOn, setOppOn] = useState(false)
+    const [typed, setTyped] = useState(false)
+    const [showFrac, setShowFrac] = useState(false)
+    const [oppFlight, setOppFlight] = useState<Flight | null>(null)
+    const [hypFlight, setHypFlight] = useState<Flight | null>(null)
+    const [oppLanded, setOppLanded] = useState(false)
+    const [hypLanded, setHypLanded] = useState(false)
+
+    // Диаграмма: прямой угол и α сразу → гипотенуза → противолежащий катет.
+    useEffect(() => {
+        const t1 = 1400
+        const t2 = t1 + LABEL_SETTLE_MS + SIN_STEP_GAP_MS
+        const t3 = t2 + LABEL_SETTLE_MS + 200
+        const timers = [
+            setTimeout(() => setHypOn(true), t1),
+            setTimeout(() => setOppOn(true), t2),
+            setTimeout(() => onDiagramSettled?.(), t3),
+        ]
+        return () => timers.forEach(clearTimeout)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    // Печатный «sin α =» → пауза → дробь (пустые места) → пауза → подписи едут.
+    useEffect(() => {
+        if (!typed) return
+        const t = setTimeout(() => setShowFrac(true), 800)
+        return () => clearTimeout(t)
+    }, [typed])
+
+    const startFlight = (needle: string, slot: React.RefObject<HTMLDivElement>, lines: string[], one: string, color: string): Flight | null => {
+        const root = rootRef.current
+        const target = slot.current
+        if (!root || !target) return null
+        const label = [...root.querySelectorAll('svg text')].find((t) => (t.textContent ?? '').includes(needle)) as SVGTextElement | undefined
+        if (!label) return null
+        const rr = root.getBoundingClientRect()
+        const lr = label.getBoundingClientRect()
+        const tr = target.getBoundingClientRect()
+        const m = (label.parentElement?.getAttribute('transform') ?? '').match(/rotate\((-?[\d.]+)/)
+        label.style.visibility = 'hidden'
+        const sx = lr.left + lr.width / 2 - rr.left
+        const sy = lr.top + lr.height / 2 - rr.top
+        return {
+            sx, sy, rot: m ? Number(m[1]) : 0,
+            dx: tr.left + tr.width / 2 - rr.left - sx,
+            dy: tr.top + tr.height / 2 - rr.top - sy,
+            lines, one, color,
+        }
+    }
+
+    useEffect(() => {
+        if (!showFrac) return
+        const t = setTimeout(() => setOppFlight(startFlight('противолежащий', numRef, ['противолежащий', 'катет'], 'противолежащий катет', LEG_COLOR)), 900)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showFrac])
+
+    useEffect(() => {
+        if (!oppLanded) return
+        const t = setTimeout(() => setHypFlight(startFlight('гипотенуза', denRef, ['гипотенуза'], 'гипотенуза', HYPOTENUSE_COLOR)), 900)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [oppLanded])
+
+    useEffect(() => {
+        if (!hypLanded) return
+        const t = setTimeout(() => onFormulaSettled?.(), 700)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [hypLanded])
+
+    const slot = (ref: React.RefObject<HTMLDivElement>, text: string, color: string, landed: boolean) => (
+        <div ref={ref} className="relative">
+            <div className={landed ? '' : 'invisible'}><Sticker value={text} color={color} /></div>
+            {!landed && <div className="absolute inset-0 rounded-lg border-2 border-dashed border-[#3A464E]" />}
+        </div>
+    )
+
+    return (
+        <div ref={rootRef} className="relative w-full flex flex-col items-center gap-4">
+            <div className="w-full max-w-[460px]">
+                <DiagramBlock>
+                    <RightTriangleDiagram
+                        compact rightAngleMarkShown
+                        alphaVertex="P" alphaColor={WHITE}
+                        hypotenuseHighlighted={hypOn} hypotenuseLabelShown={hypOn}
+                        oppositeLegHighlighted={oppOn} oppositeLegLabelShown={oppOn}
+                        reserveLabels={['hyp', 'opp']}
+                    />
+                </DiagramBlock>
+            </div>
+            <div className="w-full flex justify-center min-h-[7rem]">
+                {stage === 'formula' && (
+                    <div className="w-full text-lg md:text-xl font-bold text-[#F2F7FB] flex items-center justify-center flex-wrap gap-1">
+                        {!typed ? (
+                            <Typewriter text="sin α = " onDone={() => setTyped(true)} />
+                        ) : (
+                            <>
+                                <span>sin α = </span>
+                                {showFrac && (
+                                    <span className="inline-flex flex-col items-center mx-4 align-middle">
+                                        {slot(numRef, 'противолежащий катет', LEG_COLOR, oppLanded)}
+                                        <span className="self-stretch -mx-3 h-[5px] my-2.5 rounded-full bg-[#F2F7FB]" />
+                                        {slot(denRef, 'гипотенуза', HYPOTENUSE_COLOR, hypLanded)}
+                                    </span>
+                                )}
+                            </>
+                        )}
+                    </div>
+                )}
+            </div>
+            {oppFlight && !oppLanded && <FlyingLabel f={oppFlight} onLanded={() => setOppLanded(true)} />}
+            {hypFlight && !hypLanded && <FlyingLabel f={hypFlight} onLanded={() => setHypLanded(true)} />}
         </div>
     )
 }
@@ -322,6 +491,7 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
     const [readyIntros, setReadyIntros] = useState<Record<string, boolean>>({})
     const [advancing, setAdvancing] = useState(false)
     const [hadMistake, setHadMistake] = useState(false)
+    const [sinStage, setSinStage] = useState<SinStage>('diagram')
 
     const [trials] = useState<TrialConfig[]>(() => makeTrials())
     const [numerator, setNumerator] = useState<number | null>(null)
@@ -337,6 +507,7 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
 
     const { bump: bumpNonce, nonceFor: replayNonceFor } = useReplayNonces()
     const handleReplay = () => {
+        if (latestSceneKey === 'intro-sin') setSinStage('diagram')
         if (isIntro) setReadyIntros((r) => ({ ...r, [latestSceneKey]: false }))
         bumpNonce(latestSceneKey)
     }
@@ -384,8 +555,12 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
     const handleClearSlot = (slot: 'num' | 'den') => {
         if (checked) return
         setWrongFlash(null)
-        if (slot === 'num') { setNumerator(null); setActiveSlot('num') }
-        else { setDenominator(null); setActiveSlot('den') }
+        // Следующий клик по пулу всегда идёт СВЕРХУ ВНИЗ: если после снятия
+        // оба места пусты — в числитель; если занято одно — в оставшееся пустое.
+        const nextNum = slot === 'num' ? null : numerator
+        if (slot === 'num') setNumerator(null)
+        else setDenominator(null)
+        setActiveSlot(nextNum === null ? 'num' : 'den')
     }
 
     const resetTrialState = () => {
@@ -425,6 +600,7 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
         if (idx < 0) return
         bumpNonce(target)
         resetTrialState()
+        if (target === 'intro-sin') setSinStage('diagram')
         if (trialIdxOf(target) === null) setReadyIntros((r) => ({ ...r, [target]: false }))
         setSceneIdx(idx)
     }
@@ -448,7 +624,15 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
     const renderIntro = (key: SceneKey, kind: Kind) => (
         <SceneWrapper key={key} innerRef={sceneRef(key)} active={isSceneActive(key)}>
             <Fragment key={`${key}-${replayNonceFor(key)}`}>
-                <ConceptScene kind={kind} onSettled={() => setReadyIntros((r) => ({ ...r, [key]: true }))} />
+                {key === 'intro-sin' ? (
+                    <SinConceptScene
+                        stage={sinStage}
+                        onDiagramSettled={() => setReadyIntros((r) => ({ ...r, [key]: true }))}
+                        onFormulaSettled={() => setReadyIntros((r) => ({ ...r, [key]: true }))}
+                    />
+                ) : (
+                    <ConceptScene kind={kind} onSettled={() => setReadyIntros((r) => ({ ...r, [key]: true }))} />
+                )}
             </Fragment>
         </SceneWrapper>
     )
@@ -557,6 +741,7 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
         )
     }
 
+    const sinNeedsFormulaClick = latestSceneKey === 'intro-sin' && sinStage === 'diagram'
     const nextEnabled = isIntro ? !!readyIntros[latestSceneKey] && !advancing : checked && !advancing
 
     return (
@@ -577,6 +762,11 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
                     <button
                         type="button"
                         onClick={() => {
+                            if (sinNeedsFormulaClick) {
+                                setSinStage('formula')
+                                setReadyIntros((r) => ({ ...r, 'intro-sin': false }))
+                                return
+                            }
                             if (!isIntro) setTrialNextLabel(pickWalkthroughNextLabel(isLastScene ? 'Готово' : 'Дальше'))
                             handleNext()
                         }}
@@ -584,7 +774,7 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
                         className={walkthroughButtonClass(nextEnabled)}
                         style={walkthroughButtonStyle(nextEnabled)}
                     >
-                        {isIntro ? 'Дальше' : isLastScene ? 'Готово' : trialNextLabel}
+                        {sinNeedsFormulaClick ? 'А что такое синус?' : isIntro ? 'Дальше' : isLastScene ? 'Готово' : trialNextLabel}
                     </button>
                 </div>
             ) : (

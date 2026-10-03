@@ -320,6 +320,11 @@ export type RightTriangleVisual = {
     alphaShown?: boolean
     // α «вылетает» из вершины к своему месту (bounce).
     alphaFlyFromVertex?: boolean
+    // Цвет дуги и буквы α (по умолчанию синий).
+    alphaColor?: string
+    // Зарезервировать место под подписи сторон в компактном окне заранее
+    // (когда они появятся позже — окно не «прыгает»).
+    reserveLabels?: ('hyp' | 'opp' | 'adj')[]
     // Задержка (с) подписей «катет»; по умолчанию — после зума или сразу.
     legsLabelDelay?: number
 }
@@ -459,6 +464,8 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
         alphaShown = true,
         alphaFlyFromVertex = false,
         legsLabelDelay,
+        alphaColor = ALPHA_COLOR,
+        reserveLabels = [],
     } = props
 
     // Пока камера не "доехала" до цели (zoomFocus задан) — элемент,
@@ -623,17 +630,17 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
             grow({ x: c.x - ANGLE_MARKER_R * 1.25, y: c.y - ANGLE_MARKER_R * 1.25 })
             grow({ x: c.x + ANGLE_MARKER_R * 1.25, y: c.y + ANGLE_MARKER_R * 1.25 })
         })
-        if (hypotenuseHighlighted && hypotenuseLabelShown) {
+        if ((hypotenuseHighlighted && hypotenuseLabelShown) || reserveLabels.includes('hyp')) {
             const fp = textFootprint('гипотенуза', 17)
             growBox(rotatedTextBounds(hypLabelPt, angleAlongLine(P, Q), fp.w, fp.h))
         }
-        if (oppositeLegHighlighted && oppositeLegLabelShown && alphaVertex) {
+        if (((oppositeLegHighlighted && oppositeLegLabelShown) || reserveLabels.includes('opp')) && alphaVertex) {
             const wideLabelPt = alphaVertex === 'P' ? legRQLabelPtWide : legRPLabelPtWide
             const rot = angleAlongLine(R, alphaVertex === 'P' ? Q : P)
             const fp = textFootprint('противолежащий', 15)
             growBox(rotatedTextBounds(wideLabelPt, rot, fp.w, fp.h * 2))
         }
-        if (adjacentLegHighlighted && adjacentLegLabelShown && alphaVertex) {
+        if (((adjacentLegHighlighted && adjacentLegLabelShown) || reserveLabels.includes('adj')) && alphaVertex) {
             const wideLabelPt = alphaVertex === 'P' ? legRPLabelPtWide : legRQLabelPtWide
             const rot = angleAlongLine(R, alphaVertex === 'P' ? P : Q)
             const fp = textFootprint('прилежащий', 15)
@@ -794,7 +801,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                         <motion.path
                             d={`M ${alphaArc.p1.x} ${alphaArc.p1.y} Q ${alphaArc.control.x} ${alphaArc.control.y} ${alphaArc.p2.x} ${alphaArc.p2.y}`}
                             fill="none"
-                            stroke={ALPHA_COLOR}
+                            stroke={alphaColor}
                             strokeWidth={3}
                             strokeLinecap="round"
                             initial={{ pathLength: 0, opacity: 0 }}
@@ -813,7 +820,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                                     fontFamily={alphaText === 'α' ? 'Georgia, serif' : 'var(--font-nunito), sans-serif'}
                                     fontStyle={alphaText === 'α' ? 'italic' : 'normal'}
                                     fontSize={alphaText === 'α' ? 24 : 20} fontWeight={alphaText === 'α' ? 700 : 800}
-                                    fill={ALPHA_COLOR}
+                                    fill={alphaColor}
                                 >{alphaText}</text>
                             </motion.g>
                         ) : (
@@ -823,7 +830,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                                 fontFamily={alphaText === 'α' ? 'Georgia, serif' : 'var(--font-nunito), sans-serif'}
                                 fontStyle={alphaText === 'α' ? 'italic' : 'normal'}
                                 fontSize={alphaText === 'α' ? 24 : 20} fontWeight={alphaText === 'α' ? 700 : 800}
-                                fill={ALPHA_COLOR}
+                                fill={alphaColor}
                                 initial={numberBounce.initial}
                                 animate={numberBounce.animate}
                                 transition={numberBounce.transition}
