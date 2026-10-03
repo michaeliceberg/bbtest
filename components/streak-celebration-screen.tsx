@@ -27,6 +27,11 @@ const MILESTONE_COPY: Record<number, { title: string; subtitle: string; accent: 
   7: { title: 'Огонь!', subtitle: 'ответов подряд!', accent: '#EF9F27', cozyEdge: '#C77A3E' },
 }
 
+// С такой вероятностью вместо Lottie играет ролик (Понасенков, gelatochocolato).
+const VIDEO_CHANCE = 0.6
+const VIDEO_SRC = '/video/ponasenkov-gelato.mp4'
+const VIDEO_SAFETY_MS = 9000
+
 const ENTER_S = 0.2
 const EXIT_S = 0.1
 // Сколько Lottie играет в центре — не ждём конца цикла (по просьбе пользователя).
@@ -40,6 +45,22 @@ export const StreakCelebrationScreen = ({ animationData, onNext, milestone, them
   const [phase, setPhase] = useState<Phase>('in')
   const lottieRef = useRef<any>(null)
   const doneRef = useRef(false)
+  const [useVideo] = useState(() => milestone === 3 && Math.random() < VIDEO_CHANCE)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const finishVideo = () => {
+    if (doneRef.current) return
+    doneRef.current = true
+    onNext()
+  }
+  useEffect(() => {
+    if (!useVideo) return
+    const v = videoRef.current
+    // Экран открывается после клика по ответу — со звуком обычно разрешено; иначе без звука.
+    if (v) v.play().catch(() => { v.muted = true; v.play().catch(() => {}) })
+    const t = setTimeout(finishVideo, VIDEO_SAFETY_MS)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [useVideo])
 
   const leave = () => setPhase((p) => (p === 'out' ? p : 'out'))
 
@@ -50,6 +71,38 @@ export const StreakCelebrationScreen = ({ animationData, onNext, milestone, them
     const t = setTimeout(leave, HOLD_MS)
     return () => clearTimeout(t)
   }, [phase])
+
+  if (useVideo) {
+    return (
+      <div className="relative min-h-screen overflow-hidden text-[#F2F7FB]">
+        <div className="pointer-events-none fixed inset-0 z-0" style={{ backgroundColor: cozy ? COZY.bg : '#0E1518' }}>
+          <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 50% 35%, ${copy.accent}40, transparent 60%)` }} />
+        </div>
+        <div className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-3 px-4 py-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.6 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 14 }}
+            className="text-center font-black uppercase leading-none"
+          >
+            <div className="text-6xl sm:text-7xl" style={{ color: '#FFD84D', textShadow: '0 0 24px #FFB02088, 0 4px 0 #8A5A00' }}>УРАА!</div>
+            <div className="mt-2 text-2xl sm:text-4xl" style={{ color: '#FFFFFF', textShadow: `0 0 18px ${copy.accent}` }}>3 правильных подряд!</div>
+          </motion.div>
+          <motion.video
+            ref={videoRef}
+            src={VIDEO_SRC}
+            playsInline
+            onEnded={finishVideo}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+            className="max-h-[66vh] w-auto max-w-full rounded-2xl object-contain shadow-2xl"
+            style={{ aspectRatio: '9 / 16', border: `3px solid ${copy.accent}` }}
+          />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="relative min-h-screen overflow-hidden text-[#F2F7FB]">
