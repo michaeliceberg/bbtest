@@ -201,11 +201,13 @@ const SeqScene = ({ diagram, diagramMs = 900, lines, onSettled, confetti }: {
 }
 
 // Ролик играет один раз; по концу (или по страховочному таймеру) зовём onDone.
-const OnceVideo = ({ src, alpha, className, safetyMs, onDone }: {
+const OnceVideo = ({ src, alpha, className, safetyMs, loop, onDone }: {
     src: string
     alpha?: boolean
     className?: string
     safetyMs: number
+    // По кругу: onDone зовётся по таймеру (после первого проигрывания), ролик не останавливается.
+    loop?: boolean
     onDone?: () => void
 }) => {
     const doneRef = useRef(false)
@@ -219,7 +221,7 @@ const OnceVideo = ({ src, alpha, className, safetyMs, onDone }: {
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
-    const common = { autoPlay: true, muted: true, playsInline: true, onEnded: finish, className }
+    const common = { autoPlay: true, muted: true, playsInline: true, loop, onEnded: finish, className }
     return (
         <Pop>
             {alpha ? <AlphaVideo src={src} {...common} /> : (
@@ -253,7 +255,7 @@ const IntroAnglesScene = ({ onSettled }: { onSettled?: () => void }) => {
             {phase >= 2 && <TypedLine className={TEXT} text="Именно в таком порядке: каждый следующий на 15° больше." onSettled={() => setPhase(3)} />}
             {phase >= 3 && (
                 <div className="flex w-full justify-center">
-                    <OnceVideo src="/video/thanos-marvel-future-fight.mp4" safetyMs={2600} className="h-48 w-48 max-w-none rounded-xl object-cover" onDone={() => setTimeout(() => onSettled?.(), 400)} />
+                    <OnceVideo src="/video/thanos-marvel-future-fight.mp4" safetyMs={2000} loop className="h-48 w-48 max-w-none rounded-xl object-cover" onDone={() => setTimeout(() => onSettled?.(), 400)} />
                 </div>
             )}
         </>
@@ -458,7 +460,7 @@ const TokenView = ({ k }: { k: string }) => {
     return <ValView v={{ num, den: den || undefined }} />
 }
 
-const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled, extraRows, footer, doneText, doneVideo }: {
+const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled, extraRows, footer, doneText, doneVideo, title }: {
     rows: PuzzleRow[]
     prefilled: (r: number, c: number) => boolean
     subtitle: string
@@ -468,8 +470,9 @@ const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled, extraRows, foo
     // Всё, что идёт под таблицей после сборки (кнопка «Агась», фраза).
     footer?: React.ReactNode
     doneText?: string
+    title?: string
     // Ролик после сборки: onSettled зовётся по его окончании.
-    doneVideo?: { src: string; alpha?: boolean; className: string; safetyMs: number }
+    doneVideo?: { src: string; alpha?: boolean; className: string; safetyMs: number; loop?: boolean }
 }) => {
     const [titled, setTitled] = useState(false)
     const [ready, setReady] = useState(false)
@@ -544,7 +547,7 @@ const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled, extraRows, foo
     }
     return (
         <>
-            <TypedBig parts={[{ text: 'Собери паззл!' }]} onDone={() => setTitled(true)} readMs={200} />
+            <TypedBig parts={[{ text: title ?? 'Собери паззл!' }]} onDone={() => setTitled(true)} readMs={200} />
             {titled && <TypedLine className={TEXT} text={subtitle} onSettled={() => setReady(true)} delayAfter={200} />}
             {ready && (
                 <DiagramBlock>
@@ -619,7 +622,8 @@ const FullPuzzleScene = ({ onSettled }: { onSettled?: () => void }) => {
             prefilled={(r, c) => perm[r] === c}
             subtitle="Теперь вся таблица! Часть клеток уже на месте — заполни остальные."
             onSettled={onSettled}
-            doneVideo={{ src: '/video/thanos-kalmar.webm', alpha: true, className: 'h-40 w-40 max-w-none', safetyMs: 2400 }}
+            doneVideo={{ src: '/video/thanos-kalmar.webm', alpha: true, className: 'h-40 w-40 max-w-none', safetyMs: 2400, loop: true }}
+            title="Собери ВСЕ КАМНИ!"
         />
     )
 }
