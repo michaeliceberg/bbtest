@@ -100,8 +100,6 @@ interface QuestionProps {
   // Админская "карта сцен" (см. TypeSinWalk) — прыжок в любую сцену
   // степбайстеп-разбора без прощёлкивания урока.
   isAdmin?: boolean,
-  // Позывной ученика — для приветствий в разборах.
-  nickname?: string | null,
 }
 
 export default function TrainerQuestion({
@@ -119,7 +117,7 @@ export default function TrainerQuestion({
   streak = 0,
   roundKey = 0,
   isAdmin = false,
-  nickname = null,
+
 }: QuestionProps) {
   const curtainActive = useStageCurtainStore((s) => !!s.payload)
 
@@ -438,7 +436,7 @@ export default function TrainerQuestion({
         // "sin/cos как отношение сторон" + тренировка с дробью,
         // заполняемой числами из подписанного треугольника. См.
         // type-sincosdefwalk.tsx.
-        return <TypeSinCosDefWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} isAdmin={isAdmin} nickname={nickname} />
+        return <TypeSinCosDefWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} isAdmin={isAdmin} />
 
       case "TRIGTABLE":
         // select-then-submit, тот же контракт, что у ASSIST/INSERT/SCROLL —

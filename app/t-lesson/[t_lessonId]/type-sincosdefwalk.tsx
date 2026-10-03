@@ -59,8 +59,6 @@ type Props = {
     onAnswer: (answer: string) => void
     onComplete: (isCorrect: boolean) => void
     isAdmin?: boolean
-    // Позывной ученика (для приветствия Лео в первой сцене).
-    nickname?: string | null
 }
 
 // Пауза ПОСЛЕ клика "Дальше", ДО начала следующей сцены — тот же принцип
@@ -224,13 +222,11 @@ const FlyingLabel = ({ f, onLanded }: { f: Flight; onLanded: () => void }) => (
 )
 
 const SinConceptScene = ({
-    stage, nickname, onDiagramSettled, onFormulaSettled,
-}: { stage: SinStage; nickname?: string | null; onDiagramSettled?: () => void; onFormulaSettled?: () => void }) => {
+    stage, onDiagramSettled, onFormulaSettled,
+}: { stage: SinStage; onDiagramSettled?: () => void; onFormulaSettled?: () => void }) => {
     const rootRef = useRef<HTMLDivElement>(null)
     const numRef = useRef<HTMLDivElement>(null)
     const denRef = useRef<HTMLDivElement>(null)
-    const [leoOn, setLeoOn] = useState(false)
-    const [greeted, setGreeted] = useState(false)
     const [hypOn, setHypOn] = useState(false)
     const [oppOn, setOppOn] = useState(false)
     const [typed, setTyped] = useState(false)
@@ -240,15 +236,9 @@ const SinConceptScene = ({
     const [oppLanded, setOppLanded] = useState(false)
     const [hypLanded, setHypLanded] = useState(false)
 
-    // Треугольник рисуется сразу → через ~1.4 с появляется Лео с приветствием →
-    // по кнопке «Салам, Лео» → гипотенуза → противолежащий катет.
+    // Диаграмма: прямой угол и α сразу → гипотенуза → противолежащий катет.
     useEffect(() => {
-        const t = setTimeout(() => setLeoOn(true), 1400)
-        return () => clearTimeout(t)
-    }, [])
-    useEffect(() => {
-        if (!greeted) return
-        const t1 = 700
+        const t1 = 1400
         const t2 = t1 + LABEL_SETTLE_MS + SIN_STEP_GAP_MS
         const t3 = t2 + LABEL_SETTLE_MS + 200
         const timers = [
@@ -258,7 +248,7 @@ const SinConceptScene = ({
         ]
         return () => timers.forEach(clearTimeout)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [greeted])
+    }, [])
 
     // Печатный «sin α =» → пауза → дробь (пустые места) → пауза → подписи едут.
     useEffect(() => {
@@ -318,46 +308,6 @@ const SinConceptScene = ({
 
     return (
         <div ref={rootRef} className="relative w-full flex flex-col items-center gap-4">
-            {/* Лео: справа сверху, чуть накренён против часовой, с облачком и кнопкой.
-                Высота зарезервирована заранее — диаграмма не «прыгает». */}
-            <div className="w-full max-w-[460px] min-h-[190px] flex items-start justify-end gap-2">
-                {leoOn && (
-                    <>
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.6 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.35, type: 'spring', stiffness: 260, damping: 18 }}
-                            className="relative mt-2 max-w-[62%] rounded-2xl border-2 border-[#3A464E] bg-[#1B252B] px-3 py-2 text-sm md:text-base font-bold text-[#F2F7FB] leading-snug"
-                        >
-                            Привет, <span style={{ color: '#F2C35B' }}>{nickname || 'друг'}</span>! Прямоугольный треугольник приветствует тебя!
-                            <span className="absolute -right-[7px] top-6 w-3 h-3 rotate-45 bg-[#1B252B] border-t-2 border-r-2 border-[#3A464E]" />
-                        </motion.div>
-                        <div className="shrink-0 flex flex-col items-center gap-2">
-                            <motion.img
-                                src="/lesson-pics/leo.webp"
-                                alt="Лео"
-                                className="w-24 h-24 md:w-28 md:h-28 object-contain select-none"
-                                initial={{ opacity: 0, scale: 0.4, rotate: 0 }}
-                                animate={{ opacity: 1, scale: 1, rotate: -8 }}
-                                transition={{ type: 'spring', stiffness: 220, damping: 14 }}
-                                draggable={false}
-                            />
-                            {!greeted && (
-                                <motion.button
-                                    type="button"
-                                    onClick={() => setGreeted(true)}
-                                    initial={{ opacity: 0, y: 8 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.6 }}
-                                    className="rounded-xl border-2 border-b-4 border-[#3A464E] bg-[#1B252B] px-3 py-1.5 text-sm font-extrabold text-[#F2F7FB] active:border-b-2 hover:border-[#4A90D9]"
-                                >
-                                    Салам, Лео
-                                </motion.button>
-                            )}
-                        </div>
-                    </>
-                )}
-            </div>
             <div className="w-full max-w-[460px]">
                 <DiagramBlock>
                     <RightTriangleDiagram
@@ -536,7 +486,7 @@ const StaticChip = ({ value }: { value: number }) => (
     <div className={cn(CHIP_BASE, 'border-[#A1D151] bg-[#A1D15122] text-[#A1D151]')}>{value}</div>
 )
 
-export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false, nickname = null }: Props) => {
+export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) => {
     const [sceneIdx, setSceneIdx] = useState(0)
     const [readyIntros, setReadyIntros] = useState<Record<string, boolean>>({})
     const [advancing, setAdvancing] = useState(false)
@@ -677,7 +627,6 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false, nickn
                 {key === 'intro-sin' ? (
                     <SinConceptScene
                         stage={sinStage}
-                        nickname={nickname}
                         onDiagramSettled={() => setReadyIntros((r) => ({ ...r, [key]: true }))}
                         onFormulaSettled={() => setReadyIntros((r) => ({ ...r, [key]: true }))}
                     />

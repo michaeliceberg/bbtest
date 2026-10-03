@@ -1266,7 +1266,6 @@ export default function TQuiz({
             streak={streak}
             roundKey={roundNumber}
             isAdmin={isAdmin}
-            nickname={isGuest ? guestNickname : (invite?.nickname ?? userName)}
           />
         </div>
       )}
