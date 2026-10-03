@@ -6,7 +6,7 @@
 // плавно поднимается вверх, мигая подсветкой (красной — неверно, зелёной — верно);
 // через 2 секунды резко, с ускорением, улетает вверх и схлопывается в точку. Картинки — public/answer-meme-right/N.webp
 // и public/answer-meme-wrong/N.webp (стикеры 512×512).
-// На неверный ответ — всегда, на верный — с шансом 33%.
+// На неверный ответ — всегда, на верный — с шансом 50%.
 //
 // Использование: на странице один раз <AnswerMemeLayer />, дальше
 // showAnswerMeme(isCorrect) в обработчике ответа. Точку берём из последнего
@@ -18,7 +18,7 @@ import { motion } from 'framer-motion'
 
 const RIGHT_COUNT = 21
 const WRONG_COUNT = 39
-const RIGHT_CHANCE = 0.33
+const RIGHT_CHANCE = 0.5
 const SHOW_MS = 2000
 const SIZE = 132
 
