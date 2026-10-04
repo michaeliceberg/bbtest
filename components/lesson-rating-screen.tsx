@@ -46,25 +46,39 @@ export const LessonRatingScreen = ({ tLessonId, theme = 'metal', onDone }: Props
 			className="min-h-[100dvh] w-full flex flex-col items-center px-4 pt-10 pb-6"
 			style={{ background: cozy ? COZY.bg : '#131D22' }}
 		>
-			<div className="w-full max-w-md flex-1 flex flex-col items-center justify-center gap-6">
-				<motion.div
-					key={score ?? 0}
-					initial={{ scale: 0.4, opacity: 0 }}
-					animate={{ scale: 1, opacity: 1 }}
-					transition={{ type: 'spring', bounce: 0.5 }}
-					className="text-6xl"
-				>
-					{score === topScore ? (
-						// eslint-disable-next-line @next/next/no-img-element
-						<img src={sticker.src} alt="" className="h-36 w-36 object-contain" />
-					) : score != null ? LESSON_RATING_OPTIONS[score - 1].emoji : '🤔'}
-				</motion.div>
+			<div className="w-full max-w-md flex-1 flex flex-col items-center justify-start gap-5">
+				{/* Вопрос — в самом верху экрана. */}
 				<h1
 					className="text-2xl sm:text-3xl font-extrabold text-center"
 					style={{ color: cozy ? COZY.title : '#F2F7FB' }}
 				>
 					Насколько понятен был урок?
 				</h1>
+
+				{/* Выбранный вариант: стикер и под ним — подпись выбранного ответа
+					(а не статичный вопрос). До выбора — подсказка. */}
+				<div className="flex flex-col items-center gap-2 min-h-[11rem]">
+					<motion.div
+						key={score ?? 0}
+						initial={{ scale: 0.4, opacity: 0 }}
+						animate={{ scale: 1, opacity: 1 }}
+						transition={{ type: 'spring', bounce: 0.5 }}
+						className="text-6xl flex flex-col items-center gap-2"
+					>
+						{score === topScore ? (
+							// eslint-disable-next-line @next/next/no-img-element
+							<img src={sticker.src} alt="" className="h-36 w-36 object-contain" />
+						) : (
+							<span className="leading-none">{score != null ? LESSON_RATING_OPTIONS[score - 1].emoji : '🤔'}</span>
+						)}
+						<span
+							className="text-xl sm:text-2xl font-extrabold text-center"
+							style={{ color: accent ?? (cozy ? COZY.textSoft : '#9AA7B0') }}
+						>
+							{score == null ? 'Выбери вариант ниже' : score === topScore ? sticker.label : LESSON_RATING_OPTIONS[score - 1].label}
+						</span>
+					</motion.div>
+				</div>
 
 				<div className="w-full grid grid-cols-2 gap-3">
 					{LESSON_RATING_OPTIONS.map((o, i) => {

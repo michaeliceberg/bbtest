@@ -179,7 +179,7 @@ const ADJACENT_STEPS = 1
 const DIAGRAM_COMPACT = 'w-full [&_svg]:max-h-[46vh]'
 // Все обучающие сцены (0-4) показывают чертёж В ОДНОМ МАСШТАБЕ: окно одинаковое
 // (резервируем место под прямой угол, подписи катетов/гипотенузы/противолежащего и α).
-const INTRO_BOUNDS = { compact: true, reserveBounds: true, reserveLabels: ['hyp', 'opp'] as ('hyp' | 'opp')[], alphaVertex: 'P' as const }
+const INTRO_BOUNDS = { compact: true, reserveBounds: true, reserveLabels: ['hyp', 'opp', 'adj'] as ('hyp' | 'opp' | 'adj')[], alphaVertex: 'P' as const }
 
 const Step1Scene = ({ onSettled }: { onSettled?: () => void }) => {
     const [rightOn, setRightOn] = useState(false)
@@ -423,13 +423,14 @@ const AdjacentSwapScene = ({ onSettled }: { onSettled?: () => void }) => {
     }, [])
     return (
         <>
-            <DiagramBlock>
+            {/* Сначала только гипотенуза и α — противолежащий катет не отвлекает,
+                речь про прилежащий (он подсвечивается вместе с подписью). */}
+            <div className={DIAGRAM_COMPACT}><DiagramBlock>
                 <RightTriangleDiagram
-                    compact rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown
-                    alphaVertex="P" oppositeLegHighlighted oppositeLegLabelShown
+                    {...INTRO_BOUNDS} rightAngleMarkShown hypotenuseHighlighted hypotenuseLabelShown instantBase
                     adjacentLegHighlighted={swapped} adjacentLegLabelShown={swapped}
                 />
-            </DiagramBlock>
+            </DiagramBlock></div>
             {textVisible && (
                 // after=" катет." (не просто ".") — по прямой просьбе
                 // пользователя единый формат "качественное слово(стикер)
