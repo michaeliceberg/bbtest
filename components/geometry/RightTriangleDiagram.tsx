@@ -420,20 +420,12 @@ const HYP_ARROW_DELAY_S = 0
 const HYP_ARROW_DRAW_S = 0.35
 export const HYP_ARROW_TOTAL_S = 0.55
 
-// «Фломастер» — обводка угла (как FreezeFrameScene в LENZWALK): чуть неровный
-// овал с нахлёстом концов.
-const markerLoop = (cx: number, cy: number, r: number) => {
-    const pts: string[] = []
-    const a0 = -2.2, a1 = a0 + Math.PI * 2 + 0.55
-    for (let i = 0; i <= 64; i++) {
-        const a = a0 + ((a1 - a0) * i) / 64
-        const k = 1 + 0.05 * Math.sin(a * 3 + 1) + 0.03 * Math.sin(a * 7) + (i / 64) * 0.07
-        pts.push(`${(cx + r * k * Math.cos(a)).toFixed(1)} ${(cy + r * k * Math.sin(a)).toFixed(1)}`)
-    }
-    return `M ${pts.join(' L ')}`
-}
+// «Фломастер» — стандартная обводка проекта (та же, что в уроке про тангенс,
+// MARKER_PATH в type-trigvalwalk.tsx): аккуратный почти круг, сверху концы
+// линии заходят друг за друга. Путь задан в квадрате 100×100.
+const MARKER_PATH = 'M 86 24 C 66 0, 16 4, 7 44 C 0 86, 58 102, 90 80 C 104 64, 99 34, 72 18'
 const ANGLE_MARKER_R = 40
-const ANGLE_MARKER_COLOR = '#FF4D4D'
+const ANGLE_MARKER_COLOR = '#F2C35B'
 
 // Задержка между появлением подписи "катет" на первой и на второй стороне
 // — по прямой просьбе пользователя, обе подписи должны появляться
@@ -1086,14 +1078,16 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     const bis = norm(add(norm(sub(R, V)), norm(sub(other, V))))
                     const c = add(V, scale(bis, 14))
                     return (
-                        <motion.path
-                            key={`am-${v}`}
-                            d={markerLoop(c.x, c.y, ANGLE_MARKER_R)}
-                            fill="none" stroke={ANGLE_MARKER_COLOR} strokeWidth={4.5} strokeLinecap="round" strokeLinejoin="round"
-                            initial={{ pathLength: 0, opacity: 1 }}
-                            animate={{ pathLength: 1, opacity: angleMarkersHidden ? 0 : 1 }}
-                            transition={{ pathLength: { duration: 0.8, ease: 'easeInOut' }, opacity: { duration: 0.4 } }}
-                        />
+                        <g key={`am-${v}`} transform={`translate(${c.x - ANGLE_MARKER_R} ${c.y - ANGLE_MARKER_R}) scale(${(ANGLE_MARKER_R * 2) / 100})`}>
+                            <motion.path
+                                d={MARKER_PATH}
+                                fill="none" stroke={ANGLE_MARKER_COLOR} strokeWidth={4} strokeLinecap="round"
+                                vectorEffect="non-scaling-stroke"
+                                initial={{ pathLength: 0, opacity: 1 }}
+                                animate={{ pathLength: 1, opacity: angleMarkersHidden ? 0 : 1 }}
+                                transition={{ pathLength: { duration: 0.7, ease: 'easeInOut' }, opacity: { duration: 0.15 } }}
+                            />
+                        </g>
                     )
                 })}
 

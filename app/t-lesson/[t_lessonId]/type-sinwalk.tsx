@@ -213,7 +213,7 @@ const Step1Scene = ({ onSettled }: { onSettled?: () => void }) => {
                         {' '}
                         {!typed2 ? (
                             <Typewriter
-                                text="Находится между двумя катетами треугольника."
+                                text="Он находится между двумя катетами."
                                 onDone={() => {
                                     setTyped2(true)
                                     setTimeout(() => {
@@ -224,7 +224,7 @@ const Step1Scene = ({ onSettled }: { onSettled?: () => void }) => {
                             />
                         ) : (
                             <span>
-                                Находится между двумя <span style={{ color: MARKER_COLOR_GREEN, fontWeight: 800 }}>катетами</span> треугольника.
+                                Он находится между двумя <span style={{ color: MARKER_COLOR_GREEN, fontWeight: 800 }}>катетами</span>.
                             </span>
                         )}
                     </>
@@ -264,25 +264,17 @@ const Step2Scene = ({ onSettled }: { onSettled?: () => void }) => {
     )
 }
 
-// Шаг 3 (угол α): без зума. «Фломастером» по очереди обводим оба острых
-// угла → печатается «Выберем любой из двух углов. Например нижний.» → фломастер
-// гаснет, из нижнего угла с bounce вылетает α.
+// Шаг 3 (угол α): без зума. Печатается «Пусть нижний угол равен альфа» → тем
+// же «фломастером» (стандартная обводка проекта) обводится ТОЛЬКО нижний угол →
+// обводка сразу исчезает → из нижнего угла с bounce вылетает α.
 const Step3Scene = ({ onSettled }: { onSettled?: () => void }) => {
     const [markers, setMarkers] = useState<AlphaVertex[]>([])
-    const [textVisible, setTextVisible] = useState(false)
     const [fade, setFade] = useState(false)
     const [alphaOn, setAlphaOn] = useState(false)
-    useEffect(() => {
-        const timers = [
-            setTimeout(() => setMarkers(['P']), 500),
-            setTimeout(() => setMarkers(['P', 'Q']), 500 + 1300),
-            setTimeout(() => setTextVisible(true), 500 + 1300 + 1300),
-        ]
-        return () => timers.forEach(clearTimeout)
-    }, [])
     const handleTyped = () => {
-        setTimeout(() => { setFade(true); setAlphaOn(true) }, 500)
-        setTimeout(() => onSettled?.(), 500 + 1000)
+        setMarkers(['P'])
+        setTimeout(() => { setFade(true); setAlphaOn(true) }, 700 + 500)
+        setTimeout(() => onSettled?.(), 700 + 500 + 1000)
     }
     return (
         <>
@@ -293,13 +285,11 @@ const Step3Scene = ({ onSettled }: { onSettled?: () => void }) => {
                     angleMarkers={markers} angleMarkersHidden={fade}
                 />
             </DiagramBlock></div>
-            {textVisible && (
-                <TypedLine
-                    className="w-full text-base md:text-lg text-[#F2F7FB]"
-                    text="Выберем любой из двух углов. Например нижний."
-                    onSettled={handleTyped}
-                />
-            )}
+            <TypedLine
+                className="w-full text-base md:text-lg text-[#F2F7FB]"
+                text="Пусть нижний угол равен альфа"
+                onSettled={handleTyped}
+            />
         </>
     )
 }

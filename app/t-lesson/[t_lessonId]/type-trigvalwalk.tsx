@@ -201,13 +201,15 @@ const SeqScene = ({ diagram, diagramMs = 900, lines, onSettled, confetti }: {
 }
 
 // Ролик играет один раз; по концу (или по страховочному таймеру) зовём onDone.
-const OnceVideo = ({ src, alpha, className, safetyMs, loop, onDone }: {
+const OnceVideo = ({ src, alpha, className, safetyMs, loop, overlayText, onDone }: {
     src: string
     alpha?: boolean
     className?: string
     safetyMs: number
     // По кругу: onDone зовётся по таймеру (после первого проигрывания), ролик не останавливается.
     loop?: boolean
+    // Чёрная плашка с текстом поверх вшитых в ролик субтитров внизу (прячет «Impossible!»).
+    overlayText?: string
     onDone?: () => void
 }) => {
     const doneRef = useRef(false)
@@ -222,12 +224,23 @@ const OnceVideo = ({ src, alpha, className, safetyMs, loop, onDone }: {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
     const common = { autoPlay: true, muted: true, playsInline: true, loop, onEnded: finish, className }
+    const media = alpha ? <AlphaVideo src={src} {...common} /> : (
+        // eslint-disable-next-line jsx-a11y/media-has-caption
+        <video src={src} {...common} />
+    )
     return (
         <Pop>
-            {alpha ? <AlphaVideo src={src} {...common} /> : (
-                // eslint-disable-next-line jsx-a11y/media-has-caption
-                <video src={src} {...common} />
-            )}
+            {overlayText ? (
+                <span className="relative inline-block w-full max-w-[300px] [container-type:inline-size]">
+                    {media}
+                    <span
+                        className="absolute flex items-center justify-center rounded-md bg-black font-black text-white whitespace-nowrap"
+                        style={{ left: '18%', width: '64%', top: '85%', height: '14%', fontSize: '4.4cqw', lineHeight: 1 }}
+                    >
+                        {overlayText}
+                    </span>
+                </span>
+            ) : media}
         </Pop>
     )
 }
@@ -527,7 +540,7 @@ const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled, extraRows, foo
     doneText?: string
     title?: string
     // Ролик после сборки: onSettled зовётся по его окончании.
-    doneVideo?: { src: string; alpha?: boolean; className: string; safetyMs: number; loop?: boolean }
+    doneVideo?: { src: string; alpha?: boolean; className: string; safetyMs: number; loop?: boolean; overlayText?: string }
 }) => {
     const [titled, setTitled] = useState(false)
     const [ready, setReady] = useState(false)
@@ -663,7 +676,7 @@ const TablePuzzleScene = ({ rows, prefilled, subtitle, onSettled, extraRows, foo
 const SinPuzzleScene = ({ onSettled }: { onSettled?: () => void }) => (
     <TablePuzzleScene rows={['angle', 'sin']} prefilled={() => false} subtitle="Заполни таблицу: сначала углы, потом синусы — слева направо." onSettled={onSettled}
         doneText="Камни Таноса на месте!"
-        doneVideo={{ src: '/video/thanos-impossible.mp4', className: 'w-full max-w-[300px] rounded-xl', safetyMs: 4200 }}
+        doneVideo={{ src: '/video/thanos-impossible.mp4', className: 'w-full max-w-[300px] rounded-xl', safetyMs: 4200, overlayText: 'ЕГЭ НАМ ПОКОРИТСЯ!' }}
     />
 )
 

@@ -651,7 +651,8 @@ export default function TrainerQuestion({
           // рабочим как и раньше.
           className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-3 flex flex-col"
           key={`${roundKey}-${questions.indexOf(question)}`}
-          initial={{ opacity: 0, x: 100 }}
+          // У пошаговых разборов (одна «сцена» на весь урок) слайд справа не нужен — только появление.
+          initial={{ opacity: 0, x: STEP_BY_STEP_CHALLENGE_TYPES.has(question.questionType) ? 0 : 100 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, ease: "easeInOut" }}
         >
