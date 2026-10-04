@@ -172,29 +172,65 @@ const INTRO_STEPS = 5
 // конце практики — см. handleAdjacentNext/handleNextTrial ниже.
 const ADJACENT_STEPS = 1
 
-// Шаг 2 (гипотенуза) — диаграмма монтируется и проигрывает СВОЮ анимацию
-// (дорисовка стороны + bounce подписи) сама по себе; текст появляется
-// ТОЛЬКО после того, как она устоялась + доп. пауза (по прямой просьбе
-// пользователя — не одновременно с анимацией).
-const Step2Scene = ({ onSettled }: { onSettled?: () => void }) => {
-    const [textVisible, setTextVisible] = useState(false)
-    useEffect(() => {
-        const t = setTimeout(() => setTextVisible(true), STEP2_ARROW_SETTLE_MS + DIAGRAM_TO_TEXT_PAUSE_MS)
-        return () => clearTimeout(t)
-    }, [])
+// Шаг 1 (прямой угол и катеты): печатается «У него есть прямой угол.» →
+// ОЧЕНЬ крупный bounce прямого угла → печатается «Находится между двумя
+// катетами треугольника.» → подписи «катет» по очереди с bounce.
+const Step1Scene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [rightOn, setRightOn] = useState(false)
+    const [line2, setLine2] = useState(false)
+    const [legsOn, setLegsOn] = useState(false)
     return (
         <>
             <DiagramBlock>
-                <RightTriangleDiagram compact rightAngleMarkShown legsLabelShown hypotenuseArrow hypotenuseHighlighted hypotenuseLabelShown />
+                <RightTriangleDiagram compact reserveBounds rightAngleMarkShown={rightOn} rightAngleBigBounce legsLabelShown={legsOn} legsLabelDelay={0} />
             </DiagramBlock>
-            {textVisible && (
+            <TypedLine
+                className="w-full text-base md:text-lg text-[#F2F7FB]"
+                text="У него есть прямой угол."
+                onSettled={() => {
+                    setRightOn(true)
+                    setTimeout(() => setLine2(true), 1300)
+                }}
+            />
+            {line2 && (
                 <TypedKeyPhraseLine
-                    before="Сторона напротив прямого угла — самая длинная и называется "
-                    phrase="гипотенуза"
-                    color={HYPOTENUSE_COLOR}
-                    onSettled={onSettled}
+                    before="Находится между двумя "
+                    phrase="катетами"
+                    after=" треугольника."
+                    color={MARKER_COLOR_GREEN}
+                    onSettled={() => {
+                        setLegsOn(true)
+                        setTimeout(() => onSettled?.(), 1500)
+                    }}
                 />
             )}
+        </>
+    )
+}
+
+// Шаг 2 (гипотенуза): треугольник с прямым углом и катетами УЖЕ нарисован →
+// печатается «Напротив прямого угла — гипотенуза.» → стрелка от прямого угла
+// → фиолетовая гипотенуза → подпись «гипотенуза» с bounce.
+const Step2Scene = ({ onSettled }: { onSettled?: () => void }) => {
+    const [drawOn, setDrawOn] = useState(false)
+    return (
+        <>
+            <DiagramBlock>
+                <RightTriangleDiagram
+                    compact rightAngleMarkShown legsLabelShown instantBase reserveLabels={['hyp']}
+                    hypotenuseArrow={drawOn} hypotenuseHighlighted={drawOn} hypotenuseLabelShown={drawOn}
+                />
+            </DiagramBlock>
+            <TypedKeyPhraseLine
+                before="Напротив прямого угла — "
+                phrase="гипотенуза"
+                after="."
+                color={HYPOTENUSE_COLOR}
+                onSettled={() => {
+                    setDrawOn(true)
+                    setTimeout(() => onSettled?.(), STEP2_ARROW_SETTLE_MS)
+                }}
+            />
         </>
     )
 }
@@ -828,14 +864,7 @@ export const TypeSinWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) =>
                 {step >= 1 && (
                     <SceneWrapper key="step-1" innerRef={sceneRef('step-1')} active={isSceneActive('step-1')}>
                         <Fragment key={`step-1-${replayNonceFor('step-1')}`}>
-                            <DiagramBlock><RightTriangleDiagram compact rightAngleMarkShown legsLabelShown legsLabelDelay={0.8} /></DiagramBlock>
-                            <TypedKeyPhraseLine
-                                before="У него есть прямой угол. Находится между двумя "
-                                phrase="катетами"
-                                after=" треугольника."
-                                color={MARKER_COLOR_GREEN}
-                                onSettled={() => setStepReady(true)}
-                            />
+                            <Step1Scene onSettled={() => setStepReady(true)} />
                         </Fragment>
                     </SceneWrapper>
                 )}

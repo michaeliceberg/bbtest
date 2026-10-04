@@ -192,8 +192,8 @@ const textFootprint = (text: string, fontSize: number) => ({ w: text.length * fo
 // framer-motion корректно анимирует относительные смещения между tspan'ами
 // одного motion.text, только на абсолютные x/y самого текста).
 const SideLabel = ({
-    a, b, labelPt, active, color, text, lines, fontSize = 17, pulse = false, delay = 0,
-}: { a: Pt; b: Pt; labelPt: Pt; active: boolean; color: string; text?: string; lines?: string[]; fontSize?: number; pulse?: boolean; delay?: number }) => {
+    a, b, labelPt, active, color, text, lines, fontSize = 17, pulse = false, delay = 0, instant = false,
+}: { a: Pt; b: Pt; labelPt: Pt; active: boolean; color: string; text?: string; lines?: string[]; fontSize?: number; pulse?: boolean; delay?: number; instant?: boolean }) => {
     const rotation = angleAlongLine(a, b)
     const lineHeight = fontSize * 1.2
     const rows = lines ?? [text ?? '']
@@ -207,7 +207,7 @@ const SideLabel = ({
                 fontSize={fontSize}
                 fontWeight={800}
                 fill={color}
-                initial={{ opacity: 0, scale: 0.3 }}
+                initial={instant && active ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.3 }}
                 animate={
                     !active
                         ? { opacity: 0, scale: 0.3 }
@@ -320,6 +320,12 @@ export type RightTriangleVisual = {
     alphaShown?: boolean
     // α «вылетает» из вершины к своему месту (bounce).
     alphaFlyFromVertex?: boolean
+    // Прямой угол появляется очень крупным bounce (scale 6 → 1).
+    rightAngleBigBounce?: boolean
+    // Прямой угол и подписи «катет» уже нарисованы — без анимации появления.
+    instantBase?: boolean
+    // Зарезервировать в компактном окне место под прямой угол и подписи катетов.
+    reserveBounds?: boolean
     // Цвет дуги и буквы α (по умолчанию синий).
     alphaColor?: string
     // Зарезервировать место под подписи сторон в компактном окне заранее
@@ -466,6 +472,9 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
         legsLabelDelay,
         alphaColor = ALPHA_COLOR,
         reserveLabels = [],
+        rightAngleBigBounce = false,
+        instantBase = false,
+        reserveBounds = false,
     } = props
 
     // Пока камера не "доехала" до цели (zoomFocus задан) — элемент,
@@ -617,7 +626,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
             minX = Math.min(minX, b.minX); maxX = Math.max(maxX, b.maxX)
             minY = Math.min(minY, b.minY); maxY = Math.max(maxY, b.maxY)
         }
-        if (rightAngleMarkShown) { grow(m1); grow(m2); grow(m3) }
+        if (rightAngleMarkShown || reserveBounds) { grow(m1); grow(m2); grow(m3) }
         if (alphaVertex && alphaArc) {
             const fp = textFootprint(alphaText, 24)
             growBox(rotatedTextBounds(alphaArc.labelPt, 0, fp.w, fp.h))
@@ -646,7 +655,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
             const fp = textFootprint('прилежащий', 15)
             growBox(rotatedTextBounds(wideLabelPt, rot, fp.w, fp.h * 2))
         }
-        if (legsLabelShown) {
+        if (legsLabelShown || reserveBounds) {
             const rpActive = !(alphaVertex && oppositeLegOf(alphaVertex) === 'legRP' && oppositeLegHighlighted)
             const rqActive = !(alphaVertex && oppositeLegOf(alphaVertex) === 'legRQ' && oppositeLegHighlighted)
             const fp = textFootprint('катет', 16)
@@ -791,9 +800,9 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     strokeWidth={4}
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    initial={{ opacity: 0, scale: 0.4 }}
-                    animate={{ opacity: effectiveRightAngleMarkShown ? 1 : 0, scale: effectiveRightAngleMarkShown ? 1 : 0.4 }}
-                    transition={{ type: 'spring', duration: 0.5, bounce: 0.5 }}
+                    initial={instantBase && effectiveRightAngleMarkShown ? { opacity: 1, scale: 1 } : { opacity: 0, scale: rightAngleBigBounce ? 6 : 0.4 }}
+                    animate={{ opacity: effectiveRightAngleMarkShown ? 1 : 0, scale: effectiveRightAngleMarkShown ? 1 : (rightAngleBigBounce ? 6 : 0.4) }}
+                    transition={rightAngleBigBounce ? { type: 'spring', duration: 0.9, bounce: 0.6 } : { type: 'spring', duration: 0.5, bounce: 0.5 }}
                 />
 
                 {showAlphaArc && alphaArc && (
@@ -905,30 +914,36 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     ТОЛЬКО ПОСЛЕ того как линия уже дорисовалась (delay). */}
                 {hypotenuseArrow && (() => {
                     // Стрелка от прямого угла к гипотенузе — по перпендикуляру (высота).
+                    // Наконечник — аккуратный закруглённый треугольник; линия кончается
+                    // в его основании (раньше торчала сквозь остриё).
                     const ab = sub(Q, P)
                     const t = ((R.x - P.x) * ab.x + (R.y - P.y) * ab.y) / (ab.x * ab.x + ab.y * ab.y)
                     const F = { x: P.x + ab.x * t, y: P.y + ab.y * t }
                     const u = norm(sub(F, R))
+                    const HEAD_LEN = 17
+                    const HEAD_HALF = 10
                     const from = add(R, scale(u, 32))
-                    const to = sub(F, scale(u, 14))
+                    const tip = sub(F, scale(u, 12))
+                    const base = sub(tip, scale(u, HEAD_LEN))
                     const perp = { x: -u.y, y: u.x }
-                    const h1 = add(sub(to, scale(u, 12)), scale(perp, 8))
-                    const h2 = sub(sub(to, scale(u, 12)), scale(perp, 8))
+                    const h1 = add(base, scale(perp, HEAD_HALF))
+                    const h2 = sub(base, scale(perp, HEAD_HALF))
+                    const lineEnd = add(base, scale(u, 3))
                     return (
                         <>
                             <motion.line
-                                x1={from.x} y1={from.y} x2={to.x} y2={to.y}
-                                stroke={HYPOTENUSE_COLOR} strokeWidth={4} strokeLinecap="round"
+                                x1={from.x} y1={from.y} x2={lineEnd.x} y2={lineEnd.y}
+                                stroke={HYPOTENUSE_COLOR} strokeWidth={4.5} strokeLinecap="round"
                                 initial={{ pathLength: 0, opacity: 0 }}
                                 animate={{ pathLength: 1, opacity: 1 }}
                                 transition={{ duration: HYP_ARROW_DRAW_S, delay: HYP_ARROW_DELAY_S, ease: 'easeInOut' }}
                             />
                             <motion.polygon
-                                points={`${to.x},${to.y} ${h1.x},${h1.y} ${h2.x},${h2.y}`}
-                                fill={HYPOTENUSE_COLOR}
+                                points={`${tip.x},${tip.y} ${h1.x},${h1.y} ${h2.x},${h2.y}`}
+                                fill={HYPOTENUSE_COLOR} stroke={HYPOTENUSE_COLOR} strokeWidth={3} strokeLinejoin="round"
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
-                                transition={{ duration: 0.2, delay: HYP_ARROW_DELAY_S + HYP_ARROW_DRAW_S }}
+                                transition={{ duration: 0.2, delay: HYP_ARROW_DELAY_S + HYP_ARROW_DRAW_S - 0.1 }}
                             />
                         </>
                     )
@@ -1014,7 +1029,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     active={legsLabelShown
                         && !(alphaVertex && oppositeLegOf(alphaVertex) === 'legRP' && effectiveOppositeLegHighlighted)
                         && !(alphaVertex && adjacentLegOf(alphaVertex) === 'legRP' && adjacentLegHighlighted)}
-                    color={LEG_COLOR} text="катет" fontSize={16}
+                    color={LEG_COLOR} text="катет" fontSize={16} instant={instantBase}
                     delay={legsBaseDelay}
                 />
                 <SideLabel
@@ -1022,7 +1037,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     active={legsLabelShown
                         && !(alphaVertex && oppositeLegOf(alphaVertex) === 'legRQ' && effectiveOppositeLegHighlighted)
                         && !(alphaVertex && adjacentLegOf(alphaVertex) === 'legRQ' && adjacentLegHighlighted)}
-                    color={LEG_COLOR} text="катет" fontSize={16}
+                    color={LEG_COLOR} text="катет" fontSize={16} instant={instantBase}
                     delay={legsBaseDelay + LEGS_LABEL_STAGGER_S}
                 />
 
