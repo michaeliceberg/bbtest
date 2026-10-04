@@ -254,6 +254,7 @@ const Step2Scene = ({ onSettled }: { onSettled?: () => void }) => {
                 phrase="гипотенуза"
                 after="."
                 color={HYPOTENUSE_COLOR}
+                delayAfter={0}
                 onSettled={() => {
                     setDrawOn(true)
                     setTimeout(() => onSettled?.(), STEP2_ARROW_SETTLE_MS)

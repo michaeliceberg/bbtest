@@ -416,9 +416,9 @@ export const SIDE_DRAW_DURATION = 0.9
 
 // Стрелка от прямого угла к гипотенузе (hypotenuseArrow): сначала рисуется
 // она, и только потом — сама гипотенуза и подпись.
-const HYP_ARROW_DELAY_S = 0.2
-const HYP_ARROW_DRAW_S = 0.8
-export const HYP_ARROW_TOTAL_S = 1.2
+const HYP_ARROW_DELAY_S = 0
+const HYP_ARROW_DRAW_S = 0.35
+export const HYP_ARROW_TOTAL_S = 0.55
 
 // «Фломастер» — обводка угла (как FreezeFrameScene в LENZWALK): чуть неровный
 // овал с нахлёстом концов.
@@ -944,14 +944,15 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                                 stroke={HYPOTENUSE_COLOR} strokeWidth={3} strokeLinecap="round"
                                 initial={{ pathLength: 0, opacity: 0 }}
                                 animate={{ pathLength: 1, opacity: 1 }}
-                                transition={{ duration: HYP_ARROW_DRAW_S, delay: HYP_ARROW_DELAY_S, ease: 'easeInOut' }}
+                                transition={{ duration: HYP_ARROW_DRAW_S, delay: HYP_ARROW_DELAY_S, ease: 'easeOut' }}
                             />
                             <motion.polygon
                                 points={`${tip.x},${tip.y} ${h1.x},${h1.y} ${h2.x},${h2.y}`}
                                 fill={HYPOTENUSE_COLOR} stroke={HYPOTENUSE_COLOR} strokeWidth={2} strokeLinejoin="round"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ duration: 0.2, delay: HYP_ARROW_DELAY_S + HYP_ARROW_DRAW_S - 0.1 }}
+                                // наконечник «выстреливает» с bounce в конце рывка стрелки
+                                initial={{ opacity: 0, scale: 0.2 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ type: 'spring', duration: 0.5, bounce: 0.65, delay: HYP_ARROW_DELAY_S + HYP_ARROW_DRAW_S - 0.05 }}
                             />
                         </>
                     )

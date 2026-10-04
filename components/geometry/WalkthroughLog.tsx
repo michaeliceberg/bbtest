@@ -755,10 +755,10 @@ export const TypedLine = ({ text, className, onSettled, delayAfter = 500 }: { te
 // терминологию/палитру (см. TypeSinWalk — "гипотенуза"/"противолежащий
 // катет", каждая тем же цветом, что и её подпись на диаграмме).
 export const TypedKeyPhraseLine = ({
-    before, phrase, after = '.', color, pulse = false, highlight = false, className, onSettled,
+    before, phrase, after = '.', color, pulse = false, highlight = false, className, onSettled, delayAfter = 450,
 }: {
     before: string; phrase: string; after?: string; color: string; pulse?: boolean; highlight?: boolean
-    className?: string; onSettled?: () => void
+    className?: string; onSettled?: () => void; delayAfter?: number
 }) => {
     const [typed, setTyped] = useState(false)
     return (
@@ -766,7 +766,7 @@ export const TypedKeyPhraseLine = ({
             {!typed ? (
                 <Typewriter
                     text={`${before}${phrase}${after}`}
-                    onDone={() => { setTyped(true); setTimeout(() => onSettled?.(), 450) }}
+                    onDone={() => { setTyped(true); setTimeout(() => onSettled?.(), delayAfter) }}
                 />
             ) : (
                 <>
