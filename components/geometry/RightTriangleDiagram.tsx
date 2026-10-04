@@ -920,10 +920,10 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     const t = ((R.x - P.x) * ab.x + (R.y - P.y) * ab.y) / (ab.x * ab.x + ab.y * ab.y)
                     const F = { x: P.x + ab.x * t, y: P.y + ab.y * t }
                     const u = norm(sub(F, R))
-                    const HEAD_LEN = 17
-                    const HEAD_HALF = 10
-                    const from = add(R, scale(u, 32))
-                    const tip = sub(F, scale(u, 12))
+                    const HEAD_LEN = 11
+                    const HEAD_HALF = 6.5
+                    const from = add(R, scale(u, 34))
+                    const tip = sub(F, scale(u, 16))
                     const base = sub(tip, scale(u, HEAD_LEN))
                     const perp = { x: -u.y, y: u.x }
                     const h1 = add(base, scale(perp, HEAD_HALF))
@@ -933,14 +933,14 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                         <>
                             <motion.line
                                 x1={from.x} y1={from.y} x2={lineEnd.x} y2={lineEnd.y}
-                                stroke={HYPOTENUSE_COLOR} strokeWidth={4.5} strokeLinecap="round"
+                                stroke={HYPOTENUSE_COLOR} strokeWidth={3} strokeLinecap="round"
                                 initial={{ pathLength: 0, opacity: 0 }}
                                 animate={{ pathLength: 1, opacity: 1 }}
                                 transition={{ duration: HYP_ARROW_DRAW_S, delay: HYP_ARROW_DELAY_S, ease: 'easeInOut' }}
                             />
                             <motion.polygon
                                 points={`${tip.x},${tip.y} ${h1.x},${h1.y} ${h2.x},${h2.y}`}
-                                fill={HYPOTENUSE_COLOR} stroke={HYPOTENUSE_COLOR} strokeWidth={3} strokeLinejoin="round"
+                                fill={HYPOTENUSE_COLOR} stroke={HYPOTENUSE_COLOR} strokeWidth={2} strokeLinejoin="round"
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ duration: 0.2, delay: HYP_ARROW_DELAY_S + HYP_ARROW_DRAW_S - 0.1 }}

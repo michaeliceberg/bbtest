@@ -175,36 +175,59 @@ const ADJACENT_STEPS = 1
 // Шаг 1 (прямой угол и катеты): печатается «У него есть прямой угол.» →
 // ОЧЕНЬ крупный bounce прямого угла → печатается «Находится между двумя
 // катетами треугольника.» → подписи «катет» по очереди с bounce.
+// Чертёж не выше трети экрана, текст вплотную под ним (без больших зазоров).
+const DIAGRAM_COMPACT = 'w-full [&_svg]:max-h-[34vh]'
+
 const Step1Scene = ({ onSettled }: { onSettled?: () => void }) => {
     const [rightOn, setRightOn] = useState(false)
     const [line2, setLine2] = useState(false)
+    const [typed2, setTyped2] = useState(false)
     const [legsOn, setLegsOn] = useState(false)
     return (
-        <>
-            <DiagramBlock>
-                <RightTriangleDiagram compact reserveBounds rightAngleMarkShown={rightOn} rightAngleBigBounce legsLabelShown={legsOn} legsLabelDelay={0} />
-            </DiagramBlock>
-            <TypedLine
-                className="w-full text-base md:text-lg text-[#F2F7FB]"
-                text="У него есть прямой угол."
-                onSettled={() => {
-                    setRightOn(true)
-                    setTimeout(() => setLine2(true), 1300)
-                }}
-            />
-            {line2 && (
-                <TypedKeyPhraseLine
-                    before="Находится между двумя "
-                    phrase="катетами"
-                    after=" треугольника."
-                    color={MARKER_COLOR_GREEN}
-                    onSettled={() => {
-                        setLegsOn(true)
-                        setTimeout(() => onSettled?.(), 1500)
-                    }}
-                />
-            )}
-        </>
+        <div className="w-full flex flex-col gap-1">
+            <div className={DIAGRAM_COMPACT}>
+                <DiagramBlock>
+                    <RightTriangleDiagram compact reserveBounds rightAngleMarkShown={rightOn} rightAngleBigBounce legsLabelShown={legsOn} legsLabelDelay={0} />
+                </DiagramBlock>
+            </div>
+            {/* Оба предложения — одним абзацем сразу под чертежом. */}
+            <div className="w-full text-base md:text-lg text-[#F2F7FB] leading-snug">
+                {!rightOn ? (
+                    <Typewriter
+                        text="У него есть прямой угол."
+                        onDone={() => {
+                            setTimeout(() => {
+                                setRightOn(true)
+                                setTimeout(() => setLine2(true), 1300)
+                            }, 450)
+                        }}
+                    />
+                ) : (
+                    <span>У него есть прямой угол.</span>
+                )}
+                {line2 && (
+                    <>
+                        {' '}
+                        {!typed2 ? (
+                            <Typewriter
+                                text="Находится между двумя катетами треугольника."
+                                onDone={() => {
+                                    setTyped2(true)
+                                    setTimeout(() => {
+                                        setLegsOn(true)
+                                        setTimeout(() => onSettled?.(), 1500)
+                                    }, 450)
+                                }}
+                            />
+                        ) : (
+                            <span>
+                                Находится между двумя <span style={{ color: MARKER_COLOR_GREEN, fontWeight: 800 }}>катетами</span> треугольника.
+                            </span>
+                        )}
+                    </>
+                )}
+            </div>
+        </div>
     )
 }
 
@@ -214,13 +237,15 @@ const Step1Scene = ({ onSettled }: { onSettled?: () => void }) => {
 const Step2Scene = ({ onSettled }: { onSettled?: () => void }) => {
     const [drawOn, setDrawOn] = useState(false)
     return (
-        <>
+        <div className="w-full flex flex-col gap-1">
+            <div className={DIAGRAM_COMPACT}>
             <DiagramBlock>
                 <RightTriangleDiagram
                     compact rightAngleMarkShown legsLabelShown instantBase reserveLabels={['hyp']}
                     hypotenuseArrow={drawOn} hypotenuseHighlighted={drawOn} hypotenuseLabelShown={drawOn}
                 />
             </DiagramBlock>
+            </div>
             <TypedKeyPhraseLine
                 before="Напротив прямого угла — "
                 phrase="гипотенуза"
@@ -231,7 +256,7 @@ const Step2Scene = ({ onSettled }: { onSettled?: () => void }) => {
                     setTimeout(() => onSettled?.(), STEP2_ARROW_SETTLE_MS)
                 }}
             />
-        </>
+        </div>
     )
 }
 
