@@ -331,11 +331,13 @@ const OrderGameScene = ({ onSettled }: { onSettled?: () => void }) => {
 
 // Ячейка-дробь, у которой числитель и знаменатель (с чертой) появляются
 // по отдельности: showNum / showDen, delay — задержка появления.
-const SplitFrac = ({ num, den, showNum, showDen, numDelay = 0, denDelay = 0 }: {
+const SplitFrac = ({ num, den, showNum, showDen, numDelay = 0, denDelay = 0, numPop = true }: {
     num: string; den: string; showNum: boolean; showDen: boolean; numDelay?: number; denDelay?: number
+    // false — числитель появляется без bounce (его принесла «летящая» копия).
+    numPop?: boolean
 }) => (
     <span className="inline-flex flex-col items-stretch leading-none">
-        <span className="flex h-7 justify-center px-1 pb-1">{showNum && <Pop delay={numDelay}><Num s={num} /></Pop>}</span>
+        <span data-num-slot className="flex h-7 justify-center px-1 pb-1">{showNum && (numPop ? <Pop delay={numDelay}><Num s={num} /></Pop> : <Num s={num} />)}</span>
         <span className="flex h-7 justify-center px-1 pt-1">
             {showDen && (
                 <Pop delay={denDelay} className="w-full justify-center border-t-2 border-current pt-1">
@@ -381,20 +383,55 @@ const AgasButton = ({ onClick, label = 'Агась' }: { onClick: () => void; la
         </button>
     </Pop>
 )
+type LadderFlight = { sx: number; sy: number; dx: number; dy: number; s: string }
+const LADDER_FLY_S = 0.9
+const LADDER_FLY_GAP_MS = 1100
+
 const SinLadderScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
+    const rootRef = useRef<HTMLDivElement>(null)
+    const [flights, setFlights] = useState<(LadderFlight | null)[]>([null, null, null])
+    const [landed, setLanded] = useState<boolean[]>([false, false, false])
     useEffect(() => {
         let t: ReturnType<typeof setTimeout> | undefined
         if (phase === 1) t = setTimeout(() => setPhase(2), 2600) // лесенка проявилась
         if (phase === 3) t = setTimeout(() => setPhase(4), 2800) // углы по очереди
-        if (phase === 4) t = setTimeout(() => setPhase(5), 2900) // числители по очереди
         if (phase === 7) t = setTimeout(() => setPhase(8), 2600) // двойки по очереди
         if (phase === 8) t = setTimeout(() => onSettled?.(), 400)
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [phase])
+
+    // Корни спускаются из верхней лесенки в числители таблицы — по очереди.
+    useEffect(() => {
+        if (phase !== 4) return
+        const root = rootRef.current
+        if (!root) return
+        const timers: ReturnType<typeof setTimeout>[] = []
+        ;[0, 1, 2].forEach((i) => {
+            timers.push(setTimeout(() => {
+                const src = root.querySelector(`[data-root="${i}"]`) as HTMLElement | null
+                const slot = root.querySelector(`[data-cell="sin-${i}"] [data-num-slot]`) as HTMLElement | null
+                if (!src || !slot) { setLanded((l) => l.map((v, k) => (k === i ? true : v))); return }
+                const rr = root.getBoundingClientRect()
+                const a = src.getBoundingClientRect()
+                const b = slot.getBoundingClientRect()
+                const sx = a.left + a.width / 2 - rr.left
+                const sy = a.top + a.height / 2 - rr.top
+                src.style.visibility = 'hidden'
+                setFlights((f) => f.map((v, k) => (k === i ? { sx, sy, dx: b.left + b.width / 2 - rr.left - sx, dy: b.top + b.height / 2 - rr.top - sy, s: `√${i + 1}` } : v)))
+            }, 300 + i * LADDER_FLY_GAP_MS))
+        })
+        return () => timers.forEach(clearTimeout)
+    }, [phase])
+    useEffect(() => {
+        if (phase !== 4 || !landed.every(Boolean)) return
+        const t = setTimeout(() => setPhase(5), 700)
+        return () => clearTimeout(t)
+    }, [phase, landed])
+
     return (
-        <>
+        <div ref={rootRef} className="relative w-full flex flex-col gap-4">
             <TypedBig
                 parts={[{ text: 'Запомни: ' }, { text: 'sin', color: FN_COLOR.sin }, { text: ' — это ' }, { text: 'ЛЕСЕНКА ВВЕРХ', color: ATTENTION }]}
                 onDone={() => setPhase(1)}
@@ -404,7 +441,9 @@ const SinLadderScene = ({ onSettled }: { onSettled?: () => void }) => {
             {phase >= 1 && (
                 <div className="flex items-center justify-center gap-5 text-3xl md:text-4xl font-black" style={{ color: FN_COLOR.sin }}>
                     {['√1', '√2', '√3'].map((n, i) => (
-                        <Pop key={n} delay={0.3 + i * 0.7}><Num s={n} /></Pop>
+                        <span key={n} data-root={i} className="inline-flex">
+                            <Pop delay={0.3 + i * 0.7}><Num s={n} /></Pop>
+                        </span>
                     ))}
                 </div>
             )}
@@ -419,8 +458,8 @@ const SinLadderScene = ({ onSettled }: { onSettled?: () => void }) => {
                                 <SplitFrac
                                     num={`√${i + 1}`}
                                     den="2"
-                                    showNum={phase >= 4}
-                                    numDelay={0.3 + i * 0.7}
+                                    showNum={phase >= 5 || landed[i]}
+                                    numPop={false}
                                     showDen={phase >= 7}
                                     denDelay={0.3 + i * 0.7}
                                 />
@@ -438,7 +477,23 @@ const SinLadderScene = ({ onSettled }: { onSettled?: () => void }) => {
                     slow={1.8}
                 />
             )}
-        </>
+            {flights.map((f, i) =>
+                f && !landed[i] ? (
+                    <div key={i} className="absolute pointer-events-none z-10 -translate-x-1/2 -translate-y-1/2" style={{ left: f.sx, top: f.sy }}>
+                        <motion.div
+                            initial={{ x: 0, y: 0, scale: 1.45 }}
+                            animate={{ x: f.dx, y: f.dy, scale: 1 }}
+                            transition={{ duration: LADDER_FLY_S, ease: [0.4, 0, 0.2, 1] }}
+                            onAnimationComplete={() => setLanded((l) => l.map((v, k) => (k === i ? true : v)))}
+                            className="text-2xl md:text-3xl font-black"
+                            style={{ color: FN_COLOR.sin }}
+                        >
+                            <Num s={f.s} />
+                        </motion.div>
+                    </div>
+                ) : null,
+            )}
+        </div>
     )
 }
 
