@@ -36,19 +36,18 @@ export function isStepByStepLesson(challengeTypes: string[]): boolean {
     return challengeTypes.some((t) => STEP_BY_STEP_CHALLENGE_TYPES.has(t));
 }
 
-export function getStageQueryParams(trueIdx: number, stagesLength: number, title: string): string {
+// Флаги этапа (босс / сундук / мегасундук / мифический / экзамен) вычисляются
+// СЕРВЕРОМ из позиции урока в теме и его названия (app/t-lesson/[t_lessonId]/
+// page.tsx). Раньше они приходили в URL (?chest=1 …) — пользователь мог
+// вручную дописать/поменять параметр и получить кейс не на своём этапе.
+export type StageFlags = { isBoss: boolean; isChest: boolean; isMegaChest: boolean; isMythic: boolean; isExam: boolean }
+
+export function getStageFlags(trueIdx: number, stagesLength: number, title: string): StageFlags {
     const isLastOverall = trueIdx === stagesLength - 1;
     const isBoss = isLastOverall || isReviewStage(title) || isBossExamStage(title);
     // Сундук — один промежуточный (не боссовский) этап в середине списка,
     // чисто по позиции.
     const isChest = !isBoss && stagesLength >= 3 && trueIdx === Math.floor((stagesLength - 1) / 2);
     const isMegaChest = isLastOverall && !isBossExamStage(title);
-
-    const params: string[] = [];
-    if (isBoss) params.push('boss=1');
-    if (isChest) params.push('chest=1');
-    if (isMegaChest) params.push('megachest=1');
-    if (isMythicStage(title)) params.push('mythic=1');
-    if (isBossExamStage(title)) params.push('exam=1');
-    return params.length ? '?' + params.join('&') : '';
+    return { isBoss, isChest, isMegaChest, isMythic: isMythicStage(title), isExam: isBossExamStage(title) };
 }

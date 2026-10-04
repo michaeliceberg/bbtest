@@ -24,7 +24,7 @@ import { TrainerStageLink } from './trainer-stage-link';
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
 import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors';
 import { getBossRank } from '@/lib/bossRank';
-import { isReviewStage, isMythicStage, getStageQueryParams } from '@/lib/trainerStageFlags';
+import { isReviewStage, isMythicStage } from '@/lib/trainerStageFlags';
 
 // Больше разнообразия по прямой просьбе пользователя ("яйцо щит меч —
 // хочется большее количество разных иконок, чтобы было интереснее") —
@@ -596,7 +596,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                                     const isFrontier = trueIdx === frontierIdx && !isChest && !isMegaChest && !isMythic;
                                                     const isStepByStep = s.isStepByStep === true;
                                                     const stepNumber = isStepByStep ? stepByStepNumbers[trueIdx] : null;
-                                                    const stageHref = `/t-lesson/${s.id}${getStageQueryParams(trueIdx, topic.stages.length, s.title)}`;
+                                                    const stageHref = `/t-lesson/${s.id}`;
                                                     const Icon = STAGE_ICONS[trueIdx % STAGE_ICONS.length];
                                                     const col = boxColumn(j);
 

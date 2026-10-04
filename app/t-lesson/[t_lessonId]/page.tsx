@@ -11,7 +11,7 @@ import { pickInsertBlank, corruptFormulaLetter, extractLetterCandidates } from "
 import { getFormulaIconKey } from "@/lib/formulaIcons"
 import { getTopicSticker } from "@/lib/topicStickers"
 import { STEP_BY_STEP_CHALLENGE_TYPES } from "@/lib/trainerStageFlags"
-import { getStageQueryParams, isBossExamStage } from "@/lib/trainerStageFlags"
+import { getStageFlags, isBossExamStage } from "@/lib/trainerStageFlags"
 import { pickGuestNickname } from "@/lib/nickname"
 import TQuiz from "@/app/t-lesson/[t_lessonId]/TQUIZ"
 import { allTypesCT, tChallengeMistakes, lessonRatings } from "@/db/schema";
@@ -275,10 +275,6 @@ type Props = {
     }
     searchParams: {
         stage?: string
-        boss?: string
-        chest?: string
-        megachest?: string
-        mythic?: string
         ref?: string
     }
 }
@@ -294,19 +290,6 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // выбора темы. Без параметра (старые ссылки, математический тренажёр
     // без этапов) — берём ВСЕ задачи темы, как было раньше.
     const stageParam = searchParams?.stage ? parseInt(searchParams.stage) : null;
-    // Финальный ("корона") этап темы — приходит явно через ?boss=1 со
-    // страницы карты скиллов (trainer-grade-tree.tsx уже точно знает,
-    // какой этап последний). Чисто визуальный флаг, HP-босс не заменяет
-    // существующие 3 сердечка игрока.
-    const isBossStage = searchParams?.boss === '1';
-    // "Сундук"/"мегасундук" — та же идея, что и isBossStage выше: карта
-    // скиллов (trainer-grade-tree.tsx) уже знает, какой именно этап
-    // выбран сундуком/финальным, и передаёт это явным query-параметром,
-    // а не пересчитывает здесь заново.
-    const isChestStage = searchParams?.chest === '1';
-    const isMegaChestStage = searchParams?.megachest === '1';
-    const isMythicStage = searchParams?.mythic === '1';
-
     const [
         userProgress,
         all_t_lessonProgress,
@@ -407,8 +390,12 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     const currentLessonIdx = siblingLessons.findIndex((l) => l.id === t_lesson.id);
     const nextLesson = currentLessonIdx >= 0 ? siblingLessons[currentLessonIdx + 1] : undefined;
     const nextTLessonHref = nextLesson
-        ? `/t-lesson/${nextLesson.id}${getStageQueryParams(currentLessonIdx + 1, siblingLessons.length, nextLesson.title)}`
+        ? `/t-lesson/${nextLesson.id}`
         : null;
+    // Босс / сундук / мегасундук / мифический — считает сервер по позиции урока
+    // и названию, из URL не читаем (иначе параметр можно подменить вручную).
+    const { isBoss: isBossStage, isChest: isChestStage, isMegaChest: isMegaChestStage, isMythic: isMythicStage } =
+        getStageFlags(Math.max(currentLessonIdx, 0), siblingLessons.length, t_lesson.title);
 
     const lessonChallenges = stageParam
         ? t_lesson.t_challenges.filter(t_ch => t_ch.stage === stageParam)

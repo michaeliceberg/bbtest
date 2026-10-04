@@ -34,7 +34,7 @@ import {
     DiagramBlock, pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
-    isFieryMilestoneTrial, FieryFeedbackBanner, BlinkingExclaim, ATTENTION_COLOR, ACTIVE_COLOR,
+    isFieryMilestoneTrial, FieryFeedbackBanner, BlinkingExclaim, ATTENTION_COLOR,
     AdminSceneMap, MAP_INTRO_COLOR, MAP_PRACTICE_COLOR, type AdminMapEntry,
     useWalkthroughCombo,
 } from '@/components/geometry/WalkthroughLog'
@@ -54,10 +54,6 @@ type Props = {
 }
 
 const SCENE_TRANSITION_PAUSE_MS = 1000
-// Паузы поэтапного появления на первой сцене: треугольник → α → гипотенуза.
-const INTRO_ALPHA_AT_MS = 1300
-const INTRO_HYP_AT_MS = 2600
-const INTRO_SETTLED_AT_MS = 3700 // здесь начинает печататься вопрос
 const DIAGRAM_SETTLE_MS = 1400
 
 // ===== Стикеры (тот же визуальный язык, что в остальных *WALK) =====
@@ -126,45 +122,43 @@ const DiagramFrame = ({ children, maxW = 420 }: { children: React.ReactNode; max
     </div>
 )
 
-// Сцена 1: треугольник → α → гипотенуза (маленький стикер вдоль стороны) →
-// "А как нам найти [противолежащий] катет?" → подсвечивается противолежащий
-// катет и рядом с ним стикер "?" его цвета.
+// Сцена 1: треугольник с прямым углом, α и подписанной гипотенузой УЖЕ
+// нарисован (без анимации) → печатается «А как найти [противолежащий] катет?»
+// → анимируется только противолежащий катет и стикер «?» его цвета.
 const IntroTriangleScene = ({ onSettled }: { onSettled: () => void }) => {
-    const [alphaShown, setAlphaShown] = useState(false)
-    const [hypShown, setHypShown] = useState(false)
     const [askShown, setAskShown] = useState(false)
     const [oppShown, setOppShown] = useState(false)
     const [qShown, setQShown] = useState(false)
     useEffect(() => {
-        const t1 = setTimeout(() => setAlphaShown(true), INTRO_ALPHA_AT_MS)
-        const t2 = setTimeout(() => setHypShown(true), INTRO_HYP_AT_MS)
-        const t3 = setTimeout(() => setAskShown(true), INTRO_SETTLED_AT_MS)
-        return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
+        const t = setTimeout(() => setAskShown(true), 900)
+        return () => clearTimeout(t)
     }, [])
     const handleAskDone = () => {
         setTimeout(() => setOppShown(true), 500)
         setTimeout(() => setQShown(true), 500 + SIDE_DRAW_DURATION * 1000 + 200)
         setTimeout(onSettled, 500 + SIDE_DRAW_DURATION * 1000 + 1000)
     }
-    const stickers: Partial<Record<SideId, StickerPart[]>> = {}
-    if (hypShown) stickers.hyp = [HYP_STICKER]
-    if (qShown) stickers[INTRO_OPP] = [{ text: '?', color: LEG_COLOR }]
+    const Q_LABEL: StickerPart[] = [{ text: '?', color: LEG_COLOR }]
+    const stickers: Partial<Record<SideId, StickerPart[]>> = { hyp: [HYP_STICKER] }
+    if (qShown) stickers[INTRO_OPP] = Q_LABEL
     return (
         <div className="w-full flex flex-col gap-3">
             <DiagramFrame>
                 <RightTriangleDiagram
-                    compact rightAngleMarkShown
-                    alphaVertex={alphaShown ? INTRO_ALPHA : null}
-                    hypotenuseHighlighted={hypShown}
+                    compact rightAngleMarkShown instantBase
+                    alphaVertex={INTRO_ALPHA}
+                    hypotenuseHighlighted
                     oppositeLegHighlighted={oppShown}
                     sideStickerLabels={stickers}
+                    sideStickerInstant={['hyp']}
                     sideStickerAlong={['hyp']}
+                    reserveStickerLabels={{ [INTRO_OPP]: Q_LABEL }}
                 />
             </DiagramFrame>
             {askShown && (
                 <TypedLineWithParts
                     className="text-lg md:text-xl font-bold"
-                    parts={[{ text: 'А как нам найти ' }, { sticker: 'противолежащий', color: LEG_COLOR }, { text: ' катет?' }]}
+                    parts={[{ text: 'А как найти ' }, { sticker: 'противолежащий', color: LEG_COLOR }, { text: ' катет?' }]}
                     onSettled={handleAskDone}
                 />
             )}
@@ -271,28 +265,54 @@ const pickTrialFeedback = (cfg: TrialConfig): string => {
     return CORRECT_FEEDBACK_PHRASES[Math.abs(seed) % CORRECT_FEEDBACK_PHRASES.length]
 }
 
-const INTRO_SCENES = ['intro-0', 'intro-1', 'intro-2'] as const
+// Порядок сцен: разбор → «противолежащий = гип · sin α» → 2 простых проверки
+// (какой множитель пропущен) → «прилежащий = гип · cos α» → тренировка.
 const TRIAL_COUNT = 6
+const CHECK_COUNT = 2
+const SCENES: string[] = [
+    'intro-0', 'intro-1',
+    ...Array.from({ length: CHECK_COUNT }, (_, i) => `check-${i}`),
+    'intro-2',
+    ...Array.from({ length: TRIAL_COUNT }, (_, i) => `trial-${i}`),
+]
+const sceneKind = (key: string): 'intro' | 'check' | 'trial' => (key.startsWith('trial-') ? 'trial' : key.startsWith('check-') ? 'check' : 'intro')
+const sceneNum = (key: string) => Number(key.slice(key.indexOf('-') + 1))
+
+// Простая проверка: нарисован тот же треугольник, в подписи катета пропущен
+// множитель (sin/cos/tg) — выбрать нужный.
+type CheckConfig = { alphaVertex: AlphaVertex; rotationDeg: number; mirror: boolean; options: TrialOption[] }
+const makeChecks = (): CheckConfig[] => {
+    const opts = (): TrialOption[] => shuffle([
+        { text: 'sin α', correct: true },
+        { text: 'cos α', correct: false },
+        { text: 'tg α', correct: false },
+    ])
+    return [
+        { alphaVertex: 'P', rotationDeg: 0, mirror: false, options: opts() },
+        { alphaVertex: pick<AlphaVertex>(['P', 'Q']), rotationDeg: pick([35, -35, 55, -55]), mirror: Math.random() < 0.5, options: opts() },
+    ]
+}
 
 export const TypeLegFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) => {
-    // sceneIdx: 0..2 — обучающие сцены, 3..8 — задания 0..5.
+    // sceneIdx — индекс в SCENES (разбор / проверки / тренировка).
     const [sceneIdx, setSceneIdx] = useState(0)
     const [ready, setReady] = useState<Record<string, boolean>>({})
     const [advancing, setAdvancing] = useState(false)
     const [hadMistake, setHadMistake] = useState(false)
 
     const [trials] = useState<TrialConfig[]>(() => makeTrials())
+    const [checks] = useState<CheckConfig[]>(() => makeChecks())
     const [wrongTried, setWrongTried] = useState<string[]>([])
     const registerCombo = useWalkthroughCombo()
     const [checked, setChecked] = useState(false)
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
     const [nextLabel, setNextLabel] = useState('Дальше')
 
-    const isIntro = sceneIdx < INTRO_SCENES.length
-    const trialIndex = isIntro ? -1 : sceneIdx - INTRO_SCENES.length
-    const sceneKeyOf = (idx: number) => (idx < INTRO_SCENES.length ? INTRO_SCENES[idx] : `trial-${idx - INTRO_SCENES.length}`)
+    const sceneKeyOf = (idx: number) => SCENES[idx]
     const latestSceneKey = sceneKeyOf(sceneIdx)
-    const totalScenes = INTRO_SCENES.length + TRIAL_COUNT
+    const latestKind = sceneKind(latestSceneKey)
+    const isIntro = latestKind === 'intro'
+    const totalScenes = SCENES.length
     const isLastScene = sceneIdx + 1 >= totalScenes
 
     const { bump: bumpNonce, nonceFor: replayNonceFor } = useReplayNonces()
@@ -353,7 +373,7 @@ export const TypeLegFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
     const markReady = (key: string) => () => setReady((r) => ({ ...r, [key]: true }))
 
     const renderIntro = (idx: number) => {
-        const key = INTRO_SCENES[idx]
+        const key = `intro-${idx}`
         return (
             <SceneWrapper key={key} innerRef={sceneRef(key)} active={isSceneActive(key)}>
                 <div key={`${key}-${replayNonceFor(key)}`} className="w-full">
@@ -365,10 +385,91 @@ export const TypeLegFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
         )
     }
 
+    // Общая часть: блок вариантов + подсказки/похвала.
+    const renderOptions = (key: string, options: TrialOption[], isCurrent: boolean, isDone: boolean, cols: string) => (
+        <div className={cn('grid gap-2', cols)}>
+            {options.map((opt) => {
+                const wrong = isCurrent && wrongTried.includes(opt.text)
+                const right = isDone && opt.correct
+                return (
+                    <button
+                        key={`${key}-${opt.text}`}
+                        type="button"
+                        onClick={() => isCurrent && handleOptionClick(opt)}
+                        disabled={!isCurrent || checked || wrong}
+                        className={cn(
+                            'h-12 rounded-xl border-2 border-b-4 font-extrabold text-base md:text-lg tabular-nums transition-colors',
+                            right && 'border-[#A1D151] bg-[#A1D15122] text-[#A1D151]',
+                            wrong && 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]',
+                            !right && !wrong && 'border-[#3A464E] bg-[#1B252B] text-[#F2F7FB]',
+                            !right && !wrong && isCurrent && !checked && 'hover:border-[#4A90D9] active:border-b-2',
+                            !isCurrent && !right && 'opacity-50',
+                        )}
+                    >
+                        {opt.text}
+                    </button>
+                )
+            })}
+        </div>
+    )
+
+    // Простая проверка после «противолежащий = гип · sin α».
+    const renderCheck = (i: number) => {
+        const c = checks[i]
+        const key = `check-${i}`
+        const isCurrent = key === latestSceneKey
+        const isDone = !isCurrent || checked
+        const oppSide = oppositeLegOf(c.alphaVertex)
+        return (
+            <SceneWrapper key={key} innerRef={sceneRef(key)} active={isSceneActive(key)}>
+                <div key={`${key}-${replayNonceFor(key)}`} className="w-full flex flex-col gap-3">
+                    <div className="flex items-center gap-3 w-full">
+                        <div
+                            className="shrink-0 flex items-center gap-0.5 px-3 h-8 rounded-full border-2 font-black text-sm tabular-nums"
+                            style={{ borderColor: hexToRgba('#C385F7', 0.55), backgroundColor: hexToRgba('#C385F7', 0.16), color: '#C385F7' }}
+                        >
+                            <span>{i + 1}</span>
+                            <span className="opacity-50 font-normal">/</span>
+                            <span>{CHECK_COUNT}</span>
+                        </div>
+                        <p className="flex-1 text-base md:text-lg text-[#F2F7FB]">Какой множитель пропущен?</p>
+                    </div>
+                    <DiagramFrame maxW={420}>
+                        <RightTriangleDiagram
+                            compact rightAngleMarkShown instantBase
+                            rotationDeg={c.rotationDeg}
+                            mirror={c.mirror}
+                            alphaVertex={c.alphaVertex}
+                            hypotenuseHighlighted
+                            oppositeLegHighlighted
+                            sideStickerInstant={['hyp']}
+                            sideStickerLabels={{
+                                hyp: [HYP_STICKER],
+                                [oppSide]: [HYP_SHORT, DOT, { text: isDone ? 'sin α' : '?', color: isDone ? '#A1D151' : LEG_COLOR }],
+                            }}
+                        />
+                    </DiagramFrame>
+                    {renderOptions(key, c.options, isCurrent, isDone, 'grid-cols-3')}
+                    {isCurrent && !checked && wrongFlash && (
+                        <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">
+                            <X className="w-5 h-5" /> {wrongFlash}
+                        </div>
+                    )}
+                    {isDone && (
+                        <FieryFeedbackBanner fiery={false}>
+                            <Check className="w-5 h-5" /> {CORRECT_FEEDBACK_PHRASES[(i * 5 + 2) % CORRECT_FEEDBACK_PHRASES.length]}
+                        </FieryFeedbackBanner>
+                    )}
+                    {isCurrent && isDone && <LocalAnswerConfetti />}
+                </div>
+            </SceneWrapper>
+        )
+    }
+
     const renderTrial = (i: number) => {
         const t = trials[i]
         const key = `trial-${i}`
-        const isCurrent = i === trialIndex
+        const isCurrent = key === latestSceneKey
         const isDone = !isCurrent || checked
         const targetSide: SideId = t.kind === 'opp' ? oppositeLegOf(t.alphaVertex) : adjacentLegOf(t.alphaVertex)
         const doneColor = '#A1D151'
@@ -384,7 +485,7 @@ export const TypeLegFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
                             <span className="opacity-50 font-normal">/</span>
                             <span>{TRIAL_COUNT}</span>
                         </div>
-                        <p className="flex-1 text-base md:text-lg text-[#F2F7FB]">Чему равен катет x?</p>
+                        <p className="flex-1 text-base md:text-lg text-[#F2F7FB]">Чему равен катет?</p>
                     </div>
                     <DiagramFrame maxW={380}>
                         <RightTriangleDiagram
@@ -395,33 +496,12 @@ export const TypeLegFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
                             alphaVertex={t.alphaVertex}
                             alphaText={`${t.angle}°`}
                             sideNumberLabels={{ hyp: t.hyp }}
-                            sideStickerLabels={{ [targetSide]: [{ text: 'x', color: isDone ? doneColor : ACTIVE_COLOR }] }}
+                            oppositeLegHighlighted={t.kind === 'opp'}
+                            adjacentLegHighlighted={t.kind === 'adj'}
+                            sideStickerLabels={{ [targetSide]: [{ text: '?', color: isDone ? doneColor : (t.kind === 'opp' ? LEG_COLOR : ADJACENT_LEG_COLOR) }] }}
                         />
                     </DiagramFrame>
-                    <div className="grid grid-cols-2 gap-2">
-                        {t.options.map((opt) => {
-                            const wrong = isCurrent && wrongTried.includes(opt.text)
-                            const right = isDone && opt.correct
-                            return (
-                                <button
-                                    key={opt.text}
-                                    type="button"
-                                    onClick={() => isCurrent && handleOptionClick(opt)}
-                                    disabled={!isCurrent || checked || wrong}
-                                    className={cn(
-                                        'h-12 rounded-xl border-2 border-b-4 font-extrabold text-base md:text-lg tabular-nums transition-colors',
-                                        right && 'border-[#A1D151] bg-[#A1D15122] text-[#A1D151]',
-                                        wrong && 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]',
-                                        !right && !wrong && 'border-[#3A464E] bg-[#1B252B] text-[#F2F7FB]',
-                                        !right && !wrong && isCurrent && !checked && 'hover:border-[#4A90D9] active:border-b-2',
-                                        !isCurrent && !right && 'opacity-50',
-                                    )}
-                                >
-                                    {opt.text}
-                                </button>
-                            )
-                        })}
-                    </div>
+                    {renderOptions(key, t.options, isCurrent, isDone, 'grid-cols-2')}
                     {isCurrent && !checked && wrongFlash && (
                         <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">
                             <X className="w-5 h-5" /> {wrongFlash}
@@ -440,22 +520,22 @@ export const TypeLegFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
 
     const nextEnabled = (isIntro ? !!ready[latestSceneKey] : checked) && !advancing
     const sceneMapEntries: AdminMapEntry[] = [
-        { dotKey: 'intro-0', label: 'Треугольник, α, гипотенуза', jumpKey: 'intro-0', isActive: sceneIdx === 0, color: MAP_INTRO_COLOR },
-        { dotKey: 'intro-1', label: 'Противолежащий = гип · sin α', jumpKey: 'intro-1', isActive: sceneIdx === 1, color: MAP_INTRO_COLOR },
-        { dotKey: 'intro-2', label: 'Прилежащий = гип · cos α', jumpKey: 'intro-2', isActive: sceneIdx === 2, color: MAP_INTRO_COLOR },
-        { dotKey: 'practice', label: `Тренировка (${TRIAL_COUNT})`, jumpKey: 'trial-0', isActive: !isIntro, color: MAP_PRACTICE_COLOR },
+        { dotKey: 'intro-0', label: 'Треугольник, α, гипотенуза', jumpKey: 'intro-0', isActive: latestSceneKey === 'intro-0', color: MAP_INTRO_COLOR },
+        { dotKey: 'intro-1', label: 'Противолежащий = гип · sin α', jumpKey: 'intro-1', isActive: latestSceneKey === 'intro-1', color: MAP_INTRO_COLOR },
+        { dotKey: 'check', label: `Проверка: пропущен множитель (${CHECK_COUNT})`, jumpKey: 'check-0', isActive: latestKind === 'check', color: MAP_PRACTICE_COLOR },
+        { dotKey: 'intro-2', label: 'Прилежащий = гип · cos α', jumpKey: 'intro-2', isActive: latestSceneKey === 'intro-2', color: MAP_INTRO_COLOR },
+        { dotKey: 'practice', label: `Тренировка (${TRIAL_COUNT})`, jumpKey: 'trial-0', isActive: latestKind === 'trial', color: MAP_PRACTICE_COLOR },
     ]
-    const jumpToKey = (key: string) => {
-        const idx = key.startsWith('trial-') ? INTRO_SCENES.length + Number(key.slice(6)) : INTRO_SCENES.indexOf(key as typeof INTRO_SCENES[number])
-        jumpTo(idx)
-    }
+    const jumpToKey = (key: string) => jumpTo(SCENES.indexOf(key))
 
     return (
         <div className={`w-full mx-auto flex flex-row items-start gap-3 ${isAdmin ? 'max-w-[46rem]' : 'max-w-2xl'}`}>
             <div className="min-w-0 flex-1 flex flex-col items-center gap-4">
                 <div className="w-full flex flex-col gap-4">
-                    {Array.from({ length: sceneIdx + 1 }).map((_, idx) =>
-                        idx < INTRO_SCENES.length ? renderIntro(idx) : renderTrial(idx - INTRO_SCENES.length))}
+                    {SCENES.slice(0, sceneIdx + 1).map((key) => {
+                        const kind = sceneKind(key)
+                        return kind === 'trial' ? renderTrial(sceneNum(key)) : kind === 'check' ? renderCheck(sceneNum(key)) : renderIntro(sceneNum(key))
+                    })}
                 </div>
 
                 {isIntro || checked ? (

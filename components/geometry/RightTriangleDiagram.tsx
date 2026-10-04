@@ -322,8 +322,12 @@ export type RightTriangleVisual = {
     alphaFlyFromVertex?: boolean
     // Прямой угол появляется очень крупным bounce (scale 6 → 1).
     rightAngleBigBounce?: boolean
-    // Прямой угол и подписи «катет» уже нарисованы — без анимации появления.
+    // Прямой угол, α, подсвеченная гипотенуза и подписи уже нарисованы — без анимации появления.
     instantBase?: boolean
+    // Стороны, у которых стикеры подписей появляются сразу (без bounce).
+    sideStickerInstant?: SideId[]
+    // Зарезервировать в компактном окне место под стикеры, которые появятся позже.
+    reserveStickerLabels?: Partial<Record<SideId, StickerPart[]>>
     // Зарезервировать в компактном окне место под прямой угол и подписи катетов.
     reserveBounds?: boolean
     // Цвет дуги и буквы α (по умолчанию синий).
@@ -357,13 +361,13 @@ const hexA = (hex: string, a: number) => {
 // framer-motion перезаписывает transform, см. CLAUDE.md).
 const STICKER_ALONG_SCALE = 0.72
 
-const StickerRow = ({ cx, cy, parts, rotation = 0, scale: k = 1 }: { cx: number; cy: number; parts: StickerPart[]; rotation?: number; scale?: number }) => {
+const StickerRow = ({ cx, cy, parts, rotation = 0, scale: k = 1, instant = false }: { cx: number; cy: number; parts: StickerPart[]; rotation?: number; scale?: number; instant?: boolean }) => {
     const total = stickerRowWidth(parts)
     let x = -total / 2
     return (
         <g transform={`translate(${cx} ${cy}) rotate(${rotation}) scale(${k})`}>
             <motion.g
-                initial={{ opacity: 0, scale: 2.2 }}
+                initial={instant ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 2.2 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ type: 'spring', stiffness: 320, damping: 15 }}
             >
@@ -466,6 +470,8 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
         reserveLabels = [],
         rightAngleBigBounce = false,
         instantBase = false,
+        sideStickerInstant = [],
+        reserveStickerLabels,
         reserveBounds = false,
     } = props
 
@@ -654,9 +660,10 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
             if (rpActive) growBox(rotatedTextBounds(legRPLabelPt, angleAlongLine(R, P), fp.w, fp.h))
             if (rqActive) growBox(rotatedTextBounds(legRQLabelPt, angleAlongLine(R, Q), fp.w, fp.h))
         }
-        if (sideStickerLabels) {
-            (Object.keys(sideStickerLabels) as SideId[]).forEach((side) => {
-                const parts = sideStickerLabels[side]
+        for (const labels of [sideStickerLabels, reserveStickerLabels]) {
+            if (!labels) continue
+            ;(Object.keys(labels) as SideId[]).forEach((side) => {
+                const parts = labels[side]
                 if (!parts) return
                 const c = stickerCenter(side, parts)
                 const k = sideStickerAlong.includes(side) ? STICKER_ALONG_SCALE : 1
@@ -813,7 +820,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                             stroke={alphaColor}
                             strokeWidth={3}
                             strokeLinecap="round"
-                            initial={{ pathLength: 0, opacity: 0 }}
+                            initial={instantBase && !alphaFlyFromVertex ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
                             animate={{ pathLength: 1, opacity: 1 }}
                             transition={{ duration: 0.5, ease: 'easeOut' }}
                         />
@@ -840,7 +847,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                                 fontStyle={alphaText === 'α' ? 'italic' : 'normal'}
                                 fontSize={alphaText === 'α' ? 24 : 20} fontWeight={alphaText === 'α' ? 700 : 800}
                                 fill={alphaColor}
-                                initial={numberBounce.initial}
+                                initial={instantBase ? numberBounce.animate : numberBounce.initial}
                                 animate={numberBounce.animate}
                                 transition={numberBounce.transition}
                             >{alphaText}</motion.text>
@@ -952,13 +959,13 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                 <motion.line
                     x1={P.x} y1={P.y} x2={Q.x} y2={Q.y}
                     stroke={HYPOTENUSE_COLOR} strokeWidth={11} strokeLinecap="round"
-                    initial={{ pathLength: 0, opacity: 0 }}
+                    initial={instantBase && hypotenuseHighlighted ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: hypotenuseHighlighted ? 1 : 0, opacity: hypotenuseHighlighted ? 1 : 0 }}
                     transition={{ duration: SIDE_DRAW_DURATION, ease: 'easeOut', delay: hypotenuseArrow && hypotenuseHighlighted ? HYP_ARROW_TOTAL_S : 0 }}
                 />
                 <SideLabel
                     a={P} b={Q} labelPt={hypLabelPt}
-                    active={hypotenuseLabelShown} color={HYPOTENUSE_COLOR} text="гипотенуза"
+                    active={hypotenuseLabelShown} color={HYPOTENUSE_COLOR} text="гипотенуза" instant={instantBase}
                     delay={hypotenuseHighlighted ? SIDE_DRAW_DURATION + (hypotenuseArrow ? HYP_ARROW_TOTAL_S : 0) : 0}
                 />
 
@@ -1068,7 +1075,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     const parts = sideStickerLabels[side]
                     if (!parts || parts.length === 0) return null
                     const c = stickerCenter(side, parts)
-                    return <StickerRow key={`st-${side}-${parts.map((p) => p.text).join('|')}`} cx={c.x} cy={c.y} parts={parts} rotation={stickerRotation(side)} scale={sideStickerAlong.includes(side) ? STICKER_ALONG_SCALE : 1} />
+                    return <StickerRow key={`st-${side}-${parts.map((p) => p.text).join('|')}`} cx={c.x} cy={c.y} parts={parts} rotation={stickerRotation(side)} scale={sideStickerAlong.includes(side) ? STICKER_ALONG_SCALE : 1} instant={sideStickerInstant.includes(side)} />
                 })}
 
                 {/* «Фломастер» вокруг выбранных острых углов */}
