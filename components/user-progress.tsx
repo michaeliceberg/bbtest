@@ -33,8 +33,8 @@ export const UserProgress = ({ activeCourse, hearts, points, gems, xp, ggSticker
 	const { level, progressPercent } = getLevelInfo(xp);
 
 	const wrapperClass = isDark
-		? 'flex items-center justify-between gap-x-2 w-full rounded-xl border border-game-border bg-game-card px-3 py-2'
-		: 'flex items-center justify-between gap-x-2 w-full';
+		? 'flex flex-wrap items-center justify-between gap-x-2 gap-y-1 w-full rounded-xl border border-game-border bg-game-card px-3 py-2'
+		: 'flex flex-wrap items-center justify-between gap-x-2 gap-y-1 w-full';
 
 	const ghostHover = isDark ? 'hover:bg-game-card-light' : '';
 

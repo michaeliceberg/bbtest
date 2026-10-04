@@ -613,7 +613,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
     // треугольника — иначе длинные подписи вроде "противолежащий катет"
     // обрезались бы новым узким окном.
     const compactViewBox = compact ? (() => {
-        const pad = 40
+        const pad = 14
         let minX = Math.min(R.x, P.x, Q.x)
         let maxX = Math.max(R.x, P.x, Q.x)
         let minY = Math.min(R.y, P.y, Q.y)
@@ -636,8 +636,8 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
             const other = v === 'P' ? Q : P
             const bis = norm(add(norm(sub(R, V)), norm(sub(other, V))))
             const c = add(V, scale(bis, 14))
-            grow({ x: c.x - ANGLE_MARKER_R * 1.25, y: c.y - ANGLE_MARKER_R * 1.25 })
-            grow({ x: c.x + ANGLE_MARKER_R * 1.25, y: c.y + ANGLE_MARKER_R * 1.25 })
+            grow({ x: c.x - ANGLE_MARKER_R * 1.08, y: c.y - ANGLE_MARKER_R * 1.08 })
+            grow({ x: c.x + ANGLE_MARKER_R * 1.08, y: c.y + ANGLE_MARKER_R * 1.08 })
         })
         if ((hypotenuseHighlighted && hypotenuseLabelShown) || reserveLabels.includes('hyp')) {
             const fp = textFootprint('гипотенуза', 17)

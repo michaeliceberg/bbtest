@@ -176,7 +176,7 @@ const ADJACENT_STEPS = 1
 // ОЧЕНЬ крупный bounce прямого угла → печатается «Находится между двумя
 // катетами треугольника.» → подписи «катет» по очереди с bounce.
 // Чертёж не выше трети экрана, текст вплотную под ним (без больших зазоров).
-const DIAGRAM_COMPACT = 'w-full [&_svg]:max-h-[34vh]'
+const DIAGRAM_COMPACT = 'w-full [&_svg]:max-h-[46vh]'
 // Все обучающие сцены (0-4) показывают чертёж В ОДНОМ МАСШТАБЕ: окно одинаковое
 // (резервируем место под прямой угол, подписи катетов/гипотенузы/противолежащего и α).
 const INTRO_BOUNDS = { compact: true, reserveBounds: true, reserveLabels: ['hyp', 'opp'] as ('hyp' | 'opp')[], alphaVertex: 'P' as const }
