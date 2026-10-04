@@ -631,7 +631,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
             const fp = textFootprint(alphaText, 24)
             growBox(rotatedTextBounds(alphaArc.labelPt, 0, fp.w, fp.h))
         }
-        angleMarkers.forEach((v) => {
+        ;(reserveBounds ? (['P', 'Q'] as AlphaVertex[]) : angleMarkers).forEach((v) => {
             const V = v === 'P' ? P : Q
             const other = v === 'P' ? Q : P
             const bis = norm(add(norm(sub(R, V)), norm(sub(other, V))))
@@ -680,8 +680,13 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
             })
         }
         minX -= pad; maxX += pad; minY -= pad; maxY += pad
-        return `${minX} ${minY} ${maxX - minX} ${maxY - minY}`
+        return { x: minX, y: minY, w: maxX - minX, h: maxY - minY }
     })() : null
+    // Центр видимого окна — зум наводится именно на него (а не на центр канваса),
+    // чтобы окно (и размер треугольника) не менялось на время зума.
+    const viewCenter = compactViewBox
+        ? { x: compactViewBox.x + compactViewBox.w / 2, y: compactViewBox.y + compactViewBox.h / 2 }
+        : CENTER
 
     // Показывать элемент СРАЗУ, если он не является целью текущего zoom
     // (например уже введённая гипотенуза на шаге "выбираем угол α" — не
@@ -703,7 +708,10 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
     // ИЗВЕСТНУЮ константу, не требует измерения через getBBox(). Формула
     // для смещения такая, чтобы точка фокуса ПОСЛЕ увеличения оказалась в
     // центре канваса: tx,ty = -ZOOM_SCALE·(focus-CENTER).
-    const focusOffset = (pt: Pt) => ({ x: -ZOOM_SCALE * (pt.x - CENTER.x), y: -ZOOM_SCALE * (pt.y - CENTER.y) })
+    const focusOffset = (pt: Pt) => ({
+        x: viewCenter.x - CENTER.x - ZOOM_SCALE * (pt.x - CENTER.x),
+        y: viewCenter.y - CENTER.y - ZOOM_SCALE * (pt.y - CENTER.y),
+    })
     const alphaPoint = alphaVertex === 'P' ? P : Q
     const oppositeLegMid = alphaVertex === 'P' ? legRQMid : legRPMid
     const zoomFocusPoint = zoomFocus === 'rightAngle' ? R : zoomFocus === 'alpha' || zoomFocus === 'alphaToOppositeLeg' ? alphaPoint : null
@@ -761,7 +769,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
 
     return (
         <div className="flex items-center justify-center py-2 px-2 mb-2 bg-[#161F23] rounded-xl overflow-hidden">
-            <svg viewBox={compact && settledForCompact && compactViewBox ? compactViewBox : `0 0 ${CANVAS} ${CANVAS}`} width="100%" height="auto" style={{ maxWidth: 580 }}>
+            <svg viewBox={compactViewBox ? `${compactViewBox.x} ${compactViewBox.y} ${compactViewBox.w} ${compactViewBox.h}` : `0 0 ${CANVAS} ${CANVAS}`} width="100%" height="auto" style={{ maxWidth: 580 }}>
                 <motion.g
                     animate={panOffset ? {
                         // Зум на α → пауза → панорама (тот же scale, x/y едут

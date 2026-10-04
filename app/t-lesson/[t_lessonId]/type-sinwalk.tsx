@@ -177,6 +177,9 @@ const ADJACENT_STEPS = 1
 // катетами треугольника.» → подписи «катет» по очереди с bounce.
 // Чертёж не выше трети экрана, текст вплотную под ним (без больших зазоров).
 const DIAGRAM_COMPACT = 'w-full [&_svg]:max-h-[34vh]'
+// Все обучающие сцены (0-4) показывают чертёж В ОДНОМ МАСШТАБЕ: окно одинаковое
+// (резервируем место под прямой угол, подписи катетов/гипотенузы/противолежащего и α).
+const INTRO_BOUNDS = { compact: true, reserveBounds: true, reserveLabels: ['hyp', 'opp'] as ('hyp' | 'opp')[], alphaVertex: 'P' as const }
 
 const Step1Scene = ({ onSettled }: { onSettled?: () => void }) => {
     const [rightOn, setRightOn] = useState(false)
@@ -187,7 +190,7 @@ const Step1Scene = ({ onSettled }: { onSettled?: () => void }) => {
         <div className="w-full flex flex-col gap-1">
             <div className={DIAGRAM_COMPACT}>
                 <DiagramBlock>
-                    <RightTriangleDiagram compact reserveBounds rightAngleMarkShown={rightOn} rightAngleBigBounce legsLabelShown={legsOn} legsLabelDelay={0} />
+                    <RightTriangleDiagram {...INTRO_BOUNDS} alphaShown={false} rightAngleMarkShown={rightOn} rightAngleBigBounce legsLabelShown={legsOn} legsLabelDelay={0} />
                 </DiagramBlock>
             </div>
             {/* Оба предложения — одним абзацем сразу под чертежом. */}
@@ -241,7 +244,7 @@ const Step2Scene = ({ onSettled }: { onSettled?: () => void }) => {
             <div className={DIAGRAM_COMPACT}>
             <DiagramBlock>
                 <RightTriangleDiagram
-                    compact rightAngleMarkShown legsLabelShown instantBase reserveLabels={['hyp']}
+                    {...INTRO_BOUNDS} alphaShown={false} rightAngleMarkShown legsLabelShown instantBase
                     hypotenuseArrow={drawOn} hypotenuseHighlighted={drawOn} hypotenuseLabelShown={drawOn}
                 />
             </DiagramBlock>
@@ -282,13 +285,13 @@ const Step3Scene = ({ onSettled }: { onSettled?: () => void }) => {
     }
     return (
         <>
-            <DiagramBlock>
+            <div className={DIAGRAM_COMPACT}><DiagramBlock>
                 <RightTriangleDiagram
-                    compact rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown
-                    alphaVertex="P" alphaShown={alphaOn} alphaFlyFromVertex
+                    {...INTRO_BOUNDS} rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown
+                    alphaShown={alphaOn} alphaFlyFromVertex
                     angleMarkers={markers} angleMarkersHidden={fade}
                 />
-            </DiagramBlock>
+            </DiagramBlock></div>
             {textVisible && (
                 <TypedLine
                     className="w-full text-base md:text-lg text-[#F2F7FB]"
@@ -310,12 +313,12 @@ const Step4Scene = ({ onSettled }: { onSettled?: () => void }) => {
     }, [])
     return (
         <>
-            <DiagramBlock>
+            <div className={DIAGRAM_COMPACT}><DiagramBlock>
                 <RightTriangleDiagram
-                    compact rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown alphaVertex="P" zoomFocus="alphaToOppositeLeg"
+                    {...INTRO_BOUNDS} rightAngleMarkShown legsLabelShown hypotenuseHighlighted hypotenuseLabelShown zoomFocus="alphaToOppositeLeg"
                     oppositeLegHighlighted oppositeLegLabelShown
                 />
-            </DiagramBlock>
+            </DiagramBlock></div>
             {textVisible && (
                 // Стикер ТОЛЬКО на "противолежащий", "катет" — обычным
                 // текстом сразу после (единый формат наименования катета
@@ -869,7 +872,7 @@ export const TypeSinWalk = ({ onAnswer, onComplete, isAdmin = false }: Props) =>
                             треугольник, никакого zoomFocus/вращения), по
                             прямой просьбе пользователя убрать огромный
                             пустой отступ сверху/снизу на самой первой сцене. */}
-                        <DiagramBlock><RightTriangleDiagram compact /></DiagramBlock>
+                        <div className={DIAGRAM_COMPACT}><DiagramBlock><RightTriangleDiagram {...INTRO_BOUNDS} alphaShown={false} /></DiagramBlock></div>
                         <TypedLine
                             className="w-full text-base md:text-lg text-[#F2F7FB]"
                             text="Это прямоугольный треугольник"
