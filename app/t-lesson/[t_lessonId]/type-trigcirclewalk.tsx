@@ -906,19 +906,22 @@ const PiScene = ({ onSettled }: SceneProps) => {
             <TypedBig parts={[{ text: 'π — это ' }, { text: 'ПОЛОВИНА', color: ARC_COLOR }, { text: ' окружности' }]} onDone={() => setPhase(1)} />
             {phase >= 1 && (
                 <DiagramBlock onSettled={() => setPhase(2)}>
-                    <div className="w-full flex flex-col items-center gap-2">
-                        {/* Когда осталась только верхняя четверть, нижняя половина
-                            картинки плавно схлопывается — подпись поднимается ближе. */}
-                        <div className="relative w-full max-w-[340px] mx-auto overflow-hidden transition-[padding-bottom] duration-700 ease-in-out"
-                            style={{ paddingBottom: stage >= 3 ? '56%' : '100%' }}>
+                    <div className="w-full flex flex-col items-center gap-1">
+                        {/* Видна только верхняя половина (полукруг в начале, верхняя
+                            четверть позже) — нижняя часть картинки схлопывается,
+                            подпись и кнопка поднимаются вплотную к рисунку. Полный
+                            круг (этапы 1–2) занимает всю высоту. Ширина ограничена
+                            высотой экрана, чтобы всё влезало на телефоне. */}
+                        <div className="relative w-full mx-auto overflow-hidden transition-[padding-bottom] duration-700 ease-in-out"
+                            style={{ maxWidth: 'min(340px, 40vh)', paddingBottom: stage === 0 || stage >= 3 ? '56%' : '100%' }}>
                             <div className="absolute inset-x-0 top-0">
                                 <PiCircle stage={stage} />
                             </div>
                         </div>
-                        <div className="h-14 flex items-center justify-center text-lg font-black text-[#F2F7FB]">
+                        <div className="h-12 flex items-center justify-center text-lg font-black text-[#F2F7FB]">
                             {caption && <Pop key={`cap-${stage}`}>{caption}</Pop>}
                         </div>
-                        <div className="h-14 flex items-center">
+                        <div className="h-14 mt-3 flex items-center">
                             {phase === 2 && stageReady && <ActionButton color={PLUS_COLOR} onClick={nextStage}>{stageLabel}</ActionButton>}
                         </div>
                     </div>

@@ -16,6 +16,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 
 type Mode = 'normal' | 'yellow' | 'blue'
 
@@ -148,6 +149,41 @@ export const TrainerProgressBar = ({ percent, streak }: { percent: number; strea
                     {style && <div className="animate-progress-shine pointer-events-none absolute inset-y-0 left-0 w-1/3" />}
                 </div>
             </div>
+
+            {/* Плашка «КОМБО N» справа под полоской: жёлтая с 5, ярко-голубая с 8.
+                Число при каждом шаге серии прыгает (bounce); при смене цвета
+                (5 → жёлтая, 8 → голубая) пересоздаётся вся плашка и тоже
+                «выстреливает». */}
+            {streak >= 5 && mode !== 'normal' && (
+                <motion.div
+                    key={mode}
+                    className="pointer-events-none absolute right-0 top-full z-20 mt-1.5"
+                    initial={{ opacity: 0, scale: 0.4, y: -6 }}
+                    animate={{ opacity: 1, scale: mode === 'blue' ? 1.12 : 1, y: 0 }}
+                    transition={{ type: 'spring', stiffness: 360, damping: 13 }}
+                    style={{ transformOrigin: 'right top' }}
+                >
+                    <span
+                        className="relative inline-flex items-baseline gap-1 rounded-lg px-2.5 py-0.5 text-[11px] font-black uppercase leading-tight tracking-wide"
+                        style={{
+                            background: MODE_STYLE[mode].gradient,
+                            color: mode === 'blue' ? '#032A38' : '#4A3300',
+                            boxShadow: `0 0 10px 1px ${MODE_STYLE[mode].glow}, inset 0 0 0 1.5px ${mode === 'blue' ? '#FFFFFF99' : '#FFFBE0AA'}`,
+                        }}
+                    >
+                        <span>комбо</span>
+                        <motion.span
+                            key={streak}
+                            className="inline-block text-[15px]"
+                            initial={{ scale: 1.9, y: -3 }}
+                            animate={{ scale: 1, y: 0 }}
+                            transition={{ type: 'spring', stiffness: 420, damping: 11 }}
+                        >
+                            {streak}
+                        </motion.span>
+                    </span>
+                </motion.div>
+            )}
 
             {style && (
                 <div className="pointer-events-none absolute inset-0">
