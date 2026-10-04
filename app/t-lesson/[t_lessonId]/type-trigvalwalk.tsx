@@ -742,6 +742,13 @@ const CosMirrorScene = ({ onSettled }: { onSettled?: () => void }) => {
                 />
             )}
             {phase >= 4 && <LocalAnswerConfetti />}
+            {/* Строка косинуса заполнена — внизу крутится ролик по кругу, пока не
+                нажали «Агась»; со следующей сценой SceneWrapper ставит его на паузу. */}
+            {phase >= 4 && (
+                <div className="flex w-full justify-center">
+                    <AlphaVideo src="/video/ravshan-heart.webm" autoPlay loop muted playsInline className="h-40 w-auto max-w-full object-contain" />
+                </div>
+            )}
         </>
     )
 }
