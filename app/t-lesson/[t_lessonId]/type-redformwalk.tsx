@@ -47,6 +47,7 @@ const PI_COLOR = GGEGE_PALETTE.purple.button
 const STEP_COLOR = GGEGE_PALETTE.orange.button
 const TG_COLOR = GGEGE_PALETTE.raspberry.button
 const CTG_COLOR = GGEGE_PALETTE.teal.button
+const TEAL_COLOR = GGEGE_PALETTE.teal.button
 const PLUS_COLOR = '#A1D151'
 const HOUSE_STICKER = '/lesson-pics/house-sticker.webp'
 const PI = Math.PI
@@ -278,17 +279,76 @@ const Appear = ({ when, children, className, delay = 0 }: { when: boolean; child
 )
 const Fn2 = ({ f }: { f: Fn }) => <span style={{ color: FN_COLOR[f] }}>{f}</span>
 
-// Сдвиг «± c·π/2» (change) или «± c·π» (keep): множитель c — отдельно, обводится только π/2 (π).
+// Наклонная обводка вокруг «π» (в числителе) и «2» (в знаменателе) — чтобы не задеть множитель
+// слева в числителе («3» в 3π/2): эллипс вытянут вдоль линии π → 2 и повёрнут под тот же угол.
+const TiltedMarker = ({ wrapRef, aRef, bRef, active, roomy }: {
+    wrapRef: React.RefObject<HTMLSpanElement>
+    aRef: React.RefObject<HTMLSpanElement>
+    bRef: React.RefObject<HTMLSpanElement>
+    active: boolean
+    roomy: boolean // нет множителя слева — можно обвести пошире
+}) => {
+    const [g, setG] = useState<{ cx: number; cy: number; w: number; h: number; rot: number } | null>(null)
+    useLayoutEffect(() => {
+        if (!active) return
+        const wr = wrapRef.current?.getBoundingClientRect()
+        const ar = aRef.current?.getBoundingClientRect()
+        const br = bRef.current?.getBoundingClientRect()
+        if (!wr || !ar || !br) return
+        const ax = ar.left - wr.left + ar.width / 2
+        const ay = ar.top - wr.top + ar.height / 2
+        const bx = br.left - wr.left + br.width / 2
+        const by = br.top - wr.top + br.height / 2
+        setG({
+            cx: roomy ? (ax + bx) / 2 : ax + (bx - ax) * 0.4, cy: (ay + by) / 2,
+            w: Math.max(ar.width, br.width) + (roomy ? 8 : -2),
+            h: Math.hypot(bx - ax, by - ay) + Math.max(ar.height, br.height) - 6,
+            rot: (Math.atan2(ax - bx, by - ay) * 180) / Math.PI,
+        })
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [active])
+    if (!g || !active) return null
+    return (
+        <div className="pointer-events-none absolute" style={{ left: g.cx - g.w / 2, top: g.cy - g.h / 2, width: g.w, height: g.h, transform: `rotate(${g.rot}deg)` }}>
+            <MarkerLoop color={PI_COLOR} pad={5} />
+        </div>
+    )
+}
+
+// Дробь «cπ/2»: множитель c — в числителе рядом с π.
+const FracMarked = ({ c, marked }: { c: number; marked: boolean }) => {
+    const wrapRef = useRef<HTMLSpanElement>(null)
+    const piRef = useRef<HTMLSpanElement>(null)
+    const denRef = useRef<HTMLSpanElement>(null)
+    return (
+        <span ref={wrapRef} className="relative inline-flex flex-col leading-none align-middle mx-1" style={{ color: PI_COLOR }}>
+            <span className="pb-1 border-b-[3px] border-current px-1 inline-flex items-end justify-center gap-3">
+                {c > 1 && <span>{c}</span>}
+                <span ref={piRef}>π</span>
+            </span>
+            <span className="pt-1 px-1 text-center"><span ref={denRef}>2</span></span>
+            <TiltedMarker wrapRef={wrapRef} aRef={piRef} bRef={denRef} active={marked} roomy={c <= 1} />
+        </span>
+    )
+}
+
+// Сдвиг «± c·π/2» (change) или «± c·π» (keep).
 const ShiftMarked = ({ k, half, marked }: { k: number; half: boolean; marked: boolean }) => {
     const m = Math.abs(k)
     const c = half ? m : m / 2
     return (
         <>
             <span className="mx-1">{k < 0 ? '−' : '+'}</span>
-            {c > 1 && <span className="mr-3" style={{ color: PI_COLOR }}>{c}</span>}
-            <Marked active={marked} color={PI_COLOR}>
-                <span style={{ color: PI_COLOR }}>{half ? <Frac num="π" den="2" /> : 'π'}</span>
-            </Marked>
+            {half ? (
+                <FracMarked c={c} marked={marked} />
+            ) : (
+                <>
+                    {c > 1 && <span className="mr-3" style={{ color: PI_COLOR }}>{c}</span>}
+                    <Marked active={marked} color={PI_COLOR}>
+                        <span style={{ color: PI_COLOR }}>π</span>
+                    </Marked>
+                </>
+            )}
         </>
     )
 }
@@ -346,7 +406,7 @@ type RuleKind = 'change' | 'keep'
 const RuleExample = ({ k, fn, kind, lead, ack, onDone }: { k: number; fn: Fn; kind: RuleKind; lead: 'first' | 'again' | 'plain'; ack: boolean; onDone: () => void }) => {
     const half = kind === 'change'
     const result: Fn = half ? SWAP[fn] : fn
-    const accent = half ? STEP_COLOR : PLUS_COLOR
+    const accent = TEAL_COLOR
     const [phase, setPhase] = useState(0) // 1 «видим…», 2 обводка, 3 «то/тоже/опять…», 4 стрелка, 5 результат
     const [acked, setAcked] = useState(false)
     const containerRef = useRef<HTMLDivElement>(null)
@@ -361,7 +421,6 @@ const RuleExample = ({ k, fn, kind, lead, ack, onDone }: { k: number; fn: Fn; ki
     useEffect(() => {
         endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
         const delay: Record<number, [number, number]> = { 2: [3, 1000] }
-        if (phase === 4 && !half) { const t = setTimeout(() => setPhase(5), 400); return () => clearTimeout(t) }
         if (phase === 5 && !ack) { const t = setTimeout(onDone, 1000); return () => clearTimeout(t) }
         const step = delay[phase]
         if (!step) return
@@ -382,7 +441,7 @@ const RuleExample = ({ k, fn, kind, lead, ack, onDone }: { k: number; fn: Fn; ki
                         <Appear when={phase >= 5}><span className="inline-flex items-center gap-1.5"><Fn2 f={result} /><span>x</span></span></Appear>
                     </span>
                 </motion.span>
-                {phase >= 4 && half && <LoopArrow containerRef={containerRef} fromRef={fnRef} toRef={slotRef} color={accent} label="меняем" onDone={() => setPhase(5)} />}
+                {phase >= 4 && <LoopArrow containerRef={containerRef} fromRef={fnRef} toRef={slotRef} color={accent} label={half ? 'меняем' : 'не меняем'} onDone={() => setTimeout(() => setPhase((p) => (p < 5 ? 5 : p)), 1100)} />}
             </div>
             {phase >= 1 && (
                 <TypedBig small onDone={() => setPhase(2)} readMs={300}
@@ -394,13 +453,15 @@ const RuleExample = ({ k, fn, kind, lead, ack, onDone }: { k: number; fn: Fn; ki
             )}
             {phase >= 5 && ack && !acked && (
                 <div className="w-full flex justify-center">
-                    <Appear when delay={0.5}>
-                        <button type="button" onClick={() => { setAcked(true); onDone() }}
-                            className="rounded-xl border-2 border-b-4 active:border-b-2 px-6 py-2.5 text-lg font-black animate-pulse"
-                            style={{ borderColor: accent, backgroundColor: hexToRgba(accent, 0.16), color: accent }}>
-                            Агась
-                        </button>
-                    </Appear>
+                    <motion.button
+                        type="button"
+                        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+                        onClick={() => { setAcked(true); onDone() }}
+                        className={walkthroughButtonClass(true)}
+                        style={walkthroughButtonStyle(true)}
+                    >
+                        Агась
+                    </motion.button>
                 </div>
             )}
             <div ref={endRef} />
