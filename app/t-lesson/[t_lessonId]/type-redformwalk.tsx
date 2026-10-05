@@ -569,7 +569,7 @@ const KeepTeaser = ({ onDone }: { onDone: () => void }) => {
             <TypedBig parts={[{ text: 'Нооооооооооооооооо!', color: '#DC605B' }]} onDone={() => setPhase(1)} readMs={300} />
             {phase >= 1 && (
                 <TypedBig small onDone={() => setPhase(2)} readMs={300}
-                    parts={[{ text: 'если видим ' }, { text: 'π', color: PI_COLOR, sticker: true }]} />
+                    parts={[{ text: 'если видим просто ' }, { text: 'π', color: PI_COLOR, sticker: true }]} />
             )}
             {phase >= 2 && (
                 <TypedBig small onDone={() => setPhase(3)} readMs={300}
@@ -595,8 +595,13 @@ const KeepTeaser = ({ onDone }: { onDone: () => void }) => {
     )
 }
 
-const RuleScene = ({ kind, onSettled }: SceneProps & { kind: RuleKind }) => {
+const RuleScene = ({ kind, onSettled, leaving = false }: SceneProps & { kind: RuleKind }) => {
     const examples = RULE_EXAMPLES[kind]
+    const likeRef = useRef<HTMLDivElement>(null)
+    // «Понял-принял» нажата — хасбика останавливаем, всё в сцене становится серым.
+    useEffect(() => {
+        if (leaving) likeRef.current?.querySelector('video')?.pause()
+    }, [leaving])
     const [stage, setStage] = useState(0) // 0..n-1 — примеры по очереди, n — «так же и у остальных»
     const [teaserDone, setTeaserDone] = useState(kind !== 'keep')
     const [chip, setChip] = useState(0)
@@ -611,7 +616,7 @@ const RuleScene = ({ kind, onSettled }: SceneProps & { kind: RuleKind }) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [stage, chip])
     return (
-        <div className="w-full max-w-md mx-auto flex flex-col gap-4">
+        <div className={`w-full max-w-md mx-auto flex flex-col gap-4 transition-all duration-500 ${leaving ? 'opacity-35 grayscale' : ''}`}>
             {kind === 'keep' && <KeepTeaser onDone={() => setTeaserDone(true)} />}
             {teaserDone && examples.map((ex, i) => stage >= i && (
                 <RuleExample key={i} k={ex.k} fn={ex.fn} kind={kind}
@@ -641,11 +646,16 @@ const RuleScene = ({ kind, onSettled }: SceneProps & { kind: RuleKind }) => {
                     </div>
                 </div>
             )}
+            {kind === 'change' && stage >= examples.length && chip >= RULE_OTHERS[kind].length + 1 && (
+                <div ref={likeRef} className="w-full flex justify-center">
+                    <AlphaVideo src="/video/hasbik-like.webm" autoPlay loop muted playsInline className="w-36 h-36 pointer-events-none" />
+                </div>
+            )}
         </div>
     )
 }
-const RuleChangeScene = ({ onSettled }: SceneProps) => <RuleScene kind="change" onSettled={onSettled} />
-const RuleKeepScene = ({ onSettled }: SceneProps) => <RuleScene kind="keep" onSettled={onSettled} />
+const RuleChangeScene = ({ onSettled, leaving }: SceneProps) => <RuleScene kind="change" onSettled={onSettled} leaving={leaving} />
+const RuleKeepScene = ({ onSettled, leaving }: SceneProps) => <RuleScene kind="keep" onSettled={onSettled} leaving={leaving} />
 
 // Разбор «куда мы придём» для двух примеров: sin(x + π/2) → cos x и cos(3π/2 − x) → −sin x.
 type VKey = 'sin' | 'cos'
@@ -1112,7 +1122,7 @@ export const TypeRedFormWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
                         const enabled = (current.kind === 'intro' ? stepReady : checked) && !advancing
                         return (
                             <button type="button" onClick={handleNext} disabled={!enabled} className={walkthroughButtonClass(enabled)} style={walkthroughButtonStyle(enabled)}>
-                                {nextLabel}
+                                {current.kind === 'intro' && current.idx === 1 ? 'Понял-принял' : nextLabel}
                             </button>
                         )
                     })()}
