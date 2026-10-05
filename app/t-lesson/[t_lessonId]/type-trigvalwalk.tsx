@@ -890,7 +890,7 @@ const MarkerCircle = ({ label, color, labelDelay = 1.6 }: { label: string; color
                 vectorEffect="non-scaling-stroke"
                 initial={{ pathLength: 0 }}
                 animate={{ pathLength: 1 }}
-                transition={{ duration: 0.7, ease: 'easeInOut' }}
+                transition={{ duration: 0.5, ease: 'easeInOut' }}
             />
         </svg>
         <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-3 -translate-x-1/2 whitespace-nowrap">
@@ -926,8 +926,8 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, fast, calc = 'calcula
     useEffect(() => {
         // 3/6: обводка (0.7 с) → пауза → стикер (1.6 с) → пауза → падение.
         const next: Record<number, number> = fast
-            ? { 3: 2200, 4: 1000, 5: 500, 6: 2200, 7: 1000, 8: 400, 10: 800, 11: 900, 12: 1200 }
-            : { 3: 3600, 4: 1300, 5: 1000, 6: 3600, 7: 1300, 10: 1100, 11: 1200, 12: 1400 }
+            ? { 3: 1200, 4: 700, 5: 300, 6: 1200, 7: 700, 8: 300, 10: 500, 11: 600, 12: 800 }
+            : { 3: 1800, 4: 900, 5: 500, 6: 1800, 7: 900, 10: 700, 11: 800, 12: 900 }
         if (!(phase in next)) return
         const t = setTimeout(() => setPhase(phase + 1), next[phase])
         return () => clearTimeout(t)
@@ -937,14 +937,14 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, fast, calc = 'calcula
     const resId = `tg-res-${i}`
     useEffect(() => {
         if (phase !== 13) return
-        const t = setTimeout(() => onSettled?.(), 900)
+        const t = setTimeout(() => onSettled?.(), 500)
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [phase])
     // Дробь «Тангенс = синус / косинус»: части появляются по очереди.
     useEffect(() => {
         if (phase !== 1 || !introFrac) return
-        const t = setTimeout(() => setPhase((p) => Math.max(p, fast ? 3 : 2)), fast ? 2000 : 2400)
+        const t = setTimeout(() => setPhase((p) => Math.max(p, fast ? 3 : 2)), fast ? 1200 : 1700)
         return () => clearTimeout(t)
     }, [phase, introFrac, fast])
     // Зумерские подписи вместо «Ок» — новая на каждую кнопку.
@@ -959,7 +959,7 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, fast, calc = 'calcula
     const cosFlown = phase >= 7
     return (
         <LayoutGroup id={`tg-col-${i}`}>
-            <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 1)), 600)}>
+            <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 1)), 300)}>
                 <div className="w-full flex flex-col items-center pt-6">
                     <TrigTable
                         fns={['sin', 'cos', 'tg']}
@@ -972,7 +972,7 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, fast, calc = 'calcula
                                 return flown ? null : (
                                     <motion.span layoutId={fn === 'sin' ? sinId : cosId} transition={FLY} className="relative inline-flex">
                                         <ValBox v={VALUES[fn][j]} color={FN_COLOR[fn]} />
-                                        {circled && <MarkerCircle label={fn === 'sin' ? 'берём синус' : 'берём косинус'} color={FN_COLOR[fn]} labelDelay={fast ? 0.8 : 1.6} />}
+                                        {circled && <MarkerCircle label={fn === 'sin' ? 'берём синус' : 'берём косинус'} color={FN_COLOR[fn]} labelDelay={fast ? 0.4 : 0.7} />}
                                     </motion.span>
                                 )
                             }
@@ -1062,7 +1062,7 @@ const TgColumnFlyScene = ({ i, travolta, intro, introFrac, fast, calc = 'calcula
                             <ValBox v={VALUES.tg[i]} color={TG} />
                             {phase === 11 && (
                                 <svg className="pointer-events-none absolute -inset-3 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: 'calc(100% + 24px)', height: 'calc(100% + 24px)' }}>
-                                    <motion.path d={MARKER_PATH} fill="none" stroke={ATTENTION} strokeWidth={4} strokeLinecap="round" vectorEffect="non-scaling-stroke" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.7 }} />
+                                    <motion.path d={MARKER_PATH} fill="none" stroke={ATTENTION} strokeWidth={4} strokeLinecap="round" vectorEffect="non-scaling-stroke" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.5 }} />
                                 </svg>
                             )}
                         </motion.span>
