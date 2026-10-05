@@ -16,7 +16,7 @@
 
 'use client'
 
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { animate, motion, useMotionValue, useTransform } from 'framer-motion'
@@ -262,9 +262,10 @@ const FormulaScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-// 0б/0в. Правило — на одном примере (sin) подробно, потом то же для остальных функций.
-//   kind 'change': сдвиг на нечётное число π/2 → sin(x + π/2), sin(x + 3π/2), sin(x − π/2) = cos;
-//   kind 'keep'  : сдвиг на целое число π → sin(x + π), sin(x + 2π), sin(x − 3π) = sin.
+// 0б/0в. Правило — по шагам на двух примерах (с sin), потом «так же и у остальных».
+//   change: sin(x + π/2) и sin(x − 3π/2): видим π/2 → обводим → МЕНЯЕМ → стрелка от sin
+//           направо, справа с отскоком появляется cos x;
+//   keep:   sin(x + π) и sin(x − 2π): видим π → обводим → НЕ МЕНЯЕМ → справа sin x.
 const Appear = ({ when, children, className, delay = 0 }: { when: boolean; children: React.ReactNode; className?: string; delay?: number }) => (
     <motion.span
         className={cn('inline-flex', className)}
@@ -277,62 +278,161 @@ const Appear = ({ when, children, className, delay = 0 }: { when: boolean; child
 )
 const Fn2 = ({ f }: { f: Fn }) => <span style={{ color: FN_COLOR[f] }}>{f}</span>
 
-const RULE_CFG = {
-    change: {
-        color: STEP_COLOR, badge: 'МЕНЯЕТСЯ', ks: [1, 3, -1], result: 'cos' as Fn,
-        others: [['cos', 'sin'], ['tg', 'ctg'], ['ctg', 'tg']] as [Fn, Fn][],
-    },
-    keep: {
-        color: PLUS_COLOR, badge: 'НЕ МЕНЯЕТСЯ', ks: [2, 4, -6], result: 'sin' as Fn,
-        others: [['cos', 'cos'], ['tg', 'tg'], ['ctg', 'ctg']] as [Fn, Fn][],
-    },
+// Сдвиг «± c·π/2» (change) или «± c·π» (keep): множитель c — отдельно, обводится только π/2 (π).
+const ShiftMarked = ({ k, half, marked }: { k: number; half: boolean; marked: boolean }) => {
+    const m = Math.abs(k)
+    const c = half ? m : m / 2
+    return (
+        <>
+            <span className="mx-1">{k < 0 ? '−' : '+'}</span>
+            {c > 1 && <span className="mr-3" style={{ color: PI_COLOR }}>{c}</span>}
+            <Marked active={marked} color={PI_COLOR}>
+                <span style={{ color: PI_COLOR }}>{half ? <Frac num="π" den="2" /> : 'π'}</span>
+            </Marked>
+        </>
+    )
 }
-const RULE_STEP_MS = 650
-const RuleScene = ({ kind, onSettled }: SceneProps & { kind: 'change' | 'keep' }) => {
-    const cfg = RULE_CFG[kind]
-    const [step, setStep] = useState(0)
-    const LAST = 9
+
+// Стрелка поверху: от верхней точки sin вверх, вправо и вниз к правой части равенства.
+const LoopArrow = ({ containerRef, fromRef, toRef, color, onDone }: {
+    containerRef: React.RefObject<HTMLDivElement>
+    fromRef: React.RefObject<HTMLSpanElement>
+    toRef: React.RefObject<HTMLSpanElement>
+    color: string
+    onDone: () => void
+}) => {
+    const [geo, setGeo] = useState<{ d: string; tx: number; ty: number; w: number; h: number } | null>(null)
+    useLayoutEffect(() => {
+        const c = containerRef.current
+        const f = fromRef.current
+        const t = toRef.current
+        if (!c || !f || !t) return
+        const cr = c.getBoundingClientRect()
+        const fr = f.getBoundingClientRect()
+        const tr = t.getBoundingClientRect()
+        const sx = fr.left - cr.left + fr.width / 2
+        const sy = fr.top - cr.top
+        const tx = tr.left - cr.left + tr.width / 2
+        const ty = tr.top - cr.top
+        const by = Math.min(sy, ty) - 34
+        const r = 14
+        setGeo({
+            d: `M ${sx} ${sy - 4} L ${sx} ${by + r} Q ${sx} ${by} ${sx + r} ${by} L ${tx - r} ${by} Q ${tx} ${by} ${tx} ${by + r} L ${tx} ${ty - 12}`,
+            tx, ty: ty - 4, w: cr.width, h: cr.height,
+        })
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+    if (!geo) return null
+    return (
+        <svg className="pointer-events-none absolute left-0 top-0 overflow-visible" width={geo.w} height={geo.h}>
+            <motion.path d={geo.d} fill="none" stroke={color} strokeWidth={5} strokeLinecap="round"
+                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.9, ease: 'easeInOut' }}
+                onAnimationComplete={onDone} />
+            <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
+                <Arrowhead x={geo.tx} y={geo.ty} dx={0} dy={1} color={color} size={14} />
+            </motion.g>
+        </svg>
+    )
+}
+
+type RuleKind = 'change' | 'keep'
+const RuleExample = ({ k, fn, kind, lead, onDone }: { k: number; fn: Fn; kind: RuleKind; lead: 'first' | 'again' | 'plain'; onDone: () => void }) => {
+    const half = kind === 'change'
+    const result: Fn = half ? SWAP[fn] : fn
+    const accent = half ? STEP_COLOR : PLUS_COLOR
+    const [phase, setPhase] = useState(0) // 1 «видим…», 2 обводка, 3 «значит…», 4 стрелка, 5 результат
+    const containerRef = useRef<HTMLDivElement>(null)
+    const fnRef = useRef<HTMLSpanElement>(null)
+    const slotRef = useRef<HTMLSpanElement>(null)
+    const endRef = useRef<HTMLDivElement>(null)
+    const word = half ? 'π/2' : 'π'
     useEffect(() => {
-        if (step >= LAST) {
-            const t = setTimeout(() => onSettled?.(), 1100)
-            return () => clearTimeout(t)
-        }
-        const t = setTimeout(() => setStep((n) => n + 1), step === 0 ? 400 : RULE_STEP_MS)
+        const t = setTimeout(() => setPhase(1), 800)
+        return () => clearTimeout(t)
+    }, [])
+    useEffect(() => {
+        endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        const delay: Record<number, [number, number]> = { 2: [3, 1000] }
+        if (phase === 4 && !half) { const t = setTimeout(() => setPhase(5), 400); return () => clearTimeout(t) }
+        if (phase === 5) { const t = setTimeout(onDone, 1000); return () => clearTimeout(t) }
+        const step = delay[phase]
+        if (!step) return
+        const t = setTimeout(() => setPhase(step[0]), step[1])
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [step])
+    }, [phase])
+    return (
+        <div className="w-full flex flex-col gap-3">
+            <div ref={containerRef} className="relative w-full flex items-center justify-center pt-10 text-3xl sm:text-4xl md:text-5xl font-black text-[#F2F7FB]" style={LABEL_STYLE}>
+                <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="inline-flex items-center">
+                    <span ref={fnRef} style={{ color: FN_COLOR[fn] }}>{fn}</span>
+                    <span>(</span><span>x</span>
+                    <ShiftMarked k={k} half={half} marked={phase >= 2} />
+                    <span>)</span>
+                    <span className="mx-2">=</span>
+                    <span ref={slotRef} className="inline-flex">
+                        <Appear when={phase >= 5}><span className="inline-flex items-center gap-1.5"><Fn2 f={result} /><span>x</span></span></Appear>
+                    </span>
+                </motion.span>
+                {phase >= 4 && half && <LoopArrow containerRef={containerRef} fromRef={fnRef} toRef={slotRef} color={accent} onDone={() => setPhase(5)} />}
+            </div>
+            {phase >= 1 && (
+                <TypedBig small onDone={() => setPhase(2)} readMs={300}
+                    parts={[{ text: lead === 'again' ? 'видим опять ' : lead === 'plain' ? 'видим ' : 'если видим ' }, { text: word, color: PI_COLOR, sticker: true }]} />
+            )}
+            {phase >= 3 && (
+                <TypedBig small onDone={() => setPhase(4)} readMs={300}
+                    parts={[{ text: lead === 'first' ? 'то ' : 'значит ' }, { text: half ? 'МЕНЯЕМ' : 'НЕ МЕНЯЕМ', color: accent }]} />
+            )}
+            <div ref={endRef} />
+        </div>
+    )
+}
+
+const RULE_OTHERS: Record<RuleKind, [Fn, Fn][]> = {
+    change: [['tg', 'ctg'], ['ctg', 'tg']],
+    keep: [['cos', 'cos'], ['tg', 'tg'], ['ctg', 'ctg']],
+}
+// Примеры: change — sin(x + π/2), sin(x − 3π/2), cos(x − 5π/2); keep — sin(x + π), sin(x − 2π).
+const RULE_EXAMPLES: Record<RuleKind, { fn: Fn; k: number }[]> = {
+    change: [{ fn: 'sin', k: 1 }, { fn: 'sin', k: -3 }, { fn: 'cos', k: -5 }],
+    keep: [{ fn: 'sin', k: 2 }, { fn: 'sin', k: -4 }],
+}
+const RuleScene = ({ kind, onSettled }: SceneProps & { kind: RuleKind }) => {
+    const examples = RULE_EXAMPLES[kind]
+    const [stage, setStage] = useState(0) // 0..n-1 — примеры по очереди, n — «так же и у остальных»
+    const [chip, setChip] = useState(0)
+    useEffect(() => {
+        if (stage < examples.length) return
+        if (chip >= RULE_OTHERS[kind].length + 1) {
+            const t = setTimeout(() => onSettled?.(), 1000)
+            return () => clearTimeout(t)
+        }
+        const t = setTimeout(() => setChip((n) => n + 1), chip === 0 ? 300 : 650)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [stage, chip])
     return (
         <div className="w-full max-w-md mx-auto flex flex-col gap-4">
-            <div className="w-full rounded-2xl border-2 p-4 flex flex-col gap-3" style={{ borderColor: cfg.color, backgroundColor: hexToRgba(cfg.color, 0.08) }}>
-                <div className="flex justify-end">
-                    <Appear when={step >= 1}>
-                        <span className="rounded-full border-2 px-3 py-1 text-sm md:text-base font-black" style={{ color: cfg.color, borderColor: cfg.color, backgroundColor: hexToRgba(cfg.color, 0.18) }}>{cfg.badge}</span>
-                    </Appear>
-                </div>
-                {cfg.ks.map((k, i) => (
-                    <div key={k} className="flex items-center justify-center gap-3 text-3xl md:text-4xl font-black text-[#F2F7FB]" style={LABEL_STYLE}>
-                        <Appear when={step >= 2 + i}>
-                            <span className="inline-flex items-center">
-                                <Fn2 f="sin" /><span>(</span><span>x</span><Shift k={k} /><span>)</span>
-                            </span>
-                        </Appear>
-                        <Appear when={step >= 2 + i}><span>→</span></Appear>
-                        <Appear when={step >= 2 + i} delay={0.3}><Fn2 f={cfg.result} /></Appear>
+            {examples.map((ex, i) => stage >= i && (
+                <RuleExample key={i} k={ex.k} fn={ex.fn} kind={kind}
+                    lead={i === 0 ? 'first' : i === 1 ? 'again' : 'plain'}
+                    onDone={() => setStage((st) => Math.max(st, i + 1))} />
+            ))}
+            {stage >= examples.length && (
+                <div className="w-full flex flex-col items-center gap-2">
+                    <Appear when={chip >= 1}><span className="text-sm font-bold uppercase tracking-wide text-[#9AA7B0]">так же и у остальных</span></Appear>
+                    <div className="flex items-center justify-center flex-wrap gap-3 text-2xl md:text-3xl font-black" style={LABEL_STYLE}>
+                        {RULE_OTHERS[kind].map(([from, to], i) => (
+                            <Appear key={from} when={chip >= 2 + i}>
+                                <span className="inline-flex items-center gap-2 rounded-xl border-2 border-[#3A464E] bg-[#161F23] px-3 py-1.5">
+                                    <Fn2 f={from} /><span className="text-[#F2F7FB]">→</span><Fn2 f={to} />
+                                </span>
+                            </Appear>
+                        ))}
                     </div>
-                ))}
-            </div>
-            <div className="w-full flex flex-col items-center gap-2">
-                <Appear when={step >= 5}><span className="text-sm font-bold uppercase tracking-wide text-[#9AA7B0]">так же и у остальных</span></Appear>
-                <div className="flex items-center justify-center flex-wrap gap-3 text-2xl md:text-3xl font-black" style={LABEL_STYLE}>
-                    {cfg.others.map(([from, to], i) => (
-                        <Appear key={from} when={step >= 6 + i}>
-                            <span className="inline-flex items-center gap-2 rounded-xl border-2 border-[#3A464E] bg-[#161F23] px-3 py-1.5">
-                                <Fn2 f={from} /><span className="text-[#F2F7FB]">→</span><Fn2 f={to} />
-                            </span>
-                        </Appear>
-                    ))}
                 </div>
-            </div>
+            )}
         </div>
     )
 }
