@@ -72,9 +72,11 @@ const TypedBig = ({ parts, onDone, readMs = 500, small = false }: { parts: BigPa
                 parts.map((p, i) => p.circle && p.color ? (
                     <span key={i} className="whitespace-nowrap">
                         {p.before}
-                        <span className="inline-flex items-center justify-center w-[1.5em] h-[1.5em] rounded-full border-2 mx-0.5 text-[0.8em]"
-                            style={{ color: p.color, borderColor: p.color, backgroundColor: hexToRgba(p.color, 0.22) }}>{p.text}</span>
-                        {p.suffix && <span style={{ color: p.suffixColor }}>{p.suffix}</span>}
+                        <span className="inline-flex items-center justify-center min-w-[1.5em] h-[1.5em] px-[0.35em] rounded-full border-2 mx-0.5 text-[0.8em]"
+                            style={{ color: p.color, borderColor: p.color, backgroundColor: hexToRgba(p.color, 0.22) }}>
+                            {p.text}
+                            {p.suffix && <span style={{ color: p.suffixColor }}>{p.suffix}</span>}
+                        </span>
                         {p.after}
                     </span>
                 ) : p.sticker && p.color ? (
