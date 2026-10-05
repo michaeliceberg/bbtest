@@ -58,15 +58,22 @@ const HOUSE_STICKER = '/lesson-pics/house-sticker.webp'
 const PI = Math.PI
 
 // ===== Крупный печатаемый текст (части: цвет / стикер) =====
-type BigPart = { text: string; color?: string; sticker?: boolean }
+type BigPart = { text: string; color?: string; sticker?: boolean; circle?: boolean; before?: string; after?: string }
 const TypedBig = ({ parts, onDone, readMs = 500, small = false }: { parts: BigPart[]; onDone?: () => void; readMs?: number; small?: boolean }) => {
     const [typed, setTyped] = useState(false)
     return (
         <div className={`w-full text-center font-black text-[#F2F7FB] ${small ? 'text-lg md:text-xl' : 'text-2xl md:text-3xl'}`}>
             {!typed ? (
-                <Typewriter text={parts.map((p) => p.text).join('')} onDone={() => { setTyped(true); setTimeout(() => onDone?.(), readMs) }} />
+                <Typewriter text={parts.map((p) => (p.before ?? '') + p.text + (p.after ?? '')).join('')} onDone={() => { setTyped(true); setTimeout(() => onDone?.(), readMs) }} />
             ) : (
-                parts.map((p, i) => p.sticker && p.color ? (
+                parts.map((p, i) => p.circle && p.color ? (
+                    <span key={i} className="whitespace-nowrap">
+                        {p.before}
+                        <span className="inline-flex items-center justify-center w-[1.5em] h-[1.5em] rounded-full border-2 mx-0.5 text-[0.8em]"
+                            style={{ color: p.color, borderColor: p.color, backgroundColor: hexToRgba(p.color, 0.22) }}>{p.text}</span>
+                        {p.after}
+                    </span>
+                ) : p.sticker && p.color ? (
                     <span key={i} className="inline-block rounded-lg px-2 mx-0.5 border-2"
                         style={{ color: p.color, borderColor: p.color, backgroundColor: hexToRgba(p.color, 0.18) }}>{p.text}</span>
                 ) : (
@@ -93,38 +100,45 @@ const Marked = ({ children, active, color }: { children: React.ReactNode; active
     </span>
 )
 
-// «cos x» / «−cos x» — два варианта ответа, которые нужно различить.
-const CosX = ({ neg = false }: { neg?: boolean }) => (
+// Ответ «cos x» / «−cos x» (или «sin x» / «−sin x»).
+const AnsX = ({ fn, neg = false }: { fn: Fn; neg?: boolean }) => (
     <span className="inline-flex items-center">
         {neg && <span className="mr-0.5">−</span>}
-        <span style={{ color: COS_COLOR }}>cos</span><span className="ml-1.5">x</span>
+        <span style={{ color: FN_COLOR[fn] }}>{fn}</span><span className="ml-1.5">x</span>
     </span>
 )
 
-const Formula = ({ markPi = false, markX = false, markSin = false, plain = false, eq = false, className = 'text-5xl md:text-6xl' }: { markPi?: boolean; markX?: boolean; markSin?: boolean; plain?: boolean; eq?: boolean; className?: string }) => (
+// Формула: variant 'sin' — sin(x + π/2); 'cos' — cos(3π/2 + x). after — что дописать после «=».
+const Formula = ({ variant = 'sin', markPi = false, markX = false, markSin = false, plain = false, eq = false, after, className = 'text-5xl md:text-6xl' }: {
+    variant?: 'sin' | 'cos'; markPi?: boolean; markX?: boolean; markSin?: boolean; plain?: boolean; eq?: boolean; after?: React.ReactNode; className?: string
+}) => (
     <motion.div
         initial={{ scale: 2.2, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 14 }}
         className={`w-full flex items-center justify-center font-black text-[#F2F7FB] py-3 ${className}`}
     >
-        <Marked active={markSin}><span style={{ color: plain ? '#F2F7FB' : SIN_COLOR }}>sin</span></Marked>
+        <Marked active={markSin}><span style={{ color: plain ? '#F2F7FB' : FN_COLOR[variant] }}>{variant}</span></Marked>
         <span>(</span>
-        <Marked active={markX}><span style={{ color: plain ? '#F2F7FB' : STEP_COLOR }}>x</span></Marked>
-        <Marked active={markPi} color={PI_COLOR}>
-            <span className="mr-1">+</span>
-            <span style={{ color: PI_COLOR }}><Frac num="π" den="2" /></span>
-        </Marked>
-        <span>)</span>
-        {eq && (
+        {variant === 'sin' ? (
             <>
-                <span className="mx-2">=</span>
-                <span className="inline-flex flex-col items-start leading-tight text-[0.72em]">
-                    <CosX />
-                    <span className="text-[0.62em] font-bold text-[#9AA7B0] my-0.5">или</span>
-                    <CosX neg />
-                </span>
+                <Marked active={markX}><span style={{ color: plain ? '#F2F7FB' : STEP_COLOR }}>x</span></Marked>
+                <Marked active={markPi} color={PI_COLOR}>
+                    <span className="mr-1">+</span>
+                    <span style={{ color: PI_COLOR }}><Frac num="π" den="2" /></span>
+                </Marked>
+            </>
+        ) : (
+            <>
+                <Marked active={markPi} color={PI_COLOR}>
+                    <span style={{ color: PI_COLOR }}><Frac num="3π" den="2" /></span>
+                </Marked>
+                <span className="mx-1">+</span>
+                <Marked active={markX}><span style={{ color: plain ? '#F2F7FB' : STEP_COLOR }}>x</span></Marked>
             </>
         )}
+        <span>)</span>
+        {eq && <span className="mx-2">=</span>}
+        {after}
     </motion.div>
 )
 
@@ -174,38 +188,43 @@ const TravelSegment = ({
 }
 
 type CircleProps = {
-    plusArc?: 'instant' | 'play' | null      // дуга от домика до π/2
-    stepArc?: 'play' | 'instant' | null      // маленький шаг π/2 → π/2 + STEP
+    base?: number                             // конец первой дуги: π/2 (sin) или 3π/2 (cos)
+    plusArc?: 'instant' | 'play' | null      // дуга от домика до base
+    stepArc?: 'play' | 'instant' | null      // маленький шаг base → base + STEP
     onPlusDone?: () => void
     onStepDone?: () => void
-    pointer?: boolean                         // стрелка на точку
-    sinBold?: boolean                         // ось sin крупно ещё раз
-    upperHalf?: boolean                       // 1 и 2 четверти маркером
+    pointer?: boolean                         // белая стрелка на точку
+    axisBold?: 'sin' | 'cos' | null           // положительная полуось крупно ещё раз
+    half?: 'upper' | 'right' | null           // две четверти маркером (верхняя / правая полуплоскость)
     stepLabel?: boolean                       // стикер «x» у маленького шага
     blink?: boolean                           // мигающая итоговая точка
 }
 const STEP = PI / 6 // 30°
-const TARGET = PI / 2 + STEP
 
-const RedCircle = ({ plusArc = null, stepArc = null, onPlusDone, onStepDone, pointer = false, sinBold = false, upperHalf = false, stepLabel = false, blink = false }: CircleProps) => {
-    const p = pt(TARGET)
-    const tail = pt(TARGET + 0.22, R + 62)
-    const head = pt(TARGET + 0.04, R + 14)
-    const lp = pt(PI / 2 + STEP / 2, R + 30)
+const RedCircle = ({ base = PI / 2, plusArc = null, stepArc = null, onPlusDone, onStepDone, pointer = false, axisBold = null, half = null, stepLabel = false, blink = false }: CircleProps) => {
+    const target = base + STEP
+    const p = pt(target)
+    const tail = pt(target + 0.22, R + 62)
+    const head = pt(target + 0.04, R + 14)
+    const lp = pt(base + STEP / 2, R + 30)
+    const halfColor = half === 'right' ? COS_COLOR : SIN_COLOR
     return (
         <svg viewBox="-30 0 360 300" className="w-full max-w-[360px] h-auto mx-auto block select-none overflow-visible">
-            {/* 1 и 2 четверти — крупный маркер по верхней полуокружности */}
-            {upperHalf && (
+            {/* две четверти — крупный маркер по полуокружности */}
+            {half && (
                 <>
-                    <motion.path d={arcSeg(0, PI)} fill="none" stroke={hexToRgba(SIN_COLOR, 0.4)} strokeWidth={26} strokeLinecap="round"
+                    <motion.path d={half === 'upper' ? arcSeg(0, PI) : arcSeg(-PI / 2, PI / 2)} fill="none" stroke={hexToRgba(halfColor, 0.4)} strokeWidth={26} strokeLinecap="round"
                         initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.1, ease: 'easeInOut' }} />
-                    {[{ a: PI / 4, n: '1' }, { a: (3 * PI) / 4, n: '2' }].map(({ a, n }, i) => {
+                    {(half === 'upper'
+                        ? [{ a: PI / 4, n: '1' }, { a: (3 * PI) / 4, n: '2' }]
+                        : [{ a: PI / 4, n: '1' }, { a: -PI / 4, n: '4' }]
+                    ).map(({ a, n }, i) => {
                         const q = pt(a, 50)
                         return (
                             <g key={n} transform={`translate(${q.x} ${q.y})`}>
                                 <motion.g initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 8, delay: 1 + i * 0.3 }}>
-                                    <circle r={17} fill={hexToRgba(SIN_COLOR, 0.25)} stroke={SIN_COLOR} strokeWidth={2.5} />
-                                    <text textAnchor="middle" dominantBaseline="central" fontSize={22} fill={SIN_COLOR} style={LABEL_STYLE}>{n}</text>
+                                    <circle r={17} fill={hexToRgba(halfColor, 0.25)} stroke={halfColor} strokeWidth={2.5} />
+                                    <text textAnchor="middle" dominantBaseline="central" fontSize={22} fill={halfColor} style={LABEL_STYLE}>{n}</text>
                                 </motion.g>
                             </g>
                         )
@@ -220,14 +239,16 @@ const RedCircle = ({ plusArc = null, stepArc = null, onPlusDone, onStepDone, poi
             <Arrowhead x={C} y={C - AX - 4} dx={0} dy={-1} color={SIN_COLOR} size={14} />
             <text x={C + AX + 12} y={C} textAnchor="start" dominantBaseline="central" fontSize={22} fill={COS_COLOR} style={LABEL_STYLE}>cos</text>
             <text x={C + 28} y={C - AX + 6} textAnchor="middle" dominantBaseline="central" fontSize={22} fill={SIN_COLOR} style={LABEL_STYLE}>sin</text>
-            {/* ось sin ещё раз — крупно, вверх */}
-            {sinBold && (
-                <motion.line x1={C} y1={C} x2={C} y2={C - AX + 4} stroke={SIN_COLOR} strokeWidth={12} strokeLinecap="round"
+            {/* положительная полуось ещё раз — крупно */}
+            {axisBold && (
+                <motion.line
+                    x1={C} y1={C} x2={axisBold === 'sin' ? C : C + AX - 4} y2={axisBold === 'sin' ? C - AX + 4 : C}
+                    stroke={axisBold === 'sin' ? SIN_COLOR : COS_COLOR} strokeWidth={12} strokeLinecap="round"
                     initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.9, ease: 'easeOut' }} />
             )}
             {/* дуги пути */}
-            {plusArc && <TravelSegment from={0} to={PI / 2} color={PLUS_COLOR} play={plusArc === 'play'} instant={plusArc === 'instant'} dot={stepArc === null} onDone={onPlusDone} />}
-            {stepArc && <TravelSegment from={PI / 2} to={TARGET} color={STEP_COLOR} play={stepArc === 'play'} instant={stepArc === 'instant'} dot width={8} onDone={onStepDone} />}
+            {plusArc && <TravelSegment from={0} to={base} color={PLUS_COLOR} play={plusArc === 'play'} instant={plusArc === 'instant'} dot={stepArc === null} onDone={onPlusDone} />}
+            {stepArc && <TravelSegment from={base} to={target} color={STEP_COLOR} play={stepArc === 'play'} instant={stepArc === 'instant'} dot width={8} onDone={onStepDone} />}
             {/* подпись «x» у маленького шага */}
             {stepLabel && (
                 <g transform={`translate(${lp.x} ${lp.y})`}>
@@ -244,7 +265,7 @@ const RedCircle = ({ plusArc = null, stepArc = null, onPlusDone, onStepDone, poi
                     <circle cx={p.x} cy={p.y} r={9} fill={STEP_COLOR} stroke="#F2F7FB" strokeWidth={2} className="animate-pulse" />
                 </>
             )}
-            {/* стрелка на точку */}
+            {/* белая стрелка на точку */}
             {pointer && (
                 <>
                     <circle cx={p.x} cy={p.y} r={14} fill={hexToRgba(STEP_COLOR, 0.35)} className="animate-ping" style={{ transformBox: 'fill-box', transformOrigin: 'center' }} />
@@ -543,7 +564,7 @@ const KeepTeaser = ({ onDone }: { onDone: () => void }) => {
                     initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
                     onClick={() => { lottieRef.current?.pause(); setStopped(true); onDone() }}
                     className={walkthroughButtonClass(true) + ' w-full'}
-                    style={walkthroughButtonStyle(true)}
+                    style={{ ...walkthroughButtonStyle(true), flex: 'none' }}
                 >
                     Усёк
                 </motion.button>
@@ -605,51 +626,86 @@ const RuleScene = ({ kind, onSettled }: SceneProps & { kind: RuleKind }) => {
 const RuleChangeScene = ({ onSettled }: SceneProps) => <RuleScene kind="change" onSettled={onSettled} />
 const RuleKeepScene = ({ onSettled }: SceneProps) => <RuleScene kind="keep" onSettled={onSettled} />
 
-// 1. Где мы окажемся: sin(x + π/2) = cos x или −cos x? Идём сначала в +π/2, потом маленький шаг x.
-//   phase: 1 текст, 2 маркер +π/2, 3 окружность (домик, оси), 4 дуга 0→π/2, 5 маркер снят,
-//   6 маркер на x, 7 «А x — маленький шаг в ПЛЮС», 8 дуга +30°, 9 подпись x и мигающая точка.
-const PlaceScene = ({ onSettled }: SceneProps) => {
+// Разбор «куда мы придём» для двух примеров: sin(x + π/2) → cos x и cos(3π/2 + x) → sin x.
+type VKey = 'sin' | 'cos'
+const VARIANTS: Record<VKey, {
+    fn: Fn; result: Fn; base: number; plusSticker: string
+    fnWord: string; dir: string; where: string; quarter: string
+    half: 'upper' | 'right'; axis: 'sin' | 'cos'
+}> = {
+    sin: { fn: 'sin', result: 'cos', base: PI / 2, plusSticker: '+π/2', fnWord: 'СИНУС', dir: 'ВВЕРХ', where: 'СВЕРХУ', quarter: '2', half: 'upper', axis: 'sin' },
+    cos: { fn: 'cos', result: 'sin', base: (3 * PI) / 2, plusSticker: '3π/2', fnWord: 'КОСИНУС', dir: 'ВПРАВО', where: 'СПРАВА', quarter: '4', half: 'right', axis: 'cos' },
+}
+
+// 1. Осталось понять: sin(x + π/2) = cos x или −cos x? Идём сначала в +π/2, потом маленький шаг x.
+//   phase: 0 «Осталось теперь понять», 1 формула, 2 первый ответ, 3 «или», 4 второй ответ, 5 «Нука-нука»,
+//   6 «Для этого СНАЧАЛА идём в…», 7 маркер на сдвиге, 8 окружность, 9 дуга 0→base, 10 маркер снят,
+//   11 маркер на x, 12 «А x — маленький шаг в ПЛЮС», 13 дуга +30°, 14 подпись x и мигающая точка.
+const PlaceScene = ({ v, onSettled }: SceneProps & { v: VKey }) => {
+    const cfg = VARIANTS[v]
     const [phase, setPhase] = useState(0)
     const endRef = useRef<HTMLDivElement>(null)
-    useEffect(() => {
-        const t = setTimeout(() => setPhase(1), 900)
-        return () => clearTimeout(t)
-    }, [])
+    const goto = (n: number) => setPhase((p) => (p < n ? n : p))
     useEffect(() => {
         endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-        const next: Record<number, [number, number]> = { 2: [3, 1100], 5: [6, 600], 6: [7, 1100] }
-        if (phase === 9) { const t = setTimeout(() => onSettled?.(), 1800); return () => clearTimeout(t) }
+        const next: Record<number, [number, number]> = { 1: [2, 900], 2: [3, 1100], 4: [5, 900], 7: [8, 1100], 10: [11, 600], 11: [12, 1100] }
+        if (phase === 14) { const t = setTimeout(() => onSettled?.(), 1800); return () => clearTimeout(t) }
         const step = next[phase]
         if (!step) return
-        const t = setTimeout(() => setPhase(step[0]), step[1])
+        const t = setTimeout(() => goto(step[0]), step[1])
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [phase])
-    const goto = (n: number) => setPhase((p) => (p < n ? n : p))
     return (
         <>
-            <Formula eq markPi={phase >= 2 && phase < 5} markX={phase >= 6} className="text-3xl sm:text-4xl md:text-5xl" />
+            <TypedBig parts={[{ text: 'Осталось теперь понять' }]} onDone={() => goto(1)} readMs={500} />
             {phase >= 1 && (
-                <TypedBig
-                    onDone={() => goto(2)} readMs={500}
-                    parts={[{ text: 'Для этого СНАЧАЛА идём в ' }, { text: '+π/2', color: PI_COLOR, sticker: true }]}
+                <Formula
+                    variant={v} eq
+                    markPi={phase >= 7 && phase < 10} markX={phase >= 11}
+                    className="text-3xl sm:text-4xl md:text-5xl"
+                    after={(
+                        <span className="ml-2 inline-flex flex-col items-center leading-tight text-[0.72em]">
+                            <Appear when={phase >= 2}><AnsX fn={cfg.result} /></Appear>
+                            <span className="text-[0.62em] font-bold text-[#9AA7B0] my-0.5 h-5 min-w-8 flex items-center justify-center">
+                                {phase >= 3 && <Typewriter text="или" onDone={() => goto(4)} />}
+                            </span>
+                            <Appear when={phase >= 4}><AnsX fn={cfg.result} neg /></Appear>
+                        </span>
+                    )}
                 />
             )}
-            {phase >= 3 && (
-                <DiagramBlock onSettled={() => setTimeout(() => goto(4), 500)}>
+            {phase === 5 && (
+                <motion.button
+                    type="button" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                    onClick={() => goto(6)}
+                    className={`${walkthroughButtonClass(true)} w-full`} style={{ ...walkthroughButtonStyle(true), flex: 'none' }}
+                >
+                    Нука-нука
+                </motion.button>
+            )}
+            {phase >= 6 && (
+                <TypedBig
+                    onDone={() => goto(7)} readMs={500}
+                    parts={[{ text: 'Для этого СНАЧАЛА идём в ' }, { text: cfg.plusSticker, color: PI_COLOR, sticker: true }]}
+                />
+            )}
+            {phase >= 8 && (
+                <DiagramBlock onSettled={() => setTimeout(() => goto(9), 500)}>
                     <RedCircle
-                        plusArc={phase >= 4 ? 'play' : null}
-                        stepArc={phase >= 8 ? 'play' : null}
-                        stepLabel={phase >= 9}
-                        blink={phase >= 9}
-                        onPlusDone={() => setTimeout(() => goto(5), 500)}
-                        onStepDone={() => setTimeout(() => goto(9), 700)}
+                        base={cfg.base}
+                        plusArc={phase >= 9 ? 'play' : null}
+                        stepArc={phase >= 13 ? 'play' : null}
+                        stepLabel={phase >= 14}
+                        blink={phase >= 14}
+                        onPlusDone={() => setTimeout(() => goto(10), 500)}
+                        onStepDone={() => setTimeout(() => goto(14), 700)}
                     />
                 </DiagramBlock>
             )}
-            {phase >= 7 && (
+            {phase >= 12 && (
                 <TypedBig
-                    onDone={() => goto(8)} readMs={500}
+                    onDone={() => goto(13)} readMs={500}
                     parts={[{ text: 'А ' }, { text: 'x', color: STEP_COLOR, sticker: true }, { text: ' — это маленький шаг в ' }, { text: 'ПЛЮС', color: PLUS_COLOR }]}
                 />
             )}
@@ -658,54 +714,76 @@ const PlaceScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-// 3. Исходная функция — синус: ось вверх, точка в верхней полуплоскости → плюс.
-//   phase: 1 «Наша функция — СИНУС» (+маркер sin), 2 диаграмма, 3 текст про ось,
-//   4 ось крупно, 5 текст про полуплоскость, 6 маркер 1–2 четвертей, 7 вывод.
-const SignScene = ({ onSettled }: SceneProps) => {
+// 2. Исходная функция → знак: ось, полуплоскость, итог.
+//   phase: 0 формула, 1 маркер на функции, 2 «Так как наша исходная функция — …», 3 окружность целиком,
+//   4 «А ось … направлена …» (+ось крупно), 5 «И мы оказались … (N четверть)», 6 маркер двух четвертей,
+//   7 «то получится ПОЛОЖИТЕЛЬНЫЙ …», 8 формула переписана с ответом.
+const SignScene = ({ v, onSettled }: SceneProps & { v: VKey }) => {
+    const cfg = VARIANTS[v]
     const [phase, setPhase] = useState(0)
+    const endRef = useRef<HTMLDivElement>(null)
+    const goto = (n: number) => setPhase((p) => (p < n ? n : p))
     useEffect(() => {
-        const t = setTimeout(() => setPhase(1), 800)
+        const t = setTimeout(() => goto(1), 800)
         return () => clearTimeout(t)
     }, [])
     useEffect(() => {
-        const next: Record<number, [number, number]> = { 4: [5, 1500], 6: [7, 2400] }
+        endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        const next: Record<number, [number, number]> = { 1: [2, 1000], 4: [5, 1800], 6: [7, 2600] }
+        if (phase === 8) { const t = setTimeout(() => onSettled?.(), 1800); return () => clearTimeout(t) }
         const step = next[phase]
         if (!step) return
-        const t = setTimeout(() => setPhase(step[0]), step[1])
+        const t = setTimeout(() => goto(step[0]), step[1])
         return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [phase])
+    const fnColor = FN_COLOR[cfg.fn]
     return (
         <>
-            <Formula markSin={phase >= 1} className="text-4xl md:text-5xl" />
-            {phase >= 1 && (
-                <TypedBig parts={[{ text: 'Наша исходная функция — ' }, { text: 'СИНУС', color: SIN_COLOR }]} onDone={() => setPhase((p) => (p < 2 ? 2 : p))} readMs={900} />
-            )}
+            <Formula variant={v} eq markSin={phase >= 1} className="text-3xl sm:text-4xl md:text-5xl" />
             {phase >= 2 && (
-                <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => (p < 3 ? 3 : p)), 500)}>
-                    <RedCircle plusArc="instant" stepArc="instant" stepLabel pointer sinBold={phase >= 4} upperHalf={phase >= 6} />
-                </DiagramBlock>
+                <TypedBig
+                    onDone={() => goto(3)} readMs={700}
+                    parts={[{ text: 'Так как наша исходная функция — ' }, { text: cfg.fnWord, color: fnColor }]}
+                />
             )}
             {phase >= 3 && (
+                <DiagramBlock onSettled={() => setTimeout(() => goto(4), 600)}>
+                    <RedCircle
+                        base={cfg.base} plusArc="instant" stepArc="instant" stepLabel blink
+                        axisBold={phase >= 4 ? cfg.axis : null} half={phase >= 6 ? cfg.half : null}
+                    />
+                </DiagramBlock>
+            )}
+            {phase >= 4 && (
                 <TypedBig
-                    parts={[{ text: 'Так как ось ' }, { text: 'sin', color: SIN_COLOR, sticker: true }, { text: ' направлена ' }, { text: 'ВВЕРХ', color: SIN_COLOR }]}
-                    onDone={() => setPhase((p) => (p < 4 ? 4 : p))} readMs={300}
+                    readMs={300}
+                    parts={[{ text: 'А ось ' }, { text: cfg.fn, color: fnColor, sticker: true }, { text: ' направлена ' }, { text: cfg.dir, color: fnColor }]}
                 />
             )}
             {phase >= 5 && (
                 <TypedBig
-                    parts={[{ text: 'и наша точка оказалась в верхней ' }, { text: 'ПОЛУПЛОСКОСТИ', color: SIN_COLOR }]}
-                    onDone={() => setPhase((p) => (p < 6 ? 6 : p))} readMs={300}
+                    onDone={() => goto(6)} readMs={300}
+                    parts={[{ text: 'И мы оказались ' }, { text: cfg.where, color: fnColor }, { text: cfg.quarter, color: fnColor, circle: true, before: ' (', after: ' четверть)' }]}
                 />
             )}
             {phase >= 7 && (
                 <TypedBig
-                    parts={[{ text: 'то получится ' }, { text: 'ПОЛОЖИТЕЛЬНЫЙ', color: PLUS_COLOR }, { text: ' косинус' }]}
-                    onDone={() => onSettled?.()} readMs={400}
+                    onDone={() => goto(8)} readMs={500}
+                    parts={[{ text: 'то получится ' }, { text: 'ПОЛОЖИТЕЛЬНЫЙ', color: PLUS_COLOR }, { text: ' ' }, { text: cfg.result, color: FN_COLOR[cfg.result] }]}
                 />
             )}
+            {phase >= 8 && (
+                <Formula variant={v} eq after={<span className="ml-2"><AnsX fn={cfg.result} /></span>} className="text-3xl sm:text-4xl md:text-5xl" />
+            )}
+            <div ref={endRef} />
         </>
     )
 }
+const PlaceSinScene = ({ onSettled }: SceneProps) => <PlaceScene v="sin" onSettled={onSettled} />
+const SignSinScene = ({ onSettled }: SceneProps) => <SignScene v="sin" onSettled={onSettled} />
+const PlaceCosScene = ({ onSettled }: SceneProps) => <PlaceScene v="cos" onSettled={onSettled} />
+const SignCosScene = ({ onSettled }: SceneProps) => <SignScene v="cos" onSettled={onSettled} />
 
 // ===== Упражнения «во что превратится» =====
 type Fn = 'sin' | 'cos' | 'tg' | 'ctg'
@@ -771,12 +849,12 @@ const hintFor = (t: Trial) =>
     Math.abs(t.k) % 2 === 1 ? 'Здесь π/2 «нечётное» — функция меняется.' : 'Здесь целое π — функция остаётся.'
 
 // Сцены-разборы: индексы в INTRO_SCENES; упражнения встают после правила.
-const INTRO_SCENES = [FormulaScene, RuleChangeScene, RuleKeepScene, PlaceScene, SignScene]
+const INTRO_SCENES = [FormulaScene, RuleChangeScene, RuleKeepScene, PlaceSinScene, SignSinScene, PlaceCosScene, SignCosScene]
 type SceneKey = { kind: 'intro'; idx: number } | { kind: 'trial'; idx: number }
 const SCENE_KEYS: SceneKey[] = [
     { kind: 'intro', idx: 0 }, { kind: 'intro', idx: 1 }, { kind: 'intro', idx: 2 },
     ...Array.from({ length: TRIAL_COUNT }, (_, i): SceneKey => ({ kind: 'trial', idx: i })),
-    { kind: 'intro', idx: 3 }, { kind: 'intro', idx: 4 },
+    { kind: 'intro', idx: 3 }, { kind: 'intro', idx: 4 }, { kind: 'intro', idx: 5 }, { kind: 'intro', idx: 6 },
 ]
 const keyName = (k: SceneKey) => (k.kind === 'intro' ? `step-${k.idx}` : `trial-${k.idx}`)
 
@@ -924,8 +1002,10 @@ export const TypeRedFormWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
         { dotKey: 's1', label: 'Правило: МЕНЯЕМ', jumpKey: 'step-1', isActive: latestSceneKey === 'step-1', color: MAP_INTRO_COLOR },
         { dotKey: 's2', label: 'Правило: НЕ МЕНЯЕМ', jumpKey: 'step-2', isActive: latestSceneKey === 'step-2', color: MAP_INTRO_COLOR },
         { dotKey: 'trials', label: `Упражнения (${TRIAL_COUNT})`, jumpKey: 'trial-0', isActive: current.kind === 'trial', color: MAP_PRACTICE_COLOR },
-        { dotKey: 's3', label: 'Где окажемся: +π/2 и шаг x', jumpKey: 'step-3', isActive: latestSceneKey === 'step-3', color: MAP_INTRO_COLOR },
-        { dotKey: 's4', label: 'Знак: полуплоскость', jumpKey: 'step-4', isActive: latestSceneKey === 'step-4', color: MAP_INTRO_COLOR },
+        { dotKey: 's3', label: 'sin(x + π/2): где окажемся', jumpKey: 'step-3', isActive: latestSceneKey === 'step-3', color: MAP_INTRO_COLOR },
+        { dotKey: 's4', label: 'sin(x + π/2): знак', jumpKey: 'step-4', isActive: latestSceneKey === 'step-4', color: MAP_INTRO_COLOR },
+        { dotKey: 's5', label: 'cos(3π/2 + x): где окажемся', jumpKey: 'step-5', isActive: latestSceneKey === 'step-5', color: MAP_INTRO_COLOR },
+        { dotKey: 's6', label: 'cos(3π/2 + x): знак', jumpKey: 'step-6', isActive: latestSceneKey === 'step-6', color: MAP_INTRO_COLOR },
     ]
 
     return (
