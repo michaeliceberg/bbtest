@@ -212,10 +212,11 @@ type CircleProps = {
     stepText?: string                         // подпись у шага: «x» или «−x»
     stepLabel?: boolean                       // стикер «x» у маленького шага
     blink?: boolean                           // мигающая итоговая точка
+    children?: React.ReactNode                // поверх рисунка (кликабельные четверти в тренировке)
 }
 const STEP = PI / 6 // 30°
 
-const RedCircle = ({ base = PI / 2, plusArc = null, stepArc = null, onPlusDone, onStepDone, pointer = false, axisMark = null, compact = false, half = null, signs = [true, true, false, false], dir = 1, stepText = 'x', stepLabel = false, blink = false }: CircleProps) => {
+const RedCircle = ({ base = PI / 2, plusArc = null, stepArc = null, onPlusDone, onStepDone, pointer = false, axisMark = null, compact = false, half = null, signs = [true, true, false, false], dir = 1, stepText = 'x', stepLabel = false, blink = false, children }: CircleProps) => {
     const target = base + dir * STEP
     const p = pt(target)
     const tail = pt(target + 0.22, R + 62)
@@ -303,6 +304,7 @@ const RedCircle = ({ base = PI / 2, plusArc = null, stepArc = null, onPlusDone, 
             {/* домик справа */}
             <image href={HOUSE_STICKER} x={C + R - 18} y={C - 16} width={36} height={31} />
             <circle cx={C} cy={C} r={4} fill="#F2F7FB" />
+            {children}
         </svg>
     )
 }
@@ -939,15 +941,183 @@ const TrialFormula = ({ t, result }: { t: Trial; result: Fn | null }) => (
 const hintFor = (t: Trial) =>
     Math.abs(t.k) % 2 === 1 ? 'Здесь π/2 «нечётное» — функция меняется.' : 'Здесь целое π — функция остаётся.'
 
+
+// ===== Интерактивные тренировки в конце: четверть → знак → ответ =====
+type TrainSpec = { fn: 'sin' | 'cos'; base: number; dir: 1 | -1; change: boolean; formula: React.ReactNode }
+const TRAIN_SPECS: TrainSpec[] = [
+    // sin(x − π/2): стоим в −π/2 (внизу), x — шаг в плюс → 4 четверть; sin там «−»; π/2 → меняем → −cos x
+    { fn: 'sin', base: -PI / 2, dir: 1, change: true, formula: (
+        <>
+            <span>x</span><span className="mx-1">−</span>
+            <span style={{ color: PI_COLOR }}><Frac num="π" den="2" /></span>
+        </>
+    ) },
+    // cos(−π − x): стоим в −π (слева), −x — шаг в минус (по часовой, вверх) → 2 четверть; cos там «−»; целое π → не меняем → −cos x
+    { fn: 'cos', base: -PI, dir: -1, change: false, formula: (
+        <>
+            <span style={{ color: PI_COLOR }}>−π</span><span className="mx-1">−</span><span>x</span>
+        </>
+    ) },
+]
+const TRAIN_COUNT = TRAIN_SPECS.length
+const quarterOf = (a: number) => (Math.floor((((a % (2 * PI)) + 2 * PI) % (2 * PI)) / (PI / 2)) + 1)
+const signPlus = (fn: 'sin' | 'cos', q: number) => (fn === 'sin' ? q <= 2 : q === 1 || q === 4)
+const quarterPath = (q: number) => {
+    const p0 = pt((q - 1) * (PI / 2))
+    const p1 = pt(q * (PI / 2))
+    return `M ${C} ${C} L ${p0.x} ${p0.y} A ${R} ${R} 0 0 0 ${p1.x} ${p1.y} Z`
+}
+const ANS_OPTIONS: { fn: Fn; neg: boolean }[] = [
+    { fn: 'sin', neg: false }, { fn: 'sin', neg: true }, { fn: 'cos', neg: false }, { fn: 'cos', neg: true },
+]
+
+const TrainScene = ({ index, onSettled, onMistake, onStep }: {
+    index: number; onSettled?: () => void; onMistake: () => void; onStep: (firstTry: boolean, last: boolean) => void
+}) => {
+    const spec = TRAIN_SPECS[index]
+    const target = spec.base + spec.dir * STEP
+    const q = quarterOf(target)
+    const plus = signPlus(spec.fn, q)
+    const result: Fn = spec.change ? SWAP[spec.fn] : spec.fn
+    const [step, setStep] = useState(0) // 0 четверть, 1 знак, 2 ответ, 3 готово
+    const [wrongQ, setWrongQ] = useState<number[]>([])
+    const [wrongSign, setWrongSign] = useState<boolean[]>([])
+    const [wrongAns, setWrongAns] = useState<string[]>([])
+    const [flash, setFlash] = useState<string | null>(null)
+    const endRef = useRef<HTMLDivElement>(null)
+    useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }) }, [step])
+
+    const fail = () => { playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false); onMistake(); setFlash(pickWrongTryPhrase()) }
+    const advance = (wrongCount: number) => {
+        setFlash(null)
+        const last = step === 2
+        onStep(wrongCount === 0, last)
+        if (last) { showAnswerMeme(true); setTimeout(() => onSettled?.(), 900) }
+        setStep((n) => n + 1)
+    }
+    const pickQuarter = (n: number) => {
+        if (step !== 0 || wrongQ.includes(n)) return
+        if (n === q) advance(wrongQ.length)
+        else { setWrongQ((w) => [...w, n]); fail() }
+    }
+    const pickSign = (isPlus: boolean) => {
+        if (step !== 1 || wrongSign.includes(isPlus)) return
+        if (isPlus === plus) advance(wrongSign.length)
+        else { setWrongSign((w) => [...w, isPlus]); fail() }
+    }
+    const ansKey = (a: { fn: Fn; neg: boolean }) => `${a.neg ? '-' : ''}${a.fn}`
+    const pickAns = (a: { fn: Fn; neg: boolean }) => {
+        if (step !== 2 || wrongAns.includes(ansKey(a))) return
+        if (a.fn === result && a.neg === !plus) advance(wrongAns.length)
+        else { setWrongAns((w) => [...w, ansKey(a)]); fail() }
+    }
+
+    const done = step >= 3
+    const fnWord = spec.fn
+    const question = step === 0 ? 'В какой четверти окажется угол? Нажми на неё'
+        : step === 1 ? `Какой знак у ${fnWord} в этой четверти?`
+        : 'Что получится?'
+    return (
+        <>
+            {index === 0 && (
+                <div className="w-full flex items-center gap-3" aria-hidden>
+                    <div className="flex-1 h-px bg-[#3A464E]" />
+                    <span className="text-xs font-bold uppercase tracking-wide text-[#5C6B73]">Теперь сам</span>
+                    <div className="flex-1 h-px bg-[#3A464E]" />
+                </div>
+            )}
+            <div className="relative w-full flex items-center justify-center min-h-9">
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 shrink-0 flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
+                    style={{ borderColor: hexToRgba(PI_COLOR, 0.55), backgroundColor: hexToRgba(PI_COLOR, 0.16), color: PI_COLOR }}>
+                    <span>{index + 1}</span><span className="opacity-50 font-normal">/</span><span>{TRAIN_COUNT}</span>
+                </div>
+                <p className="text-base md:text-lg text-[#F2F7FB] text-center px-16 min-h-[3rem] flex items-center">{question}</p>
+            </div>
+            <div className="w-full flex items-center justify-center font-black text-[#F2F7FB] text-3xl md:text-4xl py-1" style={LABEL_STYLE}>
+                <span style={{ color: FN_COLOR[spec.fn] }}>{spec.fn}</span>
+                <span>(</span>{spec.formula}<span>)</span>
+                <span className="mx-2">=</span>
+                {done
+                    ? <span className="text-[0.9em]"><AnsX fn={result} neg={!plus} /></span>
+                    : <span className="inline-flex items-center rounded-xl border-2 border-dashed border-[#5C6B73] px-3 text-[#9AA7B0] min-w-[3rem] justify-center">?</span>}
+            </div>
+            <RedCircle compact base={spec.base} dir={spec.dir}
+                plusArc={step >= 1 ? 'instant' : null} stepArc={step >= 1 ? 'instant' : null} blink={step >= 1}
+                axisMark={step >= 1 ? spec.fn : null}>
+                {[1, 2, 3, 4].map((n) => {
+                    const isRight = step >= 1 && n === q
+                    const isWrong = step === 0 && wrongQ.includes(n)
+                    const color = isRight ? PLUS_COLOR : isWrong ? MINUS_COLOR : PI_COLOR
+                    const mid = pt((n - 0.5) * (PI / 2), R * 0.58)
+                    const clickable = step === 0 && !isWrong
+                    return (
+                        <g key={n}>
+                            <path d={quarterPath(n)}
+                                fill={hexToRgba(color, isRight ? 0.3 : isWrong ? 0.3 : 0.22)}
+                                stroke={hexToRgba(color, isRight || isWrong ? 0.9 : 0.7)} strokeWidth={2.5}
+                                className={clickable ? 'animate-pulse' : ''}
+                                style={{ cursor: clickable ? 'pointer' : 'default', opacity: step >= 1 && !isRight ? 0 : 1 }}
+                                onClick={() => pickQuarter(n)} />
+                            <text x={mid.x} y={mid.y} textAnchor="middle" dominantBaseline="central" fontSize={24} fill="#F2F7FB" opacity={step >= 1 && !isRight ? 0 : 0.75} style={{ ...LABEL_STYLE, pointerEvents: 'none' }}>{n}</text>
+                        </g>
+                    )
+                })}
+            </RedCircle>
+            {step === 1 && (
+                <div className="grid grid-cols-2 gap-3 w-full max-w-sm mx-auto">
+                    {[true, false].map((isPlus) => {
+                        const w = wrongSign.includes(isPlus)
+                        return (
+                            <button key={String(isPlus)} type="button" disabled={w} onClick={() => pickSign(isPlus)}
+                                className={cn('min-h-[60px] rounded-xl border-2 text-3xl font-black transition-colors px-2', w ? 'border-[#DC605B] bg-[#DC605B22]' : 'border-[#3A464E] bg-[#161F23] hover:border-[#4A90D9]')}
+                                style={{ ...LABEL_STYLE, color: w ? '#DC605B' : isPlus ? PLUS_COLOR : MINUS_COLOR }}>
+                                {isPlus ? '+' : '−'}
+                            </button>
+                        )
+                    })}
+                </div>
+            )}
+            {step === 2 && (
+                <div className="grid grid-cols-2 gap-3 w-full max-w-sm mx-auto">
+                    {ANS_OPTIONS.map((a) => {
+                        const w = wrongAns.includes(ansKey(a))
+                        return (
+                            <button key={ansKey(a)} type="button" disabled={w} onClick={() => pickAns(a)}
+                                className={cn('min-h-[60px] rounded-xl border-2 text-2xl font-black transition-colors px-2', w ? 'border-[#DC605B] bg-[#DC605B22]' : 'border-[#3A464E] bg-[#161F23] hover:border-[#4A90D9]')}
+                                style={{ ...LABEL_STYLE, color: w ? '#DC605B' : '#F2F7FB' }}>
+                                <AnsX fn={a.fn} neg={a.neg} />
+                            </button>
+                        )
+                    })}
+                </div>
+            )}
+            {!done && flash && (
+                <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">
+                    <X className="w-5 h-5" /> {flash}
+                </div>
+            )}
+            {done && (
+                <FieryFeedbackBanner fiery={false}>
+                    {CORRECT_FEEDBACK_PHRASES[(index * 3 + 1) % CORRECT_FEEDBACK_PHRASES.length]}{' '}
+                    {spec.change ? `π/2 «нечётное» — меняем ${spec.fn} на ${result}` : 'Целое π — функция остаётся'}; в {q} четверти {spec.fn} {plus ? 'положительный' : 'отрицательный'}.
+                </FieryFeedbackBanner>
+            )}
+            {done && <LocalAnswerConfetti />}
+            <div ref={endRef} />
+        </>
+    )
+}
+
 // Сцены-разборы: индексы в INTRO_SCENES; упражнения встают после правила.
 const INTRO_SCENES = [FormulaScene, RuleChangeScene, RuleKeepScene, PlaceSinScene, SignSinScene, PlaceCosScene, SignCosScene]
-type SceneKey = { kind: 'intro'; idx: number } | { kind: 'trial'; idx: number }
+type SceneKey = { kind: 'intro'; idx: number } | { kind: 'trial'; idx: number } | { kind: 'train'; idx: number }
 const SCENE_KEYS: SceneKey[] = [
     { kind: 'intro', idx: 0 }, { kind: 'intro', idx: 1 }, { kind: 'intro', idx: 2 },
     ...Array.from({ length: TRIAL_COUNT }, (_, i): SceneKey => ({ kind: 'trial', idx: i })),
     { kind: 'intro', idx: 3 }, { kind: 'intro', idx: 4 }, { kind: 'intro', idx: 5 }, { kind: 'intro', idx: 6 },
+    ...TRAIN_SPECS.map((_, i): SceneKey => ({ kind: 'train', idx: i })),
 ]
-const keyName = (k: SceneKey) => (k.kind === 'intro' ? `step-${k.idx}` : `trial-${k.idx}`)
+const keyName = (k: SceneKey) => (k.kind === 'intro' ? `step-${k.idx}` : k.kind === 'train' ? `train-${k.idx}` : `trial-${k.idx}`)
 
 export const TypeRedFormWalk = ({ onAnswer, onComplete, isAdmin = false }: Props & { isAdmin?: boolean }) => {
     const [sceneIdx, setSceneIdx] = useState(0)
@@ -968,7 +1138,7 @@ export const TypeRedFormWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
     const { bump: bumpNonce, nonceFor } = useReplayNonces()
     const current = SCENE_KEYS[sceneIdx]
     const latestSceneKey = keyName(current)
-    const contentSettled = current.kind === 'intro' ? stepReady : checked
+    const contentSettled = current.kind !== 'trial' ? stepReady : checked
     const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, contentSettled)
     const isLast = sceneIdx + 1 >= SCENE_KEYS.length
 
@@ -1097,6 +1267,7 @@ export const TypeRedFormWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
         { dotKey: 's4', label: 'sin(x + π/2): знак', jumpKey: 'step-4', isActive: latestSceneKey === 'step-4', color: MAP_INTRO_COLOR },
         { dotKey: 's5', label: 'cos(3π/2 − x): где окажемся', jumpKey: 'step-5', isActive: latestSceneKey === 'step-5', color: MAP_INTRO_COLOR },
         { dotKey: 's6', label: 'cos(3π/2 − x): знак', jumpKey: 'step-6', isActive: latestSceneKey === 'step-6', color: MAP_INTRO_COLOR },
+        { dotKey: 'train', label: `Тренировки (${TRAIN_COUNT})`, jumpKey: 'train-0', isActive: current.kind === 'train', color: MAP_PRACTICE_COLOR },
     ]
 
     return (
@@ -1105,8 +1276,20 @@ export const TypeRedFormWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
             <div className="w-full flex flex-col gap-4">
                 {SCENE_KEYS.slice(startIdx, sceneIdx + 1).map((k) => {
                     if (k.kind === 'trial') return renderTrial(k.idx)
-                    const Scene = INTRO_SCENES[k.idx]
                     const key = keyName(k)
+                    if (k.kind === 'train') {
+                        return (
+                            <SceneWrapper key={key} innerRef={sceneRef(key)} active={isSceneActive(key)}>
+                                <Fragment key={`${key}-${nonceFor(key)}`}>
+                                    <TrainScene index={k.idx}
+                                        onSettled={() => key === latestSceneKey && setStepReady(true)}
+                                        onMistake={() => setHadMistake(true)}
+                                        onStep={(firstTry) => registerCombo(firstTry)} />
+                                </Fragment>
+                            </SceneWrapper>
+                        )
+                    }
+                    const Scene = INTRO_SCENES[k.idx]
                     return (
                         <SceneWrapper key={key} innerRef={sceneRef(key)} active={isSceneActive(key)}>
                             <Fragment key={`${key}-${nonceFor(key)}`}>
@@ -1116,12 +1299,12 @@ export const TypeRedFormWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
                     )
                 })}
             </div>
-            {(current.kind === 'intro' || checked) && (
+            {(current.kind !== 'trial' || checked) && (
                 <div className="w-full flex items-center gap-2">
                     <ReplayButton onClick={handleReplay} disabled={advancing} />
                     <BackButton onClick={handleBack} disabled={advancing || sceneIdx === 0} />
                     {(() => {
-                        const enabled = (current.kind === 'intro' ? stepReady : checked) && !advancing
+                        const enabled = (current.kind !== 'trial' ? stepReady : checked) && !advancing
                         return (
                             <button type="button" onClick={handleNext} disabled={!enabled} className={walkthroughButtonClass(enabled)} style={walkthroughButtonStyle(enabled)}>
                                 {current.kind === 'intro' && current.idx === 1 ? 'Понял-принял' : nextLabel}
