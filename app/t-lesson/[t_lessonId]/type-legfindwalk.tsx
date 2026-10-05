@@ -175,6 +175,20 @@ const FormulaScene = ({
 }: { stage: 0 | 1; onSettled: () => void }) => {
     const [lineDone, setLineDone] = useState(false)
     const [adjDone, setAdjDone] = useState(false)
+    // Подпись «гип · sin α» (и «гип · cos α») появляется bounce'ом только ПОСЛЕ
+    // того, как цветная сторона дорисована.
+    const [oppStickerShown, setOppStickerShown] = useState(false)
+    const [adjStickerShown, setAdjStickerShown] = useState(false)
+    useEffect(() => {
+        if (!lineDone) return
+        const t = setTimeout(() => setOppStickerShown(true), SIDE_DRAW_DURATION * 1000 + 200)
+        return () => clearTimeout(t)
+    }, [lineDone])
+    useEffect(() => {
+        if (stage < 1) return
+        const t = setTimeout(() => setAdjStickerShown(true), SIDE_DRAW_DURATION * 1000 + 200)
+        return () => clearTimeout(t)
+    }, [stage])
     useEffect(() => {
         if (!lineDone) return
         const t = setTimeout(onSettled, DIAGRAM_SETTLE_MS)
@@ -188,10 +202,9 @@ const FormulaScene = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [adjDone])
     const showAdj = stage >= 1
-    const stickers: Partial<Record<SideId, StickerPart[]>> = {
-        [INTRO_OPP]: [HYP_SHORT, DOT, SIN_STICKER],
-    }
-    if (showAdj) stickers[INTRO_ADJ] = [HYP_SHORT, DOT, COS_STICKER]
+    const stickers: Partial<Record<SideId, StickerPart[]>> = {}
+    if (oppStickerShown) stickers[INTRO_OPP] = [HYP_SHORT, DOT, SIN_STICKER]
+    if (adjStickerShown) stickers[INTRO_ADJ] = [HYP_SHORT, DOT, COS_STICKER]
     return (
         <div className="w-full flex flex-col gap-3">
             <DiagramBlock><RememberBanner /></DiagramBlock>
@@ -203,12 +216,15 @@ const FormulaScene = ({
             {lineDone && (
                 <DiagramFrame maxW={460}>
                     <RightTriangleDiagram
-                        compact rightAngleMarkShown alphaVertex={INTRO_ALPHA}
+                        compact rightAngleMarkShown instantBase alphaVertex={INTRO_ALPHA}
                         hypotenuseHighlighted
                         oppositeLegHighlighted
                         adjacentLegHighlighted={showAdj}
                         sideStickerLabels={stickers}
-                        reserveStickerLabels={{ [INTRO_ADJ]: [HYP_SHORT, DOT, COS_STICKER] }}
+                        reserveStickerLabels={{
+                            [INTRO_OPP]: [HYP_SHORT, DOT, SIN_STICKER],
+                            [INTRO_ADJ]: [HYP_SHORT, DOT, COS_STICKER],
+                        }}
                     />
                 </DiagramFrame>
             )}
@@ -313,7 +329,9 @@ type TrialConfig = {
 }
 
 const HYPS = [4, 5, 6, 7, 8, 9, 10, 12, 13, 15, 16, 20, 25]
-const ANGLES = [20, 25, 30, 35, 37, 40, 50, 53, 55, 60, 65, 70]
+// Угол на рисунке: при вершине P он «похож» на 30° (≈36°), при Q — на 60° (≈54°),
+// поэтому в заданиях берём только эти два значения.
+const angleFor = (v: AlphaVertex): number => (v === 'P' ? 30 : 60)
 const ROTATIONS = [0, 35, -35, 55, -55, 110, -110, 140, -140, 160, -160]
 const pick = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)]
 const shuffle = <T,>(arr: T[]): T[] => {
@@ -338,13 +356,14 @@ const makeTrials = (): TrialConfig[] => {
     let lastRot: number | null = null
     return kinds.map((kind) => {
         const hyp = pick(HYPS)
-        const angle = pick(ANGLES)
+        const alphaVertex: AlphaVertex = Math.random() < 0.5 ? 'P' : 'Q'
+        const angle = angleFor(alphaVertex)
         let rotationDeg = pick(ROTATIONS)
         for (let g = 0; g < 6 && rotationDeg === lastRot; g++) rotationDeg = pick(ROTATIONS)
         lastRot = rotationDeg
         return {
             kind, hyp, angle, rotationDeg,
-            alphaVertex: Math.random() < 0.5 ? 'P' : 'Q',
+            alphaVertex,
             mirror: Math.random() < 0.5,
             options: makeOptions(kind, hyp, angle),
         }
@@ -374,11 +393,12 @@ const makeHypTrials = (): HypTrialConfig[] => {
     let lastRot: number | null = null
     return kinds.map((kind) => {
         const leg = pick(LEGS)
-        const angle = pick(ANGLES)
+        const alphaVertex: AlphaVertex = Math.random() < 0.5 ? 'P' : 'Q'
+        const angle = angleFor(alphaVertex)
         let rotationDeg = pick(ROTATIONS)
         for (let g = 0; g < 6 && rotationDeg === lastRot; g++) rotationDeg = pick(ROTATIONS)
         lastRot = rotationDeg
-        return { kind, leg, angle, rotationDeg, alphaVertex: Math.random() < 0.5 ? 'P' : 'Q', mirror: Math.random() < 0.5, options: makeHypOptions(kind, leg, angle) }
+        return { kind, leg, angle, rotationDeg, alphaVertex, mirror: Math.random() < 0.5, options: makeHypOptions(kind, leg, angle) }
     })
 }
 
@@ -391,7 +411,7 @@ const pickTrialFeedback = (cfg: TrialConfig): string => {
 // сцене) «прилежащий = гип · cos α» → 2 простых проверки → тренировка.
 const TRIAL_COUNT = 6
 const HYP_TRIAL_COUNT = 4
-const CHECK_COUNT = 2
+const CHECK_COUNT = 4
 const SCENES: string[] = [
     'intro-0', 'intro-1',
     ...Array.from({ length: CHECK_COUNT }, (_, i) => `check-${i}`),
@@ -404,16 +424,19 @@ const sceneNum = (key: string) => Number(key.slice(key.indexOf('-') + 1))
 
 // Простая проверка: нарисован тот же треугольник, в подписи катета пропущен
 // множитель (sin/cos/tg) — выбрать нужный.
-type CheckConfig = { alphaVertex: AlphaVertex; rotationDeg: number; mirror: boolean; options: TrialOption[] }
+type CheckConfig = { kind: TrialKind; alphaVertex: AlphaVertex; rotationDeg: number; mirror: boolean; options: TrialOption[] }
 const makeChecks = (): CheckConfig[] => {
-    const opts = (): TrialOption[] => shuffle([
-        { text: 'sin α', correct: true },
-        { text: 'cos α', correct: false },
+    const opts = (kind: TrialKind): TrialOption[] => shuffle([
+        { text: 'sin α', correct: kind === 'opp' },
+        { text: 'cos α', correct: kind === 'adj' },
         { text: 'tg α', correct: false },
     ])
+    // Два проверочных на синус (противолежащий катет), затем два на косинус (прилежащий).
     return [
-        { alphaVertex: 'P', rotationDeg: 0, mirror: false, options: opts() },
-        { alphaVertex: pick<AlphaVertex>(['P', 'Q']), rotationDeg: pick([35, -35, 55, -55]), mirror: Math.random() < 0.5, options: opts() },
+        { kind: 'opp', alphaVertex: 'P', rotationDeg: 0, mirror: false, options: opts('opp') },
+        { kind: 'opp', alphaVertex: pick<AlphaVertex>(['P', 'Q']), rotationDeg: pick([35, -35, 55, -55]), mirror: Math.random() < 0.5, options: opts('opp') },
+        { kind: 'adj', alphaVertex: 'P', rotationDeg: 0, mirror: false, options: opts('adj') },
+        { kind: 'adj', alphaVertex: pick<AlphaVertex>(['P', 'Q']), rotationDeg: pick([35, -35, 55, -55]), mirror: Math.random() < 0.5, options: opts('adj') },
     ]
 }
 
@@ -552,7 +575,9 @@ export const TypeLegFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
         const key = `check-${i}`
         const isCurrent = key === latestSceneKey
         const isDone = !isCurrent || checked
-        const oppSide = oppositeLegOf(c.alphaVertex)
+        const targetSide: SideId = c.kind === 'opp' ? oppositeLegOf(c.alphaVertex) : adjacentLegOf(c.alphaVertex)
+        const kindColor = c.kind === 'opp' ? LEG_COLOR : ADJACENT_LEG_COLOR
+        const kindText = c.kind === 'opp' ? 'sin α' : 'cos α'
         return (
             <SceneWrapper key={key} innerRef={sceneRef(key)} active={isSceneActive(key)}>
                 <div key={`${key}-${replayNonceFor(key)}`} className="w-full flex flex-col gap-3">
@@ -574,11 +599,12 @@ export const TypeLegFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
                             mirror={c.mirror}
                             alphaVertex={c.alphaVertex}
                             hypotenuseHighlighted
-                            oppositeLegHighlighted
+                            oppositeLegHighlighted={c.kind === 'opp'}
+                            adjacentLegHighlighted={c.kind === 'adj'}
                             sideStickerInstant={['hyp']}
                             sideStickerLabels={{
                                 hyp: [HYP_STICKER],
-                                [oppSide]: [HYP_SHORT, DOT, { text: isDone ? 'sin α' : '?', color: isDone ? '#A1D151' : LEG_COLOR }],
+                                [targetSide]: [HYP_SHORT, DOT, { text: isDone ? kindText : '?', color: isDone ? '#A1D151' : kindColor }],
                             }}
                         />
                     </DiagramFrame>
