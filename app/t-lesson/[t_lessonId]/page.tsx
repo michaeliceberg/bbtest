@@ -10,7 +10,7 @@ import { Shuffle2, ShuffleTS } from "@/usefulFunctions"
 import { pickInsertBlank, corruptFormulaLetter, extractLetterCandidates } from "@/lib/formulaLetters"
 import { getFormulaIconKey } from "@/lib/formulaIcons"
 import { getTopicSticker } from "@/lib/topicStickers"
-import { STEP_BY_STEP_CHALLENGE_TYPES } from "@/lib/trainerStageFlags"
+import { STEP_BY_STEP_CHALLENGE_TYPES, isStepByStepLesson } from "@/lib/trainerStageFlags"
 import { getStageFlags, isBossExamStage } from "@/lib/trainerStageFlags"
 import { pickGuestNickname } from "@/lib/nickname"
 import TQuiz from "@/app/t-lesson/[t_lessonId]/TQUIZ"
@@ -394,8 +394,11 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         : null;
     // Босс / сундук / мегасундук / мифический — считает сервер по позиции урока
     // и названию, из URL не читаем (иначе параметр можно подменить вручную).
-    const { isBoss: isBossStage, isChest: isChestStage, isMegaChest: isMegaChestStage, isMythic: isMythicStage } =
-        getStageFlags(Math.max(currentLessonIdx, 0), siblingLessons.length, t_lesson.title);
+    const stageFlags = getStageFlags(Math.max(currentLessonIdx, 0), siblingLessons.length, t_lesson.title);
+    const { isChest: isChestStage, isMegaChest: isMegaChestStage, isMythic: isMythicStage } = stageFlags;
+    // Пошаговый разбор (step-by-step) — не бой с боссом, даже если он последний в юните:
+    // красная полоса «БОСС» там не нужна.
+    const isBossStage = stageFlags.isBoss && !isStepByStepLesson(t_lesson.t_challenges.map((c) => c.type));
 
     const lessonChallenges = stageParam
         ? t_lesson.t_challenges.filter(t_ch => t_ch.stage === stageParam)
