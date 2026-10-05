@@ -306,7 +306,7 @@ const RedCircle = ({ base = PI / 2, plusArc = null, stepArc = null, onPlusDone, 
 }
 
 // ===== Сцены =====
-type SceneProps = { onSettled?: () => void }
+type SceneProps = { onSettled?: () => void; leaving?: boolean } // leaving — нажата кнопка «дальше» (идёт пауза перехода)
 
 // 0. Что такое формула приведения: всё белое, кроме π/2. Сначала текст,
 // потом маркером обводим π/2.
@@ -786,10 +786,15 @@ const PlaceScene = ({ v, onSettled }: SceneProps & { v: VKey }) => {
 //   4 «Ось … направлена …», 5 маркер на стрелке оси с подписью, 6 «И мы оказались … (N четверть)»,
 //   7 маркер двух четвертей и подписи 1..4 со знаками, 8 «то получится ПОЛОЖИТЕЛЬНЫЙ/ОТРИЦАТЕЛЬНЫЙ …»,
 //   9 формула переписана с ответом.
-const SignScene = ({ v, onSettled }: SceneProps & { v: VKey }) => {
+const SignScene = ({ v, onSettled, leaving = false }: SceneProps & { v: VKey }) => {
     const cfg = VARIANTS[v]
     const [phase, setPhase] = useState(0)
     const endRef = useRef<HTMLDivElement>(null)
+    const fightRef = useRef<HTMLDivElement>(null)
+    // Хасбик дерётся до нажатия кнопки «дальше»; после нажатия — стоп-кадр и серый.
+    useEffect(() => {
+        if (leaving) fightRef.current?.querySelector('video')?.pause()
+    }, [leaving])
     const goto = (n: number) => setPhase((p) => (p < n ? n : p))
     useEffect(() => {
         const t = setTimeout(() => goto(1), 800)
@@ -845,14 +850,19 @@ const SignScene = ({ v, onSettled }: SceneProps & { v: VKey }) => {
             {phase >= 9 && (
                 <Formula variant={v} eq after={<span className="ml-2"><AnsX fn={cfg.result} neg={cfg.resultNeg} /></span>} className="text-2xl sm:text-3xl md:text-4xl" />
             )}
+            {v === 'cos' && phase >= 9 && (
+                <div ref={fightRef} className={`w-full flex justify-center transition-all duration-500 ${leaving ? 'opacity-35 grayscale' : ''}`}>
+                    <AlphaVideo src="/video/hasbik-fight.webm" autoPlay loop muted playsInline className="w-36 h-36 pointer-events-none" />
+                </div>
+            )}
             <div ref={endRef} />
         </>
     )
 }
 const PlaceSinScene = ({ onSettled }: SceneProps) => <PlaceScene v="sin" onSettled={onSettled} />
-const SignSinScene = ({ onSettled }: SceneProps) => <SignScene v="sin" onSettled={onSettled} />
+const SignSinScene = ({ onSettled, leaving }: SceneProps) => <SignScene v="sin" onSettled={onSettled} leaving={leaving} />
 const PlaceCosScene = ({ onSettled }: SceneProps) => <PlaceScene v="cos" onSettled={onSettled} />
-const SignCosScene = ({ onSettled }: SceneProps) => <SignScene v="cos" onSettled={onSettled} />
+const SignCosScene = ({ onSettled, leaving }: SceneProps) => <SignScene v="cos" onSettled={onSettled} leaving={leaving} />
 
 // ===== Упражнения «во что превратится» =====
 type Fn = 'sin' | 'cos' | 'tg' | 'ctg'
@@ -1088,7 +1098,7 @@ export const TypeRedFormWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
                     return (
                         <SceneWrapper key={key} innerRef={sceneRef(key)} active={isSceneActive(key)}>
                             <Fragment key={`${key}-${nonceFor(key)}`}>
-                                <Scene onSettled={() => key === latestSceneKey && setStepReady(true)} />
+                                <Scene onSettled={() => key === latestSceneKey && setStepReady(true)} leaving={advancing && key === latestSceneKey} />
                             </Fragment>
                         </SceneWrapper>
                     )
@@ -1102,7 +1112,7 @@ export const TypeRedFormWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
                         const enabled = (current.kind === 'intro' ? stepReady : checked) && !advancing
                         return (
                             <button type="button" onClick={handleNext} disabled={!enabled} className={walkthroughButtonClass(enabled)} style={walkthroughButtonStyle(enabled)}>
-                                {isLast ? 'Готово' : nextLabel}
+                                {nextLabel}
                             </button>
                         )
                     })()}
