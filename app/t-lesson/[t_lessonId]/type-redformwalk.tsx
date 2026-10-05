@@ -260,64 +260,74 @@ const FormulaScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-// 0б. Правило: прибавили/вычли π/2, 3π/2, 5π/2… — функция меняется.
-const RULE_PAIRS: { from: string; to: string; fromColor: string; toColor: string }[] = [
-    { from: 'sin', to: 'cos', fromColor: SIN_COLOR, toColor: COS_COLOR },
-    { from: 'cos', to: 'sin', fromColor: COS_COLOR, toColor: SIN_COLOR },
-    { from: 'tg', to: 'ctg', fromColor: TG_COLOR, toColor: CTG_COLOR },
-    { from: 'ctg', to: 'tg', fromColor: CTG_COLOR, toColor: TG_COLOR },
-]
+// 0б. Правило — две карточки вместо текста: сдвиги на π/2, 3π/2, 5π/2… МЕНЯЮТ
+// функцию (sin⇄cos, tg⇄ctg), сдвиги на π, 2π, 3π… — НЕ меняют.
+const Appear = ({ when, children, className }: { when: boolean; children: React.ReactNode; className?: string }) => (
+    <motion.span
+        className={cn('inline-flex', className)}
+        initial={false}
+        animate={when ? { scale: 1, opacity: 1 } : { scale: 0.4, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 14 }}
+    >
+        {children}
+    </motion.span>
+)
+const PiChip = ({ num, den }: { num: string; den?: string }) => (
+    <span className="inline-flex items-center rounded-lg border-2 px-2 py-1 text-xl md:text-2xl font-black"
+        style={{ color: PI_COLOR, borderColor: PI_COLOR, backgroundColor: hexToRgba(PI_COLOR, 0.14) }}>
+        {den ? <Frac num={num} den={den} /> : num}
+    </span>
+)
+const Fn2 = ({ f }: { f: Fn }) => <span style={{ color: FN_COLOR[f] }}>{f}</span>
+
+const RULE_STEP_MS = 520
 const RuleScene = ({ onSettled }: SceneProps) => {
-    const [phase, setPhase] = useState(0)
-    const [shown, setShown] = useState(0)
+    const [step, setStep] = useState(0)
+    const LAST = 17
     useEffect(() => {
-        if (phase < 1) return
-        if (shown >= RULE_PAIRS.length) {
-            const t = setTimeout(() => setPhase((p) => (p < 2 ? 2 : p)), 1100)
+        if (step >= LAST) {
+            const t = setTimeout(() => onSettled?.(), 1000)
             return () => clearTimeout(t)
         }
-        const t = setTimeout(() => setShown((n) => n + 1), shown === 0 ? 500 : 900)
+        const t = setTimeout(() => setStep((n) => n + 1), step === 0 ? 400 : RULE_STEP_MS)
         return () => clearTimeout(t)
-    }, [phase, shown])
-    return (
-        <>
-            <TypedBig
-                parts={[
-                    { text: 'Если прибавляем или вычитаем ' }, { text: 'π/2', color: PI_COLOR }, { text: ', ' },
-                    { text: '3π/2', color: PI_COLOR }, { text: ', ' }, { text: '5π/2', color: PI_COLOR },
-                    { text: ' или всё что угодно с ' }, { text: 'π/2', color: PI_COLOR },
-                    { text: ' — функция ' }, { text: 'МЕНЯЕТСЯ', color: STEP_COLOR },
-                ]}
-                onDone={() => setPhase(1)} readMs={400}
-            />
-            {phase >= 1 && (
-                <div className="w-full grid grid-cols-2 gap-3 max-w-md mx-auto">
-                    {RULE_PAIRS.map((r, i) => i < shown && (
-                        <motion.div
-                            key={r.from}
-                            initial={{ scale: 0.3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                            transition={{ type: 'spring', stiffness: 300, damping: 12 }}
-                            className="flex items-center justify-center gap-3 rounded-2xl border-2 border-[#3A464E] bg-[#161F23] py-4 text-3xl md:text-4xl font-black"
-                            style={LABEL_STYLE}
-                        >
-                            <span style={{ color: r.fromColor }}>{r.from}</span>
-                            <span className="text-[#F2F7FB]">→</span>
-                            <span style={{ color: r.toColor }}>{r.to}</span>
-                        </motion.div>
-                    ))}
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [step])
+    const card = (o: number, color: string, chips: { num: string; den?: string }[], badge: string, body: React.ReactNode[]) => (
+        <Appear when={step >= o} className="w-full">
+            <div className="w-full rounded-2xl border-2 p-4 flex flex-col gap-4" style={{ borderColor: color, backgroundColor: hexToRgba(color, 0.08) }}>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap text-2xl font-black text-[#F2F7FB]" style={LABEL_STYLE}>
+                        <span>±</span>
+                        {chips.map((c, i) => <Appear key={i} when={step >= o + 1 + i}><PiChip {...c} /></Appear>)}
+                        <Appear when={step >= o + 1 + chips.length}><span className="text-[#9AA7B0]">…</span></Appear>
+                    </div>
+                    <Appear when={step >= o + 3 + chips.length + body.length}>
+                        <span className="rounded-full border-2 px-3 py-1 text-sm md:text-base font-black" style={{ color, borderColor: color, backgroundColor: hexToRgba(color, 0.18) }}>{badge}</span>
+                    </Appear>
                 </div>
-            )}
-            {phase >= 2 && (
-                <TypedBig
-                    parts={[
-                        { text: 'А если прибавляем или вычитаем ' }, { text: 'π', color: PI_COLOR }, { text: ', ' },
-                        { text: '2π', color: PI_COLOR }, { text: ', ' }, { text: '3π', color: PI_COLOR },
-                        { text: ' — функция ' }, { text: 'НЕ МЕНЯЕТСЯ', color: PLUS_COLOR },
-                    ]}
-                    onDone={() => onSettled?.()} readMs={500}
-                />
-            )}
-        </>
+                <div className="flex flex-col gap-2 text-3xl md:text-4xl font-black text-[#F2F7FB]" style={LABEL_STYLE}>
+                    {body.map((row, i) => <Appear key={i} when={step >= o + 2 + chips.length + i} className="justify-center">{row}</Appear>)}
+                </div>
+            </div>
+        </Appear>
+    )
+    return (
+        <div className="w-full flex flex-col gap-3 max-w-md mx-auto">
+            {card(0, STEP_COLOR,
+                [{ num: 'π', den: '2' }, { num: '3π', den: '2' }, { num: '5π', den: '2' }],
+                'МЕНЯЕТСЯ',
+                [
+                    <span key="a" className="inline-flex items-center gap-3"><Fn2 f="sin" /><span>⇄</span><Fn2 f="cos" /></span>,
+                    <span key="b" className="inline-flex items-center gap-3"><Fn2 f="tg" /><span>⇄</span><Fn2 f="ctg" /></span>,
+                ])}
+            {card(9, PLUS_COLOR,
+                [{ num: 'π' }, { num: '2π' }, { num: '3π' }],
+                'НЕ МЕНЯЕТСЯ',
+                [
+                    <span key="c" className="inline-flex items-center gap-4"><Fn2 f="sin" /><Fn2 f="cos" /><Fn2 f="tg" /><Fn2 f="ctg" /></span>,
+                ])}
+        </div>
     )
 }
 
