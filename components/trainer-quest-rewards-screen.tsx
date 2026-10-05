@@ -24,7 +24,7 @@ import { declensionRu } from '@/usefulFunctions'
 import { CaseReel } from '@/components/CaseReel'
 import { getLessonCasePool, LESSON_CASE_TIER_ICON, type LessonCaseTier } from '@/lib/caseRewards'
 import { claimQuestCase, type DailyQuest, type DailyQuestKey, type DailyQuestsData } from '@/actions/generate-trainer-quest'
-import { openLessonCase } from '@/actions/open-case'
+import { openTestCase } from '@/actions/open-key-case'
 import { COZY, COZY_ACCENT } from '@/lib/cozyTheme'
 import { playSound, preloadSound, QUEST_SWOOSH_SOUND, QUEST_DONE_SOUND, QUEST_LAND_SOUND } from '@/lib/sound'
 
@@ -395,7 +395,7 @@ export const TrainerQuestRewardsScreen = ({ data, t_lessonId, primaryLabel, onPr
                 isMega={opening.tier !== 'common'}
                 tier={opening.tier}
                 pool={getLessonCasePool(opening.tier)}
-                spinAction={() => (demo ? openLessonCase(opening.tier) : claimQuestCase(t_lessonId, key))}
+                spinAction={() => (demo ? openTestCase(opening.tier) : claimQuestCase(t_lessonId, key))}
                 theme={theme}
                 onDone={() => {
                     const next = quests.map((q) => (q.key === key ? { ...q, claimed: true } : q))

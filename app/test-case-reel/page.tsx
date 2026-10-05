@@ -3,11 +3,11 @@
 // Тестовая страница кейса-барабана (components/CaseReel.tsx) — ручная
 // проверка визуала/анимации всех видов кейсов без прохождения урока
 // тренажёра. Кейсы открываются НАСТОЯЩИМ серверным вызовом
-// (actions/open-case.ts) — награда реально начисляется текущему юзеру.
+// (actions/open-key-case.ts, openTestCase — только админ) — награда реально начисляется текущему юзеру.
 
 import { useState } from 'react'
 import { CaseReel } from '@/components/CaseReel'
-import { openLessonCase } from '@/actions/open-case'
+import { openTestCase } from '@/actions/open-key-case'
 import {
     getLessonCasePool,
     rewardLabel,
@@ -54,13 +54,13 @@ export default function TestCaseReelPage() {
                             isMega={variant.tier !== 'common'}
                             tier={variant.tier}
                             pool={getLessonCasePool(variant.tier)}
-                            spinAction={() => openLessonCase(variant.tier)}
+                            spinAction={() => openTestCase(variant.tier)}
                             title={variant.chain ? `🔥 Серия x${variant.chain}` : undefined}
                             onDone={(r) => setDone(r)}
                             theme={cozy ? 'cozy' : 'metal'}
                         />
                     ) : (
-                        <CaseReel key={key} isMega={variant.isMega} onDone={(r) => setDone(r)} theme={cozy ? 'cozy' : 'metal'} />
+                        <CaseReel key={key} isMega={variant.isMega} tier={variant.isMega ? 'rare' : 'common'} pool={getLessonCasePool(variant.isMega ? 'rare' : 'common')} spinAction={() => openTestCase(variant.isMega ? 'rare' : 'common')} onDone={(r) => setDone(r)} theme={cozy ? 'cozy' : 'metal'} />
                     )}
                 </div>
             </div>

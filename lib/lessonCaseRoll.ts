@@ -1,4 +1,5 @@
-// actions/roll-lesson-case.ts
+// lib/lessonCaseRoll.ts (раньше actions/roll-lesson-case.ts — теперь не server action:
+// кейс/ключ выдаётся только из actions/plan-lesson-case.ts)
 //
 // По прямой просьбе пользователя — сундуки должны выпадать ГОРАЗДО чаще,
 // чем раньше (раньше — ровно 1 обычный + 1 мега на ВСЮ тему, независимо
@@ -31,11 +32,10 @@
 // не может уменьшиться) — это не баг, а естественное следствие модели,
 // отдельный сброс по превышению не нужен: рубеж просто тихо не сработает.
 
-'use server';
+import 'server-only';
 
 import db from '@/db/drizzle';
 import { userProgress } from '@/db/schema';
-import { auth } from '@/lib/auth';
 import { eq } from 'drizzle-orm';
 import type { LessonCaseTier } from '@/lib/caseRewards';
 
@@ -87,12 +87,7 @@ export type LessonCaseRollResult = {
 	chainAlive: boolean;
 };
 
-const NO_SESSION_RESULT: LessonCaseRollResult = { tier: null, chainBonus: null, chainCount: 0, chainAlive: false };
-
-export async function rollLessonCaseTier(mistakes: number): Promise<LessonCaseRollResult> {
-	const session = await auth();
-	if (!session?.user?.id) return NO_SESSION_RESULT;
-	const userId = session.user.id;
+export async function rollLessonCaseTier(userId: string, mistakes: number): Promise<LessonCaseRollResult> {
 	const safeMistakes = Number.isFinite(mistakes) ? Math.max(0, Math.floor(mistakes)) : 0;
 
 	const current = await db.query.userProgress.findFirst({ where: eq(userProgress.userId, userId) });

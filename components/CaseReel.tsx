@@ -17,7 +17,7 @@ import { motion } from 'framer-motion'
 import Confetti from 'react-confetti'
 import { useWindowSize } from 'react-use'
 import { Gift, Sparkles } from 'lucide-react'
-import { openCase, type OpenCaseResult } from '@/actions/open-case'
+import type { OpenCaseResult } from '@/actions/open-case'
 import { useRive, Layout, Fit, Alignment } from '@rive-app/react-webgl2'
 import { playSound, preloadSound, CASE_PRIZE_SOUND, CHEST_DROP_SOUND, GEM_DROP_SOUND, COIN_DROP_SOUND } from '@/lib/sound'
 import {
@@ -307,7 +307,7 @@ type Props = {
     // отдельный, более узкий пул (только пицца/гемы, см. lib/caseRewards.ts).
     // Без этих пропов поведение полностью совпадает с прежним.
     pool?: CaseReward[]
-    spinAction?: () => Promise<OpenCaseResult>
+    spinAction: () => Promise<OpenCaseResult>
     title?: string
     // Редкость самого КЕЙСА (не награды внутри него) — common/rare/mythic,
     // см. lib/caseRewards.ts. Только у "кейса за урок" (actions/roll-lesson-
@@ -393,7 +393,7 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
         // визуально замедляется.
         playSound(ROULETTE_SOUND)
 
-        const result = await (spinAction ? spinAction() : openCase(isMega)).catch(() => null)
+        const result = await spinAction().catch(() => null)
         if (!result || !result.success) {
             setError('Не удалось открыть кейс. Попробуй ещё раз.')
             setPhase('idle')
@@ -544,6 +544,12 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
             </div>
 
             {error && <p className="relative z-10 text-sm text-red-400">{error}</p>}
+
+            {phase === 'idle' && tier && (
+                // Ключ от кейса (рисунки — public/keys/<редкость>.svg).
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={`/keys/${tier}.svg`} alt="Ключ" className="relative z-10 h-16 w-auto -mb-2 drop-shadow-lg" draggable={false} />
+            )}
 
             {phase === 'idle' &&
                 (cozy ? (

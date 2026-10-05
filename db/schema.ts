@@ -176,6 +176,19 @@ export const referralRewards = pgTable('referral_rewards', {
 	seenAt: timestamp('seen_at'),
 });
 
+// Одноразовые ключи от кейсов: сервер выдаёт ключ за реальное событие
+// (завершён урок, угадан горячий вопрос и т.п.), открыть кейс без ключа
+// нельзя (actions/open-key-case.ts). tier = редкость ключа/кейса.
+export const caseKeys = pgTable('case_keys', {
+	id: serial('id').primaryKey(),
+	userId: text('user_id').notNull(),
+	tier: text('tier').notNull(),
+	source: text('source').notNull(),
+	sourceRef: text('source_ref'),
+	createdAt: timestamp('created_at').notNull().defaultNow(),
+	usedAt: timestamp('used_at'),
+});
+
 export const dodoPromoCodes = pgTable('dodo_promo_codes', {
 	id: serial('id').primaryKey(),
 	code: text('code').notNull().unique(),

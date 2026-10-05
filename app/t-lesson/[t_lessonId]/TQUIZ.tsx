@@ -38,8 +38,8 @@ import { reportLessonQuestSignals } from "@/actions/generate-trainer-quest"
 import { ChestReward } from "@/components/ChestReward"
 import { CaseReel } from "@/components/CaseReel"
 import { rewardLabel, getLessonCasePool, type CaseReward, type LessonCaseTier } from "@/lib/caseRewards"
-import { rollLessonCaseTier } from "@/actions/roll-lesson-case"
-import { openLessonCase } from "@/actions/open-case"
+import { planLessonCase, grantHotQuestionKey } from "@/actions/plan-lesson-case"
+import { openKeyCase } from "@/actions/open-key-case"
 import { TrainerQuestRewardsScreen, QuestRewardsData } from "@/components/trainer-quest-rewards-screen"
 import { useAchievementStore } from "@/store/use-achievement-store"
 import { useStreakCelebrationStore } from "@/store/use-streak-celebration-store"
@@ -280,8 +280,6 @@ export default function TQuiz({
   // историю) на этапах isChestStage/isMegaChestStage. Награда решается
   // сервером ВНУТРИ CaseReel (actions/open-case.ts), сюда прилетает уже
   // готовый результат — только чтобы показать баннер на финальном экране.
-  const [showCaseReel, setShowCaseReel] = useState(false)
-  const [wonCaseReward, setWonCaseReward] = useState<CaseReward | null>(null)
   // Промежуточный экран "ближайших наград" (components/trainer-quest-
   // rewards-screen.tsx) — показывается ПЕРЕД showChestReward на идеальном
   // результате, см. goToNextQuestion.
@@ -305,6 +303,7 @@ export default function TQuiz({
   // proceedToStageCaseOrFinish ниже.
   const [showLessonCaseReel, setShowLessonCaseReel] = useState(false)
   const [lessonCaseTier, setLessonCaseTier] = useState<LessonCaseTier | null>(null)
+  const [lessonCaseKey, setLessonCaseKey] = useState<number | null>(null)
   const [wonLessonCaseReward, setWonLessonCaseReward] = useState<CaseReward | null>(null)
   // "Ударный час" (actions/roll-lesson-case.ts) — заполняется, ТОЛЬКО
   // если этот кейс — гарантированная награда за рубеж цепочки (3/4/5
@@ -330,37 +329,34 @@ export default function TQuiz({
   // Решение «какой кейс и выпал ли» принимается СРАЗУ в конце урока
   // (planFinishCase) — чтобы итоги уже знали подсказку «ударного часа»,
   // а сам барабан открывается уже после итогов (openPlannedCase).
-  type PlannedCase = { kind: 'positional' } | { kind: 'lesson'; tier: LessonCaseTier; chainBonus: number | null } | null
+  // Кейс открывается по одноразовому ключу, который выдал сервер (planLessonCase).
+  type PlannedCase = { keyId: number; tier: LessonCaseTier } | null
   const plannedCaseRef = useRef<PlannedCase>(null)
+  const hotKeyRef = useRef<{ keyId: number; tier: LessonCaseTier } | null>(null)
+  const [hotKey, setHotKey] = useState<{ keyId: number; tier: LessonCaseTier } | null>(null)
   // Основной проход урока без единой ошибки (для квеста «2 урока без ошибок»).
   const mainPassPerfectRef = useRef(false)
   const planFinishCase = useCallback(async (): Promise<PlannedCase> => {
-    if (isChestStage || isMegaChestStage) return { kind: 'positional' }
-    // Босс-экзамен: за каждые 3 победы — редкий сундук.
-    if (isBossExam && bossWinsRef.current > 0 && bossWinsRef.current % 3 === 0) return { kind: 'lesson', tier: 'rare', chainBonus: null }
-    if (isMythicStage) return { kind: 'lesson', tier: 'mythic', chainBonus: null }
     // Ошибки основного прохода — scoreRef против полного исходного набора
-    // БЕЗ горячего вопроса (scorableCount, см. верх файла).
+    // БЕЗ горячего вопроса (scorableCount, см. верх файла). Тип этапа
+    // (сундук/мегасундук/мифический/экзамен) сервер считает сам.
     const mistakes = Math.max(0, scorableCount(questions1) - scoreRef.current)
-    const result = await rollLessonCaseTier(mistakes)
+    const result = await planLessonCase(t_lessonId, mistakes)
     setChainHint({ count: result.chainCount, alive: result.chainAlive })
-    if (result.tier) {
-      setChainBonusLength(result.chainBonus?.length ?? null)
-      return { kind: 'lesson', tier: result.tier, chainBonus: result.chainBonus?.length ?? null }
+    if (result.key) {
+      setChainBonusLength(result.chainBonus)
+      return { keyId: result.key.keyId, tier: result.key.tier }
     }
     return null
-  }, [isChestStage, isMegaChestStage, isMythicStage, isBossExam, questions1])
+  }, [t_lessonId, questions1])
 
   // После итогов (и мегакейса горячего вопроса) — запланированный кейс,
   // затем «Квесты дня».
   const openPlannedCase = useCallback(() => {
     const planned = plannedCaseRef.current
     plannedCaseRef.current = null
-    if (planned?.kind === 'positional') {
-      setShowCaseReel(true)
-      return
-    }
-    if (planned?.kind === 'lesson') {
+    if (planned) {
+      setLessonCaseKey(planned.keyId)
       setLessonCaseTier(planned.tier)
       setShowLessonCaseReel(true)
       return
@@ -404,12 +400,14 @@ export default function TQuiz({
       return
     }
     const isPerfect = mainPassPerfectRef.current
-    const [quests, planned] = await Promise.all([
+    const [quests, planned, hot] = await Promise.all([
       reportLessonQuestSignals(t_lessonId, maxStreakRef.current, isPerfect).catch(() => null),
       planFinishCase().catch(() => null),
+      hotQuestionWonRef.current ? grantHotQuestionKey(t_lessonId).catch(() => null) : Promise.resolve(null),
     ])
     setQuestRewardsData(quests)
     plannedCaseRef.current = planned
+    hotKeyRef.current = hot
     setQuizCompleted(true)
   }, [questions1, t_lessonId, planFinishCase, isGuest, needsLessonRating])
 
@@ -431,8 +429,12 @@ export default function TQuiz({
     }
     if (hotQuestionWonRef.current) {
       hotQuestionWonRef.current = false
-      setShowHotCaseReel(true)
-      return
+      if (hotKeyRef.current) {
+        setHotKey(hotKeyRef.current)
+        hotKeyRef.current = null
+        setShowHotCaseReel(true)
+        return
+      }
     }
     openPlannedCase()
   }, [openPlannedCase, showLevelUp])
@@ -1050,11 +1052,14 @@ export default function TQuiz({
     )
   }
 
-  if (showHotCaseReel) {
+  if (showHotCaseReel && hotKey) {
     return (
       <CaseReel
         theme={uiTheme}
         isMega={true}
+        tier={hotKey.tier}
+        pool={getLessonCasePool(hotKey.tier)}
+        spinAction={() => openKeyCase(hotKey.keyId)}
         onDone={({ reward }) => {
           setWonHotCaseReward(reward)
           setShowHotCaseReel(false)
@@ -1064,27 +1069,13 @@ export default function TQuiz({
     )
   }
 
-  if (showCaseReel) {
-    return (
-      <CaseReel
-        theme={uiTheme}
-        isMega={!!isMegaChestStage}
-        onDone={({ reward }) => {
-          setWonCaseReward(reward)
-          setShowCaseReel(false)
-          setShowQuestRewardsScreen(true)
-        }}
-      />
-    )
-  }
-
-  if (showLessonCaseReel && lessonCaseTier) {
+  if (showLessonCaseReel && lessonCaseTier && lessonCaseKey !== null) {
     return (
       <CaseReel
         theme={uiTheme}
         isMega={lessonCaseTier !== 'common'}
         pool={getLessonCasePool(lessonCaseTier)}
-        spinAction={() => openLessonCase(lessonCaseTier)}
+        spinAction={() => openKeyCase(lessonCaseKey)}
         // Причину выдачи кейса («Серия xN») над сундуком не пишем — договорённость с пользователем.
         tier={lessonCaseTier}
         onDone={({ reward }) => {
@@ -1123,9 +1114,6 @@ export default function TQuiz({
         <div className="w-full max-w-xl mx-auto">
           {wonHotCaseReward && (
             <CaseWonBanner mega reward={wonHotCaseReward} label="Горячий вопрос" />
-          )}
-          {wonCaseReward && (isMegaChestStage || isChestStage) && (
-            <CaseWonBanner mega={!!isMegaChestStage} reward={wonCaseReward} />
           )}
           {/* Баннер "Кейс за урок: +N монет" здесь убран по прямой просьбе
               пользователя — дублирует то, что уже показал сам барабан
