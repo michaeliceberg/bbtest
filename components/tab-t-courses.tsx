@@ -47,6 +47,7 @@ type Props = {
             t_unitId: number;
             // Точечная доп. блокировка одного этапа (см. db/schema.ts).
             extraUnlockAfterTUnitId: number | null;
+            badge?: string | null;
             t_challenges: {
                 imageSrc: string;
                 numRans: string;
@@ -305,6 +306,7 @@ export const TabTCourses = ({
                                 id: t_lesson.id,
                                 percentage: Math.round(GetTLessonStat(t_lessonProgress, t_lesson.id).totalPercentDR * 100),
                                 title: t_lesson.title,
+                                badge: t_lesson.badge ?? null,
                                 extraLocked,
                                 extraLockedPrereqTitle,
                                 isStepByStep: isStepByStepLesson(t_lesson.t_challenges.map((c) => c.type)),

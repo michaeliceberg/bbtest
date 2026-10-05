@@ -461,6 +461,9 @@ export const t_lessons = pgTable('t_lessons', {
 	// предка — только "весь предок целиком", он и не нужен для текущего
 	// кейса).
 	extraUnlockAfterTUnitId: integer('extra_unlock_after_t_unit_id'),
+	// Короткая подпись под плиткой этапа на карте (/trainer): 1–2 строки
+	// (\n — перенос), например «π = 180°». Nullable — подписи только у части этапов.
+	badge: text('badge'),
 });
 
 // "Горячий вопрос" — редкий (см. вероятность в page.tsx) факультативный

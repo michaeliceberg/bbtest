@@ -112,6 +112,8 @@ export type SkillStage = {
     // вместо обычной цикличной, по прямой просьбе пользователя, чтобы
     // такие уроки сильно выделялись на карте скиллов.
     isStepByStep?: boolean;
+    // Подпись под плиткой (t_lessons.badge), 1–2 строки через \n.
+    badge?: string | null;
     isBossExam?: boolean;
     bossWins?: number;
 };
@@ -565,7 +567,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
 
                                     return (
                                         <div key={rowIdx}>
-                                            <div className="grid items-center" style={{ gridTemplateColumns: gridTemplate }}>
+                                            <div className={`grid items-center ${row.some((r) => r.badge) ? 'pb-7' : ''}`} style={{ gridTemplateColumns: gridTemplate }}>
                                                 {row.map((s, j) => {
                                                     const trueIdx = rowStartIdx + j;
                                                     const prevStage = trueIdx > 0 ? topic.stages[trueIdx - 1] : null;
@@ -750,6 +752,14 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                                                 style={{ gridColumn: col, gridRow: 1 }}
                                                                 className="flex justify-center relative"
                                                             >
+                                                                {s.badge && (
+                                                                    <span
+                                                                        className="absolute top-full mt-1 left-1/2 -translate-x-1/2 whitespace-pre-line text-center text-[11px] font-extrabold leading-[1.15] pointer-events-none"
+                                                                        style={{ color: unlockedReal ? accent.button : LOCKED_ICON_COLOR, minWidth: 56 }}
+                                                                    >
+                                                                        {s.badge}
+                                                                    </span>
+                                                                )}
                                                                 {isBossExam && (s.bossWins ?? 0) > 0 && (
                                                                     <span className={`absolute top-1/2 -translate-y-1/2 flex flex-col leading-tight whitespace-nowrap ${isReversed ? 'right-full mr-1.5 items-end' : 'left-full ml-1.5'}`}>
                                                                         <span className="text-sm font-black text-[#F09B38]">×{s.bossWins}</span>
