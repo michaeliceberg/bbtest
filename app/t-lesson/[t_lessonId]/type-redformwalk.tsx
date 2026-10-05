@@ -17,6 +17,8 @@
 'use client'
 
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import dynamic from 'next/dynamic'
+import type { LottieRefCurrentProps } from 'lottie-react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { animate, motion, useMotionValue, useTransform } from 'framer-motion'
@@ -32,6 +34,8 @@ import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
+
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 
 const SCENE_TRANSITION_PAUSE_MS = 1000
 
@@ -403,7 +407,7 @@ const LoopArrow = ({ containerRef, fromRef, toRef, color, label, onDone }: {
 }
 
 type RuleKind = 'change' | 'keep'
-const RuleExample = ({ k, fn, kind, lead, ack, onDone }: { k: number; fn: Fn; kind: RuleKind; lead: 'first' | 'again' | 'plain'; ack: boolean; onDone: () => void }) => {
+const RuleExample = ({ k, fn, kind, lead, ack, onDone }: { k: number; fn: Fn; kind: RuleKind; lead: 'first' | 'simple' | 'again' | 'plain'; ack: boolean; onDone: () => void }) => {
     const half = kind === 'change'
     const result: Fn = half ? SWAP[fn] : fn
     const accent = TEAL_COLOR
@@ -445,11 +449,11 @@ const RuleExample = ({ k, fn, kind, lead, ack, onDone }: { k: number; fn: Fn; ki
             </div>
             {phase >= 1 && (
                 <TypedBig small onDone={() => setPhase(2)} readMs={300}
-                    parts={[{ text: lead === 'again' ? 'видим опять ' : lead === 'plain' ? 'видим ' : 'если видим ' }, { text: word, color: PI_COLOR, sticker: true }]} />
+                    parts={[{ text: lead === 'again' ? 'видим опять ' : lead === 'plain' ? 'видим ' : lead === 'simple' ? 'видим просто ' : 'если видим ' }, { text: word, color: PI_COLOR, sticker: true }]} />
             )}
             {phase >= 3 && (
                 <TypedBig small onDone={() => setPhase(4)} readMs={300}
-                    parts={[{ text: lead === 'first' ? 'то ' : lead === 'again' ? 'тоже ' : 'опять ' }, { text: half ? 'МЕНЯЕМ' : 'НЕ МЕНЯЕМ', color: accent }]} />
+                    parts={[{ text: lead === 'first' || lead === 'simple' ? 'то ' : lead === 'again' ? 'тоже ' : 'опять ' }, { text: half ? 'МЕНЯЕМ' : 'НЕ МЕНЯЕМ', color: accent }]} />
             )}
             {phase >= 5 && ack && !acked && (
                 <div className="w-full flex justify-center">
@@ -478,9 +482,54 @@ const RULE_EXAMPLES: Record<RuleKind, { fn: Fn; k: number }[]> = {
     change: [{ fn: 'sin', k: 1 }, { fn: 'sin', k: -3 }, { fn: 'cos', k: -5 }],
     keep: [{ fn: 'sin', k: 2 }, { fn: 'sin', k: -4 }],
 }
+// Перед первым примером «НЕ МЕНЯЕМ»: «Нооооо!» + лотти «браво-негатив»; после «Усёк» лотти
+// останавливаем (pause), чтобы не грузил процессор.
+const KeepTeaser = ({ onDone }: { onDone: () => void }) => {
+    const [phase, setPhase] = useState(0) // 0 «Ноооо», 1 «если видим π», 2 «то НЕ МЕНЯЕМ», 3 лотти + «Усёк»
+    const [anim, setAnim] = useState<object | null>(null)
+    const [stopped, setStopped] = useState(false)
+    const lottieRef = useRef<LottieRefCurrentProps>(null)
+    const endRef = useRef<HTMLDivElement>(null)
+    useEffect(() => {
+        let alive = true
+        fetch('/Lottie/stepByStep/bravoNegative.json').then((r) => r.json()).then((d) => { if (alive) setAnim(d) }).catch(() => {})
+        return () => { alive = false }
+    }, [])
+    useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }) }, [phase, anim])
+    return (
+        <div className="w-full flex flex-col gap-3 items-center">
+            <TypedBig parts={[{ text: 'Нооооооооооооооооо!', color: '#DC605B' }]} onDone={() => setPhase(1)} readMs={300} />
+            {phase >= 1 && (
+                <TypedBig small onDone={() => setPhase(2)} readMs={300}
+                    parts={[{ text: 'если видим ' }, { text: 'π', color: PI_COLOR, sticker: true }]} />
+            )}
+            {phase >= 2 && (
+                <TypedBig small onDone={() => setPhase(3)} readMs={300}
+                    parts={[{ text: 'то ' }, { text: 'НЕ МЕНЯЕМ', color: TEAL_COLOR }]} />
+            )}
+            {phase >= 3 && anim && (
+                <Lottie animationData={anim} lottieRef={lottieRef} loop autoplay className="w-44 h-44" />
+            )}
+            {phase >= 3 && !stopped && (
+                <motion.button
+                    type="button"
+                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+                    onClick={() => { lottieRef.current?.pause(); setStopped(true); onDone() }}
+                    className={walkthroughButtonClass(true) + ' w-full'}
+                    style={walkthroughButtonStyle(true)}
+                >
+                    Усёк
+                </motion.button>
+            )}
+            <div ref={endRef} />
+        </div>
+    )
+}
+
 const RuleScene = ({ kind, onSettled }: SceneProps & { kind: RuleKind }) => {
     const examples = RULE_EXAMPLES[kind]
     const [stage, setStage] = useState(0) // 0..n-1 — примеры по очереди, n — «так же и у остальных»
+    const [teaserDone, setTeaserDone] = useState(kind !== 'keep')
     const [chip, setChip] = useState(0)
     useEffect(() => {
         if (stage < examples.length) return
@@ -494,9 +543,10 @@ const RuleScene = ({ kind, onSettled }: SceneProps & { kind: RuleKind }) => {
     }, [stage, chip])
     return (
         <div className="w-full max-w-md mx-auto flex flex-col gap-4">
-            {examples.map((ex, i) => stage >= i && (
+            {kind === 'keep' && <KeepTeaser onDone={() => setTeaserDone(true)} />}
+            {teaserDone && examples.map((ex, i) => stage >= i && (
                 <RuleExample key={i} k={ex.k} fn={ex.fn} kind={kind}
-                    lead={i === 0 ? 'first' : i === 1 ? 'again' : 'plain'}
+                    lead={i === 0 ? (kind === 'keep' ? 'simple' : 'first') : i === 1 ? 'again' : 'plain'}
                     ack={i < examples.length - 1}
                     onDone={() => setStage((st) => Math.max(st, i + 1))} />
             ))}
