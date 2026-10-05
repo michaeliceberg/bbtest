@@ -69,6 +69,9 @@ const DONE_GRADIENT = 'linear-gradient(135deg, #7C3AED 0%, #C026D3 100%)';
 const DONE_BORDER = '#C4B5FD';
 const DONE_GLOW = '0 0 12px -2px rgba(167, 139, 250, 0.55)';
 const DONE_ICON_COLOR = 'var(--tg-done-icon)';
+// Лёгкий «металлический» объём плиток (как у кнопок экранов кейсов/квестов):
+// светлая кромка сверху и тёмный край снизу. Убрать — пустая строка.
+const TILE_SHEEN = 'inset 0 1px 0 rgba(255,255,255,0.24), inset 0 -3px 0 rgba(0,0,0,0.26)';
 const UNLOCKED_BORDER = '#4897D1';
 const UNLOCKED_BG = 'var(--tg-unlocked-bg)';
 const LOCKED_BORDER = 'var(--tg-locked)';
@@ -316,6 +319,27 @@ const RippleGlow = ({ children }: { children: React.ReactNode }) => (
             />
         ))}
         {children}
+    </div>
+);
+
+// Подсказка «сюда нажать дальше» (новая версия — вместо расходящихся «волн»
+// RippleGlow выше, он оставлен в коде на случай возврата: достаточно заменить
+// <FrontierShine> на <RippleGlow> в месте использования): спокойное «дыхание»
+// мягкого свечения + светлая косая полоса, проходящая по плитке слева направо.
+const FrontierShine = ({ children }: { children: React.ReactNode }) => (
+    <div className="relative w-9 h-9 flex items-center justify-center">
+        <div
+            className="absolute -inset-1 rounded-xl pointer-events-none animate-glow-pulse"
+            style={{ boxShadow: `0 0 14px 1px ${FRONTIER_RING_COLOR}`, opacity: 0.35 }}
+            aria-hidden
+        />
+        {children}
+        <div className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none" aria-hidden>
+            <div
+                className="absolute top-[-20%] left-0 h-[140%] w-[38%] animate-tile-shine"
+                style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.6), rgba(255,255,255,0))' }}
+            />
+        </div>
     </div>
 );
 
@@ -720,7 +744,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                                                 style={{
                                                                     background: isBossExam ? 'transparent' : (done ? doneGradient : UNLOCKED_BG),
                                                                     border: isBossExam ? '2px solid transparent' : `2px solid ${(done ? doneBorder : accent.button)}`,
-                                                                    boxShadow: isBossExam ? 'none' : (done ? doneGlow : (cozy ? `0 3px 0 ${accent.bottom}` : undefined)),
+                                                                    boxShadow: isBossExam ? 'none' : (done ? (cozy ? doneGlow : `${doneGlow}, ${TILE_SHEEN}`) : (cozy ? `0 3px 0 ${accent.bottom}` : TILE_SHEEN)),
                                                                 }}
                                                                 icon={<StageIcon accent={accent.button} isBoss={isBoss} isBossExam={isBossExam} skullHue={getBossRank(s.bossWins ?? 0)?.hue ?? 0} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={stepNumber} Icon={Icon} color={done ? DONE_ICON_COLOR : accent.button} />}
                                                                 extra={isBoss && done ? null : null}
@@ -773,7 +797,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                                                         : isMegaChest
                                                                             ? <ChestGlow mega color={accent.button}>{stageBox}</ChestGlow>
                                                                             : isFrontier
-                                                                                ? <RippleGlow>{stageBox}</RippleGlow>
+                                                                                ? <FrontierShine>{stageBox}</FrontierShine>
                                                                                 : stageBox}
                                                             </div>
 
