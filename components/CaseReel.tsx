@@ -545,12 +545,6 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
 
             {error && <p className="relative z-10 text-sm text-red-400">{error}</p>}
 
-            {phase === 'idle' && tier && (
-                // Ключ от кейса (рисунки — public/keys/<редкость>.svg).
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={`/keys/${tier}.svg`} alt="Ключ" className="relative z-10 h-16 w-auto -mb-2 drop-shadow-lg" draggable={false} />
-            )}
-
             {phase === 'idle' &&
                 (cozy ? (
                     <CozyButton fill={cozyFill.fill} edge={cozyFill.edge} onClick={handleSpin}>
