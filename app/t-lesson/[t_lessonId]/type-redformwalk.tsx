@@ -61,19 +61,20 @@ const HOUSE_STICKER = '/lesson-pics/house-sticker.webp'
 const PI = Math.PI
 
 // ===== Крупный печатаемый текст (части: цвет / стикер) =====
-type BigPart = { text: string; color?: string; sticker?: boolean; circle?: boolean; before?: string; after?: string }
+type BigPart = { text: string; color?: string; sticker?: boolean; circle?: boolean; before?: string; after?: string; suffix?: string; suffixColor?: string }
 const TypedBig = ({ parts, onDone, readMs = 500, small = false }: { parts: BigPart[]; onDone?: () => void; readMs?: number; small?: boolean }) => {
     const [typed, setTyped] = useState(false)
     return (
         <div className={`w-full text-center font-black text-[#F2F7FB] ${small ? 'text-lg md:text-xl' : 'text-2xl md:text-3xl'}`}>
             {!typed ? (
-                <Typewriter text={parts.map((p) => (p.before ?? '') + p.text + (p.after ?? '')).join('')} onDone={() => { setTyped(true); setTimeout(() => onDone?.(), readMs) }} />
+                <Typewriter text={parts.map((p) => (p.before ?? '') + p.text + (p.suffix ?? '') + (p.after ?? '')).join('')} onDone={() => { setTyped(true); setTimeout(() => onDone?.(), readMs) }} />
             ) : (
                 parts.map((p, i) => p.circle && p.color ? (
                     <span key={i} className="whitespace-nowrap">
                         {p.before}
                         <span className="inline-flex items-center justify-center w-[1.5em] h-[1.5em] rounded-full border-2 mx-0.5 text-[0.8em]"
                             style={{ color: p.color, borderColor: p.color, backgroundColor: hexToRgba(p.color, 0.22) }}>{p.text}</span>
+                        {p.suffix && <span style={{ color: p.suffixColor }}>{p.suffix}</span>}
                         {p.after}
                     </span>
                 ) : p.sticker && p.color ? (
@@ -653,21 +654,21 @@ const VARIANTS: Record<VKey, {
     plusSticker: string; stepSticker: string; stepWord: string; stepWordColor: string
     fnWord: string; axisDir: string; where: string; quarter: string
     half: 'upper' | 'left'; axis: 'sin' | 'cos'; signs: [boolean, boolean, boolean, boolean]
-    signWord: string; signColor: string
+    signWord: string; signColor: string; andWord: string; thenWord: string; quarterSign: string
 }> = {
     sin: {
         fn: 'sin', result: 'cos', resultNeg: false, base: PI / 2, dir: 1,
         plusSticker: '+π/2', stepSticker: 'x', stepWord: 'ПЛЮС', stepWordColor: PLUS_COLOR,
         fnWord: 'СИНУС', axisDir: 'ВВЕРХ', where: 'СВЕРХУ', quarter: '2',
         half: 'upper', axis: 'sin', signs: [true, true, false, false],
-        signWord: 'ПОЛОЖИТЕЛЬНЫЙ', signColor: PLUS_COLOR,
+        signWord: 'ПОЛОЖИТЕЛЬНЫЙ', signColor: PLUS_COLOR, andWord: 'И', thenWord: 'то', quarterSign: '+',
     },
     cos: {
         fn: 'cos', result: 'sin', resultNeg: true, base: (3 * PI) / 2, dir: -1,
         plusSticker: '3π/2', stepSticker: '−x', stepWord: 'МИНУС', stepWordColor: MINUS_COLOR,
         fnWord: 'КОСИНУС', axisDir: 'ВПРАВО', where: 'СЛЕВА', quarter: '3',
         half: 'left', axis: 'cos', signs: [true, false, false, true],
-        signWord: 'ОТРИЦАТЕЛЬНЫЙ', signColor: MINUS_COLOR,
+        signWord: 'ОТРИЦАТЕЛЬНЫЙ', signColor: MINUS_COLOR, andWord: 'НО', thenWord: 'и', quarterSign: '−',
     },
 }
 
@@ -705,9 +706,11 @@ const PlaceScene = ({ v, onSettled }: SceneProps & { v: VKey }) => {
                 <TypedBig parts={[{ text: 'Осталось теперь понять' }]} onDone={() => goto(1)} readMs={500} />
             ) : (
                 <>
-                    <TypedBig parts={[{ text: 'Погнали еще разок!' }]} onDone={() => setIntroTyped(true)} readMs={400} />
+                    <div className={`w-full transition-all duration-500 ${gasPressed ? 'opacity-35 grayscale' : ''}`}>
+                        <TypedBig parts={[{ text: 'Погнали еще разок!' }]} onDone={() => setIntroTyped(true)} readMs={400} />
+                    </div>
                     {introTyped && (
-                        <div ref={videoWrapRef} className="w-full flex justify-center">
+                        <div ref={videoWrapRef} className={`w-full flex justify-center transition-all duration-500 ${gasPressed ? 'opacity-35 grayscale' : ''}`}>
                             <AlphaVideo src="/video/hasbik-driving.webm" autoPlay loop muted playsInline className="w-36 h-36 pointer-events-none" />
                         </div>
                     )}
@@ -830,13 +833,13 @@ const SignScene = ({ v, onSettled }: SceneProps & { v: VKey }) => {
             {phase >= 6 && (
                 <TypedBig
                     small onDone={() => goto(7)} readMs={300}
-                    parts={[{ text: 'И мы оказались ' }, { text: cfg.where, color: fnColor }, { text: cfg.quarter, color: fnColor, circle: true, before: ' (', after: ' четверть)' }]}
+                    parts={[{ text: `${cfg.andWord} мы оказались ` }, { text: cfg.where, color: fnColor }, { text: cfg.quarter, color: fnColor, circle: true, before: ' (', suffix: cfg.quarterSign, suffixColor: cfg.signColor, after: ' четверть)' }]}
                 />
             )}
             {phase >= 8 && (
                 <TypedBig
                     small onDone={() => goto(9)} readMs={500}
-                    parts={[{ text: 'то получится ' }, { text: cfg.signWord, color: cfg.signColor }, { text: ' ' }, { text: cfg.result, color: FN_COLOR[cfg.result] }]}
+                    parts={[{ text: `${cfg.thenWord} получится ` }, { text: cfg.signWord, color: cfg.signColor }, { text: ' ' }, { text: cfg.result, color: FN_COLOR[cfg.result] }]}
                 />
             )}
             {phase >= 9 && (
