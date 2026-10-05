@@ -38,6 +38,27 @@ const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
 // чтобы цвет "важно/смотри сюда" не расходился по разным разборам.
 export const ATTENTION_COLOR = GGEGE_PALETTE.orange.button
 
+// Эталонная «обводка фломастером» (оранжево-золотая, нарисованная от руки петля с
+// нахлёстом) — взята из урока «Тангенс = синус / косинус» (type-trigvalwalk.tsx,
+// MarkerCircle), принята пользователем за образец (2026-10-05). Кладётся внутрь
+// элемента с position: relative — растягивается на его размер + 12px с каждой стороны.
+export const MARKER_LOOP_COLOR = '#F2C35B'
+const MARKER_LOOP_PATH = 'M 86 24 C 66 0, 16 4, 7 44 C 0 86, 58 102, 90 80 C 104 64, 99 34, 72 18'
+export const MarkerLoop = ({ active = true, delay = 0 }: { active?: boolean; delay?: number }) => (
+    <svg
+        className="pointer-events-none absolute -inset-3 z-10 overflow-visible"
+        viewBox="0 0 100 100" preserveAspectRatio="none"
+        style={{ width: 'calc(100% + 24px)', height: 'calc(100% + 24px)' }}
+    >
+        <motion.path
+            d={MARKER_LOOP_PATH} fill="none" stroke={MARKER_LOOP_COLOR} strokeWidth={4} strokeLinecap="round" vectorEffect="non-scaling-stroke"
+            initial={{ pathLength: 0 }}
+            animate={active ? { pathLength: 1 } : { pathLength: 0 }}
+            transition={{ duration: 0.5, ease: 'easeInOut', delay }}
+        />
+    </svg>
+)
+
 export const PENDING_COLOR = '#5C6B73'
 export const CORRECT_COLOR = '#A1D151'
 export const WRONG_COLOR = '#DC605B'

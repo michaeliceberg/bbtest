@@ -26,7 +26,7 @@ import {
     walkthroughButtonClass, walkthroughButtonStyle,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     pickFunNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES, LocalAnswerConfetti,
-    isFieryMilestoneTrial, FieryFeedbackBanner, useWalkthroughCombo,
+    isFieryMilestoneTrial, FieryFeedbackBanner, useWalkthroughCombo, MarkerLoop,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -53,10 +53,10 @@ const PI = Math.PI
 
 // ===== Крупный печатаемый текст (части: цвет / стикер) =====
 type BigPart = { text: string; color?: string; sticker?: boolean }
-const TypedBig = ({ parts, onDone, readMs = 500 }: { parts: BigPart[]; onDone?: () => void; readMs?: number }) => {
+const TypedBig = ({ parts, onDone, readMs = 500, small = false }: { parts: BigPart[]; onDone?: () => void; readMs?: number; small?: boolean }) => {
     const [typed, setTyped] = useState(false)
     return (
-        <div className="w-full text-center text-2xl md:text-3xl font-black text-[#F2F7FB]">
+        <div className={`w-full text-center font-black text-[#F2F7FB] ${small ? 'text-lg md:text-xl' : 'text-2xl md:text-3xl'}`}>
             {!typed ? (
                 <Typewriter text={parts.map((p) => p.text).join('')} onDone={() => { setTyped(true); setTimeout(() => onDone?.(), readMs) }} />
             ) : (
@@ -79,18 +79,11 @@ const Frac = ({ num, den }: { num: string; den: string }) => (
     </span>
 )
 
-// Овал-маркер, «рисуемый» вокруг куска формулы (SVG растягивается по размеру обёртки).
-const Marked = ({ children, color, active, delay = 0 }: { children: React.ReactNode; color: string; active: boolean; delay?: number }) => (
+// Эталонная обводка-«фломастер» (MarkerLoop) вокруг куска формулы.
+const Marked = ({ children, active }: { children: React.ReactNode; active: boolean }) => (
     <span className="relative inline-block px-1">
         {children}
-        <svg className="pointer-events-none absolute left-[-6px] top-[-8px] w-[calc(100%+12px)] h-[calc(100%+16px)] overflow-visible" viewBox="0 0 100 40" preserveAspectRatio="none">
-            <motion.ellipse
-                cx={50} cy={20} rx={49} ry={19} fill="none" stroke={color} strokeWidth={4} strokeLinecap="round" vectorEffect="non-scaling-stroke"
-                initial={{ pathLength: 0, opacity: 0 }}
-                animate={active ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
-                transition={{ duration: 0.7, delay, ease: 'easeInOut' }}
-            />
-        </svg>
+        {active && <MarkerLoop />}
     </span>
 )
 
@@ -100,11 +93,11 @@ const Formula = ({ markPi = false, markX = false, markSin = false, plain = false
         transition={{ type: 'spring', stiffness: 260, damping: 14 }}
         className={`w-full flex items-center justify-center font-black text-[#F2F7FB] py-3 ${className}`}
     >
-        <Marked color={SIN_COLOR} active={markSin}><span style={{ color: plain ? '#F2F7FB' : SIN_COLOR }}>sin</span></Marked>
+        <Marked active={markSin}><span style={{ color: plain ? '#F2F7FB' : SIN_COLOR }}>sin</span></Marked>
         <span>(</span>
-        <Marked color={STEP_COLOR} active={markX}><span style={{ color: plain ? '#F2F7FB' : STEP_COLOR }}>x</span></Marked>
+        <Marked active={markX}><span style={{ color: plain ? '#F2F7FB' : STEP_COLOR }}>x</span></Marked>
         <span className="mx-1">+</span>
-        <Marked color={PI_COLOR} active={markPi}><span style={{ color: PI_COLOR }}><Frac num="π" den="2" /></span></Marked>
+        <Marked active={markPi}><span style={{ color: PI_COLOR }}><Frac num="π" den="2" /></span></Marked>
         <span>)</span>
     </motion.div>
 )
@@ -239,20 +232,28 @@ const RedCircle = ({ plusArc = null, stepArc = null, onPlusDone, onStepDone, poi
 // ===== Сцены =====
 type SceneProps = { onSettled?: () => void }
 
-// 0. Что такое формула приведения: всё белое, кроме π/2 — его и обводим маркером.
+// 0. Что такое формула приведения: всё белое, кроме π/2. Сначала текст,
+// потом маркером обводим π/2.
 const FormulaScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
     useEffect(() => {
         const t = setTimeout(() => setPhase(1), 900)
         return () => clearTimeout(t)
     }, [])
+    useEffect(() => {
+        if (phase !== 2) return
+        const t = setTimeout(() => onSettled?.(), 1100)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phase])
     return (
         <>
-            <Formula plain markPi={phase >= 1} />
+            <Formula plain markPi={phase >= 2} />
             {phase >= 1 && (
                 <TypedBig
+                    small
                     parts={[{ text: 'Именно такой кусочек ' }, { text: 'π/2', color: PI_COLOR, sticker: true }, { text: ' и есть формула приведения' }]}
-                    onDone={() => onSettled?.()} readMs={600}
+                    onDone={() => setPhase(2)} readMs={400}
                 />
             )}
         </>
