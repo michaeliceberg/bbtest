@@ -25,11 +25,12 @@ import { Typewriter } from './Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { LOTTIE_STEP_BY_STEP_FIERY_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
 import { cn } from '@/lib/utils'
+import Lottie, { preloadLottie } from '@/components/lottie-player'
 
 // lottie-react трогает document при монтировании — статический импорт в
 // SSR-путь уже не раз ронял dev/prod в этом проекте (см. CLAUDE.md,
 // TrainerMascot.tsx и др.), поэтому всегда через dynamic(ssr:false).
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
 // Единый "цвет внимания" ("смотри сюда"/"важно") для всех разборов по
 // шагам — оранжевый из «Палитры ggege» (см. CLAUDE.md), используется и
@@ -606,18 +607,19 @@ export function isFieryMilestoneTrial(trialIndex: number): boolean {
 // заменён на этот инлайн-вариант внутри самой плашки.
 // Облачко и Lottie появляются одновременно: ждём подгрузки модуля
 // lottie-react (dynamic-импорт), только потом показываем банер.
-export const useLottieModuleReady = (needed: boolean) => {
+export const useLottieModuleReady = (needed: boolean, data?: unknown) => {
     const [ready, setReady] = useState(false)
     useEffect(() => {
         if (!needed) return
-        import('lottie-react').then(() => setReady(true))
+        preloadLottie(data).then(() => setReady(true)).catch(() => setReady(true))
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [needed])
     return ready
 }
 
 export const FieryFeedbackBanner = ({ children, fiery = false }: { children: React.ReactNode; fiery?: boolean }) => {
     const [lottieData] = useState(() => (fiery ? getRandomLottie(LOTTIE_STEP_BY_STEP_FIERY_LIST) : null))
-    const lottieReady = useLottieModuleReady(fiery)
+    const lottieReady = useLottieModuleReady(fiery, lottieData)
     if (!fiery) {
         return (
             <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#A1D15122] text-[#A1D151]">

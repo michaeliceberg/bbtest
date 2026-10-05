@@ -16,8 +16,10 @@ import dynamic from 'next/dynamic';
 import { LOTTIE_TEST_PICKER_LIST, getDistinctRandomLotties } from '@/src/constants/lottieConstants';
 import { Button } from '@/components/ui/button';
 import type { DiagnosticSubject } from '@/lib/diagnostic';
+import Lottie from '@/components/lottie-player'
 
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
+
 
 type Props = {
 	utm: { source: string | null; medium: string | null; campaign: string | null };

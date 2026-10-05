@@ -32,7 +32,6 @@ import { useStreakCelebrationStore } from "@/store/use-streak-celebration-store"
 import { useLevelUpStore } from "@/store/use-level-up-store";
 import { useQuestCompleteStore } from "@/store/use-quest-complete-store";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { ChevronRight } from "lucide-react";
 import { LOTTIE_SKILL_ASK_LIST, getRandomLottie } from "@/src/constants/lottieConstants";
 import { HighlightedNumbersText } from "@/components/HighlightedNumbersText";
@@ -41,8 +40,10 @@ import { detectPanelOrientation, PanelOrientation } from "@/lib/graphPanel";
 import { SolveModeChoice } from "@/components/geometry/SolveModeChoice";
 import { TrapezoidWalkthrough } from "@/components/geometry/TrapezoidWalkthrough";
 import { TangentialQuadWalkthrough } from "@/components/geometry/TangentialQuadWalkthrough";
+import Lottie from '@/components/lottie-player'
 
-const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
+
 
 // Реестр интерактивных разборов по шагам — id задачи → её компонент.
 // Раньше был единственный захардкоженный WALKTHROUGH_CHALLENGE_ID/

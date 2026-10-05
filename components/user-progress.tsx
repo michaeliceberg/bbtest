@@ -1,5 +1,4 @@
 'use client'
-import dynamic from 'next/dynamic';
 import { courses } from '@/db/schema';
 import Image from '@/node_modules/next/image';
 import Link from '@/node_modules/next/link';
@@ -10,8 +9,10 @@ import LottieGems from '@/public/Lottie/LottieGems.json'
 import LottieGG from '@/public/Lottie/LottieGG.json'
 import { cn } from '@/lib/utils';
 import { getLevelInfo } from '@/lib/xp';
+import Lottie from '@/components/lottie-player'
 
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
+
 
 
 type Props = {

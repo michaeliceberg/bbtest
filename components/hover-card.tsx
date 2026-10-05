@@ -1,5 +1,4 @@
 import { Send } from "lucide-react"
-import dynamic from "next/dynamic"
 import LottieGems from '@/public/Lottie/LottieGems.json'
 
 import {
@@ -11,8 +10,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import Lottie from '@/components/lottie-player'
 
-const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
 const TELEGRAM_USERNAME = 'michaeldeve'
 

@@ -7,13 +7,15 @@ import dynamic from 'next/dynamic';
 import { ChevronRight, Sparkles } from 'lucide-react';
 import { getLevelInfo, LEVEL_UP_GEM_REWARD } from '@/lib/xp';
 import { COZY, type UiTheme } from '@/lib/cozyTheme';
+import Lottie from '@/components/lottie-player'
 
 // lottie-react трогает `document` при монтировании — статический импорт
 // в компонент, который рендерится с сервера (даже внутри 'use client'
 // файла, если сам файл попадает в SSR-проход), уже не раз ронял dev/prod
 // в этом проекте (см. CLAUDE.md, баги TrainerMascot/question-bubble) —
 // поэтому всегда через dynamic(..., { ssr: false }).
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
+
 
 type Props = {
     xp: number;

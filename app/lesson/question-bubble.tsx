@@ -1,6 +1,5 @@
 // app/lesson/question-bubble.tsx
 
-import dynamic from "next/dynamic";
 import { Skull, Home, BookOpen, CheckCircle, XCircle, ZoomIn } from 'lucide-react';
 import { differenceInHours, isPast } from 'date-fns';
 import { motion } from "framer-motion";
@@ -8,7 +7,8 @@ import { NoRightAnswer } from "@/components/hover-card";
 import { HighlightedNumbersText } from "@/components/HighlightedNumbersText";
 import { useState, useRef, useEffect } from "react";
 
-const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
+
 import { PALETTE_RED } from "@/src/constants/lessonButtonColors";
 import { findQuestionTarget } from "@/lib/highlight-question-target";
 
@@ -28,6 +28,7 @@ import LottieCloud18 from '@/public/Lottie/cloudCharacter/18.json'
 import LottieCloud24 from '@/public/Lottie/cloudCharacter/24.json'
 import LottieCloud36 from '@/public/Lottie/cloudCharacter/36.json'
 import LottieCloud42 from '@/public/Lottie/cloudCharacter/42.json'
+import Lottie from '@/components/lottie-player'
 
 // Рендерит условие задачи, подсвечивая цветом юнита фразу "что нужно найти"
 // (если удалось её распознать эвристикой — иначе просто весь текст как есть).

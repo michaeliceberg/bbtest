@@ -12,7 +12,7 @@
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import Lottie from 'lottie-react';
+import Lottie from '@/components/lottie-player'
 import { LOTTIE_TEST_PICKER_LIST, getRandomLottie } from '@/src/constants/lottieConstants';
 import { playSound, preloadSound } from '@/lib/sound';
 import { useStageCurtainStore } from '@/store/use-stage-curtain-store';

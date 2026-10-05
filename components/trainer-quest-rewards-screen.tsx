@@ -17,7 +17,6 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import dynamic from 'next/dynamic'
 import { motion, useAnimationControls } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
 import { declensionRu } from '@/usefulFunctions'
@@ -27,10 +26,11 @@ import { claimQuestCase, type DailyQuest, type DailyQuestKey, type DailyQuestsDa
 import { openTestCase } from '@/actions/open-key-case'
 import { COZY, COZY_ACCENT } from '@/lib/cozyTheme'
 import { playSound, preloadSound, QUEST_SWOOSH_SOUND, QUEST_DONE_SOUND, QUEST_LAND_SOUND } from '@/lib/sound'
+import Lottie from '@/components/lottie-player'
 
 export type QuestRewardsData = DailyQuestsData | null
 
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
 // Горящие Lottie (public/Lottie/numbers) грузятся по запросу — по ~100 КБ,
 // нужна одна цифра и звезда, не весь набор.

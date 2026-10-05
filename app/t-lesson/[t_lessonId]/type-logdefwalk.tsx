@@ -37,7 +37,6 @@
 
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
-import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -56,11 +55,12 @@ import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { LOTTIE_STEP_BY_STEP_FIERY_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
 import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
+import Lottie from '@/components/lottie-player'
 
 // lottie-react трогает document на импорте — без ssr:false падает на
 // сервере (та же SSR-ловушка, что уже чинили у TrainerMascot/
 // question-bubble/type-hot.tsx, см. CLAUDE.md).
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
 const SCENE_TRANSITION_PAUSE_MS = 1000
 
@@ -365,7 +365,7 @@ const OptionsHint = ({ wrongFlash }: { wrongFlash: string | null }) => (
 // correctText вместо детей).
 const FeedbackBanner = ({ correct, correctText = '', seed, fiery = false }: { correct: boolean; correctText?: string; seed: number; fiery?: boolean }) => {
     const [lottieData] = useState(() => (fiery && correct ? getRandomLottie(LOTTIE_STEP_BY_STEP_FIERY_LIST) : null))
-    const lottieReady = useLottieModuleReady(fiery && correct)
+    const lottieReady = useLottieModuleReady(fiery && correct, lottieData)
     const text = correct ? CORRECT_FEEDBACK_PHRASES[Math.abs(seed) % CORRECT_FEEDBACK_PHRASES.length] : correctText
     if (fiery && correct) {
         return (

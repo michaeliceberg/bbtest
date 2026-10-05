@@ -7,10 +7,11 @@
 
 'use client';
 
-import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
+import Lottie from '@/components/lottie-player'
 
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
+
 
 export const MASCOT_FILES = [
     'LottieKapiAngry.json',

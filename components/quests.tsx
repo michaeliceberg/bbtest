@@ -3,7 +3,6 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import dynamic from "next/dynamic";
 import Image from "next/image";
 import { Button } from "./ui/button";
 import Link from "next/link";
@@ -11,8 +10,10 @@ import { CheckCircle2, Circle, BookOpen } from "lucide-react";
 import FlamyHwDoIt from "@/public/Lottie/hw/FlamyHwDoIt.json";
 import FlamyHwDone from "@/public/Lottie/hw/FlamyHwDone.json";
 import FlamyHwPanic from "@/public/Lottie/hw/FlamyHwPanic.json";
+import Lottie from '@/components/lottie-player'
 
-const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
+
 
 // "Осталось мало времени [до конца дня]" — тот же клиентский час-порог и
 // тот же принцип (проверка ПОСЛЕ монтирования, не в самом рендере —

@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import dynamic from 'next/dynamic'
 import { QuestionType } from './page'
 import Latex from 'react-latex-next';
 import 'katex/dist/katex.min.css';
@@ -9,9 +8,9 @@ import { useAudio } from 'react-use';
 import { Button } from '@/components/ui/button';
 import LottieArrowRight from '@/public/Lottie/trainer/LottieArrowRight.json'
 import LottieSkull from '@/public/Lottie/trainer/frozen/LottieSkull.json'
+import Lottie from '@/components/lottie-player'
 
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
-
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
 type Props = {
     question: QuestionType

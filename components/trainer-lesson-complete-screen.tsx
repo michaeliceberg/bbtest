@@ -15,7 +15,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import { Zap, Target, Timer, ArrowRight } from 'lucide-react'
 import { declensionRu } from '@/usefulFunctions'
@@ -23,8 +22,9 @@ import { playSound, WIN_SOUND } from '@/lib/sound'
 import { RollingNumber } from '@/components/rolling-number'
 import { CaseStars } from '@/components/CaseReel'
 import { COZY, COZY_ACCENT, type UiTheme } from '@/lib/cozyTheme'
+import Lottie from '@/components/lottie-player'
 
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
 type Props = {
     lottieData: any

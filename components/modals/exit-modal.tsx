@@ -17,7 +17,7 @@ import {
 import { Button } from '../ui/button'
 import { useExitModal } from '@/store/use-exit-modal'
 import { useEffect, useState } from 'react';
-import Lottie from 'lottie-react'
+import Lottie from '@/components/lottie-player'
 import LottieKapiThink from '@/public/Lottie/LottieKapiThink.json'
 
 

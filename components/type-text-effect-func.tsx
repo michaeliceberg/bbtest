@@ -1,7 +1,7 @@
 import React, { ReactNode, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import Lottie from "lottie-react";
+import Lottie from '@/components/lottie-player'
 
 
 import LottieDeathMeanRho from '@/public/LottieDeathMeanRho.json'

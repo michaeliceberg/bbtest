@@ -11,7 +11,6 @@
 // onAnswer, без двухшагового select-then-submit через общую кнопку внизу).
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import Confetti from 'react-confetti'
 import { useWindowSize } from 'react-use'
@@ -26,11 +25,12 @@ import burn5 from '@/public/Lottie/numbers/burn5.json'
 import burn6 from '@/public/Lottie/numbers/burn6.json'
 import burn7 from '@/public/Lottie/numbers/burn7.json'
 import burnDevil from '@/public/Lottie/numbers/burnDevil.json'
+import Lottie from '@/components/lottie-player'
 
 // lottie-react трогает document на импорте — без ssr:false падает на
 // сервере (та же SSR-ловушка, что уже чинили у TrainerMascot/
 // question-bubble, см. CLAUDE.md).
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
 const BURN_DIGITS: Record<number, object> = {
     7: burn7, 6: burn6, 5: burn5, 4: burn4, 3: burn3, 2: burn2, 1: burn1,

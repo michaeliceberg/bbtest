@@ -4,7 +4,7 @@ import Image from "next/image"
 import { Button } from "./ui/button"
 import LottiePick from '@/public/Lottie/LottiePick.json'
 import LottieCoins from '@/public/Lottie/LottieCoins.json'
-import Lottie from "lottie-react"
+import Lottie from '@/components/lottie-player'
 
 type Props= {
 

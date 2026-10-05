@@ -16,11 +16,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import dynamic from 'next/dynamic'
 import { LOTTIE_STREAK_RISK_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
 import { daysWordGenitive } from '@/usefulFunctions'
+import Lottie from '@/components/lottie-player'
 
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
 const RISK_HOUR = 20 // 20:00 по локальному времени пользователя
 

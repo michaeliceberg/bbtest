@@ -36,9 +36,11 @@ import {
 	getRandomLottie,
 } from '@/src/constants/lottieConstants';
 import dynamic from 'next/dynamic';
+import Lottie, { preloadLottie } from '@/components/lottie-player'
 
 const LoginDialog = dynamic(() => import('@/components/login-dialog').then((m) => ({ default: m.LoginDialog })), { ssr: false });
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
+
 
 // 'goal' — новый необязательный экран между вопросами и результатом:
 // "На какой балл планируешь сдать ЕГЭ?" (слайдер 0-100, не влияет на
@@ -186,7 +188,7 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 	// попадании на result (не на каждый ре-рендер), из пула своего тира.
 	const [introReady, setIntroReady] = useState(false);
 	useEffect(() => {
-		import('lottie-react').then(() => setIntroReady(true));
+		preloadLottie(LOTTIE_TEST_INTRO, LOTTIE_TEST_PIZZA).then(() => setIntroReady(true)).catch(() => setIntroReady(true));
 	}, []);
 	// Звук итога теста: меньше 20% верных — «проигрыш» (арфа вниз), иначе —
 	// «победа» (арфа + труба). Оба грузятся заранее, при открытии теста (Web

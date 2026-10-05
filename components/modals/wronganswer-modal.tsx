@@ -3,7 +3,8 @@
 'use client'
 
 import Image from 'next/image'
-import Lottie, { LottieRefCurrentProps } from 'lottie-react'
+import Lottie from '@/components/lottie-player'
+import type { LottieRefCurrentProps } from 'lottie-react'
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { playSoundTracked } from '@/lib/sound'
 import { wrongAudioList } from '@/lib/memeAudio'

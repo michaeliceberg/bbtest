@@ -13,7 +13,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card"
-import Lottie from "lottie-react"
+import Lottie from '@/components/lottie-player'
 import Image from "next/image"
 
 type Props = { 

@@ -20,7 +20,6 @@
 
 import { useEffect, useState } from 'react'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
-import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import { Check, X } from 'lucide-react'
 import type { QuestionType } from './page'
@@ -42,9 +41,10 @@ import { hexToRgba } from '@/src/constants/lessonButtonColors'
 import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
 import { cn } from '@/lib/utils'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
+import Lottie from '@/components/lottie-player'
 
 // lottie-react трогает document на импорте — только ssr:false.
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
 type Props = {
     question: QuestionType

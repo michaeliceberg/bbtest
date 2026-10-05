@@ -9,14 +9,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import { ArrowRight, Gem } from 'lucide-react'
 import { CelebrationShell } from '@/components/celebration-shell'
 import { COZY, type UiTheme } from '@/lib/cozyTheme'
 import { playSound, preloadSound, LEVEL_UP_SOUND } from '@/lib/sound'
+import Lottie from '@/components/lottie-player'
 
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
 // Сколько персонажей lvlN.json лежит в public/Lottie/lvl (если добавятся —
 // поднять; несуществующий файл всё равно откатится на lvl1).

@@ -1,7 +1,6 @@
 'use client'
 
 // import Image from "next/image"
-import dynamic from "next/dynamic"
 import { Button } from "./ui/button"
 import Link from "next/link"
 import { Clock } from "lucide-react"
@@ -11,6 +10,7 @@ import LottieKapiGood1 from '@/public/Lottie/LottieKapiGood1.json'
 // import LottieKapiCry from '@/public/Lottie/LottieKapiCry.json'
 // import LottieKapiAngry from '@/public/Lottie/LottieKapiAngry.json'
 import LottieKapiSad1 from '@/public/Lottie/LottieKapiSad1.json'
+import Lottie from '@/components/lottie-player'
 // import LottieTriangle3 from '@/public/Lottie/hints/Triangle3.json'
 // import LottieCroco from '@/public/Lottie/characters/LottieCroco.json'
 
@@ -22,7 +22,7 @@ import LottieKapiSad1 from '@/public/Lottie/LottieKapiSad1.json'
 // document на уровне модуля, 'use client' сам по себе SSR модуля не
 // исключает) — тот же класс бага, что уже чинили в TrainerMascot.tsx/
 // question-bubble.tsx этим же способом.
-const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
 type Props= {
     YourDaysLate: number

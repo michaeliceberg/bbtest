@@ -19,8 +19,10 @@ import { ru } from 'date-fns/locale';
 import { Flame, CheckCircle2, Circle, Dumbbell, PenLine, Clock, History, Gift, X, PartyPopper } from 'lucide-react';
 import { LOTTIE_QUEST_MASCOT_LIST, getRandomLottie } from '@/src/constants/lottieConstants';
 import FlamyHwDone from '@/public/Lottie/hw/FlamyHwDone.json';
+import Lottie from '@/components/lottie-player'
 
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
+
 
 // Раньше поздравление ("Умничка! Квест выполнен! +1 к стрику · +N очков")
 // жило отдельным блоком внизу карточки — пользователь попросил убрать его

@@ -1,12 +1,12 @@
 "use client"
 
 import { motion } from "framer-motion"
-import dynamic from "next/dynamic"
 import { useEffect, useState, useRef } from "react"
 import Latex from 'react-latex-next'
 import 'katex/dist/katex.min.css'
+import Lottie from '@/components/lottie-player'
 
-const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
 // Реплики маскота теперь не пропадают "в пустоту" по таймеру — они
 // висят на экране, пока не придёт следующая (при смене эмоции или

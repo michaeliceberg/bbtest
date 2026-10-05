@@ -18,10 +18,10 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil, Lock, ChevronDown, BookOpen } from 'lucide-react';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { TrainerStageLink } from './trainer-stage-link';
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
+
 import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors';
 import { getBossRank } from '@/lib/bossRank';
 import { isReviewStage, isMythicStage } from '@/lib/trainerStageFlags';
@@ -54,6 +54,7 @@ const COLUMNS_PER_ROW = 4;
 // ниже, вынесены в константы, т.к. теперь используются в двух местах
 // (обычный статичный рендер + анимированный crossfade при reveal).
 import { hexToRgba } from '@/src/constants/lessonButtonColors';
+import Lottie from '@/components/lottie-player'
 type GroupAccent = { button: string; bottom: string };
 // Цвета блоков/тем по кругу из общей палитры ggege (CLAUDE.md).
 const GROUP_ACCENTS: GroupAccent[] = [GGEGE_PALETTE.blue];

@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react';
-import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, type HTMLMotionProps } from 'framer-motion';
@@ -9,8 +8,10 @@ import { ArrowRight, Sparkles } from 'lucide-react';
 import { LoginDialog } from '@/components/login-dialog';
 import LottieHelloBread from '@/public/LottieHelloBread.json';
 import { COZY, type UiTheme } from '@/lib/cozyTheme';
+import Lottie from '@/components/lottie-player'
 
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
+
 
 // Цвета логотипа ggege (сэмплированы из public/ggegelogo.svg, см. sidebar.tsx).
 const LOGO_PURPLE = '#A74CE8';

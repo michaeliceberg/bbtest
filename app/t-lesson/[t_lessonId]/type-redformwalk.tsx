@@ -17,7 +17,6 @@
 'use client'
 
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import dynamic from 'next/dynamic'
 import type { LottieRefCurrentProps } from 'lottie-react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -36,8 +35,9 @@ import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
+import Lottie from '@/components/lottie-player'
 
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
 const SCENE_TRANSITION_PAUSE_MS = 1000
 

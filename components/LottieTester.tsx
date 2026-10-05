@@ -5,7 +5,7 @@ import Link from "next/link"
 import LottieKapiSad1 from '@/public/Lottie/LottieKapiSad1.json'
 // import AETriangle from '@/public/Lottie/hints/AETriangle.json'
 import AETriangle from '@/public/Lottie/hints/gpt.json'
-import Lottie from "lottie-react"
+import Lottie from '@/components/lottie-player'
 
 export const LottieTester = () => {
 

@@ -7,15 +7,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { CelebrationShell } from '@/components/celebration-shell'
 import { COZY } from '@/lib/cozyTheme'
 import { useUiTheme } from '@/lib/uiTheme'
 import { playSound, preloadSound, LEVEL_UP_SOUND } from '@/lib/sound'
+import Lottie from '@/components/lottie-player'
 
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
 const SEEN_KEY = 'learnUnlockSeen'
 const ACCENT = '#34D399'

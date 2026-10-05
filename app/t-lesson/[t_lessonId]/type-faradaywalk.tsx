@@ -39,7 +39,6 @@ import { AlphaVideo } from '@/components/alpha-video'
 
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
-import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import type { QuestionType } from './page'
 import {
@@ -58,11 +57,12 @@ import { cn } from '@/lib/utils'
 import { declensionRu } from '@/usefulFunctions'
 import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
+import Lottie from '@/components/lottie-player'
 
 // lottie-react трогает document на импорте — без ssr:false падает на
 // сервере (та же SSR-ловушка, что уже чинили у TrainerMascot/question-
 // bubble/type-logdefwalk.tsx и др., см. CLAUDE.md).
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
 type Props = {
     question: QuestionType

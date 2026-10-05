@@ -13,7 +13,7 @@ import LottieKapiSad1 from '@/public/Lottie/LottieKapiSad1.json'
 
 
 
-import Lottie from "lottie-react"
+import Lottie from '@/components/lottie-player'
 import { Separator } from "./ui/separator"
 
 type Props= {

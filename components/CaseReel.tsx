@@ -12,7 +12,6 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import Confetti from 'react-confetti'
 import { useWindowSize } from 'react-use'
@@ -28,11 +27,12 @@ import { COZY, COZY_ACCENT, COZY_PAGE_BG, type UiTheme } from '@/lib/cozyTheme'
 import LottieCoins from '@/public/Lottie/LottieCoins.json'
 import LottieGems from '@/public/Lottie/LottieGems.json'
 import LottieGG from '@/public/Lottie/LottieGG.json'
+import Lottie from '@/components/lottie-player'
 
 // Те же самые lottie-анимации монет/гемов, что уже используются в шапке
 // (components/user-progress.tsx) и магазине — вместо голых эмодзи,
 // по просьбе пользователя ("у нас уже есть готовые lottie").
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
 const ITEM_WIDTH = 96 // px, соответствует w-24 ниже
 const ITEM_GAP = 12 // px, соответствует gap-3 ниже

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { useTransition } from "react"
 import { toast } from "sonner"
-import Lottie from "lottie-react"
+import Lottie from '@/components/lottie-player'
 import LottiePick from '@/public/Lottie/LottiePick.json'
 import LottieCoins from '@/public/Lottie/LottieCoins.json'
 import LottieGems from '@/public/Lottie/LottieGems.json'

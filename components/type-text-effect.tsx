@@ -150,16 +150,14 @@
 
 import React, { ReactNode, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import dynamic from "next/dynamic";
 
 // Динамический импорт Lottie с отключением SSR
-const Lottie = dynamic(() => import("lottie-react"), { 
-  ssr: false,
-  loading: () => <div className="size-36 bg-[#2E3A40] animate-pulse rounded-full" />
-});
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
+
 
 // Импортируем анимацию через dynamic, чтобы избежать проблем с парсингом JSON на сервере
 import LottieDeathMeanRho from '@/public/LottieDeathMeanRho.json'
+import Lottie from '@/components/lottie-player'
 
 export const TypeTextEffect = () => {
   return (

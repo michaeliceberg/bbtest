@@ -3,8 +3,23 @@
 
 // next.config.mjs
 
+import path from 'path'
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    // Все .json из public/ (Lottie-анимации) импортируются как URL статического файла
+    // (/_next/static/lottie/<имя>.<hash>.json), а не вшиваются в JS-бандл: раньше они весили
+    // ~14 МБ в общем бандле. Читает их components/lottie-player.tsx (fetch по требованию).
+    // nginx отдаёт /_next/static с кэшем на год и (после gzip_types) со сжатием.
+    webpack(config) {
+        config.module.rules.push({
+            test: /\.json$/,
+            include: [path.join(process.cwd(), 'public')],
+            type: 'asset/resource',
+            generator: { filename: 'static/lottie/[name].[hash:8][ext]' },
+        })
+        return config
+    },
     async headers() {
         return [
             {

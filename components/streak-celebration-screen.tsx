@@ -8,11 +8,11 @@
 // (тёплый). Тест: /test-streak-screen.
 
 import { useEffect, useRef, useState } from 'react'
-import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import { COZY, type UiTheme } from '@/lib/cozyTheme'
+import Lottie from '@/components/lottie-player'
 
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false })
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
 interface StreakCelebrationScreenProps {
   animationData: any

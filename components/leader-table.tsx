@@ -11,7 +11,7 @@ import LottieNumber6 from '@/public/Lottie/fireNumbers/LottieNumber6.json'
 import LottieNumber7 from '@/public/Lottie/fireNumbers/LottieNumber7.json'
 import LottieNumber8 from '@/public/Lottie/fireNumbers/LottieNumber8.json'
 import LottieNumber9 from '@/public/Lottie/fireNumbers/LottieNumber9.json'
-import Lottie from "lottie-react";
+import Lottie from '@/components/lottie-player'
 import { Avatar, AvatarImage } from "./ui/avatar";
 import LottieCoins from '@/public/Lottie/LottieCoins.json'
 // import { sendMessageToTelegram } from "@/utils/telegram";

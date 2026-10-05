@@ -9,12 +9,13 @@
 
 'use client';
 
-import dynamic from 'next/dynamic';
 import GreenCalculator from '@/public/Lottie/coursesLogo/greencalculator.json';
 import RollingBall from '@/public/Lottie/coursesLogo/rollingball.json';
 import MagnetAtom from '@/public/Lottie/coursesLogo/magnetatom.json';
+import Lottie from '@/components/lottie-player'
 
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
+
 
 const COURSE_LOGOS: Record<number, { animationData: object; scale: number; rotateDeg?: number }> = {
     11: { animationData: GreenCalculator, scale: 1.5 },                 // ЕГЭ Математика Профиль

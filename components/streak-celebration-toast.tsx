@@ -17,12 +17,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { LOTTIE_STREAK_CELEBRATE_LIST, getRandomLottie } from '@/src/constants/lottieConstants';
 import { daysWord } from '@/usefulFunctions';
+import Lottie from '@/components/lottie-player'
 
-const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
+// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
+
 
 type StreakEvent = { id: number; streak: number } | null;
 
