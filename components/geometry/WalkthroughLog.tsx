@@ -432,9 +432,18 @@ const MAP_PANEL_WIDTH_PX = 44
 // здесь, один раз на все разборы.
 const QUESTION_SHELL_INSET_PX = 20
 
-export const AdminSceneMap = ({
+// Карта этапов временно ВЫКЛЮЧЕНА для всех (по просьбе пользователя 2026-10-05,
+// «пока нигде пользоваться не будем»): компонент и его подключения в *WALK-разборах
+// остаются в коде, чтобы вернуть — достаточно поставить true.
+const ADMIN_SCENE_MAP_ENABLED = false
+
+export const AdminSceneMap = (props: AdminSceneMapProps) => (ADMIN_SCENE_MAP_ENABLED ? <AdminSceneMapPanel {...props} /> : null)
+
+type AdminSceneMapProps = { entries: AdminMapEntry[]; onJump: (jumpKey: string) => void; disabled?: boolean; containerMaxWidthRem?: number }
+
+const AdminSceneMapPanel = ({
     entries, onJump, disabled, containerMaxWidthRem = 46,
-}: { entries: AdminMapEntry[]; onJump: (jumpKey: string) => void; disabled?: boolean; containerMaxWidthRem?: number }) => {
+}: AdminSceneMapProps) => {
     // position:sticky для этой панели на практике НЕ работает — ближайший
     // "overflow-y-auto" предок (motion.div вопроса в components/trainer-
     // question.tsx) сам никогда не скроллится (его высота просто растёт
