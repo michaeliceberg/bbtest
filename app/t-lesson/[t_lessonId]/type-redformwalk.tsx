@@ -294,14 +294,15 @@ const ShiftMarked = ({ k, half, marked }: { k: number; half: boolean; marked: bo
 }
 
 // Стрелка поверху: от верхней точки sin вверх, вправо и вниз к правой части равенства.
-const LoopArrow = ({ containerRef, fromRef, toRef, color, onDone }: {
+const LoopArrow = ({ containerRef, fromRef, toRef, color, label, onDone }: {
     containerRef: React.RefObject<HTMLDivElement>
     fromRef: React.RefObject<HTMLSpanElement>
     toRef: React.RefObject<HTMLSpanElement>
     color: string
+    label?: string
     onDone: () => void
 }) => {
-    const [geo, setGeo] = useState<{ d: string; tx: number; ty: number; w: number; h: number } | null>(null)
+    const [geo, setGeo] = useState<{ d: string; tx: number; ty: number; mx: number; ly: number; w: number; h: number } | null>(null)
     useLayoutEffect(() => {
         const c = containerRef.current
         const f = fromRef.current
@@ -318,7 +319,7 @@ const LoopArrow = ({ containerRef, fromRef, toRef, color, onDone }: {
         const r = 14
         setGeo({
             d: `M ${sx} ${sy - 4} L ${sx} ${by + r} Q ${sx} ${by} ${sx + r} ${by} L ${tx - r} ${by} Q ${tx} ${by} ${tx} ${by + r} L ${tx} ${ty - 12}`,
-            tx, ty: ty - 4, w: cr.width, h: cr.height,
+            tx, ty: ty - 4, mx: (sx + tx) / 2, ly: by - 9, w: cr.width, h: cr.height,
         })
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
@@ -331,16 +332,23 @@ const LoopArrow = ({ containerRef, fromRef, toRef, color, onDone }: {
             <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
                 <Arrowhead x={geo.tx} y={geo.ty} dx={0} dy={1} color={color} size={14} />
             </motion.g>
+            {label && (
+                <motion.text x={geo.mx} y={geo.ly} textAnchor="middle" fontSize={17} fill={color} style={LABEL_STYLE}
+                    initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.4 }}>
+                    {label}
+                </motion.text>
+            )}
         </svg>
     )
 }
 
 type RuleKind = 'change' | 'keep'
-const RuleExample = ({ k, fn, kind, lead, onDone }: { k: number; fn: Fn; kind: RuleKind; lead: 'first' | 'again' | 'plain'; onDone: () => void }) => {
+const RuleExample = ({ k, fn, kind, lead, ack, onDone }: { k: number; fn: Fn; kind: RuleKind; lead: 'first' | 'again' | 'plain'; ack: boolean; onDone: () => void }) => {
     const half = kind === 'change'
     const result: Fn = half ? SWAP[fn] : fn
     const accent = half ? STEP_COLOR : PLUS_COLOR
-    const [phase, setPhase] = useState(0) // 1 «видим…», 2 обводка, 3 «значит…», 4 стрелка, 5 результат
+    const [phase, setPhase] = useState(0) // 1 «видим…», 2 обводка, 3 «то/тоже/опять…», 4 стрелка, 5 результат
+    const [acked, setAcked] = useState(false)
     const containerRef = useRef<HTMLDivElement>(null)
     const fnRef = useRef<HTMLSpanElement>(null)
     const slotRef = useRef<HTMLSpanElement>(null)
@@ -354,7 +362,7 @@ const RuleExample = ({ k, fn, kind, lead, onDone }: { k: number; fn: Fn; kind: R
         endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
         const delay: Record<number, [number, number]> = { 2: [3, 1000] }
         if (phase === 4 && !half) { const t = setTimeout(() => setPhase(5), 400); return () => clearTimeout(t) }
-        if (phase === 5) { const t = setTimeout(onDone, 1000); return () => clearTimeout(t) }
+        if (phase === 5 && !ack) { const t = setTimeout(onDone, 1000); return () => clearTimeout(t) }
         const step = delay[phase]
         if (!step) return
         const t = setTimeout(() => setPhase(step[0]), step[1])
@@ -374,7 +382,7 @@ const RuleExample = ({ k, fn, kind, lead, onDone }: { k: number; fn: Fn; kind: R
                         <Appear when={phase >= 5}><span className="inline-flex items-center gap-1.5"><Fn2 f={result} /><span>x</span></span></Appear>
                     </span>
                 </motion.span>
-                {phase >= 4 && half && <LoopArrow containerRef={containerRef} fromRef={fnRef} toRef={slotRef} color={accent} onDone={() => setPhase(5)} />}
+                {phase >= 4 && half && <LoopArrow containerRef={containerRef} fromRef={fnRef} toRef={slotRef} color={accent} label="меняем" onDone={() => setPhase(5)} />}
             </div>
             {phase >= 1 && (
                 <TypedBig small onDone={() => setPhase(2)} readMs={300}
@@ -382,7 +390,18 @@ const RuleExample = ({ k, fn, kind, lead, onDone }: { k: number; fn: Fn; kind: R
             )}
             {phase >= 3 && (
                 <TypedBig small onDone={() => setPhase(4)} readMs={300}
-                    parts={[{ text: lead === 'first' ? 'то ' : 'значит ' }, { text: half ? 'МЕНЯЕМ' : 'НЕ МЕНЯЕМ', color: accent }]} />
+                    parts={[{ text: lead === 'first' ? 'то ' : lead === 'again' ? 'тоже ' : 'опять ' }, { text: half ? 'МЕНЯЕМ' : 'НЕ МЕНЯЕМ', color: accent }]} />
+            )}
+            {phase >= 5 && ack && !acked && (
+                <div className="w-full flex justify-center">
+                    <Appear when delay={0.5}>
+                        <button type="button" onClick={() => { setAcked(true); onDone() }}
+                            className="rounded-xl border-2 border-b-4 active:border-b-2 px-6 py-2.5 text-lg font-black animate-pulse"
+                            style={{ borderColor: accent, backgroundColor: hexToRgba(accent, 0.16), color: accent }}>
+                            Агась
+                        </button>
+                    </Appear>
+                </div>
             )}
             <div ref={endRef} />
         </div>
@@ -417,6 +436,7 @@ const RuleScene = ({ kind, onSettled }: SceneProps & { kind: RuleKind }) => {
             {examples.map((ex, i) => stage >= i && (
                 <RuleExample key={i} k={ex.k} fn={ex.fn} kind={kind}
                     lead={i === 0 ? 'first' : i === 1 ? 'again' : 'plain'}
+                    ack={i < examples.length - 1}
                     onDone={() => setStage((st) => Math.max(st, i + 1))} />
             ))}
             {stage >= examples.length && (
@@ -426,7 +446,15 @@ const RuleScene = ({ kind, onSettled }: SceneProps & { kind: RuleKind }) => {
                         {RULE_OTHERS[kind].map(([from, to], i) => (
                             <Appear key={from} when={chip >= 2 + i}>
                                 <span className="inline-flex items-center gap-2 rounded-xl border-2 border-[#3A464E] bg-[#161F23] px-3 py-1.5">
-                                    <Fn2 f={from} /><span className="text-[#F2F7FB]">→</span><Fn2 f={to} />
+                                    <Fn2 f={from} />
+                                    <span className="inline-flex flex-col items-center leading-none">
+                                        <span className="text-sm font-black mb-0.5" style={{ color: PI_COLOR }}>{kind === 'change' ? 'π/2' : 'π'}</span>
+                                        <svg width="58" height="14" viewBox="0 0 58 14" className="overflow-visible">
+                                            <line x1="1" y1="7" x2="46" y2="7" stroke="#F2F7FB" strokeWidth={3} strokeLinecap="round" />
+                                            <Arrowhead x={57} y={7} dx={1} dy={0} color="#F2F7FB" size={11} />
+                                        </svg>
+                                    </span>
+                                    <Fn2 f={to} />
                                 </span>
                             </Appear>
                         ))}
