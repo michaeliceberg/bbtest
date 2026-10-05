@@ -65,7 +65,7 @@ type BigPart = { text: string; color?: string; sticker?: boolean; circle?: boole
 const TypedBig = ({ parts, onDone, readMs = 500, small = false }: { parts: BigPart[]; onDone?: () => void; readMs?: number; small?: boolean }) => {
     const [typed, setTyped] = useState(false)
     return (
-        <div className={`w-full text-center font-black text-[#F2F7FB] ${small ? 'text-lg md:text-xl' : 'text-2xl md:text-3xl'}`}>
+        <div className={`w-full text-center font-black text-[#F2F7FB] whitespace-pre-line ${small ? 'text-lg md:text-xl' : 'text-2xl md:text-3xl'}`}>
             {!typed ? (
                 <Typewriter text={parts.map((p) => (p.before ?? '') + p.text + (p.suffix ?? '') + (p.after ?? '')).join('')} onDone={() => { setTyped(true); setTimeout(() => onDone?.(), readMs) }} />
             ) : (
@@ -856,7 +856,7 @@ const SignScene = ({ v, onSettled, leaving = false }: SceneProps & { v: VKey }) 
             {phase >= 8 && (
                 <TypedBig
                     small onDone={() => goto(9)} readMs={500}
-                    parts={[{ text: `${cfg.thenWord} получится ` }, { text: cfg.signWord, color: cfg.signColor }, { text: ' ' }, { text: cfg.result, color: FN_COLOR[cfg.result] }]}
+                    parts={[{ text: 'поэтому получается\n' }, { text: cfg.signWord, color: cfg.signColor }, { text: ' ' }, { text: cfg.result, color: FN_COLOR[cfg.result] }]}
                 />
             )}
             {phase >= 9 && (
