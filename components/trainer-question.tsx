@@ -40,6 +40,7 @@ import { TypeSinCosDefWalk } from "@/app/t-lesson/[t_lessonId]/type-sincosdefwal
 import { TypeLegFindWalk } from "@/app/t-lesson/[t_lessonId]/type-legfindwalk"
 import { TypeTrigValWalk } from "@/app/t-lesson/[t_lessonId]/type-trigvalwalk"
 import { TypeTrigCircleWalk } from "@/app/t-lesson/[t_lessonId]/type-trigcirclewalk"
+import { TypeRedFormWalk } from "@/app/t-lesson/[t_lessonId]/type-redformwalk"
 import { TypeWorkbook } from "@/app/t-lesson/[t_lessonId]/type-workbook"
 import { TypeConstructor } from "@/app/t-lesson/[t_lessonId]/type-constructor"
 
@@ -422,6 +423,10 @@ export default function TrainerQuestion({
         // Тангенс 30°/45°/60° как синус : косинус — см. type-trigvalwalk.tsx.
         return <TypeTrigValWalk mode="tg" question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
 
+      case "REDFORMWALK":
+        // «Формулы приведения» — первый разбор sin(x + π/2), см. type-redformwalk.tsx.
+        return <TypeRedFormWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
+
       case "TRIGCIRCWALK":
         // «Тригонометрическая окружность: знакомство» — см. type-trigcirclewalk.tsx.
         return <TypeTrigCircleWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
@@ -771,7 +776,7 @@ export default function TrainerQuestion({
           прямой просьбе пользователя. TRIGTABLE (как ASSIST/INSERT/
           SCROLL) — select-then-submit: общая кнопка сначала "Ответить"
           (когда все пропуски заполнены), затем "далее"/"понятно". */}
-      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "SINWALK" && question.questionType !== "LOGWALK" && question.questionType !== "LOGDEFWALK" && question.questionType !== "LOGSUBWALK" && question.questionType !== "LOGPOWWALK" && question.questionType !== "LOGSWAPWALK" && question.questionType !== "LOGDIVWALK" && question.questionType !== "LOGCOMBOWALK" && question.questionType !== "LOGFLIPWALK" && question.questionType !== "FARADAYWALK" && question.questionType !== "DIRWALK" && question.questionType !== "LENZWALK" && question.questionType !== "SINCOSDEFWALK" && question.questionType !== "LEGFINDWALK" && question.questionType !== "TRIGSCWALK" && question.questionType !== "TRIGTGWALK" && question.questionType !== "TRIGCIRCWALK" && (
+      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "SINWALK" && question.questionType !== "LOGWALK" && question.questionType !== "LOGDEFWALK" && question.questionType !== "LOGSUBWALK" && question.questionType !== "LOGPOWWALK" && question.questionType !== "LOGSWAPWALK" && question.questionType !== "LOGDIVWALK" && question.questionType !== "LOGCOMBOWALK" && question.questionType !== "LOGFLIPWALK" && question.questionType !== "FARADAYWALK" && question.questionType !== "DIRWALK" && question.questionType !== "LENZWALK" && question.questionType !== "SINCOSDEFWALK" && question.questionType !== "LEGFINDWALK" && question.questionType !== "TRIGSCWALK" && question.questionType !== "TRIGTGWALK" && question.questionType !== "TRIGCIRCWALK" && question.questionType !== "REDFORMWALK" && (
       <div className="px-4 pb-4 pt-2 bg-[#151F24] relative">
         {/* Notification фон который выезжает при правильном ответе */}
         {answerState === "correct" && (
