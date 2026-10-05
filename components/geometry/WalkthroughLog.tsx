@@ -599,7 +599,7 @@ export const FieryFeedbackBanner = ({ children, fiery = false }: { children: Rea
             <div className="w-1/4 max-w-[110px] shrink-0">
                 {lottieReady && <Lottie animationData={lottieData} loop autoplay />}
             </div>
-            <div className="relative flex-1 min-w-0 px-4 py-2.5 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]">
+            <div className="relative min-w-0 max-w-full px-4 py-2.5 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]">
                 {/* flex items-center — children здесь обычно "иконка +
                     текст" (например <Check/> + фраза), а Tailwind preflight
                     ставит svg { display:block } по умолчанию: без flex

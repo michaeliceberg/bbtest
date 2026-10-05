@@ -373,7 +373,7 @@ const FeedbackBanner = ({ correct, correctText = '', seed, fiery = false }: { co
                 <div className="w-1/4 max-w-[110px] shrink-0">
                     {lottieReady && <Lottie animationData={lottieData} loop autoplay />}
                 </div>
-                <div className="relative flex-1 min-w-0 px-4 py-2.5 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]">
+                <div className="relative min-w-0 max-w-full px-4 py-2.5 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]">
                     <span className="text-[#A1D151] font-bold text-base md:text-lg break-words">{text}</span>
                     <div className="absolute -left-3 top-1/2 -translate-y-1/2 text-[#3A464E] text-xl font-bold">&lt;</div>
                 </div>

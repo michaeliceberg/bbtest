@@ -184,7 +184,7 @@ export const TrainerMascot = ({
               ? { boxShadow: { duration: 1.6, repeat: Infinity, ease: "easeInOut" } }
               : {}),
           }}
-          className="relative flex-1 min-w-0 px-4 py-3 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]"
+          className="relative min-w-0 max-w-full text-left px-4 py-3 bg-[#151F23] rounded-2xl shadow-lg border-2 border-[#3A464E]"
         >
           <span className="text-[#F2F7FB] font-bold text-base md:text-lg whitespace-normal break-words">
             <Latex>{currentMessage}</Latex>
