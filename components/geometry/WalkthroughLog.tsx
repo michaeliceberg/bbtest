@@ -44,14 +44,14 @@ export const ATTENTION_COLOR = GGEGE_PALETTE.orange.button
 // элемента с position: relative — растягивается на его размер + 12px с каждой стороны.
 export const MARKER_LOOP_COLOR = '#F2C35B'
 const MARKER_LOOP_PATH = 'M 86 24 C 66 0, 16 4, 7 44 C 0 86, 58 102, 90 80 C 104 64, 99 34, 72 18'
-export const MarkerLoop = ({ active = true, delay = 0 }: { active?: boolean; delay?: number }) => (
+export const MarkerLoop = ({ active = true, delay = 0, color = MARKER_LOOP_COLOR }: { active?: boolean; delay?: number; color?: string }) => (
     <svg
         className="pointer-events-none absolute -inset-3 z-10 overflow-visible"
         viewBox="0 0 100 100" preserveAspectRatio="none"
         style={{ width: 'calc(100% + 24px)', height: 'calc(100% + 24px)' }}
     >
         <motion.path
-            d={MARKER_LOOP_PATH} fill="none" stroke={MARKER_LOOP_COLOR} strokeWidth={4} strokeLinecap="round" vectorEffect="non-scaling-stroke"
+            d={MARKER_LOOP_PATH} fill="none" stroke={color} strokeWidth={4} strokeLinecap="round" vectorEffect="non-scaling-stroke"
             initial={{ pathLength: 0 }}
             animate={active ? { pathLength: 1 } : { pathLength: 0 }}
             transition={{ duration: 0.5, ease: 'easeInOut', delay }}

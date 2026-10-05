@@ -80,10 +80,10 @@ const Frac = ({ num, den }: { num: string; den: string }) => (
 )
 
 // Эталонная обводка-«фломастер» (MarkerLoop) вокруг куска формулы.
-const Marked = ({ children, active }: { children: React.ReactNode; active: boolean }) => (
+const Marked = ({ children, active, color }: { children: React.ReactNode; active: boolean; color?: string }) => (
     <span className="relative inline-block px-1">
         {children}
-        {active && <MarkerLoop />}
+        {active && <MarkerLoop color={color} />}
     </span>
 )
 
@@ -96,8 +96,10 @@ const Formula = ({ markPi = false, markX = false, markSin = false, plain = false
         <Marked active={markSin}><span style={{ color: plain ? '#F2F7FB' : SIN_COLOR }}>sin</span></Marked>
         <span>(</span>
         <Marked active={markX}><span style={{ color: plain ? '#F2F7FB' : STEP_COLOR }}>x</span></Marked>
-        <span className="mx-1">+</span>
-        <Marked active={markPi}><span style={{ color: PI_COLOR }}><Frac num="π" den="2" /></span></Marked>
+        <Marked active={markPi} color={PI_COLOR}>
+            <span className="mr-1">+</span>
+            <span style={{ color: PI_COLOR }}><Frac num="π" den="2" /></span>
+        </Marked>
         <span>)</span>
     </motion.div>
 )
@@ -252,7 +254,7 @@ const FormulaScene = ({ onSettled }: SceneProps) => {
             {phase >= 1 && (
                 <TypedBig
                     small
-                    parts={[{ text: 'Именно такой кусочек ' }, { text: 'π/2', color: PI_COLOR, sticker: true }, { text: ' и есть формула приведения' }]}
+                    parts={[{ text: 'Именно такой кусочек ' }, { text: '+π/2', color: PI_COLOR, sticker: true }, { text: ' и есть формула приведения' }]}
                     onDone={() => setPhase(2)} readMs={400}
                 />
             )}
@@ -260,76 +262,82 @@ const FormulaScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-// 0б. Правило — две карточки вместо текста: сдвиги на π/2, 3π/2, 5π/2… МЕНЯЮТ
-// функцию (sin⇄cos, tg⇄ctg), сдвиги на π, 2π, 3π… — НЕ меняют.
-const Appear = ({ when, children, className }: { when: boolean; children: React.ReactNode; className?: string }) => (
+// 0б/0в. Правило — на одном примере (sin) подробно, потом то же для остальных функций.
+//   kind 'change': сдвиг на нечётное число π/2 → sin(x + π/2), sin(x + 3π/2), sin(x − π/2) = cos;
+//   kind 'keep'  : сдвиг на целое число π → sin(x + π), sin(x + 2π), sin(x − 3π) = sin.
+const Appear = ({ when, children, className, delay = 0 }: { when: boolean; children: React.ReactNode; className?: string; delay?: number }) => (
     <motion.span
         className={cn('inline-flex', className)}
         initial={false}
         animate={when ? { scale: 1, opacity: 1 } : { scale: 0.4, opacity: 0 }}
-        transition={{ type: 'spring', stiffness: 320, damping: 14 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 14, delay: when ? delay : 0 }}
     >
         {children}
     </motion.span>
 )
-const PiChip = ({ num, den }: { num: string; den?: string }) => (
-    <span className="inline-flex items-center rounded-lg border-2 px-2 py-1 text-xl md:text-2xl font-black"
-        style={{ color: PI_COLOR, borderColor: PI_COLOR, backgroundColor: hexToRgba(PI_COLOR, 0.14) }}>
-        {den ? <Frac num={num} den={den} /> : num}
-    </span>
-)
 const Fn2 = ({ f }: { f: Fn }) => <span style={{ color: FN_COLOR[f] }}>{f}</span>
 
-const RULE_STEP_MS = 520
-const RuleScene = ({ onSettled }: SceneProps) => {
+const RULE_CFG = {
+    change: {
+        color: STEP_COLOR, badge: 'МЕНЯЕТСЯ', ks: [1, 3, -1], result: 'cos' as Fn,
+        others: [['cos', 'sin'], ['tg', 'ctg'], ['ctg', 'tg']] as [Fn, Fn][],
+    },
+    keep: {
+        color: PLUS_COLOR, badge: 'НЕ МЕНЯЕТСЯ', ks: [2, 4, -6], result: 'sin' as Fn,
+        others: [['cos', 'cos'], ['tg', 'tg'], ['ctg', 'ctg']] as [Fn, Fn][],
+    },
+}
+const RULE_STEP_MS = 650
+const RuleScene = ({ kind, onSettled }: SceneProps & { kind: 'change' | 'keep' }) => {
+    const cfg = RULE_CFG[kind]
     const [step, setStep] = useState(0)
-    const LAST = 17
+    const LAST = 9
     useEffect(() => {
         if (step >= LAST) {
-            const t = setTimeout(() => onSettled?.(), 1000)
+            const t = setTimeout(() => onSettled?.(), 1100)
             return () => clearTimeout(t)
         }
         const t = setTimeout(() => setStep((n) => n + 1), step === 0 ? 400 : RULE_STEP_MS)
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [step])
-    const card = (o: number, color: string, chips: { num: string; den?: string }[], badge: string, body: React.ReactNode[]) => (
-        <Appear when={step >= o} className="w-full">
-            <div className="w-full rounded-2xl border-2 p-4 flex flex-col gap-4" style={{ borderColor: color, backgroundColor: hexToRgba(color, 0.08) }}>
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-2 flex-wrap text-2xl font-black text-[#F2F7FB]" style={LABEL_STYLE}>
-                        <span>±</span>
-                        {chips.map((c, i) => <Appear key={i} when={step >= o + 1 + i}><PiChip {...c} /></Appear>)}
-                        <Appear when={step >= o + 1 + chips.length}><span className="text-[#9AA7B0]">…</span></Appear>
-                    </div>
-                    <Appear when={step >= o + 3 + chips.length + body.length}>
-                        <span className="rounded-full border-2 px-3 py-1 text-sm md:text-base font-black" style={{ color, borderColor: color, backgroundColor: hexToRgba(color, 0.18) }}>{badge}</span>
+    return (
+        <div className="w-full max-w-md mx-auto flex flex-col gap-4">
+            <div className="w-full rounded-2xl border-2 p-4 flex flex-col gap-3" style={{ borderColor: cfg.color, backgroundColor: hexToRgba(cfg.color, 0.08) }}>
+                <div className="flex justify-end">
+                    <Appear when={step >= 1}>
+                        <span className="rounded-full border-2 px-3 py-1 text-sm md:text-base font-black" style={{ color: cfg.color, borderColor: cfg.color, backgroundColor: hexToRgba(cfg.color, 0.18) }}>{cfg.badge}</span>
                     </Appear>
                 </div>
-                <div className="flex flex-col gap-2 text-3xl md:text-4xl font-black text-[#F2F7FB]" style={LABEL_STYLE}>
-                    {body.map((row, i) => <Appear key={i} when={step >= o + 2 + chips.length + i} className="justify-center">{row}</Appear>)}
+                {cfg.ks.map((k, i) => (
+                    <div key={k} className="flex items-center justify-center gap-3 text-3xl md:text-4xl font-black text-[#F2F7FB]" style={LABEL_STYLE}>
+                        <Appear when={step >= 2 + i}>
+                            <span className="inline-flex items-center">
+                                <Fn2 f="sin" /><span>(</span><span>x</span><Shift k={k} /><span>)</span>
+                            </span>
+                        </Appear>
+                        <Appear when={step >= 2 + i}><span>→</span></Appear>
+                        <Appear when={step >= 2 + i} delay={0.3}><Fn2 f={cfg.result} /></Appear>
+                    </div>
+                ))}
+            </div>
+            <div className="w-full flex flex-col items-center gap-2">
+                <Appear when={step >= 5}><span className="text-sm font-bold uppercase tracking-wide text-[#9AA7B0]">так же и у остальных</span></Appear>
+                <div className="flex items-center justify-center flex-wrap gap-3 text-2xl md:text-3xl font-black" style={LABEL_STYLE}>
+                    {cfg.others.map(([from, to], i) => (
+                        <Appear key={from} when={step >= 6 + i}>
+                            <span className="inline-flex items-center gap-2 rounded-xl border-2 border-[#3A464E] bg-[#161F23] px-3 py-1.5">
+                                <Fn2 f={from} /><span className="text-[#F2F7FB]">→</span><Fn2 f={to} />
+                            </span>
+                        </Appear>
+                    ))}
                 </div>
             </div>
-        </Appear>
-    )
-    return (
-        <div className="w-full flex flex-col gap-3 max-w-md mx-auto">
-            {card(0, STEP_COLOR,
-                [{ num: 'π', den: '2' }, { num: '3π', den: '2' }, { num: '5π', den: '2' }],
-                'МЕНЯЕТСЯ',
-                [
-                    <span key="a" className="inline-flex items-center gap-3"><Fn2 f="sin" /><span>⇄</span><Fn2 f="cos" /></span>,
-                    <span key="b" className="inline-flex items-center gap-3"><Fn2 f="tg" /><span>⇄</span><Fn2 f="ctg" /></span>,
-                ])}
-            {card(9, PLUS_COLOR,
-                [{ num: 'π' }, { num: '2π' }, { num: '3π' }],
-                'НЕ МЕНЯЕТСЯ',
-                [
-                    <span key="c" className="inline-flex items-center gap-4"><Fn2 f="sin" /><Fn2 f="cos" /><Fn2 f="tg" /><Fn2 f="ctg" /></span>,
-                ])}
         </div>
     )
 }
+const RuleChangeScene = ({ onSettled }: SceneProps) => <RuleScene kind="change" onSettled={onSettled} />
+const RuleKeepScene = ({ onSettled }: SceneProps) => <RuleScene kind="keep" onSettled={onSettled} />
 
 // 1. Где мы окажемся, придя в x + π/2: сначала идём в плюс π/2.
 const WhereScene = ({ onSettled }: SceneProps) => {
@@ -508,12 +516,12 @@ const hintFor = (t: Trial) =>
     Math.abs(t.k) % 2 === 1 ? 'Здесь π/2 «нечётное» — функция меняется.' : 'Здесь целое π — функция остаётся.'
 
 // Сцены-разборы: индексы в INTRO_SCENES; упражнения встают после правила.
-const INTRO_SCENES = [FormulaScene, RuleScene, WhereScene, StepScene, SignScene]
+const INTRO_SCENES = [FormulaScene, RuleChangeScene, RuleKeepScene, WhereScene, StepScene, SignScene]
 type SceneKey = { kind: 'intro'; idx: number } | { kind: 'trial'; idx: number }
 const SCENE_KEYS: SceneKey[] = [
-    { kind: 'intro', idx: 0 }, { kind: 'intro', idx: 1 },
+    { kind: 'intro', idx: 0 }, { kind: 'intro', idx: 1 }, { kind: 'intro', idx: 2 },
     ...Array.from({ length: TRIAL_COUNT }, (_, i): SceneKey => ({ kind: 'trial', idx: i })),
-    { kind: 'intro', idx: 2 }, { kind: 'intro', idx: 3 }, { kind: 'intro', idx: 4 },
+    { kind: 'intro', idx: 3 }, { kind: 'intro', idx: 4 }, { kind: 'intro', idx: 5 },
 ]
 const keyName = (k: SceneKey) => (k.kind === 'intro' ? `step-${k.idx}` : `trial-${k.idx}`)
 
