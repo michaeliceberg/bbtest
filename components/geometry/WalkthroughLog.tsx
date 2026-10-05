@@ -458,9 +458,10 @@ const QUESTION_SHELL_INSET_PX = 20
 // остаются в коде, чтобы вернуть — достаточно поставить true.
 const ADMIN_SCENE_MAP_ENABLED = false
 
-export const AdminSceneMap = (props: AdminSceneMapProps) => (ADMIN_SCENE_MAP_ENABLED ? <AdminSceneMapPanel {...props} /> : null)
+// enabled — включить карту точечно для конкретного разбора, не трогая общий выключатель.
+export const AdminSceneMap = (props: AdminSceneMapProps) => (ADMIN_SCENE_MAP_ENABLED || props.enabled ? <AdminSceneMapPanel {...props} /> : null)
 
-type AdminSceneMapProps = { entries: AdminMapEntry[]; onJump: (jumpKey: string) => void; disabled?: boolean; containerMaxWidthRem?: number }
+type AdminSceneMapProps = { entries: AdminMapEntry[]; onJump: (jumpKey: string) => void; disabled?: boolean; containerMaxWidthRem?: number; enabled?: boolean }
 
 const AdminSceneMapPanel = ({
     entries, onJump, disabled, containerMaxWidthRem = 46,

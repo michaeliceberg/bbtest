@@ -425,7 +425,7 @@ export default function TrainerQuestion({
 
       case "REDFORMWALK":
         // «Формулы приведения» — первый разбор sin(x + π/2), см. type-redformwalk.tsx.
-        return <TypeRedFormWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
+        return <TypeRedFormWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} isAdmin={isAdmin} />
 
       case "TRIGCIRCWALK":
         // «Тригонометрическая окружность: знакомство» — см. type-trigcirclewalk.tsx.
