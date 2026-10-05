@@ -314,7 +314,7 @@ const FormulaScene = ({ onSettled }: SceneProps) => {
             {phase >= 1 && (
                 <TypedBig
                     small
-                    parts={[{ text: 'Именно такой кусочек ' }, { text: '+π/2', color: PI_COLOR, sticker: true }, { text: ' и есть формула приведения' }]}
+                    parts={[{ text: 'Именно кусочек ' }, { text: '+π/2', color: PI_COLOR, sticker: true }, { text: ' и означает формулу приведения' }]}
                     onDone={() => setPhase(2)} readMs={400}
                 />
             )}
@@ -504,24 +504,23 @@ const RuleExample = ({ k, fn, kind, lead, ack, onDone }: { k: number; fn: Fn; ki
             </div>
             {phase >= 1 && (
                 <TypedBig small onDone={() => setPhase(2)} readMs={300}
-                    parts={[{ text: lead === 'again' ? 'видим опять ' : lead === 'plain' ? 'видим ' : lead === 'simple' ? 'видим просто ' : 'если видим ' }, { text: word, color: PI_COLOR, sticker: true }]} />
+                    parts={[{ text: lead === 'again' ? 'опять видим ' : lead === 'plain' ? 'видим ' : lead === 'simple' ? 'видим просто ' : 'если видим ' }, { text: word, color: PI_COLOR, sticker: true }]} />
             )}
             {phase >= 3 && (
                 <TypedBig small onDone={() => setPhase(4)} readMs={300}
-                    parts={[{ text: lead === 'first' || lead === 'simple' ? 'то ' : lead === 'again' ? 'тоже ' : 'опять ' }, { text: half ? 'МЕНЯЕМ' : 'НЕ МЕНЯЕМ', color: accent }]} />
+                    parts={[{ text: lead === 'first' || lead === 'simple' ? 'то ' : lead === 'again' ? 'тоже ' : 'опять ' }, { text: half ? 'МЕНЯЕМ' : 'НЕ МЕНЯЕМ', color: accent }, { text: ' функцию' }]} />
             )}
             {phase >= 5 && ack && !acked && (
-                <div className="w-full flex justify-center">
-                    <motion.button
+                <motion.div className="w-full flex" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+                    <button
                         type="button"
-                        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
                         onClick={() => { setAcked(true); onDone() }}
                         className={walkthroughButtonClass(true)}
                         style={walkthroughButtonStyle(true)}
                     >
                         Агась
-                    </motion.button>
-                </div>
+                    </button>
+                </motion.div>
             )}
             <div ref={endRef} />
         </div>
@@ -566,15 +565,16 @@ const KeepTeaser = ({ onDone }: { onDone: () => void }) => {
                 <Lottie animationData={anim} lottieRef={lottieRef} loop autoplay className="w-44 h-44" />
             )}
             {phase >= 3 && !stopped && (
-                <motion.button
-                    type="button"
-                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-                    onClick={() => { lottieRef.current?.pause(); setStopped(true); onDone() }}
-                    className={walkthroughButtonClass(true) + ' w-full'}
-                    style={{ ...walkthroughButtonStyle(true), flex: 'none' }}
-                >
-                    Усёк
-                </motion.button>
+                <motion.div className="w-full" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+                    <button
+                        type="button"
+                        onClick={() => { lottieRef.current?.pause(); setStopped(true); onDone() }}
+                        className={walkthroughButtonClass(true) + ' w-full'}
+                        style={walkthroughButtonStyle(true)}
+                    >
+                        Усёк
+                    </button>
+                </motion.div>
             )}
             <div ref={endRef} />
         </div>
@@ -683,13 +683,15 @@ const PlaceScene = ({ v, onSettled }: SceneProps & { v: VKey }) => {
                 />
             )}
             {phase === 5 && (
-                <motion.button
-                    type="button" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                    onClick={() => goto(6)}
-                    className={`${walkthroughButtonClass(true)} w-full`} style={{ ...walkthroughButtonStyle(true), flex: 'none' }}
-                >
-                    Нука-нука
-                </motion.button>
+                <motion.div className="w-full" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                    <button
+                        type="button"
+                        onClick={() => goto(6)}
+                        className={`${walkthroughButtonClass(true)} w-full`} style={walkthroughButtonStyle(true)}
+                    >
+                        Нука-нука
+                    </button>
+                </motion.div>
             )}
             {phase >= 6 && (
                 <TypedBig
