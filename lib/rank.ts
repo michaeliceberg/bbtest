@@ -8,16 +8,25 @@
 
 export const LEVEL_RANKS: { minLevel: number; title: string }[] = [
     { minLevel: 1, title: 'Дворник' },
-    { minLevel: 3, title: 'Шестёрка' },
+    { minLevel: 2, title: 'Нуб' },
+    { minLevel: 3, title: 'Салага' },
     { minLevel: 5, title: 'Курьер' },
-    { minLevel: 8, title: 'Подручный' },
-    { minLevel: 12, title: 'Наводчик' },
-    { minLevel: 17, title: 'Громила' },
-    { minLevel: 23, title: 'Боец' },
-    { minLevel: 30, title: 'Бригадир' },
-    { minLevel: 40, title: 'Авторитет' },
+    { minLevel: 7, title: 'Рандом' },
+    { minLevel: 9, title: 'Стукач' },
+    { minLevel: 12, title: 'Карманник' },
+    { minLevel: 15, title: 'Подручный' },
+    { minLevel: 18, title: 'Наводчик' },
+    { minLevel: 22, title: 'Громила' },
+    { minLevel: 26, title: 'Громила-старший' },
+    { minLevel: 30, title: 'Фармила' },
+    { minLevel: 35, title: 'Боец' },
+    { minLevel: 41, title: 'Бригадир' },
+    { minLevel: 48, title: 'Авторитет' },
     { minLevel: 55, title: 'Смотрящий' },
-    { minLevel: 75, title: 'Правая рука' },
+    { minLevel: 62, title: 'Имба' },
+    { minLevel: 70, title: 'Правая рука' },
+    { minLevel: 80, title: 'Консильери' },
+    { minLevel: 95, title: 'Крёстный отец' },
 ]
 
 export const GANG_ROLE_RANKS: Record<string, string> = {
