@@ -522,10 +522,10 @@ export const TypeHypFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
                             type="button"
                             onClick={handleNext}
                             disabled={!nextEnabled}
-                            className={walkthroughButtonClass(nextEnabled)}
+                            className={cn(walkthroughButtonClass(nextEnabled), isLastScene && !isIntro && 'text-sm sm:text-lg leading-tight px-2 text-center')}
                             style={walkthroughButtonStyle(nextEnabled)}
                         >
-                            {isIntro ? 'Дальше' : isLastScene ? 'Готово' : nextLabel}
+                            {isIntro ? (latestSceneKey === 'intro-1' ? 'Го тестить' : 'Дальше') : isLastScene ? 'Теперь я МАСТЕР СИНУСОВ' : nextLabel}
                         </button>
                     </div>
                 ) : (
