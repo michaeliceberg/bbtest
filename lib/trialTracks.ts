@@ -16,6 +16,7 @@ export type TrialTrack = {
 	subjectAcc: string     // «прохожу физику»
 	lessonGen: string      // «за урок физики»
 	subjectPrep: string    // «кто круче в физике»
+	battleSlang: string    // «го на баттл по матеше»
 	steps: string[]        // названия уроков на экране «Тебя позвал…»
 }
 
@@ -28,6 +29,7 @@ export const TRIAL_TRACKS: Record<TrialSubject, TrialTrack> = {
 		subjectAcc: 'физику',
 		lessonGen: 'физики',
 		subjectPrep: 'физике',
+		battleSlang: 'физике',
 		steps: ['Ток крутит поле 🌀', 'Фарадей — наш брат 🤝', 'Ленц — душнила, но база 🧱'],
 	},
 	math: {
@@ -38,6 +40,7 @@ export const TRIAL_TRACKS: Record<TrialSubject, TrialTrack> = {
 		subjectAcc: 'математику',
 		lessonGen: 'математики',
 		subjectPrep: 'математике',
+		battleSlang: 'матеше',
 		steps: ['Окружность — наш дом 🏠', 'Три волшебных угла ✨', 'Тангенс — изи 😎'],
 	},
 }
