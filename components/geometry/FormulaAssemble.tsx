@@ -22,11 +22,16 @@ export type FormulaChip = { id: string; label: string }
 type Props = {
     // Левая часть («гипотенуза =», «катет =»).
     prefix: string
-    layout: 'fraction' | 'product'
+    // 'single' — один пропуск (correct[0]), второй не используется.
+    layout: 'fraction' | 'product' | 'single'
     chips: FormulaChip[]
     // Верные [первый пропуск, второй пропуск]: числитель/знаменатель или
     // левый/правый множитель.
     correct: [string, string]
+    // Другие верные пары (например, пропорцию можно записать по-разному).
+    alsoCorrect?: [string, string][]
+    // Текст после формулы (например, «= 12»).
+    suffix?: string
     // Подсказки в пустых пропусках (необязательно).
     slotHints?: [string, string]
     // Уже решённое/прошлое задание — застывший вид с верными кнопками.
@@ -37,7 +42,7 @@ type Props = {
 
 const CHIP_BASE = 'min-w-11 h-11 px-3 rounded-lg border-2 flex items-center justify-center text-lg font-black shrink-0 whitespace-nowrap'
 
-export const FormulaAssemble = ({ prefix, layout, chips, correct, slotHints, frozen = false, onWrong, onSolved }: Props) => {
+export const FormulaAssemble = ({ prefix, layout, chips, correct, alsoCorrect, suffix, slotHints, frozen = false, onWrong, onSolved }: Props) => {
     const [slots, setSlots] = useState<(string | null)[]>([null, null])
     const [active, setActive] = useState<0 | 1>(0)
     const [wrong, setWrong] = useState(false)
@@ -54,8 +59,13 @@ export const FormulaAssemble = ({ prefix, layout, chips, correct, slotHints, fro
     const done = frozen || solved
 
     const evaluate = (next: (string | null)[]) => {
-        if (next[0] === null || next[1] === null) return
-        if (next[0] === correct[0] && next[1] === correct[1]) {
+        if (layout === 'single') {
+            if (next[0] === null) return
+        } else if (next[0] === null || next[1] === null) return
+        const ok = layout === 'single'
+            ? next[0] === correct[0]
+            : [correct, ...(alsoCorrect ?? [])].some((c) => next[0] === c[0] && next[1] === c[1])
+        if (ok) {
             setSolved(true)
             onSolved?.(mistakes === 0)
         } else {
@@ -71,6 +81,7 @@ export const FormulaAssemble = ({ prefix, layout, chips, correct, slotHints, fro
         next[active] = id
         setSlots(next)
         setWrong(false)
+        if (layout === 'single') return evaluate(next)
         const other: 0 | 1 = active === 0 ? 1 : 0
         if (next[other] === null) setActive(other)
         else evaluate(next)
@@ -88,7 +99,9 @@ export const FormulaAssemble = ({ prefix, layout, chips, correct, slotHints, fro
 
     const renderSlot = (idx: 0 | 1) => {
         if (done) {
-            return <div className={cn(CHIP_BASE, 'border-[#A1D151] bg-[#A1D15122] text-[#A1D151]')}>{label(correct[idx])}</div>
+            // Верная пара, которую выбрал ученик (если пропуски заполнены), иначе — основная.
+            const shown = slots[0] !== null && slots[1] !== null && layout !== 'single' ? slots[idx] : correct[idx]
+            return <div className={cn(CHIP_BASE, 'border-[#A1D151] bg-[#A1D15122] text-[#A1D151]')}>{label(shown)}</div>
         }
         const id = slots[idx]
         if (id !== null) {
@@ -117,7 +130,9 @@ export const FormulaAssemble = ({ prefix, layout, chips, correct, slotHints, fro
         <div className="flex flex-col items-center gap-5 w-full">
             <div className="flex items-center justify-center gap-2 text-xl md:text-2xl font-bold text-[#F2F7FB] flex-wrap">
                 <span>{prefix}</span>
-                {layout === 'fraction' ? (
+                {layout === 'single' ? (
+                    renderSlot(0)
+                ) : layout === 'fraction' ? (
                     <div className="inline-flex flex-col items-stretch">
                         {renderSlot(0)}
                         <div className="h-0.5 my-1 rounded" style={{ backgroundColor: dividerColor }} />
@@ -130,6 +145,7 @@ export const FormulaAssemble = ({ prefix, layout, chips, correct, slotHints, fro
                         {renderSlot(1)}
                     </div>
                 )}
+                {suffix && <span>{suffix}</span>}
             </div>
             {!done && (
                 <div className="flex items-center justify-center gap-2 flex-wrap">
