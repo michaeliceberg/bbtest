@@ -310,12 +310,13 @@ const RedCircle = ({ base = PI / 2, plusArc = null, stepArc = null, onPlusDone, 
 }
 
 // ===== Сцены =====
-type SceneProps = { onSettled?: () => void; leaving?: boolean } // leaving — нажата кнопка «дальше» (идёт пауза перехода)
+type SceneProps = { onSettled?: () => void; leaving?: boolean; ghostOn?: boolean; onGas?: () => void } // leaving — нажата кнопка «дальше» (идёт пауза перехода)
 
 // 0. Что такое формула приведения: всё белое, кроме π/2. Сначала текст,
 // потом маркером обводим π/2.
-const FormulaScene = ({ onSettled }: SceneProps) => {
+const FormulaScene = ({ onSettled, ghostOn = true }: SceneProps) => {
     const [phase, setPhase] = useState(0)
+    const [typedDone, setTypedDone] = useState(false)
     useEffect(() => {
         const t = setTimeout(() => setPhase(1), 900)
         return () => clearTimeout(t)
@@ -327,16 +328,28 @@ const FormulaScene = ({ onSettled }: SceneProps) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [phase])
     return (
-        <>
+        <div className="relative w-full flex flex-col gap-4">
             <Formula plain markPi={phase >= 2} />
             {phase >= 1 && (
                 <TypedBig
                     small
                     parts={[{ text: 'Именно кусочек ' }, { text: '+π/2', color: PI_COLOR, sticker: true }, { text: ' и означает формулу приведения' }]}
-                    onDone={() => setPhase(2)} readMs={400}
+                    onDone={() => { setTypedDone(true); setPhase(2) }} readMs={400}
                 />
             )}
-        </>
+            {/* «приведение» → призрак (Каспер), смотрит на π/2; в углу справа, повёрнут на 30° против часовой.
+                Выключается, когда в сцене cos нажали «ГАААААЗ» (ghostOn=false). */}
+            {typedDone && ghostOn && (
+                <motion.div
+                    className="absolute -top-3 right-0 w-20 sm:w-24 pointer-events-none"
+                    initial={{ opacity: 0, scale: 0.4, rotate: -30 }}
+                    animate={{ opacity: 1, scale: 1, rotate: -30 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 14 }}
+                >
+                    <video src="/video/casper-cuphead.mp4" autoPlay loop muted playsInline className="w-full h-auto rounded-xl border-2 border-[#3A464E]" />
+                </motion.div>
+            )}
+        </div>
     )
 }
 
@@ -692,7 +705,7 @@ const VARIANTS: Record<VKey, {
 //   phase: 0 вступление, 1 формула, 2 первый ответ, 3 «или», 4 второй ответ, 5 «Нука-нука»,
 //   6 «Для этого СНАЧАЛА идём в…», 7 маркер на сдвиге, 8 окружность, 9 дуга 0→base, 10 маркер снят,
 //   11 маркер на x (−x), 12 «А x — маленький шаг в ПЛЮС/МИНУС», 13 дуга ±30°, 14 подпись и мигающая точка.
-const PlaceScene = ({ v, onSettled }: SceneProps & { v: VKey }) => {
+const PlaceScene = ({ v, onSettled, onGas }: SceneProps & { v: VKey }) => {
     const cfg = VARIANTS[v]
     const [phase, setPhase] = useState(0)
     const [introTyped, setIntroTyped] = useState(false) // cos: «Погнали еще разок!» напечатано
@@ -713,6 +726,7 @@ const PlaceScene = ({ v, onSettled }: SceneProps & { v: VKey }) => {
     const pressGas = () => {
         videoWrapRef.current?.querySelector('video')?.pause()
         setGasPressed(true)
+        onGas?.() // выключаем призрака из первой сцены
     }
     return (
         <>
@@ -875,7 +889,7 @@ const SignScene = ({ v, onSettled, leaving = false }: SceneProps & { v: VKey }) 
 }
 const PlaceSinScene = ({ onSettled }: SceneProps) => <PlaceScene v="sin" onSettled={onSettled} />
 const SignSinScene = ({ onSettled, leaving }: SceneProps) => <SignScene v="sin" onSettled={onSettled} leaving={leaving} />
-const PlaceCosScene = ({ onSettled }: SceneProps) => <PlaceScene v="cos" onSettled={onSettled} />
+const PlaceCosScene = ({ onSettled, onGas }: SceneProps) => <PlaceScene v="cos" onSettled={onSettled} onGas={onGas} />
 const SignCosScene = ({ onSettled, leaving }: SceneProps) => <SignScene v="cos" onSettled={onSettled} leaving={leaving} />
 
 // ===== Упражнения «во что превратится» =====
@@ -1125,6 +1139,7 @@ export const TypeRedFormWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
     const [startIdx, setStartIdx] = useState(0)
     const [stepReady, setStepReady] = useState(false)
     const [advancing, setAdvancing] = useState(false)
+    const [ghostOn, setGhostOn] = useState(true) // призрак в первой сцене, пока не нажали «ГАААААЗ»
     const [hadMistake, setHadMistake] = useState(false)
     const [nextLabel, setNextLabel] = useState('Дальше')
     useEffect(() => { setNextLabel(pickFunNextLabel()) }, [sceneIdx])
@@ -1293,7 +1308,7 @@ export const TypeRedFormWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
                     return (
                         <SceneWrapper key={key} innerRef={sceneRef(key)} active={isSceneActive(key)}>
                             <Fragment key={`${key}-${nonceFor(key)}`}>
-                                <Scene onSettled={() => key === latestSceneKey && setStepReady(true)} leaving={advancing && key === latestSceneKey} />
+                                <Scene onSettled={() => key === latestSceneKey && setStepReady(true)} leaving={advancing && key === latestSceneKey} ghostOn={ghostOn} onGas={() => setGhostOn(false)} />
                             </Fragment>
                         </SceneWrapper>
                     )
