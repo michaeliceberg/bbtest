@@ -58,9 +58,9 @@ export async function GET(req: Request) {
 							background: '#F2C35B', color: '#3A2400',
 						}}
 					>
-						ЗАРАБОТАЙ НАМ ПИЦЦУ!
+						ГО ПОБАТЛИМСЯ!
 					</div>
-					<div style={{ display: 'flex', fontSize: 38, color: '#78C93C' }}>Сможешь круче?</div>
+					<div style={{ display: 'flex', fontSize: 38, color: '#78C93C' }}>Выиграем пиццу!</div>
 				</div>
 			</div>
 		),
