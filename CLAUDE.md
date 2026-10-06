@@ -13417,3 +13417,11 @@ t_course урока (TQUIZ `inviteSubject`). Пицца приглашённом
 сверху карточки юнита (`SkillTopic.imageSrc` → `renderTopicCard` в trainer-grade-tree.tsx). Математика — свои SVG в
 `public/unit-pics/` (unit-circle, triangle-sin-cos-tg, answer-wave, reduction, logarithm, vieta, similarity; палитра
 ggege, шрифт Nunito), физика — готовые `public/topic-stickers/*.svg`. Новый юнит → положить SVG и прописать image_src.
+
+## Карточка юнита с анимацией в шапке; «Как записать ответ» в конец (2026-10-07)
+Юнит «Тригонометрическая окружность» (id 30): в `t_units.image_src` лежит маркер `__anim_half_circle__` вместо пути к картинке —
+`trainer-grade-tree.tsx` рисует вместо баннера шапку «слева 2 строки „Тригонометрическая / окружность (БАЗА)“ + %, справа
+`HalfCircleHero`» (`components/unit-hero-half-circle.tsx`: полуокружность π = 180° из сцены урока 490, проигрывается один раз,
+когда карточка в экране — `useInView once`). Название в БД не менялось (от него зависят табы/справочник) — «(БАЗА)» только в шапке.
+Новый такой «hero» делается так же: маркер в image_src + ветка в `renderTopicCard`. Порядок блока «Тригонометрия»:
+окружность → геометрия sin/cos/tg → формулы приведения → «Как записать ответ» (order 15 = 5, 33 = 4; условия разблокировки не менялись).

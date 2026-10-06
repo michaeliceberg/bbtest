@@ -24,6 +24,7 @@ import { TrainerStageLink } from './trainer-stage-link';
 
 import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors';
 import { getBossRank } from '@/lib/bossRank';
+import { HalfCircleHero, HERO_HALF_CIRCLE, HERO_HALF_CIRCLE_TITLE } from './unit-hero-half-circle';
 import { isReviewStage, isMythicStage } from '@/lib/trainerStageFlags';
 
 // Больше разнообразия по прямой просьбе пользователя ("яйцо щит меч —
@@ -541,7 +542,17 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                             ...(highlightedTopic === topic.title ? { boxShadow: '0 0 0 2px #4A90D9' } : {}),
                         }}
                     >
-                        {topic.imageSrc && (
+                        {topic.imageSrc === HERO_HALF_CIRCLE ? (
+                            <div className="flex items-center justify-between gap-3 mb-2">
+                                <div className="min-w-0">
+                                    <div className="text-lg font-extrabold leading-tight" style={{ color: cozy ? COZY.title : accent.button }}>
+                                        {HERO_HALF_CIRCLE_TITLE.map((line) => <div key={line}>{line}</div>)}
+                                    </div>
+                                    <div className="text-xs font-bold mt-1" style={{ color: hexToRgba(accent.button, 0.85) }}>{topic.percentage}%</div>
+                                </div>
+                                <HalfCircleHero />
+                            </div>
+                        ) : topic.imageSrc ? (
                             <div
                                 className="flex items-center justify-center rounded-xl mb-3 py-2 overflow-hidden"
                                 style={{ background: hexToRgba(accent.button, cozy ? 0.12 : 0.08) }}
@@ -549,8 +560,8 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src={topic.imageSrc} alt="" draggable={false} className="h-[84px] w-auto max-w-full select-none" />
                             </div>
-                        )}
-                        <div className="flex items-center gap-2 mb-2.5 min-w-0">
+                        ) : null}
+                        {topic.imageSrc !== HERO_HALF_CIRCLE && (<div className="flex items-center gap-2 mb-2.5 min-w-0">
                             <span className="w-1.5 h-5 rounded-full flex-shrink-0" style={{ background: `linear-gradient(180deg, ${accent.button}, ${accent.bottom})` }} />
                             {topic.title !== blockTitle && <span className="text-base font-extrabold truncate" style={{ color: cozy ? COZY.title : accent.button }}>{topic.title}</span>}
                             {(() => {
@@ -559,7 +570,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                 const rank = getBossRank(examStage.bossWins ?? 0);
                                 return rank ? <span className="text-xs font-black flex-shrink-0 px-2 py-0.5 rounded-full ml-auto" style={{ color: rank.color, backgroundColor: hexToRgba(rank.color, 0.15) }}>{rank.title}</span> : null;
                             })()}
-                        </div>
+                        </div>)}
 
                         {topic.stages.length > 0 && (() => {
                             // "Фронтир" темы — самый первый ещё не пройденный этап
