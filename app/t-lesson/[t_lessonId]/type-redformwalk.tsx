@@ -337,16 +337,17 @@ const FormulaScene = ({ onSettled, ghostOn = true }: SceneProps) => {
                     onDone={() => { setTypedDone(true); setPhase(2) }} readMs={400}
                 />
             )}
-            {/* «приведение» → призрак (Каспер), смотрит на π/2; в углу справа, повёрнут на 30° против часовой.
-                Выключается, когда в сцене cos нажали «ГАААААЗ» (ghostOn=false). */}
+            {/* Реакция-стикер справа сверху: повёрнут на 20° против часовой. Выключается, когда
+                в сцене cos нажали «ГАААААЗ» (ghostOn=false). */}
             {typedDone && ghostOn && (
                 <motion.div
                     className="absolute -top-3 right-0 w-20 sm:w-24 pointer-events-none"
-                    initial={{ opacity: 0, scale: 0.4, rotate: -30 }}
-                    animate={{ opacity: 1, scale: 1, rotate: -30 }}
+                    initial={{ opacity: 0, scale: 0.4, rotate: -20 }}
+                    animate={{ opacity: 1, scale: 1, rotate: -20 }}
                     transition={{ type: 'spring', stiffness: 260, damping: 14 }}
                 >
-                    <video src="/video/casper-cuphead.mp4" autoPlay loop muted playsInline className="w-full h-auto rounded-xl border-2 border-[#3A464E]" />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/lesson-pics/mcconaughey.webp" alt="" className="w-full h-auto" />
                 </motion.div>
             )}
         </div>
