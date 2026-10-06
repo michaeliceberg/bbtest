@@ -10,6 +10,8 @@ import LottieTrainerSharkStart from '@/public/Lottie/trainer/LottieTrainerSharkS
 import LottieTrainerSharkStartUdachi from '@/public/Lottie/trainer/LottieTrainerSharkStartUdachi.json'
 import LottieStartMorning from '@/public/Lottie/trainer/LottieStartMorning.json'
 import LottieStartPrivet from '@/public/Lottie/trainer/LottieStartPrivet.json'
+import LottieStartLoad1 from '@/public/Lottie/trainer/LottieStartLoad1.json'
+import LottieStartLoad2 from '@/public/Lottie/trainer/LottieStartLoad2.json'
 import LottieStartYesCapitan from '@/public/Lottie/trainer/LottieStartYesCapitan.json'
 import LottieTrainerSharkFinalWin from '@/public/Lottie/trainer/LottieTrainerSharkFinalWin.json'
 import LottieTrainerSharkThinkin from '@/public/Lottie/trainer/LottieTrainerSharkThinkin.json'
@@ -73,6 +75,8 @@ export const LOTTIE_START_LIST = [
   LottieStartMorning,
   LottieStartPrivet,
   LottieStartYesCapitan,
+  LottieStartLoad1,
+  LottieStartLoad2,
 ] as const
 
 export const LOTTIE_EMOTION_RIGHT_LIST = [
