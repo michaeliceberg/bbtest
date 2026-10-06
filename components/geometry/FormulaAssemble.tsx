@@ -21,7 +21,7 @@ export type FormulaChip = { id: string; label: string }
 
 type Props = {
     // Левая часть («гипотенуза =», «катет =»).
-    prefix: string
+    prefix: React.ReactNode
     // 'single' — один пропуск (correct[0]), второй не используется.
     layout: 'fraction' | 'product' | 'single'
     chips: FormulaChip[]

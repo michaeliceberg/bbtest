@@ -92,6 +92,18 @@ const ReplyBtn = ({ label, onClick }: { label: string; onClick: () => void }) =>
     </motion.div>
 )
 
+// Дробь «числитель над знаменателем» — везде вместо «a / b» (по просьбе: писать только дробью).
+const Fr = ({ n, d }: { n: React.ReactNode; d: React.ReactNode }) => (
+    <span className="inline-flex flex-col items-center align-middle mx-1 leading-tight">
+        <span>{n}</span>
+        <span className="self-stretch h-[3px] my-1 rounded bg-current" />
+        <span>{d}</span>
+    </span>
+)
+const prefixFr = (n: React.ReactNode, d: React.ReactNode) => (
+    <span className="inline-flex items-center gap-2"><Fr n={n} d={d} /><span>=</span></span>
+)
+
 const WrongFlash = ({ text }: { text: string | null }) => (
     text ? (
         <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">
@@ -101,7 +113,7 @@ const WrongFlash = ({ text }: { text: string | null }) => (
 )
 
 // Мини-игра «собери формулу»: ошибки не идут в зачёт урока.
-const AssembleGame = ({ onSolved, ...fa }: { prefix: string; layout: 'fraction' | 'product' | 'single'; chips: FormulaChip[]; correct: [string, string]; alsoCorrect?: [string, string][]; onSolved: () => void }) => {
+const AssembleGame = ({ onSolved, ...fa }: { prefix: React.ReactNode; layout: 'fraction' | 'product' | 'single'; chips: FormulaChip[]; correct: [string, string]; alsoCorrect?: [string, string][]; onSolved: () => void }) => {
     const [flash, setFlash] = useState<string | null>(null)
     const [done, setDone] = useState(false)
     return (
@@ -258,11 +270,11 @@ const HookScene = ({ onSettled }: SceneProps) => {
 
 // Треугольник ABC и его подобная копия MNK (повёрнутая и зеркальная, чтобы
 // соответствие не угадывалось «по положению»).
-const TRI_ABC: Pt[] = [[44, 204], [190, 204], [112, 62]]
+const TRI_ABC: Pt[] = [[84, 168], [234, 168], [39, 90]] // тупоугольный разносторонний (∠A = 120°): соответствие углов и сторон хорошо видно
 const TRI_MNK: Pt[] = (() => {
     const pts = xf(TRI_ABC, { rot: 200, mirror: true, scale: 0.72 })
     const c = centroid(pts)
-    return pts.map((p) => [p[0] + (300 - c[0]), p[1] + (132 - c[1])] as Pt)
+    return pts.map((p) => [p[0] + (345 - c[0]), p[1] + (125 - c[1])] as Pt)
 })()
 const NAMES1 = ['A', 'B', 'C'], NAMES2 = ['M', 'N', 'K']
 
@@ -336,7 +348,7 @@ const MatchScene = ({ onSettled }: SceneProps) => {
                 parts={[{ t: 'Запись ' }, { t: 'ΔABC ~ ΔMNK', c: YEL }, { t: ' — не просто так: ' }, { t: 'буквы идут по порядку соответствия', c: ORANGE }, { t: '. A↔M, B↔N, C↔K.' }]}
                 onDone={() => setIntro(true)}
             />
-            {intro && <Fig items={items} vb={[400, 250]} />}
+            {intro && <Fig items={items} vb={[440, 220]} />}
             {intro && (
                 <div className="w-full text-center text-base md:text-lg font-bold" style={{ color: finished ? GREEN : WHITE }}>{question}</div>
             )}
@@ -345,31 +357,89 @@ const MatchScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-// 2. Пропорция из сходственных сторон.
+// 2. Пропорция из сходственных сторон — по шагам: подчёркиваем пары букв и
+// записываем дроби. Пары: первые две буквы, вторые две, крайние (A и C).
+const PairLetters = ({ text, color, marks }: { text: string; color: string; marks: { idx: number[]; color: string } | null }) => (
+    <span className="inline-flex" style={{ color }}>
+        {text.split('').map((ch, i) => {
+            const on = !!marks && marks.idx.includes(i)
+            return (
+                <span key={i} className="relative inline-block px-[3px]">
+                    {ch}
+                    <span className="absolute left-0 right-0 -bottom-1.5 h-[5px] rounded-full transition-opacity duration-300" style={{ background: marks?.color ?? 'transparent', opacity: on ? 1 : 0 }} />
+                </span>
+            )
+        })}
+    </span>
+)
+
+const PROP_STEPS: { idx: number[]; color: string; hint: string }[] = [
+    { idx: [0, 1], color: YEL, hint: 'Берём первые две буквы: AB и MN' },
+    { idx: [1, 2], color: TEAL, hint: 'Теперь последние две: BC и NK' },
+    { idx: [0, 2], color: ORANGE, hint: 'И крайние: AC и MK' },
+]
+const PROP_FRACS: [string, string][] = [['AB', 'MN'], ['BC', 'NK'], ['AC', 'MK']]
+
 const ProportionScene = ({ onSettled }: SceneProps) => {
     const [t1, setT1] = useState(false)
+    const [step, setStep] = useState(-1) // -1 только формула; далее 0..2 — пары; 3 — «= k»
+    const [game, setGame] = useState(false)
     const [solved, setSolved] = useState(false)
-    const chips: FormulaChip[] = shuffle(['BC', 'NK', 'AC', 'MK', 'AB', 'MN'].map((s) => ({ id: s, label: s })))
+    const chips: FormulaChip[] = useMemo(() => shuffle(['BC', 'NK', 'AC', 'MK', 'AB', 'MN'].map((s) => ({ id: s, label: s }))), [])
+    useEffect(() => {
+        if (!t1) return
+        // каждая пара: подчёркиваем буквы → через паузу пишем дробь
+        const timers = [
+            setTimeout(() => setStep(0), 1400),
+            setTimeout(() => setStep(1), 4600),
+            setTimeout(() => setStep(2), 7800),
+            setTimeout(() => setStep(3), 11000),
+            setTimeout(() => setGame(true), 12800),
+        ]
+        return () => timers.forEach(clearTimeout)
+    }, [t1])
+    const marks = step >= 0 && step <= 2 ? PROP_STEPS[step] : null
+    // дробь i видна, когда подчёркивание пары i уже было и прошла пауза: шаги 0,1,2 → через 1.6 с после подчёркивания
+    const [shown, setShown] = useState(0)
+    useEffect(() => {
+        if (step < 0 || step > 2) return
+        const t = setTimeout(() => setShown((n) => Math.max(n, step + 1)), 1700)
+        return () => clearTimeout(t)
+    }, [step])
     return (
         <div className="w-full flex flex-col items-center gap-4">
-            <Typed parts={[{ t: 'Если ΔABC ~ ΔMNK, то ' }, { t: 'отношения сходственных сторон равны', c: YEL }, { t: ' — это и есть k:' }]} onDone={() => setT1(true)} />
+            <Typed parts={[{ t: 'Если ΔABC ~ ΔMNK, то ' }, { t: 'отношения сходственных сторон равны', c: YEL }, { t: ' — это и есть k.' }]} onDone={() => setT1(true)} />
             {t1 && (
-                <div className="text-xl md:text-2xl font-black text-[#F2F7FB] tracking-wide">
-                    <span style={{ color: BLUE }}>AB</span>/<span style={{ color: ORANGE }}>MN</span> = <span style={{ color: BLUE }}>BC</span>/<span style={{ color: ORANGE }}>NK</span> = <span style={{ color: BLUE }}>AC</span>/<span style={{ color: ORANGE }}>MK</span> = k
+                <div className="text-4xl md:text-5xl font-black tracking-wide py-2 text-[#F2F7FB]">
+                    <span>Δ</span><PairLetters text="ABC" color={BLUE} marks={marks} />
+                    <span className="mx-3">~</span>
+                    <span>Δ</span><PairLetters text="MNK" color={ORANGE} marks={marks} />
                 </div>
             )}
-            {t1 && (
+            {t1 && marks && <div className="text-base md:text-lg font-bold text-center" style={{ color: marks.color }}>{marks.hint}</div>}
+            {t1 && shown > 0 && (
+                <div className="flex items-center justify-center flex-wrap gap-y-2 text-3xl md:text-4xl font-black text-[#F2F7FB]">
+                    {PROP_FRACS.slice(0, shown).map(([n, d], i) => (
+                        <motion.span key={n} className="inline-flex items-center" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+                            {i > 0 && <span className="mx-2">=</span>}
+                            <Fr n={<span style={{ color: BLUE }}>{n}</span>} d={<span style={{ color: ORANGE }}>{d}</span>} />
+                        </motion.span>
+                    ))}
+                    {step >= 3 && <span className="mx-2">= <span style={{ color: YEL }}>k</span></span>}
+                </div>
+            )}
+            {game && (
                 <>
                     <p className="text-base md:text-lg text-[#F2F7FB] text-center">Дополни пропорцию — выбери вторую дробь:</p>
                     <AssembleGame
-                        prefix="AB / MN =" layout="fraction" chips={chips} correct={['BC', 'NK']} alsoCorrect={[['AC', 'MK']]}
+                        prefix={prefixFr('AB', 'MN')} layout="fraction" chips={chips} correct={['BC', 'NK']} alsoCorrect={[['AC', 'MK']]}
                         onSolved={() => setSolved(true)}
                     />
                 </>
             )}
             {solved && (
                 <InsightCard>
-                    В каждой дроби — <InsightWord>сторона первого</InsightWord> / <InsightWord>сходственная второго</InsightWord>. Не переворачивай одну дробь!
+                    В каждой дроби — <InsightWord>сторона первого</InsightWord> над <InsightWord>сходственной стороной второго</InsightWord>. Не переворачивай одну дробь!
                 </InsightCard>
             )}
             {solved && <Settle onSettled={onSettled} ms={2200} />}
@@ -530,7 +600,7 @@ const HatScene = ({ onSettled }: SceneProps) => {
                 <>
                     <InsightCard>
                         <InsightWord>Параллельно стороне → подобный треугольник.</InsightWord>
-                        <div className="mt-2 text-lg">AD/AB = AE/AC = DE/BC</div>
+                        <div className="mt-2 text-lg flex items-center justify-center flex-wrap"><Fr n="AD" d="AB" />=<Fr n="AE" d="AC" />=<Fr n="DE" d="BC" /></div>
                     </InsightCard>
                     <Settle onSettled={onSettled} ms={2000} />
                 </>
@@ -560,7 +630,7 @@ const ButterflyScene = ({ onSettled }: SceneProps) => {
                 <>
                     <InsightCard>
                         <InsightWord>Параллельные + пересечение → «бабочка».</InsightWord>
-                        <div className="mt-2 text-lg">OA/OC = OB/OD = AB/CD</div>
+                        <div className="mt-2 text-lg flex items-center justify-center flex-wrap"><Fr n="OA" d="OC" />=<Fr n="OB" d="OD" />=<Fr n="AB" d="CD" /></div>
                     </InsightCard>
                     <Settle onSettled={onSettled} ms={2000} />
                 </>
@@ -678,7 +748,7 @@ const AreaScene = ({ onSettled }: SceneProps) => {
                 <>
                     <p className="text-base md:text-lg text-[#F2F7FB] text-center">Во сколько раз площадь больше, если стороны больше в k раз?</p>
                     <AssembleGame
-                        prefix="S₂ / S₁ =" layout="single" correct={['k2', 'k2']}
+                        prefix={prefixFr('S₂', 'S₁')} layout="single" correct={['k2', 'k2']}
                         chips={shuffle([{ id: 'k', label: 'k' }, { id: 'k2', label: 'k²' }, { id: '2k', label: '2k' }, { id: 'k1', label: 'k + 1' }])}
                         onSolved={() => setDone(true)}
                     />
@@ -728,12 +798,12 @@ type Trial = {
     legend: string
     prompt: string
     figure: FigItem[] | null
-    prefix: string
+    prefix: React.ReactNode
     layout: 'fraction' | 'product' | 'single'
     chips: FormulaChip[]
     correct: [string, string]
     alsoCorrect?: [string, string][]
-    result?: string
+    result?: React.ReactNode
 }
 
 const numChips = (list: [string, number][]): FormulaChip[] => shuffle(list.map(([id, v]) => ({ id, label: String(v) })))
@@ -743,9 +813,9 @@ const makeHat = (): Trial => {
     return {
         kind: 'hat', legend: `AD = ${a}, AB = ${a * k}, DE = ${d}`, prompt: 'DE параллельна BC. Найди BC.',
         figure: hatItems(3),
-        prefix: `BC / ${d} =`, layout: 'fraction',
+        prefix: prefixFr('BC', d), layout: 'fraction',
         chips: numChips([['ab', a * k], ['ad', a], ['bd', a * k - a], ['sum', a + a * k]]), correct: ['ab', 'ad'],
-        result: `BC = ${d} · ${a * k} / ${a} = ${d * k}`,
+        result: <span className="inline-flex items-center gap-2">BC =<Fr n={`${d} · ${a * k}`} d={a} />= {d * k}</span>,
     }
 }
 const makeBfly = (): Trial => {
@@ -753,9 +823,9 @@ const makeBfly = (): Trial => {
     return {
         kind: 'bfly', legend: `OA = ${a}, OC = ${a * k}, AB = ${p}`, prompt: 'AB параллельна DC. Найди DC.',
         figure: bflyItems(2),
-        prefix: `DC / ${p} =`, layout: 'fraction',
+        prefix: prefixFr('DC', p), layout: 'fraction',
         chips: numChips([['oc', a * k], ['oa', a], ['ac', a + a * k], ['df', a * k - a]]), correct: ['oc', 'oa'],
-        result: `DC = ${p} · ${a * k} / ${a} = ${p * k}`,
+        result: <span className="inline-flex items-center gap-2">DC =<Fr n={`${p} · ${a * k}`} d={a} />= {p * k}</span>,
     }
 }
 const ALT_PAIRS: [number, number, number][] = [[4, 9, 6], [2, 8, 4], [1, 4, 2], [3, 12, 6], [9, 16, 12], [4, 16, 8]]
@@ -802,7 +872,7 @@ const makeArea = (): Trial => {
     const k = pick([2, 3]), s = pick([4, 5, 6, 8])
     return {
         kind: 'area', legend: `ΔABC ~ ΔMNK, k = ${k}, S(ABC) = ${s}`, prompt: 'Во сколько раз площадь MNK больше площади ABC?', figure: null,
-        prefix: 'S₂ / S₁ =', layout: 'single',
+        prefix: prefixFr('S₂', 'S₁'), layout: 'single',
         chips: shuffle([{ id: 'k', label: 'k' }, { id: 'k2', label: 'k²' }, { id: '2k', label: '2k' }, { id: 'k1', label: 'k + 1' }]), correct: ['k2', 'k2'],
         result: `S(MNK) = ${s} · ${k}² = ${s * k * k}`,
     }
