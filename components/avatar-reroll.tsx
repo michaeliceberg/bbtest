@@ -18,6 +18,8 @@ import LottieCoins from '@/public/Lottie/LottieCoins.json'
 type Props = {
     currentAvatar: string
     points: number
+    // Контент между аватаркой и кнопкой перегенерации (позывной, звание…).
+    children?: React.ReactNode
 }
 
 const fmt = (n: number) => n.toLocaleString('ru-RU')
@@ -30,7 +32,7 @@ const Coin = ({ size = 'h-10 w-10' }: { size?: string }) => (
     <Lottie animationData={LottieCoins} loop autoplay className={`${size} -my-3 -translate-y-[14%] shrink-0`} />
 )
 
-export const AvatarReroll = ({ currentAvatar, points }: Props) => {
+export const AvatarReroll = ({ currentAvatar, points, children }: Props) => {
     const router = useRouter()
     const [isPending, startTransition] = useTransition()
     const [avatar, setAvatar] = useState(currentAvatar)
@@ -61,10 +63,17 @@ export const AvatarReroll = ({ currentAvatar, points }: Props) => {
     }
 
     return (
-        <div className="flex items-center gap-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={avatar} alt="" className="w-20 h-20 rounded-full bg-[#232F34] flex-shrink-0 object-cover" />
-            <div className="flex flex-col gap-1.5 min-w-0">
+        <div className="flex flex-col items-center gap-4 w-full">
+            {/* Аватарка с градиентным «игровым» кольцом и мягким свечением */}
+            <div className="relative">
+                <div className="absolute -inset-3 rounded-full bg-gradient-to-br from-[#C385F7]/40 via-[#53ADEF]/30 to-[#5CC99F]/40 blur-xl" />
+                <div className="relative rounded-full p-[4px] bg-gradient-to-br from-[#C385F7] via-[#53ADEF] to-[#5CC99F]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={avatar} alt="" className="w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-[#1B252B] object-cover border-4 border-[#151F23]" />
+                </div>
+            </div>
+            {children}
+            <div className="flex flex-col items-center gap-1.5 min-w-0 text-center">
                 {!confirming ? (
                     <Button type="button" variant="primaryOutline" disabled={isPending} onClick={() => setConfirming(true)}>
                         <Dices className="h-4 w-4 mr-2" />
@@ -77,7 +86,7 @@ export const AvatarReroll = ({ currentAvatar, points }: Props) => {
                                 ? `Списать ${fmt(AVATAR_REROLL_COST)} монет и выдать новый случайный аватар?`
                                 : `Не хватает монет: нужно ${fmt(AVATAR_REROLL_COST)}, у тебя ${fmt(balance)}.`}
                         </p>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 justify-center">
                             {canAfford && (
                                 <Button type="button" variant="secondary" disabled={isPending} onClick={handleReroll}>
                                     {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Да, крутим!'}

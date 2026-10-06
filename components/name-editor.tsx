@@ -11,14 +11,9 @@ import { Loader2, Save } from 'lucide-react'
 
 type Props = {
     currentName: string
-    // Звание ученика (lib/rank.ts) и подсказка, как получить следующее.
-    rank?: string | null
-    // Весёлый позывной, сгенерированный при регистрации (user_progress.nickname).
-    callsign?: string | null
-    rankHint?: string | null
 }
 
-export const NameEditor = ({ currentName, rank, rankHint, callsign }: Props) => {
+export const NameEditor = ({ currentName }: Props) => {
     const router = useRouter()
     const [name, setName] = useState(currentName)
     const [isPending, startTransition] = useTransition()
@@ -62,26 +57,6 @@ export const NameEditor = ({ currentName, rank, rankHint, callsign }: Props) => 
                         {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
                     </button>
             </div>
-            {(rank || callsign) && (
-                <div className="flex flex-wrap items-start gap-x-8 gap-y-2">
-                    {rank && (
-                        <div className="flex flex-col leading-tight" title={rankHint ?? 'Твоё звание'}>
-                            <span className="text-[11px] uppercase tracking-wide text-[#9AA7B0]">Звание</span>
-                            <span className="font-black text-base bg-gradient-to-r from-[#C385F7] via-[#53ADEF] to-[#5CC99F] bg-clip-text text-transparent">
-                                {rank}
-                            </span>
-                        </div>
-                    )}
-                    {callsign && (
-                        <div className="flex flex-col leading-tight" title="Твой позывной">
-                            <span className="text-[11px] uppercase tracking-wide text-[#9AA7B0]">Позывной</span>
-                            <span className="font-black text-base bg-gradient-to-r from-[#F09B38] via-[#BC418A] to-[#C385F7] bg-clip-text text-transparent">
-                                {callsign}
-                            </span>
-                        </div>
-                    )}
-                </div>
-            )}
             {error && <p className="text-xs text-rose-400">{error}</p>}
         </div>
     )

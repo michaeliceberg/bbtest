@@ -5,6 +5,7 @@ import { getUserProgress, getGangMembership } from '@/db/queries'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import Link from 'next/link'
+import { Crown } from 'lucide-react'
 import { AccountLinking } from '@/components/account-linking'
 import { AvatarReroll } from '@/components/avatar-reroll'
 import { NameEditor } from '@/components/name-editor'
@@ -24,20 +25,59 @@ const AccountPage = async () => {
 
     const gangMembership = await getGangMembership(userProgress.userId)
     const invite = await getOrCreateInvite(userProgress.userId)
-    const rank = getRank(getLevelInfo(userProgress.xp).level, gangMembership?.role)
+    const levelInfo = getLevelInfo(userProgress.xp)
+    const rank = getRank(levelInfo.level, gangMembership?.role)
 
     return (
         <div className="max-w-[600px] mx-auto px-4 pb-10 flex flex-col gap-8">
-            <div>
-                <h1 className="text-2xl font-bold text-[#F2F7FB] mb-1">Настройки</h1>
-                <p className="text-sm text-[#9AA7B0]">Профиль, вход в аккаунт и родительский доступ.</p>
-            </div>
+            {/* Профиль в духе игрового приложения: аватарка, позывной, звание,
+                уровень, имя и банда — одной карточкой. */}
+            <div className="relative overflow-hidden rounded-3xl border-2 border-[#3A464E] bg-[#151F23] shadow-xl">
+                <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#C385F7]/25 via-[#53ADEF]/10 to-transparent pointer-events-none" />
+                <div className="relative px-5 pt-8 pb-5 flex flex-col items-center gap-5">
+                    <AvatarReroll currentAvatar={userProgress.userImageSrc} points={userProgress.points}>
+                        <div className="flex flex-col items-center gap-2.5 text-center">
+                            {invite?.nickname && (
+                                <h1 className="font-black text-2xl sm:text-3xl leading-tight bg-gradient-to-r from-[#F09B38] via-[#BC418A] to-[#C385F7] bg-clip-text text-transparent">
+                                    {invite.nickname}
+                                </h1>
+                            )}
+                            <div className="flex items-center gap-2 flex-wrap justify-center">
+                                <span
+                                    title={rank.next ? `Следующее звание — «${rank.next.title}» с ${rank.next.minLevel} уровня` : undefined}
+                                    className="inline-flex items-center gap-1.5 rounded-full border-2 border-[#C385F7] bg-[#C385F7]/15 px-3.5 py-1 font-black text-base text-[#C385F7]"
+                                >
+                                    <Crown className="h-4 w-4" />
+                                    {rank.title}
+                                </span>
+                                <span className="inline-flex items-center rounded-full border-2 border-[#53ADEF] bg-[#53ADEF]/15 px-3 py-1 font-black text-sm text-[#53ADEF]">
+                                    Ур. {levelInfo.level}
+                                </span>
+                            </div>
+                            <div className="w-56 h-2 rounded-full bg-[#232F34] overflow-hidden" title={`${levelInfo.xpIntoLevel} / ${levelInfo.xpForNextLevel} XP до следующего уровня`}>
+                                <div className="h-full rounded-full bg-gradient-to-r from-[#53ADEF] to-[#5CC99F]" style={{ width: `${levelInfo.progressPercent}%` }} />
+                            </div>
+                        </div>
+                    </AvatarReroll>
 
-            <div>
-                <h2 className="font-bold text-lg text-[#F2F7FB] mb-3">Профиль</h2>
-                <div className="flex flex-col gap-4">
-                    <NameEditor currentName={userProgress.userName} rank={rank.title} callsign={invite?.nickname} rankHint={rank.next ? `Следующее звание — «${rank.next.title}» с ${rank.next.minLevel} уровня` : undefined} />
-                    <AvatarReroll currentAvatar={userProgress.userImageSrc} points={userProgress.points} />
+                    <div className="w-full border-t border-[#3A464E] pt-4">
+                        <NameEditor currentName={userProgress.userName} />
+                    </div>
+
+                    <div className="w-full border-t border-[#3A464E] pt-4 flex items-center gap-3">
+                        <div className="text-3xl leading-none">{gangMembership ? gangMembership.gang.emoji : '🏴'}</div>
+                        <div className="min-w-0 flex-1">
+                            <div className="font-bold text-[#F2F7FB] truncate">{gangMembership ? gangMembership.gang.name : 'Моя банда'}</div>
+                            <div className="text-xs text-[#9AA7B0]">
+                                {gangMembership ? 'Приглашай друзей, назначай капо, следи за рейтингом.' : 'Ты ещё не в банде — создай свою или вступи по ссылке друга.'}
+                            </div>
+                        </div>
+                        <Link href="/gang">
+                            <Button type="button" variant="secondary" size="sm">
+                                {gangMembership ? 'Открыть' : 'Создать'}
+                            </Button>
+                        </Link>
+                    </div>
                 </div>
             </div>
 
@@ -49,20 +89,6 @@ const AccountPage = async () => {
                 <Suspense fallback={null}>
                     <AccountLinking />
                 </Suspense>
-            </div>
-
-            <div className="rounded-xl border border-[#3A464E] bg-[#151F23] shadow-sm p-4 space-y-3">
-                <h3 className="font-bold text-[#F2F7FB] flex items-center gap-2">
-                    {gangMembership ? `${gangMembership.gang.emoji} ${gangMembership.gang.name}` : 'Моя банда'}
-                </h3>
-                <p className="text-sm text-[#9AA7B0]">
-                    {gangMembership ? 'Приглашай друзей, назначай капо и следи за рейтингом банды.' : 'Ты ещё не в банде — создай свою или вступи по ссылке друга!'}
-                </p>
-                <Link href="/gang">
-                    <Button type="button" variant="secondary" className="w-full">
-                        {gangMembership ? 'Открыть банду' : 'Создать банду'}
-                    </Button>
-                </Link>
             </div>
 
             {invite && <ReferralCard inviteCode={invite.code} />}

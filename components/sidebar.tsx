@@ -1,6 +1,6 @@
 'use client'
 
-import { Dumbbell, Flame, Swords, ChevronDown, ChevronUp, LogOut, Settings, Library, Lock, BadgeCheck, Shield, BarChart3 } from 'lucide-react'
+import { Dumbbell, Flame, Swords, ChevronDown, ChevronUp, LogOut, UserCircle, Library, Lock, BadgeCheck, Shield, BarChart3 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from './ui/button'
 import Link from 'next/link'
@@ -168,8 +168,8 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
               onClick={() => setIsUserMenuOpen(false)}
               className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-[#F2F7FB] hover:bg-[#232F34] transition-colors"
             >
-              <Settings className="h-4 w-4" />
-              Настройки
+              <UserCircle className="h-4 w-4" />
+              Аккаунт
             </button>
           </TransitionLink>
           <button
