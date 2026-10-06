@@ -347,7 +347,7 @@ const FormulaScene = ({ onSettled, ghostOn = true }: SceneProps) => {
                     transition={{ type: 'spring', stiffness: 260, damping: 14 }}
                 >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/lesson-pics/mcconaughey.webp" alt="" className="w-full h-auto" />
+                    <img src="/lesson-pics/pointing-man.webp" alt="" className="w-full h-auto" />
                 </motion.div>
             )}
         </div>
