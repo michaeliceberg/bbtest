@@ -11,11 +11,12 @@ import { Loader2, Save } from 'lucide-react'
 
 type Props = {
     currentName: string
-    // Весёлый позывной, который ученику когда-то сгенерировали (user_progress.nickname).
-    callsign?: string | null
+    // Звание ученика (lib/rank.ts) и подсказка, как получить следующее.
+    rank?: string | null
+    rankHint?: string | null
 }
 
-export const NameEditor = ({ currentName, callsign }: Props) => {
+export const NameEditor = ({ currentName, rank, rankHint }: Props) => {
     const router = useRouter()
     const [name, setName] = useState(currentName)
     const [isPending, startTransition] = useTransition()
@@ -60,11 +61,11 @@ export const NameEditor = ({ currentName, callsign }: Props) => {
                         {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
                     </button>
                 </div>
-                {callsign && (
-                    <div className="flex flex-col leading-tight" title="Твой позывной">
-                        <span className="text-[11px] uppercase tracking-wide text-[#9AA7B0]">Позывной</span>
+                {rank && (
+                    <div className="flex flex-col leading-tight" title={rankHint ?? 'Твоё звание'}>
+                        <span className="text-[11px] uppercase tracking-wide text-[#9AA7B0]">Звание</span>
                         <span className="font-black text-base bg-gradient-to-r from-[#C385F7] via-[#53ADEF] to-[#5CC99F] bg-clip-text text-transparent">
-                            {callsign}
+                            {rank}
                         </span>
                     </div>
                 )}

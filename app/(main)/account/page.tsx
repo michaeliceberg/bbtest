@@ -11,6 +11,8 @@ import { NameEditor } from '@/components/name-editor'
 import { ParentBindCode } from '@/components/parent-bind-code'
 import { ReferralCard } from '@/components/referral-card'
 import { getOrCreateInvite } from '@/lib/invite'
+import { getRank } from '@/lib/rank'
+import { getLevelInfo } from '@/lib/xp'
 import { Button } from '@/components/ui/button'
 
 const AccountPage = async () => {
@@ -22,6 +24,7 @@ const AccountPage = async () => {
 
     const gangMembership = await getGangMembership(userProgress.userId)
     const invite = await getOrCreateInvite(userProgress.userId)
+    const rank = getRank(getLevelInfo(userProgress.xp).level, gangMembership?.role)
 
     return (
         <div className="max-w-[600px] mx-auto px-4 pb-10 flex flex-col gap-8">
@@ -33,7 +36,7 @@ const AccountPage = async () => {
             <div>
                 <h2 className="font-bold text-lg text-[#F2F7FB] mb-3">Профиль</h2>
                 <div className="flex flex-col gap-4">
-                    <NameEditor currentName={userProgress.userName} callsign={invite?.nickname} />
+                    <NameEditor currentName={userProgress.userName} rank={rank.title} rankHint={rank.next ? `Следующее звание — «${rank.next.title}» с ${rank.next.minLevel} уровня` : undefined} />
                     <AvatarReroll currentAvatar={userProgress.userImageSrc} points={userProgress.points} />
                 </div>
             </div>

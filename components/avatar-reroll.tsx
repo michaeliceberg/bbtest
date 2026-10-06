@@ -23,8 +23,11 @@ type Props = {
 const fmt = (n: number) => n.toLocaleString('ru-RU')
 
 // Анимированная монета вместо эмодзи 🪙 (та же, что в шапке приложения).
-const Coin = ({ size = 'h-7 w-7' }: { size?: string }) => (
-    <Lottie animationData={LottieCoins} loop autoplay className={`${size} inline-block align-middle shrink-0`} />
+// Сама монета нарисована в нижней части холста Lottie и занимает лишь треть
+// его высоты — поэтому поднимаем её на 14% и гасим лишнюю высоту отрицательным
+// отступом, чтобы она стояла по центру строки с текстом.
+const Coin = ({ size = 'h-10 w-10' }: { size?: string }) => (
+    <Lottie animationData={LottieCoins} loop autoplay className={`${size} -my-3 -translate-y-[14%] shrink-0`} />
 )
 
 export const AvatarReroll = ({ currentAvatar, points }: Props) => {
@@ -65,7 +68,7 @@ export const AvatarReroll = ({ currentAvatar, points }: Props) => {
                 {!confirming ? (
                     <Button type="button" variant="primaryOutline" disabled={isPending} onClick={() => setConfirming(true)}>
                         <Dices className="h-4 w-4 mr-2" />
-                        Новый аватар · {fmt(AVATAR_REROLL_COST)} <Coin size="h-8 w-8 ml-1" />
+                        Новый аватар · {fmt(AVATAR_REROLL_COST)} <Coin size="h-10 w-10 ml-1" />
                     </Button>
                 ) : (
                     <div className="flex flex-col gap-1.5">
@@ -86,7 +89,7 @@ export const AvatarReroll = ({ currentAvatar, points }: Props) => {
                         </div>
                     </div>
                 )}
-                <p className="text-xs text-[#9AA7B0] flex items-center gap-1">Твои монеты: {fmt(balance)} <Coin size="h-6 w-6" /></p>
+                <p className="text-xs text-[#9AA7B0] flex items-center gap-1">у тебя {fmt(balance)} <Coin size="h-8 w-8" /></p>
                 {error && <p className="text-sm text-[#DC605B]">{error}</p>}
             </div>
         </div>
