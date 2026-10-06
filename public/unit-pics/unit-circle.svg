@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 120" width="240" height="120" fill="none" stroke-linecap="round" stroke-linejoin="round" font-family="Nunito, Arial, sans-serif" font-weight="800">
+<circle cx="120" cy="60" r="46" stroke="#F2F7FB" stroke-width="3.5"/>
+<path d="M 62 60 H 178 M 120 10 V 110" stroke="#5C6B73" stroke-width="2.5"/>
+<path d="M 120 60 H 155.2" stroke="#78C93C" stroke-width="5"/>
+<path d="M 155.2 60 V 30.4" stroke="#F09B38" stroke-width="5"/>
+<path d="M 120 60 L 155.2 30.4" stroke="#F2F7FB" stroke-width="3"/>
+<path d="M 136.0 60.0 A 16 16 0 0 0 132.3 49.7" stroke="#F2C35B" stroke-width="3"/>
+<circle cx="155.2" cy="30.4" r="5" fill="#C385F7" stroke="none"/>
+<text x="137.6" y="75" font-size="12" fill="#78C93C" text-anchor="middle" stroke="none">cos</text>
+<text x="171.2" y="49.2" font-size="12" fill="#F09B38" text-anchor="middle" stroke="none">sin</text>
+</svg>

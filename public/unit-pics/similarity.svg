@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 120" width="240" height="120" fill="none" stroke-linecap="round" stroke-linejoin="round" font-family="Nunito, Arial, sans-serif" font-weight="800">
+<path d="M 24 100 H 84 L 24 64 Z" stroke="#53ADEF" stroke-width="4.5"/>
+<path d="M 108 106 H 218 L 108 42 Z" stroke="#F09B38" stroke-width="4.5"/>
+<path d="M 24 90 H 34 V 100" stroke="#F2F7FB" stroke-width="2.5"/>
+<path d="M 108 94 H 120 V 106" stroke="#F2F7FB" stroke-width="2.5"/>
+<path d="M 100.0 100.0 A 16 16 0 0 0 97.7 91.8" stroke="#F2C35B" stroke-width="3"/>
+<path d="M 240.0 106.0 A 22 22 0 0 0 237.1 95.0" stroke="#F2C35B" stroke-width="3"/>
+<text x="54" y="116" font-size="12" fill="#53ADEF" text-anchor="middle" stroke="none">ΔABC</text>
+<text x="163" y="102" font-size="0" fill="none" stroke="none"> </text>
+<text x="163" y="20" font-size="12" fill="#F09B38" text-anchor="middle" stroke="none">ΔMNK</text>
+<text x="120" y="12" font-size="0"> </text>
+<text x="96" y="22" font-size="14" fill="#F2F7FB" text-anchor="middle" stroke="none">~</text>
+</svg>

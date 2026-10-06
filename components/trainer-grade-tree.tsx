@@ -152,6 +152,8 @@ export type SkillTopic = {
     // не влияет.
     chainLinked?: boolean;
     blockTitle?: string | null;
+    // Картинка-характеристика темы (t_units.image_src) — баннер сверху карточки.
+    imageSrc?: string | null;
     isLastActive?: boolean;
 };
 
@@ -539,6 +541,15 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                             ...(highlightedTopic === topic.title ? { boxShadow: '0 0 0 2px #4A90D9' } : {}),
                         }}
                     >
+                        {topic.imageSrc && (
+                            <div
+                                className="flex items-center justify-center rounded-xl mb-3 py-2 overflow-hidden"
+                                style={{ background: hexToRgba(accent.button, cozy ? 0.12 : 0.08) }}
+                            >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={topic.imageSrc} alt="" draggable={false} className="h-[84px] w-auto max-w-full select-none" />
+                            </div>
+                        )}
                         <div className="flex items-center gap-2 mb-2.5 min-w-0">
                             <span className="w-1.5 h-5 rounded-full flex-shrink-0" style={{ background: `linear-gradient(180deg, ${accent.button}, ${accent.bottom})` }} />
                             {topic.title !== blockTitle && <span className="text-base font-extrabold truncate" style={{ color: cozy ? COZY.title : accent.button }}>{topic.title}</span>}

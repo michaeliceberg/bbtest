@@ -348,6 +348,7 @@ export const TabTCourses = ({
                             lockPrereqPartial,
                             chainLinked: chainMemberIds.has(t_unit.id),
                             blockTitle: t_unit.blockTitle ?? null,
+                            imageSrc: t_unit.imageSrc || null,
                             isLastActive: t_unit.id === lastActiveUnitId,
                         }
                     })

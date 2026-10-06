@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 120" width="240" height="120" fill="none" stroke-linecap="round" stroke-linejoin="round" font-family="Nunito, Arial, sans-serif" font-weight="800">
+<path d="M 60 98 L 180 98" stroke="#5CC99F" stroke-width="6"/>
+<path d="M 180 98 L 180 32" stroke="#78C93C" stroke-width="6"/>
+<path d="M 60 98 L 180 32" stroke="#C385F7" stroke-width="6"/>
+<path d="M 168 98 V 86 H 180" stroke="#F09B38" stroke-width="3"/>
+<path d="M 86.0 98.0 A 26 26 0 0 0 82.7 85.4" stroke="#F2C35B" stroke-width="3"/>
+<text x="92" y="92" font-size="16" fill="#F2C35B" font-family="Georgia, serif" font-style="italic" stroke="none">α</text>
+<text x="120" y="114" font-size="12" fill="#5CC99F" text-anchor="middle" stroke="none">прилежащий</text>
+<text x="205" y="68" font-size="12" fill="#78C93C" text-anchor="middle" stroke="none">против</text>
+<text x="104" y="52" font-size="12" fill="#C385F7" text-anchor="middle" stroke="none" transform="rotate(-29 104 52)">гипотенуза</text>
+</svg>
