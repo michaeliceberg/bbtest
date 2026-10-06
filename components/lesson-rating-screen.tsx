@@ -10,29 +10,43 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { submitLessonRating } from '@/actions/lesson-rating'
-import { LESSON_RATING_OPTIONS, TOP_RATING_STICKERS } from '@/lib/lessonRating'
+import { LESSON_RATING_OPTIONS, RATING_STICKERS, TOP_RATING_STICKERS } from '@/lib/lessonRating'
 import { COZY, type UiTheme } from '@/lib/cozyTheme'
 
 type Props = {
 	tLessonId: number
 	theme?: UiTheme
+	subject?: 'math' | 'physics' // для подсказки в поле «что было непонятно»
 	onDone: () => void
 }
 
 // Цвет выбранного варианта: от красного (не понял) к зелёному (всё понял).
 const ACCENTS = ['#DC605B', '#F09B38', '#53ADEF', '#78C93C']
+// Нижняя грань кнопки «Отправить» — тот же цвет, но темнее.
+const ACCENT_EDGES = ['#A9453F', '#C07C2B', '#428BC0', '#4E8A33']
 
-export const LessonRatingScreen = ({ tLessonId, theme = 'metal', onDone }: Props) => {
+const PLACEHOLDERS = {
+	math: 'Например: не понял, почему здесь минус',
+	physics: 'Например: не понял, куда направлено поле B',
+}
+
+export const LessonRatingScreen = ({ tLessonId, theme = 'metal', subject = 'math', onDone }: Props) => {
 	const cozy = theme === 'cozy'
 	const [score, setScore] = useState<number | null>(null)
 	// Экран монтируется только на клиенте (после урока) — случайный выбор безопасен.
 	const [sticker] = useState(() => TOP_RATING_STICKERS[Math.floor(Math.random() * TOP_RATING_STICKERS.length)])
+	// По одному случайному стикеру на каждую из оценок 1–3 (одинаковый на карточке и в большом превью).
+	const [lowStickers] = useState<Record<number, string>>(() => {
+		const pick = (arr: readonly string[]) => arr[Math.floor(Math.random() * arr.length)]
+		return { 1: pick(RATING_STICKERS[1]), 2: pick(RATING_STICKERS[2]), 3: pick(RATING_STICKERS[3]) }
+	})
 	const topScore = LESSON_RATING_OPTIONS.length
 	const [comment, setComment] = useState('')
 	const [sending, setSending] = useState(false)
 
 	const isBad = score != null && score <= 2
 	const accent = score != null ? ACCENTS[score - 1] : null
+	const accentEdge = score != null ? ACCENT_EDGES[score - 1] : null
 
 	const send = async () => {
 		if (score == null || sending) return
@@ -57,7 +71,7 @@ export const LessonRatingScreen = ({ tLessonId, theme = 'metal', onDone }: Props
 
 				{/* Выбранный вариант: стикер и под ним — подпись выбранного ответа
 					(а не статичный вопрос). До выбора — подсказка. */}
-				<div className="flex flex-col items-center gap-2 min-h-[11rem]">
+				<div className="flex flex-col items-center justify-center gap-2 min-h-[14rem]">
 					<motion.div
 						key={score ?? 0}
 						initial={{ scale: 0.4, opacity: 0 }}
@@ -68,8 +82,11 @@ export const LessonRatingScreen = ({ tLessonId, theme = 'metal', onDone }: Props
 						{score === topScore ? (
 							// eslint-disable-next-line @next/next/no-img-element
 							<img src={sticker.src} alt="" className="h-36 w-36 object-contain" />
+						) : score != null ? (
+							// eslint-disable-next-line @next/next/no-img-element
+							<img src={lowStickers[score]} alt="" className="h-36 w-36 object-contain" />
 						) : (
-							<span className="leading-none">{score != null ? LESSON_RATING_OPTIONS[score - 1].emoji : '🤔'}</span>
+							<span className="leading-none">🤔</span>
 						)}
 						<span
 							className="text-xl sm:text-2xl font-extrabold text-center"
@@ -102,7 +119,8 @@ export const LessonRatingScreen = ({ tLessonId, theme = 'metal', onDone }: Props
 									// eslint-disable-next-line @next/next/no-img-element
 									<img src={sticker.src} alt="" className="h-14 w-14 object-contain -my-2" />
 								) : (
-									<span className="text-4xl leading-none">{o.emoji}</span>
+									// eslint-disable-next-line @next/next/no-img-element
+									<img src={lowStickers[o.score]} alt="" className="h-14 w-14 object-contain -my-2" />
 								)}
 								<span className="font-extrabold text-sm" style={{ color: selected ? c : cozy ? COZY.title : '#F2F7FB' }}>
 									{o.score === topScore ? sticker.label : o.label}
@@ -123,7 +141,7 @@ export const LessonRatingScreen = ({ tLessonId, theme = 'metal', onDone }: Props
 							onChange={(e) => setComment(e.target.value)}
 							rows={3}
 							maxLength={1000}
-							placeholder="Например: не понял, куда направлено поле B"
+							placeholder={PLACEHOLDERS[subject]}
 							className="w-full rounded-xl p-3 text-sm outline-none resize-none"
 							style={{
 								background: cozy ? COZY.track : '#0E1519',
@@ -144,7 +162,7 @@ export const LessonRatingScreen = ({ tLessonId, theme = 'metal', onDone }: Props
 					style={{
 						background: accent ?? (cozy ? COZY.grass : '#78C93C'),
 						color: '#0E1519',
-						boxShadow: `0 5px 0 ${cozy ? COZY.grassEdge : '#4E8A33'}`,
+						boxShadow: `0 5px 0 ${accentEdge ?? (cozy ? COZY.grassEdge : '#4E8A33')}`,
 					}}
 				>
 					{sending ? 'Отправляем…' : 'Отправить'}

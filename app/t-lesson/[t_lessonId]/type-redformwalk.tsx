@@ -954,7 +954,7 @@ const TrialFormula = ({ t, result }: { t: Trial; result: Fn | null }) => (
 )
 
 const hintFor = (t: Trial) =>
-    Math.abs(t.k) % 2 === 1 ? 'Здесь π/2 «нечётное» — функция меняется.' : 'Здесь целое π — функция остаётся.'
+    Math.abs(t.k) % 2 === 1 ? 'Видим π/2 — функция меняется.' : 'Видим π — функция остаётся.'
 
 
 // ===== Интерактивные тренировки в конце: четверть → знак → ответ =====
@@ -1114,7 +1114,7 @@ const TrainScene = ({ index, onSettled, onMistake, onStep }: {
             {done && (
                 <FieryFeedbackBanner fiery={false}>
                     {CORRECT_FEEDBACK_PHRASES[(index * 3 + 1) % CORRECT_FEEDBACK_PHRASES.length]}{' '}
-                    {spec.change ? `π/2 «нечётное» — меняем ${spec.fn} на ${result}` : 'Целое π — функция остаётся'}; в {q} четверти {spec.fn} {plus ? 'положительный' : 'отрицательный'}.
+                    {spec.change ? `Видим π/2 — меняем ${spec.fn} на ${result}` : 'Видим π — функция остаётся'}; в {q} четверти {spec.fn} {plus ? 'положительный' : 'отрицательный'}.
                 </FieryFeedbackBanner>
             )}
             {done && <LocalAnswerConfetti />}

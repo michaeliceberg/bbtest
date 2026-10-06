@@ -6,6 +6,13 @@ export const LESSON_RATING_OPTIONS = [
 	{ score: 4, emoji: '🤯', label: 'База! Всё изи', hint: 'понял всё' },
 ] as const
 
+// Оценки 1–3 — вместо эмодзи случайный весёлый стикер из своей группы (выбор пользователя 2026-10-06).
+export const RATING_STICKERS: Record<1 | 2 | 3, readonly string[]> = {
+	1: ['/stickers/rating/r1-1.webp', '/stickers/rating/r1-2.webp', '/stickers/rating/r1-3.webp'],
+	2: ['/stickers/rating/r2-1.webp', '/stickers/rating/r2-2.webp', '/stickers/rating/r2-3.webp'],
+	3: ['/stickers/rating/r3-1.webp', '/stickers/rating/r3-2.webp'],
+}
+
 // Высшая оценка — вместо эмодзи случайный стикер (выбор пользователя 2026-10-02).
 export const TOP_RATING_STICKERS = [
 	{ src: '/stickers/rating/ponasenkov-1.webp', label: 'Переиграл и уничтожил!' },

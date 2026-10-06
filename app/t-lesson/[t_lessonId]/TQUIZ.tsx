@@ -1006,6 +1006,7 @@ export default function TQuiz({
       <LessonRatingScreen
         tLessonId={t_lessonId}
         theme={uiTheme}
+        subject={inviteSubject === 'math' ? 'math' : 'physics'}
         onDone={() => {
           lessonRatedRef.current = true
           setShowLessonRating(false)
