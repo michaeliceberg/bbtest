@@ -130,6 +130,7 @@ const HypotenuseScene = ({ kind, onSettled }: { kind: HypKind; onSettled: () => 
     const numRef = useRef<HTMLDivElement>(null)
     const [hypOn, setHypOn] = useState(false)
     const [qOn, setQOn] = useState(false)
+    const [btnShown, setBtnShown] = useState(false)
     const [typing, setTyping] = useState(false)
     const [typed, setTyped] = useState(false)
     const [showFrac, setShowFrac] = useState(false)
@@ -144,7 +145,7 @@ const HypotenuseScene = ({ kind, onSettled }: { kind: HypKind; onSettled: () => 
         const timers = [
             setTimeout(() => setHypOn(true), t1),
             setTimeout(() => setQOn(true), t2),
-            setTimeout(() => setTyping(true), t3),
+            setTimeout(() => setBtnShown(true), t3),
         ]
         return () => timers.forEach(clearTimeout)
     }, [])
@@ -212,6 +213,23 @@ const HypotenuseScene = ({ kind, onSettled }: { kind: HypKind; onSettled: () => 
                     reserveLabels={[kind]}
                 />
             </DiagramFrame>
+            {btnShown && !typing && (
+                <motion.div
+                    className="w-full"
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                >
+                    <button
+                        type="button"
+                        onClick={() => setTyping(true)}
+                        className={walkthroughButtonClass(true)}
+                        style={walkthroughButtonStyle(true)}
+                    >
+                        Интересненько..
+                    </button>
+                </motion.div>
+            )}
             <div className="w-full flex justify-center min-h-[8rem]">
                 {typing && (
                     <div className="w-full text-lg md:text-xl font-bold text-[#F2F7FB] flex items-center justify-center flex-wrap gap-1">
