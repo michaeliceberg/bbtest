@@ -543,14 +543,15 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                         }}
                     >
                         {topic.imageSrc === HERO_HALF_CIRCLE ? (
-                            <div className="flex items-center justify-between gap-3 mb-2">
-                                <div className="min-w-0">
-                                    <div className="text-lg font-extrabold leading-tight" style={{ color: cozy ? COZY.title : accent.button }}>
-                                        {HERO_HALF_CIRCLE_TITLE.map((line) => <div key={line}>{line}</div>)}
-                                    </div>
-                                    <div className="text-xs font-bold mt-1" style={{ color: hexToRgba(accent.button, 0.85) }}>{topic.percentage}%</div>
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="text-lg font-extrabold leading-tight flex-shrink-0" style={{ color: cozy ? COZY.title : accent.button }}>
+                                    {HERO_HALF_CIRCLE_TITLE.map((line) => <div key={line}>{line}</div>)}
                                 </div>
-                                <HalfCircleHero />
+                                <div className="flex-1 flex justify-center min-w-0">
+                                    <div className="rounded-xl px-3 pt-3 pb-1.5" style={{ background: hexToRgba(GGEGE_PALETTE.purple.button, 0.1) }}>
+                                        <HalfCircleHero />
+                                    </div>
+                                </div>
                             </div>
                         ) : topic.imageSrc ? (
                             <div

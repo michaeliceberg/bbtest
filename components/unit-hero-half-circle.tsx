@@ -23,8 +23,7 @@ export const HalfCircleHero = () => {
     const ref = useRef<SVGSVGElement>(null)
     const seen = useInView(ref, { once: true, amount: 0.6 })
     return (
-        <svg ref={ref} viewBox="0 0 120 120" className="w-[104px] h-[104px] flex-shrink-0 overflow-visible">
-            <circle cx={CX} cy={CY} r={R} fill="none" stroke="#3A464E" strokeWidth={1.5} strokeDasharray="3 5" />
+        <svg ref={ref} viewBox="0 0 120 68" className="w-[118px] h-auto flex-shrink-0 overflow-visible">
             {seen && (
                 <>
                     <motion.path
@@ -39,12 +38,12 @@ export const HalfCircleHero = () => {
                         x1={CX - R} y1={CY} x2={CX + R} y2={CY} stroke="#F2F7FB" strokeWidth={2} strokeLinecap="round"
                         initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6, delay: DRAW_S * 0.8 }}
                     />
-                    <g transform={`translate(${CX} ${CY - 24})`}>
+                    <g transform={`translate(${CX} ${CY - 22})`}>
                         <motion.g
                             initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                             transition={{ delay: DRAW_S + 0.1, type: 'spring', bounce: 0.6 }}
                         >
-                            <text textAnchor="middle" dominantBaseline="central" fontSize={17} fill="#F2F7FB"
+                            <text textAnchor="middle" dominantBaseline="central" fontSize={16} fill="#F2F7FB"
                                 style={{ fontFamily: 'var(--font-nunito), sans-serif', fontWeight: 900 }}>
                                 π = 180°
                             </text>
