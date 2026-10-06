@@ -36,7 +36,7 @@ const AccountPage = async () => {
             <div>
                 <h2 className="font-bold text-lg text-[#F2F7FB] mb-3">Профиль</h2>
                 <div className="flex flex-col gap-4">
-                    <NameEditor currentName={userProgress.userName} rank={rank.title} rankHint={rank.next ? `Следующее звание — «${rank.next.title}» с ${rank.next.minLevel} уровня` : undefined} />
+                    <NameEditor currentName={userProgress.userName} rank={rank.title} callsign={invite?.nickname} rankHint={rank.next ? `Следующее звание — «${rank.next.title}» с ${rank.next.minLevel} уровня` : undefined} />
                     <AvatarReroll currentAvatar={userProgress.userImageSrc} points={userProgress.points} />
                 </div>
             </div>
