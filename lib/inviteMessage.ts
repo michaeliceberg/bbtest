@@ -13,6 +13,9 @@ const hooksFor = (subject: TrialSubject) => [
 	'Залетай, тут ЕГЭ решают за пиццу 🍕',
 ]
 
+// Подпись кнопки приглашения друга (итоги урока и экран приза гостя).
+export const battleButtonLabel = (subject: TrialSubject) => `Кто круче в ${TRIAL_TRACKS[subject].subjectPrep}? Баттл с другом 🍕`
+
 export const formatSeconds = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
 
 export const buildInviteMessage = ({

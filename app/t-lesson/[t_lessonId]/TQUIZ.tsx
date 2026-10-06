@@ -51,7 +51,7 @@ import { ReferralGiftScreen } from "@/components/referral-screens"
 import { GuestRewardScreen } from "@/components/guest-reward-screen"
 import { useSession } from "next-auth/react"
 import { shareInviteLink } from "@/components/share-story-button"
-import { buildInviteMessage } from "@/lib/inviteMessage"
+import { buildInviteMessage, battleButtonLabel } from "@/lib/inviteMessage"
 import { getInviteLink } from "@/lib/referral"
 import type { TrialSubject } from "@/lib/trialTracks"
 import { GuestVibePicker, GUEST_NICKNAME_STORAGE_KEY, GUEST_VIBES_STORAGE_KEY } from "@/components/guest-vibe-picker"
@@ -1135,7 +1135,7 @@ export default function TQuiz({
             // Картинку мессенджер подтягивает сам из превью ссылки
             // (app/i/[code]/opengraph) — так текст и картинка приходят
             // одним сообщением.
-            secondaryLabel="🍕 Позвать друга"
+            secondaryLabel={battleButtonLabel(inviteSubject)}
             onSecondary={async () => {
               const res = await shareInviteLink(
                 buildInviteMessage({

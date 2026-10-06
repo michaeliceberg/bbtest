@@ -17,6 +17,7 @@ import { CaseReel } from '@/components/CaseReel';
 import { shareInviteLink } from '@/components/share-story-button';
 import { getInviteLink } from '@/lib/referral';
 import { TRIAL_TRACKS, subjectByLesson } from '@/lib/trialTracks';
+import { battleButtonLabel } from '@/lib/inviteMessage';
 import { createGuestLead, openGuestLeadCase, updateGuestLeadVibes } from '@/actions/guest-lesson';
 import { GuestVibePicker, GUEST_NICKNAME_STORAGE_KEY } from '@/components/guest-vibe-picker';
 import { DIAGNOSTIC_CASE_POOL, rewardEmoji, rewardLabel, type CaseReward } from '@/lib/caseRewards';
@@ -114,7 +115,7 @@ export const GuestRewardScreen = ({ t_lessonId, nickname: initialNickname, vibes
 						)}
 						className="w-full h-12 rounded-2xl bg-[#232F34] text-[#F2F7FB] font-bold border-2 border-b-4 border-[#3A464E] active:border-b-2"
 					>
-						🍕 Позвать друга
+						{battleButtonLabel(subjectByLesson(t_lessonId))}
 					</button>
 
 					<div className="w-full rounded-xl border-2 border-sky-500/50 bg-sky-500/10 p-3">

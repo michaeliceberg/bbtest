@@ -15,6 +15,7 @@ export type TrialTrack = {
 	topicGen: string       // «3 урока Электродинамики»
 	subjectAcc: string     // «прохожу физику»
 	lessonGen: string      // «за урок физики»
+	subjectPrep: string    // «кто круче в физике»
 	steps: string[]        // названия уроков на экране «Тебя позвал…»
 }
 
@@ -26,6 +27,7 @@ export const TRIAL_TRACKS: Record<TrialSubject, TrialTrack> = {
 		topicGen: 'Электродинамики',
 		subjectAcc: 'физику',
 		lessonGen: 'физики',
+		subjectPrep: 'физике',
 		steps: ['Ток крутит поле 🌀', 'Фарадей — наш брат 🤝', 'Ленц — душнила, но база 🧱'],
 	},
 	math: {
@@ -35,6 +37,7 @@ export const TRIAL_TRACKS: Record<TrialSubject, TrialTrack> = {
 		topicGen: 'тригонометрии',
 		subjectAcc: 'математику',
 		lessonGen: 'математики',
+		subjectPrep: 'математике',
 		steps: ['Окружность — наш дом 🏠', 'Три волшебных угла ✨', 'Тангенс — изи 😎'],
 	},
 }
