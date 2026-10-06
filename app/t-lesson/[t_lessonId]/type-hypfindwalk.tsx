@@ -27,6 +27,7 @@ import {
     type AlphaVertex, type StickerPart, type SideId,
 } from '@/components/geometry/RightTriangleDiagram'
 import { Typewriter } from '@/components/geometry/Typewriter'
+import { FormulaAssemble, type FormulaChip } from '@/components/geometry/FormulaAssemble'
 import {
     DiagramBlock, pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
@@ -287,7 +288,6 @@ const HypotenuseScene = ({ kind, onSettled }: { kind: HypKind; onSettled: () => 
 // ===== Тренировка =====
 
 type TrialKind = 'opp' | 'adj'
-type TrialOption = { text: string; correct: boolean }
 
 // Угол на рисунке: при вершине P он «похож» на 30° (≈36°), при Q — на 60° (≈54°),
 // поэтому в заданиях берём только эти два значения.
@@ -311,15 +311,16 @@ type HypTrialConfig = {
     alphaVertex: AlphaVertex
     rotationDeg: number
     mirror: boolean
-    options: TrialOption[]
+    chips: FormulaChip[]
+    correct: [string, string]
 }
 const LEGS = [3, 4, 5, 6, 8, 9, 10, 12, 15]
-const makeHypOptions = (kind: TrialKind, leg: number, angle: number): TrialOption[] => shuffle([
-    { text: `${leg} / sin ${angle}°`, correct: kind === 'opp' },
-    { text: `${leg} / cos ${angle}°`, correct: kind === 'adj' },
-    // Типичные ошибки: умножать вместо деления.
-    { text: `${leg} · ${kind === 'opp' ? 'sin' : 'cos'} ${angle}°`, correct: false },
-    { text: `${leg} / tg ${angle}°`, correct: false },
+// Пул кнопок: число-катет и три функции угла (одна верная, две «ловушки»).
+const makeHypChips = (leg: number, angle: number): FormulaChip[] => shuffle([
+    { id: 'leg', label: String(leg) },
+    { id: 'sin', label: `sin ${angle}°` },
+    { id: 'cos', label: `cos ${angle}°` },
+    { id: 'tg', label: `tg ${angle}°` },
 ])
 const makeHypTrials = (): HypTrialConfig[] => {
     const kinds = shuffle<TrialKind>(['opp', 'opp', 'adj', 'adj'])
@@ -331,7 +332,7 @@ const makeHypTrials = (): HypTrialConfig[] => {
         let rotationDeg = pick(ROTATIONS)
         for (let g = 0; g < 6 && rotationDeg === lastRot; g++) rotationDeg = pick(ROTATIONS)
         lastRot = rotationDeg
-        return { kind, leg, angle, rotationDeg, alphaVertex, mirror: Math.random() < 0.5, options: makeHypOptions(kind, leg, angle) }
+        return { kind, leg, angle, rotationDeg, alphaVertex, mirror: Math.random() < 0.5, chips: makeHypChips(leg, angle), correct: ['leg', kind === 'opp' ? 'sin' : 'cos'] }
     })
 }
 
@@ -350,7 +351,6 @@ export const TypeHypFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
     const [hadMistake, setHadMistake] = useState(false)
 
     const [hypTrials] = useState<HypTrialConfig[]>(() => makeHypTrials())
-    const [wrongTried, setWrongTried] = useState<string[]>([])
     const registerCombo = useWalkthroughCombo()
     const [checked, setChecked] = useState(false)
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
@@ -368,7 +368,6 @@ export const TypeHypFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
     const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, contentSettled)
 
     const resetTrial = () => {
-        setWrongTried([])
         setChecked(false)
         setWrongFlash(null)
     }
@@ -401,21 +400,19 @@ export const TypeHypFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
         }, SCENE_TRANSITION_PAUSE_MS)
     }
 
-    const handleOptionClick = (opt: TrialOption) => {
-        if (checked || wrongTried.includes(opt.text)) return
-        if (opt.correct) {
-            registerCombo(wrongTried.length === 0)
-            showAnswerMeme(true)
-            setChecked(true)
-            setWrongFlash(null)
-            setNextLabel(pickWalkthroughNextLabel(isLastScene ? 'Готово' : 'Дальше'))
-        } else {
-            playSound(WRONG_ANSWER_SOUND)
-            setHadMistake(true)
-            showAnswerMeme(false)
-            setWrongTried((w) => [...w, opt.text])
-            setWrongFlash(pickWrongTryPhrase())
-        }
+    const handleWrong = () => {
+        playSound(WRONG_ANSWER_SOUND)
+        setHadMistake(true)
+        showAnswerMeme(false)
+        setWrongFlash(pickWrongTryPhrase())
+    }
+
+    const handleSolved = (firstTry: boolean) => {
+        registerCombo(firstTry)
+        showAnswerMeme(true)
+        setChecked(true)
+        setWrongFlash(null)
+        setNextLabel(pickWalkthroughNextLabel(isLastScene ? 'Готово' : 'Дальше'))
     }
 
     const markReady = (key: string) => () => setReady((r) => ({ ...r, [key]: true }))
@@ -430,33 +427,6 @@ export const TypeHypFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
             </SceneWrapper>
         )
     }
-
-    const renderOptions = (key: string, options: TrialOption[], isCurrent: boolean, isDone: boolean, cols: string) => (
-        <div className={cn('grid gap-2', cols)}>
-            {options.map((opt) => {
-                const wrong = isCurrent && wrongTried.includes(opt.text)
-                const right = isDone && opt.correct
-                return (
-                    <button
-                        key={`${key}-${opt.text}`}
-                        type="button"
-                        onClick={() => isCurrent && handleOptionClick(opt)}
-                        disabled={!isCurrent || checked || wrong}
-                        className={cn(
-                            'h-12 rounded-xl border-2 border-b-4 font-extrabold text-base md:text-lg tabular-nums transition-colors',
-                            right && 'border-[#A1D151] bg-[#A1D15122] text-[#A1D151]',
-                            wrong && 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]',
-                            !right && !wrong && 'border-[#3A464E] bg-[#1B252B] text-[#F2F7FB]',
-                            !right && !wrong && isCurrent && !checked && 'hover:border-[#4A90D9] active:border-b-2',
-                            !isCurrent && !right && 'opacity-50',
-                        )}
-                    >
-                        {opt.text}
-                    </button>
-                )
-            })}
-        </div>
-    )
 
     const renderHypTrial = (i: number) => {
         const t = hypTrials[i]
@@ -494,7 +464,15 @@ export const TypeHypFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
                             sideStickerLabels={{ hyp: [{ text: '?', color: isDone ? doneColor : HYPOTENUSE_COLOR }] }}
                         />
                     </DiagramFrame>
-                    {renderOptions(key, t.options, isCurrent, isDone, 'grid-cols-2')}
+                    <FormulaAssemble
+                        prefix="гипотенуза ="
+                        layout="fraction"
+                        chips={t.chips}
+                        correct={t.correct}
+                        frozen={!isCurrent}
+                        onWrong={handleWrong}
+                        onSolved={handleSolved}
+                    />
                     {isCurrent && !checked && wrongFlash && (
                         <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">
                             <X className="w-5 h-5" /> {wrongFlash}

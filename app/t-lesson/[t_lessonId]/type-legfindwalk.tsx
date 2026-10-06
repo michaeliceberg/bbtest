@@ -29,6 +29,7 @@ import {
     type AlphaVertex, type StickerPart, type SideId,
 } from '@/components/geometry/RightTriangleDiagram'
 import { Typewriter } from '@/components/geometry/Typewriter'
+import { FormulaAssemble, type FormulaChip } from '@/components/geometry/FormulaAssemble'
 import {
     DiagramBlock, pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
@@ -250,7 +251,8 @@ type TrialConfig = {
     alphaVertex: AlphaVertex
     rotationDeg: number
     mirror: boolean
-    options: TrialOption[]
+    chips: FormulaChip[]
+    correct: [string, string]
 }
 
 const HYPS = [4, 5, 6, 7, 8, 9, 10, 12, 13, 15, 16, 20, 25]
@@ -268,12 +270,12 @@ const shuffle = <T,>(arr: T[]): T[] => {
     return copy
 }
 
-const makeOptions = (kind: TrialKind, hyp: number, angle: number): TrialOption[] => shuffle([
-    { text: `${hyp} · sin ${angle}°`, correct: kind === 'opp' },
-    { text: `${hyp} · cos ${angle}°`, correct: kind === 'adj' },
-    // Типичные ошибки: делить вместо умножать, взять tg.
-    { text: `${hyp} / ${kind === 'opp' ? 'sin' : 'cos'} ${angle}°`, correct: false },
-    { text: `${hyp} · tg ${angle}°`, correct: false },
+// Пул кнопок: число-гипотенуза и три функции угла (одна верная, две «ловушки»).
+const makeChips = (hyp: number, angle: number): FormulaChip[] => shuffle([
+    { id: 'hyp', label: String(hyp) },
+    { id: 'sin', label: `sin ${angle}°` },
+    { id: 'cos', label: `cos ${angle}°` },
+    { id: 'tg', label: `tg ${angle}°` },
 ])
 
 const makeTrials = (): TrialConfig[] => {
@@ -290,7 +292,8 @@ const makeTrials = (): TrialConfig[] => {
             kind, hyp, angle, rotationDeg,
             alphaVertex,
             mirror: Math.random() < 0.5,
-            options: makeOptions(kind, hyp, angle),
+            chips: makeChips(hyp, angle),
+            correct: ['hyp', kind === 'opp' ? 'sin' : 'cos'],
         }
     })
 }
@@ -413,6 +416,22 @@ export const TypeLegFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
             setWrongTried((w) => [...w, opt.text])
             setWrongFlash(pickWrongTryPhrase())
         }
+    }
+
+    // Тренировка: ответ собирается из кнопок (FormulaAssemble) — два этапа.
+    const handleTrialWrong = () => {
+        playSound(WRONG_ANSWER_SOUND)
+        setHadMistake(true)
+        showAnswerMeme(false)
+        setWrongFlash(pickWrongTryPhrase())
+    }
+
+    const handleTrialSolved = (firstTry: boolean) => {
+        registerCombo(firstTry)
+        showAnswerMeme(true)
+        setChecked(true)
+        setWrongFlash(null)
+        setNextLabel(pickWalkthroughNextLabel(isLastScene ? 'Готово' : 'Дальше'))
     }
 
     const markReady = (key: string) => () => setReady((r) => ({ ...r, [key]: true }))
@@ -548,7 +567,15 @@ export const TypeLegFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
                             sideStickerLabels={{ [targetSide]: [{ text: '?', color: isDone ? doneColor : (t.kind === 'opp' ? LEG_COLOR : ADJACENT_LEG_COLOR) }] }}
                         />
                     </DiagramFrame>
-                    {renderOptions(key, t.options, isCurrent, isDone, 'grid-cols-2')}
+                    <FormulaAssemble
+                        prefix="катет ="
+                        layout="product"
+                        chips={t.chips}
+                        correct={t.correct}
+                        frozen={!isCurrent}
+                        onWrong={handleTrialWrong}
+                        onSolved={handleTrialSolved}
+                    />
                     {isCurrent && !checked && wrongFlash && (
                         <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">
                             <X className="w-5 h-5" /> {wrongFlash}
