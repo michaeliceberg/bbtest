@@ -31,6 +31,9 @@ import { PizzaProgress } from '@/components/PizzaProgress';
 import { getUserCourseProgress, getUserCourses } from '@/db/queries';
 import { HIDDEN_T_COURSE_IDS, pickActiveCourseId, resolveActiveTCourse, sortTCoursesForTabs } from '@/lib/trainer-topic';
 import { getUiTheme } from '@/lib/uiThemeServer';
+import { getTrainerView } from '@/lib/trainerViewServer';
+import { TrainerTopBar } from '@/components/trainer-top-bar';
+import { TrainerPet } from '@/components/trainer-pet';
 import { COZY } from '@/lib/cozyTheme';
 import { GuestRewardClaimer } from '@/components/guest-reward-claimer';
 import { ReferralCashbackScreen } from '@/components/referral-screens';
@@ -239,6 +242,7 @@ const TLearnPage = async () => {
     // Стиль оформления (переключатель в сайдбаре, cookie uiTheme).
     const uiTheme = getUiTheme();
     const cozy = uiTheme === 'cozy';
+    const simple = getTrainerView() === 'simple';
 
     return (
         <div className='flex flex-row-reverse gap-[48px] px-6'>
@@ -279,6 +283,35 @@ const TLearnPage = async () => {
                 <Header title={activeTCourse ? `Тренажёр ${activeTCourse.title}` : "Тренажёр"} cozy={cozy} />
 
                 <div className='mt-2 lg:mt-5'>
+                    {simple && (
+                        <>
+                            <TrainerPet streak={currentStreakForRisk} hasExtendedToday={hasExtendedStreakToday} questDone={!!dailyQuest?.isCompleted} dayKey={new Date().getDate()} />
+                            <TrainerTopBar
+                                xp={currentXp}
+                                streak={currentStreakForRisk}
+                                streakDoneToday={hasExtendedStreakToday}
+                                points={currentPoints}
+                                gems={currentGems}
+                                hearts={currentHearts}
+                                pizzaSlices={currentPizzaSlices}
+                                questDone={(dailyQuest?.trainerDone ? 1 : 0) + (dailyQuest?.taskDone ? 1 : 0)}
+                                questTotal={2}
+                                pizzaPanel={<PizzaProgress collected={currentPizzaSlices} cozy={cozy} dodoPromoCode={userProgress.dodoPromoCode} eighths={userProgress.pizzaEighths} />}
+                                questPanel={dailyQuest ? (
+                                    <TrainerQuestCard
+                                        trainerDone={dailyQuest.trainerDone}
+                                        taskDone={dailyQuest.taskDone}
+                                        isCompleted={dailyQuest.isCompleted}
+                                        streak={dailyQuest.streak}
+                                        dueDateIso={dailyQuest.dueDateIso}
+                                        pointsReward={dailyQuest.pointsReward}
+                                        history={questHistory}
+                                    />
+                                ) : undefined}
+                            />
+                        </>
+                    )}
+                    {!simple && (<>
                     <StreakRiskBanner streak={currentStreakForRisk} hasExtendedToday={hasExtendedStreakToday} />
 
                     <div className='mb-4'>
@@ -301,6 +334,8 @@ const TLearnPage = async () => {
                         </div>
                     )}
 
+                    </>)}
+
                     <div className='content-center mx-auto justify-center text-center align-middle'>
                         <HwTopBanner missedCIds={missedLIds} variant='trainer' />
                     </div>
@@ -318,6 +353,7 @@ const TLearnPage = async () => {
                         this_class_id={userProgress.classId}
                         isAdmin={userProgress.isAdmin === 1}
                         theme={uiTheme}
+                        simple={simple}
                     />
                 </div>
             </FeedWrapper>

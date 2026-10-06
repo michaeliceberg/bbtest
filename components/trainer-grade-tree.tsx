@@ -170,6 +170,8 @@ interface Props {
     // Открыт только этот таб (название темы/блока), остальные видны, но
     // заблокированы (просьба пользователя: в «ЕГЭ Физика» пока только Электродинамика).
     onlyActiveGroup?: string;
+    // Простой вид /trainer: без процентов у темы, «Справочник» — одна иконка.
+    simple?: boolean;
 }
 
 // Цвета карты в двух стилях — через CSS-переменные на корне карты, чтобы
@@ -364,7 +366,7 @@ const FrontierShine = ({ children }: { children: React.ReactNode }) => (
 // 300-500мс), чтобы анимация не началась "за кадром", пока страница ещё едет.
 const SCROLL_SETTLE_MS = 500;
 
-export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onlyActiveGroup }: Props) => {
+export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onlyActiveGroup, simple = false }: Props) => {
     const cozy = theme === 'cozy';
     const ACC: GroupAccent = cozy ? COZY_TREE_ACCENT : GROUP_ACCENTS[0];
     // Reveal-анимация "только что прошёл этот этап" — сигнал приходит из
@@ -571,7 +573,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                             {topic.title !== blockTitle && <span className="text-base font-extrabold truncate" style={{ color: cozy ? COZY.title : accent.button }}>{topic.title}</span>}
                             {(() => {
                                 const examStage = topic.stages.find((st) => st.isBossExam);
-                                if (!examStage) return <span className="text-xs font-bold flex-shrink-0 ml-auto" style={{ color: hexToRgba(accent.button, 0.85) }}>{topic.percentage}%</span>;
+                                if (!examStage) return simple ? null : <span className="text-xs font-bold flex-shrink-0 ml-auto" style={{ color: hexToRgba(accent.button, 0.85) }}>{topic.percentage}%</span>;
                                 const rank = getBossRank(examStage.bossWins ?? 0);
                                 return rank ? <span className="text-xs font-black flex-shrink-0 px-2 py-0.5 rounded-full ml-auto" style={{ color: rank.color, backgroundColor: hexToRgba(rank.color, 0.15) }}>{rank.title}</span> : null;
                             })()}
@@ -914,7 +916,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                 title={`Справочник — ${topic.title}`}
                             >
                                 <Library className="w-3.5 h-3.5" />
-                                Справочник
+                                {!simple && 'Справочник'}
                             </Link>
                         </div>
                     </div>

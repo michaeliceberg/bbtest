@@ -109,6 +109,7 @@ type Props = {
     isAdmin?: boolean,
     // Стиль оформления (lib/uiTheme.ts): игровой или тёплый.
     theme?: UiTheme,
+    simple?: boolean,
 
     all_t_lessonProgress: {
         id: number;
@@ -135,6 +136,7 @@ export const TabTCourses = ({
     all_t_lessonProgress,
     isAdmin = false,
     theme = 'metal',
+    simple = false,
 }: Props) => {
     const [showFormulas, setShowFormulas] = useState(false)
 
@@ -382,7 +384,7 @@ export const TabTCourses = ({
                         )}
 
                         <div className="w-full mt-2">
-                            <TrainerGradeTree topics={topics} isAdmin={isAdmin} theme={theme} onlyActiveGroup={TRAINER_ONLY_ACTIVE_GROUP[t_course.title]} />
+                            <TrainerGradeTree topics={topics} isAdmin={isAdmin} theme={theme} simple={simple} onlyActiveGroup={TRAINER_ONLY_ACTIVE_GROUP[t_course.title]} />
                         </div>
 
                         {/* "Показать все формулы" — убрано по просьбе пользователя (2026-09-03):
