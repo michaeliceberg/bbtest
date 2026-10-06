@@ -92,7 +92,7 @@ const CURIOUS_REPLIES = [
 ]
 const HYP_Q: StickerPart[] = [{ text: '?', color: HYPOTENUSE_COLOR }]
 
-type Flight = { sx: number; sy: number; rot: number; dx: number; dy: number; lines: string[]; one: string; color: string }
+type Flight = { sx: number; sy: number; rot: number; dx: number; dy: number; lines: string[]; one: string; color: string; fontSize?: number; serifItalic?: boolean }
 
 const FlyingLabel = ({ f, onLanded }: { f: Flight; onLanded: () => void }) => (
     <div className="absolute pointer-events-none z-10 -translate-x-1/2 -translate-y-1/2" style={{ left: f.sx, top: f.sy }}>
@@ -105,7 +105,7 @@ const FlyingLabel = ({ f, onLanded }: { f: Flight; onLanded: () => void }) => (
         >
             <motion.div
                 className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center font-extrabold leading-tight whitespace-nowrap"
-                style={{ color: f.color, fontSize: 15, fontFamily: 'var(--font-nunito), sans-serif' }}
+                style={{ color: f.color, fontSize: f.fontSize ?? 15, fontFamily: f.serifItalic ? 'Georgia, serif' : 'var(--font-nunito), sans-serif', fontStyle: f.serifItalic ? 'italic' : 'normal' }}
                 initial={{ opacity: 1 }}
                 animate={{ opacity: 0 }}
                 transition={{ duration: 0.45, delay: 0.1 }}
@@ -146,7 +146,9 @@ const HypotenuseScene = ({ kind, onSettled }: { kind: HypKind; onSettled: () => 
     const [showFrac, setShowFrac] = useState(false)
     const [flight, setFlight] = useState<Flight | null>(null)
     const [landed, setLanded] = useState(false)
+    const [alphaFlight, setAlphaFlight] = useState<Flight | null>(null)
     const [denShown, setDenShown] = useState(false)
+    const denRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         const t1 = 1400
@@ -166,11 +168,16 @@ const HypotenuseScene = ({ kind, onSettled }: { kind: HypKind; onSettled: () => 
         return () => clearTimeout(t)
     }, [typed])
 
-    const startFlight = (): Flight | null => {
+    // Подпись с рисунка (по тексту) улетает в нужный пропуск формулы: сначала
+    // катет → числитель, затем α → знаменатель, где превращается в sin α / cos α.
+    const startFlight = (
+        match: (text: string) => boolean, slot: React.RefObject<HTMLDivElement>,
+        lines: string[], one: string, color: string, extra?: Partial<Flight>,
+    ): Flight | null => {
         const root = rootRef.current
-        const target = numRef.current
+        const target = slot.current
         if (!root || !target) return null
-        const label = [...root.querySelectorAll('svg text')].find((t) => (t.textContent ?? '').includes(cfg.needle)) as SVGTextElement | undefined
+        const label = [...root.querySelectorAll('svg text')].find((t) => match((t.textContent ?? '').trim())) as SVGTextElement | undefined
         if (!label) return null
         const rr = root.getBoundingClientRect()
         const lr = label.getBoundingClientRect()
@@ -183,21 +190,22 @@ const HypotenuseScene = ({ kind, onSettled }: { kind: HypKind; onSettled: () => 
             sx, sy, rot: m ? Number(m[1]) : 0,
             dx: tr.left + tr.width / 2 - rr.left - sx,
             dy: tr.top + tr.height / 2 - rr.top - sy,
-            lines: cfg.lines, one: cfg.one, color: cfg.color,
+            lines, one, color, ...extra,
         }
     }
 
     useEffect(() => {
         if (!showFrac) return
-        const t = setTimeout(() => setFlight(startFlight()), 900)
+        const t = setTimeout(() => setFlight(startFlight((t) => t.includes(cfg.needle), numRef, cfg.lines, cfg.one, cfg.color)), 900)
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [showFrac])
 
     useEffect(() => {
         if (!landed) return
-        const t = setTimeout(() => setDenShown(true), 700)
+        const t = setTimeout(() => setAlphaFlight(startFlight((x) => x === 'α', denRef, ['α'], cfg.trig, cfg.color, { fontSize: 24, serifItalic: true })), 900)
         return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [landed])
 
     useEffect(() => {
@@ -251,10 +259,9 @@ const HypotenuseScene = ({ kind, onSettled }: { kind: HypKind; onSettled: () => 
                                             {!landed && <div className="absolute inset-0 rounded-lg border-2 border-dashed border-[#3A464E]" />}
                                         </div>
                                         <span className="self-stretch -mx-3 h-[5px] my-2.5 rounded-full bg-[#F2F7FB]" />
-                                        <div className="relative min-h-[2.4rem] min-w-[5rem] flex items-center justify-center">
-                                            {denShown
-                                                ? <Sticker value={cfg.trig} color={trigColor} />
-                                                : <div className="absolute inset-0 rounded-lg border-2 border-dashed border-[#3A464E]" />}
+                                        <div ref={denRef} className="relative">
+                                            <div className={denShown ? '' : 'invisible'}><Sticker value={cfg.trig} color={trigColor} /></div>
+                                            {!denShown && <div className="absolute inset-0 rounded-lg border-2 border-dashed border-[#3A464E]" />}
                                         </div>
                                     </span>
                                 )}
@@ -281,6 +288,7 @@ const HypotenuseScene = ({ kind, onSettled }: { kind: HypKind; onSettled: () => 
                 </motion.div>
             )}
             {flight && !landed && <FlyingLabel f={flight} onLanded={() => setLanded(true)} />}
+            {alphaFlight && !denShown && <FlyingLabel f={alphaFlight} onLanded={() => setDenShown(true)} />}
         </div>
     )
 }
