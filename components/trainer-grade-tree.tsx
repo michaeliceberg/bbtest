@@ -59,6 +59,18 @@ import Lottie from '@/components/lottie-player'
 type GroupAccent = { button: string; bottom: string };
 // Цвета блоков/тем по кругу из общей палитры ggege (CLAUDE.md).
 const GROUP_ACCENTS: GroupAccent[] = [GGEGE_PALETTE.blue];
+
+// Стикер с номером юнита: у каждого следующего юнита свой цвет палитры (без оранжевого — он «внимание»).
+const UNIT_NUMBER_COLORS = [GGEGE_PALETTE.blue, GGEGE_PALETTE.green, GGEGE_PALETTE.purple, GGEGE_PALETTE.raspberry, GGEGE_PALETTE.teal];
+const UnitNumberSticker = ({ n, size = 'md' }: { n: number; size?: 'md' | 'lg' }) => {
+    const c = UNIT_NUMBER_COLORS[(n - 1) % UNIT_NUMBER_COLORS.length];
+    return (
+        <span
+            className={`flex-shrink-0 inline-flex items-center justify-center rounded-lg font-black ${size === 'lg' ? 'w-8 h-8 text-lg' : 'w-6 h-6 text-sm'}`}
+            style={{ color: c.button, backgroundColor: hexToRgba(c.button, 0.18), border: `2px solid ${c.button}`, boxShadow: `0 2px 0 ${c.bottom}` }}
+        >{n}</span>
+    );
+};
 const mixWithWhite = (hex: string, k: number): string => {
     const n = parseInt(hex.slice(1), 16);
     const mix = (c: number) => Math.round(c + (255 - c) * k);
@@ -546,8 +558,8 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                     >
                         {topic.imageSrc === HERO_HALF_CIRCLE ? (
                             <div className="flex items-center gap-3 pb-3 mb-3 border-b" style={{ borderColor: hexToRgba(accent.button, 0.25) }}>
+                                {unitNumber != null && <UnitNumberSticker n={unitNumber} size="lg" />}
                                 <div className="flex-shrink-0" style={{ color: cozy ? COZY.title : accent.button }}>
-                                    {unitNumber != null && <div className="text-[11px] font-black uppercase tracking-widest opacity-70 mb-0.5">Тема {unitNumber}</div>}
                                     <div className="text-lg font-extrabold leading-tight">
                                         {HERO_HALF_CIRCLE_TITLE.map((line) => <div key={line}>{line}</div>)}
                                     </div>
@@ -567,9 +579,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                         ) : null}
                         {topic.imageSrc !== HERO_HALF_CIRCLE && (<div className="flex items-center gap-2 pb-2.5 mb-3 border-b min-w-0" style={{ borderColor: hexToRgba(accent.button, 0.22) }}>
                             <span className="w-1.5 h-5 rounded-full flex-shrink-0" style={{ background: `linear-gradient(180deg, ${accent.button}, ${accent.bottom})` }} />
-                            {unitNumber != null && (
-                                <span className="flex-shrink-0 w-5 h-5 rounded-full text-[11px] font-black flex items-center justify-center" style={{ color: cozy ? COZY.title : accent.button, backgroundColor: hexToRgba(accent.button, 0.18) }}>{unitNumber}</span>
-                            )}
+                            {unitNumber != null && <UnitNumberSticker n={unitNumber} />}
                             {topic.title !== blockTitle && <span className="text-base font-extrabold truncate" style={{ color: cozy ? COZY.title : accent.button }}>{topic.title}</span>}
                             {(() => {
                                 const examStage = topic.stages.find((st) => st.isBossExam);

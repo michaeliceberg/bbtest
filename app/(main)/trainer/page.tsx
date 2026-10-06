@@ -288,11 +288,6 @@ const TLearnPage = async () => {
                             <TrainerPet streak={currentStreakForRisk} hasExtendedToday={hasExtendedStreakToday} questDone={!!dailyQuest?.isCompleted} dayKey={new Date().getDate()} />
                             <TrainerTopBar
                                 xp={currentXp}
-                                streak={currentStreakForRisk}
-                                streakDoneToday={hasExtendedStreakToday}
-                                points={currentPoints}
-                                gems={currentGems}
-                                hearts={currentHearts}
                                 pizzaSlices={currentPizzaSlices}
                                 questDone={(dailyQuest?.trainerDone ? 1 : 0) + (dailyQuest?.taskDone ? 1 : 0)}
                                 questTotal={2}
