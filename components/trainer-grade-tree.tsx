@@ -499,7 +499,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
     // нужен доступ по замыканию к состоянию reveal-анимации/рефам выше,
     // без прокидывания десятка пропсов), вызывается из ДВУХ мест —
     // одиночная тема и тема внутри chain-группы (см. return ниже).
-    const renderTopicCard = (topic: SkillTopic, accentIn: GroupAccent, nested = false, blockTitle?: string) => {
+    const renderTopicCard = (topic: SkillTopic, accentIn: GroupAccent, nested = false, blockTitle?: string, unitNumber: number | null = null) => {
         const accent: GroupAccent = cozy ? accentIn : { button: muteColor(accentIn.button), bottom: muteColor(accentIn.bottom) };
         // Тёплый стиль: пройденный этап — плоский медовый блок с нижней гранью.
         const doneGradient = cozy ? accent.button : `linear-gradient(135deg, ${accent.button} 0%, ${accent.bottom} 100%)`;
@@ -543,9 +543,12 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                         }}
                     >
                         {topic.imageSrc === HERO_HALF_CIRCLE ? (
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="text-lg font-extrabold leading-tight flex-shrink-0" style={{ color: cozy ? COZY.title : accent.button }}>
-                                    {HERO_HALF_CIRCLE_TITLE.map((line) => <div key={line}>{line}</div>)}
+                            <div className="flex items-center gap-3 pb-3 mb-3 border-b" style={{ borderColor: hexToRgba(accent.button, 0.25) }}>
+                                <div className="flex-shrink-0" style={{ color: cozy ? COZY.title : accent.button }}>
+                                    {unitNumber != null && <div className="text-[11px] font-black uppercase tracking-widest opacity-70 mb-0.5">Тема {unitNumber}</div>}
+                                    <div className="text-lg font-extrabold leading-tight">
+                                        {HERO_HALF_CIRCLE_TITLE.map((line) => <div key={line}>{line}</div>)}
+                                    </div>
                                 </div>
                                 <div className="flex-1 flex justify-center min-w-0">
                                     <HalfCircleHero color={cozy ? COZY.title : accent.button} />
@@ -560,8 +563,11 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                 <img src={topic.imageSrc} alt="" draggable={false} className="h-[84px] w-auto max-w-full select-none" />
                             </div>
                         ) : null}
-                        {topic.imageSrc !== HERO_HALF_CIRCLE && (<div className="flex items-center gap-2 mb-2.5 min-w-0">
+                        {topic.imageSrc !== HERO_HALF_CIRCLE && (<div className="flex items-center gap-2 pb-2.5 mb-3 border-b min-w-0" style={{ borderColor: hexToRgba(accent.button, 0.22) }}>
                             <span className="w-1.5 h-5 rounded-full flex-shrink-0" style={{ background: `linear-gradient(180deg, ${accent.button}, ${accent.bottom})` }} />
+                            {unitNumber != null && (
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full text-[11px] font-black flex items-center justify-center" style={{ color: cozy ? COZY.title : accent.button, backgroundColor: hexToRgba(accent.button, 0.18) }}>{unitNumber}</span>
+                            )}
                             {topic.title !== blockTitle && <span className="text-base font-extrabold truncate" style={{ color: cozy ? COZY.title : accent.button }}>{topic.title}</span>}
                             {(() => {
                                 const examStage = topic.stages.find((st) => st.isBossExam);
@@ -966,7 +972,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                             transition={{ type: 'spring', stiffness: 300, damping: 26 }}
                             className="flex flex-col gap-2.5"
                         >
-                            {groupTopics(g).map((t) => renderTopicCard(t, accent, false, groupLabel(g)))}
+                            {groupTopics(g).map((t, ti) => renderTopicCard(t, accent, false, groupLabel(g), groupTopics(g).length > 1 ? ti + 1 : null))}
                         </motion.div>
                     );
                 })}

@@ -15,6 +15,9 @@ import { useRef } from 'react'
 import { motion, useAnimationControls } from 'framer-motion'
 import { MAX_PIZZA_SLICES } from '@/lib/caseRewards'
 
+// ВРЕМЕННО: заглушка для просмотра оформления (взята из dodo_promo_codes, не назначена).
+const PREVIEW_PROMO_CODE = 'DODO-YA6VA7'
+
 type Props = {
 	collected: number
 	size?: number
@@ -31,8 +34,6 @@ type Props = {
 export const PizzaProgress = ({ collected, size = 140, cozy = false, dodoPromoCode = null, eighths = 0 }: Props) => {
 	const clamped = Math.max(0, Math.min(MAX_PIZZA_SLICES, collected))
 	const isComplete = clamped >= MAX_PIZZA_SLICES
-
-	const left = MAX_PIZZA_SLICES - clamped
 
 	// Наведение (или тап) — пицца раскручивается с ускорением, делает 2
 	// оборота с затуханием, перекручивает на 20°, откатывается на 5° назад и встаёт ровно.
@@ -76,20 +77,18 @@ export const PizzaProgress = ({ collected, size = 140, cozy = false, dodoPromoCo
 				<motion.span animate={counterControls} className="text-5xl font-black leading-none text-yellow-300 origin-left">
 					{clamped}/{MAX_PIZZA_SLICES}
 				</motion.span>
-				<span className="flex items-end gap-2 text-base font-semibold leading-snug" style={{ color: cozy ? '#FFE8C7' : '#C9D3D9' }}>
-					<span>
-						{isComplete ? (
-							dodoPromoCode ? (
-								<>Пицца собрана! Промокод:<br /><span className="font-mono text-yellow-300">{dodoPromoCode}</span></>
-							) : (
-								<>Пицца собрана —<br />промокод в Додо!</>
-							)
-						) : (
-							<>Собери ещё {left} и получи<br />промокод в Додо</>
-						)}
-					</span>
+				<span className="flex items-center gap-2 text-base font-semibold leading-snug" style={{ color: cozy ? '#FFE8C7' : '#C9D3D9' }}>
+					<span>Промокод в Додо</span>
 					{/* eslint-disable-next-line @next/next/no-img-element */}
-					<img src="/dodo-icon.svg" alt="Додо" className="w-10 h-10 shrink-0" />
+					<img src="/dodo-icon.svg" alt="Додо" className="w-8 h-8 shrink-0" />
+				</span>
+				{/* Код: настоящий, как только назначен; пока нет — заглушка для просмотра оформления
+				    (PREVIEW_PROMO_CODE — временно, убрать, когда посмотрим, как выглядит). */}
+				<span
+					className="self-start font-mono text-lg font-black tracking-wider text-yellow-300 rounded-lg px-3 py-1 border-2 border-dashed border-yellow-300/50 bg-yellow-300/10"
+					title={dodoPromoCode ? 'Твой промокод' : 'Так будет выглядеть промокод, когда соберёшь пиццу'}
+				>
+					{dodoPromoCode ?? PREVIEW_PROMO_CODE}
 				</span>
 				{eighths > 0 && !isComplete && (
 					<span className="text-sm font-bold text-yellow-300/80">
