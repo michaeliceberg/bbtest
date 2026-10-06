@@ -119,9 +119,9 @@ const FlyingLabel = ({ f, onLanded }: { f: Flight; onLanded: () => void }) => (
 )
 
 type HypKind = 'opp' | 'adj'
-const HYP_KIND_CFG: Record<HypKind, { needle: string; lines: string[]; one: string; color: string; trig: string; hint: string }> = {
-    opp: { needle: 'противолежащий', lines: ['противолежащий', 'катет'], one: 'противолежащий катет', color: LEG_COLOR, trig: 'sin α', hint: 'по противолежащему катету и углу' },
-    adj: { needle: 'прилежащий', lines: ['прилежащий', 'катет'], one: 'прилежащий катет', color: ADJACENT_LEG_COLOR, trig: 'cos α', hint: 'по прилежащему катету и углу' },
+const HYP_KIND_CFG: Record<HypKind, { needle: string; lines: string[]; one: string; color: string; trig: string; hintWord: string; hintRest: string }> = {
+    opp: { needle: 'противолежащий', lines: ['противолежащий', 'катет'], one: 'противолежащий катет', color: LEG_COLOR, trig: 'sin α', hintWord: 'противолежащему', hintRest: ' катету и углу' },
+    adj: { needle: 'прилежащий', lines: ['прилежащий', 'катет'], one: 'прилежащий катет', color: ADJACENT_LEG_COLOR, trig: 'cos α', hintWord: 'прилежащему', hintRest: ' катету и углу' },
 }
 
 const HypotenuseScene = ({ kind, onSettled }: { kind: HypKind; onSettled: () => void }) => {
@@ -131,6 +131,8 @@ const HypotenuseScene = ({ kind, onSettled }: { kind: HypKind; onSettled: () => 
     const [hypOn, setHypOn] = useState(false)
     const [qOn, setQOn] = useState(false)
     const [btnShown, setBtnShown] = useState(false)
+    const [hintTyped, setHintTyped] = useState(false)
+    const [btnReady, setBtnReady] = useState(false)
     const [typing, setTyping] = useState(false)
     const [typed, setTyped] = useState(false)
     const [showFrac, setShowFrac] = useState(false)
@@ -215,17 +217,16 @@ const HypotenuseScene = ({ kind, onSettled }: { kind: HypKind; onSettled: () => 
             </DiagramFrame>
             <div className="w-full flex justify-center min-h-[8rem]">
                 {btnShown && !typing && (
-                    <motion.div
-                        className="w-full text-center text-lg md:text-xl font-bold text-[#F2F7FB] flex items-center justify-center"
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4 }}
-                    >
-                        <span>
-                            Найдём <span style={{ color: HYPOTENUSE_COLOR }}>гипотенузу</span>{' '}
-                            <span style={{ color: cfg.color }}>{cfg.hint}</span>
-                        </span>
-                    </motion.div>
+                    <div className="w-full text-center text-lg md:text-xl font-bold text-[#F2F7FB] flex items-center justify-center">
+                        {!hintTyped ? (
+                            <Typewriter text={`Найдём гипотенузу по ${cfg.hintWord}${cfg.hintRest}`} onDone={() => { setHintTyped(true); setTimeout(() => setBtnReady(true), 500) }} />
+                        ) : (
+                            <span>
+                                Найдём <span style={{ color: HYPOTENUSE_COLOR }}>гипотенузу</span> по{' '}
+                                <span style={{ color: cfg.color }}>{cfg.hintWord}</span>{cfg.hintRest}
+                            </span>
+                        )}
+                    </div>
                 )}
                 {typing && (
                     <div className="w-full text-lg md:text-xl font-bold text-[#F2F7FB] flex items-center justify-center flex-wrap gap-1">
@@ -254,12 +255,12 @@ const HypotenuseScene = ({ kind, onSettled }: { kind: HypKind; onSettled: () => 
                     </div>
                 )}
             </div>
-            {btnShown && !typing && (
+            {btnReady && !typing && (
                 <motion.div
                     className="w-full flex"
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: 0.3 }}
+                    transition={{ duration: 0.4 }}
                 >
                     <button
                         type="button"
