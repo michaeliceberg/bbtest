@@ -83,6 +83,12 @@ const DiagramFrame = ({ children, maxW = 420 }: { children: React.ReactNode; max
 //    прилетает «sin α» (для cos — «cos α»).
 const WHITE = '#F2F7FB'
 const FLY_S = 1.0
+// Фразы-реплики ученика на кнопке после «?» — каждый раз случайная
+// (выбирается в момент появления кнопки, не при рендере — без рассинхрона SSR).
+const CURIOUS_REPLIES = [
+    'Интересно..', 'Поподробнее..', 'Любопытно..', 'Ну-ну, рассказывай..', 'Хм, интригует..',
+    'Ого, и как же?', 'Заинтриговал..', 'Слушаю внимательно..', 'Давай-давай, жги..', 'Так-так-так..',
+]
 const HYP_Q: StickerPart[] = [{ text: '?', color: HYPOTENUSE_COLOR }]
 
 type Flight = { sx: number; sy: number; rot: number; dx: number; dy: number; lines: string[]; one: string; color: string }
@@ -133,6 +139,7 @@ const HypotenuseScene = ({ kind, onSettled }: { kind: HypKind; onSettled: () => 
     const [btnShown, setBtnShown] = useState(false)
     const [hintTyped, setHintTyped] = useState(false)
     const [btnReady, setBtnReady] = useState(false)
+    const [btnLabel, setBtnLabel] = useState(CURIOUS_REPLIES[0])
     const [typing, setTyping] = useState(false)
     const [typed, setTyped] = useState(false)
     const [showFrac, setShowFrac] = useState(false)
@@ -219,7 +226,7 @@ const HypotenuseScene = ({ kind, onSettled }: { kind: HypKind; onSettled: () => 
                 {btnShown && !typing && (
                     <div className="w-full text-center text-lg md:text-xl font-bold text-[#F2F7FB] flex items-center justify-center">
                         {!hintTyped ? (
-                            <Typewriter text={`Найдём гипотенузу по ${cfg.hintWord}${cfg.hintRest}`} onDone={() => { setHintTyped(true); setTimeout(() => setBtnReady(true), 500) }} />
+                            <Typewriter text={`Найдём гипотенузу по ${cfg.hintWord}${cfg.hintRest}`} onDone={() => { setHintTyped(true); setTimeout(() => { setBtnLabel(CURIOUS_REPLIES[Math.floor(Math.random() * CURIOUS_REPLIES.length)]); setBtnReady(true) }, 500) }} />
                         ) : (
                             <span>
                                 Найдём <span style={{ color: HYPOTENUSE_COLOR }}>гипотенузу</span> по{' '}
@@ -268,7 +275,7 @@ const HypotenuseScene = ({ kind, onSettled }: { kind: HypKind; onSettled: () => 
                         className={`${walkthroughButtonClass(true)} w-full whitespace-nowrap`}
                         style={walkthroughButtonStyle(true)}
                     >
-                        Интересненько..
+                        {btnLabel}
                     </button>
                 </motion.div>
             )}
