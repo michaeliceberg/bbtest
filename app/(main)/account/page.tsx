@@ -37,8 +37,9 @@ const AccountPage = async () => {
                 <div className="relative px-5 pt-8 pb-5 flex flex-col items-center gap-5">
                     <AvatarReroll currentAvatar={userProgress.userImageSrc} points={userProgress.points}>
                         <div className="flex flex-col items-center gap-2.5 text-center">
+                            <NameEditor currentName={userProgress.userName} />
                             {invite?.nickname && (
-                                <h1 className="font-black text-2xl sm:text-3xl leading-tight bg-gradient-to-r from-[#F09B38] via-[#BC418A] to-[#C385F7] bg-clip-text text-transparent">
+                                <h1 className="font-black text-lg sm:text-xl leading-tight bg-gradient-to-r from-[#F09B38] via-[#BC418A] to-[#C385F7] bg-clip-text text-transparent">
                                     {invite.nickname}
                                 </h1>
                             )}
@@ -60,14 +61,11 @@ const AccountPage = async () => {
                         </div>
                     </AvatarReroll>
 
-                    <div className="w-full border-t border-[#3A464E] pt-4">
-                        <NameEditor currentName={userProgress.userName} />
-                    </div>
-
                     <div className="w-full border-t border-[#3A464E] pt-4 flex items-center gap-3">
-                        <div className="text-3xl leading-none">{gangMembership ? gangMembership.gang.emoji : '🏴'}</div>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/gang/band.webp" alt="" className="h-12 w-12 shrink-0 rounded-full object-cover bg-[#1B252B]" />
                         <div className="min-w-0 flex-1">
-                            <div className="font-bold text-[#F2F7FB] truncate">{gangMembership ? gangMembership.gang.name : 'Моя банда'}</div>
+                            <div className="font-bold text-[#F2F7FB] truncate">{gangMembership ? `${gangMembership.gang.emoji} ${gangMembership.gang.name}` : 'Моя банда'}</div>
                             <div className="text-xs text-[#9AA7B0]">
                                 {gangMembership ? 'Приглашай друзей, назначай капо, следи за рейтингом.' : 'Ты ещё не в банде — создай свою или вступи по ссылке друга.'}
                             </div>
