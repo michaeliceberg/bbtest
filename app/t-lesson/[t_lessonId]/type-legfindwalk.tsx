@@ -239,81 +239,6 @@ const FormulaScene = ({
     )
 }
 
-// Сцена «А как найти гипотенузу?»: два одинаковых треугольника — слева дан
-// противолежащий катет, справа прилежащий; на гипотенузе «?» → превращается в
-// «прот / sin α» и «прил / cos α» → ЗАПОМНИ + две формулы текстом.
-const HYP_Q: StickerPart[] = [{ text: '?', color: HYPOTENUSE_COLOR }]
-const HYP_OPP_FRAC: StickerPart[] = [{ text: 'прот', color: LEG_COLOR }, { text: '/' }, { text: 'sin α', color: LEG_COLOR }]
-const HYP_ADJ_FRAC: StickerPart[] = [{ text: 'прил', color: ADJACENT_LEG_COLOR }, { text: '/' }, { text: 'cos α', color: ADJACENT_LEG_COLOR }]
-const GIVEN: StickerPart[] = [{ text: 'дан', color: HYPOTENUSE_COLOR }]
-
-const HypotenuseScene = ({ onSettled }: { onSettled: () => void }) => {
-    const [askShown, setAskShown] = useState(false)
-    const [diagShown, setDiagShown] = useState(false)
-    const [fracShown, setFracShown] = useState(false)
-    const [line2Shown, setLine2Shown] = useState(false)
-    useEffect(() => {
-        const t = setTimeout(() => setAskShown(true), 600)
-        return () => clearTimeout(t)
-    }, [])
-    useEffect(() => {
-        if (!diagShown) return
-        const t = setTimeout(() => setFracShown(true), 1800)
-        return () => clearTimeout(t)
-    }, [diagShown])
-    const mini = (kind: 'opp' | 'adj') => {
-        const legSide: SideId = kind === 'opp' ? INTRO_OPP : INTRO_ADJ
-        const legColor = kind === 'opp' ? LEG_COLOR : ADJACENT_LEG_COLOR
-        const frac = kind === 'opp' ? HYP_OPP_FRAC : HYP_ADJ_FRAC
-        return (
-            <DiagramFrame maxW={230}>
-                <RightTriangleDiagram
-                    compact rightAngleMarkShown instantBase alphaVertex={INTRO_ALPHA}
-                    oppositeLegHighlighted={kind === 'opp'}
-                    adjacentLegHighlighted={kind === 'adj'}
-                    sideStickerLabels={{ [legSide]: [{ ...GIVEN[0], color: legColor }], hyp: fracShown ? frac : HYP_Q }}
-                    sideStickerAlong={['hyp']}
-                    reserveStickerLabels={{ hyp: frac }}
-                />
-            </DiagramFrame>
-        )
-    }
-    return (
-        <div className="w-full flex flex-col gap-3">
-            {askShown && (
-                <TypedLineWithParts
-                    className="text-lg md:text-xl font-bold"
-                    parts={[{ text: 'А как найти ' }, { sticker: 'гипотенузу', color: HYPOTENUSE_COLOR }, { text: '? Теперь известны катет и угол α.' }]}
-                    onSettled={() => setDiagShown(true)}
-                />
-            )}
-            {diagShown && (
-                <div className="grid grid-cols-2 gap-2 w-full">
-                    {mini('opp')}
-                    {mini('adj')}
-                </div>
-            )}
-            {fracShown && (
-                <>
-                    <DiagramBlock><RememberBanner /></DiagramBlock>
-                    <TypedLineWithParts
-                        className="text-lg md:text-xl font-bold"
-                        parts={[{ sticker: 'гипотенуза', color: HYPOTENUSE_COLOR }, { text: ' = ' }, { sticker: 'противолежащий', color: LEG_COLOR }, { text: ' / ' }, { sticker: 'sin α', color: LEG_COLOR }]}
-                        onSettled={() => setLine2Shown(true)}
-                    />
-                    {line2Shown && (
-                        <TypedLineWithParts
-                            className="text-lg md:text-xl font-bold"
-                            parts={[{ text: 'или ' }, { sticker: 'гипотенуза', color: HYPOTENUSE_COLOR }, { text: ' = ' }, { sticker: 'прилежащий', color: ADJACENT_LEG_COLOR }, { text: ' / ' }, { sticker: 'cos α', color: ADJACENT_LEG_COLOR }]}
-                            onSettled={() => setTimeout(onSettled, 600)}
-                        />
-                    )}
-                </>
-            )}
-        </div>
-    )
-}
-
 // ===== Тренировка =====
 
 type TrialKind = 'opp' | 'adj'
@@ -370,38 +295,6 @@ const makeTrials = (): TrialConfig[] => {
     })
 }
 
-// Тренировка на гипотенузу: дан катет и угол — гипотенуза = катет / sin|cos.
-type HypTrialConfig = {
-    kind: TrialKind
-    leg: number
-    angle: number
-    alphaVertex: AlphaVertex
-    rotationDeg: number
-    mirror: boolean
-    options: TrialOption[]
-}
-const LEGS = [3, 4, 5, 6, 8, 9, 10, 12, 15]
-const makeHypOptions = (kind: TrialKind, leg: number, angle: number): TrialOption[] => shuffle([
-    { text: `${leg} / sin ${angle}°`, correct: kind === 'opp' },
-    { text: `${leg} / cos ${angle}°`, correct: kind === 'adj' },
-    // Типичные ошибки: умножать вместо деления.
-    { text: `${leg} · ${kind === 'opp' ? 'sin' : 'cos'} ${angle}°`, correct: false },
-    { text: `${leg} / tg ${angle}°`, correct: false },
-])
-const makeHypTrials = (): HypTrialConfig[] => {
-    const kinds = shuffle<TrialKind>(['opp', 'opp', 'adj', 'adj'])
-    let lastRot: number | null = null
-    return kinds.map((kind) => {
-        const leg = pick(LEGS)
-        const alphaVertex: AlphaVertex = Math.random() < 0.5 ? 'P' : 'Q'
-        const angle = angleFor(alphaVertex)
-        let rotationDeg = pick(ROTATIONS)
-        for (let g = 0; g < 6 && rotationDeg === lastRot; g++) rotationDeg = pick(ROTATIONS)
-        lastRot = rotationDeg
-        return { kind, leg, angle, rotationDeg, alphaVertex, mirror: Math.random() < 0.5, options: makeHypOptions(kind, leg, angle) }
-    })
-}
-
 const pickTrialFeedback = (cfg: TrialConfig): string => {
     const seed = cfg.hyp * 7 + cfg.angle * 3 + cfg.rotationDeg + (cfg.kind === 'opp' ? 5 : 0)
     return CORRECT_FEEDBACK_PHRASES[Math.abs(seed) % CORRECT_FEEDBACK_PHRASES.length]
@@ -410,16 +303,13 @@ const pickTrialFeedback = (cfg: TrialConfig): string => {
 // Порядок сцен: разбор → «противолежащий = гип · sin α» и (по «Дальше», в той же
 // сцене) «прилежащий = гип · cos α» → 2 простых проверки → тренировка.
 const TRIAL_COUNT = 6
-const HYP_TRIAL_COUNT = 4
 const CHECK_COUNT = 4
 const SCENES: string[] = [
     'intro-0', 'intro-1',
     ...Array.from({ length: CHECK_COUNT }, (_, i) => `check-${i}`),
     ...Array.from({ length: TRIAL_COUNT }, (_, i) => `trial-${i}`),
-    'intro-2',
-    ...Array.from({ length: HYP_TRIAL_COUNT }, (_, i) => `htrial-${i}`),
 ]
-const sceneKind = (key: string): 'intro' | 'check' | 'trial' | 'htrial' => (key.startsWith('htrial-') ? 'htrial' : key.startsWith('trial-') ? 'trial' : key.startsWith('check-') ? 'check' : 'intro')
+const sceneKind = (key: string): 'intro' | 'check' | 'trial' => (key.startsWith('trial-') ? 'trial' : key.startsWith('check-') ? 'check' : 'intro')
 const sceneNum = (key: string) => Number(key.slice(key.indexOf('-') + 1))
 
 // Простая проверка: нарисован тот же треугольник, в подписи катета пропущен
@@ -451,7 +341,6 @@ export const TypeLegFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
 
     const [trials] = useState<TrialConfig[]>(() => makeTrials())
     const [checks] = useState<CheckConfig[]>(() => makeChecks())
-    const [hypTrials] = useState<HypTrialConfig[]>(() => makeHypTrials())
     const [wrongTried, setWrongTried] = useState<string[]>([])
     const registerCombo = useWalkthroughCombo()
     const [checked, setChecked] = useState(false)
@@ -535,7 +424,6 @@ export const TypeLegFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
                 <div key={`${key}-${replayNonceFor(key)}`} className="w-full">
                     {idx === 0 && <IntroTriangleScene onSettled={markReady(key)} />}
                     {idx === 1 && <FormulaScene stage={formulaStage} onSettled={markReady(key)} />}
-                    {idx === 2 && <HypotenuseScene onSettled={markReady(key)} />}
                 </div>
             </SceneWrapper>
         )
@@ -677,67 +565,12 @@ export const TypeLegFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
         )
     }
 
-    const renderHypTrial = (i: number) => {
-        const t = hypTrials[i]
-        const key = `htrial-${i}`
-        const isCurrent = key === latestSceneKey
-        const isDone = !isCurrent || checked
-        const legSide: SideId = t.kind === 'opp' ? oppositeLegOf(t.alphaVertex) : adjacentLegOf(t.alphaVertex)
-        const doneColor = '#A1D151'
-        return (
-            <SceneWrapper key={key} innerRef={sceneRef(key)} active={isSceneActive(key)}>
-                <div key={`${key}-${replayNonceFor(key)}`} className="w-full flex flex-col gap-3">
-                    <div className="flex items-center gap-3 w-full">
-                        <div
-                            className="shrink-0 flex items-center gap-0.5 px-3 h-8 rounded-full border-2 font-black text-sm tabular-nums"
-                            style={{ borderColor: hexToRgba('#C385F7', 0.55), backgroundColor: hexToRgba('#C385F7', 0.16), color: '#C385F7' }}
-                        >
-                            <span>{i + 1}</span>
-                            <span className="opacity-50 font-normal">/</span>
-                            <span>{HYP_TRIAL_COUNT}</span>
-                        </div>
-                        <p className="flex-1 text-base md:text-lg text-[#F2F7FB]">Чему равна гипотенуза?</p>
-                    </div>
-                    <DiagramFrame maxW={380}>
-                        <RightTriangleDiagram
-                            compact
-                            rotationDeg={t.rotationDeg}
-                            mirror={t.mirror}
-                            rightAngleMarkShown
-                            alphaVertex={t.alphaVertex}
-                            alphaText={`${t.angle}°`}
-                            sideNumberLabels={{ [legSide]: t.leg }}
-                            hypotenuseHighlighted
-                            oppositeLegHighlighted={t.kind === 'opp'}
-                            adjacentLegHighlighted={t.kind === 'adj'}
-                            sideStickerLabels={{ hyp: [{ text: '?', color: isDone ? doneColor : HYPOTENUSE_COLOR }] }}
-                        />
-                    </DiagramFrame>
-                    {renderOptions(key, t.options, isCurrent, isDone, 'grid-cols-2')}
-                    {isCurrent && !checked && wrongFlash && (
-                        <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">
-                            <X className="w-5 h-5" /> {wrongFlash}
-                        </div>
-                    )}
-                    {isDone && (
-                        <FieryFeedbackBanner fiery={isCurrent && isFieryMilestoneTrial(i)}>
-                            <Check className="w-5 h-5" /> {CORRECT_FEEDBACK_PHRASES[Math.abs(t.leg * 11 + t.angle + i) % CORRECT_FEEDBACK_PHRASES.length]}
-                        </FieryFeedbackBanner>
-                    )}
-                    {isCurrent && isDone && <LocalAnswerConfetti />}
-                </div>
-            </SceneWrapper>
-        )
-    }
-
     const nextEnabled = (isIntro ? !!ready[latestSceneKey] : checked) && !advancing
     const sceneMapEntries: AdminMapEntry[] = [
         { dotKey: 'intro-0', label: 'Треугольник, α, гипотенуза', jumpKey: 'intro-0', isActive: latestSceneKey === 'intro-0', color: MAP_INTRO_COLOR },
         { dotKey: 'intro-1', label: 'Противолежащий = гип · sin α, прилежащий = гип · cos α', jumpKey: 'intro-1', isActive: latestSceneKey === 'intro-1', color: MAP_INTRO_COLOR },
         { dotKey: 'check', label: `Проверка: пропущен множитель (${CHECK_COUNT})`, jumpKey: 'check-0', isActive: latestKind === 'check', color: MAP_PRACTICE_COLOR },
         { dotKey: 'practice', label: `Тренировка: катет (${TRIAL_COUNT})`, jumpKey: 'trial-0', isActive: latestKind === 'trial', color: MAP_PRACTICE_COLOR },
-        { dotKey: 'intro-2', label: 'А как найти гипотенузу?', jumpKey: 'intro-2', isActive: latestSceneKey === 'intro-2', color: MAP_INTRO_COLOR },
-        { dotKey: 'hpractice', label: `Тренировка: гипотенуза (${HYP_TRIAL_COUNT})`, jumpKey: 'htrial-0', isActive: latestKind === 'htrial', color: MAP_PRACTICE_COLOR },
     ]
     const jumpToKey = (key: string) => jumpTo(SCENES.indexOf(key))
 
@@ -747,7 +580,7 @@ export const TypeLegFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
                 <div className="w-full flex flex-col gap-4">
                     {SCENES.slice(0, sceneIdx + 1).map((key) => {
                         const kind = sceneKind(key)
-                        return kind === 'trial' ? renderTrial(sceneNum(key)) : kind === 'htrial' ? renderHypTrial(sceneNum(key)) : kind === 'check' ? renderCheck(sceneNum(key)) : renderIntro(sceneNum(key))
+                        return kind === 'trial' ? renderTrial(sceneNum(key)) : kind === 'check' ? renderCheck(sceneNum(key)) : renderIntro(sceneNum(key))
                     })}
                 </div>
 

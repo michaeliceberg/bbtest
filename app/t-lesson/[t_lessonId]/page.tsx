@@ -1032,6 +1032,23 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             };
         }
 
+        if (t_challenge.type === 'HYPFINDWALK') {
+            // "Как найти гипотенузу" — самодостаточный разбор, см. type-hypfindwalk.tsx.
+            return {
+                questionType: 'HYPFINDWALK' as const,
+                question: t_challenge.question,
+                imageSrc: t_challenge.imageSrc,
+                options: [],
+                numRans: t_challenge.numRans,
+                optionsQ: [],
+                optionsA: [],
+                optionsConstructRight: [],
+                difficulty: t_challenge.difficulty,
+                correctAnswer: 'right',
+                timeLimit: 999,
+            };
+        }
+
         if (t_challenge.type === 'SINCOSDEFWALK') {
             // Тот же самодостаточный принцип, что у SINWALK — разбор
             // "sin/cos как отношение сторон" + тренировка на числовых
