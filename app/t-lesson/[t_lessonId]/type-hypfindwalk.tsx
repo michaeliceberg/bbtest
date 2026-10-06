@@ -6,23 +6,23 @@
 // Самодостаточный тип, как и остальные *WALK: сам ведёт хореографию и зовёт
 // onComplete один раз в конце.
 //
-// Сюжет:
-// 1. "А как найти [гипотенузу]? Теперь известны катет и угол α." — два одинаковых
-//    треугольника: слева дан противолежащий катет, справа прилежащий; на
-//    гипотенузе "?" → превращается в "прот / sin α" и "прил / cos α".
-// 2. ЗАПОМНИ! + две формулы текстом.
+// Сюжет (две одинаковые по ходу сцены — sin, затем cos):
+// 1. Сразу, без анимации: треугольник с прямым углом, α и подписанным катетом
+//    (противолежащий / прилежащий). Гипотенуза рисуется особым цветом, рядом «?».
+// 2. «гипотенуза = дробь»: подпись катета слетает с рисунка в числитель, в
+//    знаменатель с отскоком прилетает sin α (cos α).
 // 3. Тренировка: 4 задания — дан катет и угол α (в градусах), гипотенуза
 //    помечена "?", выбрать верное выражение среди 4 вариантов.
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
 import { motion } from 'framer-motion'
 import { Check, X } from 'lucide-react'
 import type { QuestionType } from './page'
 import {
-    RightTriangleDiagram, LEG_COLOR, ADJACENT_LEG_COLOR, HYPOTENUSE_COLOR,
+    RightTriangleDiagram, LEG_COLOR, ADJACENT_LEG_COLOR, HYPOTENUSE_COLOR, SIDE_DRAW_DURATION,
     oppositeLegOf, adjacentLegOf,
     type AlphaVertex, type StickerPart, type SideId,
 } from '@/components/geometry/RightTriangleDiagram'
@@ -31,15 +31,13 @@ import {
     DiagramBlock, pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
-    isFieryMilestoneTrial, FieryFeedbackBanner, BlinkingExclaim, ATTENTION_COLOR,
+    isFieryMilestoneTrial, FieryFeedbackBanner,
     AdminSceneMap, MAP_INTRO_COLOR, MAP_PRACTICE_COLOR, type AdminMapEntry,
     useWalkthroughCombo,
 } from '@/components/geometry/WalkthroughLog'
 import { hexToRgba } from '@/src/constants/lessonButtonColors'
-import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
 import { cn } from '@/lib/utils'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
-import Lottie from '@/components/lottie-player'
 
 type Props = {
     question: QuestionType
@@ -63,44 +61,9 @@ const Sticker = ({ value, color }: { value: React.ReactNode; color: string }) =>
     </motion.span>
 )
 
-type LinePart = { text: string } | { sticker: string; color: string }
-
-// Печатаем плоский текст, после печати — та же строка со стикерами.
-const TypedLineWithParts = ({ parts, onSettled, className }: { parts: LinePart[]; onSettled?: () => void; className?: string }) => {
-    const [typed, setTyped] = useState(false)
-    const plain = parts.map((p) => ('text' in p ? p.text : p.sticker)).join('')
-    return (
-        <div className={cn('w-full text-base md:text-lg text-[#F2F7FB] leading-loose', className)}>
-            {!typed ? (
-                <Typewriter text={plain} onDone={() => { setTyped(true); setTimeout(() => onSettled?.(), 450) }} />
-            ) : (
-                parts.map((p, i) => ('text' in p
-                    ? <span key={i}>{p.text}</span>
-                    : <Sticker key={i} value={p.sticker} color={p.color} />))
-            )}
-        </div>
-    )
-}
-
-// ЗАПОМНИ! — Lottie "полицейский с бумагой" + оранжевая плашка (тот же
-// баннер, что в LOGDEFWALK).
-const RememberBanner = () => (
-    <div className="w-full flex items-center gap-3">
-        <Lottie animationData={paperPolice} loop autoplay className="w-16 h-16 md:w-20 md:h-20 shrink-0" />
-        <div
-            className="flex-1 flex items-center justify-center rounded-xl px-4 py-3 font-black text-lg"
-            style={{ backgroundColor: hexToRgba(ATTENTION_COLOR, 0.16), border: `2px solid ${ATTENTION_COLOR}`, color: ATTENTION_COLOR }}
-        >
-            <span>ЗАПОМНИ<BlinkingExclaim /></span>
-        </div>
-    </div>
-)
-
 // Обучающий треугольник: α у вершины P → противолежащий катет legRQ,
 // прилежащий legRP.
 const INTRO_ALPHA: AlphaVertex = 'P'
-const INTRO_OPP = oppositeLegOf(INTRO_ALPHA)
-const INTRO_ADJ = adjacentLegOf(INTRO_ALPHA)
 
 const DiagramFrame = ({ children, maxW = 420 }: { children: React.ReactNode; maxW?: number }) => (
     <div className="w-full flex justify-center">
@@ -110,77 +73,174 @@ const DiagramFrame = ({ children, maxW = 420 }: { children: React.ReactNode; max
     </div>
 )
 
-// Сцена «А как найти гипотенузу?»: два одинаковых треугольника — слева дан
-// противолежащий катет, справа прилежащий; на гипотенузе «?» → превращается в
-// «прот / sin α» и «прил / cos α» → ЗАПОМНИ + две формулы текстом.
+// Сцена «А как найти гипотенузу?» — последовательно, по образцу сцены
+// «Что такое синус?» из SINCOSDEFWALK:
+// 1. Сразу (без анимации) прямоугольный треугольник с прямым углом, α и
+//    подписанным катетом (противолежащий — для sin, прилежащий — для cos).
+// 2. Гипотенуза рисуется особым цветом, рядом стикер «?».
+// 3. Печатается «гипотенуза =», появляется дробь с пустыми местами, подпись
+//    катета слетает с рисунка в числитель, в знаменатель с отскоком
+//    прилетает «sin α» (для cos — «cos α»).
+const WHITE = '#F2F7FB'
+const FLY_S = 1.0
 const HYP_Q: StickerPart[] = [{ text: '?', color: HYPOTENUSE_COLOR }]
-const HYP_OPP_FRAC: StickerPart[] = [{ text: 'прот', color: LEG_COLOR }, { text: '/' }, { text: 'sin α', color: LEG_COLOR }]
-const HYP_ADJ_FRAC: StickerPart[] = [{ text: 'прил', color: ADJACENT_LEG_COLOR }, { text: '/' }, { text: 'cos α', color: ADJACENT_LEG_COLOR }]
-const GIVEN: StickerPart[] = [{ text: 'дан', color: HYPOTENUSE_COLOR }]
 
-const HypotenuseScene = ({ onSettled }: { onSettled: () => void }) => {
-    const [askShown, setAskShown] = useState(false)
-    const [diagShown, setDiagShown] = useState(false)
-    const [fracShown, setFracShown] = useState(false)
-    const [line2Shown, setLine2Shown] = useState(false)
+type Flight = { sx: number; sy: number; rot: number; dx: number; dy: number; lines: string[]; one: string; color: string }
+
+const FlyingLabel = ({ f, onLanded }: { f: Flight; onLanded: () => void }) => (
+    <div className="absolute pointer-events-none z-10 -translate-x-1/2 -translate-y-1/2" style={{ left: f.sx, top: f.sy }}>
+        <motion.div
+            initial={{ x: 0, y: 0, rotate: f.rot }}
+            animate={{ x: f.dx, y: f.dy, rotate: 0 }}
+            transition={{ duration: FLY_S, ease: [0.4, 0, 0.2, 1] }}
+            onAnimationComplete={onLanded}
+            className="relative"
+        >
+            <motion.div
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center font-extrabold leading-tight whitespace-nowrap"
+                style={{ color: f.color, fontSize: 15, fontFamily: 'var(--font-nunito), sans-serif' }}
+                initial={{ opacity: 1 }}
+                animate={{ opacity: 0 }}
+                transition={{ duration: 0.45, delay: 0.1 }}
+            >
+                {f.lines.map((l) => <div key={l}>{l}</div>)}
+            </motion.div>
+            <motion.span
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 inline-flex items-center justify-center rounded-lg border-2 font-extrabold px-2 py-1 leading-none whitespace-nowrap text-lg md:text-xl"
+                style={{ borderColor: f.color, backgroundColor: hexToRgba(f.color, 0.18), color: f.color }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+            >
+                {f.one}
+            </motion.span>
+        </motion.div>
+    </div>
+)
+
+type HypKind = 'opp' | 'adj'
+const HYP_KIND_CFG: Record<HypKind, { needle: string; lines: string[]; one: string; color: string; trig: string }> = {
+    opp: { needle: 'противолежащий', lines: ['противолежащий', 'катет'], one: 'противолежащий катет', color: LEG_COLOR, trig: 'sin α' },
+    adj: { needle: 'прилежащий', lines: ['прилежащий', 'катет'], one: 'прилежащий катет', color: ADJACENT_LEG_COLOR, trig: 'cos α' },
+}
+
+const HypotenuseScene = ({ kind, onSettled }: { kind: HypKind; onSettled: () => void }) => {
+    const cfg = HYP_KIND_CFG[kind]
+    const rootRef = useRef<HTMLDivElement>(null)
+    const numRef = useRef<HTMLDivElement>(null)
+    const [hypOn, setHypOn] = useState(false)
+    const [qOn, setQOn] = useState(false)
+    const [typing, setTyping] = useState(false)
+    const [typed, setTyped] = useState(false)
+    const [showFrac, setShowFrac] = useState(false)
+    const [flight, setFlight] = useState<Flight | null>(null)
+    const [landed, setLanded] = useState(false)
+    const [denShown, setDenShown] = useState(false)
+
     useEffect(() => {
-        const t = setTimeout(() => setAskShown(true), 600)
-        return () => clearTimeout(t)
+        const t1 = 1400
+        const t2 = t1 + SIDE_DRAW_DURATION * 1000 + 200
+        const t3 = t2 + 1000
+        const timers = [
+            setTimeout(() => setHypOn(true), t1),
+            setTimeout(() => setQOn(true), t2),
+            setTimeout(() => setTyping(true), t3),
+        ]
+        return () => timers.forEach(clearTimeout)
     }, [])
+
     useEffect(() => {
-        if (!diagShown) return
-        const t = setTimeout(() => setFracShown(true), 1800)
+        if (!typed) return
+        const t = setTimeout(() => setShowFrac(true), 700)
         return () => clearTimeout(t)
-    }, [diagShown])
-    const mini = (kind: 'opp' | 'adj') => {
-        const legSide: SideId = kind === 'opp' ? INTRO_OPP : INTRO_ADJ
-        const legColor = kind === 'opp' ? LEG_COLOR : ADJACENT_LEG_COLOR
-        const frac = kind === 'opp' ? HYP_OPP_FRAC : HYP_ADJ_FRAC
-        return (
-            <DiagramFrame maxW={230}>
+    }, [typed])
+
+    const startFlight = (): Flight | null => {
+        const root = rootRef.current
+        const target = numRef.current
+        if (!root || !target) return null
+        const label = [...root.querySelectorAll('svg text')].find((t) => (t.textContent ?? '').includes(cfg.needle)) as SVGTextElement | undefined
+        if (!label) return null
+        const rr = root.getBoundingClientRect()
+        const lr = label.getBoundingClientRect()
+        const tr = target.getBoundingClientRect()
+        const m = (label.parentElement?.getAttribute('transform') ?? '').match(/rotate\((-?[\d.]+)/)
+        label.style.visibility = 'hidden'
+        const sx = lr.left + lr.width / 2 - rr.left
+        const sy = lr.top + lr.height / 2 - rr.top
+        return {
+            sx, sy, rot: m ? Number(m[1]) : 0,
+            dx: tr.left + tr.width / 2 - rr.left - sx,
+            dy: tr.top + tr.height / 2 - rr.top - sy,
+            lines: cfg.lines, one: cfg.one, color: cfg.color,
+        }
+    }
+
+    useEffect(() => {
+        if (!showFrac) return
+        const t = setTimeout(() => setFlight(startFlight()), 900)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showFrac])
+
+    useEffect(() => {
+        if (!landed) return
+        const t = setTimeout(() => setDenShown(true), 700)
+        return () => clearTimeout(t)
+    }, [landed])
+
+    useEffect(() => {
+        if (!denShown) return
+        const t = setTimeout(onSettled, 1400)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [denShown])
+
+    const trigColor = cfg.color
+    return (
+        <div ref={rootRef} className="relative w-full flex flex-col items-center gap-4">
+            <DiagramFrame maxW={420}>
                 <RightTriangleDiagram
-                    compact rightAngleMarkShown instantBase alphaVertex={INTRO_ALPHA}
-                    oppositeLegHighlighted={kind === 'opp'}
-                    adjacentLegHighlighted={kind === 'adj'}
-                    sideStickerLabels={{ [legSide]: [{ ...GIVEN[0], color: legColor }], hyp: fracShown ? frac : HYP_Q }}
+                    compact rightAngleMarkShown instantBase instantLegs
+                    alphaVertex={INTRO_ALPHA} alphaColor={WHITE}
+                    oppositeLegHighlighted={kind === 'opp'} oppositeLegLabelShown={kind === 'opp'}
+                    adjacentLegHighlighted={kind === 'adj'} adjacentLegLabelShown={kind === 'adj'}
+                    hypotenuseHighlighted={hypOn}
+                    sideStickerLabels={qOn ? { hyp: HYP_Q } : {}}
                     sideStickerAlong={['hyp']}
-                    reserveStickerLabels={{ hyp: frac }}
+                    reserveStickerLabels={{ hyp: HYP_Q }}
+                    reserveLabels={[kind]}
                 />
             </DiagramFrame>
-        )
-    }
-    return (
-        <div className="w-full flex flex-col gap-3">
-            {askShown && (
-                <TypedLineWithParts
-                    className="text-lg md:text-xl font-bold"
-                    parts={[{ text: 'А как найти ' }, { sticker: 'гипотенузу', color: HYPOTENUSE_COLOR }, { text: '? Теперь известны катет и угол α.' }]}
-                    onSettled={() => setDiagShown(true)}
-                />
-            )}
-            {diagShown && (
-                <div className="grid grid-cols-2 gap-2 w-full">
-                    {mini('opp')}
-                    {mini('adj')}
-                </div>
-            )}
-            {fracShown && (
-                <>
-                    <DiagramBlock><RememberBanner /></DiagramBlock>
-                    <TypedLineWithParts
-                        className="text-lg md:text-xl font-bold"
-                        parts={[{ sticker: 'гипотенуза', color: HYPOTENUSE_COLOR }, { text: ' = ' }, { sticker: 'противолежащий', color: LEG_COLOR }, { text: ' / ' }, { sticker: 'sin α', color: LEG_COLOR }]}
-                        onSettled={() => setLine2Shown(true)}
-                    />
-                    {line2Shown && (
-                        <TypedLineWithParts
-                            className="text-lg md:text-xl font-bold"
-                            parts={[{ text: 'или ' }, { sticker: 'гипотенуза', color: HYPOTENUSE_COLOR }, { text: ' = ' }, { sticker: 'прилежащий', color: ADJACENT_LEG_COLOR }, { text: ' / ' }, { sticker: 'cos α', color: ADJACENT_LEG_COLOR }]}
-                            onSettled={() => setTimeout(onSettled, 600)}
-                        />
-                    )}
-                </>
-            )}
+            <div className="w-full flex justify-center min-h-[8rem]">
+                {typing && (
+                    <div className="w-full text-lg md:text-xl font-bold text-[#F2F7FB] flex items-center justify-center flex-wrap gap-1">
+                        {!typed ? (
+                            <Typewriter text="гипотенуза = " onDone={() => setTyped(true)} />
+                        ) : (
+                            <>
+                                <Sticker value="гипотенуза" color={HYPOTENUSE_COLOR} />
+                                <span> = </span>
+                                {showFrac && (
+                                    <span className="inline-flex flex-col items-center mx-4 align-middle">
+                                        <div ref={numRef} className="relative">
+                                            <div className={landed ? '' : 'invisible'}><Sticker value={cfg.one} color={cfg.color} /></div>
+                                            {!landed && <div className="absolute inset-0 rounded-lg border-2 border-dashed border-[#3A464E]" />}
+                                        </div>
+                                        <span className="self-stretch -mx-3 h-[5px] my-2.5 rounded-full bg-[#F2F7FB]" />
+                                        <div className="relative min-h-[2.4rem] min-w-[5rem] flex items-center justify-center">
+                                            {denShown
+                                                ? <Sticker value={cfg.trig} color={trigColor} />
+                                                : <div className="absolute inset-0 rounded-lg border-2 border-dashed border-[#3A464E]" />}
+                                        </div>
+                                    </span>
+                                )}
+                            </>
+                        )}
+                    </div>
+                )}
+            </div>
+            {flight && !landed && <FlyingLabel f={flight} onLanded={() => setLanded(true)} />}
         </div>
     )
 }
@@ -238,7 +298,7 @@ const makeHypTrials = (): HypTrialConfig[] => {
 
 const HYP_TRIAL_COUNT = 4
 const SCENES: string[] = [
-    'intro-0',
+    'intro-0', 'intro-1',
     ...Array.from({ length: HYP_TRIAL_COUNT }, (_, i) => `htrial-${i}`),
 ]
 const sceneKind = (key: string): 'intro' | 'htrial' => (key.startsWith('htrial-') ? 'htrial' : 'intro')
@@ -321,12 +381,12 @@ export const TypeHypFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
 
     const markReady = (key: string) => () => setReady((r) => ({ ...r, [key]: true }))
 
-    const renderIntro = () => {
-        const key = 'intro-0'
+    const renderIntro = (idx: number) => {
+        const key = `intro-${idx}`
         return (
             <SceneWrapper key={key} innerRef={sceneRef(key)} active={isSceneActive(key)}>
                 <div key={`${key}-${replayNonceFor(key)}`} className="w-full">
-                    <HypotenuseScene onSettled={markReady(key)} />
+                    <HypotenuseScene kind={idx === 0 ? 'opp' : 'adj'} onSettled={markReady(key)} />
                 </div>
             </SceneWrapper>
         )
@@ -414,7 +474,8 @@ export const TypeHypFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
 
     const nextEnabled = (isIntro ? !!ready[latestSceneKey] : checked) && !advancing
     const sceneMapEntries: AdminMapEntry[] = [
-        { dotKey: 'intro-0', label: 'А как найти гипотенузу?', jumpKey: 'intro-0', isActive: latestSceneKey === 'intro-0', color: MAP_INTRO_COLOR },
+        { dotKey: 'intro-0', label: 'Гипотенуза через противолежащий катет (sin α)', jumpKey: 'intro-0', isActive: latestSceneKey === 'intro-0', color: MAP_INTRO_COLOR },
+        { dotKey: 'intro-1', label: 'Гипотенуза через прилежащий катет (cos α)', jumpKey: 'intro-1', isActive: latestSceneKey === 'intro-1', color: MAP_INTRO_COLOR },
         { dotKey: 'hpractice', label: `Тренировка: гипотенуза (${HYP_TRIAL_COUNT})`, jumpKey: 'htrial-0', isActive: latestKind === 'htrial', color: MAP_PRACTICE_COLOR },
     ]
     const jumpToKey = (key: string) => jumpTo(SCENES.indexOf(key))
@@ -424,7 +485,7 @@ export const TypeHypFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
             <div className="min-w-0 flex-1 flex flex-col items-center gap-4">
                 <div className="w-full flex flex-col gap-4">
                     {SCENES.slice(0, sceneIdx + 1).map((key) => (
-                        sceneKind(key) === 'htrial' ? renderHypTrial(sceneNum(key)) : renderIntro()
+                        sceneKind(key) === 'htrial' ? renderHypTrial(sceneNum(key)) : renderIntro(sceneNum(key))
                     ))}
                 </div>
 

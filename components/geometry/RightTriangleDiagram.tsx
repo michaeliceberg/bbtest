@@ -324,6 +324,9 @@ export type RightTriangleVisual = {
     rightAngleBigBounce?: boolean
     // Прямой угол, α, подсвеченная гипотенуза и подписи уже нарисованы — без анимации появления.
     instantBase?: boolean
+    // Катеты (противолежащий/прилежащий) и их подписи, включённые с самого начала,
+    // рисуются сразу, без анимации прорисовки.
+    instantLegs?: boolean
     // Стороны, у которых стикеры подписей появляются сразу (без bounce).
     sideStickerInstant?: SideId[]
     // Зарезервировать в компактном окне место под стикеры, которые появятся позже.
@@ -470,6 +473,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
         reserveLabels = [],
         rightAngleBigBounce = false,
         instantBase = false,
+        instantLegs = false,
         sideStickerInstant = [],
         reserveStickerLabels,
         reserveBounds = false,
@@ -973,7 +977,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     x1={R.x} y1={R.y}
                     x2={alphaVertex === 'P' ? Q.x : P.x} y2={alphaVertex === 'P' ? Q.y : P.y}
                     stroke={LEG_COLOR} strokeWidth={11} strokeLinecap="round"
-                    initial={{ pathLength: 0, opacity: 0 }}
+                    initial={instantLegs && effectiveOppositeLegHighlighted ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: effectiveOppositeLegHighlighted ? 1 : 0, opacity: effectiveOppositeLegHighlighted ? 1 : 0 }}
                     transition={{ duration: SIDE_DRAW_DURATION, ease: 'easeOut' }}
                 />
@@ -993,6 +997,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     color={LEG_COLOR}
                     lines={['противолежащий', 'катет']}
                     fontSize={15}
+                    instant={instantLegs}
                     delay={effectiveOppositeLegHighlighted ? SIDE_DRAW_DURATION : 0}
                 />
 
@@ -1007,7 +1012,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     x1={R.x} y1={R.y}
                     x2={alphaVertex === 'P' ? P.x : Q.x} y2={alphaVertex === 'P' ? P.y : Q.y}
                     stroke={ADJACENT_LEG_COLOR} strokeWidth={11} strokeLinecap="round"
-                    initial={{ pathLength: 0, opacity: 0 }}
+                    initial={instantLegs && adjacentLegHighlighted ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: adjacentLegHighlighted ? 1 : 0, opacity: adjacentLegHighlighted ? 1 : 0 }}
                     transition={{ duration: SIDE_DRAW_DURATION, ease: 'easeOut' }}
                 />
@@ -1019,6 +1024,7 @@ export const RightTriangleDiagram = (props: RightTriangleVisual) => {
                     color={ADJACENT_LEG_COLOR}
                     lines={['прилежащий', 'катет']}
                     fontSize={15}
+                    instant={instantLegs}
                     delay={adjacentLegHighlighted ? SIDE_DRAW_DURATION : 0}
                 />
 

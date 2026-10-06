@@ -12,6 +12,8 @@ import { rerollUserAvatar } from '@/actions/user-profile'
 import { AVATAR_REROLL_COST } from '@/lib/avatar'
 import { Button } from '@/components/ui/button'
 import { Loader2, Dices } from 'lucide-react'
+import Lottie from '@/components/lottie-player'
+import LottieCoins from '@/public/Lottie/LottieCoins.json'
 
 type Props = {
     currentAvatar: string
@@ -19,6 +21,11 @@ type Props = {
 }
 
 const fmt = (n: number) => n.toLocaleString('ru-RU')
+
+// Анимированная монета вместо эмодзи 🪙 (та же, что в шапке приложения).
+const Coin = ({ size = 'h-7 w-7' }: { size?: string }) => (
+    <Lottie animationData={LottieCoins} loop autoplay className={`${size} inline-block align-middle shrink-0`} />
+)
 
 export const AvatarReroll = ({ currentAvatar, points }: Props) => {
     const router = useRouter()
@@ -58,13 +65,13 @@ export const AvatarReroll = ({ currentAvatar, points }: Props) => {
                 {!confirming ? (
                     <Button type="button" variant="primaryOutline" disabled={isPending} onClick={() => setConfirming(true)}>
                         <Dices className="h-4 w-4 mr-2" />
-                        Новый персонаж · {fmt(AVATAR_REROLL_COST)} 🪙
+                        Новый аватар · {fmt(AVATAR_REROLL_COST)} <Coin size="h-8 w-8 ml-1" />
                     </Button>
                 ) : (
                     <div className="flex flex-col gap-1.5">
                         <p className="text-sm text-[#F2F7FB]">
                             {canAfford
-                                ? `Списать ${fmt(AVATAR_REROLL_COST)} монет и выдать нового случайного персонажа?`
+                                ? `Списать ${fmt(AVATAR_REROLL_COST)} монет и выдать новый случайный аватар?`
                                 : `Не хватает монет: нужно ${fmt(AVATAR_REROLL_COST)}, у тебя ${fmt(balance)}.`}
                         </p>
                         <div className="flex gap-2">
@@ -79,7 +86,7 @@ export const AvatarReroll = ({ currentAvatar, points }: Props) => {
                         </div>
                     </div>
                 )}
-                <p className="text-xs text-[#9AA7B0]">Твои монеты: {fmt(balance)} 🪙</p>
+                <p className="text-xs text-[#9AA7B0] flex items-center gap-1">Твои монеты: {fmt(balance)} <Coin size="h-6 w-6" /></p>
                 {error && <p className="text-sm text-[#DC605B]">{error}</p>}
             </div>
         </div>
