@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { AccountLinking } from '@/components/account-linking'
-import { FaceBuilder } from '@/components/face-builder'
+import { AvatarReroll } from '@/components/avatar-reroll'
 import { NameEditor } from '@/components/name-editor'
 import { ParentBindCode } from '@/components/parent-bind-code'
 import { ReferralCard } from '@/components/referral-card'
@@ -34,7 +34,7 @@ const AccountPage = async () => {
                 <h2 className="font-bold text-lg text-[#F2F7FB] mb-3">Профиль</h2>
                 <div className="flex flex-col gap-4">
                     <NameEditor currentName={userProgress.userName} />
-                    <FaceBuilder currentAvatar={userProgress.userImageSrc} />
+                    <AvatarReroll currentAvatar={userProgress.userImageSrc} points={userProgress.points} />
                 </div>
             </div>
 

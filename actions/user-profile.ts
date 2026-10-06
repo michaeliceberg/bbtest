@@ -5,7 +5,8 @@
 import db from "@/db/drizzle";
 import { userProgress } from "@/db/schema";
 import { auth } from "@/lib/auth";
-import { eq } from "drizzle-orm";
+import { and, eq, gte, sql } from "drizzle-orm";
+import { AVATAR_REROLL_COST, newAvatarUrl } from "@/lib/avatar";
 import { revalidatePath } from "next/cache";
 
 export const updateUserName = async (name: string) => {
@@ -26,17 +27,25 @@ export const updateUserName = async (name: string) => {
     return { success: true };
 };
 
-export const updateUserAvatar = async (avatarSrc: string) => {
+// Платная перегенерация аватарки (/account): списываем AVATAR_REROLL_COST
+// монет и выдаём новый случайный образ. Списание — одним атомарным UPDATE с
+// проверкой остатка, чтобы два одновременных клика не увели баланс в минус.
+export const rerollUserAvatar = async (): Promise<{ success: boolean; error?: string; imageSrc?: string }> => {
     const session = await auth();
     if (!session?.user?.id) throw new Error('Вы не авторизованы!');
 
-    await db.update(userProgress)
-        .set({ userImageSrc: avatarSrc })
-        .where(eq(userProgress.userId, session.user.id));
+    const imageSrc = newAvatarUrl();
+    const updated = await db.update(userProgress)
+        .set({ points: sql`${userProgress.points} - ${AVATAR_REROLL_COST}`, userImageSrc: imageSrc })
+        .where(and(eq(userProgress.userId, session.user.id), gte(userProgress.points, AVATAR_REROLL_COST)))
+        .returning({ userId: userProgress.userId });
+
+    if (updated.length === 0) return { success: false, error: 'Не хватает монет' };
 
     revalidatePath('/account');
     revalidatePath('/learn');
+    revalidatePath('/trainer');
     revalidatePath('/leaderboard');
 
-    return { success: true };
+    return { success: true, imageSrc };
 };

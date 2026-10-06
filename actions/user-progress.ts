@@ -16,6 +16,8 @@ import { getDailyQuestStatus } from './generate-trainer-quest';
 import { REFERRAL_COOKIE } from '@/lib/referral';
 import { grantReferralChainRewards, type ReferralWelcomeGift } from '@/lib/referralRewards';
 import { ALL_TRACK_LESSONS } from '@/lib/trialTracks';
+import { pickGuestNickname } from '@/lib/nickname';
+import { newAvatarUrl } from '@/lib/avatar';
 
 const POINTS_TO_REFILL = 10
 
@@ -72,8 +74,11 @@ export const upsertUserProgress = async (courseId: number) => {
 	await db.insert(userProgress).values({
 		userId,
 		activeCourseId: courseId,
-		userName: session.user.name || 'Ученик',
-		userImageSrc: '/mascot.svg',
+		// Новому ученику сразу придумываем весёлый позывной и персонажа-аватарку
+		// (раньше имя бралось из входа — у входа по звонку это просто номер
+		// телефона). Поменять имя бесплатно, аватарку за монеты — в /account.
+		userName: pickGuestNickname(),
+		userImageSrc: newAvatarUrl(),
 		invitedByUserId,
 
 	});
