@@ -973,6 +973,31 @@ const TRAIN_SPECS: TrainSpec[] = [
             <span style={{ color: PI_COLOR }}>−π</span><span className="mx-1">−</span><span>x</span>
         </>
     ) },
+    // sin(x + π): стоим в π (слева), x — шаг в плюс (вверх) → 3 четверть; sin там «−»; целое π → не меняем → −sin x
+    { fn: 'sin', base: PI, dir: 1, change: false, formula: (
+        <>
+            <span>x</span><span className="mx-1">+</span><span style={{ color: PI_COLOR }}>π</span>
+        </>
+    ) },
+    // cos(x + 3π/2): стоим в 3π/2 (внизу), x — шаг в плюс → 4 четверть; cos там «+»; 3π/2 → меняем → sin x
+    { fn: 'cos', base: (3 * PI) / 2, dir: 1, change: true, formula: (
+        <>
+            <span>x</span><span className="mx-1">+</span>
+            <span style={{ color: PI_COLOR }}><Frac num="3π" den="2" /></span>
+        </>
+    ) },
+    // sin(π/2 − x): стоим в π/2 (вверху), −x — шаг в минус (по часовой) → 1 четверть; sin там «+»; π/2 → меняем → cos x
+    { fn: 'sin', base: PI / 2, dir: -1, change: true, formula: (
+        <>
+            <span style={{ color: PI_COLOR }}><Frac num="π" den="2" /></span><span className="mx-1">−</span><span>x</span>
+        </>
+    ) },
+    // cos(x − π): стоим в −π (слева), x — шаг в плюс (вверх, против часовой) → 3 четверть; cos там «−»; целое π → не меняем → −cos x
+    { fn: 'cos', base: -PI, dir: 1, change: false, formula: (
+        <>
+            <span>x</span><span className="mx-1">−</span><span style={{ color: PI_COLOR }}>π</span>
+        </>
+    ) },
 ]
 const TRAIN_COUNT = TRAIN_SPECS.length
 const quarterOf = (a: number) => (Math.floor((((a % (2 * PI)) + 2 * PI) % (2 * PI)) / (PI / 2)) + 1)
