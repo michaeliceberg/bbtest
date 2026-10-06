@@ -6,20 +6,20 @@
 
 import { useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
-import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
+import { hexToRgba } from '@/src/constants/lessonButtonColors'
 
 // В t_units.image_src этого юнита лежит этот маркер вместо пути к картинке.
 export const HERO_HALF_CIRCLE = '__anim_half_circle__'
 export const HERO_HALF_CIRCLE_TITLE = ['Тригонометрическая', 'окружность (БАЗА)']
 
-const COLOR = GGEGE_PALETTE.purple.button
 const CX = 60
 const CY = 60
 const R = 52
 const ARC = `M ${CX + R} ${CY} A ${R} ${R} 0 0 0 ${CX - R} ${CY}`
 const DRAW_S = 1.3
 
-export const HalfCircleHero = () => {
+// color — цвет заголовка карточки, чтобы вся шапка была в одном тоне.
+export const HalfCircleHero = ({ color }: { color: string }) => {
     const ref = useRef<SVGSVGElement>(null)
     const seen = useInView(ref, { once: true, amount: 0.6 })
     return (
@@ -27,15 +27,15 @@ export const HalfCircleHero = () => {
             {seen && (
                 <>
                     <motion.path
-                        d={`${ARC} L ${CX + R} ${CY} Z`} fill={hexToRgba(COLOR, 0.2)} stroke="none"
+                        d={`${ARC} L ${CX + R} ${CY} Z`} fill={hexToRgba(color, 0.18)} stroke="none"
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: DRAW_S * 0.8, duration: 0.5 }}
                     />
                     <motion.path
-                        d={ARC} fill="none" stroke={COLOR} strokeWidth={5} strokeLinecap="round"
+                        d={ARC} fill="none" stroke={color} strokeWidth={5} strokeLinecap="round"
                         initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: DRAW_S, ease: 'easeInOut' }}
                     />
                     <motion.line
-                        x1={CX - R} y1={CY} x2={CX + R} y2={CY} stroke="#F2F7FB" strokeWidth={2} strokeLinecap="round"
+                        x1={CX - R} y1={CY} x2={CX + R} y2={CY} stroke={hexToRgba(color, 0.6)} strokeWidth={2} strokeLinecap="round"
                         initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6, delay: DRAW_S * 0.8 }}
                     />
                     <g transform={`translate(${CX} ${CY - 22})`}>
@@ -43,7 +43,7 @@ export const HalfCircleHero = () => {
                             initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                             transition={{ delay: DRAW_S + 0.1, type: 'spring', bounce: 0.6 }}
                         >
-                            <text textAnchor="middle" dominantBaseline="central" fontSize={16} fill="#F2F7FB"
+                            <text textAnchor="middle" dominantBaseline="central" fontSize={16} fill={color}
                                 style={{ fontFamily: 'var(--font-nunito), sans-serif', fontWeight: 900 }}>
                                 π = 180°
                             </text>

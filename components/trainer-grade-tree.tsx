@@ -548,8 +548,8 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                     {HERO_HALF_CIRCLE_TITLE.map((line) => <div key={line}>{line}</div>)}
                                 </div>
                                 <div className="flex-1 flex justify-center min-w-0">
-                                    <div className="rounded-xl px-3 pt-3 pb-1.5" style={{ background: hexToRgba(GGEGE_PALETTE.purple.button, 0.1) }}>
-                                        <HalfCircleHero />
+                                    <div className="rounded-xl px-3 pt-3 pb-1.5" style={{ background: hexToRgba(cozy ? COZY.title : accent.button, 0.1) }}>
+                                        <HalfCircleHero color={cozy ? COZY.title : accent.button} />
                                     </div>
                                 </div>
                             </div>
