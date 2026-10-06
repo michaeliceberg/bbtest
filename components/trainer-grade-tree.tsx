@@ -63,6 +63,18 @@ const mixWithWhite = (hex: string, k: number): string => {
     const mix = (c: number) => Math.round(c + (255 - c) * k);
     return `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
 };
+// Приглушённая версия цвета юнита для игрового стиля: смешиваем с фоном карточки
+// (#1A252B), чтобы карточки с плитками уроков не «светили» так ярко.
+const MUTE_BASE = 0x1a252b;
+const MUTE_K = 0.62;
+const muteColor = (hex: string): string => {
+    const n = parseInt(hex.slice(1), 16);
+    const mix = (c: number, b: number) => Math.round(b + (c - b) * MUTE_K);
+    const r = mix((n >> 16) & 255, (MUTE_BASE >> 16) & 255);
+    const g = mix((n >> 8) & 255, (MUTE_BASE >> 8) & 255);
+    const bl = mix(n & 255, MUTE_BASE & 255);
+    return `#${((r << 16) | (g << 8) | bl).toString(16).padStart(6, '0')}`;
+};
 // Юниты, переименованные на карте, но с прежним названием темы в справочнике.
 const REFERENCE_ALIAS: Record<string, string> = { '8 свойств логарифмов': 'Логарифмы' };
 const DONE_GRADIENT = 'linear-gradient(135deg, #7C3AED 0%, #C026D3 100%)';
@@ -71,7 +83,7 @@ const DONE_GLOW = '0 0 12px -2px rgba(167, 139, 250, 0.55)';
 const DONE_ICON_COLOR = 'var(--tg-done-icon)';
 // Лёгкий «металлический» объём плиток (как у кнопок экранов кейсов/квестов):
 // светлая кромка сверху и тёмный край снизу. Убрать — пустая строка.
-const TILE_SHEEN = 'inset 0 1px 0 rgba(255,255,255,0.24), inset 0 -3px 0 rgba(0,0,0,0.26)';
+const TILE_SHEEN = 'inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -3px 0 rgba(0,0,0,0.26)';
 const UNLOCKED_BORDER = '#4897D1';
 const UNLOCKED_BG = 'var(--tg-unlocked-bg)';
 const LOCKED_BORDER = 'var(--tg-locked)';
@@ -484,11 +496,12 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
     // нужен доступ по замыканию к состоянию reveal-анимации/рефам выше,
     // без прокидывания десятка пропсов), вызывается из ДВУХ мест —
     // одиночная тема и тема внутри chain-группы (см. return ниже).
-    const renderTopicCard = (topic: SkillTopic, accent: GroupAccent, nested = false, blockTitle?: string) => {
+    const renderTopicCard = (topic: SkillTopic, accentIn: GroupAccent, nested = false, blockTitle?: string) => {
+        const accent: GroupAccent = cozy ? accentIn : { button: muteColor(accentIn.button), bottom: muteColor(accentIn.bottom) };
         // Тёплый стиль: пройденный этап — плоский медовый блок с нижней гранью.
         const doneGradient = cozy ? accent.button : `linear-gradient(135deg, ${accent.button} 0%, ${accent.bottom} 100%)`;
         const doneBorder = cozy ? accent.bottom : mixWithWhite(accent.button, 0.5);
-        const doneGlow = cozy ? `0 3px 0 ${accent.bottom}` : `0 0 12px -2px ${hexToRgba(accent.button, 0.6)}`;
+        const doneGlow = cozy ? `0 3px 0 ${accent.bottom}` : `0 0 10px -3px ${hexToRgba(accent.button, 0.3)}`;
         // Тема залочена целиком (межюнитная зависимость, см.
         // t_units.unlockAfterTUnitId) — вместо обычной сетки этапов
         // показываем один плейсхолдер с пояснением, что именно нужно
@@ -522,7 +535,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                             border: `3px solid ${COZY.cardBorder}`,
                             boxShadow: highlightedTopic === topic.title ? `0 0 0 3px ${accent.button}, 0 6px 0 ${COZY.cardEdge}` : `0 6px 0 ${COZY.cardEdge}`,
                         } : {
-                            ...(nested ? {} : { border: `2px solid ${hexToRgba(accent.button, 0.7)}`, backgroundImage: `linear-gradient(180deg, ${hexToRgba(accent.button, 0.09)}, transparent 60%)` }),
+                            ...(nested ? {} : { border: `2px solid ${hexToRgba(accent.button, 0.55)}`, backgroundImage: `linear-gradient(180deg, ${hexToRgba(accent.button, 0.07)}, transparent 60%)` }),
                             ...(highlightedTopic === topic.title ? { boxShadow: '0 0 0 2px #4A90D9' } : {}),
                         }}
                     >
@@ -790,15 +803,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                                                         <span className="text-[10px] font-bold" style={{ color: getBossRank(s.bossWins ?? 0)?.color }}>{getBossRank(s.bossWins ?? 0)?.title}</span>
                                                                     </span>
                                                                 )}
-                                                                {isMythic
-                                                                        ? <ChestGlow mega color={accent.button}>{stageBox}</ChestGlow>
-                                                                    : isChest
-                                                                        ? <ChestGlow color={accent.button}>{stageBox}</ChestGlow>
-                                                                        : isMegaChest
-                                                                            ? <ChestGlow mega color={accent.button}>{stageBox}</ChestGlow>
-                                                                            : isFrontier
-                                                                                ? <FrontierShine>{stageBox}</FrontierShine>
-                                                                                : stageBox}
+                                                                {stageBox}
                                                             </div>
 
                                                             {j < row.length - 1 && (

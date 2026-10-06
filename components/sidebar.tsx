@@ -1,6 +1,6 @@
 'use client'
 
-import { Dumbbell, Flame, Swords, ChevronDown, ChevronUp, LogOut, UserCircle, Library, Lock, BadgeCheck, Shield, BarChart3 } from 'lucide-react'
+import { Dumbbell, Flame, Swords, ChevronDown, ChevronUp,  Library, Lock, BadgeCheck, Shield, BarChart3 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from './ui/button'
 import Link from 'next/link'
@@ -10,7 +10,7 @@ import { useEffect, useState, useTransition } from 'react'
 import { cn } from '@/lib/utils'
 import Image from 'next/image'
 import { switchCourse } from '@/actions/switch-course'
-import { useSession, signOut } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import { UnitCardLottie } from '@/components/unit-card-lottie'
 import { useCourseSwitchStore } from '@/store/course-switch-store'
 import { ThemeSwitch } from '@/components/theme-switch'
@@ -78,7 +78,6 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
   const router = useRouter()
   const { data: session } = useSession()
   const [isCoursesOpen, setIsCoursesOpen] = useState(false)
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [, startTransition] = useTransition()
   const [activeCourse, setActiveCourse] = useState<SidebarCourse | null>(null)
   // Оптимистично "выбранный" курс — обновляется мгновенно по клику, не
@@ -158,51 +157,30 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
     })
   })()
 
-  // Иконка пользователя внизу сайдбара — клик открывает меню с выходом.
+  // Иконка пользователя внизу сайдбара — клик сразу ведёт в /account
+  // (выход из аккаунта — красной кнопкой внизу той страницы).
   const userMenu = session?.user && (
-    <div className="px-2 pb-4 relative">
-      {isUserMenuOpen && (
-        <div className="absolute bottom-full left-2 right-2 mb-2 bg-[#1A252B] border border-[#3A464E] rounded-lg overflow-hidden shadow-lg">
-          <TransitionLink href="/account">
-            <button
-              onClick={() => setIsUserMenuOpen(false)}
-              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-[#F2F7FB] hover:bg-[#232F34] transition-colors"
-            >
-              <UserCircle className="h-4 w-4" />
-              Аккаунт
-            </button>
-          </TransitionLink>
-          <button
-            onClick={() => signOut({ callbackUrl: '/' })}
-            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-rose-400 hover:bg-[#232F34] transition-colors"
-          >
-            <LogOut className="h-4 w-4" />
-            Выйти
-          </button>
+    <div className="px-2 pb-4">
+      <TransitionLink href="/account" className="block">
+        <div className="w-full flex items-center gap-2 p-3 rounded-lg hover:bg-[#232F34] transition-colors cursor-pointer">
+          {userImageSrc || session.user.image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={userImageSrc || session.user.image || ''}
+              alt=""
+              width={32}
+              height={32}
+              className="rounded-full flex-shrink-0 w-8 h-8 object-cover bg-[#232F34]"
+            />
+          ) : (
+            <UnitCardLottie progress={0} size={32} className="rounded-full bg-[#232F34] flex-shrink-0" />
+          )}
+          <span className="text-sm text-[#F2F7FB] truncate flex-1 text-left flex items-center gap-1">
+            <span className="truncate">{userName || session.user.name || 'Ученик'}</span>
+            {isAmbassador && <BadgeCheck className="h-4 w-4 text-sky-400 shrink-0" aria-label="Амбассадор" />}
+          </span>
         </div>
-      )}
-
-      <button
-        onClick={() => setIsUserMenuOpen((open) => !open)}
-        className="w-full flex items-center gap-2 p-3 rounded-lg hover:bg-[#232F34] transition-colors"
-      >
-        {userImageSrc || session.user.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={userImageSrc || session.user.image || ''}
-            alt=""
-            width={32}
-            height={32}
-            className="rounded-full flex-shrink-0 w-8 h-8 object-cover bg-[#232F34]"
-          />
-        ) : (
-          <UnitCardLottie progress={0} size={32} className="rounded-full bg-[#232F34] flex-shrink-0" />
-        )}
-        <span className="text-sm text-[#F2F7FB] truncate flex-1 text-left flex items-center gap-1">
-          <span className="truncate">{userName || session.user.name || 'Ученик'}</span>
-          {isAmbassador && <BadgeCheck className="h-4 w-4 text-sky-400 shrink-0" aria-label="Амбассадор" />}
-        </span>
-      </button>
+      </TransitionLink>
     </div>
   )
 

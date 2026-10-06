@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { Crown } from 'lucide-react'
+import { LogoutButton } from '@/components/logout-button'
 import { AccountLinking } from '@/components/account-linking'
 import { AvatarReroll } from '@/components/avatar-reroll'
 import { NameEditor } from '@/components/name-editor'
@@ -92,6 +93,8 @@ const AccountPage = async () => {
             {invite && <ReferralCard inviteCode={invite.code} />}
 
             <ParentBindCode userId={userProgress.userId} userName={userProgress.userName} />
+
+            <LogoutButton />
         </div>
     )
 }

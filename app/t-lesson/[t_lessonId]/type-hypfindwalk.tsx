@@ -119,9 +119,9 @@ const FlyingLabel = ({ f, onLanded }: { f: Flight; onLanded: () => void }) => (
 )
 
 type HypKind = 'opp' | 'adj'
-const HYP_KIND_CFG: Record<HypKind, { needle: string; lines: string[]; one: string; color: string; trig: string }> = {
-    opp: { needle: 'противолежащий', lines: ['противолежащий', 'катет'], one: 'противолежащий катет', color: LEG_COLOR, trig: 'sin α' },
-    adj: { needle: 'прилежащий', lines: ['прилежащий', 'катет'], one: 'прилежащий катет', color: ADJACENT_LEG_COLOR, trig: 'cos α' },
+const HYP_KIND_CFG: Record<HypKind, { needle: string; lines: string[]; one: string; color: string; trig: string; hint: string }> = {
+    opp: { needle: 'противолежащий', lines: ['противолежащий', 'катет'], one: 'противолежащий катет', color: LEG_COLOR, trig: 'sin α', hint: 'по противолежащему катету и углу' },
+    adj: { needle: 'прилежащий', lines: ['прилежащий', 'катет'], one: 'прилежащий катет', color: ADJACENT_LEG_COLOR, trig: 'cos α', hint: 'по прилежащему катету и углу' },
 }
 
 const HypotenuseScene = ({ kind, onSettled }: { kind: HypKind; onSettled: () => void }) => {
@@ -213,24 +213,20 @@ const HypotenuseScene = ({ kind, onSettled }: { kind: HypKind; onSettled: () => 
                     reserveLabels={[kind]}
                 />
             </DiagramFrame>
-            {btnShown && !typing && (
-                <motion.div
-                    className="w-full"
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4 }}
-                >
-                    <button
-                        type="button"
-                        onClick={() => setTyping(true)}
-                        className={walkthroughButtonClass(true)}
-                        style={walkthroughButtonStyle(true)}
-                    >
-                        Интересненько..
-                    </button>
-                </motion.div>
-            )}
             <div className="w-full flex justify-center min-h-[8rem]">
+                {btnShown && !typing && (
+                    <motion.div
+                        className="w-full text-center text-lg md:text-xl font-bold text-[#F2F7FB] flex items-center justify-center"
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4 }}
+                    >
+                        <span>
+                            Найдём <span style={{ color: HYPOTENUSE_COLOR }}>гипотенузу</span>{' '}
+                            <span style={{ color: cfg.color }}>{cfg.hint}</span>
+                        </span>
+                    </motion.div>
+                )}
                 {typing && (
                     <div className="w-full text-lg md:text-xl font-bold text-[#F2F7FB] flex items-center justify-center flex-wrap gap-1">
                         {!typed ? (
@@ -258,6 +254,23 @@ const HypotenuseScene = ({ kind, onSettled }: { kind: HypKind; onSettled: () => 
                     </div>
                 )}
             </div>
+            {btnShown && !typing && (
+                <motion.div
+                    className="w-full flex"
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.3 }}
+                >
+                    <button
+                        type="button"
+                        onClick={() => setTyping(true)}
+                        className={`${walkthroughButtonClass(true)} w-full whitespace-nowrap`}
+                        style={walkthroughButtonStyle(true)}
+                    >
+                        Интересненько..
+                    </button>
+                </motion.div>
+            )}
             {flight && !landed && <FlyingLabel f={flight} onLanded={() => setLanded(true)} />}
         </div>
     )
