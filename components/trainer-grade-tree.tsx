@@ -26,6 +26,7 @@ import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors';
 import { getBossRank } from '@/lib/bossRank';
 import { HalfCircleHero, HERO_HALF_CIRCLE, HERO_HALF_CIRCLE_TITLE } from './unit-hero-half-circle';
 import { isReviewStage, isMythicStage } from '@/lib/trainerStageFlags';
+import { TrainerPet } from './trainer-pet';
 
 // Больше разнообразия по прямой просьбе пользователя ("яйцо щит меч —
 // хочется большее количество разных иконок, чтобы было интереснее") —
@@ -184,6 +185,8 @@ interface Props {
     onlyActiveGroup?: string;
     // Простой вид /trainer: без процентов у темы, «Справочник» — одна иконка.
     simple?: boolean;
+    // Данные питомца (простой вид): он стоит у текущей точки дорожки.
+    petProps?: { streak: number; hasExtendedToday: boolean; questDone: boolean; dayKey: number };
 }
 
 // Цвета карты в двух стилях — через CSS-переменные на корне карты, чтобы
@@ -308,6 +311,140 @@ const BossGiftBadge = ({ color = '#EF9F27' }: { color?: string }) => (
     </span>
 );
 
+
+// «Дорожка» (простой вид): этапы темы идут вертикальным путём с лёгким
+// изгибом — крупные плитки на волнистой линии, сундуки/босс на нём же,
+// питомец стоит рядом с текущей (первой непройденной) точкой. Все размеры
+// заданы в долях холста PATH_W×H (проценты) — дорожка одинаково выглядит
+// на любой ширине экрана. Reveal-анимация «только что прошёл» здесь не играет.
+const PATH_W = 320;
+const PATH_ROW = 98;
+const PATH_PAD = 44;
+const PATH_AMP = 82;
+const PET_OFFSET = 86;
+
+const StagePath = ({
+    topic, accent, cozy, isAdmin, frontierIdx, stepNums, doneGradient, doneBorder, doneGlow, pet,
+}: {
+    topic: SkillTopic;
+    accent: GroupAccent;
+    cozy: boolean;
+    isAdmin: boolean;
+    frontierIdx: number;
+    stepNums: (number | null)[];
+    doneGradient: string;
+    doneBorder: string;
+    doneGlow: string;
+    pet: React.ReactNode;
+}) => {
+    const n = topic.stages.length;
+    const H = PATH_PAD * 2 + (n - 1) * PATH_ROW;
+    const pts = topic.stages.map((_, i) => ({ x: PATH_W / 2 + PATH_AMP * Math.sin(i * 1.15), y: PATH_PAD + i * PATH_ROW }));
+    const pct = (v: number, base: number) => `${(v / base) * 100}%`;
+
+    return (
+        <div className="relative w-full" style={{ aspectRatio: `${PATH_W} / ${H}` }}>
+            <svg viewBox={`0 0 ${PATH_W} ${H}`} className="absolute inset-0 w-full h-full overflow-visible" aria-hidden>
+                {pts.slice(0, -1).map((a, i) => {
+                    const b = pts[i + 1];
+                    const ym = (a.y + b.y) / 2;
+                    const done = topic.stages[i].percentage >= UNLOCK_THRESHOLD;
+                    return (
+                        <path
+                            key={i}
+                            d={`M ${a.x} ${a.y} C ${a.x} ${ym}, ${b.x} ${ym}, ${b.x} ${b.y}`}
+                            fill="none"
+                            strokeWidth={done ? 7 : 5}
+                            strokeLinecap="round"
+                            strokeDasharray={done ? undefined : '1 11'}
+                            style={{ stroke: done ? accent.button : LOCKED_BORDER }}
+                        />
+                    );
+                })}
+            </svg>
+
+            {topic.stages.map((s, i) => {
+                const prev = i > 0 ? topic.stages[i - 1] : null;
+                const unlocked = isAdmin || ((i === 0 || (prev !== null && prev.percentage >= UNLOCK_THRESHOLD)) && !s.extraLocked);
+                const done = s.percentage >= UNLOCK_THRESHOLD;
+                const isLastOverall = i === n - 1;
+                const isBoss = isLastOverall || isReviewStage(s.title);
+                const isChest = !isBoss && n >= 3 && i === Math.floor((n - 1) / 2);
+                const isMythic = isMythicStage(s.title);
+                const isBossExam = s.isBossExam === true;
+                const isStepByStep = s.isStepByStep === true;
+                const isFrontier = i === frontierIdx;
+                const Icon = STAGE_ICONS[i % STAGE_ICONS.length];
+                const pt = pts[i];
+                const skullHue = getBossRank(s.bossWins ?? 0)?.hue ?? 0;
+
+                const iconColor = done ? DONE_ICON_COLOR : accent.button;
+                const stageBg = isBossExam ? 'transparent'
+                    : isStepByStep ? STEPBYSTEP_GRADIENT
+                    : done ? doneGradient : UNLOCKED_BG;
+                const stageBorder = isBossExam ? '3px solid transparent'
+                    : isStepByStep ? `3px solid ${STEPBYSTEP_BORDER}`
+                    : `3px solid ${done ? doneBorder : accent.button}`;
+                const stageShadow = isBossExam ? 'none'
+                    : isFrontier ? `0 0 0 5px ${hexToRgba(accent.button, 0.28)}`
+                    : done ? doneGlow : (cozy ? `0 3px 0 ${accent.bottom}` : undefined);
+
+                const iconEl = (c: string, dim = false) => (
+                    <span className="inline-flex scale-[1.45]">
+                        <StageIcon accent={accent.button} isBoss={isBoss} isBossExam={isBossExam} skullHue={skullHue} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={isStepByStep ? stepNums[i] : null} Icon={Icon} color={c} dim={dim} />
+                    </span>
+                );
+
+                return (
+                    <React.Fragment key={s.id}>
+                        <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: pct(pt.x, PATH_W), top: pct(pt.y, H) }}>
+                            {unlocked ? (
+                                <TrainerStageLink
+                                    href={`/t-lesson/${s.id}`}
+                                    title={s.title}
+                                    subtitle={`${topic.title} · этап ${i + 1}`}
+                                    accent={accent.button}
+                                    className="relative flex w-[58px] h-[58px] rounded-2xl items-center justify-center transition-transform active:scale-95"
+                                    style={{ background: stageBg, border: stageBorder, boxShadow: stageShadow }}
+                                    icon={iconEl(isStepByStep ? STEPBYSTEP_ICON_COLOR : iconColor)}
+                                />
+                            ) : (
+                                <div
+                                    className="flex w-[58px] h-[58px] rounded-2xl items-center justify-center"
+                                    style={{ border: isBossExam ? '3px solid transparent' : `3px solid ${LOCKED_BORDER}` }}
+                                    title={s.extraLocked && s.extraLockedPrereqTitle ? `Сначала пройди «${s.extraLockedPrereqTitle}»` : undefined}
+                                >
+                                    {iconEl(LOCKED_ICON_COLOR, true)}
+                                </div>
+                            )}
+                            {s.badge && (
+                                <span
+                                    className="absolute top-full mt-1 left-1/2 -translate-x-1/2 whitespace-pre-line text-center text-[11px] font-extrabold leading-[1.15] pointer-events-none"
+                                    style={{ color: unlocked ? accent.button : LOCKED_ICON_COLOR, minWidth: 64 }}
+                                >
+                                    {s.badge}
+                                </span>
+                            )}
+                        </div>
+                        {isFrontier && pet && (
+                            <div
+                                className="absolute -translate-y-1/2 z-10"
+                                style={{
+                                    top: pct(pt.y, H),
+                                    left: pct(pt.x, PATH_W),
+                                    transform: `translate(calc(-50% + ${pt.x >= PATH_W / 2 ? -PET_OFFSET : PET_OFFSET}px), -50%)`,
+                                }}
+                            >
+                                {pet}
+                            </div>
+                        )}
+                    </React.Fragment>
+                );
+            })}
+        </div>
+    );
+};
+
 // Мигающая золотая подсветка вокруг квадратика-сундука (и, чуть щедрее, у
 // мегасундука на финальном этапе темы) — та же "дышащая" радиальная
 // подсветка, что уже используется в question-bubble.tsx, просто в
@@ -378,7 +515,7 @@ const FrontierShine = ({ children }: { children: React.ReactNode }) => (
 // 300-500мс), чтобы анимация не началась "за кадром", пока страница ещё едет.
 const SCROLL_SETTLE_MS = 500;
 
-export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onlyActiveGroup, simple = false }: Props) => {
+export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onlyActiveGroup, simple = false, petProps }: Props) => {
     const cozy = theme === 'cozy';
     const ACC: GroupAccent = cozy ? COZY_TREE_ACCENT : GROUP_ACCENTS[0];
     // Reveal-анимация "только что прошёл этот этап" — сигнал приходит из
@@ -513,7 +650,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
     // нужен доступ по замыканию к состоянию reveal-анимации/рефам выше,
     // без прокидывания десятка пропсов), вызывается из ДВУХ мест —
     // одиночная тема и тема внутри chain-группы (см. return ниже).
-    const renderTopicCard = (topic: SkillTopic, accentIn: GroupAccent, nested = false, blockTitle?: string, unitNumber: number | null = null) => {
+    const renderTopicCard = (topic: SkillTopic, accentIn: GroupAccent, nested = false, blockTitle?: string, unitNumber: number | null = null, petHere = false) => {
         const accent: GroupAccent = cozy ? accentIn : { button: muteColor(accentIn.button), bottom: muteColor(accentIn.bottom) };
         // Тёплый стиль: пройденный этап — плоский медовый блок с нижней гранью.
         const doneGradient = cozy ? accent.button : `linear-gradient(135deg, ${accent.button} 0%, ${accent.bottom} 100%)`;
@@ -612,6 +749,22 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                     stepByStepNumbers.push(null);
                                 }
                             });
+                            if (simple) {
+                                return (
+                                    <StagePath
+                                        topic={topic}
+                                        accent={accent}
+                                        cozy={cozy}
+                                        isAdmin={isAdmin}
+                                        frontierIdx={frontierIdx}
+                                        stepNums={stepByStepNumbers}
+                                        doneGradient={doneGradient}
+                                        doneBorder={doneBorder}
+                                        doneGlow={doneGlow}
+                                        pet={petHere && petProps ? <TrainerPet {...petProps} compact /> : null}
+                                    />
+                                );
+                            }
                             return (
                             <div className="flex flex-col">
                                 {chunkStages(topic.stages, COLUMNS_PER_ROW).map((row, rowIdx, allRows) => {
@@ -984,7 +1137,17 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                             transition={{ type: 'spring', stiffness: 300, damping: 26 }}
                             className="flex flex-col gap-2.5"
                         >
-                            {groupTopics(g).map((t, ti) => renderTopicCard(t, accent, false, groupLabel(g), groupTopics(g).length > 1 ? ti + 1 : null))}
+                            {(() => {
+                                const gts = groupTopics(g);
+                                const hasFrontier = (t: SkillTopic) => !t.locked && t.stages.some((st) => st.percentage < UNLOCK_THRESHOLD);
+                                const petTopic = simple && petProps ? (gts.find((t) => t.isLastActive && hasFrontier(t)) ?? gts.find(hasFrontier)) : undefined;
+                                return (
+                                    <>
+                                        {simple && petProps && !petTopic && <TrainerPet {...petProps} />}
+                                        {gts.map((t, ti) => renderTopicCard(t, accent, false, groupLabel(g), gts.length > 1 ? ti + 1 : null, petTopic?.id === t.id))}
+                                    </>
+                                );
+                            })()}
                         </motion.div>
                     );
                 })}

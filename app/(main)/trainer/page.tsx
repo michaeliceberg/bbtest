@@ -33,7 +33,6 @@ import { HIDDEN_T_COURSE_IDS, pickActiveCourseId, resolveActiveTCourse, sortTCou
 import { getUiTheme } from '@/lib/uiThemeServer';
 import { getTrainerView } from '@/lib/trainerViewServer';
 import { TrainerTopBar } from '@/components/trainer-top-bar';
-import { TrainerPet } from '@/components/trainer-pet';
 import { COZY } from '@/lib/cozyTheme';
 import { GuestRewardClaimer } from '@/components/guest-reward-claimer';
 import { ReferralCashbackScreen } from '@/components/referral-screens';
@@ -285,7 +284,6 @@ const TLearnPage = async () => {
                 <div className='mt-2 lg:mt-5'>
                     {simple && (
                         <>
-                            <TrainerPet streak={currentStreakForRisk} hasExtendedToday={hasExtendedStreakToday} questDone={!!dailyQuest?.isCompleted} dayKey={new Date().getDate()} />
                             <TrainerTopBar
                                 xp={currentXp}
                                 pizzaSlices={currentPizzaSlices}
@@ -329,13 +327,14 @@ const TLearnPage = async () => {
                         </div>
                     )}
 
+                    </>)}
+
                     {/* Разделитель между блоком пиццы и выбором темы тренажёра */}
                     <div
                         className='mt-7 mb-6 h-px w-full'
                         style={{ background: cozy ? `linear-gradient(90deg, transparent, ${COZY.cardBorder}, transparent)` : 'linear-gradient(90deg, transparent, #3A464E, transparent)' }}
                     />
 
-                    </>)}
 
                     <div className='content-center mx-auto justify-center text-center align-middle'>
                         <HwTopBanner missedCIds={missedLIds} variant='trainer' />
@@ -355,6 +354,7 @@ const TLearnPage = async () => {
                         isAdmin={userProgress.isAdmin === 1}
                         theme={uiTheme}
                         simple={simple}
+                        petProps={simple ? { streak: currentStreakForRisk, hasExtendedToday: hasExtendedStreakToday, questDone: !!dailyQuest?.isCompleted, dayKey: new Date().getDate() } : undefined}
                     />
                 </div>
             </FeedWrapper>
