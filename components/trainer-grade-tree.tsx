@@ -16,10 +16,11 @@ import { COZY, COZY_WOOD_TILE, type UiTheme } from '@/lib/cozyTheme';
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil, Lock, ChevronDown, BookOpen } from 'lucide-react';
+import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil, Lock, ChevronDown, BookOpen, Check } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { TrainerStageLink } from './trainer-stage-link';
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 // Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
 import { GGEGE_PALETTE, getUnitButtonColor, LOCKED_BUTTON_COLOR, LOCKED_BUTTON_BOTTOM_COLOR } from '@/src/constants/lessonButtonColors';
@@ -650,6 +651,8 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
         ?? renderGroups.find((g) => !isGroupLocked(g) && groupTopics(g).some((t) => t.isLastActive))
         ?? renderGroups.find((g) => !isGroupLocked(g)) ?? renderGroups[0];
     const [activeGroupKey, setActiveGroupKey] = useState<string | null>(defaultGroup ? groupKey(defaultGroup) : null);
+    // Простой вид: список юнитов выезжает слева по нажатию на баннер юнита.
+    const [unitMenuOpen, setUnitMenuOpen] = useState(false);
     // Переход из справочника — переключаемся на таб с нужной темой.
     useEffect(() => {
         if (!topicParam) return;
@@ -724,17 +727,23 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                             const rank = examStage ? getBossRank(examStage.bossWins ?? 0) : null;
                             const bannerTitle = topic.imageSrc === HERO_HALF_CIRCLE ? HERO_HALF_CIRCLE_TITLE.join(' ') : topic.title;
                             return (
-                                <div
-                                    className="relative mb-4 overflow-hidden rounded-2xl p-4 text-white"
-                                    style={{ background: `linear-gradient(135deg, ${accentIn.button}, ${accentIn.bottom})` }}
+                                <button
+                                    type="button"
+                                    onClick={() => setUnitMenuOpen(true)}
+                                    className="relative mb-5 block w-full overflow-hidden rounded-2xl p-4 text-left text-white transition-transform active:translate-y-[4px]"
+                                    style={{ background: `linear-gradient(135deg, ${accentIn.button}, ${accentIn.bottom})`, boxShadow: `0 6px 0 ${accentIn.bottom}` }}
+                                    aria-label="Выбрать юнит"
                                 >
                                     <div className="flex items-start justify-between gap-3">
                                         <h2 className="text-xl font-bold tracking-tight break-words">{bannerTitle}</h2>
-                                        {examStage ? (rank && <span className="text-sm font-black flex-shrink-0 px-2 py-0.5 rounded-full bg-black/25">{rank.title}</span>)
-                                            : <span className="text-2xl font-bold flex-shrink-0">{topic.percentage}%</span>}
+                                        <span className="flex items-center gap-2 flex-shrink-0">
+                                            {examStage ? (rank && <span className="text-sm font-black px-2 py-0.5 rounded-full bg-black/25">{rank.title}</span>)
+                                                : <span className="text-2xl font-bold">{topic.percentage}%</span>}
+                                            <ChevronDown className="w-5 h-5 -rotate-90 opacity-80" />
+                                        </span>
                                     </div>
                                     {unitNumber != null && <p className="text-white/80 text-sm mt-1">Тема {unitNumber}</p>}
-                                </div>
+                                </button>
                             );
                         })()}
                         {!simple && topic.imageSrc === HERO_HALF_CIRCLE ? (
@@ -1133,7 +1142,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
     return (
         <div className="w-full max-w-xl mx-auto" style={TREE_VARS[theme]}>
             <div className="flex flex-col gap-3">
-                {renderGroups.length > 1 && (
+                {!simple && renderGroups.length > 1 && (
                     <div
                         className={cozy ? "flex flex-wrap gap-1 p-1 rounded-xl" : "flex flex-wrap gap-1 p-1 rounded-2xl bg-[#232F34]"}
                         style={cozy ? { background: COZY.card, border: `3px solid ${COZY.cardBorder}`, boxShadow: `0 5px 0 ${COZY.cardEdge}` } : undefined}
@@ -1167,6 +1176,45 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                             );
                         })}
                     </div>
+                )}
+                {simple && renderGroups.length > 1 && (
+                    <Sheet open={unitMenuOpen} onOpenChange={setUnitMenuOpen}>
+                        <SheetContent side="left" className="p-0 z-[100] bg-[#151F23] border-[#2B373D] w-[82%] sm:max-w-xs overflow-y-auto">
+                            <SheetTitle className="px-5 pt-6 pb-3 text-lg font-extrabold text-white">Юниты</SheetTitle>
+                            <div className="flex flex-col gap-2.5 px-4 pb-8">
+                                {renderGroups.map((g) => {
+                                    const key = groupKey(g);
+                                    const isActive = key === activeGroupKey;
+                                    const locked = isGroupLocked(g);
+                                    const first = groupTopics(g)[0];
+                                    const col = getUnitButtonColor(Math.max(0, topics.findIndex((t) => t.id === first.id)));
+                                    const pcts = groupTopics(g).map((t) => t.percentage);
+                                    const pct = pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : 0;
+                                    return (
+                                        <button
+                                            key={key}
+                                            type="button"
+                                            disabled={locked}
+                                            onClick={() => { setActiveGroupKey(key); setUnitMenuOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                            className={cn("flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-transform active:translate-y-[3px]", locked && "opacity-45 cursor-not-allowed")}
+                                            style={locked
+                                                ? { background: '#232F34', boxShadow: '0 4px 0 #1B262B' }
+                                                : isActive
+                                                    ? { background: `linear-gradient(135deg, ${col.button}, ${col.bottom})`, boxShadow: `0 4px 0 ${col.bottom}` }
+                                                    : { background: '#1E2A30', border: `1.5px solid ${hexToRgba(col.button, 0.4)}`, boxShadow: '0 4px 0 #161F23' }}
+                                        >
+                                            <span className="flex-1 min-w-0 text-[15px] font-extrabold leading-tight" style={{ color: locked ? '#72838D' : isActive ? '#FFFFFF' : col.button }}>
+                                                {groupLabel(g)}
+                                            </span>
+                                            {locked ? <Lock className="w-4 h-4 text-[#72838D] flex-shrink-0" />
+                                                : isActive ? <Check className="w-5 h-5 text-white flex-shrink-0" />
+                                                : <span className="text-xs font-bold flex-shrink-0" style={{ color: hexToRgba(col.button, 0.85) }}>{pct}%</span>}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </SheetContent>
+                    </Sheet>
                 )}
                 {renderGroups.map((g) => {
                     const key = groupKey(g);
