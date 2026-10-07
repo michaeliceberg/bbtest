@@ -69,7 +69,7 @@ const AchievementsPage = async () => {
                                     <h2 className="text-lg font-extrabold" style={{ color: g.color }}>{g.title}</h2>
                                     <span className="text-xs font-bold text-[#6B7A83]">{done}/{list.length}</span>
                                 </div>
-                                <div className="grid gap-3 sm:grid-cols-2">
+                                <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))' }}>
                                     {list.map((a) => {
                                         const at = unlockedAt.get(a.key);
                                         const has = !!at;
