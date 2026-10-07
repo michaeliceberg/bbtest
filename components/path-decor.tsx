@@ -153,29 +153,45 @@ export const PathDecoration = ({ variant, size = 64, reached = true }: { variant
     </div>
 );
 
-// Мелкий реквизит по краям тропинки (кусты, камни, цветы, кристаллы, пальмы, трава) — статичные SVG.
-export const PROP_KINDS: DecorKind[] = ['bush', 'rock', 'flower', 'tuft', 'crystal', 'palm'];
+// Реквизит по краям тропинки — иконки из Kenney Cartography Pack (CC0, public/map-props/).
+// Это тёмные контуры на прозрачном фоне: рисуем их маской и красим в цвет юнита.
+export const PROP_KINDS = [
+    'bush', 'rocks', 'rocksA', 'rocksB', 'rocksTall', 'rocksMountain', 'treePine', 'treePines', 'treeTall',
+    'palm', 'cactus', 'tent', 'tipi', 'campfire', 'flag', 'fence', 'well', 'mill', 'houseSmall', 'lighthouse', 'castle',
+] as const;
+export type PropKind = (typeof PROP_KINDS)[number];
 
-export const PathProp = ({ kind, size }: { kind: DecorKind; size: number }) => (
-    <div style={{ width: size, height: size }} className="pointer-events-none select-none opacity-90">
-        <Art kind={kind} />
-    </div>
+// Крупные силуэты — чуть больше обычного размера, мелкая россыпь — меньше.
+export const PROP_SCALE: Partial<Record<PropKind, number>> = {
+    castle: 1.5, lighthouse: 1.25, mill: 1.2, rocksMountain: 1.3, treeTall: 1.2, treePines: 1.2, tent: 1.1,
+    bush: 0.8, rocks: 0.8, rocksA: 0.8, rocksB: 0.8, fence: 0.9, campfire: 0.85, flag: 0.9,
+};
+
+const Mask = ({ name, size, color, opacity }: { name: string; size: number; color: string; opacity: number }) => (
+    <div
+        className="pointer-events-none select-none"
+        style={{
+            width: size,
+            height: size,
+            backgroundColor: color,
+            opacity,
+            WebkitMaskImage: `url(/map-props/${name}.png)`,
+            maskImage: `url(/map-props/${name}.png)`,
+            WebkitMaskSize: 'contain',
+            maskSize: 'contain',
+            WebkitMaskRepeat: 'no-repeat',
+            maskRepeat: 'no-repeat',
+            WebkitMaskPosition: 'center',
+            maskPosition: 'center',
+        }}
+    />
 );
 
-// Каменная арка: тропинка проходит под ней.
-export const PathArch = ({ size = 92 }: { size?: number }) => (
-    <div style={{ width: size, height: size * 0.85 }} className="pointer-events-none select-none">
-        <svg viewBox="0 0 96 82" className="w-full h-full">
-            <ellipse cx="48" cy="76" rx="40" ry="5" fill="rgba(0,0,0,0.2)" />
-            <path d="M6 74 V36 A42 42 0 0 1 90 36 V74 H72 V38 A24 24 0 0 0 24 38 V74 Z" fill="#A29786" />
-            <path d="M6 74 V36 A42 42 0 0 1 20 8 L30 18 A28 28 0 0 0 24 38 V74 Z" fill="#8F8577" />
-            <path d="M30 4 L38 14 M48 0 L48 12 M66 4 L58 14 M12 50 H24 M72 56 H84 M14 62 H24 M72 44 H84" stroke="#7B7164" strokeWidth="2.2" strokeLinecap="round" />
-            <circle cx="22" cy="14" r="7" fill="#5FB04A" />
-            <circle cx="34" cy="8" r="6" fill="#78C93C" />
-            <circle cx="76" cy="12" r="7" fill="#4E9C3C" />
-            <circle cx="64" cy="6" r="5" fill="#78C93C" />
-            <path d="M10 36 C8 48 10 56 14 62" stroke="#5FB04A" strokeWidth="3" strokeLinecap="round" fill="none" />
-            <path d="M86 34 C88 46 86 54 82 60" stroke="#4E9C3C" strokeWidth="3" strokeLinecap="round" fill="none" />
-        </svg>
-    </div>
+export const PathProp = ({ kind, size, color = '#53ADEF' }: { kind: PropKind; size: number; color?: string }) => (
+    <Mask name={kind} size={size} color={color} opacity={0.6} />
+);
+
+// Ворота: тропинка проходит под ними.
+export const PathArch = ({ size = 92, color = '#53ADEF' }: { size?: number; color?: string }) => (
+    <Mask name="gate" size={size} color={color} opacity={0.75} />
 );

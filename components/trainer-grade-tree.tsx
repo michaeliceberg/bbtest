@@ -30,7 +30,7 @@ import { getBossRank } from '@/lib/bossRank';
 import { HalfCircleHero, HERO_HALF_CIRCLE, HERO_HALF_CIRCLE_TITLE } from './unit-hero-half-circle';
 import { isReviewStage, isMythicStage } from '@/lib/trainerStageFlags';
 import { TrainerPet } from './trainer-pet';
-import { PathDecoration, PathProp, PathArch, DECOR_VARIANTS, PROP_KINDS } from './path-decor';
+import { PathDecoration, PathProp, PathArch, DECOR_VARIANTS, PROP_KINDS, PROP_SCALE, type PropKind } from './path-decor';
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store';
 
 // Больше разнообразия по прямой просьбе пользователя ("яйцо щит меч —
@@ -404,7 +404,7 @@ const StagePath = ({
     // Реквизит по краям тропинки: ставим вдоль кривых, слева чаще (справа подписи уроков), подальше от кнопок и декораций.
     const bez = (a: number, c1: number, c2: number, b: number, t: number) => (1 - t) ** 3 * a + 3 * (1 - t) ** 2 * t * c1 + 3 * (1 - t) * t ** 2 * c2 + t ** 3 * b;
     const archPt = archGap >= 0 ? { x: bez(pts[archGap].x, segs[archGap].c1.x, segs[archGap].c2.x, pts[archGap + 1].x, 0.5), y: bez(pts[archGap].y, segs[archGap].c1.y, segs[archGap].c2.y, pts[archGap + 1].y, 0.5) } : null;
-    const props: { x: number; y: number; size: number; kind: (typeof PROP_KINDS)[number] }[] = [];
+    const props: { x: number; y: number; size: number; kind: PropKind }[] = [];
     segs.forEach((sg, i) => {
         const a = pts[i], b = pts[i + 1];
         [0.22, 0.4, 0.6, 0.78].forEach((t) => {
@@ -414,7 +414,7 @@ const StagePath = ({
             const dist = 32 + rnd() * 30;
             const x = right ? px + dist : px - dist;
             const kind = PROP_KINDS[Math.floor(rnd() * PROP_KINDS.length)];
-            const size = kind === 'palm' ? 56 : 32 + Math.round(rnd() * 14);
+            const size = Math.round((40 + rnd() * 14) * (PROP_SCALE[kind] ?? 1));
             if (x < 14 || x > PATH_W - 14) return;
             // справа — только вдали от подписей (рядом с кнопкой там текст)
             if (right && pts.some((p) => Math.abs(py - p.y) < 74)) return;
@@ -451,12 +451,12 @@ const StagePath = ({
 
             {archPt && (
                 <div className="absolute -translate-x-1/2 -translate-y-[62%] pointer-events-none" style={{ left: pct(archPt.x, PATH_W), top: pct(archPt.y, H) }}>
-                    <PathArch size={96} />
+                    <PathArch size={104} color={accent.button} />
                 </div>
             )}
             {props.map((q, qi) => (
                 <div key={`prop-${qi}`} className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ left: pct(q.x, PATH_W), top: pct(q.y, H) }}>
-                    <PathProp kind={q.kind} size={q.size} />
+                    <PathProp kind={q.kind} size={q.size} color={accent.button} />
                 </div>
             ))}
             {decor.map((d, di) => (
