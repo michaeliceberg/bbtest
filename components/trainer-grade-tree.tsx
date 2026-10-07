@@ -22,7 +22,7 @@ import { useSearchParams } from 'next/navigation';
 import { TrainerStageLink } from './trainer-stage-link';
 // Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
-import { GGEGE_PALETTE, LOCKED_BUTTON_COLOR, LOCKED_BUTTON_BOTTOM_COLOR } from '@/src/constants/lessonButtonColors';
+import { GGEGE_PALETTE, getUnitButtonColor, LOCKED_BUTTON_COLOR, LOCKED_BUTTON_BOTTOM_COLOR } from '@/src/constants/lessonButtonColors';
 import { CircularProgressbarWithChildren } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import { getBossRank } from '@/lib/bossRank';
@@ -320,10 +320,9 @@ const BossGiftBadge = ({ color = '#EF9F27' }: { color?: string }) => (
 // заданы в долях холста PATH_W×H (проценты) — дорожка одинаково выглядит
 // на любой ширине экрана. Reveal-анимация «только что прошёл» здесь не играет.
 const PATH_W = 320;
-const PATH_ROW = 124;
+const PATH_ROW = 140;
 const PATH_PAD = 52;
-const PATH_AMP = 82;
-const PET_OFFSET = 96;
+const PATH_AMP = 54;
 
 const StagePath = ({
     topic, accent, cozy, isAdmin, frontierIdx, stepNums, doneGradient, doneBorder, doneGlow, pet,
@@ -341,7 +340,8 @@ const StagePath = ({
 }) => {
     const n = topic.stages.length;
     const H = PATH_PAD * 2 + (n - 1) * PATH_ROW;
-    const pts = topic.stages.map((_, i) => ({ x: PATH_W / 2 + PATH_AMP * Math.sin(i * 1.15), y: PATH_PAD + i * PATH_ROW }));
+    // Дорожка прижата к левой части, справа остаётся место под плашку с названием урока.
+    const pts = topic.stages.map((_, i) => ({ x: PATH_W * 0.3 + PATH_AMP * Math.sin(i * 1.15), y: PATH_PAD + i * PATH_ROW }));
     const pct = (v: number, base: number) => `${(v / base) * 100}%`;
 
     return (
@@ -383,11 +383,8 @@ const StagePath = ({
                 // Оформление кнопки — как у уроков Задачника (/learn): круглая кнопка
                 // цвета юнита с «объёмной» нижней гранью и кольцом прогресса вокруг.
                 const stageBg = isBossExam ? 'transparent'
-                    : isStepByStep ? STEPBYSTEP_GRADIENT
                     : accent.button;
-                const stageShadow = isBossExam ? 'none'
-                    : isStepByStep ? `0 6px 0 #6B5216`
-                    : `0 6px 0 ${accent.bottom}`;
+                const stageShadow = isBossExam ? 'none' : `0 6px 0 ${accent.bottom}`;
                 const iconColor = '#FEFEFE';
                 const ringValue = done ? 100 : Math.min(100, Math.max(0, s.percentage));
 
@@ -434,22 +431,32 @@ const StagePath = ({
                                     </div>
                                 )}
                             </div>
-                            {s.badge && (
-                                <span
-                                    className="absolute top-full -mt-1 left-1/2 -translate-x-1/2 whitespace-pre-line text-center text-[11px] font-extrabold leading-[1.15] pointer-events-none"
-                                    style={{ color: unlocked ? accent.button : LOCKED_ICON_COLOR, minWidth: 64 }}
+                        </div>
+                        <div
+                            className="absolute -translate-y-1/2 pointer-events-none"
+                            style={{ top: pct(pt.y, H), left: `calc(${pct(pt.x, PATH_W)} + 52px)`, right: 4 }}
+                        >
+                            <div>
+                                <div
+                                    className="text-[15px] font-extrabold leading-tight line-clamp-3"
+                                    style={{ color: unlocked ? accent.button : 'rgba(114,131,141,0.55)' }}
                                 >
-                                    {s.badge}
-                                </span>
-                            )}
+                                    {s.title}
+                                </div>
+                                {s.badge && (
+                                    <div className="mt-1 whitespace-pre-line text-[11px] font-semibold leading-tight" style={{ color: unlocked ? hexToRgba(accent.button, 0.7) : 'rgba(114,131,141,0.45)' }}>
+                                        {s.badge}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         {isFrontier && pet && (
                             <div
-                                className="absolute -translate-y-1/2 z-10"
+                                className="absolute z-10"
                                 style={{
-                                    top: pct(pt.y, H),
-                                    left: pct(pt.x, PATH_W),
-                                    transform: `translate(calc(-50% + ${pt.x >= PATH_W / 2 ? -PET_OFFSET : PET_OFFSET}px), -50%)`,
+                                    top: pct(i === n - 1 ? pt.y - PATH_ROW / 2 - 8 : pt.y + PATH_ROW / 2 + 8, H),
+                                    left: '60%',
+                                    transform: 'translateY(-50%)',
                                 }}
                             >
                                 {pet}
@@ -668,6 +675,8 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
     // без прокидывания десятка пропсов), вызывается из ДВУХ мест —
     // одиночная тема и тема внутри chain-группы (см. return ниже).
     const renderTopicCard = (topic: SkillTopic, accentIn: GroupAccent, nested = false, blockTitle?: string, unitNumber: number | null = null, petHere = false) => {
+        // Простой вид: у каждого юнита свой цвет палитры, как в Задачнике (/learn).
+        if (simple && !cozy) { const u = getUnitButtonColor(Math.max(0, topics.findIndex((t) => t.id === topic.id))); accentIn = { button: u.button, bottom: u.bottom }; }
         const accent: GroupAccent = cozy ? accentIn : { button: muteColor(accentIn.button), bottom: muteColor(accentIn.bottom) };
         // Тёплый стиль: пройденный этап — плоский медовый блок с нижней гранью.
         const doneGradient = cozy ? accent.button : `linear-gradient(135deg, ${accent.button} 0%, ${accent.bottom} 100%)`;
