@@ -24,7 +24,7 @@ export const ACHIEVEMENT_GROUPS: { id: AchievementGroup; title: string; color: s
 	{ id: 'friends', title: 'Друзья и банды', color: '#BC418A' },
 ];
 
-export const ACHIEVEMENTS: AchievementDef[] = [
+const RAW_ACHIEVEMENTS: AchievementDef[] = [
 	// Первые шаги
 	{ key: 'hello_world', group: 'start', emoji: '👋', title: 'Привет, мир', desc: 'Зашёл в приложение впервые' },
 	{ key: 'first_math', group: 'start', emoji: '📐', title: 'Первая кровь… то есть формула', desc: 'Решил первый урок тренажёра по математике' },
@@ -77,6 +77,9 @@ export const ACHIEVEMENTS: AchievementDef[] = [
 	{ key: 'friend_lesson', group: 'friends', emoji: '🤝', title: 'Хорошие у тебя друзья', desc: 'Приглашённый друг прошёл свой первый урок' },
 	{ key: 'gang_create', group: 'friends', emoji: '🏴', title: 'Босс района', desc: 'Создал банду' },
 ];
+
+// Иконки — game-icons.net (CC BY 3.0, см. public/achievement-icons/LICENSE-game-icons.txt и подпись на странице «Ачивки»).
+export const ACHIEVEMENTS: AchievementDef[] = RAW_ACHIEVEMENTS.map((a) => ({ ...a, iconSrc: a.iconSrc ?? `/achievement-icons/${a.key}.svg` }));
 
 export const ACHIEVEMENT_BY_KEY: Record<string, AchievementDef> = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.key, a]));
 

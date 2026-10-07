@@ -28,8 +28,24 @@ export const AchievementIcon = ({
         }}
     >
         {iconSrc ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={iconSrc} alt="" draggable={false} style={{ width: size * 0.72, height: size * 0.72, filter: unlocked ? 'none' : 'grayscale(1) opacity(0.45)' }} />
+            // Иконка (белый силуэт на прозрачном фоне) рисуется маской: белая у полученных, серая у закрытых.
+            <div
+                style={{
+                    width: size * 0.66,
+                    height: size * 0.66,
+                    backgroundColor: unlocked ? '#FFFFFF' : '#56646C',
+                    opacity: unlocked ? 1 : 0.7,
+                    WebkitMaskImage: `url(${iconSrc})`,
+                    maskImage: `url(${iconSrc})`,
+                    WebkitMaskSize: 'contain',
+                    maskSize: 'contain',
+                    WebkitMaskRepeat: 'no-repeat',
+                    maskRepeat: 'no-repeat',
+                    WebkitMaskPosition: 'center',
+                    maskPosition: 'center',
+                    filter: unlocked ? `drop-shadow(0 1px 0 ${color}AA)` : 'none',
+                }}
+            />
         ) : (
             <span style={{ fontSize: size * 0.5, lineHeight: 1, filter: unlocked ? 'none' : 'grayscale(1) opacity(0.45)' }}>{emoji}</span>
         )}
