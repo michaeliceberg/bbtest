@@ -22,6 +22,7 @@ import { useUiTheme } from "@/lib/uiTheme"
 import { LessonRatingScreen } from "@/components/lesson-rating-screen"
 import { isStepByStepLesson } from "@/lib/trainerStageFlags"
 import { upsertTrainerLessonProgress } from "@/actions/user-progress"
+import { reportAchievement, checkAchievements } from "@/lib/achievementsClient"
 import { recordChallengeResult } from "@/actions/record-challenge-result"
 import { Separator } from "../../../components/ui/separator"
 import { FinishTrainerStat } from "../../../components/finish-trainer-stat"
@@ -489,6 +490,8 @@ export default function TQuiz({
   // паттерн, что уже применяется для isRightListRef/scoreRef).
   const [isReviewRound, setIsReviewRound] = useState(false)
   const isReviewRoundRef = useRef(false)
+  const reviewRoundsRef = useRef(0)
+  const mistakesInRowRef = useRef(0)
   const mistakeQueueRef = useRef<QuestionType[]>([])
   // Защита от повторного входа в блок "основной проход завершён" внутри
   // goToNextQuestion — если функция вызывается дважды подряд (двойной
@@ -598,6 +601,7 @@ export default function TQuiz({
     setIsRightList(nextRoundQuestions.map((el, index) => index === 0 ? 3 : 0))
     setIsReviewRound(true)
     isReviewRoundRef.current = true
+    reviewRoundsRef.current += 1
     setRoundNumber(prev => prev + 1)
     processedQuestionsRef.current.clear()
   }, [])
@@ -647,6 +651,8 @@ export default function TQuiz({
           triggerDailyStreakToast(progressResult.newStreak)
         }
         progressResult?.newAchievements?.forEach((ach) => showAchievement(ach))
+        // Ачивки нового типа (Steam-стиль): сервер выдал их при сохранении — забираем и показываем.
+        checkAchievements()
         // Квест дня мог закрыться именно этой попыткой (первый из двух
         // пунктов, "пройди урок тренажёра", или оба разом если "реши
         // задачу курса" уже был выполнен сегодня раньше) — модалка вместо
@@ -667,6 +673,9 @@ export default function TQuiz({
       startMistakeReviewRound()
       return
     }
+
+    // Работа над ошибками закончилась с первого раунда — ачивка «Исправился с первого раза».
+    if (isReviewRoundRef.current && reviewRoundsRef.current === 1) reportAchievement('review_first')
 
     // Ошибок для повтора больше нет (либо их не было вовсе, либо "работа
     // над ошибками" только что успешно закончилась) — финал (см. prepareFinish).
@@ -745,6 +754,8 @@ export default function TQuiz({
           setIsRightPrevious(true)
         }
         setRandomEmotionLottie(getRandomLottie(LOTTIE_EMOTION_RIGHT_LIST))
+        mistakesInRowRef.current = 0
+        if (isReviewRoundRef.current) reportAchievement('review_ok')
 
         setStreak(prev => {
           const newStreak = prev + 1
@@ -760,6 +771,7 @@ export default function TQuiz({
           // старый маленький ComboBanner на кратных 5 больше не вызывается.
           // Удар молнии: 8 подряд (и 16, 24…) — синяя (36 кадров, 1.5с);
           // 5 подряд (и 10, 15…) — жёлтая (24 кадра, 1с). При совпадении — синяя.
+          if (newStreak % 8 === 0) reportAchievement('combo_8')
           if (isLightningStreak(newStreak)) {
             setLightningVariant(newStreak % 8 === 0 ? 'blue' : 'yellow')
             setLightningLabel(`КОМБО x${newStreak}`)
@@ -804,6 +816,9 @@ export default function TQuiz({
       } else {
         playIncorrectSound()
         setStreak(0)
+        mistakesInRowRef.current += 1
+        reportAchievement('first_mistake')
+        if (mistakesInRowRef.current >= 3) reportAchievement('mistakes_3')
         if (questions[currentQuestionIndex].challengeId) recordChallengeResult(questions[currentQuestionIndex].challengeId!, false).catch(() => {})
 
         // Вопрос уходит в очередь "работы над ошибками" ВСЕГДА (и в

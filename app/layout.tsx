@@ -19,6 +19,7 @@ const PracticeModal = dynamic(() => import('@/components/modals/practice-modal')
 const WrongAnswerModal = dynamic(() => import('@/components/modals/wronganswer-modal').then(mod => ({ default: mod.WrongAnswerModal })), { ssr: false });
 const RightAnswerModal = dynamic(() => import('@/components/modals/rightanswer-modal').then(mod => ({ default: mod.RightAnswerModal })), { ssr: false });
 const AchievementToastProvider = dynamic(() => import('@/components/achievement-toast-provider').then(mod => ({ default: mod.AchievementToastProvider })), { ssr: false });
+const AchievementUnlockToast = dynamic(() => import('@/components/achievement-unlock-toast').then(mod => ({ default: mod.AchievementUnlockToast })), { ssr: false });
 const StreakCelebrationToastProvider = dynamic(() => import('@/components/streak-celebration-toast-provider').then(mod => ({ default: mod.StreakCelebrationToastProvider })), { ssr: false });
 const LevelUpModalProvider = dynamic(() => import('@/components/level-up-modal-provider').then(mod => ({ default: mod.LevelUpModalProvider })), { ssr: false });
 const StageCurtainProvider = dynamic(() => import('@/components/stage-curtain-provider').then(mod => ({ default: mod.StageCurtainProvider })), { ssr: false });
@@ -59,6 +60,7 @@ export default function RootLayout({
 				<HeartsModal />
 				<PracticeModal />
 				<AchievementToastProvider />
+				<AchievementUnlockToast />
 				<StreakCelebrationToastProvider />
 				<LevelUpModalProvider />
 				<QuestCompleteModalProvider />

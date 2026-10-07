@@ -3,6 +3,7 @@
 'use server';
 
 import db from "@/db/drizzle";
+import { unlockAchievements } from '@/lib/achievements';
 import { userProgress } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { and, eq, gte, sql } from "drizzle-orm";
@@ -47,5 +48,6 @@ export const rerollUserAvatar = async (): Promise<{ success: boolean; error?: st
     revalidatePath('/trainer');
     revalidatePath('/leaderboard');
 
+    await unlockAchievements(session.user.id, ['avatar_change'], { seen: false }).catch(() => {});
     return { success: true, imageSrc };
 };

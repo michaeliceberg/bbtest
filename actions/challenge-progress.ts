@@ -2,6 +2,7 @@
 'use server';
 
 import db from '@/db/drizzle';
+import { syncAchievements } from '@/lib/achievements';
 import {
     challengeProgress,
     userDailyStats,
@@ -312,6 +313,7 @@ export async function updateChallengeProgress({
     revalidatePath('/achievements');
 
     const newAchievements = await recalculateAchievements(userId);
+    await syncAchievements(userId).catch(() => {});
 
     return {
         success: true,

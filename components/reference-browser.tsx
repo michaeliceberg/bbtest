@@ -17,7 +17,8 @@
 
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { reportAchievement } from '@/lib/achievementsClient'
 import Latex from 'react-latex-next'
 import 'katex/dist/katex.min.css'
 import { Image as ImageIcon, Search, Dumbbell } from 'lucide-react'
@@ -199,6 +200,8 @@ const HtmlLetterSticker = ({ letter }: { letter: 'a' | 'b' | 'c' }) => {
 const SIDE_RATIO_RE = /^\\dfrac\{([abc])\}\{([abc])\}$/
 
 export const ReferenceBrowser = ({ entries, userProgress, defaultSubject }: { entries: ReferenceEntryData[]; userProgress: UserProgressData; defaultSubject?: string }) => {
+    // Ачивка «Подсмотрел» — первое открытие справочника.
+    useEffect(() => { reportAchievement('reference_open') }, [])
     // Переход из /trainer?... → /reference?topic=Тема (ссылка "Справочник"
     // у карточки темы в trainer-grade-tree.tsx) — сразу открывает нужную
     // тему И нужный ПРЕДМЕТ (иначе тема пропала бы из списка активного по

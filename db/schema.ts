@@ -965,6 +965,26 @@ export const userAchievements = pgTable('user_achievements', {
 
 
 
+// Ачивки нового типа (каталог в lib/achievementsCatalog.ts, награды-«стим-стиль» без выдачи):
+// строка = «пользователь разблокировал ачивку key». seen=false — тост ещё не показан.
+export const achievementUnlocks = pgTable('achievement_unlocks', {
+    userId: text('user_id').notNull(),
+    key: text('key').notNull(),
+    unlockedAt: timestamp('unlocked_at').notNull().defaultNow(),
+    seen: boolean('seen').notNull().default(false),
+}, (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.key] }),
+}));
+
+// Счётчики для ачивок «за количество» (например, открыто сундуков).
+export const achievementCounters = pgTable('achievement_counters', {
+    userId: text('user_id').notNull(),
+    key: text('key').notNull(),
+    value: integer('value').notNull().default(0),
+}, (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.key] }),
+}));
+
 // Типы шахт (можно улучшать)
 export const mineTypes = pgTable('mine_types', {
     id: serial('id').primaryKey(),

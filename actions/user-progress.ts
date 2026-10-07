@@ -11,6 +11,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { xpForAmount, getLevelUpInfo } from '@/lib/xp';
 import { recalculateAchievements } from './check-achievements';
+import { syncAchievements, syncInviterOf, unlockAchievements } from '@/lib/achievements';
 import { bumpCourseStreak } from '@/lib/streak';
 import { getDailyQuestStatus } from './generate-trainer-quest';
 import { REFERRAL_COOKIE } from '@/lib/referral';
@@ -104,6 +105,10 @@ export const upsertUserProgress = async (courseId: number) => {
 			}).onConflictDoNothing();
 		}
 	}
+
+	// Ачивки: «Привет, мир» + (если пришёл по ссылке) приглашающему — «Агитатор».
+	await unlockAchievements(userId, ['hello_world'], { seen: false }).catch(() => {});
+	if (invitedByUserId) await syncAchievements(invitedByUserId).catch(() => {});
 
 	revalidatePath('/courses');
 	revalidatePath('/learn');
@@ -396,6 +401,11 @@ export const upsertTrainerLessonProgress = async (
 	// redirect('/trainer');
 
 	const newAchievements = await recalculateAchievements(userId);
+	// Новые ачивки (Steam-стиль): считаем по данным; тост подхватит клиент (fetchUnseenAchievements).
+	if (trainingPts > 0) {
+		await syncAchievements(userId).catch(() => {});
+		await syncInviterOf(userId).catch(() => {});
+	}
 
 	// Сколько раз пройден урок (завершённых основных проходов) — для
 	// бесконечного босс-экзамена: счётчик побед и редкий сундук за каждые 3.

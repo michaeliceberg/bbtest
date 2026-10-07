@@ -8,6 +8,7 @@
 // только за саму банду (создание/роли/выход), не за механику вступления.
 
 import { eq, and, ne } from 'drizzle-orm';
+import { unlockAchievements } from '@/lib/achievements';
 import db from '@/db/drizzle';
 import { gangs, gangMembers } from '@/db/schema';
 import { auth } from '@/lib/auth';
@@ -45,6 +46,7 @@ export async function createGang(name: string, emoji: string) {
 	revalidatePath('/gang');
 	revalidatePath('/gangs');
 
+	await unlockAchievements(userId, ['gang_create'], { seen: false }).catch(() => {});
 	return { gangId: gang.id };
 }
 

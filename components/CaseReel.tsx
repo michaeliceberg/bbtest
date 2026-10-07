@@ -12,6 +12,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { reportChest, checkAchievements } from '@/lib/achievementsClient'
 import { motion } from 'framer-motion'
 import Confetti from 'react-confetti'
 import { useWindowSize } from 'react-use'
@@ -334,6 +335,13 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
         }, CHEST_LAND_MS)
         return () => clearTimeout(t)
     }, [tier])
+    // Ачивки за первый сундук каждой редкости (в момент сцены с сундуком, до «Крутить»).
+    // Позиционный кейс без tier: обычный — common, мега — rare. Кейсы с чужим пулом (гости) не считаем.
+    useEffect(() => {
+        if (poolOverride) return
+        reportChest(tier ?? (isMega ? 'rare' : 'common'))
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
     const basePool = poolOverride ?? (tier ? getLessonCasePool(tier) : getCasePool(isMega))
     const [strip, setStrip] = useState<CaseReward[]>(() => {
         const pool = basePool
@@ -394,6 +402,7 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
         playSound(ROULETTE_SOUND)
 
         const result = await spinAction().catch(() => null)
+        checkAchievements()
         if (!result || !result.success) {
             setError('Не удалось открыть кейс. Попробуй ещё раз.')
             setPhase('idle')

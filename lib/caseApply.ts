@@ -12,6 +12,7 @@ import { auth } from '@/lib/auth';
 import { eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { sendMessageToTelegram } from '@/utils/telegram';
+import { unlockAchievements } from '@/lib/achievements';
 import {
 	pickWeightedReward,
 	MAX_PIZZA_SLICES,
@@ -103,6 +104,13 @@ export async function applyResolvedReward(userId: string, reward: CaseReward): P
 			await maybeAssignDodoPromoCode(userId, current?.dodoPromoCode ?? null);
 		}
 	}
+
+	// Ачивки за первый гем / gg-стикер / полную пиццу (тост подхватит клиент).
+	const ach: string[] = [];
+	if (appliedReward.kind === 'gems') ach.push('first_gem');
+	if (appliedReward.kind === 'gg') ach.push('first_gg');
+	if (justMaxedPizza) ach.push('pizza_full');
+	if (ach.length) await unlockAchievements(userId, ach, { seen: false }).catch(() => {});
 
 	revalidatePath('/trainer');
 
