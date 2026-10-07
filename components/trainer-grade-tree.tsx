@@ -31,6 +31,7 @@ import { HalfCircleHero, HERO_HALF_CIRCLE, HERO_HALF_CIRCLE_TITLE } from './unit
 import { isReviewStage, isMythicStage } from '@/lib/trainerStageFlags';
 import { TrainerPet } from './trainer-pet';
 import { PathDecoration, DECOR_VARIANTS } from './path-decor';
+import { useTrainerNavStore } from '@/store/use-trainer-nav-store';
 
 // Больше разнообразия по прямой просьбе пользователя ("яйцо щит меч —
 // хочется большее количество разных иконок, чтобы было интереснее") —
@@ -711,6 +712,53 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
         setMenuTopicId(topicId);
         setUnitMenuOpen(true);
     };
+    // Текущий юнит на экране (по прокрутке): сообщаем верхней шапке на телефоне — она рисует из этого кнопку.
+    const [currentTopicId, setCurrentTopicId] = useState<number | null>(null);
+    const currentTopicIdRef = React.useRef<number | null>(null);
+    currentTopicIdRef.current = currentTopicId;
+    useEffect(() => {
+        if (!simple) return;
+        let timer: ReturnType<typeof setTimeout> | null = null;
+        const update = () => {
+            timer = null;
+            let pick: SkillTopic | null = null;
+            for (const t of topics) {
+                const node = topicRefs.current[t.title];
+                if (!node) continue;
+                if (!pick) pick = t;
+                if (node.getBoundingClientRect().top <= 150) pick = t;
+            }
+            // Дошли до самого низа — выбираем последний раздел (его баннер может так и не подняться до порога).
+            if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 6) {
+                for (const t of topics) { if (topicRefs.current[t.title]) pick = t; }
+            }
+            if (pick) setCurrentTopicId((prev) => (prev === pick!.id ? prev : pick!.id));
+        };
+        const onScroll = () => { if (!timer) timer = setTimeout(update, 60); };
+        update();
+        const t0 = setTimeout(update, 400);
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => { window.removeEventListener('scroll', onScroll); clearTimeout(t0); if (timer) clearTimeout(timer); };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [simple, topics, activeGroupKey]);
+    const navSet = useTrainerNavStore((st) => st.set);
+    const navSetOpen = useTrainerNavStore((st) => st.setOpen);
+    const navClear = useTrainerNavStore((st) => st.clear);
+    useEffect(() => {
+        if (!simple || renderGroups.length < 2) return;
+        navSetOpen(() => { setMenuTopicId(currentTopicIdRef.current); setUnitMenuOpen(true); });
+        return () => navClear();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [simple, renderGroups.length]);
+    useEffect(() => {
+        if (!simple) return;
+        const t = topics.find((x) => x.id === currentTopicId);
+        if (!t) return;
+        const idx = Math.max(0, topics.findIndex((x) => x.id === t.id));
+        const u = getUnitButtonColor(idx);
+        navSet({ title: t.imageSrc === HERO_HALF_CIRCLE ? HERO_HALF_CIRCLE_TITLE.join(' ') : t.title, button: u.button, bottom: u.bottom });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [simple, currentTopicId, topics]);
     // Переход по меню: переключаем группу и (если указан раздел) докручиваем к его карточке так,
     // чтобы баннер раздела оказался сразу под шапкой, а не под ней.
     const goToGroup = (key: string, topicTitle?: string) => {

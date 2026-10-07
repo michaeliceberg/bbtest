@@ -1,6 +1,9 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
+import { motion } from 'framer-motion'
+import { ChevronDown } from 'lucide-react'
+import { useTrainerNavStore } from '@/store/use-trainer-nav-store'
 import { MobileSidebar } from './modal-sidebar'
 import type { SidebarCourse } from './sidebar'
 
@@ -31,6 +34,11 @@ export const MobileHeader = ({ courseTitle, courses, activeCourseId, hasTrainerQ
 				: courseTitle
 		: undefined
 
+	// На /trainer (простой вид) вместо названия — кнопка на всю ширину с текущим юнитом:
+	// цвет юнита, при смене юнита «подпрыгивает», по нажатию открывает меню юнитов.
+	const nav = useTrainerNavStore()
+	const unitButton = pathname?.startsWith('/trainer') && nav.title && nav.open ? nav : null
+
 	return (
 		<nav className='lg:hidden fixed px-4 h-[50px] flex items-center bg-[#151F23] border-b border-[#3A464E] top-0 w-full z-50'>
 			<MobileSidebar
@@ -42,7 +50,22 @@ export const MobileHeader = ({ courseTitle, courses, activeCourseId, hasTrainerQ
 				learnLocked={learnLocked}
 				isAdmin={isAdmin}
 			/>
-			{displayTitle && (
+			{unitButton && (
+				<motion.button
+					key={unitButton.title}
+					type='button'
+					onClick={() => unitButton.open?.()}
+					initial={{ scale: 0.88, y: -6 }}
+					animate={{ scale: 1, y: 0 }}
+					transition={{ type: 'spring', stiffness: 520, damping: 14 }}
+					className='ml-3 flex-1 min-w-0 h-[36px] px-3 rounded-xl flex items-center justify-between gap-2 text-white font-extrabold text-sm active:translate-y-[2px]'
+					style={{ background: `linear-gradient(135deg, ${unitButton.button}, ${unitButton.bottom})`, boxShadow: `0 3px 0 ${unitButton.bottom}` }}
+				>
+					<span className='truncate'>{unitButton.title}</span>
+					<ChevronDown className='w-4 h-4 flex-shrink-0 opacity-90' />
+				</motion.button>
+			)}
+			{!unitButton && displayTitle && (
 				<span className='absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[60%] truncate font-bold text-sm text-[#F2F7FB]'>
 					{displayTitle}
 				</span>
