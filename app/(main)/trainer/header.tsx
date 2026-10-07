@@ -35,8 +35,8 @@ export const Header = ({ title, cozy = false }: Props) => {
 					initial={{ scale: 0.92, y: -6 }}
 					animate={{ scale: 1, y: 0 }}
 					transition={{ type: 'spring', stiffness: 520, damping: 14 }}
-					className='w-full h-[44px] px-4 rounded-xl flex items-center gap-2 text-white font-extrabold text-base active:translate-y-[2px]'
-					style={{ background: `linear-gradient(135deg, ${unitButton.button}, ${unitButton.bottom})`, boxShadow: `0 4px 0 ${unitButton.bottom}` }}
+					className='w-full h-[44px] px-4 rounded-xl flex items-center gap-2 text-white font-extrabold text-base border-b-4 active:border-b-0'
+					style={{ background: `linear-gradient(135deg, ${unitButton.button}, ${unitButton.bottom})`, borderBottomColor: unitButton.bottom }}
 				>
 					<span className='flex-1 truncate text-center pl-6'>{unitButton.title}</span>
 					<ChevronDown className='w-5 h-5 flex-shrink-0 opacity-90' />

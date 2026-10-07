@@ -432,7 +432,6 @@ const StagePath = ({
                 // цвета юнита с «объёмной» нижней гранью и кольцом прогресса вокруг.
                 const stageBg = isBossExam ? 'transparent'
                     : accent.button;
-                const stageShadow = isBossExam ? 'none' : `0 6px 0 ${accent.bottom}`;
                 const iconColor = '#FEFEFE';
                 const ringValue = done ? 100 : Math.min(100, Math.max(0, s.percentage));
 
@@ -447,7 +446,7 @@ const StagePath = ({
                         <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: pct(pt.x, PATH_W), top: pct(pt.y, H) }}>
                             <div className="relative w-[92px] h-[92px] flex items-center justify-center">
                                 {!isBossExam && (
-                                    <div className="absolute inset-0 pointer-events-none translate-y-[3px]">
+                                    <div className="absolute inset-0 pointer-events-none">
                                         <CircularProgressbarWithChildren
                                             value={unlocked ? ringValue : 0}
                                             styles={{
@@ -465,14 +464,14 @@ const StagePath = ({
                                         title={s.title}
                                         subtitle={`${topic.title} · этап ${i + 1}`}
                                         accent={accent.button}
-                                        className="relative flex w-[64px] h-[64px] rounded-full items-center justify-center transition-transform active:scale-95 active:translate-y-[3px]"
-                                        style={{ background: stageBg, boxShadow: stageShadow }}
+                                        className="relative flex w-[70px] h-[70px] rounded-full items-center justify-center border-b-8 active:border-b-0"
+                                        style={isBossExam ? { background: stageBg } : { background: stageBg, borderBottomColor: accent.bottom }}
                                         icon={iconEl(iconColor)}
                                     />
                                 ) : (
                                     <div
-                                        className="relative flex w-[64px] h-[64px] rounded-full items-center justify-center"
-                                        style={isBossExam ? undefined : { background: LOCKED_BUTTON_COLOR, boxShadow: `0 6px 0 ${LOCKED_BUTTON_BOTTOM_COLOR}` }}
+                                        className="relative flex w-[70px] h-[70px] rounded-full items-center justify-center border-b-8"
+                                        style={isBossExam ? undefined : { background: LOCKED_BUTTON_COLOR, borderBottomColor: LOCKED_BUTTON_BOTTOM_COLOR }}
                                         title={s.extraLocked && s.extraLockedPrereqTitle ? `Сначала пройди «${s.extraLockedPrereqTitle}»` : undefined}
                                     >
                                         {iconEl(LOCKED_ICON_COLOR, true)}
@@ -865,8 +864,8 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                 <button
                                     type="button"
                                     onClick={() => openUnitMenu(topic.id)}
-                                    className="relative mb-5 block w-full overflow-hidden rounded-2xl p-4 text-left text-white transition-transform active:translate-y-[4px]"
-                                    style={{ background: `linear-gradient(135deg, ${accentIn.button}, ${accentIn.bottom})`, boxShadow: `0 6px 0 ${accentIn.bottom}` }}
+                                    className="relative mb-5 block w-full overflow-hidden rounded-2xl px-4 pt-4 pb-3.5 text-left text-white border-b-[6px] active:border-b-0 active:pb-[1.1rem]"
+                                    style={{ background: `linear-gradient(135deg, ${accentIn.button}, ${accentIn.bottom})`, borderBottomColor: accentIn.bottom }}
                                     aria-label="Выбрать юнит"
                                 >
                                     <div className="flex items-start justify-between gap-3">
@@ -1334,12 +1333,12 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                                 type="button"
                                                 disabled={locked}
                                                 onClick={() => goToGroup(key)}
-                                                className={cn("flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-transform active:translate-y-[3px]", locked && "opacity-45 cursor-not-allowed")}
+                                                className={cn("flex items-center gap-3 rounded-2xl px-4 py-3 text-left border-b-4 active:border-b-0 active:pb-[calc(0.75rem+4px)]", locked && "opacity-45 cursor-not-allowed")}
                                                 style={locked
-                                                    ? { background: '#232F34', boxShadow: '0 4px 0 #1B262B' }
+                                                    ? { background: '#232F34', borderBottomColor: '#1B262B' }
                                                     : isActive
-                                                        ? { background: `linear-gradient(135deg, ${col.button}, ${col.bottom})`, boxShadow: `0 4px 0 ${col.bottom}` }
-                                                        : { background: '#1E2A30', border: `1.5px solid ${hexToRgba(col.button, 0.4)}`, boxShadow: '0 4px 0 #161F23' }}
+                                                        ? { background: `linear-gradient(135deg, ${col.button}, ${col.bottom})`, borderBottomColor: col.bottom }
+                                                        : { background: '#1E2A30', border: `1.5px solid ${hexToRgba(col.button, 0.4)}`, borderBottomWidth: 4, borderBottomColor: '#161F23' }}
                                             >
                                                 <span className="flex-1 min-w-0 text-[15px] font-extrabold leading-tight" style={{ color: locked ? '#72838D' : isActive ? '#FFFFFF' : col.button }}>
                                                     {groupLabel(g)}
