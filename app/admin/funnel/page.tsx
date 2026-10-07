@@ -49,36 +49,6 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 			count(*) AS total_users
 		FROM user_progress`)
 
-	// Кто привёл друзей и что те сделали: по каждому приглашённому — сколько РАЗНЫХ уроков тренажёра
-	// он прошёл (повторы не в счёт) и сколько всего прохождений.
-	const invitedRows = await q(sql`
-		SELECT inv.user_id AS iid, coalesce(inv.nickname, inv.user_name, inv.user_id) AS iname,
-			to_char((inv.created_at AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Moscow', 'DD.MM') AS joined,
-			inv.invited_by_user_id AS uid, coalesce(ref.nickname, ref.user_name, inv.invited_by_user_id) AS rname,
-			count(DISTINCT p.t_lesson_id) FILTER (WHERE p.training_pts > 0) AS lessons,
-			count(p.*) FILTER (WHERE p.training_pts > 0) AS passes
-		FROM user_progress inv
-		LEFT JOIN user_progress ref ON ref.user_id = inv.invited_by_user_id
-		LEFT JOIN t_lesson_progress p ON p.user_id = inv.user_id
-		WHERE inv.invited_by_user_id IS NOT NULL AND (inv.created_at IS NULL OR inv.created_at >= ${since})
-		GROUP BY inv.user_id, inv.nickname, inv.user_name, inv.created_at, inv.invited_by_user_id, ref.nickname, ref.user_name`)
-	type Invited = { id: string; name: string; joined: string | null; lessons: number; passes: number }
-	const byInviter = new Map<string, { uid: string; name: string; list: Invited[] }>()
-	for (const r of invitedRows) {
-		const key = String(r.uid)
-		if (!byInviter.has(key)) byInviter.set(key, { uid: key, name: String(r.rname ?? key), list: [] })
-		byInviter.get(key)!.list.push({ id: String(r.iid), name: String(r.iname), joined: r.joined ? String(r.joined) : null, lessons: n(r.lessons), passes: n(r.passes) })
-	}
-	const inviterStats = [...byInviter.values()]
-		.map((g) => ({
-			...g,
-			invited: g.list.length,
-			active: g.list.filter((x) => x.lessons > 0).length,
-			lessons: g.list.reduce((a, x) => a + x.lessons, 0),
-			passes: g.list.reduce((a, x) => a + x.passes, 0),
-		}))
-		.sort((a, b) => b.lessons - a.lessons || b.invited - a.invited)
-
 	// Активность — только ученики: прохождения админов (ты и тестовые
 	// аккаунты) считаем отдельно, иначе они забивают всю статистику.
 	// Каждая строка t_lesson_progress — одно прохождение (повторы тоже).
@@ -147,10 +117,16 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 
 	// Дерево приглашений (за всё время) — кто кого привёл, ветки раскрываются.
 	const treeUsers = await q(sql`
-		SELECT user_id, user_name, nickname, invited_by_user_id, referral_rewarded_at IS NOT NULL AS done
-		FROM user_progress
-		WHERE invited_by_user_id IS NOT NULL
-			OR user_id IN (SELECT invited_by_user_id FROM user_progress WHERE invited_by_user_id IS NOT NULL)`)
+		SELECT u.user_id, u.user_name, u.nickname, u.invited_by_user_id, u.referral_rewarded_at IS NOT NULL AS done,
+			to_char((u.created_at AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Moscow', 'DD.MM') AS joined,
+			coalesce(l.lessons, 0) AS lessons, coalesce(l.passes, 0) AS passes
+		FROM user_progress u
+		LEFT JOIN (
+			SELECT user_id, count(DISTINCT t_lesson_id) AS lessons, count(*) AS passes
+			FROM t_lesson_progress WHERE training_pts > 0 GROUP BY user_id
+		) l ON l.user_id = u.user_id
+		WHERE u.invited_by_user_id IS NOT NULL
+			OR u.user_id IN (SELECT invited_by_user_id FROM user_progress WHERE invited_by_user_id IS NOT NULL)`)
 	const earnedRows = await q(sql`
 		SELECT beneficiary_user_id AS uid, sum(eighths) AS e FROM referral_rewards WHERE level >= 1 GROUP BY 1`)
 	const earned = new Map(earnedRows.map((r) => [String(r.uid), n(r.e)]))
@@ -161,6 +137,9 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 			name: String(r.nickname ?? r.user_name ?? r.user_id),
 			realName: r.nickname && r.user_name ? String(r.user_name) : null,
 			done: !!r.done,
+			joined: r.joined ? String(r.joined) : null,
+			lessons: n(r.lessons),
+			passes: n(r.passes),
 			eighths: earned.get(String(r.user_id)) ?? 0,
 			children: [],
 		})
@@ -294,52 +273,22 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 				</Card>
 
 				<div className="md:col-span-2">
-				<Card title="🤝 Кто приглашает и что сделали друзья">
+				<Card title="🤝 Приглашения: кто привёл и что сделали друзья">
 					<div className="grid grid-cols-3 gap-3 mb-4">
-						<Stat label="Новых учеников" value={n(reg.new_users)} small />
+						<Stat label={`Новых учеников (${PERIODS.find((p) => p.key === periodKey)?.label.toLowerCase()})`} value={n(reg.new_users)} small />
 						<Stat label="Из них по приглашению" value={n(reg.invited)} small />
-						<Stat label="Приглашающих" value={inviterStats.length} small />
+						<Stat label="Приглашающих (всего)" value={treeRoots.length} small />
 					</div>
-					{inviterStats.length === 0 ? <Empty /> : (
-						<div className="space-y-1.5">
-							{inviterStats.map((g) => (
-								<details key={g.uid} className="rounded-lg border border-[#2B373D] bg-[#1A252B]">
-									<summary className="cursor-pointer list-none flex items-center gap-3 px-3 py-2 text-sm">
-										<span className="flex-1 truncate font-bold">{g.name}</span>
-										<span className="text-[#9AA7B0]">привёл <b className="text-[#F2F7FB]">{g.invited}</b></span>
-										<span className="text-[#9AA7B0]">прошли урок <b className="text-[#F2F7FB]">{g.active}</b></span>
-										<span className="text-[#9AA7B0]">уроков <b className="text-[#F2F7FB]">{g.lessons}</b> <span className="text-xs text-[#6B7A83]">({g.passes} прохожд.)</span></span>
-									</summary>
-									<ul className="px-3 pb-2 pt-1 space-y-1 text-sm border-t border-[#2B373D]">
-										{g.list.sort((a, b) => b.lessons - a.lessons).map((x) => (
-											<li key={x.id} className="flex items-center gap-3">
-												<span className="flex-1 truncate">{x.name}</span>
-												<span className="text-xs text-[#6B7A83]">{x.joined ?? 'дата неизвестна'}</span>
-												<span className="w-28 text-right font-bold">{x.lessons} {x.lessons === 1 ? 'урок' : x.lessons >= 2 && x.lessons <= 4 ? 'урока' : 'уроков'}</span>
-												<span className="w-20 text-right text-xs text-[#6B7A83]">{x.passes} прохожд.</span>
-											</li>
-										))}
-									</ul>
-								</details>
-							))}
+					{treeRoots.length === 0 ? <Empty /> : (
+						<div className="space-y-1 text-sm">
+							{treeRoots.map((t) => <TreeBranch key={t.id} node={t} depth={0} />)}
 						</div>
 					)}
 					<p className="text-xs text-[#6B7A83] mt-3">
-						Считаются только друзья, которые зарегистрировались по ссылке. «Уроков» — разные уроки тренажёра (повторы не в счёт). Сколько раз просто открыли ссылку, не записывается. Дата регистрации — с 30.09.2026.
+						Дерево за всё время: кто привёл сам, в скобках — всего в ветке. Зелёным — сколько РАЗНЫХ уроков тренажёра прошёл человек (повторы не в счёт, справа число всех прохождений). «Друзья прошли» — сумма по ветке под ним, «занимаются» — сколько из них прошли хотя бы один урок. ✅ — прошёл 3 урока (пицца по ветке раздана), 🍕 — сколько заработал на приглашениях. Считаются только зарегистрировавшиеся по ссылке; просто открытия ссылки не записываются.
 					</p>
 				</Card>
 				</div>
-
-				<Card title="🌳 Дерево приглашений (всё время)">
-					{treeRoots.length === 0 ? <Empty /> : (
-						<div className="space-y-1 text-sm">
-							{treeRoots.map((t) => <TreeBranch key={t.id} node={t} depth={0} sizeOf={sizeOf} />)}
-						</div>
-					)}
-					<p className="text-xs text-[#6B7A83] mt-3">
-						В скобках: привёл сам / всего в ветке. ✅ — прошёл 3 урока (физика или тригонометрия) (пицца по ветке раздана). 🍕 — сколько заработал на приглашениях.
-					</p>
-				</Card>
 
 				<Card title="🍕 Пицца и Додо">
 					<div className="grid grid-cols-3 gap-3 mb-4">
@@ -422,7 +371,7 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 	)
 }
 
-type TreeNode = { id: string; name: string; realName: string | null; done: boolean; eighths: number; children: TreeNode[] }
+type TreeNode = { id: string; name: string; realName: string | null; done: boolean; joined: string | null; lessons: number; passes: number; eighths: number; children: TreeNode[] }
 
 const pizzaLabel = (e: number) => {
 	const whole = Math.floor(e / 8)
@@ -431,21 +380,44 @@ const pizzaLabel = (e: number) => {
 	return `${whole || ''}${f}` || '0'
 }
 
-const TreeBranch = ({ node, depth, sizeOf }: { node: TreeNode; depth: number; sizeOf: (t: TreeNode) => number }) => {
+const lessonsWord = (k: number) => (k === 1 ? 'урок' : k >= 2 && k <= 4 ? 'урока' : 'уроков')
+
+// Сумма уроков и прохождений по всей ветке под человеком (без него самого).
+const branchTotals = (t: TreeNode): { people: number; active: number; lessons: number } =>
+	t.children.reduce(
+		(a, c) => {
+			const sub = branchTotals(c)
+			return { people: a.people + 1 + sub.people, active: a.active + (c.lessons > 0 ? 1 : 0) + sub.active, lessons: a.lessons + c.lessons + sub.lessons }
+		},
+		{ people: 0, active: 0, lessons: 0 },
+	)
+
+const TreeBranch = ({ node, depth }: { node: TreeNode; depth: number }) => {
+	const total = branchTotals(node)
 	const label = (
-		<span className="inline-flex flex-wrap items-center gap-x-2">
+		<span className="inline-flex flex-wrap items-center gap-x-3 gap-y-0.5 align-middle">
 			<span className="font-bold">{node.done ? '✅ ' : ''}{node.name}</span>
 			{node.realName && <span className="text-xs text-[#6B7A83]">{node.realName}</span>}
-			{node.children.length > 0 && <span className="text-xs text-[#9AA7B0]">({node.children.length} / {sizeOf(node)})</span>}
+			{node.joined && <span className="text-xs text-[#6B7A83]">с {node.joined}</span>}
+			<span className={`text-xs font-bold ${node.lessons > 0 ? 'text-green-400' : 'text-[#6B7A83]'}`}>
+				{node.lessons} {lessonsWord(node.lessons)}{node.passes > node.lessons ? ` · ${node.passes} прохожд.` : ''}
+			</span>
+			{node.children.length > 0 && (
+				<span className="text-xs text-[#9AA7B0]">
+					привёл <b className="text-[#F2F7FB]">{node.children.length}</b>
+					{total.people > node.children.length ? <> (в ветке {total.people})</> : null}
+					{' · '}друзья прошли <b className="text-[#F2F7FB]">{total.lessons}</b> {lessonsWord(total.lessons)}, занимаются {total.active} из {total.people}
+				</span>
+			)}
 			{node.eighths > 0 && <span className="text-xs text-yellow-300">🍕 {pizzaLabel(node.eighths)}</span>}
 		</span>
 	)
-	if (node.children.length === 0 || depth > 8) return <div className="pl-5 py-0.5">{label}</div>
+	if (node.children.length === 0 || depth > 8) return <div className="pl-5 py-1">{label}</div>
 	return (
-		<details className="py-0.5" >
+		<details className="py-1" open>
 			<summary className="cursor-pointer select-none">{label}</summary>
 			<div className="ml-3 border-l border-[#3A464E] pl-2">
-				{node.children.map((c) => <TreeBranch key={c.id} node={c} depth={depth + 1} sizeOf={sizeOf} />)}
+				{node.children.map((c) => <TreeBranch key={c.id} node={c} depth={depth + 1} />)}
 			</div>
 		</details>
 	)
