@@ -485,12 +485,9 @@ const StagePath = ({
                         >
                             <div>
                                 {s.isStepByStep && (
-                                    <div
-                                        className="mb-0.5 inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.2em] leading-none"
-                                        style={{ color: unlocked ? hexToRgba(accent.button, 0.75) : 'rgba(114,131,141,0.4)' }}
-                                    >
-                                        <BookOpen className="w-3 h-3" />
-                                        Урок
+                                    <div className={cn("mb-0.5 inline-flex items-center gap-1 text-[12px] font-black uppercase tracking-[0.22em] leading-none", !unlocked && "opacity-40")}>
+                                        <BookOpen className="w-3.5 h-3.5" style={{ color: unlocked ? '#E8B636' : '#8A8466' }} />
+                                        <span className={unlocked ? "gold-text-shine" : undefined} style={unlocked ? undefined : { color: '#8A8466' }}>Урок</span>
                                     </div>
                                 )}
                                 <div
