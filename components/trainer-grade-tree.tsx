@@ -461,7 +461,7 @@ const StagePath = ({
                                         <CircularProgressbarWithChildren
                                             value={unlocked ? ringValue : 0}
                                             styles={{
-                                                path: { stroke: done ? '#22c55e' : '#eab308' },
+                                                path: { stroke: accent.button },
                                                 trail: { stroke: LOCKED_BUTTON_COLOR },
                                             }}
                                         >
