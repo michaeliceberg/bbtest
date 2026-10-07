@@ -30,7 +30,7 @@ import { getBossRank } from '@/lib/bossRank';
 import { HalfCircleHero, HERO_HALF_CIRCLE, HERO_HALF_CIRCLE_TITLE } from './unit-hero-half-circle';
 import { isReviewStage, isMythicStage } from '@/lib/trainerStageFlags';
 import { TrainerPet } from './trainer-pet';
-import { PathDecoration, DECOR_VARIANTS } from './path-decor';
+import { PathDecoration, PathProp, PathArch, DECOR_VARIANTS, PROP_KINDS } from './path-decor';
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store';
 
 // Больше разнообразия по прямой просьбе пользователя ("яйцо щит меч —
@@ -368,9 +368,15 @@ const StagePath = ({
         const free = Array.from({ length: n - 1 }, (_, i) => i).filter((i) => i !== frontierIdx);
         for (let k = 0; k < want && free.length; k++) decorGaps.push(free.splice(Math.floor(rnd() * free.length), 1)[0]);
     }
+    // Каменная арка — одна на юнит (от четырёх этапов), в свободном промежутке; тропинка проходит под ней.
+    let archGap = -1;
+    if (n >= 4) {
+        const free = Array.from({ length: n - 1 }, (_, i) => i).filter((i) => i !== frontierIdx && !decorGaps.includes(i));
+        if (free.length) archGap = free[Math.floor(rnd() * free.length)];
+    }
     const ys: number[] = [];
     topic.stages.forEach((_, i) => {
-        ys.push(i === 0 ? PATH_PAD : ys[i - 1] + PATH_ROW + (decorGaps.includes(i - 1) ? DECOR_EXTRA : 0) + (rnd() - 0.5) * 20);
+        ys.push(i === 0 ? PATH_PAD : ys[i - 1] + PATH_ROW + (decorGaps.includes(i - 1) ? DECOR_EXTRA : i - 1 === archGap ? 40 : 0) + (rnd() - 0.5) * 20);
     });
     const pts = xs.map((x, i) => ({ x, y: ys[i] }));
     const H = pts[n - 1].y + PATH_PAD;
@@ -395,6 +401,31 @@ const StagePath = ({
         const vi = variantPool.splice(Math.floor(rnd() * variantPool.length), 1)[0];
         decor.push({ x: left ? 8 + size / 2 : PATH_W - 6 - size / 2, y: midY, size, vi, reached: topic.stages[gi].percentage >= UNLOCK_THRESHOLD });
     });
+    // Реквизит по краям тропинки: ставим вдоль кривых, слева чаще (справа подписи уроков), подальше от кнопок и декораций.
+    const bez = (a: number, c1: number, c2: number, b: number, t: number) => (1 - t) ** 3 * a + 3 * (1 - t) ** 2 * t * c1 + 3 * (1 - t) * t ** 2 * c2 + t ** 3 * b;
+    const archPt = archGap >= 0 ? { x: bez(pts[archGap].x, segs[archGap].c1.x, segs[archGap].c2.x, pts[archGap + 1].x, 0.5), y: bez(pts[archGap].y, segs[archGap].c1.y, segs[archGap].c2.y, pts[archGap + 1].y, 0.5) } : null;
+    const props: { x: number; y: number; size: number; kind: (typeof PROP_KINDS)[number] }[] = [];
+    segs.forEach((sg, i) => {
+        const a = pts[i], b = pts[i + 1];
+        [0.22, 0.4, 0.6, 0.78].forEach((t) => {
+            if (rnd() > 0.72) return;
+            const px = bez(a.x, sg.c1.x, sg.c2.x, b.x, t), py = bez(a.y, sg.c1.y, sg.c2.y, b.y, t);
+            const right = rnd() > 0.7;
+            const dist = 32 + rnd() * 30;
+            const x = right ? px + dist : px - dist;
+            const kind = PROP_KINDS[Math.floor(rnd() * PROP_KINDS.length)];
+            const size = kind === 'palm' ? 56 : 32 + Math.round(rnd() * 14);
+            if (x < 14 || x > PATH_W - 14) return;
+            // справа — только вдали от подписей (рядом с кнопкой там текст)
+            if (right && pts.some((p) => Math.abs(py - p.y) < 74)) return;
+            if (right && i === frontierIdx) return;
+            if (pts.some((p) => Math.hypot(x - p.x, py - p.y) < 66)) return;
+            if (decor.some((d) => Math.abs(py - d.y) < d.size / 2 + size / 2 && Math.abs(x - d.x) < d.size / 2 + size / 2)) return;
+            if (archPt && Math.abs(py - archPt.y) < 56 && Math.abs(x - archPt.x) < 70) return;
+            if (props.some((q) => Math.hypot(q.x - x, q.y - py) < 40)) return;
+            props.push({ x, y: py, size, kind });
+        });
+    });
     const pct = (v: number, base: number) => `${(v / base) * 100}%`;
 
     return (
@@ -418,6 +449,16 @@ const StagePath = ({
                 })}
             </svg>
 
+            {archPt && (
+                <div className="absolute -translate-x-1/2 -translate-y-[62%] pointer-events-none" style={{ left: pct(archPt.x, PATH_W), top: pct(archPt.y, H) }}>
+                    <PathArch size={96} />
+                </div>
+            )}
+            {props.map((q, qi) => (
+                <div key={`prop-${qi}`} className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ left: pct(q.x, PATH_W), top: pct(q.y, H) }}>
+                    <PathProp kind={q.kind} size={q.size} />
+                </div>
+            ))}
             {decor.map((d, di) => (
                 <div key={`decor-${di}`} className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ left: pct(d.x, PATH_W), top: pct(d.y, H) }}>
                     <PathDecoration variant={DECOR_VARIANTS[d.vi]} size={d.size} reached={d.reached} />

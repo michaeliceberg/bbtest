@@ -20,7 +20,7 @@ export const DECOR_LOTTIE_SRCS: string[] = [
 // Только Lottie, SVG-заглушки больше не используются.
 export const DECOR_ONLY_LOTTIE = true;
 
-const KINDS = ['palm', 'bush', 'rock', 'crystal', 'flower'] as const;
+const KINDS = ['palm', 'bush', 'rock', 'crystal', 'flower', 'tuft'] as const;
 export type DecorKind = (typeof KINDS)[number];
 
 // Всё доступное разнообразие: заглушки (или только Lottie) — индекс выбирает вызывающий по seed.
@@ -68,6 +68,15 @@ const Art = ({ kind }: { kind: DecorKind }) => {
                     <path d="M22 52 L16 30 L26 14 L34 30 L30 52Z" fill="#C385F7" />
                     <path d="M34 52 L32 24 L42 10 L52 28 L46 52Z" fill="#E0B4FF" />
                     <path d="M26 14 L34 30 L26 34Z" fill="#F3DCFF" />
+                </svg>
+            );
+        case 'tuft':
+            return (
+                <svg viewBox="0 0 64 64" className="w-full h-full">
+                    <ellipse cx="32" cy="54" rx="20" ry="4" fill="rgba(0,0,0,0.16)" />
+                    <path d="M14 54 C14 40 18 30 22 26 C24 36 26 46 26 54Z" fill="#5FB04A" />
+                    <path d="M26 54 C26 36 30 22 34 14 C38 24 40 40 38 54Z" fill="#78C93C" />
+                    <path d="M38 54 C40 42 44 32 50 28 C50 38 48 48 50 54Z" fill="#4E9C3C" />
                 </svg>
             );
         case 'flower':
@@ -141,5 +150,32 @@ export const PathDecoration = ({ variant, size = 64, reached = true }: { variant
         {variant.type === 'lottie'
             ? <RoadLottie src={variant.src} size={size} reached={reached} />
             : <div className="w-full h-full opacity-90"><Art kind={variant.kind} /></div>}
+    </div>
+);
+
+// Мелкий реквизит по краям тропинки (кусты, камни, цветы, кристаллы, пальмы, трава) — статичные SVG.
+export const PROP_KINDS: DecorKind[] = ['bush', 'rock', 'flower', 'tuft', 'crystal', 'palm'];
+
+export const PathProp = ({ kind, size }: { kind: DecorKind; size: number }) => (
+    <div style={{ width: size, height: size }} className="pointer-events-none select-none opacity-90">
+        <Art kind={kind} />
+    </div>
+);
+
+// Каменная арка: тропинка проходит под ней.
+export const PathArch = ({ size = 92 }: { size?: number }) => (
+    <div style={{ width: size, height: size * 0.85 }} className="pointer-events-none select-none">
+        <svg viewBox="0 0 96 82" className="w-full h-full">
+            <ellipse cx="48" cy="76" rx="40" ry="5" fill="rgba(0,0,0,0.2)" />
+            <path d="M6 74 V36 A42 42 0 0 1 90 36 V74 H72 V38 A24 24 0 0 0 24 38 V74 Z" fill="#A29786" />
+            <path d="M6 74 V36 A42 42 0 0 1 20 8 L30 18 A28 28 0 0 0 24 38 V74 Z" fill="#8F8577" />
+            <path d="M30 4 L38 14 M48 0 L48 12 M66 4 L58 14 M12 50 H24 M72 56 H84 M14 62 H24 M72 44 H84" stroke="#7B7164" strokeWidth="2.2" strokeLinecap="round" />
+            <circle cx="22" cy="14" r="7" fill="#5FB04A" />
+            <circle cx="34" cy="8" r="6" fill="#78C93C" />
+            <circle cx="76" cy="12" r="7" fill="#4E9C3C" />
+            <circle cx="64" cy="6" r="5" fill="#78C93C" />
+            <path d="M10 36 C8 48 10 56 14 62" stroke="#5FB04A" strokeWidth="3" strokeLinecap="round" fill="none" />
+            <path d="M86 34 C88 46 86 54 82 60" stroke="#4E9C3C" strokeWidth="3" strokeLinecap="round" fill="none" />
+        </svg>
     </div>
 );
