@@ -16,7 +16,6 @@ import { unlockAchievements } from '@/lib/achievements';
 import {
 	pickWeightedReward,
 	MAX_PIZZA_SLICES,
-	MAXED_PIZZA_FALLBACK_COINS,
 	type CaseReward,
 } from '@/lib/caseRewards';
 
@@ -72,12 +71,9 @@ export async function applyResolvedReward(userId: string, reward: CaseReward): P
 	const current = await db.query.userProgress.findFirst({ where: eq(userProgress.userId, userId) });
 	const currentPizza = current?.pizzaSlices ?? 0;
 
-	// Уже собраны все 8 кусочков — новый дроп пиццы конвертируется в
-	// монеты, чтобы "лишний" выигрыш не пропадал впустую (см. MAX_PIZZA_SLICES).
-	let appliedReward = reward;
-	if (appliedReward.kind === 'pizza' && currentPizza >= MAX_PIZZA_SLICES) {
-		appliedReward = { kind: 'coins', amount: MAXED_PIZZA_FALLBACK_COINS, weight: appliedReward.weight };
-	}
+	// Кусочков может быть больше 8 (9/8, 10/8…): это просто значит, что целая пицца
+	// уже готова. Промокод Додо выдаётся один раз — при переходе через 8.
+	const appliedReward = reward;
 
 	let pizzaSlicesNow = currentPizza;
 	let justMaxedPizza = false;
@@ -95,7 +91,7 @@ export async function applyResolvedReward(userId: string, reward: CaseReward): P
 			.set({ ggStickers: sql`${userProgress.ggStickers} + ${appliedReward.amount}` })
 			.where(eq(userProgress.userId, userId));
 	} else {
-		pizzaSlicesNow = Math.min(MAX_PIZZA_SLICES, currentPizza + appliedReward.amount);
+		pizzaSlicesNow = currentPizza + appliedReward.amount;
 		justMaxedPizza = currentPizza < MAX_PIZZA_SLICES && pizzaSlicesNow >= MAX_PIZZA_SLICES;
 		await db.update(userProgress)
 			.set({ pizzaSlices: pizzaSlicesNow })

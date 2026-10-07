@@ -32,8 +32,10 @@ type Props = {
 }
 
 export const PizzaProgress = ({ collected, size = 140, cozy = false, dodoPromoCode = null, eighths = 0 }: Props) => {
-	const clamped = Math.max(0, Math.min(MAX_PIZZA_SLICES, collected))
-	const isComplete = clamped >= MAX_PIZZA_SLICES
+	// Кусочков может быть больше 8 (9/8…) — тогда целая пицца уже готова, счётчик показывает реальное число.
+	const total = Math.max(0, collected)
+	const clamped = Math.min(MAX_PIZZA_SLICES, total)
+	const isComplete = total >= MAX_PIZZA_SLICES
 
 	// Наведение (или тап) — пицца раскручивается с ускорением, делает 2
 	// оборота с затуханием, перекручивает на 20°, откатывается на 5° назад и встаёт ровно.
@@ -75,7 +77,7 @@ export const PizzaProgress = ({ collected, size = 140, cozy = false, dodoPromoCo
 			</motion.div>
 			<div className="flex flex-col gap-1.5 min-w-0">
 				<motion.span animate={counterControls} className="text-5xl font-black leading-none text-yellow-300 origin-left">
-					{clamped}/{MAX_PIZZA_SLICES}
+					{total}/{MAX_PIZZA_SLICES}
 				</motion.span>
 				<span className="flex items-center gap-2 text-base font-semibold leading-snug" style={{ color: cozy ? '#FFE8C7' : '#C9D3D9' }}>
 					<span>Промокод в Додо</span>

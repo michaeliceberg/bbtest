@@ -9,7 +9,6 @@ import db2 from '@/db/drizzle';
 import { userProgress } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { applyResolvedReward } from '@/lib/caseApply';
-import { MAX_PIZZA_SLICES, MAXED_PIZZA_FALLBACK_COINS } from '@/lib/caseRewards';
 import { revalidatePath } from 'next/cache';
 
 type Row = Record<string, unknown>;
@@ -84,11 +83,7 @@ export async function claimAchievementReward(key: string): Promise<{ success: tr
 	} else if (reward.kind === 'gems') {
 		await db2.update(userProgress).set({ gems: sql`${userProgress.gems} + ${reward.amount}` }).where(eq(userProgress.userId, userId));
 	} else {
-		const before = await db2.query.userProgress.findFirst({ where: eq(userProgress.userId, userId) });
-		const alreadyFull = (before?.pizzaSlices ?? 0) >= MAX_PIZZA_SLICES;
 		await applyResolvedReward(userId, { kind: 'pizza', amount: reward.amount, weight: 0 });
-		// Пицца уже собрана целиком — кусочки превращаются в монеты (см. applyResolvedReward).
-		if (alreadyFull) shown = { kind: 'coins', amount: MAXED_PIZZA_FALLBACK_COINS };
 	}
 
 	revalidatePath('/achievements');
