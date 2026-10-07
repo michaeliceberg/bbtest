@@ -30,7 +30,7 @@ const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('ru-RU', { day
 const REWARD_LOTTIE = { coins: LottieCoins, gems: LottieGems, pizza: LottiePizza } as const;
 const THANKS = [
     'Благодарочка!', 'Мерси!', 'Грасиас!', 'Пасиба, чётко!', 'Респект!', 'Имба!', 'Лучший подгон!', 'Спасибо, бро!',
-    'Топчик!', 'Красота!', 'Кайф!', 'Это база', 'Забираю!', 'GG!', 'Ну наконец-то!', 'Вау, мне? 😳', 'Сойдёт, беру 😎', 'Лайк, подписка!',
+    'GG!', 'GG, бро!', 'GG WP!', 'ГГ, спасибо!', 'Топчик!', 'Красота!', 'Кайф!', 'Это база', 'Забираю!', 'GG!', 'Ну наконец-то!', 'Вау, мне? 😳', 'Сойдёт, беру 😎', 'Лайк, подписка!',
 ];
 const pickThanks = () => THANKS[Math.floor(Math.random() * THANKS.length)];
 const rewardSound = (k: AchievementReward['kind']) => (k === 'gems' ? GEM_DROP_SOUND : k === 'coins' ? COIN_DROP_SOUND : CASE_PRIZE_SOUND);
@@ -158,15 +158,13 @@ export const AchievementsHall = ({ unlocks }: { unlocks: Unlock[] }) => {
                         className="w-full max-w-sm rounded-3xl p-6 text-center"
                         style={{ background: 'linear-gradient(160deg, #26333B, #151F23)', border: '2px solid #FFC53D', boxShadow: '0 0 60px -10px rgba(255,197,61,0.6)' }}
                     >
-                        <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#FFC53D]">Награда за ачивку</p>
+                        <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#FFC53D]">GG! Награда за ачивку</p>
                         <p className="mt-1 text-lg font-extrabold text-white">{ACHIEVEMENTS.find((a) => a.key === modal.key)?.title}</p>
                         <div className="my-4 flex items-center justify-center gap-4">
                             <CenteredLottie animationData={REWARD_LOTTIE[modal.reward.kind]} size={104} play loop />
                             <span className="text-5xl font-black text-[#FFC53D]">+{modal.reward.amount}</span>
                         </div>
-                        <p className="text-sm leading-snug text-[#C9D4DB]">
-                            <span className="text-[#6B7A83]">За что: </span>{ACHIEVEMENTS.find((a) => a.key === modal.key)?.desc}
-                        </p>
+                        <p className="text-sm leading-snug text-[#C9D4DB]">{ACHIEVEMENTS.find((a) => a.key === modal.key)?.desc}</p>
                         <button
                             type="button"
                             onClick={() => setModal(null)}

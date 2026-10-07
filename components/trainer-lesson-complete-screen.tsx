@@ -177,7 +177,7 @@ export const TrainerLessonCompleteScreen = ({
                                     ? { color: COZY.headline, textShadow: `0 3px 0 ${COZY.headlineShadow}, 0 6px 0 rgba(0,0,0,0.35)` }
                                     : { backgroundImage: 'linear-gradient(90deg, #38BDF8, #A78BFA)' }}
                             >
-                                Вы запустили серию!
+                                GG! Вы запустили серию!
                             </h1>
                             <p className="text-base sm:text-lg mt-2" style={{ color: cozy ? COZY.textSoft : '#D5DEE5' }}>
                                 {streak} {streakWord} подряд? Так держать!

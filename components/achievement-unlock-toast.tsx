@@ -49,7 +49,7 @@ export const AchievementUnlockToast = () => {
             >
                 <AchievementIcon emoji={current.emoji} iconSrc={current.iconSrc} color={color} size={56} unlocked />
                 <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-extrabold uppercase tracking-[0.16em]" style={{ color }}>Достижение разблокировано</p>
+                    <p className="text-[10px] font-extrabold uppercase tracking-[0.16em]" style={{ color }}>GG · Достижение разблокировано</p>
                     <p className="text-[15px] font-extrabold leading-tight text-white">{current.title}</p>
                     <p className="text-xs leading-snug text-[#9AA7B0] mt-0.5">{current.desc}</p>
                 </div>

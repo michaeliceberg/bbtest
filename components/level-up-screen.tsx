@@ -89,7 +89,7 @@ export const LevelUpScreen = ({ event, onClose, theme = 'metal', overlay = true 
                 className="text-3xl font-black uppercase tracking-wide"
                 style={titleStyle}
             >
-                Новый уровень!
+                GG! Новый уровень!
             </motion.p>
 
             {/* Персонаж уровня */}
