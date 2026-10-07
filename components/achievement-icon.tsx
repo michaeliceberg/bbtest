@@ -19,22 +19,24 @@ export const AchievementIcon = ({
     unlocked?: boolean;
 }) => (
     <div
-        className="flex flex-shrink-0 items-center justify-center rounded-xl"
+        className="flex flex-shrink-0 items-center justify-center rounded-2xl"
         style={{
             width: size,
             height: size,
-            background: unlocked ? `linear-gradient(135deg, ${color}, ${color}99)` : '#232F34',
-            boxShadow: unlocked ? `0 ${Math.round(size / 14)}px 0 ${color}66` : `0 ${Math.round(size / 14)}px 0 #1B262B`,
+            // Игровой бейдж: тёмная плитка со свечением цвета группы, а не плоский цветной квадрат.
+            background: unlocked ? `radial-gradient(circle at 50% 30%, ${color}66, #0F171B 72%)` : '#1B262B',
+            border: `2px solid ${unlocked ? color : '#2B373D'}`,
+            boxShadow: unlocked ? `0 0 ${Math.round(size / 3)}px -4px ${color}99, inset 0 0 ${Math.round(size / 4)}px ${color}33` : 'none',
         }}
     >
         {iconSrc ? (
             // Иконка (белый силуэт на прозрачном фоне) рисуется маской: белая у полученных, серая у закрытых.
             <div
                 style={{
-                    width: size * 0.66,
-                    height: size * 0.66,
-                    backgroundColor: unlocked ? '#FFFFFF' : '#56646C',
-                    opacity: unlocked ? 1 : 0.7,
+                    width: size * 0.72,
+                    height: size * 0.72,
+                    background: unlocked ? `linear-gradient(180deg, #FFFFFF 0%, ${color} 115%)` : '#56646C',
+                    opacity: unlocked ? 1 : 0.65,
                     WebkitMaskImage: `url(${iconSrc})`,
                     maskImage: `url(${iconSrc})`,
                     WebkitMaskSize: 'contain',
@@ -43,7 +45,7 @@ export const AchievementIcon = ({
                     maskRepeat: 'no-repeat',
                     WebkitMaskPosition: 'center',
                     maskPosition: 'center',
-                    filter: unlocked ? `drop-shadow(0 1px 0 ${color}AA)` : 'none',
+                    filter: unlocked ? `drop-shadow(0 0 ${Math.round(size / 10)}px ${color}CC)` : 'none',
                 }}
             />
         ) : (

@@ -6,17 +6,17 @@
 
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
-import { Gift } from 'lucide-react';
-import Lottie from '@/components/lottie-player';
+import { ChevronDown, Gift } from 'lucide-react';
+import { CenteredLottie } from '@/components/centered-lottie';
+import { playSound, preloadSound, COIN_DROP_SOUND, GEM_DROP_SOUND, CASE_PRIZE_SOUND } from '@/lib/sound';
 import LottieCoins from '@/public/Lottie/LottieCoins.json';
 import LottieGems from '@/public/Lottie/LottieGems.json';
 import LottiePizza from '@/public/Lottie/test/pizza.json';
-import type { LottieRefCurrentProps } from 'lottie-react';
 import { ACHIEVEMENTS, ACHIEVEMENT_GROUPS, REWARDS, rewardText, type AchievementReward } from '@/lib/achievementsCatalog';
 import { AchievementIcon } from '@/components/achievement-icon';
 import { claimAchievementReward } from '@/actions/achievements';
@@ -28,32 +28,37 @@ const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('ru-RU', { day
 
 // Награда справа на карточке: Lottie как обычная картинка (кадр без проигрывания) + крупное число.
 const REWARD_LOTTIE = { coins: LottieCoins, gems: LottieGems, pizza: LottiePizza } as const;
-const REWARD_FRAME = { coins: 0.5, gems: 0.5, pizza: 0.5 } as const; // доля длительности — кадр «в разгаре»
+const THANKS = [
+    'Благодарочка!', 'Мерси!', 'Грасиас!', 'Пасиба, чётко!', 'Респект!', 'Имба!', 'Лучший подгон!', 'Спасибо, бро!',
+    'Топчик!', 'Красота!', 'Кайф!', 'Это база', 'Забираю!', 'GG!', 'Ну наконец-то!', 'Вау, мне? 😳', 'Сойдёт, беру 😎', 'Лайк, подписка!',
+];
+const pickThanks = () => THANKS[Math.floor(Math.random() * THANKS.length)];
+const rewardSound = (k: AchievementReward['kind']) => (k === 'gems' ? GEM_DROP_SOUND : k === 'coins' ? COIN_DROP_SOUND : CASE_PRIZE_SOUND);
 
-const StaticReward = ({ reward, dim }: { reward: AchievementReward; dim?: boolean }) => {
-    const ref = useRef<LottieRefCurrentProps>(null);
-    return (
-        <div className="flex flex-shrink-0 flex-col items-center" style={{ opacity: dim ? 0.45 : 1, filter: dim ? 'grayscale(0.8)' : 'none' }}>
-            <Lottie
-                animationData={REWARD_LOTTIE[reward.kind]}
-                lottieRef={ref}
-                loop={false}
-                autoplay={false}
-                onDOMLoaded={() => ref.current?.goToAndStop(Math.floor((ref.current.getDuration(true) ?? 1) * REWARD_FRAME[reward.kind]), true)}
-                className="h-14 w-14"
-            />
-            <span className="-mt-1 text-xl font-black leading-none text-[#FFC53D]">+{reward.amount}</span>
-        </div>
-    );
-};
+const StaticReward = ({ reward, dim }: { reward: AchievementReward; dim?: boolean }) => (
+    <div className="flex flex-shrink-0 flex-col items-center gap-0.5" style={{ opacity: dim ? 0.45 : 1, filter: dim ? 'grayscale(0.8)' : 'none' }}>
+        <CenteredLottie animationData={REWARD_LOTTIE[reward.kind]} size={48} />
+        <span className="text-xl font-black leading-none text-[#FFC53D]">+{reward.amount}</span>
+    </div>
+);
 
 export const AchievementsHall = ({ unlocks }: { unlocks: Unlock[] }) => {
     const router = useRouter();
     const setClaimCount = useAchievementClaimStore((s) => s.setCount);
     const [state, setState] = useState(() => new Map(unlocks.map((u) => [u.key, u])));
     const [busy, setBusy] = useState<string | null>(null);
-    const [modal, setModal] = useState<{ key: string; reward: AchievementReward } | null>(null);
+    const [modal, setModal] = useState<{ key: string; reward: AchievementReward; thanks: string } | null>(null);
     const { width, height } = useWindowSize();
+    useEffect(() => { [COIN_DROP_SOUND, GEM_DROP_SOUND, CASE_PRIZE_SOUND].forEach(preloadSound); }, []);
+    const unclaimed = Array.from(state.values()).filter((u) => !u.claimed).length;
+
+    // «Магнит ачивок»: плавно ведёт к следующей награде ниже по странице (если ниже нет — к первой).
+    const scrollToNext = () => {
+        const nodes = Array.from(document.querySelectorAll<HTMLElement>('[data-claimable]'));
+        if (!nodes.length) return;
+        const next = nodes.find((n) => n.getBoundingClientRect().top > 160) ?? nodes[0];
+        next.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
 
     const claim = async (key: string) => {
         if (busy) return;
@@ -63,12 +68,28 @@ export const AchievementsHall = ({ unlocks }: { unlocks: Unlock[] }) => {
         if (!res || !res.success) return;
         setState((m) => new Map(m).set(key, { ...(m.get(key) as Unlock), claimed: true }));
         setClaimCount(res.unclaimed);
-        setModal({ key, reward: res.reward });
+        playSound(rewardSound(res.reward.kind));
+        setModal({ key, reward: res.reward, thanks: pickThanks() });
         router.refresh(); // обновить монеты/гемы/пиццу в шапке
     };
 
     return (
         <>
+            {unclaimed > 0 && (
+                <div className="pointer-events-none sticky top-[60px] z-30 mb-5 flex justify-center lg:top-3">
+                    <motion.button
+                        type="button"
+                        onClick={scrollToNext}
+                        animate={{ y: [0, -9, 0, -4, 0] }}
+                        transition={{ duration: 0.9, repeat: Infinity, repeatDelay: 3 }}
+                        className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-[#FFC53D] px-4 py-2 text-sm font-black text-[#4A3206] shadow-[0_6px_0_#C99412,0_8px_24px_rgba(255,197,61,0.45)] active:translate-y-[2px]"
+                    >
+                        <Gift className="h-4 w-4" />
+                        Ждут награды: {unclaimed}
+                        <ChevronDown className="h-4 w-4" />
+                    </motion.button>
+                </div>
+            )}
             <div className="space-y-8">
                 {ACHIEVEMENT_GROUPS.map((g) => {
                     const list = ACHIEVEMENTS.filter((a) => a.group === g.id);
@@ -98,6 +119,7 @@ export const AchievementsHall = ({ unlocks }: { unlocks: Unlock[] }) => {
                                                     whileTap: { scale: 0.98 },
                                                 }
                                                 : {})}
+                                            data-claimable={canClaim ? '' : undefined}
                                             className={`flex items-center gap-3 rounded-xl p-3 text-left ${canClaim ? 'cursor-pointer' : ''}`}
                                             style={{
                                                 background: has ? `linear-gradient(135deg, ${g.color}22, #161F23)` : '#161F23',
@@ -138,19 +160,19 @@ export const AchievementsHall = ({ unlocks }: { unlocks: Unlock[] }) => {
                     >
                         <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#FFC53D]">Награда за ачивку</p>
                         <p className="mt-1 text-lg font-extrabold text-white">{ACHIEVEMENTS.find((a) => a.key === modal.key)?.title}</p>
-                        <div className="my-5 flex items-center justify-center gap-3">
-                            {modal.reward.kind === 'coins' && <Lottie animationData={LottieCoins} loop autoplay className="h-24 w-24" />}
-                            {modal.reward.kind === 'gems' && <Lottie animationData={LottieGems} loop autoplay className="h-24 w-24" />}
-                            {modal.reward.kind === 'pizza' && <Lottie animationData={LottiePizza} loop autoplay className="h-24 w-24" />}
+                        <div className="my-4 flex items-center justify-center gap-4">
+                            <CenteredLottie animationData={REWARD_LOTTIE[modal.reward.kind]} size={104} play loop />
                             <span className="text-5xl font-black text-[#FFC53D]">+{modal.reward.amount}</span>
                         </div>
-                        <p className="text-sm text-[#9AA7B0]">{modal.reward.kind === 'coins' ? 'монет' : modal.reward.kind === 'gems' ? (modal.reward.amount === 1 ? 'гем' : modal.reward.amount < 5 ? 'гема' : 'гемов') : (modal.reward.amount === 1 ? 'кусочек пиццы' : 'кусочка пиццы')} уже у тебя</p>
+                        <p className="text-sm leading-snug text-[#C9D4DB]">
+                            <span className="text-[#6B7A83]">За что: </span>{ACHIEVEMENTS.find((a) => a.key === modal.key)?.desc}
+                        </p>
                         <button
                             type="button"
                             onClick={() => setModal(null)}
                             className="mt-5 w-full rounded-2xl bg-[#FFC53D] py-3 text-sm font-black uppercase tracking-wide text-[#4A3206] border-b-4 border-[#C99412] active:border-b-0"
                         >
-                            Круто!
+                            {modal.thanks}
                         </button>
                     </motion.div>
                 </div>

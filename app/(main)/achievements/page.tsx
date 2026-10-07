@@ -54,7 +54,7 @@ const AchievementsPage = async () => {
                 <p className="mt-10 text-center text-[11px] leading-relaxed text-[#56646C]">
                     Иконки ачивок:{' '}
                     <a href="https://game-icons.net" target="_blank" rel="noreferrer" className="underline hover:text-[#9AA7B0]">game-icons.net</a>
-                    {' '}— Lorc, Delapouite, Skoll, Carl Olsen, Caro Asercion (лицензия{' '}
+                    {' '}— Lorc, Delapouite, Skoll, Caro Asercion, Zeromancer, Zajkonur (лицензия{' '}
                     <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noreferrer" className="underline hover:text-[#9AA7B0]">CC BY 3.0</a>)
                 </p>
             </FeedWrapper>
