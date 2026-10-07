@@ -498,8 +498,8 @@ const StagePath = ({
                                     {s.title}
                                 </div>
                                 {s.badge && (
-                                    <div className="mt-1 whitespace-pre-line text-[11px] font-semibold leading-tight" style={{ color: unlocked ? hexToRgba(accent.button, 0.7) : 'rgba(114,131,141,0.45)' }}>
-                                        {s.badge}
+                                    <div className="mt-1 text-[11px] font-semibold leading-tight" style={{ color: unlocked ? hexToRgba(accent.button, 0.7) : 'rgba(114,131,141,0.45)' }}>
+                                        {s.badge.replace(/\s*\n\s*/g, ' ')}
                                     </div>
                                 )}
                             </div>
