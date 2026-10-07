@@ -1,5 +1,6 @@
 'use client'
 
+import { useAchievementClaimStore } from '@/store/use-achievement-claim-store'
 import { Dumbbell, Flame, Swords, ChevronDown, ChevronUp,  Library, Lock, BadgeCheck, Shield, BarChart3, Trophy } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from './ui/button'
@@ -62,6 +63,7 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest = false, className, userName, userImageSrc, onAfterCourseChange, theme, learnLocked = false, isAmbassador = false, isAdmin = false }: SidebarProps) => {
+  const claimCount = useAchievementClaimStore((st) => st.count)
   const liveTheme = useUiThemeLive()
   const cozy = (liveTheme ?? theme ?? 'metal') === 'cozy'
   // Тёплый стиль: фон/рамка сайдбара, пункты меню (активный — карточка-блок).
@@ -318,6 +320,9 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
                 <Icon className="mr-3 h-5 w-5 text-[#9AA7B0]" style={navIcon(isActive)} />
                 <span className="text-sm text-[#F2F7FB]" style={navText}>{item.label}</span>
                 {item.badge && <div className="ml-auto h-5 w-5 rounded-full bg-red-500"></div>}
+                {item.href === '/achievements' && claimCount > 0 && (
+                  <span className="ml-auto flex h-[22px] min-w-[22px] animate-pulse items-center justify-center rounded-full bg-[#FFC53D] px-1.5 text-xs font-black text-[#4A3206] shadow-[0_0_12px_rgba(255,197,61,0.7)]" title="Есть награды за ачивки">{claimCount}</span>
+                )}
               </Button>
             </TransitionLink>
           )

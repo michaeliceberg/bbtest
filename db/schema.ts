@@ -972,6 +972,8 @@ export const achievementUnlocks = pgTable('achievement_unlocks', {
     key: text('key').notNull(),
     unlockedAt: timestamp('unlocked_at').notNull().defaultNow(),
     seen: boolean('seen').notNull().default(false),
+    // Когда забрана награда за ачивку (клик на странице «Ачивки»); null — ещё не забрана.
+    claimedAt: timestamp('claimed_at'),
 }, (table) => ({
     pk: primaryKey({ columns: [table.userId, table.key] }),
 }));

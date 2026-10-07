@@ -53,6 +53,9 @@ async function getMetricForCategory(userId: string, category: string): Promise<n
 // Возвращает достижения, которые СТАЛИ выполненными именно в этом вызове
 // (для тоста), не трогает уже выполненные/уже забранные (claimed).
 export async function recalculateAchievements(userId: string): Promise<NewlyCompletedAchievement[]> {
+    // Отключено (2026-10-08): старые достижения слиты в новую систему (lib/achievements.ts) —
+    // иначе тосты и награды дублировались бы. Таблицы и остальной код оставлены.
+    return [];
     const allAchievements = await db.query.achievements.findMany();
     const existingRows = await db.query.userAchievements.findMany({
         where: eq(userAchievements.userId, userId),

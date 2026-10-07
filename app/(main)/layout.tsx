@@ -9,6 +9,8 @@ import { cookies } from 'next/headers'
 import { getUiTheme } from '@/lib/uiThemeServer'
 import { isLearnUnlocked } from '@/lib/learn-unlock'
 import { LearnUnlockCelebration } from '@/components/learn-unlock-celebration'
+import { AchievementClaimInit } from '@/components/achievement-claim-init'
+import { countUnclaimedAchievements } from '@/lib/achievements'
 
 import 'katex/dist/katex.min.css'
 
@@ -110,6 +112,8 @@ const MainLayout = async ({ children }: Props) => {
     const learnDone = await isLearnUnlocked(userId, false)
     const learnLocked = !learnDone && userProgressRow?.isAdmin !== 1
 
+    const achievementsToClaim = await countUnclaimedAchievements(userId).catch(() => 0)
+
     const activeCourseTitle = coursesWithData.find(c => c.id === activeCourseId)?.title
 
     return (
@@ -141,6 +145,7 @@ const MainLayout = async ({ children }: Props) => {
             <main className='lg:pl-[280px] h-full pt-[50px] lg:pt-0'>
                 <div className='max-w-[1056px] mx-auto pt-6 h-full'>{children}</div>
             </main>
+            <AchievementClaimInit count={achievementsToClaim} />
             {learnDone && <LearnUnlockCelebration />}
         </>
     )

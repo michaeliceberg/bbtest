@@ -7,7 +7,7 @@
 import 'server-only';
 import db from '@/db/drizzle';
 import { sql } from 'drizzle-orm';
-import { ACHIEVEMENT_BY_KEY, toDTO, type AchievementDTO } from '@/lib/achievementsCatalog';
+import { ACHIEVEMENT_BY_KEY, ACHIEVEMENTS, toDTO, type AchievementDTO } from '@/lib/achievementsCatalog';
 import { HIDDEN_T_COURSE_IDS } from '@/lib/trainer-topic';
 import { STEP_BY_STEP_CHALLENGE_TYPES } from '@/lib/trainerStageFlags';
 
@@ -121,6 +121,13 @@ export async function computeStateKeys(userId: string): Promise<string[]> {
 	if (best >= 7) keys.push('streak_7');
 	if (best >= 30) keys.push('streak_30');
 
+	// Домашние задания (completed).
+	const hw = await rows(sql`SELECT count(*) AS n FROM user_homework WHERE user_id = ${userId} AND status = 'completed'`);
+	const hwN = num(hw[0]?.n);
+	if (hwN >= 1) keys.push('hw_first');
+	if (hwN >= 10) keys.push('hw_10');
+	if (hwN >= 50) keys.push('hw_50');
+
 	// Друзья и банды.
 	const inv = await rows(sql`SELECT count(*) AS n FROM user_progress WHERE invited_by_user_id = ${userId}`);
 	if (num(inv[0]?.n) > 0) keys.push('invite_first');
@@ -146,7 +153,19 @@ export async function syncAchievements(userId: string, opts: { silent?: boolean 
 		console.error('[achievements] computeStateKeys failed', e);
 		return [];
 	}
-	return unlockAchievements(userId, keys, { seen: silent });
+	const fresh = await unlockAchievements(userId, keys, { seen: silent });
+	// «Настоящий король» — когда получены все остальные.
+	const cnt = await rows(sql`SELECT count(*) AS n FROM achievement_unlocks WHERE user_id = ${userId} AND key <> 'all_achievements'`);
+	if (num(cnt[0]?.n) >= ACHIEVEMENTS.length - 1) {
+		fresh.push(...(await unlockAchievements(userId, ['all_achievements'], { seen: silent })));
+	}
+	return fresh;
+}
+
+// Сколько наград за ачивки ещё не забрано (число на пункте меню «Ачивки»).
+export async function countUnclaimedAchievements(userId: string): Promise<number> {
+	const r = await rows(sql`SELECT count(*) AS n FROM achievement_unlocks WHERE user_id = ${userId} AND claimed_at IS NULL`);
+	return num(r[0]?.n);
 }
 
 // Ачивка самого приглашающего, когда друг что-то сделал (тост покажется при его следующем заходе).

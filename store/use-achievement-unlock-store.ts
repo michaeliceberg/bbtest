@@ -6,7 +6,8 @@
 
 import { create } from 'zustand';
 import type { AchievementDTO } from '@/lib/achievementsCatalog';
-import { fetchUnseenAchievements } from '@/actions/achievements';
+import { fetchUnseenAchievements, getUnclaimedAchievementsCount } from '@/actions/achievements';
+import { useAchievementClaimStore } from '@/store/use-achievement-claim-store';
 
 type Store = {
     queue: AchievementDTO[];
@@ -20,6 +21,8 @@ export const useAchievementUnlockStore = create<Store>((set, get) => ({
     push: (list) => {
         if (!list.length) return;
         set((s) => ({ queue: [...s.queue, ...list.filter((a) => !s.queue.some((q) => q.key === a.key))] }));
+        // Новая ачивка = новая награда к получению — обновляем число в меню.
+        getUnclaimedAchievementsCount().then((n) => useAchievementClaimStore.getState().setCount(n)).catch(() => {});
     },
     dismissCurrent: () => set((s) => ({ queue: s.queue.slice(1) })),
     check: async () => {

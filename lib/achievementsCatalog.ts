@@ -40,6 +40,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
 	{ key: 'lessons_100', group: 'progress', emoji: '🏭', title: 'Станочный режим', desc: 'Прошёл 100 разных уроков' },
 	{ key: 'all_math', group: 'progress', emoji: '🎓', title: 'Математик-пенсионер', desc: 'Прошёл весь тренажёр по математике' },
 	{ key: 'all_physics', group: 'progress', emoji: '🪐', title: 'Властелин вселенной (локально)', desc: 'Прошёл весь тренажёр по физике' },
+	{ key: 'all_achievements', group: 'progress', emoji: '👑', title: 'Настоящий король', desc: 'Получил все остальные ачивки' },
 	{ key: 'boss_first', group: 'progress', emoji: '👹', title: 'Босс повержен (почти)', desc: 'Прошёл босс-экзамен' },
 	{ key: 'step_clean', group: 'progress', emoji: '🧠', title: 'Прочитал, понял, победил', desc: 'Прошёл разбор «Урок» без единой ошибки' },
 
@@ -55,6 +56,9 @@ export const ACHIEVEMENTS: AchievementDef[] = [
 	{ key: 'streak_3', group: 'habit', emoji: '🌱', title: 'Не бросил — уже герой', desc: '3 дня подряд' },
 	{ key: 'streak_7', group: 'habit', emoji: '📅', title: 'Неделя без отмазок', desc: '7 дней подряд' },
 	{ key: 'streak_30', group: 'habit', emoji: '🩺', title: 'Это уже диагноз', desc: '30 дней подряд' },
+	{ key: 'hw_first', group: 'habit', emoji: '🐭', title: 'Домашняя крыса', desc: 'Выполнил первое домашнее задание' },
+	{ key: 'hw_10', group: 'habit', emoji: '🐹', title: 'Домашний зверь', desc: 'Выполнил 10 домашних заданий' },
+	{ key: 'hw_50', group: 'habit', emoji: '🦖', title: 'Домашний тиран', desc: 'Выполнил 50 домашних заданий' },
 	{ key: 'night_owl', group: 'habit', emoji: '🦉', title: 'Сова-отличник', desc: 'Прошёл урок после 23:00' },
 	{ key: 'early_bird', group: 'habit', emoji: '🐓', title: 'Кто рано встаёт, тому ЕГЭ подаёт', desc: 'Прошёл урок до 7 утра' },
 
@@ -75,6 +79,55 @@ export const ACHIEVEMENTS: AchievementDef[] = [
 ];
 
 export const ACHIEVEMENT_BY_KEY: Record<string, AchievementDef> = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.key, a]));
+
+// Награда за ачивку: забирается кликом на странице «Ачивки» (один раз).
+export type AchievementReward = { kind: 'coins' | 'gems' | 'pizza'; amount: number };
+
+export const REWARDS: Record<string, AchievementReward> = {
+	hello_world: { kind: 'coins', amount: 30 },
+	first_math: { kind: 'coins', amount: 50 },
+	first_physics: { kind: 'coins', amount: 50 },
+	first_mistake: { kind: 'coins', amount: 20 },
+	reference_open: { kind: 'coins', amount: 20 },
+	avatar_change: { kind: 'coins', amount: 20 },
+	unit_done: { kind: 'gems', amount: 5 },
+	lessons_10: { kind: 'coins', amount: 100 },
+	lessons_50: { kind: 'gems', amount: 10 },
+	lessons_100: { kind: 'pizza', amount: 2 },
+	all_math: { kind: 'pizza', amount: 2 },
+	all_physics: { kind: 'pizza', amount: 2 },
+	all_achievements: { kind: 'pizza', amount: 2 },
+	boss_first: { kind: 'gems', amount: 10 },
+	step_clean: { kind: 'gems', amount: 5 },
+	lesson_clean: { kind: 'coins', amount: 50 },
+	clean_5: { kind: 'gems', amount: 8 },
+	combo_8: { kind: 'gems', amount: 5 },
+	review_ok: { kind: 'coins', amount: 20 },
+	review_first: { kind: 'coins', amount: 50 },
+	mistakes_3: { kind: 'coins', amount: 30 },
+	streak_3: { kind: 'coins', amount: 50 },
+	streak_7: { kind: 'gems', amount: 10 },
+	streak_30: { kind: 'pizza', amount: 2 },
+	hw_first: { kind: 'coins', amount: 30 },
+	hw_10: { kind: 'gems', amount: 5 },
+	hw_50: { kind: 'gems', amount: 10 },
+	night_owl: { kind: 'coins', amount: 30 },
+	early_bird: { kind: 'coins', amount: 30 },
+	chest_common: { kind: 'coins', amount: 20 },
+	chest_rare: { kind: 'gems', amount: 3 },
+	chest_mythic: { kind: 'gems', amount: 5 },
+	chest_mega: { kind: 'pizza', amount: 1 },
+	chests_10: { kind: 'coins', amount: 100 },
+	first_gem: { kind: 'gems', amount: 2 },
+	first_gg: { kind: 'coins', amount: 30 },
+	pizza_full: { kind: 'gems', amount: 5 },
+	invite_first: { kind: 'pizza', amount: 1 },
+	friend_lesson: { kind: 'pizza', amount: 1 },
+	gang_create: { kind: 'coins', amount: 50 },
+};
+
+export const rewardText = (r: AchievementReward) =>
+	r.kind === 'coins' ? `+${r.amount} монет` : r.kind === 'gems' ? `+${r.amount} ${r.amount === 1 ? 'гем' : r.amount < 5 ? 'гема' : 'гемов'}` : `+${r.amount} ${r.amount === 1 ? 'кусочек пиццы' : 'кусочка пиццы'}`;
 
 export type AchievementDTO = { key: string; title: string; desc: string; emoji: string; iconSrc?: string; group: AchievementGroup };
 
