@@ -329,6 +329,12 @@ const TLearnPage = async () => {
                         </div>
                     )}
 
+                    {/* Разделитель между блоком пиццы и выбором темы тренажёра */}
+                    <div
+                        className='mt-7 mb-6 h-px w-full'
+                        style={{ background: cozy ? `linear-gradient(90deg, transparent, ${COZY.cardBorder}, transparent)` : 'linear-gradient(90deg, transparent, #3A464E, transparent)' }}
+                    />
+
                     </>)}
 
                     <div className='content-center mx-auto justify-center text-center align-middle'>
