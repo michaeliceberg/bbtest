@@ -386,7 +386,7 @@ export const TabTCourses = ({
                         )}
 
                         <div className="w-full mt-2">
-                            <TrainerGradeTree topics={topics} isAdmin={isAdmin} theme={theme} simple={simple} petProps={petProps} onlyActiveGroup={TRAINER_ONLY_ACTIVE_GROUP[t_course.title]} />
+                            <TrainerGradeTree key={t_course.id} topics={topics} isAdmin={isAdmin} theme={theme} simple={simple} petProps={petProps} onlyActiveGroup={TRAINER_ONLY_ACTIVE_GROUP[t_course.title]} />
                         </div>
 
                         {/* "Показать все формулы" — убрано по просьбе пользователя (2026-09-03):

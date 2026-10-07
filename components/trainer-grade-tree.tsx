@@ -703,7 +703,13 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
     const defaultGroup = (onlyActiveGroup ? renderGroups.find((g) => groupLabel(g) === onlyActiveGroup) : undefined)
         ?? renderGroups.find((g) => !isGroupLocked(g) && groupTopics(g).some((t) => t.isLastActive))
         ?? renderGroups.find((g) => !isGroupLocked(g)) ?? renderGroups[0];
-    const [activeGroupKey, setActiveGroupKey] = useState<string | null>(defaultGroup ? groupKey(defaultGroup) : null);
+    const [activeGroupKeyState, setActiveGroupKey] = useState<string | null>(defaultGroup ? groupKey(defaultGroup) : null);
+    // При смене курса (Математика → Физика) компонент не пересоздаётся и помнит ключ юнита прежнего курса —
+    // в новом такого нет, и ничего не рисовалось до обновления страницы. Если сохранённого ключа нет среди
+    // текущих групп — берём группу по умолчанию.
+    const activeGroupKey = renderGroups.some((g) => groupKey(g) === activeGroupKeyState)
+        ? activeGroupKeyState
+        : (defaultGroup ? groupKey(defaultGroup) : null);
     // Простой вид: список юнитов выезжает слева по нажатию на баннер юнита.
     const [unitMenuOpen, setUnitMenuOpen] = useState(false);
     // Раздел, где пользователь сейчас (по нему подсвечиваем пункт меню): тот, чей баннер нажали, либо куда перешли.

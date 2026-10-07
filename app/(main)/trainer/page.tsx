@@ -248,7 +248,6 @@ const TLearnPage = async () => {
             {/* Тёплый стиль — тёплый фон на всю страницу (под контентом). */}
             {cozy && (
                 <div className='pointer-events-none fixed inset-0 -z-10' style={{ backgroundColor: '#221E1A' }}>
-                    <div className='absolute inset-0' style={{ background: 'radial-gradient(ellipse at 50% 10%, #FFB67A1F, transparent 60%)' }} />
                 </div>
             )}
             <StickyWrapper>

@@ -22,8 +22,10 @@ export const Header = ({ title, cozy = false }: Props) => {
 
 	return (
 		<div
-			className='hidden lg:flex sticky top-0 pb-3 pt-[28px] mt-[-28px] items-center justify-center border-b-2 mb-5 text-neutral-400 z-50'
-			style={{ background: cozy ? '#221E1A' : '#151F23', borderColor: cozy ? '#4A433B' : undefined }}
+			className='hidden lg:flex sticky top-0 pb-4 pt-[28px] mt-[-28px] items-center justify-center mb-3 text-neutral-400 z-50'
+			// Без сплошной плашки и линии: фон шапки — только плавное затухание цвета страницы снизу,
+			// чтобы прокручиваемый контент не наезжал на кнопку, но не было видно «другого» фона.
+			style={{ background: `linear-gradient(to bottom, ${cozy ? '#221E1A' : '#151F23'} 72%, transparent)` }}
 		>
 			{unitButton ? (
 				<motion.button

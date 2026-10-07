@@ -36,14 +36,19 @@ type Props = {
 export const TelegramLoginButton = ({ botUsername, callbackUrl = '/learn' }: Props) => {
     const containerRef = useRef<HTMLDivElement>(null)
     const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
         window.onTelegramAuth = async (user: TelegramAuthUser) => {
             setIsLoading(true)
+            setError(null)
             // Telegram подписывает hash только по полям, которые реально
             // прислал (у части пользователей нет last_name/username/photo_url) —
             // отправлять их пустой строкой нельзя, иначе подпись не сойдётся.
-            await signIn('telegram', {
+            // redirect: false — при ошибке подписи не уводим на служебную страницу
+            // NextAuth («Sign in failed…»), а показываем понятное сообщение здесь же.
+            const res = await signIn('telegram', {
+                redirect: false,
                 id: String(user.id),
                 first_name: user.first_name || '',
                 ...(user.last_name ? { last_name: user.last_name } : {}),
@@ -53,6 +58,12 @@ export const TelegramLoginButton = ({ botUsername, callbackUrl = '/learn' }: Pro
                 hash: user.hash,
                 callbackUrl,
             })
+            if (res?.error || !res?.ok) {
+                setIsLoading(false)
+                setError('Не получилось войти через Telegram. Попробуйте ещё раз или войдите по звонку.')
+                return
+            }
+            window.location.href = res.url || callbackUrl
         }
 
         const script = document.createElement('script')
@@ -76,6 +87,9 @@ export const TelegramLoginButton = ({ botUsername, callbackUrl = '/learn' }: Pro
             <div ref={containerRef} className="max-w-full [&>iframe]:!max-w-full [&>iframe]:!rounded-full [&>iframe]:!overflow-hidden" />
             {isLoading && (
                 <span className="text-xs text-[#9AA7B0]">Входим…</span>
+            )}
+            {error && (
+                <span className="text-xs text-[#DC605B] text-center">{error}</span>
             )}
         </div>
     )
