@@ -6,15 +6,17 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
-import { Gift, Lock } from 'lucide-react';
+import { Gift } from 'lucide-react';
 import Lottie from '@/components/lottie-player';
 import LottieCoins from '@/public/Lottie/LottieCoins.json';
 import LottieGems from '@/public/Lottie/LottieGems.json';
+import LottiePizza from '@/public/Lottie/test/pizza.json';
+import type { LottieRefCurrentProps } from 'lottie-react';
 import { ACHIEVEMENTS, ACHIEVEMENT_GROUPS, REWARDS, rewardText, type AchievementReward } from '@/lib/achievementsCatalog';
 import { AchievementIcon } from '@/components/achievement-icon';
 import { claimAchievementReward } from '@/actions/achievements';
@@ -24,17 +26,26 @@ type Unlock = { key: string; unlockedAt: string; claimed: boolean };
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: 'Europe/Moscow' });
 
-const RewardChip = ({ reward, dim, strong }: { reward: AchievementReward; dim?: boolean; strong?: boolean }) => (
-    <span
-        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-black"
-        style={{
-            background: strong ? '#FFC53D' : 'rgba(255,255,255,0.07)',
-            color: strong ? '#4A3206' : dim ? '#56646C' : '#C9D4DB',
-        }}
-    >
-        {reward.kind === 'coins' ? '🪙' : reward.kind === 'gems' ? '💎' : '🍕'} {rewardText(reward).replace('+', '+')}
-    </span>
-);
+// Награда справа на карточке: Lottie как обычная картинка (кадр без проигрывания) + крупное число.
+const REWARD_LOTTIE = { coins: LottieCoins, gems: LottieGems, pizza: LottiePizza } as const;
+const REWARD_FRAME = { coins: 0.5, gems: 0.5, pizza: 0.5 } as const; // доля длительности — кадр «в разгаре»
+
+const StaticReward = ({ reward, dim }: { reward: AchievementReward; dim?: boolean }) => {
+    const ref = useRef<LottieRefCurrentProps>(null);
+    return (
+        <div className="flex flex-shrink-0 flex-col items-center" style={{ opacity: dim ? 0.45 : 1, filter: dim ? 'grayscale(0.8)' : 'none' }}>
+            <Lottie
+                animationData={REWARD_LOTTIE[reward.kind]}
+                lottieRef={ref}
+                loop={false}
+                autoplay={false}
+                onDOMLoaded={() => ref.current?.goToAndStop(Math.floor((ref.current.getDuration(true) ?? 1) * REWARD_FRAME[reward.kind]), true)}
+                className="h-14 w-14"
+            />
+            <span className="-mt-1 text-xl font-black leading-none text-[#FFC53D]">+{reward.amount}</span>
+        </div>
+    );
+};
 
 export const AchievementsHall = ({ unlocks }: { unlocks: Unlock[] }) => {
     const router = useRouter();
@@ -97,18 +108,14 @@ export const AchievementsHall = ({ unlocks }: { unlocks: Unlock[] }) => {
                                             <div className="min-w-0 flex-1">
                                                 <p className="font-extrabold leading-tight" style={{ color: has ? '#F2F7FB' : '#72838D' }}>{a.title}</p>
                                                 <p className="text-xs leading-snug mt-0.5" style={{ color: has ? '#9AA7B0' : '#56646C' }}>{a.desc}</p>
-                                                <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                                                    {canClaim ? (
-                                                        <span className="inline-flex items-center gap-1 rounded-full bg-[#FFC53D] px-2 py-0.5 text-[11px] font-black text-[#4A3206]">
-                                                            <Gift className="h-3 w-3" /> Забрать награду
-                                                        </span>
-                                                    ) : null}
-                                                    {reward && <RewardChip reward={reward} dim={!has} strong={false} />}
-                                                    {has && u!.claimed && <span className="text-[11px] font-bold text-[#56646C]">Награда получена</span>}
-                                                    {!has && <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#56646C]"><Lock className="h-3 w-3" /> Ещё не получено</span>}
-                                                </div>
+                                                {canClaim && (
+                                                    <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-[#FFC53D] px-2 py-0.5 text-[11px] font-black text-[#4A3206]">
+                                                        <Gift className="h-3 w-3" /> Забрать награду
+                                                    </span>
+                                                )}
                                                 {has && <p className="text-[11px] font-bold mt-1" style={{ color: g.color }}>Получено {fmtDate(u!.unlockedAt)}</p>}
                                             </div>
+                                            {reward && <StaticReward reward={reward} dim={!has || u!.claimed} />}
                                         </Wrapper>
                                     );
                                 })}
@@ -134,7 +141,7 @@ export const AchievementsHall = ({ unlocks }: { unlocks: Unlock[] }) => {
                         <div className="my-5 flex items-center justify-center gap-3">
                             {modal.reward.kind === 'coins' && <Lottie animationData={LottieCoins} loop autoplay className="h-24 w-24" />}
                             {modal.reward.kind === 'gems' && <Lottie animationData={LottieGems} loop autoplay className="h-24 w-24" />}
-                            {modal.reward.kind === 'pizza' && <span className="text-7xl leading-none">🍕</span>}
+                            {modal.reward.kind === 'pizza' && <Lottie animationData={LottiePizza} loop autoplay className="h-24 w-24" />}
                             <span className="text-5xl font-black text-[#FFC53D]">+{modal.reward.amount}</span>
                         </div>
                         <p className="text-sm text-[#9AA7B0]">{modal.reward.kind === 'coins' ? 'монет' : modal.reward.kind === 'gems' ? (modal.reward.amount === 1 ? 'гем' : modal.reward.amount < 5 ? 'гема' : 'гемов') : (modal.reward.amount === 1 ? 'кусочек пиццы' : 'кусочка пиццы')} уже у тебя</p>
