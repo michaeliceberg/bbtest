@@ -22,7 +22,9 @@ import { useSearchParams } from 'next/navigation';
 import { TrainerStageLink } from './trainer-stage-link';
 // Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
-import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors';
+import { GGEGE_PALETTE, LOCKED_BUTTON_COLOR, LOCKED_BUTTON_BOTTOM_COLOR } from '@/src/constants/lessonButtonColors';
+import { CircularProgressbarWithChildren } from 'react-circular-progressbar';
+import 'react-circular-progressbar/dist/styles.css';
 import { getBossRank } from '@/lib/bossRank';
 import { HalfCircleHero, HERO_HALF_CIRCLE, HERO_HALF_CIRCLE_TITLE } from './unit-hero-half-circle';
 import { isReviewStage, isMythicStage } from '@/lib/trainerStageFlags';
@@ -318,10 +320,10 @@ const BossGiftBadge = ({ color = '#EF9F27' }: { color?: string }) => (
 // заданы в долях холста PATH_W×H (проценты) — дорожка одинаково выглядит
 // на любой ширине экрана. Reveal-анимация «только что прошёл» здесь не играет.
 const PATH_W = 320;
-const PATH_ROW = 98;
-const PATH_PAD = 44;
+const PATH_ROW = 124;
+const PATH_PAD = 52;
 const PATH_AMP = 82;
-const PET_OFFSET = 86;
+const PET_OFFSET = 96;
 
 const StagePath = ({
     topic, accent, cozy, isAdmin, frontierIdx, stepNums, doneGradient, doneBorder, doneGlow, pet,
@@ -378,16 +380,16 @@ const StagePath = ({
                 const pt = pts[i];
                 const skullHue = getBossRank(s.bossWins ?? 0)?.hue ?? 0;
 
-                const iconColor = done ? DONE_ICON_COLOR : accent.button;
+                // Оформление кнопки — как у уроков Задачника (/learn): круглая кнопка
+                // цвета юнита с «объёмной» нижней гранью и кольцом прогресса вокруг.
                 const stageBg = isBossExam ? 'transparent'
                     : isStepByStep ? STEPBYSTEP_GRADIENT
-                    : done ? doneGradient : UNLOCKED_BG;
-                const stageBorder = isBossExam ? '3px solid transparent'
-                    : isStepByStep ? `3px solid ${STEPBYSTEP_BORDER}`
-                    : `3px solid ${done ? doneBorder : accent.button}`;
+                    : accent.button;
                 const stageShadow = isBossExam ? 'none'
-                    : isFrontier ? `0 0 0 5px ${hexToRgba(accent.button, 0.28)}`
-                    : done ? doneGlow : (cozy ? `0 3px 0 ${accent.bottom}` : undefined);
+                    : isStepByStep ? `0 6px 0 #6B5216`
+                    : `0 6px 0 ${accent.bottom}`;
+                const iconColor = '#FEFEFE';
+                const ringValue = done ? 100 : Math.min(100, Math.max(0, s.percentage));
 
                 const iconEl = (c: string, dim = false) => (
                     <span className="inline-flex scale-[1.45]">
@@ -398,28 +400,43 @@ const StagePath = ({
                 return (
                     <React.Fragment key={s.id}>
                         <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: pct(pt.x, PATH_W), top: pct(pt.y, H) }}>
-                            {unlocked ? (
-                                <TrainerStageLink
-                                    href={`/t-lesson/${s.id}`}
-                                    title={s.title}
-                                    subtitle={`${topic.title} · этап ${i + 1}`}
-                                    accent={accent.button}
-                                    className="relative flex w-[58px] h-[58px] rounded-2xl items-center justify-center transition-transform active:scale-95"
-                                    style={{ background: stageBg, border: stageBorder, boxShadow: stageShadow }}
-                                    icon={iconEl(isStepByStep ? STEPBYSTEP_ICON_COLOR : iconColor)}
-                                />
-                            ) : (
-                                <div
-                                    className="flex w-[58px] h-[58px] rounded-2xl items-center justify-center"
-                                    style={{ border: isBossExam ? '3px solid transparent' : `3px solid ${LOCKED_BORDER}` }}
-                                    title={s.extraLocked && s.extraLockedPrereqTitle ? `Сначала пройди «${s.extraLockedPrereqTitle}»` : undefined}
-                                >
-                                    {iconEl(LOCKED_ICON_COLOR, true)}
-                                </div>
-                            )}
+                            <div className="relative w-[92px] h-[92px] flex items-center justify-center">
+                                {!isBossExam && (
+                                    <div className="absolute inset-0 pointer-events-none">
+                                        <CircularProgressbarWithChildren
+                                            value={unlocked ? ringValue : 0}
+                                            styles={{
+                                                path: { stroke: done ? '#22c55e' : '#eab308' },
+                                                trail: { stroke: LOCKED_BUTTON_COLOR },
+                                            }}
+                                        >
+                                            <span />
+                                        </CircularProgressbarWithChildren>
+                                    </div>
+                                )}
+                                {unlocked ? (
+                                    <TrainerStageLink
+                                        href={`/t-lesson/${s.id}`}
+                                        title={s.title}
+                                        subtitle={`${topic.title} · этап ${i + 1}`}
+                                        accent={accent.button}
+                                        className="relative flex w-[64px] h-[64px] rounded-full items-center justify-center transition-transform active:scale-95 active:translate-y-[3px]"
+                                        style={{ background: stageBg, boxShadow: stageShadow }}
+                                        icon={iconEl(iconColor)}
+                                    />
+                                ) : (
+                                    <div
+                                        className="relative flex w-[64px] h-[64px] rounded-full items-center justify-center"
+                                        style={isBossExam ? undefined : { background: LOCKED_BUTTON_COLOR, boxShadow: `0 6px 0 ${LOCKED_BUTTON_BOTTOM_COLOR}` }}
+                                        title={s.extraLocked && s.extraLockedPrereqTitle ? `Сначала пройди «${s.extraLockedPrereqTitle}»` : undefined}
+                                    >
+                                        {iconEl(LOCKED_ICON_COLOR, true)}
+                                    </div>
+                                )}
+                            </div>
                             {s.badge && (
                                 <span
-                                    className="absolute top-full mt-1 left-1/2 -translate-x-1/2 whitespace-pre-line text-center text-[11px] font-extrabold leading-[1.15] pointer-events-none"
+                                    className="absolute top-full -mt-1 left-1/2 -translate-x-1/2 whitespace-pre-line text-center text-[11px] font-extrabold leading-[1.15] pointer-events-none"
                                     style={{ color: unlocked ? accent.button : LOCKED_ICON_COLOR, minWidth: 64 }}
                                 >
                                     {s.badge}
@@ -683,8 +700,8 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                     <div
                         key={topic.id}
                         ref={(el) => { topicRefs.current[topic.title] = el; }}
-                        className={cozy ? "rounded-xl px-4 py-3 transition-shadow duration-300" : "bg-[#1A252B] rounded-2xl px-4 py-3 transition-shadow duration-300"}
-                        style={cozy ? {
+                        className={simple ? "transition-shadow duration-300" : cozy ? "rounded-xl px-4 py-3 transition-shadow duration-300" : "bg-[#1A252B] rounded-2xl px-4 py-3 transition-shadow duration-300"}
+                        style={simple ? (highlightedTopic === topic.title ? { boxShadow: `0 0 0 3px ${accentIn.button}`, borderRadius: 16 } : undefined) : cozy ? {
                             background: COZY.card,
                             border: `3px solid ${COZY.cardBorder}`,
                             boxShadow: highlightedTopic === topic.title ? `0 0 0 3px ${accent.button}, 0 6px 0 ${COZY.cardEdge}` : `0 6px 0 ${COZY.cardEdge}`,
@@ -693,7 +710,25 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                             ...(highlightedTopic === topic.title ? { boxShadow: '0 0 0 2px #4A90D9' } : {}),
                         }}
                     >
-                        {topic.imageSrc === HERO_HALF_CIRCLE ? (
+                        {simple && (() => {
+                            const examStage = topic.stages.find((st) => st.isBossExam);
+                            const rank = examStage ? getBossRank(examStage.bossWins ?? 0) : null;
+                            const bannerTitle = topic.imageSrc === HERO_HALF_CIRCLE ? HERO_HALF_CIRCLE_TITLE.join(' ') : topic.title;
+                            return (
+                                <div
+                                    className="relative mb-4 overflow-hidden rounded-2xl p-4 text-white"
+                                    style={{ background: `linear-gradient(135deg, ${accentIn.button}, ${accentIn.bottom})` }}
+                                >
+                                    <div className="flex items-start justify-between gap-3">
+                                        <h2 className="text-xl font-bold tracking-tight break-words">{bannerTitle}</h2>
+                                        {examStage ? (rank && <span className="text-sm font-black flex-shrink-0 px-2 py-0.5 rounded-full bg-black/25">{rank.title}</span>)
+                                            : <span className="text-2xl font-bold flex-shrink-0">{topic.percentage}%</span>}
+                                    </div>
+                                    {unitNumber != null && <p className="text-white/80 text-sm mt-1">Тема {unitNumber}</p>}
+                                </div>
+                            );
+                        })()}
+                        {!simple && topic.imageSrc === HERO_HALF_CIRCLE ? (
                             <div className="flex items-center gap-3 pb-3 mb-3 border-b" style={{ borderColor: hexToRgba(accent.button, 0.25) }}>
                                 {unitNumber != null && <UnitNumberSticker n={unitNumber} size="lg" />}
                                 <div className="flex-shrink-0" style={{ color: cozy ? COZY.title : accent.button }}>
@@ -705,7 +740,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                     <HalfCircleHero color={cozy ? COZY.title : accent.button} />
                                 </div>
                             </div>
-                        ) : topic.imageSrc ? (
+                        ) : !simple && topic.imageSrc ? (
                             <div
                                 className="flex items-center justify-center rounded-xl mb-3 py-2 overflow-hidden"
                                 style={{ background: hexToRgba(accent.button, cozy ? 0.12 : 0.08) }}
@@ -714,7 +749,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                 <img src={topic.imageSrc} alt="" draggable={false} className="h-[84px] w-auto max-w-full select-none" />
                             </div>
                         ) : null}
-                        {topic.imageSrc !== HERO_HALF_CIRCLE && (<div className="flex items-center gap-2 pb-2.5 mb-3 border-b min-w-0" style={{ borderColor: hexToRgba(accent.button, 0.22) }}>
+                        {!simple && topic.imageSrc !== HERO_HALF_CIRCLE && (<div className="flex items-center gap-2 pb-2.5 mb-3 border-b min-w-0" style={{ borderColor: hexToRgba(accent.button, 0.22) }}>
                             <span className="w-1.5 h-5 rounded-full flex-shrink-0" style={{ background: `linear-gradient(180deg, ${accent.button}, ${accent.bottom})` }} />
                             {unitNumber != null && <UnitNumberSticker n={unitNumber} />}
                             {topic.title !== blockTitle && <span className="text-base font-extrabold truncate" style={{ color: cozy ? COZY.title : accent.button }}>{topic.title}</span>}
@@ -753,7 +788,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                 return (
                                     <StagePath
                                         topic={topic}
-                                        accent={accent}
+                                        accent={accentIn}
                                         cozy={cozy}
                                         isAdmin={isAdmin}
                                         frontierIdx={frontierIdx}
