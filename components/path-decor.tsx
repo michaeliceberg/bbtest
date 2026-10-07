@@ -9,12 +9,16 @@
 
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import Lottie from '@/components/lottie-player';
+import type { LottieRefCurrentProps } from 'lottie-react';
 
+// Анимации дорожки лежат в public/Lottie/trainer-road-map/ (по 512×512, 2–3 секунды).
 export const DECOR_LOTTIE_SRCS: string[] = [
-    // '/Lottie/decor/palm.json',
-];
-export const DECOR_ONLY_LOTTIE = false;
+    '01', '02', '04', '05', '06', '07', '08', '10', '11', '14', '15', '16', '19', '21', '23', '25',
+].map((n) => `/Lottie/trainer-road-map/${n}.json`);
+// Только Lottie, SVG-заглушки больше не используются.
+export const DECOR_ONLY_LOTTIE = true;
 
 const KINDS = ['palm', 'bush', 'rock', 'crystal', 'flower'] as const;
 export type DecorKind = (typeof KINDS)[number];
@@ -81,10 +85,61 @@ const Art = ({ kind }: { kind: DecorKind }) => {
     }
 };
 
-export const PathDecoration = ({ variant, size = 64 }: { variant: { type: 'svg'; kind: DecorKind } | { type: 'lottie'; src: string }; size?: number }) => (
-    <div style={{ width: size, height: size }} className="pointer-events-none select-none opacity-90">
+// Lottie-декорация: пока до неё не дошли — серая и неподвижная (последний кадр), когда дошли —
+// один раз проигрывается при попадании в область видимости экрана и остаётся на последнем кадре.
+const RoadLottie = ({ src, size, reached }: { src: string; size: number; reached: boolean }) => {
+    const wrapRef = useRef<HTMLDivElement>(null);
+    const lottieRef = useRef<LottieRefCurrentProps>(null);
+    const [loaded, setLoaded] = useState(false);
+    const [inView, setInView] = useState(false);
+    const playedRef = useRef(false);
+
+    useEffect(() => {
+        const el = wrapRef.current;
+        if (!el || typeof IntersectionObserver === 'undefined') { setInView(true); return; }
+        const io = new IntersectionObserver((entries) => {
+            if (entries.some((e) => e.isIntersecting)) { setInView(true); io.disconnect(); }
+        }, { threshold: 0.35 });
+        io.observe(el);
+        return () => io.disconnect();
+    }, []);
+
+    useEffect(() => {
+        const l = lottieRef.current;
+        if (!loaded || !l) return;
+        if (!reached) {
+            // Недостижимая: показываем последний кадр (готовая картинка), без проигрывания.
+            l.goToAndStop(Math.max(0, Math.floor(l.getDuration(true) ?? 1) - 1), true);
+            playedRef.current = false;
+            return;
+        }
+        if (inView && !playedRef.current) {
+            playedRef.current = true;
+            l.goToAndPlay(0, true);
+        }
+    }, [loaded, reached, inView]);
+
+    return (
+        <div
+            ref={wrapRef}
+            style={{ width: size, height: size, filter: reached ? 'none' : 'grayscale(1)', opacity: reached ? 1 : 0.5, transition: 'filter 600ms, opacity 600ms' }}
+        >
+            <Lottie
+                animationData={src}
+                loop={false}
+                autoplay={false}
+                lottieRef={lottieRef}
+                onDOMLoaded={() => setLoaded(true)}
+                style={{ width: size, height: size }}
+            />
+        </div>
+    );
+};
+
+export const PathDecoration = ({ variant, size = 64, reached = true }: { variant: { type: 'svg'; kind: DecorKind } | { type: 'lottie'; src: string }; size?: number; reached?: boolean }) => (
+    <div style={{ width: size, height: size }} className="pointer-events-none select-none">
         {variant.type === 'lottie'
-            ? <Lottie animationData={variant.src} loop autoplay style={{ width: size, height: size }} />
-            : <Art kind={variant.kind} />}
+            ? <RoadLottie src={variant.src} size={size} reached={reached} />
+            : <div className="w-full h-full opacity-90"><Art kind={variant.kind} /></div>}
     </div>
 );

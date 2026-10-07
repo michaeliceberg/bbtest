@@ -354,11 +354,25 @@ const StagePath = ({
     const rnd = mulberry32(topic.id * 7919 + 13);
     const f1 = 0.7 + rnd() * 0.9, f2 = 1.6 + rnd() * 1.4, p1 = rnd() * 6.28, p2 = rnd() * 6.28;
     const X_MIN = 50, X_MAX = 160;
-    const pts = topic.stages.map((_, i) => {
+    const xs = topic.stages.map((_, i) => {
         const wave = 0.62 * Math.sin(i * f1 + p1) + 0.38 * Math.sin(i * f2 + p2);
-        const x = clampNum((X_MIN + X_MAX) / 2 + wave * 74 + (rnd() - 0.5) * 26, X_MIN, X_MAX);
-        return { x, y: PATH_PAD + i * PATH_ROW + (i === 0 ? 0 : (rnd() - 0.5) * 22) };
+        return clampNum((X_MIN + X_MAX) / 2 + wave * 74 + (rnd() - 0.5) * 26, X_MIN, X_MAX);
     });
+    // Декорации: по одной на ~3 этапа (минимум одна, если этапов ≥ 3), в промежутках между кнопками.
+    // Промежуток под питомцем пропускаем. Между подписями соседних уроков места мало, поэтому
+    // в промежутках с декорацией расстояние между кнопками увеличиваем.
+    const DECOR_EXTRA = 64;
+    const decorGaps: number[] = [];
+    if (n >= 3 && DECOR_VARIANTS.length > 0) {
+        const want = Math.max(1, Math.floor(n / 3));
+        const free = Array.from({ length: n - 1 }, (_, i) => i).filter((i) => i !== frontierIdx);
+        for (let k = 0; k < want && free.length; k++) decorGaps.push(free.splice(Math.floor(rnd() * free.length), 1)[0]);
+    }
+    const ys: number[] = [];
+    topic.stages.forEach((_, i) => {
+        ys.push(i === 0 ? PATH_PAD : ys[i - 1] + PATH_ROW + (decorGaps.includes(i - 1) ? DECOR_EXTRA : 0) + (rnd() - 0.5) * 20);
+    });
+    const pts = xs.map((x, i) => ({ x, y: ys[i] }));
     const H = pts[n - 1].y + PATH_PAD;
     // Контрольные точки каждого отрезка со своим «перекосом» — получаются петли и восьмёрки, а не одна и та же S-кривая.
     const segs = pts.slice(0, -1).map((a, i) => {
@@ -369,21 +383,18 @@ const StagePath = ({
             c2: { x: b.x + (rnd() - 0.5) * 170, y: b.y - gap * (0.35 + rnd() * 0.35) },
         };
     });
-    // Декорации: по одной на ~3 этапа (минимум одна, если этапов ≥ 3), в промежутках между кнопками,
-    // слева или справа — туда, где свободнее. Промежуток под питомцем пропускаем.
-    const decor: { x: number; y: number; size: number; vi: number }[] = [];
-    if (n >= 3 && DECOR_VARIANTS.length > 0) {
-        const want = Math.max(1, Math.floor(n / 3));
-        const gaps = Array.from({ length: n - 1 }, (_, i) => i).filter((i) => i !== frontierIdx);
-        for (let k = 0; k < want && gaps.length; k++) {
-            const gi = gaps.splice(Math.floor(rnd() * gaps.length), 1)[0];
-            const a = pts[gi], b = pts[gi + 1];
-            const midY = (a.y + b.y) / 2;
-            const left = Math.min(a.x, b.x) >= 104 && rnd() < 0.6;
-            const size = 56 + Math.round(rnd() * 14);
-            decor.push({ x: left ? 20 + size / 2 : PATH_W - 22 - size / 2, y: midY, size, vi: Math.floor(rnd() * DECOR_VARIANTS.length) });
-        }
-    }
+    const decor: { x: number; y: number; size: number; vi: number; reached: boolean }[] = [];
+    let variantPool: number[] = DECOR_VARIANTS.map((_, i) => i);
+    decorGaps.forEach((gi) => {
+        const a = pts[gi], b = pts[gi + 1];
+        const midY = (a.y + b.y) / 2;
+        const left = Math.min(a.x, b.x) >= 104 && rnd() < 0.6;
+        const size = 96 + Math.round(rnd() * 12);
+        // Разные анимации в одном юните не повторяем, пока не закончится набор.
+        if (!variantPool.length) variantPool = DECOR_VARIANTS.map((_, i) => i);
+        const vi = variantPool.splice(Math.floor(rnd() * variantPool.length), 1)[0];
+        decor.push({ x: left ? 8 + size / 2 : PATH_W - 6 - size / 2, y: midY, size, vi, reached: topic.stages[gi].percentage >= UNLOCK_THRESHOLD });
+    });
     const pct = (v: number, base: number) => `${(v / base) * 100}%`;
 
     return (
@@ -409,7 +420,7 @@ const StagePath = ({
 
             {decor.map((d, di) => (
                 <div key={`decor-${di}`} className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ left: pct(d.x, PATH_W), top: pct(d.y, H) }}>
-                    <PathDecoration variant={DECOR_VARIANTS[d.vi]} size={d.size} />
+                    <PathDecoration variant={DECOR_VARIANTS[d.vi]} size={d.size} reached={d.reached} />
                 </div>
             ))}
 
