@@ -391,7 +391,7 @@ const StagePath = ({
 
                 const iconEl = (c: string, dim = false) => (
                     <span className="inline-flex scale-[1.45]">
-                        <StageIcon accent={accent.button} isBoss={isBoss} isBossExam={isBossExam} skullHue={skullHue} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={isStepByStep ? stepNums[i] : null} Icon={Icon} color={c} dim={dim} />
+                        <StageIcon accent={accent.button} isBoss={isBoss} isBossExam={isBossExam} skullHue={skullHue} isMythic={isMythic} isChest={isChest} isStepByStep={isStepByStep} stepNumber={null} Icon={Icon} color={c} dim={dim} />
                     </span>
                 );
 
@@ -400,7 +400,7 @@ const StagePath = ({
                         <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: pct(pt.x, PATH_W), top: pct(pt.y, H) }}>
                             <div className="relative w-[92px] h-[92px] flex items-center justify-center">
                                 {!isBossExam && (
-                                    <div className="absolute inset-0 pointer-events-none">
+                                    <div className="absolute inset-0 pointer-events-none translate-y-[3px]">
                                         <CircularProgressbarWithChildren
                                             value={unlocked ? ringValue : 0}
                                             styles={{
@@ -438,6 +438,15 @@ const StagePath = ({
                             style={{ top: pct(pt.y, H), left: `calc(${pct(pt.x, PATH_W)} + 52px)`, right: 4 }}
                         >
                             <div>
+                                {s.isStepByStep && (
+                                    <div
+                                        className="mb-0.5 inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.2em] leading-none"
+                                        style={{ color: unlocked ? hexToRgba(accent.button, 0.75) : 'rgba(114,131,141,0.4)' }}
+                                    >
+                                        <BookOpen className="w-3 h-3" />
+                                        Урок
+                                    </div>
+                                )}
                                 <div
                                     className="text-[15px] font-extrabold leading-tight line-clamp-3"
                                     style={{ color: unlocked ? accent.button : 'rgba(114,131,141,0.55)' }}
