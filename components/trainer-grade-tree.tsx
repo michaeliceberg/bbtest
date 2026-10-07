@@ -30,6 +30,7 @@ import { getBossRank } from '@/lib/bossRank';
 import { HalfCircleHero, HERO_HALF_CIRCLE, HERO_HALF_CIRCLE_TITLE } from './unit-hero-half-circle';
 import { isReviewStage, isMythicStage } from '@/lib/trainerStageFlags';
 import { TrainerPet } from './trainer-pet';
+import { PathDecoration, DECOR_VARIANTS } from './path-decor';
 
 // Больше разнообразия по прямой просьбе пользователя ("яйцо щит меч —
 // хочется большее количество разных иконок, чтобы было интереснее") —
@@ -323,7 +324,14 @@ const BossGiftBadge = ({ color = '#EF9F27' }: { color?: string }) => (
 const PATH_W = 320;
 const PATH_ROW = 140;
 const PATH_PAD = 52;
-const PATH_AMP = 54;
+
+const mulberry32 = (seed: number) => () => {
+    seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+const clampNum = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 const StagePath = ({
     topic, accent, cozy, isAdmin, frontierIdx, stepNums, doneGradient, doneBorder, doneGlow, pet,
@@ -340,9 +348,41 @@ const StagePath = ({
     pet: React.ReactNode;
 }) => {
     const n = topic.stages.length;
-    const H = PATH_PAD * 2 + (n - 1) * PATH_ROW;
-    // Дорожка прижата к левой части, справа остаётся место под плашку с названием урока.
-    const pts = topic.stages.map((_, i) => ({ x: PATH_W * 0.3 + PATH_AMP * Math.sin(i * 1.15), y: PATH_PAD + i * PATH_ROW }));
+    // У каждого юнита своя извилистая дорожка: форма зависит от id темы (стабильна между
+    // заходами), но у разных тем разная — разные частоты/фазы, дрожание точек и «крутизна» кривых.
+    const rnd = mulberry32(topic.id * 7919 + 13);
+    const f1 = 0.7 + rnd() * 0.9, f2 = 1.6 + rnd() * 1.4, p1 = rnd() * 6.28, p2 = rnd() * 6.28;
+    const X_MIN = 50, X_MAX = 160;
+    const pts = topic.stages.map((_, i) => {
+        const wave = 0.62 * Math.sin(i * f1 + p1) + 0.38 * Math.sin(i * f2 + p2);
+        const x = clampNum((X_MIN + X_MAX) / 2 + wave * 74 + (rnd() - 0.5) * 26, X_MIN, X_MAX);
+        return { x, y: PATH_PAD + i * PATH_ROW + (i === 0 ? 0 : (rnd() - 0.5) * 22) };
+    });
+    const H = pts[n - 1].y + PATH_PAD;
+    // Контрольные точки каждого отрезка со своим «перекосом» — получаются петли и восьмёрки, а не одна и та же S-кривая.
+    const segs = pts.slice(0, -1).map((a, i) => {
+        const b = pts[i + 1];
+        const gap = b.y - a.y;
+        return {
+            c1: { x: a.x + (rnd() - 0.5) * 170, y: a.y + gap * (0.35 + rnd() * 0.35) },
+            c2: { x: b.x + (rnd() - 0.5) * 170, y: b.y - gap * (0.35 + rnd() * 0.35) },
+        };
+    });
+    // Декорации: по одной на ~3 этапа (минимум одна, если этапов ≥ 3), в промежутках между кнопками,
+    // слева или справа — туда, где свободнее. Промежуток под питомцем пропускаем.
+    const decor: { x: number; y: number; size: number; vi: number }[] = [];
+    if (n >= 3 && DECOR_VARIANTS.length > 0) {
+        const want = Math.max(1, Math.floor(n / 3));
+        const gaps = Array.from({ length: n - 1 }, (_, i) => i).filter((i) => i !== frontierIdx);
+        for (let k = 0; k < want && gaps.length; k++) {
+            const gi = gaps.splice(Math.floor(rnd() * gaps.length), 1)[0];
+            const a = pts[gi], b = pts[gi + 1];
+            const midY = (a.y + b.y) / 2;
+            const left = Math.min(a.x, b.x) >= 104 && rnd() < 0.6;
+            const size = 56 + Math.round(rnd() * 14);
+            decor.push({ x: left ? 20 + size / 2 : PATH_W - 22 - size / 2, y: midY, size, vi: Math.floor(rnd() * DECOR_VARIANTS.length) });
+        }
+    }
     const pct = (v: number, base: number) => `${(v / base) * 100}%`;
 
     return (
@@ -350,12 +390,12 @@ const StagePath = ({
             <svg viewBox={`0 0 ${PATH_W} ${H}`} className="absolute inset-0 w-full h-full overflow-visible" aria-hidden>
                 {pts.slice(0, -1).map((a, i) => {
                     const b = pts[i + 1];
-                    const ym = (a.y + b.y) / 2;
+                    const { c1, c2 } = segs[i];
                     const done = topic.stages[i].percentage >= UNLOCK_THRESHOLD;
                     return (
                         <path
                             key={i}
-                            d={`M ${a.x} ${a.y} C ${a.x} ${ym}, ${b.x} ${ym}, ${b.x} ${b.y}`}
+                            d={`M ${a.x} ${a.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${b.x} ${b.y}`}
                             fill="none"
                             strokeWidth={done ? 7 : 5}
                             strokeLinecap="round"
@@ -365,6 +405,12 @@ const StagePath = ({
                     );
                 })}
             </svg>
+
+            {decor.map((d, di) => (
+                <div key={`decor-${di}`} className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ left: pct(d.x, PATH_W), top: pct(d.y, H) }}>
+                    <PathDecoration variant={DECOR_VARIANTS[d.vi]} size={d.size} />
+                </div>
+            ))}
 
             {topic.stages.map((s, i) => {
                 const prev = i > 0 ? topic.stages[i - 1] : null;
