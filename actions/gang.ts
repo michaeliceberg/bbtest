@@ -15,9 +15,11 @@ import { auth } from '@/lib/auth';
 import { getGangMembership } from '@/db/queries';
 import { revalidatePath } from 'next/cache';
 
+import { DEFAULT_GANG_COLOR, GANG_COLORS, isValidEmblem } from '@/lib/gangEmblems';
+
 const GANG_NAME_MAX_LENGTH = 30;
 
-export async function createGang(name: string, emoji: string) {
+export async function createGang(name: string, emoji: string, color?: string) {
 	const session = await auth();
 	if (!session?.user?.id) throw new Error('Вы не авторизованы!');
 	const userId = session.user.id;
@@ -33,7 +35,8 @@ export async function createGang(name: string, emoji: string) {
 
 	const [gang] = await db.insert(gangs).values({
 		name: trimmedName,
-		emoji: emoji || '🔥',
+		emoji: isValidEmblem(emoji) ? emoji : '🔥',
+		color: color && (GANG_COLORS as readonly string[]).includes(color) ? color : DEFAULT_GANG_COLOR,
 		creatorUserId: userId,
 	}).returning({ id: gangs.id });
 

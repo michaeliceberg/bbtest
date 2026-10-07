@@ -11,6 +11,8 @@ import { GangRoster } from '@/components/gang-roster';
 import { GangLeaveButton } from '@/components/gang-leave-button';
 import { GangWeekCaseCard } from '@/components/gang-week-case-card';
 import Link from 'next/link';
+import { GangEmblem } from '@/components/gang-emblem';
+import { DEFAULT_GANG_COLOR } from '@/lib/gangEmblems';
 import { declensionRu } from '@/usefulFunctions';
 import { getGangWeekScores, hasUnclaimedGangWeekReward, settleLastGangWeek } from '@/lib/gangWeek';
 
@@ -31,10 +33,10 @@ const GangPage = async () => {
     if (!membership) {
         return (
             <div className="max-w-[600px] mx-auto px-4 pb-10 flex flex-col gap-8">
-                <div>
-                    <h1 className="text-2xl font-bold text-[#F2F7FB] mb-1">Банда</h1>
+                <div className="text-center">
+                    <h1 className="text-3xl font-extrabold text-[#F2F7FB] mb-1">Создай свою банду</h1>
                     <p className="text-sm text-[#9AA7B0]">
-                        Объединяйся с друзьями, приглашай новых учеников и соревнуйся с другими бандами.
+                        Выбери эмблему и название — зови друзей, копите очки и громите другие банды GG
                     </p>
                 </div>
                 {hasWeekReward && <GangWeekCaseCard />}
@@ -50,13 +52,33 @@ const GangPage = async () => {
     const weekScores = await getGangWeekScores(0);
     const weekIdx = weekScores.findIndex((g) => g.gangId === membership.gangId);
     const weekScore = weekIdx >= 0 ? weekScores[weekIdx].score : 0;
+    const gangColor = membership.gang.color || DEFAULT_GANG_COLOR;
 
     return (
         <div className="max-w-[600px] mx-auto px-4 pb-10 flex flex-col gap-6">
-            <div className="text-center">
-                <p className="text-5xl mb-2">{membership.gang.emoji}</p>
-                <h1 className="text-2xl font-bold text-[#F2F7FB]">{membership.gang.name}</h1>
-                <p className="text-sm text-[#9AA7B0] mt-1">Рейтинг банды: <span className="font-bold text-violet-400">{rating}</span></p>
+            <div
+                className="relative overflow-hidden rounded-3xl border-2 border-[#3A464E] bg-[#151F23] px-5 py-7 text-center"
+                style={{ backgroundImage: `radial-gradient(circle at 50% 0%, ${gangColor}45, transparent 65%)` }}
+            >
+                <div className="flex justify-center mb-3">
+                    <GangEmblem value={membership.gang.emoji} color={gangColor} size={132} />
+                </div>
+                <h1 className="text-3xl font-extrabold text-[#F2F7FB] break-words">{membership.gang.name}</h1>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] mt-1" style={{ color: gangColor }}>
+                    {membership.role === 'leader' ? 'Ты — глава банды' : membership.role === 'kapo' ? 'Ты — капо' : 'Ты — в банде'}
+                </p>
+                <div className="mt-5 grid grid-cols-3 gap-2">
+                    {[
+                        { label: 'Участников', value: roster.length },
+                        { label: 'Рейтинг', value: rating },
+                        { label: 'Место недели', value: weekIdx >= 0 ? `#${weekIdx + 1}` : '—' },
+                    ].map((s) => (
+                        <div key={s.label} className="rounded-2xl border-2 border-[#2B373D] bg-[#0F171B] px-2 py-3">
+                            <p className="text-2xl font-extrabold text-[#F2F7FB]">{s.value}</p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-[#9AA7B0]">{s.label}</p>
+                        </div>
+                    ))}
+                </div>
             </div>
 
             {hasWeekReward && <GangWeekCaseCard />}

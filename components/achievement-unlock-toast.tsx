@@ -11,6 +11,7 @@ import { motion } from 'framer-motion';
 import { ACHIEVEMENT_GROUPS } from '@/lib/achievementsCatalog';
 import { useAchievementUnlockStore } from '@/store/use-achievement-unlock-store';
 import { AchievementIcon } from '@/components/achievement-icon';
+import { ACHIEVEMENT_SOUND, playSound, preloadSound } from '@/lib/sound';
 
 const DURATION_MS = 5500;
 
@@ -23,6 +24,15 @@ export const AchievementUnlockToast = () => {
     useEffect(() => {
         void check();
     }, [pathname, check]);
+
+    useEffect(() => {
+        preloadSound(ACHIEVEMENT_SOUND);
+    }, []);
+
+    // Звук при появлении каждого тоста — звук достижения.
+    useEffect(() => {
+        if (current) playSound(ACHIEVEMENT_SOUND);
+    }, [current?.key]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         if (!current) return;

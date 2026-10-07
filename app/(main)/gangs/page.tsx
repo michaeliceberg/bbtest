@@ -11,6 +11,7 @@ import { getAllGangsWithRoster } from '@/db/queries';
 import { computeGangRating } from '@/lib/gangRating';
 import { getGangWeekScores, getLastWeekWinner, getWeekMsLeft, settleLastGangWeek, GANG_WEEK_POINTS } from '@/lib/gangWeek';
 import { declensionRu } from '@/usefulFunctions';
+import { GangEmblem } from '@/components/gang-emblem';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,12 +29,12 @@ const GangsLeaderboardPage = async ({ searchParams }: { searchParams: { tab?: st
     await settleLastGangWeek();
     const lastWinner = await getLastWeekWinner();
 
-    let rows: { id: number; emoji: string; name: string; members: number; score: number }[];
+    let rows: { id: number; emoji: string; color: string | null; name: string; members: number; score: number }[];
     if (tab === 'week') {
-        rows = (await getGangWeekScores(0)).map((g) => ({ id: g.gangId, emoji: g.emoji, name: g.name, members: g.members, score: g.score }));
+        rows = (await getGangWeekScores(0)).map((g) => ({ id: g.gangId, emoji: g.emoji, color: g.color, name: g.name, members: g.members, score: g.score }));
     } else {
         rows = (await getAllGangsWithRoster())
-            .map(({ gang, roster }) => ({ id: gang.id, emoji: gang.emoji, name: gang.name, members: roster.length, score: computeGangRating(roster) }))
+            .map(({ gang, roster }) => ({ id: gang.id, emoji: gang.emoji, color: gang.color, name: gang.name, members: roster.length, score: computeGangRating(roster) }))
             .sort((a, b) => b.score - a.score);
     }
     const msLeft = await getWeekMsLeft();
@@ -66,7 +67,7 @@ const GangsLeaderboardPage = async ({ searchParams }: { searchParams: { tab?: st
                     <p className="text-sm text-center text-[#9AA7B0]">⏳ До конца битвы: <span className="font-bold text-[#F2F7FB]">{formatLeft(msLeft)}</span></p>
                     {lastWinner && (
                         <p className="text-sm text-center text-amber-300">
-                            🏆 Победитель прошлой недели: {lastWinner.emoji} {lastWinner.name} ({lastWinner.score} {declensionRu(lastWinner.score, 'очко', 'очка', 'очков')})
+                            🏆 Победитель прошлой недели: {lastWinner.name} ({lastWinner.score} {declensionRu(lastWinner.score, 'очко', 'очка', 'очков')})
                         </p>
                     )}
                 </div>
@@ -85,7 +86,7 @@ const GangsLeaderboardPage = async ({ searchParams }: { searchParams: { tab?: st
                         <span className="text-lg font-bold text-[#9AA7B0] w-6 text-center shrink-0">
                             {tab === 'week' && i === 0 && g.score > 0 ? '👑' : i + 1}
                         </span>
-                        <span className="text-3xl shrink-0">{g.emoji}</span>
+                        <GangEmblem value={g.emoji} color={g.color} size={48} />
                         <div className="min-w-0 flex-1">
                             <p className="font-bold text-[#F2F7FB] truncate">{g.name}</p>
                             <p className="text-xs text-[#9AA7B0]">{g.members} {declensionRu(g.members, 'участник', 'участника', 'участников')}</p>

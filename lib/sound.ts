@@ -156,6 +156,8 @@ export const TEST_WIN_SOUND = '/snd-harp-trump-win.mp3'
 export const CASE_PRIZE_SOUND = '/snd-unboxing-prize.mp3'
 // Выпал гем из кейса — свой звук вместо общего «приз!».
 export const GEM_DROP_SOUND = '/snd-gem-drop.mp3'
+// Тост «Достижение разблокировано».
+export const ACHIEVEMENT_SOUND = '/snd-achievement.mp3'
 // Выпали монеты из кейса.
 export const COIN_DROP_SOUND = '/snd-drop-coins.mp3'
 // Экран «Квесты дня»: заполнение прогресс-бара / «+1» над сундуком.

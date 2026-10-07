@@ -16,7 +16,7 @@ export const GANG_WEEK_POINTS = { lesson: 1, quest: 2 } as const
 type Row = Record<string, unknown>
 const q = async (query: ReturnType<typeof sql>) => (await db.execute(query)) as unknown as Row[]
 
-export type GangWeekScore = { gangId: number; name: string; emoji: string; members: number; score: number }
+export type GangWeekScore = { gangId: number; name: string; emoji: string; color: string | null; members: number; score: number }
 
 // offsetWeeks: 0 — текущая неделя, -1 — прошлая.
 export const getGangWeekScores = async (offsetWeeks = 0): Promise<GangWeekScore[]> => {
@@ -34,7 +34,7 @@ export const getGangWeekScores = async (offsetWeeks = 0): Promise<GangWeekScore[
 					AND qp.date >= b.ws AND qp.date < b.ws + interval '7 days') AS quests
 			FROM gang_members m
 		)
-		SELECT g.id AS gang_id, g.name, g.emoji, count(ms.user_id) AS members,
+		SELECT g.id AS gang_id, g.name, g.emoji, g.color, count(ms.user_id) AS members,
 			coalesce(sum(ms.lessons * ${GANG_WEEK_POINTS.lesson} + ms.quests * ${GANG_WEEK_POINTS.quest}), 0) AS score
 		FROM gangs g LEFT JOIN member_scores ms ON ms.gang_id = g.id
 		GROUP BY g.id ORDER BY score DESC, members DESC, g.id`)
@@ -42,6 +42,7 @@ export const getGangWeekScores = async (offsetWeeks = 0): Promise<GangWeekScore[
 		gangId: Number(r.gang_id),
 		name: String(r.name),
 		emoji: String(r.emoji),
+		color: r.color ? String(r.color) : null,
 		members: Number(r.members),
 		score: Number(r.score),
 	}))
@@ -76,15 +77,15 @@ export const settleLastGangWeek = async () => {
 		ON CONFLICT (week_start, user_id) DO NOTHING`)
 }
 
-export type LastWeekWinner = { gangId: number; name: string; emoji: string; score: number } | null
+export type LastWeekWinner = { gangId: number; name: string; emoji: string; color: string | null; score: number } | null
 
 export const getLastWeekWinner = async (): Promise<LastWeekWinner> => {
 	const [r] = await q(sql`
-		SELECT w.gang_id, w.score, g.name, g.emoji FROM gang_week_winners w
+		SELECT w.gang_id, w.score, g.name, g.emoji, g.color FROM gang_week_winners w
 		JOIN gangs g ON g.id = w.gang_id
 		WHERE w.week_start = date_trunc('week', now()) - interval '7 days'`)
 	if (!r) return null
-	return { gangId: Number(r.gang_id), name: String(r.name), emoji: String(r.emoji), score: Number(r.score) }
+	return { gangId: Number(r.gang_id), name: String(r.name), emoji: String(r.emoji), color: r.color ? String(r.color) : null, score: Number(r.score) }
 }
 
 export const hasUnclaimedGangWeekReward = async (userId: string): Promise<boolean> => {

@@ -1157,6 +1157,8 @@ export const gangs = pgTable('gangs', {
 	id: serial('id').primaryKey(),
 	name: text('name').notNull(),
 	emoji: text('emoji').notNull().default('🔥'),
+	// Цвет эмблемы (hex из GANG_COLORS), null у старых банд.
+	color: text('color'),
 	// Исторический факт "кто создал" — НЕ источник правды "кто сейчас глава"
 	// (это gangMembers.role==='leader', см. ниже). В MVP лидерство не
 	// передаётся и банда не удаляется, поэтому на практике они всегда совпадают.

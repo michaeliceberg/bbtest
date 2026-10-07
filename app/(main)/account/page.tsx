@@ -14,6 +14,7 @@ import { ParentBindCode } from '@/components/parent-bind-code'
 import { ReferralCard } from '@/components/referral-card'
 import { getOrCreateInvite } from '@/lib/invite'
 import { getRank } from '@/lib/rank'
+import { GangEmblem } from '@/components/gang-emblem'
 import { getLevelInfo } from '@/lib/xp'
 import { Button } from '@/components/ui/button'
 
@@ -63,10 +64,14 @@ const AccountPage = async () => {
                     </AvatarReroll>
 
                     <div className="w-full border-t border-[#3A464E] pt-4 flex items-center gap-3">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src="/gang/band.webp" alt="" className="h-12 w-12 shrink-0 rounded-full object-cover bg-[#1B252B]" />
+                        {gangMembership ? (
+                            <GangEmblem value={gangMembership.gang.emoji} color={gangMembership.gang.color} size={48} />
+                        ) : (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src="/gang/band.webp" alt="" className="h-12 w-12 shrink-0 rounded-full object-cover bg-[#1B252B]" />
+                        )}
                         <div className="min-w-0 flex-1">
-                            <div className="font-bold text-[#F2F7FB] truncate">{gangMembership ? `${gangMembership.gang.emoji} ${gangMembership.gang.name}` : 'Моя банда'}</div>
+                            <div className="font-bold text-[#F2F7FB] truncate">{gangMembership ? gangMembership.gang.name : 'Моя банда'}</div>
                             <div className="text-xs text-[#9AA7B0]">
                                 {gangMembership ? 'Приглашай друзей, назначай капо, следи за рейтингом.' : 'Ты ещё не в банде — создай свою или вступи по ссылке друга.'}
                             </div>
