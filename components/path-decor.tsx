@@ -153,17 +153,17 @@ export const PathDecoration = ({ variant, size = 64, reached = true }: { variant
     </div>
 );
 
-// Реквизит по краям тропинки — иконки из Kenney Cartography Pack (CC0, public/map-props/).
-// Это тёмные контуры на прозрачном фоне: рисуем их маской и красим в цвет юнита.
+// Реквизит по краям тропинки — иконки из Kenney Cartography Pack (CC0, public/map-props/), векторные SVG (вырезаны из
+// cartographyPack_vector.svg). Это тёмные контуры на прозрачном фоне: рисуем их маской и красим в цвет юнита.
 export const PROP_KINDS = [
-    'bush', 'rocks', 'rocksA', 'rocksB', 'rocksTall', 'rocksMountain', 'treePine', 'treePines', 'treeTall',
+    'bush', 'rocks', 'rocksA', 'rocksB', 'rocksTall', 'rocksMountain', 'treePine', 'treePines',
     'palm', 'cactus', 'tent', 'tipi', 'campfire', 'flag', 'fence', 'well', 'mill', 'houseSmall', 'lighthouse', 'castle',
 ] as const;
 export type PropKind = (typeof PROP_KINDS)[number];
 
 // Крупные силуэты — чуть больше обычного размера, мелкая россыпь — меньше.
 export const PROP_SCALE: Partial<Record<PropKind, number>> = {
-    castle: 1.5, lighthouse: 1.25, mill: 1.2, rocksMountain: 1.3, treeTall: 1.2, treePines: 1.2, tent: 1.1,
+    castle: 1.5, lighthouse: 1.25, mill: 1.2, rocksMountain: 1.3, treePines: 1.2, tent: 1.1,
     bush: 0.8, rocks: 0.8, rocksA: 0.8, rocksB: 0.8, fence: 0.9, campfire: 0.85, flag: 0.9,
 };
 
@@ -175,8 +175,8 @@ const Mask = ({ name, size, color, opacity }: { name: string; size: number; colo
             height: size,
             backgroundColor: color,
             opacity,
-            WebkitMaskImage: `url(/map-props/${name}.png)`,
-            maskImage: `url(/map-props/${name}.png)`,
+            WebkitMaskImage: `url(/map-props/${name}.svg)`,
+            maskImage: `url(/map-props/${name}.svg)`,
             WebkitMaskSize: 'contain',
             maskSize: 'contain',
             WebkitMaskRepeat: 'no-repeat',
