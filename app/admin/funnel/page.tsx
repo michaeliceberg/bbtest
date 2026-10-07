@@ -1,7 +1,7 @@
 // app/admin/funnel/page.tsx
 //
 // Статистика воронки роста (пробный урок → кейс → регистрация, приглашения,
-// диагностический тест, банды, Додо-коды, активность). Доступ — только
+// банды, Додо-коды, активность). Доступ — только
 // админам (app/admin/layout.tsx). Всё считается прямыми SQL-запросами на
 // каждый заход, без кэша. Период — ?days=7|30|all.
 
@@ -49,17 +49,35 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 			count(*) AS total_users
 		FROM user_progress`)
 
-	const inviters = await q(sql`
-		SELECT inv.invited_by_user_id AS uid, max(ref.user_name) AS name, count(*) AS cnt
-		FROM user_progress inv LEFT JOIN user_progress ref ON ref.user_id = inv.invited_by_user_id
+	// Кто привёл друзей и что те сделали: по каждому приглашённому — сколько РАЗНЫХ уроков тренажёра
+	// он прошёл (повторы не в счёт) и сколько всего прохождений.
+	const invitedRows = await q(sql`
+		SELECT inv.user_id AS iid, coalesce(inv.nickname, inv.user_name, inv.user_id) AS iname,
+			to_char((inv.created_at AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Moscow', 'DD.MM') AS joined,
+			inv.invited_by_user_id AS uid, coalesce(ref.nickname, ref.user_name, inv.invited_by_user_id) AS rname,
+			count(DISTINCT p.t_lesson_id) FILTER (WHERE p.training_pts > 0) AS lessons,
+			count(p.*) FILTER (WHERE p.training_pts > 0) AS passes
+		FROM user_progress inv
+		LEFT JOIN user_progress ref ON ref.user_id = inv.invited_by_user_id
+		LEFT JOIN t_lesson_progress p ON p.user_id = inv.user_id
 		WHERE inv.invited_by_user_id IS NOT NULL AND (inv.created_at IS NULL OR inv.created_at >= ${since})
-		GROUP BY inv.invited_by_user_id ORDER BY cnt DESC LIMIT 10`)
-
-	const [diag] = await q(sql`
-		SELECT count(*) AS leads,
-			count(*) FILTER (WHERE telegram_verified_at IS NOT NULL) AS tg,
-			count(*) FILTER (WHERE case_opened) AS opened
-		FROM diagnostic_leads WHERE created_at >= ${since}`)
+		GROUP BY inv.user_id, inv.nickname, inv.user_name, inv.created_at, inv.invited_by_user_id, ref.nickname, ref.user_name`)
+	type Invited = { id: string; name: string; joined: string | null; lessons: number; passes: number }
+	const byInviter = new Map<string, { uid: string; name: string; list: Invited[] }>()
+	for (const r of invitedRows) {
+		const key = String(r.uid)
+		if (!byInviter.has(key)) byInviter.set(key, { uid: key, name: String(r.rname ?? key), list: [] })
+		byInviter.get(key)!.list.push({ id: String(r.iid), name: String(r.iname), joined: r.joined ? String(r.joined) : null, lessons: n(r.lessons), passes: n(r.passes) })
+	}
+	const inviterStats = [...byInviter.values()]
+		.map((g) => ({
+			...g,
+			invited: g.list.length,
+			active: g.list.filter((x) => x.lessons > 0).length,
+			lessons: g.list.reduce((a, x) => a + x.lessons, 0),
+			passes: g.list.reduce((a, x) => a + x.passes, 0),
+		}))
+		.sort((a, b) => b.lessons - a.lessons || b.invited - a.invited)
 
 	// Активность — только ученики: прохождения админов (ты и тестовые
 	// аккаунты) считаем отдельно, иначе они забивают всю статистику.
@@ -275,24 +293,42 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 					<p className="text-xs text-[#6B7A83] mt-3">Из {n(guest.with_vibes)} гостей, прошедших экран «Что тебе заходит?».</p>
 				</Card>
 
-				<Card title="🤝 Приглашения">
-					<div className="grid grid-cols-2 gap-3 mb-4">
+				<div className="md:col-span-2">
+				<Card title="🤝 Кто приглашает и что сделали друзья">
+					<div className="grid grid-cols-3 gap-3 mb-4">
 						<Stat label="Новых учеников" value={n(reg.new_users)} small />
 						<Stat label="Из них по приглашению" value={n(reg.invited)} small />
+						<Stat label="Приглашающих" value={inviterStats.length} small />
 					</div>
-					<p className="text-sm text-[#9AA7B0] mb-2">Кто больше всех пригласил:</p>
-					{inviters.length === 0 ? <Empty /> : (
-						<ul className="space-y-1.5 text-sm">
-							{inviters.map((r) => (
-								<li key={String(r.uid)} className="flex justify-between">
-									<span>{String(r.name ?? r.uid)}</span>
-									<span className="font-bold">{n(r.cnt)}</span>
-								</li>
+					{inviterStats.length === 0 ? <Empty /> : (
+						<div className="space-y-1.5">
+							{inviterStats.map((g) => (
+								<details key={g.uid} className="rounded-lg border border-[#2B373D] bg-[#1A252B]">
+									<summary className="cursor-pointer list-none flex items-center gap-3 px-3 py-2 text-sm">
+										<span className="flex-1 truncate font-bold">{g.name}</span>
+										<span className="text-[#9AA7B0]">привёл <b className="text-[#F2F7FB]">{g.invited}</b></span>
+										<span className="text-[#9AA7B0]">прошли урок <b className="text-[#F2F7FB]">{g.active}</b></span>
+										<span className="text-[#9AA7B0]">уроков <b className="text-[#F2F7FB]">{g.lessons}</b> <span className="text-xs text-[#6B7A83]">({g.passes} прохожд.)</span></span>
+									</summary>
+									<ul className="px-3 pb-2 pt-1 space-y-1 text-sm border-t border-[#2B373D]">
+										{g.list.sort((a, b) => b.lessons - a.lessons).map((x) => (
+											<li key={x.id} className="flex items-center gap-3">
+												<span className="flex-1 truncate">{x.name}</span>
+												<span className="text-xs text-[#6B7A83]">{x.joined ?? 'дата неизвестна'}</span>
+												<span className="w-28 text-right font-bold">{x.lessons} {x.lessons === 1 ? 'урок' : x.lessons >= 2 && x.lessons <= 4 ? 'урока' : 'уроков'}</span>
+												<span className="w-20 text-right text-xs text-[#6B7A83]">{x.passes} прохожд.</span>
+											</li>
+										))}
+									</ul>
+								</details>
 							))}
-						</ul>
+						</div>
 					)}
-					<p className="text-xs text-[#6B7A83] mt-3">Дата регистрации записывается с 30.09.2026 — у более ранних учеников её нет.</p>
+					<p className="text-xs text-[#6B7A83] mt-3">
+						Считаются только друзья, которые зарегистрировались по ссылке. «Уроков» — разные уроки тренажёра (повторы не в счёт). Сколько раз просто открыли ссылку, не записывается. Дата регистрации — с 30.09.2026.
+					</p>
 				</Card>
+				</div>
 
 				<Card title="🌳 Дерево приглашений (всё время)">
 					{treeRoots.length === 0 ? <Empty /> : (
@@ -303,14 +339,6 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 					<p className="text-xs text-[#6B7A83] mt-3">
 						В скобках: привёл сам / всего в ветке. ✅ — прошёл 3 урока (физика или тригонометрия) (пицца по ветке раздана). 🍕 — сколько заработал на приглашениях.
 					</p>
-				</Card>
-
-				<Card title="🧪 Диагностический тест (/test)">
-					<div className="grid grid-cols-3 gap-3">
-						<Stat label="Прошли" value={n(diag.leads)} small />
-						<Stat label="В Telegram-боте" value={`${n(diag.tg)} (${pct(n(diag.tg), n(diag.leads))})`} small />
-						<Stat label="Открыли кейс" value={n(diag.opened)} small />
-					</div>
 				</Card>
 
 				<Card title="🍕 Пицца и Додо">
