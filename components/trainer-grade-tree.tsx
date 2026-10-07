@@ -405,6 +405,7 @@ const StagePath = ({
     const bez = (a: number, c1: number, c2: number, b: number, t: number) => (1 - t) ** 3 * a + 3 * (1 - t) ** 2 * t * c1 + 3 * (1 - t) * t ** 2 * c2 + t ** 3 * b;
     const archPt = archGap >= 0 ? { x: bez(pts[archGap].x, segs[archGap].c1.x, segs[archGap].c2.x, pts[archGap + 1].x, 0.5), y: bez(pts[archGap].y, segs[archGap].c1.y, segs[archGap].c2.y, pts[archGap + 1].y, 0.5) } : null;
     const props: { x: number; y: number; size: number; kind: PropKind }[] = [];
+    let propPool: PropKind[] = [...PROP_KINDS];
     segs.forEach((sg, i) => {
         const a = pts[i], b = pts[i + 1];
         [0.22, 0.4, 0.6, 0.78].forEach((t) => {
@@ -413,7 +414,9 @@ const StagePath = ({
             const right = rnd() > 0.7;
             const dist = 32 + rnd() * 30;
             const x = right ? px + dist : px - dist;
-            const kind = PROP_KINDS[Math.floor(rnd() * PROP_KINDS.length)];
+            // Без повторов внутри юнита, пока не закончится весь набор (чтобы карта была разнообразной).
+            if (!propPool.length) propPool = [...PROP_KINDS];
+            const kind = propPool[Math.floor(rnd() * propPool.length)];
             const size = Math.round((40 + rnd() * 14) * (PROP_SCALE[kind] ?? 1));
             if (x < 14 || x > PATH_W - 14) return;
             // справа — только вдали от подписей (рядом с кнопкой там текст)
@@ -423,6 +426,7 @@ const StagePath = ({
             if (decor.some((d) => Math.abs(py - d.y) < d.size / 2 + size / 2 && Math.abs(x - d.x) < d.size / 2 + size / 2)) return;
             if (archPt && Math.abs(py - archPt.y) < 56 && Math.abs(x - archPt.x) < 70) return;
             if (props.some((q) => Math.hypot(q.x - x, q.y - py) < 40)) return;
+            propPool.splice(propPool.indexOf(kind), 1);
             props.push({ x, y: py, size, kind });
         });
     });

@@ -156,15 +156,21 @@ export const PathDecoration = ({ variant, size = 64, reached = true }: { variant
 // Реквизит по краям тропинки — иконки из Kenney Cartography Pack (CC0, public/map-props/), векторные SVG (вырезаны из
 // cartographyPack_vector.svg). Это тёмные контуры на прозрачном фоне: рисуем их маской и красим в цвет юнита.
 export const PROP_KINDS = [
-    'bush', 'rocks', 'rocksA', 'rocksB', 'rocksTall', 'rocksMountain', 'treePine', 'treePines',
-    'palm', 'cactus', 'tent', 'tipi', 'campfire', 'flag', 'fence', 'well', 'mill', 'houseSmall', 'lighthouse', 'castle',
+    'bush', 'rocks', 'rocksA', 'rocksB', 'rocksTall', 'rocksMountain', 'treePine', 'treePineLarge', 'treePines', 'treePinesSmall',
+    'palm', 'palmLarge', 'cactus', 'cactusLarge', 'tent', 'tipi', 'campfire', 'flag', 'banner', 'fence', 'wall', 'well', 'mill',
+    'waterWheel', 'house', 'houseSmall', 'houseTall', 'houseChimney', 'houseViking', 'houses', 'stable', 'church', 'churchLarge',
+    'tower', 'towerLow', 'towerTall', 'towerWatch', 'watchtower', 'castle', 'castleTall', 'ruins', 'lighthouse', 'dock', 'ship',
+    'bridge', 'bridgeRope', 'mine', 'pyramid', 'vulcano', 'chest', 'compass',
 ] as const;
 export type PropKind = (typeof PROP_KINDS)[number];
 
 // Крупные силуэты — чуть больше обычного размера, мелкая россыпь — меньше.
 export const PROP_SCALE: Partial<Record<PropKind, number>> = {
-    castle: 1.5, lighthouse: 1.25, mill: 1.2, rocksMountain: 1.3, treePines: 1.2, tent: 1.1,
-    bush: 0.8, rocks: 0.8, rocksA: 0.8, rocksB: 0.8, fence: 0.9, campfire: 0.85, flag: 0.9,
+    castle: 1.5, castleTall: 1.5, churchLarge: 1.35, towerTall: 1.35, houses: 1.3, lighthouse: 1.25, mill: 1.2, waterWheel: 1.2,
+    rocksMountain: 1.3, vulcano: 1.35, pyramid: 1.3, ship: 1.25, treePineLarge: 1.25, treePines: 1.2, palmLarge: 1.2, stable: 1.15,
+    tent: 1.1, church: 1.2, tower: 1.15, houseTall: 1.15, mine: 1.15, watchtower: 1.15,
+    bush: 0.8, rocks: 0.8, rocksA: 0.8, rocksB: 0.8, fence: 0.9, campfire: 0.85, flag: 0.9, chest: 0.8, compass: 0.8,
+    cactus: 0.9, treePinesSmall: 0.85, well: 0.85, banner: 0.9, bridgeRope: 1.1, dock: 1.1,
 };
 
 const Mask = ({ name, size, color, opacity }: { name: string; size: number; color: string; opacity: number }) => (
