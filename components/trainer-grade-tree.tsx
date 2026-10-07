@@ -454,7 +454,7 @@ const StagePath = ({
                             <div
                                 className="absolute z-10"
                                 style={{
-                                    top: pct(i === n - 1 ? pt.y - PATH_ROW / 2 - 8 : pt.y + PATH_ROW / 2 + 8, H),
+                                    top: pct(i === n - 1 ? pt.y - PATH_ROW / 2 - 8 : pt.y + PATH_ROW / 2 - 8, H),
                                     left: '60%',
                                     transform: 'translateY(-50%)',
                                 }}
