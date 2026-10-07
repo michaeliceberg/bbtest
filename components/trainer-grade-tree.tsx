@@ -653,6 +653,16 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
     const [activeGroupKey, setActiveGroupKey] = useState<string | null>(defaultGroup ? groupKey(defaultGroup) : null);
     // Простой вид: список юнитов выезжает слева по нажатию на баннер юнита.
     const [unitMenuOpen, setUnitMenuOpen] = useState(false);
+    // Переход по меню: переключаем группу и (если указан раздел) докручиваем к его карточке.
+    const goToGroup = (key: string, topicTitle?: string) => {
+        setActiveGroupKey(key);
+        setUnitMenuOpen(false);
+        setTimeout(() => {
+            const node = topicTitle ? topicRefs.current[topicTitle] : null;
+            if (node) node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            else window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 420);
+    };
     // Переход из справочника — переключаемся на таб с нужной темой.
     useEffect(() => {
         if (!topicParam) return;
@@ -1191,25 +1201,45 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                     const pcts = groupTopics(g).map((t) => t.percentage);
                                     const pct = pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : 0;
                                     return (
-                                        <button
-                                            key={key}
-                                            type="button"
-                                            disabled={locked}
-                                            onClick={() => { setActiveGroupKey(key); setUnitMenuOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                                            className={cn("flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-transform active:translate-y-[3px]", locked && "opacity-45 cursor-not-allowed")}
-                                            style={locked
-                                                ? { background: '#232F34', boxShadow: '0 4px 0 #1B262B' }
-                                                : isActive
-                                                    ? { background: `linear-gradient(135deg, ${col.button}, ${col.bottom})`, boxShadow: `0 4px 0 ${col.bottom}` }
-                                                    : { background: '#1E2A30', border: `1.5px solid ${hexToRgba(col.button, 0.4)}`, boxShadow: '0 4px 0 #161F23' }}
-                                        >
-                                            <span className="flex-1 min-w-0 text-[15px] font-extrabold leading-tight" style={{ color: locked ? '#72838D' : isActive ? '#FFFFFF' : col.button }}>
-                                                {groupLabel(g)}
-                                            </span>
-                                            {locked ? <Lock className="w-4 h-4 text-[#72838D] flex-shrink-0" />
-                                                : isActive ? <Check className="w-5 h-5 text-white flex-shrink-0" />
-                                                : <span className="text-xs font-bold flex-shrink-0" style={{ color: hexToRgba(col.button, 0.85) }}>{pct}%</span>}
-                                        </button>
+                                        <div key={key} className="flex flex-col gap-2">
+                                            <button
+                                                type="button"
+                                                disabled={locked}
+                                                onClick={() => goToGroup(key)}
+                                                className={cn("flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition-transform active:translate-y-[3px]", locked && "opacity-45 cursor-not-allowed")}
+                                                style={locked
+                                                    ? { background: '#232F34', boxShadow: '0 4px 0 #1B262B' }
+                                                    : isActive
+                                                        ? { background: `linear-gradient(135deg, ${col.button}, ${col.bottom})`, boxShadow: `0 4px 0 ${col.bottom}` }
+                                                        : { background: '#1E2A30', border: `1.5px solid ${hexToRgba(col.button, 0.4)}`, boxShadow: '0 4px 0 #161F23' }}
+                                            >
+                                                <span className="flex-1 min-w-0 text-[15px] font-extrabold leading-tight" style={{ color: locked ? '#72838D' : isActive ? '#FFFFFF' : col.button }}>
+                                                    {groupLabel(g)}
+                                                </span>
+                                                {locked ? <Lock className="w-4 h-4 text-[#72838D] flex-shrink-0" />
+                                                    : isActive && g.kind !== 'block' ? <Check className="w-5 h-5 text-white flex-shrink-0" />
+                                                    : <span className="text-xs font-bold flex-shrink-0" style={{ color: isActive ? 'rgba(255,255,255,0.85)' : hexToRgba(col.button, 0.85) }}>{pct}%</span>}
+                                            </button>
+                                            {g.kind === 'block' && !locked && !(g.topics.length === 1 && g.topics[0].title === g.title) && (
+                                                <div className="flex flex-col gap-1.5 ml-3 pl-3 border-l-2" style={{ borderColor: hexToRgba(col.button, 0.35) }}>
+                                                    {g.topics.map((t) => {
+                                                        const tc = getUnitButtonColor(Math.max(0, topics.findIndex((x) => x.id === t.id)));
+                                                        return (
+                                                            <button
+                                                                key={t.id}
+                                                                type="button"
+                                                                onClick={() => goToGroup(key, t.title)}
+                                                                className="flex items-center gap-2 rounded-xl px-3 py-2 text-left transition-colors hover:bg-white/5 active:translate-y-[2px]"
+                                                            >
+                                                                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: tc.button }} />
+                                                                <span className="flex-1 min-w-0 text-[14px] font-bold leading-tight" style={{ color: '#E2EAF0' }}>{t.title}</span>
+                                                                <span className="text-xs font-bold flex-shrink-0" style={{ color: hexToRgba(tc.button, 0.9) }}>{t.percentage}%</span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
                                     );
                                 })}
                             </div>
