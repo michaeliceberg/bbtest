@@ -705,15 +705,34 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
     const [activeGroupKey, setActiveGroupKey] = useState<string | null>(defaultGroup ? groupKey(defaultGroup) : null);
     // Простой вид: список юнитов выезжает слева по нажатию на баннер юнита.
     const [unitMenuOpen, setUnitMenuOpen] = useState(false);
-    // Переход по меню: переключаем группу и (если указан раздел) докручиваем к его карточке.
+    // Раздел, где пользователь сейчас (по нему подсвечиваем пункт меню): тот, чей баннер нажали, либо куда перешли.
+    const [menuTopicId, setMenuTopicId] = useState<number | null>(null);
+    const openUnitMenu = (topicId: number) => {
+        setMenuTopicId(topicId);
+        setUnitMenuOpen(true);
+    };
+    // Переход по меню: переключаем группу и (если указан раздел) докручиваем к его карточке так,
+    // чтобы баннер раздела оказался сразу под шапкой, а не под ней.
     const goToGroup = (key: string, topicTitle?: string) => {
         setActiveGroupKey(key);
         setUnitMenuOpen(false);
+        const target = topicTitle ? topics.find((t) => t.title === topicTitle) : undefined;
+        setMenuTopicId(target?.id ?? null);
+        const go = (smooth: boolean) => {
+            const node = topicTitle ? topicRefs.current[topicTitle] : null;
+            if (node) {
+                const y = node.getBoundingClientRect().top + window.scrollY - 76;
+                window.scrollTo({ top: Math.max(0, y), behavior: (smooth ? 'smooth' : 'instant') as ScrollBehavior });
+            } else {
+                window.scrollTo({ top: 0, behavior: (smooth ? 'smooth' : 'instant') as ScrollBehavior });
+            }
+        };
+        setTimeout(() => go(true), 420);
+        // Дорисовка: если после плавной прокрутки позиция «уплыла» (меню сняло блокировку, поменялась высота) — поправим.
         setTimeout(() => {
             const node = topicTitle ? topicRefs.current[topicTitle] : null;
-            if (node) node.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            else window.scrollTo({ top: 0, behavior: 'smooth' });
-        }, 420);
+            if (node && Math.abs(node.getBoundingClientRect().top - 76) > 10) go(false);
+        }, 1100);
     };
     // Переход из справочника — переключаемся на таб с нужной темой.
     useEffect(() => {
@@ -791,7 +810,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                             return (
                                 <button
                                     type="button"
-                                    onClick={() => setUnitMenuOpen(true)}
+                                    onClick={() => openUnitMenu(topic.id)}
                                     className="relative mb-5 block w-full overflow-hidden rounded-2xl p-4 text-left text-white transition-transform active:translate-y-[4px]"
                                     style={{ background: `linear-gradient(135deg, ${accentIn.button}, ${accentIn.bottom})`, boxShadow: `0 6px 0 ${accentIn.bottom}` }}
                                     aria-label="Выбрать юнит"
@@ -1240,7 +1259,10 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                     </div>
                 )}
                 {simple && renderGroups.length > 1 && (
-                    <Sheet open={unitMenuOpen} onOpenChange={setUnitMenuOpen}>
+                    <Sheet open={unitMenuOpen} onOpenChange={setUnitMenuOpen} modal={false}>
+                        {/* Не модальное окно: у модального блокировка прокрутки сбрасывала страницу в начало.
+                            Затемнение рисуем сами. */}
+                        {unitMenuOpen && <div className="fixed inset-0 z-[99] bg-black/70" onClick={() => setUnitMenuOpen(false)} aria-hidden />}
                         <SheetContent side="left" className="p-0 z-[100] bg-[#151F23] border-[#2B373D] w-[82%] sm:max-w-xs overflow-y-auto">
                             <SheetTitle className="px-5 pt-6 pb-3 text-lg font-extrabold text-white">Юниты</SheetTitle>
                             <div className="flex flex-col gap-2.5 px-4 pb-8">
@@ -1276,15 +1298,17 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                                 <div className="flex flex-col gap-1.5 ml-3 pl-3 border-l-2" style={{ borderColor: hexToRgba(col.button, 0.35) }}>
                                                     {g.topics.map((t) => {
                                                         const tc = getUnitButtonColor(Math.max(0, topics.findIndex((x) => x.id === t.id)));
+                                                        const here = isActive && (menuTopicId != null ? menuTopicId === t.id : g.topics[0].id === t.id);
                                                         return (
                                                             <button
                                                                 key={t.id}
                                                                 type="button"
                                                                 onClick={() => goToGroup(key, t.title)}
                                                                 className="flex items-center gap-2 rounded-xl px-3 py-2 text-left transition-colors hover:bg-white/5 active:translate-y-[2px]"
+                                                                style={here ? { background: hexToRgba(tc.button, 0.22), boxShadow: `inset 0 0 0 1.5px ${hexToRgba(tc.button, 0.7)}` } : undefined}
                                                             >
                                                                 <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: tc.button }} />
-                                                                <span className="flex-1 min-w-0 text-[14px] font-bold leading-tight" style={{ color: '#E2EAF0' }}>{t.title}</span>
+                                                                <span className="flex-1 min-w-0 text-[14px] leading-tight" style={{ color: here ? '#FFFFFF' : '#E2EAF0', fontWeight: here ? 800 : 700 }}>{t.title}</span>
                                                                 <span className="text-xs font-bold flex-shrink-0" style={{ color: hexToRgba(tc.button, 0.9) }}>{t.percentage}%</span>
                                                             </button>
                                                         );
