@@ -1049,6 +1049,23 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             };
         }
 
+        if (t_challenge.type === 'TTPWALK') {
+            // «Теорема о трёх перпендикулярах» — самодостаточный разбор, см. type-ttpwalk.tsx.
+            return {
+                questionType: 'TTPWALK' as const,
+                question: t_challenge.question,
+                imageSrc: t_challenge.imageSrc,
+                options: [],
+                numRans: t_challenge.numRans,
+                optionsQ: [],
+                optionsA: [],
+                optionsConstructRight: [],
+                difficulty: t_challenge.difficulty,
+                correctAnswer: 'right',
+                timeLimit: 999,
+            };
+        }
+
         if (t_challenge.type === 'SIMWALK') {
             // "Подобие треугольников" — самодостаточный разбор, см. type-simwalk.tsx.
             return {

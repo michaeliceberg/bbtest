@@ -1,0 +1,769 @@
+// app/t-lesson/[t_lessonId]/type-ttpwalk.tsx
+//
+// Тип TTPWALK — интерактивный разбор «Теорема о Трёх Перпендикулярах (ТТП)» (стереометрия,
+// ЕГЭ Математика). Накопительный лог сцен как у остальных *WALK: плоскость → наклонная a
+// «протыкает» её в точке X → прямая b в плоскости → вопрос «a ⟂ b?» → проекция a (ученик
+// сам выбирает точку на a, из которой опускается перпендикуляр) → угол 90° → вывод ТТП.
+// Цвета: a — малиновый, b — зелёный, проекция — синий, плоскость — бирюзовый, угол 90° — оранжевый.
+
+'use client'
+
+import { Fragment, createContext, useContext, useEffect, useRef, useState } from 'react'
+import { showAnswerMeme } from '@/components/answer-meme-burst'
+import { motion } from 'framer-motion'
+import type { QuestionType } from './page'
+import {
+    DiagramBlock,
+    pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
+    walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
+    isFieryMilestoneTrial, FieryFeedbackBanner, CORRECT_COLOR,
+    SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
+    useWalkthroughCombo,
+} from '@/components/geometry/WalkthroughLog'
+import { Typewriter } from '@/components/geometry/Typewriter'
+import { InsightCard, InsightWord } from '@/components/geometry/WalkthroughCards'
+import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
+import { cn } from '@/lib/utils'
+import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
+
+type Props = {
+    question: QuestionType
+    onAnswer: (answer: string) => void
+    onComplete: (isCorrect: boolean) => void
+    isAdmin?: boolean
+}
+
+const CONCEPT_PAUSE_MS = 1000
+
+const Sticker = ({ value, color }: { value: React.ReactNode; color: string }) => (
+    <motion.span
+        initial={{ scale: 2.4, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 15 }}
+        className="inline-flex items-center justify-center rounded-lg border-2 px-1.5 py-0.5 font-extrabold align-middle leading-none"
+        style={{ borderColor: color, backgroundColor: hexToRgba(color, 0.18), color }}
+    >
+        {value}
+    </motion.span>
+)
+
+// Печатаемая строка с НЕСКОЛЬКИМИ стикерами в произвольных местах — та же
+// техника, что и в LOGCOMBOWALK/FARADAYWALK: Typewriter печатает ПЛОСКУЮ
+// строку (значения стикеров как обычный текст), после onDone вид
+// подменяется на размеченную версию. break:true — печатается как обычный
+// пробел, после onDone превращается в настоящий перенос строки (для
+// принудительного разрыва в конкретном месте). bold — жирный текст БЕЗ
+// цветной рамки (смысловое усиление слова, не термин-объект).
+type LinePart = { text: string } | { sticker: string; color: string } | { break: true } | { bold: string }
+const TypedLineWithParts = ({ parts, onSettled }: { parts: LinePart[]; onSettled?: () => void }) => {
+    const [typed, setTyped] = useState(false)
+    const plainText = parts.map((p) => ('text' in p ? p.text : 'sticker' in p ? p.sticker : 'bold' in p ? p.bold : ' ')).join('')
+    return (
+        <div className="w-full text-center text-base md:text-lg text-[#F2F7FB]">
+            {!typed ? (
+                <Typewriter text={plainText} onDone={() => { setTyped(true); setTimeout(() => onSettled?.(), 450) }} />
+            ) : (
+                <>
+                    {parts.map((p, i) => ('text' in p
+                        ? <span key={i}>{p.text}</span>
+                        : 'sticker' in p
+                            ? <Sticker key={i} value={p.sticker} color={p.color} />
+                            : 'bold' in p
+                                ? <strong key={i} className="font-extrabold">{p.bold}</strong>
+                                : <br key={i} />
+                    ))}
+                </>
+            )}
+        </div>
+    )
+}
+
+// SVG-версия стикера — маленькая рамка+буква, встроенная прямо в
+// диаграмму (тот же визуальный язык, что и HTML-Sticker выше). ВАЖНО:
+// позиционирующий transform — на СТАТИЧНОМ внешнем <g>, а не на самом
+// motion.g — framer-motion для анимируемой группы перезаписывает
+// transform/style своими motion-values (нужными для scale) и стирает
+// вручную заданный transform-атрибут (тот же гэтча, что уже
+// задокументирован в CLAUDE.md для motion.g в геометрических разборах).
+const SvgTag = ({ x, y, text, color, delay = 0 }: { x: number; y: number; text: string; color: string; delay?: number }) => (
+    <g transform={`translate(${x},${y})`}>
+        <motion.g
+            initial={{ opacity: 0, scale: 2.4 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 15, delay }}
+        >
+            <rect x={-14} y={-14} width={28} height={28} rx={7} fill={hexToRgba(color, 0.18)} stroke={color} strokeWidth={2} />
+            <text x={0} y={6} textAnchor="middle" fontSize={16} fontWeight={800} fill={color}>{text}</text>
+        </motion.g>
+    </g>
+)
+
+
+// ===================================================================
+// ЧЕРТЁЖ: плоскость, наклонная a, прямая b, проекция (косая проекция 3D→2D)
+// ===================================================================
+// Оси: x — вправо, y — вглубь (на экране вверх-вправо, укороченно), z — вверх.
+// Прямая a лежит в плоскости y–z, прямая b вдоль x ⇒ в 3D они перпендикулярны
+// (поэтому в итоге «угол 90°» — честная картинка, а не обман глаза).
+
+const VB_W = 340, VB_H = 250
+const U = 22, OX = 22, OY = 190
+const P3 = (x: number, y: number, z: number) => ({ x: OX + (x + 0.75 * y) * U, y: OY - (z + 0.5 * y) * U })
+const ptStr = (x: number, y: number, z: number) => { const p = P3(x, y, z); return `${p.x.toFixed(1)},${p.y.toFixed(1)}` }
+
+const A_COLOR = GGEGE_PALETTE.raspberry.button
+const B_COLOR = GGEGE_PALETTE.green.button
+const PROJ_COLOR = GGEGE_PALETTE.blue.button
+const PLANE_COLOR = GGEGE_PALETTE.teal.button
+const MARK_COLOR = GGEGE_PALETTE.orange.button
+const X_COLOR = '#F2F7FB'
+
+// Точка X, где a прокалывает плоскость; a(s) = X + s·(0, 1, 1.4)
+const X3 = { x: 5, y: 1.2, z: 0 }
+const aPoint = (s: number) => ({ x: 5, y: X3.y + s, z: 1.4 * s })
+const S_LOW = -1.2, S_HIGH = 3.4
+const CANDIDATES = [1.8, 2.6, 3.3]
+const DEFAULT_PICK = 2.6
+
+const PickCtx = createContext<{ pick: number | null; setPick: (s: number | null) => void }>({ pick: null, setPick: () => {} })
+
+const DrawPath = ({ d, color, w = 3, fresh, delay = 0, dur = 0.9 }: { d: string; color: string; w?: number; fresh: boolean; delay?: number; dur?: number }) => (
+    <motion.path
+        d={d} fill="none" stroke={color} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round"
+        initial={fresh ? { pathLength: 0, opacity: 0 } : { pathLength: 1, opacity: 1 }}
+        animate={{ pathLength: 1, opacity: 1 }}
+        transition={{ duration: dur, delay, ease: 'easeOut' }}
+    />
+)
+
+const FadeIn = ({ children, fresh, delay = 0 }: { children: React.ReactNode; fresh: boolean; delay?: number }) => (
+    <motion.g initial={{ opacity: fresh ? 0 : 1 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay }}>{children}</motion.g>
+)
+
+const Dot = ({ x, y, color, fresh, delay = 0 }: { x: number; y: number; color: string; fresh: boolean; delay?: number }) => (
+    <g transform={`translate(${x},${y})`}>
+        <motion.circle
+            r={5.5} fill={color} stroke="#0B1216" strokeWidth={1.5}
+            initial={fresh ? { opacity: 0 } : { opacity: 1 }} animate={{ opacity: 1 }} transition={{ duration: 0.3, delay }}
+        />
+    </g>
+)
+
+const rightAngleMark = (o: { x: number; y: number; z: number }, d1: [number, number, number], d2: [number, number, number]) =>
+    `M${ptStr(o.x + d1[0], o.y + d1[1], o.z + d1[2])} L${ptStr(o.x + d1[0] + d2[0], o.y + d1[1] + d2[1], o.z + d1[2] + d2[2])} L${ptStr(o.x + d2[0], o.y + d2[1], o.z + d2[2])}`
+
+const Figure = ({ scene, pick, beat = 0, onPick }: { scene: number; pick: number | null; beat?: number; onPick?: (s: number) => void }) => {
+    const hasA = scene >= 1
+    const hasB = scene >= 2
+    const s = pick ?? (scene >= 5 ? DEFAULT_PICK : null)
+    const later = scene > 4
+    const showPerp = s != null && (later || (scene === 4 && beat >= 1))
+    const showH = s != null && (later || (scene === 4 && beat >= 2))
+    const showProj = s != null && (later || (scene === 4 && beat >= 3))
+    const fresh4 = scene === 4
+
+    const Xp = P3(X3.x, X3.y, 0)
+    const planeCorners = [[0, 0], [10, 0], [10, 5], [0, 5]]
+    const planePts = planeCorners.map(([x, y]) => ptStr(x, y, 0)).join(' ')
+    const planePath = `M${planeCorners.map(([x, y]) => ptStr(x, y, 0)).join(' L')} Z`
+
+    const lowEnd = aPoint(S_LOW), hiEnd = aPoint(S_HIGH)
+    const aSolid = `M${ptStr(X3.x, X3.y, 0)} L${ptStr(hiEnd.x, hiEnd.y, hiEnd.z)}`
+    const aHidden = `M${ptStr(lowEnd.x, lowEnd.y, lowEnd.z)} L${ptStr(X3.x, X3.y, 0)}`
+    const bPath = `M${ptStr(0.8, X3.y, 0)} L${ptStr(9.2, X3.y, 0)}`
+
+    const aTop = P3(hiEnd.x, hiEnd.y, hiEnd.z)
+    const bEnd = P3(9.2, X3.y, 0)
+
+    let projEl: React.ReactNode = null
+    if (s != null) {
+        const pP = aPoint(s)
+        const H = P3(5, X3.y + s, 0)
+        const Pp = P3(pP.x, pP.y, pP.z)
+        const dx = H.x - Xp.x, dy = H.y - Xp.y
+        const len = Math.hypot(dx, dy)
+        let nx = -dy / len, ny = dx / len
+        if (ny < 0) { nx = -nx; ny = -ny }
+        const angle = (Math.atan2(dy, dx) * 180) / Math.PI
+        const tx = (Xp.x + H.x) / 2 + nx * 17, ty = (Xp.y + H.y) / 2 + ny * 17
+        projEl = (
+            <>
+                {showPerp && (
+                    <>
+                        <DrawPath d={`M${Pp.x},${Pp.y} L${H.x},${H.y}`} color={X_COLOR} w={2.6} fresh={fresh4} dur={0.8} />
+                        <Dot x={Pp.x} y={Pp.y} color={A_COLOR} fresh={fresh4} />
+                    </>
+                )}
+                {showH && (
+                    <>
+                        <FadeIn fresh={fresh4}>
+                            <path d={rightAngleMark({ x: 5, y: X3.y + s, z: 0 }, [0, -0.5, 0], [0, 0, 0.5])} fill="none" stroke={MARK_COLOR} strokeWidth={2} strokeLinecap="round" />
+                        </FadeIn>
+                        <Dot x={H.x} y={H.y} color={PROJ_COLOR} fresh={fresh4} />
+                        <SvgTag x={H.x + 22} y={H.y - 4} text="H" color={PROJ_COLOR} delay={fresh4 ? 0.2 : 0} />
+                    </>
+                )}
+                {showProj && (
+                    <>
+                        <DrawPath d={`M${Xp.x},${Xp.y} L${H.x},${H.y}`} color={PROJ_COLOR} w={4.5} fresh={fresh4} dur={0.9} />
+                        <g transform={`translate(${tx},${ty}) rotate(${angle})`}>
+                            <motion.text
+                                x={0} y={4} textAnchor="middle" fontSize={12} fontWeight={800} fill={PROJ_COLOR}
+                                initial={fresh4 ? { opacity: 0 } : { opacity: 1 }} animate={{ opacity: 1 }}
+                                transition={{ duration: 0.5, delay: fresh4 ? 0.9 : 0 }}
+                            >
+                                проекция a
+                            </motion.text>
+                        </g>
+                    </>
+                )}
+            </>
+        )
+    }
+
+    const alphaP = P3(9.4, 0.5, 0)
+    return (
+        <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="w-full max-w-[340px] mx-auto" style={{ overflow: 'visible' }}>
+            {/* плоскость */}
+            <motion.polygon
+                points={planePts} fill={hexToRgba(PLANE_COLOR, 0.16)}
+                initial={{ opacity: scene === 0 ? 0 : 1 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.5 }}
+            />
+            <DrawPath d={planePath} color={PLANE_COLOR} w={3} fresh={scene === 0} dur={1.1} />
+            <text x={alphaP.x} y={alphaP.y + 5} fontSize={17} fontStyle="italic" fill={PLANE_COLOR} fontWeight={700}>α</text>
+
+            {/* часть a под плоскостью — «за плоскостью», пунктир */}
+            {hasA && (
+                <FadeIn fresh={scene === 1} delay={0.2}>
+                    <path d={aHidden} fill="none" stroke={A_COLOR} strokeWidth={3} strokeDasharray="6 6" strokeLinecap="round" opacity={0.55} />
+                </FadeIn>
+            )}
+            {hasB && <DrawPath d={bPath} color={B_COLOR} w={4} fresh={scene === 2} />}
+            {hasA && <DrawPath d={aSolid} color={A_COLOR} w={4} fresh={scene === 1} />}
+            {hasA && <Dot x={Xp.x} y={Xp.y} color={X_COLOR} fresh={scene === 1} delay={1.0} />}
+            {hasA && <SvgTag x={Xp.x - 17} y={Xp.y + 16} text="X" color={X_COLOR} delay={scene === 1 ? 1.1 : 0} />}
+            {hasA && <SvgTag x={aTop.x + 18} y={aTop.y + 2} text="a" color={A_COLOR} delay={scene === 1 ? 1.0 : 0} />}
+            {hasB && <SvgTag x={bEnd.x + 4} y={bEnd.y - 17} text="b" color={B_COLOR} delay={scene === 2 ? 0.9 : 0} />}
+
+            {projEl}
+
+            {/* угол 90° между проекцией и b */}
+            {scene >= 5 && (
+                <>
+                    <FadeIn fresh={scene === 5} delay={0.2}>
+                        <path d={rightAngleMark(X3, [0.6, 0, 0], [0, 0.6, 0])} fill="none" stroke={MARK_COLOR} strokeWidth={2.4} strokeLinecap="round" />
+                    </FadeIn>
+                </>
+            )}
+
+            {/* точки на a, из которых можно опустить перпендикуляр */}
+            {scene === 4 && pick == null && onPick && CANDIDATES.map((c) => {
+                const p = aPoint(c); const q = P3(p.x, p.y, p.z)
+                return (
+                    <g key={c} onClick={() => onPick(c)} style={{ cursor: 'pointer' }}>
+                        <circle cx={q.x} cy={q.y} r={20} fill="transparent" />
+                        <motion.circle cx={q.x} cy={q.y} r={13} fill="none" stroke={A_COLOR} strokeWidth={2}
+                            animate={{ opacity: [0.15, 0.7, 0.15] }} transition={{ duration: 1.4, repeat: Infinity }} />
+                        <circle cx={q.x} cy={q.y} r={6.5} fill={A_COLOR} stroke="#0B1216" strokeWidth={1.5} />
+                    </g>
+                )
+            })}
+        </svg>
+    )
+}
+
+type SceneProps = { onSettled?: () => void; leaving?: boolean }
+
+const SceneBox = ({ children }: { children: React.ReactNode }) => <div className="w-full flex flex-col items-center gap-3">{children}</div>
+
+// Диаграмма появляется ПОСЛЕ печати текста (текст → чертёж → пауза), а потом сцена готова.
+const useAfterTyped = () => {
+    const [typed, setTyped] = useState(false)
+    return { typed, onTyped: () => setTyped(true) }
+}
+
+const PlaneScene = ({ onSettled }: SceneProps) => {
+    const { typed, onTyped } = useAfterTyped()
+    return (
+        <SceneBox>
+            <TypedLineWithParts parts={[{ text: 'Нарисуем ' }, { sticker: 'плоскость', color: PLANE_COLOR }, { text: '.' }]} onSettled={onTyped} />
+            {typed && <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1500)}><Figure scene={0} pick={null} /></DiagramBlock>}
+        </SceneBox>
+    )
+}
+
+const InclinedScene = ({ onSettled }: SceneProps) => {
+    const { typed, onTyped } = useAfterTyped()
+    return (
+        <SceneBox>
+            <TypedLineWithParts
+                parts={[{ text: 'Наклонная прямая ' }, { sticker: 'a', color: A_COLOR }, { text: ' «протыкает» плоскость в точке ' }, { sticker: 'X', color: X_COLOR }, { text: '.' }]}
+                onSettled={onTyped}
+            />
+            {typed && <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1800)}><Figure scene={1} pick={null} /></DiagramBlock>}
+        </SceneBox>
+    )
+}
+
+const LineBScene = ({ onSettled }: SceneProps) => {
+    const { typed, onTyped } = useAfterTyped()
+    return (
+        <SceneBox>
+            <TypedLineWithParts
+                parts={[{ text: 'В точке ' }, { sticker: 'X', color: X_COLOR }, { text: ' проведём в плоскости ещё одну прямую ' }, { sticker: 'b', color: B_COLOR }, { text: '.' }]}
+                onSettled={onTyped}
+            />
+            {typed && <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1600)}><Figure scene={2} pick={null} /></DiagramBlock>}
+        </SceneBox>
+    )
+}
+
+const GuessBtn = ({ children, onClick, color }: { children: React.ReactNode; onClick: () => void; color: string }) => (
+    <button type="button" onClick={onClick} className="flex-1 rounded-xl border-2 px-3 py-3 text-base font-black active:translate-y-[2px]"
+        style={{ borderColor: color, backgroundColor: hexToRgba(color, 0.14), color }}>
+        {children}
+    </button>
+)
+
+const QuestionScene = ({ onSettled }: SceneProps) => {
+    const [shown, setShown] = useState(false)
+    const [asked, setAsked] = useState(false)
+    return (
+        <SceneBox>
+            <DiagramBlock><Figure scene={3} pick={null} /></DiagramBlock>
+            <TypedLineWithParts
+                parts={[{ text: 'Прямая ' }, { sticker: 'a', color: A_COLOR }, { text: ' перпендикулярна ли прямой ' }, { sticker: 'b', color: B_COLOR }, { text: '?' }]}
+                onSettled={() => setShown(true)}
+            />
+            {shown && !asked && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full flex gap-2">
+                    <GuessBtn color={PROJ_COLOR} onClick={() => setAsked(true)}>Да</GuessBtn>
+                    <GuessBtn color={PROJ_COLOR} onClick={() => setAsked(true)}>Нет</GuessBtn>
+                    <GuessBtn color={MARK_COLOR} onClick={() => setAsked(true)}>Не знаю 🤔</GuessBtn>
+                </motion.div>
+            )}
+            {asked && (
+                <TypedLineWithParts
+                    parts={[
+                        { text: 'Глазами не поймёшь 😅 Чтобы узнать, проверим: ' }, { bold: 'перпендикулярна ли ' },
+                        { sticker: 'проекция a', color: PROJ_COLOR }, { text: ' прямой ' }, { sticker: 'b', color: B_COLOR }, { text: '?' },
+                    ]}
+                    onSettled={() => onSettled?.()}
+                />
+            )}
+        </SceneBox>
+    )
+}
+
+const ProjectionScene = ({ onSettled }: SceneProps) => {
+    const { pick, setPick } = useContext(PickCtx)
+    const [typed, setTyped] = useState(false)
+    const [beat, setBeat] = useState(0)
+    const [lineTwo, setLineTwo] = useState(false)
+    // сцена начинается заново — прошлый выбор точки сбрасываем
+    useEffect(() => { setPick(null) }, [setPick])
+    useEffect(() => {
+        if (pick == null) return
+        const t1 = setTimeout(() => setBeat(1), 150)
+        const t2 = setTimeout(() => { setBeat(2); setLineTwo(true) }, 1250)
+        const t3 = setTimeout(() => setBeat(3), 2600)
+        const t4 = setTimeout(() => onSettled?.(), 4300)
+        return () => { [t1, t2, t3, t4].forEach(clearTimeout) }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pick])
+    return (
+        <SceneBox>
+            <TypedLineWithParts
+                parts={[{ text: 'Из любой точки прямой ' }, { sticker: 'a', color: A_COLOR }, { text: ' опустим перпендикуляр на плоскость. ' }, { bold: 'Выбери точку 👇' }]}
+                onSettled={() => setTyped(true)}
+            />
+            {typed && (
+                <DiagramBlock>
+                    <Figure scene={4} pick={pick} beat={beat} onPick={(s) => setPick(s)} />
+                </DiagramBlock>
+            )}
+            {lineTwo && (
+                <TypedLineWithParts
+                    parts={[
+                        { text: 'Получили точку ' }, { sticker: 'H', color: PROJ_COLOR }, { text: '. Соединим ' }, { sticker: 'H', color: PROJ_COLOR },
+                        { text: ' с ' }, { sticker: 'X', color: X_COLOR }, { text: ' — это ' }, { sticker: 'проекция a', color: PROJ_COLOR }, { text: '.' },
+                    ]}
+                />
+            )}
+        </SceneBox>
+    )
+}
+
+const NinetyScene = ({ onSettled }: SceneProps) => {
+    const { pick } = useContext(PickCtx)
+    const [typed, setTyped] = useState(false)
+    const [second, setSecond] = useState(false)
+    return (
+        <SceneBox>
+            <TypedLineWithParts
+                parts={[
+                    { text: 'Если проекция перпендикулярна ' }, { sticker: 'b', color: B_COLOR }, { text: ' — получился угол ' }, { sticker: '90°', color: MARK_COLOR }, { text: '…' },
+                ]}
+                onSettled={() => setTyped(true)}
+            />
+            {typed && <DiagramBlock onSettled={() => setTimeout(() => setSecond(true), 1300)}><Figure scene={5} pick={pick} /></DiagramBlock>}
+            {second && (
+                <>
+                    <TypedLineWithParts
+                        parts={[{ text: '…то и угол между ' }, { sticker: 'a', color: A_COLOR }, { text: ' и ' }, { sticker: 'b', color: B_COLOR }, { text: ' тоже ' }, { sticker: '90°', color: MARK_COLOR }, { text: '!' }]}
+                        onSettled={() => onSettled?.()}
+                    />
+                    <motion.div
+                        initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.55, delay: 0.4 }}
+                        className="rounded-2xl border-2 px-5 py-3 text-2xl font-black"
+                        style={{ borderColor: MARK_COLOR, backgroundColor: hexToRgba(MARK_COLOR, 0.16), color: MARK_COLOR }}
+                    >
+                        ∠(a, b) = 90°
+                    </motion.div>
+                </>
+            )}
+        </SceneBox>
+    )
+}
+
+const TheoremScene = ({ onSettled }: SceneProps) => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => { const t = setTimeout(() => onSettled?.(), 1800); return () => clearTimeout(t) }, [])
+    return (
+        <SceneBox>
+            <InsightCard label="💡 ТТП">
+                Проекция наклонной ⟂ прямой в плоскости — значит и <InsightWord>сама наклонная ⟂ ей</InsightWord>
+            </InsightCard>
+            <p className="text-center text-base md:text-lg text-[#F2F7FB]">
+                Это и есть <b>Теорема о Трёх Перпендикулярах</b> (ТТП) 🎉
+            </p>
+        </SceneBox>
+    )
+}
+
+const CONCEPT_SCENES = [PlaneScene, InclinedScene, LineBScene, QuestionScene, ProjectionScene, NinetyScene, TheoremScene]
+const INTRO_CONCEPT_STEPS = CONCEPT_SCENES.length
+
+const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
+    const [step, setStep] = useState(0)
+    const [stepReady, setStepReady] = useState(false)
+    const [advancing, setAdvancing] = useState(false)
+    const [nextLabel, setNextLabel] = useState('Дальше')
+    useEffect(() => { setNextLabel(pickWalkthroughNextLabel('Дальше')) }, [step])
+
+    const { bump: bumpNonce, nonceFor } = useReplayNonces()
+    const latestSceneKey = `step-${step}`
+    const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, stepReady)
+    const canGoBack = step > 0
+    const handleReplay = () => { bumpNonce(latestSceneKey); setStepReady(false) }
+    const handleBack = () => {
+        if (advancing || step === 0) return
+        const target = step - 1
+        bumpNonce(`step-${target}`)
+        setStep(target)
+        setStepReady(false)
+    }
+    const handleNext = () => {
+        if (advancing) return
+        setAdvancing(true)
+        setTimeout(() => {
+            if (step + 1 >= INTRO_CONCEPT_STEPS) onDone()
+            else { setStep((s) => s + 1); setStepReady(false) }
+            setAdvancing(false)
+        }, CONCEPT_PAUSE_MS)
+    }
+
+    return (
+        <div className="mx-auto flex w-full max-w-md flex-col items-center gap-4 px-1 pb-8">
+            <div className="w-full flex flex-col gap-4">
+                {CONCEPT_SCENES.map((Scene, i) =>
+                    step >= i ? (
+                        <SceneWrapper key={`step-${i}`} innerRef={sceneRef(`step-${i}`)} active={isSceneActive(`step-${i}`)}>
+                            <Fragment key={`step-${i}-${nonceFor(`step-${i}`)}`}>
+                                <Scene onSettled={() => i === step && setStepReady(true)} leaving={advancing && i === step} />
+                            </Fragment>
+                        </SceneWrapper>
+                    ) : null,
+                )}
+            </div>
+            <div className="w-full flex items-center gap-2">
+                <ReplayButton onClick={handleReplay} disabled={advancing} />
+                <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
+                <button type="button" onClick={handleNext} disabled={!stepReady || advancing}
+                    className={walkthroughButtonClass(stepReady && !advancing)} style={walkthroughButtonStyle(stepReady && !advancing)}>
+                    {nextLabel}
+                </button>
+            </div>
+        </div>
+    )
+}
+
+type ConceptQuizItem = {
+    renderPrompt: () => React.ReactNode
+    renderOptions: () => React.ReactNode[]
+    correct: number
+    feedback: string
+    // Опциональная картинка над вопросом (мнемоника/шутка) — рендерится
+    // ТОЛЬКО у этого конкретного вопроса, см. renderImage в JSX ниже.
+    renderImage?: () => React.ReactNode
+}
+const CONCEPT_QUIZ: ConceptQuizItem[] = [
+    {
+        renderPrompt: () => <>Как получить <Sticker value="проекцию a" color={PROJ_COLOR} />?</>,
+        renderOptions: () => ['Опустить перпендикуляр из точки a на плоскость и соединить его основание с X', 'Просто провести линию вдоль плоскости'],
+        correct: 0,
+        feedback: 'Перпендикуляр на плоскость → точка H → отрезок HX и есть проекция.',
+    },
+    {
+        renderPrompt: () => <>Проекция <Sticker value="a" color={A_COLOR} /> ⟂ <Sticker value="b" color={B_COLOR} />. Тогда сама <Sticker value="a" color={A_COLOR} /> и <Sticker value="b" color={B_COLOR} />…</>,
+        renderOptions: () => ['перпендикулярны (90°)', 'параллельны'],
+        correct: 0,
+        feedback: 'Проекция ⟂ b — значит и наклонная ⟂ b. Это ТТП!',
+    },
+    {
+        renderPrompt: () => <>Проекция <Sticker value="a" color={A_COLOR} /> <b>НЕ</b> перпендикулярна <Sticker value="b" color={B_COLOR} />. Тогда <Sticker value="a" color={A_COLOR} /> и <Sticker value="b" color={B_COLOR} />…</>,
+        renderOptions: () => ['не перпендикулярны', 'всё равно перпендикулярны'],
+        correct: 0,
+        feedback: 'Работает в обе стороны: нет 90° у проекции — нет 90° и у наклонной.',
+    },
+    {
+        renderPrompt: () => <>Как называется эта теорема?</>,
+        renderOptions: () => ['Теорема о Трёх Перпендикулярах (ТТП)', 'Теорема о Трёх Медведях'],
+        correct: 0,
+        feedback: 'ТТП: перпендикуляр к плоскости, проекция и наклонная.',
+    },
+    {
+        renderPrompt: () => <>Бонус! Кто теперь разбирается в стереометрии? 😎</>,
+        renderOptions: () => ['Я! 🔥'],
+        correct: 0,
+        feedback: 'Без вариантов — ты! Дальше будем решать задачи ЕГЭ 🚀',
+    },
+]
+
+const pickQuizFeedbackPhrase = (i: number): string =>
+    CORRECT_FEEDBACK_PHRASES[i % CORRECT_FEEDBACK_PHRASES.length]
+
+const CONCEPT_QUIZ_TITLE = 'Проверим себя'
+
+const QuizAnswerButton = ({
+    children, onClick, disabled, state,
+}: { children: React.ReactNode; onClick?: () => void; disabled?: boolean; state: 'idle' | 'correct' | 'wrong' }) => (
+    <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        className={cn(
+            'flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl border-2 text-base md:text-lg font-bold text-center transition-colors',
+            state === 'correct' && 'border-[#A1D151] bg-[#A1D15122] text-[#A1D151]',
+            state === 'wrong' && 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]',
+            state === 'idle' && 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]',
+        )}
+    >
+        {children}
+    </button>
+)
+
+const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void }) => {
+    const [trialIndex, setTrialIndex] = useState(0)
+    const [checked, setChecked] = useState(false)
+    const [wrongTried, setWrongTried] = useState<number[]>([])
+    const registerCombo = useWalkthroughCombo()
+    const [wrongFlash, setWrongFlash] = useState<string | null>(null)
+    const [hadMistake, setHadMistake] = useState(false)
+    const [advancing, setAdvancing] = useState(false)
+    const [nextLabel, setNextLabel] = useState('Дальше')
+
+    const { bump: bumpNonce, nonceFor } = useReplayNonces()
+    const latestSceneKey = `q-${trialIndex}`
+    const { isActive: isSceneActive, sceneRef } = useSceneFocus(latestSceneKey, checked)
+    const canGoBack = trialIndex > 0
+    const handleReplay = () => bumpNonce(latestSceneKey)
+    const handleBack = () => {
+        if (advancing || trialIndex === 0) return
+        const target = trialIndex - 1
+        bumpNonce(`q-${target}`)
+        setTrialIndex(target)
+        setChecked(false)
+        setWrongTried([])
+        setWrongFlash(null)
+    }
+
+    const handlePick = (i: number, k: number) => {
+        if (checked || wrongTried.includes(k)) return
+        if (k === CONCEPT_QUIZ[i].correct) {
+            registerCombo(wrongTried.length === 0)
+            showAnswerMeme(true)
+            setChecked(true)
+            setNextLabel(pickWalkthroughNextLabel(trialIndex + 1 >= CONCEPT_QUIZ.length ? 'Готово' : 'Дальше'))
+        } else {
+            playSound(WRONG_ANSWER_SOUND)
+            setHadMistake(true)
+            showAnswerMeme(false)
+            setWrongTried((w) => [...w, k])
+            setWrongFlash(pickWrongTryPhrase())
+        }
+    }
+
+    const handleNext = () => {
+        if (advancing) return
+        setAdvancing(true)
+        setTimeout(() => {
+            const isLast = trialIndex + 1 >= CONCEPT_QUIZ.length
+            if (isLast) {
+                setAdvancing(false)
+                onDone(hadMistake)
+                return
+            }
+            setTrialIndex((i) => i + 1)
+            setChecked(false)
+            setWrongTried([])
+            setWrongFlash(null)
+            setAdvancing(false)
+        }, CONCEPT_PAUSE_MS)
+    }
+
+    return (
+        <div className="mx-auto flex w-full max-w-md flex-col items-center gap-4 px-1 pb-8">
+            <div className="w-full flex flex-col gap-4">
+                {Array.from({ length: trialIndex + 1 }).map((_, i) => {
+                    const qq = CONCEPT_QUIZ[i]
+                    const isCurrent = i === trialIndex
+                    const isDone = i < trialIndex || (isCurrent && checked)
+                    const opts = qq.renderOptions()
+                    return (
+                        <SceneWrapper key={`q-${i}`} innerRef={sceneRef(`q-${i}`)} active={isSceneActive(`q-${i}`)}>
+                            <Fragment key={`q-${i}-${nonceFor(`q-${i}`)}`}>
+                                {i === 0 && (
+                                    <div className="w-full flex items-center gap-3" aria-hidden>
+                                        <div className="flex-1 h-px bg-[#3A464E]" />
+                                        <span className="text-xs font-bold uppercase tracking-wide text-[#5C6B73]">{CONCEPT_QUIZ_TITLE}</span>
+                                        <div className="flex-1 h-px bg-[#3A464E]" />
+                                    </div>
+                                )}
+                                <div className="relative w-full flex items-center gap-2">
+                                    <div
+                                        className="absolute left-0 top-1/2 -translate-y-1/2 shrink-0 flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
+                                        style={{
+                                            borderColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.55),
+                                            backgroundColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.16),
+                                            color: GGEGE_PALETTE.purple.button,
+                                        }}
+                                    >
+                                        <span>{i + 1}</span>
+                                        <span className="opacity-50 font-normal">/</span>
+                                        <span>{CONCEPT_QUIZ.length}</span>
+                                    </div>
+                                    <p className={cn(
+                                        'flex-1 min-w-0 pl-16 text-base md:text-lg text-[#F2F7FB] text-center font-bold',
+                                        qq.renderImage ? 'pr-1' : 'pr-16',
+                                    )}>
+                                        {qq.renderPrompt()}
+                                    </p>
+                                    {qq.renderImage && (
+                                        <motion.div
+                                            initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
+                                            className="shrink-0"
+                                        >
+                                            {qq.renderImage()}
+                                        </motion.div>
+                                    )}
+                                </div>
+                                {isCurrent && !checked && (
+                                    <>
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {opts.map((opt, oi) => {
+                                                const isWrongTriedOpt = wrongTried.includes(oi)
+                                                return (
+                                                    <QuizAnswerButton
+                                                        key={oi}
+                                                        state={isWrongTriedOpt ? 'wrong' : 'idle'}
+                                                        disabled={isWrongTriedOpt}
+                                                        onClick={() => handlePick(i, oi)}
+                                                    >
+                                                        {opt}
+                                                    </QuizAnswerButton>
+                                                )
+                                            })}
+                                        </div>
+                                        {wrongFlash && (
+                                            <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">
+                                                {wrongFlash}
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                                {isDone && (
+                                    <>
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {opts.map((opt, oi) => {
+                                                const isCorrectOpt = oi === qq.correct
+                                                const isWrongTriedOpt = isCurrent && wrongTried.includes(oi)
+                                                return (
+                                                    <QuizAnswerButton
+                                                        key={oi}
+                                                        disabled
+                                                        state={isCorrectOpt ? 'correct' : (isWrongTriedOpt ? 'wrong' : 'idle')}
+                                                    >
+                                                        {opt}
+                                                    </QuizAnswerButton>
+                                                )
+                                            })}
+                                        </div>
+                                        <FieryFeedbackBanner fiery={isCurrent && isFieryMilestoneTrial(i)}>
+                                            <div className="text-center">
+                                                <div className="font-extrabold" style={{ color: CORRECT_COLOR }}>
+                                                    {pickQuizFeedbackPhrase(i)}
+                                                </div>
+                                                <div className="mt-1 text-sm text-[#F2F7FB]">{qq.feedback}</div>
+                                            </div>
+                                        </FieryFeedbackBanner>
+                                    </>
+                                )}
+                                {isCurrent && checked && <LocalAnswerConfetti />}
+                            </Fragment>
+                        </SceneWrapper>
+                    )
+                })}
+            </div>
+
+            {checked && (
+                <div className="w-full flex items-center gap-2">
+                    <ReplayButton onClick={handleReplay} disabled={advancing} />
+                    <BackButton onClick={handleBack} disabled={advancing || !canGoBack} />
+                    <button
+                        type="button"
+                        onClick={handleNext}
+                        disabled={advancing}
+                        className={walkthroughButtonClass(!advancing)}
+                        style={walkthroughButtonStyle(!advancing)}
+                    >
+                        {trialIndex + 1 >= CONCEPT_QUIZ.length ? 'Готово' : nextLabel}
+                    </button>
+                </div>
+            )}
+        </div>
+    )
+}
+// ===== Основной компонент =====
+
+export const TypeTtpWalk = ({ onAnswer, onComplete }: Props) => {
+    const [phase, setPhase] = useState<'concept' | 'quiz'>('concept')
+    const [pick, setPick] = useState<number | null>(null)
+    const finishedRef = useRef(false)
+
+    const handleFinish = (hadMistake: boolean) => {
+        if (finishedRef.current) return
+        finishedRef.current = true
+        onComplete(!hadMistake)
+        onAnswer(hadMistake ? 'wrong' : 'right')
+    }
+
+    if (phase === 'concept') {
+        return (
+            <PickCtx.Provider value={{ pick, setPick }}>
+                <ConceptPhase onDone={() => setPhase('quiz')} />
+            </PickCtx.Provider>
+        )
+    }
+    return <ConceptQuizPhase onDone={handleFinish} />
+}
