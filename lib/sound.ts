@@ -158,6 +158,8 @@ export const CASE_PRIZE_SOUND = '/snd-unboxing-prize.mp3'
 export const GEM_DROP_SOUND = '/snd-gem-drop.mp3'
 // Тост «Достижение разблокировано».
 export const ACHIEVEMENT_SOUND = '/snd-achievement.mp3'
+// Выпала пицца (кейс) или получена пицца за достижение.
+export const PIZZA_DROP_SOUND = '/snd-pizza-1.mp3'
 // Выпали монеты из кейса.
 export const COIN_DROP_SOUND = '/snd-drop-coins.mp3'
 // Экран «Квесты дня»: заполнение прогресс-бара / «+1» над сундуком.

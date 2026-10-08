@@ -13,7 +13,7 @@ import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
 import { ChevronDown, Gift } from 'lucide-react';
 import { CenteredLottie } from '@/components/centered-lottie';
-import { playSound, preloadSound, COIN_DROP_SOUND, GEM_DROP_SOUND, CASE_PRIZE_SOUND } from '@/lib/sound';
+import { playSound, preloadSound, COIN_DROP_SOUND, GEM_DROP_SOUND, CASE_PRIZE_SOUND, PIZZA_DROP_SOUND } from '@/lib/sound';
 import LottieCoins from '@/public/Lottie/LottieCoins.json';
 import LottieGems from '@/public/Lottie/LottieGems.json';
 import LottiePizza from '@/public/Lottie/test/pizza.json';
@@ -33,7 +33,7 @@ const THANKS = [
     'GG!', 'GG, бро!', 'GG WP!', 'ГГ, спасибо!', 'Топчик!', 'Красота!', 'Кайф!', 'Это база', 'Забираю!', 'GG!', 'Ну наконец-то!', 'Вау, мне? 😳', 'Сойдёт, беру 😎', 'Лайк, подписка!',
 ];
 const pickThanks = () => THANKS[Math.floor(Math.random() * THANKS.length)];
-const rewardSound = (k: AchievementReward['kind']) => (k === 'gems' ? GEM_DROP_SOUND : k === 'coins' ? COIN_DROP_SOUND : CASE_PRIZE_SOUND);
+const rewardSound = (k: AchievementReward['kind']) => (k === 'gems' ? GEM_DROP_SOUND : k === 'coins' ? COIN_DROP_SOUND : k === 'pizza' ? PIZZA_DROP_SOUND : CASE_PRIZE_SOUND);
 
 const StaticReward = ({ reward, dim }: { reward: AchievementReward; dim?: boolean }) => (
     <div className="flex flex-shrink-0 flex-col items-center gap-0.5" style={{ opacity: dim ? 0.45 : 1, filter: dim ? 'grayscale(0.8)' : 'none' }}>
@@ -49,7 +49,7 @@ export const AchievementsHall = ({ unlocks }: { unlocks: Unlock[] }) => {
     const [busy, setBusy] = useState<string | null>(null);
     const [modal, setModal] = useState<{ key: string; reward: AchievementReward; thanks: string } | null>(null);
     const { width, height } = useWindowSize();
-    useEffect(() => { [COIN_DROP_SOUND, GEM_DROP_SOUND, CASE_PRIZE_SOUND].forEach(preloadSound); }, []);
+    useEffect(() => { [COIN_DROP_SOUND, GEM_DROP_SOUND, CASE_PRIZE_SOUND, PIZZA_DROP_SOUND].forEach(preloadSound); }, []);
     const unclaimed = Array.from(state.values()).filter((u) => !u.claimed).length;
 
     // «Магнит ачивок»: плавно ведёт к следующей награде ниже по странице (если ниже нет — к первой).
