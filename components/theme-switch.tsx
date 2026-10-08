@@ -14,7 +14,7 @@ const OPTIONS: { value: UiTheme; label: string }[] = [
     { value: 'cozy', label: '🏡 Тёплый' },
 ]
 
-export const ThemeSwitch = ({ cozy = false }: { cozy?: boolean }) => {
+export const ThemeSwitch = ({ cozy = false, hideLabel = false }: { cozy?: boolean; hideLabel?: boolean }) => {
     const router = useRouter()
     const [theme, setTheme] = useState<UiTheme>('metal')
     const [, startTransition] = useTransition()
@@ -28,8 +28,8 @@ export const ThemeSwitch = ({ cozy = false }: { cozy?: boolean }) => {
     }
 
     return (
-        <div className="px-2 pb-3">
-            <div className="px-1 mb-1.5 text-[10px] font-bold tracking-widest text-[#5A6A72] uppercase">Стиль</div>
+        <div className={hideLabel ? '' : 'px-2 pb-3'}>
+            {!hideLabel && <div className="px-1 mb-1.5 text-[10px] font-bold tracking-widest text-[#5A6A72] uppercase">Стиль</div>}
             <div className="flex gap-1 rounded-xl p-1" style={{ background: cozy ? '#2D2A27' : '#1C282E' }}>
                 {OPTIONS.map((o) => {
                     const active = o.value === theme

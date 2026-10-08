@@ -183,18 +183,27 @@ const amountLabel = (e: number) =>
 	e >= 8 ? `${e / 8 === 1 ? '1 кусочек' : `${e / 8} кусочка`}` : e === 4 ? '½ кусочка' : e === 2 ? '¼ кусочка' : `${e}/8 кусочка`
 
 export const ReferralCashbackScreen = ({ items, theme = 'metal' }: { items: CashbackItem[]; theme?: UiTheme }) => {
-	const [open, setOpen] = useState(items.length > 0)
+	const [open, setOpen] = useState(false)
+	// Показываем один раз: помечаем «просмотрено» сразу при показе и запоминаем в sessionStorage —
+	// иначе устаревшая страница из кэша роутера (ачивки → обратно в тренажёр) показывала бы экран снова.
 	useEffect(() => {
 		if (items.length === 0) return
-		preloadSound(PIZZA_DROP_SOUND)
-		playSound(PIZZA_DROP_SOUND)
+		let seen: number[] = []
+		try { seen = JSON.parse(sessionStorage.getItem('cashbackSeenIds') || '[]') } catch { /* пусто */ }
+		const fresh = items.filter((i) => !seen.includes(i.id))
+		if (fresh.length === 0) return
+		try { sessionStorage.setItem('cashbackSeenIds', JSON.stringify([...seen, ...fresh.map((i) => i.id)])) } catch { /* приватный режим */ }
+		markCashbackSeen(fresh.map((i) => i.id)).catch(() => null)
+		setOpen(true)
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
+	useEffect(() => {
+		if (!open) return
+		preloadSound(PIZZA_DROP_SOUND)
+		playSound(PIZZA_DROP_SOUND)
+	}, [open])
 	if (!open) return null
-	const close = () => {
-		setOpen(false)
-		markCashbackSeen(items.map((i) => i.id)).catch(() => null)
-	}
+	const close = () => setOpen(false)
 	const first = items[0]
 	return (
 		<CelebrationShell theme={theme} accent="#FBBF24" starsTier="mythic" confetti overlay buttonLabel="Забрать 🍕" onButton={close}>

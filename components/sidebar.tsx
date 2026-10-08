@@ -14,7 +14,6 @@ import { switchCourse } from '@/actions/switch-course'
 import { useSession } from 'next-auth/react'
 import { UnitCardLottie } from '@/components/unit-card-lottie'
 import { useCourseSwitchStore } from '@/store/course-switch-store'
-import { ThemeSwitch } from '@/components/theme-switch'
 import { COZY, COZY_WOOD_TILE, type UiTheme } from '@/lib/cozyTheme'
 import { useUiThemeLive } from '@/lib/uiTheme'
 
@@ -216,7 +215,6 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
           })}
         </div>
 
-        <ThemeSwitch cozy={cozy} />
         {userMenu}
       </div>
     )
@@ -329,7 +327,6 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
         })}
       </div>
 
-      <ThemeSwitch cozy={cozy} />
       {userMenu}
     </div>
   )

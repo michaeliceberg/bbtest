@@ -11,6 +11,7 @@ import { AccountLinking } from '@/components/account-linking'
 import { AvatarReroll } from '@/components/avatar-reroll'
 import { NameEditor } from '@/components/name-editor'
 import { ParentBindCode } from '@/components/parent-bind-code'
+import { ThemeSwitch } from '@/components/theme-switch'
 import { ReferralCard } from '@/components/referral-card'
 import { getOrCreateInvite } from '@/lib/invite'
 import { getRank } from '@/lib/rank'
@@ -83,6 +84,12 @@ const AccountPage = async () => {
                         </Link>
                     </div>
                 </div>
+            </div>
+
+            <div>
+                <h2 className="font-bold text-lg text-[#F2F7FB] mb-1">Стиль оформления</h2>
+                <p className="text-sm text-[#9AA7B0] mb-3">Игровой — яркий и тёмный, тёплый — мягкий и уютный. Переключается на этом устройстве.</p>
+                <ThemeSwitch hideLabel />
             </div>
 
             <div>
