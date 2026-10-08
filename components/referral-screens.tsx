@@ -8,10 +8,11 @@
 // • ReferralGiftScreen — приглашённый прошёл 3-й урок: «Красавчик, <позывной>!»;
 // • ReferralCashbackScreen — пригласившему (и выше по ветке): «Тебе кэшбэк от …».
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { CelebrationShell } from '@/components/celebration-shell'
 import { markCashbackSeen } from '@/actions/referral'
+import { PIZZA_DROP_SOUND, playSound, preloadSound } from '@/lib/sound'
 import { MAX_PIZZA_SLICES } from '@/lib/caseRewards'
 import { COZY, type UiTheme } from '@/lib/cozyTheme'
 import { TRIAL_TRACKS, type TrialSubject } from '@/lib/trialTracks'
@@ -136,6 +137,11 @@ type Gift = { slices: number; lucky: boolean; nickname: string; pizzaNow: number
 export const ReferralGiftScreen = ({ gift, theme = 'metal', onNext }: { gift: Gift; theme?: UiTheme; onNext: () => void }) => {
 	const cozy = theme === 'cozy'
 	const left = Math.max(0, MAX_PIZZA_SLICES - gift.pizzaNow)
+	// Пицца получена — тот же звук, что при выпадении пиццы из кейса.
+	useEffect(() => {
+		preloadSound(PIZZA_DROP_SOUND)
+		playSound(PIZZA_DROP_SOUND)
+	}, [])
 	return (
 		<CelebrationShell theme={theme} accent={gift.lucky ? LUCKY_COLOR : '#78C93C'} starsTier={gift.lucky ? 'mega' : 'rare'} confetti buttonLabel="Дальше" onButton={onNext}>
 			<motion.h1
@@ -178,6 +184,12 @@ const amountLabel = (e: number) =>
 
 export const ReferralCashbackScreen = ({ items, theme = 'metal' }: { items: CashbackItem[]; theme?: UiTheme }) => {
 	const [open, setOpen] = useState(items.length > 0)
+	useEffect(() => {
+		if (items.length === 0) return
+		preloadSound(PIZZA_DROP_SOUND)
+		playSound(PIZZA_DROP_SOUND)
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [])
 	if (!open) return null
 	const close = () => {
 		setOpen(false)
