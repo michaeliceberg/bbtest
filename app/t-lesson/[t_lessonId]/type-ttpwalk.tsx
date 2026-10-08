@@ -619,7 +619,7 @@ const GroundScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-// «Спортсмен бросает копьё..» → видео броска (один раз) → видео убираем, копьё летит и
+// «Спортсменка бросает копьё..» → видео броска (один раз) → видео убираем, копьё летит и
 // втыкается → «оно воткнулось в землю в точке O.»
 const SpearScene = ({ onSettled }: SceneProps) => {
     // 0 печать · 1 видео · 2 копьё втыкается · 3 подпись про точку O
@@ -642,7 +642,7 @@ const SpearScene = ({ onSettled }: SceneProps) => {
     return (
         <SceneBox>
             <TypedLineWithParts
-                parts={[{ text: 'Спортсмен 🏃 бросает ' }, { sticker: 'копьё', color: A_COLOR }, { text: '..' }]}
+                parts={[{ text: 'Спортсменка 🏃 бросает ' }, { sticker: 'копьё', color: A_COLOR }, { text: '..' }]}
                 onSettled={() => setPhase(1)}
             />
             {phase === 1 && (
@@ -679,7 +679,7 @@ const LineScene = ({ onSettled, onAutoNext }: SceneProps) => {
             <TypedLineWithParts
                 parts={[
                     { text: 'И пусть через ' }, { bold: 'ЭТУ' }, { text: ' точку проведена ' }, { sticker: 'линия', color: B_COLOR }, { text: '.' }, { break: true },
-                    { bold: 'Крути её так, чтобы она ПРИМЕРНО стала перпендикулярна ' },
+                    { bold: 'Крути её так, чтобы она ПРИМЕРНО стала ' }, { sticker: 'перпендикулярна', color: MARK_COLOR }, { text: ' ' },
                     { sticker: 'копью', color: A_COLOR }, { text: '.' },
                 ]}
                 onSettled={() => setTyped(true)}
@@ -721,13 +721,35 @@ const GuessBtn = ({ children, onClick, color }: { children: React.ReactNode; onC
     </button>
 )
 
+// Пауза-«многоточие»: . → .. → ... (два круга), потом остаётся «...»
+const ThinkingDots = ({ done, onDone }: { done: boolean; onDone: () => void }) => {
+    const [n, setN] = useState(1)
+    useEffect(() => {
+        if (done) return
+        let k = 1
+        const id = setInterval(() => {
+            k += 1
+            if (k > 6) { clearInterval(id); setN(3); onDone(); return }
+            setN(((k - 1) % 3) + 1)
+        }, 450)
+        return () => clearInterval(id)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+    return (
+        <div className="h-8 text-3xl font-black leading-none text-[#F2F7FB] tracking-[0.2em]">
+            {'.'.repeat(done ? 3 : n)}
+        </div>
+    )
+}
+
 const QuestionScene = ({ onSettled, leaving }: SceneProps) => {
     const { phi } = useContext(PickCtx)
     const [shown, setShown] = useState(false)
     const [asked, setAsked] = useState(false)
-    const [thinking, setThinking] = useState(false)
-    const pharaonRef = useRef<HTMLVideoElement>(null)
-    useEffect(() => { if (leaving) pharaonRef.current?.pause() }, [leaving])
+    // после ответа: текст → пауза с «многоточием» → сам вопрос → видео
+    const [phase, setPhase] = useState(0) // 0 — текст, 1 — многоточие, 2 — вопрос, 3 — видео
+    const officeRef = useRef<HTMLVideoElement>(null)
+    useEffect(() => { if (leaving) officeRef.current?.pause() }, [leaving])
     return (
         <SceneBox>
             <DiagramBlock><Figure scene={3} pick={null} phi={phi} /></DiagramBlock>
@@ -746,16 +768,24 @@ const QuestionScene = ({ onSettled, leaving }: SceneProps) => {
                 <TypedLineWithParts
                     parts={[
                         { text: 'Глазами не заметно 😅' }, { break: true },
-                        { text: 'А чтобы узнать точно — надо понять,' }, { break: true },
+                        { text: 'А чтобы это узнать точно — надо ответить на вопрос' },
+                    ]}
+                    onSettled={() => setPhase(1)}
+                />
+            )}
+            {phase >= 1 && <ThinkingDots done={phase >= 2} onDone={() => setPhase(2)} />}
+            {phase >= 2 && (
+                <TypedLineWithParts
+                    parts={[
                         { text: 'а перпендикулярна ли ' }, { sticker: 'ТЕНЬ', ...SH }, { text: ' от копья к этой ' },
                         { sticker: 'линии', color: B_COLOR }, { text: '?' },
                     ]}
-                    onSettled={() => { setThinking(true); setTimeout(() => onSettled?.(), 1500) }}
+                    onSettled={() => { setPhase(3); setTimeout(() => onSettled?.(), 1500) }}
                 />
             )}
-            {thinking && (
+            {phase >= 3 && (
                 <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', bounce: 0.4 }} className="flex justify-center">
-                    <AlphaVideo ref={pharaonRef} src="/video/pharaon-think.webm" autoPlay loop muted playsInline className="w-full max-w-[240px]" />
+                    <AlphaVideo ref={officeRef} src="/video/office-steve.webm" autoPlay loop muted playsInline className="w-full max-w-[240px]" />
                 </motion.div>
             )}
         </SceneBox>
