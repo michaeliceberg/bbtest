@@ -40,16 +40,16 @@ export const VIBES: Vibe[] = [
 	{ id: 'brawl', emoji: '💥', label: 'Бравл Старс', category: 'games', adj: 'Звёздный', noun: 'Бравлер', image: '/vibes/brawl.webp' },
 	{ id: 'roblox', emoji: '🧱', label: 'Роблокс', category: 'games', adj: 'Пиксельный', noun: 'Роблоксер', image: '/vibes/roblox.webp?v=2' },
 	{ id: 'pubg', emoji: '🪂', label: 'Пабг', category: 'games', adj: 'Десантный', noun: 'Выживший', image: '/vibes/pubg.webp?v=2' },
-	{ id: 'fortnite', emoji: '🪂', label: 'Фортнайт', category: 'games', adj: 'Строящий', noun: 'Фортнайтер' },
-	{ id: 'gta', emoji: '🚓', label: 'ГТА', category: 'games', adj: 'Угарный', noun: 'Угонщик' },
-	{ id: 'genshin', emoji: '✨', label: 'Геншин', category: 'games', adj: 'Элементальный', noun: 'Путешественник' },
-	{ id: 'valorant', emoji: '🔫', label: 'Валорант', category: 'games', adj: 'Агентский', noun: 'Дуэлянт' },
-	{ id: 'amongus', emoji: '🧑‍🚀', label: 'Амонг Ас', category: 'games', adj: 'Подозрительный', noun: 'Импостер' },
-	{ id: 'standoff', emoji: '🎖️', label: 'Стандофф', category: 'games', adj: 'Тактический', noun: 'Штурмовик' },
-	{ id: 'fifa', emoji: '🕹️', label: 'ФИФА', category: 'games', adj: 'Виртуальный', noun: 'Тренер' },
-	{ id: 'clash', emoji: '🏰', label: 'Клеш', category: 'games', adj: 'Золотой', noun: 'Рейдер' },
-	{ id: 'tanks', emoji: '🪖', label: 'Танки', category: 'games', adj: 'Броневой', noun: 'Танкист' },
-	{ id: 'sims', emoji: '🏠', label: 'Симс', category: 'games', adj: 'Домашний', noun: 'Симулятор' },
+	{ id: 'fortnite', emoji: '🪂', label: 'Фортнайт', category: 'games', adj: 'Строящий', noun: 'Фортнайтер', image: '/vibes/fortnite.webp?v=1' },
+	{ id: 'gta', emoji: '🚓', label: 'ГТА', category: 'games', adj: 'Угарный', noun: 'Угонщик', image: '/vibes/gta.webp?v=1' },
+	{ id: 'genshin', emoji: '✨', label: 'Геншин', category: 'games', adj: 'Элементальный', noun: 'Путешественник', image: '/vibes/genshin.webp?v=1' },
+	{ id: 'valorant', emoji: '🔫', label: 'Валорант', category: 'games', adj: 'Агентский', noun: 'Дуэлянт', image: '/vibes/valorant.webp?v=1' },
+	{ id: 'amongus', emoji: '🧑‍🚀', label: 'Амонг Ас', category: 'games', adj: 'Подозрительный', noun: 'Импостер', image: '/vibes/amongus.webp?v=1' },
+	{ id: 'standoff', emoji: '🎖️', label: 'Стандофф', category: 'games', adj: 'Тактический', noun: 'Штурмовик', image: '/vibes/standoff.webp?v=1' },
+	{ id: 'fifa', emoji: '🕹️', label: 'ФИФА', category: 'games', adj: 'Виртуальный', noun: 'Тренер', image: '/vibes/fifa.webp?v=1' },
+	{ id: 'clash', emoji: '🏰', label: 'Клеш', category: 'games', adj: 'Золотой', noun: 'Рейдер', image: '/vibes/clash.webp?v=1' },
+	{ id: 'tanks', emoji: '🪖', label: 'Танки', category: 'games', adj: 'Броневой', noun: 'Танкист', image: '/vibes/tanks.webp?v=1' },
+	{ id: 'sims', emoji: '🏠', label: 'Симс', category: 'games', adj: 'Домашний', noun: 'Симулятор', image: '/vibes/sims.webp?v=1' },
 	// Стримеры — типажи, а не реальные люди (имена настоящих стримеров только с их согласия)
 	{ id: 'st_gamer', emoji: '🎮', label: 'Игровой', category: 'streamers', adj: 'Стримовый', noun: 'Геймплеер' },
 	{ id: 'st_irl', emoji: '🚶', label: 'IRL-прогулки', category: 'streamers', adj: 'Прямоэфирный', noun: 'Бродяга' },
@@ -140,8 +140,9 @@ export const VIBES: Vibe[] = [
 	{ id: 'stream', emoji: '📺', label: 'Стримы', category: 'hobby', adj: 'Эфирный', noun: 'Стример' },
 ]
 
-export const VIBE_MIN = 3
-export const VIBE_MAX = 5
+// Минимум 5 плиток; верхней границы по сути нет — чем больше выбрано, тем больше сочетаний в позывном.
+export const VIBE_MIN = 5
+export const VIBE_MAX = 30
 
 // Те же вкусовые слова/титулы и та же редкость по числу слов, что и в
 // lib/nickname.ts: 70% — 2 слова, 24% — 3, 6% — 4 с титулом.
@@ -160,6 +161,17 @@ export const buildNicknameFromVibes = (ids: string[]): string => {
 	const nounVibe = rest.length > 0 ? pick(rest) : adjVibe
 	const adj = adjVibe.adj
 	const noun = nounVibe.noun
+
+	// Чем больше плиток выбрано, тем чаще берём ТРЕТЬЮ плитку для второго прилагательного
+	// («Кубический Басовый Рэпер») — комбинаций становится кратно больше.
+	const third = rest.filter((v) => v.id !== nounVibe.id)
+	const extraAdjChance = Math.min(0.5, Math.max(0, chosen.length - 5) * 0.08 + 0.15)
+	if (third.length > 0 && Math.random() < extraAdjChance) {
+		const adj2 = pick(third).adj
+		const roll2 = Math.random()
+		if (roll2 < 0.06) return `${pick(TITLES)} ${adj} ${adj2} ${noun}`
+		return `${adj} ${adj2} ${noun}`
+	}
 
 	const roll = Math.random()
 	if (roll < 0.06) return `${pick(TITLES)} ${adj} ${pick(FLAVOR_WORDS)} ${noun}`

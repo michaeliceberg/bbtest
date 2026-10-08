@@ -35,7 +35,7 @@ export async function createGuestLead(tLessonId: number, nickname: string, vibes
 	const [row] = await db.insert(guestLessonLeads).values({
 		tLessonId,
 		nickname,
-		vibes: vibes.slice(0, 5).join(',') || null,
+		vibes: vibes.slice(0, 30).join(',') || null,
 	}).returning({ id: guestLessonLeads.id });
 
 	const jar = await cookies();
@@ -59,7 +59,7 @@ export async function updateGuestLeadVibes(nickname: string, vibes: string[]) {
 	const leadId = Number(jar.get(GUEST_LEAD_COOKIE)?.value);
 	if (!Number.isFinite(leadId) || leadId <= 0) return { ok: false };
 	await db.update(guestLessonLeads)
-		.set({ nickname: nickname.slice(0, 80), vibes: vibes.slice(0, 5).join(',') || null })
+		.set({ nickname: nickname.slice(0, 80), vibes: vibes.slice(0, 30).join(',') || null })
 		.where(eq(guestLessonLeads.id, leadId));
 	return { ok: true };
 }

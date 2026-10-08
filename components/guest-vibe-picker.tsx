@@ -105,7 +105,7 @@ export const GuestVibePicker = ({ onDone, subtitle }: Props) => {
 			<div className="text-center">
 				<h1 className="text-2xl sm:text-3xl font-extrabold text-[#F2F7FB]">Что тебе заходит? 😎</h1>
 				{subtitle && <p className="text-yellow-300 font-bold mt-2">{subtitle}</p>}
-				<p className="text-[#9AA7B0] mt-1">Выбери от {VIBE_MIN} до {VIBE_MAX} — придумаем тебе позывной</p>
+				<p className="text-[#9AA7B0] mt-1">Выбери минимум {VIBE_MIN} — чем больше, тем круче и разнообразнее позывной</p>
 			</div>
 
 			{VIBE_CATEGORIES.map((cat) => (
@@ -155,7 +155,7 @@ export const GuestVibePicker = ({ onDone, subtitle }: Props) => {
 								: 'bg-[#232F34] border-[#1A2327] text-[#6B7A83]'
 						}`}
 					>
-						{canGo ? 'Придумать позывной' : `Выбери ещё ${VIBE_MIN - selected.length}`} ({selected.length}/{VIBE_MAX})
+						{canGo ? 'Придумать позывной' : `Выбери ещё ${VIBE_MIN - selected.length}`} ({selected.length})
 					</button>
 				</div>
 			</div>
