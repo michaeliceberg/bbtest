@@ -54,6 +54,7 @@ interface SidebarProps {
   onAfterCourseChange?: () => void
   // Задачник закрыт, пока не пройдены 3 разбора электродинамики (lib/learn-unlock.ts)
   learnLocked?: boolean
+  learnSubject?: 'math' | 'physics'
   isAdmin?: boolean
   // Бейдж-галочка "амбассадор" (userProgress.isAmbassador) — реальные
   // ученики-евангелисты, продвигающие приложение среди одноклассников,
@@ -61,7 +62,7 @@ interface SidebarProps {
   isAmbassador?: boolean
 }
 
-export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest = false, className, userName, userImageSrc, onAfterCourseChange, theme, learnLocked = false, isAmbassador = false, isAdmin = false }: SidebarProps) => {
+export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest = false, className, userName, userImageSrc, onAfterCourseChange, theme, learnLocked = false, learnSubject = 'physics', isAmbassador = false, isAdmin = false }: SidebarProps) => {
   const claimCount = useAchievementClaimStore((st) => st.count)
   const liveTheme = useUiThemeLive()
   const cozy = (liveTheme ?? theme ?? 'metal') === 'cozy'
@@ -199,7 +200,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
             const isActive = pathname === item.href
             const Icon = item.icon
             if (item.disabled) return (
-              <Button key={item.href} variant='sidebar' disabled title='Откроется после 3 первых разборов тренажёра' className={cn(navButtonClass(false), 'opacity-40 cursor-not-allowed')} style={navButtonStyle(false)}>
+              <Button key={item.href} variant='sidebar' disabled title={learnSubject === 'math' ? 'Откроется после 3 первых разборов тригонометрии' : 'Откроется после 3 разборов электродинамики'} className={cn(navButtonClass(false), 'opacity-40 cursor-not-allowed')} style={navButtonStyle(false)}>
                 <Icon className="mr-3 h-5 w-5 text-[#9AA7B0]" style={navIcon(false)} />
                 <span className="text-sm text-[#F2F7FB]" style={navText}>{item.label}</span>
                 <Lock className="ml-auto h-4 w-4 text-[#9AA7B0]" />
@@ -307,7 +308,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
           const isActive = pathname === item.href
           const Icon = item.icon
           if (item.disabled) return (
-            <Button key={item.href} variant='sidebar' disabled title='Откроется после 3 первых разборов тренажёра' className={cn(navButtonClass(false), 'opacity-40 cursor-not-allowed')} style={navButtonStyle(false)}>
+            <Button key={item.href} variant='sidebar' disabled title={learnSubject === 'math' ? 'Откроется после 3 первых разборов тригонометрии' : 'Откроется после 3 разборов электродинамики'} className={cn(navButtonClass(false), 'opacity-40 cursor-not-allowed')} style={navButtonStyle(false)}>
               <Icon className="mr-3 h-5 w-5 text-[#9AA7B0]" style={navIcon(false)} />
               <span className="text-sm text-[#F2F7FB]" style={navText}>{item.label}</span>
               <Lock className="ml-auto h-4 w-4 text-[#9AA7B0]" />

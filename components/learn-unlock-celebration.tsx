@@ -20,7 +20,7 @@ import Lottie from '@/components/lottie-player'
 const SEEN_KEY = 'learnUnlockSeen'
 const ACCENT = '#34D399'
 
-export const LearnUnlockCelebration = () => {
+export const LearnUnlockCelebration = ({ subject = 'physics' }: { subject?: 'math' | 'physics' }) => {
     const theme = useUiTheme()
     const cozy = theme === 'cozy'
     const router = useRouter()
@@ -29,8 +29,10 @@ export const LearnUnlockCelebration = () => {
 
     useEffect(() => {
         try {
-            if (localStorage.getItem(SEEN_KEY)) return
-            localStorage.setItem(SEEN_KEY, '1')
+            // Физика — старый ключ (кто уже видел, не увидит снова), у математики свой.
+            const key = subject === 'math' ? `${SEEN_KEY}:math` : SEEN_KEY
+            if (localStorage.getItem(key)) return
+            localStorage.setItem(key, '1')
         } catch {
             return
         }
@@ -86,7 +88,7 @@ export const LearnUnlockCelebration = () => {
                 className="mt-5 max-w-sm text-xl font-bold leading-snug"
                 style={{ color: cozy ? '#F3E3C8' : '#E5EEF2' }}
             >
-                Ты прошёл первые разборы тренажёра 💪
+                {subject === 'math' ? 'Ты прошёл первые разборы тригонометрии 💪' : 'Ты прошёл все разборы электродинамики 💪'}
             </motion.p>
             <motion.p
                 initial={{ opacity: 0, y: 8 }}

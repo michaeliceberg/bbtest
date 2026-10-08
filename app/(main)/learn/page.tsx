@@ -86,10 +86,6 @@ const LearnPage = async () => {
     redirect('/courses');
   }
 
-  // Задачник закрыт до прохождения 3 разборов электродинамики (lib/learn-unlock.ts).
-  if (!(await isLearnUnlocked(userId, userProgress.isAdmin === 1))) {
-    redirect('/trainer');
-  }
 
   // Та же функция выбора курса, что в сайдбаре и тренажёре (lib/trainer-topic.ts).
   const userCourseIds = (await getUserCourses()).map((c) => c.id);
@@ -103,6 +99,11 @@ const LearnPage = async () => {
   }
 
   const activeCourseId = activeCourse.id;
+
+  // Задачник курса закрыт до 3 вводных разборов его предмета (lib/learn-unlock.ts).
+  if (!(await isLearnUnlocked(userId, userProgress.isAdmin === 1, activeCourse.title))) {
+    redirect('/trainer');
+  }
 
   await recalculateDailyStats(userId, activeCourseId);
 

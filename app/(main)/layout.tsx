@@ -7,7 +7,7 @@ import { auth } from '@/lib/server-auth'
 import { getUserCourses, getUserCourseStreak, getUserHomework, getTodayTrainerQuest, getUserProgress } from '@/db/queries'
 import { cookies } from 'next/headers'
 import { getUiTheme } from '@/lib/uiThemeServer'
-import { isLearnUnlocked } from '@/lib/learn-unlock'
+import { isLearnUnlocked, learnSubjectOf } from '@/lib/learn-unlock'
 import { LearnUnlockCelebration } from '@/components/learn-unlock-celebration'
 import { AchievementClaimInit } from '@/components/achievement-claim-init'
 import { countUnclaimedAchievements } from '@/lib/achievements'
@@ -108,13 +108,14 @@ const MainLayout = async ({ children }: Props) => {
     console.log(`🔴 Активный курс ${activeCourseId}: hasTrainerQuest=${hasTrainerQuest}, trainerQuest=${activeTrainerQuest}`)
 
     
-    // Задачник открывается после 3 разборов электродинамики (lib/learn-unlock.ts).
-    const learnDone = await isLearnUnlocked(userId, false)
+    const activeCourseTitle = coursesWithData.find(c => c.id === activeCourseId)?.title
+
+    // Задачник курса открывается после 3 вводных разборов его предмета (lib/learn-unlock.ts).
+    const learnDone = await isLearnUnlocked(userId, false, activeCourseTitle)
     const learnLocked = !learnDone && userProgressRow?.isAdmin !== 1
+    const learnSubject = learnSubjectOf(activeCourseTitle)
 
     const achievementsToClaim = await countUnclaimedAchievements(userId).catch(() => 0)
-
-    const activeCourseTitle = coursesWithData.find(c => c.id === activeCourseId)?.title
 
     return (
         <>
@@ -126,6 +127,7 @@ const MainLayout = async ({ children }: Props) => {
                 userName={userProgressRow?.userName}
                 userImageSrc={userProgressRow?.userImageSrc}
                 learnLocked={learnLocked}
+                learnSubject={learnSubject}
                 isAdmin={userProgressRow?.isAdmin === 1}
             />
             <Sidebar
@@ -139,6 +141,7 @@ const MainLayout = async ({ children }: Props) => {
                 userName={userProgressRow?.userName}
                 userImageSrc={userProgressRow?.userImageSrc}
                 learnLocked={learnLocked}
+                learnSubject={learnSubject}
                 isAmbassador={userProgressRow?.isAmbassador}
                 isAdmin={userProgressRow?.isAdmin === 1}
             />
@@ -146,7 +149,7 @@ const MainLayout = async ({ children }: Props) => {
                 <div className='max-w-[1056px] mx-auto pt-6 h-full'>{children}</div>
             </main>
             <AchievementClaimInit count={achievementsToClaim} />
-            {learnDone && <LearnUnlockCelebration />}
+            {learnDone && <LearnUnlockCelebration subject={learnSubject} />}
         </>
     )
 }
