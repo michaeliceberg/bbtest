@@ -21,6 +21,7 @@ import { recalculateAchievements, type NewlyCompletedAchievement } from './check
 import { bumpCourseStreak } from '@/lib/streak';
 import { getDailyQuestStatus } from './generate-trainer-quest';
 import { HIDDEN_T_COURSE_IDS } from '@/lib/trainer-topic';
+import { getEgeGain, type EgeGain } from '@/lib/egeMap';
 
 interface UpdateChallengeProgressProps {
     challengeId: number;
@@ -48,6 +49,7 @@ interface ChallengeProgressResponse {
     questJustCompleted?: boolean;
     questStreak?: number;
     questPointsReward?: number;
+    egeGain?: EgeGain | null;
 }
 
 export async function updateChallengeProgress({
@@ -315,7 +317,11 @@ export async function updateChallengeProgress({
     const newAchievements = await recalculateAchievements(userId);
     await syncAchievements(userId).catch(() => {});
 
+    // «+N к прогнозу ЕГЭ» — задача впервые решена верно (повторно верную сюда не пускает ранний return выше).
+    const egeGain = doneRight ? await getEgeGain(userId, 'unit', lesson.unitId).catch(() => null) : null;
+
     return {
+        egeGain,
         success: true,
         pointsEarned,
         gemsEarned,

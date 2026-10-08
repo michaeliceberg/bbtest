@@ -2,6 +2,7 @@
 
 "use client"
 import { advanceEgeMove } from '@/actions/ege-move'
+import { showEgeGain } from '@/components/ege-gain-toast'
 
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { motion } from "framer-motion"
@@ -668,6 +669,7 @@ export default function TQuiz({
         if (progressResult?.questJustCompleted && progressResult.questStreak) {
           showQuestComplete(progressResult.questStreak, progressResult.questPointsReward ?? 0)
         }
+        showEgeGain(progressResult?.egeGain)
       }
       await updateQuestProgress()
 

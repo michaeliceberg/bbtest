@@ -14,6 +14,7 @@ import { KeyboardInput } from "./keyboard-input";
 import { Footer } from "./footer";
 import { upsertChallengeProgress } from "@/actions/challenge-progress";
 import { advanceEgeMove } from "@/actions/ege-move";
+import { showEgeGain } from "@/components/ege-gain-toast";
 import { toast } from "sonner";
 import { useWindowSize, useMount } from "react-use";
 
@@ -606,6 +607,7 @@ export const Quiz = ({
                         if (response?.questJustCompleted && response.questStreak) {
                             showQuestComplete(response.questStreak, response.questPointsReward ?? 0)
                         }
+                        showEgeGain(response?.egeGain)
                     })
                     .catch(() => toast.error('Что-то пошло не так! Попробуйте ещё раз'))
             })

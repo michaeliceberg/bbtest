@@ -19,6 +19,7 @@ import { grantReferralChainRewards, type ReferralWelcomeGift } from '@/lib/refer
 import { ALL_TRACK_LESSONS } from '@/lib/trialTracks';
 import { pickGuestNickname } from '@/lib/nickname';
 import { newAvatarUrl } from '@/lib/avatar';
+import { getEgeGain, type EgeGain } from '@/lib/egeMap';
 
 const POINTS_TO_REFILL = 10
 
@@ -413,7 +414,14 @@ export const upsertTrainerLessonProgress = async (
 		.where(and(eq(t_lessonProgress.userId, userId), eq(t_lessonProgress.t_lessonId, t_lessonId), sql`${t_lessonProgress.trainingPts} > 0`));
 	const bossWins = winsRows[0]?.n ?? 0;
 
-	return { leveledUp, newLevel, levelUpGems, levelsGained, newAchievements, streakExtended, newStreak, questJustCompleted, questStreak, questPointsReward, bossWins, referralGift };
+	// «+N к прогнозу ЕГЭ» — только за ПЕРВОЕ прохождение урока (повтор освоенность не меняет).
+	let egeGain: EgeGain | null = null;
+	if (trainingPts > 0 && bossWins === 1) {
+		const tl = await db.query.t_lessons.findFirst({ where: eq(t_lessons.id, t_lessonId), columns: { t_unitId: true } });
+		if (tl) egeGain = await getEgeGain(userId, 't_unit', tl.t_unitId).catch(() => null);
+	}
+
+	return { leveledUp, newLevel, levelUpGems, levelsGained, newAchievements, streakExtended, newStreak, questJustCompleted, questStreak, questPointsReward, bossWins, referralGift, egeGain };
 };
 
 

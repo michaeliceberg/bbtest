@@ -65,7 +65,10 @@ export type EgeMap = {
 
 type Row = Record<string, unknown>
 
-export async function getEgeMap(userId: string, subject = 'math_profile'): Promise<EgeMap> {
+type UnitStat = { total: number; solved: number; nextLesson: number | null; nextTitle: string | null }
+type TStat = { total: number; done: number; nextLesson: number | null; nextTitle: string | null }
+
+async function loadEgeData(userId: string, subject: string) {
     const tasks = (await db.execute(sql`
         SELECT t.id, t.num, t.title, t.points, t.part,
             coalesce(json_agg(json_build_object('kind', l.kind, 'ref', l.ref_id)) FILTER (WHERE l.id IS NOT NULL), '[]') AS links
@@ -77,7 +80,7 @@ export async function getEgeMap(userId: string, subject = 'math_profile'): Promi
     for (const t of tasks) for (const l of t.links as { kind: string; ref: number }[]) (l.kind === 'unit' ? unitIds : tUnitIds).add(Number(l.ref))
 
     // задачник: всего задач и решено верно — по юнитам; плюс первый урок с нерешёнными задачами
-    const unitStats = new Map<number, { total: number; solved: number; nextLesson: number | null; nextTitle: string | null }>()
+    const unitStats = new Map<number, UnitStat>()
     if (unitIds.size) {
         const ids = [...unitIds]
         const rows = (await db.execute(sql`
@@ -101,7 +104,7 @@ export async function getEgeMap(userId: string, subject = 'math_profile'): Promi
     }
 
     // тренажёр: уроки тем и пройденные; первый непройденный урок
-    const tStats = new Map<number, { total: number; done: number; nextLesson: number | null; nextTitle: string | null }>()
+    const tStats = new Map<number, TStat>()
     if (tUnitIds.size) {
         const ids = [...tUnitIds]
         const rows = (await db.execute(sql`
@@ -120,6 +123,11 @@ export async function getEgeMap(userId: string, subject = 'math_profile'): Promi
         }
     }
 
+    return { tasks, unitStats, tStats }
+}
+
+function buildEgeMap(subject: string, data: Awaited<ReturnType<typeof loadEgeData>>): EgeMap {
+    const { tasks, unitStats, tStats } = data
     const stations: EgeStation[] = tasks.map((t) => {
         const links = t.links as { kind: string; ref: number }[]
         const units = links.filter((l) => l.kind === 'unit').map((l) => Number(l.ref))
@@ -172,6 +180,39 @@ export async function getEgeMap(userId: string, subject = 'math_profile'): Promi
     const next = (part1.length ? part1 : candidates).sort((a, b) => room(b) - room(a))[0] ?? null
     const test = primaryToTest(primary)
     return { subject, stations, primary, primaryMax, test, next, move: next ? buildMove(next, primary, test) : null }
+}
+
+export async function getEgeMap(userId: string, subject = 'math_profile'): Promise<EgeMap> {
+    return buildEgeMap(subject, await loadEgeData(userId, subject))
+}
+
+// «+N к прогнозу»: сколько первичных баллов дал только что засчитанный урок тренажёра
+// (kind 't_unit') или верно решённая задача задачника (kind 'unit'). Прогресс уже записан —
+// «до» считаем, вычтя эту одну единицу из статистики юнита/темы.
+export type EgeGain = { primary: number; fromTest: number; toTest: number; taskNum: number; taskTitle: string }
+export async function getEgeGain(userId: string, kind: 'unit' | 't_unit', refId: number, subject = 'math_profile'): Promise<EgeGain | null> {
+    const linked = (await db.execute(sql`
+        SELECT 1 FROM ege_task_links l JOIN ege_tasks t ON t.id = l.task_id
+        WHERE l.kind = ${kind} AND l.ref_id = ${refId} AND t.subject = ${subject} LIMIT 1`)) as unknown as Row[]
+    if (!linked.length) return null
+    const data = await loadEgeData(userId, subject)
+    const after = buildEgeMap(subject, data)
+    const unitStats = new Map(data.unitStats), tStats = new Map(data.tStats)
+    if (kind === 'unit') {
+        const u = unitStats.get(refId)
+        if (!u || u.solved <= 0) return null
+        unitStats.set(refId, { ...u, solved: u.solved - 1 })
+    } else {
+        const u = tStats.get(refId)
+        if (!u || u.done <= 0) return null
+        tStats.set(refId, { ...u, done: u.done - 1 })
+    }
+    const before = buildEgeMap(subject, { ...data, unitStats, tStats })
+    const primary = after.primary - before.primary
+    if (primary < 0.005) return null
+    const station = after.stations.find((st) => (kind === 'unit' ? st.unitIds : st.tUnitIds).includes(refId)
+        && st.earned - (before.stations.find((b) => b.num === st.num)?.earned ?? 0) > 0)
+    return { primary, fromTest: before.test, toTest: after.test, taskNum: station?.num ?? 0, taskTitle: station?.title ?? '' }
 }
 
 // Освоенность станции после хода: +1 урок тренажёра и +k задач задачника.
