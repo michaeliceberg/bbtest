@@ -9,7 +9,7 @@
 // У игр — маленькие картинки (public/vibes/*.webp, по просьбе пользователя
 // 2026-10-01; чужой арт — решение пользователя), у остальных — эмодзи.
 
-export type VibeCategory = 'gadgets' | 'games' | 'music' | 'food' | 'sport' | 'hobby'
+export type VibeCategory = 'gadgets' | 'games' | 'music' | 'food' | 'sport' | 'hobby' | 'streamers'
 
 export type Vibe = {
 	id: string
@@ -24,6 +24,7 @@ export type Vibe = {
 
 export const VIBE_CATEGORIES: { id: VibeCategory; title: string }[] = [
 	{ id: 'games', title: 'Игры' },
+	{ id: 'streamers', title: 'Любимый стример' },
 	{ id: 'food', title: 'Еда' },
 	{ id: 'sport', title: 'Спорт' },
 	{ id: 'hobby', title: 'Увлечения' },
@@ -49,6 +50,17 @@ export const VIBES: Vibe[] = [
 	{ id: 'clash', emoji: '🏰', label: 'Клеш', category: 'games', adj: 'Золотой', noun: 'Рейдер' },
 	{ id: 'tanks', emoji: '🪖', label: 'Танки', category: 'games', adj: 'Броневой', noun: 'Танкист' },
 	{ id: 'sims', emoji: '🏠', label: 'Симс', category: 'games', adj: 'Домашний', noun: 'Симулятор' },
+	// Стримеры — типажи, а не реальные люди (имена настоящих стримеров только с их согласия)
+	{ id: 'st_gamer', emoji: '🎮', label: 'Игровой', category: 'streamers', adj: 'Стримовый', noun: 'Геймплеер' },
+	{ id: 'st_irl', emoji: '🚶', label: 'IRL-прогулки', category: 'streamers', adj: 'Прямоэфирный', noun: 'Бродяга' },
+	{ id: 'st_mukbang', emoji: '🍜', label: 'Мукбанг', category: 'streamers', adj: 'Прожорливый', noun: 'Мукбангер' },
+	{ id: 'st_chess', emoji: '♟️', label: 'Шахматный', category: 'streamers', adj: 'Матовый', noun: 'Шахматист' },
+	{ id: 'st_react', emoji: '😮', label: 'Реакции', category: 'streamers', adj: 'Реактивный', noun: 'Реактор' },
+	{ id: 'st_just', emoji: '💬', label: 'Просто общаются', category: 'streamers', adj: 'Болтливый', noun: 'Болтун' },
+	{ id: 'st_speedrun', emoji: '⏱️', label: 'Спидраннер', category: 'streamers', adj: 'Рекордный', noun: 'Спидраннер' },
+	{ id: 'st_horror', emoji: '👻', label: 'Хоррор-стример', category: 'streamers', adj: 'Орущий', noun: 'Трус' },
+	{ id: 'st_music', emoji: '🎧', label: 'Музыкальный', category: 'streamers', adj: 'Эфирный', noun: 'Диджей' },
+	{ id: 'st_tournament', emoji: '🏆', label: 'Турнирный', category: 'streamers', adj: 'Командный', noun: 'Капитан' },
 	// Музыка
 	{ id: 'rap', emoji: '🎤', label: 'Рэп', category: 'music', adj: 'Битовый', noun: 'Рэпер' },
 	{ id: 'phonk', emoji: '🚗', label: 'Фонк', category: 'music', adj: 'Фонковый', noun: 'Дрифтер' },
