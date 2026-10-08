@@ -9,7 +9,7 @@
 // Сделать .mov: ffmpeg -c:v libvpx-vp9 -i x.webm -an -c:v hevc_videotoolbox
 //   -alpha_quality 0.7 -b:v 700k -tag:v hvc1 -pix_fmt bgra x.mov
 
-import { useEffect, useState, type VideoHTMLAttributes } from 'react'
+import { forwardRef, useEffect, useState, type VideoHTMLAttributes } from 'react'
 
 const ALPHA = new Set([
     'travolta', 'travolta-dancing', 'cat-dance-1', 'cat-dance-2', 'cat-thinking',
@@ -29,9 +29,10 @@ const toMov = (src: string) => {
     return m && ALPHA.has(m[1]) ? `/video/${m[1]}.mov` : src
 }
 
-export const AlphaVideo = ({ src, ...rest }: VideoHTMLAttributes<HTMLVideoElement> & { src: string }) => {
+export const AlphaVideo = forwardRef<HTMLVideoElement, VideoHTMLAttributes<HTMLVideoElement> & { src: string }>(({ src, ...rest }, ref) => {
     const [s, setS] = useState(src)
     useEffect(() => { setS(needsHevc() ? toMov(src) : src) }, [src])
     // eslint-disable-next-line jsx-a11y/media-has-caption
-    return <video key={s} src={s} {...rest} />
-}
+    return <video ref={ref} key={s} src={s} {...rest} />
+})
+AlphaVideo.displayName = 'AlphaVideo'

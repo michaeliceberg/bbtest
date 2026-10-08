@@ -26,6 +26,7 @@ import { InsightCard, InsightWord } from '@/components/geometry/WalkthroughCards
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
+import { AlphaVideo } from '@/components/alpha-video'
 
 type Props = {
     question: QuestionType
@@ -36,13 +37,13 @@ type Props = {
 
 const CONCEPT_PAUSE_MS = 1000
 
-const Sticker = ({ value, color }: { value: React.ReactNode; color: string }) => (
+const Sticker = ({ value, color, bg, border }: { value: React.ReactNode; color: string; bg?: string; border?: string }) => (
     <motion.span
         initial={{ scale: 2.4, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 320, damping: 15 }}
         className="inline-flex items-center justify-center rounded-lg border-2 px-1.5 py-0.5 font-extrabold align-middle leading-none"
-        style={{ borderColor: color, backgroundColor: hexToRgba(color, 0.18), color }}
+        style={{ borderColor: border ?? color, backgroundColor: bg ?? hexToRgba(color, 0.18), color }}
     >
         {value}
     </motion.span>
@@ -55,7 +56,7 @@ const Sticker = ({ value, color }: { value: React.ReactNode; color: string }) =>
 // пробел, после onDone превращается в настоящий перенос строки (для
 // принудительного разрыва в конкретном месте). bold — жирный текст БЕЗ
 // цветной рамки (смысловое усиление слова, не термин-объект).
-type LinePart = { text: string } | { sticker: string; color: string } | { break: true } | { bold: string }
+type LinePart = { text: string } | { sticker: string; color: string; bg?: string; border?: string } | { break: true } | { bold: string }
 const TypedLineWithParts = ({ parts, onSettled }: { parts: LinePart[]; onSettled?: () => void }) => {
     const [typed, setTyped] = useState(false)
     const plainText = parts.map((p) => ('text' in p ? p.text : 'sticker' in p ? p.sticker : 'bold' in p ? p.bold : ' ')).join('')
@@ -68,7 +69,7 @@ const TypedLineWithParts = ({ parts, onSettled }: { parts: LinePart[]; onSettled
                     {parts.map((p, i) => ('text' in p
                         ? <span key={i}>{p.text}</span>
                         : 'sticker' in p
-                            ? <Sticker key={i} value={p.sticker} color={p.color} />
+                            ? <Sticker key={i} value={p.sticker} color={p.color} bg={p.bg} border={p.border} />
                             : 'bold' in p
                                 ? <strong key={i} className="font-extrabold">{p.bold}</strong>
                                 : <br key={i} />
@@ -100,6 +101,28 @@ const SvgTag = ({ x, y, text, color, delay = 0 }: { x: number; y: number; text: 
 )
 
 
+// Подпись точки O, «лежащая» на земле: рамка и буква нарисованы в плоскости земли
+// (матрица из базисных векторов плоскости в проекции), тёмно-зелёная, как трава.
+const GroundOTag = ({ delay = 0, side = -1 }: { delay?: number; side?: 1 | -1 }) => {
+    const Op = P3(O3.x, O3.y, 0)
+    const c = unproject(Op.x + side * 30, Op.y + 20)
+    const C = P3(c.x, c.y, 0)
+    const ex0 = P3(c.x + 1, c.y, 0)
+    let ex = { x: ex0.x - C.x, y: ex0.y - C.y }
+    if (ex.x < 0) ex = { x: -ex.x, y: -ex.y }
+    // поворачиваем вдоль оси земли и сплющиваем по вертикали — «лежит на траве», но читается
+    const ang = (Math.atan2(ex.y, ex.x) * 180) / Math.PI
+    const m = `translate(${C.x.toFixed(1)},${C.y.toFixed(1)}) rotate(${ang.toFixed(1)}) scale(1,0.62)`
+    return (
+        <g transform={m}>
+            <motion.g initial={{ opacity: 0, scale: 2.2 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 15, delay }}>
+                <rect x={-18} y={-18} width={36} height={36} rx={9} fill={O_FILL} stroke={O_BORDER} strokeWidth={3} />
+                <text x={0} y={8.5} textAnchor="middle" fontSize={24} fontWeight={900} fill={O_TEXT}>O</text>
+            </motion.g>
+        </g>
+    )
+}
+
 // ===================================================================
 // ЧЕРТЁЖ: земля (плоскость), копьё (наклонная), линия на земле, тень (проекция)
 // ===================================================================
@@ -120,6 +143,10 @@ const PROJ_COLOR = GGEGE_PALETTE.blue.button
 const PLANE_COLOR = GGEGE_PALETTE.teal.button
 const MARK_COLOR = GGEGE_PALETTE.orange.button
 const X_COLOR = '#F2F7FB'
+// Точка O лежит на земле — «травяная» подпись: светло-зелёная буква в тёмно-зелёной рамке
+const O_TEXT = '#9BE3B8'
+const O_FILL = '#173A2D'
+const O_BORDER = '#0A1E17'
 
 // Точка O, где копьё входит в землю; a(s) = O + s·(0, 1, 1.4)
 const O3 = { x: 5, y: 3.5, z: 0 }
@@ -242,8 +269,10 @@ const spearFlight = (t: number) => {
 const DUST = Array.from({ length: 9 }, (_, i) => ({ ang: (i / 9) * Math.PI * 2 + 0.3, dist: 26 + ((i * 37) % 22), rise: 14 + ((i * 53) % 18), r: 2 + (i % 3) }))
 
 // scene: 0 земля · 1 копьё · 2 линия · 3 вопрос · 4 тень · 5 угол 90° · 6-7 «по-школьному»
-const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, pre = 3 }: {
+const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, pre = 3, bushJoke }: {
     scene: number; pick: number | null; beat?: number; onPick?: (s: number) => void
+    // сцена 0: шутка «Если что, это кустик» (стрелка + подпись), true — показать, false — убрать
+    bushJoke?: boolean
     // сцена 4: 1 — опускается солнце, 2 — с bounce появляется тёмная тень, 3 — можно выбирать точку
     pre?: number
     phi?: number
@@ -292,13 +321,12 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
     const bPath = `M${e2.x.toFixed(1)},${e2.y.toFixed(1)} L${e1.x.toFixed(1)},${e1.y.toFixed(1)}`
     const handle = e1.y > e2.y ? e1 : e2
     const tagEnd = e1.y > e2.y ? e2 : e1
-    // подпись «линия» — вдоль линии: чуть отступив от дальнего конца к O и ПОД линией (над ней копьё)
+    // подпись «линия» — вдоль линии, ЗА ближним концом (за ручкой): там нет ни копья, ни точки O
     let tagAng = (Math.atan2(e1.y - e2.y, e1.x - e2.x) * 180) / Math.PI
     if (tagAng > 90) tagAng -= 180
     if (tagAng < -90) tagAng += 180
     const tdx = handle.x - tagEnd.x, tdy = handle.y - tagEnd.y, tdl = Math.hypot(tdx, tdy) || 1
-    const ta = (tagAng * Math.PI) / 180
-    const tagPos = { x: tagEnd.x + (tdx / tdl) * 34 - Math.sin(ta) * 17, y: tagEnd.y + (tdy / tdl) * 34 + Math.cos(ta) * 17 }
+    const tagPos = { x: handle.x + (tdx / tdl) * 52, y: handle.y + (tdy / tdl) * 52 }
 
     // куст — у левого угла земли
     const cs = PLANE_CORNERS.map(([x, y]) => P3(x, y, 0))
@@ -402,6 +430,22 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                         <circle cx={-6} cy={-22} r={7} fill="#74BD62" opacity={0.7} />
                     </motion.g>
                 </g>
+                {bushJoke !== undefined && (
+                    <g transform={`translate(${bush.x},${bush.y})`}>
+                        <motion.g initial={{ opacity: 0 }} animate={{ opacity: bushJoke ? 1 : 0 }} transition={{ duration: 0.4 }}>
+                            <motion.path
+                                d="M58,-86 C34,-84 18,-70 10,-46" fill="none" stroke="#F2C35B" strokeWidth={3} strokeLinecap="round"
+                                initial={{ pathLength: 0 }} animate={{ pathLength: bushJoke ? 1 : 0 }} transition={{ duration: 0.5 }}
+                            />
+                            <motion.path
+                                d="M2,-56 L10,-44 L19,-55" fill="none" stroke="#F2C35B" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
+                                initial={{ opacity: 0 }} animate={{ opacity: bushJoke ? 1 : 0 }} transition={{ delay: bushJoke ? 0.45 : 0, duration: 0.2 }}
+                            />
+                            <text x={64} y={-82} fontSize={15} fontWeight={800} fill="#F2C35B">Если что,</text>
+                            <text x={64} y={-64} fontSize={15} fontWeight={800} fill="#F2C35B">это кустик 🌳</text>
+                        </motion.g>
+                    </g>
+                )}
 
                 {/* тёмная тень копья на земле (bounce) */}
                 {shadowOn && (() => {
@@ -453,8 +497,8 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                     </g>
                 )}
 
-                {hasSpear && <Dot x={Op.x} y={Op.y} color={X_COLOR} fresh={scene === 1} delay={FLY_MS / 1000 + 0.45} />}
-                {hasSpear && <SvgTag x={Op.x - 18} y={Op.y + 17} text="O" color={X_COLOR} delay={scene === 1 ? FLY_MS / 1000 + 0.75 : 0} />}
+                {hasSpear && <Dot x={Op.x} y={Op.y} color={O_TEXT} fresh={scene === 1} delay={FLY_MS / 1000 + 0.45} />}
+                {hasSpear && <GroundOTag side={hasB && !school && handle.x < Op.x ? 1 : -1} delay={scene === 1 ? FLY_MS / 1000 + 0.75 : 0} />}
 
                 {projEl}
 
@@ -523,25 +567,68 @@ const useAfterTyped = () => {
     return { typed, onTyped: () => setTyped(true) }
 }
 
+// Шутка: после появления площадки — стрелка на куст «Если что, это кустик», потом убираем.
 const GroundScene = ({ onSettled }: SceneProps) => {
     const { typed, onTyped } = useAfterTyped()
+    const [joke, setJoke] = useState<boolean | undefined>(undefined)
+    const timers = useRef<ReturnType<typeof setTimeout>[]>([])
+    useEffect(() => () => timers.current.forEach(clearTimeout), [])
+    const afterDiagram = () => {
+        timers.current.push(
+            setTimeout(() => setJoke(true), 700),
+            setTimeout(() => setJoke(false), 3700),
+            setTimeout(() => onSettled?.(), 4300),
+        )
+    }
     return (
         <SceneBox>
             <TypedLineWithParts parts={[{ text: 'Вот площадка для метания копья 🌿' }]} onSettled={onTyped} />
-            {typed && <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1800)}><Figure scene={0} pick={null} /></DiagramBlock>}
+            {typed && <DiagramBlock onSettled={afterDiagram}><Figure scene={0} pick={null} bushJoke={joke} /></DiagramBlock>}
         </SceneBox>
     )
 }
 
+// «Спортсмен бросает копьё..» → видео броска (один раз) → видео убираем, копьё летит и
+// втыкается → «оно воткнулось в землю в точке O.»
 const SpearScene = ({ onSettled }: SceneProps) => {
-    const { typed, onTyped } = useAfterTyped()
+    // 0 печать · 1 видео · 2 копьё втыкается · 3 подпись про точку O
+    const [phase, setPhase] = useState(0)
+    const videoRef = useRef<HTMLVideoElement>(null)
+    const endedRef = useRef(false)
+    const finishVideo = () => { if (endedRef.current) return; endedRef.current = true; setPhase(2) }
+    useEffect(() => {
+        if (phase !== 1) return
+        const v = videoRef.current
+        if (v) v.play().catch(() => { v.muted = true; v.play().catch(() => null) })
+        const t = setTimeout(finishVideo, 7000) // страховка, если ended не придёт
+        return () => clearTimeout(t)
+    }, [phase])
+    useEffect(() => {
+        if (phase !== 2) return
+        const t = setTimeout(() => setPhase(3), 450 + FLY_MS + 1300)
+        return () => clearTimeout(t)
+    }, [phase])
     return (
         <SceneBox>
             <TypedLineWithParts
-                parts={[{ text: 'Спортсмен 🏃 метнул ' }, { sticker: 'копьё', color: A_COLOR }, { text: ' — оно воткнулось в землю в точке ' }, { sticker: 'O', color: X_COLOR }, { text: '.' }]}
-                onSettled={onTyped}
+                parts={[{ text: 'Спортсмен 🏃 бросает ' }, { sticker: 'копьё', color: A_COLOR }, { text: '..' }]}
+                onSettled={() => setPhase(1)}
             />
-            {typed && <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 3400)}><Figure scene={1} pick={null} fly /></DiagramBlock>}
+            {phase === 1 && (
+                <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35 }} className="w-full flex justify-center">
+                    <video
+                        ref={videoRef} src="/video/spear-throw.mp4" playsInline preload="auto" onEnded={finishVideo}
+                        className="w-full max-w-[360px] rounded-2xl border-2 border-[#3A464E]"
+                    />
+                </motion.div>
+            )}
+            {phase >= 2 && <DiagramBlock><Figure scene={1} pick={null} fly /></DiagramBlock>}
+            {phase >= 3 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Оно воткнулось в землю в точке ' }, { sticker: 'O', color: O_TEXT, bg: O_FILL, border: O_BORDER }, { text: '.' }]}
+                    onSettled={() => onSettled?.()}
+                />
+            )}
         </SceneBox>
     )
 }
@@ -576,15 +663,17 @@ const LineScene = ({ onSettled }: SceneProps) => {
                     {!locked && (
                         <>
                             {!moved && <p className="text-sm text-[#9AA7B0]">👆 тяни за зелёный кружок</p>}
-                            <motion.button
-                                type="button"
-                                initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
-                                onClick={() => { setLocked(true); setPhi(target); setTimeout(() => onSettled?.(), 400) }}
-                                className="mx-auto rounded-2xl px-8 py-3 text-lg font-black text-white active:translate-y-[3px]"
-                                style={{ backgroundColor: B_COLOR, boxShadow: `0 5px 0 ${GGEGE_PALETTE.green.bottom}` }}
-                            >
-                                Примерно так 👌
-                            </motion.button>
+                            {/* анимируем обёртку, кнопка внутри статична (иначе CSS-transition дерётся с framer) */}
+                            <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }} className="mx-auto">
+                                <button
+                                    type="button"
+                                    onClick={() => { setLocked(true); setPhi(target); setTimeout(() => onSettled?.(), 400) }}
+                                    className="h-[52px] rounded-lg bg-[#A1D151] px-8 text-lg font-bold text-[#151F24] active:translate-y-1"
+                                    style={walkthroughButtonStyle(true)}
+                                >
+                                    Примерно так 👌
+                                </button>
+                            </motion.div>
                         </>
                     )}
                 </>
@@ -600,10 +689,13 @@ const GuessBtn = ({ children, onClick, color }: { children: React.ReactNode; onC
     </button>
 )
 
-const QuestionScene = ({ onSettled }: SceneProps) => {
+const QuestionScene = ({ onSettled, leaving }: SceneProps) => {
     const { phi } = useContext(PickCtx)
     const [shown, setShown] = useState(false)
     const [asked, setAsked] = useState(false)
+    const [thinking, setThinking] = useState(false)
+    const pharaonRef = useRef<HTMLVideoElement>(null)
+    useEffect(() => { if (leaving) pharaonRef.current?.pause() }, [leaving])
     return (
         <SceneBox>
             <DiagramBlock><Figure scene={3} pick={null} phi={phi} /></DiagramBlock>
@@ -621,11 +713,18 @@ const QuestionScene = ({ onSettled }: SceneProps) => {
             {asked && (
                 <TypedLineWithParts
                     parts={[
-                        { text: 'Глазами не поймёшь 😅 Проверим: ' }, { bold: 'перпендикулярна ли линии ' },
-                        { sticker: 'тень', color: PROJ_COLOR }, { text: ' от копья?' },
+                        { text: 'Глазами не заметно 😅' }, { break: true },
+                        { text: 'А чтобы точно узнать — надо понять,' }, { break: true },
+                        { text: 'а перпендикулярна ли ' }, { sticker: 'ТЕНЬ', color: PROJ_COLOR }, { text: ' от копья к этой ' },
+                        { sticker: 'линии', color: B_COLOR }, { text: '?' },
                     ]}
-                    onSettled={() => onSettled?.()}
+                    onSettled={() => { setThinking(true); setTimeout(() => onSettled?.(), 1500) }}
                 />
+            )}
+            {thinking && (
+                <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', bounce: 0.4 }} className="flex justify-center">
+                    <AlphaVideo ref={pharaonRef} src="/video/pharaon-think.webm" autoPlay loop muted playsInline className="w-full max-w-[240px]" />
+                </motion.div>
             )}
         </SceneBox>
     )
@@ -676,7 +775,7 @@ const ShadowScene = ({ onSettled }: SceneProps) => {
                 <TypedLineWithParts
                     parts={[
                         { text: 'Луч попал в точку ' }, { sticker: 'H', color: PROJ_COLOR }, { text: '. Соединим ' }, { sticker: 'H', color: PROJ_COLOR },
-                        { text: ' с ' }, { sticker: 'O', color: X_COLOR }, { text: ' — это ' }, { sticker: 'тень', color: PROJ_COLOR }, { text: ' копья.' },
+                        { text: ' с ' }, { sticker: 'O', color: O_TEXT, bg: O_FILL, border: O_BORDER }, { text: ' — это ' }, { sticker: 'тень', color: PROJ_COLOR }, { text: ' копья.' },
                     ]}
                 />
             )}
