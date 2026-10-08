@@ -209,10 +209,10 @@ const Dot = ({ x, y, color, fresh, delay = 0 }: { x: number; y: number; color: s
 )
 
 // Тег-слово («линия») — как SvgTag, но шире под длину слова.
-const SvgWordTag = ({ x, y, text, color, delay = 0 }: { x: number; y: number; text: string; color: string; delay?: number }) => {
+const SvgWordTag = ({ x, y, text, color, delay = 0, angle = 0 }: { x: number; y: number; text: string; color: string; delay?: number; angle?: number }) => {
     const w = text.length * 8.6 + 18
     return (
-        <g transform={`translate(${x},${y})`}>
+        <g transform={`translate(${x},${y}) rotate(${angle.toFixed(1)})`}>
             <motion.g
                 initial={{ opacity: 0, scale: 2.2 }} animate={{ opacity: 1, scale: 1 }}
                 transition={{ type: 'spring', stiffness: 320, damping: 15, delay }}
@@ -283,7 +283,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
     const vx = aTop.x - Op.x, vy = aTop.y - Op.y
     const vLen = Math.hypot(vx, vy)
     const spearRot = (Math.atan2(-vx / vLen, vy / vLen) * 180) / Math.PI
-    const spearW = (vLen * 49 * 1.9) / 720
+    const spearW = (vLen * 67) / 912 // пропорции картинки spear.webp (67×912)
 
     // линия b через O под углом φ (на земле), ручка — на «ближнем к зрителю» конце
     const ph = phi * DEG
@@ -292,12 +292,19 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
     const bPath = `M${e2.x.toFixed(1)},${e2.y.toFixed(1)} L${e1.x.toFixed(1)},${e1.y.toFixed(1)}`
     const handle = e1.y > e2.y ? e1 : e2
     const tagEnd = e1.y > e2.y ? e2 : e1
+    // подпись «линия» — вдоль линии: чуть отступив от дальнего конца к O и ПОД линией (над ней копьё)
+    let tagAng = (Math.atan2(e1.y - e2.y, e1.x - e2.x) * 180) / Math.PI
+    if (tagAng > 90) tagAng -= 180
+    if (tagAng < -90) tagAng += 180
+    const tdx = handle.x - tagEnd.x, tdy = handle.y - tagEnd.y, tdl = Math.hypot(tdx, tdy) || 1
+    const ta = (tagAng * Math.PI) / 180
+    const tagPos = { x: tagEnd.x + (tdx / tdl) * 34 - Math.sin(ta) * 17, y: tagEnd.y + (tdy / tdl) * 34 + Math.cos(ta) * 17 }
 
-    // куст — у дальнего угла земли
+    // куст — у левого угла земли
     const cs = PLANE_CORNERS.map(([x, y]) => P3(x, y, 0))
-    const farCorner = cs.reduce((best, c) => (c.y < best.y ? c : best), cs[0])
+    const farCorner = cs.reduce((best, c) => (c.x < best.x ? c : best), cs[0])
     const center = P3(CXW, CYW, 0)
-    const bush = { x: farCorner.x + (center.x - farCorner.x) * 0.22, y: farCorner.y + (center.y - farCorner.y) * 0.22 + 4 }
+    const bush = { x: farCorner.x + (center.x - farCorner.x) * 0.3, y: farCorner.y + (center.y - farCorner.y) * 0.3 + 4 }
     const alphaCorner = cs.reduce((best, c) => (c.x + c.y > best.x + best.y ? c : best), cs[0])
     const alphaPos = { x: alphaCorner.x + (center.x - alphaCorner.x) * 0.35, y: alphaCorner.y + (center.y - alphaCorner.y) * 0.35 }
 
@@ -414,7 +421,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                 {hasB && (
                     <>
                         <DrawPath d={bPath} color={B_COLOR} w={4} fresh={scene === 2 && !rotate} dur={0.9} />
-                        {!school && <SvgWordTag x={tagEnd.x - 4} y={tagEnd.y - 20} text="линия" color={B_COLOR} delay={scene === 2 ? 0.7 : 0} />}
+                        {!school && <SvgWordTag x={tagPos.x} y={tagPos.y} angle={tagAng} text="линия" color={B_COLOR} delay={scene === 2 ? 0.7 : 0} />}
                         {school && <SvgTag x={tagEnd.x - 4} y={tagEnd.y - 18} text="b" color={B_COLOR} delay={0.3} />}
                     </>
                 )}
@@ -465,8 +472,10 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                             initial={fresh4 ? { y: -110, opacity: 0 } : { y: 0, opacity: 1 }} animate={{ y: 0, opacity: 1 }}
                             transition={{ type: 'spring', bounce: 0.45, duration: 1.1 }}
                         >
-                            <circle r={46} fill="url(#ttpSunGlow)" />
-                            <image href="/lesson-pics/sun.svg" x={-32} y={-32} width={64} height={64} />
+                            <g className="animate-sun-bob">
+                                <circle r={46} fill="url(#ttpSunGlow)" />
+                                <image href="/lesson-pics/sun.svg" x={-32} y={-32} width={64} height={64} />
+                            </g>
                         </motion.g>
                     </g>
                 )}

@@ -647,3 +647,12 @@ body {
   -webkit-text-fill-color: transparent;
   animation: gold-text-shine 3.4s ease-in-out infinite;
 }
+
+/* ТТП (урок 497): солнце после появления еле заметно покачивается вверх-вниз */
+@keyframes sun-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.animate-sun-bob {
+  animation: sun-bob 3.2s ease-in-out 1.2s infinite;
+}
