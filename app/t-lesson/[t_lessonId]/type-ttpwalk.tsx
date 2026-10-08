@@ -103,16 +103,16 @@ const SvgTag = ({ x, y, text, color, delay = 0 }: { x: number; y: number; text: 
 // ===================================================================
 // ЧЕРТЁЖ: земля (плоскость), копьё (наклонная), линия на земле, тень (проекция)
 // ===================================================================
-// «Из жизни»: спортсмен метнул копьё — оно воткнулось в землю, на земле начерчена линия.
-// Перпендикулярно ли копьё линии? Проверяем по ТЕНИ (солнце в зените ⇒ тень = проекция).
-// Потом всё то же «по-школьному»: плоскость α, наклонная a, прямая b, проекция a.
-// Косая проекция 3D→2D; сцена повёрнута вокруг вертикали (по часовой, если смотреть сверху),
-// чтобы линии не сливались. Копьё лежит в одной вертикальной плоскости, линия перпендикулярна
-// ей ⇒ в 3D копьё и линия честно перпендикулярны (угол 90° — не обман глаза).
+// «Из жизни»: спортсмен метнул копьё — оно воткнулось в землю в точке O, на земле проведена
+// линия b (ученик сам крутит её «примерно перпендикулярно»). Перпендикулярно ли копьё линии?
+// Проверяем по ТЕНИ (солнце в зените ⇒ тень = проекция). Потом всё то же «по-школьному»:
+// плоскость α, наклонная a, прямая b, проекция a.
+// Косая проекция 3D→2D, сцена повёрнута вокруг вертикали (по часовой, если смотреть сверху).
+// Копьё лежит в плоскости, перпендикулярной оси x; линия b вдоль x (φ = 0) ⟂ копью.
 
-const VB_W = 340, VB_H = 262
+const VB_W = 340, VB_H = 290
 const ANG = (28 * Math.PI) / 180
-const CXW = 5, CYW = 2.5
+const CXW = 5, CYW = 3.5
 
 const A_COLOR = GGEGE_PALETTE.raspberry.button
 const B_COLOR = GGEGE_PALETTE.green.button
@@ -121,13 +121,15 @@ const PLANE_COLOR = GGEGE_PALETTE.teal.button
 const MARK_COLOR = GGEGE_PALETTE.orange.button
 const X_COLOR = '#F2F7FB'
 
-// Точка X, где копьё входит в землю; a(s) = X + s·(0, 1, 1.4)
-const X3 = { x: 5, y: 1.2, z: 0 }
-const aPoint = (s: number) => ({ x: 5, y: X3.y + s, z: 1.4 * s })
-const S_LOW = -1.2, S_HIGH = 3.4
-const CANDIDATES = [1.8, 2.6, 3.3]
-const DEFAULT_PICK = 2.6
-const PLANE_CORNERS: [number, number][] = [[0, 0], [10, 0], [10, 5], [0, 5]]
+// Точка O, где копьё входит в землю; a(s) = O + s·(0, 1, 1.4)
+const O3 = { x: 5, y: 3.5, z: 0 }
+const aPoint = (s: number) => ({ x: 5, y: O3.y + s, z: 1.4 * s })
+const S_HIGH = 3.3
+const CANDIDATES = [1.7, 2.4, 3.1]
+const DEFAULT_PICK = 2.4
+const PLANE_CORNERS: [number, number][] = [[0, 0], [10, 0], [10, 7], [0, 7]]
+const LB = 3.4 // полудлина линии b (при любом угле остаётся в пределах земли)
+const DEG = Math.PI / 180
 
 const rawProj = (x: number, y: number, z: number) => {
     const dx = x - CXW, dy = y - CYW
@@ -135,19 +137,54 @@ const rawProj = (x: number, y: number, z: number) => {
     const ry = CYW - dx * Math.sin(ANG) + dy * Math.cos(ANG)
     return { x: rx + 0.75 * ry, y: -(z + 0.5 * ry) }
 }
-// Подгоняем сцену под холст: масштаб и сдвиг по крайним точкам (плоскость + концы копья).
+// Подгоняем сцену под холст: масштаб и сдвиг по крайним точкам (плоскость + верх копья).
 const FIT = (() => {
-    const pts = [...PLANE_CORNERS.map(([x, y]) => rawProj(x, y, 0)), rawProj(aPoint(S_LOW).x, aPoint(S_LOW).y, aPoint(S_LOW).z), rawProj(aPoint(S_HIGH).x, aPoint(S_HIGH).y, aPoint(S_HIGH).z)]
+    const top = aPoint(S_HIGH)
+    const pts = [...PLANE_CORNERS.map(([x, y]) => rawProj(x, y, 0)), rawProj(top.x, top.y, top.z)]
     const minX = Math.min(...pts.map((q) => q.x)), maxX = Math.max(...pts.map((q) => q.x))
     const minY = Math.min(...pts.map((q) => q.y)), maxY = Math.max(...pts.map((q) => q.y))
-    const mX = 40, mT = 30, mB = 34
+    const mX = 12, mT = 16, mB = 16
     const u = Math.min((VB_W - 2 * mX) / (maxX - minX), (VB_H - mT - mB) / (maxY - minY))
     return { u, offX: mX - minX * u + ((VB_W - 2 * mX) - (maxX - minX) * u) / 2, offY: mT - minY * u + ((VB_H - mT - mB) - (maxY - minY) * u) / 2 }
 })()
 const P3 = (x: number, y: number, z: number) => { const r = rawProj(x, y, z); return { x: FIT.offX + r.x * FIT.u, y: FIT.offY + r.y * FIT.u } }
 const ptStr = (x: number, y: number, z: number) => { const p = P3(x, y, z); return `${p.x.toFixed(1)},${p.y.toFixed(1)}` }
+// Обратное преобразование: точка экрана (в координатах viewBox) → точка земли (x, y).
+const unproject = (sx: number, sy: number) => {
+    const ryRaw = (sy - FIT.offY) / FIT.u, rxRaw = (sx - FIT.offX) / FIT.u
+    const ry = -ryRaw / 0.5
+    const rx = rxRaw - 0.75 * ry
+    const dx = rx - CXW, dy = ry - CYW
+    return { x: CXW + dx * Math.cos(ANG) - dy * Math.sin(ANG), y: CYW + dx * Math.sin(ANG) + dy * Math.cos(ANG) }
+}
 
-const PickCtx = createContext<{ pick: number | null; setPick: (s: number | null) => void }>({ pick: null, setPick: () => {} })
+// Угол линии b (в градусах, φ=0 — вдоль x, то есть ⟂ копью) приводим к (-90, 90].
+const normPhi = (deg: number) => { let d = ((deg % 180) + 180) % 180; if (d > 90) d -= 180; return d }
+// «Немного дискретное» вращение: каждые 15° — «залипание», у прямого угла (0°) — сильнее.
+const detent = (deg: number) => {
+    const d = normPhi(deg)
+    const stop = Math.round(d / 15) * 15
+    const range = stop === 0 ? 6.5 : 4
+    return Math.abs(d - stop) <= range ? normPhi(stop) : d
+}
+// Плавно догоняем целевой угол по кратчайшему пути (линия не имеет направления, период 180°).
+const useEasedAngle = (target: number, init: number) => {
+    const [shown, setShown] = useState(init)
+    useEffect(() => {
+        const id = setInterval(() => {
+            setShown((cur) => {
+                const d = ((target - cur + 90) % 180 + 180) % 180 - 90
+                return Math.abs(d) < 0.15 ? target : normPhi(cur + d * 0.26)
+            })
+        }, 16)
+        return () => clearInterval(id)
+    }, [target])
+    return shown
+}
+
+const PickCtx = createContext<{ pick: number | null; setPick: (s: number | null) => void; phi: number; setPhi: (d: number) => void }>({
+    pick: null, setPick: () => {}, phi: 35, setPhi: () => {},
+})
 
 const DrawPath = ({ d, color, w = 3, fresh, delay = 0, dur = 0.9 }: { d: string; color: string; w?: number; fresh: boolean; delay?: number; dur?: number }) => (
     <motion.path
@@ -171,7 +208,7 @@ const Dot = ({ x, y, color, fresh, delay = 0 }: { x: number; y: number; color: s
     </g>
 )
 
-// Тег-слово («копьё», «линия») — как SvgTag, но шире под длину слова.
+// Тег-слово («линия») — как SvgTag, но шире под длину слова.
 const SvgWordTag = ({ x, y, text, color, delay = 0 }: { x: number; y: number; text: string; color: string; delay?: number }) => {
     const w = text.length * 8.6 + 18
     return (
@@ -190,10 +227,31 @@ const SvgWordTag = ({ x, y, text, color, delay = 0 }: { x: number; y: number; te
 const rightAngleMark = (o: { x: number; y: number; z: number }, d1: [number, number, number], d2: [number, number, number]) =>
     `M${ptStr(o.x + d1[0], o.y + d1[1], o.z + d1[2])} L${ptStr(o.x + d1[0] + d2[0], o.y + d1[1] + d2[1], o.z + d1[2] + d2[2])} L${ptStr(o.x + d2[0], o.y + d2[1], o.z + d2[2])}`
 
+// Копьё: летит справа сверху с ускорением (остриём вперёд) и втыкается в точку O: покачивание,
+// кольцо пыли и комочки земли. t — миллисекунды от старта (t<0 — ещё не началось).
+const FLY_MS = 950
+const spearFlight = (t: number) => {
+    if (t >= FLY_MS) {
+        const te = t - FLY_MS
+        return { f: 0, wob: 6 * Math.exp(-te / 240) * Math.cos(te / 48), te, op: 1 }
+    }
+    if (t < 0) return { f: 1, wob: 0, te: -1, op: 0 }
+    return { f: 1 - Math.pow(t / FLY_MS, 2.3), wob: 0, te: -1, op: Math.min(1, t / 140) }
+}
+
+const DUST = Array.from({ length: 9 }, (_, i) => ({ ang: (i / 9) * Math.PI * 2 + 0.3, dist: 26 + ((i * 37) % 22), rise: 14 + ((i * 53) % 18), r: 2 + (i % 3) }))
+
 // scene: 0 земля · 1 копьё · 2 линия · 3 вопрос · 4 тень · 5 угол 90° · 6-7 «по-школьному»
-const Figure = ({ scene, pick, beat = 0, onPick }: { scene: number; pick: number | null; beat?: number; onPick?: (s: number) => void }) => {
+const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, pre = 3 }: {
+    scene: number; pick: number | null; beat?: number; onPick?: (s: number) => void
+    // сцена 4: 1 — опускается солнце, 2 — с bounce появляется тёмная тень, 3 — можно выбирать точку
+    pre?: number
+    phi?: number
+    rotate?: { onRotate: (rawDeg: number) => void; locked: boolean }
+    fly?: boolean
+}) => {
     const school = scene >= 6
-    const hasA = scene >= 1
+    const hasSpear = scene >= 1
     const hasB = scene >= 2
     const s = pick ?? (scene >= 5 ? DEFAULT_PICK : null)
     const later = scene > 4
@@ -201,36 +259,70 @@ const Figure = ({ scene, pick, beat = 0, onPick }: { scene: number; pick: number
     const showH = s != null && (later || (scene === 4 && beat >= 2))
     const showProj = s != null && (later || (scene === 4 && beat >= 3))
     const fresh4 = scene === 4
-    const freshWords = scene === 6 // подписи-слова меняются на школьные
+    const freshWords = scene === 6 // подписи меняются на школьные
+    const sunOn = scene === 4 ? pre >= 1 : scene === 5
+    const shadowOn = scene === 4 ? pre >= 2 : scene === 5
+    const svgRef = useRef<SVGSVGElement>(null)
 
-    const Xp = P3(X3.x, X3.y, 0)
+    // полёт копья
+    const [t, setT] = useState(fly ? -1 : 1e9)
+    useEffect(() => {
+        if (!fly) return
+        const t0 = performance.now() + 450
+        const id = setInterval(() => { const e = performance.now() - t0; setT(e); if (e > 2600) clearInterval(id) }, 16)
+        return () => clearInterval(id)
+    }, [fly])
+    const flight = spearFlight(t)
+
+    const Op = P3(O3.x, O3.y, 0)
     const planePts = PLANE_CORNERS.map(([x, y]) => ptStr(x, y, 0)).join(' ')
     const planePath = `M${PLANE_CORNERS.map(([x, y]) => ptStr(x, y, 0)).join(' L')} Z`
 
-    const lowEnd = aPoint(S_LOW), hiEnd = aPoint(S_HIGH)
-    const aSolid = `M${ptStr(X3.x, X3.y, 0)} L${ptStr(hiEnd.x, hiEnd.y, hiEnd.z)}`
-    const aHidden = `M${ptStr(lowEnd.x, lowEnd.y, lowEnd.z)} L${ptStr(X3.x, X3.y, 0)}`
-    const bPath = `M${ptStr(0.8, X3.y, 0)} L${ptStr(9.2, X3.y, 0)}`
-    const aTop = P3(hiEnd.x, hiEnd.y, hiEnd.z)
-    const bStart = P3(0.8, X3.y, 0)
+    const top = aPoint(S_HIGH)
+    const aTop = P3(top.x, top.y, top.z)
+    const vx = aTop.x - Op.x, vy = aTop.y - Op.y
+    const vLen = Math.hypot(vx, vy)
+    const spearRot = (Math.atan2(-vx / vLen, vy / vLen) * 180) / Math.PI
+    const spearW = (vLen * 49 * 1.9) / 720
 
-    // подпись плоскости — у ближнего нижнего угла, чуть к центру
+    // линия b через O под углом φ (на земле), ручка — на «ближнем к зрителю» конце
+    const ph = phi * DEG
+    const e1 = P3(O3.x + LB * Math.cos(ph), O3.y + LB * Math.sin(ph), 0)
+    const e2 = P3(O3.x - LB * Math.cos(ph), O3.y - LB * Math.sin(ph), 0)
+    const bPath = `M${e2.x.toFixed(1)},${e2.y.toFixed(1)} L${e1.x.toFixed(1)},${e1.y.toFixed(1)}`
+    const handle = e1.y > e2.y ? e1 : e2
+    const tagEnd = e1.y > e2.y ? e2 : e1
+
+    // куст — у дальнего угла земли
     const cs = PLANE_CORNERS.map(([x, y]) => P3(x, y, 0))
-    const corner = cs.reduce((best, c) => (c.x + c.y > best.x + best.y ? c : best), cs[0])
+    const farCorner = cs.reduce((best, c) => (c.y < best.y ? c : best), cs[0])
     const center = P3(CXW, CYW, 0)
-    const planeLabel = { x: corner.x + (center.x - corner.x) * 0.4, y: corner.y + (center.y - corner.y) * 0.4 }
+    const bush = { x: farCorner.x + (center.x - farCorner.x) * 0.22, y: farCorner.y + (center.y - farCorner.y) * 0.22 + 4 }
+    const alphaCorner = cs.reduce((best, c) => (c.x + c.y > best.x + best.y ? c : best), cs[0])
+    const alphaPos = { x: alphaCorner.x + (center.x - alphaCorner.x) * 0.35, y: alphaCorner.y + (center.y - alphaCorner.y) * 0.35 }
+
+    const onHandleMove = (e: React.PointerEvent) => {
+        if (!rotate || rotate.locked || !svgRef.current) return
+        const ctm = svgRef.current.getScreenCTM()
+        if (!ctm) return
+        const pt = svgRef.current.createSVGPoint()
+        pt.x = e.clientX; pt.y = e.clientY
+        const q = pt.matrixTransform(ctm.inverse())
+        const w = unproject(q.x, q.y)
+        rotate.onRotate((Math.atan2(w.y - O3.y, w.x - O3.x) * 180) / Math.PI)
+    }
 
     let projEl: React.ReactNode = null
     if (s != null) {
         const pP = aPoint(s)
-        const H = P3(5, X3.y + s, 0)
+        const H = P3(5, O3.y + s, 0)
         const Pp = P3(pP.x, pP.y, pP.z)
-        const dx = H.x - Xp.x, dy = H.y - Xp.y
+        const dx = H.x - Op.x, dy = H.y - Op.y
         const len = Math.hypot(dx, dy) || 1
         let nx = -dy / len, ny = dx / len
         if (ny < 0) { nx = -nx; ny = -ny }
         const angle = (Math.atan2(dy, dx) * 180) / Math.PI
-        const tx = (Xp.x + H.x) / 2 + nx * 16, ty = (Xp.y + H.y) / 2 + ny * 16
+        const tx = (Op.x + H.x) / 2 + nx * 16, ty = (Op.y + H.y) / 2 + ny * 16
         projEl = (
             <>
                 {showPerp && (
@@ -242,7 +334,7 @@ const Figure = ({ scene, pick, beat = 0, onPick }: { scene: number; pick: number
                 {showH && (
                     <>
                         <FadeIn fresh={fresh4}>
-                            <path d={rightAngleMark({ x: 5, y: X3.y + s, z: 0 }, [0, -0.7, 0], [0, 0, 0.7])} fill="none" stroke={MARK_COLOR} strokeWidth={2} strokeLinecap="round" />
+                            <path d={rightAngleMark({ x: 5, y: O3.y + s, z: 0 }, [0, -0.7, 0], [0, 0, 0.7])} fill="none" stroke={MARK_COLOR} strokeWidth={2} strokeLinecap="round" />
                         </FadeIn>
                         <Dot x={H.x} y={H.y} color={PROJ_COLOR} fresh={fresh4} />
                         <SvgTag x={H.x + 22} y={H.y - 4} text="H" color={PROJ_COLOR} delay={fresh4 ? 0.2 : 0} />
@@ -250,7 +342,7 @@ const Figure = ({ scene, pick, beat = 0, onPick }: { scene: number; pick: number
                 )}
                 {showProj && (
                     <>
-                        <DrawPath d={`M${Xp.x},${Xp.y} L${H.x},${H.y}`} color={PROJ_COLOR} w={4.5} fresh={fresh4} dur={0.9} />
+                        <DrawPath d={`M${Op.x},${Op.y} L${H.x},${H.y}`} color={PROJ_COLOR} w={4.5} fresh={fresh4} dur={0.9} />
                         <g transform={`translate(${tx},${ty}) rotate(${angle})`}>
                             <motion.text
                                 key={school ? 's' : 'l'}
@@ -267,70 +359,147 @@ const Figure = ({ scene, pick, beat = 0, onPick }: { scene: number; pick: number
         )
     }
 
+    const perpendicular = Math.abs(phi) < 0.6
+    const shake = flight.te >= 0 && flight.te < 320 ? Math.sin(flight.te / 18) * 2.6 * Math.exp(-flight.te / 110) : 0
     return (
-        <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="w-full max-w-[340px] mx-auto" style={{ overflow: 'visible' }}>
-            {/* земля / плоскость */}
-            <motion.polygon
-                points={planePts} fill={hexToRgba(PLANE_COLOR, 0.16)}
-                initial={{ opacity: scene === 0 ? 0 : 1 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.5 }}
-            />
-            <DrawPath d={planePath} color={PLANE_COLOR} w={3} fresh={scene === 0} dur={1.1} />
-            <motion.text
-                key={school ? 'pa' : 'pl'}
-                x={planeLabel.x} y={planeLabel.y + 5} textAnchor="middle" fontSize={school ? 18 : 14} fontStyle="italic" fill={PLANE_COLOR} fontWeight={800}
-                initial={{ opacity: scene === 0 || freshWords ? 0 : 1 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: scene === 0 ? 1.0 : 0.3 }}
-            >
-                {school ? 'α' : 'земля'}
-            </motion.text>
+        <svg ref={svgRef} viewBox={`0 0 ${VB_W} ${VB_H}`} className="w-full max-w-[448px] mx-auto" style={{ overflow: 'visible', touchAction: rotate && !rotate.locked ? 'none' : undefined }}>
+            <defs>
+                <radialGradient id="ttpSunGlow">
+                    <stop offset="0%" stopColor="#FFE27A" stopOpacity="0.55" />
+                    <stop offset="100%" stopColor="#FFE27A" stopOpacity="0" />
+                </radialGradient>
+            </defs>
+            <g transform={`translate(${shake},0)`}>
+                {/* земля: заливка без яркой обводки (обводка — только «по-школьному») */}
+                <motion.polygon
+                    points={planePts} fill={hexToRgba(PLANE_COLOR, 0.2)}
+                    stroke={hexToRgba(PLANE_COLOR, school ? 0.95 : 0.22)} strokeWidth={school ? 3 : 1.5} strokeLinejoin="round"
+                    initial={{ opacity: scene === 0 ? 0 : 1 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.2 }}
+                />
+                {school && <DrawPath d={planePath} color={PLANE_COLOR} w={3} fresh dur={0.9} />}
+                {school && (
+                    <motion.text x={alphaPos.x} y={alphaPos.y + 6} textAnchor="middle" fontSize={20} fontStyle="italic" fill={PLANE_COLOR} fontWeight={800}
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.4 }}>α</motion.text>
+                )}
 
-            {/* часть копья под землёй — пунктир */}
-            {hasA && (
-                <FadeIn fresh={scene === 1} delay={0.2}>
-                    <path d={aHidden} fill="none" stroke={A_COLOR} strokeWidth={3} strokeDasharray="6 6" strokeLinecap="round" opacity={0.55} />
-                </FadeIn>
-            )}
-            {hasB && <DrawPath d={bPath} color={B_COLOR} w={4} fresh={scene === 2} />}
-            {hasA && <DrawPath d={aSolid} color={A_COLOR} w={4} fresh={scene === 1} />}
-            {hasA && <Dot x={Xp.x} y={Xp.y} color={X_COLOR} fresh={scene === 1} delay={1.0} />}
-            {hasA && <SvgTag x={Xp.x - 17} y={Xp.y + 16} text="X" color={X_COLOR} delay={scene === 1 ? 1.1 : 0} />}
-            {hasA && (school
-                ? <SvgTag key="a" x={aTop.x + 18} y={aTop.y + 2} text="a" color={A_COLOR} delay={0.3} />
-                : <SvgWordTag key="kopyo" x={aTop.x + 32} y={aTop.y + 2} text="копьё" color={A_COLOR} delay={scene === 1 ? 1.0 : 0} />)}
-            {hasB && (school
-                ? <SvgTag key="b" x={bStart.x - 6} y={bStart.y - 18} text="b" color={B_COLOR} delay={0.3} />
-                : <SvgWordTag key="liniya" x={bStart.x - 4} y={bStart.y - 19} text="линия" color={B_COLOR} delay={scene === 2 ? 0.9 : 0} />)}
+                {/* куст в углу — чтобы было похоже на настоящую площадку (кружки-крона) */}
+                <g transform={`translate(${bush.x},${bush.y})`}>
+                    <motion.g
+                        initial={{ opacity: scene === 0 ? 0 : 1, scale: scene === 0 ? 0.5 : 1 }} animate={{ opacity: 1, scale: 1 }}
+                        transition={{ type: 'spring', bounce: 0.45, delay: scene === 0 ? 0.9 : 0 }}
+                    >
+                        <ellipse cx={2} cy={2} rx={34} ry={9} fill="#04080A" opacity={0.28} />
+                        <circle cx={-17} cy={-9} r={15} fill="#3E7D3C" />
+                        <circle cx={19} cy={-8} r={14} fill="#468A42" />
+                        <circle cx={1} cy={-16} r={19} fill="#4F9A4A" />
+                        <circle cx={-6} cy={-22} r={7} fill="#74BD62" opacity={0.7} />
+                    </motion.g>
+                </g>
 
-            {projEl}
+                {/* тёмная тень копья на земле (bounce) */}
+                {shadowOn && (() => {
+                    const Hm = P3(5, O3.y + S_HIGH, 0)
+                    return (
+                        <g transform={`translate(${Op.x},${Op.y})`}>
+                            <motion.g
+                                initial={fresh4 ? { scale: 2.8, opacity: 0 } : { scale: 1, opacity: 1 }} animate={{ scale: 1, opacity: 1 }}
+                                transition={{ type: 'spring', bounce: 0.55, duration: 0.95 }}
+                            >
+                                <path d={`M0,0 L${Hm.x - Op.x},${Hm.y - Op.y}`} stroke="#04080A" strokeOpacity={0.6} strokeWidth={11} strokeLinecap="round" />
+                            </motion.g>
+                        </g>
+                    )
+                })()}
 
-            {/* угол 90° между тенью и линией */}
-            {scene >= 5 && (
-                <FadeIn fresh={scene === 5} delay={0.2}>
-                    <path d={rightAngleMark(X3, [0.8, 0, 0], [0, 0.8, 0])} fill="none" stroke={MARK_COLOR} strokeWidth={2.4} strokeLinecap="round" />
-                </FadeIn>
-            )}
+                {hasB && (
+                    <>
+                        <DrawPath d={bPath} color={B_COLOR} w={4} fresh={scene === 2 && !rotate} dur={0.9} />
+                        {!school && <SvgWordTag x={tagEnd.x - 4} y={tagEnd.y - 20} text="линия" color={B_COLOR} delay={scene === 2 ? 0.7 : 0} />}
+                        {school && <SvgTag x={tagEnd.x - 4} y={tagEnd.y - 18} text="b" color={B_COLOR} delay={0.3} />}
+                    </>
+                )}
 
-            {/* солнце над головой — когда падает тень */}
-            {scene >= 4 && scene <= 5 && (
-                <motion.text
-                    x={VB_W - 26} y={26} fontSize={26} textAnchor="middle"
-                    initial={{ opacity: scene === 4 ? 0 : 1 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}
-                >
-                    ☀️
-                </motion.text>
-            )}
-
-            {/* точки на копье, из которых можно «опустить луч» */}
-            {scene === 4 && pick == null && onPick && CANDIDATES.map((c) => {
-                const p = aPoint(c); const q = P3(p.x, p.y, p.z)
-                return (
-                    <g key={c} onClick={() => onPick(c)} style={{ cursor: 'pointer' }}>
-                        <circle cx={q.x} cy={q.y} r={20} fill="transparent" />
-                        <motion.circle cx={q.x} cy={q.y} r={13} fill="none" stroke={A_COLOR} strokeWidth={2}
-                            animate={{ opacity: [0.15, 0.7, 0.15] }} transition={{ duration: 1.4, repeat: Infinity }} />
-                        <circle cx={q.x} cy={q.y} r={6.5} fill={A_COLOR} stroke="#0B1216" strokeWidth={1.5} />
+                {/* копьё (картинка): летит и втыкается. Подписей нет — «оно и так копьё» */}
+                {hasSpear && flight.op > 0 && (
+                    <g transform={`translate(${Op.x + vx * 1.5 * flight.f},${Op.y + vy * 1.5 * flight.f})`} opacity={flight.op}>
+                        {flight.f > 0.02 && (
+                            <line x1={vx * 0.0} y1={vy * 0.0} x2={vx * 0.55 * flight.f} y2={vy * 0.55 * flight.f} stroke="#F2F7FB" strokeOpacity={0.28 * flight.f} strokeWidth={3} strokeLinecap="round" transform={`translate(${vx},${vy})`} />
+                        )}
+                        <g transform={`rotate(${flight.wob})`}>
+                            <g transform={`rotate(${spearRot})`}>
+                                <image href="/lesson-pics/spear.webp" x={-spearW / 2} y={0} width={spearW} height={vLen} preserveAspectRatio="none" />
+                            </g>
+                        </g>
                     </g>
-                )
-            })}
+                )}
+                {school && <line x1={Op.x} y1={Op.y} x2={aTop.x} y2={aTop.y} stroke={A_COLOR} strokeWidth={3} strokeLinecap="round" opacity={0.7} />}
+                {school && <SvgTag x={aTop.x + 18} y={aTop.y + 2} text="a" color={A_COLOR} delay={0.3} />}
+
+                {/* удар: кольцо пыли и комочки земли */}
+                {hasSpear && flight.te >= 0 && flight.te < 800 && (
+                    <g transform={`translate(${Op.x},${Op.y})`}>
+                        <ellipse rx={10 + 62 * (flight.te / 650)} ry={(10 + 62 * (flight.te / 650)) * 0.38} fill="none" stroke="#E7D3A8" strokeWidth={3} opacity={Math.max(0, 0.7 * (1 - flight.te / 650))} />
+                        {DUST.map((d, i) => {
+                            const k = Math.min(1, flight.te / 700)
+                            return <circle key={i} cx={Math.cos(d.ang) * d.dist * k} cy={Math.sin(d.ang) * d.dist * k * 0.45 - Math.sin(Math.PI * k) * d.rise} r={d.r} fill="#C9A978" opacity={Math.max(0, 1 - k)} />
+                        })}
+                    </g>
+                )}
+
+                {hasSpear && <Dot x={Op.x} y={Op.y} color={X_COLOR} fresh={scene === 1} delay={FLY_MS / 1000 + 0.45} />}
+                {hasSpear && <SvgTag x={Op.x - 18} y={Op.y + 17} text="O" color={X_COLOR} delay={scene === 1 ? FLY_MS / 1000 + 0.75 : 0} />}
+
+                {projEl}
+
+                {/* прямой угол между тенью и линией */}
+                {scene >= 5 && perpendicular && (
+                    <FadeIn fresh={scene === 5} delay={0.1}>
+                        <path d={rightAngleMark(O3, [0.8, 0, 0], [0, 0.8, 0])} fill="none" stroke={MARK_COLOR} strokeWidth={2.4} strokeLinecap="round" />
+                    </FadeIn>
+                )}
+
+                {/* солнце (стикер) опускается слева сверху */}
+                {sunOn && (
+                    <g transform="translate(48,40)">
+                        <motion.g
+                            initial={fresh4 ? { y: -110, opacity: 0 } : { y: 0, opacity: 1 }} animate={{ y: 0, opacity: 1 }}
+                            transition={{ type: 'spring', bounce: 0.45, duration: 1.1 }}
+                        >
+                            <circle r={46} fill="url(#ttpSunGlow)" />
+                            <image href="/lesson-pics/sun.svg" x={-32} y={-32} width={64} height={64} />
+                        </motion.g>
+                    </g>
+                )}
+
+                {/* точки на копье, из которых можно «опустить луч» */}
+                {scene === 4 && pick == null && onPick && pre >= 3 && CANDIDATES.map((c) => {
+                    const p = aPoint(c); const q = P3(p.x, p.y, p.z)
+                    return (
+                        <g key={c} onClick={() => onPick(c)} style={{ cursor: 'pointer' }}>
+                            <circle cx={q.x} cy={q.y} r={20} fill="transparent" />
+                            <motion.circle cx={q.x} cy={q.y} r={13} fill="none" stroke={A_COLOR} strokeWidth={2}
+                                animate={{ opacity: [0.15, 0.7, 0.15] }} transition={{ duration: 1.4, repeat: Infinity }} />
+                            <circle cx={q.x} cy={q.y} r={6.5} fill={A_COLOR} stroke="#0B1216" strokeWidth={1.5} />
+                        </g>
+                    )
+                })}
+
+                {/* ручка вращения линии b */}
+                {rotate && (
+                    <g
+                        onPointerDown={(e) => { if (!rotate.locked) { try { (e.currentTarget as Element).setPointerCapture(e.pointerId) } catch { /* не страшно: ведём по move */ } } }}
+                        onPointerMove={(e) => { if (e.buttons || e.pointerType === 'touch') onHandleMove(e) }}
+                        style={{ cursor: rotate.locked ? 'default' : 'grab', touchAction: 'none' }}
+                    >
+                        <circle cx={handle.x} cy={handle.y} r={26} fill="transparent" />
+                        {!rotate.locked && (
+                            <motion.circle cx={handle.x} cy={handle.y} r={16} fill="none" stroke={B_COLOR} strokeWidth={2}
+                                animate={{ opacity: [0.2, 0.9, 0.2] }} transition={{ duration: 1.3, repeat: Infinity }} />
+                        )}
+                        <circle cx={handle.x} cy={handle.y} r={9} fill={B_COLOR} stroke="#0B1216" strokeWidth={2} />
+                    </g>
+                )}
+            </g>
         </svg>
     )
 }
@@ -349,8 +518,8 @@ const GroundScene = ({ onSettled }: SceneProps) => {
     const { typed, onTyped } = useAfterTyped()
     return (
         <SceneBox>
-            <TypedLineWithParts parts={[{ text: 'Вот ' }, { sticker: 'земля', color: PLANE_COLOR }, { text: ' — площадка для метания копья.' }]} onSettled={onTyped} />
-            {typed && <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1700)}><Figure scene={0} pick={null} /></DiagramBlock>}
+            <TypedLineWithParts parts={[{ text: 'Вот площадка для метания копья 🌿' }]} onSettled={onTyped} />
+            {typed && <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1800)}><Figure scene={0} pick={null} /></DiagramBlock>}
         </SceneBox>
     )
 }
@@ -360,23 +529,57 @@ const SpearScene = ({ onSettled }: SceneProps) => {
     return (
         <SceneBox>
             <TypedLineWithParts
-                parts={[{ text: 'Спортсмен 🏃 метнул ' }, { sticker: 'копьё', color: A_COLOR }, { text: ' — оно воткнулось в землю в точке ' }, { sticker: 'X', color: X_COLOR }, { text: '.' }]}
+                parts={[{ text: 'Спортсмен 🏃 метнул ' }, { sticker: 'копьё', color: A_COLOR }, { text: ' — оно воткнулось в землю в точке ' }, { sticker: 'O', color: X_COLOR }, { text: '.' }]}
                 onSettled={onTyped}
             />
-            {typed && <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1800)}><Figure scene={1} pick={null} /></DiagramBlock>}
+            {typed && <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 3400)}><Figure scene={1} pick={null} fly /></DiagramBlock>}
         </SceneBox>
     )
 }
 
 const LineScene = ({ onSettled }: SceneProps) => {
-    const { typed, onTyped } = useAfterTyped()
+    const { phi: _phi, setPhi } = useContext(PickCtx)
+    const [typed, setTyped] = useState(false)
+    const [locked, setLocked] = useState(false)
+    // стартовый угол — случайный и НЕ перпендикулярный (32–58° в любую сторону)
+    const [initial] = useState(() => (Math.random() < 0.5 ? -1 : 1) * (32 + Math.random() * 26))
+    const [target, setTarget] = useState(initial)
+    const shown = useEasedAngle(target, initial)
+    const [moved, setMoved] = useState(false)
+    useEffect(() => { setPhi(initial) }, [setPhi, initial])
     return (
         <SceneBox>
             <TypedLineWithParts
-                parts={[{ text: 'На земле была начерчена ' }, { sticker: 'линия', color: B_COLOR }, { text: ' — прямо через эту точку.' }]}
-                onSettled={onTyped}
+                parts={[
+                    { text: 'В этой точке проведена ' }, { sticker: 'линия', color: B_COLOR }, { text: '. ' }, { bold: 'Крути её так, чтобы она ПРИМЕРНО стала перпендикулярна ' },
+                    { sticker: 'копью', color: A_COLOR }, { text: '.' },
+                ]}
+                onSettled={() => setTyped(true)}
             />
-            {typed && <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1600)}><Figure scene={2} pick={null} /></DiagramBlock>}
+            {typed && (
+                <>
+                    <DiagramBlock>
+                        <Figure
+                            scene={2} pick={null} phi={shown}
+                            rotate={{ locked, onRotate: (raw) => { setTarget(detent(raw)); setMoved(true) } }}
+                        />
+                    </DiagramBlock>
+                    {!locked && (
+                        <>
+                            {!moved && <p className="text-sm text-[#9AA7B0]">👆 тяни за зелёный кружок</p>}
+                            <motion.button
+                                type="button"
+                                initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
+                                onClick={() => { setLocked(true); setPhi(target); setTimeout(() => onSettled?.(), 400) }}
+                                className="mx-auto rounded-2xl px-8 py-3 text-lg font-black text-white active:translate-y-[3px]"
+                                style={{ backgroundColor: B_COLOR, boxShadow: `0 5px 0 ${GGEGE_PALETTE.green.bottom}` }}
+                            >
+                                Примерно так 👌
+                            </motion.button>
+                        </>
+                    )}
+                </>
+            )}
         </SceneBox>
     )
 }
@@ -389,13 +592,14 @@ const GuessBtn = ({ children, onClick, color }: { children: React.ReactNode; onC
 )
 
 const QuestionScene = ({ onSettled }: SceneProps) => {
+    const { phi } = useContext(PickCtx)
     const [shown, setShown] = useState(false)
     const [asked, setAsked] = useState(false)
     return (
         <SceneBox>
-            <DiagramBlock><Figure scene={3} pick={null} /></DiagramBlock>
+            <DiagramBlock><Figure scene={3} pick={null} phi={phi} /></DiagramBlock>
             <TypedLineWithParts
-                parts={[{ sticker: 'Копьё', color: A_COLOR }, { text: ' воткнулось ' }, { bold: 'перпендикулярно' }, { text: ' ' }, { sticker: 'линии', color: B_COLOR }, { text: '?' }]}
+                parts={[{ text: 'А ' }, { bold: 'точно' }, { text: ' ли ' }, { sticker: 'копьё', color: A_COLOR }, { text: ' перпендикулярно ' }, { sticker: 'линии', color: B_COLOR }, { text: '? 🤔' }]}
                 onSettled={() => setShown(true)}
             />
             {shown && !asked && (
@@ -419,12 +623,21 @@ const QuestionScene = ({ onSettled }: SceneProps) => {
 }
 
 const ShadowScene = ({ onSettled }: SceneProps) => {
-    const { pick, setPick } = useContext(PickCtx)
+    const { pick, setPick, phi } = useContext(PickCtx)
     const [typed, setTyped] = useState(false)
+    const [pre, setPre] = useState(0)
     const [beat, setBeat] = useState(0)
     const [lineTwo, setLineTwo] = useState(false)
     // сцена начинается заново — прошлый выбор точки сбрасываем
     useEffect(() => { setPick(null) }, [setPick])
+    // после печати: солнце опускается → с bounce появляется тень → можно выбирать точку
+    useEffect(() => {
+        if (!typed) return
+        const t1 = setTimeout(() => setPre(1), 250)
+        const t2 = setTimeout(() => setPre(2), 1750)
+        const t3 = setTimeout(() => setPre(3), 3000)
+        return () => { [t1, t2, t3].forEach(clearTimeout) }
+    }, [typed])
     useEffect(() => {
         if (pick == null) return
         const t1 = setTimeout(() => setBeat(1), 150)
@@ -437,19 +650,24 @@ const ShadowScene = ({ onSettled }: SceneProps) => {
     return (
         <SceneBox>
             <TypedLineWithParts
-                parts={[{ text: 'Солнце ☀️ прямо над головой: от любой точки ' }, { sticker: 'копья', color: A_COLOR }, { text: ' луч падает на землю отвесно. ' }, { bold: 'Выбери точку 👇' }]}
+                parts={[{ text: 'Выглянуло солнце ☀️ — прямо над головой! Копьё отбрасывает ' }, { sticker: 'тень', color: PROJ_COLOR }, { text: '.' }]}
                 onSettled={() => setTyped(true)}
             />
             {typed && (
                 <DiagramBlock>
-                    <Figure scene={4} pick={pick} beat={beat} onPick={(s) => setPick(s)} />
+                    <Figure scene={4} pick={pick} beat={beat} phi={phi} pre={pre} onPick={(s) => setPick(s)} />
                 </DiagramBlock>
+            )}
+            {pre >= 3 && pick == null && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Луч от любой точки ' }, { sticker: 'копья', color: A_COLOR }, { text: ' падает на землю отвесно. ' }, { bold: 'Выбери точку 👇' }]}
+                />
             )}
             {lineTwo && (
                 <TypedLineWithParts
                     parts={[
                         { text: 'Луч попал в точку ' }, { sticker: 'H', color: PROJ_COLOR }, { text: '. Соединим ' }, { sticker: 'H', color: PROJ_COLOR },
-                        { text: ' с ' }, { sticker: 'X', color: X_COLOR }, { text: ' — это ' }, { sticker: 'тень', color: PROJ_COLOR }, { text: ' копья.' },
+                        { text: ' с ' }, { sticker: 'O', color: X_COLOR }, { text: ' — это ' }, { sticker: 'тень', color: PROJ_COLOR }, { text: ' копья.' },
                     ]}
                 />
             )}
@@ -458,22 +676,33 @@ const ShadowScene = ({ onSettled }: SceneProps) => {
 }
 
 const NinetyScene = ({ onSettled }: SceneProps) => {
-    const { pick } = useContext(PickCtx)
+    const { pick, phi: phi0 } = useContext(PickCtx)
+    const off = Math.abs(phi0) > 1
+    const angleBetween = Math.round(90 - Math.abs(phi0))
     const [typed, setTyped] = useState(false)
-    const [second, setSecond] = useState(false)
+    const [msg, setMsg] = useState(false)
+    const [fix, setFix] = useState(false)
+    const [final, setFinal] = useState(false)
+    const shown = useEasedAngle(fix ? 0 : phi0, phi0)
     return (
         <SceneBox>
             <TypedLineWithParts
-                parts={[
-                    { text: 'Если тень перпендикулярна ' }, { sticker: 'линии', color: B_COLOR }, { text: ' — получился угол ' }, { sticker: '90°', color: MARK_COLOR }, { text: '…' },
-                ]}
+                parts={[{ text: 'Смотрим, какой угол между ' }, { sticker: 'тенью', color: PROJ_COLOR }, { text: ' и ' }, { sticker: 'линией', color: B_COLOR }, { text: '…' }]}
                 onSettled={() => setTyped(true)}
             />
-            {typed && <DiagramBlock onSettled={() => setTimeout(() => setSecond(true), 1300)}><Figure scene={5} pick={pick} /></DiagramBlock>}
-            {second && (
+            {typed && <DiagramBlock onSettled={() => setTimeout(() => setMsg(true), 1100)}><Figure scene={5} pick={pick} phi={shown} /></DiagramBlock>}
+            {msg && (
+                <TypedLineWithParts
+                    parts={off
+                        ? [{ text: `Получилось ${angleBetween}° — не 90°! Подкрутим линию до прямого угла 🔧` }]
+                        : [{ text: 'Ровно ' }, { sticker: '90°', color: MARK_COLOR }, { text: '! Глаз — алмаз 🎯' }]}
+                    onSettled={() => { setFix(true); setTimeout(() => setFinal(true), off ? 1700 : 300) }}
+                />
+            )}
+            {final && (
                 <>
                     <TypedLineWithParts
-                        parts={[{ text: '…то и ' }, { sticker: 'копьё', color: A_COLOR }, { text: ' воткнулось под ' }, { sticker: '90°', color: MARK_COLOR }, { text: ' к ' }, { sticker: 'линии', color: B_COLOR }, { text: '!' }]}
+                        parts={[{ text: 'Тень ⟂ линии — значит и ' }, { sticker: 'копьё', color: A_COLOR }, { text: ' воткнулось под ' }, { sticker: '90°', color: MARK_COLOR }, { text: ' к ' }, { sticker: 'линии', color: B_COLOR }, { text: '!' }]}
                         onSettled={() => onSettled?.()}
                     />
                     <motion.div
@@ -510,7 +739,7 @@ const SchoolScene = ({ onSettled }: SceneProps) => {
     return (
         <SceneBox>
             <TypedLineWithParts parts={[{ text: 'А теперь — ' }, { bold: 'по-школьному 🎓' }]} onSettled={() => setTyped(true)} />
-            {typed && <DiagramBlock><Figure scene={6} pick={pick} /></DiagramBlock>}
+            {typed && <DiagramBlock><Figure scene={6} pick={pick} phi={0} /></DiagramBlock>}
             <div className="w-full flex flex-col gap-2">
                 {SCHOOL_ROWS.slice(0, rows).map((r) => (
                     <motion.div key={r.life} initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }} className="flex items-center justify-center gap-2 text-base md:text-lg">
@@ -853,6 +1082,7 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
 export const TypeTtpWalk = ({ onAnswer, onComplete }: Props) => {
     const [phase, setPhase] = useState<'concept' | 'quiz'>('concept')
     const [pick, setPick] = useState<number | null>(null)
+    const [phi, setPhi] = useState(35)
     const finishedRef = useRef(false)
 
     const handleFinish = (hadMistake: boolean) => {
@@ -864,7 +1094,7 @@ export const TypeTtpWalk = ({ onAnswer, onComplete }: Props) => {
 
     if (phase === 'concept') {
         return (
-            <PickCtx.Provider value={{ pick, setPick }}>
+            <PickCtx.Provider value={{ pick, setPick, phi, setPhi }}>
                 <ConceptPhase onDone={() => setPhase('quiz')} />
             </PickCtx.Provider>
         )
