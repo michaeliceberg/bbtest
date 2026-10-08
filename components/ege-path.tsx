@@ -19,7 +19,7 @@ import { EgeTower } from '@/components/ege-tower'
 
 const GOALS = [60, 70, 80, 90, 100]
 const fmt = (x: number) => (Math.round(x * 10) / 10).toString().replace('.', ',')
-export const EgePath = ({ map, target: initialTarget, activeMoveId }: { map: EgeMap; target: number | null; activeMoveId: number | null }) => {
+export const EgePath = ({ map, target: initialTarget, activeMoveId, unclaimedCase }: { map: EgeMap; target: number | null; activeMoveId: number | null; unclaimedCase?: { id: number; taskNum: number } | null }) => {
     const router = useRouter()
     const [moveError, setMoveError] = useState<string | null>(null)
     const [movePending, startMove] = useTransition()
@@ -96,6 +96,19 @@ export const EgePath = ({ map, target: initialTarget, activeMoveId }: { map: Ege
                     Копилка — первичные баллы за то, что ты уже умеешь (по тренажёру и задачнику). Тестовый балл — ориентир по шкале 2026 года: шкалу 2027 ещё не опубликовали.
                 </p>
             </div>
+
+            {/* кейс за законченный ход, который ещё не открыли */}
+            {unclaimedCase && (
+                <Link href={`/move/${unclaimedCase.id}`} className="mt-4 flex items-center gap-3 rounded-3xl border-2 p-3 active:translate-y-[1px]"
+                    style={{ borderColor: 'rgba(0,197,255,0.6)', background: 'linear-gradient(135deg, rgba(0,197,255,0.16), #161F23 70%)', boxShadow: '0 4px 0 #0B3A4A' }}>
+                    <img src="/chests/rare0001.svg" alt="" className="h-14 w-14 shrink-0 animate-tile-float" />
+                    <div className="min-w-0 flex-1">
+                        <p className="text-base font-black text-[#F2F7FB]">Тебя ждёт редкий кейс!</p>
+                        <p className="text-xs font-bold text-[#8FD8F2]">За ход по заданию №{unclaimedCase.taskNum}</p>
+                    </div>
+                    <span className="shrink-0 rounded-xl px-3 py-1.5 text-sm font-black text-[#151F24]" style={{ backgroundColor: '#00C5FF', boxShadow: '0 4px 0 #0089B3' }}>Открыть</span>
+                </Link>
+            )}
 
             {/* следующий ход: две парящие плитки */}
             {map.move && (() => {

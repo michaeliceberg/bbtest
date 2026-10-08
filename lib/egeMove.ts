@@ -103,3 +103,12 @@ export async function getMoveChallenges(m: EgeMoveRow, userId: string) {
         completed: c.challengeProgress.length > 0 && c.challengeProgress.every((p) => p.completed),
     }))
 }
+
+// Законченный ход с ещё не открытым кейсом (ученик ушёл с финала хода) — плашка на «Моём пути».
+export async function getUnclaimedMoveCase(userId: string): Promise<{ id: number; taskNum: number } | null> {
+    const rows = (await db.execute(sql`
+        SELECT id, task_num FROM ege_moves
+        WHERE user_id = ${userId} AND step = 'done' AND NOT case_claimed
+        ORDER BY id DESC LIMIT 1`)) as unknown as Row[]
+    return rows[0] ? { id: Number(rows[0].id), taskNum: Number(rows[0].task_num) } : null
+}
