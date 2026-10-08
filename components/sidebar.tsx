@@ -199,7 +199,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
             const isActive = pathname === item.href
             const Icon = item.icon
             if (item.disabled) return (
-              <Button key={item.href} variant='sidebar' disabled title='Откроется после 3 разборов электродинамики' className={cn(navButtonClass(false), 'opacity-40 cursor-not-allowed')} style={navButtonStyle(false)}>
+              <Button key={item.href} variant='sidebar' disabled title='Откроется после 3 первых разборов тренажёра' className={cn(navButtonClass(false), 'opacity-40 cursor-not-allowed')} style={navButtonStyle(false)}>
                 <Icon className="mr-3 h-5 w-5 text-[#9AA7B0]" style={navIcon(false)} />
                 <span className="text-sm text-[#F2F7FB]" style={navText}>{item.label}</span>
                 <Lock className="ml-auto h-4 w-4 text-[#9AA7B0]" />
@@ -307,7 +307,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
           const isActive = pathname === item.href
           const Icon = item.icon
           if (item.disabled) return (
-            <Button key={item.href} variant='sidebar' disabled title='Откроется после 3 разборов электродинамики' className={cn(navButtonClass(false), 'opacity-40 cursor-not-allowed')} style={navButtonStyle(false)}>
+            <Button key={item.href} variant='sidebar' disabled title='Откроется после 3 первых разборов тренажёра' className={cn(navButtonClass(false), 'opacity-40 cursor-not-allowed')} style={navButtonStyle(false)}>
               <Icon className="mr-3 h-5 w-5 text-[#9AA7B0]" style={navIcon(false)} />
               <span className="text-sm text-[#F2F7FB]" style={navText}>{item.label}</span>
               <Lock className="ml-auto h-4 w-4 text-[#9AA7B0]" />

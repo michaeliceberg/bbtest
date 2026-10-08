@@ -1,6 +1,6 @@
 // components/learn-unlock-celebration.tsx
 //
-// Один раз после прохождения трёх разборов электродинамики (lib/learn-unlock.ts)
+// Один раз после прохождения трёх первых разборов любого предмета (lib/learn-unlock.ts)
 // — полноэкранное поздравление «Тебе открыт Задачник» в игровом/тёплом стиле
 // (общий каркас celebration-shell.tsx). Флаг «уже показывали» — localStorage.
 
@@ -86,7 +86,7 @@ export const LearnUnlockCelebration = () => {
                 className="mt-5 max-w-sm text-xl font-bold leading-snug"
                 style={{ color: cozy ? '#F3E3C8' : '#E5EEF2' }}
             >
-                Ты прошёл все разборы электродинамики 💪
+                Ты прошёл первые разборы тренажёра 💪
             </motion.p>
             <motion.p
                 initial={{ opacity: 0, y: 8 }}
