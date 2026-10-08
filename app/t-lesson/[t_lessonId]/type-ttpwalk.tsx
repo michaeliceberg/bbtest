@@ -1053,9 +1053,8 @@ const TheoremScene = ({ onSettled }: SceneProps) => {
 }
 
 const CONCEPT_SCENES = [GroundScene, SpearScene, LineScene, QuestionScene, ShadowScene, NinetyScene, SchoolScene, TheoremScene]
-const INTRO_CONCEPT_STEPS = CONCEPT_SCENES.length
 
-const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
+const ConceptPhase = ({ onDone, scenes = CONCEPT_SCENES }: { onDone: () => void; scenes?: ((p: SceneProps) => JSX.Element)[] }) => {
     const [step, setStep] = useState(0)
     const [stepReady, setStepReady] = useState(false)
     const [advancing, setAdvancing] = useState(false)
@@ -1078,7 +1077,7 @@ const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
         if (advancing) return
         setAdvancing(true)
         setTimeout(() => {
-            if (step + 1 >= INTRO_CONCEPT_STEPS) onDone()
+            if (step + 1 >= scenes.length) onDone()
             else { setStep((s) => s + 1); setStepReady(false) }
             setAdvancing(false)
         }, CONCEPT_PAUSE_MS)
@@ -1087,7 +1086,7 @@ const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
     return (
         <div className="mx-auto flex w-full max-w-md flex-col items-center gap-4 px-1 pb-8">
             <div className="w-full flex flex-col gap-4">
-                {CONCEPT_SCENES.map((Scene, i) =>
+                {scenes.map((Scene, i) =>
                     step >= i ? (
                         <SceneWrapper key={`step-${i}`} innerRef={sceneRef(`step-${i}`)} active={isSceneActive(`step-${i}`)}>
                             <Fragment key={`step-${i}-${nonceFor(`step-${i}`)}`}>
@@ -1180,7 +1179,7 @@ const QuizAnswerButton = ({
     </button>
 )
 
-const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void }) => {
+const ConceptQuizPhase = ({ onDone, items = CONCEPT_QUIZ }: { onDone: (hadMistake: boolean) => void; items?: ConceptQuizItem[] }) => {
     const [trialIndex, setTrialIndex] = useState(0)
     const [checked, setChecked] = useState(false)
     const [wrongTried, setWrongTried] = useState<number[]>([])
@@ -1207,11 +1206,11 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
 
     const handlePick = (i: number, k: number) => {
         if (checked || wrongTried.includes(k)) return
-        if (k === CONCEPT_QUIZ[i].correct) {
+        if (k === items[i].correct) {
             registerCombo(wrongTried.length === 0)
             showAnswerMeme(true)
             setChecked(true)
-            setNextLabel(pickWalkthroughNextLabel(trialIndex + 1 >= CONCEPT_QUIZ.length ? 'Готово' : 'Дальше'))
+            setNextLabel(pickWalkthroughNextLabel(trialIndex + 1 >= items.length ? 'Готово' : 'Дальше'))
         } else {
             playSound(WRONG_ANSWER_SOUND)
             setHadMistake(true)
@@ -1225,7 +1224,7 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
         if (advancing) return
         setAdvancing(true)
         setTimeout(() => {
-            const isLast = trialIndex + 1 >= CONCEPT_QUIZ.length
+            const isLast = trialIndex + 1 >= items.length
             if (isLast) {
                 setAdvancing(false)
                 onDone(hadMistake)
@@ -1243,7 +1242,7 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
         <div className="mx-auto flex w-full max-w-md flex-col items-center gap-4 px-1 pb-8">
             <div className="w-full flex flex-col gap-4">
                 {Array.from({ length: trialIndex + 1 }).map((_, i) => {
-                    const qq = CONCEPT_QUIZ[i]
+                    const qq = items[i]
                     const isCurrent = i === trialIndex
                     const isDone = i < trialIndex || (isCurrent && checked)
                     const opts = qq.renderOptions()
@@ -1268,7 +1267,7 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
                                     >
                                         <span>{i + 1}</span>
                                         <span className="opacity-50 font-normal">/</span>
-                                        <span>{CONCEPT_QUIZ.length}</span>
+                                        <span>{items.length}</span>
                                     </div>
                                     <p className={cn(
                                         'flex-1 min-w-0 pl-16 text-base md:text-lg text-[#F2F7FB] text-center font-bold',
@@ -1354,7 +1353,7 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
                         className={walkthroughButtonClass(!advancing)}
                         style={walkthroughButtonStyle(!advancing)}
                     >
-                        {trialIndex + 1 >= CONCEPT_QUIZ.length ? 'Готово' : nextLabel}
+                        {trialIndex + 1 >= items.length ? 'Готово' : nextLabel}
                     </button>
                 </div>
             )}
@@ -1363,7 +1362,269 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
 }
 // ===== Основной компонент =====
 
-export const TypeTtpWalk = ({ onAnswer, onComplete }: Props) => {
+
+// ===================================================================
+// КОРОТКАЯ ВЕРСИЯ (урок «ТТП: коротко»): без метафор и без вращения прямой.
+// Плоскость → прямая b → наклонная a «втыкается» в точку O на b → вопрос →
+// перпендикуляр на плоскость и проекция OH → угол 90° → мини-игра «где a ⟂ b» → теорема.
+// ===================================================================
+// stage: 1 плоскость · 2 прямая b · 3 наклонная a · 4 перпендикуляр и H · 5 проекция OH
+//        6 угол (проекция, b) = 90° · 7 угол (a, b) = 90°
+const QuickFigure = ({ stage, phi = 0, angleLabel = false, fresh = true, compact = false }: { stage: number; phi?: number; angleLabel?: boolean; fresh?: boolean; compact?: boolean }) => {
+    const Op = P3(O3.x, O3.y, 0)
+    const top = aPoint(S_HIGH)
+    const T = P3(top.x, top.y, top.z)
+    const Hp = P3(O3.x, O3.y + S_HIGH, 0)
+    const ph = phi * DEG
+    const LQ = 4.3 // прямая b длиннее, чем в «копейном» уроке — её не крутят
+    const bL = P3(O3.x - LQ * Math.cos(ph), O3.y - LQ * Math.sin(ph), 0)
+    const bR = P3(O3.x + LQ * Math.cos(ph), O3.y + LQ * Math.sin(ph), 0)
+    const planePts = PLANE_CORNERS.map(([x, y]) => ptStr(x, y, 0)).join(' ')
+    const cs = PLANE_CORNERS.map(([x, y]) => P3(x, y, 0))
+    const center = P3(CXW, CYW, 0)
+    const ac = cs.reduce((best, c) => (c.x + c.y > best.x + best.y ? c : best), cs[0])
+    const alphaPos = { x: ac.x + (center.x - ac.x) * 0.3, y: ac.y + (center.y - ac.y) * 0.3 }
+    const aTag = tagAlong(Op, T, 0.6, 18)
+    const bTag = tagAlong(Op, bR, 0.8, -17)
+    const pTag = tagAlong(Op, Hp, 0.55, -17)
+    const aLen = Math.hypot(1, 1.05)
+    const bdir: [number, number, number] = [-0.9 * Math.cos(ph), -0.9 * Math.sin(ph), 0]
+    return (
+        <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="w-full max-w-[448px] mx-auto" style={{ overflow: 'visible' }}>
+            {stage >= 1 && (
+                <motion.g initial={fresh ? { opacity: 0 } : { opacity: 1 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
+                    <polygon points={planePts} fill={hexToRgba(PLANE_COLOR, 0.2)} stroke={hexToRgba(PLANE_COLOR, 0.9)} strokeWidth={2.5} strokeLinejoin="round" />
+                    <text x={alphaPos.x} y={alphaPos.y + 6} textAnchor="middle" fontSize={22} fontStyle="italic" fill={PLANE_COLOR} fontWeight={800}>α</text>
+                </motion.g>
+            )}
+            {stage >= 5 && (
+                <>
+                    <DrawPath d={`M${Op.x},${Op.y} L${Hp.x},${Hp.y}`} color={PROJ_COLOR} w={5} fresh={fresh && stage === 5} dur={0.8} />
+                    {!compact && <SvgWordTag x={pTag.x} y={pTag.y} angle={pTag.ang} text="проекция" color={PROJ_COLOR} delay={fresh && stage === 5 ? 0.6 : 0} />}
+                </>
+            )}
+            {stage >= 2 && (
+                <>
+                    <DrawPath d={`M${bL.x},${bL.y} L${bR.x},${bR.y}`} color={B_COLOR} w={4} fresh={fresh && stage === 2} dur={0.8} />
+                    {compact ? <SvgTag x={bR.x + 6} y={bR.y + 18} text="b" color={B_COLOR} /> : <SvgWordTag x={bTag.x} y={bTag.y} angle={bTag.ang} text="прямая b" color={B_COLOR} delay={fresh && stage === 2 ? 0.6 : 0} />}
+                </>
+            )}
+            {stage >= 4 && (
+                <>
+                    <DrawPath d={`M${T.x},${T.y} L${Hp.x},${Hp.y}`} color={X_COLOR} w={2.6} fresh={fresh && stage === 4} dur={0.7} />
+                    <motion.g initial={fresh && stage === 4 ? { opacity: 0 } : { opacity: 1 }} animate={{ opacity: 1 }} transition={{ delay: fresh && stage === 4 ? 0.7 : 0 }}>
+                        <path d={rightAngleMark({ x: O3.x, y: O3.y + S_HIGH, z: 0 }, [0, -0.7, 0], [0, 0, 0.7])} fill="none" stroke={X_COLOR} strokeWidth={2.2} strokeLinecap="round" />
+                        <circle cx={Hp.x} cy={Hp.y} r={4.5} fill={X_COLOR} stroke="#0B1216" strokeWidth={1.5} />
+                    </motion.g>
+                    <SvgTag x={Hp.x + 20} y={Hp.y + 4} text="H" color={X_COLOR} delay={fresh && stage === 4 ? 0.8 : 0} />
+                </>
+            )}
+            {stage >= 6 && (fresh && stage === 6 ? <BounceMark d={rightAngleMark(O3, bdir, [0, 0.9, 0])} /> : (
+                <path d={rightAngleMark(O3, bdir, [0, 0.9, 0])} fill="none" stroke={X_COLOR} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+            ))}
+            {stage >= 7 && <BounceMark d={rightAngleMark(O3, [0.95, 0, 0], [0, 0.95 / aLen, (0.95 * 1.05) / aLen])} />}
+            {angleLabel && (
+                <text x={Op.x - 30} y={Op.y - 10} textAnchor="end" fontSize={20} fontWeight={900} fill={MARK_COLOR}>{Math.round(90 - Math.abs(phi))}°</text>
+            )}
+            {stage >= 3 && (
+                <>
+                    <DrawPath d={`M${T.x},${T.y} L${Op.x},${Op.y}`} color={A_COLOR} w={4} fresh={fresh && stage === 3} dur={0.7} />
+                    {compact ? <SvgTag x={T.x - 22} y={T.y + 6} text="a" color={A_COLOR} /> : <SvgWordTag x={aTag.x} y={aTag.y} angle={aTag.ang} text="наклонная a" color={A_COLOR} delay={fresh && stage === 3 ? 0.6 : 0} />}
+                    <motion.g initial={fresh && stage === 3 ? { scale: 0, opacity: 0 } : { scale: 1, opacity: 1 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5, delay: fresh && stage === 3 ? 0.75 : 0 }}>
+                        <circle cx={Op.x} cy={Op.y} r={5} fill={X_COLOR} stroke="#0B1216" strokeWidth={1.5} />
+                    </motion.g>
+                    <SvgTag x={Op.x - 24} y={Op.y + 2} text="O" color={X_COLOR} delay={fresh && stage === 3 ? 0.9 : 0} />
+                </>
+            )}
+        </svg>
+    )
+}
+
+// Сцена: печатаем строку, потом показываем чертёж на нужной стадии.
+const quickScene = (parts: LinePart[], stage: number, nextLabel?: string) => {
+    const S = ({ onSettled }: SceneProps) => {
+        const [typed, setTyped] = useState(false)
+        return (
+            <SceneBox>
+                <TypedLineWithParts parts={parts} onSettled={() => setTyped(true)} />
+                {typed && <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(nextLabel), 900)}><QuickFigure stage={stage} /></DiagramBlock>}
+            </SceneBox>
+        )
+    }
+    return S
+}
+
+const QPlaneScene = quickScene([{ text: 'Вот ' }, { sticker: 'плоскость α', color: PLANE_COLOR }], 1)
+const QLineScene = quickScene([{ text: 'На ней лежит ' }, { sticker: 'прямая b', color: B_COLOR }], 2)
+const QSlantScene = quickScene([
+    { sticker: 'Наклонная a', color: A_COLOR }, { text: ' втыкается в плоскость прямо' }, { break: true },
+    { text: 'на прямую b — в точке O' },
+], 3)
+
+const QAskScene = ({ onSettled }: SceneProps) => {
+    const [asked, setAsked] = useState(false)
+    return (
+        <SceneBox>
+            <DiagramBlock><QuickFigure stage={3} fresh={false} /></DiagramBlock>
+            <TypedLineWithParts parts={[{ text: 'Вопрос: ' }, { sticker: 'a', color: A_COLOR }, { text: ' ' }, { sticker: 'перпендикулярна', color: MARK_COLOR }, { text: ' ' }, { sticker: 'b', color: B_COLOR }, { text: '? 🤔' }]} />
+            {!asked && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.6 }} className="w-full flex gap-2">
+                    <GuessBtn color={A_COLOR} onClick={() => setAsked(true)}>Да</GuessBtn>
+                    <GuessBtn color={A_COLOR} onClick={() => setAsked(true)}>Нет</GuessBtn>
+                    <GuessBtn color={MARK_COLOR} onClick={() => setAsked(true)}>Не знаю 🤔</GuessBtn>
+                </motion.div>
+            )}
+            {asked && (
+                <TypedLineWithParts
+                    parts={[{ text: 'На глаз не понять — рисунок объёмный, углы искажаются 😅' }, { break: true }, { text: 'Поможет ' }, { sticker: 'проекция', ...SH }]}
+                    onSettled={() => onSettled?.()}
+                />
+            )}
+        </SceneBox>
+    )
+}
+
+const QProjScene = ({ onSettled }: SceneProps) => {
+    const [st, setSt] = useState(3)
+    const [second, setSecond] = useState(false)
+    return (
+        <SceneBox>
+            <TypedLineWithParts
+                parts={[{ text: 'Опустим из верхней точки a ' }, { bold: 'перпендикуляр' }, { text: ' на плоскость — попадём в точку ' }, { sticker: 'H', color: X_COLOR }]}
+                onSettled={() => { setSt(4); setTimeout(() => setSecond(true), 1500) }}
+            />
+            <DiagramBlock><QuickFigure stage={st} fresh={st >= 4} /></DiagramBlock>
+            {second && (
+                <TypedLineWithParts
+                    parts={[{ sticker: 'OH', ...SH }, { text: ' — это ' }, { sticker: 'проекция', ...SH }, { text: ' наклонной a на плоскость' }]}
+                    onSettled={() => { setSt(5); setTimeout(() => onSettled?.(), 1500) }}
+                />
+            )}
+        </SceneBox>
+    )
+}
+
+const QAnswerScene = ({ onSettled }: SceneProps) => {
+    const [st, setSt] = useState(5)
+    const [two, setTwo] = useState(false)
+    const [party, setParty] = useState(false)
+    return (
+        <SceneBox>
+            <TypedLineWithParts
+                parts={[{ text: 'Смотрим угол между ' }, { sticker: 'проекцией', ...SH }, { text: ' и ' }, { sticker: 'b', color: B_COLOR }, { text: '…' }]}
+                onSettled={() => { setSt(6); setTimeout(() => setTwo(true), 1400) }}
+            />
+            <DiagramBlock><QuickFigure stage={st} fresh={st >= 6} /></DiagramBlock>
+            {two && (
+                <TypedLineWithParts
+                    parts={[
+                        { text: 'Ровно 90°! ' }, { sticker: 'Проекция', ...SH }, { text: ' ⟂ ' }, { sticker: 'b', color: B_COLOR }, { break: true },
+                        { text: '— значит и ' }, { sticker: 'наклонная a', color: A_COLOR }, { text: ' ⟂ ' }, { sticker: 'b', color: B_COLOR }, { text: '!' },
+                    ]}
+                    onSettled={() => { setSt(7); setParty(true); setTimeout(() => onSettled?.('Изи катка'), 1200) }}
+                />
+            )}
+            {party && <LocalAnswerConfetti />}
+        </SceneBox>
+    )
+}
+
+// Мини-игра: две готовые картинки (прямую никто не крутит) — где a ⟂ b?
+const QGameScene = ({ onSettled }: SceneProps) => {
+    const [typed, setTyped] = useState(false)
+    // правильная картинка случайно слева или справа
+    const [rightFirst] = useState(() => Math.random() < 0.5)
+    const [wrong, setWrong] = useState<number | null>(null)
+    const [done, setDone] = useState(false)
+    const cards = rightFirst ? [{ ok: true, phi: 0 }, { ok: false, phi: 38 }] : [{ ok: false, phi: 38 }, { ok: true, phi: 0 }]
+    const pick = (i: number) => {
+        if (done) return
+        if (cards[i].ok) {
+            setDone(true)
+            showAnswerMeme(true)
+            setTimeout(() => onSettled?.(), 900)
+        } else {
+            setWrong(i)
+            showAnswerMeme(false)
+            playSound(WRONG_ANSWER_SOUND)
+        }
+    }
+    return (
+        <SceneBox>
+            <TypedLineWithParts
+                parts={[{ text: 'Проверим! На каком рисунке ' }, { sticker: 'a', color: A_COLOR }, { text: ' ⟂ ' }, { sticker: 'b', color: B_COLOR }, { text: '? Нажми 👇' }]}
+                onSettled={() => setTyped(true)}
+            />
+            {typed && (
+                <div className="w-full max-w-[340px] mx-auto grid grid-cols-1 gap-3">
+                    {cards.map((c, i) => {
+                        const isWrong = wrong === i
+                        const isRight = done && c.ok
+                        return (
+                            <motion.button
+                                key={i} type="button" onClick={() => pick(i)}
+                                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.25 }}
+                                disabled={isWrong || done}
+                                className="rounded-2xl border-2 p-1"
+                                style={{
+                                    borderColor: isRight ? CORRECT_COLOR : isWrong ? '#DC605B' : '#3A464E',
+                                    backgroundColor: isRight ? hexToRgba(CORRECT_COLOR, 0.12) : isWrong ? 'rgba(220,96,91,0.12)' : '#161F23',
+                                }}
+                            >
+                                <QuickFigure stage={c.ok ? 6 : 5} phi={c.phi} angleLabel={!c.ok} fresh={false} compact />
+                            </motion.button>
+                        )
+                    })}
+                </div>
+            )}
+            {wrong !== null && !done && (
+                <p className="text-center text-base font-bold text-[#DC605B]">Тут проекция не ⟂ b — значит и a не ⟂ b. Пробуй другой 😉</p>
+            )}
+            {done && (
+                <TypedLineWithParts parts={[{ text: 'Верно! Где ' }, { sticker: 'проекция', ...SH }, { text: ' ⟂ ' }, { sticker: 'b', color: B_COLOR }, { text: ' — там и ' }, { sticker: 'a', color: A_COLOR }, { text: ' ⟂ ' }, { sticker: 'b', color: B_COLOR }]} />
+            )}
+        </SceneBox>
+    )
+}
+
+const QUICK_SCENES = [QPlaneScene, QLineScene, QSlantScene, QAskScene, QProjScene, QAnswerScene, QGameScene, TheoremScene]
+
+const QUICK_QUIZ: ConceptQuizItem[] = [
+    {
+        renderPrompt: () => <>Как проверить, что <Sticker value="наклонная a" color={A_COLOR} /> ⟂ <Sticker value="прямой b" color={B_COLOR} /> в плоскости?</>,
+        renderOptions: () => ['Проверить, что её проекция ⟂ b', 'Измерить длину наклонной'],
+        correct: 0,
+        feedback: 'Смотрим на проекцию: проекция ⟂ b ⇔ наклонная ⟂ b.',
+    },
+    {
+        renderPrompt: () => <><Sticker value="Проекция" {...SH} /> ⟂ <Sticker value="b" color={B_COLOR} />. Тогда <Sticker value="a" color={A_COLOR} /> и <Sticker value="b" color={B_COLOR} />…</>,
+        renderOptions: () => ['перпендикулярны', 'параллельны'],
+        correct: 0,
+        feedback: 'Это и есть ТТП.',
+    },
+    {
+        renderPrompt: () => <><Sticker value="Проекция" {...SH} /> <b>НЕ</b> ⟂ <Sticker value="b" color={B_COLOR} />. Тогда <Sticker value="a" color={A_COLOR} /> и <Sticker value="b" color={B_COLOR} />…</>,
+        renderOptions: () => ['не перпендикулярны', 'всё равно перпендикулярны'],
+        correct: 0,
+        feedback: 'Работает в обе стороны: нет 90° у проекции — нет и у наклонной.',
+    },
+    {
+        renderPrompt: () => <>Как получить <Sticker value="проекцию" {...SH} /> наклонной на плоскость?</>,
+        renderOptions: () => ['Опустить перпендикуляр из точки наклонной на плоскость и соединить его основание H с O', 'Провести любую прямую через O'],
+        correct: 0,
+        feedback: 'Перпендикуляр на плоскость → точка H → проекция OH.',
+    },
+    {
+        renderPrompt: () => <>Бонус! Кто теперь знает ТТП? 🏆</>,
+        renderOptions: () => ['Я! 🔥'],
+        correct: 0,
+        feedback: 'Без вариантов — ты! 🚀',
+    },
+]
+
+export const TypeTtpWalk = ({ question, onAnswer, onComplete }: Props) => {
+    // короткая версия урока — без метафор (урок «ТТП: коротко»)
+    const quick = question.question.startsWith('ТТП коротко')
     const [phase, setPhase] = useState<'concept' | 'quiz'>('concept')
     const [pick, setPick] = useState<number | null>(null)
     const [phi, setPhi] = useState(35)
@@ -1379,9 +1640,9 @@ export const TypeTtpWalk = ({ onAnswer, onComplete }: Props) => {
     if (phase === 'concept') {
         return (
             <PickCtx.Provider value={{ pick, setPick, phi, setPhi }}>
-                <ConceptPhase onDone={() => setPhase('quiz')} />
+                <ConceptPhase onDone={() => setPhase('quiz')} scenes={quick ? QUICK_SCENES : CONCEPT_SCENES} />
             </PickCtx.Provider>
         )
     }
-    return <ConceptQuizPhase onDone={handleFinish} />
+    return <ConceptQuizPhase onDone={handleFinish} items={quick ? QUICK_QUIZ : CONCEPT_QUIZ} />
 }
