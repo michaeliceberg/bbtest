@@ -31,7 +31,9 @@ export const MobileHeader = ({ courseTitle, courses, activeCourseId, hasTrainerQ
 			? `Тренажёр ${courseTitle}`
 			: pathname?.startsWith('/learn')
 				? `Задачник ${courseTitle}`
-				: courseTitle
+				: pathname?.startsWith('/path')
+					? 'Мой путь к ЕГЭ'
+					: courseTitle
 		: undefined
 
 	// На /trainer (простой вид) вместо названия — кнопка на всю ширину с текущим юнитом:

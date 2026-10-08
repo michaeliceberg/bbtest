@@ -656,3 +656,11 @@ body {
 .animate-sun-bob {
   animation: sun-bob 3.2s ease-in-out 1.2s infinite;
 }
+
+/* «Мой путь»: парящие плитки следующего хода */
+@keyframes tile-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+.animate-tile-float { animation: tile-float 3s ease-in-out infinite; }
+.animate-tile-float-late { animation: tile-float 3s ease-in-out 1.5s infinite; }

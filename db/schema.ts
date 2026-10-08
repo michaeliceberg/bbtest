@@ -67,6 +67,8 @@ export const courses = pgTable('courses', {
 export const userProgress = pgTable('user_progress', {
 	userId: text('user_id').primaryKey(),
 	userName: text('user_name').notNull().default('User'),
+	// Цель на ЕГЭ (тестовый балл), выбранная на экране «Мой путь»; null — ещё не выбрана.
+	egeTarget: integer('ege_target'),
 	userImageSrc: text('user_image_src').notNull().default('/mascot.svg'),
 	activeCourseId: integer('active_course_id').references(() => courses.id, { onDelete: 'cascade' }),
 	hearts: integer('hearts').notNull().default(500),
@@ -304,6 +306,24 @@ export const challengeOptions = pgTable('challenge_options', {
 // переходом на модель "юнит = тема, урок = этап" у одной темы всегда
 // 4 этапа, и привязка задачи course к какому-то ОДНОМУ конкретному этапу
 // была бы произвольной; вся тема целиком — осмысленная гранулярность.
+// ===== КАРТА ЕГЭ («Мой путь») =====
+// Задания экзамена (станции карты): предмет, номер, название, первичные баллы, часть.
+export const egeTasks = pgTable('ege_tasks', {
+	id: serial('id').primaryKey(),
+	subject: text('subject').notNull(), // 'math_profile' | …
+	num: integer('num').notNull(),
+	title: text('title').notNull(),
+	points: integer('points').notNull(),
+	part: integer('part').notNull(),
+});
+// Что готовит к заданию: kind 'unit' — юнит задачника (units.id), 't_unit' — тема тренажёра (t_units.id).
+export const egeTaskLinks = pgTable('ege_task_links', {
+	id: serial('id').primaryKey(),
+	taskId: integer('task_id').references(() => egeTasks.id, { onDelete: 'cascade' }).notNull(),
+	kind: text('kind').notNull(),
+	refId: integer('ref_id').notNull(),
+});
+
 export const challengeSkillTags = pgTable('challenge_skill_tags', {
 	id: serial('id').primaryKey(),
 	challengeId: integer('challenge_id').references(() => challenges.id, { onDelete: 'cascade' }).notNull(),

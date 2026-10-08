@@ -1,7 +1,7 @@
 'use client'
 
 import { useAchievementClaimStore } from '@/store/use-achievement-claim-store'
-import { Dumbbell, Flame, Swords, ChevronDown, ChevronUp,  Library, Lock, BadgeCheck, Shield, BarChart3, Trophy } from 'lucide-react'
+import { Dumbbell, Flame, Swords, ChevronDown, ChevronUp,  Library, Lock, BadgeCheck, Shield, BarChart3, Trophy, Route } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from './ui/button'
 import Link from 'next/link'
@@ -101,6 +101,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
   const navItems = [
     // Тренажёр — первым (просьба пользователя 2026-09-29). disabled: true —
     // сделать пункт неактивным (приглушён, замок, не ссылка).
+    { label: 'Мой путь', href: '/path', icon: Route },
     { label: 'Тренажёр', href: '/trainer', icon: Dumbbell, badge: hasTrainerQuest },
     { label: 'Задачник', href: '/learn', icon: Swords, disabled: learnLocked },
     { label: 'Справочник', href: '/reference', icon: Library },
