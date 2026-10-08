@@ -1,3 +1,4 @@
+import { getEgeMove } from '@/lib/egeMove'
 import { PUBLIC_TRIAL_T_LESSON_IDS, subjectByLesson, subjectByTCourse } from '@/lib/trialTracks';
 import { ReferralCatcher } from '@/components/referral-catcher';
 import { getOrCreateInvite, resolveInviteCode } from '@/lib/invite';
@@ -276,6 +277,7 @@ type Props = {
     searchParams: {
         stage?: string
         ref?: string
+        move?: string
     }
 }
 
@@ -1875,6 +1877,12 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     }
 
     // СЧИТАЕМ Статистику правильно решенных задач
+    // «Ход» по башне ЕГЭ (/move/[id]): урок открыт как шаг хода — на финале «Дальше — задачи».
+    let moveId: number | null = null
+    if (!isGuest && searchParams?.move && userProgress) {
+        const mv = await getEgeMove(Number(searchParams.move), userProgress.userId).catch(() => null)
+        if (mv && mv.step === 'trainer' && mv.tLessonId === t_lessonId) moveId = mv.id
+    }
     const currentLessonProgress = all_t_lessonProgress?.filter(el => el.t_lessonId === t_lessonId) || [];
     const UniqueUserIds = Array.from(new Set(currentLessonProgress.map(el => el.userId)));
 
@@ -1905,6 +1913,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         <ReferralCatcher />
         {isGuest && searchParams?.ref && <ReferralWelcome inviterNickname={inviter?.nickname ?? null} theme="cozy" subject={subjectByLesson(t_lessonId)} />}
         <TQuiz
+            moveId={moveId}
             t_lessonId={t_lesson.id}
             t_lessonTitle={t_lesson.title}
             questions1={questions}

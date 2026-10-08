@@ -13,6 +13,7 @@ import { Challenge } from "./challenge";
 import { KeyboardInput } from "./keyboard-input";
 import { Footer } from "./footer";
 import { upsertChallengeProgress } from "@/actions/challenge-progress";
+import { advanceEgeMove } from "@/actions/ege-move";
 import { toast } from "sonner";
 import { useWindowSize, useMount } from "react-use";
 
@@ -142,6 +143,8 @@ type Props = {
     dailyChallengeIds?: number[]
     courseId: number
     unitColor: { button: string; bottom: string }
+    // «Ход» по башне ЕГЭ (/move/[id]/tasks): на финале — «Дальше» в ход, а не на /learn.
+    moveId?: number | null
 }
 
 const pageVariants = {
@@ -191,6 +194,7 @@ export const Quiz = ({
     dailyChallengeIds,
     courseId,
     unitColor,
+    moveId,
 }: Props) => {
     const { open: openHeartsModal } = useHeartsModal()
     const { open: openPracticeModal } = usePracticeModal()
@@ -560,6 +564,9 @@ export const Quiz = ({
                             }
                             return
                         }
+                        // В ходе (/move/[id]/tasks) страница не попадает под revalidatePath урока —
+                        // освежаем сами, чтобы засчитанная задача появилась в прогрессе хода.
+                        if (moveId) router.refresh()
 
                         // 🔥 Получаем реальные очки из ответа
                         const earnedPoints = response?.pointsEarned || challenge.points;
@@ -617,6 +624,9 @@ export const Quiz = ({
                             }
                             return
                         }
+                        // В ходе (/move/[id]/tasks) страница не попадает под revalidatePath урока —
+                        // освежаем сами, чтобы засчитанная задача появилась в прогрессе хода.
+                        if (moveId) router.refresh()
 
                         playIncorrectSound()
                         vibrate('error')
@@ -697,11 +707,17 @@ export const Quiz = ({
                         <ResultCard variant='hearts' value={hearts} />
                     </div>
                     <Button 
-                        onClick={() => router.push('/learn')}
+                        onClick={async () => {
+                            if (moveId) {
+                                await advanceEgeMove(moveId, 'tasks').catch(() => null)
+                                router.push(`/move/${moveId}`)
+                                router.refresh()
+                            } else router.push('/learn')
+                        }}
                         className="mt-6 px-8 py-3 text-base"
                         size="lg"
                     >
-                        Продолжить
+                        {moveId ? 'Завершить ход ➜' : 'Продолжить'}
                     </Button>
                 </motion.div>
             </>

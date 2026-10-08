@@ -6,6 +6,8 @@
 // и дорожка из станций-заданий экзамена. Данные считает lib/egeMap.ts на сервере.
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import { startEgeMove } from '@/actions/ege-move'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Dumbbell, Swords, Target, Flag } from 'lucide-react'
@@ -17,7 +19,16 @@ import { EgeTower } from '@/components/ege-tower'
 
 const GOALS = [60, 70, 80, 90, 100]
 const fmt = (x: number) => (Math.round(x * 10) / 10).toString().replace('.', ',')
-export const EgePath = ({ map, target: initialTarget }: { map: EgeMap; target: number | null }) => {
+export const EgePath = ({ map, target: initialTarget, activeMoveId }: { map: EgeMap; target: number | null; activeMoveId: number | null }) => {
+    const router = useRouter()
+    const [moveError, setMoveError] = useState<string | null>(null)
+    const [movePending, startMove] = useTransition()
+    const goMove = () => startMove(async () => {
+        if (activeMoveId) { router.push(`/move/${activeMoveId}`); return }
+        const r = await startEgeMove().catch(() => null)
+        if (r && 'id' in r) router.push(`/move/${r.id}`)
+        else setMoveError(r && 'error' in r ? r.error : 'Не получилось собрать ход')
+    })
     const [target, setTarget] = useState<number | null>(initialTarget)
     const [editing, setEditing] = useState(initialTarget === null)
     const [, startTransition] = useTransition()
@@ -119,20 +130,24 @@ export const EgePath = ({ map, target: initialTarget }: { map: EgeMap; target: n
                         <p className="text-xs font-bold text-[#9AA7B0]">Сделай — и прыгай на следующую плитку:</p>
                         <div className="mt-2 flex flex-col gap-2">
                             {mv.trainerLesson && (
-                                <Link href={mv.trainerLesson.href} className="flex items-center gap-3 rounded-xl border-2 border-[#2A363C] bg-[#161F23] px-3 py-2.5 active:translate-y-[1px]">
+                                <div className="flex items-center gap-3 rounded-xl border-2 border-[#2A363C] bg-[#161F23] px-3 py-2.5">
                                     <Dumbbell className="h-5 w-5 shrink-0 text-[#A1D151]" />
                                     <span className="min-w-0 flex-1 text-sm font-bold text-[#F2F7FB]">1 урок тренажёра: <span className="text-[#C9D3D9]">{mv.trainerLesson.title}</span></span>
-                                    <span className="rounded-lg bg-[#A1D151] px-2.5 py-1 text-xs font-black text-[#151F24]">Начать</span>
-                                </Link>
+                                </div>
                             )}
                             {mv.tasks && (
-                                <Link href={mv.tasks.href} className="flex items-center gap-3 rounded-xl border-2 border-[#2A363C] bg-[#161F23] px-3 py-2.5 active:translate-y-[1px]">
+                                <div className="flex items-center gap-3 rounded-xl border-2 border-[#2A363C] bg-[#161F23] px-3 py-2.5">
                                     <Swords className="h-5 w-5 shrink-0 text-[#53ADEF]" />
                                     <span className="min-w-0 flex-1 text-sm font-bold text-[#F2F7FB]">{mv.tasks.count} задач из задачника: <span className="text-[#C9D3D9]">{mv.tasks.title}</span></span>
-                                    <span className="rounded-lg border-2 border-[#3A464E] px-2.5 py-0.5 text-xs font-black text-[#F2F7FB]">Решать</span>
-                                </Link>
+                                </div>
                             )}
                         </div>
+                        <button type="button" onClick={goMove} disabled={movePending}
+                            className="mt-3 w-full rounded-2xl py-3 text-base font-black uppercase tracking-wide text-[#151F24] disabled:opacity-60"
+                            style={{ backgroundColor: GGEGE_PALETTE.orange.button, boxShadow: `0 5px 0 ${GGEGE_PALETTE.orange.bottom}` }}>
+                            {activeMoveId ? 'Продолжить ход ➜' : 'Начать ход ➜'}
+                        </button>
+                        {moveError && <p className="mt-2 text-center text-sm font-bold text-[#DC605B]">{moveError}</p>}
                     </div>
                 )
             })()}

@@ -1,6 +1,7 @@
 // app/t-lesson/[t_lessonId]/TQUIZ.tsx
 
 "use client"
+import { advanceEgeMove } from '@/actions/ege-move'
 
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { motion } from "framer-motion"
@@ -165,6 +166,9 @@ type Props = {
   inviteSubject?: TrialSubject,
   lessonAlreadyRated?: boolean,
   invite?: { code: string; nickname: string } | null,
+  // «Ход» по башне ЕГЭ (/path → /move/[id], lib/egeMove.ts): урок — первый
+  // шаг хода, на финале вместо «Следующий урок» — «Дальше — задачи».
+  moveId?: number | null,
 }
 
 export default function TQuiz({
@@ -184,6 +188,7 @@ export default function TQuiz({
   inviteSubject = 'physics',
   lessonAlreadyRated,
   invite,
+  moveId,
 }: Props) {
 
   const router = useRouter()
@@ -982,6 +987,16 @@ export default function TQuiz({
     })
   }, [updateQuestProgress, router, t_lessonId, nextTLessonHref])
 
+  const handleMoveNext = useCallback(async () => {
+    if (!moveId) return
+    updateQuestProgress()
+    try { await advanceEgeMove(moveId, 'trainer') } catch { /* /move/[id] сам разберётся */ }
+    router.refresh()
+    requestAnimationFrame(() => {
+      router.push(`/move/${moveId}`)
+    })
+  }, [moveId, updateQuestProgress, router])
+
   const handleChestOpened = useCallback(() => {
     setShowChestReward(false)
     // После клика на сундук - показываем финальный экран
@@ -1050,10 +1065,10 @@ export default function TQuiz({
         <TrainerQuestRewardsScreen
           data={questRewardsData}
           t_lessonId={t_lessonId}
-          primaryLabel={nextTLessonHref ? 'Следующий урок' : 'Завершить'}
-          onPrimary={nextTLessonHref ? handleNextLesson : handleFinishLesson}
-          secondaryLabel={nextTLessonHref ? 'Завершить' : undefined}
-          onSecondary={nextTLessonHref ? handleFinishLesson : undefined}
+          primaryLabel={moveId ? 'Дальше — задачи ➜' : nextTLessonHref ? 'Следующий урок' : 'Завершить'}
+          onPrimary={moveId ? handleMoveNext : nextTLessonHref ? handleNextLesson : handleFinishLesson}
+          secondaryLabel={!moveId && nextTLessonHref ? 'Завершить' : undefined}
+          onSecondary={!moveId && nextTLessonHref ? handleFinishLesson : undefined}
           theme={uiTheme}
         />
       </div>

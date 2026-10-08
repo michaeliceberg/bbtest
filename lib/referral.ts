@@ -14,6 +14,8 @@ export const REFERRAL_COOKIE_MAX_AGE = 60 * 60 * 24 * 30 // 30 дней
 // code — короткий код приглашения (lib/invite.ts), НЕ userId: в userId бывает
 // телефон.
 export const getReferralLink = (code: string): string => `https://ggege.ru/?ref=${code}`
+// Приглашение в банду (app/g/[code]) — с кнопкой «Вступить» и для тех, у кого аккаунт уже есть.
+export const getGangInviteLink = (code: string): string => `https://ggege.ru/g/${code}`
 
 // Бонус рефереру за нового ученика — пицца (по прямой просьбе
 // пользователя, "ощутимая награда"): база 1 кусочек, +1 при уровне ≥5,

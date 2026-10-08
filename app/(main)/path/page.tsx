@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation'
 import { auth } from '@/lib/server-auth'
 import { getUserProgress } from '@/db/queries'
 import { getEgeMap } from '@/lib/egeMap'
+import { getActiveEgeMove } from '@/lib/egeMove'
 import { EgePath } from '@/components/ege-path'
 
 export const dynamic = 'force-dynamic'
@@ -16,8 +17,8 @@ const PathPage = async () => {
     if (!session?.user?.id) redirect('/')
     const userProgress = await getUserProgress()
     if (!userProgress) redirect('/courses')
-    const map = await getEgeMap(session.user.id, 'math_profile')
-    return <EgePath map={map} target={userProgress.egeTarget ?? null} />
+    const [map, active] = await Promise.all([getEgeMap(session.user.id, 'math_profile'), getActiveEgeMove(session.user.id)])
+    return <EgePath map={map} target={userProgress.egeTarget ?? null} activeMoveId={active?.id ?? null} />
 }
 
 export default PathPage

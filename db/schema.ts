@@ -324,6 +324,21 @@ export const egeTaskLinks = pgTable('ege_task_links', {
 	refId: integer('ref_id').notNull(),
 });
 
+// «Ход» по башне ЕГЭ (/path/move): 1 урок тренажёра + N задач задачника одного
+// задания экзамена. step: 'trainer' → 'tasks' → 'done'. fromPrimary — копилка до хода.
+export const egeMoves = pgTable('ege_moves', {
+	id: serial('id').primaryKey(),
+	userId: text('user_id').notNull(),
+	taskNum: integer('task_num').notNull(),
+	tLessonId: integer('t_lesson_id'),
+	challengeIds: text('challenge_ids').notNull().default(''),
+	step: text('step').notNull().default('trainer'),
+	fromPrimary: real('from_primary').notNull().default(0),
+	caseClaimed: boolean('case_claimed').notNull().default(false),
+	createdAt: timestamp('created_at').defaultNow().notNull(),
+	finishedAt: timestamp('finished_at'),
+});
+
 export const challengeSkillTags = pgTable('challenge_skill_tags', {
 	id: serial('id').primaryKey(),
 	challengeId: integer('challenge_id').references(() => challenges.id, { onDelete: 'cascade' }).notNull(),

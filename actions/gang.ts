@@ -113,3 +113,30 @@ export async function leaveGang() {
 	revalidatePath('/gangs');
 	revalidatePath('/account');
 }
+
+// Вступление в банду по приглашению (ggege.ru/g/КОД) — для тех, у кого аккаунт уже есть
+// (новичка в банду записывает upsertUserProgress по cookie приглашения).
+// switchGang — согласие уйти из текущей банды (главе нельзя).
+export async function joinGangByInvite(code: string, switchGang = false): Promise<{ ok: true } | { error: string; needSwitch?: boolean }> {
+	const session = await auth();
+	if (!session?.user?.id) return { error: 'Сначала войди в аккаунт' };
+	const userId = session.user.id;
+	const { getGangInvite } = await import('@/lib/gangInvite');
+	const invite = await getGangInvite(code);
+	if (!invite) return { error: 'Приглашение недействительно' };
+	if (invite.inviterUserId === userId) return { error: 'Это твоя ссылка-приглашение 🙂' };
+
+	const current = await getGangMembership(userId);
+	if (current?.gangId === invite.gang.id) return { ok: true };
+	if (current) {
+		if (current.role === 'leader') return { error: `Ты глава банды «${current.gang.name}» — главе уйти нельзя` };
+		if (!switchGang) return { error: `Ты уже в банде «${current.gang.name}»`, needSwitch: true };
+		await db.delete(gangMembers).where(eq(gangMembers.userId, userId));
+	}
+	await db.insert(gangMembers).values({ gangId: invite.gang.id, userId, role: 'member' }).onConflictDoNothing();
+
+	revalidatePath('/gang');
+	revalidatePath('/gangs');
+	revalidatePath('/account');
+	return { ok: true };
+}

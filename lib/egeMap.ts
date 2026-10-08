@@ -40,6 +40,8 @@ export type EgeStation = {
     lessonTitle: string | null
     trainerTitle: string | null
     courseLeft: number // сколько задач ещё можно решить до «закрытия» станции
+    unitIds: number[] // юниты задачника этого задания
+    tUnitIds: number[] // темы тренажёра этого задания
 }
 // «Следующий ход»: конкретные шаги и сколько он добавит к прогнозу.
 export type EgeMove = {
@@ -156,6 +158,7 @@ export async function getEgeMap(userId: string, subject = 'math_profile'): Promi
             courseSolved, courseTarget, trainerDone, trainerTotal, trainerOnly,
             lessonHref, trainerHref, lessonTitle, trainerTitle,
             courseLeft: Math.max(0, courseTarget - courseSolved),
+            unitIds: units, tUnitIds: tunits,
         }
     })
 

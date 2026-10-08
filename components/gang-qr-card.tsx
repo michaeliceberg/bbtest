@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Button } from './ui/button';
-import { getReferralLink } from '@/lib/referral';
+import { getGangInviteLink } from '@/lib/referral';
 import { Copy, Check, Share2, QrCode } from 'lucide-react';
 
 type Props = {
@@ -20,7 +20,7 @@ type Props = {
 export const GangQrCard = ({ inviteCode, gangName }: Props) => {
     const [copied, setCopied] = useState(false);
 
-    const link = getReferralLink(inviteCode);
+    const link = getGangInviteLink(inviteCode);
 
     const copyToClipboard = () => {
         navigator.clipboard.writeText(link);
@@ -50,7 +50,7 @@ export const GangQrCard = ({ inviteCode, gangName }: Props) => {
                 Приглашение в банду
             </h3>
             <p className="text-sm text-[#9AA7B0]">
-                Друг сканирует QR или переходит по ссылке — если он зарегистрируется, он попадёт прямо в банду «{gangName}».
+                Друг сканирует QR или переходит по ссылке и жмёт «Вступить» — и он в банде «{gangName}». Новичок попадёт в банду сразу после регистрации.
             </p>
 
             <div className="flex justify-center py-2 bg-white rounded-lg">
