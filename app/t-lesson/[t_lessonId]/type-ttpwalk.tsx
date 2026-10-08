@@ -4,7 +4,7 @@
 // ЕГЭ Математика) на метафоре «из жизни»: земля → копьё, воткнувшееся в землю → линия на земле
 // → «копьё ⟂ линии?» → тень копья (ученик сам выбирает точку, откуда падает луч) → угол 90° →
 // «по-школьному» (плоскость α, наклонная a, прямая b, проекция a) → вывод ТТП.
-// Цвета: копьё/a — малиновый, линия/b — зелёный, тень/проекция — синий, земля/плоскость —
+// Цвета: копьё/a — голубой, линия/b — зелёный, тень/проекция — малиново-розовый, земля/плоскость —
 // бирюзовый, угол 90° — оранжевый.
 
 'use client'
@@ -103,25 +103,40 @@ const SvgTag = ({ x, y, text, color, delay = 0 }: { x: number; y: number; text: 
 
 // Подпись точки O, «лежащая» на земле: рамка и буква нарисованы в плоскости земли
 // (матрица из базисных векторов плоскости в проекции), тёмно-зелёная, как трава.
+// Базис плоскости земли на экране: единичные векторы вдоль её краёв (оси x и y земли).
+// «Буква» идёт вдоль края, поднимающегося вправо (ось y), «вниз» — вдоль края, уходящего
+// вправо-вниз (ось x). Так стикер и точка O лежат на земле параллельно её краям.
+const groundMatrix = (cx: number, cy: number) => {
+    const C = P3(cx, cy, 0), X = P3(cx + 1, cy, 0), Y = P3(cx, cy + 1, 0)
+    const ux = { x: X.x - C.x, y: X.y - C.y }, uy = { x: Y.x - C.x, y: Y.y - C.y }
+    const lx = Math.hypot(ux.x, ux.y), ly = Math.hypot(uy.x, uy.y)
+    const f = (n: number) => n.toFixed(4)
+    return `matrix(${f(uy.x / ly)},${f(uy.y / ly)},${f(ux.x / lx)},${f(ux.y / lx)},${C.x.toFixed(1)},${C.y.toFixed(1)})`
+}
+
+// Подпись точки O, «лежащая» на земле (тёмно-зелёная, как трава).
 const GroundOTag = ({ delay = 0, side = -1 }: { delay?: number; side?: 1 | -1 }) => {
     const Op = P3(O3.x, O3.y, 0)
-    const c = unproject(Op.x + side * 30, Op.y + 20)
-    const C = P3(c.x, c.y, 0)
-    const ex0 = P3(c.x + 1, c.y, 0)
-    let ex = { x: ex0.x - C.x, y: ex0.y - C.y }
-    if (ex.x < 0) ex = { x: -ex.x, y: -ex.y }
-    // поворачиваем вдоль оси земли и сплющиваем по вертикали — «лежит на траве», но читается
-    const ang = (Math.atan2(ex.y, ex.x) * 180) / Math.PI
-    const m = `translate(${C.x.toFixed(1)},${C.y.toFixed(1)}) rotate(${ang.toFixed(1)}) scale(1,0.62)`
+    const c = unproject(Op.x + side * 32, Op.y + 18)
     return (
-        <g transform={m}>
+        <g transform={groundMatrix(c.x, c.y)}>
             <motion.g initial={{ opacity: 0, scale: 2.2 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 15, delay }}>
-                <rect x={-18} y={-18} width={36} height={36} rx={9} fill={O_FILL} stroke={O_BORDER} strokeWidth={3} />
-                <text x={0} y={8.5} textAnchor="middle" fontSize={24} fontWeight={900} fill={O_TEXT}>O</text>
+                <rect x={-17} y={-17} width={34} height={34} rx={8} fill={O_FILL} stroke={O_BORDER} strokeWidth={3} />
+                <text x={0} y={8} textAnchor="middle" fontSize={23} fontWeight={900} fill={O_TEXT}>O</text>
             </motion.g>
         </g>
     )
 }
+
+// Сама точка O — кружок, лежащий на земле (эллипс в плоскости земли).
+const GroundODot = ({ fresh, delay = 0 }: { fresh: boolean; delay?: number }) => (
+    <g transform={groundMatrix(O3.x, O3.y)}>
+        <motion.circle
+            r={7} fill={O_TEXT} stroke={O_BORDER} strokeWidth={2}
+            initial={fresh ? { opacity: 0 } : { opacity: 1 }} animate={{ opacity: 1 }} transition={{ duration: 0.3, delay }}
+        />
+    </g>
+)
 
 // ===================================================================
 // ЧЕРТЁЖ: земля (плоскость), копьё (наклонная), линия на земле, тень (проекция)
@@ -137,9 +152,9 @@ const VB_W = 340, VB_H = 290
 const ANG = (28 * Math.PI) / 180
 const CXW = 5, CYW = 3.5
 
-const A_COLOR = GGEGE_PALETTE.raspberry.button
+const A_COLOR = GGEGE_PALETTE.blue.button
 const B_COLOR = GGEGE_PALETTE.green.button
-const PROJ_COLOR = GGEGE_PALETTE.blue.button
+const PROJ_COLOR = GGEGE_PALETTE.raspberry.button
 const PLANE_COLOR = GGEGE_PALETTE.teal.button
 const MARK_COLOR = GGEGE_PALETTE.orange.button
 const X_COLOR = '#F2F7FB'
@@ -420,8 +435,8 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                 {/* куст в углу — чтобы было похоже на настоящую площадку (кружки-крона) */}
                 <g transform={`translate(${bush.x},${bush.y})`}>
                     <motion.g
-                        initial={{ opacity: scene === 0 ? 0 : 1, scale: scene === 0 ? 0.5 : 1 }} animate={{ opacity: 1, scale: 1 }}
-                        transition={{ type: 'spring', bounce: 0.45, delay: scene === 0 ? 0.9 : 0 }}
+                        initial={{ opacity: scene === 0 ? 0 : 1 }} animate={{ opacity: 1 }}
+                        transition={{ duration: 0.8, delay: 0.2 }}
                     >
                         <ellipse cx={2} cy={2} rx={34} ry={9} fill="#04080A" opacity={0.28} />
                         <circle cx={-17} cy={-9} r={15} fill="#3E7D3C" />
@@ -434,15 +449,15 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                     <g transform={`translate(${bush.x},${bush.y})`}>
                         <motion.g initial={{ opacity: 0 }} animate={{ opacity: bushJoke ? 1 : 0 }} transition={{ duration: 0.4 }}>
                             <motion.path
-                                d="M58,-86 C34,-84 18,-70 10,-46" fill="none" stroke="#F2C35B" strokeWidth={3} strokeLinecap="round"
+                                d="M58,-124 C30,-120 14,-90 10,-46" fill="none" stroke="#F2C35B" strokeWidth={3} strokeLinecap="round"
                                 initial={{ pathLength: 0 }} animate={{ pathLength: bushJoke ? 1 : 0 }} transition={{ duration: 0.5 }}
                             />
                             <motion.path
                                 d="M2,-56 L10,-44 L19,-55" fill="none" stroke="#F2C35B" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
                                 initial={{ opacity: 0 }} animate={{ opacity: bushJoke ? 1 : 0 }} transition={{ delay: bushJoke ? 0.45 : 0, duration: 0.2 }}
                             />
-                            <text x={64} y={-82} fontSize={15} fontWeight={800} fill="#F2C35B">Если что,</text>
-                            <text x={64} y={-64} fontSize={15} fontWeight={800} fill="#F2C35B">это кустик 🌳</text>
+                            <text x={64} y={-120} fontSize={15} fontWeight={800} fill="#F2C35B">Если что,</text>
+                            <text x={64} y={-102} fontSize={15} fontWeight={800} fill="#F2C35B">это кустик 🌳</text>
                         </motion.g>
                     </g>
                 )}
@@ -456,7 +471,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                                 initial={fresh4 ? { scale: 2.8, opacity: 0 } : { scale: 1, opacity: 1 }} animate={{ scale: 1, opacity: 1 }}
                                 transition={{ type: 'spring', bounce: 0.55, duration: 0.95 }}
                             >
-                                <path d={`M0,0 L${Hm.x - Op.x},${Hm.y - Op.y}`} stroke="#04080A" strokeOpacity={0.6} strokeWidth={11} strokeLinecap="round" />
+                                <path d={`M0,0 L${Hm.x - Op.x},${Hm.y - Op.y}`} stroke={GGEGE_PALETTE.raspberry.bottom} strokeOpacity={0.85} strokeWidth={11} strokeLinecap="round" />
                             </motion.g>
                         </g>
                     )
@@ -497,7 +512,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                     </g>
                 )}
 
-                {hasSpear && <Dot x={Op.x} y={Op.y} color={O_TEXT} fresh={scene === 1} delay={FLY_MS / 1000 + 0.45} />}
+                {hasSpear && <GroundODot fresh={scene === 1} delay={FLY_MS / 1000 + 0.45} />}
                 {hasSpear && <GroundOTag side={hasB && !school && handle.x < Op.x ? 1 : -1} delay={scene === 1 ? FLY_MS / 1000 + 0.75 : 0} />}
 
                 {projEl}
@@ -567,7 +582,7 @@ const useAfterTyped = () => {
     return { typed, onTyped: () => setTyped(true) }
 }
 
-// Шутка: после появления площадки — стрелка на куст «Если что, это кустик», потом убираем.
+// Шутка: после появления площадки — стрелка на куст «Если что, это кустик» (остаётся в этой сцене, в следующих её нет).
 const GroundScene = ({ onSettled }: SceneProps) => {
     const { typed, onTyped } = useAfterTyped()
     const [joke, setJoke] = useState<boolean | undefined>(undefined)
@@ -575,9 +590,8 @@ const GroundScene = ({ onSettled }: SceneProps) => {
     useEffect(() => () => timers.current.forEach(clearTimeout), [])
     const afterDiagram = () => {
         timers.current.push(
-            setTimeout(() => setJoke(true), 700),
-            setTimeout(() => setJoke(false), 3700),
-            setTimeout(() => onSettled?.(), 4300),
+            setTimeout(() => setJoke(true), 500),
+            setTimeout(() => onSettled?.(), 1100),
         )
     }
     return (
@@ -647,7 +661,8 @@ const LineScene = ({ onSettled }: SceneProps) => {
         <SceneBox>
             <TypedLineWithParts
                 parts={[
-                    { text: 'В этой точке проведена ' }, { sticker: 'линия', color: B_COLOR }, { text: '. ' }, { bold: 'Крути её так, чтобы она ПРИМЕРНО стала перпендикулярна ' },
+                    { text: 'И пусть через ' }, { bold: 'ЭТУ' }, { text: ' точку проведена ' }, { sticker: 'линия', color: B_COLOR }, { text: '.' }, { break: true },
+                    { bold: 'Крути её так, чтобы она ПРИМЕРНО стала перпендикулярна ' },
                     { sticker: 'копью', color: A_COLOR }, { text: '.' },
                 ]}
                 onSettled={() => setTyped(true)}
