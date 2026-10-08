@@ -893,17 +893,116 @@ const SchoolScene = ({ onSettled }: SceneProps) => {
     )
 }
 
+// ===== Итог: ТТП ещё раз на чертеже (по шагам) =====
+// «Наклонная ⟂ прямой» → наклонная (+подпись), прямая (+подпись), угол 90° между ними →
+// «ТОЛЬКО если проекция ⟂ прямой» → проекция (+подпись), угол 90° между проекцией и прямой.
+const tagAlong = (a: { x: number; y: number }, b: { x: number; y: number }, t: number, off: number) => {
+    const dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1
+    let ang = (Math.atan2(dy, dx) * 180) / Math.PI
+    if (ang > 90) ang -= 180
+    if (ang < -90) ang += 180
+    const r = (ang * Math.PI) / 180
+    // off > 0 — над линией (по экрану), off < 0 — под ней
+    return { x: a.x + dx * t + Math.sin(r) * off, y: a.y + dy * t - Math.cos(r) * off, ang }
+}
+
+const TheoremFigure = ({ stage }: { stage: number }) => {
+    const Op = P3(O3.x, O3.y, 0)
+    const top = aPoint(S_HIGH)
+    const T = P3(top.x, top.y, top.z)
+    const Hf = P3(O3.x, O3.y + S_HIGH, 0)
+    const bL = P3(O3.x - LB, O3.y, 0), bR = P3(O3.x + LB, O3.y, 0)
+    const planePts = PLANE_CORNERS.map(([x, y]) => ptStr(x, y, 0)).join(' ')
+    const cs = PLANE_CORNERS.map(([x, y]) => P3(x, y, 0))
+    const farCorner = cs.reduce((best, c) => (c.x < best.x ? c : best), cs[0])
+    const center = P3(CXW, CYW, 0)
+    const bush = { x: farCorner.x + (center.x - farCorner.x) * 0.3, y: farCorner.y + (center.y - farCorner.y) * 0.3 + 4 }
+    const aTag = tagAlong(Op, T, 0.62, 18)
+    const bTag = tagAlong(Op, bL, 0.78, -17)
+    const pTag = tagAlong(Op, Hf, 0.55, -17)
+    const aLen = Math.hypot(0, 1, 1.05)
+    return (
+        <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="w-full max-w-[448px] mx-auto" style={{ overflow: 'visible' }}>
+            <polygon points={planePts} fill={hexToRgba(PLANE_COLOR, 0.2)} stroke={hexToRgba(PLANE_COLOR, 0.22)} strokeWidth={1.5} strokeLinejoin="round" />
+            <g transform={`translate(${bush.x},${bush.y}) scale(0.62)`} opacity={0.85}>
+                <ellipse cx={2} cy={2} rx={34} ry={9} fill="#04080A" opacity={0.28} />
+                <circle cx={-17} cy={-9} r={15} fill="#3E7D3C" />
+                <circle cx={19} cy={-8} r={14} fill="#468A42" />
+                <circle cx={1} cy={-16} r={19} fill="#4F9A4A" />
+                <circle cx={-6} cy={-22} r={7} fill="#74BD62" opacity={0.7} />
+            </g>
+            {stage >= 4 && (
+                <>
+                    <DrawPath d={`M${Op.x},${Op.y} L${Hf.x},${Hf.y}`} color={PROJ_COLOR} w={5} fresh dur={0.8} />
+                    <SvgWordTag x={pTag.x} y={pTag.y} angle={pTag.ang} text="проекция" color={PROJ_COLOR} delay={0.6} />
+                </>
+            )}
+            {stage >= 2 && (
+                <>
+                    <DrawPath d={`M${bL.x},${bL.y} L${bR.x},${bR.y}`} color={B_COLOR} w={4} fresh dur={0.8} />
+                    <SvgWordTag x={bTag.x} y={bTag.y} angle={bTag.ang} text="прямая" color={B_COLOR} delay={0.6} />
+                </>
+            )}
+            {stage >= 3 && (
+                <FadeIn fresh>
+                    <path d={rightAngleMark(O3, [0.95, 0, 0], [0, 0.95 / aLen, (0.95 * 1.05) / aLen])} fill="none" stroke={MARK_COLOR} strokeWidth={2.4} strokeLinecap="round" />
+                </FadeIn>
+            )}
+            {stage >= 5 && (
+                <FadeIn fresh>
+                    <path d={rightAngleMark(O3, [-0.9, 0, 0], [0, 0.9, 0])} fill="none" stroke={MARK_COLOR} strokeWidth={2.4} strokeLinecap="round" />
+                </FadeIn>
+            )}
+            {stage >= 1 && (
+                <>
+                    <DrawPath d={`M${Op.x},${Op.y} L${T.x},${T.y}`} color={A_COLOR} w={4} fresh dur={0.8} />
+                    <SvgWordTag x={aTag.x} y={aTag.y} angle={aTag.ang} text="наклонная" color={A_COLOR} delay={0.6} />
+                </>
+            )}
+            <circle cx={Op.x} cy={Op.y} r={4.5} fill={X_COLOR} stroke="#0B1216" strokeWidth={1.5} />
+        </svg>
+    )
+}
+
 const TheoremScene = ({ onSettled }: SceneProps) => {
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => { const t = setTimeout(() => onSettled?.(), 1800); return () => clearTimeout(t) }, [])
+    // 0 печать «Наклонная ⟂ прямой» · 1 наклонная · 2 прямая · 3 угол 90° · 4 «ТОЛЬКО если…» напечатано → проекция · 5 угол 90°
+    const [stage, setStage] = useState(0)
+    const [onlyIf, setOnlyIf] = useState(false)
+    const [final, setFinal] = useState(false)
+    const timers = useRef<ReturnType<typeof setTimeout>[]>([])
+    useEffect(() => () => timers.current.forEach(clearTimeout), [])
+    const later = (ms: number, f: () => void) => { timers.current.push(setTimeout(f, ms)) }
     return (
         <SceneBox>
-            <InsightCard label="💡 ТТП">
-                Проекция наклонной ⟂ прямой в плоскости — значит и <InsightWord>сама наклонная ⟂ ей</InsightWord>
-            </InsightCard>
-            <p className="text-center text-base md:text-lg text-[#F2F7FB]">
-                Это и есть <b>Теорема о Трёх Перпендикулярах</b> (ТТП) 🎉
-            </p>
+            <TypedLineWithParts
+                parts={[{ sticker: 'Наклонная', color: A_COLOR }, { text: ' перпендикулярна ' }, { sticker: 'прямой', color: B_COLOR }]}
+                onSettled={() => {
+                    setStage(1)
+                    later(1600, () => setStage(2))
+                    later(3200, () => setStage(3))
+                    later(4300, () => setOnlyIf(true))
+                }}
+            />
+            <DiagramBlock><TheoremFigure stage={stage} /></DiagramBlock>
+            {onlyIf && (
+                <TypedLineWithParts
+                    parts={[
+                        { bold: 'ТОЛЬКО' }, { break: true },
+                        { text: 'если ' }, { sticker: 'проекция', ...SH }, { text: ' перпендикулярна ' }, { sticker: 'прямой', color: B_COLOR },
+                    ]}
+                    onSettled={() => {
+                        setStage(4)
+                        later(1600, () => setStage(5))
+                        later(2600, () => setFinal(true))
+                    }}
+                />
+            )}
+            {final && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Это и есть ' }, { bold: 'Теорема о Трёх Перпендикулярах' }, { text: ' (ТТП) 🎉' }]}
+                    onSettled={() => onSettled?.()}
+                />
+            )}
         </SceneBox>
     )
 }
