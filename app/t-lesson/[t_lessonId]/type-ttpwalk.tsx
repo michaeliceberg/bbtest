@@ -1,10 +1,11 @@
 // app/t-lesson/[t_lessonId]/type-ttpwalk.tsx
 //
 // Тип TTPWALK — интерактивный разбор «Теорема о Трёх Перпендикулярах (ТТП)» (стереометрия,
-// ЕГЭ Математика). Накопительный лог сцен как у остальных *WALK: плоскость → наклонная a
-// «протыкает» её в точке X → прямая b в плоскости → вопрос «a ⟂ b?» → проекция a (ученик
-// сам выбирает точку на a, из которой опускается перпендикуляр) → угол 90° → вывод ТТП.
-// Цвета: a — малиновый, b — зелёный, проекция — синий, плоскость — бирюзовый, угол 90° — оранжевый.
+// ЕГЭ Математика) на метафоре «из жизни»: земля → копьё, воткнувшееся в землю → линия на земле
+// → «копьё ⟂ линии?» → тень копья (ученик сам выбирает точку, откуда падает луч) → угол 90° →
+// «по-школьному» (плоскость α, наклонная a, прямая b, проекция a) → вывод ТТП.
+// Цвета: копьё/a — малиновый, линия/b — зелёный, тень/проекция — синий, земля/плоскость —
+// бирюзовый, угол 90° — оранжевый.
 
 'use client'
 
@@ -100,16 +101,18 @@ const SvgTag = ({ x, y, text, color, delay = 0 }: { x: number; y: number; text: 
 
 
 // ===================================================================
-// ЧЕРТЁЖ: плоскость, наклонная a, прямая b, проекция (косая проекция 3D→2D)
+// ЧЕРТЁЖ: земля (плоскость), копьё (наклонная), линия на земле, тень (проекция)
 // ===================================================================
-// Оси: x — вправо, y — вглубь (на экране вверх-вправо, укороченно), z — вверх.
-// Прямая a лежит в плоскости y–z, прямая b вдоль x ⇒ в 3D они перпендикулярны
-// (поэтому в итоге «угол 90°» — честная картинка, а не обман глаза).
+// «Из жизни»: спортсмен метнул копьё — оно воткнулось в землю, на земле начерчена линия.
+// Перпендикулярно ли копьё линии? Проверяем по ТЕНИ (солнце в зените ⇒ тень = проекция).
+// Потом всё то же «по-школьному»: плоскость α, наклонная a, прямая b, проекция a.
+// Косая проекция 3D→2D; сцена повёрнута вокруг вертикали (по часовой, если смотреть сверху),
+// чтобы линии не сливались. Копьё лежит в одной вертикальной плоскости, линия перпендикулярна
+// ей ⇒ в 3D копьё и линия честно перпендикулярны (угол 90° — не обман глаза).
 
-const VB_W = 340, VB_H = 250
-const U = 22, OX = 22, OY = 190
-const P3 = (x: number, y: number, z: number) => ({ x: OX + (x + 0.75 * y) * U, y: OY - (z + 0.5 * y) * U })
-const ptStr = (x: number, y: number, z: number) => { const p = P3(x, y, z); return `${p.x.toFixed(1)},${p.y.toFixed(1)}` }
+const VB_W = 340, VB_H = 262
+const ANG = (28 * Math.PI) / 180
+const CXW = 5, CYW = 2.5
 
 const A_COLOR = GGEGE_PALETTE.raspberry.button
 const B_COLOR = GGEGE_PALETTE.green.button
@@ -118,12 +121,31 @@ const PLANE_COLOR = GGEGE_PALETTE.teal.button
 const MARK_COLOR = GGEGE_PALETTE.orange.button
 const X_COLOR = '#F2F7FB'
 
-// Точка X, где a прокалывает плоскость; a(s) = X + s·(0, 1, 1.4)
+// Точка X, где копьё входит в землю; a(s) = X + s·(0, 1, 1.4)
 const X3 = { x: 5, y: 1.2, z: 0 }
 const aPoint = (s: number) => ({ x: 5, y: X3.y + s, z: 1.4 * s })
 const S_LOW = -1.2, S_HIGH = 3.4
 const CANDIDATES = [1.8, 2.6, 3.3]
 const DEFAULT_PICK = 2.6
+const PLANE_CORNERS: [number, number][] = [[0, 0], [10, 0], [10, 5], [0, 5]]
+
+const rawProj = (x: number, y: number, z: number) => {
+    const dx = x - CXW, dy = y - CYW
+    const rx = CXW + dx * Math.cos(ANG) + dy * Math.sin(ANG)
+    const ry = CYW - dx * Math.sin(ANG) + dy * Math.cos(ANG)
+    return { x: rx + 0.75 * ry, y: -(z + 0.5 * ry) }
+}
+// Подгоняем сцену под холст: масштаб и сдвиг по крайним точкам (плоскость + концы копья).
+const FIT = (() => {
+    const pts = [...PLANE_CORNERS.map(([x, y]) => rawProj(x, y, 0)), rawProj(aPoint(S_LOW).x, aPoint(S_LOW).y, aPoint(S_LOW).z), rawProj(aPoint(S_HIGH).x, aPoint(S_HIGH).y, aPoint(S_HIGH).z)]
+    const minX = Math.min(...pts.map((q) => q.x)), maxX = Math.max(...pts.map((q) => q.x))
+    const minY = Math.min(...pts.map((q) => q.y)), maxY = Math.max(...pts.map((q) => q.y))
+    const mX = 40, mT = 30, mB = 34
+    const u = Math.min((VB_W - 2 * mX) / (maxX - minX), (VB_H - mT - mB) / (maxY - minY))
+    return { u, offX: mX - minX * u + ((VB_W - 2 * mX) - (maxX - minX) * u) / 2, offY: mT - minY * u + ((VB_H - mT - mB) - (maxY - minY) * u) / 2 }
+})()
+const P3 = (x: number, y: number, z: number) => { const r = rawProj(x, y, z); return { x: FIT.offX + r.x * FIT.u, y: FIT.offY + r.y * FIT.u } }
+const ptStr = (x: number, y: number, z: number) => { const p = P3(x, y, z); return `${p.x.toFixed(1)},${p.y.toFixed(1)}` }
 
 const PickCtx = createContext<{ pick: number | null; setPick: (s: number | null) => void }>({ pick: null, setPick: () => {} })
 
@@ -149,10 +171,28 @@ const Dot = ({ x, y, color, fresh, delay = 0 }: { x: number; y: number; color: s
     </g>
 )
 
+// Тег-слово («копьё», «линия») — как SvgTag, но шире под длину слова.
+const SvgWordTag = ({ x, y, text, color, delay = 0 }: { x: number; y: number; text: string; color: string; delay?: number }) => {
+    const w = text.length * 8.6 + 18
+    return (
+        <g transform={`translate(${x},${y})`}>
+            <motion.g
+                initial={{ opacity: 0, scale: 2.2 }} animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: 'spring', stiffness: 320, damping: 15, delay }}
+            >
+                <rect x={-w / 2} y={-13} width={w} height={26} rx={7} fill={hexToRgba(color, 0.18)} stroke={color} strokeWidth={2} />
+                <text x={0} y={5.5} textAnchor="middle" fontSize={14} fontWeight={800} fill={color}>{text}</text>
+            </motion.g>
+        </g>
+    )
+}
+
 const rightAngleMark = (o: { x: number; y: number; z: number }, d1: [number, number, number], d2: [number, number, number]) =>
     `M${ptStr(o.x + d1[0], o.y + d1[1], o.z + d1[2])} L${ptStr(o.x + d1[0] + d2[0], o.y + d1[1] + d2[1], o.z + d1[2] + d2[2])} L${ptStr(o.x + d2[0], o.y + d2[1], o.z + d2[2])}`
 
+// scene: 0 земля · 1 копьё · 2 линия · 3 вопрос · 4 тень · 5 угол 90° · 6-7 «по-школьному»
 const Figure = ({ scene, pick, beat = 0, onPick }: { scene: number; pick: number | null; beat?: number; onPick?: (s: number) => void }) => {
+    const school = scene >= 6
     const hasA = scene >= 1
     const hasB = scene >= 2
     const s = pick ?? (scene >= 5 ? DEFAULT_PICK : null)
@@ -161,19 +201,24 @@ const Figure = ({ scene, pick, beat = 0, onPick }: { scene: number; pick: number
     const showH = s != null && (later || (scene === 4 && beat >= 2))
     const showProj = s != null && (later || (scene === 4 && beat >= 3))
     const fresh4 = scene === 4
+    const freshWords = scene === 6 // подписи-слова меняются на школьные
 
     const Xp = P3(X3.x, X3.y, 0)
-    const planeCorners = [[0, 0], [10, 0], [10, 5], [0, 5]]
-    const planePts = planeCorners.map(([x, y]) => ptStr(x, y, 0)).join(' ')
-    const planePath = `M${planeCorners.map(([x, y]) => ptStr(x, y, 0)).join(' L')} Z`
+    const planePts = PLANE_CORNERS.map(([x, y]) => ptStr(x, y, 0)).join(' ')
+    const planePath = `M${PLANE_CORNERS.map(([x, y]) => ptStr(x, y, 0)).join(' L')} Z`
 
     const lowEnd = aPoint(S_LOW), hiEnd = aPoint(S_HIGH)
     const aSolid = `M${ptStr(X3.x, X3.y, 0)} L${ptStr(hiEnd.x, hiEnd.y, hiEnd.z)}`
     const aHidden = `M${ptStr(lowEnd.x, lowEnd.y, lowEnd.z)} L${ptStr(X3.x, X3.y, 0)}`
     const bPath = `M${ptStr(0.8, X3.y, 0)} L${ptStr(9.2, X3.y, 0)}`
-
     const aTop = P3(hiEnd.x, hiEnd.y, hiEnd.z)
-    const bEnd = P3(9.2, X3.y, 0)
+    const bStart = P3(0.8, X3.y, 0)
+
+    // подпись плоскости — у ближнего нижнего угла, чуть к центру
+    const cs = PLANE_CORNERS.map(([x, y]) => P3(x, y, 0))
+    const corner = cs.reduce((best, c) => (c.x + c.y > best.x + best.y ? c : best), cs[0])
+    const center = P3(CXW, CYW, 0)
+    const planeLabel = { x: corner.x + (center.x - corner.x) * 0.4, y: corner.y + (center.y - corner.y) * 0.4 }
 
     let projEl: React.ReactNode = null
     if (s != null) {
@@ -181,11 +226,11 @@ const Figure = ({ scene, pick, beat = 0, onPick }: { scene: number; pick: number
         const H = P3(5, X3.y + s, 0)
         const Pp = P3(pP.x, pP.y, pP.z)
         const dx = H.x - Xp.x, dy = H.y - Xp.y
-        const len = Math.hypot(dx, dy)
+        const len = Math.hypot(dx, dy) || 1
         let nx = -dy / len, ny = dx / len
         if (ny < 0) { nx = -nx; ny = -ny }
         const angle = (Math.atan2(dy, dx) * 180) / Math.PI
-        const tx = (Xp.x + H.x) / 2 + nx * 17, ty = (Xp.y + H.y) / 2 + ny * 17
+        const tx = (Xp.x + H.x) / 2 + nx * 16, ty = (Xp.y + H.y) / 2 + ny * 16
         projEl = (
             <>
                 {showPerp && (
@@ -197,7 +242,7 @@ const Figure = ({ scene, pick, beat = 0, onPick }: { scene: number; pick: number
                 {showH && (
                     <>
                         <FadeIn fresh={fresh4}>
-                            <path d={rightAngleMark({ x: 5, y: X3.y + s, z: 0 }, [0, -0.5, 0], [0, 0, 0.5])} fill="none" stroke={MARK_COLOR} strokeWidth={2} strokeLinecap="round" />
+                            <path d={rightAngleMark({ x: 5, y: X3.y + s, z: 0 }, [0, -0.7, 0], [0, 0, 0.7])} fill="none" stroke={MARK_COLOR} strokeWidth={2} strokeLinecap="round" />
                         </FadeIn>
                         <Dot x={H.x} y={H.y} color={PROJ_COLOR} fresh={fresh4} />
                         <SvgTag x={H.x + 22} y={H.y - 4} text="H" color={PROJ_COLOR} delay={fresh4 ? 0.2 : 0} />
@@ -208,11 +253,12 @@ const Figure = ({ scene, pick, beat = 0, onPick }: { scene: number; pick: number
                         <DrawPath d={`M${Xp.x},${Xp.y} L${H.x},${H.y}`} color={PROJ_COLOR} w={4.5} fresh={fresh4} dur={0.9} />
                         <g transform={`translate(${tx},${ty}) rotate(${angle})`}>
                             <motion.text
-                                x={0} y={4} textAnchor="middle" fontSize={12} fontWeight={800} fill={PROJ_COLOR}
-                                initial={fresh4 ? { opacity: 0 } : { opacity: 1 }} animate={{ opacity: 1 }}
-                                transition={{ duration: 0.5, delay: fresh4 ? 0.9 : 0 }}
+                                key={school ? 's' : 'l'}
+                                x={0} y={4} textAnchor="middle" fontSize={school ? 12 : 14} fontWeight={800} fill={PROJ_COLOR}
+                                initial={fresh4 || freshWords ? { opacity: 0 } : { opacity: 1 }} animate={{ opacity: 1 }}
+                                transition={{ duration: 0.5, delay: fresh4 ? 0.9 : freshWords ? 0.3 : 0 }}
                             >
-                                проекция a
+                                {school ? 'проекция a' : 'тень'}
                             </motion.text>
                         </g>
                     </>
@@ -221,18 +267,23 @@ const Figure = ({ scene, pick, beat = 0, onPick }: { scene: number; pick: number
         )
     }
 
-    const alphaP = P3(9.4, 0.5, 0)
     return (
         <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="w-full max-w-[340px] mx-auto" style={{ overflow: 'visible' }}>
-            {/* плоскость */}
+            {/* земля / плоскость */}
             <motion.polygon
                 points={planePts} fill={hexToRgba(PLANE_COLOR, 0.16)}
                 initial={{ opacity: scene === 0 ? 0 : 1 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.5 }}
             />
             <DrawPath d={planePath} color={PLANE_COLOR} w={3} fresh={scene === 0} dur={1.1} />
-            <text x={alphaP.x} y={alphaP.y + 5} fontSize={17} fontStyle="italic" fill={PLANE_COLOR} fontWeight={700}>α</text>
+            <motion.text
+                key={school ? 'pa' : 'pl'}
+                x={planeLabel.x} y={planeLabel.y + 5} textAnchor="middle" fontSize={school ? 18 : 14} fontStyle="italic" fill={PLANE_COLOR} fontWeight={800}
+                initial={{ opacity: scene === 0 || freshWords ? 0 : 1 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: scene === 0 ? 1.0 : 0.3 }}
+            >
+                {school ? 'α' : 'земля'}
+            </motion.text>
 
-            {/* часть a под плоскостью — «за плоскостью», пунктир */}
+            {/* часть копья под землёй — пунктир */}
             {hasA && (
                 <FadeIn fresh={scene === 1} delay={0.2}>
                     <path d={aHidden} fill="none" stroke={A_COLOR} strokeWidth={3} strokeDasharray="6 6" strokeLinecap="round" opacity={0.55} />
@@ -242,21 +293,33 @@ const Figure = ({ scene, pick, beat = 0, onPick }: { scene: number; pick: number
             {hasA && <DrawPath d={aSolid} color={A_COLOR} w={4} fresh={scene === 1} />}
             {hasA && <Dot x={Xp.x} y={Xp.y} color={X_COLOR} fresh={scene === 1} delay={1.0} />}
             {hasA && <SvgTag x={Xp.x - 17} y={Xp.y + 16} text="X" color={X_COLOR} delay={scene === 1 ? 1.1 : 0} />}
-            {hasA && <SvgTag x={aTop.x + 18} y={aTop.y + 2} text="a" color={A_COLOR} delay={scene === 1 ? 1.0 : 0} />}
-            {hasB && <SvgTag x={bEnd.x + 4} y={bEnd.y - 17} text="b" color={B_COLOR} delay={scene === 2 ? 0.9 : 0} />}
+            {hasA && (school
+                ? <SvgTag key="a" x={aTop.x + 18} y={aTop.y + 2} text="a" color={A_COLOR} delay={0.3} />
+                : <SvgWordTag key="kopyo" x={aTop.x + 32} y={aTop.y + 2} text="копьё" color={A_COLOR} delay={scene === 1 ? 1.0 : 0} />)}
+            {hasB && (school
+                ? <SvgTag key="b" x={bStart.x - 6} y={bStart.y - 18} text="b" color={B_COLOR} delay={0.3} />
+                : <SvgWordTag key="liniya" x={bStart.x - 4} y={bStart.y - 19} text="линия" color={B_COLOR} delay={scene === 2 ? 0.9 : 0} />)}
 
             {projEl}
 
-            {/* угол 90° между проекцией и b */}
+            {/* угол 90° между тенью и линией */}
             {scene >= 5 && (
-                <>
-                    <FadeIn fresh={scene === 5} delay={0.2}>
-                        <path d={rightAngleMark(X3, [0.6, 0, 0], [0, 0.6, 0])} fill="none" stroke={MARK_COLOR} strokeWidth={2.4} strokeLinecap="round" />
-                    </FadeIn>
-                </>
+                <FadeIn fresh={scene === 5} delay={0.2}>
+                    <path d={rightAngleMark(X3, [0.8, 0, 0], [0, 0.8, 0])} fill="none" stroke={MARK_COLOR} strokeWidth={2.4} strokeLinecap="round" />
+                </FadeIn>
             )}
 
-            {/* точки на a, из которых можно опустить перпендикуляр */}
+            {/* солнце над головой — когда падает тень */}
+            {scene >= 4 && scene <= 5 && (
+                <motion.text
+                    x={VB_W - 26} y={26} fontSize={26} textAnchor="middle"
+                    initial={{ opacity: scene === 4 ? 0 : 1 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}
+                >
+                    ☀️
+                </motion.text>
+            )}
+
+            {/* точки на копье, из которых можно «опустить луч» */}
             {scene === 4 && pick == null && onPick && CANDIDATES.map((c) => {
                 const p = aPoint(c); const q = P3(p.x, p.y, p.z)
                 return (
@@ -282,22 +345,22 @@ const useAfterTyped = () => {
     return { typed, onTyped: () => setTyped(true) }
 }
 
-const PlaneScene = ({ onSettled }: SceneProps) => {
+const GroundScene = ({ onSettled }: SceneProps) => {
     const { typed, onTyped } = useAfterTyped()
     return (
         <SceneBox>
-            <TypedLineWithParts parts={[{ text: 'Нарисуем ' }, { sticker: 'плоскость', color: PLANE_COLOR }, { text: '.' }]} onSettled={onTyped} />
-            {typed && <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1500)}><Figure scene={0} pick={null} /></DiagramBlock>}
+            <TypedLineWithParts parts={[{ text: 'Вот ' }, { sticker: 'земля', color: PLANE_COLOR }, { text: ' — площадка для метания копья.' }]} onSettled={onTyped} />
+            {typed && <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1700)}><Figure scene={0} pick={null} /></DiagramBlock>}
         </SceneBox>
     )
 }
 
-const InclinedScene = ({ onSettled }: SceneProps) => {
+const SpearScene = ({ onSettled }: SceneProps) => {
     const { typed, onTyped } = useAfterTyped()
     return (
         <SceneBox>
             <TypedLineWithParts
-                parts={[{ text: 'Наклонная прямая ' }, { sticker: 'a', color: A_COLOR }, { text: ' «протыкает» плоскость в точке ' }, { sticker: 'X', color: X_COLOR }, { text: '.' }]}
+                parts={[{ text: 'Спортсмен 🏃 метнул ' }, { sticker: 'копьё', color: A_COLOR }, { text: ' — оно воткнулось в землю в точке ' }, { sticker: 'X', color: X_COLOR }, { text: '.' }]}
                 onSettled={onTyped}
             />
             {typed && <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1800)}><Figure scene={1} pick={null} /></DiagramBlock>}
@@ -305,12 +368,12 @@ const InclinedScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-const LineBScene = ({ onSettled }: SceneProps) => {
+const LineScene = ({ onSettled }: SceneProps) => {
     const { typed, onTyped } = useAfterTyped()
     return (
         <SceneBox>
             <TypedLineWithParts
-                parts={[{ text: 'В точке ' }, { sticker: 'X', color: X_COLOR }, { text: ' проведём в плоскости ещё одну прямую ' }, { sticker: 'b', color: B_COLOR }, { text: '.' }]}
+                parts={[{ text: 'На земле была начерчена ' }, { sticker: 'линия', color: B_COLOR }, { text: ' — прямо через эту точку.' }]}
                 onSettled={onTyped}
             />
             {typed && <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 1600)}><Figure scene={2} pick={null} /></DiagramBlock>}
@@ -332,7 +395,7 @@ const QuestionScene = ({ onSettled }: SceneProps) => {
         <SceneBox>
             <DiagramBlock><Figure scene={3} pick={null} /></DiagramBlock>
             <TypedLineWithParts
-                parts={[{ text: 'Прямая ' }, { sticker: 'a', color: A_COLOR }, { text: ' перпендикулярна ли прямой ' }, { sticker: 'b', color: B_COLOR }, { text: '?' }]}
+                parts={[{ sticker: 'Копьё', color: A_COLOR }, { text: ' воткнулось ' }, { bold: 'перпендикулярно' }, { text: ' ' }, { sticker: 'линии', color: B_COLOR }, { text: '?' }]}
                 onSettled={() => setShown(true)}
             />
             {shown && !asked && (
@@ -345,8 +408,8 @@ const QuestionScene = ({ onSettled }: SceneProps) => {
             {asked && (
                 <TypedLineWithParts
                     parts={[
-                        { text: 'Глазами не поймёшь 😅 Чтобы узнать, проверим: ' }, { bold: 'перпендикулярна ли ' },
-                        { sticker: 'проекция a', color: PROJ_COLOR }, { text: ' прямой ' }, { sticker: 'b', color: B_COLOR }, { text: '?' },
+                        { text: 'Глазами не поймёшь 😅 Проверим: ' }, { bold: 'перпендикулярна ли линии ' },
+                        { sticker: 'тень', color: PROJ_COLOR }, { text: ' от копья?' },
                     ]}
                     onSettled={() => onSettled?.()}
                 />
@@ -355,7 +418,7 @@ const QuestionScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-const ProjectionScene = ({ onSettled }: SceneProps) => {
+const ShadowScene = ({ onSettled }: SceneProps) => {
     const { pick, setPick } = useContext(PickCtx)
     const [typed, setTyped] = useState(false)
     const [beat, setBeat] = useState(0)
@@ -374,7 +437,7 @@ const ProjectionScene = ({ onSettled }: SceneProps) => {
     return (
         <SceneBox>
             <TypedLineWithParts
-                parts={[{ text: 'Из любой точки прямой ' }, { sticker: 'a', color: A_COLOR }, { text: ' опустим перпендикуляр на плоскость. ' }, { bold: 'Выбери точку 👇' }]}
+                parts={[{ text: 'Солнце ☀️ прямо над головой: от любой точки ' }, { sticker: 'копья', color: A_COLOR }, { text: ' луч падает на землю отвесно. ' }, { bold: 'Выбери точку 👇' }]}
                 onSettled={() => setTyped(true)}
             />
             {typed && (
@@ -385,8 +448,8 @@ const ProjectionScene = ({ onSettled }: SceneProps) => {
             {lineTwo && (
                 <TypedLineWithParts
                     parts={[
-                        { text: 'Получили точку ' }, { sticker: 'H', color: PROJ_COLOR }, { text: '. Соединим ' }, { sticker: 'H', color: PROJ_COLOR },
-                        { text: ' с ' }, { sticker: 'X', color: X_COLOR }, { text: ' — это ' }, { sticker: 'проекция a', color: PROJ_COLOR }, { text: '.' },
+                        { text: 'Луч попал в точку ' }, { sticker: 'H', color: PROJ_COLOR }, { text: '. Соединим ' }, { sticker: 'H', color: PROJ_COLOR },
+                        { text: ' с ' }, { sticker: 'X', color: X_COLOR }, { text: ' — это ' }, { sticker: 'тень', color: PROJ_COLOR }, { text: ' копья.' },
                     ]}
                 />
             )}
@@ -402,7 +465,7 @@ const NinetyScene = ({ onSettled }: SceneProps) => {
         <SceneBox>
             <TypedLineWithParts
                 parts={[
-                    { text: 'Если проекция перпендикулярна ' }, { sticker: 'b', color: B_COLOR }, { text: ' — получился угол ' }, { sticker: '90°', color: MARK_COLOR }, { text: '…' },
+                    { text: 'Если тень перпендикулярна ' }, { sticker: 'линии', color: B_COLOR }, { text: ' — получился угол ' }, { sticker: '90°', color: MARK_COLOR }, { text: '…' },
                 ]}
                 onSettled={() => setTyped(true)}
             />
@@ -410,18 +473,53 @@ const NinetyScene = ({ onSettled }: SceneProps) => {
             {second && (
                 <>
                     <TypedLineWithParts
-                        parts={[{ text: '…то и угол между ' }, { sticker: 'a', color: A_COLOR }, { text: ' и ' }, { sticker: 'b', color: B_COLOR }, { text: ' тоже ' }, { sticker: '90°', color: MARK_COLOR }, { text: '!' }]}
+                        parts={[{ text: '…то и ' }, { sticker: 'копьё', color: A_COLOR }, { text: ' воткнулось под ' }, { sticker: '90°', color: MARK_COLOR }, { text: ' к ' }, { sticker: 'линии', color: B_COLOR }, { text: '!' }]}
                         onSettled={() => onSettled?.()}
                     />
                     <motion.div
                         initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.55, delay: 0.4 }}
-                        className="rounded-2xl border-2 px-5 py-3 text-2xl font-black"
+                        className="rounded-2xl border-2 px-5 py-3 text-xl font-black"
                         style={{ borderColor: MARK_COLOR, backgroundColor: hexToRgba(MARK_COLOR, 0.16), color: MARK_COLOR }}
                     >
-                        ∠(a, b) = 90°
+                        ∠(копьё, линия) = 90°
                     </motion.div>
                 </>
             )}
+        </SceneBox>
+    )
+}
+
+// «А теперь по-школьному»: те же объекты, но с настоящими названиями.
+const SCHOOL_ROWS: { life: string; lifeColor: string; school: string; schoolColor: string }[] = [
+    { life: 'земля', lifeColor: PLANE_COLOR, school: 'плоскость α', schoolColor: PLANE_COLOR },
+    { life: 'копьё', lifeColor: A_COLOR, school: 'наклонная a', schoolColor: A_COLOR },
+    { life: 'линия', lifeColor: B_COLOR, school: 'прямая b', schoolColor: B_COLOR },
+    { life: 'тень', lifeColor: PROJ_COLOR, school: 'проекция a', schoolColor: PROJ_COLOR },
+]
+const SchoolScene = ({ onSettled }: SceneProps) => {
+    const { pick } = useContext(PickCtx)
+    const [typed, setTyped] = useState(false)
+    const [rows, setRows] = useState(0)
+    useEffect(() => {
+        if (!typed) return
+        const timers = SCHOOL_ROWS.map((_, i) => setTimeout(() => setRows(i + 1), 900 + i * 1000))
+        const done = setTimeout(() => onSettled?.(), 900 + SCHOOL_ROWS.length * 1000 + 600)
+        return () => { [...timers, done].forEach(clearTimeout) }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [typed])
+    return (
+        <SceneBox>
+            <TypedLineWithParts parts={[{ text: 'А теперь — ' }, { bold: 'по-школьному 🎓' }]} onSettled={() => setTyped(true)} />
+            {typed && <DiagramBlock><Figure scene={6} pick={pick} /></DiagramBlock>}
+            <div className="w-full flex flex-col gap-2">
+                {SCHOOL_ROWS.slice(0, rows).map((r) => (
+                    <motion.div key={r.life} initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }} className="flex items-center justify-center gap-2 text-base md:text-lg">
+                        <Sticker value={r.life} color={r.lifeColor} />
+                        <span className="font-black text-[#9AA7B0]">→</span>
+                        <Sticker value={r.school} color={r.schoolColor} />
+                    </motion.div>
+                ))}
+            </div>
         </SceneBox>
     )
 }
@@ -441,7 +539,7 @@ const TheoremScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-const CONCEPT_SCENES = [PlaneScene, InclinedScene, LineBScene, QuestionScene, ProjectionScene, NinetyScene, TheoremScene]
+const CONCEPT_SCENES = [GroundScene, SpearScene, LineScene, QuestionScene, ShadowScene, NinetyScene, SchoolScene, TheoremScene]
 const INTRO_CONCEPT_STEPS = CONCEPT_SCENES.length
 
 const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
@@ -509,31 +607,37 @@ type ConceptQuizItem = {
 }
 const CONCEPT_QUIZ: ConceptQuizItem[] = [
     {
-        renderPrompt: () => <>Как получить <Sticker value="проекцию a" color={PROJ_COLOR} />?</>,
-        renderOptions: () => ['Опустить перпендикуляр из точки a на плоскость и соединить его основание с X', 'Просто провести линию вдоль плоскости'],
+        renderPrompt: () => <><Sticker value="Копьё" color={A_COLOR} /> воткнулось. Как проверить, перпендикулярно ли оно <Sticker value="линии" color={B_COLOR} /> на земле?</>,
+        renderOptions: () => ['Посмотреть, перпендикулярна ли линии ТЕНЬ копья', 'Измерить длину копья'],
         correct: 0,
-        feedback: 'Перпендикуляр на плоскость → точка H → отрезок HX и есть проекция.',
+        feedback: 'Тень (солнце над головой) — это проекция копья на землю. Смотрим на неё.',
     },
     {
-        renderPrompt: () => <>Проекция <Sticker value="a" color={A_COLOR} /> ⟂ <Sticker value="b" color={B_COLOR} />. Тогда сама <Sticker value="a" color={A_COLOR} /> и <Sticker value="b" color={B_COLOR} />…</>,
+        renderPrompt: () => <><Sticker value="Тень" color={PROJ_COLOR} /> копья перпендикулярна <Sticker value="линии" color={B_COLOR} />. Тогда само <Sticker value="копьё" color={A_COLOR} /> и линия…</>,
         renderOptions: () => ['перпендикулярны (90°)', 'параллельны'],
         correct: 0,
-        feedback: 'Проекция ⟂ b — значит и наклонная ⟂ b. Это ТТП!',
+        feedback: 'Тень ⟂ линии — значит и копьё ⟂ линии. Это ТТП!',
     },
     {
-        renderPrompt: () => <>Проекция <Sticker value="a" color={A_COLOR} /> <b>НЕ</b> перпендикулярна <Sticker value="b" color={B_COLOR} />. Тогда <Sticker value="a" color={A_COLOR} /> и <Sticker value="b" color={B_COLOR} />…</>,
+        renderPrompt: () => <><Sticker value="Тень" color={PROJ_COLOR} /> <b>НЕ</b> перпендикулярна <Sticker value="линии" color={B_COLOR} />. Тогда <Sticker value="копьё" color={A_COLOR} /> и линия…</>,
         renderOptions: () => ['не перпендикулярны', 'всё равно перпендикулярны'],
         correct: 0,
-        feedback: 'Работает в обе стороны: нет 90° у проекции — нет 90° и у наклонной.',
+        feedback: 'Работает в обе стороны: нет 90° у тени — нет 90° и у копья.',
+    },
+    {
+        renderPrompt: () => <>Как «тень копья» называется <b>по-школьному</b>?</>,
+        renderOptions: () => ['Проекция наклонной', 'Диагональ плоскости'],
+        correct: 0,
+        feedback: 'Копьё — наклонная, земля — плоскость, тень — проекция наклонной.',
     },
     {
         renderPrompt: () => <>Как называется эта теорема?</>,
         renderOptions: () => ['Теорема о Трёх Перпендикулярах (ТТП)', 'Теорема о Трёх Медведях'],
         correct: 0,
-        feedback: 'ТТП: перпендикуляр к плоскости, проекция и наклонная.',
+        feedback: 'ТТП: перпендикуляр к плоскости, проекция (тень) и наклонная (копьё).',
     },
     {
-        renderPrompt: () => <>Бонус! Кто теперь разбирается в стереометрии? 😎</>,
+        renderPrompt: () => <>Бонус! Кто теперь чемпион по метанию стереометрии? 🏆</>,
         renderOptions: () => ['Я! 🔥'],
         correct: 0,
         feedback: 'Без вариантов — ты! Дальше будем решать задачи ЕГЭ 🚀',
