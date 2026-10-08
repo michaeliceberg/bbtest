@@ -64,7 +64,10 @@ export const FormulaAssemble = ({ prefix, layout, chips, correct, alsoCorrect, s
         } else if (next[0] === null || next[1] === null) return
         const ok = layout === 'single'
             ? next[0] === correct[0]
-            : [correct, ...(alsoCorrect ?? [])].some((c) => next[0] === c[0] && next[1] === c[1])
+            : [correct, ...(alsoCorrect ?? [])].some((c) =>
+                (next[0] === c[0] && next[1] === c[1])
+                // произведение: от перестановки множителей результат не меняется (a·b = b·a)
+                || (layout === 'product' && next[0] === c[1] && next[1] === c[0]))
         if (ok) {
             setSolved(true)
             onSolved?.(mistakes === 0)
