@@ -319,9 +319,9 @@ export function useWalkthroughCombo() {
         if (!firstTry) { streak.current = 0; return }
         streak.current += 1
         const n = streak.current
-        if (n % 5 === 0 || n % 8 === 0) {
-            window.dispatchEvent(new CustomEvent(WALKTHROUGH_COMBO_EVENT, { detail: { n } }))
-        }
+        // Шлём на каждый ответ с первой попытки: TQUIZ запоминает рекорд серии для экрана итогов,
+        // а молнию рисует только на кратных 5 и 8.
+        window.dispatchEvent(new CustomEvent(WALKTHROUGH_COMBO_EVENT, { detail: { n } }))
     }, [])
 }
 

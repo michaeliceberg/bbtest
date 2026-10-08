@@ -48,10 +48,13 @@ export const TypeScroll = ({
     onOptionSelected,
     isAnswerChecked = false,
 }: Props) => {
-    // Бегунок всегда стоит на какой-то позиции — стартуем со случайного
-    // деления (как уже делает числовой TypeSlider), а не с "ничего не
-    // выбрано", иначе thumb нечего было бы показывать до первого клика.
-    const [selectedIndex, setSelectedIndex] = useState(() => Math.floor(Math.random() * 3))
+    // Стартуем с «ничего не выбрано»: бегунок стоит по центру, но серый и вариант не засчитан.
+    // Раньше начальная позиция была случайной и уже считалась выбранным ответом — если она
+    // совпадала с верной, до проверки нужно было отойти и вернуться, и ответ можно было угадать,
+    // не прикоснувшись к слайдеру.
+    const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+    const thumbIndex = selectedIndex ?? 1
+    const trackRef = React.useRef<HTMLDivElement | null>(null)
     const [showResult, setShowResult] = useState(false)
 
     // Тот же паттерн, что в type-assist.tsx/type-insert.tsx: эффект
@@ -61,13 +64,25 @@ export const TypeScroll = ({
         setShowResult(isAnswerChecked)
     }, [isAnswerChecked])
 
-    // Сообщаем родителю о стартовой позиции сразу при монтировании — иначе
-    // общая кнопка "Ответить" в trainer-question.tsx останется disabled,
-    // пока бегунок не тронут явно.
+    // Пока ничего не выбрано — кнопка «Ответить» заблокирована.
     React.useEffect(() => {
-        onOptionSelected?.(question.options[selectedIndex])
+        onOptionSelected?.(null)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
+
+    // Тап по бегунку, уже стоящему по центру: Radix в этом случае не шлёт onValueChange
+    // (значение не изменилось), поэтому первый выбор считаем сами — по ближайшему делению.
+    const handleTrackPointerDown = (e: React.PointerEvent) => {
+        if (selectedIndex !== null || showResult) return
+        const el = trackRef.current
+        if (!el) return
+        const rect = el.getBoundingClientRect()
+        const x = e.clientX - rect.left
+        const centers = [12, rect.width / 2, rect.width - 12]
+        let best = 0
+        centers.forEach((c, i) => { if (Math.abs(c - x) < Math.abs(centers[best] - x)) best = i })
+        handleSelect(best)
+    }
 
     const handleSelect = (idx: number) => {
         if (showResult) return
@@ -144,11 +159,11 @@ export const TypeScroll = ({
                     его собственная отрисовка скрыта через opacity-0, но он
                     по-прежнему реально управляет selectedIndex через
                     onValueChange. */}
-                <div className="absolute bottom-0 left-0 right-0" style={{ height: TRACK_HEIGHT }}>
+                <div ref={trackRef} onPointerDownCapture={handleTrackPointerDown} className="absolute bottom-0 left-0 right-0" style={{ height: TRACK_HEIGHT }}>
                     <div className="absolute top-1/2 left-0 right-0 h-[8px] -translate-y-1/2 rounded-full bg-[#3A464E]" />
                     <motion.div
                         className="absolute top-1/2 left-0 h-[8px] -translate-y-1/2 rounded-full bg-[#4A90D9]"
-                        animate={{ width: TICK_POSITIONS[selectedIndex] }}
+                        animate={{ width: selectedIndex === null ? 0 : TICK_POSITIONS[selectedIndex] }}
                         transition={TRANSITION}
                     />
 
@@ -168,14 +183,14 @@ export const TypeScroll = ({
                     ))}
 
                     <motion.div
-                        className="absolute top-1/2 size-6 -translate-y-1/2 -translate-x-1/2 rounded-full bg-[#F2F7FB] shadow-[0_4px_10px] shadow-black/40"
-                        animate={{ left: TICK_POSITIONS[selectedIndex] }}
+                        className="absolute top-1/2 size-6 -translate-y-1/2 -translate-x-1/2 rounded-full shadow-[0_4px_10px] shadow-black/40"
+                        animate={{ left: TICK_POSITIONS[thumbIndex], backgroundColor: selectedIndex === null ? '#7A8A93' : '#F2F7FB' }}
                         transition={TRANSITION}
                     />
 
                     <Slider
                         className="absolute inset-0 flex touch-none select-none items-center opacity-0"
-                        value={[selectedIndex]}
+                        value={[thumbIndex]}
                         min={0}
                         max={2}
                         step={1}

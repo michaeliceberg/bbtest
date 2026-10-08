@@ -22,6 +22,7 @@ import { applyResolvedReward } from '@/lib/caseApply';
 import type { OpenCaseResult } from '@/actions/open-case';
 
 const GUEST_LEAD_COOKIE = 'guestLeadId';
+const GUEST_PENDING_COOKIE = 'guestLeadPending';
 // Неделя — достаточно, чтобы гость успел закончить урок и решиться
 // зарегистрироваться, не бессрочно.
 const GUEST_LEAD_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
@@ -44,6 +45,8 @@ export async function createGuestLead(tLessonId: number, nickname: string, vibes
 		sameSite: 'lax',
 		path: '/',
 	});
+	// Метка для клиента (httpOnly-куку он прочитать не может): «у гостя есть что переносить на аккаунт».
+	jar.set(GUEST_PENDING_COOKIE, '1', { maxAge: GUEST_LEAD_COOKIE_MAX_AGE, sameSite: 'lax', path: '/' });
 
 	return { leadId: row.id };
 }
@@ -80,6 +83,11 @@ export async function openGuestLeadCase(leadId: number): Promise<OpenCaseResult>
 	return { success: true, reward, pizzaSlicesNow: 0, justMaxedPizza: false };
 }
 
+function clearGuestCookies(jar: Awaited<ReturnType<typeof cookies>>) {
+	jar.delete(GUEST_LEAD_COOKIE);
+	jar.delete(GUEST_PENDING_COOKIE);
+}
+
 export type ClaimGuestRewardResult =
 	| { success: true; reward: CaseReward }
 	| { success: false; error: string };
@@ -101,27 +109,14 @@ export async function claimGuestLeadReward(): Promise<ClaimGuestRewardResult> {
 	const leadId = Number(leadIdRaw);
 
 	const lead = await db.query.guestLessonLeads.findFirst({ where: eq(guestLessonLeads.id, leadId) });
-	if (!lead || !lead.caseOpened || !lead.rewardKind || lead.rewardAmount == null) {
-		jar.delete(GUEST_LEAD_COOKIE);
+	if (!lead) {
+		clearGuestCookies(jar);
 		return { success: false, error: 'Нет приза для переноса' };
 	}
-	if (lead.claimedByUserId) {
-		// Уже перенесён раньше (например повторный маунт) — не начисляем
-		// повторно, просто молча подтверждаем сам факт приза.
-		jar.delete(GUEST_LEAD_COOKIE);
-		return { success: true, reward: { kind: lead.rewardKind as CaseReward['kind'], amount: lead.rewardAmount, weight: 0 } };
-	}
 
-	const reward: CaseReward = { kind: lead.rewardKind as CaseReward['kind'], amount: lead.rewardAmount, weight: 0 };
-	await applyResolvedReward(session.user.id, reward);
-
-	await db.update(guestLessonLeads).set({
-		claimedByUserId: session.user.id,
-		claimedAt: new Date(),
-	}).where(eq(guestLessonLeads.id, leadId));
-
-	// Урок, пройденный гостем, засчитываем и аккаунту — он входит в «3 урока
-	// электродинамики» для реферальной пиццы (lib/referralRewards.ts) и открытия задачника.
+	// Урок, пройденный гостем, засчитываем аккаунту ВСЕГДА (даже если кейс он не открыл) — иначе
+	// после регистрации придётся проходить тот же урок заново. Он входит в «3 урока трека»
+	// для реферальной пиццы (lib/referralRewards.ts) и открытия задачника.
 	const already = await db.query.t_lessonProgress.findFirst({
 		where: and(eq(t_lessonProgress.userId, session.user.id), eq(t_lessonProgress.t_lessonId, lead.tLessonId)),
 	});
@@ -136,7 +131,25 @@ export async function claimGuestLeadReward(): Promise<ClaimGuestRewardResult> {
 		}).catch(() => null);
 	}
 
-	jar.delete(GUEST_LEAD_COOKIE);
+	if (!lead.caseOpened || !lead.rewardKind || lead.rewardAmount == null) {
+		clearGuestCookies(jar);
+		return { success: false, error: 'Нет приза для переноса' };
+	}
+	if (lead.claimedByUserId) {
+		// Уже перенесён раньше (например повторный маунт) — не начисляем повторно.
+		clearGuestCookies(jar);
+		return { success: true, reward: { kind: lead.rewardKind as CaseReward['kind'], amount: lead.rewardAmount, weight: 0 } };
+	}
+
+	const reward: CaseReward = { kind: lead.rewardKind as CaseReward['kind'], amount: lead.rewardAmount, weight: 0 };
+	await applyResolvedReward(session.user.id, reward);
+
+	await db.update(guestLessonLeads).set({
+		claimedByUserId: session.user.id,
+		claimedAt: new Date(),
+	}).where(eq(guestLessonLeads.id, leadId));
+
+	clearGuestCookies(jar);
 
 	return { success: true, reward };
 }

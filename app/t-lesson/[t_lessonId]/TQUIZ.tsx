@@ -247,6 +247,9 @@ export default function TQuiz({
   useEffect(() => {
     const onCombo = (e: Event) => {
       const n = (e as CustomEvent<{ n: number }>).detail?.n ?? 0
+      // В разборах onAnswer зовётся один раз за урок — рекорд серии берём из комбо разбора.
+      if (n > maxStreakRef.current) maxStreakRef.current = n
+      if (n % 5 !== 0 && n % 8 !== 0) return
       setLightningVariant(n % 8 === 0 ? 'blue' : 'yellow')
       setLightningLabel(`КОМБО x${n}`)
       setLightningStrikeKey(k => k + 1)

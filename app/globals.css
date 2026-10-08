@@ -603,7 +603,7 @@ body {
   animation: arrow-nudge 0.9s ease-in-out infinite;
 }
 
-/* Клетка паззла, которую сейчас заполняем, — мягко «дышит» (только transform). */
+/* Клетка пазла, которую сейчас заполняем, — мягко «дышит» (только transform). */
 @keyframes puzzle-cell-pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.07); }

@@ -23,14 +23,20 @@ export const GuestRewardClaimer = () => {
 
 	useEffect(() => {
 		if (firedRef.current) return;
-		if (searchParams.get('claimReward') !== '1') return;
+		// Переносим и по ?claimReward=1 (вход с экрана приза), и если у гостя осталась метка:
+		// человек мог зарегистрироваться потом другим путём.
+		const pending = typeof document !== 'undefined' && document.cookie.includes('guestLeadPending=1');
+		if (searchParams.get('claimReward') !== '1' && !pending) return;
 		firedRef.current = true;
 
 		claimGuestLeadReward().then((result) => {
 			if (result.success) {
 				toast.success(`${rewardEmoji(result.reward)} Зачислено: ${rewardLabel(result.reward)}`);
 			}
-			router.replace('/trainer');
+			// Метку чистим и на клиенте — чтобы не дёргать сервер при каждом заходе.
+			document.cookie = 'guestLeadPending=; Max-Age=0; path=/';
+			router.refresh();
+			if (searchParams.get('claimReward') === '1') router.replace('/trainer');
 		});
 	}, [searchParams, router]);
 

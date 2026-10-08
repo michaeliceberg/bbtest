@@ -403,7 +403,8 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
         playSound(ROULETTE_SOUND)
 
         const result = await spinAction().catch(() => null)
-        checkAchievements()
+        // Тост ачивки («первый гем» и т.п.) показываем только когда барабан остановился — см. handleAnimationComplete.
+        if (!result || !result.success) checkAchievements()
         if (!result || !result.success) {
             setError('Не удалось открыть кейс. Попробуй ещё раз.')
             setPhase('idle')
@@ -435,6 +436,7 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
         const kind = won && won.success ? won.reward.kind : null
         playSound(kind === 'gems' ? GEM_DROP_SOUND : kind === 'coins' ? COIN_DROP_SOUND : kind === 'pizza' ? PIZZA_DROP_SOUND : CASE_PRIZE_SOUND)
         setPhase('revealed')
+        checkAchievements()
     }, [phase])
 
     const result = finalResultRef.current
