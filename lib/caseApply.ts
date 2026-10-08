@@ -91,11 +91,14 @@ export async function applyResolvedReward(userId: string, reward: CaseReward): P
 			.set({ ggStickers: sql`${userProgress.ggStickers} + ${appliedReward.amount}` })
 			.where(eq(userProgress.userId, userId));
 	} else {
-		pizzaSlicesNow = currentPizza + appliedReward.amount;
-		justMaxedPizza = currentPizza < MAX_PIZZA_SLICES && pizzaSlicesNow >= MAX_PIZZA_SLICES;
-		await db.update(userProgress)
-			.set({ pizzaSlices: pizzaSlicesNow })
-			.where(eq(userProgress.userId, userId));
+		// Атомарный инкремент в SQL: два начисления подряд (кейс + реферальная награда + ачивка)
+		// не затирают друг друга, как при записи «прочитанное значение + N».
+		const [updated] = await db.update(userProgress)
+			.set({ pizzaSlices: sql`${userProgress.pizzaSlices} + ${appliedReward.amount}` })
+			.where(eq(userProgress.userId, userId))
+			.returning({ pizzaSlices: userProgress.pizzaSlices });
+		pizzaSlicesNow = updated?.pizzaSlices ?? currentPizza + appliedReward.amount;
+		justMaxedPizza = pizzaSlicesNow - appliedReward.amount < MAX_PIZZA_SLICES && pizzaSlicesNow >= MAX_PIZZA_SLICES;
 		if (justMaxedPizza) {
 			await maybeAssignDodoPromoCode(userId, current?.dodoPromoCode ?? null);
 		}
