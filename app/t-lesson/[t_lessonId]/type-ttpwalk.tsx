@@ -155,10 +155,10 @@ const CXW = 5, CYW = 3.5
 
 const A_COLOR = GGEGE_PALETTE.blue.button
 const B_COLOR = GGEGE_PALETTE.green.button
-const PROJ_COLOR = GGEGE_SHADOW.text
+const PROJ_COLOR = GGEGE_SHADOW.text // тёмно-зелёный, как сама тень
 // стикер слова «тень» — тёмная плашка, как тень
-const SH = { color: GGEGE_SHADOW.text, bg: GGEGE_SHADOW.button, border: GGEGE_SHADOW.bottom }
-const SHADOW_LINE = '#0A100D' // сама тень O–H поверх тёмно-зелёной тени — почти чёрная
+const SH = { color: GGEGE_SHADOW.text, bg: GGEGE_SHADOW.button, border: GGEGE_SHADOW.text }
+const SHADOW_LINE = GGEGE_SHADOW.text // отрезок O–H поверх широкой тени — тем же тёмно-зелёным, что и слово «тень»
 const PLANE_COLOR = GGEGE_PALETTE.teal.button
 const MARK_COLOR = GGEGE_PALETTE.orange.button
 const X_COLOR = '#F2F7FB'
@@ -166,14 +166,14 @@ const X_COLOR = '#F2F7FB'
 const O_TEXT = '#9BE3B8'
 const O_FILL = '#173A2D'
 
-// Точка O, где копьё входит в землю; a(s) = O + s·(0, 1, 1.4)
-const O3 = { x: 5, y: 3.5, z: 0 }
-const aPoint = (s: number) => ({ x: 5, y: O3.y + s, z: 1.4 * s })
-const S_HIGH = 3.3
-const CANDIDATES = [1.7, 2.4, 3.1]
-const DEFAULT_PICK = 2.4
+// Точка O, где копьё входит в землю; a(s) = O + s·(0, 1, 1.05) — наклон ~46° к земле
+const O3 = { x: 5, y: 2.8, z: 0 } // ближе к дальнему краю, чтобы длинное копьё и его тень помещались на площадке
+const aPoint = (s: number) => ({ x: 5, y: O3.y + s, z: 1.05 * s })
+const S_HIGH = 4.2 // тень верхушки копья ровно на краю площадки (y = 7)
+const CANDIDATES = [2.7, 3.35, 4.0] // ближе к верхнему концу копья, подальше от O
+const DEFAULT_PICK = 3.35
 const PLANE_CORNERS: [number, number][] = [[0, 0], [10, 0], [10, 7], [0, 7]]
-const LB = 3.4 // полудлина линии b (при любом угле остаётся в пределах земли)
+const LB = 2.8 // полудлина линии b (при любом угле остаётся в пределах земли)
 const DEG = Math.PI / 180
 
 const rawProj = (x: number, y: number, z: number) => {
@@ -330,7 +330,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
     const vx = aTop.x - Op.x, vy = aTop.y - Op.y
     const vLen = Math.hypot(vx, vy)
     const spearRot = (Math.atan2(-vx / vLen, vy / vLen) * 180) / Math.PI
-    const spearW = (vLen * 67) / 912 // пропорции картинки spear.webp (67×912)
+    const spearW = 12.5 // ширина копья фиксирована: длиннее копьё — картинка тянется только в длину
 
     // линия b через O под углом φ (на земле), ручка — на «ближнем к зрителю» конце
     const ph = phi * DEG
@@ -383,7 +383,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
         let nx = -dy / len, ny = dx / len
         if (ny < 0) { nx = -nx; ny = -ny }
         const angle = (Math.atan2(dy, dx) * 180) / Math.PI
-        const tx = (Op.x + H.x) / 2 + nx * 16, ty = (Op.y + H.y) / 2 + ny * 16
+        const tx = (Op.x + H.x) / 2 + nx * 20, ty = (Op.y + H.y) / 2 + ny * 20
         projEl = (
             <>
                 {showPerp && (
@@ -397,22 +397,28 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                         <FadeIn fresh={fresh4}>
                             <path d={rightAngleMark({ x: 5, y: O3.y + s, z: 0 }, [0, -0.7, 0], [0, 0, 0.7])} fill="none" stroke={MARK_COLOR} strokeWidth={2} strokeLinecap="round" />
                         </FadeIn>
-                        <Dot x={H.x} y={H.y} color={PROJ_COLOR} fresh={fresh4} />
-                        <SvgTag x={H.x + 22} y={H.y - 4} text="H" color={PROJ_COLOR} delay={fresh4 ? 0.2 : 0} />
+                        <Dot x={H.x} y={H.y} color={X_COLOR} fresh={fresh4} />
+                        <SvgTag x={H.x + 22} y={H.y - 4} text="H" color={X_COLOR} delay={fresh4 ? 0.2 : 0} />
                     </>
                 )}
                 {showProj && (
                     <>
                         <DrawPath d={`M${Op.x},${Op.y} L${H.x},${H.y}`} color={SHADOW_LINE} w={4.5} fresh={fresh4} dur={0.9} />
                         <g transform={`translate(${tx},${ty}) rotate(${angle})`}>
-                            <motion.text
+                            <motion.g
                                 key={school ? 's' : 'l'}
-                                x={0} y={4} textAnchor="middle" fontSize={school ? 12 : 14} fontWeight={800} fill={PROJ_COLOR}
-                                initial={fresh4 || freshWords ? { opacity: 0 } : { opacity: 1 }} animate={{ opacity: 1 }}
-                                transition={{ duration: 0.5, delay: fresh4 ? 0.9 : freshWords ? 0.3 : 0 }}
+                                initial={fresh4 || freshWords ? { opacity: 0, scale: 2 } : { opacity: 1, scale: 1 }} animate={{ opacity: 1, scale: 1 }}
+                                transition={{ type: 'spring', stiffness: 320, damping: 15, delay: fresh4 ? 0.9 : freshWords ? 0.3 : 0 }}
                             >
-                                {school ? 'проекция a' : 'тень'}
-                            </motion.text>
+                                {school ? (
+                                    <text x={0} y={4} textAnchor="middle" fontSize={12} fontWeight={800} fill={PROJ_COLOR}>проекция a</text>
+                                ) : (
+                                    <>
+                                        <rect x={-22} y={-11} width={44} height={22} rx={6} fill={SH.bg} stroke={SH.border} strokeWidth={2} />
+                                        <text x={0} y={5} textAnchor="middle" fontSize={13} fontWeight={800} fill={SH.color}>тень</text>
+                                    </>
+                                )}
+                            </motion.g>
                         </g>
                     </>
                 )}
@@ -467,8 +473,8 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                                 d="M0,-38 L8,-26 L17,-37" fill="none" stroke="#F2C35B" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
                                 initial={{ opacity: 0 }} animate={{ opacity: bushJoke ? 1 : 0 }} transition={{ delay: bushJoke ? 0.45 : 0, duration: 0.2 }}
                             />
-                            <text x={64} y={-106} fontSize={15} fontWeight={800} fill="#F2C35B">Если что,</text>
-                            <text x={64} y={-88} fontSize={15} fontWeight={800} fill="#F2C35B">это кустик 🌳</text>
+                            <text x={64} y={-106} fontSize={15} fontWeight={800} fill="#F2C35B">Это кустик,</text>
+                            <text x={64} y={-88} fontSize={15} fontWeight={800} fill="#F2C35B">если что</text>
                         </motion.g>
                     </g>
                 )}
@@ -740,7 +746,7 @@ const QuestionScene = ({ onSettled, leaving }: SceneProps) => {
                 <TypedLineWithParts
                     parts={[
                         { text: 'Глазами не заметно 😅' }, { break: true },
-                        { text: 'А чтобы точно узнать — надо понять,' }, { break: true },
+                        { text: 'А чтобы узнать точно — надо понять,' }, { break: true },
                         { text: 'а перпендикулярна ли ' }, { sticker: 'ТЕНЬ', ...SH }, { text: ' от копья к этой ' },
                         { sticker: 'линии', color: B_COLOR }, { text: '?' },
                     ]}
@@ -800,7 +806,7 @@ const ShadowScene = ({ onSettled }: SceneProps) => {
             {lineTwo && (
                 <TypedLineWithParts
                     parts={[
-                        { text: 'Луч попал в точку ' }, { sticker: 'H', ...SH }, { text: '. Соединим ' }, { sticker: 'H', ...SH },
+                        { text: 'Луч попал в точку ' }, { sticker: 'H', color: X_COLOR }, { text: '. Соединим ' }, { sticker: 'H', color: X_COLOR },
                         { text: ' с ' }, { sticker: 'O', color: O_TEXT, bg: O_FILL, border: O_TEXT }, { text: ' — это ' }, { sticker: 'тень', ...SH }, { text: ' копья.' },
                     ]}
                 />
