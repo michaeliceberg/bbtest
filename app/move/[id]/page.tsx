@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { sql } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import db from '@/db/drizzle'
-import { getEgeMove, moveChallengeIds } from '@/lib/egeMove'
+import { getEgeMove, moveTaskStatus } from '@/lib/egeMove'
 import { getEgeMap } from '@/lib/egeMap'
 import { getUiTheme } from '@/lib/uiThemeServer'
 import { MoveScreen } from '@/components/ege-move-screen'
@@ -21,15 +21,11 @@ const MovePage = async ({ params }: { params: { id: string } }) => {
     const m = await getEgeMove(Number(params.id), userId)
     if (!m) redirect('/path')
 
-    const ids = moveChallengeIds(m)
-    const [titleRows, doneRows, map] = await Promise.all([
+    const [titleRows, status, map] = await Promise.all([
         m.tLessonId
             ? db.execute(sql`SELECT tl.title, tu.title AS unit FROM t_lessons tl JOIN t_units tu ON tu.id = tl.t_unit_id WHERE tl.id = ${m.tLessonId}`)
             : Promise.resolve([]),
-        ids.length
-            ? db.execute(sql`SELECT count(DISTINCT challenge_id)::int AS n FROM challenge_progress
-                WHERE user_id = ${userId} AND challenge_id IN ${sql.raw(`(${ids.join(',')})`)} AND date_done >= ${m.createdAt.toISOString()}`)
-            : Promise.resolve([{ n: 0 }]),
+        moveTaskStatus(m, userId),
         getEgeMap(userId),
     ])
     const t = (titleRows as unknown as Row[])[0]
@@ -46,8 +42,8 @@ const MovePage = async ({ params }: { params: { id: string } }) => {
                 tLessonId: m.tLessonId,
                 trainerTitle: t ? String(t.title) : null,
                 trainerUnit: t ? String(t.unit) : null,
-                tasksTotal: ids.length,
-                tasksDone: Number((doneRows as unknown as Row[])[0]?.n ?? 0),
+                tasksTotal: status.target,
+                tasksDone: status.correct,
                 caseClaimed: m.caseClaimed,
                 fromPrimary: m.fromPrimary,
                 nowPrimary: map.primary,

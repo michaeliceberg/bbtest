@@ -146,6 +146,8 @@ type Props = {
     unitColor: { button: string; bottom: string }
     // «Ход» по башне ЕГЭ (/move/[id]/tasks): на финале — «Дальше» в ход, а не на /learn.
     moveId?: number | null
+    moveTarget?: number
+    forceKeyboardIds?: number[]
 }
 
 const pageVariants = {
@@ -196,6 +198,8 @@ export const Quiz = ({
     courseId,
     unitColor,
     moveId,
+    moveTarget,
+    forceKeyboardIds,
 }: Props) => {
     const { open: openHeartsModal } = useHeartsModal()
     const { open: openPracticeModal } = usePracticeModal()
@@ -287,6 +291,8 @@ export const Quiz = ({
         if (challenge?.type !== 'ASSIST') return challenge?.type
         const correctText = challenge.challengeOptions?.find((o) => o.correct)?.text?.trim()
         if (!correctText || !/^-?\d+([.,]\d+)?$/.test(correctText)) return challenge.type
+        // В ходе задачи на замену и перерешивание после ошибки — только клавиатурой (наугад не подобрать).
+        if (forceKeyboardIds?.includes(challenge.id)) return 'KEYBOARD'
         const roll = ((challenge.id * 2654435761) >>> 0) % 100
         return roll < KEYBOARD_RATIO_PERCENT ? 'KEYBOARD' : challenge.type
     })()
@@ -675,6 +681,35 @@ export const Quiz = ({
         challenge = challenges[0]
     }
 
+    // Ход по башне ЕГЭ: все задачи отвечены, но верных меньше нужного — не финал,
+    // а задача-близнец на замену (или перерешать ошибку, если близнецов нет).
+    const moveWrong = moveId ? challengesDone.filter((p) => !p.doneRight).length : 0
+    if (moveId && challenges.length === challengesDone.length && challengesDone.length - moveWrong < (moveTarget ?? challenges.length)) {
+        return (
+            <div className="flex flex-col gap-y-5 max-w-lg mx-auto text-center items-center justify-center min-h-[70vh] px-4">
+                <p className="text-6xl">💪</p>
+                <h1 className="text-2xl md:text-3xl font-black text-[#F2F7FB]">Почти!</h1>
+                <p className="text-[#C9D3D9] font-bold">
+                    {moveWrong === 1 ? 'Одна ошибка' : `Ошибок: ${moveWrong}`} — ход засчитывается только на верных ответах.
+                    <br />Держи задачу на замену 👇
+                </p>
+                <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => startTransition(async () => {
+                        const r = await advanceEgeMove(moveId, 'tasks').catch(() => 'noop' as const)
+                        if (r === 'next') router.push(`/move/${moveId}`)
+                        router.refresh()
+                    })}
+                    className="mt-2 w-full rounded-2xl py-3.5 text-base font-black uppercase tracking-wide text-[#151F24] disabled:opacity-60"
+                    style={{ backgroundColor: '#F09B38', boxShadow: '0 5px 0 #C07C2B' }}
+                >
+                    Решить на замену ➜
+                </button>
+            </div>
+        )
+    }
+
     if (challenges.length === challengesDone.length) {
         return (
             <>
@@ -701,9 +736,9 @@ export const Quiz = ({
                         className="w-24 h-24 md:w-32 md:h-32"
                     />
                     <h1 className="text-2xl md:text-3xl font-bold text-neutral-700">
-                        Отличная работа! 🎉
+                        {moveId ? 'Задачи хода решены! 🎉' : 'Отличная работа! 🎉'}
                     </h1>
-                    <p className="text-[#9AA7B0]">Вы завершили урок</p>
+                    <p className="text-[#9AA7B0]">{moveId ? 'Все ответы верные' : 'Вы завершили урок'}</p>
                     <div className="flex items-center gap-4 w-full justify-center mt-4">
                         <ResultCard variant='points' value={challenges.length * 10} />
                         <ResultCard variant='hearts' value={hearts} />

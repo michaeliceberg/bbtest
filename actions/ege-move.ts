@@ -6,7 +6,7 @@ import { and, eq } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import db from '@/db/drizzle'
 import { egeMoves } from '@/db/schema'
-import { createEgeMove, getActiveEgeMove, getEgeMove, nextStepAfter } from '@/lib/egeMove'
+import { addMoveReplacements, createEgeMove, getActiveEgeMove, getEgeMove, moveTaskStatus, nextStepAfter } from '@/lib/egeMove'
 import { applyCaseReward, type OpenCaseResult } from '@/lib/caseApply'
 import { getLessonCasePool } from '@/lib/caseRewards'
 
@@ -22,15 +22,25 @@ export async function startEgeMove(): Promise<{ id: number } | { error: string }
 }
 
 // Шаг закончен (from = 'trainer' | 'tasks') — переходим к следующему.
-export async function advanceEgeMove(id: number, from: 'trainer' | 'tasks'): Promise<void> {
+// Задачи: ход закрывается только на нужном числе ВЕРНЫХ ответов. Есть ошибки —
+// добавляем задачи-близнецы ('replaced'); близнецов нет — ошибку перерешиваем ('retry').
+export async function advanceEgeMove(id: number, from: 'trainer' | 'tasks'): Promise<'next' | 'replaced' | 'retry' | 'noop'> {
     const session = await auth()
-    if (!session?.user?.id) return
+    if (!session?.user?.id) return 'noop'
     const m = await getEgeMove(Number(id), session.user.id)
-    if (!m || m.step !== from) return
+    if (!m || m.step !== from) return 'noop'
+    if (from === 'tasks') {
+        const st = await moveTaskStatus(m, session.user.id)
+        if (st.correct < st.target) {
+            if (st.pending > 0) return 'noop'
+            return (await addMoveReplacements(m, session.user.id)) > 0 ? 'replaced' : 'retry'
+        }
+    }
     const next = nextStepAfter(m, from)
     await db.update(egeMoves)
         .set({ step: next, finishedAt: next === 'done' ? new Date() : null })
         .where(and(eq(egeMoves.id, m.id), eq(egeMoves.step, from)))
+    return 'next'
 }
 
 // Бонус за законченный ход — редкий кейс, один раз.

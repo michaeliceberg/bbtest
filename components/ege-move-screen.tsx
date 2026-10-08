@@ -121,7 +121,7 @@ export const MoveScreen = ({ move, theme }: { move: MoveScreenData; theme: UiThe
                         <StepRow
                             icon={<Swords className="h-5 w-5 text-[#53ADEF]" />}
                             title={`${move.tasksTotal} ${declensionRu(move.tasksTotal, 'задача', 'задачи', 'задач')} из задачника`}
-                            sub={move.step === 'done' ? 'Решено' : `Сделано ${move.tasksDone} из ${move.tasksTotal}`}
+                            sub={move.step === 'done' ? 'Решено' : `Верно ${move.tasksDone} из ${move.tasksTotal} · ошибку заменим другой задачей`}
                             state={tasksState}
                             href={`/move/${move.id}/tasks`}
                             action={move.tasksDone > 0 ? 'Дальше' : 'Решать'}

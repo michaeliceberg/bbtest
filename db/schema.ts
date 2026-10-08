@@ -332,6 +332,9 @@ export const egeMoves = pgTable('ege_moves', {
 	taskNum: integer('task_num').notNull(),
 	tLessonId: integer('t_lesson_id'),
 	challengeIds: text('challenge_ids').notNull().default(''),
+	// Сколько задач нужно решить ВЕРНО (неверную заменяем другой задачей того же задания).
+	// null у ходов до 2026-10-09 — тогда цель = исходное число задач.
+	targetTasks: integer('target_tasks'),
 	step: text('step').notNull().default('trainer'),
 	fromPrimary: real('from_primary').notNull().default(0),
 	caseClaimed: boolean('case_claimed').notNull().default(false),
