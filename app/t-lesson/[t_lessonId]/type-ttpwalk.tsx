@@ -395,7 +395,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                 {showH && (
                     <>
                         <FadeIn fresh={fresh4}>
-                            <path d={rightAngleMark({ x: 5, y: O3.y + s, z: 0 }, [0, -0.7, 0], [0, 0, 0.7])} fill="none" stroke={MARK_COLOR} strokeWidth={2} strokeLinecap="round" />
+                            <path d={rightAngleMark({ x: 5, y: O3.y + s, z: 0 }, [0, -0.7, 0], [0, 0, 0.7])} fill="none" stroke={X_COLOR} strokeWidth={2.2} strokeLinecap="round" />
                         </FadeIn>
                         <Dot x={H.x} y={H.y} color={X_COLOR} fresh={fresh4} />
                         <SvgTag x={H.x + 22} y={H.y - 4} text="H" color={X_COLOR} delay={fresh4 ? 0.2 : 0} />
@@ -589,7 +589,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
     )
 }
 
-type SceneProps = { onSettled?: () => void; leaving?: boolean; onAutoNext?: () => void }
+type SceneProps = { onSettled?: (nextLabel?: string) => void; leaving?: boolean; onAutoNext?: () => void }
 
 const SceneBox = ({ children }: { children: React.ReactNode }) => <div className="w-full flex flex-col items-center gap-3">{children}</div>
 
@@ -797,7 +797,8 @@ const ShadowScene = ({ onSettled }: SceneProps) => {
     const [typed, setTyped] = useState(false)
     const [pre, setPre] = useState(0)
     const [beat, setBeat] = useState(0)
-    const [lineTwo, setLineTwo] = useState(false)
+    const [askOk, setAskOk] = useState(false) // кнопка «Агась» после перпендикуляра
+    const [found, setFound] = useState(false) // нажали «Агась» → рисуем тень OH
     // сцена начинается заново — прошлый выбор точки сбрасываем
     useEffect(() => { setPick(null) }, [setPick])
     // после печати: солнце опускается → с bounce появляется тень → можно выбирать точку
@@ -808,15 +809,15 @@ const ShadowScene = ({ onSettled }: SceneProps) => {
         const t3 = setTimeout(() => setPre(3), 3000)
         return () => { [t1, t2, t3].forEach(clearTimeout) }
     }, [typed])
+    // выбрали точку: перпендикуляр на землю → точка H и прямой угол (белым) → «Агась»
     useEffect(() => {
         if (pick == null) return
         const t1 = setTimeout(() => setBeat(1), 150)
-        const t2 = setTimeout(() => { setBeat(2); setLineTwo(true) }, 1250)
-        const t3 = setTimeout(() => setBeat(3), 2600)
-        const t4 = setTimeout(() => onSettled?.(), 4300)
-        return () => { [t1, t2, t3, t4].forEach(clearTimeout) }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        const t2 = setTimeout(() => setBeat(2), 1100)
+        const t3 = setTimeout(() => setAskOk(true), 1900)
+        return () => { [t1, t2, t3].forEach(clearTimeout) }
     }, [pick])
+    const onAgree = () => { setAskOk(false); setFound(true); setBeat(3) }
     return (
         <SceneBox>
             <TypedLineWithParts
@@ -828,17 +829,27 @@ const ShadowScene = ({ onSettled }: SceneProps) => {
                     <Figure scene={4} pick={pick} beat={beat} phi={phi} pre={pre} onPick={(s) => setPick(s)} />
                 </DiagramBlock>
             )}
-            {pre >= 3 && pick == null && (
+            {pre >= 3 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Давай от любой точки ' }, { sticker: 'копья', color: A_COLOR }, { text: ' нарисуем ' }, { bold: 'ПЕРПЕНДИКУЛЯР' }, { text: ' на землю 👇' }]}
+                    parts={[{ text: 'Давай от любой точки ' }, { sticker: 'копья', color: A_COLOR }, { text: ' нарисуем ' }, { bold: 'ПЕРПЕНДИКУЛЯР' }, { text: ' на землю' }]}
                 />
             )}
-            {lineTwo && (
+            {askOk && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mx-auto">
+                    <button type="button" onClick={onAgree}
+                        className="h-[52px] rounded-lg bg-[#A1D151] px-8 text-lg font-bold text-[#151F24] active:translate-y-1"
+                        style={walkthroughButtonStyle(true)}>
+                        Агась
+                    </button>
+                </motion.div>
+            )}
+            {found && (
                 <TypedLineWithParts
                     parts={[
-                        { text: 'Луч попал в точку ' }, { sticker: 'H', color: X_COLOR }, { text: '. Соединим ' }, { sticker: 'H', color: X_COLOR },
-                        { text: ' с ' }, { sticker: 'O', color: O_TEXT, bg: O_FILL, border: O_TEXT }, { text: ' — это ' }, { sticker: 'тень', ...SH }, { text: ' копья.' },
+                        { bold: 'УРА! Вот она!' }, { break: true },
+                        { sticker: 'OH', ...SH }, { text: ' — ' }, { sticker: 'тень', ...SH }, { text: ' от «копья»' },
                     ]}
+                    onSettled={() => setTimeout(() => onSettled?.('Изи катка'), 600)}
                 />
             )}
         </SceneBox>
@@ -853,6 +864,7 @@ const NinetyScene = ({ onSettled }: SceneProps) => {
     const [msg, setMsg] = useState(false)
     const [fix, setFix] = useState(false)
     const [final, setFinal] = useState(false)
+    const [party, setParty] = useState(false)
     const shown = useEasedAngle(fix ? 0 : phi0, phi0)
     return (
         <SceneBox>
@@ -872,16 +884,13 @@ const NinetyScene = ({ onSettled }: SceneProps) => {
             {final && (
                 <>
                     <TypedLineWithParts
-                        parts={[{ text: 'Тень ⟂ линии — значит и ' }, { sticker: 'копьё', color: A_COLOR }, { text: ' воткнулось под ' }, { sticker: '90°', color: MARK_COLOR }, { text: ' к ' }, { sticker: 'линии', color: B_COLOR }, { text: '!' }]}
-                        onSettled={() => onSettled?.()}
+                        parts={[
+                            { text: 'Теперь ' }, { sticker: 'тень', ...SH }, { text: ' ⟂ ' }, { sticker: 'линии', color: B_COLOR },
+                            { text: ' — значит и ' }, { sticker: 'копьё', color: A_COLOR }, { text: ' ⟂ ' }, { sticker: 'линии', color: B_COLOR }, { text: '!' },
+                        ]}
+                        onSettled={() => { setParty(true); onSettled?.() }}
                     />
-                    <motion.div
-                        initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.55, delay: 0.4 }}
-                        className="rounded-2xl border-2 px-5 py-3 text-xl font-black"
-                        style={{ borderColor: MARK_COLOR, backgroundColor: hexToRgba(MARK_COLOR, 0.16), color: MARK_COLOR }}
-                    >
-                        ∠(копьё, линия) = 90°
-                    </motion.div>
+                    {party && <LocalAnswerConfetti />}
                 </>
             )}
         </SceneBox>
@@ -912,10 +921,10 @@ const SchoolScene = ({ onSettled }: SceneProps) => {
             {typed && <DiagramBlock><Figure scene={6} pick={pick} phi={0} /></DiagramBlock>}
             <div className="w-full flex flex-col gap-2">
                 {SCHOOL_ROWS.slice(0, rows).map((r) => (
-                    <motion.div key={r.life} initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }} className="flex items-center justify-center gap-2 text-base md:text-lg">
-                        <Sticker value={r.life} color={r.lifeColor} />
+                    <motion.div key={r.life} initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }} className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-base md:text-lg">
+                        <span className="justify-self-end"><Sticker value={r.life} {...(r.life === 'тень' ? SH : { color: r.lifeColor })} /></span>
                         <span className="font-black text-[#9AA7B0]">→</span>
-                        <Sticker value={r.school} color={r.schoolColor} />
+                        <span className="justify-self-start"><Sticker value={r.school} {...(r.life === 'тень' ? SH : { color: r.schoolColor })} /></span>
                     </motion.div>
                 ))}
             </div>
@@ -935,6 +944,13 @@ const tagAlong = (a: { x: number; y: number }, b: { x: number; y: number }, t: n
     // off > 0 — над линией (по экрану), off < 0 — под ней
     return { x: a.x + dx * t + Math.sin(r) * off, y: a.y + dy * t - Math.cos(r) * off, ang }
 }
+
+// Значок прямого угла: белый, появляется крупно с отскоком (масштаб вокруг самого значка).
+const BounceMark = ({ d }: { d: string }) => (
+    <motion.g initial={{ scale: 3.2, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.6, duration: 0.9 }}>
+        <path d={d} fill="none" stroke={X_COLOR} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+    </motion.g>
+)
 
 const TheoremFigure = ({ stage }: { stage: number }) => {
     const Op = P3(O3.x, O3.y, 0)
@@ -974,14 +990,10 @@ const TheoremFigure = ({ stage }: { stage: number }) => {
                 </>
             )}
             {stage >= 3 && (
-                <FadeIn fresh>
-                    <path d={rightAngleMark(O3, [0.95, 0, 0], [0, 0.95 / aLen, (0.95 * 1.05) / aLen])} fill="none" stroke={MARK_COLOR} strokeWidth={2.4} strokeLinecap="round" />
-                </FadeIn>
+                <BounceMark d={rightAngleMark(O3, [0.95, 0, 0], [0, 0.95 / aLen, (0.95 * 1.05) / aLen])} />
             )}
             {stage >= 5 && (
-                <FadeIn fresh>
-                    <path d={rightAngleMark(O3, [-0.9, 0, 0], [0, 0.9, 0])} fill="none" stroke={MARK_COLOR} strokeWidth={2.4} strokeLinecap="round" />
-                </FadeIn>
+                <BounceMark d={rightAngleMark(O3, [-0.9, 0, 0], [0, 0.9, 0])} />
             )}
             {stage >= 1 && (
                 <>
@@ -1023,7 +1035,7 @@ const TheoremScene = ({ onSettled }: SceneProps) => {
                     onSettled={() => {
                         setStage(4)
                         later(1600, () => setStage(5))
-                        later(2600, () => setFinal(true))
+                        later(3800, () => setFinal(true))
                     }}
                 />
             )}
@@ -1076,7 +1088,7 @@ const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
                     step >= i ? (
                         <SceneWrapper key={`step-${i}`} innerRef={sceneRef(`step-${i}`)} active={isSceneActive(`step-${i}`)}>
                             <Fragment key={`step-${i}-${nonceFor(`step-${i}`)}`}>
-                                <Scene onSettled={() => i === step && setStepReady(true)} onAutoNext={() => i === step && handleNext()} leaving={advancing && i === step} />
+                                <Scene onSettled={(label?: string) => { if (i !== step) return; if (label) setNextLabel(label); setStepReady(true) }} onAutoNext={() => i === step && handleNext()} leaving={advancing && i === step} />
                             </Fragment>
                         </SceneWrapper>
                     ) : null,
