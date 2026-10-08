@@ -1689,152 +1689,199 @@ const useWarmPick = (onSettled?: (l?: string) => void) => {
 const WarmHint = ({ text }: { text: string | null }) =>
     text ? <motion.p key={text} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="text-center text-base font-bold text-[#DC605B]">{text}</motion.p> : null
 
-// --- 1. Нажми наклонную
-const W1Scene = ({ onSettled }: SceneProps) => {
-    const [typed, setTyped] = useState(false)
-    const { done, hint, wrongIds, pick } = useWarmPick(onSettled)
-    const segs: { id: string; p: V3; q: V3; ok: boolean; why: string }[] = [
-        { id: 'lie', p: [6.4, 5.5, 0], q: [9.4, 6.6, 0], ok: false, why: 'Этот лежит НА плоскости — это просто прямая' },
-        { id: 'perp', p: [5.6, 2.4, 0], q: [5.6, 2.4, 3.0], ok: false, why: 'Этот стоит ровно, под 90° — это перпендикуляр' },
-        { id: 'slant', p: [1.4, 1.4, 0], q: [1.4, 4.3, 2.6], ok: true, why: '' },
-    ]
-    return (
-        <SceneBox>
-            <TypedLineWithParts parts={[{ text: 'Разминка! ' }, { bold: 'Нажми наклонную' }, { text: ' — отрезок, который упирается в плоскость ' }, { bold: 'не под прямым углом' }]} onSettled={() => setTyped(true)} />
-            {typed && (
-                <DiagramBlock>
-                    <WarmSvg>
-                        <Ground />
-                        {segs.map((s) => {
-                            const isW = wrongIds.includes(s.id)
-                            const color = done && s.ok ? A_COLOR : isW ? '#DC605B' : NEU
-                            return <Seg3 key={s.id} p={s.p} q={s.q} color={color} w={5} glow={done && s.ok ? A_COLOR : undefined} onClick={() => pick(s.id, s.ok, s.why)} />
-                        })}
-                        {segs.map((s) => <Pt3 key={s.id} p={s.p} color={NEU} r={3.5} />)}
-                        {done && <Tag3 p={[1.4, 2.9, 1.3]} text="наклонная" color={A_COLOR} dx={-40} dy={-26} />}
-                    </WarmSvg>
-                </DiagramBlock>
-            )}
-            <WarmHint text={hint} />
-            {done && <TypedLineWithParts parts={[{ text: 'Верно! Это ' }, { sticker: 'наклонная', color: A_COLOR }, { text: ' — стоит «вкось»' }]} />}
-        </SceneBox>
-    )
-}
-
-// --- 2. Нажми перпендикуляр
-const W2Scene = ({ onSettled }: SceneProps) => {
-    const [typed, setTyped] = useState(false)
-    const { done, hint, wrongIds, pick } = useWarmPick(onSettled)
-    const T: V3 = [5, 4, 3.6]
-    const segs: { id: string; q: V3; ok: boolean; why: string }[] = [
-        { id: 'l', q: [1.8, 2.2, 0], ok: false, why: 'Этот идёт вкось — это наклонная' },
-        { id: 'v', q: [5, 4, 0], ok: true, why: '' },
-        { id: 'r', q: [8.4, 6.4, 0], ok: false, why: 'И этот вкось. Перпендикуляр падает строго вниз, как отвес' },
-    ]
-    return (
-        <SceneBox>
-            <TypedLineWithParts parts={[{ text: 'Из одной точки — три отрезка. ' }, { bold: 'Нажми перпендикуляр' }, { text: ' к плоскости (угол 90°)' }]} onSettled={() => setTyped(true)} />
-            {typed && (
-                <DiagramBlock>
-                    <WarmSvg>
-                        <Ground />
-                        {segs.map((s) => {
-                            const isW = wrongIds.includes(s.id)
-                            const color = done && s.ok ? PERP_COLOR : isW ? '#DC605B' : NEU
-                            return <Seg3 key={s.id} p={T} q={s.q} color={color} w={4} glow={done && s.ok ? PERP_COLOR : undefined} onClick={() => pick(s.id, s.ok, s.why)} />
-                        })}
-                        {segs.map((s) => <Pt3 key={s.id} p={s.q} color={NEU} r={3.5} />)}
-                        <Pt3 p={T} />
-                        {done && <RightMark3 o={[5, 4, 0]} d1={[0, -0.7, 0]} d2={[0, 0, 0.7]} bounce />}
-                        {done && <Tag3 p={[5, 4, 0]} text="перпендикуляр" color={PERP_COLOR} dy={30} />}
-                    </WarmSvg>
-                </DiagramBlock>
-            )}
-            <WarmHint text={hint} />
-            {done && <TypedLineWithParts parts={[{ text: 'Да! ' }, { sticker: 'Перпендикуляр', color: PERP_COLOR }, { text: ' падает строго вниз — как отвес ⬇️' }]} />}
-        </SceneBox>
-    )
-}
-
-// --- 3. Куда упадёт отвес из верхней точки наклонной?
+// --- Упражнения на КУБЕ-КОМНАТЕ: пол ABCD — плоскость, вертикальные рёбра — перпендикуляры,
+// диагональ стены A₁B — наклонная, ребро пола BA — её проекция, ребро BC — прямая.
 const W_O: V3 = [5, 2.8, 0]
 const W_T: V3 = [5, 6.2, 3.57]
 const W_H: V3 = [5, 6.2, 0]
-const W3Scene = ({ onSettled }: SceneProps) => {
+
+// Куб рисуем отдельной «учебниковой» проекцией: передняя грань ABB₁A₁ — настоящий квадрат,
+// глубина уходит вправо-вверх под 45° с коэффициентом 0.5 (в общем ракурсе урока куб выглядел бы коробкой).
+// Координаты вершин — единичный куб: x вправо, y вглубь, z вверх.
+const CUBE_S = 150, CUBE_D = 0.5, CUBE_OX = 62, CUBE_OY = 252
+const CP = (x: number, y: number, z: number) => ({
+    x: CUBE_OX + CUBE_S * x + CUBE_S * CUBE_D * y * Math.SQRT1_2,
+    y: CUBE_OY - CUBE_S * z - CUBE_S * CUBE_D * y * Math.SQRT1_2,
+})
+const CV: Record<string, V3> = {
+    A: [0, 0, 0], B: [1, 0, 0], C: [1, 1, 0], D: [0, 1, 0],
+    A1: [0, 0, 1], B1: [1, 0, 1], C1: [1, 1, 1], D1: [0, 1, 1],
+}
+const CUBE_EDGES: [string, string][] = [['A', 'B'], ['B', 'C'], ['C', 'D'], ['D', 'A'], ['A1', 'B1'], ['B1', 'C1'], ['C1', 'D1'], ['D1', 'A1'], ['A', 'A1'], ['B', 'B1'], ['C', 'C1'], ['D', 'D1']]
+// дальний нижний угол D скрыт — его рёбра пунктиром
+const isHiddenEdge = (a: string, b: string) => a === 'D' || b === 'D'
+const vName = (k: string) => (k.endsWith('1') ? `${k[0]}₁` : k)
+const CUBE_CENTER = CP(0.5, 0.5, 0.5)
+const CSeg = ({ a, b, color, w = 4, dash, opacity = 1, glow, onClick }: { a: V3; b: V3; color: string; w?: number; dash?: string; opacity?: number; glow?: string; onClick?: () => void }) => {
+    const A = CP(...a), B = CP(...b)
+    return (
+        <g onClick={onClick} style={onClick ? { cursor: 'pointer' } : undefined} opacity={opacity}>
+            {glow && <line x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke={glow} strokeOpacity={0.35} strokeWidth={w + 10} strokeLinecap="round" />}
+            <line x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke={color} strokeWidth={w} strokeLinecap="round" strokeDasharray={dash} />
+            {onClick && <line x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke="transparent" strokeWidth={26} strokeLinecap="round" />}
+        </g>
+    )
+}
+// значок прямого угла в кубе (o — вершина угла, d1/d2 — короткие векторы вдоль сторон)
+const CubeMark = ({ o, d1, d2, bounce = false }: { o: V3; d1: V3; d2: V3; bounce?: boolean }) => {
+    const p1 = CP(o[0] + d1[0], o[1] + d1[1], o[2] + d1[2])
+    const p2 = CP(o[0] + d1[0] + d2[0], o[1] + d1[1] + d2[1], o[2] + d1[2] + d2[2])
+    const p3 = CP(o[0] + d2[0], o[1] + d2[1], o[2] + d2[2])
+    const d = `M${p1.x.toFixed(1)},${p1.y.toFixed(1)} L${p2.x.toFixed(1)},${p2.y.toFixed(1)} L${p3.x.toFixed(1)},${p3.y.toFixed(1)}`
+    return bounce ? <BounceMark d={d} /> : <path d={d} fill="none" stroke={X_COLOR} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+}
+
+type CubeLine = { id: string; a: string; b: string; color: string; w?: number; glow?: string; dash?: string; onClick?: () => void; opacity?: number }
+const CubeFig = ({ lines = [], children, floorGlow = false }: { lines?: CubeLine[]; children?: React.ReactNode; floorGlow?: boolean }) => (
+    <WarmSvg>
+        <polygon points={['A', 'B', 'C', 'D'].map((k) => { const P = CP(...CV[k]); return `${P.x.toFixed(1)},${P.y.toFixed(1)}` }).join(' ')} fill={hexToRgba(PLANE_COLOR, floorGlow ? 0.38 : 0.22)} stroke={hexToRgba(PLANE_COLOR, 0.9)} strokeWidth={floorGlow ? 3 : 2} />
+        {CUBE_EDGES.map(([a, b]) => <CSeg key={a + b} a={CV[a]} b={CV[b]} color="#6B7A83" w={2} dash={isHiddenEdge(a, b) ? '5 5' : undefined} />)}
+        {lines.map((l) => <CSeg key={l.id} a={CV[l.a]} b={CV[l.b]} color={l.color} w={l.w ?? 5} glow={l.glow} dash={l.dash} onClick={l.onClick} opacity={l.opacity} />)}
+        {Object.keys(CV).map((k) => {
+            const P = CP(...CV[k])
+            const dx = P.x - CUBE_CENTER.x, dy = P.y - CUBE_CENTER.y, l = Math.hypot(dx, dy) || 1
+            return <text key={k} x={P.x + (dx / l) * 16} y={P.y + (dy / l) * 16 + 5} textAnchor="middle" fontSize={15} fontWeight={800} fill="#9AA7B0">{vName(k)}</text>
+        })}
+        {children}
+    </WarmSvg>
+)
+const cubeNeu = (id: string, a: string, b: string, isW: boolean, done: boolean, ok: boolean, okColor: string, onClick: () => void): CubeLine => ({
+    id, a, b, onClick, color: done && ok ? okColor : isW ? '#DC605B' : NEU, glow: done && ok ? okColor : undefined,
+})
+
+// 0. Знакомство с кубом-комнатой
+const K0Scene = ({ onSettled }: SceneProps) => {
     const [typed, setTyped] = useState(false)
-    const { done, hint, wrongIds, pick } = useWarmPick(onSettled)
-    const pts: { id: string; p: V3; ok: boolean; why: string }[] = [
-        { id: 'a', p: [1.6, 2.4, 0], ok: false, why: 'Мимо — отвес падает строго ВНИЗ под точкой' },
-        { id: 'h', p: W_H, ok: true, why: '' },
-        { id: 'b', p: [8.2, 2.6, 0], ok: false, why: 'Мимо — отвес падает строго ВНИЗ под точкой' },
-    ]
+    const [floor, setFloor] = useState(false)
     return (
         <SceneBox>
-            <TypedLineWithParts parts={[{ text: 'Из верхней точки ' }, { sticker: 'наклонной', color: A_COLOR }, { text: ' опустили отвес. ' }, { bold: 'Куда он упадёт?' }, { text: ' Нажми точку' }]} onSettled={() => setTyped(true)} />
+            <TypedLineWithParts parts={[{ text: 'Вот куб. Представь, что это ' }, { bold: 'комната 🏠' }]} onSettled={() => setTyped(true)} />
+            {typed && <DiagramBlock onSettled={() => setTimeout(() => setFloor(true), 600)}><CubeFig floorGlow={floor} /></DiagramBlock>}
+            {floor && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Пол ' }, { sticker: 'ABCD', color: PLANE_COLOR }, { text: ' — это наша ' }, { sticker: 'плоскость', color: PLANE_COLOR }]}
+                    onSettled={() => onSettled?.()}
+                />
+            )}
+        </SceneBox>
+    )
+}
+
+// 1. Нажми перпендикуляр к полу
+const K1Scene = ({ onSettled }: SceneProps) => {
+    const [typed, setTyped] = useState(false)
+    const { done, hint, wrongIds, pick } = useWarmPick(onSettled)
+    const c = (id: string, a: string, b: string, ok: boolean, why: string) =>
+        cubeNeu(id, a, b, wrongIds.includes(id), done, ok, PERP_COLOR, () => pick(id, ok, why))
+    return (
+        <SceneBox>
+            <TypedLineWithParts parts={[{ bold: 'Нажми перпендикуляр' }, { text: ' к полу — отрезок, который стоит к нему под 90°' }]} onSettled={() => setTyped(true)} />
             {typed && (
                 <DiagramBlock>
-                    <WarmSvg>
-                        <Ground />
-                        <Seg3 p={W_O} q={W_T} color={A_COLOR} w={5} />
-                        <Pt3 p={W_O} /><Pt3 p={W_T} />
-                        {done && <><Seg3 p={W_T} q={W_H} color={PERP_COLOR} w={3} /><RightMark3 o={W_H} d1={[0, -0.7, 0]} d2={[0, 0, 0.7]} bounce /><Pt3 p={W_H} /><Tag3 p={W_H} text="H" color={X_COLOR} dx={20} dy={6} /></>}
+                    <CubeFig lines={[
+                        c('bd', 'B', 'D', false, 'BD лежит на полу — это прямая в плоскости'),
+                        c('ba1', 'B', 'A1', false, 'A₁B идёт по стене вкось — это наклонная'),
+                        c('aa1', 'A', 'A1', true, ''),
+                    ]}>
+                        {done && <CubeMark o={CV.A} d1={[0.14, 0, 0]} d2={[0, 0, 0.14]} bounce />}
+                    </CubeFig>
+                </DiagramBlock>
+            )}
+            <WarmHint text={hint} />
+            {done && <TypedLineWithParts parts={[{ text: 'Да! Ребро ' }, { sticker: 'AA₁', color: PERP_COLOR }, { text: ' — ' }, { sticker: 'перпендикуляр', color: PERP_COLOR }, { text: ' к полу. Как угол комнаты: строго вверх ⬆️' }]} />}
+        </SceneBox>
+    )
+}
+
+// 2. Нажми наклонную
+const K2Scene = ({ onSettled }: SceneProps) => {
+    const [typed, setTyped] = useState(false)
+    const { done, hint, wrongIds, pick } = useWarmPick(onSettled)
+    const c = (id: string, a: string, b: string, ok: boolean, why: string) =>
+        cubeNeu(id, a, b, wrongIds.includes(id), done, ok, A_COLOR, () => pick(id, ok, why))
+    return (
+        <SceneBox>
+            <TypedLineWithParts parts={[{ bold: 'Нажми наклонную' }, { text: ' к полу — отрезок, который упирается в пол ' }, { bold: 'не под 90°' }]} onSettled={() => setTyped(true)} />
+            {typed && (
+                <DiagramBlock>
+                    <CubeFig lines={[
+                        c('cc1', 'C', 'C1', false, 'CC₁ стоит ровно — это перпендикуляр'),
+                        c('ac', 'A', 'C', false, 'AC лежит на полу — это прямая в плоскости'),
+                        c('ba1', 'B', 'A1', true, ''),
+                    ]} />
+                </DiagramBlock>
+            )}
+            <WarmHint text={hint} />
+            {done && <TypedLineWithParts parts={[{ text: 'Верно! Диагональ стены ' }, { sticker: 'A₁B', color: A_COLOR }, { text: ' — ' }, { sticker: 'наклонная', color: A_COLOR }, { text: ': из точки B на полу идёт вкось' }]} />}
+        </SceneBox>
+    )
+}
+
+// 3. Куда упадёт перпендикуляр из A₁?
+const K3Scene = ({ onSettled }: SceneProps) => {
+    const [typed, setTyped] = useState(false)
+    const { done, hint, wrongIds, pick } = useWarmPick(onSettled)
+    const pts: { id: string; k: string; ok: boolean }[] = [{ id: 'd', k: 'D', ok: false }, { id: 'a', k: 'A', ok: true }, { id: 'c', k: 'C', ok: false }]
+    return (
+        <SceneBox>
+            <TypedLineWithParts parts={[{ text: 'Из точки ' }, { sticker: 'A₁', color: A_COLOR }, { text: ' опустим перпендикуляр на пол. ' }, { bold: 'Куда он упадёт?' }, { text: ' Нажми точку' }]} onSettled={() => setTyped(true)} />
+            {typed && (
+                <DiagramBlock>
+                    <CubeFig lines={[{ id: 'ba1', a: 'B', b: 'A1', color: A_COLOR }, ...(done ? [{ id: 'a1a', a: 'A1', b: 'A', color: PERP_COLOR, w: 4 } as CubeLine] : [])]}>
+                        {done && <CubeMark o={CV.A} d1={[0.14, 0, 0]} d2={[0, 0, 0.14]} bounce />}
                         {!done && pts.map((p) => {
-                            const A = P3(...p.p)
+                            const A = CP(...CV[p.k])
                             const isW = wrongIds.includes(p.id)
                             return (
-                                <g key={p.id} onClick={() => pick(p.id, p.ok, p.why)} style={{ cursor: 'pointer' }}>
+                                <g key={p.id} onClick={() => pick(p.id, p.ok, 'Мимо — перпендикуляр из A₁ падает строго вниз, по углу комнаты')} style={{ cursor: 'pointer' }}>
                                     <circle cx={A.x} cy={A.y} r={13} fill="transparent" stroke={isW ? '#DC605B' : HL} strokeWidth={2} className={isW ? '' : 'animate-pulse'} />
                                     <circle cx={A.x} cy={A.y} r={5} fill={isW ? '#DC605B' : HL} />
                                 </g>
                             )
                         })}
-                    </WarmSvg>
+                    </CubeFig>
                 </DiagramBlock>
             )}
             <WarmHint text={hint} />
-            {done && <TypedLineWithParts parts={[{ text: 'Точно! Точку, куда упал перпендикуляр, обычно называют ' }, { sticker: 'H', color: X_COLOR }]} />}
+            {done && <TypedLineWithParts parts={[{ text: 'Точно! Перпендикуляр ' }, { sticker: 'A₁A', color: PERP_COLOR }, { text: ' падает в точку ' }, { sticker: 'A', color: X_COLOR }]} />}
         </SceneBox>
     )
 }
 
-// --- 4. Нажми проекцию (не перепутай с просто прямой)
-const W4Scene = ({ onSettled }: SceneProps) => {
+// 4. Нажми проекцию наклонной A₁B
+const K4Scene = ({ onSettled }: SceneProps) => {
     const [typed, setTyped] = useState(false)
     const { done, hint, wrongIds, pick } = useWarmPick(onSettled)
-    const ph = -35 * DEG
-    const bQ: V3 = [W_O[0] - 4.5 * Math.cos(ph), W_O[1] - 4.5 * Math.sin(ph), 0]
-    const bP: V3 = [W_O[0] + 4.5 * Math.cos(ph), W_O[1] + 4.5 * Math.sin(ph), 0]
+    const c = (id: string, a: string, b: string, ok: boolean, why: string) =>
+        cubeNeu(id, a, b, wrongIds.includes(id), done, ok, PROJ_COLOR, () => pick(id, ok, why))
     return (
         <SceneBox>
-            <TypedLineWithParts parts={[{ sticker: 'Проекция', ...SH }, { text: ' — это путь от O до H: от «ноги» наклонной до точки, куда упал перпендикуляр. ' }, { bold: 'Нажми проекцию' }]} onSettled={() => setTyped(true)} />
+            <TypedLineWithParts parts={[{ sticker: 'Проекция', ...SH }, { text: ' наклонной — путь по полу от её «ноги» B до точки A, куда упал перпендикуляр. ' }, { bold: 'Нажми проекцию' }]} onSettled={() => setTyped(true)} />
             {typed && (
                 <DiagramBlock>
-                    <WarmSvg>
-                        <Ground />
-                        <Seg3 p={bQ} q={bP} color={wrongIds.includes('b') ? '#DC605B' : NEU} w={4} onClick={() => pick('b', false, 'Это просто прямая на плоскости — она не идёт в точку H')} />
-                        <Seg3 p={W_O} q={W_H} color={done ? PROJ_COLOR : NEU} w={5} glow={done ? PROJ_COLOR : undefined} onClick={() => pick('p', true, '')} />
-                        <Seg3 p={W_O} q={W_T} color={A_COLOR} w={5} />
-                        <Seg3 p={W_T} q={W_H} color={PERP_COLOR} w={3} />
-                        <RightMark3 o={W_H} d1={[0, -0.7, 0]} d2={[0, 0, 0.7]} />
-                        <Pt3 p={W_O} /><Pt3 p={W_H} />
-                        <Tag3 p={W_O} text="O" color={X_COLOR} dx={-22} dy={4} />
-                        <Tag3 p={W_H} text="H" color={X_COLOR} dx={20} dy={6} />
-                        {done && <Tag3 p={[5, 4.5, 0]} text="проекция" color={PROJ_COLOR} dy={20} />}
-                    </WarmSvg>
+                    <CubeFig lines={[
+                        { id: 'ba1', a: 'B', b: 'A1', color: A_COLOR },
+                        { id: 'a1a', a: 'A1', b: 'A', color: PERP_COLOR, w: 3.5 },
+                        c('bc', 'B', 'C', false, 'BC — ребро пола, но оно не идёт в точку A'),
+                        c('bd', 'B', 'D', false, 'BD — диагональ пола, она не идёт в точку A'),
+                        c('ba', 'B', 'A', true, ''),
+                    ]}>
+                        <CubeMark o={CV.A} d1={[0.14, 0, 0]} d2={[0, 0, 0.14]} />
+                    </CubeFig>
                 </DiagramBlock>
             )}
             <WarmHint text={hint} />
-            {done && <TypedLineWithParts parts={[{ text: 'Есть! ' }, { sticker: 'OH', ...SH }, { text: ' — ' }, { sticker: 'проекция', ...SH }, { text: ' наклонной' }]} />}
+            {done && <TypedLineWithParts parts={[{ text: 'Есть! ' }, { sticker: 'BA', ...SH }, { text: ' — ' }, { sticker: 'проекция', ...SH }, { text: ' наклонной A₁B на пол' }]} />}
         </SceneBox>
     )
 }
 
-// --- 5. Подпиши всё (подсвечен один отрезок → выбери название)
-const LABEL_ITEMS: { id: string; p: V3; q: V3; name: string; color: string; sh?: boolean }[] = [
-    { id: 'a', p: W_O, q: W_T, name: 'наклонная', color: A_COLOR },
-    { id: 'perp', p: W_T, q: W_H, name: 'перпендикуляр', color: PERP_COLOR },
-    { id: 'proj', p: W_O, q: W_H, name: 'проекция', color: PROJ_COLOR, sh: true },
-    { id: 'b', p: [1.4, 2.8, 0], q: [8.6, 2.8, 0], name: 'прямая', color: B_COLOR },
+// 5. Подпиши всё
+const LABEL_ITEMS: { id: string; a: string; b: string; name: string; color: string; sh?: boolean }[] = [
+    { id: 'a', a: 'B', b: 'A1', name: 'наклонная', color: A_COLOR },
+    { id: 'perp', a: 'A1', b: 'A', name: 'перпендикуляр', color: PERP_COLOR },
+    { id: 'proj', a: 'B', b: 'A', name: 'проекция', color: PROJ_COLOR, sh: true },
+    { id: 'b', a: 'B', b: 'C', name: 'прямая', color: B_COLOR },
 ]
 const W5Scene = ({ onSettled }: SceneProps) => {
     const [typed, setTyped] = useState(false)
@@ -1857,30 +1904,18 @@ const W5Scene = ({ onSettled }: SceneProps) => {
             playSound(WRONG_ANSWER_SOUND)
         }
     }
-    const tagPos: Record<string, { p: V3; dx: number; dy: number }> = {
-        a: { p: [5, 4.2, 1.45], dx: -74, dy: -6 },
-        perp: { p: [5, 6.2, 1.8], dx: 64, dy: 0 },
-        proj: { p: [5, 4.6, 0], dx: 34, dy: 22 },
-        b: { p: [1.6, 2.8, 0], dx: 0, dy: 22 },
-    }
     return (
         <SceneBox>
             <TypedLineWithParts parts={[{ bold: 'Подпиши всё!' }, { text: ' Как называется подсвеченный отрезок?' }]} onSettled={() => setTyped(true)} />
             {typed && (
                 <DiagramBlock>
-                    <WarmSvg>
-                        <Ground />
-                        {LABEL_ITEMS.map((it) => {
-                            const isNamed = named.includes(it.id)
-                            const isCur = cur === it.id
-                            return <Seg3 key={it.id} p={it.p} q={it.q} color={isNamed ? it.color : NEU} w={it.id === 'perp' ? 3 : 5} glow={isCur ? HL : undefined} opacity={isNamed || isCur ? 1 : 0.55} />
-                        })}
-                        <RightMark3 o={W_H} d1={[0, -0.7, 0]} d2={[0, 0, 0.7]} />
-                        <Pt3 p={W_O} /><Pt3 p={W_H} /><Pt3 p={W_T} />
-                        {LABEL_ITEMS.filter((it) => named.includes(it.id)).map((it) => (
-                            <Tag3 key={it.id} p={tagPos[it.id].p} text={it.name} color={it.color} dx={tagPos[it.id].dx} dy={tagPos[it.id].dy} />
-                        ))}
-                    </WarmSvg>
+                    <CubeFig lines={LABEL_ITEMS.map((it) => {
+                        const isNamed = named.includes(it.id)
+                        const isCur = cur === it.id
+                        return { id: it.id, a: it.a, b: it.b, color: isNamed ? it.color : NEU, w: it.id === 'perp' ? 3.5 : 5, glow: isCur ? HL : undefined, opacity: isNamed || isCur ? 1 : 0.55 }
+                    })}>
+                        <CubeMark o={CV.A} d1={[0.14, 0, 0]} d2={[0, 0, 0.14]} />
+                    </CubeFig>
                 </DiagramBlock>
             )}
             {typed && cur && (
@@ -1891,7 +1926,42 @@ const W5Scene = ({ onSettled }: SceneProps) => {
                 </div>
             )}
             <WarmHint text={hint} />
-            {!cur && <TypedLineWithParts parts={[{ text: 'Красава! Теперь ты видишь все четыре 💪' }]} />}
+            {!cur && (
+                <TypedLineWithParts parts={[
+                    { sticker: 'A₁B', color: A_COLOR }, { text: ' — наклонная, ' }, { sticker: 'A₁A', color: PERP_COLOR }, { text: ' — перпендикуляр,' }, { break: true },
+                    { sticker: 'BA', ...SH }, { text: ' — проекция, ' }, { sticker: 'BC', color: B_COLOR }, { text: ' — прямая 💪' },
+                ]} />
+            )}
+        </SceneBox>
+    )
+}
+
+// 6. ТТП прямо в кубе: BC ⟂ BA (пол квадратный) → BC ⟂ A₁B
+const K6Scene = ({ onSettled }: SceneProps) => {
+    const [st, setSt] = useState(0)
+    return (
+        <SceneBox>
+            <TypedLineWithParts
+                parts={[{ text: 'Фокус! В квадратном полу ' }, { sticker: 'BC', color: B_COLOR }, { text: ' ⟂ ' }, { sticker: 'BA', ...SH }, { text: ' — прямая ⟂ проекции' }]}
+                onSettled={() => { setSt(1); setTimeout(() => setSt(2), 1600) }}
+            />
+            <DiagramBlock>
+                <CubeFig lines={[
+                    { id: 'ba1', a: 'B', b: 'A1', color: A_COLOR },
+                    { id: 'a1a', a: 'A1', b: 'A', color: PERP_COLOR, w: 3.5 },
+                    { id: 'ba', a: 'B', b: 'A', color: PROJ_COLOR },
+                    { id: 'bc', a: 'B', b: 'C', color: B_COLOR },
+                ]}>
+                    {st >= 1 && st < 3 && <CubeMark o={CV.B} d1={[-0.14, 0, 0]} d2={[0, 0.22, 0]} bounce />}
+                    {st >= 3 && <CubeMark o={CV.B} d1={[0, 0.3, 0]} d2={[-0.16, 0, 0.16]} bounce />}
+                </CubeFig>
+            </DiagramBlock>
+            {st >= 2 && (
+                <TypedLineWithParts
+                    parts={[{ text: 'Значит по ТТП и ' }, { sticker: 'BC', color: B_COLOR }, { text: ' ⟂ ' }, { sticker: 'A₁B', color: A_COLOR }, { text: ' — прямая ⟂ наклонной! 🎯' }]}
+                    onSettled={() => { setSt(3); setTimeout(() => onSettled?.(), 1200) }}
+                />
+            )}
         </SceneBox>
     )
 }
@@ -2144,7 +2214,7 @@ const WarmRuleScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-const WARM_SCENES = [W1Scene, W2Scene, W3Scene, W4Scene, W5Scene, WarmIntroScene, ...LIFE.map(lifeScene), WarmRuleScene]
+const WARM_SCENES = [K0Scene, K1Scene, K2Scene, K3Scene, K4Scene, W5Scene, K6Scene, WarmIntroScene, ...LIFE.map(lifeScene), WarmRuleScene]
 
 const WARM_QUIZ: ConceptQuizItem[] = [
     {
@@ -2173,6 +2243,13 @@ const WARM_QUIZ: ConceptQuizItem[] = [
         renderOptions: () => ['Она тоже ⟂ b', 'Ничего нельзя сказать'],
         correct: 0,
         feedback: 'Правило работает и в обратную сторону: наклонная ⟂ b ⇔ проекция ⟂ b.',
+    },
+    {
+        renderPrompt: () => <>В кубе <Sticker value="A₁B" color={A_COLOR} /> — наклонная к полу ABCD. Её <Sticker value="проекция" {...SH} /> на пол — это…</>,
+        renderFigure: () => <CubeFig lines={[{ id: 'ba1', a: 'B', b: 'A1', color: A_COLOR }]} />,
+        renderOptions: () => ['BA', 'BC', 'AC'],
+        correct: 0,
+        feedback: 'Перпендикуляр из A₁ падает в A, значит проекция — BA.',
     },
     {
         renderPrompt: () => <>Где <Sticker value="проекция" {...SH} /> у лестницы, прислонённой к стене?</>,
