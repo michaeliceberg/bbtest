@@ -1116,6 +1116,8 @@ type ConceptQuizItem = {
     // Опциональная картинка над вопросом (мнемоника/шутка) — рендерится
     // ТОЛЬКО у этого конкретного вопроса, см. renderImage в JSX ниже.
     renderImage?: () => React.ReactNode
+    // крупный чертёж под вопросом (на всю ширину)
+    renderFigure?: () => React.ReactNode
 }
 const CONCEPT_QUIZ: ConceptQuizItem[] = [
     {
@@ -1284,6 +1286,7 @@ const ConceptQuizPhase = ({ onDone, items = CONCEPT_QUIZ }: { onDone: (hadMistak
                                         </motion.div>
                                     )}
                                 </div>
+                                {qq.renderFigure && <div className="w-full max-w-[320px] mx-auto">{qq.renderFigure()}</div>}
                                 {isCurrent && !checked && (
                                     <>
                                         <div className="grid grid-cols-1 gap-3">
@@ -1424,7 +1427,7 @@ const QuickFigure = ({ stage, phi = 0, angleLabel = false, fresh = true, compact
             ))}
             {stage >= 7 && <BounceMark d={rightAngleMark(O3, [0.95, 0, 0], [0, 0.95 / aLen, (0.95 * 1.05) / aLen])} />}
             {angleLabel && (
-                <text x={Op.x - 30} y={Op.y - 10} textAnchor="end" fontSize={20} fontWeight={900} fill={MARK_COLOR}>{Math.round(90 - Math.abs(phi))}°</text>
+                (() => { const L = bisectorPoint(Op, Hp, bR, 44); return <text x={L.x} y={L.y + 7} textAnchor="middle" fontSize={20} fontWeight={900} fill={MARK_COLOR}>{Math.round(90 - Math.abs(phi))}°</text> })()
             )}
             {stage >= 3 && (
                 <>
@@ -1438,6 +1441,15 @@ const QuickFigure = ({ stage, phi = 0, angleLabel = false, fresh = true, compact
             )}
         </svg>
     )
+}
+
+// Точка для подписи угла: между направлениями O→A и O→B (по биссектрисе), на расстоянии r.
+const bisectorPoint = (O: { x: number; y: number }, A: { x: number; y: number }, B: { x: number; y: number }, r = 40) => {
+    const ua = { x: A.x - O.x, y: A.y - O.y }, ub = { x: B.x - O.x, y: B.y - O.y }
+    const la = Math.hypot(ua.x, ua.y) || 1, lb = Math.hypot(ub.x, ub.y) || 1
+    const m = { x: ua.x / la + ub.x / lb, y: ua.y / la + ub.y / lb }
+    const lm = Math.hypot(m.x, m.y) || 1
+    return { x: O.x + (m.x / lm) * r, y: O.y + (m.y / lm) * r }
 }
 
 // Сцена: печатаем строку, потом показываем чертёж на нужной стадии.
@@ -1622,9 +1634,565 @@ const QUICK_QUIZ: ConceptQuizItem[] = [
     },
 ]
 
+
+// ===================================================================
+// РАЗМИНКА (урок «ТТП: разминка»): учимся узнавать наклонную, перпендикуляр,
+// проекцию и прямую — мини-упражнения → 5 примеров из жизни → проверка.
+// Всё рисуется в той же 3D-проекции P3 (плоскость земли z = 0).
+// ===================================================================
+type V3 = [number, number, number]
+const NEU = '#C9D3D9' // «ещё не названный» отрезок — нейтральный светлый
+const HL = '#F2C35B' // подсветка «вот этот»
+const PERP_COLOR = X_COLOR
+
+const Seg3 = ({ p, q, color, w = 4, dash, opacity = 1, glow, onClick }: { p: V3; q: V3; color: string; w?: number; dash?: string; opacity?: number; glow?: string; onClick?: () => void }) => {
+    const A = P3(...p), B = P3(...q)
+    return (
+        <g onClick={onClick} style={onClick ? { cursor: 'pointer' } : undefined} opacity={opacity}>
+            {glow && <line x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke={glow} strokeOpacity={0.35} strokeWidth={w + 10} strokeLinecap="round" />}
+            <line x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke={color} strokeWidth={w} strokeLinecap="round" strokeDasharray={dash} />
+            {onClick && <line x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke="transparent" strokeWidth={26} strokeLinecap="round" />}
+        </g>
+    )
+}
+const Pt3 = ({ p, color = X_COLOR, r = 4.5 }: { p: V3; color?: string; r?: number }) => {
+    const A = P3(...p)
+    return <circle cx={A.x} cy={A.y} r={r} fill={color} stroke="#0B1216" strokeWidth={1.5} />
+}
+const Tag3 = ({ p, text, color, dx = 0, dy = 0 }: { p: V3; text: string; color: string; dx?: number; dy?: number }) => {
+    const A = P3(...p)
+    return text.length <= 2 ? <SvgTag x={A.x + dx} y={A.y + dy} text={text} color={color} /> : <SvgWordTag x={A.x + dx} y={A.y + dy} text={text} color={color} />
+}
+const Ground = ({ fill = hexToRgba(PLANE_COLOR, 0.2), stroke = hexToRgba(PLANE_COLOR, 0.9) }: { fill?: string; stroke?: string }) => (
+    <polygon points={PLANE_CORNERS.map(([x, y]) => ptStr(x, y, 0)).join(' ')} fill={fill} stroke={stroke} strokeWidth={2.5} strokeLinejoin="round" />
+)
+const WarmSvg = ({ children }: { children: React.ReactNode }) => (
+    <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="w-full max-w-[448px] mx-auto" style={{ overflow: 'visible' }}>{children}</svg>
+)
+const RightMark3 = ({ o, d1, d2, bounce = false }: { o: V3; d1: V3; d2: V3; bounce?: boolean }) => {
+    const d = rightAngleMark({ x: o[0], y: o[1], z: o[2] }, d1, d2)
+    return bounce ? <BounceMark d={d} /> : <path d={d} fill="none" stroke={X_COLOR} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+}
+
+// общая логика «нажми правильный»: верно → дальше, неверно → подсказка (без штрафа)
+const useWarmPick = (onSettled?: (l?: string) => void) => {
+    const [done, setDone] = useState(false)
+    const [hint, setHint] = useState<string | null>(null)
+    const [wrongIds, setWrongIds] = useState<string[]>([])
+    const pick = (id: string, ok: boolean, wrongHint: string) => {
+        if (done) return
+        if (ok) { setDone(true); setHint(null); showAnswerMeme(true); setTimeout(() => onSettled?.(), 1200) }
+        else { setHint(wrongHint); setWrongIds((w) => [...w, id]); showAnswerMeme(false); playSound(WRONG_ANSWER_SOUND) }
+    }
+    return { done, hint, wrongIds, pick }
+}
+const WarmHint = ({ text }: { text: string | null }) =>
+    text ? <motion.p key={text} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="text-center text-base font-bold text-[#DC605B]">{text}</motion.p> : null
+
+// --- 1. Нажми наклонную
+const W1Scene = ({ onSettled }: SceneProps) => {
+    const [typed, setTyped] = useState(false)
+    const { done, hint, wrongIds, pick } = useWarmPick(onSettled)
+    const segs: { id: string; p: V3; q: V3; ok: boolean; why: string }[] = [
+        { id: 'lie', p: [6.4, 5.5, 0], q: [9.4, 6.6, 0], ok: false, why: 'Этот лежит НА плоскости — это просто прямая' },
+        { id: 'perp', p: [5.6, 2.4, 0], q: [5.6, 2.4, 3.0], ok: false, why: 'Этот стоит ровно, под 90° — это перпендикуляр' },
+        { id: 'slant', p: [1.4, 1.4, 0], q: [1.4, 4.3, 2.6], ok: true, why: '' },
+    ]
+    return (
+        <SceneBox>
+            <TypedLineWithParts parts={[{ text: 'Разминка! ' }, { bold: 'Нажми наклонную' }, { text: ' — отрезок, который упирается в плоскость ' }, { bold: 'не под прямым углом' }]} onSettled={() => setTyped(true)} />
+            {typed && (
+                <DiagramBlock>
+                    <WarmSvg>
+                        <Ground />
+                        {segs.map((s) => {
+                            const isW = wrongIds.includes(s.id)
+                            const color = done && s.ok ? A_COLOR : isW ? '#DC605B' : NEU
+                            return <Seg3 key={s.id} p={s.p} q={s.q} color={color} w={5} glow={done && s.ok ? A_COLOR : undefined} onClick={() => pick(s.id, s.ok, s.why)} />
+                        })}
+                        {segs.map((s) => <Pt3 key={s.id} p={s.p} color={NEU} r={3.5} />)}
+                        {done && <Tag3 p={[1.4, 2.9, 1.3]} text="наклонная" color={A_COLOR} dx={-40} dy={-26} />}
+                    </WarmSvg>
+                </DiagramBlock>
+            )}
+            <WarmHint text={hint} />
+            {done && <TypedLineWithParts parts={[{ text: 'Верно! Это ' }, { sticker: 'наклонная', color: A_COLOR }, { text: ' — стоит «вкось»' }]} />}
+        </SceneBox>
+    )
+}
+
+// --- 2. Нажми перпендикуляр
+const W2Scene = ({ onSettled }: SceneProps) => {
+    const [typed, setTyped] = useState(false)
+    const { done, hint, wrongIds, pick } = useWarmPick(onSettled)
+    const T: V3 = [5, 4, 3.6]
+    const segs: { id: string; q: V3; ok: boolean; why: string }[] = [
+        { id: 'l', q: [1.8, 2.2, 0], ok: false, why: 'Этот идёт вкось — это наклонная' },
+        { id: 'v', q: [5, 4, 0], ok: true, why: '' },
+        { id: 'r', q: [8.4, 6.4, 0], ok: false, why: 'И этот вкось. Перпендикуляр падает строго вниз, как отвес' },
+    ]
+    return (
+        <SceneBox>
+            <TypedLineWithParts parts={[{ text: 'Из одной точки — три отрезка. ' }, { bold: 'Нажми перпендикуляр' }, { text: ' к плоскости (угол 90°)' }]} onSettled={() => setTyped(true)} />
+            {typed && (
+                <DiagramBlock>
+                    <WarmSvg>
+                        <Ground />
+                        {segs.map((s) => {
+                            const isW = wrongIds.includes(s.id)
+                            const color = done && s.ok ? PERP_COLOR : isW ? '#DC605B' : NEU
+                            return <Seg3 key={s.id} p={T} q={s.q} color={color} w={4} glow={done && s.ok ? PERP_COLOR : undefined} onClick={() => pick(s.id, s.ok, s.why)} />
+                        })}
+                        {segs.map((s) => <Pt3 key={s.id} p={s.q} color={NEU} r={3.5} />)}
+                        <Pt3 p={T} />
+                        {done && <RightMark3 o={[5, 4, 0]} d1={[0, -0.7, 0]} d2={[0, 0, 0.7]} bounce />}
+                        {done && <Tag3 p={[5, 4, 0]} text="перпендикуляр" color={PERP_COLOR} dy={30} />}
+                    </WarmSvg>
+                </DiagramBlock>
+            )}
+            <WarmHint text={hint} />
+            {done && <TypedLineWithParts parts={[{ text: 'Да! ' }, { sticker: 'Перпендикуляр', color: PERP_COLOR }, { text: ' падает строго вниз — как отвес ⬇️' }]} />}
+        </SceneBox>
+    )
+}
+
+// --- 3. Куда упадёт отвес из верхней точки наклонной?
+const W_O: V3 = [5, 2.8, 0]
+const W_T: V3 = [5, 6.2, 3.57]
+const W_H: V3 = [5, 6.2, 0]
+const W3Scene = ({ onSettled }: SceneProps) => {
+    const [typed, setTyped] = useState(false)
+    const { done, hint, wrongIds, pick } = useWarmPick(onSettled)
+    const pts: { id: string; p: V3; ok: boolean; why: string }[] = [
+        { id: 'a', p: [1.6, 2.4, 0], ok: false, why: 'Мимо — отвес падает строго ВНИЗ под точкой' },
+        { id: 'h', p: W_H, ok: true, why: '' },
+        { id: 'b', p: [8.2, 2.6, 0], ok: false, why: 'Мимо — отвес падает строго ВНИЗ под точкой' },
+    ]
+    return (
+        <SceneBox>
+            <TypedLineWithParts parts={[{ text: 'Из верхней точки ' }, { sticker: 'наклонной', color: A_COLOR }, { text: ' опустили отвес. ' }, { bold: 'Куда он упадёт?' }, { text: ' Нажми точку' }]} onSettled={() => setTyped(true)} />
+            {typed && (
+                <DiagramBlock>
+                    <WarmSvg>
+                        <Ground />
+                        <Seg3 p={W_O} q={W_T} color={A_COLOR} w={5} />
+                        <Pt3 p={W_O} /><Pt3 p={W_T} />
+                        {done && <><Seg3 p={W_T} q={W_H} color={PERP_COLOR} w={3} /><RightMark3 o={W_H} d1={[0, -0.7, 0]} d2={[0, 0, 0.7]} bounce /><Pt3 p={W_H} /><Tag3 p={W_H} text="H" color={X_COLOR} dx={20} dy={6} /></>}
+                        {!done && pts.map((p) => {
+                            const A = P3(...p.p)
+                            const isW = wrongIds.includes(p.id)
+                            return (
+                                <g key={p.id} onClick={() => pick(p.id, p.ok, p.why)} style={{ cursor: 'pointer' }}>
+                                    <circle cx={A.x} cy={A.y} r={13} fill="transparent" stroke={isW ? '#DC605B' : HL} strokeWidth={2} className={isW ? '' : 'animate-pulse'} />
+                                    <circle cx={A.x} cy={A.y} r={5} fill={isW ? '#DC605B' : HL} />
+                                </g>
+                            )
+                        })}
+                    </WarmSvg>
+                </DiagramBlock>
+            )}
+            <WarmHint text={hint} />
+            {done && <TypedLineWithParts parts={[{ text: 'Точно! Точку, куда упал перпендикуляр, обычно называют ' }, { sticker: 'H', color: X_COLOR }]} />}
+        </SceneBox>
+    )
+}
+
+// --- 4. Нажми проекцию (не перепутай с просто прямой)
+const W4Scene = ({ onSettled }: SceneProps) => {
+    const [typed, setTyped] = useState(false)
+    const { done, hint, wrongIds, pick } = useWarmPick(onSettled)
+    const ph = -35 * DEG
+    const bQ: V3 = [W_O[0] - 4.5 * Math.cos(ph), W_O[1] - 4.5 * Math.sin(ph), 0]
+    const bP: V3 = [W_O[0] + 4.5 * Math.cos(ph), W_O[1] + 4.5 * Math.sin(ph), 0]
+    return (
+        <SceneBox>
+            <TypedLineWithParts parts={[{ sticker: 'Проекция', ...SH }, { text: ' — это путь от O до H: от «ноги» наклонной до точки, куда упал перпендикуляр. ' }, { bold: 'Нажми проекцию' }]} onSettled={() => setTyped(true)} />
+            {typed && (
+                <DiagramBlock>
+                    <WarmSvg>
+                        <Ground />
+                        <Seg3 p={bQ} q={bP} color={wrongIds.includes('b') ? '#DC605B' : NEU} w={4} onClick={() => pick('b', false, 'Это просто прямая на плоскости — она не идёт в точку H')} />
+                        <Seg3 p={W_O} q={W_H} color={done ? PROJ_COLOR : NEU} w={5} glow={done ? PROJ_COLOR : undefined} onClick={() => pick('p', true, '')} />
+                        <Seg3 p={W_O} q={W_T} color={A_COLOR} w={5} />
+                        <Seg3 p={W_T} q={W_H} color={PERP_COLOR} w={3} />
+                        <RightMark3 o={W_H} d1={[0, -0.7, 0]} d2={[0, 0, 0.7]} />
+                        <Pt3 p={W_O} /><Pt3 p={W_H} />
+                        <Tag3 p={W_O} text="O" color={X_COLOR} dx={-22} dy={4} />
+                        <Tag3 p={W_H} text="H" color={X_COLOR} dx={20} dy={6} />
+                        {done && <Tag3 p={[5, 4.5, 0]} text="проекция" color={PROJ_COLOR} dy={20} />}
+                    </WarmSvg>
+                </DiagramBlock>
+            )}
+            <WarmHint text={hint} />
+            {done && <TypedLineWithParts parts={[{ text: 'Есть! ' }, { sticker: 'OH', ...SH }, { text: ' — ' }, { sticker: 'проекция', ...SH }, { text: ' наклонной' }]} />}
+        </SceneBox>
+    )
+}
+
+// --- 5. Подпиши всё (подсвечен один отрезок → выбери название)
+const LABEL_ITEMS: { id: string; p: V3; q: V3; name: string; color: string; sh?: boolean }[] = [
+    { id: 'a', p: W_O, q: W_T, name: 'наклонная', color: A_COLOR },
+    { id: 'perp', p: W_T, q: W_H, name: 'перпендикуляр', color: PERP_COLOR },
+    { id: 'proj', p: W_O, q: W_H, name: 'проекция', color: PROJ_COLOR, sh: true },
+    { id: 'b', p: [1.4, 2.8, 0], q: [8.6, 2.8, 0], name: 'прямая', color: B_COLOR },
+]
+const W5Scene = ({ onSettled }: SceneProps) => {
+    const [typed, setTyped] = useState(false)
+    const [order] = useState(() => [...LABEL_ITEMS].sort(() => Math.random() - 0.5).map((i) => i.id))
+    const [round, setRound] = useState(0)
+    const [named, setNamed] = useState<string[]>([])
+    const [hint, setHint] = useState<string | null>(null)
+    const cur = order[round]
+    const choose = (name: string) => {
+        if (!cur) return
+        const it = LABEL_ITEMS.find((i) => i.id === cur)!
+        if (it.name === name) {
+            setHint(null)
+            setNamed((n) => [...n, cur])
+            if (round + 1 >= order.length) { showAnswerMeme(true); setTimeout(() => onSettled?.(), 1000) }
+            setRound((r) => r + 1)
+        } else {
+            setHint(`Нет, это не ${name}. Посмотри ещё раз 👀`)
+            showAnswerMeme(false)
+            playSound(WRONG_ANSWER_SOUND)
+        }
+    }
+    const tagPos: Record<string, { p: V3; dx: number; dy: number }> = {
+        a: { p: [5, 4.2, 1.45], dx: -74, dy: -6 },
+        perp: { p: [5, 6.2, 1.8], dx: 64, dy: 0 },
+        proj: { p: [5, 4.6, 0], dx: 34, dy: 22 },
+        b: { p: [1.6, 2.8, 0], dx: 0, dy: 22 },
+    }
+    return (
+        <SceneBox>
+            <TypedLineWithParts parts={[{ bold: 'Подпиши всё!' }, { text: ' Как называется подсвеченный отрезок?' }]} onSettled={() => setTyped(true)} />
+            {typed && (
+                <DiagramBlock>
+                    <WarmSvg>
+                        <Ground />
+                        {LABEL_ITEMS.map((it) => {
+                            const isNamed = named.includes(it.id)
+                            const isCur = cur === it.id
+                            return <Seg3 key={it.id} p={it.p} q={it.q} color={isNamed ? it.color : NEU} w={it.id === 'perp' ? 3 : 5} glow={isCur ? HL : undefined} opacity={isNamed || isCur ? 1 : 0.55} />
+                        })}
+                        <RightMark3 o={W_H} d1={[0, -0.7, 0]} d2={[0, 0, 0.7]} />
+                        <Pt3 p={W_O} /><Pt3 p={W_H} /><Pt3 p={W_T} />
+                        {LABEL_ITEMS.filter((it) => named.includes(it.id)).map((it) => (
+                            <Tag3 key={it.id} p={tagPos[it.id].p} text={it.name} color={it.color} dx={tagPos[it.id].dx} dy={tagPos[it.id].dy} />
+                        ))}
+                    </WarmSvg>
+                </DiagramBlock>
+            )}
+            {typed && cur && (
+                <div className="w-full grid grid-cols-2 gap-2">
+                    {LABEL_ITEMS.map((it) => (
+                        <GuessBtn key={it.id} color={it.sh ? '#6FB08C' : it.color} onClick={() => choose(it.name)}>{it.name}</GuessBtn>
+                    ))}
+                </div>
+            )}
+            <WarmHint text={hint} />
+            {!cur && <TypedLineWithParts parts={[{ text: 'Красава! Теперь ты видишь все четыре 💪' }]} />}
+        </SceneBox>
+    )
+}
+
+// ===== Примеры из жизни =====
+type LifeEx = {
+    phi: number // угол прямой b (0 — b ⟂ проекции)
+    ground: { fill: string; stroke: string }
+    intro: LinePart[]
+    aName: string; perpName: string; projName: string; bName: string
+    aText: LinePart[]; perpText: LinePart[]; projText: LinePart[]; bText: LinePart[]
+    yesText: LinePart[]; noText: LinePart[]
+    decor: (step: number) => React.ReactNode // фон: стена, вода, солнце и т.п.
+    aDraw: (glow: boolean) => React.ReactNode // сам объект (лестница, удочка…)
+    perpDraw: (on: boolean) => React.ReactNode
+    bDraw: (glow: boolean) => React.ReactNode
+}
+const L_O: V3 = W_O, L_T: V3 = W_T, L_H: V3 = W_H
+const bEnds = (phi: number, len = 4.3): [V3, V3] => {
+    const ph = phi * DEG
+    return [[L_O[0] - len * Math.cos(ph), L_O[1] - len * Math.sin(ph), 0], [L_O[0] + len * Math.cos(ph), L_O[1] + len * Math.sin(ph), 0]]
+}
+const polyStr = (pts: V3[]) => pts.map((p) => ptStr(...p)).join(' ')
+
+const LIFE: LifeEx[] = [
+    {
+        // 🪜 лестница у стены, щель между досками пола
+        phi: 0,
+        ground: { fill: '#3B2E25', stroke: '#6B5444' },
+        intro: [{ text: '🪜 Лестница прислонена к стене' }],
+        aName: 'лестница', perpName: 'по стене вниз', projName: 'след на полу', bName: 'щель в полу',
+        aText: [{ text: 'Лестница — это ' }, { sticker: 'наклонная', color: A_COLOR }],
+        perpText: [{ text: 'Отвес от верха лестницы — вниз по стене: ' }, { sticker: 'перпендикуляр', color: PERP_COLOR }],
+        projText: [{ text: '«След» лестницы на полу — ' }, { sticker: 'проекция', ...SH }],
+        bText: [{ text: 'Щель между досками пола — ' }, { sticker: 'прямая', color: B_COLOR }],
+        yesText: [{ text: 'След ⟂ щели — значит и ' }, { sticker: 'лестница', color: A_COLOR }, { text: ' ⟂ щели ✅' }],
+        noText: [],
+        decor: () => (
+            <>
+                <polygon points={polyStr([[0.5, 6.2, 0], [9.5, 6.2, 0], [9.5, 6.2, 4.6], [0.5, 6.2, 4.6]])} fill="#4A5560" stroke="#6B7882" strokeWidth={2} />
+                {[1.2, 2.0, 3.6, 4.4, 5.2].map((y) => <Seg3 key={y} p={[0, y, 0]} q={[10, y, 0]} color="#56453A" w={2} />)}
+            </>
+        ),
+        aDraw: (glow) => (
+            <>
+                {glow && <Seg3 p={L_O} q={L_T} color={A_COLOR} w={2} glow={A_COLOR} />}
+                <Seg3 p={[L_O[0] - 0.35, L_O[1], 0]} q={[L_T[0] - 0.35, L_T[1], L_T[2]]} color={glow ? A_COLOR : '#C08A4A'} w={3.5} />
+                <Seg3 p={[L_O[0] + 0.35, L_O[1], 0]} q={[L_T[0] + 0.35, L_T[1], L_T[2]]} color={glow ? A_COLOR : '#C08A4A'} w={3.5} />
+                {[0.15, 0.3, 0.45, 0.6, 0.75, 0.9].map((t) => {
+                    const p: V3 = [L_O[0], L_O[1] + (L_T[1] - L_O[1]) * t, L_T[2] * t]
+                    return <Seg3 key={t} p={[p[0] - 0.35, p[1], p[2]]} q={[p[0] + 0.35, p[1], p[2]]} color={glow ? A_COLOR : '#C08A4A'} w={2.5} />
+                })}
+            </>
+        ),
+        perpDraw: (on) => on ? <Seg3 p={L_T} q={L_H} color={PERP_COLOR} w={2.5} dash="5 4" /> : null,
+        bDraw: (glow) => <Seg3 p={bEnds(0)[0]} q={bEnds(0)[1]} color={glow ? B_COLOR : '#56453A'} w={glow ? 4 : 2} glow={glow ? B_COLOR : undefined} />,
+    },
+    {
+        // 🎣 удочка над рекой, леска отвесно, берег
+        phi: 0,
+        ground: { fill: hexToRgba('#3E8FD0', 0.35), stroke: '#5FA9E0' },
+        intro: [{ text: '🎣 Удочка торчит с берега над рекой' }],
+        aName: 'удочка', perpName: 'леска', projName: 'от руки до поплавка', bName: 'берег',
+        aText: [{ text: 'Удочка — это ' }, { sticker: 'наклонная', color: A_COLOR }],
+        perpText: [{ text: 'Леска висит отвесно — это ' }, { sticker: 'перпендикуляр', color: PERP_COLOR }],
+        projText: [{ text: 'От удочки на берегу до поплавка — ' }, { sticker: 'проекция', ...SH }],
+        bText: [{ text: 'Линия берега — ' }, { sticker: 'прямая', color: B_COLOR }],
+        yesText: [{ text: 'Проекция ⟂ берегу — значит и ' }, { sticker: 'удочка', color: A_COLOR }, { text: ' ⟂ берегу ✅' }],
+        noText: [],
+        decor: () => (
+            <polygon points={polyStr([[0, 0, 0], [10, 0, 0], [10, 2.8, 0], [0, 2.8, 0]])} fill="#3E6B35" stroke="#5C8F4E" strokeWidth={2} />
+        ),
+        aDraw: (glow) => <Seg3 p={L_O} q={L_T} color={glow ? A_COLOR : '#8A5A2B'} w={glow ? 4 : 3} glow={glow ? A_COLOR : undefined} />,
+        perpDraw: (on) => (
+            <>
+                <Seg3 p={L_T} q={L_H} color={on ? PERP_COLOR : '#E6EEF2'} w={on ? 2.5 : 1.2} />
+                {(() => { const A = P3(...L_H); return <><ellipse cx={A.x} cy={A.y} rx={14} ry={5} fill="none" stroke="#BFE3FF" strokeWidth={1.5} opacity={0.7} /><circle cx={A.x} cy={A.y - 3} r={4} fill="#E2574C" /></> })()}
+            </>
+        ),
+        bDraw: (glow) => <Seg3 p={[0, 2.8, 0]} q={[10, 2.8, 0]} color={glow ? B_COLOR : '#7DB06A'} w={glow ? 4 : 2.5} glow={glow ? B_COLOR : undefined} />,
+    },
+    {
+        // 🌞 палка и полуденная тень, край дорожки под углом
+        phi: 30,
+        ground: { fill: hexToRgba('#4F9A4A', 0.45), stroke: '#6FB565' },
+        intro: [{ text: '🌞 Полдень. В землю воткнута палка' }],
+        aName: 'палка', perpName: 'луч', projName: 'тень', bName: 'дорожка',
+        aText: [{ text: 'Палка — это ' }, { sticker: 'наклонная', color: A_COLOR }],
+        perpText: [{ text: 'Солнце над головой — луч падает отвесно: ' }, { sticker: 'перпендикуляр', color: PERP_COLOR }],
+        projText: [{ text: 'Тень палки — ' }, { sticker: 'проекция', ...SH }],
+        bText: [{ text: 'Край дорожки — ' }, { sticker: 'прямая', color: B_COLOR }],
+        yesText: [],
+        noText: [{ text: 'Тень и дорожка — 60°, не 90° ❌ Значит и ' }, { sticker: 'палка', color: A_COLOR }, { text: ' НЕ ⟂ дорожке' }],
+        decor: () => {
+            const [p, q] = bEnds(30, 5)
+            const off = 0.7
+            return <polygon points={polyStr([[p[0], p[1] - off, 0], [q[0], q[1] - off, 0], [q[0], q[1] + off, 0], [p[0], p[1] + off, 0]])} fill="#C9B48A" opacity={0.55} />
+        },
+        aDraw: (glow) => <Seg3 p={L_O} q={L_T} color={glow ? A_COLOR : '#8A5A2B'} w={glow ? 5 : 4.5} glow={glow ? A_COLOR : undefined} />,
+        perpDraw: (on) => on ? (
+            <>
+                <Seg3 p={[5, 6.2, 5.6]} q={L_H} color={HL} w={2} dash="4 5" />
+                {(() => { const A = P3(5, 6.2, 5.9); return <image href="/lesson-pics/sun.svg" x={A.x - 18} y={A.y - 30} width={36} height={36} /> })()}
+            </>
+        ) : null,
+        bDraw: (glow) => { const [p, q] = bEnds(30, 5); return <Seg3 p={p} q={q} color={glow ? B_COLOR : '#B49C6E'} w={glow ? 4 : 2} glow={glow ? B_COLOR : undefined} /> },
+    },
+    {
+        // ♿ пандус к двери, бордюр
+        phi: 0,
+        ground: { fill: '#3D4247', stroke: '#5E666D' },
+        intro: [{ text: '♿ Пандус ведёт к двери' }],
+        aName: 'пандус', perpName: 'опора', projName: 'след пандуса', bName: 'бордюр',
+        aText: [{ text: 'Пандус — это ' }, { sticker: 'наклонная', color: A_COLOR }],
+        perpText: [{ text: 'Опора под верхом пандуса — ' }, { sticker: 'перпендикуляр', color: PERP_COLOR }],
+        projText: [{ text: '«След» пандуса на асфальте — ' }, { sticker: 'проекция', ...SH }],
+        bText: [{ text: 'Бордюр — ' }, { sticker: 'прямая', color: B_COLOR }],
+        yesText: [{ text: 'След ⟂ бордюру — значит и ' }, { sticker: 'пандус', color: A_COLOR }, { text: ' ⟂ бордюру ✅' }],
+        noText: [],
+        decor: () => (
+            <>
+                <polygon points={polyStr([[3.6, 6.2, 3.57], [6.4, 6.2, 3.57], [6.4, 6.9, 3.57], [3.6, 6.9, 3.57]])} fill="#6B737A" stroke="#8A939A" strokeWidth={1.5} />
+                <polygon points={polyStr([[4.2, 6.9, 3.57], [5.8, 6.9, 3.57], [5.8, 6.9, 6.0], [4.2, 6.9, 6.0]])} fill="#7A4E2D" stroke="#A06A40" strokeWidth={2} />
+            </>
+        ),
+        aDraw: (glow) => (
+            <>
+                <polygon points={polyStr([[L_O[0] - 0.9, L_O[1], 0], [L_O[0] + 0.9, L_O[1], 0], [L_T[0] + 0.9, L_T[1], L_T[2]], [L_T[0] - 0.9, L_T[1], L_T[2]]])} fill={glow ? hexToRgba(A_COLOR, 0.35) : '#8A939A'} stroke={glow ? A_COLOR : '#A9B2B8'} strokeWidth={2} />
+                {glow && <Seg3 p={L_O} q={L_T} color={A_COLOR} w={3} />}
+            </>
+        ),
+        perpDraw: (on) => <Seg3 p={L_T} q={L_H} color={on ? PERP_COLOR : '#9AA3A9'} w={on ? 3 : 4} />,
+        bDraw: (glow) => <Seg3 p={bEnds(0, 5)[0]} q={bEnds(0, 5)[1]} color={glow ? B_COLOR : '#B8BEC2'} w={glow ? 5 : 5} glow={glow ? B_COLOR : undefined} />,
+    },
+    {
+        // ⚡ столб и трос-растяжка, забор под углом
+        phi: -10,
+        ground: { fill: hexToRgba('#4F9A4A', 0.45), stroke: '#6FB565' },
+        intro: [{ text: '⚡ Столб держит трос-растяжка' }],
+        aName: 'трос', perpName: 'столб', projName: 'по земле', bName: 'забор',
+        aText: [{ text: 'Трос — это ' }, { sticker: 'наклонная', color: A_COLOR }],
+        perpText: [{ text: 'Сам столб — ' }, { sticker: 'перпендикуляр', color: PERP_COLOR }, { text: ' к земле' }],
+        projText: [{ text: 'От колышка до основания столба — ' }, { sticker: 'проекция', ...SH }],
+        bText: [{ text: 'Забор — ' }, { sticker: 'прямая', color: B_COLOR }],
+        yesText: [],
+        noText: [{ text: 'Проекция и забор — 80°: почти, но не 90° ❌ Значит и ' }, { sticker: 'трос', color: A_COLOR }, { text: ' НЕ ⟂ забору' }],
+        decor: () => null,
+        aDraw: (glow) => <Seg3 p={L_O} q={L_T} color={glow ? A_COLOR : '#9AA3A9'} w={glow ? 3.5 : 2} glow={glow ? A_COLOR : undefined} />,
+        perpDraw: (on) => <Seg3 p={[5, 6.2, 5.2]} q={L_H} color={on ? PERP_COLOR : '#7A5434'} w={on ? 5 : 7} />,
+        bDraw: (glow) => {
+            const [p, q] = bEnds(-10, 5)
+            const posts = [0, 0.25, 0.5, 0.75, 1].map((t) => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t] as [number, number])
+            const c = glow ? B_COLOR : '#A07A52'
+            return (
+                <>
+                    {posts.map(([x, y], i) => <Seg3 key={i} p={[x, y, 0]} q={[x, y, 0.9]} color={c} w={3} />)}
+                    <Seg3 p={[p[0], p[1], 0.75]} q={[q[0], q[1], 0.75]} color={c} w={2.5} />
+                    <Seg3 p={[p[0], p[1], 0.4]} q={[q[0], q[1], 0.4]} color={c} w={2.5} />
+                    <Seg3 p={p} q={q} color={glow ? B_COLOR : 'transparent'} w={3} glow={glow ? B_COLOR : undefined} />
+                </>
+            )
+        },
+    },
+]
+
+// step: 0 сцена · 1 наклонная · 2 перпендикуляр · 3 проекция · 4 прямая · 5 ответ (угол)
+const LifeFigure = ({ ex, step }: { ex: LifeEx; step: number }) => {
+    const [bP, bQ] = bEnds(ex.phi)
+    const Op = P3(...L_O)
+    return (
+        <WarmSvg>
+            <Ground fill={ex.ground.fill} stroke={ex.ground.stroke} />
+            {ex.decor(step)}
+            {ex.bDraw(step >= 4)}
+            {step >= 3 && <DrawPath d={`M${Op.x},${Op.y} L${P3(...L_H).x},${P3(...L_H).y}`} color={PROJ_COLOR} w={5} fresh={step === 3} dur={0.8} />}
+            {ex.perpDraw(step >= 2)}
+            {step >= 2 && <RightMark3 o={L_H} d1={[0, -0.7, 0]} d2={[0, 0, 0.7]} />}
+            {ex.aDraw(step >= 1)}
+            {step >= 5 && (ex.phi === 0
+                ? <RightMark3 o={L_O} d1={[-0.9, 0, 0]} d2={[0, 0.9, 0]} bounce />
+                : <motion.text x={bisectorPoint(Op, P3(...L_H), P3(...(ex.phi > 0 ? bQ : bP)), 46).x} y={bisectorPoint(Op, P3(...L_H), P3(...(ex.phi > 0 ? bQ : bP)), 46).y + 8} textAnchor="middle" fontSize={22} fontWeight={900} fill={MARK_COLOR}
+                    initial={{ scale: 3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.55 }}>{90 - Math.abs(ex.phi)}°</motion.text>)}
+            <circle cx={Op.x} cy={Op.y} r={4} fill={X_COLOR} stroke="#0B1216" strokeWidth={1.5} />
+            {step >= 1 && <Tag3 p={[5, 4.4, 1.85]} text="наклонная" color={A_COLOR} dx={-74} dy={-14} />}
+            {step >= 3 && <Tag3 p={[5, 4.7, 0]} text="проекция" color={PROJ_COLOR} dx={38} dy={18} />}
+            {step >= 4 && <Tag3 p={P3(...bP).y > P3(...bQ).y ? bP : bQ} text="прямая" color={B_COLOR} dx={4} dy={22} />}
+        </WarmSvg>
+    )
+}
+
+const lifeScene = (ex: LifeEx) => {
+    const S = ({ onSettled }: SceneProps) => {
+        const [step, setStep] = useState(-1) // -1 печатаем интро
+        const [answered, setAnswered] = useState<null | boolean>(null)
+        const isYes = ex.phi === 0
+        const next = (n: number) => setTimeout(() => setStep(n), 500)
+        return (
+            <SceneBox>
+                <TypedLineWithParts parts={ex.intro} onSettled={() => setStep(0)} />
+                {step >= 0 && <DiagramBlock onSettled={() => next(1)}><LifeFigure ex={ex} step={answered !== null ? 5 : Math.min(4, Math.max(0, step))} /></DiagramBlock>}
+                {step >= 1 && <TypedLineWithParts parts={ex.aText} onSettled={() => next(2)} />}
+                {step >= 2 && <TypedLineWithParts parts={ex.perpText} onSettled={() => next(3)} />}
+                {step >= 3 && <TypedLineWithParts parts={ex.projText} onSettled={() => next(4)} />}
+                {step >= 4 && <TypedLineWithParts parts={ex.bText} onSettled={() => next(5)} />}
+                {step >= 5 && (
+                    <TypedLineWithParts parts={[{ text: 'Вопрос: ' }, { sticker: ex.aName, color: A_COLOR }, { text: ' ⟂ ' }, { sticker: ex.bName, color: B_COLOR }, { text: '? Смотри на угол проекции с прямой 👀' }]}
+                        onSettled={() => setStep(6)} />
+                )}
+                {step >= 6 && answered === null && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full flex gap-2">
+                        <GuessBtn color={A_COLOR} onClick={() => { setAnswered(true); showAnswerMeme(isYes); if (!isYes) playSound(WRONG_ANSWER_SOUND) }}>Да, ⟂</GuessBtn>
+                        <GuessBtn color={A_COLOR} onClick={() => { setAnswered(false); showAnswerMeme(!isYes); if (isYes) playSound(WRONG_ANSWER_SOUND) }}>Нет</GuessBtn>
+                    </motion.div>
+                )}
+                {answered !== null && (
+                    <>
+                        <p className="text-center text-lg font-black" style={{ color: answered === isYes ? CORRECT_COLOR : '#DC605B' }}>
+                            {answered === isYes ? 'Верно! 🎯' : 'Не совсем 🙃'}
+                        </p>
+                        <TypedLineWithParts parts={isYes ? ex.yesText : ex.noText} onSettled={() => onSettled?.()} />
+                    </>
+                )}
+            </SceneBox>
+        )
+    }
+    return S
+}
+
+const WarmIntroScene = ({ onSettled }: SceneProps) => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => { const t = setTimeout(() => onSettled?.(), 600); return () => clearTimeout(t) }, [])
+    return (
+        <SceneBox>
+            <InsightCard label="🌍 А теперь — из жизни">
+                Наклонные, перпендикуляры и проекции — <InsightWord>везде вокруг</InsightWord>. Найдём их!
+            </InsightCard>
+        </SceneBox>
+    )
+}
+
+const WarmRuleScene = ({ onSettled }: SceneProps) => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => { const t = setTimeout(() => onSettled?.(), 1500); return () => clearTimeout(t) }, [])
+    return (
+        <SceneBox>
+            <InsightCard label="💡 Главное">
+                Хочешь узнать, <InsightWord>наклонная ⟂ прямой</InsightWord>? Посмотри на её <InsightWord>проекцию</InsightWord>: проекция ⟂ прямой — значит и наклонная ⟂.
+            </InsightCard>
+        </SceneBox>
+    )
+}
+
+const WARM_SCENES = [W1Scene, W2Scene, W3Scene, W4Scene, W5Scene, WarmIntroScene, ...LIFE.map(lifeScene), WarmRuleScene]
+
+const WARM_QUIZ: ConceptQuizItem[] = [
+    {
+        renderPrompt: () => <>Угол между <Sticker value="проекцией" {...SH} /> и <Sticker value="b" color={B_COLOR} /> — 90°. Тогда <Sticker value="a" color={A_COLOR} /> и <Sticker value="b" color={B_COLOR} />…</>,
+        renderFigure: () => <QuickFigure stage={6} phi={0} fresh={false} compact />,
+        renderOptions: () => ['перпендикулярны', 'не перпендикулярны'],
+        correct: 0,
+        feedback: 'Проекция ⟂ b — значит и наклонная ⟂ b.',
+    },
+    {
+        renderPrompt: () => <>Угол между <Sticker value="проекцией" {...SH} /> и <Sticker value="b" color={B_COLOR} /> — 60°. Тогда <Sticker value="a" color={A_COLOR} /> и <Sticker value="b" color={B_COLOR} />…</>,
+        renderFigure: () => <QuickFigure stage={5} phi={30} angleLabel fresh={false} compact />,
+        renderOptions: () => ['перпендикулярны', 'не перпендикулярны'],
+        correct: 1,
+        feedback: 'У проекции не 90° — значит и у наклонной не 90°.',
+    },
+    {
+        renderPrompt: () => <>Угол между <Sticker value="проекцией" {...SH} /> и <Sticker value="b" color={B_COLOR} /> — 45°. Тогда <Sticker value="a" color={A_COLOR} /> и <Sticker value="b" color={B_COLOR} />…</>,
+        renderFigure: () => <QuickFigure stage={5} phi={45} angleLabel fresh={false} compact />,
+        renderOptions: () => ['не перпендикулярны', 'перпендикулярны'],
+        correct: 0,
+        feedback: '45° — не прямой угол. Значит a не ⟂ b.',
+    },
+    {
+        renderPrompt: () => <>Известно: <Sticker value="наклонная a" color={A_COLOR} /> ⟂ <Sticker value="b" color={B_COLOR} />. Что можно сказать про <Sticker value="проекцию" {...SH} />?</>,
+        renderOptions: () => ['Она тоже ⟂ b', 'Ничего нельзя сказать'],
+        correct: 0,
+        feedback: 'Правило работает и в обратную сторону: наклонная ⟂ b ⇔ проекция ⟂ b.',
+    },
+    {
+        renderPrompt: () => <>Где <Sticker value="проекция" {...SH} /> у лестницы, прислонённой к стене?</>,
+        renderOptions: () => ['«След» лестницы на полу', 'Сама лестница', 'Стена'],
+        correct: 0,
+        feedback: 'Лестница — наклонная, её след на полу — проекция.',
+    },
+    {
+        renderPrompt: () => <>Бонус! Кто теперь видит наклонные везде? 👀</>,
+        renderOptions: () => ['Я! 🔥'],
+        correct: 0,
+        feedback: 'Теперь ты готов к ТТП 🚀',
+    },
+]
+
 export const TypeTtpWalk = ({ question, onAnswer, onComplete }: Props) => {
     // короткая версия урока — без метафор (урок «ТТП: коротко»)
     const quick = question.question.startsWith('ТТП коротко')
+    // разминка перед ТТП (урок «ТТП: разминка»)
+    const warm = question.question.startsWith('ТТП разминка')
     const [phase, setPhase] = useState<'concept' | 'quiz'>('concept')
     const [pick, setPick] = useState<number | null>(null)
     const [phi, setPhi] = useState(35)
@@ -1640,9 +2208,9 @@ export const TypeTtpWalk = ({ question, onAnswer, onComplete }: Props) => {
     if (phase === 'concept') {
         return (
             <PickCtx.Provider value={{ pick, setPick, phi, setPhi }}>
-                <ConceptPhase onDone={() => setPhase('quiz')} scenes={quick ? QUICK_SCENES : CONCEPT_SCENES} />
+                <ConceptPhase onDone={() => setPhase('quiz')} scenes={warm ? WARM_SCENES : quick ? QUICK_SCENES : CONCEPT_SCENES} />
             </PickCtx.Provider>
         )
     }
-    return <ConceptQuizPhase onDone={handleFinish} items={quick ? QUICK_QUIZ : CONCEPT_QUIZ} />
+    return <ConceptQuizPhase onDone={handleFinish} items={warm ? WARM_QUIZ : quick ? QUICK_QUIZ : CONCEPT_QUIZ} />
 }
