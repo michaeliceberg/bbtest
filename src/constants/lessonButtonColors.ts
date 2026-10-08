@@ -38,3 +38,8 @@ export const LOCKED_BUTTON_COLOR = '#3A454E'
 export const LOCKED_BUTTON_BOTTOM_COLOR = '#2E383E'
 export const LOCKED_ICON_COLOR = '#72838D'
 export const ACTIVE_ICON_COLOR = '#FEFEFE'
+
+// Цвет «тени» (2026-10-08, по просьбе пользователя, урок ТТП): тёмно-зелёный, как настоящая
+// тень на траве. НЕ входит в GGEGE_PALETTE (иначе станет 7-м цветом кнопок юнитов на /learn).
+// button — заливка тени/плашки, bottom — рамка, text — подпись на тёмной плашке.
+export const GGEGE_SHADOW = { button: '#1B3428', bottom: '#2F5743', text: '#A3C9B4' } as const

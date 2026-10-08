@@ -4,7 +4,7 @@
 // ЕГЭ Математика) на метафоре «из жизни»: земля → копьё, воткнувшееся в землю → линия на земле
 // → «копьё ⟂ линии?» → тень копья (ученик сам выбирает точку, откуда падает луч) → угол 90° →
 // «по-школьному» (плоскость α, наклонная a, прямая b, проекция a) → вывод ТТП.
-// Цвета: копьё/a — голубой, линия/b — зелёный, тень/проекция — малиново-розовый, земля/плоскость —
+// Цвета: копьё/a — голубой, линия/b — зелёный, тень/проекция — тёмно-зелёный «теневой» (GGEGE_SHADOW), земля/плоскость —
 // бирюзовый, угол 90° — оранжевый.
 
 'use client'
@@ -23,7 +23,7 @@ import {
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { InsightCard, InsightWord } from '@/components/geometry/WalkthroughCards'
-import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
+import { GGEGE_PALETTE, GGEGE_SHADOW, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import { AlphaVideo } from '@/components/alpha-video'
@@ -115,13 +115,14 @@ const groundMatrix = (cx: number, cy: number) => {
 }
 
 // Подпись точки O, «лежащая» на земле (тёмно-зелёная, как трава).
-const GroundOTag = ({ delay = 0, side = -1 }: { delay?: number; side?: 1 | -1 }) => {
-    const Op = P3(O3.x, O3.y, 0)
-    const c = unproject(Op.x + side * 32, Op.y + 18)
+const oTagScreen = () => { const Op = P3(O3.x, O3.y, 0); return { x: Op.x - 32, y: Op.y + 18 } }
+const GroundOTag = ({ delay = 0, pale = false }: { delay?: number; pale?: boolean }) => {
+    const t = oTagScreen()
+    const c = unproject(t.x, t.y)
     return (
-        <g transform={groundMatrix(c.x, c.y)}>
+        <g transform={groundMatrix(c.x, c.y)} opacity={pale ? 0.3 : 1} style={{ transition: 'opacity 0.25s' }}>
             <motion.g initial={{ opacity: 0, scale: 2.2 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 15, delay }}>
-                <rect x={-17} y={-17} width={34} height={34} rx={8} fill={O_FILL} stroke={O_BORDER} strokeWidth={3} />
+                <rect x={-17} y={-17} width={34} height={34} rx={8} fill={O_FILL} stroke={O_TEXT} strokeWidth={2.5} />
                 <text x={0} y={8} textAnchor="middle" fontSize={23} fontWeight={900} fill={O_TEXT}>O</text>
             </motion.g>
         </g>
@@ -132,7 +133,7 @@ const GroundOTag = ({ delay = 0, side = -1 }: { delay?: number; side?: 1 | -1 })
 const GroundODot = ({ fresh, delay = 0 }: { fresh: boolean; delay?: number }) => (
     <g transform={groundMatrix(O3.x, O3.y)}>
         <motion.circle
-            r={7} fill={O_TEXT} stroke={O_BORDER} strokeWidth={2}
+            r={7} fill={O_TEXT} stroke={O_FILL} strokeWidth={2}
             initial={fresh ? { opacity: 0 } : { opacity: 1 }} animate={{ opacity: 1 }} transition={{ duration: 0.3, delay }}
         />
     </g>
@@ -154,14 +155,16 @@ const CXW = 5, CYW = 3.5
 
 const A_COLOR = GGEGE_PALETTE.blue.button
 const B_COLOR = GGEGE_PALETTE.green.button
-const PROJ_COLOR = GGEGE_PALETTE.raspberry.button
+const PROJ_COLOR = GGEGE_SHADOW.text
+// стикер слова «тень» — тёмная плашка, как тень
+const SH = { color: GGEGE_SHADOW.text, bg: GGEGE_SHADOW.button, border: GGEGE_SHADOW.bottom }
+const SHADOW_LINE = '#0A100D' // сама тень O–H поверх тёмно-зелёной тени — почти чёрная
 const PLANE_COLOR = GGEGE_PALETTE.teal.button
 const MARK_COLOR = GGEGE_PALETTE.orange.button
 const X_COLOR = '#F2F7FB'
 // Точка O лежит на земле — «травяная» подпись: светло-зелёная буква в тёмно-зелёной рамке
 const O_TEXT = '#9BE3B8'
 const O_FILL = '#173A2D'
-const O_BORDER = '#0A1E17'
 
 // Точка O, где копьё входит в землю; a(s) = O + s·(0, 1, 1.4)
 const O3 = { x: 5, y: 3.5, z: 0 }
@@ -342,6 +345,14 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
     if (tagAng < -90) tagAng += 180
     const tdx = handle.x - tagEnd.x, tdy = handle.y - tagEnd.y, tdl = Math.hypot(tdx, tdy) || 1
     const tagPos = { x: handle.x + (tdx / tdl) * 52, y: handle.y + (tdy / tdl) * 52 }
+    // линия (с подписью) проходит по стикеру O — рисуем его бледно
+    const segDist = (p: { x: number; y: number }, a: { x: number; y: number }, b: { x: number; y: number }) => {
+        const vx2 = b.x - a.x, vy2 = b.y - a.y, l2 = vx2 * vx2 + vy2 * vy2 || 1
+        const k = Math.max(0, Math.min(1, ((p.x - a.x) * vx2 + (p.y - a.y) * vy2) / l2))
+        return Math.hypot(p.x - a.x - k * vx2, p.y - a.y - k * vy2)
+    }
+    const oT = oTagScreen()
+    const oTagCrossed = hasB && (segDist(oT, e2, e1) < 22 || (!school && Math.hypot(tagPos.x - oT.x, tagPos.y - oT.y) < 40))
 
     // куст — у левого угла земли
     const cs = PLANE_CORNERS.map(([x, y]) => P3(x, y, 0))
@@ -392,7 +403,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                 )}
                 {showProj && (
                     <>
-                        <DrawPath d={`M${Op.x},${Op.y} L${H.x},${H.y}`} color={PROJ_COLOR} w={4.5} fresh={fresh4} dur={0.9} />
+                        <DrawPath d={`M${Op.x},${Op.y} L${H.x},${H.y}`} color={SHADOW_LINE} w={4.5} fresh={fresh4} dur={0.9} />
                         <g transform={`translate(${tx},${ty}) rotate(${angle})`}>
                             <motion.text
                                 key={school ? 's' : 'l'}
@@ -433,7 +444,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                 )}
 
                 {/* куст в углу — чтобы было похоже на настоящую площадку (кружки-крона) */}
-                <g transform={`translate(${bush.x},${bush.y})`}>
+                <g transform={`translate(${bush.x},${bush.y}) scale(0.62)`} opacity={0.85}>
                     <motion.g
                         initial={{ opacity: scene === 0 ? 0 : 1 }} animate={{ opacity: 1 }}
                         transition={{ duration: 0.8, delay: 0.2 }}
@@ -449,15 +460,15 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                     <g transform={`translate(${bush.x},${bush.y})`}>
                         <motion.g initial={{ opacity: 0 }} animate={{ opacity: bushJoke ? 1 : 0 }} transition={{ duration: 0.4 }}>
                             <motion.path
-                                d="M58,-124 C30,-120 14,-90 10,-46" fill="none" stroke="#F2C35B" strokeWidth={3} strokeLinecap="round"
+                                d="M58,-110 C30,-106 12,-74 8,-28" fill="none" stroke="#F2C35B" strokeWidth={3} strokeLinecap="round"
                                 initial={{ pathLength: 0 }} animate={{ pathLength: bushJoke ? 1 : 0 }} transition={{ duration: 0.5 }}
                             />
                             <motion.path
-                                d="M2,-56 L10,-44 L19,-55" fill="none" stroke="#F2C35B" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
+                                d="M0,-38 L8,-26 L17,-37" fill="none" stroke="#F2C35B" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
                                 initial={{ opacity: 0 }} animate={{ opacity: bushJoke ? 1 : 0 }} transition={{ delay: bushJoke ? 0.45 : 0, duration: 0.2 }}
                             />
-                            <text x={64} y={-120} fontSize={15} fontWeight={800} fill="#F2C35B">Если что,</text>
-                            <text x={64} y={-102} fontSize={15} fontWeight={800} fill="#F2C35B">это кустик 🌳</text>
+                            <text x={64} y={-106} fontSize={15} fontWeight={800} fill="#F2C35B">Если что,</text>
+                            <text x={64} y={-88} fontSize={15} fontWeight={800} fill="#F2C35B">это кустик 🌳</text>
                         </motion.g>
                     </g>
                 )}
@@ -465,15 +476,15 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                 {/* тёмная тень копья на земле (bounce) */}
                 {shadowOn && (() => {
                     const Hm = P3(5, O3.y + S_HIGH, 0)
+                    const dx = Hm.x - Op.x, dy = Hm.y - Op.y
+                    // тень «выстреливает» из точки O вверх-вправо с крупным перелётом (bounce)
                     return (
-                        <g transform={`translate(${Op.x},${Op.y})`}>
-                            <motion.g
-                                initial={fresh4 ? { scale: 2.8, opacity: 0 } : { scale: 1, opacity: 1 }} animate={{ scale: 1, opacity: 1 }}
-                                transition={{ type: 'spring', bounce: 0.55, duration: 0.95 }}
-                            >
-                                <path d={`M0,0 L${Hm.x - Op.x},${Hm.y - Op.y}`} stroke={GGEGE_PALETTE.raspberry.bottom} strokeOpacity={0.85} strokeWidth={11} strokeLinecap="round" />
-                            </motion.g>
-                        </g>
+                        <motion.line
+                            x1={Op.x} y1={Op.y} stroke={GGEGE_SHADOW.button} strokeOpacity={0.95} strokeWidth={12} strokeLinecap="round"
+                            initial={fresh4 ? { x2: Op.x, y2: Op.y, opacity: 0 } : { x2: Op.x + dx, y2: Op.y + dy, opacity: 1 }}
+                            animate={{ x2: Op.x + dx, y2: Op.y + dy, opacity: 1 }}
+                            transition={{ type: 'spring', bounce: 0.6, duration: 1.1, opacity: { duration: 0.15 } }}
+                        />
                     )
                 })()}
 
@@ -513,7 +524,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
                 )}
 
                 {hasSpear && <GroundODot fresh={scene === 1} delay={FLY_MS / 1000 + 0.45} />}
-                {hasSpear && <GroundOTag side={hasB && !school && handle.x < Op.x ? 1 : -1} delay={scene === 1 ? FLY_MS / 1000 + 0.75 : 0} />}
+                {hasSpear && <GroundOTag pale={oTagCrossed} delay={scene === 1 ? FLY_MS / 1000 + 0.75 : 0} />}
 
                 {projEl}
 
@@ -572,7 +583,7 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
     )
 }
 
-type SceneProps = { onSettled?: () => void; leaving?: boolean }
+type SceneProps = { onSettled?: () => void; leaving?: boolean; onAutoNext?: () => void }
 
 const SceneBox = ({ children }: { children: React.ReactNode }) => <div className="w-full flex flex-col items-center gap-3">{children}</div>
 
@@ -639,7 +650,7 @@ const SpearScene = ({ onSettled }: SceneProps) => {
             {phase >= 2 && <DiagramBlock><Figure scene={1} pick={null} fly /></DiagramBlock>}
             {phase >= 3 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Оно воткнулось в землю в точке ' }, { sticker: 'O', color: O_TEXT, bg: O_FILL, border: O_BORDER }, { text: '.' }]}
+                    parts={[{ text: 'Оно воткнулось в землю в точке ' }, { sticker: 'O', color: O_TEXT, bg: O_FILL, border: O_TEXT }, { text: '.' }]}
                     onSettled={() => onSettled?.()}
                 />
             )}
@@ -647,7 +658,7 @@ const SpearScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-const LineScene = ({ onSettled }: SceneProps) => {
+const LineScene = ({ onSettled, onAutoNext }: SceneProps) => {
     const { phi: _phi, setPhi } = useContext(PickCtx)
     const [typed, setTyped] = useState(false)
     const [locked, setLocked] = useState(false)
@@ -682,7 +693,7 @@ const LineScene = ({ onSettled }: SceneProps) => {
                             <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }} className="mx-auto">
                                 <button
                                     type="button"
-                                    onClick={() => { setLocked(true); setPhi(target); setTimeout(() => onSettled?.(), 400) }}
+                                    onClick={() => { setLocked(true); setPhi(target); onSettled?.(); setTimeout(() => onAutoNext?.(), 300) }}
                                     className="h-[52px] rounded-lg bg-[#A1D151] px-8 text-lg font-bold text-[#151F24] active:translate-y-1"
                                     style={walkthroughButtonStyle(true)}
                                 >
@@ -720,8 +731,8 @@ const QuestionScene = ({ onSettled, leaving }: SceneProps) => {
             />
             {shown && !asked && (
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full flex gap-2">
-                    <GuessBtn color={PROJ_COLOR} onClick={() => setAsked(true)}>Да</GuessBtn>
-                    <GuessBtn color={PROJ_COLOR} onClick={() => setAsked(true)}>Нет</GuessBtn>
+                    <GuessBtn color={A_COLOR} onClick={() => setAsked(true)}>Да</GuessBtn>
+                    <GuessBtn color={A_COLOR} onClick={() => setAsked(true)}>Нет</GuessBtn>
                     <GuessBtn color={MARK_COLOR} onClick={() => setAsked(true)}>Не знаю 🤔</GuessBtn>
                 </motion.div>
             )}
@@ -730,7 +741,7 @@ const QuestionScene = ({ onSettled, leaving }: SceneProps) => {
                     parts={[
                         { text: 'Глазами не заметно 😅' }, { break: true },
                         { text: 'А чтобы точно узнать — надо понять,' }, { break: true },
-                        { text: 'а перпендикулярна ли ' }, { sticker: 'ТЕНЬ', color: PROJ_COLOR }, { text: ' от копья к этой ' },
+                        { text: 'а перпендикулярна ли ' }, { sticker: 'ТЕНЬ', ...SH }, { text: ' от копья к этой ' },
                         { sticker: 'линии', color: B_COLOR }, { text: '?' },
                     ]}
                     onSettled={() => { setThinking(true); setTimeout(() => onSettled?.(), 1500) }}
@@ -773,7 +784,7 @@ const ShadowScene = ({ onSettled }: SceneProps) => {
     return (
         <SceneBox>
             <TypedLineWithParts
-                parts={[{ text: 'Выглянуло солнце ☀️ — прямо над головой! Копьё отбрасывает ' }, { sticker: 'тень', color: PROJ_COLOR }, { text: '.' }]}
+                parts={[{ text: 'Выглянуло солнце ☀️ и копьё стало отбрасывать ' }, { sticker: 'тень', ...SH }, { text: '.' }]}
                 onSettled={() => setTyped(true)}
             />
             {typed && (
@@ -783,14 +794,14 @@ const ShadowScene = ({ onSettled }: SceneProps) => {
             )}
             {pre >= 3 && pick == null && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Луч от любой точки ' }, { sticker: 'копья', color: A_COLOR }, { text: ' падает на землю отвесно. ' }, { bold: 'Выбери точку 👇' }]}
+                    parts={[{ text: 'Давай от любой точки ' }, { sticker: 'копья', color: A_COLOR }, { text: ' нарисуем ' }, { bold: 'ПЕРПЕНДИКУЛЯР' }, { text: ' на землю 👇' }]}
                 />
             )}
             {lineTwo && (
                 <TypedLineWithParts
                     parts={[
-                        { text: 'Луч попал в точку ' }, { sticker: 'H', color: PROJ_COLOR }, { text: '. Соединим ' }, { sticker: 'H', color: PROJ_COLOR },
-                        { text: ' с ' }, { sticker: 'O', color: O_TEXT, bg: O_FILL, border: O_BORDER }, { text: ' — это ' }, { sticker: 'тень', color: PROJ_COLOR }, { text: ' копья.' },
+                        { text: 'Луч попал в точку ' }, { sticker: 'H', ...SH }, { text: '. Соединим ' }, { sticker: 'H', ...SH },
+                        { text: ' с ' }, { sticker: 'O', color: O_TEXT, bg: O_FILL, border: O_TEXT }, { text: ' — это ' }, { sticker: 'тень', ...SH }, { text: ' копья.' },
                     ]}
                 />
             )}
@@ -810,7 +821,7 @@ const NinetyScene = ({ onSettled }: SceneProps) => {
     return (
         <SceneBox>
             <TypedLineWithParts
-                parts={[{ text: 'Смотрим, какой угол между ' }, { sticker: 'тенью', color: PROJ_COLOR }, { text: ' и ' }, { sticker: 'линией', color: B_COLOR }, { text: '…' }]}
+                parts={[{ text: 'Смотрим, какой угол между ' }, { sticker: 'тенью', ...SH }, { text: ' и ' }, { sticker: 'линией', color: B_COLOR }, { text: '…' }]}
                 onSettled={() => setTyped(true)}
             />
             {typed && <DiagramBlock onSettled={() => setTimeout(() => setMsg(true), 1100)}><Figure scene={5} pick={pick} phi={shown} /></DiagramBlock>}
@@ -930,7 +941,7 @@ const ConceptPhase = ({ onDone }: { onDone: () => void }) => {
                     step >= i ? (
                         <SceneWrapper key={`step-${i}`} innerRef={sceneRef(`step-${i}`)} active={isSceneActive(`step-${i}`)}>
                             <Fragment key={`step-${i}-${nonceFor(`step-${i}`)}`}>
-                                <Scene onSettled={() => i === step && setStepReady(true)} leaving={advancing && i === step} />
+                                <Scene onSettled={() => i === step && setStepReady(true)} onAutoNext={() => i === step && handleNext()} leaving={advancing && i === step} />
                             </Fragment>
                         </SceneWrapper>
                     ) : null,
@@ -965,13 +976,13 @@ const CONCEPT_QUIZ: ConceptQuizItem[] = [
         feedback: 'Тень (солнце над головой) — это проекция копья на землю. Смотрим на неё.',
     },
     {
-        renderPrompt: () => <><Sticker value="Тень" color={PROJ_COLOR} /> копья перпендикулярна <Sticker value="линии" color={B_COLOR} />. Тогда само <Sticker value="копьё" color={A_COLOR} /> и линия…</>,
+        renderPrompt: () => <><Sticker value="Тень" {...SH} /> копья перпендикулярна <Sticker value="линии" color={B_COLOR} />. Тогда само <Sticker value="копьё" color={A_COLOR} /> и линия…</>,
         renderOptions: () => ['перпендикулярны (90°)', 'параллельны'],
         correct: 0,
         feedback: 'Тень ⟂ линии — значит и копьё ⟂ линии. Это ТТП!',
     },
     {
-        renderPrompt: () => <><Sticker value="Тень" color={PROJ_COLOR} /> <b>НЕ</b> перпендикулярна <Sticker value="линии" color={B_COLOR} />. Тогда <Sticker value="копьё" color={A_COLOR} /> и линия…</>,
+        renderPrompt: () => <><Sticker value="Тень" {...SH} /> <b>НЕ</b> перпендикулярна <Sticker value="линии" color={B_COLOR} />. Тогда <Sticker value="копьё" color={A_COLOR} /> и линия…</>,
         renderOptions: () => ['не перпендикулярны', 'всё равно перпендикулярны'],
         correct: 0,
         feedback: 'Работает в обе стороны: нет 90° у тени — нет 90° и у копья.',
