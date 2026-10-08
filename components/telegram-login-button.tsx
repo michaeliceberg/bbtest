@@ -33,7 +33,7 @@ type Props = {
     callbackUrl?: string
 }
 
-export const TelegramLoginButton = ({ botUsername, callbackUrl = '/learn' }: Props) => {
+export const TelegramLoginButton = ({ botUsername, callbackUrl = '/trainer' }: Props) => {
     const containerRef = useRef<HTMLDivElement>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)

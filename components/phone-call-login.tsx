@@ -25,7 +25,7 @@ type Props = {
     callbackUrl?: string
 }
 
-export const PhoneCallLogin = ({ callbackUrl = '/learn' }: Props) => {
+export const PhoneCallLogin = ({ callbackUrl = '/trainer' }: Props) => {
     const [step, setStep] = useState<Step>('enter-phone')
     const [digits, setDigits] = useState<string[]>(Array(DIGITS_COUNT).fill(''))
     const [callPhonePretty, setCallPhonePretty] = useState('')

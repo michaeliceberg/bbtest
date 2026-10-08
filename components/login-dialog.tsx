@@ -19,13 +19,13 @@ const TELEGRAM_BOT_USERNAME = 'brickbrain007_bot';
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  // Куда попасть сразу после успешного входа — по умолчанию /learn, как
+  // Куда попасть сразу после успешного входа — по умолчанию /trainer, как
   // было раньше везде. Диагностический тест (app/test/[subject]) передаёт
   // сюда прямую ссылку на тренажёр по слабой теме.
   callbackUrl?: string;
 };
 
-export const LoginDialog = ({ open, onOpenChange, callbackUrl = '/learn' }: Props) => {
+export const LoginDialog = ({ open, onOpenChange, callbackUrl = '/trainer' }: Props) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm w-[calc(100%-2rem)] min-w-0">

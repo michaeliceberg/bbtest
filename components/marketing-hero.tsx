@@ -156,7 +156,7 @@ const CozyMarketingHero = ({ dbUserName }: Props) => {
 
           <div className='flex flex-col items-stretch gap-y-4 w-full max-w-[340px]'>
             {userName ? (
-              <CozyCta href='/learn'>
+              <CozyCta href='/trainer'>
                 Продолжаем учиться
                 <ArrowRight className='h-5 w-5' />
               </CozyCta>
@@ -284,7 +284,7 @@ const MetalMarketingHero = ({ dbUserName }: Props) => {
 
           <div className='flex flex-col items-stretch gap-y-3 w-full max-w-[340px]'>
             {userName ? (
-              <PremiumButton href='/learn'>
+              <PremiumButton href='/trainer'>
                 Продолжаем учиться
                 <ArrowRight className='h-5 w-5' />
               </PremiumButton>
