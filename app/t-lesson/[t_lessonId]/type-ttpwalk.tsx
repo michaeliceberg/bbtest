@@ -747,7 +747,7 @@ const QuestionScene = ({ onSettled, leaving }: SceneProps) => {
     const [shown, setShown] = useState(false)
     const [asked, setAsked] = useState(false)
     // после ответа: текст → пауза с «многоточием» → сам вопрос → видео
-    const [phase, setPhase] = useState(0) // 0 — текст, 1 — многоточие, 2 — вопрос, 3 — видео
+    const [phase, setPhase] = useState(0) // 0 — текст, 0.5 — «надо ответить на вопрос», 1 — многоточие, 2 — вопрос, 3 — видео
     const officeRef = useRef<HTMLVideoElement>(null)
     useEffect(() => { if (leaving) officeRef.current?.pause() }, [leaving])
     return (
@@ -768,19 +768,22 @@ const QuestionScene = ({ onSettled, leaving }: SceneProps) => {
                 <TypedLineWithParts
                     parts={[
                         { text: 'Глазами не заметно 😅' }, { break: true },
-                        { text: 'А чтобы это узнать точно — надо ответить на вопрос' },
+                        { text: 'А чтобы это узнать точно —' },
                     ]}
-                    onSettled={() => setPhase(1)}
+                    onSettled={() => setTimeout(() => setPhase(0.5), 900)}
                 />
+            )}
+            {phase >= 0.5 && (
+                <TypedLineWithParts parts={[{ text: 'надо ответить на вопрос' }]} onSettled={() => setPhase(1)} />
             )}
             {phase >= 1 && <ThinkingDots done={phase >= 2} onDone={() => setPhase(2)} />}
             {phase >= 2 && (
                 <TypedLineWithParts
                     parts={[
-                        { text: 'а перпендикулярна ли ' }, { sticker: 'ТЕНЬ', ...SH }, { text: ' от копья к этой ' },
+                        { text: 'а будет ли перпендикулярна ' }, { sticker: 'ТЕНЬ', ...SH }, { text: ' к этой ' },
                         { sticker: 'линии', color: B_COLOR }, { text: '?' },
                     ]}
-                    onSettled={() => { setPhase(3); setTimeout(() => onSettled?.(), 1500) }}
+                    onSettled={() => { setPhase(3); setTimeout(() => onSettled?.('Понял-принял'), 1500) }}
                 />
             )}
             {phase >= 3 && (
