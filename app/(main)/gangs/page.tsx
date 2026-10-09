@@ -7,10 +7,9 @@
 import Link from 'next/link';
 import { auth } from '@/lib/server-auth';
 import { redirect } from 'next/navigation';
-import { getAllGangsWithRoster, getGangMembership } from '@/db/queries';
+import { getGangMembership } from '@/db/queries';
 import { ArrowLeft } from 'lucide-react';
 import { GangBattleCountdown } from '@/components/gang-battle-countdown';
-import { computeGangRating } from '@/lib/gangRating';
 import { getGangWeekScores, getLastWeekWinner, getWeekMsLeft, settleLastGangWeek, GANG_WEEK_POINTS } from '@/lib/gangWeek';
 import { declensionRu } from '@/usefulFunctions';
 import { GangEmblem } from '@/components/gang-emblem';
@@ -29,9 +28,7 @@ const GangsLeaderboardPage = async ({ searchParams }: { searchParams: { tab?: st
     if (tab === 'week') {
         rows = (await getGangWeekScores(0)).map((g) => ({ id: g.gangId, emoji: g.emoji, color: g.color, name: g.name, members: g.members, score: g.score }));
     } else {
-        rows = (await getAllGangsWithRoster())
-            .map(({ gang, roster }) => ({ id: gang.id, emoji: gang.emoji, color: gang.color, name: gang.name, members: roster.length, score: computeGangRating(roster) }))
-            .sort((a, b) => b.score - a.score);
+        rows = (await getGangWeekScores('all')).map((g) => ({ id: g.gangId, emoji: g.emoji, color: g.color, name: g.name, members: g.members, score: g.score }));
     }
     const msLeft = await getWeekMsLeft();
 
@@ -74,7 +71,7 @@ const GangsLeaderboardPage = async ({ searchParams }: { searchParams: { tab?: st
                         </div>
                     </>
                 ) : (
-                    <p className="mt-3 text-sm text-[#9AA7B0]">Сумма gg-стикеров и выполненных квестов всех участников за всё время.</p>
+                    <p className="mt-3 text-sm text-[#9AA7B0]">Те же очки, что в битве недели (урок тренажёра +1, квест дня +2), — за всё время.</p>
                 )}
             </div>
 

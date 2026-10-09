@@ -18,20 +18,24 @@ const q = async (query: ReturnType<typeof sql>) => (await db.execute(query)) as 
 
 export type GangWeekScore = { gangId: number; name: string; emoji: string; color: string | null; members: number; score: number }
 
-// offsetWeeks: 0 — текущая неделя, -1 — прошлая.
-export const getGangWeekScores = async (offsetWeeks = 0): Promise<GangWeekScore[]> => {
+// offsetWeeks: 0 — текущая неделя, -1 — прошлая, 'all' — за всё время (та же формула, без границ по дате,
+// чтобы «за всё время» никогда не было меньше «за неделю»).
+export const getGangWeekScores = async (offsetWeeks: number | 'all' = 0): Promise<GangWeekScore[]> => {
+	const all = offsetWeeks === 'all'
+	const off = all ? 0 : offsetWeeks
 	const rows = await q(sql`
 		WITH bounds AS (
-			SELECT date_trunc('week', now()) + (${offsetWeeks} * interval '7 days') AS ws
+			SELECT CASE WHEN ${all} THEN '-infinity'::timestamp ELSE date_trunc('week', now()) + (${off} * interval '7 days') END AS ws,
+				CASE WHEN ${all} THEN 'infinity'::timestamp ELSE date_trunc('week', now()) + (${off} * interval '7 days') + interval '7 days' END AS we
 		),
 		member_scores AS (
 			SELECT m.gang_id, m.user_id,
 				(SELECT count(*) FROM t_lesson_progress p, bounds b
 					WHERE p.user_id = m.user_id AND p.training_pts > 0
-					AND p.date_done >= b.ws AND p.date_done < b.ws + interval '7 days') AS lessons,
+					AND p.date_done >= b.ws AND p.date_done < b.we) AS lessons,
 				(SELECT count(*) FROM quest_points qp, bounds b
 					WHERE qp.user_id = m.user_id
-					AND qp.date >= b.ws AND qp.date < b.ws + interval '7 days') AS quests
+					AND qp.date >= b.ws AND qp.date < b.we) AS quests
 			FROM gang_members m
 		)
 		SELECT g.id AS gang_id, g.name, g.emoji, g.color, count(ms.user_id) AS members,

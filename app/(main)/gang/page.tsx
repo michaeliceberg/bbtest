@@ -3,7 +3,6 @@
 import { auth } from '@/lib/server-auth';
 import { getGangMembership, getGangRoster } from '@/db/queries';
 import { redirect } from 'next/navigation';
-import { computeGangRating } from '@/lib/gangRating';
 import { CreateGangForm } from '@/components/create-gang-form';
 import { GangQrCard } from '@/components/gang-qr-card';
 import { getOrCreateInvite } from '@/lib/invite';
@@ -46,10 +45,11 @@ const GangPage = async () => {
     }
 
     const roster = await getGangRoster(membership.gangId);
-    const rating = computeGangRating(roster);
     const isLeader = membership.role === 'leader';
     const canInvite = membership.role === 'leader' || membership.role === 'kapo';
-    const weekScores = await getGangWeekScores(0);
+    const [weekScores, allScores] = await Promise.all([getGangWeekScores(0), getGangWeekScores('all')]);
+    // «Очки за всё время» — та же формула, что у недели (+1 урок, +2 квест), без границ по дате.
+    const rating = allScores.find((g) => g.gangId === membership.gangId)?.score ?? 0;
     const weekIdx = weekScores.findIndex((g) => g.gangId === membership.gangId);
     const weekScore = weekIdx >= 0 ? weekScores[weekIdx].score : 0;
     const gangColor = membership.gang.color || DEFAULT_GANG_COLOR;
@@ -70,7 +70,7 @@ const GangPage = async () => {
                 <div className="mt-5 grid grid-cols-3 gap-2">
                     {[
                         { label: 'Участников', value: roster.length },
-                        { label: 'Рейтинг', value: rating },
+                        { label: 'Очков всего', value: rating },
                         { label: 'Место недели', value: weekIdx >= 0 ? `#${weekIdx + 1}` : '—' },
                     ].map((s) => (
                         <div key={s.label} className="rounded-2xl border-2 border-[#2B373D] bg-[#0F171B] px-2 py-3">
