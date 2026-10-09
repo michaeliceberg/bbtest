@@ -12,7 +12,7 @@
 'use client'
 
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { animate, motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { QuestionType } from './page'
@@ -21,7 +21,7 @@ import {
     pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
-    isFieryMilestoneTrial, FieryFeedbackBanner, useWalkthroughCombo, pickFunNextLabel,
+    isFieryMilestoneTrial, FieryFeedbackBanner, useWalkthroughCombo, pickFunNextLabel, TextSticker,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -104,6 +104,8 @@ const arcD = (a0: number, a1: number, r = R) => {
     const sweep = a1 > a0 ? 0 : 1
     return `M ${p0.x} ${p0.y} A ${r} ${r} 0 ${large} ${sweep} ${p1.x} ${p1.y}`
 }
+// Полная окружность от точки 0 (справа) против часовой стрелки (sweep 0 — против часовой на экране).
+const CIRCLE_CCW = `M ${C + R} ${C} A ${R} ${R} 0 1 0 ${C - R} ${C} A ${R} ${R} 0 1 0 ${C + R} ${C}`
 const Arrowhead = ({ x, y, dx, dy, color, size = 12 }: { x: number; y: number; dx: number; dy: number; color: string; size?: number }) => {
     const px = -dy, py = dx
     return <polygon points={`${x},${y} ${x - dx * size + px * size * 0.55},${y - dy * size + py * size * 0.55} ${x - dx * size - px * size * 0.55},${y - dy * size - py * size * 0.55}`} fill={color} />
@@ -155,7 +157,8 @@ const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = fals
     return (
         <div className="relative w-full max-w-[500px] mx-auto" style={maxW ? { maxWidth: maxW } : undefined}>
         <svg ref={svgRef} viewBox="-30 0 360 300" className="w-full h-auto block select-none overflow-visible">
-            <motion.circle cx={C} cy={C} r={R} fill="none" stroke="#F2F7FB" strokeWidth={3}
+            {/* Окружность рисуем ПРОТИВ часовой (от 0 вверх — в плюс), как растут углы. */}
+            <motion.path d={CIRCLE_CCW} fill="none" stroke="#F2F7FB" strokeWidth={3}
                 initial={draw ? { pathLength: 0 } : false} animate={{ pathLength: 1 }} transition={{ duration: 1.1, ease: 'easeInOut' }} />
             {/* ось cos */}
             <line x1={C - AX} y1={C} x2={C + AX - 4} y2={C} stroke={COS_COLOR} strokeWidth={3} />
@@ -482,7 +485,7 @@ const TableScene = ({ onSettled }: SceneProps) => {
                 ) : <span className="text-transparent"><PiFrac s="π/6" /></span>}
             </div>
             <DiagramBlock>
-                <SinCircle svgRef={svgRef} maxW={330} level={HALF} dashes dots={[A30, A150]} markLevel={phase >= 3} levelBounce={phase === 3}
+                <SinCircle svgRef={svgRef} level={HALF} dashes dots={[A30, A150]} markLevel={phase >= 3} levelBounce={phase === 3}
                     labels={phase >= 9 ? [{ a: A30, text: <PiFrac s="π/6" />, color: ARC_COLOR, key: 'r', side: 1 }] : []} />
             </DiagramBlock>
             {geo && phase >= 4 && (
@@ -528,17 +531,23 @@ const NachoNearLeftPoint = () => {
     )
 }
 
-// Радиус-вектор из центра к точке окружности под углом a (рисуется от центра)
-const RadiusVec = ({ a, delay = 0 }: { a: number; delay?: number }) => {
-    const p = pt(a, R - 12)
-    const dx = Math.cos(a), dy = -Math.sin(a)
+// Угол «как часовая стрелка»: радиус поворачивается от a0 до a1 по дуге и заметает
+// полупрозрачный синий сектор (против часовой, если a1 > a0, иначе по часовой).
+const SweepSector = ({ a0, a1, dur = 1.1 }: { a0: number; a1: number; dur?: number }) => {
+    const [a, setA] = useState(a0)
+    useEffect(() => {
+        const c = animate(a0, a1, { duration: dur, ease: 'easeInOut', onUpdate: setA })
+        // страховка: если вкладку свернули и анимация не доиграла
+        const t = setTimeout(() => setA(a1), dur * 1000 + 400)
+        return () => { c.stop(); clearTimeout(t) }
+    }, [a0, a1, dur])
+    const p0 = pt(a0), p = pt(a)
+    const sweep = a1 > a0 ? 0 : 1
     return (
         <>
-            <motion.line x1={C} y1={C} x2={p.x} y2={p.y} stroke="#F2F7FB" strokeWidth={3} strokeLinecap="round"
-                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay, duration: 0.5, ease: 'easeOut' }} />
-            <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: delay + 0.45, duration: 0.15 }}>
-                <Arrowhead x={pt(a, R - 3).x} y={pt(a, R - 3).y} dx={dx} dy={dy} color="#F2F7FB" size={11} />
-            </motion.g>
+            <path d={`M ${C} ${C} L ${p0.x} ${p0.y} A ${R} ${R} 0 0 ${sweep} ${p.x} ${p.y} Z`} fill={hexToRgba(SIN_COLOR, 0.32)} />
+            <line x1={C} y1={C} x2={p0.x} y2={p0.y} stroke={hexToRgba('#F2F7FB', 0.45)} strokeWidth={2} />
+            <line x1={C} y1={C} x2={p.x} y2={p.y} stroke="#F2F7FB" strokeWidth={3.5} strokeLinecap="round" />
         </>
     )
 }
@@ -560,10 +569,17 @@ const LeftScene = ({ onSettled }: SceneProps) => {
     }, [askReady])
     useEffect(() => {
         // 7 → 8 — по концу полёта, это страховка.
-        const next: Record<number, [number, number]> = { 3: [4, 900], 4: [5, 2200], 5: [6, 2000], 7: [8, 1500], 8: [9, 1900], 9: [10, 1600], 10: [11, 1300], 11: [12, 1200], 12: [13, 1600], 13: [14, 1500] }
+        const next: Record<number, [number, number]> = { 4: [5, 2200], 5: [6, 2000], 7: [8, 1500], 8: [9, 1900], 9: [10, 1600], 10: [11, 1300], 11: [12, 1200], 12: [13, 1600], 13: [14, 1500] }
         const st = next[phase]
         if (!st) return
         const t = setTimeout(() => setPhase(st[0]), st[1])
+        return () => clearTimeout(t)
+    }, [phase])
+    // После ответа π — пауза, потом «стикер текста» «Давай заметим», и только потом угол π/6.
+    const [notice, setNotice] = useState(false)
+    useEffect(() => {
+        if (phase !== 3) return
+        const t = setTimeout(() => setNotice(true), 1300)
         return () => clearTimeout(t)
     }, [phase])
     useEffect(() => {
@@ -632,19 +648,15 @@ const LeftScene = ({ onSettled }: SceneProps) => {
                     svgExtra={(
                         <>
                             {/* радиусы-векторы и маленькие углы π/6 (справа от 0) и −π/6 (слева от π) */}
+                            {/* углы π/6 (от 0 вверх) и −π/6 (от π по часовой) — радиус крутится как стрелка часов */}
                             {phase >= 4 && phase <= 9 && (
                                 <g opacity={phase >= 6 ? 0.45 : 1} style={{ transition: 'opacity 0.5s' }}>
-                                    <RadiusVec a={A30} />
-                                    <motion.path d={arcD(0, A30, 40)} fill="none" stroke={ARC_COLOR} strokeWidth={3}
-                                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.6, duration: 0.5 }} />
+                                    <SweepSector a0={0} a1={A30} />
                                 </g>
                             )}
                             {phase >= 5 && phase <= 9 && (
                                 <g opacity={phase >= 6 ? 0.45 : 1} style={{ transition: 'opacity 0.5s' }}>
-                                    <RadiusVec a={PI} />
-                                    <RadiusVec a={A150} delay={0.5} />
-                                    <motion.path d={arcD(PI, A150, 40)} fill="none" stroke={PERIOD_COLOR} strokeWidth={3}
-                                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 1.1, duration: 0.5 }} />
+                                    <SweepSector a0={PI} a1={A150} />
                                 </g>
                             )}
                             {/* левая точка (sin ½) — крупный отскок «вот про этот угол» */}
@@ -670,16 +682,16 @@ const LeftScene = ({ onSettled }: SceneProps) => {
                         <>
                             {phase === 0 && askReady && <NachoNearLeftPoint />}
                             {phase >= 4 && phase <= 9 && (
-                                <At {...pt(A30 / 2, 62)}>
+                                <At {...pt(A30 / 2, 74)}>
                                     <motion.span className="block text-xs md:text-sm font-black" initial={{ scale: 0, opacity: 0 }}
-                                        animate={{ scale: 1, opacity: phase >= 6 ? 0.5 : 1 }} transition={{ type: 'spring', stiffness: 320, damping: 10, delay: 1 }}
+                                        animate={{ scale: 1, opacity: phase >= 6 ? 0.5 : 1 }} transition={{ type: 'spring', stiffness: 320, damping: 10, delay: 1.1 }}
                                         style={{ color: ARC_COLOR }}><PiFrac s="π/6" /></motion.span>
                                 </At>
                             )}
                             {phase >= 5 && phase <= 9 && (
-                                <At {...pt((PI + A150) / 2, 64)}>
+                                <At {...pt((PI + A150) / 2, 74)}>
                                     <motion.span className="flex items-center text-xs md:text-sm font-black" initial={{ scale: 0, opacity: 0 }}
-                                        animate={{ scale: 1, opacity: phase >= 6 ? 0.5 : 1 }} transition={{ type: 'spring', stiffness: 320, damping: 10, delay: 1.5 }}
+                                        animate={{ scale: 1, opacity: phase >= 6 ? 0.5 : 1 }} transition={{ type: 'spring', stiffness: 320, damping: 10, delay: 1.1 }}
                                         style={{ color: PERIOD_COLOR }}>−<PiFrac s="π/6" /></motion.span>
                                 </At>
                             )}
@@ -696,6 +708,7 @@ const LeftScene = ({ onSettled }: SceneProps) => {
                         </>
                     )} />
             </DiagramBlock>
+            {phase === 3 && notice && <TextSticker text="Давай заметим" color={ARC_COLOR} onDone={() => setPhase((p) => Math.max(p, 4))} />}
             {phase === 0 && btnReady && (
                 <motion.div className="w-full flex" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                     <button type="button" onClick={() => setPhase(1)} className={cn(walkthroughButtonClass(true), 'w-full')} style={walkthroughButtonStyle(true)}>
@@ -704,7 +717,7 @@ const LeftScene = ({ onSettled }: SceneProps) => {
                 </motion.div>
             )}
             {phase >= 1 && (
-                <TypedBig small parts={[{ text: 'Сначала скажи: а ' }, { text: 'что это', color: PI_POINT_COLOR }, { text: '?' }]} readMs={200} onDone={() => setPhase((p) => Math.max(p, 2))} />
+                <TypedBig small parts={[{ text: 'Сначала скажи: ' }, { text: 'что это', color: PI_POINT_COLOR }, { text: '?' }]} readMs={200} onDone={() => setPhase((p) => Math.max(p, 2))} />
             )}
             {phase === 2 && (
                 <div className="grid grid-cols-3 gap-3 w-full max-w-sm mx-auto">

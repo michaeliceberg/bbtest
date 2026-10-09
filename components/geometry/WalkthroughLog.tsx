@@ -18,6 +18,7 @@ import { motion } from 'framer-motion'
 import dynamic from 'next/dynamic'
 import Latex from 'react-latex-next'
 import Confetti from 'react-confetti'
+import { createPortal } from 'react-dom'
 import { useWindowSize } from 'react-use'
 import { ArrowLeft, RotateCcw } from 'lucide-react'
 import { HighlightWord } from './WalkthroughMarker'
@@ -53,6 +54,35 @@ export const glassStickerStyle = (color: string): React.CSSProperties => ({
     backdropFilter: 'blur(6px)',
     WebkitBackdropFilter: 'blur(6px)',
 })
+
+// «Стикер текста» (2026-10-09): короткая фраза в облачке посередине экрана, поверх всех анимаций,
+// стеклянный фон размывает то, что под ним. Появляется с отскоком, держится holdMs и с отскоком
+// исчезает, потом зовёт onDone. Через портал в body — иначе transform у предков сдвигает fixed.
+export const TextSticker = ({ text, color = '#F2C35B', holdMs = 1500, onDone }: { text: React.ReactNode; color?: string; holdMs?: number; onDone?: () => void }) => {
+    const [mounted, setMounted] = useState(false)
+    const [out, setOut] = useState(false)
+    const doneRef = useRef(onDone)
+    doneRef.current = onDone
+    useEffect(() => {
+        setMounted(true)
+        const t1 = setTimeout(() => setOut(true), 450 + holdMs)
+        const t2 = setTimeout(() => doneRef.current?.(), 450 + holdMs + 450)
+        return () => { clearTimeout(t1); clearTimeout(t2) }
+    }, [holdMs])
+    if (!mounted) return null
+    return createPortal(
+        <div className="pointer-events-none fixed inset-0 z-[80] flex items-center justify-center px-6">
+            <motion.div initial={{ scale: 0, opacity: 0 }}
+                animate={out ? { scale: [1, 1.12, 0], opacity: [1, 1, 0] } : { scale: 1, opacity: 1 }}
+                transition={out ? { duration: 0.4, ease: 'easeIn' } : { type: 'spring', stiffness: 380, damping: 11 }}
+                className="rounded-3xl border-2 px-7 py-4 text-3xl md:text-4xl font-black text-center shadow-2xl"
+                style={{ ...glassStickerStyle(color), backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
+                {text}
+            </motion.div>
+        </div>,
+        document.body,
+    )
+}
 
 export const MARKER_LOOP_COLOR = '#F2C35B'
 export const MARKER_LOOP_PATH = 'M 86 24 C 66 0, 16 4, 7 44 C 0 86, 58 102, 90 80 C 104 64, 99 34, 72 18'
