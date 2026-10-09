@@ -2,7 +2,8 @@ import { getEgeMove } from '@/lib/egeMove'
 import { PUBLIC_TRIAL_T_LESSON_IDS, subjectByLesson, subjectByTCourse } from '@/lib/trialTracks';
 import { ReferralCatcher } from '@/components/referral-catcher';
 import { getOrCreateInvite, resolveInviteCode } from '@/lib/invite';
-import { ReferralWelcome } from '@/components/referral-screens';
+import { ReferralGate } from '@/components/referral-gate';
+import type { TrialSubject } from '@/lib/trialTracks';
 // app/t-lesson/[t_lessonId]/page.tsx
 
 import { getAllTLessonProgress, getAllUsersProgress, getTLesson, getTLessonPublic, getUserProgress, getHotQuestionsForUnit } from "@/db/queries"
@@ -1911,7 +1912,8 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         <>
         {/* ?ref= из приглашения в пробный урок — ставит cookie referredBy */}
         <ReferralCatcher />
-        {isGuest && searchParams?.ref && <ReferralWelcome inviterNickname={inviter?.nickname ?? null} theme="cozy" subject={subjectByLesson(t_lessonId)} />}
+        {/* По приглашению урок стартует только после «ГААААЗ» на экране приветствия */}
+        <MaybeReferralGate show={!!(isGuest && searchParams?.ref)} inviterNickname={inviter?.nickname ?? null} subject={subjectByLesson(t_lessonId)}>
         <TQuiz
             moveId={moveId}
             t_lessonId={t_lesson.id}
@@ -1935,9 +1937,13 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             // уже используется на /learn (userProgress.isAdmin===1).
             isAdmin={isGuest ? false : userProgress!.isAdmin === 1}
         />
+        </MaybeReferralGate>
         </>
     );
 }
+
+const MaybeReferralGate = ({ show, inviterNickname, subject, children }: { show: boolean; inviterNickname: string | null; subject: TrialSubject; children: React.ReactNode }) =>
+    show ? <ReferralGate inviterNickname={inviterNickname} subject={subject}>{children}</ReferralGate> : <>{children}</>;
 
 export default LessonIdPage;
 
