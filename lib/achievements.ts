@@ -138,6 +138,18 @@ export async function computeStateKeys(userId: string): Promise<string[]> {
 	const g = await rows(sql`SELECT 1 FROM gangs WHERE creator_user_id = ${userId} LIMIT 1`);
 	if (g.length) keys.push('gang_create');
 
+	// Сундуки: история открытых кейсов — использованные ключи (case_keys, по редкости) и счётчик
+	// chests_opened из барабана (там же кейсы квестов/хода/битвы банд, у которых ключей нет).
+	const ck = await rows(sql`
+		SELECT tier, count(*) AS n FROM case_keys WHERE user_id = ${userId} AND used_at IS NOT NULL GROUP BY tier`);
+	let opened = 0;
+	for (const r of ck) {
+		opened += num(r.n);
+		if (['common', 'rare', 'mythic', 'mega'].includes(String(r.tier))) keys.push(`chest_${r.tier}`);
+	}
+	const cc = await rows(sql`SELECT value FROM achievement_counters WHERE user_id = ${userId} AND key = 'chests_opened'`);
+	if (Math.max(opened, num(cc[0]?.value)) >= 10) keys.push('chests_10');
+
 	return keys;
 }
 

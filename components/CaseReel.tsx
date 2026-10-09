@@ -21,7 +21,7 @@ import type { OpenCaseResult } from '@/actions/open-case'
 import { useRive, Layout, Fit, Alignment } from '@rive-app/react-webgl2'
 import { playSound, preloadSound, CASE_PRIZE_SOUND, CHEST_DROP_SOUND, GEM_DROP_SOUND, COIN_DROP_SOUND, PIZZA_DROP_SOUND } from '@/lib/sound'
 import {
-  getCasePool, getLessonCasePool, isJackpotReward, pickWeightedReward, rewardEmoji, type CaseReward,
+  DIAGNOSTIC_CASE_POOL, getCasePool, getLessonCasePool, isJackpotReward, pickWeightedReward, rewardEmoji, type CaseReward,
   LESSON_CASE_TIER_ICON, LESSON_CASE_TIER_LABEL, LESSON_CASE_TIER_PAGE_BG, type LessonCaseTier,
 } from '@/lib/caseRewards'
 import { COZY, COZY_ACCENT, COZY_PAGE_BG, type UiTheme } from '@/lib/cozyTheme'
@@ -336,9 +336,13 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
         return () => clearTimeout(t)
     }, [tier])
     // Ачивки за первый сундук каждой редкости (в момент сцены с сундуком, до «Крутить»).
-    // Позиционный кейс без tier: обычный — common, мега — rare. Кейсы с чужим пулом (гости) не считаем.
+    // Позиционный кейс без tier: обычный — common, мега — rare. Не считаем только гостевые/диагностические
+    // кейсы (свой пул DIAGNOSTIC_CASE_POOL). Раньше выход стоял на ЛЮБОМ переданном pool — а pool передают
+    // почти все кейсы тренажёра, поэтому ачивки за сундуки не получал никто.
+    const chestReportedRef = useRef(false)
     useEffect(() => {
-        if (poolOverride) return
+        if (poolOverride === DIAGNOSTIC_CASE_POOL || chestReportedRef.current) return
+        chestReportedRef.current = true
         reportChest(tier ?? (isMega ? 'rare' : 'common'))
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
