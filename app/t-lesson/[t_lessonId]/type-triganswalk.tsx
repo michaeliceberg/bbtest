@@ -443,7 +443,7 @@ const TableScene = ({ onSettled }: SceneProps) => {
         <div ref={boxRef} className="relative w-full flex flex-col gap-2">
             {/* место под текст и таблицу занято заранее — окружность не прыгает, стрелки остаются на месте */}
             <div className="min-h-[2.25rem]">
-                {phase >= 1 && <TypedBig small parts={[{ text: 'Смотрим в ' }, { text: 'таблицу синусов', color: SIN_COLOR }]} readMs={300} onDone={() => setPhase((p) => Math.max(p, 2))} />}
+                {phase >= 1 && <TypedBig small parts={[{ text: 'Вспоминаем ' }, { text: 'таблицу синусов', color: SIN_COLOR }]} readMs={300} onDone={() => setPhase((p) => Math.max(p, 2))} />}
             </div>
             <motion.div initial={false} animate={{ opacity: phase >= 2 ? 1 : 0, y: phase >= 2 ? 0 : 10 }} transition={{ duration: 0.4 }} className="w-full flex justify-center">
                 <div className="grid grid-cols-[3rem_repeat(3,minmax(4.5rem,6rem))] gap-x-2 gap-y-6 text-lg md:text-xl font-extrabold text-[#F2F7FB]">
@@ -569,7 +569,7 @@ const LeftScene = ({ onSettled }: SceneProps) => {
     }, [askReady])
     useEffect(() => {
         // 7 → 8 — по концу полёта, это страховка.
-        const next: Record<number, [number, number]> = { 4: [5, 2200], 5: [6, 2000], 7: [8, 1500], 8: [9, 1900], 9: [10, 1600], 10: [11, 1300], 11: [12, 1200], 12: [13, 1600], 13: [14, 1500] }
+        const next: Record<number, [number, number]> = { 4: [5, 2200], 5: [6, 3300], 7: [8, 1500], 8: [9, 1900], 9: [10, 1600], 10: [11, 1300], 11: [12, 1200], 12: [13, 1600], 13: [14, 1500] }
         const st = next[phase]
         if (!st) return
         const t = setTimeout(() => setPhase(st[0]), st[1])
@@ -685,14 +685,14 @@ const LeftScene = ({ onSettled }: SceneProps) => {
                                 <At {...pt(A30 / 2, 74)}>
                                     <motion.span className="block text-xs md:text-sm font-black" initial={{ scale: 0, opacity: 0 }}
                                         animate={{ scale: 1, opacity: phase >= 6 ? 0.5 : 1 }} transition={{ type: 'spring', stiffness: 320, damping: 10, delay: 1.1 }}
-                                        style={{ color: ARC_COLOR }}><PiFrac s="π/6" /></motion.span>
+                                        style={{ color: '#FFFFFF', textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}><PiFrac s="π/6" /></motion.span>
                                 </At>
                             )}
                             {phase >= 5 && phase <= 9 && (
                                 <At {...pt((PI + A150) / 2, 74)}>
                                     <motion.span className="flex items-center text-xs md:text-sm font-black" initial={{ scale: 0, opacity: 0 }}
                                         animate={{ scale: 1, opacity: phase >= 6 ? 0.5 : 1 }} transition={{ type: 'spring', stiffness: 320, damping: 10, delay: 1.1 }}
-                                        style={{ color: PERIOD_COLOR }}>−<PiFrac s="π/6" /></motion.span>
+                                        style={{ color: '#FFFFFF', textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}>−<PiFrac s="π/6" /></motion.span>
                                 </At>
                             )}
                             {phase >= 3 && phase !== 10 && (
@@ -716,8 +716,13 @@ const LeftScene = ({ onSettled }: SceneProps) => {
                     </button>
                 </motion.div>
             )}
+            {/* Вопрос «что это?» после ответа убираем, на его месте потом печатается следующая фраза —
+                страница не растёт. */}
             {phase >= 1 && (
-                <TypedBig small parts={[{ text: 'Сначала скажи: ' }, { text: 'что это', color: PI_POINT_COLOR }, { text: '?' }]} readMs={200} onDone={() => setPhase((p) => Math.max(p, 2))} />
+                <div className="min-h-[2.25rem]">
+                    {phase <= 2 && <TypedBig small parts={[{ text: 'Сначала скажи: ' }, { text: 'что это', color: PI_POINT_COLOR }, { text: '?' }]} readMs={200} onDone={() => setPhase((p) => Math.max(p, 2))} />}
+                    {phase >= 6 && <TypedBig small parts={[{ text: 'значит надо от ' }, { text: 'π', color: PI_POINT_COLOR }, { text: ' пойти ВВЕРХ на ' }, { text: 'π/6', color: PERIOD_COLOR }]} readMs={900} onDone={() => setPhase((p) => Math.max(p, 7))} />}
+                </div>
             )}
             {phase === 2 && (
                 <div className="grid grid-cols-3 gap-3 w-full max-w-sm mx-auto">
@@ -730,7 +735,6 @@ const LeftScene = ({ onSettled }: SceneProps) => {
                     ))}
                 </div>
             )}
-            {phase >= 6 && <TypedBig small parts={[{ text: 'Теперь от ' }, { text: 'π', color: PI_POINT_COLOR }, { text: ' пойдём вверх В МИНУС ' }, { text: 'π/6', color: PERIOD_COLOR }]} readMs={900} onDone={() => setPhase((p) => Math.max(p, 7))} />}
             {/* строка вычисления: слоты заняты заранее, π и −π/6 прилетают в них */}
             <div className="flex items-center justify-center gap-2 text-3xl font-black text-[#F2F7FB]" style={{ visibility: phase >= 6 ? 'visible' : 'hidden' }}>
                 <span ref={slotPi} style={{ visibility: phase >= 11 ? 'visible' : 'hidden' }}>{bigPi}</span>
