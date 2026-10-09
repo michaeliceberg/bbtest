@@ -580,7 +580,7 @@ const IntroScene = ({ onSettled }: SceneProps) => {
                         {phase === 1.5 && (
                             <motion.video src={VIDEO_DJANGO} autoPlay muted playsInline onEnded={() => setPhase((p) => Math.max(p, 2))}
                                 initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.45 }}
-                                className="pointer-events-none absolute right-[6%] top-[4%] w-[34%] rounded-2xl" />
+                                className="pointer-events-none absolute right-[7%] -top-[4%] w-[27%] rounded-2xl" />
                         )}
                     </div>
                 </DiagramBlock>
