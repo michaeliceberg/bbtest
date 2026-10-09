@@ -679,3 +679,12 @@ body {
   animation: band-gold-spin 3s linear infinite;
 }
 @keyframes band-gold-spin { to { transform: rotate(360deg); } }
+
+/* Изогнутая стрелка «вверх» — покачивается вверх-вниз (только transform). */
+@keyframes arrow-bob-y {
+  0%, 100% { transform: translateY(4px); }
+  50% { transform: translateY(-6px); }
+}
+.animate-arrow-bob-y {
+  animation: arrow-bob-y 1s ease-in-out infinite;
+}

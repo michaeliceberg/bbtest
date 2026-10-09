@@ -129,6 +129,7 @@ type CircleProps = {
     markLevel?: boolean // обвести ½ на оси маркером
     levelBounce?: boolean // крупный отскок стикера ½ — «смотри сюда»
     svgRef?: React.Ref<SVGSVGElement>
+    levelDim?: boolean // ½ на оси — бледно, чтобы не отвлекала
     maxW?: number // предел ширины рисунка, px (чтобы сцена влезала в экран телефона)
 }
 
@@ -151,7 +152,7 @@ const toBoxCoords = (box: DOMRect, svg: DOMRect, x: number, y: number) => {
     return { x: svg.left - box.left + (x + 30) * k, y: svg.top - box.top + y * k }
 }
 
-const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = false, dots = [], dotsPop = false, labels = [], arcs = [], spin = null, svgRef, dashDur = 0.9, svgExtra, overlay, levelPop = false, markLevel = false, levelBounce = false, maxW }: CircleProps) => {
+const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = false, dots = [], dotsPop = false, labels = [], arcs = [], spin = null, svgRef, dashDur = 0.9, svgExtra, overlay, levelPop = false, markLevel = false, levelBounce = false, levelDim = false, maxW }: CircleProps) => {
     const ly = level ? C - level.v * R : 0
     const hx = level ? Math.sqrt(Math.max(0, 1 - level.v * level.v)) * R : 0
     return (
@@ -207,7 +208,7 @@ const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = fals
             )}
             {level && (
                 // отметка уровня на оси sin
-                <g transform={`translate(${C} ${ly})`}>
+                <g transform={`translate(${C} ${ly})`} opacity={levelDim ? 0.25 : 1}>
                     <motion.g initial={levelPop ? { scale: 0 } : false} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 8 }}>
                         <circle r={6} fill={SIN_COLOR} stroke="#F2F7FB" strokeWidth={2} />
                     </motion.g>
@@ -233,11 +234,10 @@ const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = fals
         </svg>
             {level && (
                 <At {...levelPos(level.v)}>
-                    <motion.span initial={levelPop ? { scale: 0 } : false}
+                    <motion.span initial={levelPop ? { scale: 0 } : false} style={{ ...glassStickerStyle(SIN_COLOR), opacity: levelDim ? 0.2 : 1 }}
                         animate={levelBounce ? { scale: [1, 1.9, 0.88, 1.18, 1] } : { scale: 1 }}
                         transition={levelBounce ? { duration: 1, ease: 'easeOut' } : { type: 'spring', stiffness: 320, damping: 8, delay: 0.15 }}
-                        className="relative flex items-center justify-center rounded-lg border-2 px-1.5 py-0.5 text-base md:text-lg font-black"
-                        style={glassStickerStyle(SIN_COLOR)}>
+                        className="relative flex items-center justify-center rounded-lg border-2 px-1.5 py-0.5 text-base md:text-lg font-black">
                         {level.label}
                         {markLevel && <MarkerLoop pad={10} />}
                     </motion.span>
@@ -583,7 +583,7 @@ const LeftAnglesScene = ({ onSettled }: SceneProps) => {
         <div className="relative w-full flex flex-col gap-4">
             <TypedBig small parts={[{ text: 'А что это за ' }, { text: 'точка слева', color: DOT_COLOR }, { text: '?' }]} readMs={600} onDone={() => setAskReady(true)} />
             <DiagramBlock>
-                <SinCircle level={HALF} dashes dots={[A30, A150]}
+                <SinCircle level={HALF} levelDim dashes dots={[A30, A150]}
                     labels={[{ a: A30, text: <PiFrac s="π/6" />, color: ARC_COLOR, key: 'r', side: 1, pop: false }]}
                     svgExtra={(
                         <>
@@ -620,6 +620,23 @@ const LeftAnglesScene = ({ onSettled }: SceneProps) => {
 
 // 4б. «А что у нас здесь?» → π слева → красно-розовая дуга со стрелкой от π вверх → «−π/6» у дуги →
 // «значит надо от π пойти ВВЕРХ на π/6» → π и −π/6 съезжаются в строку π − π/6 = 5π/6 → 5π/6 летит к левой точке.
+// Изогнутая (по дуге окружности) стрелка вверх у точки π, снаружи окружности, покачивается вверх-вниз.
+const BobUpArrow = () => {
+    const r = R + 54 // снаружи подписи π
+    const a0 = PI + 0.32, a1 = PI - 0.42
+    const end = pt(a1, r)
+    const tdx = Math.sin(a1), tdy = Math.cos(a1) // касательная при убывании угла
+    return (
+        <motion.g initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 12 }}
+            style={{ transformOrigin: `${C - r}px ${C}px` }}>
+            <g className="animate-arrow-bob-y">
+                <path d={arcD(a0, a1 + 0.08, r)} fill="none" stroke={PERIOD_COLOR} strokeWidth={6} strokeLinecap="round" />
+                <Arrowhead x={end.x + tdx * 8} y={end.y + tdy * 8} dx={tdx} dy={tdy} color={PERIOD_COLOR} size={16} />
+            </g>
+        </motion.g>
+    )
+}
+
 const LeftScene = ({ onSettled }: SceneProps) => {
     // 0 «А что у нас здесь?», точка π прыгает → 1 варианты → 2 «π» слева → 3 «то есть надо от π пойти ВВЕРХ на МИНУС π/6» →
     // (пауза) 4 «МИНУС — потому что идём в МИНУСОВУЮ сторону» → кнопка «Понял» → 5 точка π пружинит, дуга вверх →
@@ -630,7 +647,7 @@ const LeftScene = ({ onSettled }: SceneProps) => {
     const [gotItReady, setGotItReady] = useState(false)
     useEffect(() => {
         // 10 → 11 — по концу полёта, это страховка.
-        const next: Record<number, [number, number]> = { 2: [3, 900], 5: [6, 1700], 6: [7, 1300], 7: [8, 1300], 8: [9, 1200], 9: [10, 1600], 10: [11, 1500] }
+        const next: Record<number, [number, number]> = { 2: [3, 900], 5: [6, 1700], 6: [7, 3300], 7: [8, 1300], 8: [9, 1200], 9: [10, 1600], 10: [11, 1500] }
         const st = next[phase]
         if (!st) return
         const t = setTimeout(() => setPhase(st[0]), st[1])
@@ -698,7 +715,7 @@ const LeftScene = ({ onSettled }: SceneProps) => {
             </div>
             {phase >= 4 && <TypedBig small parts={[{ text: 'МИНУС', color: PERIOD_COLOR }, { text: ' — потому что идём в ' }, { text: 'МИНУСОВУЮ', color: PERIOD_COLOR }, { text: ' сторону' }]} readMs={400} onDone={() => setGotItReady(true)} />}
             <DiagramBlock>
-                <SinCircle svgRef={svgRef} level={HALF} dashes dots={[A30, A150]}
+                <SinCircle svgRef={svgRef} level={HALF} levelDim dashes dots={[A30, A150]}
                     arcs={phase >= 5 ? [{ a0: PI, a1: A150, color: PERIOD_COLOR, key: 'cw', arrow: true, width: 10, dur: 1.3 }] : []}
                     labels={[
                         { a: A30, text: <PiFrac s="π/6" />, color: ARC_COLOR, key: 'r', side: 1, pop: false },
@@ -717,6 +734,8 @@ const LeftScene = ({ onSettled }: SceneProps) => {
                                 <circle r={11} fill={hexToRgba(DOT_COLOR, 0.35)} />
                                 <circle r={8} fill={DOT_COLOR} stroke="#F2F7FB" strokeWidth={2} />
                             </g>
+                            {/* «вверх» — изогнутая стрелка слева, покачивается, пока не нажали «Понял» */}
+                            {phase === 4 && gotItReady && <BobUpArrow />}
                             {/* точка π — прыгает, пока не ответили; пружинит, когда от неё пошла дуга */}
                             <g transform={`translate(${C - R} ${C})`}>
                                 <motion.g initial={{ scale: 0 }}
@@ -798,7 +817,7 @@ const PeriodScene = ({ onSettled }: SceneProps) => {
         <>
             <TypedBig small parts={[{ text: 'Пройдём ' }, { text: 'полный круг', color: PERIOD_COLOR }, { text: ' — это 2π' }]} onDone={() => setPhase(1)} readMs={200} />
             <DiagramBlock>
-                <SinCircle level={HALF} dots={[A30, A150]} spin={phase >= 1 ? A30 : null}
+                <SinCircle level={HALF} levelDim dots={[A30, A150]} spin={phase >= 1 ? A30 : null}
                     labels={[
                         { a: A30, text: <PiFrac s="π/6" />, color: ARC_COLOR, key: 'r', side: 1 },
                         { a: A150, text: <PiFrac s="5π/6" />, color: ARC_COLOR, key: 'l', side: -1 },
