@@ -565,12 +565,13 @@ const SectorLabel = ({ a, minus = false, dim = false, delay = 0 }: { a: number; 
 // 4а. «А что это за точка слева?» → отскок левой точки и Начо → «Давай заметим..» → угол π/6 справа (радиус
 // заметает синий сектор от 0 вверх) → такой же угол слева (от π по часовой) → кнопка «Круто! Это же одинаковые углы!».
 const LeftAnglesScene = ({ onSettled }: SceneProps) => {
-    // 0 вопрос, отскок точки, Начо → 1 «Давай заметим..» → 2 сектор справа → 3 сектор слева → кнопка
+    // 0 вопрос, отскок точки, Начо, кнопка «Давай узнаем» → 1 «Давай заметим..» → 2 сектор справа → 3 сектор слева → кнопка
     const [phase, setPhase] = useState(0)
     const [askReady, setAskReady] = useState(false)
+    const [btnReady, setBtnReady] = useState(false)
     useEffect(() => {
         if (!askReady) return
-        const t = setTimeout(() => setPhase((p) => Math.max(p, 1)), 1800) // после отскока точки и появления Начо
+        const t = setTimeout(() => setBtnReady(true), 1600) // после отскока точки и появления Начо
         return () => clearTimeout(t)
     }, [askReady])
     useEffect(() => {
@@ -599,12 +600,19 @@ const LeftAnglesScene = ({ onSettled }: SceneProps) => {
                     )}
                     overlay={(
                         <>
-                            {phase <= 1 && askReady && <NachoNearLeftPoint />}
+                            {phase === 0 && askReady && <NachoNearLeftPoint />}
                             {phase >= 2 && <SectorLabel a={A30 / 2} delay={1.1} />}
                             {phase >= 3 && <SectorLabel a={(PI + A150) / 2} delay={1.1} />}
                         </>
                     )} />
             </DiagramBlock>
+            {phase === 0 && btnReady && (
+                <motion.div className="w-full flex" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                    <button type="button" onClick={() => setPhase(1)} className={cn(walkthroughButtonClass(true), 'w-full')} style={walkthroughButtonStyle(true)}>
+                        Давай узнаем
+                    </button>
+                </motion.div>
+            )}
             {phase >= 1 && <TypedBig small parts={[{ text: 'Давай заметим..' }]} readMs={500} onDone={() => setPhase((p) => Math.max(p, 2))} />}
         </div>
     )
