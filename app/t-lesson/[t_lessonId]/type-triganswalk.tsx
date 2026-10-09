@@ -127,6 +127,7 @@ type CircleProps = {
     markLevel?: boolean // обвести ½ на оси маркером
     levelBounce?: boolean // крупный отскок стикера ½ — «смотри сюда»
     svgRef?: React.Ref<SVGSVGElement>
+    maxW?: number // предел ширины рисунка, px (чтобы сцена влезала в экран телефона)
 }
 
 // HTML-элемент поверх окружности в координатах холста (viewBox −30…330 × 0…300), в процентах —
@@ -148,11 +149,11 @@ const toBoxCoords = (box: DOMRect, svg: DOMRect, x: number, y: number) => {
     return { x: svg.left - box.left + (x + 30) * k, y: svg.top - box.top + y * k }
 }
 
-const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = false, dots = [], dotsPop = false, labels = [], arcs = [], spin = null, svgRef, dashDur = 0.9, svgExtra, overlay, levelPop = false, markLevel = false, levelBounce = false }: CircleProps) => {
+const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = false, dots = [], dotsPop = false, labels = [], arcs = [], spin = null, svgRef, dashDur = 0.9, svgExtra, overlay, levelPop = false, markLevel = false, levelBounce = false, maxW }: CircleProps) => {
     const ly = level ? C - level.v * R : 0
     const hx = level ? Math.sqrt(Math.max(0, 1 - level.v * level.v)) * R : 0
     return (
-        <div className="relative w-full max-w-[500px] mx-auto">
+        <div className="relative w-full max-w-[500px] mx-auto" style={maxW ? { maxWidth: maxW } : undefined}>
         <svg ref={svgRef} viewBox="-30 0 360 300" className="w-full h-auto block select-none overflow-visible">
             <motion.circle cx={C} cy={C} r={R} fill="none" stroke="#F2F7FB" strokeWidth={3}
                 initial={draw ? { pathLength: 0 } : false} animate={{ pathLength: 1 }} transition={{ duration: 1.1, ease: 'easeInOut' }} />
@@ -436,16 +437,16 @@ const TableScene = ({ onSettled }: SceneProps) => {
     }, [phase])
 
     return (
-        <div ref={boxRef} className="relative w-full flex flex-col gap-4">
+        <div ref={boxRef} className="relative w-full flex flex-col gap-2">
             {/* место под текст и таблицу занято заранее — окружность не прыгает, стрелки остаются на месте */}
             <div className="min-h-[2.25rem]">
                 {phase >= 1 && <TypedBig small parts={[{ text: 'Смотрим в ' }, { text: 'таблицу синусов', color: SIN_COLOR }]} readMs={300} onDone={() => setPhase((p) => Math.max(p, 2))} />}
             </div>
             <motion.div initial={false} animate={{ opacity: phase >= 2 ? 1 : 0, y: phase >= 2 ? 0 : 10 }} transition={{ duration: 0.4 }} className="w-full flex justify-center">
-                <div className="grid grid-cols-[3rem_repeat(3,minmax(4.5rem,6rem))] gap-x-2 gap-y-9 text-xl md:text-2xl font-extrabold text-[#F2F7FB]">
+                <div className="grid grid-cols-[3rem_repeat(3,minmax(4.5rem,6rem))] gap-x-2 gap-y-6 text-lg md:text-xl font-extrabold text-[#F2F7FB]">
                     <div />
                     {TABLE_ANGLES.map((a, i) => (
-                        <div key={a} className="flex h-11 items-center justify-center">
+                        <div key={a} className="flex h-9 items-center justify-center">
                             <span className="relative rounded-xl border-2 px-2 py-0.5 text-lg font-black transition-opacity duration-500"
                                 style={{ borderColor: ANGLE30, backgroundColor: hexToRgba(ANGLE30, i === 0 && phase >= 5 ? 0.3 : 0.12), color: ANGLE30, opacity: phase >= 5 && i > 0 ? 0.35 : 1 }}>
                                 {a}°
@@ -455,14 +456,14 @@ const TableScene = ({ onSettled }: SceneProps) => {
                     ))}
                     <div className="flex items-center justify-center text-lg font-black" style={{ color: SIN_COLOR }}>sin</div>
                     {TABLE_VALUES.map((v, i) => (
-                        <div key={v} ref={i === 0 ? cellRef : undefined} className="relative flex h-20 items-center justify-center rounded-xl border-2 transition-opacity duration-500"
+                        <div key={v} ref={i === 0 ? cellRef : undefined} className="relative flex h-14 items-center justify-center rounded-xl border-2 transition-opacity duration-500"
                             style={{ borderColor: hexToRgba(SIN_COLOR, i === 0 && phase >= 4 ? 1 : 0.35), backgroundColor: hexToRgba(SIN_COLOR, i === 0 && phase >= 4 ? 0.18 : 0.08), color: SIN_COLOR, opacity: phase >= 4 && i > 0 ? 0.35 : 1 }}>
                             <SinVal v={v} />
                             {i === 0 && phase >= 5 && (
                                 // стрелка вверх — от ½ к 30°
-                                <motion.svg className="absolute left-1/2 -translate-x-1/2 bottom-full overflow-visible" width="20" height="36" viewBox="0 0 20 36"
+                                <motion.svg className="absolute left-1/2 -translate-x-1/2 bottom-full overflow-visible" width="20" height="24" viewBox="0 0 20 24"
                                     initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                                    <motion.line x1={10} y1={34} x2={10} y2={11} stroke="#F2C35B" strokeWidth={3.5} strokeLinecap="round"
+                                    <motion.line x1={10} y1={23} x2={10} y2={11} stroke="#F2C35B" strokeWidth={3.5} strokeLinecap="round"
                                         initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.5 }} />
                                     <motion.polygon points="10,0 3,12 17,12" fill="#F2C35B" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45, duration: 0.15 }} />
                                 </motion.svg>
@@ -471,8 +472,8 @@ const TableScene = ({ onSettled }: SceneProps) => {
                     ))}
                 </div>
             </motion.div>
-            <div className="flex items-center justify-center gap-3 text-5xl font-black text-[#F2F7FB]" style={{ visibility: phase >= 7 ? 'visible' : 'hidden' }}>
-                <span className="rounded-xl border-2 px-2 py-0.5 text-2xl" style={{ borderColor: ANGLE30, backgroundColor: hexToRgba(ANGLE30, 0.2), color: ANGLE30 }}>30°</span>
+            <div className="flex items-center justify-center gap-3 text-3xl font-black text-[#F2F7FB]" style={{ visibility: phase >= 7 ? 'visible' : 'hidden' }}>
+                <span className="rounded-xl border-2 px-2 py-0.5 text-xl" style={{ borderColor: ANGLE30, backgroundColor: hexToRgba(ANGLE30, 0.2), color: ANGLE30 }}>30°</span>
                 {phase >= 7 && <Pop><span style={{ color: ARC_COLOR }}>=</span></Pop>}
                 {phase >= 7 ? (
                     <Pop delay={0.2}>
@@ -481,7 +482,7 @@ const TableScene = ({ onSettled }: SceneProps) => {
                 ) : <span className="text-transparent"><PiFrac s="π/6" /></span>}
             </div>
             <DiagramBlock>
-                <SinCircle svgRef={svgRef} level={HALF} dashes dots={[A30, A150]} markLevel={phase >= 3} levelBounce={phase === 3}
+                <SinCircle svgRef={svgRef} maxW={330} level={HALF} dashes dots={[A30, A150]} markLevel={phase >= 3} levelBounce={phase === 3}
                     labels={phase >= 9 ? [{ a: A30, text: <PiFrac s="π/6" />, color: ARC_COLOR, key: 'r', side: 1 }] : []} />
             </DiagramBlock>
             {geo && phase >= 4 && (
@@ -527,18 +528,39 @@ const NachoNearLeftPoint = () => {
     )
 }
 
+// Радиус-вектор из центра к точке окружности под углом a (рисуется от центра)
+const RadiusVec = ({ a, delay = 0 }: { a: number; delay?: number }) => {
+    const p = pt(a, R - 12)
+    const dx = Math.cos(a), dy = -Math.sin(a)
+    return (
+        <>
+            <motion.line x1={C} y1={C} x2={p.x} y2={p.y} stroke="#F2F7FB" strokeWidth={3} strokeLinecap="round"
+                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay, duration: 0.5, ease: 'easeOut' }} />
+            <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: delay + 0.45, duration: 0.15 }}>
+                <Arrowhead x={pt(a, R - 3).x} y={pt(a, R - 3).y} dx={dx} dy={dy} color="#F2F7FB" size={11} />
+            </motion.g>
+        </>
+    )
+}
+
 const LeftScene = ({ onSettled }: SceneProps) => {
-    // 0 левая точка (sin ½) + «А что это за угол?» → 1 «что это за точка?», точка π прыгает → 2 варианты →
-    // 3 «π» слева, пауза → 4 «Теперь от π пойдём вверх В МИНУС π/6» → 5 точка π крупно пружинит → 6 жирная дуга
-    // со стрелкой от π вверх → 7 «−π/6» сбоку от дуги → 8 π и −π/6 спускаются в строку → 9 «=» → 10 справа 5π/6 →
-    // 11 5π/6 летит к левой точке → 12 подпись
+    // 0 печать «А что это за точка?» → отскок левой точки и Начо → кнопка → 1 «а что это?», точка π прыгает →
+    // 2 варианты → 3 «π» слева → 4 радиус к π/6 и угол π/6 справа → 5 радиусы к π и к левой точке, угол −π/6 →
+    // 6 «Теперь от π пойдём вверх В МИНУС π/6» → 7 точка π пружинит → 8 жирная дуга от π вверх → 9 «−π/6» у дуги →
+    // 10 π и −π/6 спускаются в строку → 11 «=» → 12 справа 5π/6 → 13 5π/6 летит к левой точке → 14 подпись
     const [phase, setPhase] = useState(0)
     const [opts] = useState(() => shuffle(PI_OPTIONS))
     const [wrong, setWrong] = useState<string | null>(null)
     const [askReady, setAskReady] = useState(false)
+    const [btnReady, setBtnReady] = useState(false)
+    useEffect(() => {
+        if (!askReady) return
+        const t = setTimeout(() => setBtnReady(true), 1600) // после отскока точки и появления Начо
+        return () => clearTimeout(t)
+    }, [askReady])
     useEffect(() => {
         // 7 → 8 — по концу полёта, это страховка.
-        const next: Record<number, [number, number]> = { 3: [4, 1400], 5: [6, 1500], 6: [7, 1900], 7: [8, 1600], 8: [9, 1300], 9: [10, 1200], 10: [11, 1600], 11: [12, 1500] }
+        const next: Record<number, [number, number]> = { 3: [4, 900], 4: [5, 2200], 5: [6, 2000], 7: [8, 1500], 8: [9, 1900], 9: [10, 1600], 10: [11, 1300], 11: [12, 1200], 12: [13, 1600], 13: [14, 1500] }
         const st = next[phase]
         if (!st) return
         const t = setTimeout(() => setPhase(st[0]), st[1])
@@ -595,23 +617,39 @@ const LeftScene = ({ onSettled }: SceneProps) => {
             −<PiFrac s="π/6" />
         </span>
     )
-    const flying = phase === 8 && geo?.phase === 8
+    const flying = phase === 10 && geo?.phase === 10
 
     return (
         <div ref={boxRef} className="relative w-full flex flex-col gap-4">
             <TypedBig small parts={[{ text: 'А что это за ' }, { text: 'точка', color: DOT_COLOR }, { text: '?' }]} readMs={600} onDone={() => setAskReady(true)} />
             <DiagramBlock>
                 <SinCircle svgRef={svgRef} level={HALF} dashes dots={[A30, A150]}
-                    arcs={phase >= 6 ? [{ a0: PI, a1: A150, color: PERIOD_COLOR, key: 'cw', arrow: true, width: 10, dur: 1.3 }] : []}
+                    arcs={phase >= 8 ? [{ a0: PI, a1: A150, color: PERIOD_COLOR, key: 'cw', arrow: true, width: 10, dur: 1.3 }] : []}
                     labels={[
                         { a: A30, text: <PiFrac s="π/6" />, color: ARC_COLOR, key: 'r', side: 1, pop: false },
-                        ...(phase >= 12 ? [{ a: A150, text: <PiFrac s="5π/6" />, color: ARC_COLOR, key: 'l', side: -1 as const }] : []),
+                        ...(phase >= 14 ? [{ a: A150, text: <PiFrac s="5π/6" />, color: ARC_COLOR, key: 'l', side: -1 as const }] : []),
                     ]}
                     svgExtra={(
                         <>
+                            {/* радиусы-векторы и маленькие углы π/6 (справа от 0) и −π/6 (слева от π) */}
+                            {phase >= 4 && phase <= 9 && (
+                                <g opacity={phase >= 6 ? 0.45 : 1} style={{ transition: 'opacity 0.5s' }}>
+                                    <RadiusVec a={A30} />
+                                    <motion.path d={arcD(0, A30, 40)} fill="none" stroke={ARC_COLOR} strokeWidth={3}
+                                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.6, duration: 0.5 }} />
+                                </g>
+                            )}
+                            {phase >= 5 && phase <= 9 && (
+                                <g opacity={phase >= 6 ? 0.45 : 1} style={{ transition: 'opacity 0.5s' }}>
+                                    <RadiusVec a={PI} />
+                                    <RadiusVec a={A150} delay={0.5} />
+                                    <motion.path d={arcD(PI, A150, 40)} fill="none" stroke={PERIOD_COLOR} strokeWidth={3}
+                                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 1.1, duration: 0.5 }} />
+                                </g>
+                            )}
                             {/* левая точка (sin ½) — крупный отскок «вот про этот угол» */}
                             <g transform={`translate(${pt(A150).x} ${pt(A150).y})`}>
-                                <motion.g initial={{ scale: 1 }} animate={phase === 0 ? { scale: [1, 2.3, 1, 1.7, 1] } : { scale: 1 }} transition={{ duration: 1.4, ease: 'easeOut' }}>
+                                <motion.g initial={{ scale: 1 }} animate={phase === 0 && askReady ? { scale: [1, 2.3, 1, 1.7, 1] } : { scale: 1 }} transition={{ duration: 1.4, ease: 'easeOut' }}>
                                     <circle r={11} fill={hexToRgba(DOT_COLOR, 0.35)} />
                                     <circle r={8} fill={DOT_COLOR} stroke="#F2F7FB" strokeWidth={2} />
                                 </motion.g>
@@ -620,8 +658,8 @@ const LeftScene = ({ onSettled }: SceneProps) => {
                                 // точка π — прыгает, пока не ответили
                                 <g transform={`translate(${C - R} ${C})`}>
                                     <motion.g initial={{ scale: 0 }}
-                                        animate={phase <= 2 ? { scale: [1, 1.45, 1] } : phase === 5 ? { scale: [1, 2.4, 1, 1.7, 1] } : { scale: 1 }}
-                                        transition={phase <= 2 ? { duration: 0.8, repeat: Infinity, ease: 'easeInOut' } : phase === 5 ? { duration: 1.3, ease: 'easeOut' } : { type: 'spring', bounce: 0.5 }}>
+                                        animate={phase <= 2 ? { scale: [1, 1.45, 1] } : phase === 7 ? { scale: [1, 2.4, 1, 1.7, 1] } : { scale: 1 }}
+                                        transition={phase <= 2 ? { duration: 0.8, repeat: Infinity, ease: 'easeInOut' } : phase === 7 ? { duration: 1.3, ease: 'easeOut' } : { type: 'spring', bounce: 0.5 }}>
                                         <circle r={11} fill={PI_POINT_COLOR} stroke="#F2F7FB" strokeWidth={2.5} />
                                     </motion.g>
                                 </g>
@@ -630,21 +668,35 @@ const LeftScene = ({ onSettled }: SceneProps) => {
                     )}
                     overlay={(
                         <>
-                            {phase === 0 && <NachoNearLeftPoint />}
-                            {phase >= 3 && phase !== 8 && (
-                                <At {...labelPos(PI, -1)}>
-                                    <motion.span className="block" initial={phase === 3 ? { scale: 0 } : false} animate={{ scale: 1, opacity: phase >= 9 ? 0.35 : 1 }} transition={{ type: 'spring', stiffness: 320, damping: 9 }}>{piLabel}</motion.span>
+                            {phase === 0 && askReady && <NachoNearLeftPoint />}
+                            {phase >= 4 && phase <= 9 && (
+                                <At {...pt(A30 / 2, 62)}>
+                                    <motion.span className="block text-xs md:text-sm font-black" initial={{ scale: 0, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: phase >= 6 ? 0.5 : 1 }} transition={{ type: 'spring', stiffness: 320, damping: 10, delay: 1 }}
+                                        style={{ color: ARC_COLOR }}><PiFrac s="π/6" /></motion.span>
                                 </At>
                             )}
-                            {phase === 7 && (
+                            {phase >= 5 && phase <= 9 && (
+                                <At {...pt((PI + A150) / 2, 64)}>
+                                    <motion.span className="flex items-center text-xs md:text-sm font-black" initial={{ scale: 0, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: phase >= 6 ? 0.5 : 1 }} transition={{ type: 'spring', stiffness: 320, damping: 10, delay: 1.5 }}
+                                        style={{ color: PERIOD_COLOR }}>−<PiFrac s="π/6" /></motion.span>
+                                </At>
+                            )}
+                            {phase >= 3 && phase !== 10 && (
+                                <At {...labelPos(PI, -1)}>
+                                    <motion.span className="block" initial={phase === 3 ? { scale: 0 } : false} animate={{ scale: 1, opacity: phase >= 11 ? 0.35 : 1 }} transition={{ type: 'spring', stiffness: 320, damping: 9 }}>{piLabel}</motion.span>
+                                </At>
+                            )}
+                            {phase === 9 && (
                                 <At {...MINUS_POS}>
-                                    <motion.span className="block" initial={phase === 7 ? { scale: 0 } : false} animate={{ scale: 1, opacity: phase >= 9 ? 0.35 : 1 }} transition={{ type: 'spring', stiffness: 320, damping: 9 }}>{minusLabel}</motion.span>
+                                    <motion.span className="block" initial={phase === 9 ? { scale: 0 } : false} animate={{ scale: 1, opacity: phase >= 11 ? 0.35 : 1 }} transition={{ type: 'spring', stiffness: 320, damping: 9 }}>{minusLabel}</motion.span>
                                 </At>
                             )}
                         </>
                     )} />
             </DiagramBlock>
-            {phase === 0 && askReady && (
+            {phase === 0 && btnReady && (
                 <motion.div className="w-full flex" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                     <button type="button" onClick={() => setPhase(1)} className={cn(walkthroughButtonClass(true), 'w-full')} style={walkthroughButtonStyle(true)}>
                         Давай узнаем
@@ -665,14 +717,14 @@ const LeftScene = ({ onSettled }: SceneProps) => {
                     ))}
                 </div>
             )}
-            {phase >= 4 && <TypedBig small parts={[{ text: 'Теперь от ' }, { text: 'π', color: PI_POINT_COLOR }, { text: ' пойдём вверх В МИНУС ' }, { text: 'π/6', color: PERIOD_COLOR }]} readMs={900} onDone={() => setPhase((p) => Math.max(p, 5))} />}
+            {phase >= 6 && <TypedBig small parts={[{ text: 'Теперь от ' }, { text: 'π', color: PI_POINT_COLOR }, { text: ' пойдём вверх В МИНУС ' }, { text: 'π/6', color: PERIOD_COLOR }]} readMs={900} onDone={() => setPhase((p) => Math.max(p, 7))} />}
             {/* строка вычисления: слоты заняты заранее, π и −π/6 прилетают в них */}
-            <div className="flex items-center justify-center gap-2 text-3xl font-black text-[#F2F7FB]" style={{ visibility: phase >= 4 ? 'visible' : 'hidden' }}>
-                <span ref={slotPi} style={{ visibility: phase >= 9 ? 'visible' : 'hidden' }}>{bigPi}</span>
-                <span ref={slotMinus} style={{ visibility: phase >= 9 ? 'visible' : 'hidden' }}>{bigMinus}</span>
-                <span style={{ visibility: phase >= 9 ? 'visible' : 'hidden' }}>{phase >= 9 ? <Pop><span>=</span></Pop> : '='}</span>
-                <span ref={slotRes} style={{ visibility: phase >= 10 ? 'visible' : 'hidden', opacity: phase >= 11 ? 0.25 : 1, color: ARC_COLOR }}>
-                    {phase >= 10 ? <motion.span className="inline-block" initial={{ scale: 3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.55, duration: 0.7 }}><PiFrac s="5π/6" /></motion.span> : <PiFrac s="5π/6" />}
+            <div className="flex items-center justify-center gap-2 text-3xl font-black text-[#F2F7FB]" style={{ visibility: phase >= 6 ? 'visible' : 'hidden' }}>
+                <span ref={slotPi} style={{ visibility: phase >= 11 ? 'visible' : 'hidden' }}>{bigPi}</span>
+                <span ref={slotMinus} style={{ visibility: phase >= 11 ? 'visible' : 'hidden' }}>{bigMinus}</span>
+                <span style={{ visibility: phase >= 11 ? 'visible' : 'hidden' }}>{phase >= 11 ? <Pop><span>=</span></Pop> : '='}</span>
+                <span ref={slotRes} style={{ visibility: phase >= 12 ? 'visible' : 'hidden', opacity: phase >= 13 ? 0.25 : 1, color: ARC_COLOR }}>
+                    {phase >= 12 ? <motion.span className="inline-block" initial={{ scale: 3, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.55, duration: 0.7 }}><PiFrac s="5π/6" /></motion.span> : <PiFrac s="5π/6" />}
                 </span>
             </div>
             {flying && geo && (
@@ -681,12 +733,12 @@ const LeftScene = ({ onSettled }: SceneProps) => {
                     <Flyer from={geo.minusFrom} to={geo.minusTo} dur={1.1}>{bigMinus}</Flyer>
                 </>
             )}
-            {phase === 11 && geo?.phase === 11 && (
-                <Flyer from={geo.resFrom} to={geo.resTo} dur={1.1} onDone={() => setPhase((p) => Math.max(p, 12))}>
+            {phase === 13 && geo?.phase === 13 && (
+                <Flyer from={geo.resFrom} to={geo.resTo} dur={1.1} onDone={() => setPhase((p) => Math.max(p, 14))}>
                     <span className="text-5xl font-black" style={{ color: ARC_COLOR }}><PiFrac s="5π/6" /></span>
                 </Flyer>
             )}
-            {phase >= 12 && <TypedBig small parts={[{ text: 'Левая точка — ' }, { text: '5π/6', color: ARC_COLOR }]} onDone={() => onSettled?.()} />}
+            {phase >= 14 && <TypedBig small parts={[{ text: 'Левая точка — ' }, { text: '5π/6', color: ARC_COLOR }]} onDone={() => onSettled?.()} />}
         </div>
     )
 }
