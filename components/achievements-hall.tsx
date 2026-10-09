@@ -30,7 +30,7 @@ const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('ru-RU', { day
 const REWARD_LOTTIE = { coins: LottieCoins, gems: LottieGems, pizza: LottiePizza } as const;
 const THANKS = [
     'Благодарочка!', 'Мерси!', 'Грасиас!', 'Пасиба, чётко!', 'Респект!', 'Имба!', 'Лучший подгон!', 'Спасибо, бро!',
-    'GG!', 'GG, бро!', 'GG WP!', 'ГГ, спасибо!', 'Топчик!', 'Красота!', 'Кайф!', 'Это база', 'Забираю!', 'GG!', 'Ну наконец-то!', 'Вау, мне? 😳', 'Сойдёт, беру 😎', 'Лайк, подписка!',
+    'GG!', 'GG, бро!', 'GG WP!', 'ГГ, спасибо!', 'Джи-Джи!', 'Джи-Джи, спасибо!', 'Топчик!', 'Красота!', 'Кайф!', 'Это база', 'Забираю!', 'GG!', 'Ну наконец-то!', 'Вау, мне? 😳', 'Сойдёт, беру 😎', 'Лайк, подписка!',
 ];
 const pickThanks = () => THANKS[Math.floor(Math.random() * THANKS.length)];
 const rewardSound = (k: AchievementReward['kind']) => (k === 'gems' ? GEM_DROP_SOUND : k === 'coins' ? COIN_DROP_SOUND : k === 'pizza' ? PIZZA_DROP_SOUND : CASE_PRIZE_SOUND);

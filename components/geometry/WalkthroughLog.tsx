@@ -43,6 +43,17 @@ export const ATTENTION_COLOR = GGEGE_PALETTE.orange.button
 // нахлёстом) — взята из урока «Тангенс = синус / косинус» (type-trigvalwalk.tsx,
 // MarkerCircle), принята пользователем за образец (2026-10-05). Кладётся внутрь
 // элемента с position: relative — растягивается на его размер + 12px с каждой стороны.
+// Стикер-«стекло» (стандарт с 2026-10-09): цветная рамка, тёмная полупрозрачная подложка с оттенком цвета
+// и размытие того, что под стикером (линии окружности, пунктир) — значение всегда читается.
+// Использовать для всех стикеров поверх рисунков (HTML-элементы поверх SVG).
+export const glassStickerStyle = (color: string): React.CSSProperties => ({
+    color,
+    borderColor: color,
+    background: `linear-gradient(${hexToRgba(color, 0.22)}, ${hexToRgba(color, 0.22)}), rgba(22, 31, 35, 0.62)`,
+    backdropFilter: 'blur(6px)',
+    WebkitBackdropFilter: 'blur(6px)',
+})
+
 export const MARKER_LOOP_COLOR = '#F2C35B'
 export const MARKER_LOOP_PATH = 'M 86 24 C 66 0, 16 4, 7 44 C 0 86, 58 102, 90 80 C 104 64, 99 34, 72 18'
 export const MarkerLoop = ({ active = true, delay = 0, color = MARKER_LOOP_COLOR, pad = 12 }: { active?: boolean; delay?: number; color?: string; pad?: number }) => (
@@ -97,6 +108,8 @@ export const WALKTHROUGH_NEXT_PHRASES = [
     'GG, дальше',
     'GG, го',
     'GG WP, дальше',
+    'Джи-Джи, дальше',
+    'Джи-Джи, го',
 ];
 
 // defaultLabel — обычное "Дальше"/"Готово" и т.п., chance — как часто
@@ -685,6 +698,8 @@ export const CORRECT_FEEDBACK_PHRASES = [
     'GG WP!',
     'GG EZ!',
     'ГГ, чётко!',
+    'Джи-Джи!',
+    'Джи-Джи, изи!',
     'Форсишь!',
     'Жёстко форсишь!',
     'Разогнался!',
