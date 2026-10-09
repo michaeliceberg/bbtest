@@ -189,7 +189,16 @@ export async function getEgeMap(userId: string, subject = 'math_profile'): Promi
 // «+N к прогнозу»: сколько первичных баллов дал только что засчитанный урок тренажёра
 // (kind 't_unit') или верно решённая задача задачника (kind 'unit'). Прогресс уже записан —
 // «до» считаем, вычтя эту одну единицу из статистики юнита/темы.
-export type EgeGain = { primary: number; fromTest: number; toTest: number; taskNum: number; taskTitle: string }
+// stepsToNext — сколько ещё таких же уроков/задач (с тем же приростом) до следующего тестового балла.
+export type EgeGain = { primary: number; fromTest: number; toTest: number; taskNum: number; taskTitle: string; stepsToNext: number | null; kind: 'unit' | 't_unit' }
+
+// Наименьший первичный балл (дробный), при котором тестовый станет больше test.
+const primaryForNextTest = (fromPrimary: number, test: number) => {
+    let lo = fromPrimary, hi = 33
+    if (primaryToTest(hi) <= test) return null
+    for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; if (primaryToTest(mid) > test) hi = mid; else lo = mid }
+    return hi
+}
 export async function getEgeGain(userId: string, kind: 'unit' | 't_unit', refId: number, subject = 'math_profile'): Promise<EgeGain | null> {
     const linked = (await db.execute(sql`
         SELECT 1 FROM ege_task_links l JOIN ege_tasks t ON t.id = l.task_id
@@ -212,7 +221,9 @@ export async function getEgeGain(userId: string, kind: 'unit' | 't_unit', refId:
     if (primary < 0.005) return null
     const station = after.stations.find((st) => (kind === 'unit' ? st.unitIds : st.tUnitIds).includes(refId)
         && st.earned - (before.stations.find((b) => b.num === st.num)?.earned ?? 0) > 0)
-    return { primary, fromTest: before.test, toTest: after.test, taskNum: station?.num ?? 0, taskTitle: station?.title ?? '' }
+    const nextP = primaryForNextTest(after.primary, after.test)
+    const stepsToNext = nextP === null ? null : Math.max(1, Math.ceil((nextP - after.primary) / primary))
+    return { primary, fromTest: before.test, toTest: after.test, taskNum: station?.num ?? 0, taskTitle: station?.title ?? '', stepsToNext, kind }
 }
 
 // Освоенность станции после хода: +1 урок тренажёра и +k задач задачника.

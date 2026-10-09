@@ -7,14 +7,21 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 import type { EgeGain } from '@/lib/egeMap'
 
-const fmt = (x: number) => {
-    const v = x < 0.1 ? Math.round(x * 100) / 100 : Math.round(x * 10) / 10
-    return v.toString().replace('.', ',')
+// «через 3 урока» / «через 5 задач»
+const stepsWord = (n: number, kind: EgeGain['kind']) => {
+    const m10 = n % 10, m100 = n % 100
+    const f = m10 === 1 && m100 !== 11 ? 0 : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? 1 : 2
+    return kind === 't_unit' ? ['урок', 'урока', 'уроков'][f] : ['задачу', 'задачи', 'задач'][f]
 }
 
+// Плашка висит 4–5 с — поэтому одна короткая строка: «🎯 +1 балл ЕГЭ через 3 урока».
 export const showEgeGain = (gain: EgeGain | null | undefined) => {
     if (!gain || gain.primary < 0.005) return
     const jumped = gain.toTest > gain.fromTest
+    const steps = gain.stepsToNext
+    const text = jumped ? '+1 балл ЕГЭ!'
+        : steps !== null && steps <= 10 ? `+1 балл ЕГЭ через ${steps} ${stepsWord(steps, gain.kind)}`
+        : 'Прогноз ЕГЭ растёт'
     toast.custom((id) => (
         <Link
             href="/path"
@@ -26,16 +33,11 @@ export const showEgeGain = (gain: EgeGain | null | undefined) => {
                 boxShadow: `0 5px 0 ${jumped ? '#7A5A12' : '#2F4A22'}, 0 12px 24px rgba(0,0,0,0.45)`,
             }}
         >
-            <span className="text-3xl">{jumped ? '🚀' : '📈'}</span>
-            <span className="min-w-0 flex-1">
-                <span className="block text-base font-black" style={{ color: jumped ? '#F2C35B' : '#A1D151' }}>
-                    +{fmt(gain.primary)} к прогнозу ЕГЭ
-                </span>
-                <span className="block truncate text-xs font-bold text-[#C9D3D9]">
-                    {jumped ? `≈${gain.fromTest} → ${gain.toTest} тестовых баллов!` : gain.taskNum ? `Задание №${gain.taskNum} · ${gain.taskTitle}` : 'Копилка «Моего пути» растёт'}
-                </span>
+            <span className="text-3xl">{jumped ? '🚀' : steps !== null && steps <= 10 ? '🎯' : '📈'}</span>
+            <span className="min-w-0 flex-1 text-base font-black leading-tight" style={{ color: jumped ? '#F2C35B' : '#A1D151' }}>
+                {text}
             </span>
             <span className="shrink-0 text-xs font-black text-[#9AA7B0]">Мой путь ›</span>
         </Link>
-    ), { duration: jumped ? 6000 : 4000 })
+    ), { duration: 5000 })
 }
