@@ -622,7 +622,7 @@ const AxisGameScene = ({ onSettled }: SceneProps) => {
                                     <span>Где ось <span style={{ color: cur === 'cos' ? COS_COLOR : SIN_COLOR }}>{cur === 'cos' ? 'КОСИНУСА' : 'СИНУСА'}</span>?</span>
                                 </Pop>
                             ) : (
-                                <Pop key="done"><span className="text-[#A1D151]">Оси в кармане! 😎</span></Pop>
+                                <Pop key="done"><span className="text-[#A1D151]">Оси залутал! 🔥</span></Pop>
                             )}
                         </div>
                         <CircleCanvas
@@ -767,6 +767,10 @@ const pieArc = (a0: number, a1: number) => {
     const p1 = ppt(a1)
     return `M ${p0.x} ${p0.y} A ${PI_R} ${PI_R} 0 ${a1 - a0 > PI ? 1 : 0} 0 ${p1.x} ${p1.y}`
 }
+// Видимая область картинки π: полоса 300×128 (верхняя половина круга) и она же, но с целым кругом.
+const PI_VIEW_H = 128 // высота полосы: от верха дуги (y≈36) до диаметра (y=150) с небольшим запасом
+const PI_VIEW_HALF = `0 30 300 ${PI_VIEW_H}`
+const PI_VIEW_FULL = `${150 - (300 * 300) / PI_VIEW_H / 2} 0 ${(300 * 300) / PI_VIEW_H} 300`
 const PIECE_TARGET: Partial<Record<PiStage, number>> = { 5: PI / 6, 6: PI / 4, 7: PI / 3 }
 
 const PiCircle = ({ stage }: { stage: PiStage }) => {
@@ -796,7 +800,11 @@ const PiCircle = ({ stage }: { stage: PiStage }) => {
             initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.5, delay }} />
     )
     return (
-        <svg viewBox="0 0 300 300" className="w-full max-w-[340px] h-auto mx-auto block overflow-visible">
+        // Рамка всегда одной высоты (полоса 300×128). Полукруг и кусочки занимают верхнюю половину —
+        // показываем её крупно; целый круг (этапы 1–2) — картинка плавно отдаляется, чтобы влез весь.
+        <motion.svg initial={false} animate={{ viewBox: stage === 1 || stage === 2 ? PI_VIEW_FULL : PI_VIEW_HALF }}
+            transition={{ duration: 0.8, ease: 'easeInOut' }} preserveAspectRatio="xMidYMid meet"
+            className="w-full h-full block overflow-hidden">
             {stage <= 1 && <circle cx={cx} cy={cy} r={r} fill="none" stroke="#3A464E" strokeWidth={2} strokeDasharray="4 6" />}
             {stage <= 1 && (
                 <>
@@ -853,7 +861,7 @@ const PiCircle = ({ stage }: { stage: PiStage }) => {
             )}
             {stage === 0 && big('π = 180°', cy - r / 2.4, 's0')}
             {stage === 1 && big('2π = 360°', cy, 's1')}
-        </svg>
+        </motion.svg>
     )
 }
 
@@ -938,21 +946,16 @@ const PiScene = ({ onSettled }: SceneProps) => {
             {phase >= 1 && phase < 4 && (
                 <DiagramBlock onSettled={() => setPhase(2)}>
                     <div className="w-full flex flex-col items-center gap-1">
-                        {/* Видна только верхняя половина (полукруг в начале, верхняя
-                            четверть позже) — нижняя часть картинки схлопывается,
-                            подпись и кнопка поднимаются вплотную к рисунку. Полный
-                            круг (этапы 1–2) занимает всю высоту. Ширина ограничена
-                            высотой экрана, чтобы всё влезало на телефоне. */}
-                        <div className="relative w-full mx-auto overflow-hidden"
-                            style={{ maxWidth: 'min(300px, 34vh)', paddingBottom: '100%' }}>
-                            <div className="absolute inset-x-0 top-0">
-                                <PiCircle stage={stage} />
-                            </div>
+                        {/* Рамка одной высоты на всех шагах (aspect-ratio, а не padding-bottom в %
+                            — тот считается от ширины родителя и давал огромную пустоту). Подпись и
+                            кнопка — сразу под рисунком и не прыгают. */}
+                        <div className="w-full mx-auto" style={{ maxWidth: 340, aspectRatio: `300 / ${PI_VIEW_H}` }}>
+                            <PiCircle stage={stage} />
                         </div>
-                        <div className="h-12 flex items-center justify-center text-lg font-black text-[#F2F7FB]">
+                        <div className="h-11 flex items-center justify-center text-lg font-black text-[#F2F7FB]">
                             {caption && <Pop key={`cap-${stage}`}>{caption}</Pop>}
                         </div>
-                        <div className="h-14 mt-3 flex items-center">
+                        <div className="h-14 flex items-center">
                             {phase === 2 && stageReady && <ActionButton color={PLUS_COLOR} onClick={nextStage}>{stageLabel}</ActionButton>}
                         </div>
                     </div>
