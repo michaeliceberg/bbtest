@@ -123,10 +123,11 @@ type CircleProps = {
     dashDur?: number // сколько секунд тянется пунктир
     extra?: React.ReactNode // дополнительные элементы поверх (видео-реакция и т.п.)
     levelPop?: boolean // ½ на оси появляется с отскоком — только при самом первом показе
+    markLevel?: boolean // обвести ½ на оси маркером
     svgRef?: React.Ref<SVGSVGElement>
 }
 
-const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = false, dots = [], dotsPop = false, labels = [], arcs = [], spin = null, svgRef, dashDur = 0.9, extra, levelPop = false }: CircleProps) => {
+const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = false, dots = [], dotsPop = false, labels = [], arcs = [], spin = null, svgRef, dashDur = 0.9, extra, levelPop = false, markLevel = false }: CircleProps) => {
     const dotsPopAnim = dotsPop
     const ly = level ? C - level.v * R : 0
     const hx = level ? Math.sqrt(Math.max(0, 1 - level.v * level.v)) * R : 0
@@ -174,10 +175,10 @@ const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = fals
                             <circle r={6} fill={SIN_COLOR} stroke="#F2F7FB" strokeWidth={2} />
                         </motion.g>
                     </g>
-                    <foreignObject x={C - 58} y={ly - 26} width={48} height={52}>
+                    <foreignObject x={C - 58} y={ly - 26} width={48} height={52} style={{ overflow: 'visible' }}>
                         <motion.div data-level-label initial={levelPop ? { scale: 0 } : false} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 8, delay: 0.15 }}
                             className="flex h-full w-full items-center justify-center text-lg font-black" style={{ color: SIN_COLOR }}>
-                            {level.label}
+                            <span className="relative">{level.label}{markLevel && <MarkerLoop pad={8} />}</span>
                         </motion.div>
                     </foreignObject>
                 </>
@@ -325,13 +326,33 @@ const DotsScene = ({ onSettled }: SceneProps) => {
 // 3. Таблица (строка синусов) → обводим 1/2 → вверх к 30° → «= π/6» → π/6 летит к правой точке.
 const TABLE_VALUES = ['1/2', '√2/2', '√3/2']
 const TABLE_ANGLES = [30, 45, 60]
+// Стрелка по кривой Безье: линия кончается у основания наконечника, наконечник смотрит по касательной.
+const CurveArrow = ({ x0, y0, c1x, c1y, c2x, c2y, x1, y1, color = '#F2C35B', head = 14 }: {
+    x0: number; y0: number; c1x: number; c1y: number; c2x: number; c2y: number; x1: number; y1: number; color?: string; head?: number
+}) => {
+    const dx = x1 - c2x, dy = y1 - c2y
+    const len = Math.hypot(dx, dy) || 1
+    const ux = dx / len, uy = dy / len
+    const bx = x1 - ux * head, by = y1 - uy * head // основание наконечника
+    const px = -uy, py = ux
+    return (
+        <>
+            <motion.path d={`M ${x0} ${y0} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${bx} ${by}`} fill="none" stroke={color} strokeWidth={3.5} strokeLinecap="round"
+                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.9, ease: 'easeInOut' }} />
+            <motion.polygon points={`${x1},${y1} ${bx + px * head * 0.5},${by + py * head * 0.5} ${bx - px * head * 0.5},${by - py * head * 0.5}`} fill={color}
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.85, duration: 0.15 }} />
+        </>
+    )
+}
+
 const TableScene = ({ onSettled }: SceneProps) => {
-    // 0 печать «Смотрим в таблицу синусов» → 1 таблица → 2 дуга-стрелка от ½ на окружности к ½ в таблице →
-    // 3 стрелка вверх к 30° → 4 обводим 30° → (пауза) 5 «30° = π/6» → 6 π/6 летит к правой точке → 7 подпись.
+    // 0 окружность → 1 печать «Смотрим в таблицу синусов» → 2 таблица → (пауза) 3 маркер на ½ окружности →
+    // 4 стрелка ½ → ½ таблицы → (пауза) 5 стрелка вверх к 30° → 6 обводим 30° → (пауза) 7 «30° = π/6» →
+    // 8 π/6 летит к правой точке → 9 подпись.
     const [phase, setPhase] = useState(0)
     useEffect(() => {
-        // 6 → 7 — по концу полёта π/6, а это страховка (вкладку свернули, анимация не доиграла).
-        const next: Record<number, [number, number]> = { 1: [2, 900], 2: [3, 1400], 3: [4, 900], 4: [5, 1500], 5: [6, 1100], 6: [7, 1800] }
+        // 8 → 9 — по концу полёта π/6, а это страховка (вкладку свернули, анимация не доиграла).
+        const next: Record<number, [number, number]> = { 0: [1, 800], 2: [3, 1300], 3: [4, 900], 4: [5, 1600], 5: [6, 900], 6: [7, 1500], 7: [8, 1100], 8: [9, 1800] }
         const s = next[phase]
         if (!s) return
         const t = setTimeout(() => setPhase(s[0]), s[1])
@@ -342,23 +363,23 @@ const TableScene = ({ onSettled }: SceneProps) => {
     const srcRef = useRef<HTMLSpanElement>(null)
     const cellRef = useRef<HTMLDivElement>(null)
     const svgRef = useRef<SVGSVGElement>(null)
-    // Координаты (в рамках сцены) для дуги ½ → ½ и для полёта π/6.
+    // Координаты (в рамках сцены) для стрелки ½ → ½ и для полёта π/6.
     const [geo, setGeo] = useState<{ ax: number; ay: number; bx: number; by: number; fx0: number; fy0: number; fx1: number; fy1: number } | null>(null)
     useLayoutEffect(() => {
-        if (phase < 1 || !boxRef.current || !cellRef.current || !svgRef.current) return
+        if (!boxRef.current || !cellRef.current || !svgRef.current) return
         const measure = () => {
             if (!boxRef.current || !cellRef.current || !svgRef.current) return
             const box = boxRef.current.getBoundingClientRect()
             const v = svgRef.current.getBoundingClientRect()
             const k = v.width / 360
             const toBox = (x: number, y: number) => ({ x: v.left - box.left + (x + 30) * k, y: v.top - box.top + y * k })
-            const a = toBox(C - 34, C - R / 2 - 30) // над подписью ½ на оси sin
+            const a = toBox(C - 34, C - R / 2 - 36) // над обведённой ½ на оси sin
             const cell = cellRef.current.getBoundingClientRect()
             const p = toBox(pt(A30, R + 34).x + 6, pt(A30, R + 34).y)
             const src = srcRef.current?.getBoundingClientRect()
             setGeo({
                 ax: a.x, ay: a.y,
-                bx: cell.left - box.left + cell.width / 2, by: cell.bottom - box.top + 6, // в нижний край ячейки ½
+                bx: cell.left - box.left + cell.width / 2, by: cell.bottom - box.top + 4, // в нижний край ячейки ½
                 fx0: src ? src.left - box.left + src.width / 2 : 0, fy0: src ? src.top - box.top + src.height / 2 : 0,
                 fx1: p.x, fy1: p.y,
             })
@@ -369,81 +390,74 @@ const TableScene = ({ onSettled }: SceneProps) => {
         return () => ro.disconnect()
     }, [phase])
 
-    // Дуга снизу вверх с изгибом влево — в обход строки «30° = π/6».
-    const arcD = geo ? `M ${geo.ax} ${geo.ay} C ${Math.min(geo.ax, geo.bx) - 55} ${geo.ay - 20}, ${geo.bx - 40} ${geo.by + 60}, ${geo.bx} ${geo.by}` : ''
-
     return (
         <div ref={boxRef} className="relative w-full flex flex-col gap-4">
-            <TypedBig small parts={[{ text: 'Смотрим в ' }, { text: 'таблицу синусов', color: SIN_COLOR }]} readMs={700} onDone={() => setPhase(1)} />
-            {phase >= 1 && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="w-full flex justify-center">
-                    <div className="grid grid-cols-[3rem_repeat(3,minmax(4.5rem,6rem))] gap-x-2 gap-y-9 text-xl md:text-2xl font-extrabold text-[#F2F7FB]">
-                        <div />
-                        {TABLE_ANGLES.map((a, i) => (
-                            <div key={a} className="flex h-11 items-center justify-center">
-                                <span className="relative rounded-xl border-2 px-2 py-0.5 text-lg font-black transition-opacity duration-500"
-                                    style={{ borderColor: ANGLE30, backgroundColor: hexToRgba(ANGLE30, i === 0 && phase >= 3 ? 0.3 : 0.12), color: ANGLE30, opacity: phase >= 3 && i > 0 ? 0.35 : 1 }}>
-                                    {a}°
-                                    {i === 0 && phase >= 4 && <MarkerLoop pad={12} />}
-                                </span>
-                            </div>
-                        ))}
-                        <div className="flex items-center justify-center text-lg font-black" style={{ color: SIN_COLOR }}>sin</div>
-                        {TABLE_VALUES.map((v, i) => (
-                            <div key={v} ref={i === 0 ? cellRef : undefined} className="relative flex h-20 items-center justify-center rounded-xl border-2 transition-opacity duration-500"
-                                style={{ borderColor: hexToRgba(SIN_COLOR, i === 0 && phase >= 2 ? 1 : 0.35), backgroundColor: hexToRgba(SIN_COLOR, i === 0 && phase >= 2 ? 0.18 : 0.08), color: SIN_COLOR, opacity: phase >= 2 && i > 0 ? 0.35 : 1 }}>
-                                <SinVal v={v} />
-                                {i === 0 && phase >= 3 && (
-                                    // стрелка вверх — от ½ к 30°
-                                    <motion.svg className="absolute left-1/2 -translate-x-1/2 bottom-full overflow-visible" width="20" height="36" viewBox="0 0 20 36"
-                                        initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                                        <motion.line x1={10} y1={34} x2={10} y2={8} stroke="#F2C35B" strokeWidth={3.5} strokeLinecap="round"
-                                            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.5 }} />
-                                        <motion.polygon points="10,0 3,11 17,11" fill="#F2C35B" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.45, type: 'spring', bounce: 0.6 }} />
-                                    </motion.svg>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                </motion.div>
-            )}
-            {/* место под «30° = π/6» занято заранее — рисунок не прыгает, дуга-стрелка остаётся на месте */}
-            {phase >= 1 && (
-                <div className="flex items-center justify-center gap-2 text-3xl font-black text-[#F2F7FB]" style={{ visibility: phase >= 5 ? 'visible' : 'hidden' }}>
-                    <span className="rounded-xl border-2 px-2 py-0.5 text-2xl" style={{ borderColor: ANGLE30, backgroundColor: hexToRgba(ANGLE30, 0.2), color: ANGLE30 }}>30°</span>
-                    {phase >= 5 && <Pop><span style={{ color: ARC_COLOR }}>=</span></Pop>}
-                    {phase >= 5 ? (
-                        <Pop delay={0.2}>
-                            <span ref={srcRef} style={{ color: ARC_COLOR, opacity: phase >= 6 ? 0.25 : 1 }}><PiFrac s="π/6" /></span>
-                        </Pop>
-                    ) : <span className="text-transparent"><PiFrac s="π/6" /></span>}
+            {/* место под текст и таблицу занято заранее — окружность не прыгает, стрелки остаются на месте */}
+            <div className="min-h-[2.25rem]">
+                {phase >= 1 && <TypedBig small parts={[{ text: 'Смотрим в ' }, { text: 'таблицу синусов', color: SIN_COLOR }]} readMs={300} onDone={() => setPhase((p) => Math.max(p, 2))} />}
+            </div>
+            <motion.div initial={false} animate={{ opacity: phase >= 2 ? 1 : 0, y: phase >= 2 ? 0 : 10 }} transition={{ duration: 0.4 }} className="w-full flex justify-center">
+                <div className="grid grid-cols-[3rem_repeat(3,minmax(4.5rem,6rem))] gap-x-2 gap-y-9 text-xl md:text-2xl font-extrabold text-[#F2F7FB]">
+                    <div />
+                    {TABLE_ANGLES.map((a, i) => (
+                        <div key={a} className="flex h-11 items-center justify-center">
+                            <span className="relative rounded-xl border-2 px-2 py-0.5 text-lg font-black transition-opacity duration-500"
+                                style={{ borderColor: ANGLE30, backgroundColor: hexToRgba(ANGLE30, i === 0 && phase >= 5 ? 0.3 : 0.12), color: ANGLE30, opacity: phase >= 5 && i > 0 ? 0.35 : 1 }}>
+                                {a}°
+                                {i === 0 && phase >= 6 && <MarkerLoop pad={12} />}
+                            </span>
+                        </div>
+                    ))}
+                    <div className="flex items-center justify-center text-lg font-black" style={{ color: SIN_COLOR }}>sin</div>
+                    {TABLE_VALUES.map((v, i) => (
+                        <div key={v} ref={i === 0 ? cellRef : undefined} className="relative flex h-20 items-center justify-center rounded-xl border-2 transition-opacity duration-500"
+                            style={{ borderColor: hexToRgba(SIN_COLOR, i === 0 && phase >= 4 ? 1 : 0.35), backgroundColor: hexToRgba(SIN_COLOR, i === 0 && phase >= 4 ? 0.18 : 0.08), color: SIN_COLOR, opacity: phase >= 4 && i > 0 ? 0.35 : 1 }}>
+                            <SinVal v={v} />
+                            {i === 0 && phase >= 5 && (
+                                // стрелка вверх — от ½ к 30°
+                                <motion.svg className="absolute left-1/2 -translate-x-1/2 bottom-full overflow-visible" width="20" height="36" viewBox="0 0 20 36"
+                                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                                    <motion.line x1={10} y1={34} x2={10} y2={11} stroke="#F2C35B" strokeWidth={3.5} strokeLinecap="round"
+                                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.5 }} />
+                                    <motion.polygon points="10,0 3,12 17,12" fill="#F2C35B" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45, duration: 0.15 }} />
+                                </motion.svg>
+                            )}
+                        </div>
+                    ))}
                 </div>
-            )}
-            {phase >= 1 && (
-                <DiagramBlock>
-                    <SinCircle svgRef={svgRef} level={HALF} dashes dots={[A30, A150]}
-                        labels={phase >= 7 ? [{ a: A30, text: <PiFrac s="π/6" />, color: ARC_COLOR, key: 'r', side: 1 }] : []} />
-                </DiagramBlock>
-            )}
-            {geo && phase >= 2 && (
-                // дуга-стрелка: от ½ на окружности к ½ в таблице
+            </motion.div>
+            <div className="flex items-center justify-center gap-2 text-3xl font-black text-[#F2F7FB]" style={{ visibility: phase >= 7 ? 'visible' : 'hidden' }}>
+                <span className="rounded-xl border-2 px-2 py-0.5 text-2xl" style={{ borderColor: ANGLE30, backgroundColor: hexToRgba(ANGLE30, 0.2), color: ANGLE30 }}>30°</span>
+                {phase >= 7 && <Pop><span style={{ color: ARC_COLOR }}>=</span></Pop>}
+                {phase >= 7 ? (
+                    <Pop delay={0.2}>
+                        <span ref={srcRef} style={{ color: ARC_COLOR, opacity: phase >= 8 ? 0.25 : 1 }}><PiFrac s="π/6" /></span>
+                    </Pop>
+                ) : <span className="text-transparent"><PiFrac s="π/6" /></span>}
+            </div>
+            <DiagramBlock>
+                <SinCircle svgRef={svgRef} level={HALF} dashes dots={[A30, A150]} markLevel={phase >= 3}
+                    labels={phase >= 9 ? [{ a: A30, text: <PiFrac s="π/6" />, color: ARC_COLOR, key: 'r', side: 1 }] : []} />
+            </DiagramBlock>
+            {geo && phase >= 4 && (
+                // стрелка: от обведённой ½ на окружности вверх, с изгибом влево — в нижний край ячейки ½
                 <svg className="pointer-events-none absolute inset-0 z-10 h-full w-full overflow-visible">
-                    <motion.path d={arcD} fill="none" stroke="#F2C35B" strokeWidth={3.5} strokeLinecap="round"
-                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.9, ease: 'easeInOut' }} />
-                    <motion.polygon points={`${geo.bx},${geo.by} ${geo.bx - 7},${geo.by + 13} ${geo.bx + 7},${geo.by + 13}`} fill="#F2C35B"
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.85 }} />
+                    <CurveArrow x0={geo.ax} y0={geo.ay}
+                        c1x={Math.min(geo.ax, geo.bx) - 55} c1y={geo.ay - 30}
+                        c2x={geo.bx} c2y={geo.by + 70}
+                        x1={geo.bx} y1={geo.by} />
                 </svg>
             )}
-            {geo && phase === 6 && (
+            {geo && phase === 8 && (
                 <motion.div className="pointer-events-none absolute z-20 text-3xl font-black" style={{ color: ARC_COLOR, left: 0, top: 0 }}
                     initial={{ x: geo.fx0, y: geo.fy0, translateX: '-50%', translateY: '-50%', scale: 1 }}
                     animate={{ x: geo.fx1, y: geo.fy1, scale: 0.8 }}
                     transition={{ duration: 1, ease: [0.45, 0, 0.2, 1] }}
-                    onAnimationComplete={() => setPhase((p) => Math.max(p, 7))}>
+                    onAnimationComplete={() => setPhase((p) => Math.max(p, 9))}>
                     <PiFrac s="π/6" />
                 </motion.div>
             )}
-            {phase >= 7 && <TypedBig small parts={[{ text: 'Правая точка — ' }, { text: 'π/6', color: ARC_COLOR }]} onDone={() => onSettled?.()} />}
+            {phase >= 9 && <TypedBig small parts={[{ text: 'Правая точка — ' }, { text: 'π/6', color: ARC_COLOR }]} onDone={() => onSettled?.()} />}
         </div>
     )
 }
