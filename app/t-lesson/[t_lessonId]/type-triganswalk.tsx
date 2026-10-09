@@ -72,6 +72,8 @@ const SinVal = ({ v }: { v: string }) => {
 }
 // Угол-ответ вида «π/6», «5π/6», «2π/3»
 const PiFrac = ({ s }: { s: string }) => {
+    // минус — перед дробью, а не в числителе
+    if (s.startsWith('−')) return <span className="inline-flex items-center"><span className="mr-0.5">−</span><PiFrac s={s.slice(1)} /></span>
     const [n, d] = s.split('/')
     return d ? <Frac num={n} den={d} /> : <span>{n}</span>
 }
@@ -318,7 +320,7 @@ const FormulaScene = ({ onSettled }: SceneProps) => {
                     <SinCircle draw sinPulse={phase === 4} level={phase >= 5 ? HALF : null} levelPop />
                 </DiagramBlock>
             )}
-            {phase >= 6 && <TypedBig small parts={[{ text: 'Синус — это ' }, { text: 'высота', color: SIN_COLOR }, { text: '. Нам нужна высота ' }, { text: '1/2', color: SIN_COLOR }]} onDone={() => onSettled?.()} />}
+            {phase >= 6 && <TypedBig small parts={[{ text: 'Синус это ' }, { text: 'высота', color: SIN_COLOR }, { text: '. Нам нужна высота ' }, { text: '1/2', color: SIN_COLOR }]} onDone={() => onSettled?.()} />}
         </>
     )
 }
@@ -510,7 +512,7 @@ const TableScene = ({ onSettled }: SceneProps) => {
                     <span className="text-3xl font-black" style={{ color: ARC_COLOR }}><PiFrac s="π/6" /></span>
                 </Flyer>
             )}
-            {phase >= 9 && <TypedBig small parts={[{ text: 'Правая точка — ' }, { text: 'π/6', color: ARC_COLOR }]} onDone={() => onSettled?.()} />}
+            {phase >= 9 && <TypedBig small parts={[{ text: 'Правая точка: ' }, { text: 'π/6', color: ARC_COLOR }]} onDone={() => onSettled?.()} />}
         </div>
     )
 }
@@ -721,7 +723,7 @@ const LeftScene = ({ onSettled }: SceneProps) => {
                 {phase <= 1 && <TypedBig small parts={[{ text: 'А что у нас ' }, { text: 'здесь', color: PI_POINT_COLOR }, { text: '?' }]} readMs={200} onDone={() => setPhase((p) => Math.max(p, 1))} />}
                 {phase >= 3 && <TypedBig small parts={[{ text: 'то есть надо от ' }, { text: 'π', color: PI_POINT_COLOR }, { text: ' пойти ВВЕРХ\nна ' }, { text: 'МИНУС π/6', color: PERIOD_COLOR }]} readMs={1000} onDone={() => setPhase((p) => Math.max(p, 4))} />}
             </div>
-            {phase >= 4 && <TypedBig small parts={[{ text: 'МИНУС', color: PERIOD_COLOR }, { text: ' — потому что идём\nв ' }, { text: 'МИНУСОВУЮ', color: PERIOD_COLOR }, { text: ' сторону' }]} readMs={400} onDone={() => setGotItReady(true)} />}
+            {phase >= 4 && <TypedBig small parts={[{ text: 'МИНУС', color: PERIOD_COLOR }, { text: ', потому что идём\nв ' }, { text: 'МИНУСОВУЮ', color: PERIOD_COLOR }, { text: ' сторону' }]} readMs={400} onDone={() => setGotItReady(true)} />}
             <DiagramBlock>
                 <SinCircle svgRef={svgRef} level={HALF} levelDim dashes dots={[A30, A150]}
                     arcs={phase >= 5 ? [{ a0: PI, a1: A150, color: PERIOD_COLOR, key: 'cw', arrow: true, width: 10, dur: 1.3 }] : []}
@@ -808,7 +810,7 @@ const LeftScene = ({ onSettled }: SceneProps) => {
                     <span className="text-5xl font-black" style={{ color: ARC_COLOR }}><PiFrac s="5π/6" /></span>
                 </Flyer>
             )}
-            {phase >= 11 && <TypedBig small parts={[{ text: 'Левая точка — ' }, { text: '5π/6', color: ARC_COLOR }]} onDone={() => onSettled?.()} />}
+            {phase >= 11 && <TypedBig small parts={[{ text: 'Левая точка: ' }, { text: '5π/6', color: ARC_COLOR }]} onDone={() => onSettled?.()} />}
         </div>
     )
 }
@@ -902,30 +904,56 @@ const KGameScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-// 8. Итог: «Получаем ответ:» → совокупность (квадратная скобка) двух серий → конфетти и аплодисменты.
+// Совокупность двух серий под большой квадратной скобкой. minus — у обеих слева по очереди с отскоком
+// появляются минусы (место под минус занято заранее, ответы не сдвигаются).
+const SeriesRow = ({ base, minus, delay }: { base: string; minus: boolean; delay: number }) => (
+    <span className="inline-flex items-center gap-1 whitespace-nowrap font-black">
+        <span>α =</span>
+        <span className="relative inline-flex w-[0.7em] justify-center" style={{ color: ARC_COLOR }}>
+            {minus && (
+                <motion.span initial={{ scale: 0, opacity: 0 }} animate={{ scale: [0, 2.6, 1], opacity: 1 }} transition={{ duration: 0.7, delay, ease: 'easeOut' }}>−</motion.span>
+            )}
+        </span>
+        <span style={{ color: ARC_COLOR }}><PiFrac s={base} /></span>
+        <span style={{ color: PERIOD_COLOR }}>+ 2πk</span>
+    </span>
+)
+const SeriesSystem = ({ a, b, minus = false }: { a: string; b: string; minus?: boolean }) => (
+    <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
+        className="flex items-stretch text-2xl md:text-3xl text-[#F2F7FB]">
+        {/* знак совокупности — большая квадратная скобка */}
+        <span className="w-3 border-y-[3px] border-l-[3px] border-[#F2F7FB] rounded-l-sm mr-2" />
+        <span className="flex flex-col gap-4 py-2">
+            <SeriesRow base={a} minus={minus} delay={0.1} />
+            <SeriesRow base={b} minus={minus} delay={0.9} />
+        </span>
+    </motion.div>
+)
+const SinLine = ({ v, minus = false }: { v: string; minus?: boolean }) => (
+    <span className="inline-flex items-center gap-2 font-black">
+        <span style={{ color: SIN_COLOR }}>sin</span> α = {minus && <span>−</span>}<SinVal v={v} />
+    </span>
+)
+
+// 8. Итог: ИТОГО → sin α = 1/2 → «Получаем ответ:» → совокупность двух серий → конфетти и аплодисменты.
 const CLAPPING_VIDEO = '/video/clapping.webm'
 const AnswerScene = ({ onSettled }: SceneProps) => {
-    const [shown, setShown] = useState(false)
+    const [phase, setPhase] = useState(0)
     useEffect(() => {
-        if (!shown) return
-        const t = setTimeout(() => onSettled?.(), 1500)
-        return () => clearTimeout(t)
+        if (phase === 1) { const t = setTimeout(() => setPhase(2), 900); return () => clearTimeout(t) }
+        if (phase === 3) { const t = setTimeout(() => onSettled?.(), 1500); return () => clearTimeout(t) }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [shown])
+    }, [phase])
     return (
         <>
-            <TypedBig small parts={[{ text: 'Получаем ответ:' }]} readMs={300} onDone={() => setShown(true)} />
-            {shown && (
+            <TypedBig parts={[{ text: 'ИТОГО', color: '#F2C35B' }]} readMs={300} onDone={() => setPhase((p) => Math.max(p, 1))} />
+            {phase >= 1 && (
+                <div className="w-full flex justify-center text-2xl md:text-3xl text-[#F2F7FB]"><Pop><SinLine v="1/2" /></Pop></div>
+            )}
+            {phase >= 2 && <TypedBig small parts={[{ text: 'Получаем ответ:' }]} readMs={300} onDone={() => setPhase((p) => Math.max(p, 3))} />}
+            {phase >= 3 && (
                 <div className="w-full flex flex-wrap items-center justify-center gap-4">
-                    <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
-                        className="flex items-stretch text-2xl md:text-3xl text-[#F2F7FB]">
-                        {/* знак совокупности — большая квадратная скобка */}
-                        <span className="w-3 border-y-[3px] border-l-[3px] border-[#F2F7FB] rounded-l-sm mr-3" />
-                        <span className="flex flex-col gap-4 py-2">
-                            <Series base="π/6" />
-                            <Series base="5π/6" />
-                        </span>
-                    </motion.div>
+                    <SeriesSystem a="π/6" b="5π/6" />
                     <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 12, delay: 0.3 }}
                         className="w-24 md:w-32 aspect-square overflow-hidden rounded-xl shrink-0">
                         <video src={CLAPPING_VIDEO} autoPlay loop muted playsInline className="h-full w-full object-cover" style={{ transform: 'scaleX(-1)' }} />
@@ -937,10 +965,56 @@ const AnswerScene = ({ onSettled }: SceneProps) => {
     )
 }
 
+// Сцена между тренировками: sin α = −1/2 → видео Сола → «Что тогда?» → ответ для 1/2 → «и ПОДСТАВЛЯЕМ МИНУСЫ!» → минусы.
+const SAUL_MIRROR_VIDEO = '/video/saul-mirror.webm'
+const MinusScene = ({ onSettled }: SceneProps) => {
+    // 0 «А что если» → 1 sin α = −1/2 и видео → кнопка «Что тогда?» → 2 «Тогда пишем ответ для» → 3 sin α = 1/2 и совокупность →
+    // 4 «и ПОДСТАВЛЯЕМ МИНУСЫ!» → 5 минусы по очереди → кнопка «Дальше»
+    const [phase, setPhase] = useState(0)
+    const [btn, setBtn] = useState(false)
+    const videoRef = useRef<HTMLVideoElement>(null)
+    useEffect(() => {
+        if (phase === 1) { const t = setTimeout(() => setBtn(true), 1400); return () => clearTimeout(t) }
+        if (phase === 3) { const t = setTimeout(() => setPhase(4), 1600); return () => clearTimeout(t) }
+        if (phase === 5) { const t = setTimeout(() => onSettled?.(), 2000); return () => clearTimeout(t) }
+        if (phase >= 2) videoRef.current?.pause()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phase])
+    return (
+        <>
+            <TypedBig small parts={[{ text: 'А что если' }]} readMs={200} onDone={() => setPhase((p) => Math.max(p, 1))} />
+            {phase >= 1 && (
+                <div className="w-full flex flex-wrap items-center justify-center gap-4 text-2xl md:text-3xl text-[#F2F7FB]">
+                    <Pop><SinLine v="1/2" minus /></Pop>
+                    <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: phase >= 2 ? 0.35 : 1 }} transition={{ type: 'spring', stiffness: 300, damping: 12, delay: 0.3 }}
+                        className="w-24 md:w-32 aspect-square overflow-hidden rounded-xl shrink-0">
+                        <video ref={videoRef} src={SAUL_MIRROR_VIDEO} autoPlay loop muted playsInline className="h-full w-full object-cover" />
+                    </motion.div>
+                </div>
+            )}
+            {phase === 1 && btn && (
+                <motion.div className="w-full flex" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                    <button type="button" onClick={() => setPhase(2)} className={cn(walkthroughButtonClass(true), 'w-full')} style={walkthroughButtonStyle(true)}>
+                        Что тогда?
+                    </button>
+                </motion.div>
+            )}
+            {phase >= 2 && <TypedBig small parts={[{ text: 'Тогда пишем ответ для' }]} readMs={300} onDone={() => setPhase((p) => Math.max(p, 3))} />}
+            {phase >= 3 && (
+                <div className="w-full flex flex-col items-center gap-3">
+                    <div className="text-2xl md:text-3xl text-[#F2F7FB]"><Pop><SinLine v="1/2" /></Pop></div>
+                    <SeriesSystem a="π/6" b="5π/6" minus={phase >= 5} />
+                </div>
+            )}
+            {phase >= 4 && <TypedBig parts={[{ text: 'и ' }, { text: 'ПОДСТАВЛЯЕМ МИНУСЫ!', color: ARC_COLOR }]} readMs={300} onDone={() => setPhase((p) => Math.max(p, 5))} />}
+        </>
+    )
+}
+
 const SCENES = [FormulaScene, DotsScene, TableScene, LeftAnglesScene, LeftScene, FoundScene, PeriodScene, KGameScene, AnswerScene]
 
 // ===== Тренировка =====
-type Trial = { prompt: React.ReactNode; options: { key: string; view: React.ReactNode }[]; correct: string; hint: string }
+type Trial = { prompt: React.ReactNode; options: { key: string; view: React.ReactNode }[]; correct: string; hint: string; askWrite?: boolean; scene?: boolean }
 
 const TwoSeries = ({ a, b, period = '2πk' }: { a: string; b: string; period?: string }) => (
     <span className="flex flex-col items-center gap-1 text-lg md:text-xl">
@@ -951,7 +1025,7 @@ const TwoSeries = ({ a, b, period = '2πk' }: { a: string; b: string; period?: s
 )
 const SinPrompt = ({ v }: { v: string }) => (
     <span className="inline-flex items-center gap-2 text-xl md:text-2xl font-black">
-        <span style={{ color: SIN_COLOR }}>sin</span> α = <SinVal v={v} />
+        <span style={{ color: SIN_COLOR }}>sin</span> α = {v.startsWith('−') && <span>−</span>}<SinVal v={v.replace('−', '')} />
     </span>
 )
 function shuffle<T>(arr: T[]): T[] {
@@ -961,14 +1035,14 @@ function shuffle<T>(arr: T[]): T[] {
 }
 const seriesTrial = (v: string, a: string, b: string, wrong: [string, string, string?][], hint: string): Trial => {
     const opts = [{ key: 'ok', view: <TwoSeries a={a} b={b} /> }, ...wrong.map(([x, y, p], i) => ({ key: `w${i}`, view: <TwoSeries a={x} b={y} period={p} /> }))]
-    return { prompt: <SinPrompt v={v} />, options: shuffle(opts), correct: 'ok', hint }
+    return { prompt: <SinPrompt v={v} />, options: shuffle(opts), correct: 'ok', hint, askWrite: true }
 }
 const makeTrials = (): Trial[] => [
-    seriesTrial('1/2', 'π/6', '5π/6', [['π/3', '2π/3'], ['π/6', '5π/6', 'πk'], ['π/6', '7π/6']], 'Высота 1/2 — это 30° = π/6, а вторая точка π − π/6 = 5π/6.'),
+    seriesTrial('1/2', 'π/6', '5π/6', [['π/3', '2π/3'], ['π/6', '5π/6', 'πk'], ['π/6', '7π/6']], 'Высота 1/2 это 30° = π/6, а вторая точка π − π/6 = 5π/6.'),
     seriesTrial('√2/2', 'π/4', '3π/4', [['π/6', '5π/6'], ['π/4', '5π/4'], ['π/4', '3π/4', 'πk']], 'По таблице sin 45° = √2/2 → π/4, вторая точка π − π/4 = 3π/4.'),
     seriesTrial('√3/2', 'π/3', '2π/3', [['π/6', '5π/6'], ['π/3', '4π/3'], ['2π/3', '5π/3']], 'sin 60° = √3/2 → π/3, вторая точка π − π/3 = 2π/3.'),
     {
-        prompt: <span className="text-base md:text-lg">Правая точка — <b style={{ color: ARC_COLOR }}>π/3</b>. Какая левая (зеркальная)?</span>,
+        prompt: <span className="text-base md:text-lg">Правая точка <b style={{ color: ARC_COLOR }}>π/3</b>. Какая левая (зеркальная)?</span>,
         options: shuffle(['2π/3', '4π/3', '5π/6', '−π/3'].map((s) => ({ key: s, view: <span className="text-2xl font-black"><PiFrac s={s} /></span> }))),
         correct: '2π/3', hint: 'Левая точка = π − π/3 = 2π/3.',
     },
@@ -980,8 +1054,15 @@ const makeTrials = (): Trial[] => [
             { key: 'b', view: <span className="text-base font-bold">Чтобы угол стал больше</span> },
             { key: 'c', view: <span className="text-base font-bold">Это 2 · π · кот 🐈</span> },
         ]),
-        correct: 'ok', hint: 'Каждый полный круг (2π) приводит в ту же точку, а кругов можно пройти сколько угодно — k любое целое.',
+        correct: 'ok', hint: 'Каждый полный круг (2π) приводит в ту же точку, а кругов можно пройти сколько угодно, k любое целое.',
     },
+]
+const MINUS_SCENE: Trial = { prompt: null, options: [], correct: '', hint: '', scene: true }
+const makeMinusTrials = (): Trial[] => [
+    seriesTrial('−1/2', '−π/6', '−5π/6', [['π/6', '5π/6'], ['−π/3', '−2π/3'], ['−π/6', '5π/6']], 'Для 1/2 ответ π/6 и 5π/6, подставляем минусы: −π/6 и −5π/6.'),
+    seriesTrial('−√2/2', '−π/4', '−3π/4', [['π/4', '3π/4'], ['−π/4', '3π/4'], ['−π/6', '−5π/6']], 'Для √2/2 ответ π/4 и 3π/4, подставляем минусы: −π/4 и −3π/4.'),
+    seriesTrial('√3/2', 'π/3', '2π/3', [['−π/3', '−2π/3'], ['π/6', '5π/6'], ['π/3', '4π/3']], 'Здесь плюс, минусы не нужны: π/3 и π − π/3 = 2π/3.'),
+    seriesTrial('−√3/2', '−π/3', '−2π/3', [['π/3', '2π/3'], ['−π/6', '−5π/6'], ['−π/3', '2π/3']], 'Для √3/2 ответ π/3 и 2π/3, подставляем минусы: −π/3 и −2π/3.'),
 ]
 const pickTrialFeedback = (i: number) => CORRECT_FEEDBACK_PHRASES[(i * 5 + 3) % CORRECT_FEEDBACK_PHRASES.length]
 
@@ -993,12 +1074,25 @@ export const TypeTrigAnsWalk = ({ onAnswer, onComplete }: Props) => {
     const [step, setStep] = useState(0)
     const [stepReady, setStepReady] = useState(false)
     const [advancing, setAdvancing] = useState(false)
-    const [trials] = useState<Trial[]>(makeTrials)
+    const [trials] = useState<Trial[]>(() => [...makeTrials(), MINUS_SCENE, ...makeMinusTrials()])
     const [trialIndex, setTrialIndex] = useState(0)
     const [checked, setChecked] = useState(false)
     const [wrongTried, setWrongTried] = useState<string[]>([])
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
     const registerCombo = useWalkthroughCombo()
+    // Номер задания внутри своей группы (группы разделены сценой с минусами)
+    const trialNums = (() => {
+        const res: { n: number; total: number }[] = []
+        let start = 0
+        for (let k = 0; k <= trials.length; k++) {
+            if (k === trials.length || trials[k].scene) {
+                for (let m = start; m < k; m++) res[m] = { n: m - start + 1, total: k - start }
+                if (k < trials.length) res[k] = { n: 0, total: 0 }
+                start = k + 1
+            }
+        }
+        return res
+    })()
     const [introNextLabel, setIntroNextLabel] = useState('Дальше')
     const [trialNextLabel, setTrialNextLabel] = useState('Дальше')
     // После «А что это за точки?» (DotsScene) — кнопка «Давай узнаем»
@@ -1086,10 +1180,18 @@ export const TypeTrigAnsWalk = ({ onAnswer, onComplete }: Props) => {
                     const t = trials[i]
                     const isCurrent = i === trialIndex
                     const isDone = i < trialIndex || (isCurrent && checked)
+                    if (t.scene) return (
+                        <SceneWrapper key={`trial-${i}`} innerRef={sceneRef(`trial-${i}`)} active={isSceneActive(`trial-${i}`)}>
+                            <Fragment key={`trial-${i}-${nonceFor(`trial-${i}`)}`}>
+                                <MinusScene onSettled={() => { if (isCurrent) { setTrialNextLabel(pickFunNextLabel()); setChecked(true) } }} />
+                            </Fragment>
+                        </SceneWrapper>
+                    )
+                    const num = trialNums[i]
                     return (
                         <SceneWrapper key={`trial-${i}`} innerRef={sceneRef(`trial-${i}`)} active={isSceneActive(`trial-${i}`)}>
                             <Fragment key={`trial-${i}-${nonceFor(`trial-${i}`)}`}>
-                                {i === 0 && (
+                                {num.n === 1 && (
                                     <div className="w-full flex items-center gap-3" aria-hidden>
                                         <div className="flex-1 h-px bg-[#3A464E]" />
                                         <span className="text-xs font-bold uppercase tracking-wide text-[#5C6B73]">Проверим себя</span>
@@ -1099,11 +1201,11 @@ export const TypeTrigAnsWalk = ({ onAnswer, onComplete }: Props) => {
                                 <div className="relative w-full flex items-center justify-center min-h-9">
                                     <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
                                         style={{ borderColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.55), backgroundColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.16), color: GGEGE_PALETTE.purple.button }}>
-                                        <span>{i + 1}</span><span className="opacity-50 font-normal">/</span><span>{trials.length}</span>
+                                        <span>{num.n}</span><span className="opacity-50 font-normal">/</span><span>{num.total}</span>
                                     </div>
                                     <div className="text-[#F2F7FB] text-center px-16">{t.prompt}</div>
                                 </div>
-                                {i < 3 && <p className="text-sm text-[#9AA7B0] text-center -mt-2">Запиши ответ:</p>}
+                                {t.askWrite && <p className="text-sm text-[#9AA7B0] text-center -mt-2">Запиши ответ:</p>}
                                 <div className="grid grid-cols-2 gap-3 w-full">
                                     {t.options.map((o) => {
                                         const isWrong = isCurrent && wrongTried.includes(o.key)
@@ -1125,7 +1227,7 @@ export const TypeTrigAnsWalk = ({ onAnswer, onComplete }: Props) => {
                                     </div>
                                 )}
                                 {isDone && (
-                                    <FieryFeedbackBanner fiery={isCurrent && isFieryMilestoneTrial(i)}>
+                                    <FieryFeedbackBanner fiery={isCurrent && isFieryMilestoneTrial(num.n - 1)}>
                                         {pickTrialFeedback(i)} {t.hint}
                                     </FieryFeedbackBanner>
                                 )}
