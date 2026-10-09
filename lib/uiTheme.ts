@@ -12,7 +12,9 @@ import type { UiTheme } from '@/lib/cozyTheme'
 
 export const UI_THEME_COOKIE = 'uiTheme'
 
-export const parseUiTheme = (v: string | undefined | null): UiTheme => (v === 'cozy' ? 'cozy' : 'metal')
+// Временно (2026-10-10) у всех только игровой стиль, даже если в cookie осталось 'cozy'.
+// Вернуть выбор — снова читать v: (v === 'cozy' ? 'cozy' : 'metal').
+export const parseUiTheme = (_v: string | undefined | null): UiTheme => 'metal'
 
 export const readUiThemeCookie = (): UiTheme => {
     if (typeof document === 'undefined') return 'metal'
