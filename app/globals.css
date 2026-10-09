@@ -688,3 +688,12 @@ body {
 .animate-arrow-bob-y {
   animation: arrow-bob-y 1s ease-in-out infinite;
 }
+
+/* Изогнутая стрелка у окружности — покачивается поворотом на небольшой угол вокруг центра окружности. */
+@keyframes arrow-rock {
+  0%, 100% { transform: rotate(7deg); }
+  50% { transform: rotate(-7deg); }
+}
+.animate-arrow-rock {
+  animation: arrow-rock 1.1s ease-in-out infinite;
+}
