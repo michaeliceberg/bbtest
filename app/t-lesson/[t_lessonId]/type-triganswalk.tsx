@@ -121,7 +121,7 @@ type CircleProps = {
     dotsPop?: boolean
     labels?: { a: number; text: React.ReactNode; color: string; key: string; side: 1 | -1; pop?: boolean }[]
     arcs?: { a0: number; a1: number; color: string; key: string; arrow?: boolean; width?: number; dur?: number }[]
-    spin?: number | null // полный круг от этого угла (+2πk)
+    spin?: { a: number; turns: number } | null // точка от угла a проезжает turns кругов (± — вперёд/назад)
     dashDur?: number // сколько секунд тянется пунктир
     svgExtra?: React.ReactNode // дополнительные элементы внутри SVG
     overlay?: React.ReactNode // HTML поверх рисунка (через At — координаты холста в процентах)
@@ -228,7 +228,7 @@ const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = fals
                 )
             })}
 
-            {spin !== null && <Spinner a={spin} />}
+            {spin && <Spinner a={spin.a} turns={spin.turns} />}
             <circle cx={C} cy={C} r={3.5} fill="#F2F7FB" />
             {svgExtra}
         </svg>
@@ -258,27 +258,35 @@ const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = fals
 
 // Полный круг: точка обходит окружность вокруг центра (обычный CSS-поворот — framer у <g>
 // вращал бы вокруг самой точки) и возвращается туда же. Два круга подряд.
-const Spinner = ({ a }: { a: number }) => {
+const Spinner = ({ a, turns }: { a: number; turns: number }) => {
+    // turns — сколько кругов всего (накопительно); плюс — против часовой (вперёд), минус — назад.
     const [deg, setDeg] = useState(0)
+    const [dur, setDur] = useState(2.4)
+    const degRef = useRef(0)
     useEffect(() => {
-        const t1 = setTimeout(() => setDeg(-360), 50)
-        const t2 = setTimeout(() => setDeg(-720), 2900)
-        return () => { clearTimeout(t1); clearTimeout(t2) }
-    }, [])
+        const target = -360 * turns
+        const t = setTimeout(() => {
+            setDur(0.8 + 1.6 * Math.abs(target - degRef.current) / 360)
+            degRef.current = target
+            setDeg(target)
+        }, 50)
+        return () => clearTimeout(t)
+    }, [turns])
     const p = pt(a)
     return (
-        <g style={{ transform: `rotate(${deg}deg)`, transformOrigin: `${C}px ${C}px`, transition: 'transform 2.4s ease-in-out' }}>
+        <g style={{ transform: `rotate(${deg}deg)`, transformOrigin: `${C}px ${C}px`, transition: `transform ${dur}s ease-in-out` }}>
             <circle cx={p.x} cy={p.y} r={9} fill={PERIOD_COLOR} stroke="#F2F7FB" strokeWidth={2} />
         </g>
     )
 }
+const spinDurMs = (circles: number) => (0.8 + 1.6 * Math.abs(circles)) * 1000 + 100
 
 const HALF: Level = { v: 0.5, label: <SinVal v="1/2" /> }
 const A30 = PI / 6
 const A150 = (5 * PI) / 6
 
 // ===== Сцены =====
-type SceneProps = { onSettled?: () => void }
+type SceneProps = { onSettled?: () => void; onAutoNext?: () => void } // onAutoNext — сразу к следующей сцене, без кнопки
 
 // 1. sin α = 1/2 → окружность → маркер на sin и 1/2 → ось пружинит → 1/2 на оси.
 const FormulaScene = ({ onSettled }: SceneProps) => {
@@ -805,44 +813,117 @@ const LeftScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-// 5. +2πk: полный круг возвращает в ту же точку → итог.
-const PeriodScene = ({ onSettled }: SceneProps) => {
+// Подпись угла, обведённая маркером
+const Marked = ({ s: v, delay = 0 }: { s: string; delay?: number }) => (
+    <span className="relative inline-flex"><PiFrac s={v} /><MarkerLoop pad={10} delay={delay} /></span>
+)
+
+// 5. Нашли углы: обводим π/6 и 5π/6 маркером.
+const FoundScene = ({ onSettled }: SceneProps) => (
+    <>
+        <DiagramBlock>
+            <SinCircle level={HALF} levelDim dashes dots={[A30, A150]}
+                labels={[
+                    { a: A30, text: <Marked s="π/6" />, color: ARC_COLOR, key: 'r', side: 1, pop: false },
+                    { a: A150, text: <Marked s="5π/6" delay={0.5} />, color: ARC_COLOR, key: 'l', side: -1, pop: false },
+                ]} />
+        </DiagramBlock>
+        <TypedBig parts={[{ text: 'Ураа! Мы нашли наши ' }, { text: 'углы', color: ARC_COLOR }]} onDone={() => onSettled?.()} />
+    </>
+)
+
+// 6. Полный круг 2π: точка проезжает круг и возвращается → «Понял» → k ∈ ℤ → сама к мини-игре.
+const PeriodScene = ({ onAutoNext }: SceneProps) => {
+    // 0 обводим π/6, «А что если пройдём полный круг — 2π?» → 1 круг → 2 «Вернулись в ту же точку!» →
+    // 3 «Кругов можно пройти сколько угодно.» → кнопка «Понял» → 4 «k — это целое число» → 5 «k ∈ ℤ» → 6 «2πk — …» → дальше
     const [phase, setPhase] = useState(0)
+    const [btn, setBtn] = useState(false)
     useEffect(() => {
-        if (phase === 1) { const t = setTimeout(() => setPhase(2), 6200); return () => clearTimeout(t) }
-        if (phase === 3) { const t = setTimeout(() => onSettled?.(), 1200); return () => clearTimeout(t) }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        if (phase === 1) { const t = setTimeout(() => setPhase(2), spinDurMs(1) + 1000); return () => clearTimeout(t) }
     }, [phase])
     return (
         <>
-            <TypedBig small parts={[{ text: 'Пройдём ' }, { text: 'полный круг', color: PERIOD_COLOR }, { text: ' — это 2π' }]} onDone={() => setPhase(1)} readMs={200} />
             <DiagramBlock>
-                <SinCircle level={HALF} levelDim dots={[A30, A150]} spin={phase >= 1 ? A30 : null}
+                <SinCircle level={HALF} levelDim dots={[A30, A150]} spin={phase >= 1 ? { a: A30, turns: 1 } : null}
                     labels={[
-                        { a: A30, text: <PiFrac s="π/6" />, color: ARC_COLOR, key: 'r', side: 1 },
-                        { a: A150, text: <PiFrac s="5π/6" />, color: ARC_COLOR, key: 'l', side: -1 },
+                        { a: A30, text: <Marked s="π/6" />, color: ARC_COLOR, key: 'r', side: 1, pop: false },
+                        { a: A150, text: <PiFrac s="5π/6" />, color: ARC_COLOR, key: 'l', side: -1, pop: false },
                     ]} />
             </DiagramBlock>
-            {phase >= 2 && (
-                <TypedBig small parts={[{ text: 'Вернулись в ту же точку! Кругов можно пройти сколько угодно: ' }, { text: '+2πk', color: PERIOD_COLOR }, { text: ', k — любое целое' }]}
-                    onDone={() => setPhase(3)} readMs={300} />
-            )}
-            {phase >= 3 && (
-                <motion.div initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
-                    className="w-full rounded-2xl border-2 px-4 py-4 flex flex-col items-center gap-3 text-2xl md:text-3xl text-[#F2F7FB]"
-                    style={{ borderColor: '#F2C35B', backgroundColor: hexToRgba('#F2C35B', 0.1) }}>
-                    <span className="text-xs font-black uppercase tracking-widest text-[#F2C35B]">Ответ</span>
-                    <span className="flex items-center gap-2 font-black"><span style={{ color: SIN_COLOR }}>sin</span> α = <SinVal v="1/2" /></span>
-                    <Series base="π/6" />
-                    <span className="text-lg font-bold text-[#9AA7B0]">или</span>
-                    <Series base="5π/6" />
+            <TypedBig small parts={[{ text: 'А что если мы пройдём ' }, { text: 'полный круг — 2π', color: PERIOD_COLOR }, { text: '?' }]} readMs={500} onDone={() => setPhase((p) => Math.max(p, 1))} />
+            {phase >= 2 && <TypedBig small parts={[{ text: 'Вернулись в ту же точку!' }]} readMs={1200} onDone={() => setPhase((p) => Math.max(p, 3))} />}
+            {phase >= 3 && <TypedBig small parts={[{ text: 'Кругов можно пройти ' }, { text: 'сколько угодно', color: PERIOD_COLOR }, { text: '.' }]} readMs={400} onDone={() => setBtn(true)} />}
+            {phase === 3 && btn && (
+                <motion.div className="w-full flex" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                    <button type="button" onClick={() => setPhase(4)} className={cn(walkthroughButtonClass(true), 'w-full')} style={walkthroughButtonStyle(true)}>
+                        Понял
+                    </button>
                 </motion.div>
             )}
+            {phase >= 4 && <TypedBig small parts={[{ text: 'k', color: PERIOD_COLOR }, { text: ' — это целое число' }]} readMs={700} onDone={() => setPhase((p) => Math.max(p, 5))} />}
+            {phase >= 5 && <TypedBig small parts={[{ text: 'На ЕГЭ пишут: ' }, { text: 'k ∈ ℤ', color: PERIOD_COLOR }]} readMs={700} onDone={() => setPhase((p) => Math.max(p, 6))} />}
+            {phase >= 6 && <TypedBig small parts={[{ text: 'Тогда ' }, { text: '2πk', color: PERIOD_COLOR }, { text: ' — это целое число кругов вперёд или назад.' }]} readMs={1800} onDone={() => onAutoNext?.()} />}
         </>
     )
 }
 
-const SCENES = [FormulaScene, DotsScene, TableScene, LeftAnglesScene, LeftScene, PeriodScene]
+// 7. Мини-игра: «Проедем 2π · k» — кнопки k = 1, −1, 2, −2, точка проезжает столько кругов.
+const K_OPTIONS = [1, -1, 2, -2]
+const KGameScene = ({ onSettled }: SceneProps) => {
+    const [turns, setTurns] = useState(0)
+    const [busy, setBusy] = useState(false)
+    const [last, setLast] = useState<number | null>(null)
+    const settledRef = useRef(false)
+    const go = (k: number) => {
+        if (busy) return
+        setBusy(true); setLast(k); setTurns((t) => t + k)
+        setTimeout(() => {
+            setBusy(false)
+            if (!settledRef.current) { settledRef.current = true; onSettled?.() }
+        }, spinDurMs(k))
+    }
+    const kText = (k: number) => (k < 0 ? `−${-k}` : `${k}`)
+    return (
+        <>
+            <DiagramBlock>
+                <SinCircle level={HALF} levelDim dots={[A30, A150]} spin={{ a: A30, turns }}
+                    labels={[{ a: A30, text: <PiFrac s="π/6" />, color: ARC_COLOR, key: 'r', side: 1, pop: false }]} />
+            </DiagramBlock>
+            <TypedBig small parts={[{ text: 'Проедем ' }, { text: '2π · k', color: PERIOD_COLOR }]} />
+            <div className="grid grid-cols-4 gap-2 w-full max-w-md mx-auto">
+                {K_OPTIONS.map((k) => (
+                    <button key={k} type="button" onClick={() => go(k)} disabled={busy}
+                        className={cn('min-h-[56px] rounded-xl border-2 text-lg font-black transition-colors disabled:opacity-60',
+                            last === k ? 'border-[#BC418A] bg-[#BC418A33] text-[#F2F7FB]' : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#BC418A]')}>
+                        k = {kText(k)}
+                    </button>
+                ))}
+            </div>
+            <div className="min-h-[1.75rem] text-center text-base font-bold text-[#9AA7B0]">
+                {last !== null && (last > 0 ? `${kText(last)} ${Math.abs(last) === 1 ? 'круг' : 'круга'} вперёд` : `${kText(-last)} ${Math.abs(last) === 1 ? 'круг' : 'круга'} назад`)}
+            </div>
+        </>
+    )
+}
+
+// 8. Итог: ответ.
+const AnswerScene = ({ onSettled }: SceneProps) => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => { const t = setTimeout(() => onSettled?.(), 1200); return () => clearTimeout(t) }, [])
+    return (
+        <motion.div initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
+            className="w-full rounded-2xl border-2 px-4 py-4 flex flex-col items-center gap-3 text-2xl md:text-3xl text-[#F2F7FB]"
+            style={{ borderColor: '#F2C35B', backgroundColor: hexToRgba('#F2C35B', 0.1) }}>
+            <span className="text-xs font-black uppercase tracking-widest text-[#F2C35B]">Ответ</span>
+            <span className="flex items-center gap-2 font-black"><span style={{ color: SIN_COLOR }}>sin</span> α = <SinVal v="1/2" /></span>
+            <Series base="π/6" />
+            <span className="text-lg font-bold text-[#9AA7B0]">или</span>
+            <Series base="5π/6" />
+        </motion.div>
+    )
+}
+
+const SCENES = [FormulaScene, DotsScene, TableScene, LeftAnglesScene, LeftScene, FoundScene, PeriodScene, KGameScene, AnswerScene]
 
 // ===== Тренировка =====
 type Trial = { prompt: React.ReactNode; options: { key: string; view: React.ReactNode }[]; correct: string; hint: string }
@@ -908,7 +989,14 @@ export const TypeTrigAnsWalk = ({ onAnswer, onComplete }: Props) => {
     const [trialNextLabel, setTrialNextLabel] = useState('Дальше')
     // После «А что это за точки?» (DotsScene) — кнопка «Давай узнаем»
     useEffect(() => {
-        setIntroNextLabel(SCENES[step] === DotsScene ? 'Давай узнаем' : SCENES[step] === LeftAnglesScene ? 'Круто! Это же одинаковые углы!' : pickFunNextLabel())
+        const fixed = new Map<unknown, string>([
+            [DotsScene, 'Давай узнаем'],
+            [LeftAnglesScene, 'Круто! Это же одинаковые углы!'],
+            [LeftScene, 'Понял-принял'],
+            [FoundScene, 'Остался последний момент'],
+            [KGameScene, 'Я осознал!'],
+        ])
+        setIntroNextLabel(fixed.get(SCENES[step]) ?? pickFunNextLabel())
     }, [step])
 
     const answer = (key: string, t: Trial) => {
@@ -974,7 +1062,7 @@ export const TypeTrigAnsWalk = ({ onAnswer, onComplete }: Props) => {
                     step >= i ? (
                         <SceneWrapper key={`step-${i}`} innerRef={sceneRef(`step-${i}`)} active={isSceneActive(`step-${i}`)}>
                             <Fragment key={`step-${i}-${nonceFor(`step-${i}`)}`}>
-                                <Scene onSettled={() => i === step && setStepReady(true)} />
+                                <Scene onSettled={() => i === step && setStepReady(true)} onAutoNext={() => { if (i === step) handleIntroNext() }} />
                             </Fragment>
                         </SceneWrapper>
                     ) : null,
