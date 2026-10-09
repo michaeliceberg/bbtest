@@ -509,6 +509,23 @@ const PI_POINT_COLOR = ARC_COLOR
 const PI_OPTIONS = ['π', 'π/2', '2π']
 // «−π/6» — внутри окружности у дуги π → 5π/6 (снаружи наезжал на подпись 5π/6).
 const MINUS_POS = { x: C - R + 50, y: C - 30 }
+// Стикер-реакция Начо левее левой точки: в ролике он лежит на боку — поворачиваем на 90° и отражаем,
+// чтобы голова смотрела вправо-вниз, на левую оранжевую точку. Играет по кругу, пока не нажали «Давай узнаем».
+const NACHO_VIDEO = '/video/nacho-1.webm'
+const NachoNearLeftPoint = () => {
+    const p = pt(A150)
+    return (
+        <At x={p.x - 46} y={p.y - 22} w={62}>
+            <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 11, delay: 0.5 }}
+                className="aspect-square w-full overflow-hidden rounded-xl">
+                <video src={NACHO_VIDEO} autoPlay loop muted playsInline className="h-full w-full object-cover"
+                    style={{ transform: 'scaleX(-1) rotate(90deg)' }} />
+            </motion.div>
+        </At>
+    )
+}
+
 const LeftScene = ({ onSettled }: SceneProps) => {
     // 0 левая точка (sin ½) крупно прыгает + «А что это за угол?» → 1 «Сначала — что это за точка?», точка π
     // прыгает непрерывно → 2 варианты → 3 «π» у точки → 4 дуга по часовой и «−π/6» → 5 π и −π/6 летят в строку →
@@ -516,6 +533,7 @@ const LeftScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
     const [opts] = useState(() => shuffle(PI_OPTIONS))
     const [wrong, setWrong] = useState<string | null>(null)
+    const [askReady, setAskReady] = useState(false)
     useEffect(() => {
         // 7 → 8 — по концу полёта, это страховка.
         const next: Record<number, [number, number]> = { 3: [4, 1000], 4: [5, 1700], 5: [6, 1100], 6: [7, 1600], 7: [8, 1300] }
@@ -572,7 +590,7 @@ const LeftScene = ({ onSettled }: SceneProps) => {
 
     return (
         <div ref={boxRef} className="relative w-full flex flex-col gap-4">
-            <TypedBig small parts={[{ text: 'А что это за ' }, { text: 'угол', color: DOT_COLOR }, { text: '?' }]} readMs={1300} onDone={() => setPhase((p) => Math.max(p, 1))} />
+            <TypedBig small parts={[{ text: 'А что это за ' }, { text: 'угол', color: DOT_COLOR }, { text: '?' }]} readMs={600} onDone={() => setAskReady(true)} />
             <DiagramBlock>
                 <SinCircle svgRef={svgRef} level={HALF} dashes dots={[A30, A150]}
                     arcs={phase >= 4 ? [{ a0: PI, a1: A150, color: PERIOD_COLOR, key: 'cw', arrow: true }] : []}
@@ -603,6 +621,7 @@ const LeftScene = ({ onSettled }: SceneProps) => {
                     )}
                     overlay={(
                         <>
+                            {phase === 0 && <NachoNearLeftPoint />}
                             {phase >= 3 && phase !== 5 && (
                                 <At {...labelPos(PI, -1)}>
                                     <motion.span className="block" initial={phase === 3 ? { scale: 0 } : false} animate={{ scale: 1, opacity: phase >= 6 ? 0.35 : 1 }} transition={{ type: 'spring', stiffness: 320, damping: 9 }}>{piLabel}</motion.span>
@@ -616,6 +635,13 @@ const LeftScene = ({ onSettled }: SceneProps) => {
                         </>
                     )} />
             </DiagramBlock>
+            {phase === 0 && askReady && (
+                <motion.div className="w-full flex" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                    <button type="button" onClick={() => setPhase(1)} className={cn(walkthroughButtonClass(true), 'w-full')} style={walkthroughButtonStyle(true)}>
+                        Давай узнаем
+                    </button>
+                </motion.div>
+            )}
             {phase >= 1 && (
                 <TypedBig small parts={[{ text: 'Сначала скажи: а что это за ' }, { text: 'точка', color: PI_POINT_COLOR }, { text: '?' }]} readMs={200} onDone={() => setPhase((p) => Math.max(p, 2))} />
             )}
