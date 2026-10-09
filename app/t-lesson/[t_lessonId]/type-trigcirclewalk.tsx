@@ -27,7 +27,7 @@ import {
     pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
-    isFieryMilestoneTrial, FieryFeedbackBanner,
+    isFieryMilestoneTrial, FieryFeedbackBanner, EllipsisPause,
     useWalkthroughCombo,
     pickFunNextLabel,
 } from '@/components/geometry/WalkthroughLog'
@@ -59,16 +59,15 @@ const MINUS_COLOR = '#DC605B'
 const PI = Math.PI
 const TEXT = 'w-full text-base md:text-lg text-[#F2F7FB]'
 
-const HOUSE_STICKER = '/lesson-pics/house-sticker.webp'
+const HOUSE_STICKER = '/lesson-pics/house-gingerbread.webp' // пряничный домик (вырезан, белая обводка)
 const WALKER_STICKER = '/lesson-pics/dicaprio-walk2.webp'
 
 const pickFun = pickFunNextLabel
 const pickPraise = () => CORRECT_FEEDBACK_PHRASES[Math.floor(Math.random() * CORRECT_FEEDBACK_PHRASES.length)]
 const VIDEO_APPLAUSE = '/video/dicaprio-applause.mp4'
 const VIDEO_DJANGO = '/video/dicaprio-django.webm'
-const VIDEO_LOOT = '/video/loot1.mp4'
 const VIDEO_JASON_JACKET = '/video/jason-jacket.webm'
-const JASON_PIC = '/lesson-pics/jason.webp'
+const JASON_PIC = '/lesson-pics/jason-left.webp' // уже отражён в файле — смотрит влево
 
 function shuffle<T>(arr: T[]): T[] {
     const a = [...arr]
@@ -310,7 +309,7 @@ const House = ({ a = 0, state = 'idle', onClick, bounce = false, pop = false, po
             <motion.g initial={pop ? { scale: 0 } : false} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 8, delay: popDelay }}>
             <g className={bounce ? 'animate-chest-idle-bounce' : undefined} style={{ transformBox: 'fill-box' }}>
                 {state !== 'idle' && <circle r={HOUSE_SIZE / 2 + 4} fill={hexToRgba(state === 'wrong' ? MINUS_COLOR : PLUS_COLOR, 0.3)} stroke={state === 'wrong' ? MINUS_COLOR : PLUS_COLOR} strokeWidth={3} />}
-                <image href={HOUSE_STICKER} x={-HOUSE_SIZE / 2} y={-HOUSE_SIZE / 2} width={HOUSE_SIZE} height={HOUSE_SIZE * 0.87} />
+                <image href={HOUSE_STICKER} x={-HOUSE_SIZE / 2} y={-HOUSE_SIZE / 2} width={HOUSE_SIZE} height={HOUSE_SIZE * 0.825} />
                 {/* Зона клика — прозрачный круг поверх картинки */}
                 {onClick && <circle r={HOUSE_SIZE / 2 + 6} fill="transparent" />}
             </g>
@@ -643,11 +642,6 @@ const AxisGameScene = ({ onSettled }: SceneProps) => {
                                 axisFlash={right ? { axis: right, color: right === 'cos' ? COS_COLOR : SIN_COLOR } : wrong ? { axis: wrong, color: MINUS_COLOR } : null}
                                 onAxisPick={done ? undefined : pick}
                             />
-                            {done && (
-                                <motion.video src={VIDEO_LOOT} autoPlay muted playsInline
-                                    initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.45 }}
-                                    className="pointer-events-none absolute right-[4%] top-[2%] w-[36%] rounded-2xl" />
-                            )}
                         </div>
                         <div className="h-9 flex items-center justify-center text-xl font-black">
                             {praise ? (
@@ -1011,7 +1005,7 @@ const PiScene = ({ onSettled }: SceneProps) => {
                     {/* Стэйтем справа, отражён — смотрит влево, на π = 180° */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <motion.img src={JASON_PIC} alt="" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ type: 'spring', bounce: 0.3 }}
-                        className="w-28 md:w-36 h-auto shrink-0" style={{ transform: 'scaleX(-1)' }} />
+                        className="w-28 md:w-36 h-auto shrink-0" />
                 </div>
             )}
         </>
@@ -1188,7 +1182,9 @@ const StepsUpScene = ({ onSettled }: SceneProps) => {
     return (
         <>
             <TypedBig parts={[{ text: 'А как найти угол ' }, { text: '3π/2', color: PLUS_COLOR }, { text: '?' }]} onDone={() => setPhase(1)} readMs={300} />
-            {phase >= 1 && <TypedBig parts={[{ text: 'Да это же 3 раза по π/2!' }]} onDone={() => setPhase(2)} readMs={300} />}
+            {/* «операция многоточие» — . → .. → ... перед ответом */}
+            {phase === 1 && <EllipsisPause onDone={() => setPhase(1.5)} />}
+            {phase >= 1.5 && <TypedBig parts={[{ text: 'Да это же 3 раза по π/2!' }]} onDone={() => setPhase(2)} readMs={300} />}
             {phase >= 2 && (
                 <DiagramBlock>
                     <StepWalk count={3} dir={1} onDone={() => setPhase(3)} />

@@ -57,7 +57,7 @@ const CTG_COLOR = GGEGE_PALETTE.teal.button
 const TEAL_COLOR = GGEGE_PALETTE.teal.button
 const PLUS_COLOR = '#A1D151'
 const MINUS_COLOR = '#DC605B'
-const HOUSE_STICKER = '/lesson-pics/house-sticker.webp'
+const HOUSE_STICKER = '/lesson-pics/house-gingerbread.webp'
 const PI = Math.PI
 
 // ===== Крупный печатаемый текст (части: цвет / стикер) =====
@@ -302,7 +302,7 @@ const RedCircle = ({ base = PI / 2, plusArc = null, stepArc = null, onPlusDone, 
                 </>
             )}
             {/* домик справа */}
-            <image href={HOUSE_STICKER} x={C + R - 18} y={C - 16} width={36} height={31} />
+            <image href={HOUSE_STICKER} x={C + R - 18} y={C - 16} width={36} height={30} />
             <circle cx={C} cy={C} r={4} fill="#F2F7FB" />
             {children}
         </svg>

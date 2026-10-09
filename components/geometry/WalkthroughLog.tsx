@@ -84,6 +84,28 @@ export const TextSticker = ({ text, color = '#F2C35B', holdMs = 1500, onDone }: 
     )
 }
 
+// «Операция многоточие» (2026-10-10): пауза-раздумье между фразами — «.» → «..» → «...» (два круга), потом onDone.
+// Место под точки занято заранее, ничего не прыгает.
+export const EllipsisPause = ({ onDone, rounds = 2, stepMs = 450, className }: { onDone?: () => void; rounds?: number; stepMs?: number; className?: string }) => {
+    const [n, setN] = useState(1)
+    const doneRef = useRef(onDone)
+    doneRef.current = onDone
+    useEffect(() => {
+        let k = 1
+        const id = setInterval(() => {
+            k += 1
+            if (k > rounds * 3) { clearInterval(id); setN(3); doneRef.current?.(); return }
+            setN(((k - 1) % 3) + 1)
+        }, stepMs)
+        return () => clearInterval(id)
+    }, [rounds, stepMs])
+    return (
+        <div className={className ?? 'w-full h-9 text-center text-3xl font-black leading-none text-[#F2F7FB] tracking-[0.2em]'}>
+            {'.'.repeat(n)}
+        </div>
+    )
+}
+
 export const MARKER_LOOP_COLOR = '#F2C35B'
 export const MARKER_LOOP_PATH = 'M 86 24 C 66 0, 16 4, 7 44 C 0 86, 58 102, 90 80 C 104 64, 99 34, 72 18'
 export const MarkerLoop = ({ active = true, delay = 0, color = MARKER_LOOP_COLOR, pad = 12 }: { active?: boolean; delay?: number; color?: string; pad?: number }) => (
