@@ -94,8 +94,9 @@ const Pop = ({ delay = 0, children, className }: { delay?: number; children: Rea
 
 // ===== Окружность =====
 const C = 150
-const R = 100
-const AX = 128
+// Окружность крупнее (просьба 2026-10-09): радиус ближе к краям холста.
+const R = 114
+const AX = 138
 const pt = (a: number, r = R) => ({ x: C + r * Math.cos(a), y: C - r * Math.sin(a) })
 const arcD = (a0: number, a1: number, r = R) => {
     const p0 = pt(a0, r), p1 = pt(a1, r)
@@ -119,15 +120,16 @@ type CircleProps = {
     labels?: { a: number; text: React.ReactNode; color: string; key: string; side: 1 | -1 }[]
     arcs?: { a0: number; a1: number; color: string; key: string }[]
     spin?: number | null // полный круг от этого угла (+2πk)
+    dashDur?: number // сколько секунд тянется пунктир
     svgRef?: React.Ref<SVGSVGElement>
 }
 
-const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = false, dots = [], dotsPop = false, labels = [], arcs = [], spin = null, svgRef }: CircleProps) => {
+const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = false, dots = [], dotsPop = false, labels = [], arcs = [], spin = null, svgRef, dashDur = 0.9 }: CircleProps) => {
     const dotsPopAnim = dotsPop
     const ly = level ? C - level.v * R : 0
     const hx = level ? Math.sqrt(Math.max(0, 1 - level.v * level.v)) * R : 0
     return (
-        <svg ref={svgRef} viewBox="-30 0 360 300" className="w-full max-w-[360px] h-auto mx-auto block select-none overflow-visible">
+        <svg ref={svgRef} viewBox="-30 0 360 300" className="w-full max-w-[500px] h-auto mx-auto block select-none overflow-visible">
             <motion.circle cx={C} cy={C} r={R} fill="none" stroke="#F2F7FB" strokeWidth={3}
                 initial={draw ? { pathLength: 0 } : false} animate={{ pathLength: 1 }} transition={{ duration: 1.1, ease: 'easeInOut' }} />
             {/* ось cos */}
@@ -159,9 +161,9 @@ const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = fals
                         <>
                             {/* Растягиваем конец линии (pathLength у framer затёр бы пунктир) */}
                             <motion.line x1={C} y1={ly} y2={ly} stroke={SIN_COLOR} strokeWidth={2.5} strokeDasharray="7 6"
-                                initial={dotsPopAnim ? { x2: C } : false} animate={{ x2: C + hx }} transition={{ duration: 0.9, ease: 'easeInOut' }} />
+                                initial={dotsPopAnim ? { x2: C } : false} animate={{ x2: C + hx }} transition={{ duration: dashDur, ease: 'easeInOut' }} />
                             <motion.line x1={C} y1={ly} y2={ly} stroke={SIN_COLOR} strokeWidth={2.5} strokeDasharray="7 6"
-                                initial={dotsPopAnim ? { x2: C } : false} animate={{ x2: C - hx }} transition={{ duration: 0.9, ease: 'easeInOut' }} />
+                                initial={dotsPopAnim ? { x2: C } : false} animate={{ x2: C - hx }} transition={{ duration: dashDur, ease: 'easeInOut' }} />
                         </>
                     )}
                     {/* отметка уровня на оси sin */}
@@ -184,7 +186,7 @@ const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = fals
                 return (
                     <g key={`d${a}`} transform={`translate(${p.x} ${p.y})`}>
                         <motion.g initial={dotsPop ? { scale: 0 } : false} animate={{ scale: 1 }}
-                            transition={{ type: 'spring', stiffness: 340, damping: 7, delay: dotsPop ? 0.95 + i * 0.12 : 0 }}>
+                            transition={{ type: 'spring', stiffness: 340, damping: 7, delay: dotsPop ? dashDur + 0.05 + i * 0.12 : 0 }}>
                             <circle r={11} fill={hexToRgba(DOT_COLOR, 0.3)} />
                             <circle r={7} fill={DOT_COLOR} stroke="#F2F7FB" strokeWidth={2} />
                         </motion.g>
@@ -270,20 +272,22 @@ const FormulaScene = ({ onSettled }: SceneProps) => {
 }
 
 // 2. Пунктир на высоте 1/2 к краям → две точки → «А что это за углы?»
+const DOTS_DASH_S = 1.8 // пунктир — в 2 раза медленнее обычного
 const DotsScene = ({ onSettled }: SceneProps) => {
+    // 0 печатаем фразу → 1 пунктиры и точки → 2 «А что это за углы?» (после отскока точек)
     const [phase, setPhase] = useState(0)
     useEffect(() => {
-        if (phase !== 0) return
-        const t = setTimeout(() => setPhase(1), 1900)
+        if (phase !== 1) return
+        const t = setTimeout(() => setPhase(2), (DOTS_DASH_S + 0.9) * 1000)
         return () => clearTimeout(t)
     }, [phase])
     return (
         <>
-            <TypedBig small parts={[{ text: 'Проведём на высоте ' }, { text: '1/2', color: SIN_COLOR }, { text: ' линию до окружности' }]} readMs={300} />
+            <TypedBig small parts={[{ text: 'Проведём на высоте ' }, { text: '1/2', color: SIN_COLOR }, { text: ' линию до окружности' }]} onDone={() => setPhase(1)} readMs={300} />
             <DiagramBlock>
-                <SinCircle level={HALF} dashes dots={[A30, A150]} dotsPop />
+                <SinCircle level={HALF} dashes={phase >= 1} dots={phase >= 1 ? [A30, A150] : []} dotsPop dashDur={DOTS_DASH_S} />
             </DiagramBlock>
-            {phase >= 1 && <TypedBig parts={[{ text: 'А что это за ' }, { text: 'углы', color: DOT_COLOR }, { text: '?' }]} onDone={() => onSettled?.()} />}
+            {phase >= 2 && <TypedBig parts={[{ text: 'А что это за ' }, { text: 'углы', color: DOT_COLOR }, { text: '?' }]} onDone={() => onSettled?.()} />}
         </>
     )
 }
