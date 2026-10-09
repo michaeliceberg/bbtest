@@ -44,7 +44,7 @@ const PI = Math.PI
 const LABEL_STYLE = { fontFamily: 'var(--font-nunito), sans-serif', fontWeight: 900 } as const
 
 // ===== Мелочи текста =====
-type BigPart = { text: string; color?: string }
+type BigPart = { text: string; color?: string; big?: boolean }
 const TypedBig = ({ parts, onDone, readMs = 500, small = false }: { parts: BigPart[]; onDone?: () => void; readMs?: number; small?: boolean }) => {
     const [typed, setTyped] = useState(false)
     return (
@@ -52,7 +52,7 @@ const TypedBig = ({ parts, onDone, readMs = 500, small = false }: { parts: BigPa
             {!typed ? (
                 <Typewriter text={parts.map((p) => p.text).join('')} onDone={() => { setTyped(true); setTimeout(() => onDone?.(), readMs) }} />
             ) : (
-                parts.map((p, i) => <span key={i} style={p.color ? { color: p.color } : undefined}>{p.text}</span>)
+                parts.map((p, i) => <span key={i} className={p.big ? 'text-4xl md:text-5xl align-middle' : undefined} style={p.color ? { color: p.color } : undefined}>{p.text}</span>)
             )}
         </div>
     )
@@ -861,8 +861,9 @@ const RememberLeftScene = ({ onSettled }: SceneProps) => {
                     <TypedBig small parts={[{ text: 'Правая точка: берём из ' }, { text: 'таблицы', color: SIN_COLOR }]} readMs={500} onDone={() => setReady(true)} />
                     {ready && (
                         <motion.span initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
-                            className="flex items-center gap-2 text-xl md:text-2xl">
-                            левая = <span className="text-5xl leading-none" style={{ color: ARC_COLOR }}>π</span> − правая
+                            className="flex flex-wrap items-center justify-center gap-x-2 text-xl md:text-2xl">
+                            <span>Левая точка =</span>
+                            <span className="inline-flex items-center gap-2"><span className="text-5xl leading-none" style={{ color: ARC_COLOR }}>π</span> − правая</span>
                         </motion.span>
                     )}
                 </div>
@@ -916,7 +917,7 @@ const FoundScene = ({ onSettled }: SceneProps) => {
 
 // 6. Полный круг 2π: точка проезжает круг и возвращается → «Понял» → k ∈ ℤ → сама к мини-игре.
 const PeriodScene = ({ onAutoNext }: SceneProps) => {
-    // 0 обводим π/6, «А что если мы пройдём полный круг 2π?» → 1 круг → 2 «Мы вернулись в ту же точку!» →
+    // 0 «А что если от точки π/6 мы пройдём полный круг 2π?» → 1 круг → 2 «Мы вернулись в ту же точку!» →
     // 3 «Кругов можно пройти сколько угодно.» → сама к мини-игре
     const [phase, setPhase] = useState(0)
     useEffect(() => {
@@ -925,14 +926,11 @@ const PeriodScene = ({ onAutoNext }: SceneProps) => {
     return (
         <>
             <DiagramBlock>
-                <SinCircle level={HALF} levelDim dots={[A30, A150]} spin={phase >= 1 ? { a: A30, turns: 1 } : null}
-                    labels={[
-                        { a: A30, text: <Marked s="π/6" />, color: ARC_COLOR, key: 'r', side: 1, pop: false },
-                        { a: A150, text: <PiFrac s="5π/6" />, color: ARC_COLOR, key: 'l', side: -1, pop: false },
-                    ]} />
+                <SinCircle dots={[A30]} spin={phase >= 1 ? { a: A30, turns: 1 } : null}
+                    labels={[{ a: A30, text: <PiFrac s="π/6" />, color: ARC_COLOR, key: 'r', side: 1, pop: false }]} />
             </DiagramBlock>
             {/* без тире перед 2π — оно похоже на минус */}
-            <TypedBig small parts={[{ text: 'А что если мы пройдём ' }, { text: 'полный круг 2π', color: PERIOD_COLOR }, { text: '?' }]} readMs={500} onDone={() => setPhase((p) => Math.max(p, 1))} />
+            <TypedBig small parts={[{ text: 'А что если от точки ' }, { text: 'π/6', color: ARC_COLOR }, { text: '\nмы пройдём ' }, { text: 'полный круг 2π', color: PERIOD_COLOR }, { text: '?' }]} readMs={500} onDone={() => setPhase((p) => Math.max(p, 1))} />
             {phase >= 2 && <TypedBig small parts={[{ text: 'Мы вернулись в ту же точку!' }]} readMs={1200} onDone={() => setPhase((p) => Math.max(p, 3))} />}
             {phase >= 3 && <TypedBig small parts={[{ text: 'Кругов можно пройти ' }, { text: 'сколько угодно', color: PERIOD_COLOR }, { text: '.' }]} readMs={1600} onDone={() => onAutoNext?.()} />}
         </>
@@ -1030,7 +1028,7 @@ const AnswerScene = ({ onSettled }: SceneProps) => {
             {phase >= 1 && (
                 <div className="w-full flex justify-center text-2xl md:text-3xl text-[#F2F7FB]"><Pop><SinLine v="1/2" /></Pop></div>
             )}
-            {phase >= 2 && <TypedBig small parts={[{ text: 'Получаем ответ:' }]} readMs={300} onDone={() => setPhase((p) => Math.max(p, 3))} />}
+            {phase >= 2 && <TypedBig small parts={[{ text: 'Получаем ' }, { text: 'ДВА', color: ARC_COLOR, big: true }, { text: ' ответа:' }]} readMs={300} onDone={() => setPhase((p) => Math.max(p, 3))} />}
             {phase >= 3 && (
                 <div className="w-full flex flex-wrap items-center justify-center gap-4">
                     <SeriesSystem a="π/6" b="5π/6" />
@@ -1182,7 +1180,9 @@ export const TypeTrigAnsWalk = ({ onAnswer, onComplete }: Props) => {
             [LeftAnglesScene, 'Круто! Это же одинаковые углы!'],
             [LeftScene, 'Понял-принял'],
             [FoundScene, 'Остался последний момент'],
-            [KGameScene, 'Вот это закружило!'],
+            [KGameScene, 'Целые обороты ведут в ТУ же точку'],
+            [RememberLeftScene, 'База'],
+            [AnswerScene, 'Все по фактам'],
         ])
         setIntroNextLabel(fixed.get(SCENES[step]) ?? pickFunNextLabel())
     }, [step])
