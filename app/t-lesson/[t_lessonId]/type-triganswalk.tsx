@@ -989,7 +989,10 @@ const SeriesRow = ({ base, minus, delay }: { base: string; minus: boolean; delay
         <span>α =</span>
         <span className="relative inline-flex w-[0.7em] justify-center" style={{ color: ARC_COLOR }}>
             {minus && (
-                <motion.span initial={{ scale: 0, opacity: 0 }} animate={{ scale: [0, 4.5, 0.85, 1.15, 1], opacity: 1 }} transition={{ duration: 0.9, delay, ease: 'easeOut' }}>−</motion.span>
+                <motion.span className="inline-block" initial={{ scale: 0, opacity: 0, rotate: 0 }}
+                    animate={{ scale: [0, 5, 3.2, 1.6, 0.85, 1.15, 1], rotate: [0, -28, 24, -16, 10, -4, 0], opacity: 1 }}
+                    transition={{ duration: 1.3, delay, ease: 'easeOut' }}
+                    style={{ textShadow: `0 0 12px ${hexToRgba(ARC_COLOR, 0.9)}` }}>−</motion.span>
             )}
         </span>
         <span style={{ color: ARC_COLOR }}><PiFrac s={base} /></span>
@@ -1003,7 +1006,7 @@ const SeriesSystem = ({ a, b, minus = false }: { a: string; b: string; minus?: b
         <span className="w-3 border-y-[3px] border-l-[3px] border-[#F2F7FB] rounded-l-sm mr-2" />
         <span className="flex flex-col gap-4 py-2">
             <SeriesRow base={a} minus={minus} delay={0.1} />
-            <SeriesRow base={b} minus={minus} delay={1.4} />
+            <SeriesRow base={b} minus={minus} delay={1.7} />
         </span>
     </motion.div>
 )
@@ -1051,11 +1054,16 @@ const MinusScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
     const [btn, setBtn] = useState(false)
     const [btn2, setBtn2] = useState(false)
+    const [showSys, setShowSys] = useState(false)
     const videoRef = useRef<HTMLVideoElement>(null)
     useEffect(() => {
         if (phase === 1) { const t = setTimeout(() => setBtn(true), 1400); return () => clearTimeout(t) }
-        if (phase === 3) { const t = setTimeout(() => setBtn2(true), 1300); return () => clearTimeout(t) }
-        if (phase === 5) { const t = setTimeout(() => onSettled?.(), 2800); return () => clearTimeout(t) }
+        if (phase === 3) {
+            const t1 = setTimeout(() => setShowSys(true), 1100)
+            const t2 = setTimeout(() => setBtn2(true), 2500)
+            return () => { clearTimeout(t1); clearTimeout(t2) }
+        }
+        if (phase === 5) { const t = setTimeout(() => onSettled?.(), 3300); return () => clearTimeout(t) }
         if (phase >= 2) videoRef.current?.pause()
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [phase])
@@ -1078,11 +1086,11 @@ const MinusScene = ({ onSettled }: SceneProps) => {
                     </button>
                 </motion.div>
             )}
-            {phase >= 2 && <TypedBig small parts={[{ text: 'Тогда пишем ответ для' }]} readMs={300} onDone={() => setPhase((p) => Math.max(p, 3))} />}
+            {phase >= 2 && <TypedBig small parts={[{ text: 'Тогда ' }, { text: 'СНАЧАЛА', color: ARC_COLOR }, { text: ' пишем ответ для' }]} readMs={300} onDone={() => setPhase((p) => Math.max(p, 3))} />}
             {phase >= 3 && (
                 <div className="w-full flex flex-col items-center gap-3">
                     <div className="text-2xl md:text-3xl text-[#F2F7FB]"><Pop><SinLine v="1/2" /></Pop></div>
-                    <SeriesSystem a="π/6" b="5π/6" minus={phase >= 5} />
+                    {showSys && <SeriesSystem a="π/6" b="5π/6" minus={phase >= 5} />}
                 </div>
             )}
             {phase === 3 && btn2 && (
