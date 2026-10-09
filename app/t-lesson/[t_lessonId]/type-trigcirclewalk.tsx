@@ -65,6 +65,10 @@ const WALKER_STICKER = '/lesson-pics/dicaprio-walk2.webp'
 const pickFun = pickFunNextLabel
 const pickPraise = () => CORRECT_FEEDBACK_PHRASES[Math.floor(Math.random() * CORRECT_FEEDBACK_PHRASES.length)]
 const VIDEO_APPLAUSE = '/video/dicaprio-applause.mp4'
+const VIDEO_DJANGO = '/video/dicaprio-django.webm'
+const VIDEO_LOOT = '/video/loot1.mp4'
+const VIDEO_JASON_JACKET = '/video/jason-jacket.webm'
+const JASON_PIC = '/lesson-pics/jason.webp'
 
 function shuffle<T>(arr: T[]): T[] {
     const a = [...arr]
@@ -560,7 +564,7 @@ const IntroScene = ({ onSettled }: SceneProps) => {
     // 5 стрелка sin → 6 подпись sin → 7 текст про sin.
     const [phase, setPhase] = useState(0)
     useEffect(() => {
-        const next: Record<number, [number, number]> = { 2: [3, 900], 3: [4, 700], 5: [6, 900], 6: [7, 700] }
+        const next: Record<number, [number, number]> = { 1.5: [2, 6000], 2: [3, 900], 3: [4, 700], 5: [6, 900], 6: [7, 700] } // 1.5 — страховка, если видео не доиграло
         const step = next[phase]
         if (!step) return
         const t = setTimeout(() => setPhase(step[0]), step[1])
@@ -570,8 +574,16 @@ const IntroScene = ({ onSettled }: SceneProps) => {
         <>
             <TypedBig parts={[{ text: 'Это ' }, { text: 'тригонометрическая окружность', color: ARC_COLOR }]} onDone={() => setPhase(1)} />
             {phase >= 1 && (
-                <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 1200)}>
-                    <CircleCanvas drawCircle axisShow={{ cos: phase >= 2, sin: phase >= 5 }} axisLabels={{ cos: phase >= 3, sin: phase >= 6 }} />
+                <DiagramBlock onSettled={() => setTimeout(() => setPhase((p) => Math.max(p, 1.5)), 1200)}>
+                    <div className="relative w-full">
+                        <CircleCanvas drawCircle axisShow={{ cos: phase >= 2, sin: phase >= 5 }} axisLabels={{ cos: phase >= 3, sin: phase >= 6 }} />
+                        {/* Пока осей нет — справа сверху (I четверть) ДиКаприо; кончилось видео — рисуем оси */}
+                        {phase === 1.5 && (
+                            <motion.video src={VIDEO_DJANGO} autoPlay muted playsInline onEnded={() => setPhase((p) => Math.max(p, 2))}
+                                initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.45 }}
+                                className="pointer-events-none absolute right-[6%] top-[4%] w-[34%] rounded-2xl" />
+                        )}
+                    </div>
                 </DiagramBlock>
             )}
             {phase >= 4 && (
@@ -625,11 +637,18 @@ const AxisGameScene = ({ onSettled }: SceneProps) => {
                                 <Pop key="done"><span className="text-[#A1D151]">Оси залутал! 🔥</span></Pop>
                             )}
                         </div>
-                        <CircleCanvas
-                            axisLabels={{ cos: done, sin: done }}
-                            axisFlash={right ? { axis: right, color: right === 'cos' ? COS_COLOR : SIN_COLOR } : wrong ? { axis: wrong, color: MINUS_COLOR } : null}
-                            onAxisPick={done ? undefined : pick}
-                        />
+                        <div className="relative w-full">
+                            <CircleCanvas
+                                axisLabels={{ cos: done, sin: done }}
+                                axisFlash={right ? { axis: right, color: right === 'cos' ? COS_COLOR : SIN_COLOR } : wrong ? { axis: wrong, color: MINUS_COLOR } : null}
+                                onAxisPick={done ? undefined : pick}
+                            />
+                            {done && (
+                                <motion.video src={VIDEO_LOOT} autoPlay muted playsInline
+                                    initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.45 }}
+                                    className="pointer-events-none absolute right-[4%] top-[2%] w-[36%] rounded-2xl" />
+                            )}
+                        </div>
                         <div className="h-9 flex items-center justify-center text-xl font-black">
                             {praise ? (
                                 <Pop key={praise}><span className="text-[#A1D151]">{praise}</span></Pop>
@@ -941,8 +960,7 @@ const PiScene = ({ onSettled }: SceneProps) => {
     const caption = CAPTIONS[stage] ?? null
     return (
         <>
-            <RememberBanner>π = 180°</RememberBanner>
-            <TypedBig parts={[{ text: 'π — это ' }, { text: 'ПОЛОВИНА', color: ARC_COLOR }, { text: ' окружности' }]} onDone={() => setPhase(1)} />
+            <TypedBig parts={[{ text: 'Запомни! ', color: '#F2C35B' }, { text: 'π — это ' }, { text: 'ПОЛОВИНА', color: ARC_COLOR }, { text: ' окружности' }]} onDone={() => setPhase(1)} />
             {phase >= 1 && phase < 4 && (
                 <DiagramBlock onSettled={() => setPhase(2)}>
                     <div className="w-full flex flex-col items-center gap-1">
@@ -952,10 +970,10 @@ const PiScene = ({ onSettled }: SceneProps) => {
                         <div className="w-full mx-auto" style={{ maxWidth: 340, aspectRatio: `300 / ${PI_VIEW_H}` }}>
                             <PiCircle stage={stage} />
                         </div>
-                        <div className="h-11 flex items-center justify-center text-lg font-black text-[#F2F7FB]">
+                        <div className="h-14 flex items-center justify-center text-lg font-black text-[#F2F7FB]">
                             {caption && <Pop key={`cap-${stage}`}>{caption}</Pop>}
                         </div>
-                        <div className="h-14 flex items-center">
+                        <div className="h-14 mt-3 flex items-center">
                             {phase === 2 && stageReady && <ActionButton color={PLUS_COLOR} onClick={nextStage}>{stageLabel}</ActionButton>}
                         </div>
                     </div>
@@ -982,12 +1000,18 @@ const PiScene = ({ onSettled }: SceneProps) => {
                 </DiagramBlock>
             )}
             {main >= 1 && (
-                <div className="w-full flex flex-col items-center gap-1 font-black">
-                    <Pop><span className="text-2xl text-[#F2C35B]">НО ГЛАВНОЕ</span></Pop>
-                    {[2, 3, 4].map((k) => main >= k && (
-                        <Pop key={k}><span className="text-4xl" style={{ color: ARC_COLOR }}>π = 180°</span></Pop>
-                    ))}
-                    {main >= 5 && <Pop><span className="text-4xl text-[#DC605B]">!!!!!!!!</span></Pop>}
+                <div className="w-full flex items-center justify-center gap-3">
+                    <div className="flex flex-col items-center gap-1 font-black">
+                        <Pop><span className="text-2xl text-[#F2C35B]">НО ГЛАВНОЕ</span></Pop>
+                        {[2, 3, 4].map((k) => main >= k && (
+                            <Pop key={k}><span className="text-4xl whitespace-nowrap" style={{ color: ARC_COLOR }}>π = 180°</span></Pop>
+                        ))}
+                        {main >= 5 && <Pop><span className="text-4xl text-[#DC605B]">!!!!!!!!</span></Pop>}
+                    </div>
+                    {/* Стэйтем справа, отражён — смотрит влево, на π = 180° */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <motion.img src={JASON_PIC} alt="" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ type: 'spring', bounce: 0.3 }}
+                        className="w-28 md:w-36 h-auto shrink-0" style={{ transform: 'scaleX(-1)' }} />
                 </div>
             )}
         </>
@@ -1230,7 +1254,8 @@ const FN_ROUNDS: FnRound[] = [
 ]
 const FnTitle = ({ r }: { r: FnRound }) => (
     <span className="inline-flex flex-wrap items-center justify-center gap-x-2">
-        Давай найдём, чему равен <span style={{ color: r.fn === 'sin' ? SIN_COLOR : COS_COLOR }}>{r.fn}</span> <Rad s={r.label} />?
+        <span className="w-full">Давай найдём</span>
+        <span className="inline-flex items-center gap-2 whitespace-nowrap">чему равен <span style={{ color: r.fn === 'sin' ? SIN_COLOR : COS_COLOR }}>{r.fn}</span> <Rad s={r.label} />?</span>
     </span>
 )
 const SinScene = ({ onSettled }: SceneProps) => {
@@ -1321,22 +1346,43 @@ const Fn = ({ f, s }: { f: 'sin' | 'cos'; s: string }) => (
 
 const makeTrials = (): Trial[] => [
     { kind: 'axis', prompt: <>Кликни по оси <b style={{ color: SIN_COLOR }}>синуса</b></>, target: 'sin', hint: 'Синус — всегда ВВЕРХ.' },
-    { kind: 'choice', prompt: <>Чему равен <Fn f="cos" s="π" />?</>, options: shuffle(['−1', '0', '1']), correct: '−1', hint: 'Идём в π — это слева. Косинус там −1.', circle: { at: PI, axis: 'cos', v: -1 } },
-    { kind: 'choice', prompt: <>Чему равен <Fn f="sin" s="π" />?</>, options: shuffle(['0', '1', '−1']), correct: '0', hint: 'π — слева, прямо на оси cos. Высоты нет — синус 0.', circle: { at: PI, axis: 'sin', v: 0 } },
+    { kind: 'choice', prompt: <>Чему равен<br /><span className="whitespace-nowrap"><Fn f="cos" s="π" />?</span></>, options: shuffle(['−1', '0', '1']), correct: '−1', hint: 'Идём в π — это слева. Косинус там −1.', circle: { at: PI, axis: 'cos', v: -1 } },
+    { kind: 'choice', prompt: <>Чему равен<br /><span className="whitespace-nowrap"><Fn f="sin" s="π" />?</span></>, options: shuffle(['0', '1', '−1']), correct: '0', hint: 'π — слева, прямо на оси cos. Высоты нет — синус 0.', circle: { at: PI, axis: 'sin', v: 0 } },
     { kind: 'click', prompt: <>Кликни, где <b style={{ color: COS_COLOR }}>cos = −1</b></>, target: PI, hint: 'Косинус — ось вправо. −1 — самая левая точка, это π.' },
-    { kind: 'choice', prompt: <>Чему равен <Fn f="sin" s="−π/2" />?</>, options: shuffle(['−1', '1', '0']), correct: '−1', hint: '−π/2 — шаг вниз. Внизу синус −1.', circle: { at: -PI / 2, axis: 'sin', v: -1 } },
-    { kind: 'choice', prompt: <>Чему равен <Fn f="cos" s="−π/2" />?</>, options: shuffle(['0', '1', '−1']), correct: '0', hint: 'Мы внизу, на оси sin. Вбок не сдвинулись — косинус 0.', circle: { at: -PI / 2, axis: 'cos', v: 0 } },
+    { kind: 'choice', prompt: <>Чему равен<br /><span className="whitespace-nowrap"><Fn f="sin" s="−π/2" />?</span></>, options: shuffle(['−1', '1', '0']), correct: '−1', hint: '−π/2 — шаг вниз. Внизу синус −1.', circle: { at: -PI / 2, axis: 'sin', v: -1 } },
+    { kind: 'choice', prompt: <>Чему равен<br /><span className="whitespace-nowrap"><Fn f="cos" s="−π/2" />?</span></>, options: shuffle(['0', '1', '−1']), correct: '0', hint: 'Мы внизу, на оси sin. Вбок не сдвинулись — косинус 0.', circle: { at: -PI / 2, axis: 'cos', v: 0 } },
     { kind: 'click', prompt: <>Кликни, где <b style={{ color: SIN_COLOR }}>sin = 1</b></>, target: PI / 2, hint: 'Синус — ось вверх. 1 — самый верх, это π/2.' },
-    { kind: 'choice', prompt: <>Чему равен <Fn f="sin" s="3π/2" />?</>, options: shuffle(['−1', '1', '0']), correct: '−1', hint: '3 шага по π/2 вверх — и мы внизу. Синус там −1.', circle: { at: (3 * PI) / 2, axis: 'sin', v: -1 } },
-    { kind: 'choice', prompt: <>Чему равен <Fn f="cos" s="2π" />?</>, options: shuffle(['1', '0', '−1']), correct: '1', hint: '2π — полный круг, вернулись в домик. Косинус там 1.', circle: { at: 2 * PI, axis: 'cos', v: 1 } },
-    { kind: 'choice', prompt: <>Чему равен <Fn f="sin" s="5π/2" />?</>, options: shuffle(['1', '0', '−1']), correct: '1', hint: 'Круг и ещё π/2 — мы наверху. Синус там 1.', circle: { at: (5 * PI) / 2, axis: 'sin', v: 1 } },
+    { kind: 'choice', prompt: <>Чему равен<br /><span className="whitespace-nowrap"><Fn f="sin" s="3π/2" />?</span></>, options: shuffle(['−1', '1', '0']), correct: '−1', hint: '3 шага по π/2 вверх — и мы внизу. Синус там −1.', circle: { at: (3 * PI) / 2, axis: 'sin', v: -1 } },
+    { kind: 'choice', prompt: <>Чему равен<br /><span className="whitespace-nowrap"><Fn f="cos" s="2π" />?</span></>, options: shuffle(['1', '0', '−1']), correct: '1', hint: '2π — полный круг, вернулись в домик. Косинус там 1.', circle: { at: 2 * PI, axis: 'cos', v: 1 } },
+    { kind: 'choice', prompt: <>Чему равен<br /><span className="whitespace-nowrap"><Fn f="sin" s="5π/2" />?</span></>, options: shuffle(['1', '0', '−1']), correct: '1', hint: 'Круг и ещё π/2 — мы наверху. Синус там 1.', circle: { at: (5 * PI) / 2, axis: 'sin', v: 1 } },
     { kind: 'choice', prompt: <>Бонус! Кто теперь шарит в окружности? 😎</>, options: ['Я 😎'], correct: 'Я 😎', hint: 'Без вариантов — ты! Оси, домик, плюс-минус, π и синусы — всё твоё 🏠' },
 ]
 
 const pickTrialFeedback = (i: number) => CORRECT_FEEDBACK_PHRASES[(i * 5 + 3) % CORRECT_FEEDBACK_PHRASES.length]
 
 // ===== Компонент =====
-const SCENES = [IntroScene, AxisGameScene, HomeScene, SignScene, DirQuizScene, PiScene, FindGameScene, StepsUpScene, StepsDownScene, RadiusScene, SinScene]
+// Перед тренировкой: «Приготовься, пора блистать знаниями!» + Стэйтем надевает пиджак.
+const ReadyScene = ({ onSettled }: SceneProps) => {
+    const [typed, setTyped] = useState(false)
+    return (
+        <>
+            <TypedBig parts={[{ text: 'Приготовься, пора ' }, { text: 'блистать знаниями!', color: '#F2C35B' }]} onDone={() => setTyped(true)} readMs={300} />
+            {typed && (
+                <motion.video src={VIDEO_JASON_JACKET} autoPlay muted playsInline onPlay={() => setTimeout(() => onSettled?.(), 600)}
+                    onError={() => onSettled?.()}
+                    initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
+                    className="pointer-events-none rounded-2xl mx-auto block w-56" />
+            )}
+        </>
+    )
+}
+
+const SCENES = [IntroScene, AxisGameScene, HomeScene, SignScene, DirQuizScene, PiScene, FindGameScene, StepsUpScene, StepsDownScene, RadiusScene, SinScene, ReadyScene]
+const FIXED_NEXT_LABELS = new Map<unknown, string>([
+    [HomeScene, 'Да понял я, понял'],
+    [DirQuizScene, 'Я супер умный'],
+    [ReadyScene, 'ЛЕТС ГООООУ'],
+])
 
 export const TypeTrigCircleWalk = ({ onAnswer, onComplete }: Props) => {
     const INTRO_STEPS = SCENES.length
@@ -1355,7 +1401,7 @@ export const TypeTrigCircleWalk = ({ onAnswer, onComplete }: Props) => {
 
     const [introNextLabel, setIntroNextLabel] = useState('Дальше')
     const [trialNextLabel, setTrialNextLabel] = useState('Дальше')
-    useEffect(() => { setIntroNextLabel(pickFun()) }, [step])
+    useEffect(() => { setIntroNextLabel(FIXED_NEXT_LABELS.get(SCENES[step]) ?? pickFun()) }, [step])
 
     const answer = (ok: boolean, key: string, joke?: string) => {
         if (checked || wrongTried.includes(key)) return
