@@ -117,22 +117,42 @@ type CircleProps = {
     dashes?: boolean // пунктир к краям окружности
     dots?: number[] // углы точек
     dotsPop?: boolean
-    labels?: { a: number; text: React.ReactNode; color: string; key: string; side: 1 | -1 }[]
-    arcs?: { a0: number; a1: number; color: string; key: string }[]
+    labels?: { a: number; text: React.ReactNode; color: string; key: string; side: 1 | -1; pop?: boolean }[]
+    arcs?: { a0: number; a1: number; color: string; key: string; arrow?: boolean }[]
     spin?: number | null // полный круг от этого угла (+2πk)
     dashDur?: number // сколько секунд тянется пунктир
-    extra?: React.ReactNode // дополнительные элементы поверх (видео-реакция и т.п.)
+    svgExtra?: React.ReactNode // дополнительные элементы внутри SVG
+    overlay?: React.ReactNode // HTML поверх рисунка (через At — координаты холста в процентах)
     levelPop?: boolean // ½ на оси появляется с отскоком — только при самом первом показе
     markLevel?: boolean // обвести ½ на оси маркером
     svgRef?: React.Ref<SVGSVGElement>
 }
 
-const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = false, dots = [], dotsPop = false, labels = [], arcs = [], spin = null, svgRef, dashDur = 0.9, extra, levelPop = false, markLevel = false }: CircleProps) => {
-    const dotsPopAnim = dotsPop
+// HTML-элемент поверх окружности в координатах холста (viewBox −30…330 × 0…300), в процентах —
+// одинаково на телефоне и компьютере. (Через <foreignObject> Safari на iPhone ставил подписи не туда.)
+const VB_W = 360, VB_H = 300
+const At = ({ x, y, w, children, className }: { x: number; y: number; w?: number; children: React.ReactNode; className?: string }) => (
+    <div className={cn('pointer-events-none absolute', className)}
+        style={{ left: `${((x + 30) / VB_W) * 100}%`, top: `${(y / VB_H) * 100}%`, width: w ? `${(w / VB_W) * 100}%` : undefined, transform: 'translate(-50%, -50%)' }}>
+        {children}
+    </div>
+)
+// Где стоит подпись угла a (снаружи окружности); side сдвигает чуть вправо/влево.
+const labelPos = (a: number, side: 1 | -1 = 1) => { const p = pt(a, R + 30); return { x: p.x + side * 6, y: p.y } }
+// Синий стикер ½ над осью — выше пунктира, чтобы не накладывались.
+const levelPos = (v: number) => ({ x: C - 34, y: C - v * R - 34 })
+// Перевод точки холста в координаты контейнера сцены (для стрелок и полётов).
+const toBoxCoords = (box: DOMRect, svg: DOMRect, x: number, y: number) => {
+    const k = svg.width / VB_W
+    return { x: svg.left - box.left + (x + 30) * k, y: svg.top - box.top + y * k }
+}
+
+const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = false, dots = [], dotsPop = false, labels = [], arcs = [], spin = null, svgRef, dashDur = 0.9, svgExtra, overlay, levelPop = false, markLevel = false }: CircleProps) => {
     const ly = level ? C - level.v * R : 0
     const hx = level ? Math.sqrt(Math.max(0, 1 - level.v * level.v)) * R : 0
     return (
-        <svg ref={svgRef} viewBox="-30 0 360 300" className="w-full max-w-[500px] h-auto mx-auto block select-none overflow-visible">
+        <div className="relative w-full max-w-[500px] mx-auto">
+        <svg ref={svgRef} viewBox="-30 0 360 300" className="w-full h-auto block select-none overflow-visible">
             <motion.circle cx={C} cy={C} r={R} fill="none" stroke="#F2F7FB" strokeWidth={3}
                 initial={draw ? { pathLength: 0 } : false} animate={{ pathLength: 1 }} transition={{ duration: 1.1, ease: 'easeInOut' }} />
             {/* ось cos */}
@@ -153,35 +173,40 @@ const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = fals
             <text x={C - 9} y={C - R - 13} textAnchor="end" dominantBaseline="central" fontSize={15} fill="#9AA7B0" style={LABEL_STYLE}>1</text>
             <line x1={C - 5} y1={C - R} x2={C + 5} y2={C - R} stroke="#9AA7B0" strokeWidth={2} />
 
-            {arcs.map((a) => (
-                <motion.path key={a.key} d={arcD(a.a0, a.a1)} fill="none" stroke={a.color} strokeWidth={6} strokeLinecap="round"
-                    initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.9, ease: 'easeInOut' }} />
-            ))}
+            {arcs.map((a) => {
+                const dir = a.a1 > a.a0 ? 1 : -1
+                // касательная в конце дуги (против часовой — рост угла, по часовой — убывание)
+                const tdx = -Math.sin(a.a1) * dir, tdy = -Math.cos(a.a1) * dir
+                const end = pt(a.a1)
+                return (
+                    <Fragment key={a.key}>
+                        <motion.path d={arcD(a.a0, a.a1)} fill="none" stroke={a.color} strokeWidth={6} strokeLinecap="round"
+                            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.9, ease: 'easeInOut' }} />
+                        {a.arrow && (
+                            <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.85, duration: 0.15 }}>
+                                <Arrowhead x={end.x + tdx * 9} y={end.y + tdy * 9} dx={tdx} dy={tdy} color={a.color} size={15} />
+                            </motion.g>
+                        )}
+                    </Fragment>
+                )
+            })}
 
-            {level && (
+            {level && dashes && (
                 <>
-                    {dashes && (
-                        <>
-                            {/* Растягиваем конец линии (pathLength у framer затёр бы пунктир) */}
-                            <motion.line x1={C} y1={ly} y2={ly} stroke={SIN_COLOR} strokeWidth={2.5} strokeDasharray="7 6"
-                                initial={dotsPopAnim ? { x2: C } : false} animate={{ x2: C + hx }} transition={{ duration: dashDur, ease: 'easeInOut' }} />
-                            <motion.line x1={C} y1={ly} y2={ly} stroke={SIN_COLOR} strokeWidth={2.5} strokeDasharray="7 6"
-                                initial={dotsPopAnim ? { x2: C } : false} animate={{ x2: C - hx }} transition={{ duration: dashDur, ease: 'easeInOut' }} />
-                        </>
-                    )}
-                    {/* отметка уровня на оси sin */}
-                    <g transform={`translate(${C} ${ly})`}>
-                        <motion.g initial={levelPop ? { scale: 0 } : false} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 8 }}>
-                            <circle r={6} fill={SIN_COLOR} stroke="#F2F7FB" strokeWidth={2} />
-                        </motion.g>
-                    </g>
-                    <foreignObject x={C - 58} y={ly - 26} width={48} height={52} style={{ overflow: 'visible' }}>
-                        <motion.div data-level-label initial={levelPop ? { scale: 0 } : false} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 8, delay: 0.15 }}
-                            className="flex h-full w-full items-center justify-center text-lg font-black" style={{ color: SIN_COLOR }}>
-                            <span className="relative">{level.label}{markLevel && <MarkerLoop pad={8} />}</span>
-                        </motion.div>
-                    </foreignObject>
+                    {/* Растягиваем конец линии (pathLength у framer затёр бы пунктир) */}
+                    <motion.line x1={C} y1={ly} y2={ly} stroke={SIN_COLOR} strokeWidth={2.5} strokeDasharray="7 6"
+                        initial={dotsPop ? { x2: C } : false} animate={{ x2: C + hx }} transition={{ duration: dashDur, ease: 'easeInOut' }} />
+                    <motion.line x1={C} y1={ly} y2={ly} stroke={SIN_COLOR} strokeWidth={2.5} strokeDasharray="7 6"
+                        initial={dotsPop ? { x2: C } : false} animate={{ x2: C - hx }} transition={{ duration: dashDur, ease: 'easeInOut' }} />
                 </>
+            )}
+            {level && (
+                // отметка уровня на оси sin
+                <g transform={`translate(${C} ${ly})`}>
+                    <motion.g initial={levelPop ? { scale: 0 } : false} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 8 }}>
+                        <circle r={6} fill={SIN_COLOR} stroke="#F2F7FB" strokeWidth={2} />
+                    </motion.g>
+                </g>
             )}
 
             {dots.map((a, i) => {
@@ -197,22 +222,30 @@ const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = fals
                 )
             })}
 
-            {labels.map((l) => {
-                const p = pt(l.a, R + 34)
-                return (
-                    <foreignObject key={l.key} x={p.x - 34 + l.side * 6} y={p.y - 30} width={68} height={60}>
-                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 9 }}
-                            className="flex h-full w-full items-center justify-center text-xl font-black" style={{ color: l.color }}>
-                            {l.text}
-                        </motion.div>
-                    </foreignObject>
-                )
-            })}
-
             {spin !== null && <Spinner a={spin} />}
             <circle cx={C} cy={C} r={3.5} fill="#F2F7FB" />
-            {extra}
+            {svgExtra}
         </svg>
+            {level && (
+                <At {...levelPos(level.v)}>
+                    <motion.span initial={levelPop ? { scale: 0 } : false} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 8, delay: 0.15 }}
+                        className="relative flex items-center justify-center rounded-lg border-2 px-1.5 py-0.5 text-base md:text-lg font-black"
+                        style={{ color: SIN_COLOR, borderColor: SIN_COLOR, backgroundColor: hexToRgba(SIN_COLOR, 0.16) }}>
+                        {level.label}
+                        {markLevel && <MarkerLoop pad={10} />}
+                    </motion.span>
+                </At>
+            )}
+            {labels.map((l) => (
+                <At key={l.key} {...labelPos(l.a, l.side)}>
+                    <motion.span initial={l.pop === false ? false : { scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 9 }}
+                        className="flex items-center justify-center text-lg md:text-xl font-black" style={{ color: l.color }}>
+                        {l.text}
+                    </motion.span>
+                </At>
+            ))}
+            {overlay}
+        </div>
     )
 }
 
@@ -281,7 +314,7 @@ const SAUL_VIDEO = '/video/saul-think.webm'
 const SAUL_SIZE = 84 // в единицах холста окружности
 const SAUL_PLAYS = 3
 
-// Видео-реакция «задумался» у правой точки: прыгает с отскоком, играет 3 раза и замирает.
+// Видео-реакция «задумался» правее и выше правой точки: прыгает с отскоком, играет 3 раза и замирает.
 const SaulNearPoint = ({ onShown }: { onShown?: () => void }) => {
     const p = pt(A30)
     const plays = useRef(0)
@@ -291,15 +324,14 @@ const SaulNearPoint = ({ onShown }: { onShown?: () => void }) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
     return (
-        <foreignObject x={p.x - 6} y={p.y - SAUL_SIZE - 6} width={SAUL_SIZE} height={SAUL_SIZE} style={{ overflow: 'visible' }}>
+        <At x={p.x + 38} y={p.y - 46} w={SAUL_SIZE}>
             <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 11 }}
-                style={{ transformOrigin: '0% 100%' }}
-                className="h-full w-full overflow-hidden rounded-xl border-2 border-[#F09B38] bg-[#161F23] shadow-lg">
+                className="aspect-square w-full overflow-hidden rounded-xl">
                 <video src={SAUL_VIDEO} autoPlay muted playsInline className="h-full w-full object-cover"
                     onEnded={(e) => { plays.current += 1; if (plays.current < SAUL_PLAYS) { e.currentTarget.currentTime = 0; void e.currentTarget.play() } }} />
             </motion.div>
-        </foreignObject>
+        </At>
     )
 }
 
@@ -316,7 +348,7 @@ const DotsScene = ({ onSettled }: SceneProps) => {
             <TypedBig small parts={[{ text: 'Проведём пунктир на высоте ' }, { text: '1/2', color: SIN_COLOR }]} onDone={() => setPhase(1)} readMs={300} />
             <DiagramBlock>
                 <SinCircle level={HALF} dashes={phase >= 1} dots={phase >= 1 ? [A30, A150] : []} dotsPop dashDur={DOTS_DASH_S}
-                    extra={phase >= 3 ? <SaulNearPoint onShown={() => onSettled?.()} /> : null} />
+                    overlay={phase >= 3 ? <SaulNearPoint onShown={() => onSettled?.()} /> : null} />
             </DiagramBlock>
             {phase >= 2 && <TypedBig parts={[{ text: 'А что это за ' }, { text: 'углы', color: DOT_COLOR }, { text: '?' }]} onDone={() => setPhase(3)} />}
         </>
@@ -345,6 +377,15 @@ const CurveArrow = ({ x0, y0, c1x, c1y, c2x, c2y, x1, y1, color = '#F2C35B', hea
     )
 }
 
+// Перелёт подписи из точки from в точку to (координаты контейнера сцены). x/y — у внешнего слоя,
+// центрирование — у внутреннего (если задать x и translateX вместе, framer их путает — π/6 прыгал).
+const Flyer = ({ from, to, children, onDone, dur = 1 }: { from: { x: number; y: number }; to: { x: number; y: number }; children: React.ReactNode; onDone?: () => void; dur?: number }) => (
+    <motion.div className="pointer-events-none absolute left-0 top-0 z-20" initial={{ x: from.x, y: from.y }} animate={{ x: to.x, y: to.y }}
+        transition={{ duration: dur, ease: [0.45, 0, 0.2, 1] }} onAnimationComplete={() => onDone?.()}>
+        <div className="-translate-x-1/2 -translate-y-1/2">{children}</div>
+    </motion.div>
+)
+
 const TableScene = ({ onSettled }: SceneProps) => {
     // 0 окружность → 1 печать «Смотрим в таблицу синусов» → 2 таблица → (пауза) 3 маркер на ½ окружности →
     // 4 стрелка ½ → ½ таблицы → (пауза) 5 стрелка вверх к 30° → 6 обводим 30° → (пауза) 7 «30° = π/6» →
@@ -364,20 +405,21 @@ const TableScene = ({ onSettled }: SceneProps) => {
     const cellRef = useRef<HTMLDivElement>(null)
     const svgRef = useRef<SVGSVGElement>(null)
     // Координаты (в рамках сцены) для стрелки ½ → ½ и для полёта π/6.
-    const [geo, setGeo] = useState<{ ax: number; ay: number; bx: number; by: number; fx0: number; fy0: number; fx1: number; fy1: number } | null>(null)
+    const [geo, setGeo] = useState<{ phase: number; ax: number; ay: number; bx: number; by: number; fx0: number; fy0: number; fx1: number; fy1: number } | null>(null)
     useLayoutEffect(() => {
         if (!boxRef.current || !cellRef.current || !svgRef.current) return
         const measure = () => {
             if (!boxRef.current || !cellRef.current || !svgRef.current) return
             const box = boxRef.current.getBoundingClientRect()
             const v = svgRef.current.getBoundingClientRect()
-            const k = v.width / 360
-            const toBox = (x: number, y: number) => ({ x: v.left - box.left + (x + 30) * k, y: v.top - box.top + y * k })
-            const a = toBox(C - 34, C - R / 2 - 36) // над обведённой ½ на оси sin
+            const lp = levelPos(0.5)
+            const a = toBoxCoords(box, v, lp.x, lp.y - 30) // над стикером ½ на оси sin
             const cell = cellRef.current.getBoundingClientRect()
-            const p = toBox(pt(A30, R + 34).x + 6, pt(A30, R + 34).y)
+            const tp = labelPos(A30, 1)
+            const p = toBoxCoords(box, v, tp.x, tp.y)
             const src = srcRef.current?.getBoundingClientRect()
             setGeo({
+                phase,
                 ax: a.x, ay: a.y,
                 bx: cell.left - box.left + cell.width / 2, by: cell.bottom - box.top + 4, // в нижний край ячейки ½
                 fx0: src ? src.left - box.left + src.width / 2 : 0, fy0: src ? src.top - box.top + src.height / 2 : 0,
@@ -448,49 +490,148 @@ const TableScene = ({ onSettled }: SceneProps) => {
                         x1={geo.bx} y1={geo.by} />
                 </svg>
             )}
-            {geo && phase === 8 && (
-                <motion.div className="pointer-events-none absolute z-20 text-3xl font-black" style={{ color: ARC_COLOR, left: 0, top: 0 }}
-                    initial={{ x: geo.fx0, y: geo.fy0, translateX: '-50%', translateY: '-50%', scale: 1 }}
-                    animate={{ x: geo.fx1, y: geo.fy1, scale: 0.8 }}
-                    transition={{ duration: 1, ease: [0.45, 0, 0.2, 1] }}
-                    onAnimationComplete={() => setPhase((p) => Math.max(p, 9))}>
-                    <PiFrac s="π/6" />
-                </motion.div>
+            {geo && phase === 8 && geo.phase === 8 && (
+                <Flyer from={{ x: geo.fx0, y: geo.fy0 }} to={{ x: geo.fx1, y: geo.fy1 }} onDone={() => setPhase((p) => Math.max(p, 9))}>
+                    <span className="text-3xl font-black" style={{ color: ARC_COLOR }}><PiFrac s="π/6" /></span>
+                </Flyer>
             )}
             {phase >= 9 && <TypedBig small parts={[{ text: 'Правая точка — ' }, { text: 'π/6', color: ARC_COLOR }]} onDone={() => onSettled?.()} />}
         </div>
     )
 }
 
-// 4. Левая точка — зеркальная: до π не хватает того же π/6 → 5π/6.
+// 4. Левая точка. Мини-игра: что за точка слева на оси (π)? Потом от π по часовой дуга до левой
+// оранжевой точки и «−π/6»; π и −π/6 съезжаются в строку π − π/6 = 5π/6; 5π/6 летит к левой точке.
+const PI_POINT_COLOR = ARC_COLOR
+const PI_OPTIONS = ['π', 'π/2', '2π']
+// «−π/6» — внутри окружности у дуги π → 5π/6 (снаружи наезжал на подпись 5π/6).
+const MINUS_POS = { x: C - R + 50, y: C - 30 }
 const LeftScene = ({ onSettled }: SceneProps) => {
+    // 0 вопрос → 1 варианты → 2 «π» у точки → 3 дуга по часовой и «−π/6» → 4 π и −π/6 летят в строку →
+    // 5 строка: π − π/6 = 5π/6 → 6 5π/6 летит к левой точке → 7 подпись
     const [phase, setPhase] = useState(0)
+    const [opts] = useState(() => shuffle(PI_OPTIONS))
+    const [wrong, setWrong] = useState<string | null>(null)
     useEffect(() => {
-        if (phase !== 1) return
-        const t = setTimeout(() => setPhase((p) => Math.max(p, 2)), 2200)
+        // 6 → 7 — по концу полёта, это страховка.
+        const next: Record<number, [number, number]> = { 2: [3, 1000], 3: [4, 1700], 4: [5, 1100], 5: [6, 1600], 6: [7, 1300] }
+        const st = next[phase]
+        if (!st) return
+        const t = setTimeout(() => setPhase(st[0]), st[1])
         return () => clearTimeout(t)
     }, [phase])
+    useEffect(() => {
+        if (!wrong) return
+        const t = setTimeout(() => setWrong(null), 800)
+        return () => clearTimeout(t)
+    }, [wrong])
+    const pick = (o: string) => {
+        if (phase !== 1) return
+        if (o === 'π') { showAnswerMeme(true); setPhase(2) }
+        else { playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false); setWrong(o) }
+    }
+
+    const boxRef = useRef<HTMLDivElement>(null)
+    const svgRef = useRef<SVGSVGElement>(null)
+    const slotPi = useRef<HTMLSpanElement>(null)
+    const slotMinus = useRef<HTMLSpanElement>(null)
+    const slotRes = useRef<HTMLSpanElement>(null)
+    type P = { x: number; y: number }
+    const [geo, setGeo] = useState<{ phase: number; piFrom: P; minusFrom: P; piTo: P; minusTo: P; resFrom: P; resTo: P } | null>(null)
+    useLayoutEffect(() => {
+        const measure = () => {
+            if (!boxRef.current || !svgRef.current || !slotPi.current || !slotMinus.current || !slotRes.current) return
+            const box = boxRef.current.getBoundingClientRect()
+            const v = svgRef.current.getBoundingClientRect()
+            const c = (el: HTMLElement) => { const r = el.getBoundingClientRect(); return { x: r.left - box.left + r.width / 2, y: r.top - box.top + r.height / 2 } }
+            const pl = labelPos(PI, -1), ml = MINUS_POS, ll = labelPos(A150, -1)
+            setGeo({
+                phase,
+                piFrom: toBoxCoords(box, v, pl.x, pl.y), minusFrom: toBoxCoords(box, v, ml.x, ml.y),
+                piTo: c(slotPi.current), minusTo: c(slotMinus.current),
+                resFrom: c(slotRes.current), resTo: toBoxCoords(box, v, ll.x, ll.y),
+            })
+        }
+        measure()
+        const ro = new ResizeObserver(measure)
+        if (boxRef.current) ro.observe(boxRef.current)
+        return () => ro.disconnect()
+    }, [phase])
+
+    const piLabel = <span className="text-2xl font-black" style={{ color: PI_POINT_COLOR }}>π</span>
+    const minusLabel = (
+        <span className="flex items-center gap-0.5 rounded-lg border-2 px-1.5 text-lg font-black"
+            style={{ color: PERIOD_COLOR, borderColor: PERIOD_COLOR, backgroundColor: hexToRgba(PERIOD_COLOR, 0.15) }}>
+            −<PiFrac s="π/6" />
+        </span>
+    )
+    const flying = phase === 4 && geo?.phase === 4
+
     return (
-        <>
-            <TypedBig small parts={[{ text: 'А левая — ' }, { text: 'зеркальная', color: DOT_COLOR }, { text: ': до π ей не хватает тех же π/6' }]} onDone={() => setPhase(1)} readMs={200} />
+        <div ref={boxRef} className="relative w-full flex flex-col gap-4">
+            <TypedBig small parts={[{ text: 'А что это за ' }, { text: 'точка', color: PI_POINT_COLOR }, { text: '?' }]} readMs={200} onDone={() => setPhase((p) => Math.max(p, 1))} />
             <DiagramBlock>
-                <SinCircle level={HALF} dashes dots={[A30, A150]}
-                    arcs={phase >= 1 ? [{ a0: 0, a1: A30, color: ARC_COLOR, key: 'r' }, { a0: PI, a1: A150, color: ARC_COLOR, key: 'l' }] : []}
+                <SinCircle svgRef={svgRef} level={HALF} dashes dots={[A30, A150]}
+                    arcs={phase >= 3 ? [{ a0: PI, a1: A150, color: PERIOD_COLOR, key: 'cw', arrow: true }] : []}
                     labels={[
-                        { a: A30, text: <PiFrac s="π/6" />, color: ARC_COLOR, key: 'r', side: 1 },
-                        ...(phase >= 2 ? [{ a: A150, text: <PiFrac s="5π/6" />, color: ARC_COLOR, key: 'l', side: -1 as const }] : []),
-                    ]} />
+                        { a: A30, text: <PiFrac s="π/6" />, color: ARC_COLOR, key: 'r', side: 1, pop: false },
+                        ...(phase >= 7 ? [{ a: A150, text: <PiFrac s="5π/6" />, color: ARC_COLOR, key: 'l', side: -1 as const }] : []),
+                    ]}
+                    svgExtra={(
+                        <g transform={`translate(${C - R} ${C})`}>
+                            {phase < 2 && <circle r={17} fill={hexToRgba(PI_POINT_COLOR, 0.35)} className="animate-ping" style={{ transformBox: 'fill-box', transformOrigin: 'center' }} />}
+                            <circle r={11} fill={PI_POINT_COLOR} stroke="#F2F7FB" strokeWidth={2.5} />
+                        </g>
+                    )}
+                    overlay={(
+                        <>
+                            {phase >= 2 && phase !== 4 && (
+                                <At {...labelPos(PI, -1)}>
+                                    <motion.span className="block" initial={phase === 2 ? { scale: 0 } : false} animate={{ scale: 1, opacity: phase >= 5 ? 0.35 : 1 }} transition={{ type: 'spring', stiffness: 320, damping: 9 }}>{piLabel}</motion.span>
+                                </At>
+                            )}
+                            {phase >= 3 && phase !== 4 && (
+                                <At {...MINUS_POS}>
+                                    <motion.span className="block" initial={phase === 3 ? { scale: 0 } : false} animate={{ scale: 1, opacity: phase >= 5 ? 0.35 : 1 }} transition={{ type: 'spring', stiffness: 320, damping: 9, delay: 0.9 }}>{minusLabel}</motion.span>
+                                </At>
+                            )}
+                        </>
+                    )} />
             </DiagramBlock>
-            {phase >= 1 && (
-                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1 }}
-                    onAnimationComplete={() => setTimeout(() => setPhase((p) => Math.max(p, 2)), 600)}
-                    className="flex items-center justify-center gap-2 text-3xl font-black text-[#F2F7FB]">
-                    <span>π −</span><span style={{ color: ARC_COLOR }}><PiFrac s="π/6" /></span><span>=</span>
-                    {phase >= 2 && <Pop><span style={{ color: ARC_COLOR }}><PiFrac s="5π/6" /></span></Pop>}
-                </motion.div>
+            {phase === 1 && (
+                <div className="grid grid-cols-3 gap-3 w-full max-w-sm mx-auto">
+                    {opts.map((o) => (
+                        <button key={o} type="button" onClick={() => pick(o)}
+                            className={cn('min-h-[60px] rounded-xl border-2 text-2xl font-black transition-colors',
+                                wrong === o ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]' : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]')}>
+                            <PiFrac s={o} />
+                        </button>
+                    ))}
+                </div>
             )}
-            {phase >= 2 && <TypedBig small parts={[{ text: 'Левая точка — ' }, { text: '5π/6', color: ARC_COLOR }]} onDone={() => onSettled?.()} />}
-        </>
+            {phase >= 3 && phase < 4 && <TypedBig small parts={[{ text: 'От ' }, { text: 'π', color: PI_POINT_COLOR }, { text: ' по часовой — назад на ' }, { text: 'π/6', color: PERIOD_COLOR }]} readMs={100} />}
+            {/* строка вычисления: слоты заняты заранее, π и −π/6 прилетают в них */}
+            <div className="flex items-center justify-center gap-2 text-3xl font-black text-[#F2F7FB]" style={{ visibility: phase >= 3 ? 'visible' : 'hidden' }}>
+                <span ref={slotPi} style={{ visibility: phase >= 5 ? 'visible' : 'hidden' }}>{piLabel}</span>
+                <span ref={slotMinus} style={{ visibility: phase >= 5 ? 'visible' : 'hidden' }}>{minusLabel}</span>
+                {phase >= 5 && <Pop delay={0.2}><span>=</span></Pop>}
+                <span ref={slotRes} style={{ visibility: phase >= 5 ? 'visible' : 'hidden', opacity: phase >= 6 ? 0.25 : 1, color: ARC_COLOR }}>
+                    {phase >= 5 ? <Pop delay={0.5}><PiFrac s="5π/6" /></Pop> : <PiFrac s="5π/6" />}
+                </span>
+            </div>
+            {flying && geo && (
+                <>
+                    <Flyer from={geo.piFrom} to={geo.piTo} dur={0.9}>{piLabel}</Flyer>
+                    <Flyer from={geo.minusFrom} to={geo.minusTo} dur={0.9}>{minusLabel}</Flyer>
+                </>
+            )}
+            {phase === 6 && geo?.phase === 6 && (
+                <Flyer from={geo.resFrom} to={geo.resTo} onDone={() => setPhase((p) => Math.max(p, 7))}>
+                    <span className="text-3xl font-black" style={{ color: ARC_COLOR }}><PiFrac s="5π/6" /></span>
+                </Flyer>
+            )}
+            {phase >= 7 && <TypedBig small parts={[{ text: 'Левая точка — ' }, { text: '5π/6', color: ARC_COLOR }]} onDone={() => onSettled?.()} />}
+        </div>
     )
 }
 
