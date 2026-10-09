@@ -1172,6 +1172,21 @@ const StepWalk = ({ count, dir, onDone }: { count: number; dir: 1 | -1; onDone: 
                 )}
             </div>
             <CircleCanvas house segments={segments} walker={(dir * steps * PI) / 2} hintArrow={steps === 0 ? dir : null} />
+            {/* Пока ДиКаприо проходит четверть — в ней мягко появляется и гаснет «π/2»: один шаг = π/2 */}
+            {steps > 0 && (() => {
+                const mid = (dir * (steps - 0.5) * PI) / 2
+                const x = C + R * 0.55 * Math.cos(mid), y = C - R * 0.55 * Math.sin(mid)
+                return (
+                    <div key={`q${steps}`} className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
+                        style={{ left: `${((x + 30) / 360) * 100}%`, top: `${(y / 300) * 100}%` }}>
+                        <motion.span className="block text-3xl font-black" style={{ color }}
+                            initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: [0, 1, 1, 0], scale: [0.6, 1.1, 1, 0.95] }}
+                            transition={{ duration: 1.8, times: [0, 0.25, 0.7, 1], ease: 'easeInOut' }}>
+                            <Rad s="π/2" />
+                        </motion.span>
+                    </div>
+                )
+            })()}
             </div>
             {!done && <ActionButton color={color} onClick={() => setSteps((st) => st + 1)}>{dir > 0 ? '⬆' : '⬇'} Шаг ({steps}/{count})</ActionButton>}
         </div>
@@ -1262,9 +1277,16 @@ const SinScene = ({ onSettled }: SceneProps) => {
     const [opts, setOpts] = useState(() => shuffle(['1', '0', '−1']))
     const [nextLabel, setNextLabel] = useState('Агась')
     const nextRound = () => { setRound(round + 1); setPhase(0); setOpts(shuffle(['1', '0', '−1'])) }
+    // Сначала вопрос, потом окружность, и только через паузу — кнопка «Сначала идём в …»
+    const [shown, setShown] = useState(0)
+    useEffect(() => {
+        setShown(0)
+        const t1 = setTimeout(() => setShown(1), 800)
+        const t2 = setTimeout(() => setShown(2), 2000)
+        return () => { clearTimeout(t1); clearTimeout(t2) }
+    }, [round])
     const r = FN_ROUNDS[round]
     const fnColor = r.fn === 'sin' ? SIN_COLOR : COS_COLOR
-    const fnWord = r.fn === 'sin' ? 'синус' : 'косинус'
     useEffect(() => {
         if (phase === 1) { const t = setTimeout(() => setPhase(2), 1300); return () => clearTimeout(t) }
         if (phase === 2) { const t = setTimeout(() => setPhase(3), 1300); return () => clearTimeout(t) }
@@ -1290,11 +1312,15 @@ const SinScene = ({ onSettled }: SceneProps) => {
                     <RoundBadge n={round + 1} total={FN_ROUNDS.length} />
                     <Pop key={`q${round}`}><span className="block pl-14 text-xl md:text-2xl font-black text-[#F2F7FB] text-center"><FnTitle r={r} /></span></Pop>
                 </div>
-                <CircleCanvas key={`c${round}`} house units={4} traveler={phase >= 1 ? r.a : 0}
-                    segments={phase >= 1 ? [{ a0: 0, a1: 0, key: `w${round}`, color: ARC_COLOR, d: walkPath(0, Math.abs(r.a), r.a < 0 ? -1 : 1) }] : []}
-                    glowValue={phase >= 4 ? { axis: r.fn, v: r.v } : null} />
+                {/* место под окружность занято сразу — она проявляется после вопроса, ничего не прыгает */}
+                <motion.div key={`cw${round}`} className="w-full" initial={{ opacity: 0, scale: 0.94 }}
+                    animate={shown >= 1 ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.94 }} transition={{ duration: 0.4 }}>
+                    <CircleCanvas key={`c${round}`} house units={4} traveler={phase >= 1 ? r.a : 0}
+                        segments={phase >= 1 ? [{ a0: 0, a1: 0, key: `w${round}`, color: ARC_COLOR, d: walkPath(0, Math.abs(r.a), r.a < 0 ? -1 : 1) }] : []}
+                        glowValue={phase >= 4 ? { axis: r.fn, v: r.v } : null} />
+                </motion.div>
                 <div className="w-full flex flex-col items-center gap-3 min-h-[120px]">
-                    {phase === 0 && (
+                    {phase === 0 && shown >= 2 && (
                         <ActionButton color={ARC_COLOR} onClick={() => setPhase(1)}>
                             <span className="inline-flex items-center gap-2">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1306,7 +1332,7 @@ const SinScene = ({ onSettled }: SceneProps) => {
                     {phase >= 2 && (
                         <Pop key={`w${round}`}>
                             <span className="text-xl font-black text-center text-[#F2F7FB]">
-                                Мы <span style={{ color: ARC_COLOR }}>{r.where}</span>! А {fnWord} там чему равен?
+                                Мы <span style={{ color: ARC_COLOR }}>{r.where}</span>! А <span style={{ color: fnColor }}>{r.fn}</span> там чему равен?
                             </span>
                         </Pop>
                     )}
