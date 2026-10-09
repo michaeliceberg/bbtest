@@ -4,6 +4,8 @@
 // Старые банды с эмодзи в gangs.emoji показываются как раньше.
 
 import { DEFAULT_GANG_COLOR, emblemIdOf } from '@/lib/gangEmblems'
+import { bandIdOf } from '@/lib/bandStickers'
+import { BandStickerTile } from '@/components/band-sticker-tile'
 
 export const GangEmblem = ({
     value,
@@ -14,6 +16,9 @@ export const GangEmblem = ({
     color?: string | null
     size?: number
 }) => {
+    // Картинка банды — банд-стикер ('band:N'): та же плитка с рамкой редкости, без звёзд.
+    const bandId = bandIdOf(value)
+    if (bandId) return <BandStickerTile id={bandId} level={1} size={size} showStars={false} />
     const id = emblemIdOf(value)
     const c = color || DEFAULT_GANG_COLOR
     return (

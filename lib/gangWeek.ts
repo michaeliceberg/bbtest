@@ -79,6 +79,13 @@ export const settleLastGangWeek = async () => {
 		SELECT date_trunc('week', now()) - interval '7 days', m.user_id, m.gang_id
 		FROM gang_members m WHERE m.gang_id = ${top.gangId}
 		ON CONFLICT (week_start, user_id) DO NOTHING`)
+
+	// Главе — ещё мегакейс с банд-стикером (lib/bandStickers.ts, actions/band-stickers.ts).
+	await db.execute(sql`
+		INSERT INTO gang_band_rewards (week_start, user_id, gang_id)
+		SELECT date_trunc('week', now()) - interval '7 days', m.user_id, m.gang_id
+		FROM gang_members m WHERE m.gang_id = ${top.gangId} AND m.role = 'leader'
+		ON CONFLICT (week_start, user_id) DO NOTHING`)
 }
 
 export type LastWeekWinner = { gangId: number; name: string; emoji: string; color: string | null; score: number } | null

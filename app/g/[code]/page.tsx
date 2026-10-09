@@ -7,6 +7,8 @@ import { auth } from '@/lib/auth'
 import { getUserProgress, getGangMembership } from '@/db/queries'
 import { getGangInvite } from '@/lib/gangInvite'
 import { GangJoinCard } from '@/components/gang-join-card'
+import { getGangWins } from '@/lib/bandStickersServer'
+import { getGangWeekScores } from '@/lib/gangWeek'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,6 +22,14 @@ const GangInvitePage = async ({ params }: { params: { code: string } }) => {
         if (!up) redirect('/courses')
     }
     const current = loggedIn ? await getGangMembership(session!.user!.id!) : null
+    // Достижения банды — чтобы приглашённому хотелось вступить.
+    let stats: { wins: number; members: number; points: number; weekPlace: number | null; weekTotal: number } | null = null
+    if (invite) {
+        const [wins, all, week] = await Promise.all([getGangWins([invite.gang.id]), getGangWeekScores('all'), getGangWeekScores(0)])
+        const a = all.find((g) => g.gangId === invite.gang.id)
+        const wi = week.findIndex((g) => g.gangId === invite.gang.id)
+        stats = { wins: wins[invite.gang.id] ?? 0, members: a?.members ?? 1, points: a?.score ?? 0, weekPlace: wi >= 0 ? wi + 1 : null, weekTotal: week.length }
+    }
 
     return (
         <GangJoinCard
@@ -32,6 +42,7 @@ const GangInvitePage = async ({ params }: { params: { code: string } }) => {
                 inviter: invite.inviterNickname ?? 'Друг',
                 inviterRole: invite.inviterRole,
             } : null}
+            stats={stats}
             isSelf={!!invite && invite.inviterUserId === session?.user?.id}
             currentGang={current ? { name: current.gang.name, sameGang: !!invite && current.gangId === invite.gang.id, isLeader: current.role === 'leader' } : null}
         />

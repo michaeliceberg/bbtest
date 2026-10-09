@@ -10,6 +10,7 @@ import { redirect } from 'next/navigation';
 import { getGangMembership } from '@/db/queries';
 import { ArrowLeft } from 'lucide-react';
 import { GangBattleCountdown } from '@/components/gang-battle-countdown';
+import { getGangWins } from '@/lib/bandStickersServer';
 import { getGangWeekScores, getLastWeekWinner, getWeekMsLeft, settleLastGangWeek, GANG_WEEK_POINTS } from '@/lib/gangWeek';
 import { declensionRu } from '@/usefulFunctions';
 import { GangEmblem } from '@/components/gang-emblem';
@@ -33,6 +34,7 @@ const GangsLeaderboardPage = async ({ searchParams }: { searchParams: { tab?: st
     const msLeft = await getWeekMsLeft();
 
     const membership = await getGangMembership(session.user.id!);
+    const wins = await getGangWins(rows.map((r) => r.id));
     const myGangId = membership?.gangId ?? null;
     const top = Math.max(1, ...rows.map((r) => r.score));
     const MEDALS = [
@@ -62,7 +64,7 @@ const GangsLeaderboardPage = async ({ searchParams }: { searchParams: { tab?: st
                             <img src="/chests/rare0001.svg" alt="" className="h-12 w-12 shrink-0 animate-tile-float" />
                             <div className="min-w-0">
                                 <p className="text-sm font-black text-[#F2F7FB]">Приз победителям</p>
-                                <p className="text-xs font-bold text-[#8FD8F2]">Каждому в банде-победителе — редкий кейс</p>
+                                <p className="text-xs font-bold text-[#8FD8F2]">Каждому в банде-победителе — редкий кейс, а главе — мегакейс с банд-стикером</p>
                             </div>
                         </div>
                         <div className="mt-3 flex justify-center gap-2">
@@ -119,7 +121,7 @@ const GangsLeaderboardPage = async ({ searchParams }: { searchParams: { tab?: st
                                 <GangEmblem value={g.emoji} color={g.color} size={52} />
                                 <div className="min-w-0 flex-1">
                                     <p className="truncate text-base font-black text-[#F2F7FB]">
-                                        {g.name}{mine && <span className="ml-1.5 rounded-md bg-violet-400/20 px-1.5 py-0.5 text-[10px] font-black uppercase text-violet-300">твоя</span>}
+                                        {g.name}{(wins[g.id] ?? 0) > 0 && <span className="ml-1.5 text-sm font-black text-[#F2C35B]">🏆{wins[g.id]}</span>}{mine && <span className="ml-1.5 rounded-md bg-violet-400/20 px-1.5 py-0.5 text-[10px] font-black uppercase text-violet-300">твоя</span>}
                                     </p>
                                     <p className="text-xs font-bold text-[#9AA7B0]">{g.members} {declensionRu(g.members, 'участник', 'участника', 'участников')}</p>
                                 </div>

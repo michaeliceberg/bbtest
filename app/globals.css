@@ -664,3 +664,18 @@ body {
 }
 .animate-tile-float { animation: tile-float 3s ease-in-out infinite; }
 .animate-tile-float-late { animation: tile-float 3s ease-in-out 1.5s infinite; }
+
+/* Банд-стикеры (components/band-sticker-tile.tsx): блик по рамке и переливающееся золото — только transform. */
+.band-sheen { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; pointer-events: none; }
+.band-sheen::after {
+  content: ''; position: absolute; top: -30%; bottom: -30%; left: -60%; width: 45%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,0.5), transparent);
+  animation: band-sheen 3.2s ease-in-out infinite;
+}
+@keyframes band-sheen { 0% { transform: translateX(0) rotate(8deg); } 55%, 100% { transform: translateX(420%) rotate(8deg); } }
+.band-gold-spin {
+  position: absolute; inset: -60%;
+  background: conic-gradient(from 0deg, #8A5A10, #FFE58A, #E0A21C, #FFF6C8, #B8862E, #FFE58A, #8A5A10);
+  animation: band-gold-spin 3s linear infinite;
+}
+@keyframes band-gold-spin { to { transform: rotate(360deg); } }

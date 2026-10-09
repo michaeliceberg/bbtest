@@ -1,7 +1,11 @@
 // app/(main)/gang/page.tsx
 
 import { auth } from '@/lib/server-auth';
-import { getGangMembership, getGangRoster } from '@/db/queries';
+import { getGangMembership, getGangRoster, getUserProgressById } from '@/db/queries';
+import { BandStickersPanel } from '@/components/band-stickers-panel';
+import { BandMegaCaseCard } from '@/components/band-mega-case';
+import { getGangWins, getMyBandStickers, hasUnclaimedBandReward } from '@/lib/bandStickersServer';
+import { bandIdOf } from '@/lib/bandStickers';
 import { redirect } from 'next/navigation';
 import { CreateGangForm } from '@/components/create-gang-form';
 import { GangQrCard } from '@/components/gang-qr-card';
@@ -28,10 +32,23 @@ const GangPage = async () => {
     const hasWeekReward = await hasUnclaimedGangWeekReward(userId);
     const membership = await getGangMembership(userId);
     const invite = membership ? await getOrCreateInvite(userId) : null;
+    const [bandLevels, hasBandReward, me] = await Promise.all([
+        getMyBandStickers(userId), hasUnclaimedBandReward(userId), getUserProgressById(userId),
+    ]);
+    const isAdmin = me?.isAdmin === 1;
+    // Банд-стикеры — в самом верху страницы; мегакейс главы — если ждёт открытия; админу — тестовый.
+    const bandTop = (
+        <>
+            {hasBandReward && <BandMegaCaseCard />}
+            {isAdmin && <BandMegaCaseCard test />}
+            <BandStickersPanel levels={bandLevels} isLeader={membership?.role === 'leader'} currentId={bandIdOf(membership?.gang.emoji)} />
+        </>
+    );
 
     if (!membership) {
         return (
             <div className="max-w-[600px] mx-auto px-4 pb-10 flex flex-col gap-8">
+                {bandTop}
                 <div className="text-center">
                     <h1 className="text-3xl font-extrabold text-[#F2F7FB] mb-1">Создай свою банду</h1>
                     <p className="text-sm text-[#9AA7B0]">
@@ -53,15 +70,26 @@ const GangPage = async () => {
     const weekIdx = weekScores.findIndex((g) => g.gangId === membership.gangId);
     const weekScore = weekIdx >= 0 ? weekScores[weekIdx].score : 0;
     const gangColor = membership.gang.color || DEFAULT_GANG_COLOR;
+    const wins = (await getGangWins([membership.gangId]))[membership.gangId] ?? 0;
 
     return (
         <div className="max-w-[600px] mx-auto px-4 pb-10 flex flex-col gap-6">
+            {bandTop}
             <div
                 className="relative overflow-hidden rounded-3xl border-2 border-[#3A464E] bg-[#151F23] px-5 py-7 text-center"
                 style={{ backgroundImage: `radial-gradient(circle at 50% 0%, ${gangColor}45, transparent 65%)` }}
             >
-                <div className="flex justify-center mb-3">
+                <div className="flex items-center justify-center gap-4 mb-3">
                     <GangEmblem value={membership.gang.emoji} color={gangColor} size={132} />
+                    {/* Достижения банды — пока одно: сколько раз выиграла битву банд */}
+                    {wins > 0 && (
+                        <div className="flex flex-col items-center rounded-2xl border-2 px-3 py-2"
+                            style={{ borderColor: '#F2C35B', background: 'linear-gradient(180deg, rgba(242,195,91,0.22), rgba(242,195,91,0.05))', boxShadow: '0 4px 0 #7A5A12' }}>
+                            <span className="text-3xl leading-none">🏆</span>
+                            <span className="mt-1 text-lg font-black text-[#F2C35B]">×{wins}</span>
+                            <span className="text-[9px] font-black uppercase tracking-wider text-[#E6C47A]">{declensionRu(wins, 'победа', 'победы', 'побед')}</span>
+                        </div>
+                    )}
                 </div>
                 <h1 className="text-3xl font-extrabold text-[#F2F7FB] break-words">{membership.gang.name}</h1>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] mt-1" style={{ color: gangColor }}>
@@ -69,7 +97,7 @@ const GangPage = async () => {
                 </p>
                 <div className="mt-5 grid grid-cols-3 gap-2">
                     {[
-                        { label: 'Участников', value: roster.length },
+                        { label: declensionRu(roster.length, 'Участник', 'Участника', 'Участников'), value: roster.length },
                         { label: 'Очков всего', value: rating },
                         { label: 'Место недели', value: weekIdx >= 0 ? `#${weekIdx + 1}` : '—' },
                     ].map((s) => (

@@ -10,16 +10,18 @@ import { LoginDialog } from '@/components/login-dialog'
 import { joinGangByInvite } from '@/actions/gang'
 import { setReferralCookie } from '@/actions/referral'
 import { DEFAULT_GANG_COLOR } from '@/lib/gangEmblems'
+import { declensionRu } from '@/usefulFunctions'
 
 type Props = {
     code: string
     loggedIn: boolean
     invite: { gangName: string; emoji: string; color: string | null; inviter: string; inviterRole: string } | null
     isSelf: boolean
+    stats?: { wins: number; members: number; points: number; weekPlace: number | null; weekTotal: number } | null
     currentGang: { name: string; sameGang: boolean; isLeader: boolean } | null
 }
 
-export const GangJoinCard = ({ code, loggedIn, invite, isSelf, currentGang }: Props) => {
+export const GangJoinCard = ({ code, loggedIn, invite, isSelf, currentGang, stats }: Props) => {
     const router = useRouter()
     const [loginOpen, setLoginOpen] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -58,6 +60,33 @@ export const GangJoinCard = ({ code, loggedIn, invite, isSelf, currentGang }: Pr
                             {invite.inviter} {invite.inviterRole === 'leader' ? '(глава)' : '(капо)'} зовёт тебя в банду
                         </p>
                         <p className="text-2xl font-black text-[#F2F7FB]">«{invite.gangName}»</p>
+
+                        {/* Достижения банды */}
+                        {stats && (
+                            <div className="mt-4 flex flex-col gap-2">
+                                {stats.wins > 0 && (
+                                    <div className="flex items-center justify-center gap-2 rounded-2xl border-2 px-3 py-2"
+                                        style={{ borderColor: '#F2C35B', background: 'linear-gradient(180deg, rgba(242,195,91,0.2), rgba(242,195,91,0.04))', boxShadow: '0 4px 0 #7A5A12' }}>
+                                        <span className="text-2xl">🏆</span>
+                                        <span className="text-base font-black text-[#F2C35B]">
+                                            {stats.wins} {declensionRu(stats.wins, 'победа', 'победы', 'побед')} в битве банд
+                                        </span>
+                                    </div>
+                                )}
+                                <div className="grid grid-cols-3 gap-2">
+                                    {[
+                                        { v: stats.members, l: declensionRu(stats.members, 'участник', 'участника', 'участников') },
+                                        { v: stats.points, l: 'очков всего' },
+                                        { v: stats.weekPlace ? `#${stats.weekPlace}` : '—', l: 'место недели' },
+                                    ].map((x) => (
+                                        <div key={x.l} className="rounded-xl border-2 border-[#2B373D] bg-[#0F171B] px-1 py-2">
+                                            <p className="text-xl font-black text-[#F2F7FB]">{x.v}</p>
+                                            <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA7B0]">{x.l}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         <div className="mt-5 flex flex-col gap-3">
                             {isSelf ? (
