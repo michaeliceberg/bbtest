@@ -13,6 +13,7 @@ import { eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { sendMessageToTelegram } from '@/utils/telegram';
 import { unlockAchievements } from '@/lib/achievements';
+import { grantRandomDdxPiece } from '@/lib/ddx';
 import {
 	pickWeightedReward,
 	MAX_PIZZA_SLICES,
@@ -90,6 +91,9 @@ export async function applyResolvedReward(userId: string, reward: CaseReward): P
 		await db.update(userProgress)
 			.set({ ggStickers: sql`${userProgress.ggStickers} + ${appliedReward.amount}` })
 			.where(eq(userProgress.userId, userId));
+	} else if (appliedReward.kind === 'ddx') {
+		// Кусочек паззла «абонемент в спортзал» — случайный из 9, см. lib/ddx.ts
+		for (let i = 0; i < appliedReward.amount; i++) await grantRandomDdxPiece(userId);
 	} else {
 		// Атомарный инкремент в SQL: два начисления подряд (кейс + реферальная награда + ачивка)
 		// не затирают друг друга, как при записи «прочитанное значение + N».

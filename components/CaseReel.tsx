@@ -86,6 +86,12 @@ const RARITY_STYLE: Record<CaseReward['kind'], { cell: string; glow: string; tex
         glow: 'shadow-[0_0_16px_rgba(167,139,250,0.4)]',
         text: '#C4B5FD',
     },
+    // Кусочек паззла абонемента в спортзал — цвета логотипа (оранжевый на тёмно-бирюзовом)
+    ddx: {
+        cell: 'bg-gradient-to-b from-[#06505B] to-[#033F48] border-[#F47B20]',
+        glow: 'shadow-[0_0_18px_rgba(244,123,32,0.45)]',
+        text: '#FFB070',
+    },
 }
 
 // Тёплый стиль «cozy»: плоская ячейка-блок, цветная обводка по типу награды.
@@ -94,6 +100,7 @@ const COZY_CELL: Record<CaseReward['kind'], { border: string; text: string }> = 
     gems: { border: '#6FB8D8', text: '#8FD3F0' },
     pizza: { border: '#E8955A', text: '#FFB67A' },
     gg: { border: '#A78BFA', text: '#C4B5FD' },
+    ddx: { border: '#F47B20', text: '#FFB070' },
 }
 
 const RewardCell = ({ reward, highlighted, cozy }: { reward: CaseReward; highlighted?: boolean; cozy?: boolean }) => {
@@ -128,7 +135,7 @@ const RewardCell = ({ reward, highlighted, cozy }: { reward: CaseReward; highlig
             {reward.kind === 'coins' && <Lottie animationData={LottieCoins} loop autoplay={!!highlighted} className="w-10 h-10" />}
             {reward.kind === 'gems' && <Lottie animationData={LottieGems} loop autoplay={!!highlighted} className="w-9 h-9" />}
             {reward.kind === 'gg' && <Lottie animationData={LottieGG} loop autoplay={!!highlighted} className="w-10 h-10" />}
-            {reward.kind === 'pizza' && <span className="text-3xl leading-none">{rewardEmoji(reward)}</span>}
+            {(reward.kind === 'pizza' || reward.kind === 'ddx') && <span className="text-3xl leading-none">{rewardEmoji(reward)}</span>}
             <span className="text-[11px] font-bold whitespace-nowrap" style={{ color: cozy ? (highlighted ? COZY.honey : COZY_CELL[reward.kind].text) : highlighted ? '#FFD460' : rarity.text }}>
                 {reward.kind === 'pizza' ? `x${reward.amount}` : `+${reward.amount}`}
             </span>
@@ -600,11 +607,11 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                             кадра (~25–73% ширины) — отрицательные поля по бокам
                             убирают пустоту, иначе группа «иконка + число»
                             визуально съезжала вправо от центра кнопки. */}
-                        <div className={"relative w-28 h-28 flex items-center justify-center " + (wonReward.kind === 'pizza' ? '' : '-ml-6 -mr-7')}>
+                        <div className={"relative w-28 h-28 flex items-center justify-center " + (wonReward.kind === 'pizza' || wonReward.kind === 'ddx' ? '' : '-ml-6 -mr-7')}>
                             {wonReward.kind === 'coins' && <Lottie animationData={LottieCoins} loop autoplay className="w-28 h-28" />}
                             {wonReward.kind === 'gems' && <Lottie animationData={LottieGems} loop autoplay className="w-24 h-24" />}
                             {wonReward.kind === 'gg' && <Lottie animationData={LottieGG} loop autoplay className="w-24 h-24" />}
-                            {wonReward.kind === 'pizza' && <span className="text-7xl leading-none">{rewardEmoji(wonReward)}</span>}
+                            {(wonReward.kind === 'pizza' || wonReward.kind === 'ddx') && <span className="text-7xl leading-none">{rewardEmoji(wonReward)}</span>}
                         </div>
                         <span
                             // Картинка монет в Lottie-кадре (стопка ~y 300–500 из 600) сидит ниже центра —
@@ -618,6 +625,11 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                             {wonReward.kind === 'pizza' ? `x${wonReward.amount}` : `+${wonReward.amount}`}
                         </span>
                     </div>
+                    {wonReward.kind === 'ddx' && (
+                        <p className="text-sm font-bold text-center text-[#FFB070] max-w-xs">
+                            🧩 Кусочек абонемента в DDX! Собери все 9 в аккаунте → «Собрать абонемент».
+                        </p>
+                    )}
                     {result && result.success && result.justMaxedPizza && (
                         <p className="text-sm font-bold text-center text-[#F2A6D0] max-w-xs">
                             🍕 Ты собрал все 8 кусочков пиццы! Скоро сможешь заказать настоящую пиццу.

@@ -150,6 +150,8 @@ export const userProgress = pgTable('user_progress', {
 	// pizzaSlices (lib/caseApply.ts, applyResolvedReward) — атомарно забран
 	// из dodo_promo_codes ниже. Null, пока не собраны все 8 кусочков.
 	dodoPromoCode: text('dodo_promo_code'),
+	// Промокод на абонемент в спортзал — выдаётся, когда собран паззл из 8 кусочков (lib/ddx.ts).
+	ddxPromoCode: text('ddx_promo_code'),
 	// Дробная часть пиццы в восьмых (0–7) — реферальная лестница даёт ½ и ¼
 	// кусочка (lib/referralRewards.ts). Набралось 8/8 — превращается в целый кусочек.
 	pizzaEighths: integer('pizza_eighths').notNull().default(0),
@@ -192,6 +194,26 @@ export const caseKeys = pgTable('case_keys', {
 });
 
 export const dodoPromoCodes = pgTable('dodo_promo_codes', {
+	id: serial('id').primaryKey(),
+	code: text('code').notNull().unique(),
+	assignedToUserId: text('assigned_to_user_id'),
+	assignedAt: timestamp('assigned_at'),
+	createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Паззл «абонемент в спортзал» (2026-10-10): 9 разных кусочков (3×3) выпадают из мифических и МЕГА кейсов
+// (шанс как у пиццы). qty — сколько штук этого кусочка у ученика (2 повтора можно слить в недостающий),
+// placed — кусочек уже вставлен на своё место в рамке песочницы (/gym). Логика — lib/ddx.ts.
+export const ddxPieces = pgTable('ddx_pieces', {
+	id: serial('id').primaryKey(),
+	userId: text('user_id').notNull(),
+	piece: integer('piece').notNull(),
+	qty: integer('qty').notNull().default(0),
+	placed: boolean('placed').notNull().default(false),
+	updatedAt: timestamp('updated_at').defaultNow(),
+}, (t) => ({ uniqueUserPiece: unique('ddx_pieces_user_piece').on(t.userId, t.piece) }));
+
+export const ddxPromoCodes = pgTable('ddx_promo_codes', {
 	id: serial('id').primaryKey(),
 	code: text('code').notNull().unique(),
 	assignedToUserId: text('assigned_to_user_id'),

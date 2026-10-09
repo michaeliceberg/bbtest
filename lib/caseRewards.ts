@@ -16,7 +16,8 @@ import { declensionRu } from '@/usefulFunctions'
 // воронки, 2026-09-29) — назначение сознательно не объясняется пользователю
 // (видимый счётчик с интригой, components/user-progress.tsx), просто редкий
 // доп. дроп из кейсов.
-export type CaseRewardKind = 'coins' | 'gems' | 'pizza' | 'gg'
+// 'ddx' — кусочек паззла «абонемент в спортзал» (lib/ddx.ts), только в мифическом и МЕГА кейсе, шанс как у пиццы.
+export type CaseRewardKind = 'coins' | 'gems' | 'pizza' | 'gg' | 'ddx'
 
 export type CaseReward = {
 	kind: CaseRewardKind
@@ -86,6 +87,7 @@ export const MYTHIC_CASE_POOL: CaseReward[] = [
 	{ kind: 'gems', amount: 3, weight: 10 },
 	{ kind: 'pizza', amount: 1, weight: 18 },
 	{ kind: 'pizza', amount: 2, weight: 10 },
+	{ kind: 'ddx', amount: 1, weight: 28 }, // кусочек паззла абонемента — тот же суммарный вес, что у пиццы (18 + 10)
 	{ kind: 'gg', amount: 1, weight: 6 },
 ]
 
@@ -101,6 +103,7 @@ export const MEGA_TIER_CASE_POOL: CaseReward[] = [
 	{ kind: 'gems', amount: 5, weight: 10 },
 	{ kind: 'pizza', amount: 2, weight: 18 },
 	{ kind: 'pizza', amount: 3, weight: 10 },
+	{ kind: 'ddx', amount: 1, weight: 28 }, // кусочек паззла абонемента — как пицца (18 + 10)
 	{ kind: 'gg', amount: 1, weight: 6 },
 ]
 
@@ -175,7 +178,7 @@ export const DIAGNOSTIC_CASE_POOL: CaseReward[] = [
 // пула, а не абсолютного числа — у мегакейса и обычного кейса разный
 // потолок сумм).
 export const isJackpotReward = (reward: CaseReward, pool: CaseReward[]): boolean => {
-	if (reward.kind === 'pizza') return true
+	if (reward.kind === 'pizza' || reward.kind === 'ddx') return true
 	const sameKindAmounts = pool.filter((r) => r.kind === reward.kind).map((r) => r.amount)
 	const maxAmount = Math.max(...sameKindAmounts)
 	return reward.amount === maxAmount
@@ -197,6 +200,7 @@ export const rewardLabel = (reward: CaseReward): string => {
 	if (reward.kind === 'coins') return `+${reward.amount} ${declensionRu(reward.amount, 'монета', 'монеты', 'монет')}`
 	if (reward.kind === 'gems') return `+${reward.amount} ${declensionRu(reward.amount, 'гем', 'гема', 'гемов')}`
 	if (reward.kind === 'gg') return `+${reward.amount} gg-${declensionRu(reward.amount, 'стикер', 'стикера', 'стикеров')}`
+	if (reward.kind === 'ddx') return `+${reward.amount} ${declensionRu(reward.amount, 'кусочек', 'кусочка', 'кусочков')} абонемента`
 	return `+${reward.amount} ${declensionRu(reward.amount, 'кусочек', 'кусочка', 'кусочков')} пиццы`
 }
 
@@ -204,5 +208,6 @@ export const rewardEmoji = (reward: CaseReward): string => {
 	if (reward.kind === 'coins') return '🪙'
 	if (reward.kind === 'gems') return '💎'
 	if (reward.kind === 'gg') return '🎴'
+	if (reward.kind === 'ddx') return '🧩'
 	return '🍕'
 }

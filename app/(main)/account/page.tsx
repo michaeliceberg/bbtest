@@ -13,6 +13,7 @@ import { NameEditor } from '@/components/name-editor'
 import { ParentBindCode } from '@/components/parent-bind-code'
 import { ReferralCard } from '@/components/referral-card'
 import { getOrCreateInvite } from '@/lib/invite'
+import { getDdxState } from '@/lib/ddx'
 import { learnSubjectOf } from '@/lib/learn-unlock'
 import { getRank } from '@/lib/rank'
 import { GangEmblem } from '@/components/gang-emblem'
@@ -28,6 +29,7 @@ const AccountPage = async () => {
 
     const gangMembership = await getGangMembership(userProgress.userId)
     const invite = await getOrCreateInvite(userProgress.userId)
+    const ddx = await getDdxState(userProgress.userId)
     const levelInfo = getLevelInfo(userProgress.xp)
     const rank = getRank(levelInfo.level, gangMembership?.role)
 
@@ -98,6 +100,17 @@ const AccountPage = async () => {
                     <AccountLinking />
                 </Suspense>
             </div>
+
+            <Link href="/gym" className="flex items-center justify-between rounded-xl border-2 border-[#F47B20]/60 bg-[#033F48] px-4 py-3 hover:border-[#F47B20]">
+                <span className="flex items-center gap-3">
+                    <span className="text-3xl">🧩</span>
+                    <span>
+                        <span className="block font-black text-[#F2F7FB]">Собери абонемент в DDX</span>
+                        <span className="block text-xs font-bold text-[#9AA7B0]">Кусочки: {ddx.pieces.length}/9{ddx.promoCode ? ' · собран!' : ''}</span>
+                    </span>
+                </span>
+                <span className="text-sm font-black text-[#F47B20]">Открыть ›</span>
+            </Link>
 
             {invite && <ReferralCard inviteCode={invite.code} defaultSubject={learnSubjectOf(userProgress.activeCourse?.title)} />}
 
