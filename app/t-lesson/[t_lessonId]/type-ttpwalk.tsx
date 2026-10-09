@@ -287,7 +287,7 @@ const spearFlight = (t: number) => {
 const DUST = Array.from({ length: 9 }, (_, i) => ({ ang: (i / 9) * Math.PI * 2 + 0.3, dist: 26 + ((i * 37) % 22), rise: 14 + ((i * 53) % 18), r: 2 + (i % 3) }))
 
 // scene: 0 земля · 1 копьё · 2 линия · 3 вопрос · 4 тень · 5 угол 90° · 6-7 «по-школьному»
-const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, pre = 3, bushJoke }: {
+const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, pre = 3, bushJoke, forceLine = false, lineFresh = false }: {
     scene: number; pick: number | null; beat?: number; onPick?: (s: number) => void
     // сцена 0: шутка «Если что, это кустик» (стрелка + подпись), true — показать, false — убрать
     bushJoke?: boolean
@@ -296,10 +296,13 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
     phi?: number
     rotate?: { onRotate: (rawDeg: number) => void; locked: boolean }
     fly?: boolean
+    // линия на земле уже в сценах 0–1 (с 2026-10-09 линия появляется ДО броска копья)
+    forceLine?: boolean
+    lineFresh?: boolean
 }) => {
     const school = scene >= 6
     const hasSpear = scene >= 1
-    const hasB = scene >= 2
+    const hasB = scene >= 2 || forceLine
     const s = pick ?? (scene >= 5 ? DEFAULT_PICK : null)
     const later = scene > 4
     const showPerp = s != null && (later || (scene === 4 && beat >= 1))
@@ -307,8 +310,9 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
     const showProj = s != null && (later || (scene === 4 && beat >= 3))
     const fresh4 = scene === 4
     const freshWords = scene === 6 // подписи меняются на школьные
-    const sunOn = scene === 4 ? pre >= 1 : scene === 5
-    const shadowOn = scene === 4 ? pre >= 2 : scene === 5
+    // солнце убрано (2026-10-09): тень появляется после отвеса и «Агась» (beat 3)
+    const sunOn = false
+    const shadowOn = scene === 4 ? beat >= 3 : scene === 5
     const svgRef = useRef<SVGSVGElement>(null)
 
     // полёт копья
@@ -496,8 +500,8 @@ const Figure = ({ scene, pick, beat = 0, onPick, phi = 0, rotate, fly = false, p
 
                 {hasB && (
                     <>
-                        <DrawPath d={bPath} color={B_COLOR} w={4} fresh={scene === 2 && !rotate} dur={0.9} />
-                        {!school && <SvgWordTag x={tagPos.x} y={tagPos.y} angle={tagAng} text="линия" color={B_COLOR} delay={scene === 2 ? 0.7 : 0} />}
+                        <DrawPath d={bPath} color={B_COLOR} w={4} fresh={(scene === 2 && !rotate) || lineFresh} dur={0.9} />
+                        {!school && <SvgWordTag x={tagPos.x} y={tagPos.y} angle={tagAng} text="линия" color={B_COLOR} delay={scene === 2 || lineFresh ? 0.7 : 0} />}
                         {school && <SvgTag x={tagEnd.x - 4} y={tagEnd.y - 18} text="b" color={B_COLOR} delay={0.3} />}
                     </>
                 )}
@@ -599,22 +603,36 @@ const useAfterTyped = () => {
     return { typed, onTyped: () => setTyped(true) }
 }
 
-// Шутка: после появления площадки — стрелка на куст «Если что, это кустик» (остаётся в этой сцене, в следующих её нет).
+// Площадка с кустиком (шутка «Если что, это кустик») → «А это линия на земле» — линия под заведомо
+// НЕперпендикулярным к будущему копью углом (32–58° в любую сторону).
 const GroundScene = ({ onSettled }: SceneProps) => {
+    const { setPhi } = useContext(PickCtx)
+    const [initial] = useState(() => (Math.random() < 0.5 ? -1 : 1) * (32 + Math.random() * 26))
+    useEffect(() => { setPhi(initial) }, [setPhi, initial])
     const { typed, onTyped } = useAfterTyped()
     const [joke, setJoke] = useState<boolean | undefined>(undefined)
+    const [lineText, setLineText] = useState(false)
+    const [line, setLine] = useState(false)
     const timers = useRef<ReturnType<typeof setTimeout>[]>([])
     useEffect(() => () => timers.current.forEach(clearTimeout), [])
     const afterDiagram = () => {
         timers.current.push(
             setTimeout(() => setJoke(true), 500),
-            setTimeout(() => onSettled?.(), 1100),
+            setTimeout(() => setLineText(true), 2300),
         )
     }
     return (
         <SceneBox>
             <TypedLineWithParts parts={[{ text: 'Вот площадка для метания копья 🌿' }]} onSettled={onTyped} />
-            {typed && <DiagramBlock onSettled={afterDiagram}><Figure scene={0} pick={null} bushJoke={joke} /></DiagramBlock>}
+            {typed && (
+                <DiagramBlock onSettled={afterDiagram}>
+                    <Figure scene={0} pick={null} bushJoke={joke} phi={initial} forceLine={line} lineFresh />
+                </DiagramBlock>
+            )}
+            {lineText && (
+                <TypedLineWithParts parts={[{ text: 'А это ' }, { sticker: 'линия', color: B_COLOR }, { text: ' на земле' }]}
+                    onSettled={() => { setLine(true); timers.current.push(setTimeout(() => onSettled?.(), 1500)) }} />
+            )}
         </SceneBox>
     )
 }
@@ -622,6 +640,7 @@ const GroundScene = ({ onSettled }: SceneProps) => {
 // «Спортсменка бросает копьё..» → видео броска (один раз) → видео убираем, копьё летит и
 // втыкается → «оно воткнулось в землю в точке O.»
 const SpearScene = ({ onSettled }: SceneProps) => {
+    const { phi } = useContext(PickCtx)
     // 0 печать · 1 видео · 2 копьё втыкается · 3 подпись про точку O
     const [phase, setPhase] = useState(0)
     const videoRef = useRef<HTMLVideoElement>(null)
@@ -653,10 +672,10 @@ const SpearScene = ({ onSettled }: SceneProps) => {
                     />
                 </motion.div>
             )}
-            {phase >= 2 && <DiagramBlock><Figure scene={1} pick={null} fly /></DiagramBlock>}
+            {phase >= 2 && <DiagramBlock><Figure scene={1} pick={null} fly phi={phi} forceLine /></DiagramBlock>}
             {phase >= 3 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Оно воткнулось в землю в точке ' }, { sticker: 'O', color: O_TEXT, bg: O_FILL, border: O_TEXT }, { text: '.' }]}
+                    parts={[{ text: 'Оно воткнулось прямо в ' }, { sticker: 'линию', color: B_COLOR }, { text: ' в точке ' }, { sticker: 'O', color: O_TEXT, bg: O_FILL, border: O_TEXT }, { text: '.' }]}
                     onSettled={() => onSettled?.()}
                 />
             )}
@@ -742,54 +761,55 @@ const ThinkingDots = ({ done, onDone }: { done: boolean; onDone: () => void }) =
     )
 }
 
-const QuestionScene = ({ onSettled, leaving }: SceneProps) => {
+const QuestionScene = ({ onSettled }: SceneProps) => {
     const { phi } = useContext(PickCtx)
-    const [shown, setShown] = useState(false)
-    const [asked, setAsked] = useState(false)
-    // после ответа: текст → пауза с «многоточием» → сам вопрос → видео
-    const [phase, setPhase] = useState(0) // 0 — текст, 0.5 — «надо ответить на вопрос», 1 — многоточие, 2 — вопрос, 3 — видео
-    const officeRef = useRef<HTMLVideoElement>(null)
-    useEffect(() => { if (leaving) officeRef.current?.pause() }, [leaving])
     return (
         <SceneBox>
             <DiagramBlock><Figure scene={3} pick={null} phi={phi} /></DiagramBlock>
             <TypedLineWithParts
-                parts={[{ text: 'А ' }, { bold: 'точно' }, { text: ' ли ' }, { sticker: 'копьё', color: A_COLOR }, { text: ' перпендикулярно ' }, { sticker: 'линии', color: B_COLOR }, { text: '? 🤔' }]}
-                onSettled={() => setShown(true)}
+                parts={[{ text: 'А ' }, { bold: 'перпендикулярно' }, { text: ' ли ' }, { sticker: 'копьё', color: A_COLOR }, { text: ' этой ' }, { sticker: 'линии', color: B_COLOR }, { text: '? 🤔' }]}
+                onSettled={() => setTimeout(() => onSettled?.('Интересненько'), 500)}
             />
-            {shown && !asked && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full flex gap-2">
-                    <GuessBtn color={A_COLOR} onClick={() => setAsked(true)}>Да</GuessBtn>
-                    <GuessBtn color={A_COLOR} onClick={() => setAsked(true)}>Нет</GuessBtn>
-                    <GuessBtn color={MARK_COLOR} onClick={() => setAsked(true)}>Не знаю 🤔</GuessBtn>
-                </motion.div>
-            )}
-            {asked && (
+        </SceneBox>
+    )
+}
+
+// Правило: смотрим на ТЕНЬ копья. Две маленькие картинки: тень ⟂ линии → копьё ⟂; тень не ⟂ → копьё не ⟂.
+const MiniCase = ({ phi, ok, delay }: { phi: number; ok: boolean; delay: number }) => (
+    <motion.div initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay, type: 'spring', bounce: 0.4 }}
+        className="flex-1 min-w-0 flex flex-col items-center gap-1 rounded-2xl border-2 p-2"
+        style={{ borderColor: ok ? hexToRgba('#A1D151', 0.7) : hexToRgba('#DC605B', 0.7), backgroundColor: hexToRgba(ok ? '#A1D151' : '#DC605B', 0.07) }}>
+        <div className="w-full"><Figure scene={5} pick={DEFAULT_PICK} phi={phi} /></div>
+        <p className="text-center text-xs md:text-sm font-black leading-tight" style={{ color: ok ? '#A1D151' : '#DC605B' }}>
+            {ok ? 'тень ⟂ линии → копьё ⟂ линии ✅' : 'тень НЕ ⟂ линии → копьё НЕ ⟂ ❌'}
+        </p>
+    </motion.div>
+)
+const RuleScene = ({ onSettled }: SceneProps) => {
+    const [step, setStep] = useState(0)
+    return (
+        <SceneBox>
+            <TypedLineWithParts
+                parts={[{ text: 'Чтобы понять, надо ответить: а перпендикулярна ли ' }, { sticker: 'ТЕНЬ', ...SH }, { text: ' копья этой ' }, { sticker: 'линии', color: B_COLOR }, { text: '?' }]}
+                onSettled={() => setStep(1)}
+            />
+            {step >= 1 && (
                 <TypedLineWithParts
-                    parts={[
-                        { text: 'Глазами не заметно 😅' }, { break: true },
-                        { text: 'А чтобы это узнать точно —' },
-                    ]}
-                    onSettled={() => setTimeout(() => setPhase(0.5), 900)}
+                    parts={[{ text: 'Если ' }, { sticker: 'тень', ...SH }, { text: ' ⟂ ' }, { sticker: 'линии', color: B_COLOR }, { text: ' — то и ' }, { sticker: 'копьё', color: A_COLOR }, { text: ' ⟂.' }]}
+                    onSettled={() => setStep(2)}
                 />
             )}
-            {phase >= 0.5 && (
-                <TypedLineWithParts parts={[{ text: 'надо ответить на вопрос' }]} onSettled={() => setPhase(1)} />
-            )}
-            {phase >= 1 && <ThinkingDots done={phase >= 2} onDone={() => setPhase(2)} />}
-            {phase >= 2 && (
+            {step >= 2 && (
                 <TypedLineWithParts
-                    parts={[
-                        { text: 'а будет ли перпендикулярна ' }, { sticker: 'ТЕНЬ', ...SH }, { text: ' к этой ' },
-                        { sticker: 'линии', color: B_COLOR }, { text: '?' },
-                    ]}
-                    onSettled={() => { setPhase(3); setTimeout(() => onSettled?.('Понял-принял'), 1500) }}
+                    parts={[{ text: 'Если ' }, { sticker: 'тень', ...SH }, { text: ' НЕ ⟂ — то и ' }, { sticker: 'копьё', color: A_COLOR }, { text: ' НЕ ⟂.' }]}
+                    onSettled={() => { setStep(3); setTimeout(() => onSettled?.(), 1600) }}
                 />
             )}
-            {phase >= 3 && (
-                <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', bounce: 0.4 }} className="flex justify-center">
-                    <AlphaVideo ref={officeRef} src="/video/office-steve.webm" autoPlay loop muted playsInline className="w-full max-w-[240px]" />
-                </motion.div>
+            {step >= 2 && (
+                <div className="w-full flex gap-2">
+                    <MiniCase phi={0} ok delay={0} />
+                    {step >= 3 && <MiniCase phi={40} ok={false} delay={0} />}
+                </div>
             )}
         </SceneBox>
     )
@@ -804,13 +824,11 @@ const ShadowScene = ({ onSettled }: SceneProps) => {
     const [found, setFound] = useState(false) // нажали «Агась» → рисуем тень OH
     // сцена начинается заново — прошлый выбор точки сбрасываем
     useEffect(() => { setPick(null) }, [setPick])
-    // после печати: солнце опускается → с bounce появляется тень → можно выбирать точку
+    // после печати — сразу можно выбирать точку на копье, из которой опустим отвес
     useEffect(() => {
         if (!typed) return
-        const t1 = setTimeout(() => setPre(1), 250)
-        const t2 = setTimeout(() => setPre(2), 1750)
-        const t3 = setTimeout(() => setPre(3), 3000)
-        return () => { [t1, t2, t3].forEach(clearTimeout) }
+        const t3 = setTimeout(() => setPre(3), 600)
+        return () => clearTimeout(t3)
     }, [typed])
     // выбрали точку: перпендикуляр на землю → точка H и прямой угол (белым) → «Агась»
     useEffect(() => {
@@ -824,7 +842,7 @@ const ShadowScene = ({ onSettled }: SceneProps) => {
     return (
         <SceneBox>
             <TypedLineWithParts
-                parts={[{ text: 'Выглянуло солнце ☀️ и копьё стало отбрасывать ' }, { sticker: 'тень', ...SH }, { text: '.' }]}
+                parts={[{ text: 'Давай узнаем в ' }, { bold: 'нашем случае' }, { text: ' 🔍' }]}
                 onSettled={() => setTyped(true)}
             />
             {typed && (
@@ -834,7 +852,7 @@ const ShadowScene = ({ onSettled }: SceneProps) => {
             )}
             {pre >= 3 && (
                 <TypedLineWithParts
-                    parts={[{ text: 'Давай от любой точки ' }, { sticker: 'копья', color: A_COLOR }, { text: ' нарисуем ' }, { bold: 'ПЕРПЕНДИКУЛЯР' }, { text: ' на землю' }]}
+                    parts={[{ text: 'Опустим из любой точки ' }, { sticker: 'копья', color: A_COLOR }, { bold: ' ПЕРПЕНДИКУЛЯР' }, { text: ' на землю — как отвес 👇' }, { break: true }, { text: 'Нажми на точку на копье' }]}
                 />
             )}
             {askOk && (
@@ -1052,7 +1070,7 @@ const TheoremScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-const CONCEPT_SCENES = [GroundScene, SpearScene, LineScene, QuestionScene, ShadowScene, NinetyScene, SchoolScene, TheoremScene]
+const CONCEPT_SCENES = [GroundScene, SpearScene, QuestionScene, RuleScene, ShadowScene, NinetyScene, SchoolScene, TheoremScene]
 
 const ConceptPhase = ({ onDone, scenes = CONCEPT_SCENES }: { onDone: () => void; scenes?: ((p: SceneProps) => JSX.Element)[] }) => {
     const [step, setStep] = useState(0)
