@@ -121,10 +121,11 @@ type CircleProps = {
     arcs?: { a0: number; a1: number; color: string; key: string }[]
     spin?: number | null // полный круг от этого угла (+2πk)
     dashDur?: number // сколько секунд тянется пунктир
+    extra?: React.ReactNode // дополнительные элементы поверх (видео-реакция и т.п.)
     svgRef?: React.Ref<SVGSVGElement>
 }
 
-const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = false, dots = [], dotsPop = false, labels = [], arcs = [], spin = null, svgRef, dashDur = 0.9 }: CircleProps) => {
+const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = false, dots = [], dotsPop = false, labels = [], arcs = [], spin = null, svgRef, dashDur = 0.9, extra }: CircleProps) => {
     const dotsPopAnim = dotsPop
     const ly = level ? C - level.v * R : 0
     const hx = level ? Math.sqrt(Math.max(0, 1 - level.v * level.v)) * R : 0
@@ -208,6 +209,7 @@ const SinCircle = ({ draw = false, sinPulse = false, level = null, dashes = fals
 
             {spin !== null && <Spinner a={spin} />}
             <circle cx={C} cy={C} r={3.5} fill="#F2F7FB" />
+            {extra}
         </svg>
     )
 }
@@ -273,8 +275,34 @@ const FormulaScene = ({ onSettled }: SceneProps) => {
 
 // 2. Пунктир на высоте 1/2 к краям → две точки → «А что это за углы?»
 const DOTS_DASH_S = 1.8 // пунктир — в 2 раза медленнее обычного
+const SAUL_VIDEO = '/video/saul-think.webm'
+const SAUL_SIZE = 84 // в единицах холста окружности
+const SAUL_PLAYS = 3
+
+// Видео-реакция «задумался» у правой точки: прыгает с отскоком, играет 3 раза и замирает.
+const SaulNearPoint = ({ onShown }: { onShown?: () => void }) => {
+    const p = pt(A30)
+    const plays = useRef(0)
+    useEffect(() => {
+        const t = setTimeout(() => onShown?.(), 900)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+    return (
+        <foreignObject x={p.x - 6} y={p.y - SAUL_SIZE - 6} width={SAUL_SIZE} height={SAUL_SIZE} style={{ overflow: 'visible' }}>
+            <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 11 }}
+                style={{ transformOrigin: '0% 100%' }}
+                className="h-full w-full overflow-hidden rounded-xl border-2 border-[#F09B38] bg-[#161F23] shadow-lg">
+                <video src={SAUL_VIDEO} autoPlay muted playsInline className="h-full w-full object-cover"
+                    onEnded={(e) => { plays.current += 1; if (plays.current < SAUL_PLAYS) { e.currentTarget.currentTime = 0; void e.currentTarget.play() } }} />
+            </motion.div>
+        </foreignObject>
+    )
+}
+
 const DotsScene = ({ onSettled }: SceneProps) => {
-    // 0 печатаем фразу → 1 пунктиры и точки → 2 «А что это за углы?» (после отскока точек)
+    // 0 печатаем фразу → 1 пунктиры и точки → 2 «А что это за углы?» (после отскока точек) → 3 видео у правой точки
     const [phase, setPhase] = useState(0)
     useEffect(() => {
         if (phase !== 1) return
@@ -285,9 +313,10 @@ const DotsScene = ({ onSettled }: SceneProps) => {
         <>
             <TypedBig small parts={[{ text: 'Проведём на высоте ' }, { text: '1/2', color: SIN_COLOR }, { text: ' линию до окружности' }]} onDone={() => setPhase(1)} readMs={300} />
             <DiagramBlock>
-                <SinCircle level={HALF} dashes={phase >= 1} dots={phase >= 1 ? [A30, A150] : []} dotsPop dashDur={DOTS_DASH_S} />
+                <SinCircle level={HALF} dashes={phase >= 1} dots={phase >= 1 ? [A30, A150] : []} dotsPop dashDur={DOTS_DASH_S}
+                    extra={phase >= 3 ? <SaulNearPoint onShown={() => onSettled?.()} /> : null} />
             </DiagramBlock>
-            {phase >= 2 && <TypedBig parts={[{ text: 'А что это за ' }, { text: 'углы', color: DOT_COLOR }, { text: '?' }]} onDone={() => onSettled?.()} />}
+            {phase >= 2 && <TypedBig parts={[{ text: 'А что это за ' }, { text: 'углы', color: DOT_COLOR }, { text: '?' }]} onDone={() => setPhase(3)} />}
         </>
     )
 }
