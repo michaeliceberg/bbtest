@@ -27,6 +27,8 @@ import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
+import Lottie from '@/components/lottie-player'
+import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
 
 const SCENE_TRANSITION_PAUSE_MS = 1000
 
@@ -703,14 +705,14 @@ const LeftScene = ({ onSettled }: SceneProps) => {
 
     const piLabel = <span className="text-2xl font-black" style={{ color: PI_POINT_COLOR }}>π</span>
     const minusLabel = (
-        <span className="flex items-center gap-0.5 rounded-lg border-2 px-1.5 text-lg font-black" style={glassStickerStyle(PERIOD_COLOR)}>
+        <span className="flex items-center gap-0.5 text-xl font-black" style={{ color: PERIOD_COLOR }}>
             −<PiFrac s="π/6" />
         </span>
     )
     // В строке вычисления и при спуске — крупнее
     const bigPi = <span className="text-5xl font-black" style={{ color: PI_POINT_COLOR }}>π</span>
     const bigMinus = (
-        <span className="flex items-center gap-1 rounded-xl border-2 px-2 py-0.5 text-4xl font-black" style={glassStickerStyle(PERIOD_COLOR)}>
+        <span className="flex items-center gap-1 text-4xl font-black" style={{ color: PERIOD_COLOR }}>
             −<PiFrac s="π/6" />
         </span>
     )
@@ -820,19 +822,97 @@ const Marked = ({ s: v, delay = 0 }: { s: string; delay?: number }) => (
     <span className="relative inline-flex"><PiFrac s={v} /><MarkerLoop pad={10} delay={delay} /></span>
 )
 
-// 5. Нашли углы: обводим π/6 и 5π/6 маркером.
-const FoundScene = ({ onSettled }: SceneProps) => (
-    <>
-        <DiagramBlock>
-            <SinCircle level={HALF} levelDim dashes dots={[A30, A150]}
-                labels={[
-                    { a: A30, text: <Marked s="π/6" />, color: ARC_COLOR, key: 'r', side: 1, pop: false },
-                    { a: A150, text: <Marked s="5π/6" delay={0.5} />, color: ARC_COLOR, key: 'l', side: -1, pop: false },
-                ]} />
-        </DiagramBlock>
-        <TypedBig parts={[{ text: 'Ураа! Мы нашли наши ' }, { text: 'углы', color: ARC_COLOR }]} onDone={() => onSettled?.()} />
-    </>
-)
+// 5а. ЗАПОМНИ: правая точка из таблицы, левая = π − правая → 3 мини-теста.
+const REMEMBER_COLOR = '#F2C35B'
+const LEFT_TESTS: { right: string; left: string; opts: string[] }[] = [
+    { right: 'π/6', left: '5π/6', opts: ['5π/6', '2π/3', '7π/6', '−π/6'] },
+    { right: 'π/4', left: '3π/4', opts: ['3π/4', '5π/4', '−π/4', '2π/3'] },
+    { right: 'π/3', left: '2π/3', opts: ['2π/3', '4π/3', '5π/6', '−π/3'] },
+]
+const RememberLeftScene = ({ onSettled }: SceneProps) => {
+    const [ready, setReady] = useState(false)
+    const [idx, setIdx] = useState(0)
+    const [solved, setSolved] = useState<boolean[]>([])
+    const [wrong, setWrong] = useState<string | null>(null)
+    const [opts] = useState(() => LEFT_TESTS.map((t) => shuffle(t.opts)))
+    useEffect(() => {
+        if (!wrong) return
+        const t = setTimeout(() => setWrong(null), 800)
+        return () => clearTimeout(t)
+    }, [wrong])
+    const pick = (o: string) => {
+        if (solved[idx]) return
+        if (o === LEFT_TESTS[idx].left) {
+            showAnswerMeme(true)
+            setSolved((p) => { const n = [...p]; n[idx] = true; return n })
+            setTimeout(() => {
+                if (idx + 1 < LEFT_TESTS.length) setIdx(idx + 1)
+                else onSettled?.()
+            }, 1100)
+        } else { playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false); setWrong(o) }
+    }
+    return (
+        <>
+            <div className="w-full flex items-center gap-3">
+                <Lottie animationData={paperPolice} loop autoplay className="w-16 h-16 md:w-20 md:h-20 shrink-0" />
+                <div className="flex-1 flex flex-col items-center gap-2 rounded-xl px-4 py-3 font-black text-center"
+                    style={{ backgroundColor: hexToRgba(REMEMBER_COLOR, 0.14), border: `2px solid ${REMEMBER_COLOR}`, color: '#F2F7FB' }}>
+                    <span className="text-lg" style={{ color: REMEMBER_COLOR }}>ЗАПОМНИ!</span>
+                    <TypedBig small parts={[{ text: 'Правая точка: берём из ' }, { text: 'таблицы', color: SIN_COLOR }]} readMs={500} onDone={() => setReady(true)} />
+                    {ready && (
+                        <motion.span initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
+                            className="flex items-center gap-2 text-xl md:text-2xl">
+                            левая = <span className="text-5xl leading-none" style={{ color: ARC_COLOR }}>π</span> − правая
+                        </motion.span>
+                    )}
+                </div>
+            </div>
+            {ready && LEFT_TESTS.slice(0, idx + 1).map((t, i) => (
+                <motion.div key={t.right} initial={{ opacity: 0, y: 10 }} animate={{ opacity: i < idx ? 0.45 : 1, y: 0 }} transition={{ delay: i === 0 ? 0.9 : 0 }}
+                    className="w-full flex flex-col items-center gap-2">
+                    <div className="flex items-center gap-2 text-xl md:text-2xl font-black text-[#F2F7FB]">
+                        Если правая <span style={{ color: ARC_COLOR }}><PiFrac s={t.right} /></span>, то левая
+                        {solved[i] ? <Pop><span style={{ color: '#A1D151' }}><PiFrac s={t.left} /></span></Pop> : <span className="text-[#9AA7B0]">?</span>}
+                    </div>
+                    {i === idx && !solved[i] && (
+                        <div className="grid grid-cols-4 gap-2 w-full max-w-md">
+                            {opts[i].map((o) => (
+                                <button key={o} type="button" onClick={() => pick(o)}
+                                    className={cn('min-h-[60px] rounded-xl border-2 text-xl font-black transition-colors flex items-center justify-center',
+                                        wrong === o ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]' : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]')}>
+                                    <PiFrac s={o} />
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </motion.div>
+            ))}
+        </>
+    )
+}
+
+// 5б. Нашли углы: окружность с точками → «Ураа! Мы нашли наши углы, где sin α = 1/2» → обводим π/6 и 5π/6 маркером.
+const FoundScene = ({ onSettled }: SceneProps) => {
+    const [marked, setMarked] = useState(false)
+    useEffect(() => {
+        if (!marked) return
+        const t = setTimeout(() => onSettled?.(), 1300)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [marked])
+    return (
+        <>
+            <DiagramBlock>
+                <SinCircle level={HALF} levelDim dashes dots={[A30, A150]}
+                    labels={[
+                        { a: A30, text: marked ? <Marked s="π/6" /> : <PiFrac s="π/6" />, color: ARC_COLOR, key: 'r', side: 1, pop: false },
+                        { a: A150, text: marked ? <Marked s="5π/6" delay={0.5} /> : <PiFrac s="5π/6" />, color: ARC_COLOR, key: 'l', side: -1, pop: false },
+                    ]} />
+            </DiagramBlock>
+            <TypedBig parts={[{ text: 'Ураа! Мы нашли наши ' }, { text: 'углы', color: ARC_COLOR }, { text: ',\nгде ' }, { text: 'sin α = 1/2', color: SIN_COLOR }]} readMs={400} onDone={() => setMarked(true)} />
+        </>
+    )
+}
 
 // 6. Полный круг 2π: точка проезжает круг и возвращается → «Понял» → k ∈ ℤ → сама к мини-игре.
 const PeriodScene = ({ onAutoNext }: SceneProps) => {
@@ -1011,7 +1091,7 @@ const MinusScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-const SCENES = [FormulaScene, DotsScene, TableScene, LeftAnglesScene, LeftScene, FoundScene, PeriodScene, KGameScene, AnswerScene]
+const SCENES = [FormulaScene, DotsScene, TableScene, LeftAnglesScene, LeftScene, RememberLeftScene, FoundScene, PeriodScene, KGameScene, AnswerScene]
 
 // ===== Тренировка =====
 type Trial = { prompt: React.ReactNode; options: { key: string; view: React.ReactNode }[]; correct: string; hint: string; askWrite?: boolean; scene?: boolean }
