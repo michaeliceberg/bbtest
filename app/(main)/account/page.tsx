@@ -13,6 +13,7 @@ import { NameEditor } from '@/components/name-editor'
 import { ParentBindCode } from '@/components/parent-bind-code'
 import { ReferralCard } from '@/components/referral-card'
 import { getOrCreateInvite } from '@/lib/invite'
+import { learnSubjectOf } from '@/lib/learn-unlock'
 import { getRank } from '@/lib/rank'
 import { GangEmblem } from '@/components/gang-emblem'
 import { getLevelInfo } from '@/lib/xp'
@@ -98,7 +99,7 @@ const AccountPage = async () => {
                 </Suspense>
             </div>
 
-            {invite && <ReferralCard inviteCode={invite.code} />}
+            {invite && <ReferralCard inviteCode={invite.code} defaultSubject={learnSubjectOf(userProgress.activeCourse?.title)} />}
 
             <ParentBindCode userId={userProgress.userId} userName={userProgress.userName} />
 
