@@ -14,7 +14,7 @@ import { TelegramLoginButton } from './telegram-login-button';
 import { PhoneCallLogin } from './phone-call-login';
 import { VkIcon } from './vk-icon';
 
-const TELEGRAM_BOT_USERNAME = 'brickbrain007_bot';
+import { BOT_USERNAME as TELEGRAM_BOT_USERNAME } from '@/lib/telegramLinks';
 
 type Props = {
   open: boolean;

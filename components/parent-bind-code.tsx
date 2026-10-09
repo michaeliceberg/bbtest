@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { Button } from './ui/button';
-import { generateBindCode, getBindLink } from '@/utils/telegram';
+import { generateBindCode, getBindLink } from '@/lib/telegramLinks';
 import { Users, Copy, Check, Share2 } from 'lucide-react';
 
 type Props = {

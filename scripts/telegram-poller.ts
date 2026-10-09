@@ -18,7 +18,7 @@ import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 
-const TELEGRAM_BOT_TOKEN = '7675525540:AAGy9BBsi54zeaFFs2Jt9k_PR2ofrRnGUQ8';
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_API_BASE = process.env.TELEGRAM_API_BASE || 'https://api.telegram.org';
 const WEBHOOK_URL = 'http://localhost:3001/api/telegram/webhook';
 const OFFSET_FILE = path.join(process.cwd(), 'scripts', '.telegram-offset.json');

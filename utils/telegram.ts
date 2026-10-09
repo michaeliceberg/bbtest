@@ -2,8 +2,10 @@
 
 import axios from "axios";
 
-const TELEGRAM_BOT_TOKEN = "7675525540:AAGy9BBsi54zeaFFs2Jt9k_PR2ofrRnGUQ8";
-export const BOT_USERNAME = "brickbrain007_bot";
+// Токен — только из .env на сервере (раньше был прямо в коде, а репозиторий публичный).
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
+// Ссылки и имя бота — в lib/telegramLinks.ts (их можно и в браузере); здесь — для старых импортов.
+export { BOT_USERNAME, generateBindCode, getBindLink, getDiagnosticBotLink } from "@/lib/telegramLinks";
 
 // На сервере api.telegram.org недоступен напрямую (заблокирован у хостера) —
 // TELEGRAM_API_BASE указывает на прокси (Cloudflare Worker), который просто
@@ -25,6 +27,7 @@ export const sendMessageToTelegram = async (
     chatId?: string,
     replyMarkup?: TelegramReplyKeyboard
 ): Promise<void> => {
+    if (!TELEGRAM_BOT_TOKEN) { console.error("❌ TELEGRAM_BOT_TOKEN не задан в .env"); return; }
     const url = `${TELEGRAM_API_BASE}/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
     const targetChatId = chatId || "1005641275";
     const base = {
@@ -53,102 +56,3 @@ export const sendMessageToTelegram = async (
         console.error("❌ Ошибка при отправке сообщения в Telegram:", error);
     }
 };
-
-// Генерация кода для привязки
-export const generateBindCode = (userId: string): string => {
-    return userId.slice(-8).toUpperCase();
-};
-
-// Получить ссылку для привязки через QR-код
-export const getBindLink = (bindCode: string): string => {
-    return `https://t.me/${BOT_USERNAME}?start=bind_${bindCode}`;
-};
-
-// Диплинк "вступи в бота" для сбора лида диагностического теста (см.
-// actions/diagnostic.ts/startDiagnosticTelegramLead и webhook/route.ts/
-// performDiagnosticBind) — тот же приём, что и getBindLink выше, другой
-// payload-префикс (diag_ вместо bind_).
-export const getDiagnosticBotLink = (token: string): string => {
-    return `https://t.me/${BOT_USERNAME}?start=diag_${token}`;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// import axios from "axios";
-
-// const TELEGRAM_BOT_TOKEN = "7675525540:AAGy9BBsi54zeaFFs2Jt9k_PR2ofrRnGUQ8";
-
-// interface TelegramMessageParams {
-//     chat_id: string;
-//     text: string;
-//     parse_mode?: string;
-// }
-
-// export const sendMessageToTelegram = async (message: string, chatId?: string): Promise<void> => {
-//     const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-//     const targetChatId = chatId || "1005641275"; // твой ID по умолчанию
-
-//     try {
-//         await axios.post<TelegramMessageParams>(url, {
-//             chat_id: targetChatId,
-//             text: message,
-//             parse_mode: "Markdown",
-//         });
-//         console.log("✅ Сообщение отправлено в Telegram");
-//     } catch (error) {
-//         console.error("❌ Ошибка при отправке сообщения в Telegram:", error);
-//     }
-// };
-
-// // Генерация кода для привязки (последние 8 символов userId)
-// export const generateBindCode = (userId: string): string => {
-//     return userId.slice(-8).toUpperCase();
-// };
-
-
-
-// // utils/telegram.ts
-// import axios from "axios";
-
-
-// // Тип для параметров отправки сообщения
-// interface TelegramMessageParams {
-//   chat_id: string;
-//   text: string;
-// }
-
-// // Функция для отправки сообщения в Telegram
-// export const sendMessageToTelegram = async (message: string): Promise<void> => {
-//     // const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-//     const url = `https://api.telegram.org/bot7675525540:AAGy9BBsi54zeaFFs2Jt9k_PR2ofrRnGUQ8/sendMessage`;
-
-//   try {
-//     await axios.post<TelegramMessageParams>(url, {
-//         // chat_id: CHAT_ID,
-//         chat_id: 1005641275,
-
-//       text: message,
-//     });
-//     // console.log("Сообщение отправлено в Telegram");
-//   } catch (error) {
-//     console.error("Ошибка при отправке сообщения в Telegram:", error);
-//   }
-// };

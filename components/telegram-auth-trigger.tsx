@@ -35,7 +35,8 @@ declare global {
     }
 }
 
-const TELEGRAM_BOT_ID = '7675525540'
+// Номер бота (первая часть токена, не секрет) — NEXT_PUBLIC_TELEGRAM_BOT_ID в .env, иначе старый.
+const TELEGRAM_BOT_ID = process.env.NEXT_PUBLIC_TELEGRAM_BOT_ID || '7675525540'
 
 type Props = {
     callbackUrl: string
