@@ -21,12 +21,14 @@ export async function getDdxState(userId: string): Promise<{ pieces: DdxPieceSta
 }
 
 // Выпал кусочек из кейса — случайный из 9 (может быть повтором).
-export async function grantRandomDdxPiece(userId: string): Promise<number> {
+// Возвращает номер кусочка и сколько их теперь у ученика (1 — новый, больше — повторка).
+export async function grantRandomDdxPiece(userId: string): Promise<{ piece: number; qty: number }> {
     const piece = Math.floor(Math.random() * DDX_PIECES)
-    await db.execute(sql`
+    const rows = (await db.execute(sql`
         INSERT INTO ddx_pieces (user_id, piece, qty) VALUES (${userId}, ${piece}, 1)
-        ON CONFLICT (user_id, piece) DO UPDATE SET qty = ddx_pieces.qty + 1, updated_at = now()`)
-    return piece
+        ON CONFLICT (user_id, piece) DO UPDATE SET qty = ddx_pieces.qty + 1, updated_at = now()
+        RETURNING qty`)) as unknown as { qty: number }[]
+    return { piece, qty: Number(rows[0]?.qty ?? 1) }
 }
 
 // 2 повтора → 1 недостающий кусочек (случайный из недостающих). Всё в одной транзакции с блокировкой строк.

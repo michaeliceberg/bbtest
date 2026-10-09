@@ -58,7 +58,7 @@ async function maybeAssignDodoPromoCode(userId: string, alreadyHasCode: string |
 }
 
 export type OpenCaseResult =
-	| { success: true; reward: CaseReward; pizzaSlicesNow: number; justMaxedPizza: boolean }
+	| { success: true; reward: CaseReward; pizzaSlicesNow: number; justMaxedPizza: boolean; ddx?: { piece: number; isNew: boolean } }
 	| { success: false; error: string };
 
 // Применяет УЖЕ РЕШЁННУЮ награду к userProgress конкретного userId — не
@@ -68,7 +68,7 @@ export type OpenCaseResult =
 // (actions/guest-lesson.ts, claimGuestLeadReward) — там награда была
 // решена и показана РАНЬШЕ (на этапе, когда пользователь ещё был
 // анонимен), её нельзя перевыбирать заново в момент claim.
-export async function applyResolvedReward(userId: string, reward: CaseReward): Promise<{ pizzaSlicesNow: number; justMaxedPizza: boolean }> {
+export async function applyResolvedReward(userId: string, reward: CaseReward): Promise<{ pizzaSlicesNow: number; justMaxedPizza: boolean; ddx?: { piece: number; isNew: boolean } }> {
 	const current = await db.query.userProgress.findFirst({ where: eq(userProgress.userId, userId) });
 	const currentPizza = current?.pizzaSlices ?? 0;
 
@@ -78,6 +78,7 @@ export async function applyResolvedReward(userId: string, reward: CaseReward): P
 
 	let pizzaSlicesNow = currentPizza;
 	let justMaxedPizza = false;
+	let ddx: { piece: number; isNew: boolean } | undefined;
 
 	if (appliedReward.kind === 'coins') {
 		await db.update(userProgress)
@@ -93,7 +94,10 @@ export async function applyResolvedReward(userId: string, reward: CaseReward): P
 			.where(eq(userProgress.userId, userId));
 	} else if (appliedReward.kind === 'ddx') {
 		// Кусочек паззла «абонемент в спортзал» — случайный из 9, см. lib/ddx.ts
-		for (let i = 0; i < appliedReward.amount; i++) await grantRandomDdxPiece(userId);
+		for (let i = 0; i < appliedReward.amount; i++) {
+			const g = await grantRandomDdxPiece(userId);
+			ddx = { piece: g.piece, isNew: g.qty === 1 };
+		}
 	} else {
 		// Атомарный инкремент в SQL: два начисления подряд (кейс + реферальная награда + ачивка)
 		// не затирают друг друга, как при записи «прочитанное значение + N».
@@ -117,7 +121,7 @@ export async function applyResolvedReward(userId: string, reward: CaseReward): P
 
 	revalidatePath('/trainer');
 
-	return { pizzaSlicesNow, justMaxedPizza };
+	return { pizzaSlicesNow, justMaxedPizza, ddx };
 }
 
 // Общее ядро — выбор награды из пула + применение к userProgress.
@@ -133,8 +137,8 @@ export async function applyCaseReward(pool: CaseReward[]): Promise<OpenCaseResul
 	const userId = session.user.id;
 
 	const reward = pickWeightedReward(pool);
-	const { pizzaSlicesNow, justMaxedPizza } = await applyResolvedReward(userId, reward);
+	const { pizzaSlicesNow, justMaxedPizza, ddx } = await applyResolvedReward(userId, reward);
 
-	return { success: true, reward, pizzaSlicesNow, justMaxedPizza };
+	return { success: true, reward, pizzaSlicesNow, justMaxedPizza, ddx };
 }
 

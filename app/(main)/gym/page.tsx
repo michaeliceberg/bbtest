@@ -18,7 +18,8 @@ const GymPage = async () => {
                 <h1 className="text-xl font-black text-[#F2F7FB]">Собери абонемент в DDX 🏋️</h1>
                 <p className="text-xs text-[#9AA7B0]">
                     Кусочки выпадают из мифических и МЕГА кейсов. Перетащи их на места, 2 повторки сливаются в новый кусочек.
-                    Соберёшь все 9 — промокод на месяц в DDX Fitness.
+                    Соберёшь все 9 — промокод на месяц в DDX Fitness.{' '}
+                    <Link href="/ddx-practice" className="font-bold text-[#F47B20] underline">Потренироваться</Link>
                 </p>
             </div>
             <DdxSandbox pieces={pieces} promoCode={promoCode} />

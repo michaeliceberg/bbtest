@@ -9,46 +9,36 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Check, Copy, Sparkles } from 'lucide-react'
-import { DDX_COLS, DDX_PIECES, DDX_MERGE_COST, type DdxPieceState } from '@/lib/ddxConst'
+import { DDX_PIECES, DDX_MERGE_COST, type DdxPieceState } from '@/lib/ddxConst'
+import { DDX_LOGO, DDX_CELL, DDX_BOARD, ddxPiecePath, ddxHome } from '@/components/ddx-piece'
 import { claimDdx, mergeDdx, placeDdx } from '@/actions/ddx'
 import { LocalAnswerConfetti } from '@/components/geometry/WalkthroughLog'
 import { playSound, PIZZA_DROP_SOUND } from '@/lib/sound'
 
-const LOGO = '/ddx/ddx-logo.svg'
-const CELL = 100
-const BOARD = CELL * DDX_COLS // 300
+const LOGO = DDX_LOGO
+const CELL = DDX_CELL
+const BOARD = DDX_BOARD
+const piecePath = ddxPiecePath
+const home = ddxHome
 const SNAP = 30 // насколько близко к месту нужно поднести кусочек
 const TRAY_Y = 335 // верх «песочницы» под рамкой
 const VIEW = { x: -30, y: -30, w: 360, h: 580 }
-
-// Направление выступа на общем крае: +1 — выступ уходит к соседу справа/снизу.
-const vSign = (r: number, c: number) => ((r + c) % 2 === 0 ? 1 : -1)
-const hSign = (r: number, c: number) => ((r + c) % 2 === 0 ? -1 : 1)
-
-// Край от P0 до P1 с выступом (s = +1 наружу от кусочка, −1 внутрь, 0 — ровный край рамки).
-const edge = (x0: number, y0: number, x1: number, y1: number, nx: number, ny: number, s: number) => {
-    if (s === 0) return `L${x1} ${y1}`
-    const dx = x1 - x0, dy = y1 - y0
-    const p = (t: number, o: number) => `${x0 + dx * t + nx * o * s * CELL} ${y0 + dy * t + ny * o * s * CELL}`
-    return `L${p(0.37, 0)} C${p(0.4, 0.1)} ${p(0.27, 0.25)} ${p(0.5, 0.25)} C${p(0.73, 0.25)} ${p(0.6, 0.1)} ${p(0.63, 0)} L${x1} ${y1}`
-}
-
-// Контур кусочка i в координатах рамки (обход по часовой, нормали — наружу).
-const piecePath = (i: number) => {
-    const r = Math.floor(i / DDX_COLS), c = i % DDX_COLS
-    const x0 = c * CELL, y0 = r * CELL, x1 = x0 + CELL, y1 = y0 + CELL
-    const top = r === 0 ? 0 : -hSign(r - 1, c)
-    const bottom = r === DDX_COLS - 1 ? 0 : hSign(r, c)
-    const right = c === DDX_COLS - 1 ? 0 : vSign(r, c)
-    const left = c === 0 ? 0 : -vSign(r, c - 1)
-    return `M${x0} ${y0} ${edge(x0, y0, x1, y0, 0, -1, top)} ${edge(x1, y0, x1, y1, 1, 0, right)} ${edge(x1, y1, x0, y1, 0, 1, bottom)} ${edge(x0, y1, x0, y0, -1, 0, left)} Z`
-}
-const home = (i: number) => ({ x: (i % DDX_COLS) * CELL, y: Math.floor(i / DDX_COLS) * CELL })
 const randomTrayPos = () => ({ x: -10 + Math.random() * 220, y: TRAY_Y + Math.random() * 90 })
+// Вразнобой, но не кучей: из 30 случайных мест берём самое далёкое от уже лежащих кусочков.
+const spreadTrayPos = (taken: { x: number; y: number }[]) => {
+    let best = randomTrayPos(), bestD = -1
+    for (let k = 0; k < 30; k++) {
+        const c = randomTrayPos()
+        const d = taken.length ? Math.min(...taken.map((t) => Math.hypot(t.x - c.x, (t.y - c.y) * 1.6))) : 1
+        if (d > bestD) { best = c; bestD = d }
+    }
+    return best
+}
 
-type Props = { pieces: DdxPieceState[]; promoCode: string | null }
+// demo — тренировка (страница /ddx-practice): все 9 кусочков сразу, ничего не сохраняется, промокода нет.
+type Props = { pieces: DdxPieceState[]; promoCode: string | null; demo?: boolean }
 
-export const DdxSandbox = ({ pieces: initial, promoCode: initialCode }: Props) => {
+export const DdxSandbox = ({ pieces: initial, promoCode: initialCode, demo = false }: Props) => {
     const router = useRouter()
     const [pieces, setPieces] = useState(initial)
     const [code, setCode] = useState(initialCode)
@@ -65,7 +55,11 @@ export const DdxSandbox = ({ pieces: initial, promoCode: initialCode }: Props) =
     useEffect(() => {
         setPos((p) => {
             const next = { ...p }
-            for (const pc of pieces) if (!pc.placed && !next[pc.piece]) next[pc.piece] = randomTrayPos()
+            for (const pc of pieces) {
+                if (pc.placed || next[pc.piece]) continue
+                const taken = pieces.filter((o) => !o.placed && next[o.piece]).map((o) => next[o.piece])
+                next[pc.piece] = spreadTrayPos(taken)
+            }
             return next
         })
     }, [pieces])
@@ -77,7 +71,19 @@ export const DdxSandbox = ({ pieces: initial, promoCode: initialCode }: Props) =
     const done = placedCount >= DDX_PIECES
 
     useEffect(() => {
-        if (!done || code) return
+        if (!done || !demo) return
+        setCelebrate(true); playSound(PIZZA_DROP_SOUND)
+    }, [done, demo])
+    const reshuffle = () => {
+        setCelebrate(false)
+        setPieces(initial.map((p) => ({ ...p, placed: false })))
+        const fresh: Record<number, { x: number; y: number }> = {}
+        for (const p of initial) fresh[p.piece] = spreadTrayPos(Object.values(fresh))
+        setPos(fresh)
+    }
+
+    useEffect(() => {
+        if (!done || code || demo) return
         claimDdx().then((c) => { if (c) { setCode(c); setCelebrate(true); playSound(PIZZA_DROP_SOUND) } })
     }, [done, code])
 
@@ -111,7 +117,7 @@ export const DdxSandbox = ({ pieces: initial, promoCode: initialCode }: Props) =
             setPos((s) => ({ ...s, [piece]: h }))
             setPieces((ps) => ps.map((p) => (p.piece === piece ? { ...p, placed: true } : p)))
             playSound(PIZZA_DROP_SOUND)
-            placeDdx(piece)
+            if (!demo) placeDdx(piece)
         }
     }
 
@@ -155,7 +161,12 @@ export const DdxSandbox = ({ pieces: initial, promoCode: initialCode }: Props) =
                     <p className="text-lg font-black text-[#F2F7FB]">🧩 {owned}/{DDX_PIECES} кусочков</p>
                     <p className="text-xs font-bold text-[#9AA7B0]">На месте {placedCount}/{DDX_PIECES} · повторок {dups}</p>
                 </div>
-                {missing > 0 && dups >= DDX_MERGE_COST && (
+                {demo ? (
+                    <button type="button" onClick={reshuffle}
+                        className="shrink-0 whitespace-nowrap rounded-xl border-2 border-b-4 border-[#C0601A] bg-[#F47B20] px-3 py-2 text-sm font-black text-white active:border-b-2">
+                        Перемешать
+                    </button>
+                ) : missing > 0 && dups >= DDX_MERGE_COST && (
                     <button type="button" onClick={merge} disabled={merging}
                         className="shrink-0 flex items-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-b-4 border-[#C0601A] bg-[#F47B20] px-3 py-2 text-sm font-black text-white active:border-b-2 disabled:opacity-60">
                         <Sparkles className="h-4 w-4" /> Слить 2 повторки
@@ -163,6 +174,13 @@ export const DdxSandbox = ({ pieces: initial, promoCode: initialCode }: Props) =
                 )}
             </div>
 
+            {done && demo && (
+                <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
+                    className="w-full max-w-[420px] rounded-2xl border-2 border-[#F47B20] bg-[#033F48] p-4 text-center">
+                    <p className="text-2xl font-black text-[#F2F7FB]">Собрал! 🏋️</p>
+                    <p className="mt-1 text-sm font-bold text-[#9AA7B0]">Это тренировка. Настоящие кусочки выпадают из мифических и МЕГА кейсов — за собранный паззл дают промокод на месяц в DDX Fitness.</p>
+                </motion.div>
+            )}
             {done && code && (
                 <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
                     className="w-full max-w-[420px] rounded-2xl border-2 border-[#F47B20] bg-[#033F48] p-4 text-center">

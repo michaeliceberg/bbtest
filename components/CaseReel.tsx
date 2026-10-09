@@ -28,6 +28,7 @@ import { COZY, COZY_ACCENT, COZY_PAGE_BG, type UiTheme } from '@/lib/cozyTheme'
 import LottieCoins from '@/public/Lottie/LottieCoins.json'
 import LottieGems from '@/public/Lottie/LottieGems.json'
 import LottieGG from '@/public/Lottie/LottieGG.json'
+import { DdxPieceImage } from '@/components/ddx-piece'
 import Lottie from '@/components/lottie-player'
 
 // Те же самые lottie-анимации монет/гемов, что уже используются в шапке
@@ -611,7 +612,11 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                             {wonReward.kind === 'coins' && <Lottie animationData={LottieCoins} loop autoplay className="w-28 h-28" />}
                             {wonReward.kind === 'gems' && <Lottie animationData={LottieGems} loop autoplay className="w-24 h-24" />}
                             {wonReward.kind === 'gg' && <Lottie animationData={LottieGG} loop autoplay className="w-24 h-24" />}
-                            {(wonReward.kind === 'pizza' || wonReward.kind === 'ddx') && <span className="text-7xl leading-none">{rewardEmoji(wonReward)}</span>}
+                            {wonReward.kind === 'pizza' && <span className="text-7xl leading-none">{rewardEmoji(wonReward)}</span>}
+                            {/* Кусочек паззла: показываем именно тот, что выпал (один из 9), с кусочком логотипа */}
+                            {wonReward.kind === 'ddx' && (result && result.success && result.ddx
+                                ? <DdxPieceImage piece={result.ddx.piece} className="w-28 h-28" />
+                                : <span className="text-7xl leading-none">{rewardEmoji(wonReward)}</span>)}
                         </div>
                         <span
                             // Картинка монет в Lottie-кадре (стопка ~y 300–500 из 600) сидит ниже центра —
@@ -626,9 +631,17 @@ export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title
                         </span>
                     </div>
                     {wonReward.kind === 'ddx' && (
-                        <p className="text-sm font-bold text-center text-[#FFB070] max-w-xs">
-                            🧩 Кусочек абонемента в DDX! Собери все 9 в аккаунте → «Собрать абонемент».
-                        </p>
+                        <div className="flex flex-col items-center gap-1">
+                            {result && result.success && result.ddx && (
+                                <span className="rounded-full px-3 py-1 text-sm font-black"
+                                    style={result.ddx.isNew ? { background: '#78C93C', color: '#0F1A1E' } : { background: '#3A464E', color: '#F2F7FB' }}>
+                                    {result.ddx.isNew ? 'Новый кусочек!' : 'Повторка (2 повторки можно слить в новый)'}
+                                </span>
+                            )}
+                            <p className="text-sm font-bold text-center text-[#FFB070] max-w-xs">
+                                🧩 Кусочек абонемента в DDX! Собирай в аккаунте → «Собери абонемент в DDX».
+                            </p>
+                        </div>
                     )}
                     {result && result.success && result.justMaxedPizza && (
                         <p className="text-sm font-bold text-center text-[#F2A6D0] max-w-xs">
