@@ -20,6 +20,7 @@ import { GangEmblem } from '@/components/gang-emblem'
 import { getLevelInfo } from '@/lib/xp'
 import { Button } from '@/components/ui/button'
 import { PRO_ENABLED } from '@/lib/pro'
+import { MAX_PIZZA_SLICES } from '@/lib/caseRewards'
 
 const AccountPage = async () => {
     const session = await auth()
@@ -32,6 +33,7 @@ const AccountPage = async () => {
     const invite = await getOrCreateInvite(userProgress.userId)
     const ddx = await getDdxState(userProgress.userId)
     const levelInfo = getLevelInfo(userProgress.xp)
+    const pizzaCount = Math.min(MAX_PIZZA_SLICES, userProgress.pizzaSlices)
     const rank = getRank(levelInfo.level, gangMembership?.role)
 
     return (
@@ -115,16 +117,37 @@ const AccountPage = async () => {
             </Link>
             )}
 
-            <Link href="/gym" className="flex items-center justify-between rounded-xl border-2 border-[#F47B20]/60 bg-[#033F48] px-4 py-3 hover:border-[#F47B20]">
-                <span className="flex items-center gap-3">
-                    <span className="text-3xl">🧩</span>
-                    <span>
-                        <span className="block font-black text-[#F2F7FB]">Собери абонемент в DDX</span>
-                        <span className="block text-xs font-bold text-[#9AA7B0]">Кусочки: {ddx.pieces.length}/9{ddx.promoCode ? ' · собран!' : ''}</span>
+            {/* Слева — абонемент DDX, справа — пицца Додо. */}
+            <div className="grid grid-cols-2 gap-3">
+                <Link href="/gym" className="flex flex-col items-center gap-2 rounded-xl border-2 border-[#F47B20]/60 bg-[#033F48] p-3 text-center hover:border-[#F47B20]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/ddx/ddx-logo.svg" alt="DDX" className="h-16 w-16 rounded-lg" />
+                    <span className="text-sm font-black leading-tight text-[#F2F7FB]">Собери абонемент</span>
+                    <span className="text-xs font-bold text-[#9AA7B0]">Кусочки: {ddx.pieces.length}/9{ddx.promoCode ? ' · собран!' : ''}</span>
+                    <span className="text-sm font-black text-[#F47B20]">Открыть ›</span>
+                </Link>
+                <Link href="/trainer" className="flex flex-col items-center gap-2 rounded-xl border-2 border-[#F2C35B]/60 bg-[#2A1F12] p-3 text-center hover:border-[#F2C35B]">
+                    <span className="relative h-16 w-16">
+                        {Array.from({ length: MAX_PIZZA_SLICES }, (_, k) => (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img key={k} src={`/pizzaSVG/pizza_8_${k + 1}.svg`} alt="" className="absolute inset-0 h-full w-full" style={k < pizzaCount ? undefined : { filter: 'grayscale(1)', opacity: 0.3 }} />
+                        ))}
                     </span>
-                </span>
-                <span className="text-sm font-black text-[#F47B20]">Открыть ›</span>
-            </Link>
+                    <span className="flex items-center gap-1 text-sm font-black leading-tight text-[#F2F7FB]">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/dodo-icon.svg" alt="" className="h-4 w-4" />
+                        Пицца Додо
+                    </span>
+                    <span className="text-xs font-bold text-[#9AA7B0]">
+                        Кусочки: {userProgress.pizzaSlices}/{MAX_PIZZA_SLICES}{userProgress.pizzaEighths > 0 ? ' + доля' : ''}
+                    </span>
+                    {userProgress.dodoPromoCode ? (
+                        <code className="rounded bg-[#151F23] px-2 py-0.5 text-xs font-black text-[#F2C35B]">{userProgress.dodoPromoCode}</code>
+                    ) : (
+                        <span className="text-sm font-black text-[#F2C35B]">Собрать ›</span>
+                    )}
+                </Link>
+            </div>
 
             {invite && <ReferralCard inviteCode={invite.code} defaultSubject={learnSubjectOf(userProgress.activeCourse?.title)} />}
 
