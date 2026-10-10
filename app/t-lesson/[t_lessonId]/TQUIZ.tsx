@@ -54,6 +54,7 @@ import { ReferralGiftScreen } from "@/components/referral-screens"
 import { GuestRewardScreen } from "@/components/guest-reward-screen"
 import { useSession } from "next-auth/react"
 import { shareInviteLink } from "@/components/share-story-button"
+import { getTelegramShareLink } from "@/lib/telegramLinks"
 import { buildInviteMessage, battleButtonLabel } from "@/lib/inviteMessage"
 import { getInviteLink } from "@/lib/referral"
 import type { TrialSubject } from "@/lib/trialTracks"
@@ -1184,6 +1185,11 @@ export default function TQuiz({
               )
               if (res === 'copied') toast.success('Ссылка скопирована — отправь другу')
             }}
+            // Telegram не строит превью ссылок на ggege.ru — бот присылает готовую карточку с картинкой.
+            tertiaryLabel={invite?.code ? 'В Telegram с картинкой ✈️' : undefined}
+            onTertiary={invite?.code ? () => {
+              window.open(getTelegramShareLink(invite.code!, inviteSubject, { l: t_lessonId, t: elapsedSeconds, s: maxStreakRef.current }), '_blank')
+            } : undefined}
             // "Ударный час" ещё не дошёл до рубежа — подсказка, сколько
             // уроков подряд БЕЗ ошибок осталось до гарантированного mythic
             // (см. actions/roll-lesson-case.ts). Раньше показывалась

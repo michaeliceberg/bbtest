@@ -8,6 +8,7 @@ import { parentLinks, userHomework, userProgress, classes, identities, diagnosti
 import { eq, and } from 'drizzle-orm';
 import { DIAGNOSTIC_SUBJECT_LABEL, type DiagnosticSubject } from '@/lib/diagnostic';
 import { MAX_PIZZA_SLICES } from '@/lib/caseRewards';
+import { sendShareCard } from '@/lib/telegramShareCard';
 
 // Reply-клавиатура вместо ручного набора команд — нажатие кнопки
 // присылает её подпись обычным текстовым сообщением, которое мы тут же
@@ -231,6 +232,11 @@ export async function POST(req: Request) {
 
             if (payload?.startsWith('bind_')) {
                 await performBind(chatId, firstName, payload.slice('bind_'.length), keyboard);
+                return NextResponse.json({ ok: true });
+            }
+
+            if (payload?.startsWith('share_')) {
+                await sendShareCard(chatId, payload.slice('share_'.length));
                 return NextResponse.json({ ok: true });
             }
 

@@ -6,8 +6,9 @@ import { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Button } from './ui/button';
 import { getInviteLink } from '@/lib/referral';
+import { getTelegramShareLink } from '@/lib/telegramLinks';
 import type { TrialSubject } from '@/lib/trialTracks';
-import { Users, Copy, Check, Share2 } from 'lucide-react';
+import { Users, Copy, Check, Share2, Send } from 'lucide-react';
 
 type Props = {
     inviteCode: string;
@@ -80,6 +81,13 @@ export const ReferralCard = ({ inviteCode, defaultSubject = 'math' }: Props) => 
                 <Share2 className="h-4 w-4 mr-2" />
                 Отправить ссылку другу
             </Button>
+
+            {/* В Telegram превью по ссылке не строится (их сервера не достают до ggege.ru) —
+                бот присылает готовую карточку с картинкой, её пересылают другу. */}
+            <a href={getTelegramShareLink(inviteCode, subject)} target="_blank" rel="noopener noreferrer"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-b-4 border-[#1C7FB8] bg-[#2AABEE] py-2.5 text-sm font-black uppercase tracking-wide text-white active:border-b-2">
+                <Send className="h-4 w-4" /> В Telegram с картинкой
+            </a>
 
             <div className="flex items-center gap-2">
                 <code className="flex-1 min-w-0 truncate bg-[#232F34] text-[#9AA7B0] border border-[#3A464E] px-3 py-2 rounded-lg text-xs">

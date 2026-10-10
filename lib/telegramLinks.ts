@@ -11,3 +11,12 @@ export const getBindLink = (bindCode: string): string => `https://t.me/${BOT_USE
 
 // Диплинк «вступи в бота» для лида диагностического теста (payload diag_)
 export const getDiagnosticBotLink = (token: string): string => `https://t.me/${BOT_USERNAME}?start=diag_${token}`
+
+// «Отправить в Telegram с картинкой»: диплинк в бота, бот присылает готовую карточку-приглашение
+// (картинка + текст + кнопка «Пройти урок»), её пересылают другу. Нужно потому, что сервера
+// Telegram не могут сами зайти на ggege.ru за превью ссылки (входящие из-за границы режутся).
+// payload: share_<код>_<m|p>[_<урок>_<секунды>_<серия>] — до 64 символов.
+export const getTelegramShareLink = (code: string, subject: 'math' | 'physics', extra?: { l?: number; t?: number; s?: number }) => {
+    const tail = extra?.l ? `_${extra.l}_${extra.t ?? 0}_${extra.s ?? 0}` : ''
+    return `https://t.me/${BOT_USERNAME}?start=share_${code}_${subject === 'math' ? 'm' : 'p'}${tail}`
+}

@@ -13692,3 +13692,4 @@ TgSendMsgCom/lib/referral попадал в браузер. Теперь: ток
 сообщения админу из браузера — через server action `actions/notify-admin.ts`. **Никогда не коммитить токен.**
 Входящие запросы из Telegram до сервера в России не доходят (превью ссылок в TG не строится), исходящие идут через
 Cloudflare Worker `TELEGRAM_API_BASE`.
+Карточка-приглашение в Telegram (2026-10-10): кнопка «В Telegram с картинкой» (аккаунт → «Пригласи друга», итоги урока — tertiary) открывает `t.me/<бот>?start=share_<код>_<m|p>[_урок_сек_серия]` (`getTelegramShareLink`, lib/telegramLinks.ts). Бот (`lib/telegramShareCard.ts`) рисует ту же картинку, что og-превью (`GET` из app/api/og/invite/route.tsx вызывается напрямую), загружает её файлом (`sendTelegramPhoto`, multipart через прокси) с подписью и кнопкой «🚀 Пройти урок»; ученик пересылает карточку другу.

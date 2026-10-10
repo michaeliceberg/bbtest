@@ -56,3 +56,29 @@ export const sendMessageToTelegram = async (
         console.error("❌ Ошибка при отправке сообщения в Telegram:", error);
     }
 };
+
+// Картинка с подписью (HTML) и кнопками-ссылками. Файл грузим сами (multipart): Telegram не может
+// скачать картинку по ссылке с ggege.ru — до нашего сервера из-за границы не доходят запросы.
+export const sendTelegramPhoto = async (
+    chatId: string,
+    png: ArrayBuffer,
+    caption: string,
+    buttons?: { text: string; url: string }[][],
+): Promise<boolean> => {
+    if (!TELEGRAM_BOT_TOKEN) { console.error("❌ TELEGRAM_BOT_TOKEN не задан в .env"); return false; }
+    const form = new FormData();
+    form.append("chat_id", chatId);
+    form.append("caption", caption);
+    form.append("parse_mode", "HTML");
+    form.append("photo", new Blob([png], { type: "image/png" }), "invite.png");
+    if (buttons) form.append("reply_markup", JSON.stringify({ inline_keyboard: buttons }));
+    try {
+        const res = await fetch(`${TELEGRAM_API_BASE}/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, { method: "POST", body: form });
+        const data = await res.json();
+        if (!data.ok) console.error("❌ sendPhoto:", data);
+        return !!data.ok;
+    } catch (error) {
+        console.error("❌ Ошибка sendPhoto:", error);
+        return false;
+    }
+};
