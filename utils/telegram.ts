@@ -66,14 +66,29 @@ export const sendTelegramPhoto = async (
     buttons?: { text: string; url: string }[][],
 ): Promise<boolean> => {
     if (!TELEGRAM_BOT_TOKEN) { console.error("❌ TELEGRAM_BOT_TOKEN не задан в .env"); return false; }
-    const form = new FormData();
-    form.append("chat_id", chatId);
-    form.append("caption", caption);
-    form.append("parse_mode", "HTML");
-    form.append("photo", new Blob([png], { type: "image/png" }), "invite.png");
-    if (buttons) form.append("reply_markup", JSON.stringify({ inline_keyboard: buttons }));
+    // Тело multipart собираем целиком в Buffer с точной длиной: FormData у fetch в Node
+    // отправляется потоком, и прокси (Cloudflare Worker) такой запрос обрывает (ECONNRESET).
+    const boundary = `----ggege${Date.now().toString(16)}`;
+    const field = (name: string, value: string) =>
+        Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`, "utf8");
+    const parts: Buffer[] = [
+        field("chat_id", chatId),
+        field("caption", caption),
+        field("parse_mode", "HTML"),
+    ];
+    if (buttons) parts.push(field("reply_markup", JSON.stringify({ inline_keyboard: buttons })));
+    parts.push(
+        Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="photo"; filename="invite.png"\r\nContent-Type: image/png\r\n\r\n`, "utf8"),
+        Buffer.from(png),
+        Buffer.from(`\r\n--${boundary}--\r\n`, "utf8"),
+    );
+    const body = Buffer.concat(parts);
     try {
-        const res = await fetch(`${TELEGRAM_API_BASE}/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, { method: "POST", body: form });
+        const res = await fetch(`${TELEGRAM_API_BASE}/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+            method: "POST",
+            headers: { "Content-Type": `multipart/form-data; boundary=${boundary}`, "Content-Length": String(body.length) },
+            body,
+        });
         const data = await res.json();
         if (!data.ok) console.error("❌ sendPhoto:", data);
         return !!data.ok;
