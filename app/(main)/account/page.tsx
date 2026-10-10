@@ -19,6 +19,7 @@ import { getRank } from '@/lib/rank'
 import { GangEmblem } from '@/components/gang-emblem'
 import { getLevelInfo } from '@/lib/xp'
 import { Button } from '@/components/ui/button'
+import { PRO_ENABLED } from '@/lib/pro'
 
 const AccountPage = async () => {
     const session = await auth()
@@ -101,6 +102,7 @@ const AccountPage = async () => {
                 </Suspense>
             </div>
 
+            {PRO_ENABLED && (
             <Link href="/pro?from=account" className="flex items-center justify-between rounded-xl border-2 border-[#F2C35B]/60 bg-[#1F1B10] px-4 py-3 hover:border-[#F2C35B]">
                 <span className="flex items-center gap-3">
                     <Crown className="h-8 w-8 text-[#F2C35B]" />
@@ -111,6 +113,7 @@ const AccountPage = async () => {
                 </span>
                 <span className="text-sm font-black text-[#F2C35B]">Узнать ›</span>
             </Link>
+            )}
 
             <Link href="/gym" className="flex items-center justify-between rounded-xl border-2 border-[#F47B20]/60 bg-[#033F48] px-4 py-3 hover:border-[#F47B20]">
                 <span className="flex items-center gap-3">

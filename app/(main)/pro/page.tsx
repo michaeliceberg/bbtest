@@ -6,7 +6,7 @@ import { sql } from 'drizzle-orm'
 import { Crown } from 'lucide-react'
 import db from '@/db/drizzle'
 import { auth } from '@/lib/server-auth'
-import { PRO_EARLY_DISCOUNT, PRO_PRICE_RUB } from '@/lib/pro'
+import { PRO_EARLY_DISCOUNT, PRO_ENABLED, PRO_PRICE_RUB } from '@/lib/pro'
 import { ProWantButton } from './want-button'
 
 export const dynamic = 'force-dynamic'
@@ -19,6 +19,7 @@ const FEATURES = [
 ]
 
 const ProPage = async ({ searchParams }: { searchParams: { from?: string } }) => {
+    if (!PRO_ENABLED) redirect('/trainer')
     const session = await auth()
     const userId = session?.user?.id
     if (!userId) redirect('/')
