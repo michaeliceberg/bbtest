@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="290" height="254" viewBox="0 0 290 254">
+<rect width="290" height="254" fill="#151F23"/>
+<rect x="4" y="4" width="282" height="246" rx="10" fill="none" stroke="#9AA7B0" stroke-width="1.5"/>
+<rect x="5" y="5" width="280" height="45" rx="9" fill="#7dd3fc" fill-opacity="0.12"/>
+<line x1="4" y1="50" x2="286" y2="50" stroke="#9AA7B0" stroke-width="1.5"/>
+<line x1="132.4" y1="4" x2="132.4" y2="250" stroke="#3A464E" stroke-width="1.5"/>
+<line x1="4" y1="90" x2="286" y2="90" stroke="#3A464E" stroke-width="1"/>
+<line x1="4" y1="130" x2="286" y2="130" stroke="#3A464E" stroke-width="1"/>
+<line x1="4" y1="170" x2="286" y2="170" stroke="#3A464E" stroke-width="1"/>
+<line x1="4" y1="210" x2="286" y2="210" stroke="#3A464E" stroke-width="1"/>
+<text x="68.2" y="32.0" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="800" font-size="15" fill="#7dd3fc">Месяц и год</text>
+<text x="68.2" y="76.0" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="700" font-size="17" fill="#F2F7FB">Июль 2020</text>
+<text x="68.2" y="116.0" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="700" font-size="17" fill="#F2F7FB">Июль 2021</text>
+<text x="68.2" y="156.0" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="700" font-size="17" fill="#F2F7FB">Июль 2022</text>
+<text x="68.2" y="196.0" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="700" font-size="17" fill="#F2F7FB">Июль 2023</text>
+<text x="68.2" y="236.0" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="700" font-size="17" fill="#F2F7FB">Июль 2024</text>
+<text x="209.2" y="32.0" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="800" font-size="15" fill="#7dd3fc">Долг, млн руб.</text>
+<text x="209.2" y="76.0" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="700" font-size="17" fill="#F2F7FB">S</text>
+<text x="209.2" y="116.0" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="700" font-size="17" fill="#F2F7FB">0,8S</text>
+<text x="209.2" y="156.0" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="700" font-size="17" fill="#F2F7FB">0,6S</text>
+<text x="209.2" y="196.0" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="700" font-size="17" fill="#F2F7FB">0,4S</text>
+<text x="209.2" y="236.0" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-weight="700" font-size="17" fill="#F2F7FB">0</text>
+</svg>
