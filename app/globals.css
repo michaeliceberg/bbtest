@@ -712,13 +712,36 @@ body {
 
 /* Гусь идёт по тропинке: след «впечатывается» — появляется чуть крупнее и садится на место */
 @keyframes goose-step {
-  0% { opacity: 0; transform: scale(1.8); }
-  60% { opacity: 1; transform: scale(0.9); }
-  100% { opacity: 1; transform: scale(1); }
+  0% { opacity: 0; transform: translateY(-9px) scale(2.6); }
+  40% { opacity: 1; transform: translateY(0) scale(0.7); }
+  62% { transform: translateY(-2px) scale(1.22); }
+  80% { transform: translateY(0) scale(0.92); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 .goose-step {
   opacity: 0;
   transform-box: fill-box;
   transform-origin: center;
-  animation: goose-step 0.32s ease-out both;
+  animation: goose-step 0.5s ease-out both;
+}
+
+/* Плашка «Урок» на карте тренажёра: золотой градиент + пробегающий блик (только transform) */
+.lesson-pill {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #F7D774 0%, #E8B636 45%, #FFE9A8 60%, #D99A1E 100%);
+  box-shadow: 0 0 10px -2px rgba(232, 182, 54, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.lesson-pill::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: 45%;
+  background: linear-gradient(100deg, transparent 0%, rgba(255, 255, 255, 0.85) 50%, transparent 100%);
+  transform: translateX(-120%) skewX(-18deg);
+  animation: lesson-pill-shine 2.6s ease-in-out infinite;
+}
+@keyframes lesson-pill-shine {
+  0%, 55% { transform: translateX(-120%) skewX(-18deg); }
+  100% { transform: translateX(320%) skewX(-18deg); }
 }

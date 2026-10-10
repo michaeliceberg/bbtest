@@ -13,7 +13,7 @@
 'use client';
 
 import { COZY, COZY_WOOD_TILE, type UiTheme } from '@/lib/cozyTheme';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil, Lock, ChevronDown, BookOpen, Check } from 'lucide-react';
@@ -21,7 +21,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { TrainerStageLink } from './trainer-stage-link';
 import { PathRail } from './path-rail';
-import { GooseTracks } from './goose-tracks';
+import { GooseTracks, gooseWalkSeconds } from './goose-tracks';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 // Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
@@ -31,7 +31,7 @@ import 'react-circular-progressbar/dist/styles.css';
 import { getBossRank } from '@/lib/bossRank';
 import { HalfCircleHero, HERO_HALF_CIRCLE, HERO_HALF_CIRCLE_TITLE } from './unit-hero-half-circle';
 import { isReviewStage, isMythicStage } from '@/lib/trainerStageFlags';
-import { TrainerPet } from './trainer-pet';
+import { TrainerPet, CHEER_PETS, CHEER_PHRASES } from './trainer-pet';
 import { PathDecoration, PathProp, PathArch, DECOR_VARIANTS, PROP_KINDS, PROP_SCALE, type PropKind } from './path-decor';
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store';
 
@@ -338,8 +338,9 @@ const clampNum = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo
 
 const StagePath = ({
     topic, accent, cozy, isAdmin, frontierIdx, stepNums, doneGradient, doneBorder, doneGlow, pet,
-    revealId = null, revealWalk = false, revealRef,
+    revealId = null, revealWalk = false, revealRef, cheerPet,
 }: {
+    cheerPet?: (cheer: { src: string; text: string }) => React.ReactNode;
     // Только что пройденный этап: гусь «идёт» от него к следующему (следы появляются по очереди).
     revealId?: number | null;
     revealWalk?: boolean;
@@ -438,6 +439,22 @@ const StagePath = ({
         });
     });
     const pct = (v: number, base: number) => `${(v / base) * 100}%`;
+
+    // После урока: утка или гусь перебегает от пройденного кружка к следующему, когда следы до него дойдут.
+    const ri = revealId === null ? -1 : topic.stages.findIndex((st) => st.id === revealId);
+    const cheer = useMemo(
+        () => (ri >= 0 ? { src: CHEER_PETS[Math.floor(Math.random() * CHEER_PETS.length)], text: CHEER_PHRASES[Math.floor(Math.random() * CHEER_PHRASES.length)] } : null),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [revealId],
+    );
+    const cheerSpot = (k: number) => {
+        const p = pts[k];
+        const cx = clampNum(p.x < 150 ? p.x + 92 : p.x - 92, 60, PATH_W - 60);
+        return { x: cx, y: p.y - 74 };
+    };
+    const cheerFrom = ri >= 0 ? cheerSpot(ri) : null;
+    const cheerTo = ri >= 0 && ri + 1 < n ? cheerSpot(ri + 1) : cheerFrom;
+    const walkSec = ri >= 0 && ri + 1 < n ? gooseWalkSeconds(pts[ri], segs[ri].c1, segs[ri].c2, pts[ri + 1]) : 0;
 
     return (
         <div className="relative w-full" style={{ aspectRatio: `${PATH_W} / ${H}` }}>
@@ -559,9 +576,9 @@ const StagePath = ({
                         >
                             <div>
                                 {s.isStepByStep && (
-                                    <div className={cn("mb-0.5 inline-flex items-center gap-1 text-[12px] font-black uppercase tracking-[0.22em] leading-none", !unlocked && "opacity-40")}>
-                                        <BookOpen className="w-3.5 h-3.5" style={{ color: unlocked ? '#E8B636' : '#8A8466' }} />
-                                        <span className={unlocked ? "gold-text-shine" : undefined} style={unlocked ? undefined : { color: '#8A8466' }}>Урок</span>
+                                    <div className={cn("mb-1 inline-flex items-center gap-1 px-2 py-[3px] rounded-full text-[11px] font-black uppercase tracking-[0.2em] leading-none", unlocked ? "lesson-pill" : "opacity-40 border border-[#8A8466]/50")}>
+                                        <BookOpen className="w-3.5 h-3.5 relative" style={{ color: unlocked ? '#412402' : '#8A8466' }} />
+                                        <span className="relative" style={{ color: unlocked ? '#412402' : '#8A8466' }}>Урок</span>
                                     </div>
                                 )}
                                 <div
@@ -577,7 +594,7 @@ const StagePath = ({
                                 )}
                             </div>
                         </div>
-                        {isFrontier && pet && (
+                        {isFrontier && pet && !cheer && (
                             <div
                                 className="absolute z-10"
                                 style={{
@@ -592,6 +609,20 @@ const StagePath = ({
                     </React.Fragment>
                 );
             })}
+            {cheer && cheerPet && cheerFrom && cheerTo && (
+                <motion.div
+                    className="absolute z-20 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                    initial={{ left: pct(cheerFrom.x, PATH_W), top: pct(cheerFrom.y, H), opacity: 0, scale: 0.6 }}
+                    animate={revealWalk
+                        ? { left: pct(cheerTo.x, PATH_W), top: pct(cheerTo.y, H), opacity: 1, scale: 1 }
+                        : { opacity: 1, scale: 1 }}
+                    transition={revealWalk
+                        ? { left: { duration: walkSec, ease: 'easeInOut' }, top: { duration: walkSec, ease: 'easeInOut' }, scale: { type: 'spring', bounce: 0.55, duration: 0.6 } }
+                        : { duration: 0.4 }}
+                >
+                    {cheerPet(cheer)}
+                </motion.div>
+            )}
         </div>
     );
 };
@@ -1023,6 +1054,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                         doneBorder={doneBorder}
                                         doneGlow={doneGlow}
                                         pet={petHere && petProps ? <TrainerPet {...petProps} compact /> : null}
+                                        cheerPet={petProps ? (c) => <TrainerPet {...petProps} compact cheer={c} /> : undefined}
                                         revealId={pendingRevealId}
                                         revealWalk={connectorRevealed}
                                         revealRef={topic.stages.some((st) => st.id === pendingRevealId) ? targetStageRef : undefined}

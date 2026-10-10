@@ -23,6 +23,15 @@ const bez = (a: P, c1: P, c2: P, b: P, t: number): P => {
     }
 }
 
+// Задержка между следами при «прогулке» (walk) и примерная длительность прогулки по отрезку —
+// нужна, чтобы питомец перебегал к следующему уроку, когда следы до него дойдут.
+export const GOOSE_STEP_DELAY = 0.16
+export const gooseWalkSeconds = (a: P, c1: P, c2: P, b: P, step = 11, skip = 24) => {
+    let s = 0, prev = a
+    for (let i = 1; i <= 80; i++) { const p = bez(a, c1, c2, b, i / 80); s += Math.hypot(p.x - prev.x, p.y - prev.y); prev = p }
+    return Math.max(0, (s - 2 * skip) / step) * GOOSE_STEP_DELAY + 0.45
+}
+
 // Следы вдоль одного отрезка тропинки. skip — сколько отступить от кнопок урока на концах.
 export const GooseTracks = ({ a, c1, c2, b, seed, color, opacity = 1, step = 11, size = 0.43, skip = 24, walk = false }: {
     a: P; c1: P; c2: P; b: P; seed: number; color: string; opacity?: number; step?: number; size?: number; skip?: number
@@ -66,7 +75,7 @@ export const GooseTracks = ({ a, c1, c2, b, seed, color, opacity = 1, step = 11,
             {feet.map((f, i) => (
                 <g key={i} transform={`translate(${f.x.toFixed(1)} ${f.y.toFixed(1)}) rotate(${f.rot.toFixed(1)}) scale(${size})`}>
                     <path d={GOOSE_FOOT_PATH} fill={color} className={walk ? 'goose-step' : undefined}
-                        style={walk ? { animationDelay: `${(i * 0.16).toFixed(2)}s` } : undefined} />
+                        style={walk ? { animationDelay: `${(i * GOOSE_STEP_DELAY).toFixed(2)}s` } : undefined} />
                 </g>
             ))}
         </g>

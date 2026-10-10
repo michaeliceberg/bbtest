@@ -15,13 +15,39 @@ type Props = {
     firstName?: string | null
     dayKey: number // день месяца с сервера — чтобы SSR и клиент выбирали одно и то же
     compact?: boolean // маленькая версия для дорожки: питомец стоит у текущей точки
+    cheer?: { src: string; text: string } | null // после урока: утка/гусь с подбадривающей фразой
 }
+
+// После пройденного урока питомец перебегает к следующему кружку — только утка или гусь.
+export const CHEER_PETS = ['/pets/duck.webp', '/pets/goose.webp']
+export const CHEER_PHRASES = [
+    'Серия жива. Ты босс 😎',
+    'Красава, го дальше! 🚀',
+    'Это было имбово 🔥',
+    'Мозг прокачан на +1 💪',
+    'Ты на вайбе, не тормози!',
+    'Изи катка. Следующий? 😏',
+    'Вот это скорость ⚡',
+    'Так держать, легенда 👑',
+    'База! Погнали ещё 🦆',
+    'Ты разносишь! 💥',
+    'Гусь одобряет 🪿',
+    'Ещё урок и ты в топе 🏆',
+    'Чётко сработано 👌',
+    'Ну ты зверь 🐾',
+    'Флексим знаниями 😎',
+    'Не останавливайся, бро!',
+    'Рил круто получилось ✨',
+    'Минус урок, плюс балл 📈',
+    'Я в шоке, это гениально 🤯',
+    'Топаем дальше? 🐾',
+]
 
 const RISK_HOUR = 20
 
 type Mood = { src: string; text: string }
 
-export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compact = false }: Props) => {
+export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compact = false, cheer = null }: Props) => {
     // Час сверяем только после монтирования (часовой пояс браузера).
     const [late, setLate] = useState(false)
     useEffect(() => setLate(new Date().getHours() >= RISK_HOUR), [])
@@ -32,7 +58,8 @@ export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compac
     ]
 
     let mood: Mood
-    if (streak > 0 && !hasExtendedToday && late) mood = { src: '/pets/dog-side.webp', text: 'Серия сгорит! Хоть один урок?' }
+    if (cheer) mood = cheer
+    else if (streak > 0 && !hasExtendedToday && late) mood = { src: '/pets/dog-side.webp', text: 'Серия сгорит! Хоть один урок?' }
     else if (questDone) mood = { src: '/pets/goose.webp', text: 'Квест дня закрыт! Гусь доволен 🪿' }
     else if (hasExtendedToday) mood = { src: '/pets/cat-cool.webp', text: 'Серия жива. Ты босс 😎' }
     else mood = idle[dayKey % idle.length]
