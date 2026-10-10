@@ -1538,6 +1538,48 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 }
 
                 const formulaText = t_challenge.t_challengeOptions[0]?.text || '';
+
+                // Ответ — голое значение без букв ("$90°$", "$-1$"): портить
+                // нечего, а показать одно значение без вопроса — бессмыслица
+                // («Это верно? 90°»). Собираем полное утверждение из вопроса:
+                // "$\sin \pi = ?$" → "$\sin \pi = -1$", "$\pi$ это" → "$\pi$ это $180°$".
+                // Неверная версия — с авторским неверным вариантом (или ответом соседа).
+                if (extractLetterCandidates(formulaText).length === 0) {
+                    const authoredWrongs = t_challenge.t_challengeOptions
+                        .filter((o) => !o.correct && looksLikeFormula(o.text))
+                        .map((o) => o.text);
+                    const siblingWrongs = t_lesson.t_challenges
+                        .filter((el) => isEligibleSibling(el.type) && el.id !== t_challenge.id)
+                        .map((el) => el.t_challengeOptions[0]?.text || '')
+                        .filter((t) => looksLikeFormula(t) && t !== formulaText);
+                    const wrongPool = authoredWrongs.length > 0 ? authoredWrongs : siblingWrongs;
+                    const wantWrongValue = Math.random() < 0.5 && wrongPool.length > 0;
+                    const value = wantWrongValue ? wrongPool[Math.floor(Math.random() * wrongPool.length)] : formulaText;
+                    const q = t_challenge.question.trim();
+                    const qi = q.lastIndexOf('?');
+                    // "?" внутри формулы (нечётное число "$" до него) — подставляем значение;
+                    // вопрос вида "… это" — дописываем значение; иначе утверждение не собрать.
+                    const qInMath = qi >= 0 && (q.slice(0, qi).match(/\$/g)?.length ?? 0) % 2 === 1;
+                    if (!qInMath && !/это$/.test(q)) return buildAssistQuestion(t_challenge);
+                    const statement = qInMath
+                        ? q.slice(0, qi) + value.replace(/\$/g, '') + q.slice(qi + 1)
+                        : `${q} ${value}`;
+                    return {
+                        questionType: 'CHECK' as const,
+                        question: 'Это верно?',
+                        imageSrc: t_challenge.imageSrc,
+                        options: ['CORRECT', 'WRONG'],
+                        numRans: '1',
+                        optionsQ: [],
+                        optionsA: [],
+                        optionsConstructRight: [],
+                        difficulty: t_challenge.difficulty,
+                        correctAnswer: wantWrongValue ? 'WRONG' : 'CORRECT',
+                        checkFormula: statement,
+                        timeLimit: 20,
+                    };
+                }
+
                 const siblingLetterPool = t_lesson.t_challenges
                     .filter((el) => isEligibleSibling(el.type) && el.id !== t_challenge.id
                         && looksLikeFormula(el.t_challengeOptions[0]?.text || ''))
