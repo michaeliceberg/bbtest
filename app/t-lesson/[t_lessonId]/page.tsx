@@ -9,6 +9,20 @@ import type { TrialSubject } from '@/lib/trialTracks';
 import { getAllTLessonProgress, getAllUsersProgress, getTLesson, getTLessonPublic, getUserProgress, getHotQuestionsForUnit } from "@/db/queries"
 import { redirect } from "next/navigation"
 import { Shuffle2, ShuffleTS } from "@/usefulFunctions"
+
+// CONNECT: две колонки тасуются независимо, и в 1 из 6 случаев (3 пары) ответ
+// оказывается ровно напротив своего вопроса — ученик видел «1-1, 2-2, 3-3»
+// три раза подряд. Ставим правую колонку так, чтобы ни одна пара не стояла
+// в одной строке (случайная перестановка без совпадений).
+function crossShuffleConnect<T extends { questionType?: string; optionsQ?: { pairId: number }[]; optionsA?: { pairId: number }[] }>(q: T): T {
+    if (q.questionType !== 'CONNECT' || !q.optionsQ || !q.optionsA || q.optionsA.length < 2) return q
+    const rowOf = new Map(q.optionsQ.map((o, i) => [o.pairId, i]))
+    for (let attempt = 0; attempt < 50; attempt++) {
+        const a = ShuffleTS([...q.optionsA])
+        if (a.every((o, i) => rowOf.get(o.pairId) !== i)) return { ...q, optionsA: a }
+    }
+    return q
+}
 import { pickInsertBlank, corruptFormulaLetter, extractLetterCandidates } from "@/lib/formulaLetters"
 import { getFormulaIconKey } from "@/lib/formulaIcons"
 import { getTopicSticker } from "@/lib/topicStickers"
@@ -1819,7 +1833,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
                 timeLimit: 25,
             };
         }
-    }).map((q, idx): QuestionType | undefined => q ? { ...q, contentTier: contentTiers[idx], challengeId: lessonChallenges[idx]?.id, topicSticker: topicStickers[idx] ?? undefined } : q)
+    }).map((q, idx): QuestionType | undefined => q ? { ...crossShuffleConnect(q), contentTier: contentTiers[idx], challengeId: lessonChallenges[idx]?.id, topicSticker: topicStickers[idx] ?? undefined } : q)
       .filter((q): q is QuestionType => q !== undefined);
 
     // Реально увеличиваем число заданий INSERT (явная просьба

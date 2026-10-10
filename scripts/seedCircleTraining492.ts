@@ -74,15 +74,22 @@ const LOCATE: { latex: string; angle: number }[] = [
     { latex: "-\\dfrac{\\pi}{2}", angle: -PI / 2 },
     { latex: "2\\pi", angle: 2 * PI },
     { latex: "\\dfrac{5\\pi}{2}", angle: (5 * PI) / 2 },
-    { latex: "-\\pi", angle: -PI },
 ]
 
 const SECTOR: { latex: string; angle: number; options: string[] }[] = [
+    { latex: "\\dfrac{\\pi}{2}", angle: PI / 2, options: ["\\dfrac{\\pi}{2}", "\\pi", "-\\dfrac{\\pi}{2}", "2\\pi"] },
+    { latex: "\\pi", angle: PI, options: ["\\pi", "\\dfrac{\\pi}{2}", "2\\pi", "-\\pi"] },
+    { latex: "-\\pi", angle: -PI, options: ["-\\pi", "\\pi", "-\\dfrac{\\pi}{2}", "-2\\pi"] },
+    { latex: "2\\pi", angle: 2 * PI, options: ["2\\pi", "\\pi", "\\dfrac{3\\pi}{2}", "0"] },
     { latex: "\\dfrac{3\\pi}{2}", angle: (3 * PI) / 2, options: ["\\dfrac{\\pi}{2}", "\\pi", "\\dfrac{3\\pi}{2}", "2\\pi"] },
     { latex: "-\\dfrac{\\pi}{2}", angle: -PI / 2, options: ["-\\dfrac{\\pi}{2}", "\\dfrac{\\pi}{2}", "-\\pi", "\\dfrac{3\\pi}{2}"] },
 ]
 
 const DRAW: { latex: string; angle: number }[] = [
+    { latex: "\\dfrac{\\pi}{2}", angle: PI / 2 },
+    { latex: "\\dfrac{3\\pi}{2}", angle: (3 * PI) / 2 },
+    { latex: "-\\pi", angle: -PI },
+    { latex: "2\\pi", angle: 2 * PI },
     { latex: "\\pi", angle: PI },
     { latex: "-\\dfrac{\\pi}{2}", angle: -PI / 2 },
 ]
