@@ -28,7 +28,7 @@ export async function sendShareCard(chatId: string, payload: string) {
     // **жирный** → <b>, ссылка — последней строкой
     const caption = esc(text).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>') + `\n${link}`
 
-    const q = new URLSearchParams({ code })
+    const q = new URLSearchParams({ code, tg: '1' })
     if (lessonId) { q.set('l', String(lessonId)); q.set('t', String(seconds)); q.set('s', String(streak)) }
     const img = await renderInviteImage(new Request(`http://local/api/og/invite?${q}`))
     const png = await img.arrayBuffer()

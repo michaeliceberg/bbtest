@@ -21,6 +21,11 @@ export async function GET(req: Request) {
 	const lessonId = Number(url.searchParams.get('l')) || null
 	const seconds = Number(url.searchParams.get('t')) || 0
 	const streak = Number(url.searchParams.get('s')) || 0
+	// tg=1 — уменьшенная версия с ровным фоном для карточки бота: файл должен быть меньше ~30 КБ,
+	// иначе исходящая отправка в Telegram с нашего сервера рвётся.
+	const tg = url.searchParams.get('tg') === '1'
+	const k = tg ? 0.5 : 1
+	const px = (n: number) => Math.round(n * k)
 
 	const [font, inviter, lesson] = await Promise.all([
 		readFile(path.join(process.cwd(), 'assets/fonts/Nunito-Black.ttf')),
@@ -39,31 +44,31 @@ export async function GET(req: Request) {
 			<div
 				style={{
 					width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
-					justifyContent: 'space-between', padding: '56px 64px', color: '#F2F7FB',
+					justifyContent: 'space-between', padding: `${px(56)}px ${px(64)}px`, color: '#F2F7FB',
 					fontFamily: 'Nunito',
 					backgroundColor: '#131D22',
-					backgroundImage: 'linear-gradient(135deg, #3A1F52 0%, #131D22 50%, #123A1C 100%)',
+					...(tg ? {} : { backgroundImage: 'linear-gradient(135deg, #3A1F52 0%, #131D22 50%, #123A1C 100%)' }),
 				}}
 			>
-				<div style={{ display: 'flex', fontSize: 34, color: '#9AA7B0', letterSpacing: 4 }}>GGEGE.RU · ТРЕНАЖЁР ЕГЭ</div>
+				<div style={{ display: 'flex', fontSize: px(34), color: '#9AA7B0', letterSpacing: px(4) }}>GGEGE.RU · ТРЕНАЖЁР ЕГЭ</div>
 				<div style={{ display: 'flex', flexDirection: 'column' }}>
-					<div style={{ display: 'flex', fontSize: nickname.length > 24 ? 68 : 84, lineHeight: 1.05 }}>{nickname}</div>
-					{lesson?.title && <div style={{ display: 'flex', marginTop: 18, fontSize: 36, color: '#D5DEE5' }}>прошёл «{lesson.title}»</div>}
-					{stats && <div style={{ display: 'flex', marginTop: 8, fontSize: 36, color: '#F2C35B' }}>{stats}</div>}
+					<div style={{ display: 'flex', fontSize: px(nickname.length > 24 ? 68 : 84), lineHeight: 1.05 }}>{nickname}</div>
+					{lesson?.title && <div style={{ display: 'flex', marginTop: px(18), fontSize: px(36), color: '#D5DEE5' }}>прошёл «{lesson.title}»</div>}
+					{stats && <div style={{ display: 'flex', marginTop: px(8), fontSize: px(36), color: '#F2C35B' }}>{stats}</div>}
 				</div>
 				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 					<div
 						style={{
-							display: 'flex', padding: '18px 34px', borderRadius: 999, fontSize: 46,
+							display: 'flex', padding: `${px(18)}px ${px(34)}px`, borderRadius: 999, fontSize: px(46),
 							background: '#F2C35B', color: '#3A2400',
 						}}
 					>
 						ГО ПОБАТЛИМСЯ!
 					</div>
-					<div style={{ display: 'flex', fontSize: 38, color: '#78C93C' }}>Выиграем пиццу!</div>
+					<div style={{ display: 'flex', fontSize: px(38), color: '#78C93C' }}>Выиграем пиццу!</div>
 				</div>
 			</div>
 		),
-		{ width: 1200, height: 630, fonts: [{ name: 'Nunito', data: font, weight: 900, style: 'normal' }] },
+		{ width: px(1200), height: px(630), fonts: [{ name: 'Nunito', data: font, weight: 900, style: 'normal' }] },
 	)
 }
