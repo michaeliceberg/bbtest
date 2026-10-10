@@ -1,7 +1,7 @@
 // db/schema.ts
 
 import { relations } from 'drizzle-orm';
-import { boolean, integer, json, pgEnum, pgTable, primaryKey, real, serial, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import { boolean, integer, json, jsonb, pgEnum, pgTable, primaryKey, real, serial, text, timestamp, unique } from 'drizzle-orm/pg-core';
 
 // ===== TYPES =====
 
@@ -362,6 +362,29 @@ export const egeMoves = pgTable('ege_moves', {
 	caseClaimed: boolean('case_claimed').notNull().default(false),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
 	finishedAt: timestamp('finished_at'),
+});
+
+// Диагностика «Мой путь» (lib/egeDiagnostic.ts): по 1–2 вопроса на задание ЕГЭ.
+// plan — [{num, easy, hard}] (id задач задачника). Таблицы созданы прямым SQL.
+export const egeDiagnostics = pgTable('ege_diagnostics', {
+	id: serial('id').primaryKey(),
+	userId: text('user_id').notNull(),
+	subject: text('subject').notNull(),
+	status: text('status').notNull().default('active'), // active | done | postponed
+	plan: jsonb('plan').notNull().default([]),
+	createdAt: timestamp('created_at').defaultNow().notNull(),
+	finishedAt: timestamp('finished_at'),
+});
+
+export const egeDiagnosticAnswers = pgTable('ege_diagnostic_answers', {
+	id: serial('id').primaryKey(),
+	diagnosticId: integer('diagnostic_id').references(() => egeDiagnostics.id, { onDelete: 'cascade' }).notNull(),
+	taskNum: integer('task_num').notNull(),
+	level: integer('level').notNull(), // 1 — обычный вопрос, 2 — посложнее
+	challengeId: integer('challenge_id').notNull(),
+	answer: text('answer'),
+	result: text('result').notNull(), // right | wrong | skip
+	createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 export const challengeSkillTags = pgTable('challenge_skill_tags', {

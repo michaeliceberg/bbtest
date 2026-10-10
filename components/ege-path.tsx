@@ -19,7 +19,7 @@ import { EgeTower } from '@/components/ege-tower'
 
 const GOALS = [60, 70, 80, 90, 100]
 const fmt = (x: number) => (Math.round(x * 10) / 10).toString().replace('.', ',')
-export const EgePath = ({ map, target: initialTarget, activeMoveId, unclaimedCase }: { map: EgeMap; target: number | null; activeMoveId: number | null; unclaimedCase?: { id: number; taskNum: number } | null }) => {
+export const EgePath = ({ map, target: initialTarget, activeMoveId, unclaimedCase, diagCard }: { map: EgeMap; target: number | null; activeMoveId: number | null; unclaimedCase?: { id: number; taskNum: number } | null; diagCard?: React.ReactNode }) => {
     const router = useRouter()
     const [moveError, setMoveError] = useState<string | null>(null)
     const [movePending, startMove] = useTransition()
@@ -51,7 +51,7 @@ export const EgePath = ({ map, target: initialTarget, activeMoveId, unclaimedCas
                     <div>
                         <p className="text-xs font-bold uppercase tracking-wide text-[#9AA7B0]">Копилка</p>
                         <p className="font-black text-[#F2C35B]"><span className="text-4xl">{fmt(map.primary)}</span><span className="text-lg text-[#9AA7B0]"> / {map.primaryMax}</span></p>
-                        <p className="text-xs font-bold text-[#9AA7B0]">первичных · ≈{map.test} тестовых</p>
+                        <p className="text-xs font-bold text-[#9AA7B0]">первичных · ≈{map.hasDiag && map.testLo !== map.testHi ? `${map.testLo}–${map.testHi}` : map.test} тестовых</p>
                     </div>
                     {target !== null && !editing && (
                         <button type="button" onClick={() => setEditing(true)} className="text-right">
@@ -93,9 +93,14 @@ export const EgePath = ({ map, target: initialTarget, activeMoveId, unclaimedCas
                     </div>
                 )}
                 <p className="mt-3 text-[11px] leading-snug text-[#5C6B73]">
-                    Копилка — первичные баллы за то, что ты уже умеешь (по тренажёру и задачнику). Тестовый балл — ориентир по шкале 2026 года: шкалу 2027 ещё не опубликовали.
+                    Копилка — первичные баллы за то, что ты уже умеешь (по тренажёру, задачнику и диагностике; диагностика весит меньше, когда появляются свои уроки и задачи). Тестовый балл — ориентир по шкале 2026 года: шкалу 2027 ещё не опубликовали.
                 </p>
             </div>
+
+            {diagCard}
+            {map.hasDiag && (
+                <Link href="/diagnostic" className="mt-2 block text-right text-xs font-black text-[#9AA7B0] underline-offset-4 hover:underline">Итоги диагностики ›</Link>
+            )}
 
             {/* кейс за законченный ход, который ещё не открыли */}
             {unclaimedCase && (

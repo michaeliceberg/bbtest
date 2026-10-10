@@ -15,11 +15,18 @@ import 'server-only'
 import { sql } from 'drizzle-orm'
 import db from '@/db/drizzle'
 import { primaryToTest } from '@/lib/egeScale'
+import { getDiagScores } from '@/lib/egeDiagnostic'
 export { primaryToTest }
 
 export const TARGET_SOLVED = 25
 const COURSE_WEIGHT = 0.6
 const PART2_TRAINER_ONLY_CAP = 0.25
+// Диагностика (lib/egeDiagnostic.ts): оценка задания идёт в освоенность, пока своих данных мало.
+// Вес = 1 − (задачи + 2·уроки тренажёра этого задания) / DIAG_FADE; освоенность = max(практика, оценка·вес).
+const DIAG_FADE = 12
+const diagWeight = (courseSolved: number, trainerDone: number) => Math.max(0, 1 - (courseSolved + 2 * trainerDone) / DIAG_FADE)
+const withDiag = (practice: number, diag: number | null, courseSolved: number, trainerDone: number) =>
+    diag === null ? practice : Math.max(practice, diag * diagWeight(courseSolved, trainerDone))
 
 export type EgeStation = {
     num: number
@@ -41,6 +48,8 @@ export type EgeStation = {
     trainerTitle: string | null
     courseLeft: number // сколько задач ещё можно решить до «закрытия» станции
     unitIds: number[] // юниты задачника этого задания
+    diag: number | null // оценка диагностики 0..1 (null — не проверяли)
+    diagWeight: number
     tUnitIds: number[] // темы тренажёра этого задания
 }
 // «Следующий ход»: конкретные шаги и сколько он добавит к прогнозу.
@@ -61,6 +70,10 @@ export type EgeMap = {
     test: number
     next: EgeStation | null
     move: EgeMove | null
+    // после диагностики — прогноз диапазоном, пока своих данных мало
+    testLo: number
+    testHi: number
+    hasDiag: boolean
 }
 
 type Row = Record<string, unknown>
@@ -123,11 +136,12 @@ async function loadEgeData(userId: string, subject: string) {
         }
     }
 
-    return { tasks, unitStats, tStats }
+    const diag = await getDiagScores(userId, subject)
+    return { tasks, unitStats, tStats, diag }
 }
 
 function buildEgeMap(subject: string, data: Awaited<ReturnType<typeof loadEgeData>>): EgeMap {
-    const { tasks, unitStats, tStats } = data
+    const { tasks, unitStats, tStats, diag } = data
     const stations: EgeStation[] = tasks.map((t) => {
         const links = t.links as { kind: string; ref: number }[]
         const units = links.filter((l) => l.kind === 'unit').map((l) => Number(l.ref))
@@ -154,10 +168,12 @@ function buildEgeMap(subject: string, data: Awaited<ReturnType<typeof loadEgeDat
         const tr = hasTrainer ? trainerDone / trainerTotal : 0
         const part = Number(t.part)
         const trainerOnly = !hasCourse && hasTrainer
-        const mastery = hasCourse && hasTrainer ? COURSE_WEIGHT * c + (1 - COURSE_WEIGHT) * tr
+        const practice = hasCourse && hasTrainer ? COURSE_WEIGHT * c + (1 - COURSE_WEIGHT) * tr
             : hasCourse ? c
             : hasTrainer ? (part === 2 ? tr * PART2_TRAINER_ONLY_CAP : tr)
             : 0
+        const dScore = diag.get(Number(t.num)) ?? null
+        const mastery = withDiag(practice, dScore, courseSolved, trainerDone)
         const points = Number(t.points)
         return {
             num: Number(t.num), title: String(t.title), points, part,
@@ -167,6 +183,7 @@ function buildEgeMap(subject: string, data: Awaited<ReturnType<typeof loadEgeDat
             lessonHref, trainerHref, lessonTitle, trainerTitle,
             courseLeft: Math.max(0, courseTarget - courseSolved),
             unitIds: units, tUnitIds: tunits,
+            diag: dScore, diagWeight: dScore === null ? 0 : diagWeight(courseSolved, trainerDone),
         }
     })
 
@@ -179,7 +196,14 @@ function buildEgeMap(subject: string, data: Awaited<ReturnType<typeof loadEgeDat
     const part1 = candidates.filter((x) => x.part === 1)
     const next = (part1.length ? part1 : candidates).sort((a, b) => room(b) - room(a))[0] ?? null
     const test = primaryToTest(primary)
-    return { subject, stations, primary, primaryMax, test, next, move: next ? buildMove(next, primary, test) : null }
+    // неуверенность: та часть копилки, что держится на диагностике
+    const hasDiag = stations.some((x) => x.diag !== null)
+    // «верно на один из двух» — самая неуверенная оценка; 0 и 1 почти уверенные
+    const u = hasDiag ? Math.max(0.5, stations.reduce((acc, x) => acc + (x.diag === null ? 0 : x.points * x.diagWeight * (x.diag > 0 && x.diag < 1 ? 0.25 : 0.05)), 0)) : 0
+    return {
+        subject, stations, primary, primaryMax, test, next, move: next ? buildMove(next, primary, test) : null,
+        testLo: primaryToTest(Math.max(0, primary - u)), testHi: primaryToTest(primary + u), hasDiag,
+    }
 }
 
 export async function getEgeMap(userId: string, subject = 'math_profile'): Promise<EgeMap> {
@@ -231,9 +255,10 @@ const masteryAfter = (s: EgeStation, addTrainer: number, addTasks: number) => {
     const hasCourse = s.courseTarget > 0, hasTrainer = s.trainerTotal > 0
     const c = hasCourse ? Math.min(1, (s.courseSolved + addTasks) / s.courseTarget) : 0
     const t = hasTrainer ? Math.min(1, (s.trainerDone + addTrainer) / s.trainerTotal) : 0
-    if (hasCourse && hasTrainer) return COURSE_WEIGHT * c + (1 - COURSE_WEIGHT) * t
-    if (hasCourse) return c
-    return s.part === 2 ? t * PART2_TRAINER_ONLY_CAP : t
+    const practice = hasCourse && hasTrainer ? COURSE_WEIGHT * c + (1 - COURSE_WEIGHT) * t
+        : hasCourse ? c
+        : s.part === 2 ? t * PART2_TRAINER_ONLY_CAP : t
+    return withDiag(practice, s.diag, s.courseSolved + addTasks, s.trainerDone + addTrainer)
 }
 
 // Ход подбираем так, чтобы прыжок дал хотя бы +1 тестовый балл: урок тренажёра (если есть)
