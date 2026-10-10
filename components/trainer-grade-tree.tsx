@@ -21,6 +21,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { TrainerStageLink } from './trainer-stage-link';
 import { PathRail } from './path-rail';
+import { GooseTracks } from './goose-tracks';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 // Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
@@ -440,22 +441,11 @@ const StagePath = ({
                     const b = pts[i + 1];
                     const { c1, c2 } = segs[i];
                     const done = topic.stages[i].percentage >= UNLOCK_THRESHOLD;
-                    const d = `M ${a.x} ${a.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${b.x} ${b.y}`;
-                    // Игровая «дорога» в несколько слоёв (статично — без анимации, лёгкая для телефона):
-                    // не пройдено — тёмный жёлоб с камешками; пройдено — светящаяся трубка цвета юнита с бликом.
-                    return done ? (
-                        <g key={i}>
-                            <path d={d} fill="none" strokeWidth={18} strokeLinecap="round" style={{ stroke: accent.button, opacity: 0.18 }} />
-                            <path d={d} fill="none" strokeWidth={12} strokeLinecap="round" style={{ stroke: accent.bottom }} />
-                            <path d={d} fill="none" strokeWidth={8} strokeLinecap="round" style={{ stroke: accent.button }} />
-                            <path d={d} fill="none" strokeWidth={2.4} strokeLinecap="round" transform="translate(-1.2 -1.6)" style={{ stroke: '#FFFFFF', opacity: 0.45 }} />
-                        </g>
-                    ) : (
-                        <g key={i}>
-                            <path d={d} fill="none" strokeWidth={14} strokeLinecap="round" style={{ stroke: '#0B1317', opacity: 0.85 }} />
-                            <path d={d} fill="none" strokeWidth={10} strokeLinecap="round" style={{ stroke: LOCKED_BORDER, opacity: 0.35 }} />
-                            <path d={d} fill="none" strokeWidth={5} strokeLinecap="round" strokeDasharray="1 11" style={{ stroke: '#9AA7B0', opacity: 0.55 }} />
-                        </g>
+                    // Тропинка — следы гуся «Га-Га» (components/goose-tracks.tsx): пройдено — цветом юнита,
+                    // не пройдено — бледные серые следы.
+                    return (
+                        <GooseTracks key={i} a={a} c1={c1} c2={c2} b={b} seed={topic.id * 101 + i * 17}
+                            color={done ? accent.button : '#7E8C95'} opacity={done ? 1 : 0.45} />
                     );
                 })}
             </svg>
