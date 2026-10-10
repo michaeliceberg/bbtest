@@ -697,3 +697,15 @@ body {
 .animate-arrow-rock {
   animation: arrow-rock 1.1s ease-in-out infinite;
 }
+
+/* Отблеск, бегущий по пройденной тропинке на карте тренажёра (components/path-rail.tsx). */
+@keyframes rail-shine-x {
+  0% { transform: translateX(-120%); }
+  60%, 100% { transform: translateX(260%); }
+}
+@keyframes rail-shine-y {
+  0% { transform: translateY(-120%); }
+  60%, 100% { transform: translateY(260%); }
+}
+.animate-rail-shine-x { animation: rail-shine-x 2.8s ease-in-out infinite; }
+.animate-rail-shine-y { animation: rail-shine-y 2.8s ease-in-out infinite; }
