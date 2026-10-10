@@ -160,6 +160,7 @@ export const GEM_DROP_SOUND = '/snd-gem-drop.mp3'
 export const ACHIEVEMENT_SOUND = '/snd-achievement.mp3'
 // Выпала пицца (кейс) или получена пицца за достижение.
 export const PIZZA_DROP_SOUND = '/snd-pizza-1.mp3'
+export const DDX_DROP_SOUND = '/snd-ddx.mp3' // выпал кусочек паззла абонемента DDX
 // Выпали монеты из кейса.
 export const COIN_DROP_SOUND = '/snd-drop-coins.mp3'
 // Экран «Квесты дня»: заполнение прогресс-бара / «+1» над сундуком.
