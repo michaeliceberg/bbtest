@@ -338,7 +338,12 @@ const clampNum = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo
 
 const StagePath = ({
     topic, accent, cozy, isAdmin, frontierIdx, stepNums, doneGradient, doneBorder, doneGlow, pet,
+    revealId = null, revealWalk = false, revealRef,
 }: {
+    // Только что пройденный этап: гусь «идёт» от него к следующему (следы появляются по очереди).
+    revealId?: number | null;
+    revealWalk?: boolean;
+    revealRef?: React.Ref<HTMLDivElement>;
     topic: SkillTopic;
     accent: GroupAccent;
     cozy: boolean;
@@ -441,8 +446,18 @@ const StagePath = ({
                     const b = pts[i + 1];
                     const { c1, c2 } = segs[i];
                     const done = topic.stages[i].percentage >= UNLOCK_THRESHOLD;
+                    const walkHere = revealId !== null && topic.stages[i].id === revealId;
                     // Тропинка — следы гуся «Га-Га» (components/goose-tracks.tsx): пройдено — цветом юнита,
-                    // не пройдено — бледные серые следы.
+                    // не пройдено — бледные серые следы. Только что пройденный отрезок: под серыми следами
+                    // по очереди проступают цветные — гусь идёт к следующему уроку.
+                    if (walkHere) {
+                        return (
+                            <g key={i}>
+                                <GooseTracks a={a} c1={c1} c2={c2} b={b} seed={topic.id * 101 + i * 17} color="#7E8C95" opacity={0.45} />
+                                {revealWalk && <GooseTracks a={a} c1={c1} c2={c2} b={b} seed={topic.id * 101 + i * 17} color={accent.button} walk />}
+                            </g>
+                        );
+                    }
                     return (
                         <GooseTracks key={i} a={a} c1={c1} c2={c2} b={b} seed={topic.id * 101 + i * 17}
                             color={done ? accent.button : '#7E8C95'} opacity={done ? 1 : 0.45} />
@@ -450,6 +465,12 @@ const StagePath = ({
                 })}
             </svg>
 
+            {(() => {
+                const ri = revealId === null ? -1 : topic.stages.findIndex((st) => st.id === revealId);
+                if (ri < 0) return null;
+                const a = pts[ri], b = pts[Math.min(ri + 1, n - 1)];
+                return <div ref={revealRef} className="absolute w-px h-px pointer-events-none" style={{ left: pct((a.x + b.x) / 2, PATH_W), top: pct((a.y + b.y) / 2, H) }} />;
+            })()}
             {archPt && (
                 <div className="absolute -translate-x-1/2 -translate-y-[62%] pointer-events-none" style={{ left: pct(archPt.x, PATH_W), top: pct(archPt.y, H) }}>
                     <PathArch size={104} color={accent.button} />
@@ -1002,6 +1023,9 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                         doneBorder={doneBorder}
                                         doneGlow={doneGlow}
                                         pet={petHere && petProps ? <TrainerPet {...petProps} compact /> : null}
+                                        revealId={pendingRevealId}
+                                        revealWalk={connectorRevealed}
+                                        revealRef={topic.stages.some((st) => st.id === pendingRevealId) ? targetStageRef : undefined}
                                     />
                                 );
                             }

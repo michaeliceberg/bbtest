@@ -24,8 +24,10 @@ const bez = (a: P, c1: P, c2: P, b: P, t: number): P => {
 }
 
 // Следы вдоль одного отрезка тропинки. skip — сколько отступить от кнопок урока на концах.
-export const GooseTracks = ({ a, c1, c2, b, seed, color, opacity = 1, step = 20, size = 0.85, skip = 26 }: {
+export const GooseTracks = ({ a, c1, c2, b, seed, color, opacity = 1, step = 11, size = 0.43, skip = 24, walk = false }: {
     a: P; c1: P; c2: P; b: P; seed: number; color: string; opacity?: number; step?: number; size?: number; skip?: number
+    // walk: следы появляются по очереди, как будто гусь идёт по тропинке
+    walk?: boolean
 }) => {
     const rnd = mulberry(seed)
     // точки кривой с длиной дуги
@@ -53,7 +55,7 @@ export const GooseTracks = ({ a, c1, c2, b, seed, color, opacity = 1, step = 20,
         const p = at(d)
         const len = Math.hypot(p.dx, p.dy) || 1
         const nx = -p.dy / len, ny = p.dx / len // перпендикуляр
-        const off = side * (6.5 + rnd() * 1.5)
+        const off = side * (3.4 + rnd() * 0.8)
         const loop = rnd() < 0.08 ? (rnd() < 0.5 ? -1 : 1) * (28 + rnd() * 18) : 0 // гусь петляет
         const ang = (Math.atan2(p.dy, p.dx) * 180) / Math.PI + 90 + side * 10 + (rnd() - 0.5) * 22 + loop
         feet.push({ x: p.x + nx * off, y: p.y + ny * off, rot: ang })
@@ -62,7 +64,10 @@ export const GooseTracks = ({ a, c1, c2, b, seed, color, opacity = 1, step = 20,
     return (
         <g style={{ opacity }}>
             {feet.map((f, i) => (
-                <path key={i} d={GOOSE_FOOT_PATH} fill={color} transform={`translate(${f.x.toFixed(1)} ${f.y.toFixed(1)}) rotate(${f.rot.toFixed(1)}) scale(${size})`} />
+                <g key={i} transform={`translate(${f.x.toFixed(1)} ${f.y.toFixed(1)}) rotate(${f.rot.toFixed(1)}) scale(${size})`}>
+                    <path d={GOOSE_FOOT_PATH} fill={color} className={walk ? 'goose-step' : undefined}
+                        style={walk ? { animationDelay: `${(i * 0.16).toFixed(2)}s` } : undefined} />
+                </g>
             ))}
         </g>
     )
