@@ -118,6 +118,7 @@ export const getGangRoster = cache(async (gangId: number) => {
       role: m.role,
       joinedAt: m.joinedAt,
       userName: progress?.userName ?? 'Ученик',
+      userImageSrc: progress?.userImageSrc ?? null,
       ggStickers: progress?.ggStickers ?? 0,
       questsTotal,
     };

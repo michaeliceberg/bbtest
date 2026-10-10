@@ -13,6 +13,7 @@ export type GangRosterMember = {
     userId: string;
     role: string;
     userName: string;
+    userImageSrc?: string | null;
     ggStickers: number;
     questsTotal: number;
 };
@@ -56,10 +57,21 @@ export const GangRoster = ({ gangId, members, currentUserId, isLeader }: Props) 
                 const isMemberBusy = pending && busyUserId === m.userId;
                 return (
                     <div key={m.userId} className="flex items-center gap-2 py-2 border-b border-[#232F34] last:border-0">
-                        <RoleIcon className={`h-4 w-4 shrink-0 ${ROLE_COLOR[m.role] ?? ''}`} />
+                        {m.userImageSrc ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={m.userImageSrc} alt="" className="h-10 w-10 shrink-0 rounded-full bg-[#232F34] object-cover" />
+                        ) : (
+                            <div className="h-10 w-10 shrink-0 rounded-full bg-[#232F34] flex items-center justify-center">
+                                <User className="h-5 w-5 text-[#9AA7B0]" />
+                            </div>
+                        )}
                         <div className="min-w-0 flex-1">
                             <p className="text-sm text-[#F2F7FB] truncate">{m.userName}{isSelf && ' (ты)'}</p>
-                            <p className="text-xs text-[#9AA7B0]">{ROLE_LABEL[m.role] ?? m.role} · 🎴{m.ggStickers} · {m.questsTotal} квестов</p>
+                            <p className="text-xs text-[#9AA7B0] flex items-center gap-1">
+                                {m.role !== 'member' && <RoleIcon className={`h-3.5 w-3.5 shrink-0 ${ROLE_COLOR[m.role] ?? ''}`} />}
+                                <span className={m.role !== 'member' ? ROLE_COLOR[m.role] : ''}>{ROLE_LABEL[m.role] ?? m.role}</span>
+                                <span>· 🎴{m.ggStickers} · {m.questsTotal} квестов</span>
+                            </p>
                         </div>
                         {isLeader && !isSelf && m.role !== 'leader' && (
                             <div className="flex items-center gap-1 shrink-0">
