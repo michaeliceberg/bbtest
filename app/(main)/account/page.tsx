@@ -101,6 +101,17 @@ const AccountPage = async () => {
                 </Suspense>
             </div>
 
+            <Link href="/pro?from=account" className="flex items-center justify-between rounded-xl border-2 border-[#F2C35B]/60 bg-[#1F1B10] px-4 py-3 hover:border-[#F2C35B]">
+                <span className="flex items-center gap-3">
+                    <Crown className="h-8 w-8 text-[#F2C35B]" />
+                    <span>
+                        <span className="block font-black text-[#F2F7FB]">ggege PRO</span>
+                        <span className="block text-xs font-bold text-[#9AA7B0]">Ранний доступ со скидкой</span>
+                    </span>
+                </span>
+                <span className="text-sm font-black text-[#F2C35B]">Узнать ›</span>
+            </Link>
+
             <Link href="/gym" className="flex items-center justify-between rounded-xl border-2 border-[#F47B20]/60 bg-[#033F48] px-4 py-3 hover:border-[#F47B20]">
                 <span className="flex items-center gap-3">
                     <span className="text-3xl">🧩</span>

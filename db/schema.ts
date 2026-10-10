@@ -1306,3 +1306,14 @@ export const lessonRatings = pgTable('lesson_ratings', {
 	comment: text('comment'),
 	createdAt: timestamp('created_at').notNull().defaultNow(),
 });
+
+// Проверка спроса на подписку PRO (2026-10-10, «фейковая дверь», app/(main)/pro):
+// event 'view' — открыл экран с ценой, 'want' — нажал «Хочу PRO» (одна строка на ученика).
+// Денег не берём; создано прямым SQL (уникальный индекс на user_id WHERE event = 'want').
+export const proInterest = pgTable('pro_interest', {
+	id: serial('id').primaryKey(),
+	userId: text('user_id').notNull(),
+	event: text('event').notNull(),
+	source: text('source'),
+	createdAt: timestamp('created_at').notNull().defaultNow(),
+});

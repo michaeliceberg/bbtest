@@ -1,7 +1,7 @@
 'use client'
 
 import { useAchievementClaimStore } from '@/store/use-achievement-claim-store'
-import { Dumbbell, Flame, Swords, ChevronDown, ChevronUp,  Library, Lock, BadgeCheck, Shield, BarChart3, Trophy, Route } from 'lucide-react'
+import { Dumbbell, Flame, Swords, ChevronDown, ChevronUp,  Library, Lock, BadgeCheck, Shield, BarChart3, Trophy, Route, Crown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from './ui/button'
 import Link from 'next/link'
@@ -108,6 +108,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
     { label: 'Справочник', href: '/reference', icon: Library },
     { label: 'Банда', href: '/gang', icon: Shield },
     { label: 'Ачивки', href: '/achievements', icon: Trophy },
+    { label: 'PRO', href: '/pro', icon: Crown },
     // Только админам — статистика (воронка) с телефона.
     ...(isAdmin ? [{ label: 'Админка', href: '/admin/funnel', icon: BarChart3 }] : []),
     // Временно скрыты по прямой просьбе пользователя (2026-09-23) —

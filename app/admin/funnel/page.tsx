@@ -181,6 +181,18 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 		LEFT JOIN t_lessons l ON l.id = r.t_lesson_id
 		WHERE r.comment IS NOT NULL ORDER BY r.created_at DESC LIMIT 15`)
 
+	// Спрос на PRO («фейковая дверь», app/(main)/pro) — только ученики, без админов.
+	const [pro] = await q(sql`
+		SELECT count(*) FILTER (WHERE event = 'view') AS views,
+			count(DISTINCT i.user_id) FILTER (WHERE event = 'view') AS viewers,
+			count(*) FILTER (WHERE event = 'want') AS wants
+		FROM pro_interest i LEFT JOIN user_progress u ON u.user_id = i.user_id
+		WHERE coalesce(u.is_admin, 0) = 0 AND i.created_at >= ${since}`)
+	const proWants = await q(sql`
+		SELECT coalesce(u.nickname, u.user_name, i.user_id) AS name, i.source, i.created_at
+		FROM pro_interest i LEFT JOIN user_progress u ON u.user_id = i.user_id
+		WHERE i.event = 'want' AND coalesce(u.is_admin, 0) = 0 ORDER BY i.created_at DESC LIMIT 20`)
+
 	const vibeLabel = (id: string) => {
 		const v = VIBES.find((x) => x.id === id)
 		return v ? `${v.emoji} ${v.label}` : id
@@ -217,6 +229,25 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 			</div>
 
 			<ActivityHeatmap rows={heatRows} />
+
+			<Card title="👑 Спрос на PRO (1100 ₽/мес, деньги не берём)">
+				<div className="grid grid-cols-3 gap-3 mb-3">
+					<Stat label="Открыли экран цены (уник.)" value={n(pro.viewers)} small />
+					<Stat label="Нажали «Хочу PRO»" value={n(pro.wants)} small />
+					<Stat label="Конверсия" value={pct(n(pro.wants), n(pro.viewers))} small />
+				</div>
+				{proWants.length > 0 && (
+					<ul className="space-y-1.5 text-sm">
+						{proWants.map((w, i) => (
+							<li key={i} className="flex justify-between gap-2">
+								<span className="truncate">{String(w.name)}</span>
+								<span className="text-[#9AA7B0] whitespace-nowrap">{w.source ? `${String(w.source)} · ` : ''}{new Date(String(w.created_at)).toLocaleDateString('ru-RU')}</span>
+							</li>
+						))}
+					</ul>
+				)}
+				<p className="text-xs text-[#6B7A83] mt-3">Список — все заявки за всё время. Твои и тестовые не считаются.</p>
+			</Card>
 
 			<Card title="🏆 Топ-10 учеников по разным урокам тренажёра">
 				{topLearners.length === 0 ? (
