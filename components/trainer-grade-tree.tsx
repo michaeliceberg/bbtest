@@ -96,6 +96,17 @@ const muteColor = (hex: string): string => {
     const bl = mix(n & 255, MUTE_BASE & 255);
     return `#${((r << 16) | (g << 8) | bl).toString(16).padStart(6, '0')}`;
 };
+// Цвет следов гуся: ближе к фону карты, чтобы тропинка не рябила, но читалась.
+const TRACK_BG = 0x161F23;
+const trackTone = (hex: string, k = 0.5): string => {
+    const n = parseInt(hex.slice(1), 16);
+    const mix = (c: number, b: number) => Math.round(b + (c - b) * k);
+    const r = mix((n >> 16) & 255, (TRACK_BG >> 16) & 255);
+    const g = mix((n >> 8) & 255, (TRACK_BG >> 8) & 255);
+    const bl = mix(n & 255, TRACK_BG & 255);
+    return `#${((r << 16) | (g << 8) | bl).toString(16).padStart(6, '0')}`;
+};
+const TRACK_LOCKED = '#38444C';
 // Юниты, переименованные на карте, но с прежним названием темы в справочнике.
 const REFERENCE_ALIAS: Record<string, string> = { '8 свойств логарифмов': 'Логарифмы' };
 const DONE_GRADIENT = 'linear-gradient(135deg, #7C3AED 0%, #C026D3 100%)';
@@ -449,8 +460,8 @@ const StagePath = ({
     );
     const cheerSpot = (k: number) => {
         const p = pts[k];
-        const cx = clampNum(p.x < 150 ? p.x + 92 : p.x - 92, 60, PATH_W - 60);
-        return { x: cx, y: p.y - 74 };
+        const cx = clampNum(p.x < 150 ? p.x + 100 : p.x - 100, 78, PATH_W - 78);
+        return { x: cx, y: p.y - 92 };
     };
     const cheerFrom = ri >= 0 ? cheerSpot(ri) : null;
     const cheerTo = ri >= 0 && ri + 1 < n ? cheerSpot(ri + 1) : cheerFrom;
@@ -470,14 +481,14 @@ const StagePath = ({
                     if (walkHere) {
                         return (
                             <g key={i}>
-                                <GooseTracks a={a} c1={c1} c2={c2} b={b} seed={topic.id * 101 + i * 17} color="#7E8C95" opacity={0.45} />
-                                {revealWalk && <GooseTracks a={a} c1={c1} c2={c2} b={b} seed={topic.id * 101 + i * 17} color={accent.button} walk />}
+                                <GooseTracks a={a} c1={c1} c2={c2} b={b} seed={topic.id * 101 + i * 17} color={TRACK_LOCKED} />
+                                {revealWalk && <GooseTracks a={a} c1={c1} c2={c2} b={b} seed={topic.id * 101 + i * 17} color={trackTone(accent.button)} walk />}
                             </g>
                         );
                     }
                     return (
                         <GooseTracks key={i} a={a} c1={c1} c2={c2} b={b} seed={topic.id * 101 + i * 17}
-                            color={done ? accent.button : '#7E8C95'} opacity={done ? 1 : 0.45} />
+                            color={done ? trackTone(accent.button) : TRACK_LOCKED} />
                     );
                 })}
             </svg>
@@ -598,8 +609,8 @@ const StagePath = ({
                             <div
                                 className="absolute z-10"
                                 style={{
-                                    top: pct(i === n - 1 ? pt.y - PATH_ROW / 2 - 8 : pt.y + PATH_ROW / 2 - 8, H),
-                                    left: '60%',
+                                    top: pct(i === n - 1 ? pt.y - PATH_ROW / 2 - 8 : pt.y + PATH_ROW / 2 + 10, H),
+                                    right: 0,
                                     transform: 'translateY(-50%)',
                                 }}
                             >

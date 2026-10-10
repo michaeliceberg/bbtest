@@ -66,8 +66,8 @@ export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compac
 
     if (compact) {
         return (
-            <div className="flex flex-col items-center gap-1 w-[118px]">
-                <div className="rounded-xl border-2 border-[#3A464E] bg-[#151F23] px-2 py-1 text-[11px] font-extrabold text-[#F2F7FB] leading-tight text-center">
+            <div className="flex flex-col items-center gap-1 w-[156px]">
+                <div className="rounded-xl border-2 border-[#3A464E] bg-[#151F23] px-2.5 py-1.5 text-[13px] font-extrabold text-[#F2F7FB] leading-tight text-center">
                     {mood.text}
                 </div>
                 <motion.img
@@ -75,7 +75,7 @@ export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compac
                     src={mood.src}
                     alt=""
                     draggable={false}
-                    className="w-14 h-14 object-contain select-none"
+                    className="w-20 h-20 object-contain select-none"
                     animate={{ y: [0, -4, 0] }}
                     transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
                 />
