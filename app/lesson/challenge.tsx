@@ -75,6 +75,9 @@ export const Challenge = ({
     }
 
     const statusInfo = getStatusMessage()
+    // Длинные ответы (серии корней в №14 и т.п.) в две колонки переносятся и мельчат — тогда одна колонка.
+    const visibleLen = (t: string) => t.replace(/\\[a-zA-Z]+/g, 'x').replace(/[{}$\\\s]/g, '').length
+    const longOptions = options.some((o) => visibleLen(o.text ?? '') > 26)
 
     return (
         <div className="w-full">
@@ -91,7 +94,7 @@ export const Challenge = ({
                         panelOrientation={panelOrientation ?? null}
                     />
                 ) : (
-                <div className={cn("grid gap-2 sm:gap-3", multiSelect ? "grid-cols-1" : "grid-cols-2")}>
+                <div className={cn("grid gap-2 sm:gap-3", multiSelect || longOptions ? "grid-cols-1" : "grid-cols-2")}>
                     {options.map((option, i) => (
                         <Card
                             key={option.id}
