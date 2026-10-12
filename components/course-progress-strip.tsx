@@ -1,124 +1,118 @@
 'use client'
 
-// Компактная сводка "сколько сделано в каждом разделе курса" — по
-// прямой просьбе пользователя: открыв задачник, сразу увидеть одной
-// картинкой, какие разделы уже тронуты, а какие нет, и провалиться в
-// недоделанный раздел одним кликом. Вместо тонкой пилюли слева — сетка
-// на всю ширину карточки (grid-cols=N, каждая колонка тянется на свою
-// долю), и вместо гладкого фона — пиксельный "вокселlater"-стиль в духе
-// логотипа (public/ggegelogo.png): толстый тёмно-коричневый контур,
-// золотая заливка в процессе, фиолетовая (тон шляпы волшебника на
-// логотипе) — когда раздел пройден целиком.
+// components/course-progress-strip.tsx
 //
-// percent приходит УЖЕ посчитанным на сервере как доля РЕШЁННЫХ ЗАДАЧ
-// во всём разделе (не "открытых уроков" — урок засчитывается открытым
-// уже после нескольких решённых задач из многих, что давало обманчиво
-// высокий процент, см. app/(main)/learn/page.tsx).
+// «Прогресс по разделам» в задачнике (/learn). Плитка на каждый юнит: номер задания ЕГЭ, заливка
+// снизу цветом юнита (как его карточка и кнопки уроков) по доле решённых задач, пройден — галочка,
+// закрыт — замок. Для ЕГЭ плитки сгруппированы «Часть 1 · краткий ответ / Часть 2 · развёрнутый
+// ответ / Дополнительно». Нажатие — прокрутка к юниту, снизу подпись выбранного раздела.
+// percent приходит уже посчитанным на сервере (доля решённых задач юнита, app/(main)/learn/page.tsx).
 
 import { useState } from 'react'
+import { motion } from 'framer-motion'
+import { Check, Lock } from 'lucide-react'
+import { getUnitButtonColor, hexToRgba } from '@/src/constants/lessonButtonColors'
+import { SECTION_LABEL, scrollToLearnUnit, type LearnSection } from '@/components/learn-unit-nav'
 
 type StripUnit = {
     id: number
     title: string
     order: number
+    unitIndex: number
     percent: number
     isUnlocked: boolean
     isCompleted: boolean
-    firstLessonId: number | null
+    section: LearnSection
 }
 
-const OUTLINE = '#2A1A0F'
-const TRACK_BG = '#241A12'
-const GOLD_TOP = '#F7C35C'
-const GOLD_BOTTOM = '#E8A23D'
-const PURPLE_TOP = '#9B6FE0'
-const PURPLE_BOTTOM = '#6B4FA0'
-
-function scrollToUnit(lessonId: number | null) {
-    if (!lessonId) return
-    document.getElementById(`lesson-${lessonId}`)?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-    })
-}
-
-function fillStyle(unit: StripUnit): React.CSSProperties {
-    if (!unit.isUnlocked) {
-        return { height: '0%' }
-    }
-    if (unit.isCompleted) {
-        return {
-            height: '100%',
-            background: `linear-gradient(180deg, ${PURPLE_TOP} 0%, ${PURPLE_BOTTOM} 100%)`,
-        }
-    }
-    const h = Math.max(unit.percent, unit.percent > 0 ? 8 : 0)
-    return {
-        height: `${h}%`,
-        background: unit.percent > 0 ? `linear-gradient(180deg, ${GOLD_TOP} 0%, ${GOLD_BOTTOM} 100%)` : 'transparent',
-    }
+const tileLabel = (u: StripUnit) => {
+    const m = u.title.match(/^(\d+)\./)
+    return m ? m[1] : u.section === 'extra' ? '+' : String(u.order)
 }
 
 export function CourseProgressStrip({ units }: { units: StripUnit[] }) {
-    const [hovered, setHovered] = useState<number | null>(null)
-
+    const [selected, setSelected] = useState<number | null>(null)
     if (units.length === 0) return null
 
+    const groups: { section: LearnSection; units: StripUnit[] }[] = []
+    for (const u of units) {
+        const last = groups[groups.length - 1]
+        if (last && last.section === u.section) last.units.push(u)
+        else groups.push({ section: u.section, units: [u] })
+    }
+    const sel = units.find((u) => u.id === selected) ?? null
+    const done = units.filter((u) => u.isCompleted).length
+
     return (
-        <div className="bg-[#151F23] rounded-xl border border-[#232F34] px-4 py-3.5 mb-4">
-            <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-semibold text-[#F2F7FB]">Прогресс по разделам</span>
-                {hovered !== null && (
-                    <span className="text-xs text-[#9AA7B0] truncate max-w-[60%]">
-                        {units[hovered].title} — {Math.round(units[hovered].percent)}%
-                    </span>
-                )}
+        <div className="mb-5 rounded-3xl border-2 border-[#2A363C] bg-[#161F23] p-4">
+            <div className="mb-3 flex items-baseline justify-between">
+                <span className="text-base font-black text-[#F2F7FB]">Прогресс по разделам</span>
+                <span className="text-xs font-bold text-[#9AA7B0]">пройдено {done} из {units.length}</span>
             </div>
-            <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${units.length}, minmax(0, 1fr))` }}>
-                {units.map((unit, i) => (
-                    <button
-                        key={unit.id}
-                        type="button"
-                        disabled={!unit.isUnlocked}
-                        onClick={() => scrollToUnit(unit.firstLessonId)}
-                        onMouseEnter={() => setHovered(i)}
-                        onMouseLeave={() => setHovered((h) => (h === i ? null : h))}
-                        className={'flex flex-col items-center gap-1.5 group ' + (unit.isUnlocked ? 'cursor-pointer' : 'cursor-default')}
-                        title={`${unit.title} — ${Math.round(unit.percent)}%`}
-                    >
-                        <div
-                            className="relative w-full overflow-hidden transition-transform group-hover:-translate-y-0.5"
-                            style={{
-                                height: 56,
-                                borderRadius: 3,
-                                border: `2.5px solid ${unit.isUnlocked ? OUTLINE : '#3A2E22'}`,
-                                background: TRACK_BG,
-                                opacity: unit.isUnlocked ? 1 : 0.55,
-                                boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.25)',
-                            }}
-                        >
-                            {/* заливка */}
-                            <div className="absolute bottom-0 left-0 w-full transition-[height] duration-500" style={fillStyle(unit)} />
-                            {/* пиксельные полосы-деления поверх заливки — эффект "вокселя" */}
-                            <div
-                                className="absolute inset-0 pointer-events-none"
-                                style={{
-                                    backgroundImage: 'repeating-linear-gradient(0deg, transparent 0px, transparent 12px, rgba(0,0,0,0.28) 12px, rgba(0,0,0,0.28) 14px)',
-                                }}
-                            />
-                            {unit.isCompleted && (
-                                <div
-                                    className="absolute top-1 left-1/2 -translate-x-1/2 w-2 h-2"
-                                    style={{ background: GOLD_TOP, clipPath: 'polygon(40% 0,60% 0,60% 40%,100% 40%,100% 60%,60% 60%,60% 100%,40% 100%,40% 60%,0 60%,0 40%,40% 40%)' }}
-                                />
+
+            <div className="flex flex-col gap-3">
+                {groups.map((g, gi) => {
+                    const label = g.section ? SECTION_LABEL[g.section] : null
+                    const inline = g.section === 'extra'
+                    return (
+                        <div key={gi} className={inline ? 'flex items-center gap-3' : undefined}>
+                            {label && (
+                                <div className={inline ? 'flex flex-1 items-center gap-2' : 'mb-2 flex items-center gap-2'}>
+                                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: label.color }} />
+                                    <span className="text-xs font-black uppercase tracking-wide" style={{ color: label.color }}>{label.title}</span>
+                                </div>
                             )}
+                            <div
+                                className={inline ? 'grid w-11 flex-shrink-0 gap-1.5' : 'grid grid-cols-7 gap-1.5 rounded-2xl p-2'}
+                                style={label && !inline ? { background: hexToRgba(label.color, 0.07), boxShadow: `inset 0 0 0 1.5px ${hexToRgba(label.color, 0.28)}` } : undefined}
+                            >
+                                {g.units.map((u) => {
+                                    const c = getUnitButtonColor(u.unitIndex)
+                                    const fill = u.isCompleted ? 100 : Math.max(u.percent, u.percent > 0 ? 10 : 0)
+                                    const isSel = u.id === selected
+                                    return (
+                                        <motion.button
+                                            key={u.id}
+                                            type="button"
+                                            whileTap={{ y: 3 }}
+                                            onClick={() => { setSelected(u.id); if (u.isUnlocked) scrollToLearnUnit(u.id) }}
+                                            title={`${u.title} — ${Math.round(u.percent)}%`}
+                                            className="relative aspect-square overflow-hidden rounded-xl"
+                                            style={{
+                                                background: u.isUnlocked ? '#22303A' : '#1D262B',
+                                                boxShadow: `0 3px 0 ${u.isUnlocked ? (u.isCompleted ? c.bottom : '#0F171B') : '#121A1E'}${isSel ? `, 0 0 0 2px ${c.button}` : ''}`,
+                                            }}
+                                        >
+                                            {u.isUnlocked && fill > 0 && (
+                                                <motion.div
+                                                    className="absolute bottom-0 left-0 w-full"
+                                                    initial={{ height: 0 }}
+                                                    animate={{ height: `${fill}%` }}
+                                                    transition={{ duration: 0.8, ease: 'easeOut' }}
+                                                    style={{ background: u.isCompleted ? `linear-gradient(135deg, ${c.button}, ${c.bottom})` : hexToRgba(c.button, 0.55) }}
+                                                />
+                                            )}
+                                            <span className="relative flex h-full w-full items-center justify-center text-sm font-black"
+                                                style={{ color: !u.isUnlocked ? '#55636B' : u.isCompleted ? '#FFFFFF' : '#E2EAF0' }}>
+                                                {!u.isUnlocked ? <Lock className="h-3.5 w-3.5" /> : tileLabel(u)}
+                                            </span>
+                                            {u.isCompleted && (
+                                                <span className="absolute right-0.5 top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white">
+                                                    <Check className="h-2.5 w-2.5" style={{ color: c.bottom }} strokeWidth={4} />
+                                                </span>
+                                            )}
+                                        </motion.button>
+                                    )
+                                })}
+                            </div>
                         </div>
-                        <span className={'text-[10px] font-mono font-bold tabular-nums ' + (unit.isUnlocked ? 'text-[#9AA7B0]' : 'text-[#5A6A72]')}>
-                            {unit.order}
-                        </span>
-                    </button>
-                ))}
+                    )
+                })}
             </div>
+
+            <p className="mt-3 min-h-[18px] truncate text-xs font-bold text-[#9AA7B0]">
+                {sel ? <><span className="text-[#F2F7FB]">{sel.title}</span> · {Math.round(sel.percent)}%</> : 'Нажми на номер — перейдёшь к разделу'}
+            </p>
         </div>
     )
 }

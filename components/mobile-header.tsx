@@ -40,7 +40,7 @@ export const MobileHeader = ({ courseTitle, courses, activeCourseId, hasTrainerQ
 	// На /trainer (простой вид) вместо названия — кнопка на всю ширину с текущим юнитом:
 	// цвет юнита, при смене юнита «подпрыгивает», по нажатию открывает меню юнитов.
 	const nav = useTrainerNavStore()
-	const unitButton = pathname?.startsWith('/trainer') && nav.title && nav.open ? nav : null
+	const unitButton = (pathname?.startsWith('/trainer') || pathname?.startsWith('/learn')) && nav.title && nav.open ? nav : null
 
 	return (
 		<nav className='lg:hidden fixed px-4 h-[50px] flex items-center bg-[#151F23] border-b border-[#3A464E] top-0 w-full z-50'>

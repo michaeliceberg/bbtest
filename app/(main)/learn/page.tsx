@@ -15,7 +15,8 @@ import {
   getUserProgress
 } from '@/db/queries';
 import { redirect } from 'next/navigation';
-import { Header } from './header';
+import { Header } from '../trainer/header';
+import { LearnUnitNav } from '@/components/learn-unit-nav';
 import { Unit } from './unit';
 import { format } from 'date-fns';
 import { Promo } from '@/components/promo';
@@ -293,7 +294,6 @@ const LearnPage = async () => {
   const daysLate = daysToFinish - daysToExam;
 
   const bgSvgSrc = randomizeArray.slice(0, unitsWithFormattedLessons.length);
-  const courseProgressPercent = courseProgressData?.progressPercent || 0;
   // Задачи из активных (ещё не сданных) заданий — раздельно ДЗ от учителя
   // (🍩) и челлендж дня (⚡), чтобы над названием урока была верная иконка.
   const collectActiveChallengeIds = (type: 'teacher' | 'daily') =>
@@ -406,10 +406,21 @@ const LearnPage = async () => {
         </StickyWrapper>
 
         <FeedWrapper>
-          <Header
-            title={activeCourse.title}
-            progressPercent={courseProgressPercent}
-            courseId={activeCourse.id}
+          {/* Шапка как на /trainer: кнопка с разделом, который сейчас на экране, по нажатию — меню разделов */}
+          <Header title={`Задачник ${activeCourse.title}`} />
+          <LearnUnitNav
+            units={unitsWithFormattedLessons.map((unit, index) => {
+              const stats = unitChallengeStats.get(unit.id);
+              return {
+                id: unit.id,
+                title: unit.title,
+                unitIndex: index,
+                percent: stats && stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0,
+                isUnlocked: unitUnlocked(unit),
+                isCompleted: isForcedLocked(unit.id) ? false : unit.isCompleted,
+                section: egeSectionOf(activeCourse.title, unit.title),
+              };
+            })}
           />
 
           <div className='mt-2 lg:mt-5'>
@@ -420,17 +431,18 @@ const LearnPage = async () => {
             </div>
 
             <CourseProgressStrip
-              units={unitsWithFormattedLessons.map((unit) => {
+              units={unitsWithFormattedLessons.map((unit, index) => {
                 const stats = unitChallengeStats.get(unit.id);
                 const percent = stats && stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
                 return {
                   id: unit.id,
                   title: unit.title,
                   order: unit.order,
+                  unitIndex: index,
                   percent,
                   isUnlocked: unitUnlocked(unit),
                   isCompleted: isForcedLocked(unit.id) ? false : unit.isCompleted,
-                  firstLessonId: unit.lessons?.[0]?.id ?? null,
+                  section: egeSectionOf(activeCourse.title, unit.title),
                 };
               })}
             />
@@ -440,8 +452,8 @@ const LearnPage = async () => {
               const section = egeSectionOf(activeCourse.title, unit.title)
               const prevSection = index > 0 ? egeSectionOf(activeCourse.title, unitsWithFormattedLessons[index - 1].title) : null
               return (
-              <div key={unit.id} className='mb-10'>
-                {section && section !== prevSection && <EgeSectionHeader section={section} />}
+              <div key={unit.id} className='mb-10' data-learn-unit-id={unit.id}>
+                {section && section !== 'part1' && section !== prevSection && <EgeSectionHeader section={section} />}
                 <Unit
                   id={unit.id}
                   unitIndex={index}
