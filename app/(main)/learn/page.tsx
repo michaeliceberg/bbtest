@@ -435,8 +435,13 @@ const LearnPage = async () => {
               })}
             />
 
-            {unitsWithFormattedLessons.map((unit, index) => (
+            {unitsWithFormattedLessons.map((unit, index) => {
+              // ЕГЭ Математика: разделитель «Часть 1 / Часть 2 / Дополнительно» по номеру задания в названии юнита
+              const section = egeSectionOf(activeCourse.title, unit.title)
+              const prevSection = index > 0 ? egeSectionOf(activeCourse.title, unitsWithFormattedLessons[index - 1].title) : null
+              return (
               <div key={unit.id} className='mb-10'>
+                {section && section !== prevSection && <EgeSectionHeader section={section} />}
                 <Unit
                   id={unit.id}
                   unitIndex={index}
@@ -462,13 +467,39 @@ const LearnPage = async () => {
                   lastTouchedLessonId={lastTouchedLessonId}
                 />
               </div>
-            ))}
+              )
+            })}
           </div>
         </FeedWrapper>
       </div>
     </LearnWrapper>
   );
 };
+
+// Номер задания ЕГЭ — число в начале названия юнита («14. Уравнения»). Только для курсов ЕГЭ.
+type EgeSection = 'part1' | 'part2' | 'extra'
+function egeSectionOf(courseTitle: string, unitTitle: string): EgeSection | null {
+  if (!courseTitle.startsWith('ЕГЭ Математика')) return null
+  const m = unitTitle.match(/^(\d+)\./)
+  if (!m) return 'extra'
+  return Number(m[1]) >= 14 ? 'part2' : 'part1'
+}
+
+const SECTION_COPY: Record<EgeSection, { title: string; sub: string; color: string }> = {
+  part1: { title: 'Часть 1 · краткий ответ', sub: 'Задания 1–13, по 1 баллу. Ответ — число.', color: '#53ADEF' },
+  part2: { title: 'Часть 2 · развёрнутый ответ', sub: 'Задания 14–20, от 2 до 4 баллов. Здесь тренируем ответ — на экзамене нужно записать полное решение.', color: '#C385F7' },
+  extra: { title: 'Дополнительно', sub: 'Темы, которые нужны для решения других заданий.', color: '#9AA7B0' },
+}
+
+const EgeSectionHeader = ({ section }: { section: EgeSection }) => {
+  const c = SECTION_COPY[section]
+  return (
+    <div className='mb-6 mt-2 rounded-2xl border-2 px-4 py-3' style={{ borderColor: `${c.color}66`, backgroundColor: `${c.color}14` }}>
+      <p className='text-lg font-black' style={{ color: c.color }}>{c.title}</p>
+      <p className='text-xs font-bold text-[#9AA7B0]'>{c.sub}</p>
+    </div>
+  )
+}
 
 export default LearnPage;
 
