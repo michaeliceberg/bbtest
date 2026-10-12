@@ -258,7 +258,7 @@ export const LessonButton = ({
                     {zigzagMascotSide && <LessonZigzagMascot side={zigzagMascotSide} />}
                     <div className="h-[102px] w-[102px] relative">
                         {isLastTouched && <ContinueBadge color={unitColor.button} />}
-                        <div className="h-[70px] w-[70px] rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-lg">
+                        <div className="h-[70px] w-[70px] rounded-full flex items-center justify-center shadow-lg" style={{ background: `linear-gradient(135deg, ${unitColor.button}, ${unitColor.bottom})` }}>
                             <Crown className="h-8 w-8 text-white" />
                         </div>
                     </div>
@@ -284,7 +284,8 @@ export const LessonButton = ({
                     <CircularProgressbarWithChildren
                         value={progressPercent}
                         styles={{
-                            path: { stroke: isNextUnlocked ? "#22c55e" : "#eab308" },
+                            // кольцо прогресса — в цвет раздела (как кнопка урока и карточка юнита); пока следующий урок не открыт — бледнее
+                            path: { stroke: unitColor.button, opacity: isNextUnlocked ? 1 : 0.6 },
                             trail: { stroke: LOCKED_BUTTON_COLOR },
                         }}
                     >
