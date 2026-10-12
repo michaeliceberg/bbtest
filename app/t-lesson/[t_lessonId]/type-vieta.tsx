@@ -120,7 +120,7 @@ const SlotButton = ({
     // Активный слот (тот, куда попадёт следующее число) «дышит» и светится — без проверки ответа.
     const pulsing = isActive && !checkedColor && !isAnswerChecked
     return (
-        <span className={cn('relative inline-flex', pulsing && 'animate-vieta-slot')}>
+        <span className="relative inline-flex">
         {pulsing && (
             <span
                 aria-hidden

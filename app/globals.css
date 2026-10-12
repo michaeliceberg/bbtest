@@ -781,12 +781,6 @@ body {
 }
 .animate-coin-plus { display: inline-block; animation: coin-plus 1.6s ease-out both; }
 
-/* Теорема Виета (type-vieta.tsx): активный слот x1/x2 «дышит» (bounce), под ним пульсирует свечение. */
-@keyframes vieta-slot-breathe {
-  0%, 100% { transform: scale(1); }
-  45% { transform: scale(1.12); }
-  65% { transform: scale(0.97); }
-}
-.animate-vieta-slot { animation: vieta-slot-breathe 1.3s ease-in-out infinite; }
+/* Теорема Виета (type-vieta.tsx): под активным слотом x1/x2 пульсирует свечение. */
 @keyframes vieta-glow { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.85; } }
 .animate-vieta-glow { animation: vieta-glow 1.3s ease-in-out infinite; }
