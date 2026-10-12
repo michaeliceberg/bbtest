@@ -56,7 +56,8 @@ const fmtPlain = (n: number) => `${n}`
 // (кнопки x1/x2 внутри уравнений + кнопки-числа, куда они попадают) ради
 // единого визуального языка "этот цвет = этот икс".
 const COLOR_X1 = '#4A90D9' // синий — уже основной "выбрано"-акцент проекта
-const COLOR_X2 = '#EF9F27' // янтарный — уже используется в этом же файле для 'b'
+// x2 — фиолетовый из палитры ggege (2026-10-13: оранжевый из урока Виета убран по просьбе пользователя)
+const COLOR_X2 = '#C385F7'
 const slotColor = (slot: Slot) => (slot === 'x1' ? COLOR_X1 : COLOR_X2)
 
 // Кнопка x1 или x2 — рендерится ДВАЖДЫ (по разу на каждое уравнение), всегда
@@ -116,7 +117,17 @@ const SlotButton = ({
         bgColor = `${bright}12`
     }
 
+    // Активный слот (тот, куда попадёт следующее число) «дышит» и светится — без проверки ответа.
+    const pulsing = isActive && !checkedColor && !isAnswerChecked
     return (
+        <span className={cn('relative inline-flex', pulsing && 'animate-vieta-slot')}>
+        {pulsing && (
+            <span
+                aria-hidden
+                className="absolute -inset-1.5 rounded-xl animate-vieta-glow pointer-events-none"
+                style={{ boxShadow: `0 0 18px 4px ${bright}`, border: `2px solid ${bright}` }}
+            />
+        )}
         <button
             type="button"
             onClick={() => onClick(slot)}
@@ -141,6 +152,7 @@ const SlotButton = ({
                 <span className="inline-block">{slot === 'x1' ? 'x₁' : 'x₂'}</span>
             )}
         </button>
+        </span>
     )
 }
 
@@ -149,15 +161,13 @@ export const TypeVieta = ({ question, onOptionSelected, isAnswerChecked }: Props
 
     const [introDone, setIntroDone] = useState(false)
     const [values, setValues] = useState<Record<Slot, number | null>>({ x1: null, x2: null })
-    // Изначально НИ x1, НИ x2 не активны (по прямой просьбе пользователя —
-    // "изначально обе кнопки бледного цвета") — ни одна не выбрана заранее,
-    // яркой становится только та, по которой реально кликнули.
-    const [activeSlot, setActiveSlot] = useState<Slot | null>(null)
+    // С 2026-10-13 (просьба пользователя) x1 выбран сразу и «дышит» — можно сразу жать число.
+    const [activeSlot, setActiveSlot] = useState<Slot | null>('x1')
 
     useEffect(() => {
         setIntroDone(!data?.quadratic)
         setValues({ x1: null, x2: null })
-        setActiveSlot(null)
+        setActiveSlot('x1')
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [question])
 
