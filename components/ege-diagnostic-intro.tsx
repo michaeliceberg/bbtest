@@ -7,9 +7,10 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Timer, Target, Sparkles } from 'lucide-react'
+import { Timer, Target, Sparkles, Crosshair } from 'lucide-react'
 import { postponeEgeDiagnostic, startEgeDiagnostic } from '@/actions/ege-diagnostic'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
+import { declensionRu } from '@/usefulFunctions'
 
 export const DiagnosticIntro = ({ variant, questionsCount, resume }: { variant: 'screen' | 'card'; questionsCount: number; resume?: boolean }) => {
     const router = useRouter()
@@ -27,10 +28,13 @@ export const DiagnosticIntro = ({ variant, questionsCount, resume }: { variant: 
             <button type="button" onClick={go} disabled={pending}
                 className="mt-4 flex w-full items-center gap-3 rounded-3xl border-2 p-3 text-left active:translate-y-[1px] disabled:opacity-60"
                 style={{ borderColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.6), background: `linear-gradient(135deg, ${hexToRgba(GGEGE_PALETTE.purple.button, 0.16)}, #161F23 70%)`, boxShadow: `0 4px 0 ${GGEGE_PALETTE.purple.bottom}` }}>
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl" style={{ backgroundColor: hexToRgba(GGEGE_PALETTE.purple.button, 0.2) }}>🎯</span>
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
+                    style={{ background: `linear-gradient(180deg, ${GGEGE_PALETTE.purple.button}, ${GGEGE_PALETTE.purple.bottom})`, boxShadow: `0 3px 0 ${hexToRgba(GGEGE_PALETTE.purple.bottom, 0.8)}, inset 0 1px 0 rgba(255,255,255,0.35)` }}>
+                    <Crosshair className="h-6 w-6 text-white" strokeWidth={2.5} />
+                </span>
                 <span className="min-w-0 flex-1">
                     <span className="block text-base font-black text-[#F2F7FB]">{resume ? 'Закончи диагностику' : 'Узнай свой балл за 15 минут'}</span>
-                    <span className="block text-xs font-bold text-[#C9A6F5]">Прогноз станет точнее · {questionsCount} заданий ЕГЭ</span>
+                    <span className="block text-xs font-bold text-[#C9A6F5]">Прогноз станет точнее · {questionsCount} {declensionRu(questionsCount, 'задание', 'задания', 'заданий')} ЕГЭ</span>
                 </span>
                 <span className="shrink-0 rounded-xl px-3 py-1.5 text-sm font-black text-[#151F24]" style={{ backgroundColor: GGEGE_PALETTE.purple.button }}>{resume ? 'Дальше' : 'Начать'}</span>
                 {error && <span className="sr-only">{error}</span>}
