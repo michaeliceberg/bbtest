@@ -13820,3 +13820,14 @@ JSON, переданная параметром в `::jsonb`, сохраняет
   (`getPendingLevelCase`, пропом `levelCase` с /learn, /trainer, /progress) — кнопка «Открыть», барабан `CaseReel` поверх
   страницы (`openKeyCase(keyId)`).
 - Иконки: в проекте везде lucide-react; набор Hugeicons не подключали (стиль другой, нужды пока нет).
+
+## Источники переходов (utm) и связь «гость → аккаунт» (2026-10-12)
+`components/attribution-catcher.tsx` (в app/layout.tsx) ставит браузеру cookie `ggVid` (2 года) и запоминает первое
+«рекламное» касание в `ggUtm` (90 дней): utm_source/medium/campaign/content, иначе `?ref=` → source `invite`, иначе внешний
+сайт-источник (medium `referral`). События — таблица `visitor_events` (visit — первый заход или заход с меткой; trial_start —
+гость открыл пробный урок, один раз на браузер и урок; register). Логика — `lib/attribution.ts`, `actions/attribution.ts`.
+Метки и `visitor_id` пишутся в `guest_lesson_leads`, `diagnostic_leads` и при регистрации в `user_progress`
+(`upsertUserProgress`); там же `linkVisitorToUser` проставляет `user_id` событиям и лидам теста этого браузера. Лид теста
+также связывается с аккаунтом по Telegram (`identities.provider_account_id = telegram_chat_id`). Сводка — карточка
+«📣 Откуда приходят» в /admin/funnel. Ссылки для рекламы: `ggege.ru/?utm_source=vk&utm_campaign=название`.
+Ограничение: связь работает в том же браузере; у учеников, зарегистрированных до 12.10.2026, источника нет.

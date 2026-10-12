@@ -158,6 +158,13 @@ export const userProgress = pgTable('user_progress', {
 	// Когда приглашённый прошёл 3 разбора электродинамики и по ветке раздали
 	// пиццу (lib/referralRewards.ts). Null — ещё не раздавали.
 	referralRewardedAt: timestamp('referral_rewarded_at'),
+	// Откуда пришёл (первое касание): cookie ggVid / ggUtm (lib/attribution.ts), пишется при регистрации.
+	visitorId: text('visitor_id'),
+	utmSource: text('utm_source'),
+	utmMedium: text('utm_medium'),
+	utmCampaign: text('utm_campaign'),
+	utmContent: text('utm_content'),
+	landing: text('landing'),
 	// Дата регистрации (первого создания userProgress). Добавлена 2026-09-30 для
 	// /admin/funnel — у пользователей, созданных раньше, NULL.
 	createdAt: timestamp('created_at').defaultNow(),
@@ -1204,6 +1211,10 @@ export const diagnosticLeads = pgTable('diagnostic_leads', {
 	// вопрос теста (не влияет на score/weakUnit), см. diagnostic-client.tsx.
 	// Nullable — старые лиды, засеянные до этой фичи, его не имеют.
 	targetScore: integer('target_score'),
+	utmContent: text('utm_content'),
+	// Связь с аккаунтом: тот же браузер (visitor_id) при регистрации — lib/attribution.ts.
+	visitorId: text('visitor_id'),
+	userId: text('user_id'),
 	createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -1229,6 +1240,12 @@ export const guestLessonLeads = pgTable('guest_lesson_leads', {
 	rewardAmount: integer('reward_amount'),
 	claimedByUserId: text('claimed_by_user_id'),
 	claimedAt: timestamp('claimed_at'),
+	visitorId: text('visitor_id'),
+	utmSource: text('utm_source'),
+	utmMedium: text('utm_medium'),
+	utmCampaign: text('utm_campaign'),
+	utmContent: text('utm_content'),
+	landing: text('landing'),
 	createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -1338,5 +1355,21 @@ export const proInterest = pgTable('pro_interest', {
 	userId: text('user_id').notNull(),
 	event: text('event').notNull(),
 	source: text('source'),
+	createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// События воронки по посетителю (cookie ggVid): 'visit' — первый заход или переход по utm-метке,
+// 'trial_start' — гость открыл пробный урок, 'register' — завёл аккаунт. lib/attribution.ts, /admin/funnel.
+export const visitorEvents = pgTable('visitor_events', {
+	id: serial('id').primaryKey(),
+	visitorId: text('visitor_id').notNull(),
+	userId: text('user_id'),
+	event: text('event').notNull(),
+	path: text('path'),
+	utmSource: text('utm_source'),
+	utmMedium: text('utm_medium'),
+	utmCampaign: text('utm_campaign'),
+	utmContent: text('utm_content'),
+	referrer: text('referrer'),
 	createdAt: timestamp('created_at').notNull().defaultNow(),
 });

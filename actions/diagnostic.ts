@@ -10,6 +10,7 @@ import { randomBytes } from "crypto";
 import { eq } from "drizzle-orm";
 import db from "@/db/drizzle";
 import { diagnosticLeads } from "@/db/schema";
+import { readAttribution } from "@/lib/attribution";
 import { sendMessageToTelegram, getDiagnosticBotLink } from "@/utils/telegram";
 import { DIAGNOSTIC_SUBJECT_LABEL, type DiagnosticSubject } from "@/lib/diagnostic";
 
@@ -80,6 +81,7 @@ type StartTelegramLeadInput = {
 // app/api/telegram/webhook/route.ts.
 export const startDiagnosticTelegramLead = async (input: StartTelegramLeadInput) => {
 	const token = randomBytes(6).toString("hex");
+	const attribution = readAttribution();
 
 	const [row] = await db.insert(diagnosticLeads).values({
 		subject: input.subject,
@@ -87,9 +89,11 @@ export const startDiagnosticTelegramLead = async (input: StartTelegramLeadInput)
 		totalQuestions: input.totalQuestions,
 		weakUnitTitle: input.weakUnitTitle,
 		targetScore: input.targetScore ?? null,
-		utmSource: input.utmSource ?? null,
-		utmMedium: input.utmMedium ?? null,
-		utmCampaign: input.utmCampaign ?? null,
+		utmSource: input.utmSource ?? attribution.touch?.source ?? null,
+		utmMedium: input.utmMedium ?? attribution.touch?.medium ?? null,
+		utmCampaign: input.utmCampaign ?? attribution.touch?.campaign ?? null,
+		utmContent: attribution.touch?.content ?? null,
+		visitorId: attribution.visitorId,
 		telegramStartToken: token,
 	}).returning({ id: diagnosticLeads.id });
 

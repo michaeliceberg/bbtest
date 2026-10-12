@@ -9,6 +9,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
+import { linkVisitorToUser, logVisitorEvent, readAttribution } from '@/lib/attribution';
 import { xpForAmount, getLevelUpInfo } from '@/lib/xp';
 import { grantLevelCaseKeys } from '@/lib/levelCase';
 import { recalculateAchievements } from './check-achievements';
@@ -73,6 +74,7 @@ export const upsertUserProgress = async (courseId: number) => {
 	const referredBy = cookieStore.get(REFERRAL_COOKIE)?.value || null;
 	// Антифрод — сам себя не реферишь (тот же userId по какой-то причине).
 	const invitedByUserId = referredBy && referredBy !== userId ? referredBy : null;
+	const attribution = readAttribution();
 
 	await db.insert(userProgress).values({
 		userId,
@@ -83,8 +85,19 @@ export const upsertUserProgress = async (courseId: number) => {
 		userName: pickGuestNickname(),
 		userImageSrc: newAvatarUrl(),
 		invitedByUserId,
-
+		visitorId: attribution.visitorId,
+		utmSource: attribution.touch?.source ?? null,
+		utmMedium: attribution.touch?.medium ?? null,
+		utmCampaign: attribution.touch?.campaign ?? null,
+		utmContent: attribution.touch?.content ?? null,
+		landing: attribution.touch?.landing ?? null,
 	});
+
+	// Связь «гость → аккаунт»: события и лиды этого браузера теперь принадлежат ученику (lib/attribution.ts).
+	if (attribution.visitorId) {
+		await linkVisitorToUser(attribution.visitorId, userId).catch(() => {});
+		await logVisitorEvent(attribution.visitorId, 'register', { userId, touch: attribution.touch }).catch(() => {});
+	}
 
 	if (invitedByUserId) {
 		cookieStore.delete(REFERRAL_COOKIE);

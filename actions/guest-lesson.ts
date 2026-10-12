@@ -17,6 +17,7 @@ import { and, eq } from 'drizzle-orm';
 import db from '@/db/drizzle';
 import { guestLessonLeads, t_lessonProgress } from '@/db/schema';
 import { auth } from '@/lib/auth';
+import { readAttribution } from '@/lib/attribution';
 import { DIAGNOSTIC_CASE_POOL, pickWeightedReward, type CaseReward } from '@/lib/caseRewards';
 import { applyResolvedReward } from '@/lib/caseApply';
 import type { OpenCaseResult } from '@/actions/open-case';
@@ -32,10 +33,17 @@ const GUEST_LEAD_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 // у startDiagnosticTelegramLead (actions/diagnostic.ts), чтобы к моменту
 // клика по "Крутить" лид уже существовал.
 export async function createGuestLead(tLessonId: number, nickname: string, vibes: string[] = []) {
+	const attribution = readAttribution();
 	const [row] = await db.insert(guestLessonLeads).values({
 		tLessonId,
 		nickname,
 		vibes: vibes.slice(0, 30).join(',') || null,
+		visitorId: attribution.visitorId,
+		utmSource: attribution.touch?.source ?? null,
+		utmMedium: attribution.touch?.medium ?? null,
+		utmCampaign: attribution.touch?.campaign ?? null,
+		utmContent: attribution.touch?.content ?? null,
+		landing: attribution.touch?.landing ?? null,
 	}).returning({ id: guestLessonLeads.id });
 
 	const jar = await cookies();

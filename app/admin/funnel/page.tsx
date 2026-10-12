@@ -198,6 +198,50 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 		return v ? `${v.emoji} ${v.label}` : id
 	}
 
+	// Кампании (utm-метки, ссылки друзей, сайты-источники) — lib/attribution.ts. Посетитель считается по
+	// первому касанию с меткой; регистрации — по меткам, сохранённым в user_progress.
+	const campaignVisitors = await q(sql`
+		WITH firsts AS (
+			SELECT DISTINCT ON (visitor_id) visitor_id, coalesce(utm_source, '(прямой заход)') AS src, coalesce(utm_campaign, '') AS camp
+			FROM visitor_events WHERE event = 'visit'
+			ORDER BY visitor_id, (utm_source IS NULL), created_at),
+		seen AS (SELECT visitor_id, min(created_at) AS first_at FROM visitor_events GROUP BY visitor_id)
+		SELECT f.src, f.camp, count(*) AS visitors,
+			count(*) FILTER (WHERE EXISTS (SELECT 1 FROM visitor_events e WHERE e.visitor_id = f.visitor_id AND e.event = 'trial_start')) AS trial,
+			count(*) FILTER (WHERE EXISTS (SELECT 1 FROM guest_lesson_leads g WHERE g.visitor_id = f.visitor_id)) AS trial_done,
+			count(*) FILTER (WHERE EXISTS (SELECT 1 FROM diagnostic_leads d WHERE d.visitor_id = f.visitor_id)) AS diag
+		FROM firsts f JOIN seen s ON s.visitor_id = f.visitor_id
+		WHERE s.first_at >= ${since}
+		GROUP BY f.src, f.camp`)
+	const campaignUsers = await q(sql`
+		SELECT coalesce(u.utm_source, CASE WHEN u.visitor_id IS NOT NULL THEN '(прямой заход)' END) AS src,
+			coalesce(u.utm_campaign, '') AS camp, count(*) AS registered,
+			count(*) FILTER (WHERE (SELECT count(DISTINCT p.t_lesson_id) FROM t_lesson_progress p WHERE p.user_id = u.user_id AND p.training_pts > 0) >= 3) AS active3,
+			count(*) FILTER (WHERE EXISTS (SELECT 1 FROM pro_interest pi WHERE pi.user_id = u.user_id AND pi.event = 'want')) AS pro
+		FROM user_progress u
+		WHERE u.created_at >= ${since} AND coalesce(u.is_admin, 0) = 0 AND u.visitor_id IS NOT NULL
+		GROUP BY 1, 2`)
+	const campaignMap = new Map<string, { src: string; camp: string; visitors: number; trial: number; trialDone: number; diag: number; registered: number; active3: number; pro: number }>()
+	const campaignRow = (src: string, camp: string) => {
+		const key = `${src}|${camp}`
+		if (!campaignMap.has(key)) campaignMap.set(key, { src, camp, visitors: 0, trial: 0, trialDone: 0, diag: 0, registered: 0, active3: 0, pro: 0 })
+		return campaignMap.get(key)!
+	}
+	for (const r of campaignVisitors) {
+		const c = campaignRow(String(r.src), String(r.camp))
+		c.visitors += n(r.visitors); c.trial += n(r.trial); c.trialDone += n(r.trial_done); c.diag += n(r.diag)
+	}
+	for (const r of campaignUsers) {
+		const c = campaignRow(String(r.src), String(r.camp))
+		c.registered += n(r.registered); c.active3 += n(r.active3); c.pro += n(r.pro)
+	}
+	const campaigns = Array.from(campaignMap.values()).sort((a, b) => b.registered - a.registered || b.visitors - a.visitors)
+	const [linked] = await q(sql`
+		SELECT count(*) FILTER (WHERE d.user_id IS NOT NULL OR i.user_id IS NOT NULL) AS linked, count(*) AS total
+		FROM diagnostic_leads d
+		LEFT JOIN identities i ON i.provider = 'telegram' AND i.provider_account_id = d.telegram_chat_id
+		WHERE d.created_at >= ${since}`)
+
 	const funnel = [
 		{ label: 'Прошли пробный урок', value: n(guest.leads), base: n(guest.leads) },
 		{ label: 'Открыли кейс', value: n(guest.opened), base: n(guest.leads) },
@@ -229,6 +273,45 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 			</div>
 
 			<ActivityHeatmap rows={heatRows} />
+
+			<Card title="📣 Откуда приходят (кампании)">
+				{campaigns.length === 0 ? <Empty /> : (
+					<div className="overflow-x-auto">
+						<table className="w-full text-sm">
+							<thead>
+								<tr className="text-left text-xs text-[#9AA7B0]">
+									<th className="py-1 pr-3">Источник / кампания</th>
+									<th className="py-1 px-2 text-right">Зашли</th>
+									<th className="py-1 px-2 text-right">Начали урок</th>
+									<th className="py-1 px-2 text-right">Прошли урок</th>
+									<th className="py-1 px-2 text-right">Тест</th>
+									<th className="py-1 px-2 text-right">Регистр.</th>
+									<th className="py-1 px-2 text-right">3+ урока</th>
+									<th className="py-1 pl-2 text-right">PRO</th>
+								</tr>
+							</thead>
+							<tbody>
+								{campaigns.map((c) => (
+									<tr key={`${c.src}|${c.camp}`} className="border-t border-[#232F34]">
+										<td className="py-1.5 pr-3"><span className="font-bold">{c.src}</span>{c.camp && <span className="text-[#9AA7B0]"> · {c.camp}</span>}</td>
+										<td className="py-1.5 px-2 text-right">{c.visitors}</td>
+										<td className="py-1.5 px-2 text-right">{c.trial}</td>
+										<td className="py-1.5 px-2 text-right">{c.trialDone}</td>
+										<td className="py-1.5 px-2 text-right">{c.diag}</td>
+										<td className="py-1.5 px-2 text-right font-extrabold">{c.registered} <span className="text-xs font-normal text-[#9AA7B0]">{c.visitors > 0 ? pct(c.registered, c.visitors) : ''}</span></td>
+										<td className="py-1.5 px-2 text-right">{c.active3}</td>
+										<td className="py-1.5 pl-2 text-right">{c.pro}</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				)}
+				<p className="text-xs text-[#6B7A83] mt-3">
+					Ссылки для рекламы: <code>ggege.ru/?utm_source=vk&amp;utm_campaign=название</code> (так же для <code>/test</code> и уроков). Без меток источник —
+					сайт, с которого перешли, или «invite» для ссылок друзей. Считаются заходы с 12.10.2026. Лиды теста, связанные с аккаунтом: {n(linked.linked)} из {n(linked.total)}.
+				</p>
+			</Card>
 
 			<Card title="👑 Спрос на PRO (1100 ₽/мес, деньги не берём)">
 				<div className="grid grid-cols-3 gap-3 mb-3">
