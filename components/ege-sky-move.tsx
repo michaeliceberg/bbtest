@@ -8,13 +8,22 @@
 // будет после хода. Облака вырезаны из картинок пользователя: public/clouds/*.webp.
 // Нижняя часть — шаги хода и кнопка.
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Dumbbell, Swords, Flag, CircleHelp, Pencil } from 'lucide-react'
 import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors'
 import type { EgeMap } from '@/lib/egeMap'
+import { PiggyBank } from '@/components/piggy-bank'
+import { COIN_DROP_SOUND, playSound, preloadSound } from '@/lib/sound'
 
 const fmt = (x: number) => (Math.round(x * 10) / 10).toString().replace('.', ',')
 const GOALS = [60, 70, 80, 90, 100]
+const PIGGY_KEY = 'egePiggyLast'
+// «2,8 балла», «1 балл», «5 баллов»
+const ballWord = (x: number) => {
+    if (Math.round(x * 10) % 10 !== 0) return 'балла'
+    const n = Math.round(x), m10 = n % 10, m100 = n % 100
+    return m10 === 1 && m100 !== 11 ? 'балл' : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? 'балла' : 'баллов'
+}
 const NAVY = '#1F4E7A'
 const LEAF = '#3E8E2C'
 
@@ -42,6 +51,21 @@ const Cloud = ({ src, className, children, delay = 0 }: { src: string; className
 export const EgeSkyMove = ({ map, target, targetPrimary, onPickGoal, activeMoveId, onMove, movePending, moveError }: Props) => {
     const [showHelp, setShowHelp] = useState(false)
     const [editing, setEditing] = useState(target === null)
+    // Монетка падает в свинку, если с прошлого захода в копилке прибавилось (храним на устройстве).
+    const [dropKey, setDropKey] = useState<number | null>(null)
+    const [gainShown, setGainShown] = useState<number | null>(null)
+    useEffect(() => {
+        let last: number | null = null
+        try { const v = localStorage.getItem(PIGGY_KEY); last = v === null ? null : Number(v) } catch { /* нет хранилища */ }
+        try { localStorage.setItem(PIGGY_KEY, String(map.primary)) } catch { /* нет хранилища */ }
+        const grew = last === null ? map.primary > 0 : map.primary - last >= 0.05
+        if (!grew) return
+        preloadSound(COIN_DROP_SOUND)
+        setDropKey(Date.now())
+        if (last !== null) setGainShown(map.primary - last)
+        const t = setTimeout(() => playSound(COIN_DROP_SOUND, 0.6), 1050)
+        return () => clearTimeout(t)
+    }, [map.primary])
     const mv = map.move
     const from = mv ? mv.fromPrimary : map.primary
     const to = mv ? mv.toPrimary : targetPrimary
@@ -54,20 +78,28 @@ export const EgeSkyMove = ({ map, target, targetPrimary, onPickGoal, activeMoveI
             {/* небо */}
             <div className="relative" style={{ background: 'linear-gradient(180deg, #3E9BDD 0%, #62B6EC 55%, #93D0F4 100%)' }}>
                 {/* копилка и цель */}
-                <div className="relative z-10 flex items-start justify-between px-4 pt-3">
-                    <div>
-                        <p className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wide text-white/80">
-                            Копилка
+                <div className="relative z-10 flex items-start gap-2 px-3 pt-3">
+                    <div key={dropKey ?? 'still'} className={dropKey !== null ? 'animate-piggy-bump' : ''}>
+                        <PiggyBank fill={map.primary / map.primaryMax} size={96} dropKey={dropKey} />
+                    </div>
+                    <div className="min-w-0 flex-1 pt-1">
+                        <p className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wide text-white/85">
+                            В копилке
                             <button type="button" onClick={() => setShowHelp((v) => !v)} aria-label="Что такое копилка" className="rounded-full p-0.5 text-white/70 hover:text-white">
                                 <CircleHelp className="h-3.5 w-3.5" />
                             </button>
                         </p>
-                        <p className="font-black text-white" style={{ textShadow: '0 2px 0 rgba(20,70,120,0.35)' }}>
-                            <span className="text-2xl">{fmt(map.primary)}</span><span className="text-sm text-white/75"> / {map.primaryMax} · ≈{testLabel} тест.</span>
-                        </p>
+                        <span className="lesson-pill mt-0.5 inline-flex items-baseline gap-1 rounded-xl px-2.5 py-0.5 font-black text-[#5A3A06]">
+                            <span className="text-2xl leading-tight">{fmt(map.primary)}</span>
+                            <span className="text-sm">{ballWord(map.primary)}</span>
+                            {gainShown !== null && (
+                                <span className="animate-coin-plus ml-1 text-sm text-[#2F6B1E]">+{fmt(gainShown)}</span>
+                            )}
+                        </span>
+                        <p className="mt-1 text-[11px] font-bold leading-tight text-white/80">из {map.primaryMax} · это ≈{testLabel} на ЕГЭ</p>
                     </div>
                     <button type="button" onClick={() => setEditing((v) => !v)}
-                        className="flex items-center gap-1.5 rounded-xl bg-white/90 px-2.5 py-1 font-black active:translate-y-[1px]"
+                        className="mt-1 flex shrink-0 items-center gap-1.5 rounded-xl bg-white/90 px-2.5 py-1 font-black active:translate-y-[1px]"
                         style={{ color: NAVY, boxShadow: '0 3px 0 rgba(20,70,120,0.35)' }}>
                         <Flag className="h-4 w-4" />
                         {target !== null ? <span className="text-lg">{target}</span> : <span className="text-sm">Цель</span>}
@@ -75,8 +107,8 @@ export const EgeSkyMove = ({ map, target, targetPrimary, onPickGoal, activeMoveI
                     </button>
                 </div>
                 {left !== null && !editing && (
-                    <p className="relative z-10 px-4 text-xs font-bold text-white/85">
-                        {left > 0 ? <>До цели ещё <b className="text-white">{fmt(left)}</b> первичных</> : <>Цель достигнута 🎉</>}
+                    <p className="relative z-10 mt-1 px-4 text-xs font-bold text-white/90">
+                        {left > 0 ? <>Чтобы сдать на {target}, положи в копилку ещё <b className="text-white">{fmt(left)}</b></> : <>Копилка полна для цели 🎉</>}
                     </p>
                 )}
                 {showHelp && (

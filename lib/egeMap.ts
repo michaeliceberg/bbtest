@@ -214,7 +214,7 @@ export async function getEgeMap(userId: string, subject = 'math_profile'): Promi
 // (kind 't_unit') или верно решённая задача задачника (kind 'unit'). Прогресс уже записан —
 // «до» считаем, вычтя эту одну единицу из статистики юнита/темы.
 // stepsToNext — сколько ещё таких же уроков/задач (с тем же приростом) до следующего тестового балла.
-export type EgeGain = { primary: number; fromTest: number; toTest: number; taskNum: number; taskTitle: string; stepsToNext: number | null; kind: 'unit' | 't_unit' }
+export type EgeGain = { primary: number; fromTest: number; toTest: number; taskNum: number; taskTitle: string; stepsToNext: number | null; kind: 'unit' | 't_unit'; totalPrimary?: number; primaryMax?: number }
 
 // Наименьший первичный балл (дробный), при котором тестовый станет больше test.
 const primaryForNextTest = (fromPrimary: number, test: number) => {
@@ -247,7 +247,7 @@ export async function getEgeGain(userId: string, kind: 'unit' | 't_unit', refId:
         && st.earned - (before.stations.find((b) => b.num === st.num)?.earned ?? 0) > 0)
     const nextP = primaryForNextTest(after.primary, after.test)
     const stepsToNext = nextP === null ? null : Math.max(1, Math.ceil((nextP - after.primary) / primary))
-    return { primary, fromTest: before.test, toTest: after.test, taskNum: station?.num ?? 0, taskTitle: station?.title ?? '', stepsToNext, kind }
+    return { primary, fromTest: before.test, toTest: after.test, taskNum: station?.num ?? 0, taskTitle: station?.title ?? '', stepsToNext, kind, totalPrimary: after.primary, primaryMax: after.primaryMax }
 }
 
 // Освоенность станции после хода: +1 урок тренажёра и +k задач задачника.

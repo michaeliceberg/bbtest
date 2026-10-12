@@ -6,6 +6,8 @@
 import Link from 'next/link'
 import { toast } from 'sonner'
 import type { EgeGain } from '@/lib/egeMap'
+import { PiggyBank } from '@/components/piggy-bank'
+import { COIN_DROP_SOUND, playSound } from '@/lib/sound'
 
 // «через 3 урока» / «через 5 задач»
 const stepsWord = (n: number, kind: EgeGain['kind']) => {
@@ -14,6 +16,7 @@ const stepsWord = (n: number, kind: EgeGain['kind']) => {
     return kind === 't_unit' ? ['урок', 'урока', 'уроков'][f] : ['задачу', 'задачи', 'задач'][f]
 }
 
+// Свинка-копилка с падающей монеткой — та же, что на «Мой путь» (components/piggy-bank.tsx).
 // Плашка висит 4–5 с — поэтому одна короткая строка: «🎯 +1 балл ЕГЭ через 3 урока».
 export const showEgeGain = (gain: EgeGain | null | undefined) => {
     if (!gain || gain.primary < 0.005) return
@@ -33,11 +36,15 @@ export const showEgeGain = (gain: EgeGain | null | undefined) => {
                 boxShadow: `0 5px 0 ${jumped ? '#7A5A12' : '#2F4A22'}, 0 12px 24px rgba(0,0,0,0.45)`,
             }}
         >
-            <span className="text-3xl">{jumped ? '🚀' : steps !== null && steps <= 10 ? '🎯' : '📈'}</span>
+            {/* свинка-копилка: в прорезь падает монетка */}
+            <span className="-my-2 shrink-0 animate-piggy-bump">
+                <PiggyBank fill={gain.totalPrimary !== undefined && gain.primaryMax ? gain.totalPrimary / gain.primaryMax : 0.3} size={54} dropKey={1} />
+            </span>
             <span className="min-w-0 flex-1 text-base font-black leading-tight" style={{ color: jumped ? '#F2C35B' : '#A1D151' }}>
                 {text}
             </span>
             <span className="shrink-0 text-xs font-black text-[#9AA7B0]">Мой путь ›</span>
         </Link>
     ), { duration: 5000 })
+    setTimeout(() => playSound(COIN_DROP_SOUND, 0.5), 1050)
 }
