@@ -10,7 +10,8 @@ import { useRouter } from 'next/navigation'
 import { startEgeMove } from '@/actions/ege-move'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Dumbbell, Swords, Target, Flag } from 'lucide-react'
+import { Dumbbell, Swords, Target, Flag, CircleHelp } from 'lucide-react'
+import { getVuz } from '@/lib/vuzList'
 import { setEgeTarget } from '@/actions/ege-target'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import type { EgeMap } from '@/lib/egeMap'
@@ -30,6 +31,7 @@ export const EgePath = ({ map, target: initialTarget, activeMoveId, unclaimedCas
         else setMoveError(r && 'error' in r ? r.error : 'Не получилось собрать ход')
     })
     const [target, setTarget] = useState<number | null>(initialTarget)
+    const [showHelp, setShowHelp] = useState(false)
     const [editing, setEditing] = useState(initialTarget === null)
     const [, startTransition] = useTransition()
     const chooseGoal = (g: number) => {
@@ -39,17 +41,24 @@ export const EgePath = ({ map, target: initialTarget, activeMoveId, unclaimedCas
     const targetPrimary = target !== null ? testToPrimary(target) : null
     const left = targetPrimary !== null ? Math.max(0, targetPrimary - map.primary) : null
 
+    const vuz = getVuz(vuzId)
+
     return (
         <div className="mx-auto w-full max-w-5xl px-4 pb-24 pt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-8">
           <div className="min-w-0">
-            <h1 className="text-2xl font-black text-[#F2F7FB]">Мой путь к ЕГЭ</h1>
+            <h1 className="text-2xl font-black text-[#F2F7FB]">{vuz ? `Мой путь в ${vuz.short}` : 'Мой путь к ЕГЭ'}</h1>
             <p className="text-sm font-bold text-[#9AA7B0]">Профильная математика · 20 заданий (ЕГЭ-2027)</p>
 
             {/* прогноз и цель */}
             <div className="mt-4 rounded-3xl border-2 border-[#2A363C] bg-[#161F23] p-4">
                 <div className="flex items-end justify-between">
                     <div>
-                        <p className="text-xs font-bold uppercase tracking-wide text-[#9AA7B0]">Копилка</p>
+                        <p className="flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-[#9AA7B0]">
+                            Копилка
+                            <button type="button" onClick={() => setShowHelp((v) => !v)} aria-label="Что такое копилка" className="rounded-full p-0.5 text-[#72838D] hover:text-[#C9D3D9]">
+                                <CircleHelp className="h-3.5 w-3.5" />
+                            </button>
+                        </p>
                         <p className="font-black text-[#F2C35B]"><span className="text-4xl">{fmt(map.primary)}</span><span className="text-lg text-[#9AA7B0]"> / {map.primaryMax}</span></p>
                         <p className="text-xs font-bold text-[#9AA7B0]">первичных · ≈{map.hasDiag && map.testLo !== map.testHi ? `${map.testLo}–${map.testHi}` : map.test} тестовых</p>
                     </div>
@@ -92,9 +101,9 @@ export const EgePath = ({ map, target: initialTarget, activeMoveId, unclaimedCas
                         </div>
                     </div>
                 )}
-                <p className="mt-3 text-[11px] leading-snug text-[#5C6B73]">
+                {showHelp && <p className="mt-3 rounded-xl bg-[#11181C] p-3 text-[11px] leading-snug text-[#9AA7B0]">
                     Копилка — первичные баллы за то, что ты уже умеешь (по тренажёру, задачнику и диагностике; диагностика весит меньше, когда появляются свои уроки и задачи). Тестовый балл — ориентир по шкале 2026 года: шкалу 2027 ещё не опубликовали.
-                </p>
+                </p>}
             </div>
 
             {diagCard}

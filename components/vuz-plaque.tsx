@@ -15,6 +15,12 @@ import { setTargetVuz } from '@/actions/ege-target'
 
 const GOLD = '#F2C35B'
 
+// Логотип на белой плашке — у большинства логотипов вузов тёмные цвета, на тёмном фоне не видно.
+const VuzLogo = ({ src, size }: { src: string; size: string }) => (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt="" className={`${size} shrink-0 rounded-lg bg-white object-contain p-1`} loading="lazy" />
+)
+
 export const VuzPlaque = ({ vuzId, forecast }: { vuzId: string | null; forecast?: number | null }) => {
     const router = useRouter()
     const [open, setOpen] = useState(false)
@@ -53,9 +59,11 @@ export const VuzPlaque = ({ vuzId, forecast }: { vuzId: string | null; forecast?
                     boxShadow: `0 4px 0 ${vuz ? '#7A5A1C' : '#10171B'}`,
                 }}
             >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: vuz ? GOLD : '#26333B' }}>
-                    <GraduationCap className="h-5 w-5" style={{ color: vuz ? '#3A2A08' : '#9AA7B0' }} />
-                </span>
+                {vuz?.logo ? <VuzLogo src={vuz.logo} size="h-11 w-11" /> : (
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: vuz ? GOLD : '#26333B' }}>
+                        <GraduationCap className="h-5 w-5" style={{ color: vuz ? '#3A2A08' : '#9AA7B0' }} />
+                    </span>
+                )}
                 <span className="min-w-0 flex-1">
                     {vuz ? (
                         <>
@@ -107,6 +115,11 @@ export const VuzPlaque = ({ vuzId, forecast }: { vuzId: string | null; forecast?
                                         className="mb-1.5 flex w-full items-center gap-3 rounded-xl border-2 px-3 py-2 text-left active:translate-y-[1px]"
                                         style={{ borderColor: sel ? GOLD : '#232F34', background: sel ? 'rgba(242,195,91,0.1)' : '#1A2328' }}
                                     >
+                                        {v.logo ? <VuzLogo src={v.logo} size="h-10 w-10" /> : (
+                                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#26333B]">
+                                                <GraduationCap className="h-5 w-5 text-[#72838D]" />
+                                            </span>
+                                        )}
                                         <span className="min-w-0 flex-1">
                                             <span className="block truncate text-sm font-black text-[#F2F7FB]">{v.short}</span>
                                             <span className="block truncate text-[11px] font-bold text-[#72838D]">{v.city}</span>
