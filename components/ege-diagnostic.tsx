@@ -15,6 +15,7 @@ import { X, Flame, Check, HelpCircle } from 'lucide-react'
 import 'katex/dist/katex.min.css'
 import { HighlightedNumbersText } from '@/components/HighlightedNumbersText'
 import { KeyboardInput } from '@/app/lesson/keyboard-input'
+import { PlanBuildModal } from '@/components/plan-build-modal'
 import { answerEgeDiagnostic, finishEgeDiagnostic } from '@/actions/ege-diagnostic'
 import type { DiagAnswer, DiagPlanItem, DiagQuestion, DiagResult } from '@/lib/egeDiagnostic'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -193,7 +194,7 @@ const Chips = ({ items, color }: { items: { num: number; title: string }[]; colo
 )
 
 export const DiagResultView = ({ r }: { r: DiagResult }) => {
-    const router = useRouter()
+    const [building, setBuilding] = useState(false)
     const fmt = (x: number) => (Math.round(x * 10) / 10).toString().replace('.', ',')
     return (
         <div className="mx-auto min-h-[100dvh] w-full max-w-lg bg-[#131D22] px-4 pb-10 pt-8">
@@ -235,7 +236,8 @@ export const DiagResultView = ({ r }: { r: DiagResult }) => {
             <p className="mt-6 text-[11px] leading-snug text-[#5C6B73]">
                 По 1–2 вопроса на задание — оценка примерная, поэтому диапазон. Дальше прогноз уточняется по твоим урокам и задачам. Шкала 2027 ещё не опубликована — считаем по 2026.
             </p>
-            <button type="button" onClick={() => { router.push('/path'); router.refresh() }}
+            {building && <PlanBuildModal r={r} onClose={() => setBuilding(false)} />}
+            <button type="button" onClick={() => setBuilding(true)}
                 className="mt-4 w-full rounded-2xl py-4 text-base font-black uppercase tracking-wide text-[#151F24]"
                 style={{ backgroundColor: GGEGE_PALETTE.orange.button, boxShadow: `0 5px 0 ${GGEGE_PALETTE.orange.bottom}` }}>
                 Построить мой план ➜

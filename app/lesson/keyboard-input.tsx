@@ -39,7 +39,8 @@ export const KeyboardInput = ({ value, onChange, disabled, showDisplay = true, a
         }
         if (key === ',') {
             if (digitsOnly.includes(',')) return
-            onChange(value + ',')
+            // Как в калькуляторе: запятая первой — значит «0,» (и «-0,» после минуса).
+            onChange(value + (digitsOnly === '' ? '0,' : ','))
             return
         }
         onChange(value + key)
