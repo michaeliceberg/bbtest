@@ -69,6 +69,8 @@ export const userProgress = pgTable('user_progress', {
 	userName: text('user_name').notNull().default('User'),
 	// Цель на ЕГЭ (тестовый балл), выбранная на экране «Мой путь»; null — ещё не выбрана.
 	egeTarget: integer('ege_target'),
+	// Вуз-цель (id из lib/vuzList.ts) — табличка на вершине «Башни ЕГЭ».
+	targetVuz: text('target_vuz'),
 	userImageSrc: text('user_image_src').notNull().default('/mascot.svg'),
 	activeCourseId: integer('active_course_id').references(() => courses.id, { onDelete: 'cascade' }),
 	hearts: integer('hearts').notNull().default(500),

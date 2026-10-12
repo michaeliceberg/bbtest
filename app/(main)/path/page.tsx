@@ -30,7 +30,7 @@ const PathPage = async () => {
     const diagTasks = map.stations.filter((s) => s.courseTarget > 0).length
     if (!lastDiag) return <DiagnosticIntro variant="screen" questionsCount={diagTasks} />
     const diagCard = doneDiag ? null : <DiagnosticIntro variant="card" questionsCount={diagTasks} resume={lastDiag.status === 'active'} />
-    return <EgePath map={map} target={userProgress.egeTarget ?? null} activeMoveId={active?.id ?? null} unclaimedCase={unclaimed} diagCard={diagCard} />
+    return <EgePath key={`${userProgress.targetVuz}-${userProgress.egeTarget}`} vuzId={userProgress.targetVuz ?? null} map={map} target={userProgress.egeTarget ?? null} activeMoveId={active?.id ?? null} unclaimedCase={unclaimed} diagCard={diagCard} />
 }
 
 export default PathPage

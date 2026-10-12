@@ -19,7 +19,7 @@ import { EgeTower } from '@/components/ege-tower'
 
 const GOALS = [60, 70, 80, 90, 100]
 const fmt = (x: number) => (Math.round(x * 10) / 10).toString().replace('.', ',')
-export const EgePath = ({ map, target: initialTarget, activeMoveId, unclaimedCase, diagCard }: { map: EgeMap; target: number | null; activeMoveId: number | null; unclaimedCase?: { id: number; taskNum: number } | null; diagCard?: React.ReactNode }) => {
+export const EgePath = ({ map, target: initialTarget, activeMoveId, unclaimedCase, diagCard, vuzId = null }: { map: EgeMap; target: number | null; vuzId?: string | null; activeMoveId: number | null; unclaimedCase?: { id: number; taskNum: number } | null; diagCard?: React.ReactNode }) => {
     const router = useRouter()
     const [moveError, setMoveError] = useState<string | null>(null)
     const [movePending, startMove] = useTransition()
@@ -171,7 +171,7 @@ export const EgePath = ({ map, target: initialTarget, activeMoveId, unclaimedCas
             })()}
 
           </div>
-          <EgeTower map={map} />
+          <EgeTower map={map} vuzId={vuzId} />
         </div>
     )
 }

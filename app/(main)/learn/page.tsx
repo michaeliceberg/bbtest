@@ -38,6 +38,9 @@ import { LEARN_ONLY_UNIT, pickActiveCourseId, resolveActiveTCourse } from '@/lib
 import { Suspense } from 'react';
 import { isLearnUnlocked } from '@/lib/learn-unlock';
 import { CourseProgressStrip } from '@/components/course-progress-strip';
+import { EgeTower } from '@/components/ege-tower';
+import { getEgeMap } from '@/lib/egeMap';
+import { ScrollToSelectedUnit } from '@/components/scroll-to-selected-unit';
 
 const bgList = [
   '/bg-svg/anchors-away.svg',
@@ -67,7 +70,7 @@ interface LessonStat {
   percentageDoneLesson: number;
 }
 
-const LearnPage = async () => {
+const LearnPage = async ({ searchParams }: { searchParams: { unit?: string } }) => {
   const session = await auth();
   
   if (!session?.user) {
@@ -357,12 +360,45 @@ const LearnPage = async () => {
     ? (focusUnit.lessons?.find((l: { id: number }) => l.id === lastTouchedLessonId)?.id ?? focusUnit.lessons?.[0]?.id ?? null)
     : null;
 
+  // ЕГЭ Математика: «Башня ЕГЭ» вместо длинного списка — показываем только раздел выбранного этажа
+  // (?unit=ID). По умолчанию — раздел, где решали последним, иначе первый незаконченный открытый.
+  const isEgeTowerCourse = activeCourse.title.startsWith('ЕГЭ Математика');
+  const egeMap = isEgeTowerCourse ? await getEgeMap(userId, 'math_profile') : null;
+  const unitIndexById = new Map(unitsWithFormattedLessons.map((u, i) => [u.id, i]));
+  const towerHrefs: Record<number, string> = {};
+  const unitNumById = new Map<number, number>();
+  if (egeMap) {
+    for (const st of egeMap.stations) {
+      const u = unitsWithFormattedLessons.find((x) => st.unitIds.includes(x.id));
+      if (u) { towerHrefs[st.num] = `/learn?unit=${u.id}`; unitNumById.set(u.id, st.num); }
+    }
+  }
+  let selectedUnitId: number | null = null;
+  if (egeMap) {
+    const asked = Number(searchParams?.unit);
+    const lastUnit = lastTouchedLessonId != null ? lessonStatsMap.get(lastTouchedLessonId)?.unitId : undefined;
+    selectedUnitId =
+      (unitIndexById.has(asked) ? asked : null) ??
+      (lastUnit != null && unitIndexById.has(lastUnit) ? lastUnit : null) ??
+      unitsWithFormattedLessons.find((u) => unitUnlocked(u) && !u.isCompleted)?.id ??
+      unitsWithFormattedLessons[0]?.id ?? null;
+  }
+  const shownUnits = egeMap ? unitsWithFormattedLessons.filter((u) => u.id === selectedUnitId) : unitsWithFormattedLessons;
+  const selectedNum = selectedUnitId != null ? unitNumById.get(selectedUnitId) ?? null : null;
+  const tower = egeMap ? (
+    <EgeTower map={egeMap} vuzId={userProgress.targetVuz ?? null} learn={{ hrefs: towerHrefs, selectedNum }} />
+  ) : null;
+  const scrollLessonId = egeMap
+    ? (lastTouchedLessonId != null && lessonStatsMap.get(lastTouchedLessonId)?.unitId === selectedUnitId ? lastTouchedLessonId : null)
+    : lastTouchedLessonId;
+
   return (
     <LearnWrapper courseId={activeCourseId}>
       <Suspense fallback={null}>
         {focusUnit
           ? <ScrollToLesson lessonId={focusScrollLessonId} always />
-          : <ScrollToLesson lessonId={lastTouchedLessonId} />}
+          : <ScrollToLesson lessonId={scrollLessonId} />}
+        {egeMap && <ScrollToSelectedUnit unitId={selectedUnitId} />}
       </Suspense>
       <div className='flex flex-row-reverse gap-[48px] px-6'>
         <StickyWrapper>
@@ -375,6 +411,8 @@ const LearnPage = async () => {
             ggStickers={userProgress.ggStickers}
             hasActiveSubscription={false}
           />
+
+          {tower && <div className='hidden lg:block'>{tower}</div>}
 
           {dailyQuest && (
             <TrainerQuestCard
@@ -410,6 +448,8 @@ const LearnPage = async () => {
           {/* Шапка как на /trainer: кнопка с разделом, который сейчас на экране, по нажатию — меню разделов */}
           <Header title={`Задачник ${activeCourse.title}`} />
           <LearnUnitNav
+            navigate={!!egeMap}
+            selectedUnitId={selectedUnitId}
             units={unitsWithFormattedLessons.map((unit, index) => {
               const stats = unitChallengeStats.get(unit.id);
               return {
@@ -431,7 +471,9 @@ const LearnPage = async () => {
               <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} levelCase={await getPendingLevelCase(userId)} />
             </div>
 
-            <CourseProgressStrip
+            {tower && <div className='mb-6 lg:hidden'>{tower}</div>}
+
+            {!egeMap && <CourseProgressStrip
               units={unitsWithFormattedLessons.map((unit, index) => {
                 const stats = unitChallengeStats.get(unit.id);
                 const percent = stats && stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
@@ -446,15 +488,16 @@ const LearnPage = async () => {
                   section: egeSectionOf(activeCourse.title, unit.title),
                 };
               })}
-            />
+            />}
 
-            {unitsWithFormattedLessons.map((unit, index) => {
+            {shownUnits.map((unit) => {
+              const index = unitIndexById.get(unit.id) ?? 0
               // ЕГЭ Математика: разделитель «Часть 1 / Часть 2 / Дополнительно» по номеру задания в названии юнита
               const section = egeSectionOf(activeCourse.title, unit.title)
-              const prevSection = index > 0 ? egeSectionOf(activeCourse.title, unitsWithFormattedLessons[index - 1].title) : null
+              const prevSection = egeMap ? null : index > 0 ? egeSectionOf(activeCourse.title, unitsWithFormattedLessons[index - 1].title) : null
               return (
               <div key={unit.id} className='mb-10' data-learn-unit-id={unit.id}>
-                {section && section !== 'part1' && section !== prevSection && <EgeSectionHeader section={section} />}
+                {section && (egeMap ? true : section !== 'part1' && section !== prevSection) && <EgeSectionHeader section={section} />}
                 <Unit
                   id={unit.id}
                   unitIndex={index}

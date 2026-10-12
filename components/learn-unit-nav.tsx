@@ -9,6 +9,7 @@
 // Блоки юнитов на странице помечены data-learn-unit-id (app/(main)/learn/page.tsx).
 
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Check, Lock } from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store'
@@ -39,8 +40,10 @@ export const scrollToLearnUnit = (id: number) => {
     }, 1100)
 }
 
-export const LearnUnitNav = ({ units }: { units: LearnNavUnit[] }) => {
-    const [currentId, setCurrentId] = useState<number | null>(units[0]?.id ?? null)
+// navigate — задачник с «Башней ЕГЭ»: на странице показан только один раздел, меню переключает раздел (?unit=ID).
+export const LearnUnitNav = ({ units, navigate = false, selectedUnitId = null }: { units: LearnNavUnit[]; navigate?: boolean; selectedUnitId?: number | null }) => {
+    const router = useRouter()
+    const [currentId, setCurrentId] = useState<number | null>(navigate ? selectedUnitId : units[0]?.id ?? null)
     const [menuOpen, setMenuOpen] = useState(false)
     const currentRef = useRef(currentId)
     currentRef.current = currentId
@@ -49,7 +52,10 @@ export const LearnUnitNav = ({ units }: { units: LearnNavUnit[] }) => {
     const navClear = useTrainerNavStore((s) => s.clear)
 
     // какой раздел сейчас на экране: последний, чей верх поднялся выше шапки
+    useEffect(() => { if (navigate) setCurrentId(selectedUnitId) }, [navigate, selectedUnitId])
+
     useEffect(() => {
+        if (navigate) return
         let timer: ReturnType<typeof setTimeout> | null = null
         const update = () => {
             timer = null
@@ -65,7 +71,7 @@ export const LearnUnitNav = ({ units }: { units: LearnNavUnit[] }) => {
         const t0 = setTimeout(update, 400)
         window.addEventListener('scroll', onScroll, { passive: true })
         return () => { window.removeEventListener('scroll', onScroll); clearTimeout(t0); if (timer) clearTimeout(timer) }
-    }, [units])
+    }, [units, navigate])
 
     useEffect(() => {
         navSetOpen(() => setMenuOpen(true))
@@ -81,6 +87,7 @@ export const LearnUnitNav = ({ units }: { units: LearnNavUnit[] }) => {
 
     const go = (id: number) => {
         setMenuOpen(false)
+        if (navigate) { router.push(`/learn?unit=${id}`, { scroll: false }); return }
         setTimeout(() => scrollToLearnUnit(id), 250)
     }
 
