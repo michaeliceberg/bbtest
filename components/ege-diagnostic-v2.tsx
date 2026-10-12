@@ -32,7 +32,14 @@ type Item =
     | { kind: 'choice'; options: string[]; correct: number }
     | { kind: 'signs'; rows: { tex: string; answer: '>' | '<' }[] }
 
-type Task = { id: string; label: string; topic: string; text: string; picture?: React.ReactNode; item: Item }
+// text — обычный текст условия (по центру), formula — крупная формула по центру (KaTeX без $),
+// text2/formula2 — вторая строка (задание 6), words — слова-плашки (задание 13),
+// answerTex — верный ответ для итога.
+type Task = {
+    id: string; label: string; topic: string; text: string
+    formula?: string; text2?: string; formula2?: string; words?: string[]
+    picture?: React.ReactNode; answerTex: string; item: Item
+}
 
 // ── рисунки ─────────────────────────────────────────────────────────────────
 
@@ -132,20 +139,20 @@ const PicIncircle = (
 // ── задания ─────────────────────────────────────────────────────────────────
 
 const TASKS: Task[] = [
-    { id: '1', label: '1', topic: 'Устный счёт', text: '$5 \\cdot 5 = \\;?$', item: { kind: 'number', answer: '25' } },
-    { id: '2', label: '2', topic: 'Отрицательные числа', text: '$19 - 26 = \\;?$', item: { kind: 'number', answer: '-7' } },
-    { id: '3', label: '3', topic: 'Длина вектора', text: 'Найди длину вектора $\\vec a = (15;\\,-8)$', item: { kind: 'number', answer: '17' } },
-    { id: '4', label: '4', topic: 'Теорема Пифагора', text: 'Гипотенуза 13, катет 5. Чему равен другой катет?', picture: PicLeg, item: { kind: 'number', answer: '12' } },
-    { id: '5a', label: '5а', topic: 'Синус', text: 'Чему равен $\\sin\\alpha$?', picture: PicTrig, item: { kind: 'fraction', prefix: 'sin α =', correct: ['3', '5'], chips: ['3', '4', '5'] } },
-    { id: '5b', label: '5б', topic: 'Косинус', text: 'Чему равен $\\cos\\alpha$?', picture: PicTrig, item: { kind: 'fraction', prefix: 'cos α =', correct: ['4', '5'], chips: ['3', '4', '5'] } },
-    { id: '5c', label: '5в', topic: 'Тангенс', text: 'Чему равен $\\operatorname{tg}\\alpha$?', picture: PicTrig, item: { kind: 'fraction', prefix: 'tg α =', correct: ['3', '4'], chips: ['3', '4', '5'] } },
-    { id: '6', label: '6', topic: 'Косинус двойного угла', text: '$\\sin\\alpha = 0{,}4$. Найди $\\cos 2\\alpha$', item: { kind: 'number', answer: '0,68' } },
-    { id: '7', label: '7', topic: 'Логарифмическое уравнение', text: '$\\log_7(4 - x) = 2$. Найди $x$', item: { kind: 'number', answer: '-45' } },
-    { id: '8', label: '8', topic: 'Логарифм дроби', text: '$\\log_{\\frac{1}{16}} 2 = \\;?$', item: { kind: 'number', answer: '-0,25' } },
-    { id: '9', label: '9', topic: 'Произведение логарифмов', text: '$\\log_7 99 \\cdot \\log_{99} 343 = \\;?$', item: { kind: 'number', answer: '3' } },
-    { id: '10', label: '10', topic: 'Деление логарифмов', text: '$\\dfrac{\\log_{101} 8}{\\log_{101} 4} = \\;?$', item: { kind: 'number', answer: '1,5' } },
+    { id: '1', label: '1', topic: 'Устный счёт', text: 'Посчитай в уме', formula: '5 \\cdot 5 = \\,?', answerTex: '25', item: { kind: 'number', answer: '25' } },
+    { id: '2', label: '2', topic: 'Отрицательные числа', text: 'Посчитай в уме', formula: '19 - 26 = \\,?', answerTex: '-7', item: { kind: 'number', answer: '-7' } },
+    { id: '3', label: '3', topic: 'Длина вектора', text: 'Найди длину вектора', formula: '\\vec a = (15;\\,-8)', answerTex: '17', item: { kind: 'number', answer: '17' } },
+    { id: '4', label: '4', topic: 'Теорема Пифагора', text: 'Гипотенуза 13, катет 5.\nЧему равен другой катет?', picture: PicLeg, answerTex: '12', item: { kind: 'number', answer: '12' } },
+    { id: '5a', label: '5а', topic: 'Синус', text: 'Найди по рисунку', picture: PicTrig, answerTex: '\\tfrac{3}{5}', item: { kind: 'fraction', prefix: '\\sin\\alpha =', correct: ['3', '5'], chips: ['3', '4', '5'] } },
+    { id: '5b', label: '5б', topic: 'Косинус', text: 'Найди по рисунку', picture: PicTrig, answerTex: '\\tfrac{4}{5}', item: { kind: 'fraction', prefix: '\\cos\\alpha =', correct: ['4', '5'], chips: ['3', '4', '5'] } },
+    { id: '5c', label: '5в', topic: 'Тангенс', text: 'Найди по рисунку', picture: PicTrig, answerTex: '\\tfrac{3}{4}', item: { kind: 'fraction', prefix: '\\operatorname{tg}\\alpha =', correct: ['3', '4'], chips: ['3', '4', '5'] } },
+    { id: '6', label: '6', topic: 'Косинус двойного угла', text: 'Известно, что', formula: '\\sin\\alpha = 0{,}4', text2: 'Найди', formula2: '\\cos 2\\alpha', answerTex: '0{,}68', item: { kind: 'number', answer: '0,68' } },
+    { id: '7', label: '7', topic: 'Логарифмическое уравнение', text: 'Реши уравнение', formula: '\\log_7(4 - x) = 2', answerTex: 'x = -45', item: { kind: 'number', answer: '-45' } },
+    { id: '8', label: '8', topic: 'Логарифм дроби', text: 'Вычисли', formula: '\\log_{\\frac{1}{16}} 2', answerTex: '-0{,}25', item: { kind: 'number', answer: '-0,25' } },
+    { id: '9', label: '9', topic: 'Произведение логарифмов', text: 'Вычисли', formula: '\\log_7 99 \\cdot \\log_{99} 343', answerTex: '3', item: { kind: 'number', answer: '3' } },
+    { id: '10', label: '10', topic: 'Деление логарифмов', text: 'Вычисли', formula: '\\dfrac{\\log_{101} 8}{\\log_{101} 4}', answerTex: '1{,}5', item: { kind: 'number', answer: '1,5' } },
     {
-        id: '11', label: '11', topic: 'Знак логарифма', text: 'Больше или меньше нуля?',
+        id: '11', label: '11', topic: 'Знак логарифма', text: 'Больше или меньше нуля?', answerTex: '>\\;\\;<\\;\\;<\\;\\;>',
         item: {
             kind: 'signs', rows: [
                 { tex: '\\log_{100} 4', answer: '>' },
@@ -155,12 +162,12 @@ const TASKS: Task[] = [
             ],
         },
     },
-    { id: '12', label: '12', topic: 'Подобие тел', text: 'Объём одного куба в 125 раз больше объёма другого. Во сколько раз площадь его поверхности больше?', picture: PicCubes, item: { kind: 'number', answer: '25' } },
-    { id: '13', label: '13', topic: 'Перестановки', text: 'Сколькими способами можно переставить 4 слова: Кола, Фанта, Пепси, Спрайт?', item: { kind: 'number', answer: '24' } },
-    { id: '14', label: '14', topic: 'Медиана прямоугольного треугольника', text: 'Медиана, проведённая к гипотенузе, равна 4. Чему равна гипотенуза?', picture: PicMedian, item: { kind: 'number', answer: '8' } },
-    { id: '15', label: '15', topic: 'Производная', text: 'Чему равна производная $6x^6$?', item: { kind: 'choice', options: ['$36x^5$', '$6x^5$', '$36x^6$', '$30x^5$'], correct: 0 } },
-    { id: '16', label: '16', topic: 'Точка минимума', text: 'Найди точку минимума функции $y = 777^{x^2 - 2x + 5}$', item: { kind: 'number', answer: '1' } },
-    { id: '17', label: '17', topic: 'Вписанная окружность', text: 'Стороны треугольника 13, 14 и 15, его площадь 84. Найди радиус вписанной окружности', picture: PicIncircle, item: { kind: 'number', answer: '4' } },
+    { id: '12', label: '12', topic: 'Подобие тел', text: 'Объём одного куба в 125 раз больше объёма другого.\nВо сколько раз площадь его поверхности больше?', picture: PicCubes, answerTex: '25', item: { kind: 'number', answer: '25' } },
+    { id: '13', label: '13', topic: 'Перестановки', text: 'Сколькими способами можно переставить 4 слова?', words: ['Кола', 'Фанта', 'Пепси', 'Спрайт'], answerTex: '24', item: { kind: 'number', answer: '24' } },
+    { id: '14', label: '14', topic: 'Медиана прямоугольного треугольника', text: 'Медиана, проведённая к гипотенузе, равна 4.\nЧему равна гипотенуза?', picture: PicMedian, answerTex: '8', item: { kind: 'number', answer: '8' } },
+    { id: '15', label: '15', topic: 'Производная', text: 'Найди производную', formula: "(6x^6)'", answerTex: '36x^5', item: { kind: 'choice', options: ['36x^5', '6x^5', '36x^6', '30x^5'], correct: 0 } },
+    { id: '16', label: '16', topic: 'Точка минимума', text: 'Найди точку минимума функции', formula: 'y = 777^{\\,x^2 - 2x + 5}', answerTex: 'x = 1', item: { kind: 'number', answer: '1' } },
+    { id: '17', label: '17', topic: 'Вписанная окружность', text: 'Стороны треугольника 13, 14 и 15, площадь 84.\nНайди радиус вписанной окружности', picture: PicIncircle, answerTex: 'r = 4', item: { kind: 'number', answer: '4' } },
 ]
 
 const norm = (s: string) => s.trim().replace(/\./g, ',').replace(/\s+/g, '').replace(/^-0$/, '0').replace(/,$/, '').replace(/^(-?)0+(\d)/, '$1$2')
@@ -243,8 +250,17 @@ const TaskScreen = ({ task, index, total, onDone }: { task: Task; index: number;
     const single = (status: Status) => finish([{ id: task.id, status }], status)
     const signRows = (status: Status) => task.item.kind === 'signs' ? task.item.rows.map((_, i) => ({ id: `${task.id}.${i + 1}`, status })) : []
 
+    // Пока страница не на экране (другая вкладка/приложение) — таймер стоит: иначе задания «сгорали» без ученика.
+    const [visible, setVisible] = useState(true)
     useEffect(() => {
-        if (flash) return
+        const onVis = () => setVisible(document.visibilityState === 'visible')
+        onVis()
+        document.addEventListener('visibilitychange', onVis)
+        return () => document.removeEventListener('visibilitychange', onVis)
+    }, [])
+
+    useEffect(() => {
+        if (flash || !visible) return
         if (left <= 0) {
             task.item.kind === 'signs' ? finish(signRows('timeout'), 'timeout') : single('timeout')
             return
@@ -252,7 +268,7 @@ const TaskScreen = ({ task, index, total, onDone }: { task: Task; index: number;
         const t = setTimeout(() => setLeft((s) => s - 1), 1000)
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [left, flash])
+    }, [left, flash, visible])
 
     const notKnow = () => task.item.kind === 'signs' ? finish(signRows('unknown'), 'unknown') : single('unknown')
 
@@ -290,11 +306,48 @@ const TaskScreen = ({ task, index, total, onDone }: { task: Task; index: number;
                 <span className="w-7 text-right text-xs font-black tabular-nums" style={{ color: left <= 10 ? RED : '#9AA7B0' }}>{left}</span>
             </div>
 
-            <p className="mt-4 text-[11px] font-black uppercase tracking-wide text-[#72838D]">Задание {task.label} · {task.topic}</p>
-            <div className="mt-1 text-xl font-black leading-snug text-[#F2F7FB]"><Latex>{task.text}</Latex></div>
+            <div className="flex flex-1 flex-col justify-center py-3">
+            <div className="flex justify-center">
+                <span className="rounded-full border-2 border-[#2A363C] bg-[#161F23] px-3 py-1 text-[11px] font-black uppercase tracking-wide text-[#9AA7B0]">
+                    Задание {task.label} · {task.topic}
+                </span>
+            </div>
+            <p className="mt-3 whitespace-pre-line text-center text-lg font-extrabold leading-snug text-[#F2F7FB]">{task.text}</p>
+            {task.formula && <BigFormula tex={task.formula} />}
+            {task.text2 && <p className="mt-2 text-center text-lg font-extrabold text-[#F2F7FB]">{task.text2}</p>}
+            {task.formula2 && <BigFormula tex={task.formula2} />}
+            {task.words && (
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                    {task.words.map((w, i) => (
+                        <span key={w} className="rounded-xl border-2 border-b-4 px-3 py-1.5 text-base font-black"
+                            style={{ color: WORD_COLORS[i % WORD_COLORS.length], borderColor: WORD_COLORS[i % WORD_COLORS.length], backgroundColor: `${WORD_COLORS[i % WORD_COLORS.length]}1F` }}>
+                            {w}
+                        </span>
+                    ))}
+                </div>
+            )}
             {task.picture && <div className="mt-3">{task.picture}</div>}
+            {task.item.kind === 'signs' && (
+                        <div className="mt-4 flex flex-col gap-2">
+                            {(task.item.kind === 'signs' ? task.item.rows : []).map((r, i) => (
+                                <div key={i} className="flex items-center gap-2 rounded-2xl border-2 border-[#2A363C] bg-[#161F23] px-3 py-2">
+                                    <span className="flex-1 text-center text-xl text-[#F2F7FB]"><Latex>{`$${r.tex}$`}</Latex></span>
+                                    {(['>', '<'] as const).map((s) => (
+                                        <button key={s} type="button" disabled={!!flash}
+                                            onClick={() => setSigns((a) => a.map((v, j) => (j === i ? s : v)))}
+                                            className="h-10 w-12 rounded-xl border-2 border-b-4 text-xl font-black"
+                                            style={signs[i] === s ? { backgroundColor: BLUE, borderColor: '#428BC0', color: '#0B1114' } : { borderColor: '#3A464E', color: TEXT }}>
+                                            {s}
+                                        </button>
+                                    ))}
+                                    <span className="w-6 text-center text-xl font-black text-[#9AA7B0]">0</span>
+                                </div>
+                            ))}
+                        </div>
+            )}
+            </div>
 
-            <div className="mt-auto pt-4">
+            <div className="pt-2">
                 {task.item.kind === 'number' && (
                     <>
                         <div className="mb-2 flex h-12 items-center justify-center rounded-2xl border-2 text-3xl font-black"
@@ -313,19 +366,19 @@ const TaskScreen = ({ task, index, total, onDone }: { task: Task; index: number;
 
                 {task.item.kind === 'fraction' && (
                     <div className="flex justify-center">
-                        <FormulaAssemble prefix={<span className="text-xl font-black text-[#F2F7FB]">{task.item.prefix}</span>} layout="fraction"
+                        <FormulaAssemble prefix={<span className="text-2xl text-[#F2F7FB]"><Latex>{`$${task.item.prefix}$`}</Latex></span>} layout="fraction"
                             chips={chips} correct={task.item.correct}
                             onWrong={() => single('wrong')} onSolved={(first) => single(first ? 'right' : 'wrong')} />
                     </div>
                 )}
 
                 {task.item.kind === 'choice' && (
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2.5">
                         {choices.map((x) => (
                             <button key={x.i} type="button" disabled={!!flash}
                                 onClick={() => task.item.kind === 'choice' && single(x.i === task.item.correct ? 'right' : 'wrong')}
-                                className="rounded-2xl border-2 border-b-4 border-[#3A464E] bg-[#161F23] py-4 text-xl text-[#F2F7FB] active:translate-y-[2px] active:border-b-2">
-                                <Latex>{x.o}</Latex>
+                                className="flex h-16 items-center justify-center rounded-2xl border-2 border-b-4 border-[#3A464E] bg-[#161F23] text-2xl text-[#F2F7FB] active:translate-y-[2px] active:border-b-2">
+                                <Latex>{`$${x.o}$`}</Latex>
                             </button>
                         ))}
                     </div>
@@ -333,22 +386,6 @@ const TaskScreen = ({ task, index, total, onDone }: { task: Task; index: number;
 
                 {task.item.kind === 'signs' && (
                     <>
-                        <div className="flex flex-col gap-2">
-                            {task.item.rows.map((r, i) => (
-                                <div key={i} className="flex items-center gap-2 rounded-2xl border-2 border-[#2A363C] bg-[#161F23] px-3 py-2">
-                                    <span className="flex-1 text-lg text-[#F2F7FB]"><Latex>{`$${r.tex}$`}</Latex></span>
-                                    {(['>', '<'] as const).map((s) => (
-                                        <button key={s} type="button" disabled={!!flash}
-                                            onClick={() => setSigns((a) => a.map((v, j) => (j === i ? s : v)))}
-                                            className="h-10 w-12 rounded-xl border-2 border-b-4 text-xl font-black"
-                                            style={signs[i] === s ? { backgroundColor: BLUE, borderColor: '#428BC0', color: '#0B1114' } : { borderColor: '#3A464E', color: TEXT }}>
-                                            {s}
-                                        </button>
-                                    ))}
-                                    <span className="w-6 text-center text-lg font-black text-[#72838D]">0</span>
-                                </div>
-                            ))}
-                        </div>
                         <div className="mt-3 flex gap-2">
                             <NotKnowButton onClick={notKnow} disabled={!!flash} />
                             <button type="button" onClick={submitSigns} disabled={!!flash || signs.some((v) => v === null)}
@@ -373,6 +410,18 @@ const TaskScreen = ({ task, index, total, onDone }: { task: Task; index: number;
         </div>
     )
 }
+
+const WORD_COLORS = [GGEGE_PALETTE.raspberry.button, ORANGE, BLUE, LEAF]
+
+// Крупная формула по центру, в рамке-«доске».
+const BigFormula = ({ tex }: { tex: string }) => (
+    <div className="mt-3 flex justify-center">
+        <div className="max-w-full overflow-x-auto rounded-2xl border-2 border-[#2A363C] bg-[#161F23] px-5 py-3 text-[28px] leading-none text-[#F2F7FB]"
+            style={{ boxShadow: '0 4px 0 #10171B' }}>
+            <Latex>{`$\\displaystyle ${tex}$`}</Latex>
+        </div>
+    </div>
+)
 
 const NotKnowButton = ({ onClick, disabled, wide }: { onClick: () => void; disabled: boolean; wide?: boolean }) => (
     <button type="button" onClick={onClick} disabled={disabled}
@@ -408,7 +457,12 @@ const ResultsView = ({ results }: { results: Result[] }) => {
                     return (
                         <div key={t.id} className="flex items-center gap-2.5 rounded-xl border-2 border-[#232F34] bg-[#161F23] px-3 py-2">
                             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: `${v.color}33`, color: v.color }}>{v.icon}</span>
-                            <span className="min-w-0 flex-1 truncate text-sm font-bold text-[#F2F7FB]">{t.label}. {t.topic}</span>
+                            <span className="min-w-0 flex-1">
+                                <span className="block truncate text-sm font-bold text-[#F2F7FB]">{t.label}. {t.topic}</span>
+                                {status !== 'right' && (
+                                    <span className="block text-xs font-bold text-[#9AA7B0]">Ответ: <span className="text-[#F2F7FB]"><Latex>{`$${t.answerTex}$`}</Latex></span></span>
+                                )}
+                            </span>
                             <span className="shrink-0 text-xs font-black" style={{ color: v.color }}>
                                 {rows.length > 1 ? `${rows.filter((r) => r.status === 'right').length}/${rows.length}` : v.label}
                             </span>
