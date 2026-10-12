@@ -6,24 +6,18 @@ import { sql } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { auth } from '@/lib/auth'
 import db from '@/db/drizzle'
+import { saveBaseDiagnostic, buildBaseResult, type BaseRow } from '@/lib/diagBase'
 import { buildDiagResult, buildDiagnosticPlan, getCorrectText, getLatestDiagnostic, normalizeAnswer, type DiagResult } from '@/lib/egeDiagnostic'
 
 const SUBJECT = 'math_profile'
 
 // Начать диагностику (или продолжить незаконченную). Возвращает id.
 export async function startEgeDiagnostic(): Promise<{ id: number } | { error: string }> {
+    // С 2026-10-13 диагностика «база в уме» целиком на клиенте и сохраняется в конце (finishBaseDiagnostic),
+    // заранее ничего не создаём — просто пускаем на /diagnostic.
     const session = await auth()
     if (!session?.user?.id) return { error: 'Не авторизован' }
-    const userId = session.user.id
-    const active = await getLatestDiagnostic(userId, SUBJECT, 'active')
-    if (active) return { id: active.id }
-    const plan = await buildDiagnosticPlan(SUBJECT)
-    if (!plan.length) return { error: 'Пока нет заданий для диагностики' }
-    const rows = (await db.execute(sql`
-        INSERT INTO ege_diagnostics (user_id, subject, status, plan, created_at)
-        VALUES (${userId}, ${SUBJECT}, 'active', ${JSON.stringify(plan)}::jsonb, ${new Date().toISOString()})
-        RETURNING id`)) as unknown as { id: number }[]
-    return { id: Number(rows[0].id) }
+    return { id: 0 }
 }
 
 // «Пройду позже» — экран-приглашение больше не открывается сам, на /path остаётся карточка.
@@ -67,4 +61,14 @@ export async function finishEgeDiagnostic(id: number): Promise<DiagResult | { er
     if (!d) return { error: 'Диагностика не найдена' }
     revalidatePath('/path')
     return buildDiagResult(userId, SUBJECT, d)
+}
+
+// Новая диагностика «база в уме» (components/ege-diagnostic-v2.tsx): весь результат приходит одним вызовом в конце.
+export async function finishBaseDiagnostic(rows: BaseRow[]): Promise<DiagResult | { error: string }> {
+    const session = await auth()
+    if (!session?.user?.id) return { error: 'Не авторизован' }
+    if (!Array.isArray(rows) || rows.length === 0 || rows.length > 60) return { error: 'Нет ответов' }
+    const id = await saveBaseDiagnostic(session.user.id, SUBJECT, rows)
+    revalidatePath('/path')
+    return buildBaseResult(id, SUBJECT)
 }

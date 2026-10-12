@@ -14,6 +14,7 @@ import 'server-only'
 import { sql } from 'drizzle-orm'
 import db from '@/db/drizzle'
 import { primaryToTest } from '@/lib/egeScale'
+import { getBaseScores } from '@/lib/diagBase'
 
 type Row = Record<string, unknown>
 
@@ -108,18 +109,18 @@ export function taskScore(answers: DiagAnswer[], num: number, hasHard: boolean):
     return a2.result === 'right' ? 1 : 0.55
 }
 
-export type DiagRow = { id: number; status: string; plan: DiagPlanItem[]; createdAt: Date; finishedAt: Date | null }
+export type DiagRow = { id: number; status: string; plan: DiagPlanItem[]; createdAt: Date; finishedAt: Date | null; version: number }
 
 export async function getLatestDiagnostic(userId: string, subject: string, status?: string): Promise<DiagRow | null> {
     const rows = (await db.execute(sql`
-        SELECT id, status, plan, created_at, finished_at FROM ege_diagnostics
+        SELECT id, status, plan, created_at, finished_at, version FROM ege_diagnostics
         WHERE user_id = ${userId} AND subject = ${subject} ${status ? sql`AND status = ${status}` : sql``}
         ORDER BY id DESC LIMIT 1`)) as unknown as Row[]
     const r = rows[0]
     if (!r) return null
     // plan может прийти строкой (postgres-js кладёт строку-параметр в jsonb как JSON-строку)
     const raw = typeof r.plan === 'string' ? JSON.parse(r.plan) : r.plan
-    return { id: Number(r.id), status: String(r.status), plan: (Array.isArray(raw) ? raw : []) as DiagPlanItem[], createdAt: r.created_at as Date, finishedAt: (r.finished_at as Date) ?? null }
+    return { id: Number(r.id), status: String(r.status), plan: (Array.isArray(raw) ? raw : []) as DiagPlanItem[], createdAt: r.created_at as Date, finishedAt: (r.finished_at as Date) ?? null, version: Number(r.version ?? 1) }
 }
 
 export async function getDiagAnswers(diagnosticId: number): Promise<DiagAnswer[]> {
@@ -132,6 +133,8 @@ export async function getDiagScores(userId: string, subject: string): Promise<Ma
     const d = await getLatestDiagnostic(userId, subject, 'done')
     const out = new Map<number, number>()
     if (!d) return out
+    // Новая диагностика «база в уме» (lib/diagBase.ts)
+    if (d.version === 2) return getBaseScores(d.id)
     const answers = await getDiagAnswers(d.id)
     for (const p of d.plan) {
         const s = taskScore(answers, p.num, !!p.hard)

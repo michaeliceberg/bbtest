@@ -34,7 +34,7 @@ export const DiagnosticIntro = ({ variant, questionsCount, resume }: { variant: 
                 </span>
                 <span className="min-w-0 flex-1">
                     <span className="block text-base font-black text-[#F2F7FB]">{resume ? 'Закончи диагностику' : 'Узнай свой балл за 15 минут'}</span>
-                    <span className="block text-xs font-bold text-[#C9A6F5]">Прогноз станет точнее · {questionsCount} {declensionRu(questionsCount, 'задание', 'задания', 'заданий')} ЕГЭ</span>
+                    <span className="block text-xs font-bold text-[#C9A6F5]">Прогноз станет точнее · {questionsCount} {declensionRu(questionsCount, 'задание', 'задания', 'заданий')} в уме</span>
                 </span>
                 <span className="shrink-0 rounded-xl px-3 py-1.5 text-sm font-black text-[#151F24]" style={{ backgroundColor: GGEGE_PALETTE.purple.button }}>{resume ? 'Дальше' : 'Начать'}</span>
                 {error && <span className="sr-only">{error}</span>}
@@ -53,8 +53,8 @@ export const DiagnosticIntro = ({ variant, questionsCount, resume }: { variant: 
             <p className="mt-2 text-sm font-bold text-[#9AA7B0]">Профильная математика · ЕГЭ-2027</p>
             <div className="mt-6 flex w-full flex-col gap-2 text-left">
                 {[
-                    [Target, `По вопросу на каждое из ${questionsCount} заданий, где у нас уже есть задачи`],
-                    [Sparkles, 'Справился — дадим вопрос посложнее. Не знаешь — жми «Не знаю», это нормально'],
+                    [Target, `${questionsCount} ${declensionRu(questionsCount, 'короткое задание', 'коротких задания', 'коротких заданий')} на базу — решаются в уме`],
+                    [Sparkles, 'Не знаешь — жми «Пока не знаю», это нормально: научим'],
                     [Timer, 'В конце — прогноз балла, сильные стороны и что подтянуть'],
                 ].map(([Icon, text], i) => {
                     const I = Icon as typeof Target

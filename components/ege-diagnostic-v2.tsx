@@ -14,6 +14,8 @@ import { Brain, Timer, Heart, Check, X, HelpCircle, Hourglass } from 'lucide-rea
 import { KeyboardInput } from '@/app/lesson/keyboard-input'
 import { FormulaAssemble } from '@/components/geometry/FormulaAssemble'
 import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors'
+import { PlanBuildModal } from '@/components/plan-build-modal'
+import type { DiagResult } from '@/lib/egeDiagnostic'
 
 const SECONDS = 60
 const GREEN = '#A1D151'
@@ -176,11 +178,25 @@ const norm = (s: string) => s.trim().replace(/\./g, ',').replace(/\s+/g, '').rep
 
 type Result = { id: string; status: Status }
 
-export const EgeDiagnosticV2 = () => {
-    const [phase, setPhase] = useState<'intro' | 'count' | 'quiz' | 'done'>('intro')
+type SaveFn = (rows: Result[]) => Promise<DiagResult | { error: string }>
+
+// save — в приложении (/diagnostic) сохраняет итог (actions/ege-diagnostic.ts finishBaseDiagnostic) и даёт
+// «Построить мой план»; без него (тестовая страница) ничего не сохраняется. initialRows/initialResult —
+// показать уже пройденную диагностику.
+export const EgeDiagnosticV2 = ({ save, initialRows, initialResult }: { save?: SaveFn; initialRows?: Result[]; initialResult?: DiagResult | null } = {}) => {
+    const [phase, setPhase] = useState<'intro' | 'count' | 'quiz' | 'done'>(initialRows ? 'done' : 'intro')
     const [count, setCount] = useState(3)
     const [index, setIndex] = useState(0)
-    const [results, setResults] = useState<Result[]>([])
+    const [results, setResults] = useState<Result[]>(initialRows ?? [])
+    const [result, setResult] = useState<DiagResult | null>(initialResult ?? null)
+    const [saveError, setSaveError] = useState<string | null>(null)
+    const savedRef = useRef(!!initialRows)
+
+    useEffect(() => {
+        if (phase !== 'done' || !save || savedRef.current) return
+        savedRef.current = true
+        save(results).then((r) => ('error' in r ? setSaveError(r.error) : setResult(r))).catch(() => setSaveError('Не получилось сохранить'))
+    }, [phase, save, results])
 
     useEffect(() => {
         if (phase !== 'count') return
@@ -229,7 +245,7 @@ export const EgeDiagnosticV2 = () => {
         )
     }
 
-    if (phase === 'done') return <ResultsView results={results} />
+    if (phase === 'done') return <ResultsView results={results} saving={!!save && !result && !saveError} saveError={saveError} result={result} testMode={!save && !initialRows} />
 
     return <TaskScreen key={TASKS[index].id} task={TASKS[index]} index={index} total={TASKS.length} onDone={record} />
 }
@@ -437,7 +453,8 @@ const STATUS_VIEW: Record<Status, { icon: React.ReactNode; color: string; label:
     timeout: { icon: <Hourglass className="h-4 w-4" />, color: ORANGE, label: 'не успел' },
 }
 
-const ResultsView = ({ results }: { results: Result[] }) => {
+const ResultsView = ({ results, result, saving, saveError, testMode }: { results: Result[]; result: DiagResult | null; saving: boolean; saveError: string | null; testMode: boolean }) => {
+    const [building, setBuilding] = useState(false)
     const right = results.filter((r) => r.status === 'right').length
     const byTask = TASKS.map((t) => {
         const rows = results.filter((r) => r.id === t.id || r.id.startsWith(`${t.id}.`))
@@ -470,7 +487,20 @@ const ResultsView = ({ results }: { results: Result[] }) => {
                     )
                 })}
             </div>
-            <p className="mt-4 text-center text-[11px] font-bold text-[#5C6B73]">Тестовая версия: результаты пока не сохраняются.</p>
+            {testMode ? (
+                <p className="mt-4 text-center text-[11px] font-bold text-[#5C6B73]">Тестовая версия: результаты не сохраняются.</p>
+            ) : (
+                <>
+                    {saveError && <p className="mt-4 text-center text-sm font-bold text-[#DC605B]">{saveError}</p>}
+                    <button type="button" onClick={() => setBuilding(true)} disabled={!result}
+                        className="mt-5 w-full rounded-2xl py-4 text-base font-black uppercase tracking-wide text-[#151F24] disabled:opacity-50"
+                        style={{ backgroundColor: ORANGE, boxShadow: `0 5px 0 ${GGEGE_PALETTE.orange.bottom}` }}>
+                        {saving ? 'Сохраняю…' : 'Построить мой план ➜'}
+                    </button>
+                    <a href="/diagnostic?again=1" className="mt-3 block text-center text-xs font-black text-[#9AA7B0] underline-offset-4 hover:underline">Пройти ещё раз</a>
+                    {building && result && <PlanBuildModal r={result} onClose={() => setBuilding(false)} />}
+                </>
+            )}
         </div>
     )
 }

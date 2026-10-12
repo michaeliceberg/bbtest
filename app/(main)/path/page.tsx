@@ -27,7 +27,8 @@ const PathPage = async () => {
         getLatestDiagnostic(session.user.id, 'math_profile', 'done'),
     ])
     // Диагностика: при первом заходе — экран-приглашение; отложили или не закончили — карточка.
-    const diagTasks = map.stations.filter((s) => s.courseTarget > 0).length
+    // Новая диагностика «база в уме» — 17 заданий (components/ege-diagnostic-v2.tsx)
+    const diagTasks = 17
     if (!lastDiag) return <DiagnosticIntro variant="screen" questionsCount={diagTasks} />
     const diagCard = doneDiag ? null : <DiagnosticIntro variant="card" questionsCount={diagTasks} resume={lastDiag.status === 'active'} />
     return <EgePath key={`${userProgress.targetVuz}-${userProgress.egeTarget}`} vuzId={userProgress.targetVuz ?? null} map={map} target={userProgress.egeTarget ?? null} activeMoveId={active?.id ?? null} unclaimedCase={unclaimed} diagCard={diagCard} />
