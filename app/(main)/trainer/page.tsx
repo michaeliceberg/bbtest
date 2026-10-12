@@ -24,6 +24,7 @@ import { HwTopBanner } from '../learn/hw-top-banner';
 import { auth } from '@/lib/auth';
 import { getDailyQuestStatus, getRecentQuestHistory } from '@/actions/generate-trainer-quest';
 import { TrainerQuestCard } from '@/components/trainer-quest-card';
+import { getPendingLevelCase } from '@/lib/levelCase';
 import { LevelCard } from '@/components/level-card';
 import { getLvlLottieCount } from '@/lib/lvl-lottie';
 import { StreakRiskBanner } from '@/components/streak-risk-banner';
@@ -307,7 +308,7 @@ const TLearnPage = async () => {
                     <StreakRiskBanner streak={currentStreakForRisk} hasExtendedToday={hasExtendedStreakToday} />
 
                     <div className='mb-4'>
-                        <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} theme={uiTheme} />
+                        <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} theme={uiTheme} levelCase={userId ? await getPendingLevelCase(userId) : null} />
                     </div>
 
                     {/* Кусочки пиццы из кейсов (components/CaseReel.tsx) — общий

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 // import { Achievement } from "@/components/achievements"
 import { TrendingUp, Calendar, Target, Zap, Award, BookOpen, CheckCircle, Clock } from 'lucide-react'
 import { Achievement } from "@/components/achievements"
+import { getPendingLevelCase } from '@/lib/levelCase';
 import { LevelCard } from "@/components/level-card"
 import { getLvlLottieCount } from "@/lib/lvl-lottie"
 // import { Achievement } from "@/components/achievements"
@@ -173,7 +174,7 @@ const ProgressPage = async () => {
                     </p>
                 </div>
 
-                <LevelCard xp={userProgress.xp} lvlLottieCount={getLvlLottieCount()} variant="full" />
+                <LevelCard xp={userProgress.xp} lvlLottieCount={getLvlLottieCount()} variant="full" levelCase={await getPendingLevelCase(userProgress.userId)} />
 
                 {/* Прогресс по разделам */}
                 <div className="bg-[#151F23] rounded-xl border p-6 mb-8">

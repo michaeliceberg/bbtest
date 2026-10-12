@@ -17,6 +17,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { xpForAmount, getLevelUpInfo } from '@/lib/xp';
+import { grantLevelCaseKeys } from '@/lib/levelCase';
 import { recalculateAchievements, type NewlyCompletedAchievement } from './check-achievements';
 import { bumpCourseStreak } from '@/lib/streak';
 import { getDailyQuestStatus } from './generate-trainer-quest';
@@ -186,6 +187,7 @@ export async function updateChallengeProgress({
         newLevel = levelUpInfo.newLevel;
         levelUpGems = levelUpInfo.gemsAwarded;
         levelsGained = levelUpInfo.levelsGained;
+        await grantLevelCaseKeys(userId, levelUpInfo.newLevel, levelUpInfo.levelsGained);
 
         await db.update(userProgress)
             .set({

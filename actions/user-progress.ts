@@ -10,6 +10,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { xpForAmount, getLevelUpInfo } from '@/lib/xp';
+import { grantLevelCaseKeys } from '@/lib/levelCase';
 import { recalculateAchievements } from './check-achievements';
 import { syncAchievements, syncInviterOf, unlockAchievements } from '@/lib/achievements';
 import { bumpCourseStreak } from '@/lib/streak';
@@ -348,6 +349,7 @@ export const upsertTrainerLessonProgress = async (
 		newLevel = levelUpInfo.newLevel;
 		levelUpGems = levelUpInfo.gemsAwarded;
 		levelsGained = levelUpInfo.levelsGained;
+		await grantLevelCaseKeys(userId, levelUpInfo.newLevel, levelUpInfo.levelsGained);
 
 		await db.update(userProgress)
 			.set({

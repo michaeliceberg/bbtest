@@ -15,6 +15,7 @@ import { CelebrationShell } from '@/components/celebration-shell'
 import { COZY, type UiTheme } from '@/lib/cozyTheme'
 import { playSound, preloadSound, LEVEL_UP_SOUND } from '@/lib/sound'
 import Lottie from '@/components/lottie-player'
+import { levelCasesBetween } from '@/lib/xp'
 
 // Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
@@ -150,6 +151,24 @@ export const LevelUpScreen = ({ event, onClose, theme = 'metal', overlay = true 
                     }
                 >
                     <Gem className="h-5 w-5" />+{event.gemsAwarded}
+                </motion.div>
+            )}
+
+            {levelCasesBetween(event.oldLevel, event.newLevel) > 0 && (
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.6 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 1.05, type: 'spring', bounce: 0.55 }}
+                    className="mt-3 inline-flex items-center gap-3 rounded-xl px-4 py-2 text-base font-black"
+                    style={
+                        cozy
+                            ? { background: '#2C5566', color: '#BFEFFF', border: '3px solid #8FD3F0', boxShadow: '0 4px 0 #4F97B8' }
+                            : { background: 'rgba(0,197,255,0.12)', color: '#7FE0FF', border: '1px solid rgba(0,197,255,0.45)' }
+                    }
+                >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/chests/rare0001.svg" alt="" className="h-9 w-9 object-contain" />
+                    + Редкий кейс
                 </motion.div>
             )}
         </CelebrationShell>

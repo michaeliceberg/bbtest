@@ -28,6 +28,15 @@ export const XP_PER_LEVEL = 100;
 // сколько и на 1.
 export const LEVEL_UP_GEM_REWARD = 5;
 
+// Каждый 5-й уровень (5, 10, 15…) дополнительно даёт редкий кейс (lib/levelCase.ts).
+export const LEVEL_CASE_EVERY = 5;
+export const isLevelCaseLevel = (level: number): boolean => level > 0 && level % LEVEL_CASE_EVERY === 0;
+// Сколько уровней с кейсом в промежутке (oldLevel, newLevel].
+export const levelCasesBetween = (oldLevel: number, newLevel: number): number =>
+    Math.max(0, Math.floor(newLevel / LEVEL_CASE_EVERY) - Math.floor(oldLevel / LEVEL_CASE_EVERY));
+// Ближайший уровень с кейсом после текущего.
+export const nextLevelCaseLevel = (level: number): number => (Math.floor(level / LEVEL_CASE_EVERY) + 1) * LEVEL_CASE_EVERY;
+
 export const xpForAmount = (baseAmount: number): number => Math.round(baseAmount * XP_MULTIPLIER);
 
 export type LevelInfo = {

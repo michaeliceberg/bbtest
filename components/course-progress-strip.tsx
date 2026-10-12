@@ -48,16 +48,14 @@ export function CourseProgressStrip({ units }: { units: StripUnit[] }) {
                 {groups.map((g, gi) => {
                     const label = g.section ? SECTION_LABEL[g.section] : null
                     const [labelMain, labelSub] = label ? label.title.split(' · ') : ['Разделы', '']
-                    const done = g.units.filter((u) => u.isCompleted).length
-                    const allDone = done === g.units.length
+                    const allDone = g.units.every((u) => u.isCompleted)
                     return (
                         <div key={gi}>
-                            <div className="mb-1 flex items-center justify-between">
+                            <div className="mb-1 flex items-center">
                                 <span className="text-[11px] font-black uppercase tracking-wide" style={{ color: label?.color ?? '#9AA7B0' }}>
                                     {labelMain}
                                     {labelSub && <span className="ml-1.5 normal-case tracking-normal text-[#5C6B73]">{labelSub}</span>}
                                 </span>
-                                <span className="text-[11px] font-black text-[#9AA7B0]">{done}/{g.units.length}</span>
                             </div>
                             <div className="flex items-end gap-2">
                                 {/* полоска из ячеек */}

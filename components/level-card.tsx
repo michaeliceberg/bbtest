@@ -1,73 +1,51 @@
 // components/level-card.tsx
+//
+// Карточка уровня на /learn, /trainer и /progress — в стиле шкалы «Прогресс по разделам»
+// (components/course-progress-strip.tsx): тёмная карточка, полоска опыта в утопленном жёлобе,
+// светлая полоса сверху / тёмная снизу. Справа — следующая награда: гемы за уровень и, если
+// следующий уровень кратен 5, редкий кейс (иконка сундука). Ещё не открытый кейс за уровень
+// (ключ lib/levelCase.ts) — отдельной строкой «Открыть», кейс крутится прямо поверх страницы.
 
 'use client';
 
 import { useEffect, useState } from 'react';
-import dynamic from 'next/dynamic';
-import { ChevronRight, Sparkles } from 'lucide-react';
-import { getLevelInfo, LEVEL_UP_GEM_REWARD } from '@/lib/xp';
-import { COZY, type UiTheme } from '@/lib/cozyTheme';
-import Lottie from '@/components/lottie-player'
-
-// lottie-react трогает `document` при монтировании — статический импорт
-// в компонент, который рендерится с сервера (даже внутри 'use client'
-// файла, если сам файл попадает в SSR-проход), уже не раз ронял dev/prod
-// в этом проекте (см. CLAUDE.md, баги TrainerMascot/question-bubble) —
-// поэтому всегда через dynamic(..., { ssr: false }).
-// Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
-
+import { createPortal } from 'react-dom';
+import { useRouter } from 'next/navigation';
+import { Gem } from 'lucide-react';
+import { getLevelInfo, LEVEL_UP_GEM_REWARD, isLevelCaseLevel, nextLevelCaseLevel } from '@/lib/xp';
+import { getLessonCasePool } from '@/lib/caseRewards';
+import { openKeyCase } from '@/actions/open-key-case';
+import { CaseReel } from '@/components/CaseReel';
+import { type UiTheme } from '@/lib/cozyTheme';
+import Lottie from '@/components/lottie-player';
 
 type Props = {
     xp: number;
-    // Сколько файлов lvlN.json реально лежит в public/Lottie/lvl/ —
-    // считается на сервере (lib/lvl-lottie.ts:getLvlLottieCount) и
-    // прокидывается пропом, чтобы не хардкодить число здесь: пользователь
-    // будет докидывать новых персонажей постепенно (сейчас 5, планирует
-    // ещё ~40) без необходимости трогать код карточки.
+    // Сколько файлов lvlN.json лежит в public/Lottie/lvl/ (lib/lvl-lottie.ts).
     lvlLottieCount: number;
-    // 'compact' — карточка в основной колонке /learn и /trainer, видна и
-    // на мобильном (в отличие от StickyWrapper — тот `hidden lg:block`,
-    // на телефоне сайдбар с очками/сердечками вообще не рендерится).
-    // 'full' — крупный блок на /progress, в стиле уже существующей там
-    // карточки "Общий прогресс курса".
     variant?: 'compact' | 'full';
-    // Стиль оформления: игровой (по умолчанию) или тёплый «cozy».
     theme?: UiTheme;
+    // Неоткрытый кейс за уровень (lib/levelCase.ts:getPendingLevelCase).
+    levelCase?: { keyId: number; level: number } | null;
 };
 
-// Сухое "Уровень 1, 0/100 XP" не вызывает эмоций и не даёт понять, к
-// чему стремиться — карточка показывает ДВЕ панели рядом: текущее
-// состояние (с поддерживающей фразой и Lottie-персонажем) и "что
-// дальше" — следующий уровень с сундуком и превью реальной награды (см.
-// lib/xp.ts:LEVEL_UP_GEM_REWARD, начисляется по факту в actions/
-// challenge-progress.ts, actions/user-progress.ts,
-// actions/claim-achievement.ts — не просто картинка).
-const getMotivation = (progressPercent: number): string => {
-    if (progressPercent >= 75) return 'Почти у цели! ⚡';
-    if (progressPercent >= 50) return 'На полпути! 🔥';
-    if (progressPercent >= 25) return 'Хороший темп! 💪';
-    return 'Погнали! 🚀';
-};
+const RARE = '#00C5FF';
+const VIOLET = '#A78BFA';
 
-// 3 уровня на одного персонажа (1-3 → lvl1, 4-6 → lvl2, ...), с зажимом
-// по факту доступных файлов — пока их 5, более высокие уровни просто
-// повторно используют последнего персонажа, ничего не ломая.
-const getMascotSrc = (level: number, lvlLottieCount: number): string => {
-    const index = Math.min(Math.ceil(level / 3), Math.max(1, lvlLottieCount));
-    return `/Lottie/lvl/lvl${index}.json`;
-};
+// 3 уровня на одного персонажа (1-3 → lvl1, 4-6 → lvl2, ...), с зажимом по числу файлов.
+const getMascotSrc = (level: number, lvlLottieCount: number): string =>
+    `/Lottie/lvl/lvl${Math.min(Math.ceil(level / 3), Math.max(1, lvlLottieCount))}.json`;
 
-export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact', theme = 'metal' }: Props) => {
-    const cozy = theme === 'cozy';
+export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact', levelCase = null }: Props) => {
+    const router = useRouter();
     const { level, xpIntoLevel, xpForNextLevel, progressPercent } = getLevelInfo(xp);
     const xpLeft = xpForNextLevel - xpIntoLevel;
-    const motivation = getMotivation(progressPercent);
+    const nextLevel = level + 1;
+    const nextHasCase = isLevelCaseLevel(nextLevel);
+    const caseLevel = nextLevelCaseLevel(level);
     const mascotSrc = getMascotSrc(level, lvlLottieCount);
+    const isFull = variant === 'full';
 
-    // lottie-react типизирует только `animationData` (готовый объект), не
-    // `path` (хотя lottie-web под капотом его поддерживает) — поэтому
-    // сами fetch'им JSON и передаём как animationData; отдельный fetch на
-    // смену персонажа раз в 3 уровня — не на каждый рендер.
     const [mascotData, setMascotData] = useState<object | null>(null);
     useEffect(() => {
         let cancelled = false;
@@ -79,72 +57,104 @@ export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact', theme = 'me
         return () => { cancelled = true; };
     }, [mascotSrc]);
 
-    const isFull = variant === 'full';
-    // Персонаж — главный источник эмоции в карточке, увеличен насколько
-    // позволяет освободившееся место (фразы-мотиваторы укорочены выше,
-    // текстовой колонке теперь нужно меньше горизонтального места).
-    const mascotSize = isFull ? 'h-24 w-24 sm:h-32 sm:w-32' : 'h-20 w-20';
-    const chestWidth = isFull ? 'w-[128px] sm:w-[144px]' : 'w-[92px]';
-    // Без явного минимума текстовая колонка (flex-1 min-w-0) охотно
-    // схлопывается до пары пикселей вместо того, чтобы вытолкнуть панель
-    // сундука на отдельную строку — flex-wrap только переносит элемент,
-    // если он ДЕЙСТВИТЕЛЬНО не помещается, а не когда сосед просто может
-    // сжаться. Минимум подобран так, чтобы "Уровень N" не переносился по
-    // слову на телефоне (короче, чем раньше, — фразы-мотиваторы тоже
-    // укорочены, экономят место).
-    const textGroupMinWidth = isFull ? 'min-w-[190px]' : 'min-w-[120px]';
+    const [openingCase, setOpeningCase] = useState(false);
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
 
     return (
-        <div
-            className={cozy
-                ? `relative min-w-0 overflow-hidden rounded-xl ${isFull ? 'p-6 mb-8' : 'p-4'}`
-                : `relative min-w-0 overflow-hidden rounded-2xl border border-violet-500/30 bg-gradient-to-br from-[#1c1533] via-[#181228] to-[#151F23] shadow-[0_0_28px_-10px_rgba(167,139,250,0.45)] ${isFull ? 'p-6 mb-8' : 'p-4'}`}
-            style={cozy ? { background: COZY.card, border: `3px solid ${COZY.cardBorder}`, boxShadow: `0 6px 0 ${COZY.cardEdge}` } : undefined}
-        >
-            {/* Декоративное свечение — чисто визуальный акцент, не мешает контенту */}
-            {!cozy && <div className="pointer-events-none absolute -top-10 -left-10 h-32 w-32 rounded-full bg-violet-500/20 blur-3xl" />}
-            {!cozy && <div className="pointer-events-none absolute -bottom-10 -right-10 h-32 w-32 rounded-full bg-amber-400/10 blur-3xl" />}
-
-            {/* flex-wrap — на узких экранах панель сундука не помещается
-                рядом с текстовой колонкой одной строкой и переносится на
-                отдельную строку под уровнем, а не сжимает текст до
-                нечитаемого состояния (см. textGroupMinWidth выше). */}
-            <div className="relative flex flex-wrap items-center gap-3 min-w-0">
-                <div className={`flex items-center gap-3 flex-1 ${textGroupMinWidth}`}>
-                    <div className={`shrink-0 overflow-hidden ${cozy ? 'rounded-xl' : 'rounded-full bg-white/5 ring-2 ring-violet-400/40'} ${mascotSize}`} style={cozy ? { background: '#3A342D', border: '3px solid #C9AEF5' } : undefined}>
-                        {mascotData && <Lottie animationData={mascotData} loop autoplay />}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                            <Sparkles className={isFull ? 'h-5 w-5 shrink-0' : 'h-4 w-4 shrink-0'} style={{ color: cozy ? COZY.honey : '#A78BFA' }} />
-                            <span className={`font-extrabold whitespace-nowrap ${isFull ? 'text-lg' : ''}`} style={{ color: cozy ? COZY.title : '#F2F7FB' }}>Уровень {level}</span>
-                        </div>
-                        <p className={`mb-2 ${isFull ? 'text-sm' : 'text-xs truncate'}`} style={{ color: cozy ? '#D9C4A3' : '#C9B8F5' }}>{motivation}</p>
-                        <div className={`w-full overflow-hidden ${cozy ? 'rounded-md' : 'rounded-full'} ${isFull ? 'h-3' : cozy ? 'h-2.5' : 'h-1.5'}`} style={{ backgroundColor: cozy ? COZY.track : 'rgba(167,139,250,0.2)' }}>
-                            <div
-                                className={cozy ? 'h-full transition-all duration-500' : 'h-full rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-400 transition-all duration-500'}
-                                style={{ width: `${progressPercent}%`, ...(cozy ? { background: '#C9AEF5' } : {}) }}
-                            />
-                        </div>
-                        <p className={`mt-1 ${isFull ? 'text-sm' : 'text-[10px]'}`} style={{ color: cozy ? '#B8A68E' : '#9AA7B0' }}>{xpIntoLevel}/{xpForNextLevel} XP</p>
-                    </div>
+        <div className={`rounded-2xl border-2 border-[#2A363C] bg-[#161F23] ${isFull ? 'p-5 mb-8' : 'p-3'}`}>
+            <div className="flex items-center gap-3">
+                {/* Персонаж уровня */}
+                <div
+                    className={`shrink-0 overflow-hidden rounded-xl bg-[#0F171B] ${isFull ? 'h-20 w-20 sm:h-24 sm:w-24' : 'h-16 w-16'}`}
+                    style={{ boxShadow: `inset 0 2px 0 rgba(0,0,0,0.35), 0 0 0 2px ${VIOLET}55` }}
+                >
+                    {mascotData && <Lottie animationData={mascotData} loop autoplay />}
                 </div>
 
-                <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
-                    <ChevronRight className={`text-[#3A464E] shrink-0 hidden sm:block ${isFull ? 'h-6 w-6' : 'h-4 w-4'}`} />
-
-                    <div
-                        className={`shrink-0 ${chestWidth} rounded-xl ${cozy ? '' : 'border border-dashed border-amber-400/40 bg-amber-400/5'} flex flex-col items-center text-center gap-0.5 ${isFull ? 'p-3 sm:p-4' : 'p-2'}`}
-                        style={cozy ? { background: COZY.wood, border: `2px solid ${COZY.woodBorder}`, boxShadow: `0 4px 0 ${COZY.woodEdge}` } : undefined}
-                    >
-                        <span className={isFull ? 'text-3xl leading-none' : 'text-xl leading-none'}>🎁</span>
-                        <span className={`font-bold text-amber-400 leading-tight ${isFull ? 'text-sm' : 'text-[11px]'}`}>Ур. {level + 1}</span>
-                        <span className={`text-[#9AA7B0] leading-tight ${isFull ? 'text-xs' : 'text-[10px]'}`}>Ещё {xpLeft} XP</span>
-                        <span className={`font-bold text-amber-400 leading-tight ${isFull ? 'text-xs' : 'text-[10px]'}`}>+{LEVEL_UP_GEM_REWARD}💎</span>
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-2">
+                        <span className={`font-black uppercase tracking-wide text-[#F2F7FB] ${isFull ? 'text-lg' : 'text-[15px]'}`}>
+                            Уровень {level}
+                        </span>
+                        <span className="shrink-0 text-[11px] font-black text-[#72838D]">{xpIntoLevel}/{xpForNextLevel} XP</span>
                     </div>
+
+                    {/* Полоска опыта: жёлоб + заливка, светлая полоса сверху, тёмная снизу */}
+                    <div className="mt-1.5 rounded-lg bg-[#0F171B] p-[3px]" style={{ boxShadow: 'inset 0 2px 0 rgba(0,0,0,0.35)' }}>
+                        <div className={`relative overflow-hidden rounded-[5px] bg-[#26333B] ${isFull ? 'h-5' : 'h-4'}`}>
+                            {progressPercent > 0 && (
+                                <div
+                                    className="absolute inset-y-0 left-0 rounded-[5px] transition-[width] duration-700"
+                                    style={{ width: `${Math.max(progressPercent, 6)}%`, background: 'linear-gradient(180deg, #C385F7, #9C6AC6)' }}
+                                />
+                            )}
+                            <div className="pointer-events-none absolute inset-x-0 top-0 h-1/3 bg-white/10" />
+                            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-black/15" />
+                        </div>
+                    </div>
+
+                    <p className="mt-1 truncate text-[11px] font-bold text-[#72838D]">
+                        Ещё <span className="text-[#C4B5FD]">{xpLeft} XP</span> до ур. {nextLevel}
+                        {!nextHasCase && <> · кейс на ур. {caseLevel}</>}
+                    </p>
+                </div>
+
+                {/* Следующая награда */}
+                <div
+                    className={`shrink-0 flex flex-col items-center justify-center rounded-xl border-2 ${isFull ? 'w-24 py-2' : 'w-[72px] py-1.5'}`}
+                    style={nextHasCase
+                        ? { borderColor: `${RARE}88`, background: 'linear-gradient(180deg, rgba(0,197,255,0.16), rgba(0,197,255,0.04))', boxShadow: `0 0 14px -4px ${RARE}` }
+                        : { borderColor: '#2A363C', background: '#1B252A' }}
+                >
+                    <span className="text-[10px] font-black uppercase tracking-wide text-[#72838D]">Ур. {nextLevel}</span>
+                    {nextHasCase ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src="/chests/rare0001.svg" alt="Редкий кейс" className={`object-contain ${isFull ? 'h-11 w-11' : 'h-9 w-9'}`} />
+                    ) : (
+                        <Gem className={`text-[#8FA6FF] ${isFull ? 'my-1.5 h-8 w-8' : 'my-1 h-6 w-6'}`} />
+                    )}
+                    <span className="text-[11px] font-black leading-none" style={{ color: nextHasCase ? RARE : '#8FA6FF' }}>
+                        {nextHasCase ? `+${LEVEL_UP_GEM_REWARD} · кейс` : `+${LEVEL_UP_GEM_REWARD}`}
+                    </span>
                 </div>
             </div>
+
+            {/* Кейс за уровень ждёт открытия */}
+            {levelCase && (
+                <button
+                    type="button"
+                    onClick={() => setOpeningCase(true)}
+                    className="mt-3 flex w-full items-center gap-3 rounded-xl border-2 border-b-4 px-3 py-2 text-left active:translate-y-[2px] active:border-b-2"
+                    style={{ borderColor: `${RARE}99`, borderBottomColor: '#0090BB', background: 'linear-gradient(90deg, rgba(0,197,255,0.18), rgba(0,197,255,0.05))' }}
+                >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/chests/rare0001.svg" alt="" className="h-9 w-9 shrink-0 object-contain animate-chest-idle-bounce" />
+                    <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-black text-[#F2F7FB]">Редкий кейс за уровень {levelCase.level}</span>
+                        <span className="block text-[11px] font-bold text-[#7FE0FF]">Ждёт тебя</span>
+                    </span>
+                    <span className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-black uppercase text-[#06222C]" style={{ background: RARE }}>
+                        Открыть
+                    </span>
+                </button>
+            )}
+
+            {mounted && openingCase && levelCase && createPortal(
+                <div className="fixed inset-0 z-[90] overflow-y-auto bg-[#131D22]">
+                    <CaseReel
+                        isMega
+                        tier="rare"
+                        pool={getLessonCasePool('rare')}
+                        spinAction={() => openKeyCase(levelCase.keyId)}
+                        onDone={() => {
+                            setOpeningCase(false);
+                            router.refresh();
+                        }}
+                    />
+                </div>,
+                document.body,
+            )}
         </div>
     );
 };

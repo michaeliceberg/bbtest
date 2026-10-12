@@ -8,6 +8,7 @@ import { eq, sql } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { xpForAmount, getLevelUpInfo } from '@/lib/xp';
+import { grantLevelCaseKeys } from '@/lib/levelCase';
 
 export async function claimAchievementReward(userId: string, achievementId: number) {
     const session = await auth();
@@ -68,6 +69,7 @@ export async function claimAchievementReward(userId: string, achievementId: numb
         newLevel = levelUpInfo.newLevel;
         levelUpGems = levelUpInfo.gemsAwarded;
         levelsGained = levelUpInfo.levelsGained;
+        await grantLevelCaseKeys(userId, levelUpInfo.newLevel, levelUpInfo.levelsGained);
 
         await db.update(userProgress)
             .set({

@@ -28,6 +28,7 @@ import { cookies } from 'next/headers';
 import { getCourseUnitsWithProgress } from '@/lib/lesson-access';
 import { LearnWrapper } from '@/components/learn-wrapper';
 import { ScrollToLesson } from '@/components/scroll-to-lesson';
+import { getPendingLevelCase } from '@/lib/levelCase';
 import { LevelCard } from '@/components/level-card';
 import { getLvlLottieCount } from '@/lib/lvl-lottie';
 import { StreakRiskBanner } from '@/components/streak-risk-banner';
@@ -427,7 +428,7 @@ const LearnPage = async () => {
             <StreakRiskBanner streak={currentStreak} hasExtendedToday={hasExtendedStreakToday} />
 
             <div className='mb-4'>
-              <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} />
+              <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} levelCase={await getPendingLevelCase(userId)} />
             </div>
 
             <CourseProgressStrip
