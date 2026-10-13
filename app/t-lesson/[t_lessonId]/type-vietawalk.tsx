@@ -402,6 +402,12 @@ const PairBuilder = ({ c, s, nums, onSolved, focus }: { c: number; s: number; nu
     const [vals, setVals] = useState<(number | null)[]>([null, null])
     const [active, setActive] = useState(0)
     const [result, setResult] = useState<'ok' | 'bad' | null>(null)
+    // Сначала показываем строки x₁ · x₂ и x₁ + x₂, через 1 с падают числа-варианты.
+    const [showNums, setShowNums] = useState(false)
+    useEffect(() => {
+        const t = setTimeout(() => setShowNums(true), 1000)
+        return () => clearTimeout(t)
+    }, [])
     const filled = vals[0] !== null && vals[1] !== null
     const prodOk = filled && vals[0]! * vals[1]! === c
     const sumOk = filled && vals[0]! + vals[1]! === s
@@ -442,8 +448,8 @@ const PairBuilder = ({ c, s, nums, onSolved, focus }: { c: number; s: number; nu
                 {row('·', c, C_COLOR, prodOk, 'prod')}
                 {row('+', s, B_COLOR, sumOk, 'sum')}
             </div>
-            <div className="grid grid-cols-3 gap-2.5 w-full max-w-[280px] transition-all duration-500" style={focus ? DIM_STYLE : undefined}>
-                {nums.map((n, i) => {
+            <div className="grid grid-cols-3 gap-2.5 w-full max-w-[280px] transition-all duration-500 min-h-[122px]" style={focus ? DIM_STYLE : undefined}>
+                {showNums && nums.map((n, i) => {
                     const used = vals[active === 0 ? 1 : 0] === n
                     return (
                         <motion.button key={n} type="button" onClick={() => pick(n)} disabled={!!result || used}
