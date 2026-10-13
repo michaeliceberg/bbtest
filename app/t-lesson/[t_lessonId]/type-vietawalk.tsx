@@ -512,7 +512,7 @@ const StickerFlight = ({ rootRef, kind, from, to, startValue, value, color, onDo
 }
 
 // asm — правая часть собирается снаружи (StickerFlight): пока prod/sum false, число невидимо (место держим).
-const PairBuilder = ({ c, s, nums, onSolved, focus, asm }: { c: number; s: number; nums: number[]; onSolved: () => void; focus?: 'prod' | 'sum' | null; asm?: { prod: boolean; sum: boolean; nums: boolean } }) => {
+const PairBuilder = ({ c, s, nums, onSolved, focus, asm, between }: { c: number; s: number; nums: number[]; onSolved: () => void; focus?: 'prod' | 'sum' | null; asm?: { prod: boolean; sum: boolean; nums: boolean }; between?: React.ReactNode }) => {
     const [vals, setVals] = useState<(number | null)[]>([null, null])
     const [active, setActive] = useState(0)
     const [result, setResult] = useState<'ok' | 'bad' | null>(null)
@@ -520,7 +520,7 @@ const PairBuilder = ({ c, s, nums, onSolved, focus, asm }: { c: number; s: numbe
     const [showNums, setShowNums] = useState(false)
     useEffect(() => {
         if (asm) { if (asm.nums) setShowNums(true); return }
-        const t = setTimeout(() => setShowNums(true), 1000)
+        const t = setTimeout(() => setShowNums(true), 1500)
         return () => clearTimeout(t)
     }, [asm?.nums])
     const filled = vals[0] !== null && vals[1] !== null
@@ -567,10 +567,12 @@ const PairBuilder = ({ c, s, nums, onSolved, focus, asm }: { c: number; s: numbe
     )
     return (
         <div className="w-full flex flex-col items-center gap-4">
-            <div className="flex flex-col items-center gap-3">
-                {row('·', c, C_COLOR, prodOk, 'prod')}
-                {row('+', s, B_COLOR, sumOk, 'sum')}
+            {/* Строки системы падают сверху по очереди, как варианты ответа */}
+            <div className="drop-in-options flex flex-col items-center gap-3">
+                <div>{row('·', c, C_COLOR, prodOk, 'prod')}</div>
+                <div>{row('+', s, B_COLOR, sumOk, 'sum')}</div>
             </div>
+            {between}
             <div className="grid grid-cols-3 gap-2.5 w-full max-w-[280px] transition-all duration-500 min-h-[122px]" style={focus ? DIM_STYLE : undefined}>
                 {showNums && nums.map((n, i) => {
                     const used = vals[active === 0 ? 1 : 0] === n
@@ -602,7 +604,7 @@ const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain, assemble }: S
     const [asmStep, setAsmStep] = useState(assemble ? 0 : 4)
     useEffect(() => {
         if (!assemble || phase < 3 || asmStep !== 0) return
-        const t = setTimeout(() => setAsmStep(1), 700)
+        const t = setTimeout(() => setAsmStep(1), 1400)
         return () => clearTimeout(t)
     }, [assemble, phase, asmStep])
     const asm = assemble ? { prod: asmStep >= 2, sum: asmStep >= 3, nums: asmStep >= 4 } : undefined
@@ -615,7 +617,8 @@ const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain, assemble }: S
                 </DiagramBlock>
             )}
             {phase >= 2 && <TypedBig small parts={[{ text: assemble ? 'Составим систему:' : 'Подбери 2 числа 👇' }]} onDone={() => setPhase((p) => Math.max(p, 3))} readMs={150} />}
-            {phase >= 3 && <PairBuilder c={c} s={-b} nums={nums} focus={focus} asm={asm} onSolved={() => setPhase(4)} />}
+            {phase >= 3 && <PairBuilder c={c} s={-b} nums={nums} focus={focus} asm={asm} onSolved={() => setPhase(4)}
+                between={assemble && asmStep >= 3 ? <TypedBig small parts={[{ text: 'Подбери 2 числа 👆' }]} onDone={() => setAsmStep((x) => Math.max(x, 4))} readMs={150} /> : undefined} />}
             {asmStep === 1 && (
                 <StickerFlight rootRef={rootRef} kind="prod" from="eq-c" to="slot-prod" startValue={c} value={c} color={C_COLOR}
                     onDone={() => setTimeout(() => setAsmStep(2), 300)} />
@@ -624,8 +627,6 @@ const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain, assemble }: S
                 <StickerFlight rootRef={rootRef} kind="sum" from="eq-b" to="slot-sum" startValue={b} value={-b} color={B_COLOR}
                     onDone={() => setAsmStep(3)} />
             )}
-            {/* Сначала собираем правую часть, и только потом — задание */}
-            {assemble && asmStep >= 3 && <TypedBig small parts={[{ text: 'Подбери 2 числа 👆' }]} onDone={() => setAsmStep((x) => Math.max(x, 4))} readMs={150} />}
             {phase >= 4 && (
                 <TypedBig onDone={() => (explain ? setPhase(5) : onSettled?.())} readMs={explain ? 900 : 300}
                     parts={[{ text: `${x1} и ${x2} это ` }, { text: 'КОРНИ', color: ROOT_COLOR }, { text: ' 🎯' }]} />
@@ -674,7 +675,7 @@ const ZakrepRound = ({ r, onSolved, hideEq }: { r: ZRound; onSolved: () => void;
     const [result, setResult] = useState<'ok' | 'bad' | null>(null)
     const [showNums, setShowNums] = useState(false)
     useEffect(() => {
-        const t = setTimeout(() => setShowNums(true), 1000)
+        const t = setTimeout(() => setShowNums(true), 1500)
         return () => clearTimeout(t)
     }, [])
     const target = [r.c, -r.b]
