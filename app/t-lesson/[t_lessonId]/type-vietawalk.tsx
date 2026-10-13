@@ -27,7 +27,7 @@ import {
     isFieryMilestoneTrial, FieryFeedbackBanner,
     useWalkthroughCombo,
     pickFunNextLabel,
-    RememberPlate, MarkerLoop,
+    RememberPlate, MarkerLoop, ZakrepPlate,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -499,13 +499,13 @@ const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain }: SceneProps 
                     parts={[{ text: `${x1} и ${x2} это ` }, { text: 'КОРНИ', color: ROOT_COLOR }, { text: ' 🎯' }]} />
             )}
             {explain && phase >= 5 && (
-                <TypedBig small onDone={() => setPhase(6)} readMs={1800}
-                    parts={[{ text: 'Смотри: ' }, { text: `${x1} · ${x2} = ${c}`, color: C_COLOR }, { text: '. Это число в уравнении!' }]} />
+                <TypedBig small onDone={() => setPhase(6)} readMs={1200}
+                    parts={[{ text: 'Смотри! ' }, { text: `${c}`, color: C_COLOR }, { text: ' пишем просто' }]} />
             )}
             {explain && phase === 6 && <PauseThen ms={600} onDone={() => setPhase(7)} />}
             {explain && phase >= 7 && (
-                <TypedBig small onDone={() => setPhase(8)} readMs={2200}
-                    parts={[{ text: 'А ' }, { text: `${x1} + ${x2} = ${-b}`, color: B_COLOR }, { text: ', но в уравнении ' }, { text: fmt(b), color: B_COLOR }, { text: '. Знак ' }, { text: 'НАОБОРОТ', color: REMEMBER_COLOR }, { text: '!' }]} />
+                <TypedBig small onDone={() => setPhase(8)} readMs={1400}
+                    parts={[{ text: 'а у ' }, { text: `${-b}`, color: B_COLOR }, { text: ' ' }, { text: 'МЕНЯЕТСЯ', color: REMEMBER_COLOR }, { text: ' знак!' }]} />
             )}
             {explain && phase >= 8 && <PauseThen ms={300} onDone={() => onSettled?.()} />}
         </>
@@ -521,6 +521,108 @@ const PauseThen = ({ ms, onDone }: { ms: number; onDone: () => void }) => {
 }
 const Guess56Scene = (p: SceneProps) => <PairGuessScene {...p} intro="Вот уравнение:" x1={2} x2={3} nums={[1, 2, 3, 4, 5, 6]} />
 const Guess712Scene = (p: SceneProps) => <PairGuessScene {...p} intro="А вот ещё одно:" x1={3} x2={4} nums={[1, 2, 3, 4, 6, 12]} explain />
+
+// «ЗАКРЕП»: по уравнению (a = 1) выбираем, чему равны x₁ · x₂ и x₁ + x₂ (c и −b). Ошибка не в зачёт.
+type ZRound = { b: number; c: number; nums: number[] }
+const ZAKREP_ROUNDS: ZRound[] = [
+    { b: -8, c: 12, nums: [12, -12, 8, -8, 4, 20] },
+    { b: 5, c: 6, nums: [6, -6, 5, -5, 11, 1] },
+    { b: -2, c: -15, nums: [-15, 15, 2, -2, 8, -13] },
+    { b: 4, c: -21, nums: [-21, 21, 4, -4, 3, -17] },
+]
+const ZakrepRound = ({ r, onSolved }: { r: ZRound; onSolved: () => void }) => {
+    const [vals, setVals] = useState<(number | null)[]>([null, null])
+    const [active, setActive] = useState(0)
+    const [result, setResult] = useState<'ok' | 'bad' | null>(null)
+    const [showNums, setShowNums] = useState(false)
+    useEffect(() => {
+        const t = setTimeout(() => setShowNums(true), 1000)
+        return () => clearTimeout(t)
+    }, [])
+    const target = [r.c, -r.b]
+    const pick = (n: number) => {
+        if (result) return
+        const next = [...vals]
+        next[active] = n
+        setVals(next)
+        const other = active === 0 ? 1 : 0
+        if (next[other] === null) { setActive(other); return }
+        if (next[0] === target[0] && next[1] === target[1]) {
+            setResult('ok'); showAnswerMeme(true)
+            setTimeout(onSolved, 1100)
+        } else {
+            setResult('bad'); playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false)
+            setTimeout(() => { setResult(null); setVals([null, null]); setActive(0) }, 1500)
+        }
+    }
+    const row = (i: number, op: string, color: string) => {
+        const ok = vals[i] === target[i]
+        const state: 'ok' | 'bad' | null = result && vals[i] !== null ? (ok ? 'ok' : 'bad') : null
+        return (
+            <motion.div animate={result === 'bad' && !ok ? { x: [0, -10, 10, -6, 6, 0] } : { x: 0 }} transition={{ duration: 0.5 }}
+                className="flex items-center gap-2.5 text-2xl md:text-3xl font-black text-[#F2F7FB]">
+                <span style={{ color: ROOT_COLOR }}>x₁</span><span>{op}</span><span style={{ color: ROOT_COLOR }}>x₂</span><span>=</span>
+                <button type="button" onClick={() => !result && setActive(i)}
+                    className="min-w-[64px] h-[52px] px-2 rounded-xl border-2 border-b-4 bg-[#161F23] flex items-center justify-center"
+                    style={{ borderColor: state === 'ok' ? hexToRgba(OK_COLOR, 0.6) : state === 'bad' ? BAD_COLOR : active === i && !result ? hexToRgba(color, 0.75) : '#3A464E' }}>
+                    {vals[i] !== null
+                        ? <motion.span key={vals[i]} initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
+                            transition={{ type: 'spring', stiffness: 420, damping: 16 }} style={{ color: state === 'bad' ? BAD_COLOR : color }}>{fmt(vals[i]!)}</motion.span>
+                        : <span className={cn('text-xl', active === i && 'animate-slot-label')}
+                            style={{ color: active === i ? color : '#5C6B73', ['--slot-c' as string]: color }}>?</span>}
+                </button>
+            </motion.div>
+        )
+    }
+    return (
+        <div className="w-full flex flex-col items-center gap-4">
+            <Eq a={1} b={r.b} c={r.c} colors />
+            <div className="flex flex-col items-center gap-3">
+                {row(0, '·', C_COLOR)}
+                {row(1, '+', B_COLOR)}
+            </div>
+            <div className="drop-in-options grid grid-cols-3 gap-2.5 w-full max-w-[280px] min-h-[122px]">
+                {showNums && r.nums.map((n) => {
+                    const used = vals[active === 0 ? 1 : 0] === n
+                    return (
+                        <button key={n} type="button" onClick={() => pick(n)} disabled={!!result || used}
+                            className={cn('h-14 rounded-xl border-2 border-b-4 border-[#3A464E] bg-[#161F23] text-2xl font-black text-[#F2F7FB] active:border-b-2', used && 'opacity-35')}>
+                            {fmt(n)}
+                        </button>
+                    )
+                })}
+            </div>
+        </div>
+    )
+}
+const ZakrepScene = ({ onSettled }: SceneProps) => {
+    const [phase, setPhase] = useState(0)
+    const [round, setRound] = useState(0)
+    const [done, setDone] = useState(false)
+    return (
+        <>
+            <ZakrepPlate>
+                <span className="text-lg md:text-xl">x₁ · x₂ = <span style={{ color: C_COLOR }}>c</span> пишем просто</span>
+                <span className="text-lg md:text-xl">x₁ + x₂ = <span style={{ color: B_COLOR }}>b</span> с другим знаком</span>
+            </ZakrepPlate>
+            <PauseThen ms={1200} onDone={() => setPhase(1)} />
+            {phase >= 1 && (
+                <div className="w-full flex flex-col items-center gap-3">
+                    <div className="px-3 py-1 rounded-full text-sm font-black" style={{ backgroundColor: hexToRgba(ROOT_COLOR, 0.15), color: ROOT_COLOR }}>
+                        {Math.min(round + 1, ZAKREP_ROUNDS.length)}/{ZAKREP_ROUNDS.length}
+                    </div>
+                    {!done && (
+                        <ZakrepRound key={round} r={ZAKREP_ROUNDS[round]} onSolved={() => {
+                            if (round + 1 < ZAKREP_ROUNDS.length) setRound(round + 1)
+                            else { setDone(true); onSettled?.() }
+                        }} />
+                    )}
+                    {done && <TypedBig parts={[{ text: 'Закреп ' }, { text: 'есть', color: OK_COLOR }, { text: ' 💪' }]} readMs={200} />}
+                </div>
+            )}
+        </>
+    )
+}
 
 // Буква-коэффициент падает сверху в пунктирную клетку.
 const FallingLetter = ({ letter, color, delay }: { letter: string; color: string; delay: number }) => (
@@ -920,8 +1022,9 @@ const ReadyScene = ({ onSettled }: SceneProps) => (
     <TypedBig parts={[{ text: 'Приготовься, пора ' }, { text: 'блистать знаниями!', color: REMEMBER_COLOR }]} onDone={() => onSettled?.()} readMs={300} />
 )
 
-const SCENES = [Guess56Scene, Guess712Scene, CoefScene, RuleScene, SimpleRoundsScene, NegIntroScene, NegRoundsScene, GeneralScene, GuessOneScene, GuessMinusOneScene, RaceScene, GuessRoundsScene, ReadyScene]
+const SCENES = [Guess56Scene, Guess712Scene, ZakrepScene, CoefScene, RuleScene, SimpleRoundsScene, NegIntroScene, NegRoundsScene, GeneralScene, GuessOneScene, GuessMinusOneScene, RaceScene, GuessRoundsScene, ReadyScene]
 const FIXED_NEXT_LABELS = new Map<unknown, string>([
+    [ZakrepScene, 'Закреплено 📌'],
     [CoefScene, 'Невидимка, понял 👀'],
     [RuleScene, 'Запомнил!'],
     [RaceScene, 'Виета имба ⚡'],

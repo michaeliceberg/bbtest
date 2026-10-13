@@ -980,3 +980,29 @@ export const RememberPlate = ({ title = 'ЗАПОМНИ!', children }: { title?:
         </div>
     )
 }
+
+// ===== Плашка «ЗАКРЕП» (общая для всех step-by-step, 2026-10-13) =====
+// Итог/правило, которое «закрепляем» на практике. Фиолетовая плашка (отличается от золотой ЗАПОМНИ!),
+// справа — видео Хабиба (public/video/khabi-zakrep.webm, без прозрачности, по кругу).
+export const ZakrepPlate = ({ title = 'ЗАКРЕП 📌', children }: { title?: React.ReactNode; children?: React.ReactNode }) => (
+    <div className="w-full flex items-center gap-3">
+        <div className="flex-1 min-w-0 flex flex-col items-stretch gap-2">
+            <div className="flex items-center justify-center rounded-xl px-4 py-3 font-black text-lg md:text-xl text-center tracking-wide text-white"
+                style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #C026D3 100%)', boxShadow: '0 4px 0 #5B21B6' }}>
+                {title}
+            </div>
+            {children && (
+                <div className="flex flex-col items-center gap-2 rounded-xl px-4 py-3 font-black text-center text-[#F2F7FB]"
+                    style={{ backgroundColor: 'rgba(167, 139, 250, 0.08)', border: '2px solid rgba(167, 139, 250, 0.55)' }}>
+                    {children}
+                </div>
+            )}
+        </div>
+        <motion.div initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 14 }}
+            className="w-24 h-24 md:w-28 md:h-28 shrink-0 rounded-2xl overflow-hidden border-2 border-[#A78BFA]">
+            <video src="/video/khabi-zakrep.webm" autoPlay loop muted playsInline disablePictureInPicture
+                className="w-full h-full object-cover pointer-events-none" />
+        </motion.div>
+    </div>
+)
