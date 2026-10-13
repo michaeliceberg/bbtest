@@ -14,7 +14,7 @@
 
 'use client'
 
-import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -27,7 +27,7 @@ import {
     isFieryMilestoneTrial, FieryFeedbackBanner,
     useWalkthroughCombo,
     pickFunNextLabel,
-    RememberPlate, MarkerLoop, ZakrepPlate, glassStickerStyle,
+    RememberPlate, MarkerLoop, ZakrepPlate,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -402,14 +402,14 @@ const PairSlot = ({ label, val, active, state, onClick }: {
 // Мини-игра «собери пару»: x₁ · x₂ = c и x₁ + x₂ = s, числа снизу. Неверно — тряска и сброс.
 // assemble (1-е уравнение): правая часть сначала пустая; через 2 с сверху спускается c, затем −b —
 // на полпути останавливается, пружинит и превращается в b с другим знаком.
-// «Собираем правую часть» (первые два уравнения): коэффициент в уравнении обводится пунктирным овалом,
-// вспышка (как снимок), получившийся стикер плавно едет вниз к своей строке. У суммы стикер на полпути
+// «Собираем правую часть» (первые два уравнения): вокруг коэффициента в уравнении «рисуется» пунктирный
+// овал, и число вместе с этим овалом (тот же размер и стиль) плавно едет вниз к своей строке. У суммы стикер на полпути
 // останавливается, знак «−» с отскоком меняется на «+», держим 1 с и едем дальше. На месте рамка и «+»
 // гаснут, остаётся число. Координаты меряем по DOM (data-marker), относительно контейнера сцены.
 type FlightKind = 'prod' | 'sum'
 const FLIGHT_STEPS: Record<FlightKind, { stage: string; ms: number }[]> = {
-    prod: [{ stage: 'outline', ms: 900 }, { stage: 'flash', ms: 450 }, { stage: 'move', ms: 1000 }, { stage: 'land', ms: 750 }],
-    sum: [{ stage: 'outline', ms: 900 }, { stage: 'flash', ms: 450 }, { stage: 'move1', ms: 750 }, { stage: 'look', ms: 500 },
+    prod: [{ stage: 'outline', ms: 1000 }, { stage: 'move', ms: 1000 }, { stage: 'land', ms: 750 }],
+    sum: [{ stage: 'outline', ms: 1000 }, { stage: 'move1', ms: 750 }, { stage: 'look', ms: 500 },
         { stage: 'flip', ms: 550 }, { stage: 'hold', ms: 1000 }, { stage: 'move2', ms: 900 }, { stage: 'land', ms: 750 }],
 }
 type Rect = { cx: number; cy: number; w: number; h: number; font: number }
@@ -426,6 +426,7 @@ const StickerFlight = ({ rootRef, kind, from, to, startValue, value, color, onDo
     const [rects, setRects] = useState<{ a: Rect; b: Rect } | null>(null)
     const [step, setStep] = useState(0)
     const [digitOff, setDigitOff] = useState(0)
+    const maskId = `sf-${useId().replace(/:/g, '')}`
     const boxRef = useRef<HTMLDivElement>(null)
     const digitRef = useRef<HTMLSpanElement>(null)
     useLayoutEffect(() => {
@@ -467,38 +468,38 @@ const StickerFlight = ({ rootRef, kind, from, to, startValue, value, color, onDo
     if (stage === 'move2' || stage === 'land') { pos = { x: dx, y: dy, scale: scaleEnd }; dur = 0.9; ease = [0.45, 0, 0.25, 1] }
     const sticker = stage !== 'outline'
     const landing = stage === 'land'
+    // Пунктирный овал — того же размера, что вокруг коэффициента в уравнении; не масштабируется.
+    const ow = a.w + 20, oh = a.h + 12, sw = 2.5
     return (
         <div className="absolute pointer-events-none z-20" style={{ left: a.cx, top: a.cy, width: 0, height: 0 }}>
-            {/* Пунктирный овал вокруг коэффициента в уравнении */}
-            {(stage === 'outline' || stage === 'flash') && (
-                <motion.div className="absolute rounded-full"
-                    style={{ left: -a.w / 2 - 10, top: -a.h / 2 - 6, width: a.w + 20, height: a.h + 12, border: `2.5px dashed ${color}` }}
-                    initial={{ opacity: 0, scale: 1.25 }} animate={{ opacity: stage === 'flash' ? 0 : 1, scale: 1 }} transition={{ duration: stage === 'flash' ? 0.35 : 0.5, ease: 'easeOut' }} />
-            )}
-            {/* Вспышка */}
-            {stage === 'flash' && (
-                <motion.div className="absolute rounded-full bg-white"
-                    style={{ left: -a.w / 2 - 10, top: -a.h / 2 - 6, width: a.w + 20, height: a.h + 12 }}
-                    initial={{ opacity: 0.95 }} animate={{ opacity: 0 }} transition={{ duration: 0.45, ease: 'easeOut' }} />
-            )}
-            <motion.div className="absolute left-0 top-0" initial={false} animate={pos} transition={{ duration: dur, ease }}>
-                <div ref={boxRef} className="absolute left-0 top-0 -translate-x-1/2 -translate-y-1/2 flex items-center whitespace-nowrap px-2.5 py-0.5 font-black"
-                    style={{ fontSize: a.font, color, opacity: sticker ? 1 : 0 }}>
-                    <motion.div className="absolute inset-0 rounded-full border-2"
-                        style={glassStickerStyle(color)}
-                        initial={{ opacity: 0, scale: 1.15 }} animate={{ opacity: landing ? 0 : sticker ? 1 : 0, scale: 1 }}
-                        transition={{ duration: landing ? 0.45 : 0.3 }} />
-                    <motion.span key={signTxt} className="relative inline-block mr-0.5"
-                        initial={flipped ? { scale: 2.2, rotate: -90 } : false}
-                        animate={landing && fadeSign ? { scale: 1.9, opacity: 0 } : { scale: 1, rotate: 0, opacity: 1 }}
-                        transition={landing ? { duration: 0.55, ease: 'easeOut' } : { type: 'spring', stiffness: 420, damping: 10 }}>
-                        {signTxt}
-                    </motion.span>
-                    <motion.span ref={digitRef} key={`d${flipped}`} className="relative inline-block"
-                        initial={flipped ? { scale: 1.6 } : false} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 10 }}>
-                        {Math.abs(shown)}
-                    </motion.span>
-                </div>
+            <motion.div className="absolute left-0 top-0" initial={false} animate={{ x: pos.x, y: pos.y }} transition={{ duration: dur, ease }}>
+                <motion.svg className="absolute overflow-visible" width={ow} height={oh} style={{ left: -ow / 2, top: -oh / 2 }}
+                    initial={false} animate={{ opacity: landing ? 0 : 1 }} transition={{ duration: 0.45 }}>
+                    <defs>
+                        <mask id={maskId} maskUnits="userSpaceOnUse" x={-10} y={-10} width={ow + 20} height={oh + 20}>
+                            <motion.rect x={sw / 2} y={sw / 2} width={ow - sw} height={oh - sw} rx={(oh - sw) / 2}
+                                fill="none" stroke="white" strokeWidth={sw * 3}
+                                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.75, ease: 'easeInOut' }} />
+                        </mask>
+                    </defs>
+                    <rect x={sw / 2} y={sw / 2} width={ow - sw} height={oh - sw} rx={(oh - sw) / 2}
+                        fill="none" stroke={color} strokeWidth={sw} strokeDasharray="7 6" strokeLinecap="round" mask={`url(#${maskId})`} />
+                </motion.svg>
+                <motion.div className="absolute left-0 top-0" initial={false} animate={{ scale: pos.scale }} transition={{ duration: dur, ease }}>
+                    <div ref={boxRef} className="absolute left-0 top-0 -translate-x-1/2 -translate-y-1/2 flex items-center whitespace-nowrap font-black"
+                        style={{ fontSize: a.font, color, opacity: sticker ? 1 : 0 }}>
+                        <motion.span key={signTxt} className="relative inline-block mr-0.5"
+                            initial={flipped ? { scale: 2.2, rotate: -90 } : false}
+                            animate={landing && fadeSign ? { scale: 1.9, opacity: 0 } : { scale: 1, rotate: 0, opacity: 1 }}
+                            transition={landing ? { duration: 0.55, ease: 'easeOut' } : { type: 'spring', stiffness: 420, damping: 10 }}>
+                            {signTxt}
+                        </motion.span>
+                        <motion.span ref={digitRef} key={`d${flipped}`} className="relative inline-block"
+                            initial={flipped ? { scale: 1.6 } : false} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 10 }}>
+                            {Math.abs(shown)}
+                        </motion.span>
+                    </div>
+                </motion.div>
             </motion.div>
         </div>
     )
