@@ -840,7 +840,11 @@ const CoefTag = ({ text, note, color }: { text: string; note?: string; color: st
     <motion.span initial={{ y: -40, opacity: 0, scale: 0.6 }} animate={{ y: 0, opacity: 1, scale: 1 }}
         transition={{ type: 'spring', stiffness: 300, damping: 12 }}
         className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 flex flex-col items-center whitespace-nowrap pointer-events-none">
-        {note && <span className="text-[11px] md:text-xs font-bold mb-0.5" style={{ color }}>{note}</span>}
+        {note && (
+            <motion.span initial={{ y: -30, opacity: 0, scale: 1.8 }} animate={{ y: 0, opacity: 1, scale: 1 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 11, delay: 0.7 }}
+                className="text-base md:text-lg font-black mb-1" style={{ color, textShadow: `0 0 14px ${hexToRgba(color, 0.6)}` }}>{note}</motion.span>
+        )}
         <span className="text-sm md:text-base font-black px-2 py-0.5 rounded-lg"
             style={{ color, backgroundColor: hexToRgba(color, 0.14) }}>{text}</span>
     </motion.span>
@@ -855,11 +859,14 @@ const CoefScene = ({ onSettled }: SceneProps) => {
     const [wrong, setWrong] = useFlash<string>()
     const [hint, setHint] = useState<string | null>(null)
     const [askReady, setAskReady] = useState(false)
+    const [minusAsk, setMinusAsk] = useState(false)
+    // c: пауза 2 с после появления уравнения; b: пауза 1 с после подписи «c = 12».
     useEffect(() => {
-        if (phase !== 3) return
-        const t = setTimeout(() => setAskReady(true), 2000)
+        if (phase < 3 || (step !== 'c' && step !== 'b')) return
+        setAskReady(false)
+        const t = setTimeout(() => setAskReady(true), step === 'c' ? 2000 : 1000)
         return () => clearTimeout(t)
-    }, [phase])
+    }, [phase >= 3, step])
     useEffect(() => {
         if (phase !== 1) return
         const t = setTimeout(() => setPhase(2), 2400)
@@ -872,7 +879,7 @@ const CoefScene = ({ onSettled }: SceneProps) => {
             showAnswerMeme(true)
             setHint(null)
             if (step === 'c') setStep('b')
-            else { setStep('a'); setTimeout(() => setPhase((p) => Math.max(p, 4)), 700) }
+            else { setStep('a'); setTimeout(() => setMinusAsk(true), 1500) }
             return
         }
         if (tok === 'c' && step === 'b') return
@@ -895,7 +902,7 @@ const CoefScene = ({ onSettled }: SceneProps) => {
             {phase >= 2 && <TypedBig small parts={[{ text: 'Найдём их здесь 👇' }]} onDone={() => setPhase((p) => Math.max(p, 3))} readMs={150} />}
             {phase >= 3 && (
                 <Pop>
-                    <div className="w-full flex items-end justify-center font-black text-4xl md:text-5xl text-[#F2F7FB] whitespace-nowrap pt-20 pb-1">
+                    <div className="w-full flex items-end justify-center font-black text-4xl md:text-5xl text-[#F2F7FB] whitespace-nowrap pt-24 pb-1">
                         {found.a && (
                             <span className="relative inline-flex">
                                 <CoefTag text="a = 1" color={A_COLOR} />
@@ -907,7 +914,7 @@ const CoefScene = ({ onSettled }: SceneProps) => {
                             className={cn(tokCls, wrong === 'x2' && 'bg-[#DC605B33] text-[#DC605B]')}>x²</button>
                         <button type="button" onClick={() => tap('b')} className={cn(tokCls, 'ml-1', wrong === 'b' && 'bg-[#DC605B33]')}
                             style={{ color: found.b ? B_COLOR : wrong === 'b' ? BAD_COLOR : undefined }}>
-                            {found.b && <CoefTag text="b = −7" note="минус тоже входит!" color={B_COLOR} />}−7
+                            {found.b && <CoefTag text="b = −7" note="МИНУС тоже входит!" color={B_COLOR} />}−7
                         </button>
                         <span>x</span>
                         <span className="mx-1.5">+</span>
@@ -925,6 +932,13 @@ const CoefScene = ({ onSettled }: SceneProps) => {
                         parts={[{ text: 'Нажми на ' }, { text: step, color: askColor }]} />
                     <div className="min-h-[24px] text-center font-bold" style={{ color: BAD_COLOR }}>{hint}</div>
                 </div>
+            )}
+            {minusAsk && phase < 4 && (
+                <motion.div className="w-full flex" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                    <button type="button" onClick={() => setPhase(4)} className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>
+                        Понял, минус тоже важен!
+                    </button>
+                </motion.div>
             )}
             {phase >= 4 && (
                 <TypedBig small onDone={() => setPhase((p) => Math.max(p, 5))} readMs={100}
