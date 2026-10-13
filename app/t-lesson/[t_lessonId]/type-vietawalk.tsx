@@ -741,8 +741,8 @@ const ZakrepScene = ({ onSettled }: SceneProps) => {
     return (
         <>
             <ZakrepPlate>
-                <span className="text-lg md:text-xl">x₁ · x₂ = <span style={{ color: C_COLOR }}>c</span> пишем просто</span>
-                <span className="text-lg md:text-xl">x₁ + x₂ = <span style={{ color: B_COLOR }}>b</span> с другим знаком</span>
+                <span className="text-lg md:text-xl">x₁ · x₂ = <span style={{ color: C_COLOR }}>c</span></span>
+                <span className="text-lg md:text-xl">x₁ + x₂ = <span style={{ color: B_COLOR }}>−b</span> <span className="text-sm md:text-base font-bold text-[#9AA7B0]">(меняем знак)</span></span>
             </ZakrepPlate>
             <PauseThen ms={1200} onDone={() => setPhase(1)} />
             {phase >= 1 && (
@@ -916,7 +916,7 @@ const CoefScene = ({ onSettled }: SceneProps) => {
                 <div className="w-full flex flex-col items-center gap-1">
                     <Pop key={step}>
                         <span className="text-xl md:text-2xl font-black text-[#F2F7FB]">
-                            Нажми на <span className="px-2 rounded-lg" style={{ color: askColor, border: `2px solid ${askColor}` }}>{step}</span> 👆
+                            Нажми на <span className="px-2 rounded-lg" style={{ color: askColor, border: `2px solid ${askColor}` }}>{step}</span>
                         </span>
                     </Pop>
                     <div className="min-h-[24px] text-center font-bold" style={{ color: BAD_COLOR }}>{hint}</div>
@@ -1221,7 +1221,7 @@ const ReadyScene = ({ onSettled }: SceneProps) => (
     <TypedBig parts={[{ text: 'Приготовься, пора ' }, { text: 'блистать знаниями!', color: REMEMBER_COLOR }]} onDone={() => onSettled?.()} readMs={300} />
 )
 
-const SCENES = [Guess56Scene, Guess712Scene, ZakrepScene, ComboScene, CoefScene, RuleScene, SimpleRoundsScene, NegIntroScene, NegRoundsScene, GeneralScene, GuessOneScene, GuessMinusOneScene, RaceScene, GuessRoundsScene, ReadyScene]
+const SCENES = [CoefScene, Guess56Scene, Guess712Scene, ZakrepScene, ComboScene, RuleScene, SimpleRoundsScene, NegIntroScene, NegRoundsScene, GeneralScene, GuessOneScene, GuessMinusOneScene, RaceScene, GuessRoundsScene, ReadyScene]
 const FIXED_NEXT_LABELS = new Map<unknown, string>([
     [ZakrepScene, 'Закреплено 📌'],
     [CoefScene, 'Невидимка, понял 👀'],

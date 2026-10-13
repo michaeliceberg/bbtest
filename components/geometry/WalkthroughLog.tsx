@@ -984,16 +984,16 @@ export const RememberPlate = ({ title = 'ЗАПОМНИ!', children }: { title?:
 // ===== Плашка «ЗАКРЕП» (общая для всех step-by-step, 2026-10-13) =====
 // Итог/правило, которое «закрепляем» на практике. Фиолетовая плашка (отличается от золотой ЗАПОМНИ!),
 // справа — видео Хабиба (public/video/khabi-zakrep.webm, без прозрачности, по кругу).
-export const ZakrepPlate = ({ title = 'ЗАКРЕП 📌', children }: { title?: React.ReactNode; children?: React.ReactNode }) => (
+export const ZakrepPlate = ({ title = 'ЗАКРЕП', children }: { title?: React.ReactNode; children?: React.ReactNode }) => (
     <div className="w-full flex items-center gap-3">
         <div className="flex-1 min-w-0 flex flex-col items-stretch gap-2">
-            <div className="flex items-center justify-center rounded-xl px-4 py-3 font-black text-lg md:text-xl text-center tracking-wide text-white"
-                style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #C026D3 100%)', boxShadow: '0 4px 0 #5B21B6' }}>
+            <div className="flex items-center justify-center rounded-xl px-4 py-3 font-black text-lg md:text-xl text-center tracking-wide"
+                style={{ backgroundColor: '#161F23', border: '2px solid rgba(167, 139, 250, 0.75)', color: '#C4B5FD' }}>
                 {title}
             </div>
             {children && (
                 <div className="flex flex-col items-center gap-2 rounded-xl px-4 py-3 font-black text-center text-[#F2F7FB]"
-                    style={{ backgroundColor: 'rgba(167, 139, 250, 0.08)', border: '2px solid rgba(167, 139, 250, 0.55)' }}>
+                    style={{ backgroundColor: '#161F23', border: '2px solid rgba(167, 139, 250, 0.35)' }}>
                     {children}
                 </div>
             )}
