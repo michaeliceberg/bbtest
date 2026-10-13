@@ -14,7 +14,7 @@
 
 'use client'
 
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -27,7 +27,7 @@ import {
     isFieryMilestoneTrial, FieryFeedbackBanner,
     useWalkthroughCombo,
     pickFunNextLabel,
-    RememberPlate, MarkerLoop, ZakrepPlate,
+    RememberPlate, MarkerLoop, ZakrepPlate, glassStickerStyle,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -155,7 +155,7 @@ const Eq = ({ a, b, c, colors, showOne, focus, size = 'text-3xl md:text-4xl' }: 
             {b !== 0 && (
                 <>
                     <FocusBox on={focus === 'b'} color={B_COLOR}>
-                        <span className="inline-flex items-center transition-all duration-500" style={dim('b')}>
+                        <span data-marker="eq-b" className="inline-flex items-center transition-all duration-500" style={dim('b')}>
                             <span className="mx-1.5" style={col(B_COLOR)}>{b < 0 ? '−' : '+'}</span>
                             <span style={col(B_COLOR)}>{bAbs}</span>
                         </span>
@@ -164,7 +164,7 @@ const Eq = ({ a, b, c, colors, showOne, focus, size = 'text-3xl md:text-4xl' }: 
                 </>
             )}
             <FocusBox on={focus === 'c'} color={C_COLOR}>
-                <span className="inline-flex items-center transition-all duration-500" style={dim('c')}>
+                <span data-marker="eq-c" className="inline-flex items-center transition-all duration-500" style={dim('c')}>
                     <span className="mx-1.5" style={col(C_COLOR)}>{c < 0 ? '−' : '+'}</span>
                     <span style={col(C_COLOR)}>{Math.abs(c)}</span>
                 </span>
@@ -402,47 +402,120 @@ const PairSlot = ({ label, val, active, state, onClick }: {
 // Мини-игра «собери пару»: x₁ · x₂ = c и x₁ + x₂ = s, числа снизу. Неверно — тряска и сброс.
 // assemble (1-е уравнение): правая часть сначала пустая; через 2 с сверху спускается c, затем −b —
 // на полпути останавливается, пружинит и превращается в b с другим знаком.
-const ASM_START = 2000, ASM_SUM = 2900, ASM_FLIP = 4000, ASM_NUMS = 4900
-const AssembleNum = ({ step, minus, value, color }: { step: number; minus?: boolean; value: number; color: string }) => (
-    <span className="relative inline-flex justify-center">
-        <span className="invisible">{fmt(value)}</span>
-        {!minus && step >= 1 && (
-            <motion.span className="absolute inset-0 text-center" style={{ color }}
-                initial={{ y: -70, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.8, ease: 'easeOut' }}>
-                {fmt(value)}
-            </motion.span>
-        )}
-        {minus && step === 2 && (
-            <motion.span key="neg" className="absolute inset-0 text-center whitespace-nowrap" style={{ color }}
-                initial={{ y: -70, opacity: 0 }} animate={{ y: -34, opacity: 1 }} transition={{ duration: 0.55, ease: 'easeOut' }}>
-                {fmt(-value)}
-            </motion.span>
-        )}
-        {minus && step >= 3 && (
-            <motion.span key="pos" className="absolute inset-0 text-center" style={{ color }}
-                initial={{ y: -34, scale: 1.7 }} animate={{ y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 11 }}>
-                {fmt(value)}
-            </motion.span>
-        )}
-    </span>
-)
-
-const PairBuilder = ({ c, s, nums, onSolved, focus, assemble }: { c: number; s: number; nums: number[]; onSolved: () => void; focus?: 'prod' | 'sum' | null; assemble?: boolean }) => {
-    const [asmStep, setAsmStep] = useState(assemble ? 0 : 3)
+// «Собираем правую часть» (первые два уравнения): коэффициент в уравнении обводится пунктирным овалом,
+// вспышка (как снимок), получившийся стикер плавно едет вниз к своей строке. У суммы стикер на полпути
+// останавливается, знак «−» с отскоком меняется на «+», держим 1 с и едем дальше. На месте рамка и «+»
+// гаснут, остаётся число. Координаты меряем по DOM (data-marker), относительно контейнера сцены.
+type FlightKind = 'prod' | 'sum'
+const FLIGHT_STEPS: Record<FlightKind, { stage: string; ms: number }[]> = {
+    prod: [{ stage: 'outline', ms: 900 }, { stage: 'flash', ms: 450 }, { stage: 'move', ms: 1000 }, { stage: 'land', ms: 750 }],
+    sum: [{ stage: 'outline', ms: 900 }, { stage: 'flash', ms: 450 }, { stage: 'move1', ms: 750 }, { stage: 'look', ms: 500 },
+        { stage: 'flip', ms: 550 }, { stage: 'hold', ms: 1000 }, { stage: 'move2', ms: 900 }, { stage: 'land', ms: 750 }],
+}
+type Rect = { cx: number; cy: number; w: number; h: number; font: number }
+const measure = (root: HTMLElement, marker: string): Rect | null => {
+    const el = root.querySelector<HTMLElement>(`[data-marker="${marker}"]`)
+    if (!el) return null
+    const r = el.getBoundingClientRect(), o = root.getBoundingClientRect()
+    return { cx: r.left - o.left + r.width / 2, cy: r.top - o.top + r.height / 2, w: r.width, h: r.height, font: parseFloat(getComputedStyle(el).fontSize) || 30 }
+}
+const StickerFlight = ({ rootRef, kind, from, to, startValue, value, color, onDone }: {
+    rootRef: React.RefObject<HTMLDivElement>; kind: FlightKind; from: string; to: string
+    startValue: number; value: number; color: string; onDone: () => void
+}) => {
+    const [rects, setRects] = useState<{ a: Rect; b: Rect } | null>(null)
+    const [step, setStep] = useState(0)
+    const [digitOff, setDigitOff] = useState(0)
+    const boxRef = useRef<HTMLDivElement>(null)
+    const digitRef = useRef<HTMLSpanElement>(null)
+    useLayoutEffect(() => {
+        const root = rootRef.current
+        if (!root) return
+        const a = measure(root, from), b = measure(root, to)
+        if (a && b) setRects({ a, b })
+        else onDone()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+    useLayoutEffect(() => {
+        if (!rects || !boxRef.current || !digitRef.current) return
+        const box = boxRef.current.getBoundingClientRect(), d = digitRef.current.getBoundingClientRect()
+        setDigitOff(d.left + d.width / 2 - (box.left + box.width / 2))
+    }, [rects])
+    const steps = FLIGHT_STEPS[kind]
     useEffect(() => {
-        if (!assemble) return
-        const ts = [setTimeout(() => setAsmStep(1), ASM_START), setTimeout(() => setAsmStep(2), ASM_SUM), setTimeout(() => setAsmStep(3), ASM_FLIP)]
-        return () => ts.forEach(clearTimeout)
-    }, [assemble])
+        if (!rects) return
+        if (step >= steps.length) { onDone(); return }
+        const t = setTimeout(() => setStep((x) => x + 1), steps[step].ms)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [rects, step])
+    if (!rects || step >= steps.length) return null
+    const stage = steps[step].stage
+    const { a, b } = rects
+    const scaleEnd = b.font / a.font
+    // Цель: цифра стикера встаёт ровно на место числа в строке.
+    const dx = b.cx - digitOff * scaleEnd - a.cx, dy = b.cy - a.cy
+    const scaleMid = (1 + scaleEnd) / 2
+    const flipped = kind === 'sum' && ['flip', 'hold', 'move2', 'land'].includes(stage)
+    const shown = flipped ? value : startValue
+    const signTxt = shown < 0 ? '−' : '+'
+    const fadeSign = value >= 0
+    let pos = { x: 0, y: 0, scale: 1 }, dur = 0.3, ease: number[] | string = 'easeInOut'
+    if (stage === 'move') { pos = { x: dx, y: dy, scale: scaleEnd }; dur = 1; ease = [0.45, 0, 0.25, 1] }
+    if (stage === 'move1' || stage === 'look' || stage === 'flip' || stage === 'hold') { pos = { x: dx / 2, y: dy / 2, scale: stage === 'hold' ? scaleMid * 1.12 : scaleMid }; dur = 0.75; ease = [0.2, 0.7, 0.3, 1] }
+    if (stage === 'flip') dur = 0.3
+    if (stage === 'move2' || stage === 'land') { pos = { x: dx, y: dy, scale: scaleEnd }; dur = 0.9; ease = [0.45, 0, 0.25, 1] }
+    const sticker = stage !== 'outline'
+    const landing = stage === 'land'
+    return (
+        <div className="absolute pointer-events-none z-20" style={{ left: a.cx, top: a.cy, width: 0, height: 0 }}>
+            {/* Пунктирный овал вокруг коэффициента в уравнении */}
+            {(stage === 'outline' || stage === 'flash') && (
+                <motion.div className="absolute rounded-full"
+                    style={{ left: -a.w / 2 - 10, top: -a.h / 2 - 6, width: a.w + 20, height: a.h + 12, border: `2.5px dashed ${color}` }}
+                    initial={{ opacity: 0, scale: 1.25 }} animate={{ opacity: stage === 'flash' ? 0 : 1, scale: 1 }} transition={{ duration: stage === 'flash' ? 0.35 : 0.5, ease: 'easeOut' }} />
+            )}
+            {/* Вспышка */}
+            {stage === 'flash' && (
+                <motion.div className="absolute rounded-full bg-white"
+                    style={{ left: -a.w / 2 - 10, top: -a.h / 2 - 6, width: a.w + 20, height: a.h + 12 }}
+                    initial={{ opacity: 0.95 }} animate={{ opacity: 0 }} transition={{ duration: 0.45, ease: 'easeOut' }} />
+            )}
+            <motion.div className="absolute left-0 top-0" initial={false} animate={pos} transition={{ duration: dur, ease }}>
+                <div ref={boxRef} className="absolute left-0 top-0 -translate-x-1/2 -translate-y-1/2 flex items-center whitespace-nowrap px-2.5 py-0.5 font-black"
+                    style={{ fontSize: a.font, color, opacity: sticker ? 1 : 0 }}>
+                    <motion.div className="absolute inset-0 rounded-full border-2"
+                        style={glassStickerStyle(color)}
+                        initial={{ opacity: 0, scale: 1.15 }} animate={{ opacity: landing ? 0 : sticker ? 1 : 0, scale: 1 }}
+                        transition={{ duration: landing ? 0.45 : 0.3 }} />
+                    <motion.span key={signTxt} className="relative inline-block mr-0.5"
+                        initial={flipped ? { scale: 2.2, rotate: -90 } : false}
+                        animate={landing && fadeSign ? { scale: 1.9, opacity: 0 } : { scale: 1, rotate: 0, opacity: 1 }}
+                        transition={landing ? { duration: 0.55, ease: 'easeOut' } : { type: 'spring', stiffness: 420, damping: 10 }}>
+                        {signTxt}
+                    </motion.span>
+                    <motion.span ref={digitRef} key={`d${flipped}`} className="relative inline-block"
+                        initial={flipped ? { scale: 1.6 } : false} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 10 }}>
+                        {Math.abs(shown)}
+                    </motion.span>
+                </div>
+            </motion.div>
+        </div>
+    )
+}
+
+// asm — правая часть собирается снаружи (StickerFlight): пока prod/sum false, число невидимо (место держим).
+const PairBuilder = ({ c, s, nums, onSolved, focus, asm }: { c: number; s: number; nums: number[]; onSolved: () => void; focus?: 'prod' | 'sum' | null; asm?: { prod: boolean; sum: boolean; nums: boolean } }) => {
     const [vals, setVals] = useState<(number | null)[]>([null, null])
     const [active, setActive] = useState(0)
     const [result, setResult] = useState<'ok' | 'bad' | null>(null)
     // Сначала показываем строки x₁ · x₂ и x₁ + x₂, через 1 с падают числа-варианты.
     const [showNums, setShowNums] = useState(false)
     useEffect(() => {
-        const t = setTimeout(() => setShowNums(true), assemble ? ASM_NUMS : 1000)
+        if (asm) { if (asm.nums) setShowNums(true); return }
+        const t = setTimeout(() => setShowNums(true), 1000)
         return () => clearTimeout(t)
-    }, [assemble])
+    }, [asm?.nums])
     const filled = vals[0] !== null && vals[1] !== null
     const prodOk = filled && vals[0]! * vals[1]! === c
     const sumOk = filled && vals[0]! + vals[1]! === s
@@ -481,7 +554,7 @@ const PairBuilder = ({ c, s, nums, onSolved, focus, assemble }: { c: number; s: 
                 <PairSlot label="x₂" val={vals[1]} active={active === 1 && !result} state={rowState(ok)} onClick={() => !result && setActive(1)} />
             </span>
             <span className="transition-all duration-500" style={focus === kind ? DIM_STYLE : undefined}>=</span>
-            <FocusBox on={focus === kind} color={color}>{assemble ? <AssembleNum step={asmStep} minus={kind === 'sum'} value={right} color={color} /> : <span style={{ color }}>{fmt(right)}</span>}</FocusBox>
+            <FocusBox on={focus === kind} color={color}><span data-marker={`slot-${kind}`} className={asm && !asm[kind] ? 'invisible' : undefined} style={{ color }}>{fmt(right)}</span></FocusBox>
             <span className="w-7 transition-all duration-500" style={focus === kind ? DIM_STYLE : undefined}>{mark(ok)}</span>
         </motion.div>
     )
@@ -517,8 +590,22 @@ const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain, assemble }: S
     const b = -(x1 + x2), c = x1 * x2
     const focus: 'prod' | 'sum' | null = phase >= 5 && phase <= 6 ? 'prod' : phase === 7 ? 'sum' : null
     const eqFocus = focus === 'prod' ? 'c' : focus === 'sum' ? 'b' : null
+    const rootRef = useRef<HTMLDivElement>(null)
+    // Сборка правой части: 0 — ждём, 1 — летит c, 2 — летит −b, 3 — готово, 4 — числа-варианты.
+    const [asmStep, setAsmStep] = useState(assemble ? 0 : 4)
+    useEffect(() => {
+        if (!assemble || phase < 3 || asmStep !== 0) return
+        const t = setTimeout(() => setAsmStep(1), 700)
+        return () => clearTimeout(t)
+    }, [assemble, phase, asmStep])
+    useEffect(() => {
+        if (asmStep !== 3) return
+        const t = setTimeout(() => setAsmStep(4), 500)
+        return () => clearTimeout(t)
+    }, [asmStep])
+    const asm = assemble ? { prod: asmStep >= 2, sum: asmStep >= 3, nums: asmStep >= 4 } : undefined
     return (
-        <>
+        <div ref={rootRef} className="relative w-full flex flex-col items-center gap-4">
             <TypedBig small parts={[{ text: intro }]} onDone={() => setPhase(1)} readMs={150} />
             {phase >= 1 && (
                 <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 2))}>
@@ -526,22 +613,36 @@ const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain, assemble }: S
                 </DiagramBlock>
             )}
             {phase >= 2 && <TypedBig small parts={[{ text: 'Подбери 2 числа 👇' }]} onDone={() => setPhase((p) => Math.max(p, 3))} readMs={150} />}
-            {phase >= 3 && <PairBuilder c={c} s={-b} nums={nums} focus={focus} assemble={assemble} onSolved={() => setPhase(4)} />}
+            {phase >= 3 && <PairBuilder c={c} s={-b} nums={nums} focus={focus} asm={asm} onSolved={() => setPhase(4)} />}
+            {asmStep === 1 && (
+                <StickerFlight rootRef={rootRef} kind="prod" from="eq-c" to="slot-prod" startValue={c} value={c} color={C_COLOR}
+                    onDone={() => setTimeout(() => setAsmStep(2), 300)} />
+            )}
+            {asmStep === 2 && (
+                <StickerFlight rootRef={rootRef} kind="sum" from="eq-b" to="slot-sum" startValue={b} value={-b} color={B_COLOR}
+                    onDone={() => setAsmStep(3)} />
+            )}
             {phase >= 4 && (
                 <TypedBig onDone={() => (explain ? setPhase(5) : onSettled?.())} readMs={explain ? 900 : 300}
                     parts={[{ text: `${x1} и ${x2} это ` }, { text: 'КОРНИ', color: ROOT_COLOR }, { text: ' 🎯' }]} />
             )}
             {explain && phase >= 5 && (
-                <TypedBig small onDone={() => setPhase(6)} readMs={1200}
+                <TypedBig small onDone={() => setPhase((p) => Math.max(p, 6))} readMs={700}
                     parts={[{ text: 'Смотри! ' }, { text: `${c}`, color: C_COLOR }, { text: ' пишем просто' }]} />
             )}
-            {explain && phase === 6 && <PauseThen ms={600} onDone={() => setPhase(7)} />}
+            {explain && phase === 6 && (
+                <motion.div className="w-full flex" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                    <button type="button" onClick={() => setPhase(7)} className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>
+                        Понял-принял
+                    </button>
+                </motion.div>
+            )}
             {explain && phase >= 7 && (
                 <TypedBig small onDone={() => setPhase(8)} readMs={1400}
                     parts={[{ text: 'а у ' }, { text: `${-b}`, color: B_COLOR }, { text: ' ' }, { text: 'МЕНЯЕТСЯ', color: REMEMBER_COLOR }, { text: ' знак!' }]} />
             )}
             {explain && phase >= 8 && <PauseThen ms={300} onDone={() => onSettled?.()} />}
-        </>
+        </div>
     )
 }
 const PauseThen = ({ ms, onDone }: { ms: number; onDone: () => void }) => {
@@ -553,7 +654,7 @@ const PauseThen = ({ ms, onDone }: { ms: number; onDone: () => void }) => {
     return null
 }
 const Guess56Scene = (p: SceneProps) => <PairGuessScene {...p} intro="Вот уравнение:" x1={2} x2={3} nums={[1, 2, 3, 4, 5, 6]} assemble />
-const Guess712Scene = (p: SceneProps) => <PairGuessScene {...p} intro="А вот ещё одно:" x1={3} x2={4} nums={[1, 2, 3, 4, 6, 12]} explain />
+const Guess712Scene = (p: SceneProps) => <PairGuessScene {...p} intro="А вот ещё одно:" x1={3} x2={4} nums={[1, 2, 3, 4, 6, 12]} explain assemble />
 
 // «ЗАКРЕП»: по уравнению (a = 1) выбираем, чему равны x₁ · x₂ и x₁ + x₂ (c и −b). Ошибка не в зачёт.
 type ZRound = { b: number; c: number; nums: number[] }
