@@ -117,17 +117,10 @@ const SlotButton = ({
         bgColor = `${bright}12`
     }
 
-    // Активный слот (тот, куда попадёт следующее число) «дышит» и светится — без проверки ответа.
+    // Активный слот: спокойная кнопка, только буква x₁/x₂ мягко переливается в белый.
     const pulsing = isActive && !checkedColor && !isAnswerChecked
+    if (isActive && !checkedColor) { textColor = bright; bgColor = '#161F23'; borderColor = `${bright}B3` }
     return (
-        <span className="relative inline-flex">
-        {pulsing && (
-            <span
-                aria-hidden
-                className="absolute -inset-1.5 rounded-xl animate-vieta-glow pointer-events-none"
-                style={{ boxShadow: `0 0 18px 4px ${bright}`, border: `2px solid ${bright}` }}
-            />
-        )}
         <button
             type="button"
             onClick={() => onClick(slot)}
@@ -149,10 +142,10 @@ const SlotButton = ({
                     {val}
                 </motion.span>
             ) : (
-                <span className="inline-block">{slot === 'x1' ? 'x₁' : 'x₂'}</span>
+                <span className={cn('inline-block', pulsing && 'animate-slot-label')}
+                    style={{ ['--slot-c' as string]: bright }}>{slot === 'x1' ? 'x₁' : 'x₂'}</span>
             )}
         </button>
-        </span>
     )
 }
 

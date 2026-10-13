@@ -782,5 +782,6 @@ body {
 .animate-coin-plus { display: inline-block; animation: coin-plus 1.6s ease-out both; }
 
 /* Теорема Виета (type-vieta.tsx): под активным слотом x1/x2 пульсирует свечение. */
-@keyframes vieta-glow { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.85; } }
-.animate-vieta-glow { animation: vieta-glow 1.3s ease-in-out infinite; }
+/* Активный слот x₁/x₂ (Виета): спокойная кнопка, только сама буква мягко переливается в белый. */
+@keyframes slot-label { 0%, 100% { color: var(--slot-c); } 50% { color: #FFFFFF; } }
+.animate-slot-label { animation: slot-label 1.6s ease-in-out infinite; }

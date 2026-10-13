@@ -5,11 +5,11 @@
 //   1. x² − 5x + 6 = 0: какие 2 числа при умножении дают 6, при сложении 5? (варианты);
 //   2. то же для x² − 7x + 12 = 0;
 //   3. коэффициенты a, b, c на x² − 7x + 12 = 0, «невидимая единица» перед x²;
-//   4. ЗАПОМНИ: произведение = c, сумма = −b; несколько простых примеров;
+//   4. ЗАПОМНИ словами: умножим корни → c, сложим → b с другим знаком; простые примеры;
 //   5. «посложнее»: x² + x − 6 = 0 — корни бывают отрицательными;
 //   6. до этого было a = 1, на самом деле произведение = c/a, сумма = −b/a;
 //   7. 2x² + 3x − 5 = 0: угадываем x = 1, второй корень = c/a = −5/2;
-//   8. то же с x = −1 (3x² + 10x + 7 = 0) и раунды на угадывание.
+//   8. то же с x = −1 (3x² + 10x + 7 = 0), гонка с дискриминантом на 17x² − 317x + 300 = 0, раунды на угадывание.
 // Потом «Проверим себя». Ошибки в мини-играх не засчитываются, в «Проверим себя» — да.
 
 'use client'
@@ -367,27 +367,22 @@ const guessRound = (a: number, b: number, c: number, root: 1 | -1): Round => {
 // ===== Сцены =====
 type SceneProps = { onSettled?: () => void }
 
-// Слот-кнопка x₁/x₂ в стиле урока 455: активный слот светится, число влетает с отскоком.
+// Слот-кнопка x₁/x₂: обычная кнопка проекта, у активной только буква мягко переливается в белый.
 const PairSlot = ({ label, val, active, state, onClick }: {
     label: string; val: number | null; active: boolean; state: 'ok' | 'bad' | null; onClick: () => void
 }) => {
-    const color = state === 'ok' ? OK_COLOR : state === 'bad' ? BAD_COLOR : active ? ROOT_COLOR : val !== null ? '#F2F7FB' : '#6B7A83'
-    const border = state ? color : active ? ROOT_COLOR : '#3A464E'
+    const border = state === 'ok' ? OK_COLOR : state === 'bad' ? BAD_COLOR : active ? hexToRgba(ROOT_COLOR, 0.7) : '#3A464E'
+    const color = state === 'ok' ? OK_COLOR : state === 'bad' ? BAD_COLOR : '#F2F7FB'
     return (
-        <span className="relative inline-flex">
-            {active && !state && (
-                <span aria-hidden className="absolute -inset-1.5 rounded-xl animate-vieta-glow pointer-events-none"
-                    style={{ boxShadow: `0 0 18px 4px ${ROOT_COLOR}`, border: `2px solid ${ROOT_COLOR}` }} />
-            )}
-            <button type="button" onClick={onClick}
-                className="min-w-[56px] h-[52px] px-2 rounded-xl border-2 border-b-4 active:border-b-2 font-black transition-colors"
-                style={{ borderColor: border, color, backgroundColor: state || active ? hexToRgba(border, 0.14) : '#161F23' }}>
-                {val !== null
-                    ? <motion.span key={val} initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
-                        transition={{ type: 'spring', stiffness: 420, damping: 16 }} className="inline-block">{fmt(val)}</motion.span>
-                    : <span className="text-xl">{label}</span>}
-            </button>
-        </span>
+        <button type="button" onClick={onClick}
+            className="min-w-[56px] h-[52px] px-2 rounded-xl border-2 border-b-4 active:border-b-2 font-black transition-colors"
+            style={{ borderColor: border, color, backgroundColor: state ? hexToRgba(border, 0.12) : '#161F23' }}>
+            {val !== null
+                ? <motion.span key={val} initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 16 }} className="inline-block">{fmt(val)}</motion.span>
+                : <span className={cn('text-xl', active && !state && 'animate-slot-label')}
+                    style={{ color: active ? ROOT_COLOR : '#5C6B73', ['--slot-c' as string]: ROOT_COLOR }}>{label}</span>}
+        </button>
     )
 }
 
@@ -596,35 +591,38 @@ const CoefScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-// 4. ЗАПОМНИ: произведение = c, сумма = −b.
+// 4. ЗАПОМНИ: словами — УМНОЖИМ корни → c, СЛОЖИМ корни → b с другим знаком.
 const RuleScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
     useEffect(() => {
         if (phase === 0) { const t = setTimeout(() => setPhase(1), 700); return () => clearTimeout(t) }
-        if (phase === 4) { const t = setTimeout(() => onSettled?.(), 2400); return () => clearTimeout(t) }
+        if (phase === 4) { const t = setTimeout(() => setPhase(5), 2400); return () => clearTimeout(t) }
+        if (phase === 5) { const t = setTimeout(() => onSettled?.(), 1200); return () => clearTimeout(t) }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [phase])
     return (
         <>
-            <RememberBanner>ЗАПОМНИ! (когда a = 1)</RememberBanner>
+            <RememberBanner>ЗАПОМНИ!</RememberBanner>
             {phase >= 1 && (
                 <TypedBig onDone={() => setPhase(2)} readMs={300}
-                    parts={[{ text: 'x₁ · x₂ = ' }, { text: 'c', color: C_COLOR }]} />
+                    parts={[{ text: 'УМНОЖИМ', color: ROOT_COLOR }, { text: ' корни → ' }, { text: 'c', color: C_COLOR }]} />
             )}
             {phase >= 2 && (
-                <TypedBig onDone={() => setPhase(3)} readMs={500}
-                    parts={[{ text: 'x₁ + x₂ = ' }, { text: '−b', color: B_COLOR }]} />
+                <TypedBig onDone={() => setPhase(3)} readMs={300}
+                    parts={[{ text: 'СЛОЖИМ', color: ROOT_COLOR }, { text: ' корни → ' }, { text: 'b', color: B_COLOR }, { text: ' с другим знаком' }]} />
             )}
             {phase >= 3 && (
-                <TypedBig small onDone={() => setPhase(4)} readMs={200} parts={[{ text: 'Проверим на корнях 3 и 4:' }]} />
+                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 4))}>
+                    <Eq a={1} b={-7} c={12} colors size="text-2xl md:text-3xl" />
+                </DiagramBlock>
             )}
             {phase >= 4 && (
                 <>
-                    <Fact>3 · 4 = 12 = <span style={{ color: C_COLOR }}>c</span> ✓</Fact>
-                    <Fact delay={0.6}>3 + 4 = 7 = −(−7) = <span style={{ color: B_COLOR }}>−b</span> ✓</Fact>
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.4 }}
+                    <Fact>3 · 4 = <span style={{ color: C_COLOR }}>12</span> ✓</Fact>
+                    <Fact delay={0.7}>3 + 4 = 7, а тут <span style={{ color: B_COLOR }}>−7</span> ✓</Fact>
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.3 }}
                         className="w-full text-center text-base text-[#9AA7B0]">
-                        У суммы знак <b>наоборот</b>: b = −7, а сумма 7.
+                        Знак <b>наоборот</b> — вот и вся хитрость 😉
                     </motion.div>
                 </>
             )}
@@ -632,45 +630,50 @@ const RuleScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-// 4½. Гонка: дискриминант против Виета на x² − 7x + 12 = 0.
+// Гонка (после c/a и угадывания корня): 17x² − 317x + 300 = 0. Виета: 17 − 317 + 300 = 0 → x₁ = 1, x₂ = c/a.
+// Дискриминант: 317² − 4·17·300 = 80 089, √80 089 = 283 — считать долго.
 const RACE_D_LINES: React.ReactNode[] = [
-    <span key="1">D = b² − 4ac</span>,
-    <span key="2">D = 49 − 48 = 1</span>,
-    <span key="3" className="inline-flex items-center gap-1">x = <Frac num="7 ± 1" den="2" /></span>,
-    <span key="4">x₁ = 4, x₂ = 3</span>,
+    <span key="1">D = 317² − 4 · 17 · 300</span>,
+    <span key="2">D = 100 489 − 20 400</span>,
+    <span key="3">D = 80 089</span>,
+    <span key="4">√80 089 = … 😵‍💫</span>,
+    <span key="5">√80 089 = 283</span>,
+    <span key="6" className="inline-flex items-center gap-1">x = <Frac num="317 ± 283" den="34" /></span>,
+    <span key="7" className="inline-flex items-center gap-1">x₁ = 1, x₂ = <Frac num="300" den="17" /></span>,
 ]
 const RaceScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
-    // phase 1: старт; Виета готов сразу, дискриминант — строка за строкой (2..5)
+    // phase 1: старт; Виета готов сразу, дискриминант — строка за строкой
     useEffect(() => {
-        if (phase < 1 || phase > 6) return
-        const t = setTimeout(() => setPhase(phase + 1), phase === 1 ? 600 : 1100)
+        if (phase < 1 || phase > RACE_D_LINES.length + 1) return
+        const t = setTimeout(() => setPhase(phase + 1), phase === 1 ? 700 : 1200)
         return () => clearTimeout(t)
     }, [phase])
-    const dLines = Math.max(0, Math.min(4, phase - 1))
+    const dLines = Math.max(0, Math.min(RACE_D_LINES.length, phase - 1))
     return (
         <>
-            <TypedBig parts={[{ text: 'Гонка! ' }, { text: 'Дискриминант', color: BAD_COLOR }, { text: ' vs ' }, { text: 'Виета', color: OK_COLOR }]} onDone={() => setPhase(1)} readMs={300} />
+            <TypedBig small parts={[{ text: 'А теперь реши вот это 😈' }]} onDone={() => setPhase((p) => Math.max(p, 1))} readMs={200} />
             {phase >= 1 && (
                 <DiagramBlock>
                     <div className="w-full flex flex-col items-center gap-3">
-                        <Eq a={1} b={-7} c={12} size="text-2xl md:text-3xl" />
+                        <Eq a={17} b={-317} c={300} colors size="text-xl md:text-3xl" />
                         <div className="w-full grid grid-cols-2 gap-3">
-                            <div className="rounded-xl border-2 p-3 flex flex-col items-center gap-1.5 min-h-[180px]" style={{ borderColor: hexToRgba(BAD_COLOR, 0.6) }}>
-                                <div className="text-sm font-black" style={{ color: BAD_COLOR }}>Дискриминант 🐢</div>
-                                {RACE_D_LINES.slice(0, dLines).map((l, i) => <Fact key={i}><span className="text-base">{l}</span></Fact>)}
-                            </div>
-                            <div className="rounded-xl border-2 p-3 flex flex-col items-center gap-1.5 min-h-[180px]" style={{ borderColor: hexToRgba(OK_COLOR, 0.6) }}>
+                            <div className="rounded-xl border-2 p-3 flex flex-col items-center gap-1.5 min-h-[230px]" style={{ borderColor: hexToRgba(OK_COLOR, 0.6) }}>
                                 <div className="text-sm font-black" style={{ color: OK_COLOR }}>Виета ⚡</div>
-                                <Fact><span className="text-base">3 · 4 = 12</span></Fact>
-                                <Fact delay={0.25}><span className="text-base">3 + 4 = 7</span></Fact>
-                                <Fact delay={0.5} color={OK_COLOR}><Pop delay={0.5}>3 и 4 ✓</Pop></Fact>
+                                <Fact><span className="text-sm md:text-base">17 − 317 + 300 = 0</span></Fact>
+                                <Fact delay={0.4}><span className="text-base">x₁ = 1</span></Fact>
+                                <Fact delay={0.8}><span className="text-base inline-flex items-center gap-1">x₂ = <Frac num={<span style={{ color: C_COLOR }}>300</span>} den={<span style={{ color: A_COLOR }}>17</span>} /></span></Fact>
+                                <Fact delay={1.2} color={OK_COLOR}><Pop delay={1.2}>Готово ✓</Pop></Fact>
+                            </div>
+                            <div className="rounded-xl border-2 p-3 flex flex-col items-center gap-1.5 min-h-[230px]" style={{ borderColor: hexToRgba(BAD_COLOR, 0.6) }}>
+                                <div className="text-sm font-black" style={{ color: BAD_COLOR }}>Дискриминант 🐢</div>
+                                {RACE_D_LINES.map((l, i) => ({ l, i })).slice(0, dLines).filter(({ i }) => !(i === 3 && dLines > 4)).map(({ l, i }) => <Fact key={i}><span className="text-sm md:text-base">{l}</span></Fact>)}
                             </div>
                         </div>
                     </div>
                 </DiagramBlock>
             )}
-            {phase >= 6 && (
+            {phase >= RACE_D_LINES.length + 2 && (
                 <TypedBig onDone={() => onSettled?.()} readMs={400}
                     parts={[{ text: 'Виета', color: OK_COLOR }, { text: ' в разы быстрее! ⚡' }]} />
             )}
@@ -867,7 +870,7 @@ const ReadyScene = ({ onSettled }: SceneProps) => (
     <TypedBig parts={[{ text: 'Приготовься, пора ' }, { text: 'блистать знаниями!', color: REMEMBER_COLOR }]} onDone={() => onSettled?.()} readMs={300} />
 )
 
-const SCENES = [Guess56Scene, Guess712Scene, CoefScene, RuleScene, RaceScene, SimpleRoundsScene, NegIntroScene, NegRoundsScene, GeneralScene, GuessOneScene, GuessMinusOneScene, GuessRoundsScene, ReadyScene]
+const SCENES = [Guess56Scene, Guess712Scene, CoefScene, RuleScene, SimpleRoundsScene, NegIntroScene, NegRoundsScene, GeneralScene, GuessOneScene, GuessMinusOneScene, RaceScene, GuessRoundsScene, ReadyScene]
 const FIXED_NEXT_LABELS = new Map<unknown, string>([
     [CoefScene, 'Невидимка, понял 👀'],
     [RuleScene, 'Запомнил!'],
