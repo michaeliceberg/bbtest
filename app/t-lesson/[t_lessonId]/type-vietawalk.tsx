@@ -837,9 +837,11 @@ const FallingLetter = ({ letter, color, delay }: { letter: string; color: string
 
 // Подпись над найденным коэффициентом: «c = 12» прямо над своим числом.
 const CoefTag = ({ text, note, color }: { text: string; note?: string; color: string }) => (
+    // Центрирование — на статичной обёртке: framer перезаписывает transform у motion-элемента (и -translate-x-1/2 терялся).
+    <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 pointer-events-none">
     <motion.span initial={{ y: -40, opacity: 0, scale: 0.6 }} animate={{ y: 0, opacity: 1, scale: 1 }}
         transition={{ type: 'spring', stiffness: 300, damping: 12 }}
-        className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 flex flex-col items-center whitespace-nowrap pointer-events-none">
+        className="flex flex-col items-center whitespace-nowrap">
         {note && (
             <motion.span initial={{ y: -30, opacity: 0, scale: 1.8 }} animate={{ y: 0, opacity: 1, scale: 1 }}
                 transition={{ type: 'spring', stiffness: 260, damping: 11, delay: 0.7 }}
@@ -848,6 +850,7 @@ const CoefTag = ({ text, note, color }: { text: string; note?: string; color: st
         <span className="text-sm md:text-base font-black px-2 py-0.5 rounded-lg"
             style={{ color, backgroundColor: hexToRgba(color, 0.14) }}>{text}</span>
     </motion.span>
+    </span>
 )
 
 type CoefStep = 'c' | 'b' | 'a' | 'done'
@@ -949,6 +952,30 @@ const CoefScene = ({ onSettled }: SceneProps) => {
                 <TypedBig onDone={() => onSettled?.()} readMs={400}
                     parts={[{ text: 'Там спряталась ' }, { text: '1', color: A_COLOR }, { text: '! 🫣' }]} />
             )}
+        </>
+    )
+}
+
+// 3б. Сам находит a, b, c в двух уравнениях.
+const coefSteps = (e: EqSpec, bOpts: string[], cOpts: string[]): RStep[] => [
+    { ask: <span>Чему равно <span style={{ color: A_COLOR }}>a</span>?</span>, options: ['1', '0', '2', '−1'], correct: '1',
+        hint: () => 'Перед x² ничего нет, значит там 1 🫣', after: <span style={{ color: A_COLOR }}>a = 1</span> },
+    { ask: <span>Чему равно <span style={{ color: B_COLOR }}>b</span>?</span>, options: bOpts, correct: fmt(e.b),
+        hint: () => 'b это число перед x, вместе со знаком 🙃', after: <span style={{ color: B_COLOR }}>b = {fmt(e.b)}</span> },
+    { ask: <span>Чему равно <span style={{ color: C_COLOR }}>c</span>?</span>, options: cOpts, correct: fmt(e.c),
+        hint: () => 'c это число без x, вместе со знаком 🙃', after: <span style={{ color: C_COLOR }}>c = {fmt(e.c)}</span> },
+]
+const COEF_DRILL: Round[] = [
+    { eq: { a: 1, b: 5, c: 4 }, steps: coefSteps({ a: 1, b: 5, c: 4 }, ['5', '−5', '4', '1'], ['4', '−4', '5', '1']) },
+    { eq: { a: 1, b: -2, c: -15 }, steps: coefSteps({ a: 1, b: -2, c: -15 }, ['−2', '2', '−15', '1'], ['−15', '15', '−2', '1']) },
+]
+const CoefDrillScene = ({ onSettled }: SceneProps) => {
+    const [phase, setPhase] = useState(0)
+    return (
+        <>
+            <TypedBig small onDone={() => setPhase(1)} readMs={300}
+                parts={[{ text: 'Теперь сам: чему равны ' }, { text: 'a', color: A_COLOR }, { text: ', ' }, { text: 'b', color: B_COLOR }, { text: ', ' }, { text: 'c', color: C_COLOR }, { text: '?' }]} />
+            {phase >= 1 && <RoundsBody rounds={COEF_DRILL} onDone={() => onSettled?.()} />}
         </>
     )
 }
@@ -1232,7 +1259,7 @@ const ReadyScene = ({ onSettled }: SceneProps) => (
     <TypedBig parts={[{ text: 'Приготовься, пора ' }, { text: 'блистать знаниями!', color: REMEMBER_COLOR }]} onDone={() => onSettled?.()} readMs={300} />
 )
 
-const SCENES = [CoefScene, Guess56Scene, Guess712Scene, ZakrepScene, ComboScene, RuleScene, SimpleRoundsScene, NegIntroScene, NegRoundsScene, GeneralScene, GuessOneScene, GuessMinusOneScene, RaceScene, GuessRoundsScene, ReadyScene]
+const SCENES = [CoefScene, CoefDrillScene, Guess56Scene, Guess712Scene, ZakrepScene, ComboScene, RuleScene, SimpleRoundsScene, NegIntroScene, NegRoundsScene, GeneralScene, GuessOneScene, GuessMinusOneScene, RaceScene, GuessRoundsScene, ReadyScene]
 const FIXED_NEXT_LABELS = new Map<unknown, string>([
     [ZakrepScene, 'Закреплено 📌'],
     [CoefScene, 'Невидимка, понял 👀'],
