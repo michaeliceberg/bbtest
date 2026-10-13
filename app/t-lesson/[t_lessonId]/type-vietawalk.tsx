@@ -563,7 +563,7 @@ const ZAKREP_ROUNDS: ZRound[] = [
     { b: -2, c: -15, nums: [-15, 15, 2, -2, 8, -13] },
     { b: 4, c: -21, nums: [-21, 21, 4, -4, 3, -17] },
 ]
-const ZakrepRound = ({ r, onSolved }: { r: ZRound; onSolved: () => void }) => {
+const ZakrepRound = ({ r, onSolved, hideEq }: { r: ZRound; onSolved: () => void; hideEq?: boolean }) => {
     const [vals, setVals] = useState<(number | null)[]>([null, null])
     const [active, setActive] = useState(0)
     const [result, setResult] = useState<'ok' | 'bad' | null>(null)
@@ -609,7 +609,7 @@ const ZakrepRound = ({ r, onSolved }: { r: ZRound; onSolved: () => void }) => {
     }
     return (
         <div className="w-full flex flex-col items-center gap-4">
-            <Eq a={1} b={r.b} c={r.c} colors />
+            {!hideEq && <Eq a={1} b={r.b} c={r.c} colors />}
             <div className="flex flex-col items-center gap-3">
                 {row(0, '·', C_COLOR)}
                 {row(1, '+', B_COLOR)}
@@ -651,6 +651,66 @@ const ZakrepScene = ({ onSettled }: SceneProps) => {
                         }} />
                     )}
                     {done && <TypedBig parts={[{ text: 'Закреп ' }, { text: 'есть', color: OK_COLOR }, { text: ' 💪' }]} readMs={200} />}
+                </div>
+            )}
+        </>
+    )
+}
+
+// «КОМБО»: решаем Виетом в 2 этапа. Этап 1 — правая часть (c и −b), этап 2 — подбираем x₁ и x₂.
+// В первом уравнении коэффициенты подсвечены цветами, дальше — без подсказки.
+type ComboRound = ZRound & { roots: number[] }
+const COMBO_ROUNDS: ComboRound[] = [
+    { b: -7, c: 10, nums: [10, -10, 7, -7, 3, 17], roots: [1, 2, 3, 5, 7, 10] },
+    { b: 2, c: -8, nums: [-8, 8, -2, 2, 6, -6], roots: [2, -2, 4, -4, 1, 8] },
+    { b: -1, c: -12, nums: [-12, 12, 1, -1, 7, -7], roots: [3, -3, 4, -4, 2, 6] },
+]
+const StagePill = ({ n, text }: { n: number; text: string }) => (
+    <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 14 }}
+        className="px-3 py-1 rounded-full text-sm font-black" style={{ backgroundColor: hexToRgba(B_COLOR, 0.15), color: B_COLOR }}>
+        Этап {n}: {text}
+    </motion.div>
+)
+const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolean; onSolved: () => void }) => {
+    const [stage, setStage] = useState<1 | 2>(1)
+    return (
+        <div className="w-full flex flex-col items-center gap-4">
+            <Eq a={1} b={r.b} c={r.c} colors={colors} />
+            {stage === 1 ? (
+                <>
+                    <StagePill n={1} text="правая часть" />
+                    <ZakrepRound r={r} hideEq onSolved={() => setStage(2)} />
+                </>
+            ) : (
+                <>
+                    <StagePill n={2} text="подбираем x₁ и x₂" />
+                    <PairBuilder c={r.c} s={-r.b} nums={r.roots} onSolved={onSolved} />
+                </>
+            )}
+        </div>
+    )
+}
+const ComboScene = ({ onSettled }: SceneProps) => {
+    const [phase, setPhase] = useState(0)
+    const [round, setRound] = useState(0)
+    const [done, setDone] = useState(false)
+    return (
+        <>
+            <TypedBig onDone={() => setPhase(1)} readMs={300}
+                parts={[{ text: 'А теперь ' }, { text: 'КОМБО', color: REMEMBER_COLOR }, { text: ' 🔥' }]} />
+            {phase >= 1 && <TypedBig small onDone={() => setPhase(2)} readMs={500} parts={[{ text: 'Решаем в 2 этапа' }]} />}
+            {phase >= 2 && (
+                <div className="w-full flex flex-col items-center gap-3">
+                    <div className="px-3 py-1 rounded-full text-sm font-black" style={{ backgroundColor: hexToRgba(ROOT_COLOR, 0.15), color: ROOT_COLOR }}>
+                        {Math.min(round + 1, COMBO_ROUNDS.length)}/{COMBO_ROUNDS.length}
+                    </div>
+                    {!done && (
+                        <ComboRoundView key={round} r={COMBO_ROUNDS[round]} colors={round === 0} onSolved={() => {
+                            if (round + 1 < COMBO_ROUNDS.length) setRound(round + 1)
+                            else { setDone(true); onSettled?.() }
+                        }} />
+                    )}
+                    {done && <TypedBig parts={[{ text: 'Комбо ' }, { text: 'выбито', color: OK_COLOR }, { text: ' 💥' }]} readMs={200} />}
                 </div>
             )}
         </>
@@ -1055,7 +1115,7 @@ const ReadyScene = ({ onSettled }: SceneProps) => (
     <TypedBig parts={[{ text: 'Приготовься, пора ' }, { text: 'блистать знаниями!', color: REMEMBER_COLOR }]} onDone={() => onSettled?.()} readMs={300} />
 )
 
-const SCENES = [Guess56Scene, Guess712Scene, ZakrepScene, CoefScene, RuleScene, SimpleRoundsScene, NegIntroScene, NegRoundsScene, GeneralScene, GuessOneScene, GuessMinusOneScene, RaceScene, GuessRoundsScene, ReadyScene]
+const SCENES = [Guess56Scene, Guess712Scene, ZakrepScene, ComboScene, CoefScene, RuleScene, SimpleRoundsScene, NegIntroScene, NegRoundsScene, GeneralScene, GuessOneScene, GuessMinusOneScene, RaceScene, GuessRoundsScene, ReadyScene]
 const FIXED_NEXT_LABELS = new Map<unknown, string>([
     [ZakrepScene, 'Закреплено 📌'],
     [CoefScene, 'Невидимка, понял 👀'],
