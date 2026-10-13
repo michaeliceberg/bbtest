@@ -27,7 +27,7 @@ import {
     isFieryMilestoneTrial, FieryFeedbackBanner,
     useWalkthroughCombo,
     pickFunNextLabel,
-    RememberPlate,
+    RememberPlate, MarkerLoop,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -382,12 +382,14 @@ type SceneProps = { onSettled?: () => void }
 const PairSlot = ({ label, val, active, state, onClick }: {
     label: string; val: number | null; active: boolean; state: 'ok' | 'bad' | null; onClick: () => void
 }) => {
-    const border = state === 'ok' ? OK_COLOR : state === 'bad' ? BAD_COLOR : active ? hexToRgba(ROOT_COLOR, 0.7) : '#3A464E'
-    const color = state === 'ok' ? OK_COLOR : state === 'bad' ? BAD_COLOR : '#F2F7FB'
+    // Верно — числа остаются белыми, рамка бледно-зелёная: иначе зелёные 3 и 4 сливались с салатовым c (12).
+    const border = state === 'ok' ? hexToRgba(OK_COLOR, 0.45) : state === 'bad' ? BAD_COLOR : active ? hexToRgba(ROOT_COLOR, 0.7) : '#3A464E'
+    const color = state === 'bad' ? BAD_COLOR : '#F2F7FB'
+    const bg = state === 'ok' ? hexToRgba(OK_COLOR, 0.07) : state === 'bad' ? hexToRgba(BAD_COLOR, 0.12) : '#161F23'
     return (
         <button type="button" onClick={onClick}
             className="min-w-[56px] h-[52px] px-2 rounded-xl border-2 border-b-4 active:border-b-2 font-black transition-colors"
-            style={{ borderColor: border, color, backgroundColor: state ? hexToRgba(border, 0.12) : '#161F23' }}>
+            style={{ borderColor: border, color, backgroundColor: bg }}>
             {val !== null
                 ? <motion.span key={val} initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
                     transition={{ type: 'spring', stiffness: 420, damping: 16 }} className="inline-block">{fmt(val)}</motion.span>
@@ -434,12 +436,20 @@ const PairBuilder = ({ c, s, nums, onSolved, focus }: { c: number; s: number; nu
         <motion.div animate={result === 'bad' && !ok ? { x: [0, -10, 10, -6, 6, 0] } : { x: 0 }} transition={{ duration: 0.5 }}
             className="flex items-center gap-2.5 text-2xl md:text-3xl font-black text-[#F2F7FB] transition-all duration-500"
             style={focus && focus !== kind ? DIM_STYLE : undefined}>
-            <PairSlot label="x₁" val={vals[0]} active={active === 0 && !result} state={rowState(ok)} onClick={() => !result && setActive(0)} />
-            <span>{op}</span>
-            <PairSlot label="x₂" val={vals[1]} active={active === 1 && !result} state={rowState(ok)} onClick={() => !result && setActive(1)} />
-            <span>=</span>
+            {/* При подсветке своей строки бледнеют числа и «=», ярко — только знак (в маркере) и результат. */}
+            <span className="inline-flex transition-all duration-500" style={focus === kind ? DIM_STYLE : undefined}>
+                <PairSlot label="x₁" val={vals[0]} active={active === 0 && !result} state={rowState(ok)} onClick={() => !result && setActive(0)} />
+            </span>
+            <span className="relative inline-flex px-0.5">
+                {op}
+                {focus === kind && <MarkerLoop pad={10} />}
+            </span>
+            <span className="inline-flex transition-all duration-500" style={focus === kind ? DIM_STYLE : undefined}>
+                <PairSlot label="x₂" val={vals[1]} active={active === 1 && !result} state={rowState(ok)} onClick={() => !result && setActive(1)} />
+            </span>
+            <span className="transition-all duration-500" style={focus === kind ? DIM_STYLE : undefined}>=</span>
             <FocusBox on={focus === kind} color={color}><span style={{ color }}>{fmt(right)}</span></FocusBox>
-            <span className="w-7">{mark(ok)}</span>
+            <span className="w-7 transition-all duration-500" style={focus === kind ? DIM_STYLE : undefined}>{mark(ok)}</span>
         </motion.div>
     )
     return (
