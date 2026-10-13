@@ -473,6 +473,12 @@ const StickerFlight = ({ rootRef, kind, from, to, startValue, value, color, onDo
     return (
         <div className="absolute pointer-events-none z-20" style={{ left: a.cx, top: a.cy, width: 0, height: 0 }}>
             <motion.div className="absolute left-0 top-0" initial={false} animate={{ x: pos.x, y: pos.y }} transition={{ duration: dur, ease }}>
+                {/* Стеклянная подложка: размывает то, что под цифрой, пока она едет */}
+                <motion.div className="absolute rounded-full" style={{
+                    left: -ow / 2, top: -oh / 2, width: ow, height: oh,
+                    background: `linear-gradient(${hexToRgba(color, 0.18)}, ${hexToRgba(color, 0.18)}), rgba(22, 31, 35, 0.62)`,
+                    backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+                }} initial={{ opacity: 0 }} animate={{ opacity: sticker && !landing ? 1 : 0 }} transition={{ duration: landing ? 0.45 : 0.25 }} />
                 <motion.svg className="absolute overflow-visible" width={ow} height={oh} style={{ left: -ow / 2, top: -oh / 2 }}
                     initial={false} animate={{ opacity: landing ? 0 : 1 }} transition={{ duration: 0.45 }}>
                     <defs>
@@ -595,15 +601,10 @@ const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain, assemble }: S
     // Сборка правой части: 0 — ждём, 1 — летит c, 2 — летит −b, 3 — готово, 4 — числа-варианты.
     const [asmStep, setAsmStep] = useState(assemble ? 0 : 4)
     useEffect(() => {
-        if (!assemble || phase < 3 || asmStep !== 0) return
+        if (!assemble || phase < 2 || asmStep !== 0) return
         const t = setTimeout(() => setAsmStep(1), 700)
         return () => clearTimeout(t)
     }, [assemble, phase, asmStep])
-    useEffect(() => {
-        if (asmStep !== 3) return
-        const t = setTimeout(() => setAsmStep(4), 500)
-        return () => clearTimeout(t)
-    }, [asmStep])
     const asm = assemble ? { prod: asmStep >= 2, sum: asmStep >= 3, nums: asmStep >= 4 } : undefined
     return (
         <div ref={rootRef} className="relative w-full flex flex-col items-center gap-4">
@@ -613,8 +614,8 @@ const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain, assemble }: S
                     <Eq a={1} b={b} c={c} colors focus={eqFocus} />
                 </DiagramBlock>
             )}
-            {phase >= 2 && <TypedBig small parts={[{ text: 'Подбери 2 числа 👇' }]} onDone={() => setPhase((p) => Math.max(p, 3))} readMs={150} />}
-            {phase >= 3 && <PairBuilder c={c} s={-b} nums={nums} focus={focus} asm={asm} onSolved={() => setPhase(4)} />}
+            {!assemble && phase >= 2 && <TypedBig small parts={[{ text: 'Подбери 2 числа 👇' }]} onDone={() => setPhase((p) => Math.max(p, 3))} readMs={150} />}
+            {(assemble ? phase >= 2 : phase >= 3) && <PairBuilder c={c} s={-b} nums={nums} focus={focus} asm={asm} onSolved={() => setPhase(4)} />}
             {asmStep === 1 && (
                 <StickerFlight rootRef={rootRef} kind="prod" from="eq-c" to="slot-prod" startValue={c} value={c} color={C_COLOR}
                     onDone={() => setTimeout(() => setAsmStep(2), 300)} />
@@ -623,6 +624,8 @@ const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain, assemble }: S
                 <StickerFlight rootRef={rootRef} kind="sum" from="eq-b" to="slot-sum" startValue={b} value={-b} color={B_COLOR}
                     onDone={() => setAsmStep(3)} />
             )}
+            {/* Сначала собираем правую часть, и только потом — задание */}
+            {assemble && asmStep >= 3 && <TypedBig small parts={[{ text: 'Подбери 2 числа 👆' }]} onDone={() => setAsmStep((x) => Math.max(x, 4))} readMs={150} />}
             {phase >= 4 && (
                 <TypedBig onDone={() => (explain ? setPhase(5) : onSettled?.())} readMs={explain ? 900 : 300}
                     parts={[{ text: `${x1} и ${x2} это ` }, { text: 'КОРНИ', color: ROOT_COLOR }, { text: ' 🎯' }]} />
