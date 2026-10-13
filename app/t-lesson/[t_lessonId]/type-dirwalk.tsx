@@ -29,12 +29,12 @@ import {
     isFieryMilestoneTrial, FieryFeedbackBanner, CORRECT_COLOR,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     useWalkthroughCombo,
+    RememberPlate,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { InsightCard, InsightWord } from '@/components/geometry/WalkthroughCards'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
-import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import Lottie from '@/components/lottie-player'
 
@@ -470,15 +470,7 @@ const RingsFlipScene = ({ onSettled }: { onSettled?: () => void }) => {
 }
 
 // 2. ЗАПОМНИ: правая рука, продетая проводом.
-const RememberBanner = () => (
-    <div className="w-full flex items-center gap-3">
-        <Lottie animationData={paperPolice} loop autoplay className="w-16 h-16 md:w-20 md:h-20 shrink-0" />
-        <div className="flex-1 flex items-center justify-center rounded-xl px-4 py-3 font-black text-lg text-center"
-            style={{ backgroundColor: hexToRgba(REMEMBER_COLOR, 0.16), border: `2px solid ${REMEMBER_COLOR}`, color: REMEMBER_COLOR }}>
-            ЗАПОМНИ!
-        </div>
-    </div>
-)
+const RememberBanner = () => <RememberPlate />
 const HandRuleScene = ({ onSettled }: { onSettled?: () => void }) => {
     const [phase, setPhase] = useState(0)
     const [cur, setCur] = useState<Cur>(1)

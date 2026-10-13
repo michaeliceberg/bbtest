@@ -30,12 +30,12 @@ import {
     isFieryMilestoneTrial, FieryFeedbackBanner, EllipsisPause,
     useWalkthroughCombo,
     pickFunNextLabel,
+    RememberPlate,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
-import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
 import Lottie from '@/components/lottie-player'
 
 // Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
@@ -52,7 +52,6 @@ const COS_COLOR = GGEGE_PALETTE.green.button
 const SIN_COLOR = GGEGE_PALETTE.blue.button
 const ARC_COLOR = GGEGE_PALETTE.purple.button
 const HOME_COLOR = '#F2C35B'
-const REMEMBER_COLOR = '#F2C35B'
 const PICK_COLOR = '#F09B38'
 const PLUS_COLOR = '#A1D151'
 const MINUS_COLOR = '#DC605B'
@@ -136,15 +135,7 @@ const ReactionVideo = ({ src, className = 'w-56' }: { src: string; className?: s
     />
 )
 
-const RememberBanner = ({ children }: { children?: React.ReactNode }) => (
-    <div className="w-full flex items-center gap-3">
-        <Lottie animationData={paperPolice} loop autoplay className="w-16 h-16 md:w-20 md:h-20 shrink-0" />
-        <div className="flex-1 flex items-center justify-center rounded-xl px-4 py-3 font-black text-lg text-center"
-            style={{ backgroundColor: hexToRgba(REMEMBER_COLOR, 0.16), border: `2px solid ${REMEMBER_COLOR}`, color: REMEMBER_COLOR }}>
-            {children ?? 'ЗАПОМНИ!'}
-        </div>
-    </div>
-)
+const RememberBanner = ({ children }: { children?: React.ReactNode }) => <RememberPlate title={children ?? 'ЗАПОМНИ!'} />
 
 const ActionButton = ({ children, onClick, color = HOME_COLOR, pulse = true, disabled }: { children: React.ReactNode; onClick: () => void; color?: string; pulse?: boolean; disabled?: boolean }) => (
     <button

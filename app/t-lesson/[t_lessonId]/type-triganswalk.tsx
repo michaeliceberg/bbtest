@@ -22,13 +22,12 @@ import {
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     isFieryMilestoneTrial, FieryFeedbackBanner, useWalkthroughCombo, pickFunNextLabel,
+    RememberPlate,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
-import Lottie from '@/components/lottie-player'
-import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
 
 const SCENE_TRANSITION_PAUSE_MS = 1000
 
@@ -823,7 +822,6 @@ const Marked = ({ s: v, delay = 0 }: { s: string; delay?: number }) => (
 )
 
 // 5а. ЗАПОМНИ: правая точка из таблицы, левая = π − правая → 3 мини-теста.
-const REMEMBER_COLOR = '#F2C35B'
 const LEFT_TESTS: { right: string; left: string; opts: string[] }[] = [
     { right: 'π/6', left: '5π/6', opts: ['5π/6', '2π/3', '7π/6', '−π/6'] },
     { right: 'π/4', left: '3π/4', opts: ['3π/4', '5π/4', '−π/4', '2π/3'] },
@@ -853,11 +851,7 @@ const RememberLeftScene = ({ onSettled }: SceneProps) => {
     }
     return (
         <>
-            <div className="w-full flex items-center gap-3">
-                <Lottie animationData={paperPolice} loop autoplay className="w-16 h-16 md:w-20 md:h-20 shrink-0" />
-                <div className="flex-1 flex flex-col items-center gap-2 rounded-xl px-4 py-3 font-black text-center"
-                    style={{ backgroundColor: hexToRgba(REMEMBER_COLOR, 0.14), border: `2px solid ${REMEMBER_COLOR}`, color: '#F2F7FB' }}>
-                    <span className="text-lg" style={{ color: REMEMBER_COLOR }}>ЗАПОМНИ!</span>
+            <RememberPlate>
                     <TypedBig small parts={[{ text: 'Правая точка: берём из ' }, { text: 'таблицы', color: SIN_COLOR }]} readMs={500} onDone={() => setReady(true)} />
                     {ready && (
                         <motion.span initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
@@ -866,8 +860,7 @@ const RememberLeftScene = ({ onSettled }: SceneProps) => {
                             <span className="inline-flex items-center gap-2"><span className="text-5xl leading-none" style={{ color: ARC_COLOR }}>π</span> − правая</span>
                         </motion.span>
                     )}
-                </div>
-            </div>
+            </RememberPlate>
             {ready && LEFT_TESTS.slice(0, idx + 1).map((t, i) => (
                 <motion.div key={t.right} initial={{ opacity: 0, y: 10 }} animate={{ opacity: i < idx ? 0.45 : 1, y: 0 }} transition={{ delay: i === 0 ? 0.9 : 0 }}
                     className="w-full flex flex-col items-center gap-2">

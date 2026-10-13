@@ -944,3 +944,39 @@ export const DiagramBlock = ({ children, onSettled }: { children: React.ReactNod
         </motion.div>
     )
 }
+
+// ===== Плашка «ЗАПОМНИ!» (общая для всех step-by-step, 2026-10-13) =====
+// Золотая плашка в стиле «Урок» на /trainer (класс .lesson-pill: градиент + пробегающий блик),
+// справа — случайный стикер из public/remember-stickers/ (выбираем после монтирования, чтобы
+// сервер и браузер не разошлись). title — надпись на плашке, children — тело под ней (если нужно).
+export const REMEMBER_STICKERS = [1, 2, 3, 4, 5].map((n) => `/remember-stickers/r${n}.webp`)
+
+export const RememberPlate = ({ title = 'ЗАПОМНИ!', children }: { title?: React.ReactNode; children?: React.ReactNode }) => {
+    const [sticker, setSticker] = useState<string | null>(null)
+    useEffect(() => {
+        setSticker(REMEMBER_STICKERS[Math.floor(Math.random() * REMEMBER_STICKERS.length)])
+    }, [])
+    return (
+        <div className="w-full flex items-center gap-3">
+            <div className="flex-1 min-w-0 flex flex-col items-stretch gap-2">
+                <div className="lesson-pill flex items-center justify-center rounded-xl px-4 py-3 font-black text-lg md:text-xl text-center tracking-wide text-[#3A2603]">
+                    <span className="relative">{title}</span>
+                </div>
+                {children && (
+                    <div className="flex flex-col items-center gap-2 rounded-xl px-4 py-3 font-black text-center text-[#F2F7FB]"
+                        style={{ backgroundColor: 'rgba(232, 182, 54, 0.08)', border: '2px solid rgba(232, 182, 54, 0.55)' }}>
+                        {children}
+                    </div>
+                )}
+            </div>
+            <div className="w-24 h-24 md:w-28 md:h-28 shrink-0 flex items-center justify-center">
+                {sticker && (
+                    <motion.img src={sticker} alt="" draggable={false}
+                        initial={{ scale: 0.4, opacity: 0, rotate: -12 }} animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                        transition={{ type: 'spring', stiffness: 320, damping: 14 }}
+                        className="max-w-full max-h-full object-contain pointer-events-none select-none" />
+                )}
+            </div>
+        </div>
+    )
+}

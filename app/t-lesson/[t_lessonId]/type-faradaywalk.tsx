@@ -48,6 +48,7 @@ import {
     isFieryMilestoneTrial, FieryFeedbackBanner, CORRECT_COLOR, WRONG_COLOR, PENDING_COLOR,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     useWalkthroughCombo,
+    RememberPlate,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { FluxCylinder, FieldArrow, SvgTag } from '@/components/geometry/FluxCylinder'
@@ -55,7 +56,6 @@ import { InsightCard, InsightWord } from '@/components/geometry/WalkthroughCards
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
 import { declensionRu } from '@/usefulFunctions'
-import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import Lottie from '@/components/lottie-player'
 
@@ -470,27 +470,8 @@ const MagnetPoleDiagram = ({ highlight }: { highlight: 'N' | 'S' }) => (
 // хардкожен в ATTENTION_COLOR/оранжевый без пропа цвета), чтобы не
 // расходиться с новым красным цветом рамки.
 // «ЗАПОМНИ!» — тёплый солнечный цвет (красный читался как «ошибка»).
-const REMEMBER_COLOR = '#F2C35B'
-const RedExclaim = () => (
-    <motion.span
-        className="inline-block ml-1 font-black"
-        style={{ color: REMEMBER_COLOR }}
-        animate={{ opacity: [1, 0.25, 1] }}
-        transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
-    >!</motion.span>
-)
 
-const DirectionRememberBanner = () => (
-    <div className="w-full flex items-center gap-3">
-        <Lottie animationData={paperPolice} loop autoplay className="w-16 h-16 md:w-20 md:h-20 shrink-0" />
-        <div
-            className="flex-1 flex items-center justify-center rounded-xl px-4 py-3 font-black text-lg text-center"
-            style={{ backgroundColor: hexToRgba(REMEMBER_COLOR, 0.16), border: `2px solid ${REMEMBER_COLOR}`, color: REMEMBER_COLOR }}
-        >
-            <span>ЗАПОМНИ<RedExclaim /></span>
-        </div>
-    </div>
-)
+const DirectionRememberBanner = () => <RememberPlate />
 
 // Упрощённая горизонтальная схема направления поля — по прямой просьбе
 // пользователя: "распиленный" магнит (N красным слева, S синим справа),

@@ -34,12 +34,12 @@ import {
     DiagramBlock, pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
     walkthroughButtonClass, walkthroughButtonStyle, LocalAnswerConfetti,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
-    isFieryMilestoneTrial, FieryFeedbackBanner, BlinkingExclaim, ATTENTION_COLOR,
+    isFieryMilestoneTrial, FieryFeedbackBanner,
     AdminSceneMap, MAP_INTRO_COLOR, MAP_PRACTICE_COLOR, type AdminMapEntry,
     useWalkthroughCombo,
+    RememberPlate,
 } from '@/components/geometry/WalkthroughLog'
 import { hexToRgba } from '@/src/constants/lessonButtonColors'
-import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
 import { cn } from '@/lib/utils'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import Lottie from '@/components/lottie-player'
@@ -91,17 +91,7 @@ const TypedLineWithParts = ({ parts, onSettled, className }: { parts: LinePart[]
 
 // ЗАПОМНИ! — Lottie "полицейский с бумагой" + оранжевая плашка (тот же
 // баннер, что в LOGDEFWALK).
-const RememberBanner = () => (
-    <div className="w-full flex items-center gap-3">
-        <Lottie animationData={paperPolice} loop autoplay className="w-16 h-16 md:w-20 md:h-20 shrink-0" />
-        <div
-            className="flex-1 flex items-center justify-center rounded-xl px-4 py-3 font-black text-lg"
-            style={{ backgroundColor: hexToRgba(ATTENTION_COLOR, 0.16), border: `2px solid ${ATTENTION_COLOR}`, color: ATTENTION_COLOR }}
-        >
-            <span>ЗАПОМНИ<BlinkingExclaim /></span>
-        </div>
-    </div>
-)
+const RememberBanner = () => <RememberPlate />
 
 const HYP_STICKER: StickerPart = { text: 'гипотенуза', color: HYPOTENUSE_COLOR }
 const HYP_SHORT: StickerPart = { text: 'гип', color: HYPOTENUSE_COLOR }

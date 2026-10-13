@@ -27,13 +27,12 @@ import {
     isFieryMilestoneTrial, FieryFeedbackBanner,
     useWalkthroughCombo,
     pickFunNextLabel,
+    RememberPlate,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
-import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
-import Lottie from '@/components/lottie-player'
 
 const SCENE_TRANSITION_PAUSE_MS = 1000
 
@@ -155,15 +154,7 @@ const Eq = ({ a, b, c, colors, showOne, size = 'text-3xl md:text-4xl' }: EqSpec 
     )
 }
 
-const RememberBanner = ({ children }: { children?: React.ReactNode }) => (
-    <div className="w-full flex items-center gap-3">
-        <Lottie animationData={paperPolice} loop autoplay className="w-14 h-14 md:w-16 md:h-16 shrink-0" />
-        <div className="flex-1 flex items-center justify-center rounded-xl px-4 py-3 font-black text-lg text-center"
-            style={{ backgroundColor: hexToRgba(REMEMBER_COLOR, 0.16), border: `2px solid ${REMEMBER_COLOR}`, color: REMEMBER_COLOR }}>
-            {children ?? 'ЗАПОМНИ!'}
-        </div>
-    </div>
-)
+const RememberBanner = ({ children }: { children?: React.ReactNode }) => <RememberPlate title={children ?? 'ЗАПОМНИ!'} />
 
 // Строка-факт, появляется с отскоком.
 const Fact = ({ children, color = '#F2F7FB', delay = 0 }: { children: React.ReactNode; color?: string; delay?: number }) => (

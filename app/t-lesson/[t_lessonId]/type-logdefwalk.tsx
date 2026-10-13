@@ -49,11 +49,11 @@ import {
     BlinkingExclaim, SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     isFieryMilestoneTrial, useLottieModuleReady,
     useWalkthroughCombo,
+    RememberPlate,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { LOTTIE_STEP_BY_STEP_FIERY_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
-import paperPolice from '@/public/Lottie/stepByStep/paperPolice.json'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import Lottie from '@/components/lottie-player'
 
@@ -446,17 +446,7 @@ const TypedLineWithSticker = ({
 // важно") — тот же пропорции Lottie, что уже задействованы в
 // TrainerMascot.tsx (w-16 h-16 md:w-20 md:h-20) для "персонаж + текст
 // справа".
-const RememberBanner = () => (
-    <div className="w-full flex items-center gap-3">
-        <Lottie animationData={paperPolice} loop autoplay className="w-16 h-16 md:w-20 md:h-20 shrink-0" />
-        <div
-            className="flex-1 flex items-center justify-center rounded-xl px-4 py-3 font-black text-lg"
-            style={{ backgroundColor: hexToRgba(ATTENTION_COLOR, 0.16), border: `2px solid ${ATTENTION_COLOR}`, color: ATTENTION_COLOR }}
-        >
-            <span>ВНИМАААААНИЕ<BlinkingExclaim /></span>
-        </div>
-    </div>
-)
+const RememberBanner = () => <RememberPlate title="ВНИМАААААНИЕ!" />
 
 // Печатаемая строка ЗАПОМНИ/ВНИМАНИЕ-баннера с ДВУМЯ красными акцентами —
 // слово "нельзя" И ключевая фраза дальше — ОБА красными боксовыми
