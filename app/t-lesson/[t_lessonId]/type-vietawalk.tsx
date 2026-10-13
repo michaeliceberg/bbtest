@@ -128,28 +128,48 @@ const NumText = ({ s }: { s: string }) => (
 
 // Уравнение ax² + bx + c = 0. colors — раскрасить коэффициенты, showOne — показать «невидимую» 1.
 type EqSpec = { a: number; b: number; c: number }
-const Eq = ({ a, b, c, colors, showOne, size = 'text-3xl md:text-4xl' }: EqSpec & { colors?: boolean; showOne?: boolean; size?: string }) => {
+// focus — подсветить b или c (как в уроке 488: всё остальное бледное и серое, выбранное — в рамке со свечением).
+const DIM_STYLE: React.CSSProperties = { opacity: 0.25, filter: 'grayscale(1)' }
+const FocusBox = ({ on, color, children }: { on: boolean; color: string; children: React.ReactNode }) => (
+    <span className="inline-flex items-center rounded-xl px-1.5 transition-all duration-500"
+        style={on ? { border: `2px solid ${color}`, backgroundColor: hexToRgba(color, 0.16), boxShadow: `0 0 14px ${hexToRgba(color, 0.45)}` }
+            : { border: '2px solid transparent' }}>
+        {children}
+    </span>
+)
+const Eq = ({ a, b, c, colors, showOne, focus, size = 'text-3xl md:text-4xl' }: EqSpec & { colors?: boolean; showOne?: boolean; focus?: 'b' | 'c' | null; size?: string }) => {
     const col = (k: string) => (colors ? { color: k } : undefined)
     const aTxt = a === 1 ? '' : a === -1 ? '−' : fmt(a)
     const bAbs = Math.abs(b) === 1 ? '' : `${Math.abs(b)}`
+    const dim = (part: 'a' | 'b' | 'c' | 'rest'): React.CSSProperties | undefined => (focus && focus !== part ? DIM_STYLE : undefined)
     return (
         <div className={cn('w-full flex items-center justify-center font-black text-[#F2F7FB] whitespace-nowrap', size)}>
-            {a === 1 && showOne && (
-                <motion.span initial={{ scale: 4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.55, duration: 0.9 }}
-                    className="inline-flex mr-0.5" style={{ color: A_COLOR }}>1·</motion.span>
-            )}
-            <span style={col(A_COLOR)}>{aTxt}</span>
-            <span>x²</span>
+            <span className="inline-flex items-center transition-all duration-500" style={dim('a')}>
+                {a === 1 && showOne && (
+                    <motion.span initial={{ scale: 4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.55, duration: 0.9 }}
+                        className="inline-flex mr-0.5" style={{ color: A_COLOR }}>1·</motion.span>
+                )}
+                <span style={col(A_COLOR)}>{aTxt}</span>
+                <span>x²</span>
+            </span>
             {b !== 0 && (
                 <>
-                    <span className="mx-1.5" style={col(B_COLOR)}>{b < 0 ? '−' : '+'}</span>
-                    <span style={col(B_COLOR)}>{bAbs}</span>
-                    <span>x</span>
+                    <FocusBox on={focus === 'b'} color={B_COLOR}>
+                        <span className="inline-flex items-center transition-all duration-500" style={dim('b')}>
+                            <span className="mx-1.5" style={col(B_COLOR)}>{b < 0 ? '−' : '+'}</span>
+                            <span style={col(B_COLOR)}>{bAbs}</span>
+                        </span>
+                    </FocusBox>
+                    <span className="transition-all duration-500" style={dim('rest')}>x</span>
                 </>
             )}
-            <span className="mx-1.5" style={col(C_COLOR)}>{c < 0 ? '−' : '+'}</span>
-            <span style={col(C_COLOR)}>{Math.abs(c)}</span>
-            <span className="ml-1.5">= 0</span>
+            <FocusBox on={focus === 'c'} color={C_COLOR}>
+                <span className="inline-flex items-center transition-all duration-500" style={dim('c')}>
+                    <span className="mx-1.5" style={col(C_COLOR)}>{c < 0 ? '−' : '+'}</span>
+                    <span style={col(C_COLOR)}>{Math.abs(c)}</span>
+                </span>
+            </FocusBox>
+            <span className="ml-1.5 transition-all duration-500" style={dim('rest')}>= 0</span>
         </div>
     )
 }
@@ -378,7 +398,7 @@ const PairSlot = ({ label, val, active, state, onClick }: {
 }
 
 // Мини-игра «собери пару»: x₁ · x₂ = c и x₁ + x₂ = s, числа снизу. Неверно — тряска и сброс.
-const PairBuilder = ({ c, s, nums, onSolved }: { c: number; s: number; nums: number[]; onSolved: () => void }) => {
+const PairBuilder = ({ c, s, nums, onSolved, focus }: { c: number; s: number; nums: number[]; onSolved: () => void; focus?: 'prod' | 'sum' | null }) => {
     const [vals, setVals] = useState<(number | null)[]>([null, null])
     const [active, setActive] = useState(0)
     const [result, setResult] = useState<'ok' | 'bad' | null>(null)
@@ -404,24 +424,25 @@ const PairBuilder = ({ c, s, nums, onSolved }: { c: number; s: number; nums: num
         <Pop><span className="text-2xl font-black w-7 inline-block text-center" style={{ color: ok ? OK_COLOR : BAD_COLOR }}>{ok ? '✓' : '✗'}</span></Pop>
     )
     const rowState = (ok: boolean): 'ok' | 'bad' | null => (filled && result ? (ok ? 'ok' : 'bad') : null)
-    const row = (op: string, right: number, color: string, ok: boolean) => (
+    const row = (op: string, right: number, color: string, ok: boolean, kind: 'prod' | 'sum') => (
         <motion.div animate={result === 'bad' && !ok ? { x: [0, -10, 10, -6, 6, 0] } : { x: 0 }} transition={{ duration: 0.5 }}
-            className="flex items-center gap-2.5 text-2xl md:text-3xl font-black text-[#F2F7FB]">
+            className="flex items-center gap-2.5 text-2xl md:text-3xl font-black text-[#F2F7FB] transition-all duration-500"
+            style={focus && focus !== kind ? DIM_STYLE : undefined}>
             <PairSlot label="x₁" val={vals[0]} active={active === 0 && !result} state={rowState(ok)} onClick={() => !result && setActive(0)} />
             <span>{op}</span>
             <PairSlot label="x₂" val={vals[1]} active={active === 1 && !result} state={rowState(ok)} onClick={() => !result && setActive(1)} />
             <span>=</span>
-            <span style={{ color }}>{fmt(right)}</span>
+            <FocusBox on={focus === kind} color={color}><span style={{ color }}>{fmt(right)}</span></FocusBox>
             <span className="w-7">{mark(ok)}</span>
         </motion.div>
     )
     return (
         <div className="w-full flex flex-col items-center gap-4">
             <div className="flex flex-col items-center gap-3">
-                {row('·', c, C_COLOR, prodOk)}
-                {row('+', s, B_COLOR, sumOk)}
+                {row('·', c, C_COLOR, prodOk, 'prod')}
+                {row('+', s, B_COLOR, sumOk, 'sum')}
             </div>
-            <div className="grid grid-cols-3 gap-2.5 w-full max-w-[280px]">
+            <div className="grid grid-cols-3 gap-2.5 w-full max-w-[280px] transition-all duration-500" style={focus ? DIM_STYLE : undefined}>
                 {nums.map((n, i) => {
                     const used = vals[active === 0 ? 1 : 0] === n
                     return (
@@ -440,28 +461,50 @@ const PairBuilder = ({ c, s, nums, onSolved }: { c: number; s: number; nums: num
 }
 
 // 1–2. Подбери 2 числа: произведение и сумма.
-const PairGuessScene = ({ onSettled, intro, x1, x2, nums }: SceneProps & { intro: string; x1: number; x2: number; nums: number[] }) => {
+// explain (2-е уравнение): после «КОРНИ» по очереди подсвечиваем (остальное бледное, как в уроке 488)
+// 12 справа и +12 в уравнении, потом 7 и −7 — «знак НАОБОРОТ».
+const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain }: SceneProps & { intro: string; x1: number; x2: number; nums: number[]; explain?: boolean }) => {
     const [phase, setPhase] = useState(0)
     const b = -(x1 + x2), c = x1 * x2
+    const focus: 'prod' | 'sum' | null = phase >= 5 && phase <= 6 ? 'prod' : phase === 7 ? 'sum' : null
+    const eqFocus = focus === 'prod' ? 'c' : focus === 'sum' ? 'b' : null
     return (
         <>
             <TypedBig small parts={[{ text: intro }]} onDone={() => setPhase(1)} readMs={150} />
             {phase >= 1 && (
                 <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 2))}>
-                    <Eq a={1} b={b} c={c} colors />
+                    <Eq a={1} b={b} c={c} colors focus={eqFocus} />
                 </DiagramBlock>
             )}
             {phase >= 2 && <TypedBig small parts={[{ text: 'Подбери 2 числа 👇' }]} onDone={() => setPhase((p) => Math.max(p, 3))} readMs={150} />}
-            {phase >= 3 && <PairBuilder c={c} s={-b} nums={nums} onSolved={() => setPhase(4)} />}
+            {phase >= 3 && <PairBuilder c={c} s={-b} nums={nums} focus={focus} onSolved={() => setPhase(4)} />}
             {phase >= 4 && (
-                <TypedBig onDone={() => onSettled?.()} readMs={300}
+                <TypedBig onDone={() => (explain ? setPhase(5) : onSettled?.())} readMs={explain ? 900 : 300}
                     parts={[{ text: `${x1} и ${x2} это ` }, { text: 'КОРНИ', color: ROOT_COLOR }, { text: ' 🎯' }]} />
             )}
+            {explain && phase >= 5 && (
+                <TypedBig small onDone={() => setPhase(6)} readMs={1800}
+                    parts={[{ text: 'Смотри: ' }, { text: `${x1} · ${x2} = ${c}`, color: C_COLOR }, { text: '. Это число в уравнении!' }]} />
+            )}
+            {explain && phase === 6 && <PauseThen ms={600} onDone={() => setPhase(7)} />}
+            {explain && phase >= 7 && (
+                <TypedBig small onDone={() => setPhase(8)} readMs={2200}
+                    parts={[{ text: 'А ' }, { text: `${x1} + ${x2} = ${-b}`, color: B_COLOR }, { text: ', но в уравнении ' }, { text: fmt(b), color: B_COLOR }, { text: '. Знак ' }, { text: 'НАОБОРОТ', color: REMEMBER_COLOR }, { text: '!' }]} />
+            )}
+            {explain && phase >= 8 && <PauseThen ms={300} onDone={() => onSettled?.()} />}
         </>
     )
 }
+const PauseThen = ({ ms, onDone }: { ms: number; onDone: () => void }) => {
+    useEffect(() => {
+        const t = setTimeout(onDone, ms)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+    return null
+}
 const Guess56Scene = (p: SceneProps) => <PairGuessScene {...p} intro="Вот уравнение:" x1={2} x2={3} nums={[1, 2, 3, 4, 5, 6]} />
-const Guess712Scene = (p: SceneProps) => <PairGuessScene {...p} intro="А вот ещё одно:" x1={3} x2={4} nums={[1, 2, 3, 4, 6, 12]} />
+const Guess712Scene = (p: SceneProps) => <PairGuessScene {...p} intro="А вот ещё одно:" x1={3} x2={4} nums={[1, 2, 3, 4, 6, 12]} explain />
 
 // Буква-коэффициент падает сверху в пунктирную клетку.
 const FallingLetter = ({ letter, color, delay }: { letter: string; color: string; delay: number }) => (
