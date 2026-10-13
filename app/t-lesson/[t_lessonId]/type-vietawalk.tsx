@@ -601,7 +601,7 @@ const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain, assemble }: S
     // Сборка правой части: 0 — ждём, 1 — летит c, 2 — летит −b, 3 — готово, 4 — числа-варианты.
     const [asmStep, setAsmStep] = useState(assemble ? 0 : 4)
     useEffect(() => {
-        if (!assemble || phase < 2 || asmStep !== 0) return
+        if (!assemble || phase < 3 || asmStep !== 0) return
         const t = setTimeout(() => setAsmStep(1), 700)
         return () => clearTimeout(t)
     }, [assemble, phase, asmStep])
@@ -614,8 +614,8 @@ const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain, assemble }: S
                     <Eq a={1} b={b} c={c} colors focus={eqFocus} />
                 </DiagramBlock>
             )}
-            {!assemble && phase >= 2 && <TypedBig small parts={[{ text: 'Подбери 2 числа 👇' }]} onDone={() => setPhase((p) => Math.max(p, 3))} readMs={150} />}
-            {(assemble ? phase >= 2 : phase >= 3) && <PairBuilder c={c} s={-b} nums={nums} focus={focus} asm={asm} onSolved={() => setPhase(4)} />}
+            {phase >= 2 && <TypedBig small parts={[{ text: assemble ? 'Составим систему:' : 'Подбери 2 числа 👇' }]} onDone={() => setPhase((p) => Math.max(p, 3))} readMs={150} />}
+            {phase >= 3 && <PairBuilder c={c} s={-b} nums={nums} focus={focus} asm={asm} onSolved={() => setPhase(4)} />}
             {asmStep === 1 && (
                 <StickerFlight rootRef={rootRef} kind="prod" from="eq-c" to="slot-prod" startValue={c} value={c} color={C_COLOR}
                     onDone={() => setTimeout(() => setAsmStep(2), 300)} />
