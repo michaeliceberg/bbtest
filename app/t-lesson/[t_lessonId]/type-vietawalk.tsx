@@ -44,9 +44,9 @@ type Props = {
 }
 
 // Цвета ролей (2026-10-13, просьба пользователя — контрастнее, без оранжевого):
-// a — малиново-розовый, b — голубой, c — салатовый, корни — фиолетовый.
+// a — малиново-розовый, b — насыщенный синий (голубой #35C8F5 сливался с белым), c — салатовый, корни — фиолетовый.
 const A_COLOR = '#FF5CB8'
-const B_COLOR = '#35C8F5'
+const B_COLOR = '#3B82F6'
 const C_COLOR = '#B8F04A'
 const ROOT_COLOR = GGEGE_PALETTE.purple.button
 const REMEMBER_COLOR = '#F2C35B'
