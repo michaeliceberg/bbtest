@@ -835,13 +835,14 @@ const FallingLetter = ({ letter, color, delay }: { letter: string; color: string
     </span>
 )
 
-// Наклейка-буква над найденным коэффициентом.
-const CoefTag = ({ letter, color }: { letter: string; color: string }) => (
-    <motion.span initial={{ y: -60, opacity: 0, scale: 0.6 }} animate={{ y: 0, opacity: 1, scale: 1 }}
+// Подпись над найденным коэффициентом: «c = 12» прямо над своим числом.
+const CoefTag = ({ text, note, color }: { text: string; note?: string; color: string }) => (
+    <motion.span initial={{ y: -40, opacity: 0, scale: 0.6 }} animate={{ y: 0, opacity: 1, scale: 1 }}
         transition={{ type: 'spring', stiffness: 300, damping: 12 }}
-        className="absolute -top-11 left-1/2 -translate-x-1/2 w-9 h-9 rounded-lg flex items-center justify-center text-xl font-black"
-        style={{ color, border: `2px solid ${color}`, backgroundColor: hexToRgba(color, 0.18) }}>
-        {letter}
+        className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 flex flex-col items-center whitespace-nowrap pointer-events-none">
+        {note && <span className="text-[11px] md:text-xs font-bold mb-0.5" style={{ color }}>{note}</span>}
+        <span className="text-sm md:text-base font-black px-2 py-0.5 rounded-lg"
+            style={{ color, backgroundColor: hexToRgba(color, 0.14) }}>{text}</span>
     </motion.span>
 )
 
@@ -853,6 +854,12 @@ const CoefScene = ({ onSettled }: SceneProps) => {
     const [step, setStep] = useState<CoefStep>('c')
     const [wrong, setWrong] = useFlash<string>()
     const [hint, setHint] = useState<string | null>(null)
+    const [askReady, setAskReady] = useState(false)
+    useEffect(() => {
+        if (phase !== 3) return
+        const t = setTimeout(() => setAskReady(true), 2000)
+        return () => clearTimeout(t)
+    }, [phase])
     useEffect(() => {
         if (phase !== 1) return
         const t = setTimeout(() => setPhase(2), 2400)
@@ -888,10 +895,10 @@ const CoefScene = ({ onSettled }: SceneProps) => {
             {phase >= 2 && <TypedBig small parts={[{ text: 'Найдём их здесь 👇' }]} onDone={() => setPhase((p) => Math.max(p, 3))} readMs={150} />}
             {phase >= 3 && (
                 <Pop>
-                    <div className="w-full flex items-end justify-center font-black text-4xl md:text-5xl text-[#F2F7FB] whitespace-nowrap pt-12 pb-1">
+                    <div className="w-full flex items-end justify-center font-black text-4xl md:text-5xl text-[#F2F7FB] whitespace-nowrap pt-20 pb-1">
                         {found.a && (
                             <span className="relative inline-flex">
-                                <CoefTag letter="a" color={A_COLOR} />
+                                <CoefTag text="a = 1" color={A_COLOR} />
                                 <motion.span initial={{ y: -120, opacity: 0, scale: 2 }} animate={{ y: 0, opacity: 1, scale: 1 }}
                                     transition={{ type: 'spring', stiffness: 240, damping: 10 }} style={{ color: A_COLOR }}>1·</motion.span>
                             </span>
@@ -900,33 +907,23 @@ const CoefScene = ({ onSettled }: SceneProps) => {
                             className={cn(tokCls, wrong === 'x2' && 'bg-[#DC605B33] text-[#DC605B]')}>x²</button>
                         <button type="button" onClick={() => tap('b')} className={cn(tokCls, 'ml-1', wrong === 'b' && 'bg-[#DC605B33]')}
                             style={{ color: found.b ? B_COLOR : wrong === 'b' ? BAD_COLOR : undefined }}>
-                            {found.b && <CoefTag letter="b" color={B_COLOR} />}−7
+                            {found.b && <CoefTag text="b = −7" note="минус тоже входит!" color={B_COLOR} />}−7
                         </button>
                         <span>x</span>
                         <span className="mx-1.5">+</span>
                         <button type="button" onClick={() => tap('c')} className={cn(tokCls, wrong === 'c' && 'bg-[#DC605B33]')}
                             style={{ color: found.c ? C_COLOR : wrong === 'c' ? BAD_COLOR : undefined }}>
-                            {found.c && <CoefTag letter="c" color={C_COLOR} />}12
+                            {found.c && <CoefTag text="c = 12" color={C_COLOR} />}12
                         </button>
                         <span className="ml-1.5">= 0</span>
                     </div>
                 </Pop>
             )}
-            {phase >= 3 && (step === 'c' || step === 'b') && (
+            {phase >= 3 && askReady && (step === 'c' || step === 'b') && (
                 <div className="w-full flex flex-col items-center gap-1">
-                    <Pop key={step}>
-                        <span className="text-xl md:text-2xl font-black text-[#F2F7FB]">
-                            Нажми на <span className="px-2 rounded-lg" style={{ color: askColor, border: `2px solid ${askColor}` }}>{step}</span>
-                        </span>
-                    </Pop>
+                    <TypedBig key={step} small readMs={100}
+                        parts={[{ text: 'Нажми на ' }, { text: step, color: askColor }]} />
                     <div className="min-h-[24px] text-center font-bold" style={{ color: BAD_COLOR }}>{hint}</div>
-                </div>
-            )}
-            {step !== 'c' && (
-                <div className="w-full flex flex-wrap items-center justify-center gap-2">
-                    <Pop><span className="text-lg font-black px-3 py-1 rounded-xl" style={{ color: C_COLOR, backgroundColor: hexToRgba(C_COLOR, 0.14) }}>c = 12</span></Pop>
-                    {found.b && <Pop><span className="text-lg font-black px-3 py-1 rounded-xl" style={{ color: B_COLOR, backgroundColor: hexToRgba(B_COLOR, 0.14) }}>b = −7 (минус тоже входит!)</span></Pop>}
-                    {found.a && <Pop><span className="text-lg font-black px-3 py-1 rounded-xl" style={{ color: A_COLOR, backgroundColor: hexToRgba(A_COLOR, 0.14) }}>a = 1</span></Pop>}
                 </div>
             )}
             {phase >= 4 && (
