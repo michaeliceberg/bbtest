@@ -400,16 +400,49 @@ const PairSlot = ({ label, val, active, state, onClick }: {
 }
 
 // Мини-игра «собери пару»: x₁ · x₂ = c и x₁ + x₂ = s, числа снизу. Неверно — тряска и сброс.
-const PairBuilder = ({ c, s, nums, onSolved, focus }: { c: number; s: number; nums: number[]; onSolved: () => void; focus?: 'prod' | 'sum' | null }) => {
+// assemble (1-е уравнение): правая часть сначала пустая; через 2 с сверху спускается c, затем −b —
+// на полпути останавливается, пружинит и превращается в b с другим знаком.
+const ASM_START = 2000, ASM_SUM = 2900, ASM_FLIP = 4000, ASM_NUMS = 4900
+const AssembleNum = ({ step, minus, value, color }: { step: number; minus?: boolean; value: number; color: string }) => (
+    <span className="relative inline-flex justify-center">
+        <span className="invisible">{fmt(value)}</span>
+        {!minus && step >= 1 && (
+            <motion.span className="absolute inset-0 text-center" style={{ color }}
+                initial={{ y: -70, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.8, ease: 'easeOut' }}>
+                {fmt(value)}
+            </motion.span>
+        )}
+        {minus && step === 2 && (
+            <motion.span key="neg" className="absolute inset-0 text-center whitespace-nowrap" style={{ color }}
+                initial={{ y: -70, opacity: 0 }} animate={{ y: -34, opacity: 1 }} transition={{ duration: 0.55, ease: 'easeOut' }}>
+                {fmt(-value)}
+            </motion.span>
+        )}
+        {minus && step >= 3 && (
+            <motion.span key="pos" className="absolute inset-0 text-center" style={{ color }}
+                initial={{ y: -34, scale: 1.7 }} animate={{ y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 11 }}>
+                {fmt(value)}
+            </motion.span>
+        )}
+    </span>
+)
+
+const PairBuilder = ({ c, s, nums, onSolved, focus, assemble }: { c: number; s: number; nums: number[]; onSolved: () => void; focus?: 'prod' | 'sum' | null; assemble?: boolean }) => {
+    const [asmStep, setAsmStep] = useState(assemble ? 0 : 3)
+    useEffect(() => {
+        if (!assemble) return
+        const ts = [setTimeout(() => setAsmStep(1), ASM_START), setTimeout(() => setAsmStep(2), ASM_SUM), setTimeout(() => setAsmStep(3), ASM_FLIP)]
+        return () => ts.forEach(clearTimeout)
+    }, [assemble])
     const [vals, setVals] = useState<(number | null)[]>([null, null])
     const [active, setActive] = useState(0)
     const [result, setResult] = useState<'ok' | 'bad' | null>(null)
     // Сначала показываем строки x₁ · x₂ и x₁ + x₂, через 1 с падают числа-варианты.
     const [showNums, setShowNums] = useState(false)
     useEffect(() => {
-        const t = setTimeout(() => setShowNums(true), 1000)
+        const t = setTimeout(() => setShowNums(true), assemble ? ASM_NUMS : 1000)
         return () => clearTimeout(t)
-    }, [])
+    }, [assemble])
     const filled = vals[0] !== null && vals[1] !== null
     const prodOk = filled && vals[0]! * vals[1]! === c
     const sumOk = filled && vals[0]! + vals[1]! === s
@@ -448,7 +481,7 @@ const PairBuilder = ({ c, s, nums, onSolved, focus }: { c: number; s: number; nu
                 <PairSlot label="x₂" val={vals[1]} active={active === 1 && !result} state={rowState(ok)} onClick={() => !result && setActive(1)} />
             </span>
             <span className="transition-all duration-500" style={focus === kind ? DIM_STYLE : undefined}>=</span>
-            <FocusBox on={focus === kind} color={color}><span style={{ color }}>{fmt(right)}</span></FocusBox>
+            <FocusBox on={focus === kind} color={color}>{assemble ? <AssembleNum step={asmStep} minus={kind === 'sum'} value={right} color={color} /> : <span style={{ color }}>{fmt(right)}</span>}</FocusBox>
             <span className="w-7 transition-all duration-500" style={focus === kind ? DIM_STYLE : undefined}>{mark(ok)}</span>
         </motion.div>
     )
@@ -479,7 +512,7 @@ const PairBuilder = ({ c, s, nums, onSolved, focus }: { c: number; s: number; nu
 // 1–2. Подбери 2 числа: произведение и сумма.
 // explain (2-е уравнение): после «КОРНИ» по очереди подсвечиваем (остальное бледное, как в уроке 488)
 // 12 справа и +12 в уравнении, потом 7 и −7 — «знак НАОБОРОТ».
-const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain }: SceneProps & { intro: string; x1: number; x2: number; nums: number[]; explain?: boolean }) => {
+const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain, assemble }: SceneProps & { intro: string; x1: number; x2: number; nums: number[]; explain?: boolean; assemble?: boolean }) => {
     const [phase, setPhase] = useState(0)
     const b = -(x1 + x2), c = x1 * x2
     const focus: 'prod' | 'sum' | null = phase >= 5 && phase <= 6 ? 'prod' : phase === 7 ? 'sum' : null
@@ -493,7 +526,7 @@ const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain }: SceneProps 
                 </DiagramBlock>
             )}
             {phase >= 2 && <TypedBig small parts={[{ text: 'Подбери 2 числа 👇' }]} onDone={() => setPhase((p) => Math.max(p, 3))} readMs={150} />}
-            {phase >= 3 && <PairBuilder c={c} s={-b} nums={nums} focus={focus} onSolved={() => setPhase(4)} />}
+            {phase >= 3 && <PairBuilder c={c} s={-b} nums={nums} focus={focus} assemble={assemble} onSolved={() => setPhase(4)} />}
             {phase >= 4 && (
                 <TypedBig onDone={() => (explain ? setPhase(5) : onSettled?.())} readMs={explain ? 900 : 300}
                     parts={[{ text: `${x1} и ${x2} это ` }, { text: 'КОРНИ', color: ROOT_COLOR }, { text: ' 🎯' }]} />
@@ -519,7 +552,7 @@ const PauseThen = ({ ms, onDone }: { ms: number; onDone: () => void }) => {
     }, [])
     return null
 }
-const Guess56Scene = (p: SceneProps) => <PairGuessScene {...p} intro="Вот уравнение:" x1={2} x2={3} nums={[1, 2, 3, 4, 5, 6]} />
+const Guess56Scene = (p: SceneProps) => <PairGuessScene {...p} intro="Вот уравнение:" x1={2} x2={3} nums={[1, 2, 3, 4, 5, 6]} assemble />
 const Guess712Scene = (p: SceneProps) => <PairGuessScene {...p} intro="А вот ещё одно:" x1={3} x2={4} nums={[1, 2, 3, 4, 6, 12]} explain />
 
 // «ЗАКРЕП»: по уравнению (a = 1) выбираем, чему равны x₁ · x₂ и x₁ + x₂ (c и −b). Ошибка не в зачёт.
