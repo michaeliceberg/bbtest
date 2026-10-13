@@ -43,11 +43,12 @@ type Props = {
     onComplete: (isCorrect: boolean) => void
 }
 
-// Цвета ролей: a — фиолетовый, b — синий, c — зелёный, корни — бирюзовый/малиновый.
-const A_COLOR = GGEGE_PALETTE.purple.button
-const B_COLOR = GGEGE_PALETTE.blue.button
-const C_COLOR = GGEGE_PALETTE.green.button
-const ROOT_COLOR = GGEGE_PALETTE.teal.button
+// Цвета ролей (2026-10-13, просьба пользователя — контрастнее, без оранжевого):
+// a — малиново-розовый, b — голубой, c — салатовый, корни — фиолетовый.
+const A_COLOR = '#FF5CB8'
+const B_COLOR = '#35C8F5'
+const C_COLOR = '#B8F04A'
+const ROOT_COLOR = GGEGE_PALETTE.purple.button
 const REMEMBER_COLOR = '#F2C35B'
 const OK_COLOR = '#A1D151'
 const BAD_COLOR = '#DC605B'
@@ -366,75 +367,230 @@ const guessRound = (a: number, b: number, c: number, root: 1 | -1): Round => {
 // ===== Сцены =====
 type SceneProps = { onSettled?: () => void }
 
+// Слот-кнопка x₁/x₂ в стиле урока 455: активный слот светится, число влетает с отскоком.
+const PairSlot = ({ label, val, active, state, onClick }: {
+    label: string; val: number | null; active: boolean; state: 'ok' | 'bad' | null; onClick: () => void
+}) => {
+    const color = state === 'ok' ? OK_COLOR : state === 'bad' ? BAD_COLOR : active ? ROOT_COLOR : val !== null ? '#F2F7FB' : '#6B7A83'
+    const border = state ? color : active ? ROOT_COLOR : '#3A464E'
+    return (
+        <span className="relative inline-flex">
+            {active && !state && (
+                <span aria-hidden className="absolute -inset-1.5 rounded-xl animate-vieta-glow pointer-events-none"
+                    style={{ boxShadow: `0 0 18px 4px ${ROOT_COLOR}`, border: `2px solid ${ROOT_COLOR}` }} />
+            )}
+            <button type="button" onClick={onClick}
+                className="min-w-[56px] h-[52px] px-2 rounded-xl border-2 border-b-4 active:border-b-2 font-black transition-colors"
+                style={{ borderColor: border, color, backgroundColor: state || active ? hexToRgba(border, 0.14) : '#161F23' }}>
+                {val !== null
+                    ? <motion.span key={val} initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
+                        transition={{ type: 'spring', stiffness: 420, damping: 16 }} className="inline-block">{fmt(val)}</motion.span>
+                    : <span className="text-xl">{label}</span>}
+            </button>
+        </span>
+    )
+}
+
+// Мини-игра «собери пару»: x₁ · x₂ = c и x₁ + x₂ = s, числа снизу. Неверно — тряска и сброс.
+const PairBuilder = ({ c, s, nums, onSolved }: { c: number; s: number; nums: number[]; onSolved: () => void }) => {
+    const [vals, setVals] = useState<(number | null)[]>([null, null])
+    const [active, setActive] = useState(0)
+    const [result, setResult] = useState<'ok' | 'bad' | null>(null)
+    const filled = vals[0] !== null && vals[1] !== null
+    const prodOk = filled && vals[0]! * vals[1]! === c
+    const sumOk = filled && vals[0]! + vals[1]! === s
+    const pick = (n: number) => {
+        if (result) return
+        const next = [...vals]
+        next[active] = n
+        setVals(next)
+        const other = active === 0 ? 1 : 0
+        if (next[other] === null) { setActive(other); return }
+        if (next[0]! * next[1]! === c && next[0]! + next[1]! === s) {
+            setResult('ok'); showAnswerMeme(true)
+            setTimeout(onSolved, 1100)
+        } else {
+            setResult('bad'); playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false)
+            setTimeout(() => { setResult(null); setVals([null, null]); setActive(0) }, 1500)
+        }
+    }
+    const mark = (ok: boolean) => filled && (
+        <Pop><span className="text-2xl font-black w-7 inline-block text-center" style={{ color: ok ? OK_COLOR : BAD_COLOR }}>{ok ? '✓' : '✗'}</span></Pop>
+    )
+    const rowState = (ok: boolean): 'ok' | 'bad' | null => (filled && result ? (ok ? 'ok' : 'bad') : null)
+    const row = (op: string, right: number, color: string, ok: boolean) => (
+        <motion.div animate={result === 'bad' && !ok ? { x: [0, -10, 10, -6, 6, 0] } : { x: 0 }} transition={{ duration: 0.5 }}
+            className="flex items-center gap-2.5 text-2xl md:text-3xl font-black text-[#F2F7FB]">
+            <PairSlot label="x₁" val={vals[0]} active={active === 0 && !result} state={rowState(ok)} onClick={() => !result && setActive(0)} />
+            <span>{op}</span>
+            <PairSlot label="x₂" val={vals[1]} active={active === 1 && !result} state={rowState(ok)} onClick={() => !result && setActive(1)} />
+            <span>=</span>
+            <span style={{ color }}>{fmt(right)}</span>
+            <span className="w-7">{mark(ok)}</span>
+        </motion.div>
+    )
+    return (
+        <div className="w-full flex flex-col items-center gap-4">
+            <div className="flex flex-col items-center gap-3">
+                {row('·', c, C_COLOR, prodOk)}
+                {row('+', s, B_COLOR, sumOk)}
+            </div>
+            <div className="grid grid-cols-3 gap-2.5 w-full max-w-[280px]">
+                {nums.map((n, i) => {
+                    const used = vals[active === 0 ? 1 : 0] === n
+                    return (
+                        <motion.button key={n} type="button" onClick={() => pick(n)} disabled={!!result || used}
+                            initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: used ? 0.35 : 1 }}
+                            transition={{ type: 'spring', bounce: 0.5, delay: 0.05 * i }}
+                            whileTap={{ scale: 0.9 }}
+                            className="h-14 rounded-xl border-2 border-b-4 border-[#3A464E] bg-[#161F23] text-2xl font-black text-[#F2F7FB]">
+                            {fmt(n)}
+                        </motion.button>
+                    )
+                })}
+            </div>
+        </div>
+    )
+}
+
 // 1–2. Подбери 2 числа: произведение и сумма.
-const PairGuessScene = ({ onSettled, intro, x1, x2, options }: SceneProps & { intro: string; x1: number; x2: number; options: string[] }) => {
+const PairGuessScene = ({ onSettled, intro, x1, x2, nums }: SceneProps & { intro: string; x1: number; x2: number; nums: number[] }) => {
     const [phase, setPhase] = useState(0)
     const b = -(x1 + x2), c = x1 * x2
     return (
         <>
-            <TypedBig parts={[{ text: intro }]} onDone={() => setPhase(1)} readMs={200} />
+            <TypedBig small parts={[{ text: intro }]} onDone={() => setPhase(1)} readMs={150} />
             {phase >= 1 && (
                 <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 2))}>
-                    <Eq a={1} b={b} c={c} />
+                    <Eq a={1} b={b} c={c} colors />
                 </DiagramBlock>
             )}
-            {phase >= 2 && (
-                <TypedBig small onDone={() => setPhase(3)} readMs={200}
-                    parts={[{ text: 'Какие 2 числа при ' }, { text: 'УМНОЖЕНИИ', color: C_COLOR }, { text: ` дают ${c}, а при ` }, { text: 'СЛОЖЕНИИ', color: B_COLOR }, { text: ` ${-b}?` }]} />
-            )}
-            {phase >= 3 && (
-                <QuickPick ask={<span>Выбери пару 👇</span>} options={options} correct={`${fmt(x1)} и ${fmt(x2)}`} hint={pairHint(c, -b)}
-                    onDone={() => setPhase(4)} />
-            )}
+            {phase >= 2 && <TypedBig small parts={[{ text: 'Подбери 2 числа 👇' }]} onDone={() => setPhase((p) => Math.max(p, 3))} readMs={150} />}
+            {phase >= 3 && <PairBuilder c={c} s={-b} nums={nums} onSolved={() => setPhase(4)} />}
             {phase >= 4 && (
-                <>
-                    <Fact color={OK_COLOR}>{fmt(x1)} · {fmt(x2)} = {c} ✓  {fmt(x1)} + {fmt(x2)} = {-b} ✓</Fact>
-                    <TypedBig small onDone={() => onSettled?.()} readMs={300}
-                        parts={[{ text: 'Это и есть ' }, { text: 'КОРНИ', color: ROOT_COLOR }, { text: ` уравнения: x₁ = ${x1}, x₂ = ${x2}` }]} />
-                </>
+                <TypedBig onDone={() => onSettled?.()} readMs={300}
+                    parts={[{ text: `${x1} и ${x2} это ` }, { text: 'КОРНИ', color: ROOT_COLOR }, { text: ' 🎯' }]} />
             )}
         </>
     )
 }
-const Guess56Scene = (p: SceneProps) => <PairGuessScene {...p} intro="Вот уравнение:" x1={2} x2={3} options={['2 и 3', '1 и 6', '1 и 5', '3 и 4']} />
-const Guess712Scene = (p: SceneProps) => <PairGuessScene {...p} intro="А вот ещё одно:" x1={3} x2={4} options={['3 и 4', '2 и 6', '1 и 12', '2 и 5']} />
+const Guess56Scene = (p: SceneProps) => <PairGuessScene {...p} intro="Вот уравнение:" x1={2} x2={3} nums={[1, 2, 3, 4, 5, 6]} />
+const Guess712Scene = (p: SceneProps) => <PairGuessScene {...p} intro="А вот ещё одно:" x1={3} x2={4} nums={[1, 2, 3, 4, 6, 12]} />
 
-// 3. Коэффициенты a, b, c и невидимая единица.
+// Буква-коэффициент падает сверху в пунктирную клетку.
+const FallingLetter = ({ letter, color, delay }: { letter: string; color: string; delay: number }) => (
+    <span className="relative inline-flex items-center justify-center w-12 h-14 md:w-14 md:h-16 rounded-xl border-2 border-dashed mx-0.5"
+        style={{ borderColor: hexToRgba(color, 0.55) }}>
+        <motion.span initial={{ y: -140, opacity: 0, rotate: -25 }} animate={{ y: 0, opacity: 1, rotate: 0 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 11, delay }}
+            className="inline-block font-black" style={{ color, textShadow: `0 0 18px ${hexToRgba(color, 0.7)}` }}>
+            {letter}
+        </motion.span>
+    </span>
+)
+
+// Наклейка-буква над найденным коэффициентом.
+const CoefTag = ({ letter, color }: { letter: string; color: string }) => (
+    <motion.span initial={{ y: -60, opacity: 0, scale: 0.6 }} animate={{ y: 0, opacity: 1, scale: 1 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 12 }}
+        className="absolute -top-11 left-1/2 -translate-x-1/2 w-9 h-9 rounded-lg flex items-center justify-center text-xl font-black"
+        style={{ color, border: `2px solid ${color}`, backgroundColor: hexToRgba(color, 0.18) }}>
+        {letter}
+    </motion.span>
+)
+
+type CoefStep = 'c' | 'b' | 'a' | 'done'
+
+// 3. Коэффициенты a, b, c: буквы падают, потом ученик сам находит их в уравнении; «невидимая единица».
 const CoefScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
+    const [step, setStep] = useState<CoefStep>('c')
+    const [wrong, setWrong] = useFlash<string>()
+    const [hint, setHint] = useState<string | null>(null)
+    useEffect(() => {
+        if (phase !== 1) return
+        const t = setTimeout(() => setPhase(2), 2400)
+        return () => clearTimeout(t)
+    }, [phase])
+    const found = { c: step !== 'c', b: step === 'a' || step === 'done', a: step === 'done' }
+    const tap = (tok: 'x2' | 'b' | 'c') => {
+        if (step !== 'c' && step !== 'b') return
+        if (tok === step) {
+            showAnswerMeme(true)
+            setHint(null)
+            if (step === 'c') setStep('b')
+            else { setStep('a'); setTimeout(() => setPhase((p) => Math.max(p, 4)), 700) }
+            return
+        }
+        if (tok === 'c' && step === 'b') return
+        playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false)
+        setWrong(tok)
+        setHint(step === 'c' ? 'c это число без x 🙃' : 'b это число перед x, вместе со знаком 🙃')
+    }
+    const tokCls = 'relative inline-flex items-center justify-center rounded-xl px-1.5 transition-colors'
+    const askColor = step === 'c' ? C_COLOR : B_COLOR
     return (
         <>
-            <TypedBig small parts={[{ text: 'Любое квадратное уравнение выглядит так:' }]} onDone={() => setPhase(1)} readMs={200} />
+            <TypedBig small parts={[{ text: 'Любое квадратное уравнение:' }]} onDone={() => setPhase(1)} readMs={150} />
             {phase >= 1 && (
-                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 2))}>
-                    <div className="w-full flex items-center justify-center font-black text-3xl md:text-4xl text-[#F2F7FB] whitespace-nowrap">
-                        <span style={{ color: A_COLOR }}>a</span>x²<span className="mx-1.5">+</span><span style={{ color: B_COLOR }}>b</span>x<span className="mx-1.5">+</span><span style={{ color: C_COLOR }}>c</span><span className="ml-1.5">= 0</span>
+                <div className="w-full flex items-center justify-center font-black text-3xl md:text-4xl text-[#F2F7FB] whitespace-nowrap py-2">
+                    <FallingLetter letter="a" color={A_COLOR} delay={0.2} />x²<span className="mx-1">+</span>
+                    <FallingLetter letter="b" color={B_COLOR} delay={0.8} />x<span className="mx-1">+</span>
+                    <FallingLetter letter="c" color={C_COLOR} delay={1.4} /><span className="ml-1.5">= 0</span>
+                </div>
+            )}
+            {phase >= 2 && <TypedBig small parts={[{ text: 'Найдём их здесь 👇' }]} onDone={() => setPhase((p) => Math.max(p, 3))} readMs={150} />}
+            {phase >= 3 && (
+                <Pop>
+                    <div className="w-full flex items-end justify-center font-black text-4xl md:text-5xl text-[#F2F7FB] whitespace-nowrap pt-12 pb-1">
+                        {found.a && (
+                            <span className="relative inline-flex">
+                                <CoefTag letter="a" color={A_COLOR} />
+                                <motion.span initial={{ y: -120, opacity: 0, scale: 2 }} animate={{ y: 0, opacity: 1, scale: 1 }}
+                                    transition={{ type: 'spring', stiffness: 240, damping: 10 }} style={{ color: A_COLOR }}>1·</motion.span>
+                            </span>
+                        )}
+                        <button type="button" onClick={() => tap('x2')}
+                            className={cn(tokCls, wrong === 'x2' && 'bg-[#DC605B33] text-[#DC605B]')}>x²</button>
+                        <button type="button" onClick={() => tap('b')} className={cn(tokCls, 'ml-1', wrong === 'b' && 'bg-[#DC605B33]')}
+                            style={{ color: found.b ? B_COLOR : wrong === 'b' ? BAD_COLOR : undefined }}>
+                            {found.b && <CoefTag letter="b" color={B_COLOR} />}−7
+                        </button>
+                        <span>x</span>
+                        <span className="mx-1.5">+</span>
+                        <button type="button" onClick={() => tap('c')} className={cn(tokCls, wrong === 'c' && 'bg-[#DC605B33]')}
+                            style={{ color: found.c ? C_COLOR : wrong === 'c' ? BAD_COLOR : undefined }}>
+                            {found.c && <CoefTag letter="c" color={C_COLOR} />}12
+                        </button>
+                        <span className="ml-1.5">= 0</span>
                     </div>
-                </DiagramBlock>
+                </Pop>
             )}
-            {phase >= 2 && (
-                <TypedBig small onDone={() => setPhase(3)} readMs={300}
-                    parts={[{ text: 'a', color: A_COLOR }, { text: ', ' }, { text: 'b', color: B_COLOR }, { text: ', ' }, { text: 'c', color: C_COLOR }, { text: ' это просто числа. Найдём их:' }]} />
+            {phase >= 3 && (step === 'c' || step === 'b') && (
+                <div className="w-full flex flex-col items-center gap-1">
+                    <Pop key={step}>
+                        <span className="text-xl md:text-2xl font-black text-[#F2F7FB]">
+                            Нажми на <span className="px-2 rounded-lg" style={{ color: askColor, border: `2px solid ${askColor}` }}>{step}</span> 👆
+                        </span>
+                    </Pop>
+                    <div className="min-h-[24px] text-center font-bold" style={{ color: BAD_COLOR }}>{hint}</div>
+                </div>
             )}
-            {phase >= 3 && <Pop><Eq a={1} b={-7} c={12} colors showOne={phase >= 7} /></Pop>}
-            {phase >= 3 && phase < 4 && (
-                <QuickPick ask={<span>Чему равен <span style={{ color: C_COLOR }}>c</span>?</span>} options={['12', '−7', '1', '7']} correct="12"
-                    hint={() => 'c это число без x 🙃'} onDone={() => setPhase(4)} />
+            {step !== 'c' && (
+                <div className="w-full flex flex-wrap items-center justify-center gap-2">
+                    <Pop><span className="text-lg font-black px-3 py-1 rounded-xl" style={{ color: C_COLOR, backgroundColor: hexToRgba(C_COLOR, 0.14) }}>c = 12</span></Pop>
+                    {found.b && <Pop><span className="text-lg font-black px-3 py-1 rounded-xl" style={{ color: B_COLOR, backgroundColor: hexToRgba(B_COLOR, 0.14) }}>b = −7 (минус тоже входит!)</span></Pop>}
+                    {found.a && <Pop><span className="text-lg font-black px-3 py-1 rounded-xl" style={{ color: A_COLOR, backgroundColor: hexToRgba(A_COLOR, 0.14) }}>a = 1</span></Pop>}
+                </div>
             )}
-            {phase >= 4 && <Fact color={C_COLOR}>c = 12</Fact>}
-            {phase === 4 && (
-                <QuickPick ask={<span>Чему равен <span style={{ color: B_COLOR }}>b</span>?</span>} options={['−7', '7', '12', '1']} correct="−7"
-                    hint={(o) => (o === '7' ? 'Минус перед 7 тоже часть b! 🙃' : 'b это число перед x 🙃')} onDone={() => setPhase(5)} />
+            {phase >= 4 && (
+                <TypedBig small onDone={() => setPhase((p) => Math.max(p, 5))} readMs={100}
+                    parts={[{ text: 'А где ' }, { text: 'a', color: A_COLOR }, { text: '? Перед x² ничего не написано 🤔' }]} />
             )}
-            {phase >= 5 && <Fact color={B_COLOR}>b = −7 (минус тоже входит!)</Fact>}
-            {phase >= 5 && (
-                <TypedBig small onDone={() => setPhase(6)} readMs={100}
-                    parts={[{ text: 'А где ' }, { text: 'a', color: A_COLOR }, { text: '? Перед x² ничего не написано' }]} />
-            )}
-            {phase === 6 && <EllipsisPause onDone={() => setPhase(7)} />}
-            {phase >= 7 && (
-                <TypedBig small onDone={() => onSettled?.()} readMs={400}
-                    parts={[{ text: 'Там спряталась ' }, { text: '1', color: A_COLOR }, { text: '! Значит ' }, { text: 'a = 1', color: A_COLOR }]} />
+            {phase === 5 && <EllipsisPause onDone={() => { setStep('done'); setPhase(6) }} />}
+            {phase >= 6 && (
+                <TypedBig onDone={() => onSettled?.()} readMs={400}
+                    parts={[{ text: 'Там спряталась ' }, { text: '1', color: A_COLOR }, { text: '! 🫣' }]} />
             )}
         </>
     )
