@@ -746,7 +746,7 @@ const DotCrossGame = ({ onDone }: { onDone: () => void }) => {
             )}
             <motion.p key={qi} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
                 className="text-center text-base md:text-lg font-bold text-[#F2F7FB]">{q.prompt}</motion.p>
-            <div className="grid w-full max-w-xs grid-cols-2 gap-3">
+            <div className="drop-in-options grid w-full max-w-xs grid-cols-2 gap-3">
                 {q.options.map((o) => (
                     <button key={`${qi}-${o.key}`} type="button" onClick={() => pick(o.key)}
                         className={cn('flex min-h-[64px] items-center justify-center rounded-xl border-2 text-lg font-black transition-colors',
@@ -1051,7 +1051,7 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
                                 </div>
                                 {isCurrent && !checked && (
                                     <>
-                                        <div className="grid grid-cols-1 gap-3">
+                                        <div className="drop-in-options grid grid-cols-1 gap-3">
                                             {opts.map((opt, oi) => {
                                                 const isWrongTriedOpt = wrongTried.includes(oi)
                                                 return (

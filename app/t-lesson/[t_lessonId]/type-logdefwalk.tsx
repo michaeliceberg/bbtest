@@ -796,7 +796,7 @@ export const TypeLogDefWalk = ({ onAnswer, onComplete }: Props) => {
                                 )}
                                 {answer === null && (
                                     <>
-                                        <div className="flex flex-wrap justify-center gap-3">
+                                        <div className="drop-in-options flex flex-wrap justify-center gap-3">
                                             {def.options.map((num) => {
                                                 const isWrong = quizWrongTried.includes(num)
                                                 return (

@@ -450,7 +450,7 @@ export const TypeLegFindWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
 
     // Общая часть: блок вариантов + подсказки/похвала.
     const renderOptions = (key: string, options: TrialOption[], isCurrent: boolean, isDone: boolean, cols: string) => (
-        <div className={cn('grid gap-2', cols)}>
+        <div className={cn('drop-in-options grid gap-2', cols)}>
             {options.map((opt) => {
                 const wrong = isCurrent && wrongTried.includes(opt.text)
                 const right = isDone && opt.correct

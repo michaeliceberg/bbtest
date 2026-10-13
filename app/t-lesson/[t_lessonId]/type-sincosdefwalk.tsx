@@ -430,24 +430,25 @@ const CHIP_BASE = 'w-11 h-11 rounded-lg border-2 flex items-center justify-cente
 // позициями (тот самый эффект "прилетает", запрошенный пользователем), а
 // не просто bounce на месте.
 const ValueChip = ({
-    value, layoutId, tone, onClick, disabled,
-}: { value: number; layoutId: string; tone: 'pool' | 'selected' | 'wrong'; onClick: () => void; disabled?: boolean }) => (
-    <motion.button
-        layoutId={layoutId}
-        layout
+    value, tone, onClick, disabled,
+}: { value: number; layoutId?: string; tone: 'pool' | 'selected' | 'wrong'; onClick: () => void; disabled?: boolean }) => (
+    <button
         type="button"
         onClick={onClick}
         disabled={disabled}
-        transition={{ type: 'spring', stiffness: 350, damping: 28 }}
         className={cn(
-            CHIP_BASE,
+            CHIP_BASE, 'transition-colors',
             tone === 'pool' && 'border-[#3A464E] bg-[#1B252B] text-[#F2F7FB] cursor-pointer hover:border-[#4A90D9]',
-            tone === 'selected' && 'border-[#4A90D9] bg-[#1B2C3D] text-[#4A90D9] cursor-pointer',
+            tone === 'selected' && 'border-[#4A90D9] bg-[#161F23] text-[#F2F7FB] cursor-pointer',
             tone === 'wrong' && 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B] cursor-pointer',
         )}
     >
-        {value}
-    </motion.button>
+        {tone === 'pool' ? value : (
+            // Число падает в пропуск сверху с отскоком (как x₁/x₂ в уроке Виета).
+            <motion.span key={value} initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 420, damping: 16 }} className="inline-block">{value}</motion.span>
+        )}
+    </button>
 )
 
 // Пустой пропуск, ждущий число — активный (сейчас сюда попадёт следующий
@@ -460,11 +461,10 @@ const EmptySlot = ({ active, hint }: { active: boolean; hint?: { text: string; c
             CHIP_BASE, 'border-dashed',
             hint && 'w-auto min-w-11 px-2 text-sm font-extrabold',
             !hint && (active ? 'border-[#4A90D9] text-[#4A90D9]' : 'border-[#3A464E] text-[#5A6A72]'),
-            active && 'animate-pulse',
         )}
         style={hint ? { borderColor: hint.color, color: hint.color, backgroundColor: hexToRgba(hint.color, 0.1) } : undefined}
     >
-        {hint ? hint.text : '?'}
+        <span className={cn(active && 'animate-slot-label')} style={{ ['--slot-c' as string]: hint ? hint.color : '#4A90D9' }}>{hint ? hint.text : '?'}</span>
     </div>
 )
 
@@ -535,11 +535,18 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
             showAnswerMeme(false)
             trialMissRef.current = true
             setWrongFlash(pickWrongTryPhrase())
+            // Как в уроке Виета: пропуски краснеют, через 1,5 с сбрасываются — собираем заново.
+            resettingRef.current = true
+            setTimeout(() => {
+                resettingRef.current = false
+                setNumerator(null); setDenominator(null); setActiveSlot('num')
+            }, 1500)
         }
     }
 
+    const resettingRef = useRef(false)
     const handlePoolClick = (value: number) => {
-        if (checked) return
+        if (checked || resettingRef.current) return
         setWrongFlash(null)
         if (activeSlot === 'num') {
             setNumerator(value)
@@ -553,7 +560,7 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
     }
 
     const handleClearSlot = (slot: 'num' | 'den') => {
-        if (checked) return
+        if (checked || resettingRef.current) return
         setWrongFlash(null)
         // Следующий клик по пулу всегда идёт СВЕРХУ ВНИЗ: если после снятия
         // оба места пусты — в числитель; если занято одно — в оставшееся пустое.
@@ -714,7 +721,7 @@ export const TypeSinCosDefWalk = ({ onAnswer, onComplete, isAdmin = false }: Pro
                     </div>
                 </div>
                 {showInteractive && (
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="drop-in-options flex items-center justify-center gap-2">
                         {poolValues
                             .filter((v) => v !== numerator && v !== denominator)
                             .map((v) => (

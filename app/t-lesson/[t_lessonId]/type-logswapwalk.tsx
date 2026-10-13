@@ -657,7 +657,7 @@ export const TypeLogSwapWalk = ({ onAnswer, onComplete }: Props) => {
                             </DiagramBlock>
                             {isCurrent && !checked && (
                                 <>
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="drop-in-options grid grid-cols-2 gap-3">
                                         {t.options.map((opt, oi) => {
                                             const isWrongTriedOpt = wrongTried.some((w) => sameOption(w, opt))
                                             return (

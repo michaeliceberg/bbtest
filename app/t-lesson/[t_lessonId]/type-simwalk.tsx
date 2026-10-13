@@ -558,7 +558,7 @@ const SourcesScene = ({ onSettled }: SceneProps) => {
             {t1 && !finished && (
                 <>
                     <p className="text-base md:text-lg text-[#F2F7FB] text-center">Почему выделенные углы равны?</p>
-                    <div className="w-full grid grid-cols-2 gap-2">
+                    <div className="drop-in-options w-full grid grid-cols-2 gap-2">
                         {(Object.keys(SRC_LABEL) as SrcKind[]).map((k) => (
                             <button key={k} type="button" onClick={() => choose(k)}
                                 className={cn('min-h-12 rounded-xl border-2 border-b-4 px-2 font-extrabold text-sm md:text-base active:border-b-2',

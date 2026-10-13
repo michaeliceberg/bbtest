@@ -978,7 +978,7 @@ const MiniQuiz = ({ questions, onDone }: { questions: MiniQ[]; onDone: () => voi
         <div className="w-full flex flex-col items-center gap-3">
             <div className="text-xs font-black text-[#9AA7B0]">Проверка {idx + 1}/{questions.length}</div>
             <div className="text-lg font-black text-center">{q.q}</div>
-            <div className="flex gap-2 w-full">
+            <div className="drop-in-options flex gap-2 w-full">
                 {q.options.map((o, i) => {
                     const isRight = right && i === q.correct, isWrong = wrong === i
                     const col = isRight ? GGEGE_PALETTE.green.button : isWrong ? '#DC605B' : '#3A464E'
@@ -2133,7 +2133,7 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
                                 </div>
                                 {isCurrent && !checked && (
                                     <>
-                                        <div className="grid grid-cols-1 gap-3">
+                                        <div className="drop-in-options grid grid-cols-1 gap-3">
                                             {opts.map((opt, oi) => {
                                                 const isWrongTriedOpt = wrongTried.includes(oi)
                                                 return (

@@ -208,7 +208,7 @@ const QuickPick = ({ ask, options, correct, hint, onDone }: {
     return (
         <div className="w-full flex flex-col items-center gap-2">
             <div className="text-xl md:text-2xl font-black text-center text-[#F2F7FB]"><Pop>{ask}</Pop></div>
-            <div className={cn('grid gap-2.5 w-full max-w-sm', opts.length === 3 ? 'grid-cols-3' : 'grid-cols-2')}>
+            <div className={cn('drop-in-options grid gap-2.5 w-full max-w-sm', opts.length === 3 ? 'grid-cols-3' : 'grid-cols-2')}>
                 {opts.map((o) => (
                     <button key={o} type="button" onClick={() => pick(o)} disabled={ok}
                         className={cn('min-h-[56px] rounded-xl border-2 text-xl font-black transition-colors px-2',
@@ -1034,7 +1034,7 @@ export const TypeVietaWalk = ({ onAnswer, onComplete }: Props) => {
                                     <p className="text-base md:text-lg text-[#F2F7FB] text-center px-16">{t.prompt}</p>
                                 </div>
                                 <Eq {...t.eq} colors size="text-2xl md:text-3xl" />
-                                <div className={cn('grid gap-3', t.options.length === 1 ? 'grid-cols-1' : 'grid-cols-2')}>
+                                <div className={cn('drop-in-options grid gap-3', t.options.length === 1 ? 'grid-cols-1' : 'grid-cols-2')}>
                                     {t.options.map((o) => {
                                         const isWrong = isCurrent && wrongTried.includes(o)
                                         const state = isDone && o === t.correct ? 'correct' : isWrong ? 'wrong' : 'idle'

@@ -51,7 +51,8 @@ export const FormulaAssemble = ({ prefix, layout, chips, correct, alsoCorrect, s
 
     useEffect(() => {
         if (!wrong) return
-        const t = setTimeout(() => setWrong(false), 900)
+        // Неверно: пропуски краснеют, через 1,5 с всё сбрасывается — собираем заново.
+        const t = setTimeout(() => { setWrong(false); setSlots([null, null]); setActive(0) }, 1500)
         return () => clearTimeout(t)
     }, [wrong])
 
@@ -79,7 +80,7 @@ export const FormulaAssemble = ({ prefix, layout, chips, correct, alsoCorrect, s
     }
 
     const handlePool = (id: string) => {
-        if (done) return
+        if (done || wrong) return
         const next = [...slots]
         next[active] = id
         setSlots(next)
@@ -91,7 +92,7 @@ export const FormulaAssemble = ({ prefix, layout, chips, correct, alsoCorrect, s
     }
 
     const handleClear = (idx: 0 | 1) => {
-        if (done) return
+        if (done || wrong) return
         const next = [...slots]
         next[idx] = null
         setSlots(next)
@@ -109,19 +110,20 @@ export const FormulaAssemble = ({ prefix, layout, chips, correct, alsoCorrect, s
         const id = slots[idx]
         if (id !== null) {
             return (
-                <motion.button
-                    layoutId={`fa-${id}`} layout type="button" onClick={() => handleClear(idx)}
-                    transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-                    className={cn(CHIP_BASE, 'cursor-pointer', wrong ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]' : 'border-[#4A90D9] bg-[#1B2C3D] text-[#4A90D9]')}
+                <button
+                    type="button" onClick={() => handleClear(idx)}
+                    className={cn(CHIP_BASE, 'cursor-pointer transition-colors', wrong ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]' : 'border-[#4A90D9] bg-[#161F23] text-[#F2F7FB]')}
                 >
-                    {label(id)}
-                </motion.button>
+                    {/* Значение падает в пропуск сверху с отскоком (как x₁/x₂ в уроке Виета). */}
+                    <motion.span key={id} initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
+                        transition={{ type: 'spring', stiffness: 420, damping: 16 }} className="inline-block">{label(id)}</motion.span>
+                </button>
             )
         }
         const isActive = active === idx
         return (
-            <div className={cn(CHIP_BASE, 'border-dashed', isActive ? 'border-[#4A90D9] text-[#4A90D9] animate-pulse' : 'border-[#3A464E] text-[#5A6A72]')}>
-                {slotHints?.[idx] ?? '?'}
+            <div className={cn(CHIP_BASE, 'border-dashed', isActive ? 'border-[#4A90D9] text-[#4A90D9]' : 'border-[#3A464E] text-[#5A6A72]')}>
+                <span className={cn(isActive && 'animate-slot-label')} style={{ ['--slot-c' as string]: '#4A90D9' }}>{slotHints?.[idx] ?? '?'}</span>
             </div>
         )
     }
@@ -151,16 +153,15 @@ export const FormulaAssemble = ({ prefix, layout, chips, correct, alsoCorrect, s
                 {suffix && <span>{suffix}</span>}
             </div>
             {!done && (
-                <div className="flex items-center justify-center gap-2 flex-wrap">
+                <div className="drop-in-options flex items-center justify-center gap-2 flex-wrap">
                     {poolChips.map((c) => (
-                        <motion.button
+                        <button
                             key={c.id}
-                            layoutId={`fa-${c.id}`} layout type="button" onClick={() => handlePool(c.id)}
-                            transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+                            type="button" onClick={() => handlePool(c.id)}
                             className={cn(CHIP_BASE, 'border-[#3A464E] bg-[#1B252B] text-[#F2F7FB] cursor-pointer hover:border-[#4A90D9]')}
                         >
                             {c.label}
-                        </motion.button>
+                        </button>
                     ))}
                 </div>
             )}

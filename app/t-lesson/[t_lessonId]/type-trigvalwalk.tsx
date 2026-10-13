@@ -1461,7 +1461,7 @@ export const TypeTrigValWalk = ({ onAnswer, onComplete, mode }: Props) => {
                                 <DiagramBlock>
                                     <TrialPrompt t={t} />
                                 </DiagramBlock>
-                                <div className="grid w-full max-w-sm mx-auto gap-2" style={{ gridTemplateColumns: `repeat(${t.options.length}, minmax(0, 1fr))` }}>
+                                <div className="drop-in-options grid w-full max-w-sm mx-auto gap-2" style={{ gridTemplateColumns: `repeat(${t.options.length}, minmax(0, 1fr))` }}>
                                     {t.options.map((o) => {
                                         const k = optKey(o)
                                         const isWrong = isCurrent && wrongTried.includes(k)

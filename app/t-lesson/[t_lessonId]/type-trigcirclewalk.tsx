@@ -160,7 +160,7 @@ const ActionButton = ({ children, onClick, color = HOME_COLOR, pulse = true, dis
 
 // Варианты ответа внутри мини-игр сцены (ошибка — красная вспышка).
 const OptionGrid = ({ options, wrong, onPick, render }: { options: string[]; wrong: string | null; onPick: (o: string) => void; render?: (o: string) => React.ReactNode }) => (
-    <div className={cn('grid gap-3 w-full max-w-sm', options.length === 3 ? 'grid-cols-3' : 'grid-cols-2')}>
+    <div className={cn('drop-in-options grid gap-3 w-full max-w-sm', options.length === 3 ? 'grid-cols-3' : 'grid-cols-2')}>
         {options.map((o) => (
             <button key={o} type="button" onClick={() => onPick(o)}
                 className={cn('min-h-[60px] rounded-xl border-2 text-xl font-black transition-colors px-2',
@@ -1540,7 +1540,7 @@ export const TypeTrigCircleWalk = ({ onAnswer, onComplete }: Props) => {
                             glowValue={isDone ? { axis: t.circle.axis, v: t.circle.v, delay: 0.7, label: true } : null} />
                     </DiagramBlock>
                 )}
-                <div className={cn('grid gap-3', t.options.length === 1 ? 'grid-cols-1' : t.options.length === 3 ? 'grid-cols-3' : 'grid-cols-2')}>
+                <div className={cn('drop-in-options grid gap-3', t.options.length === 1 ? 'grid-cols-1' : t.options.length === 3 ? 'grid-cols-3' : 'grid-cols-2')}>
                     {t.options.map((o) => {
                         const isWrong = isCurrent && wrongTried.includes(o)
                         const state = isDone && o === t.correct ? 'correct' : isWrong ? 'wrong' : 'idle'

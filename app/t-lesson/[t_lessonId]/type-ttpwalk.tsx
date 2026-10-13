@@ -1307,7 +1307,7 @@ const ConceptQuizPhase = ({ onDone, items = CONCEPT_QUIZ }: { onDone: (hadMistak
                                 {qq.renderFigure && <div className="w-full max-w-[320px] mx-auto">{qq.renderFigure()}</div>}
                                 {isCurrent && !checked && (
                                     <>
-                                        <div className="grid grid-cols-1 gap-3">
+                                        <div className="drop-in-options grid grid-cols-1 gap-3">
                                             {opts.map((opt, oi) => {
                                                 const isWrongTriedOpt = wrongTried.includes(oi)
                                                 return (

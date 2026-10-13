@@ -1104,7 +1104,7 @@ const TrainScene = ({ index, onSettled, onMistake, onStep }: {
                 })}
             </RedCircle>
             {step === 1 && (
-                <div className="grid grid-cols-2 gap-3 w-full max-w-sm mx-auto">
+                <div className="drop-in-options grid grid-cols-2 gap-3 w-full max-w-sm mx-auto">
                     {[true, false].map((isPlus) => {
                         const w = wrongSign.includes(isPlus)
                         return (
@@ -1118,7 +1118,7 @@ const TrainScene = ({ index, onSettled, onMistake, onStep }: {
                 </div>
             )}
             {step === 2 && (
-                <div className="grid grid-cols-2 gap-3 w-full max-w-sm mx-auto">
+                <div className="drop-in-options grid grid-cols-2 gap-3 w-full max-w-sm mx-auto">
                     {ANS_OPTIONS.map((a) => {
                         const w = wrongAns.includes(ansKey(a))
                         return (
@@ -1264,7 +1264,7 @@ export const TypeRedFormWalk = ({ onAnswer, onComplete, isAdmin = false }: Props
                         <p className="text-base md:text-lg text-[#F2F7FB] text-center px-16">Во что превратится функция?</p>
                     </div>
                     <TrialFormula t={t} result={isDone ? answerOf(t) : null} />
-                    <div className="grid grid-cols-2 gap-3 w-full max-w-sm mx-auto">
+                    <div className="drop-in-options grid grid-cols-2 gap-3 w-full max-w-sm mx-auto">
                         {ALL_FN.map((fn) => {
                             const isWrong = isCurrent && wrongTried.includes(fn)
                             const isRight = isDone && fn === answerOf(t)

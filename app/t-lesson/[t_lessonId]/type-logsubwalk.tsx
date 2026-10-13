@@ -837,7 +837,7 @@ export const TypeLogSubWalk = ({ onAnswer, onComplete }: Props) => {
                             </DiagramBlock>
                             {isCurrent && !checked && (
                                 <>
-                                    <div className="flex flex-wrap justify-center gap-3">
+                                    <div className="drop-in-options flex flex-wrap justify-center gap-3">
                                         {t.options.map((num) => {
                                             const isWrongTriedOpt = wrongTried.includes(num)
                                             return (

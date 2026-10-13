@@ -775,7 +775,7 @@ const LeftScene = ({ onSettled }: SceneProps) => {
                     )} />
             </DiagramBlock>
             {phase === 1 && (
-                <div className="grid grid-cols-3 gap-3 w-full max-w-sm mx-auto">
+                <div className="drop-in-options grid grid-cols-3 gap-3 w-full max-w-sm mx-auto">
                     {opts.map((o) => (
                         <button key={o} type="button" onClick={() => pick(o)}
                             className={cn('min-h-[60px] rounded-xl border-2 text-2xl font-black transition-colors',
@@ -1302,7 +1302,7 @@ export const TypeTrigAnsWalk = ({ onAnswer, onComplete }: Props) => {
                                     <div className="text-[#F2F7FB] text-center px-16">{t.prompt}</div>
                                 </div>
                                 {t.askWrite && <p className="text-sm text-[#9AA7B0] text-center -mt-2">Запиши ответ:</p>}
-                                <div className="grid grid-cols-2 gap-3 w-full">
+                                <div className="drop-in-options grid grid-cols-2 gap-3 w-full">
                                     {t.options.map((o) => {
                                         const isWrong = isCurrent && wrongTried.includes(o.key)
                                         const state = isDone && o.key === t.correct ? 'correct' : isWrong ? 'wrong' : 'idle'

@@ -1386,7 +1386,7 @@ const PoleGameScene = ({ onSettled }: { onSettled?: () => void }) => {
                             {nTop && <text x={MAG_CX} y={MAG_TOP + MAG_H + 26} textAnchor="middle" fontSize={11} fill="#9AA7B0">(магнит перевернули)</text>}
                         </svg>
                         {!done ? (
-                            <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
+                            <div className="drop-in-options grid grid-cols-2 gap-3 w-full max-w-xs">
                                 {chips.map((p) => (
                                     <button
                                         key={p}
@@ -1978,7 +1978,7 @@ const ConceptQuizPhase = ({ onDone }: { onDone: (hadMistake: boolean) => void })
                                 </div>
                                 {isCurrent && !checked && (
                                     <>
-                                        <div className="grid grid-cols-1 gap-3">
+                                        <div className="drop-in-options grid grid-cols-1 gap-3">
                                             {opts.map((opt, oi) => {
                                                 const isWrongTriedOpt = wrongTried.includes(oi)
                                                 return (
