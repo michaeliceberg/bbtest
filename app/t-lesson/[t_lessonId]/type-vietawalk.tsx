@@ -246,14 +246,14 @@ const RoundBadge = ({ n, total }: { n: number; total: number }) => (
     </div>
 )
 
-const RoundsBody = ({ rounds, onDone }: { rounds: Round[]; onDone: () => void }) => {
+const RoundsBody = ({ rounds, onDone, doneText }: { rounds: Round[]; onDone: () => void; doneText?: React.ReactNode }) => {
     const [r, setR] = useState(0)
     const [doneSteps, setDoneSteps] = useState(0)
     const [praise, setPraise] = useState<string | null>(null)
     if (r >= rounds.length) {
         return (
             <div className="w-full flex flex-col items-center gap-2">
-                <Pop><span className="text-2xl font-black" style={{ color: OK_COLOR }}>Все раунды пройдены! 🔥</span></Pop>
+                <Pop><span className="text-2xl font-black" style={{ color: OK_COLOR }}>{doneText ?? 'Все раунды пройдены! 🔥'}</span></Pop>
                 <LocalAnswerConfetti />
             </div>
         )
@@ -512,7 +512,7 @@ const StickerFlight = ({ rootRef, kind, from, to, startValue, value, color, onDo
 }
 
 // asm — правая часть собирается снаружи (StickerFlight): пока prod/sum false, число невидимо (место держим).
-const PairBuilder = ({ c, s, nums, onSolved, focus, asm, between }: { c: number; s: number; nums: number[]; onSolved: () => void; focus?: 'prod' | 'sum' | null; asm?: { prod: boolean; sum: boolean; nums: boolean }; between?: React.ReactNode }) => {
+const PairBuilder = ({ c, s, nums, onSolved, focus, asm, between, letters }: { c: number; s: number; nums: number[]; onSolved: () => void; focus?: 'prod' | 'sum' | null; asm?: { prod: boolean; sum: boolean; nums: boolean }; between?: React.ReactNode; letters?: { prod: boolean; sum: boolean } }) => {
     const [vals, setVals] = useState<(number | null)[]>([null, null])
     const [active, setActive] = useState(0)
     const [result, setResult] = useState<'ok' | 'bad' | null>(null)
@@ -561,7 +561,9 @@ const PairBuilder = ({ c, s, nums, onSolved, focus, asm, between }: { c: number;
                 <PairSlot label="x₂" val={vals[1]} active={active === 1 && !result} state={rowState(ok)} onClick={() => !result && setActive(1)} />
             </span>
             <span className="transition-all duration-500" style={focus === kind ? DIM_STYLE : undefined}>=</span>
-            <FocusBox on={focus === kind} color={color}><span data-marker={`slot-${kind}`} className={asm && !asm[kind] ? 'invisible' : undefined} style={{ color }}>{fmt(right)}</span></FocusBox>
+            <FocusBox on={focus === kind} color={color}>{letters?.[kind]
+                ? <span style={{ color }}>{kind === 'prod' ? 'c' : '−b'}</span>
+                : <span data-marker={`slot-${kind}`} className={asm && !asm[kind] ? 'invisible' : undefined} style={{ color }}>{fmt(right)}</span>}</FocusBox>
             <span className="w-7 transition-all duration-500" style={focus === kind ? DIM_STYLE : undefined}>{mark(ok)}</span>
         </motion.div>
     )
@@ -594,19 +596,27 @@ const PairBuilder = ({ c, s, nums, onSolved, focus, asm, between }: { c: number;
 // 1–2. Подбери 2 числа: произведение и сумма.
 // explain (2-е уравнение): после «КОРНИ» по очереди подсвечиваем (остальное бледное, как в уроке 488)
 // 12 справа и +12 в уравнении, потом 7 и −7 — «знак НАОБОРОТ».
-const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain, assemble }: SceneProps & { intro: string; x1: number; x2: number; nums: number[]; explain?: boolean; assemble?: boolean }) => {
+const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain, assemble, memo }: SceneProps & { intro: string; x1: number; x2: number; nums: number[]; explain?: boolean; assemble?: boolean; memo?: boolean }) => {
     const [phase, setPhase] = useState(0)
     const b = -(x1 + x2), c = x1 * x2
-    const focus: 'prod' | 'sum' | null = phase >= 5 && phase <= 6 ? 'prod' : phase === 7 ? 'sum' : null
+    // memo (1-е уравнение): «Запомни систему:» справа сразу c и −b, пауза, подсветка −b, «Заметь: МИНУС b», кнопка, потом сборка.
+    // 0 — ждём, 1 — подсветка и текст, 2 — кнопка, 3 — дальше.
+    const [memoStep, setMemoStep] = useState(memo ? 0 : 3)
+    useEffect(() => {
+        if (!memo || phase < 3 || memoStep !== 0) return
+        const t = setTimeout(() => setMemoStep(1), 1500)
+        return () => clearTimeout(t)
+    }, [memo, phase, memoStep])
+    const focus: 'prod' | 'sum' | null = memoStep === 1 || memoStep === 2 ? 'sum' : phase >= 5 && phase <= 6 ? 'prod' : phase === 7 ? 'sum' : null
     const eqFocus = focus === 'prod' ? 'c' : focus === 'sum' ? 'b' : null
     const rootRef = useRef<HTMLDivElement>(null)
     // Сборка правой части: 0 — ждём, 1 — летит c, 2 — летит −b, 3 — готово, 4 — числа-варианты.
     const [asmStep, setAsmStep] = useState(assemble ? 0 : 4)
     useEffect(() => {
-        if (!assemble || phase < 3 || asmStep !== 0) return
+        if (!assemble || phase < 3 || asmStep !== 0 || memoStep < 3) return
         const t = setTimeout(() => setAsmStep(1), 1400)
         return () => clearTimeout(t)
-    }, [assemble, phase, asmStep])
+    }, [assemble, phase, asmStep, memoStep])
     const asm = assemble ? { prod: asmStep >= 2, sum: asmStep >= 3, nums: asmStep >= 4 } : undefined
     return (
         <div ref={rootRef} className="relative w-full flex flex-col items-center gap-4">
@@ -616,9 +626,23 @@ const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain, assemble }: S
                     <Eq a={1} b={b} c={c} colors focus={eqFocus} />
                 </DiagramBlock>
             )}
-            {phase >= 2 && <TypedBig small parts={[{ text: assemble ? 'Составим систему:' : 'Подбери 2 числа 👇' }]} onDone={() => setPhase((p) => Math.max(p, 3))} readMs={150} />}
+            {phase >= 2 && <TypedBig small parts={[{ text: memo ? 'Запомни систему:' : assemble ? 'Составим систему:' : 'Подбери 2 числа 👇' }]} onDone={() => setPhase((p) => Math.max(p, 3))} readMs={150} />}
             {phase >= 3 && <PairBuilder c={c} s={-b} nums={nums} focus={focus} asm={asm} onSolved={() => setPhase(4)}
-                between={assemble && asmStep >= 3 ? <TypedBig small parts={[{ text: 'Подбери 2 числа 👆' }]} onDone={() => setAsmStep((x) => Math.max(x, 4))} readMs={150} /> : undefined} />}
+                letters={memo ? { prod: asmStep < 1, sum: asmStep < 2 } : undefined}
+                between={assemble && asmStep >= 3 ? <TypedBig small parts={[{ text: 'Подбери 2 числа 👆' }]} onDone={() => setAsmStep((x) => Math.max(x, 4))} readMs={150} />
+                    : memo && (memoStep === 1 || memoStep === 2) ? (
+                        <div className="w-full flex flex-col items-center gap-3">
+                            <TypedBig small onDone={() => setMemoStep((x) => Math.max(x, 2))} readMs={500}
+                                parts={[{ text: 'Заметь: ' }, { text: 'МИНУС', color: REMEMBER_COLOR }, { text: ' ' }, { text: 'b', color: B_COLOR }]} />
+                            {memoStep === 2 && (
+                                <motion.div className="w-full flex" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                                    <button type="button" onClick={() => setMemoStep(3)} className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>
+                                        Ага, вижу, МИНУС b
+                                    </button>
+                                </motion.div>
+                            )}
+                        </div>
+                    ) : undefined} />}
             {asmStep === 1 && (
                 <StickerFlight rootRef={rootRef} kind="prod" from="eq-c" to="slot-prod" startValue={c} value={c} color={C_COLOR}
                     onDone={() => setTimeout(() => setAsmStep(2), 300)} />
@@ -658,7 +682,7 @@ const PauseThen = ({ ms, onDone }: { ms: number; onDone: () => void }) => {
     }, [])
     return null
 }
-const Guess56Scene = (p: SceneProps) => <PairGuessScene {...p} intro="Вот уравнение:" x1={2} x2={3} nums={[1, 2, 3, 4, 5, 6]} assemble />
+const Guess56Scene = (p: SceneProps) => <PairGuessScene {...p} intro="Вот уравнение:" x1={2} x2={3} nums={[1, 2, 3, 4, 5, 6]} assemble memo />
 const Guess712Scene = (p: SceneProps) => <PairGuessScene {...p} intro="А вот ещё одно:" x1={3} x2={4} nums={[1, 2, 3, 4, 6, 12]} explain assemble />
 
 // «ЗАКРЕП»: по уравнению (a = 1) выбираем, чему равны x₁ · x₂ и x₁ + x₂ (c и −b). Ошибка не в зачёт.
@@ -879,14 +903,13 @@ const CoefScene = ({ onSettled }: SceneProps) => {
     const tap = (tok: 'x2' | 'b' | 'c') => {
         if (step !== 'c' && step !== 'b') return
         if (tok === step) {
-            showAnswerMeme(true)
             setHint(null)
             if (step === 'c') setStep('b')
             else { setStep('a'); setTimeout(() => setMinusAsk(true), 1500) }
             return
         }
         if (tok === 'c' && step === 'b') return
-        playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false)
+        playSound(WRONG_ANSWER_SOUND)
         setWrong(tok)
         setHint(step === 'c' ? 'c это число без x 🙃' : 'b это число перед x, вместе со знаком 🙃')
     }
@@ -975,7 +998,8 @@ const CoefDrillScene = ({ onSettled }: SceneProps) => {
         <>
             <TypedBig small onDone={() => setPhase(1)} readMs={300}
                 parts={[{ text: 'Теперь сам: чему равны ' }, { text: 'a', color: A_COLOR }, { text: ', ' }, { text: 'b', color: B_COLOR }, { text: ', ' }, { text: 'c', color: C_COLOR }, { text: '?' }]} />
-            {phase >= 1 && <RoundsBody rounds={COEF_DRILL} onDone={() => onSettled?.()} />}
+            {phase >= 1 && <RoundsBody rounds={COEF_DRILL} onDone={() => onSettled?.()}
+                doneText={<><span style={{ color: A_COLOR }}>a</span>, <span style={{ color: B_COLOR }}>b</span>, <span style={{ color: C_COLOR }}>c</span> найдены! 🔥</>} />}
         </>
     )
 }
