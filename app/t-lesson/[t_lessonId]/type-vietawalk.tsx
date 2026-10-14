@@ -1393,24 +1393,26 @@ const SummaryScene = ({ spec, video, onSettled }: SceneProps & { spec: CheckSpec
     const next = (n: number) => () => setPhase((p) => Math.max(p, n))
     return (
         <>
-            <TypedBig onDone={next(1)} readMs={500} parts={[{ text: 'Итого:', color: REMEMBER_COLOR }]} />
+            <TypedBig onDone={next(1)} readMs={2000} parts={[{ text: 'Итого:', color: REMEMBER_COLOR }]} />
             {phase >= 1 && (
                 <DiagramBlock onSettled={next(2)}>
                     <Eq a={spec.a} b={spec.b} c={spec.c} colors />
                 </DiagramBlock>
             )}
             {phase >= 2 && <PauseThen ms={1000} onDone={next(3)} />}
+            {/* x₁ слева, через 1 с x₂ справа (место под x₂ зарезервировано, чтобы x₁ не сдвигался). */}
             {phase >= 3 && (
-                <BigLine color={ROOT_COLOR}>
-                    <span className="inline-flex items-center gap-10">
-                        <span>x₁ = {rootStr(spec.root)}</span>
-                        <span className="inline-flex items-center gap-1">x₂ = <NumText s={spec.x2} /></span>
+                <div className="w-full grid grid-cols-2 gap-6 items-center text-4xl md:text-5xl font-black" style={{ color: ROOT_COLOR }}>
+                    <span className="justify-self-end"><Pop>x₁ = {rootStr(spec.root)}</Pop></span>
+                    <span className="justify-self-start">
+                        {phase >= 4 && <Pop><span className="inline-flex items-center gap-1">x₂ = <NumText s={spec.x2} /></span></Pop>}
                     </span>
-                </BigLine>
+                </div>
             )}
             {phase >= 3 && <PauseThen ms={1000} onDone={next(4)} />}
-            {phase >= 4 && <TypedBig onDone={next(5)} readMs={300} parts={[{ text: 'и ВСЁ.', color: REMEMBER_COLOR }]} />}
-            {phase >= 5 && video && (
+            {phase >= 4 && <PauseThen ms={1000} onDone={next(5)} />}
+            {phase >= 5 && <TypedBig onDone={next(6)} readMs={300} parts={[{ text: 'и ВСЁ.', color: REMEMBER_COLOR }]} />}
+            {phase >= 6 && video && (
                 <div className="w-full flex justify-center">
                     <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 12 }}
                         className="w-40 md:w-48 aspect-square overflow-hidden rounded-xl">
@@ -1418,7 +1420,7 @@ const SummaryScene = ({ spec, video, onSettled }: SceneProps & { spec: CheckSpec
                     </motion.div>
                 </div>
             )}
-            {phase >= 5 && <PauseThen ms={1500} onDone={() => onSettled?.()} />}
+            {phase >= 6 && <PauseThen ms={1500} onDone={() => onSettled?.()} />}
         </>
     )
 }
