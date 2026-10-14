@@ -9,7 +9,7 @@
 //   5. «посложнее»: x² + x − 6 = 0 — корни бывают отрицательными;
 //   6. до этого было a = 1, на самом деле произведение = c/a, сумма = −b/a;
 //   7. 2x² + 3x − 5 = 0: угадываем x = 1, второй корень = c/a = −5/2;
-//   8. то же с x = −1 (3x² + 10x + 7 = 0), гонка с дискриминантом на 17x² − 317x + 300 = 0, раунды на угадывание.
+//   8. при a ≠ 1 тупо проверяем x₁ = 1 (2x² + 3x − 5 = 0, подстановка), потом 3 уравнения с x₁ = 1 сам.
 // Потом «Проверим себя». Ошибки в мини-играх не засчитываются, в «Проверим себя» — да.
 
 'use client'
@@ -1286,44 +1286,23 @@ const CheckOneScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-// Сцена 3: x = 1 не подходит → пробуем x = −1.
-const CheckMinusScene = ({ onSettled }: SceneProps) => {
+// Тренировка после «тупо проверяем x₁ = 1»: 3 уравнения, где x₁ = 1 подходит, — выбрать корни.
+const rootsHint = (c: number, a: number) => (o: string) => {
+    if (!o.startsWith('1 ')) return 'Мы же проверяем x₁ = 1. Подставь: сложи a + b + c 🙃'
+    return `x₂ = c/a = ${c < 0 ? '−' : ''}${Math.abs(c)}/${a}: сверху c со знаком, снизу a 🙃`
+}
+const X1_ROUNDS: Round[] = [
+    { eq: { a: 3, b: -5, c: 2 }, steps: [{ ask: 'Найди корни', options: ['1 и 2/3', '1 и −2/3', '1 и 3/2', '−1 и 2/3'], correct: '1 и 2/3', hint: rootsHint(2, 3), after: <span style={{ color: ROOT_COLOR }}><NumText s="x₁ = 1, x₂ = 2/3" /> ✓</span> }] },
+    { eq: { a: 5, b: 2, c: -7 }, steps: [{ ask: 'Найди корни', options: ['1 и −7/5', '1 и 7/5', '1 и −5/7', '−1 и 7/5'], correct: '1 и −7/5', hint: rootsHint(-7, 5), after: <span style={{ color: ROOT_COLOR }}><NumText s="x₁ = 1, x₂ = −7/5" /> ✓</span> }] },
+    { eq: { a: 4, b: -9, c: 5 }, steps: [{ ask: 'Найди корни', options: ['1 и 5/4', '1 и −5/4', '1 и 4/5', '−1 и −5/4'], correct: '1 и 5/4', hint: rootsHint(5, 4), after: <span style={{ color: ROOT_COLOR }}><NumText s="x₁ = 1, x₂ = 5/4" /> ✓</span> }] },
+]
+const X1PracticeScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
     return (
         <>
-            <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 1))}>
-                <Eq a={3} b={10} c={7} colors />
-            </DiagramBlock>
-            {phase >= 1 && (
-                <TypedBig small onDone={() => setPhase(2)} readMs={200}
-                    parts={[{ text: 'Пробуем ' }, { text: 'x = 1', color: ROOT_COLOR }, { text: ': ' }, { text: 'a', color: A_COLOR }, { text: ' + ' }, { text: 'b', color: B_COLOR }, { text: ' + ' }, { text: 'c', color: C_COLOR }]} />
-            )}
-            {phase >= 2 && (
-                <QuickPick ask={<span>3 + 10 + 7 = ?</span>} options={['20', '0', '14', '−4']} correct="20"
-                    hint={() => 'Просто сложи 🙃'} onDone={() => setPhase(3)} />
-            )}
-            {phase >= 3 && <Fact color={BAD_COLOR}><Pop>Получилось 20, не подошёл ❌</Pop></Fact>}
-            {phase >= 3 && <PauseThen ms={900} onDone={() => setPhase(4)} />}
-            {phase >= 4 && (
-                <TypedBig small onDone={() => setPhase(5)} readMs={200}
-                    parts={[{ text: 'Пробуем ' }, { text: 'x = −1', color: ROOT_COLOR }, { text: ': ' }, { text: 'a', color: A_COLOR }, { text: ' − ' }, { text: 'b', color: B_COLOR }, { text: ' + ' }, { text: 'c', color: C_COLOR }]} />
-            )}
-            {phase >= 5 && (
-                <QuickPick ask={<span>3 − 10 + 7 = ?</span>} options={['0', '20', '−14', '6']} correct="0"
-                    hint={() => 'По порядку: 3 − 10 = −7, а −7 + 7 = ? 🙃'} onDone={() => setPhase(6)} />
-            )}
-            {phase >= 6 && <Fact color={OK_COLOR}><Pop>Получилось 0, подошёл ✅ x₁ = −1</Pop></Fact>}
-            {phase >= 6 && <PauseThen ms={900} onDone={() => setPhase(7)} />}
-            {phase >= 7 && (
-                <QuickPick ask={<span className="inline-flex items-center gap-1.5">x₂ = −<Frac num={<Cf k={C_COLOR}>c</Cf>} den={<Cf k={A_COLOR}>a</Cf>} /> = ?</span>}
-                    options={['−7/3', '7/3', '−3/7', '−7']} correct="−7/3"
-                    hint={(o) => (o === '7/3' ? 'Тут формула с минусом: −c/a 🙃' : o === '−3/7' ? 'Сверху c, снизу a 🙃' : 'Не забудь поделить на a = 3 🙃')}
-                    onDone={() => setPhase(8)} />
-            )}
-            {phase >= 8 && (
-                <TypedBig onDone={() => onSettled?.()} readMs={400}
-                    parts={[{ text: 'Корни: ' }, { text: '−1', color: ROOT_COLOR }, { text: ' и ' }, { text: '−7/3', color: ROOT_COLOR }, { text: ' 🎉' }]} />
-            )}
+            <TypedBig small onDone={() => setPhase(1)} readMs={1000}
+                parts={[{ text: 'Теперь сам! Тут ' }, { text: 'x₁ = 1', color: ROOT_COLOR }, { text: ' подходит. Найди корни' }]} />
+            {phase >= 1 && <RoundsBody rounds={X1_ROUNDS} onDone={() => onSettled?.()} doneText="Угадывать корни — изи! 🔥" />}
         </>
     )
 }
@@ -1332,7 +1311,7 @@ const ReadyScene = ({ onSettled }: SceneProps) => (
     <TypedBig parts={[{ text: 'Приготовься, пора ' }, { text: 'блистать знаниями!', color: REMEMBER_COLOR }]} onDone={() => onSettled?.()} readMs={300} />
 )
 
-const SCENES = [CoefScene, CoefDrillScene, Guess56Scene, Guess712Scene, ZakrepScene, TheoremScene, CheckOneScene, CheckMinusScene, ReadyScene]
+const SCENES = [CoefScene, CoefDrillScene, Guess56Scene, Guess712Scene, ZakrepScene, TheoremScene, CheckOneScene, X1PracticeScene, ReadyScene]
 const FIXED_NEXT_LABELS = new Map<unknown, string>([
     [ZakrepScene, 'Закреплено 📌'],
     [CoefScene, 'Невидимка, понял 👀'],
@@ -1340,7 +1319,7 @@ const FIXED_NEXT_LABELS = new Map<unknown, string>([
     [ReadyScene, 'ЛЕТС ГООООУ'],
 ])
 // Подписи для админской карты этапов (по порядку SCENES).
-const SCENE_MAP_LABELS = ['Коэффициенты a, b, c', 'Сам: a, b, c', 'x² − 5x + 6', 'x² − 7x + 12', 'ЗАКРЕП (7 уравнений)', 'Теорема Виета (a ≠ 1)', 'Тупо проверяем x₁ = 1', 'Пример: x = −1', 'Приготовься']
+const SCENE_MAP_LABELS = ['Коэффициенты a, b, c', 'Сам: a, b, c', 'x² − 5x + 6', 'x² − 7x + 12', 'ЗАКРЕП (7 уравнений)', 'Теорема Виета (a ≠ 1)', 'Тупо проверяем x₁ = 1', 'Сам: 3 уравнения с x₁ = 1', 'Приготовься']
 
 // ===== Квиз =====
 type Trial = { prompt: React.ReactNode; eq: EqSpec; options: string[]; correct: string; hint: string }
@@ -1350,7 +1329,7 @@ const makeTrials = (): Trial[] => [
     { prompt: 'Подбери корни', eq: { a: 1, b: 3, c: -10 }, options: shuffle(['2 и −5', '−2 и 5', '1 и −10', '2 и 5']), correct: '2 и −5', hint: '2 · (−5) = −10 = c, 2 + (−5) = −3 = −b.' },
     { prompt: 'Чему равно x₁ · x₂?', eq: { a: 2, b: -7, c: 3 }, options: shuffle(['3/2', '3', '−3/2', '2/3']), correct: '3/2', hint: 'x₁ · x₂ = c/a = 3/2.' },
     { prompt: 'Угадай корень и найди второй', eq: { a: 4, b: -1, c: -3 }, options: shuffle(['1 и −3/4', '1 и 3/4', '−1 и 3/4', '1 и −4/3']), correct: '1 и −3/4', hint: '4 − 1 − 3 = 0, значит x₁ = 1, а x₂ = c/a = −3/4.' },
-    { prompt: 'Угадай корень и найди второй', eq: { a: 2, b: 7, c: 5 }, options: shuffle(['−1 и −5/2', '1 и −5/2', '−1 и 5/2', '−1 и −2/5']), correct: '−1 и −5/2', hint: '2 − 7 + 5 = 0, значит x₁ = −1, а x₂ = (5/2) : (−1) = −5/2.' },
+    { prompt: 'Угадай корень и найди второй', eq: { a: 3, b: 4, c: -7 }, options: shuffle(['1 и −7/3', '1 и 7/3', '−1 и 7/3', '1 и −3/7']), correct: '1 и −7/3', hint: '3 + 4 − 7 = 0, значит x₁ = 1, а x₂ = c/a = −7/3.' },
     { prompt: 'Бонус! Кто теперь шарит в теореме Виета? 😎', eq: { a: 1, b: -5, c: 6 }, options: ['Я 😎'], correct: 'Я 😎', hint: 'Без вариантов — ты! Произведение, сумма, угадывание корня — всё твоё 🔥' },
 ]
 
