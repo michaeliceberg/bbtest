@@ -822,13 +822,16 @@ const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolea
     const opts = stage === 1 ? r.nums : r.roots
     return (
         <div className="w-full flex flex-col items-center gap-4">
-            <Eq a={1} b={r.b} c={r.c} colors={colors} />
-            {/* Плашка этапа ровно по центру, «Сложность» справа. */}
+            {/* Уравнение и плашка этапа — столбиком по центру, «Сложность» справа от всего блока
+                (не отдельной строкой — иначе растягивает страницу по вертикали). */}
             <div className="w-full grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
                 <span />
+                <div className="flex flex-col items-center gap-3">
+                <Eq a={1} b={r.b} c={r.c} colors={colors} />
                 <div className="px-3 py-1 rounded-full text-sm font-black overflow-hidden" style={{ backgroundColor: hexToRgba(B_COLOR, 0.15), color: B_COLOR }}>
                     <motion.span key={stage} className="inline-block" initial={{ scale: 0.3, y: -14, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
                         transition={{ type: 'spring', stiffness: 420, damping: 9 }}>{STAGE_TEXT[stage]}</motion.span>
+                </div>
                 </div>
                 <span className="justify-self-end"><DifficultyBadge level={rootsLevel(r)} variant="bars" /></span>
             </div>
