@@ -1163,17 +1163,22 @@ const TheoremScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-// После теоремы: при a ≠ 1 тупо проверяем x₁ = 1; подошёл — x₂ = c/a, и всё.
-// Подстановка: уравнение переписывается, каждый x по очереди превращается в 1.
-// Slot — снаружи SubstEq: объявленный внутри, он пересоздавался при каждом рендере родителя и анимация повторялась.
-const SubstSlot = ({ on, sq }: { on: boolean; sq?: boolean }) => (
+// ===== a ≠ 1: тупо проверяем x = 1 (а если не подошёл — x = −1) =====
+type CheckSpec = { a: number; b: number; c: number; root: 1 | -1; x2: string }
+const CHECK_ONE: CheckSpec = { a: 2, b: 3, c: -5, root: 1, x2: '−5/2' }
+const CHECK_MINUS: CheckSpec = { a: 3, b: 8, c: 5, root: -1, x2: '−5/3' }
+const rootStr = (r: 1 | -1) => (r === 1 ? '1' : '−1')
+
+// x в уравнении по очереди меняется на ·1 или ·(−1). Слот — снаружи SubstEq: объявленный внутри,
+// он пересоздавался при каждом рендере родителя и анимация повторялась.
+const SubstSlot = ({ on, sq, root }: { on: boolean; sq?: boolean; root: 1 | -1 }) => (
     <span className="relative inline-flex items-center">
         {on ? (
             <>
                 <span className="mx-0.5 text-[#9AA7B0]">·</span>
                 <motion.span className="inline-flex" style={{ color: ROOT_COLOR }}
                     initial={{ y: -28, opacity: 0, scale: 0.4 }} animate={{ y: 0, opacity: 1, scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 420, damping: 15 }}>1</motion.span>
+                    transition={{ type: 'spring', stiffness: 420, damping: 15 }}>{root === 1 ? '1' : '(−1)'}</motion.span>
             </>
         ) : (
             <span>x</span>
@@ -1181,8 +1186,14 @@ const SubstSlot = ({ on, sq }: { on: boolean; sq?: boolean }) => (
         {sq && <span>²</span>}
     </span>
 )
-// Уравнение 2x² + 3x − 5 = 0; при go — x прямо в нём по очереди меняются на ·1 (без второй копии уравнения).
-const SubstEq = ({ go, onDone }: { go: boolean; onDone: () => void }) => {
+const Sgn = ({ n, color, first }: { n: number; color: string; first?: boolean }) => (
+    <>
+        {(!first || n < 0) && <span className={first ? '' : 'mx-1.5'} style={{ color }}>{n < 0 ? '−' : '+'}</span>}
+        <span style={{ color }}>{Math.abs(n)}</span>
+    </>
+)
+// Уравнение ax² + bx + c = 0; при go — x прямо в нём меняются на root (без второй копии уравнения).
+const SubstEq = ({ spec, go, onDone }: { spec: CheckSpec; go: boolean; onDone: () => void }) => {
     const [swapped, setSwapped] = useState(0)
     useEffect(() => {
         if (!go) return
@@ -1196,10 +1207,9 @@ const SubstEq = ({ go, onDone }: { go: boolean; onDone: () => void }) => {
     }, [swapped, go])
     return (
         <div className="w-full flex items-center justify-center font-black text-[#F2F7FB] whitespace-nowrap text-3xl md:text-4xl">
-            <span style={{ color: A_COLOR }}>2</span><SubstSlot on={swapped > 0} sq />
-            <span className="mx-1.5" style={{ color: B_COLOR }}>+</span><span style={{ color: B_COLOR }}>3</span>
-            <SubstSlot on={swapped > 1} />
-            <span className="mx-1.5" style={{ color: C_COLOR }}>−</span><span style={{ color: C_COLOR }}>5</span>
+            <Sgn n={spec.a} color={A_COLOR} first /><SubstSlot on={swapped > 0} sq root={spec.root} />
+            <Sgn n={spec.b} color={B_COLOR} /><SubstSlot on={swapped > 1} root={spec.root} />
+            <Sgn n={spec.c} color={C_COLOR} />
             <span className="ml-1.5">= 0</span>
         </div>
     )
@@ -1219,78 +1229,111 @@ const ReplyButton = ({ onClick, children }: { onClick: () => void; children: Rea
     </motion.div>
 )
 
-const CheckOneScene = ({ onSettled }: SceneProps) => {
+// x₂ = c/a или x₂ = −c/a
+const X2Formula = ({ minus }: { minus?: boolean }) => (
+    <span className="inline-flex items-center gap-2">x₂ = {minus && '−'}<Frac num={<Cf k={C_COLOR}>c</Cf>} den={<Cf k={A_COLOR}>a</Cf>} /></span>
+)
+
+// Правило «тупо проверяем» (до кнопки — паузы 1 с), потом подстановка в уравнение (паузы 2 с).
+// root = 1: правило → «Давай попробуем!» → уравнение. root = −1: «А что если вот такое:» → уравнение →
+// x = 1 не подойдёт → проверяем x = −1 → «Ок, давай попробуем!»; подставляем в то же уравнение сверху.
+const CheckRootScene = ({ spec, onSettled }: SceneProps & { spec: CheckSpec }) => {
+    const one = spec.root === 1
     const [phase, setPhase] = useState(0)
+    // t — вторая половина (после кнопки «…попробуем!»): -1 — ещё не начали.
+    const [t, setT] = useState(-1)
     const next = (n: number) => () => setPhase((p) => Math.max(p, n))
-    // После «Давай попробуем!» правило уходит в тень, чтобы не отвлекало от примера.
-    const ruleDim: React.CSSProperties = phase >= 6 ? { opacity: 0.35, filter: 'grayscale(1)' } : {}
+    const tn = (n: number) => () => setT((p) => Math.max(p, n))
+    const ruleDim: React.CSSProperties = t >= 0 ? { opacity: 0.35, filter: 'grayscale(1)' } : {}
+    const r = rootStr(spec.root)
+    const terms = [spec.a, spec.b * spec.root, spec.c]
+    const eqBlock = (onSettledEq: () => void) => (
+        <DiagramBlock onSettled={onSettledEq}>
+            <SubstEq spec={spec} go={t >= 3} onDone={tn(4)} />
+        </DiagramBlock>
+    )
     return (
         <>
-            <div className="w-full flex flex-col items-center gap-4 transition-all duration-700" style={ruleDim}>
-            <TypedBig small onDone={next(1)} readMs={1000}
-                parts={[{ text: 'В таких уравнениях мы будем ' }, { text: 'ТУПО ПРОВЕРЯТЬ', color: REMEMBER_COLOR }]} />
-            {phase >= 1 && <BigLine color={ROOT_COLOR}>x₁ = 1</BigLine>}
-            {phase >= 1 && <PauseThen ms={1000} onDone={next(2)} />}
-            {phase >= 2 && (
-                <TypedBig small onDone={next(3)} readMs={1000}
-                    parts={[{ text: 'ЕСЛИ ' }, { text: 'x₁ = 1', color: ROOT_COLOR }, { text: ' подойдёт, то' }]} />
+            {one ? (
+                <div className="w-full flex flex-col items-center gap-4 transition-all duration-700" style={ruleDim}>
+                    <TypedBig small onDone={next(1)} readMs={1000}
+                        parts={[{ text: 'В таких уравнениях мы будем ' }, { text: 'ТУПО ПРОВЕРЯТЬ', color: REMEMBER_COLOR }]} />
+                    {phase >= 1 && <BigLine color={ROOT_COLOR}>x₁ = 1</BigLine>}
+                    {phase >= 1 && <PauseThen ms={1000} onDone={next(2)} />}
+                    {phase >= 2 && (
+                        <TypedBig small onDone={next(3)} readMs={1000}
+                            parts={[{ text: 'ЕСЛИ ' }, { text: 'x₁ = 1', color: ROOT_COLOR }, { text: ' подойдёт, то' }]} />
+                    )}
+                    {phase >= 3 && <BigLine><X2Formula /></BigLine>}
+                    {phase >= 3 && <PauseThen ms={1000} onDone={next(4)} />}
+                    {phase >= 4 && <TypedBig onDone={next(5)} readMs={300} parts={[{ text: 'И ВСЁ!', color: REMEMBER_COLOR }]} />}
+                </div>
+            ) : (
+                <>
+                    <TypedBig small onDone={next(1)} readMs={500} parts={[{ text: 'А что если вот такое:' }]} />
+                    {phase >= 1 && eqBlock(next(2))}
+                    {phase >= 2 && (
+                        <div className="w-full flex flex-col items-center gap-4 transition-all duration-700" style={ruleDim}>
+                            <TypedBig small onDone={next(3)} readMs={1000}
+                                parts={[{ text: 'Тут ' }, { text: 'x = 1', color: ROOT_COLOR }, { text: ' НЕ подойдёт.', color: BAD_COLOR }]} />
+                            {phase >= 3 && (
+                                <TypedBig small onDone={next(4)} readMs={300} parts={[{ text: 'В таком случае осталось проверить' }]} />
+                            )}
+                            {phase >= 4 && <BigLine color={ROOT_COLOR}>x = −1</BigLine>}
+                            {phase >= 4 && <PauseThen ms={1000} onDone={next(5)} />}
+                            {phase >= 5 && (
+                                <TypedBig small onDone={next(6)} readMs={300}
+                                    parts={[{ text: 'Если подойдёт ' }, { text: 'x = −1', color: ROOT_COLOR }, { text: ', то' }]} />
+                            )}
+                            {phase >= 6 && <BigLine><X2Formula minus /></BigLine>}
+                            {phase >= 6 && <PauseThen ms={1000} onDone={next(7)} />}
+                        </div>
+                    )}
+                </>
             )}
-            {phase >= 3 && (
-                <BigLine>
-                    <span className="inline-flex items-center gap-2">x₂ = <Frac num={<Cf k={C_COLOR}>c</Cf>} den={<Cf k={A_COLOR}>a</Cf>} /></span>
-                </BigLine>
+            {t < 0 && phase === (one ? 5 : 7) && (
+                <ReplyButton onClick={() => setT(one ? 0 : 1)}>{one ? 'Давай попробуем!' : 'Ок, давай попробуем!'}</ReplyButton>
             )}
-            {phase >= 3 && <PauseThen ms={1000} onDone={next(4)} />}
-            {phase >= 4 && <TypedBig onDone={next(5)} readMs={300} parts={[{ text: 'И ВСЁ!', color: REMEMBER_COLOR }]} />}
-            </div>
-            {phase === 5 && <ReplyButton onClick={() => setPhase(6)}>Давай попробуем!</ReplyButton>}
-            {phase >= 6 && (
-                <DiagramBlock onSettled={next(7)}>
-                    <SubstEq go={phase >= 9} onDone={next(10)} />
-                </DiagramBlock>
+            {one && t >= 0 && eqBlock(tn(1))}
+            {t >= 1 && (
+                <TypedBig small onDone={tn(2)} readMs={200} parts={[{ text: 'Подставим ' }, { text: `x = ${r}`, color: ROOT_COLOR }]} />
             )}
-            {phase >= 7 && (
-                <TypedBig small onDone={next(8)} readMs={200}
-                    parts={[{ text: 'Подставим ' }, { text: 'x = 1', color: ROOT_COLOR }]} />
-            )}
-            {phase === 8 && <ReplyButton onClick={() => setPhase(9)}>Поехали!</ReplyButton>}
-            {phase >= 10 && (
+            {t === 2 && <ReplyButton onClick={() => setT(3)}>Поехали!</ReplyButton>}
+            {t >= 4 && (
                 <div className="w-full flex justify-center text-3xl md:text-4xl font-black text-[#F2F7FB]">
                     <Pop>
-                        <span style={{ color: A_COLOR }}>2</span>
-                        <span className="mx-1.5" style={{ color: B_COLOR }}>+</span><span style={{ color: B_COLOR }}>3</span>
-                        <span className="mx-1.5" style={{ color: C_COLOR }}>−</span><span style={{ color: C_COLOR }}>5</span>
+                        <Sgn n={terms[0]} color={A_COLOR} first /><Sgn n={terms[1]} color={B_COLOR} /><Sgn n={terms[2]} color={C_COLOR} />
                         <span className="ml-1.5">= 0</span>
                     </Pop>
                 </div>
             )}
-            {phase >= 10 && <PauseThen ms={2000} onDone={next(11)} />}
-            {phase >= 11 && <BigLine color={OK_COLOR}>0 = 0 ✅</BigLine>}
-            {phase >= 11 && <PauseThen ms={2000} onDone={next(12)} />}
-            {phase >= 12 && <TypedBig onDone={next(13)} readMs={2000} parts={[{ text: 'Получилось!', color: OK_COLOR }]} />}
-            {phase >= 13 && <TypedBig small onDone={next(14)} readMs={1000} parts={[{ text: 'Значит мы угадали первый корень!' }]} />}
-            {phase >= 14 && <BigLine color={ROOT_COLOR}>x₁ = 1</BigLine>}
-            {phase >= 14 && <PauseThen ms={1000} onDone={next(15)} />}
-            {phase === 15 && <ReplyButton onClick={() => setPhase(16)}>Мы везунчики!</ReplyButton>}
-            {phase >= 16 && (
-                <TypedBig small onDone={next(17)} readMs={1000} parts={[{ text: 'Тогда второй корень:' }]} />
-            )}
-            {phase >= 17 && (
+            {t >= 4 && <PauseThen ms={2000} onDone={tn(5)} />}
+            {t >= 5 && <BigLine color={OK_COLOR}>0 = 0 ✅</BigLine>}
+            {t >= 5 && <PauseThen ms={2000} onDone={tn(6)} />}
+            {t >= 6 && <TypedBig onDone={tn(7)} readMs={2000} parts={[{ text: 'Получилось!', color: OK_COLOR }]} />}
+            {t >= 7 && <TypedBig small onDone={tn(8)} readMs={1000} parts={[{ text: 'Значит мы угадали первый корень!' }]} />}
+            {t >= 8 && <BigLine color={ROOT_COLOR}>x₁ = {r}</BigLine>}
+            {t >= 8 && <PauseThen ms={1000} onDone={tn(9)} />}
+            {t === 9 && <ReplyButton onClick={() => setT(10)}>Мы везунчики!</ReplyButton>}
+            {t >= 10 && <TypedBig small onDone={tn(11)} readMs={1000} parts={[{ text: 'Тогда второй корень:' }]} />}
+            {t >= 11 && (
                 <BigLine>
                     <span className="inline-flex items-center gap-2">
-                        x₂ = <Frac num={<Cf k={C_COLOR}>c</Cf>} den={<Cf k={A_COLOR}>a</Cf>} /> =
-                        <span className="inline-flex items-center" style={{ color: ROOT_COLOR }}>−<Frac num="5" den="2" /></span>
+                        <X2Formula minus={!one} /> =
+                        <span className="inline-flex items-center" style={{ color: ROOT_COLOR }}><NumText s={spec.x2} /></span>
                     </span>
                 </BigLine>
             )}
-            {phase >= 17 && <PauseThen ms={1000} onDone={() => onSettled?.()} />}
+            {t >= 11 && <PauseThen ms={1000} onDone={() => onSettled?.()} />}
         </>
     )
 }
+const CheckOneScene = (p: SceneProps) => <CheckRootScene {...p} spec={CHECK_ONE} />
+const CheckMinusScene = (p: SceneProps) => <CheckRootScene {...p} spec={CHECK_MINUS} />
 
-// Итог примера: уравнение, оба корня и «и ВСЁ.» + видео.
-const NICE_JOKE_VIDEO = '/video/nice-joke.webm'
-const SummaryScene = ({ onSettled }: SceneProps) => {
+// Итог примера: уравнение, оба корня и «и ВСЁ.» (+ видео).
+const STEVE_BLINK_VIDEO = '/video/steve-blink.webm'
+const SummaryScene = ({ spec, video, onSettled }: SceneProps & { spec: CheckSpec; video?: string }) => {
     const [phase, setPhase] = useState(0)
     const next = (n: number) => () => setPhase((p) => Math.max(p, n))
     return (
@@ -1298,27 +1341,25 @@ const SummaryScene = ({ onSettled }: SceneProps) => {
             <TypedBig onDone={next(1)} readMs={500} parts={[{ text: 'Итого:', color: REMEMBER_COLOR }]} />
             {phase >= 1 && (
                 <DiagramBlock onSettled={next(2)}>
-                    <Eq a={2} b={3} c={-5} colors />
+                    <Eq a={spec.a} b={spec.b} c={spec.c} colors />
                 </DiagramBlock>
             )}
             {phase >= 2 && <PauseThen ms={1000} onDone={next(3)} />}
             {phase >= 3 && (
                 <BigLine color={ROOT_COLOR}>
                     <span className="inline-flex items-center gap-10">
-                        <span>x₁ = 1</span>
-                        <span className="inline-flex items-center gap-1">x₂ = −<Frac num="5" den="2" /></span>
+                        <span>x₁ = {rootStr(spec.root)}</span>
+                        <span className="inline-flex items-center gap-1">x₂ = <NumText s={spec.x2} /></span>
                     </span>
                 </BigLine>
             )}
             {phase >= 3 && <PauseThen ms={1000} onDone={next(4)} />}
-            {phase >= 4 && (
-                <TypedBig onDone={next(5)} readMs={300} parts={[{ text: 'и ВСЁ.', color: REMEMBER_COLOR }]} />
-            )}
-            {phase >= 5 && (
+            {phase >= 4 && <TypedBig onDone={next(5)} readMs={300} parts={[{ text: 'и ВСЁ.', color: REMEMBER_COLOR }]} />}
+            {phase >= 5 && video && (
                 <div className="w-full flex justify-center">
                     <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 12 }}
                         className="w-40 md:w-48 aspect-square overflow-hidden rounded-xl">
-                        <video src={NICE_JOKE_VIDEO} autoPlay loop muted playsInline className="h-full w-full object-cover" />
+                        <video src={video} autoPlay loop muted playsInline className="h-full w-full object-cover" />
                     </motion.div>
                 </div>
             )}
@@ -1326,24 +1367,104 @@ const SummaryScene = ({ onSettled }: SceneProps) => {
         </>
     )
 }
+const SummaryOneScene = (p: SceneProps) => <SummaryScene {...p} spec={CHECK_ONE} video={STEVE_BLINK_VIDEO} />
+const SummaryMinusScene = (p: SceneProps) => <SummaryScene {...p} spec={CHECK_MINUS} />
 
-// Тренировка после «тупо проверяем x₁ = 1»: 3 уравнения, где x₁ = 1 подходит, — выбрать корни.
-const rootsHint = (c: number, a: number) => (o: string) => {
-    if (!o.startsWith('1 ')) return 'Мы же проверяем x₁ = 1. Подставь: сложи a + b + c 🙃'
-    return `x₂ = c/a = ${c < 0 ? '−' : ''}${Math.abs(c)}/${a}: сверху c со знаком, снизу a 🙃`
-}
-const X1_ROUNDS: Round[] = [
-    { eq: { a: 3, b: -5, c: 2 }, steps: [{ ask: '', options: ['1 и 2/3', '1 и −2/3', '1 и 3/2', '−1 и 2/3'], correct: '1 и 2/3', hint: rootsHint(2, 3), after: <span style={{ color: ROOT_COLOR }}><NumText s="x₁ = 1, x₂ = 2/3" /> ✓</span> }] },
-    { eq: { a: 5, b: 2, c: -7 }, steps: [{ ask: '', options: ['1 и −7/5', '1 и 7/5', '1 и −5/7', '−1 и 7/5'], correct: '1 и −7/5', hint: rootsHint(-7, 5), after: <span style={{ color: ROOT_COLOR }}><NumText s="x₁ = 1, x₂ = −7/5" /> ✓</span> }] },
-    { eq: { a: 4, b: -9, c: 5 }, steps: [{ ask: '', options: ['1 и 5/4', '1 и −5/4', '1 и 4/5', '−1 и −5/4'], correct: '1 и 5/4', hint: rootsHint(5, 4), after: <span style={{ color: ROOT_COLOR }}><NumText s="x₁ = 1, x₂ = 5/4" /> ✓</span> }] },
+// Тренировка: «Теперь сам! Найди корни:» → уравнение → клетки x₁ и x₂, снизу падают числа (одно из них 1).
+type RootRound = { a: number; b: number; c: number; roots: [string, string]; tiles: string[] }
+const X1_ROUNDS: RootRound[] = [
+    { a: 3, b: -5, c: 2, roots: ['1', '2/3'], tiles: ['1', '−1', '2/3', '−2/3', '3/2', '2'] },
+    { a: 5, b: 2, c: -7, roots: ['1', '−7/5'], tiles: ['1', '−1', '−7/5', '7/5', '−5/7', '7'] },
+    { a: 4, b: -9, c: 5, roots: ['1', '5/4'], tiles: ['1', '−1', '5/4', '−5/4', '4/5', '5'] },
 ]
+const RootSlot = ({ label, val, active, state, onClick }: {
+    label: string; val: string | null; active: boolean; state: 'ok' | 'bad' | null; onClick: () => void
+}) => {
+    const border = state === 'ok' ? hexToRgba(OK_COLOR, 0.45) : state === 'bad' ? BAD_COLOR : active ? hexToRgba(ROOT_COLOR, 0.7) : '#3A464E'
+    const color = state === 'bad' ? BAD_COLOR : '#F2F7FB'
+    const bg = state === 'ok' ? hexToRgba(OK_COLOR, 0.07) : state === 'bad' ? hexToRgba(BAD_COLOR, 0.12) : '#161F23'
+    return (
+        <button type="button" onClick={onClick}
+            className="min-w-[64px] min-h-[64px] px-2 rounded-xl border-2 border-b-4 active:border-b-2 font-black text-2xl transition-colors flex items-center justify-center"
+            style={{ borderColor: border, color, backgroundColor: bg }}>
+            {val !== null
+                ? <motion.span key={val} initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 16 }} className="inline-flex"><NumText s={val} /></motion.span>
+                : <span className={cn('text-xl', active && !state && 'animate-slot-label')}
+                    style={{ color: active ? ROOT_COLOR : '#5C6B73', ['--slot-c' as string]: ROOT_COLOR }}>{label}</span>}
+        </button>
+    )
+}
+const RootRoundView = ({ r, onSolved }: { r: RootRound; onSolved: () => void }) => {
+    const [tiles] = useState(() => shuffle(r.tiles))
+    const [vals, setVals] = useState<(string | null)[]>([null, null])
+    const [active, setActive] = useState(0)
+    const [result, setResult] = useState<'ok' | 'bad' | null>(null)
+    const [hint, setHint] = useState<string | null>(null)
+    const pick = (v: string) => {
+        if (result) return
+        const nextVals = [...vals]
+        nextVals[active] = v
+        setVals(nextVals)
+        const other = active === 0 ? 1 : 0
+        if (nextVals[other] === null) { setActive(other); return }
+        const ok = [...nextVals].sort().join('|') === [...r.roots].sort().join('|')
+        if (ok) {
+            setResult('ok'); setHint(null); showAnswerMeme(true)
+            setTimeout(onSolved, 1100)
+        } else {
+            setResult('bad'); playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false)
+            setHint(nextVals.includes('1') ? 'x₂ = c/a: сверху c со знаком, снизу a 🙃' : 'Сначала проверь x = 1 🙃')
+            setTimeout(() => { setResult(null); setVals([null, null]); setActive(0) }, 1500)
+        }
+    }
+    return (
+        <div className="w-full flex flex-col items-center gap-4">
+            <Pop><Eq a={r.a} b={r.b} c={r.c} colors size="text-2xl md:text-3xl" /></Pop>
+            <motion.div animate={result === 'bad' ? { x: [0, -10, 10, -6, 6, 0] } : { x: 0 }} transition={{ duration: 0.5 }}
+                className="flex items-center gap-6 text-2xl md:text-3xl font-black text-[#F2F7FB]">
+                <span className="inline-flex items-center gap-2">x₁ = <RootSlot label="x₁" val={vals[0]} active={active === 0 && !result} state={result} onClick={() => !result && setActive(0)} /></span>
+                <span className="inline-flex items-center gap-2">x₂ = <RootSlot label="x₂" val={vals[1]} active={active === 1 && !result} state={result} onClick={() => !result && setActive(1)} /></span>
+            </motion.div>
+            <div className="drop-in-options grid grid-cols-3 gap-2.5 w-full max-w-[300px]">
+                {tiles.map((v) => {
+                    const used = vals[active === 0 ? 1 : 0] === v
+                    return (
+                        <button key={v} type="button" onClick={() => pick(v)} disabled={!!result || used}
+                            className="min-h-[64px] rounded-xl border-2 border-b-4 border-[#3A464E] bg-[#161F23] text-2xl font-black text-[#F2F7FB] transition-opacity active:scale-95"
+                            style={{ opacity: used ? 0.35 : 1 }}>
+                            <NumText s={v} />
+                        </button>
+                    )
+                })}
+            </div>
+            <div className="min-h-[24px] text-center text-sm md:text-base font-bold" style={{ color: BAD_COLOR }}>{hint}</div>
+        </div>
+    )
+}
 const X1PracticeScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
+    const [round, setRound] = useState(0)
+    const [praise, setPraise] = useState<string | null>(null)
+    const solved = () => {
+        setPraise(pickPraise())
+        setTimeout(() => {
+            setPraise(null)
+            setRound((n) => n + 1)
+            if (round + 1 >= X1_ROUNDS.length) setTimeout(() => onSettled?.(), 900)
+        }, 1200)
+    }
     return (
         <>
-            <TypedBig small onDone={() => setPhase(1)} readMs={1000}
-                parts={[{ text: 'Теперь сам! Найди корни:' }]} />
-            {phase >= 1 && <RoundsBody rounds={X1_ROUNDS} hideBadge onDone={() => onSettled?.()} doneText="Угадывать корни — изи! 🔥" />}
+            <TypedBig small onDone={() => setPhase(1)} readMs={500} parts={[{ text: 'Теперь сам! Найди корни:' }]} />
+            {phase >= 1 && round < X1_ROUNDS.length && <RootRoundView key={round} r={X1_ROUNDS[round]} onSolved={solved} />}
+            {praise && <Pop><span className="text-xl font-black" style={{ color: OK_COLOR }}>{praise}</span></Pop>}
+            {round >= X1_ROUNDS.length && (
+                <div className="w-full flex flex-col items-center gap-2">
+                    <Pop><span className="text-2xl font-black" style={{ color: OK_COLOR }}>Угадывать корни — изи! 🔥</span></Pop>
+                    <LocalAnswerConfetti />
+                </div>
+            )}
         </>
     )
 }
@@ -1352,16 +1473,17 @@ const ReadyScene = ({ onSettled }: SceneProps) => (
     <TypedBig parts={[{ text: 'Приготовься, пора ' }, { text: 'блистать знаниями!', color: REMEMBER_COLOR }]} onDone={() => onSettled?.()} readMs={300} />
 )
 
-const SCENES = [CoefScene, CoefDrillScene, Guess56Scene, Guess712Scene, ZakrepScene, TheoremScene, CheckOneScene, SummaryScene, X1PracticeScene, ReadyScene]
+const SCENES = [CoefScene, CoefDrillScene, Guess56Scene, Guess712Scene, ZakrepScene, TheoremScene, CheckOneScene, SummaryOneScene, X1PracticeScene, CheckMinusScene, SummaryMinusScene, ReadyScene]
 const FIXED_NEXT_LABELS = new Map<unknown, string>([
     [ZakrepScene, 'Закреплено 📌'],
     [CoefScene, 'Невидимка, понял 👀'],
     [TheoremScene, 'Запомнил!'],
     [CheckOneScene, 'ГАААААЗ'],
+    [CheckMinusScene, 'ГАААААЗ'],
     [ReadyScene, 'ЛЕТС ГООООУ'],
 ])
 // Подписи для админской карты этапов (по порядку SCENES).
-const SCENE_MAP_LABELS = ['Коэффициенты a, b, c', 'Сам: a, b, c', 'x² − 5x + 6', 'x² − 7x + 12', 'ЗАКРЕП (7 уравнений)', 'Теорема Виета (a ≠ 1)', 'Тупо проверяем x₁ = 1', 'Итого: и ВСЁ', 'Сам: 3 уравнения с x₁ = 1', 'Приготовься']
+const SCENE_MAP_LABELS = ['Коэффициенты a, b, c', 'Сам: a, b, c', 'x² − 5x + 6', 'x² − 7x + 12', 'ЗАКРЕП (7 уравнений)', 'Теорема Виета (a ≠ 1)', 'Тупо проверяем x₁ = 1', 'Итого: и ВСЁ', 'Сам: 3 уравнения с x₁ = 1', 'А если x = −1 (3x² + 8x + 5)', 'Итого для x = −1', 'Приготовься']
 
 // ===== Квиз =====
 type Trial = { prompt: React.ReactNode; eq: EqSpec; options: string[]; correct: string; hint: string }
