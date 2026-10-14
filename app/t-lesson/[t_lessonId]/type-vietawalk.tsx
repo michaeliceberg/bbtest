@@ -1167,31 +1167,36 @@ const TheoremScene = ({ onSettled }: SceneProps) => {
 const SubstSlot = ({ on, sq }: { on: boolean; sq?: boolean }) => (
     <span className="relative inline-flex items-center">
         {on ? (
-            <motion.span className="inline-flex" style={{ color: ROOT_COLOR }}
-                initial={{ y: -28, opacity: 0, scale: 0.4 }} animate={{ y: 0, opacity: 1, scale: 1 }}
-                transition={{ type: 'spring', stiffness: 420, damping: 15 }}>1</motion.span>
+            <>
+                <span className="mx-0.5 text-[#9AA7B0]">·</span>
+                <motion.span className="inline-flex" style={{ color: ROOT_COLOR }}
+                    initial={{ y: -28, opacity: 0, scale: 0.4 }} animate={{ y: 0, opacity: 1, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 15 }}>1</motion.span>
+            </>
         ) : (
             <span>x</span>
         )}
         {sq && <span>²</span>}
     </span>
 )
-const SubstEq = ({ onDone }: { onDone: () => void }) => {
+// Уравнение 2x² + 3x − 5 = 0; при go — x прямо в нём по очереди меняются на ·1 (без второй копии уравнения).
+const SubstEq = ({ go, onDone }: { go: boolean; onDone: () => void }) => {
     const [swapped, setSwapped] = useState(0)
     useEffect(() => {
+        if (!go) return
         if (swapped >= 2) {
-            const t = setTimeout(onDone, 900)
+            const t = setTimeout(onDone, 2000)
             return () => clearTimeout(t)
         }
         const t = setTimeout(() => setSwapped((n) => n + 1), swapped === 0 ? 700 : 650)
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [swapped])
+    }, [swapped, go])
     return (
         <div className="w-full flex items-center justify-center font-black text-[#F2F7FB] whitespace-nowrap text-3xl md:text-4xl">
-            <span style={{ color: A_COLOR }}>2</span><span className="mx-0.5 text-[#9AA7B0]">·</span><SubstSlot on={swapped > 0} sq />
+            <span style={{ color: A_COLOR }}>2</span><SubstSlot on={swapped > 0} sq />
             <span className="mx-1.5" style={{ color: B_COLOR }}>+</span><span style={{ color: B_COLOR }}>3</span>
-            <span className="mx-0.5 text-[#9AA7B0]">·</span><SubstSlot on={swapped > 1} />
+            <SubstSlot on={swapped > 1} />
             <span className="mx-1.5" style={{ color: C_COLOR }}>−</span><span style={{ color: C_COLOR }}>5</span>
             <span className="ml-1.5">= 0</span>
         </div>
@@ -1220,12 +1225,12 @@ const CheckOneScene = ({ onSettled }: SceneProps) => {
     return (
         <>
             <div className="w-full flex flex-col items-center gap-4 transition-all duration-700" style={ruleDim}>
-            <TypedBig small onDone={next(1)} readMs={200}
+            <TypedBig small onDone={next(1)} readMs={2000}
                 parts={[{ text: 'В таких уравнениях мы будем ' }, { text: 'ТУПО ПРОВЕРЯТЬ', color: REMEMBER_COLOR }]} />
             {phase >= 1 && <BigLine color={ROOT_COLOR}>x₁ = 1</BigLine>}
-            {phase >= 1 && <PauseThen ms={900} onDone={next(2)} />}
+            {phase >= 1 && <PauseThen ms={2000} onDone={next(2)} />}
             {phase >= 2 && (
-                <TypedBig small onDone={next(3)} readMs={200}
+                <TypedBig small onDone={next(3)} readMs={2000}
                     parts={[{ text: 'ЕСЛИ ' }, { text: 'x₁ = 1', color: ROOT_COLOR }, { text: ' подойдёт, то' }]} />
             )}
             {phase >= 3 && (
@@ -1233,21 +1238,20 @@ const CheckOneScene = ({ onSettled }: SceneProps) => {
                     <span className="inline-flex items-center gap-2">x₂ = <Frac num={<Cf k={C_COLOR}>c</Cf>} den={<Cf k={A_COLOR}>a</Cf>} /></span>
                 </BigLine>
             )}
-            {phase >= 3 && <PauseThen ms={900} onDone={next(4)} />}
+            {phase >= 3 && <PauseThen ms={2000} onDone={next(4)} />}
             {phase >= 4 && <TypedBig onDone={next(5)} readMs={300} parts={[{ text: 'И ВСЁ!', color: REMEMBER_COLOR }]} />}
             </div>
             {phase === 5 && <ReplyButton onClick={() => setPhase(6)}>Давай попробуем!</ReplyButton>}
             {phase >= 6 && (
                 <DiagramBlock onSettled={next(7)}>
-                    <Eq a={2} b={3} c={-5} colors />
+                    <SubstEq go={phase >= 9} onDone={next(10)} />
                 </DiagramBlock>
             )}
             {phase >= 7 && (
                 <TypedBig small onDone={next(8)} readMs={200}
                     parts={[{ text: 'Подставим ' }, { text: 'x = 1', color: ROOT_COLOR }]} />
             )}
-            {phase === 8 && <ReplyButton onClick={() => setPhase(9)}>Подставь!</ReplyButton>}
-            {phase >= 9 && <SubstEq onDone={next(10)} />}
+            {phase === 8 && <ReplyButton onClick={() => setPhase(9)}>Поехали!</ReplyButton>}
             {phase >= 10 && (
                 <div className="w-full flex justify-center text-3xl md:text-4xl font-black text-[#F2F7FB]">
                     <Pop>
@@ -1258,16 +1262,16 @@ const CheckOneScene = ({ onSettled }: SceneProps) => {
                     </Pop>
                 </div>
             )}
-            {phase >= 10 && <PauseThen ms={1100} onDone={next(11)} />}
+            {phase >= 10 && <PauseThen ms={2000} onDone={next(11)} />}
             {phase >= 11 && <BigLine color={OK_COLOR}>0 = 0 ✅</BigLine>}
-            {phase >= 11 && <PauseThen ms={500} onDone={next(12)} />}
-            {phase >= 12 && <TypedBig onDone={next(13)} readMs={200} parts={[{ text: 'Получилось!', color: OK_COLOR }]} />}
-            {phase >= 13 && <TypedBig small onDone={next(14)} readMs={200} parts={[{ text: 'Значит мы угадали первый корень!' }]} />}
+            {phase >= 11 && <PauseThen ms={2000} onDone={next(12)} />}
+            {phase >= 12 && <TypedBig onDone={next(13)} readMs={2000} parts={[{ text: 'Получилось!', color: OK_COLOR }]} />}
+            {phase >= 13 && <TypedBig small onDone={next(14)} readMs={2000} parts={[{ text: 'Значит мы угадали первый корень!' }]} />}
             {phase >= 14 && <BigLine color={ROOT_COLOR}>x₁ = 1</BigLine>}
             {phase >= 14 && <PauseThen ms={700} onDone={next(15)} />}
             {phase === 15 && <ReplyButton onClick={() => setPhase(16)}>Мы везунчики!</ReplyButton>}
             {phase >= 16 && (
-                <TypedBig small onDone={next(17)} readMs={200} parts={[{ text: 'Тогда' }]} />
+                <TypedBig small onDone={next(17)} readMs={2000} parts={[{ text: 'Тогда' }]} />
             )}
             {phase >= 17 && (
                 <BigLine>
@@ -1277,7 +1281,7 @@ const CheckOneScene = ({ onSettled }: SceneProps) => {
                     </span>
                 </BigLine>
             )}
-            {phase >= 17 && <PauseThen ms={1200} onDone={() => onSettled?.()} />}
+            {phase >= 17 && <PauseThen ms={2000} onDone={() => onSettled?.()} />}
         </>
     )
 }
