@@ -406,9 +406,11 @@ const PairSlot = ({ label, val, active, state, onClick }: {
 // овал, и число вместе с этим овалом (тот же размер и стиль) плавно едет вниз к своей строке. У суммы стикер на полпути
 // останавливается, знак «−» с отскоком меняется на «+», держим 1 с и едем дальше. На месте рамка и «+»
 // гаснут, остаётся число. Координаты меряем по DOM (data-marker), относительно контейнера сцены.
-type FlightKind = 'prod' | 'sum'
+type FlightKind = 'prod' | 'sum' | 'plain'
 const FLIGHT_STEPS: Record<FlightKind, { stage: string; ms: number }[]> = {
     prod: [{ stage: 'outline', ms: 1000 }, { stage: 'move', ms: 1000 }, { stage: 'land', ms: 750 }],
+    // Число со своим знаком едет без превращения «−» в «+» (первое уравнение: −5 садится на b в «−b»).
+    plain: [{ stage: 'outline', ms: 1000 }, { stage: 'move', ms: 1100 }, { stage: 'land', ms: 750 }],
     sum: [{ stage: 'outline', ms: 1000 }, { stage: 'move1', ms: 750 }, { stage: 'look', ms: 500 },
         { stage: 'flip', ms: 550 }, { stage: 'hold', ms: 1000 }, { stage: 'move2', ms: 900 }, { stage: 'land', ms: 750 }],
 }
@@ -512,7 +514,8 @@ const StickerFlight = ({ rootRef, kind, from, to, startValue, value, color, onDo
 }
 
 // asm — правая часть собирается снаружи (StickerFlight): пока prod/sum false, число невидимо (место держим).
-const PairBuilder = ({ c, s, nums, onSolved, focus, asm, between, letters }: { c: number; s: number; nums: number[]; onSolved: () => void; focus?: 'prod' | 'sum' | null; asm?: { prod: boolean; sum: boolean; nums: boolean }; between?: React.ReactNode; letters?: { prod: boolean; sum: boolean } }) => {
+// rightOverride — своё содержимое правой части строки (буквы c / −b, «− −5» и т.п.), rowsShown — сколько строк системы видно.
+const PairBuilder = ({ c, s, nums, onSolved, focus, asm, between, rightOverride, rowsShown = 2 }: { c: number; s: number; nums: number[]; onSolved: () => void; focus?: 'prod' | 'sum' | null; asm?: { prod: boolean; sum: boolean; nums: boolean }; between?: React.ReactNode; rightOverride?: { prod?: React.ReactNode; sum?: React.ReactNode }; rowsShown?: number }) => {
     const [vals, setVals] = useState<(number | null)[]>([null, null])
     const [active, setActive] = useState(0)
     const [result, setResult] = useState<'ok' | 'bad' | null>(null)
@@ -561,8 +564,8 @@ const PairBuilder = ({ c, s, nums, onSolved, focus, asm, between, letters }: { c
                 <PairSlot label="x₂" val={vals[1]} active={active === 1 && !result} state={rowState(ok)} onClick={() => !result && setActive(1)} />
             </span>
             <span className="transition-all duration-500" style={focus === kind ? DIM_STYLE : undefined}>=</span>
-            <FocusBox on={focus === kind} color={color}>{letters?.[kind]
-                ? <span style={{ color }}>{kind === 'prod' ? 'c' : '−b'}</span>
+            <FocusBox on={focus === kind} color={color}>{rightOverride?.[kind] !== undefined
+                ? <span className="inline-flex items-center" style={{ color }}>{rightOverride[kind]}</span>
                 : <span data-marker={`slot-${kind}`} className={asm && !asm[kind] ? 'invisible' : undefined} style={{ color }}>{fmt(right)}</span>}</FocusBox>
             <span className="w-7 transition-all duration-500" style={focus === kind ? DIM_STYLE : undefined}>{mark(ok)}</span>
         </motion.div>
@@ -572,7 +575,7 @@ const PairBuilder = ({ c, s, nums, onSolved, focus, asm, between, letters }: { c
             {/* Строки системы падают сверху по очереди, как варианты ответа */}
             <div className="drop-in-options flex flex-col items-center gap-3">
                 <div>{row('·', c, C_COLOR, prodOk, 'prod')}</div>
-                <div>{row('+', s, B_COLOR, sumOk, 'sum')}</div>
+                {rowsShown >= 2 && <div>{row('+', s, B_COLOR, sumOk, 'sum')}</div>}
             </div>
             {between}
             <div className="grid grid-cols-3 gap-2.5 w-full max-w-[280px] transition-all duration-500 min-h-[122px]" style={focus ? DIM_STYLE : undefined}>
@@ -599,25 +602,52 @@ const PairBuilder = ({ c, s, nums, onSolved, focus, asm, between, letters }: { c
 const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain, assemble, memo }: SceneProps & { intro: string; x1: number; x2: number; nums: number[]; explain?: boolean; assemble?: boolean; memo?: boolean }) => {
     const [phase, setPhase] = useState(0)
     const b = -(x1 + x2), c = x1 * x2
-    // memo (1-е уравнение): «Запомни систему:» справа сразу c и −b, пауза, подсветка −b, «Заметь: МИНУС b», кнопка, потом сборка.
-    // 0 — ждём, 1 — подсветка и текст, 2 — кнопка, 3 — дальше.
-    const [memoStep, setMemoStep] = useState(memo ? 0 : 3)
+    // memo (1-е уравнение): «Запомни систему:» → строка x₁·x₂ = c → «Ага, вижу c справа» → строка x₁+x₂ = −b →
+    // «Ого, а тут МИНУС b» → сборка. 0 — видна 1-я строка, 1 — кнопка, 2 — видны обе, 3 — кнопка, 4 — дальше.
+    const [memoStep, setMemoStep] = useState(memo ? 0 : 4)
     useEffect(() => {
-        if (!memo || phase < 3 || memoStep !== 0) return
-        const t = setTimeout(() => setMemoStep(1), 1500)
+        if (!memo || phase < 3 || (memoStep !== 0 && memoStep !== 2)) return
+        const t = setTimeout(() => setMemoStep((x) => x + 1), 1300)
         return () => clearTimeout(t)
     }, [memo, phase, memoStep])
-    const focus: 'prod' | 'sum' | null = memoStep === 1 || memoStep === 2 ? 'sum' : phase >= 5 && phase <= 6 ? 'prod' : phase === 7 ? 'sum' : null
+    const focus: 'prod' | 'sum' | null = phase >= 5 && phase <= 6 ? 'prod' : phase === 7 ? 'sum' : null
     const eqFocus = focus === 'prod' ? 'c' : focus === 'sum' ? 'b' : null
     const rootRef = useRef<HTMLDivElement>(null)
-    // Сборка правой части: 0 — ждём, 1 — летит c, 2 — летит −b, 3 — готово, 4 — числа-варианты.
-    const [asmStep, setAsmStep] = useState(assemble ? 0 : 4)
+    // Сборка правой части. Обычно: 0 — ждём, 1 — летит c, 2 — летит −b (−→+), 3 — «Подбери», 4 — числа-варианты.
+    // memo: 1 — c садится поверх «c», 2 — −5 садится на b в «−b», 3 — «− −5» и обводка минусов, 4 — «+5», 5 — «Подбери», 6 — числа.
+    const numsStep = memo ? 6 : 4
+    const [asmStep, setAsmStep] = useState(assemble ? 0 : numsStep)
     useEffect(() => {
-        if (!assemble || phase < 3 || asmStep !== 0 || memoStep < 3) return
-        const t = setTimeout(() => setAsmStep(1), 1400)
+        if (!assemble || phase < 3 || asmStep !== 0 || memoStep < 4) return
+        const t = setTimeout(() => setAsmStep(1), memo ? 700 : 1400)
         return () => clearTimeout(t)
-    }, [assemble, phase, asmStep, memoStep])
-    const asm = assemble ? { prod: asmStep >= 2, sum: asmStep >= 3, nums: asmStep >= 4 } : undefined
+    }, [assemble, phase, asmStep, memoStep, memo])
+    useEffect(() => {
+        if (!memo || (asmStep !== 3 && asmStep !== 4)) return
+        const t = setTimeout(() => setAsmStep((x) => x + 1), asmStep === 3 ? 1900 : 1300)
+        return () => clearTimeout(t)
+    }, [memo, asmStep])
+    const asm = assemble ? (memo
+        ? { prod: asmStep >= 2, sum: asmStep >= 5, nums: asmStep >= 6 }
+        : { prod: asmStep >= 2, sum: asmStep >= 3, nums: asmStep >= 4 }) : undefined
+    const memoRight = memo ? {
+        prod: asmStep < 2 ? <span data-marker="slot-prod">c</span> : undefined,
+        sum: asmStep < 3
+            ? <><span>−</span><span data-marker="slot-sum" className={`ml-6 ${asmStep === 2 ? 'opacity-0 transition-opacity duration-700' : ''}`}>b</span></>
+            : asmStep === 3
+                ? <><span className="relative inline-flex items-center">−<span className="ml-2">−</span><MarkerLoop pad={8} /></span>{-b}</>
+                : asmStep === 4
+                    ? <><motion.span className="inline-block" initial={{ scale: 2.4, rotate: -90 }} animate={{ scale: 1, rotate: 0 }}
+                        transition={{ type: 'spring', stiffness: 420, damping: 10 }}>+</motion.span>{-b}</>
+                    : undefined,
+    } : undefined
+    const memoBtn = (label: string, next: number) => (
+        <motion.div className="w-full flex" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+            <button type="button" onClick={() => setMemoStep(next)} className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>
+                {label}
+            </button>
+        </motion.div>
+    )
     return (
         <div ref={rootRef} className="relative w-full flex flex-col items-center gap-4">
             <TypedBig small parts={[{ text: intro }]} onDone={() => setPhase(1)} readMs={150} />
@@ -628,27 +658,18 @@ const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain, assemble, mem
             )}
             {phase >= 2 && <TypedBig small parts={[{ text: memo ? 'Запомни систему:' : assemble ? 'Составим систему:' : 'Подбери 2 числа 👇' }]} onDone={() => setPhase((p) => Math.max(p, 3))} readMs={150} />}
             {phase >= 3 && <PairBuilder c={c} s={-b} nums={nums} focus={focus} asm={asm} onSolved={() => setPhase(4)}
-                letters={memo ? { prod: asmStep < 1, sum: asmStep < 2 } : undefined}
-                between={assemble && asmStep >= 3 ? <TypedBig small parts={[{ text: 'Подбери 2 числа 👆' }]} onDone={() => setAsmStep((x) => Math.max(x, 4))} readMs={150} />
-                    : memo && (memoStep === 1 || memoStep === 2) ? (
-                        <div className="w-full flex flex-col items-center gap-3">
-                            <TypedBig small onDone={() => setMemoStep((x) => Math.max(x, 2))} readMs={500}
-                                parts={[{ text: 'Заметь: ' }, { text: 'МИНУС', color: REMEMBER_COLOR }, { text: ' ' }, { text: 'b', color: B_COLOR }]} />
-                            {memoStep === 2 && (
-                                <motion.div className="w-full flex" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                                    <button type="button" onClick={() => setMemoStep(3)} className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>
-                                        Ага, вижу, МИНУС b
-                                    </button>
-                                </motion.div>
-                            )}
-                        </div>
-                    ) : undefined} />}
+                rightOverride={memoRight} rowsShown={memo && memoStep < 2 ? 1 : 2}
+                between={assemble && asmStep >= numsStep - 1 ? <TypedBig small parts={[{ text: 'Подбери 2 числа 👆' }]} onDone={() => setAsmStep((x) => Math.max(x, numsStep))} readMs={150} />
+                    : memo && memoStep === 1 ? memoBtn('Ага, вижу c справа', 2)
+                    : memo && memoStep === 3 ? memoBtn('Ого, а тут МИНУС b', 4)
+                    : undefined} />}
+
             {asmStep === 1 && (
                 <StickerFlight rootRef={rootRef} kind="prod" from="eq-c" to="slot-prod" startValue={c} value={c} color={C_COLOR}
                     onDone={() => setTimeout(() => setAsmStep(2), 300)} />
             )}
             {asmStep === 2 && (
-                <StickerFlight rootRef={rootRef} kind="sum" from="eq-b" to="slot-sum" startValue={b} value={-b} color={B_COLOR}
+                <StickerFlight rootRef={rootRef} kind={memo ? 'plain' : 'sum'} from="eq-b" to="slot-sum" startValue={b} value={memo ? b : -b} color={B_COLOR}
                     onDone={() => setAsmStep(3)} />
             )}
             {phase >= 4 && (
