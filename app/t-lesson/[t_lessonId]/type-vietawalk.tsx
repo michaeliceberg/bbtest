@@ -1243,6 +1243,25 @@ const ReplyButton = ({ onClick, children }: { onClick: () => void; children: Rea
     </motion.div>
 )
 
+// Напоминание уравнения перед x₂: над a и c подписи «a» и «c», b бледное (оно тут не нужно).
+const TagAbove = ({ tag, color, children }: { tag: string; color: string; children: React.ReactNode }) => (
+    <span className="relative inline-flex">
+        <span className="absolute left-1/2 -translate-x-1/2 -top-8 text-lg font-black leading-none px-2 py-1 rounded-md"
+            style={{ color, backgroundColor: hexToRgba(color, 0.15) }}>{tag}</span>
+        {children}
+    </span>
+)
+const AcEq = ({ spec }: { spec: CheckSpec }) => (
+    <div className="w-full flex items-center justify-center pt-8 font-black text-[#F2F7FB] whitespace-nowrap text-3xl md:text-4xl">
+        <TagAbove tag="a" color={A_COLOR}><span style={{ color: A_COLOR }}>{spec.a}</span></TagAbove>
+        <span>x²</span>
+        <span className="inline-flex opacity-30"><Sgn n={spec.b} color="#F2F7FB" /><span>x</span></span>
+        {/* c — вместе со знаком: в 2x² + 3x − 5 c = −5 */}
+        <span className="ml-1.5"><TagAbove tag="c" color={C_COLOR}><span style={{ color: C_COLOR }}>{spec.c < 0 ? `−${-spec.c}` : `+${spec.c}`}</span></TagAbove></span>
+        <span className="ml-1.5">= 0</span>
+    </div>
+)
+
 // x₂ = c/a или x₂ = −c/a
 const X2Formula = ({ minus }: { minus?: boolean }) => (
     <span className="inline-flex items-center gap-2">x₂ = {minus && '−'}<Frac num={<Cf k={C_COLOR}>c</Cf>} den={<Cf k={A_COLOR}>a</Cf>} /></span>
@@ -1331,21 +1350,30 @@ const CheckRootScene = ({ spec, onSettled }: SceneProps & { spec: CheckSpec }) =
             {t >= 8 && <PauseThen ms={1000} onDone={tn(9)} />}
             {t === 9 && <ReplyButton onClick={() => setT(10)}>{one ? 'Мы везунчики!' : 'Нам снова везёт!'}</ReplyButton>}
             {t >= 10 && <TypedBig small onDone={tn(11)} readMs={1000} parts={[{ text: 'Тогда второй корень:' }]} />}
-            {/* x₂ в 2 этапа: сначала формула, пауза, потом справа «= значение». */}
+            {/* Исходное уравнение к этому месту уже ушло вверх: напоминаем его, подписав a и c. */}
             {t >= 11 && (
+                <DiagramBlock onSettled={tn(12)}>
+                    <AcEq spec={spec} />
+                </DiagramBlock>
+            )}
+            {/* x₂ в 2 этапа: сначала формула, пауза, потом справа «= значение» (c и a своими цветами). */}
+            {t >= 13 && (
                 <div className="w-full flex justify-center items-center gap-2 text-4xl md:text-5xl font-black text-[#F2F7FB]">
                     <Pop><X2Formula minus={!one} /></Pop>
-                    {t >= 12 && (
+                    {t >= 14 && (
                         <Pop>
                             <span className="inline-flex items-center gap-2">=
-                                <span className="inline-flex items-center" style={{ color: ROOT_COLOR }}><NumText s={spec.x2} /></span>
+                                <span className="inline-flex items-center">
+                                    {!one && '−'}<Frac num={<Cf k={C_COLOR}>{fmt(spec.c)}</Cf>} den={<Cf k={A_COLOR}>{spec.a}</Cf>} />
+                                </span>
                             </span>
                         </Pop>
                     )}
                 </div>
             )}
-            {t >= 11 && <PauseThen ms={1500} onDone={tn(12)} />}
-            {t >= 12 && <PauseThen ms={1000} onDone={() => onSettled?.()} />}
+            {t >= 12 && <PauseThen ms={1000} onDone={tn(13)} />}
+            {t >= 13 && <PauseThen ms={1500} onDone={tn(14)} />}
+            {t >= 14 && <PauseThen ms={1000} onDone={() => onSettled?.()} />}
         </>
     )
 }
