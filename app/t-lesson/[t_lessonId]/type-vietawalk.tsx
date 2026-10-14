@@ -452,8 +452,10 @@ const StickerFlight = ({ rootRef, kind, from, to, startValue, value, color, onDo
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [rects, step])
-    if (!rects || step >= steps.length) return null
-    const stage = steps[step].stage
+    // После последнего этапа стикер остаётся на месте, пока родитель его не уберёт: число в строке
+    // появляется в том же кадре, без пустой вспышки.
+    if (!rects) return null
+    const stage = steps[Math.min(step, steps.length - 1)].stage
     const { a, b } = rects
     const scaleEnd = b.font / a.font
     // Цель: цифра стикера встаёт ровно на место числа в строке.
@@ -630,16 +632,38 @@ const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain, assemble, mem
     const asm = assemble ? (memo
         ? { prod: asmStep >= 2, sum: asmStep >= 5, nums: asmStep >= 6 }
         : { prod: asmStep >= 2, sum: asmStep >= 3, nums: asmStep >= 4 }) : undefined
+    // memo: правая часть — фиксированная раскладка, ничего не прыгает. Цифра встаёт поверх буквы (c / b),
+    // буква гаснет как раз к посадке стикера, а число в строке появляется в тот же кадр, когда стикер исчезает.
+    const cell = { gridArea: '1 / 1' } as const
+    const fadeAt = (on: boolean, delayMs: number) => ({ ...cell, opacity: on ? 0 : 1, transition: on ? `opacity 400ms ease ${delayMs}ms` : 'none' })
     const memoRight = memo ? {
-        prod: asmStep < 2 ? <span data-marker="slot-prod">c</span> : undefined,
-        sum: asmStep < 3
-            ? <><span>−</span><span data-marker="slot-sum" className={`ml-6 ${asmStep === 2 ? 'opacity-0 transition-opacity duration-700' : ''}`}>b</span></>
-            : asmStep === 3
-                ? <><span className="relative inline-flex items-center">−<span className="ml-2">−</span><MarkerLoop pad={8} /></span>{-b}</>
-                : asmStep === 4
-                    ? <><motion.span className="inline-block" initial={{ scale: 2.4, rotate: -90 }} animate={{ scale: 1, rotate: 0 }}
-                        transition={{ type: 'spring', stiffness: 420, damping: 10 }}>+</motion.span>{-b}</>
-                    : undefined,
+        prod: (
+            <span className="inline-grid justify-items-center">
+                <span data-marker="slot-prod" style={fadeAt(asmStep >= 1, 1800)}>c</span>
+                <span style={{ ...cell, opacity: asmStep >= 2 ? 1 : 0 }}>{c}</span>
+            </span>
+        ),
+        sum: (
+            <span className="inline-flex items-center">
+                <motion.span className={`relative inline-grid justify-items-center ${asmStep >= 5 ? 'overflow-hidden' : ''}`}
+                    initial={false} animate={{ width: asmStep >= 5 ? 0 : 'auto', opacity: asmStep >= 5 ? 0 : 1 }}
+                    transition={{ duration: 0.45, ease: 'easeInOut' }}>
+                    <span className="inline-flex items-center whitespace-nowrap" style={{ ...cell, opacity: asmStep >= 4 ? 0 : 1, transition: 'opacity 200ms' }}>
+                        <span>−</span>
+                        <span className="inline-block ml-2 mr-0.5" style={{ opacity: asmStep >= 3 ? 1 : 0 }}>−</span>
+                    </span>
+                    {asmStep >= 4 && (
+                        <motion.span className="inline-block" style={cell} initial={{ scale: 2.4, rotate: -90 }} animate={{ scale: 1, rotate: 0 }}
+                            transition={{ type: 'spring', stiffness: 420, damping: 10 }}>+</motion.span>
+                    )}
+                    {asmStep === 3 && <MarkerLoop pad={8} />}
+                </motion.span>
+                <span className="inline-grid justify-items-center">
+                    <span data-marker="slot-sum" style={fadeAt(asmStep >= 2, 1900)}>b</span>
+                    <span style={{ ...cell, opacity: asmStep >= 3 ? 1 : 0 }}>{-b}</span>
+                </span>
+            </span>
+        ),
     } : undefined
     const memoBtn = (label: string, next: number) => (
         <motion.div className="w-full flex" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -659,14 +683,14 @@ const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain, assemble, mem
             {phase >= 2 && <TypedBig small parts={[{ text: memo ? 'Запомни систему:' : assemble ? 'Составим систему:' : 'Подбери 2 числа 👇' }]} onDone={() => setPhase((p) => Math.max(p, 3))} readMs={150} />}
             {phase >= 3 && <PairBuilder c={c} s={-b} nums={nums} focus={focus} asm={asm} onSolved={() => setPhase(4)}
                 rightOverride={memoRight} rowsShown={memo && memoStep < 2 ? 1 : 2}
-                between={assemble && asmStep >= numsStep - 1 ? <TypedBig small parts={[{ text: 'Подбери 2 числа 👆' }]} onDone={() => setAsmStep((x) => Math.max(x, numsStep))} readMs={150} />
-                    : memo && memoStep === 1 ? memoBtn('Ага, вижу c справа', 2)
-                    : memo && memoStep === 3 ? memoBtn('Ого, а тут МИНУС b', 4)
+                between={assemble && asmStep >= numsStep - 1 ? <TypedBig small parts={[{ text: 'Подбери x₁ x₂ 👆' }]} onDone={() => setAsmStep((x) => Math.max(x, numsStep))} readMs={150} />
+                    : memo && memoStep === 1 ? memoBtn('Произведение равно Цэ', 2)
+                    : memo && memoStep === 3 ? memoBtn('Сумма равна МИНУС b', 4)
                     : undefined} />}
 
             {asmStep === 1 && (
                 <StickerFlight rootRef={rootRef} kind="prod" from="eq-c" to="slot-prod" startValue={c} value={c} color={C_COLOR}
-                    onDone={() => setTimeout(() => setAsmStep(2), 300)} />
+                    onDone={() => setAsmStep(2)} />
             )}
             {asmStep === 2 && (
                 <StickerFlight rootRef={rootRef} kind={memo ? 'plain' : 'sum'} from="eq-b" to="slot-sum" startValue={b} value={memo ? b : -b} color={B_COLOR}
