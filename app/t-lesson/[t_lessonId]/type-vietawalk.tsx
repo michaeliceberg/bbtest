@@ -735,16 +735,15 @@ const Guess712Scene = (p: SceneProps) => <PairGuessScene {...p} intro="А вот
 // Ошибка не в зачёт.
 type ComboRound = { b: number; c: number; nums: number[]; roots: number[] }
 // После «ЗАКРЕП» (a = 1, раньше тут были 4 раунда только с правой частью).
+// 3 примера с положительными корнями, 2 — один плюс, другой минус, 2 — оба отрицательные.
 const ZAKREP_ROUNDS: ComboRound[] = [
-    { b: -8, c: 12, nums: [12, -12, 8, -8, 4, 20], roots: [1, 2, 3, 4, 6, 12] },
-    { b: 5, c: 6, nums: [6, -6, 5, -5, 11, 1], roots: [-1, -2, -3, 2, 3, -6] },
-    { b: -2, c: -15, nums: [-15, 15, 2, -2, 8, -13], roots: [3, -3, 5, -5, 1, 15] },
-    { b: 4, c: -21, nums: [-21, 21, 4, -4, 3, -17], roots: [3, -3, 7, -7, 1, 21] },
-]
-const COMBO_ROUNDS: ComboRound[] = [
-    { b: -7, c: 10, nums: [10, -10, 7, -7, 3, 17], roots: [1, 2, 3, 5, 7, 10] },
-    { b: 2, c: -8, nums: [-8, 8, -2, 2, 6, -6], roots: [2, -2, 4, -4, 1, 8] },
-    { b: -1, c: -12, nums: [-12, 12, 1, -1, 7, -7], roots: [3, -3, 4, -4, 2, 6] },
+    { b: -5, c: 4, nums: [4, -4, 5, -5, 1, 9], roots: [1, 4, 2, -1, -4, 5] },
+    { b: -8, c: 15, nums: [15, -15, 8, -8, 2, 23], roots: [3, 5, -3, -5, 1, 15] },
+    { b: -9, c: 14, nums: [14, -14, 9, -9, 5, 23], roots: [2, 7, -2, -7, 1, 14] },
+    { b: 1, c: -12, nums: [-12, 12, -1, 1, 7, -7], roots: [3, -4, -3, 4, 2, 6] },
+    { b: -3, c: -10, nums: [-10, 10, 3, -3, 7, -7], roots: [5, -2, -5, 2, 1, 10] },
+    { b: 7, c: 10, nums: [10, -10, -7, 7, 3, -3], roots: [-2, -5, 2, 5, -1, -10] },
+    { b: 8, c: 12, nums: [12, -12, -8, 8, 4, -4], roots: [-2, -6, 2, 6, -3, -4] },
 ]
 const STAGE_TEXT = { 1: 'Этап 1: правая часть', 2: 'Этап 2: подбираем x₁ и x₂' } as const
 const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolean; onSolved: () => void }) => {
@@ -872,21 +871,6 @@ const ZakrepScene = ({ onSettled }: SceneProps) => {
         </>
     )
 }
-const ComboScene = ({ onSettled }: SceneProps) => {
-    const [phase, setPhase] = useState(0)
-    return (
-        <>
-            <TypedBig onDone={() => setPhase(1)} readMs={300}
-                parts={[{ text: 'А теперь ' }, { text: 'КОМБО', color: REMEMBER_COLOR }, { text: ' 🔥' }]} />
-            {phase >= 1 && <TypedBig small onDone={() => setPhase(2)} readMs={500} parts={[{ text: 'Решаем в 2 этапа' }]} />}
-            {phase >= 2 && (
-                <ComboRounds rounds={COMBO_ROUNDS} onDone={() => onSettled?.()}
-                    doneText={<TypedBig parts={[{ text: 'Комбо ' }, { text: 'выбито', color: OK_COLOR }, { text: ' 💥' }]} readMs={200} />} />
-            )}
-        </>
-    )
-}
-
 // Буква-коэффициент падает сверху в пунктирную клетку.
 const FallingLetter = ({ letter, color, delay }: { letter: string; color: string; delay: number }) => (
     <span className="relative inline-flex items-center justify-center w-12 h-14 md:w-14 md:h-16 rounded-xl border-2 border-dashed mx-0.5"
@@ -1044,277 +1028,116 @@ const CoefDrillScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-// 4. ЗАПОМНИ: словами — УМНОЖИМ корни → c, СЛОЖИМ корни → b с другим знаком.
-const RuleScene = ({ onSettled }: SceneProps) => {
-    const [phase, setPhase] = useState(0)
-    useEffect(() => {
-        if (phase === 0) { const t = setTimeout(() => setPhase(1), 700); return () => clearTimeout(t) }
-        if (phase === 4) { const t = setTimeout(() => setPhase(5), 2400); return () => clearTimeout(t) }
-        if (phase === 5) { const t = setTimeout(() => onSettled?.(), 1200); return () => clearTimeout(t) }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [phase])
-    return (
-        <>
-            <RememberBanner>ЗАПОМНИ!</RememberBanner>
-            {phase >= 1 && (
-                <TypedBig onDone={() => setPhase(2)} readMs={300}
-                    parts={[{ text: 'УМНОЖИМ', color: ROOT_COLOR }, { text: ' корни → ' }, { text: 'c', color: C_COLOR }]} />
-            )}
-            {phase >= 2 && (
-                <TypedBig onDone={() => setPhase(3)} readMs={300}
-                    parts={[{ text: 'СЛОЖИМ', color: ROOT_COLOR }, { text: ' корни → ' }, { text: 'b', color: B_COLOR }, { text: ' с другим знаком' }]} />
-            )}
-            {phase >= 3 && (
-                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 4))}>
-                    <Eq a={1} b={-7} c={12} colors size="text-2xl md:text-3xl" />
-                </DiagramBlock>
-            )}
-            {phase >= 4 && (
-                <>
-                    <Fact>3 · 4 = <span style={{ color: C_COLOR }}>12</span> ✓</Fact>
-                    <Fact delay={0.7}>3 + 4 = 7, а тут <span style={{ color: B_COLOR }}>−7</span> ✓</Fact>
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.3 }}
-                        className="w-full text-center text-base text-[#9AA7B0]">
-                        Знак <b>наоборот</b> — вот и вся хитрость 😉
-                    </motion.div>
-                </>
-            )}
-        </>
-    )
-}
-
-// Гонка (после c/a и угадывания корня): 17x² − 317x + 300 = 0. Виета: 17 − 317 + 300 = 0 → x₁ = 1, x₂ = c/a.
-// Дискриминант: 317² − 4·17·300 = 80 089, √80 089 = 283 — считать долго.
-const RACE_D_LINES: React.ReactNode[] = [
-    <span key="1">D = 317² − 4 · 17 · 300</span>,
-    <span key="2">D = 100 489 − 20 400</span>,
-    <span key="3">D = 80 089</span>,
-    <span key="4">√80 089 = … 😵‍💫</span>,
-    <span key="5">√80 089 = 283</span>,
-    <span key="6" className="inline-flex items-center gap-1">x = <Frac num="317 ± 283" den="34" /></span>,
-    <span key="7" className="inline-flex items-center gap-1">x₁ = 1, x₂ = <Frac num="300" den="17" /></span>,
+// Все прошлые уравнения — с a = 1 (из урока: коэффициенты, первые два, закреп).
+const A1_LIST: EqSpec[] = [
+    { a: 1, b: -5, c: 6 }, { a: 1, b: -7, c: 12 }, { a: 1, b: 5, c: 4 }, { a: 1, b: -2, c: -15 },
+    ...ZAKREP_ROUNDS.map((r) => ({ a: 1, b: r.b, c: r.c })),
 ]
-const RaceScene = ({ onSettled }: SceneProps) => {
+const Cf = ({ k, children }: { k: string; children: React.ReactNode }) => <span style={{ color: k }}>{children}</span>
+const VIETA_STICKER = '/remember-stickers/gentelmen-notext.webp'
+
+// После закрепа: везде было a = 1 → а если нет? → Теорема Виета (c/a и −b/a).
+const TheoremScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
-    // phase 1: старт; Виета готов сразу, дискриминант — строка за строкой
-    useEffect(() => {
-        if (phase < 1 || phase > RACE_D_LINES.length + 1) return
-        const t = setTimeout(() => setPhase(phase + 1), phase === 1 ? 700 : 1200)
-        return () => clearTimeout(t)
-    }, [phase])
-    const dLines = Math.max(0, Math.min(RACE_D_LINES.length, phase - 1))
     return (
         <>
-            <TypedBig small parts={[{ text: 'А теперь реши вот это 😈' }]} onDone={() => setPhase((p) => Math.max(p, 1))} readMs={200} />
+            <TypedBig small onDone={() => setPhase(1)} readMs={300}
+                parts={[{ text: 'Во всех прошлых уравнениях ' }, { text: 'a = 1', color: A_COLOR }]} />
             {phase >= 1 && (
-                <DiagramBlock>
-                    <div className="w-full flex flex-col items-center gap-3">
-                        <Eq a={17} b={-317} c={300} colors size="text-xl md:text-3xl" />
-                        <div className="w-full grid grid-cols-2 gap-3">
-                            <div className="rounded-xl border-2 p-3 flex flex-col items-center gap-1.5 min-h-[230px]" style={{ borderColor: hexToRgba(OK_COLOR, 0.6) }}>
-                                <div className="text-sm font-black" style={{ color: OK_COLOR }}>Виета ⚡</div>
-                                <Fact><span className="text-sm md:text-base">17 − 317 + 300 = 0</span></Fact>
-                                <Fact delay={0.4}><span className="text-base">x₁ = 1</span></Fact>
-                                <Fact delay={0.8}><span className="text-base inline-flex items-center gap-1">x₂ = <Frac num={<span style={{ color: C_COLOR }}>300</span>} den={<span style={{ color: A_COLOR }}>17</span>} /></span></Fact>
-                                <Fact delay={1.2} color={OK_COLOR}><Pop delay={1.2}>Готово ✓</Pop></Fact>
-                            </div>
-                            <div className="rounded-xl border-2 p-3 flex flex-col items-center gap-1.5 min-h-[230px]" style={{ borderColor: hexToRgba(BAD_COLOR, 0.6) }}>
-                                <div className="text-sm font-black" style={{ color: BAD_COLOR }}>Дискриминант 🐢</div>
-                                {RACE_D_LINES.map((l, i) => ({ l, i })).slice(0, dLines).filter(({ i }) => !(i === 3 && dLines > 4)).map(({ l, i }) => <Fact key={i}><span className="text-sm md:text-base">{l}</span></Fact>)}
-                            </div>
-                        </div>
+                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 2))}>
+                    <div className="drop-in-options w-full grid grid-cols-2 gap-x-3 gap-y-1.5">
+                        {A1_LIST.map((e, i) => <Eq key={i} {...e} showOne size="text-base md:text-lg" />)}
                     </div>
                 </DiagramBlock>
             )}
-            {phase >= RACE_D_LINES.length + 2 && (
-                <TypedBig onDone={() => onSettled?.()} readMs={400}
-                    parts={[{ text: 'Виета', color: OK_COLOR }, { text: ' в разы быстрее! ⚡' }]} />
-            )}
-        </>
-    )
-}
-
-// 5. Твоя очередь: простые примеры.
-const SIMPLE_ROUNDS = [simpleRound(2, 4), simpleRound(4, 5), simpleRound(3, 5)]
-const SimpleRoundsScene = ({ onSettled }: SceneProps) => {
-    const [phase, setPhase] = useState(0)
-    return (
-        <>
-            <TypedBig parts={[{ text: 'Твоя очередь! Подбери корни 💪' }]} onDone={() => setPhase(1)} readMs={200} />
-            {phase >= 1 && <RoundsBody rounds={SIMPLE_ROUNDS} onDone={() => onSettled?.()} />}
-        </>
-    )
-}
-
-// 6. Посложнее: x² + x − 6 = 0, корни разных знаков.
-const NEG_INTRO_ROUND: Round = {
-    eq: { a: 1, b: 1, c: -6 },
-    steps: [
-        {
-            ask: <span><X1X2 /> = ?</span>, options: ['−6', '6', '1', '−1'], correct: '−6',
-            hint: (o) => (o === '6' ? 'c = −6, минус тоже берём 🙃' : 'Произведение = c 🙃'),
-            after: <span><X1X2 /> = −6 <span style={{ color: REMEMBER_COLOR }}>Минус, значит знаки РАЗНЫЕ!</span></span>,
-        },
-        {
-            ask: <span><X1PX2 /> = ?</span>, options: ['−1', '1', '−6'], correct: '−1',
-            hint: (o) => (o === '1' ? 'b = 1, сумма = −b = −1 🙃' : 'Сумма = −b 🙃'),
-            after: <span><X1PX2 /> = −1</span>,
-        },
-        {
-            ask: <span>Значит, корни:</span>, options: ['2 и −3', '−2 и 3', '1 и −6', '2 и 3'], correct: '2 и −3',
-            hint: pairHint(-6, -1),
-            after: <span style={{ color: ROOT_COLOR }}>Корни: 2 и −3 ✓</span>,
-        },
-    ],
-}
-const NegIntroScene = ({ onSettled }: SceneProps) => {
-    const [phase, setPhase] = useState(0)
-    return (
-        <>
-            <TypedBig parts={[{ text: 'А теперь посложнее 😏' }]} onDone={() => setPhase(1)} readMs={200} />
-            {phase >= 1 && <RoundsBody rounds={[NEG_INTRO_ROUND]} onDone={() => setPhase(2)} />}
-            {phase >= 2 && (
-                <TypedBig small onDone={() => onSettled?.()} readMs={400}
-                    parts={[{ text: 'Корни бывают с ' }, { text: 'МИНУСОМ', color: BAD_COLOR }, { text: '!' }]} />
-            )}
-        </>
-    )
-}
-
-const NEG_ROUNDS = [simpleRound(4, -3), simpleRound(-2, -3), simpleRound(2, -4)]
-const NegRoundsScene = ({ onSettled }: SceneProps) => {
-    const [phase, setPhase] = useState(0)
-    return (
-        <>
-            <TypedBig small parts={[{ text: 'Ещё парочку, с минусами:' }]} onDone={() => setPhase(1)} readMs={200} />
-            {phase >= 1 && <RoundsBody rounds={NEG_ROUNDS} onDone={() => onSettled?.()} />}
-        </>
-    )
-}
-
-// 7. На самом деле: c/a и −b/a.
-const GeneralScene = ({ onSettled }: SceneProps) => {
-    const [phase, setPhase] = useState(0)
-    useEffect(() => {
-        if (phase !== 3) return
-        const t = setTimeout(() => setPhase(4), 2000)
-        return () => clearTimeout(t)
-    }, [phase])
-    return (
-        <>
-            <TypedBig small parts={[{ text: 'До этого везде было ' }, { text: 'a = 1', color: A_COLOR }]} onDone={() => setPhase(1)} readMs={300} />
-            {phase >= 1 && (
-                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 2))}>
-                    <Eq a={1} b={-7} c={12} colors showOne />
-                </DiagramBlock>
-            )}
-            {phase >= 2 && <TypedBig small parts={[{ text: 'А если ' }, { text: 'a', color: A_COLOR }, { text: ' не 1? Тогда:' }]} onDone={() => setPhase(3)} readMs={200} />}
+            {phase >= 2 && <PauseThen ms={1600} onDone={() => setPhase(3)} />}
             {phase >= 3 && (
-                <>
-                    <RememberBanner />
-                    <Fact><span className="text-2xl md:text-3xl font-black inline-flex items-center gap-2">x₁ · x₂ = <Frac num={<span style={{ color: C_COLOR }}>c</span>} den={<span style={{ color: A_COLOR }}>a</span>} /></span></Fact>
-                    <Fact delay={0.7}><span className="text-2xl md:text-3xl font-black inline-flex items-center gap-2">x₁ + x₂ = <Frac num={<span style={{ color: B_COLOR }}>−b</span>} den={<span style={{ color: A_COLOR }}>a</span>} /></span></Fact>
-                </>
+                <TypedBig onDone={() => setPhase(4)} readMs={300}
+                    parts={[{ text: 'Но что если ' }, { text: 'a', color: A_COLOR }, { text: ' НЕ 1?' }]} />
             )}
             {phase >= 4 && (
-                <TypedBig small onDone={() => onSettled?.()} readMs={400}
-                    parts={[{ text: 'Просто делим на ' }, { text: 'a', color: A_COLOR }, { text: '. При a = 1 всё как раньше.' }]} />
-            )}
-        </>
-    )
-}
-
-// 8. 2x² + 3x − 5 = 0: угадываем x = 1.
-const GuessOneScene = ({ onSettled }: SceneProps) => {
-    const [phase, setPhase] = useState(0)
-    useEffect(() => {
-        const next: Record<number, [number, number]> = { 4: [5, 1100], 5: [6, 900], 6: [7, 1300] }
-        const s = next[phase]
-        if (!s) return
-        const t = setTimeout(() => setPhase(s[0]), s[1])
-        return () => clearTimeout(t)
-    }, [phase])
-    return (
-        <>
-            <TypedBig small parts={[{ text: 'Возьмём уравнение с a = 2:' }]} onDone={() => setPhase(1)} readMs={200} />
-            {phase >= 1 && (
-                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 2))}>
+                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 5))}>
                     <Eq a={2} b={3} c={-5} colors />
                 </DiagramBlock>
             )}
-            {phase >= 2 && <TypedBig small parts={[{ text: 'Подбирать сложно. ' }, { text: 'УГАДАЕМ', color: REMEMBER_COLOR }, { text: ' один корень!' }]} onDone={() => setPhase(3)} readMs={200} />}
-            {phase >= 3 && <TypedBig small parts={[{ text: 'Проверим x = 1' }]} onDone={() => setPhase(4)} readMs={200} />}
-            {phase >= 4 && <Fact>2 · 1² + 3 · 1 − 5 = 2 + 3 − 5 = 0</Fact>}
-            {phase >= 5 && <Fact color={OK_COLOR}><Pop>Подошло! x₁ = 1 ✓</Pop></Fact>}
+            {phase >= 5 && <PauseThen ms={1200} onDone={() => setPhase(6)} />}
             {phase >= 6 && (
-                <Fact>
-                    <span className="inline-flex items-center gap-1.5">x₁ · x₂ = <Frac num={<span style={{ color: C_COLOR }}>c</span>} den={<span style={{ color: A_COLOR }}>a</span>} /> = <NumText s="−5/2" /></span>
-                </Fact>
-            )}
-            {phase >= 7 && phase < 8 && (
-                <QuickPick ask={<span>1 · x₂ = <NumText s="−5/2" />, значит x₂ =</span>} options={['−5/2', '5/2', '−5', '−2/5']} correct="−5/2"
-                    hint={() => 'Умножаем на 1 — число не меняется 🙃'} onDone={() => setPhase(8)} />
-            )}
-            {phase >= 8 && (
-                <>
-                    <Fact color={ROOT_COLOR}>Корни: 1 и <NumText s="−5/2" /> 🎉</Fact>
-                    <TypedBig small onDone={() => onSettled?.()} readMs={400}
-                        parts={[{ text: 'x = 1 подходит, если ' }, { text: 'a + b + c = 0', color: REMEMBER_COLOR }]} />
-                </>
-            )}
-        </>
-    )
-}
-
-// 9. Бывает и x = −1: 3x² + 10x + 7 = 0.
-const GuessMinusOneScene = ({ onSettled }: SceneProps) => {
-    const [phase, setPhase] = useState(0)
-    useEffect(() => {
-        const next: Record<number, [number, number]> = { 2: [3, 1300], 3: [4, 1400], 4: [5, 1300] }
-        const s = next[phase]
-        if (!s) return
-        const t = setTimeout(() => setPhase(s[0]), s[1])
-        return () => clearTimeout(t)
-    }, [phase])
-    return (
-        <>
-            <TypedBig small parts={[{ text: 'А бывает, что подходит ' }, { text: 'x = −1', color: REMEMBER_COLOR }]} onDone={() => setPhase(1)} readMs={200} />
-            {phase >= 1 && (
-                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 2))}>
-                    <Eq a={3} b={10} c={7} colors />
+                <DiagramBlock onSettled={() => onSettled?.()}>
+                    <RememberPlate title="А это Теорема Виета" sticker={VIETA_STICKER}>
+                        <span className="text-2xl md:text-3xl font-black inline-flex items-center gap-2">
+                            x₁ · x₂ = <Frac num={<Cf k={C_COLOR}>c</Cf>} den={<Cf k={A_COLOR}>a</Cf>} />
+                        </span>
+                        <span className="text-2xl md:text-3xl font-black inline-flex items-center gap-2">
+                            x₁ + x₂ = <Frac num={<Cf k={B_COLOR}>−b</Cf>} den={<Cf k={A_COLOR}>a</Cf>} />
+                        </span>
+                    </RememberPlate>
                 </DiagramBlock>
             )}
-            {phase >= 2 && <Fact color={BAD_COLOR}>x = 1: 3 + 10 + 7 = 20 ✗</Fact>}
-            {phase >= 3 && <Fact>x = −1: 3 · (−1)² + 10 · (−1) + 7 = 3 − 10 + 7 = 0</Fact>}
-            {phase >= 4 && <Fact color={OK_COLOR}><Pop>Подошло! x₁ = −1 ✓</Pop></Fact>}
-            {phase >= 5 && (
-                <Fact>
-                    <span className="inline-flex items-center gap-1.5">x₁ · x₂ = <Frac num={<span style={{ color: C_COLOR }}>c</span>} den={<span style={{ color: A_COLOR }}>a</span>} /> = <NumText s="7/3" /></span>
-                </Fact>
-            )}
-            {phase === 5 && (
-                <QuickPick ask={<span>−1 · x₂ = <NumText s="7/3" />, значит x₂ =</span>} options={['−7/3', '7/3', '−3/7', '7']} correct="−7/3"
-                    hint={(o) => (o === '7/3' ? 'x₁ = −1, знак меняется! 🙃' : 'Делим 7/3 на −1 🙃')} onDone={() => setPhase(6)} />
-            )}
-            {phase >= 6 && (
-                <>
-                    <Fact color={ROOT_COLOR}>Корни: −1 и <NumText s="−7/3" /> 🎉</Fact>
-                    <TypedBig small onDone={() => onSettled?.()} readMs={400}
-                        parts={[{ text: 'x = −1 подходит, когда ' }, { text: 'a − b + c = 0', color: REMEMBER_COLOR }]} />
-                </>
-            )}
         </>
     )
 }
 
-// 10. Раунды «угадай корень».
-const GUESS_ROUNDS = [guessRound(3, -7, 4, 1), guessRound(2, 5, 3, -1), guessRound(5, 2, -7, 1), guessRound(4, 3, -1, -1)]
-const GuessRoundsScene = ({ onSettled }: SceneProps) => {
+// Колонка «если x₁ = … → x₂ = …».
+const RootCol = ({ x1, minus }: { x1: string; minus?: boolean }) => (
+    <div className="flex-1 flex flex-col items-center gap-2 rounded-xl px-2 py-3"
+        style={{ backgroundColor: '#161F23', border: `2px solid ${hexToRgba(ROOT_COLOR, 0.45)}` }}>
+        <span className="text-sm md:text-base font-bold text-[#9AA7B0]">если</span>
+        <span className="text-xl md:text-2xl font-black" style={{ color: ROOT_COLOR }}>x₁ = {x1}</span>
+        <span className="text-[#9AA7B0] text-lg">⬇</span>
+        <span className="text-xl md:text-2xl font-black text-[#F2F7FB] inline-flex items-center gap-1">
+            x₂ = {minus && '−'}<Frac num={<Cf k={C_COLOR}>c</Cf>} den={<Cf k={A_COLOR}>a</Cf>} />
+        </span>
+    </div>
+)
+
+// Проверяем только x = 1 и x = −1, на примере 2x² + 3x − 5 = 0.
+const CheckOneScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
     return (
         <>
-            <TypedBig small parts={[{ text: 'Теперь сам: угадай корень, потом второй' }]} onDone={() => setPhase(1)} readMs={200} />
-            {phase >= 1 && <RoundsBody rounds={GUESS_ROUNDS} onDone={() => onSettled?.()} />}
+            <TypedBig small onDone={() => setPhase(1)} readMs={300}
+                parts={[{ text: 'Проверяем ТОЛЬКО корни ' }, { text: 'x = 1', color: ROOT_COLOR }, { text: ' и ' }, { text: 'x = −1', color: ROOT_COLOR }]} />
+            {phase >= 1 && (
+                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 2))}>
+                    <div className="w-full flex gap-3">
+                        <RootCol x1="1" />
+                        <RootCol x1="−1" minus />
+                    </div>
+                </DiagramBlock>
+            )}
+            {phase >= 2 && <PauseThen ms={1400} onDone={() => setPhase(3)} />}
+            {phase >= 3 && (
+                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 4))}>
+                    <Eq a={2} b={3} c={-5} colors />
+                </DiagramBlock>
+            )}
+            {phase >= 4 && (
+                <TypedBig small onDone={() => setPhase(5)} readMs={300}
+                    parts={[{ text: 'Проверим: ' }, { text: 'x₁ = 1', color: ROOT_COLOR }, { text: ' подойдёт?' }]} />
+            )}
+            {phase >= 5 && (
+                <QuickPick ask={<span>2 + 3 − 5 = ?</span>} options={['0', '10', '−6', '4']} correct="0"
+                    hint={() => 'По порядку: 2 + 3 = 5, а 5 − 5 = ? 🙃'} onDone={() => setPhase(6)} />
+            )}
+            {phase >= 6 && <Fact color={OK_COLOR}><Pop>Получилось 0! 🎉</Pop></Fact>}
+            {phase >= 6 && <PauseThen ms={900} onDone={() => setPhase(7)} />}
+            {phase >= 7 && (
+                <Fact delay={0.1}>
+                    <span className="inline-flex items-center gap-1.5">
+                        <span style={{ color: ROOT_COLOR }}>x₁ = 1</span>, значит x₂ = <Frac num={<Cf k={C_COLOR}>c</Cf>} den={<Cf k={A_COLOR}>a</Cf>} />
+                    </span>
+                </Fact>
+            )}
+            {phase >= 7 && <PauseThen ms={1300} onDone={() => setPhase(8)} />}
+            {phase >= 8 && (
+                <QuickPick ask={<span>x₂ = ?</span>} options={['−5/2', '5/2', '−2/5', '−5']} correct="−5/2"
+                    hint={(o) => (o === '5/2' ? 'c = −5, минус не теряем 🙃' : o === '−2/5' ? 'Сверху c, снизу a 🙃' : 'Не забудь поделить на a = 2 🙃')}
+                    onDone={() => setPhase(9)} />
+            )}
+            {phase >= 9 && (
+                <TypedBig onDone={() => onSettled?.()} readMs={400}
+                    parts={[{ text: 'Корни: ' }, { text: '1', color: ROOT_COLOR }, { text: ' и ' }, { text: '−5/2', color: ROOT_COLOR }, { text: ' 🎉' }]} />
+            )}
         </>
     )
 }
@@ -1323,13 +1146,11 @@ const ReadyScene = ({ onSettled }: SceneProps) => (
     <TypedBig parts={[{ text: 'Приготовься, пора ' }, { text: 'блистать знаниями!', color: REMEMBER_COLOR }]} onDone={() => onSettled?.()} readMs={300} />
 )
 
-const SCENES = [CoefScene, CoefDrillScene, Guess56Scene, Guess712Scene, ZakrepScene, ComboScene, RuleScene, SimpleRoundsScene, NegIntroScene, NegRoundsScene, GeneralScene, GuessOneScene, GuessMinusOneScene, RaceScene, GuessRoundsScene, ReadyScene]
+const SCENES = [CoefScene, CoefDrillScene, Guess56Scene, Guess712Scene, ZakrepScene, TheoremScene, CheckOneScene, ReadyScene]
 const FIXED_NEXT_LABELS = new Map<unknown, string>([
     [ZakrepScene, 'Закреплено 📌'],
     [CoefScene, 'Невидимка, понял 👀'],
-    [RuleScene, 'Запомнил!'],
-    [RaceScene, 'Виета имба ⚡'],
-    [GeneralScene, 'Логично'],
+    [TheoremScene, 'Запомнил!'],
     [ReadyScene, 'ЛЕТС ГООООУ'],
 ])
 

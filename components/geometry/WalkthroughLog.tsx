@@ -951,20 +951,22 @@ export const DiagramBlock = ({ children, onSettled }: { children: React.ReactNod
 // сервер и браузер не разошлись). title — надпись на плашке, children — тело под ней (если нужно).
 export const REMEMBER_STICKERS = [1, 2, 3, 4, 5].map((n) => `/remember-stickers/r${n}.webp`)
 
-export const RememberPlate = ({ title = 'ЗАПОМНИ!', children }: { title?: React.ReactNode; children?: React.ReactNode }) => {
-    const [sticker, setSticker] = useState<string | null>(null)
+export const RememberPlate = ({ title = 'ЗАПОМНИ!', children, sticker: fixedSticker }: { title?: React.ReactNode; children?: React.ReactNode; sticker?: string }) => {
+    const [sticker, setSticker] = useState<string | null>(fixedSticker ?? null)
     useEffect(() => {
-        setSticker(REMEMBER_STICKERS[Math.floor(Math.random() * REMEMBER_STICKERS.length)])
-    }, [])
+        if (!fixedSticker) setSticker(REMEMBER_STICKERS[Math.floor(Math.random() * REMEMBER_STICKERS.length)])
+    }, [fixedSticker])
+    // Золотая рамка (не заливка): заголовок сверху, тело — внутри той же рамки под разделителем.
     return (
         <div className="w-full flex items-center gap-3">
-            <div className="flex-1 min-w-0 flex flex-col items-stretch gap-2">
-                <div className="lesson-pill flex items-center justify-center rounded-xl px-4 py-3 font-black text-lg md:text-xl text-center tracking-wide text-[#3A2603]">
-                    <span className="relative">{title}</span>
+            <div className="flex-1 min-w-0 flex flex-col items-stretch rounded-xl overflow-hidden"
+                style={{ backgroundColor: '#161F23', border: '2px solid rgba(232, 182, 54, 0.85)', boxShadow: '0 0 14px -4px rgba(232, 182, 54, 0.45)' }}>
+                <div className="flex items-center justify-center px-4 py-3 font-black text-lg md:text-xl text-center tracking-wide text-[#F2C35B]">
+                    {title}
                 </div>
                 {children && (
-                    <div className="flex flex-col items-center gap-2 rounded-xl px-4 py-3 font-black text-center text-[#F2F7FB]"
-                        style={{ backgroundColor: 'rgba(232, 182, 54, 0.08)', border: '2px solid rgba(232, 182, 54, 0.55)' }}>
+                    <div className="flex flex-col items-center gap-2 px-4 py-3 font-black text-center text-[#F2F7FB]"
+                        style={{ borderTop: '1px solid rgba(232, 182, 54, 0.35)' }}>
                         {children}
                     </div>
                 )}
