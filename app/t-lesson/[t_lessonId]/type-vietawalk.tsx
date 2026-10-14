@@ -28,6 +28,7 @@ import {
     useWalkthroughCombo,
     pickFunNextLabel,
     RememberPlate, MarkerLoop, ZakrepPlate,
+    AdminSceneMap, MAP_INTRO_COLOR, MAP_PRACTICE_COLOR, type AdminMapEntry,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -829,7 +830,7 @@ const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolea
                     <motion.span key={stage} className="inline-block" initial={{ scale: 0.3, y: -14, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
                         transition={{ type: 'spring', stiffness: 420, damping: 9 }}>{STAGE_TEXT[stage]}</motion.span>
                 </div>
-                <span className="justify-self-end"><DifficultyBadge level={rootsLevel(r)} /></span>
+                <span className="justify-self-end"><DifficultyBadge level={rootsLevel(r)} variant="bars" /></span>
             </div>
             <div className="flex flex-col items-center gap-3">
                 {row(0, '·', C_COLOR)}
@@ -1163,6 +1164,8 @@ const FIXED_NEXT_LABELS = new Map<unknown, string>([
     [TheoremScene, 'Запомнил!'],
     [ReadyScene, 'ЛЕТС ГООООУ'],
 ])
+// Подписи для админской карты этапов (по порядку SCENES).
+const SCENE_MAP_LABELS = ['Коэффициенты a, b, c', 'Сам: a, b, c', 'x² − 5x + 6', 'x² − 7x + 12', 'ЗАКРЕП (7 уравнений)', 'Теорема Виета (a ≠ 1)', 'Проверяем x = 1 и x = −1', 'Приготовься']
 
 // ===== Квиз =====
 type Trial = { prompt: React.ReactNode; eq: EqSpec; options: string[]; correct: string; hint: string }
@@ -1179,8 +1182,10 @@ const makeTrials = (): Trial[] => [
 const pickTrialFeedback = (i: number) => CORRECT_FEEDBACK_PHRASES[(i * 5 + 3) % CORRECT_FEEDBACK_PHRASES.length]
 
 // ===== Компонент =====
-export const TypeVietaWalk = ({ onAnswer, onComplete }: Props) => {
+export const TypeVietaWalk = ({ onAnswer, onComplete, isAdmin = false }: Props & { isAdmin?: boolean }) => {
     const INTRO_STEPS = SCENES.length
+    // С какой сцены рисуем лог: при админском прыжке прошлые сцены не проигрываем заново.
+    const [startStep, setStartStep] = useState(0)
     const [phase, setPhase] = useState<'intro' | 'practice'>('intro')
     const [hadMistake, setHadMistake] = useState(false)
     const [step, setStep] = useState(0)
@@ -1274,17 +1279,44 @@ export const TypeVietaWalk = ({ onAnswer, onComplete }: Props) => {
             setWrongTried([])
             setWrongFlash(null)
         } else {
+            const idx = Number(target.slice(5))
             setPhase('intro')
-            setStep(Number(target.slice(5)))
+            setStartStep((st) => Math.min(st, idx))
+            setStep(idx)
             setStepReady(false)
         }
     }
 
+    const jumpTo = (key: string) => {
+        if (advancing) return
+        bumpNonce(key)
+        setChecked(false); setWrongTried([]); setWrongFlash(null)
+        if (key.startsWith('trial-')) {
+            setStartStep(INTRO_STEPS)
+            setStep(INTRO_STEPS - 1)
+            setPhase('practice')
+            setTrialIndex(0)
+        } else {
+            const idx = Number(key.slice(5))
+            setStartStep(idx)
+            setPhase('intro')
+            setStep(idx)
+            setStepReady(false)
+        }
+    }
+    const mapEntries: AdminMapEntry[] = [
+        ...SCENE_MAP_LABELS.map((label, i) => ({
+            dotKey: `s${i}`, label, jumpKey: `step-${i}`, isActive: latestSceneKey === `step-${i}`, color: MAP_INTRO_COLOR,
+        })),
+        { dotKey: 'trials', label: `Проверим себя (${trials.length})`, jumpKey: 'trial-0', isActive: phase === 'practice', color: MAP_PRACTICE_COLOR },
+    ]
+
     return (
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
+            {isAdmin && <AdminSceneMap enabled entries={mapEntries} onJump={jumpTo} disabled={advancing} />}
             <div className="w-full flex flex-col gap-4">
                 {SCENES.map((Scene, i) =>
-                    step >= i ? (
+                    step >= i && i >= startStep ? (
                         <SceneWrapper key={`step-${i}`} innerRef={sceneRef(`step-${i}`)} active={isSceneActive(`step-${i}`)}>
                             <Fragment key={`step-${i}-${nonceFor(`step-${i}`)}`}>
                                 <Scene onSettled={() => i === step && setStepReady(true)} />

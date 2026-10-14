@@ -438,7 +438,7 @@ export default function TrainerQuestion({
 
       case "VIETAWALK":
         // «Как работает теорема Виета» — см. type-vietawalk.tsx.
-        return <TypeVietaWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
+        return <TypeVietaWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} isAdmin={isAdmin} />
 
       case "TRIGCIRCWALK":
         // «Тригонометрическая окружность: знакомство» — см. type-trigcirclewalk.tsx.
