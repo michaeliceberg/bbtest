@@ -1225,12 +1225,12 @@ const CheckOneScene = ({ onSettled }: SceneProps) => {
     return (
         <>
             <div className="w-full flex flex-col items-center gap-4 transition-all duration-700" style={ruleDim}>
-            <TypedBig small onDone={next(1)} readMs={2000}
+            <TypedBig small onDone={next(1)} readMs={1000}
                 parts={[{ text: 'В таких уравнениях мы будем ' }, { text: 'ТУПО ПРОВЕРЯТЬ', color: REMEMBER_COLOR }]} />
             {phase >= 1 && <BigLine color={ROOT_COLOR}>x₁ = 1</BigLine>}
-            {phase >= 1 && <PauseThen ms={2000} onDone={next(2)} />}
+            {phase >= 1 && <PauseThen ms={1000} onDone={next(2)} />}
             {phase >= 2 && (
-                <TypedBig small onDone={next(3)} readMs={2000}
+                <TypedBig small onDone={next(3)} readMs={1000}
                     parts={[{ text: 'ЕСЛИ ' }, { text: 'x₁ = 1', color: ROOT_COLOR }, { text: ' подойдёт, то' }]} />
             )}
             {phase >= 3 && (
@@ -1238,7 +1238,7 @@ const CheckOneScene = ({ onSettled }: SceneProps) => {
                     <span className="inline-flex items-center gap-2">x₂ = <Frac num={<Cf k={C_COLOR}>c</Cf>} den={<Cf k={A_COLOR}>a</Cf>} /></span>
                 </BigLine>
             )}
-            {phase >= 3 && <PauseThen ms={2000} onDone={next(4)} />}
+            {phase >= 3 && <PauseThen ms={1000} onDone={next(4)} />}
             {phase >= 4 && <TypedBig onDone={next(5)} readMs={300} parts={[{ text: 'И ВСЁ!', color: REMEMBER_COLOR }]} />}
             </div>
             {phase === 5 && <ReplyButton onClick={() => setPhase(6)}>Давай попробуем!</ReplyButton>}
@@ -1266,12 +1266,12 @@ const CheckOneScene = ({ onSettled }: SceneProps) => {
             {phase >= 11 && <BigLine color={OK_COLOR}>0 = 0 ✅</BigLine>}
             {phase >= 11 && <PauseThen ms={2000} onDone={next(12)} />}
             {phase >= 12 && <TypedBig onDone={next(13)} readMs={2000} parts={[{ text: 'Получилось!', color: OK_COLOR }]} />}
-            {phase >= 13 && <TypedBig small onDone={next(14)} readMs={2000} parts={[{ text: 'Значит мы угадали первый корень!' }]} />}
+            {phase >= 13 && <TypedBig small onDone={next(14)} readMs={1000} parts={[{ text: 'Значит мы угадали первый корень!' }]} />}
             {phase >= 14 && <BigLine color={ROOT_COLOR}>x₁ = 1</BigLine>}
-            {phase >= 14 && <PauseThen ms={700} onDone={next(15)} />}
+            {phase >= 14 && <PauseThen ms={1000} onDone={next(15)} />}
             {phase === 15 && <ReplyButton onClick={() => setPhase(16)}>Мы везунчики!</ReplyButton>}
             {phase >= 16 && (
-                <TypedBig small onDone={next(17)} readMs={2000} parts={[{ text: 'Тогда' }]} />
+                <TypedBig small onDone={next(17)} readMs={1000} parts={[{ text: 'Тогда' }]} />
             )}
             {phase >= 17 && (
                 <BigLine>
@@ -1281,7 +1281,7 @@ const CheckOneScene = ({ onSettled }: SceneProps) => {
                     </span>
                 </BigLine>
             )}
-            {phase >= 17 && <PauseThen ms={2000} onDone={() => onSettled?.()} />}
+            {phase >= 17 && <PauseThen ms={1000} onDone={() => onSettled?.()} />}
         </>
     )
 }
