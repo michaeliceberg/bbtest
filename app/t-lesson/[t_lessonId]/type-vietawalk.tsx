@@ -1140,17 +1140,18 @@ const TheoremScene = ({ onSettled }: SceneProps) => {
                 </motion.div>
             )}
             {phase >= 3 && (
-                <TypedBig onDone={() => setPhase(4)} readMs={300}
+                <TypedBig onDone={() => setPhase(4)} readMs={2000}
                     parts={[{ text: 'Но что если ' }, { text: 'a ≠ 1', color: A_COLOR }, { text: '?' }]} />
             )}
-            {phase >= 4 && (
-                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 5))}>
+            {phase >= 4 && <TypedBig small onDone={() => setPhase(5)} readMs={200} parts={[{ text: 'например:' }]} />}
+            {phase >= 5 && (
+                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 6))}>
                     <Eq a={2} b={3} c={-5} colors />
                 </DiagramBlock>
             )}
-            {phase >= 5 && <PauseThen ms={1200} onDone={() => setPhase(6)} />}
-            {phase >= 6 && (
-                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 7))}>
+            {phase >= 6 && <PauseThen ms={2000} onDone={() => setPhase(7)} />}
+            {phase >= 7 && (
+                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 8))}>
                     <RememberPlate title="Привет, Теорема Виета 👋" sticker={VIETA_STICKER}>
                         <span data-marker="vieta-body" className="flex flex-col items-center gap-2">
                             <span data-marker="row-1" className="text-2xl md:text-3xl font-black inline-flex items-center gap-2">
@@ -1163,14 +1164,15 @@ const TheoremScene = ({ onSettled }: SceneProps) => {
                     </RememberPlate>
                 </DiagramBlock>
             )}
-            {phase >= 7 && (
+            {phase >= 8 && <PauseThen ms={2000} onDone={() => setPhase(9)} />}
+            {phase >= 9 && (
                 <div className="w-full pt-6">
-                    <TypedBig small onDone={() => setPhase(8)} readMs={200}
+                    <TypedBig small onDone={() => setPhase(10)} readMs={200}
                         parts={[{ text: 'Всё то же самое, но теперь ещё делим на ' }, { text: 'a', color: A_COLOR, marker: 'div-a' }]} />
                 </div>
             )}
-            {phase >= 8 && <SplitArrowToDens rootRef={rootRef} />}
-            {phase >= 8 && <PauseThen ms={1200} onDone={() => onSettled?.()} />}
+            {phase >= 10 && <SplitArrowToDens rootRef={rootRef} />}
+            {phase >= 10 && <PauseThen ms={1200} onDone={() => onSettled?.()} />}
         </div>
     )
 }
