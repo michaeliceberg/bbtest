@@ -1498,15 +1498,20 @@ const DiscrFinale = ({ onDone }: { onDone: () => void }) => {
             {phase >= 1 && <EllipsisPause onDone={next(2)} />}
             {phase >= 2 && (
                 <TypedBig small onDone={next(3)} readMs={300}
-                    parts={[{ text: 'можешь этот номер проверить через ' }, { text: 'дискриминант', color: REMEMBER_COLOR }]} />
+                    parts={[{ text: 'можешь проверить этот номер через ' }, { text: 'дискриминант', color: REMEMBER_COLOR }]} />
             )}
             {phase >= 3 && (
+                <DiagramBlock onSettled={next(4)}>
+                    <Eq a={193} b={3} c={-190} colors />
+                </DiagramBlock>
+            )}
+            {phase >= 4 && (
                 <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 12 }}
                     className="w-40 md:w-48 aspect-square overflow-hidden rounded-xl">
                     <video src={NICE_JOKE_VIDEO} autoPlay loop muted playsInline className="h-full w-full object-cover" />
                 </motion.div>
             )}
-            {phase >= 3 && <PauseThen ms={1500} onDone={onDone} />}
+            {phase >= 4 && <PauseThen ms={1500} onDone={onDone} />}
         </div>
     )
 }
@@ -1525,21 +1530,28 @@ const FIXED_NEXT_LABELS = new Map<unknown, string>([
     [TheoremScene, 'Запомнил!'],
     [CheckOneScene, 'ГАААААЗ'],
     [CheckMinusScene, 'ГАААААЗ'],
+    [MixPracticeScene, 'Я что крейзи?'],
     [ReadyScene, 'ЛЕТС ГООООУ'],
 ])
 // Подписи для админской карты этапов (по порядку SCENES).
 const SCENE_MAP_LABELS = ['Коэффициенты a, b, c', 'Сам: a, b, c', 'x² − 5x + 6', 'x² − 7x + 12', 'ЗАКРЕП (7 уравнений)', 'Теорема Виета (a ≠ 1)', 'Тупо проверяем x₁ = 1', 'Итого: и ВСЁ', 'Сам: 3 уравнения с x₁ = 1', 'А если x = −1 (3x² + 8x + 5)', 'Итого для x = −1', 'Сам: −1, −1, 1, 193x²', 'Приготовься']
 
 // ===== Квиз =====
-type Trial = { prompt: React.ReactNode; eq: EqSpec; options: string[]; correct: string; hint: string }
+type Trial = { prompt: React.ReactNode; eq?: EqSpec; options: string[]; correct: string; hint: string }
 
+// Итоговый тест: подбор корней, c/a и −b/a, угадывание x = ±1 и вопросы-шутки для настроения.
 const makeTrials = (): Trial[] => [
-    { prompt: 'Подбери корни', eq: { a: 1, b: -10, c: 21 }, options: shuffle(['3 и 7', '−3 и −7', '1 и 21', '3 и −7']), correct: '3 и 7', hint: '3 · 7 = 21 = c, 3 + 7 = 10 = −b.' },
-    { prompt: 'Подбери корни', eq: { a: 1, b: 3, c: -10 }, options: shuffle(['2 и −5', '−2 и 5', '1 и −10', '2 и 5']), correct: '2 и −5', hint: '2 · (−5) = −10 = c, 2 + (−5) = −3 = −b.' },
-    { prompt: 'Чему равно x₁ · x₂?', eq: { a: 2, b: -7, c: 3 }, options: shuffle(['3/2', '3', '−3/2', '2/3']), correct: '3/2', hint: 'x₁ · x₂ = c/a = 3/2.' },
-    { prompt: 'Угадай корень и найди второй', eq: { a: 4, b: -1, c: -3 }, options: shuffle(['1 и −3/4', '1 и 3/4', '−1 и 3/4', '1 и −4/3']), correct: '1 и −3/4', hint: '4 − 1 − 3 = 0, значит x₁ = 1, а x₂ = c/a = −3/4.' },
-    { prompt: 'Угадай корень и найди второй', eq: { a: 3, b: 4, c: -7 }, options: shuffle(['1 и −7/3', '1 и 7/3', '−1 и 7/3', '1 и −3/7']), correct: '1 и −7/3', hint: '3 + 4 − 7 = 0, значит x₁ = 1, а x₂ = c/a = −7/3.' },
-    { prompt: 'Бонус! Кто теперь шарит в теореме Виета? 😎', eq: { a: 1, b: -5, c: 6 }, options: ['Я 😎'], correct: 'Я 😎', hint: 'Без вариантов — ты! Произведение, сумма, угадывание корня — всё твоё 🔥' },
+    { prompt: 'Подбери корни', eq: { a: 1, b: -9, c: 20 }, options: shuffle(['4 и 5', '−4 и −5', '2 и 10', '4 и −5']), correct: '4 и 5', hint: '4 · 5 = 20 = c, 4 + 5 = 9 = −b.' },
+    { prompt: 'Как называется теорема, которую мы прошли? 🤔', options: shuffle(['Теорема Виета', 'Теорема Вити', 'Теорема Виталика', 'Теорема Ватсапа']), correct: 'Теорема Виета', hint: 'Франсуа Виет, француз, XVI век 🎩 Витя тут ни при чём.' },
+    { prompt: 'Подбери корни', eq: { a: 1, b: 2, c: -15 }, options: shuffle(['3 и −5', '−3 и 5', '3 и 5', '1 и −15']), correct: '3 и −5', hint: '3 · (−5) = −15 = c, 3 + (−5) = −2 = −b.' },
+    { prompt: 'Чему равно x₁ · x₂?', eq: { a: 3, b: -7, c: 2 }, options: shuffle(['2/3', '−2/3', '7/3', '3/2']), correct: '2/3', hint: 'x₁ · x₂ = c/a = 2/3.' },
+    { prompt: 'Чему равно x₁ + x₂?', eq: { a: 2, b: -9, c: 4 }, options: shuffle(['9/2', '−9/2', '2', '2/9']), correct: '9/2', hint: 'x₁ + x₂ = −b/a = 9/2.' },
+    { prompt: 'Если a ≠ 1, какой корень проверяем ПЕРВЫМ?', options: shuffle(['x = 1', 'x = 1000', 'x = π', 'x = номер моего телефона']), correct: 'x = 1', hint: 'Тупо проверяем x = 1: это просто a + b + c 😎' },
+    { prompt: 'Угадай корень и найди второй', eq: { a: 5, b: -3, c: -2 }, options: shuffle(['1 и −2/5', '1 и 2/5', '−1 и 2/5', '1 и −5/2']), correct: '1 и −2/5', hint: '5 − 3 − 2 = 0, значит x₁ = 1, а x₂ = c/a = −2/5.' },
+    { prompt: 'Угадай корень и найди второй', eq: { a: 4, b: 9, c: 5 }, options: shuffle(['−1 и −5/4', '−1 и 5/4', '1 и −5/4', '−1 и −4/5']), correct: '−1 и −5/4', hint: '4 − 9 + 5 = 0, значит x₁ = −1, а x₂ = −c/a = −5/4.' },
+    { prompt: 'x = 1 и x = −1 оба НЕ подошли. Что делаем?', options: shuffle(['Считаем дискриминант', 'Плачем 😭', 'Закрываем тетрадь', 'Звоним маме']), correct: 'Считаем дискриминант', hint: 'Виета не всемогущ: тогда честно считаем дискриминант 🫡' },
+    { prompt: 'Угадай корень и найди второй', eq: { a: 100, b: -99, c: -1 }, options: shuffle(['1 и −1/100', '1 и 1/100', '−1 и 1/100', '1 и −100']), correct: '1 и −1/100', hint: '100 − 99 − 1 = 0, значит x₁ = 1, а x₂ = c/a = −1/100.' },
+    { prompt: 'Бонус! Кто теперь шарит в теореме Виета? 😎', options: ['Я 😎'], correct: 'Я 😎', hint: 'Без вариантов — ты! Произведение, сумма, угадывание корня — всё твоё 🔥' },
 ]
 
 const pickTrialFeedback = (i: number) => CORRECT_FEEDBACK_PHRASES[(i * 5 + 3) % CORRECT_FEEDBACK_PHRASES.length]
@@ -1713,7 +1725,7 @@ export const TypeVietaWalk = ({ onAnswer, onComplete, isAdmin = false }: Props &
                                     </div>
                                     <p className="text-base md:text-lg text-[#F2F7FB] text-center px-16">{t.prompt}</p>
                                 </div>
-                                <Eq {...t.eq} colors size="text-2xl md:text-3xl" />
+                                {t.eq && <Eq {...t.eq} colors size="text-2xl md:text-3xl" />}
                                 <div className={cn('drop-in-options grid gap-3', t.options.length === 1 ? 'grid-cols-1' : 'grid-cols-2')}>
                                     {t.options.map((o) => {
                                         const isWrong = isCurrent && wrongTried.includes(o)
@@ -1725,7 +1737,8 @@ export const TypeVietaWalk = ({ onAnswer, onComplete, isAdmin = false }: Props &
                                                 disabled={isDone || isWrong}
                                                 onClick={isDone ? undefined : () => answer(o === t.correct, o)}
                                                 className={cn(
-                                                    'flex min-h-[64px] items-center justify-center py-3 px-3 rounded-xl border-2 text-xl md:text-2xl font-extrabold text-center transition-colors',
+                                                    'flex min-h-[64px] items-center justify-center py-3 px-3 rounded-xl border-2 font-extrabold text-center transition-colors',
+                                                    o.length > 12 ? 'text-base md:text-lg' : 'text-xl md:text-2xl',
                                                     state === 'correct' && 'border-[#A1D151] bg-[#A1D15122] text-[#A1D151]',
                                                     state === 'wrong' && 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]',
                                                     state === 'idle' && 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]',
