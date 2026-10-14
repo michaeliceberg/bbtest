@@ -91,7 +91,7 @@ const Pop = ({ delay = 0, children, className }: { delay?: number; children: Rea
     </motion.span>
 )
 
-type BigPart = { text: string; color?: string }
+type BigPart = { text: string; color?: string; marker?: string }
 const TypedBig = ({ parts, onDone, readMs = 500, small }: { parts: BigPart[]; onDone?: () => void; readMs?: number; small?: boolean }) => {
     const [typed, setTyped] = useState(false)
     return (
@@ -99,7 +99,7 @@ const TypedBig = ({ parts, onDone, readMs = 500, small }: { parts: BigPart[]; on
             {!typed ? (
                 <Typewriter text={parts.map((p) => p.text).join('')} onDone={() => { setTyped(true); setTimeout(() => onDone?.(), readMs) }} />
             ) : (
-                parts.map((p, i) => <span key={i} style={p.color ? { color: p.color } : undefined}>{p.text}</span>)
+                parts.map((p, i) => <span key={i} data-marker={p.marker} style={p.color ? { color: p.color } : undefined}>{p.text}</span>)
             )}
         </div>
     )
@@ -1051,10 +1051,57 @@ const Cf = ({ k, children }: { k: string; children: React.ReactNode }) => <span 
 const VIETA_STICKER = '/remember-stickers/gentelmen-notext.webp'
 
 // После закрепа: везде было a = 1 → а если нет? → Теорема Виета (c/a и −b/a).
+// Стрелка от «a» в строке «…делим на a» вверх, вправо и раздваивается на оба знаменателя a в плашке.
+// Координаты — по DOM (data-marker), относительно контейнера сцены; перемеряем при ресайзе.
+const SplitArrowToDens = ({ rootRef }: { rootRef: React.RefObject<HTMLDivElement> }) => {
+    const [geo, setGeo] = useState<{ w: number; h: number; d1: string; d2: string } | null>(null)
+    useLayoutEffect(() => {
+        const measure = () => {
+            const root = rootRef.current
+            if (!root) return
+            const r = root.getBoundingClientRect()
+            const get = (m: string) => root.querySelector<HTMLElement>(`[data-marker="${m}"]`)?.getBoundingClientRect()
+            const from = get('div-a'), a1 = get('den-1'), a2 = get('den-2'), row1 = get('row-1'), row2 = get('row-2'), plate = get('vieta-body')
+            if (!from || !a1 || !a2 || !row1 || !row2 || !plate) return
+            const x = (v: number) => v - r.left, y = (v: number) => v - r.top
+            // Из «a» выходим вправо (не вверх — над ней строка текста), огибаем текст справа.
+            const fx = x(from.right) + 3, fy = y(from.top + from.height / 2)
+            const xr = r.width + 8
+            const branchY = y(plate.bottom) + 28
+            const colX = x(Math.max(row1.right, row2.right)) + 16
+            const y1 = y(a1.top + a1.height / 2), y2 = y(a2.top + a2.height / 2)
+            const e1 = x(row1.right) + 5, e2 = x(row2.right) + 5
+            setGeo({
+                w: r.width, h: r.height,
+                d1: `M ${fx} ${fy} L ${xr} ${fy} L ${xr} ${branchY} L ${colX} ${branchY} L ${colX} ${y1} L ${e1} ${y1}`,
+                d2: `M ${colX} ${y2} L ${e2} ${y2}`,
+            })
+        }
+        measure()
+        const t = setTimeout(measure, 450) // после входной анимации DiagramBlock (scale 0.94 → 1)
+        window.addEventListener('resize', measure)
+        return () => { clearTimeout(t); window.removeEventListener('resize', measure) }
+    }, [rootRef])
+    if (!geo) return null
+    const common = { fill: 'none', stroke: A_COLOR, strokeWidth: 3, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, markerEnd: 'url(#vieta-split-head)' }
+    return (
+        <svg className="absolute inset-0 pointer-events-none overflow-visible" width={geo.w} height={geo.h}>
+            <defs>
+                <marker id="vieta-split-head" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill={A_COLOR} />
+                </marker>
+            </defs>
+            <motion.path d={geo.d1} {...common} initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.9, ease: 'easeInOut' }} />
+            <motion.path d={geo.d2} {...common} initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }} transition={{ duration: 0.35, delay: 0.65, ease: 'easeOut' }} />
+        </svg>
+    )
+}
+
 const TheoremScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
+    const rootRef = useRef<HTMLDivElement>(null)
     return (
-        <>
+        <div ref={rootRef} className="relative w-full flex flex-col items-center gap-4">
             <TypedBig small onDone={() => setPhase(1)} readMs={300}
                 parts={[{ text: 'Во всех прошлых уравнениях ' }, { text: 'a = 1', color: A_COLOR }]} />
             {phase >= 1 && (
@@ -1064,10 +1111,16 @@ const TheoremScene = ({ onSettled }: SceneProps) => {
                     </div>
                 </DiagramBlock>
             )}
-            {phase >= 2 && <PauseThen ms={1600} onDone={() => setPhase(3)} />}
+            {phase === 2 && (
+                <motion.div className="w-full flex" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                    <button type="button" onClick={() => setPhase(3)} className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>
+                        Действительно везде было a = 1
+                    </button>
+                </motion.div>
+            )}
             {phase >= 3 && (
                 <TypedBig onDone={() => setPhase(4)} readMs={300}
-                    parts={[{ text: 'Но что если ' }, { text: 'a', color: A_COLOR }, { text: ' НЕ 1?' }]} />
+                    parts={[{ text: 'Но что если ' }, { text: 'a', color: A_COLOR }, { text: ' НЕ равно 1?' }]} />
             )}
             {phase >= 4 && (
                 <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 5))}>
@@ -1076,18 +1129,28 @@ const TheoremScene = ({ onSettled }: SceneProps) => {
             )}
             {phase >= 5 && <PauseThen ms={1200} onDone={() => setPhase(6)} />}
             {phase >= 6 && (
-                <DiagramBlock onSettled={() => onSettled?.()}>
-                    <RememberPlate title="А это Теорема Виета" sticker={VIETA_STICKER}>
-                        <span className="text-2xl md:text-3xl font-black inline-flex items-center gap-2">
-                            x₁ · x₂ = <Frac num={<Cf k={C_COLOR}>c</Cf>} den={<Cf k={A_COLOR}>a</Cf>} />
-                        </span>
-                        <span className="text-2xl md:text-3xl font-black inline-flex items-center gap-2">
-                            x₁ + x₂ = <Frac num={<Cf k={B_COLOR}>−b</Cf>} den={<Cf k={A_COLOR}>a</Cf>} />
+                <DiagramBlock onSettled={() => setPhase((p) => Math.max(p, 7))}>
+                    <RememberPlate title="Тогда поприветствуем Теорему Виета 👋" sticker={VIETA_STICKER}>
+                        <span data-marker="vieta-body" className="flex flex-col items-center gap-2">
+                            <span data-marker="row-1" className="text-2xl md:text-3xl font-black inline-flex items-center gap-2">
+                                x₁ · x₂ = <Frac num={<Cf k={C_COLOR}>c</Cf>} den={<span data-marker="den-1"><Cf k={A_COLOR}>a</Cf></span>} />
+                            </span>
+                            <span data-marker="row-2" className="text-2xl md:text-3xl font-black inline-flex items-center gap-2">
+                                x₁ + x₂ = <Frac num={<Cf k={B_COLOR}>−b</Cf>} den={<span data-marker="den-2"><Cf k={A_COLOR}>a</Cf></span>} />
+                            </span>
                         </span>
                     </RememberPlate>
                 </DiagramBlock>
             )}
-        </>
+            {phase >= 7 && (
+                <div className="w-full pt-6">
+                    <TypedBig small onDone={() => setPhase(8)} readMs={200}
+                        parts={[{ text: 'Всё то же самое, но теперь ещё делим на ' }, { text: 'a', color: A_COLOR, marker: 'div-a' }]} />
+                </div>
+            )}
+            {phase >= 8 && <SplitArrowToDens rootRef={rootRef} />}
+            {phase >= 8 && <PauseThen ms={1200} onDone={() => onSettled?.()} />}
+        </div>
     )
 }
 
