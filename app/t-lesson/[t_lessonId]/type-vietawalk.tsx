@@ -1288,6 +1288,45 @@ const CheckOneScene = ({ onSettled }: SceneProps) => {
     )
 }
 
+// Итог примера: уравнение, оба корня и «и ВСЁ.» + видео.
+const NICE_JOKE_VIDEO = '/video/nice-joke.webm'
+const SummaryScene = ({ onSettled }: SceneProps) => {
+    const [phase, setPhase] = useState(0)
+    const next = (n: number) => () => setPhase((p) => Math.max(p, n))
+    return (
+        <>
+            <TypedBig onDone={next(1)} readMs={500} parts={[{ text: 'Итого:', color: REMEMBER_COLOR }]} />
+            {phase >= 1 && (
+                <DiagramBlock onSettled={next(2)}>
+                    <Eq a={2} b={3} c={-5} colors />
+                </DiagramBlock>
+            )}
+            {phase >= 2 && <PauseThen ms={1000} onDone={next(3)} />}
+            {phase >= 3 && (
+                <BigLine color={ROOT_COLOR}>
+                    <span className="inline-flex items-center gap-10">
+                        <span>x₁ = 1</span>
+                        <span className="inline-flex items-center gap-1">x₂ = −<Frac num="5" den="2" /></span>
+                    </span>
+                </BigLine>
+            )}
+            {phase >= 3 && <PauseThen ms={1000} onDone={next(4)} />}
+            {phase >= 4 && (
+                <TypedBig onDone={next(5)} readMs={300} parts={[{ text: 'и ВСЁ.', color: REMEMBER_COLOR }]} />
+            )}
+            {phase >= 5 && (
+                <div className="w-full flex justify-center">
+                    <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 12 }}
+                        className="w-40 md:w-48 aspect-square overflow-hidden rounded-xl">
+                        <video src={NICE_JOKE_VIDEO} autoPlay loop muted playsInline className="h-full w-full object-cover" />
+                    </motion.div>
+                </div>
+            )}
+            {phase >= 5 && <PauseThen ms={1500} onDone={() => onSettled?.()} />}
+        </>
+    )
+}
+
 // Тренировка после «тупо проверяем x₁ = 1»: 3 уравнения, где x₁ = 1 подходит, — выбрать корни.
 const rootsHint = (c: number, a: number) => (o: string) => {
     if (!o.startsWith('1 ')) return 'Мы же проверяем x₁ = 1. Подставь: сложи a + b + c 🙃'
@@ -1313,15 +1352,16 @@ const ReadyScene = ({ onSettled }: SceneProps) => (
     <TypedBig parts={[{ text: 'Приготовься, пора ' }, { text: 'блистать знаниями!', color: REMEMBER_COLOR }]} onDone={() => onSettled?.()} readMs={300} />
 )
 
-const SCENES = [CoefScene, CoefDrillScene, Guess56Scene, Guess712Scene, ZakrepScene, TheoremScene, CheckOneScene, X1PracticeScene, ReadyScene]
+const SCENES = [CoefScene, CoefDrillScene, Guess56Scene, Guess712Scene, ZakrepScene, TheoremScene, CheckOneScene, SummaryScene, X1PracticeScene, ReadyScene]
 const FIXED_NEXT_LABELS = new Map<unknown, string>([
     [ZakrepScene, 'Закреплено 📌'],
     [CoefScene, 'Невидимка, понял 👀'],
     [TheoremScene, 'Запомнил!'],
+    [CheckOneScene, 'ГАААААЗ'],
     [ReadyScene, 'ЛЕТС ГООООУ'],
 ])
 // Подписи для админской карты этапов (по порядку SCENES).
-const SCENE_MAP_LABELS = ['Коэффициенты a, b, c', 'Сам: a, b, c', 'x² − 5x + 6', 'x² − 7x + 12', 'ЗАКРЕП (7 уравнений)', 'Теорема Виета (a ≠ 1)', 'Тупо проверяем x₁ = 1', 'Сам: 3 уравнения с x₁ = 1', 'Приготовься']
+const SCENE_MAP_LABELS = ['Коэффициенты a, b, c', 'Сам: a, b, c', 'x² − 5x + 6', 'x² − 7x + 12', 'ЗАКРЕП (7 уравнений)', 'Теорема Виета (a ≠ 1)', 'Тупо проверяем x₁ = 1', 'Итого: и ВСЁ', 'Сам: 3 уравнения с x₁ = 1', 'Приготовься']
 
 // ===== Квиз =====
 type Trial = { prompt: React.ReactNode; eq: EqSpec; options: string[]; correct: string; hint: string }
