@@ -803,6 +803,7 @@ const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolea
         return (
             <motion.div animate={st === 'bad' ? { x: [0, -10, 10, -6, 6, 0] } : { x: 0 }} transition={{ duration: 0.5 }}
                 className="flex items-center gap-2.5 text-2xl md:text-3xl font-black text-[#F2F7FB]">
+                <span className="w-7" />
                 <PairSlot label="x₁" val={roots[0]} active={stage === 2 && active === 0 && !result} state={stage === 2 ? st : null}
                     onClick={() => stage === 2 && !result && setActive(0)} />
                 <span>{op}</span>
@@ -818,6 +819,10 @@ const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolea
                         : <span className={cn('text-xl', active === i && 'animate-slot-label')}
                             style={{ color: active === i ? color : '#5C6B73', ['--slot-c' as string]: color }}>?</span>}
                 </button>
+                {/* Галочка/крестик справа после проверки этапа, исчезают вместе со сменой этапа/сбросом. */}
+                <span className="w-7 inline-flex justify-center">
+                    {st && <Pop><span className="text-2xl font-black" style={{ color: st === 'ok' ? OK_COLOR : BAD_COLOR }}>{st === 'ok' ? '✓' : '✗'}</span></Pop>}
+                </span>
             </motion.div>
         )
     }
@@ -860,14 +865,21 @@ const ComboRounds = ({ rounds, onDone, doneText }: { rounds: ComboRound[]; onDon
     const [done, setDone] = useState(false)
     return (
         <div className="w-full flex flex-col items-center gap-3">
-            <div className="px-3 py-1 rounded-full text-sm font-black" style={{ backgroundColor: hexToRgba(ROOT_COLOR, 0.15), color: ROOT_COLOR }}>
+            {/* Новый пример заметен: сначала с отскоком меняется счётчик, потом с отскоком появляется сам пример. */}
+            <motion.div key={`cnt-${round}`} className="px-3 py-1 rounded-full text-sm font-black"
+                style={{ backgroundColor: hexToRgba(ROOT_COLOR, 0.15), color: ROOT_COLOR }}
+                initial={round === 0 ? false : { scale: 2.2 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 9 }}>
                 {Math.min(round + 1, rounds.length)}/{rounds.length}
-            </div>
+            </motion.div>
             {!done && (
-                <ComboRoundView key={round} r={rounds[round]} colors={round === 0} onSolved={() => {
-                    if (round + 1 < rounds.length) setRound(round + 1)
-                    else { setDone(true); onDone() }
-                }} />
+                <motion.div key={round} className="w-full"
+                    initial={round === 0 ? false : { scale: 0.6, opacity: 0, y: -20 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 13, delay: 0.45 }}>
+                    <ComboRoundView r={rounds[round]} colors={round === 0} onSolved={() => {
+                        if (round + 1 < rounds.length) setRound(round + 1)
+                        else { setDone(true); onDone() }
+                    }} />
+                </motion.div>
             )}
             {done && doneText}
         </div>
