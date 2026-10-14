@@ -985,7 +985,7 @@ export const RememberPlate = ({ title = 'ЗАПОМНИ!', children }: { title?:
 // Итог/правило, которое «закрепляем» на практике. Фиолетовая плашка (отличается от золотой ЗАПОМНИ!),
 // справа — видео Хабиба (public/video/khabi-zakrep.webm, без прозрачности, по кругу).
 export const ZakrepPlate = ({ title = 'ЗАКРЕП', children }: { title?: React.ReactNode; children?: React.ReactNode }) => (
-    <div className="w-full flex items-center gap-3">
+    <div className="w-full flex items-start gap-3">
         <div className="flex-1 min-w-0 flex flex-col items-stretch gap-2">
             <div className="flex items-center justify-center rounded-xl px-4 py-3 font-black text-lg md:text-xl text-center tracking-wide"
                 style={{ backgroundColor: '#161F23', border: '2px solid rgba(167, 139, 250, 0.75)', color: '#C4B5FD' }}>
@@ -1001,8 +1001,16 @@ export const ZakrepPlate = ({ title = 'ЗАКРЕП', children }: { title?: Reac
         <motion.div initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 320, damping: 14 }}
             className="w-24 h-24 md:w-28 md:h-28 shrink-0 rounded-2xl overflow-hidden border-2 border-[#A78BFA]">
-            <video src="/video/khabi-zakrep.webm" autoPlay loop muted playsInline disablePictureInPicture
-                className="w-full h-full object-cover pointer-events-none" />
+            <ZakrepVideo />
         </motion.div>
     </div>
 )
+// Видео Хабиба играет 2 раза и встаёт на паузу на последнем кадре.
+const ZakrepVideo = () => {
+    const plays = useRef(0)
+    return (
+        <video src="/video/khabi-zakrep.webm" autoPlay muted playsInline disablePictureInPicture
+            onEnded={(e) => { plays.current += 1; if (plays.current < 2) void e.currentTarget.play().catch(() => {}) }}
+            className="w-full h-full object-cover pointer-events-none" />
+    )
+}

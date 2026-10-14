@@ -601,7 +601,7 @@ const PairBuilder = ({ c, s, nums, onSolved, focus, asm, between, rightOverride,
 // 1–2. Подбери 2 числа: произведение и сумма.
 // explain (2-е уравнение): после «КОРНИ» по очереди подсвечиваем (остальное бледное, как в уроке 488)
 // 12 справа и +12 в уравнении, потом 7 и −7 — «знак НАОБОРОТ».
-const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain, assemble, memo }: SceneProps & { intro: string; x1: number; x2: number; nums: number[]; explain?: boolean; assemble?: boolean; memo?: boolean }) => {
+const PairGuessScene = ({ onSettled, intro, sysText, x1, x2, nums, explain, assemble, memo }: SceneProps & { intro: string; sysText?: string; x1: number; x2: number; nums: number[]; explain?: boolean; assemble?: boolean; memo?: boolean }) => {
     const [phase, setPhase] = useState(0)
     const b = -(x1 + x2), c = x1 * x2
     // memo (1-е уравнение): «Запомни систему:» → строка x₁·x₂ = c → «Ага, вижу c справа» → строка x₁+x₂ = −b →
@@ -680,7 +680,7 @@ const PairGuessScene = ({ onSettled, intro, x1, x2, nums, explain, assemble, mem
                     <Eq a={1} b={b} c={c} colors focus={eqFocus} />
                 </DiagramBlock>
             )}
-            {phase >= 2 && <TypedBig small parts={[{ text: memo ? 'Запомни систему:' : assemble ? 'Составим систему:' : 'Подбери 2 числа 👇' }]} onDone={() => setPhase((p) => Math.max(p, 3))} readMs={150} />}
+            {phase >= 2 && <TypedBig small parts={[{ text: sysText ?? (memo ? 'Запомни систему:' : assemble ? 'Составим систему:' : 'Подбери 2 числа 👇') }]} onDone={() => setPhase((p) => Math.max(p, 3))} readMs={150} />}
             {phase >= 3 && <PairBuilder c={c} s={-b} nums={nums} focus={focus} asm={asm} onSolved={() => setPhase(4)}
                 rightOverride={memoRight} rowsShown={memo && memoStep < 2 ? 1 : 2}
                 between={assemble && asmStep >= numsStep - 1 ? <TypedBig small parts={[{ text: 'Подбери x₁ x₂ 👆' }]} onDone={() => setAsmStep((x) => Math.max(x, numsStep))} readMs={150} />
@@ -728,18 +728,29 @@ const PauseThen = ({ ms, onDone }: { ms: number; onDone: () => void }) => {
     return null
 }
 const Guess56Scene = (p: SceneProps) => <PairGuessScene {...p} intro="Вот уравнение:" x1={2} x2={3} nums={[1, 2, 3, 4, 5, 6]} assemble memo />
-const Guess712Scene = (p: SceneProps) => <PairGuessScene {...p} intro="А вот ещё одно:" x1={3} x2={4} nums={[1, 2, 3, 4, 6, 12]} explain assemble />
+const Guess712Scene = (p: SceneProps) => <PairGuessScene {...p} intro="А вот ещё одно:" sysText="Составим систему:" x1={3} x2={4} nums={[1, 2, 3, 4, 6, 12]} assemble memo />
 
-// «ЗАКРЕП»: по уравнению (a = 1) выбираем, чему равны x₁ · x₂ и x₁ + x₂ (c и −b). Ошибка не в зачёт.
-type ZRound = { b: number; c: number; nums: number[] }
-const ZAKREP_ROUNDS: ZRound[] = [
-    { b: -8, c: 12, nums: [12, -12, 8, -8, 4, 20] },
-    { b: 5, c: 6, nums: [6, -6, 5, -5, 11, 1] },
-    { b: -2, c: -15, nums: [-15, 15, 2, -2, 8, -13] },
-    { b: 4, c: -21, nums: [-21, 21, 4, -4, 3, -17] },
+// «КОМБО»: решаем Виетом в 2 этапа. Этап 1 — правая часть (c и −b), этап 2 — подбираем x₁ и x₂.
+// Система одна на оба этапа и не перерисовывается: меняются только варианты снизу и плашка этапа (с отскоком).
+// Ошибка не в зачёт.
+type ComboRound = { b: number; c: number; nums: number[]; roots: number[] }
+// После «ЗАКРЕП» (a = 1, раньше тут были 4 раунда только с правой частью).
+const ZAKREP_ROUNDS: ComboRound[] = [
+    { b: -8, c: 12, nums: [12, -12, 8, -8, 4, 20], roots: [1, 2, 3, 4, 6, 12] },
+    { b: 5, c: 6, nums: [6, -6, 5, -5, 11, 1], roots: [-1, -2, -3, 2, 3, -6] },
+    { b: -2, c: -15, nums: [-15, 15, 2, -2, 8, -13], roots: [3, -3, 5, -5, 1, 15] },
+    { b: 4, c: -21, nums: [-21, 21, 4, -4, 3, -17], roots: [3, -3, 7, -7, 1, 21] },
 ]
-const ZakrepRound = ({ r, onSolved, hideEq }: { r: ZRound; onSolved: () => void; hideEq?: boolean }) => {
-    const [vals, setVals] = useState<(number | null)[]>([null, null])
+const COMBO_ROUNDS: ComboRound[] = [
+    { b: -7, c: 10, nums: [10, -10, 7, -7, 3, 17], roots: [1, 2, 3, 5, 7, 10] },
+    { b: 2, c: -8, nums: [-8, 8, -2, 2, 6, -6], roots: [2, -2, 4, -4, 1, 8] },
+    { b: -1, c: -12, nums: [-12, 12, 1, -1, 7, -7], roots: [3, -3, 4, -4, 2, 6] },
+]
+const STAGE_TEXT = { 1: 'Этап 1: правая часть', 2: 'Этап 2: подбираем x₁ и x₂' } as const
+const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolean; onSolved: () => void }) => {
+    const [stage, setStage] = useState<1 | 2>(1)
+    const [right, setRight] = useState<(number | null)[]>([null, null])
+    const [roots, setRoots] = useState<(number | null)[]>([null, null])
     const [active, setActive] = useState(0)
     const [result, setResult] = useState<'ok' | 'bad' | null>(null)
     const [showNums, setShowNums] = useState(false)
@@ -748,6 +759,11 @@ const ZakrepRound = ({ r, onSolved, hideEq }: { r: ZRound; onSolved: () => void;
         return () => clearTimeout(t)
     }, [])
     const target = [r.c, -r.b]
+    const vals = stage === 1 ? right : roots
+    const setVals = stage === 1 ? setRight : setRoots
+    const isOk = (next: (number | null)[]) => stage === 1
+        ? next[0] === target[0] && next[1] === target[1]
+        : next[0]! * next[1]! === r.c && next[0]! + next[1]! === -r.b
     const pick = (n: number) => {
         if (result) return
         const next = [...vals]
@@ -755,42 +771,63 @@ const ZakrepRound = ({ r, onSolved, hideEq }: { r: ZRound; onSolved: () => void;
         setVals(next)
         const other = active === 0 ? 1 : 0
         if (next[other] === null) { setActive(other); return }
-        if (next[0] === target[0] && next[1] === target[1]) {
+        if (isOk(next)) {
             setResult('ok'); showAnswerMeme(true)
-            setTimeout(onSolved, 1100)
+            setTimeout(() => {
+                if (stage === 1) { setStage(2); setResult(null); setActive(0) }
+                else onSolved()
+            }, 1100)
         } else {
             setResult('bad'); playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false)
             setTimeout(() => { setResult(null); setVals([null, null]); setActive(0) }, 1500)
         }
     }
+    const filled = vals[0] !== null && vals[1] !== null
+    const rowOk = (i: number) => stage === 1
+        ? right[i] === target[i]
+        : filled && (i === 0 ? roots[0]! * roots[1]! === r.c : roots[0]! + roots[1]! === -r.b)
+    const rowState = (i: number): 'ok' | 'bad' | null => (result && filled ? (rowOk(i) ? 'ok' : 'bad') : null)
     const row = (i: number, op: string, color: string) => {
-        const ok = vals[i] === target[i]
-        const state: 'ok' | 'bad' | null = result && vals[i] !== null ? (ok ? 'ok' : 'bad') : null
+        const st = rowState(i)
+        // Правая часть: в 1-м этапе — пропуск, во 2-м — уже составленное число (рамка бледно-зелёная).
+        const rv = right[i]
+        const rightBorder = stage === 2 ? hexToRgba(OK_COLOR, 0.45)
+            : st === 'ok' ? hexToRgba(OK_COLOR, 0.6) : st === 'bad' ? BAD_COLOR : active === i && !result ? hexToRgba(color, 0.75) : '#3A464E'
         return (
-            <motion.div animate={result === 'bad' && !ok ? { x: [0, -10, 10, -6, 6, 0] } : { x: 0 }} transition={{ duration: 0.5 }}
+            <motion.div animate={st === 'bad' ? { x: [0, -10, 10, -6, 6, 0] } : { x: 0 }} transition={{ duration: 0.5 }}
                 className="flex items-center gap-2.5 text-2xl md:text-3xl font-black text-[#F2F7FB]">
-                <span style={{ color: ROOT_COLOR }}>x₁</span><span>{op}</span><span style={{ color: ROOT_COLOR }}>x₂</span><span>=</span>
-                <button type="button" onClick={() => !result && setActive(i)}
-                    className="min-w-[64px] h-[52px] px-2 rounded-xl border-2 border-b-4 bg-[#161F23] flex items-center justify-center"
-                    style={{ borderColor: state === 'ok' ? hexToRgba(OK_COLOR, 0.6) : state === 'bad' ? BAD_COLOR : active === i && !result ? hexToRgba(color, 0.75) : '#3A464E' }}>
-                    {vals[i] !== null
-                        ? <motion.span key={vals[i]} initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
-                            transition={{ type: 'spring', stiffness: 420, damping: 16 }} style={{ color: state === 'bad' ? BAD_COLOR : color }}>{fmt(vals[i]!)}</motion.span>
+                <PairSlot label="x₁" val={roots[0]} active={stage === 2 && active === 0 && !result} state={stage === 2 ? st : null}
+                    onClick={() => stage === 2 && !result && setActive(0)} />
+                <span>{op}</span>
+                <PairSlot label="x₂" val={roots[1]} active={stage === 2 && active === 1 && !result} state={stage === 2 ? st : null}
+                    onClick={() => stage === 2 && !result && setActive(1)} />
+                <span>=</span>
+                <button type="button" onClick={() => stage === 1 && !result && setActive(i)}
+                    className="min-w-[64px] h-[52px] px-2 rounded-xl border-2 border-b-4 bg-[#161F23] flex items-center justify-center transition-colors"
+                    style={{ borderColor: rightBorder }}>
+                    {rv !== null
+                        ? <motion.span key={rv} initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
+                            transition={{ type: 'spring', stiffness: 420, damping: 16 }} style={{ color: stage === 1 && st === 'bad' ? BAD_COLOR : color }}>{fmt(rv)}</motion.span>
                         : <span className={cn('text-xl', active === i && 'animate-slot-label')}
                             style={{ color: active === i ? color : '#5C6B73', ['--slot-c' as string]: color }}>?</span>}
                 </button>
             </motion.div>
         )
     }
+    const opts = stage === 1 ? r.nums : r.roots
     return (
         <div className="w-full flex flex-col items-center gap-4">
-            {!hideEq && <Eq a={1} b={r.b} c={r.c} colors />}
+            <Eq a={1} b={r.b} c={r.c} colors={colors} />
+            <div className="px-3 py-1 rounded-full text-sm font-black overflow-hidden" style={{ backgroundColor: hexToRgba(B_COLOR, 0.15), color: B_COLOR }}>
+                <motion.span key={stage} className="inline-block" initial={{ scale: 0.3, y: -14, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 9 }}>{STAGE_TEXT[stage]}</motion.span>
+            </div>
             <div className="flex flex-col items-center gap-3">
                 {row(0, '·', C_COLOR)}
                 {row(1, '+', B_COLOR)}
             </div>
-            <div className="drop-in-options grid grid-cols-3 gap-2.5 w-full max-w-[280px] min-h-[122px]">
-                {showNums && r.nums.map((n) => {
+            <div key={stage} className="drop-in-options grid grid-cols-3 gap-2.5 w-full max-w-[280px] min-h-[122px]">
+                {showNums && opts.map((n) => {
                     const used = vals[active === 0 ? 1 : 0] === n
                     return (
                         <button key={n} type="button" onClick={() => pick(n)} disabled={!!result || used}
@@ -803,90 +840,48 @@ const ZakrepRound = ({ r, onSolved, hideEq }: { r: ZRound; onSolved: () => void;
         </div>
     )
 }
-const ZakrepScene = ({ onSettled }: SceneProps) => {
-    const [phase, setPhase] = useState(0)
+const ComboRounds = ({ rounds, onDone, doneText }: { rounds: ComboRound[]; onDone: () => void; doneText: React.ReactNode }) => {
     const [round, setRound] = useState(0)
     const [done, setDone] = useState(false)
     return (
+        <div className="w-full flex flex-col items-center gap-3">
+            <div className="px-3 py-1 rounded-full text-sm font-black" style={{ backgroundColor: hexToRgba(ROOT_COLOR, 0.15), color: ROOT_COLOR }}>
+                {Math.min(round + 1, rounds.length)}/{rounds.length}
+            </div>
+            {!done && (
+                <ComboRoundView key={round} r={rounds[round]} colors={round === 0} onSolved={() => {
+                    if (round + 1 < rounds.length) setRound(round + 1)
+                    else { setDone(true); onDone() }
+                }} />
+            )}
+            {done && doneText}
+        </div>
+    )
+}
+const ZakrepScene = ({ onSettled }: SceneProps) => {
+    const [phase, setPhase] = useState(0)
+    return (
         <>
-            <ZakrepPlate>
-                <span className="text-lg md:text-xl">x₁ · x₂ = <span style={{ color: C_COLOR }}>c</span></span>
-                <span className="text-lg md:text-xl">x₁ + x₂ = <span style={{ color: B_COLOR }}>−b</span> <span className="text-sm md:text-base font-bold text-[#9AA7B0]">(меняем знак)</span></span>
-            </ZakrepPlate>
+            <ZakrepPlate />
             <PauseThen ms={1200} onDone={() => setPhase(1)} />
-            {phase >= 1 && (
-                <div className="w-full flex flex-col items-center gap-3">
-                    <div className="px-3 py-1 rounded-full text-sm font-black" style={{ backgroundColor: hexToRgba(ROOT_COLOR, 0.15), color: ROOT_COLOR }}>
-                        {Math.min(round + 1, ZAKREP_ROUNDS.length)}/{ZAKREP_ROUNDS.length}
-                    </div>
-                    {!done && (
-                        <ZakrepRound key={round} r={ZAKREP_ROUNDS[round]} onSolved={() => {
-                            if (round + 1 < ZAKREP_ROUNDS.length) setRound(round + 1)
-                            else { setDone(true); onSettled?.() }
-                        }} />
-                    )}
-                    {done && <TypedBig parts={[{ text: 'Закреп ' }, { text: 'есть', color: OK_COLOR }, { text: ' 💪' }]} readMs={200} />}
-                </div>
+            {phase >= 1 && <TypedBig small onDone={() => setPhase(2)} readMs={400} parts={[{ text: 'Сам составь систему и найди x₁ x₂' }]} />}
+            {phase >= 2 && (
+                <ComboRounds rounds={ZAKREP_ROUNDS} onDone={() => onSettled?.()}
+                    doneText={<TypedBig parts={[{ text: 'Закреп ' }, { text: 'есть', color: OK_COLOR }, { text: ' 💪' }]} readMs={200} />} />
             )}
         </>
     )
 }
-
-// «КОМБО»: решаем Виетом в 2 этапа. Этап 1 — правая часть (c и −b), этап 2 — подбираем x₁ и x₂.
-// В первом уравнении коэффициенты подсвечены цветами, дальше — без подсказки.
-type ComboRound = ZRound & { roots: number[] }
-const COMBO_ROUNDS: ComboRound[] = [
-    { b: -7, c: 10, nums: [10, -10, 7, -7, 3, 17], roots: [1, 2, 3, 5, 7, 10] },
-    { b: 2, c: -8, nums: [-8, 8, -2, 2, 6, -6], roots: [2, -2, 4, -4, 1, 8] },
-    { b: -1, c: -12, nums: [-12, 12, 1, -1, 7, -7], roots: [3, -3, 4, -4, 2, 6] },
-]
-const StagePill = ({ n, text }: { n: number; text: string }) => (
-    <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 14 }}
-        className="px-3 py-1 rounded-full text-sm font-black" style={{ backgroundColor: hexToRgba(B_COLOR, 0.15), color: B_COLOR }}>
-        Этап {n}: {text}
-    </motion.div>
-)
-const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolean; onSolved: () => void }) => {
-    const [stage, setStage] = useState<1 | 2>(1)
-    return (
-        <div className="w-full flex flex-col items-center gap-4">
-            <Eq a={1} b={r.b} c={r.c} colors={colors} />
-            {stage === 1 ? (
-                <>
-                    <StagePill n={1} text="правая часть" />
-                    <ZakrepRound r={r} hideEq onSolved={() => setStage(2)} />
-                </>
-            ) : (
-                <>
-                    <StagePill n={2} text="подбираем x₁ и x₂" />
-                    <PairBuilder c={r.c} s={-r.b} nums={r.roots} onSolved={onSolved} />
-                </>
-            )}
-        </div>
-    )
-}
 const ComboScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
-    const [round, setRound] = useState(0)
-    const [done, setDone] = useState(false)
     return (
         <>
             <TypedBig onDone={() => setPhase(1)} readMs={300}
                 parts={[{ text: 'А теперь ' }, { text: 'КОМБО', color: REMEMBER_COLOR }, { text: ' 🔥' }]} />
             {phase >= 1 && <TypedBig small onDone={() => setPhase(2)} readMs={500} parts={[{ text: 'Решаем в 2 этапа' }]} />}
             {phase >= 2 && (
-                <div className="w-full flex flex-col items-center gap-3">
-                    <div className="px-3 py-1 rounded-full text-sm font-black" style={{ backgroundColor: hexToRgba(ROOT_COLOR, 0.15), color: ROOT_COLOR }}>
-                        {Math.min(round + 1, COMBO_ROUNDS.length)}/{COMBO_ROUNDS.length}
-                    </div>
-                    {!done && (
-                        <ComboRoundView key={round} r={COMBO_ROUNDS[round]} colors={round === 0} onSolved={() => {
-                            if (round + 1 < COMBO_ROUNDS.length) setRound(round + 1)
-                            else { setDone(true); onSettled?.() }
-                        }} />
-                    )}
-                    {done && <TypedBig parts={[{ text: 'Комбо ' }, { text: 'выбито', color: OK_COLOR }, { text: ' 💥' }]} readMs={200} />}
-                </div>
+                <ComboRounds rounds={COMBO_ROUNDS} onDone={() => onSettled?.()}
+                    doneText={<TypedBig parts={[{ text: 'Комбо ' }, { text: 'выбито', color: OK_COLOR }, { text: ' 💥' }]} readMs={200} />} />
             )}
         </>
     )
