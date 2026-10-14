@@ -33,6 +33,7 @@ import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
+import { DifficultyBadge } from '@/components/difficulty-badge'
 
 const SCENE_TRANSITION_PAUSE_MS = 1000
 
@@ -685,8 +686,8 @@ const PairGuessScene = ({ onSettled, intro, sysText, x1, x2, nums, explain, asse
             {phase >= 3 && <PairBuilder c={c} s={-b} nums={nums} focus={focus} asm={asm} onSolved={() => setPhase(4)}
                 rightOverride={memoRight} rowsShown={memo && memoStep < 2 ? 1 : 2}
                 between={assemble && asmStep >= numsStep - 1 ? <TypedBig small parts={[{ text: 'Подбери x₁ x₂ 👆' }]} onDone={() => setAsmStep((x) => Math.max(x, numsStep))} readMs={150} />
-                    : memo && memoStep === 1 ? memoBtn('Произведение равно Цэ', 2)
-                    : memo && memoStep === 3 ? memoBtn(quickMemo ? 'Систему запомнил' : 'Сумма равна МИНУС b', 4)
+                    : memo && memoStep === 1 ? memoBtn('Произведение = Цэ', 2)
+                    : memo && memoStep === 3 ? memoBtn(quickMemo ? 'Систему запомнил' : 'Сумма = МИНУС b', 4)
                     : undefined} />}
 
             {asmStep === 1 && (
@@ -748,32 +749,6 @@ const ZAKREP_ROUNDS: ComboRound[] = [
 ]
 // Сложность раунда: оба корня положительные — 1, разных знаков — 2, оба отрицательные — 3.
 const rootsLevel = (r: ComboRound): 1 | 2 | 3 => (r.c < 0 ? 2 : -r.b > 0 ? 1 : 3)
-const DIFF_PICS = { 1: { name: 'easy', count: 9 }, 2: { name: 'norm', count: 11 }, 3: { name: 'hard', count: 9 } } as const
-const DIFF_COLORS = { 1: '#78C93C', 2: '#F2C35B', 3: '#DC605B' } as const
-// «Сложность»: подпись, картинка котопса (public/diff-catdogs) и три квадратика. Пока только в ЗАКРЕПе урока 502.
-const DifficultyBadge = ({ level }: { level: 1 | 2 | 3 }) => {
-    const [pic, setPic] = useState<string | null>(null)
-    useEffect(() => {
-        const d = DIFF_PICS[level]
-        setPic(`/diff-catdogs/${d.name}-${1 + Math.floor(Math.random() * d.count)}.webp`)
-    }, [level])
-    const color = DIFF_COLORS[level]
-    return (
-        <div className="shrink-0 flex flex-col items-center gap-1 px-2 py-1.5 rounded-xl border-2 bg-[#161F23]" style={{ borderColor: hexToRgba(color, 0.45) }}>
-            <span className="text-[10px] font-black uppercase tracking-wide text-[#9AA7B0]">сложность</span>
-            <div className="w-12 h-12">
-                {pic && <motion.img key={pic} src={pic} alt="" className="w-full h-full object-contain"
-                    initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 12 }} />}
-            </div>
-            <div className="flex gap-1">
-                {[1, 2, 3].map((i) => (
-                    <span key={i} className="w-3.5 h-3.5 rounded-[4px] border"
-                        style={i <= level ? { backgroundColor: color, borderColor: color } : { backgroundColor: 'transparent', borderColor: '#3A464E' }} />
-                ))}
-            </div>
-        </div>
-    )
-}
 const STAGE_TEXT = { 1: 'Этап 1: правая часть', 2: 'Этап 2: подбираем x₁ и x₂' } as const
 const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolean; onSolved: () => void }) => {
     const [stage, setStage] = useState<1 | 2>(1)
@@ -847,12 +822,14 @@ const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolea
     return (
         <div className="w-full flex flex-col items-center gap-4">
             <Eq a={1} b={r.b} c={r.c} colors={colors} />
-            <div className="w-full flex items-center justify-between gap-3">
+            {/* Плашка этапа ровно по центру, «Сложность» справа. */}
+            <div className="w-full grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+                <span />
                 <div className="px-3 py-1 rounded-full text-sm font-black overflow-hidden" style={{ backgroundColor: hexToRgba(B_COLOR, 0.15), color: B_COLOR }}>
                     <motion.span key={stage} className="inline-block" initial={{ scale: 0.3, y: -14, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
                         transition={{ type: 'spring', stiffness: 420, damping: 9 }}>{STAGE_TEXT[stage]}</motion.span>
                 </div>
-                <DifficultyBadge level={rootsLevel(r)} />
+                <span className="justify-self-end"><DifficultyBadge level={rootsLevel(r)} /></span>
             </div>
             <div className="flex flex-col items-center gap-3">
                 {row(0, '·', C_COLOR)}
