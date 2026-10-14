@@ -601,12 +601,13 @@ const PairBuilder = ({ c, s, nums, onSolved, focus, asm, between, rightOverride,
 // 1–2. Подбери 2 числа: произведение и сумма.
 // explain (2-е уравнение): после «КОРНИ» по очереди подсвечиваем (остальное бледное, как в уроке 488)
 // 12 справа и +12 в уравнении, потом 7 и −7 — «знак НАОБОРОТ».
-const PairGuessScene = ({ onSettled, intro, sysText, x1, x2, nums, explain, assemble, memo }: SceneProps & { intro: string; sysText?: string; x1: number; x2: number; nums: number[]; explain?: boolean; assemble?: boolean; memo?: boolean }) => {
+const PairGuessScene = ({ onSettled, intro, sysText, x1, x2, nums, explain, assemble, memo, quickMemo }: SceneProps & { intro: string; sysText?: string; x1: number; x2: number; nums: number[]; explain?: boolean; assemble?: boolean; memo?: boolean; quickMemo?: boolean }) => {
     const [phase, setPhase] = useState(0)
     const b = -(x1 + x2), c = x1 * x2
     // memo (1-е уравнение): «Запомни систему:» → строка x₁·x₂ = c → «Ага, вижу c справа» → строка x₁+x₂ = −b →
     // «Ого, а тут МИНУС b» → сборка. 0 — видна 1-я строка, 1 — кнопка, 2 — видны обе, 3 — кнопка, 4 — дальше.
-    const [memoStep, setMemoStep] = useState(memo ? 0 : 4)
+    // quickMemo (2-е уравнение): система сразу целиком → кнопка «Систему запомнил» → сборка.
+    const [memoStep, setMemoStep] = useState(memo ? (quickMemo ? 2 : 0) : 4)
     useEffect(() => {
         if (!memo || phase < 3 || (memoStep !== 0 && memoStep !== 2)) return
         const t = setTimeout(() => setMemoStep((x) => x + 1), 1300)
@@ -685,7 +686,7 @@ const PairGuessScene = ({ onSettled, intro, sysText, x1, x2, nums, explain, asse
                 rightOverride={memoRight} rowsShown={memo && memoStep < 2 ? 1 : 2}
                 between={assemble && asmStep >= numsStep - 1 ? <TypedBig small parts={[{ text: 'Подбери x₁ x₂ 👆' }]} onDone={() => setAsmStep((x) => Math.max(x, numsStep))} readMs={150} />
                     : memo && memoStep === 1 ? memoBtn('Произведение равно Цэ', 2)
-                    : memo && memoStep === 3 ? memoBtn('Сумма равна МИНУС b', 4)
+                    : memo && memoStep === 3 ? memoBtn(quickMemo ? 'Систему запомнил' : 'Сумма равна МИНУС b', 4)
                     : undefined} />}
 
             {asmStep === 1 && (
@@ -728,7 +729,7 @@ const PauseThen = ({ ms, onDone }: { ms: number; onDone: () => void }) => {
     return null
 }
 const Guess56Scene = (p: SceneProps) => <PairGuessScene {...p} intro="Вот уравнение:" x1={2} x2={3} nums={[1, 2, 3, 4, 5, 6]} assemble memo />
-const Guess712Scene = (p: SceneProps) => <PairGuessScene {...p} intro="А вот ещё одно:" sysText="Составим систему:" x1={3} x2={4} nums={[1, 2, 3, 4, 6, 12]} assemble memo />
+const Guess712Scene = (p: SceneProps) => <PairGuessScene {...p} intro="А вот ещё одно:" sysText="Составим систему:" x1={3} x2={4} nums={[1, 2, 3, 4, 6, 12]} assemble memo quickMemo />
 
 // «КОМБО»: решаем Виетом в 2 этапа. Этап 1 — правая часть (c и −b), этап 2 — подбираем x₁ и x₂.
 // Система одна на оба этапа и не перерисовывается: меняются только варианты снизу и плашка этапа (с отскоком).
@@ -745,6 +746,34 @@ const ZAKREP_ROUNDS: ComboRound[] = [
     { b: 7, c: 10, nums: [10, -10, -7, 7, 3, -3], roots: [-2, -5, 2, 5, -1, -10] },
     { b: 8, c: 12, nums: [12, -12, -8, 8, 4, -4], roots: [-2, -6, 2, 6, -3, -4] },
 ]
+// Сложность раунда: оба корня положительные — 1, разных знаков — 2, оба отрицательные — 3.
+const rootsLevel = (r: ComboRound): 1 | 2 | 3 => (r.c < 0 ? 2 : -r.b > 0 ? 1 : 3)
+const DIFF_PICS = { 1: { name: 'easy', count: 9 }, 2: { name: 'norm', count: 11 }, 3: { name: 'hard', count: 9 } } as const
+const DIFF_COLORS = { 1: '#78C93C', 2: '#F2C35B', 3: '#DC605B' } as const
+// «Сложность»: подпись, картинка котопса (public/diff-catdogs) и три квадратика. Пока только в ЗАКРЕПе урока 502.
+const DifficultyBadge = ({ level }: { level: 1 | 2 | 3 }) => {
+    const [pic, setPic] = useState<string | null>(null)
+    useEffect(() => {
+        const d = DIFF_PICS[level]
+        setPic(`/diff-catdogs/${d.name}-${1 + Math.floor(Math.random() * d.count)}.webp`)
+    }, [level])
+    const color = DIFF_COLORS[level]
+    return (
+        <div className="shrink-0 flex flex-col items-center gap-1 px-2 py-1.5 rounded-xl border-2 bg-[#161F23]" style={{ borderColor: hexToRgba(color, 0.45) }}>
+            <span className="text-[10px] font-black uppercase tracking-wide text-[#9AA7B0]">сложность</span>
+            <div className="w-12 h-12">
+                {pic && <motion.img key={pic} src={pic} alt="" className="w-full h-full object-contain"
+                    initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 12 }} />}
+            </div>
+            <div className="flex gap-1">
+                {[1, 2, 3].map((i) => (
+                    <span key={i} className="w-3.5 h-3.5 rounded-[4px] border"
+                        style={i <= level ? { backgroundColor: color, borderColor: color } : { backgroundColor: 'transparent', borderColor: '#3A464E' }} />
+                ))}
+            </div>
+        </div>
+    )
+}
 const STAGE_TEXT = { 1: 'Этап 1: правая часть', 2: 'Этап 2: подбираем x₁ и x₂' } as const
 const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolean; onSolved: () => void }) => {
     const [stage, setStage] = useState<1 | 2>(1)
@@ -788,10 +817,11 @@ const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolea
     const rowState = (i: number): 'ok' | 'bad' | null => (result && filled ? (rowOk(i) ? 'ok' : 'bad') : null)
     const row = (i: number, op: string, color: string) => {
         const st = rowState(i)
-        // Правая часть: в 1-м этапе — пропуск, во 2-м — уже составленное число (рамка бледно-зелёная).
+        // Правая часть: в 1-м этапе — пропуск, во 2-м — уже составленное число.
         const rv = right[i]
-        const rightBorder = stage === 2 ? hexToRgba(OK_COLOR, 0.45)
-            : st === 'ok' ? hexToRgba(OK_COLOR, 0.6) : st === 'bad' ? BAD_COLOR : active === i && !result ? hexToRgba(color, 0.75) : '#3A464E'
+        // Заполненная правая часть — нейтральная рамка (зелёная сбивала с толку), красная — только при ошибке.
+        const rightBorder = stage === 2 ? '#3A464E'
+            : st === 'bad' ? BAD_COLOR : active === i && !result ? hexToRgba(color, 0.75) : '#3A464E'
         return (
             <motion.div animate={st === 'bad' ? { x: [0, -10, 10, -6, 6, 0] } : { x: 0 }} transition={{ duration: 0.5 }}
                 className="flex items-center gap-2.5 text-2xl md:text-3xl font-black text-[#F2F7FB]">
@@ -817,9 +847,12 @@ const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolea
     return (
         <div className="w-full flex flex-col items-center gap-4">
             <Eq a={1} b={r.b} c={r.c} colors={colors} />
-            <div className="px-3 py-1 rounded-full text-sm font-black overflow-hidden" style={{ backgroundColor: hexToRgba(B_COLOR, 0.15), color: B_COLOR }}>
-                <motion.span key={stage} className="inline-block" initial={{ scale: 0.3, y: -14, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
-                    transition={{ type: 'spring', stiffness: 420, damping: 9 }}>{STAGE_TEXT[stage]}</motion.span>
+            <div className="w-full flex items-center justify-between gap-3">
+                <div className="px-3 py-1 rounded-full text-sm font-black overflow-hidden" style={{ backgroundColor: hexToRgba(B_COLOR, 0.15), color: B_COLOR }}>
+                    <motion.span key={stage} className="inline-block" initial={{ scale: 0.3, y: -14, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
+                        transition={{ type: 'spring', stiffness: 420, damping: 9 }}>{STAGE_TEXT[stage]}</motion.span>
+                </div>
+                <DifficultyBadge level={rootsLevel(r)} />
             </div>
             <div className="flex flex-col items-center gap-3">
                 {row(0, '·', C_COLOR)}
