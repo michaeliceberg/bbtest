@@ -220,7 +220,7 @@ const QuickPick = ({ ask, options, correct, hint, onDone }: {
     }
     return (
         <div className="w-full flex flex-col items-center gap-2">
-            <div className="text-xl md:text-2xl font-black text-center text-[#F2F7FB]"><Pop>{ask}</Pop></div>
+            {ask && <div className="text-xl md:text-2xl font-black text-center text-[#F2F7FB]"><Pop>{ask}</Pop></div>}
             <div className={cn('drop-in-options grid gap-2.5 w-full max-w-sm', opts.length === 3 ? 'grid-cols-3' : 'grid-cols-2')}>
                 {opts.map((o) => (
                     <button key={o} type="button" onClick={() => pick(o)} disabled={ok}
@@ -248,7 +248,7 @@ const RoundBadge = ({ n, total }: { n: number; total: number }) => (
     </div>
 )
 
-const RoundsBody = ({ rounds, onDone, doneText }: { rounds: Round[]; onDone: () => void; doneText?: React.ReactNode }) => {
+const RoundsBody = ({ rounds, onDone, doneText, hideBadge }: { rounds: Round[]; onDone: () => void; doneText?: React.ReactNode; hideBadge?: boolean }) => {
     const [r, setR] = useState(0)
     const [doneSteps, setDoneSteps] = useState(0)
     const [praise, setPraise] = useState<string | null>(null)
@@ -276,9 +276,11 @@ const RoundsBody = ({ rounds, onDone, doneText }: { rounds: Round[]; onDone: () 
     const cur = round.steps[doneSteps]
     return (
         <div key={`round-${r}`} className="w-full flex flex-col items-center gap-2">
-            <div className="w-full flex items-center justify-center gap-3">
-                <RoundBadge n={r + 1} total={rounds.length} />
-            </div>
+            {!hideBadge && (
+                <div className="w-full flex items-center justify-center gap-3">
+                    <RoundBadge n={r + 1} total={rounds.length} />
+                </div>
+            )}
             <Pop><Eq {...round.eq} colors size="text-2xl md:text-3xl" /></Pop>
             {round.steps.slice(0, doneSteps).map((s, i) => <Fact key={i}>{s.after}</Fact>)}
             {cur && <QuickPick key={`${r}-${doneSteps}`} ask={cur.ask} options={cur.options} correct={cur.correct} hint={cur.hint} onDone={stepDone} />}
@@ -1271,7 +1273,7 @@ const CheckOneScene = ({ onSettled }: SceneProps) => {
             {phase >= 14 && <PauseThen ms={1000} onDone={next(15)} />}
             {phase === 15 && <ReplyButton onClick={() => setPhase(16)}>Мы везунчики!</ReplyButton>}
             {phase >= 16 && (
-                <TypedBig small onDone={next(17)} readMs={1000} parts={[{ text: 'Тогда' }]} />
+                <TypedBig small onDone={next(17)} readMs={1000} parts={[{ text: 'Тогда второй корень:' }]} />
             )}
             {phase >= 17 && (
                 <BigLine>
@@ -1292,17 +1294,17 @@ const rootsHint = (c: number, a: number) => (o: string) => {
     return `x₂ = c/a = ${c < 0 ? '−' : ''}${Math.abs(c)}/${a}: сверху c со знаком, снизу a 🙃`
 }
 const X1_ROUNDS: Round[] = [
-    { eq: { a: 3, b: -5, c: 2 }, steps: [{ ask: 'Найди корни', options: ['1 и 2/3', '1 и −2/3', '1 и 3/2', '−1 и 2/3'], correct: '1 и 2/3', hint: rootsHint(2, 3), after: <span style={{ color: ROOT_COLOR }}><NumText s="x₁ = 1, x₂ = 2/3" /> ✓</span> }] },
-    { eq: { a: 5, b: 2, c: -7 }, steps: [{ ask: 'Найди корни', options: ['1 и −7/5', '1 и 7/5', '1 и −5/7', '−1 и 7/5'], correct: '1 и −7/5', hint: rootsHint(-7, 5), after: <span style={{ color: ROOT_COLOR }}><NumText s="x₁ = 1, x₂ = −7/5" /> ✓</span> }] },
-    { eq: { a: 4, b: -9, c: 5 }, steps: [{ ask: 'Найди корни', options: ['1 и 5/4', '1 и −5/4', '1 и 4/5', '−1 и −5/4'], correct: '1 и 5/4', hint: rootsHint(5, 4), after: <span style={{ color: ROOT_COLOR }}><NumText s="x₁ = 1, x₂ = 5/4" /> ✓</span> }] },
+    { eq: { a: 3, b: -5, c: 2 }, steps: [{ ask: '', options: ['1 и 2/3', '1 и −2/3', '1 и 3/2', '−1 и 2/3'], correct: '1 и 2/3', hint: rootsHint(2, 3), after: <span style={{ color: ROOT_COLOR }}><NumText s="x₁ = 1, x₂ = 2/3" /> ✓</span> }] },
+    { eq: { a: 5, b: 2, c: -7 }, steps: [{ ask: '', options: ['1 и −7/5', '1 и 7/5', '1 и −5/7', '−1 и 7/5'], correct: '1 и −7/5', hint: rootsHint(-7, 5), after: <span style={{ color: ROOT_COLOR }}><NumText s="x₁ = 1, x₂ = −7/5" /> ✓</span> }] },
+    { eq: { a: 4, b: -9, c: 5 }, steps: [{ ask: '', options: ['1 и 5/4', '1 и −5/4', '1 и 4/5', '−1 и −5/4'], correct: '1 и 5/4', hint: rootsHint(5, 4), after: <span style={{ color: ROOT_COLOR }}><NumText s="x₁ = 1, x₂ = 5/4" /> ✓</span> }] },
 ]
 const X1PracticeScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
     return (
         <>
             <TypedBig small onDone={() => setPhase(1)} readMs={1000}
-                parts={[{ text: 'Теперь сам! Тут ' }, { text: 'x₁ = 1', color: ROOT_COLOR }, { text: ' подходит. Найди корни' }]} />
-            {phase >= 1 && <RoundsBody rounds={X1_ROUNDS} onDone={() => onSettled?.()} doneText="Угадывать корни — изи! 🔥" />}
+                parts={[{ text: 'Теперь сам! Найди корни:' }]} />
+            {phase >= 1 && <RoundsBody rounds={X1_ROUNDS} hideBadge onDone={() => onSettled?.()} doneText="Угадывать корни — изи! 🔥" />}
         </>
     )
 }
