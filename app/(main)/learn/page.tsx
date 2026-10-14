@@ -38,6 +38,7 @@ import { LEARN_ONLY_UNIT, pickActiveCourseId, resolveActiveTCourse } from '@/lib
 import { Suspense } from 'react';
 import { isLearnUnlocked } from '@/lib/learn-unlock';
 import { CourseProgressStrip } from '@/components/course-progress-strip';
+import { LearnUnitFold } from '@/components/learn-unit-fold';
 
 const bgList = [
   '/bg-svg/anchors-away.svg',
@@ -357,6 +358,14 @@ const LearnPage = async () => {
     ? (focusUnit.lessons?.find((l: { id: number }) => l.id === lastTouchedLessonId)?.id ?? focusUnit.lessons?.[0]?.id ?? null)
     : null;
 
+  // Раскрыт только один раздел: по умолчанию — где решали последним, иначе первый открытый непройденный.
+  const defaultOpenUnitId: number | null =
+    focusUnit?.id
+    ?? unitsWithFormattedLessons.find((u) => u.lessons?.some((l: { id: number }) => l.id === lastTouchedLessonId))?.id
+    ?? unitsWithFormattedLessons.find((u) => unitUnlocked(u) && !u.isCompleted)?.id
+    ?? unitsWithFormattedLessons[0]?.id
+    ?? null;
+
   return (
     <LearnWrapper courseId={activeCourseId}>
       <Suspense fallback={null}>
@@ -432,6 +441,7 @@ const LearnPage = async () => {
             </div>
 
             <CourseProgressStrip
+              defaultOpenId={defaultOpenUnitId}
               units={unitsWithFormattedLessons.map((unit, index) => {
                 const stats = unitChallengeStats.get(unit.id);
                 const percent = stats && stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
@@ -453,8 +463,17 @@ const LearnPage = async () => {
               const section = egeSectionOf(activeCourse.title, unit.title)
               const prevSection = index > 0 ? egeSectionOf(activeCourse.title, unitsWithFormattedLessons[index - 1].title) : null
               return (
-              <div key={unit.id} className='mb-10' data-learn-unit-id={unit.id}>
+              <div key={unit.id} className='mb-3' data-learn-unit-id={unit.id}>
                 {section && section !== 'part1' && section !== prevSection && <EgeSectionHeader section={section} />}
+                <LearnUnitFold
+                  id={unit.id}
+                  title={unit.title}
+                  unitIndex={index}
+                  percent={(() => { const st = unitChallengeStats.get(unit.id); return st && st.total > 0 ? Math.round((st.completed / st.total) * 100) : 0 })()}
+                  isUnlocked={unitUnlocked(unit)}
+                  isCompleted={isForcedLocked(unit.id) ? false : unit.isCompleted}
+                  defaultOpenId={defaultOpenUnitId}
+                >
                 <Unit
                   id={unit.id}
                   unitIndex={index}
@@ -479,6 +498,7 @@ const LearnPage = async () => {
                   isAdmin={isAdmin}
                   lastTouchedLessonId={lastTouchedLessonId}
                 />
+                </LearnUnitFold>
               </div>
               )
             })}

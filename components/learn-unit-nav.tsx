@@ -15,6 +15,7 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store'
 import { getUnitButtonColor, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
+import { useLearnOpenUnit } from '@/store/use-learn-open-unit'
 
 export type LearnSection = 'part1' | 'part2' | 'extra' | null
 export type LearnNavUnit = { id: number; title: string; unitIndex: number; percent: number; isUnlocked: boolean; isCompleted: boolean; section: LearnSection }
@@ -88,6 +89,7 @@ export const LearnUnitNav = ({ units, navigate = false, selectedUnitId = null }:
     const go = (id: number) => {
         setMenuOpen(false)
         if (navigate) { router.push(`/learn?unit=${id}`, { scroll: false }); return }
+        useLearnOpenUnit.getState().setOpenId(id)
         setTimeout(() => scrollToLearnUnit(id), 250)
     }
 

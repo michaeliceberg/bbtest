@@ -4,15 +4,16 @@
 //
 // «Прогресс по разделам» в задачнике (/learn) — игровая шкала: на каждую часть ЕГЭ (для ЕГЭ курсов)
 // одна полоска из ячеек, как полоска здоровья/опыта в игре. Ячейка = раздел: заливается цветом раздела
-// по доле решённых задач, пройденный — полностью. Номер задания мелко под ячейкой. В конце полоски —
-// сундук части: серый, пока часть не пройдена целиком, потом мифический и подпрыгивает.
-// Нажатие на ячейку — прокрутка к разделу, снизу подпись выбранного раздела.
+// по доле решённых задач, пройденный — полностью. Номер задания мелко под ячейкой.
+// На странице раскрыт только один раздел (components/learn-unit-fold.tsx): его ячейка обведена,
+// номер подсвечен, снизу его название. Нажатие на ячейку раскрывает раздел и доезжает до него.
 // percent приходит уже посчитанным на сервере (доля решённых задач юнита, app/(main)/learn/page.tsx).
 
-import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { getUnitButtonColor } from '@/src/constants/lessonButtonColors'
-import { SECTION_LABEL, scrollToLearnUnit, type LearnSection } from '@/components/learn-unit-nav'
+import { SECTION_LABEL, type LearnSection } from '@/components/learn-unit-nav'
+import { openLearnUnit } from '@/components/learn-unit-fold'
+import { useLearnOpenUnit } from '@/store/use-learn-open-unit'
 
 type StripUnit = {
     id: number
@@ -30,8 +31,8 @@ const cellLabel = (u: StripUnit) => {
     return m ? m[1] : String(u.order)
 }
 
-export function CourseProgressStrip({ units }: { units: StripUnit[] }) {
-    const [selected, setSelected] = useState<number | null>(null)
+export function CourseProgressStrip({ units, defaultOpenId = null }: { units: StripUnit[]; defaultOpenId?: number | null }) {
+    const selected = useLearnOpenUnit((s) => s.openId) ?? defaultOpenId
     if (units.length === 0) return null
 
     const groups: { section: LearnSection; units: StripUnit[] }[] = []
@@ -48,7 +49,6 @@ export function CourseProgressStrip({ units }: { units: StripUnit[] }) {
                 {groups.map((g, gi) => {
                     const label = g.section ? SECTION_LABEL[g.section] : null
                     const [labelMain, labelSub] = label ? label.title.split(' · ') : ['Разделы', '']
-                    const allDone = g.units.every((u) => u.isCompleted)
                     return (
                         <div key={gi}>
                             <div className="mb-1 flex items-center">
@@ -57,9 +57,8 @@ export function CourseProgressStrip({ units }: { units: StripUnit[] }) {
                                     {labelSub && <span className="ml-1.5 normal-case tracking-normal text-[#5C6B73]">{labelSub}</span>}
                                 </span>
                             </div>
-                            <div className="flex items-end gap-2">
-                                {/* полоска из ячеек */}
-                                <div className="flex flex-1 gap-[3px] rounded-lg bg-[#0F171B] p-[3px]" style={{ boxShadow: 'inset 0 2px 0 rgba(0,0,0,0.35)' }}>
+                            <div>
+                                <div className="flex gap-[3px] rounded-lg bg-[#0F171B] p-[3px]" style={{ boxShadow: 'inset 0 2px 0 rgba(0,0,0,0.35)' }}>
                                     {g.units.map((u) => {
                                         const c = getUnitButtonColor(u.unitIndex)
                                         const fill = u.isCompleted ? 100 : u.percent > 0 ? Math.max(u.percent, 12) : 0
@@ -69,7 +68,7 @@ export function CourseProgressStrip({ units }: { units: StripUnit[] }) {
                                                 key={u.id}
                                                 type="button"
                                                 whileTap={{ scale: 0.9 }}
-                                                onClick={() => { setSelected(u.id); if (u.isUnlocked) scrollToLearnUnit(u.id) }}
+                                                onClick={() => { if (u.isUnlocked) openLearnUnit(u.id) }}
                                                 title={`${u.title} — ${Math.round(u.percent)}%`}
                                                 className="relative min-w-0 flex-1"
                                             >
@@ -77,7 +76,7 @@ export function CourseProgressStrip({ units }: { units: StripUnit[] }) {
                                                     className="relative h-4 overflow-hidden rounded-[4px]"
                                                     style={{
                                                         background: u.isUnlocked ? '#26333B' : '#1A2328',
-                                                        boxShadow: isSel ? `0 0 0 2px ${c.button}` : undefined,
+                                                        boxShadow: isSel ? `0 0 0 2px #FFFFFF, 0 0 10px ${c.button}` : undefined,
                                                     }}
                                                 >
                                                     {u.isUnlocked && fill > 0 && (
@@ -92,22 +91,16 @@ export function CourseProgressStrip({ units }: { units: StripUnit[] }) {
                                                     {/* блик сверху — «стеклянная» ячейка */}
                                                     <div className="absolute inset-x-0 top-0 h-1/3 bg-white/10" />
                                                 </div>
-                                                <span className="mt-0.5 block text-center text-[9px] font-black leading-none" style={{ color: u.isCompleted ? c.button : u.isUnlocked ? '#72838D' : '#3E4B52' }}>
+                                                <span
+                                                    className={isSel ? 'mx-auto mt-0.5 block w-fit rounded px-1 text-center text-[10px] font-black leading-[13px] text-white' : 'mt-0.5 block text-center text-[9px] font-black leading-[13px]'}
+                                                    style={isSel ? { background: c.button } : { color: u.isCompleted ? c.button : u.isUnlocked ? '#72838D' : '#3E4B52' }}
+                                                >
                                                     {cellLabel(u)}
                                                 </span>
                                             </motion.button>
                                         )
                                     })}
                                 </div>
-                                {/* сундук части */}
-                                <motion.img
-                                    src={allDone ? '/chests/myth0001.svg' : '/chests/comm0001.svg'}
-                                    alt=""
-                                    className="mb-1.5 h-7 w-7 flex-shrink-0"
-                                    style={{ filter: allDone ? 'none' : 'grayscale(1) brightness(0.55)' }}
-                                    animate={allDone ? { y: [0, -3, 0] } : undefined}
-                                    transition={allDone ? { duration: 1.4, repeat: Infinity, ease: 'easeInOut' } : undefined}
-                                />
                             </div>
                         </div>
                     )
@@ -115,7 +108,7 @@ export function CourseProgressStrip({ units }: { units: StripUnit[] }) {
             </div>
 
             <p className="mt-1.5 truncate text-[11px] font-bold text-[#5C6B73]">
-                {sel ? <><span className="text-[#E2EAF0]">{sel.title}</span> · {Math.round(sel.percent)}%</> : 'Нажми на ячейку — перейдёшь к разделу'}
+                {sel ? <>Открыт: <span className="text-[#E2EAF0]">{sel.title}</span> · {Math.round(sel.percent)}%</> : 'Нажми на ячейку — откроешь раздел'}
             </p>
         </div>
     )
