@@ -331,6 +331,8 @@ export function useSceneFocus(latestKey: string, contentSettled: boolean) {
     // пролистал лог, маскот выше уже не единственная точка внимания.
     const firstKeyRef = useRef<string | null>(null)
     if (firstKeyRef.current === null) firstKeyRef.current = latestKey
+    // Ключ сцены, к которой уже скроллили (чтобы отличить «новая сцена» от «сцена доиграла»).
+    const shownKeyRef = useRef<string | null>(null)
 
     // Скроллим к САМОЙ СЦЕНЕ (не к маркеру в конце лога) — раньше
     // useStickToBottom целился в пустой `endRef`, стоящий ПОСЛЕДНИМ в
@@ -359,8 +361,17 @@ export function useSceneFocus(latestKey: string, contentSettled: boolean) {
             container.style.paddingBottom = '60vh'
         }
         const rect = el.getBoundingClientRect()
-        const delta = rect.top - 80
-        window.scrollBy({ top: delta, behavior: 'auto' })
+        // Новая сцена — верх к верху экрана. А когда сцена ДОИГРАЛА (contentSettled) — к верху НЕ прыгаем:
+        // у длинной сцены (Виета 502, «тупо проверяем x = 1») это уносило экран далеко вверх от кнопки.
+        // Только если низ сцены ушёл за экран — подтягиваем его (с запасом под кнопку «Дальше»).
+        const isNewScene = shownKeyRef.current !== latestKey
+        shownKeyRef.current = latestKey
+        if (isNewScene) {
+            window.scrollBy({ top: rect.top - 80, behavior: 'auto' })
+        } else {
+            const overflow = rect.bottom - (window.innerHeight - 110)
+            if (overflow > 0) window.scrollBy({ top: overflow, behavior: 'smooth' })
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [latestKey, contentSettled])
 
