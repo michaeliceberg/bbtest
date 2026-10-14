@@ -18,7 +18,7 @@ import { useCourseSwitchStore } from '@/store/course-switch-store'
 import { COZY, COZY_WOOD_TILE, type UiTheme } from '@/lib/cozyTheme'
 import { useUiThemeLive } from '@/lib/uiTheme'
 
-// Цвета вордмарка "ggege" (public/ggegelogo.svg) — сэмплированы напрямую
+// Цвета вордмарка "ggege" (public/ggegelogo.svg, старый логотип) — сэмплированы напрямую
 // из отрисованного логотипа (замер getBBox()/fill по <use>-элементам):
 // левая половина ("gg") — фиолетовая, правая ("ege") — зелёная. Девиз в
 // сайдбаре повторяет эту же пару, чтобы читаться как продолжение логотипа.
@@ -195,7 +195,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
     return (
       <div className={cn('flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-[#151F23]', className)} style={rootStyle}>
         <div className='pt-8 pl-4 pb-7 flex items-center gap-x-3'>
-          <Image src="/ggegelogo.svg" height={32} width={64} alt="ggege" className="h-auto w-auto" />
+          <Image src="/ggege-logo.webp" height={236} width={440} alt="ggege" priority className="h-auto w-[210px]" />
         </div>
         <div className='flex flex-col gap-y-2 flex-1 justify-center'>
           {navItems.map((item) => {
@@ -228,7 +228,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
     <div className={cn('flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-[#151F23]', className)} style={rootStyle}>
       <Link href='/trainer'>
         <div className='pt-8 pl-4 pb-4 flex items-center gap-x-3 cursor-pointer hover:opacity-80 transition-opacity'>
-          <Image src="/ggegelogo.svg" height={32} width={64} alt="ggege" className="h-auto w-auto" />
+          <Image src="/ggege-logo.webp" height={236} width={440} alt="ggege" priority className="h-auto w-[210px]" />
         </div>
       </Link>
 

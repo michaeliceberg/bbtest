@@ -61,7 +61,7 @@ export const TestPickerClient = ({ utm }: Props) => {
 	return (
 		<div className="min-h-screen bg-[#0F171A] text-[#F2F7FB] flex flex-col items-center px-4 py-8">
 			<div className="w-full flex flex-col items-center gap-2 mb-4">
-				<Image src="/ggegelogo.svg" alt="ggege" height={96} width={192} className="h-24 w-48" />
+				<Image src="/ggege-logo.webp" alt="ggege" height={206} width={384} className="h-auto w-48" />
 				<span className="text-lg font-extrabold tracking-wide text-[#9AA7B0]">GGEGE.RU</span>
 			</div>
 
