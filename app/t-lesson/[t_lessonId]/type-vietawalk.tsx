@@ -1269,7 +1269,7 @@ const X2Formula = ({ minus }: { minus?: boolean }) => (
 
 // Правило «тупо проверяем» (до кнопки — паузы 1 с), потом подстановка в уравнение (паузы 2 с).
 // root = 1: правило → «Давай попробуем!» → уравнение. root = −1: «А что если вот такое:» → уравнение →
-// x = 1 не подойдёт → проверяем x = −1 → «Ок, давай попробуем!»; подставляем в то же уравнение сверху.
+// x = 1 не подойдёт → проверяем x = −1 → «Ок, давай попробуем!»; уравнение пишем заново и подставляем в него.
 const CheckRootScene = ({ spec, onSettled }: SceneProps & { spec: CheckSpec }) => {
     const one = spec.root === 1
     const [phase, setPhase] = useState(0)
@@ -1304,7 +1304,11 @@ const CheckRootScene = ({ spec, onSettled }: SceneProps & { spec: CheckSpec }) =
             ) : (
                 <>
                     <TypedBig small onDone={next(1)} readMs={500} parts={[{ text: 'А что если вот такое:' }]} />
-                    {phase >= 1 && eqBlock(next(2))}
+                    {phase >= 1 && (
+                        <DiagramBlock onSettled={next(2)}>
+                            <Eq a={spec.a} b={spec.b} c={spec.c} colors />
+                        </DiagramBlock>
+                    )}
                     {phase >= 2 && (
                         <div className="w-full flex flex-col items-center gap-4 transition-all duration-700" style={ruleDim}>
                             <TypedBig small onDone={next(3)} readMs={1000}
@@ -1326,9 +1330,10 @@ const CheckRootScene = ({ spec, onSettled }: SceneProps & { spec: CheckSpec }) =
                 </>
             )}
             {t < 0 && phase === (one ? 5 : 8) && (
-                <ReplyButton onClick={() => setT(one ? 0 : 1)}>{one ? 'Давай попробуем!' : 'Ок, давай попробуем!'}</ReplyButton>
+                <ReplyButton onClick={() => setT(0)}>{one ? 'Давай попробуем!' : 'Ок, давай попробуем!'}</ReplyButton>
             )}
-            {one && t >= 0 && eqBlock(tn(1))}
+            {/* Подставляем в уравнение, записанное заново прямо здесь (наверх смотреть неудобно). */}
+            {t >= 0 && eqBlock(tn(1))}
             {t >= 1 && (
                 <TypedBig small onDone={tn(2)} readMs={200} parts={[{ text: 'Подставим ' }, { text: `x = ${r}`, color: ROOT_COLOR }]} />
             )}
