@@ -7,11 +7,13 @@
 import { useId } from 'react'
 import type { Item } from '@/components/parallax-world'
 
-export type ParallaxTheme = 'default' | 'trig' | 'planim'
+export type ParallaxTheme = 'default' | 'trig' | 'planim' | 'log' | 'physics'
 export const PARALLAX_THEME_LABELS: Record<ParallaxTheme, string> = {
     default: 'Общий',
     trig: 'Тригонометрия',
     planim: 'Планиметрия',
+    log: 'Логарифмы',
+    physics: 'Физика',
 }
 
 const WARM = '#F2C35B'
@@ -236,7 +238,7 @@ const Obelisk = ({ w, color, accent }: P) => (
 )
 
 // Средний слой каждого мира: панели по 1000px, объекты по краям (центр — для карты уроков).
-export const THEME_MIDDLE_PANELS: Record<Exclude<ParallaxTheme, 'default'>, Item[][]> = {
+export const THEME_MIDDLE_PANELS: Partial<Record<ParallaxTheme, Item[][]>> = {
     trig: [
         [{ y: 100, x: '66%', el: (c) => <Observatory w={190} color={c.color} accent={c.accent} /> },
          { y: 600, x: '-6%', el: (c) => <SineSea w={330} color={c.color} accent={c.accent} /> }],
@@ -260,14 +262,20 @@ export const THEME_TINT: Record<ParallaxTheme, string | null> = {
     default: null,
     trig: '83,173,239',
     planim: '240,155,56',
+    log: '195,133,247',
+    physics: '92,201,159',
 }
 
 // ===== Атмосфера мира: что «висит в воздухе» на дальнем плане =====
-// stars — звёздное небо (только на дальнем слое), wind — пустыня: полосы ветра и песчинки летят слева направо.
-export const THEME_SKY: Record<ParallaxTheme, 'stars' | 'wind'> = {
+// stars — звёздное небо (только на дальнем слое), wind — пустыня: полосы ветра и песчинки летят слева направо,
+// clouds — медленные облака и лёгкая дымка, sparks — электрические искорки поднимаются вверх и гаснут.
+export type ThemeSky = 'stars' | 'wind' | 'clouds' | 'sparks'
+export const THEME_SKY: Record<ParallaxTheme, ThemeSky> = {
     default: 'stars',
     trig: 'stars',
     planim: 'wind',
+    log: 'clouds',
+    physics: 'sparks',
 }
 
 // Пустыня (дальний слой планиметрии вместо луны и снежных гор): низкое тёплое солнце и дюны.
@@ -329,3 +337,40 @@ export const WindDrift = () => (
         ))}
     </div>
 )
+
+// Облака (логарифмы): несколько больших мягких облаков очень медленно плывут слева направо.
+const CLOUDS = [
+    { top: 10, w: 220, dur: 70, delay: -10, op: 0.10 },
+    { top: 34, w: 160, dur: 55, delay: -40, op: 0.08 },
+    { top: 58, w: 260, dur: 85, delay: -25, op: 0.09 },
+    { top: 80, w: 180, dur: 62, delay: -50, op: 0.08 },
+]
+export const CloudDrift = () => (
+    <div className="absolute inset-0">
+        {CLOUDS.map((c, i) => (
+            <svg key={i} width={c.w} height={c.w * 0.42} viewBox="0 0 160 68" className="absolute left-0 animate-cloud-drift"
+                style={{ top: `${c.top}%`, animationDuration: `${c.dur}s`, animationDelay: `${c.delay}s`, ['--cloud-op' as string]: c.op }}>
+                <path d="M18 66 Q0 66 4 50 Q8 34 28 38 Q30 12 58 14 Q76 0 98 12 Q126 6 130 34 Q158 34 156 54 Q154 66 136 66 Z" fill="#C9D9E6" />
+            </svg>
+        ))}
+    </div>
+)
+
+// Искры (физика): маленькие голубые точки поднимаются снизу вверх и гаснут, как электричество в воздухе.
+const SPARKS = [
+    { left: 6, dur: 9, delay: 0 }, { left: 14, dur: 11, delay: 4 }, { left: 22, dur: 8, delay: 7 },
+    { left: 78, dur: 10, delay: 2 }, { left: 86, dur: 12, delay: 6 }, { left: 93, dur: 9, delay: 9 },
+    { left: 40, dur: 13, delay: 3 }, { left: 62, dur: 11, delay: 8 },
+]
+export const SparkRise = () => (
+    <div className="absolute inset-0">
+        {SPARKS.map((g, i) => (
+            <span key={i} className="absolute bottom-0 h-[3px] w-[3px] rounded-full bg-[#9BE7FF] animate-spark-rise"
+                style={{ left: `${g.left}%`, animationDuration: `${g.dur}s`, animationDelay: `${g.delay}s`, boxShadow: '0 0 6px 1px rgba(125,211,252,0.55)' }} />
+        ))}
+    </div>
+)
+
+// Неподвижный слой атмосферы над дальним планом (звёзды рисуются самим дальним слоем).
+export const SkyOverlay = ({ sky }: { sky: ThemeSky }) =>
+    sky === 'wind' ? <WindDrift /> : sky === 'clouds' ? <CloudDrift /> : sky === 'sparks' ? <SparkRise /> : null

@@ -819,3 +819,22 @@ body {
 }
 .animate-wind-drift { animation: wind-drift 10s linear infinite; animation-fill-mode: backwards; will-change: transform; }
 @media (prefers-reduced-motion: reduce) { .animate-wind-drift { animation: none; opacity: 0; } }
+
+/* Облака мира «Логарифмы» (CloudDrift): очень медленно плывут слева направо. */
+@keyframes cloud-drift {
+    0% { transform: translateX(-35vw); opacity: 0; }
+    10%, 90% { opacity: var(--cloud-op, 0.09); }
+    100% { transform: translateX(110vw); opacity: 0; }
+}
+.animate-cloud-drift { animation: cloud-drift 70s linear infinite; will-change: transform; }
+
+/* Искры мира «Физика» (SparkRise): поднимаются снизу вверх, мерцают и гаснут. */
+@keyframes spark-rise {
+    0% { transform: translateY(0); opacity: 0; }
+    10% { opacity: 0.7; }
+    50% { opacity: 0.25; }
+    60% { opacity: 0.6; }
+    100% { transform: translateY(-85vh); opacity: 0; }
+}
+.animate-spark-rise { animation: spark-rise 10s linear infinite; animation-fill-mode: backwards; will-change: transform; }
+@media (prefers-reduced-motion: reduce) { .animate-cloud-drift, .animate-spark-rise { animation: none; opacity: 0; } }

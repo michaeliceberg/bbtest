@@ -10,7 +10,7 @@
 import { useEffect, useState } from 'react'
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion'
 import { RICH_LAYERS, RICH_PANELS } from '@/components/parallax-world-rich'
-import { THEME_FAR_PANELS, THEME_MIDDLE_PANELS, THEME_SKY, THEME_TINT, WindDrift, type ParallaxTheme } from '@/components/parallax-themes'
+import { THEME_FAR_PANELS, THEME_MIDDLE_PANELS, THEME_SKY, THEME_TINT, SkyOverlay, type ParallaxTheme } from '@/components/parallax-themes'
 
 
 // stars — глубина звёздного неба на этом слое (0 дальний, 1 средний, 2 ближний), см. StarSky.
@@ -231,13 +231,13 @@ export const ParallaxWorld = ({ layers = 3, enabled = true, variant = 'simple', 
                 // Дальний слой (небо) и средний (рисунки) — свои у каждого мира; ближний общий.
                 if (themed && (i === 0 || i === 1)) {
                     return visited.map((t) => {
-                        const own = i === 0 ? THEME_FAR_PANELS[t] : t === 'default' ? undefined : THEME_MIDDLE_PANELS[t]
+                        const own = i === 0 ? THEME_FAR_PANELS[t] : THEME_MIDDLE_PANELS[t]
                         // Звёзды — только на дальнем слое и только в «ночных» мирах.
                         const s = i === 0 && THEME_SKY[t] === 'stars' ? { ...spec, stars: 0 as const } : { ...spec, stars: undefined }
                         return (
                             <div key={`${variant}-${i}-${t}`} className="absolute inset-0 transition-opacity duration-700" style={{ opacity: t === theme ? 1 : 0 }}>
                                 <Layer spec={s} index={i} layers={layers} panels={own ?? panels[i]} soft={i === 1} />
-                                {i === 0 && THEME_SKY[t] === 'wind' && t === theme && <WindDrift />}
+                                {i === 0 && t === theme && <SkyOverlay sky={THEME_SKY[t]} />}
                             </div>
                         )
                     })

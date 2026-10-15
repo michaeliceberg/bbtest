@@ -8,6 +8,8 @@ export const themeForSection = (title: string | null | undefined): ParallaxTheme
     const t = (title ?? '').toLowerCase()
     if (/тригоном|sin|приведени|записать ответ/.test(t)) return 'trig'
     if (/планиметр|окружност|треугольн|подоби/.test(t)) return 'planim'
+    if (/логарифм/.test(t)) return 'log'
+    if (/электр|магнит|динамик|кинемат|оптик|газ|квант|физик|тепло|ленц|фараде/.test(t)) return 'physics'
     return 'default'
 }
 
