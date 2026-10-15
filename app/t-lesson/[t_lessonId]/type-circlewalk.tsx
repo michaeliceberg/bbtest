@@ -20,6 +20,8 @@ import { showAnswerMeme } from '@/components/answer-meme-burst'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
+import Lottie from '@/components/lottie-player'
+import crowEat from '@/public/Lottie/stepByStep/crowEat.json'
 
 const SCENE_TRANSITION_PAUSE_MS = 1000
 
@@ -301,7 +303,8 @@ const ASK_TEXT: Record<TKey, string> = { arc: 'Чему равна дуга?', c
 const ASK_COLOR = '#F2C35B'
 
 type LabelState = 'given' | 'ask' | 'answered' | 'hidden'
-const TrialFigure = ({ t, labels, arc, central, inscribed, labelsOn }: { t: Trial; labels: Record<TKey, LabelState>; arc: number; central: boolean; inscribed: boolean; labelsOn: boolean }) => {
+// central / inscribed — прозрачность угла: 0 — нет, 1 — есть, между — «потускневший» (сейчас не про него).
+const TrialFigure = ({ t, labels, arc, central, inscribed, labelsOn }: { t: Trial; labels: Record<TKey, LabelState>; arc: number; central: number; inscribed: number; labelsOn: boolean }) => {
     const a0 = 90 - arc / 2, a1 = 90 + arc / 2
     const A = pt(a0), B = pt(a1), P = pt(270)
     const dA = dirDeg(P, A), dB = dirDeg(P, B)
@@ -313,13 +316,13 @@ const TrialFigure = ({ t, labels, arc, central, inscribed, labelsOn }: { t: Tria
         <Svg>
             <DrawCircle instant />
             <path d={arcPath(a0, a1)} fill="none" stroke={ANGLE_COLOR} strokeWidth={10} strokeLinecap="round" />
-            <motion.g initial={false} animate={{ opacity: central ? 1 : 0 }} transition={{ duration: 0.5 }}>
+            <motion.g initial={false} animate={{ opacity: central }} transition={{ duration: 0.6 }}>
                     <path d={sectorPath(a0, a1, 32)} fill={hexToRgba(ANGLE_COLOR, 0.3)} stroke={ANGLE_COLOR} strokeWidth={3} />
                     <line x1={CX} y1={CY} x2={A.x} y2={A.y} stroke={LINE} strokeWidth={4} strokeLinecap="round" />
                     <line x1={CX} y1={CY} x2={B.x} y2={B.y} stroke={LINE} strokeWidth={4} strokeLinecap="round" />
                     <circle cx={CX} cy={CY} r={5} fill={LINE} />
             </motion.g>
-            <motion.g initial={false} animate={{ opacity: inscribed ? 1 : 0 }} transition={{ duration: 0.5 }}>
+            <motion.g initial={false} animate={{ opacity: inscribed }} transition={{ duration: 0.6 }}>
                 <>
                     <path d={sectorPath(lo, hi, 38, P.x, P.y)} fill={hexToRgba(PART_COLOR, 0.3)} stroke={PART_COLOR} strokeWidth={3} />
                     <line x1={P.x} y1={P.y} x2={A.x} y2={A.y} stroke={LINE} strokeWidth={4} strokeLinecap="round" />
@@ -328,8 +331,8 @@ const TrialFigure = ({ t, labels, arc, central, inscribed, labelsOn }: { t: Tria
                 </>
             </motion.g>
             {labels.arc !== 'hidden' && <SvgPop key={`arc-${t.arc}-${labels.arc}`} x={CX} y={CY - R - 26} size={26} color={color('arc', ANGLE_COLOR)} show={labelsOn}>{text('arc')}</SvgPop>}
-            {t.central && labels.central !== 'hidden' && <SvgPop key={`c-${t.arc}-${labels.central}`} x={centralLabel.x} y={centralLabel.y} size={22} color={color('central', LINE)} show={labelsOn}>{text('central')}</SvgPop>}
-            {t.inscribed && labels.inscribed !== 'hidden' && <SvgPop key={`i-${t.arc}-${labels.inscribed}`} x={P.x} y={P.y - 62} size={22} color={color('inscribed', LINE)} show={labelsOn}>{text('inscribed')}</SvgPop>}
+            {t.central && labels.central !== 'hidden' && central > 0 && <g opacity={central} style={{ transition: 'opacity 0.6s' }}><SvgPop key={`c-${t.arc}-${labels.central}`} x={centralLabel.x} y={centralLabel.y} size={22} color={color('central', LINE)} show={labelsOn}>{text('central')}</SvgPop></g>}
+            {t.inscribed && labels.inscribed !== 'hidden' && inscribed > 0 && <g opacity={inscribed} style={{ transition: 'opacity 0.6s' }}><SvgPop key={`i-${t.arc}-${labels.inscribed}`} x={P.x} y={P.y - 62} size={22} color={color('inscribed', LINE)} show={labelsOn}>{text('inscribed')}</SvgPop></g>}
         </Svg>
     )
 }
@@ -341,6 +344,38 @@ const labelsFor = (t: Trial, stepIdx: number, done: boolean): Record<TKey, Label
         else if (i === stepIdx) out[s.key] = 'ask'
     })
     return out
+}
+// Перед этим заданием (5/6) — вставка: Lottie вороны на 1 цикл и «Теперь К-К-КОМБО!».
+const COMBO_BEFORE = 4
+const OUTLINE_SHADOW = [-3, 0, 3].flatMap((x) => [-3, 0, 3].map((y) => `${x}px ${y}px 0 #0B1114`)).join(', ')
+const ComboInterlude = ({ onDone }: { onDone: () => void }) => {
+    const doneRef = useRef(false)
+    const finish = () => { if (!doneRef.current) { doneRef.current = true; onDone() } }
+    useEffect(() => {
+        const t = setTimeout(finish, 3800) // страховка, если onComplete не придёт
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+    return (
+        <motion.div className="w-full flex flex-col items-center" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 14 }}>
+            <div className="w-56 h-56 md:w-64 md:h-64">
+                <Lottie animationData={crowEat} loop={false} autoplay onComplete={finish} />
+            </div>
+            <div className="text-3xl md:text-4xl font-black text-white text-center -mt-4" style={{ textShadow: OUTLINE_SHADOW }}>
+                Теперь К-К-КОМБО!
+            </div>
+        </motion.div>
+    )
+}
+// Прозрачность угла: нет на рисунке — 0; в задании с двумя углами тот, про который сейчас не спрашиваем, — бледный.
+const opacityOf = (t: Trial, k: 'central' | 'inscribed', st: TStep | null) => {
+    if (!t[k]) return 0
+    if (!st || !(t.central && t.inscribed)) return 1
+    const other: 'central' | 'inscribed' = k === 'central' ? 'inscribed' : 'central'
+    // Про дугу спрашиваем через данный угол — бледнеет второй; про угол — бледнеет другой угол.
+    const focus = st.key === 'arc' ? (t.given.includes('central') ? 'central' : 'inscribed') : st.key
+    return focus === k ? 1 : (focus === other ? 0.22 : 1)
 }
 const pickPraise = (i: number) => CORRECT_FEEDBACK_PHRASES[(i * 5 + 2) % CORRECT_FEEDBACK_PHRASES.length]
 
@@ -364,6 +399,11 @@ export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
     const [figArc, setFigArc] = useState(TRIALS[0].arc)
     const [targetIdx, setTargetIdx] = useState(0)
     const [labelsOn, setLabelsOn] = useState(true)
+    // Пауза 2 с между вопросами одного задания (5/6, 6/6): ответ уже стоит на рисунке, следующий вопрос ещё не задан.
+    const [stepPause, setStepPause] = useState(false)
+    // Смена рисунка (центральный ↔ вписанный): старый гаснет целиком, новый проявляется. combo — вставка перед 5/6.
+    const [figHidden, setFigHidden] = useState(false)
+    const [combo, setCombo] = useState(false)
     const registerCombo = useWalkthroughCombo()
     const { bump: bumpNonce, nonceFor } = useReplayNonces()
     const latestSceneKey = phase === 'intro' ? `step-${step}` : 'practice'
@@ -395,8 +435,10 @@ export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
             showAnswerMeme(true)
             registerCombo(wrongTried.length === 0)
             setWrongTried([]); setWrongFlash(null)
-            if (qIdx + 1 < trial.steps.length) setQIdx(qIdx + 1)
-            else { setChecked(true); setTrialNextLabel(pickFunNextLabel()) }
+            if (qIdx + 1 < trial.steps.length) {
+                setStepPause(true)
+                setTimeout(() => { setQIdx((q) => q + 1); setStepPause(false) }, 2000)
+            } else { setChecked(true); setTrialNextLabel(pickFunNextLabel()) }
         } else {
             playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false)
             setHadMistake(true)
@@ -414,16 +456,27 @@ export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
                 onAnswer(hadMistake ? 'wrong' : 'right')
                 return
             }
-            // Цифры гаснут → дуга и углы плавно перестраиваются под новое задание → появляется новый вопрос.
             const to = trialIndex + 1
+            const from = TRIALS[trialIndex], target = TRIALS[to]
+            const finish = () => {
+                setTrialIndex(to); setQIdx(0); setChecked(false); setWrongTried([]); setWrongFlash(null)
+                setLabelsOn(true); setFigHidden(false)
+            }
             setLabelsOn(false)
             setTargetIdx(to)
+            const sameFigure = from.central === target.central && from.inscribed === target.inscribed
+            if (sameFigure && to !== COMBO_BEFORE) {
+                // Тот же рисунок: цифры гаснут → дуга и угол плавно меняются → новый вопрос.
+                setTimeout(() => tween(from.arc, target.arc, 1100, setFigArc, finish), 350)
+                return
+            }
+            // Другой рисунок: старый гаснет целиком, потом (перед 5/6 — после вставки «К-К-КОМБО!») проявляется новый.
+            setFigHidden(true)
             setTimeout(() => {
-                tween(TRIALS[trialIndex].arc, TRIALS[to].arc, 1100, setFigArc, () => {
-                    setTrialIndex(to); setQIdx(0); setChecked(false); setWrongTried([]); setWrongFlash(null)
-                    setLabelsOn(true)
-                })
-            }, 350)
+                setFigArc(target.arc)
+                if (to === COMBO_BEFORE) setCombo(true)
+                else finish()
+            }, 700)
         }, 300)
     }
 
@@ -460,9 +513,20 @@ export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
                                 <motion.p key={`q-${trialIndex}-${qIdx}-${checked}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: moving ? 0 : 1, y: 0 }}
                                     className="text-base md:text-lg font-bold text-[#F2F7FB] text-center px-16">{checked ? 'Готово ✅' : ASK_TEXT[cur.key]}</motion.p>
                             </div>
-                            <TrialFigure t={t} labels={labelsFor(t, qIdx, checked)} arc={figArc}
-                                central={(moving ? target : t).central} inscribed={(moving ? target : t).inscribed} labelsOn={labelsOn} />
-                            {!checked && !moving && (
+                            {combo ? (
+                                <ComboInterlude onDone={() => {
+                                    setCombo(false)
+                                    setTrialIndex(targetIdx); setQIdx(0); setChecked(false); setWrongTried([]); setWrongFlash(null)
+                                    setLabelsOn(true); setFigHidden(false)
+                                }} />
+                            ) : (
+                                <motion.div className="w-full" initial={false} animate={{ opacity: figHidden ? 0 : 1, scale: figHidden ? 0.92 : 1 }} transition={{ duration: 0.5 }}>
+                                    <TrialFigure t={t} labels={labelsFor(t, qIdx, checked || stepPause)} arc={figArc}
+                                        central={opacityOf(moving ? target : t, 'central', moving || checked ? null : t.steps[qIdx])}
+                                        inscribed={opacityOf(moving ? target : t, 'inscribed', moving || checked ? null : t.steps[qIdx])} labelsOn={labelsOn} />
+                                </motion.div>
+                            )}
+                            {!checked && !moving && !stepPause && (
                                 <div key={`opts-${trialIndex}-${qIdx}`} className="drop-in-options grid grid-cols-2 gap-3 w-full">
                                     {cur.options.map((v) => {
                                         const isWrong = wrongTried.includes(v)
@@ -476,7 +540,7 @@ export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
                                     })}
                                 </div>
                             )}
-                            {!checked && !moving && wrongFlash && (
+                            {!checked && !moving && !stepPause && wrongFlash && (
                                 <div className="rounded-xl px-4 py-2 font-bold w-full text-center bg-[#DC605B22] text-[#DC605B]">{wrongFlash}</div>
                             )}
                             {checked && !moving && (
