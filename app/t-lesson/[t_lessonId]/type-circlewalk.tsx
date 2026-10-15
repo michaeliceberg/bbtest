@@ -538,6 +538,16 @@ export const TypeCircleWalk = ({ onAnswer, onComplete, isAdmin = false }: Props 
     // Смена рисунка (центральный ↔ вписанный): старый гаснет целиком, новый проявляется. combo — вставка перед 5/6.
     const [figHidden, setFigHidden] = useState(false)
     const [combo, setCombo] = useState(false)
+    // Правило: сначала рисунок полностью появился → потом печатается вопрос → потом падают варианты.
+    const [qShow, setQShow] = useState(false)
+    const [qTyped, setQTyped] = useState(false)
+    const moving = targetIdx !== trialIndex
+    useEffect(() => {
+        setQShow(false); setQTyped(false)
+        if (phase !== 'practice' || moving || combo || stepPause || checked) return
+        const t = setTimeout(() => setQShow(true), 900)
+        return () => clearTimeout(t)
+    }, [phase, trialIndex, qIdx, moving, combo, stepPause, checked])
     const registerCombo = useWalkthroughCombo()
     const { bump: bumpNonce, nonceFor } = useReplayNonces()
     const latestSceneKey = phase === 'intro' ? `step-${step}` : phase === 'practice' ? 'practice' : 'corollary'
@@ -653,7 +663,6 @@ export const TypeCircleWalk = ({ onAnswer, onComplete, isAdmin = false }: Props 
                 {phase !== 'intro' && (() => {
                     const t = TRIALS[trialIndex]
                     const target = TRIALS[targetIdx]
-                    const moving = targetIdx !== trialIndex
                     const cur = t.steps[qIdx]
                     return (
                         <SceneWrapper key="practice" innerRef={sceneRef('practice')} active={isActive('practice')}>
@@ -669,8 +678,11 @@ export const TypeCircleWalk = ({ onAnswer, onComplete, isAdmin = false }: Props 
                                     style={{ borderColor: hexToRgba(PART_COLOR, 0.55), backgroundColor: hexToRgba(PART_COLOR, 0.16), color: PART_COLOR }}>
                                     <span>{trialIndex + 1}</span><span className="opacity-50 font-normal">/</span><span>{TRIALS.length}</span>
                                 </motion.div>
-                                <motion.p key={`q-${trialIndex}-${qIdx}-${checked}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: moving ? 0 : 1, y: 0 }}
-                                    className="text-base md:text-lg font-bold text-[#F2F7FB] text-center px-16">{checked ? 'Готово ✅' : ASK_TEXT[cur.key]}</motion.p>
+                                <p className="text-base md:text-lg font-bold text-[#F2F7FB] text-center px-16 min-h-[1.75rem]">
+                                    {checked ? 'Готово ✅' : qShow && !moving
+                                        ? <Typewriter key={`q-${trialIndex}-${qIdx}`} text={ASK_TEXT[cur.key]} onDone={() => setQTyped(true)} />
+                                        : '\u00a0'}
+                                </p>
                             </div>
                             {combo ? (
                                 <ComboInterlude onDone={() => {
@@ -685,7 +697,7 @@ export const TypeCircleWalk = ({ onAnswer, onComplete, isAdmin = false }: Props 
                                         inscribed={opacityOf(moving && !figHidden ? target : t, 'inscribed', moving || checked ? null : t.steps[qIdx])} labelsOn={labelsOn} />
                                 </motion.div>
                             )}
-                            {!checked && !moving && !stepPause && (
+                            {!checked && !moving && !stepPause && qTyped && (
                                 <div key={`opts-${trialIndex}-${qIdx}`} className="drop-in-options grid grid-cols-2 gap-3 w-full">
                                     {cur.options.map((v) => {
                                         const isWrong = wrongTried.includes(v)
