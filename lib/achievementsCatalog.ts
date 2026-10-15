@@ -4,7 +4,7 @@
 // через поле iconSrc), весёлое название и подпись. Без серверного кода — используется и на сервере
 // (выдача), и в браузере (тост, страница /achievements).
 
-export type AchievementGroup = 'start' | 'progress' | 'accuracy' | 'habit' | 'chests' | 'friends';
+export type AchievementGroup = 'start' | 'progress' | 'accuracy' | 'habit' | 'chests' | 'friends' | 'builds';
 
 export type AchievementDef = {
 	key: string;
@@ -22,6 +22,7 @@ export const ACHIEVEMENT_GROUPS: { id: AchievementGroup; title: string; color: s
 	{ id: 'habit', title: 'Привычка', color: '#F09B38' },
 	{ id: 'chests', title: 'Сундуки и пицца', color: '#EF9F27' },
 	{ id: 'friends', title: 'Друзья и банды', color: '#BC418A' },
+	{ id: 'builds', title: 'Билд на задачу', color: '#5CC99F' },
 ];
 
 const RAW_ACHIEVEMENTS: AchievementDef[] = [
@@ -76,6 +77,15 @@ const RAW_ACHIEVEMENTS: AchievementDef[] = [
 	{ key: 'invite_first', group: 'friends', emoji: '📣', title: 'Агитатор', desc: 'Друг зарегистрировался по твоей ссылке' },
 	{ key: 'friend_lesson', group: 'friends', emoji: '🤝', title: 'Хорошие у тебя друзья', desc: 'Приглашённый друг прошёл свой первый урок' },
 	{ key: 'gang_create', group: 'friends', emoji: '🏴', title: 'Босс района', desc: 'Создал банду' },
+
+	// Билд на задачу (/photo-task, lib/photoTask.ts)
+	{ key: 'build_first', group: 'builds', emoji: '📸', title: 'Первый скан', desc: 'Собрал первый билд на задачу по фото' },
+	{ key: 'build_done', group: 'builds', emoji: '⚔️', title: 'Билд собран', desc: 'Прошёл все уроки из билда на свою задачу' },
+	{ key: 'build_star', group: 'builds', emoji: '⭐', title: 'Задача со звёздочкой', desc: 'Принёс задачу, которую простой ИИ не потянул' },
+	{ key: 'build_explorer', group: 'builds', emoji: '🛸', title: 'Первооткрыватель', desc: 'Нашёл задачу, под которую у нас пока 0 уроков' },
+	{ key: 'build_coauthor', group: 'builds', emoji: '🎩', title: 'Соавтор', desc: 'Мы сделали урок по теме из твоей задачи' },
+	{ key: 'build_hunter_10', group: 'builds', emoji: '💀', title: 'Охотник на боссов', desc: 'Собрал 10 билдов на задачи' },
+	{ key: 'build_hunter_50', group: 'builds', emoji: '🐉', title: 'Гроза задачника', desc: 'Собрал 50 билдов на задачи' },
 ];
 
 // Иконки — game-icons.net (CC BY 3.0, см. public/achievement-icons/LICENSE-game-icons.txt и подпись на странице «Ачивки»).
@@ -127,6 +137,13 @@ export const REWARDS: Record<string, AchievementReward> = {
 	invite_first: { kind: 'pizza', amount: 1 },
 	friend_lesson: { kind: 'pizza', amount: 1 },
 	gang_create: { kind: 'coins', amount: 50 },
+	build_first: { kind: 'coins', amount: 50 },
+	build_done: { kind: 'gems', amount: 5 },
+	build_star: { kind: 'gems', amount: 3 },
+	build_explorer: { kind: 'gems', amount: 5 },
+	build_coauthor: { kind: 'pizza', amount: 1 },
+	build_hunter_10: { kind: 'gems', amount: 10 },
+	build_hunter_50: { kind: 'pizza', amount: 2 },
 };
 
 export const rewardText = (r: AchievementReward) =>

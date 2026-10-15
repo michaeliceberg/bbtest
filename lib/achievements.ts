@@ -150,6 +150,28 @@ export async function computeStateKeys(userId: string): Promise<string[]> {
 	const cc = await rows(sql`SELECT value FROM achievement_counters WHERE user_id = ${userId} AND key = 'chests_opened'`);
 	if (Math.max(opened, num(cc[0]?.value)) >= 10) keys.push('chests_10');
 
+	// Билд на задачу (photo_task_requests): сканы, «со звёздочкой», 0 уроков, собранный билд, соавтор.
+	const ph = await rows(sql`
+		SELECT count(*) FILTER (WHERE error IS NULL AND readable) AS scans,
+			bool_or(escalated AND readable) AS star,
+			bool_or(readable AND jsonb_array_length(coalesce(lesson_ids, '[]'::jsonb)) = 0
+				AND jsonb_array_length(coalesce(missing_topics, '[]'::jsonb)) > 0) AS explorer,
+			bool_or(readable AND jsonb_array_length(coalesce(lesson_ids, '[]'::jsonb)) > 0 AND NOT EXISTS (
+				SELECT 1 FROM jsonb_array_elements_text(lesson_ids) AS lid
+				WHERE NOT EXISTS (SELECT 1 FROM t_lesson_progress p WHERE p.user_id = ${userId} AND p.training_pts > 0 AND p.t_lesson_id = lid::int)
+			)) AS done,
+			bool_or(EXISTS (SELECT 1 FROM photo_topic_covered c WHERE coalesce(missing_topics, '[]'::jsonb) ? c.topic)) AS coauthor
+		FROM photo_task_requests WHERE user_id = ${userId}`);
+	const P = ph[0] ?? {};
+	const scans = num(P.scans);
+	if (scans >= 1) keys.push('build_first');
+	if (scans >= 10) keys.push('build_hunter_10');
+	if (scans >= 50) keys.push('build_hunter_50');
+	if (P.star) keys.push('build_star');
+	if (P.explorer) keys.push('build_explorer');
+	if (P.done) keys.push('build_done');
+	if (P.coauthor) keys.push('build_coauthor');
+
 	return keys;
 }
 

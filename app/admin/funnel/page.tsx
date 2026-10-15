@@ -201,6 +201,10 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 			count(DISTINCT user_id) AS users,
 			coalesce(sum(CASE WHEN escalated THEN input_tokens * 2.0 + output_tokens * 10.0 ELSE input_tokens * 0.1 + output_tokens * 0.5 END), 0) / 1e6 * 90 AS rub
 		FROM photo_task_requests WHERE created_at >= ${since}`)
+	const [premium] = await q(sql`
+		SELECT count(DISTINCT i.user_id) FILTER (WHERE event = 'premium_view') AS viewers, count(*) FILTER (WHERE event = 'premium_want') AS wants
+		FROM pro_interest i LEFT JOIN user_progress u ON u.user_id = i.user_id
+		WHERE coalesce(u.is_admin, 0) = 0 AND i.created_at >= ${since}`)
 	const photoMissing = await q(sql`
 		SELECT t AS topic, count(*) AS cnt FROM photo_task_requests, jsonb_array_elements_text(coalesce(missing_topics, '[]'::jsonb)) AS t
 		WHERE created_at >= ${since} GROUP BY t ORDER BY cnt DESC LIMIT 15`)
@@ -329,7 +333,7 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 				</p>
 			</Card>
 
-			<Card title="📸 Сфоткай задачу">
+			<Card title="⚔️ Билд на задачу (фото → уроки)">
 				<div className="grid grid-cols-3 gap-3 mb-3">
 					<Stat label="Разобрано фото" value={n(photo.ok)} small />
 					<Stat label="Учеников" value={n(photo.users)} small />
@@ -337,7 +341,11 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 					<Stat label="Ушло в Sonnet" value={`${n(photo.escalated)} (${pct(n(photo.escalated), n(photo.ok))})`} small />
 					<Stat label="Не прочитала" value={n(photo.unreadable)} small />
 					<Stat label="Ошибки" value={n(photo.failed)} small />
+					<Stat label="💎 Открыли Premium" value={n(premium.viewers)} small />
+					<Stat label="💎 Хотят Premium (2000 ₽)" value={n(premium.wants)} small />
+					<Stat label="Конверсия Premium" value={pct(n(premium.wants), n(premium.viewers))} small />
 				</div>
+				<Link href="/admin/build-topics" className="mb-3 inline-block rounded-lg bg-[#5CC99F] px-3 py-1.5 text-sm font-bold text-[#0B2018]">Все темы по частоте →</Link>
 				{photoMissing.length > 0 && (
 					<>
 						<div className="text-sm font-bold mb-1">Каких тем не хватило (что делать следующим):</div>

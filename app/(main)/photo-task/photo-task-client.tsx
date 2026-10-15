@@ -1,16 +1,18 @@
 'use client'
 
-// Экран «Сфоткай задачу»: камера/галерея → фото ужимается в браузере до 1280 px (JPEG) → analyzeTaskPhoto → уроки.
+// Экран «Билд на задачу» (запасное название — «Гайд на задачу»): камера/галерея → фото ужимается в браузере до 1280 px (JPEG) → analyzeTaskPhoto → уроки.
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Camera, ImageIcon, Loader2, RotateCcw, ChevronRight, Lightbulb, AlertTriangle } from 'lucide-react'
-import { analyzeTaskPhoto, type PhotoTaskResult } from '@/actions/photo-task'
+import { Camera, ImageIcon, Loader2, RotateCcw, ChevronRight, Lightbulb, AlertTriangle, Gift, Lock, Check } from 'lucide-react'
+import { analyzeTaskPhoto, premiumInterest, type PhotoTaskResult, type PhotoTaskLesson } from '@/actions/photo-task'
+import { checkAchievements } from '@/lib/achievementsClient'
+import { PREMIUM_PRICE_RUB } from '@/lib/pro'
 import { cn } from '@/lib/utils'
 
 const MAX_SIDE = 1280
-const THINKING = ['Читаю условие…', 'Смотрю на чертёж…', 'Прикидываю, как решать…', 'Подбираю уроки…']
+const THINKING = ['Сканирую босса…', 'Смотрю на чертёж…', 'Прикидываю, как его завалить…', 'Собираю билд…']
 
 // Ужимаем фото в браузере: длинная сторона ≤ 1280 px, JPEG. Так запрос лёгкий и дешёвый.
 const compress = (file: File) => new Promise<{ b64: string; preview: string }>((resolve, reject) => {
@@ -66,6 +68,7 @@ export const PhotoTaskClient = ({ configured, left: initialLeft, limit }: { conf
             const r = await analyzeTaskPhoto(b64, 'image/jpeg')
             setResult(r)
             if (r.left !== undefined) setLeft(r.left)
+            if (r.ok) checkAchievements()
         } catch {
             setResult({ ok: false, error: 'bad_image' })
         } finally {
@@ -78,8 +81,8 @@ export const PhotoTaskClient = ({ configured, left: initialLeft, limit }: { conf
     return (
         <div className="flex flex-col gap-5">
             <div className="text-center">
-                <h1 className="text-2xl font-black text-white">📸 Сфоткай задачу</h1>
-                <p className="mt-1 text-sm font-bold text-[#8FA3AE]">Подскажу, какие уроки тренажёра пройти, чтобы её решить</p>
+                <h1 className="text-2xl font-black text-white">⚔️ Билд на задачу</h1>
+                <p className="mt-1 text-sm font-bold text-[#8FA3AE]">Сфоткай задачу — соберу билд: какие уроки пройти, чтобы её завалить</p>
                 {left !== null && <p className="mt-1 text-xs font-bold text-[#5C6B73]">Сегодня осталось: {left} из {limit}</p>}
                 {!configured && <p className="mt-2 text-xs font-black text-[#F2C35B]">Видно только админам: ключ API не настроен</p>}
             </div>
@@ -139,18 +142,15 @@ export const PhotoTaskClient = ({ configured, left: initialLeft, limit }: { conf
 
                             {result.lessons.length > 0 && (
                                 <div className="flex flex-col gap-2">
-                                    <div className="text-sm font-black text-white">Пройди эти уроки:</div>
-                                    {result.lessons.map((l, i) => (
-                                        <Link key={l.id} href={`/t-lesson/${l.id}`}
-                                            className="flex items-center gap-3 rounded-2xl border-2 border-b-4 border-[#78C93C] bg-[#78C93C14] px-4 py-3 active:border-b-2">
-                                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#78C93C] font-black text-[#1B2A10]">{i + 1}</span>
-                                            <span className="min-w-0 flex-1">
-                                                <span className="block font-black leading-tight text-white">{l.lesson}</span>
-                                                <span className="block text-xs font-bold text-[#8FA3AE]">{l.course} · {l.unit}</span>
-                                            </span>
-                                            <ChevronRight className="h-5 w-5 shrink-0 text-[#78C93C]" />
-                                        </Link>
-                                    ))}
+                                    <div className="text-sm font-black text-white">⚔️ Твой билд — пройди эти уроки:</div>
+                                    {result.lessons.map((l, i) => <LessonRow key={l.id} l={l} badge={String(i + 1)} color="#78C93C" />)}
+                                </div>
+                            )}
+
+                            {result.bonusLessons.length > 0 && (
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex items-center gap-1.5 text-sm font-black text-[#C385F7]"><Gift className="h-4 w-4" /> Бонусный лут — прокачает тему шире:</div>
+                                    {result.bonusLessons.map((l) => <LessonRow key={l.id} l={l} badge="🎁" color="#C385F7" />)}
                                 </div>
                             )}
 
@@ -169,6 +169,7 @@ export const PhotoTaskClient = ({ configured, left: initialLeft, limit }: { conf
                             )}
                         </>
                     )}
+                    {result.readable && <PremiumDoor />}
                 </motion.div>
             )}
 
@@ -179,5 +180,58 @@ export const PhotoTaskClient = ({ configured, left: initialLeft, limit }: { conf
                 </button>
             )}
         </div>
+    )
+}
+
+const LessonRow = ({ l, badge, color }: { l: PhotoTaskLesson; badge: string; color: string }) => (
+    <Link href={`/t-lesson/${l.id}`}
+        className="flex items-center gap-3 rounded-2xl border-2 border-b-4 px-4 py-3 active:border-b-2"
+        style={{ borderColor: color, backgroundColor: `${color}14` }}>
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-black text-[#1B2A10]" style={{ backgroundColor: color }}>{badge}</span>
+        <span className="min-w-0 flex-1">
+            <span className="block font-black leading-tight text-white">{l.lesson}</span>
+            <span className="block text-xs font-bold text-[#8FA3AE]">{l.course} · {l.unit}</span>
+        </span>
+        <ChevronRight className="h-5 w-5 shrink-0" style={{ color }} />
+    </Link>
+)
+
+// Premium «Полное решение по шагам» — пока «фейковая дверь»: экран цены + «Хочу», денег не берём.
+const PremiumDoor = () => {
+    const [open, setOpen] = useState(false)
+    const [state, setState] = useState<'idle' | 'sending' | 'done'>('idle')
+    if (!open) return (
+        <button type="button" onClick={() => { setOpen(true); premiumInterest('view').catch(() => {}) }}
+            className="flex items-center gap-3 rounded-2xl border-2 border-b-4 border-[#F2C35B] bg-gradient-to-r from-[#F2C35B22] to-[#C385F722] px-4 py-3 text-left active:border-b-2">
+            <Lock className="h-5 w-5 shrink-0 text-[#F2C35B]" />
+            <span className="min-w-0 flex-1">
+                <span className="block font-black text-white">Полное решение по шагам</span>
+                <span className="block text-xs font-bold text-[#F2C35B]">💎 Premium</span>
+            </span>
+            <ChevronRight className="h-5 w-5 shrink-0 text-[#F2C35B]" />
+        </button>
+    )
+    return (
+        <motion.div className="rounded-2xl border-2 border-[#F2C35B] bg-[#161F23] px-4 py-4 flex flex-col gap-3"
+            initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}>
+            <div className="text-center">
+                <div className="text-xl font-black text-[#F2C35B]">💎 Premium</div>
+                <div className="text-3xl font-black text-white mt-1">{PREMIUM_PRICE_RUB} ₽<span className="text-base text-[#8FA3AE]"> / мес</span></div>
+            </div>
+            <ul className="flex flex-col gap-1.5 text-sm font-bold text-[#D7E0E5]">
+                {['Полное решение любой задачи по фото — по шагам, каждый шаг открываешь сам', 'Сколько угодно билдов в день', 'Всё, что будет в PRO'].map((t) => (
+                    <li key={t} className="flex gap-2"><Check className="h-4 w-4 shrink-0 mt-0.5 text-[#78C93C]" /> {t}</li>
+                ))}
+            </ul>
+            {state === 'done' ? (
+                <div className="rounded-xl bg-[#78C93C1A] px-3 py-2 text-center font-bold text-[#A1D151]">Ты в списке! Скоро запуск — первым скидка 50% 🔥</div>
+            ) : (
+                <button type="button" disabled={state === 'sending'}
+                    onClick={async () => { setState('sending'); await premiumInterest('want').catch(() => {}); setState('done') }}
+                    className="rounded-2xl border-b-4 border-[#B8862E] bg-[#F2C35B] px-4 py-3 font-black text-[#2B1D05] active:border-b-0 disabled:opacity-60">
+                    Хочу Premium 💎
+                </button>
+            )}
+        </motion.div>
     )
 }

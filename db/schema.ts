@@ -1392,5 +1392,14 @@ export const photoTaskRequests = pgTable('photo_task_requests', {
 	missingTopics: jsonb('missing_topics'),
 	inputTokens: integer('input_tokens'),
 	outputTokens: integer('output_tokens'),
+	bonusLessonIds: jsonb('bonus_lesson_ids'),
 	error: text('error'),
+});
+
+// «Урок по теме сделан» (админка /admin/build-topics): ученикам с этой темой в missing_topics — ачивка «Соавтор».
+export const photoTopicCovered = pgTable('photo_topic_covered', {
+	id: serial('id').primaryKey(),
+	topic: text('topic').notNull(),
+	lessonId: integer('lesson_id').notNull(),
+	createdAt: timestamp('created_at').notNull().defaultNow(),
 });

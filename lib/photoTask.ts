@@ -50,9 +50,10 @@ const SYSTEM_RULES = `Ты помощник школьного тренажёр�
 1. Прочитай условие задачи (и данные с чертежа, если он есть).
 2. Мысленно наметь, КАК её решать, и какие знания для этого нужны. Тема из условия не всегда главная: «найдите площадь» может решаться через подобие.
 3. Выбери из КАТАЛОГА УРОКОВ ниже от 1 до 3 уроков, которые нужно пройти, чтобы решить эту задачу. Самый важный — первым. Используй только id из каталога, ничего не придумывай. Если подходящего урока нет — не подбирай похожий наугад, а напиши недостающую тему в missing_topics.
-4. hint — одна короткая подсказка, с чего начать решение. НЕ пиши ответ и не решай задачу целиком.
-5. confidence = "low", если фото плохо читается, задача необычная или ты не уверен в выборе уроков.
-6. Если на фото не задача по математике/физике — readable = false.
+4. bonus_lesson_ids — 0–2 урока из каталога по СОСЕДНЕЙ теме: не нужны прямо для этой задачи, но расширят понимание (например, к задаче на теорему Пифагора — подобие или синус). Не повторяй lesson_ids.
+5. hint — одна короткая подсказка, с чего начать решение. НЕ пиши ответ и не решай задачу целиком.
+6. confidence = "low", если фото плохо читается, задача необычная или ты не уверен в выборе уроков.
+7. Если на фото не задача по математике/физике — readable = false.
 Пиши по-русски, коротко, формулы — обычным текстом.
 
 КАТАЛОГ УРОКОВ ([id] курс / раздел / урок):
@@ -65,11 +66,12 @@ const OUTPUT_SCHEMA = {
         problem_text: { type: 'string', description: 'Условие задачи текстом' },
         topics: { type: 'array', items: { type: 'string' }, description: 'Какие знания нужны для решения' },
         lesson_ids: { type: 'array', items: { type: 'integer' }, description: 'До 3 id уроков из каталога, самый важный первым' },
-        missing_topics: { type: 'array', items: { type: 'string' }, description: 'Нужные темы, которых нет в каталоге' },
+        missing_topics: { type: 'array', items: { type: 'string' }, description: 'Нужные темы, которых нет в каталоге (коротко, 2-5 слов, например «теорема синусов»)' },
+        bonus_lesson_ids: { type: 'array', items: { type: 'integer' }, description: '0-2 бонусных урока по соседней теме' },
         confidence: { type: 'string', enum: ['high', 'low'] },
         hint: { type: 'string', description: 'С чего начать решение, без ответа' },
     },
-    required: ['readable', 'problem_text', 'topics', 'lesson_ids', 'missing_topics', 'confidence', 'hint'],
+    required: ['readable', 'problem_text', 'topics', 'lesson_ids', 'missing_topics', 'bonus_lesson_ids', 'confidence', 'hint'],
     additionalProperties: false,
 } as const
 
@@ -79,6 +81,7 @@ export type PhotoTaskAnswer = {
     topics: string[]
     lesson_ids: number[]
     missing_topics: string[]
+    bonus_lesson_ids: number[]
     confidence: 'high' | 'low'
     hint: string
 }
@@ -124,7 +127,12 @@ export const runPhotoTask = async (imageB64: string, mediaType: ImageType): Prom
     const client = new Anthropic()
     const catalog = await getPhotoTaskCatalog()
     const ids = new Set(catalog.map((l) => l.id))
-    const clean = (a: PhotoTaskAnswer | null) => a ? { ...a, lesson_ids: a.lesson_ids.filter((id) => ids.has(id)).slice(0, 3) } : null
+    const clean = (a: PhotoTaskAnswer | null) => {
+        if (!a) return null
+        const main = a.lesson_ids.filter((id) => ids.has(id)).slice(0, 3)
+        const bonus = (a.bonus_lesson_ids ?? []).filter((id) => ids.has(id) && !main.includes(id)).slice(0, 2)
+        return { ...a, lesson_ids: main, bonus_lesson_ids: bonus }
+    }
 
     let inputTokens = 0, outputTokens = 0
     let first: PhotoTaskAnswer | null = null

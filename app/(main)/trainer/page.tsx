@@ -340,8 +340,8 @@ const TLearnPage = async () => {
                         <Link href='/photo-task' className='mt-4 flex items-center gap-3 rounded-2xl border-2 border-b-4 border-[#53ADEF] bg-[#53ADEF14] px-4 py-3 active:border-b-2'>
                             <span className='text-2xl'>📸</span>
                             <span className='flex-1 min-w-0'>
-                                <span className='block font-black text-white'>Сфоткай задачу</span>
-                                <span className='block text-xs font-bold text-[#8FA3AE]'>Подскажу, какие уроки пройти, чтобы её решить</span>
+                                <span className='block font-black text-white'>Билд на задачу</span>
+                                <span className='block text-xs font-bold text-[#8FA3AE]'>Сфоткай задачу — соберу уроки, чтобы её завалить</span>
                             </span>
                         </Link>
                     )}
