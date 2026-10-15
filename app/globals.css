@@ -800,3 +800,7 @@ body {
 .drop-in-options > *:nth-child(4) { animation-delay: 0.68s; }
 .drop-in-options > *:nth-child(5) { animation-delay: 0.74s; }
 .drop-in-options > *:nth-child(n+6) { animation-delay: 0.8s; }
+
+/* Мерцание нескольких звёзд параллакс-фона (components/parallax-world.tsx), только opacity. */
+@keyframes star-twinkle { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.15; } }
+.animate-star-twinkle { animation: star-twinkle 3.2s ease-in-out infinite; }

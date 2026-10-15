@@ -12,13 +12,53 @@ import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion
 import { RICH_LAYERS, RICH_PANELS } from '@/components/parallax-world-rich'
 
 
-export type LayerSpec = { speed: number; color: string; accent: string }
+// stars — глубина звёздного неба на этом слое (0 дальний, 1 средний, 2 ближний), см. StarSky.
+export type LayerSpec = { speed: number; color: string; accent: string; stars?: 0 | 1 | 2 }
+
+// ===== Звёздное небо на всю ширину =====
+// Дальний слой — много мелких тусклых звёзд, средний — меньше и ярче, ближний — немного крупных.
+// Координаты x в процентах (SVG cx="12%"), радиус в пикселях — звёзды не растягиваются на широком экране.
+// Всё статично, мерцают только несколько ближних звёзд (CSS-анимация прозрачности).
+const STAR_DEPTH = [
+    { count: 70, r: [0.6, 1.1], op: [0.14, 0.3] },
+    { count: 34, r: [1, 1.6], op: [0.25, 0.42] },
+    { count: 14, r: [1.6, 2.4], op: [0.38, 0.6] },
+] as const
+const rng = (seed: number) => () => {
+    seed = (seed + 0x6d2b79f5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+}
+const StarSky = ({ depth, seed }: { depth: 0 | 1 | 2; seed: number }) => {
+    const d = STAR_DEPTH[depth]
+    const r = rng(seed * 97 + depth * 13 + 1)
+    const stars = Array.from({ length: d.count }, () => ({
+        x: r() * 100, y: r() * 1000,
+        rad: d.r[0] + r() * (d.r[1] - d.r[0]),
+        op: d.op[0] + r() * (d.op[1] - d.op[0]),
+    }))
+    return (
+        <svg width="100%" height={PANEL_H} aria-hidden className="block">
+            {stars.map((s, i) => {
+                const twinkle = depth === 2 && i % 4 === 0
+                return (
+                    <circle key={i} cx={`${s.x}%`} cy={s.y} r={s.rad} fill="#CFE6F5" opacity={s.op}
+                        className={twinkle ? 'animate-star-twinkle' : undefined}
+                        style={twinkle ? { animationDelay: `${(i % 7) * 0.6}s` } : undefined} />
+                )
+            })}
+        </svg>
+    )
+}
 // Чем дальше слой — тем медленнее и тем ближе к цвету фона.
 export const LAYERS: LayerSpec[] = [
     { speed: 0.12, color: '#1B2830', accent: '#22323C' },
     { speed: 0.3, color: '#213240', accent: '#2A3E4C' },
     { speed: 0.55, color: '#283C4A', accent: '#33495A' },
 ]
+
+const PANEL_H = 1000
 
 // ===== Силуэты =====
 type ShapeProps = { w: number; color: string; accent?: string; flip?: boolean }
@@ -100,7 +140,6 @@ export type Item = { y: number; x: string; el: (c: LayerSpec) => React.ReactNode
 // У каждого слоя своя лента «панелей» по PANEL_H пикселей (в координатах слоя), они идут по кругу.
 // Шаг ≥ высоты экрана, поэтому даже медленный дальний слой не сваливает всё на один экран.
 // x — CSS left: объекты по краям, чтобы центр с картой оставался чистым.
-const PANEL_H = 1000
 const LAYER_PANELS: Item[][][] = [
     // дальний: небо и горы
     [
@@ -150,6 +189,11 @@ const Layer = ({ spec, index, layers, panels }: { spec: LayerSpec; index: number
     if (index >= layers) return null
     return (
         <motion.div className="absolute inset-x-0 top-0" style={{ y, willChange: 'transform' }}>
+            {spec.stars !== undefined && Array.from({ length: count }, (_, k) => (
+                <div key={`sky-${k}`} className="absolute inset-x-0" style={{ top: k * PANEL_H, height: PANEL_H }}>
+                    <StarSky depth={spec.stars!} seed={k % 3} />
+                </div>
+            ))}
             {Array.from({ length: count }, (_, k) => panels[k % panels.length].map((it, j) => (
                 <div key={`${k}-${j}`} className="absolute" style={{ top: k * PANEL_H + it.y, left: it.x }}>
                     {it.el(spec)}
@@ -161,12 +205,13 @@ const Layer = ({ spec, index, layers, panels }: { spec: LayerSpec; index: number
 
 // layers — сколько слоёв рисовать (на слабых телефонах можно 2). enabled — выключатель для сравнения.
 // variant: 'simple' — плоские силуэты, 'rich' — детальные рисунки (components/parallax-world-rich.tsx).
-export const ParallaxWorld = ({ layers = 3, enabled = true, variant = 'simple' }: { layers?: number; enabled?: boolean; variant?: 'simple' | 'rich' }) => {
+// behind — положить фон ПОД обычный (непозиционированный) контент страницы (z-index −10), как на /trainer.
+export const ParallaxWorld = ({ layers = 3, enabled = true, variant = 'simple', behind = false }: { layers?: number; enabled?: boolean; variant?: 'simple' | 'rich'; behind?: boolean }) => {
     if (!enabled) return null
     const specs = variant === 'rich' ? RICH_LAYERS : LAYERS
     const panels = variant === 'rich' ? RICH_PANELS : LAYER_PANELS
     return (
-        <div aria-hidden className="pointer-events-none fixed inset-0 -z-0 overflow-hidden">
+        <div aria-hidden className={`pointer-events-none fixed inset-0 overflow-hidden ${behind ? '-z-10' : '-z-0'}`}>
             {specs.map((spec, i) => <Layer key={`${variant}-${i}`} spec={spec} index={i} layers={layers} panels={panels[i]} />)}
         </div>
     )

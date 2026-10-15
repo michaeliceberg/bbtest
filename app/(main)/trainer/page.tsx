@@ -2,6 +2,7 @@
 
 import { FeedWrapper } from '@/components/feed-wrapper';
 import { StickyWrapper } from '@/components/sticky-wrapper';
+import { ParallaxWorld } from '@/components/parallax-world';
 import { UserProgress } from '@/components/user-progress';
 import { 
     getAllClassHW, 
@@ -251,6 +252,8 @@ const TLearnPage = async () => {
                 <div className='pointer-events-none fixed inset-0 -z-10' style={{ backgroundColor: '#221E1A' }}>
                 </div>
             )}
+            {/* Игровой стиль — «мир в глубине»: звёздное небо в 3 слоя и рисунки по краям (параллакс). */}
+            {!cozy && <ParallaxWorld variant='rich' behind />}
             <StickyWrapper>
                 <UserProgress
                     activeCourse={userProgress.activeCourse}

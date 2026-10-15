@@ -8,9 +8,9 @@ import { useId } from 'react'
 import type { LayerSpec, Item } from '@/components/parallax-world'
 
 export const RICH_LAYERS: LayerSpec[] = [
-    { speed: 0.1, color: '#1A2732', accent: '#24384A' },
-    { speed: 0.3, color: '#1F3141', accent: '#2C4459' },
-    { speed: 0.55, color: '#263B4C', accent: '#35506A' },
+    { speed: 0.1, color: '#1A2732', accent: '#24384A', stars: 0 },
+    { speed: 0.3, color: '#1F3141', accent: '#2C4459', stars: 1 },
+    { speed: 0.55, color: '#263B4C', accent: '#35506A', stars: 2 },
 ]
 
 const WARM = '#F2C35B'
