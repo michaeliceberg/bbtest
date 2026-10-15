@@ -253,7 +253,7 @@ const TLearnPage = async () => {
                 </div>
             )}
             {/* Игровой стиль — «мир в глубине»: звёздное небо в 3 слоя и рисунки по краям (параллакс). */}
-            {!cozy && <ParallaxWorld variant='rich' behind />}
+            {!cozy && <ParallaxWorld variant='rich' layers={2} behind />}
             <StickyWrapper>
                 <UserProgress
                     activeCourse={userProgress.activeCourse}
