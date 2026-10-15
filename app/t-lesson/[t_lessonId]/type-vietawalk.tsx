@@ -793,6 +793,8 @@ const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolea
         ? right[i] === target[i]
         : filled && (i === 0 ? roots[0]! * roots[1]! === r.c : roots[0]! + roots[1]! === -r.b)
     const rowState = (i: number): 'ok' | 'bad' | null => (result && filled ? (rowOk(i) ? 'ok' : 'bad') : null)
+    // Этап 1: подсвечиваем строку, правую часть которой заполняем сейчас (сначала произведение, потом сумма), другая бледная.
+    const focusRow = stage === 1 && !result ? active : null
     const row = (i: number, op: string, color: string) => {
         const st = rowState(i)
         // Правая часть: в 1-м этапе — пропуск, во 2-м — уже составленное число.
@@ -802,7 +804,10 @@ const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolea
             : st === 'bad' ? BAD_COLOR : active === i && !result ? hexToRgba(color, 0.75) : '#3A464E'
         return (
             <motion.div animate={st === 'bad' ? { x: [0, -10, 10, -6, 6, 0] } : { x: 0 }} transition={{ duration: 0.5 }}
-                className="flex items-center gap-2.5 text-2xl md:text-3xl font-black text-[#F2F7FB]">
+                className="flex items-center gap-2.5 text-2xl md:text-3xl font-black text-[#F2F7FB] rounded-2xl px-2 py-1.5 border-2 transition-all duration-500"
+                style={focusRow === null ? { borderColor: 'transparent' }
+                    : focusRow === i ? { borderColor: hexToRgba(color, 0.6), backgroundColor: hexToRgba(color, 0.08), boxShadow: `0 0 18px -6px ${hexToRgba(color, 0.7)}` }
+                        : { borderColor: 'transparent', opacity: 0.3, filter: 'grayscale(1)' }}>
                 <span className="w-7" />
                 <PairSlot label="x₁" val={roots[0]} active={stage === 2 && active === 0 && !result} state={stage === 2 ? st : null}
                     onClick={() => stage === 2 && !result && setActive(0)} />
