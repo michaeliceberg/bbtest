@@ -10,7 +10,7 @@
 import { useEffect, useState } from 'react'
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion'
 import { RICH_LAYERS, RICH_PANELS } from '@/components/parallax-world-rich'
-import { THEME_MIDDLE_PANELS, THEME_TINT, type ParallaxTheme } from '@/components/parallax-themes'
+import { THEME_FAR_PANELS, THEME_MIDDLE_PANELS, THEME_SKY, THEME_TINT, WindDrift, type ParallaxTheme } from '@/components/parallax-themes'
 
 
 // stars — глубина звёздного неба на этом слое (0 дальний, 1 средний, 2 ближний), см. StarSky.
@@ -21,7 +21,7 @@ export type LayerSpec = { speed: number; color: string; accent: string; stars?: 
 // Координаты x в процентах (SVG cx="12%"), радиус в пикселях — звёзды не растягиваются на широком экране.
 // Всё статично, мерцают только несколько ближних звёзд (CSS-анимация прозрачности).
 const STAR_DEPTH = [
-    { count: 70, r: [0.6, 1.1], op: [0.14, 0.3] },
+    { count: 55, r: [0.6, 1.3], op: [0.14, 0.34] },
     { count: 34, r: [1, 1.6], op: [0.25, 0.42] },
     { count: 14, r: [1.6, 2.4], op: [0.38, 0.6] },
 ] as const
@@ -42,7 +42,7 @@ const StarSky = ({ depth, seed }: { depth: 0 | 1 | 2; seed: number }) => {
     return (
         <svg width="100%" height={PANEL_H} aria-hidden className="block">
             {stars.map((s, i) => {
-                const twinkle = depth === 2 && i % 4 === 0
+                const twinkle = depth === 2 ? i % 4 === 0 : i % 11 === 0
                 return (
                     <circle key={i} cx={`${s.x}%`} cy={s.y} r={s.rad} fill="#CFE6F5" opacity={s.op}
                         className={twinkle ? 'animate-star-twinkle' : undefined}
@@ -171,7 +171,8 @@ const LAYER_PANELS: Item[][][] = [
     ],
 ]
 
-const Layer = ({ spec, index, layers, panels }: { spec: LayerSpec; index: number; layers: number; panels: Item[][] }) => {
+// soft — на телефоне (карта уроков занимает всю ширину) объекты слоя мельче и бледнее, чтобы не было «каши».
+const Layer = ({ spec, index, layers, panels, soft = false }: { spec: LayerSpec; index: number; layers: number; panels: Item[][]; soft?: boolean }) => {
     const { scrollY } = useScroll()
     const reduce = useReducedMotion()
     const speed = reduce ? 0 : spec.speed
@@ -196,8 +197,8 @@ const Layer = ({ spec, index, layers, panels }: { spec: LayerSpec; index: number
                 </div>
             ))}
             {Array.from({ length: count }, (_, k) => panels[k % panels.length].map((it, j) => (
-                <div key={`${k}-${j}`} className="absolute" style={{ top: k * PANEL_H + it.y, left: it.x }}>
-                    {it.el(spec)}
+                <div key={`${k}-${j}`} className={`absolute ${soft ? 'max-sm:opacity-50' : ''}`} style={{ top: k * PANEL_H + it.y, left: it.x }}>
+                    {soft ? <div className="max-sm:origin-top-left max-sm:scale-[0.78]">{it.el(spec)}</div> : it.el(spec)}
                 </div>
             )))}
         </motion.div>
@@ -227,14 +228,21 @@ export const ParallaxWorld = ({ layers = 3, enabled = true, variant = 'simple', 
                     style={{ opacity: t === theme ? 1 : 0, background: `radial-gradient(ellipse at 50% 30%, rgba(${THEME_TINT[t]},0.10), transparent 70%)` }} />
             ))}
             {specs.map((spec, i) => {
-                if (themed && i === 1) {
-                    return visited.map((t) => (
-                        <div key={`${variant}-${i}-${t}`} className="absolute inset-0 transition-opacity duration-700" style={{ opacity: t === theme ? 1 : 0 }}>
-                            <Layer spec={spec} index={i} layers={layers} panels={t === 'default' ? panels[i] : THEME_MIDDLE_PANELS[t]} />
-                        </div>
-                    ))
+                // Дальний слой (небо) и средний (рисунки) — свои у каждого мира; ближний общий.
+                if (themed && (i === 0 || i === 1)) {
+                    return visited.map((t) => {
+                        const own = i === 0 ? THEME_FAR_PANELS[t] : t === 'default' ? undefined : THEME_MIDDLE_PANELS[t]
+                        // Звёзды — только на дальнем слое и только в «ночных» мирах.
+                        const s = i === 0 && THEME_SKY[t] === 'stars' ? { ...spec, stars: 0 as const } : { ...spec, stars: undefined }
+                        return (
+                            <div key={`${variant}-${i}-${t}`} className="absolute inset-0 transition-opacity duration-700" style={{ opacity: t === theme ? 1 : 0 }}>
+                                <Layer spec={s} index={i} layers={layers} panels={own ?? panels[i]} soft={i === 1} />
+                                {i === 0 && THEME_SKY[t] === 'wind' && t === theme && <WindDrift />}
+                            </div>
+                        )
+                    })
                 }
-                return <Layer key={`${variant}-${i}`} spec={spec} index={i} layers={layers} panels={panels[i]} />
+                return <Layer key={`${variant}-${i}`} spec={spec} index={i} layers={layers} panels={panels[i]} soft={i > 0} />
             })}
         </div>
     )

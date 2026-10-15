@@ -261,3 +261,71 @@ export const THEME_TINT: Record<ParallaxTheme, string | null> = {
     trig: '83,173,239',
     planim: '240,155,56',
 }
+
+// ===== Атмосфера мира: что «висит в воздухе» на дальнем плане =====
+// stars — звёздное небо (только на дальнем слое), wind — пустыня: полосы ветра и песчинки летят слева направо.
+export const THEME_SKY: Record<ParallaxTheme, 'stars' | 'wind'> = {
+    default: 'stars',
+    trig: 'stars',
+    planim: 'wind',
+}
+
+// Пустыня (дальний слой планиметрии вместо луны и снежных гор): низкое тёплое солнце и дюны.
+const DesertSun = ({ w }: { w: number }) => {
+    const id = useId()
+    return (
+        <svg width={w} height={w} viewBox="0 0 140 140" aria-hidden>
+            <defs>
+                <radialGradient id={`s${id}`}>
+                    <stop offset="0.4" stopColor={WARM} stopOpacity={0.14} />
+                    <stop offset="1" stopColor={WARM} stopOpacity={0} />
+                </radialGradient>
+            </defs>
+            <circle cx="70" cy="70" r="70" fill={`url(#s${id})`} />
+            <circle cx="70" cy="70" r="30" fill="#5A4A2E" opacity={0.75} />
+        </svg>
+    )
+}
+const Dunes = ({ w, color, accent }: P) => (
+    <svg width={w} height={w * 0.36} viewBox="0 0 520 186" aria-hidden>
+        <path d="M0 186 V120 Q90 70 190 108 Q280 140 360 92 Q440 52 520 96 V186 Z" fill={color} opacity={0.7} />
+        <path d="M0 186 V150 Q120 104 240 140 Q340 166 430 128 Q480 110 520 126 V186 Z" fill={accent} />
+        <path d="M240 140 Q300 150 340 146" stroke="#0F1A22" strokeWidth="2" fill="none" opacity={0.25} />
+    </svg>
+)
+export const THEME_FAR_PANELS: Partial<Record<ParallaxTheme, Item[][]>> = {
+    planim: [
+        [{ y: 90, x: '62%', el: () => <DesertSun w={150} /> },
+         { y: 560, x: '-14%', el: (c) => <Dunes w={600} color={c.color} accent={c.accent} /> }],
+        [{ y: 600, x: '36%', el: (c) => <Dunes w={600} color={c.color} accent={c.accent} /> }],
+    ],
+}
+
+// Ветер в пустыне: неподвижный слой поверх дальнего плана. Тонкие полосы и песчинки
+// пролетают слева направо (только transform/opacity, CSS-анимация .animate-wind-drift).
+const WIND = [
+    { top: 14, len: 120, dur: 11, delay: 0, op: 0.2 },
+    { top: 27, len: 80, dur: 9, delay: 4, op: 0.16 },
+    { top: 41, len: 150, dur: 13, delay: 7, op: 0.18 },
+    { top: 58, len: 100, dur: 10, delay: 2, op: 0.16 },
+    { top: 72, len: 130, dur: 12, delay: 9, op: 0.19 },
+    { top: 86, len: 90, dur: 9.5, delay: 5.5, op: 0.15 },
+]
+const SAND = [
+    { top: 20, dur: 8, delay: 1 }, { top: 36, dur: 10, delay: 6 }, { top: 49, dur: 7.5, delay: 3 },
+    { top: 64, dur: 9, delay: 8 }, { top: 79, dur: 8.5, delay: 0.5 }, { top: 92, dur: 11, delay: 4.5 },
+]
+export const WindDrift = () => (
+    <div className="absolute inset-0">
+        {WIND.map((g, i) => (
+            <svg key={i} width={g.len} height="14" viewBox={`0 0 ${g.len} 14`} className="absolute left-0 animate-wind-drift"
+                style={{ top: `${g.top}%`, animationDuration: `${g.dur}s`, animationDelay: `${g.delay}s`, ['--wind-op' as string]: g.op }}>
+                <path d={`M0 9 Q${g.len * 0.35} 2 ${g.len * 0.6} 7 T${g.len} 5`} stroke="#E8D3A8" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+            </svg>
+        ))}
+        {SAND.map((g, i) => (
+            <span key={`s${i}`} className="absolute left-0 h-[3px] w-[3px] rounded-full bg-[#E8D3A8] animate-wind-drift"
+                style={{ top: `${g.top}%`, animationDuration: `${g.dur}s`, animationDelay: `${g.delay}s`, ['--wind-op' as string]: 0.35 }} />
+        ))}
+    </div>
+)

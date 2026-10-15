@@ -9,25 +9,14 @@ import type { LayerSpec, Item } from '@/components/parallax-world'
 
 export const RICH_LAYERS: LayerSpec[] = [
     { speed: 0.1, color: '#1A2732', accent: '#24384A', stars: 0 },
-    { speed: 0.3, color: '#1F3141', accent: '#2C4459', stars: 1 },
-    { speed: 0.55, color: '#263B4C', accent: '#35506A', stars: 2 },
+    { speed: 0.3, color: '#1F3141', accent: '#2C4459' },
+    { speed: 0.55, color: '#263B4C', accent: '#35506A' },
 ]
 
 const WARM = '#F2C35B'
 const COOL = '#7DD3FC'
 
 // ===== Дальний план =====
-const StarField = ({ w }: { w: number }) => {
-    const stars = [[12, 20, 2], [40, 64, 1.4], [78, 12, 1.8], [110, 48, 1.2], [150, 22, 2.2], [190, 70, 1.4], [228, 30, 1.6],
-        [262, 80, 1.2], [300, 16, 2], [24, 110, 1.2], [96, 128, 1.8], [176, 118, 1.2], [244, 136, 1.6], [290, 112, 1.2]]
-    return (
-        <svg width={w} height={w * 0.5} viewBox="0 0 320 160" aria-hidden>
-            {stars.map(([x, y, r], i) => <circle key={i} cx={x} cy={y} r={r} fill="#CFE6F5" opacity={0.18 + (i % 3) * 0.08} />)}
-            <path d="M150 22 l2 -6 l2 6 l6 2 l-6 2 l-2 6 l-2 -6 l-6 -2 Z" fill="#E8F4FC" opacity={0.35} />
-        </svg>
-    )
-}
-
 const BigMoon = ({ w, accent }: { w: number; accent: string }) => {
     const id = useId()
     return (
@@ -258,13 +247,11 @@ const BatFlock = ({ w, color }: { w: number; color: string }) => (
 )
 
 export const RICH_PANELS: Item[][][] = [
-    // дальний: звёзды, луна, снежные горы, летающий остров
+    // дальний: луна, снежные горы, летающий остров (звёзды рисует StarSky на всю ширину)
     [
-        [{ y: 20, x: '-6%', el: () => <StarField w={320} /> },
-         { y: 60, x: '64%', el: (c) => <BigMoon w={150} accent={c.accent} /> },
+        [{ y: 60, x: '64%', el: (c) => <BigMoon w={150} accent={c.accent} /> },
          { y: 520, x: '-14%', el: (c) => <SnowPeaks w={600} color={c.color} accent={c.accent} /> }],
-        [{ y: 80, x: '60%', el: () => <StarField w={300} /> },
-         { y: 260, x: '-6%', el: (c) => <FloatingIsland w={190} color={c.color} accent={c.accent} /> },
+        [{ y: 260, x: '-6%', el: (c) => <FloatingIsland w={190} color={c.color} accent={c.accent} /> },
          { y: 560, x: '40%', el: (c) => <SnowPeaks w={600} color={c.color} accent={c.accent} /> }],
     ],
     // средний: замок на скале, пиратский корабль, маяк, дракон, водопад

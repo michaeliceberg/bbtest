@@ -808,3 +808,14 @@ body {
 /* Блик по подписи «Фармим баллы ЕГЭ» (components/ggege-tagline.tsx): полоса пробегает за ~1 с, потом пауза. */
 @keyframes tagline-shine { 0% { background-position: 100% 0; } 30%, 100% { background-position: 0% 0; } }
 .animate-tagline-shine { animation: tagline-shine 4s ease-in-out infinite; }
+
+/* Ветер в пустыне (параллакс-мир планиметрии, components/parallax-themes.tsx WindDrift):
+   полоса пролетает экран слева направо, появляется и гаснет. Только transform/opacity. */
+@keyframes wind-drift {
+    0% { transform: translateX(-20vw); opacity: 0; }
+    15% { opacity: var(--wind-op, 0.15); }
+    80% { opacity: var(--wind-op, 0.15); }
+    100% { transform: translateX(110vw); opacity: 0; }
+}
+.animate-wind-drift { animation: wind-drift 10s linear infinite; animation-fill-mode: backwards; will-change: transform; }
+@media (prefers-reduced-motion: reduce) { .animate-wind-drift { animation: none; opacity: 0; } }
