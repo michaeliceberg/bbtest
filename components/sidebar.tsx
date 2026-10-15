@@ -18,13 +18,6 @@ import { useCourseSwitchStore } from '@/store/course-switch-store'
 import { COZY, COZY_WOOD_TILE, type UiTheme } from '@/lib/cozyTheme'
 import { useUiThemeLive } from '@/lib/uiTheme'
 
-// Цвета вордмарка "ggege" (public/ggegelogo.svg, старый логотип) — сэмплированы напрямую
-// из отрисованного логотипа (замер getBBox()/fill по <use>-элементам):
-// левая половина ("gg") — фиолетовая, правая ("ege") — зелёная. Девиз в
-// сайдбаре повторяет эту же пару, чтобы читаться как продолжение логотипа.
-const LOGO_PURPLE = '#A74CE8'
-const LOGO_GREEN = '#22A22F'
-
 // Форма курса, которую реально собирает и передаёт app/(main)/layout.tsx —
 // это не сырая строка таблицы courses, а агрегированные данные для сайдбара.
 export type SidebarCourse = {
@@ -232,15 +225,9 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
         </div>
       </Link>
 
-      {/* Девиз "ГГ ЕГЭшечке" убран по прямой просьбе пользователя —
-          оставлен только градиентный разделитель (те же цвета логотипа
-          по краям, см. LOGO_PURPLE/LOGO_GREEN выше), который визуально
-          отделяет шапку с логотипом от пунктов меню. */}
+      {/* Простая тонкая линия: отделяет логотип от выбора курса. */}
       <div className='px-4 pb-4'>
-        <div
-          className='h-[3px] w-full rounded-full'
-          style={{ background: cozy ? `linear-gradient(to right, ${COZY.cardBorder}, ${COZY_WOOD_TILE.button}, ${COZY.cardBorder})` : `linear-gradient(to right, ${LOGO_PURPLE}, #3A464E, ${LOGO_GREEN})` }}
-        />
+        <div className='h-px w-full' style={{ backgroundColor: cozy ? COZY.cardBorder : '#2A363C' }} />
       </div>
 
       {courses.length > 0 && (
