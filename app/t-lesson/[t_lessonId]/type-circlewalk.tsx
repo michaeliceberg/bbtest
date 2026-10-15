@@ -379,12 +379,143 @@ const opacityOf = (t: Trial, k: 'central' | 'inscribed', st: TStep | null) => {
 }
 const pickPraise = (i: number) => CORRECT_FEEDBACK_PHRASES[(i * 5 + 2) % CORRECT_FEEDBACK_PHRASES.length]
 
+const Pop = ({ children }: { children: React.ReactNode }) => (
+    <motion.span className="inline-flex items-center" initial={{ scale: 2.2, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 15 }}>{children}</motion.span>
+)
+
+// ===== Следствие: вписанный четырёхугольник, ∠B + ∠D = 180° =====
+// A и C делят окружность на верхнюю дугу (150°) и нижнюю (210°). ∠B (вершина сверху) опирается на нижнюю дугу → 105°,
+// ∠D (вершина снизу) — на верхнюю → 75°. Две дуги вместе — вся окружность, поэтому ∠B + ∠D = 360° : 2 = 180°.
+const Q_A = 160, Q_C = 10, Q_B = 115, Q_D = 250
+const UPPER = Q_A - Q_C // 150
+const LOWER = 360 - UPPER // 210
+const B_COLOR = PART_COLOR // ∠B и нижняя дуга
+const D_COLOR = ANGLE_COLOR // ∠D и верхняя дуга
+const QuadAngle = ({ v, color, value, show }: { v: number; color: string; value: string; show: boolean }) => {
+    const V = pt(v), A = pt(Q_A), C = pt(Q_C)
+    const dA = dirDeg(V, A), dC = dirDeg(V, C)
+    const [lo, hi] = dA < dC ? [dA, dC] : [dC, dA]
+    const L = { x: V.x + 58 * Math.cos(rad((lo + hi) / 2)), y: V.y - 58 * Math.sin(rad((lo + hi) / 2)) }
+    return (
+        <>
+            <path d={sectorPath(lo, hi, 30, V.x, V.y)} fill={hexToRgba(color, 0.32)} stroke={color} strokeWidth={3} />
+            <SvgPop x={L.x} y={L.y} size={19} color={color} show={show}>{value}</SvgPop>
+        </>
+    )
+}
+const Chords = ({ v, delay = 0 }: { v: number; delay?: number }) => {
+    const V = pt(v), A = pt(Q_A), C = pt(Q_C)
+    return (
+        <>
+            <motion.line x1={V.x} y1={V.y} x2={A.x} y2={A.y} stroke={LINE} strokeWidth={4} strokeLinecap="round"
+                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6, delay }} />
+            <motion.line x1={V.x} y1={V.y} x2={C.x} y2={C.y} stroke={LINE} strokeWidth={4} strokeLinecap="round"
+                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6, delay: delay + 0.35 }} />
+        </>
+    )
+}
+const PointTag = ({ deg, name }: { deg: number; name: string }) => {
+    const P = pt(deg), L = pt(deg, R + 20)
+    return (
+        <>
+            <circle cx={P.x} cy={P.y} r={5} fill={LINE} />
+            <text x={L.x} y={L.y} textAnchor="middle" dominantBaseline="central" fill="#9AA7B0" fontSize={17} fontWeight={900}
+                style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>{name}</text>
+        </>
+    )
+}
+const Line = ({ children, onDone, color }: { children: string; onDone?: () => void; color?: string }) => (
+    <div className="w-full text-center font-black text-lg md:text-xl" style={{ color: color ?? '#F2F7FB' }}>
+        <Typewriter text={children} onDone={() => setTimeout(() => onDone?.(), 400)} />
+    </div>
+)
+const CorollaryScene = ({ onSettled }: SceneProps) => {
+    const [phase, setPhase] = useState(0)
+    const next = (n: number) => () => setPhase((p) => Math.max(p, n))
+    // Что подсвечено: 1–3 — ∠B и нижняя дуга, 4–6 — ∠D и верхняя (∠B бледнеет), 7+ — обе дуги и оба угла.
+    const bOn = phase >= 2
+    const dOn = phase >= 5
+    const bDim = phase >= 5 && phase < 8
+    const dimB = bDim ? 0.25 : 1
+    const lowerLabel = pt(300, R + 34), upperLabel = pt(55, R + 34)
+    return (
+        <>
+            <TypedBig small text="Следствие! Возьмём на окружности точки A и C" onDone={next(1)} readMs={400} />
+            {phase >= 1 && (
+                <DiagramBlock>
+                    <Svg>
+                        <DrawCircle instant />
+                        {/* дуги */}
+                        {phase >= 3 && (
+                            <motion.path d={arcPath(Q_A, Q_A + LOWER)} fill="none" stroke={B_COLOR} strokeWidth={10} strokeLinecap="round"
+                                initial={{ pathLength: 0 }} animate={{ pathLength: 1, opacity: dimB }} transition={{ pathLength: { duration: 0.9 }, opacity: { duration: 0.6 } }} />
+                        )}
+                        {phase >= 6 && (
+                            <motion.path d={arcPath(Q_C, Q_A)} fill="none" stroke={D_COLOR} strokeWidth={10} strokeLinecap="round"
+                                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.8 }} />
+                        )}
+                        {bOn && <motion.g initial={false} animate={{ opacity: dimB }} transition={{ duration: 0.6 }}>
+                            <Chords v={Q_B} />
+                            <QuadAngle v={Q_B} color={B_COLOR} value={phase >= 3 ? '105°' : ''} show={phase >= 3} />
+                        </motion.g>}
+                        {dOn && <>
+                            <Chords v={Q_D} />
+                            <QuadAngle v={Q_D} color={D_COLOR} value={phase >= 6 ? '75°' : ''} show={phase >= 6} />
+                        </>}
+                        {phase >= 3 && <g opacity={dimB} style={{ transition: 'opacity 0.6s' }}><SvgPop x={lowerLabel.x} y={lowerLabel.y} size={22} color={B_COLOR}>{`${LOWER}°`}</SvgPop></g>}
+                        {phase >= 6 && <SvgPop x={upperLabel.x} y={upperLabel.y} size={22} color={D_COLOR}>{`${UPPER}°`}</SvgPop>}
+                        <PointTag deg={Q_A} name="A" /><PointTag deg={Q_C} name="C" />
+                        {bOn && <PointTag deg={Q_B} name="B" />}
+                        {dOn && <PointTag deg={Q_D} name="D" />}
+                    </Svg>
+                </DiagramBlock>
+            )}
+            {phase >= 1 && phase < 2 && <PauseThen ms={1200} onDone={next(2)} />}
+            {/* Под рисунком — только текущий шаг (прошлые строки убираем, чтобы сцена влезала в экран телефона). */}
+            {phase >= 2 && phase < 4 && <Line onDone={next(3)} color={B_COLOR}>Проведём вписанный угол B</Line>}
+            {phase >= 3 && phase < 4 && <Line onDone={next(3.5)}>{`Он опирается на нижнюю дугу ${LOWER}°, значит ∠B = ${LOWER} : 2 = 105°`}</Line>}
+            {phase === 3.5 && <ReplyButton onClick={() => setPhase(4)}>Понял, ∠B = 105°</ReplyButton>}
+            {phase >= 4 && phase < 7 && <Line onDone={next(5)} color={D_COLOR}>А теперь через те же A и C — вписанный угол D</Line>}
+            {phase >= 5 && <PauseThen ms={1300} onDone={next(6)} />}
+            {phase >= 6 && phase < 7 && <Line onDone={next(6.5)}>{`Он опирается на верхнюю дугу ${UPPER}°, значит ∠D = ${UPPER} : 2 = 75°`}</Line>}
+            {phase === 6.5 && <ReplyButton onClick={() => setPhase(7)}>Понял, ∠D = 75°</ReplyButton>}
+            {phase >= 7 && phase < 10 && <Line onDone={next(8)}>Получился вписанный четырёхугольник ABCD</Line>}
+            {phase >= 8 && phase < 10 && <Line onDone={next(9)}>{`А две дуги вместе — вся окружность: ${LOWER}° + ${UPPER}° = 360°`}</Line>}
+            {phase >= 9 && <Line onDone={next(10)}>Каждый угол — половина своей дуги. Значит</Line>}
+            {phase >= 10 && (
+                <div className="w-full flex justify-center text-3xl md:text-4xl font-black">
+                    <Pop>
+                        <span style={{ color: B_COLOR }}>∠B</span>&nbsp;+&nbsp;<span style={{ color: D_COLOR }}>∠D</span>&nbsp;=&nbsp;360° : 2 = <span style={{ color: OK_COLOR }}>180°</span>
+                    </Pop>
+                </div>
+            )}
+            {phase >= 10 && <PauseThen ms={1500} onDone={next(11)} />}
+            {phase >= 11 && (
+                <div className="w-full flex justify-center text-2xl md:text-3xl font-black text-[#9AA7B0]">
+                    <Pop><span style={{ color: B_COLOR }}>105°</span>&nbsp;+&nbsp;<span style={{ color: D_COLOR }}>75°</span>&nbsp;=&nbsp;<span style={{ color: OK_COLOR }}>180°</span>&nbsp;✅</Pop>
+                </div>
+            )}
+            {phase >= 11 && <PauseThen ms={1200} onDone={next(12)} />}
+            {phase >= 12 && (
+                <motion.div className="w-full rounded-2xl border-2 px-4 py-3 text-center font-black text-lg md:text-xl text-[#F2F7FB]"
+                    style={{ borderColor: '#F2C35B', backgroundColor: hexToRgba('#F2C35B', 0.1) }}
+                    initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 13 }}>
+                    Во вписанном четырёхугольнике сумма противоположных углов = 180°
+                </motion.div>
+            )}
+            {phase >= 12 && <PauseThen ms={1200} onDone={() => onSettled?.()} />}
+        </>
+    )
+}
+
 const SCENES = [FullCircleScene, CentralScene, InscribedScene]
 // Подписи общей кнопки «Дальше» по сценам (без рандома — по просьбе пользователя).
 const NEXT_LABELS = ['Ну а четверть = 90°', 'Пока изи, все понятно', 'Изи - вписанный в 2 раза меньше']
 
 export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
-    const [phase, setPhase] = useState<'intro' | 'practice'>('intro')
+    const [phase, setPhase] = useState<'intro' | 'practice' | 'corollary'>('intro')
+    const [corReady, setCorReady] = useState(false)
     const [step, setStep] = useState(0)
     const [stepReady, setStepReady] = useState(false)
     const [advancing, setAdvancing] = useState(false)
@@ -406,8 +537,8 @@ export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
     const [combo, setCombo] = useState(false)
     const registerCombo = useWalkthroughCombo()
     const { bump: bumpNonce, nonceFor } = useReplayNonces()
-    const latestSceneKey = phase === 'intro' ? `step-${step}` : 'practice'
-    const { isActive, sceneRef } = useSceneFocus(latestSceneKey, phase === 'intro' ? stepReady : checked)
+    const latestSceneKey = phase === 'intro' ? `step-${step}` : phase === 'practice' ? 'practice' : 'corollary'
+    const { isActive, sceneRef } = useSceneFocus(latestSceneKey, phase === 'intro' ? stepReady : phase === 'practice' ? checked : corReady)
 
     const handleNext = () => {
         if (advancing) return
@@ -451,11 +582,7 @@ export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
         setAdvancing(true)
         setTimeout(() => {
             setAdvancing(false)
-            if (trialIndex + 1 >= TRIALS.length) {
-                onComplete(!hadMistake)
-                onAnswer(hadMistake ? 'wrong' : 'right')
-                return
-            }
+            if (trialIndex + 1 >= TRIALS.length) { setPhase('corollary'); return }
             const to = trialIndex + 1
             const from = TRIALS[trialIndex], target = TRIALS[to]
             const finish = () => {
@@ -491,7 +618,7 @@ export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
                     </SceneWrapper>
                 ) : null)}
 
-                {phase === 'practice' && (() => {
+                {phase !== 'intro' && (() => {
                     const t = TRIALS[trialIndex]
                     const target = TRIALS[targetIdx]
                     const moving = targetIdx !== trialIndex
@@ -552,7 +679,20 @@ export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
                         </SceneWrapper>
                     )
                 })()}
+                {phase === 'corollary' && (
+                    <SceneWrapper key="corollary" innerRef={sceneRef('corollary')} active={isActive('corollary')}>
+                        <CorollaryScene onSettled={() => setCorReady(true)} />
+                    </SceneWrapper>
+                )}
             </div>
+            {phase === 'corollary' && (
+                <div className="w-full flex">
+                    <button type="button" disabled={!corReady} onClick={() => { onComplete(!hadMistake); onAnswer(hadMistake ? 'wrong' : 'right') }}
+                        className={walkthroughButtonClass(corReady)} style={walkthroughButtonStyle(corReady)}>
+                        Сумма = 180°, понял!
+                    </button>
+                </div>
+            )}
             {phase === 'intro' ? (
                 <div className="w-full flex items-center gap-2">
                     <ReplayButton onClick={handleReplay} disabled={advancing} />
@@ -562,11 +702,11 @@ export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
                         {NEXT_LABELS[step]}
                     </button>
                 </div>
-            ) : checked && targetIdx === trialIndex ? (
+            ) : phase === 'practice' && checked && targetIdx === trialIndex ? (
                 <div className="w-full flex">
                     <button type="button" onClick={nextTrial} disabled={advancing}
                         className={walkthroughButtonClass(!advancing)} style={walkthroughButtonStyle(!advancing)}>
-                        {trialIndex + 1 >= TRIALS.length ? 'Готово' : trialNextLabel}
+                        {trialNextLabel}
                     </button>
                 </div>
             ) : null}
