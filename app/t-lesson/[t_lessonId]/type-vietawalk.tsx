@@ -801,12 +801,12 @@ const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolea
         const rv = right[i]
         // Заполненная правая часть — нейтральная рамка (зелёная сбивала с толку), красная — только при ошибке.
         const rightBorder = stage === 2 ? '#3A464E'
-            : st === 'bad' ? BAD_COLOR : active === i && !result ? hexToRgba(color, 0.75) : '#3A464E'
+            : st === 'bad' ? BAD_COLOR : active === i && !result ? hexToRgba(B_COLOR, 0.75) : '#3A464E'
         return (
             <motion.div animate={st === 'bad' ? { x: [0, -10, 10, -6, 6, 0] } : { x: 0 }} transition={{ duration: 0.5 }}
                 className="flex items-center gap-2.5 text-2xl md:text-3xl font-black text-[#F2F7FB] rounded-2xl px-2 py-1.5 border-2 transition-all duration-500"
                 style={focusRow === null ? { borderColor: 'transparent' }
-                    : focusRow === i ? { borderColor: hexToRgba(color, 0.6), backgroundColor: hexToRgba(color, 0.08), boxShadow: `0 0 18px -6px ${hexToRgba(color, 0.7)}` }
+                    : focusRow === i ? { borderColor: hexToRgba(B_COLOR, 0.55) }
                         : { borderColor: 'transparent', opacity: 0.3, filter: 'grayscale(1)' }}>
                 <span className="w-7" />
                 <PairSlot label="x₁" val={roots[0]} active={stage === 2 && active === 0 && !result} state={stage === 2 ? st : null}
@@ -822,7 +822,7 @@ const ComboRoundView = ({ r, colors, onSolved }: { r: ComboRound; colors: boolea
                         ? <motion.span key={rv} initial={{ scale: 0.3, y: -24, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }}
                             transition={{ type: 'spring', stiffness: 420, damping: 16 }} style={{ color: stage === 1 && st === 'bad' ? BAD_COLOR : color }}>{fmt(rv)}</motion.span>
                         : <span className={cn('text-xl', active === i && 'animate-slot-label')}
-                            style={{ color: active === i ? color : '#5C6B73', ['--slot-c' as string]: color }}>?</span>}
+                            style={{ color: active === i ? B_COLOR : '#5C6B73', ['--slot-c' as string]: B_COLOR }}>?</span>}
                 </button>
                 {/* Галочка/крестик справа после проверки этапа, исчезают вместе со сменой этапа/сбросом. */}
                 <span className="w-7 inline-flex justify-center">
