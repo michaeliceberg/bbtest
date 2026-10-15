@@ -118,7 +118,7 @@ const FullCircleScene = ({ onSettled }: SceneProps) => {
                             initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: 1, opacity: s.op }}
                             transition={{ pathLength: { duration: s.dur, delay: s.delay, ease: 'linear' }, opacity: { duration: 0.7 } }} />
                     ))}
-                    <SvgPop x={CX} y={CY} size={46} show={phase === 1}>360°</SvgPop>
+                    <SvgPop x={CX} y={CY} size={46} show={phase >= 1 && phase < 2}>360°</SvgPop>
                     <SvgPop x={CX} y={CY - 40} size={46} show={phase >= 2}>180°</SvgPop>
                     {phase >= 3 && <SvgPop x={q1Label.x} y={q1Label.y} size={34} color={PART_COLOR}>90°</SvgPop>}
                 </Svg>
