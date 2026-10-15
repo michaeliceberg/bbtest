@@ -31,7 +31,7 @@ import 'react-circular-progressbar/dist/styles.css';
 import { getBossRank } from '@/lib/bossRank';
 import { HalfCircleHero, HERO_HALF_CIRCLE, HERO_HALF_CIRCLE_TITLE } from './unit-hero-half-circle';
 import { isReviewStage, isMythicStage } from '@/lib/trainerStageFlags';
-import { TrainerPet, CHEER_PETS, CHEER_PHRASES } from './trainer-pet';
+import { TrainerPet, pickCheer } from './trainer-pet';
 import { PathDecoration, PathProp, PathArch, DECOR_VARIANTS, PROP_KINDS, PROP_SCALE, type PropKind } from './path-decor';
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store';
 import { UnitSheetCoursePicker, type PickerCourse } from '@/components/unit-sheet-course-picker';
@@ -465,7 +465,7 @@ const StagePath = ({
     // После урока: утка или гусь перебегает от пройденного кружка к следующему, когда следы до него дойдут.
     const ri = revealId === null ? -1 : topic.stages.findIndex((st) => st.id === revealId);
     const cheer = useMemo(
-        () => (ri >= 0 ? { src: CHEER_PETS[Math.floor(Math.random() * CHEER_PETS.length)], text: CHEER_PHRASES[Math.floor(Math.random() * CHEER_PHRASES.length)] } : null),
+        () => (ri >= 0 ? pickCheer() : null),
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [revealId],
     );
