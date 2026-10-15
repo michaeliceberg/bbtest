@@ -46,11 +46,17 @@ export const TRIAL_TRACKS: Record<TrialSubject, TrialTrack> = {
 }
 
 export const TRIAL_SUBJECTS = Object.keys(TRIAL_TRACKS) as TrialSubject[]
-export const PUBLIC_TRIAL_T_LESSON_IDS = TRIAL_SUBJECTS.map((s) => TRIAL_TRACKS[s].trial)
+// Ещё уроки без регистрации, помимо первого урока трека (2026-10-15): «Как работает теорема Виета».
+// Пицца за них не начисляется — это просто отдельные пробные ссылки ggege.ru/t-lesson/<id>.
+export const EXTRA_PUBLIC_LESSONS: Record<number, TrialSubject> = { 502: 'math' }
+export const PUBLIC_TRIAL_T_LESSON_IDS = [
+	...TRIAL_SUBJECTS.map((s) => TRIAL_TRACKS[s].trial),
+	...Object.keys(EXTRA_PUBLIC_LESSONS).map(Number),
+]
 export const ALL_TRACK_LESSONS = TRIAL_SUBJECTS.flatMap((s) => TRIAL_TRACKS[s].lessons)
 
 export const subjectByTCourse = (tCourseId: number | null | undefined): TrialSubject =>
 	TRIAL_SUBJECTS.find((s) => TRIAL_TRACKS[s].tCourseId === tCourseId) ?? 'physics'
 
 export const subjectByLesson = (tLessonId: number): TrialSubject =>
-	TRIAL_SUBJECTS.find((s) => TRIAL_TRACKS[s].lessons.includes(tLessonId)) ?? 'physics'
+	EXTRA_PUBLIC_LESSONS[tLessonId] ?? TRIAL_SUBJECTS.find((s) => TRIAL_TRACKS[s].lessons.includes(tLessonId)) ?? 'physics'
