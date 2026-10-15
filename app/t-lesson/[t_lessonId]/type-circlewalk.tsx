@@ -7,7 +7,7 @@
 // Окружность рисуем ПРОТИВ часовой от точки справа (правило проекта). Углы — синие (роль «угол»).
 
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { animate, motion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import type { QuestionType } from './page'
 import {
     DiagramBlock,
@@ -90,44 +90,53 @@ const PauseThen = ({ ms, onDone }: { ms: number; onDone: () => void }) => {
     return null
 }
 
+// Плавное изменение числа (easeInOut) на setInterval, а не на requestAnimationFrame: так же плавно, но не замирает,
+// если вкладка/панель не отрисовывает кадры.
+const tween = (from: number, to: number, ms: number, onUpdate: (v: number) => void, onDone?: () => void) => {
+    const t0 = Date.now()
+    const id = setInterval(() => {
+        const k = Math.min(1, (Date.now() - t0) / ms)
+        const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2
+        onUpdate(from + (to - from) * e)
+        if (k >= 1) { clearInterval(id); onDone?.() }
+    }, 16)
+}
+
 // ===== Сцена 1: 360 → 180 → 90 =====
-// Окружность из трёх кусков (0–90, 90–180, 180–360): поверх тонкой белой — жирная цветная дуга того, о чём говорим.
-// 360°: жирная вся окружность; 180°: нижняя половина бледнеет; 90°: бледнеет и верхняя левая четверть.
+// Число стоит на одном месте (в центре) и с отскоком меняется 360 → 180 → 90. Жирная фиолетовая дуга от точки справа
+// плавно укорачивается вместе с ним; остальная окружность — бледная.
 const FullCircleScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
+    const [arcEnd, setArcEnd] = useState(359.99)
+    const [label, setLabel] = useState(360)
+    const endRef = useRef(arcEnd)
+    endRef.current = arcEnd
     const next = (n: number) => () => setPhase((p) => Math.max(p, n))
-    const lowerOp = phase >= 2 ? DIM : 1
-    const q2Op = phase >= 3 ? DIM : 1
-    const segs: { a0: number; a1: number; op: number; delay: number; dur: number }[] = [
-        { a0: 0, a1: 90, op: 1, delay: 0, dur: 0.3 },
-        { a0: 90, a1: 180, op: q2Op, delay: 0.3, dur: 0.3 },
-        { a0: 180, a1: 359.99, op: lowerOp, delay: 0.6, dur: 0.6 },
-    ]
-    const q1Label = pt(45, R + 34)
+    const shrinkTo = (to: number, num: number, nextPhase: number) => {
+        setPhase(nextPhase)
+        setLabel(num)
+        tween(endRef.current, to, 1100, setArcEnd)
+    }
     return (
         <>
             <DiagramBlock onSettled={() => setTimeout(next(1), 900)}>
                 <Svg>
-                    {/* Тонкая белая окружность рисуется один раз; потом заменяется тремя кусками, которые бледнеют вместе с жирными. */}
-                    {phase < 1 ? <DrawCircle /> : segs.map((s) => (
-                        <motion.path key={`w${s.a0}`} d={arcPath(s.a0, s.a1)} fill="none" stroke={LINE} strokeWidth={4} strokeLinecap="round"
-                            initial={{ opacity: 1 }} animate={{ opacity: s.op }} transition={{ duration: 0.7 }} />
-                    ))}
-                    {phase >= 1 && segs.map((s) => (
-                        <motion.path key={s.a0} d={arcPath(s.a0, s.a1)} fill="none" stroke={PART_COLOR} strokeWidth={9} strokeLinecap="round"
-                            initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: 1, opacity: s.op }}
-                            transition={{ pathLength: { duration: s.dur, delay: s.delay, ease: 'linear' }, opacity: { duration: 0.7 } }} />
-                    ))}
-                    <SvgPop x={CX} y={CY} size={46} show={phase >= 1 && phase < 2}>360°</SvgPop>
-                    <SvgPop x={CX} y={CY - 40} size={46} show={phase >= 2}>180°</SvgPop>
-                    {phase >= 3 && <SvgPop x={q1Label.x} y={q1Label.y} size={34} color={PART_COLOR}>90°</SvgPop>}
+                    {phase < 1 ? <DrawCircle /> : (
+                        <motion.path d={`${arcPath(0, 180)} ${arcPath(180, 359.99).replace('M', 'L')}`} fill="none" stroke={LINE} strokeWidth={4}
+                            initial={{ opacity: 1 }} animate={{ opacity: phase >= 2 ? DIM : 1 }} transition={{ duration: 0.7 }} />
+                    )}
+                    {phase >= 1 && (
+                        <motion.path d={arcPath(0, arcEnd)} fill="none" stroke={PART_COLOR} strokeWidth={9} strokeLinecap="round"
+                            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.2, ease: 'easeInOut' }} />
+                    )}
+                    {phase >= 1 && <SvgPop key={label} x={CX} y={CY} size={46}>{`${label}°`}</SvgPop>}
                 </Svg>
             </DiagramBlock>
             {phase === 1 && <PauseThen ms={1300} onDone={next(1.5)} />}
-            {phase === 1.5 && <ReplyButton onClick={() => setPhase(2)}>Вся окружность = 360°</ReplyButton>}
-            {phase === 2 && <PauseThen ms={900} onDone={next(2.5)} />}
-            {phase === 2.5 && <ReplyButton onClick={() => setPhase(3)}>Половина окружности = 180°</ReplyButton>}
-            {phase >= 3 && <PauseThen ms={1200} onDone={() => onSettled?.()} />}
+            {phase === 1.5 && <ReplyButton onClick={() => shrinkTo(180, 180, 2)}>Вся окружность = 360°</ReplyButton>}
+            {phase === 2 && <PauseThen ms={1400} onDone={next(2.5)} />}
+            {phase === 2.5 && <ReplyButton onClick={() => shrinkTo(90, 90, 3)}>Половина окружности = 180°</ReplyButton>}
+            {phase >= 3 && <PauseThen ms={1500} onDone={() => onSettled?.()} />}
         </>
     )
 }
@@ -142,10 +151,7 @@ const useAngleMorph = (initial: number) => {
     const morph = (to: number) => new Promise<void>((resolve) => {
         setNumsOn(false)
         setTimeout(() => {
-            animate(ref.current, to, {
-                duration: 1.3, ease: 'easeInOut', onUpdate: (v) => setValue(v),
-                onComplete: () => { setValue(to); setShown(to); setNumsOn(true); resolve() },
-            })
+            tween(ref.current, to, 1300, setValue, () => { setShown(to); setNumsOn(true); resolve() })
         }, 450)
     })
     // До a, пауза 2 с, потом до b.
