@@ -17,6 +17,8 @@ export const PARALLAX_THEME_LABELS: Record<ParallaxTheme, string> = {
 const WARM = '#F2C35B'
 const COOL = '#7DD3FC'
 const DARK = '#0F1A22'
+// Округление координат: иначе сервер и браузер дают разные последние знаки (ошибка гидрации).
+const r1 = (v: number) => Math.round(v * 10) / 10
 type P = { w: number; color: string; accent: string }
 
 // ===== Тригонометрия: обсерватория, колесо обозрения, море-синусоида, фазы луны, башня с маятником =====
@@ -58,13 +60,13 @@ const FerrisWheel = ({ w, color, accent }: P) => {
             <circle cx="100" cy="100" r={R} fill="none" stroke={accent} strokeWidth="5" />
             <circle cx="100" cy="100" r={R - 10} fill="none" stroke={accent} strokeWidth="1.5" opacity={0.6} />
             {spokes.map((a, i) => (
-                <line key={i} x1="100" y1="100" x2={100 + R * Math.cos(a)} y2={100 + R * Math.sin(a)} stroke={accent} strokeWidth="1.5" opacity={0.7} />
+                <line key={i} x1="100" y1="100" x2={r1(100 + R * Math.cos(a))} y2={r1(100 + R * Math.sin(a))} stroke={accent} strokeWidth="1.5" opacity={0.7} />
             ))}
             <circle cx="100" cy="100" r="8" fill={color} />
             {/* кабинки с огоньками */}
             {spokes.map((a, i) => {
-                const x = 100 + R * Math.cos(a)
-                const y = 100 + R * Math.sin(a)
+                const x = r1(100 + R * Math.cos(a))
+                const y = r1(100 + R * Math.sin(a))
                 return (
                     <g key={`c${i}`}>
                         <rect x={x - 7} y={y + 2} width="14" height="11" rx="3" fill={color} />
@@ -125,7 +127,7 @@ const PendulumTower = ({ w, color, accent }: P) => (
         <circle cx="60" cy="88" r="16" fill={DARK} opacity={0.55} />
         {Array.from({ length: 12 }, (_, i) => {
             const a = (i * Math.PI) / 6
-            return <circle key={i} cx={60 + 13 * Math.cos(a)} cy={88 + 13 * Math.sin(a)} r="1.2" fill={WARM} opacity={0.5} />
+            return <circle key={i} cx={r1(60 + 13 * Math.cos(a))} cy={r1(88 + 13 * Math.sin(a))} r="1.2" fill={WARM} opacity={0.5} />
         })}
         <path d="M60 88 L60 77 M60 88 L68 92" stroke={WARM} strokeWidth="1.6" opacity={0.6} strokeLinecap="round" />
         {/* окно с маятником */}
@@ -209,9 +211,9 @@ const ProtractorTemple = ({ w, color, accent }: P) => (
         {Array.from({ length: 19 }, (_, i) => {
             const a = Math.PI - (i * Math.PI) / 18
             const long = i % 3 === 0
-            const r1 = long ? 76 : 86
+            const rIn = long ? 76 : 86
             return (
-                <line key={i} x1={110 + r1 * Math.cos(a)} y1={130 - r1 * Math.sin(a)} x2={110 + 98 * Math.cos(a)} y2={130 - 98 * Math.sin(a)}
+                <line key={i} x1={r1(110 + rIn * Math.cos(a))} y1={r1(130 - rIn * Math.sin(a))} x2={r1(110 + 98 * Math.cos(a))} y2={r1(130 - 98 * Math.sin(a))}
                     stroke={accent} strokeWidth={long ? 3 : 1.5} opacity={long ? 0.9 : 0.6} />
             )
         })}

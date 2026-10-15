@@ -34,6 +34,7 @@ import { isReviewStage, isMythicStage } from '@/lib/trainerStageFlags';
 import { TrainerPet, CHEER_PETS, CHEER_PHRASES } from './trainer-pet';
 import { PathDecoration, PathProp, PathArch, DECOR_VARIANTS, PROP_KINDS, PROP_SCALE, type PropKind } from './path-decor';
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store';
+import { useParallaxThemeStore, themeForSection } from '@/store/use-parallax-theme-store';
 
 // Больше разнообразия по прямой просьбе пользователя ("яйцо щит меч —
 // хочется большее количество разных иконок, чтобы было интереснее") —
@@ -842,6 +843,17 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
     };
     // Текущий юнит на экране (по прокрутке): сообщаем верхней шапке на телефоне — она рисует из этого кнопку.
     const [currentTopicId, setCurrentTopicId] = useState<number | null>(null);
+    // Мир параллакс-фона по открытому разделу: простой вид — блок/юнит на экране, полный — активный таб.
+    const setParallaxTheme = useParallaxThemeStore((st) => st.setTheme);
+    const parallaxSection = (() => {
+        if (simple && currentTopicId !== null) {
+            const t = topics.find((x) => x.id === currentTopicId);
+            if (t) return t.blockTitle ?? t.title;
+        }
+        const g = renderGroups.find((x) => groupKey(x) === activeGroupKey);
+        return g ? groupLabel(g) : null;
+    })();
+    useEffect(() => { setParallaxTheme(themeForSection(parallaxSection)); }, [parallaxSection, setParallaxTheme]);
     const currentTopicIdRef = React.useRef<number | null>(null);
     currentTopicIdRef.current = currentTopicId;
     useEffect(() => {
