@@ -14,6 +14,7 @@ import {
     walkthroughButtonClass, walkthroughButtonStyle,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     pickWrongTryPhrase, pickFunNextLabel, LocalAnswerConfetti, CORRECT_FEEDBACK_PHRASES, useWalkthroughCombo,
+    AdminSceneMap, MAP_INTRO_COLOR, MAP_PRACTICE_COLOR, type AdminMapEntry,
 } from '@/components/geometry/WalkthroughLog'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
@@ -513,7 +514,9 @@ const SCENES = [FullCircleScene, CentralScene, InscribedScene]
 // Подписи общей кнопки «Дальше» по сценам (без рандома — по просьбе пользователя).
 const NEXT_LABELS = ['Ну а четверть = 90°', 'Пока изи, все понятно', 'Изи - вписанный в 2 раза меньше']
 
-export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
+export const TypeCircleWalk = ({ onAnswer, onComplete, isAdmin = false }: Props & { isAdmin?: boolean }) => {
+    // С какой сцены рисуем лог: при админском прыжке прошлые сцены не проигрываем заново.
+    const [startStep, setStartStep] = useState(0)
     const [phase, setPhase] = useState<'intro' | 'practice' | 'corollary'>('intro')
     const [corReady, setCorReady] = useState(false)
     const [step, setStep] = useState(0)
@@ -602,15 +605,44 @@ export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
             setTimeout(() => {
                 setFigArc(target.arc)
                 if (to === COMBO_BEFORE) setCombo(true)
-                else finish()
-            }, 700)
+                else setTimeout(finish, 150)
+            }, 650)
         }, 300)
     }
 
+    const jumpTo = (key: string) => {
+        setAdvancing(false); setChecked(false); setWrongTried([]); setWrongFlash(null); setStepPause(false); setCombo(false); setFigHidden(false); setLabelsOn(true)
+        if (key.startsWith('step-')) {
+            const i = Number(key.slice(5))
+            bumpNonce(key)
+            setPhase('intro'); setStartStep(i); setStep(i); setStepReady(false)
+            return
+        }
+        setStartStep(SCENES.length); setStep(SCENES.length - 1)
+        if (key === 'corollary') {
+            const last = TRIALS.length - 1
+            setTrialIndex(last); setTargetIdx(last); setFigArc(TRIALS[last].arc); setQIdx(TRIALS[last].steps.length - 1); setChecked(true)
+            setCorReady(false); setPhase('corollary')
+            return
+        }
+        const k = Number(key.slice(6))
+        setTrialIndex(k); setTargetIdx(k); setFigArc(TRIALS[k].arc); setQIdx(0); setPhase('practice')
+    }
+    const mapEntries: AdminMapEntry[] = [
+        ...['360 → 180 → 90', 'Центральный угол', 'Вписанный угол'].map((label, i) => ({
+            dotKey: `s${i}`, label, jumpKey: `step-${i}`, isActive: phase === 'intro' && step === i, color: MAP_INTRO_COLOR,
+        })),
+        ...TRIALS.map((t, i) => ({
+            dotKey: `t${i}`, label: `Задание ${i + 1}/${TRIALS.length}`, jumpKey: `trial-${i}`, isActive: phase === 'practice' && trialIndex === i, color: MAP_PRACTICE_COLOR,
+        })),
+        { dotKey: 'cor', label: 'Следствие: четырёхугольник', jumpKey: 'corollary', isActive: phase === 'corollary', color: MAP_INTRO_COLOR },
+    ]
+
     return (
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
+            {isAdmin && <AdminSceneMap enabled entries={mapEntries} onJump={jumpTo} disabled={advancing} />}
             <div className="w-full flex flex-col gap-4">
-                {SCENES.map((Scene, i) => step >= i ? (
+                {SCENES.map((Scene, i) => step >= i && i >= startStep ? (
                     <SceneWrapper key={`step-${i}`} innerRef={sceneRef(`step-${i}`)} active={isActive(`step-${i}`)}>
                         <Fragment key={`step-${i}-${nonceFor(`step-${i}`)}`}>
                             <Scene onSettled={() => i === step && setStepReady(true)} />
@@ -648,9 +680,9 @@ export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
                                 }} />
                             ) : (
                                 <motion.div className="w-full" initial={false} animate={{ opacity: figHidden ? 0 : 1, scale: figHidden ? 0.92 : 1 }} transition={{ duration: 0.5 }}>
-                                    <TrialFigure t={t} labels={labelsFor(t, qIdx, checked || stepPause)} arc={figArc}
-                                        central={opacityOf(moving ? target : t, 'central', moving || checked ? null : t.steps[qIdx])}
-                                        inscribed={opacityOf(moving ? target : t, 'inscribed', moving || checked ? null : t.steps[qIdx])} labelsOn={labelsOn} />
+                                    <TrialFigure key={trialIndex} t={t} labels={labelsFor(t, qIdx, checked || stepPause)} arc={figArc}
+                                        central={opacityOf(moving && !figHidden ? target : t, 'central', moving || checked ? null : t.steps[qIdx])}
+                                        inscribed={opacityOf(moving && !figHidden ? target : t, 'inscribed', moving || checked ? null : t.steps[qIdx])} labelsOn={labelsOn} />
                                 </motion.div>
                             )}
                             {!checked && !moving && !stepPause && (

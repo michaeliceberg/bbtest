@@ -439,7 +439,7 @@ export default function TrainerQuestion({
 
       case "CIRCLEWALK":
         // Планиметрия → «Окружности»: 360/180/90, центральный и вписанный угол — см. type-circlewalk.tsx.
-        return <TypeCircleWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
+        return <TypeCircleWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} isAdmin={isAdmin} />
 
       case "VIETAWALK":
         // «Как работает теорема Виета» — см. type-vietawalk.tsx.
