@@ -187,7 +187,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
   if (courses.length === 0) {
     return (
       <div className={cn('flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-[#151F23]', className)} style={rootStyle}>
-        <div className='pt-8 pl-4 pb-7 flex items-center gap-x-3'>
+        <div className='pt-8 pb-7 flex items-center justify-center'>
           <Image src="/ggege-logo.webp" height={481} width={640} alt="ggege" priority className="h-auto w-[210px]" />
         </div>
         <div className='flex flex-col gap-y-2 flex-1 justify-center'>
@@ -220,7 +220,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
   return (
     <div className={cn('flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-[#151F23]', className)} style={rootStyle}>
       <Link href='/trainer'>
-        <div className='pt-8 pl-4 pb-4 flex items-center gap-x-3 cursor-pointer hover:opacity-80 transition-opacity'>
+        <div className='pt-8 pb-4 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity'>
           <Image src="/ggege-logo.webp" height={481} width={640} alt="ggege" priority className="h-auto w-[210px]" />
         </div>
       </Link>
