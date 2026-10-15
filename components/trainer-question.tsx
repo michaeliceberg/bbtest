@@ -45,6 +45,7 @@ import { TypeTrigValWalk } from "@/app/t-lesson/[t_lessonId]/type-trigvalwalk"
 import { TypeTrigCircleWalk } from "@/app/t-lesson/[t_lessonId]/type-trigcirclewalk"
 import { TypeTrigAnsWalk } from "@/app/t-lesson/[t_lessonId]/type-triganswalk"
 import { TypeVietaWalk } from "@/app/t-lesson/[t_lessonId]/type-vietawalk"
+import { TypeCircleWalk } from "@/app/t-lesson/[t_lessonId]/type-circlewalk"
 import { TypeRedFormWalk } from "@/app/t-lesson/[t_lessonId]/type-redformwalk"
 import { TypeWorkbook } from "@/app/t-lesson/[t_lessonId]/type-workbook"
 import { TypeConstructor } from "@/app/t-lesson/[t_lessonId]/type-constructor"
@@ -436,6 +437,10 @@ export default function TrainerQuestion({
         // «Как записать ответ»: sin α = a → серии α = … + 2πk, см. type-triganswalk.tsx.
         return <TypeTrigAnsWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
 
+      case "CIRCLEWALK":
+        // Планиметрия → «Окружности»: 360/180/90, центральный и вписанный угол — см. type-circlewalk.tsx.
+        return <TypeCircleWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
+
       case "VIETAWALK":
         // «Как работает теорема Виета» — см. type-vietawalk.tsx.
         return <TypeVietaWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} isAdmin={isAdmin} />
@@ -741,6 +746,8 @@ export default function TrainerQuestion({
                 ? "Как найти гипотенузу"
                 : question.questionType === "VIETAWALK"
                 ? "Теорема Виета"
+                : question.questionType === "CIRCLEWALK"
+                ? "Окружности"
                 : question.questionType === "SINCOSDEFWALK"
                 ? "Синус, косинус и тангенс"
                 : question.questionType !== "WORKBOOK" &&
@@ -809,7 +816,7 @@ export default function TrainerQuestion({
           прямой просьбе пользователя. TRIGTABLE (как ASSIST/INSERT/
           SCROLL) — select-then-submit: общая кнопка сначала "Ответить"
           (когда все пропуски заполнены), затем "далее"/"понятно". */}
-      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "SINWALK" && question.questionType !== "LOGWALK" && question.questionType !== "LOGDEFWALK" && question.questionType !== "LOGSUBWALK" && question.questionType !== "LOGPOWWALK" && question.questionType !== "LOGSWAPWALK" && question.questionType !== "LOGDIVWALK" && question.questionType !== "LOGCOMBOWALK" && question.questionType !== "LOGFLIPWALK" && question.questionType !== "FARADAYWALK" && question.questionType !== "DIRWALK" && question.questionType !== "LENZWALK" && question.questionType !== "SINCOSDEFWALK" && question.questionType !== "LEGFINDWALK" && question.questionType !== "HYPFINDWALK" && question.questionType !== "SIMWALK" && question.questionType !== "TRIGSCWALK" && question.questionType !== "TRIGTGWALK" && question.questionType !== "TRIGCIRCWALK" && question.questionType !== "REDFORMWALK" && question.questionType !== "TTPWALK" && question.questionType !== "TRIGANSWALK" && question.questionType !== "VIETAWALK" && (
+      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "SINWALK" && question.questionType !== "LOGWALK" && question.questionType !== "LOGDEFWALK" && question.questionType !== "LOGSUBWALK" && question.questionType !== "LOGPOWWALK" && question.questionType !== "LOGSWAPWALK" && question.questionType !== "LOGDIVWALK" && question.questionType !== "LOGCOMBOWALK" && question.questionType !== "LOGFLIPWALK" && question.questionType !== "FARADAYWALK" && question.questionType !== "DIRWALK" && question.questionType !== "LENZWALK" && question.questionType !== "SINCOSDEFWALK" && question.questionType !== "LEGFINDWALK" && question.questionType !== "HYPFINDWALK" && question.questionType !== "SIMWALK" && question.questionType !== "TRIGSCWALK" && question.questionType !== "TRIGTGWALK" && question.questionType !== "TRIGCIRCWALK" && question.questionType !== "REDFORMWALK" && question.questionType !== "TTPWALK" && question.questionType !== "TRIGANSWALK" && question.questionType !== "VIETAWALK" && question.questionType !== "CIRCLEWALK" && (
       <div className="px-4 pb-4 pt-2 bg-[#151F24] relative">
         {/* Notification фон который выезжает при правильном ответе */}
         {answerState === "correct" && (

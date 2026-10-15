@@ -1394,6 +1394,7 @@ const SCENES = [IntroScene, AxisGameScene, HomeScene, SignScene, DirQuizScene, P
 const FIXED_NEXT_LABELS = new Map<unknown, string>([
     [HomeScene, 'Да понял я, понял'],
     [DirQuizScene, 'Я супер умный'],
+    [PiScene, 'π = 180° Я запомнил'],
     [ReadyScene, 'ЛЕТС ГООООУ'],
 ])
 
