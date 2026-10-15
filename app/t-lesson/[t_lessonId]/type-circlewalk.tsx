@@ -385,127 +385,137 @@ const Pop = ({ children }: { children: React.ReactNode }) => (
         transition={{ type: 'spring', stiffness: 320, damping: 15 }}>{children}</motion.span>
 )
 
-// ===== Следствие: вписанный четырёхугольник, ∠B + ∠D = 180° =====
-// A и C делят окружность на верхнюю дугу (150°) и нижнюю (210°). ∠B (вершина сверху) опирается на нижнюю дугу → 105°,
-// ∠D (вершина снизу) — на верхнюю → 75°. Две дуги вместе — вся окружность, поэтому ∠B + ∠D = 360° : 2 = 180°.
-const Q_A = 160, Q_C = 10, Q_B = 115, Q_D = 250
-const UPPER = Q_A - Q_C // 150
-const LOWER = 360 - UPPER // 210
-const B_COLOR = PART_COLOR // ∠B и нижняя дуга
-const D_COLOR = ANGLE_COLOR // ∠D и верхняя дуга
-const QuadAngle = ({ v, color, value, show }: { v: number; color: string; value: string; show: boolean }) => {
-    const V = pt(v), A = pt(Q_A), C = pt(Q_C)
+// ===== Следствие: вписанный четырёхугольник, ∠ + ∠ = 180° =====
+// Ученик сам выбирает первую дугу X (нижняя, симметрична относительно низа окружности), находит вторую 360 − X,
+// потом два вписанных угла: первый опирается на дугу X (вершина сверху) = X/2, второй — на другую дугу (вершина снизу).
+// В конце: X/2 + (360 − X)/2 = 180°. Ошибки здесь не засчитываются — это объяснение, а не проверка.
+const ARC1_COLOR = PART_COLOR
+const ARC2_COLOR = ANGLE_COLOR
+const pickOptions = (correct: number, cands: number[]) => {
+    const out: number[] = []
+    for (const v of [correct, ...cands]) if (v > 0 && !out.includes(v) && out.length < 4) out.push(v)
+    return out
+}
+const CorAngle = ({ v, e0, e1, color, value, show }: { v: number; e0: number; e1: number; color: string; value: number | null; show: boolean }) => {
+    const V = pt(v), A = pt(e0), C = pt(e1)
     const dA = dirDeg(V, A), dC = dirDeg(V, C)
     const [lo, hi] = dA < dC ? [dA, dC] : [dC, dA]
     const L = { x: V.x + 58 * Math.cos(rad((lo + hi) / 2)), y: V.y - 58 * Math.sin(rad((lo + hi) / 2)) }
     return (
         <>
-            <path d={sectorPath(lo, hi, 30, V.x, V.y)} fill={hexToRgba(color, 0.32)} stroke={color} strokeWidth={3} />
-            <SvgPop x={L.x} y={L.y} size={19} color={color} show={show}>{value}</SvgPop>
-        </>
-    )
-}
-const Chords = ({ v, delay = 0 }: { v: number; delay?: number }) => {
-    const V = pt(v), A = pt(Q_A), C = pt(Q_C)
-    return (
-        <>
             <motion.line x1={V.x} y1={V.y} x2={A.x} y2={A.y} stroke={LINE} strokeWidth={4} strokeLinecap="round"
-                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6, delay }} />
+                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6 }} />
             <motion.line x1={V.x} y1={V.y} x2={C.x} y2={C.y} stroke={LINE} strokeWidth={4} strokeLinecap="round"
-                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6, delay: delay + 0.35 }} />
+                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6, delay: 0.3 }} />
+            <motion.path d={sectorPath(lo, hi, 30, V.x, V.y)} fill={hexToRgba(color, 0.32)} stroke={color} strokeWidth={3}
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.8 }} />
+            <circle cx={V.x} cy={V.y} r={5} fill={LINE} />
+            <SvgPop key={`${v}-${show}`} x={L.x} y={L.y} size={20} color={show ? color : ASK_COLOR}>{show && value !== null ? `${value}°` : '?'}</SvgPop>
         </>
     )
 }
-const PointTag = ({ deg, name }: { deg: number; name: string }) => {
-    const P = pt(deg), L = pt(deg, R + 20)
+const ChoiceRow = ({ options, correct, onDone, hint }: { options: number[]; correct?: number; onDone: (v: number) => void; hint?: string }) => {
+    const [wrong, setWrong] = useState<number[]>([])
+    const [ok, setOk] = useState<number | null>(null)
+    const pick = (v: number) => {
+        if (ok !== null || wrong.includes(v)) return
+        if (correct === undefined || v === correct) {
+            setOk(v)
+            if (correct !== undefined) showAnswerMeme(true)
+            setTimeout(() => onDone(v), 500)
+        } else {
+            playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false)
+            setWrong((w) => [...w, v])
+        }
+    }
     return (
-        <>
-            <circle cx={P.x} cy={P.y} r={5} fill={LINE} />
-            <text x={L.x} y={L.y} textAnchor="middle" dominantBaseline="central" fill="#9AA7B0" fontSize={17} fontWeight={900}
-                style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>{name}</text>
-        </>
+        <div className="w-full flex flex-col gap-2">
+            <div className={cn('drop-in-options grid gap-3 w-full', options.length === 3 ? 'grid-cols-3' : 'grid-cols-2')}>
+                {options.map((v) => (
+                    <button key={v} type="button" disabled={ok !== null || wrong.includes(v)} onClick={() => pick(v)}
+                        className={cn('min-h-[60px] rounded-xl border-2 border-b-4 text-2xl font-black transition-colors',
+                            ok === v ? 'border-[#A1D151] bg-[#A1D15122] text-[#A1D151]'
+                                : wrong.includes(v) ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]'
+                                    : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]')}>
+                        {v}°
+                    </button>
+                ))}
+            </div>
+            {wrong.length > 0 && ok === null && hint && (
+                <div className="rounded-xl px-4 py-2 font-bold w-full text-center bg-[#DC605B22] text-[#DC605B]">{pickWrongTryPhrase()} {hint}</div>
+            )}
+        </div>
     )
 }
-const Line = ({ children, onDone, color }: { children: string; onDone?: () => void; color?: string }) => (
-    <div className="w-full text-center font-black text-lg md:text-xl" style={{ color: color ?? '#F2F7FB' }}>
-        <Typewriter text={children} onDone={() => setTimeout(() => onDone?.(), 400)} />
-    </div>
-)
 const CorollaryScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
+    const [x, setX] = useState(240)
     const next = (n: number) => () => setPhase((p) => Math.max(p, n))
-    // Что подсвечено: 1–3 — ∠B и нижняя дуга, 4–6 — ∠D и верхняя (∠B бледнеет), 7+ — обе дуги и оба угла.
-    const bOn = phase >= 2
-    const dOn = phase >= 5
-    const bDim = phase >= 5 && phase < 8
-    const dimB = bDim ? 0.25 : 1
-    const lowerLabel = pt(300, R + 34), upperLabel = pt(55, R + 34)
+    const y = 360 - x
+    const e0 = 270 - x / 2, e1 = 270 + x / 2 // концы дуг; первая дуга — снизу, от e0 до e1 против часовой
+    const arc1Label = pt(270, R + 30), arc2Label = pt(90, R + 28)
+    // Шаги: 0 круг → 1 «Поделим…» → 2 «Пусть одна дуга будет:» → 3 выбор → 4 дуга X → 5 пауза → 6 вопрос →
+    // 7 вторая дуга + 360 → 8 варианты → 9 ответ, 360 гаснет → 10 пауза → 11 угол на дуге X → 12 вопрос → 13 варианты →
+    // 14 ответ → 15 пауза → 16 второй угол → 17 вопрос → 18 варианты → 19 ответ → 20 сумма → 21 вывод.
     return (
         <>
-            <TypedBig small text="Следствие! Возьмём на окружности точки A и C" onDone={next(1)} readMs={400} />
-            {phase >= 1 && (
-                <DiagramBlock>
-                    <Svg>
-                        <DrawCircle instant />
-                        {/* дуги */}
-                        {phase >= 3 && (
-                            <motion.path d={arcPath(Q_A, Q_A + LOWER)} fill="none" stroke={B_COLOR} strokeWidth={10} strokeLinecap="round"
-                                initial={{ pathLength: 0 }} animate={{ pathLength: 1, opacity: dimB }} transition={{ pathLength: { duration: 0.9 }, opacity: { duration: 0.6 } }} />
-                        )}
-                        {phase >= 6 && (
-                            <motion.path d={arcPath(Q_C, Q_A)} fill="none" stroke={D_COLOR} strokeWidth={10} strokeLinecap="round"
-                                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.8 }} />
-                        )}
-                        {bOn && <motion.g initial={false} animate={{ opacity: dimB }} transition={{ duration: 0.6 }}>
-                            <Chords v={Q_B} />
-                            <QuadAngle v={Q_B} color={B_COLOR} value={phase >= 3 ? '105°' : ''} show={phase >= 3} />
-                        </motion.g>}
-                        {dOn && <>
-                            <Chords v={Q_D} />
-                            <QuadAngle v={Q_D} color={D_COLOR} value={phase >= 6 ? '75°' : ''} show={phase >= 6} />
-                        </>}
-                        {phase >= 3 && <g opacity={dimB} style={{ transition: 'opacity 0.6s' }}><SvgPop x={lowerLabel.x} y={lowerLabel.y} size={22} color={B_COLOR}>{`${LOWER}°`}</SvgPop></g>}
-                        {phase >= 6 && <SvgPop x={upperLabel.x} y={upperLabel.y} size={22} color={D_COLOR}>{`${UPPER}°`}</SvgPop>}
-                        <PointTag deg={Q_A} name="A" /><PointTag deg={Q_C} name="C" />
-                        {bOn && <PointTag deg={Q_B} name="B" />}
-                        {dOn && <PointTag deg={Q_D} name="D" />}
-                    </Svg>
-                </DiagramBlock>
-            )}
-            {phase >= 1 && phase < 2 && <PauseThen ms={1200} onDone={next(2)} />}
-            {/* Под рисунком — только текущий шаг (прошлые строки убираем, чтобы сцена влезала в экран телефона). */}
-            {phase >= 2 && phase < 4 && <Line onDone={next(3)} color={B_COLOR}>Проведём вписанный угол B</Line>}
-            {phase >= 3 && phase < 4 && <Line onDone={next(3.5)}>{`Он опирается на нижнюю дугу ${LOWER}°, значит ∠B = ${LOWER} : 2 = 105°`}</Line>}
-            {phase === 3.5 && <ReplyButton onClick={() => setPhase(4)}>Понял, ∠B = 105°</ReplyButton>}
-            {phase >= 4 && phase < 7 && <Line onDone={next(5)} color={D_COLOR}>А теперь через те же A и C — вписанный угол D</Line>}
-            {phase >= 5 && <PauseThen ms={1300} onDone={next(6)} />}
-            {phase >= 6 && phase < 7 && <Line onDone={next(6.5)}>{`Он опирается на верхнюю дугу ${UPPER}°, значит ∠D = ${UPPER} : 2 = 75°`}</Line>}
-            {phase === 6.5 && <ReplyButton onClick={() => setPhase(7)}>Понял, ∠D = 75°</ReplyButton>}
-            {phase >= 7 && phase < 10 && <Line onDone={next(8)}>Получился вписанный четырёхугольник ABCD</Line>}
-            {phase >= 8 && phase < 10 && <Line onDone={next(9)}>{`А две дуги вместе — вся окружность: ${LOWER}° + ${UPPER}° = 360°`}</Line>}
-            {phase >= 9 && <Line onDone={next(10)}>Каждый угол — половина своей дуги. Значит</Line>}
-            {phase >= 10 && (
+            <DiagramBlock onSettled={next(1)}>
+                <Svg>
+                    <DrawCircle instant />
+                    {phase >= 4 && (
+                        <motion.path d={arcPath(e0, e1)} fill="none" stroke={ARC1_COLOR} strokeWidth={10} strokeLinecap="round"
+                            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.9, ease: 'easeOut' }} />
+                    )}
+                    {phase >= 7 && (
+                        <motion.path d={arcPath(e1, e0 + 360)} fill="none" stroke={ARC2_COLOR} strokeWidth={10} strokeLinecap="round"
+                            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.9, ease: 'easeOut' }} />
+                    )}
+                    {/* Подсказка: вся окружность 360° — крупно, бледно, пульсирует, пока ищем вторую дугу */}
+                    {phase >= 7 && phase < 9 && (
+                        <g className="animate-glow-pulse">
+                            <text x={CX} y={CY} textAnchor="middle" dominantBaseline="central" fill="#5C6B73" fontSize={64} fontWeight={900}
+                                style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>360°</text>
+                        </g>
+                    )}
+                    {phase >= 11 && <CorAngle v={90} e0={e0} e1={e1} color={ARC1_COLOR} value={x / 2} show={phase >= 14} />}
+                    {phase >= 16 && <CorAngle v={270} e0={e0} e1={e1} color={ARC2_COLOR} value={y / 2} show={phase >= 19} />}
+                    {phase >= 4 && <SvgPop x={arc1Label.x} y={arc1Label.y} size={24} color={ARC1_COLOR}>{`${x}°`}</SvgPop>}
+                    {phase >= 7 && <SvgPop key={`a2-${phase >= 9}`} x={arc2Label.x} y={arc2Label.y} size={24} color={phase >= 9 ? ARC2_COLOR : ASK_COLOR}>{phase >= 9 ? `${y}°` : '?'}</SvgPop>}
+                    {phase >= 4 && <><circle cx={pt(e0).x} cy={pt(e0).y} r={5} fill={LINE} /><circle cx={pt(e1).x} cy={pt(e1).y} r={5} fill={LINE} /></>}
+                </Svg>
+            </DiagramBlock>
+            {phase >= 1 && phase < 4 && <TypedBig small text="Следствие! Поделим окружность на 2 дуги" onDone={next(2)} readMs={400} />}
+            {phase >= 2 && phase < 4 && <TypedBig small text="Пусть одна дуга будет:" onDone={next(3)} readMs={200} />}
+            {phase === 3 && <ChoiceRow options={[240, 160, 80]} onDone={(v) => { setX(v); setPhase(4) }} />}
+            {phase === 4 && <PauseThen ms={2000} onDone={next(6)} />}
+            {phase >= 6 && phase < 10 && <TypedBig small text="Тогда чему равна другая дуга?" onDone={next(7)} readMs={200} />}
+            {phase === 7 && <PauseThen ms={1000} onDone={next(8)} />}
+            {phase === 8 && <ChoiceRow options={pickOptions(y, [x, 180, y / 2])} correct={y} hint="Вся окружность = 360° 🙃" onDone={() => setPhase(9)} />}
+            {phase === 9 && <PauseThen ms={2000} onDone={next(11)} />}
+            {phase >= 11 && phase < 15 && <PauseThen ms={1300} onDone={next(12)} />}
+            {phase >= 12 && phase < 15 && <TypedBig small text="Чему равен этот вписанный угол?" onDone={next(13)} readMs={200} />}
+            {phase === 13 && <ChoiceRow options={pickOptions(x / 2, [x, y / 2, x / 4, 90])} correct={x / 2} hint="Вписанный = половине дуги, на которую опирается 🙃" onDone={() => setPhase(14)} />}
+            {phase === 14 && <PauseThen ms={2000} onDone={next(16)} />}
+            {phase >= 16 && phase < 20 && <PauseThen ms={1300} onDone={next(17)} />}
+            {phase >= 17 && phase < 20 && <TypedBig small text="А чему равен этот вписанный угол?" onDone={next(18)} readMs={200} />}
+            {phase === 18 && <ChoiceRow options={pickOptions(y / 2, [y, x / 2, 90, y / 4])} correct={y / 2} hint="Он опирается на другую дугу: половина от неё 🙃" onDone={() => setPhase(19)} />}
+            {phase === 19 && <PauseThen ms={1500} onDone={next(20)} />}
+            {phase >= 20 && (
                 <div className="w-full flex justify-center text-3xl md:text-4xl font-black">
                     <Pop>
-                        <span style={{ color: B_COLOR }}>∠B</span>&nbsp;+&nbsp;<span style={{ color: D_COLOR }}>∠D</span>&nbsp;=&nbsp;360° : 2 = <span style={{ color: OK_COLOR }}>180°</span>
+                        <span style={{ color: ARC1_COLOR }}>{x / 2}°</span>&nbsp;+&nbsp;<span style={{ color: ARC2_COLOR }}>{y / 2}°</span>&nbsp;=&nbsp;<span style={{ color: OK_COLOR }}>180°</span>
                     </Pop>
                 </div>
             )}
-            {phase >= 10 && <PauseThen ms={1500} onDone={next(11)} />}
-            {phase >= 11 && (
-                <div className="w-full flex justify-center text-2xl md:text-3xl font-black text-[#9AA7B0]">
-                    <Pop><span style={{ color: B_COLOR }}>105°</span>&nbsp;+&nbsp;<span style={{ color: D_COLOR }}>75°</span>&nbsp;=&nbsp;<span style={{ color: OK_COLOR }}>180°</span>&nbsp;✅</Pop>
-                </div>
-            )}
-            {phase >= 11 && <PauseThen ms={1200} onDone={next(12)} />}
-            {phase >= 12 && (
+            {phase >= 20 && <PauseThen ms={1500} onDone={next(21)} />}
+            {phase >= 21 && (
                 <motion.div className="w-full rounded-2xl border-2 px-4 py-3 text-center font-black text-lg md:text-xl text-[#F2F7FB]"
                     style={{ borderColor: '#F2C35B', backgroundColor: hexToRgba('#F2C35B', 0.1) }}
                     initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 13 }}>
                     Во вписанном четырёхугольнике сумма противоположных углов = 180°
                 </motion.div>
             )}
-            {phase >= 12 && <PauseThen ms={1200} onDone={() => onSettled?.()} />}
+            {phase >= 21 && <PauseThen ms={1200} onDone={() => onSettled?.()} />}
         </>
     )
 }
