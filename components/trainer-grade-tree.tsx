@@ -34,6 +34,7 @@ import { isReviewStage, isMythicStage } from '@/lib/trainerStageFlags';
 import { TrainerPet, CHEER_PETS, CHEER_PHRASES } from './trainer-pet';
 import { PathDecoration, PathProp, PathArch, DECOR_VARIANTS, PROP_KINDS, PROP_SCALE, type PropKind } from './path-decor';
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store';
+import { UnitSheetCoursePicker, type PickerCourse } from '@/components/unit-sheet-course-picker';
 import { useParallaxThemeStore, themeForSection } from '@/store/use-parallax-theme-store';
 
 // Больше разнообразия по прямой просьбе пользователя ("яйцо щит меч —
@@ -213,6 +214,8 @@ interface Props {
     simple?: boolean;
     // Данные питомца (простой вид): он стоит у текущей точки дорожки.
     petProps?: { streak: number; hasExtendedToday: boolean; questDone: boolean; dayKey: number };
+    // Выбор курса сверху шторки «Юниты» (components/unit-sheet-course-picker.tsx).
+    coursePicker?: { courses: PickerCourse[]; activeCourseId: number };
 }
 
 // Цвета карты в двух стилях — через CSS-переменные на корне карты, чтобы
@@ -716,7 +719,7 @@ const FrontierShine = ({ children }: { children: React.ReactNode }) => (
 // 300-500мс), чтобы анимация не началась "за кадром", пока страница ещё едет.
 const SCROLL_SETTLE_MS = 500;
 
-export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onlyActiveGroup, simple = false, petProps }: Props) => {
+export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onlyActiveGroup, simple = false, petProps, coursePicker }: Props) => {
     const cozy = theme === 'cozy';
     const ACC: GroupAccent = cozy ? COZY_TREE_ACCENT : GROUP_ACCENTS[0];
     // Reveal-анимация "только что прошёл этот этап" — сигнал приходит из
@@ -1430,7 +1433,8 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                             Затемнение рисуем сами. */}
                         {unitMenuOpen && <div className="fixed inset-0 z-[99] bg-black/70" onClick={() => setUnitMenuOpen(false)} aria-hidden />}
                         <SheetContent side="left" className="p-0 z-[100] bg-[#151F23] border-[#2B373D] w-[82%] sm:max-w-xs overflow-y-auto">
-                            <SheetTitle className="px-5 pt-6 pb-3 text-lg font-extrabold text-white">Юниты</SheetTitle>
+                            {coursePicker && <UnitSheetCoursePicker courses={coursePicker.courses} activeCourseId={coursePicker.activeCourseId} />}
+                            <SheetTitle className={cn("px-5 pb-3 text-lg font-extrabold text-white", coursePicker ? "pt-3" : "pt-6")}>Юниты</SheetTitle>
                             <div className="flex flex-col gap-2.5 px-4 pb-8">
                                 {renderGroups.map((g) => {
                                     const key = groupKey(g);

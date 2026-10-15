@@ -111,6 +111,7 @@ type Props = {
     theme?: UiTheme,
     simple?: boolean,
     petProps?: { streak: number; hasExtendedToday: boolean; questDone: boolean; dayKey: number },
+    coursePicker?: { courses: { id: number; title: string }[]; activeCourseId: number },
 
     all_t_lessonProgress: {
         id: number;
@@ -139,6 +140,7 @@ export const TabTCourses = ({
     theme = 'metal',
     simple = false,
     petProps,
+    coursePicker,
 }: Props) => {
     const [showFormulas, setShowFormulas] = useState(false)
 
@@ -386,7 +388,7 @@ export const TabTCourses = ({
                         )}
 
                         <div className="w-full mt-2">
-                            <TrainerGradeTree key={t_course.id} topics={topics} isAdmin={isAdmin} theme={theme} simple={simple} petProps={petProps} onlyActiveGroup={TRAINER_ONLY_ACTIVE_GROUP[t_course.title]} />
+                            <TrainerGradeTree key={t_course.id} topics={topics} isAdmin={isAdmin} theme={theme} simple={simple} petProps={petProps} coursePicker={coursePicker} onlyActiveGroup={TRAINER_ONLY_ACTIVE_GROUP[t_course.title]} />
                         </div>
 
                         {/* "Показать все формулы" — убрано по просьбе пользователя (2026-09-03):

@@ -196,7 +196,8 @@ const TLearnPage = async () => {
     // "пройди урок тренажёра" (см. CLAUDE.md, полный разбор обоих случаев).
     // Та же функция выбора курса, что и в сайдбаре (layout) — иначе сайдбар и
     // тренажёр могли показывать разные курсы (баг 2026-09-29).
-    const userCourseIds = (await getUserCourses()).map((c) => c.id);
+    const userCourses = await getUserCourses();
+    const userCourseIds = userCourses.map((c) => c.id);
     const resolvedActiveCourseId = pickActiveCourseId(cookies().get('activeCourseId')?.value, userCourseIds, userProgress.activeCourse.id)
         ?? userProgress.activeCourse.id;
     const activeTCourse = resolveActiveTCourse(t_coursesRaw, resolvedActiveCourseId);
@@ -357,6 +358,7 @@ const TLearnPage = async () => {
                         isAdmin={userProgress.isAdmin === 1}
                         theme={uiTheme}
                         simple={simple}
+                        coursePicker={{ courses: userCourses.map((c) => ({ id: c.id, title: c.title })), activeCourseId: resolvedActiveCourseId }}
                         petProps={simple ? { streak: currentStreakForRisk, hasExtendedToday: hasExtendedStreakToday, questDone: !!dailyQuest?.isCompleted, dayKey: new Date().getDate() } : undefined}
                     />
                 </div>
