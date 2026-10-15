@@ -91,35 +91,40 @@ const PauseThen = ({ ms, onDone }: { ms: number; onDone: () => void }) => {
 }
 
 // ===== Сцена 1: 360 → 180 → 90 =====
+// Окружность из трёх кусков (0–90, 90–180, 180–360): поверх тонкой белой — жирная цветная дуга того, о чём говорим.
+// 360°: жирная вся окружность; 180°: нижняя половина бледнеет; 90°: бледнеет и верхняя левая четверть.
 const FullCircleScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
     const next = (n: number) => () => setPhase((p) => Math.max(p, n))
-    const lowerDim = phase >= 2 ? DIM : 1
-    const upperLeftDim = phase >= 3 ? DIM : 1
+    const lowerOp = phase >= 2 ? DIM : 1
+    const q2Op = phase >= 3 ? DIM : 1
+    const segs: { a0: number; a1: number; op: number; delay: number; dur: number }[] = [
+        { a0: 0, a1: 90, op: 1, delay: 0, dur: 0.3 },
+        { a0: 90, a1: 180, op: q2Op, delay: 0.3, dur: 0.3 },
+        { a0: 180, a1: 359.99, op: lowerOp, delay: 0.6, dur: 0.6 },
+    ]
+    const q1Label = pt(45, R + 34)
     return (
         <>
             <DiagramBlock onSettled={() => setTimeout(next(1), 900)}>
                 <Svg>
-                    {phase < 2 && <DrawCircle />}
-                    {phase >= 2 && (
-                        <>
-                            <motion.path d={arcPath(0, 90)} fill="none" stroke={LINE} strokeWidth={4} strokeLinecap="round" />
-                            <motion.path d={arcPath(90, 180)} fill="none" stroke={LINE} strokeWidth={4} strokeLinecap="round"
-                                animate={{ opacity: upperLeftDim }} transition={{ duration: 0.6 }} />
-                            <motion.path d={arcPath(180, 359.99)} fill="none" stroke={LINE} strokeWidth={4} strokeLinecap="round"
-                                initial={{ opacity: 1 }} animate={{ opacity: lowerDim }} transition={{ duration: 0.7 }} />
-                        </>
-                    )}
-                    {phase >= 3 && (
-                        <motion.path d={arcPath(0, 90)} fill="none" stroke={PART_COLOR} strokeWidth={9} strokeLinecap="round"
-                            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.8, ease: 'easeOut' }} />
-                    )}
+                    {/* Тонкая белая окружность рисуется один раз; потом заменяется тремя кусками, которые бледнеют вместе с жирными. */}
+                    {phase < 1 ? <DrawCircle /> : segs.map((s) => (
+                        <motion.path key={`w${s.a0}`} d={arcPath(s.a0, s.a1)} fill="none" stroke={LINE} strokeWidth={4} strokeLinecap="round"
+                            initial={{ opacity: 1 }} animate={{ opacity: s.op }} transition={{ duration: 0.7 }} />
+                    ))}
+                    {phase >= 1 && segs.map((s) => (
+                        <motion.path key={s.a0} d={arcPath(s.a0, s.a1)} fill="none" stroke={PART_COLOR} strokeWidth={9} strokeLinecap="round"
+                            initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: 1, opacity: s.op }}
+                            transition={{ pathLength: { duration: s.dur, delay: s.delay, ease: 'linear' }, opacity: { duration: 0.7 } }} />
+                    ))}
                     <SvgPop x={CX} y={CY} size={46} show={phase === 1}>360°</SvgPop>
-                    <SvgPop x={CX} y={CY - 40} size={46} show={phase === 2}>180°</SvgPop>
-                    {phase >= 3 && <SvgPop x={pt(45, R * 0.45).x} y={pt(45, R * 0.45).y} size={38} color={PART_COLOR}>90°</SvgPop>}
+                    <SvgPop x={CX} y={CY - 40} size={46} show={phase >= 2}>180°</SvgPop>
+                    {phase >= 3 && <SvgPop x={q1Label.x} y={q1Label.y} size={34} color={PART_COLOR}>90°</SvgPop>}
                 </Svg>
             </DiagramBlock>
-            {phase === 1 && <ReplyButton onClick={() => setPhase(2)}>Вся окружность = 360°</ReplyButton>}
+            {phase === 1 && <PauseThen ms={1300} onDone={next(1.5)} />}
+            {phase === 1.5 && <ReplyButton onClick={() => setPhase(2)}>Вся окружность = 360°</ReplyButton>}
             {phase === 2 && <PauseThen ms={900} onDone={next(2.5)} />}
             {phase === 2.5 && <ReplyButton onClick={() => setPhase(3)}>Половина окружности = 180°</ReplyButton>}
             {phase >= 3 && <PauseThen ms={1200} onDone={() => onSettled?.()} />}
@@ -127,50 +132,53 @@ const FullCircleScene = ({ onSettled }: SceneProps) => {
     )
 }
 
+// Плавное изменение угла: цифры гаснут → угол тянется → новые цифры с отскоком.
+const useAngleMorph = (initial: number) => {
+    const [value, setValue] = useState(initial)
+    const [shown, setShown] = useState(initial)
+    const [numsOn, setNumsOn] = useState(true)
+    const ref = useRef(initial)
+    ref.current = value
+    const morph = (to: number) => new Promise<void>((resolve) => {
+        setNumsOn(false)
+        setTimeout(() => {
+            animate(ref.current, to, {
+                duration: 1.3, ease: 'easeInOut', onUpdate: (v) => setValue(v),
+                onComplete: () => { setValue(to); setShown(to); setNumsOn(true); resolve() },
+            })
+        }, 450)
+    })
+    // До a, пауза 2 с, потом до b.
+    const runTwo = async (a: number, b: number) => {
+        await morph(a)
+        await new Promise((r) => setTimeout(r, 2000))
+        await morph(b)
+    }
+    return { value, shown, numsOn, runTwo }
+}
+
 // ===== Сцена 2: центральный угол =====
 const CENTRAL_START = 25
 const CentralScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
-    const [theta, setTheta] = useState(60)
-    const [shownTheta, setShownTheta] = useState(60)
-    const [numsOn, setNumsOn] = useState(true)
+    const m = useAngleMorph(60)
+    const theta = m.value
     const next = (n: number) => () => setPhase((p) => Math.max(p, n))
     const a0 = CENTRAL_START, a1 = CENTRAL_START + theta
     const P0 = pt(a0), P1 = pt(a1)
     const mid = a0 + theta / 2
     const inLabel = pt(mid, 52), outLabel = pt(mid, R + 30)
-
-    // После «Понял-принял»: цифры гаснут → угол тянется до 100° → цифры 100 → 2 с → гаснут → сжимается до 40° → цифры 40.
-    const thetaRef = useRef(theta)
-    thetaRef.current = theta
-    const morph = (to: number) => new Promise<void>((resolve) => {
-        setNumsOn(false)
-        setTimeout(() => {
-            animate(thetaRef.current, to, {
-                duration: 1.3, ease: 'easeInOut', onUpdate: (v) => setTheta(v),
-                onComplete: () => { setTheta(to); setShownTheta(to); setNumsOn(true); resolve() },
-            })
-        }, 450)
-    })
-    const runMorphs = async () => {
-        setPhase(7)
-        await morph(100)
-        await new Promise((r) => setTimeout(r, 2000))
-        await morph(40)
-        setPhase(8)
-    }
+    const run = async () => { setPhase(7); await m.runTwo(100, 40); setPhase(8) }
 
     return (
         <>
             <DiagramBlock onSettled={() => setTimeout(next(1), 700)}>
                 <Svg>
                     <DrawCircle instant />
-                    {/* Сектор угла — под радиусами */}
                     {phase >= 2 && (
                         <g transform={`translate(${CX} ${CY})`}>
                             <motion.path d={sectorPath(a0, a1, 34, 0, 0)} fill={hexToRgba(ANGLE_COLOR, 0.35)} stroke={ANGLE_COLOR} strokeWidth={3}
-                                initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ transformOrigin: '0px 0px' }}
-                                transition={{ type: 'spring', stiffness: 360, damping: 10 }} />
+                                initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 360, damping: 10 }} />
                         </g>
                     )}
                     {phase >= 5 && (
@@ -186,8 +194,8 @@ const CentralScene = ({ onSettled }: SceneProps) => {
                             <circle cx={CX} cy={CY} r={5} fill={LINE} />
                         </>
                     )}
-                    {phase >= 4 && <SvgPop key={`in-${shownTheta}`} x={inLabel.x} y={inLabel.y} size={20} color={LINE} show={numsOn}>{`${shownTheta}°`}</SvgPop>}
-                    {phase >= 6 && <SvgPop key={`out-${shownTheta}`} x={outLabel.x} y={outLabel.y} size={24} color={ANGLE_COLOR} show={numsOn}>{`${shownTheta}°`}</SvgPop>}
+                    {phase >= 4 && <SvgPop key={`in-${m.shown}`} x={inLabel.x} y={inLabel.y} size={20} color={LINE} show={m.numsOn}>{`${m.shown}°`}</SvgPop>}
+                    {phase >= 6 && <SvgPop key={`out-${m.shown}`} x={outLabel.x} y={outLabel.y} size={24} color={ANGLE_COLOR} show={m.numsOn}>{`${m.shown}°`}</SvgPop>}
                 </Svg>
             </DiagramBlock>
             {phase >= 1 && <PauseThen ms={1100} onDone={next(2)} />}
@@ -195,23 +203,28 @@ const CentralScene = ({ onSettled }: SceneProps) => {
             {phase === 3 && <ReplyButton onClick={() => setPhase(4)}>Вижу, центральный угол</ReplyButton>}
             {phase >= 4 && <PauseThen ms={1300} onDone={next(5)} />}
             {phase >= 5 && <PauseThen ms={900} onDone={next(6)} />}
-            {phase >= 6 && (
-                <TypedBig small text="Центральный угол = дуге, на которую он опирается" onDone={next(6.5)} readMs={300} />
-            )}
-            {phase === 6.5 && <ReplyButton onClick={runMorphs}>Понял-принял</ReplyButton>}
+            {phase >= 6 && <TypedBig small text="Центральный угол = дуге, на которую он опирается" onDone={next(6.5)} readMs={300} />}
+            {phase === 6.5 && <ReplyButton onClick={run}>Понял-принял</ReplyButton>}
             {phase >= 8 && <PauseThen ms={1000} onDone={() => onSettled?.()} />}
         </>
     )
 }
 
 // ===== Сцена 3: вписанный угол =====
-const INS_A = 30, INS_B = 150, INS_P = 270
+// Вершина внизу (270°), концы хорд симметрично относительно верха: дуга между ними (сверху) = 2 · угол.
+const INS_P = 270
 const InscribedScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
+    const m = useAngleMorph(60)
+    const angle = m.value
     const next = (n: number) => () => setPhase((p) => Math.max(p, n))
-    const P = pt(INS_P), A = pt(INS_A), B = pt(INS_B)
+    const arcA = 90 - angle, arcB = 90 + angle // дуга = 2 · угол
+    const P = pt(INS_P), A = pt(arcA), B = pt(arcB)
     const dA = dirDeg(P, A), dB = dirDeg(P, B)
     const [lo, hi] = dA < dB ? [dA, dB] : [dB, dA]
+    const inLabel = { x: P.x, y: P.y - 66 }
+    const outLabel = pt(90, R + 28)
+    const run = async () => { setPhase(7); await m.runTwo(80, 40); setPhase(8) }
     return (
         <>
             <DiagramBlock onSettled={() => setTimeout(next(1), 700)}>
@@ -220,9 +233,12 @@ const InscribedScene = ({ onSettled }: SceneProps) => {
                     {phase >= 2 && (
                         <g transform={`translate(${P.x} ${P.y})`}>
                             <motion.path d={sectorPath(lo, hi, 40, 0, 0)} fill={hexToRgba(ANGLE_COLOR, 0.35)} stroke={ANGLE_COLOR} strokeWidth={3}
-                                initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ transformOrigin: '0px 0px' }}
-                                transition={{ type: 'spring', stiffness: 360, damping: 10 }} />
+                                initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 360, damping: 10 }} />
                         </g>
+                    )}
+                    {phase >= 5 && (
+                        <motion.path d={arcPath(arcA, arcB)} fill="none" stroke={ANGLE_COLOR} strokeWidth={10} strokeLinecap="round"
+                            initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }} transition={{ duration: 0.7, ease: 'easeOut' }} />
                     )}
                     {phase >= 1 && (
                         <>
@@ -233,17 +249,25 @@ const InscribedScene = ({ onSettled }: SceneProps) => {
                             <circle cx={P.x} cy={P.y} r={5} fill={LINE} />
                         </>
                     )}
+                    {phase >= 4 && <SvgPop key={`in-${m.shown}`} x={inLabel.x} y={inLabel.y} size={20} color={LINE} show={m.numsOn}>{`${m.shown}°`}</SvgPop>}
+                    {phase >= 6 && <SvgPop key={`out-${m.shown}`} x={outLabel.x} y={outLabel.y} size={24} color={ANGLE_COLOR} show={m.numsOn}>{`${m.shown * 2}°`}</SvgPop>}
                 </Svg>
             </DiagramBlock>
             {phase >= 1 && <PauseThen ms={1300} onDone={next(2)} />}
-            {phase >= 2 && <TypedBig text="А это вписанный угол" onDone={() => onSettled?.()} readMs={600} />}
+            {phase >= 2 && <TypedBig text="А это вписанный угол" onDone={next(3)} readMs={300} />}
+            {phase === 3 && <ReplyButton onClick={() => setPhase(4)}>Вписанный угол</ReplyButton>}
+            {phase >= 4 && <PauseThen ms={1300} onDone={next(5)} />}
+            {phase >= 5 && <PauseThen ms={900} onDone={next(6)} />}
+            {phase >= 6 && <TypedBig small text="Вписанный угол = ПОЛОВИНЕ дуги, на которую он опирается" onDone={next(6.5)} readMs={300} />}
+            {phase === 6.5 && <ReplyButton onClick={run}>Понял-принял</ReplyButton>}
+            {phase >= 8 && <PauseThen ms={1000} onDone={() => onSettled?.()} />}
         </>
     )
 }
 
 const SCENES = [FullCircleScene, CentralScene, InscribedScene]
 // Подписи общей кнопки «Дальше» по сценам (без рандома — по просьбе пользователя).
-const NEXT_LABELS = ['Ну а четверть = 90°', 'Пока изи, все понятно', 'Вписанный угол']
+const NEXT_LABELS = ['Ну а четверть = 90°', 'Пока изи, все понятно', 'Изи, вписанный тоже понятен']
 
 export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
     const [step, setStep] = useState(0)
