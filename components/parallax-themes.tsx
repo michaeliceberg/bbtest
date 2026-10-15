@@ -237,6 +237,87 @@ const Obelisk = ({ w, color, accent }: P) => (
     </svg>
 )
 
+// ===== Физика: башня Теслы, подковообразный магнит, грозовая туча с молнией, ЛЭП, лампочка, атом =====
+const ELEC = '#9BE7FF'
+const TeslaTower = ({ w, color, accent }: P) => (
+    <svg width={w} height={w * 1.6} viewBox="0 0 120 192" aria-hidden>
+        {/* тор наверху */}
+        <ellipse cx="60" cy="30" rx="34" ry="12" fill={accent} />
+        <ellipse cx="60" cy="27" rx="26" ry="6" fill={DARK} opacity={0.35} />
+        {/* катушка */}
+        <path d="M50 40 H70 V160 H50 Z" fill={color} />
+        {Array.from({ length: 14 }, (_, i) => (
+            <line key={i} x1="50" y1={46 + i * 8} x2="70" y2={49 + i * 8} stroke={accent} strokeWidth="1.4" opacity={0.7} />
+        ))}
+        <path d="M30 160 H90 L84 192 H36 Z" fill={accent} />
+        {/* разряды с тора — мерцают */}
+        <g className="animate-tesla-flicker">
+            <path d="M26 28 L12 18 L18 14 L4 2" stroke={ELEC} strokeWidth="1.6" fill="none" opacity={0.5} strokeLinejoin="round" />
+            <path d="M94 26 L106 36 L100 40 L116 50" stroke={ELEC} strokeWidth="1.6" fill="none" opacity={0.5} strokeLinejoin="round" />
+        </g>
+    </svg>
+)
+const HorseshoeMagnet = ({ w, color, accent }: P) => (
+    // Подкова полюсами вверх, над ней дугами силовые линии от N к S.
+    <svg width={w} height={w * 1.1} viewBox="0 0 160 176" aria-hidden>
+        {[22, 36, 50].map((h) => (
+            <path key={h} d={`M43 60 C43 ${60 - h * 1.6} 117 ${60 - h * 1.6} 117 60`} stroke={ELEC} strokeWidth="1.3" fill="none" strokeDasharray="4 5" opacity={0.3} />
+        ))}
+        <g transform="translate(0 46)">
+            <path d="M30 14 V74 A50 50 0 0 0 130 74 V14 H104 V74 A24 24 0 0 1 56 74 V14 Z" fill={accent} />
+            <path d="M30 14 H56 V38 H30 Z" fill="#B85C5A" opacity={0.6} />
+            <path d="M104 14 H130 V38 H104 Z" fill="#4E7FA8" opacity={0.65} />
+            <path d="M56 74 A24 24 0 0 0 104 74" stroke={color} strokeWidth="3" fill="none" />
+        </g>
+    </svg>
+)
+const StormCloud = ({ w, color, accent }: P) => (
+    <svg width={w} height={w * 0.95} viewBox="0 0 200 190" aria-hidden>
+        <path d="M30 90 Q4 90 8 66 Q12 44 38 48 Q42 16 78 18 Q100 0 128 16 Q164 10 168 46 Q198 48 194 72 Q190 90 168 90 Z" fill={accent} />
+        <path d="M40 90 H160 Q150 100 130 98 Q110 104 90 98 Q64 104 40 90 Z" fill={color} />
+        {/* молния — вспыхивает редко */}
+        <path className="animate-bolt-flash" d="M104 92 L84 136 L102 136 L88 186 L128 124 L108 124 L122 92 Z" fill={ELEC} />
+    </svg>
+)
+const Pylon = ({ w, color, accent }: P) => (
+    <svg width={w} height={w * 1.8} viewBox="0 0 120 216" aria-hidden>
+        <path d="M44 216 L58 20 H62 L76 216 H68 L60 90 L52 216 Z" fill={color} />
+        <path d="M60 30 L20 50 H100 Z M60 70 L28 86 H92 Z" fill="none" stroke={accent} strokeWidth="3" strokeLinejoin="round" />
+        <path d="M48 120 L72 160 M72 120 L48 160 M50 170 L70 200 M70 170 L50 200" stroke={accent} strokeWidth="2" opacity={0.7} />
+        {[20, 100, 28, 92].map((x, i) => <circle key={i} cx={x} cy={i < 2 ? 54 : 90} r="3" fill={WARM} opacity={0.35} />)}
+        {/* провода уходят за край */}
+        <path d="M20 54 Q-20 80 -60 60 M100 54 Q140 80 180 60" stroke={accent} strokeWidth="1.2" fill="none" opacity={0.6} />
+    </svg>
+)
+const Bulb = ({ w, color, accent }: P) => {
+    const id = useId()
+    return (
+        <svg width={w} height={w * 1.4} viewBox="0 0 100 140" aria-hidden>
+            <defs>
+                <radialGradient id={`b${id}`}>
+                    <stop offset="0.3" stopColor={WARM} stopOpacity={0.2} />
+                    <stop offset="1" stopColor={WARM} stopOpacity={0} />
+                </radialGradient>
+            </defs>
+            <circle cx="50" cy="46" r="46" fill={`url(#b${id})`} />
+            <path d="M50 10 A30 30 0 0 1 68 64 Q62 72 62 84 H38 Q38 72 32 64 A30 30 0 0 1 50 10 Z" fill={accent} />
+            <path d="M42 80 V60 L46 52 L50 60 L54 52 L58 60 V80" stroke={WARM} strokeWidth="1.8" fill="none" opacity={0.55} />
+            <path d="M36 86 H64 V112 Q50 120 36 112 Z" fill={color} />
+            {[92, 100, 108].map((y) => <line key={y} x1="36" y1={y} x2="64" y2={y} stroke={accent} strokeWidth="1.5" />)}
+        </svg>
+    )
+}
+const Atom = ({ w, accent }: { w: number; accent: string }) => (
+    <svg width={w} height={w} viewBox="0 0 120 120" aria-hidden>
+        {[0, 60, 120].map((a) => (
+            <ellipse key={a} cx="60" cy="60" rx="52" ry="18" transform={`rotate(${a} 60 60)`} fill="none" stroke={accent} strokeWidth="2" opacity={0.8} />
+        ))}
+        <circle cx="60" cy="60" r="9" fill={WARM} opacity={0.4} />
+        <circle cx="112" cy="60" r="4" fill={ELEC} opacity={0.5} />
+        <circle cx="34" cy="15" r="4" fill={ELEC} opacity={0.5} />
+    </svg>
+)
+
 // Средний слой каждого мира: панели по 1000px, объекты по краям (центр — для карты уроков).
 export const THEME_MIDDLE_PANELS: Partial<Record<ParallaxTheme, Item[][]>> = {
     trig: [
@@ -254,6 +335,14 @@ export const THEME_MIDDLE_PANELS: Partial<Record<ParallaxTheme, Item[][]>> = {
          { y: 600, x: '70%', el: (c) => <TriangleSails w={170} color={c.color} accent={c.accent} /> }],
         [{ y: 120, x: '66%', el: (c) => <ProtractorTemple w={210} color={c.color} accent={c.accent} /> },
          { y: 560, x: '2%', el: (c) => <Obelisk w={80} color={c.color} accent={c.accent} /> }],
+    ],
+    physics: [
+        [{ y: 90, x: '70%', el: (c) => <TeslaTower w={110} color={c.color} accent={c.accent} /> },
+         { y: 600, x: '-2%', el: (c) => <HorseshoeMagnet w={150} color={c.color} accent={c.accent} /> }],
+        [{ y: 80, x: '-4%', el: (c) => <StormCloud w={200} color={c.color} accent={c.accent} /> },
+         { y: 560, x: '76%', el: (c) => <Pylon w={110} color={c.color} accent={c.accent} /> }],
+        [{ y: 120, x: '72%', el: (c) => <Atom w={130} accent={c.accent} /> },
+         { y: 600, x: '2%', el: (c) => <Bulb w={100} color={c.color} accent={c.accent} /> }],
     ],
 }
 

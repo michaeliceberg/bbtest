@@ -838,3 +838,10 @@ body {
 }
 .animate-spark-rise { animation: spark-rise 10s linear infinite; animation-fill-mode: backwards; will-change: transform; }
 @media (prefers-reduced-motion: reduce) { .animate-cloud-drift, .animate-spark-rise { animation: none; opacity: 0; } }
+
+/* Мир «Физика»: разряды башни Теслы мерцают, молния из тучи вспыхивает редко (только opacity). */
+@keyframes tesla-flicker { 0%, 100% { opacity: 1; } 8% { opacity: 0.2; } 12% { opacity: 1; } 55% { opacity: 0.35; } 60% { opacity: 1; } }
+.animate-tesla-flicker { animation: tesla-flicker 2.6s steps(1, end) infinite; }
+@keyframes bolt-flash { 0%, 86%, 100% { opacity: 0.08; } 88% { opacity: 0.55; } 90% { opacity: 0.15; } 92% { opacity: 0.5; } 95% { opacity: 0.08; } }
+.animate-bolt-flash { animation: bolt-flash 7s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .animate-tesla-flicker, .animate-bolt-flash { animation: none; } }
