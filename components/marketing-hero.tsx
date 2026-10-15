@@ -1,4 +1,5 @@
 'use client'
+import { GgegeTagline } from '@/components/ggege-tagline';
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -157,7 +158,7 @@ const CozyMarketingHero = ({ dbUserName }: Props) => {
           <div className='flex flex-col items-stretch gap-y-4 w-full max-w-[340px]'>
             {userName ? (
               <CozyCta href='/trainer'>
-                Продолжаем учиться
+                Го фармить баллы
                 <ArrowRight className='h-5 w-5' />
               </CozyCta>
             ) : (
@@ -247,6 +248,8 @@ const MetalMarketingHero = ({ dbUserName }: Props) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.15 }}
         >
+          {/* На телефоне подпись приложения здесь (в шапке ей тесно), на компьютере — рядом с логотипом в шапке. */}
+          <GgegeTagline className='lg:hidden text-xl -mb-2' />
           <span className='inline-flex items-center gap-1.5 rounded-full border border-[#3A464E] bg-[#151F23]/80 px-3 py-1 text-xs font-bold uppercase tracking-[0.15em] text-[#9AA7B0]'>
             <Sparkles className='h-3.5 w-3.5' style={{ color: CTA_ACCENT }} />
             ЕГЭ · ОГЭ · ЛНИП
@@ -285,7 +288,7 @@ const MetalMarketingHero = ({ dbUserName }: Props) => {
           <div className='flex flex-col items-stretch gap-y-3 w-full max-w-[340px]'>
             {userName ? (
               <PremiumButton href='/trainer'>
-                Продолжаем учиться
+                Го фармить баллы
                 <ArrowRight className='h-5 w-5' />
               </PremiumButton>
             ) : (

@@ -4,6 +4,7 @@
 
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
+import { GgegeTagline } from '@/components/ggege-tagline'
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
@@ -48,6 +49,7 @@ export const Header = ({ dbUserName }: Props) => {
               alt='ggege'
               className='h-14 w-auto transition-all group-hover:scale-105'
             />
+            <GgegeTagline className='hidden lg:inline text-base' />
           </Link>
 
           <div className='flex items-center gap-x-4'>

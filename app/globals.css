@@ -804,3 +804,7 @@ body {
 /* Мерцание нескольких звёзд параллакс-фона (components/parallax-world.tsx), только opacity. */
 @keyframes star-twinkle { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.15; } }
 .animate-star-twinkle { animation: star-twinkle 3.2s ease-in-out infinite; }
+
+/* Блик по подписи «Фармим баллы ЕГЭ» (components/ggege-tagline.tsx): полоса пробегает за ~1 с, потом пауза. */
+@keyframes tagline-shine { 0% { background-position: 100% 0; } 30%, 100% { background-position: 0% 0; } }
+.animate-tagline-shine { animation: tagline-shine 4s ease-in-out infinite; }
