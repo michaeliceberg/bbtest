@@ -40,6 +40,8 @@ import { GuestRewardClaimer } from '@/components/guest-reward-claimer';
 import { ReferralCashbackScreen } from '@/components/referral-screens';
 import { getUnseenCashback } from '@/lib/referralRewards';
 import { TRIAL_SUBJECTS, TRIAL_TRACKS, subjectByTCourse } from '@/lib/trialTracks';
+import { photoTaskConfigured } from '@/lib/photoTask';
+import Link from 'next/link';
 
 const TLearnPage = async () => {
     const session = await auth();
@@ -332,6 +334,17 @@ const TLearnPage = async () => {
                     )}
 
                     </>)}
+
+                    {/* «Сфоткай задачу» (lib/photoTask.ts): пока нет ключа API — видно только админам. */}
+                    {(photoTaskConfigured() || userProgress.isAdmin === 1) && (
+                        <Link href='/photo-task' className='mt-4 flex items-center gap-3 rounded-2xl border-2 border-b-4 border-[#53ADEF] bg-[#53ADEF14] px-4 py-3 active:border-b-2'>
+                            <span className='text-2xl'>📸</span>
+                            <span className='flex-1 min-w-0'>
+                                <span className='block font-black text-white'>Сфоткай задачу</span>
+                                <span className='block text-xs font-bold text-[#8FA3AE]'>Подскажу, какие уроки пройти, чтобы её решить</span>
+                            </span>
+                        </Link>
+                    )}
 
                     {/* Разделитель между блоком пиццы и выбором темы тренажёра */}
                     <div

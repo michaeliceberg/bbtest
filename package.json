@@ -32,6 +32,7 @@
 		"deploy": "npm run db:push && npm run indexes && npm run build && npm run start"
 	},
 	"dependencies": {
+		"@anthropic-ai/sdk": "^0.134.0",
 		"@lottiefiles/lottie-player": "^2.0.12",
 		"@multiavatar/multiavatar": "^1.0.7",
 		"@neondatabase/serverless": "^0.9.3",

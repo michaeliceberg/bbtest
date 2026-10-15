@@ -193,6 +193,22 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 		FROM pro_interest i LEFT JOIN user_progress u ON u.user_id = i.user_id
 		WHERE i.event = 'want' AND coalesce(u.is_admin, 0) = 0 ORDER BY i.created_at DESC LIMIT 20`)
 
+	// «Сфоткай задачу» (lib/photoTask.ts): сколько фото, сколько ушло в Sonnet, каких тем не хватило.
+	// Цена — оценка: Haiku $0.10/$0.50, Sonnet $2/$10 за 1 млн токенов, курс 90 ₽ (если ушло в Sonnet — все токены по Sonnet).
+	const [photo] = await q(sql`
+		SELECT count(*) FILTER (WHERE error IS NULL) AS ok, count(*) FILTER (WHERE error IS NOT NULL) AS failed,
+			count(*) FILTER (WHERE escalated) AS escalated, count(*) FILTER (WHERE readable = false) AS unreadable,
+			count(DISTINCT user_id) AS users,
+			coalesce(sum(CASE WHEN escalated THEN input_tokens * 2.0 + output_tokens * 10.0 ELSE input_tokens * 0.1 + output_tokens * 0.5 END), 0) / 1e6 * 90 AS rub
+		FROM photo_task_requests WHERE created_at >= ${since}`)
+	const photoMissing = await q(sql`
+		SELECT t AS topic, count(*) AS cnt FROM photo_task_requests, jsonb_array_elements_text(coalesce(missing_topics, '[]'::jsonb)) AS t
+		WHERE created_at >= ${since} GROUP BY t ORDER BY cnt DESC LIMIT 15`)
+	const photoRecent = await q(sql`
+		SELECT p.problem_text, p.model, p.escalated, p.created_at, coalesce(u.nickname, u.user_name, p.user_id) AS name
+		FROM photo_task_requests p LEFT JOIN user_progress u ON u.user_id = p.user_id
+		WHERE p.error IS NULL ORDER BY p.created_at DESC LIMIT 10`)
+
 	const vibeLabel = (id: string) => {
 		const v = VIBES.find((x) => x.id === id)
 		return v ? `${v.emoji} ${v.label}` : id
@@ -311,6 +327,35 @@ export default async function FunnelPage({ searchParams }: { searchParams: { day
 					Ссылки для рекламы: <code>ggege.ru/?utm_source=vk&amp;utm_campaign=название</code> (так же для <code>/test</code> и уроков). Без меток источник —
 					сайт, с которого перешли, или «invite» для ссылок друзей. Считаются заходы с 12.10.2026. Лиды теста, связанные с аккаунтом: {n(linked.linked)} из {n(linked.total)}.
 				</p>
+			</Card>
+
+			<Card title="📸 Сфоткай задачу">
+				<div className="grid grid-cols-3 gap-3 mb-3">
+					<Stat label="Разобрано фото" value={n(photo.ok)} small />
+					<Stat label="Учеников" value={n(photo.users)} small />
+					<Stat label="Расход ≈" value={`${n(photo.rub).toFixed(1)} ₽`} small />
+					<Stat label="Ушло в Sonnet" value={`${n(photo.escalated)} (${pct(n(photo.escalated), n(photo.ok))})`} small />
+					<Stat label="Не прочитала" value={n(photo.unreadable)} small />
+					<Stat label="Ошибки" value={n(photo.failed)} small />
+				</div>
+				{photoMissing.length > 0 && (
+					<>
+						<div className="text-sm font-bold mb-1">Каких тем не хватило (что делать следующим):</div>
+						<ul className="space-y-1 text-sm mb-3">
+							{photoMissing.map((m, i) => (
+								<li key={i} className="flex justify-between gap-2"><span className="truncate">{String(m.topic)}</span><span className="font-extrabold">{n(m.cnt)}</span></li>
+							))}
+						</ul>
+					</>
+				)}
+				{photoRecent.length > 0 && (
+					<ul className="space-y-1.5 text-xs text-[#9AA7B0]">
+						{photoRecent.map((r, i) => (
+							<li key={i} className="line-clamp-2"><span className="font-bold text-[#D7E0E5]">{String(r.name)}</span> · {r.escalated ? 'Sonnet' : 'Haiku'} · {String(r.problem_text ?? '')}</li>
+						))}
+					</ul>
+				)}
+				<p className="text-xs text-[#6B7A83] mt-3">Расход — оценка по токенам. Фото не храним, только распознанный текст.</p>
 			</Card>
 
 			<Card title="👑 Спрос на PRO (1100 ₽/мес, деньги не берём)">

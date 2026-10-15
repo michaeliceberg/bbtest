@@ -1375,3 +1375,22 @@ export const visitorEvents = pgTable('visitor_events', {
 	referrer: text('referrer'),
 	createdAt: timestamp('created_at').notNull().defaultNow(),
 });
+
+// «Сфоткай задачу» (2026-10-15, lib/photoTask.ts): каждый разбор фото — строка. Само фото не храним.
+// error — если разбор не удался (такие не считаются в дневной лимит). Создано прямым SQL.
+export const photoTaskRequests = pgTable('photo_task_requests', {
+	id: serial('id').primaryKey(),
+	userId: text('user_id').notNull(),
+	createdAt: timestamp('created_at').notNull().defaultNow(),
+	model: text('model'),
+	escalated: boolean('escalated').notNull().default(false),
+	readable: boolean('readable'),
+	confidence: text('confidence'),
+	problemText: text('problem_text'),
+	topics: jsonb('topics'),
+	lessonIds: jsonb('lesson_ids'),
+	missingTopics: jsonb('missing_topics'),
+	inputTokens: integer('input_tokens'),
+	outputTokens: integer('output_tokens'),
+	error: text('error'),
+});

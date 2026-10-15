@@ -1,0 +1,26 @@
+// app/(main)/photo-task/page.tsx — «Сфоткай задачу»: фото задачи → какие уроки тренажёра пройти (lib/photoTask.ts).
+// Пока нет ключа API, экран видят только админы (с пометкой «ключ не настроен»).
+
+import { redirect } from 'next/navigation';
+import { auth } from '@/lib/server-auth';
+import { getUserProgress } from '@/db/queries';
+import { photoTaskConfigured, PHOTO_TASK_DAILY_LIMIT } from '@/lib/photoTask';
+import { getPhotoTasksLeft } from '@/actions/photo-task';
+import { PhotoTaskClient } from './photo-task-client';
+
+const PhotoTaskPage = async () => {
+    const session = await auth();
+    if (!session?.user) redirect('/');
+    const up = await getUserProgress();
+    const isAdmin = up?.isAdmin === 1;
+    const configured = photoTaskConfigured();
+    if (!configured && !isAdmin) redirect('/trainer');
+    const left = await getPhotoTasksLeft();
+    return (
+        <div className="w-full max-w-lg mx-auto px-4 pt-6 pb-16">
+            <PhotoTaskClient configured={configured} left={left} limit={PHOTO_TASK_DAILY_LIMIT} />
+        </div>
+    );
+};
+
+export default PhotoTaskPage;

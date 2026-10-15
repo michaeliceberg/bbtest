@@ -14109,3 +14109,15 @@ default/trig — stars, planim — wind). Мелкие дублирующие `S
 `components/unit-sheet-course-picker.tsx`: сверху шторки «Юниты» (простой вид /trainer) — плашка «КУРС» с названием
 текущего курса, по нажатию раскрывается список (группы ЕГЭ / ОГЭ / ЛНИП), выбор — тот же `switchCourse(id, '/trainer')`,
 что в боковом меню. Данные: /trainer page → `coursePicker` → TabTCourses → TrainerGradeTree.
+
+## «Сфоткай задачу» — фото задачи → уроки тренажёра (2026-10-15)
+`/photo-task` (кнопка на /trainer под пиццей). Фото ужимается в браузере до 1280 px JPEG → `analyzeTaskPhoto`
+(actions/photo-task.ts) → `runPhotoTask` (lib/photoTask.ts): сначала **Haiku 5.5**; если фото не прочитано, `confidence: low`
+или не нашлось ни урока, ни недостающей темы — то же фото разбирает **Sonnet 5.5** (с `fallbacks: 'default'`). Ответ —
+structured output (JSON-схема): условие, темы, до 3 `lesson_ids` ТОЛЬКО из каталога (139 уроков видимых t_courses,
+проверяются на сервере), `missing_topics`, подсказка без ответа. Каталог в system с `cache_control`.
+Лимит 3 разбора в день (админам без лимита, неудачные не считаются). Таблица `photo_task_requests` (прямой SQL), фото не
+храним. Карточка «📸 Сфоткай задачу» в /admin/funnel (расход ≈ ₽, сколько ушло в Sonnet, каких тем не хватило).
+**Пока нет `ANTHROPIC_API_KEY` в .env — кнопку и экран видят только админы.** С VPS api.anthropic.com недоступен
+(таймаут) → нужен прокси `cloudflare-worker/anthropic-proxy.js` и `ANTHROPIC_BASE_URL=<адрес воркера>` в .env.
+Оценка цены: Haiku ≈ 0,1 ₽ за фото, Sonnet ≈ 1,5–2 ₽.
