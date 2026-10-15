@@ -118,8 +118,9 @@ const FullCircleScene = ({ onSettled }: SceneProps) => {
     const next = (n: number) => () => setPhase((p) => Math.max(p, n))
     const shrinkTo = (to: number, num: number, nextPhase: number) => {
         setPhase(nextPhase)
-        setLabel(num)
+        // Сначала укорачивается дуга, число меняется с отскоком под самый конец (когда дуга почти дошла).
         tween(endRef.current, to, 1100, setArcEnd)
+        setTimeout(() => setLabel(num), 950)
     }
     return (
         <>
@@ -300,37 +301,35 @@ const ASK_TEXT: Record<TKey, string> = { arc: 'Чему равна дуга?', c
 const ASK_COLOR = '#F2C35B'
 
 type LabelState = 'given' | 'ask' | 'answered' | 'hidden'
-const TrialFigure = ({ t, labels }: { t: Trial; labels: Record<TKey, LabelState> }) => {
-    const a0 = 90 - t.arc / 2, a1 = 90 + t.arc / 2
+const TrialFigure = ({ t, labels, arc, central, inscribed, labelsOn }: { t: Trial; labels: Record<TKey, LabelState>; arc: number; central: boolean; inscribed: boolean; labelsOn: boolean }) => {
+    const a0 = 90 - arc / 2, a1 = 90 + arc / 2
     const A = pt(a0), B = pt(a1), P = pt(270)
     const dA = dirDeg(P, A), dB = dirDeg(P, B)
     const [lo, hi] = dA < dB ? [dA, dB] : [dB, dA]
     const text = (k: TKey) => (labels[k] === 'ask' ? '?' : `${valueOf(t, k)}°`)
     const color = (k: TKey, base: string) => (labels[k] === 'ask' ? ASK_COLOR : labels[k] === 'answered' ? OK_COLOR : base)
-    const centralLabel = pt(90, t.arc < 70 ? 62 : 50)
+    const centralLabel = pt(90, arc < 70 ? 62 : 50)
     return (
         <Svg>
             <DrawCircle instant />
             <path d={arcPath(a0, a1)} fill="none" stroke={ANGLE_COLOR} strokeWidth={10} strokeLinecap="round" />
-            {t.central && (
-                <>
+            <motion.g initial={false} animate={{ opacity: central ? 1 : 0 }} transition={{ duration: 0.5 }}>
                     <path d={sectorPath(a0, a1, 32)} fill={hexToRgba(ANGLE_COLOR, 0.3)} stroke={ANGLE_COLOR} strokeWidth={3} />
                     <line x1={CX} y1={CY} x2={A.x} y2={A.y} stroke={LINE} strokeWidth={4} strokeLinecap="round" />
                     <line x1={CX} y1={CY} x2={B.x} y2={B.y} stroke={LINE} strokeWidth={4} strokeLinecap="round" />
                     <circle cx={CX} cy={CY} r={5} fill={LINE} />
-                </>
-            )}
-            {t.inscribed && (
+            </motion.g>
+            <motion.g initial={false} animate={{ opacity: inscribed ? 1 : 0 }} transition={{ duration: 0.5 }}>
                 <>
                     <path d={sectorPath(lo, hi, 38, P.x, P.y)} fill={hexToRgba(PART_COLOR, 0.3)} stroke={PART_COLOR} strokeWidth={3} />
                     <line x1={P.x} y1={P.y} x2={A.x} y2={A.y} stroke={LINE} strokeWidth={4} strokeLinecap="round" />
                     <line x1={P.x} y1={P.y} x2={B.x} y2={B.y} stroke={LINE} strokeWidth={4} strokeLinecap="round" />
                     <circle cx={P.x} cy={P.y} r={5} fill={LINE} />
                 </>
-            )}
-            {labels.arc !== 'hidden' && <SvgPop key={`arc-${labels.arc}`} x={CX} y={CY - R - 26} size={26} color={color('arc', ANGLE_COLOR)}>{text('arc')}</SvgPop>}
-            {t.central && labels.central !== 'hidden' && <SvgPop key={`c-${labels.central}`} x={centralLabel.x} y={centralLabel.y} size={22} color={color('central', LINE)}>{text('central')}</SvgPop>}
-            {t.inscribed && labels.inscribed !== 'hidden' && <SvgPop key={`i-${labels.inscribed}`} x={P.x} y={P.y - 62} size={22} color={color('inscribed', LINE)}>{text('inscribed')}</SvgPop>}
+            </motion.g>
+            {labels.arc !== 'hidden' && <SvgPop key={`arc-${t.arc}-${labels.arc}`} x={CX} y={CY - R - 26} size={26} color={color('arc', ANGLE_COLOR)} show={labelsOn}>{text('arc')}</SvgPop>}
+            {t.central && labels.central !== 'hidden' && <SvgPop key={`c-${t.arc}-${labels.central}`} x={centralLabel.x} y={centralLabel.y} size={22} color={color('central', LINE)} show={labelsOn}>{text('central')}</SvgPop>}
+            {t.inscribed && labels.inscribed !== 'hidden' && <SvgPop key={`i-${t.arc}-${labels.inscribed}`} x={P.x} y={P.y - 62} size={22} color={color('inscribed', LINE)} show={labelsOn}>{text('inscribed')}</SvgPop>}
         </Svg>
     )
 }
@@ -361,9 +360,13 @@ export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
     const [wrongTried, setWrongTried] = useState<number[]>([])
     const [wrongFlash, setWrongFlash] = useState<string | null>(null)
     const [trialNextLabel, setTrialNextLabel] = useState('Дальше')
+    // Один общий рисунок на всю тренировку: дуга плавно меняется между заданиями.
+    const [figArc, setFigArc] = useState(TRIALS[0].arc)
+    const [targetIdx, setTargetIdx] = useState(0)
+    const [labelsOn, setLabelsOn] = useState(true)
     const registerCombo = useWalkthroughCombo()
     const { bump: bumpNonce, nonceFor } = useReplayNonces()
-    const latestSceneKey = phase === 'intro' ? `step-${step}` : `trial-${trialIndex}`
+    const latestSceneKey = phase === 'intro' ? `step-${step}` : 'practice'
     const { isActive, sceneRef } = useSceneFocus(latestSceneKey, phase === 'intro' ? stepReady : checked)
 
     const handleNext = () => {
@@ -411,8 +414,17 @@ export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
                 onAnswer(hadMistake ? 'wrong' : 'right')
                 return
             }
-            setTrialIndex((i) => i + 1); setQIdx(0); setChecked(false); setWrongTried([]); setWrongFlash(null)
-        }, SCENE_TRANSITION_PAUSE_MS)
+            // Цифры гаснут → дуга и углы плавно перестраиваются под новое задание → появляется новый вопрос.
+            const to = trialIndex + 1
+            setLabelsOn(false)
+            setTargetIdx(to)
+            setTimeout(() => {
+                tween(TRIALS[trialIndex].arc, TRIALS[to].arc, 1100, setFigArc, () => {
+                    setTrialIndex(to); setQIdx(0); setChecked(false); setWrongTried([]); setWrongFlash(null)
+                    setLabelsOn(true)
+                })
+            }, 350)
+        }, 300)
     }
 
     return (
@@ -426,30 +438,32 @@ export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
                     </SceneWrapper>
                 ) : null)}
 
-                {phase === 'practice' && TRIALS.slice(0, trialIndex + 1).map((t, i) => {
-                    const isCurrent = i === trialIndex
-                    const q = isCurrent ? qIdx : t.steps.length - 1
-                    const done = !isCurrent || checked
-                    const cur = t.steps[q]
+                {phase === 'practice' && (() => {
+                    const t = TRIALS[trialIndex]
+                    const target = TRIALS[targetIdx]
+                    const moving = targetIdx !== trialIndex
+                    const cur = t.steps[qIdx]
                     return (
-                        <SceneWrapper key={`trial-${i}`} innerRef={sceneRef(`trial-${i}`)} active={isActive(`trial-${i}`)}>
-                            {i === 0 && (
-                                <div className="w-full flex items-center gap-3" aria-hidden>
-                                    <div className="flex-1 h-px bg-[#3A464E]" />
-                                    <span className="text-xs font-bold uppercase tracking-wide text-[#5C6B73]">Проверим себя</span>
-                                    <div className="flex-1 h-px bg-[#3A464E]" />
-                                </div>
-                            )}
-                            <div className="relative w-full flex items-center justify-center min-h-9">
-                                <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
-                                    style={{ borderColor: hexToRgba(PART_COLOR, 0.55), backgroundColor: hexToRgba(PART_COLOR, 0.16), color: PART_COLOR }}>
-                                    <span>{i + 1}</span><span className="opacity-50 font-normal">/</span><span>{TRIALS.length}</span>
-                                </div>
-                                <p className="text-base md:text-lg font-bold text-[#F2F7FB] text-center px-16">{done ? 'Готово ✅' : ASK_TEXT[cur.key]}</p>
+                        <SceneWrapper key="practice" innerRef={sceneRef('practice')} active={isActive('practice')}>
+                            <div className="w-full flex items-center gap-3" aria-hidden>
+                                <div className="flex-1 h-px bg-[#3A464E]" />
+                                <span className="text-xs font-bold uppercase tracking-wide text-[#5C6B73]">Проверим себя</span>
+                                <div className="flex-1 h-px bg-[#3A464E]" />
                             </div>
-                            <TrialFigure t={t} labels={labelsFor(t, q, done)} />
-                            {isCurrent && !done && (
-                                <div key={`opts-${q}`} className="drop-in-options grid grid-cols-2 gap-3 w-full">
+                            <div className="relative w-full flex items-center justify-center min-h-9">
+                                <motion.div key={`cnt-${trialIndex}`} initial={trialIndex === 0 ? false : { scale: 1.8 }} animate={{ scale: 1 }}
+                                    transition={{ type: 'spring', stiffness: 380, damping: 10 }}
+                                    className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
+                                    style={{ borderColor: hexToRgba(PART_COLOR, 0.55), backgroundColor: hexToRgba(PART_COLOR, 0.16), color: PART_COLOR }}>
+                                    <span>{trialIndex + 1}</span><span className="opacity-50 font-normal">/</span><span>{TRIALS.length}</span>
+                                </motion.div>
+                                <motion.p key={`q-${trialIndex}-${qIdx}-${checked}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: moving ? 0 : 1, y: 0 }}
+                                    className="text-base md:text-lg font-bold text-[#F2F7FB] text-center px-16">{checked ? 'Готово ✅' : ASK_TEXT[cur.key]}</motion.p>
+                            </div>
+                            <TrialFigure t={t} labels={labelsFor(t, qIdx, checked)} arc={figArc}
+                                central={(moving ? target : t).central} inscribed={(moving ? target : t).inscribed} labelsOn={labelsOn} />
+                            {!checked && !moving && (
+                                <div key={`opts-${trialIndex}-${qIdx}`} className="drop-in-options grid grid-cols-2 gap-3 w-full">
                                     {cur.options.map((v) => {
                                         const isWrong = wrongTried.includes(v)
                                         return (
@@ -462,18 +476,18 @@ export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
                                     })}
                                 </div>
                             )}
-                            {isCurrent && !done && wrongFlash && (
+                            {!checked && !moving && wrongFlash && (
                                 <div className="rounded-xl px-4 py-2 font-bold w-full text-center bg-[#DC605B22] text-[#DC605B]">{wrongFlash}</div>
                             )}
-                            {done && (
+                            {checked && !moving && (
                                 <div className="rounded-xl px-4 py-2 font-bold w-full text-center" style={{ backgroundColor: hexToRgba(OK_COLOR, 0.15), color: OK_COLOR }}>
-                                    {pickPraise(i)}
+                                    {pickPraise(trialIndex)}
                                 </div>
                             )}
-                            {isCurrent && checked && <LocalAnswerConfetti />}
+                            {checked && !moving && <LocalAnswerConfetti />}
                         </SceneWrapper>
                     )
-                })}
+                })()}
             </div>
             {phase === 'intro' ? (
                 <div className="w-full flex items-center gap-2">
@@ -484,7 +498,7 @@ export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
                         {NEXT_LABELS[step]}
                     </button>
                 </div>
-            ) : checked ? (
+            ) : checked && targetIdx === trialIndex ? (
                 <div className="w-full flex">
                     <button type="button" onClick={nextTrial} disabled={advancing}
                         className={walkthroughButtonClass(!advancing)} style={walkthroughButtonStyle(!advancing)}>
