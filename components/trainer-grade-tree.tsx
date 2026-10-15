@@ -142,6 +142,9 @@ const STEPBYSTEP_LOCKED_BORDER = 'rgba(201, 165, 68, 0.3)';
 // gold "chest", ни с обычной синей рамкой разблокированного этапа.
 const FRONTIER_RING_COLOR = 'var(--tg-frontier)';
 
+// Тень под подписями этапов: читаются поверх параллакс-фона (выбрано на /test-stage-labels, вариант «Тень»).
+const LABEL_SHADOW = '0 1px 2px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.8)';
+
 export type SkillStage = {
     id: number;
     percentage: number;
@@ -594,12 +597,12 @@ const StagePath = ({
                                 )}
                                 <div
                                     className="text-[15px] font-extrabold leading-tight line-clamp-3"
-                                    style={{ color: unlocked ? accent.button : 'rgba(114,131,141,0.55)' }}
+                                    style={{ color: unlocked ? accent.button : 'rgba(114,131,141,0.75)', textShadow: LABEL_SHADOW }}
                                 >
                                     {s.title}
                                 </div>
                                 {s.badge && (
-                                    <div className="mt-1 text-[11px] font-semibold leading-tight" style={{ color: unlocked ? hexToRgba(accent.button, 0.7) : 'rgba(114,131,141,0.45)' }}>
+                                    <div className="mt-1 text-[11px] font-semibold leading-tight" style={{ color: unlocked ? hexToRgba(accent.button, 0.75) : 'rgba(114,131,141,0.6)', textShadow: LABEL_SHADOW }}>
                                         {s.badge.replace(/\s*\n\s*/g, ' ')}
                                     </div>
                                 )}
@@ -1291,7 +1294,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                                                 {s.badge && (
                                                                     <span
                                                                         className="absolute top-full mt-1 left-1/2 -translate-x-1/2 whitespace-pre-line text-center text-[11px] font-extrabold leading-[1.15] pointer-events-none"
-                                                                        style={{ color: unlockedReal ? accent.button : LOCKED_ICON_COLOR, minWidth: 56 }}
+                                                                        style={{ color: unlockedReal ? accent.button : LOCKED_ICON_COLOR, minWidth: 56, textShadow: LABEL_SHADOW }}
                                                                     >
                                                                         {s.badge}
                                                                     </span>
