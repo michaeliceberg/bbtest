@@ -747,7 +747,7 @@ export default function TrainerQuestion({
                 : question.questionType === "VIETAWALK"
                 ? "Теорема Виета"
                 : question.questionType === "CIRCLEWALK"
-                ? "Центральные и вписанные углы"
+                ? "Центр и Впис углы"
                 : question.questionType === "SINCOSDEFWALK"
                 ? "Синус, косинус и тангенс"
                 : question.questionType !== "WORKBOOK" &&
