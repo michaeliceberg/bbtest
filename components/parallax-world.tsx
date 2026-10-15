@@ -9,9 +9,10 @@
 
 import { useEffect, useState } from 'react'
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion'
+import { RICH_LAYERS, RICH_PANELS } from '@/components/parallax-world-rich'
 
 
-type LayerSpec = { speed: number; color: string; accent: string }
+export type LayerSpec = { speed: number; color: string; accent: string }
 // Чем дальше слой — тем медленнее и тем ближе к цвету фона.
 export const LAYERS: LayerSpec[] = [
     { speed: 0.12, color: '#1B2830', accent: '#22323C' },
@@ -95,7 +96,7 @@ const Rocks = ({ w, color, accent }: ShapeProps) => (
     </svg>
 )
 
-type Item = { y: number; x: string; el: (c: LayerSpec) => React.ReactNode }
+export type Item = { y: number; x: string; el: (c: LayerSpec) => React.ReactNode }
 // У каждого слоя своя лента «панелей» по PANEL_H пикселей (в координатах слоя), они идут по кругу.
 // Шаг ≥ высоты экрана, поэтому даже медленный дальний слой не сваливает всё на один экран.
 // x — CSS left: объекты по краям, чтобы центр с картой оставался чистым.
@@ -130,7 +131,7 @@ const LAYER_PANELS: Item[][][] = [
     ],
 ]
 
-const Layer = ({ spec, index, layers }: { spec: LayerSpec; index: number; layers: number }) => {
+const Layer = ({ spec, index, layers, panels }: { spec: LayerSpec; index: number; layers: number; panels: Item[][] }) => {
     const { scrollY } = useScroll()
     const reduce = useReducedMotion()
     const speed = reduce ? 0 : spec.speed
@@ -147,7 +148,6 @@ const Layer = ({ spec, index, layers }: { spec: LayerSpec; index: number; layers
         return () => window.removeEventListener('resize', update)
     }, [speed])
     if (index >= layers) return null
-    const panels = LAYER_PANELS[index]
     return (
         <motion.div className="absolute inset-x-0 top-0" style={{ y, willChange: 'transform' }}>
             {Array.from({ length: count }, (_, k) => panels[k % panels.length].map((it, j) => (
@@ -160,11 +160,14 @@ const Layer = ({ spec, index, layers }: { spec: LayerSpec; index: number; layers
 }
 
 // layers — сколько слоёв рисовать (на слабых телефонах можно 2). enabled — выключатель для сравнения.
-export const ParallaxWorld = ({ layers = 3, enabled = true }: { layers?: number; enabled?: boolean }) => {
+// variant: 'simple' — плоские силуэты, 'rich' — детальные рисунки (components/parallax-world-rich.tsx).
+export const ParallaxWorld = ({ layers = 3, enabled = true, variant = 'simple' }: { layers?: number; enabled?: boolean; variant?: 'simple' | 'rich' }) => {
     if (!enabled) return null
+    const specs = variant === 'rich' ? RICH_LAYERS : LAYERS
+    const panels = variant === 'rich' ? RICH_PANELS : LAYER_PANELS
     return (
         <div aria-hidden className="pointer-events-none fixed inset-0 -z-0 overflow-hidden">
-            {LAYERS.map((spec, i) => <Layer key={i} spec={spec} index={i} layers={layers} />)}
+            {specs.map((spec, i) => <Layer key={`${variant}-${i}`} spec={spec} index={i} layers={layers} panels={panels[i]} />)}
         </div>
     )
 }
