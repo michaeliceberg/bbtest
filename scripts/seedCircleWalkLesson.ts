@@ -10,8 +10,8 @@ import { t_units, t_lessons, t_challenges } from "@/db/schema"
 
 const T_COURSE = 5
 const BLOCK = "Планиметрия"
-const UNIT_TITLE = "Треугольники"
-const LESSON_TITLE = "Окружности"
+const UNIT_TITLE = "Окружность"
+const LESSON_TITLE = "Центральные и вписанные углы"
 
 async function main() {
     await db.execute(sql.raw(`ALTER TYPE "type" ADD VALUE IF NOT EXISTS 'CIRCLEWALK'`))
