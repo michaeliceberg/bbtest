@@ -13,7 +13,10 @@ import {
     DiagramBlock,
     walkthroughButtonClass, walkthroughButtonStyle,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
+    pickWrongTryPhrase, pickFunNextLabel, LocalAnswerConfetti, CORRECT_FEEDBACK_PHRASES, useWalkthroughCombo,
 } from '@/components/geometry/WalkthroughLog'
+import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
+import { showAnswerMeme } from '@/components/answer-meme-burst'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
@@ -31,6 +34,7 @@ const ANGLE_COLOR = GGEGE_PALETTE.blue.button
 const PART_COLOR = GGEGE_PALETTE.purple.button
 const LINE = '#F2F7FB'
 const DIM = 0.18
+const OK_COLOR = '#A1D151'
 
 // ===== Геометрия: углы в градусах «по-математически» (против часовой, y вверх) =====
 const VIEW = 300
@@ -271,28 +275,103 @@ const InscribedScene = ({ onSettled }: SceneProps) => {
     )
 }
 
+// ===== Тренировка: центральный и вписанный угол =====
+// Концы дуги симметричны относительно верха окружности (90° ± дуга/2), вершина вписанного угла — внизу (270°),
+// центральный угол — из центра к тем же концам. Значения: дуга = центральный = 2 · вписанный.
+type TKey = 'central' | 'inscribed' | 'arc'
+type TStep = { key: TKey; options: number[]; hint: string }
+type Trial = { arc: number; central: boolean; inscribed: boolean; given: TKey[]; steps: TStep[] }
+const TRIALS: Trial[] = [
+    { arc: 50, central: true, inscribed: false, given: ['central'], steps: [{ key: 'arc', options: [50, 100, 25, 130], hint: 'Центральный угол = дуге 🙃' }] },
+    { arc: 120, central: true, inscribed: false, given: ['arc'], steps: [{ key: 'central', options: [120, 60, 240, 90], hint: 'Центральный угол = дуге 🙃' }] },
+    { arc: 100, central: false, inscribed: true, given: ['inscribed'], steps: [{ key: 'arc', options: [100, 50, 25, 130], hint: 'Дуга в 2 раза БОЛЬШЕ вписанного 🙃' }] },
+    { arc: 140, central: false, inscribed: true, given: ['arc'], steps: [{ key: 'inscribed', options: [70, 140, 280, 40], hint: 'Вписанный в 2 раза МЕНЬШЕ дуги 🙃' }] },
+    { arc: 160, central: true, inscribed: true, given: ['central'], steps: [
+        { key: 'arc', options: [160, 80, 320, 100], hint: 'Центральный угол = дуге 🙃' },
+        { key: 'inscribed', options: [80, 160, 40, 100], hint: 'Вписанный в 2 раза МЕНЬШЕ дуги 🙃' },
+    ] },
+    { arc: 70, central: true, inscribed: true, given: ['inscribed'], steps: [
+        { key: 'arc', options: [70, 35, 140, 110], hint: 'Дуга в 2 раза БОЛЬШЕ вписанного 🙃' },
+        { key: 'central', options: [70, 35, 140, 105], hint: 'Центральный угол = дуге 🙃' },
+    ] },
+]
+const valueOf = (t: Trial, k: TKey) => (k === 'inscribed' ? t.arc / 2 : t.arc)
+const ASK_TEXT: Record<TKey, string> = { arc: 'Чему равна дуга?', central: 'Чему равен центральный угол?', inscribed: 'Чему равен вписанный угол?' }
+const ASK_COLOR = '#F2C35B'
+
+type LabelState = 'given' | 'ask' | 'answered' | 'hidden'
+const TrialFigure = ({ t, labels }: { t: Trial; labels: Record<TKey, LabelState> }) => {
+    const a0 = 90 - t.arc / 2, a1 = 90 + t.arc / 2
+    const A = pt(a0), B = pt(a1), P = pt(270)
+    const dA = dirDeg(P, A), dB = dirDeg(P, B)
+    const [lo, hi] = dA < dB ? [dA, dB] : [dB, dA]
+    const text = (k: TKey) => (labels[k] === 'ask' ? '?' : `${valueOf(t, k)}°`)
+    const color = (k: TKey, base: string) => (labels[k] === 'ask' ? ASK_COLOR : labels[k] === 'answered' ? OK_COLOR : base)
+    const centralLabel = pt(90, t.arc < 70 ? 62 : 50)
+    return (
+        <Svg>
+            <DrawCircle instant />
+            <path d={arcPath(a0, a1)} fill="none" stroke={ANGLE_COLOR} strokeWidth={10} strokeLinecap="round" />
+            {t.central && (
+                <>
+                    <path d={sectorPath(a0, a1, 32)} fill={hexToRgba(ANGLE_COLOR, 0.3)} stroke={ANGLE_COLOR} strokeWidth={3} />
+                    <line x1={CX} y1={CY} x2={A.x} y2={A.y} stroke={LINE} strokeWidth={4} strokeLinecap="round" />
+                    <line x1={CX} y1={CY} x2={B.x} y2={B.y} stroke={LINE} strokeWidth={4} strokeLinecap="round" />
+                    <circle cx={CX} cy={CY} r={5} fill={LINE} />
+                </>
+            )}
+            {t.inscribed && (
+                <>
+                    <path d={sectorPath(lo, hi, 38, P.x, P.y)} fill={hexToRgba(PART_COLOR, 0.3)} stroke={PART_COLOR} strokeWidth={3} />
+                    <line x1={P.x} y1={P.y} x2={A.x} y2={A.y} stroke={LINE} strokeWidth={4} strokeLinecap="round" />
+                    <line x1={P.x} y1={P.y} x2={B.x} y2={B.y} stroke={LINE} strokeWidth={4} strokeLinecap="round" />
+                    <circle cx={P.x} cy={P.y} r={5} fill={LINE} />
+                </>
+            )}
+            {labels.arc !== 'hidden' && <SvgPop key={`arc-${labels.arc}`} x={CX} y={CY - R - 26} size={26} color={color('arc', ANGLE_COLOR)}>{text('arc')}</SvgPop>}
+            {t.central && labels.central !== 'hidden' && <SvgPop key={`c-${labels.central}`} x={centralLabel.x} y={centralLabel.y} size={22} color={color('central', LINE)}>{text('central')}</SvgPop>}
+            {t.inscribed && labels.inscribed !== 'hidden' && <SvgPop key={`i-${labels.inscribed}`} x={P.x} y={P.y - 62} size={22} color={color('inscribed', LINE)}>{text('inscribed')}</SvgPop>}
+        </Svg>
+    )
+}
+const labelsFor = (t: Trial, stepIdx: number, done: boolean): Record<TKey, LabelState> => {
+    const out: Record<TKey, LabelState> = { arc: 'hidden', central: 'hidden', inscribed: 'hidden' }
+    t.given.forEach((k) => { out[k] = 'given' })
+    t.steps.forEach((s, i) => {
+        if (i < stepIdx || (i === stepIdx && done)) out[s.key] = 'answered'
+        else if (i === stepIdx) out[s.key] = 'ask'
+    })
+    return out
+}
+const pickPraise = (i: number) => CORRECT_FEEDBACK_PHRASES[(i * 5 + 2) % CORRECT_FEEDBACK_PHRASES.length]
+
 const SCENES = [FullCircleScene, CentralScene, InscribedScene]
 // Подписи общей кнопки «Дальше» по сценам (без рандома — по просьбе пользователя).
-const NEXT_LABELS = ['Ну а четверть = 90°', 'Пока изи, все понятно', 'Изи, вписанный тоже понятен']
+const NEXT_LABELS = ['Ну а четверть = 90°', 'Пока изи, все понятно', 'Изи - вписанный в 2 раза меньше']
 
 export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
+    const [phase, setPhase] = useState<'intro' | 'practice'>('intro')
     const [step, setStep] = useState(0)
     const [stepReady, setStepReady] = useState(false)
     const [advancing, setAdvancing] = useState(false)
+    const [hadMistake, setHadMistake] = useState(false)
+    const [trialIndex, setTrialIndex] = useState(0)
+    const [qIdx, setQIdx] = useState(0)
+    const [checked, setChecked] = useState(false)
+    const [wrongTried, setWrongTried] = useState<number[]>([])
+    const [wrongFlash, setWrongFlash] = useState<string | null>(null)
+    const [trialNextLabel, setTrialNextLabel] = useState('Дальше')
+    const registerCombo = useWalkthroughCombo()
     const { bump: bumpNonce, nonceFor } = useReplayNonces()
-    const latestSceneKey = `step-${step}`
-    const { isActive, sceneRef } = useSceneFocus(latestSceneKey, stepReady)
+    const latestSceneKey = phase === 'intro' ? `step-${step}` : `trial-${trialIndex}`
+    const { isActive, sceneRef } = useSceneFocus(latestSceneKey, phase === 'intro' ? stepReady : checked)
 
     const handleNext = () => {
         if (advancing) return
         setAdvancing(true)
         setTimeout(() => {
             setAdvancing(false)
-            if (step + 1 >= SCENES.length) {
-                onComplete(true)
-                onAnswer('right')
-                return
-            }
+            if (step + 1 >= SCENES.length) { setPhase('practice'); return }
             setStep((s) => s + 1)
             setStepReady(false)
         }, SCENE_TRANSITION_PAUSE_MS)
@@ -305,6 +384,37 @@ export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
         setStepReady(false)
     }
 
+    const trial = TRIALS[trialIndex]
+    const answer = (v: number) => {
+        if (checked || wrongTried.includes(v)) return
+        const cur = trial.steps[qIdx]
+        if (v === valueOf(trial, cur.key)) {
+            showAnswerMeme(true)
+            registerCombo(wrongTried.length === 0)
+            setWrongTried([]); setWrongFlash(null)
+            if (qIdx + 1 < trial.steps.length) setQIdx(qIdx + 1)
+            else { setChecked(true); setTrialNextLabel(pickFunNextLabel()) }
+        } else {
+            playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false)
+            setHadMistake(true)
+            setWrongTried((w) => [...w, v])
+            setWrongFlash(`${pickWrongTryPhrase()} ${cur.hint}`)
+        }
+    }
+    const nextTrial = () => {
+        if (advancing) return
+        setAdvancing(true)
+        setTimeout(() => {
+            setAdvancing(false)
+            if (trialIndex + 1 >= TRIALS.length) {
+                onComplete(!hadMistake)
+                onAnswer(hadMistake ? 'wrong' : 'right')
+                return
+            }
+            setTrialIndex((i) => i + 1); setQIdx(0); setChecked(false); setWrongTried([]); setWrongFlash(null)
+        }, SCENE_TRANSITION_PAUSE_MS)
+    }
+
     return (
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
             <div className="w-full flex flex-col gap-4">
@@ -315,15 +425,73 @@ export const TypeCircleWalk = ({ onAnswer, onComplete }: Props) => {
                         </Fragment>
                     </SceneWrapper>
                 ) : null)}
+
+                {phase === 'practice' && TRIALS.slice(0, trialIndex + 1).map((t, i) => {
+                    const isCurrent = i === trialIndex
+                    const q = isCurrent ? qIdx : t.steps.length - 1
+                    const done = !isCurrent || checked
+                    const cur = t.steps[q]
+                    return (
+                        <SceneWrapper key={`trial-${i}`} innerRef={sceneRef(`trial-${i}`)} active={isActive(`trial-${i}`)}>
+                            {i === 0 && (
+                                <div className="w-full flex items-center gap-3" aria-hidden>
+                                    <div className="flex-1 h-px bg-[#3A464E]" />
+                                    <span className="text-xs font-bold uppercase tracking-wide text-[#5C6B73]">Проверим себя</span>
+                                    <div className="flex-1 h-px bg-[#3A464E]" />
+                                </div>
+                            )}
+                            <div className="relative w-full flex items-center justify-center min-h-9">
+                                <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
+                                    style={{ borderColor: hexToRgba(PART_COLOR, 0.55), backgroundColor: hexToRgba(PART_COLOR, 0.16), color: PART_COLOR }}>
+                                    <span>{i + 1}</span><span className="opacity-50 font-normal">/</span><span>{TRIALS.length}</span>
+                                </div>
+                                <p className="text-base md:text-lg font-bold text-[#F2F7FB] text-center px-16">{done ? 'Готово ✅' : ASK_TEXT[cur.key]}</p>
+                            </div>
+                            <TrialFigure t={t} labels={labelsFor(t, q, done)} />
+                            {isCurrent && !done && (
+                                <div key={`opts-${q}`} className="drop-in-options grid grid-cols-2 gap-3 w-full">
+                                    {cur.options.map((v) => {
+                                        const isWrong = wrongTried.includes(v)
+                                        return (
+                                            <button key={v} type="button" disabled={isWrong} onClick={() => answer(v)}
+                                                className={cn('min-h-[60px] rounded-xl border-2 border-b-4 text-2xl font-black transition-colors',
+                                                    isWrong ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]' : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]')}>
+                                                {v}°
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            )}
+                            {isCurrent && !done && wrongFlash && (
+                                <div className="rounded-xl px-4 py-2 font-bold w-full text-center bg-[#DC605B22] text-[#DC605B]">{wrongFlash}</div>
+                            )}
+                            {done && (
+                                <div className="rounded-xl px-4 py-2 font-bold w-full text-center" style={{ backgroundColor: hexToRgba(OK_COLOR, 0.15), color: OK_COLOR }}>
+                                    {pickPraise(i)}
+                                </div>
+                            )}
+                            {isCurrent && checked && <LocalAnswerConfetti />}
+                        </SceneWrapper>
+                    )
+                })}
             </div>
-            <div className="w-full flex items-center gap-2">
-                <ReplayButton onClick={handleReplay} disabled={advancing} />
-                <BackButton onClick={handleBack} disabled={advancing || step === 0} />
-                <button type="button" onClick={handleNext} disabled={!stepReady || advancing}
-                    className={walkthroughButtonClass(stepReady && !advancing)} style={walkthroughButtonStyle(stepReady && !advancing)}>
-                    {NEXT_LABELS[step]}
-                </button>
-            </div>
+            {phase === 'intro' ? (
+                <div className="w-full flex items-center gap-2">
+                    <ReplayButton onClick={handleReplay} disabled={advancing} />
+                    <BackButton onClick={handleBack} disabled={advancing || step === 0} />
+                    <button type="button" onClick={handleNext} disabled={!stepReady || advancing}
+                        className={walkthroughButtonClass(stepReady && !advancing)} style={walkthroughButtonStyle(stepReady && !advancing)}>
+                        {NEXT_LABELS[step]}
+                    </button>
+                </div>
+            ) : checked ? (
+                <div className="w-full flex">
+                    <button type="button" onClick={nextTrial} disabled={advancing}
+                        className={walkthroughButtonClass(!advancing)} style={walkthroughButtonStyle(!advancing)}>
+                        {trialIndex + 1 >= TRIALS.length ? 'Готово' : trialNextLabel}
+                    </button>
+                </div>
+            ) : null}
         </div>
     )
 }
