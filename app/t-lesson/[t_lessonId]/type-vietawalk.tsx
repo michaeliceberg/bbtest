@@ -1591,12 +1591,17 @@ const FIXED_NEXT_LABELS = new Map<unknown, string>([
 const SCENE_MAP_LABELS = ['Коэффициенты a, b, c', 'Сам: a, b, c', 'x² − 5x + 6', 'x² − 7x + 12', 'ЗАКРЕП (7 уравнений)', 'Теорема Виета (a ≠ 1)', 'Тупо проверяем x₁ = 1', 'Итого: и ВСЁ', 'Сам: 3 уравнения с x₁ = 1', 'А если x = −1 (3x² + 8x + 5)', 'Итого для x = −1', 'Сам: −1, −1, 1, 193x²', 'Приготовься']
 
 // ===== Квиз =====
-type Trial = { prompt: React.ReactNode; eq?: EqSpec; options: string[]; correct: string; hint: string }
+// fact — картинка и интересная история, показываются после верного ответа (вопрос-шутка про Виета).
+type Trial = { prompt: React.ReactNode; eq?: EqSpec; options: string[]; correct: string; hint: string; fact?: { src: string; caption: string; story: React.ReactNode } }
 
 // Итоговый тест: подбор корней, c/a и −b/a, угадывание x = ±1 и вопросы-шутки для настроения.
 const makeTrials = (): Trial[] => [
     { prompt: 'Подбери корни', eq: { a: 1, b: -9, c: 20 }, options: shuffle(['4 и 5', '−4 и −5', '2 и 10', '4 и −5']), correct: '4 и 5', hint: '4 · 5 = 20 = c, 4 + 5 = 9 = −b.' },
-    { prompt: 'Как называется теорема, которую мы прошли? 🤔', options: shuffle(['Теорема Виета', 'Теорема Вити', 'Теорема Виталика', 'Теорема Ватсапа']), correct: 'Теорема Виета', hint: 'Франсуа Виет, француз, XVI век 🎩 Витя тут ни при чём.' },
+    { prompt: 'Как называется теорема, которую мы прошли? 🤔', options: shuffle(['Теорема Виета', 'Теорема Вити', 'Теорема Виталика', 'Теорема Ватсапа']), correct: 'Теорема Виета', hint: 'Франсуа Виет, француз, XVI век 🎩 Витя тут ни при чём.',
+        fact: {
+            src: '/lesson-pics/viete.jpg', caption: 'Франсуа Виет',
+            story: <>Виет был не только математиком, но и <b>хакером короля</b> 🕵️. Он работал на французского короля Генриха IV и <b>взломал секретный шифр испанцев</b>: французы читали их тайные письма. Испанский король Филипп II был в шоке и пожаловался самому Папе Римскому, что французы <b>колдуют чёрной магией</b> 🧙. А это была просто математика 😎</>,
+        } },
     { prompt: 'Подбери корни', eq: { a: 1, b: 2, c: -15 }, options: shuffle(['3 и −5', '−3 и 5', '3 и 5', '1 и −15']), correct: '3 и −5', hint: '3 · (−5) = −15 = c, 3 + (−5) = −2 = −b.' },
     { prompt: 'Чему равно x₁ · x₂?', eq: { a: 3, b: -7, c: 2 }, options: shuffle(['2/3', '−2/3', '7/3', '3/2']), correct: '2/3', hint: 'x₁ · x₂ = c/a = 2/3.' },
     { prompt: 'Чему равно x₁ + x₂?', eq: { a: 1, b: -11, c: 24 }, options: shuffle(['11', '−11', '24', '−24']), correct: '11', hint: 'x₁ + x₂ = −b = 11 (минус на минус).' },
@@ -1816,6 +1821,18 @@ export const TypeVietaWalk = ({ onAnswer, onComplete, isAdmin = false }: Props &
                                     <FieryFeedbackBanner fiery={isCurrent && isFieryMilestoneTrial(i)}>
                                         {pickTrialFeedback(i)} {t.hint}
                                     </FieryFeedbackBanner>
+                                )}
+                                {isDone && t.fact && (
+                                    <motion.div className="w-full flex items-start gap-3 rounded-2xl border-2 p-3"
+                                        style={{ borderColor: hexToRgba(REMEMBER_COLOR, 0.5), backgroundColor: hexToRgba(REMEMBER_COLOR, 0.08) }}
+                                        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}>
+                                        <figure className="shrink-0 w-24 md:w-28">
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={t.fact.src} alt={t.fact.caption} className="w-full rounded-lg border border-[#3A464E]" />
+                                            <figcaption className="mt-1 text-center text-xs font-bold text-[#9AA7B0]">{t.fact.caption}</figcaption>
+                                        </figure>
+                                        <p className="text-sm md:text-base text-[#F2F7FB] leading-snug [&_b]:font-black [&_b]:text-[#F2C35B]">{t.fact.story}</p>
+                                    </motion.div>
                                 )}
                                 {isCurrent && checked && <LocalAnswerConfetti />}
                             </Fragment>
