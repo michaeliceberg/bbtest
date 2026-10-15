@@ -60,3 +60,11 @@ export const subjectByTCourse = (tCourseId: number | null | undefined): TrialSub
 
 export const subjectByLesson = (tLessonId: number): TrialSubject =>
 	EXTRA_PUBLIC_LESSONS[tLessonId] ?? TRIAL_SUBJECTS.find((s) => TRIAL_TRACKS[s].lessons.includes(tLessonId)) ?? 'physics'
+
+// Темы, открытые без регистрации, — для карточки «Пригласи друга» в аккаунте (своя ссылка на каждую).
+export type PublicTopic = { lesson: number; label: string; subject: TrialSubject }
+export const PUBLIC_TOPICS: PublicTopic[] = [
+	{ lesson: TRIAL_TRACKS.math.trial, label: 'Тригонометрия', subject: 'math' },
+	{ lesson: 502, label: 'Теорема Виета', subject: 'math' },
+	{ lesson: TRIAL_TRACKS.physics.trial, label: 'Электродинамика', subject: 'physics' },
+]

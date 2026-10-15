@@ -36,6 +36,16 @@ export const computeReferralBonus = (referrerLevel: number, referrerQuestsTotal:
 // l/t/s — урок, время (сек), серия: попадают в картинку-превью.
 // c=m — приглашение в пробный урок математики (490), без c — физики (485).
 export const TRIAL_T_LESSON_ID = TRIAL_TRACKS.physics.trial
+// Ссылка-приглашение на конкретную тему без регистрации. Для первого урока трека — обычная /i/КОД(?c=m),
+// для остальных тем (Виета и т.п.) — /i/КОД?u=<урок>, страница /i перекинет прямо в этот урок.
+export const getTopicInviteLink = (code: string, lesson: number, subject: TrialSubject): string => {
+	if (lesson === TRIAL_TRACKS[subject].trial) return getInviteLink(code, undefined, subject)
+	const q = new URLSearchParams()
+	if (subject === 'math') q.set('c', 'm')
+	q.set('u', String(lesson))
+	return `https://ggege.ru/i/${code}?${q.toString()}`
+}
+
 export const getInviteLink = (code: string | null | undefined, extra?: { l?: number; t?: number; s?: number }, subject: TrialSubject = 'physics'): string => {
 	if (!code) return `https://ggege.ru/t-lesson/${TRIAL_TRACKS[subject].trial}`
 	const q = new URLSearchParams()

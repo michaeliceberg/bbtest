@@ -7,9 +7,9 @@
 
 import type { Metadata } from 'next'
 import { InviteRedirect } from './invite-redirect'
-import { TRIAL_TRACKS, type TrialSubject } from '@/lib/trialTracks'
+import { TRIAL_TRACKS, PUBLIC_TRIAL_T_LESSON_IDS, type TrialSubject } from '@/lib/trialTracks'
 
-type Props = { params: { code: string }; searchParams: { l?: string; t?: string; s?: string; c?: string } }
+type Props = { params: { code: string }; searchParams: { l?: string; t?: string; s?: string; c?: string; u?: string } }
 
 const subjectOf = (sp: Props['searchParams']): TrialSubject => (sp.c === 'm' ? 'math' : 'physics')
 
@@ -31,8 +31,14 @@ export const generateMetadata = ({ params, searchParams }: Props): Metadata => {
 	}
 }
 
+// ?u=<урок> — конкретная тема без регистрации (например, теорема Виета); иначе первый урок трека.
+const lessonOf = (sp: Props['searchParams']) => {
+	const u = Number(sp.u)
+	return PUBLIC_TRIAL_T_LESSON_IDS.includes(u) ? u : TRIAL_TRACKS[subjectOf(sp)].trial
+}
+
 const InvitePage = ({ params, searchParams }: Props) => (
-	<InviteRedirect href={`/t-lesson/${TRIAL_TRACKS[subjectOf(searchParams)].trial}?ref=${encodeURIComponent(params.code)}`} />
+	<InviteRedirect href={`/t-lesson/${lessonOf(searchParams)}?ref=${encodeURIComponent(params.code)}`} />
 )
 
 export default InvitePage
