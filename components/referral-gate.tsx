@@ -7,11 +7,11 @@ import { useState } from 'react'
 import { ReferralWelcome } from '@/components/referral-screens'
 import type { TrialSubject } from '@/lib/trialTracks'
 
-export const ReferralGate = ({ inviterNickname, subject, children }: { inviterNickname: string | null; subject: TrialSubject; children: React.ReactNode }) => {
+export const ReferralGate = ({ inviterNickname, subject, topic, children }: { inviterNickname: string | null; subject: TrialSubject; topic?: string; children: React.ReactNode }) => {
     const [started, setStarted] = useState(false)
     return (
         <>
-            {!started && <ReferralWelcome inviterNickname={inviterNickname} theme="cozy" subject={subject} onStart={() => setStarted(true)} />}
+            {!started && <ReferralWelcome inviterNickname={inviterNickname} theme="cozy" subject={subject} topic={topic} onStart={() => setStarted(true)} />}
             {started && children}
         </>
     )

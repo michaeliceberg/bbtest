@@ -46,8 +46,10 @@ export const PizzaPie = ({ collected, highlight = 0, size = 150 }: { collected: 
 
 const WELCOME_ACCENT = '#FBBF24'
 
-export const ReferralWelcome = ({ inviterNickname, theme = 'metal', onStart, subject = 'physics' }: { inviterNickname: string | null; theme?: UiTheme; onStart?: () => void; subject?: TrialSubject }) => {
-	const WELCOME_STEPS = TRIAL_TRACKS[subject].steps
+// topic — урок без регистрации вне трека (например «Теорема Виета»): зовём пройти именно его и выиграть приз из кейса,
+// а пицца — по-прежнему за 3 урока трека (строкой ниже), чтобы не обещать кусочек за этот урок.
+export const ReferralWelcome = ({ inviterNickname, theme = 'metal', onStart, subject = 'physics', topic }: { inviterNickname: string | null; theme?: UiTheme; onStart?: () => void; subject?: TrialSubject; topic?: string }) => {
+	const WELCOME_STEPS = topic ? [topic, `3 урока ${TRIAL_TRACKS[subject].topicGen}`] : TRIAL_TRACKS[subject].steps
 	const [open, setOpen] = useState(true)
 	if (!open) return null
 	const cozy = theme === 'cozy'
@@ -77,14 +79,22 @@ export const ReferralWelcome = ({ inviterNickname, theme = 'metal', onStart, sub
 					className="text-[1.7rem] sm:text-4xl font-black leading-tight"
 					style={{ color: cozy ? COZY.title : '#F2F7FB' }}
 				>
-					Пройди 3 урока —<br />
-					<span className="text-yellow-300">получи кусочек пиццы</span> 🍕
+					{topic ? (
+						<>Пройди урок «{topic}» —<br /><span className="text-yellow-300">выиграй приз из кейса</span> 🎁</>
+					) : (
+						<>Пройди 3 урока —<br /><span className="text-yellow-300">получи кусочек пиццы</span> 🍕</>
+					)}
 				</motion.h1>
 
 				<div className="relative my-6">
 					<div aria-hidden className="animate-glow-pulse absolute inset-[-18%] rounded-full" style={{ background: `radial-gradient(circle, ${WELCOME_ACCENT}55, transparent 65%)` }} />
 					<div className="animate-chest-idle-bounce relative">
-						<PizzaPie collected={1} highlight={1} size={190} />
+						{topic ? (
+							// eslint-disable-next-line @next/next/no-img-element
+							<img src="/chests/myth0001.svg" alt="" className="w-[170px] h-auto" />
+						) : (
+							<PizzaPie collected={1} highlight={1} size={190} />
+						)}
 					</div>
 				</div>
 

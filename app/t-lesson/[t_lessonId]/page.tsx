@@ -1,5 +1,5 @@
 import { getEgeMove } from '@/lib/egeMove'
-import { PUBLIC_TRIAL_T_LESSON_IDS, subjectByLesson, subjectByTCourse } from '@/lib/trialTracks';
+import { PUBLIC_TRIAL_T_LESSON_IDS, PUBLIC_TOPICS, EXTRA_PUBLIC_LESSONS, subjectByLesson, subjectByTCourse } from '@/lib/trialTracks';
 import { ReferralCatcher } from '@/components/referral-catcher';
 import { getOrCreateInvite, resolveInviteCode } from '@/lib/invite';
 import { ReferralGate } from '@/components/referral-gate';
@@ -1969,7 +1969,8 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         {/* ?ref= из приглашения в пробный урок — ставит cookie referredBy */}
         <ReferralCatcher />
         {/* По приглашению урок стартует только после «ГААААЗ» на экране приветствия */}
-        <MaybeReferralGate show={!!(isGuest && searchParams?.ref)} inviterNickname={inviter?.nickname ?? null} subject={subjectByLesson(t_lessonId)}>
+        <MaybeReferralGate show={!!(isGuest && searchParams?.ref)} inviterNickname={inviter?.nickname ?? null} subject={subjectByLesson(t_lessonId)}
+            topic={EXTRA_PUBLIC_LESSONS[t_lessonId] ? PUBLIC_TOPICS.find((x) => x.lesson === t_lessonId)?.label : undefined}>
         <TQuiz
             moveId={moveId}
             t_lessonId={t_lesson.id}
@@ -1998,8 +1999,8 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     );
 }
 
-const MaybeReferralGate = ({ show, inviterNickname, subject, children }: { show: boolean; inviterNickname: string | null; subject: TrialSubject; children: React.ReactNode }) =>
-    show ? <ReferralGate inviterNickname={inviterNickname} subject={subject}>{children}</ReferralGate> : <>{children}</>;
+const MaybeReferralGate = ({ show, inviterNickname, subject, topic, children }: { show: boolean; inviterNickname: string | null; subject: TrialSubject; topic?: string; children: React.ReactNode }) =>
+    show ? <ReferralGate inviterNickname={inviterNickname} subject={subject} topic={topic}>{children}</ReferralGate> : <>{children}</>;
 
 export default LessonIdPage;
 
