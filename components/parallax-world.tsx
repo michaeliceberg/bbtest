@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react'
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion'
 import { RICH_LAYERS, RICH_PANELS } from '@/components/parallax-world-rich'
+import { THEME_MIDDLE_PANELS, THEME_TINT, type ParallaxTheme } from '@/components/parallax-themes'
 
 
 // stars — глубина звёздного неба на этом слое (0 дальний, 1 средний, 2 ближний), см. StarSky.
@@ -205,14 +206,36 @@ const Layer = ({ spec, index, layers, panels }: { spec: LayerSpec; index: number
 
 // layers — сколько слоёв рисовать (на слабых телефонах можно 2). enabled — выключатель для сравнения.
 // variant: 'simple' — плоские силуэты, 'rich' — детальные рисунки (components/parallax-world-rich.tsx).
+// theme — «мир» раздела (components/parallax-themes.tsx): у rich меняется средний слой и отсвет фона.
+// Смена мира — плавный переход прозрачности; уже открытые миры остаются смонтированными (переключение без подгрузки).
 // behind — положить фон ПОД обычный (непозиционированный) контент страницы (z-index −10), как на /trainer.
-export const ParallaxWorld = ({ layers = 3, enabled = true, variant = 'simple', behind = false }: { layers?: number; enabled?: boolean; variant?: 'simple' | 'rich'; behind?: boolean }) => {
+export const ParallaxWorld = ({ layers = 3, enabled = true, variant = 'simple', behind = false, theme = 'default' }: {
+    layers?: number; enabled?: boolean; variant?: 'simple' | 'rich'; behind?: boolean; theme?: ParallaxTheme
+}) => {
+    const [visited, setVisited] = useState<ParallaxTheme[]>([theme])
+    useEffect(() => {
+        setVisited((v) => (v.includes(theme) ? v : [...v, theme]))
+    }, [theme])
     if (!enabled) return null
     const specs = variant === 'rich' ? RICH_LAYERS : LAYERS
     const panels = variant === 'rich' ? RICH_PANELS : LAYER_PANELS
+    const themed = variant === 'rich'
     return (
         <div aria-hidden className={`pointer-events-none fixed inset-0 overflow-hidden ${behind ? '-z-10' : '-z-0'}`}>
-            {specs.map((spec, i) => <Layer key={`${variant}-${i}`} spec={spec} index={i} layers={layers} panels={panels[i]} />)}
+            {themed && (Object.keys(THEME_TINT) as ParallaxTheme[]).map((t) => THEME_TINT[t] && (
+                <div key={`tint-${t}`} className="absolute inset-0 transition-opacity duration-700"
+                    style={{ opacity: t === theme ? 1 : 0, background: `radial-gradient(ellipse at 50% 30%, rgba(${THEME_TINT[t]},0.10), transparent 70%)` }} />
+            ))}
+            {specs.map((spec, i) => {
+                if (themed && i === 1) {
+                    return visited.map((t) => (
+                        <div key={`${variant}-${i}-${t}`} className="absolute inset-0 transition-opacity duration-700" style={{ opacity: t === theme ? 1 : 0 }}>
+                            <Layer spec={spec} index={i} layers={layers} panels={t === 'default' ? panels[i] : THEME_MIDDLE_PANELS[t]} />
+                        </div>
+                    ))
+                }
+                return <Layer key={`${variant}-${i}`} spec={spec} index={i} layers={layers} panels={panels[i]} />
+            })}
         </div>
     )
 }

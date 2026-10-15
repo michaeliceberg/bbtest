@@ -145,6 +145,10 @@ const FRONTIER_RING_COLOR = 'var(--tg-frontier)';
 // Тень под подписями этапов: читаются поверх параллакс-фона (выбрано на /test-stage-labels, вариант «Тень»).
 const LABEL_SHADOW = '0 1px 2px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.8)';
 
+// Арки, реквизит и анимированные декорации на тропинке карты (components/path-decor.tsx).
+// Выключены, пока фон — параллакс-«мир» с рисунками (иначе картинок слишком много). Вернуть — true.
+const SHOW_PATH_DECOR = false;
+
 export type SkillStage = {
     id: number;
     percentage: number;
@@ -385,14 +389,14 @@ const StagePath = ({
     // в промежутках с декорацией расстояние между кнопками увеличиваем.
     const DECOR_EXTRA = 64;
     const decorGaps: number[] = [];
-    if (n >= 3 && DECOR_VARIANTS.length > 0) {
+    if (SHOW_PATH_DECOR && n >= 3 && DECOR_VARIANTS.length > 0) {
         const want = Math.max(1, Math.floor(n / 3));
         const free = Array.from({ length: n - 1 }, (_, i) => i).filter((i) => i !== frontierIdx);
         for (let k = 0; k < want && free.length; k++) decorGaps.push(free.splice(Math.floor(rnd() * free.length), 1)[0]);
     }
     // Каменная арка — одна на юнит (от четырёх этапов), в свободном промежутке; тропинка проходит под ней.
     let archGap = -1;
-    if (n >= 4) {
+    if (SHOW_PATH_DECOR && n >= 4) {
         const free = Array.from({ length: n - 1 }, (_, i) => i).filter((i) => i !== frontierIdx && !decorGaps.includes(i));
         if (free.length) archGap = free[Math.floor(rnd() * free.length)];
     }
@@ -428,7 +432,7 @@ const StagePath = ({
     const archPt = archGap >= 0 ? { x: bez(pts[archGap].x, segs[archGap].c1.x, segs[archGap].c2.x, pts[archGap + 1].x, 0.5), y: bez(pts[archGap].y, segs[archGap].c1.y, segs[archGap].c2.y, pts[archGap + 1].y, 0.5) } : null;
     const props: { x: number; y: number; size: number; kind: PropKind }[] = [];
     let propPool: PropKind[] = [...PROP_KINDS];
-    segs.forEach((sg, i) => {
+    if (SHOW_PATH_DECOR) segs.forEach((sg, i) => {
         const a = pts[i], b = pts[i + 1];
         [0.22, 0.4, 0.6, 0.78].forEach((t) => {
             if (rnd() > 0.72) return;

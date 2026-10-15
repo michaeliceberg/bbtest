@@ -5,6 +5,7 @@
 
 import { useState } from 'react'
 import { ParallaxWorld } from '@/components/parallax-world'
+import { PARALLAX_THEME_LABELS, type ParallaxTheme } from '@/components/parallax-themes'
 import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors'
 
 const BLOCKS = [
@@ -17,11 +18,12 @@ const BLOCKS = [
 
 export default function TestParallaxPage() {
     const [on, setOn] = useState(true)
-    const [layers, setLayers] = useState(3)
+    const [layers, setLayers] = useState(2)
+    const [theme, setTheme] = useState<ParallaxTheme>('trig')
     const [variant, setVariant] = useState<'simple' | 'rich'>('rich')
     return (
         <div className="relative min-h-screen bg-[#131D22]">
-            <ParallaxWorld enabled={on} layers={layers} variant={variant} />
+            <ParallaxWorld enabled={on} layers={layers} variant={variant} theme={theme} />
 
             <div className="sticky top-0 z-20 flex flex-wrap items-center justify-center gap-2 bg-[#131D22]/90 px-3 py-2 border-b border-[#2A363C]">
                 <button type="button" onClick={() => setOn((v) => !v)}
@@ -32,6 +34,12 @@ export default function TestParallaxPage() {
                     <button key={v} type="button" onClick={() => setVariant(v)}
                         className={`rounded-lg px-3 py-1.5 text-sm font-black ${variant === v ? 'bg-[#C385F7] text-[#1E0F2E]' : 'bg-[#2A363C] text-[#9AA7B0]'}`}>
                         {label}
+                    </button>
+                ))}
+                {(Object.keys(PARALLAX_THEME_LABELS) as ParallaxTheme[]).map((t) => (
+                    <button key={t} type="button" onClick={() => setTheme(t)}
+                        className={`rounded-lg px-3 py-1.5 text-sm font-black ${theme === t ? 'bg-[#F2C35B] text-[#2B1D05]' : 'bg-[#2A363C] text-[#9AA7B0]'}`}>
+                        {PARALLAX_THEME_LABELS[t]}
                     </button>
                 ))}
                 {[2, 3].map((n) => (
