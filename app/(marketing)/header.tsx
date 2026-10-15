@@ -43,10 +43,10 @@ export const Header = ({ dbUserName }: Props) => {
           <Link href='/' className='group flex items-center gap-x-3 transition-transform hover:scale-105'>
             <Image
               src='/ggege-logo.webp'
-              height={86}
+              height={120}
               width={160}
               alt='ggege'
-              className='h-11 w-auto transition-all group-hover:scale-105'
+              className='h-14 w-auto transition-all group-hover:scale-105'
             />
           </Link>
 

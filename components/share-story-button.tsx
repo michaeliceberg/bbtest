@@ -83,7 +83,7 @@ export const renderStoryCard = async (data: StoryCardData, qrCanvas: HTMLCanvasE
 
 	const logo = await loadImage('/ggege-logo.webp');
 	if (logo) {
-		const lw = 420;
+		const lw = 380;
 		const lh = (logo.height / logo.width) * lw || 210;
 		ctx.drawImage(logo, (W - lw) / 2, 150, lw, lh);
 	}
