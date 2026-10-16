@@ -346,8 +346,8 @@ const TLearnPage = async () => {
                             <span className='flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl'
                                 style={{ background: 'linear-gradient(135deg, #53ADEF, #7C5CE0)', boxShadow: '0 3px 0 #2E4E8A' }}>📸</span>
                             <span className='flex-1 min-w-0'>
-                                <span className='block font-black text-white'>Билд на задачу</span>
-                                <span className='block text-xs font-bold text-[#A9C3D6]'>Сфоткай задачу — соберу уроки, чтобы её завалить</span>
+                                <span className='block font-black text-white'>ИИ-помощник</span>
+                                <span className='block text-xs font-bold text-[#A9C3D6]'>Пришли фото любой задачи — подскажу, какие уроки пройти</span>
                             </span>
                             <span className='text-lg font-black text-[#9FD3FA]'>›</span>{/* объём — boxShadow, нажатие — translate: высота не меняется, страница не прыгает */}
                         </Link>

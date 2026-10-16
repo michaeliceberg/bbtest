@@ -93,9 +93,9 @@ export const PhotoTaskClient = ({ configured, left: initialLeft, limit }: { conf
                     </div>
                 </div>
                 <h1 className="text-[1.9rem] font-black leading-tight text-white">
-                    Билд <span className="bg-gradient-to-r from-[#7FC6F7] to-[#C9A2FA] bg-clip-text text-transparent">на задачу</span>
+                    <span className="bg-gradient-to-r from-[#7FC6F7] to-[#C9A2FA] bg-clip-text text-transparent">ИИ</span>-помощник
                 </h1>
-                <p className="mt-1.5 max-w-xs text-sm font-bold text-[#A9B8C2]">Сфоткай задачу-босса — соберу билд: какие уроки пройти, чтобы её завалить ⚔️</p>
+                <p className="mt-1.5 max-w-xs text-sm font-bold text-[#A9B8C2]">Пришли фото любой задачи или примера — подскажу, с чего начать и какие уроки пройти</p>
                 {left !== null && (
                     <div className="mt-3 flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black text-[#D5DEE5]"
                         style={{ background: 'rgba(22,31,35,0.8)', boxShadow: 'inset 0 0 0 1px #34424A' }}>
