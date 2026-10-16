@@ -18,7 +18,7 @@ export const PHOTO_TASK_DAILY_LIMIT = 3
 
 export const photoTaskConfigured = () => !!process.env.ANTHROPIC_API_KEY
 
-export type CatalogLesson = { id: number; course: string; unit: string; lesson: string; badge: string | null }
+export type CatalogLesson = { id: number; course: string; unit: string; lesson: string; badge: string | null; about: string | null }
 
 // Каталог уроков видимых курсов тренажёра. Порядок стабильный (курс → юнит → урок): так текст каталога
 // одинаковый от запроса к запросу и кэшируется.
@@ -28,7 +28,7 @@ export const getPhotoTaskCatalog = async (): Promise<CatalogLesson[]> => {
         with: {
             t_units: {
                 orderBy: (u, { asc }) => asc(u.order),
-                with: { t_lessons: { orderBy: (l, { asc }) => asc(l.order) } },
+                with: { t_lessons: { orderBy: (l, { asc }) => asc(l.order), with: { t_challenges: { columns: { question: true }, orderBy: (c, { asc }) => asc(c.order), limit: 3 } } } },
             },
         },
     })
@@ -37,21 +37,27 @@ export const getPhotoTaskCatalog = async (): Promise<CatalogLesson[]> => {
         if (HIDDEN_T_COURSE_IDS.includes(c.id)) continue
         for (const u of c.t_units) {
             for (const l of u.t_lessons) {
-                out.push({ id: l.id, course: c.title, unit: u.title, lesson: l.title, badge: (l as { badge?: string | null }).badge ?? null })
+                const examples = l.t_challenges.map((ch) => plainTex(ch.question)).filter((q) => q && q !== l.title).slice(0, 2)
+                const about = l.aiHint ?? (examples.length ? `примеры заданий: ${examples.join('; ')}` : null)
+                out.push({ id: l.id, course: c.title, unit: u.title, lesson: l.title, badge: l.badge ?? null, about })
             }
         }
     }
     return out
 }
 
+// LaTeX вопроса → короткий читаемый текст для каталога (без \large, $ и т.п.).
+const plainTex = (q: string) =>
+    q.replace(/\$/g, '').replace(/\\(large|huge|Large|LARGE|quad|displaystyle|,|;)/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 70)
+
 const catalogText = (catalog: CatalogLesson[]) =>
-    catalog.map((l) => `[${l.id}] ${l.course} / ${l.unit} / ${l.lesson}${l.badge ? ` (${l.badge})` : ''}`).join('\n')
+    catalog.map((l) => `[${l.id}] ${l.course} / ${l.unit} / ${l.lesson}${l.badge ? ` (${l.badge})` : ''}${l.about ? ` — ${l.about}` : ''}`).join('\n')
 
 const SYSTEM_RULES = `Ты помощник школьного тренажёра ggege (подготовка к ОГЭ/ЕГЭ по математике и физике).
 Ученик присылает фото задачи из учебника или тетради. Твоя работа:
 1. Прочитай условие задачи (и данные с чертежа, если он есть).
 2. Мысленно наметь, КАК её решать, и какие знания для этого нужны. Тема из условия не всегда главная: «найдите площадь» может решаться через подобие.
-3. Выбери из КАТАЛОГА УРОКОВ ниже от 1 до 3 уроков, которые нужно пройти, чтобы решить эту задачу. Самый важный — первым. Используй только id из каталога, ничего не придумывай. Если подходящего урока нет — не подбирай похожий наугад, а напиши недостающую тему в missing_topics.
+3. Выбери из КАТАЛОГА УРОКОВ ниже от 1 до 3 уроков, которые нужно пройти, чтобы решить эту задачу. Самый важный — первым. Смотри не только на название урока, но и на описание после «—»: если урок учит формуле или приёму, который нужен в решении, он идёт в lesson_ids, а не в бонус. Используй только id из каталога, ничего не придумывай. Если подходящего урока нет — не подбирай похожий наугад, а напиши недостающую тему в missing_topics.
 4. bonus_lesson_ids — 0–2 урока из каталога по СОСЕДНЕЙ теме: не нужны прямо для этой задачи, но расширят понимание (например, к задаче на теорему Пифагора — подобие или синус). Не повторяй lesson_ids.
 5. hint — одна короткая подсказка, с чего начать решение. НЕ пиши ответ и не решай задачу целиком.
 6. confidence = "low", если фото плохо читается, задача необычная или ты не уверен в выборе уроков.
