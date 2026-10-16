@@ -7,6 +7,8 @@ import 'server-only'
 // Cloudflare Worker (cloudflare-worker/anthropic-proxy.js), SDK подхватывает его сам.
 
 import Anthropic from '@anthropic-ai/sdk'
+import { gzipSync } from 'zlib'
+import { deletePhotoTmp, savePhotoTmp } from '@/lib/photoTmp'
 import db from '@/db/drizzle'
 import { HIDDEN_T_COURSE_IDS } from '@/lib/trainer-topic'
 
@@ -101,10 +103,27 @@ const parseAnswer = (msg: Anthropic.Message): PhotoTaskAnswer | null => {
     try { return JSON.parse(text) as PhotoTaskAnswer } catch { return null }
 }
 
-const ask = async (client: Anthropic, model: string, catalog: CatalogLesson[], imageB64: string, mediaType: ImageType) => {
+type ImageSource = Anthropic.ImageBlockParam['source']
+
+// Через прокси (прод, сервер в России) тело запроса больше ~30 КБ обрывается — поэтому там фото идёт
+// ссылкой (lib/photoTmp.ts), а JSON запроса сжимается gzip (прокси-воркер распаковывает, заголовок x-gz).
+const viaProxy = () => !!process.env.ANTHROPIC_BASE_URL
+const PHOTO_PUBLIC_BASE = process.env.PHOTO_TMP_PUBLIC_URL || 'https://ggege.ru'
+
+const gzipFetch: typeof fetch = async (input, init) => {
+    if (init?.body && typeof init.body === 'string') {
+        const headers = new Headers(init.headers)
+        headers.set('x-gz', '1')
+        headers.delete('content-length')
+        return fetch(input, { ...init, headers, body: gzipSync(Buffer.from(init.body)) })
+    }
+    return fetch(input, init)
+}
+
+const ask = async (client: Anthropic, model: string, catalog: CatalogLesson[], image: ImageSource) => {
     const system: Anthropic.TextBlockParam[] = [{ type: 'text', text: SYSTEM_RULES + catalogText(catalog), cache_control: { type: 'ephemeral' } }]
     const content: Anthropic.ContentBlockParam[] = [
-        { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageB64 } },
+        { type: 'image', source: image },
         { type: 'text', text: 'Вот фото задачи. Какие уроки пройти?' },
     ]
     const output_config: Anthropic.OutputConfig = { effort: 'medium', format: { type: 'json_schema', schema: OUTPUT_SCHEMA as unknown as Record<string, unknown> } }
@@ -124,7 +143,21 @@ const needsSonnet = (a: PhotoTaskAnswer | null, validIds: number[]) =>
     !a || !a.readable || a.confidence === 'low' || (validIds.length === 0 && a.missing_topics.length === 0)
 
 export const runPhotoTask = async (imageB64: string, mediaType: ImageType): Promise<PhotoTaskRun> => {
-    const client = new Anthropic()
+    const client = viaProxy() ? new Anthropic({ fetch: gzipFetch }) : new Anthropic()
+    let tmpId: string | null = null
+    let image: ImageSource = { type: 'base64', media_type: mediaType, data: imageB64 }
+    if (viaProxy()) {
+        tmpId = await savePhotoTmp(imageB64, mediaType)
+        image = { type: 'url', url: `${PHOTO_PUBLIC_BASE}/api/photo-tmp/${tmpId}` }
+    }
+    try {
+        return await runWith(client, image)
+    } finally {
+        if (tmpId) await deletePhotoTmp(tmpId).catch(() => {})
+    }
+}
+
+const runWith = async (client: Anthropic, image: ImageSource): Promise<PhotoTaskRun> => {
     const catalog = await getPhotoTaskCatalog()
     const ids = new Set(catalog.map((l) => l.id))
     const clean = (a: PhotoTaskAnswer | null) => {
@@ -137,7 +170,7 @@ export const runPhotoTask = async (imageB64: string, mediaType: ImageType): Prom
     let inputTokens = 0, outputTokens = 0
     let first: PhotoTaskAnswer | null = null
     try {
-        const r = await ask(client, PHOTO_TASK_HAIKU, catalog, imageB64, mediaType)
+        const r = await ask(client, PHOTO_TASK_HAIKU, catalog, image)
         first = clean(r.answer)
         inputTokens += r.usage.input_tokens + (r.usage.cache_read_input_tokens ?? 0) + (r.usage.cache_creation_input_tokens ?? 0)
         outputTokens += r.usage.output_tokens
@@ -147,7 +180,7 @@ export const runPhotoTask = async (imageB64: string, mediaType: ImageType): Prom
     if (first && !needsSonnet(first, first.lesson_ids)) {
         return { answer: first, model: PHOTO_TASK_HAIKU, escalated: false, inputTokens, outputTokens }
     }
-    const r = await ask(client, PHOTO_TASK_SONNET, catalog, imageB64, mediaType)
+    const r = await ask(client, PHOTO_TASK_SONNET, catalog, image)
     const second = clean(r.answer)
     inputTokens += r.usage.input_tokens + (r.usage.cache_read_input_tokens ?? 0) + (r.usage.cache_creation_input_tokens ?? 0)
     outputTokens += r.usage.output_tokens
