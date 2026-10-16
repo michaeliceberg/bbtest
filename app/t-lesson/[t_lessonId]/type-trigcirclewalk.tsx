@@ -756,116 +756,72 @@ const DirQuizScene = ({ onSettled }: SceneProps) => {
 // четверть как кусок торта, остальные 3/4 смахиваются влево-вниз → 3 это π/2 →
 // 4 режем четверть на 3 кусочка → 5 два верхних отбрасываем, осталось π/6 →
 // 6 тянем за верхний край до π/4 → 7 ещё тянем до π/3. Потом «Агась» и табличка.
-type PiStage = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
+// Сцена π — в стиле урока 503 (CIRCLEWALK): белая окружность рисуется против часовой от точки справа, жирная
+// фиолетовая дуга от той же точки, в центре подпись с отскоком. Шаги: π (половина) → 2π (вся) → π/2 → π/3 → π/4 → π/6;
+// дуга плавно растёт/укорачивается, подпись меняется под конец движения.
 const PI_R = 110
 const PI_C = { x: 150, y: 150 }
-const ppt = (a: number, r = PI_R) => ({ x: PI_C.x + r * Math.cos(a), y: PI_C.y - r * Math.sin(a) })
-// Сектор/дуга от a0 до a1 против часовой.
-const pieSector = (a0: number, a1: number) => {
-    const p0 = ppt(a0)
-    const p1 = ppt(a1)
-    return `M ${PI_C.x} ${PI_C.y} L ${p0.x} ${p0.y} A ${PI_R} ${PI_R} 0 ${a1 - a0 > PI ? 1 : 0} 0 ${p1.x} ${p1.y} Z`
+const degPt = (deg: number, r = PI_R) => ({ x: PI_C.x + r * Math.cos((deg * PI) / 180), y: PI_C.y - r * Math.sin((deg * PI) / 180) })
+// Дуга против часовой от a0 до a1 (градусы, a1 > a0). В SVG (y вниз) «против часовой» = sweep-flag 0.
+const degArc = (a0: number, a1: number) => {
+    const p0 = degPt(a0), p1 = degPt(a1)
+    return `M ${p0.x} ${p0.y} A ${PI_R} ${PI_R} 0 ${a1 - a0 > 180 ? 1 : 0} 0 ${p1.x} ${p1.y}`
 }
-const pieArc = (a0: number, a1: number) => {
-    const p0 = ppt(a0)
-    const p1 = ppt(a1)
-    return `M ${p0.x} ${p0.y} A ${PI_R} ${PI_R} 0 ${a1 - a0 > PI ? 1 : 0} 0 ${p1.x} ${p1.y}`
-}
-// Видимая область картинки π: полоса 300×128 (верхняя половина круга) и она же, но с целым кругом.
-const PI_VIEW_H = 128 // высота полосы: от верха дуги (y≈36) до диаметра (y=150) с небольшим запасом
-const PI_VIEW_HALF = `0 30 300 ${PI_VIEW_H}`
-const PI_VIEW_FULL = `${150 - (300 * 300) / PI_VIEW_H / 2} 0 ${(300 * 300) / PI_VIEW_H} 300`
-const PIECE_TARGET: Partial<Record<PiStage, number>> = { 5: PI / 6, 6: PI / 4, 7: PI / 3 }
+const PI_STEPS: { deg: number; rad: string }[] = [
+    { deg: 180, rad: 'π' }, { deg: 360, rad: '2π' }, { deg: 90, rad: 'π/2' },
+    { deg: 60, rad: 'π/3' }, { deg: 45, rad: 'π/4' }, { deg: 30, rad: 'π/6' },
+]
+const PI_STEP_BUTTONS = ['Дорисуем до круга', 'Отрежем четверть', 'А если 60°?', 'А если 45°?', 'А если 30°?', 'Понял-принял']
+const PI_CAPTIONS = ['', 'ВСЯ окружность', 'Четверть окружности', '180° : 3', '180° : 4', '180° : 6']
 
-const PiCircle = ({ stage }: { stage: PiStage }) => {
+// Плавное изменение числа на setInterval (как в уроке 503): не замирает, если панель не рисует кадры.
+const piTween = (from: number, to: number, ms: number, onUpdate: (v: number) => void, onDone?: () => void) => {
+    const t0 = Date.now()
+    const id = setInterval(() => {
+        const k = Math.min(1, (Date.now() - t0) / ms)
+        const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2
+        onUpdate(from + (to - from) * e)
+        if (k >= 1) { clearInterval(id); onDone?.() }
+    }, 16)
+    return () => clearInterval(id)
+}
+
+const PiPop = ({ x, y, size, color, children }: { x: number; y: number; size: number; color: string; children: React.ReactNode }) => (
+    <g transform={`translate(${x} ${y})`}>
+        <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 11 }}>
+            <text textAnchor="middle" dominantBaseline="central" fill={color} fontSize={size} fontWeight={900}
+                style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>{children}</text>
+        </motion.g>
+    </g>
+)
+
+const PiCircle = ({ arcEnd, label, drawn, dimRest }: { arcEnd: number; label: number; drawn: boolean; dimRest: boolean }) => {
     const { x: cx, y: cy } = PI_C
-    const r = PI_R
-    // Угол «растягиваемого» кусочка: π/6 → π/4 → π/3, плавно, за верхний край.
-    const ang = useMotionValue(PI / 6)
-    useEffect(() => {
-        const target = PIECE_TARGET[stage]
-        if (target === undefined) return
-        const ctrl = animate(ang, target, { duration: 1.3, ease: [0.4, 0, 0.2, 1] })
-        return () => ctrl.stop()
-    }, [stage, ang])
-    const pieceFill = useTransform(ang, (a) => pieSector(0, a))
-    const pieceArc = useTransform(ang, (a) => pieArc(0, a))
-    const pieceEdgeX = useTransform(ang, (a) => ppt(a).x)
-    const pieceEdgeY = useTransform(ang, (a) => ppt(a).y)
-    const big = (text: string, y: number, key: string) => (
-        <g transform={`translate(${cx} ${y})`}>
-            <motion.g key={key} initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3, type: 'spring', bounce: 0.6 }}>
-                <text textAnchor="middle" dominantBaseline="central" fontSize={30} fill={ARC_COLOR} style={LABEL_STYLE}>{text}</text>
-            </motion.g>
-        </g>
-    )
-    const cut = (a: number, key: string, delay = 0) => (
-        <motion.line key={key} x1={cx} y1={cy} x2={ppt(a).x} y2={ppt(a).y} stroke="#F2F7FB" strokeWidth={3}
-            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.5, delay }} />
-    )
+    const full = `${degArc(0, 180)} ${degArc(180, 359.99).replace('M', 'L')}`
+    const end = degPt(Math.min(arcEnd, 359.99))
+    const showRadii = arcEnd < 359
+    const st = PI_STEPS[label]
     return (
-        // Рамка всегда одной высоты (полоса 300×128). Полукруг и кусочки занимают верхнюю половину —
-        // показываем её крупно; целый круг (этапы 1–2) — картинка плавно отдаляется, чтобы влез весь.
-        <motion.svg initial={false} animate={{ viewBox: stage === 1 || stage === 2 ? PI_VIEW_FULL : PI_VIEW_HALF }}
-            transition={{ duration: 0.8, ease: 'easeInOut' }} preserveAspectRatio="xMidYMid meet"
-            className="w-full h-full block overflow-hidden">
-            {stage <= 1 && <circle cx={cx} cy={cy} r={r} fill="none" stroke="#3A464E" strokeWidth={2} strokeDasharray="4 6" />}
-            {stage <= 1 && (
+        <svg viewBox="0 0 300 300" className="w-full max-w-[300px] overflow-visible">
+            <motion.path d={full} fill="none" stroke="#F2F7FB" strokeWidth={4} strokeLinecap="round"
+                initial={{ pathLength: 0 }} animate={{ pathLength: 1, opacity: dimRest ? 0.18 : 1 }}
+                transition={{ pathLength: { duration: 1.1, ease: 'easeInOut' }, opacity: { duration: 0.6 } }} />
+            {drawn && (
                 <>
-                    {/* Полукруг */}
-                    <motion.path d={`M ${cx + r} ${cy} A ${r} ${r} 0 0 0 ${cx - r} ${cy} L ${cx + r} ${cy} Z`} fill={hexToRgba(ARC_COLOR, stage === 0 ? 0.16 : 0)}
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} />
-                    <motion.path d={`M ${cx + r} ${cy} A ${r} ${r} 0 0 0 ${cx - r} ${cy}`} fill="none" stroke={ARC_COLOR} strokeWidth={7} strokeLinecap="round"
-                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.3, ease: 'easeInOut' }} />
-                </>
-            )}
-            {/* Дорисовываем до полного круга */}
-            {stage === 1 && (
-                <>
-                    <motion.path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${cx + r} ${cy}`} fill="none" stroke={ARC_COLOR} strokeWidth={7} strokeLinecap="round"
-                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.3, ease: 'easeInOut' }} />
-                    <circle cx={cx} cy={cy} r={r} fill={hexToRgba(ARC_COLOR, 0.12)} />
-                </>
-            )}
-            {/* Отрезаем четверть: 3/4 смахиваются влево-вниз */}
-            {stage === 2 && (
-                <motion.g initial={{ x: 0, y: 0, opacity: 1 }} animate={{ x: -90, y: 90, opacity: 0 }} transition={{ delay: 0.9, duration: 1.1, ease: [0.4, 0, 0.6, 1] }}>
-                    <path d={pieSector(PI / 2, 2 * PI)} fill={hexToRgba(ARC_COLOR, 0.12)} />
-                    <path d={pieArc(PI / 2, 2 * PI)} fill="none" stroke={ARC_COLOR} strokeWidth={7} strokeLinecap="round" />
-                </motion.g>
-            )}
-            {/* Четверть (π/2) */}
-            {stage >= 2 && stage <= 4 && (
-                <>
-                    <path d={pieSector(0, PI / 2)} fill={hexToRgba(ARC_COLOR, stage >= 3 ? 0.22 : 0.12)} />
-                    <path d={pieArc(0, PI / 2)} fill="none" stroke={ARC_COLOR} strokeWidth={7} strokeLinecap="round" />
-                    {stage === 2 && <>{cut(0, 'c0')}{cut(PI / 2, 'c90')}</>}
-                </>
-            )}
-            {/* Режем четверть на 3 кусочка */}
-            {stage === 4 && <>{cut(PI / 6, 'c30')}{cut(PI / 3, 'c60', 0.4)}</>}
-            {/* Два верхних кусочка отбрасываем вверх */}
-            {stage === 5 && (
-                <motion.g initial={{ x: 0, y: 0, opacity: 1 }} animate={{ x: 50, y: -90, opacity: 0 }} transition={{ delay: 0.2, duration: 1, ease: [0.4, 0, 0.6, 1] }}>
-                    <path d={pieSector(PI / 6, PI / 2)} fill={hexToRgba(ARC_COLOR, 0.22)} stroke="#F2F7FB" strokeWidth={2} />
-                    <path d={pieArc(PI / 6, PI / 2)} fill="none" stroke={ARC_COLOR} strokeWidth={7} strokeLinecap="round" />
-                </motion.g>
-            )}
-            {/* Оставшийся кусочек — растягивается за верхний край */}
-            {stage >= 5 && (
-                <>
-                    <motion.path d={pieceFill} fill={hexToRgba(ARC_COLOR, 0.28)} />
-                    <motion.path d={pieceArc} fill="none" stroke={ARC_COLOR} strokeWidth={7} strokeLinecap="round" />
-                    <line x1={cx} y1={cy} x2={cx + r} y2={cy} stroke="#F2F7FB" strokeWidth={3} />
-                    <motion.line x1={cx} y1={cy} x2={pieceEdgeX} y2={pieceEdgeY} stroke="#F2F7FB" strokeWidth={3} />
-                    {stage >= 6 && (
-                        <motion.circle cx={pieceEdgeX} cy={pieceEdgeY} r={9} fill={PICK_COLOR} stroke="#F2F7FB" strokeWidth={2} />
+                    {showRadii && (
+                        <>
+                            <line x1={cx} y1={cy} x2={cx + PI_R} y2={cy} stroke="#F2F7FB" strokeWidth={3} strokeLinecap="round" opacity={0.85} />
+                            <line x1={cx} y1={cy} x2={end.x} y2={end.y} stroke="#F2F7FB" strokeWidth={3} strokeLinecap="round" opacity={0.85} />
+                        </>
                     )}
+                    <motion.path d={degArc(0, Math.min(arcEnd, 359.99))} fill="none" stroke={ARC_COLOR} strokeWidth={9} strokeLinecap="round"
+                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.2, ease: 'easeInOut' }} />
+                    <circle cx={cx} cy={cy} r={5} fill="#F2F7FB" />
+                    <PiPop key={`r-${label}`} x={cx} y={cy + 36} size={40} color={ARC_COLOR}>{st.rad}</PiPop>
+                    <PiPop key={`d-${label}`} x={cx} y={cy + 74} size={26} color="#F2F7FB">{`= ${st.deg}°`}</PiPop>
                 </>
             )}
-            {stage === 0 && big('π = 180°', cy - r / 2.4, 's0')}
-            {stage === 1 && big('2π = 360°', cy, 's1')}
-        </motion.svg>
+        </svg>
     )
 }
 
@@ -896,7 +852,6 @@ const PI_TABLE: { frac: number; rad: string; name: string; deg: string }[] = [
 
 const PiScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0)
-    const [stage, setStage] = useState<PiStage>(0)
     const [rows, setRows] = useState(0)
     // После таблицы: «НО ГЛАВНОЕ» и трижды π = 180° с отскоком, потом «!!!!!!!!».
     const [main, setMain] = useState(0)
@@ -906,23 +861,30 @@ const PiScene = ({ onSettled }: SceneProps) => {
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [main])
-    // Картинка: полукруг → круг → четверть → 3 кусочка → π/6 → π/4 → π/3 → «Агась».
-    // Каждый шаг — по кнопке («Агась» и т.п.), чтобы ученик успел рассмотреть угол.
-    // Кнопка появляется, когда анимация шага доиграла.
-    const STAGE_MS: Record<number, number> = { 0: 1800, 1: 1600, 2: 2200, 3: 900, 4: 1200, 5: 1400, 6: 1500, 7: 1500 }
+    // Картинка: половина → вся → π/2 → π/3 → π/4 → π/6. Каждый шаг — по кнопке, кнопка появляется, когда
+    // дуга доехала и подпись появилась.
+    const [step, setStep] = useState(0)
+    const [label, setLabel] = useState(0)
+    const [drawn, setDrawn] = useState(false)
+    const [arcEnd, setArcEnd] = useState(180)
     const [stageReady, setStageReady] = useState(false)
-    const [stageLabel, setStageLabel] = useState('Агась')
+    const arcRef = useRef(180)
+    arcRef.current = arcEnd
     useEffect(() => {
         if (phase !== 2) return
-        setStageReady(false)
-        const t = setTimeout(() => { setStageLabel(pickFun()); setStageReady(true) }, STAGE_MS[stage])
-        return () => clearTimeout(t)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [phase, stage])
+        // окружность нарисовалась → рисуем половину
+        const t1 = setTimeout(() => setDrawn(true), 300)
+        const t2 = setTimeout(() => setStageReady(true), 1900)
+        return () => { clearTimeout(t1); clearTimeout(t2) }
+    }, [phase])
     const nextStage = () => {
         setStageReady(false)
-        if (stage >= 7) setPhase(4)
-        else setStage((st) => (st + 1) as PiStage)
+        if (step >= PI_STEPS.length - 1) { setPhase(4); return }
+        const n = step + 1
+        setStep(n)
+        piTween(arcRef.current, PI_STEPS[n].deg === 360 ? 359.99 : PI_STEPS[n].deg, 1100, setArcEnd)
+        setTimeout(() => setLabel(n), 950)
+        setTimeout(() => setStageReady(true), 1900)
     }
     useEffect(() => {
         if (phase < 4 || rows >= PI_TABLE.length) return
@@ -933,33 +895,24 @@ const PiScene = ({ onSettled }: SceneProps) => {
         if (rows >= PI_TABLE.length) { const t = setTimeout(() => setMain(1), 900); return () => clearTimeout(t) }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [rows])
-    const CAPTIONS: Record<number, React.ReactNode> = {
-        1: <span>Дорисуем до круга</span>,
-        2: <span>Отрежем кусочек, как тортик 🍰</span>,
-        3: <span className="inline-flex items-center gap-2 text-3xl" style={{ color: ARC_COLOR }}><Rad s="π/2" /><span>= 90°</span></span>,
-        4: <span>Режем на 3 кусочка ✂</span>,
-        5: <span className="inline-flex items-center gap-2 text-3xl" style={{ color: ARC_COLOR }}><Rad s="π/6" /><span>= 30°</span></span>,
-        6: <span className="inline-flex items-center gap-2 text-3xl" style={{ color: ARC_COLOR }}><Rad s="π/4" /><span>= 45°</span></span>,
-        7: <span className="inline-flex items-center gap-2 text-3xl" style={{ color: ARC_COLOR }}><Rad s="π/3" /><span>= 60°</span></span>,
-    }
-    const caption = CAPTIONS[stage] ?? null
     return (
         <>
             <TypedBig parts={[{ text: 'Запомни! ', color: '#F2C35B' }, { text: 'π — это ' }, { text: 'ПОЛОВИНА', color: ARC_COLOR }, { text: ' окружности' }]} onDone={() => setPhase(1)} />
             {phase >= 1 && phase < 4 && (
                 <DiagramBlock onSettled={() => setPhase(2)}>
                     <div className="w-full flex flex-col items-center gap-1">
-                        {/* Рамка одной высоты на всех шагах (aspect-ratio, а не padding-bottom в %
-                            — тот считается от ширины родителя и давал огромную пустоту). Подпись и
-                            кнопка — сразу под рисунком и не прыгают. */}
-                        <div className="w-full mx-auto" style={{ maxWidth: 340, aspectRatio: `300 / ${PI_VIEW_H}` }}>
-                            <PiCircle stage={stage} />
+                        <PiCircle arcEnd={arcEnd} label={label} drawn={drawn} dimRest={step >= 2} />
+                        <div className="h-10 flex items-center justify-center text-lg font-black text-[#F2F7FB]">
+                            {drawn && <Pop key={`cap-${label}`}><span style={{ color: label === 0 ? ARC_COLOR : '#F2F7FB' }}>{PI_CAPTIONS[label]}</span></Pop>}
                         </div>
-                        <div className="h-14 flex items-center justify-center text-lg font-black text-[#F2F7FB]">
-                            {caption && <Pop key={`cap-${stage}`}>{caption}</Pop>}
-                        </div>
-                        <div className="h-14 mt-3 flex items-center">
-                            {phase === 2 && stageReady && <ActionButton color={PLUS_COLOR} onClick={nextStage}>{stageLabel}</ActionButton>}
+                        <div className="h-14 w-full mt-1 flex items-center">
+                            {phase === 2 && stageReady && (
+                                <motion.div className="w-full flex" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                                    <button type="button" onClick={nextStage} className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>
+                                        {PI_STEP_BUTTONS[step]}
+                                    </button>
+                                </motion.div>
+                            )}
                         </div>
                     </div>
                 </DiagramBlock>
