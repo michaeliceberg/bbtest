@@ -16,7 +16,7 @@ import { COZY, COZY_WOOD_TILE, type UiTheme } from '@/lib/cozyTheme';
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil, Lock, ChevronDown, BookOpen, Check } from 'lucide-react';
+import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil, Lock, ChevronDown, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { TrainerStageLink } from './trainer-stage-link';
@@ -34,6 +34,7 @@ import { isReviewStage, isMythicStage } from '@/lib/trainerStageFlags';
 import { TrainerPet, pickCheer } from './trainer-pet';
 import { PathDecoration, PathProp, PathArch, DECOR_VARIANTS, PROP_KINDS, PROP_SCALE, type PropKind } from './path-decor';
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store';
+import { NAV_SHEET_CLASS, NAV_ITEM_PRESS, NavProgress, navItemStyle } from '@/components/nav-sheet-ui';
 import { UnitSheetCoursePicker, type PickerCourse } from '@/components/unit-sheet-course-picker';
 import { useParallaxThemeStore, themeForSection } from '@/store/use-parallax-theme-store';
 
@@ -1432,7 +1433,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                         {/* Не модальное окно: у модального блокировка прокрутки сбрасывала страницу в начало.
                             Затемнение рисуем сами. */}
                         {unitMenuOpen && <div className="fixed inset-0 z-[99] bg-black/70" onClick={() => setUnitMenuOpen(false)} aria-hidden />}
-                        <SheetContent side="left" className="p-0 z-[100] bg-[#151F23] border-[#2B373D] w-[82%] sm:max-w-xs overflow-y-auto">
+                        <SheetContent side="left" className={NAV_SHEET_CLASS}>
                             {coursePicker && <UnitSheetCoursePicker courses={coursePicker.courses} activeCourseId={coursePicker.activeCourseId} />}
                             <SheetTitle className={cn("px-5 pb-3 text-lg font-extrabold text-white", coursePicker ? "pt-3" : "pt-6")}>Юниты</SheetTitle>
                             <div className="flex flex-col gap-2.5 px-4 pb-8">
@@ -1441,8 +1442,7 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                     const isActive = key === activeGroupKey;
                                     const locked = isGroupLocked(g);
                                     const first = groupTopics(g)[0];
-                                    const col = getUnitButtonColor(Math.max(0, topics.findIndex((t) => t.id === first.id)));
-                                    const pcts = groupTopics(g).map((t) => t.percentage);
+                                                                        const pcts = groupTopics(g).map((t) => t.percentage);
                                     const pct = pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : 0;
                                     return (
                                         <div key={key} className="flex flex-col gap-2">
@@ -1450,36 +1450,30 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                                 type="button"
                                                 disabled={locked}
                                                 onClick={() => goToGroup(key)}
-                                                className={cn("flex items-center gap-3 rounded-2xl px-4 py-3 text-left border-b-4 active:border-b-0 active:pb-[calc(0.75rem+4px)]", locked && "opacity-45 cursor-not-allowed")}
-                                                style={locked
-                                                    ? { background: '#232F34', borderBottomColor: '#1B262B' }
-                                                    : isActive
-                                                        ? { background: `linear-gradient(135deg, ${col.button}, ${col.bottom})`, borderBottomColor: col.bottom }
-                                                        : { background: '#1E2A30', border: `1.5px solid ${hexToRgba(col.button, 0.4)}`, borderBottomWidth: 4, borderBottomColor: '#161F23' }}
+                                                className={cn("flex items-center gap-3 rounded-2xl px-4 py-3 text-left", NAV_ITEM_PRESS, locked && "opacity-45 cursor-not-allowed")}
+                                                style={navItemStyle(isActive, locked)}
                                             >
-                                                <span className="flex-1 min-w-0 text-[15px] font-extrabold leading-tight" style={{ color: locked ? '#72838D' : isActive ? '#FFFFFF' : col.button }}>
+                                                <span className="flex-1 min-w-0 text-[15px] font-extrabold leading-tight" style={{ color: locked ? '#72838D' : isActive ? '#FFFFFF' : '#E2EAF0' }}>
                                                     {groupLabel(g)}
                                                 </span>
                                                 {locked ? <Lock className="w-4 h-4 text-[#72838D] flex-shrink-0" />
-                                                    : isActive && g.kind !== 'block' ? <Check className="w-5 h-5 text-white flex-shrink-0" />
-                                                    : <span className="text-xs font-bold flex-shrink-0" style={{ color: isActive ? 'rgba(255,255,255,0.85)' : hexToRgba(col.button, 0.85) }}>{pct}%</span>}
+                                                    : <NavProgress percent={pct} done={pct >= 100} />}
                                             </button>
                                             {g.kind === 'block' && !locked && !(g.topics.length === 1 && g.topics[0].title === g.title) && (
-                                                <div className="flex flex-col gap-1.5 ml-3 pl-3 border-l-2" style={{ borderColor: hexToRgba(col.button, 0.35) }}>
+                                                <div className="flex flex-col gap-1.5 ml-3 pl-3 border-l-2" style={{ borderColor: '#2F3C43' }}>
                                                     {g.topics.map((t) => {
-                                                        const tc = getUnitButtonColor(Math.max(0, topics.findIndex((x) => x.id === t.id)));
-                                                        const here = isActive && (menuTopicId != null ? menuTopicId === t.id : g.topics[0].id === t.id);
+                                                                                                                const here = isActive && (menuTopicId != null ? menuTopicId === t.id : g.topics[0].id === t.id);
                                                         return (
                                                             <button
                                                                 key={t.id}
                                                                 type="button"
                                                                 onClick={() => goToGroup(key, t.title)}
                                                                 className="flex items-center gap-2 rounded-xl px-3 py-2 text-left transition-colors hover:bg-white/5 active:translate-y-[2px]"
-                                                                style={here ? { background: hexToRgba(tc.button, 0.22), boxShadow: `inset 0 0 0 1.5px ${hexToRgba(tc.button, 0.7)}` } : undefined}
+                                                                style={here ? { background: 'rgba(230,238,243,0.08)', boxShadow: 'inset 0 0 0 1.5px rgba(230,238,243,0.55)' } : undefined}
                                                             >
-                                                                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: tc.button }} />
+                                                                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: here ? '#F2F7FB' : '#5C6B73' }} />
                                                                 <span className="flex-1 min-w-0 text-[14px] leading-tight" style={{ color: here ? '#FFFFFF' : '#E2EAF0', fontWeight: here ? 800 : 700 }}>{t.title}</span>
-                                                                <span className="text-xs font-bold flex-shrink-0" style={{ color: hexToRgba(tc.button, 0.9) }}>{t.percentage}%</span>
+                                                                <NavProgress percent={t.percentage} done={t.percentage >= 100} />
                                                             </button>
                                                         );
                                                     })}

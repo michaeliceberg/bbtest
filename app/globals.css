@@ -845,3 +845,22 @@ body {
 @keyframes bolt-flash { 0%, 86%, 100% { opacity: 0.08; } 88% { opacity: 0.55; } 90% { opacity: 0.15; } 92% { opacity: 0.5; } 95% { opacity: 0.08; } }
 .animate-bolt-flash { animation: bolt-flash 7s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .animate-tesla-flicker, .animate-bolt-flash { animation: none; } }
+
+/* Мягкий пробегающий блик для премиальных карточек (только transform). Родитель — relative + overflow-hidden. */
+.shine-sweep::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: 40%;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 0%, rgba(255, 255, 255, 0.14) 50%, transparent 100%);
+  transform: translateX(-130%) skewX(-18deg);
+  animation: lesson-pill-shine 3.4s ease-in-out infinite;
+}
+
+/* «Билд на задачу»: полоса сканера бежит по фото, пока нейросеть разбирает задачу */
+@keyframes photo-scan {
+  0% { transform: translateY(-10%); }
+  100% { transform: translateY(1000%); }
+}
+.animate-photo-scan { animation: photo-scan 1.6s linear infinite; }

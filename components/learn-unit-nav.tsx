@@ -10,10 +10,11 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, Lock } from 'lucide-react'
+import { Lock } from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
+import { NAV_SHEET_CLASS, NAV_ITEM_PRESS, NAV_SECTION_LABEL_CLASS, NavProgress, navItemStyle } from '@/components/nav-sheet-ui'
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store'
-import { getUnitButtonColor, hexToRgba } from '@/src/constants/lessonButtonColors'
+import { getUnitButtonColor } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
 import { useLearnOpenUnit } from '@/store/use-learn-open-unit'
 
@@ -105,35 +106,31 @@ export const LearnUnitNav = ({ units, navigate = false, selectedUnitId = null }:
         <Sheet open={menuOpen} onOpenChange={setMenuOpen} modal={false}>
             {/* Не модальное окно: у модального блокировка прокрутки сбрасывала страницу в начало. */}
             {menuOpen && <div className="fixed inset-0 z-[99] bg-black/70" onClick={() => setMenuOpen(false)} aria-hidden />}
-            <SheetContent side="left" className="p-0 z-[100] bg-[#151F23] border-[#2B373D] w-[82%] sm:max-w-xs overflow-y-auto">
+            <SheetContent side="left" className={NAV_SHEET_CLASS}>
                 <SheetTitle className="px-5 pt-6 pb-3 text-lg font-extrabold text-white">Разделы</SheetTitle>
                 <div className="flex flex-col gap-4 px-4 pb-8">
                     {groups.map((g, gi) => (
                         <div key={gi} className="flex flex-col gap-1.5">
                             {g.section && (
-                                <p className="px-1 pb-1 text-xs font-black uppercase tracking-wide" style={{ color: SECTION_LABEL[g.section].color }}>
+                                <p className={NAV_SECTION_LABEL_CLASS}>
                                     {SECTION_LABEL[g.section].title}
                                 </p>
                             )}
                             {g.units.map((u) => {
-                                const c = getUnitButtonColor(u.unitIndex)
-                                const here = u.id === currentRef.current
+                                                                const here = u.id === currentRef.current
                                 return (
                                     <button
                                         key={u.id}
                                         type="button"
                                         disabled={!u.isUnlocked}
                                         onClick={() => go(u.id)}
-                                        className={cn('flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left border-b-4 active:border-b-0 active:translate-y-[2px]', !u.isUnlocked && 'opacity-45 cursor-not-allowed')}
-                                        style={here
-                                            ? { background: `linear-gradient(135deg, ${c.button}, ${c.bottom})`, borderBottomColor: c.bottom }
-                                            : { background: '#1E2A30', boxShadow: `inset 0 0 0 1.5px ${hexToRgba(c.button, 0.35)}`, borderBottomColor: '#161F23' }}
+                                        className={cn('flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left', NAV_ITEM_PRESS, !u.isUnlocked && 'opacity-45 cursor-not-allowed')}
+                                        style={navItemStyle(here, !u.isUnlocked)}
                                     >
-                                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: here ? '#FFFFFF' : c.button }} />
+                                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: here ? '#F2F7FB' : '#5C6B73' }} />
                                         <span className="flex-1 min-w-0 text-[14px] font-extrabold leading-tight" style={{ color: here ? '#FFFFFF' : '#E2EAF0' }}>{u.title}</span>
                                         {!u.isUnlocked ? <Lock className="w-4 h-4 text-[#72838D] flex-shrink-0" />
-                                            : u.isCompleted ? <Check className="w-4 h-4 flex-shrink-0" style={{ color: here ? '#FFFFFF' : c.button }} />
-                                            : <span className="text-xs font-bold flex-shrink-0" style={{ color: here ? 'rgba(255,255,255,0.85)' : hexToRgba(c.button, 0.9) }}>{u.percent}%</span>}
+                                            : <NavProgress percent={u.percent} done={u.isCompleted} />}
                                     </button>
                                 )
                             })}

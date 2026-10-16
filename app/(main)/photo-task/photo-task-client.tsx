@@ -2,7 +2,7 @@
 
 // Экран «Билд на задачу» (запасное название — «Гайд на задачу»): камера/галерея → фото ужимается в браузере до 1280 px (JPEG) → analyzeTaskPhoto → уроки.
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Camera, ImageIcon, Loader2, RotateCcw, ChevronRight, Lightbulb, AlertTriangle, Gift, Lock, Check } from 'lucide-react'
@@ -79,11 +79,33 @@ export const PhotoTaskClient = ({ configured, left: initialLeft, limit }: { conf
     const outOfLimit = left !== null && left <= 0
 
     return (
-        <div className="flex flex-col gap-5">
-            <div className="text-center">
-                <h1 className="text-2xl font-black text-white">⚔️ Билд на задачу</h1>
-                <p className="mt-1 text-sm font-bold text-[#8FA3AE]">Сфоткай задачу — соберу билд: какие уроки пройти, чтобы её завалить</p>
-                {left !== null && <p className="mt-1 text-xs font-bold text-[#5C6B73]">Сегодня осталось: {left} из {limit}</p>}
+        <div className="relative flex flex-col gap-5">
+            {/* Фон: мягкие свечения (без blur — плавно на iPhone) */}
+            <div aria-hidden className="pointer-events-none absolute -top-16 left-1/2 h-[360px] w-[460px] -translate-x-1/2 -z-10"
+                style={{ background: 'radial-gradient(ellipse at 30% 40%, rgba(83,173,239,0.22), transparent 60%), radial-gradient(ellipse at 75% 55%, rgba(167,92,240,0.2), transparent 62%)' }} />
+
+            <div className="flex flex-col items-center text-center">
+                <div className="relative mb-3">
+                    <div aria-hidden className="animate-glow-pulse absolute inset-[-30%] rounded-full" style={{ background: 'radial-gradient(circle, rgba(124,92,224,0.5), transparent 65%)' }} />
+                    <div className="animate-chest-idle-bounce relative flex h-20 w-20 items-center justify-center rounded-3xl text-4xl"
+                        style={{ background: 'linear-gradient(135deg, #53ADEF 0%, #7C5CE0 60%, #C385F7 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35), 0 5px 0 #2E2F6E, 0 0 30px rgba(124,92,224,0.45)' }}>
+                        📸
+                    </div>
+                </div>
+                <h1 className="text-[1.9rem] font-black leading-tight text-white">
+                    Билд <span className="bg-gradient-to-r from-[#7FC6F7] to-[#C9A2FA] bg-clip-text text-transparent">на задачу</span>
+                </h1>
+                <p className="mt-1.5 max-w-xs text-sm font-bold text-[#A9B8C2]">Сфоткай задачу-босса — соберу билд: какие уроки пройти, чтобы её завалить ⚔️</p>
+                {left !== null && (
+                    <div className="mt-3 flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black text-[#D5DEE5]"
+                        style={{ background: 'rgba(22,31,35,0.8)', boxShadow: 'inset 0 0 0 1px #34424A' }}>
+                        <span>Сегодня</span>
+                        {Array.from({ length: limit }, (_, i) => (
+                            <span key={i} className="h-2.5 w-2.5 rounded-full" style={{ background: i < left ? 'linear-gradient(135deg,#7FC6F7,#C9A2FA)' : '#2A363C' }} />
+                        ))}
+                        <span className="text-[#8FA3AE]">{left} из {limit}</span>
+                    </div>
+                )}
                 {!configured && <p className="mt-2 text-xs font-black text-[#F2C35B]">Видно только админам: ключ API не настроен</p>}
             </div>
 
@@ -93,36 +115,36 @@ export const PhotoTaskClient = ({ configured, left: initialLeft, limit }: { conf
                 onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = '' }} />
 
             {preview && (
-                <div className="relative w-full overflow-hidden rounded-2xl border-2 border-[#2A363C] bg-[#0F171B]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={preview} alt="Фото задачи" className="w-full max-h-[300px] object-contain" />
-                    {busy && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/55">
-                            <Loader2 className="h-8 w-8 animate-spin text-white" />
-                            <span className="font-black text-white">{THINKING[step]}</span>
-                        </div>
-                    )}
+                <div className="relative w-full overflow-hidden rounded-2xl p-[2px]"
+                    style={{ background: 'linear-gradient(135deg, #7FC6F7, #3A464E 45%, #C9A2FA)' }}>
+                    <div className="relative overflow-hidden rounded-[14px] bg-[#0F171B]">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={preview} alt="Фото задачи" className="w-full max-h-[300px] object-contain" />
+                        {busy && (
+                            <>
+                                <div aria-hidden className="animate-photo-scan pointer-events-none absolute inset-x-0 top-0 h-[10%]"
+                                    style={{ background: 'linear-gradient(180deg, transparent, rgba(127,198,247,0.55), transparent)' }} />
+                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/45">
+                                    <Loader2 className="h-8 w-8 animate-spin text-white" />
+                                    <span className="rounded-full bg-black/50 px-3 py-1 font-black text-white">{THINKING[step]}</span>
+                                </div>
+                            </>
+                        )}
+                    </div>
                 </div>
             )}
 
             {!busy && !result && (
                 <div className="grid grid-cols-2 gap-3">
-                    <button type="button" disabled={outOfLimit} onClick={() => cameraRef.current?.click()}
-                        className={cn('flex flex-col items-center gap-2 rounded-2xl border-2 border-b-4 px-3 py-5 font-black transition-colors',
-                            outOfLimit ? 'border-[#2A363C] text-[#5C6B73]' : 'border-[#53ADEF] bg-[#53ADEF1A] text-white active:border-b-2')}>
-                        <Camera className="h-8 w-8" /> Сфоткать
-                    </button>
-                    <button type="button" disabled={outOfLimit} onClick={() => galleryRef.current?.click()}
-                        className={cn('flex flex-col items-center gap-2 rounded-2xl border-2 border-b-4 px-3 py-5 font-black transition-colors',
-                            outOfLimit ? 'border-[#2A363C] text-[#5C6B73]' : 'border-[#3A464E] bg-[#161F23] text-white active:border-b-2')}>
-                        <ImageIcon className="h-8 w-8" /> Из галереи
-                    </button>
+                    <BigButton disabled={outOfLimit} onClick={() => cameraRef.current?.click()} primary icon={<Camera className="h-8 w-8" />} label="Сфоткать" />
+                    <BigButton disabled={outOfLimit} onClick={() => galleryRef.current?.click()} icon={<ImageIcon className="h-8 w-8" />} label="Из галереи" />
                 </div>
             )}
             {outOfLimit && !result && <p className="text-center font-bold text-[#F2C35B]">{ERRORS.limit}</p>}
 
             {result && !result.ok && (
-                <div className="flex items-start gap-3 rounded-2xl border-2 border-[#DC605B66] bg-[#DC605B1A] px-4 py-3 font-bold text-[#F2B5B2]">
+                <div className="flex items-start gap-3 rounded-2xl px-4 py-3 font-bold text-[#F2B5B2]"
+                    style={{ background: 'linear-gradient(180deg, #2A1C1E, #1D1517)', boxShadow: 'inset 0 0 0 1.5px rgba(220,96,91,0.55)' }}>
                     <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" /> {ERRORS[result.error]}
                 </div>
             )}
@@ -130,42 +152,46 @@ export const PhotoTaskClient = ({ configured, left: initialLeft, limit }: { conf
             {result && result.ok && (
                 <motion.div className="flex flex-col gap-4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                     {!result.readable ? (
-                        <div className="rounded-2xl border-2 border-[#F2C35B66] bg-[#F2C35B14] px-4 py-3 font-bold text-[#F2C35B]">
-                            Не вижу на фото задачу по математике или физике 🤔 Сфоткай условие поближе и почётче.
-                        </div>
+                        <GlassCard tone="#F2C35B">
+                            <p className="font-bold text-[#F2C35B]">Не вижу на фото задачу по математике или физике 🤔 Сфоткай условие поближе и почётче.</p>
+                        </GlassCard>
                     ) : (
                         <>
-                            <div className="rounded-2xl border-2 border-[#2A363C] bg-[#161F23] px-4 py-3">
-                                <div className="text-xs font-black uppercase tracking-wide text-[#5C6B73]">Задача</div>
-                                <p className="mt-1 text-[15px] font-bold leading-snug text-[#D7E0E5]">{result.problemText}</p>
-                            </div>
+                            <GlassCard tone="#7FC6F7">
+                                <div className="text-[11px] font-black uppercase tracking-[0.12em] text-[#7E8F99]">👾 Босс</div>
+                                <p className="mt-1 text-[15px] font-bold leading-snug text-[#E2EAF0]">{result.problemText}</p>
+                            </GlassCard>
 
                             {result.lessons.length > 0 && (
                                 <div className="flex flex-col gap-2">
-                                    <div className="text-sm font-black text-white">⚔️ Твой билд — пройди эти уроки:</div>
-                                    {result.lessons.map((l, i) => <LessonRow key={l.id} l={l} badge={String(i + 1)} color="#78C93C" />)}
+                                    <SectionTitle color="#A1D151">⚔️ Твой билд — пройди эти уроки</SectionTitle>
+                                    {result.lessons.map((l, i) => <LessonRow key={l.id} l={l} badge={String(i + 1)} color="#78C93C" i={i} />)}
                                 </div>
                             )}
 
                             {result.bonusLessons.length > 0 && (
                                 <div className="flex flex-col gap-2">
-                                    <div className="flex items-center gap-1.5 text-sm font-black text-[#C385F7]"><Gift className="h-4 w-4" /> Бонусный лут — прокачает тему шире:</div>
-                                    {result.bonusLessons.map((l) => <LessonRow key={l.id} l={l} badge="🎁" color="#C385F7" />)}
+                                    <SectionTitle color="#C9A2FA"><Gift className="h-4 w-4" /> Бонусный лут — прокачает тему шире</SectionTitle>
+                                    {result.bonusLessons.map((l, i) => <LessonRow key={l.id} l={l} badge="🎁" color="#C385F7" i={result.lessons.length + i} />)}
                                 </div>
                             )}
 
                             {result.missingTopics.length > 0 && (
-                                <div className="rounded-2xl border-2 border-[#3A464E] bg-[#161F23] px-4 py-3 text-sm font-bold text-[#8FA3AE]">
-                                    {result.lessons.length > 0 ? 'Ещё пригодится (уроков пока нет): ' : 'Уроков по этой теме у нас пока нет: '}
-                                    <span className="text-[#D7E0E5]">{result.missingTopics.join(', ')}</span>. Скоро добавим 🛠️
-                                </div>
+                                <GlassCard tone="#5C6B73">
+                                    <p className="text-sm font-bold text-[#8FA3AE]">
+                                        {result.lessons.length > 0 ? 'Ещё пригодится (уроков пока нет): ' : 'Уроков по этой теме у нас пока нет: '}
+                                        <span className="text-[#D7E0E5]">{result.missingTopics.join(', ')}</span>. Скоро добавим 🛠️
+                                    </p>
+                                </GlassCard>
                             )}
 
                             {result.hint && (
-                                <div className="flex items-start gap-3 rounded-2xl border-2 border-[#F2C35B66] bg-[#F2C35B10] px-4 py-3">
-                                    <Lightbulb className="mt-0.5 h-5 w-5 shrink-0 text-[#F2C35B]" />
-                                    <p className="text-[15px] font-bold leading-snug text-[#F2E3B8]">{result.hint}</p>
-                                </div>
+                                <GlassCard tone="#F2C35B">
+                                    <div className="flex items-start gap-3">
+                                        <Lightbulb className="mt-0.5 h-5 w-5 shrink-0 text-[#F2C35B]" />
+                                        <p className="text-[15px] font-bold leading-snug text-[#F2E3B8]">{result.hint}</p>
+                                    </div>
+                                </GlassCard>
                             )}
                         </>
                     )}
@@ -175,7 +201,8 @@ export const PhotoTaskClient = ({ configured, left: initialLeft, limit }: { conf
 
             {result && !busy && (
                 <button type="button" onClick={reset} disabled={outOfLimit && result.ok}
-                    className="flex items-center justify-center gap-2 rounded-2xl border-2 border-b-4 border-[#3A464E] bg-[#161F23] px-4 py-3 font-black text-white disabled:opacity-40">
+                    className="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 font-black text-white transition-transform active:translate-y-[4px] disabled:opacity-40"
+                    style={{ background: 'linear-gradient(180deg, #24313A, #1A252B)', boxShadow: 'inset 0 0 0 1.5px #3A4A53, inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 0 #0C1215' }}>
                     <RotateCcw className="h-5 w-5" /> Другая задача
                 </button>
             )}
@@ -183,17 +210,42 @@ export const PhotoTaskClient = ({ configured, left: initialLeft, limit }: { conf
     )
 }
 
-const LessonRow = ({ l, badge, color }: { l: PhotoTaskLesson; badge: string; color: string }) => (
-    <Link href={`/t-lesson/${l.id}`}
-        className="flex items-center gap-3 rounded-2xl border-2 border-b-4 px-4 py-3 active:border-b-2"
-        style={{ borderColor: color, backgroundColor: `${color}14` }}>
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-black text-[#1B2A10]" style={{ backgroundColor: color }}>{badge}</span>
-        <span className="min-w-0 flex-1">
-            <span className="block font-black leading-tight text-white">{l.lesson}</span>
-            <span className="block text-xs font-bold text-[#8FA3AE]">{l.course} · {l.unit}</span>
-        </span>
-        <ChevronRight className="h-5 w-5 shrink-0" style={{ color }} />
-    </Link>
+// Объём — boxShadow + translate при нажатии (высота не меняется, ничего ниже не прыгает).
+const BigButton = ({ disabled, onClick, primary, icon, label }: { disabled: boolean; onClick: () => void; primary?: boolean; icon: ReactNode; label: string }) => (
+    <button type="button" disabled={disabled} onClick={onClick}
+        className={cn('shine-sweep relative flex flex-col items-center gap-2 overflow-hidden rounded-2xl px-3 py-5 font-black text-white transition-transform active:translate-y-[4px]', disabled && 'opacity-40')}
+        style={primary
+            ? { background: 'linear-gradient(135deg, #3E8FD0 0%, #6A4FD0 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3), 0 4px 0 #2B2F6B, 0 0 24px rgba(106,79,208,0.35)' }
+            : { background: 'linear-gradient(180deg, #24313A, #1A252B)', boxShadow: 'inset 0 0 0 1.5px #3A4A53, inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 0 #0C1215' }}>
+        {icon} {label}
+    </button>
+)
+
+const GlassCard = ({ tone, children }: { tone: string; children: ReactNode }) => (
+    <div className="rounded-2xl px-4 py-3"
+        style={{ background: 'linear-gradient(180deg, rgba(36,49,58,0.92), rgba(24,34,40,0.92))', boxShadow: `inset 0 0 0 1.5px ${tone}55, inset 0 1px 0 rgba(255,255,255,0.06)` }}>
+        {children}
+    </div>
+)
+
+const SectionTitle = ({ color, children }: { color: string; children: ReactNode }) => (
+    <div className="flex items-center gap-1.5 px-1 text-sm font-black" style={{ color }}>{children}</div>
+)
+
+const LessonRow = ({ l, badge, color, i }: { l: PhotoTaskLesson; badge: string; color: string; i: number }) => (
+    <motion.div initial={{ x: -24, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.15 + i * 0.12, duration: 0.3 }}>
+        <Link href={`/t-lesson/${l.id}`}
+            className="flex items-center gap-3 rounded-2xl px-4 py-3 transition-transform active:translate-y-[4px]"
+            style={{ background: `linear-gradient(135deg, ${color}26, rgba(24,34,40,0.95) 60%)`, boxShadow: `inset 0 0 0 1.5px ${color}99, inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 0 #0C1215` }}>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-black text-[#1B2A10]"
+                style={{ background: `linear-gradient(135deg, ${color}, ${color}CC)`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4)' }}>{badge}</span>
+            <span className="min-w-0 flex-1">
+                <span className="block font-black leading-tight text-white">{l.lesson}</span>
+                <span className="block text-xs font-bold text-[#8FA3AE]">{l.course} · {l.unit}</span>
+            </span>
+            <ChevronRight className="h-5 w-5 shrink-0" style={{ color }} />
+        </Link>
+    </motion.div>
 )
 
 // Premium «Полное решение по шагам» — пока «фейковая дверь»: экран цены + «Хочу», денег не берём.
@@ -202,7 +254,7 @@ const PremiumDoor = () => {
     const [state, setState] = useState<'idle' | 'sending' | 'done'>('idle')
     if (!open) return (
         <button type="button" onClick={() => { setOpen(true); premiumInterest('view').catch(() => {}) }}
-            className="flex items-center gap-3 rounded-2xl border-2 border-b-4 border-[#F2C35B] bg-gradient-to-r from-[#F2C35B22] to-[#C385F722] px-4 py-3 text-left active:border-b-2">
+            className="shine-sweep relative flex items-center gap-3 overflow-hidden rounded-2xl bg-gradient-to-r from-[#F2C35B22] to-[#C385F722] px-4 py-3 text-left transition-transform active:translate-y-[4px]" style={{ boxShadow: 'inset 0 0 0 1.5px #F2C35BCC, 0 4px 0 #5A4214' }}>
             <Lock className="h-5 w-5 shrink-0 text-[#F2C35B]" />
             <span className="min-w-0 flex-1">
                 <span className="block font-black text-white">Полное решение по шагам</span>
@@ -228,7 +280,7 @@ const PremiumDoor = () => {
             ) : (
                 <button type="button" disabled={state === 'sending'}
                     onClick={async () => { setState('sending'); await premiumInterest('want').catch(() => {}); setState('done') }}
-                    className="rounded-2xl border-b-4 border-[#B8862E] bg-[#F2C35B] px-4 py-3 font-black text-[#2B1D05] active:border-b-0 disabled:opacity-60">
+                    className="rounded-2xl bg-[#F2C35B] px-4 py-3 font-black text-[#2B1D05] transition-transform active:translate-y-[4px] disabled:opacity-60" style={{ boxShadow: '0 4px 0 #B8862E' }}>
                     Хочу Premium 💎
                 </button>
             )}

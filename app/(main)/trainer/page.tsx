@@ -337,12 +337,19 @@ const TLearnPage = async () => {
 
                     {/* «Сфоткай задачу» (lib/photoTask.ts): пока нет ключа API — видно только админам. */}
                     {(photoTaskConfigured() || userProgress.isAdmin === 1) && (
-                        <Link href='/photo-task' className='mt-4 flex items-center gap-3 rounded-2xl border-2 border-b-4 border-[#53ADEF] bg-[#53ADEF14] px-4 py-3 active:border-b-2'>
-                            <span className='text-2xl'>📸</span>
+                        <Link href='/photo-task'
+                            className='shine-sweep group relative mt-4 flex items-center gap-3 overflow-hidden rounded-2xl px-4 py-3 transition-transform active:translate-y-[4px]'
+                            style={{
+                                background: 'linear-gradient(135deg, #1D3A52 0%, #1A2530 55%, #2A1F3D 100%)',
+                                boxShadow: 'inset 0 0 0 1.5px rgba(120,190,245,0.55), inset 0 1px 0 rgba(255,255,255,0.18), 0 4px 0 #0D1A24, 0 0 22px rgba(83,173,239,0.18)',
+                            }}>
+                            <span className='flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl'
+                                style={{ background: 'linear-gradient(135deg, #53ADEF, #7C5CE0)', boxShadow: '0 3px 0 #2E4E8A' }}>📸</span>
                             <span className='flex-1 min-w-0'>
                                 <span className='block font-black text-white'>Билд на задачу</span>
-                                <span className='block text-xs font-bold text-[#8FA3AE]'>Сфоткай задачу — соберу уроки, чтобы её завалить</span>
+                                <span className='block text-xs font-bold text-[#A9C3D6]'>Сфоткай задачу — соберу уроки, чтобы её завалить</span>
                             </span>
+                            <span className='text-lg font-black text-[#9FD3FA]'>›</span>{/* объём — boxShadow, нажатие — translate: высота не меняется, страница не прыгает */}
                         </Link>
                     )}
 
