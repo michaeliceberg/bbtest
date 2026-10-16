@@ -434,7 +434,7 @@ const LearnPage = async () => {
           />
 
           <div className='mt-2 lg:mt-5'>
-            <StreakRiskBanner streak={currentStreak} hasExtendedToday={hasExtendedStreakToday} />
+            <StreakRiskBanner streak={currentStreak} hasExtendedToday={hasExtendedStreakToday} freezes={userProgress.streakFreezes} gems={userProgress.gems} />
 
             <div className='mb-4'>
               <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} levelCase={await getPendingLevelCase(userId)} />

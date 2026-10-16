@@ -660,6 +660,7 @@ export default function TQuiz({
         if (progressResult?.streakExtended && progressResult.newStreak) {
           triggerDailyStreakToast(progressResult.newStreak)
         }
+        if (progressResult?.streakFrozenDays) toast.success(`❄️ Заморозка спасла серию: ${progressResult.newStreak} дн. подряд`)
         progressResult?.newAchievements?.forEach((ach) => showAchievement(ach))
         // Ачивки нового типа (Steam-стиль): сервер выдал их при сохранении — забираем и показываем.
         checkAchievements()

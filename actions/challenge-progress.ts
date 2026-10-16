@@ -46,6 +46,7 @@ interface ChallengeProgressResponse {
     levelsGained?: number;
     newAchievements?: NewlyCompletedAchievement[];
     streakExtended?: boolean;
+    streakFrozenDays?: number;
     newStreak?: number;
     questJustCompleted?: boolean;
     questStreak?: number;
@@ -174,6 +175,7 @@ export async function updateChallengeProgress({
     let levelUpGems = 0;
     let levelsGained = 0;
     let streakExtended = false;
+    let streakFrozenDays = 0;
     let newStreak: number | undefined;
 
     if (!isPractice && doneRight && !existingProgress?.completed) {
@@ -210,6 +212,7 @@ export async function updateChallengeProgress({
             gemsDelta: gemsEarned,
         });
         streakExtended = streakResult.extended;
+            streakFrozenDays = streakResult.frozenDays;
         newStreak = streakResult.streak;
     }
     
@@ -336,6 +339,7 @@ export async function updateChallengeProgress({
         levelsGained,
         newAchievements,
         streakExtended,
+        streakFrozenDays,
         newStreak,
         questJustCompleted,
         questStreak,

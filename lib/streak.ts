@@ -15,8 +15,8 @@
 // 3-5 уроков), сознательно оставленная как есть.
 
 import db from '@/db/drizzle';
-import { userCourseProgress } from '@/db/schema';
-import { and, eq, sql } from 'drizzle-orm';
+import { userCourseProgress, userProgress } from '@/db/schema';
+import { and, eq, gte, sql } from 'drizzle-orm';
 
 export type StreakUpdateResult = {
     streak: number;
@@ -27,6 +27,8 @@ export type StreakUpdateResult = {
     // тост "серия продлена" на каждый отдельный верный ответ за день,
     // только на первый.
     extended: boolean;
+    // Сколько заморозок потрачено этим вызовом (пропущенные дни закрыты заморозками, серия не сгорела).
+    frozenDays: number;
 };
 
 export async function bumpCourseStreak(
@@ -53,6 +55,7 @@ export async function bumpCourseStreak(
 
     let newStreak: number;
     let extended = true;
+    let frozenDays = 0;
     if (lastActive && lastActive.getTime() === today.getTime()) {
         // Уже засчитано сегодня — серию не трогаем (иначе 2 верных
         // ответа за день считались бы как 2 дня подряд).
@@ -60,9 +63,18 @@ export async function bumpCourseStreak(
         extended = false;
     } else if (lastActive && lastActive.getTime() === yesterday.getTime()) {
         newStreak = (courseProgress?.streak ?? 0) + 1;
+    } else if (lastActive && (courseProgress?.streak ?? 0) > 0) {
+        // Пропущены дни. Если заморозок хватает на все пропущенные — тратим их (атомарно, по одному UPDATE
+        // с проверкой остатка), серия продолжается; иначе — сброс на 1 (сегодняшний день тоже прожит).
+        const missed = Math.round((today.getTime() - lastActive.getTime()) / 86400000) - 1;
+        const spent = missed > 0 ? await db.update(userProgress)
+            .set({ streakFreezes: sql`${userProgress.streakFreezes} - ${missed}` })
+            .where(and(eq(userProgress.userId, userId), gte(userProgress.streakFreezes, missed)))
+            .returning({ left: userProgress.streakFreezes }) : [];
+        if (spent.length) { newStreak = (courseProgress?.streak ?? 0) + 1; frozenDays = missed; }
+        else newStreak = 1;
     } else {
-        // Более старая дата или активности не было вовсе — сброс на 1
-        // (не на 0: сегодняшний день тоже реально прожит).
+        // Активности не было вовсе — 1 (не 0: сегодняшний день тоже реально прожит).
         newStreak = 1;
     }
     const newLongestStreak = Math.max(newStreak, courseProgress?.longestStreak ?? 0);
@@ -92,7 +104,7 @@ export async function bumpCourseStreak(
         });
     }
 
-    return { streak: newStreak, longestStreak: newLongestStreak, extended };
+    return { streak: newStreak, longestStreak: newLongestStreak, extended, frozenDays };
 }
 
 // Текущий стрик курса без записи (для чтения на экране наград

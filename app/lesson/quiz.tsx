@@ -606,6 +606,7 @@ export const Quiz = ({
                         if (response?.streakExtended && response.newStreak) {
                             showStreakCelebration(response.newStreak)
                         }
+                        if (response?.streakFrozenDays) toast.success(`❄️ Заморозка спасла серию: ${response.newStreak} дн. подряд`)
                         response?.newAchievements?.forEach((ach) => showAchievement(ach))
                         // Квест дня мог закрыться именно этим ответом (второй
                         // из двух пунктов, "реши задачу курса") — модалка,

@@ -345,6 +345,7 @@ export const upsertTrainerLessonProgress = async (
 	let levelUpGems = 0;
 	let levelsGained = 0;
 	let streakExtended = false;
+    let streakFrozenDays = 0;
 	let newStreak: number | undefined;
 	let questJustCompleted = false;
 	let questStreak: number | undefined;
@@ -387,6 +388,7 @@ export const upsertTrainerLessonProgress = async (
 			today.setHours(0, 0, 0, 0);
 			const streakResult = await bumpCourseStreak(userId, linkedCourseId, today);
 			streakExtended = streakResult.extended;
+            streakFrozenDays = streakResult.frozenDays;
 			newStreak = streakResult.streak;
 		}
 
@@ -436,7 +438,7 @@ export const upsertTrainerLessonProgress = async (
 		if (tl) egeGain = await getEgeGain(userId, 't_unit', tl.t_unitId).catch(() => null);
 	}
 
-	return { leveledUp, newLevel, levelUpGems, levelsGained, newAchievements, streakExtended, newStreak, questJustCompleted, questStreak, questPointsReward, bossWins, referralGift, egeGain };
+	return { leveledUp, newLevel, levelUpGems, levelsGained, newAchievements, streakExtended, streakFrozenDays, newStreak, questJustCompleted, questStreak, questPointsReward, bossWins, referralGift, egeGain };
 };
 
 

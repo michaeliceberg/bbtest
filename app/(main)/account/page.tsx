@@ -12,6 +12,7 @@ import { AvatarReroll } from '@/components/avatar-reroll'
 import { NameEditor } from '@/components/name-editor'
 import { ParentBindCode } from '@/components/parent-bind-code'
 import { ReferralCard } from '@/components/referral-card'
+import { StreakFreezeCard } from '@/components/streak-freeze-card'
 import { getOrCreateInvite } from '@/lib/invite'
 import { getDdxState } from '@/lib/ddx'
 import { learnSubjectOf } from '@/lib/learn-unlock'
@@ -148,6 +149,8 @@ const AccountPage = async () => {
                     )}
                 </Link>
             </div>
+
+            <StreakFreezeCard freezes={userProgress.streakFreezes} gems={userProgress.gems} />
 
             {invite && <ReferralCard inviteCode={invite.code} defaultSubject={learnSubjectOf(userProgress.activeCourse?.title)} />}
 

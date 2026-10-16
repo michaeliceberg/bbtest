@@ -311,7 +311,7 @@ const TLearnPage = async () => {
                         </>
                     )}
                     {!simple && (<>
-                    <StreakRiskBanner streak={currentStreakForRisk} hasExtendedToday={hasExtendedStreakToday} />
+                    <StreakRiskBanner streak={currentStreakForRisk} hasExtendedToday={hasExtendedStreakToday} freezes={userProgress.streakFreezes} gems={userProgress.gems} />
 
                     <div className='mb-4'>
                         <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} theme={uiTheme} levelCase={userId ? await getPendingLevelCase(userId) : null} />

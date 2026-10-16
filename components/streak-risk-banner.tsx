@@ -19,6 +19,7 @@ import { useEffect, useState } from 'react'
 import { LOTTIE_STREAK_RISK_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
 import { daysWordGenitive } from '@/usefulFunctions'
 import Lottie from '@/components/lottie-player'
+import { StreakFreezeCard } from '@/components/streak-freeze-card'
 
 // Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
@@ -26,10 +27,13 @@ const RISK_HOUR = 20 // 20:00 по локальному времени поль�
 
 type Props = {
     streak: number
+    // Заморозки серии и гемы — если переданы, внизу баннера строка «купить заморозку»
+    freezes?: number
+    gems?: number
     hasExtendedToday: boolean
 }
 
-export const StreakRiskBanner = ({ streak, hasExtendedToday }: Props) => {
+export const StreakRiskBanner = ({ streak, hasExtendedToday, freezes, gems }: Props) => {
     // Проверка часа — намеренно только после монтирования (не в самом
     // рендере): избегает SSR/клиент-рассинхрона (сервер не знает часовой
     // пояс браузера) — до монтирования просто не показываем баннер,
@@ -56,13 +60,14 @@ export const StreakRiskBanner = ({ streak, hasExtendedToday }: Props) => {
             <div className="w-14 h-14 shrink-0 -my-2">
                 {animationData && <Lottie animationData={animationData} loop autoplay />}
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
                 <p className="font-bold text-amber-400">
                     Не теряй серию из {streak} {daysWordGenitive(streak)}!
                 </p>
                 <p className="text-sm text-[#9AA7B0]">
                     Сегодня ты ещё не занимался — время уходит 🕒
                 </p>
+                {freezes !== undefined && gems !== undefined && <StreakFreezeCard compact freezes={freezes} gems={gems} />}
             </div>
         </div>
     )

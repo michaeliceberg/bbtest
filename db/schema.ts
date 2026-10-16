@@ -76,6 +76,8 @@ export const userProgress = pgTable('user_progress', {
 	hearts: integer('hearts').notNull().default(500),
 	points: integer('points').notNull().default(0),
 	gems: integer('gems').notNull().default(0), // 👈 ДОБАВЛЕНО глобальные гемы
+	// Заморозки серии (как в Duolingo): покупаются за гемы (lib/streakFreeze.ts), тратятся сами, если пропущен день.
+	streakFreezes: integer('streak_freezes').notNull().default(0),
 	// Опыт (XP) для системы уровней — в отличие от points/gems НИКОГДА не
 	// тратится (не валюта, а кумулятивный счётчик прогресса), поэтому не
 	// может просто переиспользовать поле points. Начисляется 1:1 (см.
