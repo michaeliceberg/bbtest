@@ -31,6 +31,7 @@ import {
     useWalkthroughCombo,
     pickFunNextLabel,
     RememberPlate,
+    AdminSceneMap, MAP_INTRO_COLOR, MAP_PRACTICE_COLOR, type AdminMapEntry,
 } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -1349,8 +1350,15 @@ const FIXED_NEXT_LABELS = new Map<unknown, string>([
     [ReadyScene, 'ЛЕТС ГООООУ'],
 ])
 
-export const TypeTrigCircleWalk = ({ onAnswer, onComplete }: Props) => {
+// Подписи этапов для админской карты (по порядку SCENES).
+const SCENE_MAP_LABELS = ['Окружность и оси', 'Игра: укажи ось', 'Домик справа', 'Плюс вверх, минус вниз', 'Вопросы про домик',
+    'π — половина окружности', 'Игра: где угол', '3π/2 — три шага', '−5π/2 — пять шагов', 'Радиус = 1', 'sin π/2', 'Приготовься']
+
+export const TypeTrigCircleWalk = ({ onAnswer, onComplete, isAdmin = false }: Props & { isAdmin?: boolean }) => {
     const INTRO_STEPS = SCENES.length
+    // С какой сцены/задания рисуем лог: при админском прыжке прошлые не проигрываем заново.
+    const [startStep, setStartStep] = useState(0)
+    const [startTrial, setStartTrial] = useState(0)
     const [phase, setPhase] = useState<'intro' | 'practice'>('intro')
     const [hadMistake, setHadMistake] = useState(false)
     const [step, setStep] = useState(0)
@@ -1449,6 +1457,27 @@ export const TypeTrigCircleWalk = ({ onAnswer, onComplete }: Props) => {
         }
     }
 
+    const jumpTo = (key: string) => {
+        setAdvancing(false); setChecked(false); setWrongTried([]); setWrongFlash(null)
+        bumpNonce(key)
+        if (key.startsWith('step-')) {
+            const i = Number(key.slice(5))
+            setPhase('intro'); setStartStep(i); setStep(i); setStepReady(false); setStartTrial(0); setTrialIndex(0)
+            return
+        }
+        const k = Number(key.slice(6))
+        setStartStep(INTRO_STEPS); setStep(INTRO_STEPS - 1)
+        setStartTrial(k); setTrialIndex(k); setPhase('practice')
+    }
+    const mapEntries: AdminMapEntry[] = [
+        ...SCENES.map((_, i) => ({
+            dotKey: `s${i}`, label: SCENE_MAP_LABELS[i] ?? `Сцена ${i + 1}`, jumpKey: `step-${i}`, isActive: phase === 'intro' && step === i, color: MAP_INTRO_COLOR,
+        })),
+        ...trials.map((_, i) => ({
+            dotKey: `t${i}`, label: `Задание ${i + 1}/${trials.length}`, jumpKey: `trial-${i}`, isActive: phase === 'practice' && trialIndex === i, color: MAP_PRACTICE_COLOR,
+        })),
+    ]
+
     const renderTrialBody = (t: Trial, isCurrent: boolean, isDone: boolean, i: number) => {
         if (t.kind === 'axis') {
             const flash = isDone ? { axis: t.target, color: PLUS_COLOR } : isCurrent && wrongTried.length ? { axis: wrongTried[wrongTried.length - 1] as Axis, color: MINUS_COLOR } : null
@@ -1511,9 +1540,10 @@ export const TypeTrigCircleWalk = ({ onAnswer, onComplete }: Props) => {
 
     return (
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
+            {isAdmin && <AdminSceneMap enabled entries={mapEntries} onJump={jumpTo} disabled={advancing} />}
             <div className="w-full flex flex-col gap-4">
                 {SCENES.map((Scene, i) =>
-                    step >= i ? (
+                    step >= i && i >= startStep ? (
                         <SceneWrapper key={`step-${i}`} innerRef={sceneRef(`step-${i}`)} active={isSceneActive(`step-${i}`)}>
                             <Fragment key={`step-${i}-${nonceFor(`step-${i}`)}`}>
                                 <Scene onSettled={() => i === step && setStepReady(true)} />
@@ -1523,13 +1553,14 @@ export const TypeTrigCircleWalk = ({ onAnswer, onComplete }: Props) => {
                 )}
 
                 {phase === 'practice' && Array.from({ length: trialIndex + 1 }).map((_, i) => {
+                    if (i < startTrial) return null
                     const t = trials[i]
                     const isCurrent = i === trialIndex
                     const isDone = i < trialIndex || (isCurrent && checked)
                     return (
                         <SceneWrapper key={`trial-${i}`} innerRef={sceneRef(`trial-${i}`)} active={isSceneActive(`trial-${i}`)}>
                             <Fragment key={`trial-${i}-${nonceFor(`trial-${i}`)}`}>
-                                {i === 0 && (
+                                {i === startTrial && (
                                     <div className="w-full flex items-center gap-3" aria-hidden>
                                         <div className="flex-1 h-px bg-[#3A464E]" />
                                         <span className="text-xs font-bold uppercase tracking-wide text-[#5C6B73]">Проверим себя</span>

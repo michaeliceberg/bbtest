@@ -14248,3 +14248,11 @@ cloudflare-worker/anthropic-proxy.js --name anthropic-proxy --compatibility-date
   синяя путалась с фиолетовой); пока спрашиваем «чему равен вписанный угол» — ярко только этот угол и его дуга,
   остальное `DIM` (`focus1`/`focus2`); вершины углов не напротив середины дуги, а сбоку (`v1 = e1 + 0.65·y`,
   `v2 = e0 + 0.3·x`) — хорды наклонены, четырёхугольник несимметричный.
+
+## Правило: карта этапов (только для админа) в КАЖДОМ новом step-by-step (2026-10-17)
+Явная просьба пользователя: любой новый пошаговый разбор (*WALK) с первой версии получает админскую карту этапов —
+`{isAdmin && <AdminSceneMap enabled entries={mapEntries} onJump={jumpTo} disabled={advancing} />}`: точка на каждую сцену
+вступления (`MAP_INTRO_COLOR`, подписи — массив `SCENE_MAP_LABELS`) и на каждое задание тренировки (`MAP_PRACTICE_COLOR`);
+`jumpTo` ставит `startStep`/`startTrial`, чтобы лог рисовался с целевой сцены, а прошлые не проигрывались заново.
+`isAdmin` прокинуть из `components/trainer-question.tsx`. Образцы: `type-circlewalk.tsx` (503), `type-trigcirclewalk.tsx` (490,
+добавлена 2026-10-17).

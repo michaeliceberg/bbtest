@@ -452,7 +452,7 @@ export default function TrainerQuestion({
 
       case "TRIGCIRCWALK":
         // «Тригонометрическая окружность: знакомство» — см. type-trigcirclewalk.tsx.
-        return <TypeTrigCircleWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} />
+        return <TypeTrigCircleWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} isAdmin={isAdmin} />
 
       case "LEGFINDWALK":
         // "Как найти катет" — см. type-legfindwalk.tsx.
