@@ -9,7 +9,7 @@
 // Нижняя часть — шаги хода и кнопка.
 
 import { useEffect, useState } from 'react'
-import { Dumbbell, Swords, Flag, CircleHelp, Pencil } from 'lucide-react'
+import { Dumbbell, Swords, Flag, CircleHelp, Pencil, Lightbulb } from 'lucide-react'
 import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors'
 import type { EgeMap } from '@/lib/egeMap'
 import { PiggyBank } from '@/components/piggy-bank'
@@ -167,7 +167,15 @@ export const EgeSkyMove = ({ map, target, targetPrimary, onPickGoal, activeMoveI
             {mv && (
                 <div className="bg-[#161F23] p-4">
                     <p className="text-[11px] font-black uppercase tracking-wide" style={{ color: GGEGE_PALETTE.orange.button }}>Твой следующий ход</p>
-                    <p className="mt-0.5 text-base font-black text-[#F2F7FB]">Задание №{mv.station.num} · {mv.station.title}</p>
+                    <p className="mt-0.5 text-base font-black text-[#F2F7FB]">
+                        {mv.topic ? <>Фундамент · {mv.topic.title}</> : <>Задание №{mv.station.num} · {mv.station.title}</>}
+                    </p>
+                    {mv.reason && (
+                        <p className="mt-1.5 flex items-start gap-1.5 rounded-xl bg-[#2A2414] px-2.5 py-1.5 text-xs font-bold leading-snug text-[#F2C35B]">
+                            <Lightbulb className="mt-px h-3.5 w-3.5 shrink-0" />
+                            <span>{mv.reason}</span>
+                        </p>
+                    )}
                     <div className="mt-2 flex flex-col gap-2">
                         {mv.trainerLesson && (
                             <div className="flex items-center gap-3 rounded-xl border-2 border-[#2A363C] bg-[#1B252A] px-3 py-2.5">

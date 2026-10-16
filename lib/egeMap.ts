@@ -16,6 +16,7 @@ import { sql } from 'drizzle-orm'
 import db from '@/db/drizzle'
 import { primaryToTest } from '@/lib/egeScale'
 import { getDiagScores } from '@/lib/egeDiagnostic'
+import { TASK_PREREQS, TOPIC_PREREQS, PREREQ_TOPIC_IDS, PREREQ_TASK_MASTERY, PREREQ_TOPIC_DONE, type Prereq } from '@/lib/egeOrder'
 export { primaryToTest }
 
 export const TARGET_SOLVED = 25
@@ -61,6 +62,10 @@ export type EgeMove = {
     toTest: number
     fromPrimary: number
     toPrimary: number
+    // ход выбран из-за пререквизита (lib/egeOrder.ts): «Сначала …: без этого №14 не взять»
+    reason: string | null
+    // ход — урок темы тренажёра-фундамента, а не самого задания
+    topic: { id: number; title: string } | null
 }
 export type EgeMap = {
     subject: string
@@ -79,7 +84,7 @@ export type EgeMap = {
 type Row = Record<string, unknown>
 
 type UnitStat = { total: number; solved: number; nextLesson: number | null; nextTitle: string | null }
-type TStat = { total: number; done: number; nextLesson: number | null; nextTitle: string | null }
+type TStat = { total: number; done: number; nextLesson: number | null; nextTitle: string | null; title: string }
 
 async function loadEgeData(userId: string, subject: string) {
     const tasks = (await db.execute(sql`
@@ -89,7 +94,7 @@ async function loadEgeData(userId: string, subject: string) {
         WHERE t.subject = ${subject}
         GROUP BY t.id ORDER BY t.num`)) as unknown as Row[]
 
-    const unitIds = new Set<number>(), tUnitIds = new Set<number>()
+    const unitIds = new Set<number>(), tUnitIds = new Set<number>(PREREQ_TOPIC_IDS)
     for (const t of tasks) for (const l of t.links as { kind: string; ref: number }[]) (l.kind === 'unit' ? unitIds : tUnitIds).add(Number(l.ref))
 
     // задачник: всего задач и решено верно — по юнитам; плюс первый урок с нерешёнными задачами
@@ -121,14 +126,14 @@ async function loadEgeData(userId: string, subject: string) {
     if (tUnitIds.size) {
         const ids = [...tUnitIds]
         const rows = (await db.execute(sql`
-            SELECT tl.t_unit_id, tl.id, tl."order", tl.title,
+            SELECT tl.t_unit_id, tl.id, tl."order", tl.title, (SELECT u.title FROM t_units u WHERE u.id = tl.t_unit_id) AS unit_title,
                 EXISTS (SELECT 1 FROM t_lesson_progress p WHERE p.t_lesson_id = tl.id AND p.user_id = ${userId} AND p.training_pts > 0) AS done
             FROM t_lessons tl
             WHERE tl.t_unit_id IN ${sql.raw(`(${ids.join(',')})`)}
             ORDER BY tl.t_unit_id, tl."order", tl.id`)) as unknown as Row[]
         for (const r of rows) {
             const u = Number(r.t_unit_id)
-            const cur = tStats.get(u) ?? { total: 0, done: 0, nextLesson: null, nextTitle: null }
+            const cur = tStats.get(u) ?? { total: 0, done: 0, nextLesson: null, nextTitle: null, title: String(r.unit_title ?? '') }
             cur.total += 1
             if (r.done) cur.done += 1
             else if (cur.nextLesson === null) { cur.nextLesson = Number(r.id); cur.nextTitle = String(r.title) }
@@ -140,9 +145,11 @@ async function loadEgeData(userId: string, subject: string) {
     return { tasks, unitStats, tStats, diag }
 }
 
-function buildEgeMap(subject: string, data: Awaited<ReturnType<typeof loadEgeData>>): EgeMap {
+type EgeData = Awaited<ReturnType<typeof loadEgeData>>
+
+function computeStations(data: EgeData): EgeStation[] {
     const { tasks, unitStats, tStats, diag } = data
-    const stations: EgeStation[] = tasks.map((t) => {
+    return tasks.map((t): EgeStation => {
         const links = t.links as { kind: string; ref: number }[]
         const units = links.filter((l) => l.kind === 'unit').map((l) => Number(l.ref))
         const tunits = links.filter((l) => l.kind === 't_unit').map((l) => Number(l.ref))
@@ -186,22 +193,60 @@ function buildEgeMap(subject: string, data: Awaited<ReturnType<typeof loadEgeDat
             diag: dScore, diagWeight: dScore === null ? 0 : diagWeight(courseSolved, trainerDone),
         }
     })
+}
 
+// «Что решать сегодня»: больше всего ещё не взятых баллов (с учётом потолка тренажёра)
+const room = (x: EgeStation) => x.points * ((x.trainerOnly && x.part === 2 ? PART2_TRAINER_ONLY_CAP : 1) - x.mastery)
+const isCandidate = (x: EgeStation) => x.status === 'open' && room(x) > 0.05 && !!(x.lessonHref || x.trainerHref)
+
+// Первый невыполненный пререквизит (рекурсивно до самого нижнего). Задание, по которому
+// сейчас нечего делать (нет уроков/задач), не блокирует — иначе застряли бы навсегда.
+type Blocker = { kind: 'task'; station: EgeStation } | { kind: 'topic'; id: number; stat: TStat }
+function firstUnmet(prereqs: Prereq[], stations: EgeStation[], tStats: Map<number, TStat>, seen: Set<string>): Blocker | null {
+    for (const p of prereqs) {
+        const key = 'task' in p ? `task:${p.task}` : `topic:${p.tUnit}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        if ('task' in p) {
+            const st = stations.find((x) => x.num === p.task)
+            if (!st || !isCandidate(st) || st.mastery >= PREREQ_TASK_MASTERY) continue
+            return firstUnmet(TASK_PREREQS[p.task] ?? [], stations, tStats, seen) ?? { kind: 'task', station: st }
+        }
+        const ts = tStats.get(p.tUnit)
+        if (!ts || ts.total === 0 || ts.nextLesson === null || ts.done / ts.total >= PREREQ_TOPIC_DONE) continue
+        return firstUnmet(TOPIC_PREREQS[p.tUnit] ?? [], stations, tStats, seen) ?? { kind: 'topic', id: p.tUnit, stat: ts }
+    }
+    return null
+}
+
+function buildEgeMap(subject: string, data: EgeData): EgeMap {
+    const stations = computeStations(data)
     const primary = stations.reduce((s, x) => s + x.earned, 0)
     const primaryMax = stations.reduce((s, x) => s + x.points, 0)
-    // «Что решать сегодня»: больше всего ещё не взятых баллов (с учётом потолка тренажёра)
-    const room = (x: EgeStation) => x.points * ((x.trainerOnly && x.part === 2 ? PART2_TRAINER_ONLY_CAP : 1) - x.mastery)
     // сначала первая часть (быстрые и честные баллы), вторая — когда первая почти закрыта
-    const candidates = stations.filter((x) => x.status === 'open' && room(x) > 0.05 && (x.lessonHref || x.trainerHref))
+    const candidates = stations.filter(isCandidate)
     const part1 = candidates.filter((x) => x.part === 1)
-    const next = (part1.length ? part1 : candidates).sort((a, b) => room(b) - room(a))[0] ?? null
+    const best = (part1.length ? part1 : candidates).sort((a, b) => room(b) - room(a))[0] ?? null
     const test = primaryToTest(primary)
+    // методика: не берём задание раньше его фундамента (lib/egeOrder.ts)
+    let move: EgeMove | null = null
+    if (best) {
+        const blocker = firstUnmet(TASK_PREREQS[best.num] ?? [], stations, data.tStats, new Set([`task:${best.num}`]))
+        if (!blocker) move = buildMove(best, primary, test)
+        else if (blocker.kind === 'task') {
+            const st = blocker.station
+            move = { ...buildMove(st, primary, test), reason: `Сначала №${st.num} «${st.title}»: без этого №${best.num} не взять` }
+        } else {
+            move = buildTopicMove(blocker.id, blocker.stat, best, stations, data, primary, test)
+        }
+    }
+    const next = move?.station ?? null
     // неуверенность: та часть копилки, что держится на диагностике
     const hasDiag = stations.some((x) => x.diag !== null)
     // «верно на один из двух» — самая неуверенная оценка; 0 и 1 почти уверенные
     const u = hasDiag ? Math.max(0.5, stations.reduce((acc, x) => acc + (x.diag === null ? 0 : x.points * x.diagWeight * (x.diag > 0 && x.diag < 1 ? 0.25 : 0.05)), 0)) : 0
     return {
-        subject, stations, primary, primaryMax, test, next, move: next ? buildMove(next, primary, test) : null,
+        subject, stations, primary, primaryMax, test, next, move,
         testLo: primaryToTest(Math.max(0, primary - u)), testHi: primaryToTest(primary + u), hasDiag,
     }
 }
@@ -280,5 +325,25 @@ function buildMove(s: EgeStation, primary: number, test: number): EgeMove {
         tasks: tasks > 0 && s.lessonHref ? { href: s.lessonHref, count: tasks, title: s.lessonTitle ?? 'задачи' } : null,
         fromTest: test, toTest: Math.max(test, primaryToTest(toPrimary)),
         fromPrimary: primary, toPrimary,
+        reason: null, topic: null,
+    }
+}
+
+// Ход в тему-фундамент: 1 урок этой темы тренажёра. Прирост копилки — честный пересчёт карты
+// (тема может входить сразу в несколько заданий, а может пока ни в одно).
+function buildTopicMove(id: number, stat: TStat, target: EgeStation, stations: EgeStation[], data: EgeData, primary: number, test: number): EgeMove {
+    const tStats = new Map(data.tStats)
+    tStats.set(id, { ...stat, done: stat.done + 1 })
+    const toPrimary = computeStations({ ...data, tStats }).reduce((s, x) => s + x.earned, 0)
+    // этаж башни: задание, куда эта тема входит (первое по номеру), иначе то, ради которого идём
+    const station = stations.filter((x) => x.status === 'open' && x.tUnitIds.includes(id)).sort((a, b) => a.num - b.num)[0] ?? target
+    return {
+        station,
+        trainerLesson: { href: `/t-lesson/${stat.nextLesson}`, title: stat.nextTitle ?? 'урок тренажёра' },
+        tasks: null,
+        fromTest: test, toTest: Math.max(test, primaryToTest(toPrimary)),
+        fromPrimary: primary, toPrimary: Math.max(primary, toPrimary),
+        reason: `Сначала «${stat.title}»: без этого №${target.num} не взять`,
+        topic: { id, title: stat.title },
     }
 }
