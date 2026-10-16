@@ -1066,10 +1066,10 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             };
         }
 
-        if (t_challenge.type === 'TTPWALK') {
+        if (t_challenge.type === 'TTPWALK' || t_challenge.type === 'STEREOWALK') {
             // «Теорема о трёх перпендикулярах» — самодостаточный разбор, см. type-ttpwalk.tsx.
             return {
-                questionType: 'TTPWALK' as const,
+                questionType: t_challenge.type,
                 question: t_challenge.question,
                 imageSrc: t_challenge.imageSrc,
                 options: [],
