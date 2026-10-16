@@ -786,15 +786,6 @@ const piTween = (from: number, to: number, ms: number, onUpdate: (v: number) => 
     return () => clearInterval(id)
 }
 
-const PiPop = ({ x, y, size, color, children }: { x: number; y: number; size: number; color: string; children: React.ReactNode }) => (
-    <g transform={`translate(${x} ${y})`}>
-        <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 11 }}>
-            <text textAnchor="middle" dominantBaseline="central" fill={color} fontSize={size} fontWeight={900}
-                style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>{children}</text>
-        </motion.g>
-    </g>
-)
-
 const PiCircle = ({ arcEnd, label, drawn, dimRest }: { arcEnd: number; label: number; drawn: boolean; dimRest: boolean }) => {
     const { x: cx, y: cy } = PI_C
     const full = `${degArc(0, 180)} ${degArc(180, 359.99).replace('M', 'L')}`
@@ -817,8 +808,15 @@ const PiCircle = ({ arcEnd, label, drawn, dimRest }: { arcEnd: number; label: nu
                     <motion.path d={degArc(0, Math.min(arcEnd, 359.99))} fill="none" stroke={ARC_COLOR} strokeWidth={9} strokeLinecap="round"
                         initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.2, ease: 'easeInOut' }} />
                     <circle cx={cx} cy={cy} r={5} fill="#F2F7FB" />
-                    <PiPop key={`r-${label}`} x={cx} y={cy + 36} size={40} color={ARC_COLOR}>{st.rad}</PiPop>
-                    <PiPop key={`d-${label}`} x={cx} y={cy + 74} size={26} color="#F2F7FB">{`= ${st.deg}°`}</PiPop>
+                    {/* «π = 180°» одной строкой: радианы фиолетовым, градусы белым */}
+                    <g transform={`translate(${cx} ${cy + 52})`}>
+                        <motion.g key={`lbl-${label}`} initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 11 }}>
+                            <text textAnchor="middle" dominantBaseline="central" fontSize={34} fontWeight={900} style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>
+                                <tspan fill={ARC_COLOR}>{st.rad}</tspan>
+                                <tspan fill="#F2F7FB">{` = ${st.deg}°`}</tspan>
+                            </text>
+                        </motion.g>
+                    </g>
                 </>
             )}
         </svg>
@@ -901,7 +899,7 @@ const PiScene = ({ onSettled }: SceneProps) => {
             {phase >= 1 && phase < 4 && (
                 <DiagramBlock onSettled={() => setPhase(2)}>
                     <div className="w-full flex flex-col items-center gap-1">
-                        <PiCircle arcEnd={arcEnd} label={label} drawn={drawn} dimRest={step >= 2} />
+                        <PiCircle arcEnd={arcEnd} label={label} drawn={drawn} dimRest={drawn} />
                         <div className="h-10 flex items-center justify-center text-lg font-black text-[#F2F7FB]">
                             {drawn && <Pop key={`cap-${label}`}><span style={{ color: label === 0 ? ARC_COLOR : '#F2F7FB' }}>{PI_CAPTIONS[label]}</span></Pop>}
                         </div>

@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Camera, ImageIcon, Loader2, RotateCcw, ChevronRight, Lightbulb, AlertTriangle, Gift, Lock, Check } from 'lucide-react'
+import { Camera, ImageIcon, Loader2, Sparkles, RotateCcw, ChevronRight, Lightbulb, AlertTriangle, Gift, Lock, Check } from 'lucide-react'
 import { analyzeTaskPhoto, premiumInterest, type PhotoTaskResult, type PhotoTaskLesson } from '@/actions/photo-task'
 import { checkAchievements } from '@/lib/achievementsClient'
 import { PREMIUM_PRICE_RUB } from '@/lib/pro'
@@ -89,7 +89,7 @@ export const PhotoTaskClient = ({ configured, left: initialLeft, limit }: { conf
                     <div aria-hidden className="animate-glow-pulse absolute inset-[-30%] rounded-full" style={{ background: 'radial-gradient(circle, rgba(124,92,224,0.5), transparent 65%)' }} />
                     <div className="animate-chest-idle-bounce relative flex h-20 w-20 items-center justify-center rounded-3xl text-4xl"
                         style={{ background: 'linear-gradient(135deg, #53ADEF 0%, #7C5CE0 60%, #C385F7 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35), 0 5px 0 #2E2F6E, 0 0 30px rgba(124,92,224,0.45)' }}>
-                        📸
+                        <Sparkles className="h-10 w-10 text-white" strokeWidth={2.3} />
                     </div>
                 </div>
                 <h1 className="text-[1.9rem] font-black leading-tight text-white">
