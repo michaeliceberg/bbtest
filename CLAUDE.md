@@ -14118,10 +14118,31 @@ structured output (JSON-схема): условие, темы, до 3 `lesson_id
 проверяются на сервере), `missing_topics`, подсказка без ответа. Каталог в system с `cache_control`.
 Лимит 3 разбора в день (админам без лимита, неудачные не считаются). Таблица `photo_task_requests` (прямой SQL), фото не
 храним. Карточка «📸 Сфоткай задачу» в /admin/funnel (расход ≈ ₽, сколько ушло в Sonnet, каких тем не хватило).
-**Включено 2026-10-16**: на сервере в .env `ANTHROPIC_API_KEY` и `ANTHROPIC_BASE_URL=https://anthropic-proxy.abziceberg.workers.dev`
-(с VPS api.anthropic.com недоступен; воркер — `cloudflare-worker/anthropic-proxy.js`, деплой `npx wrangler@4 deploy
-cloudflare-worker/anthropic-proxy.js --name anthropic-proxy --compatibility-date 2026-10-01`; wrangler login открывать в Chrome —
-в Opera Cloudflare не залогинен). Ключ не коммитить. Проверка: задача «2 sin x − 1 = 0» → Haiku, 7,2k вход / 1k выход.
+**Включено 2026-10-16** — кнопку видят все ученики (раньше только админы).
+
+### Как устроен доступ к Anthropic (2026-10-16)
+- Ключ: console.anthropic.com (платформа platform.claude.com, баланс пополнен на 5$). Ключ вида `sk-ant-usr-…` — рабочий
+  API-ключ (проверен запросом к /v1/messages). Лежит ТОЛЬКО в `/var/www/ggege/.env` на сервере (`ANTHROPIC_API_KEY`),
+  никогда не коммитить. Ключ, выданный 16.10, засвечен в чате — пользователю советовали выпустить новый и отозвать старый;
+  замена: правка строки в .env + `pm2 restart ggege --update-env` (бэкапы .env — `/root/backups/ggege-env.*.bak`).
+- С VPS api.anthropic.com недоступен (таймаут, как и api.telegram.org). Прокси — Cloudflare Worker
+  `https://anthropic-proxy.abziceberg.workers.dev` (код `cloudflare-worker/anthropic-proxy.js`, пропускает только POST
+  /v1/messages), в .env `ANTHROPIC_BASE_URL=<этот адрес>` — SDK `@anthropic-ai/sdk` читает его сам. Аккаунт Cloudflare —
+  тот же, где `elegram-proxy.abziceberg.workers.dev` (Telegram).
+- Почта Cloudflare может быть любой — с аккаунтом Claude/Anthropic никак не связана.
+- Деплой/обновление воркера: `npx -y wrangler@4 login --browser=false` → открыть выданную ссылку именно в Chrome
+  (`open -a "Google Chrome" "<url>"`; браузер по умолчанию — Opera, там пользователь в Cloudflare не вошёл, и логин падал
+  по таймауту) → пользователь жмёт «Allow» → `npx -y wrangler@4 deploy cloudflare-worker/anthropic-proxy.js --name
+  anthropic-proxy --compatibility-date 2026-10-01`. Claude in Chrome в этой сессии не был подключён.
+- Сразу после первого деплоя новый адрес *.workers.dev ~1–2 мин отвечает `error code: 1042` — это распространение, просто ждать.
+- Проверка с сервера: `curl https://anthropic-proxy.abziceberg.workers.dev/v1/messages -H "x-api-key: …" -H
+  "anthropic-version: 2023-06-01" -H "content-type: application/json" -d '{"model":"claude-haiku-5-5",…}'`.
+- Локальный прогон `runPhotoTask` без браузера: `lib/photoTask.ts` импортирует `server-only` (через tsx не запускается) —
+  временно скопировать файл без этой строки в `scripts/`, вызвать из tsx-скрипта с `ANTHROPIC_API_KEY=… npx tsx …`
+  (с этого Mac API доступен напрямую), потом удалить оба временных файла.
+- Тест 16.10: картинка «№245. 2 sin x − 1 = 0, корни на [0; 2π]» → Haiku, без перехода на Sonnet, confidence high, 7,2k
+  токенов на вход (каталог уроков) / ~1k на выход; уроки [152] sin(x) = a, [488] Три волшебных угла, [493] Таблица 30/45/60,
+  бонус [443], [494]; подсказка без ответа. Настоящее фото через ggege.ru с телефона ещё не проверялось.
 Оценка цены: Haiku ≈ 0,1 ₽ за фото, Sonnet ≈ 1,5–2 ₽.
 
 **Переименовано в «Билд на задачу»** (2026-10-15; запасное название на будущее — «Гайд на задачу»): задача = босс,
