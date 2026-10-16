@@ -22,7 +22,7 @@ export const ACHIEVEMENT_GROUPS: { id: AchievementGroup; title: string; color: s
 	{ id: 'habit', title: 'Привычка', color: '#F09B38' },
 	{ id: 'chests', title: 'Сундуки и пицца', color: '#EF9F27' },
 	{ id: 'friends', title: 'Друзья и банды', color: '#BC418A' },
-	{ id: 'builds', title: 'Билд на задачу', color: '#5CC99F' },
+	{ id: 'builds', title: 'ИИ-помощник', color: '#5CC99F' },
 ];
 
 const RAW_ACHIEVEMENTS: AchievementDef[] = [
@@ -79,13 +79,13 @@ const RAW_ACHIEVEMENTS: AchievementDef[] = [
 	{ key: 'gang_create', group: 'friends', emoji: '🏴', title: 'Босс района', desc: 'Создал банду' },
 
 	// Билд на задачу (/photo-task, lib/photoTask.ts)
-	{ key: 'build_first', group: 'builds', emoji: '📸', title: 'Первый скан', desc: 'Собрал первый билд на задачу по фото' },
-	{ key: 'build_done', group: 'builds', emoji: '⚔️', title: 'Билд собран', desc: 'Прошёл все уроки из билда на свою задачу' },
+	{ key: 'build_first', group: 'builds', emoji: '📸', title: 'Первый скан', desc: 'Отправил ИИ-помощнику первое фото задачи' },
+	{ key: 'build_done', group: 'builds', emoji: '⚔️', title: 'Задача по силам', desc: 'Прошёл все уроки, которые ИИ-помощник подобрал к твоей задаче' },
 	{ key: 'build_star', group: 'builds', emoji: '⭐', title: 'Задача со звёздочкой', desc: 'Принёс задачу, которую простой ИИ не потянул' },
 	{ key: 'build_explorer', group: 'builds', emoji: '🛸', title: 'Первооткрыватель', desc: 'Нашёл задачу, под которую у нас пока 0 уроков' },
 	{ key: 'build_coauthor', group: 'builds', emoji: '🎩', title: 'Соавтор', desc: 'Мы сделали урок по теме из твоей задачи' },
-	{ key: 'build_hunter_10', group: 'builds', emoji: '💀', title: 'Охотник на боссов', desc: 'Собрал 10 билдов на задачи' },
-	{ key: 'build_hunter_50', group: 'builds', emoji: '🐉', title: 'Гроза задачника', desc: 'Собрал 50 билдов на задачи' },
+	{ key: 'build_hunter_10', group: 'builds', emoji: '💀', title: 'Охотник на боссов', desc: 'Отправил ИИ-помощнику 10 задач' },
+	{ key: 'build_hunter_50', group: 'builds', emoji: '🐉', title: 'Гроза задачника', desc: 'Отправил ИИ-помощнику 50 задач' },
 ];
 
 // Иконки — game-icons.net (CC BY 3.0, см. public/achievement-icons/LICENSE-game-icons.txt и подпись на странице «Ачивки»).
