@@ -14118,8 +14118,10 @@ structured output (JSON-схема): условие, темы, до 3 `lesson_id
 проверяются на сервере), `missing_topics`, подсказка без ответа. Каталог в system с `cache_control`.
 Лимит 3 разбора в день (админам без лимита, неудачные не считаются). Таблица `photo_task_requests` (прямой SQL), фото не
 храним. Карточка «📸 Сфоткай задачу» в /admin/funnel (расход ≈ ₽, сколько ушло в Sonnet, каких тем не хватило).
-**Пока нет `ANTHROPIC_API_KEY` в .env — кнопку и экран видят только админы.** С VPS api.anthropic.com недоступен
-(таймаут) → нужен прокси `cloudflare-worker/anthropic-proxy.js` и `ANTHROPIC_BASE_URL=<адрес воркера>` в .env.
+**Включено 2026-10-16**: на сервере в .env `ANTHROPIC_API_KEY` и `ANTHROPIC_BASE_URL=https://anthropic-proxy.abziceberg.workers.dev`
+(с VPS api.anthropic.com недоступен; воркер — `cloudflare-worker/anthropic-proxy.js`, деплой `npx wrangler@4 deploy
+cloudflare-worker/anthropic-proxy.js --name anthropic-proxy --compatibility-date 2026-10-01`; wrangler login открывать в Chrome —
+в Opera Cloudflare не залогинен). Ключ не коммитить. Проверка: задача «2 sin x − 1 = 0» → Haiku, 7,2k вход / 1k выход.
 Оценка цены: Haiku ≈ 0,1 ₽ за фото, Sonnet ≈ 1,5–2 ₽.
 
 **Переименовано в «Билд на задачу»** (2026-10-15; запасное название на будущее — «Гайд на задачу»): задача = босс,
