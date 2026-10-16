@@ -288,6 +288,8 @@ type CanvasProps = {
     axisShow?: { cos: boolean; sin: boolean }
     housePop?: boolean
     walker?: number | null
+    // Заливка сектора (четверти), по которой сейчас идём: углы в радианах, dir — направление обхода.
+    quarterFill?: { a0: number; a1: number; dir: 1 | -1; color: string; key: string } | null
     hintArrow?: 1 | -1 | null // мигающая стрелка от домика вверх (+) или вниз (−) — «сейчас пойдём сюда»
 }
 const LABEL_STYLE = { fontFamily: 'var(--font-nunito), sans-serif', fontWeight: 900 } as const
@@ -321,7 +323,7 @@ const UNIT_LABELS = [
 const CircleCanvas = ({
     axes = true, axisLabels = { cos: true, sin: true }, drawCircle = false, house = false,
     houses = [], onHousePick, arcs = [], segments = [], marks = [], units = 0, dots, hitDots = [], traveler = null,
-    onCirclePick, onAxisPick, axisFlash = null, glowValue = null, dirPick = null, blinkDots = false, axisShow, housePop = false, walker = null, hintArrow = null,
+    onCirclePick, onAxisPick, axisFlash = null, glowValue = null, dirPick = null, blinkDots = false, axisShow, housePop = false, walker = null, hintArrow = null, quarterFill = null,
 }: CanvasProps) => {
     const svgRef = useRef<SVGSVGElement>(null)
     const pick = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -342,6 +344,15 @@ const CircleCanvas = ({
     const dotList = dots === 'all' ? STD_ANGLES.map((_, i) => i) : dots === 'quarters' ? QUARTER_IDX : []
     return (
         <svg ref={svgRef} viewBox="-30 0 360 300" className={cn('w-full max-w-[360px] h-auto mx-auto block select-none overflow-visible', onCirclePick && 'cursor-pointer')} onPointerDown={pick}>
+            {quarterFill && (() => {
+                const p0 = pt(quarterFill.a0), p1 = pt(quarterFill.a1)
+                // y вниз: против часовой (dir = 1) — sweep-flag 0, по часовой — 1
+                const d = `M ${C} ${C} L ${p0.x} ${p0.y} A ${R} ${R} 0 0 ${quarterFill.dir > 0 ? 0 : 1} ${p1.x} ${p1.y} Z`
+                return (
+                    <motion.path key={quarterFill.key} d={d} fill={hexToRgba(quarterFill.color, 0.38)}
+                        initial={{ opacity: 0 }} animate={{ opacity: [0, 1, 1, 0.35] }} transition={{ duration: 1.8, times: [0, 0.25, 0.7, 1] }} />
+                )
+            })()}
             {arcs.map((arc) => (
                 <motion.path key={`s-${arc.key}`} d={`M ${C} ${C} L ${pt(0).x} ${pt(0).y} ${arcPath(arc.to).replace(/^M [^A]+/, '')} Z`}
                     fill={hexToRgba(arc.color, 0.14)} initial={{ opacity: 0 }} animate={{ opacity: Math.abs(arc.to) < 2 * PI - 1e-6 ? 1 : 0.6 }} transition={{ duration: 0.6, delay: 0.5 }} />
@@ -1098,7 +1109,8 @@ const StepWalk = ({ count, dir, onDone }: { count: number; dir: 1 | -1; onDone: 
     }))
     return (
         <div className="w-full flex flex-col items-center gap-1">
-            <div className="relative w-full">
+            {/* Обёртка ровно по размеру окружности: подпись π/2 считается в % от неё, а не от всей ширины блока */}
+            <div className="relative w-full max-w-[360px] mx-auto">
             {/* Крупно дробью: числитель «kπ» (k — с bounce), знаменатель 2. Стоит в
                 пустом левом верхнем углу картинки — места по высоте не занимает. */}
             <div className="absolute left-1 top-0 z-10 flex items-center gap-1 text-4xl font-black" style={{ color }}>
@@ -1114,7 +1126,8 @@ const StepWalk = ({ count, dir, onDone }: { count: number; dir: 1 | -1; onDone: 
                     </>
                 )}
             </div>
-            <CircleCanvas house segments={segments} walker={(dir * steps * PI) / 2} hintArrow={steps === 0 ? dir : null} />
+            <CircleCanvas house segments={segments} walker={(dir * steps * PI) / 2} hintArrow={steps === 0 ? dir : null}
+                quarterFill={steps > 0 ? { a0: (dir * (steps - 1) * PI) / 2, a1: (dir * steps * PI) / 2, dir, color, key: `qf${steps}` } : null} />
             {/* Пока ДиКаприо проходит четверть — в ней мягко появляется и гаснет «π/2»: один шаг = π/2 */}
             {steps > 0 && (() => {
                 const mid = (dir * (steps - 0.5) * PI) / 2
