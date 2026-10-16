@@ -14207,3 +14207,15 @@ cloudflare-worker/anthropic-proxy.js --name anthropic-proxy --compatibility-date
 `lib/photoTmp.ts` в `scripts/` без строки `import 'server-only'`, вызвать `runPhotoTask(base64, 'image/jpeg')`
 через `npx tsx` на сервере (там ключ и прокси), потом удалить временные файлы. Последние запросы учеников —
 таблица `photo_task_requests` (model, lesson_ids, bonus_lesson_ids, missing_topics, error).
+
+## Меню навигации без цветов юнитов, «Билд на задачу» в премиальном стиле (2026-10-16)
+- Шторка навигации по юнитам (/trainer, `trainer-grade-tree.tsx`) и разделам (/learn, `learn-unit-nav.tsx`) — общий
+  нейтральный вид `components/nav-sheet-ui.tsx` (`navItemStyle`, `NavProgress`, `NAV_SHEET_CLASS`): «стеклянные» плитки,
+  текущий пункт — серебристая рамка и свечение, прогресс — тонкая полоска. Цвета юнитов остаются только на самой карте
+  тренажёра (там это «новый уровень») и на кнопке в шапке.
+- **Правило: объёмные кнопки, под которыми есть контент, — не `border-b-4 active:border-b-2`** (при нажатии высота
+  уменьшается на 2px и всё ниже прыгает), а нижняя грань через `boxShadow: 0 4px 0 …` + `active:translate-y-[4px]`.
+  Так переделаны кнопка «Билд на задачу» на /trainer и кнопки страницы /photo-task.
+- /photo-task: свечения фона, иконка-эмблема с пульсом, заголовок с градиентом, «Сегодня ●●● N из 3», рамка фото с
+  полосой сканера (`.animate-photo-scan`), «Босс»/«Твой билд»/«Бонусный лут» стеклянными карточками, уроки въезжают по
+  очереди. Блик карточек — общий класс `.shine-sweep` (globals.css, только transform).
