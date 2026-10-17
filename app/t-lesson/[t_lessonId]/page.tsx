@@ -1015,7 +1015,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             };
         }
 
-        if (t_challenge.type === 'TRIGSCWALK' || t_challenge.type === 'TRIGTGWALK' || t_challenge.type === 'TRIGCIRCWALK' || t_challenge.type === 'REDFORMWALK' || t_challenge.type === 'TRIGANSWALK' || t_challenge.type === 'VIETAWALK' || t_challenge.type === 'CIRCLEWALK' || t_challenge.type === 'AREA6WALK' || t_challenge.type === 'POWWALK') {
+        if (t_challenge.type === 'TRIGSCWALK' || t_challenge.type === 'TRIGTGWALK' || t_challenge.type === 'TRIGCIRCWALK' || t_challenge.type === 'REDFORMWALK' || t_challenge.type === 'TRIGANSWALK' || t_challenge.type === 'VIETAWALK' || t_challenge.type === 'CIRCLEWALK' || t_challenge.type === 'AREA6WALK' || t_challenge.type === 'POWWALK' || t_challenge.type === 'SECTWALK') {
             // Разборы «Таблица 30°, 45°, 60°» — самодостаточные, см. type-trigvalwalk.tsx.
             return {
                 questionType: t_challenge.type,
