@@ -23,6 +23,7 @@ export const T_TRIG_TRIANGLE = 14 // Геометрия: sin, cos, tg
 export const T_REDUCTION = 33 // Формулы приведения
 export const T_TRIG_ANSWER = 15 // Как записать ответ
 export const T_LOG = 16 // 8 свойств логарифмов
+export const T_POW = 40 // Степени и корни
 export const T_VIETA = 31 // Теорема Виета
 export const T_PLAN_CIRCLE = 36 // Планиметрия: Окружность
 export const T_PLAN_TRIANGLE = 37 // Планиметрия: Треугольник
@@ -68,6 +69,7 @@ export const TASK_PREREQS: Record<number, Prereq[]> = {
 
 // Темы тренажёра тоже идут по порядку
 export const TOPIC_PREREQS: Record<number, Prereq[]> = {
+    [T_LOG]: [{ tUnit: T_POW }], // логарифм — это показатель степени: log₂8 = 3, потому что 2³ = 8
     [T_REDUCTION]: [{ tUnit: T_CIRCLE }], // приведение крутит точку по окружности
     [T_TRIG_ANSWER]: [{ tUnit: T_CIRCLE }], // серии корней записываются по окружности
     [T_TRIG_TRIANGLE]: [{ tUnit: T_CIRCLE }], // sin/cos угла сначала знакомим на окружности
