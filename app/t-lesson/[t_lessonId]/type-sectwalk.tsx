@@ -59,6 +59,9 @@ const V: Record<string, V3> = {
 }
 const EDGES: [string, string][] = [['a', 'b'], ['b', 'c'], ['c', 'd'], ['d', 'a'], ['a1', 'b1'], ['b1', 'c1'], ['c1', 'd1'], ['d1', 'a1'], ['a', 'a1'], ['b', 'b1'], ['c', 'c1'], ['d', 'd1']]
 const hidden = (a: string, b: string) => a === 'b' || b === 'b'
+// Насколько бледнеют рёбра других граней, когда подсвечиваем одну (просьба пользователя: заметно бледнее)
+const DIM_EDGE = 0.1
+const DIM_HIDDEN = 0.07
 
 type Face = 'ceiling' | 'floor' | 'front' | 'back' | 'left' | 'right'
 const FACE_POLY: Record<Face, string[]> = {
@@ -136,7 +139,7 @@ const CubeSvg = ({ drawIn = false, faces = [], points = [], segs = [], selected 
                         <motion.line key={a + b} x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke={EDGE} strokeWidth={hidden(a, b) ? 2 : 3} strokeLinecap="round"
                             strokeDasharray={hidden(a, b) ? '6 6' : undefined}
                             initial={drawIn ? (hidden(a, b) ? { opacity: 0 } : { pathLength: 0 }) : false}
-                            animate={hidden(a, b) ? { opacity: dim ? 0.18 : 0.6 } : { pathLength: 1, opacity: dim ? 0.22 : 1 }}
+                            animate={hidden(a, b) ? { opacity: dim ? DIM_HIDDEN : 0.6 } : { pathLength: 1, opacity: dim ? DIM_EDGE : 1 }}
                             transition={{ duration: 0.35, delay: drawIn ? i * 0.09 : 0, ease: 'easeOut' }} />
                     )
                 })}
@@ -408,7 +411,8 @@ const Rule1TryScene = ({ onSettled, onMistake }: SceneProps) => {
             {active && stage >= 5 && <LocalAnswerConfetti />}
             {active && stage >= 6 && round === 0 && (
                 <motion.div className="w-full flex" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                    <button type="button" onClick={nextRound} className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>
+                    {/* «…на передней стене» длинное — шрифт поменьше, чтобы влезло в кнопку на телефоне */}
+                    <button type="button" onClick={nextRound} className={walkthroughButtonClass(true)} style={{ ...walkthroughButtonStyle(true), fontSize: 15 }}>
                         Готово. Соединили {FACE_ON[active]}
                     </button>
                 </motion.div>
