@@ -418,32 +418,47 @@ const Rule1TryScene = ({ onSettled, onMistake }: SceneProps) => {
 }
 
 // ===== Сцена 5: правило 2 — параллельная линия на полу =====
-// Пунктирная копия линии с потолка съезжает вниз так, что её начало попадает в точку на полу.
+// Строго по шагам: куб рисуется → потолок с отскоком → пол с отскоком → «Потолок и пол параллельны.» →
+// только потолок (остальные рёбра бледные), «На потолке есть линия.» → линия жирно выделяется →
+// пунктирная копия съезжает на пол через точку → линия на полу → новая точка на ребре.
 const Rule2Scene = ({ onSettled }: SceneProps) => {
     const { phase, go } = usePhaseState()
-    useChain({ 1: 900, 2: 1700, 3: 900, 4: 700 }, phase, go)
+    useChain({ 1: 750, 2: 900, 5: 1300, 6: 1700, 7: 900, 8: 700 }, phase, go)
     const M = P(PT.M), N = P(PT.N), K = P(PT.K)
     const dx = K.x - M.x, dy = K.y - M.y
-    const faces: FaceHL[] = phase >= 1 && phase < 5 ? [{ face: 'ceiling', color: FACE_COLOR }, { face: 'floor', color: FACE_COLOR }] : []
+    const faces: FaceHL[] = phase === 1 ? [{ face: 'ceiling', color: FACE_COLOR }]
+        : phase === 2 || phase === 3 ? [{ face: 'ceiling', color: FACE_COLOR }, { face: 'floor', color: FACE_COLOR }]
+            : phase === 4 || phase === 5 ? [{ face: 'ceiling', color: FACE_COLOR }]
+                : phase >= 6 && phase < 9 ? [{ face: 'ceiling', color: FACE_COLOR }, { face: 'floor', color: FACE_COLOR }] : []
     return (
         <>
             <RememberPlate title="ПРАВИЛО 2">
                 <div className="text-center font-black text-lg md:text-xl text-[#F2F7FB]">
-                    Потолок <span style={{ color: FACE_COLOR }}>параллелен</span> полу — линии на них <span style={{ color: SECT_COLOR }}>параллельны</span>
+                    Потолок и пол <span style={{ color: FACE_COLOR }}>параллельны!</span> — значит и линии на них <span style={{ color: SECT_COLOR }}>параллельны</span>
                 </div>
             </RememberPlate>
-            <TypedBig small text="Переносим линию с потолка на пол через точку на полу" onDone={() => go(1)} />
-            <CubeSvg faces={faces} points={phase >= 4 ? ['M', 'N', 'K', 'L'] : ['M', 'N', 'K']}
-                segs={[{ id: 'MN', a: 'M', b: 'N', color: SECT_COLOR, instant: true }, { id: 'MK', a: 'M', b: 'K', color: SECT_COLOR, instant: true },
-                    ...(phase >= 3 ? [{ id: 'KL', a: 'K' as PtKey, b: 'L' as PtKey, color: SECT_COLOR }] : [])]}
-                glowPts={phase === 4 ? ['L'] : []}>
-                {phase >= 2 && phase < 4 && (
-                    <motion.g initial={{ x: 0, y: 0, opacity: 0 }} animate={{ x: dx, y: dy, opacity: [0, 1, 1, 0.9] }} transition={{ duration: 1.4, ease: 'easeInOut' }}>
-                        <line x1={M.x} y1={M.y} x2={N.x} y2={N.y} stroke={SECT_COLOR} strokeWidth={3} strokeDasharray="7 6" strokeLinecap="round" />
-                    </motion.g>
-                )}
-            </CubeSvg>
-            {phase >= 5 && <TypedBig small text="Линия упёрлась в ребро: тут новая точка 📍" onDone={() => onSettled?.()} />}
+            <DiagramBlock onSettled={() => setTimeout(() => go(1), 1300)}>
+                <CubeSvg drawIn faces={faces} bounceFaces dimExcept={phase === 4 || phase === 5 ? 'ceiling' : null}
+                    points={phase >= 8 ? ['M', 'N', 'K', 'L'] : ['M', 'N', 'K']}
+                    segs={[{ id: 'MN', a: 'M', b: 'N', color: SECT_COLOR, instant: true }, { id: 'MK', a: 'M', b: 'K', color: SECT_COLOR, instant: true },
+                        ...(phase >= 7 ? [{ id: 'KL', a: 'K' as PtKey, b: 'L' as PtKey, color: SECT_COLOR }] : [])]}
+                    glowPts={phase === 8 ? ['L'] : []}>
+                    {phase === 5 && (
+                        // жирное выделение линии на потолке
+                        <motion.line x1={M.x} y1={M.y} x2={N.x} y2={N.y} stroke={SECT_COLOR} strokeLinecap="round"
+                            initial={{ strokeWidth: 5, opacity: 0.5 }} animate={{ strokeWidth: [5, 15, 11], opacity: [0.5, 0.95, 0.75] }}
+                            transition={{ duration: 0.9, ease: 'easeOut' }} />
+                    )}
+                    {phase === 6 && (
+                        <motion.g initial={{ x: 0, y: 0, opacity: 0 }} animate={{ x: dx, y: dy, opacity: [0, 1, 1, 0.9] }} transition={{ duration: 1.4, ease: 'easeInOut' }}>
+                            <line x1={M.x} y1={M.y} x2={N.x} y2={N.y} stroke={SECT_COLOR} strokeWidth={3} strokeDasharray="7 6" strokeLinecap="round" />
+                        </motion.g>
+                    )}
+                </CubeSvg>
+            </DiagramBlock>
+            {phase >= 3 && <TypedBig small text="Потолок и пол параллельны." onDone={() => go(4)} />}
+            {phase >= 4 && <TypedBig small text="На потолке есть линия." onDone={() => go(5)} />}
+            {phase >= 9 && <TypedBig small text="Линия упёрлась в ребро: тут новая точка 📍" onDone={() => onSettled?.()} />}
         </>
     )
 }
