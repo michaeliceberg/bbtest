@@ -27,6 +27,8 @@ export const T_VIETA = 31 // Теорема Виета
 export const T_PLAN_CIRCLE = 36 // Планиметрия: Окружность
 export const T_PLAN_TRIANGLE = 37 // Планиметрия: Треугольник
 export const T_TTP = 35 // Теорема о трёх перпендикулярах
+export const T_LINE_PLANE = 38 // Угол между прямой и плоскостью
+export const T_POINT_PLANE = 39 // Расстояние от точки до плоскости
 
 export const TASK_PREREQS: Record<number, Prereq[]> = {
     // №1 планиметрия: углы в окружности, площади треугольника и sin/cos в прямоугольном — её база
@@ -69,6 +71,8 @@ export const TOPIC_PREREQS: Record<number, Prereq[]> = {
     [T_REDUCTION]: [{ tUnit: T_CIRCLE }], // приведение крутит точку по окружности
     [T_TRIG_ANSWER]: [{ tUnit: T_CIRCLE }], // серии корней записываются по окружности
     [T_TRIG_TRIANGLE]: [{ tUnit: T_CIRCLE }], // sin/cos угла сначала знакомим на окружности
+    [T_LINE_PLANE]: [{ tUnit: T_TTP }], // угол с плоскостью = угол с проекцией, проекцию строим через ТТП
+    [T_POINT_PLANE]: [{ tUnit: T_TTP }], // перпендикуляр к плоскости — та же конструкция
 }
 
 // Все темы тренажёра, встречающиеся в графе (их статистику нужно загрузить)
