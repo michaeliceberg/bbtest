@@ -1,14 +1,16 @@
 'use client'
 
 // «Стереометрия» → «Сечение» → «Кубик» (SECTWALK). Сечение куба через три точки — без букв у вершин:
-// кубик — это комната, у неё потолок, пол и четыре стенки.
-//   0. Куб рисуется, «Представь, что кубик — это комната 🏠», грани по очереди подсвечиваются с подписью.
-//   1. Тест «Кликни на …» по всем шести граням (тап засчитывается грани, чей центр на рисунке ближе всего).
-//   2. Две точки на потолке, одна на полу, «Как провести сечение через эти три точки?».
-//   3. ПРАВИЛО 1: две точки на одной стенке — соединяем (точки на потолке).
-//   4. ПРАВИЛО 2: потолок ∥ полу — на полу через точку проводим линию, параллельную линии на потолке
-//      (пунктирная копия линии с потолка «съезжает» на пол). Линия упирается в ребро — там новая точка.
-//   5. «Замкни сечение»: ученик сам соединяет пары точек на одной стенке (правая и передняя), сечение заливается.
+// куб — это комната, у неё потолок, пол и четыре стены (слово «стенка» не используем — просьба пользователя).
+//   0. Печать «Представь, что куб — это комната 🏠» → куб рисуется → «У комнаты есть потолок, пол и четыре стены» →
+//      пауза 2 с → стены по очереди подсвечиваются с подписью.
+//   1. Тест «Кликни на …» по всем шести стенам (тап засчитывается стене, чей центр на рисунке ближе), ответ «Передняя 👍».
+//   2. Две точки на потолке, одна на полу, «Задача: провести сечение через эти три точки».
+//   3. ПРАВИЛО 1 отдельной плашкой, без куба.
+//   4. «Есть ли сейчас плоскость с двумя точками?» — выбор из 6 стен (верно: потолок и передняя). Выбрал → стена с отскоком,
+//      остальные рёбра бледнеют, две точки по очереди «выпрыгивают», пауза, линия; потом «Есть ли ещё…» — вторая стена.
+//   5. ПРАВИЛО 2: потолок ∥ полу — пунктирная копия линии с потолка съезжает на пол через точку; упирается в ребро — новая точка.
+//   6. «Замкни сечение»: ученик сам соединяет две точки на правой стене, сечение заливается.
 //
 // Координаты: единичный куб, x вправо, y вглубь, z вверх. Проекция «как в учебнике»: передняя грань — квадрат,
 // глубина уходит вправо-вверх под 45° с коэффициентом 0.5 (как CubeFig в type-ttpwalk.tsx).
@@ -41,7 +43,7 @@ type Props = {
 type SceneProps = { onSettled?: () => void; onMistake?: () => void }
 
 const SECT_COLOR = GGEGE_PALETTE.purple.button // сечение и его точки — «то, что ищем»
-const FACE_COLOR = GGEGE_PALETTE.teal.button // подсвеченная стенка
+const FACE_COLOR = GGEGE_PALETTE.teal.button // подсвеченная стена
 const EDGE = '#C9D3D9'
 const MUTED = '#9AA7B0'
 const OK_COLOR = '#A1D151'
@@ -67,8 +69,12 @@ const FACE_POLY: Record<Face, string[]> = {
 const FACE_CENTER: Record<Face, V3> = {
     ceiling: [0.5, 0.5, 1], floor: [0.5, 0.5, 0], front: [0.5, 0, 0.5], back: [0.5, 1, 0.5], left: [0, 0.5, 0.5], right: [1, 0.5, 0.5],
 }
-const FACE_NAME: Record<Face, string> = { ceiling: 'потолок', floor: 'пол', front: 'передняя стенка', back: 'задняя стенка', left: 'левая стенка', right: 'правая стенка' }
-const FACE_ACC: Record<Face, string> = { ceiling: 'потолок', floor: 'пол', front: 'переднюю стенку', back: 'заднюю стенку', left: 'левую стенку', right: 'правую стенку' }
+const FACE_NAME: Record<Face, string> = { ceiling: 'потолок', floor: 'пол', front: 'передняя стена', back: 'задняя стена', left: 'левая стена', right: 'правая стена' }
+// коротко — для кнопок и подтверждений «Передняя 👍»
+const FACE_SHORT: Record<Face, string> = { ceiling: 'Потолок', floor: 'Пол', front: 'Передняя', back: 'Задняя', left: 'Левая', right: 'Правая' }
+// «на потолке», «на передней стене»
+const FACE_ON: Record<Face, string> = { ceiling: 'на потолке', floor: 'на полу', front: 'на передней стене', back: 'на задней стене', left: 'на левой стене', right: 'на правой стене' }
+const FACE_ACC: Record<Face, string> = { ceiling: 'потолок', floor: 'пол', front: 'переднюю стену', back: 'заднюю стену', left: 'левую стену', right: 'правую стену' }
 const FACE_INTRO_ORDER: Face[] = ['ceiling', 'floor', 'left', 'right', 'front', 'back']
 const FACE_TEST_ORDER: Face[] = ['ceiling', 'floor', 'front', 'back', 'left', 'right']
 
@@ -89,8 +95,11 @@ const polyPts = (keys: PtKey[]) => keys.map((k) => { const p = P(PT[k]); return 
 type Seg = { id: string; a: PtKey; b: PtKey; color: string; dash?: string; instant?: boolean }
 type FaceHL = { face: Face; color: string; label?: string }
 
-const CubeSvg = ({ drawIn = false, faces = [], points = [], segs = [], selected = null, glowPts = [], fill = false, onFace, onPoint, children }: {
+const CubeSvg = ({ drawIn = false, faces = [], points = [], segs = [], selected = null, glowPts = [], fill = false, onFace, onPoint, children, dimExcept = null, bounceFaces = false, popKey = {} }: {
     drawIn?: boolean; faces?: FaceHL[]; points?: PtKey[]; segs?: Seg[]; selected?: PtKey | null; glowPts?: PtKey[]; fill?: boolean
+    // dimExcept — рёбра, не принадлежащие этой стене, бледнеют; bounceFaces — подсветка стены появляется с отскоком;
+    // popKey — смена числа заново «выпрыгивает» точку
+    dimExcept?: Face | null; bounceFaces?: boolean; popKey?: Partial<Record<PtKey, number>>
     onFace?: (f: Face) => void; onPoint?: (k: PtKey) => void; children?: React.ReactNode
 }) => {
     const ref = useRef<SVGSVGElement>(null)
@@ -117,15 +126,17 @@ const CubeSvg = ({ drawIn = false, faces = [], points = [], segs = [], selected 
                 )}
                 {faces.map((h) => (
                     <motion.polygon key={`${h.face}-${h.color}`} points={poly(FACE_POLY[h.face])} fill={hexToRgba(h.color, 0.28)} stroke={h.color} strokeWidth={2.5}
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }} />
+                        initial={bounceFaces ? { opacity: 0, scale: 0.55 } : { opacity: 0 }} animate={{ opacity: 1, scale: 1 }}
+                        transition={bounceFaces ? { type: 'spring', stiffness: 340, damping: 11 } : { duration: 0.4 }} />
                 ))}
                 {EDGES.map(([a, b], i) => {
                     const A = P(V[a]), B = P(V[b])
+                    const dim = dimExcept !== null && !(FACE_POLY[dimExcept].includes(a) && FACE_POLY[dimExcept].includes(b))
                     return (
                         <motion.line key={a + b} x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke={EDGE} strokeWidth={hidden(a, b) ? 2 : 3} strokeLinecap="round"
                             strokeDasharray={hidden(a, b) ? '6 6' : undefined}
                             initial={drawIn ? (hidden(a, b) ? { opacity: 0 } : { pathLength: 0 }) : false}
-                            animate={hidden(a, b) ? { opacity: 0.6 } : { pathLength: 1 }}
+                            animate={hidden(a, b) ? { opacity: dim ? 0.18 : 0.6 } : { pathLength: 1, opacity: dim ? 0.22 : 1 }}
                             transition={{ duration: 0.35, delay: drawIn ? i * 0.09 : 0, ease: 'easeOut' }} />
                     )
                 })}
@@ -157,11 +168,11 @@ const CubeSvg = ({ drawIn = false, faces = [], points = [], segs = [], selected 
                     const p = P(PT[k])
                     const sel = selected === k
                     return (
-                        <g key={k} transform={`translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`}
+                        <g key={`${k}-${popKey[k] ?? 0}`} transform={`translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`}
                             onClick={onPoint ? (e) => { e.stopPropagation(); onPoint(k) } : undefined} style={onPoint ? { cursor: 'pointer' } : undefined}>
                             <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 10 }}>
                                 {(sel || glowPts.includes(k)) && <circle r={16} fill={hexToRgba(SECT_COLOR, 0.32)} />}
-                                <circle r={7.5} fill={SECT_COLOR} stroke="#161F23" strokeWidth={2.5} />
+                                <circle r={7.5} fill={SECT_COLOR} stroke="#F2F7FB" strokeWidth={2.5} />
                                 {onPoint && <circle r={24} fill="transparent" />}
                             </motion.g>
                         </g>
@@ -191,12 +202,31 @@ const GameHeader = ({ title }: { title: string }) => (
     </div>
 )
 
-// ===== Сцена 0: кубик — это комната =====
-const RoomScene = ({ onSettled }: SceneProps) => {
+// Шаги по таймеру: каждая фаза ставит только свой таймер (cleanup эффекта отменил бы таймер «на две фазы вперёд»).
+function useChain(steps: Record<number, number>, phase: number, go: (n: number) => void, onEnd?: Record<number, () => void>) {
+    useEffect(() => {
+        if (onEnd?.[phase]) onEnd[phase]()
+        const ms = steps[phase]
+        if (ms === undefined) return
+        const t = setTimeout(() => go(phase + 1), ms)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phase])
+}
+const usePhaseState = () => {
     const [phase, setPhase] = useState(0)
+    const go = (n: number) => setPhase((p) => Math.max(p, n))
+    return { phase, go }
+}
+
+// ===== Сцена 0: кубик — это комната =====
+// печать → куб рисуется → печать «у комнаты есть…» → пауза 2 с → стены по очереди с подписью
+const RoomScene = ({ onSettled }: SceneProps) => {
+    const { phase, go } = usePhaseState()
     const [shown, setShown] = useState(-1)
     useEffect(() => {
-        if (phase !== 2) return
+        if (phase === 3) { const t = setTimeout(() => go(4), 2000); return () => clearTimeout(t) }
+        if (phase !== 4) return
         let i = 0
         setShown(0)
         const id = setInterval(() => {
@@ -210,17 +240,13 @@ const RoomScene = ({ onSettled }: SceneProps) => {
     const cur = shown >= 0 ? FACE_INTRO_ORDER[shown] : null
     return (
         <>
-            <TypedBig text="Представь, что кубик — это комната 🏠" onDone={() => setPhase(1)} />
+            <TypedBig text="Представь, что куб — это комната 🏠" onDone={() => go(1)} />
             {phase >= 1 && (
-                <DiagramBlock onSettled={() => setTimeout(() => setPhase(2), 1400)}>
+                <DiagramBlock onSettled={() => setTimeout(() => go(2), 1400)}>
                     <CubeSvg drawIn faces={cur ? [{ face: cur, color: FACE_COLOR, label: FACE_NAME[cur] }] : []} />
                 </DiagramBlock>
             )}
-            {phase >= 2 && (
-                <motion.p className="text-center text-base md:text-lg font-bold" style={{ color: MUTED }} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                    У комнаты есть <b className="text-[#F2F7FB]">потолок</b>, <b className="text-[#F2F7FB]">пол</b> и четыре стенки: левая, правая, передняя и задняя
-                </motion.p>
-            )}
+            {phase >= 2 && <TypedBig small text="У комнаты есть потолок, пол и четыре стены" onDone={() => go(3)} readMs={0} />}
         </>
     )
 }
@@ -239,7 +265,7 @@ const WallTestScene = ({ onSettled, onMistake }: SceneProps) => {
         if (f === target) {
             showAnswerMeme(true)
             setHl({ face: f, color: OK_COLOR, label: FACE_NAME[f] })
-            setMsg({ ok: true, text: 'Да, правильно! ✅' })
+            setMsg({ ok: true, text: `${FACE_SHORT[f]} 👍` })
             setLocked(true)
             setTimeout(() => {
                 setLocked(false); setHl(null); setMsg(null)
@@ -254,7 +280,7 @@ const WallTestScene = ({ onSettled, onMistake }: SceneProps) => {
     }
     return (
         <>
-            <GameHeader title="Тест: стенки комнаты" />
+            <GameHeader title="Тест: стены комнаты" />
             <div className="relative w-full flex items-center justify-center min-h-9">
                 <motion.div key={`cnt-${qi}`} initial={qi === 0 ? false : { scale: 1.8 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 10 }}
                     className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
@@ -262,7 +288,7 @@ const WallTestScene = ({ onSettled, onMistake }: SceneProps) => {
                     <span>{Math.min(qi + 1, FACE_TEST_ORDER.length)}</span><span className="opacity-50 font-normal">/</span><span>{FACE_TEST_ORDER.length}</span>
                 </motion.div>
                 <p className="text-xl md:text-2xl font-black text-[#F2F7FB] text-center px-16">
-                    {done ? 'Все стенки найдены 🎉' : <Typewriter key={`q-${qi}`} text={`Кликни на ${FACE_ACC[target]}`} onDone={() => setTyped(true)} />}
+                    {done ? 'Все стены найдены 🎉' : <Typewriter key={`q-${qi}`} text={`Кликни на ${FACE_ACC[target]}`} onDone={() => setTyped(true)} />}
                 </p>
             </div>
             <CubeSvg faces={hl ? [hl] : []} onFace={done ? undefined : tap} />
@@ -274,66 +300,131 @@ const WallTestScene = ({ onSettled, onMistake }: SceneProps) => {
 
 // ===== Сцена 2: точки =====
 const PointsScene = ({ onSettled }: SceneProps) => {
-    const [phase, setPhase] = useState(0)
-    const go = (n: number) => setPhase((p) => Math.max(p, n))
-    useEffect(() => {
-        const timers: ReturnType<typeof setTimeout>[] = []
-        // каждая фаза ставит свой таймер: cleanup эффекта отменил бы таймер, поставленный «на две фазы вперёд»
-        if (phase === 1) timers.push(setTimeout(() => go(2), 600))
-        if (phase === 2) timers.push(setTimeout(() => go(3), 600))
-        if (phase === 5) timers.push(setTimeout(() => go(6), 700))
-        return () => timers.forEach(clearTimeout)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [phase])
+    const { phase, go } = usePhaseState()
+    useChain({ 1: 600, 2: 600, 5: 700 }, phase, go)
     const points: PtKey[] = [...(phase >= 2 ? ['M' as PtKey] : []), ...(phase >= 3 ? ['N' as PtKey] : []), ...(phase >= 6 ? ['K' as PtKey] : [])]
     const faces: FaceHL[] = phase >= 1 && phase < 4 ? [{ face: 'ceiling', color: FACE_COLOR }] : phase >= 5 && phase < 7 ? [{ face: 'floor', color: FACE_COLOR }] : []
     return (
         <>
-            <TypedBig small text="Поставим две точки на потолок" onDone={() => go(1)} />
+            <TypedBig small text="Поставим две точки на потолке" onDone={() => go(1)} />
             <CubeSvg faces={faces} points={points} />
-            {phase >= 3 && <TypedBig small text="и одну точку на пол" onDone={() => go(5)} />}
-            {phase >= 6 && <TypedBig text="Как провести сечение через эти три точки?" onDone={() => { go(7); onSettled?.() }} />}
+            {phase >= 3 && <TypedBig small text="и одну точку на полу" onDone={() => go(5)} />}
+            {phase >= 6 && <TypedBig text="Задача: провести сечение через эти три точки" onDone={() => { go(7); onSettled?.() }} />}
         </>
     )
 }
 
-// ===== Сцена 3: правило 1 =====
-const Rule1Scene = ({ onSettled }: SceneProps) => {
-    const [phase, setPhase] = useState(0)
-    const go = (n: number) => setPhase((p) => Math.max(p, n))
+// ===== Сцена 3: правило 1 — отдельно, без куба =====
+const Rule1PlateScene = ({ onSettled }: SceneProps) => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => { const t = setTimeout(() => onSettled?.(), 1400); return () => clearTimeout(t) }, [])
+    return (
+        <RememberPlate title="ПРАВИЛО 1">
+            <div className="text-center font-black text-lg md:text-xl text-[#F2F7FB]">
+                Если нашли две точки в <span style={{ color: FACE_COLOR }}>одной плоскости</span> — сразу соединяем
+            </div>
+        </RememberPlate>
+    )
+}
+
+// ===== Сцена 4: пробуем правило 1 — «Есть ли плоскость с двумя точками?» =====
+// Подходят потолок и передняя стена. Выбрал стену → она с отскоком подсвечивается, остальные рёбра бледнеют,
+// две её точки по очереди «выпрыгивают», пауза 1 с, линия. Два раунда — по одному на каждую стену.
+const PAIR_FACES: Face[] = ['ceiling', 'front']
+const SEG_OF: Partial<Record<Face, Seg>> = {
+    ceiling: { id: 'MN', a: 'M', b: 'N', color: SECT_COLOR },
+    front: { id: 'MK', a: 'M', b: 'K', color: SECT_COLOR },
+}
+const PTS_ON = (f: Face) => (Object.keys(FACES_OF) as PtKey[]).filter((k) => k !== 'L' && FACES_OF[k].includes(f))
+const OPTION_ORDER: Face[] = ['ceiling', 'floor', 'left', 'right', 'front', 'back']
+
+const Rule1TryScene = ({ onSettled, onMistake }: SceneProps) => {
+    const [ready, setReady] = useState(false) // пауза 1 с после куба
+    const [round, setRound] = useState(0)
+    const [typed, setTyped] = useState(false)
+    const [done, setDone] = useState<Face[]>([])
+    const [active, setActive] = useState<Face | null>(null)
+    const [stage, setStage] = useState(0) // 1 стена, 2 бледные рёбра, 3 первая точка, 4 вторая, 5 линия, 6 кнопка
+    const [wrong, setWrong] = useState<Face[]>([])
+    const [flash, setFlash] = useState<string | null>(null)
+    const [popKey, setPopKey] = useState<Partial<Record<PtKey, number>>>({})
     useEffect(() => {
-        if (phase === 1) { const t = setTimeout(() => go(2), 1100); return () => clearTimeout(t) }
+        if (!active) return
+        const delays: Record<number, number> = { 1: 700, 2: 600, 3: 550, 4: 1000, 5: 900 }
+        const ms = delays[stage]
+        if (ms === undefined) return
+        const t = setTimeout(() => {
+            const next = stage + 1
+            const pts = PTS_ON(active)
+            if (next === 3) setPopKey((p) => ({ ...p, [pts[0]]: (p[pts[0]] ?? 0) + 1 }))
+            if (next === 4) setPopKey((p) => ({ ...p, [pts[1]]: (p[pts[1]] ?? 0) + 1 }))
+            setStage(next)
+            if (next === 6 && round === 1) onSettled?.()
+        }, ms)
+        return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [phase])
+    }, [stage, active])
+    const pick = (f: Face) => {
+        if (!typed || active || wrong.includes(f) || done.includes(f)) return
+        if (PAIR_FACES.includes(f)) {
+            showAnswerMeme(true); setFlash(null)
+            setActive(f); setStage(1)
+            return
+        }
+        playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false); onMistake?.()
+        setWrong((w) => [...w, f])
+        const n = PTS_ON(f).length
+        setFlash(`${pickWrongTryPhrase()} ${FACE_ON[f][0].toUpperCase()}${FACE_ON[f].slice(1)} ${n === 0 ? 'нет ни одной точки' : 'только одна точка'}`)
+    }
+    const nextRound = () => {
+        if (!active) return
+        setDone((d) => [...d, active]); setActive(null); setStage(0); setWrong([]); setFlash(null); setTyped(false); setRound(1)
+    }
+    const segs: Seg[] = [...done.map((f) => ({ ...SEG_OF[f]!, instant: true })), ...(active && stage >= 5 ? [SEG_OF[active]!] : [])]
+    const ptsGlow = active && stage >= 3 ? PTS_ON(active).slice(0, stage >= 4 ? 2 : 1) : []
     return (
         <>
-            <RememberPlate title="ПРАВИЛО 1">
-                <div className="text-center font-black text-lg md:text-xl text-[#F2F7FB]">
-                    Две точки на <span style={{ color: FACE_COLOR }}>одной стенке</span> — соединяем
+            <DiagramBlock onSettled={() => setTimeout(() => setReady(true), 1000)}>
+                <CubeSvg points={['M', 'N', 'K']} segs={segs} faces={active && stage >= 1 ? [{ face: active, color: FACE_COLOR }] : []} bounceFaces
+                    dimExcept={active && stage >= 2 ? active : null} glowPts={ptsGlow} popKey={popKey} />
+            </DiagramBlock>
+            {ready && (
+                <TypedBig key={`q-${round}`} small text={round === 0 ? 'Есть ли сейчас плоскость с двумя точками?' : 'Есть ли ещё плоскость с двумя точками?'} onDone={() => setTyped(true)} readMs={0} />
+            )}
+            {ready && typed && !active && (
+                <div key={`opts-${round}`} className="drop-in-options grid grid-cols-3 gap-2 w-full">
+                    {OPTION_ORDER.map((f) => {
+                        const isWrong = wrong.includes(f), used = done.includes(f)
+                        return (
+                            <button key={f} type="button" disabled={isWrong || used} onClick={() => pick(f)}
+                                className={cn('min-h-[52px] rounded-xl border-2 border-b-4 text-base md:text-lg font-black transition-colors px-1',
+                                    isWrong ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]'
+                                        : used ? 'border-[#3A464E] bg-[#161F23] text-[#5C6B73]'
+                                            : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]')}>
+                                {FACE_SHORT[f]}{used ? ' ✓' : ''}
+                            </button>
+                        )
+                    })}
                 </div>
-            </RememberPlate>
-            <TypedBig small text="Обе верхние точки на потолке — соединяем их" onDone={() => go(1)} />
-            <CubeSvg faces={phase >= 1 ? [{ face: 'ceiling', color: FACE_COLOR }] : []} points={['M', 'N', 'K']} glowPts={phase === 1 ? ['M', 'N'] : []}
-                segs={phase >= 2 ? [{ id: 'MN', a: 'M', b: 'N', color: SECT_COLOR }] : []} />
-            {phase >= 2 && <TypedBig small text="Эта линия — уже кусочек сечения ✂️" onDone={() => onSettled?.()} />}
+            )}
+            {flash && !active && <Msg ok={false} text={flash} />}
+            {active && stage >= 5 && <LocalAnswerConfetti />}
+            {active && stage >= 6 && round === 0 && (
+                <motion.div className="w-full flex" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                    <button type="button" onClick={nextRound} className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>
+                        Готово. Соединили {FACE_ON[active]}
+                    </button>
+                </motion.div>
+            )}
         </>
     )
 }
 
-// ===== Сцена 4: правило 2 — параллельная линия на полу =====
+// ===== Сцена 5: правило 2 — параллельная линия на полу =====
 // Пунктирная копия линии с потолка съезжает вниз так, что её начало попадает в точку на полу.
 const Rule2Scene = ({ onSettled }: SceneProps) => {
-    const [phase, setPhase] = useState(0)
-    const go = (n: number) => setPhase((p) => Math.max(p, n))
-    useEffect(() => {
-        const timers: ReturnType<typeof setTimeout>[] = []
-        if (phase === 1) timers.push(setTimeout(() => go(2), 900))
-        if (phase === 2) timers.push(setTimeout(() => go(3), 1700))
-        if (phase === 3) timers.push(setTimeout(() => go(4), 900))
-        if (phase === 4) timers.push(setTimeout(() => go(5), 700))
-        return () => timers.forEach(clearTimeout)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [phase])
+    const { phase, go } = usePhaseState()
+    useChain({ 1: 900, 2: 1700, 3: 900, 4: 700 }, phase, go)
     const M = P(PT.M), N = P(PT.N), K = P(PT.K)
     const dx = K.x - M.x, dy = K.y - M.y
     const faces: FaceHL[] = phase >= 1 && phase < 5 ? [{ face: 'ceiling', color: FACE_COLOR }, { face: 'floor', color: FACE_COLOR }] : []
@@ -346,7 +437,8 @@ const Rule2Scene = ({ onSettled }: SceneProps) => {
             </RememberPlate>
             <TypedBig small text="Переносим линию с потолка на пол через точку на полу" onDone={() => go(1)} />
             <CubeSvg faces={faces} points={phase >= 4 ? ['M', 'N', 'K', 'L'] : ['M', 'N', 'K']}
-                segs={[{ id: 'MN', a: 'M', b: 'N', color: SECT_COLOR, instant: true }, ...(phase >= 3 ? [{ id: 'KL', a: 'K' as PtKey, b: 'L' as PtKey, color: SECT_COLOR }] : [])]}
+                segs={[{ id: 'MN', a: 'M', b: 'N', color: SECT_COLOR, instant: true }, { id: 'MK', a: 'M', b: 'K', color: SECT_COLOR, instant: true },
+                    ...(phase >= 3 ? [{ id: 'KL', a: 'K' as PtKey, b: 'L' as PtKey, color: SECT_COLOR }] : [])]}
                 glowPts={phase === 4 ? ['L'] : []}>
                 {phase >= 2 && phase < 4 && (
                     <motion.g initial={{ x: 0, y: 0, opacity: 0 }} animate={{ x: dx, y: dy, opacity: [0, 1, 1, 0.9] }} transition={{ duration: 1.4, ease: 'easeInOut' }}>
@@ -359,49 +451,47 @@ const Rule2Scene = ({ onSettled }: SceneProps) => {
     )
 }
 
-// ===== Сцена 5: замкни сечение =====
+// ===== Сцена 6: замкни сечение =====
+// Уже есть линии на потолке, передней стене и полу; осталось соединить две точки на правой стене.
 const CloseGameScene = ({ onSettled, onMistake }: SceneProps) => {
     const [typed, setTyped] = useState(false)
     const [sel, setSel] = useState<PtKey | null>(null)
     const [segs, setSegs] = useState<Seg[]>([
         { id: 'MN', a: 'M', b: 'N', color: SECT_COLOR, instant: true },
+        { id: 'KM', a: 'M', b: 'K', color: SECT_COLOR, instant: true },
         { id: 'KL', a: 'K', b: 'L', color: SECT_COLOR, instant: true },
     ])
     const [face, setFace] = useState<FaceHL | null>(null)
     const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
-    const [found, setFound] = useState<string[]>([])
-    const done = found.length >= 2
+    const [done, setDone] = useState(false)
     const tap = (k: PtKey) => {
         if (!typed || done) return
         if (sel === null || sel === k) { setSel(k === sel ? null : k); return }
         const a = sel, b = k
         setSel(null)
         const key = [a, b].sort().join('')
-        if (key === 'MN' || key === 'KL' || found.includes(key)) { setMsg({ ok: false, text: 'Эта линия уже есть 😉' }); return }
+        if (key === 'MN' || key === 'KL' || key === 'KM') { setMsg({ ok: false, text: 'Эта линия уже есть 😉' }); return }
         const f = commonFace(a, b)
         if (f) {
             setFace({ face: f, color: FACE_COLOR })
             setSegs((s) => [...s, { id: key, a, b, color: SECT_COLOR }])
-            const next = [...found, key]
-            setFound(next)
+            setDone(true)
             showAnswerMeme(true)
-            if (next.length >= 2) {
-                setMsg({ ok: true, text: `Обе точки — ${FACE_NAME[f]}. Сечение замкнулось!` })
-                setTimeout(() => { setFace(null); onSettled?.() }, 1800)
-            } else setMsg({ ok: true, text: `Да! Обе точки — ${FACE_NAME[f]}. Осталась ещё одна пара` })
+            setMsg({ ok: true, text: `Обе точки ${FACE_ON[f]}. Сечение замкнулось!` })
+            setTimeout(() => { setFace(null); onSettled?.() }, 1800)
         } else {
             playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false); onMistake?.()
             setFace(null)
             const bad: Seg = { id: `bad-${Date.now()}`, a, b, color: WRONG_COLOR, dash: '7 7' }
             setSegs((s) => [...s, bad])
             setTimeout(() => setSegs((s) => s.filter((x) => x.id !== bad.id)), 1400)
-            setMsg({ ok: false, text: `${pickWrongTryPhrase()} Эти точки на разных стенках — так линия пройдёт сквозь комнату` })
+            setMsg({ ok: false, text: `${pickWrongTryPhrase()} Эти точки на разных стенах — так линия пройдёт сквозь комнату` })
         }
     }
     return (
         <>
             <GameHeader title="Замкни сечение 🔗" />
-            <TypedBig small text="Соедини точки, которые лежат на одной стенке. Тапни их по очереди" onDone={() => setTyped(true)} />
+            <TypedBig small text="Последний шаг: соедини две точки, которые лежат на одной стене" onDone={() => setTyped(true)} />
             <CubeSvg faces={face ? [face] : []} points={['M', 'N', 'K', 'L']} segs={segs} selected={sel} fill={done} onPoint={typed && !done ? tap : undefined} />
             {msg && <Msg ok={msg.ok} text={msg.text} />}
             {done && <LocalAnswerConfetti />}
@@ -410,9 +500,10 @@ const CloseGameScene = ({ onSettled, onMistake }: SceneProps) => {
     )
 }
 
-const SCENES = [RoomScene, WallTestScene, PointsScene, Rule1Scene, Rule2Scene, CloseGameScene]
-const SCENE_MAP_LABELS = ['Кубик — комната', 'Тест: стенки', 'Три точки', 'Правило 1', 'Правило 2', 'Замкни сечение']
-const NEXT_LABELS = ['Понял, это комната', 'Стенки знаю', 'Интересненько 🤔', 'Одна стенка — соединяем', 'Параллельно, понял!', 'Готово']
+const SCENES = [RoomScene, WallTestScene, PointsScene, Rule1PlateScene, Rule1TryScene, Rule2Scene, CloseGameScene]
+const SCENE_MAP_LABELS = ['Куб — комната', 'Тест: стены', 'Три точки', 'Правило 1', 'Пробуем правило 1', 'Правило 2', 'Замкни сечение']
+const PRACTICE_SCENES = new Set<unknown>([WallTestScene, Rule1TryScene, CloseGameScene])
+const NEXT_LABELS = ['Понял, это комната', 'Стены знаю 🧱', 'Интересненько 🤔', 'Давай попробуем 1-ое правило', 'Правило 1 — изи', 'Параллельно, понял!', 'Готово']
 
 export const TypeSectWalk = ({ onAnswer, onComplete, isAdmin = false }: Props & { isAdmin?: boolean }) => {
     const [startStep, setStartStep] = useState(0)
@@ -445,7 +536,7 @@ export const TypeSectWalk = ({ onAnswer, onComplete, isAdmin = false }: Props & 
     }
     const mapEntries: AdminMapEntry[] = SCENE_MAP_LABELS.map((label, i) => ({
         dotKey: `s${i}`, label, jumpKey: `step-${i}`, isActive: step === i,
-        color: SCENES[i] === WallTestScene || SCENES[i] === CloseGameScene ? MAP_PRACTICE_COLOR : MAP_INTRO_COLOR,
+        color: PRACTICE_SCENES.has(SCENES[i]) ? MAP_PRACTICE_COLOR : MAP_INTRO_COLOR,
     }))
 
     return (
