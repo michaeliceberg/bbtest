@@ -864,3 +864,14 @@ body {
   100% { transform: translateY(1000%); }
 }
 .animate-photo-scan { animation: photo-scan 1.6s linear infinite; }
+
+/* Сечение «Кубик» (type-sectwalk.tsx): выбранная точка — пульсирующее кольцо. Только transform/opacity. */
+@keyframes sel-pulse {
+  0%, 100% { transform: scale(0.85); opacity: 0.9; }
+  50% { transform: scale(1.35); opacity: 0.35; }
+}
+.animate-sel-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: sel-pulse 0.9s ease-in-out infinite;
+}
