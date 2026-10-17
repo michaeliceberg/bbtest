@@ -768,7 +768,7 @@ export default function TrainerQuestion({
                 : question.questionType === "AREA6WALK"
                 ? "6 площадей треугольника"
                 : question.questionType === "POWWALK"
-                ? "Что такое степень"
+                ? (/^Степень в степени/i.test(question.question) ? "Степень в степени" : "Что такое степень")
                 : question.questionType === "SINCOSDEFWALK"
                 ? "Синус, косинус и тангенс"
                 : question.questionType !== "WORKBOOK" &&
