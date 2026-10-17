@@ -595,102 +595,216 @@ const BlockGameScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-// Сцена 2 урока 2: «Сокращалка» — 5⁵ : 5². Ученик сам вычёркивает пары «верхняя + нижняя пятёрка».
-const TOP_N = 5, BOT_N = 2
-const CutScene = ({ onSettled }: SceneProps) => {
-    const { phase, go, after } = usePhase()
-    const [shown, setShown] = useState(0)
-    const [selTop, setSelTop] = useState<number | null>(null)
-    const [selBot, setSelBot] = useState<number | null>(null)
-    const [cutTop, setCutTop] = useState<number[]>([])
-    const [cutBot, setCutBot] = useState<number[]>([])
-    const [wrong, setWrong] = useState<(number | string)[]>([])
-    const [flash, setFlash] = useState<string | null>(null)
-    useEffect(() => {
-        if (phase === 2) {
-            let n = 0
-            const id = setInterval(() => { n += 1; setShown(n); if (n >= TOP_N + BOT_N) { clearInterval(id); after(500, 3) } }, 380)
-            return () => clearInterval(id)
-        }
-        if (phase === 6) { const t = setTimeout(() => go(7), 900); return () => clearTimeout(t) }
-        if (phase === 7) { const t = setTimeout(() => go(8), 1000); return () => clearTimeout(t) }
-        if (phase === 8) { const t = setTimeout(() => onSettled?.(), 1400); return () => clearTimeout(t) }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [phase])
-    // Пара выбрана → обе пятёрки вычёркиваются
-    useEffect(() => {
-        if (selTop === null || selBot === null) return
-        const t = selTop, b = selBot
-        setCutTop((c) => [...c, t]); setCutBot((c) => [...c, b]); setSelTop(null); setSelBot(null)
-        showAnswerMeme(true)
-        if (cutBot.length + 1 >= BOT_N) setTimeout(() => go(4), 700)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selTop, selBot])
-    const pick = (v: number | string) => {
-        if (phase !== 5 || wrong.includes(v)) return
-        if (v === 3) { showAnswerMeme(true); setFlash(null); go(6); return }
-        setWrong((w) => [...w, v])
-        setFlash(badTry(v === 7 ? '5 + 2 = 7 — это было бы умножение. Тут мы сократили.' : 'Посчитай невычеркнутые пятёрки сверху.'))
-    }
-    // Функция, а не компонент: компонент, объявленный внутри, пересоздавался бы на каждый рендер и пятёрки прыгали бы заново.
-    const five = (i: number, top: boolean) => {
-        const cut = (top ? cutTop : cutBot).includes(i)
-        const sel = top ? selTop === i : selBot === i
-        const clickable = phase === 3 && !cut
-        return (
-            <motion.button key={`${top ? 't' : 'b'}${i}`} type="button" disabled={!clickable} onClick={() => (top ? setSelTop(i) : setSelBot(i))}
-                className="relative inline-flex items-center justify-center w-10 h-12 md:w-12 md:h-14 rounded-xl border-2 text-2xl md:text-3xl font-black"
-                style={{ color: TEXT, borderColor: sel ? EXP_COLOR : clickable ? '#3A464E' : 'transparent', backgroundColor: sel ? hexToRgba(EXP_COLOR, 0.2) : 'transparent' }}
-                {...bounceIn} animate={{ y: 0, scale: 1, opacity: cut ? 0.28 : 1 }}>
-                5
-                {cut && (
-                    <svg viewBox="0 0 40 40" className="absolute inset-0 w-full h-full overflow-visible pointer-events-none">
-                        <motion.line x1={6} y1={34} x2={34} y2={6} stroke={WRONG_COLOR} strokeWidth={4} strokeLinecap="round"
-                            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.3 }} />
-                    </svg>
-                )}
-            </motion.button>
-        )
-    }
-    const leftTop = TOP_N - cutTop.length
+// «Сокращалка»: ученик сам вычёркивает пары «верхняя + нижняя пятёрка». Один движок на три сцены:
+// 5⁵ : 5² (урок 2), 5² : 5² → 5⁰ = 1 и 5² : 5⁵ → 1/5³ (урок 3).
+type Opt = number | string
+type CutCfg = {
+    intro: string; top: number; bot: number; result: React.ReactNode
+    question: string; options: Opt[]; correct: Opt; render?: (v: Opt) => React.ReactNode
+    hint: (v: Opt) => string; ok: React.ReactNode; plate: React.ReactNode
+}
+const ExpTxt = (v: Opt) => String(v).replace(/-/g, '−')
+// «1/5³» → дробь; иначе текст как есть
+const FracTxt = ({ v, className }: { v: Opt; className?: string }) => {
+    const t = String(v)
+    if (!t.includes('/')) return <span className={cn('font-black', className)}>{t}</span>
+    const [a, b] = t.split('/')
     return (
-        <>
-            <TypedBig text="А что если ДЕЛИТЬ? ✂️" onDone={() => go(1)} />
-            {phase >= 1 && (
-                <DiagramBlock onSettled={() => after(300, 2)}>
-                    <div className="w-full flex flex-col items-center gap-3 py-2">
-                        <motion.div className="flex items-center gap-3 text-5xl md:text-6xl" {...popIn}>
-                            <Pow base="5" exp="5" /><span className="font-black" style={{ color: MUTED }}>:</span><Pow base="5" exp="2" expColor={B_COLOR} />
-                            <span className="font-black" style={{ color: MUTED }}>=</span>
-                            {phase >= 7 ? <motion.span {...popIn}><Pow base="5" exp="3" /></motion.span> : <span className="font-black" style={{ color: MUTED }}>?</span>}
-                        </motion.div>
-                        <div className="flex flex-col items-center">
-                            <div className="flex gap-1 min-h-[3.5rem]">{Array.from({ length: Math.min(shown, TOP_N) }).map((_, i) => five(i, true))}</div>
-                            <div className="h-1 w-full rounded-full my-1.5" style={{ backgroundColor: TEXT }} />
-                            <div className="flex gap-1 min-h-[3.5rem]">{Array.from({ length: Math.max(0, shown - TOP_N) }).map((_, i) => five(i, false))}</div>
-                        </div>
-                    </div>
-                </DiagramBlock>
-            )}
-            {phase >= 3 && <TypedBig small text="Сокращалка: тапни пятёрку сверху и пятёрку снизу — пара сгорит 🔥" />}
-            {phase >= 4 && <TypedBig small text="Сколько пятёрок осталось?" onDone={() => go(5)} />}
-            {phase === 5 && <OptionGrid options={[7, 3, 10, 2]} wrong={wrong} onPick={pick} />}
-            {phase === 5 && flash && <FlashBad text={flash} />}
-            {phase >= 6 && <FlashOk text={`${leftTop} пятёрки → 5³`} />}
-            {phase >= 6 && <LocalAnswerConfetti />}
-            {phase >= 8 && (
-                <RememberPlate>
-                    <div className="text-center font-black text-lg md:text-xl text-[#F2F7FB]">
-                        При делении показатели <span style={{ color: WRONG_COLOR }}>ВЫЧИТАЮТСЯ</span>
-                        <div className="mt-2 text-2xl md:text-3xl flex items-center justify-center gap-2">
-                            <Pow base="a" exp="m" /><span style={{ color: MUTED }}>:</span><Pow base="a" exp="n" /><span style={{ color: MUTED }}>=</span><Pow base="a" exp="m−n" />
-                        </div>
-                    </div>
-                </RememberPlate>
-            )}
-        </>
+        <span className={cn('inline-flex flex-col items-center font-black leading-none', className)}>
+            <span>{a}</span><span className="h-[3px] w-full rounded-full my-1 bg-current" /><span>{b}</span>
+        </span>
     )
 }
+const makeCutScene = (c: CutCfg) => {
+    const pairs = Math.min(c.top, c.bot)
+    const CutScene = ({ onSettled }: SceneProps) => {
+        const { phase, go, after } = usePhase()
+        const [shown, setShown] = useState(0)
+        const [selTop, setSelTop] = useState<number | null>(null)
+        const [selBot, setSelBot] = useState<number | null>(null)
+        const [cutTop, setCutTop] = useState<number[]>([])
+        const [cutBot, setCutBot] = useState<number[]>([])
+        const [wrong, setWrong] = useState<Opt[]>([])
+        const [flash, setFlash] = useState<string | null>(null)
+        useEffect(() => {
+            if (phase === 2) {
+                let n = 0
+                const id = setInterval(() => { n += 1; setShown(n); if (n >= c.top + c.bot) { clearInterval(id); after(500, 3) } }, 380)
+                return () => clearInterval(id)
+            }
+            if (phase === 6) { const t = setTimeout(() => go(7), 900); return () => clearTimeout(t) }
+            if (phase === 7) { const t = setTimeout(() => go(8), 1000); return () => clearTimeout(t) }
+            if (phase === 8) { const t = setTimeout(() => onSettled?.(), 1400); return () => clearTimeout(t) }
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [phase])
+        // Пара выбрана → обе пятёрки вычёркиваются
+        useEffect(() => {
+            if (selTop === null || selBot === null) return
+            const t = selTop, b = selBot
+            setCutTop((x) => [...x, t]); setCutBot((x) => [...x, b]); setSelTop(null); setSelBot(null)
+            showAnswerMeme(true)
+            if (cutBot.length + 1 >= pairs) setTimeout(() => go(4), 700)
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [selTop, selBot])
+        const pick = (v: Opt) => {
+            if (phase !== 5 || wrong.includes(v)) return
+            if (v === c.correct) { showAnswerMeme(true); setFlash(null); go(6); return }
+            setWrong((w) => [...w, v])
+            setFlash(badTry(c.hint(v)))
+        }
+        // Функция, а не компонент: компонент, объявленный внутри, пересоздавался бы на каждый рендер и пятёрки прыгали бы заново.
+        const five = (i: number, top: boolean) => {
+            const cut = (top ? cutTop : cutBot).includes(i)
+            const sel = top ? selTop === i : selBot === i
+            const clickable = phase === 3 && !cut
+            return (
+                <motion.button key={`${top ? 't' : 'b'}${i}`} type="button" disabled={!clickable} onClick={() => (top ? setSelTop(i) : setSelBot(i))}
+                    className="relative inline-flex items-center justify-center w-10 h-12 md:w-12 md:h-14 rounded-xl border-2 text-2xl md:text-3xl font-black"
+                    style={{ color: TEXT, borderColor: sel ? EXP_COLOR : clickable ? '#3A464E' : 'transparent', backgroundColor: sel ? hexToRgba(EXP_COLOR, 0.2) : 'transparent' }}
+                    {...bounceIn} animate={{ y: 0, scale: 1, opacity: cut ? 0.28 : 1 }}>
+                    5
+                    {cut && (
+                        <svg viewBox="0 0 40 40" className="absolute inset-0 w-full h-full overflow-visible pointer-events-none">
+                            <motion.line x1={6} y1={34} x2={34} y2={6} stroke={WRONG_COLOR} strokeWidth={4} strokeLinecap="round"
+                                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.3 }} />
+                        </svg>
+                    )}
+                </motion.button>
+            )
+        }
+        return (
+            <>
+                <TypedBig text={c.intro} onDone={() => go(1)} />
+                {phase >= 1 && (
+                    <DiagramBlock onSettled={() => after(300, 2)}>
+                        <div className="w-full flex flex-col items-center gap-3 py-2">
+                            <motion.div className="flex items-center gap-3 text-5xl md:text-6xl" {...popIn}>
+                                <Pow base="5" exp={c.top} /><span className="font-black" style={{ color: MUTED }}>:</span><Pow base="5" exp={c.bot} expColor={B_COLOR} />
+                                <span className="font-black" style={{ color: MUTED }}>=</span>
+                                {phase >= 7 ? <motion.span className="inline-flex items-center gap-3" {...popIn}>{c.result}</motion.span> : <span className="font-black" style={{ color: MUTED }}>?</span>}
+                            </motion.div>
+                            <div className="flex flex-col items-center">
+                                <div className="flex gap-1 min-h-[3.5rem]">{Array.from({ length: Math.min(shown, c.top) }).map((_, i) => five(i, true))}</div>
+                                <div className="h-1 w-full min-w-[96px] rounded-full my-1.5" style={{ backgroundColor: TEXT }} />
+                                <div className="flex gap-1 min-h-[3.5rem]">{Array.from({ length: Math.max(0, shown - c.top) }).map((_, i) => five(i, false))}</div>
+                            </div>
+                        </div>
+                    </DiagramBlock>
+                )}
+                {phase >= 3 && <TypedBig small text="Сокращалка: тапни пятёрку сверху и пятёрку снизу — пара сгорит 🔥" />}
+                {phase >= 4 && <TypedBig small text={c.question} onDone={() => go(5)} />}
+                {phase === 5 && <OptionGrid options={c.options} wrong={wrong} onPick={pick} render={c.render} />}
+                {phase === 5 && flash && <FlashBad text={flash} />}
+                {phase >= 6 && <FlashOk text={c.ok} />}
+                {phase >= 6 && <LocalAnswerConfetti />}
+                {phase >= 8 && <RememberPlate><div className="text-center font-black text-lg md:text-xl text-[#F2F7FB]">{c.plate}</div></RememberPlate>}
+            </>
+        )
+    }
+    return CutScene
+}
+
+const CutScene = makeCutScene({
+    intro: 'А что если ДЕЛИТЬ? ✂️', top: 5, bot: 2, result: <Pow base="5" exp="3" />,
+    question: 'Сколько пятёрок осталось?', options: [7, 3, 10, 2], correct: 3,
+    hint: (v) => v === 7 ? '5 + 2 = 7 — это было бы умножение. Тут мы сократили.' : 'Посчитай невычеркнутые пятёрки сверху.',
+    ok: '3 пятёрки → 5³',
+    plate: <>При делении показатели <span style={{ color: WRONG_COLOR }}>ВЫЧИТАЮТСЯ</span>
+        <div className="mt-2 text-2xl md:text-3xl flex items-center justify-center gap-2">
+            <Pow base="a" exp="m" /><span style={{ color: MUTED }}>:</span><Pow base="a" exp="n" /><span style={{ color: MUTED }}>=</span><Pow base="a" exp="m−n" />
+        </div></>,
+})
+
+// ===== Урок 3: нулевая и отрицательная степень =====
+const ZeroCutScene = makeCutScene({
+    intro: 'А если поровну? 🤔', top: 2, bot: 2,
+    result: <><Pow base="5" exp="0" /><span className="font-black" style={{ color: MUTED }}>=</span><span className="font-black" style={{ color: OK_COLOR }}>1</span></>,
+    question: 'Всё сгорело 🔥 А чему равно 25 : 25?', options: [0, 1, 25, 5], correct: 1,
+    hint: (v) => v === 0 ? 'Не 0! Число, делённое само на себя, — это 1.' : '25 : 25 — сколько раз 25 помещается в 25?',
+    ok: <>25 : 25 = 1. А по правилу 5²⁻² = 5⁰. Значит 5⁰ = 1!</>,
+    plate: <>Любое число в степени <span style={{ color: EXP_COLOR }}>0</span> = 1
+        <div className="mt-2 text-2xl md:text-3xl flex items-center justify-center gap-2">
+            <Pow base="a" exp="0" /><span style={{ color: MUTED }}>=</span><span>1</span>
+        </div>
+        <div className="mt-1 text-sm font-bold" style={{ color: MUTED }}>(a ≠ 0)</div></>,
+})
+const NegCutScene = makeCutScene({
+    intro: 'А если снизу БОЛЬШЕ? 😳', top: 2, bot: 5,
+    result: <><Pow base="5" exp="−3" /><span className="font-black" style={{ color: MUTED }}>=</span><FracTxt v="1/5³" className="text-4xl" /></>,
+    question: 'Пятёрки остались ВНИЗУ. Что получилось?', options: ['5³', '1/5³', '0', '−5³'], correct: '1/5³',
+    render: (v) => <FracTxt v={v} className={String(v).includes('/') ? 'text-xl' : ''} />,
+    hint: (v) => v === '−5³' ? 'Минус в показателе — это не минус перед числом. Число просто уезжает вниз.' : v === '5³' ? 'Посмотри: оставшиеся пятёрки — снизу дроби.' : 'Что-то же осталось — три пятёрки внизу.',
+    ok: <>Внизу 5³ → это 1/5³. А по правилу 5²⁻⁵ = 5⁻³!</>,
+    plate: <>Минус в показателе — число уезжает <span style={{ color: B_COLOR }}>ВНИЗ</span> дроби
+        <div className="mt-2 text-2xl md:text-3xl flex items-center justify-center gap-2">
+            <Pow base="a" exp="−n" /><span style={{ color: MUTED }}>=</span><FracTxt v="1/aⁿ" className="text-2xl" />
+        </div></>,
+})
+
+// Короткие раунды «выбери вариант» для мини-игр урока 3.
+type QRound = { prompt: string; fig: React.ReactNode; options: Opt[]; correct: Opt; hint: string; ok: string; frac?: boolean }
+const makeQuizRounds = (title: string, color: string, rounds: QRound[], moreLabel = 'Ещё!') => {
+    const QuizRoundsScene = ({ onSettled }: SceneProps) => {
+        const [ri, setRi] = useState(0)
+        const [done, setDone] = useState(false)
+        const [typed, setTyped] = useState(false)
+        const [wrong, setWrong] = useState<Opt[]>([])
+        const [flash, setFlash] = useState<string | null>(null)
+        const r = rounds[ri]
+        const pick = (v: Opt) => {
+            if (done || wrong.includes(v)) return
+            if (v === r.correct) {
+                showAnswerMeme(true); setFlash(null); setDone(true)
+                if (ri + 1 >= rounds.length) setTimeout(() => onSettled?.(), 600)
+                return
+            }
+            setWrong((w) => [...w, v]); setFlash(badTry(r.hint))
+        }
+        return (
+            <>
+                <div className="w-full flex items-center gap-3" aria-hidden>
+                    <div className="flex-1 h-px bg-[#3A464E]" />
+                    <span className="text-xs font-bold uppercase tracking-wide" style={{ color }}>{title}</span>
+                    <div className="flex-1 h-px bg-[#3A464E]" />
+                </div>
+                <div className="relative w-full flex items-center justify-center min-h-9">
+                    <motion.div key={`cnt-${ri}`} initial={ri === 0 ? false : { scale: 1.8 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 10 }}
+                        className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-0.5 px-3 h-9 rounded-full border-2 font-black text-sm tabular-nums"
+                        style={{ borderColor: hexToRgba(color, 0.55), backgroundColor: hexToRgba(color, 0.16), color }}>
+                        <span>{ri + 1}</span><span className="opacity-50 font-normal">/</span><span>{rounds.length}</span>
+                    </motion.div>
+                    <p className="text-lg md:text-xl font-black text-[#F2F7FB] text-center px-16">
+                        <Typewriter key={`p-${ri}`} text={r.prompt} onDone={() => setTyped(true)} />
+                    </p>
+                </div>
+                <motion.div key={`fig-${ri}`} className="w-full flex items-center justify-center min-h-[90px] text-5xl md:text-6xl" {...popIn}>{r.fig}</motion.div>
+                {!done && typed && <OptionGrid options={r.options} wrong={wrong} onPick={pick} render={r.frac ? (v) => <FracTxt v={v} className={String(v).includes('/') ? 'text-xl' : ''} /> : undefined} />}
+                {flash && !done && <FlashBad text={flash} />}
+                {done && (
+                    <>
+                        <FlashOk text={`${CORRECT_FEEDBACK_PHRASES[(ri + 2) % CORRECT_FEEDBACK_PHRASES.length]} ${r.ok}`} />
+                        <LocalAnswerConfetti />
+                        {ri + 1 < rounds.length && <ReplyButton onClick={() => { setRi(ri + 1); setDone(false); setTyped(false); setWrong([]); setFlash(null) }}>{moreLabel}</ReplyButton>}
+                    </>
+                )}
+            </>
+        )
+    }
+    return QuizRoundsScene
+}
+
+const ZeroGameScene = makeQuizRounds('Нулевик 0️⃣', EXP_COLOR, [
+    { prompt: 'Огромное число в нулевой степени', fig: <Pow base="9 999 999" exp="0" className="text-4xl md:text-5xl" />, options: [0, 1, 9999999, '∞'], correct: 1, hint: 'Неважно, какое число — в степени 0 всегда 1.', ok: 'Хоть миллиард — в нулевой степени будет 1' },
+    { prompt: 'А с буквой? (x ≠ 0)', fig: <Pow base="x" exp="0" />, options: ['x', '0', '1', 'x²'], correct: '1', hint: 'x⁰ — это как 5⁰: всегда 1.', ok: 'x⁰ = 1' },
+    { prompt: 'Сложим два нуля в степени', fig: <span className="inline-flex items-center gap-2"><Pow base="5" exp="0" /><span style={{ color: MUTED }}>+</span><Pow base="5" exp="0" /></span>, options: [2, 10, 0, 1], correct: 2, hint: '5⁰ = 1, значит 1 + 1.', ok: '1 + 1 = 2' },
+    { prompt: 'Ловушка! Умножение', fig: <span className="inline-flex items-center gap-2"><Pow base="5" exp="0" /><span style={{ color: MUTED }}>·</span><Pow base="5" exp="3" /></span>, options: ['5⁰', '5³', '0', '1'], correct: '5³', hint: 'Складываем показатели: 0 + 3. Или 1 · 5³.', ok: '5⁰ · 5³ = 1 · 5³ = 5³' },
+])
+const NegGameScene = makeQuizRounds('Лифт 🛗', B_COLOR, [
+    { prompt: 'Минус — едем ВНИЗ дроби', fig: <Pow base="2" exp="−3" />, options: ['1/2³', '−2³', '2³', '−8'], correct: '1/2³', hint: 'Минус в показателе отправляет 2³ вниз дроби.', ok: '2⁻³ = 1/2³ = 1/8', frac: true },
+    { prompt: 'Подними обратно наверх', fig: <FracTxt v="1/7²" />, options: ['7²', '7⁻²', '−7²', '−14'], correct: '7⁻²', hint: 'Снизу наверх — показатель становится с минусом.', ok: '1/7² = 7⁻²' },
+    { prompt: 'Сколько это числом?', fig: <Pow base="10" exp="−2" />, options: ['−100', '0,01', '−20', '0,1'], correct: '0,01', hint: '10⁻² = 1/10² = 1/100.', ok: '1/100 = 0,01' },
+    { prompt: 'Минус внизу — едет НАВЕРХ', fig: <span className="inline-flex flex-col items-center leading-none"><span>1</span><span className="h-[3px] w-full my-1 rounded-full bg-current" /><Pow base="5" exp="−2" /></span>, options: ['5²', '5⁻²', '1/5²', '−25'], correct: '5²', hint: 'Из знаменателя с минусом число поднимается наверх с плюсом.', ok: '1/5⁻² = 5²', frac: true },
+], 'Следующий этаж')
 
 // ===== Тренировка =====
 // left — выражение слева от «=», ответ — показатель степени base^ans.
@@ -712,8 +826,16 @@ const TRIALS_POWPOW: Trial[] = [
     { left: <><PowPow base="10" inner="2" outer="3" /><M>·</M><span className="font-black">10</span></>, base: '10', ans: 7, options: [7, 6, 9, 12], hint: 'Сначала (10²)³ = 10⁶, потом · 10¹: 6 + 1.' },
 ]
 
+const TRIALS_ZERONEG: Trial[] = [
+    { left: <><Pow base="3" exp="4" /><M>:</M><Pow base="3" exp="4" /></>, base: '3', ans: 0, options: [0, 1, 8, 16], hint: '4 − 4 = 0. А 3⁰ = 1.' },
+    { left: <><Pow base="2" exp="3" /><M>:</M><Pow base="2" exp="7" /></>, base: '2', ans: -4, options: [4, -4, 10, -10], hint: 'Вычитаем: 3 − 7.' },
+    { left: <PowPow base="5" inner="−2" outer="3" />, base: '5', ans: -6, options: [-6, 1, 6, -5], hint: 'Степень в степени — перемножаем: −2 · 3.' },
+    { left: <><Pow base="7" exp="−3" /><M>·</M><Pow base="7" exp="5" /></>, base: '7', ans: 2, options: [2, -8, 8, -2], hint: 'Складываем: −3 + 5.' },
+    { left: <><Pow base="10" exp="0" /><M>·</M><Pow base="10" exp="−2" /></>, base: '10', ans: -2, options: [-2, 0, 2, -20], hint: '0 + (−2).' },
+]
+
 type LessonCfg = { scenes: React.ComponentType<SceneProps>[]; labels: string[]; next: string[]; trials: Trial[] }
-const LESSONS: Record<'basic' | 'powpow', LessonCfg> = {
+const LESSONS: Record<'basic' | 'powpow' | 'zeroneg', LessonCfg> = {
     basic: {
         scenes: [WhatIsPowerScene, CollectorScene, ProductScene],
         labels: ['Что такое 2³', 'Собиралки', '5² · 5⁴'],
@@ -726,11 +848,18 @@ const LESSONS: Record<'basic' | 'powpow', LessonCfg> = {
         next: ['Перемножаем, понял!', 'Блоки — изи', 'Делим — вычитаем!'],
         trials: TRIALS_POWPOW,
     },
+    zeroneg: {
+        scenes: [ZeroCutScene, ZeroGameScene, NegCutScene, NegGameScene],
+        labels: ['5² : 5² = 5⁰', 'Нулевик', '5² : 5⁵ = 5⁻³', 'Лифт'],
+        next: ['В нулевой степени — всегда 1!', 'Ноль не страшен', 'Минус — вниз!', 'Лифт освоен'],
+        trials: TRIALS_ZERONEG,
+    },
 }
+export const powLessonKey = (q: string): keyof typeof LESSONS => /^Степень в степени/i.test(q) ? 'powpow' : /^Нулевая/i.test(q) ? 'zeroneg' : 'basic'
 
 export const TypePowWalk = ({ question, onAnswer, onComplete, isAdmin = false }: Props & { isAdmin?: boolean }) => {
     // Урок выбирается по тексту задания: «Степень в степени…» — второй урок юнита.
-    const cfg = LESSONS[/^Степень в степени/i.test(question.question) ? 'powpow' : 'basic']
+    const cfg = LESSONS[powLessonKey(question.question)]
     const SCENES = cfg.scenes, SCENE_MAP_LABELS = cfg.labels, NEXT_LABELS = cfg.next, TRIALS = cfg.trials
     const [startStep, setStartStep] = useState(0)
     const [phase, setPhase] = useState<'intro' | 'practice'>('intro')
@@ -840,7 +969,7 @@ export const TypePowWalk = ({ question, onAnswer, onComplete, isAdmin = false }:
                         <motion.div key={`f-${trialIndex}`} className="w-full flex flex-wrap items-center justify-center gap-2 md:gap-3 text-4xl md:text-6xl py-2" {...popIn}>
                             {trial.left}
                             <span className="font-black" style={{ color: MUTED }}>=</span>
-                            <Pow base={trial.base} exp={checked ? <motion.span key="ans" className="inline-block" style={{ color: OK_COLOR }} {...popIn}>{trial.ans}</motion.span> : '?'} />
+                            <Pow base={trial.base} exp={checked ? <motion.span key="ans" className="inline-block" style={{ color: OK_COLOR }} {...popIn}>{ExpTxt(trial.ans)}</motion.span> : '?'} />
                         </motion.div>
                         {!checked && typed && (
                             <div key={`opts-${trialIndex}`} className="drop-in-options grid grid-cols-2 gap-3 w-full">
@@ -850,7 +979,7 @@ export const TypePowWalk = ({ question, onAnswer, onComplete, isAdmin = false }:
                                         <button key={v} type="button" disabled={isWrong} onClick={() => answer(v)}
                                             className={cn('min-h-[60px] rounded-xl border-2 border-b-4 text-2xl font-black transition-colors',
                                                 isWrong ? 'border-[#DC605B] bg-[#DC605B22] text-[#DC605B]' : 'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]')}>
-                                            {v}
+                                            {ExpTxt(v)}
                                         </button>
                                     )
                                 })}
