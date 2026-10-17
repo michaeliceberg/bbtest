@@ -92,10 +92,20 @@ const PT: Record<PtKey, V3> = {
 const FACES_OF: Record<PtKey, Face[]> = { M: ['ceiling', 'front'], N: ['ceiling', 'right'], K: ['floor', 'front'], L: ['floor', 'right'] }
 const commonFace = (a: PtKey, b: PtKey) => FACES_OF[a].find((f) => FACES_OF[b].includes(f)) ?? null
 
+// Точка внутри многоугольника (в координатах рисунка) — чтобы тап по задней стене «сквозь» переднюю засчитывался.
+const insidePoly = (pt: { x: number; y: number }, keys: string[]) => {
+    const vs = keys.map((k) => P(V[k]))
+    let inside = false
+    for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        const a = vs[i], b = vs[j]
+        if ((a.y > pt.y) !== (b.y > pt.y) && pt.x < ((b.x - a.x) * (pt.y - a.y)) / (b.y - a.y) + a.x) inside = !inside
+    }
+    return inside
+}
 const poly = (keys: string[]) => keys.map((k) => { const p = P(V[k]); return `${p.x.toFixed(1)},${p.y.toFixed(1)}` }).join(' ')
 const polyPts = (keys: PtKey[]) => keys.map((k) => { const p = P(PT[k]); return `${p.x.toFixed(1)},${p.y.toFixed(1)}` }).join(' ')
 
-type Seg = { id: string; a: PtKey; b: PtKey; color: string; dash?: string; instant?: boolean }
+type Seg = { id: string; a: PtKey; b: PtKey; color: string; dash?: string; instant?: boolean; opacity?: number }
 type FaceHL = { face: Face; color: string; label?: string }
 
 const CubeSvg = ({ drawIn = false, faces = [], points = [], segs = [], selected = null, glowPts = [], fill = false, onFace, onPoint, children, dimExcept = null, bounceFaces = false, popKey = {} }: {
@@ -103,7 +113,8 @@ const CubeSvg = ({ drawIn = false, faces = [], points = [], segs = [], selected 
     // dimExcept — рёбра, не принадлежащие этой стене, бледнеют; bounceFaces — подсветка стены появляется с отскоком;
     // popKey — смена числа заново «выпрыгивает» точку
     dimExcept?: Face | null; bounceFaces?: boolean; popKey?: Partial<Record<PtKey, number>>
-    onFace?: (f: Face) => void; onPoint?: (k: PtKey) => void; children?: React.ReactNode
+    // onFace: ближайшая по центру грань + все грани, в чей контур попал тап (задние перекрыты передними)
+    onFace?: (f: Face, inside: Face[]) => void; onPoint?: (k: PtKey) => void; children?: React.ReactNode
 }) => {
     const ref = useRef<SVGSVGElement>(null)
     // Тап по кубу → грань, чей центр на рисунке ближе всего (так «достаются» и задние грани).
@@ -118,7 +129,8 @@ const CubeSvg = ({ drawIn = false, faces = [], points = [], segs = [], selected 
             const d = Math.hypot(c.x - pt.x, c.y - pt.y)
             if (d < bd) { bd = d; best = f }
         }
-        if (bd < 90) onFace(best)
+        const inside = (Object.keys(FACE_POLY) as Face[]).filter((f) => insidePoly(pt, FACE_POLY[f]))
+        if (bd < 90 || inside.length) onFace(best, inside)
     }
     return (
         <div className="w-full flex justify-center">
@@ -140,27 +152,32 @@ const CubeSvg = ({ drawIn = false, faces = [], points = [], segs = [], selected 
                             strokeDasharray={hidden(a, b) ? '6 6' : undefined}
                             initial={drawIn ? (hidden(a, b) ? { opacity: 0 } : { pathLength: 0 }) : false}
                             animate={hidden(a, b) ? { opacity: dim ? DIM_HIDDEN : 0.6 } : { pathLength: 1, opacity: dim ? DIM_EDGE : 1 }}
-                            transition={{ duration: 0.35, delay: drawIn ? i * 0.09 : 0, ease: 'easeOut' }} />
+                            // задержка — только для первого «рисования» куба; приглушение рёбер — сразу, вместе с подсветкой грани
+                            transition={{
+                                pathLength: { duration: 0.35, delay: drawIn ? i * 0.09 : 0, ease: 'easeOut' },
+                                opacity: { duration: 0.25, delay: drawIn && dimExcept === null && hidden(a, b) ? i * 0.09 : 0 },
+                            }} />
                     )
                 })}
                 {segs.map((s) => {
                     const A = P(PT[s.a]), B = P(PT[s.b])
                     return (
-                        <g key={s.id}>
+                        <motion.g key={s.id} initial={false} animate={{ opacity: s.opacity ?? 1 }} transition={{ duration: 0.4 }}>
                             {!s.dash && <line x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke={s.color} strokeOpacity={0.3} strokeWidth={13} strokeLinecap="round" />}
                             <motion.line x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke={s.color} strokeWidth={5} strokeLinecap="round" strokeDasharray={s.dash}
                                 initial={s.instant ? false : s.dash ? { opacity: 0 } : { pathLength: 0 }} animate={s.dash ? { opacity: 1 } : { pathLength: 1 }}
                                 transition={{ duration: 0.6, ease: 'easeOut' }} />
-                        </g>
+                        </motion.g>
                     )
                 })}
                 {children}
                 {faces.filter((h) => h.label).map((h) => {
                     const c = P(FACE_CENTER[h.face])
+                    const w = Math.round(h.label!.length * 8.4 + 24)
                     return (
                         <g key={`lbl-${h.face}`} transform={`translate(${c.x.toFixed(1)} ${c.y.toFixed(1)})`}>
                             <motion.g initial={{ scale: 2.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 13 }}>
-                                <rect x={-50} y={-14} width={100} height={28} rx={9} fill="rgba(22,31,35,0.82)" stroke={h.color} strokeWidth={2} />
+                                <rect x={-w / 2} y={-14} width={w} height={28} rx={9} fill="rgba(22,31,35,0.82)" stroke={h.color} strokeWidth={2} />
                                 <text textAnchor="middle" dominantBaseline="central" fontSize={14} fontWeight={900} fill="#F2F7FB"
                                     style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>{h.label}</text>
                             </motion.g>
@@ -236,7 +253,7 @@ const RoomScene = ({ onSettled }: SceneProps) => {
             i += 1
             if (i >= FACE_INTRO_ORDER.length) { clearInterval(id); setShown(-1); setTimeout(() => onSettled?.(), 400); return }
             setShown(i)
-        }, 1100)
+        }, 1650)
         return () => clearInterval(id)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [phase])
@@ -263,8 +280,10 @@ const WallTestScene = ({ onSettled, onMistake }: SceneProps) => {
     const [locked, setLocked] = useState(false)
     const [done, setDone] = useState(false)
     const target = FACE_TEST_ORDER[qi]
-    const tap = (f: Face) => {
+    const tap = (nearest: Face, inside: Face[]) => {
         if (!typed || locked || done) return
+        // попал в контур нужной стены (даже если спереди её перекрывает другая) — засчитываем
+        const f = inside.includes(target) ? target : nearest
         if (f === target) {
             showAnswerMeme(true)
             setHl({ face: f, color: OK_COLOR, label: FACE_NAME[f] })
@@ -422,18 +441,21 @@ const Rule1TryScene = ({ onSettled, onMistake }: SceneProps) => {
 }
 
 // ===== Сцена 5: правило 2 — параллельная линия на полу =====
-// Строго по шагам: куб рисуется → потолок с отскоком → пол с отскоком → «Потолок и пол параллельны.» →
-// только потолок (остальные рёбра бледные), «На потолке есть линия.» → линия жирно выделяется →
-// пунктирная копия съезжает на пол через точку → линия на полу → новая точка на ребре.
+// Строго по шагам: куб рисуется → потолок с отскоком → пол с отскоком → «Потолок и пол параллельны.» → кнопка
+// «Вижу, они параллельны» → только потолок (остальные рёбра бледные), «На потолке есть линия.» → линия выделяется
+// жёлтым свечением с белой серединой и отскоком → пунктирная копия съезжает на пол через точку → линия на полу
+// ПУНКТИРОМ (пол мы не видим) → новая точка на ребре. Линия на передней стене всю сцену бледная — сейчас она не нужна.
+const HIGHLIGHT = '#F2C35B'
 const Rule2Scene = ({ onSettled }: SceneProps) => {
     const { phase, go } = usePhaseState()
-    useChain({ 1: 750, 2: 900, 5: 1300, 6: 1700, 7: 900, 8: 700 }, phase, go)
+    useChain({ 1: 750, 2: 900, 6: 1600, 7: 1700, 8: 900, 9: 700 }, phase, go)
     const M = P(PT.M), N = P(PT.N), K = P(PT.K)
     const dx = K.x - M.x, dy = K.y - M.y
-    const faces: FaceHL[] = phase === 1 ? [{ face: 'ceiling', color: FACE_COLOR }]
-        : phase === 2 || phase === 3 ? [{ face: 'ceiling', color: FACE_COLOR }, { face: 'floor', color: FACE_COLOR }]
-            : phase === 4 || phase === 5 ? [{ face: 'ceiling', color: FACE_COLOR }]
-                : phase >= 6 && phase < 9 ? [{ face: 'ceiling', color: FACE_COLOR }, { face: 'floor', color: FACE_COLOR }] : []
+    const ceil: FaceHL = { face: 'ceiling', color: FACE_COLOR }, floor: FaceHL = { face: 'floor', color: FACE_COLOR }
+    const faces: FaceHL[] = phase === 1 ? [ceil]
+        : phase >= 2 && phase <= 4 ? [ceil, floor]
+            : phase === 5 || phase === 6 ? [ceil]
+                : phase >= 7 && phase < 10 ? [ceil, floor] : []
     return (
         <>
             <RememberPlate title="ПРАВИЛО 2">
@@ -442,18 +464,22 @@ const Rule2Scene = ({ onSettled }: SceneProps) => {
                 </div>
             </RememberPlate>
             <DiagramBlock onSettled={() => setTimeout(() => go(1), 1300)}>
-                <CubeSvg drawIn faces={faces} bounceFaces dimExcept={phase === 4 || phase === 5 ? 'ceiling' : null}
-                    points={phase >= 8 ? ['M', 'N', 'K', 'L'] : ['M', 'N', 'K']}
-                    segs={[{ id: 'MN', a: 'M', b: 'N', color: SECT_COLOR, instant: true }, { id: 'MK', a: 'M', b: 'K', color: SECT_COLOR, instant: true },
-                        ...(phase >= 7 ? [{ id: 'KL', a: 'K' as PtKey, b: 'L' as PtKey, color: SECT_COLOR }] : [])]}
-                    glowPts={phase === 8 ? ['L'] : []}>
-                    {phase === 5 && (
-                        // жирное выделение линии на потолке
-                        <motion.line x1={M.x} y1={M.y} x2={N.x} y2={N.y} stroke={SECT_COLOR} strokeLinecap="round"
-                            initial={{ strokeWidth: 5, opacity: 0.5 }} animate={{ strokeWidth: [5, 15, 11], opacity: [0.5, 0.95, 0.75] }}
-                            transition={{ duration: 0.9, ease: 'easeOut' }} />
-                    )}
+                <CubeSvg drawIn faces={faces} bounceFaces dimExcept={phase === 5 || phase === 6 ? 'ceiling' : null}
+                    points={phase >= 9 ? ['M', 'N', 'K', 'L'] : ['M', 'N', 'K']}
+                    segs={[{ id: 'MN', a: 'M', b: 'N', color: SECT_COLOR, instant: true }, { id: 'MK', a: 'M', b: 'K', color: SECT_COLOR, instant: true, opacity: 0.18 },
+                        ...(phase >= 8 ? [{ id: 'KL', a: 'K' as PtKey, b: 'L' as PtKey, color: SECT_COLOR, dash: '9 7' }] : [])]}
+                    glowPts={phase === 9 ? ['L'] : []}>
                     {phase === 6 && (
+                        // выделение линии на потолке: жёлтое свечение + белая середина с отскоком
+                        <g>
+                            <motion.line x1={M.x} y1={M.y} x2={N.x} y2={N.y} stroke={HIGHLIGHT} strokeLinecap="round"
+                                initial={{ strokeWidth: 4, opacity: 0 }} animate={{ strokeWidth: [4, 30, 20, 24], opacity: [0, 0.75, 0.5, 0.6] }}
+                                transition={{ duration: 1, ease: 'easeOut' }} />
+                            <motion.line x1={M.x} y1={M.y} x2={N.x} y2={N.y} stroke="#FFFFFF" strokeLinecap="round"
+                                initial={{ strokeWidth: 3 }} animate={{ strokeWidth: [3, 10, 5, 7] }} transition={{ duration: 1, ease: 'easeOut' }} />
+                        </g>
+                    )}
+                    {phase === 7 && (
                         <motion.g initial={{ x: 0, y: 0, opacity: 0 }} animate={{ x: dx, y: dy, opacity: [0, 1, 1, 0.9] }} transition={{ duration: 1.4, ease: 'easeInOut' }}>
                             <line x1={M.x} y1={M.y} x2={N.x} y2={N.y} stroke={SECT_COLOR} strokeWidth={3} strokeDasharray="7 6" strokeLinecap="round" />
                         </motion.g>
@@ -461,8 +487,13 @@ const Rule2Scene = ({ onSettled }: SceneProps) => {
                 </CubeSvg>
             </DiagramBlock>
             {phase >= 3 && <TypedBig small text="Потолок и пол параллельны." onDone={() => go(4)} />}
-            {phase >= 4 && <TypedBig small text="На потолке есть линия." onDone={() => go(5)} />}
-            {phase >= 9 && <TypedBig small text="Линия упёрлась в ребро: тут новая точка 📍" onDone={() => onSettled?.()} />}
+            {phase === 4 && (
+                <motion.div className="w-full flex" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                    <button type="button" onClick={() => go(5)} className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>Вижу, они параллельны</button>
+                </motion.div>
+            )}
+            {phase >= 5 && <TypedBig small text="На потолке есть линия." onDone={() => go(6)} />}
+            {phase >= 10 && <TypedBig small text="Линия упёрлась в ребро: тут новая точка 📍" onDone={() => onSettled?.()} />}
         </>
     )
 }
@@ -475,7 +506,7 @@ const CloseGameScene = ({ onSettled, onMistake }: SceneProps) => {
     const [segs, setSegs] = useState<Seg[]>([
         { id: 'MN', a: 'M', b: 'N', color: SECT_COLOR, instant: true },
         { id: 'KM', a: 'M', b: 'K', color: SECT_COLOR, instant: true },
-        { id: 'KL', a: 'K', b: 'L', color: SECT_COLOR, instant: true },
+        { id: 'KL', a: 'K', b: 'L', color: SECT_COLOR, instant: true, dash: '9 7' },
     ])
     const [face, setFace] = useState<FaceHL | null>(null)
     const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
