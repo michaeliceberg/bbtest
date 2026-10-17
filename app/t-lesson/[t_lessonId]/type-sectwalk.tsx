@@ -243,7 +243,7 @@ const RoomScene = ({ onSettled }: SceneProps) => {
             <TypedBig text="Представь, что куб — это комната 🏠" onDone={() => go(1)} />
             {phase >= 1 && (
                 <DiagramBlock onSettled={() => setTimeout(() => go(2), 1400)}>
-                    <CubeSvg drawIn faces={cur ? [{ face: cur, color: FACE_COLOR, label: FACE_NAME[cur] }] : []} />
+                    <CubeSvg drawIn faces={cur ? [{ face: cur, color: FACE_COLOR, label: FACE_NAME[cur] }] : []} dimExcept={cur} />
                 </DiagramBlock>
             )}
             {phase >= 2 && <TypedBig small text="У комнаты есть потолок, пол и четыре стены" onDone={() => go(3)} readMs={0} />}
@@ -314,18 +314,15 @@ const PointsScene = ({ onSettled }: SceneProps) => {
     )
 }
 
-// ===== Сцена 3: правило 1 — отдельно, без куба =====
-const Rule1PlateScene = ({ onSettled }: SceneProps) => {
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => { const t = setTimeout(() => onSettled?.(), 1400); return () => clearTimeout(t) }, [])
-    return (
-        <RememberPlate title="ПРАВИЛО 1">
-            <div className="text-center font-black text-lg md:text-xl text-[#F2F7FB]">
-                Если нашли две точки в <span style={{ color: FACE_COLOR }}>одной плоскости</span> — сразу соединяем
-            </div>
-        </RememberPlate>
-    )
-}
+// ===== Сцена 3: правило 1 — отдельно, без куба; текст печатается, кнопка появляется после печати =====
+const RULE1_TEXT = 'Если нашли две точки в одной плоскости — соединяем эти точки'
+const Rule1PlateScene = ({ onSettled }: SceneProps) => (
+    <RememberPlate title="ПРАВИЛО 1">
+        <div className="text-center font-black text-lg md:text-xl text-[#F2F7FB] min-h-[3.5rem]">
+            <Typewriter text={RULE1_TEXT} onDone={() => setTimeout(() => onSettled?.(), 400)} />
+        </div>
+    </RememberPlate>
+)
 
 // ===== Сцена 4: пробуем правило 1 — «Есть ли плоскость с двумя точками?» =====
 // Подходят потолок и передняя стена. Выбрал стену → она с отскоком подсвечивается, остальные рёбра бледнеют,
@@ -554,10 +551,14 @@ export const TypeSectWalk = ({ onAnswer, onComplete, isAdmin = false }: Props & 
             <div className="w-full flex items-center gap-2">
                 <ReplayButton onClick={handleReplay} disabled={advancing} />
                 <BackButton onClick={handleBack} disabled={advancing || step === 0} />
-                <button type="button" onClick={handleNext} disabled={!stepReady || advancing}
-                    className={walkthroughButtonClass(stepReady && !advancing)} style={walkthroughButtonStyle(stepReady && !advancing)}>
-                    {NEXT_LABELS[step]}
-                </button>
+                <motion.div className="flex-1 flex" initial={false}
+                    animate={{ opacity: SCENES[step] === Rule1PlateScene && !stepReady ? 0 : 1, y: SCENES[step] === Rule1PlateScene && !stepReady ? 8 : 0 }}
+                    transition={{ duration: SCENES[step] === Rule1PlateScene && !stepReady ? 0 : 0.3 }}>
+                    <button type="button" onClick={handleNext} disabled={!stepReady || advancing}
+                        className={walkthroughButtonClass(stepReady && !advancing)} style={walkthroughButtonStyle(stepReady && !advancing)}>
+                        {NEXT_LABELS[step]}
+                    </button>
+                </motion.div>
             </div>
         </div>
     )
