@@ -1391,29 +1391,45 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text }: SceneProps &
     }
     const lineOf = (a: V3, b: V3) => { const A = P(a), B = P(b); return { x1: A.x, y1: A.y, x2: B.x, y2: B.y } }
     const edgeMode = tool === 3 && selSeg !== null
+    const stepHint = !tool ? '👆 Выбери правило на пульте' : tool === 1 ? (selPt === null ? 'Тапни первую точку' : 'Теперь вторую точку на той же стене')
+        : selSeg === null ? 'Тапни линию сечения' : tool === 2 ? 'Теперь точку на параллельной стене' : 'Теперь ребро на той же стене'
     return (
         <>
             <GameHeader title={title} />
             <TypedBig small text={text} onDone={() => setTyped(true)} readMs={0} />
             {typed && (
                 <div className="w-full grid grid-cols-3 gap-2">
-                    {SB_RULES.map((r) => {
+                    {SB_RULES.map((r, i) => {
                         const on = tool === r.n
+                        // правило ещё не выбрано — кнопки по очереди подпрыгивают и светятся: «жми сюда»
+                        const call = !tool && !done && !busy
                         return (
-                            <button key={r.n} type="button" onClick={() => pickTool(r.n)} disabled={done}
-                                className="rounded-xl border-2 px-1 py-2 flex flex-col items-center gap-0.5 transition-transform active:translate-y-[3px]"
-                                style={{ borderColor: on ? SECT_COLOR : '#3A464E', backgroundColor: on ? hexToRgba(SECT_COLOR, 0.2) : '#161F23',
-                                    boxShadow: on ? `0 3px 0 ${GGEGE_PALETTE.purple.bottom}` : '0 3px 0 #0E1518' }}>
-                                <span className="text-xs font-black" style={{ color: on ? SECT_COLOR : MUTED }}>{r.n}</span>
-                                <span className="text-sm font-black" style={{ color: on ? '#F2F7FB' : '#C9D3D9' }}>{r.name}</span>
-                            </button>
+                            <motion.div key={r.n} className="relative flex"
+                                animate={call ? { y: [0, -6, 0] } : { y: 0 }}
+                                transition={call ? { duration: 0.5, delay: i * 0.18, repeat: Infinity, repeatDelay: 1.3, ease: 'easeOut' } : { duration: 0.2 }}>
+                                {call && <span className="absolute -inset-1 rounded-2xl pointer-events-none animate-glow-pulse"
+                                    style={{ boxShadow: `0 0 16px ${hexToRgba(SECT_COLOR, 0.7)}`, border: `2px solid ${hexToRgba(SECT_COLOR, 0.55)}`, animationDelay: `${i * 0.18}s` }} />}
+                                <button type="button" onClick={() => pickTool(r.n)} disabled={done}
+                                    className="relative w-full rounded-xl border-2 px-1 py-2 flex flex-col items-center gap-0.5 active:translate-y-[3px]"
+                                    style={{ borderColor: on ? SECT_COLOR : call ? hexToRgba(SECT_COLOR, 0.6) : '#3A464E', backgroundColor: on ? hexToRgba(SECT_COLOR, 0.2) : '#161F23',
+                                        boxShadow: on ? `0 3px 0 ${GGEGE_PALETTE.purple.bottom}` : '0 3px 0 #0E1518' }}>
+                                    <span className="text-xs font-black" style={{ color: on || call ? SECT_COLOR : MUTED }}>{r.n}</span>
+                                    <span className="text-sm font-black" style={{ color: on || call ? '#F2F7FB' : '#C9D3D9' }}>{r.name}</span>
+                                </button>
+                            </motion.div>
                         )
                     })}
                 </div>
             )}
-            <div className="w-full text-center text-sm font-bold min-h-5" style={{ color: MUTED }}>
-                {done ? '' : !tool ? 'Сначала выбери правило' : tool === 1 ? (selPt === null ? 'Тапни первую точку' : 'Теперь вторую точку на той же стене')
-                    : selSeg === null ? 'Тапни линию сечения' : tool === 2 ? 'Теперь точку на параллельной стене' : 'Теперь ребро на той же стене'}
+            {/* подсказка «что делать сейчас» — при каждой смене появляется с отскоком, чтобы было видно, что она поменялась */}
+            <div className="w-full flex justify-center min-h-8">
+                {!done && (
+                    <motion.div key={stepHint} className="rounded-full px-3 py-1 text-sm md:text-base font-black"
+                        initial={{ scale: 1.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 12 }}
+                        style={{ color: tool ? '#F2F7FB' : SECT_COLOR, backgroundColor: hexToRgba(SECT_COLOR, tool ? 0.22 : 0.12), border: `1.5px solid ${hexToRgba(SECT_COLOR, 0.55)}` }}>
+                        {stepHint}
+                    </motion.div>
+                )}
             </div>
             <div className="w-full flex justify-center">
                 <svg viewBox="-12 -14 384 306" className="w-full max-w-[440px] overflow-visible">
