@@ -1275,6 +1275,23 @@ const SB_RULES: { n: Tool; name: string; hint: string }[] = [
     { n: 3, name: 'Продлить', hint: 'Тапни линию, потом ребро на той же стене' },
 ]
 type SandboxCfg = { start: V3[]; title: string; text: string }
+// «Камера»: обычная рамка рисунка; если новая точка за краем — рамка расширяется (с тем же соотношением сторон),
+// куб уменьшается. Дальше SB_MIN_SCALE не отъезжаем — такую точку не строим, предлагаем другое ребро.
+const SB_VIEW = { x: -12, y: -14, w: 384, h: 306 }
+const SB_MIN_SCALE = 0.6
+const SB_MARGIN = 26
+const sbViewFor = (vs: V3[]) => {
+    const ps = vs.map(P)
+    const minX = Math.min(SB_VIEW.x, ...ps.map((q) => q.x - SB_MARGIN)), maxX = Math.max(SB_VIEW.x + SB_VIEW.w, ...ps.map((q) => q.x + SB_MARGIN))
+    const minY = Math.min(SB_VIEW.y, ...ps.map((q) => q.y - SB_MARGIN)), maxY = Math.max(SB_VIEW.y + SB_VIEW.h, ...ps.map((q) => q.y + SB_MARGIN))
+    let w = maxX - minX, h = maxY - minY
+    // держим соотношение сторон, чтобы высота блока не прыгала
+    const k = SB_VIEW.w / SB_VIEW.h
+    if (w / h < k) w = h * k; else h = w / k
+    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2
+    return { x: cx - w / 2, y: cy - h / 2, w, h, scale: SB_VIEW.w / w }
+}
+const vbStr = (v: { x: number; y: number; w: number; h: number }) => `${v.x.toFixed(1)} ${v.y.toFixed(1)} ${v.w.toFixed(1)} ${v.h.toFixed(1)}`
 const SandboxScene = ({ onSettled, onMistake, start, title, text }: SceneProps & SandboxCfg) => {
     const [sbExpected] = useState(() => sbExpectedOf(start))
     const [sbPoly] = useState(() => sbPolyOf(sbExpected.verts))
@@ -1373,6 +1390,11 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text }: SceneProps &
         if (!X) return fail('Линия и ребро параллельны — они не пересекутся')
         if (inCube(X)) return fail('Они уже пересекаются в точке сечения — продлевать не нужно')
         if (pts.some((p) => same(p.v, X))) return fail('Эту точку уже нашли')
+        // слишком далеко — куб стал бы крошечным: не строим и не считаем ошибкой
+        if (sbViewFor([...pts.map((p) => p.v), X]).scale < SB_MIN_SCALE) {
+            setMsg({ ok: false, text: 'Точка слишком далеко 🔭 Продли другое ребро — пересечение будет ближе' })
+            return
+        }
         const nearS = dist3(s.a, X) < dist3(s.b, X) ? s.a : s.b, nearE = dist3(E0, X) < dist3(E1, X) ? E0 : E1
         setAux((x) => [...x, { id: nid(), a: nearS, b: X }, { id: nid(), a: nearE, b: X }])
         setBusy(true)
@@ -1391,7 +1413,9 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text }: SceneProps &
     }
     const lineOf = (a: V3, b: V3) => { const A = P(a), B = P(b); return { x1: A.x, y1: A.y, x2: B.x, y2: B.y } }
     const edgeMode = tool === 3 && selSeg !== null
-    const stepHint = !tool ? '👆 Выбери правило на пульте' : tool === 1 ? (selPt === null ? 'Тапни первую точку' : 'Теперь вторую точку на той же стене')
+    // камера: показываем все точки; когда сечение готово — возвращаемся к обычному масштабу
+    const view = done ? SB_VIEW : sbViewFor(pts.map((p) => p.v))
+    const stepHint = !tool ? '👆 Выбери правило' : tool === 1 ? (selPt === null ? 'Тапни первую точку' : 'Теперь вторую точку на той же стене')
         : selSeg === null ? 'Тапни линию сечения' : tool === 2 ? 'Теперь точку на параллельной стене' : 'Теперь ребро на той же стене'
     return (
         <>
@@ -1432,7 +1456,8 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text }: SceneProps &
                 )}
             </div>
             <div className="w-full flex justify-center">
-                <svg viewBox="-12 -14 384 306" className="w-full max-w-[440px] overflow-visible">
+                <motion.svg initial={false} animate={{ viewBox: vbStr(view) }} transition={{ duration: 0.9, ease: 'easeInOut' }}
+                    viewBox={vbStr(SB_VIEW)} className="w-full max-w-[440px] overflow-visible">
                     {done && <motion.polygon points={sbPoly} fill={hexToRgba(SECT_COLOR, 0.32)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }} />}
                     {EDGES.map(([a, b]) => {
                         const L = lineOf(V[a] as V3, V[b] as V3)
@@ -1481,7 +1506,7 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text }: SceneProps &
                             </g>
                         )
                     })}
-                </svg>
+                </motion.svg>
             </div>
             {msg && <Msg ok={msg.ok} text={msg.text} />}
             {typed && !done && (
