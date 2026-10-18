@@ -16,6 +16,7 @@
 //   8–12. Куб 2 (новые точки E, F, H): правило 1 на потолке → «Работает ли ещё?» Нет → зачёркиваем → «Работает ли 2-е?» Нет →
 //      правило 3: продлеваем линию и переднее ребро потолка → точка G вне куба → «В каких плоскостях живёт G?» (две) →
 //      снова правило 1: G и H → новая точка Q → Q и E → правило 2 (левая ∥ правой) → R → R и F → сечение-пятиугольник.
+//   13. Куб 3 «Строй сам»: пульт из трёх правил, ученик строит сечение сам (SandboxScene, движок по координатам).
 //
 // Координаты: единичный куб, x вправо, y вглубь, z вверх. Проекция «как в учебнике»: передняя грань — квадрат,
 // глубина уходит вправо-вверх под 45° с коэффициентом 0.5 (как CubeFig в type-ttpwalk.tsx).
@@ -993,13 +994,14 @@ const C2Rule1Scene = ({ onSettled, onMistake }: SceneProps) => {
     const [wrongYN, setWrongYN] = useState<string[]>([])
     const [flash, setFlash] = useState<string | null>(null)
     const [bad, setBad] = useState<Seg | null>(null)
+    const [efFirst, setEfFirst] = useState<PtKey>('E') // линию ведём от точки, выбранной первой
     useEffect(() => {
         const t = step === 1 ? setTimeout(() => setStep(2), 1100) : step === 3 ? setTimeout(() => { setStep(4); setTyped(false) }, 1900) : step === 5 ? setTimeout(() => onSettled?.(), 900) : null
         return () => { if (t) clearTimeout(t) }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [step])
     const { sel, tap } = usePairPick(step === 2, (a, b) => {
-        if (pairKey(a, b) === 'EF') { showAnswerMeme(true); setFlash(null); setStep(3); return }
+        if (pairKey(a, b) === 'EF') { showAnswerMeme(true); setFlash(null); setEfFirst(a); setStep(3); return }
         badPair(onMistake)
         setFlash(`${pickWrongTryPhrase()} Нужны две точки на потолке`)
         const b2: Seg = { id: `bad-${Date.now()}`, a, b, color: WRONG_COLOR, dash: '7 7', instant: true }
@@ -1018,7 +1020,7 @@ const C2Rule1Scene = ({ onSettled, onMistake }: SceneProps) => {
         badPair(onMistake); setWrongYN(['yes'])
         setFlash(`${pickWrongTryPhrase()} Других плоскостей с двумя точками нет: на остальных стенах по одной точке`)
     }
-    const segs = SegsWithBad(step >= 3 ? [{ ...SEG_EF, instant: false, slow: true }] : [], bad)
+    const segs = SegsWithBad(step >= 3 ? [{ ...SEG_EF, a: efFirst, b: efFirst === 'E' ? 'F' : 'E', instant: false, slow: true }] : [], bad)
     return (
         <>
             <CheatStrip active={1} crossed={step >= 5 ? [1] : []} />
@@ -1143,18 +1145,23 @@ const C2FinishScene = ({ onSettled, onMistake }: SceneProps) => {
         if (pairKey(a, b) !== WANT[step]) return wrongPair(a, b)
         showAnswerMeme(true); setMsg(null); setBusy(true)
         if (step === 0) {
-            // часть G→Q — вне куба (вспомогательная, пунктир), Q→H — уже сечение
-            setSegs((s) => [...s, { id: 'GQ', a: 'G', b: 'Q', color: SECT_COLOR, dash: '7 6', slow: true, opacity: 0.6 }])
-            setTimeout(() => { setPoints((p) => [...p, 'Q']); setSegs((s) => [...s, { id: 'QH', a: 'Q', b: 'H', color: SECT_COLOR, slow: true }]) }, 1500)
+            // часть G–Q — вне куба (вспомогательная, пунктир), Q–H — уже сечение; рисуем от точки, выбранной первой
+            if (a === 'G') {
+                setSegs((s) => [...s, { id: 'GQ', a: 'G', b: 'Q', color: SECT_COLOR, dash: '7 6', slow: true, opacity: 0.6 }])
+                setTimeout(() => { setPoints((p) => [...p, 'Q']); setSegs((s) => [...s, { id: 'QH', a: 'Q', b: 'H', color: SECT_COLOR, slow: true }]) }, 1500)
+            } else {
+                setSegs((s) => [...s, { id: 'QH', a: 'H', b: 'Q', color: SECT_COLOR, slow: true }])
+                setTimeout(() => { setPoints((p) => [...p, 'Q']); setSegs((s) => [...s, { id: 'GQ', a: 'Q', b: 'G', color: SECT_COLOR, dash: '7 6', slow: true, opacity: 0.6 }]) }, 1500)
+            }
             setTimeout(() => { setMsg({ ok: true, text: 'Линия вошла в куб — тут новая точка сечения 📍' }); setStep(1); setTyped(false); setBusy(false) }, 3200)
         } else if (step === 1) {
-            setSegs((s) => [...s, { id: 'EQ', a: 'Q', b: 'E', color: SECT_COLOR, slow: true, dash: segDash('Q', 'E') }])
+            setSegs((s) => [...s, { id: 'EQ', a, b, color: SECT_COLOR, slow: true, dash: segDash('Q', 'E') }])
             setTimeout(() => { setStep(2); setTyped(false); setMsg(null) }, 1900)
             setTimeout(() => setGhost(true), 3600)
             setTimeout(() => { setGhost(false); setSegs((s) => [...s, { id: 'HR', a: 'H', b: 'R', color: SECT_COLOR, slow: true }]) }, 5200)
             setTimeout(() => { setPoints((p) => [...p, 'R']); setStep(3); setTyped(false); setBusy(false) }, 6900)
         } else if (step === 3) {
-            setSegs((s) => [...s, { id: 'FR', a: 'F', b: 'R', color: SECT_COLOR, slow: true, dash: segDash('F', 'R') }])
+            setSegs((s) => [...s, { id: 'FR', a, b, color: SECT_COLOR, slow: true, dash: segDash('F', 'R') }])
             setTimeout(() => { setFill(true); setStep(4); onSettled?.() }, 1900)
         }
     })
@@ -1181,13 +1188,286 @@ const C2FinishScene = ({ onSettled, onMistake }: SceneProps) => {
     )
 }
 
+// ===== Куб 3: «Строй сам» — пульт из трёх правил =====
+// Ученик сам выбирает правило на пульте и применяет его прямо на кубе:
+//   1 Соединить — тапни две точки: если они на одной стене, проводим линию (от первой выбранной ко второй)
+//      до краёв стены; там, где линия упёрлась в ребро, — новая точка.
+//   2 Параллельность — тапни линию сечения, потом точку на параллельной стене: проводим через точку параллельную линию.
+//   3 Продлить — тапни линию сечения, потом ребро на той же стене: продлеваем обе до пересечения — новая точка (часто вне куба).
+// Движок общий (считает по координатам), поэтому подходит любой правильный путь, не один заготовленный.
+// Точки — зеркально кубу 2: на правом ребре потолка, на дальнем ребре потолка ближе к левому, середина переднего левого ребра.
+type SbPt = { id: number; v: V3 }
+type SbSeg = { id: number; a: V3; b: V3; face: Face }
+type SbAux = { id: number; a: V3; b: V3 }
+type Tool = 1 | 2 | 3
+const SB_START: V3[] = [[1, 0.6, 1], [0.45, 1, 1], [0, 0, 0.5]]
+const OPPOSITE: Record<Face, Face> = { ceiling: 'floor', floor: 'ceiling', front: 'back', back: 'front', left: 'right', right: 'left' }
+// грань = фиксированная ось k со значением c; остальные две оси — координаты внутри грани
+const FACE_AXIS: Record<Face, [number, number]> = { ceiling: [2, 1], floor: [2, 0], front: [1, 0], back: [1, 1], left: [0, 0], right: [0, 1] }
+const sub = (a: V3, b: V3): V3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+const add = (a: V3, b: V3): V3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
+const mul = (a: V3, k: number): V3 => [a[0] * k, a[1] * k, a[2] * k]
+const dist3 = (a: V3, b: V3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])
+const same = (a: V3, b: V3) => dist3(a, b) < 1e-4
+const facesOfV = (v: V3) => planesOf(v)
+// Хорда грани: прямая p + t·d внутри квадрата грани (Лианг–Барски по двум свободным осям)
+const chordIn = (face: Face, p: V3, d: V3): [V3, V3] | null => {
+    const k = FACE_AXIS[face][0]
+    let t0 = -Infinity, t1 = Infinity
+    for (let i = 0; i < 3; i++) {
+        if (i === k) continue
+        if (Math.abs(d[i]) < 1e-9) { if (p[i] < -1e-6 || p[i] > 1 + 1e-6) return null; continue }
+        const a = (0 - p[i]) / d[i], b = (1 - p[i]) / d[i]
+        t0 = Math.max(t0, Math.min(a, b)); t1 = Math.min(t1, Math.max(a, b))
+    }
+    if (t1 - t0 < 1e-6) return null
+    return [add(p, mul(d, t0)), add(p, mul(d, t1))]
+}
+// Пересечение двух прямых в одной грани (2D по свободным осям); null — параллельны
+const meetIn = (face: Face, p: V3, d: V3, q: V3, e: V3): V3 | null => {
+    const k = FACE_AXIS[face][0]
+    const [i, j] = [0, 1, 2].filter((x) => x !== k)
+    const den = d[i] * e[j] - d[j] * e[i]
+    if (Math.abs(den) < 1e-9) return null
+    const t = ((q[i] - p[i]) * e[j] - (q[j] - p[j]) * e[i]) / den
+    return add(p, mul(d, t))
+}
+const inCube = (v: V3) => v.every((c) => c > -1e-6 && c < 1 + 1e-6)
+// Ожидаемое сечение: плоскость через 3 стартовые точки ∩ 12 рёбер куба
+const sbExpected = (() => {
+    const [A, B, C] = SB_START
+    const u = sub(B, A), w = sub(C, A)
+    const n: V3 = [u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2], u[0] * w[1] - u[1] * w[0]]
+    const dot = (x: V3) => x[0] * n[0] + x[1] * n[1] + x[2] * n[2]
+    const verts: V3[] = []
+    for (const [a, b] of EDGES) {
+        const P0 = V[a] as V3, P1 = V[b] as V3
+        const f0 = dot(sub(P0, A)), f1 = dot(sub(P1, A))
+        if (Math.abs(f0 - f1) < 1e-12) continue
+        const t = f0 / (f0 - f1)
+        if (t < -1e-6 || t > 1 + 1e-6) continue
+        const X = add(P0, mul(sub(P1, P0), t))
+        if (!verts.some((v) => same(v, X))) verts.push(X)
+    }
+    const faces = (Object.keys(FACE_POLY) as Face[]).filter((f) => verts.filter((v) => facesOfV(v).includes(f)).length >= 2)
+    return { verts, faces }
+})()
+const sbPoly = (() => {
+    const pts = sbExpected.verts.map(P)
+    const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length, cy = pts.reduce((s, p) => s + p.y, 0) / pts.length
+    return pts.sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx)).map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+})()
+const SB_RULES: { n: Tool; name: string; hint: string }[] = [
+    { n: 1, name: 'Соединить', hint: 'Тапни две точки на одной стене' },
+    { n: 2, name: 'Параллельно', hint: 'Тапни линию, потом точку на параллельной стене' },
+    { n: 3, name: 'Продлить', hint: 'Тапни линию, потом ребро на той же стене' },
+]
+const SandboxScene = ({ onSettled, onMistake }: SceneProps) => {
+    const [typed, setTyped] = useState(false)
+    const [pts, setPts] = useState<SbPt[]>(SB_START.map((v, i) => ({ id: i, v })))
+    const [segs, setSegs] = useState<SbSeg[]>([])
+    const [aux, setAux] = useState<SbAux[]>([])
+    const [tool, setTool] = useState<Tool | null>(null)
+    const [selPt, setSelPt] = useState<number | null>(null)
+    const [selSeg, setSelSeg] = useState<number | null>(null)
+    const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+    const [ghost, setGhost] = useState<{ a: V3; b: V3; dx: number; dy: number } | null>(null)
+    const [busy, setBusy] = useState(false)
+    const [done, setDone] = useState(false)
+    const uid = useRef(100)
+    const nid = () => ++uid.current
+    const resetSel = () => { setSelPt(null); setSelSeg(null) }
+    const fail = (text: string) => { badPair(onMistake); setMsg({ ok: false, text: `${pickWrongTryPhrase()} ${text}` }); resetSel() }
+    const addPoints = (vs: V3[], cur: SbPt[]) => {
+        const out = [...cur]
+        for (const v of vs) if (!out.some((p) => same(p.v, v))) out.push({ id: nid(), v })
+        return out
+    }
+    const checkDone = (next: SbSeg[]) => {
+        if (sbExpected.faces.every((f) => next.some((s) => s.face === f))) {
+            setDone(true); setTool(null); showAnswerMeme(true)
+            setMsg({ ok: true, text: 'Сечение замкнулось! 🎉' })
+            setTimeout(() => onSettled?.(), 900)
+        }
+    }
+    // провести хорду грани; first — точка, выбранная первой (от неё и рисуем)
+    const drawChord = (face: Face, chord: [V3, V3], first: V3, okText: string) => {
+        const [c0, c1] = dist3(chord[0], first) <= dist3(chord[1], first) ? chord : [chord[1], chord[0]]
+        const seg: SbSeg = { id: nid(), a: c0, b: c1, face }
+        const next = [...segs, seg]
+        setSegs(next)
+        setBusy(true)
+        setTimeout(() => {
+            setPts((cur) => addPoints([c0, c1], cur))
+            setBusy(false)
+            showAnswerMeme(true)
+            setMsg({ ok: true, text: okText })
+            checkDone(next)
+        }, 1300)
+    }
+    const tapPoint = (p: SbPt) => {
+        if (busy || done || !tool) return
+        if (tool === 1) {
+            if (selPt === null || selPt === p.id) { setSelPt(selPt === p.id ? null : p.id); setMsg(null); return }
+            const A = pts.find((x) => x.id === selPt)!.v, B = p.v
+            resetSel()
+            const common = facesOfV(A).filter((f) => facesOfV(B).includes(f))
+            if (!common.length) return fail('Эти точки не на одной стене — линия прошла бы сквозь комнату')
+            const face = common.find((f) => !segs.some((s) => s.face === f))
+            if (!face) return fail('На этой стене линия уже есть')
+            const chord = chordIn(face, A, sub(B, A))
+            if (!chord) return fail('Здесь линия не заходит в куб')
+            // если одна из точек вне куба — дорисуем вспомогательный пунктир от неё до куба
+            for (const X of [A, B]) if (!inCube(X)) {
+                const near = dist3(chord[0], X) < dist3(chord[1], X) ? chord[0] : chord[1]
+                setAux((a) => [...a, { id: nid(), a: X, b: near }])
+            }
+            return drawChord(face, chord, inCube(A) ? A : dist3(chord[0], A) < dist3(chord[1], A) ? chord[0] : chord[1],
+                `Правило 1 сработало: линия ${FACE_ON[face]}`)
+        }
+        if (tool === 2) {
+            if (selSeg === null) return fail('Сначала тапни линию, которую переносим')
+            const s = segs.find((x) => x.id === selSeg)!
+            resetSel()
+            const target = OPPOSITE[s.face]
+            if (!facesOfV(p.v).includes(target)) return fail(`Эта точка не на стене, параллельной линии (линия ${FACE_ON[s.face]})`)
+            if (segs.some((x) => x.face === target)) return fail(`${FACE_ON[target][0].toUpperCase()}${FACE_ON[target].slice(1)} линия уже есть`)
+            const chord = chordIn(target, p.v, sub(s.b, s.a))
+            if (!chord) return fail('Линия через эту точку не заходит в куб')
+            const mid = P(mul(add(s.a, s.b), 0.5)), to = P(p.v)
+            setGhost({ a: s.a, b: s.b, dx: to.x - mid.x, dy: to.y - mid.y })
+            setBusy(true)
+            setTimeout(() => { setGhost(null); setBusy(false); drawChord(target, chord, p.v, `Правило 2: ${FACE_NAME[s.face]} и ${FACE_NAME[target]} параллельны — перенесли линию`) }, 1500)
+            return
+        }
+        if (tool === 3) fail('Для правила 3 тапни линию, а потом ребро куба')
+    }
+    const tapSeg = (s: SbSeg) => {
+        if (busy || done || !tool) return
+        if (tool === 1) return fail('Для правила 1 тапай точки, а не линии')
+        setSelSeg(selSeg === s.id ? null : s.id); setSelPt(null); setMsg(null)
+    }
+    const tapEdge = (a: string, b: string) => {
+        if (busy || done || tool !== 3) return
+        if (selSeg === null) return fail('Сначала тапни линию, которую продлеваем')
+        const s = segs.find((x) => x.id === selSeg)!
+        resetSel()
+        if (!(FACE_POLY[s.face].includes(a) && FACE_POLY[s.face].includes(b))) return fail(`Ребро должно лежать на той же стене, что и линия (${FACE_ON[s.face]})`)
+        const E0 = V[a] as V3, E1 = V[b] as V3
+        const X = meetIn(s.face, s.a, sub(s.b, s.a), E0, sub(E1, E0))
+        if (!X) return fail('Линия и ребро параллельны — они не пересекутся')
+        if (inCube(X)) return fail('Они уже пересекаются в точке сечения — продлевать не нужно')
+        if (pts.some((p) => same(p.v, X))) return fail('Эту точку уже нашли')
+        const nearS = dist3(s.a, X) < dist3(s.b, X) ? s.a : s.b, nearE = dist3(E0, X) < dist3(E1, X) ? E0 : E1
+        setAux((x) => [...x, { id: nid(), a: nearS, b: X }, { id: nid(), a: nearE, b: X }])
+        setBusy(true)
+        setTimeout(() => {
+            setPts((cur) => addPoints([X], cur)); setBusy(false); showAnswerMeme(true)
+            setMsg({ ok: true, text: 'Правило 3: продлили — новая точка. Она лежит сразу на двух стенах' })
+        }, 1300)
+    }
+    const pickTool = (t: Tool) => { if (busy || done) return; setTool(tool === t ? null : t); resetSel(); setMsg(null) }
+    const hint = () => {
+        const has = (f: Face) => segs.some((s) => s.face === f)
+        const r1 = pts.some((a, i) => pts.slice(i + 1).some((b) => facesOfV(a.v).some((f) => facesOfV(b.v).includes(f) && !has(f)
+            && chordIn(f, a.v, sub(b.v, a.v)) !== null)))
+        const r2 = segs.some((s) => !has(OPPOSITE[s.face]) && pts.some((p) => facesOfV(p.v).includes(OPPOSITE[s.face])))
+        setMsg({ ok: true, text: r1 ? 'Подсказка: сейчас работает правило 1' : r2 ? 'Подсказка: правило 1 не работает, а правило 2 — да' : 'Подсказка: пора продлевать — правило 3' })
+    }
+    const lineOf = (a: V3, b: V3) => { const A = P(a), B = P(b); return { x1: A.x, y1: A.y, x2: B.x, y2: B.y } }
+    const edgeMode = tool === 3 && selSeg !== null
+    return (
+        <>
+            <GameHeader title="Строй сам ⚡" />
+            <TypedBig small text="Выбирай правило на пульте и строй сечение" onDone={() => setTyped(true)} readMs={0} />
+            {typed && (
+                <div className="w-full grid grid-cols-3 gap-2">
+                    {SB_RULES.map((r) => {
+                        const on = tool === r.n
+                        return (
+                            <button key={r.n} type="button" onClick={() => pickTool(r.n)} disabled={done}
+                                className="rounded-xl border-2 px-1 py-2 flex flex-col items-center gap-0.5 transition-transform active:translate-y-[3px]"
+                                style={{ borderColor: on ? SECT_COLOR : '#3A464E', backgroundColor: on ? hexToRgba(SECT_COLOR, 0.2) : '#161F23',
+                                    boxShadow: on ? `0 3px 0 ${GGEGE_PALETTE.purple.bottom}` : '0 3px 0 #0E1518' }}>
+                                <span className="text-xs font-black" style={{ color: on ? SECT_COLOR : MUTED }}>{r.n}</span>
+                                <span className="text-sm font-black" style={{ color: on ? '#F2F7FB' : '#C9D3D9' }}>{r.name}</span>
+                            </button>
+                        )
+                    })}
+                </div>
+            )}
+            <div className="w-full text-center text-sm font-bold min-h-5" style={{ color: MUTED }}>
+                {done ? '' : !tool ? 'Сначала выбери правило' : tool === 1 ? (selPt === null ? 'Тапни первую точку' : 'Теперь вторую точку на той же стене')
+                    : selSeg === null ? 'Тапни линию сечения' : tool === 2 ? 'Теперь точку на параллельной стене' : 'Теперь ребро на той же стене'}
+            </div>
+            <div className="w-full flex justify-center">
+                <svg viewBox="-12 -14 384 306" className="w-full max-w-[440px] overflow-visible">
+                    {done && <motion.polygon points={sbPoly} fill={hexToRgba(SECT_COLOR, 0.32)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }} />}
+                    {EDGES.map(([a, b]) => {
+                        const L = lineOf(V[a] as V3, V[b] as V3)
+                        return (
+                            <g key={a + b}>
+                                <line {...L} stroke={EDGE} strokeWidth={hidden(a, b) ? 2 : 3} strokeLinecap="round" strokeDasharray={hidden(a, b) ? '6 6' : undefined}
+                                    opacity={edgeMode ? 0.95 : hidden(a, b) ? 0.6 : 1} />
+                                {edgeMode && <line {...L} stroke={GGEGE_PALETTE.orange.button} strokeOpacity={0.18} strokeWidth={10} strokeLinecap="round" />}
+                                {edgeMode && <line {...L} stroke="transparent" strokeWidth={22} onClick={() => tapEdge(a, b)} style={{ cursor: 'pointer' }} />}
+                            </g>
+                        )
+                    })}
+                    {aux.map((x) => {
+                        const L = lineOf(x.a, x.b)
+                        return <motion.line key={x.id} x1={L.x1} y1={L.y1} stroke={SECT_COLOR} strokeWidth={2.5} strokeDasharray="6 5" strokeLinecap="round" opacity={0.7}
+                            initial={{ x2: L.x1, y2: L.y1 }} animate={{ x2: L.x2, y2: L.y2 }} transition={{ duration: 0.9, ease: 'easeInOut' }} />
+                    })}
+                    {segs.map((s) => {
+                        const L = lineOf(s.a, s.b)
+                        const sel = selSeg === s.id
+                        const dash = HIDDEN_FACES.includes(s.face) ? '9 7' : undefined
+                        return (
+                            <g key={s.id}>
+                                {sel && <line {...L} stroke="#F2C35B" strokeOpacity={0.55} strokeWidth={16} strokeLinecap="round" />}
+                                <motion.line x1={L.x1} y1={L.y1} stroke={SECT_COLOR} strokeWidth={5} strokeLinecap="round" strokeDasharray={dash}
+                                    initial={{ x2: L.x1, y2: L.y1 }} animate={{ x2: L.x2, y2: L.y2 }} transition={{ duration: 1.2, ease: 'easeInOut' }} />
+                                {(tool === 2 || tool === 3) && <line {...L} stroke="transparent" strokeWidth={22} onClick={() => tapSeg(s)} style={{ cursor: 'pointer' }} />}
+                            </g>
+                        )
+                    })}
+                    {ghost && (
+                        <motion.g initial={{ x: 0, y: 0, opacity: 0 }} animate={{ x: ghost.dx, y: ghost.dy, opacity: [0, 1, 1] }} transition={{ duration: 1.3, ease: 'easeInOut' }}>
+                            <line {...lineOf(ghost.a, ghost.b)} stroke={SECT_COLOR} strokeWidth={3} strokeDasharray="7 6" strokeLinecap="round" />
+                        </motion.g>
+                    )}
+                    {pts.map((p) => {
+                        const c = P(p.v)
+                        const sel = selPt === p.id
+                        return (
+                            <g key={p.id} transform={`translate(${c.x.toFixed(1)} ${c.y.toFixed(1)})`} onClick={() => tapPoint(p)} style={{ cursor: tool ? 'pointer' : undefined }}>
+                                <motion.g initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 10 }}>
+                                    {sel && <circle r={18} fill={hexToRgba(SECT_COLOR, 0.35)} stroke={SECT_COLOR} strokeWidth={2} className="animate-sel-pulse" />}
+                                    <circle r={sel ? 9.5 : 7.5} fill={sel ? '#FFFFFF' : SECT_COLOR} stroke={sel ? SECT_COLOR : '#F2F7FB'} strokeWidth={sel ? 3.5 : 2.5} />
+                                    <circle r={22} fill="transparent" />
+                                </motion.g>
+                            </g>
+                        )
+                    })}
+                </svg>
+            </div>
+            {msg && <Msg ok={msg.ok} text={msg.text} />}
+            {typed && !done && (
+                <button type="button" onClick={hint} className="text-sm font-bold underline underline-offset-4" style={{ color: MUTED }}>Подсказка: какое правило сейчас?</button>
+            )}
+            {done && <LocalAnswerConfetti />}
+        </>
+    )
+}
+
 const SCENES = [RoomScene, WallTestScene, PointsScene, CheatIntroScene, Rule1TryScene, Rule2Scene, CloseGameScene,
-    C2TaskScene, C2Rule1Scene, C2Rule2Scene, C2Rule3Scene, C2FinishScene]
+    C2TaskScene, C2Rule1Scene, C2Rule2Scene, C2Rule3Scene, C2FinishScene, SandboxScene]
 const SCENE_MAP_LABELS = ['Куб — комната', 'Тест: стены', 'Три точки', 'Шпора', 'Пробуем правило 1', 'Правило 2', 'Замкни сечение',
-    'Новое сечение', 'Куб 2: правило 1', 'Куб 2: правило 2', 'Куб 2: правило 3 (G)', 'Куб 2: достроить']
-const PRACTICE_SCENES = new Set<unknown>([WallTestScene, Rule1TryScene, CloseGameScene, C2Rule1Scene, C2Rule2Scene, C2Rule3Scene, C2FinishScene])
+    'Новое сечение', 'Куб 2: правило 1', 'Куб 2: правило 2', 'Куб 2: правило 3 (G)', 'Куб 2: достроить', 'Куб 3: строй сам']
+const PRACTICE_SCENES = new Set<unknown>([WallTestScene, Rule1TryScene, CloseGameScene, C2Rule1Scene, C2Rule2Scene, C2Rule3Scene, C2FinishScene, SandboxScene])
 const NEXT_LABELS = ['Понял, это комната', 'Стены знаю 🧱', 'Строим сечение ✂️', 'Давай попробуем 1-ое правило', 'Правило 1 — изи',
-    'Соединим их!', 'Ещё сечение!', 'Погнали', 'Дальше — правило 2', 'Дальше — правило 3', 'G найдена!', 'Готово']
+    'Соединим их!', 'Ещё сечение!', 'Погнали', 'Дальше — правило 2', 'Дальше — правило 3', 'G найдена!', 'Теперь сам! ⚡', 'Готово']
 
 export const TypeSectWalk = ({ onAnswer, onComplete, isAdmin = false }: Props & { isAdmin?: boolean }) => {
     const [startStep, setStartStep] = useState(0)
