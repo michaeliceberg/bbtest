@@ -8,7 +8,7 @@
 //   2. Две точки на потолке, одна на полу, «Задача: провести сечение через эти три точки».
 //   3. Шпора: 4 правила (Соединить, Параллельность, Продлить, Проекция) — идём сверху вниз, неработающее зачёркиваем,
 //      получилось — снова с первого (стрелка вниз и проход с зачёркиванием). Дальше над рисунком узкая полоска CheatStrip (текущее подсвечено, зачёркнутые — красной чертой).
-//   4. ПРАВИЛО 1 отдельной плашкой, без куба (печатается).
+//   4. (сцена «ПРАВИЛО 1» плашкой убрана — правило видно в полоске шпоры над кубом)
 //   5. «Есть ли сейчас плоскость с двумя точками?» — выбор стены, потом ученик сам выбирает две точки (первая пульсирует),
 //      линия проводится медленно; «Есть ли ещё…» — вторая стена.
 //   6. ПРАВИЛО 2: перенос линии с потолка на пол через точку (на полу — пунктир).
@@ -515,24 +515,40 @@ const RuleIcon = ({ n }: { n: number }) => {
 
 // Узкая полоска над рисунком: текущее правило подсвечено, неработающие зачёркнуты.
 const CheatStrip = ({ active, crossed = [] }: { active: number | null; crossed?: number[] }) => (
-    <div className="w-full grid grid-cols-4 gap-1.5 rounded-xl p-1" aria-label="Шпора: 4 правила"
-        style={{ background: 'linear-gradient(135deg, #07090B 0%, #151C21 60%, #0B0F12 100%)', boxShadow: 'inset 0 0 10px rgba(150,165,180,0.08)' }}>
-        {RULES.map((r) => {
-            const isOn = active === r.n, isX = crossed.includes(r.n)
-            return (
-                <motion.div key={r.n} className="relative rounded-lg border-2 px-1 py-1 text-center flex flex-col justify-center"
-                    // зачёркнутое бледнеет после того, как дорисован крестик
-                    animate={{ opacity: isX ? 0.4 : 1, scale: isOn ? 1.06 : 1 }}
-                    transition={{ opacity: { delay: isX ? 0.75 : 0, duration: 0.4 }, scale: { type: 'spring', stiffness: 300, damping: 18 } }}
-                    style={{ borderColor: isOn ? SECT_COLOR : '#3A464E', backgroundColor: isOn ? hexToRgba(SECT_COLOR, 0.18) : '#161F23' }}>
-                    <div className="text-[10px] font-black leading-none flex items-center justify-center gap-0.5" style={{ color: isOn ? SECT_COLOR : MUTED }}>
-                        {r.n}
-                    </div>
-                    <div className="text-[10px] md:text-xs font-black leading-tight text-[#F2F7FB] hyphens-manual break-words">{r.short}</div>
-                    {isX && <CrossX />}
-                </motion.div>
-            )
-        })}
+    <div className="relative w-full rounded-xl p-1 pt-0.5 border" aria-label="Шпора: 4 правила"
+        style={{ background: 'linear-gradient(135deg, #07090B 0%, #1A2228 55%, #0B0F12 100%)', borderColor: 'rgba(160,172,186,0.28)',
+            boxShadow: '0 0 14px rgba(0,0,0,0.55), inset 0 0 10px rgba(150,165,180,0.08)' }}>
+        {/* тот же «дым», что у плашки ШПОРА — видно, что это она */}
+        {SMOKE.slice(0, 2).map((sm, i) => (
+            <span key={i} className="absolute rounded-full pointer-events-none animate-smoke-drift"
+                style={{ left: i === 0 ? '-4%' : '82%', top: '-38%', width: sm.w, height: sm.w * 0.55, animationDelay: `${sm.d}s`,
+                    background: 'radial-gradient(closest-side, rgba(176,188,202,0.3), rgba(176,188,202,0.1) 55%, rgba(176,188,202,0) 100%)' }} />
+        ))}
+        <div className="relative flex items-center justify-center gap-1 pb-0.5">
+            <VenetianMask className="w-3.5 h-3.5" style={{ color: '#AEB9C4' }} />
+            <span className="font-black tracking-[0.3em] text-[10px]" style={{ color: '#C9D3DC', textShadow: '0 0 6px rgba(190,205,220,0.35)' }}>ШПОРА</span>
+        </div>
+        <div className="relative grid grid-cols-4 gap-1.5">
+            {RULES.map((r) => {
+                const isOn = active === r.n, isX = crossed.includes(r.n)
+                // пока смотрим на одно правило — остальные бледные целиком (и рамка, и текст)
+                const faded = active !== null && !isOn
+                return (
+                    <motion.div key={r.n} className="relative rounded-lg border-2 px-1 py-1 text-center flex flex-col justify-center"
+                        // зачёркнутое бледнеет после того, как дорисован крестик
+                        animate={{ opacity: isX ? 0.4 : faded ? 0.38 : 1, scale: isOn ? 1.06 : 1 }}
+                        transition={{ opacity: { delay: isX ? 0.75 : 0, duration: 0.4 }, scale: { type: 'spring', stiffness: 300, damping: 18 } }}
+                        style={{ borderColor: isOn ? SECT_COLOR : '#3A464E', backgroundColor: isOn ? hexToRgba(SECT_COLOR, 0.18) : '#161F23' }}>
+                        <div className="text-[10px] font-black leading-none flex items-center justify-center gap-0.5" style={{ color: isOn ? SECT_COLOR : MUTED }}>
+                            {r.n}
+                        </div>
+                        <div className="text-[10px] md:text-xs font-black leading-tight hyphens-manual break-words"
+                            style={{ color: faded ? MUTED : '#F2F7FB' }}>{r.short}</div>
+                        {isX && <CrossX />}
+                    </motion.div>
+                )
+            })}
+        </div>
     </div>
 )
 // Крестик из двух диагоналей, рисуются по очереди
@@ -1160,12 +1176,12 @@ const C2FinishScene = ({ onSettled, onMistake }: SceneProps) => {
     )
 }
 
-const SCENES = [RoomScene, WallTestScene, PointsScene, CheatIntroScene, Rule1PlateScene, Rule1TryScene, Rule2Scene, CloseGameScene,
+const SCENES = [RoomScene, WallTestScene, PointsScene, CheatIntroScene, Rule1TryScene, Rule2Scene, CloseGameScene,
     C2TaskScene, C2Rule1Scene, C2Rule2Scene, C2Rule3Scene, C2FinishScene]
-const SCENE_MAP_LABELS = ['Куб — комната', 'Тест: стены', 'Три точки', 'Шпора', 'Правило 1', 'Пробуем правило 1', 'Правило 2', 'Замкни сечение',
+const SCENE_MAP_LABELS = ['Куб — комната', 'Тест: стены', 'Три точки', 'Шпора', 'Пробуем правило 1', 'Правило 2', 'Замкни сечение',
     'Новое сечение', 'Куб 2: правило 1', 'Куб 2: правило 2', 'Куб 2: правило 3 (G)', 'Куб 2: достроить']
 const PRACTICE_SCENES = new Set<unknown>([WallTestScene, Rule1TryScene, CloseGameScene, C2Rule1Scene, C2Rule2Scene, C2Rule3Scene, C2FinishScene])
-const NEXT_LABELS = ['Понял, это комната', 'Стены знаю 🧱', 'Строим сечение ✂️', 'Идём по шпоре', 'Давай попробуем 1-ое правило', 'Правило 1 — изи',
+const NEXT_LABELS = ['Понял, это комната', 'Стены знаю 🧱', 'Строим сечение ✂️', 'Давай попробуем 1-ое правило', 'Правило 1 — изи',
     'Соединим их!', 'Ещё сечение!', 'Погнали', 'Дальше — правило 2', 'Дальше — правило 3', 'G найдена!', 'Готово']
 
 export const TypeSectWalk = ({ onAnswer, onComplete, isAdmin = false }: Props & { isAdmin?: boolean }) => {
