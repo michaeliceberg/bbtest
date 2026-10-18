@@ -229,15 +229,15 @@ const CubeSvg = ({ drawIn = false, faces = [], points = [], segs = [], selected 
                     const c = P(FACE_CENTER[h.face])
                     // боковые стены — в две строки (стикер ближе к квадрату и лучше влезает в узкую грань)
                     const lines = h.face === 'left' || h.face === 'right' ? h.label!.split(' ') : [h.label!]
-                    const w = Math.round(Math.max(...lines.map((l) => l.length)) * 8.4 + 24)
-                    const lh = 18, hgt = lines.length * lh + 10
+                    // крупно и без рамки; боковые грани узкие — там чуть мельче, чтобы слово не вылезало за рёбра
+                    const side = h.face === 'left' || h.face === 'right'
+                    const fs = side ? 17 : 22, lh = side ? 21 : 26
                     return (
                         // стикер «лежит» на грани: статичный <g> с переносом и искажением, motion.g внутри — только отскок
                         <g key={`lbl-${h.face}`} transform={`translate(${c.x.toFixed(1)} ${c.y.toFixed(1)}) ${FACE_LABEL_SKEW[h.face]}`}>
                             <motion.g initial={{ scale: 2.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 13 }}>
-                                <rect x={-w / 2} y={-hgt / 2} width={w} height={hgt} rx={9} fill="rgba(22,31,35,0.82)" stroke={h.color} strokeWidth={2} />
                                 {lines.map((l, i) => (
-                                    <text key={i} x={0} y={(i - (lines.length - 1) / 2) * lh} textAnchor="middle" dominantBaseline="central" fontSize={14} fontWeight={900} fill="#F2F7FB"
+                                    <text key={i} x={0} y={(i - (lines.length - 1) / 2) * lh} textAnchor="middle" dominantBaseline="central" fontSize={fs} fontWeight={900} fill="#F2F7FB"
                                         style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>{l}</text>
                                 ))}
                             </motion.g>
