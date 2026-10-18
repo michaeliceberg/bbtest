@@ -84,6 +84,13 @@ const FACE_SHORT: Record<Face, string> = { ceiling: 'Потолок', floor: 'П
 // «на потолке», «на передней стене»
 const FACE_ON: Record<Face, string> = { ceiling: 'на потолке', floor: 'на полу', front: 'на передней стене', back: 'на задней стене', left: 'на левой стене', right: 'на правой стене' }
 const FACE_ACC: Record<Face, string> = { ceiling: 'потолок', floor: 'пол', front: 'переднюю стену', back: 'заднюю стену', left: 'левую стену', right: 'правую стену' }
+// Искажение стикера-подписи, чтобы он «лежал» на грани (косая проекция: глубина уходит вправо-вверх под 45°).
+// Потолок/пол: строка вдоль ребра, «вверх» текста — в глубину (сжато). Боковые стены: строка уходит в глубину, вертикаль — как есть.
+const FACE_LABEL_SKEW: Record<Face, string> = {
+    ceiling: 'matrix(1 0 -0.42 0.58 0 0)', floor: 'matrix(1 0 -0.42 0.58 0 0)',
+    left: 'matrix(0.62 -0.5 0 1 0 0)', right: 'matrix(0.62 -0.5 0 1 0 0)',
+    front: '', back: '',
+}
 const FACE_INTRO_ORDER: Face[] = ['ceiling', 'floor', 'left', 'right', 'front', 'back']
 const FACE_TEST_ORDER: Face[] = ['ceiling', 'floor', 'front', 'back', 'left', 'right']
 
@@ -220,13 +227,19 @@ const CubeSvg = ({ drawIn = false, faces = [], points = [], segs = [], selected 
                 {children}
                 {faces.filter((h) => h.label).map((h) => {
                     const c = P(FACE_CENTER[h.face])
-                    const w = Math.round(h.label!.length * 8.4 + 24)
+                    // боковые стены — в две строки (стикер ближе к квадрату и лучше влезает в узкую грань)
+                    const lines = h.face === 'left' || h.face === 'right' ? h.label!.split(' ') : [h.label!]
+                    const w = Math.round(Math.max(...lines.map((l) => l.length)) * 8.4 + 24)
+                    const lh = 18, hgt = lines.length * lh + 10
                     return (
-                        <g key={`lbl-${h.face}`} transform={`translate(${c.x.toFixed(1)} ${c.y.toFixed(1)})`}>
+                        // стикер «лежит» на грани: статичный <g> с переносом и искажением, motion.g внутри — только отскок
+                        <g key={`lbl-${h.face}`} transform={`translate(${c.x.toFixed(1)} ${c.y.toFixed(1)}) ${FACE_LABEL_SKEW[h.face]}`}>
                             <motion.g initial={{ scale: 2.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 13 }}>
-                                <rect x={-w / 2} y={-14} width={w} height={28} rx={9} fill="rgba(22,31,35,0.82)" stroke={h.color} strokeWidth={2} />
-                                <text textAnchor="middle" dominantBaseline="central" fontSize={14} fontWeight={900} fill="#F2F7FB"
-                                    style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>{h.label}</text>
+                                <rect x={-w / 2} y={-hgt / 2} width={w} height={hgt} rx={9} fill="rgba(22,31,35,0.82)" stroke={h.color} strokeWidth={2} />
+                                {lines.map((l, i) => (
+                                    <text key={i} x={0} y={(i - (lines.length - 1) / 2) * lh} textAnchor="middle" dominantBaseline="central" fontSize={14} fontWeight={900} fill="#F2F7FB"
+                                        style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>{l}</text>
+                                ))}
                             </motion.g>
                         </g>
                     )
@@ -515,18 +528,13 @@ const RuleIcon = ({ n }: { n: number }) => {
 
 // Узкая полоска над рисунком: текущее правило подсвечено, неработающие зачёркнуты.
 const CheatStrip = ({ active, crossed = [] }: { active: number | null; crossed?: number[] }) => (
-    <div className="relative w-full rounded-xl p-1 pt-0.5 border" aria-label="Шпора: 4 правила"
-        style={{ background: 'linear-gradient(135deg, #07090B 0%, #1A2228 55%, #0B0F12 100%)', borderColor: 'rgba(160,172,186,0.28)',
-            boxShadow: '0 0 14px rgba(0,0,0,0.55), inset 0 0 10px rgba(150,165,180,0.08)' }}>
-        {/* тот же «дым», что у плашки ШПОРА — видно, что это она */}
-        {SMOKE.slice(0, 2).map((sm, i) => (
-            <span key={i} className="absolute rounded-full pointer-events-none animate-smoke-drift"
-                style={{ left: i === 0 ? '-4%' : '82%', top: '-38%', width: sm.w, height: sm.w * 0.55, animationDelay: `${sm.d}s`,
-                    background: 'radial-gradient(closest-side, rgba(176,188,202,0.3), rgba(176,188,202,0.1) 55%, rgba(176,188,202,0) 100%)' }} />
-        ))}
-        <div className="relative flex items-center justify-center gap-1 pb-0.5">
-            <VenetianMask className="w-3.5 h-3.5" style={{ color: '#AEB9C4' }} />
-            <span className="font-black tracking-[0.3em] text-[10px]" style={{ color: '#C9D3DC', textShadow: '0 0 6px rgba(190,205,220,0.35)' }}>ШПОРА</span>
+    <div className="relative w-full" aria-label="Шпора: 4 правила">
+        {/* просто подпись «ШПОРА» сверху (с лёгким дымком, как у большой плашки), без внешней рамки */}
+        <div className="relative flex items-center justify-center gap-1 pb-1">
+            <span className="absolute left-1/2 -translate-x-1/2 -top-2 w-28 h-7 rounded-full pointer-events-none animate-smoke-drift"
+                style={{ background: 'radial-gradient(closest-side, rgba(176,188,202,0.22), rgba(176,188,202,0) 100%)' }} />
+            <VenetianMask className="relative w-3.5 h-3.5" style={{ color: '#AEB9C4' }} />
+            <span className="relative font-black tracking-[0.3em] text-[10px]" style={{ color: '#C9D3DC', textShadow: '0 0 6px rgba(190,205,220,0.35)' }}>ШПОРА</span>
         </div>
         <div className="relative grid grid-cols-4 gap-1.5">
             {RULES.map((r) => {
@@ -639,11 +647,11 @@ const CheatIntroScene = ({ onSettled }: SceneProps) => {
                 ))}
                 {phase >= 3 && <DownArrow />}
             </div>
-            {phase >= 2 && <TypedBig small text="Идём по ним сверху вниз" onDone={() => setPhase((p) => (p === 2 ? 3 : p))} readMs={200} />}
+            {phase >= 2 && <TypedBig small text="Идём по правилам сверху вниз" onDone={() => setPhase((p) => (p === 2 ? 3 : p))} readMs={200} />}
             {phase === 7 && <NextBtn onClick={() => setPhase(6)}>Принял, идём последовательно</NextBtn>}
             {(phase === 6 || phase === 4 || phase === 5) && (
                 <TypedBig small text="Если правило не работает — вычёркиваем и смотрим следующее. И всегда начинаем с правила 1"
-                    onDone={() => { setPhase((p) => (p === 6 ? 4 : p)); setCur((c) => (c < 0 ? 0 : c)) }} readMs={500} />
+                    onDone={() => { setPhase((p) => (p === 6 ? 4 : p)); setCur((c) => (c < 0 ? 0 : c)) }} readMs={2000} />
             )}
         </>
     )
@@ -763,6 +771,8 @@ const Rule1TryScene = ({ onSettled, onMistake }: SceneProps) => {
     const [wrong, setWrong] = useState<Face[]>([])
     const [flash, setFlash] = useState<string | null>(null)
     const [bad, setBad] = useState<Seg | null>(null)
+    // линию ведём от точки, выбранной первой, ко второй
+    const [order, setOrder] = useState<Partial<Record<Face, [PtKey, PtKey]>>>({})
     useEffect(() => {
         if (!active) return
         const delays: Record<number, number> = { 1: 700, 2: 500, 4: 1800 }
@@ -778,7 +788,7 @@ const Rule1TryScene = ({ onSettled, onMistake }: SceneProps) => {
     }, [stage, active])
     const { sel, tap } = usePairPick(!!active && stage === 3, (a, b) => {
         const want = SEG_OF[active!]!
-        if (pairKey(a, b) === pairKey(want.a, want.b)) { showAnswerMeme(true); setFlash(null); setStage(4); return }
+        if (pairKey(a, b) === pairKey(want.a, want.b)) { showAnswerMeme(true); setFlash(null); setOrder((o) => ({ ...o, [active!]: [a, b] })); setStage(4); return }
         badPair(onMistake)
         const f = commonFace(a, b)
         setFlash(f ? `${pickWrongTryPhrase()} Эти точки ${FACE_ON[f]}, а мы смотрим ${FACE_ON[active!]}` : `${pickWrongTryPhrase()} Эти точки на разных стенах`)
@@ -797,7 +807,8 @@ const Rule1TryScene = ({ onSettled, onMistake }: SceneProps) => {
         if (!active) return
         setDone((d) => [...d, active]); setActive(null); setStage(0); setWrong([]); setFlash(null); setTyped(false); setRound(1)
     }
-    const segs: Seg[] = SegsWithBad([...done.map((f) => ({ ...SEG_OF[f]!, instant: true })), ...(active && stage >= 4 ? [{ ...SEG_OF[active]!, slow: true }] : [])], bad)
+    const segOf = (f: Face): Seg => { const o = order[f]; return o ? { ...SEG_OF[f]!, a: o[0], b: o[1] } : SEG_OF[f]! }
+    const segs: Seg[] = SegsWithBad([...done.map((f) => ({ ...segOf(f), instant: true })), ...(active && stage >= 4 ? [{ ...segOf(active), slow: true }] : [])], bad)
     return (
         <>
             <CheatStrip active={1} />
@@ -826,7 +837,7 @@ const Rule1TryScene = ({ onSettled, onMistake }: SceneProps) => {
 const HIGHLIGHT = '#F2C35B'
 const Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
     const { phase, go } = usePhaseState()
-    useChain({ 1: 1500, 2: 900, 3: 750, 4: 900, 8: 1600, 10: 1800 }, phase, go)
+    useChain({ 1: 1500, 3: 750, 4: 900, 8: 1600, 10: 1800 }, phase, go)
     const [typed, setTyped] = useState(false)
     const [wrong, setWrong] = useState<string[]>([])
     const [flash, setFlash] = useState<string | null>(null)
@@ -842,7 +853,6 @@ const Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
         : phase === 1 ? { active: 1, crossed: [1] }
             : phase <= 11 ? { active: 2, crossed: [1] } : { active: 1, crossed: [] as number[] }
     const prompt = phase === 0 ? 'Можем ли снова воспользоваться правилом 1? Есть ли точки в одной плоскости?'
-        : phase === 5 || phase === 6 ? 'Потолок и пол параллельны.'
             : phase === 7 || phase === 8 ? 'На потолке есть линия.'
                 : phase === 9 ? 'Переносим эту линию параллельно — через точку на полу'
                     : phase === 11 ? 'Линия упёрлась в ребро: тут новая точка 📍'
@@ -863,13 +873,8 @@ const Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
     return (
         <>
             <CheatStrip active={strip.active} crossed={strip.crossed} />
-            {phase >= 2 && phase <= 11 && (
-                <RememberPlate title="ПРАВИЛО 2">
-                    <div className="text-center font-black text-lg md:text-xl text-[#F2F7FB]">
-                        <span style={{ color: SECT_COLOR }}>Параллельность</span>: на параллельных стенах линии параллельны
-                    </div>
-                </RememberPlate>
-            )}
+            {/* без плашки «ПРАВИЛО 2»: просто пишем над кубом, потом с отскоком потолок и пол */}
+            {phase >= 2 && phase <= 6 && <TypedBig small text="Потолок и пол параллельны" onDone={() => go(3)} readMs={300} />}
             <motion.div className="w-full" initial={false} animate={{ opacity: phase === 12 ? 0.18 : 1 }} transition={{ duration: 0.6 }}>
                 <CubeSvg faces={faces} bounceFaces dimExcept={phase === 7 || phase === 8 ? 'ceiling' : null}
                     points={phase >= 11 ? ['M', 'N', 'K', 'L'] : ['M', 'N', 'K']}
@@ -896,10 +901,10 @@ const Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
                 </CubeSvg>
             </motion.div>
             {prompt && <TypedBig key={`p-${phase}`} small text={prompt} readMs={0}
-                onDone={() => { setTyped(true); if (phase === 5) go(6); if (phase === 7) go(8); if (phase === 11) setTimeout(() => go(12), 900); if (phase === 12) setTimeout(() => go(13), 900) }} />}
+                onDone={() => { setTyped(true); if (phase === 7) go(8); if (phase === 11) setTimeout(() => go(12), 900); if (phase === 12) setTimeout(() => go(13), 900) }} />}
             {phase === 0 && typed && <YesNo wrong={wrong} onPick={answer1} />}
             {phase === 1 && <Msg ok text="Правило 1 не работает — зачёркиваем ✗" />}
-            {phase === 6 && <NextBtn onClick={() => go(7)}>Вижу, они параллельны</NextBtn>}
+            {(phase === 5 || phase === 6) && <NextBtn onClick={() => go(7)}>Вижу, они параллельны</NextBtn>}
             {phase === 9 && typed && <NextBtn onClick={() => go(10)}>Параллельно переносим</NextBtn>}
             {phase === 13 && typed && <YesNo wrong={wrong.filter((w) => w === 'no2').map(() => 'no')} onPick={answer2} />}
             {flash && (phase === 0 || phase === 13) && <Msg ok={false} text={flash} />}
