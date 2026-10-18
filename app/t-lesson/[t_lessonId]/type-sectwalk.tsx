@@ -1652,7 +1652,16 @@ const R4ProjScene = ({ onSettled, onMistake }: SceneProps) => {
     const [pair, setPair] = useState<[V3, V3] | null>(null) // порядок выбора: от первой ко второй
     const [floorFirst, setFloorFirst] = useState<V3>(R4_X)
     const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+    const [xWrong, setXWrong] = useState<Face[]>([])
+    const [xOk, setXOk] = useState(false)
     useEffect(() => { setTyped(false) }, [phase])
+    // «В какой плоскости точка X?» — нужен пол
+    const pickXFace = (f: Face) => {
+        if (xOk || xWrong.includes(f)) return
+        if (f === 'floor') { showAnswerMeme(true); setXOk(true); setMsg({ ok: true, text: 'Да! X на полу — и при этом в плоскости сечения' }); return }
+        badPair(onMistake); setXWrong((w) => [...w, f])
+        setMsg({ ok: false, text: `${pickWrongTryPhrase()} Обе линии, которые мы продлевали, дошли до пола` })
+    }
     const pick = (id: string) => {
         if (phase === 0) {
             if (id === 'floor') { badPair(onMistake); setMsg({ ok: false, text: `${pickWrongTryPhrase()} Эта точка уже на полу — её опускать не нужно` }); setSel(null); return }
@@ -1692,10 +1701,10 @@ const R4ProjScene = ({ onSettled, onMistake }: SceneProps) => {
         if (!same(floorFirst, R4_X)) lines.push({ id: 'xFloor', a: R4_N1, b: R4_X, color: SECT_COLOR, dash: '6 5', width: 2.5, opacity: 0.7 })
     }
     const prompt = phase === 0 ? 'Выбери две точки, которые НЕ на полу'
-        : phase === 1 ? 'Проведём через них вспомогательную линию — она идёт сквозь комнату'
-            : phase === 2 ? 'Опустили обе точки на пол — это их проекции (как тени в полдень)'
+        : phase === 1 ? 'Проведём через них вспомогательную линию — она идёт сквозь куб'
+            : phase === 2 ? 'Опустили обе точки на пол — это их проекции'
                 : phase === 3 ? 'Соединили проекции. Линия и её проекция лежат в одной плоскости — значит пересекутся'
-                    : phase === 4 ? 'Продлили обе — вот точка X. Она на полу и в плоскости сечения'
+                    : phase === 4 ? 'Продлили обе — вот точка X. В какой плоскости она находится?'
                         : phase === 5 ? 'Теперь на полу две точки — соедини их (правило 1)' : null
     const next: Record<number, string> = { 1: 'Опустим их на пол ⬇', 2: 'Соединим проекции', 3: 'Продлим обе!', 4: 'Используем X' }
     return (
@@ -1703,7 +1712,14 @@ const R4ProjScene = ({ onSettled, onMistake }: SceneProps) => {
             <CheatStrip active={phase >= 5 ? 1 : 4} crossed={phase >= 5 ? [] : [1, 2, 3]} />
             <R4Svg pts={pts} lines={lines} zoomTo={phase >= 4 ? [R4_X] : []} onPoint={pick} sel={sel} ptActive={phase === 0 || phase === 5} />
             {prompt && <TypedBig key={`p-${phase}`} small text={prompt} onDone={() => setTyped(true)} readMs={0} />}
-            {next[phase] && typed && <NextBtn onClick={() => setPhase(phase + 1)}>{next[phase]}</NextBtn>}
+            {/* после «это их проекции» — значок, которым проекции нарисованы на кубе */}
+            {phase === 2 && typed && (
+                <motion.div className="flex justify-center -mt-2" initial={{ scale: 2.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 12 }}>
+                    <svg viewBox="-12 -12 24 24" className="w-7 h-7"><circle r={7.5} fill="#161F23" stroke="#F2F7FB" strokeWidth={2.5} /></svg>
+                </motion.div>
+            )}
+            {phase === 4 && typed && !xOk && <FaceOptions wrong={xWrong} onPick={pickXFace} />}
+            {next[phase] && typed && (phase !== 4 || xOk) && <NextBtn onClick={() => { setMsg(null); setPhase(phase + 1) }}>{next[phase]}</NextBtn>}
             {msg && <Msg ok={msg.ok} text={msg.text} />}
             {phase >= 6 && <LocalAnswerConfetti />}
         </>

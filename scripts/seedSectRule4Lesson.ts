@@ -19,7 +19,7 @@ async function main() {
     if (existing) { await db.delete(t_lessons).where(eq(t_lessons.id, existing.id)); console.log(`Старый урок ${existing.id} удалён`) }
     const all = await db.query.t_lessons.findMany({ where: (l, { eq }) => eq(l.t_unitId, unit.id), orderBy: (l, { asc }) => asc(l.order) })
     // «Кубик» остаётся первым, новый — вторым, остальные (если есть) сдвигаются
-    const first = all.find((l) => l.title === 'Кубик')
+    const first = all.find((l) => l.title === 'Кубик: 3 правила' || l.title === 'Кубик')
     const rest = all.filter((l) => l !== first)
     if (first) await db.update(t_lessons).set({ order: 1 }).where(eq(t_lessons.id, first.id))
     for (let i = 0; i < rest.length; i++) await db.update(t_lessons).set({ order: i + 3 }).where(eq(t_lessons.id, rest[i].id))
