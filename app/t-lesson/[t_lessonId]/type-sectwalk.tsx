@@ -171,11 +171,21 @@ const CubeSvg = ({ drawIn = false, faces = [], points = [], segs = [], selected 
                     <motion.polygon points={polyPts(fillPts)} fill={hexToRgba(SECT_COLOR, 0.32)} stroke="none"
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }} />
                 )}
-                {faces.map((h) => (
-                    <motion.polygon key={`${h.face}-${h.color}`} points={poly(FACE_POLY[h.face])} fill={hexToRgba(h.color, 0.28)} stroke={h.color} strokeWidth={2.5}
-                        initial={bounceFaces ? { opacity: 0, scale: 0.55 } : { opacity: 0 }} animate={{ opacity: 1, scale: 1 }}
-                        transition={bounceFaces ? { type: 'spring', stiffness: 340, damping: 11 } : { duration: 0.4 }} />
-                ))}
+                {faces.map((h) => {
+                    const vs = FACE_POLY[h.face]
+                    return (
+                        // заливка + края стены по одному: невидимые края (у скрытой вершины) — пунктиром
+                        <motion.g key={`${h.face}-${h.color}`} initial={bounceFaces ? { opacity: 0, scale: 0.55 } : { opacity: 0 }} animate={{ opacity: 1, scale: 1 }}
+                            transition={bounceFaces ? { type: 'spring', stiffness: 340, damping: 11 } : { duration: 0.4 }}>
+                            <polygon points={poly(vs)} fill={hexToRgba(h.color, 0.28)} stroke="none" />
+                            {vs.map((a, i) => {
+                                const b = vs[(i + 1) % vs.length], A = P(V[a]), B = P(V[b])
+                                return <line key={a + b} x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke={h.color} strokeWidth={2.5} strokeLinecap="round"
+                                    strokeDasharray={hidden(a, b) ? '6 6' : undefined} />
+                            })}
+                        </motion.g>
+                    )
+                })}
                 {EDGES.map(([a, b], i) => {
                     const A = P(V[a]), B = P(V[b])
                     const dim = dimExcept !== null && !(FACE_POLY[dimExcept].includes(a) && FACE_POLY[dimExcept].includes(b))
@@ -528,10 +538,11 @@ const CheatStrip = ({ active, crossed = [] }: { active: number | null; crossed?:
 // Крестик из двух диагоналей, рисуются по очереди
 const CrossX = () => (
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
-        <motion.line x1={6} y1={10} x2={94} y2={90} stroke={WRONG_COLOR} strokeWidth={4} strokeLinecap="round" vectorEffect="non-scaling-stroke"
-            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.35, ease: 'easeOut' }} />
-        <motion.line x1={94} y1={10} x2={6} y2={90} stroke={WRONG_COLOR} strokeWidth={4} strokeLinecap="round" vectorEffect="non-scaling-stroke"
-            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.35, delay: 0.35, ease: 'easeOut' }} />
+        {/* растём концами линий: pathLength в растянутом viewBox с non-scaling-stroke рисовал линию с разрывами */}
+        <motion.line x1={6} y1={10} stroke={WRONG_COLOR} strokeWidth={4} strokeLinecap="round" vectorEffect="non-scaling-stroke"
+            initial={{ x2: 6, y2: 10 }} animate={{ x2: 94, y2: 90 }} transition={{ duration: 0.35, ease: 'easeOut' }} />
+        <motion.line x1={94} y1={10} stroke={WRONG_COLOR} strokeWidth={4} strokeLinecap="round" vectorEffect="non-scaling-stroke"
+            initial={{ x2: 94, y2: 10 }} animate={{ x2: 6, y2: 90 }} transition={{ duration: 0.35, delay: 0.35, ease: 'easeOut' }} />
     </svg>
 )
 
@@ -539,7 +550,8 @@ const CrossX = () => (
 const RuleRow = ({ r, onReady, state }: { r: typeof RULES[number]; onReady?: () => void; state: 'normal' | 'on' | 'dim' | 'crossed' }) => {
     const [textOn, setTextOn] = useState(false)
     useEffect(() => {
-        const t = setTimeout(() => { setTextOn(true); setTimeout(() => onReady?.(), 500) }, ICON_CYCLE * 1000)
+        // номер → один цикл анимации → текст → пауза 2 с → следующее правило
+        const t = setTimeout(() => { setTextOn(true); setTimeout(() => onReady?.(), 2000) }, ICON_CYCLE * 1000)
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
@@ -574,8 +586,8 @@ const CheatIntroScene = ({ onSettled }: SceneProps) => {
     const [rows, setRows] = useState(0)
     const [cur, setCur] = useState(-1) // текущее в проходе
     useEffect(() => {
-        // после стрелки — объясняем, почему вычёркиваем (фаза 6), и только потом идём по правилам
-        if (phase === 3) { const t = setTimeout(() => setPhase(6), 1100); return () => clearTimeout(t) }
+        // после стрелки ждём кнопку «Ага, идём последовательно» (фаза 7), потом объяснение (6) и только потом проход (4)
+        if (phase === 3) { const t = setTimeout(() => setPhase(7), 1300); return () => clearTimeout(t) }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [phase])
     useEffect(() => {
@@ -603,18 +615,10 @@ const CheatIntroScene = ({ onSettled }: SceneProps) => {
                     <RuleRow key={r.n} r={r} state={stateOf(i)}
                         onReady={() => { if (i + 1 < RULES.length) setRows((n) => Math.max(n, i + 2)); else setPhase((p) => Math.max(p, 2)) }} />
                 ))}
-                {phase >= 3 && (
-                    // жирная стрелка сверху вниз поверх правил
-                    <svg className="absolute left-0 top-0 h-full w-6 pointer-events-none overflow-visible" viewBox="0 0 32 100" preserveAspectRatio="none">
-                        {/* растём концом линии (pathLength при растянутом viewBox и non-scaling-stroke даёт разрыв) */}
-                        <motion.line x1={16} y1={2} x2={16} stroke={HIGHLIGHT_ARROW} strokeWidth={6} strokeLinecap="round" vectorEffect="non-scaling-stroke"
-                            initial={{ y2: 2 }} animate={{ y2: 92 }} transition={{ duration: 0.9, ease: 'easeInOut' }} />
-                        <motion.path d="M6 86 L16 98 L26 86" fill="none" stroke={HIGHLIGHT_ARROW} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round"
-                            vectorEffect="non-scaling-stroke" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.85, duration: 0.2 }} />
-                    </svg>
-                )}
+                {phase >= 3 && <DownArrow />}
             </div>
             {phase >= 2 && <TypedBig small text="Идём по ним сверху вниз" onDone={() => setPhase((p) => (p === 2 ? 3 : p))} readMs={200} />}
+            {phase === 7 && <NextBtn onClick={() => setPhase(6)}>Ага, идём последовательно</NextBtn>}
             {(phase === 6 || phase === 4 || phase === 5) && (
                 <TypedBig small text="Если правило не работает — вычёркиваем и смотрим следующее. И всегда начинаем с правила 1"
                     onDone={() => { setPhase((p) => (p === 6 ? 4 : p)); setCur((c) => (c < 0 ? 0 : c)) }} readMs={500} />
@@ -623,6 +627,47 @@ const CheatIntroScene = ({ onSettled }: SceneProps) => {
     )
 }
 const HIGHLIGHT_ARROW = '#F2C35B'
+// Стрелка «сверху вниз»: золотой градиент, мягкое свечение, сужающееся древко и залитый наконечник. Растёт концом,
+// наконечник появляется с отскоком. Высоту берём реальную (ResizeObserver) — viewBox без растяжения, ничего не искажается.
+const DownArrow = () => {
+    const ref = useRef<HTMLDivElement>(null)
+    const [h, setH] = useState(0)
+    useEffect(() => {
+        const el = ref.current
+        if (!el) return
+        const ro = new ResizeObserver(() => setH(el.getBoundingClientRect().height))
+        ro.observe(el)
+        setH(el.getBoundingClientRect().height)
+        return () => ro.disconnect()
+    }, [])
+    const end = Math.max(0, h - 22)
+    return (
+        <div ref={ref} className="absolute left-0 top-0 h-full w-6 pointer-events-none">
+            {h > 0 && (
+                <svg width={24} height={h} viewBox={`0 0 24 ${h}`} className="overflow-visible">
+                    <defs>
+                        <linearGradient id="shporaArrow" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#FFE7A3" />
+                            <stop offset="55%" stopColor={HIGHLIGHT_ARROW} />
+                            <stop offset="100%" stopColor="#D9932B" />
+                        </linearGradient>
+                    </defs>
+                    {/* мягкое свечение под древком */}
+                    <motion.line x1={12} y1={6} x2={12} stroke={HIGHLIGHT_ARROW} strokeOpacity={0.22} strokeWidth={14} strokeLinecap="round"
+                        initial={{ y2: 6 }} animate={{ y2: end }} transition={{ duration: 0.9, ease: 'easeInOut' }} />
+                    {/* древко: тонко сверху, толще к низу */}
+                    <motion.polygon fill="url(#shporaArrow)"
+                        initial={{ points: `11,4 13,4 13,6 11,6` }} animate={{ points: `11,4 13,4 15,${end} 9,${end}` }} transition={{ duration: 0.9, ease: 'easeInOut' }} />
+                    <g transform={`translate(12 ${end})`}>
+                        <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.85, type: 'spring', stiffness: 420, damping: 11 }}>
+                            <polygon points="-11,-4 11,-4 0,18" fill="url(#shporaArrow)" stroke="#FFF1C7" strokeWidth={1.5} strokeLinejoin="round" />
+                        </motion.g>
+                    </g>
+                </svg>
+            )}
+        </div>
+    )
+}
 
 // Выбор пары точек тапами: первая точка пульсирует, вторая — проверяем пару.
 function usePairPick(enabled: boolean, onPair: (a: PtKey, b: PtKey) => void) {
@@ -1114,7 +1159,7 @@ const SCENES = [RoomScene, WallTestScene, PointsScene, CheatIntroScene, Rule1Pla
 const SCENE_MAP_LABELS = ['Куб — комната', 'Тест: стены', 'Три точки', 'Шпора', 'Правило 1', 'Пробуем правило 1', 'Правило 2', 'Замкни сечение',
     'Новое сечение', 'Куб 2: правило 1', 'Куб 2: правило 2', 'Куб 2: правило 3 (G)', 'Куб 2: достроить']
 const PRACTICE_SCENES = new Set<unknown>([WallTestScene, Rule1TryScene, CloseGameScene, C2Rule1Scene, C2Rule2Scene, C2Rule3Scene, C2FinishScene])
-const NEXT_LABELS = ['Понял, это комната', 'Стены знаю 🧱', 'Интересненько 🤔', 'Идём по шпоре', 'Давай попробуем 1-ое правило', 'Правило 1 — изи',
+const NEXT_LABELS = ['Понял, это комната', 'Стены знаю 🧱', 'Строим сечение ✂️', 'Идём по шпоре', 'Давай попробуем 1-ое правило', 'Правило 1 — изи',
     'Соединим их!', 'Ещё сечение!', 'Погнали', 'Дальше — правило 2', 'Дальше — правило 3', 'G найдена!', 'Готово']
 
 export const TypeSectWalk = ({ onAnswer, onComplete, isAdmin = false }: Props & { isAdmin?: boolean }) => {
