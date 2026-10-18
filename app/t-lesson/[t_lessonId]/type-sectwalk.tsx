@@ -392,7 +392,7 @@ const Rule1PlateScene = ({ onSettled }: SceneProps) => (
 // Идём сверху вниз: правило не работает — зачёркиваем и смотрим следующее; получилось — снова с первого.
 const RULES = [
     { n: 1, short: 'Соединить', long: 'Две точки в одной плоскости — соединяем' },
-    { n: 2, short: 'Перенести', long: 'На параллельной стене проводим параллельную линию' },
+    { n: 2, short: 'Параллель\u00adность', long: 'На параллельной стене проводим параллельную линию' },
     { n: 3, short: 'Продлить', long: 'Продлеваем линию до пересечения с прямой ребра' },
     { n: 4, short: 'Проекция', long: 'Проецируем точку на стену (разберём позже)' },
 ]
@@ -402,14 +402,21 @@ const CheatStrip = ({ active, crossed = [] }: { active: number | null; crossed?:
         {RULES.map((r) => {
             const isOn = active === r.n, isX = crossed.includes(r.n)
             return (
-                <motion.div key={r.n} className="relative rounded-lg border-2 px-1 py-1 text-center"
-                    animate={{ opacity: isX ? 0.45 : 1, scale: isOn ? 1.04 : 1 }} transition={{ type: 'spring', stiffness: 300, damping: 18 }}
+                <motion.div key={r.n} className="relative rounded-lg border-2 px-1 py-1 text-center flex flex-col justify-center"
+                    // зачёркнутое бледнеет после того, как дорисован крестик
+                    animate={{ opacity: isX ? 0.4 : 1, scale: isOn ? 1.06 : 1 }}
+                    transition={{ opacity: { delay: isX ? 0.75 : 0, duration: 0.4 }, scale: { type: 'spring', stiffness: 300, damping: 18 } }}
                     style={{ borderColor: isOn ? SECT_COLOR : '#3A464E', backgroundColor: isOn ? hexToRgba(SECT_COLOR, 0.18) : '#161F23' }}>
                     <div className="text-[10px] font-black leading-none" style={{ color: isOn ? SECT_COLOR : MUTED }}>{r.n}</div>
-                    <div className="text-[11px] md:text-xs font-black leading-tight text-[#F2F7FB]">{r.short}</div>
+                    <div className="text-[10px] md:text-xs font-black leading-tight text-[#F2F7FB] hyphens-manual break-words">{r.short}</div>
                     {isX && (
-                        <motion.div className="absolute left-1 right-1 top-1/2 h-[3px] rounded-full origin-left" style={{ backgroundColor: WRONG_COLOR }}
-                            initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.45, ease: 'easeOut' }} />
+                        // зачёркиваем крестиком: две диагонали по очереди
+                        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
+                            <motion.line x1={6} y1={10} x2={94} y2={90} stroke={WRONG_COLOR} strokeWidth={4} strokeLinecap="round" vectorEffect="non-scaling-stroke"
+                                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.35, ease: 'easeOut' }} />
+                            <motion.line x1={94} y1={10} x2={6} y2={90} stroke={WRONG_COLOR} strokeWidth={4} strokeLinecap="round" vectorEffect="non-scaling-stroke"
+                                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.35, delay: 0.35, ease: 'easeOut' }} />
+                        </svg>
                     )}
                 </motion.div>
             )
@@ -573,37 +580,66 @@ const Rule1TryScene = ({ onSettled, onMistake }: SceneProps) => {
     )
 }
 
-// ===== Сцена 5: правило 2 — параллельная линия на полу =====
-// Строго по шагам: куб рисуется → потолок с отскоком → пол с отскоком → «Потолок и пол параллельны.» → кнопка
-// «Вижу, они параллельны» → только потолок (остальные рёбра бледные), «На потолке есть линия.» → линия выделяется
-// жёлтым свечением с белой серединой и отскоком → пунктирная копия съезжает на пол через точку → линия на полу
-// ПУНКТИРОМ (пол мы не видим) → новая точка на ребре. Линия на передней стене всю сцену бледная — сейчас она не нужна.
+// ===== Сцена 6: правило 2 «Параллельность» =====
+// 0 «Можем ли снова воспользоваться правилом 1?» → Нет → 1 крестик на правиле 1 → 2 переходим к правилу 2 (плашка) →
+// 3 потолок, 4 пол с отскоком → 5 «Потолок и пол параллельны.» → 6 «Вижу, они параллельны» → 7 «На потолке есть линия.» →
+// 8 линия выделяется → 9 пунктирная копия ездит с потолка на пол по кругу + кнопка «Параллельно переносим» →
+// 10 линия на полу пунктиром → 11 новая точка → 12 чертёж бледнеет, шпаргалка возвращается на правило 1 →
+// 13 чертёж обратно, «Есть ли теперь точки в одной плоскости?» → Да.
 const HIGHLIGHT = '#F2C35B'
-const Rule2Scene = ({ onSettled }: SceneProps) => {
+const Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
     const { phase, go } = usePhaseState()
-    useChain({ 1: 750, 2: 900, 6: 1600, 7: 1700, 8: 900, 9: 700 }, phase, go)
+    useChain({ 1: 1500, 2: 900, 3: 750, 4: 900, 8: 1600, 10: 1800 }, phase, go)
+    const [typed, setTyped] = useState(false)
+    const [wrong, setWrong] = useState<string[]>([])
+    const [flash, setFlash] = useState<string | null>(null)
+    useEffect(() => { setTyped(false) }, [phase])
     const M = P(PT.M), N = P(PT.N), K = P(PT.K)
     const dx = K.x - M.x, dy = K.y - M.y
     const ceil: FaceHL = { face: 'ceiling', color: FACE_COLOR }, floor: FaceHL = { face: 'floor', color: FACE_COLOR }
-    const faces: FaceHL[] = phase === 1 ? [ceil]
-        : phase >= 2 && phase <= 4 ? [ceil, floor]
-            : phase === 5 || phase === 6 ? [ceil]
-                : phase >= 7 && phase < 10 ? [ceil, floor] : []
+    const faces: FaceHL[] = phase === 3 ? [ceil]
+        : phase >= 4 && phase <= 6 ? [ceil, floor]
+            : phase === 7 || phase === 8 ? [ceil]
+                : phase === 9 || phase === 10 ? [ceil, floor] : []
+    const strip = phase === 0 ? { active: 1, crossed: [] as number[] }
+        : phase === 1 ? { active: 1, crossed: [1] }
+            : phase <= 11 ? { active: 2, crossed: [1] } : { active: 1, crossed: [] as number[] }
+    const prompt = phase === 0 ? 'Можем ли снова воспользоваться правилом 1? Есть ли точки в одной плоскости?'
+        : phase === 5 || phase === 6 ? 'Потолок и пол параллельны.'
+            : phase === 7 || phase === 8 ? 'На потолке есть линия.'
+                : phase === 9 ? 'Переносим эту линию параллельно — через точку на полу'
+                    : phase === 11 ? 'Линия упёрлась в ребро: тут новая точка 📍'
+                        : phase === 12 ? 'Получилось! Значит снова с правила 1'
+                            : phase >= 13 ? 'Есть ли теперь точки в одной плоскости?' : null
+    const answer1 = (v: 'yes' | 'no') => {
+        if (!typed) return
+        if (v === 'no') { showAnswerMeme(true); setFlash(null); go(1); return }
+        badPair(onMistake); setWrong(['yes'])
+        setFlash(`${pickWrongTryPhrase()} На потолке и передней стене уже соединили, а на остальных стенах по одной точке`)
+    }
+    const answer2 = (v: 'yes' | 'no') => {
+        if (!typed || phase !== 13) return
+        if (v === 'yes') { showAnswerMeme(true); setFlash(null); go(14); onSettled?.(); return }
+        badPair(onMistake); setWrong((w) => [...w, 'no2'])
+        setFlash(`${pickWrongTryPhrase()} Посмотри на правую стену: там теперь две точки`)
+    }
     return (
         <>
-            <CheatStrip active={2} crossed={[1]} />
-            <RememberPlate title="ПРАВИЛО 2">
-                <div className="text-center font-black text-lg md:text-xl text-[#F2F7FB]">
-                    Потолок и пол <span style={{ color: FACE_COLOR }}>параллельны!</span> — значит и линии на них <span style={{ color: SECT_COLOR }}>параллельны</span>
-                </div>
-            </RememberPlate>
-            <DiagramBlock onSettled={() => setTimeout(() => go(1), 1300)}>
-                <CubeSvg drawIn faces={faces} bounceFaces dimExcept={phase === 5 || phase === 6 ? 'ceiling' : null}
-                    points={phase >= 9 ? ['M', 'N', 'K', 'L'] : ['M', 'N', 'K']}
-                    segs={[{ id: 'MN', a: 'M', b: 'N', color: SECT_COLOR, instant: true }, { id: 'MK', a: 'M', b: 'K', color: SECT_COLOR, instant: true, opacity: 0.18 },
-                        ...(phase >= 8 ? [{ id: 'KL', a: 'K' as PtKey, b: 'L' as PtKey, color: SECT_COLOR, dash: '9 7' }] : [])]}
-                    glowPts={phase === 9 ? ['L'] : []}>
-                    {phase === 6 && (
+            <CheatStrip active={strip.active} crossed={strip.crossed} />
+            {phase >= 2 && phase <= 11 && (
+                <RememberPlate title="ПРАВИЛО 2">
+                    <div className="text-center font-black text-lg md:text-xl text-[#F2F7FB]">
+                        <span style={{ color: SECT_COLOR }}>Параллельность</span>: на параллельных стенах линии параллельны
+                    </div>
+                </RememberPlate>
+            )}
+            <motion.div className="w-full" initial={false} animate={{ opacity: phase === 12 ? 0.18 : 1 }} transition={{ duration: 0.6 }}>
+                <CubeSvg faces={faces} bounceFaces dimExcept={phase === 7 || phase === 8 ? 'ceiling' : null}
+                    points={phase >= 11 ? ['M', 'N', 'K', 'L'] : ['M', 'N', 'K']}
+                    segs={[{ id: 'MN', a: 'M', b: 'N', color: SECT_COLOR, instant: true }, { id: 'KM', a: 'M', b: 'K', color: SECT_COLOR, instant: true, opacity: phase >= 2 && phase <= 11 ? 0.18 : 1 },
+                        ...(phase >= 10 ? [{ id: 'KL', a: 'K' as PtKey, b: 'L' as PtKey, color: SECT_COLOR, dash: '9 7', slow: true }] : [])]}
+                    glowPts={phase === 11 ? ['L'] : []}>
+                    {phase === 8 && (
                         // выделение линии на потолке: жёлтое свечение + белая середина с отскоком
                         <g>
                             <motion.line x1={M.x} y1={M.y} x2={N.x} y2={N.y} stroke={HIGHLIGHT} strokeLinecap="round"
@@ -613,21 +649,23 @@ const Rule2Scene = ({ onSettled }: SceneProps) => {
                                 initial={{ strokeWidth: 3 }} animate={{ strokeWidth: [3, 10, 5, 7] }} transition={{ duration: 1, ease: 'easeOut' }} />
                         </g>
                     )}
-                    {phase === 7 && (
-                        <motion.g initial={{ x: 0, y: 0, opacity: 0 }} animate={{ x: dx, y: dy, opacity: [0, 1, 1, 0.9] }} transition={{ duration: 1.4, ease: 'easeInOut' }}>
+                    {phase === 9 && (
+                        // копия линии ездит с потолка на пол снова и снова, пока не нажмут «Параллельно переносим»
+                        <motion.g initial={{ x: 0, y: 0, opacity: 0 }} animate={{ x: [0, dx, dx], y: [0, dy, dy], opacity: [0, 1, 0] }}
+                            transition={{ duration: 2, times: [0, 0.7, 1], ease: 'easeInOut', repeat: Infinity, repeatDelay: 0.3 }}>
                             <line x1={M.x} y1={M.y} x2={N.x} y2={N.y} stroke={SECT_COLOR} strokeWidth={3} strokeDasharray="7 6" strokeLinecap="round" />
                         </motion.g>
                     )}
                 </CubeSvg>
-            </DiagramBlock>
-            {phase >= 3 && <TypedBig small text="Потолок и пол параллельны." onDone={() => go(4)} />}
-            {phase === 4 && (
-                <motion.div className="w-full flex" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                    <button type="button" onClick={() => go(5)} className={walkthroughButtonClass(true)} style={walkthroughButtonStyle(true)}>Вижу, они параллельны</button>
-                </motion.div>
-            )}
-            {phase >= 5 && <TypedBig small text="На потолке есть линия." onDone={() => go(6)} />}
-            {phase >= 10 && <TypedBig small text="Линия упёрлась в ребро: тут новая точка 📍" onDone={() => onSettled?.()} />}
+            </motion.div>
+            {prompt && <TypedBig key={`p-${phase}`} small text={prompt} readMs={0}
+                onDone={() => { setTyped(true); if (phase === 5) go(6); if (phase === 7) go(8); if (phase === 11) setTimeout(() => go(12), 900); if (phase === 12) setTimeout(() => go(13), 900) }} />}
+            {phase === 0 && typed && <YesNo wrong={wrong} onPick={answer1} />}
+            {phase === 1 && <Msg ok text="Правило 1 не работает — зачёркиваем ✗" />}
+            {phase === 6 && <NextBtn onClick={() => go(7)}>Вижу, они параллельны</NextBtn>}
+            {phase === 9 && typed && <NextBtn onClick={() => go(10)}>Параллельно переносим</NextBtn>}
+            {phase === 13 && typed && <YesNo wrong={wrong.filter((w) => w === 'no2').map(() => 'no')} onPick={answer2} />}
+            {flash && (phase === 0 || phase === 13) && <Msg ok={false} text={flash} />}
         </>
     )
 }
@@ -669,7 +707,7 @@ const CloseGameScene = ({ onSettled, onMistake }: SceneProps) => {
         <>
             <CheatStrip active={1} />
             <GameHeader title="Замкни сечение 🔗" />
-            <TypedBig small text="Снова с правила 1: соедини две точки, которые лежат в одной плоскости" onDone={() => setTyped(true)} />
+            <TypedBig small text="Соедини две точки, которые лежат в одной плоскости" onDone={() => setTyped(true)} />
             <CubeSvg faces={face ? [face] : []} points={['M', 'N', 'K', 'L']} segs={segs} selected={sel} fill={fill} onPoint={typed && !done ? tap : undefined} />
             {msg && <Msg ok={msg.ok} text={msg.text} />}
             {fill && <LocalAnswerConfetti />}
@@ -907,7 +945,7 @@ const SCENE_MAP_LABELS = ['Куб — комната', 'Тест: стены', '
     'Новое сечение', 'Куб 2: правило 1', 'Куб 2: правило 2', 'Куб 2: правило 3 (G)', 'Куб 2: достроить']
 const PRACTICE_SCENES = new Set<unknown>([WallTestScene, Rule1TryScene, CloseGameScene, C2Rule1Scene, C2Rule2Scene, C2Rule3Scene, C2FinishScene])
 const NEXT_LABELS = ['Понял, это комната', 'Стены знаю 🧱', 'Интересненько 🤔', 'Идём по шпаргалке', 'Давай попробуем 1-ое правило', 'Правило 1 — изи',
-    'Параллельно, понял!', 'Ещё сечение!', 'Погнали', 'Дальше — правило 2', 'Дальше — правило 3', 'G найдена!', 'Готово']
+    'Соединим их!', 'Ещё сечение!', 'Погнали', 'Дальше — правило 2', 'Дальше — правило 3', 'G найдена!', 'Готово']
 
 export const TypeSectWalk = ({ onAnswer, onComplete, isAdmin = false }: Props & { isAdmin?: boolean }) => {
     const [startStep, setStartStep] = useState(0)
