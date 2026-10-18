@@ -6,8 +6,8 @@
 //      пауза 2 с → стены по очереди подсвечиваются с подписью.
 //   1. Тест «Кликни на …» по всем шести стенам (тап засчитывается стене, чей центр на рисунке ближе), ответ «Передняя 👍».
 //   2. Две точки на потолке, одна на полу, «Задача: провести сечение через эти три точки».
-//   3. Шпаргалка: 4 правила (Соединить, Перенести, Продлить, Проекция) — идём сверху вниз, неработающее зачёркиваем,
-//      получилось — снова с первого. Дальше над рисунком узкая полоска CheatStrip (текущее подсвечено, зачёркнутые — красной чертой).
+//   3. Шпора: 4 правила (Соединить, Параллельность, Продлить, Проекция) — идём сверху вниз, неработающее зачёркиваем,
+//      получилось — снова с первого (стрелка вниз и проход с зачёркиванием). Дальше над рисунком узкая полоска CheatStrip (текущее подсвечено, зачёркнутые — красной чертой).
 //   4. ПРАВИЛО 1 отдельной плашкой, без куба (печатается).
 //   5. «Есть ли сейчас плоскость с двумя точками?» — выбор стены, потом ученик сам выбирает две точки (первая пульсирует),
 //      линия проводится медленно; «Есть ли ещё…» — вторая стена.
@@ -37,6 +37,7 @@ import { showAnswerMeme } from '@/components/answer-meme-burst'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
+import { VenetianMask } from 'lucide-react'
 
 const SCENE_TRANSITION_PAUSE_MS = 1000
 
@@ -373,7 +374,7 @@ const PointsScene = ({ onSettled }: SceneProps) => {
             <TypedBig small text="Поставим две точки на потолке" onDone={() => go(1)} />
             <CubeSvg faces={faces} points={points} />
             {phase >= 3 && <TypedBig small text="и одну точку на полу" onDone={() => go(5)} />}
-            {phase >= 6 && <TypedBig text="Задача: провести сечение через эти три точки" onDone={() => { go(7); onSettled?.() }} />}
+            {phase >= 6 && <TaskLine onDone={() => { go(7); onSettled?.() }} />}
         </>
     )
 }
@@ -388,17 +389,124 @@ const Rule1PlateScene = ({ onSettled }: SceneProps) => (
     </RememberPlate>
 )
 
-// ===== Шпаргалка: 4 правила сечения =====
+// «Задача: провести сечение через эти три •» — вместо слова «точки» рисуем саму точку, как на чертеже
+const PointIcon = () => (
+    <motion.span className="inline-block align-middle rounded-full" style={{ width: '0.8em', height: '0.8em', backgroundColor: SECT_COLOR, border: '0.14em solid #F2F7FB' }}
+        initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 10 }} />
+)
+const TaskLine = ({ onDone }: { onDone?: () => void }) => {
+    const [dot, setDot] = useState(false)
+    return (
+        <div className="w-full text-center font-black text-[#F2F7FB] text-2xl md:text-3xl">
+            <Typewriter text="Задача: провести сечение через эти три" onDone={() => { setDot(true); setTimeout(() => onDone?.(), 700) }} />
+            {dot && <>{' '}<PointIcon /></>}
+        </div>
+    )
+}
+
+// ===== Шпора: 4 правила сечения =====
 // Идём сверху вниз: правило не работает — зачёркиваем и смотрим следующее; получилось — снова с первого.
 const RULES = [
     { n: 1, short: 'Соединить', long: 'Две точки в одной плоскости — соединяем' },
-    { n: 2, short: 'Параллель\u00adность', long: 'На параллельной стене проводим параллельную линию' },
+    { n: 2, short: 'Параллель­ность', long: 'На параллельной стене — параллельная линия' },
     { n: 3, short: 'Продлить', long: 'Продлеваем линию до пересечения с прямой ребра' },
-    { n: 4, short: 'Проекция', long: 'Проецируем точку на стену (разберём позже)' },
+    { n: 4, short: 'Проекция', long: 'Опускаем перпендикуляр — редкий трудный случай' },
 ]
+
+// «Шпора» — тёмная таинственная плашка: тень, маска, дым вокруг (клубы — радиальные градиенты, двигаем только transform/opacity).
+const SMOKE = [
+    { l: '-14%', t: '-60%', w: 70, d: 0 }, { l: '62%', t: '-55%', w: 80, d: 1.3 },
+    { l: '-8%', t: '35%', w: 64, d: 2.1 }, { l: '70%', t: '30%', w: 72, d: 0.7 },
+]
+const ShporaBadge = () => (
+    <div className="w-full flex justify-center">
+        <div className="relative">
+            {SMOKE.map((sm, i) => (
+                <span key={i} className="absolute rounded-full pointer-events-none animate-smoke-drift"
+                    style={{ left: sm.l, top: sm.t, width: sm.w, height: sm.w * 0.62, animationDelay: `${sm.d}s`,
+                        background: 'radial-gradient(closest-side, rgba(176,188,202,0.42), rgba(176,188,202,0.16) 55%, rgba(176,188,202,0) 100%)' }} />
+            ))}
+            <div className="relative flex items-center gap-2 rounded-2xl px-4 py-1.5 border"
+                style={{ background: 'linear-gradient(135deg, #07090B 0%, #1A2228 55%, #0B0F12 100%)', borderColor: 'rgba(160,172,186,0.28)',
+                    boxShadow: '0 0 18px rgba(0,0,0,0.65), inset 0 0 12px rgba(150,165,180,0.08)' }}>
+                <VenetianMask className="w-5 h-5" style={{ color: '#AEB9C4' }} />
+                <span className="font-black tracking-[0.3em] text-sm" style={{ color: '#C9D3DC', textShadow: '0 0 8px rgba(190,205,220,0.35)' }}>ШПОРА</span>
+            </div>
+        </div>
+    </div>
+)
+
+// Мини-анимации правил (зациклены). Цикл ~2.6 с, всё на transform/opacity и концах линий.
+const ICON_CYCLE = 2.6
+const loop = (times: number[]) => ({ duration: ICON_CYCLE, times, repeat: Infinity, ease: 'easeOut' as const })
+const Dot = ({ cx, cy, scale, times }: { cx: number; cy: number; scale: number[]; times: number[] }) => (
+    <g transform={`translate(${cx} ${cy})`}>
+        <motion.circle r={4} fill={SECT_COLOR} stroke="#F2F7FB" strokeWidth={1.5} initial={{ scale: 0 }} animate={{ scale }} transition={loop(times)} />
+    </g>
+)
+const RuleIcon = ({ n }: { n: number }) => {
+    return (
+        <svg viewBox="0 0 60 40" className="w-[60px] h-[40px] overflow-visible">
+            {n === 1 && (
+                <>
+                    {/* две точки по диагонали (как «двойка» на кубике): левая нижняя, правая верхняя, потом линия */}
+                    <motion.line x1={12} y1={30} stroke={SECT_COLOR} strokeWidth={3} strokeLinecap="round"
+                        initial={{ x2: 12, y2: 30, opacity: 0 }} animate={{ x2: [12, 12, 12, 48, 48, 48], y2: [30, 30, 30, 10, 10, 10], opacity: [0, 0, 1, 1, 1, 0] }}
+                        transition={loop([0, 0.36, 0.4, 0.72, 0.92, 1])} />
+                    <Dot cx={12} cy={30} scale={[0, 1.4, 1, 1, 1, 0]} times={[0, 0.1, 0.18, 0.8, 0.92, 1]} />
+                    <Dot cx={48} cy={10} scale={[0, 0, 1.4, 1, 1, 0]} times={[0, 0.18, 0.28, 0.36, 0.92, 1]} />
+                </>
+            )}
+            {n === 2 && (
+                <>
+                    {/* сверху линия между двумя точками, её пунктирная копия съезжает к нижней точке, из неё идёт линия */}
+                    <line x1={10} y1={9} x2={40} y2={9} stroke={SECT_COLOR} strokeWidth={3} strokeLinecap="round" />
+                    <circle cx={10} cy={9} r={4} fill={SECT_COLOR} stroke="#F2F7FB" strokeWidth={1.5} />
+                    <circle cx={40} cy={9} r={4} fill={SECT_COLOR} stroke="#F2F7FB" strokeWidth={1.5} />
+                    <motion.g initial={{ x: 0, y: 0, opacity: 0 }} animate={{ x: [0, 0, 8, 8, 8], y: [0, 0, 22, 22, 22], opacity: [0, 1, 1, 0, 0] }}
+                        transition={loop([0, 0.1, 0.45, 0.55, 1])}>
+                        <line x1={10} y1={9} x2={40} y2={9} stroke={SECT_COLOR} strokeWidth={2} strokeDasharray="4 3" strokeLinecap="round" />
+                    </motion.g>
+                    <motion.line x1={18} y1={31} stroke={SECT_COLOR} strokeWidth={3} strokeLinecap="round" strokeDasharray="5 3"
+                        initial={{ x2: 18, opacity: 0 }} animate={{ x2: [18, 18, 48, 48, 48], y2: [31, 31, 31, 31, 31], opacity: [0, 1, 1, 1, 0] }}
+                        transition={loop([0, 0.5, 0.78, 0.92, 1])} />
+                    <circle cx={18} cy={31} r={4} fill={SECT_COLOR} stroke="#F2F7FB" strokeWidth={1.5} />
+                </>
+            )}
+            {n === 4 && (
+                <>
+                    {/* проекция: точка с отскоком, от неё пунктир вниз, внизу перпендикуляр (значок прямого угла) и точка-основание */}
+                    <line x1={8} y1={34} x2={52} y2={34} stroke={EDGE} strokeWidth={2} strokeLinecap="round" opacity={0.75} />
+                    <motion.line x1={30} y1={6} x2={30} stroke={SECT_COLOR} strokeWidth={2.5} strokeDasharray="4 3" strokeLinecap="round"
+                        initial={{ y2: 6, opacity: 0 }} animate={{ y2: [6, 6, 34, 34, 34], opacity: [0, 1, 1, 1, 0] }}
+                        transition={loop([0, 0.22, 0.55, 0.9, 1])} />
+                    <motion.path d="M30 27 L37 27 L37 34" fill="none" stroke="#F2F7FB" strokeWidth={1.8} strokeLinejoin="round"
+                        initial={{ opacity: 0 }} animate={{ opacity: [0, 0, 1, 1, 0] }} transition={loop([0, 0.55, 0.62, 0.9, 1])} />
+                    <Dot cx={30} cy={6} scale={[0, 1.5, 1, 1, 0]} times={[0, 0.1, 0.2, 0.9, 1]} />
+                    <Dot cx={30} cy={34} scale={[0, 0, 1.5, 1, 0]} times={[0, 0.55, 0.65, 0.9, 1]} />
+                </>
+            )}
+            {n === 3 && (
+                <>
+                    {/* линия между точками продлевается пунктиром до прямой ребра — там новая точка */}
+                    <line x1={46} y1={1} x2={46} y2={39} stroke={EDGE} strokeWidth={2} strokeLinecap="round" opacity={0.7} />
+                    <line x1={8} y1={33} x2={24} y2={21} stroke={SECT_COLOR} strokeWidth={3} strokeLinecap="round" />
+                    <circle cx={8} cy={33} r={4} fill={SECT_COLOR} stroke="#F2F7FB" strokeWidth={1.5} />
+                    <circle cx={24} cy={21} r={4} fill={SECT_COLOR} stroke="#F2F7FB" strokeWidth={1.5} />
+                    <motion.line x1={24} y1={21} stroke={SECT_COLOR} strokeWidth={2.5} strokeDasharray="4 3" strokeLinecap="round"
+                        initial={{ x2: 24, y2: 21, opacity: 0 }} animate={{ x2: [24, 24, 46, 46, 46], y2: [21, 21, 4.5, 4.5, 4.5], opacity: [0, 1, 1, 1, 0] }}
+                        transition={loop([0, 0.12, 0.55, 0.9, 1])} />
+                    <Dot cx={46} cy={4.5} scale={[0, 0, 1.5, 1, 0]} times={[0, 0.55, 0.65, 0.9, 1]} />
+                </>
+            )}
+        </svg>
+    )
+}
+
 // Узкая полоска над рисунком: текущее правило подсвечено, неработающие зачёркнуты.
 const CheatStrip = ({ active, crossed = [] }: { active: number | null; crossed?: number[] }) => (
-    <div className="w-full grid grid-cols-4 gap-1.5" aria-label="Шпаргалка: 4 правила">
+    <div className="w-full grid grid-cols-4 gap-1.5 rounded-xl p-1" aria-label="Шпора: 4 правила"
+        style={{ background: 'linear-gradient(135deg, #07090B 0%, #151C21 60%, #0B0F12 100%)', boxShadow: 'inset 0 0 10px rgba(150,165,180,0.08)' }}>
         {RULES.map((r) => {
             const isOn = active === r.n, isX = crossed.includes(r.n)
             return (
@@ -407,52 +515,114 @@ const CheatStrip = ({ active, crossed = [] }: { active: number | null; crossed?:
                     animate={{ opacity: isX ? 0.4 : 1, scale: isOn ? 1.06 : 1 }}
                     transition={{ opacity: { delay: isX ? 0.75 : 0, duration: 0.4 }, scale: { type: 'spring', stiffness: 300, damping: 18 } }}
                     style={{ borderColor: isOn ? SECT_COLOR : '#3A464E', backgroundColor: isOn ? hexToRgba(SECT_COLOR, 0.18) : '#161F23' }}>
-                    <div className="text-[10px] font-black leading-none" style={{ color: isOn ? SECT_COLOR : MUTED }}>{r.n}</div>
+                    <div className="text-[10px] font-black leading-none flex items-center justify-center gap-0.5" style={{ color: isOn ? SECT_COLOR : MUTED }}>
+                        {r.n}
+                    </div>
                     <div className="text-[10px] md:text-xs font-black leading-tight text-[#F2F7FB] hyphens-manual break-words">{r.short}</div>
-                    {isX && (
-                        // зачёркиваем крестиком: две диагонали по очереди
-                        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
-                            <motion.line x1={6} y1={10} x2={94} y2={90} stroke={WRONG_COLOR} strokeWidth={4} strokeLinecap="round" vectorEffect="non-scaling-stroke"
-                                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.35, ease: 'easeOut' }} />
-                            <motion.line x1={94} y1={10} x2={6} y2={90} stroke={WRONG_COLOR} strokeWidth={4} strokeLinecap="round" vectorEffect="non-scaling-stroke"
-                                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.35, delay: 0.35, ease: 'easeOut' }} />
-                        </svg>
-                    )}
+                    {isX && <CrossX />}
                 </motion.div>
             )
         })}
     </div>
 )
+// Крестик из двух диагоналей, рисуются по очереди
+const CrossX = () => (
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
+        <motion.line x1={6} y1={10} x2={94} y2={90} stroke={WRONG_COLOR} strokeWidth={4} strokeLinecap="round" vectorEffect="non-scaling-stroke"
+            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.35, ease: 'easeOut' }} />
+        <motion.line x1={94} y1={10} x2={6} y2={90} stroke={WRONG_COLOR} strokeWidth={4} strokeLinecap="round" vectorEffect="non-scaling-stroke"
+            initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.35, delay: 0.35, ease: 'easeOut' }} />
+    </svg>
+)
 
-const CheatIntroScene = ({ onSettled }: SceneProps) => {
-    const [phase, setPhase] = useState(0)
-    const [rows, setRows] = useState(0)
+// Строка правила: номер с отскоком → мини-анимация (один цикл) → текст.
+const RuleRow = ({ r, onReady, state }: { r: typeof RULES[number]; onReady?: () => void; state: 'normal' | 'on' | 'dim' | 'crossed' }) => {
+    const [textOn, setTextOn] = useState(false)
     useEffect(() => {
-        if (phase !== 1) return
-        let n = 0
-        const id = setInterval(() => { n += 1; setRows(n); if (n >= RULES.length) { clearInterval(id); setTimeout(() => setPhase(2), 600) } }, 650)
-        return () => clearInterval(id)
+        const t = setTimeout(() => { setTextOn(true); setTimeout(() => onReady?.(), 500) }, ICON_CYCLE * 1000)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+    const on = state === 'on'
+    return (
+        <motion.div className="relative flex items-center gap-2 rounded-xl border-2 px-2 py-1.5"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: state === 'dim' ? 0.28 : state === 'crossed' ? 0.35 : 1, x: 0, scale: on ? [1, 1.07, 1] : 1 }}
+            transition={{ opacity: { duration: 0.4, delay: state === 'crossed' ? 0.75 : 0 }, x: { type: 'spring', stiffness: 320, damping: 20 }, scale: { duration: 0.45 } }}
+            style={{ borderColor: on ? SECT_COLOR : '#3A464E', backgroundColor: on ? hexToRgba(SECT_COLOR, 0.14) : '#161F23' }}>
+            <motion.span className="w-7 h-7 shrink-0 rounded-full flex items-center justify-center font-black text-sm"
+                initial={{ scale: 2.4 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 12 }}
+                style={{ backgroundColor: hexToRgba(SECT_COLOR, 0.25), color: SECT_COLOR }}>{r.n}</motion.span>
+            <div className="shrink-0"><RuleIcon n={r.n} /></div>
+            <div className="min-w-0 text-left">
+                {textOn && (
+                    <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                        <div className="font-black text-[#F2F7FB] leading-tight">{r.short.replace('­', '')}</div>
+                        <div className="text-xs md:text-sm font-bold leading-snug" style={{ color: MUTED }}>{r.long}</div>
+                    </motion.div>
+                )}
+            </div>
+            {state === 'crossed' && <CrossX />}
+        </motion.div>
+    )
+}
+
+// Сцена шпоры: «Для сечения 4 правила» → правила по одному → «Идём по ним сверху вниз» → жирная стрелка вниз →
+// по очереди: правило ярко, остальные бледные → зачёркиваем → следующее с отскоком … до проекции → все снова обычные.
+const CheatIntroScene = ({ onSettled }: SceneProps) => {
+    const [phase, setPhase] = useState(0) // 0 печать, 1 правила, 2 «идём сверху вниз», 3 стрелка, 6 «если не работает…», 4 проход, 5 конец
+    const [rows, setRows] = useState(0)
+    const [cur, setCur] = useState(-1) // текущее в проходе
+    useEffect(() => {
+        // после стрелки — объясняем, почему вычёркиваем (фаза 6), и только потом идём по правилам
+        if (phase === 3) { const t = setTimeout(() => setPhase(6), 1100); return () => clearTimeout(t) }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [phase])
+    useEffect(() => {
+        if (phase !== 4 || cur < 0) return
+        const t = setTimeout(() => {
+            if (cur + 1 < RULES.length) setCur(cur + 1)
+            else { setPhase(5); setCur(-1); setTimeout(() => onSettled?.(), 900) }
+        }, cur === RULES.length - 1 ? 1500 : 1900)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phase, cur])
+    const stateOf = (i: number): 'normal' | 'on' | 'dim' | 'crossed' => {
+        if (phase !== 4) return 'normal'
+        if (i === cur) return 'on'
+        if (i < cur) return 'crossed'
+        return 'dim'
+    }
     return (
         <>
-            <GameHeader title="Шпаргалка 📋" />
-            <TypedBig small text="У сечения всего 4 правила. Идём по ним сверху вниз" onDone={() => setPhase(1)} />
-            <div className="w-full flex flex-col gap-2">
-                {RULES.slice(0, rows).map((r) => (
-                    <motion.div key={r.n} className="flex items-center gap-3 rounded-xl border-2 border-[#3A464E] bg-[#161F23] px-3 py-2"
-                        initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} transition={{ type: 'spring', stiffness: 320, damping: 20 }}>
-                        <span className="w-7 h-7 shrink-0 rounded-full flex items-center justify-center font-black text-sm" style={{ backgroundColor: hexToRgba(SECT_COLOR, 0.25), color: SECT_COLOR }}>{r.n}</span>
-                        <div className="min-w-0 text-left">
-                            <div className="font-black text-[#F2F7FB]">{r.short}</div>
-                            <div className="text-sm font-bold" style={{ color: MUTED }}>{r.long}</div>
-                        </div>
-                    </motion.div>
+            <ShporaBadge />
+            <TypedBig small text="Для сечения 4 правила" onDone={() => { setPhase(1); setRows(1) }} />
+            {/* слева — место под стрелку «сверху вниз», чтобы она не закрывала номера правил */}
+            <div className="relative w-full flex flex-col gap-2 pl-7">
+                {RULES.slice(0, rows).map((r, i) => (
+                    <RuleRow key={r.n} r={r} state={stateOf(i)}
+                        onReady={() => { if (i + 1 < RULES.length) setRows((n) => Math.max(n, i + 2)); else setPhase((p) => Math.max(p, 2)) }} />
                 ))}
+                {phase >= 3 && (
+                    // жирная стрелка сверху вниз поверх правил
+                    <svg className="absolute left-0 top-0 h-full w-6 pointer-events-none overflow-visible" viewBox="0 0 32 100" preserveAspectRatio="none">
+                        {/* растём концом линии (pathLength при растянутом viewBox и non-scaling-stroke даёт разрыв) */}
+                        <motion.line x1={16} y1={2} x2={16} stroke={HIGHLIGHT_ARROW} strokeWidth={6} strokeLinecap="round" vectorEffect="non-scaling-stroke"
+                            initial={{ y2: 2 }} animate={{ y2: 92 }} transition={{ duration: 0.9, ease: 'easeInOut' }} />
+                        <motion.path d="M6 86 L16 98 L26 86" fill="none" stroke={HIGHLIGHT_ARROW} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round"
+                            vectorEffect="non-scaling-stroke" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.85, duration: 0.2 }} />
+                    </svg>
+                )}
             </div>
-            {phase >= 2 && <TypedBig small text="Не работает правило — вычёркиваем и смотрим следующее. Получилось — снова с первого" onDone={() => onSettled?.()} />}
+            {phase >= 2 && <TypedBig small text="Идём по ним сверху вниз" onDone={() => setPhase((p) => (p === 2 ? 3 : p))} readMs={200} />}
+            {(phase === 6 || phase === 4 || phase === 5) && (
+                <TypedBig small text="Если правило не работает — вычёркиваем и смотрим следующее. И всегда начинаем с правила 1"
+                    onDone={() => { setPhase((p) => (p === 6 ? 4 : p)); setCur((c) => (c < 0 ? 0 : c)) }} readMs={500} />
+            )}
         </>
     )
 }
+const HIGHLIGHT_ARROW = '#F2C35B'
 
 // Выбор пары точек тапами: первая точка пульсирует, вторая — проверяем пару.
 function usePairPick(enabled: boolean, onPair: (a: PtKey, b: PtKey) => void) {
@@ -584,7 +754,7 @@ const Rule1TryScene = ({ onSettled, onMistake }: SceneProps) => {
 // 0 «Можем ли снова воспользоваться правилом 1?» → Нет → 1 крестик на правиле 1 → 2 переходим к правилу 2 (плашка) →
 // 3 потолок, 4 пол с отскоком → 5 «Потолок и пол параллельны.» → 6 «Вижу, они параллельны» → 7 «На потолке есть линия.» →
 // 8 линия выделяется → 9 пунктирная копия ездит с потолка на пол по кругу + кнопка «Параллельно переносим» →
-// 10 линия на полу пунктиром → 11 новая точка → 12 чертёж бледнеет, шпаргалка возвращается на правило 1 →
+// 10 линия на полу пунктиром → 11 новая точка → 12 чертёж бледнеет, шпора возвращается на правило 1 →
 // 13 чертёж обратно, «Есть ли теперь точки в одной плоскости?» → Да.
 const HIGHLIGHT = '#F2C35B'
 const Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
@@ -738,7 +908,7 @@ const C2TaskScene = ({ onSettled }: SceneProps) => {
                     <CubeSvg drawIn points={CUBE2_PTS.slice(0, n)} />
                 </DiagramBlock>
             )}
-            {phase >= 3 && <TypedBig small text="Задача: провести сечение через эти три точки" onDone={() => onSettled?.()} />}
+            {phase >= 3 && <TaskLine onDone={() => onSettled?.()} />}
         </>
     )
 }
@@ -941,10 +1111,10 @@ const C2FinishScene = ({ onSettled, onMistake }: SceneProps) => {
 
 const SCENES = [RoomScene, WallTestScene, PointsScene, CheatIntroScene, Rule1PlateScene, Rule1TryScene, Rule2Scene, CloseGameScene,
     C2TaskScene, C2Rule1Scene, C2Rule2Scene, C2Rule3Scene, C2FinishScene]
-const SCENE_MAP_LABELS = ['Куб — комната', 'Тест: стены', 'Три точки', 'Шпаргалка', 'Правило 1', 'Пробуем правило 1', 'Правило 2', 'Замкни сечение',
+const SCENE_MAP_LABELS = ['Куб — комната', 'Тест: стены', 'Три точки', 'Шпора', 'Правило 1', 'Пробуем правило 1', 'Правило 2', 'Замкни сечение',
     'Новое сечение', 'Куб 2: правило 1', 'Куб 2: правило 2', 'Куб 2: правило 3 (G)', 'Куб 2: достроить']
 const PRACTICE_SCENES = new Set<unknown>([WallTestScene, Rule1TryScene, CloseGameScene, C2Rule1Scene, C2Rule2Scene, C2Rule3Scene, C2FinishScene])
-const NEXT_LABELS = ['Понял, это комната', 'Стены знаю 🧱', 'Интересненько 🤔', 'Идём по шпаргалке', 'Давай попробуем 1-ое правило', 'Правило 1 — изи',
+const NEXT_LABELS = ['Понял, это комната', 'Стены знаю 🧱', 'Интересненько 🤔', 'Идём по шпоре', 'Давай попробуем 1-ое правило', 'Правило 1 — изи',
     'Соединим их!', 'Ещё сечение!', 'Погнали', 'Дальше — правило 2', 'Дальше — правило 3', 'G найдена!', 'Готово']
 
 export const TypeSectWalk = ({ onAnswer, onComplete, isAdmin = false }: Props & { isAdmin?: boolean }) => {

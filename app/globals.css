@@ -875,3 +875,10 @@ body {
   transform-origin: center;
   animation: sel-pulse 0.9s ease-in-out infinite;
 }
+
+/* «Шпора» (type-sectwalk.tsx): клубы дыма вокруг тёмной плашки. Только transform/opacity. */
+@keyframes smoke-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.55; }
+  50% { transform: translate(10px, -6px) scale(1.18); opacity: 1; }
+}
+.animate-smoke-drift { animation: smoke-drift 4.2s ease-in-out infinite; }
