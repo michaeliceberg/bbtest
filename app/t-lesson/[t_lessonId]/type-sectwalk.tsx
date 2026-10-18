@@ -366,7 +366,7 @@ const WallTestScene = ({ onSettled, onMistake }: SceneProps) => {
                     {done ? 'Все стены найдены 🎉' : <Typewriter key={`q-${qi}`} text={`Кликни на ${FACE_ACC[target]}`} onDone={() => setTyped(true)} />}
                 </p>
             </div>
-            <CubeSvg faces={hl ? [hl] : []} onFace={done ? undefined : tap} />
+            <CubeSvg faces={hl ? [hl] : []} dimExcept={hl ? hl.face : null} onFace={done ? undefined : tap} />
             {msg && <Msg ok={msg.ok} text={msg.text} />}
             {done && <LocalAnswerConfetti />}
         </>
@@ -419,8 +419,8 @@ const TaskLine = ({ onDone }: { onDone?: () => void }) => {
 const RULES = [
     { n: 1, short: 'Соединить', long: 'Две точки в одной плоскости — соединяем' },
     { n: 2, short: 'Параллель­ность', long: 'На параллельной стене — параллельная линия' },
-    { n: 3, short: 'Продлить', long: 'Продлеваем линию до пересечения с прямой ребра' },
-    { n: 4, short: 'Проекция', long: 'Опускаем перпендикуляр — редкий трудный случай' },
+    { n: 3, short: 'Продлить', long: 'Продлеваем линию до пересечения с продолжением ребра' },
+    { n: 4, short: 'Проекция', long: 'Опускаем перпендикуляр на плоскость' },
 ]
 
 // «Шпора» — тёмная таинственная плашка: тень, маска, дым вокруг (клубы — радиальные градиенты, двигаем только transform/opacity).
@@ -559,8 +559,8 @@ const RuleRow = ({ r, onReady, state }: { r: typeof RULES[number]; onReady?: () 
     return (
         <motion.div className="relative flex items-center gap-2 rounded-xl border-2 px-2 py-1.5"
             initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: state === 'dim' ? 0.28 : state === 'crossed' ? 0.35 : 1, x: 0, scale: on ? [1, 1.07, 1] : 1 }}
-            transition={{ opacity: { duration: 0.4, delay: state === 'crossed' ? 0.75 : 0 }, x: { type: 'spring', stiffness: 320, damping: 20 }, scale: { duration: 0.45 } }}
+            animate={{ opacity: state === 'dim' ? 0.28 : state === 'crossed' ? 0.35 : 1, x: 0, scale: on ? [1, 1.12, 0.97, 1] : 1 }}
+            transition={{ opacity: { duration: 0.4, delay: state === 'crossed' ? 0.75 : 0 }, x: { type: 'spring', stiffness: 320, damping: 20 }, scale: { duration: 0.5 } }}
             style={{ borderColor: on ? SECT_COLOR : '#3A464E', backgroundColor: on ? hexToRgba(SECT_COLOR, 0.14) : '#161F23' }}>
             <motion.span className="w-7 h-7 shrink-0 rounded-full flex items-center justify-center font-black text-sm"
                 initial={{ scale: 2.4 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 12 }}
@@ -585,6 +585,7 @@ const CheatIntroScene = ({ onSettled }: SceneProps) => {
     const [phase, setPhase] = useState(0) // 0 печать, 1 правила, 2 «идём сверху вниз», 3 стрелка, 6 «если не работает…», 4 проход, 5 конец
     const [rows, setRows] = useState(0)
     const [cur, setCur] = useState(-1) // текущее в проходе
+    const [crossing, setCrossing] = useState(false) // текущее уже зачёркиваем, следующее ещё не показываем
     useEffect(() => {
         // после стрелки ждём кнопку «Ага, идём последовательно» (фаза 7), потом объяснение (6) и только потом проход (4)
         if (phase === 3) { const t = setTimeout(() => setPhase(7), 1300); return () => clearTimeout(t) }
@@ -592,23 +593,28 @@ const CheatIntroScene = ({ onSettled }: SceneProps) => {
     }, [phase])
     useEffect(() => {
         if (phase !== 4 || cur < 0) return
+        // сначала зачёркиваем текущее (крестик ~0,7 с), и только потом с отскоком появляется следующее
+        if (crossing) {
+            const t = setTimeout(() => { setCrossing(false); setCur(cur + 1) }, 1000)
+            return () => clearTimeout(t)
+        }
         const t = setTimeout(() => {
-            if (cur + 1 < RULES.length) setCur(cur + 1)
+            if (cur + 1 < RULES.length) setCrossing(true)
             else { setPhase(5); setCur(-1); setTimeout(() => onSettled?.(), 900) }
         }, cur === RULES.length - 1 ? 1500 : 1900)
         return () => clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [phase, cur])
+    }, [phase, cur, crossing])
     const stateOf = (i: number): 'normal' | 'on' | 'dim' | 'crossed' => {
         if (phase !== 4) return 'normal'
-        if (i === cur) return 'on'
+        if (i === cur) return crossing ? 'crossed' : 'on'
         if (i < cur) return 'crossed'
         return 'dim'
     }
     return (
         <>
             <ShporaBadge />
-            <TypedBig small text="Для сечения 4 правила" onDone={() => { setPhase(1); setRows(1) }} />
+            <TypedBig small text="Для сечения 4 правила:" onDone={() => { setPhase(1); setRows(1) }} />
             {/* слева — место под стрелку «сверху вниз», чтобы она не закрывала номера правил */}
             <div className="relative w-full flex flex-col gap-2 pl-7">
                 {RULES.slice(0, rows).map((r, i) => (
@@ -618,7 +624,7 @@ const CheatIntroScene = ({ onSettled }: SceneProps) => {
                 {phase >= 3 && <DownArrow />}
             </div>
             {phase >= 2 && <TypedBig small text="Идём по ним сверху вниз" onDone={() => setPhase((p) => (p === 2 ? 3 : p))} readMs={200} />}
-            {phase === 7 && <NextBtn onClick={() => setPhase(6)}>Ага, идём последовательно</NextBtn>}
+            {phase === 7 && <NextBtn onClick={() => setPhase(6)}>Принял, идём последовательно</NextBtn>}
             {(phase === 6 || phase === 4 || phase === 5) && (
                 <TypedBig small text="Если правило не работает — вычёркиваем и смотрим следующее. И всегда начинаем с правила 1"
                     onDone={() => { setPhase((p) => (p === 6 ? 4 : p)); setCur((c) => (c < 0 ? 0 : c)) }} readMs={500} />
@@ -1051,7 +1057,7 @@ const C2Rule3Scene = ({ onSettled, onMistake }: SceneProps) => {
             <CheatStrip active={3} crossed={[1, 2]} />
             <RememberPlate title="ПРАВИЛО 3">
                 <div className="text-center font-black text-lg md:text-xl text-[#F2F7FB]">
-                    <span style={{ color: SECT_COLOR }}>Продлить</span>: продлеваем линию до пересечения с прямой ребра
+                    <span style={{ color: SECT_COLOR }}>Продлить</span>: продлеваем линию до пересечения с продолжением ребра
                 </div>
             </RememberPlate>
             <TypedBig small text="Продлим линию на потолке и переднее ребро потолка" onDone={() => go(1)} />
