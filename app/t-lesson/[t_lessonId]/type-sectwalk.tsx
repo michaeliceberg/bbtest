@@ -1413,6 +1413,7 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text }: SceneProps &
     }
     const lineOf = (a: V3, b: V3) => { const A = P(a), B = P(b); return { x1: A.x, y1: A.y, x2: B.x, y2: B.y } }
     const edgeMode = tool === 3 && selSeg !== null
+    const ptActive = tool === 1 || (tool === 2 && selSeg !== null)
     // камера: показываем все точки; когда сечение готово — возвращаемся к обычному масштабу
     const view = done ? SB_VIEW : sbViewFor(pts.map((p) => p.v))
     const stepHint = !tool ? '👆 Выбери правило' : tool === 1 ? (selPt === null ? 'Тапни первую точку' : 'Теперь вторую точку на той же стене')
@@ -1497,7 +1498,10 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text }: SceneProps &
                         const c = P(p.v)
                         const sel = selPt === p.id
                         return (
-                            <g key={p.id} transform={`translate(${c.x.toFixed(1)} ${c.y.toFixed(1)})`} onClick={() => tapPoint(p)} style={{ cursor: tool ? 'pointer' : undefined }}>
+                            // точки ловят тап только когда они нужны (правило 1, или правило 2 после выбора линии):
+                            // иначе их круг-«мишень» закрывает короткую линию и тап по линии уходил в точку
+                            <g key={p.id} transform={`translate(${c.x.toFixed(1)} ${c.y.toFixed(1)})`} onClick={() => tapPoint(p)}
+                                style={{ cursor: ptActive ? 'pointer' : undefined, pointerEvents: ptActive ? undefined : 'none' }}>
                                 <motion.g initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 10 }}>
                                     {sel && <circle r={18} fill={hexToRgba(SECT_COLOR, 0.35)} stroke={SECT_COLOR} strokeWidth={2} className="animate-sel-pulse" />}
                                     <circle r={sel ? 9.5 : 7.5} fill={sel ? '#FFFFFF' : SECT_COLOR} stroke={sel ? SECT_COLOR : '#F2F7FB'} strokeWidth={sel ? 3.5 : 2.5} />
