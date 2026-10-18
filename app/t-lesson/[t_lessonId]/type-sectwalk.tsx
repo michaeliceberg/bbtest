@@ -528,7 +528,8 @@ const RuleIcon = ({ n }: { n: number }) => {
 }
 
 // Узкая полоска над рисунком: текущее правило подсвечено, неработающие зачёркнуты.
-const CheatStrip = ({ active, crossed = [] }: { active: number | null; crossed?: number[] }) => (
+// focus — момент перехода к другому правилу: текущее правило крупнее и светится, чтобы ученик посмотрел наверх
+const CheatStrip = ({ active, crossed = [], focus = false }: { active: number | null; crossed?: number[]; focus?: boolean }) => (
     <div className="relative w-full" aria-label="Шпора: 4 правила">
         {/* просто подпись «ШПОРА» сверху (с лёгким дымком, как у большой плашки), без внешней рамки */}
         <div className="relative flex items-center justify-center gap-1 pb-1">
@@ -545,9 +546,10 @@ const CheatStrip = ({ active, crossed = [] }: { active: number | null; crossed?:
                 return (
                     <motion.div key={r.n} className="relative rounded-lg border-2 px-1 py-1 text-center flex flex-col justify-center"
                         // зачёркнутое бледнеет после того, как дорисован крестик
-                        animate={{ opacity: isX ? 0.4 : faded ? 0.38 : 1, scale: isOn ? 1.06 : 1 }}
+                        animate={{ opacity: isX ? 0.4 : faded ? 0.38 : 1, scale: isOn ? (focus ? [1, 1.32, 1.18] : 1.06) : 1 }}
                         transition={{ opacity: { delay: isX ? 0.75 : 0, duration: 0.4 }, scale: { type: 'spring', stiffness: 300, damping: 18 } }}
-                        style={{ borderColor: isOn ? SECT_COLOR : '#3A464E', backgroundColor: isOn ? hexToRgba(SECT_COLOR, 0.18) : '#161F23' }}>
+                        style={{ borderColor: isOn ? SECT_COLOR : '#3A464E', backgroundColor: isOn ? hexToRgba(SECT_COLOR, 0.18) : '#161F23',
+                            boxShadow: isOn && focus ? `0 0 18px ${hexToRgba(SECT_COLOR, 0.75)}` : undefined, zIndex: isOn ? 1 : 0 }}>
                         <div className="text-[10px] font-black leading-none flex items-center justify-center gap-0.5" style={{ color: isOn ? SECT_COLOR : MUTED }}>
                             {r.n}
                         </div>
@@ -838,7 +840,16 @@ const Rule1TryScene = ({ onSettled, onMistake }: SceneProps) => {
 const HIGHLIGHT = '#F2C35B'
 const Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
     const { phase, go } = usePhaseState()
-    useChain({ 1: 1500, 3: 750, 4: 900, 8: 1600, 10: 1800 }, phase, go)
+    useChain({ 1: 2200, 3: 750, 4: 900, 8: 1600, 10: 1800 }, phase, go)
+    // переход к правилу 2: пока зачёркиваем правило 1 и подсвечиваем 2-е, чертёж сильно гаснет — смотрим на шпору
+    const [hold, setHold] = useState(false)
+    useEffect(() => {
+        if (phase !== 2) return
+        setHold(true)
+        const t = setTimeout(() => setHold(false), 2200)
+        return () => clearTimeout(t)
+    }, [phase])
+    const focusStrip = phase === 1 || (phase === 2 && hold)
     const [typed, setTyped] = useState(false)
     const [wrong, setWrong] = useState<string[]>([])
     const [flash, setFlash] = useState<string | null>(null)
@@ -873,10 +884,12 @@ const Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
     }
     return (
         <>
-            <CheatStrip active={strip.active} crossed={strip.crossed} />
+            <CheatStrip active={strip.active} crossed={strip.crossed} focus={focusStrip} />
+            {phase === 1 && <Msg ok text="Правило 1 не работает — зачёркиваем ✗" />}
+            {phase === 2 && hold && <Msg ok text="Переходим к правилу 2 👆" />}
             {/* без плашки «ПРАВИЛО 2»: просто пишем над кубом, потом с отскоком потолок и пол */}
-            {phase >= 2 && phase <= 6 && <TypedBig small text="Потолок и пол параллельны" onDone={() => go(3)} readMs={300} />}
-            <motion.div className="w-full" initial={false} animate={{ opacity: phase === 12 ? 0.18 : 1 }} transition={{ duration: 0.6 }}>
+            {phase >= 2 && phase <= 6 && !hold && <TypedBig small text="Потолок и пол параллельны" onDone={() => go(3)} readMs={300} />}
+            <motion.div className="w-full" initial={false} animate={{ opacity: phase === 12 ? 0.18 : focusStrip ? 0.08 : 1 }} transition={{ duration: 0.6 }}>
                 <CubeSvg faces={faces} bounceFaces dimExcept={phase === 7 || phase === 8 ? 'ceiling' : null}
                     points={phase >= 11 ? ['M', 'N', 'K', 'L'] : ['M', 'N', 'K']}
                     segs={[{ id: 'MN', a: 'M', b: 'N', color: SECT_COLOR, instant: true }, { id: 'KM', a: 'M', b: 'K', color: SECT_COLOR, instant: true, opacity: phase >= 2 && phase <= 11 ? 0.18 : 1 },
@@ -904,7 +917,6 @@ const Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
             {prompt && <TypedBig key={`p-${phase}`} small text={prompt} readMs={0}
                 onDone={() => { setTyped(true); if (phase === 7) go(8); if (phase === 11) setTimeout(() => go(12), 900); if (phase === 12) setTimeout(() => go(13), 900) }} />}
             {phase === 0 && typed && <YesNo wrong={wrong} onPick={answer1} />}
-            {phase === 1 && <Msg ok text="Правило 1 не работает — зачёркиваем ✗" />}
             {(phase === 5 || phase === 6) && <NextBtn onClick={() => go(7)}>Вижу, они параллельны</NextBtn>}
             {phase === 9 && typed && <NextBtn onClick={() => go(10)}>Параллельно переносим</NextBtn>}
             {phase === 13 && typed && <YesNo wrong={wrong.filter((w) => w === 'no2').map(() => 'no')} onPick={answer2} />}
@@ -1234,8 +1246,8 @@ const meetIn = (face: Face, p: V3, d: V3, q: V3, e: V3): V3 | null => {
 }
 const inCube = (v: V3) => v.every((c) => c > -1e-6 && c < 1 + 1e-6)
 // Ожидаемое сечение: плоскость через 3 стартовые точки ∩ 12 рёбер куба
-const sbExpected = (() => {
-    const [A, B, C] = SB_START
+const sbExpectedOf = (start: V3[]) => {
+    const [A, B, C] = start
     const u = sub(B, A), w = sub(C, A)
     const n: V3 = [u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2], u[0] * w[1] - u[1] * w[0]]
     const dot = (x: V3) => x[0] * n[0] + x[1] * n[1] + x[2] * n[2]
@@ -1251,20 +1263,23 @@ const sbExpected = (() => {
     }
     const faces = (Object.keys(FACE_POLY) as Face[]).filter((f) => verts.filter((v) => facesOfV(v).includes(f)).length >= 2)
     return { verts, faces }
-})()
-const sbPoly = (() => {
-    const pts = sbExpected.verts.map(P)
+}
+const sbPolyOf = (verts: V3[]) => {
+    const pts = verts.map(P)
     const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length, cy = pts.reduce((s, p) => s + p.y, 0) / pts.length
     return pts.sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx)).map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
-})()
+}
 const SB_RULES: { n: Tool; name: string; hint: string }[] = [
     { n: 1, name: 'Соединить', hint: 'Тапни две точки на одной стене' },
     { n: 2, name: 'Параллельно', hint: 'Тапни линию, потом точку на параллельной стене' },
     { n: 3, name: 'Продлить', hint: 'Тапни линию, потом ребро на той же стене' },
 ]
-const SandboxScene = ({ onSettled, onMistake }: SceneProps) => {
+type SandboxCfg = { start: V3[]; title: string; text: string }
+const SandboxScene = ({ onSettled, onMistake, start, title, text }: SceneProps & SandboxCfg) => {
+    const [sbExpected] = useState(() => sbExpectedOf(start))
+    const [sbPoly] = useState(() => sbPolyOf(sbExpected.verts))
     const [typed, setTyped] = useState(false)
-    const [pts, setPts] = useState<SbPt[]>(SB_START.map((v, i) => ({ id: i, v })))
+    const [pts, setPts] = useState<SbPt[]>(start.map((v, i) => ({ id: i, v })))
     const [segs, setSegs] = useState<SbSeg[]>([])
     const [aux, setAux] = useState<SbAux[]>([])
     const [tool, setTool] = useState<Tool | null>(null)
@@ -1378,8 +1393,8 @@ const SandboxScene = ({ onSettled, onMistake }: SceneProps) => {
     const edgeMode = tool === 3 && selSeg !== null
     return (
         <>
-            <GameHeader title="Строй сам ⚡" />
-            <TypedBig small text="Выбирай правило на пульте и строй сечение" onDone={() => setTyped(true)} readMs={0} />
+            <GameHeader title={title} />
+            <TypedBig small text={text} onDone={() => setTyped(true)} readMs={0} />
             {typed && (
                 <div className="w-full grid grid-cols-3 gap-2">
                     {SB_RULES.map((r) => {
@@ -1461,13 +1476,29 @@ const SandboxScene = ({ onSettled, onMistake }: SceneProps) => {
     )
 }
 
+// Куб 3 и ещё пять расстановок (подобраны и проверены скриптом: сечение строится правилами 1–3).
+// Сначала три четырёхугольника (правила 1 и 2), потом пятиугольник и шестиугольник (нужно и правило 3).
+const SANDBOXES: SandboxCfg[] = [
+    { start: SB_START, title: 'Строй сам ⚡', text: 'Выбирай правило на пульте и строй сечение' },
+    { start: [[0.4, 0, 1], [1, 0.5, 1], [0.3, 0, 0]], title: 'Куб 4 ⚡', text: 'Новые точки — построй сечение' },
+    { start: [[1, 0, 0.6], [1, 1, 0.3], [0.5, 1, 1]], title: 'Куб 5 ⚡', text: 'Построй сечение' },
+    { start: [[0, 0, 0.4], [0, 1, 0.7], [1, 0, 0.6]], title: 'Куб 6 ⚡', text: 'Построй сечение' },
+    { start: [[0.7, 0, 0], [1, 0, 0.3], [0, 0.7, 1]], title: 'Куб 7 🔥', text: 'Посложнее: тут понадобится продлевать' },
+    { start: [[1, 1, 0.6], [0, 0, 0.6], [1, 0.4, 1]], title: 'Куб 8 💀', text: 'Босс: самое сложное сечение' },
+]
+const SANDBOX_SCENES = SANDBOXES.map((cfg) => {
+    const Scene = (props: SceneProps) => <SandboxScene {...props} {...cfg} />
+    Scene.displayName = `Sandbox-${cfg.title}`
+    return Scene
+})
+
 const SCENES = [RoomScene, WallTestScene, PointsScene, CheatIntroScene, Rule1TryScene, Rule2Scene, CloseGameScene,
-    C2TaskScene, C2Rule1Scene, C2Rule2Scene, C2Rule3Scene, C2FinishScene, SandboxScene]
+    C2TaskScene, C2Rule1Scene, C2Rule2Scene, C2Rule3Scene, C2FinishScene, ...SANDBOX_SCENES]
 const SCENE_MAP_LABELS = ['Куб — комната', 'Тест: стены', 'Три точки', 'Шпора', 'Пробуем правило 1', 'Правило 2', 'Замкни сечение',
-    'Новое сечение', 'Куб 2: правило 1', 'Куб 2: правило 2', 'Куб 2: правило 3 (G)', 'Куб 2: достроить', 'Куб 3: строй сам']
-const PRACTICE_SCENES = new Set<unknown>([WallTestScene, Rule1TryScene, CloseGameScene, C2Rule1Scene, C2Rule2Scene, C2Rule3Scene, C2FinishScene, SandboxScene])
+    'Новое сечение', 'Куб 2: правило 1', 'Куб 2: правило 2', 'Куб 2: правило 3 (G)', 'Куб 2: достроить', 'Куб 3: строй сам', 'Куб 4 (4 точки)', 'Куб 5 (4 точки)', 'Куб 6 (4 точки)', 'Куб 7 (5 точек)', 'Куб 8 (6 точек)']
+const PRACTICE_SCENES = new Set<unknown>([WallTestScene, Rule1TryScene, CloseGameScene, C2Rule1Scene, C2Rule2Scene, C2Rule3Scene, C2FinishScene, ...SANDBOX_SCENES])
 const NEXT_LABELS = ['Понял, это комната', 'Стены знаю 🧱', 'Строим сечение ✂️', 'Давай попробуем 1-ое правило', 'Правило 1 — изи',
-    'Соединим их!', 'Ещё сечение!', 'Погнали', 'Дальше — правило 2', 'Дальше — правило 3', 'G найдена!', 'Теперь сам! ⚡', 'Готово']
+    'Соединим их!', 'Ещё сечение!', 'Погнали', 'Дальше — правило 2', 'Дальше — правило 3', 'G найдена!', 'Теперь сам! ⚡', 'Ещё куб!', 'Дальше', 'Давай сложнее', 'Го на 6 точек', 'Готово']
 
 export const TypeSectWalk = ({ onAnswer, onComplete, isAdmin = false }: Props & { isAdmin?: boolean }) => {
     const [startStep, setStartStep] = useState(0)
