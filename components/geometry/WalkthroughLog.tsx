@@ -23,6 +23,7 @@ import { useWindowSize } from 'react-use'
 import { ArrowLeft, RotateCcw } from 'lucide-react'
 import { HighlightWord } from './WalkthroughMarker'
 import { Typewriter } from './Typewriter'
+import { pickMoreMeme, memeFlip } from '@/lib/moreMemes'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { LOTTIE_STEP_BY_STEP_FIERY_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
 import { cn } from '@/lib/utils'
@@ -964,8 +965,13 @@ export const REMEMBER_STICKERS = [1, 2, 3, 4, 5].map((n) => `/remember-stickers/
 
 export const RememberPlate = ({ title = 'ЗАПОМНИ!', children, sticker: fixedSticker, flipSticker }: { title?: React.ReactNode; children?: React.ReactNode; sticker?: string; flipSticker?: boolean }) => {
     const [sticker, setSticker] = useState<string | null>(fixedSticker ?? null)
+    const [autoFlip, setAutoFlip] = useState(false)
     useEffect(() => {
-        if (fixedSticker === undefined) setSticker(REMEMBER_STICKERS[Math.floor(Math.random() * REMEMBER_STICKERS.length)])
+        if (fixedSticker !== undefined) return
+        // половина — «Джентльмены» r1–r5, половина — удивлённые мемы public/more-memes, лицом к плашке (влево)
+        if (Math.random() < 0.5) { setSticker(REMEMBER_STICKERS[Math.floor(Math.random() * REMEMBER_STICKERS.length)]); setAutoFlip(false); return }
+        const m = pickMoreMeme('wow')
+        setSticker(m.src); setAutoFlip(memeFlip(m, 'left'))
     }, [fixedSticker])
     // sticker='none' — места под стикер нет картинки (пока родитель её выбирает)
     const shown = fixedSticker === 'none' ? null : fixedSticker || sticker
@@ -984,7 +990,7 @@ export const RememberPlate = ({ title = 'ЗАПОМНИ!', children, sticker: fi
                     </div>
                 )}
             </div>
-            <div className="w-24 h-24 md:w-28 md:h-28 shrink-0 flex items-center justify-center" style={{ transform: flipSticker ? 'scaleX(-1)' : undefined }}>
+            <div className="w-24 h-24 md:w-28 md:h-28 shrink-0 flex items-center justify-center" style={{ transform: (flipSticker ?? autoFlip) ? 'scaleX(-1)' : undefined }}>
                 {shown && (
                     <motion.img key={shown} src={shown} alt="" draggable={false}
                         initial={{ scale: 0.4, opacity: 0, rotate: -12 }} animate={{ scale: 1, opacity: 1, rotate: 0 }}

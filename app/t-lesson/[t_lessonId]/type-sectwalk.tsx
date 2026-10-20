@@ -294,18 +294,21 @@ const colorize = (text: string) => {
     if (last < text.length) out.push(text.slice(last))
     return out
 }
-const ColorTyped = ({ text, onDone }: { text: string; onDone?: () => void }) => {
+// каждая мысль — с новой строки: после «.», «?» или «!» перед новым предложением ставим перенос (родитель — whitespace-pre-line)
+const splitThoughts = (t: string) => t.replace(/([.?!])\s+(?=[А-ЯЁA-Z«])/g, '$1\n')
+const ColorTyped = ({ text: raw, onDone }: { text: string; onDone?: () => void }) => {
     const [done, setDone] = useState(false)
-    return done ? <>{colorize(text)}</> : <Typewriter text={text} onDone={() => { setDone(true); onDone?.() }} />
+    const text = splitThoughts(raw)
+    return <span className="whitespace-pre-line">{done ? colorize(text) : <Typewriter text={text} onDone={() => { setDone(true); onDone?.() }} />}</span>
 }
 // meme — справа мем, развёрнутый к тексту («удивляется правилу»)
-const TypedBig = ({ text, onDone, readMs = 400, small, meme }: { text: string; onDone?: () => void; readMs?: number; small?: boolean; meme?: MoreMeme['mood'] }) => {
+const TypedBig = ({ text, onDone, readMs = 400, small, meme, memeFixed }: { text: string; onDone?: () => void; readMs?: number; small?: boolean; meme?: MoreMeme['mood']; memeFixed?: { src: string; flip?: boolean } }) => {
     const body = (
-        <div className={cn('w-full text-center font-black text-[#F2F7FB]', small ? 'text-lg md:text-xl' : 'text-2xl md:text-3xl', meme && 'flex-1 min-w-0')}>
+        <div className={cn('w-full text-center font-black text-[#F2F7FB]', small ? 'text-lg md:text-xl' : 'text-2xl md:text-3xl', (meme || memeFixed) && 'flex-1 min-w-0')}>
             <ColorTyped text={text} onDone={() => setTimeout(() => onDone?.(), readMs)} />
         </div>
     )
-    return meme ? <div className="w-full flex items-center gap-2">{body}<SideMeme mood={meme} /></div> : body
+    return meme || memeFixed ? <div className="w-full flex items-center gap-2">{body}<SideMeme mood={meme} fixed={memeFixed} /></div> : body
 }
 // без мема: после верного ответа и так взлетает облачко-мем (showAnswerMeme) — не дублируем
 // meme — после верного ответа: вместо облачка над кнопкой (showAnswerMeme) мем справа от сообщения — без перебора мемов
@@ -1711,6 +1714,7 @@ const R4Svg = ({ pts, lines, zoomTo = [], onPoint, sel = null, ptActive = false,
         </motion.div>
     )
 }
+const JACKIE = { src: '/more-memes/meme-20.webp', flip: true }
 const R4_BASE_PTS: R4Pt[] = [{ id: 'floor', v: R4_FLOOR }, { id: 'edge', v: R4_EDGE }, { id: 'ceil', v: R4_CEIL }]
 
 // Сцена 1: задача
@@ -1718,7 +1722,7 @@ const R4TaskScene = ({ onSettled }: SceneProps) => {
     const [cube, setCube] = useState(false)
     return (
         <>
-            <TypedBig text="Новое сечение 🧩" onDone={() => setCube(true)} />
+            <TypedBig text="Новое сечение" memeFixed={JACKIE} onDone={() => setCube(true)} />
             {cube && (
                 <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 600)}>
                     <R4Svg pts={R4_BASE_PTS} lines={[]} />
@@ -1754,10 +1758,10 @@ const R4CheckScene = ({ onSettled, onMistake }: SceneProps) => {
             {phase === 3 && <Msg ok text="Правила 2 и 3 тоже не помогут — зачёркиваем ✗" />}
             {phase >= 4 && <Msg ok text="Остаётся правило 4 — проекция 👆" />}
             <R4Svg pts={R4_BASE_PTS} lines={[]} dim={phase === 1 || phase === 3} />
-            {phase === 0 && <TypedBig small text="Можем ли воспользоваться правилом 1? Есть две точки на одной стене?" onDone={() => setTyped(true)} readMs={0} />}
+            {phase === 0 && <TypedBig small text="Можем ли воспользоваться правилом 1? Есть две точки на одной стене?" meme="wow" onDone={() => setTyped(true)} readMs={0} />}
             {phase === 0 && typed && <YesNo wrong={wrong} onPick={answer} />}
-            {phase === 2 && <TypedBig small text="Правила 2 и 3 работают с готовой линией. А линий у нас пока нет" onDone={() => setTimeout(() => setPhase(3), 700)} readMs={0} />}
-            {phase >= 4 && <TypedBig small text="Правило 4: опускаем точки на пол и ищем, где сечение пересекает пол" onDone={() => setTimeout(() => onSettled?.(), 500)} readMs={0} />}
+            {phase === 2 && <TypedBig small text="Правила 2 и 3 работают с готовой линией. А линий у нас пока нет" meme="wow" onDone={() => setTimeout(() => setPhase(3), 700)} readMs={0} />}
+            {phase >= 4 && <TypedBig small text="Правило 4: опускаем точки на пол и ищем, где сечение пересекает пол" meme="wow" onDone={() => setTimeout(() => onSettled?.(), 500)} readMs={0} />}
             {flash && phase === 0 && <Msg ok={false} text={flash} />}
         </>
     )

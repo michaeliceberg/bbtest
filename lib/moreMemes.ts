@@ -24,6 +24,7 @@ export const MORE_MEMES: MoreMeme[] = [
     { src: '/more-memes/saul-6.webp', face: 'left', mood: 'wow' },
     { src: '/more-memes/saul-7.webp', face: 'center', mood: 'wow' },
     { src: '/more-memes/saul-8.webp', face: 'center', mood: 'yay' },
+    { src: '/more-memes/meme-20.webp', face: 'center', mood: 'wow' }, // Джеки Чан «как так?!»
 ]
 
 let last = ''
