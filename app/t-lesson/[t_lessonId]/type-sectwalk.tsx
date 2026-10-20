@@ -1388,7 +1388,7 @@ const SB_RULES: { n: Tool; name: string; hint: string }[] = [
     { n: 3, name: 'Продлить', hint: 'Тапни линию, потом ребро на той же стене' },
 ]
 // init — уже построенное до этого этапа (точки, линии сечения, вспомогательные пунктиры)
-type SandboxCfg = { start: V3[]; title: string; text: string; init?: { pts: V3[]; segs: { a: V3; b: V3; face: Face }[]; aux: { a: V3; b: V3 }[] } }
+type SandboxCfg = { start: V3[]; title: string; text: string; rules?: Tool[]; init?: { pts: V3[]; segs: { a: V3; b: V3; face: Face }[]; aux: { a: V3; b: V3 }[] } }
 // «Камера»: обычная рамка рисунка; если новая точка за краем — рамка расширяется (с тем же соотношением сторон),
 // куб уменьшается. Дальше SB_MIN_SCALE не отъезжаем — такую точку не строим, предлагаем другое ребро.
 const SB_VIEW = { x: -12, y: -14, w: 384, h: 306 }
@@ -1406,7 +1406,7 @@ const sbViewFor = (vs: V3[]) => {
     return { x: cx - w / 2, y: cy - h / 2, w, h, scale: SB_VIEW.w / w }
 }
 const vbStr = (v: { x: number; y: number; w: number; h: number }) => `${v.x.toFixed(1)} ${v.y.toFixed(1)} ${v.w.toFixed(1)} ${v.h.toFixed(1)}`
-const SandboxScene = ({ onSettled, onMistake, start, title, text, init }: SceneProps & SandboxCfg) => {
+const SandboxScene = ({ onSettled, onMistake, start, title, text, init, rules }: SceneProps & SandboxCfg) => {
     const [sbExpected] = useState(() => sbExpectedOf(start))
     const [sbPoly] = useState(() => sbPolyOf(sbExpected.verts))
     const [typed, setTyped] = useState(false)
@@ -1544,8 +1544,8 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text, init }: SceneP
             <GameHeader title={title} />
             <TypedBig small text={text} onDone={() => setTyped(true)} readMs={0} />
             {typed && (
-                <div className="w-full grid grid-cols-3 gap-2">
-                    {SB_RULES.map((r, i) => {
+                <div className={cn('w-full grid gap-2', rules && rules.length === 2 ? 'grid-cols-2' : 'grid-cols-3')}>
+                    {SB_RULES.filter((r) => !rules || rules.includes(r.n)).map((r, i) => {
                         const on = tool === r.n
                         // правило ещё не выбрано — кнопки по очереди подпрыгивают и светятся: «жми сюда»
                         const call = !tool && !done && !busy
@@ -1645,11 +1645,12 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text, init }: SceneP
 // Куб 3 и ещё пять расстановок (подобраны и проверены скриптом: сечение строится правилами 1–3).
 // Сначала три четырёхугольника (правила 1 и 2), потом пятиугольник и шестиугольник (нужно и правило 3).
 const SANDBOXES: SandboxCfg[] = [
-    { start: SB_START, title: 'Строй сам ⚡', text: 'Выбирай правило и строй сечение' },
-    { start: [[0.4, 0, 1], [1, 0.5, 1], [0.3, 0, 0]], title: 'Куб 4 ⚡', text: 'Новые точки — построй сечение' },
-    { start: [[1, 0, 0.6], [1, 1, 0.3], [0.5, 1, 1]], title: 'Куб 5 ⚡', text: 'Построй сечение' },
-    { start: [[0, 0, 0.4], [0, 1, 0.7], [1, 0, 0.6]], title: 'Куб 6 ⚡', text: 'Построй сечение' },
-    { start: [[0.7, 0, 0], [1, 0, 0.3], [0, 0.7, 1]], title: 'Куб 7 🔥', text: 'Посложнее: тут понадобится продлевать' },
+    // от простого к сложному: сначала 3 четырёхугольника на правила 1 и 2 (кнопки «Продлить» нет), потом — с правилом 3
+    { start: [[0.4, 0, 1], [1, 0.5, 1], [0.3, 0, 0]], title: 'Строй сам ⚡', text: 'Выбирай правило и строй сечение', rules: [1, 2] },
+    { start: [[1, 0, 0.6], [1, 1, 0.3], [0.5, 1, 1]], title: 'Куб 4 ⚡', text: 'Новые точки — построй сечение', rules: [1, 2] },
+    { start: [[0, 0, 0.4], [0, 1, 0.7], [1, 0, 0.6]], title: 'Куб 5 ⚡', text: 'Построй сечение', rules: [1, 2] },
+    { start: SB_START, title: 'Куб 6 🔥', text: 'Посложнее: появляется правило 3 — продлевать' },
+    { start: [[0.7, 0, 0], [1, 0, 0.3], [0, 0.7, 1]], title: 'Куб 7 🔥', text: 'Снова понадобится продлевать' },
     { start: [[1, 1, 0.6], [0, 0, 0.6], [1, 0.4, 1]], title: 'Куб 8 💀', text: 'Босс: самое сложное сечение' },
 ]
 // ===== Урок «Кубик: 4 правило» (тот же SECTWALK, режим по тексту задания) =====
@@ -1865,10 +1866,10 @@ const SANDBOX_SCENES = SANDBOXES.map((cfg) => {
 const BASE_SCENES = [RoomScene, WallTestScene, PointsScene, CheatIntroScene, Rule1TryScene, Rule2Scene, CloseGameScene,
     C2TaskScene, C2Rule1Scene, C2Rule2Scene, C2Rule3Scene, C2FinishScene, ...SANDBOX_SCENES]
 const BASE_MAP_LABELS = ['Куб — комната', 'Тест: стены', 'Три точки', 'Шпора', 'Пробуем правило 1', 'Правило 2', 'Замкни сечение',
-    'Новое сечение', 'Куб 2: правило 1', 'Куб 2: правило 2', 'Куб 2: правило 3 (X)', 'Куб 2: достроить', 'Куб 3: строй сам', 'Куб 4 (4 точки)', 'Куб 5 (4 точки)', 'Куб 6 (4 точки)', 'Куб 7 (5 точек)', 'Куб 8 (6 точек)']
+    'Новое сечение', 'Куб 2: правило 1', 'Куб 2: правило 2', 'Куб 2: правило 3 (X)', 'Куб 2: достроить', 'Куб 3: строй сам (4 точки)', 'Куб 4 (4 точки)', 'Куб 5 (4 точки)', 'Куб 6: правило 3 (5 точек)', 'Куб 7 (5 точек)', 'Куб 8 (6 точек)']
 const BASE_PRACTICE = new Set<unknown>([WallTestScene, Rule1TryScene, CloseGameScene, C2Rule1Scene, C2Rule2Scene, C2Rule3Scene, C2FinishScene, ...SANDBOX_SCENES])
 const BASE_NEXT_LABELS = ['Понял, это комната', 'Стены знаю 🧱', 'Строим сечение ✂️', 'Попробуем правило №1', 'Правило 1 — изи',
-    'Соединим их!', 'Ещё сечение!', 'Погнали', 'Дальше — правило 2', 'Дальше — правило 3', 'X найдена!', 'Теперь сам! ⚡', 'Ещё куб!', 'Дальше', 'Давай сложнее', 'Го на 6 точек', 'Готово']
+    'Соединим их!', 'Ещё сечение!', 'Погнали', 'Дальше — правило 2', 'Дальше — правило 3', 'X найдена!', 'Теперь сам! ⚡', 'Ещё куб!', 'Ещё куб!', 'Давай сложнее 🔥', 'Дальше', 'Го на 6 точек', 'Готово']
 
 export const TypeSectWalk = ({ question, onAnswer, onComplete, isAdmin = false }: Props & { isAdmin?: boolean }) => {
     // «Кубик: 4 правило» — отдельный урок на том же типе, выбираем по тексту задания
