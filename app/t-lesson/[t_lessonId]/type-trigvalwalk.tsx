@@ -36,7 +36,7 @@ import {
 } from '@/components/geometry/WalkthroughLog'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
-import { Typewriter } from '@/components/geometry/Typewriter'
+import { Typewriter, withBreaks } from '@/components/geometry/Typewriter'
 
 const SCENE_TRANSITION_PAUSE_MS = 1000
 const TRIAL_COUNT = 6
@@ -377,7 +377,7 @@ const TypedBig = ({ parts, onDone, readMs = 500, slow }: { parts: BigPart[]; onD
                 />
             ) : (
                 parts.map((p, i) => (
-                    <span key={i} className={p.className} style={p.color ? { color: p.color } : undefined}>{p.text}</span>
+                    <span key={i} className={p.className} style={p.color ? { color: p.color } : undefined}>{withBreaks(p.text)}</span>
                 ))
             )}
         </div>

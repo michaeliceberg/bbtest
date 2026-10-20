@@ -14,8 +14,7 @@ import {
     walkthroughButtonClass, walkthroughButtonStyle,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     pickWrongTryPhrase, pickFunNextLabel, LocalAnswerConfetti, CORRECT_FEEDBACK_PHRASES, useWalkthroughCombo,
-    AdminSceneMap, MAP_INTRO_COLOR, RememberPlate, MAP_PRACTICE_COLOR, type AdminMapEntry,
-} from '@/components/geometry/WalkthroughLog'
+    AdminSceneMap, MAP_INTRO_COLOR, RememberPlate, MAP_PRACTICE_COLOR, type AdminMapEntry, FieryFeedbackBanner } from '@/components/geometry/WalkthroughLog'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
 import { Typewriter } from '@/components/geometry/Typewriter'
@@ -733,9 +732,9 @@ export const TypeCircleWalk = ({ onAnswer, onComplete, isAdmin = false }: Props 
                                 <div className="rounded-xl px-4 py-2 font-bold w-full text-center bg-[#DC605B22] text-[#DC605B]">{wrongFlash}</div>
                             )}
                             {checked && !moving && (
-                                <div className="rounded-xl px-4 py-2 font-bold w-full text-center" style={{ backgroundColor: hexToRgba(OK_COLOR, 0.15), color: OK_COLOR }}>
+                                <FieryFeedbackBanner>
                                     {pickPraise(trialIndex)}
-                                </div>
+                                </FieryFeedbackBanner>
                             )}
                             {checked && !moving && <LocalAnswerConfetti />}
                         </SceneWrapper>

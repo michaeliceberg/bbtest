@@ -7,7 +7,7 @@
 // в слове, соседних символов и пунктуации, а не одна константа на
 // каждый символ, из-за чего печать не выглядит механической).
 
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
 
 const CONSONANTS = /[бвгджзйклмнпрстфхцчшщbcdfghjklmnpqrstvwxz]/i
 
@@ -46,6 +46,17 @@ type Props = {
     slow?: number
 }
 
+// Каждая мысль — с новой строки: после «.», «?», «!» или «…», если дальше начинается новое предложение (заглавная
+// кириллица или «), ставим перенос. Используется и при печати, и при отрисовке строки после печати в разборах.
+const THOUGHT_RE = /([.?!…])\s+(?=[А-ЯЁ«])/g
+export const splitThoughts = (t: string) => t.replace(THOUGHT_RE, '$1\n')
+export const withBreaks = (t: string): ReactNode => {
+    if (!t) return t
+    const lines = splitThoughts(t).split('\n')
+    if (lines.length === 1) return t
+    return lines.map((l, i) => <Fragment key={i}>{i > 0 && <br />}{l}</Fragment>)
+}
+
 export const Typewriter = ({ text, onDone, className, startDelay = 0, cursor = true, slow = 1 }: Props) => {
     const [shown, setShown] = useState(0)
     const onDoneRef = useRef(onDone)
@@ -81,7 +92,7 @@ export const Typewriter = ({ text, onDone, className, startDelay = 0, cursor = t
     const done = shown >= text.length
     return (
         <span className={className}>
-            {text.slice(0, shown)}
+            {withBreaks(text.slice(0, shown))}
             {cursor && !done && (
                 <span className="inline-block w-[2px] h-[1em] align-middle ml-[1px] bg-current animate-pulse" />
             )}

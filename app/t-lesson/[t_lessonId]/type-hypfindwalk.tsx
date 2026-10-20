@@ -26,7 +26,7 @@ import {
     oppositeLegOf, adjacentLegOf,
     type AlphaVertex, type StickerPart, type SideId,
 } from '@/components/geometry/RightTriangleDiagram'
-import { Typewriter } from '@/components/geometry/Typewriter'
+import { Typewriter, withBreaks } from '@/components/geometry/Typewriter'
 import { FormulaAssemble, type FormulaChip } from '@/components/geometry/FormulaAssemble'
 import {
     DiagramBlock, pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
@@ -238,7 +238,7 @@ const HypotenuseScene = ({ kind, onSettled }: { kind: HypKind; onSettled: () => 
                             <Typewriter text={cfg.hintParts.map((p) => p.text).join('')} onDone={() => { setHintTyped(true); setTimeout(() => { setBtnLabel(CURIOUS_REPLIES[Math.floor(Math.random() * CURIOUS_REPLIES.length)]); setBtnReady(true) }, 500) }} />
                         ) : (
                             <span>
-                                {cfg.hintParts.map((p, i) => <span key={i} style={p.color ? { color: p.color } : undefined}>{p.text}</span>)}
+                                {cfg.hintParts.map((p, i) => <span key={i} style={p.color ? { color: p.color } : undefined}>{withBreaks(p.text)}</span>)}
                             </span>
                         )}
                     </div>

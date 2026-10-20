@@ -36,7 +36,7 @@
 'use client'
 
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { showAnswerMeme } from '@/components/answer-meme-burst'
+import { showAnswerMeme, cancelPendingRightMeme } from '@/components/answer-meme-burst'
 import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -49,9 +49,8 @@ import {
     BlinkingExclaim, SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     isFieryMilestoneTrial, useLottieModuleReady,
     useWalkthroughCombo,
-    RememberPlate,
-} from '@/components/geometry/WalkthroughLog'
-import { Typewriter } from '@/components/geometry/Typewriter'
+    RememberPlate, FieryFeedbackBanner } from '@/components/geometry/WalkthroughLog'
+import { Typewriter, withBreaks } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { LOTTIE_STEP_BY_STEP_FIERY_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
@@ -368,6 +367,7 @@ const FeedbackBanner = ({ correct, correctText = '', seed, fiery = false }: { co
     const lottieReady = useLottieModuleReady(fiery && correct, lottieData)
     const text = correct ? CORRECT_FEEDBACK_PHRASES[Math.abs(seed) % CORRECT_FEEDBACK_PHRASES.length] : correctText
     if (fiery && correct) {
+        cancelPendingRightMeme()
         return (
             <div className={`flex flex-row items-center gap-3 w-full transition-opacity duration-300 ${lottieReady ? 'opacity-100' : 'opacity-0'}`}>
                 <div className="w-1/4 max-w-[110px] shrink-0">
@@ -380,13 +380,9 @@ const FeedbackBanner = ({ correct, correctText = '', seed, fiery = false }: { co
             </div>
         )
     }
+    if (correct) return <FieryFeedbackBanner>{text}</FieryFeedbackBanner>
     return (
-        <div
-            className={cn(
-                'flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center',
-                correct ? 'bg-[#A1D15122] text-[#A1D151]' : 'bg-[#DC605B22] text-[#DC605B]'
-            )}
-        >
+        <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#DC605B22] text-[#DC605B]">
             {text}
         </div>
     )
@@ -427,9 +423,9 @@ const TypedLineWithSticker = ({
                 />
             ) : (
                 <>
-                    {before}
+                    {withBreaks(before)}
                     <Sticker value={stickerContent} color={stickerColor} />
-                    {after}
+                    {withBreaks(after)}
                 </>
             )}
         </div>
@@ -470,11 +466,11 @@ const TypedForbidLine = ({
                 />
             ) : (
                 <>
-                    {before}
+                    {withBreaks(before)}
                     <Sticker value={stickerWord} color={color} />
-                    {between}
+                    {withBreaks(between)}
                     <Sticker value={phrase} color={color} />
-                    {after}
+                    {withBreaks(after)}
                 </>
             )}
         </div>

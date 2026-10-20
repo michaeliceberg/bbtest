@@ -44,12 +44,23 @@ const pickSrc = (correct: boolean) => {
 }
 
 // force — показать в любом случае (для тестовой страницы).
+// Облачко на верный ответ вылетает с небольшой задержкой: если за это время на экране появилась зелёная фраза
+// (FieryFeedbackBanner / Msg с мемом справа), она вызывает cancelPendingRightMeme() — облачко не показываем,
+// чтобы мемы не дублировались (мем уже стоит справа от фразы).
+const RIGHT_DELAY_MS = 120
+let pendingRight: ReturnType<typeof setTimeout> | null = null
+export const cancelPendingRightMeme = () => { if (pendingRight) { clearTimeout(pendingRight); pendingRight = null } }
+
 export const showAnswerMeme = (correct: boolean, opts?: { force?: boolean; x?: number; y?: number }) => {
     if (typeof window === 'undefined') return
     if (correct && !opts?.force && Math.random() >= RIGHT_CHANCE) return
-    window.dispatchEvent(new CustomEvent(EVENT, {
-        detail: { correct, x: opts?.x ?? lastPoint.x, y: opts?.y ?? lastPoint.y, src: pickSrc(correct) },
+    const fire = (x: number, y: number) => window.dispatchEvent(new CustomEvent(EVENT, {
+        detail: { correct, x, y, src: pickSrc(correct) },
     }))
+    if (!correct || opts?.force) { fire(opts?.x ?? lastPoint.x, opts?.y ?? lastPoint.y); return }
+    const x = opts?.x ?? lastPoint.x, y = opts?.y ?? lastPoint.y
+    cancelPendingRightMeme()
+    pendingRight = setTimeout(() => { pendingRight = null; fire(x, y) }, RIGHT_DELAY_MS)
 }
 
 const BurstView = ({ b, onDone }: { b: Burst; onDone: () => void }) => {

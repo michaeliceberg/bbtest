@@ -20,7 +20,7 @@ import {
     useWalkthroughCombo, RememberPlate, DiagramBlock,
     AdminSceneMap, MAP_INTRO_COLOR, MAP_PRACTICE_COLOR, type AdminMapEntry,
 } from '@/components/geometry/WalkthroughLog'
-import { Typewriter } from '@/components/geometry/Typewriter'
+import { Typewriter, withBreaks } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
@@ -57,7 +57,7 @@ const Typed = ({ parts, onDone, big }: { parts: Part[]; onDone?: () => void; big
     return (
         <div className={cn('w-full text-center text-[#F2F7FB]', big ? 'text-xl md:text-2xl font-black' : 'text-base md:text-lg')}>
             {!typed ? <Typewriter text={plain} onDone={() => { setTyped(true); setTimeout(() => onDone?.(), 400) }} />
-                : parts.map((p, i) => ('text' in p ? <span key={i}>{p.text}</span>
+                : parts.map((p, i) => ('text' in p ? <span key={i}>{withBreaks(p.text)}</span>
                     : 'sticker' in p ? <Sticker key={i} value={p.sticker} color={p.color} /> : <strong key={i} className="font-extrabold">{p.bold}</strong>))}
         </div>
     )

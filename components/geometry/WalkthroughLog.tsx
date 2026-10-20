@@ -24,6 +24,8 @@ import { ArrowLeft, RotateCcw } from 'lucide-react'
 import { HighlightWord } from './WalkthroughMarker'
 import { Typewriter } from './Typewriter'
 import { pickMoreMeme, memeFlip } from '@/lib/moreMemes'
+import { SideMeme } from '@/components/side-meme'
+import { cancelPendingRightMeme } from '@/components/answer-meme-burst'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { LOTTIE_STEP_BY_STEP_FIERY_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
 import { cn } from '@/lib/utils'
@@ -697,13 +699,34 @@ export const useLottieModuleReady = (needed: boolean, data?: unknown) => {
     return ready
 }
 
+// Мем справа от зелёной фразы — только у самой свежей фразы (у прошлых заданий исчезает), чтобы мемов не было слишком много.
+let feedbackSeq = 0
+const FEEDBACK_EVENT = 'walk-feedback-latest'
+const useIsLatestFeedback = () => {
+    const [id] = useState(() => ++feedbackSeq)
+    const [latest, setLatest] = useState(true)
+    useEffect(() => {
+        window.dispatchEvent(new CustomEvent(FEEDBACK_EVENT, { detail: id }))
+        const on = (e: Event) => setLatest((e as CustomEvent<number>).detail === id)
+        window.addEventListener(FEEDBACK_EVENT, on)
+        return () => window.removeEventListener(FEEDBACK_EVENT, on)
+    }, [id])
+    return latest
+}
+
 export const FieryFeedbackBanner = ({ children, fiery = false }: { children: React.ReactNode; fiery?: boolean }) => {
     const [lottieData] = useState(() => (fiery ? getRandomLottie(LOTTIE_STEP_BY_STEP_FIERY_LIST) : null))
     const lottieReady = useLottieModuleReady(fiery, lottieData)
+    // зелёная фраза уже есть — облачко-мем над кнопкой не нужно (свой мем справа или Lottie)
+    useEffect(() => { cancelPendingRightMeme() }, [])
+    const latest = useIsLatestFeedback()
     if (!fiery) {
         return (
-            <div className="flex items-center gap-2 rounded-xl px-4 py-2 font-bold w-full justify-center bg-[#A1D15122] text-[#A1D151]">
-                {children}
+            <div className="w-full flex items-center gap-2">
+                <div className="flex-1 min-w-0 flex items-center gap-2 rounded-xl px-4 py-2 font-bold justify-center bg-[#A1D15122] text-[#A1D151]">
+                    {children}
+                </div>
+                {latest && <SideMeme mood="yay" />}
             </div>
         )
     }

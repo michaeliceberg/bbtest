@@ -48,7 +48,7 @@ import {
     ZOOM_TOTAL_S, PAN_TOTAL_S, SIDE_DRAW_DURATION, HYP_ARROW_TOTAL_S,
     type AlphaVertex, type SideId,
 } from '@/components/geometry/RightTriangleDiagram'
-import { Typewriter } from '@/components/geometry/Typewriter'
+import { Typewriter, withBreaks } from '@/components/geometry/Typewriter'
 import { MARKER_COLOR_GREEN } from '@/components/geometry/WalkthroughMarker'
 import {
     TypedLine, TypedKeyPhraseLine, DiagramBlock, pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
@@ -390,7 +390,7 @@ const TypedLineWithSticker = ({
                         </>
                     ) : before}
                     <Sticker value={stickerContent} color={stickerColor} />
-                    {after}
+                    {withBreaks(after)}
                 </>
             )}
         </div>

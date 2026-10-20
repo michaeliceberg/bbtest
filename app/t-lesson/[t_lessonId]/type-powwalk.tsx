@@ -16,8 +16,7 @@ import {
     walkthroughButtonClass, walkthroughButtonStyle,
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     pickWrongTryPhrase, pickFunNextLabel, LocalAnswerConfetti, CORRECT_FEEDBACK_PHRASES, useWalkthroughCombo,
-    AdminSceneMap, MAP_INTRO_COLOR, RememberPlate, MAP_PRACTICE_COLOR, type AdminMapEntry,
-} from '@/components/geometry/WalkthroughLog'
+    AdminSceneMap, MAP_INTRO_COLOR, RememberPlate, MAP_PRACTICE_COLOR, type AdminMapEntry, FieryFeedbackBanner } from '@/components/geometry/WalkthroughLog'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
 import { Typewriter } from '@/components/geometry/Typewriter'
@@ -263,9 +262,9 @@ const CollectorScene = ({ onSettled }: SceneProps) => {
             {flash && !done && <div className="rounded-xl px-4 py-2 font-bold w-full text-center" style={{ backgroundColor: hexToRgba(WRONG_COLOR, 0.13), color: WRONG_COLOR }}>{flash}</div>}
             {done && (
                 <>
-                    <div className="rounded-xl px-4 py-2 font-bold w-full text-center" style={{ backgroundColor: hexToRgba(OK_COLOR, 0.15), color: OK_COLOR }}>
+                    <FieryFeedbackBanner>
                         {CORRECT_FEEDBACK_PHRASES[ri % CORRECT_FEEDBACK_PHRASES.length]} {r.kind === 'build' ? `${r.base}${sup(r.exp)} — это ${r.exp} ${BASE_WORD[r.base]}` : `${r.base}${sup(r.n)}`}
-                    </div>
+                    </FieryFeedbackBanner>
                     <LocalAnswerConfetti />
                     {ri + 1 < ROUNDS.length && <ReplyButton onClick={nextRound}>{ri === 2 ? 'А теперь наоборот' : 'Ещё!'}</ReplyButton>}
                 </>
@@ -432,7 +431,7 @@ const OptionGrid = ({ options, wrong, onPick, render }: { options: (number | str
     </div>
 )
 const FlashBad = ({ text }: { text: string }) => <div className="rounded-xl px-4 py-2 font-bold w-full text-center" style={{ backgroundColor: hexToRgba(WRONG_COLOR, 0.13), color: WRONG_COLOR }}>{text}</div>
-const FlashOk = ({ text }: { text: React.ReactNode }) => <div className="rounded-xl px-4 py-2 font-bold w-full text-center" style={{ backgroundColor: hexToRgba(OK_COLOR, 0.15), color: OK_COLOR }}>{text}</div>
+const FlashOk = ({ text }: { text: React.ReactNode }) => <FieryFeedbackBanner>{text}</FieryFeedbackBanner>
 const badTry = (hint: string) => { playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false); return `${pickWrongTryPhrase()} ${hint}` }
 
 // Сцена 0 урока 2: (5²)⁴ — четыре блока 5·5
@@ -987,9 +986,9 @@ export const TypePowWalk = ({ question, onAnswer, onComplete, isAdmin = false }:
                         )}
                         {!checked && wrongFlash && <div className="rounded-xl px-4 py-2 font-bold w-full text-center" style={{ backgroundColor: hexToRgba(WRONG_COLOR, 0.13), color: WRONG_COLOR }}>{wrongFlash}</div>}
                         {checked && (
-                            <div className="rounded-xl px-4 py-2 font-bold w-full text-center" style={{ backgroundColor: hexToRgba(OK_COLOR, 0.15), color: OK_COLOR }}>
+                            <FieryFeedbackBanner>
                                 {CORRECT_FEEDBACK_PHRASES[(trialIndex + 3) % CORRECT_FEEDBACK_PHRASES.length]}
-                            </div>
+                            </FieryFeedbackBanner>
                         )}
                         {checked && <LocalAnswerConfetti />}
                     </SceneWrapper>

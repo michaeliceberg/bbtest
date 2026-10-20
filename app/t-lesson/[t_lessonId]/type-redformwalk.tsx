@@ -31,7 +31,7 @@ import {
     AdminSceneMap, MAP_INTRO_COLOR, MAP_PRACTICE_COLOR, type AdminMapEntry,
     MARKER_LOOP_PATH, MARKER_LOOP_COLOR,
 } from '@/components/geometry/WalkthroughLog'
-import { Typewriter } from '@/components/geometry/Typewriter'
+import { Typewriter, withBreaks } from '@/components/geometry/Typewriter'
 import { AlphaVideo } from '@/components/alpha-video'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
@@ -74,16 +74,16 @@ const TypedBig = ({ parts, onDone, readMs = 500, small = false }: { parts: BigPa
                         {p.before}
                         <span className="inline-flex items-center justify-center min-w-[1.5em] h-[1.5em] px-[0.35em] rounded-full border-2 mx-0.5 text-[0.8em]"
                             style={{ color: p.color, borderColor: p.color, backgroundColor: hexToRgba(p.color, 0.22) }}>
-                            {p.text}
+                            {withBreaks(p.text)}
                             {p.suffix && <span style={{ color: p.suffixColor }}>{p.suffix}</span>}
                         </span>
                         {p.after}
                     </span>
                 ) : p.sticker && p.color ? (
                     <span key={i} className="inline-block rounded-lg px-2 mx-0.5 border-2"
-                        style={{ color: p.color, borderColor: p.color, backgroundColor: hexToRgba(p.color, 0.18) }}>{p.text}</span>
+                        style={{ color: p.color, borderColor: p.color, backgroundColor: hexToRgba(p.color, 0.18) }}>{withBreaks(p.text)}</span>
                 ) : (
-                    <span key={i} style={p.color ? { color: p.color } : undefined}>{p.text}</span>
+                    <span key={i} style={p.color ? { color: p.color } : undefined}>{withBreaks(p.text)}</span>
                 ))
             )}
         </div>

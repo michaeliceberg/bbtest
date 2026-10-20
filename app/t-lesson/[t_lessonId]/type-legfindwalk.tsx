@@ -28,7 +28,7 @@ import {
     oppositeLegOf, adjacentLegOf,
     type AlphaVertex, type StickerPart, type SideId,
 } from '@/components/geometry/RightTriangleDiagram'
-import { Typewriter } from '@/components/geometry/Typewriter'
+import { Typewriter, withBreaks } from '@/components/geometry/Typewriter'
 import { FormulaAssemble, type FormulaChip } from '@/components/geometry/FormulaAssemble'
 import {
     DiagramBlock, pickWalkthroughNextLabel, pickWrongTryPhrase, CORRECT_FEEDBACK_PHRASES,
@@ -82,7 +82,7 @@ const TypedLineWithParts = ({ parts, onSettled, className }: { parts: LinePart[]
                 <Typewriter text={plain} onDone={() => { setTyped(true); setTimeout(() => onSettled?.(), 450) }} />
             ) : (
                 parts.map((p, i) => ('text' in p
-                    ? <span key={i}>{p.text}</span>
+                    ? <span key={i}>{withBreaks(p.text)}</span>
                     : <Sticker key={i} value={p.sticker} color={p.color} />))
             )}
         </div>

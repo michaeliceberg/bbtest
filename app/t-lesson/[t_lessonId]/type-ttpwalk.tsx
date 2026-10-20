@@ -21,7 +21,7 @@ import {
     SceneWrapper, useSceneFocus, useReplayNonces, BackButton, ReplayButton,
     useWalkthroughCombo,
 } from '@/components/geometry/WalkthroughLog'
-import { Typewriter } from '@/components/geometry/Typewriter'
+import { Typewriter, withBreaks } from '@/components/geometry/Typewriter'
 import { InsightCard, InsightWord } from '@/components/geometry/WalkthroughCards'
 import { GGEGE_PALETTE, GGEGE_SHADOW, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
@@ -67,7 +67,7 @@ const TypedLineWithParts = ({ parts, onSettled }: { parts: LinePart[]; onSettled
             ) : (
                 <>
                     {parts.map((p, i) => ('text' in p
-                        ? <span key={i}>{p.text}</span>
+                        ? <span key={i}>{withBreaks(p.text)}</span>
                         : 'sticker' in p
                             ? <Sticker key={i} value={p.sticker} color={p.color} bg={p.bg} border={p.border} />
                             : 'bold' in p

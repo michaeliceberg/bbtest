@@ -24,7 +24,7 @@ import {
     isFieryMilestoneTrial, FieryFeedbackBanner, useWalkthroughCombo, pickFunNextLabel,
     RememberPlate,
 } from '@/components/geometry/WalkthroughLog'
-import { Typewriter } from '@/components/geometry/Typewriter'
+import { Typewriter, withBreaks } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
@@ -51,7 +51,7 @@ const TypedBig = ({ parts, onDone, readMs = 500, small = false }: { parts: BigPa
             {!typed ? (
                 <Typewriter text={parts.map((p) => p.text).join('')} onDone={() => { setTyped(true); setTimeout(() => onDone?.(), readMs) }} />
             ) : (
-                parts.map((p, i) => <span key={i} className={p.big ? 'text-4xl md:text-5xl align-middle' : undefined} style={p.color ? { color: p.color } : undefined}>{p.text}</span>)
+                parts.map((p, i) => <span key={i} className={p.big ? 'text-4xl md:text-5xl align-middle' : undefined} style={p.color ? { color: p.color } : undefined}>{withBreaks(p.text)}</span>)
             )}
         </div>
     )

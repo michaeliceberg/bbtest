@@ -48,7 +48,7 @@ import {
     isFieryMilestoneTrial, FieryFeedbackBanner,
     useWalkthroughCombo,
 } from '@/components/geometry/WalkthroughLog'
-import { Typewriter } from '@/components/geometry/Typewriter'
+import { Typewriter, withBreaks } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 
@@ -256,9 +256,9 @@ const TypedLineWithSticker = ({
                 />
             ) : (
                 <>
-                    {before}
+                    {withBreaks(before)}
                     <NumSticker value={stickerValue} color={stickerColor} />
-                    {after}
+                    {withBreaks(after)}
                 </>
             )}
         </div>

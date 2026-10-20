@@ -47,7 +47,7 @@ import {
     isFieryMilestoneTrial, FieryFeedbackBanner,
     useWalkthroughCombo,
 } from '@/components/geometry/WalkthroughLog'
-import { Typewriter } from '@/components/geometry/Typewriter'
+import { Typewriter, withBreaks } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 
@@ -290,7 +290,7 @@ const TypedLineWithParts = ({ parts, onSettled }: { parts: TypedLinePart[]; onSe
             ) : (
                 <>
                     {parts.map((p, i) => ('text' in p
-                        ? <span key={i}>{p.text}</span>
+                        ? <span key={i}>{withBreaks(p.text)}</span>
                         : <NumSticker key={i} value={p.sticker} color={p.color} />
                     ))}
                 </>
