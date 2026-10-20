@@ -854,7 +854,7 @@ const Rule1TryScene = ({ onSettled, onMistake }: SceneProps) => {
 // ===== Сцена 6: правило 2 «Параллельность» =====
 // 0 «Можем ли снова воспользоваться правилом 1?» → Нет → 1 крестик на правиле 1 → 2 переходим к правилу 2 (плашка) →
 // 3 потолок, 4 пол с отскоком → 5 «Потолок и пол параллельны.» → 6 «Вижу, они параллельны» → 7 «На потолке есть линия.» →
-// 8 линия выделяется → 9 пунктирная копия ездит с потолка на пол по кругу + кнопка «Переносим параллельно» →
+// 8 линия выделяется → 9 пунктирная копия ездит с потолка на пол по кругу + после 2 циклов кнопка «Параллельный перенос» →
 // 10 линия на полу пунктиром → 11 новая точка → 12 чертёж бледнеет, шпора возвращается на правило 1 →
 // 13 чертёж обратно, «Есть ли теперь точки в одной плоскости?» → Да.
 const HIGHLIGHT = '#F2C35B'
@@ -881,6 +881,13 @@ const Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
     const [wrong, setWrong] = useState<string[]>([])
     const [flash, setFlash] = useState<string | null>(null)
     useEffect(() => { setTyped(false) }, [phase])
+    // кнопка переноса — после 2 циклов анимации копии (2 × (2 с + 0,3 с)); по «typed» нельзя: подсказка не печатается заново
+    const [moveBtn, setMoveBtn] = useState(false)
+    useEffect(() => {
+        if (phase !== 9) return
+        const t = setTimeout(() => setMoveBtn(true), 4600)
+        return () => clearTimeout(t)
+    }, [phase])
     const M = P(PT.M), N = P(PT.N), K = P(PT.K)
     const dx = K.x - M.x, dy = K.y - M.y
     const ceil: FaceHL = { face: 'ceiling', color: FACE_COLOR }, floor: FaceHL = { face: 'floor', color: FACE_COLOR }
@@ -931,7 +938,7 @@ const Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
                         </g>
                     )}
                     {phase === 9 && (
-                        // копия линии ездит с потолка на пол снова и снова, пока не нажмут «Переносим параллельно»
+                        // копия линии ездит с потолка на пол снова и снова, пока не нажмут «Параллельный перенос»
                         <motion.g initial={{ x: 0, y: 0, opacity: 0 }} animate={{ x: [0, dx, dx], y: [0, dy, dy], opacity: [0, 1, 0] }}
                             transition={{ duration: 2, times: [0, 0.7, 1], ease: 'easeInOut', repeat: Infinity, repeatDelay: 0.3 }}>
                             <line x1={M.x} y1={M.y} x2={N.x} y2={N.y} stroke={SECT_COLOR} strokeWidth={3} strokeDasharray="7 6" strokeLinecap="round" />
@@ -947,7 +954,7 @@ const Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
             ))}
             {phase === 0 && typed && <YesNo wrong={wrong} onPick={answer1} />}
             {(phase === 5 || phase === 6) && <NextBtn onClick={() => go(7)}>Вижу, они параллельны</NextBtn>}
-            {phase === 9 && typed && <NextBtn onClick={() => go(10)}>Переносим параллельно</NextBtn>}
+            {phase === 9 && moveBtn && <NextBtn onClick={() => go(10)}>Параллельный перенос</NextBtn>}
             {phase === 13 && typed && <YesNo wrong={wrong.filter((w) => w === 'no2').map(() => 'no')} onPick={answer2} />}
             {flash && (phase === 0 || phase === 13) && <Msg ok={false} text={flash} />}
         </>
@@ -958,6 +965,14 @@ const Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
 // Уже есть линии на потолке, передней стене и полу; осталось соединить две точки на правой стене.
 const CloseGameScene = ({ onSettled, onMistake }: SceneProps) => {
     const [typed, setTyped] = useState(false)
+    // вступление: чертёж бледный, взгляд на шпору — 0 правило 1 ещё зачёркнуто (мы на правиле 2) →
+    // 1 зачёркивания сбрасываются, подсветка с отскоком возвращается на правило 1 → 2 чертёж обратно, печатаем задание
+    const [intro, setIntro] = useState(0)
+    useEffect(() => {
+        const t1 = setTimeout(() => setIntro(1), 1400)
+        const t2 = setTimeout(() => setIntro(2), 3600)
+        return () => { clearTimeout(t1); clearTimeout(t2) }
+    }, [])
     const [segs, setSegs] = useState<Seg[]>([
         { id: 'MN', a: 'M', b: 'N', color: SECT_COLOR, instant: true },
         { id: 'KM', a: 'M', b: 'K', color: SECT_COLOR, instant: true },
@@ -989,10 +1004,14 @@ const CloseGameScene = ({ onSettled, onMistake }: SceneProps) => {
     })
     return (
         <>
-            <CheatStrip active={1} />
-            <GameHeader title="Замкни сечение 🔗" />
-            <TypedBig small text="Соедини две точки, которые лежат в одной плоскости" onDone={() => setTyped(true)} />
-            <CubeSvg faces={face ? [face] : []} points={['M', 'N', 'K', 'L']} segs={segs} selected={sel} fill={fill} onPoint={typed && !done ? tap : undefined} />
+            <CheatStrip active={intro === 0 ? 2 : 1} crossed={intro === 0 ? [1] : []} focus={intro < 2} />
+            {intro === 0 && <Msg ok text="Получилось! Откатываемся снова к правилу 1 ↩️" />}
+            {intro === 1 && <Msg ok text="Сбрасываем зачёркивания — начинаем с правила 1 👆" />}
+            {intro === 2 && <GameHeader title="Замкни сечение 🔗" />}
+            {intro === 2 && <TypedBig small text="Соедини две точки, которые лежат в одной плоскости" onDone={() => setTyped(true)} />}
+            <motion.div className="w-full" initial={{ opacity: 0.08 }} animate={{ opacity: intro < 2 ? 0.08 : 1 }} transition={{ duration: 0.6 }}>
+                <CubeSvg faces={face ? [face] : []} points={['M', 'N', 'K', 'L']} segs={segs} selected={sel} fill={fill} onPoint={typed && !done ? tap : undefined} />
+            </motion.div>
             {msg && <Msg ok={msg.ok} text={msg.text} />}
             {fill && <LocalAnswerConfetti />}
             {fill && <TypedBig text="Это и есть сечение! 🎉" readMs={0} />}
