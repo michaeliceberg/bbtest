@@ -107,7 +107,8 @@ const FACE_TEST_ORDER: Face[] = ['ceiling', 'floor', 'front', 'back', 'left', 'r
 // упирается в дальний правый вертикальный край. Всё посчитано точно: EF ∥ (0.55, 0.4); G = E − 1.5·(F − E).
 type PtKey = 'M' | 'N' | 'K' | 'L' | 'E' | 'F' | 'H' | 'G' | 'Q' | 'R'
 const PT: Record<PtKey, V3> = {
-    M: [1 / 3, 0, 1], N: [1, 0.7, 1], K: [0.6, 0, 0], L: [1, 0.42, 0],
+    // M на 1/4 ребра (на 1/3 точка стояла ровно на пересечении с пунктиром); L: K + t·(N − M), x = 1 → t = 0.4/0.75
+    M: [0.25, 0, 1], N: [1, 0.7, 1], K: [0.6, 0, 0], L: [1, 0.7 * (0.4 / 0.75), 0],
     E: [0, 0.6, 1], F: [0.55, 1, 1], H: [1, 0, 0.5],
     G: [-0.825, 0, 1],
     // Q: G + s·(H − G), x = 0 → s = 0.825/1.825
@@ -1368,6 +1369,8 @@ const meetIn = (face: Face, p: V3, d: V3, q: V3, e: V3): V3 | null => {
 const inCube = (v: V3) => v.every((c) => c > -1e-6 && c < 1 + 1e-6)
 // Точка на невидимой стене (сзади, слева, на полу — и только там) — её подписывают в круглых скобках: ( • )
 const hiddenPt = (v: V3) => { const f = planesOf(v); return inCube(v) && f.length > 0 && f.every((x) => HIDDEN_FACES.includes(x)) }
+// Скобки рисуем только в уроке «Точки на гранях» (там объясняем обозначение), в 510/511 — без них
+const ParenCtx = createContext(false)
 const ParenMarks = ({ r = 13, color = '#F2F7FB' }: { r?: number; color?: string }) => (
     <g fill="none" stroke={color} strokeWidth={2.4} strokeLinecap="round">
         <path d={`M ${-r * 0.55} ${-r} Q ${-r * 1.25} 0 ${-r * 0.55} ${r}`} />
@@ -1432,6 +1435,7 @@ const sbViewFor = (vs: V3[]) => {
 }
 const vbStr = (v: { x: number; y: number; w: number; h: number }) => `${v.x.toFixed(1)} ${v.y.toFixed(1)} ${v.w.toFixed(1)} ${v.h.toFixed(1)}`
 const SandboxScene = ({ onSettled, onMistake, start, title, text, init, rules }: SceneProps & SandboxCfg) => {
+    const parens = useContext(ParenCtx)
     const [sbExpected] = useState(() => sbExpectedOf(start))
     const [sbPoly] = useState(() => sbPolyOf(sbExpected.verts))
     const [typed, setTyped] = useState(false)
@@ -1686,7 +1690,7 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text, init, rules }:
                                 <motion.g initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 10 }}>
                                     {sel && <circle r={18} fill={hexToRgba(SECT_COLOR, 0.35)} stroke={SECT_COLOR} strokeWidth={2} className="animate-sel-pulse" />}
                                     <circle r={sel ? 9.5 : 7.5} fill={sel ? '#FFFFFF' : SECT_COLOR} stroke={sel ? SECT_COLOR : '#F2F7FB'} strokeWidth={sel ? 3.5 : 2.5} />
-                                    {hiddenPt(p.v) && <ParenMarks />}
+                                    {parens && hiddenPt(p.v) && <ParenMarks />}
                                     <circle r={22} fill="transparent" />
                                 </motion.g>
                             </g>
@@ -1709,7 +1713,7 @@ const SANDBOXES: SandboxCfg[] = [
     // от простого к сложному: первые 2 куба — только правила 1 и 2 (кнопки «Продлить» нет), с куба 5 доступно правило 3
     { start: [[0.4, 0, 1], [1, 0.5, 1], [0.3, 0, 0]], title: 'Строй сам ⚡', text: 'Выбирай правило и строй сечение', rules: [1, 2] },
     { start: [[1, 0, 0.6], [1, 1, 0.3], [0.5, 1, 1]], title: 'Куб 4 ⚡', text: 'Новые точки — построй сечение', rules: [1, 2] },
-    { start: [[0, 0, 0.4], [0, 1, 0.7], [1, 0, 0.6]], title: 'Куб 5 ⚡', text: 'Построй сечение' },
+    { start: [[0, 0, 0.65], [0.7, 0, 0], [0, 1, 0.4]], title: 'Куб 5 ⚡', text: 'Построй сечение' },
     { start: SB_START, title: 'Куб 6 🔥', text: 'Посложнее: появляется правило 3 — продлевать' },
     { start: [[0.7, 0, 0], [1, 0, 0.3], [0, 0.7, 1]], title: 'Куб 7 🔥', text: 'Снова понадобится продлевать' },
     { start: [[1, 1, 0.6], [0, 0, 0.6], [1, 0.4, 1]], title: 'Куб 8 💀', text: 'Босс: самое сложное сечение' },
@@ -1736,6 +1740,7 @@ type R4Pt = { id: string; v: V3; hollow?: boolean; label?: string }
 const R4Svg = ({ pts, lines, zoomTo = [], onPoint, sel = null, ptActive = false, dim = false, focusId = null }: {
     pts: R4Pt[]; lines: R4Line[]; zoomTo?: V3[]; onPoint?: (id: string) => void; sel?: string | null; ptActive?: boolean; dim?: boolean; focusId?: string | null
 }) => {
+    const parens = useContext(ParenCtx)
     const view = tightViewFor([...pts.map((p) => p.v), ...zoomTo])
     const lineOf = (a: V3, b: V3) => { const A = P(a), B = P(b); return { x1: A.x, y1: A.y, x2: B.x, y2: B.y } }
     return (
@@ -1763,7 +1768,7 @@ const R4Svg = ({ pts, lines, zoomTo = [], onPoint, sel = null, ptActive = false,
                                 {p.hollow
                                     ? <circle r={6.5} fill="#161F23" stroke={PROJ_COLOR} strokeWidth={3} />
                                     : <circle r={isSel ? 9.5 : 7.5} fill={isSel ? '#FFFFFF' : SECT_COLOR} stroke={isSel ? SECT_COLOR : '#F2F7FB'} strokeWidth={isSel ? 3.5 : 2.5} />}
-                                {!p.hollow && hiddenPt(p.v) && <ParenMarks />}
+                                {parens && !p.hollow && hiddenPt(p.v) && <ParenMarks />}
                                 {p.label && <text x={0} y={-17} textAnchor="middle" fontSize={17} fontWeight={900} fill={SECT_COLOR}
                                     style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>{p.label}</text>}
                                 <circle r={22} fill="transparent" />
@@ -1792,18 +1797,19 @@ const makeR4Geo = (floor: V3, a: V3, b: V3, plane: 'floor' | 'ceiling' = 'floor'
         base: [{ id: 'floor', v: floor }, { id: 'edge', v: a }, { id: 'ceil', v: b }], start: [floor, a, b] }
 }
 const R4_GEO = makeR4Geo(R4_FLOOR, R4_EDGE, R4_CEIL)
-// Ещё 3 задачи на правило 4 — подобраны скриптом: никакие две точки не на одной стене, X на полу вне куба,
+// Ещё 3 задачи на правило 4 — подобраны скриптом: никакие две точки не на одной стене, X на полу вне куба, на экране ни одна
+// точка (и X, и проекции, и вершины сечения) не сливается с чужим ребром или другой точкой,
 // сечение — шестиугольник без вершин в углах, после правила 4 достраивается правилами 1–2.
 const R4_MORE: { geo: R4Geo; title: string }[] = [
     { geo: makeR4Geo([0, 0.75, 0], [0.4, 0, 1], [1, 1, 0.3]), title: 'Сечение 2' },
-    { geo: makeR4Geo([0.35, 0, 0], [0, 1, 0.3], [1, 0.35, 1]), title: 'Сечение 3' },
-    { geo: makeR4Geo([0.65, 1, 0], [0, 0, 0.3], [1, 0.75, 1]), title: 'Сечение 4 — финал' },
+    { geo: makeR4Geo([1, 0.3, 0], [0.65, 0, 1], [0, 1, 0.3]), title: 'Сечение 3' },
+    { geo: makeR4Geo([0, 0.25, 0], [0.25, 1, 1], [1, 0, 0.3]), title: 'Сечение 4 — финал' },
 ]
 
 // «Точки на гранях»: M — на потолке, K — на правой стене, N — на задней (её не видно → в скобках).
 // Проецируем K и N на потолок (там уже M): прямая KN и её проекция встречаются в X на потолке; X и M — след на потолке.
 // Подобрано скриптом: X рядом с кубом, след пересекает потолок по двум рёбрам, сечение — пятиугольник без углов.
-const FACES_GEO = makeR4Geo([0.45, 0.55, 1], [1, 0.4, 0.7], [0.35, 1, 0.4], 'ceiling')
+const FACES_GEO = makeR4Geo([0.45, 0.5, 1], [1, 0.4, 0.6], [0.5, 1, 0.3], 'ceiling')
 
 // Сцена 1: задача
 const R4TaskScene = ({ onSettled, g = R4_GEO, title = 'Новое сечение' }: SceneProps & { g?: R4Geo; title?: string }) => {
@@ -2073,6 +2079,7 @@ export const TypeSectWalk = ({ question, onAnswer, onComplete, isAdmin = false }
 
     return (
         <RuleCountCtx.Provider value={rule4 || faces ? 4 : 3}>
+        <ParenCtx.Provider value={faces}>
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
             {isAdmin && <AdminSceneMap enabled entries={mapEntries} onJump={jumpTo} disabled={advancing} />}
             <div className="w-full flex flex-col gap-4">
@@ -2099,6 +2106,7 @@ export const TypeSectWalk = ({ question, onAnswer, onComplete, isAdmin = false }
                 {stepReady && !advancing && PRACTICE_SCENES.has(SCENES[step]) && <SideMeme key={`meme-${step}`} mood="yay" toward="left" />}
             </div>
         </div>
+        </ParenCtx.Provider>
         </RuleCountCtx.Provider>
     )
 }
