@@ -883,7 +883,7 @@ body {
 }
 .animate-smoke-drift { animation: smoke-drift 4.2s ease-in-out infinite; }
 
-/* «Послушать» (ИИ-помощник, перенесено из Garaggio): переливающийся градиент, блик и искры;
+/* Волшебная кнопка (из Garaggio; кнопка «ИИ-помощник» на /trainer): переливающийся градиент, блик и искры;
    пока готовим голос — светится, пока играет — пляшут полоски эквалайзера. */
 @keyframes magic-flow { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
 @keyframes magic-shine { 0%, 60% { transform: translateX(-120%) skewX(-20deg); } 100% { transform: translateX(260%) skewX(-20deg); } }
