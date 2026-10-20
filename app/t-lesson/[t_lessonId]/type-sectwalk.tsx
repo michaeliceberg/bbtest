@@ -1420,9 +1420,11 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text, init }: SceneP
     const [ghost, setGhost] = useState<{ a: V3; b: V3; dx: number; dy: number } | null>(null)
     const [busy, setBusy] = useState(false)
     const [done, setDone] = useState(false)
-    const [back1, setBack1] = useState(0)
+    // отскок кнопки правила: { n — какое правило, k — счётчик, чтобы отскок повторялся }
+    const [bounce, setBounce] = useState<{ n: Tool; k: number } | null>(null)
+    const bounceTool = (n: Tool) => setBounce((b) => ({ n, k: (b?.k ?? 0) + 1 }))
     // провели линию / нашли точку — снова с правила 1: выбираем его и он один раз подпрыгивает
-    const rollback1 = () => { setTool(1); resetSel(); setBack1((n) => n + 1) }
+    const rollback1 = () => { setTool(1); resetSel(); bounceTool(1) }
     const uid = useRef(100)
     const nid = () => ++uid.current
     const resetSel = () => { setSelPt(null); setSelSeg(null) }
@@ -1521,7 +1523,8 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text, init }: SceneP
             rollback1()
         }, 1300)
     }
-    const pickTool = (t: Tool) => { if (busy || done) return; setTool(tool === t ? null : t); resetSel(); setMsg(null) }
+    // повторный тап по уже выбранному правилу не сбрасывает выбор — правило просто подпрыгивает
+    const pickTool = (t: Tool) => { if (busy || done) return; if (tool === t) { bounceTool(t); return } setTool(t); resetSel(); setMsg(null) }
     const hint = () => {
         const has = (f: Face) => segs.some((s) => s.face === f)
         const r1 = pts.some((a, i) => pts.slice(i + 1).some((b) => facesOfV(a.v).some((f) => facesOfV(b.v).includes(f) && !has(f)
@@ -1547,9 +1550,9 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text, init }: SceneP
                         // правило ещё не выбрано — кнопки по очереди подпрыгивают и светятся: «жми сюда»
                         const call = !tool && !done && !busy
                         return (
-                            <motion.div key={r.n === 1 ? `b1-${back1}` : r.n} className="relative flex"
-                                animate={call ? { y: [0, -6, 0] } : r.n === 1 && back1 > 0 ? { y: [0, -12, 0, -4, 0], scale: [1, 1.15, 0.97, 1.03, 1] } : { y: 0 }}
-                                transition={call ? { duration: 0.5, delay: i * 0.18, repeat: Infinity, repeatDelay: 1.3, ease: 'easeOut' } : r.n === 1 && back1 > 0 ? { duration: 0.8, ease: 'easeOut' } : { duration: 0.2 }}>
+                            <motion.div key={bounce?.n === r.n ? `b-${r.n}-${bounce.k}` : r.n} className="relative flex"
+                                animate={call ? { y: [0, -6, 0] } : bounce?.n === r.n ? { y: [0, -12, 0, -4, 0], scale: [1, 1.15, 0.97, 1.03, 1] } : { y: 0 }}
+                                transition={call ? { duration: 0.5, delay: i * 0.18, repeat: Infinity, repeatDelay: 1.3, ease: 'easeOut' } : bounce?.n === r.n ? { duration: 0.8, ease: 'easeOut' } : { duration: 0.2 }}>
                                 {call && <span className="absolute -inset-1 rounded-2xl pointer-events-none animate-glow-pulse"
                                     style={{ boxShadow: `0 0 16px ${hexToRgba(SECT_COLOR, 0.7)}`, border: `2px solid ${hexToRgba(SECT_COLOR, 0.55)}`, animationDelay: `${i * 0.18}s` }} />}
                                 <button type="button" onClick={() => pickTool(r.n)} disabled={done}
