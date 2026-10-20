@@ -1366,6 +1366,14 @@ const meetIn = (face: Face, p: V3, d: V3, q: V3, e: V3): V3 | null => {
     return add(p, mul(d, t))
 }
 const inCube = (v: V3) => v.every((c) => c > -1e-6 && c < 1 + 1e-6)
+// Точка на невидимой стене (сзади, слева, на полу — и только там) — её подписывают в круглых скобках: ( • )
+const hiddenPt = (v: V3) => { const f = planesOf(v); return inCube(v) && f.length > 0 && f.every((x) => HIDDEN_FACES.includes(x)) }
+const ParenMarks = ({ r = 13, color = '#F2F7FB' }: { r?: number; color?: string }) => (
+    <g fill="none" stroke={color} strokeWidth={2.4} strokeLinecap="round">
+        <path d={`M ${-r * 0.55} ${-r} Q ${-r * 1.25} 0 ${-r * 0.55} ${r}`} />
+        <path d={`M ${r * 0.55} ${-r} Q ${r * 1.25} 0 ${r * 0.55} ${r}`} />
+    </g>
+)
 // Ожидаемое сечение: плоскость через 3 стартовые точки ∩ 12 рёбер куба
 const sbExpectedOf = (start: V3[]) => {
     const [A, B, C] = start
@@ -1678,6 +1686,7 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text, init, rules }:
                                 <motion.g initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 10 }}>
                                     {sel && <circle r={18} fill={hexToRgba(SECT_COLOR, 0.35)} stroke={SECT_COLOR} strokeWidth={2} className="animate-sel-pulse" />}
                                     <circle r={sel ? 9.5 : 7.5} fill={sel ? '#FFFFFF' : SECT_COLOR} stroke={sel ? SECT_COLOR : '#F2F7FB'} strokeWidth={sel ? 3.5 : 2.5} />
+                                    {hiddenPt(p.v) && <ParenMarks />}
                                     <circle r={22} fill="transparent" />
                                 </motion.g>
                             </g>
@@ -1723,8 +1732,9 @@ const R4_FLOOR_CHORD = chordIn('floor', R4_FLOOR, sub(R4_X, R4_FLOOR))!
 const R4_N1: V3 = same(R4_FLOOR_CHORD[0], R4_FLOOR) ? R4_FLOOR_CHORD[1] : R4_FLOOR_CHORD[0]
 type R4Line = { id: string; a: V3; b: V3; color: string; dash?: string; width?: number; opacity?: number; slow?: boolean }
 type R4Pt = { id: string; v: V3; hollow?: boolean; label?: string }
-const R4Svg = ({ pts, lines, zoomTo = [], onPoint, sel = null, ptActive = false, dim = false }: {
-    pts: R4Pt[]; lines: R4Line[]; zoomTo?: V3[]; onPoint?: (id: string) => void; sel?: string | null; ptActive?: boolean; dim?: boolean
+// focusId — всё бледное, кроме этой точки (обведена пульсирующим кольцом)
+const R4Svg = ({ pts, lines, zoomTo = [], onPoint, sel = null, ptActive = false, dim = false, focusId = null }: {
+    pts: R4Pt[]; lines: R4Line[]; zoomTo?: V3[]; onPoint?: (id: string) => void; sel?: string | null; ptActive?: boolean; dim?: boolean; focusId?: string | null
 }) => {
     const view = tightViewFor([...pts.map((p) => p.v), ...zoomTo])
     const lineOf = (a: V3, b: V3) => { const A = P(a), B = P(b); return { x1: A.x, y1: A.y, x2: B.x, y2: B.y } }
@@ -1733,8 +1743,8 @@ const R4Svg = ({ pts, lines, zoomTo = [], onPoint, sel = null, ptActive = false,
             <motion.svg initial={false} animate={{ viewBox: vbStr(view) }} transition={{ duration: 0.9, ease: 'easeInOut' }}
                 viewBox={vbStr(tightViewFor([]))} className="w-full max-w-[440px] max-h-[34vh] overflow-visible">
                 {EDGES.map(([a, b]) => (
-                    <line key={a + b} {...lineOf(V[a] as V3, V[b] as V3)} stroke={EDGE} strokeWidth={hidden(a, b) ? 2 : 3} strokeLinecap="round"
-                        strokeDasharray={hidden(a, b) ? '6 6' : undefined} opacity={hidden(a, b) ? 0.6 : 1} />
+                    <motion.line key={a + b} {...lineOf(V[a] as V3, V[b] as V3)} stroke={EDGE} strokeWidth={hidden(a, b) ? 2 : 3} strokeLinecap="round"
+                        strokeDasharray={hidden(a, b) ? '6 6' : undefined} initial={false} animate={{ opacity: focusId ? 0.12 : hidden(a, b) ? 0.6 : 1 }} transition={{ duration: 0.6 }} />
                 ))}
                 {lines.map((l) => {
                     const L = lineOf(l.a, l.b)
@@ -1746,12 +1756,14 @@ const R4Svg = ({ pts, lines, zoomTo = [], onPoint, sel = null, ptActive = false,
                     const isSel = sel === p.id
                     return (
                         <g key={p.id} transform={`translate(${c.x.toFixed(1)} ${c.y.toFixed(1)})`} onClick={() => onPoint?.(p.id)}
-                            style={{ cursor: ptActive ? 'pointer' : undefined, pointerEvents: ptActive ? undefined : 'none' }}>
+                            style={{ cursor: ptActive ? 'pointer' : undefined, pointerEvents: ptActive ? undefined : 'none', opacity: focusId && focusId !== p.id ? 0.15 : 1, transition: 'opacity 0.6s' }}>
                             <motion.g initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 10 }}>
+                                {focusId === p.id && <circle r={24} fill={hexToRgba(SECT_COLOR, 0.25)} stroke={SECT_COLOR} strokeWidth={2.5} className="animate-sel-pulse" />}
                                 {isSel && <circle r={18} fill={hexToRgba(SECT_COLOR, 0.35)} stroke={SECT_COLOR} strokeWidth={2} className="animate-sel-pulse" />}
                                 {p.hollow
                                     ? <circle r={6.5} fill="#161F23" stroke={PROJ_COLOR} strokeWidth={3} />
                                     : <circle r={isSel ? 9.5 : 7.5} fill={isSel ? '#FFFFFF' : SECT_COLOR} stroke={isSel ? SECT_COLOR : '#F2F7FB'} strokeWidth={isSel ? 3.5 : 2.5} />}
+                                {!p.hollow && hiddenPt(p.v) && <ParenMarks />}
                                 {p.label && <text x={0} y={-17} textAnchor="middle" fontSize={17} fontWeight={900} fill={SECT_COLOR}
                                     style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>{p.label}</text>}
                                 <circle r={22} fill="transparent" />
@@ -1766,12 +1778,17 @@ const R4Svg = ({ pts, lines, zoomTo = [], onPoint, sel = null, ptActive = false,
 const JACKIE = { src: '/more-memes/meme-20.webp', flip: true }
 // Расстановка задачи на правило 4: floor — точка на ребре пола, a и b — две точки НЕ на полу (никакие две не на одной стене).
 // Всё остальное считаем: проекции на пол, X — где прямая ab пересекает плоскость пола, вторая точка сечения на полу.
-type R4Geo = { floor: V3; a: V3; b: V3; aP: V3; bP: V3; X: V3; chord: [V3, V3]; N1: V3; base: R4Pt[]; start: V3[] }
-const makeR4Geo = (floor: V3, a: V3, b: V3): R4Geo => {
-    const X = add(a, mul(sub(b, a), a[2] / (a[2] - b[2])))
-    const chord = chordIn('floor', floor, sub(X, floor))!
-    const N1 = same(chord[0], floor) ? chord[1] : chord[0]
-    return { floor, a, b, aP: [a[0], a[1], 0], bP: [b[0], b[1], 0], X, chord, N1,
+// plane — куда проецируем: на пол (z = 0) или на потолок (z = 1), если одна точка уже на потолке («Точки на гранях»).
+// floor — точка, которая уже лежит в этой плоскости (имя поля историческое); ends — концы следа сечения в этой плоскости,
+// кроме самой точки (если она на ребре — один конец, если внутри грани — оба).
+type R4Geo = { plane: 'floor' | 'ceiling'; floor: V3; a: V3; b: V3; aP: V3; bP: V3; X: V3; chord: [V3, V3]; N1: V3; ends: V3[]; base: R4Pt[]; start: V3[] }
+const makeR4Geo = (floor: V3, a: V3, b: V3, plane: 'floor' | 'ceiling' = 'floor'): R4Geo => {
+    const zt = plane === 'floor' ? 0 : 1
+    const X = add(a, mul(sub(b, a), (zt - a[2]) / (b[2] - a[2])))
+    const chord = chordIn(plane, floor, sub(X, floor))!
+    const ends = chord.filter((c) => !same(c, floor))
+    const N1 = dist3(chord[0], X) < dist3(chord[1], X) ? chord[0] : chord[1] // конец следа ближе к X
+    return { plane, floor, a, b, aP: [a[0], a[1], zt], bP: [b[0], b[1], zt], X, chord, N1, ends,
         base: [{ id: 'floor', v: floor }, { id: 'edge', v: a }, { id: 'ceil', v: b }], start: [floor, a, b] }
 }
 const R4_GEO = makeR4Geo(R4_FLOOR, R4_EDGE, R4_CEIL)
@@ -1782,6 +1799,11 @@ const R4_MORE: { geo: R4Geo; title: string }[] = [
     { geo: makeR4Geo([0.35, 0, 0], [0, 1, 0.3], [1, 0.35, 1]), title: 'Сечение 3' },
     { geo: makeR4Geo([0.65, 1, 0], [0, 0, 0.3], [1, 0.75, 1]), title: 'Сечение 4 — финал' },
 ]
+
+// «Точки на гранях»: M — на потолке, K — на правой стене, N — на задней (её не видно → в скобках).
+// Проецируем K и N на потолок (там уже M): прямая KN и её проекция встречаются в X на потолке; X и M — след на потолке.
+// Подобрано скриптом: X рядом с кубом, след пересекает потолок по двум рёбрам, сечение — пятиугольник без углов.
+const FACES_GEO = makeR4Geo([0.45, 0.55, 1], [1, 0.4, 0.7], [0.35, 1, 0.4], 'ceiling')
 
 // Сцена 1: задача
 const R4TaskScene = ({ onSettled, g = R4_GEO, title = 'Новое сечение' }: SceneProps & { g?: R4Geo; title?: string }) => {
@@ -1801,6 +1823,7 @@ const R4TaskScene = ({ onSettled, g = R4_GEO, title = 'Новое сечение
 
 // Сцена 2: правило 1 не работает, правил 2 и 3 тоже — линий нет → правило 4
 const R4CheckScene = ({ onSettled, onMistake, g = R4_GEO }: SceneProps & { g?: R4Geo }) => {
+    const onCeil = g.plane === 'ceiling'
     const [phase, setPhase] = useState(0) // 0 вопрос, 1 зачёркиваем 1, 2 «линий нет», 3 зачёркиваем 2 и 3, 4 правило 4
     const [typed, setTyped] = useState(false)
     const [wrong, setWrong] = useState<string[]>([])
@@ -1829,7 +1852,7 @@ const R4CheckScene = ({ onSettled, onMistake, g = R4_GEO }: SceneProps & { g?: R
             {phase === 0 && typed && <YesNo wrong={wrong} onPick={answer} />}
             {phase === 2 && <TypedBig small text="Правила 2 и 3 работают с готовой линией. А линий у нас пока нет" meme="wow" onDone={() => setTyped(true)} readMs={0} />}
             {phase === 2 && typed && <NextBtn onClick={() => setPhase(3)}>Реально — 2 и 3 не катят</NextBtn>}
-            {phase >= 4 && <TypedBig small text="Правило 4: опускаем точки на пол и ищем, где сечение пересекает пол" meme="wow" onDone={() => setTimeout(() => onSettled?.(), 500)} readMs={0} />}
+            {phase >= 4 && <TypedBig small text={onCeil ? 'Правило 4 — проекция. Одна точка уже на потолке. Значит проецируем не на пол, а на потолок!' : 'Правило 4: опускаем точки на пол и ищем, где сечение пересекает пол'} meme="wow" onDone={() => setTimeout(() => onSettled?.(), 500)} readMs={0} />}
             {flash && phase === 0 && <Msg ok={false} text={flash} />}
         </>
     )
@@ -1837,6 +1860,9 @@ const R4CheckScene = ({ onSettled, onMistake, g = R4_GEO }: SceneProps & { g?: R
 
 // Сцена 3: само правило 4 — по шагам, ученик делает руками
 const R4ProjScene = ({ onSettled, onMistake, g = R4_GEO }: SceneProps & { g?: R4Geo }) => {
+    const ceil = g.plane === 'ceiling'
+    const W = ceil ? { on: 'на потолке', to: 'на потолок', name: 'потолок', move: 'Подняли', moveBtn: 'Поднимем их на потолок ⬆', reached: 'дошли до потолка' }
+        : { on: 'на полу', to: 'на пол', name: 'пол', move: 'Опустили', moveBtn: 'Опустим их на пол ⬇', reached: 'дошли до пола' }
     const [phase, setPhase] = useState(0)
     // 0 выбери две точки не на полу, 1 линия сквозь комнату, 2 опустили на пол, 3 соединили проекции,
     // 4 продлили → X, 5 соедини X и точку на полу, 6 готово
@@ -1851,30 +1877,30 @@ const R4ProjScene = ({ onSettled, onMistake, g = R4_GEO }: SceneProps & { g?: R4
     // «В какой плоскости точка X?» — нужен пол
     const pickXFace = (f: Face) => {
         if (xOk || xWrong.includes(f)) return
-        if (f === 'floor') { setXOk(true); setMsg({ ok: true, text: 'Да! X на полу — и при этом в плоскости сечения', meme: true }); return }
+        if (f === g.plane) { setXOk(true); setMsg({ ok: true, text: `Да! X ${W.on} — и при этом в плоскости сечения`, meme: true }); return }
         badPair(onMistake); setXWrong((w) => [...w, f])
-        setMsg({ ok: false, text: `${pickWrongTryPhrase()} Обе линии, которые мы продлевали, дошли до пола` })
+        setMsg({ ok: false, text: `${pickWrongTryPhrase()} Обе линии, которые мы продлевали, ${W.reached}` })
     }
     const pick = (id: string) => {
         if (phase === 0) {
-            if (id === 'floor') { badPair(onMistake); setMsg({ ok: false, text: `${pickWrongTryPhrase()} Эта точка уже на полу — её опускать не нужно` }); setSel(null); return }
+            if (id === 'floor') { badPair(onMistake); setMsg({ ok: false, text: `${pickWrongTryPhrase()} Эта точка уже ${W.on} — её проецировать не нужно` }); setSel(null); return }
             if (sel === null || sel === id) { setSel(sel === id ? null : id); setMsg(null); return }
             const v = (k: string) => (k === 'edge' ? g.a : g.b)
             setPair([v(sel), v(id)]); setSel(null); setMsg(null); showAnswerMeme(true); setPhase(1)
             return
         }
         if (phase === 5) {
-            if (id !== 'X' && id !== 'floor') { badPair(onMistake); setMsg({ ok: false, text: `${pickWrongTryPhrase()} Нужны две точки на полу: X и точка на ребре пола` }); setSel(null); return }
+            if (id !== 'X' && id !== 'floor') { badPair(onMistake); setMsg({ ok: false, text: `${pickWrongTryPhrase()} Нужны две точки ${W.on}: X и точка, которая там уже была` }); setSel(null); return }
             if (sel === null || sel === id) { setSel(sel === id ? null : id); setMsg(null); return }
             setFloorFirst(sel === 'X' ? g.X : g.floor); setSel(null); setPhase(6)
-            setMsg({ ok: true, text: 'Правило 1: обе точки на полу — соединили. Линия упёрлась в ребро — новая точка 📍', meme: true })
+            setMsg({ ok: true, text: `Правило 1: обе точки ${W.on} — соединили. Линия упёрлась в ${g.ends.length > 1 ? 'рёбра — новые точки' : 'ребро — новая точка'} 📍`, meme: true })
             setTimeout(() => onSettled?.(), 1800)
         }
     }
     const pts: R4Pt[] = [...g.base]
     if (phase >= 2) pts.push({ id: 'ceilP', v: g.bP, hollow: true }, { id: 'edgeP', v: g.aP, hollow: true })
     if (phase >= 4) pts.push({ id: 'X', v: g.X, label: 'X' })
-    if (phase >= 6) pts.push({ id: 'n1', v: g.N1 })
+    if (phase >= 6) g.ends.forEach((v, k) => pts.push({ id: `n${k}`, v }))
     const lines: R4Line[] = []
     if (phase >= 1 && pair) lines.push({ id: 'aux', a: pair[0], b: pair[1], color: AUX_COLOR, dash: '7 6', width: 3, slow: true })
     if (phase >= 2) {
@@ -1889,17 +1915,18 @@ const R4ProjScene = ({ onSettled, onMistake, g = R4_GEO }: SceneProps & { g?: R4
     if (phase >= 6) {
         const near = dist3(g.chord[0], floorFirst) <= dist3(g.chord[1], floorFirst)
         const [c0, c1] = near ? g.chord : [g.chord[1], g.chord[0]]
+        const segDashP = ceil ? undefined : '9 7' // потолок виден — сплошная, пол не виден — пунктир
         if (same(floorFirst, g.X)) lines.push({ id: 'xFloor', a: g.X, b: g.N1, color: SECT_COLOR, dash: '6 5', width: 2.5, opacity: 0.7 })
-        lines.push({ id: 'floorSeg', a: c0, b: c1, color: SECT_COLOR, dash: '9 7', slow: true })
+        lines.push({ id: 'floorSeg', a: c0, b: c1, color: SECT_COLOR, dash: segDashP, slow: true })
         if (!same(floorFirst, g.X)) lines.push({ id: 'xFloor', a: g.N1, b: g.X, color: SECT_COLOR, dash: '6 5', width: 2.5, opacity: 0.7 })
     }
-    const prompt = phase === 0 ? 'Выбери две точки, которые НЕ на полу'
+    const prompt = phase === 0 ? `Выбери две точки, которые НЕ ${W.on}`
         : phase === 1 ? 'Проведём через них вспомогательную линию — она идёт сквозь куб'
-            : phase === 2 ? 'Опустили обе точки на пол — это их проекции'
+            : phase === 2 ? `${W.move} обе точки ${W.to} — это их проекции`
                 : phase === 3 ? 'Соединили проекции. Линия и её проекция лежат в одной плоскости — значит пересекутся'
                     : phase === 4 ? 'Продлили обе — вот точка X. В какой плоскости она находится?'
-                        : phase === 5 ? 'Теперь на полу две точки — соедини их (правило 1)' : null
-    const next: Record<number, string> = { 1: 'Опустим их на пол ⬇', 2: 'Соединим проекции', 3: 'Продлим обе!', 4: 'Используем X' }
+                        : phase === 5 ? `Теперь ${W.on} две точки — соедини их (правило 1)` : null
+    const next: Record<number, string> = { 1: W.moveBtn, 2: 'Соединим проекции', 3: 'Продлим обе!', 4: 'Используем X' }
     return (
         <>
             <CheatStrip active={phase >= 5 ? 1 : 4} crossed={phase >= 5 ? [] : [1, 2, 3]} />
@@ -1922,7 +1949,7 @@ const R4ProjScene = ({ onSettled, onMistake, g = R4_GEO }: SceneProps & { g?: R4
 // Достройка после правила 4 — тот же пульт, уже есть X и линия на полу
 const R4FinishScene = ({ g = R4_GEO, ...props }: SceneProps & { g?: R4Geo }) => (
     <SandboxScene {...props} start={g.start} title="Достраиваем ⚡" text="Дальше — правила 1, 2 и 3 на пульте. Дострой сечение"
-        init={{ pts: [g.X, g.N1], segs: [{ a: g.floor, b: g.N1, face: 'floor' }], aux: [{ a: g.N1, b: g.X }] }} />
+        init={{ pts: [g.X, ...g.ends], segs: [{ a: g.chord[0], b: g.chord[1], face: g.plane }], aux: [{ a: g.N1, b: g.X }] }} />
 )
 // Сечения 2–4: сразу «Строй сам» — на пульте все 4 правила, без повторного подробного рассказа
 const R4_MORE_SCENES = R4_MORE.map(({ geo, title }, k) => {
@@ -1930,6 +1957,58 @@ const R4_MORE_SCENES = R4_MORE.map(({ geo, title }, k) => {
     Scene.displayName = `R4More${k}`
     return Scene
 })
+// ===== Урок «Точки на гранях» (тот же SECTWALK, режим по тексту задания) =====
+// Точка на невидимой стене — в круглых скобках ( • ). Строим почти по правилу 4, только проецируем на потолок, где уже лежит M.
+const ParenPoint = () => (
+    <span className="inline-flex items-center align-middle font-black" style={{ color: '#F2F7FB' }}>
+        (<span className="inline-block rounded-full mx-0.5" style={{ width: '0.7em', height: '0.7em', backgroundColor: SECT_COLOR, border: '0.13em solid #F2F7FB' }} />)
+    </span>
+)
+const FacesTaskScene = ({ onSettled }: SceneProps) => {
+    const [step, setStep] = useState(0)
+    return (
+        <>
+            <TypedBig text="Точки на гранях" memeFixed={JACKIE} onDone={() => setStep(1)} />
+            {step >= 1 && (
+                <DiagramBlock onSettled={() => setTimeout(() => setStep(2), 500)}>
+                    <R4Svg pts={FACES_GEO.base} lines={[]} />
+                </DiagramBlock>
+            )}
+            {step >= 2 && <TypedBig small text="Теперь точки лежат не на рёбрах, а прямо на стенах" meme="wow" onDone={() => setStep(3)} readMs={300} />}
+            {step >= 3 && <TaskLine onDone={() => onSettled?.()} />}
+        </>
+    )
+}
+// Точка на задней стене: всё бледное, кроме неё; объясняем скобки
+const BackPointScene = ({ onSettled }: SceneProps) => {
+    const [step, setStep] = useState(0)
+    useEffect(() => {
+        if (step !== 1) return
+        const t = setTimeout(() => onSettled?.(), 1200)
+        return () => clearTimeout(t)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [step])
+    return (
+        <>
+            <R4Svg pts={FACES_GEO.base} lines={[]} focusId="ceil" />
+            <TypedBig small text="Эта точка лежит на задней стене — её не видно" onDone={() => setStep(1)} readMs={300} />
+            {step >= 1 && (
+                <motion.div className="w-full text-center font-black text-lg md:text-xl text-[#F2F7FB]" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+                    Поэтому у неё особое обозначение — в круглых скобках: <ParenPoint />
+                </motion.div>
+            )}
+        </>
+    )
+}
+const FacesCheckScene = (pr: SceneProps) => <R4CheckScene {...pr} g={FACES_GEO} />
+const FacesProjScene = (pr: SceneProps) => <R4ProjScene {...pr} g={FACES_GEO} />
+const FacesFinishScene = (pr: SceneProps) => <R4FinishScene {...pr} g={FACES_GEO} />
+const FACES_SCENES = [FacesTaskScene, BackPointScene, FacesCheckScene, FacesProjScene, FacesFinishScene]
+const FACES_MAP_LABELS = ['Задача', 'Точка сзади ( • )', 'Правила 1–3 не работают', 'Проекция на потолок', 'Достраиваем']
+const FACES_PRACTICE = new Set<unknown>([FacesCheckScene, FacesProjScene, FacesFinishScene])
+const FACES_NEXT_LABELS: React.ReactNode[] = ['Погнали', <span key="bp" className="inline-flex items-center gap-1">Понял, точка сзади — <ParenPoint /></span>,
+    'Как это — на потолок?', 'Достроим!', 'Готово']
+
 const R4_SCENES = [R4TaskScene, R4CheckScene, R4ProjScene, R4FinishScene, ...R4_MORE_SCENES]
 const R4_MAP_LABELS = ['Задача', 'Правила 1–3 не работают', 'Правило 4: проекция', 'Достраиваем',
     ...R4_MORE.map((_, k) => `Сечение ${k + 2}: строй сам`)]
@@ -1953,10 +2032,12 @@ const BASE_NEXT_LABELS = ['Понял, это комната', 'Стены зн�
 export const TypeSectWalk = ({ question, onAnswer, onComplete, isAdmin = false }: Props & { isAdmin?: boolean }) => {
     // «Кубик: 4 правило» — отдельный урок на том же типе, выбираем по тексту задания
     const rule4 = /4 правило/i.test(question.question)
-    const SCENES = rule4 ? R4_SCENES : BASE_SCENES
-    const SCENE_MAP_LABELS = rule4 ? R4_MAP_LABELS : BASE_MAP_LABELS
-    const PRACTICE_SCENES = rule4 ? R4_PRACTICE : BASE_PRACTICE
-    const NEXT_LABELS = rule4 ? R4_NEXT_LABELS : BASE_NEXT_LABELS
+    // «Точки на гранях» — тоже отдельный урок на этом типе
+    const faces = /Точки на гранях/i.test(question.question)
+    const SCENES = faces ? FACES_SCENES : rule4 ? R4_SCENES : BASE_SCENES
+    const SCENE_MAP_LABELS = faces ? FACES_MAP_LABELS : rule4 ? R4_MAP_LABELS : BASE_MAP_LABELS
+    const PRACTICE_SCENES = faces ? FACES_PRACTICE : rule4 ? R4_PRACTICE : BASE_PRACTICE
+    const NEXT_LABELS: React.ReactNode[] = faces ? FACES_NEXT_LABELS : rule4 ? R4_NEXT_LABELS : BASE_NEXT_LABELS
     const [startStep, setStartStep] = useState(0)
     const [step, setStep] = useState(0)
     const [stepReady, setStepReady] = useState(false)
@@ -1991,7 +2072,7 @@ export const TypeSectWalk = ({ question, onAnswer, onComplete, isAdmin = false }
     }))
 
     return (
-        <RuleCountCtx.Provider value={rule4 ? 4 : 3}>
+        <RuleCountCtx.Provider value={rule4 || faces ? 4 : 3}>
         <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
             {isAdmin && <AdminSceneMap enabled entries={mapEntries} onJump={jumpTo} disabled={advancing} />}
             <div className="w-full flex flex-col gap-4">
