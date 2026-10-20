@@ -14474,3 +14474,13 @@ a⁻ⁿ = 1/aⁿ → «Лифт 🛗» (2⁻³ → 1/2³, 1/7² → 7⁻², 10�
 start/correct/wrong/rule/streak/chest/levelup/done/boss/night, `pickGagaLine`, `gagaAudio`), озвучены заранее в
 `public/gaga-voice/<id>.mp3` скриптом `scripts/genGagaVoice.ts` (ключ ElevenLabs не в ggege — берётся из
 /var/www/garaggio/.env при запуске, через прокси elevenlabs-proxy). Послушать — `/test-gaga`. В уроки пока не подключено.
+Как голос создавался (чтобы повторить/сделать второй): ElevenLabs → Voices → создать голос → Voice Design. Описание:
+«A warm, kind, gentle middle-aged male voice of a caring mentor — a friendly cartoon goose who teaches teenagers math
+and physics. Soft, slightly raspy, smiling while speaking, unhurried and reassuring, with a light playful chuckle.
+Speaks Russian naturally. Feels like a favourite teacher or a good uncle: calm, supportive, never strict.» Пример текста
+с пометками ([laughing] Га-га! Привет, дружище. [happy] … [gentle] … [softly] … Спокойной ночи.) — пользователь отметил,
+что с пометками настроения звучит лучше всего; новые реплики писать так же.
+План подключения голоса (предложен, ждёт согласия пользователя): звучит в редких значимых моментах — открытие сундука,
+новый уровень, «урок пройден», начало босс-экзамена, ночной баннер «пора спать» и примерно раз в 4–5 ответов «верно»/
+«ошибка» вместе с картинкой Га-Га; не на каждый ответ (в уроке и так много звуков). Нужна кнопка «Голос Га-Га вкл/выкл»
+в аккаунте (ученики занимаются без звука — в транспорте, ночью).
