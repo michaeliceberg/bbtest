@@ -308,12 +308,17 @@ const TypedBig = ({ text, onDone, readMs = 400, small, meme }: { text: string; o
     return meme ? <div className="w-full flex items-center gap-2">{body}<SideMeme mood={meme} /></div> : body
 }
 // без мема: после верного ответа и так взлетает облачко-мем (showAnswerMeme) — не дублируем
-const Msg = ({ ok, text }: { ok: boolean; text: string }) => (
-    <motion.div key={text} className="rounded-xl px-4 py-2 font-bold w-full text-center" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-        style={{ backgroundColor: hexToRgba(ok ? OK_COLOR : WRONG_COLOR, 0.14), color: ok ? OK_COLOR : WRONG_COLOR }}>
-        {text}
+// meme — после верного ответа: вместо облачка над кнопкой (showAnswerMeme) мем справа от сообщения — без перебора мемов
+const Msg = ({ ok, text, meme }: { ok: boolean; text: string; meme?: boolean }) => (
+    <motion.div key={text} className="w-full flex items-center gap-2" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+        <div className="flex-1 min-w-0 rounded-xl px-4 py-2 font-bold text-center"
+            style={{ backgroundColor: hexToRgba(ok ? OK_COLOR : WRONG_COLOR, 0.14), color: ok ? OK_COLOR : WRONG_COLOR }}>
+            {text}
+        </div>
+        {ok && meme && <SideMeme mood={/✗/.test(text) ? 'wow' : 'yay'} />}
     </motion.div>
 )
+type MsgState = { ok: boolean; text: string; meme?: boolean } | null
 // Плашка «ПРАВИЛО N» со стикером-мемом справа, повёрнутым к правилу
 const RulePlate = ({ title, children }: { title: string; children: React.ReactNode }) => {
     const [m, setM] = useState<MoreMeme | null>(null)
@@ -382,7 +387,7 @@ const WallTestScene = ({ onSettled, onMistake }: SceneProps) => {
     const [qi, setQi] = useState(0)
     const [typed, setTyped] = useState(false)
     const [hl, setHl] = useState<FaceHL | null>(null)
-    const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+    const [msg, setMsg] = useState<MsgState>(null)
     const [locked, setLocked] = useState(false)
     const [done, setDone] = useState(false)
     const target = FACE_TEST_ORDER[qi]
@@ -391,9 +396,8 @@ const WallTestScene = ({ onSettled, onMistake }: SceneProps) => {
         // попал в контур нужной стены (даже если спереди её перекрывает другая) — засчитываем
         const f = inside.includes(target) ? target : nearest
         if (f === target) {
-            showAnswerMeme(true)
             setHl({ face: f, color: OK_COLOR, label: FACE_NAME[f] })
-            setMsg({ ok: true, text: `${FACE_SHORT[f]} 👍` })
+            setMsg({ ok: true, text: `${FACE_SHORT[f]} 👍`, meme: true })
             setLocked(true)
             setTimeout(() => {
                 setLocked(false); setHl(null); setMsg(null)
@@ -420,7 +424,7 @@ const WallTestScene = ({ onSettled, onMistake }: SceneProps) => {
                 </p>
             </div>
             <CubeSvg faces={hl ? [hl] : []} dimExcept={hl ? hl.face : null} onFace={done ? undefined : tap} />
-            {msg && <Msg ok={msg.ok} text={msg.text} />}
+            {msg && <Msg ok={msg.ok} text={msg.text} meme={msg.meme} />}
             {done && <LocalAnswerConfetti />}
         </>
     )
@@ -949,7 +953,7 @@ const Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
     const tail = ['Линия упёрлась в ребро: тут новая точка 📍', 'Получилось! Значит снова с правила 1', 'Есть ли теперь точки в одной плоскости?']
     const answer1 = (v: 'yes' | 'no') => {
         if (!typed) return
-        if (v === 'no') { showAnswerMeme(true); setFlash(null); go(1); return }
+        if (v === 'no') { setFlash(null); go(1); return }
         badPair(onMistake); setWrong(['yes'])
         setFlash(`${pickWrongTryPhrase()} На потолке и передней стене уже соединили, а на остальных стенах по одной точке`)
     }
@@ -962,7 +966,7 @@ const Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
     return (
         <>
             <CheatStrip active={strip.active} crossed={strip.crossed} focus={focusStrip || phase === 12} />
-            {phase === 1 && crossNow && <Msg ok text="Правило 1 не работает — зачёркиваем ✗" />}
+            {phase === 1 && crossNow && <Msg ok meme text="Правило 1 не работает — зачёркиваем ✗" />}
             {phase === 2 && hold && <Msg ok text="Переходим к правилу 2 👆" />}
             {/* без плашки «ПРАВИЛО 2»: просто пишем над кубом, потом с отскоком потолок и пол */}
             {phase >= 2 && phase <= 6 && !hold && <TypedBig small text="Потолок и пол параллельны" meme="wow" onDone={() => go(3)} readMs={300} />}
@@ -1016,7 +1020,7 @@ const CloseGameScene = ({ onSettled, onMistake }: SceneProps) => {
         { id: 'KL', a: 'K', b: 'L', color: SECT_COLOR, instant: true, dash: '9 7' },
     ])
     const [face, setFace] = useState<FaceHL | null>(null)
-    const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+    const [msg, setMsg] = useState<MsgState>(null)
     const [done, setDone] = useState(false)
     const [fill, setFill] = useState(false)
     const { sel, tap } = usePairPick(typed && !done, (a, b) => {
@@ -1027,8 +1031,7 @@ const CloseGameScene = ({ onSettled, onMistake }: SceneProps) => {
             setFace({ face: f, color: FACE_COLOR })
             setSegs((s) => [...s, { id: key, a, b, color: SECT_COLOR, slow: true, dash: segDash(a, b) }])
             setDone(true)
-            showAnswerMeme(true)
-            setMsg({ ok: true, text: `Обе точки ${FACE_ON[f]}. Сечение замкнулось!` })
+            setMsg({ ok: true, text: `Обе точки ${FACE_ON[f]}. Сечение замкнулось!`, meme: true })
             setTimeout(() => { setFace(null); setFill(true); onSettled?.() }, 1900)
         } else {
             badPair(onMistake)
@@ -1046,7 +1049,7 @@ const CloseGameScene = ({ onSettled, onMistake }: SceneProps) => {
             <GameHeader title="Замкни сечение 🔗" />
             <TypedBig small text="Соедини две точки, которые лежат в одной плоскости" onDone={() => setTyped(true)} />
             <CubeSvg faces={face ? [face] : []} points={['M', 'N', 'K', 'L']} segs={segs} selected={sel} fill={fill} onPoint={typed && !done ? tap : undefined} />
-            {msg && <Msg ok={msg.ok} text={msg.text} />}
+            {msg && <Msg ok={msg.ok} text={msg.text} meme={msg.meme} />}
             {fill && <LocalAnswerConfetti />}
             {fill && <TypedBig text="Это и есть сечение! 🎉" readMs={0} />}
         </>
@@ -1110,7 +1113,7 @@ const C2Rule1Scene = ({ onSettled, onMistake }: SceneProps) => {
     }
     const pickYN = (v: 'yes' | 'no') => {
         if (step !== 4 || !typed) return
-        if (v === 'no') { showAnswerMeme(true); setFlash(null); setStep(5); return }
+        if (v === 'no') { setFlash(null); setStep(5); return }
         badPair(onMistake); setWrongYN(['yes'])
         setFlash(`${pickWrongTryPhrase()} Других плоскостей с двумя точками нет: на остальных стенах по одной точке`)
     }
@@ -1125,7 +1128,7 @@ const C2Rule1Scene = ({ onSettled, onMistake }: SceneProps) => {
             {(step === 2 || step === 3) && <TypedBig small text="Выбери точки, которые можно соединить" readMs={0} />}
             {step >= 4 && <TypedBig small text="Работает ли 1-е правило ещё?" onDone={() => setTyped(true)} readMs={0} />}
             {step === 4 && typed && <YesNo wrong={wrongYN} onPick={pickYN} />}
-            {step >= 5 && <Msg ok text="Правило 1 больше не работает — вычёркиваем ✗" />}
+            {step >= 5 && <Msg ok meme text="Правило 1 больше не работает — вычёркиваем ✗" />}
             {flash && <Msg ok={false} text={flash} />}
         </>
     )
@@ -1138,7 +1141,7 @@ const C2Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
     const [flash, setFlash] = useState<string | null>(null)
     const pick = (v: 'yes' | 'no') => {
         if (!typed || done) return
-        if (v === 'no') { showAnswerMeme(true); setFlash(null); setDone(true); setTimeout(() => onSettled?.(), 900); return }
+        if (v === 'no') { setFlash(null); setDone(true); setTimeout(() => onSettled?.(), 900); return }
         badPair(onMistake); setWrong(['yes'])
         setFlash(`${pickWrongTryPhrase()} Линия есть только на потолке, а на полу нет ни одной точки — переносить некуда`)
     }
@@ -1148,7 +1151,7 @@ const C2Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
             <CubeSvg points={CUBE2_PTS} segs={[SEG_EF]} faces={[{ face: 'ceiling', color: FACE_COLOR }, { face: 'floor', color: FACE_COLOR }]} />
             <TypedBig small text="Работает ли 2-е правило? Нужна линия на стене и точка на параллельной ей стене" onDone={() => setTyped(true)} readMs={0} />
             {typed && !done && <YesNo wrong={wrong} onPick={pick} />}
-            {done && <Msg ok text="Правило 2 тоже не работает — вычёркиваем ✗" />}
+            {done && <Msg ok meme text="Правило 2 тоже не работает — вычёркиваем ✗" />}
             {flash && !done && <Msg ok={false} text={flash} />}
         </>
     )
@@ -1167,7 +1170,7 @@ const C2Rule3Scene = ({ onSettled, onMistake }: SceneProps) => {
     const toggle = (f: Face) => { if (ok) return; setFlash(null); setChosen((c) => (c.includes(f) ? c.filter((x) => x !== f) : c.length >= 2 ? [c[1], f] : [...c, f])) }
     const check = () => {
         const right = chosen.length === 2 && chosen.includes('ceiling') && chosen.includes('front')
-        if (right) { showAnswerMeme(true); setOk(true); setTimeout(() => onSettled?.(), 1500); return }
+        if (right) { setOk(true); setTimeout(() => onSettled?.(), 1500); return }
         badPair(onMistake)
         setFlash(`${pickWrongTryPhrase()} X лежит на продолжении линии на потолке и на продолжении переднего ребра потолка`)
     }
@@ -1214,7 +1217,7 @@ const C2Rule3Scene = ({ onSettled, onMistake }: SceneProps) => {
                 </div>
             )}
             {flash && !ok && <Msg ok={false} text={flash} />}
-            {ok && <Msg ok text="Да! X живёт и на потолке, и на передней стене 🏠" />}
+            {ok && <Msg ok meme text="Да! X живёт и на потолке, и на передней стене 🏠" />}
         </>
     )
 }
@@ -1228,7 +1231,7 @@ const C2FinishScene = ({ onSettled, onMistake }: SceneProps) => {
     const [segs, setSegs] = useState<Seg[]>([SEG_EF])
     const [points, setPoints] = useState<PtKey[]>(['E', 'F', 'H', 'G'])
     const [busy, setBusy] = useState(false)
-    const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+    const [msg, setMsg] = useState<MsgState>(null)
     const [ghost, setGhost] = useState(false)
     const [fill, setFill] = useState(false)
     const WANT: Record<number, string> = { 0: 'GH', 1: 'EQ', 3: 'FR' }
@@ -1241,7 +1244,8 @@ const C2FinishScene = ({ onSettled, onMistake }: SceneProps) => {
     }
     const { sel, tap } = usePairPick(typed && !busy && WANT[step] !== undefined, (a, b) => {
         if (pairKey(a, b) !== WANT[step]) return wrongPair(a, b)
-        showAnswerMeme(true); setMsg(null); setBusy(true)
+        if (step !== 0) showAnswerMeme(true)
+        setMsg(null); setBusy(true)
         if (step === 0) {
             // часть G–Q — вне куба (вспомогательная, пунктир), Q–H — уже сечение; рисуем от точки, выбранной первой
             if (a === 'G') {
@@ -1251,7 +1255,7 @@ const C2FinishScene = ({ onSettled, onMistake }: SceneProps) => {
                 setSegs((s) => [...s, { id: 'QH', a: 'H', b: 'Q', color: SECT_COLOR, slow: true }])
                 setTimeout(() => { setPoints((p) => [...p, 'Q']); setSegs((s) => [...s, { id: 'GQ', a: 'Q', b: 'G', color: SECT_COLOR, dash: '7 6', slow: true, opacity: 0.6 }]) }, 1500)
             }
-            setTimeout(() => { setMsg({ ok: true, text: 'Линия вошла в куб — тут новая точка сечения 📍' }); setStep(1); setTyped(false); setBusy(false) }, 3200)
+            setTimeout(() => { setMsg({ ok: true, text: 'Линия вошла в куб — тут новая точка сечения 📍', meme: true }); setStep(1); setTyped(false); setBusy(false) }, 3200)
         } else if (step === 1) {
             setSegs((s) => [...s, { id: 'EQ', a, b, color: SECT_COLOR, slow: true, dash: segDash('Q', 'E') }])
             setTimeout(() => { setStep(2); setTyped(false); setMsg(null) }, 1900)
@@ -1290,8 +1294,8 @@ const C2FinishScene = ({ onSettled, onMistake }: SceneProps) => {
                     </motion.g>
                 )}
             </CubeSvg>
+            {msg && <Msg ok={msg.ok} text={msg.text} meme={msg.meme} />}
             <TypedBig key={`p-${step}`} small text={prompt} onDone={() => setTyped(true)} readMs={0} />
-            {msg && <Msg ok={msg.ok} text={msg.text} />}
             {fill && <LocalAnswerConfetti />}
         </>
     )
@@ -1400,7 +1404,7 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text, init }: SceneP
     const [tool, setTool] = useState<Tool | null>(null)
     const [selPt, setSelPt] = useState<number | null>(null)
     const [selSeg, setSelSeg] = useState<number | null>(null)
-    const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+    const [msg, setMsg] = useState<MsgState>(null)
     const [ghost, setGhost] = useState<{ a: V3; b: V3; dx: number; dy: number } | null>(null)
     const [busy, setBusy] = useState(false)
     const [done, setDone] = useState(false)
@@ -1415,8 +1419,8 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text, init }: SceneP
     }
     const checkDone = (next: SbSeg[]) => {
         if (sbExpected.faces.every((f) => next.some((s) => s.face === f))) {
-            setDone(true); setTool(null); showAnswerMeme(true)
-            setMsg({ ok: true, text: 'Сечение замкнулось! 🎉' })
+            setDone(true); setTool(null)
+            setMsg({ ok: true, text: 'Сечение замкнулось! 🎉', meme: true })
             setTimeout(() => onSettled?.(), 900)
         }
     }
@@ -1430,8 +1434,7 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text, init }: SceneP
         setTimeout(() => {
             setPts((cur) => addPoints([c0, c1], cur))
             setBusy(false)
-            showAnswerMeme(true)
-            setMsg({ ok: true, text: okText })
+            setMsg({ ok: true, text: okText, meme: true })
             checkDone(next)
         }, 1300)
     }
@@ -1497,8 +1500,8 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text, init }: SceneP
         setAux((x) => [...x, { id: nid(), a: nearS, b: X }, { id: nid(), a: nearE, b: X }])
         setBusy(true)
         setTimeout(() => {
-            setPts((cur) => addPoints([X], cur)); setBusy(false); showAnswerMeme(true)
-            setMsg({ ok: true, text: 'Правило 3: продлили — новая точка. Она лежит сразу на двух стенах' })
+            setPts((cur) => addPoints([X], cur)); setBusy(false)
+            setMsg({ ok: true, text: 'Правило 3: продлили — новая точка. Она лежит сразу на двух стенах', meme: true })
         }, 1300)
     }
     const pickTool = (t: Tool) => { if (busy || done) return; setTool(tool === t ? null : t); resetSel(); setMsg(null) }
@@ -1547,7 +1550,7 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text, init }: SceneP
             {/* подсказка «что делать сейчас» — при каждой смене появляется с отскоком, чтобы было видно, что она поменялась */}
             <div className="w-full flex justify-center min-h-8">
                 {!done && (
-                    <motion.div key={stepHint} className="rounded-full px-3 py-1 text-sm md:text-base font-black"
+                    <motion.div key={`${tool}-${stepHint}`} className="rounded-full px-3 py-1 text-sm md:text-base font-black"
                         initial={{ scale: 1.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 12 }}
                         style={{ color: tool ? '#F2F7FB' : SECT_COLOR, backgroundColor: hexToRgba(SECT_COLOR, tool ? 0.22 : 0.12), border: `1.5px solid ${hexToRgba(SECT_COLOR, 0.55)}` }}>
                         {stepHint}
@@ -1610,7 +1613,7 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text, init }: SceneP
                     })}
                 </motion.svg>
             </div>
-            {msg && <Msg ok={msg.ok} text={msg.text} />}
+            {msg && <Msg ok={msg.ok} text={msg.text} meme={msg.meme} />}
             {typed && !done && (
                 <button type="button" onClick={hint} className="text-sm font-bold underline underline-offset-4" style={{ color: MUTED }}>Подсказка: какое правило сейчас?</button>
             )}
@@ -1622,7 +1625,7 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text, init }: SceneP
 // Куб 3 и ещё пять расстановок (подобраны и проверены скриптом: сечение строится правилами 1–3).
 // Сначала три четырёхугольника (правила 1 и 2), потом пятиугольник и шестиугольник (нужно и правило 3).
 const SANDBOXES: SandboxCfg[] = [
-    { start: SB_START, title: 'Строй сам ⚡', text: 'Выбирай правило на пульте и строй сечение' },
+    { start: SB_START, title: 'Строй сам ⚡', text: 'Выбирай правило и строй сечение' },
     { start: [[0.4, 0, 1], [1, 0.5, 1], [0.3, 0, 0]], title: 'Куб 4 ⚡', text: 'Новые точки — построй сечение' },
     { start: [[1, 0, 0.6], [1, 1, 0.3], [0.5, 1, 1]], title: 'Куб 5 ⚡', text: 'Построй сечение' },
     { start: [[0, 0, 0.4], [0, 1, 0.7], [1, 0, 0.6]], title: 'Куб 6 ⚡', text: 'Построй сечение' },
@@ -1717,7 +1720,7 @@ const R4CheckScene = ({ onSettled, onMistake }: SceneProps) => {
     }, [phase])
     const answer = (v: 'yes' | 'no') => {
         if (!typed || phase !== 0) return
-        if (v === 'no') { showAnswerMeme(true); setFlash(null); setPhase(1); return }
+        if (v === 'no') { setFlash(null); setPhase(1); return }
         badPair(onMistake); setWrong(['yes'])
         setFlash(`${pickWrongTryPhrase()} Посмотри: каждая точка на своих стенах — общей стены ни у одной пары нет`)
     }
@@ -1726,7 +1729,7 @@ const R4CheckScene = ({ onSettled, onMistake }: SceneProps) => {
     return (
         <>
             <CheatStrip active={active} crossed={crossed} focus={phase === 1 || phase === 3 || phase === 4} />
-            {phase === 1 && <Msg ok text="Правило 1 не работает — зачёркиваем ✗" />}
+            {phase === 1 && <Msg ok meme text="Правило 1 не работает — зачёркиваем ✗" />}
             {phase === 3 && <Msg ok text="Правила 2 и 3 тоже не помогут — зачёркиваем ✗" />}
             {phase >= 4 && <Msg ok text="Остаётся правило 4 — проекция 👆" />}
             <R4Svg pts={R4_BASE_PTS} lines={[]} dim={phase === 1 || phase === 3} />
@@ -1748,14 +1751,14 @@ const R4ProjScene = ({ onSettled, onMistake }: SceneProps) => {
     const [sel, setSel] = useState<string | null>(null)
     const [pair, setPair] = useState<[V3, V3] | null>(null) // порядок выбора: от первой ко второй
     const [floorFirst, setFloorFirst] = useState<V3>(R4_X)
-    const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+    const [msg, setMsg] = useState<MsgState>(null)
     const [xWrong, setXWrong] = useState<Face[]>([])
     const [xOk, setXOk] = useState(false)
     useEffect(() => { setTyped(false) }, [phase])
     // «В какой плоскости точка X?» — нужен пол
     const pickXFace = (f: Face) => {
         if (xOk || xWrong.includes(f)) return
-        if (f === 'floor') { showAnswerMeme(true); setXOk(true); setMsg({ ok: true, text: 'Да! X на полу — и при этом в плоскости сечения' }); return }
+        if (f === 'floor') { setXOk(true); setMsg({ ok: true, text: 'Да! X на полу — и при этом в плоскости сечения', meme: true }); return }
         badPair(onMistake); setXWrong((w) => [...w, f])
         setMsg({ ok: false, text: `${pickWrongTryPhrase()} Обе линии, которые мы продлевали, дошли до пола` })
     }
@@ -1770,8 +1773,8 @@ const R4ProjScene = ({ onSettled, onMistake }: SceneProps) => {
         if (phase === 5) {
             if (id !== 'X' && id !== 'floor') { badPair(onMistake); setMsg({ ok: false, text: `${pickWrongTryPhrase()} Нужны две точки на полу: X и точка на ребре пола` }); setSel(null); return }
             if (sel === null || sel === id) { setSel(sel === id ? null : id); setMsg(null); return }
-            setFloorFirst(sel === 'X' ? R4_X : R4_FLOOR); setSel(null); showAnswerMeme(true); setPhase(6)
-            setMsg({ ok: true, text: 'Правило 1: обе точки на полу — соединили. Линия упёрлась в ребро — новая точка 📍' })
+            setFloorFirst(sel === 'X' ? R4_X : R4_FLOOR); setSel(null); setPhase(6)
+            setMsg({ ok: true, text: 'Правило 1: обе точки на полу — соединили. Линия упёрлась в ребро — новая точка 📍', meme: true })
             setTimeout(() => onSettled?.(), 1800)
         }
     }
@@ -1817,7 +1820,7 @@ const R4ProjScene = ({ onSettled, onMistake }: SceneProps) => {
             )}
             {phase === 4 && typed && !xOk && <FaceOptions wrong={xWrong} onPick={pickXFace} />}
             {next[phase] && typed && (phase !== 4 || xOk) && <NextBtn onClick={() => { setMsg(null); setPhase(phase + 1) }}>{next[phase]}</NextBtn>}
-            {msg && <Msg ok={msg.ok} text={msg.text} />}
+            {msg && <Msg ok={msg.ok} text={msg.text} meme={msg.meme} />}
             {phase >= 6 && <LocalAnswerConfetti />}
         </>
     )
