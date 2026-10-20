@@ -420,7 +420,7 @@ const WallTestScene = ({ onSettled, onMistake }: SceneProps) => {
                     <span>{Math.min(qi + 1, FACE_TEST_ORDER.length)}</span><span className="opacity-50 font-normal">/</span><span>{FACE_TEST_ORDER.length}</span>
                 </motion.div>
                 <p className="text-xl md:text-2xl font-black text-[#F2F7FB] text-center px-16">
-                    {done ? 'Все стены найдены 🎉' : <Typewriter key={`q-${qi}`} text={`Кликни на ${FACE_ACC[target]}`} onDone={() => setTyped(true)} />}
+                    {done ? 'Все стены найдены 🎉' : <ColorTyped key={`q-${qi}`} text={`Кликни на ${FACE_ACC[target]}`} onDone={() => setTyped(true)} />}
                 </p>
             </div>
             <CubeSvg faces={hl ? [hl] : []} dimExcept={hl ? hl.face : null} onFace={done ? undefined : tap} />
@@ -577,6 +577,13 @@ const RuleIcon = ({ n }: { n: number }) => {
 // focus — момент перехода к другому правилу: текущее правило крупнее и светится, чтобы ученик посмотрел наверх
 const CheatStrip = ({ active, crossed = [], focus = false }: { active: number | null; crossed?: number[]; focus?: boolean }) => {
     const rules = useRules()
+    // откат к правилу 1 (с другого правила) — правило 1 один раз подпрыгивает, чтобы привлечь внимание
+    const prevActive = useRef(active)
+    const [back1, setBack1] = useState(0)
+    useEffect(() => {
+        if (active === 1 && prevActive.current !== null && prevActive.current !== 1) setBack1((n) => n + 1)
+        prevActive.current = active
+    }, [active])
     return (
     <div className="relative w-full" aria-label="Шпора: 4 правила">
         {/* просто подпись «ШПОРА» сверху (с лёгким дымком, как у большой плашки), без внешней рамки */}
@@ -592,7 +599,11 @@ const CheatStrip = ({ active, crossed = [], focus = false }: { active: number | 
                 // пока смотрим на одно правило — остальные бледные целиком (и рамка, и текст)
                 const faded = active !== null && !isOn
                 return (
-                    <motion.div key={r.n} className="relative rounded-lg border-2 px-1 py-1 text-center flex flex-col justify-center"
+                    <motion.div key={r.n === 1 ? `r1-${back1}` : r.n} className="relative flex"
+                        initial={r.n === 1 && back1 > 0 ? { y: 0, scale: 1 } : false}
+                        animate={r.n === 1 && back1 > 0 ? { y: [0, -12, 0, -4, 0], scale: [1, 1.18, 0.97, 1.04, 1] } : undefined}
+                        transition={{ duration: 0.8, ease: 'easeOut' }}>
+                    <motion.div key={r.n} className="relative w-full rounded-lg border-2 px-1 py-1 text-center flex flex-col justify-center"
                         // зачёркнутое бледнеет после того, как дорисован крестик
                         animate={{ opacity: isX ? 0.4 : faded ? 0.38 : 1, scale: isOn ? (focus ? [1, 1.32, 1.18] : 1.06) : 1 }}
                         transition={{ opacity: { delay: isX ? 0.75 : 0, duration: 0.4 }, scale: { type: 'spring', stiffness: 300, damping: 18 } }}
@@ -604,6 +615,7 @@ const CheatStrip = ({ active, crossed = [], focus = false }: { active: number | 
                         <div className="text-[10px] md:text-xs font-black leading-tight hyphens-manual break-words"
                             style={{ color: faded ? MUTED : '#F2F7FB' }}>{r.short}</div>
                         {isX && <CrossX />}
+                    </motion.div>
                     </motion.div>
                 )
             })}
@@ -1408,6 +1420,9 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text, init }: SceneP
     const [ghost, setGhost] = useState<{ a: V3; b: V3; dx: number; dy: number } | null>(null)
     const [busy, setBusy] = useState(false)
     const [done, setDone] = useState(false)
+    const [back1, setBack1] = useState(0)
+    // провели линию / нашли точку — снова с правила 1: выбираем его и он один раз подпрыгивает
+    const rollback1 = () => { setTool(1); resetSel(); setBack1((n) => n + 1) }
     const uid = useRef(100)
     const nid = () => ++uid.current
     const resetSel = () => { setSelPt(null); setSelSeg(null) }
@@ -1435,6 +1450,7 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text, init }: SceneP
             setPts((cur) => addPoints([c0, c1], cur))
             setBusy(false)
             setMsg({ ok: true, text: okText, meme: true })
+            rollback1()
             checkDone(next)
         }, 1300)
     }
@@ -1502,6 +1518,7 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text, init }: SceneP
         setTimeout(() => {
             setPts((cur) => addPoints([X], cur)); setBusy(false)
             setMsg({ ok: true, text: 'Правило 3: продлили — новая точка. Она лежит сразу на двух стенах', meme: true })
+            rollback1()
         }, 1300)
     }
     const pickTool = (t: Tool) => { if (busy || done) return; setTool(tool === t ? null : t); resetSel(); setMsg(null) }
@@ -1530,9 +1547,9 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text, init }: SceneP
                         // правило ещё не выбрано — кнопки по очереди подпрыгивают и светятся: «жми сюда»
                         const call = !tool && !done && !busy
                         return (
-                            <motion.div key={r.n} className="relative flex"
-                                animate={call ? { y: [0, -6, 0] } : { y: 0 }}
-                                transition={call ? { duration: 0.5, delay: i * 0.18, repeat: Infinity, repeatDelay: 1.3, ease: 'easeOut' } : { duration: 0.2 }}>
+                            <motion.div key={r.n === 1 ? `b1-${back1}` : r.n} className="relative flex"
+                                animate={call ? { y: [0, -6, 0] } : r.n === 1 && back1 > 0 ? { y: [0, -12, 0, -4, 0], scale: [1, 1.15, 0.97, 1.03, 1] } : { y: 0 }}
+                                transition={call ? { duration: 0.5, delay: i * 0.18, repeat: Infinity, repeatDelay: 1.3, ease: 'easeOut' } : r.n === 1 && back1 > 0 ? { duration: 0.8, ease: 'easeOut' } : { duration: 0.2 }}>
                                 {call && <span className="absolute -inset-1 rounded-2xl pointer-events-none animate-glow-pulse"
                                     style={{ boxShadow: `0 0 16px ${hexToRgba(SECT_COLOR, 0.7)}`, border: `2px solid ${hexToRgba(SECT_COLOR, 0.55)}`, animationDelay: `${i * 0.18}s` }} />}
                                 <button type="button" onClick={() => pickTool(r.n)} disabled={done}
@@ -1553,7 +1570,7 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text, init }: SceneP
                     <motion.div key={`${tool}-${stepHint}`} className="rounded-full px-3 py-1 text-sm md:text-base font-black"
                         initial={{ scale: 1.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 12 }}
                         style={{ color: tool ? '#F2F7FB' : SECT_COLOR, backgroundColor: hexToRgba(SECT_COLOR, tool ? 0.22 : 0.12), border: `1.5px solid ${hexToRgba(SECT_COLOR, 0.55)}` }}>
-                        {stepHint}
+                        {colorize(stepHint)}
                     </motion.div>
                 )}
             </div>
