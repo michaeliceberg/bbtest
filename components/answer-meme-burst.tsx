@@ -15,6 +15,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
+import { MORE_MEMES } from '@/lib/moreMemes'
 
 const RIGHT_COUNT = 21
 const WRONG_COUNT = 39
@@ -36,7 +37,10 @@ const pickSrc = (correct: boolean) => {
     const n = correct ? RIGHT_COUNT : WRONG_COUNT
     let src = ''
     do {
-        src = `/answer-meme-${kind}/${1 + Math.floor(Math.random() * n)}.webp`
+        // к верным ответам подмешиваем мемы из public/more-memes (lib/moreMemes.ts) — примерно каждый второй
+        src = correct && Math.random() < 0.5
+            ? MORE_MEMES[Math.floor(Math.random() * MORE_MEMES.length)].src
+            : `/answer-meme-${kind}/${1 + Math.floor(Math.random() * n)}.webp`
     } while (src === lastSrc[kind] && n > 1)
     lastSrc[kind] = src
     return src

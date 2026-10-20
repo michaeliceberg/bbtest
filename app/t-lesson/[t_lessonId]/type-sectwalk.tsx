@@ -35,6 +35,8 @@ import {
 } from '@/components/geometry/WalkthroughLog'
 import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
+import { SideMeme } from '@/components/side-meme'
+import { pickMoreMeme, memeFlip, type MoreMeme } from '@/lib/moreMemes'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
@@ -270,17 +272,31 @@ const CubeSvg = ({ drawIn = false, faces = [], points = [], segs = [], selected 
     )
 }
 
-const TypedBig = ({ text, onDone, readMs = 400, small }: { text: string; onDone?: () => void; readMs?: number; small?: boolean }) => (
-    <div className={cn('w-full text-center font-black text-[#F2F7FB]', small ? 'text-lg md:text-xl' : 'text-2xl md:text-3xl')}>
-        <Typewriter text={text} onDone={() => setTimeout(() => onDone?.(), readMs)} />
-    </div>
-)
+// meme — справа мем, развёрнутый к тексту («удивляется правилу»)
+const TypedBig = ({ text, onDone, readMs = 400, small, meme }: { text: string; onDone?: () => void; readMs?: number; small?: boolean; meme?: MoreMeme['mood'] }) => {
+    const body = (
+        <div className={cn('w-full text-center font-black text-[#F2F7FB]', small ? 'text-lg md:text-xl' : 'text-2xl md:text-3xl', meme && 'flex-1 min-w-0')}>
+            <Typewriter text={text} onDone={() => setTimeout(() => onDone?.(), readMs)} />
+        </div>
+    )
+    return meme ? <div className="w-full flex items-center gap-2">{body}<SideMeme mood={meme} /></div> : body
+}
+// удачное сообщение — с мемом справа (позитив!)
 const Msg = ({ ok, text }: { ok: boolean; text: string }) => (
-    <motion.div key={text} className="rounded-xl px-4 py-2 font-bold w-full text-center" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-        style={{ backgroundColor: hexToRgba(ok ? OK_COLOR : WRONG_COLOR, 0.14), color: ok ? OK_COLOR : WRONG_COLOR }}>
-        {text}
+    <motion.div key={text} className="w-full flex items-center gap-2" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+        <div className="flex-1 min-w-0 rounded-xl px-4 py-2 font-bold text-center"
+            style={{ backgroundColor: hexToRgba(ok ? OK_COLOR : WRONG_COLOR, 0.14), color: ok ? OK_COLOR : WRONG_COLOR }}>
+            {text}
+        </div>
+        {ok && <SideMeme mood={/[✗]/.test(text) ? 'wow' : 'yay'} />}
     </motion.div>
 )
+// Плашка «ПРАВИЛО N» со стикером-мемом справа, повёрнутым к правилу
+const RulePlate = ({ title, children }: { title: string; children: React.ReactNode }) => {
+    const [m, setM] = useState<MoreMeme | null>(null)
+    useEffect(() => { setM(pickMoreMeme('wow')) }, [])
+    return <RememberPlate title={title} sticker={m?.src ?? 'none'} flipSticker={m ? memeFlip(m, 'left') : false}>{children}</RememberPlate>
+}
 const GameHeader = ({ title }: { title: string }) => (
     <div className="w-full flex items-center gap-3" aria-hidden>
         <div className="flex-1 h-px bg-[#3A464E]" />
@@ -406,11 +422,11 @@ const PointsScene = ({ onSettled }: SceneProps) => {
 // ===== Сцена 3: правило 1 — отдельно, без куба; текст печатается, кнопка появляется после печати =====
 const RULE1_TEXT = 'Если нашли две точки в одной плоскости — соединяем эти точки'
 const Rule1PlateScene = ({ onSettled }: SceneProps) => (
-    <RememberPlate title="ПРАВИЛО 1">
+    <RulePlate title="ПРАВИЛО 1">
         <div className="text-center font-black text-lg md:text-xl text-[#F2F7FB] min-h-[3.5rem]">
             <Typewriter text={RULE1_TEXT} onDone={() => setTimeout(() => onSettled?.(), 400)} />
         </div>
-    </RememberPlate>
+    </RulePlate>
 )
 
 // «Задача: провести сечение через эти три •» — вместо слова «точки» рисуем саму точку, как на чертеже
@@ -660,7 +676,7 @@ const CheatIntroScene = ({ onSettled }: SceneProps) => {
     return (
         <>
             <ShporaBadge />
-            <TypedBig small text={`Для сечения ${rules.length} правила:`} onDone={() => { setPhase(1); setRows(1) }} />
+            <TypedBig small text={`Для сечения ${rules.length} правила:`} meme="wow" onDone={() => { setPhase(1); setRows(1) }} />
             {/* слева — место под стрелку «сверху вниз», чтобы она не закрывала номера правил */}
             <div ref={listRef} className="relative w-full flex flex-col gap-2 pl-7">
                 {rules.slice(0, rows).map((r, i) => (
@@ -920,7 +936,7 @@ const Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
             {phase === 1 && crossNow && <Msg ok text="Правило 1 не работает — зачёркиваем ✗" />}
             {phase === 2 && hold && <Msg ok text="Переходим к правилу 2 👆" />}
             {/* без плашки «ПРАВИЛО 2»: просто пишем над кубом, потом с отскоком потолок и пол */}
-            {phase >= 2 && phase <= 6 && !hold && <TypedBig small text="Потолок и пол параллельны" onDone={() => go(3)} readMs={300} />}
+            {phase >= 2 && phase <= 6 && !hold && <TypedBig small text="Потолок и пол параллельны" meme="wow" onDone={() => go(3)} readMs={300} />}
             <motion.div className="w-full" initial={false} animate={{ opacity: phase === 12 ? 0.18 : focusStrip ? 0.08 : 1 }} transition={{ duration: 0.6 }}>
                 <CubeSvg faces={faces} bounceFaces dimExcept={phase === 7 || phase === 8 ? 'ceiling' : null}
                     points={phase >= 11 ? ['M', 'N', 'K', 'L'] : ['M', 'N', 'K']}
@@ -1140,12 +1156,12 @@ const C2Rule3Scene = ({ onSettled, onMistake }: SceneProps) => {
     return (
         <>
             <CheatStrip active={3} crossed={[1, 2]} />
-            <RememberPlate title="ПРАВИЛО 3">
+            <RulePlate title="ПРАВИЛО 3">
                 <div className="text-center font-black text-lg md:text-xl text-[#F2F7FB] min-h-[3.5rem]">
                     <Typewriter text="Продлить: продлеваем линию до пересечения с продолжением ребра" onDone={() => setTimeout(() => setPlateRead(true), 2200)} />
                 </div>
-            </RememberPlate>
-            {plateRead && <TypedBig small text="Продлим линию на потолке и переднее ребро потолка" onDone={() => go(1)} />}
+            </RulePlate>
+            {plateRead && <TypedBig small text="Продлим линию на потолке и переднее ребро потолка" meme="wow" onDone={() => go(1)} />}
             <CubeSvg wide points={phase >= 3 ? [...CUBE2_PTS, 'G'] : CUBE2_PTS} segs={[SEG_EF]} labels={G_LABEL}
                 faces={ok ? [{ face: 'ceiling', color: OK_COLOR }, { face: 'front', color: OK_COLOR }] : phase >= 1 && phase < 4 ? [{ face: 'ceiling', color: FACE_COLOR }] : []}
                 dimExcept={phase >= 1 && phase < 4 ? 'ceiling' : null}>

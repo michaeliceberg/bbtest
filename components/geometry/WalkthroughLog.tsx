@@ -962,11 +962,13 @@ export const DiagramBlock = ({ children, onSettled }: { children: React.ReactNod
 // сервер и браузер не разошлись). title — надпись на плашке, children — тело под ней (если нужно).
 export const REMEMBER_STICKERS = [1, 2, 3, 4, 5].map((n) => `/remember-stickers/r${n}.webp`)
 
-export const RememberPlate = ({ title = 'ЗАПОМНИ!', children, sticker: fixedSticker }: { title?: React.ReactNode; children?: React.ReactNode; sticker?: string }) => {
+export const RememberPlate = ({ title = 'ЗАПОМНИ!', children, sticker: fixedSticker, flipSticker }: { title?: React.ReactNode; children?: React.ReactNode; sticker?: string; flipSticker?: boolean }) => {
     const [sticker, setSticker] = useState<string | null>(fixedSticker ?? null)
     useEffect(() => {
-        if (!fixedSticker) setSticker(REMEMBER_STICKERS[Math.floor(Math.random() * REMEMBER_STICKERS.length)])
+        if (fixedSticker === undefined) setSticker(REMEMBER_STICKERS[Math.floor(Math.random() * REMEMBER_STICKERS.length)])
     }, [fixedSticker])
+    // sticker='none' — места под стикер нет картинки (пока родитель её выбирает)
+    const shown = fixedSticker === 'none' ? null : fixedSticker || sticker
     // Золотая рамка (не заливка): заголовок сверху, тело — внутри той же рамки под разделителем.
     return (
         <div className="w-full flex items-center gap-3">
@@ -982,9 +984,9 @@ export const RememberPlate = ({ title = 'ЗАПОМНИ!', children, sticker: fi
                     </div>
                 )}
             </div>
-            <div className="w-24 h-24 md:w-28 md:h-28 shrink-0 flex items-center justify-center">
-                {sticker && (
-                    <motion.img src={sticker} alt="" draggable={false}
+            <div className="w-24 h-24 md:w-28 md:h-28 shrink-0 flex items-center justify-center" style={{ transform: flipSticker ? 'scaleX(-1)' : undefined }}>
+                {shown && (
+                    <motion.img key={shown} src={shown} alt="" draggable={false}
                         initial={{ scale: 0.4, opacity: 0, rotate: -12 }} animate={{ scale: 1, opacity: 1, rotate: 0 }}
                         transition={{ type: 'spring', stiffness: 320, damping: 14 }}
                         className="max-w-full max-h-full object-contain pointer-events-none select-none" />
