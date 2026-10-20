@@ -308,7 +308,7 @@ const TypedBig = ({ text, onDone, readMs = 400, small, meme, memeFixed }: { text
             <ColorTyped text={text} onDone={() => setTimeout(() => onDone?.(), readMs)} />
         </div>
     )
-    return meme || memeFixed ? <div className="w-full flex items-center gap-2">{body}<SideMeme mood={meme} fixed={memeFixed} /></div> : body
+    return meme || memeFixed ? <div className="w-full flex items-center gap-2">{body}<SideMeme mood={meme} fixed={memeFixed} className={memeFixed ? 'w-32 h-32 md:w-40 md:h-40' : undefined} /></div> : body
 }
 // без мема: после верного ответа и так взлетает облачко-мем (showAnswerMeme) — не дублируем
 // meme — после верного ответа: вместо облачка над кнопкой (showAnswerMeme) мем справа от сообщения — без перебора мемов
@@ -1648,10 +1648,10 @@ const SandboxScene = ({ onSettled, onMistake, start, title, text, init, rules }:
 // Куб 3 и ещё пять расстановок (подобраны и проверены скриптом: сечение строится правилами 1–3).
 // Сначала три четырёхугольника (правила 1 и 2), потом пятиугольник и шестиугольник (нужно и правило 3).
 const SANDBOXES: SandboxCfg[] = [
-    // от простого к сложному: сначала 3 четырёхугольника на правила 1 и 2 (кнопки «Продлить» нет), потом — с правилом 3
+    // от простого к сложному: первые 2 куба — только правила 1 и 2 (кнопки «Продлить» нет), с куба 5 доступно правило 3
     { start: [[0.4, 0, 1], [1, 0.5, 1], [0.3, 0, 0]], title: 'Строй сам ⚡', text: 'Выбирай правило и строй сечение', rules: [1, 2] },
     { start: [[1, 0, 0.6], [1, 1, 0.3], [0.5, 1, 1]], title: 'Куб 4 ⚡', text: 'Новые точки — построй сечение', rules: [1, 2] },
-    { start: [[0, 0, 0.4], [0, 1, 0.7], [1, 0, 0.6]], title: 'Куб 5 ⚡', text: 'Построй сечение', rules: [1, 2] },
+    { start: [[0, 0, 0.4], [0, 1, 0.7], [1, 0, 0.6]], title: 'Куб 5 ⚡', text: 'Построй сечение' },
     { start: SB_START, title: 'Куб 6 🔥', text: 'Посложнее: появляется правило 3 — продлевать' },
     { start: [[0.7, 0, 0], [1, 0, 0.3], [0, 0.7, 1]], title: 'Куб 7 🔥', text: 'Снова понадобится продлевать' },
     { start: [[1, 1, 0.6], [0, 0, 0.6], [1, 0.4, 1]], title: 'Куб 8 💀', text: 'Босс: самое сложное сечение' },
@@ -1715,17 +1715,34 @@ const R4Svg = ({ pts, lines, zoomTo = [], onPoint, sel = null, ptActive = false,
     )
 }
 const JACKIE = { src: '/more-memes/meme-20.webp', flip: true }
-const R4_BASE_PTS: R4Pt[] = [{ id: 'floor', v: R4_FLOOR }, { id: 'edge', v: R4_EDGE }, { id: 'ceil', v: R4_CEIL }]
+// Расстановка задачи на правило 4: floor — точка на ребре пола, a и b — две точки НЕ на полу (никакие две не на одной стене).
+// Всё остальное считаем: проекции на пол, X — где прямая ab пересекает плоскость пола, вторая точка сечения на полу.
+type R4Geo = { floor: V3; a: V3; b: V3; aP: V3; bP: V3; X: V3; chord: [V3, V3]; N1: V3; base: R4Pt[]; start: V3[] }
+const makeR4Geo = (floor: V3, a: V3, b: V3): R4Geo => {
+    const X = add(a, mul(sub(b, a), a[2] / (a[2] - b[2])))
+    const chord = chordIn('floor', floor, sub(X, floor))!
+    const N1 = same(chord[0], floor) ? chord[1] : chord[0]
+    return { floor, a, b, aP: [a[0], a[1], 0], bP: [b[0], b[1], 0], X, chord, N1,
+        base: [{ id: 'floor', v: floor }, { id: 'edge', v: a }, { id: 'ceil', v: b }], start: [floor, a, b] }
+}
+const R4_GEO = makeR4Geo(R4_FLOOR, R4_EDGE, R4_CEIL)
+// Ещё 3 задачи на правило 4 — подобраны скриптом: никакие две точки не на одной стене, X на полу вне куба,
+// сечение — шестиугольник без вершин в углах, после правила 4 достраивается правилами 1–2.
+const R4_MORE: { geo: R4Geo; title: string }[] = [
+    { geo: makeR4Geo([0, 0.75, 0], [0.4, 0, 1], [1, 1, 0.3]), title: 'Сечение 2 — снова правило 4' },
+    { geo: makeR4Geo([0.35, 0, 0], [0, 1, 0.3], [1, 0.35, 1]), title: 'Сечение 3' },
+    { geo: makeR4Geo([0.65, 1, 0], [0, 0, 0.3], [1, 0.75, 1]), title: 'Сечение 4 — финал 💀' },
+]
 
 // Сцена 1: задача
-const R4TaskScene = ({ onSettled }: SceneProps) => {
+const R4TaskScene = ({ onSettled, g = R4_GEO, title = 'Новое сечение' }: SceneProps & { g?: R4Geo; title?: string }) => {
     const [cube, setCube] = useState(false)
     return (
         <>
-            <TypedBig text="Новое сечение" memeFixed={JACKIE} onDone={() => setCube(true)} />
+            <TypedBig text={title} memeFixed={JACKIE} onDone={() => setCube(true)} />
             {cube && (
                 <DiagramBlock onSettled={() => setTimeout(() => onSettled?.(), 600)}>
-                    <R4Svg pts={R4_BASE_PTS} lines={[]} />
+                    <R4Svg pts={g.base} lines={[]} />
                 </DiagramBlock>
             )}
             {cube && <TaskLine />}
@@ -1734,7 +1751,7 @@ const R4TaskScene = ({ onSettled }: SceneProps) => {
 }
 
 // Сцена 2: правило 1 не работает, правил 2 и 3 тоже — линий нет → правило 4
-const R4CheckScene = ({ onSettled, onMistake }: SceneProps) => {
+const R4CheckScene = ({ onSettled, onMistake, g = R4_GEO }: SceneProps & { g?: R4Geo }) => {
     const [phase, setPhase] = useState(0) // 0 вопрос, 1 зачёркиваем 1, 2 «линий нет», 3 зачёркиваем 2 и 3, 4 правило 4
     const [typed, setTyped] = useState(false)
     const [wrong, setWrong] = useState<string[]>([])
@@ -1757,7 +1774,7 @@ const R4CheckScene = ({ onSettled, onMistake }: SceneProps) => {
             {phase === 1 && <Msg ok meme text="Правило 1 не работает — зачёркиваем ✗" />}
             {phase === 3 && <Msg ok text="Правила 2 и 3 тоже не помогут — зачёркиваем ✗" />}
             {phase >= 4 && <Msg ok text="Остаётся правило 4 — проекция 👆" />}
-            <R4Svg pts={R4_BASE_PTS} lines={[]} dim={phase === 1 || phase === 3} />
+            <R4Svg pts={g.base} lines={[]} dim={phase === 1 || phase === 3} />
             {phase === 0 && <TypedBig small text="Можем ли воспользоваться правилом 1? Есть две точки на одной стене?" meme="wow" onDone={() => setTyped(true)} readMs={0} />}
             {phase === 0 && typed && <YesNo wrong={wrong} onPick={answer} />}
             {phase === 2 && <TypedBig small text="Правила 2 и 3 работают с готовой линией. А линий у нас пока нет" meme="wow" onDone={() => setTimeout(() => setPhase(3), 700)} readMs={0} />}
@@ -1768,14 +1785,14 @@ const R4CheckScene = ({ onSettled, onMistake }: SceneProps) => {
 }
 
 // Сцена 3: само правило 4 — по шагам, ученик делает руками
-const R4ProjScene = ({ onSettled, onMistake }: SceneProps) => {
+const R4ProjScene = ({ onSettled, onMistake, g = R4_GEO }: SceneProps & { g?: R4Geo }) => {
     const [phase, setPhase] = useState(0)
     // 0 выбери две точки не на полу, 1 линия сквозь комнату, 2 опустили на пол, 3 соединили проекции,
     // 4 продлили → X, 5 соедини X и точку на полу, 6 готово
     const [typed, setTyped] = useState(false)
     const [sel, setSel] = useState<string | null>(null)
     const [pair, setPair] = useState<[V3, V3] | null>(null) // порядок выбора: от первой ко второй
-    const [floorFirst, setFloorFirst] = useState<V3>(R4_X)
+    const [floorFirst, setFloorFirst] = useState<V3>(g.X)
     const [msg, setMsg] = useState<MsgState>(null)
     const [xWrong, setXWrong] = useState<Face[]>([])
     const [xOk, setXOk] = useState(false)
@@ -1791,39 +1808,39 @@ const R4ProjScene = ({ onSettled, onMistake }: SceneProps) => {
         if (phase === 0) {
             if (id === 'floor') { badPair(onMistake); setMsg({ ok: false, text: `${pickWrongTryPhrase()} Эта точка уже на полу — её опускать не нужно` }); setSel(null); return }
             if (sel === null || sel === id) { setSel(sel === id ? null : id); setMsg(null); return }
-            const v = (k: string) => (k === 'edge' ? R4_EDGE : R4_CEIL)
+            const v = (k: string) => (k === 'edge' ? g.a : g.b)
             setPair([v(sel), v(id)]); setSel(null); setMsg(null); showAnswerMeme(true); setPhase(1)
             return
         }
         if (phase === 5) {
             if (id !== 'X' && id !== 'floor') { badPair(onMistake); setMsg({ ok: false, text: `${pickWrongTryPhrase()} Нужны две точки на полу: X и точка на ребре пола` }); setSel(null); return }
             if (sel === null || sel === id) { setSel(sel === id ? null : id); setMsg(null); return }
-            setFloorFirst(sel === 'X' ? R4_X : R4_FLOOR); setSel(null); setPhase(6)
+            setFloorFirst(sel === 'X' ? g.X : g.floor); setSel(null); setPhase(6)
             setMsg({ ok: true, text: 'Правило 1: обе точки на полу — соединили. Линия упёрлась в ребро — новая точка 📍', meme: true })
             setTimeout(() => onSettled?.(), 1800)
         }
     }
-    const pts: R4Pt[] = [...R4_BASE_PTS]
-    if (phase >= 2) pts.push({ id: 'ceilP', v: R4_CEIL_P, hollow: true }, { id: 'edgeP', v: R4_EDGE_P, hollow: true })
-    if (phase >= 4) pts.push({ id: 'X', v: R4_X, label: 'X' })
-    if (phase >= 6) pts.push({ id: 'n1', v: R4_N1 })
+    const pts: R4Pt[] = [...g.base]
+    if (phase >= 2) pts.push({ id: 'ceilP', v: g.bP, hollow: true }, { id: 'edgeP', v: g.aP, hollow: true })
+    if (phase >= 4) pts.push({ id: 'X', v: g.X, label: 'X' })
+    if (phase >= 6) pts.push({ id: 'n1', v: g.N1 })
     const lines: R4Line[] = []
     if (phase >= 1 && pair) lines.push({ id: 'aux', a: pair[0], b: pair[1], color: GGEGE_PALETTE.orange.button, dash: '7 6', width: 3, slow: true })
     if (phase >= 2) {
-        lines.push({ id: 'dropC', a: R4_CEIL, b: R4_CEIL_P, color: '#F2F7FB', dash: '4 5', width: 2, opacity: 0.8 })
-        lines.push({ id: 'dropE', a: R4_EDGE, b: R4_EDGE_P, color: '#F2F7FB', dash: '4 5', width: 2, opacity: 0.8 })
+        lines.push({ id: 'dropC', a: g.b, b: g.bP, color: '#F2F7FB', dash: '4 5', width: 2, opacity: 0.8 })
+        lines.push({ id: 'dropE', a: g.a, b: g.aP, color: '#F2F7FB', dash: '4 5', width: 2, opacity: 0.8 })
     }
-    if (phase >= 3) lines.push({ id: 'proj', a: R4_CEIL_P, b: R4_EDGE_P, color: GGEGE_PALETTE.blue.button, dash: '7 6', width: 3, slow: true })
+    if (phase >= 3) lines.push({ id: 'proj', a: g.bP, b: g.aP, color: GGEGE_PALETTE.blue.button, dash: '7 6', width: 3, slow: true })
     if (phase >= 4) {
-        lines.push({ id: 'extAux', a: R4_EDGE, b: R4_X, color: GGEGE_PALETTE.orange.button, dash: '7 6', width: 3, slow: true })
-        lines.push({ id: 'extProj', a: R4_EDGE_P, b: R4_X, color: GGEGE_PALETTE.blue.button, dash: '7 6', width: 3, slow: true })
+        lines.push({ id: 'extAux', a: g.a, b: g.X, color: GGEGE_PALETTE.orange.button, dash: '7 6', width: 3, slow: true })
+        lines.push({ id: 'extProj', a: g.aP, b: g.X, color: GGEGE_PALETTE.blue.button, dash: '7 6', width: 3, slow: true })
     }
     if (phase >= 6) {
-        const near = dist3(R4_FLOOR_CHORD[0], floorFirst) <= dist3(R4_FLOOR_CHORD[1], floorFirst)
-        const [c0, c1] = near ? R4_FLOOR_CHORD : [R4_FLOOR_CHORD[1], R4_FLOOR_CHORD[0]]
-        if (same(floorFirst, R4_X)) lines.push({ id: 'xFloor', a: R4_X, b: R4_N1, color: SECT_COLOR, dash: '6 5', width: 2.5, opacity: 0.7 })
+        const near = dist3(g.chord[0], floorFirst) <= dist3(g.chord[1], floorFirst)
+        const [c0, c1] = near ? g.chord : [g.chord[1], g.chord[0]]
+        if (same(floorFirst, g.X)) lines.push({ id: 'xFloor', a: g.X, b: g.N1, color: SECT_COLOR, dash: '6 5', width: 2.5, opacity: 0.7 })
         lines.push({ id: 'floorSeg', a: c0, b: c1, color: SECT_COLOR, dash: '9 7', slow: true })
-        if (!same(floorFirst, R4_X)) lines.push({ id: 'xFloor', a: R4_N1, b: R4_X, color: SECT_COLOR, dash: '6 5', width: 2.5, opacity: 0.7 })
+        if (!same(floorFirst, g.X)) lines.push({ id: 'xFloor', a: g.N1, b: g.X, color: SECT_COLOR, dash: '6 5', width: 2.5, opacity: 0.7 })
     }
     const prompt = phase === 0 ? 'Выбери две точки, которые НЕ на полу'
         : phase === 1 ? 'Проведём через них вспомогательную линию — она идёт сквозь куб'
@@ -1835,7 +1852,7 @@ const R4ProjScene = ({ onSettled, onMistake }: SceneProps) => {
     return (
         <>
             <CheatStrip active={phase >= 5 ? 1 : 4} crossed={phase >= 5 ? [] : [1, 2, 3]} />
-            <R4Svg pts={pts} lines={lines} zoomTo={phase >= 4 ? [R4_X] : []} onPoint={pick} sel={sel} ptActive={phase === 0 || phase === 5} />
+            <R4Svg pts={pts} lines={lines} zoomTo={phase >= 4 ? [g.X] : []} onPoint={pick} sel={sel} ptActive={phase === 0 || phase === 5} />
             {prompt && <TypedBig key={`p-${phase}`} small text={prompt} onDone={() => setTyped(true)} readMs={0} />}
             {/* после «это их проекции» — значок, которым проекции нарисованы на кубе */}
             {phase === 2 && typed && (
@@ -1852,14 +1869,24 @@ const R4ProjScene = ({ onSettled, onMistake }: SceneProps) => {
 }
 
 // Достройка после правила 4 — тот же пульт, уже есть X и линия на полу
-const R4FinishScene = (props: SceneProps) => (
-    <SandboxScene {...props} start={R4_START} title="Достраиваем ⚡" text="Дальше — правила 1, 2 и 3 на пульте. Дострой сечение"
-        init={{ pts: [R4_X, R4_N1], segs: [{ a: R4_FLOOR, b: R4_N1, face: 'floor' }], aux: [{ a: R4_N1, b: R4_X }] }} />
+const R4FinishScene = ({ g = R4_GEO, ...props }: SceneProps & { g?: R4Geo }) => (
+    <SandboxScene {...props} start={g.start} title="Достраиваем ⚡" text="Дальше — правила 1, 2 и 3 на пульте. Дострой сечение"
+        init={{ pts: [g.X, g.N1], segs: [{ a: g.floor, b: g.N1, face: 'floor' }], aux: [{ a: g.N1, b: g.X }] }} />
 )
-const R4_SCENES = [R4TaskScene, R4CheckScene, R4ProjScene, R4FinishScene]
-const R4_MAP_LABELS = ['Задача', 'Правила 1–3 не работают', 'Правило 4: проекция', 'Достраиваем']
-const R4_PRACTICE = new Set<unknown>([R4CheckScene, R4ProjScene, R4FinishScene])
-const R4_NEXT_LABELS = ['Погнали', 'Как это — проекция?', 'Достроим!', 'Готово']
+const R4_MORE_SCENES = R4_MORE.flatMap(({ geo, title }, k) => {
+    const T = (pr: SceneProps) => <R4TaskScene {...pr} g={geo} title={title} />
+    const C = (pr: SceneProps) => <R4CheckScene {...pr} g={geo} />
+    const Pj = (pr: SceneProps) => <R4ProjScene {...pr} g={geo} />
+    const F = (pr: SceneProps) => <R4FinishScene {...pr} g={geo} />
+    T.displayName = `R4Task${k}`; C.displayName = `R4Check${k}`; Pj.displayName = `R4Proj${k}`; F.displayName = `R4Finish${k}`
+    return [T, C, Pj, F]
+})
+const R4_SCENES = [R4TaskScene, R4CheckScene, R4ProjScene, R4FinishScene, ...R4_MORE_SCENES]
+const R4_MAP_LABELS = ['Задача', 'Правила 1–3 не работают', 'Правило 4: проекция', 'Достраиваем',
+    ...R4_MORE.flatMap((_, k) => [`Сечение ${k + 2}`, `${k + 2}: правила 1–3`, `${k + 2}: проекция`, `${k + 2}: достраиваем`])]
+const R4_PRACTICE = new Set<unknown>([R4CheckScene, R4ProjScene, R4FinishScene, ...R4_MORE_SCENES.filter((_, i) => i % 4 !== 0)])
+const R4_NEXT_LABELS = ['Погнали', 'Как это — проекция?', 'Достроим!', 'Ещё сечение! 🔥',
+    'Погнали', 'Проекция!', 'Достроим!', 'Ещё одно!', 'Погнали', 'Проекция!', 'Достроим!', 'Финальное! 💀', 'Погнали', 'Проекция!', 'Достроим!', 'Готово']
 
 const SANDBOX_SCENES = SANDBOXES.map((cfg) => {
     const Scene = (props: SceneProps) => <SandboxScene {...props} {...cfg} />
