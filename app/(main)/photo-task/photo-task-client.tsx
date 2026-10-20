@@ -82,18 +82,20 @@ export const PhotoTaskClient = ({ configured, left: initialLeft, limit }: { conf
         <div className="relative flex flex-col gap-5">
             {/* Фон: мягкие свечения (без blur — плавно на iPhone) */}
             <div aria-hidden className="pointer-events-none absolute -top-16 left-1/2 h-[360px] w-[460px] -translate-x-1/2 -z-10"
-                style={{ background: 'radial-gradient(ellipse at 30% 40%, rgba(83,173,239,0.22), transparent 60%), radial-gradient(ellipse at 75% 55%, rgba(167,92,240,0.2), transparent 62%)' }} />
+                style={{ background: 'radial-gradient(ellipse at 30% 40%, rgba(242,195,91,0.18), transparent 60%), radial-gradient(ellipse at 75% 55%, rgba(229,83,61,0.16), transparent 62%)' }} />
 
             <div className="flex flex-col items-center text-center">
                 <div className="relative mb-3">
-                    <div aria-hidden className="animate-glow-pulse absolute inset-[-30%] rounded-full" style={{ background: 'radial-gradient(circle, rgba(124,92,224,0.5), transparent 65%)' }} />
-                    <div className="animate-chest-idle-bounce relative flex h-20 w-20 items-center justify-center rounded-3xl text-4xl"
-                        style={{ background: 'linear-gradient(135deg, #53ADEF 0%, #7C5CE0 60%, #C385F7 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35), 0 5px 0 #2E2F6E, 0 0 30px rgba(124,92,224,0.45)' }}>
-                        <Sparkles className="h-10 w-10 text-white" strokeWidth={2.3} />
+                    <div aria-hidden className="animate-glow-pulse absolute inset-[-30%] rounded-full" style={{ background: 'radial-gradient(circle, rgba(242,195,91,0.45), transparent 65%)' }} />
+                    <div className="animate-chest-idle-bounce relative">
+                        <div className="btn-magic h-20 w-20" style={{ borderRadius: '1.5rem', padding: 0, minHeight: 0, boxShadow: '0 5px 0 #9E6A1F, 0 0 30px rgba(242,195,91,0.45)' }}>
+                            {[22, 50, 78].map((l, i) => <span key={l} aria-hidden className="magic-spark" style={{ left: `${l}%`, animationDelay: `${i * 0.6}s` }} />)}
+                            <Sparkles className="magic-icon h-10 w-10" strokeWidth={2.3} />
+                        </div>
                     </div>
                 </div>
                 <h1 className="text-[1.9rem] font-black leading-tight text-white">
-                    <span className="bg-gradient-to-r from-[#7FC6F7] to-[#C9A2FA] bg-clip-text text-transparent">ИИ</span>-помощник
+                    <span className="bg-gradient-to-r from-[#F2C35B] via-[#FF8A5B] to-[#E5533D] bg-clip-text text-transparent">ИИ</span>-помощник
                 </h1>
                 <p className="mt-1.5 max-w-xs text-sm font-bold text-[#A9B8C2]">Пришли фото любой задачи или примера — подскажу, с чего начать и какие уроки пройти</p>
                 {left !== null && (
@@ -101,7 +103,7 @@ export const PhotoTaskClient = ({ configured, left: initialLeft, limit }: { conf
                         style={{ background: 'rgba(22,31,35,0.8)', boxShadow: 'inset 0 0 0 1px #34424A' }}>
                         <span>Сегодня</span>
                         {Array.from({ length: limit }, (_, i) => (
-                            <span key={i} className="h-2.5 w-2.5 rounded-full" style={{ background: i < left ? 'linear-gradient(135deg,#7FC6F7,#C9A2FA)' : '#2A363C' }} />
+                            <span key={i} className="h-2.5 w-2.5 rounded-full" style={{ background: i < left ? 'linear-gradient(135deg,#F2C35B,#FF8A5B)' : '#2A363C' }} />
                         ))}
                         <span className="text-[#8FA3AE]">{left} из {limit}</span>
                     </div>
@@ -211,7 +213,14 @@ export const PhotoTaskClient = ({ configured, left: initialLeft, limit }: { conf
 }
 
 // Объём — boxShadow + translate при нажатии (высота не меняется, ничего ниже не прыгает).
-const BigButton = ({ disabled, onClick, primary, icon, label }: { disabled: boolean; onClick: () => void; primary?: boolean; icon: ReactNode; label: string }) => (
+const BigButton = ({ disabled, onClick, primary, icon, label }: { disabled: boolean; onClick: () => void; primary?: boolean; icon: ReactNode; label: string }) => primary ? (
+    <button type="button" disabled={disabled} onClick={onClick}
+        className={cn('btn-magic flex-col !gap-2', disabled && 'opacity-40')}
+        style={{ padding: '20px 12px', borderRadius: '1rem', boxShadow: '0 4px 0 #9E6A1F, 0 0 24px rgba(242,195,91,0.35)' }}>
+        {[20, 50, 80].map((l, i) => <span key={l} aria-hidden className="magic-spark" style={{ left: `${l}%`, animationDelay: `${i * 0.5}s` }} />)}
+        <span className="magic-icon">{icon}</span> {label}
+    </button>
+) : (
     <button type="button" disabled={disabled} onClick={onClick}
         className={cn('shine-sweep relative flex flex-col items-center gap-2 overflow-hidden rounded-2xl px-3 py-5 font-black text-white transition-transform active:translate-y-[4px]', disabled && 'opacity-40')}
         style={primary
