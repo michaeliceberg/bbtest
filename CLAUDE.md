@@ -14469,3 +14469,8 @@ a⁻ⁿ = 1/aⁿ → «Лифт 🛗» (2⁻³ → 1/2³, 1/7² → 7⁻², 10�
 КОМБО), gaga-chest (тащит сундук), gaga-sleep (ночь/серия под угрозой), gaga-angry (босс, шипит на монстра), monster-ege
 (монстр отдельно). Ещё нужны: думает (облако-маскот над заданием), гордится/победа, зовёт; позже — пицца, учёный, грустит,
 банда. Голос — ElevenLabs через Cloudflare-прокси (как в Garaggio). В приложение картинки пока не подключены.
+Голос Га-Га (2026-10-21): ElevenLabs Voice ID `dABPButoaSloTSZcHPof` (создан пользователем через Voice Design), модель
+`eleven_v4` с пометками настроения ([happy], [warmly], [gentle], [softly]…). Банк реплик — `lib/gagaVoice.ts` (события
+start/correct/wrong/rule/streak/chest/levelup/done/boss/night, `pickGagaLine`, `gagaAudio`), озвучены заранее в
+`public/gaga-voice/<id>.mp3` скриптом `scripts/genGagaVoice.ts` (ключ ElevenLabs не в ggege — берётся из
+/var/www/garaggio/.env при запуске, через прокси elevenlabs-proxy). Послушать — `/test-gaga`. В уроки пока не подключено.
