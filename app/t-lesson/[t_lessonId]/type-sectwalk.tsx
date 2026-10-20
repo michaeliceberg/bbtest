@@ -272,11 +272,37 @@ const CubeSvg = ({ drawIn = false, faces = [], points = [], segs = [], selected 
     )
 }
 
+// Слова в цвет того, что они называют на чертеже: «линия»/«точка» — цвет сечения, «потолок»/«пол»/«стена» — цвет
+// подсвеченной стены. Красим после печати (Typewriter печатает простой текст).
+const W = '(?<![а-яё])'
+const WE = '(?![а-яё])'
+const COLOR_WORDS: [RegExp, string][] = [
+    [new RegExp(`${W}(лини[яиюей]|линиями|линий|точк[аиуе]|точкой|точек)${WE}`, 'i'), SECT_COLOR],
+    [new RegExp(`${W}(потол(?:ок|ке|ка|ку|ком)|пол|полу|пола|полом|стен[аеуы]|стене|стеной|стен)${WE}`, 'i'), FACE_COLOR],
+]
+const colorize = (text: string) => {
+    const re = new RegExp(COLOR_WORDS.map(([r]) => r.source).join('|'), 'gi')
+    const out: React.ReactNode[] = []
+    let last = 0
+    for (const m of text.matchAll(re)) {
+        const i = m.index ?? 0
+        if (i > last) out.push(text.slice(last, i))
+        const color = COLOR_WORDS.find(([r]) => r.test(m[0]))?.[1]
+        out.push(<span key={i} style={{ color }}>{m[0]}</span>)
+        last = i + m[0].length
+    }
+    if (last < text.length) out.push(text.slice(last))
+    return out
+}
+const ColorTyped = ({ text, onDone }: { text: string; onDone?: () => void }) => {
+    const [done, setDone] = useState(false)
+    return done ? <>{colorize(text)}</> : <Typewriter text={text} onDone={() => { setDone(true); onDone?.() }} />
+}
 // meme — справа мем, развёрнутый к тексту («удивляется правилу»)
 const TypedBig = ({ text, onDone, readMs = 400, small, meme }: { text: string; onDone?: () => void; readMs?: number; small?: boolean; meme?: MoreMeme['mood'] }) => {
     const body = (
         <div className={cn('w-full text-center font-black text-[#F2F7FB]', small ? 'text-lg md:text-xl' : 'text-2xl md:text-3xl', meme && 'flex-1 min-w-0')}>
-            <Typewriter text={text} onDone={() => setTimeout(() => onDone?.(), readMs)} />
+            <ColorTyped text={text} onDone={() => setTimeout(() => onDone?.(), readMs)} />
         </div>
     )
     return meme ? <div className="w-full flex items-center gap-2">{body}<SideMeme mood={meme} /></div> : body
@@ -421,7 +447,7 @@ const RULE1_TEXT = 'Если нашли две точки в одной плос
 const Rule1PlateScene = ({ onSettled }: SceneProps) => (
     <RulePlate title="ПРАВИЛО 1">
         <div className="text-center font-black text-lg md:text-xl text-[#F2F7FB] min-h-[3.5rem]">
-            <Typewriter text={RULE1_TEXT} onDone={() => setTimeout(() => onSettled?.(), 400)} />
+            <ColorTyped text={RULE1_TEXT} onDone={() => setTimeout(() => onSettled?.(), 400)} />
         </div>
     </RulePlate>
 )
@@ -867,7 +893,7 @@ const Rule1TryScene = ({ onSettled, onMistake }: SceneProps) => {
 // ===== Сцена 6: правило 2 «Параллельность» =====
 // 0 «Можем ли снова воспользоваться правилом 1?» → Нет → 1 крестик на правиле 1 → 2 переходим к правилу 2 (плашка) →
 // 3 потолок, 4 пол с отскоком → 5 «Потолок и пол параллельны.» → 6 «Вижу, они параллельны» → 7 «На потолке есть линия.» →
-// 8 линия выделяется → 9 пунктирная копия ездит с потолка на пол по кругу + после 2 циклов кнопка «Параллельный перенос» →
+// 8 линия выделяется → 9 пунктирная копия ездит с потолка на пол по кругу + после первого цикла кнопка «Параллельный перенос» →
 // 10 линия на полу пунктиром → 11 новая точка → 12 чертёж бледнеет, шпора возвращается на правило 1 →
 // 13 чертёж обратно, «Есть ли теперь точки в одной плоскости?» → Да.
 const HIGHLIGHT = '#F2C35B'
@@ -894,13 +920,19 @@ const Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
     const [wrong, setWrong] = useState<string[]>([])
     const [flash, setFlash] = useState<string | null>(null)
     useEffect(() => { setTyped(false) }, [phase])
-    // кнопка переноса — после 2 циклов анимации копии (2 × (2 с + 0,3 с)); по «typed» нельзя: подсказка не печатается заново
+    // кнопка переноса — после первого цикла анимации копии (2 с + 0,3 с); по «typed» нельзя: подсказка не печатается заново
     const [moveBtn, setMoveBtn] = useState(false)
     useEffect(() => {
         if (phase !== 9) return
-        const t = setTimeout(() => setMoveBtn(true), 4600)
+        const t = setTimeout(() => setMoveBtn(true), 2300)
         return () => clearTimeout(t)
     }, [phase])
+    // «Получилось! Значит снова с правила 1» → пауза 1 с → только потом шпора переходит к правилу 1 (чертёж бледный)
+    const [stripBack, setStripBack] = useState(false)
+    const afterBackText = () => {
+        setTimeout(() => setStripBack(true), 1000)
+        setTimeout(() => go(13), 3000)
+    }
     const M = P(PT.M), N = P(PT.N), K = P(PT.K)
     const dx = K.x - M.x, dy = K.y - M.y
     const ceil: FaceHL = { face: 'ceiling', color: FACE_COLOR }, floor: FaceHL = { face: 'floor', color: FACE_COLOR }
@@ -910,7 +942,7 @@ const Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
                 : phase === 9 || phase === 10 ? [ceil, floor] : []
     const strip = phase === 0 ? { active: 1, crossed: [] as number[] }
         : phase === 1 ? { active: 1, crossed: crossNow ? [1] : [] }
-            : phase <= 11 ? { active: 2, crossed: [1] } : { active: 1, crossed: [] as number[] }
+            : phase <= 11 || (phase === 12 && !stripBack) ? { active: 2, crossed: [1] } : { active: 1, crossed: [] as number[] }
     const prompt = phase === 0 ? 'Можем ли снова воспользоваться правилом 1? Есть ли точки в одной плоскости?'
             : phase >= 7 && phase <= 9 ? 'Переносим эту линию параллельно — через точку на полу' : null
     // после переноса фразы не стираются, а дописываются одна под другой — с паузой, чтобы успеть прочитать
@@ -929,7 +961,7 @@ const Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
     }
     return (
         <>
-            <CheatStrip active={strip.active} crossed={strip.crossed} focus={focusStrip} />
+            <CheatStrip active={strip.active} crossed={strip.crossed} focus={focusStrip || phase === 12} />
             {phase === 1 && crossNow && <Msg ok text="Правило 1 не работает — зачёркиваем ✗" />}
             {phase === 2 && hold && <Msg ok text="Переходим к правилу 2 👆" />}
             {/* без плашки «ПРАВИЛО 2»: просто пишем над кубом, потом с отскоком потолок и пол */}
@@ -963,7 +995,7 @@ const Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
                 onDone={() => { setTyped(true); if (phase === 7) go(8) }} />}
             {tail.map((t, k) => phase >= 11 + k && (
                 <TypedBig key={`t-${k}`} small text={t} readMs={0}
-                    onDone={() => { if (11 + k === 13) setTyped(true); else setTimeout(() => go(12 + k), 2200) }} />
+                    onDone={() => { if (11 + k === 13) setTyped(true); else if (11 + k === 12) afterBackText(); else setTimeout(() => go(12 + k), 2200) }} />
             ))}
             {phase === 0 && typed && <YesNo wrong={wrong} onPick={answer1} />}
             {(phase === 5 || phase === 6) && <NextBtn onClick={() => go(7)}>Вижу, они параллельны</NextBtn>}
@@ -978,14 +1010,6 @@ const Rule2Scene = ({ onSettled, onMistake }: SceneProps) => {
 // Уже есть линии на потолке, передней стене и полу; осталось соединить две точки на правой стене.
 const CloseGameScene = ({ onSettled, onMistake }: SceneProps) => {
     const [typed, setTyped] = useState(false)
-    // вступление: чертёж бледный, взгляд на шпору — 0 правило 1 ещё зачёркнуто (мы на правиле 2) →
-    // 1 зачёркивания сбрасываются, подсветка с отскоком возвращается на правило 1 → 2 чертёж обратно, печатаем задание
-    const [intro, setIntro] = useState(0)
-    useEffect(() => {
-        const t1 = setTimeout(() => setIntro(1), 1400)
-        const t2 = setTimeout(() => setIntro(2), 3600)
-        return () => { clearTimeout(t1); clearTimeout(t2) }
-    }, [])
     const [segs, setSegs] = useState<Seg[]>([
         { id: 'MN', a: 'M', b: 'N', color: SECT_COLOR, instant: true },
         { id: 'KM', a: 'M', b: 'K', color: SECT_COLOR, instant: true },
@@ -1017,14 +1041,11 @@ const CloseGameScene = ({ onSettled, onMistake }: SceneProps) => {
     })
     return (
         <>
-            <CheatStrip active={intro === 0 ? 2 : 1} crossed={intro === 0 ? [1] : []} focus={intro < 2} />
-            {intro === 0 && <Msg ok text="Получилось! Откатываемся снова к правилу 1 ↩️" />}
-            {intro === 1 && <Msg ok text="Сбрасываем зачёркивания — начинаем с правила 1 👆" />}
-            {intro === 2 && <GameHeader title="Замкни сечение 🔗" />}
-            {intro === 2 && <TypedBig small text="Соедини две точки, которые лежат в одной плоскости" onDone={() => setTyped(true)} />}
-            <motion.div className="w-full" initial={{ opacity: 0.08 }} animate={{ opacity: intro < 2 ? 0.08 : 1 }} transition={{ duration: 0.6 }}>
-                <CubeSvg faces={face ? [face] : []} points={['M', 'N', 'K', 'L']} segs={segs} selected={sel} fill={fill} onPoint={typed && !done ? tap : undefined} />
-            </motion.div>
+            {/* откат к правилу 1 уже показан в конце прошлой сцены — тут шпора сразу на правиле 1 */}
+            <CheatStrip active={1} />
+            <GameHeader title="Замкни сечение 🔗" />
+            <TypedBig small text="Соедини две точки, которые лежат в одной плоскости" onDone={() => setTyped(true)} />
+            <CubeSvg faces={face ? [face] : []} points={['M', 'N', 'K', 'L']} segs={segs} selected={sel} fill={fill} onPoint={typed && !done ? tap : undefined} />
             {msg && <Msg ok={msg.ok} text={msg.text} />}
             {fill && <LocalAnswerConfetti />}
             {fill && <TypedBig text="Это и есть сечение! 🎉" readMs={0} />}
@@ -1155,7 +1176,7 @@ const C2Rule3Scene = ({ onSettled, onMistake }: SceneProps) => {
             <CheatStrip active={3} crossed={[1, 2]} />
             <RulePlate title="ПРАВИЛО 3">
                 <div className="text-center font-black text-lg md:text-xl text-[#F2F7FB] min-h-[3.5rem]">
-                    <Typewriter text="Продлить: продлеваем линию до пересечения с продолжением ребра" onDone={() => setTimeout(() => setPlateRead(true), 2200)} />
+                    <ColorTyped text="Продлить: продлеваем линию до пересечения с продолжением ребра" onDone={() => setTimeout(() => setPlateRead(true), 2200)} />
                 </div>
             </RulePlate>
             {plateRead && <TypedBig small text="Продлим линию на потолке и переднее ребро потолка" meme="wow" onDone={() => go(1)} />}
@@ -1199,6 +1220,8 @@ const C2Rule3Scene = ({ onSettled, onMistake }: SceneProps) => {
 }
 
 // Снова правило 1: G и точка на ребре — на передней стене. Дальше достраиваем сечение до конца.
+// Подсказка этапа «достроить»: передняя плоскость (y = 0), продолженная влево за X
+const FRONT_HINT: V3[] = [[-1.02, 0, -0.08], [1.08, 0, -0.08], [1.08, 0, 1.1], [-1.02, 0, 1.1]]
 const C2FinishScene = ({ onSettled, onMistake }: SceneProps) => {
     const [step, setStep] = useState(0) // 0 пара G–H, 1 пара Q–E, 2 перенос (правило 2), 3 пара F–R, 4 готово
     const [typed, setTyped] = useState(false)
@@ -1250,6 +1273,17 @@ const C2FinishScene = ({ onSettled, onMistake }: SceneProps) => {
             <CheatStrip active={step === 2 ? 2 : step >= 4 ? null : 1} crossed={step === 2 ? [1] : []} />
             <CubeSvg wide points={points} segs={segs} labels={G_LABEL} selected={sel} fill={fill} fillPts={['E', 'F', 'R', 'H', 'Q']}
                 onPoint={typed && !busy && WANT[step] !== undefined ? tap : undefined}>
+                {step === 0 && (
+                    // подсказка: передняя стена, продолженная влево за пределы куба — в ней лежат и X, и точка на правом ребре
+                    <motion.g initial={{ opacity: 0 }} animate={{ opacity: [0, 1, 0.75, 1] }} transition={{ duration: 2.4, delay: 0.6 }} style={{ pointerEvents: 'none' }}>
+                        <polygon points={FRONT_HINT.map((v) => { const q = P(v); return `${q.x},${q.y}` }).join(' ')}
+                            fill={hexToRgba(FACE_COLOR, 0.1)} stroke={hexToRgba(FACE_COLOR, 0.45)} strokeWidth={2} strokeDasharray="8 7" strokeLinejoin="round" />
+                        <text x={P([-0.94, 0, 0.22]).x} y={P([-0.94, 0, 0.22]).y} fill={hexToRgba(FACE_COLOR, 0.75)} fontSize={14} fontWeight={800}
+                            style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>
+                            <tspan>передняя</tspan><tspan x={P([-0.94, 0, 0.22]).x} dy={16}>плоскость</tspan>
+                        </text>
+                    </motion.g>
+                )}
                 {ghost && (
                     <motion.g initial={{ x: 0, y: 0, opacity: 0 }} animate={{ x: H.x - Q.x, y: H.y - Q.y, opacity: [0, 1, 1, 0.9] }} transition={{ duration: 1.4, ease: 'easeInOut' }}>
                         <line x1={Q.x} y1={Q.y} x2={E.x} y2={E.y} stroke={SECT_COLOR} strokeWidth={3} strokeDasharray="7 6" strokeLinecap="round" />
