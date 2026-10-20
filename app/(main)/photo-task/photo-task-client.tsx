@@ -10,6 +10,7 @@ import { analyzeTaskPhoto, premiumInterest, type PhotoTaskResult, type PhotoTask
 import { checkAchievements } from '@/lib/achievementsClient'
 import { PREMIUM_PRICE_RUB } from '@/lib/pro'
 import { cn } from '@/lib/utils'
+import { MagicListenButton } from '@/components/magic-listen-button'
 
 const MAX_SIDE = 1280
 const THINKING = ['Сканирую босса…', 'Смотрю на чертёж…', 'Прикидываю, как его завалить…', 'Собираю билд…']
@@ -191,6 +192,7 @@ export const PhotoTaskClient = ({ configured, left: initialLeft, limit }: { conf
                                         <Lightbulb className="mt-0.5 h-5 w-5 shrink-0 text-[#F2C35B]" />
                                         <p className="text-[15px] font-bold leading-snug text-[#F2E3B8]">{result.hint}</p>
                                     </div>
+                                    <MagicListenButton className="mt-3 w-full" text={`Задача. ${result.problemText}. Подсказка. ${result.hint}`} />
                                 </GlassCard>
                             )}
                         </>
