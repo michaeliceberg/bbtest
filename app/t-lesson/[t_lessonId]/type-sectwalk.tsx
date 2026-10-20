@@ -281,14 +281,11 @@ const TypedBig = ({ text, onDone, readMs = 400, small, meme }: { text: string; o
     )
     return meme ? <div className="w-full flex items-center gap-2">{body}<SideMeme mood={meme} /></div> : body
 }
-// удачное сообщение — с мемом справа (позитив!)
+// без мема: после верного ответа и так взлетает облачко-мем (showAnswerMeme) — не дублируем
 const Msg = ({ ok, text }: { ok: boolean; text: string }) => (
-    <motion.div key={text} className="w-full flex items-center gap-2" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="flex-1 min-w-0 rounded-xl px-4 py-2 font-bold text-center"
-            style={{ backgroundColor: hexToRgba(ok ? OK_COLOR : WRONG_COLOR, 0.14), color: ok ? OK_COLOR : WRONG_COLOR }}>
-            {text}
-        </div>
-        {ok && <SideMeme mood={/[✗]/.test(text) ? 'wow' : 'yay'} />}
+    <motion.div key={text} className="rounded-xl px-4 py-2 font-bold w-full text-center" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+        style={{ backgroundColor: hexToRgba(ok ? OK_COLOR : WRONG_COLOR, 0.14), color: ok ? OK_COLOR : WRONG_COLOR }}>
+        {text}
     </motion.div>
 )
 // Плашка «ПРАВИЛО N» со стикером-мемом справа, повёрнутым к правилу
@@ -1880,6 +1877,8 @@ export const TypeSectWalk = ({ question, onAnswer, onComplete, isAdmin = false }
                         {NEXT_LABELS[step]}
                     </button>
                 </motion.div>
+                {/* упражнение пройдено — рядом с кнопкой «Стены знаю» и т.п. радуется мем, смотрит на кнопку */}
+                {stepReady && !advancing && PRACTICE_SCENES.has(SCENES[step]) && <SideMeme key={`meme-${step}`} mood="yay" toward="left" />}
             </div>
         </div>
         </RuleCountCtx.Provider>
