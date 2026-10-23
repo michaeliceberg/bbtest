@@ -36,14 +36,25 @@ export const medalFor = (percent: number): 'none' | 'bronze' | 'silver' | 'gold'
 
 const MEDAL_TITLE = { none: 'Ещё не начато', bronze: 'Бронза: начало положено', silver: 'Серебро: больше половины', gold: 'Золото: всё пройдено' }
 
+const MEDAL_SRC = { bronze: '/medals/medal-bronze.svg', silver: '/medals/medal-silver.webp', gold: '/medals/medal-gold.webp' }
+
 export const NavMedal = ({ percent }: { percent: number }) => {
     const m = medalFor(percent)
     return (
-        <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center" title={MEDAL_TITLE[m]}>
+        <span className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center" title={MEDAL_TITLE[m]}>
+            {m === 'gold' && (
+                // Свечение как у кнопки «ИИ-помощник»: тёплый пульс позади и искры (только transform/opacity).
+                <>
+                    <span aria-hidden className="medal-glow" />
+                    {[22, 50, 78].map((left, i) => (
+                        <span key={left} aria-hidden className="medal-spark" style={{ left: `${left}%`, animationDelay: `${i * 0.6}s` }} />
+                    ))}
+                </>
+            )}
             {m === 'none'
                 ? <span className="h-7 w-7 rounded-full border-[3px] border-dashed border-[#3A4850]" />
                 // eslint-disable-next-line @next/next/no-img-element
-                : <img src={`/medals/medal-${m}.webp`} alt={MEDAL_TITLE[m]} className="h-11 w-11 object-contain drop-shadow-[0_2px_0_rgba(0,0,0,0.35)]" draggable={false} />}
+                : <img src={MEDAL_SRC[m]} alt={MEDAL_TITLE[m]} className="relative h-11 w-11 object-contain drop-shadow-[0_2px_0_rgba(0,0,0,0.35)]" draggable={false} />}
         </span>
     )
 }

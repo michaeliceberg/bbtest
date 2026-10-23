@@ -919,3 +919,16 @@ body {
 @media (prefers-reduced-motion: reduce) {
     .btn-magic, .btn-magic::after, .btn-magic .magic-icon, .btn-magic .magic-spark, .magic-bars i { animation: none !important; }
 }
+
+/* Золотая медаль в меню юнитов тренажёра (components/nav-sheet-ui.tsx): тёплое свечение и искры, как у «ИИ-помощника». */
+@keyframes medal-glow { 0%, 100% { opacity: .45; transform: scale(.85); } 50% { opacity: 1; transform: scale(1.15); } }
+.medal-glow {
+    position: absolute; inset: -6px; border-radius: 9999px; pointer-events: none;
+    background: radial-gradient(circle, rgba(255, 214, 102, .75) 0%, rgba(255, 138, 91, .35) 45%, rgba(255, 138, 91, 0) 70%);
+    animation: medal-glow 1.8s ease-in-out infinite;
+}
+.medal-spark {
+    position: absolute; bottom: 6px; width: 4px; height: 4px; border-radius: 9999px; background: #fff; pointer-events: none; z-index: 1;
+    box-shadow: 0 0 6px 2px rgba(255, 230, 150, .9); animation: magic-spark 1.8s ease-out infinite;
+}
+@media (prefers-reduced-motion: reduce) { .medal-glow, .medal-spark { animation: none !important; } }
