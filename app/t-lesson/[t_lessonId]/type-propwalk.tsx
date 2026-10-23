@@ -101,15 +101,20 @@ const TokChip = ({ tok, tappable, dim, glow, selected, onTap }: { tok: Tok; tapp
             layoutId={tok.id}
             layout
             transition={{ layout: flight, scale: { type: 'spring', stiffness: 420, damping: 14 } }}
-            animate={{ scale: selected ? 1.14 : 1 }}
+            animate={{ scale: selected ? 1.08 : 1 }}
             onClick={tappable ? (e) => { e.stopPropagation(); onTap?.() } : undefined}
             className={cn('inline-flex items-center justify-center min-w-[42px] h-[46px] md:min-w-[50px] md:h-[54px] px-2 rounded-xl border-2 font-black text-2xl md:text-3xl select-none',
                 tappable ? 'cursor-pointer' : 'cursor-default pointer-events-none')}
+            // Выделение без свечения: выбранная буква — белая рамка, подсвеченная — рамка толще и ярче фон
             style={{
                 ...glassStickerStyle(color),
-                opacity: dim ? 0.3 : 1,
-                boxShadow: selected ? `0 0 0 3px ${TEXT}, 0 0 20px 4px ${hexToRgba(color, 0.9)}` : glow ? `0 0 16px 2px ${hexToRgba(color, 0.75)}` : undefined,
-                transition: 'opacity 0.35s, box-shadow 0.35s',
+                borderWidth: selected || glow ? 3 : 2,
+                borderColor: selected ? TEXT : color,
+                background: selected || glow
+                    ? `linear-gradient(${hexToRgba(color, 0.34)}, ${hexToRgba(color, 0.34)}), rgba(22, 31, 35, 0.62)`
+                    : glassStickerStyle(color).background,
+                opacity: dim ? 0.35 : 1,
+                transition: 'opacity 0.35s, border-color 0.25s',
             }}
         >
             {tok.v}
@@ -166,7 +171,7 @@ const SideView = ({ side, k, o }: { side: Side; k: SideKey; o: BoardOpts }) => {
         return (
             <motion.div layout transition={flight} role="button" onClick={() => o.onZone?.(k, floor)}
                 className={cn(base, 'rounded-2xl border-2 border-dashed px-1.5 py-1 cursor-pointer', z === 'wrong' && 'animate-zone-shake')}
-                style={{ borderColor: c, backgroundColor: hexToRgba(c, 0.14), boxShadow: `0 0 14px -2px ${hexToRgba(c, 0.6)}` }}>
+                style={{ borderColor: hexToRgba(c, 0.8), backgroundColor: hexToRgba(c, 0.08) }}>
                 {row(toks, floor)}
             </motion.div>
         )
@@ -296,7 +301,8 @@ const FloorsScene = ({ onSettled }: SceneProps) => {
                     <Board eq={eq} groupId="floors" interactive={false} glowFloor={phase >= 4 ? 'den' : phase >= 2 ? 'num' : null} />
                 </DiagramBlock>
             )}
-            {phase >= 2 && <TLine text="ВЕРХНИЙ этаж — числитель." onDone={() => setTimeout(() => go(4), 700)} />}
+            {phase >= 2 && <TLine text="ВЕРХНИЙ этаж — числитель." onDone={() => go(3)} />}
+            {phase === 3 && <ReplyButton onClick={() => go(4)}>Вижу верхний этаж</ReplyButton>}
             {phase >= 4 && <TLine text="НИЖНИЙ этаж — знаменатель." onDone={() => onSettled?.()} />}
         </>
     )
