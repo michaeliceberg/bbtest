@@ -38,10 +38,10 @@ const MEDAL_TITLE = { none: 'Ещё не начато', bronze: 'Бронза: �
 
 const MEDAL_SRC = { bronze: '/medals/medal-bronze.svg', silver: '/medals/medal-silver.webp', gold: '/medals/medal-gold.webp' }
 
-export const NavMedal = ({ percent }: { percent: number }) => {
+export const NavMedal = ({ percent, size = 44, onColor = false }: { percent: number; size?: number; onColor?: boolean }) => {
     const m = medalFor(percent)
     return (
-        <span className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center" title={MEDAL_TITLE[m]}>
+        <span className="relative flex flex-shrink-0 items-center justify-center" style={{ width: size, height: size }} title={MEDAL_TITLE[m]}>
             {m === 'gold' && (
                 // Свечение как у кнопки «ИИ-помощник»: тёплый пульс позади и искры (только transform/opacity).
                 <>
@@ -52,9 +52,9 @@ export const NavMedal = ({ percent }: { percent: number }) => {
                 </>
             )}
             {m === 'none'
-                ? <span className="h-7 w-7 rounded-full border-[3px] border-dashed border-[#3A4850]" />
+                ? <span className="rounded-full border-[3px] border-dashed" style={{ width: size * 0.64, height: size * 0.64, borderColor: onColor ? 'rgba(255,255,255,0.55)' : '#3A4850' }} />
                 // eslint-disable-next-line @next/next/no-img-element
-                : <img src={MEDAL_SRC[m]} alt={MEDAL_TITLE[m]} className="relative h-11 w-11 object-contain drop-shadow-[0_2px_0_rgba(0,0,0,0.35)]" draggable={false} />}
+                : <img src={MEDAL_SRC[m]} alt={MEDAL_TITLE[m]} className="relative object-contain drop-shadow-[0_2px_0_rgba(0,0,0,0.35)]" style={{ width: size, height: size }} draggable={false} />}
         </span>
     )
 }

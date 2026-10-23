@@ -1023,7 +1023,7 @@ const TrainerGradeTreeInner = ({ topics, isAdmin = false, theme = 'metal', onlyA
                                         <h2 className="text-xl font-bold tracking-tight break-words">{bannerTitle}</h2>
                                         <span className="flex items-center gap-2 flex-shrink-0">
                                             {examStage ? (rank && <span className="text-sm font-black px-2 py-0.5 rounded-full bg-black/25">{rank.title}</span>)
-                                                : <span className="text-2xl font-bold">{topic.percentage}%</span>}
+                                                : <span className="-my-2"><NavMedal percent={topic.percentage} size={48} onColor /></span>}
                                             <ChevronDown className="w-5 h-5 -rotate-90 opacity-80" />
                                         </span>
                                     </div>
@@ -1058,7 +1058,7 @@ const TrainerGradeTreeInner = ({ topics, isAdmin = false, theme = 'metal', onlyA
                             {topic.title !== blockTitle && <span className="text-base font-extrabold truncate" style={{ color: cozy ? COZY.title : accent.button }}>{topic.title}</span>}
                             {(() => {
                                 const examStage = topic.stages.find((st) => st.isBossExam);
-                                if (!examStage) return simple ? null : <span className="text-xs font-bold flex-shrink-0 ml-auto" style={{ color: hexToRgba(accent.button, 0.85) }}>{topic.percentage}%</span>;
+                                if (!examStage) return simple ? null : <span className="flex-shrink-0 ml-auto -my-2"><NavMedal percent={topic.percentage} size={36} /></span>;
                                 const rank = getBossRank(examStage.bossWins ?? 0);
                                 return rank ? <span className="text-xs font-black flex-shrink-0 px-2 py-0.5 rounded-full ml-auto" style={{ color: rank.color, backgroundColor: hexToRgba(rank.color, 0.15) }}>{rank.title}</span> : null;
                             })()}
