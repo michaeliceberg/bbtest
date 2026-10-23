@@ -586,6 +586,8 @@ const RuleIcon = ({ n }: { n: number }) => {
 // focus — момент перехода к другому правилу: текущее правило крупнее и светится, чтобы ученик посмотрел наверх
 const CheatStrip = ({ active, crossed = [], focus = false }: { active: number | null; crossed?: number[]; focus?: boolean }) => {
     const rules = useRules()
+    // правила, уже зачёркнутые к моменту появления шпоры (в прошлой сцене), — крестик сразу, без повторной анимации
+    const initCrossed = useRef(crossed)
     // откат к правилу 1 (с другого правила) — правило 1 один раз подпрыгивает, чтобы привлечь внимание
     const prevActive = useRef(active)
     const [back1, setBack1] = useState(0)
@@ -604,7 +606,7 @@ const CheatStrip = ({ active, crossed = [], focus = false }: { active: number | 
         </div>
         <div className="relative grid gap-1.5" style={{ gridTemplateColumns: `repeat(${rules.length}, minmax(0, 1fr))` }}>
             {rules.map((r) => {
-                const isOn = active === r.n, isX = crossed.includes(r.n)
+                const isOn = active === r.n, isX = crossed.includes(r.n), instantX = isX && initCrossed.current.includes(r.n)
                 // пока смотрим на одно правило — остальные бледные целиком (и рамка, и текст)
                 const faded = active !== null && !isOn
                 return (
@@ -614,6 +616,7 @@ const CheatStrip = ({ active, crossed = [], focus = false }: { active: number | 
                         transition={{ duration: 0.8, ease: 'easeOut' }}>
                     <motion.div key={r.n} className="relative w-full rounded-lg border-2 px-1 py-1 text-center flex flex-col justify-center"
                         // зачёркнутое бледнеет после того, как дорисован крестик
+                        initial={instantX ? { opacity: 0.4 } : undefined}
                         animate={{ opacity: isX ? 0.4 : faded ? 0.38 : 1, scale: isOn ? (focus ? [1, 1.32, 1.18] : 1.06) : 1 }}
                         transition={{ opacity: { delay: isX ? 0.75 : 0, duration: 0.4 }, scale: { type: 'spring', stiffness: 300, damping: 18 } }}
                         style={{ borderColor: isOn ? SECT_COLOR : '#3A464E', backgroundColor: isOn ? hexToRgba(SECT_COLOR, 0.18) : '#161F23',
@@ -623,7 +626,7 @@ const CheatStrip = ({ active, crossed = [], focus = false }: { active: number | 
                         </div>
                         <div className="text-[10px] md:text-xs font-black leading-tight hyphens-manual break-words"
                             style={{ color: faded ? MUTED : '#F2F7FB' }}>{r.short}</div>
-                        {isX && <CrossX />}
+                        {isX && <CrossX instant={instantX} />}
                     </motion.div>
                     </motion.div>
                 )
@@ -634,13 +637,13 @@ const CheatStrip = ({ active, crossed = [], focus = false }: { active: number | 
 }
 
 // Крестик из двух диагоналей, рисуются по очереди
-const CrossX = () => (
+const CrossX = ({ instant = false }: { instant?: boolean }) => (
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
         {/* растём концами линий: pathLength в растянутом viewBox с non-scaling-stroke рисовал линию с разрывами */}
         <motion.line x1={6} y1={10} stroke={WRONG_COLOR} strokeWidth={4} strokeLinecap="round" vectorEffect="non-scaling-stroke"
-            initial={{ x2: 6, y2: 10 }} animate={{ x2: 94, y2: 90 }} transition={{ duration: 0.35, ease: 'easeOut' }} />
+            initial={instant ? false : { x2: 6, y2: 10 }} animate={{ x2: 94, y2: 90 }} transition={{ duration: 0.35, ease: 'easeOut' }} />
         <motion.line x1={94} y1={10} stroke={WRONG_COLOR} strokeWidth={4} strokeLinecap="round" vectorEffect="non-scaling-stroke"
-            initial={{ x2: 94, y2: 10 }} animate={{ x2: 6, y2: 90 }} transition={{ duration: 0.35, delay: 0.35, ease: 'easeOut' }} />
+            initial={instant ? false : { x2: 94, y2: 10 }} animate={{ x2: 6, y2: 90 }} transition={{ duration: 0.35, delay: 0.35, ease: 'easeOut' }} />
     </svg>
 )
 
@@ -1810,6 +1813,10 @@ const R4_MORE: { geo: R4Geo; title: string }[] = [
 // Проецируем K и N на потолок (там уже M): прямая KN и её проекция встречаются в X на потолке; X и M — след на потолке.
 // Подобрано скриптом: X рядом с кубом, след пересекает потолок по двум рёбрам, сечение — пятиугольник без углов.
 const FACES_GEO = makeR4Geo([0.45, 0.5, 1], [1, 0.4, 0.6], [0.5, 1, 0.3], 'ceiling')
+// Первое сечение урока — без задней стены (так проще увидеть): M на потолке, K на правой стене, N на передней.
+// Подобрано scripts/sect-tools (check_all): X спереди-слева от куба, проекции и все точки не сливаются с рёбрами,
+// след на потолке упирается в переднее и заднее рёбра, сечение — пятиугольник без углов.
+const FRONT_GEO = makeR4Geo([0.65, 0.6, 1], [1, 0.5, 0.35], [0.5, 0, 0.65], 'ceiling')
 
 // Сцена 1: задача
 const R4TaskScene = ({ onSettled, g = R4_GEO, title = 'Новое сечение' }: SceneProps & { g?: R4Geo; title?: string }) => {
@@ -1830,12 +1837,15 @@ const R4TaskScene = ({ onSettled, g = R4_GEO, title = 'Новое сечение
 // Сцена 2: правило 1 не работает, правил 2 и 3 тоже — линий нет → правило 4
 const R4CheckScene = ({ onSettled, onMistake, g = R4_GEO }: SceneProps & { g?: R4Geo }) => {
     const onCeil = g.plane === 'ceiling'
-    const [phase, setPhase] = useState(0) // 0 вопрос, 1 зачёркиваем 1, 2 «линий нет», 3 зачёркиваем 2 и 3, 4 правило 4
+    // 0 вопрос, 1 зачёркиваем 1, 2 «линий нет», 3 зачёркиваем 2 и 3, 4 загорается правило 4 (чертёж ещё тёмный),
+    // 5 появляется чертёж, 6 текст — всё строго по очереди, чтобы глаз шёл от правила к чертежу
+    const [phase, setPhase] = useState(0)
     const [typed, setTyped] = useState(false)
     const [wrong, setWrong] = useState<string[]>([])
     const [flash, setFlash] = useState<string | null>(null)
     useEffect(() => {
-        const t = phase === 1 ? setTimeout(() => setPhase(2), 2200) : phase === 3 ? setTimeout(() => setPhase(4), 2400) : null
+        const t = phase === 1 ? setTimeout(() => setPhase(2), 2200) : phase === 3 ? setTimeout(() => setPhase(4), 2400)
+            : phase === 4 ? setTimeout(() => setPhase(5), 1600) : phase === 5 ? setTimeout(() => setPhase(6), 900) : null
         return () => { if (t) clearTimeout(t) }
     }, [phase])
     const answer = (v: 'yes' | 'no') => {
@@ -1852,13 +1862,12 @@ const R4CheckScene = ({ onSettled, onMistake, g = R4_GEO }: SceneProps & { g?: R
             <CheatStrip active={active} crossed={crossed} focus={phase === 1 || phase === 3 || phase === 4} />
             {phase === 1 && <Msg ok meme text="Правило 1 не работает — зачёркиваем ✗" />}
             {phase === 3 && <Msg ok text="Правила 2 и 3 тоже не помогут — зачёркиваем ✗" />}
-            {phase >= 4 && <Msg ok text="Остаётся правило 4 — проекция 👆" />}
-            <R4Svg pts={g.base} lines={[]} dim={phase === 1 || phase === 3} />
+            <R4Svg pts={g.base} lines={[]} dim={phase === 1 || phase === 3 || phase === 4} />
             {phase === 0 && <TypedBig small text="Можем ли воспользоваться правилом 1? Есть две точки на одной стене?" meme="wow" onDone={() => setTyped(true)} readMs={0} />}
             {phase === 0 && typed && <YesNo wrong={wrong} onPick={answer} />}
             {phase === 2 && <TypedBig small text="Правила 2 и 3 работают с готовой линией. А линий у нас пока нет" meme="wow" onDone={() => setTyped(true)} readMs={0} />}
             {phase === 2 && typed && <NextBtn onClick={() => setPhase(3)}>Реально — 2 и 3 не катят</NextBtn>}
-            {phase >= 4 && <TypedBig small text={onCeil ? 'Правило 4 — проекция. Одна точка уже на потолке. Значит проецируем не на пол, а на потолок!' : 'Правило 4: опускаем точки на пол и ищем, где сечение пересекает пол'} meme="wow" onDone={() => setTimeout(() => onSettled?.(), 500)} readMs={0} />}
+            {phase >= 6 && <TypedBig small text={onCeil ? 'Правило 4 — проекция. Одна точка уже на потолке. Значит проецируем не на пол, а на потолок!' : 'Правило 4: опускаем точки на пол и ищем, где сечение пересекает пол'} meme="wow" onDone={() => setTimeout(() => onSettled?.(), 500)} readMs={0} />}
             {flash && phase === 0 && <Msg ok={false} text={flash} />}
         </>
     )
@@ -1977,7 +1986,7 @@ const FacesTaskScene = ({ onSettled }: SceneProps) => {
             <TypedBig text="Точки на гранях" memeFixed={JACKIE} onDone={() => setStep(1)} />
             {step >= 1 && (
                 <DiagramBlock onSettled={() => setTimeout(() => setStep(2), 500)}>
-                    <R4Svg pts={FACES_GEO.base} lines={[]} />
+                    <R4Svg pts={FRONT_GEO.base} lines={[]} />
                 </DiagramBlock>
             )}
             {step >= 2 && <TypedBig small text="Теперь точки лежат не на рёбрах, а прямо на стенах" meme="wow" onDone={() => setStep(3)} readMs={300} />}
@@ -2006,14 +2015,21 @@ const BackPointScene = ({ onSettled }: SceneProps) => {
         </>
     )
 }
+const FrontCheckScene = (pr: SceneProps) => <R4CheckScene {...pr} g={FRONT_GEO} />
+const FrontProjScene = (pr: SceneProps) => <R4ProjScene {...pr} g={FRONT_GEO} />
+const FrontFinishScene = (pr: SceneProps) => <R4FinishScene {...pr} g={FRONT_GEO} />
+const BackTaskScene = (pr: SceneProps) => <R4TaskScene {...pr} g={FACES_GEO} title="Сечение 2: точка сзади" />
 const FacesCheckScene = (pr: SceneProps) => <R4CheckScene {...pr} g={FACES_GEO} />
 const FacesProjScene = (pr: SceneProps) => <R4ProjScene {...pr} g={FACES_GEO} />
 const FacesFinishScene = (pr: SceneProps) => <R4FinishScene {...pr} g={FACES_GEO} />
-const FACES_SCENES = [FacesTaskScene, BackPointScene, FacesCheckScene, FacesProjScene, FacesFinishScene]
-const FACES_MAP_LABELS = ['Задача', 'Точка сзади ( • )', 'Правила 1–3 не работают', 'Проекция на потолок', 'Достраиваем']
-const FACES_PRACTICE = new Set<unknown>([FacesCheckScene, FacesProjScene, FacesFinishScene])
-const FACES_NEXT_LABELS: React.ReactNode[] = ['Погнали', <span key="bp" className="inline-flex items-center gap-1">Понял, точка сзади — <ParenPoint /></span>,
-    'Как это — на потолок?', 'Достроим!', 'Готово']
+const FACES_SCENES = [FacesTaskScene, FrontCheckScene, FrontProjScene, FrontFinishScene,
+    BackTaskScene, BackPointScene, FacesCheckScene, FacesProjScene, FacesFinishScene]
+const FACES_MAP_LABELS = ['Задача', 'Правила 1–3 не работают', 'Проекция на потолок', 'Достраиваем',
+    'Сечение 2', 'Точка сзади ( • )', 'Сеч. 2: правила 1–3', 'Сеч. 2: проекция', 'Сеч. 2: достраиваем']
+const FACES_PRACTICE = new Set<unknown>([FrontCheckScene, FrontProjScene, FrontFinishScene, FacesCheckScene, FacesProjScene, FacesFinishScene])
+const FACES_NEXT_LABELS: React.ReactNode[] = ['Погнали', 'Как это — на потолок?', 'Достроим!', 'Ещё сечение! 🔥',
+    'Погнали', <span key="bp" className="inline-flex items-center gap-1">Понял, точка сзади — <ParenPoint /></span>,
+    'Снова на потолок!', 'Достроим!', 'Готово']
 
 const R4_SCENES = [R4TaskScene, R4CheckScene, R4ProjScene, R4FinishScene, ...R4_MORE_SCENES]
 const R4_MAP_LABELS = ['Задача', 'Правила 1–3 не работают', 'Правило 4: проекция', 'Достраиваем',

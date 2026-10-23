@@ -15,10 +15,11 @@ cases={
  '511 сеч3': [(1,0.3,0),(0.65,0,1),(0,1,0.3)],
  '511 сеч4': [(0,0.25,0),(0.25,1,1),(1,0,0.3)],
  '512': [(0.45,0.5,1),(1,0.4,0.6),(0.5,1,0.3)],
+ '512 front': [(0.65,0.6,1),(1,0.5,0.35),(0.5,0,0.65)],
 }
 for k,st in cases.items():
     extra=[]
     if k.startswith('511'): fl,a,b=st; X=X_of(fl,a,b,0); extra=[('X',X),('aP',(a[0],a[1],0)),('bP',(b[0],b[1],0))]
-    if k=='512': fl,a,b=st; X=X_of(fl,a,b,1); extra=[('X',X),('aP',(a[0],a[1],1)),('bP',(b[0],b[1],1))]
+    if k.startswith('512'): fl,a,b=st; X=X_of(fl,a,b,1); extra=[('X',X),('aP',(a[0],a[1],1)),('bP',(b[0],b[1],1))]
     iss=check_cfg(st,extra)
     print(k, 'OK' if not iss else iss)
