@@ -31,9 +31,10 @@ import { STEP_BY_STEP_CHALLENGE_TYPES, isStepByStepLesson } from "@/lib/trainerS
 import { getStageFlags, isBossExamStage } from "@/lib/trainerStageFlags"
 import { pickGuestNickname } from "@/lib/nickname"
 import TQuiz from "@/app/t-lesson/[t_lessonId]/TQUIZ"
-import { allTypesCT, tChallengeMistakes, lessonRatings } from "@/db/schema";
+import { allTypesCT, tChallengeMistakes, lessonRatings, t_lessons } from "@/db/schema";
+import { hasProFor, isTLessonFree } from "@/lib/pro";
 import db from "@/db/drizzle";
-import { and, eq, gt } from "drizzle-orm";
+import { and, asc, eq, gt } from "drizzle-orm";
 import { LESSON_CONTENT_UPDATED_AT } from "@/lib/lessonRating";
 
 // Единственный урок тренажёра, открытый анонимным (не залогиненным)
@@ -347,6 +348,18 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
 
     if (!t_lesson || (!userProgress && !isGuest)) {
         redirect('/trainer');
+    }
+
+    // Подписка PRO: без неё открыт только первый урок юнита и уроки пробных треков (lib/pro.ts).
+    if (userProgress && !hasProFor(userProgress)) {
+        const firstInUnit = await db.query.t_lessons.findFirst({
+            where: eq(t_lessons.t_unitId, t_lesson.t_unitId),
+            orderBy: [asc(t_lessons.order)],
+            columns: { id: true },
+        });
+        if (!isTLessonFree(t_lessonId, firstInUnit?.id === t_lessonId)) {
+            redirect(`/pro?from=lesson&l=${t_lessonId}`);
+        }
     }
 
     // "Горячий вопрос" привязан к ТЕМЕ (t_unit), не к конкретному этапу —

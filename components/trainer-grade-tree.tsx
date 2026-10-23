@@ -20,6 +20,7 @@ import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket,
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { TrainerStageLink } from './trainer-stage-link';
+import { ProBadge } from './pro-badge';
 import { PathRail } from './path-rail';
 import { GooseTracks, gooseWalkSeconds } from './goose-tracks';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
@@ -174,6 +175,8 @@ export type SkillStage = {
     badge?: string | null;
     isBossExam?: boolean;
     bossWins?: number;
+    // Урок только по подписке PRO: плашка PRO, ссылка ведёт на /pro.
+    proLocked?: boolean;
 };
 
 export type SkillTopic = {
@@ -577,7 +580,7 @@ const StagePath = ({
                                 )}
                                 {unlocked ? (
                                     <TrainerStageLink
-                                        href={`/t-lesson/${s.id}`}
+                                        href={s.proLocked ? `/pro?from=lesson&l=${s.id}` : `/t-lesson/${s.id}`}
                                         title={s.title}
                                         subtitle={`${topic.title} · этап ${i + 1}`}
                                         accent={accent.button}
@@ -601,6 +604,7 @@ const StagePath = ({
                             style={{ top: pct(pt.y, H), left: `calc(${pct(pt.x, PATH_W)} + 52px)`, right: 4 }}
                         >
                             <div>
+                                {s.proLocked && <ProBadge className={cn("mb-1", !unlocked && "opacity-60")} />}
                                 {s.isStepByStep && (
                                     <div className="mb-1 flex items-center gap-1.5">
                                         <div className={cn("inline-flex items-center gap-1 px-2 py-[3px] rounded-full text-[11px] font-black uppercase tracking-[0.2em] leading-none", unlocked ? "lesson-pill" : "opacity-40 border border-[#8A8466]/50")}>
@@ -1170,7 +1174,7 @@ const TrainerGradeTreeInner = ({ topics, isAdmin = false, theme = 'metal', onlyA
                                                     const isFrontier = trueIdx === frontierIdx && !isChest && !isMegaChest && !isMythic;
                                                     const isStepByStep = s.isStepByStep === true;
                                                     const stepNumber = isStepByStep ? stepByStepNumbers[trueIdx] : null;
-                                                    const stageHref = `/t-lesson/${s.id}`;
+                                                    const stageHref = s.proLocked ? `/pro?from=lesson&l=${s.id}` : `/t-lesson/${s.id}`;
                                                     const Icon = STAGE_ICONS[trueIdx % STAGE_ICONS.length];
                                                     const col = boxColumn(j);
 
@@ -1341,6 +1345,9 @@ const TrainerGradeTreeInner = ({ topics, isAdmin = false, theme = 'metal', onlyA
                                                                     </span>
                                                                 )}
                                                                 {stageBox}
+                                                                {s.proLocked && (
+                                                                    <ProBadge className={cn("absolute -top-3 left-1/2 -translate-x-1/2 z-20 scale-[0.72] pointer-events-none", !unlockedReal && "opacity-60")} />
+                                                                )}
                                                             </div>
 
                                                             {j < row.length - 1 && (

@@ -1,3 +1,7 @@
+import { egeSectionOf, type EgeSection } from '@/lib/egeSections'
+import { hasProFor } from '@/lib/pro'
+import { ProBadge } from '@/components/pro-badge'
+import Link from 'next/link'
 // app/learn/page.tsx
 
 import { FeedWrapper } from '@/components/feed-wrapper';
@@ -464,7 +468,7 @@ const LearnPage = async () => {
               const prevSection = index > 0 ? egeSectionOf(activeCourse.title, unitsWithFormattedLessons[index - 1].title) : null
               return (
               <div key={unit.id} className='mb-3' data-learn-unit-id={unit.id}>
-                {section && section !== 'part1' && section !== prevSection && <EgeSectionHeader section={section} />}
+                {section && section !== 'part1' && section !== prevSection && <EgeSectionHeader section={section} pro={section === 'part2' && !hasProFor(userProgress)} />}
                 <LearnUnitFold
                   id={unit.id}
                   title={unit.title}
@@ -509,26 +513,20 @@ const LearnPage = async () => {
   );
 };
 
-// Номер задания ЕГЭ — число в начале названия юнита («14. Уравнения»). Только для курсов ЕГЭ.
-type EgeSection = 'part1' | 'part2' | 'extra'
-function egeSectionOf(courseTitle: string, unitTitle: string): EgeSection | null {
-  if (!courseTitle.startsWith('ЕГЭ Математика')) return null
-  const m = unitTitle.match(/^(\d+)\./)
-  if (!m) return 'extra'
-  return Number(m[1]) >= 14 ? 'part2' : 'part1'
-}
-
 const SECTION_COPY: Record<EgeSection, { title: string; sub: string; color: string }> = {
   part1: { title: 'Часть 1 · краткий ответ', sub: 'Задания 1–13, по 1 баллу. Ответ — число.', color: '#53ADEF' },
   part2: { title: 'Часть 2 · развёрнутый ответ', sub: 'Задания 14–20, от 2 до 4 баллов. Здесь тренируем ответ — на экзамене нужно записать полное решение.', color: '#C385F7' },
   extra: { title: 'Дополнительно', sub: 'Темы, которые нужны для решения других заданий.', color: '#9AA7B0' },
 }
 
-const EgeSectionHeader = ({ section }: { section: EgeSection }) => {
+const EgeSectionHeader = ({ section, pro }: { section: EgeSection; pro?: boolean }) => {
   const c = SECTION_COPY[section]
   return (
     <div className='mb-6 mt-2 rounded-2xl border-2 px-4 py-3' style={{ borderColor: `${c.color}66`, backgroundColor: `${c.color}14` }}>
-      <p className='text-lg font-black' style={{ color: c.color }}>{c.title}</p>
+      <div className='flex items-center justify-between gap-2'>
+        <p className='text-lg font-black' style={{ color: c.color }}>{c.title}</p>
+        {pro && <Link href='/pro?from=learn'><ProBadge /></Link>}
+      </div>
       <p className='text-xs font-bold text-[#9AA7B0]'>{c.sub}</p>
     </div>
   )

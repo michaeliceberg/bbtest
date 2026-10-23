@@ -6,9 +6,10 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Camera, ImageIcon, Loader2, Sparkles, RotateCcw, ChevronRight, Lightbulb, AlertTriangle, Gift, Lock, Check } from 'lucide-react'
-import { analyzeTaskPhoto, premiumInterest, type PhotoTaskResult, type PhotoTaskLesson } from '@/actions/photo-task'
+import { analyzeTaskPhoto, premiumInterest, type PhotoTaskResult, type PhotoTaskLesson, type PhotoQuota } from '@/actions/photo-task'
 import { checkAchievements } from '@/lib/achievementsClient'
-import { PREMIUM_PRICE_RUB } from '@/lib/pro'
+import { PREMIUM_PRICE_RUB, PRO_AI_PHOTOS_PER_DAY } from '@/lib/pro'
+import { ProBadge } from '@/components/pro-badge'
 import { cn } from '@/lib/utils'
 
 const MAX_SIDE = 1280
@@ -43,14 +44,16 @@ const ERRORS: Record<string, string> = {
     failed: 'Не получилось разобрать фото. Попробуй ещё раз или сфоткай почётче.',
 }
 
-export const PhotoTaskClient = ({ configured, left: initialLeft, limit }: { configured: boolean; left: number | null; limit: number }) => {
+export const PhotoTaskClient = ({ configured, quota }: { configured: boolean; quota: PhotoQuota }) => {
+    const limit = quota?.limit ?? 0
+    const freeMode = quota?.mode === 'free'
     const cameraRef = useRef<HTMLInputElement>(null)
     const galleryRef = useRef<HTMLInputElement>(null)
     const [preview, setPreview] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
     const [step, setStep] = useState(0)
     const [result, setResult] = useState<PhotoTaskResult | null>(null)
-    const [left, setLeft] = useState(initialLeft)
+    const [left, setLeft] = useState<number | null>(quota ? quota.left : null)
 
     useEffect(() => {
         if (!busy) return
@@ -101,7 +104,7 @@ export const PhotoTaskClient = ({ configured, left: initialLeft, limit }: { conf
                 {left !== null && (
                     <div className="mt-3 flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black text-[#D5DEE5]"
                         style={{ background: 'rgba(22,31,35,0.8)', boxShadow: 'inset 0 0 0 1px #34424A' }}>
-                        <span>Сегодня</span>
+                        <span>{freeMode ? 'Бесплатно' : 'Сегодня'}</span>
                         {Array.from({ length: limit }, (_, i) => (
                             <span key={i} className="h-2.5 w-2.5 rounded-full" style={{ background: i < left ? 'linear-gradient(135deg,#F2C35B,#FF8A5B)' : '#2A363C' }} />
                         ))}
@@ -142,7 +145,13 @@ export const PhotoTaskClient = ({ configured, left: initialLeft, limit }: { conf
                     <BigButton disabled={outOfLimit} onClick={() => galleryRef.current?.click()} icon={<ImageIcon className="h-8 w-8" />} label="Из галереи" />
                 </div>
             )}
-            {outOfLimit && !result && <p className="text-center font-bold text-[#F2C35B]">{ERRORS.limit}</p>}
+            {outOfLimit && !result && (freeMode ? (
+                <Link href="/pro?from=ai" className="flex flex-col items-center gap-2 rounded-2xl px-4 py-3 text-center font-bold text-[#D5DEE5]"
+                    style={{ background: 'rgba(22,31,35,0.8)', boxShadow: 'inset 0 0 0 1.5px #3FD3F288' }}>
+                    <span>Бесплатные разборы закончились 🙌 С подпиской — {PRO_AI_PHOTOS_PER_DAY} фото каждый день</span>
+                    <ProBadge />
+                </Link>
+            ) : <p className="text-center font-bold text-[#F2C35B]">{ERRORS.limit}</p>)}
 
             {result && !result.ok && (
                 <div className="flex items-start gap-3 rounded-2xl px-4 py-3 font-bold text-[#F2B5B2]"

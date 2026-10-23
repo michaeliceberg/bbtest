@@ -1,3 +1,8 @@
+import db from "@/db/drizzle"
+import { courses } from "@/db/schema"
+import { eq } from "drizzle-orm"
+import { hasProFor } from "@/lib/pro"
+import { isLearnUnitPro } from "@/lib/egeSections"
 // app/lesson/[lessonId]/page.tsx
 
 import { getLesson, getUserProgress, getChallengeProgress, getTodayStats, getUserHomework, getTLessonProgress } from "@/db/queries"
@@ -33,6 +38,14 @@ const LessonIdPage = async ({ params }: Props) => {
 
     if (!lesson || !challengeProgress) {
         redirect('/learn')
+    }
+
+    // Вторая часть задачника ЕГЭ Математика — по подписке PRO (lib/pro.ts, lib/egeSections.ts).
+    if (!hasProFor(userProgress) && lesson.unit) {
+        const unitCourse = await db.query.courses.findFirst({ where: eq(courses.id, lesson.unit.courseId), columns: { title: true } })
+        if (unitCourse && isLearnUnitPro(unitCourse.title, lesson.unit.title)) {
+            redirect('/pro?from=learn')
+        }
     }
 
     const activeCourseId = userProgress.activeCourse.id

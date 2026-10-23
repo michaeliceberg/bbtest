@@ -140,6 +140,8 @@ export const userProgress = pgTable('user_progress', {
 	// приложение среди одноклассников (по прямой договорённости с
 	// пользователем). Выдаётся вручную точечным SQL, автоматики нет.
 	isAmbassador: boolean('is_ambassador').notNull().default(false),
+	// Подписка PRO активна до этой даты (null — нет подписки). Выдаёт оплата (ЮKassa) или админ вручную.
+	proUntil: timestamp('pro_until'),
 	// Фаза 2 реферальной воронки (2026-09-29) — кто пригласил этого
 	// пользователя (raw userId из реферальной ссылки ?ref=<userId>, см.
 	// lib/referral.ts/components/referral-catcher.tsx), проставляется один

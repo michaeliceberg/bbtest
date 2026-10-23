@@ -6,20 +6,15 @@ import { sql } from 'drizzle-orm'
 import { Crown } from 'lucide-react'
 import db from '@/db/drizzle'
 import { auth } from '@/lib/server-auth'
-import { PRO_EARLY_DISCOUNT, PRO_ENABLED, PRO_PRICE_RUB } from '@/lib/pro'
+import { PRO_EARLY_DISCOUNT, PRO_ENABLED, PRO_FEATURES, PRO_PAYWALL_ENABLED, PRO_PRICE_RUB } from '@/lib/pro'
+import Link from 'next/link'
 import { ProWantButton } from './want-button'
 
 export const dynamic = 'force-dynamic'
 
-const FEATURES = [
-    { icon: '🧠', title: 'Все тренажёры и разборы', text: 'Математика и физика ЕГЭ: каждая тема по шагам, от базы до второй части.' },
-    { icon: '⚔️', title: 'Задачник ЕГЭ целиком', text: 'Все типовые задания с проверкой и подсказками.' },
-    { icon: '🗺️', title: 'Мой путь к ЕГЭ', text: 'Прогноз балла и ходы: что решать сегодня, чтобы баллы росли.' },
-    { icon: '🎁', title: 'Больше кейсов и пиццы', text: 'Мифические кейсы чаще, кусочки пиццы и абонемент в DDX быстрее.' },
-]
 
 const ProPage = async ({ searchParams }: { searchParams: { from?: string } }) => {
-    if (!PRO_ENABLED) redirect('/trainer')
+    if (!PRO_ENABLED && !PRO_PAYWALL_ENABLED) redirect('/trainer')
     const session = await auth()
     const userId = session?.user?.id
     if (!userId) redirect('/')
@@ -46,7 +41,7 @@ const ProPage = async ({ searchParams }: { searchParams: { from?: string } }) =>
                 </div>
 
                 <ul className="relative mt-6 space-y-3">
-                    {FEATURES.map((f) => (
+                    {PRO_FEATURES.map((f) => (
                         <li key={f.title} className="flex gap-3 rounded-xl bg-[#1B252B] p-3">
                             <span className="text-2xl">{f.icon}</span>
                             <span>
@@ -56,6 +51,10 @@ const ProPage = async ({ searchParams }: { searchParams: { from?: string } }) =>
                         </li>
                     ))}
                 </ul>
+
+                <p className="relative mt-4 text-center text-xs text-[#7F8C93]">
+                    Оплачивая, вы принимаете <Link href="/offer" className="underline">оферту</Link>. Возврат — в течение 7 дней, если не пользовались.
+                </p>
 
                 <div className="relative mt-6">
                     <ProWantButton initiallyWanted={wanted} source={source ?? undefined} earlyPrice={earlyPrice} discount={PRO_EARLY_DISCOUNT} />

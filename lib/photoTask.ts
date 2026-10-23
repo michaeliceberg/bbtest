@@ -1,4 +1,5 @@
 import 'server-only'
+import { PRO_AI_PHOTOS_PER_DAY } from '@/lib/pro'
 
 // lib/photoTask.ts — «Сфоткай задачу»: фото задачи → какие уроки тренажёра пройти.
 // Сначала Haiku 5.5 (дёшево). Если Haiku не прочитала фото, не уверена или не нашла ни урока, ни темы —
@@ -14,7 +15,7 @@ import { HIDDEN_T_COURSE_IDS } from '@/lib/trainer-topic'
 
 export const PHOTO_TASK_HAIKU = 'claude-haiku-5-5'
 export const PHOTO_TASK_SONNET = 'claude-sonnet-5-5'
-export const PHOTO_TASK_DAILY_LIMIT = 3
+export const PHOTO_TASK_DAILY_LIMIT = PRO_AI_PHOTOS_PER_DAY
 
 export const photoTaskConfigured = () => !!process.env.ANTHROPIC_API_KEY
 

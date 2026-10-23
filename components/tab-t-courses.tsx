@@ -20,6 +20,7 @@ import { TrainerGradeTree, SkillTopic } from "./trainer-grade-tree";
 import type { LessonShareInfo } from "./lesson-share-button";
 import { TRAINER_ONLY_ACTIVE_GROUP } from "@/lib/trainer-topic";
 import type { UiTheme } from "@/lib/cozyTheme";
+import { isTLessonFree } from "@/lib/pro";
 import { isStepByStepLesson, isBossExamStage } from "@/lib/trainerStageFlags";
 
 type Props = {
@@ -108,6 +109,8 @@ type Props = {
     // проходить последовательно) — тот же приём, что уже есть для юнитов
     // основного курса (см. isAdmin в app/(main)/learn/unit.tsx).
     isAdmin?: boolean,
+    // Подписка PRO (или замок выключен) — иначе платные уроки помечаются плашкой PRO.
+    hasPro?: boolean,
     // Стиль оформления (lib/uiTheme.ts): игровой или тёплый.
     theme?: UiTheme,
     simple?: boolean,
@@ -139,6 +142,7 @@ export const TabTCourses = ({
     this_class_id,
     all_t_lessonProgress,
     isAdmin = false,
+    hasPro = true,
     theme = 'metal',
     simple = false,
     petProps,
@@ -320,6 +324,7 @@ export const TabTCourses = ({
                                 extraLockedPrereqTitle,
                                 isStepByStep: isStepByStepLesson(t_lesson.t_challenges.map((c) => c.type)),
                                 isBossExam: isBossExamStage(t_lesson.title),
+                                proLocked: !hasPro && !isTLessonFree(t_lesson.id, t_lesson.id === sortedLessons[0]?.id),
                                 bossWins: isBossExamStage(t_lesson.title) ? t_lessonProgress.filter((p) => p.t_lessonId === t_lesson.id && p.trainingPts > 0).length : 0,
                             }
                         })

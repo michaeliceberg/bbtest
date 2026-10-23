@@ -1,5 +1,6 @@
 // app/(main)/trainer/page.tsx
 
+import { hasProFor } from '@/lib/pro'
 import { FeedWrapper } from '@/components/feed-wrapper';
 import { StickyWrapper } from '@/components/sticky-wrapper';
 import { TrainerParallax } from '@/components/trainer-parallax';
@@ -366,6 +367,7 @@ const TLearnPage = async () => {
                         all_t_lessonProgress={all_t_lessonProgress}
                         this_class_id={userProgress.classId}
                         isAdmin={userProgress.isAdmin === 1}
+                        hasPro={hasProFor(userProgress)}
                         theme={uiTheme}
                         simple={simple}
                         shareInfo={{ code: shareInvite?.code ?? null, nickname: shareInvite?.nickname ?? null, subject: subjectByTCourse(activeTCourse?.id) }}

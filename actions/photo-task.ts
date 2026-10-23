@@ -1,7 +1,7 @@
 'use server';
 
 // actions/photo-task.ts — «Сфоткай задачу»: ученик присылает фото, получает уроки тренажёра (lib/photoTask.ts).
-// Лимит PHOTO_TASK_DAILY_LIMIT разборов в день (админам без лимита). Неудачные разборы в лимит не идут.
+// Лимит: без PRO — FREE_AI_PHOTOS за всё время, с PRO — PHOTO_TASK_DAILY_LIMIT в день (админам без лимита). Неудачные разборы в лимит не идут.
 
 import { sql } from 'drizzle-orm';
 import db from '@/db/drizzle';
@@ -11,7 +11,7 @@ import { eq } from 'drizzle-orm';
 import { getPhotoTaskCatalog, photoTaskConfigured, runPhotoTask, PHOTO_TASK_DAILY_LIMIT } from '@/lib/photoTask';
 import { syncAchievements } from '@/lib/achievements';
 import { sendMessageToTelegram } from '@/utils/telegram';
-import { PREMIUM_PRICE_RUB } from '@/lib/pro';
+import { FREE_AI_PHOTOS, PREMIUM_PRICE_RUB, hasProFor } from '@/lib/pro';
 
 export type PhotoTaskLesson = { id: number; course: string; unit: string; lesson: string }
 export type PhotoTaskResult =
@@ -20,15 +20,31 @@ export type PhotoTaskResult =
 
 const MAX_B64 = 1_400_000 // ~1 МБ картинки; клиент ужимает фото до 1280 px, этого с запасом хватает
 
-export async function getPhotoTasksLeft(): Promise<number | null> {
+// Без PRO — FREE_AI_PHOTOS разборов за всё время (попробовать), с PRO — PHOTO_TASK_DAILY_LIMIT в день.
+export type PhotoQuota = { left: number; limit: number; mode: 'free' | 'pro' } | null // null — без лимита (админ)
+
+const quotaFor = async (userId: string, up: Parameters<typeof hasProFor>[0]): Promise<PhotoQuota> => {
+    if (up?.isAdmin === 1) return null;
+    if (hasProFor(up)) {
+        const used = await usedToday(userId);
+        return { left: Math.max(0, PHOTO_TASK_DAILY_LIMIT - used), limit: PHOTO_TASK_DAILY_LIMIT, mode: 'pro' };
+    }
+    const used = await usedEver(userId);
+    return { left: Math.max(0, FREE_AI_PHOTOS - used), limit: FREE_AI_PHOTOS, mode: 'free' };
+};
+
+export async function getPhotoTasksLeft(): Promise<PhotoQuota> {
     const session = await auth();
     const userId = session?.user?.id;
-    if (!userId) return 0;
+    if (!userId) return { left: 0, limit: FREE_AI_PHOTOS, mode: 'free' };
     const up = await db.query.userProgress.findFirst({ where: eq(userProgress.userId, userId) });
-    if (up?.isAdmin === 1) return null;
-    const used = await usedToday(userId);
-    return Math.max(0, PHOTO_TASK_DAILY_LIMIT - used);
+    return quotaFor(userId, up);
 }
+
+const usedEver = async (userId: string) => {
+    const r = await db.execute(sql`SELECT count(*)::int AS n FROM photo_task_requests WHERE user_id = ${userId} AND error IS NULL`);
+    return (r as unknown as { n: number }[])[0]?.n ?? 0;
+};
 
 const usedToday = async (userId: string) => {
     const r = await db.execute(sql`SELECT count(*)::int AS n FROM photo_task_requests
@@ -45,9 +61,8 @@ export async function analyzeTaskPhoto(imageB64: string, mediaType: string): Pro
         return { ok: false, error: 'bad_image' };
     }
     const up = await db.query.userProgress.findFirst({ where: eq(userProgress.userId, userId) });
-    const isAdmin = up?.isAdmin === 1;
-    const used = isAdmin ? 0 : await usedToday(userId);
-    if (!isAdmin && used >= PHOTO_TASK_DAILY_LIMIT) return { ok: false, error: 'limit', left: 0 };
+    const quota = await quotaFor(userId, up);
+    if (quota && quota.left <= 0) return { ok: false, error: 'limit', left: 0 };
 
     try {
         const run = await runPhotoTask(imageB64, mediaType as 'image/jpeg' | 'image/png' | 'image/webp');
@@ -76,12 +91,12 @@ export async function analyzeTaskPhoto(imageB64: string, mediaType: string): Pro
         const bonusLessons = pick(a.bonus_lesson_ids);
         return {
             ok: true, readable: a.readable, problemText: a.problem_text, lessons, bonusLessons,
-            missingTopics: a.missing_topics, hint: a.hint, left: isAdmin ? null : Math.max(0, PHOTO_TASK_DAILY_LIMIT - used - 1),
+            missingTopics: a.missing_topics, hint: a.hint, left: quota ? quota.left - 1 : null,
         };
     } catch (e) {
         console.error('analyzeTaskPhoto', e);
         await db.insert(photoTaskRequests).values({ userId, error: String((e as Error)?.message ?? e).slice(0, 500) }).catch(() => {});
-        return { ok: false, error: 'failed', left: isAdmin ? null : Math.max(0, PHOTO_TASK_DAILY_LIMIT - used) };
+        return { ok: false, error: 'failed', left: quota ? quota.left : null };
     }
 }
 
