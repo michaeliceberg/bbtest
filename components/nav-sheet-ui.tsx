@@ -28,3 +28,22 @@ export const NavProgress = ({ percent, done }: { percent: number; done?: boolean
 )
 
 export const NAV_SECTION_LABEL_CLASS = 'px-1 pb-1 text-[11px] font-black uppercase tracking-[0.12em] text-[#7E8F99]'
+
+// Медаль прогресса в меню тренажёра: ничего не сделано — пустой кружок, что-то начато — бронза,
+// половина и больше — серебро, всё пройдено — золото (картинки public/medals/*.webp).
+export const medalFor = (percent: number): 'none' | 'bronze' | 'silver' | 'gold' =>
+    percent >= 100 ? 'gold' : percent >= 50 ? 'silver' : percent > 0 ? 'bronze' : 'none'
+
+const MEDAL_TITLE = { none: 'Ещё не начато', bronze: 'Бронза: начало положено', silver: 'Серебро: больше половины', gold: 'Золото: всё пройдено' }
+
+export const NavMedal = ({ percent }: { percent: number }) => {
+    const m = medalFor(percent)
+    return (
+        <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center" title={MEDAL_TITLE[m]}>
+            {m === 'none'
+                ? <span className="h-7 w-7 rounded-full border-[3px] border-dashed border-[#3A4850]" />
+                // eslint-disable-next-line @next/next/no-img-element
+                : <img src={`/medals/medal-${m}.webp`} alt={MEDAL_TITLE[m]} className="h-11 w-11 object-contain drop-shadow-[0_2px_0_rgba(0,0,0,0.35)]" draggable={false} />}
+        </span>
+    )
+}

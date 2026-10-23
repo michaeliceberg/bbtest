@@ -16,7 +16,7 @@ import { COZY, COZY_WOOD_TILE, type UiTheme } from '@/lib/cozyTheme';
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil, Lock, ChevronDown, BookOpen } from 'lucide-react';
+import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil, Lock, ChevronDown, ChevronRight, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { TrainerStageLink } from './trainer-stage-link';
@@ -34,7 +34,7 @@ import { isReviewStage, isMythicStage } from '@/lib/trainerStageFlags';
 import { TrainerPet, pickCheer } from './trainer-pet';
 import { PathDecoration, PathProp, PathArch, DECOR_VARIANTS, PROP_KINDS, PROP_SCALE, type PropKind } from './path-decor';
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store';
-import { NAV_SHEET_CLASS, NAV_ITEM_PRESS, NavProgress, navItemStyle } from '@/components/nav-sheet-ui';
+import { NAV_SHEET_CLASS, NAV_ITEM_PRESS, NavMedal } from '@/components/nav-sheet-ui';
 import { UnitSheetCoursePicker, type PickerCourse } from '@/components/unit-sheet-course-picker';
 import { useParallaxThemeStore, themeForSection } from '@/store/use-parallax-theme-store';
 
@@ -1451,14 +1451,21 @@ const TrainerGradeTreeInner = ({ topics, isAdmin = false, theme = 'metal', onlyA
                         <SheetContent side="left" className={NAV_SHEET_CLASS}>
                             {coursePicker && <UnitSheetCoursePicker courses={coursePicker.courses} activeCourseId={coursePicker.activeCourseId} />}
                             <SheetTitle className={cn("px-5 pb-3 text-lg font-extrabold text-white", coursePicker ? "pt-3" : "pt-6")}>Юниты</SheetTitle>
-                            <div className="flex flex-col gap-2.5 px-4 pb-8">
+                            <div className="flex flex-col gap-4 px-4 pb-8">
                                 {renderGroups.map((g) => {
                                     const key = groupKey(g);
                                     const isActive = key === activeGroupKey;
                                     const locked = isGroupLocked(g);
-                                    const first = groupTopics(g)[0];
-                                                                        const pcts = groupTopics(g).map((t) => t.percentage);
-                                    const pct = pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : 0;
+                                    const gTopics = groupTopics(g);
+                                    // Под заголовком — пункты с медалями. Если в группе один юнит с тем же названием
+                                    // («Степени и корни», «Теорема Виета») — пунктами идут его уроки.
+                                    const single = gTopics.length === 1 && gTopics[0].title === groupLabel(g);
+                                    const rows = single
+                                        ? gTopics[0].stages.map((s) => ({ id: s.id, title: s.title, percent: s.percentage, topicTitle: gTopics[0].title, here: false }))
+                                        : gTopics.map((t) => ({
+                                            id: t.id, title: t.title, percent: t.percentage, topicTitle: t.title,
+                                            here: isActive && (menuTopicId != null ? menuTopicId === t.id : gTopics[0].id === t.id),
+                                        }));
                                     return (
                                         <div key={key} className="flex flex-col gap-2">
                                             <button
@@ -1466,32 +1473,33 @@ const TrainerGradeTreeInner = ({ topics, isAdmin = false, theme = 'metal', onlyA
                                                 disabled={locked}
                                                 onClick={() => goToGroup(key)}
                                                 className={cn("flex items-center gap-3 rounded-2xl px-4 py-3 text-left", NAV_ITEM_PRESS, locked && "opacity-45 cursor-not-allowed")}
-                                                style={navItemStyle(isActive, locked)}
+                                                style={locked
+                                                    ? { background: '#1A2328', boxShadow: 'inset 0 0 0 2px #26323A, 0 4px 0 #0C1215' }
+                                                    : isActive
+                                                        ? { background: 'linear-gradient(180deg, #3A4B55 0%, #2A3840 100%)', boxShadow: 'inset 0 0 0 2.5px #F2F7FB, inset 0 2px 0 rgba(255,255,255,0.25), 0 5px 0 #0A0F12' }
+                                                        : { background: 'linear-gradient(180deg, #2B3941 0%, #222E35 100%)', boxShadow: 'inset 0 0 0 2px #3A4952, inset 0 2px 0 rgba(255,255,255,0.08), 0 5px 0 #0A0F12' }}
                                             >
-                                                <span className="flex-1 min-w-0 text-[15px] font-extrabold leading-tight" style={{ color: locked ? '#72838D' : isActive ? '#FFFFFF' : '#E2EAF0' }}>
+                                                <span className="flex-1 min-w-0 text-[17px] font-black leading-tight tracking-wide" style={{ color: locked ? '#72838D' : '#FFFFFF' }}>
                                                     {groupLabel(g)}
                                                 </span>
-                                                {locked ? <Lock className="w-4 h-4 text-[#72838D] flex-shrink-0" />
-                                                    : <NavProgress percent={pct} done={pct >= 100} />}
+                                                {locked ? <Lock className="w-5 h-5 text-[#72838D] flex-shrink-0" /> : <ChevronRight className="w-5 h-5 text-[#9FB0BA] flex-shrink-0" />}
                                             </button>
-                                            {g.kind === 'block' && !locked && !(g.topics.length === 1 && g.topics[0].title === g.title) && (
-                                                <div className="flex flex-col gap-1.5 ml-3 pl-3 border-l-2" style={{ borderColor: '#2F3C43' }}>
-                                                    {g.topics.map((t) => {
-                                                                                                                const here = isActive && (menuTopicId != null ? menuTopicId === t.id : g.topics[0].id === t.id);
-                                                        return (
-                                                            <button
-                                                                key={t.id}
-                                                                type="button"
-                                                                onClick={() => goToGroup(key, t.title)}
-                                                                className="flex items-center gap-2 rounded-xl px-3 py-2 text-left transition-colors hover:bg-white/5 active:translate-y-[2px]"
-                                                                style={here ? { background: 'rgba(230,238,243,0.08)', boxShadow: 'inset 0 0 0 1.5px rgba(230,238,243,0.55)' } : undefined}
-                                                            >
-                                                                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: here ? '#F2F7FB' : '#5C6B73' }} />
-                                                                <span className="flex-1 min-w-0 text-[14px] leading-tight" style={{ color: here ? '#FFFFFF' : '#E2EAF0', fontWeight: here ? 800 : 700 }}>{t.title}</span>
-                                                                <NavProgress percent={t.percentage} done={t.percentage >= 100} />
-                                                            </button>
-                                                        );
-                                                    })}
+                                            {!locked && rows.length > 0 && (
+                                                <div className="flex flex-col gap-1.5 ml-2">
+                                                    {rows.map((r) => (
+                                                        <button
+                                                            key={r.id}
+                                                            type="button"
+                                                            onClick={() => goToGroup(key, r.topicTitle)}
+                                                            className="flex items-center gap-2 rounded-2xl pl-3 pr-1.5 py-1 text-left transition-transform active:translate-y-[2px]"
+                                                            style={r.here
+                                                                ? { background: 'rgba(242,247,251,0.1)', boxShadow: 'inset 0 0 0 2px rgba(242,247,251,0.6)' }
+                                                                : { background: 'rgba(255,255,255,0.03)' }}
+                                                        >
+                                                            <span className="flex-1 min-w-0 text-[14px] font-extrabold leading-tight" style={{ color: r.here ? '#FFFFFF' : '#D5DEE4' }}>{r.title}</span>
+                                                            <NavMedal percent={r.percent} />
+                                                        </button>
+                                                    ))}
                                                 </div>
                                             )}
                                         </div>
