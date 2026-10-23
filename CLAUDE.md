@@ -14513,3 +14513,8 @@ N на передней, проекция на потолок), сечение �
 (номер — порядок среди показанных сцен; после админского прыжка по карте этапов он считается от сцены прыжка).
 В Telegram админу (`actions/report-unclear.ts`) — только по кнопке «Отправить»: ученик, урок (название из БД по пути
 /t-lesson/ID или /lesson/ID) и текст.
+Ачивки за «Непонятно» (2026-10-23): группа `feedback` «Помогаешь делать уроки» — `unclear_first` (первая отправка, +50
+монет), `unclear_comment` (дописал своими словами ≥5 букв после готового начала, +3 гема), `unclear_5` (в 5 РАЗНЫХ уроках,
+а не 5 нажатий — против фарма, +5 гемов). Каждая отправка пишется в таблицу `unclear_reports` (user_id, path, lesson_title,
+text, has_comment; прямой SQL), выдача — в `computeStateKeys`, тост — `useAchievementUnlockStore.check()` после отправки.
+Иконки — game-icons (lorc: light-bulb, quill-ink, magnifying-glass) в `public/achievement-icons/`.

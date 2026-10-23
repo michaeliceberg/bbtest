@@ -172,6 +172,15 @@ export async function computeStateKeys(userId: string): Promise<string[]> {
 	if (P.done) keys.push('build_done');
 	if (P.coauthor) keys.push('build_coauthor');
 
+	// «Непонятно» в разборах: первая отправка, отправка со своими словами, 5 разных уроков (не 5 нажатий — без фарма)
+	const ur = await rows(sql`
+		SELECT count(*) AS n, bool_or(has_comment) AS comment, count(DISTINCT path) AS lessons
+		FROM unclear_reports WHERE user_id = ${userId}`);
+	const U = ur[0] ?? {};
+	if (num(U.n) >= 1) keys.push('unclear_first');
+	if (U.comment) keys.push('unclear_comment');
+	if (num(U.lessons) >= 5) keys.push('unclear_5');
+
 	return keys;
 }
 

@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { reportUnclear } from '@/actions/report-unclear'
 import { cn } from '@/lib/utils'
+import { useAchievementUnlockStore } from '@/store/use-achievement-unlock-store'
 
 // Свой значок: облачко-мысль с перекошенным «?» и капелькой пота — «я запутался»
 export const UnclearIcon = ({ className }: { className?: string }) => (
@@ -40,11 +41,14 @@ const buildPrefix = () => {
 export const UnclearButton = ({ className, style }: { className?: string; style?: React.CSSProperties }) => {
     const [open, setOpen] = useState(false)
     const [text, setText] = useState('')
+    const [prefix, setPrefix] = useState('')
     const [sending, setSending] = useState(false)
     const areaRef = useRef<HTMLTextAreaElement | null>(null)
 
     const openModal = () => {
-        setText(buildPrefix())
+        const p = buildPrefix()
+        setPrefix(p)
+        setText(p)
         setOpen(true)
         // курсор — в конец готового начала, чтобы сразу дописывать
         setTimeout(() => {
@@ -58,9 +62,11 @@ export const UnclearButton = ({ className, style }: { className?: string; style?
         if (sending || !text.trim()) return
         setSending(true)
         try {
-            await reportUnclear({ path: window.location.pathname, text })
+            await reportUnclear({ path: window.location.pathname, text, prefix })
             toast.success('Отправлено! Разберусь и поправлю этот этап 💜')
             setOpen(false)
+            // ачивки за «Непонятно» сервер уже выдал — забираем непоказанные и показываем тост
+            useAchievementUnlockStore.getState().check()
         } catch {
             toast.error('Не получилось отправить, попробуй ещё раз')
         } finally {

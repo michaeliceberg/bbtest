@@ -4,7 +4,7 @@
 // через поле iconSrc), весёлое название и подпись. Без серверного кода — используется и на сервере
 // (выдача), и в браузере (тост, страница /achievements).
 
-export type AchievementGroup = 'start' | 'progress' | 'accuracy' | 'habit' | 'chests' | 'friends' | 'builds';
+export type AchievementGroup = 'start' | 'progress' | 'accuracy' | 'habit' | 'chests' | 'friends' | 'builds' | 'feedback';
 
 export type AchievementDef = {
 	key: string;
@@ -23,6 +23,7 @@ export const ACHIEVEMENT_GROUPS: { id: AchievementGroup; title: string; color: s
 	{ id: 'chests', title: 'Сундуки и пицца', color: '#EF9F27' },
 	{ id: 'friends', title: 'Друзья и банды', color: '#BC418A' },
 	{ id: 'builds', title: 'ИИ-помощник', color: '#5CC99F' },
+	{ id: 'feedback', title: 'Помогаешь делать уроки', color: '#F09B38' },
 ];
 
 const RAW_ACHIEVEMENTS: AchievementDef[] = [
@@ -86,6 +87,11 @@ const RAW_ACHIEVEMENTS: AchievementDef[] = [
 	{ key: 'build_coauthor', group: 'builds', emoji: '🎩', title: 'Соавтор', desc: 'Мы сделали урок по теме из твоей задачи' },
 	{ key: 'build_hunter_10', group: 'builds', emoji: '💀', title: 'Охотник на боссов', desc: 'Отправил ИИ-помощнику 10 задач' },
 	{ key: 'build_hunter_50', group: 'builds', emoji: '🐉', title: 'Гроза задачника', desc: 'Отправил ИИ-помощнику 50 задач' },
+
+	// Кнопка «Непонятно» в пошаговых разборах (unclear_reports, actions/report-unclear.ts)
+	{ key: 'unclear_first', group: 'feedback', emoji: '💡', title: 'Честность — суперсила', desc: 'Первый раз сказал «Непонятно» в разборе' },
+	{ key: 'unclear_comment', group: 'feedback', emoji: '✍️', title: 'Разложил по полочкам', desc: 'Своими словами написал, что именно непонятно' },
+	{ key: 'unclear_5', group: 'feedback', emoji: '🔍', title: 'Главный тестировщик', desc: 'Сказал «Непонятно» в 5 разных уроках' },
 ];
 
 // Иконки — game-icons.net (CC BY 3.0, см. public/achievement-icons/LICENSE-game-icons.txt и подпись на странице «Ачивки»).
@@ -144,6 +150,9 @@ export const REWARDS: Record<string, AchievementReward> = {
 	build_coauthor: { kind: 'pizza', amount: 1 },
 	build_hunter_10: { kind: 'gems', amount: 10 },
 	build_hunter_50: { kind: 'pizza', amount: 2 },
+	unclear_first: { kind: 'coins', amount: 50 },
+	unclear_comment: { kind: 'gems', amount: 3 },
+	unclear_5: { kind: 'gems', amount: 5 },
 };
 
 export const rewardText = (r: AchievementReward) =>
