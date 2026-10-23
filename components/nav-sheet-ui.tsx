@@ -36,12 +36,19 @@ export const medalFor = (percent: number): 'none' | 'bronze' | 'silver' | 'gold'
 
 const MEDAL_TITLE = { none: 'Ещё не начато', bronze: 'Бронза: начало положено', silver: 'Серебро: больше половины', gold: 'Золото: всё пройдено' }
 
+const MEDAL_LABEL = { bronze: 'Бронза', silver: 'Серебро', gold: 'Золото' }
+const MEDAL_COLOR = { bronze: '#B9784F', silver: '#3F9FE0', gold: '#F0A818' }
+// Белая обводка подписи — кольцо из text-shadow (не -webkit-text-stroke: у жирных букв даёт шипы на углах).
+const WHITE_RING = [0, 45, 90, 135, 180, 225, 270, 315]
+    .map((a) => `${(Math.cos(a * Math.PI / 180) * 2).toFixed(2)}px ${(Math.sin(a * Math.PI / 180) * 2).toFixed(2)}px 0 #fff`)
+    .join(', ') + ', 0 3px 3px rgba(0,0,0,0.35)'
+
 const MEDAL_SRC = { bronze: '/medals/medal-bronze.svg', silver: '/medals/medal-silver.webp', gold: '/medals/medal-gold.webp' }
 
-export const NavMedal = ({ percent, size = 44, onColor = false }: { percent: number; size?: number; onColor?: boolean }) => {
+export const NavMedal = ({ percent, size = 44, onColor = false, label = false }: { percent: number; size?: number; onColor?: boolean; label?: boolean }) => {
     const m = medalFor(percent)
     return (
-        <span className="relative flex flex-shrink-0 items-center justify-center" style={{ width: size, height: size }} title={MEDAL_TITLE[m]}>
+        <span className="relative flex flex-shrink-0 flex-col items-center justify-center" style={{ width: size, minHeight: size }} title={MEDAL_TITLE[m]}>
             {m === 'gold' && (
                 // Свечение как у кнопки «ИИ-помощник»: тёплый пульс позади и искры (только transform/opacity).
                 <>
@@ -55,6 +62,11 @@ export const NavMedal = ({ percent, size = 44, onColor = false }: { percent: num
                 ? <span className="rounded-full border-[3px] border-dashed" style={{ width: size * 0.64, height: size * 0.64, borderColor: onColor ? 'rgba(255,255,255,0.55)' : '#3A4850' }} />
                 // eslint-disable-next-line @next/next/no-img-element
                 : <img src={MEDAL_SRC[m]} alt={MEDAL_TITLE[m]} className="relative object-contain drop-shadow-[0_2px_0_rgba(0,0,0,0.35)]" style={{ width: size, height: size }} draggable={false} />}
+            {label && m !== 'none' && (
+                <span className="relative whitespace-nowrap font-black leading-none" style={{ marginTop: -size * 0.12, fontSize: Math.max(11, size * 0.17), color: MEDAL_COLOR[m], textShadow: WHITE_RING, zIndex: 2 }}>
+                    {MEDAL_LABEL[m]}
+                </span>
+            )}
         </span>
     )
 }

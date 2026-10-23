@@ -932,3 +932,23 @@ body {
     box-shadow: 0 0 6px 2px rgba(255, 230, 150, .9); animation: magic-spark 1.8s ease-out infinite;
 }
 @media (prefers-reduced-motion: reduce) { .medal-glow, .medal-spark { animation: none !important; } }
+
+/* Нажатие объёмной кнопки БЕЗ сдвига страницы (2026-10-23). Классический приём border-b-4 → active:border-b-2
+   уменьшает высоту кнопки при нажатии, и весь контент ниже подпрыгивает. Здесь при нажатии ширина нижней грани не
+   меняется: грань становится прозрачной (фон не заходит под неё — background-clip), а кнопка опускается на всю её
+   высоту — тёмная нижняя грань «исчезает», высота блока та же. Срабатывает для любых элементов с этими классами. */
+.border-b-4.active\:border-b-2:active:not(:disabled),
+.border-b-4.active\:border-b-0:active:not(:disabled) {
+    border-bottom-width: 4px !important;
+    border-bottom-color: transparent !important;
+    background-clip: padding-box !important;
+    --tw-translate-y: 0px !important;
+    translate: 0 4px;
+}
+.border-b-8.active\:border-b-0:active:not(:disabled) {
+    border-bottom-width: 8px !important;
+    border-bottom-color: transparent !important;
+    background-clip: padding-box !important;
+    --tw-translate-y: 0px !important;
+    translate: 0 8px;
+}
