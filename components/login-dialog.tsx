@@ -13,6 +13,7 @@ import {
 import { TelegramLoginButton } from './telegram-login-button';
 import { PhoneCallLogin } from './phone-call-login';
 import { VkIcon } from './vk-icon';
+import Link from 'next/link';
 
 import { BOT_USERNAME as TELEGRAM_BOT_USERNAME } from '@/lib/telegramLinks';
 
@@ -57,6 +58,13 @@ export const LoginDialog = ({ open, onOpenChange, callbackUrl = '/trainer' }: Pr
             <VkIcon className="h-5 w-5 flex-shrink-0" />
             Войти через VK
           </Button>
+
+          <p className="text-[11px] leading-snug text-center text-[#7F8C93]">
+            Входя, вы соглашаетесь с{' '}
+            <Link href="/offer" target="_blank" className="underline hover:text-white">офертой</Link>{' '}
+            и{' '}
+            <Link href="/privacy" target="_blank" className="underline hover:text-white">политикой обработки персональных данных</Link>
+          </p>
         </div>
       </DialogContent>
     </Dialog>

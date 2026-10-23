@@ -10,6 +10,9 @@ import { DIAGNOSTIC_SUBJECT_LABEL, type DiagnosticSubject } from '@/lib/diagnost
 import { MAX_PIZZA_SLICES } from '@/lib/caseRewards';
 import { sendShareCard } from '@/lib/telegramShareCard';
 
+// Чат админа (тот же, куда по умолчанию шлёт sendMessageToTelegram) — получает вопросы поддержки.
+const SUPPORT_ADMIN_CHAT_ID = '1005641275';
+
 // Reply-клавиатура вместо ручного набора команд — нажатие кнопки
 // присылает её подпись обычным текстовым сообщением, которое мы тут же
 // сопоставляем с канонической командой.
@@ -495,6 +498,29 @@ export async function POST(req: Request) {
                 chatId,
                 keyboard
             );
+            return NextResponse.json({ ok: true });
+        }
+
+        // Поддержка: бот указан контактом в оферте и политике данных (/offer, /privacy).
+        // Админ отвечает командой «/reply <chatId> текст».
+        if (chatId === SUPPORT_ADMIN_CHAT_ID && rawText.startsWith('/reply ')) {
+            const [, toChat, ...rest] = rawText.split(' ');
+            const answer = rest.join(' ').trim();
+            if (toChat && answer) {
+                await sendMessageToTelegram(`💬 Ответ поддержки ggege:\n\n${answer}`, toChat);
+                await sendMessageToTelegram(`✅ Отправлено в чат ${toChat}`, chatId);
+            }
+            return NextResponse.json({ ok: true });
+        }
+
+        // Любой другой текст (не команда) — вопрос в поддержку: пересылаем админу.
+        if (text && !text.startsWith('/') && chatId !== SUPPORT_ADMIN_CHAT_ID) {
+            const uname = message.chat.username ? `@${message.chat.username}` : 'без username';
+            const fullName = [message.chat.first_name, message.chat.last_name].filter(Boolean).join(' ') || 'без имени';
+            await sendMessageToTelegram(
+                `📩 Сообщение в поддержку\nОт: ${fullName} (${uname})\nЧат: ${chatId}\n\n${rawText}\n\nОтветить: /reply ${chatId} текст`
+            );
+            await sendMessageToTelegram('Получили ваше сообщение 👌 Ответим здесь же, обычно в течение дня.', chatId, keyboard);
             return NextResponse.json({ ok: true });
         }
 
