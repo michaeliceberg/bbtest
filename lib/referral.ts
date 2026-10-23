@@ -56,3 +56,8 @@ export const getInviteLink = (code: string | null | undefined, extra?: { l?: num
 	const qs = q.toString()
 	return `https://ggege.ru/i/${code}${qs ? `?${qs}` : ''}`
 }
+
+// Ссылка-приглашение на конкретный пошаговый урок (кнопка «поделиться» на карте /trainer, 2026-10-23).
+// Без кода (ученик ещё без кода приглашения) — прямая ссылка на урок, он тоже открыт гостю.
+export const getLessonInviteLink = (code: string | null | undefined, lesson: number, subject: TrialSubject): string =>
+	code ? getTopicInviteLink(code, lesson, subject) : `https://ggege.ru/t-lesson/${lesson}`

@@ -53,3 +53,12 @@ export const buildInviteMessage = ({
 	subject,
 	extraLine: `⚡ «${lessonTitle}» — за ${formatSeconds(seconds)}${streak >= 3 ? `, ${streak} подряд без ошибок` : ''}. Слабо побить? 😏`,
 })
+
+// Приглашение на конкретный пошаговый разбор (кнопка «поделиться» у урока на карте /trainer).
+export const buildLessonInviteMessage = ({ nickname, lessonTitle }: { nickname: string | null; lessonTitle: string }) => [
+	`Не понял тему «${lessonTitle}» в школе? 🤔`,
+	'Вот разбор по шагам — коротко и понятно, без регистрации.',
+	'',
+	nickname ? `Скинул **${nickname}** 🧙 · в конце — приз из кейса 🎁` : 'В конце — приз из кейса 🎁',
+	'👇',
+].join('\n')

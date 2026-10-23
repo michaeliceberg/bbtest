@@ -67,6 +67,7 @@ const COLUMNS_PER_ROW = 4;
 // (обычный статичный рендер + анимированный crossfade при reveal).
 import { hexToRgba } from '@/src/constants/lessonButtonColors';
 import Lottie from '@/components/lottie-player'
+import { LessonShareContext, MapLessonShare, type LessonShareInfo } from '@/components/lesson-share-button'
 type GroupAccent = { button: string; bottom: string };
 // Цвета блоков/тем по кругу из общей палитры ggege (CLAUDE.md).
 const GROUP_ACCENTS: GroupAccent[] = [GGEGE_PALETTE.blue];
@@ -217,6 +218,8 @@ interface Props {
     petProps?: { streak: number; hasExtendedToday: boolean; questDone: boolean; dayKey: number };
     // Выбор курса сверху шторки «Юниты» (components/unit-sheet-course-picker.tsx).
     coursePicker?: { courses: PickerCourse[]; activeCourseId: number };
+    // Ссылки-приглашения на пошаговые уроки (кнопка «поделиться» у плитки).
+    shareInfo?: LessonShareInfo | null;
 }
 
 // Цвета карты в двух стилях — через CSS-переменные на корне карты, чтобы
@@ -599,9 +602,12 @@ const StagePath = ({
                         >
                             <div>
                                 {s.isStepByStep && (
-                                    <div className={cn("mb-1 inline-flex items-center gap-1 px-2 py-[3px] rounded-full text-[11px] font-black uppercase tracking-[0.2em] leading-none", unlocked ? "lesson-pill" : "opacity-40 border border-[#8A8466]/50")}>
-                                        <BookOpen className="w-3.5 h-3.5 relative" style={{ color: unlocked ? '#412402' : '#8A8466' }} />
-                                        <span className="relative" style={{ color: unlocked ? '#412402' : '#8A8466' }}>Урок</span>
+                                    <div className="mb-1 flex items-center gap-1.5">
+                                        <div className={cn("inline-flex items-center gap-1 px-2 py-[3px] rounded-full text-[11px] font-black uppercase tracking-[0.2em] leading-none", unlocked ? "lesson-pill" : "opacity-40 border border-[#8A8466]/50")}>
+                                            <BookOpen className="w-3.5 h-3.5 relative" style={{ color: unlocked ? '#412402' : '#8A8466' }} />
+                                            <span className="relative" style={{ color: unlocked ? '#412402' : '#8A8466' }}>Урок</span>
+                                        </div>
+                                        <MapLessonShare lessonId={s.id} lessonTitle={s.title} />
                                     </div>
                                 )}
                                 <div
@@ -720,7 +726,13 @@ const FrontierShine = ({ children }: { children: React.ReactNode }) => (
 // 300-500мс), чтобы анимация не началась "за кадром", пока страница ещё едет.
 const SCROLL_SETTLE_MS = 500;
 
-export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onlyActiveGroup, simple = false, petProps, coursePicker }: Props) => {
+export const TrainerGradeTree = ({ shareInfo = null, ...props }: Props) => (
+    <LessonShareContext.Provider value={shareInfo}>
+        <TrainerGradeTreeInner {...props} />
+    </LessonShareContext.Provider>
+);
+
+const TrainerGradeTreeInner = ({ topics, isAdmin = false, theme = 'metal', onlyActiveGroup, simple = false, petProps, coursePicker }: Props) => {
     const cozy = theme === 'cozy';
     const ACC: GroupAccent = cozy ? COZY_TREE_ACCENT : GROUP_ACCENTS[0];
     // Reveal-анимация "только что прошёл этот этап" — сигнал приходит из
@@ -1318,6 +1330,9 @@ export const TrainerGradeTree = ({ topics, isAdmin = false, theme = 'metal', onl
                                                                     >
                                                                         {s.badge}
                                                                     </span>
+                                                                )}
+                                                                {isStepByStep && (
+                                                                    <MapLessonShare lessonId={s.id} lessonTitle={s.title} className="absolute -top-2 -right-1 z-20 h-5 w-5" />
                                                                 )}
                                                                 {isBossExam && (s.bossWins ?? 0) > 0 && (
                                                                     <span className={`absolute top-1/2 -translate-y-1/2 flex flex-col leading-tight whitespace-nowrap ${isReversed ? 'right-full mr-1.5 items-end' : 'left-full ml-1.5'}`}>

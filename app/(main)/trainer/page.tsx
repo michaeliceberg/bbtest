@@ -21,6 +21,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { Header } from './header';
 import { TabTCourses } from '@/components/tab-t-courses';
+import { getOrCreateInvite } from '@/lib/invite';
 import { HwTopBanner } from '../learn/hw-top-banner';
 import { auth } from '@/lib/auth';
 import { getDailyQuestStatus, getRecentQuestHistory } from '@/actions/generate-trainer-quest';
@@ -203,6 +204,8 @@ const TLearnPage = async () => {
     const resolvedActiveCourseId = pickActiveCourseId(cookies().get('activeCourseId')?.value, userCourseIds, userProgress.activeCourse.id)
         ?? userProgress.activeCourse.id;
     const activeTCourse = resolveActiveTCourse(t_coursesRaw, resolvedActiveCourseId);
+    // Код приглашения — для кнопки «поделиться» у пошаговых уроков на карте.
+    const shareInvite = await getOrCreateInvite(userProgress.userId).catch(() => null);
     const dailyQuest = activeTCourse ? await getDailyQuestStatus(activeTCourse.id) : null;
     const questHistory = activeTCourse ? await getRecentQuestHistory(activeTCourse.id) : [];
 
@@ -365,6 +368,7 @@ const TLearnPage = async () => {
                         isAdmin={userProgress.isAdmin === 1}
                         theme={uiTheme}
                         simple={simple}
+                        shareInfo={{ code: shareInvite?.code ?? null, nickname: shareInvite?.nickname ?? null, subject: subjectByTCourse(activeTCourse?.id) }}
                         coursePicker={{ courses: userCourses.map((c) => ({ id: c.id, title: c.title })), activeCourseId: resolvedActiveCourseId }}
                         petProps={simple ? { streak: currentStreakForRisk, hasExtendedToday: hasExtendedStreakToday, questDone: !!dailyQuest?.isCompleted, dayKey: new Date().getDate() } : undefined}
                     />

@@ -15,8 +15,8 @@ import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CaseReel } from '@/components/CaseReel';
 import { shareInviteLink } from '@/components/share-story-button';
-import { getInviteLink } from '@/lib/referral';
-import { TRIAL_TRACKS, subjectByLesson } from '@/lib/trialTracks';
+
+import { TRIAL_TRACKS, subjectByLesson, type TrialSubject } from '@/lib/trialTracks';
 import { battleButtonLabel, buildBattleMessage } from '@/lib/inviteMessage';
 import { createGuestLead, openGuestLeadCase, updateGuestLeadVibes } from '@/actions/guest-lesson';
 import { GuestVibePicker, GUEST_NICKNAME_STORAGE_KEY } from '@/components/guest-vibe-picker';
@@ -31,9 +31,12 @@ type Props = {
 	// id плиток экрана "Что тебе заходит?" (lib/vibes.ts) — пишем в лид для статистики.
 	vibes?: string[];
 	theme: UiTheme;
+	// Предмет урока (по курсу тренажёра); без него — по номеру урока трека.
+	subject?: TrialSubject;
 };
 
-export const GuestRewardScreen = ({ t_lessonId, nickname: initialNickname, vibes, theme }: Props) => {
+export const GuestRewardScreen = ({ t_lessonId, nickname: initialNickname, vibes, theme, subject: subjectProp }: Props) => {
+	const subject = subjectProp ?? subjectByLesson(t_lessonId);
 	const [nickname, setNickname] = useState(initialNickname);
 	// После приза — экран "Что тебе заходит?" (позывной из увлечений), если
 	// гость его ещё не проходил (позывной уже сохранён в localStorage).
@@ -110,12 +113,12 @@ export const GuestRewardScreen = ({ t_lessonId, nickname: initialNickname, vibes
 					<button
 						type="button"
 						onClick={() => shareInviteLink(
-							buildBattleMessage({ nickname, subject: subjectByLesson(t_lessonId), extraLine: `⚡ Выбил ${rewardEmoji(wonReward)} ${rewardLabel(wonReward)} за урок ${TRIAL_TRACKS[subjectByLesson(t_lessonId)].lessonGen}. Слабо круче? 😏` }),
-							getInviteLink(null, undefined, subjectByLesson(t_lessonId)),
+							buildBattleMessage({ nickname, subject: subject, extraLine: `⚡ Выбил ${rewardEmoji(wonReward)} ${rewardLabel(wonReward)} за урок ${TRIAL_TRACKS[subject].lessonGen}. Слабо круче? 😏` }),
+							`https://ggege.ru/t-lesson/${t_lessonId}`,
 						)}
 						className="w-full h-12 rounded-2xl bg-[#232F34] text-[#F2F7FB] font-bold border-2 border-b-4 border-[#3A464E] active:border-b-2"
 					>
-						{battleButtonLabel(subjectByLesson(t_lessonId))}
+						{battleButtonLabel(subject)}
 					</button>
 
 					<div className="w-full rounded-xl border-2 border-sky-500/50 bg-sky-500/10 p-3">

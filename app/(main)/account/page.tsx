@@ -11,11 +11,9 @@ import { AccountLinking } from '@/components/account-linking'
 import { AvatarReroll } from '@/components/avatar-reroll'
 import { NameEditor } from '@/components/name-editor'
 import { ParentBindCode } from '@/components/parent-bind-code'
-import { ReferralCard } from '@/components/referral-card'
 import { StreakFreezeCard } from '@/components/streak-freeze-card'
 import { getOrCreateInvite } from '@/lib/invite'
 import { getDdxState } from '@/lib/ddx'
-import { learnSubjectOf } from '@/lib/learn-unlock'
 import { getRank } from '@/lib/rank'
 import { GangEmblem } from '@/components/gang-emblem'
 import { getLevelInfo } from '@/lib/xp'
@@ -152,7 +150,7 @@ const AccountPage = async () => {
 
             <StreakFreezeCard freezes={userProgress.streakFreezes} gems={userProgress.gems} />
 
-            {invite && <ReferralCard inviteCode={invite.code} defaultSubject={learnSubjectOf(userProgress.activeCourse?.title)} />}
+            {/* Карточка «Пригласи друга» (components/referral-card.tsx) убрана 2026-10-23: ссылки теперь у каждого пошагового урока на карте /trainer. */}
 
             <ParentBindCode userId={userProgress.userId} userName={userProgress.userName} />
 

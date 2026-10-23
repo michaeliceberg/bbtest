@@ -7,7 +7,9 @@
 
 import type { Metadata } from 'next'
 import { InviteRedirect } from './invite-redirect'
-import { TRIAL_TRACKS, PUBLIC_TRIAL_T_LESSON_IDS, type TrialSubject } from '@/lib/trialTracks'
+import { TRIAL_TRACKS, type TrialSubject } from '@/lib/trialTracks'
+import { getTLessonPublic } from '@/db/queries'
+import { isGuestOpenLesson } from '@/lib/guestLessons'
 
 type Props = { params: { code: string }; searchParams: { l?: string; t?: string; s?: string; c?: string; u?: string } }
 
@@ -22,7 +24,9 @@ export const generateMetadata = ({ params, searchParams }: Props): Metadata => {
 	if (searchParams.s) q.set('s', searchParams.s)
 	const image = `${BASE}/api/og/invite?${q.toString()}`
 	const title = '🍕 Заработай нам пиццу!'
-	const description = `Пройди урок ${TRIAL_TRACKS[subjectOf(searchParams)].lessonGen} без регистрации. Сможешь круче?`
+	const description = searchParams.u
+		? 'Не понял тему в школе? Вот понятный разбор по шагам — без регистрации.'
+		: `Пройди урок ${TRIAL_TRACKS[subjectOf(searchParams)].lessonGen} без регистрации. Сможешь круче?`
 	return {
 		title,
 		description,
@@ -31,14 +35,16 @@ export const generateMetadata = ({ params, searchParams }: Props): Metadata => {
 	}
 }
 
-// ?u=<урок> — конкретная тема без регистрации (например, теорема Виета); иначе первый урок трека.
-const lessonOf = (sp: Props['searchParams']) => {
+// ?u=<урок> — конкретный урок без регистрации (любой пошаговый разбор, кнопка «поделиться» на карте
+// /trainer); иначе первый урок трека.
+const lessonOf = async (sp: Props['searchParams']) => {
 	const u = Number(sp.u)
-	return PUBLIC_TRIAL_T_LESSON_IDS.includes(u) ? u : TRIAL_TRACKS[subjectOf(sp)].trial
+	if (u > 0 && isGuestOpenLesson(await getTLessonPublic(u).catch(() => null))) return u
+	return TRIAL_TRACKS[subjectOf(sp)].trial
 }
 
-const InvitePage = ({ params, searchParams }: Props) => (
-	<InviteRedirect href={`/t-lesson/${lessonOf(searchParams)}?ref=${encodeURIComponent(params.code)}`} />
+const InvitePage = async ({ params, searchParams }: Props) => (
+	<InviteRedirect href={`/t-lesson/${await lessonOf(searchParams)}?ref=${encodeURIComponent(params.code)}`} />
 )
 
 export default InvitePage

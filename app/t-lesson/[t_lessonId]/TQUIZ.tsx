@@ -1062,7 +1062,7 @@ export default function TQuiz({
     // срабатывает через openPlannedCase() — никаких доп. изменений в
     // самой state-машине не потребовалось.
     if (isGuest) {
-      return <GuestRewardScreen t_lessonId={t_lessonId} nickname={guestNickname} vibes={guestVibes} theme={uiTheme} />
+      return <GuestRewardScreen t_lessonId={t_lessonId} nickname={guestNickname} vibes={guestVibes} theme={uiTheme} subject={inviteSubject} />
     }
     return (
       <div className="w-full max-w-xl mx-auto">

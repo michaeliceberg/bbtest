@@ -1,5 +1,6 @@
 import { getEgeMove } from '@/lib/egeMove'
-import { PUBLIC_TRIAL_T_LESSON_IDS, PUBLIC_TOPICS, EXTRA_PUBLIC_LESSONS, subjectByLesson, subjectByTCourse } from '@/lib/trialTracks';
+import { PUBLIC_TRIAL_T_LESSON_IDS, PUBLIC_TOPICS, EXTRA_PUBLIC_LESSONS, subjectByTCourse } from '@/lib/trialTracks';
+import { isGuestOpenLesson } from '@/lib/guestLessons';
 import { ReferralCatcher } from '@/components/referral-catcher';
 import { getOrCreateInvite, resolveInviteCode } from '@/lib/invite';
 import { ReferralGate } from '@/components/referral-gate';
@@ -322,8 +323,11 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
     // (жёсткий auth()-гейт) берём getTLessonPublic() — тот же запрос без
     // гейта. Залогиненный пользователь на этом же уроке идёт обычным путём
     // (isGuest=false), поведение для него не меняется вообще.
-    const isGuest = !userProgress && PUBLIC_TRIAL_T_LESSON_IDS.includes(t_lessonId);
-    const t_lesson = isGuest ? await getTLessonPublic(t_lessonId) : await getTLesson(t_lessonId);
+    // С 2026-10-23 гостю открыт и любой пошаговый разбор видимых курсов (isGuestOpenLesson):
+    // на каждый есть ссылка-приглашение с карты /trainer.
+    const publicLesson = !userProgress ? await getTLessonPublic(t_lessonId) : null;
+    const isGuest = !userProgress && isGuestOpenLesson(publicLesson);
+    const t_lesson = !userProgress ? publicLesson : await getTLesson(t_lessonId);
     const guestNickname = isGuest ? pickGuestNickname() : null;
     // Код приглашения + позывной для «Позвать друга» на итогах урока.
     const invite = userProgress ? await getOrCreateInvite(userProgress.userId) : null;
@@ -1969,8 +1973,8 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
         {/* ?ref= из приглашения в пробный урок — ставит cookie referredBy */}
         <ReferralCatcher />
         {/* По приглашению урок стартует только после «ГААААЗ» на экране приветствия */}
-        <MaybeReferralGate show={!!(isGuest && searchParams?.ref)} inviterNickname={inviter?.nickname ?? null} subject={subjectByLesson(t_lessonId)}
-            topic={EXTRA_PUBLIC_LESSONS[t_lessonId] ? PUBLIC_TOPICS.find((x) => x.lesson === t_lessonId)?.label : undefined}>
+        <MaybeReferralGate show={!!(isGuest && searchParams?.ref)} inviterNickname={inviter?.nickname ?? null} subject={subjectByTCourse(t_lesson.t_unit.t_courseId)}
+            topic={PUBLIC_TRIAL_T_LESSON_IDS.includes(t_lessonId) && !EXTRA_PUBLIC_LESSONS[t_lessonId] ? undefined : (PUBLIC_TOPICS.find((x) => x.lesson === t_lessonId)?.label ?? t_lesson.title)}>
         <TQuiz
             moveId={moveId}
             t_lessonId={t_lesson.id}

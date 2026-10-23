@@ -7,7 +7,8 @@ import db from '@/db/drizzle';
 import { visitorEvents } from '@/db/schema';
 import { auth } from '@/lib/auth';
 import { cleanTouch, logVisitorEvent, readAttribution, type Touch } from '@/lib/attribution';
-import { PUBLIC_TRIAL_T_LESSON_IDS } from '@/lib/trialTracks';
+import { getTLessonPublic } from '@/db/queries';
+import { isGuestOpenLesson } from '@/lib/guestLessons';
 
 // isNew — браузер только что получил ggVid; touch — касание из ЭТОГО захода (utm/ref/referrer).
 export async function recordVisit(isNew: boolean, rawTouch: Partial<Record<keyof Touch, unknown>> | null, path: string) {
@@ -22,9 +23,10 @@ export async function recordVisit(isNew: boolean, rawTouch: Partial<Record<keyof
 // Гость открыл пробный урок — один раз на браузер и урок.
 export async function recordTrialStart(path: string) {
 	const m = path.match(/^\/t-lesson\/(\d+)/);
-	if (!m || !PUBLIC_TRIAL_T_LESSON_IDS.includes(Number(m[1]))) return;
+	if (!m) return;
 	const { visitorId, touch } = readAttribution();
 	if (!visitorId) return;
+	if (!isGuestOpenLesson(await getTLessonPublic(Number(m[1])).catch(() => null))) return;
 	const session = await auth().catch(() => null);
 	if (session?.user?.id) return;
 	const lessonPath = `/t-lesson/${m[1]}`;
