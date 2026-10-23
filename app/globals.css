@@ -967,3 +967,13 @@ body {
     --tw-translate-y: 0px !important;
     translate: 0 8px;
 }
+
+/* Тряска «не туда» (урок PROPWALK: неверно выбранный этаж) — только transform */
+@keyframes zone-shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-5px); }
+    40% { transform: translateX(5px); }
+    60% { transform: translateX(-3px); }
+    80% { transform: translateX(3px); }
+}
+.animate-zone-shake { animation: zone-shake 0.45s ease-in-out; }

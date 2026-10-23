@@ -91,27 +91,29 @@ const colorOf = (v: string) => /^\d+$/.test(v) ? NUM_COLOR : LETTER_COLORS[[...v
 // ===== Отрисовка =====
 const flight = { type: 'spring' as const, stiffness: 240, damping: 15 }
 
-const TokChip = ({ tok, tappable, dim, glow, onTap }: { tok: Tok; tappable: boolean; dim: boolean; glow: boolean; onTap?: () => void }) => {
+// Стикер-буква. motion.div (не button): в режиме «выбери этаж» буквы лежат внутри кликабельной зоны,
+// а кнопка внутри кнопки недопустима.
+const TokChip = ({ tok, tappable, dim, glow, selected, onTap }: { tok: Tok; tappable: boolean; dim: boolean; glow: boolean; selected?: boolean; onTap?: () => void }) => {
     const color = colorOf(tok.v)
     return (
-        <motion.button
-            type="button"
+        <motion.div
+            role={tappable ? 'button' : undefined}
             layoutId={tok.id}
             layout
-            transition={{ layout: flight }}
-            disabled={!tappable}
-            onClick={onTap}
+            transition={{ layout: flight, scale: { type: 'spring', stiffness: 420, damping: 14 } }}
+            animate={{ scale: selected ? 1.14 : 1 }}
+            onClick={tappable ? (e) => { e.stopPropagation(); onTap?.() } : undefined}
             className={cn('inline-flex items-center justify-center min-w-[42px] h-[46px] md:min-w-[50px] md:h-[54px] px-2 rounded-xl border-2 font-black text-2xl md:text-3xl select-none',
-                tappable ? 'cursor-pointer' : 'cursor-default')}
+                tappable ? 'cursor-pointer' : 'cursor-default pointer-events-none')}
             style={{
                 ...glassStickerStyle(color),
                 opacity: dim ? 0.3 : 1,
-                boxShadow: glow ? `0 0 16px 2px ${hexToRgba(color, 0.75)}` : undefined,
+                boxShadow: selected ? `0 0 0 3px ${TEXT}, 0 0 20px 4px ${hexToRgba(color, 0.9)}` : glow ? `0 0 16px 2px ${hexToRgba(color, 0.75)}` : undefined,
                 transition: 'opacity 0.35s, box-shadow 0.35s',
             }}
         >
             {tok.v}
-        </motion.button>
+        </motion.div>
     )
 }
 
@@ -123,33 +125,60 @@ const OneChip = ({ k }: { k: string }) => (
     </motion.span>
 )
 
+// Пустое место на ещё не существующем нижнем этаже — куда можно «поставить» букву
+const GhostSlot = () => (
+    <span className="inline-flex items-center justify-center min-w-[42px] h-[46px] md:min-w-[50px] md:h-[54px] rounded-xl border-2 border-dashed font-black text-2xl"
+        style={{ borderColor: hexToRgba(ZONE_COLOR, 0.6), color: hexToRgba(ZONE_COLOR, 0.8) }}>?</span>
+)
+
+type ZoneState = 'idle' | 'wrong'
 type BoardOpts = {
     tapLetters?: string[] | null   // кликать можно только эти (null — любые)
     interactive: boolean
     glowFloor?: Floor | null       // подсветить этаж, остальное приглушить
     glowLetters?: string[]
+    selectedId?: string | null     // выбранная буква (режим «выбери этаж»)
+    zones?: Record<string, ZoneState> | null // ключ `${side}-${floor}` — подсвеченные места, куда можно отправить букву
     onTap?: (side: SideKey, floor: Floor, id: string) => void
+    onZone?: (side: SideKey, floor: Floor) => void
 }
 
+const ZONE_COLOR = GGEGE_PALETTE.blue.button
+
 const SideView = ({ side, k, o }: { side: Side; k: SideKey; o: BoardOpts }) => {
+    const zoneOf = (f: Floor) => o.zones?.[`${k}-${f}`]
     const chip = (t: Tok, floor: Floor) => {
-        const can = o.interactive && (!o.tapLetters || o.tapLetters.includes(t.v))
+        const can = o.interactive && (!o.tapLetters || o.tapLetters.includes(t.v)) && !zoneOf(floor)
         const dim = (o.glowFloor && o.glowFloor !== floor) || (o.interactive && !!o.tapLetters && !o.tapLetters.includes(t.v)) || (!!o.glowLetters && !o.glowLetters.includes(t.v))
         const glow = (o.glowFloor === floor) || (!!o.glowLetters && o.glowLetters.includes(t.v))
-        return <TokChip key={t.id} tok={t} tappable={can} dim={!!dim} glow={glow} onTap={() => o.onTap?.(k, floor, t.id)} />
+        return <TokChip key={t.id} tok={t} tappable={can} dim={!!dim} glow={glow} selected={o.selectedId === t.id} onTap={() => o.onTap?.(k, floor, t.id)} />
     }
     // Числа — впереди букв: пишем «2S», а не «S2»
     const row = (toks: Tok[], floor: Floor) => toks.length
         ? [...toks].sort((x, y) => Number(!/^\d+$/.test(x.v)) - Number(!/^\d+$/.test(y.v))).map((t) => chip(t, floor))
-        : <OneChip k={`one-${k}-${floor}`} />
-    if (side.den.length === 0) {
-        return <motion.div layout transition={flight} className="flex items-center gap-1">{row(side.num, 'num')}</motion.div>
+        : floor === 'den' ? <GhostSlot /> : <OneChip k={`one-${k}-${floor}`} />
+    // Этаж-строка; если это подсвеченная зона — пунктирная рамка, клик отправляет туда букву
+    const rowBox = (toks: Tok[], floor: Floor, pad: string) => {
+        const z = zoneOf(floor)
+        const base = cn('flex items-center justify-center gap-1', pad)
+        if (!z) return <motion.div layout transition={flight} className={base}>{row(toks, floor)}</motion.div>
+        const c = z === 'wrong' ? WRONG_COLOR : ZONE_COLOR
+        return (
+            <motion.div layout transition={flight} role="button" onClick={() => o.onZone?.(k, floor)}
+                className={cn(base, 'rounded-2xl border-2 border-dashed px-1.5 py-1 cursor-pointer', z === 'wrong' && 'animate-zone-shake')}
+                style={{ borderColor: c, backgroundColor: hexToRgba(c, 0.14), boxShadow: `0 0 14px -2px ${hexToRgba(c, 0.6)}` }}>
+                {row(toks, floor)}
+            </motion.div>
+        )
     }
+    const ghostDen = side.den.length === 0 && !!zoneOf('den')
+    if (side.den.length === 0 && !ghostDen) return rowBox(side.num, 'num', '')
     return (
         <motion.div layout transition={flight} className="inline-flex flex-col items-stretch">
-            <motion.div layout transition={flight} className="flex items-center justify-center gap-1 pb-1.5">{row(side.num, 'num')}</motion.div>
-            <motion.div layout transition={flight} className="h-[3px] rounded-full bg-[#F2F7FB] min-w-[52px]" />
-            <motion.div layout transition={flight} className="flex items-center justify-center gap-1 pt-1.5">{row(side.den, 'den')}</motion.div>
+            {rowBox(side.num, 'num', 'pb-1.5')}
+            <motion.div layout transition={flight} className={cn('rounded-full min-w-[52px]', ghostDen ? 'h-0 border-t-[3px] border-dashed' : 'h-[3px] bg-[#F2F7FB]')}
+                style={ghostDen ? { borderColor: hexToRgba(TEXT, 0.4) } : undefined} />
+            {rowBox(side.den, 'den', 'pt-1.5')}
         </motion.div>
     )
 }
@@ -163,6 +192,53 @@ const Board = ({ eq, groupId, ...o }: BoardOpts & { eq: Eq; groupId: string }) =
         </motion.div>
     </LayoutGroup>
 )
+
+// ===== Режим «выбери этаж»: кликнул букву — подсвечиваются 3 места, куда она могла бы полететь =====
+// Верно только одно: на другую сторону и на другой этаж. Ошибки здесь — часть обучения, в ошибки урока не идут.
+const other = (s: SideKey): SideKey => (s === 'L' ? 'R' : 'L')
+const flip = (f: Floor): Floor => (f === 'num' ? 'den' : 'num')
+type Sel = { s: SideKey; f: Floor; id: string; v: string }
+const FLOOR_WORD: Record<Floor, string> = { num: 'наверху', den: 'внизу' }
+
+const PickBoard = ({ eq, groupId, tapLetters, glowLetters, disabled, onMove, onWrong, onSelect }: {
+    eq: Eq; groupId: string; tapLetters?: string[] | null; glowLetters?: string[]; disabled?: boolean
+    onMove: (s: SideKey, f: Floor, id: string) => void
+    onWrong?: (msg: string) => void
+    onSelect?: (v: string | null) => void
+}) => {
+    const [sel, setSel] = useState<Sel | null>(null)
+    const [wrongKey, setWrongKey] = useState<string | null>(null)
+    useEffect(() => { if (disabled) setSel(null) }, [disabled])
+    const zones: Record<string, ZoneState> | null = sel ? {
+        [`${sel.s}-${flip(sel.f)}`]: 'idle', [`${other(sel.s)}-num`]: 'idle', [`${other(sel.s)}-den`]: 'idle',
+    } : null
+    if (zones && wrongKey && zones[wrongKey]) zones[wrongKey] = 'wrong'
+    const tap = (s: SideKey, f: Floor, id: string) => {
+        if (disabled) return
+        const v = [...eq[s].num, ...eq[s].den].find((t) => t.id === id)?.v ?? ''
+        const next = sel?.id === id ? null : { s, f, id, v }
+        setSel(next); onSelect?.(next ? v : null)
+    }
+    const zone = (s: SideKey, f: Floor) => {
+        if (!sel) return
+        if (s === other(sel.s) && f === flip(sel.f)) {
+            onMove(sel.s, sel.f, sel.id)
+            setSel(null); onSelect?.(null)
+            return
+        }
+        const key = `${s}-${f}`
+        setWrongKey(key)
+        setTimeout(() => setWrongKey((k) => (k === key ? null : k)), 700)
+        playSound(WRONG_ANSWER_SOUND); showAnswerMeme(false)
+        onWrong?.(s === sel.s
+            ? `${pickWrongTryPhrase()} Без прыжка через «=» буква никуда не денется.`
+            : `${pickWrongTryPhrase()} ${sel.v} была ${FLOOR_WORD[sel.f]} — после «=» она будет ${FLOOR_WORD[flip(sel.f)]}.`)
+    }
+    return (
+        <Board eq={eq} groupId={groupId} interactive={!disabled} tapLetters={tapLetters} glowLetters={sel ? undefined : glowLetters}
+            selectedId={sel?.id} zones={zones} onTap={tap} onZone={zone} />
+    )
+}
 
 // Неинтерактивная запись «b c / d» — для вариантов ответа
 const PlainFrac = ({ s, className }: { s: string; className?: string }) => {
@@ -281,16 +357,20 @@ const RuleScene = ({ onSettled }: SceneProps) => {
 const OneScene = ({ onSettled }: SceneProps) => {
     const { phase, go } = usePhase()
     const [eq, setEq] = useState(() => parseEq('a / b = c / d'))
-    const tap = (s: SideKey, f: Floor, id: string) => { setEq((e) => moveTok(e, s, f, id)); go(3) }
+    const [sel, setSel] = useState<string | null>(null)
+    const [wrong, setWrong] = useState<string | null>(null)
+    const move = (s: SideKey, f: Floor, id: string) => { setEq((e) => moveTok(e, s, f, id)); setWrong(null); go(3) }
     return (
         <>
             <TLine text="А что если этаж опустеет?" onDone={() => go(1)} />
             {phase >= 1 && (
                 <DiagramBlock onSettled={() => go(2)}>
-                    <Board eq={eq} groupId="one" interactive={phase < 3} tapLetters={['a']} glowLetters={phase < 3 ? ['a'] : undefined} onTap={tap} />
+                    <PickBoard eq={eq} groupId="one" disabled={phase >= 3} tapLetters={['a']} glowLetters={phase < 3 ? ['a'] : undefined}
+                        onMove={move} onWrong={setWrong} onSelect={(v) => { setSel(v); if (v) setWrong(null) }} />
                 </DiagramBlock>
             )}
-            {phase >= 2 && <TLine small text="Кликни на a" />}
+            {phase >= 2 && <TLine small text="Кликни на a и отправь её на нужный этаж" />}
+            {phase === 2 && <PickHint sel={sel} wrong={wrong} />}
             {phase >= 3 && <TLine small text="Сверху никого не осталось — там стоит 1. Пустой этаж — это 1." onDone={() => onSettled?.()} />}
         </>
     )
@@ -300,42 +380,63 @@ const OneScene = ({ onSettled }: SceneProps) => {
 const VanishScene = ({ onSettled }: SceneProps) => {
     const { phase, go } = usePhase()
     const [eq, setEq] = useState(() => parseEq('a = b / c'))
-    const tap = (s: SideKey, f: Floor, id: string) => { setEq((e) => moveTok(e, s, f, id)); go(3) }
+    const [sel, setSel] = useState<string | null>(null)
+    const [wrong, setWrong] = useState<string | null>(null)
+    const move = (s: SideKey, f: Floor, id: string) => { setEq((e) => moveTok(e, s, f, id)); setWrong(null); go(3) }
     return (
         <>
             <TLine text="А если опустеет НИЖНИЙ этаж?" onDone={() => go(1)} />
             {phase >= 1 && (
                 <DiagramBlock onSettled={() => go(2)}>
-                    <Board eq={eq} groupId="vanish" interactive={phase < 3} tapLetters={['c']} glowLetters={phase < 3 ? ['c'] : undefined} onTap={tap} />
+                    <PickBoard eq={eq} groupId="vanish" disabled={phase >= 3} tapLetters={['c']} glowLetters={phase < 3 ? ['c'] : undefined}
+                        onMove={move} onWrong={setWrong} onSelect={(v) => { setSel(v); if (v) setWrong(null) }} />
                 </DiagramBlock>
             )}
-            {phase >= 2 && <TLine small text="Кликни на c" />}
+            {phase >= 2 && <TLine small text="Кликни на c и отправь её на нужный этаж" />}
+            {phase === 2 && <PickHint sel={sel} wrong={wrong} />}
             {phase >= 3 && <TLine small text="Внизу никого — дробь исчезла! Получилось ac = b." onDone={() => setTimeout(() => go(4), 600)} />}
             {phase >= 4 && <TLine small text="b осталась справа? Ничего страшного: ac = b — это то же самое, что b = ac 👌" onDone={() => onSettled?.()} />}
         </>
     )
 }
 
-// ===== Головоломка «вырази букву» =====
+// Строка-подсказка под доской: «выбери этаж» (голубая) или «не туда» (красная, держится до следующего действия)
+const PickHint = ({ sel, wrong }: { sel: string | null; wrong: string | null }) => {
+    if (wrong) return <div className="w-full text-center text-sm md:text-base font-bold rounded-xl px-3 py-2" style={{ color: WRONG_COLOR, backgroundColor: hexToRgba(WRONG_COLOR, 0.13) }}>{wrong}</div>
+    if (sel) return (
+        <motion.div className="w-full text-center text-sm md:text-base font-bold" style={{ color: ZONE_COLOR }}
+            initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}>
+            Куда полетит <span className="font-black" style={{ color: colorOf(sel) }}>{sel}</span>? Нажми на подсвеченный этаж 👆
+        </motion.div>
+    )
+    return null
+}
+
+// ===== Головоломка «вырази букву» (режим «выбери этаж») =====
 const Puzzle = ({ init, target, best, groupId, onSolved }: { init: string; target: string; best: number; groupId: string; onSolved: (moves: number) => void }) => {
     const [eq, setEq] = useState(() => parseEq(init))
     const [moves, setMoves] = useState(0)
     const [solved, setSolved] = useState(false)
-    const tap = (s: SideKey, f: Floor, id: string) => {
+    const [sel, setSel] = useState<string | null>(null)
+    const [wrong, setWrong] = useState<string | null>(null)
+    const [resetN, setResetN] = useState(0)
+    const move = (s: SideKey, f: Floor, id: string) => {
         if (solved) return
         const next = moveTok(eq, s, f, id)
         const m = moves + 1
-        setEq(next); setMoves(m)
+        setEq(next); setMoves(m); setWrong(null)
         if (isIsolated(next, target)) {
             setSolved(true)
             showAnswerMeme(true)
             onSolved(m)
         }
     }
-    const reset = () => { setEq(parseEq(init)); setMoves(0) }
+    const reset = () => { setEq(parseEq(init)); setMoves(0); setWrong(null); setSel(null); setResetN((n) => n + 1) }
     return (
         <div className="w-full flex flex-col items-center gap-2">
-            <Board eq={eq} groupId={groupId} interactive={!solved} onTap={tap} glowLetters={solved ? [target] : undefined} />
+            <PickBoard key={resetN} eq={eq} groupId={`${groupId}-${resetN}`} disabled={solved} glowLetters={solved ? [target] : undefined}
+                onMove={move} onWrong={setWrong} onSelect={(v) => { setSel(v); if (v) setWrong(null) }} />
+            {!solved && <PickHint sel={sel} wrong={wrong} />}
             <div className="flex items-center gap-3 text-sm font-bold" style={{ color: MUTED }}>
                 <span>Ходов: <span className="tabular-nums" style={{ color: TEXT }}>{moves}</span></span>
                 <span>· можно за {best}</span>
@@ -350,7 +451,64 @@ const Puzzle = ({ init, target, best, groupId, onSolved }: { init: string; targe
     )
 }
 
-// ===== Сцена 5: вырази a =====
+// ===== Сцена 3: «Куда полетит?» — кликни букву и выбери этаж сам =====
+type WhereRound = { init: string; letter: string; after: string }
+const WHERE_ROUNDS: WhereRound[] = [
+    { init: 'a / b = c / d', letter: 'b', after: 'b была внизу слева → стала наверху справа.' },
+    { init: 'a / b = c / d', letter: 'c', after: 'c была наверху справа → стала внизу слева.' },
+    { init: 'a b = c', letter: 'a', after: 'Справа не было нижнего этажа — a его создала!' },
+    { init: 'a = b / c', letter: 'c', after: 'c поднялась наверх влево: ac = b.' },
+    { init: 'x / y = z', letter: 'x', after: 'x ушла вниз вправо, а слева на её месте — 1.' },
+    { init: 'm = k / n', letter: 'm', after: 'm ушла вниз, к n: 1 = k / mn.' },
+]
+const WhereScene = ({ onSettled }: SceneProps) => {
+    const { phase, go } = usePhase()
+    const [ri, setRi] = useState(0)
+    const [eq, setEq] = useState(() => parseEq(WHERE_ROUNDS[0].init))
+    const [done, setDone] = useState(false)
+    const [sel, setSel] = useState<string | null>(null)
+    const [wrong, setWrong] = useState<string | null>(null)
+    const r = WHERE_ROUNDS[ri]
+    const last = ri + 1 >= WHERE_ROUNDS.length
+    const nextRound = () => {
+        const n = ri + 1
+        setRi(n); setEq(parseEq(WHERE_ROUNDS[n].init)); setDone(false); setSel(null); setWrong(null)
+    }
+    return (
+        <>
+            <TLine text="Куда полетит? Теперь этаж выбираешь ты!" onDone={() => go(1)} />
+            {phase >= 1 && (
+                <DiagramBlock>
+                    <div key={ri} className="w-full flex flex-col items-center gap-2">
+                        <div className="flex items-center gap-2 text-sm font-black">
+                            <span className="px-2.5 h-7 inline-flex items-center rounded-full border-2 tabular-nums"
+                                style={{ borderColor: hexToRgba(ZONE_COLOR, 0.55), backgroundColor: hexToRgba(ZONE_COLOR, 0.16), color: ZONE_COLOR }}>
+                                {ri + 1}/{WHERE_ROUNDS.length}
+                            </span>
+                        </div>
+                        <div className="text-lg md:text-xl font-black text-[#F2F7FB] text-center">
+                            Кликни на <span style={{ color: colorOf(r.letter) }}>{r.letter}</span> и выбери, куда она полетит
+                        </div>
+                        <PickBoard eq={eq} groupId={`where-${ri}`} tapLetters={[r.letter]} glowLetters={done ? undefined : [r.letter]} disabled={done}
+                            onMove={(s, f, id) => { setEq((e) => moveTok(e, s, f, id)); setDone(true); setWrong(null); showAnswerMeme(true) }}
+                            onWrong={setWrong} onSelect={(v) => { setSel(v); if (v) setWrong(null) }} />
+                        {!done && <PickHint sel={sel} wrong={wrong} />}
+                        {done && (
+                            <>
+                                <FieryFeedbackBanner>{r.after}</FieryFeedbackBanner>
+                                {last
+                                    ? <SettleOnMount onSettled={onSettled} />
+                                    : <ReplyButton onClick={nextRound}>Следующая →</ReplyButton>}
+                            </>
+                        )}
+                    </div>
+                </DiagramBlock>
+            )}
+        </>
+    )
+}
+
+// ===== Сцена 7: вырази a =====
 const ExpressScene = ({ onSettled }: SceneProps) => {
     const { phase, go } = usePhase()
     return (
@@ -362,18 +520,19 @@ const ExpressScene = ({ onSettled }: SceneProps) => {
                 </DiagramBlock>
             )}
             {phase >= 2 && <FieryFeedbackBanner>Есть! Мы выразили a.</FieryFeedbackBanner>}
-            {phase >= 2 && <TLine small text="Хватило одного клика: b перелетела наверх справа." onDone={() => onSettled?.()} />}
+            {phase >= 2 && <TLine small text="Хватило одного прыжка: b перелетела наверх справа." onDone={() => onSettled?.()} />}
         </>
     )
 }
 
-// ===== Сцена 6: тренировка «вырази букву» от простого к сложному =====
+// ===== Сцена 8: тренировка «вырази букву» от простого к сложному =====
 type Round = { init: string; target: string; best: number; title?: string; after?: string }
 const ROUNDS: Round[] = [
     { init: 'a b = c', target: 'b', best: 1 },
     { init: 'a = b c', target: 'c', best: 1 },
     { init: 'a / b = c', target: 'a', best: 1 },
     { init: 'a = b / c', target: 'c', best: 2, after: 'Два хода: сначала c наверх, потом a вниз.' },
+    { init: 'a / b = c / d', target: 'b', best: 3, after: 'b = ad / c. Сначала b подняли наверх вправо, потом убрали её соседей.' },
     { init: 'a / b = c / d', target: 'd', best: 3, after: 'd = bc / a — понадобилось три прыжка.' },
     { init: 'v = s / t', target: 't', best: 2, title: 'Скорость', after: 't = s / v — время = путь : скорость.' },
     { init: 'ρ = m / V', target: 'V', best: 2, title: 'Плотность' },
@@ -421,9 +580,9 @@ const SettleOnMount = ({ onSettled }: SceneProps) => {
     return null
 }
 
-const SCENES = [FloorsScene, JuggleScene, RuleScene, OneScene, VanishScene, ExpressScene, RoundsScene]
-const SCENE_MAP_LABELS = ['Два этажа', 'Жонглирование', 'ЗАПОМНИ', 'Пустой этаж = 1', 'Дробь исчезла', 'Вырази a', 'Тренировка']
-const NEXT_LABELS = ['Понял, два этажа', 'Буквы прыгают!', 'Меняем этаж!', 'Пустой этаж — это 1', 'Дробь исчезла!', 'Я выразил a', 'Я жонглёр 🤹']
+const SCENES = [FloorsScene, JuggleScene, RuleScene, WhereScene, OneScene, VanishScene, ExpressScene, RoundsScene]
+const SCENE_MAP_LABELS = ['Два этажа', 'Жонглирование', 'ЗАПОМНИ', 'Куда полетит?', 'Пустой этаж = 1', 'Дробь исчезла', 'Вырази a', 'Тренировка']
+const NEXT_LABELS = ['Понял, два этажа', 'Буквы прыгают!', 'Меняем этаж!', 'Этажи — изи!', 'Пустой этаж — это 1', 'Дробь исчезла!', 'Я выразил a', 'Я жонглёр 🤹']
 
 // ===== Проверим себя =====
 type Trial = { eq: string; target: string; options: string[]; correct: number; hint: string }
