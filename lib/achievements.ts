@@ -181,6 +181,30 @@ export async function computeStateKeys(userId: string): Promise<string[]> {
 	if (U.comment) keys.push('unclear_comment');
 	if (num(U.lessons) >= 5) keys.push('unclear_5');
 
+	// Медали юнитов — та же логика, что на карте и в меню (GetTUnitCompletionPercent): урок засчитан, если пройден
+	// с точностью ≥50%. Бронза — хоть один урок, серебро — половина, золото — все.
+	const ml = await rows(sql`
+		SELECT count(l.id) AS total, count(d.t_lesson_id) AS done
+		FROM t_units u
+		JOIN t_courses c ON c.id = u.t_course_id AND c.id NOT IN (${hiddenList})
+		JOIN t_lessons l ON l.t_unit_id = u.id
+		LEFT JOIN (SELECT DISTINCT t_lesson_id FROM t_lesson_progress
+			WHERE user_id = ${userId} AND training_pts > 0 AND done_right_percent >= 50) d ON d.t_lesson_id = l.id
+		GROUP BY u.id`);
+	let bronze = 0, silver = 0, gold = 0;
+	for (const r of ml) {
+		const t = num(r.total), d = num(r.done);
+		if (!t || !d) continue;
+		if (d >= t) gold++; else if (d / t >= 0.5) silver++; else bronze++;
+	}
+	if (bronze || silver || gold) keys.push('medal_bronze_first');
+	if (silver || gold) keys.push('medal_silver_first');
+	if (gold) keys.push('medal_gold_first');
+	if (bronze && silver && gold) keys.push('medal_triple');
+	if (bronze >= 5) keys.push('medal_bronze_5');
+	if (gold >= 3) keys.push('medal_gold_3');
+	if (gold >= 5) keys.push('medal_gold_5');
+
 	return keys;
 }
 

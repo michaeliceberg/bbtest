@@ -4,7 +4,7 @@
 // через поле iconSrc), весёлое название и подпись. Без серверного кода — используется и на сервере
 // (выдача), и в браузере (тост, страница /achievements).
 
-export type AchievementGroup = 'start' | 'progress' | 'accuracy' | 'habit' | 'chests' | 'friends' | 'builds' | 'feedback';
+export type AchievementGroup = 'start' | 'progress' | 'accuracy' | 'habit' | 'chests' | 'friends' | 'builds' | 'feedback' | 'medals';
 
 export type AchievementDef = {
 	key: string;
@@ -24,6 +24,7 @@ export const ACHIEVEMENT_GROUPS: { id: AchievementGroup; title: string; color: s
 	{ id: 'friends', title: 'Друзья и банды', color: '#BC418A' },
 	{ id: 'builds', title: 'ИИ-помощник', color: '#5CC99F' },
 	{ id: 'feedback', title: 'Помогаешь делать уроки', color: '#F09B38' },
+	{ id: 'medals', title: 'Медали юнитов', color: '#F0A818' },
 ];
 
 const RAW_ACHIEVEMENTS: AchievementDef[] = [
@@ -92,6 +93,16 @@ const RAW_ACHIEVEMENTS: AchievementDef[] = [
 	{ key: 'unclear_first', group: 'feedback', emoji: '💡', title: 'Честность — суперсила', desc: 'Первый раз сказал «Непонятно» в разборе' },
 	{ key: 'unclear_comment', group: 'feedback', emoji: '✍️', title: 'Разложил по полочкам', desc: 'Своими словами написал, что именно непонятно' },
 	{ key: 'unclear_5', group: 'feedback', emoji: '🔍', title: 'Главный тестировщик', desc: 'Сказал «Непонятно» в 5 разных уроках' },
+
+	// Медали юнитов тренажёра (бронза — начал, серебро — половина уроков, золото — все; components/nav-sheet-ui.tsx).
+	// Иконки — сами медали в цвете (public/medals/*, AchievementIcon рисует их картинкой, а не маской).
+	{ key: 'medal_bronze_first', group: 'medals', emoji: '🥉', iconSrc: '/medals/medal-bronze.svg', title: 'Бронзовый век', desc: 'Получил первую бронзовую медаль юнита' },
+	{ key: 'medal_silver_first', group: 'medals', emoji: '🥈', iconSrc: '/medals/medal-silver.webp', title: 'Серебряная пуля', desc: 'Дотянул юнит до серебра — половина уроков позади' },
+	{ key: 'medal_gold_first', group: 'medals', emoji: '🥇', iconSrc: '/medals/medal-gold.webp', title: 'Золотая лихорадка', desc: 'Получил первое золото — прошёл все уроки юнита' },
+	{ key: 'medal_triple', group: 'medals', emoji: '🏅', iconSrc: '/medals/medal-gold.webp', title: 'Олимпийский набор', desc: 'Бронза, серебро и золото одновременно' },
+	{ key: 'medal_bronze_5', group: 'medals', emoji: '🥉', iconSrc: '/medals/medal-bronze.svg', title: 'Мастер начинать', desc: '5 юнитов в бронзе одновременно. Начать — уже полдела, правда?' },
+	{ key: 'medal_gold_3', group: 'medals', emoji: '🥇', iconSrc: '/medals/medal-gold.webp', title: 'Сам себе ювелир', desc: '3 золотые медали' },
+	{ key: 'medal_gold_5', group: 'medals', emoji: '🥇', iconSrc: '/medals/medal-gold.webp', title: 'Нужен сейф', desc: '5 золотых медалей — пора прятать от грабителей' },
 ];
 
 // Иконки — game-icons.net (CC BY 3.0, см. public/achievement-icons/LICENSE-game-icons.txt и подпись на странице «Ачивки»).
@@ -153,6 +164,13 @@ export const REWARDS: Record<string, AchievementReward> = {
 	unclear_first: { kind: 'coins', amount: 50 },
 	unclear_comment: { kind: 'gems', amount: 3 },
 	unclear_5: { kind: 'gems', amount: 5 },
+	medal_bronze_first: { kind: 'coins', amount: 20 },
+	medal_silver_first: { kind: 'coins', amount: 50 },
+	medal_gold_first: { kind: 'gems', amount: 5 },
+	medal_triple: { kind: 'gems', amount: 3 },
+	medal_bronze_5: { kind: 'coins', amount: 30 },
+	medal_gold_3: { kind: 'gems', amount: 10 },
+	medal_gold_5: { kind: 'pizza', amount: 1 },
 };
 
 export const rewardText = (r: AchievementReward) =>
