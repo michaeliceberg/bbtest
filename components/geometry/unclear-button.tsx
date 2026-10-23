@@ -78,17 +78,16 @@ export const UnclearButton = ({ className, style }: { className?: string; style?
                     <DialogHeader className="gap-1 items-center text-center">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src="/gaga/gaga-oops.webp" alt="" className="w-24 h-24 object-contain -mt-1" />
-                        <DialogTitle className="text-lg text-[#F2F7FB]">Что непонятно?</DialogTitle>
+                        <DialogTitle className="text-lg text-[#F2F7FB]">Непонятно? Спасибо, что сказал! 💜</DialogTitle>
                         <DialogDescription className="text-sm text-[#9AA7B0]">
-                            Бывает, разберёмся вместе! Допиши, что именно запутало, — или отправь как есть.
+                            Ты помогаешь сделать урок понятнее для всех. Допиши, что именно запутало, или просто отправь как есть.
                         </DialogDescription>
                     </DialogHeader>
                     <textarea ref={areaRef} value={text} onChange={(e) => setText(e.target.value.slice(0, 1500))} rows={5}
                         className="w-full rounded-xl bg-[#0F171B] border-2 border-[#3A464E] focus:border-[#F09B38] outline-none p-3 text-[15px] leading-snug text-[#F2F7FB] resize-none" />
                     <button type="button" onClick={send} disabled={sending || !text.trim()}
-                        className={cn('w-full h-12 rounded-xl font-extrabold uppercase tracking-wide text-[#2A1A05] transition-transform active:translate-y-[4px]',
-                            sending ? 'opacity-60' : '')}
-                        style={{ backgroundColor: '#F09B38', boxShadow: '0 4px 0 #C07C2B' }}>
+                        className={cn('w-full h-12 rounded-xl font-extrabold uppercase tracking-wide text-[#2A1A05] bg-[#F09B38] transition-all duration-100',
+                            'shadow-[0_4px_0_#C07C2B] active:shadow-none active:translate-y-[4px]', sending ? 'opacity-60' : '')}>
                         {sending ? 'Отправляю…' : 'Отправить «непонятно»'}
                     </button>
                 </DialogContent>

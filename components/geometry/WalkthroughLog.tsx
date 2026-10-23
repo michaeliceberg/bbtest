@@ -273,7 +273,7 @@ export const pickWrongTryPhrase = (): string => {
 // Проявляется, когда уже можно жать (просьба пользователя 2026-10-01: «зачем
 // видеть кнопку и её текст заранее, если на неё ещё нельзя нажать»).
 export const walkthroughButtonClass = (enabled: boolean) => cn(
-    'flex-1 h-[52px] flex items-center justify-center rounded-lg font-bold text-lg transition-all duration-300 active:translate-y-1',
+    'flex-1 h-[52px] flex items-center justify-center rounded-lg font-bold text-lg transition-all duration-300 active:translate-y-1 active:!shadow-none',
     enabled ? 'bg-[#A1D151] text-[#151F24] cursor-pointer opacity-100 scale-100' : 'bg-[#A1D151] text-[#151F24] opacity-0 scale-95 pointer-events-none',
 );
 export const walkthroughButtonStyle = (enabled: boolean): { boxShadow: string } => ({
@@ -458,7 +458,7 @@ export const SceneWrapper = ({ active, innerRef, children }: { active: boolean; 
 // и визуально "гулял" по высоте относительно неё, что и заметил
 // пользователь. h-[52px] — та же явная высота, что и у walkthroughButtonClass.
 const iconButtonClass = (disabled: boolean | undefined) => cn(
-    'shrink-0 w-12 h-[52px] rounded-lg transition-all duration-200 active:translate-y-1 flex items-center justify-center',
+    'shrink-0 w-12 h-[52px] rounded-lg transition-all duration-200 active:translate-y-1 active:!shadow-none flex items-center justify-center',
     disabled ? 'bg-[#3A464E] text-[#5C6B73] cursor-not-allowed opacity-90' : 'bg-[#1B252B] text-[#9AA7B0] hover:text-[#F2F7FB] cursor-pointer',
 )
 const iconButtonStyle = (disabled: boolean | undefined): { boxShadow: string } => ({
