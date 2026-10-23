@@ -21,6 +21,21 @@ export const GAGA_EMOTION: Record<GagaEvent, string> = {
     night: '/gaga/gaga-sleep.webp',
 }
 
+// Все варианты стикеров на событие — выбираем случайный, чтобы не приедалось (public/gaga/)
+const G = (n: string) => `/gaga/gaga-${n}.webp`
+export const GAGA_EMOTIONS: Record<GagaEvent, string[]> = {
+    start: [G('wave'), G('happy'), G('teacher')],
+    correct: [G('happy'), G('happy-2'), G('proud')],
+    wrong: [G('oops'), G('oops-2'), G('oops-3')],
+    rule: [G('shock'), G('shock-2'), G('teacher')],
+    streak: [G('fire'), G('fire-2'), G('fire-3')],
+    chest: [G('chest')],
+    levelup: [G('proud'), G('happy-2')],
+    done: [G('proud'), G('happy'), G('pizza')],
+    boss: [G('angry')],
+    night: [G('sleep')],
+}
+
 const L = (event: GagaEvent, list: string[]): GagaLine[] => list.map((text, i) => ({ id: `${event}-${i + 1}`, event, text }))
 
 export const GAGA_LINES: GagaLine[] = [

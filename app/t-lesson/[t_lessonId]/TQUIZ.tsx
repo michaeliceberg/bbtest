@@ -22,7 +22,7 @@ const StreakCelebrationScreen = dynamic(() => import("../../../components/streak
 import { toast } from "sonner"
 import { useUiTheme } from "@/lib/uiTheme"
 import { LessonRatingScreen } from "@/components/lesson-rating-screen"
-import { isStepByStepLesson } from "@/lib/trainerStageFlags"
+import { isStepByStepLesson, STEP_BY_STEP_CHALLENGE_TYPES } from "@/lib/trainerStageFlags"
 import { upsertTrainerLessonProgress } from "@/actions/user-progress"
 import { reportAchievement, checkAchievements } from "@/lib/achievementsClient"
 import { recordChallengeResult } from "@/actions/record-challenge-result"
@@ -59,6 +59,7 @@ import { buildInviteMessage, battleButtonLabel } from "@/lib/inviteMessage"
 import { getInviteLink } from "@/lib/referral"
 import type { TrialSubject } from "@/lib/trialTracks"
 import { GuestVibePicker, GUEST_NICKNAME_STORAGE_KEY, GUEST_VIBES_STORAGE_KEY } from "@/components/guest-vibe-picker"
+import { reportGagaAnswer, showGaga, showGagaOncePerDay } from "@/components/gaga-buddy"
 
 // "Горячий вопрос" (questionType 'HOT', см. type-hot.tsx) — факультативный,
 // не входит в счёт/сердечки/работу над ошибками (см. handleAnswer). Везде,
@@ -261,10 +262,19 @@ export default function TQuiz({
       setLightningLabel(`КОМБО x${n}`)
       setLightningStrikeKey(k => k + 1)
       setLightningStrikeActive(true)
+      showGaga('streak', { delayMs: 1100 })
     }
     window.addEventListener('walkthrough-combo', onCombo)
     return () => window.removeEventListener('walkthrough-combo', onCombo)
   }, [])
+  // Га-Га на старте урока: на босс-экзамене — всегда («Покажем монстру!»), иначе «привет» раз в день.
+  const gagaGreetedRef = useRef(false)
+  useEffect(() => {
+    if (vibeStage !== 'done' || gagaGreetedRef.current) return
+    gagaGreetedRef.current = true
+    if (isBossStage) showGaga('boss', { delayMs: 900 })
+    else showGagaOncePerDay('start', 1200)
+  }, [vibeStage, isBossStage])
   const [showStreakCelebration, setShowStreakCelebration] = useState(false)
   // Какой именно рубеж серии сейчас празднуем — 3 или 7 (см.
   // STREAK_MILESTONES ниже). Молния/экран поздравления — общие
@@ -766,6 +776,7 @@ export default function TQuiz({
           setIsRightPrevious(true)
         }
         setRandomEmotionLottie(getRandomLottie(LOTTIE_EMOTION_RIGHT_LIST))
+        if (!STEP_BY_STEP_CHALLENGE_TYPES.has(questions[currentQuestionIndex].questionType)) reportGagaAnswer(true)
         mistakesInRowRef.current = 0
         if (isReviewRoundRef.current) reportAchievement('review_ok')
 
@@ -789,6 +800,7 @@ export default function TQuiz({
             setLightningLabel(`КОМБО x${newStreak}`)
             setLightningStrikeKey(k => k + 1)
             setLightningStrikeActive(true)
+            showGaga('streak', { delayMs: 1100 })
           }
           return newStreak
         })
@@ -827,6 +839,7 @@ export default function TQuiz({
         }
       } else {
         playIncorrectSound()
+        if (!STEP_BY_STEP_CHALLENGE_TYPES.has(questions[currentQuestionIndex].questionType)) reportGagaAnswer(false)
         setStreak(0)
         mistakesInRowRef.current += 1
         reportAchievement('first_mistake')

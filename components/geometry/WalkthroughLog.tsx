@@ -31,6 +31,7 @@ import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { LOTTIE_STEP_BY_STEP_FIERY_LIST, getRandomLottie } from '@/src/constants/lottieConstants'
 import { cn } from '@/lib/utils'
 import Lottie, { preloadLottie } from '@/components/lottie-player'
+import { showGaga } from '@/components/gaga-buddy'
 
 // lottie-react трогает document при монтировании — статический импорт в
 // SSR-путь уже не раз ронял dev/prod в этом проекте (см. CLAUDE.md,
@@ -986,6 +987,8 @@ export const REMEMBER_STICKERS = [1, 2, 3, 4, 5].map((n) => `/remember-stickers/
 export const RememberPlate = ({ title = 'ЗАПОМНИ!', children, sticker: fixedSticker, flipSticker }: { title?: React.ReactNode; children?: React.ReactNode; sticker?: string; flipSticker?: boolean }) => {
     const [sticker, setSticker] = useState<string | null>(fixedSticker ?? null)
     const [autoFlip, setAutoFlip] = useState(false)
+    // Иногда к плашке «ЗАПОМНИ» подключается Га-Га («Внимание! Это важно»)
+    useEffect(() => { if (Math.random() < 0.4) showGaga('rule', { delayMs: 700 }) }, [])
     useEffect(() => {
         if (fixedSticker !== undefined) return
         // половина — «Джентльмены» r1–r5, половина — удивлённые мемы public/more-memes, лицом к плашке (влево)

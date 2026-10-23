@@ -12,6 +12,7 @@ import { AvatarReroll } from '@/components/avatar-reroll'
 import { NameEditor } from '@/components/name-editor'
 import { ParentBindCode } from '@/components/parent-bind-code'
 import { StreakFreezeCard } from '@/components/streak-freeze-card'
+import { GagaVoiceToggle } from '@/components/gaga-voice-toggle'
 import { getOrCreateInvite } from '@/lib/invite'
 import { getDdxState } from '@/lib/ddx'
 import { getRank } from '@/lib/rank'
@@ -149,6 +150,7 @@ const AccountPage = async () => {
             </div>
 
             <StreakFreezeCard freezes={userProgress.streakFreezes} gems={userProgress.gems} />
+            <GagaVoiceToggle />
 
             {/* Карточка «Пригласи друга» (components/referral-card.tsx) убрана 2026-10-23: ссылки теперь у каждого пошагового урока на карте /trainer. */}
 

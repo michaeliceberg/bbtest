@@ -16,6 +16,7 @@ import { COZY, type UiTheme } from '@/lib/cozyTheme'
 import { playSound, preloadSound, LEVEL_UP_SOUND } from '@/lib/sound'
 import Lottie from '@/components/lottie-player'
 import { levelCasesBetween } from '@/lib/xp'
+import { showGaga } from '@/components/gaga-buddy'
 
 // Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
@@ -59,7 +60,7 @@ export const LevelUpScreen = ({ event, onClose, theme = 'metal', overlay = true 
         preloadSound(LEVEL_UP_SOUND)
     }, [])
     useEffect(() => {
-        if (event) playSound(LEVEL_UP_SOUND)
+        if (event) { playSound(LEVEL_UP_SOUND); showGaga('levelup', { delayMs: 1300 }) }
     }, [event?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
     if (!event) return null

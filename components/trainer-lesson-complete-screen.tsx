@@ -23,6 +23,7 @@ import { RollingNumber } from '@/components/rolling-number'
 import { CaseStars } from '@/components/CaseReel'
 import { COZY, COZY_ACCENT, type UiTheme } from '@/lib/cozyTheme'
 import Lottie from '@/components/lottie-player'
+import { showGaga } from '@/components/gaga-buddy'
 
 // Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
@@ -121,6 +122,7 @@ export const TrainerLessonCompleteScreen = ({
 
     useEffect(() => {
         playSound(WIN_SOUND)
+        showGaga('done', { delayMs: 1500 })
         const timers = [0, 1, 2].map((i) => window.setTimeout(() => setShownCards(i + 1), CARD_FIRST_MS + i * CARD_STEP_MS))
         timers.push(window.setTimeout(() => setButtonsShown(true), CARD_FIRST_MS + 2 * CARD_STEP_MS + BUTTONS_AFTER_MS))
         return () => timers.forEach((t) => window.clearTimeout(t))

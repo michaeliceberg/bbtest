@@ -20,6 +20,7 @@ import { LOTTIE_STREAK_RISK_LIST, getRandomLottie } from '@/src/constants/lottie
 import { daysWordGenitive } from '@/usefulFunctions'
 import Lottie from '@/components/lottie-player'
 import { StreakFreezeCard } from '@/components/streak-freeze-card'
+import { showGagaOncePerDay } from '@/components/gaga-buddy'
 
 // Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
@@ -52,6 +53,11 @@ export const StreakRiskBanner = ({ streak, hasExtendedToday, freezes, gems }: Pr
         // не на каждый рендер.
         setAnimationData(getRandomLottie(LOTTIE_STREAK_RISK_LIST))
     }, [isLate])
+
+    // Поздно, а серия сегодня не продлена — Га-Га раз в день напоминает (и отправляет спать)
+    useEffect(() => {
+        if (isLate && streak > 0 && !hasExtendedToday) showGagaOncePerDay('night', 1200)
+    }, [isLate, streak, hasExtendedToday])
 
     if (streak <= 0 || hasExtendedToday || !isLate) return null
 

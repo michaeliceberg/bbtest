@@ -14578,3 +14578,14 @@ padding-box`, кнопка опускается на всю высоту гра�
 3 фото ИИ-помощнику за всё время (с PRO — 3 в день); остальное — синяя плашка `ProBadge` (`.pro-pill`) и редирект на /pro
 (t-lesson и lesson page проверяют на сервере). PRO = `user_progress.pro_until > now()` или админ (`hasProFor`).
 Гостевые уроки по ссылке-приглашению замком не закрыты. Задачник физики и «Мой путь» — бесплатно.
+
+## Га-Га подключён в уроки (2026-10-23)
+`components/gaga-buddy.tsx` — `GagaBuddyLayer` (в app/layout.tsx) + `showGaga(event, {delayMs, force})`: слева внизу (над
+кнопкой «ответить») выезжает стикер Га-Га (случайный из `GAGA_EMOTIONS` в lib/gagaVoice.ts) с облачком-репликой и звучит
+озвучка `/gaga-voice/<id>.mp3`; облачко держится, пока идёт голос (3,2–7 с). Не чаще раза в 9 с, кроме больших моментов
+(chest, levelup, done, boss). Где вызывается: ответы — `reportGagaAnswer(correct)` (раз в 4–6 ответов; в разборах через
+`showAnswerMeme` — тогда мем-облачко не показывается; в TQUIZ для не-*WALK типов; в задачнике app/lesson/quiz.tsx),
+серия — удар молнии КОМБО (TQUIZ), правило — `RememberPlate` с шансом 40%, сундук — монтирование `CaseReel`, новый уровень —
+`level-up-screen`, итог урока — `trainer-lesson-complete-screen`, старт урока — `start` раз в день / `boss` на босс-экзамене,
+ночь — `StreakRiskBanner` раз в день. Голос выключается в /account («Голос Га-Га», `GagaVoiceToggle`, localStorage
+`gagaVoice='off'`), стикер с облачком показывается и без голоса. Печали (gaga-sad) всё ещё нет.

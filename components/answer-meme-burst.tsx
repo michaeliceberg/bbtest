@@ -15,6 +15,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
+import { reportGagaAnswer } from '@/components/gaga-buddy'
 
 const RIGHT_COUNT = 21
 const WRONG_COUNT = 39
@@ -53,6 +54,8 @@ export const cancelPendingRightMeme = () => { if (pendingRight) { clearTimeout(p
 
 export const showAnswerMeme = (correct: boolean, opts?: { force?: boolean; x?: number; y?: number }) => {
     if (typeof window === 'undefined') return
+    // Примерно раз в 4–6 ответов вместо мема выезжает наставник Га-Га (components/gaga-buddy.tsx)
+    if (!opts?.force && reportGagaAnswer(correct)) return
     if (correct && !opts?.force && Math.random() >= RIGHT_CHANCE) return
     const fire = (x: number, y: number) => window.dispatchEvent(new CustomEvent(EVENT, {
         detail: { correct, x, y, src: pickSrc(correct) },

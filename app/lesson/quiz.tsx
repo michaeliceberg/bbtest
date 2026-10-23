@@ -43,6 +43,7 @@ import { SolveModeChoice } from "@/components/geometry/SolveModeChoice";
 import { TrapezoidWalkthrough } from "@/components/geometry/TrapezoidWalkthrough";
 import { TangentialQuadWalkthrough } from "@/components/geometry/TangentialQuadWalkthrough";
 import Lottie from '@/components/lottie-player'
+import { reportGagaAnswer } from '@/components/gaga-buddy'
 
 // Lottie грузится через общую обёртку (JSON — по URL, не в бандле)
 
@@ -585,6 +586,7 @@ export const Quiz = ({
                         setTimeout(() => setShowMascotCorrect(false), 1500)
 
                         playCorrectSound()
+                        reportGagaAnswer(true)
                         vibrate('success')
                         setStatus('correct')
                         if (!isDoneChallenge) {
@@ -638,6 +640,7 @@ export const Quiz = ({
                         if (moveId) router.refresh()
 
                         playIncorrectSound()
+                        reportGagaAnswer(false)
                         vibrate('error')
                         setStatus('wrong')
                         if (!isDoneChallenge) {

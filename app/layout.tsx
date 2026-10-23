@@ -18,6 +18,7 @@ const HeartsModal = dynamic(() => import('@/components/modals/hearts-modal copy'
 const PracticeModal = dynamic(() => import('@/components/modals/practice-modal').then(mod => ({ default: mod.PracticeModal })), { ssr: false });
 const WrongAnswerModal = dynamic(() => import('@/components/modals/wronganswer-modal').then(mod => ({ default: mod.WrongAnswerModal })), { ssr: false });
 const RightAnswerModal = dynamic(() => import('@/components/modals/rightanswer-modal').then(mod => ({ default: mod.RightAnswerModal })), { ssr: false });
+const GagaBuddyLayer = dynamic(() => import('@/components/gaga-buddy').then(mod => ({ default: mod.GagaBuddyLayer })), { ssr: false });
 const AchievementToastProvider = dynamic(() => import('@/components/achievement-toast-provider').then(mod => ({ default: mod.AchievementToastProvider })), { ssr: false });
 const AchievementUnlockToast = dynamic(() => import('@/components/achievement-unlock-toast').then(mod => ({ default: mod.AchievementUnlockToast })), { ssr: false });
 const StreakCelebrationToastProvider = dynamic(() => import('@/components/streak-celebration-toast-provider').then(mod => ({ default: mod.StreakCelebrationToastProvider })), { ssr: false });
@@ -62,6 +63,7 @@ export default function RootLayout({
 				<HeartsModal />
 				<PracticeModal />
 				<AchievementToastProvider />
+				<GagaBuddyLayer />
 				<AchievementUnlockToast />
 				<StreakCelebrationToastProvider />
 				<LevelUpModalProvider />

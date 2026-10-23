@@ -30,6 +30,7 @@ import LottieGems from '@/public/Lottie/LottieGems.json'
 import LottieGG from '@/public/Lottie/LottieGG.json'
 import { DdxPieceImage } from '@/components/ddx-piece'
 import Lottie from '@/components/lottie-player'
+import { showGaga } from '@/components/gaga-buddy'
 
 // Те же самые lottie-анимации монет/гемов, что уже используются в шапке
 // (components/user-progress.tsx) и магазине — вместо голых эмодзи,
@@ -331,6 +332,8 @@ type Props = {
 
 export const CaseReel = ({ isMega, onDone, pool: poolOverride, spinAction, title, tier, theme = 'metal' }: Props) => {
     const cozy = theme === 'cozy'
+    // Га-Га «притащил сундук» — один раз, когда кейс появился
+    useEffect(() => { showGaga('chest', { delayMs: 1500 }) }, [])
     const [phase, setPhase] = useState<Phase>('idle')
     const [chestEntered, setChestEntered] = useState(false)
     // Сундук падает сверху: в момент приземления — звук и облачко пыли.
