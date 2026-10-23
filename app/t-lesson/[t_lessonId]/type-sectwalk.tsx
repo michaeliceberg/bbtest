@@ -2047,6 +2047,7 @@ const R4_NEXT_LABELS = ['Погнали', 'Как это — проекция?',
 //   1. Шпора из 3 правил: правило 2 зачёркиваем — у пирамиды нет параллельных граней.
 //   2–5. Разбор на треугольной пирамиде: правило 1 дважды → правило 3 (X) → снова правило 1 → четырёхугольник.
 //   6–9. «Строй сам»: 2 треугольные и 2 четырёхугольные (в каждой паре — сначала без правила 3, потом с ним).
+//   10. Босс: точка на передней грани четырёхугольной пирамиды, правило 3 нужно дважды.
 type PyrPt = { key: string; v: PY.V3; label?: string; glow?: boolean }
 type PyrSeg = { id: string; a: PY.V3; b: PY.V3; dash?: boolean; slow?: boolean; instant?: boolean; color?: string; width?: number }
 type PyrFaceHL = { id: string; color: string; label?: string }
@@ -2424,7 +2425,8 @@ const PyrSandboxScene = ({ onSettled, onMistake, solid: s, start, title, text }:
                             </g>
                         )
                     })}
-                    {aux.map((x) => {
+                    {/* сечение готово — камера вернулась к пирамиде, вспомогательные продления и точки вне неё убираем */}
+                    {!done && aux.map((x) => {
                         const L = pyrLine(x.a, x.b)
                         return <motion.line key={x.id} x1={L.x1} y1={L.y1} stroke={x.color ?? SECT_COLOR} strokeWidth={2.5} strokeDasharray="6 5" strokeLinecap="round" opacity={0.75}
                             initial={{ x2: L.x1, y2: L.y1 }} animate={{ x2: L.x2, y2: L.y2 }} transition={{ duration: 0.9, ease: 'easeInOut' }} />
@@ -2440,7 +2442,7 @@ const PyrSandboxScene = ({ onSettled, onMistake, solid: s, start, title, text }:
                             </g>
                         )
                     })}
-                    {pts.map((p) => {
+                    {pts.filter((p) => !done || PY.inSolid(s, p.v)).map((p) => {
                         const c = PY.proj(p.v), sel = selPt === p.id, act = tool === 1
                         return (
                             <g key={p.id} transform={`translate(${c.x.toFixed(1)} ${c.y.toFixed(1)})`} onClick={() => tapPoint(p)}
@@ -2474,6 +2476,9 @@ const PYR_SANDBOXES: PyrSandboxCfg[] = [
         start: [PY.onEdge(PY.QUAD, 'A', 'B', 0.3), PY.onEdge(PY.QUAD, 'B', 'C', 0.6), PY.onEdge(PY.QUAD, 'S', 'B', 0.3)] },
     { solid: PY.QUAD, title: 'Финал 💀', text: 'Четырёхугольная пирамида — с правилом 3',
         start: [PY.onEdge(PY.QUAD, 'A', 'B', 0.3), PY.onEdge(PY.QUAD, 'S', 'B', 0.3), PY.onEdge(PY.QUAD, 'S', 'C', 0.6)] },
+    // одна точка — прямо на передней грани (не на ребре): правило 3 нужно дважды (проверено перебором — одним не обойтись)
+    { solid: PY.QUAD, title: 'Босс 👹', text: 'Одна точка — прямо на передней грани. Правило 3 понадобится дважды',
+        start: [PY.onEdge(PY.QUAD, 'B', 'C', 0.3), PY.onEdge(PY.QUAD, 'S', 'C', 0.6), PY.onFace(PY.QUAD, ['S', 'A', 'B'], 0.4, 0.2)] },
 ]
 const PYR_SANDBOX_SCENES = PYR_SANDBOXES.map((cfg) => {
     const Scene = (props: SceneProps) => <PyrSandboxScene {...props} {...cfg} />
@@ -2482,10 +2487,10 @@ const PYR_SANDBOX_SCENES = PYR_SANDBOXES.map((cfg) => {
 })
 const PYR_SCENES = [PyrIntroScene, PyrRulesScene, PyrTaskScene, PyrRule1Scene, PyrRule3Scene, PyrFinishScene, ...PYR_SANDBOX_SCENES]
 const PYR_MAP_LABELS = ['Пирамида', 'Правила 1 и 3', 'Задача', 'Правило 1', 'Правило 3 (X)', 'Достраиваем',
-    'Треуг. 1: правило 1', 'Треуг. 2: правило 3', 'Четырёхуг. 1', 'Четырёхуг. 2: правило 3']
+    'Треуг. 1: правило 1', 'Треуг. 2: правило 3', 'Четырёхуг. 1', 'Четырёхуг. 2: правило 3', 'Босс: правило 3 дважды']
 const PYR_PRACTICE = new Set<unknown>(PYR_SANDBOX_SCENES)
 const PYR_NEXT_LABELS = ['Понял, это пирамида', 'Значит 1 и 3 👌', 'Строим сечение ✂️', 'Дальше — правило 3', 'X найдена!', 'Теперь сам! ⚡',
-    'Ещё пирамида!', 'Давай четырёхугольную', 'Ещё одну 🔥', 'Готово']
+    'Ещё пирамида!', 'Давай четырёхугольную', 'Ещё одну 🔥', 'На босса 👹', 'Готово']
 
 const SANDBOX_SCENES = SANDBOXES.map((cfg) => {
     const Scene = (props: SceneProps) => <SandboxScene {...props} {...cfg} />

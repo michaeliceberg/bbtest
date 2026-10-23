@@ -43,7 +43,7 @@ const pyramid = (base: Record<string, V3>, apex: V3): Solid => {
 // Треугольная пирамида SABC (C — сзади) и четырёхугольная SABCD (D — сзади слева, основание — не квадрат,
 // чтобы противоположные рёбра основания не были параллельны и правило 3 работало с любым ребром).
 export const TRI: Solid = pyramid({ A: [0, 0, 0], B: [1.3, 0, 0], C: [1.1, 1.4, 0] }, [0.4, 0.45, 1.3])
-export const QUAD: Solid = pyramid({ A: [0, 0, 0], B: [1.1, 0, 0], C: [1.2, 1, 0], D: [-0.05, 0.9, 0] }, [0.6, 0.45, 1.25])
+export const QUAD: Solid = pyramid({ A: [0, 0, 0], B: [1.1, 0, 0], C: [1.2, 1, 0], D: [0.25, 1.1, 0] }, [0.6, 0.45, 1.25])
 
 const centroid = (s: Solid) => {
     const vs = Object.values(s.V)
@@ -117,3 +117,6 @@ export const expectedOf = (s: Solid, start: V3[]) => {
 }
 // Точка на ребре a–b
 export const onEdge = (s: Solid, a: string, b: string, t: number): V3 => lerp3(s.V[a], s.V[b], t)
+// Точка внутри грани PQR: P·(1−u−w) + Q·u + R·w
+export const onFace = (s: Solid, [p, q, r]: [string, string, string], u: number, w: number): V3 =>
+    [0, 1, 2].map((k) => s.V[p][k] * (1 - u - w) + s.V[q][k] * u + s.V[r][k] * w) as V3
