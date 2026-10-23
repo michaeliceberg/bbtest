@@ -38,7 +38,7 @@ export const LessonShareButton = ({ lessonId, lessonTitle, info, className }: { 
 		<button
 			type="button"
 			onClick={onClick}
-			title="Поделиться уроком с другом"
+			title="Поделись уроком с другом! Ему станет понятнее!"
 			aria-label={`Поделиться уроком «${lessonTitle}»`}
 			className={cn(
 				'pointer-events-auto inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#FFE9A8]/50 bg-[#161F23]/90 text-[#FFD84D] transition active:scale-90 hover:bg-[#232F34]',

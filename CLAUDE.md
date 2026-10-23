@@ -14494,7 +14494,7 @@ N на передней, проекция на потолок), сечение �
 и в конце регистрируется. На карте /trainer у каждого пошагового урока (*WALK) справа от плашки «Урок» — кнопка
 `Share2` (`components/lesson-share-button.tsx`; данные приглашающего — `LessonShareContext`, проп `shareInfo`
 /trainer → TabTCourses → TrainerGradeTree; в полном виде карты — кружок в углу плитки). Текст —
-`buildLessonInviteMessage` («Не понял тему «X» в школе? 🤔 …»), ссылка — `getLessonInviteLink` =
+`buildLessonInviteMessage` («Делюсь уроком «X» 📚 С ним станет понятнее! 💡 …»), ссылка — `getLessonInviteLink` =
 `ggege.ru/i/КОД?u=<урок>` (+`c=m` для математики), без кода — прямая `/t-lesson/<id>`; `navigator.share`, иначе буфер + тост.
 Гостю открыты пробные уроки треков И любой пошаговый урок видимых курсов — `isGuestOpenLesson` (`lib/guestLessons.ts`),
 используется в `app/t-lesson/[t_lessonId]/page.tsx`, `app/i/[code]` (`?u=` проверяется по БД) и `recordTrialStart`.

@@ -56,9 +56,9 @@ export const buildInviteMessage = ({
 
 // Приглашение на конкретный пошаговый разбор (кнопка «поделиться» у урока на карте /trainer).
 export const buildLessonInviteMessage = ({ nickname, lessonTitle }: { nickname: string | null; lessonTitle: string }) => [
-	`Не понял тему «${lessonTitle}» в школе? 🤔`,
-	'Вот разбор по шагам — коротко и понятно, без регистрации.',
+	`Делюсь уроком «${lessonTitle}» 📚`,
+	'С ним станет понятнее! 💡',
 	'',
-	nickname ? `Скинул **${nickname}** 🧙 · в конце — приз из кейса 🎁` : 'В конце — приз из кейса 🎁',
+	nickname ? `От **${nickname}** 🧙 · без регистрации, в конце — приз из кейса 🎁` : 'Без регистрации, в конце — приз из кейса 🎁',
 	'👇',
 ].join('\n')
