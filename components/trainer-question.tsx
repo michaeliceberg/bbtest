@@ -773,7 +773,7 @@ export default function TrainerQuestion({
                 : question.questionType === "AREA6WALK"
                 ? "6 площадей треугольника"
                 : question.questionType === "SECTWALK"
-                ? "Сечение куба"
+                ? (/^Пирамид/i.test(question.question) ? "Сечение пирамиды" : "Сечение куба")
                 : question.questionType === "POWWALK"
                 ? (/^Степень в степени/i.test(question.question) ? "Степень в степени" : /^Нулевая/i.test(question.question) ? "Нулевая и минус-степень" : "Что такое степень")
                 : question.questionType === "SINCOSDEFWALK"

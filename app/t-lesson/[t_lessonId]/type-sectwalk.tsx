@@ -41,6 +41,7 @@ import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
 import { VenetianMask } from 'lucide-react'
+import * as PY from '@/lib/pyramidSection'
 
 const SCENE_TRANSITION_PAUSE_MS = 1000
 
@@ -281,7 +282,7 @@ const W = '(?<![а-яё])'
 const WE = '(?![а-яё])'
 const COLOR_WORDS: [RegExp, string][] = [
     [new RegExp(`${W}(лини[яиюей]|линиями|линий|точк[аиуе]|точкой|точек)${WE}`, 'i'), SECT_COLOR],
-    [new RegExp(`${W}(потол(?:ок|ке|ка|ку|ком)|пол|полу|пола|полом|стен[аеуы]|стене|стеной|стен)${WE}`, 'i'), FACE_COLOR],
+    [new RegExp(`${W}(потол(?:ок|ке|ка|ку|ком)|пол|полу|пола|полом|стен[аеуы]|стене|стеной|стен|гран(?:ь|и|ей|ью|ям|ями|ях)|основани(?:е|я|ю|ем|и))${WE}`, 'i'), FACE_COLOR],
 ]
 const PROJ_WORD = new RegExp(`${W}(проекци[яиюей]|проекциями|проекций)${WE}`, 'i')
 const colorize = (text: string, lineColor?: string) => {
@@ -618,7 +619,8 @@ const CheatStrip = ({ active, crossed = [], focus = false }: { active: number | 
                         // зачёркнутое бледнеет после того, как дорисован крестик
                         initial={instantX ? { opacity: 0.4 } : undefined}
                         animate={{ opacity: isX ? 0.4 : faded ? 0.38 : 1, scale: isOn ? (focus ? [1, 1.32, 1.18] : 1.06) : 1 }}
-                        transition={{ opacity: { delay: isX ? 0.75 : 0, duration: 0.4 }, scale: { type: 'spring', stiffness: 300, damping: 18 } }}
+                        // пружина в framer умеет только 2 кадра — для «фокуса» (3 кадра) обычный переход
+                        transition={{ opacity: { delay: isX ? 0.75 : 0, duration: 0.4 }, scale: isOn && focus ? { duration: 0.6, ease: 'easeOut' } : { type: 'spring', stiffness: 300, damping: 18 } }}
                         style={{ borderColor: isOn ? SECT_COLOR : '#3A464E', backgroundColor: isOn ? hexToRgba(SECT_COLOR, 0.18) : '#161F23',
                             boxShadow: isOn && focus ? `0 0 18px ${hexToRgba(SECT_COLOR, 0.75)}` : undefined, zIndex: isOn ? 1 : 0 }}>
                         <div className="text-[10px] font-black leading-none flex items-center justify-center gap-0.5" style={{ color: isOn ? SECT_COLOR : MUTED }}>
@@ -2037,6 +2039,454 @@ const R4_MAP_LABELS = ['Задача', 'Правила 1–3 не работаю
 const R4_PRACTICE = new Set<unknown>([R4CheckScene, R4ProjScene, R4FinishScene, ...R4_MORE_SCENES])
 const R4_NEXT_LABELS = ['Погнали', 'Как это — проекция?', 'Достроим!', 'Ещё сечение! 🔥', 'Ещё одно!', 'Финальное! 💀', 'Готово']
 
+// ===== Урок «Пирамиды» (тот же SECTWALK, режим по тексту задания «Пирамиды») =====
+// Треугольная и четырёхугольная пирамиды, правила 1 и 3 (правило 2 у пирамиды не работает: нет параллельных граней,
+// правило 4 не проходим). Геометрия и решатель — lib/pyramidSection.ts; точки подобраны скриптом
+// scripts/sect-tools/pyr_search.ts (сечение строится правилами 1 и 3, точки не сливаются с рёбрами на экране).
+//   0. «Теперь — пирамиды 🔺», пирамида рисуется, основание и грани по очереди.
+//   1. Шпора из 3 правил: правило 2 зачёркиваем — у пирамиды нет параллельных граней.
+//   2–5. Разбор на треугольной пирамиде: правило 1 дважды → правило 3 (X) → снова правило 1 → четырёхугольник.
+//   6–9. «Строй сам»: 2 треугольные и 2 четырёхугольные (в каждой паре — сначала без правила 3, потом с ним).
+type PyrPt = { key: string; v: PY.V3; label?: string; glow?: boolean }
+type PyrSeg = { id: string; a: PY.V3; b: PY.V3; dash?: boolean; slow?: boolean; instant?: boolean; color?: string; width?: number }
+type PyrFaceHL = { id: string; color: string; label?: string }
+const PYR_FACE_NAME: Record<string, string> = { base: 'основание', SAB: 'передняя грань', SBC: 'правая грань', SCA: 'задняя грань', SCD: 'задняя грань', SDA: 'левая грань' }
+const PYR_FACE_ON: Record<string, string> = { base: 'в основании', SAB: 'на передней грани', SBC: 'на правой грани', SCA: 'на задней грани', SCD: 'на задней грани', SDA: 'на левой грани' }
+const PYR_FACE_LABEL: Record<string, string> = { base: 'Основание', SAB: 'Передняя', SBC: 'Правая', SCA: 'Задняя', SCD: 'Задняя', SDA: 'Левая' }
+const PYR_ASPECT = 384 / 306
+// Рамка: пирамида + все точки с полем, соотношение сторон постоянное (высота блока не прыгает)
+const pyrViewFor = (s: PY.Solid, extra: PY.V3[] = []) => {
+    const ps = [...Object.values(s.V), ...extra].map(PY.proj), m = 30
+    const minX = Math.min(...ps.map((q) => q.x)) - m, maxX = Math.max(...ps.map((q) => q.x)) + m
+    const minY = Math.min(...ps.map((q) => q.y)) - m, maxY = Math.max(...ps.map((q) => q.y)) + m
+    let w = maxX - minX, h = maxY - minY
+    if (w / h < PYR_ASPECT) w = h * PYR_ASPECT; else h = w / PYR_ASPECT
+    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2
+    return { x: cx - w / 2, y: cy - h / 2, w, h }
+}
+const pyrBaseView = (s: PY.Solid) => pyrViewFor(s)
+// во сколько раз «камера» отъехала от обычной рамки (меньше PYR_MIN_SCALE — точку не строим)
+const pyrScale = (s: PY.Solid, extra: PY.V3[]) => pyrBaseView(s).w / pyrViewFor(s, extra).w
+const PYR_MIN_SCALE = 0.6
+const pyrFaceCenter = (s: PY.Solid, fid: string) => {
+    const f = s.faces.find((x) => x.id === fid)!
+    const c = f.v.map((k) => s.V[k]).reduce((a, b) => PY.add(a, b), [0, 0, 0] as PY.V3)
+    return PY.proj(PY.mul(c, 1 / f.v.length))
+}
+const pyrLine = (a: PY.V3, b: PY.V3) => { const A = PY.proj(a), B = PY.proj(b); return { x1: A.x, y1: A.y, x2: B.x, y2: B.y } }
+const pyrPoly = (vs: PY.V3[]) => {
+    const pts = vs.map(PY.proj)
+    const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length, cy = pts.reduce((s, p) => s + p.y, 0) / pts.length
+    return pts.sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx)).map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+}
+const PyrSvg = ({ solid: s, drawIn = false, faces = [], points = [], segs = [], aux = [], fill, view, dimExcept = null }: {
+    solid: PY.Solid; drawIn?: boolean; faces?: PyrFaceHL[]; points?: PyrPt[]; segs?: PyrSeg[]; aux?: PyrSeg[]; fill?: PY.V3[]
+    view?: { x: number; y: number; w: number; h: number }; dimExcept?: string | null
+}) => {
+    const vb = view ?? pyrViewFor(s, [...points.map((p) => p.v), ...aux.flatMap((x) => [x.a, x.b])])
+    const faceOf = (fid: string) => s.faces.find((f) => f.id === fid)!.v
+    return (
+        <div className="w-full flex justify-center">
+            <motion.svg initial={false} animate={{ viewBox: vbStr(vb) }} transition={{ duration: 0.9, ease: 'easeInOut' }} viewBox={vbStr(vb)}
+                className="w-full max-w-[400px] max-h-[34vh] overflow-visible">
+                {fill && <motion.polygon points={pyrPoly(fill)} fill={hexToRgba(SECT_COLOR, 0.32)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }} />}
+                {faces.map((h) => {
+                    const vs = faceOf(h.id)
+                    return (
+                        <motion.g key={`${h.id}-${h.color}`} initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }}
+                            transition={{ type: 'spring', stiffness: 340, damping: 12 }} style={{ transformOrigin: `${pyrFaceCenter(s, h.id).x}px ${pyrFaceCenter(s, h.id).y}px` }}>
+                            <polygon points={vs.map((k) => { const p = PY.proj(s.V[k]); return `${p.x.toFixed(1)},${p.y.toFixed(1)}` }).join(' ')} fill={hexToRgba(h.color, 0.28)} />
+                            {vs.map((a, i) => {
+                                const b = vs[(i + 1) % vs.length]
+                                return <line key={a + b} {...pyrLine(s.V[a], s.V[b])} stroke={h.color} strokeWidth={2.5} strokeLinecap="round"
+                                    strokeDasharray={PY.edgeHidden(s, a, b) ? '6 6' : undefined} />
+                            })}
+                        </motion.g>
+                    )
+                })}
+                {s.edges.map(([a, b], i) => {
+                    const hid = PY.edgeHidden(s, a, b)
+                    const dim = dimExcept !== null && !(faceOf(dimExcept).includes(a) && faceOf(dimExcept).includes(b))
+                    return (
+                        <motion.line key={a + b} {...pyrLine(s.V[a], s.V[b])} stroke={EDGE} strokeWidth={hid ? 2 : 3} strokeLinecap="round"
+                            strokeDasharray={hid ? '6 6' : undefined}
+                            initial={drawIn ? (hid ? { opacity: 0 } : { pathLength: 0 }) : false}
+                            animate={hid ? { opacity: dim ? DIM_HIDDEN : 0.6 } : { pathLength: 1, opacity: dim ? DIM_EDGE : 1 }}
+                            transition={{ pathLength: { duration: 0.4, delay: drawIn ? i * 0.12 : 0, ease: 'easeOut' }, opacity: { duration: 0.3, delay: drawIn && hid ? i * 0.12 : 0 } }} />
+                    )
+                })}
+                {aux.map((x) => {
+                    const L = pyrLine(x.a, x.b)
+                    return <motion.line key={x.id} x1={L.x1} y1={L.y1} stroke={x.color ?? SECT_COLOR} strokeWidth={x.width ?? 2.5} strokeDasharray="6 5" strokeLinecap="round" opacity={0.75}
+                        initial={x.instant ? { x2: L.x2, y2: L.y2 } : { x2: L.x1, y2: L.y1 }} animate={{ x2: L.x2, y2: L.y2 }} transition={{ duration: 0.9, ease: 'easeInOut' }} />
+                })}
+                {segs.map((x) => {
+                    const L = pyrLine(x.a, x.b)
+                    const tr = { duration: x.slow ? 1.5 : 0.8, ease: 'easeInOut' as const }
+                    return (
+                        <g key={x.id}>
+                            {!x.dash && <motion.line x1={L.x1} y1={L.y1} stroke={x.color ?? SECT_COLOR} strokeOpacity={0.3} strokeWidth={13} strokeLinecap="round"
+                                initial={x.instant ? { x2: L.x2, y2: L.y2 } : { x2: L.x1, y2: L.y1 }} animate={{ x2: L.x2, y2: L.y2 }} transition={tr} />}
+                            <motion.line x1={L.x1} y1={L.y1} stroke={x.color ?? SECT_COLOR} strokeWidth={x.width ?? 5} strokeLinecap="round" strokeDasharray={x.dash ? '9 7' : undefined}
+                                initial={x.instant ? { x2: L.x2, y2: L.y2 } : { x2: L.x1, y2: L.y1 }} animate={{ x2: L.x2, y2: L.y2 }} transition={tr} />
+                        </g>
+                    )
+                })}
+                {faces.filter((h) => h.label).map((h) => {
+                    const c = pyrFaceCenter(s, h.id)
+                    return (
+                        <g key={`lbl-${h.id}`} transform={`translate(${c.x.toFixed(1)} ${c.y.toFixed(1)})`}>
+                            <motion.text initial={{ scale: 2.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 13 }}
+                                textAnchor="middle" dominantBaseline="central" fontSize={19} fontWeight={900} fill="#F2F7FB"
+                                style={{ fontFamily: 'var(--font-nunito), sans-serif', paintOrder: 'stroke', stroke: '#161F23', strokeWidth: 4 }}>{h.label}</motion.text>
+                        </g>
+                    )
+                })}
+                {points.map((p) => {
+                    const c = PY.proj(p.v)
+                    return (
+                        <g key={p.key} transform={`translate(${c.x.toFixed(1)} ${c.y.toFixed(1)})`}>
+                            <motion.g initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 10 }}>
+                                {p.glow && <circle r={18} fill={hexToRgba(SECT_COLOR, 0.35)} stroke={SECT_COLOR} strokeWidth={2} className="animate-sel-pulse" />}
+                                <circle r={7.5} fill={SECT_COLOR} stroke="#F2F7FB" strokeWidth={2.5} />
+                                {p.label && <text x={0} y={-17} textAnchor="middle" fontSize={18} fontWeight={900} fill={SECT_COLOR}
+                                    style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>{p.label}</text>}
+                            </motion.g>
+                        </g>
+                    )
+                })}
+            </motion.svg>
+        </div>
+    )
+}
+
+// --- Разбор на треугольной пирамиде: K на SA, L на SB, M на BC (подобрано pyr_search: X слева от основания) ---
+const PD = (() => {
+    const s = PY.TRI
+    const K = PY.onEdge(s, 'S', 'A', 0.65), L = PY.onEdge(s, 'S', 'B', 0.3), M = PY.onEdge(s, 'B', 'C', 0.6)
+    const X = PY.meet(K, PY.sub(L, K), s.V.A, PY.sub(s.V.B, s.V.A))!
+    const ch = PY.chordIn(s, 'base', X, PY.sub(M, X))!
+    const N = PY.dist3(ch[0], X) < PY.dist3(ch[1], X) ? ch[0] : ch[1]
+    return { s, K, L, M, X, N }
+})()
+const PD_PTS: PyrPt[] = [{ key: 'K', v: PD.K }, { key: 'L', v: PD.L }, { key: 'M', v: PD.M }]
+const PD_KL: PyrSeg = { id: 'KL', a: PD.K, b: PD.L, slow: true }
+const PD_LM: PyrSeg = { id: 'LM', a: PD.L, b: PD.M, slow: true }
+const PD_VIEW_X = pyrViewFor(PD.s, [PD.X])
+const pyrInstant = (x: PyrSeg): PyrSeg => ({ ...x, instant: true, slow: false })
+
+const PyrIntroScene = ({ onSettled }: SceneProps) => {
+    const { phase, go } = usePhaseState()
+    const [shown, setShown] = useState(-1)
+    const order = ['base', 'SAB', 'SBC', 'SCA']
+    useEffect(() => {
+        if (phase !== 3) return
+        let i = 0
+        setShown(0)
+        const id = setInterval(() => {
+            i += 1
+            if (i >= order.length) { clearInterval(id); setShown(-1); setTimeout(() => onSettled?.(), 400); return }
+            setShown(i)
+        }, 1650)
+        return () => clearInterval(id)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [phase])
+    const cur = shown >= 0 ? order[shown] : null
+    return (
+        <>
+            <TypedBig text="Теперь — пирамиды 🔺" onDone={() => go(1)} />
+            {phase >= 1 && (
+                <DiagramBlock onSettled={() => setTimeout(() => go(2), 1200)}>
+                    <PyrSvg solid={PY.TRI} drawIn view={pyrBaseView(PY.TRI)} faces={cur ? [{ id: cur, color: FACE_COLOR, label: PYR_FACE_LABEL[cur] }] : []} dimExcept={cur} />
+                </DiagramBlock>
+            )}
+            {phase >= 2 && <TypedBig small text="У пирамиды есть основание и боковые грани. Задняя грань не видна — её рёбра пунктиром" onDone={() => go(3)} readMs={0} />}
+        </>
+    )
+}
+
+const PyrRulesScene = ({ onSettled }: SceneProps) => {
+    const { phase, go } = usePhaseState()
+    useChain({ 2: 1600 }, phase, go, { 4: () => onSettled?.() })
+    return (
+        <>
+            <TypedBig text="Правила — как у кубика" onDone={() => go(1)} />
+            {phase >= 1 && <CheatStrip active={phase === 2 || phase === 3 ? 2 : null} crossed={phase >= 2 ? [2] : []} focus={phase === 2} />}
+            {phase >= 1 && <TypedBig small text="Но правило 2 тут не работает: у пирамиды нет параллельных граней" meme="wow" onDone={() => go(2)} />}
+            {phase >= 3 && <TypedBig small text="Остаются правила 1 и 3 — их и хватит 💪" onDone={() => go(4)} readMs={300} />}
+        </>
+    )
+}
+
+const PyrTaskScene = ({ onSettled }: SceneProps) => (
+    <>
+        <GameHeader title="Пирамида: разбор" />
+        <PyrSvg solid={PD.s} view={pyrBaseView(PD.s)} points={PD_PTS} />
+        <TaskLine onDone={() => onSettled?.()} />
+    </>
+)
+
+const PyrRule1Scene = ({ onSettled }: SceneProps) => {
+    const { phase, go } = usePhaseState()
+    useChain({ 1: 1200, 2: 1900, 4: 1200, 5: 1900 }, phase, go, { 6: () => onSettled?.() })
+    const face = phase >= 1 && phase < 3 ? 'SAB' : phase >= 4 && phase < 6 ? 'SBC' : null
+    const segs = [...(phase >= 2 ? [phase > 2 ? pyrInstant(PD_KL) : PD_KL] : []), ...(phase >= 5 ? [PD_LM] : [])]
+    const glow = (k: string) => (face === 'SAB' && (k === 'K' || k === 'L')) || (face === 'SBC' && (k === 'L' || k === 'M'))
+    return (
+        <>
+            <CheatStrip active={1} crossed={[2]} />
+            <TypedBig small text="Правило 1: две точки на одной грани — соединяем" onDone={() => go(1)} readMs={300} />
+            <PyrSvg solid={PD.s} view={pyrBaseView(PD.s)} points={PD_PTS.map((p) => ({ ...p, glow: glow(p.key) }))} segs={segs}
+                faces={face ? [{ id: face, color: FACE_COLOR }] : []} />
+            {phase >= 3 && <TypedBig small text="Ещё две точки — на правой грани" onDone={() => go(4)} readMs={300} />}
+        </>
+    )
+}
+
+const PyrRule3Scene = ({ onSettled }: SceneProps) => {
+    const { phase, go } = usePhaseState()
+    useChain({ 1: 1400, 3: 1300, 4: 1400 }, phase, go, { 6: () => onSettled?.() })
+    const auxKX: PyrSeg = { id: 'kx', a: PD.K, b: PD.X }, auxAX: PyrSeg = { id: 'ax', a: PD.s.V.A, b: PD.X, color: GGEGE_PALETTE.orange.button }
+    return (
+        <>
+            <CheatStrip active={phase >= 1 ? 3 : 1} crossed={phase >= 1 ? [2, 1] : [2]} focus={phase === 1} />
+            <TypedBig small text="Других пар на одной грани нет. Правило 1 больше не работает" onDone={() => go(1)} readMs={300} />
+            <PyrSvg solid={PD.s} view={phase >= 3 ? PD_VIEW_X : pyrBaseView(PD.s)}
+                points={[...PD_PTS, ...(phase >= 4 ? [{ key: 'X', v: PD.X, label: 'X' }] : [])]}
+                segs={[pyrInstant(PD_KL), pyrInstant(PD_LM)]}
+                aux={phase >= 3 ? [auxKX, auxAX] : []}
+                faces={phase >= 2 && phase < 5 ? [{ id: 'SAB', color: FACE_COLOR }] : []} />
+            {phase >= 2 && <TypedBig small text="Правило 3: на передней грани продлеваем линию и ребро основания — до пересечения" onDone={() => go(3)} readMs={200} />}
+            {phase >= 5 && <TypedBig small text="Точка X лежит и на передней грани, и в плоскости основания" meme="wow" onDone={() => go(6)} readMs={300} />}
+        </>
+    )
+}
+
+const PyrFinishScene = ({ onSettled }: SceneProps) => {
+    const { phase, go } = usePhaseState()
+    useChain({ 1: 1300, 3: 1500 }, phase, go, { 5: () => onSettled?.() })
+    const pts: PyrPt[] = [...PD_PTS, { key: 'X', v: PD.X, label: 'X', glow: phase >= 1 && phase < 3 }, ...(phase >= 2 ? [{ key: 'N', v: PD.N }] : [])]
+    const done = phase >= 4
+    const segs: PyrSeg[] = [pyrInstant(PD_KL), pyrInstant(PD_LM),
+        ...(phase >= 1 ? [{ id: 'NM', a: PD.N, b: PD.M, dash: true, slow: phase === 1 }] : []),
+        ...(phase >= 3 ? [{ id: 'NK', a: PD.N, b: PD.K, dash: true, slow: phase === 3 }] : [])]
+    return (
+        <>
+            <CheatStrip active={done ? null : 1} crossed={[2]} />
+            <TypedBig small text="Снова правило 1: X и точка на ребре основания лежат в одной плоскости" onDone={() => go(1)} readMs={300} />
+            <PyrSvg solid={PD.s} view={done ? pyrBaseView(PD.s) : PD_VIEW_X} points={done ? pts.filter((p) => p.key !== 'X') : pts} segs={segs}
+                aux={!done && phase >= 1 ? [{ id: 'kx', a: PD.K, b: PD.X, instant: true }, { id: 'xn', a: PD.X, b: PD.N }] : []}
+                faces={phase >= 1 && phase < 2 ? [{ id: 'base', color: FACE_COLOR }] : phase === 3 ? [{ id: 'SCA', color: FACE_COLOR }] : []}
+                fill={done ? [PD.K, PD.L, PD.M, PD.N] : undefined} />
+            {phase >= 2 && <TypedBig small text="Новая точка и верхняя — на задней грани. Соединяем (сзади — пунктиром)" onDone={() => go(3)} readMs={200} />}
+            {done && <Msg ok text="Сечение готово! 🎉 Хватило правил 1 и 3" meme />}
+            {done && <Hold ms={900} onDone={() => go(5)} />}
+            {done && <LocalAnswerConfetti />}
+        </>
+    )
+}
+const Hold = ({ ms, onDone }: { ms: number; onDone: () => void }) => {
+    useEffect(() => { const t = setTimeout(onDone, ms); return () => clearTimeout(t) // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+    return null
+}
+
+// --- «Строй сам» на пирамиде: пульт из правил 1 и 3 ---
+type PyrSbPt = { id: number; v: PY.V3 }
+type PyrSbSeg = { id: number; a: PY.V3; b: PY.V3; face: string }
+type PyrSandboxCfg = { solid: PY.Solid; start: PY.V3[]; title: string; text: string }
+const PYR_RULES: { n: 1 | 3; name: string }[] = [{ n: 1, name: 'Соединить' }, { n: 3, name: 'Продлить' }]
+const PyrSandboxScene = ({ onSettled, onMistake, solid: s, start, title, text }: SceneProps & PyrSandboxCfg) => {
+    const [exp] = useState(() => PY.expectedOf(s, start))
+    const [typed, setTyped] = useState(false)
+    const [pts, setPts] = useState<PyrSbPt[]>(() => start.map((v, i) => ({ id: i, v })))
+    const [segs, setSegs] = useState<PyrSbSeg[]>([])
+    const [aux, setAux] = useState<PyrSeg[]>([])
+    const [tool, setTool] = useState<1 | 3 | null>(null)
+    const [selPt, setSelPt] = useState<number | null>(null)
+    const [selSeg, setSelSeg] = useState<number | null>(null)
+    const [msg, setMsg] = useState<MsgState>(null)
+    const [busy, setBusy] = useState(false)
+    const [done, setDone] = useState(false)
+    const uid = useRef(100)
+    const nid = () => ++uid.current
+    const resetSel = () => { setSelPt(null); setSelSeg(null) }
+    const fail = (t: string) => { badPair(onMistake); setMsg({ ok: false, text: `${pickWrongTryPhrase()} ${t}` }); resetSel() }
+    const addPoints = (vs: PY.V3[], cur: PyrSbPt[]) => { const out = [...cur]; for (const v of vs) if (!out.some((p) => PY.same(p.v, v))) out.push({ id: nid(), v }); return out }
+    const tapPoint = (p: PyrSbPt) => {
+        if (busy || done || tool !== 1) return
+        if (selPt === null || selPt === p.id) { setSelPt(selPt === p.id ? null : p.id); setMsg(null); return }
+        const A = pts.find((x) => x.id === selPt)!.v, B = p.v
+        resetSel()
+        const common = PY.planesOf(s, A).filter((f) => PY.planesOf(s, B).includes(f))
+        if (!common.length) return fail('Эти точки не на одной грани — линия прошла бы сквозь пирамиду')
+        const face = common.find((f) => !segs.some((x) => x.face === f))
+        if (!face) return fail('На этой грани линия уже есть')
+        const ch = PY.chordIn(s, face, A, PY.sub(B, A))
+        if (!ch) return fail('Здесь линия не заходит в пирамиду')
+        for (const X of [A, B]) if (!PY.inSolid(s, X)) {
+            const near = PY.dist3(ch[0], X) < PY.dist3(ch[1], X) ? ch[0] : ch[1]
+            setAux((a) => [...a, { id: `a${nid()}`, a: X, b: near }])
+        }
+        const first = PY.inSolid(s, A) ? A : PY.dist3(ch[0], A) < PY.dist3(ch[1], A) ? ch[0] : ch[1]
+        const [c0, c1] = PY.dist3(ch[0], first) <= PY.dist3(ch[1], first) ? ch : [ch[1], ch[0]]
+        const next = [...segs, { id: nid(), a: c0, b: c1, face }]
+        setSegs(next); setBusy(true)
+        setTimeout(() => {
+            setPts((cur) => addPoints([c0, c1], cur)); setBusy(false)
+            setMsg({ ok: true, text: `Правило 1 сработало: линия ${PYR_FACE_ON[face]}`, meme: true })
+            setTool(1)
+            if (exp.faces.every((f) => next.some((x) => x.face === f))) {
+                setDone(true); setTool(null); setMsg({ ok: true, text: 'Сечение замкнулось! 🎉', meme: true })
+                setTimeout(() => onSettled?.(), 900)
+            }
+        }, 1300)
+    }
+    const tapSeg = (x: PyrSbSeg) => {
+        if (busy || done || !tool) return
+        if (tool === 1) return fail('Для правила 1 тапай точки, а не линии')
+        setSelSeg(selSeg === x.id ? null : x.id); setSelPt(null); setMsg(null)
+    }
+    const tapEdge = (a: string, b: string) => {
+        if (busy || done || tool !== 3) return
+        if (selSeg === null) return fail('Сначала тапни линию, которую продлеваем')
+        const sg = segs.find((x) => x.id === selSeg)!
+        resetSel()
+        const fv = s.faces.find((f) => f.id === sg.face)!.v
+        if (!(fv.includes(a) && fv.includes(b))) return fail(`Ребро должно лежать на той же грани, что и линия (${PYR_FACE_ON[sg.face]})`)
+        const X = PY.meet(sg.a, PY.sub(sg.b, sg.a), s.V[a], PY.sub(s.V[b], s.V[a]))
+        if (!X) return fail('Линия и ребро параллельны — они не пересекутся')
+        if (PY.inSolid(s, X)) return fail('Они уже пересекаются в точке сечения — продлевать не нужно')
+        if (pts.some((p) => PY.same(p.v, X))) return fail('Эту точку уже нашли')
+        if (pyrScale(s, [...pts.map((p) => p.v), X]) < PYR_MIN_SCALE) { setMsg({ ok: false, text: 'Точка слишком далеко 🔭 Продли другое ребро — пересечение будет ближе' }); return }
+        const nearS = PY.dist3(sg.a, X) < PY.dist3(sg.b, X) ? sg.a : sg.b, nearE = PY.dist3(s.V[a], X) < PY.dist3(s.V[b], X) ? s.V[a] : s.V[b]
+        setAux((x) => [...x, { id: `a${nid()}`, a: nearS, b: X }, { id: `a${nid()}`, a: nearE, b: X, color: GGEGE_PALETTE.orange.button }])
+        setBusy(true)
+        setTimeout(() => {
+            setPts((cur) => addPoints([X], cur)); setBusy(false); setTool(1)
+            setMsg({ ok: true, text: 'Правило 3: продлили — новая точка. Она лежит сразу на двух гранях', meme: true })
+        }, 1300)
+    }
+    const pickTool = (t: 1 | 3) => { if (busy || done) return; setTool(t); resetSel(); setMsg(null) }
+    const hint = () => {
+        const has = (f: string) => segs.some((x) => x.face === f)
+        const r1 = pts.some((a, i) => pts.slice(i + 1).some((b) => PY.planesOf(s, a.v).some((f) => PY.planesOf(s, b.v).includes(f) && !has(f)
+            && PY.chordIn(s, f, a.v, PY.sub(b.v, a.v)) !== null)))
+        setMsg({ ok: true, text: r1 ? 'Подсказка: сейчас работает правило 1' : 'Подсказка: пора продлевать — правило 3' })
+    }
+    const view = done ? pyrBaseView(s) : pyrViewFor(s, [...pts.map((p) => p.v), ...aux.flatMap((x) => [x.a, x.b])])
+    const edgeMode = tool === 3 && selSeg !== null
+    const stepHint = !tool ? '👆 Выбери правило' : tool === 1 ? (selPt === null ? 'Тапни первую точку' : 'Теперь вторую точку на той же грани')
+        : selSeg === null ? 'Тапни линию сечения' : 'Теперь ребро на той же грани'
+    return (
+        <>
+            <GameHeader title={title} />
+            <TypedBig small text={text} onDone={() => setTyped(true)} readMs={0} />
+            {typed && (
+                <div className="w-full grid grid-cols-2 gap-2">
+                    {PYR_RULES.map((r, i) => {
+                        const on = tool === r.n, call = !tool && !done && !busy
+                        return (
+                            <motion.div key={r.n} className="relative flex" animate={call ? { y: [0, -6, 0] } : { y: 0 }}
+                                transition={call ? { duration: 0.5, delay: i * 0.18, repeat: Infinity, repeatDelay: 1.3, ease: 'easeOut' } : { duration: 0.2 }}>
+                                <button type="button" onClick={() => pickTool(r.n)} disabled={done}
+                                    className="relative w-full rounded-xl border-2 px-1 py-2 flex flex-col items-center gap-0.5 active:translate-y-[3px]"
+                                    style={{ borderColor: on ? SECT_COLOR : call ? hexToRgba(SECT_COLOR, 0.6) : '#3A464E', backgroundColor: on ? hexToRgba(SECT_COLOR, 0.2) : '#161F23',
+                                        boxShadow: on ? `0 3px 0 ${GGEGE_PALETTE.purple.bottom}` : '0 3px 0 #0E1518' }}>
+                                    <span className="text-xs font-black" style={{ color: on || call ? SECT_COLOR : MUTED }}>{r.n}</span>
+                                    <span className="text-sm font-black" style={{ color: on || call ? '#F2F7FB' : '#C9D3D9' }}>{r.name}</span>
+                                </button>
+                            </motion.div>
+                        )
+                    })}
+                </div>
+            )}
+            <div className="w-full flex justify-center min-h-8">
+                {!done && (
+                    <motion.div key={`${tool}-${stepHint}`} className="rounded-full px-3 py-1 text-sm md:text-base font-black"
+                        initial={{ scale: 1.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 12 }}
+                        style={{ color: tool ? '#F2F7FB' : SECT_COLOR, backgroundColor: hexToRgba(SECT_COLOR, tool ? 0.22 : 0.12), border: `1.5px solid ${hexToRgba(SECT_COLOR, 0.55)}` }}>
+                        {colorize(stepHint)}
+                    </motion.div>
+                )}
+            </div>
+            <div className="w-full flex justify-center">
+                <motion.svg initial={false} animate={{ viewBox: vbStr(view) }} transition={{ duration: 0.9, ease: 'easeInOut' }} viewBox={vbStr(pyrBaseView(s))}
+                    className="w-full max-w-[440px] max-h-[34vh] overflow-visible">
+                    {done && <motion.polygon points={pyrPoly(exp.verts)} fill={hexToRgba(SECT_COLOR, 0.32)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }} />}
+                    {s.edges.map(([a, b]) => {
+                        const L = pyrLine(s.V[a], s.V[b]), hid = PY.edgeHidden(s, a, b)
+                        return (
+                            <g key={a + b}>
+                                <line {...L} stroke={EDGE} strokeWidth={hid ? 2 : 3} strokeLinecap="round" strokeDasharray={hid ? '6 6' : undefined} opacity={edgeMode ? 0.95 : hid ? 0.6 : 1} />
+                                {edgeMode && <line {...L} stroke={GGEGE_PALETTE.orange.button} strokeOpacity={0.18} strokeWidth={10} strokeLinecap="round" />}
+                                {edgeMode && <line {...L} stroke="transparent" strokeWidth={22} onClick={() => tapEdge(a, b)} style={{ cursor: 'pointer' }} />}
+                            </g>
+                        )
+                    })}
+                    {aux.map((x) => {
+                        const L = pyrLine(x.a, x.b)
+                        return <motion.line key={x.id} x1={L.x1} y1={L.y1} stroke={x.color ?? SECT_COLOR} strokeWidth={2.5} strokeDasharray="6 5" strokeLinecap="round" opacity={0.75}
+                            initial={{ x2: L.x1, y2: L.y1 }} animate={{ x2: L.x2, y2: L.y2 }} transition={{ duration: 0.9, ease: 'easeInOut' }} />
+                    })}
+                    {segs.map((x) => {
+                        const L = pyrLine(x.a, x.b), sel = selSeg === x.id
+                        return (
+                            <g key={x.id}>
+                                {sel && <line {...L} stroke="#F2C35B" strokeOpacity={0.55} strokeWidth={16} strokeLinecap="round" />}
+                                <motion.line x1={L.x1} y1={L.y1} stroke={SECT_COLOR} strokeWidth={5} strokeLinecap="round" strokeDasharray={PY.faceVisible(s, x.face) ? undefined : '9 7'}
+                                    initial={{ x2: L.x1, y2: L.y1 }} animate={{ x2: L.x2, y2: L.y2 }} transition={{ duration: 1.2, ease: 'easeInOut' }} />
+                                {tool === 3 && <line {...L} stroke="transparent" strokeWidth={22} onClick={() => tapSeg(x)} style={{ cursor: 'pointer' }} />}
+                            </g>
+                        )
+                    })}
+                    {pts.map((p) => {
+                        const c = PY.proj(p.v), sel = selPt === p.id, act = tool === 1
+                        return (
+                            <g key={p.id} transform={`translate(${c.x.toFixed(1)} ${c.y.toFixed(1)})`} onClick={() => tapPoint(p)}
+                                style={{ cursor: act ? 'pointer' : undefined, pointerEvents: act ? undefined : 'none' }}>
+                                <motion.g initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 10 }}>
+                                    {sel && <circle r={18} fill={hexToRgba(SECT_COLOR, 0.35)} stroke={SECT_COLOR} strokeWidth={2} className="animate-sel-pulse" />}
+                                    <circle r={sel ? 9.5 : 7.5} fill={sel ? '#FFFFFF' : SECT_COLOR} stroke={sel ? SECT_COLOR : '#F2F7FB'} strokeWidth={sel ? 3.5 : 2.5} />
+                                    <circle r={22} fill="transparent" />
+                                </motion.g>
+                            </g>
+                        )
+                    })}
+                </motion.svg>
+            </div>
+            {msg && <Msg ok={msg.ok} text={msg.text} meme={msg.meme} />}
+            {typed && !done && (
+                <button type="button" onClick={hint} className="text-sm font-bold underline underline-offset-4" style={{ color: MUTED }}>Подсказка: какое правило сейчас?</button>
+            )}
+            {done && <LocalAnswerConfetti />}
+        </>
+    )
+}
+// Расстановки подобраны скриптом scripts/sect-tools/pyr_search.ts: в каждой паре сначала хватает правила 1, потом нужно и правило 3;
+// из подходящих брали те, где сечение на экране пошире (узкая «полоска» читается плохо).
+const PYR_SANDBOXES: PyrSandboxCfg[] = [
+    { solid: PY.TRI, title: 'Строй сам ⚡', text: 'Три точки на боковых рёбрах — построй сечение',
+        start: [PY.onEdge(PY.TRI, 'S', 'A', 0.7), PY.onEdge(PY.TRI, 'S', 'B', 0.6), PY.onEdge(PY.TRI, 'S', 'C', 0.3)] },
+    { solid: PY.TRI, title: 'Пирамида 2 🔥', text: 'Здесь понадобится и правило 3',
+        start: [PY.onEdge(PY.TRI, 'A', 'B', 0.3), PY.onEdge(PY.TRI, 'B', 'C', 0.5), PY.onEdge(PY.TRI, 'S', 'A', 0.4)] },
+    { solid: PY.QUAD, title: 'Четырёхугольная ⚡', text: 'В основании — четырёхугольник. Построй сечение',
+        start: [PY.onEdge(PY.QUAD, 'A', 'B', 0.3), PY.onEdge(PY.QUAD, 'B', 'C', 0.6), PY.onEdge(PY.QUAD, 'S', 'B', 0.3)] },
+    { solid: PY.QUAD, title: 'Финал 💀', text: 'Четырёхугольная пирамида — с правилом 3',
+        start: [PY.onEdge(PY.QUAD, 'A', 'B', 0.3), PY.onEdge(PY.QUAD, 'S', 'B', 0.3), PY.onEdge(PY.QUAD, 'S', 'C', 0.6)] },
+]
+const PYR_SANDBOX_SCENES = PYR_SANDBOXES.map((cfg) => {
+    const Scene = (props: SceneProps) => <PyrSandboxScene {...props} {...cfg} />
+    Scene.displayName = `PyrSandbox-${cfg.title}`
+    return Scene
+})
+const PYR_SCENES = [PyrIntroScene, PyrRulesScene, PyrTaskScene, PyrRule1Scene, PyrRule3Scene, PyrFinishScene, ...PYR_SANDBOX_SCENES]
+const PYR_MAP_LABELS = ['Пирамида', 'Правила 1 и 3', 'Задача', 'Правило 1', 'Правило 3 (X)', 'Достраиваем',
+    'Треуг. 1: правило 1', 'Треуг. 2: правило 3', 'Четырёхуг. 1', 'Четырёхуг. 2: правило 3']
+const PYR_PRACTICE = new Set<unknown>(PYR_SANDBOX_SCENES)
+const PYR_NEXT_LABELS = ['Понял, это пирамида', 'Значит 1 и 3 👌', 'Строим сечение ✂️', 'Дальше — правило 3', 'X найдена!', 'Теперь сам! ⚡',
+    'Ещё пирамида!', 'Давай четырёхугольную', 'Ещё одну 🔥', 'Готово']
+
 const SANDBOX_SCENES = SANDBOXES.map((cfg) => {
     const Scene = (props: SceneProps) => <SandboxScene {...props} {...cfg} />
     Scene.displayName = `Sandbox-${cfg.title}`
@@ -2056,10 +2506,12 @@ export const TypeSectWalk = ({ question, onAnswer, onComplete, isAdmin = false }
     const rule4 = /4 правило/i.test(question.question)
     // «Точки на гранях» — тоже отдельный урок на этом типе
     const faces = /Точки на гранях/i.test(question.question)
-    const SCENES = faces ? FACES_SCENES : rule4 ? R4_SCENES : BASE_SCENES
-    const SCENE_MAP_LABELS = faces ? FACES_MAP_LABELS : rule4 ? R4_MAP_LABELS : BASE_MAP_LABELS
-    const PRACTICE_SCENES = faces ? FACES_PRACTICE : rule4 ? R4_PRACTICE : BASE_PRACTICE
-    const NEXT_LABELS: React.ReactNode[] = faces ? FACES_NEXT_LABELS : rule4 ? R4_NEXT_LABELS : BASE_NEXT_LABELS
+    // «Пирамиды» — сечения треугольной и четырёхугольной пирамиды, правила 1 и 3
+    const pyr = /^Пирамид/i.test(question.question)
+    const SCENES = pyr ? PYR_SCENES : faces ? FACES_SCENES : rule4 ? R4_SCENES : BASE_SCENES
+    const SCENE_MAP_LABELS = pyr ? PYR_MAP_LABELS : faces ? FACES_MAP_LABELS : rule4 ? R4_MAP_LABELS : BASE_MAP_LABELS
+    const PRACTICE_SCENES = pyr ? PYR_PRACTICE : faces ? FACES_PRACTICE : rule4 ? R4_PRACTICE : BASE_PRACTICE
+    const NEXT_LABELS: React.ReactNode[] = pyr ? PYR_NEXT_LABELS : faces ? FACES_NEXT_LABELS : rule4 ? R4_NEXT_LABELS : BASE_NEXT_LABELS
     const [startStep, setStartStep] = useState(0)
     const [step, setStep] = useState(0)
     const [stepReady, setStepReady] = useState(false)
