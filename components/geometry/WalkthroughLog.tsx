@@ -20,7 +20,8 @@ import Latex from 'react-latex-next'
 import Confetti from 'react-confetti'
 import { createPortal } from 'react-dom'
 import { useWindowSize } from 'react-use'
-import { ArrowLeft, RotateCcw } from 'lucide-react'
+import { RotateCcw } from 'lucide-react'
+import { UnclearButton } from './unclear-button'
 import { HighlightWord } from './WalkthroughMarker'
 import { Typewriter } from './Typewriter'
 import { pickMoreMeme, memeFlip } from '@/lib/moreMemes'
@@ -438,6 +439,8 @@ export const SceneWrapper = ({ active, innerRef, children }: { active: boolean; 
     return (
         <motion.div
             ref={setRef}
+            data-wt-scene=""
+            data-wt-active={active ? '1' : '0'}
             animate={{ opacity: active ? 1 : 0.4 }}
             transition={{ duration: 0.6, ease: 'easeInOut' }}
             className="w-full flex flex-col gap-4"
@@ -465,17 +468,11 @@ const iconButtonStyle = (disabled: boolean | undefined): { boxShadow: string } =
 // Кнопка-стрелка "назад" — реальный откат к предыдущей сцене (см.
 // useSceneFocus выше) — ставится РЯДОМ с ReplayButton там, где она есть,
 // и отдельно там, где её нет.
-export const BackButton = ({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) => (
-    <button
-        type="button"
-        onClick={onClick}
-        disabled={disabled}
-        title="Вернуться к предыдущей сцене"
-        className={iconButtonClass(disabled)}
-        style={iconButtonStyle(disabled)}
-    >
-        <ArrowLeft className="w-5 h-5" />
-    </button>
+// Раньше — стрелка «назад» (откат к прошлой сцене). По просьбе пользователя (2026-10-23) на её месте
+// во всех разборах — кнопка «Непонятно» (модалка + сообщение админу в Telegram, см. unclear-button.tsx).
+// Имя и пропы оставлены, чтобы не трогать ~30 разборов; onClick/disabled больше не используются.
+export const BackButton = (_props: { onClick: () => void; disabled?: boolean }) => (
+    <UnclearButton className={iconButtonClass(false)} style={iconButtonStyle(false)} />
 )
 
 // Кнопка "повторить" — переигрывает анимацию ТЕКУЩЕЙ (уже показанной)
