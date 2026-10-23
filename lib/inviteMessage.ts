@@ -12,10 +12,9 @@ export const battleButtonLabel = (subject: TrialSubject) => `Кто круче �
 
 export const formatSeconds = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
 
-// Telegram сам превращает **текст** в жирный при отправке сообщения
-// (разметка в поле ввода), поэтому выделяем никнейм и «ДОДО-ПИЦЦУ» звёздочками.
-// В других мессенджерах (ВК, WhatsApp) звёздочки останутся видны — основная
-// аудитория в Telegram.
+// **текст** — жирный ТОЛЬКО в карточке от бота (lib/telegramShareCard.ts переводит в <b>).
+// При обычной отправке через меню «Поделиться» Telegram звёздочки не понимает —
+// shareInviteLink их вырезает (проверено пользователем 2026-10-23).
 export const buildBattleMessage = ({
 	nickname,
 	subject = 'physics',

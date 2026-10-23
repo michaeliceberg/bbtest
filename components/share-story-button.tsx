@@ -161,7 +161,9 @@ export const shareStoryImage = async (data: StoryCardData, qrCanvas: HTMLCanvasE
 // Ссылка вставлена прямо в текст — поле url часть мессенджеров игнорирует.
 // Если меню «Поделиться» нет (десктоп) — копируем в буфер.
 export const shareInviteLink = async (text: string, url: string): Promise<'shared' | 'copied' | 'failed'> => {
-	const message = `${text}\n${url}`;
+	// Звёздочки **жирного** понимает только наш бот (lib/telegramShareCard.ts → <b>). В меню «Поделиться»
+	// Telegram их не превращает в жирный и показывает как есть — убираем.
+	const message = `${text.replace(/\*\*(.+?)\*\*/g, '$1')}\n${url}`;
 	if (typeof navigator !== 'undefined' && navigator.share) {
 		try {
 			await navigator.share({ text: message });
