@@ -79,6 +79,26 @@ const SPARKS = Array.from({ length: 10 }, (_, i) => {
     return { x: Math.cos(a) * d, y: Math.sin(a) * d, star: i % 2 === 0, c: i % 3 === 0 ? '#FFFFFF' : '#FFD400' }
 })
 
+// Дым из дула после выстрела: мягкие серые клубы поднимаются вверх, покачиваются, растут и тают
+const SMOKE = [
+    { d: 0.12, x: [0, -6, 4, -2], y: -70, s: 26 },
+    { d: 0.26, x: [0, 7, -5, 3], y: -95, s: 32 },
+    { d: 0.42, x: [0, -4, 6, -3], y: -120, s: 38 },
+    { d: 0.6, x: [0, 5, -3, 2], y: -140, s: 30 },
+]
+const MuzzleSmoke = () => (
+    <div className="absolute pointer-events-none" style={{ left: `${MUZZLE.x * 100}%`, top: `${MUZZLE.y * 100}%`, width: 0, height: 0 }}>
+        {SMOKE.map((p, i) => (
+            <motion.span key={i} className="absolute block rounded-full"
+                style={{ width: p.s, height: p.s, left: -p.s / 2, top: -p.s / 2,
+                    background: 'radial-gradient(circle at 40% 40%, rgba(235,240,243,0.95), rgba(170,182,190,0.75) 55%, rgba(170,182,190,0) 72%)' }}
+                initial={{ x: 0, y: 0, scale: 0.3, opacity: 0 }}
+                animate={{ x: p.x, y: [0, p.y * 0.35, p.y * 0.7, p.y], scale: [0.3, 0.9, 1.4, 1.8], opacity: [0, 0.85, 0.55, 0] }}
+                transition={{ delay: SHOT_DELAY + p.d, duration: 1.5, ease: 'easeOut', times: [0, 0.25, 0.6, 1] }} />
+        ))}
+    </div>
+)
+
 // Вспышка из ствола: белое ядро, жёлтые лучи-звезда и разлетающиеся искры (только transform/opacity)
 const MuzzleFlash = () => (
     <div className="absolute pointer-events-none" style={{ left: `${MUZZLE.x * 100}%`, top: `${MUZZLE.y * 100}%`, width: 0, height: 0 }}>
@@ -136,6 +156,7 @@ const BubbleView = ({ s }: { s: Shown }) => {
                         transition={{ type: 'spring', stiffness: 380, damping: 10, delay: 0.1 }}
                     />
                 </motion.div>
+                {s.shot && <MuzzleSmoke />}
                 {s.shot && <MuzzleFlash />}
             </div>
             <motion.div

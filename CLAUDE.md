@@ -14663,4 +14663,4 @@ transform, элемент уезжает; центрировать статич�
   small fluffy white tuft on top, boxy white body in Minecraft-inspired style, rounded corners, big orange beak, orange webbed feet, fluffy
   white wings with soft gray shading, thick clean black outline, flat cel shading, simple shapes, expressive face, full body, centered,
   isolated on pure white background, no text, kid-friendly, high quality vector sticker». Оружие — мультяшное, «toy-like».
-- **Ружьё (gun)** — на верном ответе (×2 веса), серии, итоге урока, боссе; на ударе молнии КОМБО — выстрел (`showGaga('streak', {shot:true})`).
+- **Ружьё (gun)** — на верном ответе (×2 веса), серии, итоге урока, боссе; на ударе молнии КОМБО — выстрел (`showGaga('streak', {shot:true})`): отдача, вспышка, искры и дым (`MuzzleSmoke`: 4 серых клуба поднимаются вверх, качаются, растут и тают за 1,5 с). Звук выстрела — пользователь пришлёт файл позже.
