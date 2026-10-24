@@ -9,14 +9,14 @@ export type GagaEvent = 'start' | 'correct' | 'wrong' | 'rule' | 'streak' | 'che
 export type GagaLine = { id: string; event: GagaEvent; text: string }
 
 export const GAGA_EMOTION: Record<GagaEvent, string> = {
-    start: '/gaga/gaga-happy.webp',
-    correct: '/gaga/gaga-happy.webp',
-    wrong: '/gaga/gaga-oops.webp',
+    start: '/gaga/gaga-happy-2.webp',
+    correct: '/gaga/gaga-happy-2.webp',
+    wrong: '/gaga/gaga-oops-4.webp',
     rule: '/gaga/gaga-shock.webp',
     streak: '/gaga/gaga-fire.webp',
     chest: '/gaga/gaga-chest.webp',
-    levelup: '/gaga/gaga-happy.webp',
-    done: '/gaga/gaga-happy.webp',
+    levelup: '/gaga/gaga-happy-2.webp',
+    done: '/gaga/gaga-happy-2.webp',
     boss: '/gaga/gaga-angry.webp',
     night: '/gaga/gaga-sleep.webp',
 }
@@ -24,14 +24,14 @@ export const GAGA_EMOTION: Record<GagaEvent, string> = {
 // Все варианты стикеров на событие — выбираем случайный, чтобы не приедалось (public/gaga/)
 const G = (n: string) => `/gaga/gaga-${n}.webp`
 export const GAGA_EMOTIONS: Record<GagaEvent, string[]> = {
-    start: [G('wave'), G('wave-2'), G('happy'), G('teacher'), G('teacher-2')],
-    correct: [G('happy'), G('happy-2'), G('happy-3'), G('proud')],
-    wrong: [G('oops'), G('oops-2'), G('oops-3'), G('oops-4'), G('sad')],
-    rule: [G('shock'), G('shock-2'), G('teacher'), G('teacher-2')],
+    start: [G('wave'), G('wave-2'), G('teacher'), G('teacher-2')],
+    correct: [G('happy-2'), G('happy-3'), G('proud-2')],
+    wrong: [G('oops-3'), G('oops-4'), G('sad')],
+    rule: [G('shock'), G('teacher'), G('teacher-2')],
     streak: [G('fire'), G('fire-2'), G('fire-3')],
     chest: [G('chest')],
-    levelup: [G('proud'), G('proud-2'), G('happy-2')],
-    done: [G('proud'), G('proud-2'), G('happy'), G('happy-3'), G('pizza'), G('pizza-3')],
+    levelup: [G('proud-2'), G('happy-2')],
+    done: [G('proud-2'), G('happy-3'), G('pizza'), G('pizza-3')],
     boss: [G('angry')],
     night: [G('sleep')],
 }

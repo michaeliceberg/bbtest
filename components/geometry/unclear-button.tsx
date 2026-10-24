@@ -83,7 +83,7 @@ export const UnclearButton = ({ className, style }: { className?: string; style?
                 <DialogContent className="max-w-[360px] gap-3 bg-[#161F23] border-[#3A464E]">
                     <DialogHeader className="gap-1 items-center text-center">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src="/gaga/gaga-oops.webp" alt="" className="w-24 h-24 object-contain -mt-1" />
+                        <img src="/gaga/gaga-oops-4.webp" alt="" className="w-24 h-24 object-contain -mt-1" />
                         <DialogTitle className="text-lg text-[#F2F7FB]">Непонятно? Спасибо, что сказал! 💜</DialogTitle>
                         <DialogDescription className="text-sm text-[#9AA7B0]">
                             Ты помогаешь сделать урок понятнее для всех. Допиши, что именно запутало, или просто отправь как есть.

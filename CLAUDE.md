@@ -14485,9 +14485,9 @@ Speaks Russian naturally. Feels like a favourite teacher or a good uncle: calm, 
 «ошибка» вместе с картинкой Га-Га; не на каждый ответ (в уроке и так много звуков). Нужна кнопка «Голос Га-Га вкл/выкл»
 в аккаунте (ученики занимаются без звука — в транспорте, ночью).
 Стикеры эмоций Га-Га (2026-10-23, 12 новых): все в `public/gaga/gaga-<эмоция>[-N].webp`, 512×512, прозрачный фон.
-Радость — happy, happy-2, happy-3; Ой (ошибка) — oops, oops-2, oops-3, oops-4; Печаль — sad (добавлена 24.10); Шок (ЗАПОМНИ) — shock, shock-2; Огонь (серия/КОМБО) —
-fire, fire-2, fire-3; Сундук — chest; Сон — sleep; Злость (босс) — angry; Думает — think; Гордость/победа — proud, proud-2;
-Зовёт — wave, wave-2; Пицца — pizza, pizza-2, pizza-3; Учёный — teacher, teacher-2; монстр — monster-ege.
+Радость — happy-2, happy-3; Ой (ошибка) — oops-3, oops-4; Печаль — sad (добавлена 24.10); 24.10 удалены happy, oops, oops-2, pizza-2, proud, shock-2, всем без обводки добавлена белая обводка-стикер (размытие маски + порог, без острых углов); Шок (ЗАПОМНИ) — shock; Огонь (серия/КОМБО) —
+fire, fire-2, fire-3; Сундук — chest; Сон — sleep; Злость (босс) — angry; Думает — think; Гордость/победа — proud-2;
+Зовёт — wave, wave-2; Пицца — pizza, pizza-3; Учёный — teacher, teacher-2; монстр — monster-ege.
 В коде пока используется только gaga-oops (кнопка «Непонятно»). Как вырезать новые: маска Apple Vision
 (`VNGenerateForegroundInstanceMaskRequest`, Swift) ОБЪЕДИНЁННАЯ с заливкой белого фона от углов (Vision один теряет мелкие
 детали — «?», сердечки, капли, конфетти), обрезка по маске, квадрат с полем 4%, 512px, WebP q88. Несколько картинок на

@@ -91,7 +91,7 @@ export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compac
     let mood: Mood
     if (cheer) mood = cheer
     else if (streak > 0 && !hasExtendedToday && late) mood = { src: '/gaga/gaga-sleep.webp', text: 'Га… серия сгорит! Хоть один урок?' }
-    else if (questDone) mood = { src: '/gaga/gaga-proud.webp', text: GOOSE_QUEST[dayKey % GOOSE_QUEST.length] }
+    else if (questDone) mood = { src: '/gaga/gaga-proud-2.webp', text: GOOSE_QUEST[dayKey % GOOSE_QUEST.length] }
     else if (hasExtendedToday) mood = { src: '/gaga/gaga-fire.webp', text: 'Га-га! Серия жива. Ты босс 😎' }
     else mood = { src: GAGA_STAND, text: GOOSE_IDLE[dayKey % GOOSE_IDLE.length] }
 
