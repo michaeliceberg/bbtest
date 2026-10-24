@@ -1,9 +1,8 @@
 'use client'
 
-// Питомец на простом виде /trainer: картинка с эмоцией и ОДНА короткая реплика
-// в облачке — вместо стопки подсказок и баннеров. Эмоция/реплика выбираются по
-// состоянию: поздний час и серия под угрозой → тревожный пёс; квест выполнен →
-// гусь; серия продлена сегодня → крутой кот; иначе утка/пёс (по дню — детерминированно).
+// Питомец на простом виде /trainer — только Га-Га (гусь с квадратной головой): картинка с эмоцией и ОДНА
+// короткая реплика. Поздний час и серия под угрозой → спит/тревожится; квест выполнен → гордится;
+// серия продлена → огонь; иначе стоит и зовёт на урок (фраза по дню — детерминированно).
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
@@ -23,32 +22,22 @@ type Props = {
     flip?: boolean
 }
 
-// После пройденного урока питомец перебегает к следующему кружку — только утка или гусь.
-// Утка крякает («кря»), гусь гогочет («га-га»). «Ква» — это лягушка, не путать 🐸
-export const CHEER_PETS = ['/pets/duck.webp', '/pets/goose.webp']
+// На карте только Га-Га (гусь с квадратной головой). Утка, пёс, кот и старый гусь-фото убраны.
+// Картинки — эмоции public/gaga/*, стоит — кадр походки walk-2.
+const GAGA_STAND = '/gaga/walk/walk-2.webp'
 
-// Утка: зовёт на урок (простой вид, когда нечего срочно делать) и радуется после урока.
-export const DUCK_IDLE = [
-    'Ну что, крякнем один урок? 🦆',
-    'Кря! Один урок — и я отстану 🦆',
-    'Кря-кря, мозг просит задачку',
-    'Не тупи — крякни урок! 🦆',
-    'Кряк! Чую, ты сегодня в ударе',
-    'Утка верит в тебя. Кря 🫶',
-    'Кря-кря! Это значит «го решать»',
-    'Я крякаю, а ты решаешь. Дил? 🤝',
-    'Кря! Урок — и хлебушек мой 🍞',
-    'Кряк-кряк, ЕГЭ не ждёт!',
-]
-export const DUCK_CHEER = [
-    'Кря-кря! Вот это ты выдал 🔥',
-    'Кряк, легенда! Го дальше 🦆',
-    'Я аж крякнула от восторга 🤯',
-    'Кря! Мозг прокачан на +1 💪',
-    'Утка в шоке. Ты имба 🦆',
-    'Кря-кря-кря! (это аплодисменты) 👏',
-    'Кряк! Изи катка. Следующий? 😏',
-    'Кря! Так держать, легенда 👑',
+// Га-Га зовёт на урок (простой вид, когда нечего срочно делать).
+export const GOOSE_IDLE = [
+    'Га-га! Один урок — и я отстану 🪿',
+    'Гуси-гуси, га-га-га! Урок хотите? Да-да-да!',
+    'Га! Мозг просит задачку',
+    'Не тупи — гагакни урок! 🪿',
+    'Га-га! Чую, ты сегодня в ударе',
+    'Гусь верит в тебя. Га 🫶',
+    'Га-га! Это значит «го решать»',
+    'Я гогочу, а ты решаешь. Дил? 🤝',
+    'Га! ЕГЭ не ждёт, а я жду тебя',
+    'Га-га, погнали фармить баллы!',
 ]
 // Гусь (талисман «Га-Га»): радуется квесту дня и урокам.
 export const GOOSE_QUEST = [
@@ -84,10 +73,8 @@ export const CHEER_PHRASES = [
 const pickOf = <T,>(list: T[]) => list[Math.floor(Math.random() * list.length)]
 // Подбадривание после урока: случайный питомец и фраза ЕГО голосом (или общая).
 // goose — всегда Га-Га (он идёт по карте покадровой походкой, components/goose-walker.tsx)
-export const pickCheer = (only?: 'goose') => {
-    const src = only === 'goose' ? '/pets/goose.webp' : pickOf(CHEER_PETS)
-    const own = src.includes('goose') ? GOOSE_CHEER : DUCK_CHEER
-    return { src, text: Math.random() < 0.75 ? pickOf(own) : pickOf(CHEER_PHRASES) }
+export const pickCheer = (_only?: 'goose') => {
+    return { src: GAGA_STAND, text: Math.random() < 0.75 ? pickOf(GOOSE_CHEER) : pickOf(CHEER_PHRASES) }
 }
 
 const RISK_HOUR = 20
@@ -100,17 +87,13 @@ export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compac
     useEffect(() => setLate(new Date().getHours() >= RISK_HOUR), [])
 
     // Фразы выбираются по дню месяца (с сервера), а не случайно — иначе SSR и браузер нарисовали бы разное.
-    const idle: Mood[] = [
-        { src: '/pets/duck.webp', text: DUCK_IDLE[dayKey % DUCK_IDLE.length] },
-        { src: '/pets/dog-smirk.webp', text: 'Я верю, что ты сможешь 😏' },
-    ]
 
     let mood: Mood
     if (cheer) mood = cheer
-    else if (streak > 0 && !hasExtendedToday && late) mood = { src: '/pets/dog-side.webp', text: 'Серия сгорит! Хоть один урок?' }
-    else if (questDone) mood = { src: '/pets/goose.webp', text: GOOSE_QUEST[dayKey % GOOSE_QUEST.length] }
-    else if (hasExtendedToday) mood = { src: '/pets/cat-cool.webp', text: 'Серия жива. Ты босс 😎' }
-    else mood = idle[dayKey % idle.length]
+    else if (streak > 0 && !hasExtendedToday && late) mood = { src: '/gaga/gaga-sleep.webp', text: 'Га… серия сгорит! Хоть один урок?' }
+    else if (questDone) mood = { src: '/gaga/gaga-proud.webp', text: GOOSE_QUEST[dayKey % GOOSE_QUEST.length] }
+    else if (hasExtendedToday) mood = { src: '/gaga/gaga-fire.webp', text: 'Га-га! Серия жива. Ты босс 😎' }
+    else mood = { src: GAGA_STAND, text: GOOSE_IDLE[dayKey % GOOSE_IDLE.length] }
 
     if (compact && cheer && walking !== undefined) {
         // Га-Га идёт по дорожке; пока идёт — без облачка, дошёл — встаёт и говорит фразу
@@ -140,7 +123,7 @@ export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compac
                     src={mood.src}
                     alt=""
                     draggable={false}
-                    className="w-20 h-20 object-contain select-none"
+                    className="w-24 h-24 object-contain select-none"
                     animate={{ y: [0, -4, 0] }}
                     transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
                 />
