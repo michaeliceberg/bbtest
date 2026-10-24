@@ -977,3 +977,12 @@ body {
     80% { transform: translateX(3px); }
 }
 .animate-zone-shake { animation: zone-shake 0.45s ease-in-out; }
+
+/* Га-Га идёт вразвалку (components/goose-walker.tsx): наклон и подскок на каждый шаг — только transform */
+@keyframes goose-waddle {
+    0%, 100% { transform: rotate(-5deg) translateY(0); }
+    25% { transform: rotate(0deg) translateY(-4px); }
+    50% { transform: rotate(5deg) translateY(0); }
+    75% { transform: rotate(0deg) translateY(-4px); }
+}
+.animate-goose-waddle { animation: goose-waddle 0.5s ease-in-out infinite; transform-origin: 50% 90%; }

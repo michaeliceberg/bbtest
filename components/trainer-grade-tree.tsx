@@ -369,7 +369,7 @@ const StagePath = ({
     topic, accent, cozy, isAdmin, frontierIdx, stepNums, doneGradient, doneBorder, doneGlow, pet,
     revealId = null, revealWalk = false, revealRef, cheerPet,
 }: {
-    cheerPet?: (cheer: { src: string; text: string }) => React.ReactNode;
+    cheerPet?: (cheer: { src: string; text: string }, walk: { walking: boolean; arrived: boolean; flip: boolean }) => React.ReactNode;
     // Только что пройденный этап: гусь «идёт» от него к следующему (следы появляются по очереди).
     revealId?: number | null;
     revealWalk?: boolean;
@@ -472,7 +472,7 @@ const StagePath = ({
     // После урока: утка или гусь перебегает от пройденного кружка к следующему, когда следы до него дойдут.
     const ri = revealId === null ? -1 : topic.stages.findIndex((st) => st.id === revealId);
     const cheer = useMemo(
-        () => (ri >= 0 ? pickCheer() : null),
+        () => (ri >= 0 ? pickCheer('goose') : null),
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [revealId],
     );
@@ -484,6 +484,19 @@ const StagePath = ({
     const cheerFrom = ri >= 0 ? cheerSpot(ri) : null;
     const cheerTo = ri >= 0 && ri + 1 < n ? cheerSpot(ri + 1) : cheerFrom;
     const walkSec = ri >= 0 && ri + 1 < n ? gooseWalkSeconds(pts[ri], segs[ri].c1, segs[ri].c2, pts[ri + 1]) : 0;
+    // Га-Га перебирает лапами, пока едет к следующему кружку; дошёл — встаёт
+    // Фразу говорит, только когда дошёл (последний урок темы — идти некуда, сразу говорит)
+    const [cheerWalking, setCheerWalking] = useState(false);
+    const [cheerArrived, setCheerArrived] = useState(false);
+    useEffect(() => {
+        if (ri < 0) return;
+        if (walkSec <= 0) { setCheerArrived(true); return; }
+        if (!revealWalk) return;
+        setCheerWalking(true);
+        const t = setTimeout(() => { setCheerWalking(false); setCheerArrived(true); }, walkSec * 1000);
+        return () => clearTimeout(t);
+    }, [revealWalk, walkSec, ri]);
+    const cheerFlip = !!(cheerFrom && cheerTo && cheerTo.x < cheerFrom.x);
 
     return (
         <div className="relative w-full" style={{ aspectRatio: `${PATH_W} / ${H}` }}>
@@ -653,7 +666,7 @@ const StagePath = ({
                         ? { left: { duration: walkSec, ease: 'easeInOut' }, top: { duration: walkSec, ease: 'easeInOut' }, scale: { type: 'spring', bounce: 0.55, duration: 0.6 } }
                         : { duration: 0.4 }}
                 >
-                    {cheerPet(cheer)}
+                    {cheerPet(cheer, { walking: cheerWalking, arrived: cheerArrived, flip: cheerFlip })}
                 </motion.div>
             )}
         </div>
@@ -1104,7 +1117,7 @@ const TrainerGradeTreeInner = ({ topics, isAdmin = false, theme = 'metal', onlyA
                                         doneBorder={doneBorder}
                                         doneGlow={doneGlow}
                                         pet={petHere && petProps ? <TrainerPet {...petProps} compact /> : null}
-                                        cheerPet={petProps ? (c) => <TrainerPet {...petProps} compact cheer={c} /> : undefined}
+                                        cheerPet={petProps ? (c, w) => <TrainerPet {...petProps} compact cheer={c} walking={w.walking} arrived={w.arrived} flip={w.flip} /> : undefined}
                                         revealId={pendingRevealId}
                                         revealWalk={connectorRevealed}
                                         revealRef={topic.stages.some((st) => st.id === pendingRevealId) ? targetStageRef : undefined}
