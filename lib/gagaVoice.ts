@@ -27,7 +27,7 @@ export const GAGA_EMOTIONS: Record<GagaEvent, string[]> = {
     start: [G('wave'), G('wave-2'), G('teacher'), G('teacher-2')],
     correct: [G('happy-2'), G('happy-3'), G('proud-2')],
     wrong: [G('oops-3'), G('oops-4'), G('sad')],
-    rule: [G('shock'), G('teacher'), G('teacher-2')],
+    rule: [G('shock'), G('shock-2'), G('teacher'), G('teacher-2')],
     streak: [G('fire'), G('fire-2'), G('fire-3')],
     chest: [G('chest')],
     levelup: [G('proud-2'), G('happy-2')],
