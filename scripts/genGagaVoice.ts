@@ -7,7 +7,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
-import { GAGA_LINES } from '../lib/gagaVoice'
+import { GAGA_LINES, gagaSpeechText } from '../lib/gagaVoice'
 
 const BASE = process.env.ELEVENLABS_API_BASE || 'https://api.elevenlabs.io'
 const VOICE = process.env.GAGA_VOICE_ID || 'dABPButoaSloTSZcHPof'
@@ -24,7 +24,7 @@ async function main() {
         const r = await fetch(`${BASE}/v1/text-to-speech/${VOICE}?output_format=mp3_44100_128`, {
             method: 'POST',
             headers: { 'xi-api-key': KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: l.text, model_id: MODEL, voice_settings: { stability: 0.5, similarity_boost: 0.75 } }),
+            body: JSON.stringify({ text: gagaSpeechText(l.text), model_id: MODEL, voice_settings: { stability: 0.5, similarity_boost: 0.75 } }),
         })
         if (!r.ok || !r.headers.get('content-type')?.startsWith('audio/')) {
             console.error('ошибка', l.id, r.status, (await r.text()).slice(0, 300))
