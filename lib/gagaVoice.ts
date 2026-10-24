@@ -25,14 +25,14 @@ export const GAGA_EMOTION: Record<GagaEvent, string> = {
 const G = (n: string) => `/gaga/gaga-${n}.webp`
 export const GAGA_EMOTIONS: Record<GagaEvent, string[]> = {
     start: [G('wave'), G('wave-2'), G('teacher'), G('teacher-2')],
-    correct: [G('happy-2'), G('happy-3'), G('proud-2')],
+    correct: [G('happy-2'), G('happy-3'), G('proud-2'), G('gun'), G('gun')],
     wrong: [G('oops-3'), G('oops-4'), G('sad')],
     rule: [G('shock'), G('shock-2'), G('teacher'), G('teacher-2')],
-    streak: [G('fire'), G('fire-2'), G('fire-3')],
+    streak: [G('fire'), G('fire-2'), G('fire-3'), G('gun')],
     chest: [G('chest')],
     levelup: [G('proud-2'), G('happy-2')],
-    done: [G('proud-2'), G('happy-3'), G('pizza'), G('pizza-3')],
-    boss: [G('angry')],
+    done: [G('proud-2'), G('happy-3'), G('pizza'), G('pizza-3'), G('gun')],
+    boss: [G('angry'), G('angry-2'), G('gun')],
     night: [G('sleep')],
 }
 
