@@ -262,7 +262,7 @@ export default function TQuiz({
       setLightningLabel(`КОМБО x${n}`)
       setLightningStrikeKey(k => k + 1)
       setLightningStrikeActive(true)
-      showGaga('streak', { delayMs: 1100 })
+      showGaga('streak', { delayMs: 1100, shot: true })
     }
     window.addEventListener('walkthrough-combo', onCombo)
     return () => window.removeEventListener('walkthrough-combo', onCombo)
@@ -800,7 +800,7 @@ export default function TQuiz({
             setLightningLabel(`КОМБО x${newStreak}`)
             setLightningStrikeKey(k => k + 1)
             setLightningStrikeActive(true)
-            showGaga('streak', { delayMs: 1100 })
+            showGaga('streak', { delayMs: 1100, shot: true })
           }
           return newStreak
         })

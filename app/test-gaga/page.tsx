@@ -4,6 +4,7 @@
 
 import { useRef, useState } from 'react'
 import { Play, Square } from 'lucide-react'
+import { showGaga } from '@/components/gaga-buddy'
 import { GAGA_LINES, GAGA_EMOTION, gagaAudio, gagaCaption, type GagaEvent } from '@/lib/gagaVoice'
 
 const EVENT_TITLE: Record<GagaEvent, string> = {
@@ -28,6 +29,10 @@ export default function TestGaga() {
         <div className="min-h-screen bg-[#161F23] text-[#F2F7FB] px-4 py-6">
             <div className="max-w-2xl mx-auto flex flex-col gap-6">
                 <h1 className="text-2xl font-black">Голос Га-Га</h1>
+                <button type="button" onClick={() => showGaga('streak', { shot: true })}
+                    className="self-start rounded-xl bg-[#F09B38] px-4 py-2.5 font-black text-[#1C1206]">
+                    🔫 Выстрел (удар молнии КОМБО)
+                </button>
                 {events.map((ev) => (
                     <div key={ev} className="rounded-2xl border-2 border-[#3A464E] bg-[#1C272C] p-4 flex gap-4">
                         {/* eslint-disable-next-line @next/next/no-img-element */}

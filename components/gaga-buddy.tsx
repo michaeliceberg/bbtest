@@ -32,12 +32,13 @@ export const setGagaVoiceOn = (on: boolean) => {
 }
 
 let lastShownAt = 0
-export const showGaga = (event: GagaEvent, opts?: { delayMs?: number; force?: boolean }) => {
+// shot — Га-Га с ружьём «стреляет» в экран (удар молнии КОМБО): стикер gun, отдача, вспышка и искры из ствола
+export const showGaga = (event: GagaEvent, opts?: { delayMs?: number; force?: boolean; shot?: boolean }) => {
     if (typeof window === 'undefined') return
     const now = Date.now()
-    if (!opts?.force && !BIG.includes(event) && now - lastShownAt < MIN_GAP_MS) return
+    if (!opts?.force && !opts?.shot && !BIG.includes(event) && now - lastShownAt < MIN_GAP_MS) return
     lastShownAt = now
-    const fire = () => window.dispatchEvent(new CustomEvent(EVENT, { detail: { event } }))
+    const fire = () => window.dispatchEvent(new CustomEvent(EVENT, { detail: { event, shot: !!opts?.shot } }))
     if (opts?.delayMs) setTimeout(fire, opts.delayMs)
     else fire()
 }
@@ -66,7 +67,40 @@ export const showGagaOncePerDay = (event: GagaEvent, delayMs?: number) => {
     showGaga(event, { delayMs })
 }
 
-type Shown = { id: number; event: GagaEvent; caption: string; src: string; leaving: boolean }
+type Shown = { id: number; event: GagaEvent; caption: string; src: string; leaving: boolean; shot: boolean }
+
+const GUN_STICKER = '/gaga/gaga-gun.webp'
+// Где дуло на стикере gun (доли от размера картинки) и когда выстрел после выезда
+const MUZZLE = { x: 0.64, y: 0.53 }
+const SHOT_DELAY = 0.55
+const SPARKS = Array.from({ length: 10 }, (_, i) => {
+    const a = (i / 10) * Math.PI * 2 + 0.3
+    const d = 34 + (i % 3) * 12
+    return { x: Math.cos(a) * d, y: Math.sin(a) * d, star: i % 2 === 0, c: i % 3 === 0 ? '#FFFFFF' : '#FFD400' }
+})
+
+// Вспышка из ствола: белое ядро, жёлтые лучи-звезда и разлетающиеся искры (только transform/opacity)
+const MuzzleFlash = () => (
+    <div className="absolute pointer-events-none" style={{ left: `${MUZZLE.x * 100}%`, top: `${MUZZLE.y * 100}%`, width: 0, height: 0 }}>
+        <motion.svg viewBox="-50 -50 100 100" width={96} height={96} className="absolute" style={{ left: -48, top: -48 }}
+            initial={{ scale: 0, opacity: 0, rotate: 0 }}
+            animate={{ scale: [0, 1.35, 0.9, 0], opacity: [0, 1, 1, 0], rotate: [0, 12, 20, 25] }}
+            transition={{ delay: SHOT_DELAY, duration: 0.45, times: [0, 0.2, 0.5, 1], ease: 'easeOut' }}>
+            <path d="M0,-46 L9,-12 L44,-16 L14,4 L30,38 L0,16 L-30,38 L-14,4 L-44,-16 L-9,-12 Z" fill="#FFD400" stroke="#F09B38" strokeWidth={3} strokeLinejoin="round" />
+            <circle r={13} fill="#FFFFFF" />
+        </motion.svg>
+        {SPARKS.map((sp, i) => (
+            <motion.span key={i} className="absolute block" style={{ left: -4, top: -4 }}
+                initial={{ x: 0, y: 0, scale: 0, opacity: 0 }}
+                animate={{ x: sp.x, y: sp.y, scale: [0, 1.2, 0.4], opacity: [0, 1, 0] }}
+                transition={{ delay: SHOT_DELAY + 0.05, duration: 0.6, ease: 'easeOut' }}>
+                {sp.star
+                    ? <svg viewBox="-5 -5 10 10" width={9} height={9}><path d="M0,-5 L1.3,-1.3 L5,0 L1.3,1.3 L0,5 L-1.3,1.3 L-5,0 L-1.3,-1.3 Z" fill={sp.c} /></svg>
+                    : <span className="block w-[6px] h-[6px] rounded-full" style={{ backgroundColor: sp.c }} />}
+            </motion.span>
+        ))}
+    </div>
+)
 
 const pickSticker = (event: GagaEvent) => {
     const list = GAGA_EMOTIONS[event]
@@ -84,16 +118,26 @@ const BubbleView = ({ s }: { s: Shown }) => {
             animate={s.leaving ? { x: -280, opacity: 0 } : { x: 0, opacity: 1 }}
             transition={s.leaving ? { duration: 0.35, ease: [0.6, 0, 1, 0.4] } : { type: 'spring', stiffness: 260, damping: 18 }}
         >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <motion.img
-                src={s.src}
-                alt="Га-Га"
-                draggable={false}
-                className="w-[84px] h-[84px] md:w-24 md:h-24 object-contain shrink-0 drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)]"
-                initial={{ rotate: -14, scale: 0.7 }}
-                animate={{ rotate: 0, scale: 1 }}
-                transition={{ type: 'spring', stiffness: 380, damping: 10, delay: 0.1 }}
-            />
+            <div className="relative shrink-0">
+                {/* Отдача: выстрел в зрителя — стикер «отпрыгивает» назад (уменьшается) и дёргается */}
+                <motion.div
+                    initial={{ scale: 1, rotate: 0, x: 0 }}
+                    animate={s.shot ? { scale: [1, 0.82, 1.06, 1], rotate: [0, -9, 4, 0], x: [0, -10, 3, 0] } : { scale: 1 }}
+                    transition={s.shot ? { delay: SHOT_DELAY, duration: 0.42, times: [0, 0.18, 0.55, 1], ease: 'easeOut' } : undefined}
+                >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <motion.img
+                        src={s.src}
+                        alt="Га-Га"
+                        draggable={false}
+                        className="w-[84px] h-[84px] md:w-24 md:h-24 object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)]"
+                        initial={{ rotate: -14, scale: 0.7 }}
+                        animate={{ rotate: 0, scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 380, damping: 10, delay: 0.1 }}
+                    />
+                </motion.div>
+                {s.shot && <MuzzleFlash />}
+            </div>
             <motion.div
                 className="relative mb-10 rounded-2xl px-3 py-2 text-[13px] md:text-sm font-extrabold leading-snug text-[#F2F7FB]"
                 style={{ backgroundColor: 'rgba(22, 31, 35, 0.92)', border: `2px solid ${accent}`, boxShadow: `0 0 16px -6px ${accent}` }}
@@ -119,13 +163,13 @@ export const GagaBuddyLayer = () => {
         setMounted(true)
         const clear = () => { timers.current.forEach(clearTimeout); timers.current = [] }
         const onShow = (e: Event) => {
-            const event = (e as CustomEvent<{ event: GagaEvent }>).detail.event
+            const { event, shot } = (e as CustomEvent<{ event: GagaEvent; shot?: boolean }>).detail
             const line = pickGagaLine(event)
             clear()
             stopVoice.current()
             const id = Date.now() + Math.random()
             const startedAt = Date.now()
-            setShown({ id, event, caption: gagaCaption(line.text), src: pickSticker(event), leaving: false })
+            setShown({ id, event, caption: gagaCaption(line.text), src: shot ? GUN_STICKER : pickSticker(event), leaving: false, shot: !!shot })
             const leave = () => {
                 setShown((s) => (s && s.id === id ? { ...s, leaving: true } : s))
                 timers.current.push(setTimeout(() => setShown((s) => (s && s.id === id ? null : s)), 400))

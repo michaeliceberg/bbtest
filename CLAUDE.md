@@ -14486,7 +14486,7 @@ Speaks Russian naturally. Feels like a favourite teacher or a good uncle: calm, 
 в аккаунте (ученики занимаются без звука — в транспорте, ночью).
 Стикеры эмоций Га-Га (2026-10-23, 12 новых): все в `public/gaga/gaga-<эмоция>[-N].webp`, 512×512, прозрачный фон.
 Радость — happy-2, happy-3; Ой (ошибка) — oops-3, oops-4; Печаль — sad (добавлена 24.10); 24.10 удалены happy, oops, oops-2, pizza-2, proud, shock-2, всем без обводки добавлена белая обводка-стикер (размытие маски + порог, без острых углов); Шок (ЗАПОМНИ) — shock, shock-2; Огонь (серия/КОМБО) —
-fire, fire-2, fire-3; Сундук — chest (24.10 заменён на «несёт сундук»); Сон — sleep; Злость (босс) — angry, angry-2; Ружьё — gun (целится в зрителя; верный ответ ×2 веса, серия, итог урока, босс); Думает — think; Гордость/победа — proud-2;
+fire, fire-2, fire-3; Сундук — chest (24.10 заменён на «несёт сундук»); Сон — sleep; Злость (босс) — angry, angry-2; Ружьё — gun (целится в зрителя; верный ответ ×2 веса, серия, итог урока, босс; на ударе молнии КОМБО — `showGaga('streak', {shot:true})`: всегда ружьё, отдача + вспышка и искры из ствола, `MuzzleFlash` в components/gaga-buddy.tsx, кнопка на /test-gaga); Думает — think; Гордость/победа — proud-2;
 Зовёт — wave, wave-2; Пицца — pizza, pizza-3; Учёный — teacher, teacher-2; монстр — monster-ege.
 В коде пока используется только gaga-oops (кнопка «Непонятно»). Как вырезать новые: маска Apple Vision
 (`VNGenerateForegroundInstanceMaskRequest`, Swift) ОБЪЕДИНЁННАЯ с заливкой белого фона от углов (Vision один теряет мелкие
