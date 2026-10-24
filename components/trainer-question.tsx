@@ -51,6 +51,7 @@ import { TypeArea6Walk } from "@/app/t-lesson/[t_lessonId]/type-area6walk"
 import { TypePowWalk } from "@/app/t-lesson/[t_lessonId]/type-powwalk"
 import { TypeSectWalk } from "@/app/t-lesson/[t_lessonId]/type-sectwalk"
 import { TypePropWalk } from "@/app/t-lesson/[t_lessonId]/type-propwalk"
+import { TypeLineWalk } from "@/app/t-lesson/[t_lessonId]/type-linewalk"
 import { TypeRedFormWalk } from "@/app/t-lesson/[t_lessonId]/type-redformwalk"
 import { TypeWorkbook } from "@/app/t-lesson/[t_lessonId]/type-workbook"
 import { TypeConstructor } from "@/app/t-lesson/[t_lessonId]/type-constructor"
@@ -453,6 +454,9 @@ export default function TrainerQuestion({
       case "PROPWALK":
         // «Алгебра» → «Пропорция» → «Жонглируем буквами»: выражаем одну переменную через другие — см. type-propwalk.tsx.
         return <TypePropWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} isAdmin={isAdmin} />
+      case "LINEWALK":
+        // «Графики» → «Прямая» → «y = kx + b»: наклон, b, k по клеточкам — см. type-linewalk.tsx.
+        return <TypeLineWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} isAdmin={isAdmin} />
       case "SECTWALK":
         // «Стереометрия» → «Сечение» → «Кубик»: правила построения сечения куба — см. type-sectwalk.tsx.
         return <TypeSectWalk question={question} onAnswer={onAnswer} onComplete={handleMultistepComplete} isAdmin={isAdmin} />
@@ -778,6 +782,8 @@ export default function TrainerQuestion({
                 ? "6 площадей треугольника"
                 : question.questionType === "PROPWALK"
                 ? "Вырази букву"
+                : question.questionType === "LINEWALK"
+                ? "Прямая y = kx + b"
                 : question.questionType === "SECTWALK"
                 ? (/^Пирамид/i.test(question.question) ? "Сечение пирамиды" : "Сечение куба")
                 : question.questionType === "POWWALK"
@@ -850,7 +856,7 @@ export default function TrainerQuestion({
           прямой просьбе пользователя. TRIGTABLE (как ASSIST/INSERT/
           SCROLL) — select-then-submit: общая кнопка сначала "Ответить"
           (когда все пропуски заполнены), затем "далее"/"понятно". */}
-      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "SINWALK" && question.questionType !== "LOGWALK" && question.questionType !== "LOGDEFWALK" && question.questionType !== "LOGSUBWALK" && question.questionType !== "LOGPOWWALK" && question.questionType !== "LOGSWAPWALK" && question.questionType !== "LOGDIVWALK" && question.questionType !== "LOGCOMBOWALK" && question.questionType !== "LOGFLIPWALK" && question.questionType !== "FARADAYWALK" && question.questionType !== "DIRWALK" && question.questionType !== "LENZWALK" && question.questionType !== "SINCOSDEFWALK" && question.questionType !== "LEGFINDWALK" && question.questionType !== "HYPFINDWALK" && question.questionType !== "SIMWALK" && question.questionType !== "TRIGSCWALK" && question.questionType !== "TRIGTGWALK" && question.questionType !== "TRIGCIRCWALK" && question.questionType !== "REDFORMWALK" && question.questionType !== "TTPWALK" && question.questionType !== "STEREOWALK" && question.questionType !== "TRIGANSWALK" && question.questionType !== "VIETAWALK" && question.questionType !== "CIRCLEWALK" && question.questionType !== "AREA6WALK" && question.questionType !== "POWWALK" && question.questionType !== "SECTWALK" && question.questionType !== "PROPWALK" && (
+      {question.questionType !== "CHECK" && question.questionType !== "FRACTRICK" && question.questionType !== "SINWALK" && question.questionType !== "LOGWALK" && question.questionType !== "LOGDEFWALK" && question.questionType !== "LOGSUBWALK" && question.questionType !== "LOGPOWWALK" && question.questionType !== "LOGSWAPWALK" && question.questionType !== "LOGDIVWALK" && question.questionType !== "LOGCOMBOWALK" && question.questionType !== "LOGFLIPWALK" && question.questionType !== "FARADAYWALK" && question.questionType !== "DIRWALK" && question.questionType !== "LENZWALK" && question.questionType !== "SINCOSDEFWALK" && question.questionType !== "LEGFINDWALK" && question.questionType !== "HYPFINDWALK" && question.questionType !== "SIMWALK" && question.questionType !== "TRIGSCWALK" && question.questionType !== "TRIGTGWALK" && question.questionType !== "TRIGCIRCWALK" && question.questionType !== "REDFORMWALK" && question.questionType !== "TTPWALK" && question.questionType !== "STEREOWALK" && question.questionType !== "TRIGANSWALK" && question.questionType !== "VIETAWALK" && question.questionType !== "CIRCLEWALK" && question.questionType !== "AREA6WALK" && question.questionType !== "POWWALK" && question.questionType !== "SECTWALK" && question.questionType !== "PROPWALK" && question.questionType !== "LINEWALK" && (
       <div className="px-4 pb-4 pt-2 bg-[#151F24] relative">
         {/* Notification фон который выезжает при правильном ответе */}
         {answerState === "correct" && (
