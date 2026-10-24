@@ -32,7 +32,7 @@ export const GAGA_EMOTIONS: Record<GagaEvent, string[]> = {
     chest: [G('chest')],
     levelup: [G('proud-2'), G('happy-2')],
     done: [G('proud-2'), G('happy-3'), G('pizza'), G('pizza-3'), G('gun')],
-    boss: [G('angry'), G('angry-2'), G('gun')],
+    boss: [G('angry'), G('gun')],
     night: [G('sleep')],
 }
 
