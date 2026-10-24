@@ -24,14 +24,14 @@ export const GAGA_EMOTION: Record<GagaEvent, string> = {
 // Все варианты стикеров на событие — выбираем случайный, чтобы не приедалось (public/gaga/)
 const G = (n: string) => `/gaga/gaga-${n}.webp`
 export const GAGA_EMOTIONS: Record<GagaEvent, string[]> = {
-    start: [G('wave'), G('happy'), G('teacher')],
-    correct: [G('happy'), G('happy-2'), G('proud')],
-    wrong: [G('oops'), G('oops-2'), G('oops-3')],
-    rule: [G('shock'), G('shock-2'), G('teacher')],
+    start: [G('wave'), G('wave-2'), G('happy'), G('teacher'), G('teacher-2')],
+    correct: [G('happy'), G('happy-2'), G('happy-3'), G('proud')],
+    wrong: [G('oops'), G('oops-2'), G('oops-3'), G('oops-4'), G('sad')],
+    rule: [G('shock'), G('shock-2'), G('teacher'), G('teacher-2')],
     streak: [G('fire'), G('fire-2'), G('fire-3')],
     chest: [G('chest')],
-    levelup: [G('proud'), G('happy-2')],
-    done: [G('proud'), G('happy'), G('pizza')],
+    levelup: [G('proud'), G('proud-2'), G('happy-2')],
+    done: [G('proud'), G('proud-2'), G('happy'), G('happy-3'), G('pizza'), G('pizza-3')],
     boss: [G('angry')],
     night: [G('sleep')],
 }
