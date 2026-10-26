@@ -67,8 +67,8 @@ export const FormulaCard = ({ tex, title }: { tex: string; title: string }) => (
     </motion.div>
 )
 export const CalcLine = ({ tex }: { tex: string }) => (
-    <motion.div className="w-full text-center text-xl md:text-2xl text-[#F2F7FB]"
-        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+    <motion.div className="w-full text-center text-3xl md:text-4xl text-[#F2F7FB] py-1"
+        initial={{ opacity: 0, y: 8, scale: 0.8 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 14 }}>
         <Latex>{`$${tex}$`}</Latex>
     </motion.div>
 )
@@ -106,11 +106,11 @@ export const ChoiceGame = ({ rounds, onDone }: { rounds: ChoiceRound[]; onDone: 
     return (
         <div className="w-full flex flex-col gap-2">
             <motion.div key={r} initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
-                className="w-full text-center text-lg md:text-xl font-black text-[#F2F7FB]">
+                className="w-full text-center text-xl md:text-2xl font-black text-[#F2F7FB]">
                 <L>{round.prompt}</L>
                 {rounds.length > 1 && <span className="ml-1 text-sm font-bold text-[#5C6B73]">{r + 1}/{rounds.length}</span>}
             </motion.div>
-            <div key={`o${r}`} className={cn('drop-in-options grid gap-3 w-full', long ? 'grid-cols-2' : 'grid-cols-3')}>
+            <div key={`o${r}`} className={cn('drop-in-options grid gap-3 w-full', round.options.length === 2 || long ? 'grid-cols-2' : 'grid-cols-3')}>
                 {round.options.map((o) => {
                     const isWrong = wrong.includes(o), isRight = done && o === round.correct
                     return (

@@ -139,7 +139,7 @@ const scenes: Scene[] = [
     {
         title: 'Какой знак?', next: 'Интересненько', parts: [
             { t: 'say', text: 'Это задание №16 второй части ЕГЭ 🥷 Звучит страшно, но начнём с простого' },
-            { t: 'calc', tex: '\\log_3 2' },
+            { t: 'calc', tex: '\\log_3 {\\color{#5CC99F}{2}}' },
             { t: 'say', text: 'Он положительный или отрицательный? 🤔' },
             {
                 t: 'choice', label: 'Угадай', rounds: [{
@@ -209,7 +209,7 @@ const scenes: Scene[] = [
     {
         title: 'Выражения вместо чисел', next: 'Не паникую', parts: [
             { t: 'say', text: 'А в ЕГЭ вместо чисел — выражения с x 😱' },
-            { t: 'calc', tex: '\\log_{x-1}(12x+5) \\le 0' },
+            { t: 'calc', tex: '\\log_{x-1}{\\color{#5CC99F}{(12x+5)}} \\le 0' },
             { t: 'say', text: 'Не паникуем! Это разбирается на систему из 4 строчек' },
             { t: 'card', title: 'Система', tex: SYSTEM_TEX('x-1', '12x+5', '\\le') },
         ],
@@ -230,25 +230,25 @@ const scenes: Scene[] = [
     },
     {
         title: 'Собери систему 1', next: 'Систему собрал', parts: [
-            { t: 'calc', tex: '\\log_{x-1}(12x+5) \\le 0' },
+            { t: 'calc', tex: '\\log_{x-1}{\\color{#5CC99F}{(12x+5)}} \\le 0' },
             systemPart('x − 1', '12x + 5', '≤', 'Собери систему из кнопок 👇'),
         ],
     },
     {
         title: 'Собери систему 2', next: 'Ещё одну!', parts: [
-            { t: 'calc', tex: '\\log_{x}(x+3) > 0' },
+            { t: 'calc', tex: '\\log_{x}{\\color{#5CC99F}{(x+3)}} > 0' },
             systemPart('x', 'x + 3', '>', 'Основание тут просто x 👇'),
         ],
     },
     {
         title: 'Собери систему 3', next: 'Изи', parts: [
-            { t: 'calc', tex: '\\log_{2x+1}(5-x) \\ge 0' },
+            { t: 'calc', tex: '\\log_{2x+1}{\\color{#5CC99F}{(5-x)}} \\ge 0' },
             systemPart('2x + 1', '5 − x', '≥', 'Знак теперь ≥. Не перепутай 👀'),
         ],
     },
     {
         title: 'Собери систему 4', next: 'Я рационализатор 😎', parts: [
-            { t: 'calc', tex: '\\log_{x+2} x^2 < 0' },
+            { t: 'calc', tex: '\\log_{x+2} {\\color{#5CC99F}{x^2}} < 0' },
             systemPart('x + 2', 'x²', '<', 'Последний босс этой сцены 👹'),
         ],
     },

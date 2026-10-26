@@ -8,7 +8,7 @@ import { eq, sql } from "drizzle-orm"
 import { t_lessons, t_challenges } from "@/db/schema"
 
 const T_COURSE = 5
-const UNIT_TITLE = "Треугольник"
+const UNIT_TITLE = "Теорема Менелая" // отдельный юнит, см. seedSplitTheoremUnits.ts
 const AFTER_LESSON = "6 площадей"
 const LESSON_TITLE = "Теорема Менелая"
 const AI_HINT = 'теорема Менелая: треугольник и секущая прямая; выбираем треугольник (3 вершины), остальные 3 точки на прямых сторон; путь вершина → точка → вершина: (AD/DB)·(BF/FC)·(CE/EA) = 1; составить соотношение отрезков, отношения отрезков на сторонах, точка на продолжении стороны'

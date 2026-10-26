@@ -120,7 +120,7 @@ export const TypeSceneWalk = ({ question, onAnswer, onComplete, isAdmin = false 
     const t = TRIALS[trialIndex]
     const long = t.options.some((o) => o.replace(/\$|\\[a-z]+|[{}]/g, '').length > 9)
     return (
-        <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
+        <div className="scene-tex w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
             {isAdmin && <AdminSceneMap enabled entries={mapEntries} onJump={jumpTo} disabled={advancing} />}
             <div className="w-full flex flex-col gap-4">
                 {SCENES.map((s, i) => step >= i && i >= startStep ? (

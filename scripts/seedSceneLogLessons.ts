@@ -13,12 +13,12 @@ import { eq, sql } from "drizzle-orm"
 import { t_lessons, t_challenges } from "@/db/schema"
 
 const T_COURSE = 5
-const LOG_UNIT = 16
+const LOG_UNIT_MAIN = 16
 const NEW = [
     { title: 'Отрицательные степени в логарифмах', badge: 'log₂ ⅛ = −3', part: 1,
-        hint: 'логарифмы с отрицательными степенями и дробями: a⁻ⁿ = 1/aⁿ, log₂(1/8) = −3, log₈(1/2) = −1/3, log_{1/2} 16 = −4, приведение к одному основанию', place: 'afterFirstTraining' },
+        hint: 'логарифмы с отрицательными степенями и дробями: a⁻ⁿ = 1/aⁿ, log₂(1/8) = −3, log₈(1/2) = −1/3, log_{1/2} 16 = −4, приведение к одному основанию', place: 'afterFirstTraining', unitTitle: '' },
     { title: 'Логарифмические неравенства', badge: '№16 ЕГЭ', part: 2,
-        hint: 'логарифмические неравенства (ЕГЭ №16): знак log_a b по правилу единицы (a и b по одну сторону от 1 — плюс), метод рационализации: log_{f} g ∨ 0 ⇔ f > 0, g > 0, f ≠ 1, (f − 1)(g − 1) ∨ 0', place: 'beforeBoss' },
+        hint: 'логарифмические неравенства (ЕГЭ №16): знак log_a b по правилу единицы (a и b по одну сторону от 1 — плюс), метод рационализации: log_{f} g ∨ 0 ⇔ f > 0, g > 0, f ≠ 1, (f − 1)(g − 1) ∨ 0', place: 'beforeBoss', unitTitle: 'Логарифмические неравенства' },
 ]
 const STEP_TYPES = ['SINWALK','LOGWALK','LOGDEFWALK','LOGSUBWALK','LOGPOWWALK','LOGSWAPWALK','LOGDIVWALK','LOGCOMBOWALK','LOGFLIPWALK','SINCOSDEFWALK','LEGFINDWALK','HYPFINDWALK','SIMWALK','TRIGSCWALK','TRIGTGWALK','TRIGCIRCWALK','REDFORMWALK','TTPWALK','STEREOWALK','TRIGANSWALK','VIETAWALK','CIRCLEWALK','AREA6WALK','POWWALK','SECTWALK','PROPWALK','LINEWALK','MENELAUSWALK','SCENEWALK']
 
@@ -27,6 +27,9 @@ async function main() {
     await db.execute(sql.raw(`ALTER TYPE "type" ADD VALUE IF NOT EXISTS 'SCENEWALK'`))
 
     for (const L of NEW) {
+        // «Логарифмические неравенства» живут в своём юните (seedSplitTheoremUnits.ts)
+        const own = L.unitTitle ? await db.query.t_units.findFirst({ where: (u, { and, eq }) => and(eq(u.t_courseId, T_COURSE), eq(u.title, L.unitTitle)) }) : null
+        const LOG_UNIT = own?.id ?? LOG_UNIT_MAIN
         const old = await db.query.t_lessons.findFirst({ where: (l, { and, eq }) => and(eq(l.t_unitId, LOG_UNIT), eq(l.title, L.title)) })
         if (old) await db.delete(t_lessons).where(eq(t_lessons.id, old.id))
         const all = await db.query.t_lessons.findMany({ where: (l, { eq }) => eq(l.t_unitId, LOG_UNIT), orderBy: (l, { asc }) => asc(l.order) })
