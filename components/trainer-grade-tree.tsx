@@ -16,7 +16,7 @@ import { COZY, COZY_WOOD_TILE, type UiTheme } from '@/lib/cozyTheme';
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil, Lock, ChevronDown, ChevronRight, BookOpen } from 'lucide-react';
+import { Egg, Shield, Sword, Crown, Gift, Library, Dumbbell, Footprints, Rocket, Flame, Target, Trophy, Pencil, Lock, ChevronDown, ChevronRight, BookOpen, Baby, Swords } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { TrainerStageLink } from './trainer-stage-link';
@@ -173,11 +173,28 @@ export type SkillStage = {
     isStepByStep?: boolean;
     // Подпись под плиткой (t_lessons.badge), 1–2 строки через \n.
     badge?: string | null;
+    // Часть ЕГЭ (t_lessons.ege_part): 1 — «База», 2 — «Часть 2», плашка рядом с «Урок».
+    egePart?: number | null;
     isBossExam?: boolean;
     bossWins?: number;
     // Урок только по подписке PRO: плашка PRO, ссылка ведёт на /pro.
     proLocked?: boolean;
 };
+
+// Плашка части ЕГЭ рядом с «Урок»: база — малыш, вторая часть — мечи (сложный уровень).
+const EgePartPill = ({ part, dim }: { part?: number | null; dim?: boolean }) => {
+    if (part !== 1 && part !== 2) return null
+    const two = part === 2
+    const c = two ? '#FF6B8A' : '#8FD3A8'
+    const Icon = two ? Swords : Baby
+    return (
+        <div className={cn("shrink-0 whitespace-nowrap inline-flex items-center gap-1 px-2 py-[3px] rounded-full border text-[11px] font-black uppercase tracking-[0.06em] leading-none", dim && "opacity-40")}
+            style={{ borderColor: `${c}99`, backgroundColor: `${c}1F`, color: c }}>
+            <Icon className="w-3.5 h-3.5" />
+            <span>{two ? 'Часть 2' : 'База'}</span>
+        </div>
+    )
+}
 
 export type SkillTopic = {
     id: number;
@@ -619,11 +636,12 @@ const StagePath = ({
                             <div>
                                 {s.proLocked && <ProBadge className={cn("mb-1", !unlocked && "opacity-60")} />}
                                 {s.isStepByStep && (
-                                    <div className="mb-1 flex items-center gap-1.5">
-                                        <div className={cn("inline-flex items-center gap-1 px-2 py-[3px] rounded-full text-[11px] font-black uppercase tracking-[0.2em] leading-none", unlocked ? "lesson-pill" : "opacity-40 border border-[#8A8466]/50")}>
+                                    <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                                        <div className={cn("shrink-0 whitespace-nowrap inline-flex items-center gap-1 px-2 py-[3px] rounded-full text-[11px] font-black uppercase tracking-[0.2em] leading-none", unlocked ? "lesson-pill" : "opacity-40 border border-[#8A8466]/50")}>
                                             <BookOpen className="w-3.5 h-3.5 relative" style={{ color: unlocked ? '#412402' : '#8A8466' }} />
                                             <span className="relative" style={{ color: unlocked ? '#412402' : '#8A8466' }}>Урок</span>
                                         </div>
+                                        <EgePartPill part={s.egePart} dim={!unlocked} />
                                         <MapLessonShare lessonId={s.id} lessonTitle={s.title} />
                                     </div>
                                 )}

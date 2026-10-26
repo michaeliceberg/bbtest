@@ -37,7 +37,7 @@ export interface SuperType {
 // (см. историю в CLAUDE.md) — задачи с этим типом никогда не читаются из
 // t_challenges.type, а собираются на лету в page.tsx из отдельной таблицы
 // t_hot_questions, поэтому миграция самого pgEnum "type" тут не нужна.
-export type allTypesCT = "M_ASC" | "SELECT" | "ASSIST" | "CONNECT" | "SLIDER" | "CONSTRUCT" | "WORKBOOK" | "R ASSIST" | "R CONNECT" | "R SLIDER" | "GEOSIN" | "RUSSIANDICTANT" | "SWIPE" | "KEYBOARD" | "INSERT" | "SCROLL" | "HOT" | "CHECK" | "PICMATCH" | "MULTISTEP" | "SPEED" | "FRACTRICK" | "DIAGRAM" | "TRIGTABLE" | "UNITCIRCLE" | "VIETA" | "SINWALK" | "LOGWALK" | "LOGDEFWALK" | "LOGSUBWALK" | "LOGPOWWALK" | "LOGSWAPWALK" | "LOGDIVWALK" | "LOGCOMBOWALK" | "LOGFLIPWALK" | "FARADAYWALK" | "DIRWALK" | "LENZWALK" | "SINCOSDEFWALK" | "LEGFINDWALK" | "HYPFINDWALK" | "SIMWALK" | "TRIGSCWALK" | "TRIGTGWALK" | "TRIGCIRCWALK" | "REDFORMWALK" | "TTPWALK" | "STEREOWALK" | "TRIGANSWALK" | "VIETAWALK" | "CIRCLEWALK" | "AREA6WALK" | "POWWALK" | "SECTWALK" | "PROPWALK" | "LINEWALK" | "MENELAUSWALK";
+export type allTypesCT = "M_ASC" | "SELECT" | "ASSIST" | "CONNECT" | "SLIDER" | "CONSTRUCT" | "WORKBOOK" | "R ASSIST" | "R CONNECT" | "R SLIDER" | "GEOSIN" | "RUSSIANDICTANT" | "SWIPE" | "KEYBOARD" | "INSERT" | "SCROLL" | "HOT" | "CHECK" | "PICMATCH" | "MULTISTEP" | "SPEED" | "FRACTRICK" | "DIAGRAM" | "TRIGTABLE" | "UNITCIRCLE" | "VIETA" | "SINWALK" | "LOGWALK" | "LOGDEFWALK" | "LOGSUBWALK" | "LOGPOWWALK" | "LOGSWAPWALK" | "LOGDIVWALK" | "LOGCOMBOWALK" | "LOGFLIPWALK" | "FARADAYWALK" | "DIRWALK" | "LENZWALK" | "SINCOSDEFWALK" | "LEGFINDWALK" | "HYPFINDWALK" | "SIMWALK" | "TRIGSCWALK" | "TRIGTGWALK" | "TRIGCIRCWALK" | "REDFORMWALK" | "TTPWALK" | "STEREOWALK" | "TRIGANSWALK" | "VIETAWALK" | "CIRCLEWALK" | "AREA6WALK" | "POWWALK" | "SECTWALK" | "PROPWALK" | "LINEWALK" | "MENELAUSWALK" | "SCENEWALK";
 
 export const challengesEnum = pgEnum("type", [
 	"M_ASC", "SELECT", "ASSIST", "CONNECT", "SLIDER", "CONSTRUCT", "WORKBOOK",
@@ -51,7 +51,7 @@ export const challengesEnum = pgEnum("type", [
 export const t_challengesEnum = pgEnum("type", [
 	"M_ASC", "SELECT", "ASSIST", "CONNECT", "SLIDER", "CONSTRUCT", "WORKBOOK",
 	"R ASSIST", "R CONNECT", "R SLIDER", "GEOSIN", "RUSSIANDICTANT", "SWIPE", "KEYBOARD",
-	"INSERT", "SCROLL", "CHECK", "PICMATCH", "MULTISTEP", "SPEED", "FRACTRICK", "DIAGRAM", "TRIGTABLE", "UNITCIRCLE", "VIETA", "SINWALK", "LOGWALK", "LOGDEFWALK", "LOGSUBWALK", "LOGPOWWALK", "LOGSWAPWALK", "LOGDIVWALK", "LOGCOMBOWALK", "LOGFLIPWALK", "FARADAYWALK", "DIRWALK", "LENZWALK", "SINCOSDEFWALK", "LEGFINDWALK", "HYPFINDWALK", "SIMWALK", "TRIGSCWALK", "TRIGTGWALK", "TRIGCIRCWALK", "REDFORMWALK", "TTPWALK", "STEREOWALK", "TRIGANSWALK", "VIETAWALK", "CIRCLEWALK", "AREA6WALK", "POWWALK", "SECTWALK", "PROPWALK", "LINEWALK", "MENELAUSWALK"
+	"INSERT", "SCROLL", "CHECK", "PICMATCH", "MULTISTEP", "SPEED", "FRACTRICK", "DIAGRAM", "TRIGTABLE", "UNITCIRCLE", "VIETA", "SINWALK", "LOGWALK", "LOGDEFWALK", "LOGSUBWALK", "LOGPOWWALK", "LOGSWAPWALK", "LOGDIVWALK", "LOGCOMBOWALK", "LOGFLIPWALK", "FARADAYWALK", "DIRWALK", "LENZWALK", "SINCOSDEFWALK", "LEGFINDWALK", "HYPFINDWALK", "SIMWALK", "TRIGSCWALK", "TRIGTGWALK", "TRIGCIRCWALK", "REDFORMWALK", "TTPWALK", "STEREOWALK", "TRIGANSWALK", "VIETAWALK", "CIRCLEWALK", "AREA6WALK", "POWWALK", "SECTWALK", "PROPWALK", "LINEWALK", "MENELAUSWALK", "SCENEWALK"
 ]);
 
 // ===== COURSES =====
@@ -562,6 +562,8 @@ export const t_lessons = pgTable('t_lessons', {
 	badge: text('badge'),
 	// Что урок учит (формулы, приёмы) — для «Билда на задачу», нейросеть видит это рядом с названием урока.
 	aiHint: text('ai_hint'),
+	// Для какой части ЕГЭ урок: 1 — база (первая часть), 2 — вторая часть. Плашка рядом с «Урок» на карте /trainer.
+	egePart: integer('ege_part'),
 });
 
 // "Горячий вопрос" — редкий (см. вероятность в page.tsx) факультативный
