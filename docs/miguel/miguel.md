@@ -2,7 +2,7 @@
 
 Гусь Мигель по прозвищу Команданте. Окончил физтех, сам прошёл ЕГЭ и помнит, как это страшно.
 Ведёт армию гусиков против монстра EGE (тот, что на логотипе). Уверенный, харизматичный, с самоиронией;
-строгий к лени, тёплый к тому, кто ошибся. «Амиго» — так он зовёт учеников. «Га-Га!» — боевой клич (это и
+строгий к лени, тёплый к тому, кто ошибся. К ученикам — «боец», «новобранец», иногда по-испански «амиго». «Га-Га!» — боевой клич (это и
 гусиный крик, и GG — good game).
 
 Правки сюда — прямо в этот файл: вычёркивай, переписывай, добавляй. Потом перенесу в `lib/gagaVoice.ts`
@@ -12,40 +12,48 @@
 
 ## Шаг 1. Стикеры (Leonardo)
 
-Основа стиля (всегда в начале промпта):
+**Основа выбрана (2026-10-27):** `public/miguel/miguel-base.webp` (стикер 512×512, прозрачный фон),
+исходник от Leonardo — `docs/miguel/miguel-base-leonardo.jpg`. Длинная шея, хмурые брови и прищур,
+чёрная фуражка с красной звездой, красная бандана, оливковая полевая куртка, крылья на поясе,
+**карандаш в уголке клюва ластиком к щеке** (вместо сигары — фишка персонажа; дым и сигару не рисуем).
 
-> Cute but charismatic cartoon goose mascot sticker, blocky cube-shaped white head with a small fluffy white
-> tuft on top, boxy white body in Minecraft-inspired style, rounded corners, big orange beak, orange webbed
-> feet, fluffy white wings with soft gray shading, wearing a black military beret tilted to one side with a small red star in front,
-> a round golden medal on a red ribbon on the chest (the medal shows a simple atom symbol with orbits and a
-> tiny star in the center), confident leader expression, slight smirk, thick clean black outline, flat cel
-> shading, simple shapes, full body, centered, isolated on pure white background, no text, kid-friendly,
+Как делать остальные эмоции: Leonardo → AI Creation → **Image Guidance** → загрузить исходник
+`miguel-base-leonardo.jpg`, сила **0.5–0.6** (выше — копирует позу, ниже — теряет лицо). 4 варианта за раз.
+
+Основа промпта (всегда в начале):
+
+> Charismatic cartoon goose commander mascot sticker, same character as the reference image: long S-curved
+> white neck, long orange goose beak, thick black angry eyebrows, tough squinting eyes, black military cap
+> with a red star, plain red bandana scarf, olive green field jacket with rolled sleeves and a red star patch
+> on the shoulder, orange webbed feet, a short yellow pencil with a pink eraser held in the back corner of the
+> beak, thick clean black outline, flat cel shading, isolated on pure white background, no text, kid-friendly,
 > high quality vector sticker
 
-Negative prompt:
+Negative (всегда):
 
-> realistic, photo, 3d render, gore, blood, real weapon, scary, dark, multiple characters, text, letters,
-> watermark, logo, cropped, extra limbs
+> smoke, steam, cigarette, cigar, ash, duck, eyelashes, blush, makeup, girly, text on bandana, letters,
+> writing, realistic, photo, 3d render, gore, blood, real weapon, extra limbs, multiple characters,
+> watermark, logo, cropped
 
-Позы (дописывать после основы):
+Позы (дописывать после основы через запятую). Где карандаш мешает позе — убрать из основы фразу про карандаш.
 
 | Файл | Поза |
 |---|---|
-| `miguel-hello` | waving one wing, friendly greeting, big smile |
-| `miguel-happy` | jumping with joy, both wings up, confetti around |
-| `miguel-proud` | standing proudly, wing on chest near the medal, chin up |
-| `miguel-oops` | scratching head with a wing, embarrassed smile, small sweat drop |
-| `miguel-think` | holding chin with a wing, thinking, a small question mark above the head |
-| `miguel-rule` | pointing up with one wing like a teacher, serious face, eyebrows raised |
-| `miguel-fire` | fist (wing) raised, fiery aura, determined battle cry face |
-| `miguel-gun` | holding a toy confetti blaster over the shoulder, cool pose |
-| `miguel-boss` | angry determined face, leaning forward, ready to fight a monster |
-| `miguel-chest` | carrying a big treasure chest, happy |
-| `miguel-sleep` | sleeping sitting, beret over the eyes, small "z" bubbles |
-| `miguel-pizza` | holding a slice of pizza, delighted |
-| `miguel-march` | marching forward, wing raised as if leading an army, flag with a star in the other wing |
+| `miguel-salute` | military salute with one wing at the cap, serious proud face, standing at attention (приветствие новобранца) |
+| `miguel-point` | pointing straight at the viewer with one wing, stern look, "I want you" army poster pose |
+| `miguel-happy` | big confident grin, one wing giving a thumbs up, eyes still a bit squinted |
+| `miguel-proud` | chest out, chin up, wings on the hips, satisfied smirk, small golden medal with an atom symbol on the jacket |
+| `miguel-oops` | facepalm with one wing, annoyed but not angry, small sweat drop |
+| `miguel-rule` | holding a pointer stick at a small blackboard, one eyebrow raised, serious teacher look |
+| `miguel-think` | holding chin with a wing, pencil in the other wing, thinking, one eye squinted |
+| `miguel-fire` | wing raised like a fist, battle cry with open beak, orange fiery aura around |
+| `miguel-boss` | furious determined face, leaning forward, ready to fight a monster, steam puffs from the head |
+| `miguel-chest` | carrying a big wooden treasure chest with gold trim, proud grin |
+| `miguel-sleep` | sleeping standing upright like a soldier on duty, cap over the eyes, small z bubbles |
+| `miguel-march` | marching forward, one wing raised as if leading an army, small red flag with a star in the other wing |
+| `miguel-binoculars` | looking through binoculars, scouting (сравнение с отрядом: «вижу, кто впереди») |
 
-Отдельно (после согласования): армия гусиков — `group of three small cute cartoon goslings in tiny berets
+Отдельно (после согласования): армия гусиков — `group of three small cartoon goslings in tiny military caps
 marching behind a leader, same style`.
 
 Медаль — наш символ (атом + звезда), **не герб МФТИ**: чужая символика на платном приложении выглядит как
@@ -98,80 +106,104 @@ marching behind a leader, same style`.
 
 ## Шаг 2. Фразы (по событиям)
 
-Пометки в скобках — для озвучки, на экране их не видно.
+Тон (решение пользователя 2026-10-27): **учёба — как служба в армии**. Дисциплина, чёткие задачи, без слабины,
+но с юмором и без грубости: строгий, но свой командир. Как спортзал: дома тоже можно, но в зале видишь, что все
+вокруг трудятся, — поэтому иногда сравниваем с отрядом («есть на кого равняться»). Главная надежда: ежедневные
+задания → баллы ЕГЭ → поступление.
+
+Пометки в скобках — для озвучки, на экране их не видно. `{…}` — подставляется из данных.
+
+Расчёт званий (lib/rank.ts, lib/xp.ts): урок тренажёра = 50 XP, уровень = 100 XP, значит **уровень = 2 урока**.
+От Новобранца: Гусёнок — 2 урока, Рядовой гусик — 4, Связной — 8, Разведчик — 12, Сапёр формул — 16,
+**Ефрейтор — 22**, Сержант — 28, Старшина — 34, Лейтенант — 50. (Задачи задачника тоже дают XP — так быстрее.)
+
+### Приветствие новобранца (onboarding, первый вход; озвучка + стикер `miguel-salute`)
+1. [confident] Смирно, новобранец! Говорит Команданте Мигель. С этой минуты ты в моём отряде.
+2. [serious] Каждый день — боевое задание: уроки тренажёра и задачи ЕГЭ. Увольнительных не выдаём.
+3. [warmly] Выполняешь задания — растут баллы. Растут баллы — сдаёшь ЕГЭ и поступаешь туда, куда мечтаешь. Вот и вся стратегия.
+4. [laughing] Ньютон тоже начинал с простых задач. А потом яблоко, тяготение, слава. У тебя будет так же — только без яблока по голове.
+5. [confident] Халявы не будет. Но и одного тебя в бою никто не бросит — я рядом.
+6. [proud] Принимаю тебя в отряд. Звание — Новобранец. До Рядового гусика — 4 урока. Шагом марш!
 
 ### Начало урока (start)
-1. [laughing] Га-Га! ¡Hola, амиго! Команданте на связи. Начинаем?
-2. [confident] Подъём, гусики! Монстр ЕГЭ сам себя не победит.
-3. [excited] ¡Vamos! Сегодня берём новую высоту.
-4. [warmly] Привет, компаньеро. Садись поудобнее — революция начинается с одного урока.
-5. [laughing] Маньяна — главный враг революции. Поэтому — сегодня!
-6. [confident] Задача поставлена, амиго. Выдвигаемся.
+1. [confident] Отряд, подъём! Задание на сегодня получено. Выдвигаемся.
+2. [serious] Разговорчики в строю! Открываем урок.
+3. [laughing] Маньяна — главный враг революции. Поэтому — сегодня.
+4. [confident] Один урок — один шаг к поступлению. Шагаем.
+5. [laughing] Лень — это когда производная желания учиться отрицательная. Исправляем.
+6. [serious] Телефон в беззвучный, мысли в кучу. Начали.
 
 ### Верный ответ (correct)
-7. [proud] ¡Excelente! Вот это я понимаю — физтех!
-8. [laughing] Га-Га! Прямо в цель, компаньеро!
-9. [excited] Бах! Монстр ЕГЭ потерял ещё одну жизнь.
-10. [proud] Это твой экстремум. Производная — ноль, ты на вершине!
-11. [happy] ¡Olé! Красиво решил.
-12. [warmly] Так держать, амиго. Армия тобой гордится.
-13. [laughing] Где-то сейчас Ньютон уронил ещё одно яблоко от восторга.
-14. [confident] Чётко. По-командирски.
+7. [proud] Чётко! Вот это выправка.
+8. [laughing] Га-Га! Прямо в цель, боец.
+9. [confident] Принято. Монстр ЕГЭ потерял ещё одну жизнь.
+10. [proud] Это твой экстремум: производная — ноль, ты на вершине.
+11. [laughing] Где-то Ньютон уронил ещё одно яблоко от восторга.
+12. [confident] Так держать. Я заношу это в личное дело.
+13. [happy] ¡Excelente! Хорошо служишь.
+14. [proud] По-командирски. Следующий!
 
 ### Ошибка (wrong)
-15. [gentle] ¡Caramba! Бывает, амиго. Разберёмся вместе.
-16. [warmly] Ошибка — это разведка. Теперь мы знаем, где враг.
-17. [laughing] Минус — штука обидчивая. Проверь его ещё раз.
-18. [gentle] Почти! Эйнштейн тоже ошибался. Попробуй снова.
-19. [warmly] Не сдаёмся, компаньеро. Ещё одна попытка.
-20. [thoughtful] Хм, тут ловушка. Посмотри внимательнее — ты справишься.
+15. [serious] Отставить панику. Ошибка — это разведка: теперь мы знаем, где враг.
+16. [confident] Мимо. Перегруппировались — и снова в бой.
+17. [laughing] Минус — штука обидчивая. Проверь его, боец.
+18. [serious] Не спеши. Солдат, который торопится, стреляет в молоко.
+19. [warmly] Бывает. Даже у Эйнштейна были ошибки. Ещё заход.
+20. [confident] Тут ловушка. Смотри внимательнее — ты справишься.
 
 ### Правило / ЗАПОМНИ (rule)
 21. [serious] Внимание, отряд! Это записываем в боевой устав.
-22. [confident] Запомни, амиго: эта штука будет на экзамене.
-23. [warmly] Это секретное оружие. Носи его с собой.
+22. [confident] Запомни, боец: это будет на экзамене. Проверено разведкой.
+23. [serious] Это не обсуждается. Это заучивается.
 
 ### Серия ответов (streak)
-24. [excited] Серия! Ты разогнался, как частица в коллайдере!
-25. [laughing] Га-Га-Га! Тебя уже не остановить!
-26. [proud] ¡Fuego! Монстр ЕГЭ отступает!
-27. [excited] Ты в ударе, компаньеро. Ещё, ещё!
+24. [excited] Серия! Ты разогнался, как частица в коллайдере.
+25. [laughing] Га-Га-Га! Тебя уже не остановить.
+26. [proud] Монстр ЕГЭ отступает. Наступаем!
+27. [confident] Вот это дисциплина. Ещё!
 
 ### Сундук (chest)
-28. [happy] Трофей, амиго! Заслужил.
-29. [laughing] Сундук с фронта. Открывай, пока монстр не отобрал.
-30. [excited] Добыча! Что там внутри?
+28. [proud] Трофей с фронта. Заслужил, боец.
+29. [laughing] Сундук! Открывай, пока монстр не отобрал.
+30. [confident] Награда за службу. Посмотрим, что внутри.
 
-### Новый уровень (levelup)
-31. [proud] Повышение, компаньеро! Новое звание.
-32. [excited] Уровень вверх! Армия растёт вместе с тобой.
+### Новый уровень / звание (levelup) — `{rank}` новое звание, `{next}` следующее, `{n}` уроков до него
+31. [proud] Поздравляю с повышением! Теперь ты — {rank}.
+32. [confident] Новое звание: {rank}. До звания «{next}» — {n} уроков. Не расслабляемся.
 
 ### Урок пройден (done)
 33. [proud] Высота взята! ¡Hasta la victoria!
-34. [warmly] Отличный бой, амиго. Отдыхай — заслужил.
-35. [laughing] Сегодня ты сделал не dx работы, а целый интеграл!
-36. [confident] Ещё один шаг к поступлению. ¡Venceremos!
+34. [confident] Задание выполнено. Отбой — заслужил.
+35. [laughing] Сегодня ты сделал не dx работы, а целый интеграл.
+36. [confident] Ещё один шаг к поступлению. Завтра — следующий.
+
+### Сравнение с отрядом (после урока или на /trainer, раз в день; стикер `miguel-binoculars`)
+37. [confident] Отряд за неделю прошёл в среднем {avg} уроков. Ты — {mine}. {выше: «Ты впереди строя, так держать!» / ниже: «Подтягивайся, боец».}
+38. [serious] Сегодня уже {active} бойцов на задании. Где ты, новобранец?
+39. [proud] Ты в первой десятке отряда по урокам за неделю. Остальные равняются на тебя.
+40. [laughing] Лучший боец недели прошёл {top} уроков. Это не человек — это танк. Догоняй.
+41. [confident] Ты сейчас — средний боец взвода. Средний — это не про тебя. Ещё урок?
 
 ### Босс-экзамен (boss)
-37. [serious] Тишина в строю. Перед нами босс.
-38. [confident] Все уроки были ради этого. В бой, амиго!
-39. [excited] ¡Adelante! Покажем монстру, кто тут командир!
+42. [serious] Тишина в строю. Перед нами босс.
+43. [confident] Все уроки были ради этого. В бой!
+44. [excited] ¡Adelante! Покажем монстру, кто тут командир.
 
 ### Ночь / серия под угрозой (night)
-40. [softly] Амиго, уже поздно. Один короткий урок — и спать.
-41. [gentle] Твоя серия стремится к нулю. Не дадим ей достичь предела!
-42. [softly] Даже революционерам нужен сон. Спокойной ночи, компаньеро.
+45. [serious] Боец, день почти кончился, а задание не выполнено. Один короткий урок — и отбой.
+46. [laughing] Твоя серия стремится к нулю. Не дадим ей достичь предела!
+47. [softly] Отбой, боец. Даже революционерам нужен сон. Завтра — в строй.
 
 ### Для экрана загрузки и кнопки «Дальше» (без озвучки)
-- Девушек на физтехе — dx. Предел стремится к нулю, но мы их очень любим.
 - Энергия не берётся из ниоткуда. Кроме твоей после трёх уроков подряд.
-- Лень — это когда производная твоего желания учиться отрицательна.
 - Ускорение — это когда ты понял, что экзамен через месяц.
 - Сила трения — это то, что мешает тебе встать с дивана.
 - ∞ уроков завтра < 1 урока сегодня.
-- Кнопки «Дальше»: «¡Vamos!», «Вперёд, амиго», «Принято, команданте», «¡Adelante!», «Есть!».
+- Девушек на физтехе — dx. Предел стремится к нулю, но мы их очень любим.
+- Кнопки «Дальше»: «Есть!», «Так точно!», «Принято, команданте», «¡Vamos!», «Вперёд!».
 
 ---
+
 
 ## Шаг 3. Байки и карточки учёных
 
