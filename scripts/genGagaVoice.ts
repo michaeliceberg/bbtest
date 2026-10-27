@@ -1,6 +1,7 @@
 // scripts/genGagaVoice.ts
 //
-// Озвучка банка реплик Га-Га (lib/gagaVoice.ts) в public/gaga-voice/<id>.mp3 голосом ElevenLabs.
+// Озвучка банка реплик Команданте Мигеля (lib/gagaVoice.ts) в public/miguel-voice/<id>.mp3 голосом ElevenLabs
+// Chuck Miller (OUT_DIR — другая папка, например чтобы озвучить на сервере во временную).
 // Ключ не хранится в репозитории ggege: передаётся переменной окружения при запуске, например
 //   ELEVENLABS_API_KEY=... ELEVENLABS_API_BASE=https://elevenlabs-proxy.abziceberg.workers.dev npx tsx scripts/genGagaVoice.ts
 // Уже озвученные файлы пропускаются (перегенерировать — удалить файл). FORCE=1 — перегенерировать всё.
@@ -10,10 +11,10 @@ import path from 'node:path'
 import { GAGA_LINES, gagaSpeechText } from '../lib/gagaVoice'
 
 const BASE = process.env.ELEVENLABS_API_BASE || 'https://api.elevenlabs.io'
-const VOICE = process.env.GAGA_VOICE_ID || 'dABPButoaSloTSZcHPof'
+const VOICE = process.env.GAGA_VOICE_ID || 'HIGUfNOdjuWQwwapnTRW'
 const MODEL = process.env.ELEVENLABS_MODEL || 'eleven_v4'
 const KEY = process.env.ELEVENLABS_API_KEY
-const OUT = path.join(process.cwd(), 'public', 'gaga-voice')
+const OUT = process.env.OUT_DIR || path.join(process.cwd(), 'public', 'miguel-voice')
 
 async function main() {
     if (!KEY) throw new Error('Нет ELEVENLABS_API_KEY')
@@ -24,7 +25,7 @@ async function main() {
         const r = await fetch(`${BASE}/v1/text-to-speech/${VOICE}?output_format=mp3_44100_128`, {
             method: 'POST',
             headers: { 'xi-api-key': KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: gagaSpeechText(l.text), model_id: MODEL, voice_settings: { stability: 0.5, similarity_boost: 0.75 } }),
+            body: JSON.stringify({ text: gagaSpeechText(l.text), model_id: MODEL, voice_settings: { stability: 0, similarity_boost: 0.95 } }),
         })
         if (!r.ok || !r.headers.get('content-type')?.startsWith('audio/')) {
             console.error('ошибка', l.id, r.status, (await r.text()).slice(0, 300))

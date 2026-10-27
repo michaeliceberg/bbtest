@@ -14826,5 +14826,8 @@ night), выстрел на ударе молнии КОМБО — `miguel-bazoo
 `SHOT_HAS_OWN_FLASH` в `components/gaga-buddy.tsx` отключает нарисованные кодом вспышку и дым), экран «3 подряд» — `miguel-dance`, карта /trainer
 (`trainer-pet.tsx`: стоит `miguel-point`, поздно — `stopwatch`, квест — `quest`, серия — `streak`), прогулка по
 дорожке — `miguel-march` одним кадром с покачиванием (`goose-walker.tsx`, `FACES_LEFT`), модалка «Непонятно» —
-`miguel-think`, тумблер голоса — `miguel-salute`. Старые стикеры Га-Га остались в `public/gaga/`. Голос и тексты
-реплик пока старые (Га-Га) — новый голос Мигеля не сделан.
+`miguel-think`, тумблер голоса — `miguel-salute`. Старые стикеры Га-Га остались в `public/gaga/`. Голос — библиотечный ElevenLabs Chuck Miller
+(`HIGUfNOdjuWQwwapnTRW`, тот же, что в Garaggio), «гусиная» подача: пометки `[goose honk]`, `[nasal, honking voice]`,
+`[honking laugh]` и «Га!»/«Га-га-га!» почти в каждой реплике (просьба пользователя — побольше гогота). 42 реплики в армейском
+тоне — `GAGA_LINES` в `lib/gagaVoice.ts`, озвучка `public/miguel-voice/<id>.mp3` (`scripts/genGagaVoice.ts`; ключ ElevenLabs —
+в `/var/www/garaggio/.env`, озвучивать на сервере с `OUT_DIR=/tmp/...`, файлы забрать scp). Старая озвучка Га-Га — `public/gaga-voice/`.
