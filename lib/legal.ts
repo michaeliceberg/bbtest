@@ -8,6 +8,8 @@ export const SELLER = {
     inn: '501851038685',
     status: 'плательщик налога на профессиональный доход (самозанятый)',
     site: 'https://ggege.ru',
+    // Почта для связи — показывается на /pricing, /offer, /privacy (пустая строка — не показываем).
+    email: 'fiztehmisha@gmail.com',
     telegram: `@${BOT_USERNAME}`,
     telegramUrl: `https://t.me/${BOT_USERNAME}`,
 }

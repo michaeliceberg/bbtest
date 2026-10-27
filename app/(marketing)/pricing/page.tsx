@@ -54,6 +54,7 @@ export default function PricingPage() {
             </div>
 
             <div className='mt-8 space-y-1 text-center text-xs text-[#7F8C93]'>
+                <p>Как получить: оплатите PRO в своём аккаунте на ggege.ru — доступ откроется автоматически сразу после оплаты. Доставки нет, всё онлайн.</p>
                 <p>Оплата через СБП. Подписка не продлевается автоматически. Полный возврат в течение {REFUND_DAYS} дней, если не пользовались PRO.</p>
                 <p>
                     <Link href='/offer' className='underline hover:text-white'>Оферта</Link>
@@ -61,6 +62,7 @@ export default function PricingPage() {
                     <Link href='/privacy' className='underline hover:text-white'>Политика персональных данных</Link>
                     {' · '}
                     Поддержка: <a href={SELLER.telegramUrl} target='_blank' rel='noreferrer' className='underline hover:text-white'>{SELLER.telegram}</a>
+                    {SELLER.email && <>{' · '}<a href={`mailto:${SELLER.email}`} className='underline hover:text-white'>{SELLER.email}</a></>}
                 </p>
                 <p>{SELLER.name}, ИНН {SELLER.inn}, самозанятый</p>
             </div>

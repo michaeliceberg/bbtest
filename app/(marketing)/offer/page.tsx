@@ -45,14 +45,14 @@ export default function OfferPage() {
             </LegalSection>
 
             <LegalSection n={5} title='Начало доступа'>
-                <p>Доступ к Подписке PRO открывается в аккаунте Ученика в течение 24 часов после поступления оплаты. Срок подписки считается с момента открытия доступа.</p>
-                <p>Если доступ не открылся, напишите в Telegram {SELLER.telegram} — укажите имя Ученика в Сервисе и время оплаты.</p>
+                <p>Доставки нет: услуга оказывается онлайн. Доступ к Подписке PRO открывается в аккаунте Ученика на сайте {SELLER.site} автоматически сразу после поступления оплаты (в редких случаях — в течение 24 часов). Срок подписки считается с момента открытия доступа.</p>
+                <p>Если доступ не открылся, напишите в Telegram {SELLER.telegram}{SELLER.email && <> или на почту <A href={`mailto:${SELLER.email}`}>{SELLER.email}</A></>} — укажите имя Ученика в Сервисе и время оплаты.</p>
             </LegalSection>
 
             <LegalSection n={6} title='Возврат денег'>
                 <p><b>Полный возврат</b> — если с момента оплаты прошло не больше {REFUND_DAYS} дней и Ученик не пользовался платными функциями Подписки PRO.</p>
                 <p>В остальных случаях Заказчик может отказаться от подписки в любой момент — вернём деньги за неиспользованные дни оплаченного срока (пропорционально).</p>
-                <p>Чтобы вернуть деньги, напишите в Telegram {SELLER.telegram}. Деньги возвращаются тем же способом, которым была оплата, в течение 10 дней с момента заявки.</p>
+                <p>Чтобы вернуть деньги, напишите в Telegram {SELLER.telegram}{SELLER.email && <> или на почту {SELLER.email}</>}. Деньги возвращаются тем же способом, которым была оплата, в течение 10 дней с момента заявки.</p>
             </LegalSection>
 
             <LegalSection n={7} title='Награды и призы'>
@@ -71,7 +71,7 @@ export default function OfferPage() {
             </LegalSection>
 
             <LegalSection n={10} title='Претензии и споры'>
-                <p>Вопросы и претензии — в Telegram <A href={SELLER.telegramUrl}>{SELLER.telegram}</A>. Отвечаем в течение 10 дней.</p>
+                <p>Вопросы и претензии — в Telegram <A href={SELLER.telegramUrl}>{SELLER.telegram}</A>{SELLER.email && <> или на почту <A href={`mailto:${SELLER.email}`}>{SELLER.email}</A></>}. Отвечаем в течение 10 дней.</p>
                 <p>Споры решаются переговорами, а если договориться не удалось — по законодательству РФ.</p>
             </LegalSection>
 
@@ -86,6 +86,7 @@ export default function OfferPage() {
                     {SELLER.status[0].toUpperCase() + SELLER.status.slice(1)}<br />
                     Сайт: {SELLER.site}<br />
                     Telegram: <A href={SELLER.telegramUrl}>{SELLER.telegram}</A>
+                    {SELLER.email && <><br />Почта: <A href={`mailto:${SELLER.email}`}>{SELLER.email}</A></>}
                 </p>
             </LegalSection>
         </LegalPage>

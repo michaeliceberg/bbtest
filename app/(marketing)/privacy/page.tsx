@@ -59,7 +59,7 @@ export default function PrivacyPage() {
             </LegalSection>
 
             <LegalSection n={7} title='Ваши права'>
-                <p>Вы можете узнать, какие данные о вас хранятся, попросить исправить или удалить их, отозвать согласие. Напишите в Telegram <A href={SELLER.telegramUrl}>{SELLER.telegram}</A> — ответим в течение 10 рабочих дней.</p>
+                <p>Вы можете узнать, какие данные о вас хранятся, попросить исправить или удалить их, отозвать согласие. Напишите в Telegram <A href={SELLER.telegramUrl}>{SELLER.telegram}</A>{SELLER.email && <> или на почту <A href={`mailto:${SELLER.email}`}>{SELLER.email}</A></>} — ответим в течение 10 рабочих дней.</p>
                 <p>После отзыва согласия аккаунт и данные удаляются, пользоваться Сервисом без аккаунта можно только в гостевых уроках.</p>
             </LegalSection>
 
