@@ -115,19 +115,20 @@ marching behind a leader, same style`.
 
 Ссылка: https://elevenlabs.io/app/voice-lab (кнопка «Create a voice» → «Voice Design»).
 
-Описание голоса:
+Описание голоса (обновлено 2026-10-28 под армейский тон: строгий командир, но с юмором):
 
-> A charismatic, confident middle-aged male voice of a cartoon goose commander — a warm revolutionary leader
-> who inspires teenagers to beat their math and physics exams. Slightly raspy, energetic, a bit theatrical
-> and proud, with a light playful Spanish accent and a warm laugh. Speaks Russian naturally. Sounds like a
-> beloved camp leader or a cool older brother: bold and funny, but kind to his soldiers, never mean.
+> A confident, commanding middle-aged male voice of a cartoon goose army commander who trains teenagers for
+> their math and physics exams. Firm, clear, slightly raspy drill-sergeant delivery with short punchy phrases,
+> but with a hidden smile and dry humor, a light playful Spanish accent on Spanish words, and a short warm laugh.
+> Speaks Russian naturally. Sounds like a strict but beloved army instructor: demanding and disciplined,
+> never mean, proud of his soldiers.
 
 Пример текста (вставить в поле «Text», с пометками настроения):
 
-> [laughing] Га-Га! ¡Hola, амиго! [confident] Команданте Мигель на связи. [excited] Сегодня мы идём в бой
-> против монстра ЕГЭ — и мы победим! [warmly] Ошибся? Ерунда, компаньеро, разберёмся вместе. [proud] Вот это
-> экстремум! Производная равна нулю — ты на вершине. [laughing] ¡Vamos! [softly] А теперь спать. Даже
-> революционерам нужен сон.
+> [confident] Смирно, новобранец! Говорит Команданте Мигель. [serious] Каждый день — боевое задание.
+> Увольнительных не выдаём. [laughing] Ньютон тоже начинал с простых задач — только без яблока по голове.
+> [proud] Чётко! Вот это выправка. [serious] Отставить панику: ошибка — это разведка. [excited] ¡Adelante!
+> Покажем монстру, кто тут командир! [softly] Отбой, боец. Завтра — в строй.
 
 Послушай 3 варианта, выбери, сохрани и пришли мне Voice ID.
 
