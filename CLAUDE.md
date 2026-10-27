@@ -14849,8 +14849,8 @@ night), выстрел на ударе молнии КОМБО — `miguel-bazoo
 - **Голос:** ElevenLabs Chuck Miller `HIGUfNOdjuWQwwapnTRW` (куплен для Garaggio), «гусиная» подача с гоготом,
   42 реплики в `public/miguel-voice/`. Пробы голоса — `docs/miguel/voice-sample-chuck-*.mp3`.
 - **Не сделано:** приветствие новобранца при первом входе, сравнение с отрядом, реплики с подстановкой звания
-  (тексты есть в docs/miguel/miguel.md, нужны свои экраны); утка/текст фраз питомца на карте (`trainer-pet.tsx`,
-  `GOOSE_IDLE`) ещё «га-гашные», без армейского тона.
+  (тексты есть в docs/miguel/miguel.md, нужны свои экраны). Фразы на карте тренажёра (`trainer-pet.tsx`:
+  `GOOSE_IDLE`, `GOOSE_QUEST`, `GOOSE_CHEER`, `CHEER_PHRASES`) переписаны в армейском тоне 2026-10-28.
 
 **Следующий шаг — новый логотип с Мигелем.** Сейчас логотип — `public/ggege-logo.webp` (Га-Га стреляет в монстра
 EGE, 640×481; прошлые версии — `ggege-logo-v1.*`, `ggege-logo-outline.*`, `ggegelogo.svg`). Где используется:
