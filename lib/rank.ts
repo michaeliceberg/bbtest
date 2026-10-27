@@ -1,38 +1,39 @@
 // lib/rank.ts
 //
-// «Звание» ученика (показывается в /account) — лестница в духе банд/мафии.
-// Пока ученик не в банде, звание растёт вместе с уровнем (lib/xp.ts):
-// начинаем с «Дворника». Если он в банде — звание берётся из роли: глава —
-// «Дон», капо — «Капо», обычный участник — «Солдат». Порог — минимальный
-// уровень, с которого действует звание.
+// «Звание» ученика (показывается в /account) — армия гусиков Команданте Мигеля
+// (решение 2026-10-27: уходим от мафии — капо/дон/крёстный отец — к революционной теме).
+// Пока ученик не в банде, звание растёт вместе с уровнем (lib/xp.ts): начинаем с
+// «Новобранца». В банде звание берётся из роли: глава — «Команданте», капо — «Капитан»,
+// обычный участник — «Компаньеро». В БД роли по-прежнему leader / kapo / member.
+// Порог — минимальный уровень, с которого действует звание.
 
 export const LEVEL_RANKS: { minLevel: number; title: string }[] = [
-    { minLevel: 1, title: 'Дворник' },
-    { minLevel: 2, title: 'Нуб' },
-    { minLevel: 3, title: 'Салага' },
-    { minLevel: 5, title: 'Курьер' },
-    { minLevel: 7, title: 'Рандом' },
-    { minLevel: 9, title: 'Стукач' },
-    { minLevel: 12, title: 'Карманник' },
-    { minLevel: 15, title: 'Подручный' },
-    { minLevel: 18, title: 'Наводчик' },
-    { minLevel: 22, title: 'Громила' },
-    { minLevel: 26, title: 'Громила-старший' },
-    { minLevel: 30, title: 'Фармила' },
-    { minLevel: 35, title: 'Боец' },
-    { minLevel: 41, title: 'Бригадир' },
-    { minLevel: 48, title: 'Авторитет' },
-    { minLevel: 55, title: 'Смотрящий' },
+    { minLevel: 1, title: 'Новобранец' },
+    { minLevel: 2, title: 'Гусёнок' },
+    { minLevel: 3, title: 'Рядовой гусик' },
+    { minLevel: 5, title: 'Связной' },
+    { minLevel: 7, title: 'Разведчик' },
+    { minLevel: 9, title: 'Сапёр формул' },
+    { minLevel: 12, title: 'Ефрейтор' },
+    { minLevel: 15, title: 'Сержант' },
+    { minLevel: 18, title: 'Старшина' },
+    { minLevel: 22, title: 'Партизан' },
+    { minLevel: 26, title: 'Лейтенант' },
+    { minLevel: 30, title: 'Старший лейтенант' },
+    { minLevel: 35, title: 'Майор' },
+    { minLevel: 41, title: 'Полковник' },
+    { minLevel: 48, title: 'Генерал интегралов' },
+    { minLevel: 55, title: 'Маршал пределов' },
     { minLevel: 62, title: 'Имба' },
-    { minLevel: 70, title: 'Правая рука' },
-    { minLevel: 80, title: 'Консильери' },
-    { minLevel: 95, title: 'Крёстный отец' },
+    { minLevel: 70, title: 'Герой революции' },
+    { minLevel: 80, title: 'Легенда физтеха' },
+    { minLevel: 95, title: 'Команданте' },
 ]
 
 export const GANG_ROLE_RANKS: Record<string, string> = {
-    leader: 'Дон',
-    kapo: 'Капо',
-    member: 'Солдат',
+    leader: 'Команданте',
+    kapo: 'Капитан',
+    member: 'Компаньеро',
 }
 
 export const getRank = (level: number, gangRole?: string | null): { title: string; next: { title: string; minLevel: number } | null } => {

@@ -25,7 +25,7 @@ type Props = {
     isLeader: boolean;
 };
 
-const ROLE_LABEL: Record<string, string> = { leader: 'Глава', kapo: 'Капо', member: 'Участник' };
+const ROLE_LABEL: Record<string, string> = { leader: 'Команданте', kapo: 'Капитан', member: 'Компаньеро' };
 const ROLE_ICON: Record<string, React.ElementType> = { leader: Crown, kapo: Shield, member: User };
 const ROLE_COLOR: Record<string, string> = { leader: 'text-yellow-400', kapo: 'text-sky-400', member: 'text-[#9AA7B0]' };
 
@@ -81,7 +81,7 @@ export const GangRoster = ({ gangId, members, currentUserId, isLeader }: Props) 
                                         variant="secondaryOutline"
                                         disabled={isMemberBusy}
                                         onClick={() => runAction(m.userId, () => setGangMemberRole(gangId, m.userId, 'kapo'))}
-                                        title="Сделать капо"
+                                        title="Сделать капитаном"
                                     >
                                         <ShieldPlus className="h-4 w-4" />
                                     </Button>
@@ -91,7 +91,7 @@ export const GangRoster = ({ gangId, members, currentUserId, isLeader }: Props) 
                                         variant="secondaryOutline"
                                         disabled={isMemberBusy}
                                         onClick={() => runAction(m.userId, () => setGangMemberRole(gangId, m.userId, 'member'))}
-                                        title="Снять капо"
+                                        title="Снять капитана"
                                     >
                                         <ShieldMinus className="h-4 w-4" />
                                     </Button>

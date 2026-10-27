@@ -57,7 +57,7 @@ export const GangJoinCard = ({ code, loggedIn, invite, isSelf, currentGang, stat
                     <>
                         <div className="flex justify-center"><GangEmblem value={invite.emoji} color={color} size={110} /></div>
                         <p className="mt-4 text-sm font-bold text-[#9AA7B0]">
-                            {invite.inviter} {invite.inviterRole === 'leader' ? '(глава)' : '(капо)'} зовёт тебя в банду
+                            {invite.inviter} {invite.inviterRole === 'leader' ? '(команданте)' : '(капитан)'} зовёт тебя в банду
                         </p>
                         <p className="text-2xl font-black text-[#F2F7FB]">«{invite.gangName}»</p>
 

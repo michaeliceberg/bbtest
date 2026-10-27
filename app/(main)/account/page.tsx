@@ -79,7 +79,7 @@ const AccountPage = async () => {
                         <div className="min-w-0 flex-1">
                             <div className="font-bold text-[#F2F7FB] truncate">{gangMembership ? gangMembership.gang.name : 'Моя банда'}</div>
                             <div className="text-xs text-[#9AA7B0]">
-                                {gangMembership ? 'Приглашай друзей, назначай капо, следи за рейтингом.' : 'Ты ещё не в банде — создай свою или вступи по ссылке друга.'}
+                                {gangMembership ? 'Приглашай друзей, назначай капитанов, следи за рейтингом.' : 'Ты ещё не в банде — создай свою или вступи по ссылке друга.'}
                             </div>
                         </div>
                         <Link href="/gang">

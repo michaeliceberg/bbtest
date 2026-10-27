@@ -93,7 +93,7 @@ const GangPage = async () => {
                 </div>
                 <h1 className="text-3xl font-extrabold text-[#F2F7FB] break-words">{membership.gang.name}</h1>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] mt-1" style={{ color: gangColor }}>
-                    {membership.role === 'leader' ? 'Ты — глава банды' : membership.role === 'kapo' ? 'Ты — капо' : 'Ты — в банде'}
+                    {membership.role === 'leader' ? 'Ты — команданте банды' : membership.role === 'kapo' ? 'Ты — капитан' : 'Ты — в банде'}
                 </p>
                 <div className="mt-5 grid grid-cols-3 gap-2">
                     {[
