@@ -14817,3 +14817,14 @@ payment.succeeded и payment.canceled). /pro: при заданных ключа
 - кнопка «Купить PRO» на /pro вместо «Хочу PRO»; `PRO_ENABLED = true`; `PRO_PAYWALL_ENABLED = true` — только после
   успешной тестовой оплаты. Возврат по оферте (7 дней) — вручную из кабинета ЮKassa.
 - проверить /offer, /privacy, /pricing — ЮKassa может попросить правки по итогам проверки.
+
+## Стикеры Команданте Мигеля в приложении (2026-10-28)
+35 стикеров `public/miguel/miguel-*.webp` (512×512; исходники Leonardo — `docs/miguel/leonardo/`, вырезка —
+`docs/miguel/tools/make_sticker.py`, список — `docs/miguel/miguel.md`) заменили стикеры Га-Га по событиям:
+`GAGA_EMOTIONS`/`GAGA_EMOTION` в `lib/gagaVoice.ts` (start, correct, wrong, rule, streak, chest, levelup, done, boss,
+night), выстрел на ударе молнии КОМБО — `miguel-bazooka` (своя вспышка и «BOOM» уже на стикере, поэтому
+`SHOT_HAS_OWN_FLASH` в `components/gaga-buddy.tsx` отключает нарисованные кодом вспышку и дым), экран «3 подряд» — `miguel-dance`, карта /trainer
+(`trainer-pet.tsx`: стоит `miguel-point`, поздно — `stopwatch`, квест — `quest`, серия — `streak`), прогулка по
+дорожке — `miguel-march` одним кадром с покачиванием (`goose-walker.tsx`, `FACES_LEFT`), модалка «Непонятно» —
+`miguel-think`, тумблер голоса — `miguel-salute`. Старые стикеры Га-Га остались в `public/gaga/`. Голос и тексты
+реплик пока старые (Га-Га) — новый голос Мигеля не сделан.

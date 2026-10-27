@@ -69,7 +69,10 @@ export const showGagaOncePerDay = (event: GagaEvent, delayMs?: number) => {
 
 type Shown = { id: number; event: GagaEvent; caption: string; src: string; leaving: boolean; shot: boolean }
 
-const GUN_STICKER = '/gaga/gaga-gun.webp'
+// Выстрел на ударе молнии КОМБО — Мигель с базукой; вспышка и «BOOM» уже нарисованы на стикере,
+// поэтому свои вспышку/дым поверх не рисуем (SHOT_HAS_OWN_FLASH).
+const GUN_STICKER = '/miguel/miguel-bazooka.webp'
+const SHOT_HAS_OWN_FLASH = true
 // Где дуло на стикере gun (доли от размера картинки) и когда выстрел после выезда
 const MUZZLE = { x: 0.64, y: 0.53 }
 const SHOT_DELAY = 0.55
@@ -148,7 +151,7 @@ const BubbleView = ({ s }: { s: Shown }) => {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <motion.img
                         src={s.src}
-                        alt="Га-Га"
+                        alt="Команданте Мигель"
                         draggable={false}
                         className="w-[84px] h-[84px] md:w-24 md:h-24 object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)]"
                         initial={{ rotate: -14, scale: 0.7 }}
@@ -156,8 +159,8 @@ const BubbleView = ({ s }: { s: Shown }) => {
                         transition={{ type: 'spring', stiffness: 380, damping: 10, delay: 0.1 }}
                     />
                 </motion.div>
-                {s.shot && <MuzzleSmoke />}
-                {s.shot && <MuzzleFlash />}
+                {s.shot && !SHOT_HAS_OWN_FLASH && <MuzzleSmoke />}
+                {s.shot && !SHOT_HAS_OWN_FLASH && <MuzzleFlash />}
             </div>
             <motion.div
                 className="relative mb-10 rounded-2xl px-3 py-2 text-[13px] md:text-sm font-extrabold leading-snug text-[#F2F7FB]"

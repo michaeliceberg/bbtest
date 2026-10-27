@@ -10,8 +10,11 @@
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 
-const FRAMES = ['/gaga/walk/walk-1.webp', '/gaga/walk/walk-2.webp', '/gaga/walk/walk-3.webp']
-const CYCLE = [0, 1, 2, 1]
+// С 2026-10-28 по карте идёт Команданте Мигель: один кадр «марширует» (смотрит влево) + покачивание.
+// Кадры походки старого Га-Га — public/gaga/walk/ (вернуть: три пути и CYCLE = [0, 1, 2, 1], FACES_LEFT = false).
+const FRAMES = ['/miguel/miguel-march.webp']
+const CYCLE = [0]
+const FACES_LEFT = true
 const FRAME_MS = 125
 
 export const GooseWalker = ({ walking, flip = false, className }: { walking: boolean; flip?: boolean; className?: string }) => {
@@ -25,14 +28,14 @@ export const GooseWalker = ({ walking, flip = false, className }: { walking: boo
         const id = setInterval(() => setStep((s) => (s + 1) % CYCLE.length), FRAME_MS)
         return () => clearInterval(id)
     }, [walking])
-    const frame = walking ? CYCLE[step] : 1
+    const frame = walking ? CYCLE[step % CYCLE.length] : Math.min(1, FRAMES.length - 1)
     return (
         <div className={cn('relative', walking && 'animate-goose-waddle', className)}>
-            <div style={{ transform: flip ? 'scaleX(-1)' : undefined }} className="relative w-full h-full">
+            <div style={{ transform: flip !== FACES_LEFT ? 'scaleX(-1)' : undefined }} className="relative w-full h-full">
                 {FRAMES.map((src, i) => (
                     // все кадры в DOM, видим один — смена мгновенная, без перезагрузки картинки
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img key={src} src={src} alt={i === 1 ? 'Га-Га' : ''} draggable={false}
+                    <img key={src} src={src} alt={i === 0 ? 'Команданте Мигель' : ''} draggable={false}
                         className="absolute inset-0 w-full h-full object-contain select-none"
                         style={{ opacity: frame === i ? 1 : 0 }} />
                 ))}

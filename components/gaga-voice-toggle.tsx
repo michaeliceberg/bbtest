@@ -18,7 +18,7 @@ export const GagaVoiceToggle = () => {
     return (
         <div className="flex items-center gap-3 rounded-xl border-2 border-[#3A464E] bg-[#151F23] px-4 py-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/gaga/gaga-wave.webp" alt="" className="h-12 w-12 shrink-0 object-contain" />
+            <img src="/miguel/miguel-salute.webp" alt="" className="h-12 w-12 shrink-0 object-contain" />
             <div className="flex-1 min-w-0">
                 <div className="font-black text-[#F2F7FB]">Голос Га-Га</div>
                 <div className="text-xs font-bold text-[#8FA3AE]">Наставник подбадривает в уроках</div>

@@ -8,32 +8,33 @@ export type GagaEvent = 'start' | 'correct' | 'wrong' | 'rule' | 'streak' | 'che
 
 export type GagaLine = { id: string; event: GagaEvent; text: string }
 
+// Стикеры — Команданте Мигель (public/miguel/, с 2026-10-28; старые стикеры Га-Га остались в public/gaga/).
 export const GAGA_EMOTION: Record<GagaEvent, string> = {
-    start: '/gaga/gaga-happy-2.webp',
-    correct: '/gaga/gaga-happy-2.webp',
-    wrong: '/gaga/gaga-oops-4.webp',
-    rule: '/gaga/gaga-shock.webp',
-    streak: '/gaga/gaga-fire.webp',
-    chest: '/gaga/gaga-chest.webp',
-    levelup: '/gaga/gaga-happy-2.webp',
-    done: '/gaga/gaga-happy-2.webp',
-    boss: '/gaga/gaga-angry.webp',
-    night: '/gaga/gaga-sleep.webp',
+    start: '/miguel/miguel-salute.webp',
+    correct: '/miguel/miguel-happy.webp',
+    wrong: '/miguel/miguel-bandage.webp',
+    rule: '/miguel/miguel-rule.webp',
+    streak: '/miguel/miguel-streak.webp',
+    chest: '/miguel/miguel-chest.webp',
+    levelup: '/miguel/miguel-newrank.webp',
+    done: '/miguel/miguel-trophy.webp',
+    boss: '/miguel/miguel-tank.webp',
+    night: '/miguel/miguel-coffee.webp',
 }
 
-// Все варианты стикеров на событие — выбираем случайный, чтобы не приедалось (public/gaga/)
-const G = (n: string) => `/gaga/gaga-${n}.webp`
+// Все варианты стикеров на событие — выбираем случайный, чтобы не приедалось (public/miguel/)
+const G = (n: string) => `/miguel/miguel-${n}.webp`
 export const GAGA_EMOTIONS: Record<GagaEvent, string[]> = {
-    start: [G('wave'), G('wave-2'), G('teacher'), G('teacher-2')],
-    correct: [G('happy-2'), G('happy-3'), G('proud-2'), G('gun'), G('gun')],
-    wrong: [G('oops-3'), G('oops-4'), G('sad')],
-    rule: [G('shock'), G('shock-2'), G('teacher'), G('teacher-2')],
-    streak: [G('fire'), G('fire-2'), G('fire-3'), G('gun')],
-    chest: [G('chest')],
-    levelup: [G('proud-2'), G('happy-2')],
-    done: [G('proud-2'), G('happy-3'), G('pizza'), G('pizza-3'), G('gun')],
-    boss: [G('angry'), G('gun')],
-    night: [G('sleep')],
+    start: [G('salute'), G('point'), G('megaphone'), G('march')],
+    correct: [G('happy'), G('bullseye'), G('dance'), G('proud')],
+    wrong: [G('bandage'), G('oops'), G('think')],
+    rule: [G('rule'), G('think')],
+    streak: [G('streak'), G('combo'), G('fire')],
+    chest: [G('chest'), G('roulette')],
+    levelup: [G('newrank'), G('salute-stars'), G('trophy')],
+    done: [G('trophy'), G('victory'), G('proud'), G('pizza'), G('dance')],
+    boss: [G('tank'), G('bazooka'), G('fire')],
+    night: [G('coffee'), G('stopwatch'), G('sleep')],
 }
 
 const L = (event: GagaEvent, list: string[]): GagaLine[] => list.map((text, i) => ({ id: `${event}-${i + 1}`, event, text }))

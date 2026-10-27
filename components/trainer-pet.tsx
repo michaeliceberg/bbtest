@@ -23,8 +23,8 @@ type Props = {
 }
 
 // На карте только Га-Га (гусь с квадратной головой). Утка, пёс, кот и старый гусь-фото убраны.
-// Картинки — эмоции public/gaga/*, стоит — кадр походки walk-2.
-const GAGA_STAND = '/gaga/walk/walk-2.webp'
+// Картинки — стикеры Команданте Мигеля public/miguel/* (с 2026-10-28), стоит — miguel-point.
+const GAGA_STAND = '/miguel/miguel-point.webp'
 
 // Га-Га зовёт на урок (простой вид, когда нечего срочно делать).
 export const GOOSE_IDLE = [
@@ -90,9 +90,9 @@ export const TrainerPet = ({ streak, hasExtendedToday, questDone, dayKey, compac
 
     let mood: Mood
     if (cheer) mood = cheer
-    else if (streak > 0 && !hasExtendedToday && late) mood = { src: '/gaga/gaga-sleep.webp', text: 'Га… серия сгорит! Хоть один урок?' }
-    else if (questDone) mood = { src: '/gaga/gaga-proud-2.webp', text: GOOSE_QUEST[dayKey % GOOSE_QUEST.length] }
-    else if (hasExtendedToday) mood = { src: '/gaga/gaga-fire.webp', text: 'Га-га! Серия жива. Ты босс 😎' }
+    else if (streak > 0 && !hasExtendedToday && late) mood = { src: '/miguel/miguel-stopwatch.webp', text: 'Га… серия сгорит! Хоть один урок?' }
+    else if (questDone) mood = { src: '/miguel/miguel-quest.webp', text: GOOSE_QUEST[dayKey % GOOSE_QUEST.length] }
+    else if (hasExtendedToday) mood = { src: '/miguel/miguel-streak.webp', text: 'Га-га! Серия жива. Ты босс 😎' }
     else mood = { src: GAGA_STAND, text: GOOSE_IDLE[dayKey % GOOSE_IDLE.length] }
 
     if (compact && cheer && walking !== undefined) {

@@ -184,7 +184,7 @@ const LottieOrVideoScreen = ({ animationData, onNext, milestone, theme = 'metal'
 // ── Гусь Га-Га «Радость»: влетает слева направо (отражён), замедляется в центре, «ТРИ ПОДРЯД!» снизу,
 // лучи, линии скорости и разлёт звёздочек. Потом с ускорением улетает вправо и экран сам закрывается.
 // Только transform/opacity (плавно на телефоне).
-const GOOSE_SRC = '/gaga/gaga-happy-2.webp'
+const GOOSE_SRC = '/miguel/miguel-dance.webp'
 const G_ENTER_S = 0.75
 const G_HOLD_MS = 1900
 const G_EXIT_S = 0.35
@@ -275,7 +275,7 @@ const GooseStreakScreen = ({ onNext, theme = 'metal' }: { onNext: () => void; th
           >
             {/* отражён по горизонтали — летит вправо лицом вперёд */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={GOOSE_SRC} alt="Га-Га" draggable={false}
+            <img src={GOOSE_SRC} alt="Команданте Мигель" draggable={false}
               className="w-[min(78vw,24rem)] h-[min(78vw,24rem)] object-contain select-none drop-shadow-[0_14px_28px_rgba(0,0,0,0.55)]"
               style={{ transform: 'scaleX(-1)' }} />
           </motion.div>
