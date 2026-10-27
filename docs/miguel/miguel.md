@@ -59,7 +59,9 @@ Negative (всегда):
 `fire`, `chest`, `march`, `binoculars`, `proud` (смотрит на нас, крылья на поясе), `salute`, `rule` (у доски),
 `think`, `point` (тычет в зрителя), `megaphone`, `roulette`, `combo` (на молнии), `freeze`, `salute-stars`,
 `victory` (на монстре EGE), `tank`, `bazooka`, `pro` (корона, VIP), `quest` (чек-лист), `pizza`, `comeback` (часы),
-`coffee` (ночь), `trophy`.
+`coffee` (ночь), `trophy`, `homework` (стопка книг), `newrank` (пришивает звёздочку), `dance`, `bandage` (пластырь,
+палец вверх — ошибка), `hearts` (кончились сердечки), `stopwatch` (время поджимает), `streak` (огонь серии),
+`telegram` (телефон с самолётиком), `bullseye` (карандаш в яблочке). Всего 35.
 
 **Сцены с предметами (весёлые, под события приложения; промпты целиком — в истории сессии 2026-10-28):**
 `streak3` (показывает 3 пера-пальца, три звезды), `combo` (верхом на молнии), `roulette` (крутит барабан призов),
