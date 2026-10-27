@@ -14795,7 +14795,16 @@ tap — «нажми на рисунке» с раундами и подсказ
 ЮKassa (регистрация дохода и чеки — автоматически); 3) взять shopId и секретный ключ («Интеграция» → «Ключи API»); ключ
 НЕ присылать в чат — вставить в /var/www/ggege/.env на сервере (`YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY`) по подсказке,
 бэкап .env перед правкой, `pm2 restart ggege --update-env`.
-**Код (не начат; можно делать заранее на тестовом магазине ЮKassa — выдаётся без проверки):**
+**Код написан 27.10.2026 (ждёт ключей тестового магазина для проверки):** `lib/yookassa.ts` (API, ключи из .env
+`YOOKASSA_SHOP_ID`/`YOOKASSA_SECRET_KEY`, тестовый ключ начинается с `test_`), таблица `pro_payments` (прямой SQL, даты с
+часовым поясом), `actions/pro-payment.ts` (`startProPayment` → ссылка на форму ЮKassa, return_url `/pro?paid=<id>`;
+`checkProPayment` — страница опрашивает статус), `lib/proPayments.ts` `syncProPayment` (перечитывает платёж по API,
+сверяет сумму и userId, продлевает `pro_until` на 30 дней ровно один раз — захват `applied_at`, сообщение админу),
+webhook `app/api/yookassa/webhook/route.ts` (URL в кабинете: https://ggege.ru/api/yookassa/webhook, события
+payment.succeeded и payment.canceled). /pro: при заданных ключах — `buy-button.tsx` «Купить PRO · 1100 ₽» / «Продлить»,
+без ключей — прежняя «Хочу PRO»; пока PRO выключен, /pro открыт только админам. Осталось: ключи тестового магазина → тестовая
+оплата → боевые ключи → `PRO_ENABLED`/`PRO_PAYWALL_ENABLED = true`.
+**Исходный план кода (для справки):**
 - server action создания платежа: POST https://api.yookassa.ru/v3/payments (Basic auth shopId:secret, заголовок
   Idempotence-Key), сумма `PRO_PRICE_RUB` (1100 ₽, lib/pro.ts), `confirmation.type=redirect`, `return_url` → /pro?paid=1,
   `metadata.userId`, `capture: true`; способы — СБП и карта. Чек самозанятому делает сама ЮKassa через «Мой налог»

@@ -1,5 +1,6 @@
-// app/(main)/pro/page.tsx — экран подписки PRO. Пока «фейковая дверь»: показываем цену,
-// по кнопке записываем заявку (pro_interest) и шлём админу в Telegram. Денег не берём.
+// app/(main)/pro/page.tsx — экран подписки PRO. Если ключи ЮKassa заданы в .env — кнопка «Купить PRO»
+// (actions/pro-payment.ts), иначе прежняя «фейковая дверь» «Хочу PRO» (pro_interest + сообщение админу).
+// Пока PRO выключен (PRO_ENABLED/PRO_PAYWALL_ENABLED), страницу видят только админы — для проверки оплаты.
 
 import { redirect } from 'next/navigation'
 import { sql } from 'drizzle-orm'
@@ -9,15 +10,23 @@ import { auth } from '@/lib/server-auth'
 import { PRO_EARLY_DISCOUNT, PRO_ENABLED, PRO_FEATURES, PRO_PAYWALL_ENABLED, PRO_PRICE_RUB } from '@/lib/pro'
 import Link from 'next/link'
 import { ProWantButton } from './want-button'
+import { ProBuyButton } from './buy-button'
+import { getUserProgress } from '@/db/queries'
+import { yookassaConfigured, yookassaIsTest } from '@/lib/yookassa'
 
 export const dynamic = 'force-dynamic'
 
 
-const ProPage = async ({ searchParams }: { searchParams: { from?: string } }) => {
-    if (!PRO_ENABLED && !PRO_PAYWALL_ENABLED) redirect('/trainer')
+const ProPage = async ({ searchParams }: { searchParams: { from?: string; paid?: string } }) => {
     const session = await auth()
     const userId = session?.user?.id
     if (!userId) redirect('/')
+    const up = await getUserProgress()
+    const isAdmin = up?.isAdmin === 1
+    if (!PRO_ENABLED && !PRO_PAYWALL_ENABLED && !isAdmin) redirect('/trainer')
+    const canBuy = yookassaConfigured()
+    const proUntil = up?.proUntil && new Date(up.proUntil).getTime() > Date.now() ? new Date(up.proUntil).toISOString() : null
+    const paidId = Number(searchParams.paid) || null
 
     const source = searchParams.from?.slice(0, 40) ?? null
     await db.execute(sql`INSERT INTO pro_interest (user_id, event, source) VALUES (${userId}, 'view', ${source})`)
@@ -57,7 +66,11 @@ const ProPage = async ({ searchParams }: { searchParams: { from?: string } }) =>
                 </p>
 
                 <div className="relative mt-6">
-                    <ProWantButton initiallyWanted={wanted} source={source ?? undefined} earlyPrice={earlyPrice} discount={PRO_EARLY_DISCOUNT} />
+                    {canBuy ? (
+                        <ProBuyButton price={PRO_PRICE_RUB} proUntil={proUntil} paidId={paidId} test={yookassaIsTest()} />
+                    ) : (
+                        <ProWantButton initiallyWanted={wanted} source={source ?? undefined} earlyPrice={earlyPrice} discount={PRO_EARLY_DISCOUNT} />
+                    )}
                 </div>
             </div>
         </div>

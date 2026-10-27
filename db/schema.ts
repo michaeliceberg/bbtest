@@ -1368,6 +1368,21 @@ export const proInterest = pgTable('pro_interest', {
 	createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
+// Оплаты PRO через ЮKassa (2026-10-27, lib/proPayments.ts). Создано прямым SQL, даты с часовым поясом.
+// applied_at — PRO уже продлён по этой оплате (защита от двойного продления: webhook + проверка со страницы).
+export const proPayments = pgTable('pro_payments', {
+	id: serial('id').primaryKey(),
+	userId: text('user_id').notNull(),
+	ykPaymentId: text('yk_payment_id').unique(),
+	amountRub: integer('amount_rub').notNull(),
+	days: integer('days').notNull(),
+	status: text('status').notNull().default('new'),
+	test: boolean('test').notNull().default(false),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	paidAt: timestamp('paid_at', { withTimezone: true }),
+	appliedAt: timestamp('applied_at', { withTimezone: true }),
+});
+
 // События воронки по посетителю (cookie ggVid): 'visit' — первый заход или переход по utm-метке,
 // 'trial_start' — гость открыл пробный урок, 'register' — завёл аккаунт. lib/attribution.ts, /admin/funnel.
 export const visitorEvents = pgTable('visitor_events', {
