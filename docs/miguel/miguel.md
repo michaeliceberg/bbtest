@@ -16,7 +16,7 @@
 
 > Cute but charismatic cartoon goose mascot sticker, blocky cube-shaped white head with a small fluffy white
 > tuft on top, boxy white body in Minecraft-inspired style, rounded corners, big orange beak, orange webbed
-> feet, fluffy white wings with soft gray shading, wearing a dark olive military beret with a small red star,
+> feet, fluffy white wings with soft gray shading, wearing a black military beret tilted to one side with a small red star in front,
 > a round golden medal on a red ribbon on the chest (the medal shows a simple atom symbol with orbits and a
 > tiny star in the center), confident leader expression, slight smirk, thick clean black outline, flat cel
 > shading, simple shapes, full body, centered, isolated on pure white background, no text, kid-friendly,
@@ -50,6 +50,25 @@ marching behind a leader, same style`.
 
 Медаль — наш символ (атом + звезда), **не герб МФТИ**: чужая символика на платном приложении выглядит как
 «одобрено вузом». Доверие даём словами: «Приложение создал выпускник МФТИ» на главной и в экране для родителей.
+
+
+### Постер «Comandante Miguel» (ретро, кубинский плакат)
+
+Отдельная картинка для главной, экрана загрузки и сторис — не стикер. Стиль — как классические
+кубинские плакаты: две-три краски, высокий контраст, крупный план головы.
+
+> Retro Cuban revolutionary poster style portrait of a cartoon goose commander, blocky cube-shaped white head,
+> big orange beak, black beret tilted with a small red star, confident heroic look into the distance,
+> high-contrast two-tone illustration, black ink on cream paper with red accents, bold vector shapes,
+> screen-print texture, vintage 1960s propaganda poster, centered, plenty of empty space at the bottom,
+> no text, kid-friendly
+
+Надпись **на картинку не просим** — Leonardo пишет буквы криво. Надпись «Comandante Miguel» / «Команданте
+Мигель» накладываем сами шрифтом **Lobster** (Google Fonts, есть кириллица, ретро-рукописный, как на
+пин-ап плакатах): «Comandante» — чёрным, «Miguel» — красным, наискосок, как на образце.
+
+Важно: делаем **свой** гусиный портрет «в духе» плаката, не перерисовку знаменитой фотографии Че Гевары
+(у снимка есть автор и права) и без лица Че.
 
 Вырезать фон — как раньше (Vision + заливка белого от углов), 512×512 WebP, в `public/miguel/`.
 
