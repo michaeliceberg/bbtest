@@ -115,6 +115,13 @@ marching behind a leader, same style`.
 
 Ссылка: https://elevenlabs.io/app/voice-lab (кнопка «Create a voice» → «Voice Design»).
 
+**Голос — вариант 1 (выбран 2026-10-28):** библиотечный голос ElevenLabs **Chuck Miller** (Deep, Raspy, American),
+Voice ID `HIGUfNOdjuWQwwapnTRW` — тот же, что купили для Garaggio. Модель `eleven_v4`, `stability: 0`.
+Пробы: `docs/miguel/voice-sample-chuck-miller.mp3` (обычные пометки настроения) и
+`docs/miguel/voice-sample-chuck-raspy.mp3` (пометки `[gruff, raspy voice]`, `[gravelly]`, `[hoarse]`, `[raspy laugh]`
+и `similarity_boost: 0.95` — хрипотцы больше). Параметр `speed` модель v4 игнорирует.
+Описание ниже — запасной путь, если понадобится свой голос.
+
 Описание голоса (обновлено 2026-10-28 под армейский тон: строгий командир, но с юмором):
 
 > A confident, commanding middle-aged male voice of a cartoon goose army commander who trains teenagers for
