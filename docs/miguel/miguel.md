@@ -57,7 +57,9 @@ Negative (всегда):
 **Готово (2026-10-28), `public/miguel/*.webp` 512×512** (исходники Leonardo — `docs/miguel/leonardo/`,
 вырезаны `docs/miguel/tools/make_sticker.py`): `base`, `happy` (палец вверх), `sleep`, `oops` (честь + капля пота),
 `fire`, `chest`, `march`, `binoculars`, `proud` (смотрит на нас, крылья на поясе), `salute`, `rule` (у доски),
-`think`, `point` (тычет в зрителя).
+`think`, `point` (тычет в зрителя), `megaphone`, `roulette`, `combo` (на молнии), `freeze`, `salute-stars`,
+`victory` (на монстре EGE), `tank`, `bazooka`, `pro` (корона, VIP), `quest` (чек-лист), `pizza`, `comeback` (часы),
+`coffee` (ночь), `trophy`.
 
 **Сцены с предметами (весёлые, под события приложения; промпты целиком — в истории сессии 2026-10-28):**
 `streak3` (показывает 3 пера-пальца, три звезды), `combo` (верхом на молнии), `roulette` (крутит барабан призов),
