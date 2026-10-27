@@ -5,7 +5,7 @@ import { PRO_PRICE_RUB } from '@/lib/pro'
 
 export const SELLER = {
     name: 'Королев Михаил Сергеевич',
-    inn: '501851038685',
+    inn: '501851038656',
     status: 'плательщик налога на профессиональный доход (самозанятый)',
     site: 'https://ggege.ru',
     // Почта для связи — показывается на /pricing, /offer, /privacy (пустая строка — не показываем).
