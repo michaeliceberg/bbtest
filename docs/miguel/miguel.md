@@ -54,6 +54,11 @@ Negative (всегда):
 | `miguel-march` | marching forward, one wing raised as if leading an army, small red flag with a star in the other wing |
 | `miguel-binoculars` | looking through binoculars, scouting (сравнение с отрядом: «вижу, кто впереди») |
 
+**Готово (2026-10-28), `public/miguel/*.webp` 512×512** (исходники Leonardo — `docs/miguel/leonardo/`,
+вырезаны `docs/miguel/tools/make_sticker.py`): `base`, `happy` (палец вверх), `sleep`, `oops` (честь + капля пота),
+`fire`, `chest`, `march`, `binoculars`, `proud` (смотрит на нас, крылья на поясе), `salute`, `rule` (у доски),
+`think`, `point` (тычет в зрителя).
+
 Отдельно (после согласования): армия гусиков — `group of three small cartoon goslings in tiny military caps
 marching behind a leader, same style`.
 
