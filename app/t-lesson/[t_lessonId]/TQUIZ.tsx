@@ -139,6 +139,9 @@ function CaseWonBanner({ mega, reward, label }: { mega: boolean; reward: CaseRew
   )
 }
 
+import { StormPill, type StormInfo } from '@/components/storm-pill'
+import { StormStartScreen } from '@/components/storm-start-screen'
+
 type Props = {
   t_lessonId: number,
   t_lessonTitle: string,
@@ -172,9 +175,12 @@ type Props = {
   // «Ход» по башне ЕГЭ (/path → /move/[id], lib/egeMove.ts): урок — первый
   // шаг хода, на финале вместо «Следующий урок» — «Дальше — задачи».
   moveId?: number | null,
+  // «Штурм» (lib/storm.ts), если уже идёт — плашка с отсчётом
+  storm?: StormInfo | null,
 }
 
 export default function TQuiz({
+
   t_lessonId,
   t_lessonTitle,
   questions1,
@@ -192,7 +198,11 @@ export default function TQuiz({
   lessonAlreadyRated,
   invite,
   moveId,
+  storm: stormInitial = null,
 }: Props) {
+  const [stormInfo, setStormInfo] = useState<StormInfo | null>(stormInitial)
+  const pendingStormStartRef = useRef(false)
+  const [showStormStart, setShowStormStart] = useState(false)
 
   const router = useRouter()
   // "Поделиться в сторис" на итогах урока — QR ведёт по реферальной ссылке ученика.
@@ -364,6 +374,10 @@ export default function TQuiz({
     const mistakes = Math.max(0, scorableCount(questions1) - scoreRef.current)
     const result = await planLessonCase(t_lessonId, mistakes)
     setChainHint({ count: result.chainCount, alive: result.chainAlive })
+    const st = result.storm
+    if (st?.until) setStormInfo({ until: st.until, lessons: st.lessons, goal: st.goal, rewarded: st.rewarded })
+    if (st?.started) pendingStormStartRef.current = true
+    if (st?.counted) toast.success(st.mythicNow ? `🔥 Штурм: ${st.goal} из ${st.goal}! Мифический кейс твой 👑` : `🔥 Штурм: +${st.coins} монет · ${st.lessons} из ${st.goal}`)
     if (result.key) {
       setChainBonusLength(result.chainBonus)
       return { keyId: result.key.keyId, tier: result.key.tier }
@@ -456,6 +470,11 @@ export default function TQuiz({
         setShowHotCaseReel(true)
         return
       }
+    }
+    if (pendingStormStartRef.current) {
+      pendingStormStartRef.current = false
+      setShowStormStart(true)
+      return
     }
     openPlannedCase()
   }, [openPlannedCase, showLevelUp])
@@ -1038,6 +1057,10 @@ export default function TQuiz({
     )
   }
 
+  if (showStormStart) {
+    return <StormStartScreen onGo={() => { setShowStormStart(false); continueAfterSummary() }} />
+  }
+
   if (referralGift) {
     return (
       <ReferralGiftScreen
@@ -1232,6 +1255,7 @@ export default function TQuiz({
 
   return (
     <>
+      {stormInfo && <StormPill storm={stormInfo} compact className="fixed bottom-24 left-3 z-40" />}
       <ComboBanner combo={combo} onDone={() => setCombo(null)} />
       {lightningStrikeActive && (
         <LightningStrike key={lightningStrikeKey} variant={lightningVariant} label={lightningLabel} onDone={() => setLightningStrikeActive(false)} />

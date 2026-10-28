@@ -15,15 +15,20 @@ import { getStageFlags } from '@/lib/trainerStageFlags';
 import { grantCaseKey, type GrantedKey } from '@/lib/caseKeys';
 import { rollLessonCaseTier } from '@/lib/lessonCaseRoll';
 import type { LessonCaseTier } from '@/lib/caseRewards';
+import { advanceStorm, type StormState } from '@/lib/storm';
 
 export type PlannedLessonCase = {
 	key: GrantedKey | null;
 	chainBonus: number | null;
 	chainCount: number;
 	chainAlive: boolean;
+	// «Штурм»: начался после этого урока / урок засчитан в штурм (lib/storm.ts)
+	storm: StormState | null;
+	// true — ключ выдан за STORM_GOAL уроков в штурме (мифический)
+	stormMythic?: boolean;
 };
 
-const EMPTY: PlannedLessonCase = { key: null, chainBonus: null, chainCount: 0, chainAlive: false };
+const EMPTY: PlannedLessonCase = { key: null, chainBonus: null, chainCount: 0, chainAlive: false, storm: null };
 const today = () => new Date().toISOString().slice(0, 10);
 
 export async function planLessonCase(t_lessonId: number, mistakes: number): Promise<PlannedLessonCase> {
@@ -41,26 +46,35 @@ export async function planLessonCase(t_lessonId: number, mistakes: number): Prom
 	const flags = getStageFlags(idx, siblings.length, lesson.title);
 	const ref = `lesson:${t_lessonId}:${today()}`;
 
+	// «Штурм» считаем за любой урок. 3 урока за 10 минут — гарантированный мифический, вместо обычного кейса.
+	const storm = await advanceStorm(userId);
+	if (storm?.mythicNow) {
+		const key = await grantCaseKey(userId, 'mythic', 'storm', `storm:${today()}`);
+		if (key) return { ...EMPTY, key, storm, stormMythic: true };
+	}
+	const base = { ...EMPTY, storm };
+
 	// Фиксированные кейс-позиции карты скиллов.
 	if (flags.isChest || flags.isMegaChest) {
 		const tier: LessonCaseTier = flags.isMegaChest ? 'rare' : 'common';
-		return { ...EMPTY, key: await grantCaseKey(userId, tier, 'stage', ref) };
+		return { ...base, key: await grantCaseKey(userId, tier, 'stage', ref) };
 	}
 	// Босс-экзамен: за каждые 3 победы — редкий.
 	if (flags.isExam) {
 		const wins = await db.select({ n: sql<number>`count(*)::int` }).from(t_lessonProgress)
 			.where(and(eq(t_lessonProgress.userId, userId), eq(t_lessonProgress.t_lessonId, t_lessonId), sql`${t_lessonProgress.trainingPts} > 0`));
 		const n = wins[0]?.n ?? 0;
-		if (n > 0 && n % 3 === 0) return { ...EMPTY, key: await grantCaseKey(userId, 'rare', 'exam', `${ref}:${n}`) };
-		return EMPTY;
+		if (n > 0 && n % 3 === 0) return { ...base, key: await grantCaseKey(userId, 'rare', 'exam', `${ref}:${n}`) };
+		return base;
 	}
 	if (flags.isMythic) {
-		return { ...EMPTY, key: await grantCaseKey(userId, 'mythic', 'mythic-stage', ref) };
+		return { ...base, key: await grantCaseKey(userId, 'mythic', 'mythic-stage', ref) };
 	}
 
-	const roll = await rollLessonCaseTier(userId, mistakes);
+	const roll = await rollLessonCaseTier(userId, mistakes, !!storm?.counted);
 	const key = roll.tier ? await grantCaseKey(userId, roll.tier, roll.chainBonus ? 'chain' : 'lesson', ref) : null;
 	return {
+		...base,
 		key,
 		chainBonus: key ? (roll.chainBonus?.length ?? null) : null,
 		chainCount: roll.chainCount,

@@ -37,6 +37,8 @@ import { HIDDEN_T_COURSE_IDS, pickActiveCourseId, resolveActiveTCourse, sortTCou
 import { getUiTheme } from '@/lib/uiThemeServer';
 import { getTrainerView } from '@/lib/trainerViewServer';
 import { TrainerTopBar } from '@/components/trainer-top-bar';
+import { StormPill } from '@/components/storm-pill';
+import { stormView } from '@/lib/storm';
 import { COZY } from '@/lib/cozyTheme';
 import { GuestRewardClaimer } from '@/components/guest-reward-claimer';
 import { ReferralCashbackScreen } from '@/components/referral-screens';
@@ -292,6 +294,8 @@ const TLearnPage = async () => {
                 <Header title={activeTCourse ? `Тренажёр ${activeTCourse.title}` : "Тренажёр"} cozy={cozy} />
 
                 <div className='mt-2 lg:mt-5'>
+                    {/* «Штурм» (lib/storm.ts): идут горячие 10 минут — отсчёт и что дадут */}
+                    <StormPill storm={stormView(userProgress)} className="mb-3" />
                     {simple && (
                         <>
                             <TrainerTopBar

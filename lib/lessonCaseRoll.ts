@@ -52,10 +52,18 @@ const TIER_WEIGHTS: [LessonCaseTier, number][] = [
 	['mega', 1],
 ];
 
-function pickWeightedTier(): LessonCaseTier {
-	const total = TIER_WEIGHTS.reduce((sum, [, w]) => sum + w, 0);
+// Во время «Штурма» (lib/storm.ts) кейс выпадает всегда и чаще редкий.
+const STORM_TIER_WEIGHTS: [LessonCaseTier, number][] = [
+	['common', 50],
+	['rare', 38],
+	['mythic', 9],
+	['mega', 3],
+];
+
+function pickWeightedTier(weights = TIER_WEIGHTS): LessonCaseTier {
+	const total = weights.reduce((sum, [, w]) => sum + w, 0);
 	let roll = Math.random() * total;
-	for (const [tier, weight] of TIER_WEIGHTS) {
+	for (const [tier, weight] of weights) {
 		if (roll < weight) return tier;
 		roll -= weight;
 	}
@@ -87,7 +95,7 @@ export type LessonCaseRollResult = {
 	chainAlive: boolean;
 };
 
-export async function rollLessonCaseTier(userId: string, mistakes: number): Promise<LessonCaseRollResult> {
+export async function rollLessonCaseTier(userId: string, mistakes: number, storm = false): Promise<LessonCaseRollResult> {
 	const safeMistakes = Number.isFinite(mistakes) ? Math.max(0, Math.floor(mistakes)) : 0;
 
 	const current = await db.query.userProgress.findFirst({ where: eq(userProgress.userId, userId) });
@@ -119,8 +127,8 @@ export async function rollLessonCaseTier(userId: string, mistakes: number): Prom
 		return { tier: 'mythic', chainBonus: { length: qualifyingMilestone }, chainCount: nextCount, chainAlive };
 	}
 
-	if (Math.random() > LESSON_CASE_DROP_CHANCE) {
+	if (!storm && Math.random() > LESSON_CASE_DROP_CHANCE) {
 		return { tier: null, chainBonus: null, chainCount: nextCount, chainAlive };
 	}
-	return { tier: pickWeightedTier(), chainBonus: null, chainCount: nextCount, chainAlive };
+	return { tier: pickWeightedTier(storm ? STORM_TIER_WEIGHTS : TIER_WEIGHTS), chainBonus: null, chainCount: nextCount, chainAlive };
 }

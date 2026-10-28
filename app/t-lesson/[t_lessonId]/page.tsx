@@ -7,6 +7,7 @@ import { ReferralGate } from '@/components/referral-gate';
 import type { TrialSubject } from '@/lib/trialTracks';
 // app/t-lesson/[t_lessonId]/page.tsx
 
+import { stormView } from "@/lib/storm"
 import { getAllTLessonProgress, getAllUsersProgress, getTLesson, getTLessonPublic, getUserProgress, getHotQuestionsForUnit } from "@/db/queries"
 import { redirect } from "next/navigation"
 import { Shuffle2, ShuffleTS } from "@/usefulFunctions"
@@ -1998,6 +1999,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             inviteSubject={subjectByTCourse(t_lesson.t_unit.t_courseId)}
             invite={invite}
             lessonAlreadyRated={lessonAlreadyRated}
+            storm={stormView(userProgress)}
             stage={stageParam}
             isBossStage={isBossStage}
             isChestStage={isChestStage}

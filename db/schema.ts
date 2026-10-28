@@ -136,6 +136,13 @@ export const userProgress = pgTable('user_progress', {
 	// ВНУТРИ текущей цепочки — не даёт повторно награждать за тот же
 	// рубеж, если пользователь продолжает цепочку дальше без начала новой.
 	trainerChainMilestone: integer('trainer_chain_milestone').notNull().default(0),
+	// «Штурм» (lib/storm.ts): горячие 10 минут раз в день со случайным шансом после урока.
+	// storm_until — конец штурма, storm_lessons — уроков за штурм, storm_day — день последнего штурма (МСК),
+	// storm_rewarded — мифический кейс за 3 урока уже выдан. Создано прямым SQL.
+	stormUntil: timestamp('storm_until', { withTimezone: true }),
+	stormLessons: integer('storm_lessons').notNull().default(0),
+	stormDay: text('storm_day'),
+	stormRewarded: boolean('storm_rewarded').notNull().default(false),
 	// Бейдж-галочка "амбассадор" — реальные ученики-евангелисты, продвигающие
 	// приложение среди одноклассников (по прямой договорённости с
 	// пользователем). Выдаётся вручную точечным SQL, автоматики нет.

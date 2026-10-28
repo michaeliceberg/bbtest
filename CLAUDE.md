@@ -14896,3 +14896,12 @@ JSON {inn, deviceId, refreshToken} через stdin (строку для тер�
 стоит). Значок «На экран Домой»: Мигель (miguel-base, лицо по центру, видно GG) на небесно-голубом — `app/apple-icon.png`
 (iPhone; через metadata.icons не работает — app/favicon.ico перекрывает), `public/icon-192/512.png`,
 `public/icon-maskable-512.png`, `public/manifest.webmanifest`; подпись «ГГ ЕГЭ» (short_name и appleWebApp.title).
+
+## «Штурм» — горячие 10 минут (2026-10-28)
+`lib/storm.ts` (числа — `lib/stormUi.ts`): раз в день после завершённого урока тренажёра с шансом 35% начинается штурм на
+10 минут (урок-запуск не считается). Каждый урок в штурме (45 с запаса после конца): +30 монет (`points`), кейс выпадает
+всегда и чаще редкий (`rollLessonCaseTier(..., storm)`, STORM_TIER_WEIGHTS); 3 урока → гарантированный мифический (ключ
+source 'storm', ref `storm:<день>`). Считается в `actions/plan-lesson-case.ts` (`advanceStorm`, один раз на урок), поля
+`user_progress.storm_until/storm_lessons/storm_day/storm_rewarded` (прямой SQL). Экран «ШТУРМ!» (`components/storm-start-screen.tsx`)
+— в финале урока после итогов/уровня, перед кейсом; плашка с отсчётом `components/storm-pill.tsx` — на /trainer и компактная
+в уроке. Отдельно от «ударного часа» (цепочка 3/4/5 уроков, lib/lessonCaseRoll.ts). Ачивки за штурм — ещё не сделаны.
