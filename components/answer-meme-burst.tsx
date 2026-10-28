@@ -1,4 +1,5 @@
 'use client'
+import { playRightClick } from '@/lib/sound'
 
 // components/answer-meme-burst.tsx
 //
@@ -54,6 +55,7 @@ export const cancelPendingRightMeme = () => { if (pendingRight) { clearTimeout(p
 
 export const showAnswerMeme = (correct: boolean, opts?: { force?: boolean; x?: number; y?: number }) => {
     if (typeof window === 'undefined') return
+    if (correct) playRightClick()
     // Примерно раз в 4–6 ответов вместо мема выезжает наставник Га-Га (components/gaga-buddy.tsx)
     if (!opts?.force && reportGagaAnswer(correct)) return
     if (correct && !opts?.force && Math.random() >= RIGHT_CHANCE) return

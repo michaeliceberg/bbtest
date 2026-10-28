@@ -16,6 +16,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import { playJustClick } from '@/lib/sound'
 
 export type FormulaChip = { id: string; label: string }
 
@@ -157,7 +158,7 @@ export const FormulaAssemble = ({ prefix, layout, chips, correct, alsoCorrect, s
                     {poolChips.map((c) => (
                         <button
                             key={c.id}
-                            type="button" onClick={() => handlePool(c.id)}
+                            type="button" onClick={() => { playJustClick(); handlePool(c.id) }}
                             className={cn(CHIP_BASE, 'border-[#3A464E] bg-[#1B252B] text-[#F2F7FB] cursor-pointer hover:border-[#4A90D9]')}
                         >
                             {c.label}

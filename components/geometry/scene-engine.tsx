@@ -14,7 +14,7 @@ import { Fragment, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { RememberPlate } from '@/components/geometry/WalkthroughLog'
 import { Typewriter } from '@/components/geometry/Typewriter'
-import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
+import { playJustClick, playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
 import { GGEGE_PALETTE } from '@/src/constants/lessonButtonColors'
 import { cn } from '@/lib/utils'
@@ -161,7 +161,7 @@ const renderToks = (toks: Tok[], slot: (j: number) => React.ReactNode): React.Re
 const ChipGrid = ({ chips, used, onPick }: { chips: string[]; used?: (i: number) => boolean; onPick: (i: number) => void }) => (
     <div className="drop-in-options grid grid-cols-3 gap-2 w-full">
         {chips.map((c, i) => (
-            <button key={i} type="button" disabled={used?.(i)} onClick={() => onPick(i)}
+            <button key={i} type="button" disabled={used?.(i)} onClick={() => { playJustClick(); onPick(i) }}
                 className={cn('min-h-[50px] px-1 rounded-xl border-2 border-b-4 text-lg md:text-xl font-black transition-opacity',
                     'border-[#3A464E] bg-[#161F23] text-[#F2F7FB] hover:border-[#4A90D9]', used?.(i) && 'opacity-25')}>
                 <L>{c}</L>

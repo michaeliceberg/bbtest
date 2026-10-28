@@ -325,6 +325,7 @@ export const TypeFracTrick = ({ question, onAnswer }: Props) => {
             >
                 {options.map((option, idx) => (
                     <AnimatedOptionButton
+                        clickSound={false}
                         key={idx}
                         option={option}
                         onClick={() => handlePick(option)}

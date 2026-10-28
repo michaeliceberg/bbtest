@@ -381,6 +381,7 @@ export const DiagnosticClient = ({ subject, questions, utm }: Props) => {
 						<div className={`grid gap-3 ${shuffledOptions.length % 2 === 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
 							{shuffledOptions.map((opt, idx) => (
 								<AnimatedOptionButton
+									clickSound={false}
 									key={opt.text}
 									option={opt.text}
 									index={idx}

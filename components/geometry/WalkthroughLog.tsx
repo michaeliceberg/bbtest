@@ -22,6 +22,7 @@ import { createPortal } from 'react-dom'
 import { useWindowSize } from 'react-use'
 import { RotateCcw } from 'lucide-react'
 import { UnclearButton } from './unclear-button'
+import { playDoneMini, preloadUiSounds } from '@/lib/sound'
 import { HighlightWord } from './WalkthroughMarker'
 import { Typewriter } from './Typewriter'
 import { pickMoreMeme, memeFlip } from '@/lib/moreMemes'
@@ -378,6 +379,15 @@ export function useSceneFocus(latestKey: string, contentSettled: boolean) {
             if (overflow > 0) window.scrollBy({ top: overflow, behavior: 'smooth' })
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [latestKey, contentSettled])
+
+    // Звук «сцена готова»: сцена доиграла и появилась кнопка «Дальше» (один раз на сцену).
+    const settledSoundRef = useRef<string | null>(null)
+    useEffect(() => { preloadUiSounds() }, [])
+    useEffect(() => {
+        if (!contentSettled || settledSoundRef.current === latestKey) return
+        settledSoundRef.current = latestKey
+        playDoneMini()
     }, [latestKey, contentSettled])
 
     return { isActive, sceneRef }

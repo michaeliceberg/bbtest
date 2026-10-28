@@ -327,6 +327,7 @@ export const TrapezoidWalkthrough = ({ onComplete }: Props) => {
                                 <div className="grid grid-cols-2 gap-3 w-full">
                                     {['15 · cos', '15 / cos'].map((option, idx) => (
                                         <AnimatedOptionButton
+                                            clickSound={false}
                                             key={idx}
                                             option={option}
                                             index={idx}

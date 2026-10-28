@@ -150,6 +150,22 @@ export function playSoundTracked(src: string, onEnded?: () => void, volume = 1):
 // Общие звуки ответа — один источник правды для тренажёра, задачника и
 // пошаговых разборов (*WALK).
 export const WRONG_ANSWER_SOUND = '/snd-wrong-answer-click.mp3'
+// Тихий клик: промежуточные нажатия (выбрал вариант до «ответить», кнопка в формуле из кнопок)
+export const JUST_CLICK_SOUND = '/snd-just-click.mp3'
+// Верный ответ в пошаговых разборах (в обычном тренажёре — /correct.wav)
+export const RIGHT_CLICK_SOUND = '/snd-right-click.mp3'
+// Сцена разбора доиграла, появилась кнопка «Дальше»
+export const DONE_MINI_SOUND = '/snd-done-mini.mp3'
+let lastRightClickAt = 0
+export function playJustClick() { playSound(JUST_CLICK_SOUND, 0.55) }
+export function playRightClick() { lastRightClickAt = Date.now(); playSound(RIGHT_CLICK_SOUND, 0.8) }
+// Если только что прозвучал верный ответ — «сцена готова» чуть позже, чтобы звуки не слиплись.
+export function playDoneMini() {
+    const wait = Math.max(0, 380 - (Date.now() - lastRightClickAt))
+    if (wait) setTimeout(() => playSound(DONE_MINI_SOUND, 0.6), wait)
+    else playSound(DONE_MINI_SOUND, 0.6)
+}
+export function preloadUiSounds() { [JUST_CLICK_SOUND, RIGHT_CLICK_SOUND, DONE_MINI_SOUND].forEach(preloadSound) }
 export const WIN_SOUND = '/snd-harp-win.mp3'
 export const TEST_LOSE_SOUND = '/snd-harp-loose.mp3'
 export const TEST_WIN_SOUND = '/snd-harp-trump-win.mp3'

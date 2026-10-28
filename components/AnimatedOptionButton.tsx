@@ -7,11 +7,14 @@ import { useEffect } from "react"
 import React from "react"
 import 'katex/dist/katex.min.css';
 import { Check, X } from 'lucide-react';
+import { playJustClick } from '@/lib/sound'
 
 
 interface AnimatedOptionButtonProps {
   option: string
   onClick: () => void
+  // Тихий клик при нажатии (выбор варианта до «ответить»). false — где нажатие сразу и есть ответ.
+  clickSound?: boolean
   index: number
   isSelected?: boolean
   isCorrect?: boolean
@@ -37,6 +40,7 @@ interface AnimatedOptionButtonProps {
 export const AnimatedOptionButton = ({
   option,
   onClick,
+  clickSound = true,
   index,
   isSelected,
   isCorrect,
@@ -137,6 +141,7 @@ export const AnimatedOptionButton = ({
 
   const handleClick = () => {
     if (disabled) return
+    if (clickSound) playJustClick()
     onClick()
   }
 
