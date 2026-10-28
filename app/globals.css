@@ -1046,3 +1046,11 @@ body {
   .logo-anim-flash { animation: none; opacity: 1; }
   .logo-anim-monster { animation: none; }
 }
+
+/* Блик по медали (тестовые варианты /test-medals): полоса пробегает раз в несколько секунд, только transform. */
+@keyframes medal-shine-sweep { 0%, 62% { transform: translateX(-130%) skewX(-20deg); } 85%, 100% { transform: translateX(230%) skewX(-20deg); } }
+.medal-shine { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.medal-shine::after { content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 38%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.85), transparent); animation: medal-shine-sweep 4.5s ease-in-out infinite; }
+@keyframes medal-float { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-4px) rotate(2deg); } }
+.medal-float { animation: medal-float 3.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .medal-shine::after, .medal-float { animation: none !important; } }
