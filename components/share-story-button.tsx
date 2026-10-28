@@ -81,7 +81,7 @@ export const renderStoryCard = async (data: StoryCardData, qrCanvas: HTMLCanvasE
 	glow(ctx, 150, 250, 800, LOGO_PURPLE);
 	glow(ctx, 950, 1650, 850, LOGO_GREEN);
 
-	const logo = await loadImage('/ggege-logo-v3.webp');
+	const logo = await loadImage('/ggege-logo-v4.webp');
 	if (logo) {
 		const lw = 380;
 		const lh = (logo.height / logo.width) * lw || 210;
