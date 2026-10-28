@@ -9,13 +9,13 @@ export const PRO_EARLY_DISCOUNT = 50 // скидка первым, кто ост
 
 // Временно выключено (2026-10-10): пункт «PRO» в меню заблокирован, карточки в аккаунте нет, /pro уводит на /trainer.
 // Включить — поставить true.
-export const PRO_ENABLED = false
+export const PRO_ENABLED = true
 
 // ── Платная граница (решение 2026-10-23) ──────────────────────────────────────
 // Бесплатно: первый урок каждого юнита тренажёра, уроки пробных треков (пицца за 3 урока
 // и открытие задачника), первая часть задачника ЕГЭ Математика, 3 фото ИИ-помощнику за всё время.
-// Остальное — PRO. Пока оплата не подключена (ЮKassa), замок выключен: PRO_PAYWALL_ENABLED = false.
-export const PRO_PAYWALL_ENABLED = false
+// Остальное — PRO. Замок включён 28.10.2026 вместе с оплатой через ЮKassa.
+export const PRO_PAYWALL_ENABLED = true
 export const FREE_AI_PHOTOS = 3
 export const PRO_AI_PHOTOS_PER_DAY = 3
 
