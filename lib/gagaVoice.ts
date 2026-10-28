@@ -42,74 +42,75 @@ export const GAGA_EMOTIONS: Record<GagaEvent, string[]> = {
 const L = (event: GagaEvent, list: string[]): GagaLine[] => list.map((text, i) => ({ id: `${event}-${i + 1}`, event, text }))
 
 export const GAGA_LINES: GagaLine[] = [
+    // «Га!» и смех — не в каждой фразе и не на одном месте: иначе звучит заученно.
     ...L('start', [
-        '[goose honk] Га-га! [nasal, honking voice] Отряд, подъём! Задание на сегодня получено. Выдвигаемся. [honking laugh] Га-га-га!',
-        '[goose honk] Га! [gruff, nasal] Разговорчики в строю! Открываем урок. [honking laugh] Га-га-га!',
-        '[honking laugh] Га-га! Маньяна — главный враг революции. Поэтому — сегодня. [honking laugh] Га-га-га!',
-        '[goose honk] Га! [confident, nasal] Один урок — один шаг к поступлению. Шагаем. [honking laugh] Га-га-га!',
-        '[goose honk] Га! [gruff] Телефон в беззвучный, мысли в кучу. Начали. [honking laugh] Га-га-га!',
-        '[goose honk] Га! [nasal, honking voice] Смирно, новобранец! Команданте Мигель на связи. [honking laugh] Га-га-га!',
+        '[nasal, gruff] Отряд, подъём! Задание на сегодня получено. Выдвигаемся.',
+        '[goose honk] Га! [gruff] Разговорчики в строю! Открываем урок.',
+        '[confident] Маньяна — главный враг революции. Поэтому сегодня. [short chuckle]',
+        '[confident, nasal] Ещё один урок, ещё один шаг к ВУЗу. Шагаем.',
+        '[gruff] Телефон в беззвучный, мысли в кучу. [goose honk] Га! Начали.',
+        '[nasal] Смирно, новобранец! Команданте Мигель на связи. [honking laugh] Га-га!',
     ]),
     ...L('correct', [
-        '[goose honk] Га-га! [proud, nasal] Чётко! Вот это выправка. [honking laugh] Га-га-га!',
-        '[honking laugh] Га-га! Прямо в цель, боец. [honking laugh] Га-га-га!',
-        '[goose honk] Га! [gruff, nasal] Принято. Монстр ЕГЭ потерял ещё одну жизнь. [honking laugh] Га-га-га!',
-        '[goose honk] Га! [proud, nasal] Это твой экстремум: производная — ноль, ты на вершине. [honking laugh] Га-га-га!',
-        '[goose honk] Га! [honking laugh] Где-то Ньютон уронил ещё одно яблоко от восторга. [honking laugh] Га-га-га!',
-        '[goose honk] Га! [gruff, nasal] Так держать. Заношу в личное дело. [honking laugh] Га-га-га!',
-        '[goose honk] Га! [excited honk] ¡Excelente! Хорошо служишь. [honking laugh] Га-га-га!',
-        '[goose honk] Га! [proud] По-командирски. Следующий! [honking laugh] Га-га-га!',
+        '[proud, nasal] Чётко! Вот это выправка.',
+        '[goose honk] Га! Прямо в цель, боец.',
+        '[gruff] Принято. Монстр ЕГЭ потерял ещё одну жизнь. [short chuckle]',
+        '[proud] Это твой экстремум: производная ноль, ты на вершине.',
+        '[honking laugh] Где-то Ньютон уронил ещё одно яблоко от восторга.',
+        '[gruff, nasal] Так держать. Заношу в личное дело.',
+        '[excited] ¡Excelente! Хорошо служишь. [goose honk] Га!',
+        '[proud] По-командирски. Следующий!',
     ]),
     ...L('wrong', [
-        '[goose honk] Га! [gruff] Отставить панику. Ошибка — это разведка: теперь мы знаем, где враг.',
-        '[goose honk] Га! [gruff, nasal] Мимо. Перегруппировались — и снова в бой.',
-        '[honking laugh] Га-га! Минус — штука обидчивая. Проверь его, боец.',
-        '[goose honk] Га! [serious] Не спеши. Солдат, который торопится, стреляет в молоко.',
-        '[goose honk] Га! [warmly, nasal] Бывает. Даже у Эйнштейна были ошибки. Ещё заход.',
-        '[goose honk] Га! [serious] Тут ловушка. Смотри внимательнее — ты справишься.',
+        '[calm, gruff] Отставить панику. Ошибка — это разведка: теперь мы знаем, где враг.',
+        '[nasal] Мимо. Перегруппировались и снова в бой.',
+        '[short chuckle] Минус, штука обидчивая. Проверь его, боец.',
+        '[serious] Не спеши. Солдат, который торопится, стреляет в молоко.',
+        '[warmly] Бывает. Даже у Эйнштейна были ошибки. Ещё заход.',
+        '[goose honk] Га! [serious] Тут ловушка. Смотри внимательнее, ты справишься.',
     ]),
     ...L('rule', [
-        '[goose honk] Га! [serious] Внимание, отряд! Это записываем в боевой устав.',
-        '[goose honk] Га! [confident] Запомни, боец: это будет на экзамене. Проверено разведкой.',
-        '[goose honk] Га! [gruff] Это не обсуждается. Это заучивается.',
+        '[serious] Внимание, отряд! Это записываем в боевой устав.',
+        '[confident] Запомни, боец: это будет на экзамене. Проверено разведкой.',
+        '[gruff] Это не обсуждается. Это заучивается.',
     ]),
     ...L('streak', [
         '[excited honk] Га-га-га! Серия! Ты разогнался, как частица в коллайдере.',
-        '[honking laugh] Га-га! Тебя уже не остановить. [honking laugh] Га-га-га!',
-        '[goose honk] Га! [gruff, nasal] Монстр ЕГЭ отступает. Наступаем! [honking laugh] Га-га-га!',
-        '[goose honk] Га! [proud] Вот это дисциплина. Ещё! [honking laugh] Га-га-га!',
+        '[impressed] Тебя уже не остановить.',
+        '[gruff, nasal] Монстр ЕГЭ отступает. Наступаем! [goose honk] Га!',
+        '[proud] Вот это дисциплина. Ещё!',
     ]),
     ...L('chest', [
-        '[goose honk] Га-га! [proud, nasal] Трофей с фронта. Заслужил, боец. [honking laugh] Га-га-га!',
-        '[goose honk] Га! [honking laugh] Сундук! Открывай, пока монстр не отобрал. [honking laugh] Га-га-га!',
-        '[goose honk] Га! [gruff, nasal] Награда за службу. Посмотрим, что внутри. [honking laugh] Га-га-га!',
+        '[proud, nasal] Трофей с фронта. Заслужил, боец.',
+        '[goose honk] Га! Сундук! Открывай, пока монстр не отобрал. [short chuckle]',
+        '[gruff] Награда за службу. Посмотрим, что внутри.',
     ]),
     ...L('levelup', [
-        '[goose honk] Га-га! [proud] Поздравляю с повышением! Новое звание — носи с гордостью. [honking laugh] Га-га-га!',
-        '[goose honk] Га! [confident, nasal] Новое звание, боец. Не расслабляемся — до следующего рукой подать. [honking laugh] Га-га-га!',
+        '[proud] Поздравляю с повышением! Новое звание, носи с гордостью. [goose honk] Га-га!',
+        '[confident, nasal] Новое звание, боец. Не расслабляемся, до следующего рукой подать.',
     ]),
     ...L('done', [
-        '[excited honk] Га-га! Высота взята! ¡Hasta la victoria! [honking laugh] Га-га-га!',
-        '[goose honk] Га! [gruff, nasal] Задание выполнено. Отбой — заслужил. [honking laugh] Га-га-га!',
-        '[goose honk] Га! [honking laugh] Сегодня ты сделал не dx работы, а целый интеграл. [honking laugh] Га-га-га!',
-        '[goose honk] Га! [confident] Ещё один шаг к поступлению. Завтра — следующий. [honking laugh] Га-га-га!',
+        '[excited honk] Га-га! Высота взята! ¡Hasta la victoria!',
+        '[gruff, nasal] Задание выполнено. Отбой, заслужил.',
+        '[short chuckle] Сегодня ты сделал не dx работы, а целый интеграл.',
+        '[confident] Ещё один шаг к ВУЗу. Завтра следующий.',
     ]),
     ...L('boss', [
-        '[goose honk] Га! [gruff, serious] Тишина в строю. Перед нами босс.',
-        '[goose honk] Га! [confident, nasal] Все уроки были ради этого. В бой!',
-        '[excited honk] Га-га! ¡Adelante! Покажем монстру, кто тут командир!',
+        '[gruff, serious] Тишина в строю. Перед нами босс.',
+        '[confident, nasal] Все уроки были ради этого. В бой!',
+        '[excited] ¡Adelante! Покажем монстру, кто тут командир! [goose honk] Га!',
     ]),
     ...L('night', [
-        '[goose honk] Га! [gruff] Боец, день почти кончился, а задание не выполнено. Один короткий урок — и отбой.',
-        '[goose honk] Га! [honking laugh] Твоя серия стремится к нулю. Не дадим ей достичь предела!',
-        '[goose honk] Га! [low, raspy, nasal] Отбой, боец. Даже революционерам нужен сон. Завтра — в строй.',
+        '[gruff] Боец, день почти кончился, а задание не выполнено. Один короткий урок, и отбой.',
+        '[short chuckle] Твоя серия стремится к нулю. Не дадим ей достичь предела!',
+        '[low, raspy, nasal] Отбой, боец. Даже революционерам нужен сон. Завтра в строй.',
     ]),
 ]
 
 // без пометок [..] — для показа текстом
 export const gagaCaption = (text: string) => text.replace(/\[[^\]]*\]\s*/g, '').trim()
 // Текст для озвучки: «ЕГЭ» большими буквами голос читает по буквам («е-гэ-э») — отдаём строчными, тогда читается слитно.
-export const gagaSpeechText = (text: string) => text.replace(/ЕГЭ/g, 'егэ')
+export const gagaSpeechText = (text: string) => text.replace(/ЕГЭ/g, 'егэ').replace(/ВУЗ/g, 'вуз')
 export const gagaAudio = (id: string) => `/miguel-voice/${id}.mp3`
 export const gagaLinesFor = (event: GagaEvent) => GAGA_LINES.filter((l) => l.event === event)
 let lastId = ''
