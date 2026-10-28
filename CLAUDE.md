@@ -14872,3 +14872,18 @@ EGE, 640×481; прошлые версии — `ggege-logo-v1.*`, `ggege-logo-ou
 разборах, вызывается внутри `showAnswerMeme(true)` (обычный тренажёр по-прежнему играет `/correct.wav`); `playDoneMini`
 (`/snd-done-mini.mp3`, 0.6) — в `useSceneFocus`, когда сцена доиграла (`contentSettled`), один раз на сцену; если только
 что был верный ответ — чуть позже, чтобы звуки не слиплись. Новые разборы получают звуки сами (через общие хелперы).
+
+## Чеки в «Мой налог» — автоматически с нашего сервера (2026-10-28)
+ЮKassa чеки самозанятых в ФНС НЕ отправляет (подтвердила поддержка), MCC 7299 у самозанятых обязателен. Боевой магазин
+1509415, ключ `live_…` в .env сервера (YOOKASSA_SHOP_ID/YOOKASSA_SECRET_KEY), webhook `https://ggege.ru/api/yookassa/webhook`
+(payment.succeeded). После оплаты `syncProPayment` (lib/proPayments.ts) пробивает чек через `lib/moyNalog.ts` →
+`lib/moyNalogApi.ts` (неофициальный API lknpd.nalog.ru: /auth/token, /income, /cancel; чек —
+`https://lknpd.nalog.ru/api/v1/receipt/<ИНН>/<uuid>/print`), пишет receipt_uuid/receipt_url/receipt_error в pro_payments,
+ссылку показывает ученику на /pro, админу в Telegram «🧾 Чек пробит» или «⚠️ Чек НЕ пробит — пробей вручную» с данными.
+Тестовые оплаты в налоговую не идут. Админ платит 10 ₽ за 1 день (`ADMIN_TEST_PRICE_RUB`, actions/pro-payment.ts) — проверка.
+Вход: таблица `nalog_auth` (id=1: inn, device_id, refresh_token; ключ НЕ меняется при обновлении), `NALOG_INN` в .env,
+запасной `NALOG_PASSWORD` (пароль ЛК налогоплательщика, у пользователя его нет). Вход по СМС на 28.10.2026 у ФНС «временно
+недоступен» (`scripts/nalogLogin.ts`). Сработало: войти на lknpd.nalog.ru через Госуслуги, в консоли браузера ключ лежит в
+`sessionStorage['refresh.token']`, номер устройства — `localStorage.sourceDeviceId`; `scripts/nalogSetToken.ts` принимает
+JSON {inn, deviceId, refreshToken} через stdin (строку для терминала собирает `copy(...)` в консоли). Если ключ перестанет
+работать — повторить. Возвраты: чек аннулировать (`cancelIncome`, пока вручную в «Мой налог»).
