@@ -303,6 +303,9 @@ const TLearnPage = async () => {
                                 pizzaSlices={currentPizzaSlices}
                                 questDone={(dailyQuest?.trainerDone ? 1 : 0) + (dailyQuest?.taskDone ? 1 : 0)}
                                 questTotal={2}
+                                streak={currentStreakForRisk}
+                                streakToday={hasExtendedStreakToday}
+                                streakFreezes={userProgress.streakFreezes}
                                 pizzaPanel={<PizzaProgress collected={currentPizzaSlices} cozy={cozy} dodoPromoCode={userProgress.dodoPromoCode} eighths={userProgress.pizzaEighths} />}
                                 questPanel={dailyQuest ? (
                                     <TrainerQuestCard
