@@ -14896,6 +14896,7 @@ JSON {inn, deviceId, refreshToken} через stdin (строку для тер�
 стоит). Значок «На экран Домой»: Мигель (miguel-base, лицо по центру, видно GG) на небесно-голубом — `app/apple-icon.png`
 (iPhone; через metadata.icons не работает — app/favicon.ico перекрывает), `public/icon-192/512.png`,
 `public/icon-maskable-512.png`, `public/manifest.webmanifest`; подпись «ГГ ЕГЭ» (short_name и appleWebApp.title).
+**Смена значка (2026-10-28):** у Next хэш `?…` в адресе apple-icon НЕ зависит от содержимого, а файл отдаётся с кэшем на год — iPhone показывает старый значок даже после переустановки ярлыка. При новой картинке: переименовать файл (`app/apple-iconN.png`, сейчас apple-icon3), поднять `?v=N` у иконок в manifest и собирать с `rm -rf .next/cache` (иначе сборка берёт старую картинку из кэша). Текущий значок — Мигель крупно, лучи + облака (скрипт `scratchpad`, итог в docs/miguel/icon-final-home.png).
 
 ## «Штурм» — горячие 10 минут (2026-10-28)
 `lib/storm.ts` (числа — `lib/stormUi.ts`): раз в день после завершённого урока тренажёра с шансом 35% начинается штурм на
