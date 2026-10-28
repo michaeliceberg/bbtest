@@ -42,7 +42,7 @@ export default function PricingPage() {
                     <ul className='mt-4 space-y-3'>
                         {PRO_FEATURES.map((f) => (
                             <li key={f.title} className='text-sm'>
-                                <span className='font-bold'>{f.icon} {f.title}</span>
+                                <span className='font-bold'>{f.title}</span>
                                 <span className='block text-xs text-[#9AA7B0]'>{f.text}</span>
                             </li>
                         ))}

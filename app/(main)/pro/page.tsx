@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { sql } from 'drizzle-orm'
 import db from '@/db/drizzle'
 import { auth } from '@/lib/server-auth'
+import { FeatureIcon } from './pro-icons'
 import { PRO_EARLY_DISCOUNT, PRO_ENABLED, PRO_FEATURES, PRO_PAYWALL_ENABLED, PRO_PRICE_RUB } from '@/lib/pro'
 import Link from 'next/link'
 import { ProWantButton } from './want-button'
@@ -37,10 +38,10 @@ const ProPage = async ({ searchParams }: { searchParams: { from?: string; paid?:
             <div className="relative overflow-hidden rounded-3xl border-2 border-[#F2C35B]/60 bg-[#151F23] p-6 shadow-[0_0_40px_-12px_rgba(242,195,91,0.45)]">
                 <div className="pointer-events-none absolute -top-24 left-1/2 h-56 w-56 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(242,195,91,0.28),transparent_70%)]" />
                 <div className="relative flex flex-col items-center text-center">
-                    {/* Команданте Мигель с короной и VIP-картой */}
+                    {/* Команданте Мигель крупно, по пояс: видны корона и VIP-карта (низ растворяется в карточке) */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/miguel/miguel-pro.webp" alt="" className="h-32 w-32 object-contain drop-shadow-[0_0_18px_rgba(242,195,91,0.45)]" draggable={false} />
-                    <h1 className="mt-4 text-3xl font-black">ggege <span className="text-[#F2C35B]">PRO</span></h1>
+                    <img src="/miguel/miguel-pro-bust.webp" alt="" className="-mt-2 w-full max-w-[300px] object-contain" draggable={false} />
+                    <h1 className="mt-1 text-3xl font-black">ggege <span className="text-[#F2C35B]">PRO</span></h1>
                     <p className="mt-1 text-sm text-[#9AA7B0]">Готовься к ЕГЭ как в игре — без ограничений</p>
                     <div className="mt-5 flex items-end gap-1">
                         <span className="text-5xl font-black">{PRO_PRICE_RUB}</span>
@@ -50,8 +51,8 @@ const ProPage = async ({ searchParams }: { searchParams: { from?: string; paid?:
 
                 <ul className="relative mt-6 space-y-3">
                     {PRO_FEATURES.map((f) => (
-                        <li key={f.title} className="flex gap-3 rounded-xl bg-[#1B252B] p-3">
-                            <span className="text-2xl">{f.icon}</span>
+                        <li key={f.title} className="flex items-center gap-3 rounded-xl bg-[#1B252B] p-3">
+                            <FeatureIcon name={f.icon} />
                             <span>
                                 <span className="block font-bold">{f.title}</span>
                                 <span className="block text-xs text-[#9AA7B0]">{f.text}</span>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { checkProPayment, startProPayment } from '@/actions/pro-payment'
+import { GoldIconTile, PartyPopper, Crown, Receipt } from './pro-icons'
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
 
@@ -71,10 +72,10 @@ export const ProBuyButton = ({ price, proUntil, paidId, test }: {
             {check === 'paid' && (
                 <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.5 }}
                     className="w-full rounded-2xl border-2 border-[#78C93C] bg-[#78C93C]/10 p-4 text-center">
-                    <div className="text-3xl">🎉</div>
+                    <div className="flex justify-center"><GoldIconTile icon={PartyPopper} size={52} /></div>
                     <div className="mt-1 text-lg font-black">PRO подключён!</div>
                     {until && <p className="mt-1 text-sm text-[#C9D3D9]">Всё открыто до <b className="text-[#F2C35B]">{fmtDate(until)}</b></p>}
-                    {receipt && <a href={receipt} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm font-bold text-[#53ADEF] underline">🧾 Чек об оплате</a>}
+                    {receipt && <a href={receipt} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm font-bold text-[#53ADEF] underline"><Receipt className="mr-1 inline h-4 w-4 align-[-2px]" />Чек об оплате</a>}
                 </motion.div>
             )}
             {check === 'canceled' && (
@@ -89,7 +90,7 @@ export const ProBuyButton = ({ price, proUntil, paidId, test }: {
             )}
             {active && check !== 'paid' && (
                 <div className="w-full rounded-2xl border-2 border-[#F2C35B]/60 bg-[#F2C35B]/10 p-3 text-center text-sm">
-                    👑 PRO активен до <b className="text-[#F2C35B]">{fmtDate(until!)}</b>
+                    <Crown className="mr-1 inline h-4 w-4 align-[-2px] text-[#F2C35B]" />PRO активен до <b className="text-[#F2C35B]">{fmtDate(until!)}</b>
                 </div>
             )}
             <button

@@ -1,7 +1,7 @@
 'use client'
 
 import { useAchievementClaimStore } from '@/store/use-achievement-claim-store'
-import { Dumbbell, Swords, Library, Lock, BadgeCheck, Shield, BarChart3, Trophy, Route, Crown } from 'lucide-react'
+import { Dumbbell, Swords, Lock, BadgeCheck, Shield, BarChart3, Trophy, Route, Crown } from 'lucide-react'
 import { CoursePickerButton, CoursePickerSheet } from '@/components/course-picker-sheet'
 import { Button } from './ui/button'
 import Link from 'next/link'
@@ -99,7 +99,8 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
     { label: 'Мой путь', href: '/path', icon: Route },
     { label: 'Тренажёр', href: '/trainer', icon: Dumbbell, badge: hasTrainerQuest },
     { label: 'Задачник', href: '/learn', icon: Swords, disabled: learnLocked },
-    { label: 'Справочник', href: '/reference', icon: Library },
+    // Справочник временно убран (2026-10-29): будет премиальной страницей с теорией из пройденных step-by-step.
+    // { label: 'Справочник', href: '/reference', icon: Library },
     { label: 'Банда', href: '/gang', icon: Shield },
     { label: 'Ачивки', href: '/achievements', icon: Trophy },
     { label: 'PRO', href: '/pro', icon: Crown, disabled: !PRO_ENABLED },
