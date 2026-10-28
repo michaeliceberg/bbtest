@@ -14887,3 +14887,12 @@ EGE, 640×481; прошлые версии — `ggege-logo-v1.*`, `ggege-logo-ou
 `sessionStorage['refresh.token']`, номер устройства — `localStorage.sourceDeviceId`; `scripts/nalogSetToken.ts` принимает
 JSON {inn, deviceId, refreshToken} через stdin (строку для терминала собирает `copy(...)` в консоли). Если ключ перестанет
 работать — повторить. Возвраты: чек аннулировать (`cancelIncome`, пока вручную в «Мой налог»).
+
+## Логотип v4 с анимацией и значок PWA (2026-10-28)
+Логотип: монстр 75%, прижат вправо, у него своя обводка (под ногами было пятно старой обводки — стёрто), пустой верх обрезан —
+`public/ggege-logo-v4.webp` (640×400, статичный, для картинки сторис). В меню и шапке главной — `components/animated-logo.tsx`:
+три слоя `public/logo-anim/{base,flash,monster}.webp` того же размера, CSS в globals.css (`.logo-anim-flash` — два импульса
+выстрела, `.logo-anim-monster` — монстра встряхивает от попаданий; цикл 3,2 с, только transform/opacity, при reduced-motion
+стоит). Значок «На экран Домой»: Мигель (miguel-base, лицо по центру, видно GG) на небесно-голубом — `app/apple-icon.png`
+(iPhone; через metadata.icons не работает — app/favicon.ico перекрывает), `public/icon-192/512.png`,
+`public/icon-maskable-512.png`, `public/manifest.webmanifest`; подпись «ГГ ЕГЭ» (short_name и appleWebApp.title).
