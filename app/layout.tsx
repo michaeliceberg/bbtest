@@ -41,9 +41,9 @@ const font = Nunito({ subsets: ['latin'], variable: '--font-nunito' });
 export const metadata: Metadata = {
 	title: 'ggege',
 	description: 'Физико-математическая школа',
-	// Значок для «На экран Домой» (PWA): Мигель на небесно-голубом, public/icon-*.png, app/apple-icon.png, manifest.webmanifest
+	// Значок для «На экран Домой» (PWA): Мигель на небесно-голубом, public/icon-*.png, app/apple-icon3.png, manifest.webmanifest
 	manifest: '/manifest.webmanifest',
-	// Значок iPhone — файл app/apple-icon.png (metadata.icons перекрывается app/favicon.ico).
+	// Значок iPhone — файл app/apple-icon3.png (metadata.icons перекрывается app/favicon.ico).
 	appleWebApp: { capable: true, title: 'ГГ ЕГЭ', statusBarStyle: 'black' },
 };
 
