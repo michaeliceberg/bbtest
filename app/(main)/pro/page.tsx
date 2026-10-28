@@ -17,6 +17,16 @@ import { yookassaConfigured, yookassaIsTest } from '@/lib/yookassa'
 export const dynamic = 'force-dynamic'
 
 
+// Искры вокруг гуся: x/y — место старта в % (снизу), s — размер, d — задержка, t — длительность, r — высота подъёма.
+const PRO_SPARKS = [
+    { x: 6, y: 18, s: 5, d: 0, t: 2.6, r: -120, gold: true }, { x: 14, y: 40, s: 4, d: 1.1, t: 2.3, r: -90, gold: false },
+    { x: 22, y: 10, s: 6, d: 0.5, t: 2.9, r: -140, gold: true }, { x: 32, y: 28, s: 3, d: 1.7, t: 2.2, r: -80, gold: false },
+    { x: 44, y: 8, s: 5, d: 0.9, t: 2.7, r: -130, gold: true }, { x: 56, y: 22, s: 4, d: 2.1, t: 2.4, r: -100, gold: false },
+    { x: 66, y: 12, s: 6, d: 0.3, t: 3.0, r: -150, gold: true }, { x: 76, y: 34, s: 3, d: 1.4, t: 2.1, r: -85, gold: false },
+    { x: 86, y: 16, s: 5, d: 0.7, t: 2.8, r: -125, gold: true }, { x: 94, y: 42, s: 4, d: 1.9, t: 2.3, r: -95, gold: false },
+    { x: 38, y: 50, s: 3, d: 2.4, t: 2.0, r: -70, gold: true }, { x: 70, y: 56, s: 3, d: 0.2, t: 2.2, r: -75, gold: true },
+]
+
 const ProPage = async ({ searchParams }: { searchParams: { from?: string; paid?: string } }) => {
     const session = await auth()
     const userId = session?.user?.id
@@ -39,8 +49,19 @@ const ProPage = async ({ searchParams }: { searchParams: { from?: string; paid?:
                 <div className="pointer-events-none absolute -top-24 left-1/2 h-56 w-56 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(242,195,91,0.28),transparent_70%)]" />
                 <div className="relative flex flex-col items-center text-center">
                     {/* Команданте Мигель крупно, по пояс: видны корона и VIP-карта (низ растворяется в карточке) */}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/miguel/miguel-pro-bust.webp" alt="" className="-mt-2 w-full max-w-[300px] object-contain" draggable={false} />
+                    <div className="relative -mt-2 w-full max-w-[300px]">
+                        {/* Искры поднимаются за гусём и вокруг него */}
+                        {PRO_SPARKS.map((sp, i) => (
+                            <span key={i} aria-hidden className="pro-spark" style={{
+                                left: `${sp.x}%`, bottom: `${sp.y}%`, width: sp.s, height: sp.s,
+                                background: sp.gold ? '#FFD84D' : '#FFFFFF',
+                                boxShadow: sp.gold ? '0 0 8px 3px rgba(255,200,70,0.85)' : '0 0 7px 2px rgba(255,255,255,0.9)',
+                                animationDelay: `${sp.d}s`, ['--dur' as string]: `${sp.t}s`, ['--rise' as string]: `${sp.r}px`,
+                            }} />
+                        ))}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/miguel/miguel-pro-bust.webp" alt="" className="relative w-full object-contain" draggable={false} />
+                    </div>
                     <h1 className="mt-1 text-3xl font-black">ggege <span className="text-[#F2C35B]">PRO</span></h1>
                     <p className="mt-1 text-sm text-[#9AA7B0]">Готовься к ЕГЭ как в игре — без ограничений</p>
                     <div className="mt-5 flex items-end gap-1">

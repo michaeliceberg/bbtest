@@ -1077,3 +1077,15 @@ body {
 @keyframes medal-float { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-4px) rotate(2deg); } }
 .medal-float { animation: medal-float 3.2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .medal-shine::after, .medal-float { animation: none !important; } }
+
+/* /pro: золотые и белые искры поднимаются вокруг гуся (как у кнопки «ИИ-помощник», только выше). Только transform/opacity. */
+@keyframes pro-spark-rise {
+  0% { transform: translateY(0) scale(0); opacity: 0; }
+  20% { opacity: 1; transform: translateY(-14px) scale(1); }
+  100% { transform: translateY(var(--rise, -110px)) scale(0); opacity: 0; }
+}
+.pro-spark {
+  position: absolute; border-radius: 9999px; pointer-events: none;
+  animation: pro-spark-rise var(--dur, 2.6s) ease-out infinite; will-change: transform, opacity;
+}
+@media (prefers-reduced-motion: reduce) { .pro-spark { animation: none !important; opacity: 0; } }
