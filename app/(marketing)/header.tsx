@@ -42,7 +42,7 @@ export const Header = ({ dbUserName }: Props) => {
       >
         <div className='lg:max-w-screen-lg mx-auto px-4 h-20 flex items-center justify-between'>
           <Link href='/' className='group flex items-center gap-x-3 transition-transform hover:scale-105'>
-            <AnimatedLogo className='h-14 w-auto transition-all group-hover:scale-105' />
+            <AnimatedLogo className='h-14 w-auto' />
             <GgegeTagline className='hidden lg:inline text-base' />
           </Link>
 

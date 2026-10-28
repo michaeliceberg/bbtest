@@ -220,7 +220,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
   return (
     <div className={cn('flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-[#151F23]', className)} style={rootStyle}>
       <Link href='/trainer'>
-        <div className='pt-8 pb-4 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity'>
+        <div className='pt-8 pb-4 flex items-center justify-center cursor-pointer'>
           <AnimatedLogo className="w-[140px] lg:w-[210px]" />
         </div>
       </Link>

@@ -1018,6 +1018,30 @@ body {
   12% { transform: rotate(-1deg) translateX(0); }
   13%, 100% { transform: rotate(0deg) translateX(0); }
 }
+/* Нажатие на логотип — сразу выстрел (1,4 с), наведение — золотое свечение */
+.logo-anim { transition: filter 0.25s ease; -webkit-tap-highlight-color: transparent; }
+@media (hover: hover) {
+  .logo-anim:hover { filter: drop-shadow(0 0 10px rgba(242, 195, 91, 0.55)) drop-shadow(0 0 3px rgba(255, 255, 255, 0.35)); }
+}
+.logo-anim-flash-once { transform-origin: 38.5% 31%; opacity: 0; animation: logo-flash-once 1.4s ease-out 1 forwards; }
+.logo-anim-monster-once { transform-origin: 79% 64%; animation: logo-monster-once 1.4s ease-in-out 1 forwards; }
+@keyframes logo-flash-once {
+  0% { opacity: 0; transform: scale(0.6); }
+  9% { opacity: 1; transform: scale(1.12); }
+  22% { opacity: 0.15; transform: scale(0.9); }
+  32% { opacity: 1; transform: scale(1.08); }
+  55%, 100% { opacity: 0; transform: scale(0.85); }
+}
+@keyframes logo-monster-once {
+  0%, 11% { transform: rotate(0deg) translateX(0); }
+  19% { transform: rotate(5deg) translateX(1.2%); }
+  30% { transform: rotate(-3deg) translateX(0.3%); }
+  41% { transform: rotate(6deg) translateX(1.6%); }
+  55% { transform: rotate(-3.5deg) translateX(0.4%); }
+  70% { transform: rotate(2deg) translateX(0.2%); }
+  84% { transform: rotate(-1deg) translateX(0); }
+  100% { transform: rotate(0deg) translateX(0); }
+}
 @media (prefers-reduced-motion: reduce) {
   .logo-anim-flash { animation: none; opacity: 1; }
   .logo-anim-monster { animation: none; }
