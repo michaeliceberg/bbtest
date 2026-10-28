@@ -4,7 +4,6 @@
 
 import { redirect } from 'next/navigation'
 import { sql } from 'drizzle-orm'
-import { Crown } from 'lucide-react'
 import db from '@/db/drizzle'
 import { auth } from '@/lib/server-auth'
 import { PRO_EARLY_DISCOUNT, PRO_ENABLED, PRO_FEATURES, PRO_PAYWALL_ENABLED, PRO_PRICE_RUB } from '@/lib/pro'
@@ -38,9 +37,9 @@ const ProPage = async ({ searchParams }: { searchParams: { from?: string; paid?:
             <div className="relative overflow-hidden rounded-3xl border-2 border-[#F2C35B]/60 bg-[#151F23] p-6 shadow-[0_0_40px_-12px_rgba(242,195,91,0.45)]">
                 <div className="pointer-events-none absolute -top-24 left-1/2 h-56 w-56 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(242,195,91,0.28),transparent_70%)]" />
                 <div className="relative flex flex-col items-center text-center">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#F2C35B] to-[#C9971C] shadow-[0_6px_0_#8A6A1E]">
-                        <Crown className="h-9 w-9 text-[#3A2A08]" strokeWidth={2.5} />
-                    </div>
+                    {/* Команданте Мигель с короной и VIP-картой */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/miguel/miguel-pro.webp" alt="" className="h-32 w-32 object-contain drop-shadow-[0_0_18px_rgba(242,195,91,0.45)]" draggable={false} />
                     <h1 className="mt-4 text-3xl font-black">ggege <span className="text-[#F2C35B]">PRO</span></h1>
                     <p className="mt-1 text-sm text-[#9AA7B0]">Готовься к ЕГЭ как в игре — без ограничений</p>
                     <div className="mt-5 flex items-end gap-1">
