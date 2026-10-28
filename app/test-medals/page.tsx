@@ -1,7 +1,7 @@
 // Тестовая страница: варианты оформления медали юнита на баннере (выбирает пользователь).
 /* eslint-disable @next/next/no-img-element */
 type Kind = 'bronze' | 'silver' | 'gold'
-type V = { n: number; title: string; white?: boolean; shine?: boolean; pin?: boolean; float?: boolean; shadow?: boolean }
+type V = { n: number; title: string; white?: boolean; shine?: boolean; pin?: boolean; float?: boolean; shadow?: boolean; noPin?: boolean }
 
 const VARIANTS: V[] = [
     { n: 1, title: 'Как сейчас: чёрная обводка', shadow: true },
@@ -10,6 +10,7 @@ const VARIANTS: V[] = [
     { n: 4, title: 'Белая обводка + блик', white: true, shine: true, shadow: true },
     { n: 5, title: '«Наколота» на баннер: тень вниз-вправо + булавка', white: true, pin: true },
     { n: 6, title: 'Белая + блик + «наколота»', white: true, shine: true, pin: true },
+    { n: 8, title: 'Выбрано: чёрная обводка + блик + тень вниз-вправо (как в приложении)', shine: true, pin: true, noPin: true },
     { n: 7, title: 'Белая + блик + лёгкое покачивание', white: true, shine: true, float: true, shadow: true },
 ]
 
@@ -21,12 +22,12 @@ const Medal = ({ k, v, size }: { k: Kind; v: V; size: number }) => {
         ? 'drop-shadow(5px 7px 0 rgba(0,0,0,0.28)) drop-shadow(2px 3px 2px rgba(0,0,0,0.25))'
         : v.shadow ? 'drop-shadow(0 2px 0 rgba(0,0,0,0.35))' : 'none'
     return (
-        <span className={`relative inline-block ${v.float ? 'medal-float' : ''}`} style={{ width: size, height: size, rotate: v.pin ? '-6deg' : undefined }}>
+        <span className={`relative inline-block ${v.float ? 'medal-float' : ''}`} style={{ width: size, height: size, rotate: v.pin && !v.noPin ? '-6deg' : undefined }}>
             <img src={s} alt="" className="absolute inset-0 h-full w-full object-contain" style={{ filter: shadow }} draggable={false} />
             {v.shine && (
                 <span className="medal-shine" style={{ WebkitMaskImage: `url(${s})`, maskImage: `url(${s})`, WebkitMaskSize: 'contain', maskSize: 'contain', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center' }} />
             )}
-            {v.pin && (
+            {v.pin && !v.noPin && (
                 <span className="absolute left-1/2 top-[14%] h-3 w-3 -translate-x-1/2 rounded-full"
                     style={{ background: 'radial-gradient(circle at 35% 30%, #FF8A8A, #C62828 60%, #7A1010)', boxShadow: '1px 2px 2px rgba(0,0,0,.45)' }} />
             )}

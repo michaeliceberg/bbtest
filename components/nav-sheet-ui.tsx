@@ -45,6 +45,20 @@ const WHITE_RING = [0, 45, 90, 135, 180, 225, 270, 315]
 
 const MEDAL_SRC = { bronze: '/medals/medal-bronze.webp', silver: '/medals/medal-silver.webp', gold: '/medals/medal-gold.webp' }
 
+// Медаль: тень вниз-вправо (лежит на баннере) и блик, пробегающий раз в 4,5 с (.medal-shine — по маске самой картинки).
+const MedalPic = ({ src, alt, size }: { src: string; alt: string; size: number }) => {
+    const dx = Math.max(2, Math.round(size * 0.06)), dy = Math.max(3, Math.round(size * 0.085))
+    const mask = { WebkitMaskImage: `url(${src})`, maskImage: `url(${src})`, WebkitMaskSize: 'contain', maskSize: 'contain', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center' } as const
+    return (
+        <span className="relative block" style={{ width: size, height: size }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={src} alt={alt} className="absolute inset-0 h-full w-full object-contain" draggable={false}
+                style={{ filter: `drop-shadow(${dx}px ${dy}px 0 rgba(0,0,0,0.28)) drop-shadow(${Math.round(dx / 2)}px ${Math.round(dy / 2)}px 2px rgba(0,0,0,0.22))` }} />
+            <span aria-hidden className="medal-shine" style={mask} />
+        </span>
+    )
+}
+
 export const NavMedal = ({ percent, size = 44, onColor = false, label = false }: { percent: number; size?: number; onColor?: boolean; label?: boolean }) => {
     const m = medalFor(percent)
     return (
@@ -61,7 +75,7 @@ export const NavMedal = ({ percent, size = 44, onColor = false, label = false }:
             {m === 'none'
                 ? <span className="rounded-full border-[3px] border-dashed" style={{ width: size * 0.64, height: size * 0.64, borderColor: onColor ? 'rgba(255,255,255,0.55)' : '#3A4850' }} />
                 // eslint-disable-next-line @next/next/no-img-element
-                : <img src={MEDAL_SRC[m]} alt={MEDAL_TITLE[m]} className="relative object-contain drop-shadow-[0_2px_0_rgba(0,0,0,0.35)]" style={{ width: size, height: size }} draggable={false} />}
+                : <MedalPic src={MEDAL_SRC[m]} alt={MEDAL_TITLE[m]} size={size} />}
             {label && m !== 'none' && (
                 <span className="relative whitespace-nowrap font-black leading-none" style={{ marginTop: -size * 0.12, fontSize: Math.max(11, size * 0.17), color: MEDAL_COLOR[m], textShadow: WHITE_RING, zIndex: 2 }}>
                     {MEDAL_LABEL[m]}
