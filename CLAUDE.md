@@ -14904,4 +14904,4 @@ JSON {inn, deviceId, refreshToken} через stdin (строку для тер�
 source 'storm', ref `storm:<день>`). Считается в `actions/plan-lesson-case.ts` (`advanceStorm`, один раз на урок), поля
 `user_progress.storm_until/storm_lessons/storm_day/storm_rewarded` (прямой SQL). Экран «ШТУРМ!» (`components/storm-start-screen.tsx`)
 — в финале урока после итогов/уровня, перед кейсом; плашка с отсчётом `components/storm-pill.tsx` — на /trainer и компактная
-в уроке. Отдельно от «ударного часа» (цепочка 3/4/5 уроков, lib/lessonCaseRoll.ts). Ачивки за штурм — ещё не сделаны.
+в уроке. Отдельно от «ударного часа» (цепочка 3/4/5 уроков, lib/lessonCaseRoll.ts). Ачивки (группа storm): storm_start, storm_first, storm_fast (взят за 5 мин), storm_5 — по таблице storm_runs (старт, lessons, won_at).
