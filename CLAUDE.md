@@ -14852,7 +14852,12 @@ night), выстрел на ударе молнии КОМБО — `miguel-bazoo
   (тексты есть в docs/miguel/miguel.md, нужны свои экраны). Фразы на карте тренажёра (`trainer-pet.tsx`:
   `GOOSE_IDLE`, `GOOSE_QUEST`, `GOOSE_CHEER`, `CHEER_PHRASES`) переписаны в армейском тоне 2026-10-28.
 
-**Следующий шаг — новый логотип с Мигелем.** Сейчас логотип — `public/ggege-logo.webp` (Га-Га стреляет в монстра
+**Логотип с Мигелем — сделан 2026-10-28.** В старом логотипе заменён только гусь: Мигель с базукой
+(исходник Leonardo — `docs/miguel/leonardo/logo-goose-bazooka.jpg`), монстр, вспышка и надпись «GGEGE» прежние. Сборка:
+стереть старого гуся (x < 242 над надписью), вырезать Мигеля с белой обводкой, масштаб 0.29, дуло к вспышке (250, 205).
+Прошлый логотип — `public/ggege-logo-v2.*`. Ниже — исходный план (для истории).
+
+**Был следующий шаг — новый логотип с Мигелем.** Сейчас логотип — `public/ggege-logo.webp` (Га-Га стреляет в монстра
 EGE, 640×481; прошлые версии — `ggege-logo-v1.*`, `ggege-logo-outline.*`, `ggegelogo.svg`). Где используется:
 `components/sidebar.tsx`, `app/(marketing)/header.tsx`, `app/test/test-picker-client.tsx`,
 `components/share-story-button.tsx` (картинка для сторис). План: сгенерировать в Leonardo Мигеля в сцене логотипа
