@@ -29,13 +29,14 @@ export async function GET(req: Request) {
 
 	const [font, miguel, inviter, lesson] = await Promise.all([
 		readFile(path.join(process.cwd(), 'assets/fonts/Nunito-Black.ttf')),
-		// Команданте Мигель показывает пальцем на зрителя. В версии для бота — маленький JPEG на ровном фоне (лимит ~30 КБ).
-		readFile(path.join(process.cwd(), tg ? 'assets/og/miguel-point-tg.jpg' : 'assets/og/miguel-point.png')),
+		// Команданте Мигель показывает пальцем на зрителя. В версии для бота его нет: картинка вырастает до ~70 КБ, а с сервера
+		// в Telegram проходит только до ~30 КБ (sharp на сервере нет, PNG в JPEG не пережать).
+		tg ? null : readFile(path.join(process.cwd(), 'assets/og/miguel-point.png')),
 		resolveInviteCode(code).catch(() => null),
 		lessonId ? db.query.t_lessons.findFirst({ where: eq(t_lessons.id, lessonId), columns: { title: true } }).catch(() => null) : null,
 	])
 
-	const miguelSrc = `data:image/${tg ? 'jpeg' : 'png'};base64,${miguel.toString('base64')}`
+	const miguelSrc = miguel ? `data:image/png;base64,${miguel.toString('base64')}` : null
 	const nickname = inviter?.nickname ?? 'Тебя зовут в ggege'
 	const stats = [
 		seconds ? `за ${formatSeconds(seconds)}` : null,
@@ -54,9 +55,9 @@ export async function GET(req: Request) {
 				}}
 			>
 				{/* eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text */}
-				<img src={miguelSrc} width={px(269)} height={px(380)} style={{ position: 'absolute', right: px(56), top: px(70) }} />
+				{miguelSrc && <img src={miguelSrc} width={px(269)} height={px(380)} style={{ position: 'absolute', right: px(56), top: px(70) }} />}
 				<div style={{ display: 'flex', fontSize: px(34), color: '#9AA7B0', letterSpacing: px(4) }}>GGEGE.RU · ТРЕНАЖЁР ЕГЭ</div>
-				<div style={{ display: 'flex', flexDirection: 'column', maxWidth: px(800) }}>
+				<div style={{ display: 'flex', flexDirection: 'column', maxWidth: px(tg ? 1072 : 800) }}>
 					<div style={{ display: 'flex', fontSize: px(nickname.length > 24 ? 64 : 78), lineHeight: 1.05 }}>{nickname}</div>
 					{lesson?.title && <div style={{ display: 'flex', marginTop: px(18), fontSize: px(36), color: '#D5DEE5' }}>прошёл «{lesson.title}»</div>}
 					{stats && <div style={{ display: 'flex', marginTop: px(8), fontSize: px(36), color: '#F2C35B' }}>{stats}</div>}
