@@ -34,7 +34,7 @@ async function ykFetch<T>(path: string, init: RequestInit & { idempotenceKey?: s
 }
 
 // Создать платёж. Способ оплаты не задаём — ЮKassa покажет свою форму со всеми включёнными (СБП, карты, SberPay).
-// Чек самозанятому ЮKassa оформляет сама через «Мой налог», receipt не передаём.
+// Чек самозанятому ЮKassa не оформляет: его пробивает наш сервер в «Мой налог» (lib/moyNalog.ts), receipt не передаём.
 export function createYkPayment(opts: {
     amountRub: number
     description: string

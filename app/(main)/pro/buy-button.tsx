@@ -20,6 +20,7 @@ export const ProBuyButton = ({ price, proUntil, paidId, test }: {
     const [error, setError] = useState<string | null>(null)
     const [check, setCheck] = useState<'idle' | 'waiting' | 'paid' | 'canceled' | 'slow'>(paidId ? 'waiting' : 'idle')
     const [until, setUntil] = useState<string | null>(proUntil)
+    const [receipt, setReceipt] = useState<string | null>(null)
 
     useEffect(() => {
         if (!paidId) return
@@ -33,6 +34,7 @@ export const ProBuyButton = ({ price, proUntil, paidId, test }: {
             if (r.status === 'succeeded') {
                 setCheck('paid')
                 if (r.proUntil) setUntil(r.proUntil)
+                if (r.receiptUrl) setReceipt(r.receiptUrl)
                 router.replace('/pro')
                 router.refresh()
                 return
@@ -72,6 +74,7 @@ export const ProBuyButton = ({ price, proUntil, paidId, test }: {
                     <div className="text-3xl">🎉</div>
                     <div className="mt-1 text-lg font-black">PRO подключён!</div>
                     {until && <p className="mt-1 text-sm text-[#C9D3D9]">Всё открыто до <b className="text-[#F2C35B]">{fmtDate(until)}</b></p>}
+                    {receipt && <a href={receipt} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm font-bold text-[#53ADEF] underline">🧾 Чек об оплате</a>}
                 </motion.div>
             )}
             {check === 'canceled' && (

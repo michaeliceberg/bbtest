@@ -4,6 +4,7 @@ import db from '@/db/drizzle'
 import { proPayments, userProgress } from '@/db/schema'
 import { getYkPayment, type YkPayment } from '@/lib/yookassa'
 import { sendMessageToTelegram } from '@/utils/telegram'
+import { issueReceipt, nalogConfigured, proReceiptName } from '@/lib/moyNalog'
 
 // lib/proPayments.ts — оплата PRO: сверка платежа с ЮKassa и продление подписки.
 // Статусу из тела webhook не доверяем: всегда перечитываем платёж по API.
@@ -49,8 +50,23 @@ export async function syncProPayment(ykPaymentId: string): Promise<SyncResult> {
     await db.update(userProgress).set({ proUntil }).where(eq(userProgress.userId, row.userId))
 
     const name = up?.nickname || up?.userName || row.userId
+    const paidAt = row.paidAt ?? now
+    // Чек в «Мой налог». Тестовые оплаты (тестовый магазин ЮKassa) в налоговую НЕ отправляем.
+    let receiptLine = ''
+    if (p.test) receiptLine = '\nЧек: не нужен (тестовая оплата)'
+    else if (!nalogConfigured()) receiptLine = `\n⚠️ Чек не пробит (не подключён «Мой налог»). Пробей вручную: ${proReceiptName(row.days)}, ${row.amountRub} ₽, физлицо, ${paidAt.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}`
+    else {
+        const r = await issueReceipt({ name: proReceiptName(row.days), amountRub: row.amountRub, operationTime: paidAt })
+        if (r.ok) {
+            await db.update(proPayments).set({ receiptUuid: r.uuid, receiptUrl: r.url, receiptError: null }).where(eq(proPayments.id, row.id))
+            receiptLine = `\n🧾 Чек пробит: ${r.url}`
+        } else {
+            await db.update(proPayments).set({ receiptError: r.error.slice(0, 500) }).where(eq(proPayments.id, row.id))
+            receiptLine = `\n⚠️ Чек НЕ пробит (${r.error.slice(0, 120)}). Пробей вручную: ${proReceiptName(row.days)}, ${row.amountRub} ₽, физлицо, ${paidAt.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}`
+        }
+    }
     await sendMessageToTelegram(
-        `💰 ${p.test ? '[ТЕСТ] ' : ''}Оплата PRO: ${row.amountRub} ₽\n${name}\nPRO до ${proUntil.toLocaleDateString('ru-RU')}`,
+        `💰 ${p.test ? '[ТЕСТ] ' : ''}Оплата PRO: ${row.amountRub} ₽\n${name}\nPRO до ${proUntil.toLocaleDateString('ru-RU')}${receiptLine}`,
     )
     return { status: 'succeeded', applied: true, proUntil }
 }

@@ -3,9 +3,12 @@
 import { headers } from 'next/headers'
 import { and, desc, eq } from 'drizzle-orm'
 import db from '@/db/drizzle'
-import { proPayments } from '@/db/schema'
+import { proPayments, userProgress } from '@/db/schema'
 import { auth } from '@/lib/server-auth'
 import { PRO_PRICE_RUB } from '@/lib/pro'
+
+// Админ платит символическую сумму за 1 день — проверка настоящей оплаты и чека без 1100 ₽.
+const ADMIN_TEST_PRICE_RUB = 10
 import { PRO_DAYS, syncProPayment } from '@/lib/proPayments'
 import { createYkPayment, yookassaConfigured, yookassaIsTest } from '@/lib/yookassa'
 
@@ -20,15 +23,19 @@ export async function startProPayment(): Promise<{ ok: true; url: string } | { o
     const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'ggege.ru'
     const proto = h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https')
 
+    const up = await db.query.userProgress.findFirst({ where: eq(userProgress.userId, userId), columns: { isAdmin: true } })
+    const isAdmin = up?.isAdmin === 1
+    const amountRub = isAdmin ? ADMIN_TEST_PRICE_RUB : PRO_PRICE_RUB
+    const days = isAdmin ? 1 : PRO_DAYS
     const [row] = await db
         .insert(proPayments)
-        .values({ userId, amountRub: PRO_PRICE_RUB, days: PRO_DAYS, test: yookassaIsTest() })
+        .values({ userId, amountRub, days, test: yookassaIsTest() })
         .returning({ id: proPayments.id })
 
     try {
         const p = await createYkPayment({
-            amountRub: PRO_PRICE_RUB,
-            description: `Подписка ggege PRO на ${PRO_DAYS} дней`,
+            amountRub,
+            description: isAdmin ? 'Проверка оплаты ggege PRO (1 день)' : `Подписка ggege PRO на ${PRO_DAYS} дней`,
             returnUrl: `${proto}://${host}/pro?paid=${row.id}`,
             metadata: { userId, localId: String(row.id) },
             idempotenceKey: `pro-${row.id}`,
@@ -45,7 +52,7 @@ export async function startProPayment(): Promise<{ ok: true; url: string } | { o
 }
 
 // Страница /pro после возврата с оплаты: узнать, чем закончился платёж (и продлить PRO, если webhook ещё не дошёл).
-export async function checkProPayment(localId: number): Promise<{ status: string; proUntil: string | null }> {
+export async function checkProPayment(localId: number): Promise<{ status: string; proUntil: string | null; receiptUrl?: string | null }> {
     const session = await auth()
     const userId = session?.user?.id
     if (!userId) return { status: 'unknown', proUntil: null }
@@ -56,7 +63,8 @@ export async function checkProPayment(localId: number): Promise<{ status: string
     if (!row?.ykPaymentId) return { status: row?.status ?? 'unknown', proUntil: null }
     try {
         const r = await syncProPayment(row.ykPaymentId)
-        return { status: r.status, proUntil: r.proUntil ? r.proUntil.toISOString() : null }
+        const fresh = await db.query.proPayments.findFirst({ where: eq(proPayments.id, row.id) })
+        return { status: r.status, proUntil: r.proUntil ? r.proUntil.toISOString() : null, receiptUrl: fresh?.receiptUrl ?? null }
     } catch (e) {
         console.error('checkProPayment', e)
         return { status: row.status, proUntil: null }

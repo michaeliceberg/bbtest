@@ -1381,6 +1381,19 @@ export const proPayments = pgTable('pro_payments', {
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	paidAt: timestamp('paid_at', { withTimezone: true }),
 	appliedAt: timestamp('applied_at', { withTimezone: true }),
+	// Чек в «Мой налог» (lib/moyNalog.ts): uuid и ссылка; receipt_error — почему не пробился (тогда пробить вручную).
+	receiptUuid: text('receipt_uuid'),
+	receiptUrl: text('receipt_url'),
+	receiptError: text('receipt_error'),
+});
+
+// Вход в «Мой налог» для автоматических чеков (одна строка id = 1). Создано прямым SQL.
+export const nalogAuth = pgTable('nalog_auth', {
+	id: integer('id').primaryKey(),
+	inn: text('inn'),
+	deviceId: text('device_id'),
+	refreshToken: text('refresh_token'),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 // События воронки по посетителю (cookie ggVid): 'visit' — первый заход или переход по utm-метке,
