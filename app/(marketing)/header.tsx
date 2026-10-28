@@ -5,7 +5,7 @@
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
 import { GgegeTagline } from '@/components/ggege-tagline'
-import Image from 'next/image';
+import { AnimatedLogo } from '@/components/animated-logo';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { User } from 'lucide-react';
@@ -42,13 +42,7 @@ export const Header = ({ dbUserName }: Props) => {
       >
         <div className='lg:max-w-screen-lg mx-auto px-4 h-20 flex items-center justify-between'>
           <Link href='/' className='group flex items-center gap-x-3 transition-transform hover:scale-105'>
-            <Image
-              src='/ggege-logo-v4.webp'
-              height={100}
-              width={160}
-              alt='ggege'
-              className='h-14 w-auto transition-all group-hover:scale-105'
-            />
+            <AnimatedLogo className='h-14 w-auto transition-all group-hover:scale-105' />
             <GgegeTagline className='hidden lg:inline text-base' />
           </Link>
 

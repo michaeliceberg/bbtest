@@ -9,11 +9,11 @@ import { TransitionLink } from '@/utils/TransitionLink'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 import { cn } from '@/lib/utils'
-import Image from 'next/image'
 import { switchCourse } from '@/actions/switch-course'
 import { useSession } from 'next-auth/react'
 import { UnitCardLottie } from '@/components/unit-card-lottie'
 import { PRO_ENABLED } from '@/lib/pro'
+import { AnimatedLogo } from '@/components/animated-logo'
 import { useCourseSwitchStore } from '@/store/course-switch-store'
 import { COZY, COZY_WOOD_TILE, type UiTheme } from '@/lib/cozyTheme'
 import { useUiThemeLive } from '@/lib/uiTheme'
@@ -188,7 +188,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
     return (
       <div className={cn('flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-[#151F23]', className)} style={rootStyle}>
         <div className='pt-8 pb-7 flex items-center justify-center'>
-          <Image src="/ggege-logo-v4.webp" height={400} width={640} alt="ggege" priority className="h-auto w-[140px] lg:w-[210px]" />
+          <AnimatedLogo className="w-[140px] lg:w-[210px]" />
         </div>
         <div className='flex flex-col gap-y-2 flex-1 justify-center'>
           {navItems.map((item) => {
@@ -221,7 +221,7 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
     <div className={cn('flex h-full lg:w-[280px] lg:fixed left-0 top-0 px-4 border-r-2 flex-col bg-[#151F23]', className)} style={rootStyle}>
       <Link href='/trainer'>
         <div className='pt-8 pb-4 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity'>
-          <Image src="/ggege-logo-v4.webp" height={400} width={640} alt="ggege" priority className="h-auto w-[140px] lg:w-[210px]" />
+          <AnimatedLogo className="w-[140px] lg:w-[210px]" />
         </div>
       </Link>
 
