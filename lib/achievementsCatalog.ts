@@ -4,7 +4,7 @@
 // через поле iconSrc), весёлое название и подпись. Без серверного кода — используется и на сервере
 // (выдача), и в браузере (тост, страница /achievements).
 
-export type AchievementGroup = 'start' | 'progress' | 'accuracy' | 'habit' | 'chests' | 'friends' | 'builds' | 'feedback' | 'medals';
+export type AchievementGroup = 'start' | 'progress' | 'accuracy' | 'habit' | 'chests' | 'friends' | 'builds' | 'feedback' | 'medals' | 'storm';
 
 export type AchievementDef = {
 	key: string;
@@ -25,6 +25,7 @@ export const ACHIEVEMENT_GROUPS: { id: AchievementGroup; title: string; color: s
 	{ id: 'builds', title: 'ИИ-помощник', color: '#5CC99F' },
 	{ id: 'feedback', title: 'Помогаешь делать уроки', color: '#F09B38' },
 	{ id: 'medals', title: 'Медали юнитов', color: '#F0A818' },
+	{ id: 'storm', title: 'Штурм', color: '#FF6A1F' },
 ];
 
 const RAW_ACHIEVEMENTS: AchievementDef[] = [
@@ -102,6 +103,11 @@ const RAW_ACHIEVEMENTS: AchievementDef[] = [
 	{ key: 'medal_triple', group: 'medals', emoji: '🏅', iconSrc: '/medals/medal-gold.webp', title: 'Олимпийский набор', desc: 'Бронза, серебро и золото одновременно' },
 	{ key: 'medal_bronze_5', group: 'medals', emoji: '🥉', iconSrc: '/medals/medal-bronze.svg', title: 'Мастер начинать', desc: '5 юнитов в бронзе одновременно. Начать — уже полдела, правда?' },
 	{ key: 'medal_gold_3', group: 'medals', emoji: '🥇', iconSrc: '/medals/medal-gold.webp', title: 'Сам себе ювелир', desc: '3 золотые медали' },
+	// «Штурм» — горячие 10 минут (lib/storm.ts), данные — таблица storm_runs.
+	{ key: 'storm_start', group: 'storm', emoji: '🚀', title: 'В атаку!', desc: 'Попал в первый штурм' },
+	{ key: 'storm_first', group: 'storm', emoji: '🔥', title: 'Штурмовик', desc: 'Взял штурм: 3 урока за 10 минут' },
+	{ key: 'storm_fast', group: 'storm', emoji: '⚡', title: 'Молния', desc: 'Взял штурм за 5 минут — монстр даже не понял, что произошло' },
+	{ key: 'storm_5', group: 'storm', emoji: '👊', title: 'Ветеран штурмов', desc: 'Взял 5 штурмов' },
 	{ key: 'medal_gold_5', group: 'medals', emoji: '🥇', iconSrc: '/medals/medal-gold.webp', title: 'Нужен сейф', desc: '5 золотых медалей — пора прятать от грабителей' },
 ];
 
@@ -171,6 +177,10 @@ export const REWARDS: Record<string, AchievementReward> = {
 	medal_bronze_5: { kind: 'coins', amount: 30 },
 	medal_gold_3: { kind: 'gems', amount: 10 },
 	medal_gold_5: { kind: 'pizza', amount: 1 },
+	storm_start: { kind: 'coins', amount: 20 },
+	storm_first: { kind: 'gems', amount: 3 },
+	storm_fast: { kind: 'gems', amount: 5 },
+	storm_5: { kind: 'gems', amount: 10 },
 };
 
 export const rewardText = (r: AchievementReward) =>

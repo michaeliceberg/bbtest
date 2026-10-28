@@ -205,6 +205,18 @@ export async function computeStateKeys(userId: string): Promise<string[]> {
 	if (gold >= 3) keys.push('medal_gold_3');
 	if (gold >= 5) keys.push('medal_gold_5');
 
+	// «Штурм» (lib/storm.ts, storm_runs)
+	const storms = await rows(sql`
+		SELECT count(*) AS runs, count(won_at) AS won,
+			bool_or(won_at IS NOT NULL AND won_at <= started_at + interval '5 minutes') AS fast
+		FROM storm_runs WHERE user_id = ${userId}`);
+	if (storms.length) {
+		if (num(storms[0].runs) >= 1) keys.push('storm_start');
+		if (num(storms[0].won) >= 1) keys.push('storm_first');
+		if (storms[0].fast) keys.push('storm_fast');
+		if (num(storms[0].won) >= 5) keys.push('storm_5');
+	}
+
 	return keys;
 }
 

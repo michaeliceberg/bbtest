@@ -47,6 +47,8 @@ export async function advanceStorm(userId: string): Promise<StormState | null> {
     if (row.stormUntil && now <= row.stormUntil.getTime() + STORM_GRACE_MS) {
         const lessons = row.stormLessons + 1
         const mythicNow = !row.stormRewarded && lessons >= STORM_GOAL
+        await db.execute(sql`UPDATE storm_runs SET lessons = ${lessons}${mythicNow ? sql`, won_at = now()` : sql``}
+            WHERE id = (SELECT id FROM storm_runs WHERE user_id = ${userId} ORDER BY id DESC LIMIT 1)`)
         await db.update(userProgress).set({
             stormLessons: lessons,
             stormRewarded: row.stormRewarded || mythicNow,
@@ -62,6 +64,7 @@ export async function advanceStorm(userId: string): Promise<StormState | null> {
         const until = new Date(now + STORM_MINUTES * 60_000)
         await db.update(userProgress).set({ stormUntil: until, stormLessons: 0, stormRewarded: false, stormDay: mskDay() })
             .where(eq(userProgress.userId, userId))
+        await db.execute(sql`INSERT INTO storm_runs (user_id, until) VALUES (${userId}, ${until.toISOString()}::timestamptz)`)
         return { active: true, until: until.toISOString(), lessons: 0, goal: STORM_GOAL, rewarded: false, started: true, counted: false, mythicNow: false, coins: 0 }
     }
     return null
