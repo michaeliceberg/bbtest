@@ -1,8 +1,8 @@
 'use client'
 
 import { useAchievementClaimStore } from '@/store/use-achievement-claim-store'
-import { Dumbbell, Flame, Swords, ChevronDown, ChevronUp,  Library, Lock, BadgeCheck, Shield, BarChart3, Trophy, Route, Crown } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { Dumbbell, Swords, Library, Lock, BadgeCheck, Shield, BarChart3, Trophy, Route, Crown } from 'lucide-react'
+import { CoursePickerButton, CoursePickerSheet } from '@/components/course-picker-sheet'
 import { Button } from './ui/button'
 import Link from 'next/link'
 import { TransitionLink } from '@/utils/TransitionLink'
@@ -132,29 +132,6 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
     })
   }
 
-  // Группировка курсов в выпадающем списке по первому слову названия
-  // ("ЕГЭ Физика"/"ЕГЭ Математика Профиль" → группа "ЕГЭ", "ЛНИП Физика 7"
-  // → "ЛНИП") — не завязано на конкретный список групп, поэтому будущий
-  // "ОГЭ Физика" и т.п. сам попадёт в свою группу без правки кода.
-  // GROUP_ORDER задаёт порядок уже известных групп сверху вниз, остальные
-  // (если появятся) идут следом по алфавиту.
-  const groupedCourseEntries = (() => {
-    const map = new Map<string, SidebarCourse[]>()
-    for (const course of courses) {
-      const groupName = course.title.split(' ')[0]
-      if (!map.has(groupName)) map.set(groupName, [])
-      map.get(groupName)!.push(course)
-    }
-    const GROUP_ORDER = ['ЕГЭ', 'ОГЭ', 'ЛНИП']
-    return Array.from(map.entries()).sort(([a], [b]) => {
-      const ia = GROUP_ORDER.indexOf(a)
-      const ib = GROUP_ORDER.indexOf(b)
-      if (ia === -1 && ib === -1) return a.localeCompare(b)
-      if (ia === -1) return 1
-      if (ib === -1) return -1
-      return ia - ib
-    })
-  })()
 
   // Иконка пользователя внизу сайдбара — клик сразу ведёт в /account
   // (выход из аккаунта — красной кнопкой внизу той страницы).
@@ -232,63 +209,8 @@ export const Sidebar = ({ courses = [], activeCourseId = null, hasTrainerQuest =
 
       {courses.length > 0 && (
         <div className="px-2 mb-4">
-          <div className="px-1 mb-1.5 text-[10px] font-bold tracking-widest text-[#5A6A72] uppercase">Курс</div>
-          <button
-            onClick={() => setIsCoursesOpen(!isCoursesOpen)}
-            className={cozy ? 'w-full flex items-center justify-between p-3 rounded-xl border-2' : cn(
-              'w-full flex items-center justify-between p-3 rounded-xl transition-all duration-200 border',
-              isCoursesOpen
-                ? 'border-green-400/70 shadow-[0_0_16px_2px_rgba(74,222,128,0.4)] bg-[#1A2B22]'
-                : 'border-green-400/25 shadow-[0_0_10px_1px_rgba(74,222,128,0.15)] hover:border-green-400/50 hover:shadow-[0_0_14px_2px_rgba(74,222,128,0.3)] bg-[#1A2B22]/50'
-            )}
-            style={cozy ? { background: COZY.card, borderColor: COZY.cardBorder, boxShadow: `0 4px 0 ${COZY.cardEdge}` } : undefined}
-          >
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <span className="font-medium text-green-300 truncate" style={cozy ? { color: COZY.title } : undefined}>{activeCourse?.title || 'Выберите курс'}</span>
-              {activeCourse?.streak && (
-                <span className="flex items-center gap-1 text-xs text-orange-300 flex-shrink-0">
-                  <Flame className="h-3 w-3 text-orange-400" />
-                  {activeCourse.streak}
-                </span>
-              )}
-            </div>
-            {isCoursesOpen ? <ChevronUp className="h-4 w-4 text-green-400 flex-shrink-0" style={cozy ? { color: '#E2C7A5' } : undefined} /> : <ChevronDown className="h-4 w-4 text-green-400 flex-shrink-0" style={cozy ? { color: '#E2C7A5' } : undefined} />}
-          </button>
-
-          <AnimatePresence initial={false}>
-            {isCoursesOpen && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.25, ease: 'easeInOut' }}
-                className="overflow-hidden"
-              >
-                <div className="mt-2 space-y-1 max-h-[200px] overflow-y-auto">
-                  {groupedCourseEntries.map(([groupName, groupCourses], i) => (
-                    <div key={groupName}>
-                      <div className={cn('px-3 pb-1 text-[10px] font-bold tracking-widest text-[#5A6A72]/70 uppercase', i === 0 ? 'pt-0' : 'pt-2')}>
-                        {groupName}
-                      </div>
-                      {groupCourses.map((course) => (
-                        <button key={course.id} onClick={() => handleCourseChange(course.id)}
-                          className={cn('w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm active:scale-[0.98]',
-                            displayedCourseId === course.id ? (cozy ? "bg-[#3A342D] text-[#FFF1DC]" : "bg-green-500/15 text-green-300") : (cozy ? "hover:bg-[#2D2A27] text-[#D9C4A3]" : "hover:bg-[#232F34] text-[#9AA7B0]"))}>
-                          <span className="flex-1 min-w-0 text-left truncate">{course.title}</span>
-                          {course.streak && (
-                            <span className="flex items-center gap-1 text-xs text-orange-300 flex-shrink-0">
-                              <Flame className="h-3 w-3 text-orange-400" />
-                              {course.streak}
-                            </span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <CoursePickerButton course={activeCourse} onClick={() => setIsCoursesOpen(true)} />
+          <CoursePickerSheet open={isCoursesOpen} onOpenChange={setIsCoursesOpen} courses={courses} activeId={displayedCourseId} onPick={handleCourseChange} />
         </div>
       )}
 
