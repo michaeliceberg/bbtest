@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 // Выбор курса в сайдбаре (выбран пользователем 2026-10-29 на /test-course-picker, вариант 2):
-// кнопка в стиле пунктов меню юнитов (картинка курса, «Курс», название, стрелка) открывает шторку слева,
+// кнопка в стиле пунктов меню юнитов («Курс», название, стрелка; без картинки — иначе название не влезало) открывает шторку слева,
 // в ней курсы — квадратные баннеры по 2 в ряд, сгруппированы по первому слову названия (ЕГЭ / ОГЭ / ЛНИП).
 // Запасной вариант на будущее — вариант 4 там же (кнопка-баннер + окно по центру).
 
@@ -23,8 +23,7 @@ const groupsOf = (courses: PickerSheetCourse[]) => {
 }
 
 export const CoursePickerButton = ({ course, onClick }: { course?: PickerSheetCourse | null; onClick: () => void }) => (
-    <button type="button" onClick={onClick} className={`w-full flex items-center gap-3 rounded-2xl p-2.5 text-left ${NAV_ITEM_PRESS}`} style={navItemStyle(false)}>
-        {course?.imageSrc && <img src={course.imageSrc} alt="" className="h-11 w-11 flex-shrink-0 rounded-xl object-cover" />}
+    <button type="button" onClick={onClick} className={`w-full flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-left ${NAV_ITEM_PRESS}`} style={navItemStyle(false)}>
         <span className="flex min-w-0 flex-1 flex-col">
             <span className="text-[10px] font-black uppercase tracking-[0.12em] text-[#7E8F99]">Курс</span>
             <span className="truncate text-[15px] font-extrabold text-white">{course?.title ?? 'Выбери курс'}</span>
