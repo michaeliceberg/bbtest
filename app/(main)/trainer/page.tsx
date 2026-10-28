@@ -375,7 +375,7 @@ const TLearnPage = async () => {
                         theme={uiTheme}
                         simple={simple}
                         shareInfo={{ code: shareInvite?.code ?? null, nickname: shareInvite?.nickname ?? null, subject: subjectByTCourse(activeTCourse?.id) }}
-                        coursePicker={{ courses: userCourses.map((c) => ({ id: c.id, title: c.title })), activeCourseId: resolvedActiveCourseId }}
+                        coursePicker={{ courses: userCourses.map((c) => ({ id: c.id, title: c.title, imageSrc: c.imageSrc })), activeCourseId: resolvedActiveCourseId }}
                         petProps={simple ? { streak: currentStreakForRisk, hasExtendedToday: hasExtendedStreakToday, questDone: !!dailyQuest?.isCompleted, dayKey: new Date().getDate() } : undefined}
                     />
                 </div>
