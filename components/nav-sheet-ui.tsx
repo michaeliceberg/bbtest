@@ -43,7 +43,7 @@ const WHITE_RING = [0, 45, 90, 135, 180, 225, 270, 315]
     .map((a) => `${(Math.cos(a * Math.PI / 180) * 2).toFixed(2)}px ${(Math.sin(a * Math.PI / 180) * 2).toFixed(2)}px 0 #fff`)
     .join(', ') + ', 0 3px 3px rgba(0,0,0,0.35)'
 
-const MEDAL_SRC = { bronze: '/medals/medal-bronze.svg', silver: '/medals/medal-silver.webp', gold: '/medals/medal-gold.webp' }
+const MEDAL_SRC = { bronze: '/medals/medal-bronze.webp', silver: '/medals/medal-silver.webp', gold: '/medals/medal-gold.webp' }
 
 export const NavMedal = ({ percent, size = 44, onColor = false, label = false }: { percent: number; size?: number; onColor?: boolean; label?: boolean }) => {
     const m = medalFor(percent)

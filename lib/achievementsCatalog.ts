@@ -97,11 +97,11 @@ const RAW_ACHIEVEMENTS: AchievementDef[] = [
 
 	// Медали юнитов тренажёра (бронза — начал, серебро — половина уроков, золото — все; components/nav-sheet-ui.tsx).
 	// Иконки — сами медали в цвете (public/medals/*, AchievementIcon рисует их картинкой, а не маской).
-	{ key: 'medal_bronze_first', group: 'medals', emoji: '🥉', iconSrc: '/medals/medal-bronze.svg', title: 'Бронзовый век', desc: 'Получил первую бронзовую медаль юнита' },
+	{ key: 'medal_bronze_first', group: 'medals', emoji: '🥉', iconSrc: '/medals/medal-bronze.webp', title: 'Бронзовый век', desc: 'Получил первую бронзовую медаль юнита' },
 	{ key: 'medal_silver_first', group: 'medals', emoji: '🥈', iconSrc: '/medals/medal-silver.webp', title: 'Серебряная пуля', desc: 'Дотянул юнит до серебра — половина уроков позади' },
 	{ key: 'medal_gold_first', group: 'medals', emoji: '🥇', iconSrc: '/medals/medal-gold.webp', title: 'Золотая лихорадка', desc: 'Получил первое золото — прошёл все уроки юнита' },
 	{ key: 'medal_triple', group: 'medals', emoji: '🏅', iconSrc: '/medals/medal-gold.webp', title: 'Олимпийский набор', desc: 'Бронза, серебро и золото одновременно' },
-	{ key: 'medal_bronze_5', group: 'medals', emoji: '🥉', iconSrc: '/medals/medal-bronze.svg', title: 'Мастер начинать', desc: '5 юнитов в бронзе одновременно. Начать — уже полдела, правда?' },
+	{ key: 'medal_bronze_5', group: 'medals', emoji: '🥉', iconSrc: '/medals/medal-bronze.webp', title: 'Мастер начинать', desc: '5 юнитов в бронзе одновременно. Начать — уже полдела, правда?' },
 	{ key: 'medal_gold_3', group: 'medals', emoji: '🥇', iconSrc: '/medals/medal-gold.webp', title: 'Сам себе ювелир', desc: '3 золотые медали' },
 	// «Штурм» — горячие 10 минут (lib/storm.ts), данные — таблица storm_runs.
 	{ key: 'storm_start', group: 'storm', emoji: '🚀', title: 'В атаку!', desc: 'Попал в первый штурм' },
