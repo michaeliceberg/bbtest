@@ -1009,14 +1009,27 @@ body {
   10%, 100% { opacity: 0; transform: scale(0.85); }
 }
 @keyframes logo-monster-hit {
-  0%, 6.8% { transform: rotate(0deg) translateX(0); }
-  7.4% { transform: rotate(5deg) translateX(1.2%); }
-  8.2% { transform: rotate(-3deg) translateX(0.3%); }
-  9% { transform: rotate(6deg) translateX(1.6%); }
-  10% { transform: rotate(-3.5deg) translateX(0.4%); }
-  11% { transform: rotate(2deg) translateX(0.2%); }
-  12% { transform: rotate(-1deg) translateX(0); }
-  13%, 100% { transform: rotate(0deg) translateX(0); }
+  0%, 7.6% { transform: rotate(0deg) translateX(0); }
+  8.2% { transform: rotate(5deg) translateX(1.2%); }
+  9% { transform: rotate(-3deg) translateX(0.3%); }
+  9.8% { transform: rotate(6deg) translateX(1.6%); }
+  10.8% { transform: rotate(-3.5deg) translateX(0.4%); }
+  11.8% { transform: rotate(2deg) translateX(0.2%); }
+  12.8% { transform: rotate(-1deg) translateX(0); }
+  13.8%, 100% { transform: rotate(0deg) translateX(0); }
+}
+/* Отдача: гуся отбрасывает назад в момент выстрела (поворот вокруг лап), монстр отклоняется уже после. */
+.logo-anim-goose {
+  transform-origin: 16% 66%;
+  animation: logo-goose-recoil 16s ease-out infinite;
+}
+@keyframes logo-goose-recoil {
+  0%, 6.4% { transform: rotate(0deg); }
+  6.8% { transform: rotate(-4deg); }
+  7.6% { transform: rotate(-3deg); }
+  8.6% { transform: rotate(1deg); }
+  9.4% { transform: rotate(-0.4deg); }
+  10.2%, 100% { transform: rotate(0deg); }
 }
 /* Нажатие на логотип — сразу выстрел (1,4 с), наведение — золотое свечение */
 .logo-anim { transition: filter 0.25s ease; -webkit-tap-highlight-color: transparent; }
@@ -1033,18 +1046,28 @@ body {
   55%, 100% { opacity: 0; transform: scale(0.85); }
 }
 @keyframes logo-monster-once {
-  0%, 11% { transform: rotate(0deg) translateX(0); }
-  19% { transform: rotate(5deg) translateX(1.2%); }
-  30% { transform: rotate(-3deg) translateX(0.3%); }
-  41% { transform: rotate(6deg) translateX(1.6%); }
-  55% { transform: rotate(-3.5deg) translateX(0.4%); }
-  70% { transform: rotate(2deg) translateX(0.2%); }
-  84% { transform: rotate(-1deg) translateX(0); }
+  0%, 17% { transform: rotate(0deg) translateX(0); }
+  25% { transform: rotate(5deg) translateX(1.2%); }
+  35% { transform: rotate(-3deg) translateX(0.3%); }
+  45% { transform: rotate(6deg) translateX(1.6%); }
+  58% { transform: rotate(-3.5deg) translateX(0.4%); }
+  72% { transform: rotate(2deg) translateX(0.2%); }
+  86% { transform: rotate(-1deg) translateX(0); }
   100% { transform: rotate(0deg) translateX(0); }
+}
+.logo-anim-goose-once { transform-origin: 16% 66%; animation: logo-goose-once 1.4s ease-out 1 forwards; }
+@keyframes logo-goose-once {
+  0%, 6% { transform: rotate(0deg); }
+  11% { transform: rotate(-4deg); }
+  18% { transform: rotate(-3deg); }
+  30% { transform: rotate(1deg); }
+  40% { transform: rotate(-0.4deg); }
+  50%, 100% { transform: rotate(0deg); }
 }
 @media (prefers-reduced-motion: reduce) {
   .logo-anim-flash { animation: none; opacity: 1; }
   .logo-anim-monster { animation: none; }
+  .logo-anim-goose { animation: none; }
 }
 
 /* Блик по медали (тестовые варианты /test-medals): полоса пробегает раз в несколько секунд, только transform. */

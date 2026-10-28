@@ -29,9 +29,6 @@ export const CoursePickerButton = ({ course, onClick }: { course?: PickerSheetCo
             <span className="text-[10px] font-black uppercase tracking-[0.12em] text-[#7E8F99]">Курс</span>
             <span className="truncate text-[15px] font-extrabold text-white">{course?.title ?? 'Выбери курс'}</span>
         </span>
-        {!!course?.streak && (
-            <span className="flex flex-shrink-0 items-center gap-0.5 text-xs font-bold text-orange-300"><Flame className="h-3.5 w-3.5 text-orange-400" />{course.streak}</span>
-        )}
         <ChevronRight className="h-5 w-5 flex-shrink-0 text-[#AEBCC5]" />
     </button>
 )
