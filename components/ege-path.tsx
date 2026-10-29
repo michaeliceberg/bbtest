@@ -15,8 +15,9 @@ import { EgeSkyMove } from '@/components/ege-sky-move'
 import type { EgeMap } from '@/lib/egeMap'
 import { testToPrimary } from '@/lib/egeScale'
 import { EgeTower } from '@/components/ege-tower'
+import { VuzPlaque } from '@/components/vuz-plaque'
 
-export const EgePath = ({ map, target: initialTarget, activeMoveId, unclaimedCase, diagCard, vuzId = null }: { map: EgeMap; target: number | null; vuzId?: string | null; activeMoveId: number | null; unclaimedCase?: { id: number; taskNum: number } | null; diagCard?: React.ReactNode }) => {
+export const EgePath = ({ map, target: initialTarget, activeMoveId, unclaimedCase, diagCard, vuzId = null, hangar }: { map: EgeMap; target: number | null; vuzId?: string | null; activeMoveId: number | null; unclaimedCase?: { id: number; taskNum: number } | null; diagCard?: React.ReactNode; hangar?: React.ReactNode }) => {
     const router = useRouter()
     const [moveError, setMoveError] = useState<string | null>(null)
     const [movePending, startMove] = useTransition()
@@ -64,7 +65,9 @@ export const EgePath = ({ map, target: initialTarget, activeMoveId, unclaimedCas
             )}
 
           </div>
-          <EgeTower map={map} vuzId={vuzId} />
+          {hangar
+            ? <div className="min-w-0"><div className="mb-3 mt-6 lg:mt-0"><VuzPlaque vuzId={vuzId} forecast={map.test} /></div>{hangar}</div>
+            : <EgeTower map={map} vuzId={vuzId} />}
         </div>
     )
 }

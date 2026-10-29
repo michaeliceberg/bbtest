@@ -15,6 +15,8 @@ import { getWeeklySummary, snapshotForecast } from '@/lib/weeklyReport'
 import { WeeklyGrowthCard } from '@/components/weekly-growth-card'
 import { getOrCreateInvite } from '@/lib/invite'
 import { getInviteLink } from '@/lib/referral'
+import { getHangarItems } from '@/lib/hangar'
+import { HangarScene } from '@/components/hangar-scene'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,11 +38,11 @@ const PathPage = async () => {
     if (!lastDiag) return <DiagnosticIntro variant="screen" questionsCount={diagTasks} />
     // Снимок прогноза недели (для «Моя неделя» и воскресного отчёта родителю), потом сводка.
     if (map.primary > 0) await snapshotForecast(session.user.id, map.primary, map.test).catch(() => {})
-    const [weekly, invite] = await Promise.all([getWeeklySummary(session.user.id), getOrCreateInvite(session.user.id)])
+    const [weekly, invite, hangarItems] = await Promise.all([getWeeklySummary(session.user.id), getOrCreateInvite(session.user.id), getHangarItems(session.user.id, map)])
     const weeklyCard = <WeeklyGrowthCard w={weekly} inviteUrl={getInviteLink(invite?.code, undefined, 'math')} />
     const diagCardOnly = doneDiag ? null : <DiagnosticIntro variant="card" questionsCount={diagTasks} resume={lastDiag.status === 'active'} />
     const diagCard = <>{diagCardOnly}{weeklyCard}</>
-    return <EgePath key={`${userProgress.targetVuz}-${userProgress.egeTarget}`} vuzId={userProgress.targetVuz ?? null} map={map} target={userProgress.egeTarget ?? null} activeMoveId={active?.id ?? null} unclaimedCase={unclaimed} diagCard={diagCard} />
+    return <EgePath key={`${userProgress.targetVuz}-${userProgress.egeTarget}`} vuzId={userProgress.targetVuz ?? null} map={map} target={userProgress.egeTarget ?? null} activeMoveId={active?.id ?? null} unclaimedCase={unclaimed} diagCard={diagCard} hangar={<HangarScene items={hangarItems} />} />
 }
 
 export default PathPage
