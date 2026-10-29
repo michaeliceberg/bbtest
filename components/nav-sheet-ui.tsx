@@ -84,3 +84,11 @@ export const NavMedal = ({ percent, size = 44, onColor = false, label = false }:
         </span>
     )
 }
+
+// Маленькая медаль без блика и свечения (слоты медалей над плитками задачника, кнопки тренажёров).
+export const TinyMedal = ({ percent, size = 12, title }: { percent: number; size?: number; title?: string }) => {
+    const m = medalFor(percent)
+    if (m === 'none') return <span title={title} className="block flex-shrink-0 rounded-full border border-dashed border-[#4A5860]" style={{ width: size, height: size }} />
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={MEDAL_SRC[m]} alt={MEDAL_TITLE[m]} title={title} draggable={false} className="block flex-shrink-0 object-contain" style={{ width: size, height: size }} />
+}

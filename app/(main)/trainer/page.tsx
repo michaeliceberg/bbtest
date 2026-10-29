@@ -22,6 +22,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { Header } from './header';
 import { TabTCourses } from '@/components/tab-t-courses';
+import { getEgeTasksByTUnit } from '@/lib/egeTrainerLinks';
 import { getOrCreateInvite } from '@/lib/invite';
 import { HwTopBanner } from '../learn/hw-top-banner';
 import { auth } from '@/lib/auth';
@@ -80,6 +81,7 @@ const TLearnPage = async () => {
         allClasses,
         allClassHW,
         allUsers,
+        egeTasksByTUnit,
     ] = await Promise.all([
         t_coursesData,
         userProgressData,
@@ -92,6 +94,7 @@ const TLearnPage = async () => {
         allClassesData,
         allClassHWData,
         allUsersData,
+        getEgeTasksByTUnit(),
     ]);
 
     if (!userProgress || !userProgress.activeCourse || !allClasses) {
@@ -377,6 +380,7 @@ const TLearnPage = async () => {
                         hasPro={hasProFor(userProgress)}
                         theme={uiTheme}
                         simple={simple}
+                        egeTasksByTUnit={egeTasksByTUnit}
                         shareInfo={{ code: shareInvite?.code ?? null, nickname: shareInvite?.nickname ?? null, subject: subjectByTCourse(activeTCourse?.id) }}
                         coursePicker={{ courses: userCourses.map((c) => ({ id: c.id, title: c.title, imageSrc: c.imageSrc })), activeCourseId: resolvedActiveCourseId }}
                         petProps={simple ? { streak: currentStreakForRisk, hasExtendedToday: hasExtendedStreakToday, questDone: !!dailyQuest?.isCompleted, dayKey: new Date().getDate() } : undefined}

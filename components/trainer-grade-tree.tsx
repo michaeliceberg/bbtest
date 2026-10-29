@@ -36,6 +36,7 @@ import { TrainerPet, pickCheer } from './trainer-pet';
 import { PathDecoration, PathProp, PathArch, DECOR_VARIANTS, PROP_KINDS, PROP_SCALE, type PropKind } from './path-decor';
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store';
 import { NAV_SHEET_CLASS, NAV_ITEM_PRESS, NavMedal } from '@/components/nav-sheet-ui';
+import { EgeTaskGrid } from '@/components/ege-task-grid';
 import { UnitSheetCoursePicker, type PickerCourse } from '@/components/unit-sheet-course-picker';
 import { useParallaxThemeStore, themeForSection } from '@/store/use-parallax-theme-store';
 
@@ -218,6 +219,8 @@ export type SkillTopic = {
     // Картинка-характеристика темы (t_units.image_src) — баннер сверху карточки.
     imageSrc?: string | null;
     isLastActive?: boolean;
+    // Номера заданий ЕГЭ, к которым готовит тема (ege_task_links kind='t_unit').
+    egeTasks?: number[];
 };
 
 interface Props {
@@ -1098,6 +1101,8 @@ const TrainerGradeTreeInner = ({ topics, isAdmin = false, theme = 'metal', onlyA
                                 return rank ? <span className="text-xs font-black flex-shrink-0 px-2 py-0.5 rounded-full ml-auto" style={{ color: rank.color, backgroundColor: hexToRgba(rank.color, 0.15) }}>{rank.title}</span> : null;
                             })()}
                         </div>)}
+
+                        {!cozy && topic.egeTasks && topic.egeTasks.length > 0 && <EgeTaskGrid tasks={topic.egeTasks} />}
 
                         {topic.stages.length > 0 && (() => {
                             // "Фронтир" темы — самый первый ещё не пройденный этап

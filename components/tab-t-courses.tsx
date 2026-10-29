@@ -118,6 +118,7 @@ type Props = {
     petProps?: { streak: number; hasExtendedToday: boolean; questDone: boolean; dayKey: number },
     coursePicker?: { courses: { id: number; title: string }[]; activeCourseId: number },
     shareInfo?: LessonShareInfo | null,
+    egeTasksByTUnit?: Record<number, number[]>,
 
     all_t_lessonProgress: {
         id: number;
@@ -149,6 +150,7 @@ export const TabTCourses = ({
     petProps,
     coursePicker,
     shareInfo = null,
+    egeTasksByTUnit = {},
 }: Props) => {
     const [showFormulas, setShowFormulas] = useState(false)
 
@@ -366,6 +368,7 @@ export const TabTCourses = ({
                             blockTitle: t_unit.blockTitle ?? null,
                             imageSrc: t_unit.imageSrc || null,
                             isLastActive: t_unit.id === lastActiveUnitId,
+                            egeTasks: egeTasksByTUnit[t_unit.id] ?? [],
                         }
                     })
 

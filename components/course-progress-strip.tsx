@@ -10,7 +10,8 @@
 // percent приходит уже посчитанным на сервере (доля решённых задач юнита, app/(main)/learn/page.tsx).
 
 import { motion } from 'framer-motion'
-import { getUnitButtonColor } from '@/src/constants/lessonButtonColors'
+import { TinyMedal } from '@/components/nav-sheet-ui'
+import { EGE_PART_COLOR } from '@/components/ege-task-grid'
 import { SECTION_LABEL, type LearnSection } from '@/components/learn-unit-nav'
 import { openLearnUnit } from '@/components/learn-unit-fold'
 import { useLearnOpenUnit } from '@/store/use-learn-open-unit'
@@ -31,7 +32,16 @@ const cellLabel = (u: StripUnit) => {
     return m ? m[1] : String(u.order)
 }
 
-export function CourseProgressStrip({ units, defaultOpenId = null }: { units: StripUnit[]; defaultOpenId?: number | null }) {
+type TrainerKey = { tUnitId: number; title: string; percent: number }
+
+// Цвет ячейки — по части ЕГЭ (синий — часть 1, фиолетовый — часть 2), а не свой у каждого раздела:
+// радуга ничего не значила. Без части (не ЕГЭ курс) — синий.
+const partColor = (section: LearnSection) => {
+    const c = section === 'part2' ? EGE_PART_COLOR.part2 : EGE_PART_COLOR.part1
+    return { button: c, bottom: section === 'part2' ? '#9C6AC6' : '#428BC0' }
+}
+
+export function CourseProgressStrip({ units, defaultOpenId = null, trainerKeys = {} }: { units: StripUnit[]; defaultOpenId?: number | null; trainerKeys?: Record<number, TrainerKey[]> }) {
     const selected = useLearnOpenUnit((s) => s.openId) ?? defaultOpenId
     if (units.length === 0) return null
 
@@ -42,6 +52,7 @@ export function CourseProgressStrip({ units, defaultOpenId = null }: { units: St
         else groups.push({ section: u.section, units: [u] })
     }
     const sel = units.find((u) => u.id === selected) ?? null
+    const hasKeys = Object.keys(trainerKeys).length > 0
 
     return (
         <div className="mb-5 rounded-2xl border-2 border-[#2A363C] bg-[#161F23] px-3 pb-2.5 pt-3">
@@ -60,7 +71,8 @@ export function CourseProgressStrip({ units, defaultOpenId = null }: { units: St
                             <div>
                                 <div className="flex gap-[3px] rounded-lg bg-[#0F171B] p-[3px]" style={{ boxShadow: 'inset 0 2px 0 rgba(0,0,0,0.35)' }}>
                                     {g.units.map((u) => {
-                                        const c = getUnitButtonColor(u.unitIndex)
+                                        const c = partColor(u.section)
+                                        const keys = trainerKeys[Number(cellLabel(u))] ?? []
                                         const fill = u.isCompleted ? 100 : u.percent > 0 ? Math.max(u.percent, 12) : 0
                                         const isSel = u.id === selected
                                         return (
@@ -72,6 +84,12 @@ export function CourseProgressStrip({ units, defaultOpenId = null }: { units: St
                                                 title={`${u.title} — ${Math.round(u.percent)}%`}
                                                 className="relative min-w-0 flex-1"
                                             >
+                                                {/* слоты медалей тренажёров-«каркаса» этого задания: пустые — ещё не пройдено */}
+                                                {hasKeys && (
+                                                    <div className="mb-[3px] flex h-[23px] flex-wrap content-end items-end justify-center gap-px">
+                                                        {keys.slice(0, 4).map((k) => <TinyMedal key={k.tUnitId} percent={k.percent} size={10} title={`Тренажёр «${k.title}»`} />)}
+                                                    </div>
+                                                )}
                                                 <div
                                                     className="relative h-4 overflow-hidden rounded-[4px]"
                                                     style={{
@@ -110,6 +128,9 @@ export function CourseProgressStrip({ units, defaultOpenId = null }: { units: St
             <p className="mt-1.5 truncate text-[11px] font-bold text-[#5C6B73]">
                 {sel ? <>Открыт: <span className="text-[#E2EAF0]">{sel.title}</span> · {Math.round(sel.percent)}%</> : 'Нажми на ячейку — откроешь раздел'}
             </p>
+            {hasKeys && <p className="mt-0.5 text-[10px] font-bold text-[#4E5D65]">
+                Медали над ячейкой — тренажёры-каркас этого задания
+            </p>}
         </div>
     )
 }

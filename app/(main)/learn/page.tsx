@@ -43,6 +43,11 @@ import { Suspense } from 'react';
 import { isLearnUnlocked } from '@/lib/learn-unlock';
 import { CourseProgressStrip } from '@/components/course-progress-strip';
 import { LearnUnitFold } from '@/components/learn-unit-fold';
+import { TrainerKeyChips } from '@/components/trainer-key-chips';
+import { getTrainerKeysByTask } from '@/lib/egeTrainerLinks';
+
+// Номер задания ЕГЭ из названия раздела («15. Стереометрия…» → 15).
+const unitNum = (title: string) => { const m = title.match(/^(\d+)\./); return m ? Number(m[1]) : null }
 
 const bgList = [
   '/bg-svg/anchors-away.svg',
@@ -72,7 +77,7 @@ interface LessonStat {
   percentageDoneLesson: number;
 }
 
-const LearnPage = async () => {
+const LearnPage = async ({ searchParams }: { searchParams?: { task?: string } }) => {
   const session = await auth();
   
   if (!session?.user) {
@@ -362,9 +367,18 @@ const LearnPage = async () => {
     ? (focusUnit.lessons?.find((l: { id: number }) => l.id === lastTouchedLessonId)?.id ?? focusUnit.lessons?.[0]?.id ?? null)
     : null;
 
+  // /learn?task=N (из плитки заданий на карте тренажёра) — раскрыть раздел этого задания ЕГЭ.
+  const taskNum = Number(searchParams?.task) || null
+  const taskUnit = taskNum && !focusUnit
+    ? unitsWithFormattedLessons.find((u) => unitNum(u.title) === taskNum && unitUnlocked(u))
+    : undefined
+  // Темы тренажёра — «каркас» для каждого задания ЕГЭ (кнопки в разделе и медали над плитками).
+  const trainerKeys = activeCourse.title.includes('ЕГЭ Математика') ? await getTrainerKeysByTask(userId) : {}
+
   // Раскрыт только один раздел: по умолчанию — где решали последним, иначе первый открытый непройденный.
   const defaultOpenUnitId: number | null =
-    focusUnit?.id
+    taskUnit?.id
+    ?? focusUnit?.id
     ?? unitsWithFormattedLessons.find((u) => u.lessons?.some((l: { id: number }) => l.id === lastTouchedLessonId))?.id
     ?? unitsWithFormattedLessons.find((u) => unitUnlocked(u) && !u.isCompleted)?.id
     ?? unitsWithFormattedLessons[0]?.id
@@ -373,7 +387,9 @@ const LearnPage = async () => {
   return (
     <LearnWrapper courseId={activeCourseId}>
       <Suspense fallback={null}>
-        {focusUnit
+        {taskUnit
+          ? <ScrollToLesson lessonId={taskUnit.lessons?.[0]?.id ?? null} always />
+          : focusUnit
           ? <ScrollToLesson lessonId={focusScrollLessonId} always />
           : <ScrollToLesson lessonId={lastTouchedLessonId} />}
       </Suspense>
@@ -446,6 +462,7 @@ const LearnPage = async () => {
 
             <CourseProgressStrip
               defaultOpenId={defaultOpenUnitId}
+              trainerKeys={trainerKeys}
               units={unitsWithFormattedLessons.map((unit, index) => {
                 const stats = unitChallengeStats.get(unit.id);
                 const percent = stats && stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
@@ -478,6 +495,7 @@ const LearnPage = async () => {
                   isCompleted={isForcedLocked(unit.id) ? false : unit.isCompleted}
                   defaultOpenId={defaultOpenUnitId}
                 >
+                {(() => { const n = unitNum(unit.title); return n && trainerKeys[n] ? <TrainerKeyChips num={n} keys={trainerKeys[n]} /> : null })()}
                 <Unit
                   id={unit.id}
                   unitIndex={index}
