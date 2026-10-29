@@ -33,6 +33,21 @@ def grade(im):
     a[..., :3] = rgb
     return Image.fromarray(a.clip(0, 255).astype('uint8'), 'RGBA')
 
+def wall_warp(im, top_slope=0.30, bottom_slope=0.17, grow=1.12):
+    # Стенд на правой стене: правая сторона ближе (выше), верх и низ идут вдоль балок стены.
+    W, Hh = im.size
+    hR = Hh * grow; hL = hR + bottom_slope * W - top_slope * W
+    yTL = top_slope * W
+    outH = int(max(yTL + hL, hR)) + 2
+    dst = [(0, yTL), (W, 0), (W, hR), (0, yTL + hL)]
+    src = [(0, 0), (W, 0), (W, Hh), (0, Hh)]
+    import numpy as _np
+    A = []; B = []
+    for (x, y), (u, v) in zip(dst, src):
+        A += [[x, y, 1, 0, 0, 0, -u * x, -u * y], [0, 0, 0, x, y, 1, -v * x, -v * y]]; B += [u, v]
+    coef = _np.linalg.solve(_np.array(A, float), _np.array(B, float))
+    return im.transform((W, outH), Image.Transform.PERSPECTIVE, tuple(coef), Image.Resampling.BICUBIC)
+
 def prep(name, squash, flip, erase=None):
     im = Image.open(f'{H}/{name}.png').convert('RGBA')
     if erase:  # стереть лишнее (угол ящика у 11-before)
@@ -40,6 +55,7 @@ def prep(name, squash, flip, erase=None):
     im = im.crop(im.getchannel('A').getbbox())
     if squash != 1: im = im.resize((im.width, max(1, round(im.height * squash))), Image.Resampling.LANCZOS)
     if flip: im = im.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+    if name.startswith('02-'): im = wall_warp(im); im = im.crop(im.getchannel('A').getbbox())
     return grade(im)
 
 bg = Image.open(f'{H}/bg-empty.jpg').convert('RGB')
