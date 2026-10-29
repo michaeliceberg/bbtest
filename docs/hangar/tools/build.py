@@ -19,7 +19,7 @@ ITEMS = {
   8:  ('08-before', '08-after',  dict(b=(232, 470, 74), a=(232, 470, 68)),   1, 1,   False),
   9:  ('09-before', '09-after',  dict(b=(330, 915, 120), a=(210, 790, 40)),  1, 1,   False),
   10: ('10-before', '10-after',  dict(b=(110, 815, 185), a=(115, 805, 118)), 1, 1,   False),
-  11: ('11-before-draft', '11-after-draft', dict(b=(215, 985, 235), a=(215, 985, 190)), .7, .75, False),
+  11: ('11-before', '11-after', dict(b=(250, 990, 240), a=(215, 975, 130)), 1, 1, False),
   12: ('12-before', '12-after',  dict(b=(720, 965, 170), a=(720, 960, 120)), 1, 1,   False),
   13: ('13-before', '13-after',  dict(b=(745, 715, 85), a=(745, 715, 85)),   1, 1,   False),
 }
@@ -47,7 +47,7 @@ bg.save(f'{OUT}/bg.webp', quality=86)
 layout = {}
 for i, (bn, an, pos, sb, sa, flip) in ITEMS.items():
     for key, name, sq, fl in (('b', bn, sb, False), ('a', an, sa, flip)):
-        im = prep(name, sq, fl, erase=[(0, 760), (330, 1024), (0, 1024)] if name == '11-before-draft' else None)
+        im = prep(name, sq, fl, erase=None)
         x, y, w = pos[key]
         h = round(im.height * w / im.width)
         im = im.resize((w * 2, h * 2), Image.Resampling.LANCZOS)  # ×2 — чётко на телефоне с ретиной
@@ -68,7 +68,7 @@ layout['rocket'] = rocket
 # Грязный фон (выровнен с чистым — проявляется поверх него ступенями) и хлам на полу (исчезает по одному).
 Image.open(f'{H}/bg-dirty.jpg').convert('RGB').save(f'{OUT}/bg-dirty.webp', quality=86)
 JUNK = {  # номер: (x, y низа, ширина) на холсте 1024
-  1: (470, 885, 75), 2: (600, 735, 70), 3: (420, 712, 62), 4: (95, 985, 150), 5: (955, 800, 120),
+  1: (470, 885, 75), 2: (600, 735, 70), 3: (420, 712, 62), 4: (70, 905, 115), 5: (955, 800, 120),
   6: (640, 870, 110), 7: (985, 965, 95), 8: (385, 772, 58), 9: (655, 805, 120), 10: (50, 730, 100),
   11: (560, 940, 62), 12: (455, 1022, 135), 13: (705, 770, 70),
 }
