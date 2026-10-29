@@ -86,9 +86,18 @@ export const NavMedal = ({ percent, size = 44, onColor = false, label = false }:
 }
 
 // Маленькая медаль без блика и свечения (слоты медалей над плитками задачника, кнопки тренажёров).
-export const TinyMedal = ({ percent, size = 12, title }: { percent: number; size?: number; title?: string }) => {
+// У серебра и бронзы широкие крылья, сама медаль на картинке ниже золотой — boost увеличивает их,
+// чтобы на глаз все три были одного роста (крылья при этом выходят за квадрат — нужен отступ по бокам).
+const MEDAL_BOOST = { bronze: 1.3, silver: 1.65, gold: 1 } as const
+export const TinyMedal = ({ percent, size = 12, title, boost = false }: { percent: number; size?: number; title?: string; boost?: boolean }) => {
     const m = medalFor(percent)
     if (m === 'none') return <span title={title} className="block flex-shrink-0 rounded-full border border-dashed border-[#4A5860]" style={{ width: size, height: size }} />
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={MEDAL_SRC[m]} alt={MEDAL_TITLE[m]} title={title} draggable={false} className="block flex-shrink-0 object-contain" style={{ width: size, height: size }} />
+    const k = boost ? MEDAL_BOOST[m] : 1
+    return (
+        <span title={title} className="relative block flex-shrink-0" style={{ width: size, height: size }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={MEDAL_SRC[m]} alt={MEDAL_TITLE[m]} draggable={false} className="absolute left-1/2 top-1/2 max-w-none object-contain"
+                style={{ width: size * k, height: size * k, transform: 'translate(-50%, -50%)' }} />
+        </span>
+    )
 }

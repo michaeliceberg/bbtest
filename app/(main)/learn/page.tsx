@@ -373,6 +373,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string } })
     ? unitsWithFormattedLessons.find((u) => unitNum(u.title) === taskNum && unitUnlocked(u))
     : undefined
   // Темы тренажёра — «каркас» для каждого задания ЕГЭ (кнопки в разделе и медали над плитками).
+  const levelCase = await getPendingLevelCase(userId)
   const trainerKeys = activeCourse.title.includes('ЕГЭ Математика') ? await getTrainerKeysByTask(userId) : {}
 
   // Раскрыт только один раздел: по умолчанию — где решали последним, иначе первый открытый непройденный.
@@ -456,9 +457,12 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string } })
           <div className='mt-2 lg:mt-5'>
             <StreakRiskBanner streak={currentStreak} hasExtendedToday={hasExtendedStreakToday} freezes={userProgress.streakFreezes} gems={userProgress.gems} />
 
-            <div className='mb-4'>
-              <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} levelCase={await getPendingLevelCase(userId)} />
-            </div>
+            {/* Уровень на задачнике не показываем (он и так в шапке) — только если ждёт кейс за уровень, чтобы его можно было открыть */}
+            {levelCase && (
+              <div className='mb-4'>
+                <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} levelCase={levelCase} />
+              </div>
+            )}
 
             <CourseProgressStrip
               defaultOpenId={defaultOpenUnitId}

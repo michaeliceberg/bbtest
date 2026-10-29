@@ -10,40 +10,29 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Dumbbell } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { TinyMedal, medalFor } from '@/components/nav-sheet-ui'
+import { NAV_ITEM_PRESS, TinyMedal, medalFor, navItemStyle } from '@/components/nav-sheet-ui'
 
 export type TrainerKeyChip = { tUnitId: number; title: string; percent: number }
-
-const LIT = { bronze: '#B9784F', silver: '#7FB6DE', gold: '#F0A818' } as const
 
 export function TrainerKeyChips({ num, keys }: { num: number; keys: TrainerKeyChip[] }) {
     const router = useRouter()
     const [ask, setAsk] = useState<TrainerKeyChip | null>(null)
     if (!keys.length) return null
-    const ready = keys.filter((k) => k.percent > 0).length
     return (
-        <div className="mb-4 rounded-2xl border-2 border-[#26333B] bg-[#161F23] px-3 py-2.5">
-            <div className="mb-2 flex items-center gap-1.5 text-[12px] font-black text-[#9AA7B0]">
-                <Dumbbell className="h-4 w-4 text-[#F2C35B]" />
-                <span>Каркас для №{num} — тренажёры</span>
-                <span className="ml-auto text-[#E2EAF0]">{ready}/{keys.length}</span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
+        <div className="mb-4">
+            <div className="flex flex-wrap items-center gap-1.5">
+                <Dumbbell className="mr-0.5 h-5 w-5 flex-shrink-0 text-[#9AA7B0]" aria-label="Тренажёры" />
                 {keys.map((k) => {
-                    const m = medalFor(k.percent)
-                    const lit = m !== 'none'
-                    const c = lit ? LIT[m] : null
+                    const lit = medalFor(k.percent) !== 'none'
                     return (
                         <button
                             key={k.tUnitId}
                             type="button"
                             onClick={() => setAsk(k)}
-                            className="flex items-center gap-1.5 rounded-xl border-2 px-2.5 py-1.5 text-[13px] font-extrabold transition-transform active:scale-95"
-                            style={lit
-                                ? { borderColor: c!, color: '#F2F7FB', background: `${c}26`, boxShadow: `0 3px 0 ${c}66` }
-                                : { borderColor: '#2C3A41', color: '#6B7A83', background: '#1A2328', boxShadow: '0 3px 0 #10171A' }}
+                            className={`flex items-center gap-1.5 rounded-xl py-1 pl-1.5 pr-2.5 text-[13px] font-extrabold ${NAV_ITEM_PRESS}`}
+                            style={{ ...navItemStyle(false), color: lit ? '#E2EAF0' : '#6B7A83', opacity: lit ? 1 : 0.75 }}
                         >
-                            <TinyMedal percent={k.percent} size={16} />
+                            <span className="mx-1"><TinyMedal percent={k.percent} size={22} boost /></span>
                             {k.title}
                         </button>
                     )

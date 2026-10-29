@@ -86,8 +86,13 @@ export function CourseProgressStrip({ units, defaultOpenId = null, trainerKeys =
                                             >
                                                 {/* слоты медалей тренажёров-«каркаса» этого задания: пустые — ещё не пройдено */}
                                                 {hasKeys && (
-                                                    <div className="mb-[3px] flex h-[23px] flex-wrap content-end items-end justify-center gap-px">
-                                                        {keys.slice(0, 4).map((k) => <TinyMedal key={k.tUnitId} percent={k.percent} size={10} title={`Тренажёр «${k.title}»`} />)}
+                                                    // внахлёст одной строкой (как аватарки) — ячейка не растёт в высоту при 4 темах
+                                                    <div className="mb-[3px] flex h-[12px] justify-center">
+                                                        {keys.map((k, i) => (
+                                                            <span key={k.tUnitId} className="relative" style={{ marginLeft: i ? (keys.length >= 4 ? -7 : -5) : 0, zIndex: 10 - i }}>
+                                                                <TinyMedal percent={k.percent} size={12} title={`Тренажёр «${k.title}»`} />
+                                                            </span>
+                                                        ))}
                                                     </div>
                                                 )}
                                                 <div
