@@ -7,8 +7,8 @@ import { useState } from 'react'
 import layout from '@/lib/hangarLayout.json'
 
 type Slot = { src: string; x: number; y: number; w: number; h: number }
-const L = layout as unknown as Record<string, { b: Slot; a: Slot }> & { rocket: Slot[] }
-const IDS = Object.keys(L).filter((k) => k !== 'rocket').map(Number).sort((a, b) => a - b)
+const L = layout as unknown as Record<string, { b: Slot; a: Slot }> & { rocket: Slot[]; junk: Slot[] }
+const IDS = Object.keys(L).filter((k) => k !== 'rocket' && k !== 'junk').map(Number).sort((a, b) => a - b)
 // Ракета: стадия = сколько заданий второй части (14–20) решено. Каждое задание добавляет одну деталь.
 const ROCKET_PARTS = ['Опоры', 'Сопло', 'Обшивка', 'Стабилизаторы', 'Боковые баки', 'Звезда', 'Нос']
 const NAMES: Record<number, string> = {
@@ -55,6 +55,11 @@ export default function Page() {
     const lampOn = done.has(8)
     const [stage, setStage] = useState(0)
     const R = L.rocket[stage]
+    // Грязь: 20 заданий всего, решено = починенные предметы + стадия ракеты. 5 ступеней — грязный фон проявляется на 100/75/50/25/0%.
+    const solved = done.size + stage
+    const dirt = [1, 0.75, 0.5, 0.25, 0][Math.min(4, Math.floor(solved / 4))]
+    // Хлам исчезает по одному: на каждое решённое задание — минус кусок (13 кусков на 20 заданий).
+    const junkLeft = Math.max(0, L.junk.length - Math.round((solved * L.junk.length) / 16))
     return (
         <div className="min-h-screen bg-[#0F171B] px-4 py-5 text-white">
             <style>{`@keyframes hangar-pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}`}</style>
@@ -63,6 +68,13 @@ export default function Page() {
                 <div className="relative aspect-square w-full overflow-hidden rounded-2xl border-2 border-[#2C3A41]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src="/hangar/bg.webp" alt="" className="absolute inset-0 h-full w-full" draggable={false} />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/hangar/bg-dirty.webp" alt="" className="absolute inset-0 h-full w-full transition-opacity duration-700" style={{ opacity: dirt }} draggable={false} />
+                    {L.junk.map((p, j) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img key={p.src} src={p.src} alt="" draggable={false} className="absolute select-none transition-all duration-500"
+                            style={{ left: pct(p.x - p.w / 2), top: pct(p.y - p.h), width: pct(p.w), opacity: j < junkLeft ? 1 : 0, transform: j < junkLeft ? 'scale(1)' : 'scale(0.3)' }} />
+                    ))}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img key={R.src} src={R.src} alt="Ракета" draggable={false} className="absolute select-none"
                         style={{ left: pct(R.x - R.w / 2), top: pct(R.y - R.h), width: pct(R.w), animation: stage ? 'hangar-pop .6s ease-out' : undefined }} />
@@ -92,7 +104,7 @@ export default function Page() {
                 </div>
                 <div className="mt-3 rounded-xl bg-[#1C262B] px-3 py-2.5">
                     <div className="flex items-center justify-between text-sm font-bold">
-                        <span>Ракета: решено {stage} из 7 заданий второй части</span>
+                        <span>Ракета: решено {stage} из 7 заданий второй части · всего {solved}/20, грязь {Math.round(dirt * 100)}%</span>
                         <span className="text-[#C385F7]">{stage < 7 ? `дальше: №${14 + stage} ${ROCKET_PARTS[stage]}` : 'готова к старту 🚀'}</span>
                     </div>
                     <input type="range" min={0} max={7} value={stage} onChange={(e) => setStage(+e.target.value)} className="mt-2 w-full" />

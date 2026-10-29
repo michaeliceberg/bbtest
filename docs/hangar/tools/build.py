@@ -10,16 +10,16 @@ import os; os.makedirs(OUT, exist_ok=True)
 # координаты — на холсте фона 1024×1024, точка = середина нижнего края предмета
 ITEMS = {
   1:  ('01-before', '01-after',  dict(b=(330, 805, 230), a=(330, 800, 72)),  1, 1,   False),
-  2:  ('02-before', '02-after',  dict(b=(905, 585, 130), a=(905, 585, 160)), 1, 1,   False),
-  3:  ('03-before', '03-after',  dict(b=(735, 790, 230), a=(850, 735, 75)),  1, 1,   True),
+  2:  ('02-before', '02-after',  dict(b=(910, 480, 130), a=(910, 480, 160)), 1, 1,   False),
+  3:  ('03-before', '03-after',  dict(b=(735, 790, 230), a=(185, 715, 80)),  1, 1,   False),
   4:  ('04-before', '04-after',  dict(b=(575, 975, 115), a=(575, 975, 78)),  .7, 1,  False),
-  5:  ('05-before', '05-after',  dict(b=(905, 875, 175), a=(930, 860, 70)),  1, 1,   False),
+  5:  ('05-before', '05-after',  dict(b=(330, 690, 150), a=(300, 672, 62)),  1, 1,   False),
   6:  ('06-before', '06-after',  dict(b=(865, 1020, 210), a=(512, 190, 150)), 1, 1,  False),
   7:  ('07-before', '07-after',  dict(b=(860, 715, 165), a=(860, 715, 165)), 1, 1,   False),
   8:  ('08-before', '08-after',  dict(b=(232, 470, 74), a=(232, 470, 68)),   1, 1,   False),
   9:  ('09-before', '09-after',  dict(b=(330, 915, 120), a=(210, 790, 40)),  1, 1,   False),
   10: ('10-before', '10-after',  dict(b=(110, 815, 185), a=(115, 805, 118)), 1, 1,   False),
-  11: ('11-before-draft', '11-after-draft', dict(b=(215, 985, 235), a=(215, 985, 200)), .45, .55, False),
+  11: ('11-before-draft', '11-after-draft', dict(b=(215, 985, 235), a=(215, 985, 190)), .7, .75, False),
   12: ('12-before', '12-after',  dict(b=(720, 965, 170), a=(720, 960, 120)), 1, 1,   False),
   13: ('13-before', '13-after',  dict(b=(745, 715, 85), a=(745, 715, 85)),   1, 1,   False),
 }
@@ -65,14 +65,31 @@ for st in range(8):
     im.save(f'{OUT}/R{st}.webp', quality=88)
     rocket.append(dict(src=f'/hangar/R{st}.webp', x=RX, y=RY, w=w, h=RH))
 layout['rocket'] = rocket
+# Грязный фон (выровнен с чистым — проявляется поверх него ступенями) и хлам на полу (исчезает по одному).
+Image.open(f'{H}/bg-dirty.jpg').convert('RGB').save(f'{OUT}/bg-dirty.webp', quality=86)
+JUNK = {  # номер: (x, y низа, ширина) на холсте 1024
+  1: (470, 885, 75), 2: (600, 735, 70), 3: (420, 712, 62), 4: (95, 985, 150), 5: (955, 800, 120),
+  6: (640, 870, 110), 7: (985, 965, 95), 8: (385, 772, 58), 9: (655, 805, 120), 10: (50, 730, 100),
+  11: (560, 940, 62), 12: (455, 1022, 135), 13: (705, 770, 70),
+}
+junk = []
+for j, (x, y, w) in JUNK.items():
+    im = Image.open(f'{H}/junk-{j:02d}.png').convert('RGBA'); im = im.crop(im.getchannel('A').getbbox())
+    h = round(im.height * w / im.width)
+    grade(im).resize((w * 2, h * 2), Image.Resampling.LANCZOS).save(f'{OUT}/junk-{j:02d}.webp', quality=86)
+    junk.append(dict(src=f'/hangar/junk-{j:02d}.webp', x=x, y=y, w=w, h=h))
+layout['junk'] = junk
 json.dump(layout, open('lib/hangarLayout.json', 'w'), indent=1)
 
 def compose(state):
-    c = bg.convert('RGBA')
+    c = (Image.open(f'{H}/bg-dirty.jpg').convert('RGB') if state == 'b' else bg).convert('RGBA')
+    if state == 'b':
+        for p in layout['junk']:
+            c.alpha_composite(Image.open(f'{OUT}' + p['src'][len('/hangar'):]).resize((p['w'], p['h'])), (round(p['x'] - p['w'] / 2), p['y'] - p['h']))
     r = layout['rocket'][0 if state == 'b' else 7]
     c.alpha_composite(Image.open(f'{OUT}/R{0 if state == "b" else 7}.webp').resize((r['w'], r['h'])), (round(r['x'] - r['w'] / 2), r['y'] - r['h']))
     for i, L in layout.items():
-        if i == 'rocket': continue
+        if i in ('rocket', 'junk'): continue
         p = L[state]; im = Image.open(f'{OUT}' + p['src'][len('/hangar'):]).resize((p['w'], p['h']))
         if i not in (2, 6, 8) or state == 'b' and i == 6:  # тень под предметами на полу
             sh = Image.new('L', c.size, 0); ImageDraw.Draw(sh).ellipse((p['x'] - p['w'] * .45, p['y'] - p['h'] * .07 - 4, p['x'] + p['w'] * .45, p['y'] + p['h'] * .05 + 4), fill=120)
