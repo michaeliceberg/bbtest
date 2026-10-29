@@ -14,7 +14,7 @@ ITEMS = {
   3:  ('03-before', '03-after',  dict(b=(735, 790, 230), a=(850, 735, 75)),  1, 1,   True),
   4:  ('04-before', '04-after',  dict(b=(575, 975, 115), a=(575, 975, 78)),  .7, 1,  False),
   5:  ('05-before', '05-after',  dict(b=(905, 875, 175), a=(930, 860, 70)),  1, 1,   False),
-  6:  ('06-before', '06-after',  dict(b=(865, 1020, 210), a=(512, 205, 170)), 1, 1,  False),
+  6:  ('06-before', '06-after',  dict(b=(865, 1020, 210), a=(512, 190, 150)), 1, 1,  False),
   7:  ('07-before', '07-after',  dict(b=(860, 715, 165), a=(860, 715, 165)), 1, 1,   False),
   8:  ('08-before', '08-after',  dict(b=(232, 470, 74), a=(232, 470, 68)),   1, 1,   False),
   9:  ('09-before', '09-after',  dict(b=(330, 915, 120), a=(210, 790, 40)),  1, 1,   False),
@@ -54,11 +54,25 @@ for i, (bn, an, pos, sb, sa, flip) in ITEMS.items():
         fn = f'{i:02d}-{"before" if key == "b" else "after"}.webp'
         im.save(f'{OUT}/{fn}', quality=88)
         layout.setdefault(i, {})[key] = dict(src=f'/hangar/{fn}', x=x, y=y, w=w, h=h)
+# Ракета: 8 стадий R0–R7 (решено заданий второй части 0…7). Общая рамка для всех стадий — не прыгает.
+RX, RY, RH = 512, 668, 435          # середина низа и высота ракеты на холсте фона
+box = (205, 100, 815, 935)          # объединение рамок всех стадий
+rocket = []
+for st in range(8):
+    im = Image.open(f'{H}/R{st}.png').convert('RGBA').crop(box)
+    w = round(im.width * RH / im.height)
+    im = grade(im).resize((w * 2, RH * 2), Image.Resampling.LANCZOS)
+    im.save(f'{OUT}/R{st}.webp', quality=88)
+    rocket.append(dict(src=f'/hangar/R{st}.webp', x=RX, y=RY, w=w, h=RH))
+layout['rocket'] = rocket
 json.dump(layout, open('lib/hangarLayout.json', 'w'), indent=1)
 
 def compose(state):
     c = bg.convert('RGBA')
+    r = layout['rocket'][0 if state == 'b' else 7]
+    c.alpha_composite(Image.open(f'{OUT}/R{0 if state == "b" else 7}.webp').resize((r['w'], r['h'])), (round(r['x'] - r['w'] / 2), r['y'] - r['h']))
     for i, L in layout.items():
+        if i == 'rocket': continue
         p = L[state]; im = Image.open(f'{OUT}' + p['src'][len('/hangar'):]).resize((p['w'], p['h']))
         if i not in (2, 6, 8) or state == 'b' and i == 6:  # тень под предметами на полу
             sh = Image.new('L', c.size, 0); ImageDraw.Draw(sh).ellipse((p['x'] - p['w'] * .45, p['y'] - p['h'] * .07 - 4, p['x'] + p['w'] * .45, p['y'] + p['h'] * .05 + 4), fill=120)

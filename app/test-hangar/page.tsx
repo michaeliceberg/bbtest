@@ -7,8 +7,10 @@ import { useState } from 'react'
 import layout from '@/lib/hangarLayout.json'
 
 type Slot = { src: string; x: number; y: number; w: number; h: number }
-const L = layout as unknown as Record<string, { b: Slot; a: Slot }>
-const IDS = Object.keys(L).map(Number).sort((a, b) => a - b)
+const L = layout as unknown as Record<string, { b: Slot; a: Slot }> & { rocket: Slot[] }
+const IDS = Object.keys(L).filter((k) => k !== 'rocket').map(Number).sort((a, b) => a - b)
+// Ракета: стадия = сколько заданий второй части (14–20) решено. Каждое задание добавляет одну деталь.
+const ROCKET_PARTS = ['Опоры', 'Сопло', 'Обшивка', 'Стабилизаторы', 'Боковые баки', 'Звезда', 'Нос']
 const NAMES: Record<number, string> = {
     1: 'Кабель', 2: 'Ключи', 3: 'Стремянка', 4: 'Шуруповёрт', 5: 'Бочка', 6: 'Флаг', 7: 'Пульт',
     8: 'Лампа', 9: 'Огнетушитель', 10: 'Аппарат', 11: 'Инструменты', 12: 'Ящик', 13: 'Робот',
@@ -51,6 +53,8 @@ export default function Page() {
     const [time, setTime] = useState<Time>('day')
     const toggle = (id: number) => setDone((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
     const lampOn = done.has(8)
+    const [stage, setStage] = useState(0)
+    const R = L.rocket[stage]
     return (
         <div className="min-h-screen bg-[#0F171B] px-4 py-5 text-white">
             <style>{`@keyframes hangar-pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}`}</style>
@@ -59,6 +63,15 @@ export default function Page() {
                 <div className="relative aspect-square w-full overflow-hidden rounded-2xl border-2 border-[#2C3A41]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src="/hangar/bg.webp" alt="" className="absolute inset-0 h-full w-full" draggable={false} />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img key={R.src} src={R.src} alt="Ракета" draggable={false} className="absolute select-none"
+                        style={{ left: pct(R.x - R.w / 2), top: pct(R.y - R.h), width: pct(R.w), animation: stage ? 'hangar-pop .6s ease-out' : undefined }} />
+                    {stage < 7 && (
+                        <span className="absolute flex h-[6%] w-[6%] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white text-[clamp(9px,2.4vw,15px)] font-black text-[#0F171B]"
+                            style={{ left: pct(R.x + R.w * 0.42), top: pct(R.y - R.h * 0.55), background: '#C385F7', boxShadow: '0 2px 6px rgba(0,0,0,.5)' }}>
+                            {14 + stage}
+                        </span>
+                    )}
                     {IDS.map((id) => <Item key={id} id={id} done={done.has(id)} />)}
                     <div className="pointer-events-none absolute inset-0 transition-[background] duration-700" style={{ background: TIME_TINT[time], mixBlendMode: 'multiply' }} />
                     {/* свет лампы — отдельный слой, плавно разгорается */}
@@ -73,9 +86,16 @@ export default function Page() {
                             {t === 'day' ? 'День' : t === 'evening' ? 'Вечер' : 'Ночь'}
                         </button>
                     ))}
-                    <button onClick={() => setDone(done.size === IDS.length ? new Set() : new Set(IDS))} className="ml-auto rounded-lg bg-[#26333B] px-3 py-1.5 text-sm font-bold">
+                    <button onClick={() => { const all = done.size === IDS.length; setDone(all ? new Set() : new Set(IDS)); setStage(all ? 0 : 7) }} className="ml-auto rounded-lg bg-[#26333B] px-3 py-1.5 text-sm font-bold">
                         {done.size === IDS.length ? 'Сломать всё' : 'Починить всё'}
                     </button>
+                </div>
+                <div className="mt-3 rounded-xl bg-[#1C262B] px-3 py-2.5">
+                    <div className="flex items-center justify-between text-sm font-bold">
+                        <span>Ракета: решено {stage} из 7 заданий второй части</span>
+                        <span className="text-[#C385F7]">{stage < 7 ? `дальше: №${14 + stage} ${ROCKET_PARTS[stage]}` : 'готова к старту 🚀'}</span>
+                    </div>
+                    <input type="range" min={0} max={7} value={stage} onChange={(e) => setStage(+e.target.value)} className="mt-2 w-full" />
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
                     {IDS.map((id) => (
