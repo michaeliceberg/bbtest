@@ -10,6 +10,7 @@
 
 const pct = (v: number) => `${(v / 1024) * 100}%`
 
+// Лопасти — картинка /hangar/fan-blades.webp (вид строго снизу, втулка в центре квадрата); сломанные пока рисуются кодом.
 // Где висит: ось над круглым окном, низ моторчика (место крепления лопастей).
 export const FAN = { x: 512, top: 46, motorW: 104, bladesD: 720, tilt: 74 }
 const MOTOR_RATIO = 360 / 276 // высота / ширина картинки моторчика
@@ -92,7 +93,10 @@ export function HangarFan({ broken = false, mode = 'lofi', fps = 2, period = 6 }
             <div className="absolute" style={{ left: pct(FAN.x - D / 2), top: pct(hubY - D / 2), width: pct(D), height: pct(D), perspective: '170cqw', perspectiveOrigin: '50% 50%' }}>
                 <div className="h-full w-full" style={{ transform: `rotateX(${FAN.tilt}deg)` }}>
                     <div className="hangar-fan-rot h-full w-full" style={{ animation: spin, transform: broken ? 'rotate(18deg)' : undefined }}>
-                        <Blades broken={broken} />
+                        {broken ? <Blades broken /> : (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src="/hangar/fan-blades.webp" alt="" draggable={false} className="h-full w-full select-none" />
+                        )}
                     </div>
                 </div>
             </div>
