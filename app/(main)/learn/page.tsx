@@ -498,8 +498,8 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string } })
                   isUnlocked={unitUnlocked(unit)}
                   isCompleted={isForcedLocked(unit.id) ? false : unit.isCompleted}
                   defaultOpenId={defaultOpenUnitId}
+                  trainers={(() => { const n = unitNum(unit.title); const ks = n ? trainerKeys[n] : undefined; return ks?.length ? { done: ks.filter((k) => k.percent > 0).length, total: ks.length } : null })()}
                 >
-                {(() => { const n = unitNum(unit.title); return n && trainerKeys[n] ? <TrainerKeyChips num={n} keys={trainerKeys[n]} /> : null })()}
                 <Unit
                   id={unit.id}
                   unitIndex={index}
@@ -523,6 +523,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string } })
                   isNextUnitUnlocked={unit.isNextUnitUnlocked}
                   isAdmin={isAdmin}
                   lastTouchedLessonId={lastTouchedLessonId}
+                  belowBanner={(() => { const n = unitNum(unit.title); return n && trainerKeys[n] ? <TrainerKeyChips num={n} keys={trainerKeys[n]} /> : null })()}
                 />
                 </LearnUnitFold>
               </div>

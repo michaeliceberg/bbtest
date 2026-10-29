@@ -41,7 +41,43 @@ const partColor = (section: LearnSection) => {
     return { button: c, bottom: section === 'part2' ? '#9C6AC6' : '#428BC0' }
 }
 
-export function CourseProgressStrip({ units, defaultOpenId = null, trainerKeys = {} }: { units: StripUnit[]; defaultOpenId?: number | null; trainerKeys?: Record<number, TrainerKey[]> }) {
+// Как показать над ячейкой тренажёры-«ключи» задания (сравнение — /test-strip-keys).
+export type KeyStyle = 'medals' | 'count' | 'dots' | 'bar' | 'pill' | 'check'
+
+// Тренажёр «взят», если по нему есть хотя бы бронза.
+const keyDone = (k: TrainerKey) => k.percent > 0
+
+function KeyIndicator({ keys, style, color }: { keys: TrainerKey[]; style: KeyStyle; color: string }) {
+    if (!keys.length) return null
+    const done = keys.filter(keyDone).length
+    const all = done === keys.length
+    const title = keys.map((k) => `«${k.title}»${keyDone(k) ? ' ✓' : ''}`).join(', ')
+    if (style === 'count') return (
+        <span title={title} className="text-[9px] font-black leading-none" style={{ color: all ? '#F2C35B' : done ? '#C9D4DA' : '#56646C' }}>{done}/{keys.length}</span>
+    )
+    if (style === 'dots') return (
+        <span title={title} className="flex gap-[2px]">
+            {keys.map((k) => <span key={k.tUnitId} className="h-[5px] w-[5px] rounded-full" style={keyDone(k) ? { background: all ? '#F2C35B' : color } : { boxShadow: 'inset 0 0 0 1px #4E5D65' }} />)}
+        </span>
+    )
+    if (style === 'bar') return (
+        <span title={title} className="flex w-[70%] gap-[1px]">
+            {keys.map((k) => <span key={k.tUnitId} className="h-[4px] flex-1 rounded-full" style={{ background: keyDone(k) ? (all ? '#F2C35B' : color) : '#2C3A41' }} />)}
+        </span>
+    )
+    if (style === 'pill') return (
+        <span title={title} className="rounded-[4px] px-[3px] text-[8px] font-black leading-[11px]"
+            style={all ? { background: '#F2C35B', color: '#3A2A08' } : done ? { background: '#2C3A41', color: '#E2EAF0' } : { boxShadow: 'inset 0 0 0 1px #35434A', color: '#56646C' }}>
+            {done}/{keys.length}
+        </span>
+    )
+    if (style === 'check') return all
+        ? <span title={title} className="flex h-[11px] w-[11px] items-center justify-center rounded-full text-[8px] font-black leading-none" style={{ background: '#F2C35B', color: '#3A2A08' }}>✓</span>
+        : <span title={title} className="text-[9px] font-black leading-none" style={{ color: done ? '#C9D4DA' : '#56646C' }}>{done}/{keys.length}</span>
+    return null
+}
+
+export function CourseProgressStrip({ units, defaultOpenId = null, trainerKeys = {}, keyStyle = 'medals' }: { units: StripUnit[]; defaultOpenId?: number | null; trainerKeys?: Record<number, TrainerKey[]>; keyStyle?: KeyStyle }) {
     const selected = useLearnOpenUnit((s) => s.openId) ?? defaultOpenId
     if (units.length === 0) return null
 
@@ -85,7 +121,10 @@ export function CourseProgressStrip({ units, defaultOpenId = null, trainerKeys =
                                                 className="relative min-w-0 flex-1"
                                             >
                                                 {/* слоты медалей тренажёров-«каркаса» этого задания: пустые — ещё не пройдено */}
-                                                {hasKeys && (
+                                                {hasKeys && keyStyle !== 'medals' && (
+                                                    <div className="mb-[3px] flex h-[12px] items-center justify-center"><KeyIndicator keys={keys} style={keyStyle} color={c.button} /></div>
+                                                )}
+                                                {hasKeys && keyStyle === 'medals' && (
                                                     // внахлёст одной строкой (как аватарки) — ячейка не растёт в высоту при 4 темах
                                                     <div className="mb-[3px] flex h-[12px] justify-center">
                                                         {keys.map((k, i) => (
@@ -134,7 +173,7 @@ export function CourseProgressStrip({ units, defaultOpenId = null, trainerKeys =
                 {sel ? <>Открыт: <span className="text-[#E2EAF0]">{sel.title}</span> · {Math.round(sel.percent)}%</> : 'Нажми на ячейку — откроешь раздел'}
             </p>
             {hasKeys && <p className="mt-0.5 text-[10px] font-bold text-[#4E5D65]">
-                Медали над ячейкой — тренажёры-каркас этого задания
+                {keyStyle === 'medals' ? 'Медали над ячейкой — тренажёры-каркас этого задания' : 'Над ячейкой — сколько тренажёров к этому заданию пройдено'}
             </p>}
         </div>
     )

@@ -3,12 +3,12 @@
 // components/trainer-key-chips.tsx
 //
 // Раздел задачника (/learn): какие темы тренажёра готовят к этому заданию ЕГЭ — «каркас» для задач.
-// Кнопки в ряд (переносятся на новую строку): не начато — бледные, с медалью — горят.
+// Кнопки в ряд (переносятся на новую строку): пока не золото — яркие, зовут «Пройди»/«Добей»; золото — спокойные.
 // Нажатие → «Перейти к тренажёру X?» → /trainer?topic=<название темы> (карта откроет нужную тему).
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Dumbbell } from 'lucide-react'
+import { Dumbbell, Play } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { NAV_ITEM_PRESS, TinyMedal, medalFor, navItemStyle } from '@/components/nav-sheet-ui'
 
@@ -19,18 +19,33 @@ export function TrainerKeyChips({ num, keys }: { num: number; keys: TrainerKeyCh
     const [ask, setAsk] = useState<TrainerKeyChip | null>(null)
     if (!keys.length) return null
     return (
-        <div className="mb-4">
+        <div className="-mt-1 mb-5">
             <div className="flex flex-wrap items-center gap-1.5">
                 <Dumbbell className="mr-0.5 h-5 w-5 flex-shrink-0 text-[#9AA7B0]" aria-label="Тренажёры" />
                 {keys.map((k) => {
-                    const lit = medalFor(k.percent) !== 'none'
+                    const medal = medalFor(k.percent)
+                    // Пока не золото — зовёт нажать: яркая кнопка с бликом («Пройди», а если начат — медаль и «Добей»).
+                    // Золото — спокойная серая с медалью.
+                    if (medal !== 'gold') return (
+                        <button
+                            key={k.tUnitId}
+                            type="button"
+                            onClick={() => setAsk(k)}
+                            className="animate-shine-sweep flex items-center gap-1.5 overflow-hidden rounded-xl py-1.5 pl-2 pr-2.5 text-[13px] font-extrabold text-white active:translate-y-[3px]"
+                            style={{ background: 'linear-gradient(180deg,#5FB6F2,#3F8FCF)', boxShadow: '0 3px 0 #2C6C9E, 0 0 12px -2px rgba(83,173,239,0.6)' }}
+                        >
+                            {medal === 'none' ? <Play className="h-3.5 w-3.5 fill-white" /> : <span className="mx-0.5"><TinyMedal percent={k.percent} size={20} boost /></span>}
+                            {k.title}
+                            <span className="rounded-md bg-white/20 px-1.5 text-[11px] font-black">{medal === 'none' ? 'Пройди' : 'Добей'}</span>
+                        </button>
+                    )
                     return (
                         <button
                             key={k.tUnitId}
                             type="button"
                             onClick={() => setAsk(k)}
                             className={`flex items-center gap-1.5 rounded-xl py-1 pl-1.5 pr-2.5 text-[13px] font-extrabold ${NAV_ITEM_PRESS}`}
-                            style={{ ...navItemStyle(false), color: lit ? '#E2EAF0' : '#6B7A83', opacity: lit ? 1 : 0.75 }}
+                            style={{ ...navItemStyle(false), color: '#E2EAF0' }}
                         >
                             <span className="mx-1"><TinyMedal percent={k.percent} size={22} boost /></span>
                             {k.title}

@@ -7,7 +7,7 @@
 
 import { ReactNode } from 'react'
 import { motion } from 'framer-motion'
-import { Check, ChevronDown, Lock } from 'lucide-react'
+import { Check, ChevronDown, Dumbbell, Lock } from 'lucide-react'
 import { useLearnOpenUnit } from '@/store/use-learn-open-unit'
 import { EGE_PART_COLOR } from '@/components/ege-task-grid'
 import { NAV_ITEM_PRESS, navItemStyle } from '@/components/nav-sheet-ui'
@@ -21,6 +21,8 @@ type Props = {
     isUnlocked: boolean
     isCompleted: boolean
     defaultOpenId: number | null
+    // тренажёры к этому заданию ЕГЭ: сколько пройдено (есть медаль) из скольких
+    trainers?: { done: number; total: number } | null
     children: ReactNode
 }
 
@@ -30,7 +32,7 @@ export const openLearnUnit = (id: number) => {
     setTimeout(() => scrollToLearnUnit(id), 80)
 }
 
-export const LearnUnitFold = ({ id, title, unitIndex, percent, isUnlocked, isCompleted, defaultOpenId, children }: Props) => {
+export const LearnUnitFold = ({ id, title, unitIndex, percent, isUnlocked, isCompleted, defaultOpenId, trainers, children }: Props) => {
     const openId = useLearnOpenUnit((s) => s.openId) ?? defaultOpenId
     if (openId === id) return <div className="mb-8">{children}</div>
 
@@ -56,8 +58,18 @@ export const LearnUnitFold = ({ id, title, unitIndex, percent, isUnlocked, isCom
             )}
             <span className="min-w-0 flex-1">
                 <span className="block truncate text-[15px] font-extrabold" style={{ color: isUnlocked ? '#E2EAF0' : '#5C6B73' }}>{name}</span>
-                <span className="mt-1 block h-1 overflow-hidden rounded-full bg-[#0E1518]">
-                    <span className="block h-full rounded-full" style={{ width: `${isCompleted ? 100 : percent}%`, background: c }} />
+                {/* короткая полоска решённых задач + сколько тренажёров к заданию пройдено */}
+                <span className="mt-1 flex items-center gap-2">
+                    <span className="block h-1 w-14 flex-shrink-0 overflow-hidden rounded-full bg-[#0E1518]">
+                        <span className="block h-full rounded-full" style={{ width: `${isCompleted ? 100 : percent}%`, background: c }} />
+                    </span>
+                    {trainers && (
+                        <span className="flex items-center gap-1 text-[11px] font-bold"
+                            style={{ color: trainers.done === trainers.total ? '#F2C35B' : trainers.done ? '#AEBCC5' : '#6B7A83' }}>
+                            <Dumbbell className="h-3 w-3" />
+                            тренажёры {trainers.done}/{trainers.total}
+                        </span>
+                    )}
                 </span>
             </span>
             {!isUnlocked ? <Lock className="h-4 w-4 flex-shrink-0 text-[#5C6B73]" />

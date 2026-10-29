@@ -57,6 +57,8 @@ type Props = {
     isNextUnitUnlocked?: boolean;
     isAdmin?: boolean;
     lastTouchedLessonId?: number | null;
+    // что показать сразу под плашкой раздела (тренажёры-«ключи» задания ЕГЭ)
+    belowBanner?: React.ReactNode;
 }
 
 // Количество задач, необходимых для открытия следующего урока
@@ -253,6 +255,7 @@ export const Unit = ({
     isNextUnitUnlocked = false,
     isAdmin = false,
     lastTouchedLessonId = null,
+    belowBanner,
 }: Props) => {
     // Если юнит заблокирован и не завершён — все уроки locked
     // (админам разрешён доступ к любому уроку без прохождения предыдущих)
@@ -303,6 +306,7 @@ export const Unit = ({
                 needMoreLessons={needMoreLessons}
                 isNextUnitUnlocked={isNextUnitUnlocked}
             />
+            {belowBanner}
             {/* pb-16: маскот на экстремуме змейки центрируется по высоте СВОЕЙ
                 строки (top:50%) и на широком экране может быть выше самой
                 строки (до 150px против ~102px) — вылезает вниз. Если это
