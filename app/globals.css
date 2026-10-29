@@ -915,7 +915,7 @@ body {
     box-shadow: 0 3px 0 #9E6A1F, 0 0 14px rgba(242, 195, 91, .35);
     transition: transform .1s;
 }
-.btn-magic:active { transform: translateY(2px); }
+.btn-magic:active { transform: translateY(3px); box-shadow: 0 0 14px rgba(242, 195, 91, .35); }
 .btn-magic::after {
     content: ''; position: absolute; inset: 0; z-index: -1; width: 40%;
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .7), transparent);
@@ -959,6 +959,13 @@ body {
     background-clip: padding-box !important;
     --tw-translate-y: 0px !important;
     translate: 0 4px;
+}
+.border-b-\[6px\].active\:border-b-0:active:not(:disabled) {
+    border-bottom-width: 6px !important;
+    border-bottom-color: transparent !important;
+    background-clip: padding-box !important;
+    --tw-translate-y: 0px !important;
+    translate: 0 6px;
 }
 .border-b-8.active\:border-b-0:active:not(:disabled) {
     border-bottom-width: 8px !important;

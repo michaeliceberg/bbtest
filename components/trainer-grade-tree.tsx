@@ -1053,7 +1053,7 @@ const TrainerGradeTreeInner = ({ topics, isAdmin = false, theme = 'metal', onlyA
                                 <button
                                     type="button"
                                     onClick={() => openUnitMenu(topic.id)}
-                                    className="relative mb-5 block w-full overflow-hidden rounded-2xl px-4 pt-4 pb-3.5 text-left text-white border-b-[6px] active:border-b-0 active:pb-[1.1rem]"
+                                    className="relative mb-5 block w-full overflow-hidden rounded-2xl px-4 pt-4 pb-3.5 text-left text-white border-b-[6px] active:border-b-0"
                                     style={{ background: `linear-gradient(135deg, ${accentIn.button}, ${accentIn.bottom})`, borderBottomColor: accentIn.bottom }}
                                     aria-label="Выбрать юнит"
                                 >
