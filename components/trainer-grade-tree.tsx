@@ -36,7 +36,7 @@ import { TrainerPet, pickCheer } from './trainer-pet';
 import { PathDecoration, PathProp, PathArch, DECOR_VARIANTS, PROP_KINDS, PROP_SCALE, type PropKind } from './path-decor';
 import { useTrainerNavStore } from '@/store/use-trainer-nav-store';
 import { NAV_SHEET_CLASS, NAV_ITEM_PRESS, NavMedal } from '@/components/nav-sheet-ui';
-import { EgeTaskGrid } from '@/components/ege-task-grid';
+import { UnitEgeKey } from '@/components/ege-task-grid';
 import { UnitSheetCoursePicker, type PickerCourse } from '@/components/unit-sheet-course-picker';
 import { useParallaxThemeStore, themeForSection } from '@/store/use-parallax-theme-store';
 
@@ -1066,6 +1066,7 @@ const TrainerGradeTreeInner = ({ topics, isAdmin = false, theme = 'metal', onlyA
                                         </span>
                                     </div>
                                     {unitNumber != null && <p className="text-white/80 text-sm mt-1">Тема {unitNumber}</p>}
+                                    {!cozy && topic.egeTasks && topic.egeTasks.length > 0 && <div className="mt-1.5"><UnitEgeKey tasks={topic.egeTasks} /></div>}
                                 </button>
                             );
                         })()}
@@ -1102,7 +1103,7 @@ const TrainerGradeTreeInner = ({ topics, isAdmin = false, theme = 'metal', onlyA
                             })()}
                         </div>)}
 
-                        {!cozy && topic.egeTasks && topic.egeTasks.length > 0 && <EgeTaskGrid tasks={topic.egeTasks} />}
+                        {!simple && !cozy && topic.egeTasks && topic.egeTasks.length > 0 && <div className="-mt-1 mb-3"><UnitEgeKey tasks={topic.egeTasks} /></div>}
 
                         {topic.stages.length > 0 && (() => {
                             // "Фронтир" темы — самый первый ещё не пройденный этап

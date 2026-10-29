@@ -6,6 +6,7 @@
 // к которым готовит эта тема. Горящая клетка ведёт в раздел задачника (/learn?task=N).
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { KeyRound } from 'lucide-react'
 
 export const EGE_PART_COLOR = { part1: '#53ADEF', part2: '#C385F7' } as const
@@ -36,5 +37,26 @@ export function EgeTaskGrid({ tasks }: { tasks: number[] }) {
                 {Array.from({ length: 20 }, (_, i) => <Cell key={i} n={i + 1} on={set.has(i + 1)} />)}
             </div>
         </div>
+    )
+}
+
+// Карточка юнита: тёмная плашка, золотой ключ и номера заданий ЕГЭ золотыми квадратиками.
+// Квадратик ведёт в раздел задачника. Живёт и внутри кнопки-баннера, поэтому не <a>, а span + router.
+export function UnitEgeKey({ tasks, className = '' }: { tasks: number[]; className?: string }) {
+    const router = useRouter()
+    if (!tasks.length) return null
+    const go = (e: React.SyntheticEvent, n: number) => { e.stopPropagation(); e.preventDefault(); router.push(`/learn?task=${n}`) }
+    return (
+        <span className={`inline-flex items-center gap-1.5 rounded-lg bg-black/30 py-1 pl-1.5 pr-1 ${className}`} title="Ключ к заданиям ЕГЭ">
+            <KeyRound className="h-4 w-4 text-[#F2C35B]" strokeWidth={2.6} />
+            {tasks.map((n) => (
+                <span key={n} role="link" tabIndex={0} title={`Задание №${n} в задачнике`}
+                    onClick={(e) => go(e, n)} onKeyDown={(e) => { if (e.key === 'Enter') go(e, n) }}
+                    className="flex h-6 min-w-6 cursor-pointer items-center justify-center rounded-[6px] px-1 text-[13px] font-black leading-none transition-transform active:scale-90"
+                    style={{ background: 'linear-gradient(180deg,#FFE58A,#F2C35B)', color: '#3A2A08', boxShadow: '0 2px 0 #B8862E' }}>
+                    {n}
+                </span>
+            ))}
+        </span>
     )
 }

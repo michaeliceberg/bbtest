@@ -77,7 +77,7 @@ function KeyIndicator({ keys, style, color }: { keys: TrainerKey[]; style: KeySt
     return null
 }
 
-export function CourseProgressStrip({ units, defaultOpenId = null, trainerKeys = {}, keyStyle = 'medals' }: { units: StripUnit[]; defaultOpenId?: number | null; trainerKeys?: Record<number, TrainerKey[]>; keyStyle?: KeyStyle }) {
+export function CourseProgressStrip({ units, defaultOpenId = null, trainerKeys = {}, keyStyle = 'bar' }: { units: StripUnit[]; defaultOpenId?: number | null; trainerKeys?: Record<number, TrainerKey[]>; keyStyle?: KeyStyle }) {
     const selected = useLearnOpenUnit((s) => s.openId) ?? defaultOpenId
     if (units.length === 0) return null
 
