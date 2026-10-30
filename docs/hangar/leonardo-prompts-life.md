@@ -204,9 +204,20 @@ Avoid: `ground, horizon, landscape, mountains, buildings, trees, sun, moon, bird
 
 ## Ещё облака (2026-10-31)
 
-Обычный хвост стиля (на белом фоне, фон не удалять). Сохранять `docs/hangar/leonardo/cloud-<имя>.png`.
+**Облака — БЕЗ чёрной/коричневой обводки** (первая попытка вышла с толстым чёрным контуром — в небе ангара смотрится
+наклейкой). Поэтому для облаков свой хвост стиля, без «thick outlines». И фон — **ровный голубой, не белый**: облако
+кремово-белое, на белом фоне его не отделить; голубой уберу сам по цвету.
 
-| Файл | Промпт |
+Хвост для облаков (вместо общего):
+> in the same art style as the reference image: soft painted cartoon cloud, NO outline, no black or dark contour lines,
+> edges defined only by colour and soft shading, muted dusty colours, gentle cel shading, single cloud, centered,
+> isolated on a flat solid light sky-blue background (#8EC9E8), no gradient, no text, no frame
+
+Avoid: `outline, black outline, dark contour, line art, stroke, border, sticker, gradient background, white background, sun, birds, multiple clouds`
+
+Сохранять `docs/hangar/leonardo/cloud-<имя>.png`.
+
+| Файл | Промпт (перед хвостом для облаков) |
 |---|---|
 | `cloud-puffy.png` | single fluffy cartoon cumulus cloud shaped like a big round cauliflower, four soft puffs on top, flat bottom, cream-white top with soft grey-blue shading underneath, side view |
 | `cloud-wisp.png` | single long thin cartoon cloud stretched horizontally, wispy and soft, three small puffs in a row, pale cream with light lavender shading underneath, side view |
