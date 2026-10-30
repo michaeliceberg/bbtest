@@ -437,6 +437,11 @@ const StagePath = ({
     });
     const pts = xs.map((x, i) => ({ x, y: ys[i] }));
     const H = pts[n - 1].y + PATH_PAD;
+    // Гусь стоит слева от кружка (справа — названия уроков). Берём ряд рядом с текущим уроком, где кружок правее всего,
+    // — там слева больше места, и гусь встаёт на высоте этого кружка.
+    const petIdx = frontierIdx < 0 ? -1 : [frontierIdx - 1, frontierIdx, frontierIdx + 1]
+        .filter((k) => k >= 0 && k < n)
+        .reduce((best, k) => (pts[k].x > pts[best].x + 6 ? k : best), frontierIdx);
     // Контрольные точки каждого отрезка со своим «перекосом» — получаются петли и восьмёрки, а не одна и та же S-кривая.
     const segs = pts.slice(0, -1).map((a, i) => {
         const b = pts[i + 1];
@@ -661,12 +666,13 @@ const StagePath = ({
                                 )}
                             </div>
                         </div>
-                        {isFrontier && pet && !cheer && (
+                        {i === petIdx && pet && !cheer && (
                             <div
                                 className="absolute z-10"
                                 style={{
-                                    top: pct(i === n - 1 ? pt.y - PATH_ROW / 2 - 8 : pt.y + PATH_ROW / 2 + 10, H),
-                                    right: 0,
+                                    top: pct(pt.y, H),
+                                    // слева от кружка: справа от каждого кружка — название урока, там гусь с облачком давал кашу
+                                    left: -10,
                                     transform: 'translateY(-50%)',
                                 }}
                             >
