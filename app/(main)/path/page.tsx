@@ -43,7 +43,7 @@ const PathPage = async () => {
     const weeklyCard = <WeeklyGrowthCard w={weekly} inviteUrl={getInviteLink(invite?.code, undefined, 'math')} />
     const diagCardOnly = doneDiag ? null : <DiagnosticIntro variant="card" questionsCount={diagTasks} resume={lastDiag.status === 'active'} />
     const diagCard = <>{diagCardOnly}{weeklyCard}</>
-    return <EgePath key={`${userProgress.targetVuz}-${userProgress.egeTarget}`} vuzId={userProgress.targetVuz ?? null} map={map} target={userProgress.egeTarget ?? null} activeMoveId={active?.id ?? null} unclaimedCase={unclaimed} diagCard={diagCard} hangar={<HangarScene items={hangarItems} layout={hangarLayout} catStage={userProgress.catStage} />} />
+    return <EgePath key={`${userProgress.targetVuz}-${userProgress.egeTarget}`} vuzId={userProgress.targetVuz ?? null} map={map} target={userProgress.egeTarget ?? null} activeMoveId={active?.id ?? null} unclaimedCase={unclaimed} diagCard={diagCard} hangar={<HangarScene items={hangarItems} layout={hangarLayout} catStage={userProgress.catStage} catFridgeFixed={userProgress.catFridgeFixed} />} />
 }
 
 export default PathPage

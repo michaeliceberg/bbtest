@@ -101,6 +101,21 @@
 | `cat-sausage.jpg` | one pink boiled sausage with a string knot at the end, slightly bent | Для кнопки «Подманить колбаской» и полёта к котику |
 | `cat-fridge.jpg` | small old rounded retro mini fridge, cream colour with a chrome handle on the right side of the door, a few small magnets, an EMPTY white paper label taped on the door, standing on the floor, **three-quarter view from the front-left and slightly from above, the left side panel of the fridge clearly visible, the top surface slightly visible, same perspective as the hangar floor in the reference** | Табличку «для Мурзика» наложу кодом. Первая версия вышла строго спереди (лежит в `cat-fridge-front.png`) — для ракурса добавь Image Guidance с предметом ангара в перспективе, например `public/hangar/07-after.webp` (компьютер), сила 0.3–0.4 (только ракурс, не форма). В Avoid: `front view, flat, orthographic, symmetrical` |
 
+### Сломанный холодильник (2026-10-31)
+
+Делать **правкой готового** `docs/hangar/leonardo/freezer.png`: FLUX.1 Kontext → Add Image = freezer.png, сила высокая
+(0.75–0.85), чтобы ракурс, форма и размер совпали с целым (при починке картинка просто меняется на месте).
+Фон не убирать — вырежу сам. Сохранить как `docs/hangar/leonardo/cat-fridge-broken.png`.
+
+> the same small retro mini fridge, exactly the same shape, angle, size and position, but old and broken: the door hangs
+> slightly open and crooked on one hinge, one hinge is loose, the chrome handle is bent and half fallen off, dents and
+> scratches on the side, rust spots and dirty stains, faded and yellowed cream paint, a strip of grey duct tape over a
+> crack, a tangled power cord with an unplugged plug lying on the floor, a few magnets missing, the paper note is gone,
+> a small puddle of water under it, dusty, cartoon illustration, thick uneven dark-brown outlines, muted dusty colours,
+> flat cel shading with soft texture, isolated on pure white background, no text, no letters
+
+Avoid: `different angle, front view, new fridge, open food inside, text, letters, fire, smoke, explosion, background scenery, multiple objects`
+
 ## Небо, погода, облака (2026-10-30)
 
 Небо в окне сейчас нарисовано прямо в фоне ангара. Чтобы оно менялось, сделаем отдельную «плиту неба» под окном

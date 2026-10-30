@@ -13,7 +13,7 @@ import { RepairIcon } from '@/components/repair-icon'
 import { HangarScene, type SceneItem } from '@/components/hangar-scene'
 import type { LayoutOverrides } from '@/lib/hangarModel'
 
-export function HangarEntry({ items, layout, catStage = 0, openOnLoad = false }: { items: SceneItem[]; layout?: LayoutOverrides | null; catStage?: number; openOnLoad?: boolean }) {
+export function HangarEntry({ items, layout, catStage = 0, catFridgeFixed = false, openOnLoad = false }: { items: SceneItem[]; layout?: LayoutOverrides | null; catStage?: number; catFridgeFixed?: boolean; openOnLoad?: boolean }) {
     // /learn?hangar=1 (ссылка из оповещения «кто-то мяучит») — ангар открывается сразу
     const [open, setOpen] = useState(openOnLoad)
     const [mounted, setMounted] = useState(false)
@@ -33,7 +33,7 @@ export function HangarEntry({ items, layout, catStage = 0, openOnLoad = false }:
             <div className="relative h-full min-h-[150px] overflow-hidden rounded-2xl border-2 border-[#2A363C] bg-[#0F171B]">
                 {/* превью: сама сцена, чуть приглушённая, без нажатий */}
                 <div className="pointer-events-none absolute left-0 right-0 top-1/2 -translate-y-1/2 opacity-80" aria-hidden>
-                    <HangarScene items={items} layout={layout} catStage={catStage} bare />
+                    <HangarScene items={items} layout={layout} catStage={catStage} catFridgeFixed={catFridgeFixed} bare />
                 </div>
                 <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(closest-side, rgba(15,23,27,0.15), rgba(15,23,27,0.65))' }} />
                 <div className="relative flex h-full flex-col items-center justify-center gap-2 p-2">
@@ -57,7 +57,7 @@ export function HangarEntry({ items, layout, catStage = 0, openOnLoad = false }:
                         style={{ filter: 'blur(36px) brightness(0.55) saturate(1.2)' }} />
                     <div className="pointer-events-none fixed inset-0" style={{ background: 'radial-gradient(ellipse at 50% 40%, rgba(15,23,27,0) 30%, rgba(15,23,27,0.75) 100%)' }} />
                     <div className="relative mx-auto w-full max-w-xl px-4 pb-10 pt-4">
-<HangarScene items={items} layout={layout} catStage={catStage} onClose={() => setOpen(false)} />
+<HangarScene items={items} layout={layout} catStage={catStage} catFridgeFixed={catFridgeFixed} onClose={() => setOpen(false)} />
                     </div>
                 </div>,
                 document.body,

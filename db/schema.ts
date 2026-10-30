@@ -73,6 +73,7 @@ export const userProgress = pgTable('user_progress', {
 	targetVuz: text('target_vuz'),
 	// Котик в ангаре (components/hangar-cat.tsx): 0 — нет, 1 — мяукает у входа (после первой задачи задачника), 2 — живёт на картонке.
 	catStage: integer('cat_stage').notNull().default(0),
+	catFridgeFixed: boolean('cat_fridge_fixed').notNull().default(false), // холодильник котика починен (999 монет)
 	catName: text('cat_name'),
 	userImageSrc: text('user_image_src').notNull().default('/mascot.svg'),
 	activeCourseId: integer('active_course_id').references(() => courses.id, { onDelete: 'cascade' }),

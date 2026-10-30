@@ -14,7 +14,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { bringCatHome } from '@/actions/cat'
+import { bringCatHome, fixCatFridge } from '@/actions/cat'
 import { useAchievementUnlockStore } from '@/store/use-achievement-unlock-store'
 import { playSound, playJustClick, CASE_PRIZE_SOUND } from '@/lib/sound'
 
@@ -109,17 +109,53 @@ function Cardboard() {
     )
 }
 
-/** Мини-холодильник котика рядом с коробкой (Leonardo, cat-fridge). На пустой бумажке — подпись кодом
- *  (потом — имя котика: «для Мурзика»). Бумажка на картинке: 66–92% по ширине, 37–56% по высоте. */
+/** Мини-холодильник котика рядом с коробкой (Leonardo, cat-fridge). Сначала он сломан — чинится за FRIDGE_COST монет
+ *  (actions/cat.ts fixCatFridge, user_progress.cat_fridge_fixed). Сломанный — cat-fridge-broken.webp, пока его нет —
+ *  та же картинка, потускневшая и перекошенная. На пустой бумажке починенного — подпись кодом (потом имя котика).
+ *  Бумажка на картинке: 66–92% по ширине, 37–56% по высоте. */
 const FRIDGE = { x: 655, y: 846, w: 108, h: 131 }
-function Fridge({ label = 'для котика' }: { label?: string }) {
+export const FRIDGE_COST = 999
+const HAS_BROKEN_ART = false // положить public/hangar/life/cat-fridge-broken.webp и поставить true
+function Fridge({ fixed, label = 'для котика', onClick, justFixed }: { fixed: boolean; label?: string; onClick?: () => void; justFixed?: boolean }) {
+    const broken = !fixed
     return (
-        <div className="pointer-events-none absolute select-none"
-            style={{ left: pct(FRIDGE.x - FRIDGE.w / 2), top: pct(FRIDGE.y - FRIDGE.h), width: pct(FRIDGE.w), height: pct(FRIDGE.h), zIndex: 204 }}>
+        <button type="button" disabled={!onClick} onClick={onClick} aria-label={broken ? 'Сломанный холодильник' : 'Холодильник котика'}
+            className={`absolute select-none ${onClick ? 'cursor-pointer' : 'pointer-events-none'}`}
+            style={{ left: pct(FRIDGE.x - FRIDGE.w / 2), top: pct(FRIDGE.y - FRIDGE.h), width: pct(FRIDGE.w), height: pct(FRIDGE.h), zIndex: 204,
+                rotate: broken && !HAS_BROKEN_ART ? '-5deg' : undefined, transformOrigin: '30% 100%', animation: justFixed ? 'hangar-pop .6s ease-out' : undefined }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/hangar/life/cat-fridge.webp" alt="" draggable={false} className="absolute inset-0 h-full w-full" />
-            <span className="absolute flex items-center justify-center text-center font-black leading-[1.05] text-[#5A3A22]"
-                style={{ left: '67%', top: '39%', width: '24%', height: '16%', fontSize: '1.3cqw', rotate: '-4deg' }}>{label}</span>
+            <img src={broken && HAS_BROKEN_ART ? '/hangar/life/cat-fridge-broken.webp' : '/hangar/life/cat-fridge.webp'} alt="" draggable={false}
+                className="absolute inset-0 h-full w-full"
+                style={{ filter: broken && !HAS_BROKEN_ART ? 'grayscale(0.75) brightness(0.72) sepia(0.25)' : undefined }} />
+            {!broken && (
+                <span className="absolute flex items-center justify-center text-center font-black leading-[1.05] text-[#5A3A22]"
+                    style={{ left: '67%', top: '39%', width: '24%', height: '16%', fontSize: '1.3cqw', rotate: '-4deg' }}>{label}</span>
+            )}
+        </button>
+    )
+}
+
+/** Окошко «Починить холодильник за 999 монет» над холодильником. */
+function FridgePanel({ pending, noCoins, onFix, onClose }: { pending: boolean; noCoins: boolean; onFix: () => void; onClose: () => void }) {
+    return (
+        <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: pct(FRIDGE.x - 40), top: pct(FRIDGE.y - FRIDGE.h - 8), zIndex: 1185 }}>
+            <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 18 }}
+                className="w-[44cqw] rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-[2cqw] text-center shadow-xl sm:w-[36cqw]">
+                <div className="text-[3.2cqw] font-black text-[#F2C35B] sm:text-[2.6cqw]">Холодильник сломан</div>
+                <div className="mt-[0.6cqw] text-[2.7cqw] font-bold leading-snug text-[#C9D3D9] sm:text-[2.2cqw]">
+                    {noCoins ? 'Не хватает монет — реши ещё задач, амиго!' : 'Котику негде хранить молоко. Починим?'}
+                </div>
+                <div className="mt-[1.4cqw] flex gap-[1.2cqw]">
+                    <button type="button" onClick={onClose}
+                        className="flex-1 rounded-xl border-b-4 border-[#0E1418] bg-[#26333B] py-[1.2cqw] text-[2.8cqw] font-black text-[#C9D3D9] active:border-b-0 sm:text-[2.2cqw]">
+                        Потом
+                    </button>
+                    <button type="button" onClick={onFix} disabled={pending}
+                        className="flex-[1.4] rounded-xl border-b-4 border-[#B8862E] bg-[#FFE58A] py-[1.2cqw] text-[2.8cqw] font-black text-[#3A2A08] active:border-b-0 disabled:opacity-60 sm:text-[2.2cqw]">
+                        Починить · {FRIDGE_COST} 🪙
+                    </button>
+                </div>
+            </motion.div>
         </div>
     )
 }
@@ -130,8 +166,10 @@ const Sausage = ({ size = 9 }: { size?: number }) => (
     <img src="/hangar/life/cat-sausage.webp" alt="" draggable={false} className="block select-none" style={{ width: `${size}cqw` }} />
 )
 
-export function HangarCat({ stage, bare, night, onHome }: {
+export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false }: {
     stage: number
+    /** Холодильник котика починен (user_progress.cat_fridge_fixed). */
+    fridgeFixed?: boolean
     /** Превью на плитке: без нажатий и облачков. */
     bare?: boolean
     night?: boolean
@@ -146,6 +184,22 @@ export function HangarCat({ stage, bare, night, onHome }: {
     const [meowShown, setMeowShown] = useState(true)
     const reactKey = useRef(0)
     const router = useRouter()
+    const [fridgeOk, setFridgeOk] = useState(fridgeFixed)
+    const [fridgeOpen, setFridgeOpen] = useState(false)
+    const [fridgeBusy, setFridgeBusy] = useState(false)
+    const [noCoins, setNoCoins] = useState(false)
+    const [fridgeJust, setFridgeJust] = useState(false)
+    useEffect(() => { if (fridgeFixed) setFridgeOk(true) }, [fridgeFixed])
+    const fixFridge = async () => {
+        playJustClick()
+        setFridgeBusy(true)
+        const r = onHome ? { ok: true } : await fixCatFridge()
+        setFridgeBusy(false)
+        if (!r.ok) { setNoCoins(true); return }
+        setFridgeOk(true); setFridgeOpen(false); setFridgeJust(true); playSound(CASE_PRIZE_SOUND)
+        setTimeout(() => setFridgeJust(false), 1500)
+        if (!onHome) router.refresh()
+    }
 
     useEffect(() => { if (stage >= 2) setPhase((p) => (p === 'peek' ? 'home' : p)) }, [stage])
 
@@ -270,7 +324,8 @@ export function HangarCat({ stage, bare, night, onHome }: {
     const allSit: Pose[] = ['sit', 'sit-half', 'sit-closed', 'happy', 'pet', 'meow', 'sleep']
     return (
         <>
-            <Fridge />
+            <Fridge fixed={fridgeOk} justFixed={fridgeJust} onClick={!bare && !fridgeOk ? () => { playJustClick(); setNoCoins(false); setFridgeOpen((v) => !v) } : undefined} />
+            {!bare && !fridgeOk && fridgeOpen && <FridgePanel pending={fridgeBusy} noCoins={noCoins} onFix={fixFridge} onClose={() => setFridgeOpen(false)} />}
             <Cardboard />
             <button type="button" aria-label="Котик" disabled={bare}
                 className="absolute cursor-pointer disabled:cursor-default"
