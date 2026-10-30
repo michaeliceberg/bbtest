@@ -23,7 +23,7 @@ type Props = {
     xp: number;
     // Сколько файлов lvlN.json лежит в public/Lottie/lvl/ (lib/lvl-lottie.ts).
     lvlLottieCount: number;
-    variant?: 'compact' | 'full';
+    variant?: 'compact' | 'full' | 'half';
     theme?: UiTheme;
     // Неоткрытый кейс за уровень (lib/levelCase.ts:getPendingLevelCase).
     levelCase?: { keyId: number; level: number } | null;
@@ -60,6 +60,73 @@ export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact', levelCase =
     const [openingCase, setOpeningCase] = useState(false);
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
+
+
+    const casePortal = (
+        <>
+            {mounted && openingCase && levelCase && createPortal(
+                <div className="fixed inset-0 z-[90] overflow-y-auto bg-[#131D22]">
+                    <CaseReel
+                        isMega
+                        tier="rare"
+                        pool={getLessonCasePool('rare')}
+                        spinAction={() => openKeyCase(levelCase.keyId)}
+                        onDone={() => {
+                            setOpeningCase(false);
+                            router.refresh();
+                        }}
+                    />
+                </div>,
+                document.body,
+            )}
+        </>
+    );
+
+    // Половина ширины (на /learn рядом с плиткой ангара): всё в колонку и мельче.
+    if (variant === 'half') {
+        return (
+            <div className="flex h-full flex-col rounded-2xl border-2 border-[#2A363C] bg-[#161F23] p-2.5">
+                <div className="flex items-center gap-2">
+                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-[#0F171B]"
+                        style={{ boxShadow: `inset 0 2px 0 rgba(0,0,0,0.35), 0 0 0 2px ${VIOLET}55` }}>
+                        {mascotData && <Lottie animationData={mascotData} loop autoplay />}
+                    </div>
+                    <span className="min-w-0 flex-1 text-[15px] font-black uppercase leading-tight text-[#F2F7FB]">Ур. {level}</span>
+                    <span className="flex shrink-0 flex-col items-center" title={`Награда за ур. ${nextLevel}`}>
+                        {nextHasCase ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src="/chests/rare0001.svg" alt="Редкий кейс" className="h-7 w-7 object-contain" />
+                        ) : (
+                            <Gem className="h-5 w-5 text-[#8FA6FF]" />
+                        )}
+                        <span className="text-[10px] font-black leading-none" style={{ color: nextHasCase ? RARE : '#8FA6FF' }}>+{LEVEL_UP_GEM_REWARD}</span>
+                    </span>
+                </div>
+                <div className="mt-2 rounded-md bg-[#0F171B] p-[2px]" style={{ boxShadow: 'inset 0 2px 0 rgba(0,0,0,0.35)' }}>
+                    <div className="relative h-3 overflow-hidden rounded-[4px] bg-[#26333B]">
+                        {progressPercent > 0 && (
+                            <div className="absolute inset-y-0 left-0 rounded-[4px] transition-[width] duration-700"
+                                style={{ width: `${Math.max(progressPercent, 6)}%`, background: 'linear-gradient(180deg, #C385F7, #9C6AC6)' }} />
+                        )}
+                        <div className="pointer-events-none absolute inset-x-0 top-0 h-1/3 bg-white/10" />
+                    </div>
+                </div>
+                <p className="mt-1 text-[11px] font-bold leading-tight text-[#72838D]">
+                    Ещё <span className="text-[#C4B5FD]">{xpLeft} XP</span> до ур. {nextLevel}
+                </p>
+                {levelCase && (
+                    <button type="button" onClick={() => setOpeningCase(true)}
+                        title={`Редкий кейс за уровень ${levelCase.level}`} className="mt-auto flex w-full items-center gap-1.5 rounded-xl border-2 border-b-4 px-2 py-1.5 text-left active:border-b-0"
+                        style={{ borderColor: `${RARE}99`, borderBottomColor: '#0090BB', background: 'linear-gradient(90deg, rgba(0,197,255,0.18), rgba(0,197,255,0.05))', marginTop: 8 }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/chests/rare0001.svg" alt="" className="h-7 w-7 shrink-0 object-contain animate-chest-idle-bounce" />
+                        <span className="min-w-0 flex-1 text-[12px] font-black uppercase leading-tight text-[#7FE0FF]">Открыть</span>
+                    </button>
+                )}
+                {casePortal}
+            </div>
+        );
+    }
 
     return (
         <div className={`rounded-2xl border-2 border-[#2A363C] bg-[#161F23] ${isFull ? 'p-5 mb-8' : 'p-3'}`}>
@@ -125,7 +192,7 @@ export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact', levelCase =
                 <button
                     type="button"
                     onClick={() => setOpeningCase(true)}
-                    className="mt-3 flex w-full items-center gap-3 rounded-xl border-2 border-b-4 px-3 py-2 text-left active:translate-y-[2px] active:border-b-2"
+                    className="mt-3 flex w-full items-center gap-3 rounded-xl border-2 border-b-4 px-3 py-2 text-left active:border-b-0"
                     style={{ borderColor: `${RARE}99`, borderBottomColor: '#0090BB', background: 'linear-gradient(90deg, rgba(0,197,255,0.18), rgba(0,197,255,0.05))' }}
                 >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -140,21 +207,7 @@ export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact', levelCase =
                 </button>
             )}
 
-            {mounted && openingCase && levelCase && createPortal(
-                <div className="fixed inset-0 z-[90] overflow-y-auto bg-[#131D22]">
-                    <CaseReel
-                        isMega
-                        tier="rare"
-                        pool={getLessonCasePool('rare')}
-                        spinAction={() => openKeyCase(levelCase.keyId)}
-                        onDone={() => {
-                            setOpeningCase(false);
-                            router.refresh();
-                        }}
-                    />
-                </div>,
-                document.body,
-            )}
+            {casePortal}
         </div>
     );
 };

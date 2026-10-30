@@ -34,6 +34,10 @@ import { LearnWrapper } from '@/components/learn-wrapper';
 import { ScrollToLesson } from '@/components/scroll-to-lesson';
 import { getPendingLevelCase } from '@/lib/levelCase';
 import { LevelCard } from '@/components/level-card';
+import { HangarEntry } from '@/components/hangar-entry';
+import { getHangarItems } from '@/lib/hangar';
+import { getEgeMap } from '@/lib/egeMap';
+import { getHangarLayout } from '@/actions/hangar-layout';
 import { getLvlLottieCount } from '@/lib/lvl-lottie';
 import { StreakRiskBanner } from '@/components/streak-risk-banner';
 import { TrainerQuestCard } from '@/components/trainer-quest-card';
@@ -375,6 +379,10 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string } })
   // Темы тренажёра — «каркас» для каждого задания ЕГЭ (кнопки в разделе и медали над плитками).
   const levelCase = await getPendingLevelCase(userId)
   const trainerKeys = activeCourse.title.includes('ЕГЭ Математика') ? await getTrainerKeysByTask(userId) : {}
+  // Ангар («Мой путь») — только у ЕГЭ Математики: плитка справа от карточки уровня.
+  const [hangarItems, hangarLayout] = activeCourse.title.includes('ЕГЭ Математика')
+    ? await Promise.all([getEgeMap(userId, 'math_profile').then((m) => getHangarItems(userId, m)), getHangarLayout()])
+    : [null, null]
 
   // Раскрыт только один раздел: по умолчанию — где решали последним, иначе первый открытый непройденный.
   const defaultOpenUnitId: number | null =
@@ -458,7 +466,13 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string } })
             <StreakRiskBanner streak={currentStreak} hasExtendedToday={hasExtendedStreakToday} freezes={userProgress.streakFreezes} gems={userProgress.gems} />
 
             {/* Уровень на задачнике не показываем (он и так в шапке) — только если ждёт кейс за уровень, чтобы его можно было открыть */}
-            {levelCase && (
+            {hangarItems ? (
+              // ЕГЭ Математика: слева уровень (пол-ширины), справа плитка «В ангар»
+              <div className='mb-4 grid grid-cols-2 gap-3'>
+                <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} levelCase={levelCase} variant='half' />
+                <HangarEntry items={hangarItems} layout={hangarLayout} />
+              </div>
+            ) : levelCase && (
               <div className='mb-4'>
                 <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} levelCase={levelCase} />
               </div>

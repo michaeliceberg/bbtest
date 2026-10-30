@@ -64,8 +64,10 @@ export type HangarTime = Time
  * onFix / time / decorFixed — для тестовой страницы /test-hangar: починка без сервера, своё время суток,
  * состояние портрета вручную. В приложении не передаются.
  */
-export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed }: {
+export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed, bare = false }: {
     items: SceneItem[]; layout?: LayoutOverrides | null; onFix?: (num: number) => void; time?: Time; decorFixed?: boolean
+    /** Только сама картинка ангара — без заголовка и подсказок снизу (превью на /learn). */
+    bare?: boolean
 }) {
     const router = useRouter()
     const [pending, start] = useTransition()
@@ -134,12 +136,12 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     const label = (i: SceneItem) => (i.num >= 14 ? ROCKET_STEP[Math.min(6, stage)] : FIX_LABEL[i.num] ?? 'Починить')
 
     return (
-        <div className="mt-6 lg:mt-0">
+        <div className={bare ? '' : 'mt-6 lg:mt-0'}>
             <style>{`@keyframes hangar-pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:scale(1)}}`}</style>
-            <div className="mb-2 flex items-baseline justify-between">
+            {!bare && <div className="mb-2 flex items-baseline justify-between">
                 <h2 className="text-lg font-black text-[#F2F7FB]">Ангар Команданте</h2>
                 <span className="text-xs font-bold text-[#9AA7B0]">починено {fixedCount}/20</span>
-            </div>
+            </div>}
             <div className="relative aspect-square w-full overflow-hidden rounded-2xl border-2 border-[#2C3A41]" style={{ containerType: 'inline-size' }}>
                 {/* все слои сцены — в одной обёртке: при выборе задания она плавно приближается к предмету */}
                 <div className="absolute inset-0"
@@ -178,7 +180,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     onClick={() => { if (nextRocket) openTask(nextRocket.num) }}
                     onMouseEnter={() => { if (nextRocket) setHover(nextRocket.num) }} onMouseLeave={() => setHover(null)}
                     style={{ ...placeStyle(R), filter: nextRocket && lit(nextRocket.num) ? HIGHLIGHT : undefined, transition: 'filter .25s', animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
-                {nextRocket && <KeyBadge x={R.x + R.w * 0.42} y={R.y - R.h * 0.55} n={nextRocket.num} ready={!!readyRocket} active={lit(nextRocket.num)} onHover={setHover} onOpen={openTask} />}
+                {nextRocket && !bare && <KeyBadge x={R.x + R.w * 0.42} y={R.y - R.h * 0.55} n={nextRocket.num} ready={!!readyRocket} active={lit(nextRocket.num)} onHover={setHover} onOpen={openTask} />}
                 {room.filter((i) => i.num !== FAN_NUM).map((i) => {
                     const done = i.state === 'fixed'
                     const sl = done ? L[i.num].a : L[i.num].b
@@ -193,7 +195,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                                 onClick={() => openTask(i.num)}
                                 onMouseEnter={() => { if (!done) setHover(i.num) }} onMouseLeave={() => setHover(null)}
                                 style={{ ...placeStyle(p), filter: !done && lit(i.num) ? HIGHLIGHT : undefined, transition: 'filter .25s', animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
-                            {!done && <KeyBadge x={p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready'} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
+                            {!done && !bare && <KeyBadge x={p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready'} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
                         </div>
                     )
                 })}
@@ -202,7 +204,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                         <HangarFan broken={fan.state !== 'fixed'} />
                     </div>
                 )}
-                {fan && fan.state !== 'fixed' && <KeyBadge x={FAN.x} y={FAN.top + FAN.motorH + 46} n={FAN_NUM} ready={fan.state === 'ready'} active={lit(FAN_NUM)} onHover={setHover} onOpen={openTask} />}
+                {fan && fan.state !== 'fixed' && !bare && <KeyBadge x={FAN.x} y={FAN.top + FAN.motorH + 46} n={FAN_NUM} ready={fan.state === 'ready'} active={lit(FAN_NUM)} onHover={setHover} onOpen={openTask} />}
                 <div className="pointer-events-none absolute inset-0 transition-[background] duration-700" style={{ background: TIME_TINT[time], mixBlendMode: 'multiply', zIndex: 1100 }} />
                 <div className="pointer-events-none absolute rounded-full transition-opacity duration-700"
                     style={{ left: pct(232 - 170), top: pct(415 - 170), width: pct(340), height: pct(340), opacity: lampOn ? (time === 'day' ? 0.55 : 0.9) : 0, background: 'radial-gradient(closest-side, rgba(255,200,110,0.55), transparent)', mixBlendMode: 'screen', zIndex: 1101 }} />
@@ -238,7 +240,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 )}
             </div>
 
-            {ready.length > 0 ? (
+            {bare ? null : ready.length > 0 ? (
                 <div className="mt-3 space-y-2">
                     <p className="text-sm font-black text-[#F2C35B]">Раздел решён — наводи порядок!</p>
                     {ready.map((i) => (
