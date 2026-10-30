@@ -43,6 +43,15 @@
 
 В Avoid для неба: `sky background, blue background, landscape, horizon, multiple clouds, text`.
 
+## Табличка «Наш ангар» (шапка окна ангара)
+
+Сейчас табличка нарисована CSS (components/wood-sign.tsx) и выглядит «чужой» рядом с картинкой ангара. Нужна пустая
+доска в стиле ангара, надпись «НАШ АНГАР» наложу кодом (Leonardo пишет буквы криво).
+
+| Файл | Промпт (перед хвостом стиля) | Заметки |
+|---|---|---|
+| `sign-board.jpg` | old empty wooden sign board nailed together from two horizontal planks, seen straight from the front, wide and short (about 4:1), warm muted brown wood with visible grain, small knots and scratches, slightly chipped corners, four dark iron nails at the ends of the planks, a thin darker wooden frame, worn and dusty like in an old military hangar, flat and level, not tilted | **Пустая, без букв.** Формат картинки 16:9, сама доска вытянутая. В Avoid добавить: `perspective, angled view, sign post, hanging chains, ropes, paint, carved letters`. Образец стиля — `docs/hangar/bg-empty.jpg` (сила средняя). Цвет дерева — как балки под потолком ангара |
+
 ## Что сделаю после
 
 - Уберу из `docs/hangar/leonardo/` фон, приведу кадры к одному размеру и выравниванию (как кадры гуся на /trainer).

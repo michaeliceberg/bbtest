@@ -172,15 +172,12 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
         <div className={bare ? '' : 'mt-6 lg:mt-0'}>
             <style>{`@keyframes hangar-pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:scale(1)}}`}</style>
             {!bare && (
-                // Шапка в одну строку: по центру деревянная табличка «Наш ангар» и ключ «N/20», справа крестик (если окно)
-                <div className="mb-3 grid grid-cols-[2.5rem_1fr_2.5rem] items-center">
-                    <span />
-                    <div className="flex items-center justify-center gap-2.5">
-                        <WoodSign>Наш ангар</WoodSign>
-                        <span className="flex items-center gap-1 text-sm font-black text-[#E8D9B8]" title="Починено">
-                            <RepairIcon className="h-4 w-4 text-[#F2C35B]" />{fixedCount}/20
-                        </span>
-                    </div>
+                // Шапка в одну строку: слева ключ «N/20», по центру табличка «Наш ангар», справа крестик (если окно)
+                <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                    <span className="flex items-center gap-1 justify-self-start text-sm font-black text-[#E8D9B8]" title="Починено">
+                        <RepairIcon className="h-4 w-4 text-[#F2C35B]" />{fixedCount}/20
+                    </span>
+                    <WoodSign>Наш ангар</WoodSign>
                     {onClose ? (
                         <button type="button" aria-label="Закрыть ангар" onClick={onClose}
                             className="justify-self-end rounded-xl border-2 border-b-4 border-[#2A363C] bg-[#161F23] p-2 text-[#C9D3D9] active:border-b-0">

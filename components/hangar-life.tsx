@@ -117,7 +117,7 @@ export function HangarSky({ time = 'day' }: { time?: 'day' | 'evening' | 'night'
 }
 
 /** Паучок бегает по балке под потолком — ЗА вентилятором (вентилятор z 900): лопасти и моторчик его перекрывают.
- *  Картинка — вид снизу, головой вверх; повёрнута головой по ходу (scaleX(-1) в анимации разворачивает её). */
+ *  Картинка — вид снизу, головой вверх; повёрнута головой по ходу; на разворотах анимация плавно поворачивает его на 180°. */
 export function HangarSpider() {
     return (
         <div className="hangar-spider pointer-events-none absolute" aria-hidden style={{ left: pct(230), top: pct(40), width: cq(52), zIndex: 850 }}>
