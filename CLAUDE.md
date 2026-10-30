@@ -15118,3 +15118,9 @@ transform/opacity, выключаются при reduced-motion. Окно анг
   (2) ангар: починенный компьютер (№7) — кнопка «Читать», архив вырезок на старой бумаге (`components/za-nauku-archive.tsx`);
   починенный робот (бывший «автомат», №4) — кнопка «Шутка», облачко над ним. До починки в окне задания подсказка, что откроется.
   Новые шутки — дописывать в lib/zaNauku.ts в конец своего раздела.
+- (2026-10-30, 2) Шутки по теме урока: `jokeTopicOf(unitTitle, lessonTitle)` в page.tsx → проп `jokeTopic` в TQUIZ →
+  `startLessonFun(topic)` (gaga-buddy). Тема шутки — по словам в тексте (`TOPIC_WORDS` в lib/zaNauku.ts); в 2 случаях из 3
+  «звезда» берёт шутку по теме (log, trig, calc, prob, geom, stereo, alg, func, elec, phys). Мини-игра «Словарь физтеха»
+  (`components/fiztech-dict-game.tsx`, слой в trainer-question.tsx): слово из «Крупиц» и 4 смешных значения, после 3+ верных
+  ответов в уроке с шансом 35% на верный ответ, не больше раза за урок, ошибка не в зачёт. Тест: на странице урока
+  `window.dispatchEvent(new Event('fiztech-dict-show'))`.

@@ -15,7 +15,8 @@ import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { GAGA_EMOTIONS, gagaAudio, gagaCaption, pickGagaLine, type GagaEvent } from '@/lib/gagaVoice'
 import { playSoundTracked } from '@/lib/sound'
-import { pickShortJoke, ZN_RUBRIC_TITLE, znSource, type ZnJoke } from '@/lib/zaNauku'
+import { pickShortJoke, setJokeTopic, ZN_RUBRIC_TITLE, znSource, type ZnJoke, type ZnTopic } from '@/lib/zaNauku'
+import { showDictGame } from '@/components/fiztech-dict-game'
 
 const EVENT = 'gaga-show'
 const VOICE_KEY = 'gagaVoice'
@@ -44,10 +45,26 @@ export const showGaga = (event: GagaEvent, opts?: { delayMs?: number; force?: bo
     else fire()
 }
 
+// Урок тренажёра: тема для шуток и «Словарь физтеха» (не больше раза за урок, после 3+ верных ответов).
+let lessonActive = false
+let lessonCorrect = 0
+let dictShown = false
+const DICT_CHANCE = 0.35
+export const startLessonFun = (topic: ZnTopic | null) => { lessonActive = true; lessonCorrect = 0; dictShown = false; setJokeTopic(topic) }
+export const endLessonFun = () => { lessonActive = false; setJokeTopic(null) }
+
 // Ответы: Га-Га приходит на каждый 4–6-й ответ. Возвращает true, если показался (мем-облачко тогда не нужно).
 let answers = 0
 let nextAt = 2 + Math.floor(Math.random() * 2)
 export const reportGagaAnswer = (correct: boolean): boolean => {
+    if (correct && lessonActive) {
+        lessonCorrect++
+        if (!dictShown && lessonCorrect >= 3 && Math.random() < DICT_CHANCE) {
+            dictShown = true
+            showDictGame()
+            return true
+        }
+    }
     answers++
     if (answers < nextAt) return false
     if (Date.now() - lastShownAt < MIN_GAP_MS) return false

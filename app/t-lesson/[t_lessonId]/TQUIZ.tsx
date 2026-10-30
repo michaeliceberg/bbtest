@@ -59,7 +59,7 @@ import { buildInviteMessage, battleButtonLabel } from "@/lib/inviteMessage"
 import { getInviteLink } from "@/lib/referral"
 import type { TrialSubject } from "@/lib/trialTracks"
 import { GuestVibePicker, GUEST_NICKNAME_STORAGE_KEY, GUEST_VIBES_STORAGE_KEY } from "@/components/guest-vibe-picker"
-import { reportGagaAnswer, showGaga, showGagaOncePerDay } from "@/components/gaga-buddy"
+import { reportGagaAnswer, showGaga, showGagaOncePerDay, startLessonFun, endLessonFun } from "@/components/gaga-buddy"
 
 // "Горячий вопрос" (questionType 'HOT', см. type-hot.tsx) — факультативный,
 // не входит в счёт/сердечки/работу над ошибками (см. handleAnswer). Везде,
@@ -140,11 +140,14 @@ function CaseWonBanner({ mega, reward, label }: { mega: boolean; reward: CaseRew
 }
 
 import { StormPill, type StormInfo } from '@/components/storm-pill'
+import type { ZnTopic } from '@/lib/zaNauku'
 import { StormStartScreen } from '@/components/storm-start-screen'
 
 type Props = {
   t_lessonId: number,
   t_lessonTitle: string,
+  // Тема урока для шуток «За науку» и «Словаря физтеха» (lib/zaNauku.ts jokeTopicOf)
+  jokeTopic?: ZnTopic | null,
   questions1: QuestionType[],
   userName: string,
   stage?: number | null,
@@ -183,6 +186,7 @@ export default function TQuiz({
 
   t_lessonId,
   t_lessonTitle,
+  jokeTopic = null,
   questions1,
   userName,
   stage,
@@ -200,6 +204,8 @@ export default function TQuiz({
   moveId,
   storm: stormInitial = null,
 }: Props) {
+  // Шутки «За науку» по теме урока и «Словарь физтеха» — на время урока
+  useEffect(() => { startLessonFun(jokeTopic); return () => endLessonFun() }, [jokeTopic, t_lessonId])
   const [stormInfo, setStormInfo] = useState<StormInfo | null>(stormInitial)
   const pendingStormStartRef = useRef(false)
   const [showStormStart, setShowStormStart] = useState(false)

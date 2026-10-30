@@ -54,6 +54,7 @@ export const ZN_JOKES: ZnJoke[] = [
         'Систему в необходимое состояние необходимо загонять с помощью приборов.',
         'В пределах ошибки эксперимента данная кривая вполне корректно описывает явление… Как, впрочем, и любая другая.',
         'Многообразие — это реальность, данная нам в размышлениях.',
+        'В «хороших домах» обычно берут натуральный логарифм данного выражения. Красота требует также, чтобы в левой части выражения стояла Σ.',
     ]),
     ...lec('1985–1989', [
         'Возьмём произвольное число n… Нет, мало — m!',
@@ -150,6 +151,7 @@ export const ZN_JOKES: ZnJoke[] = [
     { rubric: 'exam', source: '№ 25 (848), 1 сентября 1983 г.', text: '— Нет, вы мне объясните природу электричества.\n— Знаете, электрончики в металле бегают, прыгают. В общем, рай!' },
     { rubric: 'exam', source: '№ 21 (921), 7 июня 1985 г.', text: 'Дефект массы. Двое экзаменаторов спрашивают одного студента, чтобы успеть на обед. Через пять минут один говорит другому:\n— Он у тебя два балла заработал? И у меня тоже. В сумме — четыре.\n— Почему четыре? Пять!\n— Как пять?\n— А вот так, дефект массы!' },
     { rubric: 'exam', source: '№ 5 (253), 28 февраля 1968 г.', text: 'Преподаватель: Please, answer!\n1-й студент: Я забыл ответ по-русски!\nПреподаватель (другому): Please, answer you!\n2-й студент: Я забыл вопрос по-английски!' },
+    { rubric: 'exam', source: '№ 4 (867), 20 января 1984 г.', text: 'Что за абитуриенты пошли? Синус в ряд Фурье разложить не могут.' },
     { rubric: 'exam', source: '№ 25 (426), 15 сентября 1972 г.', text: '— Почему вы можете взять этот интеграл?\n— Конечно, по параметру.\n— Ну всё же, почему?\n— Ну, конечно же, по t.' },
 
     // —— Тропы науки, новости, объявления ——
@@ -175,13 +177,72 @@ export const ZN_JOKES: ZnJoke[] = [
 
 export const znSource = (j: ZnJoke) => `«За науку»${j.author ? `, ${j.author}` : ''}, ${j.source}`
 
-/** Короткие шутки — для облачка (стикер «звезды», робот): одна-две строки. */
-export const ZN_SHORT = ZN_JOKES.filter((j) => j.text.length <= 140 && !j.text.includes('\n'))
+// ── Темы: шутка в уроке подбирается по теме урока (если есть подходящие) ──
+export type ZnTopic = 'log' | 'trig' | 'calc' | 'prob' | 'geom' | 'stereo' | 'alg' | 'func' | 'elec' | 'phys'
 
-let lastShort = -1
+// Тема шутки — по словам в тексте. Новая тема или слово — дописать сюда.
+const TOPIC_WORDS: Record<ZnTopic, string[]> = {
+    log: ['логарифм'],
+    trig: ['синус', 'Синус', 'Фурье', 'тригоном'],
+    calc: ['интеграл', 'дифференц', 'проинтегр', 'бесконечно малые', 'ε', 'Монте-Карло', 'Сотрите'],
+    prob: ['вероятност', 'Монте-Карло', 'отказ', 'метод «тыка»'],
+    geom: ['треугольн', 'Эллипс', 'центр мира', 'вектор', 'Топология', 'тополог', 'Параметр'],
+    stereo: ['объём', 'параллелепипед', 'высоту 5-этажного'],
+    alg: ['2 + 3', 'число n', 'z² + 1', 'среднее арифметическое', 'разделите на ноль', 'параметра a', 'Ферма', 'индукци', 'Инкубатор', 'знаке', 'произвольное'],
+    func: ['кривая', 'Многообразие', 'дельта-функция', 'дельта'],
+    elec: ['электр', 'Электр', 'О Генри', 'туннельн'],
+    phys: ['Протон', 'молекул', 'Планка', 'колебан', 'холодильник', 'Ньютон', 'бозон', 'релаксац', 'космическ', 'камень', 'энерги', 'Природа', 'Химера', 'Импульс', 'гиббон', 'спутник', 'устройства', 'приборов'],
+}
+const topicsOf = (j: ZnJoke): ZnTopic[] => (Object.keys(TOPIC_WORDS) as ZnTopic[]).filter((t) => TOPIC_WORDS[t].some((w) => j.text.includes(w)))
+
+/** Тема урока по названию юнита и урока тренажёра (null — без темы, берём любую шутку). */
+export const jokeTopicOf = (unitTitle: string, lessonTitle = ''): ZnTopic | null => {
+    const t = `${unitTitle} ${lessonTitle}`.toLowerCase()
+    if (/логарифм/.test(t)) return 'log'
+    if (/производн|первообразн|интеграл/.test(t)) return 'calc'
+    if (/вероятн|случайн/.test(t)) return 'prob'
+    if (/сечени|ттп|перпендикуляр|стерео|куб|пирамид|плоскост/.test(t)) return 'stereo'
+    if (/тригонометр|приведени|записать ответ|sin|cos|таблица 30/.test(t)) return 'trig'
+    if (/треугольн|окружност|менела|подоби|площад|планиметр/.test(t)) return 'geom'
+    if (/график|прямая|парабол|y = kx/.test(t)) return 'func'
+    if (/степен|корн|пропорц|виет|алгебр|уравнен/.test(t)) return 'alg'
+    if (/электр|магнит|фараде|ленц|ток|заряд|кулон|направление поля/.test(t)) return 'elec'
+    if (/динамик|кинемат|газ|оптик|квант|физик|нагрев/.test(t)) return 'phys'
+    return null
+}
+
+// Текущая тема урока: ставит урок тренажёра (TQUIZ) при открытии, сбрасывает при уходе.
+let currentTopic: ZnTopic | null = null
+export const setJokeTopic = (t: ZnTopic | null) => { currentTopic = t }
+
+/** Короткие шутки — для облачка (стикер «звезды», робот): одна-две строки. */
+export const ZN_SHORT = ZN_JOKES.filter((j) => j.text.length <= 170 && !j.text.includes('\n'))
+
+let lastShort = ''
+/** Короткая шутка; если идёт урок — в 2 случаях из 3 по его теме (для электричества годится и общая физика). */
 export const pickShortJoke = (): ZnJoke => {
-    let i = Math.floor(Math.random() * ZN_SHORT.length)
-    if (i === lastShort) i = (i + 1) % ZN_SHORT.length
-    lastShort = i
-    return ZN_SHORT[i]
+    const topical = currentTopic
+        ? ZN_SHORT.filter((j) => { const ts = topicsOf(j); return ts.includes(currentTopic!) || (currentTopic === 'elec' && ts.includes('phys')) })
+        : []
+    const pool = topical.length > 0 && Math.random() < 0.67 ? topical : ZN_SHORT
+    let j = pool[Math.floor(Math.random() * pool.length)]
+    if (j.text === lastShort && pool.length > 1) j = pool[(pool.indexOf(j) + 1) % pool.length]
+    lastShort = j.text
+    return j
+}
+
+// ── «Словарь физтеха»: слово — смешное значение из рубрики «Крупицы» ──
+export type ZnDictEntry = { word: string; mark: string; meaning: string; joke: ZnJoke }
+export const ZN_DICT: ZnDictEntry[] = ZN_JOKES.filter((j) => j.rubric === 'dict').map((j) => {
+    const [head, meaning] = j.text.split(' — ')
+    const m = head.match(/^(.+?)\s*\((.+)\)$/)
+    return { word: m ? m[1] : head, mark: m ? m[2] : '', meaning, joke: j }
+})
+
+/** Вопрос мини-игры: слово и 4 значения (одно верное, три — значения других слов словаря). */
+export const makeDictQuestion = () => {
+    const e = ZN_DICT[Math.floor(Math.random() * ZN_DICT.length)]
+    const others = ZN_DICT.filter((x) => x.meaning !== e.meaning).sort(() => Math.random() - 0.5).slice(0, 3).map((x) => x.meaning)
+    const options = [e.meaning, ...others].sort(() => Math.random() - 0.5)
+    return { entry: e, options }
 }

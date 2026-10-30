@@ -37,6 +37,7 @@ import { hasProFor, isTLessonFree } from "@/lib/pro";
 import db from "@/db/drizzle";
 import { and, asc, eq, gt } from "drizzle-orm";
 import { LESSON_CONTENT_UPDATED_AT } from "@/lib/lessonRating";
+import { jokeTopicOf } from "@/lib/zaNauku";
 
 // Единственный урок тренажёра, открытый анонимным (не залогиненным)
 // посетителям — бесплатная "пробная" воронка (см. обсуждение с
@@ -1993,6 +1994,7 @@ const LessonIdPage = async ({ params, searchParams }: Props) => {
             moveId={moveId}
             t_lessonId={t_lesson.id}
             t_lessonTitle={t_lesson.title}
+            jokeTopic={jokeTopicOf(t_lesson.t_unit.title, t_lesson.title)}
             questions1={questions}
             userName={isGuest ? guestNickname! : userProgress!.userName}
             isGuest={isGuest}
