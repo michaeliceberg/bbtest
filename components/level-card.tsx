@@ -93,14 +93,14 @@ export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact', levelCase =
                         {mascotData && <Lottie animationData={mascotData} loop autoplay />}
                     </div>
                     {/* «УР. 20 ——→ УР. 21»: стрелка тянется от уровня до уровня, над ней — сколько XP осталось */}
-                    <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                        <span className="shrink-0 text-[14px] font-black uppercase leading-none text-[#F2F7FB]">Ур. {level}</span>
-                        <span className="relative flex min-w-[24px] flex-1 items-center">
+                    <div className="flex min-w-0 flex-1 items-center gap-1.5 self-end pb-0.5">
+                        <span className="shrink-0 text-[18px] font-black uppercase leading-none text-[#F2F7FB]">Ур. {level}</span>
+                        <span className="relative flex w-10 shrink items-center">
                             <span className="absolute bottom-full left-1/2 mb-1 -translate-x-1/2 whitespace-nowrap text-[10px] font-black leading-none text-[#C4B5FD]">ещё {xpLeft} XP</span>
                             <span className="h-[2px] flex-1 rounded-full bg-[#72838D]" />
                             <span className="h-0 w-0 shrink-0 border-y-[5px] border-l-[7px] border-y-transparent border-l-[#72838D]" />
                         </span>
-                        <span className="flex shrink-0 items-center gap-0.5 text-[11px] font-black uppercase leading-none text-[#5C6B73]" title={`Награда за ур. ${nextLevel}: +${LEVEL_UP_GEM_REWARD} гемов${nextHasCase ? ' и редкий кейс' : ''}`}>
+                        <span className="flex shrink-0 items-center gap-0.5 text-[15px] font-black uppercase leading-none text-[#5C6B73]" title={`Награда за ур. ${nextLevel}: +${LEVEL_UP_GEM_REWARD} гемов${nextHasCase ? ' и редкий кейс' : ''}`}>
                             Ур. {nextLevel}
                             {nextHasCase && (
                                 // eslint-disable-next-line @next/next/no-img-element
@@ -121,16 +121,16 @@ export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact', levelCase =
                 {levelCase && (
                     // Стандартная объёмная кнопка: заливка + тёмная нижняя грань border-b-4, active:border-b-0
                     // (globals.css: грань исчезает, кнопка опускается на её высоту, блок не меняет высоту).
-                    <button type="button" onClick={() => setOpeningCase(true)}
-                        className="flex w-full items-center gap-2 rounded-xl border-b-4 px-2 py-1.5 text-left active:border-b-0"
-                        style={{ background: 'linear-gradient(180deg, #11506A, #0B3A4C)', borderBottomColor: '#062330' }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src="/chests/rare0001.svg" alt="" className="h-10 w-10 shrink-0 object-contain animate-chest-idle-bounce" />
-                        <span className="flex min-w-0 flex-col gap-0.5">
+                    <div className="flex items-center gap-2">
+                        <button type="button" onClick={() => setOpeningCase(true)}
+                            className="flex shrink-0 items-center gap-1.5 rounded-xl border-b-4 py-1 pl-1.5 pr-3 active:border-b-0"
+                            style={{ background: 'linear-gradient(180deg, #11506A, #0B3A4C)', borderBottomColor: '#062330' }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src="/chests/rare0001.svg" alt="" className="h-9 w-9 shrink-0 object-contain animate-chest-idle-bounce" />
                             <span className="text-[13px] font-black uppercase leading-none text-[#7FE0FF]">Открыть</span>
-                            <span className="text-[10px] font-bold leading-tight text-[#A9C7D3]">Кейс за<br />уровень {levelCase.level}</span>
-                        </span>
-                    </button>
+                        </button>
+                        <span className="min-w-0 text-[11px] font-bold leading-tight text-[#A9C7D3]">Кейс за<br />уровень {levelCase.level}</span>
+                    </div>
                 )}
                 {casePortal}
             </div>
