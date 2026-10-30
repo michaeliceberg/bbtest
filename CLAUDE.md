@@ -15124,3 +15124,10 @@ transform/opacity, выключаются при reduced-motion. Окно анг
   (`components/fiztech-dict-game.tsx`, слой в trainer-question.tsx): слово из «Крупиц» и 4 смешных значения, после 3+ верных
   ответов в уроке с шансом 35% на верный ответ, не больше раза за урок, ошибка не в зачёт. Тест: на странице урока
   `window.dispatchEvent(new Event('fiztech-dict-show'))`.
+- (2026-10-30, 3) «Крупица» (мини-игра словаря): после ответа слово распадается на части (`DICT_SPLIT` в lib/zaNauku.ts:
+  «Гор · шок» + подсказка), заголовок и фразы в духе физтеха + кубинские словечки + гусь (TITLES/RIGHT/WRONG/BACK в
+  components/fiztech-dict-game.tsx). Ответы — таблица `fiztech_dict_answers` (прямой SQL), `actions/fiztech-dict.ts`;
+  ачивки группы `krupitsy`: dict_first, dict_row3 (3 подряд), dict_10, dict_25, dict_all (все слова — кусочек пиццы).
+- Кукурузник в ангаре: одна анимация 64 с на оба пролёта, самолёт «туда»/«обратно» — две группы, видимость
+  переключает анимация (`.hangar-plane-fwd/back`), а не событие animationiteration (оно сбивалось — летел хвостом вперёд).
+- Карточка уровня `variant="half"` подстраивается под свою ширину через container query (`.lvl-half` в globals.css).

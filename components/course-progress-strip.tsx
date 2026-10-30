@@ -175,7 +175,7 @@ export function CourseProgressStrip({ units, defaultOpenId = null, trainerKeys =
                                                     <div className="absolute inset-x-0 top-0 h-1/3 bg-white/10" />
                                                 </div>
                                                 <span
-                                                    className={isSel ? 'mx-auto mt-0.5 block w-fit rounded px-1 text-center text-[10px] font-black leading-[13px] text-white' : 'mt-0.5 block text-center text-[9px] font-black leading-[13px]'}
+                                                    className={isSel ? 'mx-auto mt-0.5 block w-fit rounded px-1 text-center text-[10px] font-black leading-[13px] text-[#0F171B]' : 'mt-0.5 block text-center text-[9px] font-black leading-[13px]'}
                                                     style={isSel ? { background: c.button } : { color: u.isCompleted ? c.button : u.isUnlocked ? '#72838D' : '#3E4B52' }}
                                                 >
                                                     {cellLabel(u)}

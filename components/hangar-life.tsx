@@ -62,30 +62,40 @@ const PLANE = { w: 76, h: 35, hookX: 0.025, hookY: 0.67 }
 
 function PlaneWithBanner() {
     const [i, setI] = useState(0)
-    const text = BANNER_PHRASES[i % BANNER_PHRASES.length]
-    // Анимация alternate: чётный пролёт — слева направо, нечётный — справа налево (тогда кукурузник слева,
-    // отражён носом влево, транспарант тянется за ним справа; текст всегда читается). viewBox 290×48.
-    const toLeft = i % 2 === 1
+    // Одна анимация на оба пролёта (64 с): первая половина — слева направо, вторая — справа налево.
+    // Самолёт «туда» и «обратно» — две отдельные группы, их видимость переключает та же анимация по времени,
+    // поэтому кукурузник всегда летит носом вперёд (раньше направление считалось по событиям и сбивалось).
+    return (
+        <div className="hangar-plane absolute left-0" style={{ top: cq(70), width: cq(414) }}
+            onAnimationIteration={(e) => { if (e.animationName === 'hangar-plane-fly') setI((v) => v + 1) }}>
+            <svg viewBox="0 0 290 48" className="block w-full overflow-visible">
+                <g className="hangar-plane-fwd"><PlaneLeg toLeft={false} text={BANNER_PHRASES[(2 * i) % BANNER_PHRASES.length]} /></g>
+                <g className="hangar-plane-back"><PlaneLeg toLeft text={BANNER_PHRASES[(2 * i + 1) % BANNER_PHRASES.length]} /></g>
+            </svg>
+        </div>
+    )
+}
+
+// Один пролёт: справа налево кукурузник слева (отражён носом влево), транспарант тянется за ним справа;
+// текст всегда читается. viewBox 290×48.
+function PlaneLeg({ toLeft, text }: { toLeft: boolean; text: string }) {
     const bx = toLeft ? 84 : 0 // начало транспаранта
     const px = toLeft ? 0 : 210 // левый край картинки самолёта
     const hook = { x: toLeft ? px + PLANE.w * (1 - PLANE.hookX) : px + PLANE.w * PLANE.hookX, y: -8 + PLANE.h * PLANE.hookY }
     const bannerEnd = toLeft ? bx : bx + 206
     return (
-        <div className="hangar-plane absolute left-0" style={{ top: cq(70), width: cq(414) }}
-            onAnimationIteration={(e) => { if (e.animationName === 'hangar-plane-fly') setI((v) => v + 1) }}>
-            <svg viewBox="0 0 290 48" className="block w-full overflow-visible">
-                <path d={`M${hook.x} ${hook.y} Q${(hook.x + bannerEnd) / 2} ${hook.y + 8} ${bannerEnd} 23`} fill="none" stroke="#5A4A33" strokeWidth={1.3} />
-                {/* транспарант на тросе — колышется */}
-                <g className="hangar-banner-wave" style={{ transformOrigin: `${bannerEnd}px 23px` }}>
-                    <path d={`M${bx} 9 Q${bx + 52} 5 ${bx + 103} 9 T${bx + 206} 9 L${bx + 206} 37 Q${bx + 155} 41 ${bx + 103} 37 T${bx} 37 Z`} fill="#F4EEDC" stroke="#5A4A33" strokeWidth={1.6} />
-                    <path d={`M${bx + 3} 12 Q${bx + 52} 8 ${bx + 103} 12 T${bx + 203} 12`} fill="none" stroke="#C0392B" strokeWidth={1.2} opacity={0.6} />
-                    <text x={bx + 103} y="29" textAnchor="middle" fontSize="17" fontWeight={900} fill="#C0392B" style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>{text}</text>
-                </g>
-                <g transform={toLeft ? `translate(${px + PLANE.w} -8) scale(-1 1)` : `translate(${px} -8)`}>
-                    <image href="/hangar/life/biplane.webp" width={PLANE.w} height={PLANE.h} />
-                </g>
-            </svg>
-        </div>
+        <>
+            <path d={`M${hook.x} ${hook.y} Q${(hook.x + bannerEnd) / 2} ${hook.y + 8} ${bannerEnd} 23`} fill="none" stroke="#5A4A33" strokeWidth={1.3} />
+            {/* транспарант на тросе — колышется */}
+            <g className="hangar-banner-wave" style={{ transformOrigin: `${bannerEnd}px 23px` }}>
+                <path d={`M${bx} 9 Q${bx + 52} 5 ${bx + 103} 9 T${bx + 206} 9 L${bx + 206} 37 Q${bx + 155} 41 ${bx + 103} 37 T${bx} 37 Z`} fill="#F4EEDC" stroke="#5A4A33" strokeWidth={1.6} />
+                <path d={`M${bx + 3} 12 Q${bx + 52} 8 ${bx + 103} 12 T${bx + 203} 12`} fill="none" stroke="#C0392B" strokeWidth={1.2} opacity={0.6} />
+                <text x={bx + 103} y="29" textAnchor="middle" fontSize="17" fontWeight={900} fill="#C0392B" style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>{text}</text>
+            </g>
+            <g transform={toLeft ? `translate(${px + PLANE.w} -8) scale(-1 1)` : `translate(${px} -8)`}>
+                <image href="/hangar/life/biplane.webp" width={PLANE.w} height={PLANE.h} />
+            </g>
+        </>
     )
 }
 

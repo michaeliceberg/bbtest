@@ -52,6 +52,15 @@
 |---|---|---|
 | `sign-board.jpg` | old empty wooden sign board nailed together from two horizontal planks, seen straight from the front, wide and short (about 4:1), warm muted brown wood with visible grain, small knots and scratches, slightly chipped corners, four dark iron nails at the ends of the planks, a thin darker wooden frame, worn and dusty like in an old military hangar, flat and level, not tilted | **Пустая, без букв.** Формат картинки 16:9, сама доска вытянутая. В Avoid добавить: `perspective, angled view, sign post, hanging chains, ropes, paint, carved letters`. Образец стиля — `docs/hangar/bg-empty.jpg` (сила средняя). Цвет дерева — как балки под потолком ангара |
 
+### Вариант 2: технологичная вывеска (2026-10-30, предпочтительнее)
+
+Не просто доска, а самодельная «табличка-прибор», собранная механиками ангара. Надпись по-прежнему накладываем кодом,
+искры и мигание добавим кодом позже — в промпте их нет.
+
+| Файл | Промпт (перед хвостом стиля) | Заметки |
+|---|---|---|
+| `sign-tech.jpg` | handmade workshop sign plate for an old military aircraft hangar, seen straight from the front, wide and short (about 4:1), a dark riveted metal plate with a worn wooden frame, an empty recessed panel in the middle for text, small round indicator lamps and toggle switches on both ends, a little analog gauge in one corner, thick black cables and coloured wires coming out of the sides and hanging down in loops, a few cable ties and electrical tape patches, bolts in the corners, slightly rusty and dusty, cosy diy engineering look, muted olive, brown and brass colours, flat and level, not tilted | **Середина пустая, без букв и цифр.** Формат 16:9. В Avoid добавить: `text, letters, numbers, sparks, lightning, glow, neon, perspective, angled view, chains, sign post`. Образец стиля — `docs/hangar/bg-empty.jpg` или любой `public/hangar/NN-after.webp` (сила средняя) |
+
 ## Что сделаю после
 
 - Уберу из `docs/hangar/leonardo/` фон, приведу кадры к одному размеру и выравниванию (как кадры гуся на /trainer).

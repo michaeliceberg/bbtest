@@ -10,6 +10,7 @@ import { sql } from 'drizzle-orm';
 import { ACHIEVEMENT_BY_KEY, ACHIEVEMENTS, toDTO, type AchievementDTO } from '@/lib/achievementsCatalog';
 import { HIDDEN_T_COURSE_IDS } from '@/lib/trainer-topic';
 import { STEP_BY_STEP_CHALLENGE_TYPES } from '@/lib/trainerStageFlags';
+import { ZN_DICT } from '@/lib/zaNauku';
 
 type Row = Record<string, unknown>;
 const rows = async (q: ReturnType<typeof sql>) => (await db.execute(q)) as unknown as Row[];
@@ -180,6 +181,19 @@ export async function computeStateKeys(userId: string): Promise<string[]> {
 	if (num(U.n) >= 1) keys.push('unclear_first');
 	if (U.comment) keys.push('unclear_comment');
 	if (num(U.lessons) >= 5) keys.push('unclear_5');
+
+	// «Крупицы»: разные слова, угаданные с первой попытки; три верных подряд — по последним трём ответам
+	const dr = await rows(sql`
+		SELECT count(DISTINCT word) FILTER (WHERE correct) AS words,
+			(SELECT bool_and(correct) AND count(*) = 3 FROM (SELECT correct FROM fiztech_dict_answers
+				WHERE user_id = ${userId} ORDER BY created_at DESC LIMIT 3) t) AS row3
+		FROM fiztech_dict_answers WHERE user_id = ${userId}`);
+	const D = dr[0] ?? {};
+	if (num(D.words) >= 1) keys.push('dict_first');
+	if (D.row3) keys.push('dict_row3');
+	if (num(D.words) >= 10) keys.push('dict_10');
+	if (num(D.words) >= 25) keys.push('dict_25');
+	if (num(D.words) >= ZN_DICT.length) keys.push('dict_all');
 
 	// Медали юнитов — та же логика, что на карте и в меню (GetTUnitCompletionPercent): урок засчитан, если пройден
 	// с точностью ≥50%. Бронза — хоть один урок, серебро — половина, золото — все.

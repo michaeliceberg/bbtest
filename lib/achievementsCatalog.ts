@@ -4,7 +4,7 @@
 // через поле iconSrc), весёлое название и подпись. Без серверного кода — используется и на сервере
 // (выдача), и в браузере (тост, страница /achievements).
 
-export type AchievementGroup = 'start' | 'progress' | 'accuracy' | 'habit' | 'chests' | 'friends' | 'builds' | 'feedback' | 'medals' | 'storm';
+export type AchievementGroup = 'start' | 'progress' | 'accuracy' | 'habit' | 'chests' | 'friends' | 'builds' | 'feedback' | 'medals' | 'storm' | 'krupitsy';
 
 export type AchievementDef = {
 	key: string;
@@ -26,6 +26,7 @@ export const ACHIEVEMENT_GROUPS: { id: AchievementGroup; title: string; color: s
 	{ id: 'feedback', title: 'Помогаешь делать уроки', color: '#F09B38' },
 	{ id: 'medals', title: 'Медали юнитов', color: '#F0A818' },
 	{ id: 'storm', title: 'Штурм', color: '#FF6A1F' },
+	{ id: 'krupitsy', title: 'Крупицы физтеха', color: '#F2C35B' },
 ];
 
 const RAW_ACHIEVEMENTS: AchievementDef[] = [
@@ -108,6 +109,14 @@ const RAW_ACHIEVEMENTS: AchievementDef[] = [
 	{ key: 'storm_first', group: 'storm', emoji: '🔥', title: 'Штурмовик', desc: 'Взял штурм: 3 урока за 10 минут' },
 	{ key: 'storm_fast', group: 'storm', emoji: '⚡', title: 'Молния', desc: 'Взял штурм за 5 минут — задачи даже не поняли, что произошло' },
 	{ key: 'storm_5', group: 'storm', emoji: '👊', title: 'Ветеран штурмов', desc: 'Взял 5 штурмов' },
+
+	// «Крупицы» — мини-игра «Словарь физтеха» в тренировках (fiztech_dict_answers, actions/fiztech-dict.ts).
+	// Считаются РАЗНЫЕ слова, угаданные с первой попытки (повтор одного слова не фармит).
+	{ key: 'dict_first', group: 'krupitsy', emoji: '🧩', title: 'Чайхана? Нет, зачёт!', desc: 'Разгадал первое слово словаря физтеха' },
+	{ key: 'dict_row3', group: 'krupitsy', emoji: '🎯', title: '¡Bingo, амиго!', desc: 'Три «Крупицы» подряд без промаха' },
+	{ key: 'dict_10', group: 'krupitsy', emoji: '🗣️', title: 'Полиглот общаги', desc: 'Разгадал 10 разных слов' },
+	{ key: 'dict_25', group: 'krupitsy', emoji: '🪿', title: 'Гусь-лингвист', desc: 'Разгадал 25 разных слов — Команданте гогочет от гордости' },
+	{ key: 'dict_all', group: 'krupitsy', emoji: '📚', title: 'Ходячий словарь «За науку»', desc: 'Разгадал все слова словаря физтеха' },
 	{ key: 'medal_gold_5', group: 'medals', emoji: '🥇', iconSrc: '/medals/medal-gold.webp', title: 'Нужен сейф', desc: '5 золотых медалей — пора прятать от грабителей' },
 ];
 
@@ -181,6 +190,11 @@ export const REWARDS: Record<string, AchievementReward> = {
 	storm_first: { kind: 'gems', amount: 3 },
 	storm_fast: { kind: 'gems', amount: 5 },
 	storm_5: { kind: 'gems', amount: 10 },
+	dict_first: { kind: 'coins', amount: 30 },
+	dict_row3: { kind: 'gems', amount: 2 },
+	dict_10: { kind: 'gems', amount: 5 },
+	dict_25: { kind: 'gems', amount: 10 },
+	dict_all: { kind: 'pizza', amount: 1 },
 };
 
 export const rewardText = (r: AchievementReward) =>
