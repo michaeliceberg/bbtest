@@ -9,7 +9,10 @@
 // номер подсвечен, снизу его название. Нажатие на ячейку раскрывает раздел и доезжает до него.
 // percent приходит уже посчитанным на сервере (доля решённых задач юнита, app/(main)/learn/page.tsx).
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { Dumbbell } from 'lucide-react'
+import { TrainerGoDialog, TRAINER_GREEN, trainerKeyDone } from '@/components/trainer-key-chips'
 import { TinyMedal } from '@/components/nav-sheet-ui'
 import { EGE_PART_COLOR } from '@/components/ege-task-grid'
 import { SECTION_LABEL, type LearnSection } from '@/components/learn-unit-nav'
@@ -42,7 +45,7 @@ const partColor = (section: LearnSection) => {
 }
 
 // Как показать над ячейкой тренажёры-«ключи» задания (сравнение — /test-strip-keys).
-export type KeyStyle = 'medals' | 'count' | 'dots' | 'bar' | 'pill' | 'check'
+export type KeyStyle = 'button' | 'medals' | 'count' | 'dots' | 'bar' | 'pill' | 'check'
 
 // Тренажёр «взят», если по нему есть хотя бы бронза.
 const keyDone = (k: TrainerKey) => k.percent > 0
@@ -77,8 +80,9 @@ function KeyIndicator({ keys, style, color }: { keys: TrainerKey[]; style: KeySt
     return null
 }
 
-export function CourseProgressStrip({ units, defaultOpenId = null, trainerKeys = {}, keyStyle = 'bar' }: { units: StripUnit[]; defaultOpenId?: number | null; trainerKeys?: Record<number, TrainerKey[]>; keyStyle?: KeyStyle }) {
+export function CourseProgressStrip({ units, defaultOpenId = null, trainerKeys = {}, keyStyle = 'button' }: { units: StripUnit[]; defaultOpenId?: number | null; trainerKeys?: Record<number, TrainerKey[]>; keyStyle?: KeyStyle }) {
     const selected = useLearnOpenUnit((s) => s.openId) ?? defaultOpenId
+    const [ask, setAsk] = useState<number | null>(null)
     if (units.length === 0) return null
 
     const groups: { section: LearnSection; units: StripUnit[] }[] = []
@@ -112,20 +116,21 @@ export function CourseProgressStrip({ units, defaultOpenId = null, trainerKeys =
                                         const fill = u.isCompleted ? 100 : u.percent > 0 ? Math.max(u.percent, 12) : 0
                                         const isSel = u.id === selected
                                         return (
-                                            <motion.button
-                                                key={u.id}
-                                                type="button"
-                                                whileTap={{ scale: 0.9 }}
-                                                onClick={() => { if (u.isUnlocked) openLearnUnit(u.id) }}
-                                                title={`${u.title} — ${Math.round(u.percent)}%`}
-                                                className="relative min-w-0 flex-1"
-                                            >
-                                                {/* слоты медалей тренажёров-«каркаса» этого задания: пустые — ещё не пройдено */}
-                                                {hasKeys && keyStyle !== 'medals' && (
+                                            <div key={u.id} className="relative min-w-0 flex-1">
+                                                {/* над ячейкой — зелёная кнопка тренажёров этого задания (гантель + «пройдено/всего»), по ней окошко «Перейти в тренажёр» */}
+                                                {hasKeys && keyStyle === 'button' && (keys.length > 0 ? (
+                                                    <button type="button" onClick={() => setAsk(Number(cellLabel(u)))}
+                                                        title={`Тренажёры к заданию №${cellLabel(u)}: ${keys.filter(trainerKeyDone).length} из ${keys.length}`}
+                                                        className="mb-[3px] flex h-[30px] w-full flex-col items-center justify-center gap-[1px] rounded-[5px] border-b-[3px] active:border-b-0"
+                                                        style={{ background: `linear-gradient(180deg, ${TRAINER_GREEN.top}, ${TRAINER_GREEN.bottom})`, borderBottomColor: TRAINER_GREEN.edge, color: TRAINER_GREEN.text }}>
+                                                        <Dumbbell className="h-3 w-3 shrink-0" strokeWidth={2.8} />
+                                                        <span className="whitespace-nowrap text-[8px] font-black leading-none">{keys.filter(trainerKeyDone).length}/{keys.length}</span>
+                                                    </button>
+                                                ) : <div className="mb-[3px] h-[30px]" />)}
+                                                {hasKeys && keyStyle !== 'button' && keyStyle !== 'medals' && (
                                                     <div className="mb-[3px] flex h-[12px] items-center justify-center"><KeyIndicator keys={keys} style={keyStyle} color={c.button} /></div>
                                                 )}
                                                 {hasKeys && keyStyle === 'medals' && (
-                                                    // внахлёст одной строкой (как аватарки) — ячейка не растёт в высоту при 4 темах
                                                     <div className="mb-[3px] flex h-[12px] justify-center">
                                                         {keys.map((k, i) => (
                                                             <span key={k.tUnitId} className="relative" style={{ marginLeft: i ? (keys.length >= 4 ? -7 : -5) : 0, zIndex: 10 - i }}>
@@ -134,6 +139,13 @@ export function CourseProgressStrip({ units, defaultOpenId = null, trainerKeys =
                                                         ))}
                                                     </div>
                                                 )}
+                                                <motion.button
+                                                    type="button"
+                                                    whileTap={{ scale: 0.9 }}
+                                                    onClick={() => { if (u.isUnlocked) openLearnUnit(u.id) }}
+                                                    title={`${u.title} — ${Math.round(u.percent)}%`}
+                                                    className="block w-full"
+                                                >
                                                 <div
                                                     className="relative h-4 overflow-hidden rounded-[4px]"
                                                     style={{
@@ -159,7 +171,8 @@ export function CourseProgressStrip({ units, defaultOpenId = null, trainerKeys =
                                                 >
                                                     {cellLabel(u)}
                                                 </span>
-                                            </motion.button>
+                                                </motion.button>
+                                            </div>
                                         )
                                     })}
                                 </div>
@@ -173,8 +186,9 @@ export function CourseProgressStrip({ units, defaultOpenId = null, trainerKeys =
                 {sel ? <>Открыт: <span className="text-[#E2EAF0]">{sel.title}</span> · {Math.round(sel.percent)}%</> : 'Нажми на ячейку — откроешь раздел'}
             </p>
             {hasKeys && <p className="mt-0.5 text-[10px] font-bold text-[#4E5D65]">
-                {keyStyle === 'medals' ? 'Медали над ячейкой — тренажёры-каркас этого задания' : 'Над ячейкой — сколько тренажёров к этому заданию пройдено'}
+                {keyStyle === 'button' ? 'Зелёная кнопка — тренажёры к заданию: сначала они, потом задачи' : keyStyle === 'medals' ? 'Медали над ячейкой — тренажёры-каркас этого задания' : 'Над ячейкой — сколько тренажёров к этому заданию пройдено'}
             </p>}
+            {ask !== null && <TrainerGoDialog num={ask} keys={trainerKeys[ask] ?? []} open onClose={() => setAsk(null)} />}
         </div>
     )
 }

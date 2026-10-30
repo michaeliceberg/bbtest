@@ -437,11 +437,14 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string } })
             formattedDate={formattedFinishDate}
           />
           
-          <Quests 
-            points={currentPoints} 
-            hwList={hwList}
-            isCompleted={isHwCompleted}
-          />
+          {/* «Домашнее задание» — только если ДЗ на сегодня выдано */}
+          {hwAssigned > 0 && (
+            <Quests 
+              points={currentPoints} 
+              hwList={hwList}
+              isCompleted={isHwCompleted}
+            />
+          )}
         </StickyWrapper>
 
         <FeedWrapper>
