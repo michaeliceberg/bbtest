@@ -13,7 +13,7 @@ import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { KeyRound, Wrench, X } from 'lucide-react'
 import Link from 'next/link'
-import { L, JUNK, FAN_NUM, place, placeStyle, type LayoutOverrides } from '@/lib/hangarModel'
+import { L, JUNK, FAN_NUM, DECOR, PORTRAIT_NUM, place, placeStyle, type LayoutOverrides } from '@/lib/hangarModel'
 import { HangarFan, FAN } from '@/components/hangar-fan'
 import { fixHangarItem } from '@/actions/hangar'
 import { playSound, CASE_PRIZE_SOUND } from '@/lib/sound'
@@ -80,6 +80,9 @@ export function HangarScene({ items, layout }: { items: SceneItem[]; layout?: La
     const RS = L.rocket[Math.min(7, stage)]
     const R = { ...RS, ...place(layout, stage >= 7 ? 'a' : 'b', 'rocket', RS) }
     const fan = byNum.get(FAN_NUM)
+    const decorDone = PORTRAIT_NUM !== null && byNum.get(PORTRAIT_NUM)?.state === 'fixed'
+    const decorState = decorDone ? 'a' : 'b'
+    const lampP = place(layout, decorState, 'lamp', DECOR[1][decorState])
     const readyRocket = rocketParts.find((i) => i.state === 'ready')
     const nextRocket = readyRocket ?? rocketParts.find((i) => i.state !== 'fixed')
     const ready = [...room.filter((i) => i.state === 'ready'), ...(readyRocket ? [readyRocket] : [])]
@@ -111,6 +114,21 @@ export function HangarScene({ items, layout }: { items: SceneItem[]; layout?: La
                             style={{ ...placeStyle(p), opacity: j < junkLeft ? 1 : 0, transform: j < junkLeft ? 'scale(1)' : 'scale(0.3)' }} />
                     )
                 })}
+                {DECOR.map((d) => {
+                    const sl = d[decorState]
+                    const p = place(layout, decorState, d.key, sl)
+                    return (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img key={sl.src} src={sl.src} alt={d.label} draggable={false} className="absolute select-none"
+                            style={{ ...placeStyle(p), filter: PORTRAIT_NUM !== null && !decorDone && lit(PORTRAIT_NUM) ? HIGHLIGHT : undefined, transition: 'filter .25s' }} />
+                    )
+                })}
+                {decorDone && (
+                    // тёплый конус света от лампы на портрет
+                    <div className="pointer-events-none absolute"
+                        style={{ left: pct(lampP.x - lampP.w * 1.1), top: pct(lampP.y - lampP.h * 0.2), width: pct(lampP.w * 2.2), height: pct(lampP.h * 5.5), zIndex: Math.round(lampP.z * 10) + 11,
+                            background: 'radial-gradient(ellipse 50% 60% at 50% 0%, rgba(255,214,140,0.45), transparent 75%)', mixBlendMode: 'screen' }} />
+                )}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img key={R.src} src={R.src} alt="Ракета" draggable={false} className="absolute select-none"
                     style={{ ...placeStyle(R), filter: nextRocket && lit(nextRocket.num) ? HIGHLIGHT : undefined, transition: 'filter .25s', animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />

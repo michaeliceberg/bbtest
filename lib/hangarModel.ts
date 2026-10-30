@@ -30,10 +30,26 @@ export const JUNK: JunkPiece[] = (() => {
     return [...base.slice(0, 7), tools, ...base.slice(7)]
 })()
 
+// Декор: портрет Фейнмана в рамке и лампа над ним на левой стене (docs/hangar/tools/build_portrait.py).
+// «До» — рамка в паутине, лампа выключена; «после» — аккуратно, лампа горит. Какое задание их чинит — PORTRAIT_NUM
+// (пока не выбрано: висят «до»). Наклон «до» — поворотом в редакторе.
+export const PORTRAIT_NUM: number | null = null
+export type Decor = { key: string; label: string; b: Slot; a: Slot }
+export const DECOR: Decor[] = [
+    { key: 'portrait', label: 'Портрет',
+        a: { src: '/hangar/portrait-after.webp', x: 110, y: 560, w: 80, h: 180 },
+        b: { src: '/hangar/portrait-before.webp', x: 99, y: 560, w: 144, h: 233 } },
+    { key: 'lamp', label: 'Лампа над портретом',
+        a: { src: '/hangar/lamp-on.webp', x: 129, y: 370, w: 46, h: 40 },
+        b: { src: '/hangar/lamp-off.webp', x: 129, y: 370, w: 46, h: 40 } },
+]
+
 // Слой по умолчанию — как было: хлам, потом ракета, потом предметы по номерам.
 const defaultZ = (key: string) => {
     if (key.startsWith('junk-')) return key === 'junk-tools' ? 7.5 : Number(key.slice(5)) - 1
     if (key === 'rocket') return 20
+    if (key === 'portrait') return 4
+    if (key === 'lamp') return 4.5
     return 30 + Number(key)
 }
 
@@ -50,6 +66,7 @@ export function editorObjects(o: LayoutOverrides | null | undefined, state: Hang
     const list: EditorObj[] = [
         { ...rocket, ...place(o, state, 'rocket', rocket), key: 'rocket', label: 'Ракета' },
         ...(state === 'b' ? JUNK.map((j) => ({ ...j, ...place(o, state, j.key, j) })) : []),
+        ...DECOR.map((d) => ({ ...d[state], ...place(o, state, d.key, d[state]), key: d.key, label: d.label })),
         ...ROOM_IDS.map((id) => { const s = L[id][state]; return { ...s, ...place(o, state, `${id}`, s), key: `${id}`, label: `№${id}` } }),
     ]
     return list.sort((a, b) => a.z - b.z)
