@@ -48,11 +48,11 @@ export const NIGHT_BANNER_PHRASES = [
     'ПОРА БАИНЬКИ',
 ]
 
-function Cloud({ w, y, dur, delay, opacity, flip = false }: { w: number; y: number; dur: number; delay: number; opacity: number; flip?: boolean }) {
+function Cloud({ w, y, dur, delay, opacity, flip = false, src = 'cloud' }: { w: number; y: number; dur: number; delay: number; opacity: number; flip?: boolean; src?: string }) {
     return (
         <div className="hangar-cloud absolute left-0" style={{ top: cq(y), width: cq(w), opacity, animationDuration: `${dur}s`, animationDelay: `${delay}s` }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/hangar/life/cloud.webp" alt="" draggable={false} className="block w-full select-none" style={flip ? { transform: 'scaleX(-1)' } : undefined} />
+            <img src={`/hangar/life/${src}.webp`} alt="" draggable={false} className="block w-full select-none" style={flip ? { transform: 'scaleX(-1)' } : undefined} />
         </div>
     )
 }
@@ -134,9 +134,12 @@ export function HangarSky({ time = 'day' }: { time?: 'day' | 'evening' | 'night'
                     </div>
                 </div>
             )}
-            <Cloud w={120} y={40} dur={95} delay={-20} opacity={0.9} />
-            <Cloud w={80} y={125} dur={70} delay={-55} opacity={0.8} flip />
+            {/* облака Leonardo без обводки (cloud-puffy/round/wisp) вперемешку со старым cloud; разная скорость — разная «высота» */}
+            <Cloud src="cloud-wisp" w={190} y={18} dur={140} delay={-30} opacity={0.75} />
+            <Cloud src="cloud-puffy" w={120} y={40} dur={95} delay={-20} opacity={0.9} />
+            <Cloud src="cloud-round" w={78} y={118} dur={70} delay={-55} opacity={0.85} flip />
             <Cloud w={150} y={165} dur={120} delay={-90} opacity={0.7} />
+            <Cloud src="cloud-wisp" w={130} y={92} dur={105} delay={-75} opacity={0.6} flip />
             {/* ночью ласточки спят, а кукурузник иногда пролетает и желает спокойной ночи */}
             {time !== 'night' ? <><Birds /><PlaneWithBanner /></> : <PlaneWithBanner night />}
         </div>
