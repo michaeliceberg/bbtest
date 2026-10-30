@@ -40,15 +40,16 @@ export function EgeTaskGrid({ tasks }: { tasks: number[] }) {
     )
 }
 
-// Карточка юнита: тёмная плашка, золотой ключ и номера заданий ЕГЭ золотыми квадратиками.
+// Карточка юнита: тёмная плашка, белый текст «Помогает решить ЕГЭ №» и номера заданий золотыми квадратиками.
 // Квадратик ведёт в раздел задачника. Живёт и внутри кнопки-баннера, поэтому не <a>, а span + router.
 export function UnitEgeKey({ tasks, className = '' }: { tasks: number[]; className?: string }) {
     const router = useRouter()
     if (!tasks.length) return null
     const go = (e: React.SyntheticEvent, n: number) => { e.stopPropagation(); e.preventDefault(); router.push(`/learn?task=${n}`) }
     return (
-        <span className={`inline-flex items-center gap-1.5 rounded-lg bg-black/30 py-1 pl-1.5 pr-1 ${className}`} title="Ключ к заданиям ЕГЭ">
-            <KeyRound className="h-4 w-4 text-[#F2C35B]" strokeWidth={2.6} />
+        <span className={`inline-flex flex-wrap items-center gap-1.5 rounded-lg bg-black/30 py-1 pl-2 pr-1 ${className}`} title="Тренажёр помогает решить эти задания ЕГЭ">
+            {/* без ключика: ключ «открывает», а тренажёр задание не открывает — помогает его решить (выбор пользователя, 2026-10-30) */}
+            <span className="text-[13px] font-bold leading-none text-white">Помогает решить ЕГЭ №</span>
             {tasks.map((n) => (
                 <span key={n} role="link" tabIndex={0} title={`Задание №${n} в задачнике`}
                     onClick={(e) => go(e, n)} onKeyDown={(e) => { if (e.key === 'Enter') go(e, n) }}
