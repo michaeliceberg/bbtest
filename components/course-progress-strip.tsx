@@ -11,7 +11,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Dumbbell } from 'lucide-react'
+import { ArrowDown, Dumbbell } from 'lucide-react'
 import { TrainerGoDialog, TRAINER_GREEN, trainerKeyDone } from '@/components/trainer-key-chips'
 import { TinyMedal } from '@/components/nav-sheet-ui'
 import { EGE_PART_COLOR } from '@/components/ege-task-grid'
@@ -102,11 +102,17 @@ export function CourseProgressStrip({ units, defaultOpenId = null, trainerKeys =
                     const [labelMain, labelSub] = label ? label.title.split(' · ') : ['Разделы', '']
                     return (
                         <div key={gi}>
-                            <div className="mb-1 flex items-center">
-                                <span className="text-[11px] font-black uppercase tracking-wide" style={{ color: label?.color ?? '#9AA7B0' }}>
+                            <div className="mb-1 flex items-center gap-2">
+                                <span className="min-w-0 truncate text-[11px] font-black uppercase tracking-wide" style={{ color: label?.color ?? '#9AA7B0' }}>
                                     {labelMain}
                                     {labelSub && <span className="ml-1.5 normal-case tracking-normal text-[#5C6B73]">{labelSub}</span>}
                                 </span>
+                                {/* одна подпись на ряд вместо гантели на каждой кнопке: зелёные кнопки ниже — тренажёры */}
+                                {hasKeys && keyStyle === 'button' && g.units.some((u) => (trainerKeys[Number(cellLabel(u))] ?? []).length > 0) && (
+                                    <span className="ml-auto flex shrink-0 items-center gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: TRAINER_GREEN.top }}>
+                                        <Dumbbell className="h-3.5 w-3.5" strokeWidth={2.6} />тренажёры<ArrowDown className="h-3 w-3" strokeWidth={3} />
+                                    </span>
+                                )}
                             </div>
                             <div>
                                 <div className="flex gap-[3px] rounded-lg bg-[#0F171B] p-[3px]" style={{ boxShadow: 'inset 0 2px 0 rgba(0,0,0,0.35)' }}>
@@ -121,12 +127,11 @@ export function CourseProgressStrip({ units, defaultOpenId = null, trainerKeys =
                                                 {hasKeys && keyStyle === 'button' && (keys.length > 0 ? (
                                                     <button type="button" onClick={() => setAsk(Number(cellLabel(u)))}
                                                         title={`Тренажёры к заданию №${cellLabel(u)}: ${keys.filter(trainerKeyDone).length} из ${keys.length}`}
-                                                        className="mb-[3px] flex h-[30px] w-full flex-col items-center justify-center gap-[1px] rounded-[5px] border-b-[3px] active:border-b-0"
+                                                        className="mb-[3px] flex h-[24px] w-full items-center justify-center rounded-[5px] border-b-[3px] active:border-b-0"
                                                         style={{ background: `linear-gradient(180deg, ${TRAINER_GREEN.top}, ${TRAINER_GREEN.bottom})`, borderBottomColor: TRAINER_GREEN.edge, color: TRAINER_GREEN.text }}>
-                                                        <Dumbbell className="h-3 w-3 shrink-0" strokeWidth={2.8} />
-                                                        <span className="whitespace-nowrap text-[8px] font-black leading-none">{keys.filter(trainerKeyDone).length}/{keys.length}</span>
+                                                        <span className="whitespace-nowrap text-[10px] font-black leading-none">{keys.filter(trainerKeyDone).length}/{keys.length}</span>
                                                     </button>
-                                                ) : <div className="mb-[3px] h-[30px]" />)}
+                                                ) : <div className="mb-[3px] h-[24px]" />)}
                                                 {hasKeys && keyStyle !== 'button' && keyStyle !== 'medals' && (
                                                     <div className="mb-[3px] flex h-[12px] items-center justify-center"><KeyIndicator keys={keys} style={keyStyle} color={c.button} /></div>
                                                 )}
@@ -186,7 +191,7 @@ export function CourseProgressStrip({ units, defaultOpenId = null, trainerKeys =
                 {sel ? <>Открыт: <span className="text-[#E2EAF0]">{sel.title}</span> · {Math.round(sel.percent)}%</> : 'Нажми на ячейку — откроешь раздел'}
             </p>
             {hasKeys && <p className="mt-0.5 text-[10px] font-bold text-[#4E5D65]">
-                {keyStyle === 'button' ? 'Зелёная кнопка — тренажёры к заданию: сначала они, потом задачи' : keyStyle === 'medals' ? 'Медали над ячейкой — тренажёры-каркас этого задания' : 'Над ячейкой — сколько тренажёров к этому заданию пройдено'}
+                {keyStyle === 'button' ? 'Зелёные кнопки — тренажёры к заданию (пройдено/всего): сначала они, потом задачи' : keyStyle === 'medals' ? 'Медали над ячейкой — тренажёры-каркас этого задания' : 'Над ячейкой — сколько тренажёров к этому заданию пройдено'}
             </p>}
             {ask !== null && <TrainerGoDialog num={ask} keys={trainerKeys[ask] ?? []} open onClose={() => setAsk(null)} />}
         </div>

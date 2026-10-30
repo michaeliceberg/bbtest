@@ -39,7 +39,7 @@ export function TrainerGoDialog({ num, keys, open, initialId, onClose }: {
                         <Dumbbell className="h-5 w-5 text-[#8BDB4C]" />Перейти в тренажёр?
                     </DialogTitle>
                     <DialogDescription className="text-center text-[#9AA7B0]">
-                        Эти темы готовят к заданию №{num}. Выбери, с какой начать.
+                        Эти темы готовят к заданию №{num}.<br />Выбери, с какой начать.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="mt-1 flex flex-col gap-1.5">
