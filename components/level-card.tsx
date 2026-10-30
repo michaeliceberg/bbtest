@@ -82,24 +82,25 @@ export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact', levelCase =
         </>
     );
 
-    // Половина ширины (на /learn рядом с плиткой ангара): всё в колонку и мельче.
+    // Половина ширины (на /learn рядом с плиткой ангара): персонаж, «УР. N ——→ УР. N+1», полоска, кнопка кейса.
+    // Блоки распределены по высоте (justify-between), без пустой середины.
     if (variant === 'half') {
         return (
-            <div className="flex h-full flex-col rounded-2xl border-2 border-[#2A363C] bg-[#161F23] p-2.5">
-                <div className="flex items-center gap-1.5">
-                    <div className="h-8 w-8 shrink-0 overflow-hidden rounded-lg bg-[#0F171B]"
+            <div className="flex h-full flex-col justify-between gap-2.5 rounded-2xl border-2 border-[#2A363C] bg-[#161F23] p-2.5">
+                <div className="flex items-center gap-2">
+                    <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-[#0F171B]"
                         style={{ boxShadow: `inset 0 2px 0 rgba(0,0,0,0.35), 0 0 0 2px ${VIOLET}55` }}>
                         {mascotData && <Lottie animationData={mascotData} loop autoplay />}
                     </div>
-                    {/* «УР. 65 → УР. 66», над стрелкой — сколько XP осталось */}
-                    <div className="flex min-w-0 flex-1 items-center gap-1 pt-2.5">
-                        <span className="shrink-0 text-[13px] font-black uppercase leading-none text-[#F2F7FB]">Ур. {level}</span>
-                        {/* подпись над стрелкой может быть шире стрелки — выступает над соседями, на раскладку не влияет */}
-                        <span className="relative flex min-w-[16px] flex-1 justify-center">
-                            <span className="absolute bottom-full mb-0.5 whitespace-nowrap text-[9px] font-black leading-none text-[#C4B5FD]">ещё {xpLeft} XP</span>
-                            <ArrowRight className="h-4 w-4 shrink-0 text-[#72838D]" strokeWidth={2.6} />
+                    {/* «УР. 20 ——→ УР. 21»: стрелка тянется от уровня до уровня, над ней — сколько XP осталось */}
+                    <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                        <span className="shrink-0 text-[14px] font-black uppercase leading-none text-[#F2F7FB]">Ур. {level}</span>
+                        <span className="relative flex min-w-[24px] flex-1 items-center">
+                            <span className="absolute bottom-full left-1/2 mb-1 -translate-x-1/2 whitespace-nowrap text-[10px] font-black leading-none text-[#C4B5FD]">ещё {xpLeft} XP</span>
+                            <span className="h-[2px] flex-1 rounded-full bg-[#72838D]" />
+                            <span className="h-0 w-0 shrink-0 border-y-[5px] border-l-[7px] border-y-transparent border-l-[#72838D]" />
                         </span>
-                        <span className="flex shrink-0 items-center gap-0.5 text-[10px] font-black uppercase leading-none text-[#5C6B73]" title={`Награда за ур. ${nextLevel}: +${LEVEL_UP_GEM_REWARD} гемов${nextHasCase ? ' и редкий кейс' : ''}`}>
+                        <span className="flex shrink-0 items-center gap-0.5 text-[11px] font-black uppercase leading-none text-[#5C6B73]" title={`Награда за ур. ${nextLevel}: +${LEVEL_UP_GEM_REWARD} гемов${nextHasCase ? ' и редкий кейс' : ''}`}>
                             Ур. {nextLevel}
                             {nextHasCase && (
                                 // eslint-disable-next-line @next/next/no-img-element
@@ -108,7 +109,7 @@ export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact', levelCase =
                         </span>
                     </div>
                 </div>
-                <div className="mt-2 rounded-md bg-[#0F171B] p-[2px]" style={{ boxShadow: 'inset 0 2px 0 rgba(0,0,0,0.35)' }}>
+                <div className="rounded-md bg-[#0F171B] p-[2px]" style={{ boxShadow: 'inset 0 2px 0 rgba(0,0,0,0.35)' }}>
                     <div className="relative h-3 overflow-hidden rounded-[4px] bg-[#26333B]">
                         {progressPercent > 0 && (
                             <div className="absolute inset-y-0 left-0 rounded-[4px] transition-[width] duration-700"
@@ -118,18 +119,18 @@ export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact', levelCase =
                     </div>
                 </div>
                 {levelCase && (
-                    <div className="mt-auto flex items-center gap-2 pt-2">
+                    // Стандартная объёмная кнопка: заливка + тёмная нижняя грань border-b-4, active:border-b-0
+                    // (globals.css: грань исчезает, кнопка опускается на её высоту, блок не меняет высоту).
                     <button type="button" onClick={() => setOpeningCase(true)}
-                        className="flex w-1/2 shrink-0 items-center justify-center rounded-xl border-2 border-b-4 px-1 py-1.5 active:border-b-0"
-                        style={{ borderColor: `${RARE}99`, borderBottomColor: '#0090BB', background: 'linear-gradient(90deg, rgba(0,197,255,0.18), rgba(0,197,255,0.05))' }}>
-                        <span className="text-[10px] font-black uppercase leading-none text-[#7FE0FF]">Открыть</span>
-                    </button>
-                    <span className="flex min-w-0 items-center gap-1 text-[10px] font-bold leading-tight text-[#72838D]">
+                        className="flex w-full items-center gap-2 rounded-xl border-b-4 px-2 py-1.5 text-left active:border-b-0"
+                        style={{ background: 'linear-gradient(180deg, #11506A, #0B3A4C)', borderBottomColor: '#062330' }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src="/chests/rare0001.svg" alt="" className="h-5 w-5 shrink-0 object-contain animate-chest-idle-bounce" />
-                        <span>Кейс за уровень {levelCase.level}</span>
-                    </span>
-                    </div>
+                        <img src="/chests/rare0001.svg" alt="" className="h-10 w-10 shrink-0 object-contain animate-chest-idle-bounce" />
+                        <span className="flex min-w-0 flex-col gap-0.5">
+                            <span className="text-[13px] font-black uppercase leading-none text-[#7FE0FF]">Открыть</span>
+                            <span className="text-[10px] font-bold leading-tight text-[#A9C7D3]">Кейс за<br />уровень {levelCase.level}</span>
+                        </span>
+                    </button>
                 )}
                 {casePortal}
             </div>
