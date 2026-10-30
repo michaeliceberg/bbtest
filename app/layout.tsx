@@ -24,6 +24,7 @@ const AchievementUnlockToast = dynamic(() => import('@/components/achievement-un
 const StreakCelebrationToastProvider = dynamic(() => import('@/components/streak-celebration-toast-provider').then(mod => ({ default: mod.StreakCelebrationToastProvider })), { ssr: false });
 import { NoVideoPopout } from '@/components/no-video-popout';
 import { AttributionCatcher } from '@/components/attribution-catcher';
+import { PwaResume } from '@/components/pwa-resume';
 const LevelUpModalProvider = dynamic(() => import('@/components/level-up-modal-provider').then(mod => ({ default: mod.LevelUpModalProvider })), { ssr: false });
 const StageCurtainProvider = dynamic(() => import('@/components/stage-curtain-provider').then(mod => ({ default: mod.StageCurtainProvider })), { ssr: false });
 const QuestCompleteModalProvider = dynamic(() => import('@/components/quest-complete-modal-provider').then(mod => ({ default: mod.QuestCompleteModalProvider })), { ssr: false });
@@ -73,6 +74,7 @@ export default function RootLayout({
 				<LevelUpModalProvider />
 				<NoVideoPopout />
 				<AttributionCatcher />
+				<PwaResume />
 				<QuestCompleteModalProvider />
 				<StageCurtainProvider />
 			</body>

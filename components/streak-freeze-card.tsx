@@ -3,24 +3,38 @@
 // components/streak-freeze-card.tsx — заморозки серии: сколько есть и кнопка «купить за гемы».
 // compact — строка внутри баннера «Не теряй серию» (/learn, /trainer), иначе — карточка в /account.
 
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import { Snowflake, Gem } from 'lucide-react'
 import { toast } from 'sonner'
 import { buyStreakFreeze } from '@/actions/streak-freeze'
 import { STREAK_FREEZE_MAX, STREAK_FREEZE_PRICE_GEMS } from '@/lib/streakFreeze'
 import { cn } from '@/lib/utils'
 
-export const StreakFreezeCard = ({ freezes: initial, gems: initialGems, compact = false }: { freezes: number; gems: number; compact?: boolean }) => {
+export const StreakFreezeCard = ({ freezes: initial, gems: initialGems, compact = false, onBought }: { freezes: number; gems: number; compact?: boolean; onBought?: (freezes: number) => void }) => {
     const [freezes, setFreezes] = useState(initial)
     const [gems, setGems] = useState(initialGems)
     const [pending, start] = useTransition()
+    // Защита от двойного нажатия: пока покупка идёт, второй клик ничего не делает
+    // (disabled появляется только после перерисовки — быстрый второй тап успевал проскочить).
+    const busy = useRef(false)
+    // В баннере после покупки кнопку прячем — вторую заморозку можно докупить в «Аккаунте»
+    const [bought, setBought] = useState(false)
     const full = freezes >= STREAK_FREEZE_MAX
     const poor = gems < STREAK_FREEZE_PRICE_GEMS
-    const buy = () => start(async () => {
-        const r = await buyStreakFreeze()
-        if (r.ok) { setFreezes(r.freezes); setGems(r.gems); toast.success('❄️ Заморозка куплена — пропущенный день не сожжёт серию') }
-        else toast.error(r.error === 'max' ? `Больше ${STREAK_FREEZE_MAX} заморозок держать нельзя` : r.error === 'gems' ? 'Не хватает гемов' : 'Нужно войти')
-    })
+    const buy = () => {
+        if (busy.current) return
+        busy.current = true
+        start(async () => {
+            try {
+                const r = await buyStreakFreeze()
+                if (r.ok) {
+                    setFreezes(r.freezes); setGems(r.gems); setBought(true); onBought?.(r.freezes)
+                    if (!onBought) toast.success('❄️ Заморозка куплена — пропущенный день не сожжёт серию')
+                }
+                else toast.error(r.error === 'max' ? `Больше ${STREAK_FREEZE_MAX} заморозок держать нельзя` : r.error === 'gems' ? 'Не хватает гемов' : 'Нужно войти')
+            } finally { busy.current = false }
+        })
+    }
     const icons = (
         <span className="flex gap-1">
             {Array.from({ length: STREAK_FREEZE_MAX }, (_, i) => (
@@ -33,7 +47,7 @@ export const StreakFreezeCard = ({ freezes: initial, gems: initialGems, compact 
             ))}
         </span>
     )
-    const button = !full && (
+    const button = !full && !(compact && bought) && (
         <button type="button" disabled={pending || poor} onClick={buy}
             className="flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-black text-white transition-transform active:translate-y-[3px] disabled:opacity-45"
             style={{ background: 'linear-gradient(135deg, #3E8FD0, #2C5FA8)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.25), 0 3px 0 #1A3560' }}>
@@ -43,7 +57,7 @@ export const StreakFreezeCard = ({ freezes: initial, gems: initialGems, compact 
     if (compact) return (
         <div className="mt-2 flex items-center gap-2">
             {icons}
-            <span className="flex-1 text-xs font-bold text-[#9FD3FA]">{freezes ? 'Заморозка спасёт серию, если пропустишь день' : 'Купи заморозку — спасёт серию, если пропустишь день'}</span>
+            <span className="flex-1 text-xs font-bold text-[#9FD3FA]">{bought ? 'Куплено! Заморозка уже в запасе ❄️' : freezes ? 'Заморозка спасёт серию, если пропустишь день' : 'Купи заморозку — спасёт серию, если пропустишь день'}</span>
             {button}
         </div>
     )

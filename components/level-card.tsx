@@ -57,22 +57,24 @@ export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact', levelCase =
         return () => { cancelled = true; };
     }, [mascotSrc]);
 
-    const [openingCase, setOpeningCase] = useState(false);
+    // Кейс, который открываем, запоминаем в момент нажатия: открытие ключа обновляет страницу с сервера,
+    // и проп levelCase становится null — раньше барабан пропадал посреди прокрутки.
+    const [openingCase, setOpeningCase] = useState<{ keyId: number; level: number } | null>(null);
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
 
 
     const casePortal = (
         <>
-            {mounted && openingCase && levelCase && createPortal(
+            {mounted && openingCase && createPortal(
                 <div className="fixed inset-0 z-[90] overflow-y-auto bg-[#131D22]">
                     <CaseReel
                         isMega
                         tier="rare"
                         pool={getLessonCasePool('rare')}
-                        spinAction={() => openKeyCase(levelCase.keyId)}
+                        spinAction={() => openKeyCase(openingCase.keyId)}
                         onDone={() => {
-                            setOpeningCase(false);
+                            setOpeningCase(null);
                             router.refresh();
                         }}
                     />
@@ -123,7 +125,7 @@ export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact', levelCase =
                     // (globals.css: грань исчезает, кнопка опускается на её высоту, блок не меняет высоту).
                     <div className="flex flex-wrap items-center justify-center gap-2">
                         <span className="min-w-[72px] flex-1 text-center text-[11px] font-bold leading-tight text-[#A9C7D3]">Кейс за<br />уровень {levelCase.level}</span>
-                        <button type="button" onClick={() => setOpeningCase(true)}
+                        <button type="button" onClick={() => setOpeningCase(levelCase)}
                             className="flex shrink-0 items-center gap-1.5 rounded-xl border-b-4 py-1 pl-1.5 pr-3 active:border-b-0"
                             style={{ background: 'linear-gradient(180deg, #11506A, #0B3A4C)', borderBottomColor: '#062330' }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -200,7 +202,7 @@ export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact', levelCase =
             {levelCase && (
                 <button
                     type="button"
-                    onClick={() => setOpeningCase(true)}
+                    onClick={() => setOpeningCase(levelCase)}
                     className="mt-3 flex w-full items-center gap-3 rounded-xl border-2 border-b-4 px-3 py-2 text-left active:border-b-0"
                     style={{ borderColor: `${RARE}99`, borderBottomColor: '#0090BB', background: 'linear-gradient(90deg, rgba(0,197,255,0.18), rgba(0,197,255,0.05))' }}
                 >
