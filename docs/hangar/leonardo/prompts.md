@@ -136,3 +136,9 @@ Show only the motor of this same white ceiling fan: the short rod and the round 
 ```
 
 После шагов 2 и 3 — Remove Background (Full, тень None) и прислать оба файла в чат.
+
+**Шаг 1б — правка fan-white-scene.png** (первый результат висел слишком низко, был крупный и ярко-белый; образец — сам этот результат):
+```
+Move this ceiling fan up so it hangs right under the ceiling: a very short rod, the motor housing almost touching the top ceiling beam, the blades just below the ceiling beams in the top part of the picture, not hanging in the middle of the hangar. Make the whole fan about 25% smaller. Make the blades not bright white but a muted dusty grey-blue, close to the dark ceiling color, only slightly lighter than the ceiling so they still read; keep the thin red stripes near the tips, but dull and faded. Keep the same shape of blades, the same tilt and perspective (seen from below, the near blade higher, the far blade lower), and keep everything else in the image exactly the same. Same painted style: muted dusty colors, soft painterly shading, thick rough dark brown outlines.
+```
+Добавки при необходимости: «The fan is mounted flush to the ceiling, almost no rod at all.» / «The blades are almost the same color as the ceiling.»
