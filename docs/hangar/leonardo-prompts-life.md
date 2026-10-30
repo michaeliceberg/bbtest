@@ -134,3 +134,19 @@ Avoid для плит: `ground, horizon, landscape, buildings, trees, sun, moon,
 | `fog.jpg` | soft horizontal band of pale grey fog, wispy edges, wide and short | Утром туман у горизонта |
 | `kite.jpg` | small cartoon diamond-shaped kite, red and yellow, with a long wavy tail of bows, flying, string going down-left | Иногда в ясный ветреный день |
 | `balloon.jpg` | small cartoon hot-air balloon, striped muted red and cream, little basket below, side view | Редкий гость в небе |
+
+### Моргание котика (2026-10-30)
+
+Основа — `docs/hangar/leonardo/cat-sit.webp` (котик сидит анфас). Моргание = 3 кадра: открыты (основа) → полуприкрыты →
+закрыты → обратно. Делать **правкой этой же картинки** во FLUX.1 Kontext (Add Image = cat-sit, сила высокая 0.8–0.9),
+чтобы поза и контуры не сдвинулись — иначе котик «дёргается» между кадрами. Если Leonardo всё равно меняет позу —
+не страшно: веки нарисую кодом поверх основы (полоски цвета шерсти, сжимаются по вертикали).
+
+| Файл | Промпт |
+|---|---|
+| `cat-sit-blink-half.jpg` | the same kitten, exactly the same pose, same lines, same colours, same size and position; only change the eyes: eyelids half closed, sleepy, the top half of each green eye covered by ginger fur eyelids |
+| `cat-sit-blink-closed.jpg` | the same kitten, exactly the same pose, same lines, same colours, same size and position; only change the eyes: eyes fully closed, two soft curved dark-brown lines like happy closed eyes |
+| `cat-sit-ear.jpg` | the same kitten, exactly the same pose; only the left ear (on the viewer's right) twitched and turned slightly sideways | Подёргивание уха, редко |
+
+Avoid: `different pose, different angle, moved, resized, new background, text, extra cats`.
+Моргать буду кодом раз в 3–6 с (иногда двойное моргание), кадры по 60–80 мс.
