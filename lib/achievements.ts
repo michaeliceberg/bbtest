@@ -46,10 +46,11 @@ export async function bumpCounter(userId: string, key: string, delta = 1): Promi
 export async function computeStateKeys(userId: string): Promise<string[]> {
 	const keys: string[] = [];
 
-	const up = await rows(sql`SELECT pizza_slices, dodo_promo_code FROM user_progress WHERE user_id = ${userId}`);
+	const up = await rows(sql`SELECT pizza_slices, dodo_promo_code, cat_stage FROM user_progress WHERE user_id = ${userId}`);
 	if (up.length) {
 		keys.push('hello_world');
 		if (num(up[0].pizza_slices) >= 8 || up[0].dodo_promo_code) keys.push('pizza_full');
+		if (num(up[0].cat_stage) >= 2) keys.push('cat_home');
 	}
 
 	// Уроки тренажёра: каждая строка t_lesson_progress с training_pts>0 — завершённое прохождение.

@@ -13,8 +13,9 @@ import { RepairIcon } from '@/components/repair-icon'
 import { HangarScene, type SceneItem } from '@/components/hangar-scene'
 import type { LayoutOverrides } from '@/lib/hangarModel'
 
-export function HangarEntry({ items, layout }: { items: SceneItem[]; layout?: LayoutOverrides | null }) {
-    const [open, setOpen] = useState(false)
+export function HangarEntry({ items, layout, catStage = 0, openOnLoad = false }: { items: SceneItem[]; layout?: LayoutOverrides | null; catStage?: number; openOnLoad?: boolean }) {
+    // /learn?hangar=1 (ссылка из оповещения «кто-то мяучит») — ангар открывается сразу
+    const [open, setOpen] = useState(openOnLoad)
     const [mounted, setMounted] = useState(false)
     useEffect(() => setMounted(true), [])
     const fixed = items.filter((i) => i.state === 'fixed').length
@@ -32,7 +33,7 @@ export function HangarEntry({ items, layout }: { items: SceneItem[]; layout?: La
             <div className="relative h-full min-h-[150px] overflow-hidden rounded-2xl border-2 border-[#2A363C] bg-[#0F171B]">
                 {/* превью: сама сцена, чуть приглушённая, без нажатий */}
                 <div className="pointer-events-none absolute left-0 right-0 top-1/2 -translate-y-1/2 opacity-80" aria-hidden>
-                    <HangarScene items={items} layout={layout} bare />
+                    <HangarScene items={items} layout={layout} catStage={catStage} bare />
                 </div>
                 <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(closest-side, rgba(15,23,27,0.15), rgba(15,23,27,0.65))' }} />
                 <div className="relative flex h-full flex-col items-center justify-center gap-2 p-2">
@@ -42,7 +43,7 @@ export function HangarEntry({ items, layout }: { items: SceneItem[]; layout?: La
                         <Warehouse className="h-4 w-4" strokeWidth={2.6} />В ангар
                     </button>
                     <span className="flex items-center gap-1 rounded-md bg-[#0F171B]/80 px-1.5 py-0.5 text-[11px] font-black text-[#C9D3D9]" title="Починено">
-                        {ready ? 'Есть что починить!' : <><RepairIcon className="h-3.5 w-3.5 text-[#F2C35B]" />{fixed}/20</>}
+                        {catStage === 1 ? 'Кто-то мяучит!' : ready ? 'Есть что починить!' : <><RepairIcon className="h-3.5 w-3.5 text-[#F2C35B]" />{fixed}/20</>}
                     </span>
                 </div>
             </div>
@@ -56,7 +57,7 @@ export function HangarEntry({ items, layout }: { items: SceneItem[]; layout?: La
                         style={{ filter: 'blur(36px) brightness(0.55) saturate(1.2)' }} />
                     <div className="pointer-events-none fixed inset-0" style={{ background: 'radial-gradient(ellipse at 50% 40%, rgba(15,23,27,0) 30%, rgba(15,23,27,0.75) 100%)' }} />
                     <div className="relative mx-auto w-full max-w-xl px-4 pb-10 pt-4">
-<HangarScene items={items} layout={layout} onClose={() => setOpen(false)} />
+<HangarScene items={items} layout={layout} catStage={catStage} onClose={() => setOpen(false)} />
                     </div>
                 </div>,
                 document.body,

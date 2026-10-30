@@ -81,7 +81,7 @@ interface LessonStat {
   percentageDoneLesson: number;
 }
 
-const LearnPage = async ({ searchParams }: { searchParams?: { task?: string } }) => {
+const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; hangar?: string } }) => {
   const session = await auth();
   
   if (!session?.user) {
@@ -473,7 +473,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string } })
               // ЕГЭ Математика: слева уровень (пол-ширины), справа плитка «В ангар»
               <div className='mb-4 grid grid-cols-2 gap-3'>
                 <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} levelCase={levelCase} variant='half' />
-                <HangarEntry items={hangarItems} layout={hangarLayout} />
+                <HangarEntry items={hangarItems} layout={hangarLayout} catStage={userProgress.catStage} openOnLoad={searchParams?.hangar === '1'} />
               </div>
             ) : levelCase && (
               <div className='mb-4'>

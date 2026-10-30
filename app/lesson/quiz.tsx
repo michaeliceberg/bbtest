@@ -610,6 +610,13 @@ export const Quiz = ({
                         }
                         if (response?.streakFrozenDays) toast.success(`❄️ Заморозка спасла серию: ${response.newStreak} дн. подряд`)
                         response?.newAchievements?.forEach((ach) => showAchievement(ach))
+                        if (response?.catCalled) {
+                            // первая верная задача задачника — у ворот ангара мяукает котик (components/hangar-cat.tsx)
+                            setTimeout(() => toast('🐾 Зайди в ангар — там кто-то мяучит!', {
+                                duration: 9000,
+                                action: { label: 'В ангар', onClick: () => { window.location.href = '/learn?hangar=1' } },
+                            }), 1500)
+                        }
                         // Квест дня мог закрыться именно этим ответом (второй
                         // из двух пунктов, "реши задачу курса") — модалка,
                         // как при повышении уровня, а не тихий тост.

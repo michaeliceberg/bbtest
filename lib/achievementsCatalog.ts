@@ -117,6 +117,8 @@ const RAW_ACHIEVEMENTS: AchievementDef[] = [
 	{ key: 'dict_10', group: 'krupitsy', emoji: '🗣️', title: 'Полиглот общаги', desc: 'Разгадал 10 разных слов' },
 	{ key: 'dict_25', group: 'krupitsy', emoji: '🪿', title: 'Гусь-лингвист', desc: 'Разгадал 25 разных слов — Команданте гогочет от гордости' },
 	{ key: 'dict_all', group: 'krupitsy', emoji: '📚', title: 'Ходячий словарь «За науку»', desc: 'Разгадал все слова словаря физтеха' },
+	// Котик в ангаре (user_progress.cat_stage, components/hangar-cat.tsx).
+	{ key: 'cat_home', group: 'start', emoji: '🐱', iconSrc: '/hangar/life/cat-pet.webp', title: 'Кот в ангаре', desc: 'Приютил рыжего котика — теперь он живёт на картонке в ангаре' },
 	{ key: 'medal_gold_5', group: 'medals', emoji: '🥇', iconSrc: '/medals/medal-gold.webp', title: 'Нужен сейф', desc: '5 золотых медалей — пора прятать от грабителей' },
 ];
 
@@ -195,6 +197,7 @@ export const REWARDS: Record<string, AchievementReward> = {
 	dict_10: { kind: 'gems', amount: 5 },
 	dict_25: { kind: 'gems', amount: 10 },
 	dict_all: { kind: 'pizza', amount: 1 },
+	cat_home: { kind: 'coins', amount: 50 },
 };
 
 export const rewardText = (r: AchievementReward) =>

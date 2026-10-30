@@ -31,6 +31,8 @@ export default function Page() {
     const [layout, setLayout] = useState<LayoutOverrides | null | undefined>(undefined)
     const [st, setSt] = useState<Record<number, St>>(() => Object.fromEntries(NUMS.map((n) => [n, 'broken'])))
     const [time, setTime] = useState<HangarTime>('day')
+    const [cat, setCat] = useState(1)
+    const [catKey, setCatKey] = useState(0)
     useEffect(() => { getHangarLayout().then(setLayout).catch(() => setLayout(null)) }, [])
 
     const items: SceneItem[] = NUMS.map((n) => ({ num: n, title: TITLES[n], state: st[n], progress: st[n] === 'broken' ? 0 : 1, href: null }))
@@ -53,9 +55,14 @@ export default function Page() {
                     <Btn on={time === 'evening'} onClick={() => setTime('evening')}>Вечер</Btn>
                     <Btn on={time === 'night'} onClick={() => setTime('night')}>Ночь</Btn>
                 </div>
+                <div className="mb-3 flex flex-wrap gap-2">
+                    <Btn on={cat === 0} onClick={() => { setCat(0); setCatKey((k) => k + 1) }}>Без котика</Btn>
+                    <Btn on={cat === 1} onClick={() => { setCat(1); setCatKey((k) => k + 1) }}>Котик мяукает у ворот</Btn>
+                    <Btn on={cat === 2} onClick={() => { setCat(2); setCatKey((k) => k + 1) }}>Котик дома</Btn>
+                </div>
                 {layout === undefined
                     ? <div className="aspect-square w-full animate-pulse rounded-2xl bg-[#1C262B]" />
-                    : <HangarScene items={items} layout={layout} time={time} onFix={(n) => setNum(n, 'fixed')} />}
+                    : <HangarScene key={catKey} items={items} layout={layout} time={time} onFix={(n) => setNum(n, 'fixed')} catStage={cat} onCatHome={() => {}} />}
                 <div className="mt-4 grid grid-cols-5 gap-1.5">
                     {NUMS.map((n) => {
                         const s = ST_STYLE[st[n]]

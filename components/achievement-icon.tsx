@@ -29,7 +29,7 @@ export const AchievementIcon = ({
             boxShadow: unlocked ? `0 0 ${Math.round(size / 3)}px -4px ${color}99, inset 0 0 ${Math.round(size / 4)}px ${color}33` : 'none',
         }}
     >
-        {iconSrc?.startsWith('/medals/') ? (
+        {(iconSrc?.startsWith('/medals/') || iconSrc?.startsWith('/hangar/')) ? (
             // Медали юнитов — цветные картинки, рисуем как есть (у закрытых — серые).
             // eslint-disable-next-line @next/next/no-img-element
             <img src={iconSrc} alt="" draggable={false} style={{ width: size * 0.86, height: size * 0.86, objectFit: 'contain', filter: unlocked ? 'none' : 'grayscale(1) opacity(0.4)' }} />
