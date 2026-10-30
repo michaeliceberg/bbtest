@@ -13,20 +13,38 @@ import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { KeyRound, Wrench, X } from 'lucide-react'
 import { RepairIcon } from '@/components/repair-icon'
+import { WoodSign } from '@/components/wood-sign'
 import Link from 'next/link'
 import { L, JUNK, FAN_NUM, DECOR, PORTRAIT_NUM, place, placeStyle, type LayoutOverrides } from '@/lib/hangarModel'
 import { HangarFan, FAN } from '@/components/hangar-fan'
-import { HangarSky, HangarSpider, HangarBug, ComputerFlicker } from '@/components/hangar-life'
+import { HangarSky, HangarSpider, HangarBug, HangarPaper, ComputerFlicker } from '@/components/hangar-life'
 import { fixHangarItem } from '@/actions/hangar'
 import { playSound, CASE_PRIZE_SOUND } from '@/lib/sound'
 
 export type SceneItem = { num: number; title: string; state: 'broken' | 'ready' | 'fixed'; progress: number; href: string | null }
 
+// Что делаем с предметом (кнопка) и шутка про него — весь ангар ради того, чтобы сдать ЕГЭ.
 const FIX_LABEL: Record<number, string> = {
-    1: 'Смотать кабель', 2: 'Развесить ключи', 3: 'Поставить стремянку', 4: 'Зарядить шуруповёрт', 5: 'Поднять бочку',
-    6: 'Повесить флаг', 7: 'Починить компьютер', 8: 'Починить лампы и портрет', 9: 'Повесить огнетушитель', 10: 'Починить аппарат',
-    11: 'Починить вентилятор', 12: 'Закрыть ящик', 13: 'Включить робота',
+    1: 'Смотать кабель', 2: 'Развесить ключи по местам', 3: 'Поставить стремянку', 4: 'Зарядить шуруповёрт', 5: 'Поднять бочку с топливом',
+    6: 'Поднять флаг отряда', 7: 'Починить компьютер Мигеля', 8: 'Зажечь лампу над Фейнманом', 9: 'Повесить огнетушитель', 10: 'Запустить генератор',
+    11: 'Починить вентилятор', 12: 'Собрать инструменты в ящик', 13: 'Включить автомат-проверялку',
 }
+const ITEM_JOKE: Record<number, string> = {
+    1: 'Провода спутаны, как условие первой задачи. Распутаем — и ток пойдёт, и баллы 🔌',
+    2: 'У каждой задачи свой ключ. Развесим по крючкам — будешь знать, какой брать на экзамене 🔧',
+    3: 'Стремянка нужна, чтобы залезть повыше по шкале баллов. Чем выше ступенька — тем ближе вуз 🪜',
+    4: 'Закрутим решение так крепко, что ни один эксперт не открутит ни балла 🪛',
+    5: 'В бочке топливо для ракеты. Без бензина до сотки не долететь ⛽',
+    6: 'Флаг поднимаем, когда отряд берёт высоту. ¡Hasta la victoria! 🚩',
+    7: 'Без компа Команданте не может считать логарифмы на сотку. Почини — и полетим 💻',
+    8: 'Фейнман взламывал сейфы в Лос-Аламосе. А мы взломаем ЕГЭ — только свет включи 🔐',
+    9: 'Когда горят сроки до экзамена — хватай огнетушитель и решай по разделу в день 🧯',
+    10: 'Генератор даёт энергию на долгие сессии решения. Без него сядешь на третьей задаче ⚡',
+    11: 'Чтобы разборы новых разделов были не такими душными. Свежий воздух — свежая голова 🌀',
+    12: 'Каждому приёму — своё место. Как в голове перед ЕГЭ: всё разложено, ничего не потеряно 🧰',
+    13: 'Автомат проверяет ответы быстрее, чем ты скажешь «Га-Га». Включим — и вперёд 🤖',
+}
+const ROCKET_JOKE = 'Ракета летит в вуз мечты. Каждое задание второй части — новая деталь. Собери — и на старт 🚀'
 const ROCKET_STEP = ['Поставить опоры', 'Поставить сопло', 'Надеть обшивку', 'Прикрутить стабилизаторы', 'Пристегнуть баки', 'Покрасить звезду', 'Надеть нос']
 const WALL = new Set([2, 6, 8])
 const pct = (v: number) => `${(v / 1024) * 100}%`
@@ -66,10 +84,12 @@ export type HangarTime = Time
  * onFix / time / decorFixed — для тестовой страницы /test-hangar: починка без сервера, своё время суток,
  * состояние портрета вручную. В приложении не передаются.
  */
-export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed, bare = false }: {
+export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed, bare = false, onClose }: {
     items: SceneItem[]; layout?: LayoutOverrides | null; onFix?: (num: number) => void; time?: Time; decorFixed?: boolean
     /** Только сама картинка ангара — без заголовка и подсказок снизу (превью на /learn). */
     bare?: boolean
+    /** Крестик в шапке (окно ангара на /learn). */
+    onClose?: () => void
 }) {
     const router = useRouter()
     const [pending, start] = useTransition()
@@ -140,10 +160,24 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     return (
         <div className={bare ? '' : 'mt-6 lg:mt-0'}>
             <style>{`@keyframes hangar-pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:scale(1)}}`}</style>
-            {!bare && <div className="mb-2 flex items-baseline justify-between">
-                <h2 className="text-lg font-black text-[#F2F7FB]">Наш ангар</h2>
-                <span className="flex items-center gap-1 text-xs font-black text-[#C9D3D9]" title="Починено"><RepairIcon className="h-4 w-4 text-[#F2C35B]" />{fixedCount}/20</span>
-            </div>}
+            {!bare && (
+                // Шапка в одну строку: по центру деревянная табличка «Наш ангар» и ключ «N/20», справа крестик (если окно)
+                <div className="mb-3 grid grid-cols-[2.5rem_1fr_2.5rem] items-center">
+                    <span />
+                    <div className="flex items-center justify-center gap-2.5">
+                        <WoodSign>Наш ангар</WoodSign>
+                        <span className="flex items-center gap-1 text-sm font-black text-[#E8D9B8]" title="Починено">
+                            <RepairIcon className="h-4 w-4 text-[#F2C35B]" />{fixedCount}/20
+                        </span>
+                    </div>
+                    {onClose ? (
+                        <button type="button" aria-label="Закрыть ангар" onClick={onClose}
+                            className="justify-self-end rounded-xl border-2 border-b-4 border-[#2A363C] bg-[#161F23] p-2 text-[#C9D3D9] active:border-b-0">
+                            <X className="h-5 w-5" />
+                        </button>
+                    ) : <span />}
+                </div>
+            )}
             <div className="relative aspect-square w-full overflow-hidden rounded-2xl border-2 border-[#2C3A41]" style={{ containerType: 'inline-size' }}>
                 {/* все слои сцены — в одной обёртке: при выборе задания она плавно приближается к предмету */}
                 <div className="absolute inset-0"
@@ -154,8 +188,8 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 <img src="/hangar/bg-dirty.webp" alt="" className="absolute inset-0 h-full w-full transition-opacity duration-1000" style={{ opacity: dirt }} draggable={false} />
                 {/* небо в окне живёт: облака, птицы, кукурузник с транспарантом (под всеми предметами) */}
                 <HangarSky />
-                {/* пока бардак — по балке бегает паучок, по полу жучок */}
-                {junkLeft > 0 && <><HangarSpider /><HangarBug /></>}
+                {/* пока бардак — по балке бегает паучок, по полу жучок, на сквозняке кружит листок */}
+                {junkLeft > 0 && <><HangarSpider /><HangarBug /><HangarPaper /></>}
                 {JUNK.map((jp, j) => {
                     const p = place(layout, 'b', jp.key, jp)
                     return (
@@ -217,37 +251,40 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     style={{ left: pct(232 - 170), top: pct(415 - 170), width: pct(340), height: pct(340), opacity: lampOn ? (time === 'day' ? 0.55 : 0.9) : 0, background: 'radial-gradient(closest-side, rgba(255,200,110,0.55), transparent)', mixBlendMode: 'screen', zIndex: 1101 }} />
                 </div>
                 {openItem && (
-                    <>
-                        <button type="button" aria-label="Закрыть" className="absolute inset-0 cursor-default bg-black/20" style={{ zIndex: 1190 }} onClick={() => setOpenNum(null)} />
-                        <div className={`absolute inset-x-[8%] ${focus && focus.y > 560 ? 'top-[5%]' : 'bottom-[5%]'} rounded-2xl border-2 border-[#4A3A14] bg-[#151F23]/95 p-3 shadow-2xl`} style={{ zIndex: 1200 }}>
-                            <button type="button" aria-label="Закрыть" onClick={() => setOpenNum(null)} className="absolute right-2 top-2 rounded-lg p-1 text-[#9AA7B0] hover:text-white"><X className="h-4 w-4" /></button>
-                            <div className="flex items-center gap-2 pr-6">
-                                <KeyRound className="h-4 w-4 shrink-0 text-[#F2C35B]" strokeWidth={2.6} />
-                                <span className="text-sm font-black text-[#F2F7FB]">Задание №{openItem.num} · {openItem.title}</span>
-                            </div>
-                            <p className="mt-1 text-xs font-bold text-[#9AA7B0]">
-                                {openItem.state === 'ready' ? `Раздел решён! Можно: «${label(openItem)}».` : `Реши этот раздел в задачнике — и сможешь: «${label(openItem)}».`}
-                            </p>
-                            <div className="mt-2.5 flex gap-2">
-                                {openItem.state === 'ready' ? (
-                                    <button type="button" disabled={pending} onClick={() => { setOpenNum(null); fix(openItem.num) }}
-                                        className="flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-black text-[#151F24] transition-transform active:translate-y-[4px] disabled:opacity-60"
-                                        style={{ background: 'linear-gradient(180deg,#FFD84D,#F2C35B)', boxShadow: '0 4px 0 #B8862E' }}>
-                                        <Wrench className="h-4 w-4" />Починить
-                                    </button>
-                                ) : null}
-                                <Link href={`/learn?task=${openItem.num}`}
-                                    className="flex flex-1 items-center justify-center rounded-xl px-3 py-2.5 text-center text-sm font-black text-[#0F171B] transition-transform active:translate-y-[4px]"
-                                    style={{ background: '#53ADEF', boxShadow: '0 4px 0 #3A85BC' }}>
-                                    Перейти в задачник
-                                </Link>
-                            </div>
-                        </div>
-                    </>
+                    // клик мимо предмета — закрыть (картинка отъезжает обратно)
+                    <button type="button" aria-label="Закрыть" className="absolute inset-0 cursor-default bg-black/15" style={{ zIndex: 1190 }} onClick={() => setOpenNum(null)} />
                 )}
             </div>
 
-            {bare ? null : ready.length > 0 ? (
+            {!bare && openItem && (
+                // Плашка задания — под картинкой, чтобы не закрывать ангар
+                <div className="mt-3 rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3 shadow-xl" style={{ animation: 'hangar-pop .35s ease-out' }}>
+                    <div className="flex items-start gap-2">
+                        <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-[#F2C35B]" strokeWidth={2.6} />
+                        <span className="min-w-0 flex-1 text-sm font-black text-[#F2F7FB]">Задание №{openItem.num} · {openItem.title}</span>
+                        <button type="button" aria-label="Закрыть" onClick={() => setOpenNum(null)} className="-mr-1 -mt-1 rounded-lg p-1 text-[#9AA7B0] hover:text-white"><X className="h-4 w-4" /></button>
+                    </div>
+                    <p className="mt-1.5 text-[13px] font-bold leading-snug text-[#E8D9B8]">{openItem.num >= 14 ? ROCKET_JOKE : ITEM_JOKE[openItem.num]}</p>
+                    <p className="mt-1 text-xs font-bold text-[#9AA7B0]">
+                        {openItem.state === 'ready' ? `Раздел решён! Можно: «${label(openItem)}».` : `Реши этот раздел в задачнике — и сможешь: «${label(openItem)}».`}
+                    </p>
+                    <div className="mt-2.5 flex gap-2">
+                        {openItem.state === 'ready' ? (
+                            <button type="button" disabled={pending} onClick={() => { setOpenNum(null); fix(openItem.num) }}
+                                className="flex flex-1 items-center justify-center gap-2 rounded-xl border-b-4 px-3 py-2.5 text-sm font-black text-[#151F24] active:border-b-0 disabled:opacity-60"
+                                style={{ background: 'linear-gradient(180deg,#FFD84D,#F2C35B)', borderBottomColor: '#B8862E' }}>
+                                <Wrench className="h-4 w-4" />Починить
+                            </button>
+                        ) : null}
+                        <Link href={`/learn?task=${openItem.num}`}
+                            className="flex flex-1 items-center justify-center rounded-xl border-b-4 px-3 py-2.5 text-center text-sm font-black text-[#0F171B] active:border-b-0"
+                            style={{ background: '#53ADEF', borderBottomColor: '#3A85BC' }}>
+                            Перейти в задачник
+                        </Link>
+                    </div>
+                </div>
+            )}
+            {bare || openItem ? null : ready.length > 0 ? (
                 <div className="mt-3 space-y-2">
                     <p className="text-center text-sm font-black text-[#F2C35B]">Раздел решён — наводи порядок!</p>
                     {ready.map((i) => (

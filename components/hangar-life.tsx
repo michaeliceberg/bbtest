@@ -4,8 +4,9 @@
 //
 // «Жизнь» в ангаре (components/hangar-scene.tsx), чтобы картинка не была статичной:
 // • HangarSky — в круглом окне за ракетой: плывут облака, пролетают птицы и кукурузник с транспарантом
-//   (лозунги Команданте, меняются на каждом пролёте). Слой обрезан по кругу окна и лежит под предметами.
-// • HangarSpider — паучок бегает по деревянной балке под потолком; HangarBug — жучок перебегает пол. Пока в ангаре бардак.
+//   (лозунги Команданте, меняются на каждом пролёте; летит то вправо, то влево). Слой обрезан по кругу окна и лежит под предметами.
+// • HangarSpider — паучок бегает по деревянной балке под потолком; HangarBug — жучок перебегает пол;
+//   HangarPaper — листок из хлама кружит по ангару на сквозняке. Пока в ангаре бардак.
 // • ComputerFlicker — сломанный компьютер (№7) иногда мигает экраном и гаснет.
 // Координаты — в пикселях картинки 1024×1024; размеры в cqw (контейнер сцены — containerType: inline-size).
 // Всё на transform/opacity (CSS), при «уменьшить движение» стоит (globals.css).
@@ -54,33 +55,43 @@ function Birds() {
     )
 }
 
+function Biplane() {
+    // кукурузник носом вправо, 58×26
+    return (
+        <>
+            <rect x="10" y="2" width="30" height="4" rx="2" fill="#D9A93D" stroke="#3A3226" strokeWidth={1.2} />
+            <rect x="10" y="20" width="30" height="4" rx="2" fill="#D9A93D" stroke="#3A3226" strokeWidth={1.2} />
+            <line x1="18" y1="6" x2="18" y2="20" stroke="#3A3226" strokeWidth={1.2} />
+            <line x1="34" y1="6" x2="34" y2="20" stroke="#3A3226" strokeWidth={1.2} />
+            <path d="M0 13 L6 8 L46 10 Q54 13 46 17 L6 18 Z" fill="#E8C55A" stroke="#3A3226" strokeWidth={1.2} />
+            <path d="M0 13 L-3 6 L5 9 Z" fill="#E8C55A" stroke="#3A3226" strokeWidth={1.2} />
+            <circle cx="30" cy="12" r="2.2" fill="#6FB7D9" />
+            <g className="hangar-prop" style={{ transformOrigin: '54px 13px' }}>
+                <line x1="54" y1="5" x2="54" y2="21" stroke="#3A3226" strokeWidth={2} strokeLinecap="round" />
+            </g>
+        </>
+    )
+}
+
 function PlaneWithBanner() {
     const [i, setI] = useState(0)
     const text = BANNER_PHRASES[i % BANNER_PHRASES.length]
-    // 400 px картинки в ширину: транспарант 0–206, трос, кукурузник 222–280 (viewBox 280×48)
+    // Анимация alternate: чётный пролёт — слева направо, нечётный — справа налево (тогда кукурузник рисуется
+    // слева носом влево, транспарант тянется за ним справа; текст всегда читается). viewBox 280×48.
+    const toLeft = i % 2 === 1
+    const bx = toLeft ? 74 : 0 // начало транспаранта
+    const rope = toLeft ? [58, 74] : [206, 222]
     return (
         <div className="hangar-plane absolute left-0" style={{ top: cq(78), width: cq(400) }}
             onAnimationIteration={(e) => { if (e.animationName === 'hangar-plane-fly') setI((v) => v + 1) }}>
             <svg viewBox="0 0 280 48" className="block w-full overflow-visible">
+                <line x1={rope[0]} y1="23" x2={rope[1]} y2="23" stroke="#3A3226" strokeWidth={1.2} />
                 {/* транспарант на тросе — колышется */}
-                <line x1="222" y1="23" x2="206" y2="23" stroke="#3A3226" strokeWidth={1.2} />
-                <g className="hangar-banner-wave" style={{ transformOrigin: '206px 23px' }}>
-                    <path d="M0 9 Q52 5 103 9 T206 9 L206 37 Q155 41 103 37 T0 37 Z" fill="#F4EEDC" stroke="#C9B98E" strokeWidth={1.5} />
-                    <text x="103" y="29" textAnchor="middle" fontSize="17" fontWeight={900} fill="#C0392B" style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>{text}</text>
+                <g className="hangar-banner-wave" style={{ transformOrigin: `${toLeft ? bx : bx + 206}px 23px` }}>
+                    <path d={`M${bx} 9 Q${bx + 52} 5 ${bx + 103} 9 T${bx + 206} 9 L${bx + 206} 37 Q${bx + 155} 41 ${bx + 103} 37 T${bx} 37 Z`} fill="#F4EEDC" stroke="#C9B98E" strokeWidth={1.5} />
+                    <text x={bx + 103} y="29" textAnchor="middle" fontSize="17" fontWeight={900} fill="#C0392B" style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>{text}</text>
                 </g>
-                {/* кукурузник (биплан), летит вправо */}
-                <g transform="translate(222 9)">
-                    <rect x="10" y="2" width="30" height="4" rx="2" fill="#D9A93D" stroke="#3A3226" strokeWidth={1.2} />
-                    <rect x="10" y="20" width="30" height="4" rx="2" fill="#D9A93D" stroke="#3A3226" strokeWidth={1.2} />
-                    <line x1="18" y1="6" x2="18" y2="20" stroke="#3A3226" strokeWidth={1.2} />
-                    <line x1="34" y1="6" x2="34" y2="20" stroke="#3A3226" strokeWidth={1.2} />
-                    <path d="M0 13 L6 8 L46 10 Q54 13 46 17 L6 18 Z" fill="#E8C55A" stroke="#3A3226" strokeWidth={1.2} />
-                    <path d="M0 13 L-3 6 L5 9 Z" fill="#E8C55A" stroke="#3A3226" strokeWidth={1.2} />
-                    <circle cx="30" cy="12" r="2.2" fill="#6FB7D9" />
-                    <g className="hangar-prop" style={{ transformOrigin: '54px 13px' }}>
-                        <line x1="54" y1="5" x2="54" y2="21" stroke="#3A3226" strokeWidth={2} strokeLinecap="round" />
-                    </g>
-                </g>
+                <g transform={toLeft ? 'translate(58 9) scale(-1 1)' : 'translate(222 9)'}><Biplane /></g>
             </svg>
         </div>
     )
@@ -142,6 +153,22 @@ export function ComputerFlicker({ style }: { style: React.CSSProperties }) {
             <div className="hangar-crt absolute rounded-[12%]"
                 style={{ left: '31%', top: '5%', width: '44%', height: '38%', rotate: '-4deg', mixBlendMode: 'screen',
                     background: 'radial-gradient(closest-side, rgba(140,255,200,0.85), rgba(70,220,160,0.45) 60%, rgba(40,180,130,0) 100%)' }} />
+        </div>
+    )
+}
+
+/** Листок бумаги из кучи хлама: ветер поднимает его, кружит по ангару и опускает. */
+export function HangarPaper() {
+    return (
+        <div className="hangar-paper pointer-events-none absolute" aria-hidden style={{ left: pct(640), top: pct(880), width: cq(34), zIndex: 1050 }}>
+            <div className="hangar-paper-spin">
+                <svg viewBox="0 0 30 36" className="block w-full">
+                    <path d="M3 2 L22 1 L28 8 L27 34 L4 35 Z" fill="#EFE7D2" stroke="#9C8E6E" strokeWidth={1.2} strokeLinejoin="round" />
+                    <path d="M22 1 L22 8 L28 8" fill="#D9CFB4" stroke="#9C8E6E" strokeWidth={1} />
+                    <g stroke="#A7B2C0" strokeWidth={1.2}><path d="M7 13 H23 M7 18 H24 M7 23 H20 M7 28 H22" /></g>
+                    <text x="9" y="11" fontSize="6" fontWeight={900} fill="#C0392B">5!</text>
+                </svg>
+            </div>
         </div>
     )
 }

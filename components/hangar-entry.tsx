@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Warehouse, X } from 'lucide-react'
+import { Warehouse } from 'lucide-react'
 import { RepairIcon } from '@/components/repair-icon'
 import { HangarScene, type SceneItem } from '@/components/hangar-scene'
 import type { LayoutOverrides } from '@/lib/hangarModel'
@@ -56,13 +56,7 @@ export function HangarEntry({ items, layout }: { items: SceneItem[]; layout?: La
                         style={{ filter: 'blur(36px) brightness(0.55) saturate(1.2)' }} />
                     <div className="pointer-events-none fixed inset-0" style={{ background: 'radial-gradient(ellipse at 50% 40%, rgba(15,23,27,0) 30%, rgba(15,23,27,0.75) 100%)' }} />
                     <div className="relative mx-auto w-full max-w-xl px-4 pb-10 pt-4">
-                        <div className="mb-1 flex justify-end">
-                            <button type="button" aria-label="Закрыть ангар" onClick={() => setOpen(false)}
-                                className="rounded-xl border-2 border-b-4 border-[#2A363C] bg-[#161F23] p-2 text-[#C9D3D9] active:border-b-0">
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
-                        <HangarScene items={items} layout={layout} />
+<HangarScene items={items} layout={layout} onClose={() => setOpen(false)} />
                     </div>
                 </div>,
                 document.body,
