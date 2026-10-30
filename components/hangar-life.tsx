@@ -32,6 +32,22 @@ export const BANNER_PHRASES = [
     'МАНЬЯНА — ВРАГ',
 ]
 
+// Ночью кукурузник желает спокойной ночи (≤17 знаков — иначе не читается на телефоне).
+export const NIGHT_BANNER_PHRASES = [
+    'ОТБОЙ, ГУСИКИ!',
+    'СИНУС ТОЖЕ СПИТ',
+    'МОЗГ НА ЗАРЯДКЕ',
+    'СОН = +10 БАЛЛОВ',
+    'ТЕЛЕФОН — СПАТЬ!',
+    'СЛАДКИХ СНОВ!',
+    'ИКСЫ УЖЕ СПЯТ',
+    'ЕГЭ НЕ УБЕЖИТ',
+    'ЗЗЗ… ДО ЗАВТРА',
+    'BUENAS NOCHES!',
+    'ДАЖЕ МИГЕЛЬ СПИТ',
+    'ПОРА БАИНЬКИ',
+]
+
 function Cloud({ w, y, dur, delay, opacity, flip = false }: { w: number; y: number; dur: number; delay: number; opacity: number; flip?: boolean }) {
     return (
         <div className="hangar-cloud absolute left-0" style={{ top: cq(y), width: cq(w), opacity, animationDuration: `${dur}s`, animationDelay: `${delay}s` }}>
@@ -60,8 +76,9 @@ function Birds() {
 // Кукурузник — картинка Leonardo (public/hangar/life/biplane.webp, 320×147, носом вправо, крюк с тросом слева).
 const PLANE = { w: 76, h: 35, hookX: 0.025, hookY: 0.67 }
 
-function PlaneWithBanner() {
+function PlaneWithBanner({ night = false }: { night?: boolean }) {
     const [i, setI] = useState(0)
+    const PH = night ? NIGHT_BANNER_PHRASES : BANNER_PHRASES
     // Одна анимация на оба пролёта (64 с): первая половина — слева направо, вторая — справа налево.
     // Самолёт «туда» и «обратно» — две отдельные группы, их видимость переключает та же анимация по времени,
     // поэтому кукурузник всегда летит носом вперёд (раньше направление считалось по событиям и сбивалось).
@@ -69,8 +86,8 @@ function PlaneWithBanner() {
         <div className="hangar-plane absolute left-0" style={{ top: cq(70), width: cq(414) }}
             onAnimationIteration={(e) => { if (e.animationName === 'hangar-plane-fly') setI((v) => v + 1) }}>
             <svg viewBox="0 0 290 48" className="block w-full overflow-visible">
-                <g className="hangar-plane-fwd"><PlaneLeg toLeft={false} text={BANNER_PHRASES[(2 * i) % BANNER_PHRASES.length]} /></g>
-                <g className="hangar-plane-back"><PlaneLeg toLeft text={BANNER_PHRASES[(2 * i + 1) % BANNER_PHRASES.length]} /></g>
+                <g className="hangar-plane-fwd"><PlaneLeg toLeft={false} text={PH[(2 * i) % PH.length]} /></g>
+                <g className="hangar-plane-back"><PlaneLeg toLeft text={PH[(2 * i + 1) % PH.length]} /></g>
             </svg>
         </div>
     )
@@ -120,8 +137,8 @@ export function HangarSky({ time = 'day' }: { time?: 'day' | 'evening' | 'night'
             <Cloud w={120} y={40} dur={95} delay={-20} opacity={0.9} />
             <Cloud w={80} y={125} dur={70} delay={-55} opacity={0.8} flip />
             <Cloud w={150} y={165} dur={120} delay={-90} opacity={0.7} />
-            {/* ночью ласточки спят, кукурузник не летает — в окне только месяц (HangarMoon) */}
-            {time !== 'night' && <><Birds /><PlaneWithBanner /></>}
+            {/* ночью ласточки спят, а кукурузник иногда пролетает и желает спокойной ночи */}
+            {time !== 'night' ? <><Birds /><PlaneWithBanner /></> : <PlaneWithBanner night />}
         </div>
     )
 }

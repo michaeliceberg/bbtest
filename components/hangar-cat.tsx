@@ -16,7 +16,8 @@ import { motion } from 'framer-motion'
 import Lottie from '@/components/lottie-player'
 import LottieCoins from '@/public/Lottie/LottieCoins.json'
 import { useRouter } from 'next/navigation'
-import { bringCatHome, fixCatFridge } from '@/actions/cat'
+import { bringCatHome, fixCatFridge, setCatName } from '@/actions/cat'
+import { checkCatName, CAT_NAME_MAX } from '@/lib/catName'
 import { useAchievementUnlockStore } from '@/store/use-achievement-unlock-store'
 import { playSound, playJustClick, CASE_PRIZE_SOUND } from '@/lib/sound'
 
@@ -124,7 +125,7 @@ export const FRIDGE_COST = 999
 // Сломанный (Leonardo, freezer-broken → cat-fridge-broken): дверца открыта, шнур и лужа торчат за корпус, поэтому своя
 // рамка: корпус на картинке начинается с 115 px слева, ножки — на 612 px сверху (картинка 692×707).
 const BROKEN = { pxW: 692, pxH: 707, bodyLeft: 115, feet: 612 }
-function Fridge({ fixed, label = 'для котика', onClick, justFixed }: { fixed: boolean; label?: string; onClick?: () => void; justFixed?: boolean }) {
+function Fridge({ fixed, onClick, justFixed }: { fixed: boolean; onClick?: () => void; justFixed?: boolean }) {
     // сломанный: тот же масштаб, что у целого по высоте корпуса; корпус совмещён с целым по левому краю и ножкам
     const k = FRIDGE.h / BROKEN.feet
     const box = fixed
@@ -137,10 +138,74 @@ function Fridge({ fixed, label = 'для котика', onClick, justFixed }: { 
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={fixed ? '/hangar/life/cat-fridge.webp' : '/hangar/life/cat-fridge-broken.webp'} alt="" draggable={false} className="absolute inset-0 h-full w-full" />
             {fixed && (
-                <span className="absolute flex items-center justify-center text-center font-black leading-[1.05] text-[#5A3A22]"
-                    style={{ left: '67%', top: '39%', width: '24%', height: '16%', fontSize: '1.3cqw', rotate: '-4deg' }}>{label}</span>
+                // на бумажке — мордочка котика простым карандашом (как ребёнок нарисовал)
+                <svg className="absolute" viewBox="0 0 40 30" style={{ left: '68%', top: '38.5%', width: '22%', height: '17%', rotate: '-4deg' }}
+                    fill="none" stroke="#6A6A72" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 11 L12 4 L17 8 Q20 7 23 8 L28 4 L29 11 Q31 18 25 23 Q20 26 15 23 Q9 18 11 11 Z" />
+                    <path d="M16 13.5 v1.2 M24 13.5 v1.2" strokeWidth="2" />
+                    <path d="M19 17 L20 18 L21 17 M20 18 Q18.5 20 17 19 M20 18 Q21.5 20 23 19" strokeWidth="1.2" />
+                    <path d="M9 16 L4 15 M9 18 L4 19.5 M31 16 L36 15 M31 18 L36 19.5" strokeWidth="1" />
+                </svg>
             )}
         </button>
+    )
+}
+
+/** Табличка с именем котика — стоит на крыше холодильника на двух ножках. Нет имени — «Назови котика ✏️». */
+function NameSign({ name, onClick }: { name: string | null; onClick?: () => void }) {
+    return (
+        <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: pct(FRIDGE.x - 6), top: pct(FRIDGE.y - FRIDGE.h + 12), zIndex: 206 }}>
+            <button type="button" disabled={!onClick} onClick={onClick} aria-label={name ? `Котика зовут ${name}` : 'Назови котика'}
+                className={`flex flex-col items-center ${onClick ? 'cursor-pointer' : 'pointer-events-none'}`}>
+                <span className="whitespace-nowrap rounded-[0.8cqw] border-[0.35cqw] border-[#5A3A22] px-[1.2cqw] py-[0.35cqw] font-black leading-none shadow-md"
+                    style={{ background: 'linear-gradient(180deg,#FFF6E4,#EAD9B6)', color: name ? '#5A3A22' : '#8C6A44', fontSize: name ? '2.1cqw' : '1.7cqw', rotate: '-2deg' }}>
+                    {name ?? 'Назови котика ✏️'}
+                </span>
+                {/* две ножки-подпорки */}
+                <span className="flex w-[60%] justify-between">
+                    <span className="block h-[1.6cqw] w-[0.45cqw] rounded-b bg-[#5A3A22]" />
+                    <span className="block h-[1.6cqw] w-[0.45cqw] rounded-b bg-[#5A3A22]" />
+                </span>
+            </button>
+        </div>
+    )
+}
+
+/** Окошко «Как назовём котика?»: поле ввода + «Готово». */
+function NamePanel({ initial, onSave, onClose }: { initial: string; onSave: (name: string) => Promise<string | null>; onClose: () => void }) {
+    const [v, setV] = useState(initial)
+    const [err, setErr] = useState<string | null>(null)
+    const [busy, setBusy] = useState(false)
+    const save = async () => {
+        const c = checkCatName(v)
+        if (!c.ok) { setErr(c.error); return }
+        setBusy(true)
+        const e = await onSave(c.name)
+        setBusy(false)
+        if (e) setErr(e)
+    }
+    return (
+        <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: pct(FRIDGE.x - 60), top: pct(FRIDGE.y - FRIDGE.h - 22), zIndex: 1185 }}>
+            <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 18 }}
+                className="w-[48cqw] rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-[2cqw] text-center shadow-xl sm:w-[38cqw]">
+                <div className="text-[3.2cqw] font-black text-[#F2C35B] sm:text-[2.6cqw]">Как назовём котика?</div>
+                <input value={v} maxLength={CAT_NAME_MAX} autoFocus placeholder="Мурзик"
+                    onChange={(e) => { setV(e.target.value); setErr(null) }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') void save() }}
+                    className="mt-[1.2cqw] w-full rounded-xl border-2 border-[#2A363C] bg-[#0F171B] px-[1.6cqw] py-[1cqw] text-center text-[3.4cqw] font-black text-white outline-none focus:border-[#F2C35B] sm:text-[2.6cqw]" />
+                {err && <div className="mt-[0.8cqw] text-[2.6cqw] font-bold text-[#FF8A80] sm:text-[2cqw]">{err}</div>}
+                <div className="mt-[1.4cqw] flex gap-[1.2cqw]">
+                    <button type="button" onClick={onClose}
+                        className="flex-1 rounded-xl border-b-4 border-[#0E1418] bg-[#26333B] py-[1cqw] text-[2.8cqw] font-black text-[#C9D3D9] active:border-b-0 sm:text-[2.2cqw]">
+                        Потом
+                    </button>
+                    <button type="button" onClick={() => void save()} disabled={busy}
+                        className="flex-[1.4] rounded-xl border-b-4 border-[#B8862E] bg-[#FFE58A] py-[1cqw] text-[2.8cqw] font-black text-[#3A2A08] active:border-b-0 disabled:opacity-60 sm:text-[2.2cqw]">
+                        Готово
+                    </button>
+                </div>
+            </motion.div>
+        </div>
     )
 }
 
@@ -180,8 +245,10 @@ const Sausage = ({ size = 9 }: { size?: number }) => (
     <img src="/hangar/life/cat-sausage.webp" alt="" draggable={false} className="block select-none" style={{ width: `${size}cqw` }} />
 )
 
-export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false }: {
+export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, catName = null }: {
     stage: number
+    /** Имя котика (user_progress.cat_name). */
+    catName?: string | null
     /** Холодильник котика починен (user_progress.cat_fridge_fixed). */
     fridgeFixed?: boolean
     /** Превью на плитке: без нажатий и облачков. */
@@ -205,6 +272,17 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false }: {
     const [noCoins, setNoCoins] = useState(false)
     const [fridgeJust, setFridgeJust] = useState(false)
     useEffect(() => { if (fridgeFixed) setFridgeOk(true) }, [fridgeFixed])
+    const [name, setName] = useState<string | null>(catName)
+    const [nameOpen, setNameOpen] = useState(false)
+    useEffect(() => { if (catName) setName(catName) }, [catName])
+    const saveName = async (n: string): Promise<string | null> => {
+        const r = onHome ? { ok: true, name: n, error: undefined } : await setCatName(n)
+        if (!r.ok) return r.error ?? 'Не получилось'
+        setName(r.name ?? n); setNameOpen(false); playSound(CASE_PRIZE_SOUND)
+        reactKey.current++; setReact('happy')
+        if (!onHome) router.refresh()
+        return null
+    }
     const fixFridge = async () => {
         playJustClick()
         setFridgeBusy(true)
@@ -360,7 +438,9 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false }: {
     const allSit: Pose[] = ['sit', 'sit-half', 'sit-closed', 'happy', 'pet', 'meow', 'sleep']
     return (
         <>
-            <Fridge fixed={fridgeOk} justFixed={fridgeJust} onClick={!bare && !fridgeOk ? () => { playJustClick(); setNoCoins(false); setFridgeOpen((v) => !v) } : undefined} />
+            <Fridge fixed={fridgeOk} justFixed={fridgeJust} onClick={!bare && !fridgeOk ? () => { playJustClick(); setNoCoins(false); setNameOpen(false); setFridgeOpen((v) => !v) } : undefined} />
+            <NameSign name={name} onClick={!bare ? () => { playJustClick(); setFridgeOpen(false); setNameOpen((v) => !v) } : undefined} />
+            {!bare && nameOpen && <NamePanel initial={name ?? ''} onSave={saveName} onClose={() => setNameOpen(false)} />}
             {!bare && !fridgeOk && fridgeOpen && <FridgePanel pending={fridgeBusy} noCoins={noCoins} onFix={fixFridge} onClose={() => setFridgeOpen(false)} />}
             <Cardboard />
             {stroll ? (

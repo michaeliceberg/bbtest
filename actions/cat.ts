@@ -3,6 +3,7 @@
 import { sql } from 'drizzle-orm'
 import db from '@/db/drizzle'
 import { auth } from '@/lib/server-auth'
+import { checkCatName } from '@/lib/catName'
 
 // Котик у входа в ангар пошёл жить на картонку (cat_stage 1 → 2). Ачивку «Кот в ангаре» выдаёт computeStateKeys.
 export async function bringCatHome(): Promise<{ ok: boolean }> {
@@ -24,4 +25,15 @@ export async function fixCatFridge(): Promise<{ ok: boolean; reason?: 'coins' }>
         WHERE user_id = ${userId} AND cat_stage >= 2 AND NOT cat_fridge_fixed AND points >= ${CAT_FRIDGE_COST} RETURNING user_id`)
     if ((r as unknown as unknown[]).length > 0) return { ok: true }
     return { ok: false, reason: 'coins' }
+}
+
+// Имя котика (табличка над холодильником). Проверка длины и грубых слов — на сервере тоже.
+export async function setCatName(raw: string): Promise<{ ok: boolean; name?: string; error?: string }> {
+    const session = await auth()
+    const userId = session?.user?.id
+    if (!userId) return { ok: false, error: 'Нужно войти' }
+    const c = checkCatName(raw)
+    if (!c.ok) return { ok: false, error: c.error }
+    await db.execute(sql`UPDATE user_progress SET cat_name = ${c.name} WHERE user_id = ${userId} AND cat_stage >= 2`)
+    return { ok: true, name: c.name }
 }

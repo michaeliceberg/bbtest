@@ -473,7 +473,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
               // ЕГЭ Математика: слева уровень (пол-ширины), справа плитка «В ангар»
               <div className='mb-4 grid grid-cols-2 gap-3'>
                 <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} levelCase={levelCase} variant='half' />
-                <HangarEntry items={hangarItems} layout={hangarLayout} catStage={userProgress.catStage} catFridgeFixed={userProgress.catFridgeFixed} openOnLoad={searchParams?.hangar === '1'} />
+                <HangarEntry items={hangarItems} layout={hangarLayout} catStage={userProgress.catStage} catFridgeFixed={userProgress.catFridgeFixed} catName={userProgress.catName} openOnLoad={searchParams?.hangar === '1'} />
               </div>
             ) : levelCase && (
               <div className='mb-4'>

@@ -95,7 +95,7 @@ export type HangarTime = Time
  * onFix / time / decorFixed — для тестовой страницы /test-hangar: починка без сервера, своё время суток,
  * состояние портрета вручную. В приложении не передаются.
  */
-export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed, bare = false, onClose, catStage = 0, catFridgeFixed = false, onCatHome }: {
+export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed, bare = false, onClose, catStage = 0, catFridgeFixed = false, catName = null, onCatHome }: {
     items: SceneItem[]; layout?: LayoutOverrides | null; onFix?: (num: number) => void; time?: Time; decorFixed?: boolean
     /** Только сама картинка ангара — без заголовка и подсказок снизу (превью на /learn). */
     bare?: boolean
@@ -105,6 +105,8 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     catStage?: number
     /** Холодильник котика починен. */
     catFridgeFixed?: boolean
+    /** Имя котика. */
+    catName?: string | null
     /** Тестовая страница: котик приручён без сервера. */
     onCatHome?: () => void
 }) {
@@ -252,7 +254,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     onClick={() => { if (nextRocket) openTask(nextRocket.num) }}
                     onMouseEnter={() => { if (nextRocket) setHover(nextRocket.num) }} onMouseLeave={() => setHover(null)}
                     style={{ ...placeStyle(R), filter: nextRocket && lit(nextRocket.num) ? HIGHLIGHT : undefined, transition: 'filter .25s', animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
-                <HangarCat stage={catStage} fridgeFixed={catFridgeFixed} bare={bare} night={time === 'night'} onHome={onCatHome} />
+                <HangarCat stage={catStage} fridgeFixed={catFridgeFixed} catName={catName} bare={bare} night={time === 'night'} onHome={onCatHome} />
                 {nextRocket && !bare && <KeyBadge x={R.x + R.w * 0.42} y={R.y - R.h * 0.55} n={nextRocket.num} ready={!!readyRocket} active={lit(nextRocket.num)} onHover={setHover} onOpen={openTask} />}
                 {room.filter((i) => i.num !== FAN_NUM).map((i) => {
                     const done = i.state === 'fixed'
