@@ -17,7 +17,7 @@ import { WoodSign } from '@/components/wood-sign'
 import Link from 'next/link'
 import { L, JUNK, FAN_NUM, DECOR, PORTRAIT_NUM, place, placeStyle, type LayoutOverrides } from '@/lib/hangarModel'
 import { HangarFan, FAN } from '@/components/hangar-fan'
-import { HangarSky, HangarSpider, HangarBug, HangarPaper, ComputerFlicker } from '@/components/hangar-life'
+import { HangarSky, HangarSpider, HangarHangingSpider, HangarBug, HangarPaper, ComputerFlicker } from '@/components/hangar-life'
 import { fixHangarItem } from '@/actions/hangar'
 import { playSound, CASE_PRIZE_SOUND } from '@/lib/sound'
 
@@ -189,7 +189,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 {/* небо в окне живёт: облака, птицы, кукурузник с транспарантом (под всеми предметами) */}
                 <HangarSky />
                 {/* пока бардак — по балке бегает паучок, по полу жучок, на сквозняке кружит листок */}
-                {junkLeft > 0 && <><HangarSpider /><HangarBug /><HangarPaper /></>}
+                {junkLeft > 0 && <><HangarSpider /><HangarHangingSpider /><HangarBug /><HangarPaper /></>}
                 {JUNK.map((jp, j) => {
                     const p = place(layout, 'b', jp.key, jp)
                     return (

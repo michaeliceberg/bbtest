@@ -114,10 +114,10 @@ export function HangarSky() {
     )
 }
 
-/** Паучок бегает по балке под потолком. */
+/** Паучок бегает по балке под потолком — ЗА вентилятором (вентилятор z 900): лопасти и моторчик его перекрывают. */
 export function HangarSpider() {
     return (
-        <div className="hangar-spider pointer-events-none absolute" aria-hidden style={{ left: pct(230), top: pct(46), width: cq(50), zIndex: 1000 }}>
+        <div className="hangar-spider pointer-events-none absolute" aria-hidden style={{ left: pct(230), top: pct(46), width: cq(50), zIndex: 850 }}>
             <svg viewBox="0 0 24 16" className="block w-full">
                 <g stroke="#15181F" strokeWidth={1.4} strokeLinecap="round" className="hangar-legs" style={{ transformOrigin: '12px 9px' }}>
                     <path d="M9 9 L3 5 M9 10 L2 10 M9 11 L3 15 M15 9 L21 5 M15 10 L22 10 M15 11 L21 15" />
@@ -126,6 +126,32 @@ export function HangarSpider() {
                 <circle cx="12" cy="6.5" r="2.6" fill="#1D2028" stroke="#8A7A66" strokeWidth={0.6} />
                 <circle cx="11" cy="6" r="0.7" fill="#E9F0F3" /><circle cx="13" cy="6" r="0.7" fill="#E9F0F3" />
             </svg>
+        </div>
+    )
+}
+
+/**
+ * Второй паучок висит на паутинке справа под балкой: спускается, пружинит на нити и подтягивается обратно.
+ * Нить и паучок — одна и та же раскладка по времени: нить растёт вниз (scaleY от верха), паучок едет на её конец.
+ * Тоже за вентилятором — нить проходит позади лопастей.
+ */
+export function HangarHangingSpider() {
+    const L = 230 // длина нити в пикселях картинки при полном спуске
+    return (
+        <div className="pointer-events-none absolute" aria-hidden style={{ left: pct(728), top: pct(70), width: cq(40), zIndex: 850 }}>
+            <div className="hangar-thread absolute left-1/2 top-0 w-px -translate-x-1/2 bg-[#C9C6BC]/70" style={{ height: cq(L) }} />
+            <div className="hangar-hang absolute left-0 top-0 w-full" style={{ ['--hang' as string]: cq(L) }}>
+                <div className="hangar-hang-sway" style={{ transformOrigin: '50% 0%' }}>
+                    <svg viewBox="0 0 24 20" className="block w-full">
+                        <g stroke="#15181F" strokeWidth={1.4} strokeLinecap="round" className="hangar-legs" style={{ transformOrigin: '12px 10px' }}>
+                            <path d="M9 9 L4 4 M9 10 L2 9 M9 12 L3 16 M15 9 L20 4 M15 10 L22 9 M15 12 L21 16" />
+                        </g>
+                        <ellipse cx="12" cy="12" rx="4.5" ry="4" fill="#1D2028" stroke="#8A7A66" strokeWidth={0.6} />
+                        <circle cx="12" cy="7.5" r="2.6" fill="#1D2028" stroke="#8A7A66" strokeWidth={0.6} />
+                        <circle cx="11" cy="7" r="0.7" fill="#E9F0F3" /><circle cx="13" cy="7" r="0.7" fill="#E9F0F3" />
+                    </svg>
+                </div>
+            </div>
         </div>
     )
 }
