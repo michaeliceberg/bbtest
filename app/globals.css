@@ -1112,12 +1112,12 @@ body {
 @keyframes hangar-cloud-drift { from { transform: translateX(-14cqw); } to { transform: translateX(47cqw); } }
 .hangar-cloud { animation: hangar-cloud-drift 90s linear infinite; }
 @keyframes hangar-birds-fly {
-  0% { transform: translate(-6cqw, 0); opacity: 0; } 3% { opacity: 1; }
+  0% { transform: translate(-9cqw, 0); opacity: 0; } 3% { opacity: 1; }
   40% { transform: translate(48cqw, -3cqw); opacity: 1; } 41%, 100% { transform: translate(48cqw, -3cqw); opacity: 0; }
 }
 .hangar-birds { animation: hangar-birds-fly 34s linear infinite; animation-delay: 6s; opacity: 0; }
-@keyframes hangar-flap { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(-0.6); } }
-.hangar-flap { animation: hangar-flap 0.45s ease-in-out infinite; }
+@keyframes hangar-flap { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.72) translateY(4%); } }
+.hangar-flap { animation: hangar-flap 0.5s ease-in-out infinite; }
 @keyframes hangar-plane-fly {
   0% { transform: translate(-40cqw, 0); } 12% { transform: translate(-25cqw, -0.4cqw); }
   24% { transform: translate(-10cqw, 0.3cqw); } 36% { transform: translate(5cqw, -0.3cqw); }
@@ -1195,7 +1195,14 @@ body {
   96%, 100% { opacity: 0; transform: scale(0.4) rotate(40deg); }
 }
 .hangar-spark { animation: hangar-spark 8s linear infinite; opacity: 0; }
+@keyframes hangar-scuttle { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+.hangar-scuttle { animation: hangar-scuttle 0.22s linear infinite; }
+@keyframes hangar-sun { to { transform: rotate(360deg); } }
+.hangar-sun { animation: hangar-sun 80s linear infinite; }
+@keyframes hangar-moon { 0%, 100% { transform: translateY(0) scale(1); opacity: 0.95; } 50% { transform: translateY(-0.4cqw) scale(1.03); opacity: 1; } }
+.hangar-moon { animation: hangar-moon 6s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) {
+  .hangar-scuttle, .hangar-sun, .hangar-moon,
   .hangar-spark,
   .hangar-thread, .hangar-hang, .hangar-hang-sway,
   .hangar-paper, .hangar-paper-spin,

@@ -32,100 +32,99 @@ export const BANNER_PHRASES = [
     'МАНЬЯНА — ВРАГ',
 ]
 
-function Cloud({ w, y, dur, delay, opacity }: { w: number; y: number; dur: number; delay: number; opacity: number }) {
+function Cloud({ w, y, dur, delay, opacity, flip = false }: { w: number; y: number; dur: number; delay: number; opacity: number; flip?: boolean }) {
     return (
         <div className="hangar-cloud absolute left-0" style={{ top: cq(y), width: cq(w), opacity, animationDuration: `${dur}s`, animationDelay: `${delay}s` }}>
-            <svg viewBox="0 0 120 50" className="block w-full">
-                <path d="M14 42 C2 42 2 28 14 28 C14 16 30 12 38 20 C42 6 64 4 70 18 C78 10 96 14 94 28 C108 26 114 42 100 42 Z" fill="#D6EEE9" />
-                <path d="M14 42 C8 42 6 36 10 33 C24 36 80 38 104 34 C110 38 106 42 100 42 Z" fill="#A9CFCB" />
-            </svg>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/hangar/life/cloud.webp" alt="" draggable={false} className="block w-full select-none" style={flip ? { transform: 'scaleX(-1)' } : undefined} />
         </div>
     )
 }
 
 function Birds() {
-    // две птички «галочкой», крылья машут
+    // две ласточки (картинка Leonardo), «взмах» — лёгкое сплющивание по вертикали
     return (
-        <div className="hangar-birds absolute left-0" style={{ top: cq(90), width: cq(40) }}>
-            <svg viewBox="0 0 40 20" className="block w-full" fill="none" stroke="#24313A" strokeWidth={2.2} strokeLinecap="round">
-                <g className="hangar-flap" style={{ transformOrigin: '10px 10px' }}><path d="M3 9 Q7 4 10 9 Q13 4 17 9" /></g>
-                <g className="hangar-flap" style={{ transformOrigin: '28px 14px', animationDelay: '-0.2s' }}><path d="M22 13 Q25 9 28 13 Q31 9 34 13" /></g>
-            </svg>
+        <div className="hangar-birds absolute left-0" style={{ top: cq(70), width: cq(70) }}>
+            <span className="hangar-flap absolute left-0 top-0 block" style={{ width: cq(34) }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/hangar/life/swallow.webp" alt="" draggable={false} className="block w-full select-none" />
+            </span>
+            <span className="hangar-flap absolute block" style={{ left: cq(36), top: cq(26), width: cq(24), animationDelay: '-0.2s' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/hangar/life/swallow.webp" alt="" draggable={false} className="block w-full select-none" />
+            </span>
         </div>
     )
 }
 
-function Biplane() {
-    // кукурузник носом вправо, 58×26
-    return (
-        <>
-            <rect x="10" y="2" width="30" height="4" rx="2" fill="#D9A93D" stroke="#3A3226" strokeWidth={1.2} />
-            <rect x="10" y="20" width="30" height="4" rx="2" fill="#D9A93D" stroke="#3A3226" strokeWidth={1.2} />
-            <line x1="18" y1="6" x2="18" y2="20" stroke="#3A3226" strokeWidth={1.2} />
-            <line x1="34" y1="6" x2="34" y2="20" stroke="#3A3226" strokeWidth={1.2} />
-            <path d="M0 13 L6 8 L46 10 Q54 13 46 17 L6 18 Z" fill="#E8C55A" stroke="#3A3226" strokeWidth={1.2} />
-            <path d="M0 13 L-3 6 L5 9 Z" fill="#E8C55A" stroke="#3A3226" strokeWidth={1.2} />
-            <circle cx="30" cy="12" r="2.2" fill="#6FB7D9" />
-            <g className="hangar-prop" style={{ transformOrigin: '54px 13px' }}>
-                <line x1="54" y1="5" x2="54" y2="21" stroke="#3A3226" strokeWidth={2} strokeLinecap="round" />
-            </g>
-        </>
-    )
-}
+// Кукурузник — картинка Leonardo (public/hangar/life/biplane.webp, 320×147, носом вправо, крюк с тросом слева).
+const PLANE = { w: 76, h: 35, hookX: 0.025, hookY: 0.67 }
 
 function PlaneWithBanner() {
     const [i, setI] = useState(0)
     const text = BANNER_PHRASES[i % BANNER_PHRASES.length]
-    // Анимация alternate: чётный пролёт — слева направо, нечётный — справа налево (тогда кукурузник рисуется
-    // слева носом влево, транспарант тянется за ним справа; текст всегда читается). viewBox 280×48.
+    // Анимация alternate: чётный пролёт — слева направо, нечётный — справа налево (тогда кукурузник слева,
+    // отражён носом влево, транспарант тянется за ним справа; текст всегда читается). viewBox 290×48.
     const toLeft = i % 2 === 1
-    const bx = toLeft ? 74 : 0 // начало транспаранта
-    const rope = toLeft ? [58, 74] : [206, 222]
+    const bx = toLeft ? 84 : 0 // начало транспаранта
+    const px = toLeft ? 0 : 210 // левый край картинки самолёта
+    const hook = { x: toLeft ? px + PLANE.w * (1 - PLANE.hookX) : px + PLANE.w * PLANE.hookX, y: -8 + PLANE.h * PLANE.hookY }
+    const bannerEnd = toLeft ? bx : bx + 206
     return (
-        <div className="hangar-plane absolute left-0" style={{ top: cq(78), width: cq(400) }}
+        <div className="hangar-plane absolute left-0" style={{ top: cq(70), width: cq(414) }}
             onAnimationIteration={(e) => { if (e.animationName === 'hangar-plane-fly') setI((v) => v + 1) }}>
-            <svg viewBox="0 0 280 48" className="block w-full overflow-visible">
-                <line x1={rope[0]} y1="23" x2={rope[1]} y2="23" stroke="#3A3226" strokeWidth={1.2} />
+            <svg viewBox="0 0 290 48" className="block w-full overflow-visible">
+                <path d={`M${hook.x} ${hook.y} Q${(hook.x + bannerEnd) / 2} ${hook.y + 8} ${bannerEnd} 23`} fill="none" stroke="#5A4A33" strokeWidth={1.3} />
                 {/* транспарант на тросе — колышется */}
-                <g className="hangar-banner-wave" style={{ transformOrigin: `${toLeft ? bx : bx + 206}px 23px` }}>
-                    <path d={`M${bx} 9 Q${bx + 52} 5 ${bx + 103} 9 T${bx + 206} 9 L${bx + 206} 37 Q${bx + 155} 41 ${bx + 103} 37 T${bx} 37 Z`} fill="#F4EEDC" stroke="#C9B98E" strokeWidth={1.5} />
+                <g className="hangar-banner-wave" style={{ transformOrigin: `${bannerEnd}px 23px` }}>
+                    <path d={`M${bx} 9 Q${bx + 52} 5 ${bx + 103} 9 T${bx + 206} 9 L${bx + 206} 37 Q${bx + 155} 41 ${bx + 103} 37 T${bx} 37 Z`} fill="#F4EEDC" stroke="#5A4A33" strokeWidth={1.6} />
+                    <path d={`M${bx + 3} 12 Q${bx + 52} 8 ${bx + 103} 12 T${bx + 203} 12`} fill="none" stroke="#C0392B" strokeWidth={1.2} opacity={0.6} />
                     <text x={bx + 103} y="29" textAnchor="middle" fontSize="17" fontWeight={900} fill="#C0392B" style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>{text}</text>
                 </g>
-                <g transform={toLeft ? 'translate(58 9) scale(-1 1)' : 'translate(222 9)'}><Biplane /></g>
+                <g transform={toLeft ? `translate(${px + PLANE.w} -8) scale(-1 1)` : `translate(${px} -8)`}>
+                    <image href="/hangar/life/biplane.webp" width={PLANE.w} height={PLANE.h} />
+                </g>
             </svg>
         </div>
     )
 }
 
 /** Небо в круглом окне: облака, птицы, кукурузник с транспарантом. */
-export function HangarSky() {
+export function HangarSky({ time = 'day' }: { time?: 'day' | 'evening' | 'night' }) {
     const w = WIN.r * 2
     const h = WIN.bottom - WIN.top
     return (
         <div className="pointer-events-none absolute overflow-hidden" aria-hidden
             style={{ left: pct(WIN.cx - WIN.r), top: pct(WIN.top), width: pct(w), height: pct(h),
                 clipPath: `ellipse(50% ${(WIN.r / h) * 100}% at 50% ${((WIN.cy - WIN.top) / h) * 100}%)` }}>
-            <Cloud w={110} y={40} dur={95} delay={-20} opacity={0.75} />
-            <Cloud w={80} y={120} dur={70} delay={-55} opacity={0.6} />
-            <Cloud w={140} y={170} dur={120} delay={-90} opacity={0.5} />
-            <Birds />
-            <PlaneWithBanner />
+            {/* солнце: днём высоко слева, вечером низко у горизонта и краснее; ночью вместо него месяц (HangarMoon) */}
+            {time !== 'night' && (
+                <div className="absolute" style={{ left: cq(time === 'day' ? 80 : 110), top: cq(time === 'day' ? 30 : 150), width: cq(time === 'day' ? 78 : 88),
+                    filter: time === 'evening' ? 'saturate(1.5) hue-rotate(-22deg) brightness(1.05)' : undefined }}>
+                    <div className="hangar-sun">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/hangar/life/sun.webp" alt="" draggable={false} className="block w-full select-none" />
+                    </div>
+                </div>
+            )}
+            <Cloud w={120} y={40} dur={95} delay={-20} opacity={0.9} />
+            <Cloud w={80} y={125} dur={70} delay={-55} opacity={0.8} flip />
+            <Cloud w={150} y={165} dur={120} delay={-90} opacity={0.7} />
+            {/* ночью ласточки спят, кукурузник не летает — в окне только месяц (HangarMoon) */}
+            {time !== 'night' && <><Birds /><PlaneWithBanner /></>}
         </div>
     )
 }
 
-/** Паучок бегает по балке под потолком — ЗА вентилятором (вентилятор z 900): лопасти и моторчик его перекрывают. */
+/** Паучок бегает по балке под потолком — ЗА вентилятором (вентилятор z 900): лопасти и моторчик его перекрывают.
+ *  Картинка — вид снизу, головой вверх; повёрнута головой по ходу (scaleX(-1) в анимации разворачивает её). */
 export function HangarSpider() {
     return (
-        <div className="hangar-spider pointer-events-none absolute" aria-hidden style={{ left: pct(230), top: pct(46), width: cq(50), zIndex: 850 }}>
-            <svg viewBox="0 0 24 16" className="block w-full">
-                <g stroke="#15181F" strokeWidth={1.4} strokeLinecap="round" className="hangar-legs" style={{ transformOrigin: '12px 9px' }}>
-                    <path d="M9 9 L3 5 M9 10 L2 10 M9 11 L3 15 M15 9 L21 5 M15 10 L22 10 M15 11 L21 15" />
-                </g>
-                <ellipse cx="12" cy="10" rx="4.5" ry="3.6" fill="#1D2028" stroke="#8A7A66" strokeWidth={0.6} />
-                <circle cx="12" cy="6.5" r="2.6" fill="#1D2028" stroke="#8A7A66" strokeWidth={0.6} />
-                <circle cx="11" cy="6" r="0.7" fill="#E9F0F3" /><circle cx="13" cy="6" r="0.7" fill="#E9F0F3" />
-            </svg>
+        <div className="hangar-spider pointer-events-none absolute" aria-hidden style={{ left: pct(230), top: pct(40), width: cq(52), zIndex: 850 }}>
+            <div className="hangar-scuttle">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/hangar/life/spider.webp" alt="" draggable={false} className="block w-full select-none" style={{ transform: 'rotate(90deg)' }} />
+            </div>
         </div>
     )
 }
@@ -142,14 +141,9 @@ export function HangarHangingSpider() {
             <div className="hangar-thread absolute left-1/2 top-0 w-px -translate-x-1/2 bg-[#C9C6BC]/70" style={{ height: cq(L) }} />
             <div className="hangar-hang absolute left-0 top-0 w-full" style={{ ['--hang' as string]: cq(L) }}>
                 <div className="hangar-hang-sway" style={{ transformOrigin: '50% 0%' }}>
-                    <svg viewBox="0 0 24 20" className="block w-full">
-                        <g stroke="#15181F" strokeWidth={1.4} strokeLinecap="round" className="hangar-legs" style={{ transformOrigin: '12px 10px' }}>
-                            <path d="M9 9 L4 4 M9 10 L2 9 M9 12 L3 16 M15 9 L20 4 M15 10 L22 9 M15 12 L21 16" />
-                        </g>
-                        <ellipse cx="12" cy="12" rx="4.5" ry="4" fill="#1D2028" stroke="#8A7A66" strokeWidth={0.6} />
-                        <circle cx="12" cy="7.5" r="2.6" fill="#1D2028" stroke="#8A7A66" strokeWidth={0.6} />
-                        <circle cx="11" cy="7" r="0.7" fill="#E9F0F3" /><circle cx="13" cy="7" r="0.7" fill="#E9F0F3" />
-                    </svg>
+                    {/* та же картинка паучка, головой вниз: брюшко к нити */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/hangar/life/spider.webp" alt="" draggable={false} className="block w-full select-none" style={{ transform: 'rotate(180deg)' }} />
                 </div>
             </div>
         </div>
@@ -222,6 +216,23 @@ export function GeneratorSparks({ style }: { style: React.CSSProperties }) {
                     </span>
                 </span>
             ))}
+        </div>
+    )
+}
+
+/** Ночью в окне — светящийся месяц. Рисуется ПОВЕРХ ночного затемнения (z 1105), справа от ракеты, обрезан по окну. */
+export function HangarMoon() {
+    const w = WIN.r * 2
+    const h = WIN.bottom - WIN.top
+    return (
+        <div className="pointer-events-none absolute overflow-hidden" aria-hidden
+            style={{ left: pct(WIN.cx - WIN.r), top: pct(WIN.top), width: pct(w), height: pct(h), zIndex: 1105,
+                clipPath: `ellipse(50% ${(WIN.r / h) * 100}% at 50% ${((WIN.cy - WIN.top) / h) * 100}%)` }}>
+            <div className="hangar-moon absolute" style={{ left: cq(330), top: cq(36), width: cq(84) }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/hangar/life/moon.webp" alt="" draggable={false} className="block w-full select-none"
+                    style={{ filter: 'drop-shadow(0 0 6px rgba(255,236,170,0.9)) drop-shadow(0 0 16px rgba(255,220,140,0.6))' }} />
+            </div>
         </div>
     )
 }
