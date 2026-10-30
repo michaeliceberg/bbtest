@@ -3,7 +3,8 @@
 // components/hangar-fan.tsx
 //
 // Потолочный вентилятор в ангаре. Моторчик не крутится.
-// Лопасти нарисованы строго снизу (вид в плане) и наклонены в перспективу CSS-ом (rotateX), внутри наклона
+// Лопасти нарисованы строго снизу (вид в плане) и наклонены в перспективу CSS-ом (rotateX < 0 — ближний к нам
+// край лопастей выше, дальний ниже: вентилятор над головой, смотрим на него снизу), внутри наклона
 // крутятся вокруг центра. Вращение «lo-fi»: покадрово (steps), медленно и спокойно. 4 одинаковые лопасти —
 // цикл 90°, поэтому повтор бесшовный. Сломанный — без лопасти, другая погнута, висит и чуть покачивается.
 // Всё на transform — видеокарта крутит без нагрузки. Координаты — в пикселях картинки ангара 1024×1024.
@@ -13,24 +14,26 @@ const pct = (v: number) => `${(v / 1024) * 100}%`
 // Вентилятор не должен тянуть внимание: всё в тон тёмного сине-серого потолка, тонкие длинные лопасти,
 // маленький моторчик. Рисуется кодом (SVG), чтобы цвет точно совпадал с потолком.
 // Где висит: ось над круглым окном, top — верх штанги (у потолочной балки).
-export const FAN = { x: 512, top: 58, motorW: 34, motorH: 46, bladesD: 520, tilt: 74 }
+export const FAN = { x: 512, top: 58, motorW: 34, motorH: 46, bladesD: 580, tilt: -70 }
 
 const EDGE = '#22202D' // контур чуть темнее потолка
 const BODY = '#3A3E50' // основной цвет — как потолок, чуть светлее
 const BODY_DARK = '#30333F'
 const BODY_LIGHT = '#4A4E61' // еле заметный блик
 
-function Blade({ angle, length = 470, bent = false }: { angle: number; length?: number; bent?: boolean }) {
-    // тонкая длинная лопасть: узкий корень, чуть шире к концу, скруглённый край
+function Blade({ angle, length = 490, bent = false }: { angle: number; length?: number; bent?: boolean }) {
+    // длинная лопасть: узкий корень, заметно шире к концу, скруглённый край
     const L = length
     const tip = 500 - L
+    const r = 10 // полуширина у корня
+    const w = 30 // полуширина у конца
     return (
         <g transform={`rotate(${angle} 500 500)`}>
-            <path d={`M 494 ${500 - 40} L 492 ${500 - 110} C 486 ${tip + 120} 484 ${tip + 30} 488 ${tip + 10}
-                      C 492 ${tip - 2} 508 ${tip - 2} 512 ${tip + 10}
-                      C 516 ${tip + 30} 514 ${tip + 120} 508 ${500 - 110} L 506 ${500 - 40} Z`}
+            <path d={`M ${500 - r} ${500 - 36} L ${500 - r - 3} ${500 - 100} C ${500 - w + 4} ${tip + 150} ${500 - w} ${tip + 50} ${500 - w + 6} ${tip + 16}
+                      C ${500 - 14} ${tip - 4} ${500 + 14} ${tip - 4} ${500 + w - 6} ${tip + 16}
+                      C ${500 + w} ${tip + 50} ${500 + w - 4} ${tip + 150} ${500 + r + 3} ${500 - 100} L ${500 + r} ${500 - 36} Z`}
                 fill={bent ? BODY_DARK : BODY} stroke={EDGE} strokeWidth={5} strokeLinejoin="round" />
-            <path d={`M 490 ${500 - 130} C 487 ${tip + 120} 487 ${tip + 40} 491 ${tip + 16}`} fill="none" stroke={BODY_LIGHT} strokeWidth={3} strokeLinecap="round" opacity={0.6} />
+            <path d={`M ${500 - r - 4} ${500 - 120} C ${500 - w + 8} ${tip + 150} ${500 - w + 6} ${tip + 60} ${500 - w + 12} ${tip + 24}`} fill="none" stroke={BODY_LIGHT} strokeWidth={3} strokeLinecap="round" opacity={0.6} />
         </g>
     )
 }
@@ -41,7 +44,7 @@ function Blades({ broken }: { broken: boolean }) {
             {broken ? (
                 <>
                     <Blade angle={0} />
-                    <Blade angle={90} length={300} bent />
+                    <Blade angle={90} length={310} bent />
                     <Blade angle={270} />
                     {/* обломок на месте третьей лопасти */}
                     <path d="M 494 540 L 493 600 L 500 614 L 507 598 L 506 540 Z" fill={BODY_DARK} stroke={EDGE} strokeWidth={5} strokeLinejoin="round" />
