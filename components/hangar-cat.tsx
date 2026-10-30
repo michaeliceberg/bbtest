@@ -5,7 +5,9 @@
 // Рыжий котик в ангаре (user_progress.cat_stage).
 // 1 — выглядывает из-за левой стойки ворот и мяукает «Мяу?». Нажали — «Погладить» или «Подманить колбаской»,
 //     котик выходит, бежит по полу к картонке и садится там (сервер: bringCatHome, cat_stage 1 → 2).
-// 2 — живёт на картонке: сидит и моргает, иногда мяукает; ночью спит клубком; по нажатию мурчит.
+// 2 — живёт на коробке: сидит и моргает, иногда мяукает или жмурится с улыбкой («котику хорошо»); ночью спит
+//     клубком; по нажатию мурчит. Кадры моргания — Leonardo (kitten-closed-eyes-1/2), выровнены по cat-sit; у закрытых
+//     глаз рот подменён ртом из cat-sit, вариант с улыбкой — эмоция happy.
 // Картинки — public/hangar/life/cat-*.webp (Leonardo, исходники docs/hangar/leonardo/cat-*.png), все в одном масштабе:
 // размер позы в сцене = исходный размер (CAT_PX) × масштаб глубины. Координаты сцены — 1024×1024, точка = низ по центру.
 
@@ -16,12 +18,12 @@ import { bringCatHome } from '@/actions/cat'
 import { useAchievementUnlockStore } from '@/store/use-achievement-unlock-store'
 import { playSound, playJustClick, CASE_PRIZE_SOUND } from '@/lib/sound'
 
-type Pose = 'peek' | 'walk-1' | 'walk-2' | 'meow' | 'pet' | 'sniff' | 'sleep' | 'sit' | 'sit-half' | 'sit-closed' | 'sit-shy'
+type Pose = 'happy' | 'peek' | 'walk-1' | 'walk-2' | 'meow' | 'pet' | 'sniff' | 'sleep' | 'sit' | 'sit-half' | 'sit-closed' | 'sit-shy'
 
 // Размер позы в исходных пикселях (обрезка по картинке, до уменьшения).
 const CAT_PX: Record<Pose, [number, number]> = {
     peek: [536, 651], 'walk-1': [767, 659], 'walk-2': [767, 659], meow: [648, 750], pet: [611, 764], sniff: [632, 727],
-    sleep: [672, 453], sit: [626, 755], 'sit-half': [626, 755], 'sit-closed': [626, 755], 'sit-shy': [627, 635],
+    sleep: [672, 453], happy: [626, 755], sit: [626, 755], 'sit-half': [626, 755], 'sit-closed': [626, 755], 'sit-shy': [627, 635],
 }
 const src = (p: Pose) => `/hangar/life/cat-${p}.webp`
 
@@ -125,7 +127,7 @@ export function HangarCat({ stage, bare, night, onHome }: {
     const [phase, setPhase] = useState<'peek' | 'choice' | 'lure' | 'walk' | 'home'>(stage >= 2 ? 'home' : 'peek')
     const [lure, setLure] = useState<'pet' | 'sausage'>('pet')
     const [step, setStep] = useState(0)
-    const [react, setReact] = useState<'pet' | 'meow' | null>(null)
+    const [react, setReact] = useState<'pet' | 'meow' | 'happy' | null>(null)
     const [meowShown, setMeowShown] = useState(true)
     const reactKey = useRef(0)
     const router = useRouter()
@@ -149,12 +151,13 @@ export function HangarCat({ stage, bare, night, onHome }: {
     // дома иногда мяукает сам
     useEffect(() => {
         if (phase !== 'home' || bare || night) return
-        const t = setInterval(() => { if (Math.random() < 0.35) { reactKey.current++; setReact('meow') } }, 14000)
+        // иногда сам мяукает, иногда жмурится от удовольствия («котику хорошо»)
+        const t = setInterval(() => { const r = Math.random(); if (r < 0.3) { reactKey.current++; setReact('meow') } else if (r < 0.6) { reactKey.current++; setReact('happy') } }, 12000)
         return () => clearInterval(t)
     }, [phase, bare, night])
     useEffect(() => {
         if (!react) return
-        const t = setTimeout(() => setReact(null), react === 'pet' ? 1800 : 1200)
+        const t = setTimeout(() => setReact(null), react === 'meow' ? 1200 : react === 'happy' ? 2600 : 1800)
         return () => clearTimeout(t)
     }, [react])
 
@@ -248,18 +251,18 @@ export function HangarCat({ stage, bare, night, onHome }: {
     }
 
     // --- дома, на картонке ---
-    const pose: Pose = night ? 'sleep' : react === 'pet' ? 'pet' : react === 'meow' ? 'meow' : blink
-    const allSit: Pose[] = ['sit', 'sit-half', 'sit-closed', 'pet', 'meow', 'sleep']
+    const pose: Pose = night ? 'sleep' : react ?? blink
+    const allSit: Pose[] = ['sit', 'sit-half', 'sit-closed', 'happy', 'pet', 'meow', 'sleep']
     return (
         <>
             <Cardboard />
             <button type="button" aria-label="Котик" disabled={bare}
                 className="absolute cursor-pointer disabled:cursor-default"
                 style={{ ...box(pose, BED), zIndex: 215 }}
-                onClick={() => { playJustClick(); reactKey.current++; setReact(Math.random() < 0.65 ? 'pet' : 'meow') }}>
+                onClick={() => { playJustClick(); reactKey.current++; const r = Math.random(); setReact(r < 0.45 ? 'happy' : r < 0.8 ? 'pet' : 'meow') }}>
                 <CatImg pose={pose} poses={allSit} />
             </button>
-            {!bare && react === 'pet' && <><Hearts key={reactKey.current} x={BED.x} y={BED.y - 95} /><Bubble x={BED.x + 30} y={BED.y - 96}>Мрр-мрр</Bubble></>}
+            {!bare && (react === 'pet' || react === 'happy') && <><Hearts key={reactKey.current} x={BED.x} y={BED.y - 95} /><Bubble x={BED.x + 30} y={BED.y - 96}>Мрр-мрр</Bubble></>}
             {!bare && react === 'meow' && <Bubble key={reactKey.current} x={BED.x + 34} y={BED.y - 96}>Мяу!</Bubble>}
             {night && (
                 <motion.span className="pointer-events-none absolute font-black text-[#C9D3FF]" style={{ left: pct(BED.x + 30), top: pct(BED.y - 80), zIndex: 1160, fontSize: '3cqw' }}
