@@ -97,18 +97,21 @@ function Hearts({ x, y }: { x: number; y: number }) {
     )
 }
 
-/** Картонка, на которой живёт котик (пока картинки нет — рисуем сами в стиле ангара). */
+/** Коробка, на которой живёт котик (Leonardo, docs/hangar/leonardo/cat-cardboard.png): котик сидит на её крышке. */
+const BOX = { w: 150, h: 108 }
 function Cardboard() {
-    const w = 132, h = 34
     return (
-        <svg className="pointer-events-none absolute" viewBox="0 0 132 34"
-            style={{ left: pct(BED.x - w / 2), top: pct(BED.y - h + 8), width: pct(w), height: pct(h), zIndex: 205 }}>
-            <path d="M14 4 L124 2 L130 30 L2 32 Z" fill="#B88B5A" stroke="#5A3A22" strokeWidth="2.6" strokeLinejoin="round" />
-            <path d="M18 9 L120 7 L124 26 L9 27 Z" fill="none" stroke="#8C643C" strokeWidth="1.4" strokeDasharray="5 4" />
-            <ellipse cx="96" cy="17" rx="9" ry="5" fill="none" stroke="#7A4E2C" strokeWidth="1.6" opacity="0.6" />
-        </svg>
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src="/hangar/life/cat-cardboard.webp" alt="" draggable={false} className="pointer-events-none absolute select-none"
+            style={{ left: pct(BED.x - BOX.w / 2 + 6), top: pct(BED.y + 52 - BOX.h), width: pct(BOX.w), height: pct(BOX.h), zIndex: 205 }} />
     )
 }
+
+/** Колбаска (Leonardo, cat-sausage). */
+const Sausage = ({ size = 9 }: { size?: number }) => (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src="/hangar/life/cat-sausage.webp" alt="" draggable={false} className="block select-none" style={{ width: `${size}cqw` }} />
+)
 
 export function HangarCat({ stage, bare, night, onHome }: {
     stage: number
@@ -215,7 +218,7 @@ export function HangarCat({ stage, bare, night, onHome }: {
                 {lure === 'pet'
                     ? <><Hearts x={at.x} y={at.y - 70} /><Bubble x={at.x} y={at.y - 72}>Мрр…</Bubble></>
                     : <motion.span className="pointer-events-none absolute text-[5cqw]" style={{ left: pct(at.x - 100), top: pct(at.y - 40), zIndex: 1160 }}
-                        initial={{ rotate: -20, scale: 0.5 }} animate={{ rotate: 10, scale: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 9 }}>🌭</motion.span>}
+                        initial={{ rotate: -20, scale: 0.5 }} animate={{ rotate: 10, scale: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 9 }}><Sausage /></motion.span>}
             </>
         )
     }
@@ -238,7 +241,7 @@ export function HangarCat({ stage, bare, night, onHome }: {
                 {lure === 'sausage' && (
                     <motion.span className="pointer-events-none absolute text-[4cqw]" style={{ zIndex: 1160 }}
                         initial={{ left: pct(GATE.x - 110), top: pct(GATE.y - 40) }} animate={{ left: pct(BED.x - 90), top: pct(BED.y - 50) }}
-                        transition={{ duration: WALK_S - 0.4, ease: 'easeInOut' }}>🌭</motion.span>
+                        transition={{ duration: WALK_S - 0.4, ease: 'easeInOut' }}><Sausage size={7} /></motion.span>
                 )}
             </>
         )

@@ -15,8 +15,10 @@
    > centered, isolated on pure white background, no text, no letters, no shadow on the ground, no frame
 
 3. В конце промпта — `Avoid: text, letters, watermark, signature, background scenery, multiple objects, cropped, blurry, photo, 3D render`.
-4. Готовую картинку — **Remove Background** (Full, тень None). Сохрани в `docs/hangar/leonardo/` с именем из таблицы и
-   пришли — я вырежу, уменьшу и подключу.
+4. **Remove Background в Leonardo НЕ нужен** (это ещё ~40 токенов на картинку). Присылай как есть, на белом фоне —
+   фон уберу бесплатно скриптом `python3 docs/hangar/tools/cut_white.py вход.jpg выход.png` (заливка белого от краёв,
+   белое внутри предмета — блики, табличка — остаётся). Поэтому в промпте важно «isolated on pure white background».
+   Сохрани в `docs/hangar/leonardo/` с именем из таблицы и пришли файлом — я вырежу, уменьшу и подключу.
 
 ## Объекты
 
@@ -97,7 +99,7 @@
 | `cat-bowl-empty.jpg`, `cat-bowl-milk.jpg` | small round metal pet bowl on the floor, seen from a slight angle above, dented rim; empty / filled with white milk | Два состояния |
 | `cat-milk.jpg` | small cardboard milk carton, white and blue, no letters, standing | |
 | `cat-sausage.jpg` | one pink boiled sausage with a string knot at the end, slightly bent | Для кнопки «Подманить колбаской» и полёта к котику |
-| `cat-fridge.jpg` | small old rounded retro mini fridge, cream colour with a chrome handle, a few magnets shapes, an EMPTY white paper label taped on the door, standing on the floor, front view | Табличку «для Мурзика» наложу кодом |
+| `cat-fridge.jpg` | small old rounded retro mini fridge, cream colour with a chrome handle on the right side of the door, a few small magnets, an EMPTY white paper label taped on the door, standing on the floor, **three-quarter view from the front-left and slightly from above, the left side panel of the fridge clearly visible, the top surface slightly visible, same perspective as the hangar floor in the reference** | Табличку «для Мурзика» наложу кодом. Первая версия вышла строго спереди (лежит в `cat-fridge-front.png`) — для ракурса добавь Image Guidance с предметом ангара в перспективе, например `public/hangar/07-after.webp` (компьютер), сила 0.3–0.4 (только ракурс, не форма). В Avoid: `front view, flat, orthographic, symmetrical` |
 
 ## Небо, погода, облака (2026-10-30)
 
