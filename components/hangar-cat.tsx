@@ -110,24 +110,26 @@ function Cardboard() {
 }
 
 /** Мини-холодильник котика рядом с коробкой (Leonardo, cat-fridge). Сначала он сломан — чинится за FRIDGE_COST монет
- *  (actions/cat.ts fixCatFridge, user_progress.cat_fridge_fixed). Сломанный — cat-fridge-broken.webp, пока его нет —
- *  та же картинка, потускневшая и перекошенная. На пустой бумажке починенного — подпись кодом (потом имя котика).
+ *  (actions/cat.ts fixCatFridge, user_progress.cat_fridge_fixed). Сломанный — cat-fridge-broken.webp. На пустой бумажке починенного — подпись кодом (потом имя котика).
  *  Бумажка на картинке: 66–92% по ширине, 37–56% по высоте. */
 const FRIDGE = { x: 655, y: 846, w: 108, h: 131 }
 export const FRIDGE_COST = 999
-const HAS_BROKEN_ART = false // положить public/hangar/life/cat-fridge-broken.webp и поставить true
+// Сломанный (Leonardo, freezer-broken → cat-fridge-broken): дверца открыта, шнур и лужа торчат за корпус, поэтому своя
+// рамка: корпус на картинке начинается с 115 px слева, ножки — на 612 px сверху (картинка 692×707).
+const BROKEN = { pxW: 692, pxH: 707, bodyLeft: 115, feet: 612 }
 function Fridge({ fixed, label = 'для котика', onClick, justFixed }: { fixed: boolean; label?: string; onClick?: () => void; justFixed?: boolean }) {
-    const broken = !fixed
+    // сломанный: тот же масштаб, что у целого по высоте корпуса; корпус совмещён с целым по левому краю и ножкам
+    const k = FRIDGE.h / BROKEN.feet
+    const box = fixed
+        ? { left: FRIDGE.x - FRIDGE.w / 2, top: FRIDGE.y - FRIDGE.h, w: FRIDGE.w, h: FRIDGE.h }
+        : { left: FRIDGE.x - FRIDGE.w / 2 - BROKEN.bodyLeft * k, top: FRIDGE.y - BROKEN.feet * k, w: BROKEN.pxW * k, h: BROKEN.pxH * k }
     return (
-        <button type="button" disabled={!onClick} onClick={onClick} aria-label={broken ? 'Сломанный холодильник' : 'Холодильник котика'}
+        <button type="button" disabled={!onClick} onClick={onClick} aria-label={fixed ? 'Холодильник котика' : 'Сломанный холодильник'}
             className={`absolute select-none ${onClick ? 'cursor-pointer' : 'pointer-events-none'}`}
-            style={{ left: pct(FRIDGE.x - FRIDGE.w / 2), top: pct(FRIDGE.y - FRIDGE.h), width: pct(FRIDGE.w), height: pct(FRIDGE.h), zIndex: 204,
-                rotate: broken && !HAS_BROKEN_ART ? '-5deg' : undefined, transformOrigin: '30% 100%', animation: justFixed ? 'hangar-pop .6s ease-out' : undefined }}>
+            style={{ left: pct(box.left), top: pct(box.top), width: pct(box.w), height: pct(box.h), zIndex: 204, animation: justFixed ? 'hangar-pop .6s ease-out' : undefined }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={broken && HAS_BROKEN_ART ? '/hangar/life/cat-fridge-broken.webp' : '/hangar/life/cat-fridge.webp'} alt="" draggable={false}
-                className="absolute inset-0 h-full w-full"
-                style={{ filter: broken && !HAS_BROKEN_ART ? 'grayscale(0.75) brightness(0.72) sepia(0.25)' : undefined }} />
-            {!broken && (
+            <img src={fixed ? '/hangar/life/cat-fridge.webp' : '/hangar/life/cat-fridge-broken.webp'} alt="" draggable={false} className="absolute inset-0 h-full w-full" />
+            {fixed && (
                 <span className="absolute flex items-center justify-center text-center font-black leading-[1.05] text-[#5A3A22]"
                     style={{ left: '67%', top: '39%', width: '24%', height: '16%', fontSize: '1.3cqw', rotate: '-4deg' }}>{label}</span>
             )}
