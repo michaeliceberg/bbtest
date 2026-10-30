@@ -6,23 +6,24 @@
 // Решил раздел — у предмета появляется кнопка «Починить …», ученик сам жмёт и видит, как ангар меняется.
 // Грязь стен/пола проявляется ступенями, хлам исчезает по одному — по числу починенного.
 // Время суток — по часам ученика (оттенок поверх, предметы не перерисовываются).
-// Картинки и координаты — docs/hangar/tools/build.py → public/hangar/, lib/hangarLayout.json.
+// Картинки и координаты — docs/hangar/tools/build.py → public/hangar/, lib/hangarLayout.json; правки расстановки
+// (слой, поворот, место) — из редактора /test-hangar-layout (проп layout, lib/hangarModel.ts). №11 — вентилятор.
 
 import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Wrench } from 'lucide-react'
-import layout from '@/lib/hangarLayout.json'
+import { KeyRound, Wrench, X } from 'lucide-react'
+import Link from 'next/link'
+import { L, JUNK, FAN_NUM, place, placeStyle, type LayoutOverrides } from '@/lib/hangarModel'
+import { HangarFan, FAN } from '@/components/hangar-fan'
 import { fixHangarItem } from '@/actions/hangar'
 import { playSound, CASE_PRIZE_SOUND } from '@/lib/sound'
 
-type Slot = { src: string; x: number; y: number; w: number; h: number }
-const L = layout as unknown as Record<string, { b: Slot; a: Slot }> & { rocket: Slot[]; junk: Slot[] }
 export type SceneItem = { num: number; title: string; state: 'broken' | 'ready' | 'fixed'; progress: number; href: string | null }
 
 const FIX_LABEL: Record<number, string> = {
     1: 'Смотать кабель', 2: 'Развесить ключи', 3: 'Поставить стремянку', 4: 'Зарядить шуруповёрт', 5: 'Поднять бочку',
     6: 'Повесить флаг', 7: 'Починить компьютер', 8: 'Починить лампу', 9: 'Повесить огнетушитель', 10: 'Починить аппарат',
-    11: 'Собрать инструменты', 12: 'Закрыть ящик', 13: 'Включить робота',
+    11: 'Починить вентилятор', 12: 'Закрыть ящик', 13: 'Включить робота',
 }
 const ROCKET_STEP = ['Поставить опоры', 'Поставить сопло', 'Надеть обшивку', 'Прикрутить стабилизаторы', 'Пристегнуть баки', 'Покрасить звезду', 'Надеть нос']
 const WALL = new Set([2, 6, 8])
@@ -36,20 +37,36 @@ const TIME_TINT: Record<Time, string> = {
 }
 const timeOf = (h: number): Time => (h >= 7 && h < 18 ? 'day' : h >= 18 && h < 21 ? 'evening' : 'night')
 
-function Badge({ x, y, n, color, pulse }: { x: number; y: number; n: number; color: string; pulse?: boolean }) {
+// Значок задания — как ключ ЕГЭ на карточке юнита /trainer: золотой ключ и номер. Наводишь или жмёшь —
+// предмет, который починится, подсвечивается; по нажатию — окошко «Перейти к разделу задачника».
+function KeyBadge({ x, y, n, ready, active, onHover, onOpen }: { x: number; y: number; n: number; ready: boolean; active: boolean; onHover: (n: number | null) => void; onOpen: (n: number) => void }) {
     return (
-        <span className={`absolute flex h-[6%] w-[6%] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white text-[clamp(9px,2.4vw,15px)] font-black text-[#0F171B] ${pulse ? 'animate-bounce' : ''}`}
-            style={{ left: pct(x), top: pct(y), background: color, boxShadow: '0 2px 6px rgba(0,0,0,.5)' }}>
-            {pulse ? <Wrench className="h-[55%] w-[55%]" /> : n}
+        <span className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: pct(x), top: pct(y), zIndex: 1150 }}>
+            <button type="button" aria-label={`Задание №${n}`}
+                onMouseEnter={() => onHover(n)} onMouseLeave={() => onHover(null)} onFocus={() => onHover(n)} onBlur={() => onHover(null)}
+                onClick={() => onOpen(n)}
+                className={`flex items-center gap-1 rounded-lg py-[3px] pl-1 pr-[3px] transition-transform active:scale-90 ${ready ? 'animate-bounce' : ''}`}
+                style={{ background: active ? 'rgba(20,14,4,0.82)' : 'rgba(0,0,0,0.55)', boxShadow: active ? '0 0 0 2px #F2C35B, 0 2px 8px rgba(0,0,0,.6)' : '0 2px 6px rgba(0,0,0,.5)' }}>
+                {ready ? <Wrench className="h-[clamp(11px,2.6cqw,16px)] w-[clamp(11px,2.6cqw,16px)] text-[#F2C35B]" strokeWidth={2.6} />
+                    : <KeyRound className="h-[clamp(11px,2.6cqw,16px)] w-[clamp(11px,2.6cqw,16px)] text-[#F2C35B]" strokeWidth={2.6} />}
+                <span className="flex h-[clamp(16px,3.9cqw,24px)] min-w-[clamp(16px,3.9cqw,24px)] items-center justify-center rounded-[6px] px-1 text-[clamp(10px,2.4cqw,13px)] font-black leading-none"
+                    style={{ background: 'linear-gradient(180deg,#FFE58A,#F2C35B)', color: '#3A2A08', boxShadow: '0 2px 0 #B8862E' }}>{n}</span>
+            </button>
         </span>
     )
 }
 
-export function HangarScene({ items }: { items: SceneItem[] }) {
+/** Подсветка предмета, который починится: золотой контур по форме картинки (drop-shadow) и чуть ярче. */
+const HIGHLIGHT = 'drop-shadow(0 0 2px #FFF4C2) drop-shadow(0 0 6px #F2C35B) drop-shadow(0 0 14px #F2C35B) brightness(1.15)'
+
+export function HangarScene({ items, layout }: { items: SceneItem[]; layout?: LayoutOverrides | null }) {
     const router = useRouter()
     const [pending, start] = useTransition()
     const [justFixed, setJustFixed] = useState<number | null>(null)
     const [time, setTime] = useState<Time>('day')
+    const [hover, setHover] = useState<number | null>(null)
+    const [openNum, setOpenNum] = useState<number | null>(null)
+    const lit = (n: number) => hover === n || openNum === n
     useEffect(() => { setTime(timeOf(new Date().getHours())) }, [])
 
     const byNum = new Map(items.map((i) => [i.num, i]))
@@ -58,9 +75,11 @@ export function HangarScene({ items }: { items: SceneItem[] }) {
     const stage = rocketParts.filter((i) => i.state === 'fixed').length
     const fixedCount = items.filter((i) => i.state === 'fixed').length
     const dirt = [1, 0.75, 0.5, 0.25, 0][Math.min(4, Math.floor(fixedCount / 4))]
-    const junkLeft = Math.max(0, L.junk.length - Math.round((fixedCount * L.junk.length) / 16))
+    const junkLeft = Math.max(0, JUNK.length - Math.round((fixedCount * JUNK.length) / 16))
     const lampOn = byNum.get(8)?.state === 'fixed'
-    const R = L.rocket[Math.min(7, stage)]
+    const RS = L.rocket[Math.min(7, stage)]
+    const R = { ...RS, ...place(layout, stage >= 7 ? 'a' : 'b', 'rocket', RS) }
+    const fan = byNum.get(FAN_NUM)
     const readyRocket = rocketParts.find((i) => i.state === 'ready')
     const nextRocket = readyRocket ?? rocketParts.find((i) => i.state !== 'fixed')
     const ready = [...room.filter((i) => i.state === 'ready'), ...(readyRocket ? [readyRocket] : [])]
@@ -69,6 +88,7 @@ export function HangarScene({ items }: { items: SceneItem[] }) {
         const r = await fixHangarItem(num)
         if (r.ok) { setJustFixed(num); playSound(CASE_PRIZE_SOUND); router.refresh(); setTimeout(() => setJustFixed(null), 1500) }
     })
+    const openItem = openNum !== null ? byNum.get(openNum) ?? null : null
     const label = (i: SceneItem) => (i.num >= 14 ? ROCKET_STEP[Math.min(6, stage)] : FIX_LABEL[i.num] ?? 'Починить')
 
     return (
@@ -78,38 +98,77 @@ export function HangarScene({ items }: { items: SceneItem[] }) {
                 <h2 className="text-lg font-black text-[#F2F7FB]">Ангар Команданте</h2>
                 <span className="text-xs font-bold text-[#9AA7B0]">починено {fixedCount}/20</span>
             </div>
-            <div className="relative aspect-square w-full overflow-hidden rounded-2xl border-2 border-[#2C3A41]">
+            <div className="relative aspect-square w-full overflow-hidden rounded-2xl border-2 border-[#2C3A41]" style={{ containerType: 'inline-size' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/hangar/bg.webp" alt="" className="absolute inset-0 h-full w-full" draggable={false} />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/hangar/bg-dirty.webp" alt="" className="absolute inset-0 h-full w-full transition-opacity duration-1000" style={{ opacity: dirt }} draggable={false} />
-                {L.junk.map((p, j) => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img key={p.src} src={p.src} alt="" draggable={false} className="absolute select-none transition-all duration-700"
-                        style={{ left: pct(p.x - p.w / 2), top: pct(p.y - p.h), width: pct(p.w), opacity: j < junkLeft ? 1 : 0, transform: j < junkLeft ? 'scale(1)' : 'scale(0.3)' }} />
-                ))}
+                {JUNK.map((jp, j) => {
+                    const p = place(layout, 'b', jp.key, jp)
+                    return (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img key={jp.key} src={jp.src} alt="" draggable={false} className="absolute select-none transition-[opacity,transform] duration-700"
+                            style={{ ...placeStyle(p), opacity: j < junkLeft ? 1 : 0, transform: j < junkLeft ? 'scale(1)' : 'scale(0.3)' }} />
+                    )
+                })}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img key={R.src} src={R.src} alt="Ракета" draggable={false} className="absolute select-none"
-                    style={{ left: pct(R.x - R.w / 2), top: pct(R.y - R.h), width: pct(R.w), animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
-                {nextRocket && <Badge x={R.x + R.w * 0.42} y={R.y - R.h * 0.55} n={nextRocket.num} color="#C385F7" pulse={!!readyRocket} />}
-                {room.map((i) => {
+                    style={{ ...placeStyle(R), filter: nextRocket && lit(nextRocket.num) ? HIGHLIGHT : undefined, transition: 'filter .25s', animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
+                {nextRocket && <KeyBadge x={R.x + R.w * 0.42} y={R.y - R.h * 0.55} n={nextRocket.num} ready={!!readyRocket} active={lit(nextRocket.num)} onHover={setHover} onOpen={setOpenNum} />}
+                {room.filter((i) => i.num !== FAN_NUM).map((i) => {
                     const done = i.state === 'fixed'
-                    const p = done ? L[i.num].a : L[i.num].b
+                    const sl = done ? L[i.num].a : L[i.num].b
+                    const p = { ...sl, ...place(layout, done ? 'a' : 'b', `${i.num}`, sl) }
                     const onWall = WALL.has(i.num) && !(i.num === 6 && !done)
                     return (
                         <div key={i.num}>
                             {!onWall && <div className="pointer-events-none absolute rounded-[50%]"
-                                style={{ left: pct(p.x - p.w * 0.45), top: pct(p.y - p.h * 0.07 - 4), width: pct(p.w * 0.9), height: pct(p.h * 0.12 + 8), background: 'radial-gradient(closest-side, rgba(20,10,15,0.5), transparent)' }} />}
+                                style={{ left: pct(p.x - p.w * 0.45), top: pct(p.y - p.h * 0.07 - 4), width: pct(p.w * 0.9), height: pct(p.h * 0.12 + 8), background: 'radial-gradient(closest-side, rgba(20,10,15,0.5), transparent)', zIndex: Math.round(p.z * 10) + 9 }} />}
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img key={p.src} src={p.src} alt={i.title} draggable={false} className="absolute select-none"
-                                style={{ left: pct(p.x - p.w / 2), top: pct(p.y - p.h), width: pct(p.w), animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
-                            {!done && <Badge x={p.x} y={p.y - p.h - 14} n={i.num} color="#53ADEF" pulse={i.state === 'ready'} />}
+                                style={{ ...placeStyle(p), filter: !done && lit(i.num) ? HIGHLIGHT : undefined, transition: 'filter .25s', animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
+                            {!done && <KeyBadge x={p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready'} active={lit(i.num)} onHover={setHover} onOpen={setOpenNum} />}
                         </div>
                     )
                 })}
-                <div className="pointer-events-none absolute inset-0 transition-[background] duration-700" style={{ background: TIME_TINT[time], mixBlendMode: 'multiply' }} />
+                {fan && (
+                    <div className="pointer-events-none absolute inset-0" style={{ zIndex: 900, filter: fan.state !== 'fixed' && lit(FAN_NUM) ? HIGHLIGHT : undefined, transition: 'filter .25s', animation: justFixed === FAN_NUM ? 'hangar-pop .6s ease-out' : undefined }}>
+                        <HangarFan broken={fan.state !== 'fixed'} />
+                    </div>
+                )}
+                {fan && fan.state !== 'fixed' && <KeyBadge x={FAN.x} y={FAN.top + FAN.motorH + 46} n={FAN_NUM} ready={fan.state === 'ready'} active={lit(FAN_NUM)} onHover={setHover} onOpen={setOpenNum} />}
+                <div className="pointer-events-none absolute inset-0 transition-[background] duration-700" style={{ background: TIME_TINT[time], mixBlendMode: 'multiply', zIndex: 1100 }} />
                 <div className="pointer-events-none absolute rounded-full transition-opacity duration-700"
-                    style={{ left: pct(232 - 170), top: pct(415 - 170), width: pct(340), height: pct(340), opacity: lampOn ? (time === 'day' ? 0.55 : 0.9) : 0, background: 'radial-gradient(closest-side, rgba(255,200,110,0.55), transparent)', mixBlendMode: 'screen' }} />
+                    style={{ left: pct(232 - 170), top: pct(415 - 170), width: pct(340), height: pct(340), opacity: lampOn ? (time === 'day' ? 0.55 : 0.9) : 0, background: 'radial-gradient(closest-side, rgba(255,200,110,0.55), transparent)', mixBlendMode: 'screen', zIndex: 1101 }} />
+                {openItem && (
+                    <>
+                        <button type="button" aria-label="Закрыть" className="absolute inset-0 cursor-default bg-black/35" style={{ zIndex: 1190 }} onClick={() => setOpenNum(null)} />
+                        <div className="absolute inset-x-[8%] bottom-[5%] rounded-2xl border-2 border-[#4A3A14] bg-[#151F23]/95 p-3 shadow-2xl" style={{ zIndex: 1200 }}>
+                            <button type="button" aria-label="Закрыть" onClick={() => setOpenNum(null)} className="absolute right-2 top-2 rounded-lg p-1 text-[#9AA7B0] hover:text-white"><X className="h-4 w-4" /></button>
+                            <div className="flex items-center gap-2 pr-6">
+                                <KeyRound className="h-4 w-4 shrink-0 text-[#F2C35B]" strokeWidth={2.6} />
+                                <span className="text-sm font-black text-[#F2F7FB]">Задание №{openItem.num} · {openItem.title}</span>
+                            </div>
+                            <p className="mt-1 text-xs font-bold text-[#9AA7B0]">
+                                {openItem.state === 'ready' ? `Раздел решён! Можно: «${label(openItem)}».` : `Реши этот раздел в задачнике — и сможешь: «${label(openItem)}».`}
+                            </p>
+                            <div className="mt-2.5 flex gap-2">
+                                {openItem.state === 'ready' ? (
+                                    <button type="button" disabled={pending} onClick={() => { setOpenNum(null); fix(openItem.num) }}
+                                        className="flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-black text-[#151F24] transition-transform active:translate-y-[4px] disabled:opacity-60"
+                                        style={{ background: 'linear-gradient(180deg,#FFD84D,#F2C35B)', boxShadow: '0 4px 0 #B8862E' }}>
+                                        <Wrench className="h-4 w-4" />Починить
+                                    </button>
+                                ) : null}
+                                <Link href={`/learn?task=${openItem.num}`}
+                                    className="flex flex-1 items-center justify-center rounded-xl px-3 py-2.5 text-center text-sm font-black text-[#0F171B] transition-transform active:translate-y-[4px]"
+                                    style={{ background: '#53ADEF', boxShadow: '0 4px 0 #3A85BC' }}>
+                                    Перейти к разделу задачника
+                                </Link>
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
 
             {ready.length > 0 ? (
