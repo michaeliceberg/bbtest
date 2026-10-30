@@ -1185,7 +1185,18 @@ body {
 .hangar-hang { animation: hangar-hang 14s ease-in-out infinite; transform: translateY(calc(var(--hang) * 0.25)); }
 @keyframes hangar-hang-sway { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
 .hangar-hang-sway { animation: hangar-hang-sway 2.6s ease-in-out infinite; }
+/* искра у проводов генератора: долго тихо, потом короткий треск — вспышка, мигание, гаснет */
+@keyframes hangar-spark {
+  0%, 88% { opacity: 0; transform: scale(0.3) rotate(0deg); }
+  89% { opacity: 1; transform: scale(1.1) rotate(15deg); }
+  90.5% { opacity: 0.2; transform: scale(0.7) rotate(-10deg); }
+  92% { opacity: 1; transform: scale(1.25) rotate(25deg); }
+  94% { opacity: 0.5; transform: scale(0.9) rotate(5deg); }
+  96%, 100% { opacity: 0; transform: scale(0.4) rotate(40deg); }
+}
+.hangar-spark { animation: hangar-spark 8s linear infinite; opacity: 0; }
 @media (prefers-reduced-motion: reduce) {
+  .hangar-spark,
   .hangar-thread, .hangar-hang, .hangar-hang-sway,
   .hangar-paper, .hangar-paper-spin,
   .hangar-cloud, .hangar-birds, .hangar-flap, .hangar-plane, .hangar-banner-wave, .hangar-prop,

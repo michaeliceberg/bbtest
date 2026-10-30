@@ -17,7 +17,7 @@ import { WoodSign } from '@/components/wood-sign'
 import Link from 'next/link'
 import { L, JUNK, FAN_NUM, DECOR, PORTRAIT_NUM, itemOf, place, placeStyle, type LayoutOverrides } from '@/lib/hangarModel'
 import { HangarFan, FAN } from '@/components/hangar-fan'
-import { HangarSky, HangarSpider, HangarHangingSpider, HangarBug, HangarPaper, ComputerFlicker } from '@/components/hangar-life'
+import { HangarSky, HangarSpider, HangarHangingSpider, HangarBug, HangarPaper, ComputerFlicker, GeneratorSparks } from '@/components/hangar-life'
 import { fixHangarItem } from '@/actions/hangar'
 import { playSound, CASE_PRIZE_SOUND } from '@/lib/sound'
 
@@ -39,7 +39,7 @@ const ITEM_JOKE: Record<number, string> = {
     6: 'Ключи разного размера: какой подойдёт с первой попытки? Мат. ожидание подскажет 🔧',
     7: 'Без компа Команданте не может решить даже простейшее уравнение. Почини — и икс найдётся 💻',
     8: 'Фейнман считал в уме быстрее калькулятора и взламывал сейфы. Включи свет — посчитаем так же 🔐',
-    9: 'Обороты шуруповёрта — это скорость, а скорость — производная. Зарядим и закрутим 🪛',
+    9: 'Обороты шуруповёрта — это скорость, а скорость — производная координаты. Зарядим и закрутим 🪛',
     10: 'Генератор — чистая физика: подставь в формулу — получишь энергию. Как в прикладной задаче ⚡',
     11: 'Две трубы, поезд, бассейн… Вентилятор, чтобы текстовые задачи были не такими душными 🌀',
     12: 'Струя из огнетушителя летит по параболе. Видишь график — тушишь задачу 🧯',
@@ -99,8 +99,8 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     const [hover, setHover] = useState<number | null>(null)
     const [openNum, setOpenNum] = useState<number | null>(null)
     const lit = (n: number) => hover === n || openNum === n
-    // Плашка задания появляется только ПОСЛЕ того, как картинка доехала до предмета (зум 1,1 с), закрывается сразу.
-    const ZOOM_MS = 1100
+    // Плашка задания появляется на середине зума (зум 1,1 с → через 0,55 с) — не сразу и без долгого ожидания; закрывается сразу.
+    const ZOOM_MS = 550
     const [panelNum, setPanelNum] = useState<number | null>(null)
     useEffect(() => {
         setPanelNum(null)
@@ -248,6 +248,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                                 onMouseEnter={() => { if (!done) setHover(i.num) }} onMouseLeave={() => setHover(null)}
                                 style={{ ...placeStyle(p), filter: !done && lit(i.num) ? HIGHLIGHT : undefined, transition: 'filter .25s', animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
                             {id === 7 && !done && <ComputerFlicker style={placeStyle(p)} />}
+                            {id === 10 && !done && <GeneratorSparks style={placeStyle(p)} />}
                             {!done && !bare && <KeyBadge x={p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready'} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
                         </div>
                     )

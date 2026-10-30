@@ -198,3 +198,30 @@ export function HangarPaper() {
         </div>
     )
 }
+
+/** Сломанный генератор: провода у гнёзд изредка искрят (вспышка и разлёт искорок). style — коробка картинки предмета. */
+export function GeneratorSparks({ style }: { style: React.CSSProperties }) {
+    // точки в % картинки 10-before (гнёзда спереди и штекеры сбоку), у каждой свой ритм — искрят вразнобой и редко
+    const points = [
+        { x: 57, y: 54, dur: 7.3, delay: 1.2 },
+        { x: 68, y: 44, dur: 9.1, delay: 4.6 },
+        { x: 33, y: 34, dur: 11.7, delay: 7.9 },
+    ]
+    return (
+        <div className="pointer-events-none absolute" aria-hidden style={{ ...style, zIndex: (Number(style.zIndex) || 0) + 1 }}>
+            {points.map((pt, k) => (
+                <span key={k} className="absolute" style={{ left: `${pt.x}%`, top: `${pt.y}%`, width: '22%', translate: '-50% -50%' }}>
+                    <span className="hangar-spark block" style={{ animationDuration: `${pt.dur}s`, animationDelay: `${pt.delay}s` }}>
+                        <svg viewBox="0 0 40 40" className="block w-full overflow-visible">
+                            <circle cx="20" cy="20" r="9" fill="rgba(255,236,150,0.55)" />
+                            <path d="M20 6 L22.5 17.5 L34 20 L22.5 22.5 L20 34 L17.5 22.5 L6 20 L17.5 17.5 Z" fill="#FFF6C8" stroke="#FFC23D" strokeWidth={1.2} strokeLinejoin="round" />
+                            <g stroke="#FFD45C" strokeWidth={1.8} strokeLinecap="round">
+                                <path d="M27 11 L32 6 M12 28 L7 33 M29 27 L35 30 M11 12 L5 9" />
+                            </g>
+                        </svg>
+                    </span>
+                </span>
+            ))}
+        </div>
+    )
+}
