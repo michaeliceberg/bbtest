@@ -254,7 +254,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     onClick={() => { if (nextRocket) openTask(nextRocket.num) }}
                     onMouseEnter={() => { if (nextRocket) setHover(nextRocket.num) }} onMouseLeave={() => setHover(null)}
                     style={{ ...placeStyle(R), filter: nextRocket && lit(nextRocket.num) ? HIGHLIGHT : undefined, transition: 'filter .25s', animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
-                <HangarCat stage={catStage} fridgeFixed={catFridgeFixed} catName={catName} bare={bare} night={time === 'night'} onHome={onCatHome} />
+                <HangarCat stage={catStage} layout={layout} fridgeFixed={catFridgeFixed} catName={catName} bare={bare} night={time === 'night'} onHome={onCatHome} />
                 {nextRocket && !bare && <KeyBadge x={R.x + R.w * 0.42} y={R.y - R.h * 0.55} n={nextRocket.num} ready={!!readyRocket} active={lit(nextRocket.num)} onHover={setHover} onOpen={openTask} />}
                 {room.filter((i) => i.num !== FAN_NUM).map((i) => {
                     const done = i.state === 'fixed'

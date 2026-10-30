@@ -58,12 +58,26 @@ export const DECOR: Decor[] = [
         b: { src: '/hangar/lamp-off.webp', x: 129, y: 370, w: 46, h: 40 } },
 ]
 
+// Вещи котика (components/hangar-cat.tsx) — тоже двигаются в редакторе /test-hangar-layout, но рисуются только когда
+// котик живёт в ангаре. «Сломано» (b) — сломанный холодильник, «Починено» (a) — целый. Коробка — место, где сидит котик.
+// Сломанный холодильник шире целого (открыта дверца, шнур, лужа): его рамка по умолчанию совмещена с целым по корпусу.
+export const CAT_DECOR: Decor[] = [
+    { key: 'cat-fridge', label: 'Холодильник котика',
+        a: { src: '/hangar/life/cat-fridge.webp', x: 655, y: 846, w: 108, h: 131 },
+        b: { src: '/hangar/life/cat-fridge-broken.webp', x: 650, y: 866, w: 148, h: 151 } },
+    { key: 'cat-box', label: 'Коробка котика',
+        a: { src: '/hangar/life/cat-cardboard.webp', x: 554, y: 904, w: 150, h: 108 },
+        b: { src: '/hangar/life/cat-cardboard.webp', x: 554, y: 904, w: 150, h: 108 } },
+]
+
 // Слой по умолчанию — как было: хлам, потом ракета, потом предметы по номерам.
 const defaultZ = (key: string) => {
     if (key.startsWith('junk-')) return key === 'junk-tools' ? 7.5 : Number(key.slice(5)) - 1
     if (key === 'rocket') return 20
     if (key === 'portrait') return 4
     if (key === 'lamp') return 4.5
+    if (key === 'cat-fridge') return 19.4
+    if (key === 'cat-box') return 19.5
     return 30 + Number(key)
 }
 
@@ -80,7 +94,7 @@ export function editorObjects(o: LayoutOverrides | null | undefined, state: Hang
     const list: EditorObj[] = [
         { ...rocket, ...place(o, state, 'rocket', rocket), key: 'rocket', label: 'Ракета' },
         ...(state === 'b' ? JUNK.map((j) => ({ ...j, ...place(o, state, j.key, j) })) : []),
-        ...DECOR.map((d) => ({ ...d[state], ...place(o, state, d.key, d[state]), key: d.key, label: d.label })),
+        ...[...DECOR, ...CAT_DECOR].map((d) => ({ ...d[state], ...place(o, state, d.key, d[state]), key: d.key, label: d.label })),
         ...ROOM_IDS.map((id) => { const s = L[id][state]; return { ...s, ...place(o, state, `${id}`, s), key: `${id}`, label: `${ITEM_NAME[id] ?? 'Предмет'} (№${taskOfItem(id)})` } }),
     ]
     return list.sort((a, b) => a.z - b.z)

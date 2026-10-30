@@ -13,6 +13,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
+import { CAT_DECOR, place, placeStyle, type LayoutOverrides, type Place } from '@/lib/hangarModel'
 import Lottie from '@/components/lottie-player'
 import LottieCoins from '@/public/Lottie/LottieCoins.json'
 import { useRouter } from 'next/navigation'
@@ -34,8 +35,8 @@ const src = (p: Pose) => `/hangar/life/cat-${p}.webp`
 // Котик выглядывает из-за стойки справа и бежит к картонке влево — все картинки отражены (нарисованы «вправо»).
 const GATE = { x: 660, y: 660, k: 0.13 }
 const BED_K = 0.13
-const BED = { x: 548, y: 852, k: BED_K }
-const PATH = [GATE, { x: 640, y: 710, k: 0.112 }, { x: 595, y: 780, k: 0.12 }, BED]
+const DEFAULT_BED = { x: 548, y: 852, k: BED_K } // по умолчанию; настоящее место — от коробки (bedOf)
+const PATH = [GATE, { x: 640, y: 710, k: 0.112 }, { x: 595, y: 780, k: 0.12 }, DEFAULT_BED]
 const WALK_S = 3.4
 // Днём котик иногда гуляет по ангару: уходит к одной из точек пола, сидит там и возвращается на коробку.
 const STROLL_SPOTS = [{ x: 440, y: 882 }, { x: 702, y: 888 }, { x: 612, y: 726 }, { x: 505, y: 958 }]
@@ -108,33 +109,25 @@ function Hearts({ x, y }: { x: number; y: number }) {
 }
 
 /** Коробка, на которой живёт котик (Leonardo, docs/hangar/leonardo/cat-cardboard.png): котик сидит на её крышке. */
-const BOX = { w: 150, h: 108 }
-function Cardboard() {
+// Место коробки и холодильника — из редактора /test-hangar-layout (CAT_DECOR в lib/hangarModel.ts); котик сидит на крышке.
+const bedOf = (b: Place) => ({ x: b.x - 6, y: b.y - 52, k: BED_K * (b.w / 150) })
+function Cardboard({ p }: { p: Place }) {
     return (
         // eslint-disable-next-line @next/next/no-img-element
         <img src="/hangar/life/cat-cardboard.webp" alt="" draggable={false} className="pointer-events-none absolute select-none"
-            style={{ left: pct(BED.x - BOX.w / 2 + 6), top: pct(BED.y + 52 - BOX.h), width: pct(BOX.w), height: pct(BOX.h), zIndex: 205 }} />
+            style={{ ...placeStyle(p), zIndex: 205 }} />
     )
 }
 
 /** Мини-холодильник котика рядом с коробкой (Leonardo, cat-fridge). Сначала он сломан — чинится за FRIDGE_COST монет
  *  (actions/cat.ts fixCatFridge, user_progress.cat_fridge_fixed). Сломанный — cat-fridge-broken.webp. На пустой бумажке починенного — подпись кодом (потом имя котика).
  *  Бумажка на картинке: 66–92% по ширине, 37–56% по высоте. */
-const FRIDGE = { x: 655, y: 846, w: 108, h: 131 }
 export const FRIDGE_COST = 999
-// Сломанный (Leonardo, freezer-broken → cat-fridge-broken): дверца открыта, шнур и лужа торчат за корпус, поэтому своя
-// рамка: корпус на картинке начинается с 115 px слева, ножки — на 612 px сверху (картинка 692×707).
-const BROKEN = { pxW: 692, pxH: 707, bodyLeft: 115, feet: 612 }
-function Fridge({ fixed, onClick, justFixed }: { fixed: boolean; onClick?: () => void; justFixed?: boolean }) {
-    // сломанный: тот же масштаб, что у целого по высоте корпуса; корпус совмещён с целым по левому краю и ножкам
-    const k = FRIDGE.h / BROKEN.feet
-    const box = fixed
-        ? { left: FRIDGE.x - FRIDGE.w / 2, top: FRIDGE.y - FRIDGE.h, w: FRIDGE.w, h: FRIDGE.h }
-        : { left: FRIDGE.x - FRIDGE.w / 2 - BROKEN.bodyLeft * k, top: FRIDGE.y - BROKEN.feet * k, w: BROKEN.pxW * k, h: BROKEN.pxH * k }
+function Fridge({ p, fixed, onClick, justFixed }: { p: Place; fixed: boolean; onClick?: () => void; justFixed?: boolean }) {
     return (
         <button type="button" disabled={!onClick} onClick={onClick} aria-label={fixed ? 'Холодильник котика' : 'Сломанный холодильник'}
             className={`absolute select-none ${onClick ? 'cursor-pointer' : 'pointer-events-none'}`}
-            style={{ left: pct(box.left), top: pct(box.top), width: pct(box.w), height: pct(box.h), zIndex: 204, animation: justFixed ? 'hangar-pop .6s ease-out' : undefined }}>
+            style={{ ...placeStyle(p), zIndex: 204, animation: justFixed ? 'hangar-pop .6s ease-out' : undefined }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={fixed ? '/hangar/life/cat-fridge.webp' : '/hangar/life/cat-fridge-broken.webp'} alt="" draggable={false} className="absolute inset-0 h-full w-full" />
             {fixed && (
@@ -152,9 +145,9 @@ function Fridge({ fixed, onClick, justFixed }: { fixed: boolean; onClick?: () =>
 }
 
 /** Табличка с именем котика — стоит на крыше холодильника на двух ножках. Нет имени — «Назови котика ✏️». */
-function NameSign({ name, onClick }: { name: string | null; onClick?: () => void }) {
+function NameSign({ fr, name, onClick }: { fr: Place; name: string | null; onClick?: () => void }) {
     return (
-        <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: pct(FRIDGE.x - 6), top: pct(FRIDGE.y - FRIDGE.h + 12), zIndex: 206 }}>
+        <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: pct(fr.x - 6), top: pct(fr.y - fr.h + 12), zIndex: 206 }}>
             <button type="button" disabled={!onClick} onClick={onClick} aria-label={name ? `Котика зовут ${name}` : 'Назови котика'}
                 className={`flex flex-col items-center ${onClick ? 'cursor-pointer' : 'pointer-events-none'}`}>
                 <span className="whitespace-nowrap rounded-[0.8cqw] border-[0.35cqw] border-[#5A3A22] px-[1.2cqw] py-[0.35cqw] font-black leading-none shadow-md"
@@ -172,7 +165,7 @@ function NameSign({ name, onClick }: { name: string | null; onClick?: () => void
 }
 
 /** Окошко «Как назовём котика?»: поле ввода + «Готово». */
-function NamePanel({ initial, onSave, onClose }: { initial: string; onSave: (name: string) => Promise<string | null>; onClose: () => void }) {
+function NamePanel({ fr, initial, onSave, onClose }: { fr: Place; initial: string; onSave: (name: string) => Promise<string | null>; onClose: () => void }) {
     const [v, setV] = useState(initial)
     const [err, setErr] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
@@ -185,7 +178,7 @@ function NamePanel({ initial, onSave, onClose }: { initial: string; onSave: (nam
         if (e) setErr(e)
     }
     return (
-        <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: pct(FRIDGE.x - 60), top: pct(FRIDGE.y - FRIDGE.h - 22), zIndex: 1185 }}>
+        <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: pct(fr.x - 60), top: pct(fr.y - fr.h - 22), zIndex: 1185 }}>
             <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 18 }}
                 className="w-[48cqw] rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-[2cqw] text-center shadow-xl sm:w-[38cqw]">
                 <div className="text-[3.2cqw] font-black text-[#F2C35B] sm:text-[2.6cqw]">Как назовём котика?</div>
@@ -210,9 +203,9 @@ function NamePanel({ initial, onSave, onClose }: { initial: string; onSave: (nam
 }
 
 /** Окошко «Починить холодильник за 999 монет» над холодильником. */
-function FridgePanel({ pending, noCoins, onFix, onClose }: { pending: boolean; noCoins: boolean; onFix: () => void; onClose: () => void }) {
+function FridgePanel({ fr, pending, noCoins, onFix, onClose }: { fr: Place; pending: boolean; noCoins: boolean; onFix: () => void; onClose: () => void }) {
     return (
-        <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: pct(FRIDGE.x - 40), top: pct(FRIDGE.y - FRIDGE.h - 8), zIndex: 1185 }}>
+        <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: pct(fr.x - 40), top: pct(fr.y - fr.h - 8), zIndex: 1185 }}>
             <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 18 }}
                 className="w-[44cqw] rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-[2cqw] text-center shadow-xl sm:w-[36cqw]">
                 <div className="text-[3.2cqw] font-black text-[#F2C35B] sm:text-[2.6cqw]">Холодильник сломан</div>
@@ -245,8 +238,10 @@ const Sausage = ({ size = 9 }: { size?: number }) => (
     <img src="/hangar/life/cat-sausage.webp" alt="" draggable={false} className="block select-none" style={{ width: `${size}cqw` }} />
 )
 
-export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, catName = null }: {
+export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, catName = null, layout }: {
     stage: number
+    /** Расстановка из редактора (коробка и холодильник котика). */
+    layout?: LayoutOverrides | null
     /** Имя котика (user_progress.cat_name). */
     catName?: string | null
     /** Холодильник котика починен (user_progress.cat_fridge_fixed). */
@@ -267,6 +262,10 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const reactKey = useRef(0)
     const router = useRouter()
     const [fridgeOk, setFridgeOk] = useState(fridgeFixed)
+    const st = fridgeOk ? 'a' : 'b'
+    const boxP = place(layout, st, 'cat-box', CAT_DECOR[1][st])
+    const frP = place(layout, st, 'cat-fridge', CAT_DECOR[0][st])
+    const BED = bedOf(boxP)
     const [fridgeOpen, setFridgeOpen] = useState(false)
     const [fridgeBusy, setFridgeBusy] = useState(false)
     const [noCoins, setNoCoins] = useState(false)
@@ -412,10 +411,10 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     // --- бежит к картонке ---
     if (phase === 'walk') {
         const pose: Pose = step ? 'walk-2' : 'walk-1'
-        const frames = PATH.map((p) => box('walk-1', p))
+        const frames = [...PATH.slice(0, -1), BED].map((p) => box('walk-1', p))
         return (
             <>
-                <Cardboard />
+                <Cardboard p={boxP} />
                 <motion.div className="pointer-events-none absolute" style={{ zIndex: 215 }}
                     initial={frames[0]}
                     animate={{ left: frames.map((f) => f.left), top: frames.map((f) => f.top), width: frames.map((f) => f.width), height: frames.map((f) => f.height) }}
@@ -438,11 +437,11 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const allSit: Pose[] = ['sit', 'sit-half', 'sit-closed', 'happy', 'pet', 'meow', 'sleep']
     return (
         <>
-            <Fridge fixed={fridgeOk} justFixed={fridgeJust} onClick={!bare && !fridgeOk ? () => { playJustClick(); setNoCoins(false); setNameOpen(false); setFridgeOpen((v) => !v) } : undefined} />
-            <NameSign name={name} onClick={!bare ? () => { playJustClick(); setFridgeOpen(false); setNameOpen((v) => !v) } : undefined} />
-            {!bare && nameOpen && <NamePanel initial={name ?? ''} onSave={saveName} onClose={() => setNameOpen(false)} />}
-            {!bare && !fridgeOk && fridgeOpen && <FridgePanel pending={fridgeBusy} noCoins={noCoins} onFix={fixFridge} onClose={() => setFridgeOpen(false)} />}
-            <Cardboard />
+            <Fridge p={frP} fixed={fridgeOk} justFixed={fridgeJust} onClick={!bare && !fridgeOk ? () => { playJustClick(); setNoCoins(false); setNameOpen(false); setFridgeOpen((v) => !v) } : undefined} />
+            <NameSign fr={frP} name={name} onClick={!bare ? () => { playJustClick(); setFridgeOpen(false); setNameOpen((v) => !v) } : undefined} />
+            {!bare && nameOpen && <NamePanel fr={frP} initial={name ?? ''} onSave={saveName} onClose={() => setNameOpen(false)} />}
+            {!bare && !fridgeOk && fridgeOpen && <FridgePanel fr={frP} pending={fridgeBusy} noCoins={noCoins} onFix={fixFridge} onClose={() => setFridgeOpen(false)} />}
+            <Cardboard p={boxP} />
             {stroll ? (
                 // гуляет: идёт (кадры ходьбы, отражены, если влево) или сидит в точке и смотрит по сторонам
                 <motion.div className="pointer-events-none absolute" style={{ zIndex: 215 }}

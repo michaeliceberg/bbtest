@@ -173,6 +173,18 @@ Avoid: `different pose, different angle, moved, resized, new background, text, e
 > Сейчас в шапке — одна доска, вырезанная из `sign-planks.webp` (Leonardo нарисовал три доски на фоне ангара):
 > `public/hangar/life/sign-plank.webp`. Если просить заново — писать «a single long wooden plank», иначе рисует щит из досок.
 
+**Промпт для одной доски** (`docs/hangar/leonardo/sign-plank.png`, FLUX.1 Kontext, Image Guidance `docs/hangar/bg-empty.jpg`
+сила 0.3, формат 16:9, фон не удалять):
+
+> a single long wooden plank sign, ONE plank only, seen straight from the front, very wide and short (about 5:1),
+> old weathered light-brown wood with visible grain, knots and a few scratches, slightly uneven chipped edges,
+> one rusty round nail head near each end, two short ropes going up from the top edge, cosy handmade workshop look,
+> cartoon illustration, thick uneven dark-brown outlines, muted dusty colours, flat cel shading with soft texture,
+> slightly worn comic look, single object, centered, isolated on pure white background, no text, no letters,
+> no shadow on the ground, no frame
+
+Avoid: `multiple planks, several boards, board stack, sign made of planks, text, letters, numbers, perspective, angled view, background scenery, hangar, window, sky, cropped`
+
 Модель FLUX.1 Kontext, Image Guidance — `docs/hangar/bg-empty.jpg` (сила 0.3, только стиль). Формат 16:9, на белом фоне,
 фон не удалять. Буквы НЕ просим — надпись положу кодом (Leonardo пишет криво). Сохранить `docs/hangar/leonardo/sign-hangar.png`.
 
