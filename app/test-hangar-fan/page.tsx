@@ -30,7 +30,7 @@ export default function Page() {
                     <img src="/hangar/bg.webp" alt="" className="absolute inset-0 h-full w-full" draggable={false} />
                     <HangarFan key={`${mode}-${fps}-${broken}`} broken={broken} mode={mode} fps={fps} />
                 </div>
-                <p className="mt-2 text-xs font-bold text-[#7E8F99]">Сломанные лопасти пока нарисованы кодом — заменим на fan-blades-broken.png.</p>
+                <p className="mt-2 text-xs font-bold text-[#7E8F99]">Вентилятор нарисован кодом в тон потолка: тонкие лопасти, маленький моторчик.</p>
             </div>
         </div>
     )
