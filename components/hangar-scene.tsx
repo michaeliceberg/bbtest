@@ -16,6 +16,7 @@ import { RepairIcon } from '@/components/repair-icon'
 import Link from 'next/link'
 import { L, JUNK, FAN_NUM, DECOR, PORTRAIT_NUM, place, placeStyle, type LayoutOverrides } from '@/lib/hangarModel'
 import { HangarFan, FAN } from '@/components/hangar-fan'
+import { HangarSky, HangarSpider, HangarBug, ComputerFlicker } from '@/components/hangar-life'
 import { fixHangarItem } from '@/actions/hangar'
 import { playSound, CASE_PRIZE_SOUND } from '@/lib/sound'
 
@@ -140,7 +141,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
         <div className={bare ? '' : 'mt-6 lg:mt-0'}>
             <style>{`@keyframes hangar-pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:scale(1)}}`}</style>
             {!bare && <div className="mb-2 flex items-baseline justify-between">
-                <h2 className="text-lg font-black text-[#F2F7FB]">Твой ангар</h2>
+                <h2 className="text-lg font-black text-[#F2F7FB]">Наш ангар</h2>
                 <span className="flex items-center gap-1 text-xs font-black text-[#C9D3D9]" title="Починено"><RepairIcon className="h-4 w-4 text-[#F2C35B]" />{fixedCount}/20</span>
             </div>}
             <div className="relative aspect-square w-full overflow-hidden rounded-2xl border-2 border-[#2C3A41]" style={{ containerType: 'inline-size' }}>
@@ -151,6 +152,10 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 <img src="/hangar/bg.webp" alt="" className="absolute inset-0 h-full w-full" draggable={false} />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/hangar/bg-dirty.webp" alt="" className="absolute inset-0 h-full w-full transition-opacity duration-1000" style={{ opacity: dirt }} draggable={false} />
+                {/* небо в окне живёт: облака, птицы, кукурузник с транспарантом (под всеми предметами) */}
+                <HangarSky />
+                {/* пока бардак — по балке бегает паучок, по полу жучок */}
+                {junkLeft > 0 && <><HangarSpider /><HangarBug /></>}
                 {JUNK.map((jp, j) => {
                     const p = place(layout, 'b', jp.key, jp)
                     return (
@@ -196,6 +201,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                                 onClick={() => openTask(i.num)}
                                 onMouseEnter={() => { if (!done) setHover(i.num) }} onMouseLeave={() => setHover(null)}
                                 style={{ ...placeStyle(p), filter: !done && lit(i.num) ? HIGHLIGHT : undefined, transition: 'filter .25s', animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
+                            {i.num === 7 && !done && <ComputerFlicker style={placeStyle(p)} />}
                             {!done && !bare && <KeyBadge x={p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready'} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
                         </div>
                     )
@@ -243,7 +249,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
 
             {bare ? null : ready.length > 0 ? (
                 <div className="mt-3 space-y-2">
-                    <p className="text-sm font-black text-[#F2C35B]">Раздел решён — наводи порядок!</p>
+                    <p className="text-center text-sm font-black text-[#F2C35B]">Раздел решён — наводи порядок!</p>
                     {ready.map((i) => (
                         <button key={i.num} type="button" disabled={pending} onClick={() => fix(i.num)}
                             className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left font-black text-[#151F24] transition-transform active:translate-y-[4px] disabled:opacity-60"
@@ -255,7 +261,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     ))}
                 </div>
             ) : (
-                <p className="mt-2 text-xs font-bold text-[#7E8F99]">Номер — раздел ЕГЭ</p>
+                <p className="mt-2 text-center text-xs font-bold text-[#7E8F99]">Номер — раздел ЕГЭ</p>
             )}
         </div>
     )
