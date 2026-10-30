@@ -37,20 +37,19 @@ const TIME_TINT: Record<Time, string> = {
 }
 const timeOf = (h: number): Time => (h >= 7 && h < 18 ? 'day' : h >= 18 && h < 21 ? 'evening' : 'night')
 
-// Значок задания — как ключ ЕГЭ на карточке юнита /trainer: золотой ключ и номер. Наводишь или жмёшь —
-// предмет, который починится, подсвечивается; по нажатию — окошко «Перейти к разделу задачника».
+// Значок задания — жёлтая плашка с номером (как номер задания на карточке юнита /trainer), без ключика и подложки.
+// Раздел решён — плашка подпрыгивает. Наводишь или жмёшь — предмет, который починится, подсвечивается;
+// по нажатию — окошко «Перейти в задачник».
 function KeyBadge({ x, y, n, ready, active, onHover, onOpen }: { x: number; y: number; n: number; ready: boolean; active: boolean; onHover: (n: number | null) => void; onOpen: (n: number) => void }) {
     return (
         <span className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: pct(x), top: pct(y), zIndex: 1150 }}>
             <button type="button" aria-label={`Задание №${n}`}
                 onMouseEnter={() => onHover(n)} onMouseLeave={() => onHover(null)} onFocus={() => onHover(n)} onBlur={() => onHover(null)}
                 onClick={() => onOpen(n)}
-                className={`flex items-center gap-1 rounded-lg py-[3px] pl-1 pr-[3px] transition-transform active:scale-90 ${ready ? 'animate-bounce' : ''}`}
-                style={{ background: active ? 'rgba(20,14,4,0.82)' : 'rgba(0,0,0,0.55)', boxShadow: active ? '0 0 0 2px #F2C35B, 0 2px 8px rgba(0,0,0,.6)' : '0 2px 6px rgba(0,0,0,.5)' }}>
-                {ready ? <Wrench className="h-[clamp(11px,2.6cqw,16px)] w-[clamp(11px,2.6cqw,16px)] text-[#F2C35B]" strokeWidth={2.6} />
-                    : <KeyRound className="h-[clamp(11px,2.6cqw,16px)] w-[clamp(11px,2.6cqw,16px)] text-[#F2C35B]" strokeWidth={2.6} />}
-                <span className="flex h-[clamp(16px,3.9cqw,24px)] min-w-[clamp(16px,3.9cqw,24px)] items-center justify-center rounded-[6px] px-1 text-[clamp(10px,2.4cqw,13px)] font-black leading-none"
-                    style={{ background: 'linear-gradient(180deg,#FFE58A,#F2C35B)', color: '#3A2A08', boxShadow: '0 2px 0 #B8862E' }}>{n}</span>
+                className={`flex h-[clamp(18px,4.4cqw,27px)] min-w-[clamp(18px,4.4cqw,27px)] items-center justify-center rounded-[7px] px-1 text-[clamp(11px,2.7cqw,15px)] font-black leading-none transition-transform active:scale-90 ${ready ? 'animate-bounce' : ''}`}
+                style={{ background: 'linear-gradient(180deg,#FFE58A,#F2C35B)', color: '#3A2A08',
+                    boxShadow: active ? '0 2px 0 #B8862E, 0 0 0 2px #FFF4C2, 0 0 10px 2px rgba(242,195,91,.8)' : '0 2px 0 #B8862E, 0 2px 6px rgba(0,0,0,.45)' }}>
+                {n}
             </button>
         </span>
     )
@@ -120,7 +119,16 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
         return { x: (c.x + pp.x) / 2, y: (c.y + pp.y - pp.h / 2) / 2 }
     }
     const focus = openNum !== null ? focusOf(openNum) : null
-    const ZOOM = 1.4
+    const ZOOM = 2.2
+    // Приближение с предметом в центре кадра: масштаб от левого верхнего угла + сдвиг так, чтобы точка предмета
+    // встала в середину; сдвиг ограничен, чтобы за краем картинки не было пустоты (у края предмет чуть не по центру).
+    const zoomTransform = (() => {
+        if (!focus) return 'translate(0%, 0%) scale(1)'
+        const lim = (v: number) => Math.min(0, Math.max((1 - ZOOM) * 100, v))
+        const tx = lim(50 - ZOOM * (focus.x / 1024) * 100)
+        const ty = lim(50 - ZOOM * (focus.y / 1024) * 100)
+        return `translate(${tx}%, ${ty}%) scale(${ZOOM})`
+    })()
     // открыть окошко задания: по ключику или по самому предмету (если он ещё не починен)
     const openTask = (num: number) => { if (byNum.get(num)?.state !== 'fixed') setOpenNum(num) }
     const label = (i: SceneItem) => (i.num >= 14 ? ROCKET_STEP[Math.min(6, stage)] : FIX_LABEL[i.num] ?? 'Починить')
@@ -135,7 +143,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
             <div className="relative aspect-square w-full overflow-hidden rounded-2xl border-2 border-[#2C3A41]" style={{ containerType: 'inline-size' }}>
                 {/* все слои сцены — в одной обёртке: при выборе задания она плавно приближается к предмету */}
                 <div className="absolute inset-0"
-                    style={{ transform: `scale(${focus ? ZOOM : 1})`, transformOrigin: focus ? `${pct(focus.x)} ${pct(focus.y)}` : '50% 50%', transition: 'transform .55s cubic-bezier(.2,.8,.2,1), transform-origin .55s cubic-bezier(.2,.8,.2,1)' }}>
+                    style={{ transform: zoomTransform, transformOrigin: '0 0', transition: 'transform 1.1s cubic-bezier(.45,0,.2,1)' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/hangar/bg.webp" alt="" className="absolute inset-0 h-full w-full" draggable={false} />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -155,6 +163,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                         // eslint-disable-next-line @next/next/no-img-element
                         <img key={sl.src} src={sl.src} alt={d.label} draggable={false} className={`absolute select-none ${!decorDone && PORTRAIT_NUM !== null ? 'cursor-pointer' : ''}`}
                             onClick={() => { if (!decorDone && PORTRAIT_NUM !== null) openTask(PORTRAIT_NUM) }}
+                            onMouseEnter={() => { if (!decorDone && PORTRAIT_NUM !== null) setHover(PORTRAIT_NUM) }} onMouseLeave={() => setHover(null)}
                             style={{ ...placeStyle(p), filter: PORTRAIT_NUM !== null && !decorDone && lit(PORTRAIT_NUM) ? HIGHLIGHT : undefined, transition: 'filter .25s' }} />
                     )
                 })}
@@ -167,6 +176,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img key={R.src} src={R.src} alt="Ракета" draggable={false} className={`absolute select-none ${nextRocket ? 'cursor-pointer' : ''}`}
                     onClick={() => { if (nextRocket) openTask(nextRocket.num) }}
+                    onMouseEnter={() => { if (nextRocket) setHover(nextRocket.num) }} onMouseLeave={() => setHover(null)}
                     style={{ ...placeStyle(R), filter: nextRocket && lit(nextRocket.num) ? HIGHLIGHT : undefined, transition: 'filter .25s', animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
                 {nextRocket && <KeyBadge x={R.x + R.w * 0.42} y={R.y - R.h * 0.55} n={nextRocket.num} ready={!!readyRocket} active={lit(nextRocket.num)} onHover={setHover} onOpen={openTask} />}
                 {room.filter((i) => i.num !== FAN_NUM).map((i) => {
@@ -181,6 +191,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img key={p.src} src={p.src} alt={i.title} draggable={false} className={`absolute select-none ${!done ? 'cursor-pointer' : ''}`}
                                 onClick={() => openTask(i.num)}
+                                onMouseEnter={() => { if (!done) setHover(i.num) }} onMouseLeave={() => setHover(null)}
                                 style={{ ...placeStyle(p), filter: !done && lit(i.num) ? HIGHLIGHT : undefined, transition: 'filter .25s', animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
                             {!done && <KeyBadge x={p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready'} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
                         </div>
