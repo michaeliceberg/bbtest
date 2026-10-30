@@ -15,7 +15,7 @@ import { KeyRound, Wrench, X } from 'lucide-react'
 import { RepairIcon } from '@/components/repair-icon'
 import { WoodSign } from '@/components/wood-sign'
 import Link from 'next/link'
-import { L, JUNK, FAN_NUM, DECOR, PORTRAIT_NUM, place, placeStyle, type LayoutOverrides } from '@/lib/hangarModel'
+import { L, JUNK, FAN_NUM, DECOR, PORTRAIT_NUM, itemOf, place, placeStyle, type LayoutOverrides } from '@/lib/hangarModel'
 import { HangarFan, FAN } from '@/components/hangar-fan'
 import { HangarSky, HangarSpider, HangarHangingSpider, HangarBug, HangarPaper, ComputerFlicker } from '@/components/hangar-life'
 import { fixHangarItem } from '@/actions/hangar'
@@ -23,30 +23,31 @@ import { playSound, CASE_PRIZE_SOUND } from '@/lib/sound'
 
 export type SceneItem = { num: number; title: string; state: 'broken' | 'ready' | 'fixed'; progress: number; href: string | null }
 
-// Что делаем с предметом (кнопка) и шутка про него — весь ангар ради того, чтобы сдать ЕГЭ.
+// По номеру ЗАДАНИЯ: что делаем с его предметом (кнопка «Починить») и шутка — про предмет и про это задание.
+// Какой предмет у задания — ITEM_OF_TASK (lib/hangarModel.ts).
 const FIX_LABEL: Record<number, string> = {
-    1: 'Смотать кабель', 2: 'Развесить ключи по местам', 3: 'Поставить стремянку', 4: 'Зарядить шуруповёрт', 5: 'Поднять бочку с топливом',
-    6: 'Поднять флаг отряда', 7: 'Починить компьютер Мигеля', 8: 'Зажечь лампу над Фейнманом', 9: 'Повесить огнетушитель', 10: 'Запустить генератор',
-    11: 'Починить вентилятор', 12: 'Собрать инструменты в ящик', 13: 'Включить автомат-проверялку',
+    1: 'Поставить стремянку', 2: 'Поднять флаг отряда', 3: 'Собрать инструменты в ящик', 4: 'Включить автомат', 5: 'Распутать провода',
+    6: 'Развесить ключи по местам', 7: 'Починить компьютер Мигеля', 8: 'Зажечь лампу над Фейнманом', 9: 'Зарядить шуруповёрт',
+    10: 'Запустить генератор', 11: 'Починить вентилятор', 12: 'Повесить огнетушитель', 13: 'Поднять бочку с топливом',
 }
 const ITEM_JOKE: Record<number, string> = {
-    1: 'Провода спутаны, как условие первой задачи. Распутаем — и ток пойдёт, и баллы 🔌',
-    2: 'У каждой задачи свой ключ. Развесим по крючкам — будешь знать, какой брать на экзамене 🔧',
-    3: 'Стремянка нужна, чтобы залезть повыше по шкале баллов. Чем выше ступенька — тем ближе вуз 🪜',
-    4: 'Закрутим решение так крепко, что ни один эксперт не открутит ни балла 🪛',
-    5: 'В бочке топливо для ракеты. Без бензина до сотки не долететь ⛽',
-    6: 'Флаг поднимаем, когда отряд берёт высоту. ¡Hasta la victoria! 🚩',
-    7: 'Без компа Команданте не может считать логарифмы на сотку. Почини — и полетим 💻',
-    8: 'Фейнман взламывал сейфы в Лос-Аламосе. А мы взломаем ЕГЭ — только свет включи 🔐',
-    9: 'Когда горят сроки до экзамена — хватай огнетушитель и решай по разделу в день 🧯',
-    10: 'Генератор даёт энергию на долгие сессии решения. Без него сядешь на третьей задаче ⚡',
-    11: 'Чтобы разборы новых разделов были не такими душными. Свежий воздух — свежая голова 🌀',
-    12: 'Каждому приёму — своё место. Как в голове перед ЕГЭ: всё разложено, ничего не потеряно 🧰',
-    13: 'Автомат проверяет ответы быстрее, чем ты скажешь «Га-Га». Включим — и вперёд 🤖',
+    1: 'Стремянка, стена и пол — готовый прямоугольный треугольник. Залезем по нему повыше по шкале баллов 🪜',
+    2: 'Флаг показывает, куда дует ветер: направление и сила — это и есть вектор 🚩',
+    3: 'Ящик — прямоугольный параллелепипед. Разложишь инструменты — и стереометрия не страшна 🧰',
+    4: 'Автомат выдаёт приз случайно? Посчитаем шансы — и будем знать, когда повезёт 🎰',
+    5: 'Спутанные провода — как дерево исходов. Распутаем по веточкам — и вероятность посчитается 🔌',
+    6: 'Ключи разного размера: какой подойдёт с первой попытки? Мат. ожидание подскажет 🔧',
+    7: 'Без компа Команданте не может решить даже простейшее уравнение. Почини — и икс найдётся 💻',
+    8: 'Фейнман считал в уме быстрее калькулятора и взламывал сейфы. Включи свет — посчитаем так же 🔐',
+    9: 'Обороты шуруповёрта — это скорость, а скорость — производная. Зарядим и закрутим 🪛',
+    10: 'Генератор — чистая физика: подставь в формулу — получишь энергию. Как в прикладной задаче ⚡',
+    11: 'Две трубы, поезд, бассейн… Вентилятор, чтобы текстовые задачи были не такими душными 🌀',
+    12: 'Струя из огнетушителя летит по параболе. Видишь график — тушишь задачу 🧯',
+    13: 'Топливо каждый год дорожает на r%. Посчитаем, сколько бочек брать сейчас, — и сэкономим ⛽',
 }
 const ROCKET_JOKE = 'Ракета летит в вуз мечты. Каждое задание второй части — новая деталь. Собери — и на старт 🚀'
 const ROCKET_STEP = ['Поставить опоры', 'Поставить сопло', 'Надеть обшивку', 'Прикрутить стабилизаторы', 'Пристегнуть баки', 'Покрасить звезду', 'Надеть нос']
-const WALL = new Set([2, 6, 8])
+const WALL = new Set([2, 6, 8]) // id предметов на стене (стенд с ключами, флаг, лампа)
 const pct = (v: number) => `${(v / 1024) * 100}%`
 
 type Time = 'day' | 'evening' | 'night'
@@ -98,6 +99,15 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     const [hover, setHover] = useState<number | null>(null)
     const [openNum, setOpenNum] = useState<number | null>(null)
     const lit = (n: number) => hover === n || openNum === n
+    // Плашка задания появляется только ПОСЛЕ того, как картинка доехала до предмета (зум 1,1 с), закрывается сразу.
+    const ZOOM_MS = 1100
+    const [panelNum, setPanelNum] = useState<number | null>(null)
+    useEffect(() => {
+        setPanelNum(null)
+        if (openNum === null) return
+        const t = setTimeout(() => setPanelNum(openNum), ZOOM_MS)
+        return () => clearTimeout(t)
+    }, [openNum])
     useEffect(() => { setTime(forcedTime ?? timeOf(new Date().getHours())) }, [forcedTime])
 
     const byNum = new Map(items.map((i) => [i.num, i]))
@@ -127,15 +137,16 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
         })
     }
     const openItem = openNum !== null ? byNum.get(openNum) ?? null : null
+    const panelItem = panelNum !== null && panelNum === openNum ? byNum.get(panelNum) ?? null : null
     // Точка, к которой приближается картинка при выборе задания (в пикселях картинки 1024×1024).
     const focusOf = (num: number): { x: number; y: number } => {
         if (num >= 14) return { x: R.x, y: R.y - R.h / 2 }
         if (num === FAN_NUM) return { x: FAN.x, y: FAN.top + FAN.motorH }
         const it = byNum.get(num)
         const st = it?.state === 'fixed' ? 'a' : 'b'
-        const sl = L[num]?.[st]
+        const sl = L[itemOf(num)]?.[st]
         if (!sl) return { x: 512, y: 512 }
-        const p = place(layout, st, `${num}`, sl)
+        const p = place(layout, st, `${itemOf(num)}`, sl)
         const c = { x: p.x, y: p.y - p.h / 2 }
         if (num !== PORTRAIT_NUM) return c
         // лампа чинится вместе с портретом — приближаемся к середине между ними
@@ -223,9 +234,10 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 {nextRocket && !bare && <KeyBadge x={R.x + R.w * 0.42} y={R.y - R.h * 0.55} n={nextRocket.num} ready={!!readyRocket} active={lit(nextRocket.num)} onHover={setHover} onOpen={openTask} />}
                 {room.filter((i) => i.num !== FAN_NUM).map((i) => {
                     const done = i.state === 'fixed'
-                    const sl = done ? L[i.num].a : L[i.num].b
-                    const p = { ...sl, ...place(layout, done ? 'a' : 'b', `${i.num}`, sl) }
-                    const onWall = WALL.has(i.num) && !(i.num === 6 && !done)
+                    const id = itemOf(i.num) // картинка предмета этого задания
+                    const sl = done ? L[id].a : L[id].b
+                    const p = { ...sl, ...place(layout, done ? 'a' : 'b', `${id}`, sl) }
+                    const onWall = WALL.has(id) && !(id === 6 && !done)
                     return (
                         <div key={i.num}>
                             {!onWall && <div className="pointer-events-none absolute rounded-[50%]"
@@ -235,7 +247,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                                 onClick={() => openTask(i.num)}
                                 onMouseEnter={() => { if (!done) setHover(i.num) }} onMouseLeave={() => setHover(null)}
                                 style={{ ...placeStyle(p), filter: !done && lit(i.num) ? HIGHLIGHT : undefined, transition: 'filter .25s', animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
-                            {i.num === 7 && !done && <ComputerFlicker style={placeStyle(p)} />}
+                            {id === 7 && !done && <ComputerFlicker style={placeStyle(p)} />}
                             {!done && !bare && <KeyBadge x={p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready'} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
                         </div>
                     )
@@ -256,27 +268,24 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 )}
             </div>
 
-            {!bare && openItem && (
+            {!bare && panelItem && (
                 // Плашка задания — под картинкой, чтобы не закрывать ангар
-                <div className="mt-3 rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3 shadow-xl" style={{ animation: 'hangar-pop .35s ease-out' }}>
+                <div className="mt-3 rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3.5 shadow-xl" style={{ animation: 'hangar-pop .35s ease-out' }}>
                     <div className="flex items-start gap-2">
-                        <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-[#F2C35B]" strokeWidth={2.6} />
-                        <span className="min-w-0 flex-1 text-sm font-black text-[#F2F7FB]">Задание №{openItem.num} · {openItem.title}</span>
-                        <button type="button" aria-label="Закрыть" onClick={() => setOpenNum(null)} className="-mr-1 -mt-1 rounded-lg p-1 text-[#9AA7B0] hover:text-white"><X className="h-4 w-4" /></button>
+                        <KeyRound className="mt-1 h-5 w-5 shrink-0 text-[#F2C35B]" strokeWidth={2.6} />
+                        <span className="min-w-0 flex-1 text-lg font-black leading-tight text-[#F2F7FB]">Задание №{panelItem.num} · {panelItem.title}</span>
+                        <button type="button" aria-label="Закрыть" onClick={() => setOpenNum(null)} className="-mr-1 -mt-1 rounded-lg p-1 text-[#9AA7B0] hover:text-white"><X className="h-5 w-5" /></button>
                     </div>
-                    <p className="mt-1.5 text-[13px] font-bold leading-snug text-[#E8D9B8]">{openItem.num >= 14 ? ROCKET_JOKE : ITEM_JOKE[openItem.num]}</p>
-                    <p className="mt-1 text-xs font-bold text-[#9AA7B0]">
-                        {openItem.state === 'ready' ? `Раздел решён! Можно: «${label(openItem)}».` : `Реши этот раздел в задачнике — и сможешь: «${label(openItem)}».`}
-                    </p>
-                    <div className="mt-2.5 flex gap-2">
-                        {openItem.state === 'ready' ? (
-                            <button type="button" disabled={pending} onClick={() => { setOpenNum(null); fix(openItem.num) }}
+                    <p className="mt-2 text-base font-bold leading-snug text-[#E8D9B8]">{panelItem.num >= 14 ? ROCKET_JOKE : ITEM_JOKE[panelItem.num]}</p>
+                    <div className="mt-3 flex gap-2">
+                        {panelItem.state === 'ready' ? (
+                            <button type="button" disabled={pending} onClick={() => { setOpenNum(null); fix(panelItem.num) }}
                                 className="flex flex-1 items-center justify-center gap-2 rounded-xl border-b-4 px-3 py-2.5 text-sm font-black text-[#151F24] active:border-b-0 disabled:opacity-60"
                                 style={{ background: 'linear-gradient(180deg,#FFD84D,#F2C35B)', borderBottomColor: '#B8862E' }}>
-                                <Wrench className="h-4 w-4" />Починить
+                                <Wrench className="h-4 w-4 shrink-0" />{label(panelItem)}
                             </button>
                         ) : null}
-                        <Link href={`/learn?task=${openItem.num}`}
+                        <Link href={`/learn?task=${panelItem.num}`}
                             className="flex flex-1 items-center justify-center rounded-xl border-b-4 px-3 py-2.5 text-center text-sm font-black text-[#0F171B] active:border-b-0"
                             style={{ background: '#53ADEF', borderBottomColor: '#3A85BC' }}>
                             Перейти в задачник

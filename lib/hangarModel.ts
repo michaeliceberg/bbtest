@@ -17,6 +17,20 @@ export type LayoutOverrides = Partial<Record<HangarState, Record<string, Partial
 
 export const L = layout as unknown as Record<string, { b: Slot; a: Slot }> & { rocket: Slot[]; junk: Slot[] }
 
+/**
+ * Какой предмет (картинка L[id], ключ в редакторе) чинит какое задание ЕГЭ — по смыслу задания (2026-10-30):
+ * стремянка у стены — прямоугольный треугольник (№1), флаг по ветру — вектор (№2), ящик — параллелепипед (№3),
+ * автомат — случай (№4), спутанные провода — дерево исходов (№5), ключи разного размера — случайная величина (№6),
+ * компьютер Мигеля — уравнения (№7), Фейнман считал в уме (№8), обороты шуруповёрта — производная (№9),
+ * генератор — физика в формуле (№10), вентилятор — текстовые задачи (№11), струя огнетушителя — парабола (№12),
+ * бочка топлива дорожает на r% (№13). Вентилятор и портрет с лампой стоят на своих номерах (11 и 8).
+ */
+export const ITEM_OF_TASK: Record<number, number> = { 1: 3, 2: 6, 3: 12, 4: 13, 5: 1, 6: 2, 7: 7, 8: 8, 9: 4, 10: 10, 11: 11, 12: 9, 13: 5 }
+export const itemOf = (task: number) => ITEM_OF_TASK[task] ?? task
+/** Название предмета по id картинки — для редактора расстановки. */
+export const ITEM_NAME: Record<number, string> = { 1: 'Провода', 2: 'Стенд с ключами', 3: 'Стремянка', 4: 'Шуруповёрт', 5: 'Бочка', 6: 'Флаг', 7: 'Компьютер', 8: 'Лампа', 9: 'Огнетушитель', 10: 'Генератор', 11: 'Вентилятор', 12: 'Ящик', 13: 'Автомат' }
+const taskOfItem = (id: number) => Number(Object.keys(ITEM_OF_TASK).find((t) => ITEM_OF_TASK[Number(t)] === id) ?? id)
+
 /** Задание ЕГЭ, которое чинит вентилятор (бывшие «Инструменты»). */
 export const FAN_NUM = 11
 /** Предметы комнаты, которые рисуются картинками (без вентилятора). */
@@ -67,7 +81,7 @@ export function editorObjects(o: LayoutOverrides | null | undefined, state: Hang
         { ...rocket, ...place(o, state, 'rocket', rocket), key: 'rocket', label: 'Ракета' },
         ...(state === 'b' ? JUNK.map((j) => ({ ...j, ...place(o, state, j.key, j) })) : []),
         ...DECOR.map((d) => ({ ...d[state], ...place(o, state, d.key, d[state]), key: d.key, label: d.label })),
-        ...ROOM_IDS.map((id) => { const s = L[id][state]; return { ...s, ...place(o, state, `${id}`, s), key: `${id}`, label: `№${id}` } }),
+        ...ROOM_IDS.map((id) => { const s = L[id][state]; return { ...s, ...place(o, state, `${id}`, s), key: `${id}`, label: `${ITEM_NAME[id] ?? 'Предмет'} (№${taskOfItem(id)})` } }),
     ]
     return list.sort((a, b) => a.z - b.z)
 }
