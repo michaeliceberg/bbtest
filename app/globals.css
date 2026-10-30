@@ -975,6 +975,17 @@ body {
     translate: 0 8px;
 }
 
+/* Объёмная кнопка, у которой нижняя грань нарисована тенью (boxShadow: 0 Npx 0 <тёмный>), а нажатие —
+   active:translate-y-[Npx]: при нажатии грань должна исчезать, как у border-b-4 (иначе тень едет вниз вместе с кнопкой).
+   Срабатывает для всех таких кнопок; у кнопок со своим active:shadow-… — их правило. (2026-10-30) */
+.active\:translate-y-\[2px\]:active:not(:disabled):not([class*="active:shadow"]),
+.active\:translate-y-\[3px\]:active:not(:disabled):not([class*="active:shadow"]),
+.active\:translate-y-\[4px\]:active:not(:disabled):not([class*="active:shadow"]),
+.active\:translate-y-\[5px\]:active:not(:disabled):not([class*="active:shadow"]),
+.active\:translate-y-\[6px\]:active:not(:disabled):not([class*="active:shadow"]) {
+    box-shadow: none !important;
+}
+
 /* Тряска «не туда» (урок PROPWALK: неверно выбранный этаж) — только transform */
 @keyframes zone-shake {
     0%, 100% { transform: translateX(0); }

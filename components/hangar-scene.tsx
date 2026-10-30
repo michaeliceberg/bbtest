@@ -104,6 +104,25 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
         })
     }
     const openItem = openNum !== null ? byNum.get(openNum) ?? null : null
+    // Точка, к которой приближается картинка при выборе задания (в пикселях картинки 1024×1024).
+    const focusOf = (num: number): { x: number; y: number } => {
+        if (num >= 14) return { x: R.x, y: R.y - R.h / 2 }
+        if (num === FAN_NUM) return { x: FAN.x, y: FAN.top + FAN.motorH }
+        const it = byNum.get(num)
+        const st = it?.state === 'fixed' ? 'a' : 'b'
+        const sl = L[num]?.[st]
+        if (!sl) return { x: 512, y: 512 }
+        const p = place(layout, st, `${num}`, sl)
+        const c = { x: p.x, y: p.y - p.h / 2 }
+        if (num !== PORTRAIT_NUM) return c
+        // лампа чинится вместе с портретом — приближаемся к середине между ними
+        const pp = place(layout, decorState, 'portrait', DECOR[0][decorState])
+        return { x: (c.x + pp.x) / 2, y: (c.y + pp.y - pp.h / 2) / 2 }
+    }
+    const focus = openNum !== null ? focusOf(openNum) : null
+    const ZOOM = 1.4
+    // открыть окошко задания: по ключику или по самому предмету (если он ещё не починен)
+    const openTask = (num: number) => { if (byNum.get(num)?.state !== 'fixed') setOpenNum(num) }
     const label = (i: SceneItem) => (i.num >= 14 ? ROCKET_STEP[Math.min(6, stage)] : FIX_LABEL[i.num] ?? 'Починить')
 
     return (
@@ -114,6 +133,9 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 <span className="text-xs font-bold text-[#9AA7B0]">починено {fixedCount}/20</span>
             </div>
             <div className="relative aspect-square w-full overflow-hidden rounded-2xl border-2 border-[#2C3A41]" style={{ containerType: 'inline-size' }}>
+                {/* все слои сцены — в одной обёртке: при выборе задания она плавно приближается к предмету */}
+                <div className="absolute inset-0"
+                    style={{ transform: `scale(${focus ? ZOOM : 1})`, transformOrigin: focus ? `${pct(focus.x)} ${pct(focus.y)}` : '50% 50%', transition: 'transform .55s cubic-bezier(.2,.8,.2,1), transform-origin .55s cubic-bezier(.2,.8,.2,1)' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/hangar/bg.webp" alt="" className="absolute inset-0 h-full w-full" draggable={false} />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -131,7 +153,8 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     const p = place(layout, decorState, d.key, sl)
                     return (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img key={sl.src} src={sl.src} alt={d.label} draggable={false} className="absolute select-none"
+                        <img key={sl.src} src={sl.src} alt={d.label} draggable={false} className={`absolute select-none ${!decorDone && PORTRAIT_NUM !== null ? 'cursor-pointer' : ''}`}
+                            onClick={() => { if (!decorDone && PORTRAIT_NUM !== null) openTask(PORTRAIT_NUM) }}
                             style={{ ...placeStyle(p), filter: PORTRAIT_NUM !== null && !decorDone && lit(PORTRAIT_NUM) ? HIGHLIGHT : undefined, transition: 'filter .25s' }} />
                     )
                 })}
@@ -142,9 +165,10 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                             background: 'radial-gradient(ellipse 50% 60% at 50% 0%, rgba(255,214,140,0.45), transparent 75%)', mixBlendMode: 'screen' }} />
                 )}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img key={R.src} src={R.src} alt="Ракета" draggable={false} className="absolute select-none"
+                <img key={R.src} src={R.src} alt="Ракета" draggable={false} className={`absolute select-none ${nextRocket ? 'cursor-pointer' : ''}`}
+                    onClick={() => { if (nextRocket) openTask(nextRocket.num) }}
                     style={{ ...placeStyle(R), filter: nextRocket && lit(nextRocket.num) ? HIGHLIGHT : undefined, transition: 'filter .25s', animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
-                {nextRocket && <KeyBadge x={R.x + R.w * 0.42} y={R.y - R.h * 0.55} n={nextRocket.num} ready={!!readyRocket} active={lit(nextRocket.num)} onHover={setHover} onOpen={setOpenNum} />}
+                {nextRocket && <KeyBadge x={R.x + R.w * 0.42} y={R.y - R.h * 0.55} n={nextRocket.num} ready={!!readyRocket} active={lit(nextRocket.num)} onHover={setHover} onOpen={openTask} />}
                 {room.filter((i) => i.num !== FAN_NUM).map((i) => {
                     const done = i.state === 'fixed'
                     const sl = done ? L[i.num].a : L[i.num].b
@@ -155,9 +179,10 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                             {!onWall && <div className="pointer-events-none absolute rounded-[50%]"
                                 style={{ left: pct(p.x - p.w * 0.45), top: pct(p.y - p.h * 0.07 - 4), width: pct(p.w * 0.9), height: pct(p.h * 0.12 + 8), background: 'radial-gradient(closest-side, rgba(20,10,15,0.5), transparent)', zIndex: Math.round(p.z * 10) + 9 }} />}
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img key={p.src} src={p.src} alt={i.title} draggable={false} className="absolute select-none"
+                            <img key={p.src} src={p.src} alt={i.title} draggable={false} className={`absolute select-none ${!done ? 'cursor-pointer' : ''}`}
+                                onClick={() => openTask(i.num)}
                                 style={{ ...placeStyle(p), filter: !done && lit(i.num) ? HIGHLIGHT : undefined, transition: 'filter .25s', animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
-                            {!done && <KeyBadge x={p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready'} active={lit(i.num)} onHover={setHover} onOpen={setOpenNum} />}
+                            {!done && <KeyBadge x={p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready'} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
                         </div>
                     )
                 })}
@@ -166,14 +191,15 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                         <HangarFan broken={fan.state !== 'fixed'} />
                     </div>
                 )}
-                {fan && fan.state !== 'fixed' && <KeyBadge x={FAN.x} y={FAN.top + FAN.motorH + 46} n={FAN_NUM} ready={fan.state === 'ready'} active={lit(FAN_NUM)} onHover={setHover} onOpen={setOpenNum} />}
+                {fan && fan.state !== 'fixed' && <KeyBadge x={FAN.x} y={FAN.top + FAN.motorH + 46} n={FAN_NUM} ready={fan.state === 'ready'} active={lit(FAN_NUM)} onHover={setHover} onOpen={openTask} />}
                 <div className="pointer-events-none absolute inset-0 transition-[background] duration-700" style={{ background: TIME_TINT[time], mixBlendMode: 'multiply', zIndex: 1100 }} />
                 <div className="pointer-events-none absolute rounded-full transition-opacity duration-700"
                     style={{ left: pct(232 - 170), top: pct(415 - 170), width: pct(340), height: pct(340), opacity: lampOn ? (time === 'day' ? 0.55 : 0.9) : 0, background: 'radial-gradient(closest-side, rgba(255,200,110,0.55), transparent)', mixBlendMode: 'screen', zIndex: 1101 }} />
+                </div>
                 {openItem && (
                     <>
-                        <button type="button" aria-label="Закрыть" className="absolute inset-0 cursor-default bg-black/35" style={{ zIndex: 1190 }} onClick={() => setOpenNum(null)} />
-                        <div className="absolute inset-x-[8%] bottom-[5%] rounded-2xl border-2 border-[#4A3A14] bg-[#151F23]/95 p-3 shadow-2xl" style={{ zIndex: 1200 }}>
+                        <button type="button" aria-label="Закрыть" className="absolute inset-0 cursor-default bg-black/20" style={{ zIndex: 1190 }} onClick={() => setOpenNum(null)} />
+                        <div className={`absolute inset-x-[8%] ${focus && focus.y > 560 ? 'top-[5%]' : 'bottom-[5%]'} rounded-2xl border-2 border-[#4A3A14] bg-[#151F23]/95 p-3 shadow-2xl`} style={{ zIndex: 1200 }}>
                             <button type="button" aria-label="Закрыть" onClick={() => setOpenNum(null)} className="absolute right-2 top-2 rounded-lg p-1 text-[#9AA7B0] hover:text-white"><X className="h-4 w-4" /></button>
                             <div className="flex items-center gap-2 pr-6">
                                 <KeyRound className="h-4 w-4 shrink-0 text-[#F2C35B]" strokeWidth={2.6} />
@@ -193,7 +219,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                                 <Link href={`/learn?task=${openItem.num}`}
                                     className="flex flex-1 items-center justify-center rounded-xl px-3 py-2.5 text-center text-sm font-black text-[#0F171B] transition-transform active:translate-y-[4px]"
                                     style={{ background: '#53ADEF', boxShadow: '0 4px 0 #3A85BC' }}>
-                                    Перейти к разделу задачника
+                                    Перейти в задачник
                                 </Link>
                             </div>
                         </div>
