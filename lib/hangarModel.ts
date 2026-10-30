@@ -31,9 +31,9 @@ export const JUNK: JunkPiece[] = (() => {
 })()
 
 // Декор: портрет Фейнмана в рамке и лампа над ним на левой стене (docs/hangar/tools/build_portrait.py).
-// «До» — рамка в паутине, лампа выключена; «после» — аккуратно, лампа горит. Какое задание их чинит — PORTRAIT_NUM
-// (пока не выбрано: висят «до»). Наклон «до» — поворотом в редакторе.
-export const PORTRAIT_NUM: number | null = null
+// «До» — рамка в паутине, лампа выключена; «после» — аккуратно, лампа горит. Чинятся заданием PORTRAIT_NUM
+// вместе с лампой ангара. Наклон «до» — поворотом в редакторе.
+export const PORTRAIT_NUM: number | null = 8 // чинится вместе с лампой (№8)
 export type Decor = { key: string; label: string; b: Slot; a: Slot }
 export const DECOR: Decor[] = [
     { key: 'portrait', label: 'Портрет',

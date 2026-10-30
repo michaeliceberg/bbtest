@@ -31,7 +31,6 @@ export default function Page() {
     const [layout, setLayout] = useState<LayoutOverrides | null | undefined>(undefined)
     const [st, setSt] = useState<Record<number, St>>(() => Object.fromEntries(NUMS.map((n) => [n, 'broken'])))
     const [time, setTime] = useState<HangarTime>('day')
-    const [portrait, setPortrait] = useState(false)
     useEffect(() => { getHangarLayout().then(setLayout).catch(() => setLayout(null)) }, [])
 
     const items: SceneItem[] = NUMS.map((n) => ({ num: n, title: TITLES[n], state: st[n], progress: st[n] === 'broken' ? 0 : 1, href: null }))
@@ -53,11 +52,10 @@ export default function Page() {
                     <Btn on={time === 'day'} onClick={() => setTime('day')}>День</Btn>
                     <Btn on={time === 'evening'} onClick={() => setTime('evening')}>Вечер</Btn>
                     <Btn on={time === 'night'} onClick={() => setTime('night')}>Ночь</Btn>
-                    <Btn on={portrait} onClick={() => setPortrait((v) => !v)}>Портрет: {portrait ? 'починен' : 'сломан'}</Btn>
                 </div>
                 {layout === undefined
                     ? <div className="aspect-square w-full animate-pulse rounded-2xl bg-[#1C262B]" />
-                    : <HangarScene items={items} layout={layout} time={time} decorFixed={portrait} onFix={(n) => setNum(n, 'fixed')} />}
+                    : <HangarScene items={items} layout={layout} time={time} onFix={(n) => setNum(n, 'fixed')} />}
                 <div className="mt-4 grid grid-cols-5 gap-1.5">
                     {NUMS.map((n) => {
                         const s = ST_STYLE[st[n]]
@@ -69,7 +67,7 @@ export default function Page() {
                         )
                     })}
                 </div>
-                <p className="mt-2 text-[11px] font-bold text-[#7E8F99]">№1–13 — предметы (№11 — вентилятор), №14–20 — детали ракеты по порядку.</p>
+                <p className="mt-2 text-[11px] font-bold text-[#7E8F99]">№1–13 — предметы (№8 — лампа вместе с портретом, №11 — вентилятор), №14–20 — детали ракеты по порядку.</p>
             </div>
         </div>
     )
