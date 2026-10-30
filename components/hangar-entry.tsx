@@ -9,6 +9,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Warehouse, X } from 'lucide-react'
+import { RepairIcon } from '@/components/repair-icon'
 import { HangarScene, type SceneItem } from '@/components/hangar-scene'
 import type { LayoutOverrides } from '@/lib/hangarModel'
 
@@ -40,8 +41,8 @@ export function HangarEntry({ items, layout }: { items: SceneItem[]; layout?: La
                         style={{ background: 'linear-gradient(180deg,#FFE58A,#F2C35B)', borderBottomColor: '#B8862E' }}>
                         <Warehouse className="h-4 w-4" strokeWidth={2.6} />В ангар
                     </button>
-                    <span className="rounded-md bg-[#0F171B]/80 px-1.5 py-0.5 text-[11px] font-black text-[#C9D3D9]">
-                        {ready ? 'Есть что починить!' : `починено ${fixed}/20`}
+                    <span className="flex items-center gap-1 rounded-md bg-[#0F171B]/80 px-1.5 py-0.5 text-[11px] font-black text-[#C9D3D9]" title="Починено">
+                        {ready ? 'Есть что починить!' : <><RepairIcon className="h-3.5 w-3.5 text-[#F2C35B]" />{fixed}/20</>}
                     </span>
                 </div>
             </div>

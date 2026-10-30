@@ -12,6 +12,7 @@
 import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { KeyRound, Wrench, X } from 'lucide-react'
+import { RepairIcon } from '@/components/repair-icon'
 import Link from 'next/link'
 import { L, JUNK, FAN_NUM, DECOR, PORTRAIT_NUM, place, placeStyle, type LayoutOverrides } from '@/lib/hangarModel'
 import { HangarFan, FAN } from '@/components/hangar-fan'
@@ -139,8 +140,8 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
         <div className={bare ? '' : 'mt-6 lg:mt-0'}>
             <style>{`@keyframes hangar-pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:scale(1)}}`}</style>
             {!bare && <div className="mb-2 flex items-baseline justify-between">
-                <h2 className="text-lg font-black text-[#F2F7FB]">Ангар Команданте</h2>
-                <span className="text-xs font-bold text-[#9AA7B0]">починено {fixedCount}/20</span>
+                <h2 className="text-lg font-black text-[#F2F7FB]">Твой ангар</h2>
+                <span className="flex items-center gap-1 text-xs font-black text-[#C9D3D9]" title="Починено"><RepairIcon className="h-4 w-4 text-[#F2C35B]" />{fixedCount}/20</span>
             </div>}
             <div className="relative aspect-square w-full overflow-hidden rounded-2xl border-2 border-[#2C3A41]" style={{ containerType: 'inline-size' }}>
                 {/* все слои сцены — в одной обёртке: при выборе задания она плавно приближается к предмету */}
@@ -254,7 +255,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     ))}
                 </div>
             ) : (
-                <p className="mt-2 text-xs font-bold text-[#7E8F99]">Номер на предмете — задание ЕГЭ. Реши раздел в задачнике, и появится кнопка «Починить».</p>
+                <p className="mt-2 text-xs font-bold text-[#7E8F99]">Номер — раздел ЕГЭ</p>
             )}
         </div>
     )
