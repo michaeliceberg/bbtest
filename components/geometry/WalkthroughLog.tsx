@@ -390,7 +390,8 @@ export function useSceneFocus(latestKey: string, contentSettled: boolean) {
         wtNextListenerOn = true
         document.addEventListener('click', (e) => {
             const btn = (e.target as HTMLElement | null)?.closest?.('.wt-next') as HTMLButtonElement | null
-            if (btn && !btn.disabled) playDoneMini()
+            // Кнопки ВНУТРИ сцены («Понял, минус тоже важен!» и т.п.) — не переход к новой сцене, их не озвучиваем.
+            if (btn && !btn.disabled && !btn.closest('[data-wt-scene]')) playDoneMini()
         }, true)
     }, [])
 
