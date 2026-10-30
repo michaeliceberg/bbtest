@@ -109,6 +109,21 @@ function Cardboard() {
     )
 }
 
+/** Мини-холодильник котика рядом с коробкой (Leonardo, cat-fridge). На пустой бумажке — подпись кодом
+ *  (потом — имя котика: «для Мурзика»). Бумажка на картинке: 66–92% по ширине, 37–56% по высоте. */
+const FRIDGE = { x: 655, y: 846, w: 108, h: 131 }
+function Fridge({ label = 'для котика' }: { label?: string }) {
+    return (
+        <div className="pointer-events-none absolute select-none"
+            style={{ left: pct(FRIDGE.x - FRIDGE.w / 2), top: pct(FRIDGE.y - FRIDGE.h), width: pct(FRIDGE.w), height: pct(FRIDGE.h), zIndex: 204 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/hangar/life/cat-fridge.webp" alt="" draggable={false} className="absolute inset-0 h-full w-full" />
+            <span className="absolute flex items-center justify-center text-center font-black leading-[1.05] text-[#5A3A22]"
+                style={{ left: '67%', top: '39%', width: '24%', height: '16%', fontSize: '1.3cqw', rotate: '-4deg' }}>{label}</span>
+        </div>
+    )
+}
+
 /** Колбаска (Leonardo, cat-sausage). */
 const Sausage = ({ size = 9 }: { size?: number }) => (
     // eslint-disable-next-line @next/next/no-img-element
@@ -255,6 +270,7 @@ export function HangarCat({ stage, bare, night, onHome }: {
     const allSit: Pose[] = ['sit', 'sit-half', 'sit-closed', 'happy', 'pet', 'meow', 'sleep']
     return (
         <>
+            <Fridge />
             <Cardboard />
             <button type="button" aria-label="Котик" disabled={bare}
                 className="absolute cursor-pointer disabled:cursor-default"
