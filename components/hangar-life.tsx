@@ -232,7 +232,18 @@ export function GeneratorSparks({ style }: { style: React.CSSProperties }) {
     )
 }
 
-/** Ночью в окне — светящийся месяц. Рисуется ПОВЕРХ ночного затемнения (z 1105), справа от ракеты, обрезан по окну. */
+// Звёзды ночного неба: детерминированный разброс (одинаково на сервере и в браузере — без ошибок гидрации).
+// Координаты — внутри окна (ширина 476, высота 240, горизонт около 200), лишнее обрезает круг окна.
+const STARS = (() => {
+    let seed = 7
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646
+    const dots = Array.from({ length: 46 }, () => ({ x: 20 + rnd() * 436, y: 6 + rnd() * 190, r: 0.9 + rnd() * 1.8, d: rnd() * 5, t: 2.2 + rnd() * 3 }))
+    const big = [{ x: 70, y: 70 }, { x: 150, y: 28 }, { x: 255, y: 92 }, { x: 395, y: 140 }, { x: 205, y: 165 }, { x: 108, y: 150 }, { x: 440, y: 60 }]
+        .map((p, i) => ({ ...p, s: 7 + (i % 3) * 2.5, d: i * 0.9, t: 3 + (i % 4) * 0.7 }))
+    return { dots, big }
+})()
+
+/** Ночью в окне — звёздное небо и светящийся месяц. Рисуется ПОВЕРХ ночного затемнения (z 1105), обрезано по окну. */
 export function HangarMoon() {
     const w = WIN.r * 2
     const h = WIN.bottom - WIN.top
@@ -240,6 +251,35 @@ export function HangarMoon() {
         <div className="pointer-events-none absolute overflow-hidden" aria-hidden
             style={{ left: pct(WIN.cx - WIN.r), top: pct(WIN.top), width: pct(w), height: pct(h), zIndex: 1105,
                 clipPath: `ellipse(50% ${(WIN.r / h) * 100}% at 50% ${((WIN.cy - WIN.top) / h) * 100}%)` }}>
+            {/* мягкое свечение ночного неба — чтобы не было мрачно: сверху синее, у горизонта тёплое */}
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(90,120,230,0.22), rgba(130,100,200,0.14) 65%, rgba(255,190,130,0.16))' }} />
+            {/* полоса «млечного пути» */}
+            <div className="absolute" style={{ left: cq(-40), top: cq(60), width: cq(560), height: cq(70), rotate: '-18deg',
+                background: 'radial-gradient(closest-side, rgba(200,210,255,0.22), transparent)' }} />
+            <svg className="absolute inset-0 h-full w-full" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+                {STARS.dots.map((st, i) => (
+                    <circle key={i} cx={st.x} cy={st.y} r={st.r} fill="#FFF6D8" className="hangar-twinkle"
+                        style={{ animationDelay: `${-st.d}s`, animationDuration: `${st.t}s`, transformOrigin: `${st.x}px ${st.y}px` }} />
+                ))}
+                {STARS.big.map((st, i) => (
+                    <g key={`b${i}`} transform={`translate(${st.x} ${st.y})`}>
+                        <g className="hangar-sparkle" style={{ animationDelay: `${-st.d}s`, animationDuration: `${st.t}s` }}>
+                            <circle r={st.s * 0.9} fill="rgba(255,230,160,0.25)" />
+                            <path d={`M0 ${-st.s} Q${st.s * 0.18} ${-st.s * 0.18} ${st.s} 0 Q${st.s * 0.18} ${st.s * 0.18} 0 ${st.s} Q${-st.s * 0.18} ${st.s * 0.18} ${-st.s} 0 Q${-st.s * 0.18} ${-st.s * 0.18} 0 ${-st.s}Z`} fill="#FFF3C4" />
+                        </g>
+                    </g>
+                ))}
+                {/* падающая звезда — раз в 14 с */}
+                <g className="hangar-shooting">
+                    <line x1="0" y1="0" x2="-46" y2="-16" stroke="url(#hangar-shoot)" strokeWidth="2.4" strokeLinecap="round" />
+                    <circle r="2.2" fill="#FFFFFF" />
+                </g>
+                <defs>
+                    <linearGradient id="hangar-shoot" x1="0" y1="0" x2="-46" y2="-16" gradientUnits="userSpaceOnUse">
+                        <stop offset="0" stopColor="#FFFFFF" stopOpacity="0.95" /><stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
+                    </linearGradient>
+                </defs>
+            </svg>
             <div className="hangar-moon absolute" style={{ left: cq(330), top: cq(36), width: cq(84) }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/hangar/life/moon.webp" alt="" draggable={false} className="block w-full select-none"

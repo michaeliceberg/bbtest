@@ -167,3 +167,44 @@ Avoid для плит: `ground, horizon, landscape, buildings, trees, sun, moon,
 
 Avoid: `different pose, different angle, moved, resized, new background, text, extra cats`.
 Моргать буду кодом раз в 3–6 с (иногда двойное моргание), кадры по 60–80 мс.
+
+## Табличка «Наш ангар» — живая, не просто доска (2026-10-31)
+
+Модель FLUX.1 Kontext, Image Guidance — `docs/hangar/bg-empty.jpg` (сила 0.3, только стиль). Формат 16:9, на белом фоне,
+фон не удалять. Буквы НЕ просим — надпись положу кодом (Leonardo пишет криво). Сохранить `docs/hangar/leonardo/sign-hangar.png`.
+
+> a cosy handmade workshop sign for an old aircraft hangar, seen straight from the front, wide and short (about 3.5:1):
+> a riveted olive-green metal plate inside a worn wooden frame, an EMPTY smooth cream panel in the middle for text;
+> on the left end a small cartoon rocket nose sticking out of the frame, on the right end a little propeller that looks
+> like it could spin; a row of tiny warm light bulbs along the top edge like a marquee, two hanging on a loose wire;
+> a brass gear and a wrench bolted on as decoration, a red star sticker in one corner, a few coloured wires and cable ties,
+> small rust spots and scratches, two chains on top going up out of frame, cartoon illustration, thick uneven dark-brown
+> outlines, muted dusty colours, flat cel shading with soft texture, isolated on pure white background, no text, no letters
+
+Avoid: `text, letters, numbers, logo, perspective, angled view, sparks, neon, glow, background scenery, multiple signs, cropped`
+
+Лампочки потом буду зажигать по очереди кодом (как гирлянду), пропеллер — крутить.
+
+## Небо в окне ангара (2026-10-31)
+
+Плиты неба — формат 1:1, только небо (без земли и предметов), на весь кадр. Хвост стиля **без** «isolated on white».
+Сохранять `docs/hangar/leonardo/sky-<имя>.png`.
+
+| Файл | Промпт |
+|---|---|
+| `sky-night.png` | cartoon night sky texture filling the whole image, deep navy blue at the top fading to soft violet and a faint warm glow near the bottom edge, a gentle milky way band going diagonally, many tiny cream stars of different sizes, a few bigger four-pointed sparkling stars, painted brush texture, calm and magical, not gloomy |
+| `sky-day.png` | cartoon daytime sky texture filling the whole image, soft gradient from pale mint-blue at the bottom to calm cornflower blue at the top, light painted brush texture, a couple of faint high wispy streaks, no clouds, no sun |
+| `sky-sunset.png` | cartoon sunset sky texture filling the whole image, warm peach and orange at the bottom, pink in the middle, dusty violet at the top, soft painted brush texture, no sun disc |
+
+Хвост стиля для плит: `in the same art style as the reference image: cartoon illustration, muted dusty colours, flat cel shading with soft texture, slightly worn comic look, no text, no frame`.
+Avoid: `ground, horizon, landscape, mountains, buildings, trees, sun, moon, birds, planes, text, frame, vignette`
+
+## Ещё облака (2026-10-31)
+
+Обычный хвост стиля (на белом фоне, фон не удалять). Сохранять `docs/hangar/leonardo/cloud-<имя>.png`.
+
+| Файл | Промпт |
+|---|---|
+| `cloud-puffy.png` | single fluffy cartoon cumulus cloud shaped like a big round cauliflower, four soft puffs on top, flat bottom, cream-white top with soft grey-blue shading underneath, side view |
+| `cloud-wisp.png` | single long thin cartoon cloud stretched horizontally, wispy and soft, three small puffs in a row, pale cream with light lavender shading underneath, side view |
+| `cloud-little.png` | two tiny round cartoon cloud puffs drifting together, one slightly bigger, cream-white with pale blue shading, side view |

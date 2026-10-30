@@ -13,6 +13,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
+import Lottie from '@/components/lottie-player'
+import LottieCoins from '@/public/Lottie/LottieCoins.json'
 import { useRouter } from 'next/navigation'
 import { bringCatHome, fixCatFridge } from '@/actions/cat'
 import { useAchievementUnlockStore } from '@/store/use-achievement-unlock-store'
@@ -30,9 +32,14 @@ const src = (p: Pose) => `/hangar/life/cat-${p}.webp`
 // Точки сцены: у правой стойки ворот (далеко — мельче; слева от ворот стоит бочка) и картонка на полу перед ракетой.
 // Котик выглядывает из-за стойки справа и бежит к картонке влево — все картинки отражены (нарисованы «вправо»).
 const GATE = { x: 660, y: 660, k: 0.13 }
-const BED = { x: 548, y: 852, k: 0.13 }
+const BED_K = 0.13
+const BED = { x: 548, y: 852, k: BED_K }
 const PATH = [GATE, { x: 640, y: 710, k: 0.112 }, { x: 595, y: 780, k: 0.12 }, BED]
 const WALK_S = 3.4
+// Днём котик иногда гуляет по ангару: уходит к одной из точек пола, сидит там и возвращается на коробку.
+const STROLL_SPOTS = [{ x: 440, y: 882 }, { x: 702, y: 888 }, { x: 612, y: 726 }, { x: 505, y: 958 }]
+const kAt = (y: number) => Math.min(0.15, Math.max(0.1, 0.105 + ((y - 660) * (BED_K - 0.105)) / (852 - 660)))
+const STROLL_SPEED = 85 // точек сцены в секунду
 const pct = (v: number) => `${(v / 1024) * 100}%`
 
 function box(pose: Pose, at: { x: number; y: number; k: number }) {
@@ -149,12 +156,17 @@ function FridgePanel({ pending, noCoins, onFix, onClose }: { pending: boolean; n
                 </div>
                 <div className="mt-[1.4cqw] flex gap-[1.2cqw]">
                     <button type="button" onClick={onClose}
-                        className="flex-1 rounded-xl border-b-4 border-[#0E1418] bg-[#26333B] py-[1.2cqw] text-[2.8cqw] font-black text-[#C9D3D9] active:border-b-0 sm:text-[2.2cqw]">
+                        className="flex-1 rounded-xl border-b-4 border-[#0E1418] bg-[#26333B] py-[0.8cqw] text-[2.8cqw] font-black text-[#C9D3D9] active:border-b-0 sm:text-[2.2cqw]">
                         Потом
                     </button>
                     <button type="button" onClick={onFix} disabled={pending}
-                        className="flex-[1.4] rounded-xl border-b-4 border-[#B8862E] bg-[#FFE58A] py-[1.2cqw] text-[2.8cqw] font-black text-[#3A2A08] active:border-b-0 disabled:opacity-60 sm:text-[2.2cqw]">
-                        Починить · {FRIDGE_COST} 🪙
+                        className="flex flex-[1.4] flex-col items-center justify-center rounded-xl border-b-4 border-[#B8862E] bg-[#FFE58A] py-[0.8cqw] font-black leading-none text-[#3A2A08] active:border-b-0 disabled:opacity-60">
+                        <span className="text-[2.8cqw] sm:text-[2.2cqw]">Починить</span>
+                        <span className="flex items-center text-[3.2cqw] sm:text-[2.6cqw]">
+                            {FRIDGE_COST}
+                            {/* та же монета, что в шапке приложения (components/user-progress.tsx); нарисована в нижней части холста */}
+                            <Lottie animationData={LottieCoins} className="-my-[1.6cqw] h-[6.5cqw] w-[6.5cqw] -translate-y-[14%] sm:h-[5.4cqw] sm:w-[5.4cqw]" />
+                        </span>
                     </button>
                 </div>
             </motion.div>
@@ -182,6 +194,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false }: {
     const [phase, setPhase] = useState<'peek' | 'choice' | 'lure' | 'walk' | 'home'>(stage >= 2 ? 'home' : 'peek')
     const [lure, setLure] = useState<'pet' | 'sausage'>('pet')
     const [step, setStep] = useState(0)
+    const [stroll, setStroll] = useState<{ x: number; y: number; walking: boolean; flip: boolean; dur: number } | null>(null)
     const [react, setReact] = useState<'pet' | 'meow' | 'happy' | null>(null)
     const [meowShown, setMeowShown] = useState(true)
     const reactKey = useRef(0)
@@ -214,10 +227,10 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false }: {
 
     // кадры ходьбы
     useEffect(() => {
-        if (phase !== 'walk') return
+        if (phase !== 'walk' && !stroll?.walking) return
         const t = setInterval(() => setStep((s) => 1 - s), 170)
         return () => clearInterval(t)
-    }, [phase])
+    }, [phase, stroll?.walking])
 
     // дома иногда мяукает сам
     useEffect(() => {
@@ -233,6 +246,27 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false }: {
     }, [react])
 
     const blink = useBlink(phase === 'home' && !react && !night)
+
+    // прогулка днём: { куда, идёт ли сейчас, смотрит ли влево, сколько секунд идти }
+    useEffect(() => {
+        if (phase !== 'home' || bare || night) { setStroll(null); return }
+        let alive = true
+        const timers: ReturnType<typeof setTimeout>[] = []
+        const later = (ms: number, f: () => void) => timers.push(setTimeout(() => alive && f(), ms))
+        const durTo = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.min(3.6, Math.max(1.4, Math.hypot(a.x - b.x, a.y - b.y) / STROLL_SPEED))
+        const go = () => {
+            if (Math.random() < 0.5) { later(20000 + Math.random() * 15000, go); return }
+            const spot = STROLL_SPOTS[Math.floor(Math.random() * STROLL_SPOTS.length)]
+            const d1 = durTo(BED, spot)
+            setStroll({ ...spot, walking: true, flip: spot.x < BED.x, dur: d1 })
+            later(d1 * 1000, () => setStroll((st) => st && { ...st, walking: false }))
+            const stay = 5000 + Math.random() * 4000
+            later(d1 * 1000 + stay, () => setStroll({ x: BED.x, y: BED.y, walking: true, flip: BED.x < spot.x, dur: d1 }))
+            later(d1 * 2000 + stay, () => { setStroll(null); later(25000 + Math.random() * 20000, go) })
+        }
+        later(15000 + Math.random() * 15000, go)
+        return () => { alive = false; timers.forEach(clearTimeout) }
+    }, [phase, bare, night])
 
     if (stage < 1) return null
 
@@ -329,12 +363,24 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false }: {
             <Fridge fixed={fridgeOk} justFixed={fridgeJust} onClick={!bare && !fridgeOk ? () => { playJustClick(); setNoCoins(false); setFridgeOpen((v) => !v) } : undefined} />
             {!bare && !fridgeOk && fridgeOpen && <FridgePanel pending={fridgeBusy} noCoins={noCoins} onFix={fixFridge} onClose={() => setFridgeOpen(false)} />}
             <Cardboard />
+            {stroll ? (
+                // гуляет: идёт (кадры ходьбы, отражены, если влево) или сидит в точке и смотрит по сторонам
+                <motion.div className="pointer-events-none absolute" style={{ zIndex: 215 }}
+                    initial={false}
+                    animate={box(stroll.walking ? 'walk-1' : 'sit-shy', { x: stroll.x, y: stroll.y, k: kAt(stroll.y) })}
+                    transition={{ duration: stroll.walking ? stroll.dur : 0, ease: 'linear' }}>
+                    <motion.div className="absolute inset-0" animate={{ y: stroll.walking ? ['0%', '-4%', '0%'] : '0%' }} transition={{ duration: 0.34, repeat: stroll.walking ? Infinity : 0 }}>
+                        <CatImg pose={stroll.walking ? (step ? 'walk-2' : 'walk-1') : 'sit-shy'} poses={['walk-1', 'walk-2', 'sit-shy']} flip={stroll.flip} />
+                    </motion.div>
+                </motion.div>
+            ) : (
             <button type="button" aria-label="Котик" disabled={bare}
                 className="absolute cursor-pointer disabled:cursor-default"
                 style={{ ...box(pose, BED), zIndex: 215 }}
                 onClick={() => { playJustClick(); reactKey.current++; const r = Math.random(); setReact(r < 0.45 ? 'happy' : r < 0.8 ? 'pet' : 'meow') }}>
                 <CatImg pose={pose} poses={allSit} />
             </button>
+            )}
             {!bare && (react === 'pet' || react === 'happy') && <><Hearts key={reactKey.current} x={BED.x} y={BED.y - 95} /><Bubble x={BED.x + 30} y={BED.y - 96}>Мрр-мрр</Bubble></>}
             {!bare && react === 'meow' && <Bubble key={reactKey.current} x={BED.x + 34} y={BED.y - 96}>Мяу!</Bubble>}
             {night && (

@@ -15,6 +15,7 @@ import { Footer } from "./footer";
 import { upsertChallengeProgress } from "@/actions/challenge-progress";
 import { advanceEgeMove } from "@/actions/ege-move";
 import { showEgeGain } from "@/components/ege-gain-toast";
+import { showCatCall } from "@/components/cat-call-toast";
 import { toast } from "sonner";
 import { useWindowSize, useMount } from "react-use";
 
@@ -610,13 +611,8 @@ export const Quiz = ({
                         }
                         if (response?.streakFrozenDays) toast.success(`❄️ Заморозка спасла серию: ${response.newStreak} дн. подряд`)
                         response?.newAchievements?.forEach((ach) => showAchievement(ach))
-                        if (response?.catCalled) {
-                            // первая верная задача задачника — у ворот ангара мяукает котик (components/hangar-cat.tsx)
-                            setTimeout(() => toast('🐾 Зайди в ангар — там кто-то мяучит!', {
-                                duration: 9000,
-                                action: { label: 'В ангар', onClick: () => { window.location.href = '/learn?hangar=1' } },
-                            }), 1500)
-                        }
+                        // первая верная задача задачника — у ворот ангара мяукает котик (components/hangar-cat.tsx)
+                        if (response?.catCalled) setTimeout(showCatCall, 1500)
                         // Квест дня мог закрыться именно этим ответом (второй
                         // из двух пунктов, "реши задачу курса") — модалка,
                         // как при повышении уровня, а не тихий тост.
