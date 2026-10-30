@@ -11,10 +11,12 @@
 
 const pct = (v: number) => `${(v / 1024) * 100}%`
 
+// Лопасти — картинка Leonardo (public/hangar/fan-blades-v2.webp, вид строго снизу, затемнена в тон потолка;
+// исходник docs/hangar/leonardo/fan-blades-white-src.png). Сломанный вариант пока нарисован кодом.
 // Вентилятор не должен тянуть внимание: всё в тон тёмного сине-серого потолка, тонкие длинные лопасти,
 // маленький моторчик. Рисуется кодом (SVG), чтобы цвет точно совпадал с потолком.
 // Где висит: ось над круглым окном, top — верх штанги (у потолочной балки).
-export const FAN = { x: 512, top: 58, motorW: 34, motorH: 46, bladesD: 580, tilt: -70 }
+export const FAN = { x: 512, top: 58, motorW: 34, motorH: 46, bladesD: 560, tilt: -70 }
 
 const EDGE = '#22202D' // контур чуть темнее потолка
 const BODY = '#3A3E50' // основной цвет — как потолок, чуть светлее
@@ -93,14 +95,17 @@ export function HangarFan({ broken = false, mode = 'lofi', fps = 2, period = 6 }
                 @keyframes hangar-fan-sway { 0%,100% { transform: rotate(-1.2deg) } 50% { transform: rotate(1.2deg) } }
                 @media (prefers-reduced-motion: reduce) { .hangar-fan-rot { animation: none !important } }
             `}</style>
-            <div className="absolute" style={{ left: pct(FAN.x - FAN.motorW / 2), top: pct(FAN.top), width: pct(FAN.motorW), height: pct(FAN.motorH), zIndex: 1 }}>
+            <div className="absolute" style={{ left: pct(FAN.x - FAN.motorW / 2), top: pct(FAN.top), width: pct(FAN.motorW), height: pct(FAN.motorH), zIndex: 0 }}>
                 <Motor />
             </div>
             {/* плоскость лопастей: квадрат D×D с центром у крышки моторчика, наклонён в перспективу */}
-            <div className="absolute" style={{ left: pct(FAN.x - D / 2), top: pct(hubY - D / 2), width: pct(D), height: pct(D), perspective: '170cqw', perspectiveOrigin: '50% 50%' }}>
+            <div className="absolute" style={{ left: pct(FAN.x - D / 2), top: pct(hubY - D / 2), width: pct(D), height: pct(D), perspective: '170cqw', perspectiveOrigin: '50% 50%', zIndex: 1 }}>
                 <div className="h-full w-full" style={{ transform: `rotateX(${FAN.tilt}deg)` }}>
                     <div className="hangar-fan-rot h-full w-full" style={{ animation: spin, transform: broken ? 'rotate(18deg)' : undefined }}>
-                        <Blades broken={broken} />
+                        {broken ? <Blades broken /> : (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src="/hangar/fan-blades-v2.webp" alt="" className="h-full w-full" draggable={false} />
+                        )}
                     </div>
                 </div>
             </div>
