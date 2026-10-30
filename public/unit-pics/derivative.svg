@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 120" width="240" height="120" fill="none" stroke-linecap="round" stroke-linejoin="round" font-family="Nunito, Arial, sans-serif" font-weight="800">
+<path d="M 14 104 H 226 M 24 112 V 10" stroke="#5C6B73" stroke-width="2.5"/>
+<path d="M 30 100 Q 110 104 150 60 T 222 14" stroke="#53ADEF" stroke-width="4.5"/>
+<path d="M 92 104 L 206 30" stroke="#F09B38" stroke-width="3.5"/>
+<circle cx="150" cy="60" r="6" fill="#F09B38" stroke="none"/>
+<text x="60" y="40" font-size="26" fill="#C385F7" stroke="none">f′</text>
+</svg>
