@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 120" width="240" height="120" fill="none" stroke-linecap="round" stroke-linejoin="round" font-family="Nunito, Arial, sans-serif" font-weight="800">
+<g transform="rotate(-12 62 64)">
+<rect x="30" y="32" width="64" height="64" rx="12" fill="#F2F7FB" stroke="#9AA7B0" stroke-width="3"/>
+<circle cx="47" cy="49" r="6" fill="#BC418A"/><circle cx="77" cy="49" r="6" fill="#BC418A"/>
+<circle cx="62" cy="64" r="6" fill="#BC418A"/>
+<circle cx="47" cy="79" r="6" fill="#BC418A"/><circle cx="77" cy="79" r="6" fill="#BC418A"/>
+</g>
+<g transform="rotate(10 168 58)">
+<rect x="140" y="30" width="56" height="56" rx="11" fill="#F2F7FB" stroke="#9AA7B0" stroke-width="3"/>
+<circle cx="155" cy="45" r="5.5" fill="#53ADEF"/><circle cx="181" cy="71" r="5.5" fill="#53ADEF"/>
+</g>
+<circle cx="118" cy="98" r="15" fill="#F2C35B" stroke="#C07C2B" stroke-width="3"/>
+<text x="118" y="104" font-size="16" fill="#6B4A0A" text-anchor="middle" stroke="none">О</text>
+<text x="210" y="112" font-size="18" fill="#78C93C" text-anchor="middle" stroke="none">P</text>
+</svg>
