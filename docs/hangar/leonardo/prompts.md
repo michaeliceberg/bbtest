@@ -114,3 +114,25 @@ At the bottom of this same wall, add one small arched dark mouse hole in the wal
 - Кот выходит разным → всегда берите образцом `cat-sit.png`, а не пол.
 - Лопасти не строго снизу → допишите `orthographic top-down view, like a blueprint`.
 - Фон не белый → сначала Remove Background, белый фон не важен.
+
+## Белый вентилятор «как лопасти вертолёта» (2026-10-30)
+
+Образец перспективы — `ref-fan-perspective.png` (ангар со старым тёмным вентилятором в правильном наклоне:
+ближняя лопасть выше, дальняя ниже, смотрим снизу). Делаем в 3 шага.
+
+**Шаг 1 — fan-white-scene.png** (посмотреть, как будет выглядеть; образец `ref-fan-perspective.png`, хвост НЕ нужен):
+```
+Replace the dark ceiling fan in this hangar with a big beautiful white ceiling fan that looks like helicopter rotor blades: four very long, wide, slightly tapered white blades with rounded tips, a thin red stripe near each tip, a few rivets at the roots, a small white-and-grey round motor housing on a short rod hanging from the ceiling beam. Keep exactly the same position, size, perspective and tilt as the old fan: seen from below, the blade closest to us is higher in the picture, the far blade lower. Keep everything else in the image exactly the same. Same painted style as the hangar: muted dusty colors, soft painterly shading, thick rough dark brown outlines, simple cartoon shapes. The white is slightly dusty and warm, not glowing.
+```
+
+**Шаг 2 — fan-blades.png** (образец — `fan-white-scene.png` из шага 1; лопасти рисуем плоско снизу, наклон и вращение делает код):
+```
+Using exactly the same white blades as the ceiling fan in this picture (same color, red tip stripes, rivets, outlines), draw only the blades: four very long wide helicopter-style blades on a small round central hub, seen exactly from directly below, perfectly flat orthographic top-down view like a blueprint, all four blades identical, exactly 90 degrees apart, perfectly symmetric, centered, blade tips almost touching the edges of the square image. No motor, no rod, no perspective, no shadow, no background details.
+```
+
+**Шаг 3 — fan-motor.png** (образец — `fan-white-scene.png`):
+```
+Show only the motor of this same white ceiling fan: the short rod and the round motor housing, seen slightly from below, without any blades. Same colors and outlines.
+```
+
+После шагов 2 и 3 — Remove Background (Full, тень None) и прислать оба файла в чат.
