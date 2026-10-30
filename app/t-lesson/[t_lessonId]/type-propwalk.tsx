@@ -20,7 +20,7 @@ import {
     pickWrongTryPhrase, pickFunNextLabel, LocalAnswerConfetti, CORRECT_FEEDBACK_PHRASES, useWalkthroughCombo,
     AdminSceneMap, MAP_INTRO_COLOR, RememberPlate, MAP_PRACTICE_COLOR, type AdminMapEntry, FieryFeedbackBanner,
 } from '@/components/geometry/WalkthroughLog'
-import { playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
+import { playSoftClick, playSound, WRONG_ANSWER_SOUND } from '@/lib/sound'
 import { showAnswerMeme } from '@/components/answer-meme-burst'
 import { Typewriter } from '@/components/geometry/Typewriter'
 import { GGEGE_PALETTE, hexToRgba } from '@/src/constants/lessonButtonColors'
@@ -93,6 +93,14 @@ const flight = { type: 'spring' as const, stiffness: 240, damping: 15 }
 
 // Стикер-буква. motion.div (не button): в режиме «выбери этаж» буквы лежат внутри кликабельной зоны,
 // а кнопка внутри кнопки недопустима.
+// Мягкий клик на любое нажатие в уроке (буквы, этажи, варианты, «вернуть как было»). Кнопка перехода
+// к следующей сцене (wt-next) звучит своим звуком — см. useSceneFocus.
+const softClickOnTap = (e: React.MouseEvent) => {
+    const el = (e.target as HTMLElement).closest('button, [role="button"]') as HTMLButtonElement | null
+    if (!el || el.disabled || el.classList.contains('wt-next')) return
+    playSoftClick()
+}
+
 const TokChip = ({ tok, tappable, dim, glow, selected, onTap }: { tok: Tok; tappable: boolean; dim: boolean; glow: boolean; selected?: boolean; onTap?: () => void }) => {
     const color = colorOf(tok.v)
     return (
@@ -677,7 +685,7 @@ export const TypePropWalk = ({ onAnswer, onComplete, isAdmin = false }: Props & 
     ]
 
     return (
-        <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4">
+        <div className="w-full max-w-2xl mx-auto flex flex-col items-center gap-4" onClickCapture={softClickOnTap}>
             {isAdmin && <AdminSceneMap enabled entries={mapEntries} onJump={jumpTo} disabled={advancing} />}
             <div className="w-full flex flex-col gap-4">
                 {SCENES.map((Scene, i) => step >= i && i >= startStep ? (

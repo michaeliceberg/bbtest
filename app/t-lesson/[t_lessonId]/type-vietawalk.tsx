@@ -130,11 +130,11 @@ const NumText = ({ s }: { s: string }) => (
 
 // Уравнение ax² + bx + c = 0. colors — раскрасить коэффициенты, showOne — показать «невидимую» 1.
 type EqSpec = { a: number; b: number; c: number }
-// focus — подсветить b или c (как в уроке 488: всё остальное бледное и серое, выбранное — в рамке со свечением).
+// focus — подсветить b или c (всё остальное бледное и серое, выбранное — в цветной рамке, без свечения).
 const DIM_STYLE: React.CSSProperties = { opacity: 0.25, filter: 'grayscale(1)' }
 const FocusBox = ({ on, color, children }: { on: boolean; color: string; children: React.ReactNode }) => (
     <span className="inline-flex items-center rounded-xl px-1.5 transition-all duration-500"
-        style={on ? { border: `2px solid ${color}`, backgroundColor: hexToRgba(color, 0.16), boxShadow: `0 0 14px ${hexToRgba(color, 0.45)}` }
+        style={on ? { border: `2px solid ${color}`, backgroundColor: hexToRgba(color, 0.16) }
             : { border: '2px solid transparent' }}>
         {children}
     </span>
@@ -906,11 +906,12 @@ const ZakrepScene = ({ onSettled }: SceneProps) => {
 }
 // Буква-коэффициент падает сверху в пунктирную клетку.
 const FallingLetter = ({ letter, color, delay }: { letter: string; color: string; delay: number }) => (
-    <span className="relative inline-flex items-center justify-center w-12 h-14 md:w-14 md:h-16 rounded-xl border-2 border-dashed mx-0.5"
-        style={{ borderColor: hexToRgba(color, 0.55) }}>
+    // Без свечения (просьба пользователя): как буквы-стикеры урока 514 — цветная рамка и лёгкая заливка.
+    <span className="relative inline-flex items-center justify-center w-12 h-14 md:w-14 md:h-16 rounded-xl border-2 mx-0.5"
+        style={{ borderColor: hexToRgba(color, 0.75), backgroundColor: hexToRgba(color, 0.14) }}>
         <motion.span initial={{ y: -140, opacity: 0, rotate: -25 }} animate={{ y: 0, opacity: 1, rotate: 0 }}
             transition={{ type: 'spring', stiffness: 260, damping: 11, delay }}
-            className="inline-block font-black" style={{ color, textShadow: `0 0 18px ${hexToRgba(color, 0.7)}` }}>
+            className="inline-block font-black" style={{ color }}>
             {letter}
         </motion.span>
     </span>
@@ -926,7 +927,7 @@ const CoefTag = ({ text, note, color }: { text: string; note?: string; color: st
         {note && (
             <motion.span initial={{ y: -30, opacity: 0, scale: 1.8 }} animate={{ y: 0, opacity: 1, scale: 1 }}
                 transition={{ type: 'spring', stiffness: 260, damping: 11, delay: 0.7 }}
-                className="text-base md:text-lg font-black mb-1" style={{ color, textShadow: `0 0 14px ${hexToRgba(color, 0.6)}` }}>{note}</motion.span>
+                className="text-base md:text-lg font-black mb-1" style={{ color }}>{note}</motion.span>
         )}
         <span className="text-sm md:text-base font-black px-2 py-0.5 rounded-lg"
             style={{ color, backgroundColor: hexToRgba(color, 0.14) }}>{text}</span>

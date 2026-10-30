@@ -154,7 +154,7 @@ export const WRONG_ANSWER_SOUND = '/snd-wrong-answer-click.mp3'
 export const JUST_CLICK_SOUND = '/snd-just-click.mp3'
 // Верный ответ в пошаговых разборах (в обычном тренажёре — /correct.wav)
 export const RIGHT_CLICK_SOUND = '/snd-right-click.mp3'
-// Сцена разбора доиграла, появилась кнопка «Дальше»
+// Нажали кнопку перехода к следующей сцене разбора («Дальше», «Понял» и т.п.)
 export const DONE_MINI_SOUND = '/snd-done-mini.mp3'
 let lastRightClickAt = 0
 export function playJustClick() { playSound(JUST_CLICK_SOUND, 0.55) }
@@ -165,7 +165,10 @@ export function playDoneMini() {
     if (wait) setTimeout(() => playSound(DONE_MINI_SOUND, 0.6), wait)
     else playSound(DONE_MINI_SOUND, 0.6)
 }
-export function preloadUiSounds() { [JUST_CLICK_SOUND, RIGHT_CLICK_SOUND, DONE_MINI_SOUND].forEach(preloadSound) }
+// Мягкий тихий клик (click-30 с ZapSplat) — любые нажатия внутри разбора (пока урок 514).
+export const SOFT_CLICK_SOUND = '/snd-click-soft.wav'
+export function playSoftClick() { playSound(SOFT_CLICK_SOUND, 0.45) }
+export function preloadUiSounds() { [JUST_CLICK_SOUND, RIGHT_CLICK_SOUND, DONE_MINI_SOUND, SOFT_CLICK_SOUND].forEach(preloadSound) }
 export const WIN_SOUND = '/snd-harp-win.mp3'
 export const TEST_LOSE_SOUND = '/snd-harp-loose.mp3'
 export const TEST_WIN_SOUND = '/snd-harp-trump-win.mp3'

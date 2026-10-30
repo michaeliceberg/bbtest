@@ -274,8 +274,9 @@ export const pickWrongTryPhrase = (): string => {
 // прозрачна и некликабельна, но место под неё сохранено (ряд не прыгает).
 // Проявляется, когда уже можно жать (просьба пользователя 2026-10-01: «зачем
 // видеть кнопку и её текст заранее, если на неё ещё нельзя нажать»).
+let wtNextListenerOn = false
 export const walkthroughButtonClass = (enabled: boolean) => cn(
-    'flex-1 h-[52px] flex items-center justify-center rounded-lg font-bold text-lg transition-all duration-300 active:translate-y-1 active:!shadow-none',
+    'wt-next flex-1 h-[52px] flex items-center justify-center rounded-lg font-bold text-lg transition-all duration-300 active:translate-y-1 active:!shadow-none',
     enabled ? 'bg-[#A1D151] text-[#151F24] cursor-pointer opacity-100 scale-100' : 'bg-[#A1D151] text-[#151F24] opacity-0 scale-95 pointer-events-none',
 );
 export const walkthroughButtonStyle = (enabled: boolean): { boxShadow: string } => ({
@@ -381,14 +382,17 @@ export function useSceneFocus(latestKey: string, contentSettled: boolean) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [latestKey, contentSettled])
 
-    // Звук «сцена готова»: сцена доиграла и появилась кнопка «Дальше» (один раз на сцену).
-    const settledSoundRef = useRef<string | null>(null)
-    useEffect(() => { preloadUiSounds() }, [])
+    // Звук «дальше» — в момент НАЖАТИЯ кнопки перехода (зелёная кнопка walkthroughButtonClass, класс wt-next),
+    // а не когда она появилась (просьба пользователя 2026-10-30). Один слушатель на документ.
     useEffect(() => {
-        if (!contentSettled || settledSoundRef.current === latestKey) return
-        settledSoundRef.current = latestKey
-        playDoneMini()
-    }, [latestKey, contentSettled])
+        preloadUiSounds()
+        if (wtNextListenerOn) return
+        wtNextListenerOn = true
+        document.addEventListener('click', (e) => {
+            const btn = (e.target as HTMLElement | null)?.closest?.('.wt-next') as HTMLButtonElement | null
+            if (btn && !btn.disabled) playDoneMini()
+        }, true)
+    }, [])
 
     return { isActive, sceneRef }
 }
