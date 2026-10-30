@@ -1137,18 +1137,22 @@ body {
 @keyframes hangar-prop { to { transform: scaleY(0.15); } }
 .hangar-prop { animation: hangar-prop 0.08s linear infinite alternate; }
 @keyframes hangar-spider-run {
-  /* бежит по балке; на разворотах стоит на месте и плавно поворачивается на 180° (без зеркального флипа) */
-  0% { transform: translateX(0) rotate(180deg); }
-  6%, 8% { transform: translateX(0) rotate(0deg); }
-  22%, 25% { transform: translateX(16cqw) rotate(0deg); }
-  31% { transform: translateX(16cqw) rotate(180deg); }
-  39%, 42% { transform: translateX(11cqw) rotate(180deg); }
-  48% { transform: translateX(11cqw) rotate(0deg); }
-  62%, 66% { transform: translateX(34cqw) rotate(0deg); }
-  72%, 75% { transform: translateX(34cqw) rotate(180deg); }
-  100% { transform: translateX(0) rotate(180deg); }
+  /* петляет левее крепления вентилятора (центр паучка от x≈256 до ≈430 из 1024 — крепление на 490–534):
+     бежит, замирает, на месте плавно разворачивается к следующей точке, rotate = направление движения */
+  0% { transform: translate(0, 0) rotate(0deg); }
+  12%, 14% { transform: translate(8cqw, 1.5cqw) rotate(10deg); }
+  20%, 22% { transform: translate(12cqw, 0) rotate(-20deg); }
+  27% { transform: translate(12cqw, 0) rotate(162deg); }
+  37%, 40% { transform: translate(6cqw, 2cqw) rotate(162deg); }
+  45% { transform: translate(6cqw, 2cqw) rotate(352deg); }
+  56%, 60% { transform: translate(17cqw, 0.5cqw) rotate(352deg); }
+  66% { transform: translate(17cqw, 0.5cqw) rotate(186deg); }
+  80%, 84% { transform: translate(3cqw, -1cqw) rotate(186deg); }
+  87% { transform: translate(3cqw, -1cqw) rotate(162deg); }
+  94% { transform: translate(0, 0) rotate(162deg); }
+  100% { transform: translate(0, 0) rotate(360deg); }
 }
-.hangar-spider { animation: hangar-spider-run 26s ease-in-out infinite; }
+.hangar-spider { animation: hangar-spider-run 34s ease-in-out infinite; }
 @keyframes hangar-legs { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.82); } }
 .hangar-legs { animation: hangar-legs 0.18s linear infinite; }
 @keyframes hangar-bug-run {
@@ -1179,6 +1183,19 @@ body {
   50% { transform: rotate(160deg) scaleX(1); } 75% { transform: rotate(250deg) scaleX(0.5); } 100% { transform: rotate(360deg) scaleX(1); }
 }
 .hangar-paper-spin { animation: hangar-paper-spin 3.2s linear infinite; }
+/* второй листок — у компьютера, поменьше: взлетает, петляет вправо-влево, своим ритмом (19 с, не совпадает с первым) */
+@keyframes hangar-paper2-fly {
+  0%, 22% { transform: translate(0, 0); opacity: 0; }
+  25% { opacity: 1; }
+  36% { transform: translate(-5cqw, -10cqw); }
+  46% { transform: translate(4cqw, -19cqw); }
+  56% { transform: translate(-9cqw, -27cqw); }
+  66% { transform: translate(-3cqw, -15cqw); }
+  78% { transform: translate(-14cqw, -9cqw); opacity: 1; }
+  88%, 100% { transform: translate(-17cqw, -2cqw); opacity: 0; }
+}
+.hangar-paper2 { animation: hangar-paper2-fly 19s ease-in-out infinite; animation-delay: 11s; opacity: 0; }
+.hangar-paper2-spin { animation: hangar-paper-spin 2.5s linear infinite reverse; }
 /* паучок на паутинке: нить (scaleY от верха) и паучок (translateY на её конец) по одной раскладке — спуск, пружинит, подъём */
 @keyframes hangar-thread {
   0%, 8% { transform: translateX(-50%) scaleY(0.25); }
@@ -1216,7 +1233,7 @@ body {
   .hangar-scuttle, .hangar-sun, .hangar-moon,
   .hangar-spark,
   .hangar-thread, .hangar-hang, .hangar-hang-sway,
-  .hangar-paper, .hangar-paper-spin,
+  .hangar-paper, .hangar-paper-spin, .hangar-paper2, .hangar-paper2-spin,
   .hangar-cloud, .hangar-birds, .hangar-flap, .hangar-plane, .hangar-plane-fwd, .hangar-plane-back, .hangar-banner-wave, .hangar-prop,
   .hangar-spider, .hangar-legs, .hangar-bug, .hangar-crt { animation: none !important; }
 }

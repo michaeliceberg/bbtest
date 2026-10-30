@@ -6,7 +6,7 @@
 // • HangarSky — в круглом окне за ракетой: плывут облака, пролетают птицы и кукурузник с транспарантом
 //   (лозунги Команданте, меняются на каждом пролёте; летит то вправо, то влево). Слой обрезан по кругу окна и лежит под предметами.
 // • HangarSpider — паучок бегает по деревянной балке под потолком; HangarBug — жучок перебегает пол;
-//   HangarPaper — листок из хлама кружит по ангару на сквозняке. Пока в ангаре бардак.
+//   HangarPaper — два листка из хлама (большой у кучи и поменьше у компьютера) кружат на сквозняке своими ритмами. Пока в ангаре бардак.
 // • ComputerFlicker — сломанный компьютер (№7) иногда мигает экраном и гаснет.
 // Координаты — в пикселях картинки 1024×1024; размеры в cqw (контейнер сцены — containerType: inline-size).
 // Всё на transform/opacity (CSS), при «уменьшить движение» стоит (globals.css).
@@ -126,8 +126,8 @@ export function HangarSky({ time = 'day' }: { time?: 'day' | 'evening' | 'night'
     )
 }
 
-/** Паучок бегает по балке под потолком — ЗА вентилятором (вентилятор z 900): лопасти и моторчик его перекрывают.
- *  Картинка — вид снизу, головой вверх; повёрнута головой по ходу; на разворотах анимация плавно поворачивает его на 180°. */
+/** Паучок бегает по потолку левее крепления вентилятора (крепление прибито к потолку — под ним не пройти):
+ *  петляет, останавливается, разворачивается на месте. Картинка — вид снизу, головой вверх; повёрнута головой по ходу. */
 export function HangarSpider() {
     return (
         <div className="hangar-spider pointer-events-none absolute" aria-hidden style={{ left: pct(230), top: pct(40), width: cq(52), zIndex: 850 }}>
@@ -187,16 +187,18 @@ export function ComputerFlicker({ style }: { style: React.CSSProperties }) {
     )
 }
 
-/** Листок бумаги из кучи хлама: ветер поднимает его, кружит по ангару и опускает. */
-export function HangarPaper() {
+/** Листки бумаги из кучи хлама: ветер поднимает их, кружит по ангару и опускает.
+ *  Первый — большой, у кучи в середине; второй — поменьше, у компьютера, со своей траекторией и ритмом. */
+export function HangarPaper({ second = false }: { second?: boolean }) {
     return (
-        <div className="hangar-paper pointer-events-none absolute" aria-hidden style={{ left: pct(640), top: pct(880), width: cq(34), zIndex: 1050 }}>
-            <div className="hangar-paper-spin">
+        <div className={`${second ? 'hangar-paper2' : 'hangar-paper'} pointer-events-none absolute`} aria-hidden
+            style={second ? { left: pct(800), top: pct(800), width: cq(22), zIndex: 1050 } : { left: pct(640), top: pct(880), width: cq(34), zIndex: 1050 }}>
+            <div className={second ? 'hangar-paper2-spin' : 'hangar-paper-spin'}>
                 <svg viewBox="0 0 30 36" className="block w-full">
                     <path d="M3 2 L22 1 L28 8 L27 34 L4 35 Z" fill="#EFE7D2" stroke="#9C8E6E" strokeWidth={1.2} strokeLinejoin="round" />
                     <path d="M22 1 L22 8 L28 8" fill="#D9CFB4" stroke="#9C8E6E" strokeWidth={1} />
                     <g stroke="#A7B2C0" strokeWidth={1.2}><path d="M7 13 H23 M7 18 H24 M7 23 H20 M7 28 H22" /></g>
-                    <text x="9" y="11" fontSize="6" fontWeight={900} fill="#C0392B">5!</text>
+                    <text x="9" y="11" fontSize="6" fontWeight={900} fill="#C0392B">{second ? 'π' : '5!'}</text>
                 </svg>
             </div>
         </div>

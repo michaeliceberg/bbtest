@@ -214,7 +214,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 {/* небо в окне живёт: облака, птицы, кукурузник с транспарантом (под всеми предметами) */}
                 <HangarSky time={time} />
                 {/* пока бардак — по балке бегает паучок, по полу жучок, на сквозняке кружит листок */}
-                {junkLeft > 0 && <><HangarSpider /><HangarHangingSpider /><HangarBug /><HangarPaper /></>}
+                {junkLeft > 0 && <><HangarSpider /><HangarHangingSpider /><HangarBug /><HangarPaper /><HangarPaper second /></>}
                 {JUNK.map((jp, j) => {
                     const p = place(layout, 'b', jp.key, jp)
                     return (
