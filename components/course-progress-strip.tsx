@@ -12,7 +12,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowDown, Dumbbell } from 'lucide-react'
-import { TrainerGoDialog, TRAINER_GREEN, trainerKeyDone } from '@/components/trainer-key-chips'
+import { TrainerGoDialog, TRAINER_GREEN, TRAINER_GOLD, trainerKeyDone } from '@/components/trainer-key-chips'
 import { TinyMedal } from '@/components/nav-sheet-ui'
 import { EGE_PART_COLOR } from '@/components/ege-task-grid'
 import { SECTION_LABEL, type LearnSection } from '@/components/learn-unit-nav'
@@ -124,14 +124,18 @@ export function CourseProgressStrip({ units, defaultOpenId = null, trainerKeys =
                                         return (
                                             <div key={u.id} className="relative min-w-0 flex-1">
                                                 {/* над ячейкой — зелёная кнопка тренажёров этого задания (гантель + «пройдено/всего»), по ней окошко «Перейти в тренажёр» */}
-                                                {hasKeys && keyStyle === 'button' && (keys.length > 0 ? (
+                                                {hasKeys && keyStyle === 'button' && (keys.length > 0 ? (() => {
+                                                    // все тренажёры задания пройдены — кнопка из зелёной становится золотой (цвет медали)
+                                                    const kc = keys.every(trainerKeyDone) ? TRAINER_GOLD : TRAINER_GREEN
+                                                    return (
                                                     <button type="button" onClick={() => setAsk(Number(cellLabel(u)))}
                                                         title={`Тренажёры к заданию №${cellLabel(u)}: ${keys.filter(trainerKeyDone).length} из ${keys.length}`}
                                                         className="mb-[3px] flex h-[24px] w-full items-center justify-center rounded-[5px] border-b-[3px] active:border-b-0"
-                                                        style={{ background: `linear-gradient(180deg, ${TRAINER_GREEN.top}, ${TRAINER_GREEN.bottom})`, borderBottomColor: TRAINER_GREEN.edge, color: TRAINER_GREEN.text }}>
+                                                        style={{ background: `linear-gradient(180deg, ${kc.top}, ${kc.bottom})`, borderBottomColor: kc.edge, color: kc.text }}>
                                                         <span className="whitespace-nowrap text-[10px] font-black leading-none">{keys.filter(trainerKeyDone).length}/{keys.length}</span>
                                                     </button>
-                                                ) : <div className="mb-[3px] h-[24px]" />)}
+                                                    )
+                                                })() : <div className="mb-[3px] h-[24px]" />)}
                                                 {hasKeys && keyStyle !== 'button' && keyStyle !== 'medals' && (
                                                     <div className="mb-[3px] flex h-[12px] items-center justify-center"><KeyIndicator keys={keys} style={keyStyle} color={c.button} /></div>
                                                 )}
@@ -191,7 +195,7 @@ export function CourseProgressStrip({ units, defaultOpenId = null, trainerKeys =
                 {sel ? <>Открыт: <span className="text-[#E2EAF0]">{sel.title}</span> · {Math.round(sel.percent)}%</> : 'Нажми на ячейку — откроешь раздел'}
             </p>
             {hasKeys && <p className="mt-0.5 text-[10px] font-bold text-[#4E5D65]">
-                {keyStyle === 'button' ? 'Зелёные кнопки — тренажёры к заданию (пройдено/всего): сначала они, потом задачи' : keyStyle === 'medals' ? 'Медали над ячейкой — тренажёры-каркас этого задания' : 'Над ячейкой — сколько тренажёров к этому заданию пройдено'}
+                {keyStyle === 'button' ? 'Зелёные кнопки — тренажёры к заданию (пройдено/всего): сначала они, потом задачи. Все пройдены — кнопка золотая' : keyStyle === 'medals' ? 'Медали над ячейкой — тренажёры-каркас этого задания' : 'Над ячейкой — сколько тренажёров к этому заданию пройдено'}
             </p>}
             {ask !== null && <TrainerGoDialog num={ask} keys={trainerKeys[ask] ?? []} open onClose={() => setAsk(null)} />}
         </div>

@@ -19,6 +19,8 @@ import { declensionRu } from '@/usefulFunctions'
 export type TrainerKeyChip = { tUnitId: number; title: string; percent: number }
 
 export const TRAINER_GREEN = { top: '#8BDB4C', bottom: '#5FAE2E', edge: '#3F7F1C', text: '#10230A' }
+// Все тренажёры задания пройдены — золото медали
+export const TRAINER_GOLD = { top: '#FFD84D', bottom: '#E8AE2C', edge: '#9C6A12', text: '#3A2600' }
 export const trainerKeyDone = (k: TrainerKeyChip) => k.percent > 0
 const MEDAL_WORD = { none: 'не начато', bronze: 'бронза', silver: 'серебро', gold: 'золото' } as const
 

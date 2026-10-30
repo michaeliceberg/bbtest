@@ -129,7 +129,7 @@ export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact', levelCase =
                             <img src="/chests/rare0001.svg" alt="" className="h-9 w-9 shrink-0 object-contain animate-chest-idle-bounce" />
                             <span className="text-[13px] font-black uppercase leading-none text-[#7FE0FF]">Открыть</span>
                         </button>
-                        <span className="min-w-0 text-[11px] font-bold leading-tight text-[#A9C7D3]">Кейс за<br />уровень {levelCase.level}</span>
+                        <span className="min-w-0 flex-1 text-center text-[11px] font-bold leading-tight text-[#A9C7D3]">Кейс за<br />уровень {levelCase.level}</span>
                     </div>
                 )}
                 {casePortal}
