@@ -20,13 +20,15 @@ import { HangarFan, FAN } from '@/components/hangar-fan'
 import { HangarSky, HangarSpider, HangarHangingSpider, HangarBug, HangarPaper, ComputerFlicker, GeneratorSparks, HangarMoon } from '@/components/hangar-life'
 import { fixHangarItem } from '@/actions/hangar'
 import { playSound, CASE_PRIZE_SOUND } from '@/lib/sound'
+import { ZaNaukuArchive } from '@/components/za-nauku-archive'
+import { pickShortJoke, ZN_RUBRIC_TITLE, znSource, type ZnJoke } from '@/lib/zaNauku'
 
 export type SceneItem = { num: number; title: string; state: 'broken' | 'ready' | 'fixed'; progress: number; href: string | null }
 
 // По номеру ЗАДАНИЯ: что делаем с его предметом (кнопка «Починить») и шутка — про предмет и про это задание.
 // Какой предмет у задания — ITEM_OF_TASK (lib/hangarModel.ts).
 const FIX_LABEL: Record<number, string> = {
-    1: 'Поставить стремянку', 2: 'Поднять флаг отряда', 3: 'Собрать инструменты в ящик', 4: 'Включить автомат', 5: 'Распутать провода',
+    1: 'Поставить стремянку', 2: 'Поднять флаг отряда', 3: 'Собрать инструменты в ящик', 4: 'Включить робота', 5: 'Распутать провода',
     6: 'Развесить ключи по местам', 7: 'Починить компьютер Мигеля', 8: 'Зажечь лампу над Фейнманом', 9: 'Зарядить шуруповёрт',
     10: 'Запустить генератор', 11: 'Починить вентилятор', 12: 'Повесить огнетушитель', 13: 'Поднять бочку с топливом',
 }
@@ -34,7 +36,7 @@ const ITEM_JOKE: Record<number, string> = {
     1: 'Стремянка, стена и пол — готовый прямоугольный треугольник. Залезем по нему повыше по шкале баллов 🪜',
     2: 'Флаг показывает, куда дует ветер: направление и сила — это и есть вектор 🚩',
     3: 'Ящик — прямоугольный параллелепипед. Разложишь инструменты — и стереометрия не страшна 🧰',
-    4: 'Автомат выдаёт приз случайно? Посчитаем шансы — и будем знать, когда повезёт 🎰',
+    4: 'Робот без батарейки. Включится он или нет — вопрос вероятности. Посчитаем шансы — и он оживёт 🤖',
     5: 'Спутанные провода — как дерево исходов. Распутаем по веточкам — и вероятность посчитается 🔌',
     6: 'Ключи разного размера: какой подойдёт с первой попытки? Мат. ожидание подскажет 🔧',
     7: 'Без компа Команданте не может решить даже простейшее уравнение. Почини — и икс найдётся 💻',
@@ -45,6 +47,13 @@ const ITEM_JOKE: Record<number, string> = {
     12: 'Струя из огнетушителя летит по параболе. Видишь график — тушишь задачу 🧯',
     13: 'Топливо каждый год дорожает на r%. Посчитаем, сколько бочек брать сейчас, — и сэкономим ⛽',
 }
+// Что откроется после починки (рядом с шуткой в окне задания)
+const UNLOCK_HINT: Record<number, string> = {
+    7: 'Почини — и в компьютере откроется архив шуток газеты физтехов «За науку» 📰',
+    4: 'Почини — и робот будет рассказывать шутки физтехов из газеты «За науку» 💬',
+}
+const ARCHIVE_ITEM = 7 // компьютер
+const ROBOT_ITEM = 13 // робот (бывший «автомат»)
 const ROCKET_JOKE = 'Ракета летит в вуз мечты. Каждое задание второй части — новая деталь. Собери — и на старт 🚀'
 const ROCKET_STEP = ['Поставить опоры', 'Поставить сопло', 'Надеть обшивку', 'Прикрутить стабилизаторы', 'Пристегнуть баки', 'Покрасить звезду', 'Надеть нос']
 const WALL = new Set([2, 6, 8]) // id предметов на стене (стенд с ключами, флаг, лампа)
@@ -102,6 +111,14 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     // Плашка задания появляется на середине зума (зум 1,1 с → через 0,55 с) — не сразу и без долгого ожидания; закрывается сразу.
     const ZOOM_MS = 550
     const [panelNum, setPanelNum] = useState<number | null>(null)
+    const [archiveOpen, setArchiveOpen] = useState(false)
+    const [robotJoke, setRobotJoke] = useState<{ joke: ZnJoke; key: number } | null>(null)
+    useEffect(() => {
+        if (!robotJoke) return
+        const t = setTimeout(() => setRobotJoke(null), Math.min(11000, Math.max(5000, robotJoke.joke.text.length * 75)))
+        return () => clearTimeout(t)
+    }, [robotJoke])
+    const robotSay = () => setRobotJoke({ joke: pickShortJoke(), key: Date.now() })
     useEffect(() => {
         setPanelNum(null)
         if (openNum === null) return
@@ -240,13 +257,24 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                             {!onWall && <div className="pointer-events-none absolute rounded-[50%]"
                                 style={{ left: pct(p.x - p.w * 0.45), top: pct(p.y - p.h * 0.07 - 4), width: pct(p.w * 0.9), height: pct(p.h * 0.12 + 8), background: 'radial-gradient(closest-side, rgba(20,10,15,0.5), transparent)', zIndex: Math.round(p.z * 10) + 9 }} />}
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img key={p.src} src={p.src} alt={i.title} draggable={false} className={`absolute select-none ${!done ? 'cursor-pointer' : ''}`}
-                                onClick={() => openTask(i.num)}
+                            <img key={p.src} src={p.src} alt={i.title} draggable={false} className={`absolute select-none ${!done || (!bare && (id === ARCHIVE_ITEM || id === ROBOT_ITEM)) ? 'cursor-pointer' : ''}`}
+                                onClick={() => {
+                                    if (done && !bare && id === ARCHIVE_ITEM) setArchiveOpen(true)
+                                    else if (done && !bare && id === ROBOT_ITEM) robotSay()
+                                    else openTask(i.num)
+                                }}
                                 onMouseEnter={() => { if (!done) setHover(i.num) }} onMouseLeave={() => setHover(null)}
                                 style={{ ...placeStyle(p), filter: !done && lit(i.num) ? HIGHLIGHT : undefined, transition: 'filter .25s', animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
                             {id === 7 && !done && <ComputerFlicker style={placeStyle(p)} />}
                             {id === 10 && !done && <GeneratorSparks style={placeStyle(p)} />}
                             {!done && !bare && <KeyBadge x={p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready'} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
+                            {done && !bare && (id === ARCHIVE_ITEM || id === ROBOT_ITEM) && !(id === ROBOT_ITEM && robotJoke) && (
+                                <FunBadge x={p.x} y={p.y - p.h - 6} label={id === ARCHIVE_ITEM ? 'Читать' : 'Шутка'}
+                                    onClick={() => (id === ARCHIVE_ITEM ? setArchiveOpen(true) : robotSay())} />
+                            )}
+                            {id === ROBOT_ITEM && robotJoke && (
+                                <RobotBubble key={robotJoke.key} x={p.x} y={p.y - p.h - 4} joke={robotJoke.joke} onClose={() => setRobotJoke(null)} />
+                            )}
                         </div>
                     )
                 })}
@@ -276,6 +304,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                         <button type="button" aria-label="Закрыть" onClick={() => setOpenNum(null)} className="-mr-1 -mt-1 rounded-lg p-1 text-[#9AA7B0] hover:text-white"><X className="h-5 w-5" /></button>
                     </div>
                     <p className="mt-2 text-base font-bold leading-snug text-[#E8D9B8]">{panelItem.num >= 14 ? ROCKET_JOKE : ITEM_JOKE[panelItem.num]}</p>
+                    {UNLOCK_HINT[panelItem.num] && <p className="mt-1.5 text-sm font-bold leading-snug text-[#9EE8B0]">{UNLOCK_HINT[panelItem.num]}</p>}
                     <div className="mt-3 flex gap-2">
                         {panelItem.state === 'ready' ? (
                             <button type="button" disabled={pending} onClick={() => { setOpenNum(null); fix(panelItem.num) }}
@@ -308,6 +337,31 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
             ) : (
                 <p className="mt-2 text-center text-xs font-bold text-[#7E8F99]">Номер — раздел ЕГЭ</p>
             )}
+            {archiveOpen && <ZaNaukuArchive onClose={() => setArchiveOpen(false)} />}
         </div>
+    )
+}
+
+// Кнопочка над починенным компьютером/роботом: «Читать» / «Шутка»
+function FunBadge({ x, y, label, onClick }: { x: number; y: number; label: string; onClick: () => void }) {
+    return (
+        <button type="button" onClick={onClick}
+            className="absolute -translate-x-1/2 -translate-y-full rounded-full border-2 border-[#3D8A55] bg-[#163322]/90 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-[#9EE8B0] shadow-[0_0_10px_rgba(120,220,150,0.45)]"
+            style={{ left: pct(x), top: pct(y), zIndex: 1150 }}>
+            {label}
+        </button>
+    )
+}
+
+// Облачко робота с шуткой из «За науку» — над его головой
+function RobotBubble({ x, y, joke, onClose }: { x: number; y: number; joke: ZnJoke; onClose: () => void }) {
+    return (
+        <button type="button" onClick={onClose}
+            className="absolute w-[58%] -translate-x-1/2 -translate-y-full rounded-xl border-2 border-[#3D8A55] bg-[#10231A]/95 px-2.5 py-1.5 text-left shadow-xl"
+            style={{ left: pct(Math.min(Math.max(x, 300), 724)), top: pct(y), zIndex: 1180, animation: 'hangar-pop .35s ease-out' }}>
+            <span className="block text-[8px] font-black uppercase tracking-wide text-[#9EE8B0]">{ZN_RUBRIC_TITLE[joke.rubric]}</span>
+            <span className="block text-[11px] font-bold leading-snug text-[#E9F7EE]">{joke.text}</span>
+            <span className="mt-0.5 block text-[8px] font-bold text-[#7FA48B]">{znSource(joke)}</span>
+        </button>
     )
 }

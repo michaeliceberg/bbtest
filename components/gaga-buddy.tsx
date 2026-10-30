@@ -15,6 +15,7 @@ import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { GAGA_EMOTIONS, gagaAudio, gagaCaption, pickGagaLine, type GagaEvent } from '@/lib/gagaVoice'
 import { playSoundTracked } from '@/lib/sound'
+import { pickShortJoke, ZN_RUBRIC_TITLE, znSource, type ZnJoke } from '@/lib/zaNauku'
 
 const EVENT = 'gaga-show'
 const VOICE_KEY = 'gagaVoice'
@@ -33,12 +34,12 @@ export const setGagaVoiceOn = (on: boolean) => {
 
 let lastShownAt = 0
 // shot — Га-Га с ружьём «стреляет» в экран (удар молнии КОМБО): стикер gun, отдача, вспышка и искры из ствола
-export const showGaga = (event: GagaEvent, opts?: { delayMs?: number; force?: boolean; shot?: boolean }) => {
+export const showGaga = (event: GagaEvent, opts?: { delayMs?: number; force?: boolean; shot?: boolean; joke?: ZnJoke }) => {
     if (typeof window === 'undefined') return
     const now = Date.now()
     if (!opts?.force && !opts?.shot && !BIG.includes(event) && now - lastShownAt < MIN_GAP_MS) return
     lastShownAt = now
-    const fire = () => window.dispatchEvent(new CustomEvent(EVENT, { detail: { event, shot: !!opts?.shot } }))
+    const fire = () => window.dispatchEvent(new CustomEvent(EVENT, { detail: { event, shot: !!opts?.shot, joke: opts?.joke } }))
     if (opts?.delayMs) setTimeout(fire, opts.delayMs)
     else fire()
 }
@@ -52,7 +53,9 @@ export const reportGagaAnswer = (correct: boolean): boolean => {
     if (Date.now() - lastShownAt < MIN_GAP_MS) return false
     answers = 0
     nextAt = 4 + Math.floor(Math.random() * 3)
-    showGaga(correct ? 'correct' : 'wrong')
+    // На верный ответ иногда вместо Мигеля выезжает «звезда» и говорит шутку из газеты МФТИ «За науку»
+    if (correct && Math.random() < CELEB_JOKE_CHANCE) showGaga('correct', { joke: pickShortJoke() })
+    else showGaga(correct ? 'correct' : 'wrong')
     return true
 }
 
@@ -67,7 +70,24 @@ export const showGagaOncePerDay = (event: GagaEvent, delayMs?: number) => {
     showGaga(event, { delayMs })
 }
 
-type Shown = { id: number; event: GagaEvent; caption: string; src: string; leaving: boolean; shot: boolean }
+type Shown = { id: number; event: GagaEvent; caption: string; src: string; leaving: boolean; shot: boolean; joke?: ZnJoke }
+
+// «Звёзды»-стикеры (public/more-memes, public/remember-stickers, public/lesson-pics), которые неожиданно
+// произносят шутку физтехов. Только без надписей на самой картинке.
+const CELEB_JOKE_CHANCE = 0.45
+const CELEBS = [
+    '/lesson-pics/jason.webp', '/lesson-pics/dicaprio-point.webp', '/lesson-pics/dicaprio-walk2.webp',
+    '/remember-stickers/gentelmen-notext.webp', '/more-memes/meme-2.webp', '/more-memes/meme-20.webp',
+    '/more-memes/meme-3.webp', '/more-memes/meme-4.webp', '/more-memes/meme9.webp', '/more-memes/meme7.webp',
+    '/more-memes/meme-10.webp', '/more-memes/saul-1.webp', '/more-memes/saul-5.webp', '/more-memes/saul-8.webp',
+]
+let lastCeleb = ''
+const pickCeleb = () => {
+    let c = CELEBS[Math.floor(Math.random() * CELEBS.length)]
+    if (c === lastCeleb) c = CELEBS[(CELEBS.indexOf(c) + 1) % CELEBS.length]
+    lastCeleb = c
+    return c
+}
 
 // Выстрел на ударе молнии КОМБО — Мигель с базукой; вспышка и «BOOM» уже нарисованы на стикере,
 // поэтому свои вспышку/дым поверх не рисуем (SHOT_HAS_OWN_FLASH).
@@ -132,7 +152,7 @@ const pickSticker = (event: GagaEvent) => {
 
 const BubbleView = ({ s }: { s: Shown }) => {
     const wrong = s.event === 'wrong' || s.event === 'night'
-    const accent = wrong ? '#8FA3AE' : s.event === 'boss' ? '#DC605B' : s.event === 'rule' ? '#F2C35B' : '#C385F7'
+    const accent = s.joke ? '#F2C35B' : wrong ? '#8FA3AE' : s.event === 'boss' ? '#DC605B' : s.event === 'rule' ? '#F2C35B' : '#C385F7'
     return (
         <motion.div
             className="pointer-events-none fixed z-[96] flex items-end gap-1"
@@ -151,7 +171,7 @@ const BubbleView = ({ s }: { s: Shown }) => {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <motion.img
                         src={s.src}
-                        alt="Команданте Мигель"
+                        alt={s.joke ? '' : 'Команданте Мигель'}
                         draggable={false}
                         className="w-[84px] h-[84px] md:w-24 md:h-24 object-contain drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)]"
                         initial={{ rotate: -14, scale: 0.7 }}
@@ -171,7 +191,9 @@ const BubbleView = ({ s }: { s: Shown }) => {
             >
                 <span className="absolute -left-[7px] bottom-3 w-3 h-3 rotate-45"
                     style={{ backgroundColor: 'rgb(22, 31, 35)', borderLeft: `2px solid ${accent}`, borderBottom: `2px solid ${accent}` }} />
+                {s.joke && <span className="mb-0.5 block text-[10px] font-black uppercase tracking-wide" style={{ color: accent }}>{ZN_RUBRIC_TITLE[s.joke.rubric]}</span>}
                 {s.caption}
+                {s.joke && <span className="mt-1 block text-[10px] font-bold text-[#8FA3AE]">{znSource(s.joke)}</span>}
             </motion.div>
         </motion.div>
     )
@@ -187,17 +209,23 @@ export const GagaBuddyLayer = () => {
         setMounted(true)
         const clear = () => { timers.current.forEach(clearTimeout); timers.current = [] }
         const onShow = (e: Event) => {
-            const { event, shot } = (e as CustomEvent<{ event: GagaEvent; shot?: boolean }>).detail
-            const line = pickGagaLine(event)
+            const { event, shot, joke } = (e as CustomEvent<{ event: GagaEvent; shot?: boolean; joke?: ZnJoke }>).detail
             clear()
             stopVoice.current()
             const id = Date.now() + Math.random()
             const startedAt = Date.now()
-            setShown({ id, event, caption: gagaCaption(line.text), src: shot ? GUN_STICKER : pickSticker(event), leaving: false, shot: !!shot })
             const leave = () => {
                 setShown((s) => (s && s.id === id ? { ...s, leaving: true } : s))
                 timers.current.push(setTimeout(() => setShown((s) => (s && s.id === id ? null : s)), 400))
             }
+            if (joke) {
+                // шутку читаем глазами — без голоса, держим по длине текста
+                setShown({ id, event, caption: joke.text, src: pickCeleb(), leaving: false, shot: false, joke })
+                timers.current.push(setTimeout(leave, Math.min(11000, Math.max(5000, joke.text.length * 75))))
+                return
+            }
+            const line = pickGagaLine(event)
+            setShown({ id, event, caption: gagaCaption(line.text), src: shot ? GUN_STICKER : pickSticker(event), leaving: false, shot: !!shot })
             // Держим облачко, пока звучит голос (но не меньше MIN и не больше MAX)
             let voiceDone = !isGagaVoiceOn()
             if (!voiceDone) {

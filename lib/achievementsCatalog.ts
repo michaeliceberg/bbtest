@@ -106,7 +106,7 @@ const RAW_ACHIEVEMENTS: AchievementDef[] = [
 	// «Штурм» — горячие 10 минут (lib/storm.ts), данные — таблица storm_runs.
 	{ key: 'storm_start', group: 'storm', emoji: '🚀', title: 'В атаку!', desc: 'Попал в первый штурм' },
 	{ key: 'storm_first', group: 'storm', emoji: '🔥', title: 'Штурмовик', desc: 'Взял штурм: 3 урока за 10 минут' },
-	{ key: 'storm_fast', group: 'storm', emoji: '⚡', title: 'Молния', desc: 'Взял штурм за 5 минут — монстр даже не понял, что произошло' },
+	{ key: 'storm_fast', group: 'storm', emoji: '⚡', title: 'Молния', desc: 'Взял штурм за 5 минут — задачи даже не поняли, что произошло' },
 	{ key: 'storm_5', group: 'storm', emoji: '👊', title: 'Ветеран штурмов', desc: 'Взял 5 штурмов' },
 	{ key: 'medal_gold_5', group: 'medals', emoji: '🥇', iconSrc: '/medals/medal-gold.webp', title: 'Нужен сейф', desc: '5 золотых медалей — пора прятать от грабителей' },
 ];

@@ -58,7 +58,7 @@ export const GAGA_LINES: GagaLine[] = [
     ...L('correct', [
         '[proud, nasal] Чётко! Вот это выправка. [honking laugh]',
         '[goose honk] Прямо в цель, боец.',
-        '[gruff] Принято. Монстр ЕГЭ потерял ещё одну жизнь. [short chuckle]',
+        '[gruff] Принято. Ещё один балл в копилку к экзамену. [short chuckle]',
         '[proud] Это твой экстремум: производная ноль, ты на вершине.',
         '[honking laugh] Где-то Ньютон уронил ещё одно яблоко от восторга.',
         '[goose honk] [gruff, nasal] Так держать. Заношу в личное дело.',
@@ -72,7 +72,7 @@ export const GAGA_LINES: GagaLine[] = [
         '[confident] ¡Sí, señor! Так и решают на экзамене.',
     ]),
     ...L('wrong', [
-        '[calm, gruff] Отставить панику. Ошибка — это разведка: теперь мы знаем, где враг.',
+        '[calm, gruff] Отставить панику. Ошибка — это разведка: теперь мы знаем, что подтянуть.',
         '[nasal] Мимо. Перегруппировались и снова в бой.',
         '[honking laugh] Минус, штука обидчивая. Проверь его, боец.',
         '[serious] Не спеши. Солдат, который торопится, стреляет в молоко.',
@@ -93,7 +93,7 @@ export const GAGA_LINES: GagaLine[] = [
     ...L('streak', [
         '[excited honk] Серия! Ты разогнался, как частица в коллайдере.',
         '[impressed] Тебя уже не остановить. [honking laugh]',
-        '[gruff, nasal] Монстр ЕГЭ отступает. Наступаем! [goose honk]',
+        '[gruff, nasal] Вот это форма! К экзамену готовишься как чемпион. [goose honk]',
         '[goose honk] [proud] Вот это дисциплина. Ещё!',
         '[excited honk] ¡Fuego! Огонь! Серия горит!',
         '[impressed] Эйнштейн относительно тебя просто стоит на месте. [honking laugh]',
@@ -102,7 +102,7 @@ export const GAGA_LINES: GagaLine[] = [
     ]),
     ...L('chest', [
         '[proud, nasal] Трофей с фронта. Заслужил, боец. [goose honk]',
-        '[goose honk] Сундук! Открывай, пока монстр не отобрал. [short chuckle]',
+        '[goose honk] Сундук! Открывай, пока не убежал. [short chuckle]',
         '[goose honk] [gruff] Награда за службу. Посмотрим, что внутри.',
         '[excited] ¡Mira! Смотри, что прилетело!',
         '[short chuckle] Фейнман вскрывал сейфы в Лос-Аламосе. А ты вскрой этот сундук.',
@@ -125,7 +125,7 @@ export const GAGA_LINES: GagaLine[] = [
     ...L('boss', [
         '[gruff, serious] Тишина в строю. Перед нами босс.',
         '[confident, nasal] Все уроки были ради этого. В бой! [goose honk]',
-        '[excited] ¡Adelante! Покажем монстру, кто тут командир! [goose honk]',
+        '[excited] ¡Adelante! Это генеральная репетиция экзамена. Покажем класс! [goose honk]',
         '[serious] Лоренц, Ньютон и Паскаль за тебя. Вперёд, боец!',
         '[gruff] Босс большой, но законы физики на нашей стороне. ¡Vamos!',
     ]),

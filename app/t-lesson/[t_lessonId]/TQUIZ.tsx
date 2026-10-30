@@ -277,7 +277,7 @@ export default function TQuiz({
     window.addEventListener('walkthrough-combo', onCombo)
     return () => window.removeEventListener('walkthrough-combo', onCombo)
   }, [])
-  // Га-Га на старте урока: на босс-экзамене — всегда («Покажем монстру!»), иначе «привет» раз в день.
+  // Га-Га на старте урока: на босс-экзамене — всегда («генеральная репетиция экзамена»), иначе «привет» раз в день.
   const gagaGreetedRef = useRef(false)
   useEffect(() => {
     if (vibeStage !== 'done' || gagaGreetedRef.current) return
