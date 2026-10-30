@@ -66,3 +66,71 @@
 - Уберу из `docs/hangar/leonardo/` фон, приведу кадры к одному размеру и выравниванию (как кадры гуся на /trainer).
 - Положу в `public/hangar/life/*.webp`, заменю SVG в `components/hangar-life.tsx` на картинки; кадры ходьбы паучка,
   жука и взмахи птиц — сменой кадров (как у Мигеля на дорожке), движение по экрану — как сейчас.
+
+## Котик (2026-10-30)
+
+Порядок: сначала `cat-sit.jpg`, выбрать лучший — и дальше он идёт **Image Guidance** (сила 0.45–0.5) для всех остальных
+поз, чтобы котик был один и тот же (как делали Мигеля). Общее описание котика вставлять в начало каждого промпта:
+
+> small scruffy ginger tabby kitten, a stray from the street, big round green eyes, white paws and white chest,
+> one ear slightly bent, thin tail with a white tip, a little dusty fur, cute and a bit shy
+
+| Файл | Промпт (после описания котика, перед хвостом стиля) | Заметки |
+|---|---|---|
+| `cat-sit.jpg` | sitting upright, seen from the side at three-quarter view, facing right, tail wrapped around the paws, curious look | Основа для всех остальных |
+| `cat-peek.jpg` | peeking from behind the edge of a wall on the left, only the head, both front paws and a bit of the chest visible, ears up, mouth open as if meowing, shy hopeful eyes | Выглядывает из арки ангара; край стены слева — тот же цвет, что ворота ангара, его потом обрежу |
+| `cat-walk-1.jpg`, `cat-walk-2.jpg` | walking, strict side view, facing right, tail up; frame 1: left front paw and right back paw forward; frame 2: right front paw and left back paw forward | Один размер и ракурс у обоих кадров |
+| `cat-meow.jpg` | sitting, head raised, mouth wide open meowing, eyes squinted | Для облачка «Мяу?» |
+| `cat-pet.jpg` | sitting, eyes closed in a happy smile, head tilted, ears flat, purring, small hearts are NOT needed | Когда гладят (сердечки дорисую кодом) |
+| `cat-sniff.jpg` | stretching its neck forward and sniffing, nose up, tail up, eager | Учуял колбаску |
+| `cat-sleep.jpg` | sleeping curled up in a tight ball, seen from the side, tail covering the nose, eyes closed, calm | Zzz допишу кодом |
+| `cat-eat.jpg` | crouching and lapping from a bowl (bowl not drawn), strict side view, facing right, head down | Миску положу отдельной картинкой под мордочку |
+| `cat-loaf.jpg` | sitting as a "loaf" with paws tucked under the body, eyes half-closed, cosy | Сидит на картонке днём |
+
+В Avoid для котика: `text, collar, clothes, human, multiple cats, realistic photo, 3D render, background scenery, cropped ears`.
+
+### Вещи котика
+
+| Файл | Промпт (перед хвостом стиля) | Заметки |
+|---|---|---|
+| `cat-cardboard.jpg` | flattened old cardboard box lying flat on the floor, seen from a slight angle above, worn corners, a faded stamp shape without letters, a little dusty | Лежит у левой стены |
+| `cat-bowl-empty.jpg`, `cat-bowl-milk.jpg` | small round metal pet bowl on the floor, seen from a slight angle above, dented rim; empty / filled with white milk | Два состояния |
+| `cat-milk.jpg` | small cardboard milk carton, white and blue, no letters, standing | |
+| `cat-sausage.jpg` | one pink boiled sausage with a string knot at the end, slightly bent | Для кнопки «Подманить колбаской» и полёта к котику |
+| `cat-fridge.jpg` | small old rounded retro mini fridge, cream colour with a chrome handle, a few magnets shapes, an EMPTY white paper label taped on the door, standing on the floor, front view | Табличку «для Мурзика» наложу кодом |
+
+## Небо, погода, облака (2026-10-30)
+
+Небо в окне сейчас нарисовано прямо в фоне ангара. Чтобы оно менялось, сделаем отдельную «плиту неба» под окном
+(обрежу кругом окна, лежит под облаками, солнцем и самолётом). Время суток берём по часам ученика (уже есть), погоду —
+случайную на день (позже можно настоящую по городу).
+
+**Плиты неба** — формат 1:1, только небо, без земли и объектов:
+
+| Файл | Промпт (перед хвостом стиля, НО без «single object / isolated on white») |
+|---|---|
+| `sky-day.jpg` | plain cartoon sky texture filling the whole image, soft gradient from pale mint-blue at the bottom to calm blue at the top, subtle painted brush texture, no clouds, no sun, no objects |
+| `sky-overcast.jpg` | same, but grey-blue overcast sky, flat layered grey clouds filling the whole image, muted and calm |
+| `sky-sunset.jpg` | same, but sunset gradient: warm peach and orange at the bottom, pink in the middle, dusty violet at the top, no sun disc |
+| `sky-dawn.jpg` | same, but early morning: pale lemon yellow at the bottom, soft pink, light blue at the top |
+| `sky-night.jpg` | same, but night sky: deep navy blue to dark indigo, many tiny soft stars of different sizes, a faint milky way band |
+| `sky-storm.jpg` | same, but dark stormy sky: heavy slate-grey and purple clouds, dramatic but cartoon, no lightning |
+
+Avoid для плит: `ground, horizon, landscape, buildings, trees, sun, moon, birds, planes, text, frame, vignette`.
+
+**Погода и облака** — отдельные объекты на белом (обычный хвост стиля):
+
+| Файл | Промпт | Заметки |
+|---|---|---|
+| `cloud-small.jpg`, `cloud-long.jpg`, `cloud-big.jpg` | single fluffy cartoon cumulus cloud, flat side view; small and round / long and flat / big with three puffs; pale cream-white top, soft grey-blue underside | Добавятся к уже готовому cloud.webp — будет разнообразнее |
+| `cloud-sunset.jpg` | single fluffy cartoon cloud lit by sunset from below, peach and pink underside, cream top | Вечером вместо белых |
+| `cloud-night.jpg` | single cartoon cloud at night, dark blue-grey with a pale silver edge lit by moonlight | Ночью |
+| `cloud-rain.jpg` | single heavy dark grey cartoon rain cloud, flat bottom, a few short rain streaks falling from it | Дождь сам — кодом, это туча |
+| `cloud-storm.jpg` | single dark purple-grey storm cloud with a small yellow cartoon lightning bolt coming out of the bottom | Молнию буду вспыхивать кодом |
+| `rain-streaks.jpg` | many thin slanted light-blue rain streaks on white, evenly spread, seamless pattern | Плитка дождя, двигаю кодом |
+| `snowflakes.jpg` | many small soft white-blue cartoon snowflakes and dots of different sizes on a light grey background, seamless pattern | Зимой (декабрь–февраль) |
+| `raindrops-glass.jpg` | water droplets running down a window glass, a few big drops with little trails, transparent look, cartoon | Капли на стекле окна в дождь |
+| `rainbow.jpg` | soft pastel cartoon rainbow arc, muted colours, slightly faded ends | После дождя |
+| `fog.jpg` | soft horizontal band of pale grey fog, wispy edges, wide and short | Утром туман у горизонта |
+| `kite.jpg` | small cartoon diamond-shaped kite, red and yellow, with a long wavy tail of bows, flying, string going down-left | Иногда в ясный ветреный день |
+| `balloon.jpg` | small cartoon hot-air balloon, striped muted red and cream, little basket below, side view | Редкий гость в небе |
