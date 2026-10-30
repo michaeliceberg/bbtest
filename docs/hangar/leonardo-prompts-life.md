@@ -170,6 +170,9 @@ Avoid: `different pose, different angle, moved, resized, new background, text, e
 
 ## Табличка «Наш ангар» — живая, не просто доска (2026-10-31)
 
+> Сейчас в шапке — одна доска, вырезанная из `sign-planks.webp` (Leonardo нарисовал три доски на фоне ангара):
+> `public/hangar/life/sign-plank.webp`. Если просить заново — писать «a single long wooden plank», иначе рисует щит из досок.
+
 Модель FLUX.1 Kontext, Image Guidance — `docs/hangar/bg-empty.jpg` (сила 0.3, только стиль). Формат 16:9, на белом фоне,
 фон не удалять. Буквы НЕ просим — надпись положу кодом (Leonardo пишет криво). Сохранить `docs/hangar/leonardo/sign-hangar.png`.
 
