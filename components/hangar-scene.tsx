@@ -59,7 +59,15 @@ function KeyBadge({ x, y, n, ready, active, onHover, onOpen }: { x: number; y: n
 /** Подсветка предмета, который починится: золотой контур по форме картинки (drop-shadow) и чуть ярче. */
 const HIGHLIGHT = 'drop-shadow(0 0 2px #FFF4C2) drop-shadow(0 0 6px #F2C35B) drop-shadow(0 0 14px #F2C35B) brightness(1.15)'
 
-export function HangarScene({ items, layout }: { items: SceneItem[]; layout?: LayoutOverrides | null }) {
+export type HangarTime = Time
+
+/**
+ * onFix / time / decorFixed — для тестовой страницы /test-hangar: починка без сервера, своё время суток,
+ * состояние портрета вручную. В приложении не передаются.
+ */
+export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed }: {
+    items: SceneItem[]; layout?: LayoutOverrides | null; onFix?: (num: number) => void; time?: Time; decorFixed?: boolean
+}) {
     const router = useRouter()
     const [pending, start] = useTransition()
     const [justFixed, setJustFixed] = useState<number | null>(null)
@@ -67,7 +75,7 @@ export function HangarScene({ items, layout }: { items: SceneItem[]; layout?: La
     const [hover, setHover] = useState<number | null>(null)
     const [openNum, setOpenNum] = useState<number | null>(null)
     const lit = (n: number) => hover === n || openNum === n
-    useEffect(() => { setTime(timeOf(new Date().getHours())) }, [])
+    useEffect(() => { setTime(forcedTime ?? timeOf(new Date().getHours())) }, [forcedTime])
 
     const byNum = new Map(items.map((i) => [i.num, i]))
     const room = items.filter((i) => i.num <= 13)
@@ -80,17 +88,21 @@ export function HangarScene({ items, layout }: { items: SceneItem[]; layout?: La
     const RS = L.rocket[Math.min(7, stage)]
     const R = { ...RS, ...place(layout, stage >= 7 ? 'a' : 'b', 'rocket', RS) }
     const fan = byNum.get(FAN_NUM)
-    const decorDone = PORTRAIT_NUM !== null && byNum.get(PORTRAIT_NUM)?.state === 'fixed'
+    const decorDone = decorFixed ?? (PORTRAIT_NUM !== null && byNum.get(PORTRAIT_NUM)?.state === 'fixed')
     const decorState = decorDone ? 'a' : 'b'
     const lampP = place(layout, decorState, 'lamp', DECOR[1][decorState])
     const readyRocket = rocketParts.find((i) => i.state === 'ready')
     const nextRocket = readyRocket ?? rocketParts.find((i) => i.state !== 'fixed')
     const ready = [...room.filter((i) => i.state === 'ready'), ...(readyRocket ? [readyRocket] : [])]
 
-    const fix = (num: number) => start(async () => {
-        const r = await fixHangarItem(num)
-        if (r.ok) { setJustFixed(num); playSound(CASE_PRIZE_SOUND); router.refresh(); setTimeout(() => setJustFixed(null), 1500) }
-    })
+    const fixed = (num: number) => { setJustFixed(num); playSound(CASE_PRIZE_SOUND); setTimeout(() => setJustFixed(null), 1500) }
+    const fix = (num: number) => {
+        if (onFix) { onFix(num); fixed(num); return }
+        start(async () => {
+            const r = await fixHangarItem(num)
+            if (r.ok) { fixed(num); router.refresh() }
+        })
+    }
     const openItem = openNum !== null ? byNum.get(openNum) ?? null : null
     const label = (i: SceneItem) => (i.num >= 14 ? ROCKET_STEP[Math.min(6, stage)] : FIX_LABEL[i.num] ?? 'Починить')
 

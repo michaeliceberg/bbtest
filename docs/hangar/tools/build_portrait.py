@@ -100,6 +100,85 @@ print('canvas after', qa.round().tolist(), 'before', qb.round().tolist())
 A = insert_portrait(after, qa, art)
 B = insert_portrait(before, qb, art)
 
+
+def ruin_canvas(img, quad):
+    """«До»: на портрете клякса, треснувшее стекло и паутина поверх холста (в координатах холста, потом в перспективу)."""
+    cw, ch = 400, 900
+    rng = np.random.default_rng(7)
+    over = np.zeros((ch, cw, 4), np.float32)  # BGRA слой поверх портрета
+    # клякса: тёмные чернила — несколько пятен и брызги, справа ниже лица
+    blot = np.zeros((ch, cw), np.uint8)
+    cx, cy = 290, 640  # на пиджаке, лицо остаётся видно
+    for _ in range(9):
+        r = int(rng.integers(16, 40))
+        cv2.circle(blot, (int(cx + rng.normal(0, 22)), int(cy + rng.normal(0, 18))), r, 255, -1)
+    for _ in range(18):
+        a = rng.uniform(0, 2 * np.pi)
+        d = rng.uniform(60, 120)
+        cv2.circle(blot, (int(cx + np.cos(a) * d), int(cy + np.sin(a) * d * 0.9)), int(rng.integers(3, 10)), 255, -1)
+    # подтёк вниз
+    cv2.line(blot, (cx + 10, cy + 30), (cx + 18, cy + 150), 255, 14)
+    cv2.circle(blot, (cx + 18, cy + 155), 11, 255, -1)
+    blot = cv2.GaussianBlur(blot, (5, 5), 0)
+    ink = np.array([38, 30, 26], np.float32)
+    over[..., :3] += ink * (blot[..., None] / 255.0)
+    over[..., 3] = np.maximum(over[..., 3], blot * 0.92)
+    # трещина стекла: ломаные лучи из точки удара слева вверху
+    crack = np.zeros((ch, cw), np.uint8)
+    hx, hy = 110, 230
+    for k in range(7):
+        a = k / 7 * 2 * np.pi + rng.uniform(-0.3, 0.3)
+        x, y = hx, hy
+        pts = [(x, y)]
+        for _ in range(6):
+            a += rng.uniform(-0.35, 0.35)
+            step = rng.uniform(40, 85)
+            x, y = x + np.cos(a) * step, y + np.sin(a) * step
+            pts.append((int(x), int(y)))
+        cv2.polylines(crack, [np.array(pts, np.int32)], False, 255, 3)
+    for rr in (35, 70):
+        cv2.ellipse(crack, (hx, hy), (rr, int(rr * 0.85)), 0, 20, 300, 255, 2)
+    crack_sh = cv2.dilate(crack, np.ones((3, 3), np.uint8))
+    m = crack_sh > 0
+    over[m, :3] = (30, 30, 34)
+    over[m, 3] = 170
+    m = crack > 0
+    over[m, :3] = (235, 240, 245)
+    over[m, 3] = 230
+    # паутина поверх холста в правом верхнем углу
+    web = np.zeros((ch, cw), np.uint8)
+    ox, oy = cw - 4, 4
+    rays = [np.pi * (0.5 + i / 9 * 0.5) for i in range(10)]
+    for a in rays:
+        cv2.line(web, (ox, oy), (int(ox + np.cos(a) * 330), int(oy + np.sin(a) * 330)), 255, 2)
+    for rr in range(40, 330, 38):
+        pts = [(int(ox + np.cos(a) * rr * rng.uniform(0.92, 1.05)), int(oy + np.sin(a) * rr * rng.uniform(0.92, 1.05))) for a in rays]
+        cv2.polylines(web, [np.array(pts, np.int32)], False, 255, 2)
+    # и клочок в левом нижнем
+    ox, oy = 4, ch - 4
+    rays2 = [-np.pi * (i / 6 * 0.5) for i in range(7)]
+    for a in rays2:
+        cv2.line(web, (ox, oy), (int(ox + np.cos(a) * 170), int(oy + np.sin(a) * 170)), 255, 2)
+    for rr in range(30, 170, 32):
+        pts = [(int(ox + np.cos(a) * rr), int(oy + np.sin(a) * rr)) for a in rays2]
+        cv2.polylines(web, [np.array(pts, np.int32)], False, 255, 2)
+    m = web > 0
+    over[m, :3] = (212, 216, 218)
+    over[m, 3] = np.maximum(over[m, 3], 215)
+    # пыль: всё чуть серее
+    M = cv2.getPerspectiveTransform(np.float32([[0, 0], [cw, 0], [cw, ch], [0, ch]]), quad.astype(np.float32))
+    warped = cv2.warpPerspective(over, M, (W, H), flags=cv2.INTER_LINEAR)
+    cmask = cv2.warpPerspective(np.full((ch, cw), 255, np.uint8), M, (W, H))
+    out = img.astype(np.float32)
+    dust = cmask > 0
+    out[dust] = out[dust] * 0.78 + np.array([60, 62, 64], np.float32) * 0.22
+    a = warped[..., 3:4] / 255.0
+    out = out * (1 - a) + warped[..., :3] * a
+    return np.clip(out, 0, 255).astype(np.uint8)
+
+
+B = ruin_canvas(B, qb)
+
 # рамка «после»
 poly = outer_frame_poly(qa)
 fm = np.zeros((H, W), np.uint8)

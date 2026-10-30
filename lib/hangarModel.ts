@@ -10,7 +10,7 @@
 import type { CSSProperties } from 'react'
 import layout from '@/lib/hangarLayout.json'
 
-export type Slot = { src: string; x: number; y: number; w: number; h: number }
+export type Slot = { src: string; x: number; y: number; w: number; h: number; rot?: number }
 export type Place = { x: number; y: number; w: number; h: number; z: number; rot: number }
 export type HangarState = 'b' | 'a'
 export type LayoutOverrides = Partial<Record<HangarState, Record<string, Partial<Place>>>>
@@ -38,7 +38,7 @@ export type Decor = { key: string; label: string; b: Slot; a: Slot }
 export const DECOR: Decor[] = [
     { key: 'portrait', label: 'Портрет',
         a: { src: '/hangar/portrait-after.webp', x: 110, y: 560, w: 80, h: 180 },
-        b: { src: '/hangar/portrait-before.webp', x: 99, y: 560, w: 144, h: 233 } },
+        b: { src: '/hangar/portrait-before.webp', x: 99, y: 560, w: 144, h: 233, rot: -9 } }, // «до» висит криво
     { key: 'lamp', label: 'Лампа над портретом',
         a: { src: '/hangar/lamp-on.webp', x: 129, y: 370, w: 46, h: 40 },
         b: { src: '/hangar/lamp-off.webp', x: 129, y: 370, w: 46, h: 40 } },
@@ -55,7 +55,7 @@ const defaultZ = (key: string) => {
 
 export function place(o: LayoutOverrides | null | undefined, state: HangarState, key: string, base: Slot): Place {
     const p = o?.[state]?.[key] ?? {}
-    return { x: p.x ?? base.x, y: p.y ?? base.y, w: p.w ?? base.w, h: p.h ?? base.h, z: p.z ?? defaultZ(key), rot: p.rot ?? 0 }
+    return { x: p.x ?? base.x, y: p.y ?? base.y, w: p.w ?? base.w, h: p.h ?? base.h, z: p.z ?? defaultZ(key), rot: p.rot ?? base.rot ?? 0 }
 }
 
 export type EditorObj = Slot & Place & { key: string; label: string }
