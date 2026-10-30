@@ -71,6 +71,9 @@ export const userProgress = pgTable('user_progress', {
 	egeTarget: integer('ege_target'),
 	// Вуз-цель (id из lib/vuzList.ts) — табличка на вершине «Башни ЕГЭ».
 	targetVuz: text('target_vuz'),
+	// Котик в ангаре (components/hangar-cat.tsx): 0 — нет, 1 — мяукает у входа (после первой задачи задачника), 2 — живёт на картонке.
+	catStage: integer('cat_stage').notNull().default(0),
+	catName: text('cat_name'),
 	userImageSrc: text('user_image_src').notNull().default('/mascot.svg'),
 	activeCourseId: integer('active_course_id').references(() => courses.id, { onDelete: 'cascade' }),
 	hearts: integer('hearts').notNull().default(500),

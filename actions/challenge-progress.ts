@@ -52,6 +52,7 @@ interface ChallengeProgressResponse {
     questStreak?: number;
     questPointsReward?: number;
     egeGain?: EgeGain | null;
+    catCalled?: boolean;
 }
 
 export async function updateChallengeProgress({
@@ -322,11 +323,19 @@ export async function updateChallengeProgress({
     const newAchievements = await recalculateAchievements(userId);
     await syncAchievements(userId).catch(() => {});
 
+    // Котик: первая верная задача задачника — у входа в ангар кто-то мяучит (user_progress.cat_stage 0 → 1)
+    let catCalled = false;
+    if (!isPractice && doneRight && (userProgressData?.catStage ?? 0) === 0) {
+        const r = await db.execute(sql`UPDATE user_progress SET cat_stage = 1 WHERE user_id = ${userId} AND cat_stage = 0 RETURNING user_id`);
+        catCalled = (r as unknown as unknown[]).length > 0;
+    }
+
     // «+N к прогнозу ЕГЭ» — задача впервые решена верно (повторно верную сюда не пускает ранний return выше).
     const egeGain = doneRight ? await getEgeGain(userId, 'unit', lesson.unitId).catch(() => null) : null;
 
     return {
         egeGain,
+        catCalled,
         success: true,
         pointsEarned,
         gemsEarned,
