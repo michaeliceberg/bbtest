@@ -146,3 +146,24 @@ Move this ceiling fan up so it hangs right under the ceiling: a very short rod, 
 Kontext не двигает предмет внутри картинки (шаг 1б перерисовал на том же уровне). Положение, длину штанги и размер
 задаёт код (`FAN` в components/hangar-fan.tsx), поэтому из сцены берём только цвет и форму → сразу шаги 2 и 3.
 Для шага 3 вместо «short metal rod» — «mounted flush to the ceiling: a very short stubby rod, almost none».
+
+## Портрет Фейнмана на левой стене (2026-10-30)
+
+Холст в рамке просим **ярко-зелёный** (как хромакей): портрет вставляю в него сам, по углам зелёного пятна, с перспективой —
+так лицо не исказится и в «до», и в «после» будет один и тот же.
+
+**Шаг 1 — feynman-painted.png** (образец — фото `feynman-photo-src.webp`, без хвоста):
+```
+Repaint this photo as a painted cartoon portrait in a cozy lo-fi game style: same man, same smile, same pose, same tweed jacket and dark tie, same chalkboard with formulas behind him, but painted with muted dusty warm colors, soft painterly shading, thick rough dark brown outlines, simple shapes. Keep the face recognizable. Square, no frame, no text.
+```
+
+**Шаг 2 — feynman-after.png** (образец — `ref-left-wall.png`, левая стена ангара):
+```
+On this left wall of the hangar, hang one neat rectangular wooden picture frame (portrait orientation) on the big wall panel in the middle, drawn in correct perspective along the wall: the frame recedes toward the round gate, its near (left) edge taller than its far (right) edge. The canvas inside the frame is filled with a perfectly flat, uniform bright green color #00FF00, nothing painted on it, no texture. Above the frame, a small brass picture lamp on a short arm, switched on, casting a soft warm cone of light down onto the frame. Clean and tidy, frame hanging perfectly straight. Keep the wall, windows and everything else exactly the same.
+```
+
+**Шаг 3 — feynman-before.png** (образец — `feynman-after.png` из шага 2):
+```
+Make this same scene neglected and broken: the picture frame hangs crooked, tilted about 12 degrees, one corner lower, the wood dusty and a little chipped; the small picture lamp is switched off, broken and hanging down from its wire; thick dusty cobwebs in the corners of the frame and around the lamp, but NOT over the green canvas. The canvas stays perfectly flat uniform bright green #00FF00. Keep the wall, windows, frame size and perspective the same.
+```
+Шаги 2 и 3 — без Remove Background (нужна стена целиком: вырежу сам). Пришлите все три картинки.
