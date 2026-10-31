@@ -264,13 +264,31 @@ const STARS = (() => {
 })()
 
 /** Ночью в окне — звёздное небо и светящийся месяц. Рисуется ПОВЕРХ ночного затемнения (z 1105), обрезано по окну. */
-export function HangarMoon() {
+export function HangarMoon({ cutout }: { cutout?: { src: string; x: number; y: number; w: number; h: number } }) {
     const w = WIN.r * 2
     const h = WIN.bottom - WIN.top
+    // Звёзды рисуются поверх ночного затемнения, поэтому силуэт ракеты из слоя вырезаем маской — иначе звёзды светят сквозь неё.
+    const mask = cutout ? (() => {
+        const l = ((cutout.x - cutout.w / 2 - (WIN.cx - WIN.r)) / w) * 100
+        const t = ((cutout.y - cutout.h - WIN.top) / h) * 100
+        const sw = (cutout.w / w) * 100
+        const sh = (cutout.h / h) * 100
+        // проценты mask-position считаются от (рамка − картинка), поэтому смещение переводим так
+        const pos = (off: number, size: number) => (Math.abs(100 - size) < 0.01 ? 0 : (off / (100 - size)) * 100)
+        // только отдельные свойства: сокращение mask сбрасывает mask-composite
+        const img = `url(${cutout.src}), linear-gradient(#000 0 0)`
+        const position = `${pos(l, sw)}% ${pos(t, sh)}%, 0 0`
+        const size = `${sw}% ${sh}%, 100% 100%`
+        return {
+            WebkitMaskImage: img, maskImage: img, WebkitMaskPosition: position, maskPosition: position,
+            WebkitMaskSize: size, maskSize: size, WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat',
+            maskComposite: 'exclude',
+        } as React.CSSProperties
+    })() : undefined
     return (
         <div className="pointer-events-none absolute overflow-hidden" aria-hidden
             style={{ left: pct(WIN.cx - WIN.r), top: pct(WIN.top), width: pct(w), height: pct(h), zIndex: 1105,
-                clipPath: `ellipse(50% ${(WIN.r / h) * 100}% at 50% ${((WIN.cy - WIN.top) / h) * 100}%)` }}>
+                clipPath: `ellipse(50% ${(WIN.r / h) * 100}% at 50% ${((WIN.cy - WIN.top) / h) * 100}%)`, ...mask }}>
             {/* мягкое свечение ночного неба — чтобы не было мрачно: сверху синее, у горизонта тёплое */}
             <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(90,120,230,0.22), rgba(130,100,200,0.14) 65%, rgba(255,190,130,0.16))' }} />
             {/* полоса «млечного пути» */}

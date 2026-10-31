@@ -11,7 +11,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { KeyRound, Wrench, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, KeyRound, Wrench, X } from 'lucide-react'
 import { RepairIcon } from '@/components/repair-icon'
 import { WoodSign } from '@/components/wood-sign'
 import Link from 'next/link'
@@ -205,6 +205,32 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
         return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
     }, [bare])
     const scrollMode = !!frame && frame.s > frame.w
+    // можно ли ещё листать влево/вправо (стрелки под ангаром гаснут у края)
+    const [edge, setEdge] = useState({ l: true, r: true })
+    const onFrameScroll = () => {
+        const el = frameRef.current
+        if (!el) return
+        const l = el.scrollLeft > 4
+        const r = el.scrollLeft < el.scrollWidth - el.clientWidth - 4
+        setEdge((e) => (e.l === l && e.r === r ? e : { l, r }))
+    }
+    useEffect(() => { onFrameScroll() }, [frame]) // eslint-disable-line react-hooks/exhaustive-deps
+    // своя плавная прокрутка (разгон-торможение) + страховка в конце: scroll-behavior smooth не везде срабатывает
+    const slide = (dir: -1 | 1) => {
+        const el = frameRef.current
+        if (!el) return
+        const from = el.scrollLeft
+        const to = Math.max(0, Math.min(el.scrollWidth - el.clientWidth, from + dir * (frame ? frame.w * 0.6 : 200)))
+        const t0 = performance.now()
+        const D = 420
+        const step = (now: number) => {
+            const k = Math.min(1, (now - t0) / D)
+            el.scrollLeft = from + (to - from) * (k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2)
+            if (k < 1) requestAnimationFrame(step)
+        }
+        requestAnimationFrame(step)
+        setTimeout(() => { el.scrollLeft = to }, D + 80)
+    }
     // где была прокрутка в момент выбора задания (зум считается относительно видимой части)
     const [zoomFrom, setZoomFrom] = useState(0)
     const ZOOM = scrollMode ? 1.8 : 2.2
@@ -246,7 +272,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     ) : <span />}
                 </div>
             )}
-            <div ref={frameRef}
+            <div ref={frameRef} onScroll={onFrameScroll}
                 className={`hangar-frame relative w-full rounded-2xl border-2 border-[#2C3A41] ${scrollMode && !openItem ? 'overflow-x-auto overflow-y-hidden' : 'overflow-hidden'} ${frame ? '' : 'aspect-square'}`}
                 style={frame ? { height: frame.s + 4 } : undefined}>
             <div className="relative overflow-hidden" style={frame ? { width: frame.s, height: frame.s, containerType: 'inline-size' } : { position: 'absolute', inset: 0, containerType: 'inline-size' }}>
@@ -332,7 +358,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 )}
                 {fan && fan.state !== 'fixed' && !bare && <KeyBadge x={FAN.x} y={FAN.top + FAN.motorH + 46} n={FAN_NUM} ready={fan.state === 'ready'} active={lit(FAN_NUM)} onHover={setHover} onOpen={openTask} />}
                 <div className="pointer-events-none absolute inset-0 transition-[background] duration-700" style={{ background: TIME_TINT[time], mixBlendMode: 'multiply', zIndex: 1100 }} />
-                {time === 'night' && <HangarMoon />}
+                {time === 'night' && <HangarMoon cutout={R.rot ? undefined : { src: R.src, x: R.x, y: R.y, w: R.w, h: R.h }} />}
                 <div className="pointer-events-none absolute rounded-full transition-opacity duration-700"
                     style={{ left: pct(232 - 170), top: pct(415 - 170), width: pct(340), height: pct(340), opacity: lampOn ? (time === 'day' ? 0.55 : 0.9) : 0, background: 'radial-gradient(closest-side, rgba(255,200,110,0.55), transparent)', mixBlendMode: 'screen', zIndex: 1101 }} />
                 </div>
@@ -343,6 +369,14 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
             </div>
             </div>
 
+            {scrollMode && !openItem && (
+                // большие деревянные стрелки-указатели: подсказка, что ангар листается вбок (и сами листают)
+                <div className="mt-3 flex items-center justify-between gap-2">
+                    <PlankArrow dir={-1} disabled={!edge.l} onClick={() => slide(-1)} />
+                    <span className="text-center text-sm font-black leading-tight text-[#C9B48C]">Листай<br />ангар</span>
+                    <PlankArrow dir={1} disabled={!edge.r} onClick={() => slide(1)} />
+                </div>
+            )}
             {!bare && panelItem && (
                 // Плашка задания — под картинкой, чтобы не закрывать ангар
                 <div className="mt-3 rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3.5 shadow-xl" style={{ animation: 'hangar-pop .35s ease-out' }}>
@@ -382,8 +416,8 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                         </button>
                     ))}
                 </div>
-            ) : (
-                <p className="mt-2 text-center text-xs font-bold text-[#7E8F99]">{scrollMode ? '← Листай ангар вбок → · номер — раздел ЕГЭ' : 'Номер — раздел ЕГЭ'}</p>
+            ) : scrollMode ? null : (
+                <p className="mt-2 text-center text-xs font-bold text-[#7E8F99]">Номер — раздел ЕГЭ</p>
             )}
             {archiveOpen && <ZaNaukuArchive onClose={() => setArchiveOpen(false)} />}
         </div>
@@ -415,5 +449,25 @@ function RobotBubble({ x, y, joke, onClose }: { x: number; y: number; joke: ZnJo
                 <span className="mt-1 block text-[10px] font-bold text-[#7FA48B]">{znSource(joke)}</span>
             </button>
         </div>
+    )
+}
+
+// Стрелка-указатель «из доски» (та же доска, что у таблички «Наш ангар»), как на деревянном столбе-указателе.
+// Нажатие по стандарту: тёмная нижняя грань (тень-фильтр) исчезает, стрелка опускается на её высоту.
+function PlankArrow({ dir, disabled, onClick }: { dir: -1 | 1; disabled: boolean; onClick: () => void }) {
+    const shape = dir === 1
+        ? 'polygon(0 18%, 70% 18%, 70% 0, 100% 50%, 70% 100%, 70% 82%, 0 82%)'
+        : 'polygon(100% 18%, 30% 18%, 30% 0, 0 50%, 30% 100%, 30% 82%, 100% 82%)'
+    return (
+        <button type="button" onClick={onClick} disabled={disabled} aria-label={dir === 1 ? 'Листать ангар вправо' : 'Листать ангар влево'}
+            className={`shrink-0 transition-[opacity,transform] duration-200 active:translate-y-[4px] active:[filter:none] disabled:opacity-35 disabled:active:translate-y-0 ${dir === 1 ? 'rotate-[2deg]' : '-rotate-[2deg]'}`}
+            style={{ filter: 'drop-shadow(0 4px 0 #2A190B) drop-shadow(0 6px 8px rgba(0,0,0,0.4))' }}>
+            <span className="relative flex h-14 w-28 items-center justify-center"
+                style={{ clipPath: shape, background: 'url(/hangar/life/sign-plank.webp) center / 190% 100%' }}>
+                <span style={{ filter: 'drop-shadow(0 2px 0 #3B2412)', paddingLeft: dir === 1 ? 0 : 12, paddingRight: dir === 1 ? 12 : 0 }}>
+                    {dir === 1 ? <ChevronRight className="h-8 w-8 text-[#FFF1D6]" strokeWidth={4} /> : <ChevronLeft className="h-8 w-8 text-[#FFF1D6]" strokeWidth={4} />}
+                </span>
+            </span>
+        </button>
     )
 }
