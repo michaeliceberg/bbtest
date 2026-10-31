@@ -11,9 +11,8 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, ChevronRight, KeyRound, Wrench, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, KeyRound, LogOut, Wrench, X } from 'lucide-react'
 import { RepairIcon } from '@/components/repair-icon'
-import { WoodSign } from '@/components/wood-sign'
 import Link from 'next/link'
 import { L, JUNK, FAN_NUM, DECOR, PORTRAIT_NUM, itemOf, place, placeStyle, type LayoutOverrides } from '@/lib/hangarModel'
 import { HangarFan, FAN } from '@/components/hangar-fan'
@@ -191,8 +190,10 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
         const el = frameRef.current
         if (!el) return
         const measure = () => {
-            const w = el.clientWidth
-            const s = w < 480 ? Math.max(w, Math.round(Math.min(window.innerHeight * 0.62, 640))) : w
+            // ширину берём у внешнего блока (рамка на компьютере сужается под квадрат) минус рамка 2+2 px
+            const w = (el.parentElement?.parentElement?.clientWidth ?? el.clientWidth + 4) - 4
+            // компьютер: квадрат не выше экрана — нижний край виден целиком без прокрутки страницы
+            const s = w < 480 ? Math.max(w, Math.round(Math.min(window.innerHeight * 0.62, 640))) : Math.min(w, Math.max(360, window.innerHeight - 64))
             setFrame((prev) => {
                 if (prev && prev.w === w && prev.s === s) return prev
                 return { w, s }
@@ -200,7 +201,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
         }
         measure()
         const ro = new ResizeObserver(measure)
-        ro.observe(el)
+        ro.observe(el.parentElement?.parentElement ?? el)
         window.addEventListener('resize', measure)
         return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
     }, [bare])
@@ -260,20 +261,20 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     return (
         <div className={bare ? '' : 'mt-6 lg:mt-0'}>
             <style>{`@keyframes hangar-pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:scale(1)}}`}</style>
+            {/* ключ «N/20» и «Выйти» — плашками поверх картинки, вне прокручиваемой рамки (не уезжают при листании) */}
+            <div className="relative mx-auto" style={{ width: frame && frame.s < frame.w ? frame.s + 4 : '100%' }}>
             {!bare && (
-                // Шапка в одну строку: слева ключ «N/20», по центру табличка «Наш ангар», справа крестик (если окно)
-                <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                    <span className="flex items-center gap-1 justify-self-start text-sm font-black text-[#E8D9B8]" title="Починено">
-                        <RepairIcon className="h-4 w-4 text-[#F2C35B]" />{fixedCount}/20
-                    </span>
-                    <WoodSign>Наш ангар</WoodSign>
-                    {onClose ? (
-                        <button type="button" aria-label="Закрыть ангар" onClick={onClose}
-                            className="justify-self-end rounded-xl border-2 border-b-4 border-[#2A363C] bg-[#161F23] p-2 text-[#C9D3D9] active:border-b-0">
-                            <X className="h-5 w-5" />
-                        </button>
-                    ) : <span />}
-                </div>
+                <span className="pointer-events-none absolute left-2.5 top-2.5 flex items-center gap-1.5 rounded-xl border-2 border-[#4A3A14] bg-[#151F23]/90 px-2.5 py-1 text-sm font-black text-[#F2E3C2] shadow-lg"
+                    style={{ zIndex: 1200 }} title="Починено">
+                    <RepairIcon className="h-4 w-4 text-[#F2C35B]" />{fixedCount}/20
+                </span>
+            )}
+            {!bare && onClose && (
+                <button type="button" onClick={onClose}
+                    className="absolute right-2.5 top-2.5 flex items-center gap-1.5 rounded-xl border-2 border-b-4 border-[#2A363C] bg-[#161F23]/95 px-3 py-1.5 text-sm font-black text-[#E6EDF1] shadow-lg active:border-b-0"
+                    style={{ zIndex: 1200 }}>
+                    <LogOut className="h-4 w-4" />Выйти
+                </button>
             )}
             <div ref={frameRef} onScroll={onFrameScroll}
                 className={`hangar-frame relative w-full rounded-2xl border-2 border-[#2C3A41] ${scrollMode && !openItem ? 'overflow-x-auto overflow-y-hidden' : 'overflow-hidden'} ${frame ? '' : 'aspect-square'}`}
@@ -369,6 +370,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     // клик мимо предмета — закрыть (картинка отъезжает обратно)
                     <button type="button" aria-label="Закрыть" className="absolute inset-0 cursor-default bg-black/15" style={{ zIndex: 1190 }} onClick={() => setOpenNum(null)} />
                 )}
+            </div>
             </div>
             </div>
 
