@@ -184,6 +184,8 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     // в полтора раза крупнее, картинку листаем вбок пальцем. На компьютере (и в превью) — квадрат по ширине.
     const frameRef = useRef<HTMLDivElement>(null)
     const [frame, setFrame] = useState<{ w: number; s: number } | null>(null)
+    // при первом замере и смене размера — встаём по центру картинки
+    useEffect(() => { if (frame && frameRef.current) frameRef.current.scrollLeft = (frame.s - frame.w) / 2 }, [frame])
     useLayoutEffect(() => {
         if (bare) return
         const el = frameRef.current
@@ -193,8 +195,6 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
             const s = w < 480 ? Math.max(w, Math.round(Math.min(window.innerHeight * 0.62, 640))) : w
             setFrame((prev) => {
                 if (prev && prev.w === w && prev.s === s) return prev
-                // при первом замере и смене размера — встаём по центру картинки
-                requestAnimationFrame(() => { el.scrollLeft = (s - w) / 2 })
                 return { w, s }
             })
         }
