@@ -81,7 +81,7 @@ export default function Page() {
 
     return (
         <div className="min-h-screen bg-[#0F171B] px-4 py-5 text-white">
-            <div className="mx-auto max-w-2xl">
+            <div className="mx-auto max-w-2xl lg:max-w-[1152px]">
                 <h1 className="text-xl font-extrabold">Ангар — расстановка</h1>
                 <p className="mb-3 text-xs font-bold text-[#7E8F99]">Тащи предмет пальцем или мышкой. Размер — жёлтый уголок, кнопки − / + или колёсико. Ниже — слой и поворот. «Сохранить» — и ангар в «Моём пути» станет таким.</p>
                 <div className="mb-2 flex gap-2">

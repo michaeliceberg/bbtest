@@ -251,6 +251,9 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
         if (byNum.get(num)?.state === 'fixed') return
         setZoomFrom(frameRef.current?.scrollLeft ?? 0)
         setOpenNum(num)
+        // большой ангар на компьютере выше экрана: ставим его серединой в кадр (предмет после зума — в центре квадрата)
+        const el = frameRef.current
+        if (el && el.getBoundingClientRect().height > window.innerHeight * 0.9) el.scrollIntoView({ block: 'center', behavior: 'smooth' })
     }
     const label = (i: SceneItem) => (i.num >= 14 ? ROCKET_STEP[Math.min(6, stage)] : FIX_LABEL[i.num] ?? 'Починить')
 
@@ -378,8 +381,10 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 </div>
             )}
             {!bare && panelItem && (
-                // Плашка задания — под картинкой, чтобы не закрывать ангар
-                <div className="mt-3 rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3.5 shadow-xl" style={{ animation: 'hangar-pop .35s ease-out' }}>
+                // Плашка задания — под картинкой, чтобы не закрывать ангар; на компьютере ангар большой и выше экрана —
+                // там плашка висит внизу экрана поверх (центрирование — на обёртке, анимация — на самой плашке)
+                <div className="lg:pointer-events-none lg:fixed lg:inset-x-0 lg:bottom-5 lg:z-[95] lg:flex lg:justify-center lg:px-4">
+                <div className="mt-3 rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3.5 shadow-xl lg:pointer-events-auto lg:mt-0 lg:w-full lg:max-w-[540px]" style={{ animation: 'hangar-pop .35s ease-out' }}>
                     <div className="flex items-start gap-2">
                         <KeyRound className="mt-1 h-5 w-5 shrink-0 text-[#F2C35B]" strokeWidth={2.6} />
                         <span className="min-w-0 flex-1 text-lg font-black leading-tight text-[#F2F7FB]">Задание №{panelItem.num} · {panelItem.title}</span>
@@ -401,6 +406,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                             Перейти в задачник
                         </Link>
                     </div>
+                </div>
                 </div>
             )}
             {bare || openItem ? null : ready.length > 0 ? (

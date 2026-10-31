@@ -42,7 +42,7 @@ export default function Page() {
 
     return (
         <div className="min-h-screen bg-[#0F171B] px-4 py-5 text-white">
-            <div className="mx-auto max-w-xl">
+            <div className="mx-auto max-w-xl lg:max-w-[1152px] lg:pb-56">
                 <h1 className="text-xl font-extrabold">Ангар — как в приложении</h1>
                 <p className="mb-3 text-xs font-bold text-[#7E8F99]">Расстановка — сохранённая в редакторе. Жми номер задания внизу: сломано → можно чинить → починено. На картинке жми ключик — подсветится предмет и откроется окошко.</p>
                 <div className="mb-2 flex flex-wrap gap-2">
