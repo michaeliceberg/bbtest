@@ -173,17 +173,23 @@ Avoid: `different pose, different angle, moved, resized, new background, text, e
 > Сейчас в шапке — одна доска, вырезанная из `sign-planks.webp` (Leonardo нарисовал три доски на фоне ангара):
 > `public/hangar/life/sign-plank.webp`. Если просить заново — писать «a single long wooden plank», иначе рисует щит из досок.
 
-**Промпт для одной доски** (`docs/hangar/leonardo/sign-plank.png`, FLUX.1 Kontext, Image Guidance `docs/hangar/bg-empty.jpg`
-сила 0.3, формат 16:9, фон не удалять):
+**Табличка растягивается кодом под любую длину названия** («по трём кускам»: края с верёвками и гвоздями
+не искажаются, тянется середина). Поэтому длинная картинка не нужна — нужна доска с ОДНОРОДНОЙ серединой (без сучков,
+трещин и гвоздей посередине, иначе при растяжении они вытянутся). Сейчас стоит `sign-plank-long.jpg` (вторая из
+присланных — подходит).
 
-> a single long wooden plank sign, ONE plank only, seen straight from the front, very wide and short (about 5:1),
-> old weathered light-brown wood with visible grain, knots and a few scratches, slightly uneven chipped edges,
-> one rusty round nail head near each end, two short ropes going up from the top edge, cosy handmade workshop look,
-> cartoon illustration, thick uneven dark-brown outlines, muted dusty colours, flat cel shading with soft texture,
-> slightly worn comic look, single object, centered, isolated on pure white background, no text, no letters,
-> no shadow on the ground, no frame
+**Промпт для доски под растяжение** (`docs/hangar/leonardo/sign-plank.png`, FLUX.1 Kontext, Image Guidance
+`docs/hangar/bg-empty.jpg` сила 0.3, формат 16:9, фон не удалять):
 
-Avoid: `multiple planks, several boards, board stack, sign made of planks, text, letters, numbers, perspective, angled view, background scenery, hangar, window, sky, cropped`
+> a single long horizontal wooden plank sign, ONE plank only, seen straight from the front, flat and level, very wide
+> and short (about 6:1), filling almost the whole width of the image; all decoration ONLY at the two ends: a short rope
+> loop and one rusty round nail head near each end, slightly chipped corners; the whole middle part of the plank is
+> plain and even: simple straight horizontal wood grain lines running along the plank, no knots, no cracks, no nails,
+> no spots in the middle; warm light-brown weathered wood, cartoon illustration, thick uneven dark-brown outlines,
+> muted dusty colours, flat cel shading with soft texture, single object, centered, isolated on pure white background,
+> no text, no letters, no shadow on the ground, no frame
+
+Avoid: `multiple planks, several boards, board stack, knots in the middle, cracks in the middle, nails in the middle, text, letters, numbers, perspective, angled view, tilted, background scenery, hangar, window, sky, cropped`
 
 Модель FLUX.1 Kontext, Image Guidance — `docs/hangar/bg-empty.jpg` (сила 0.3, только стиль). Формат 16:9, на белом фоне,
 фон не удалять. Буквы НЕ просим — надпись положу кодом (Leonardo пишет криво). Сохранить `docs/hangar/leonardo/sign-hangar.png`.
