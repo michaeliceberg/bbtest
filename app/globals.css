@@ -1255,3 +1255,7 @@ body {
   .lvl-half-arrow { min-width: 1.25rem; }
   .lvl-half-row { gap: 0.25rem; }
 }
+
+/* Ангар на телефоне листается вбок — без полосы прокрутки (внизу подсказка «Листай ангар вбок») */
+.hangar-frame { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.hangar-frame::-webkit-scrollbar { display: none; }

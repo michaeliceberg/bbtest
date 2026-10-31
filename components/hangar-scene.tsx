@@ -9,7 +9,7 @@
 // Картинки и координаты — docs/hangar/tools/build.py → public/hangar/, lib/hangarLayout.json; правки расстановки
 // (слой, поворот, место) — из редактора /test-hangar-layout (проп layout, lib/hangarModel.ts). №11 — вентилятор.
 
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { KeyRound, Wrench, X } from 'lucide-react'
 import { RepairIcon } from '@/components/repair-icon'
@@ -180,18 +180,52 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
         return { x: (c.x + pp.x) / 2, y: (c.y + pp.y - pp.h / 2) / 2 }
     }
     const focus = openNum !== null ? focusOf(openNum) : null
-    const ZOOM = 2.2
+    // Крупный ангар на телефоне: квадрат картинки не по ширине экрана, а по высоте (~62% экрана) — предметы
+    // в полтора раза крупнее, картинку листаем вбок пальцем. На компьютере (и в превью) — квадрат по ширине.
+    const frameRef = useRef<HTMLDivElement>(null)
+    const [frame, setFrame] = useState<{ w: number; s: number } | null>(null)
+    useLayoutEffect(() => {
+        if (bare) return
+        const el = frameRef.current
+        if (!el) return
+        const measure = () => {
+            const w = el.clientWidth
+            const s = w < 480 ? Math.max(w, Math.round(Math.min(window.innerHeight * 0.62, 640))) : w
+            setFrame((prev) => {
+                if (prev && prev.w === w && prev.s === s) return prev
+                // при первом замере и смене размера — встаём по центру картинки
+                requestAnimationFrame(() => { el.scrollLeft = (s - w) / 2 })
+                return { w, s }
+            })
+        }
+        measure()
+        const ro = new ResizeObserver(measure)
+        ro.observe(el)
+        window.addEventListener('resize', measure)
+        return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
+    }, [bare])
+    const scrollMode = !!frame && frame.s > frame.w
+    // где была прокрутка в момент выбора задания (зум считается относительно видимой части)
+    const [zoomFrom, setZoomFrom] = useState(0)
+    const ZOOM = scrollMode ? 1.8 : 2.2
     // Приближение с предметом в центре кадра: масштаб от левого верхнего угла + сдвиг так, чтобы точка предмета
-    // встала в середину; сдвиг ограничен, чтобы за краем картинки не было пустоты (у края предмет чуть не по центру).
+    // встала в середину видимой части; сдвиг ограничен, чтобы за краем картинки не было пустоты.
     const zoomTransform = (() => {
-        if (!focus) return 'translate(0%, 0%) scale(1)'
-        const lim = (v: number) => Math.min(0, Math.max((1 - ZOOM) * 100, v))
-        const tx = lim(50 - ZOOM * (focus.x / 1024) * 100)
-        const ty = lim(50 - ZOOM * (focus.y / 1024) * 100)
-        return `translate(${tx}%, ${ty}%) scale(${ZOOM})`
+        if (!focus) return 'translate(0px, 0px) scale(1)'
+        const S = frame?.s ?? 1024
+        const vw = frame?.w ?? S
+        const fx = (focus.x / 1024) * S
+        const fy = (focus.y / 1024) * S
+        const tx = Math.min(zoomFrom, Math.max(zoomFrom + vw - ZOOM * S, zoomFrom + vw / 2 - ZOOM * fx))
+        const ty = Math.min(0, Math.max(S - ZOOM * S, S / 2 - ZOOM * fy))
+        return `translate(${tx}px, ${ty}px) scale(${ZOOM})`
     })()
     // открыть окошко задания: по ключику или по самому предмету (если он ещё не починен)
-    const openTask = (num: number) => { if (byNum.get(num)?.state !== 'fixed') setOpenNum(num) }
+    const openTask = (num: number) => {
+        if (byNum.get(num)?.state === 'fixed') return
+        setZoomFrom(frameRef.current?.scrollLeft ?? 0)
+        setOpenNum(num)
+    }
     const label = (i: SceneItem) => (i.num >= 14 ? ROCKET_STEP[Math.min(6, stage)] : FIX_LABEL[i.num] ?? 'Починить')
 
     return (
@@ -212,7 +246,10 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     ) : <span />}
                 </div>
             )}
-            <div className="relative aspect-square w-full overflow-hidden rounded-2xl border-2 border-[#2C3A41]" style={{ containerType: 'inline-size' }}>
+            <div ref={frameRef}
+                className={`hangar-frame relative w-full rounded-2xl border-2 border-[#2C3A41] ${scrollMode && !openItem ? 'overflow-x-auto overflow-y-hidden' : 'overflow-hidden'} ${frame ? '' : 'aspect-square'}`}
+                style={frame ? { height: frame.s + 4 } : undefined}>
+            <div className="relative overflow-hidden" style={frame ? { width: frame.s, height: frame.s, containerType: 'inline-size' } : { position: 'absolute', inset: 0, containerType: 'inline-size' }}>
                 {/* все слои сцены — в одной обёртке: при выборе задания она плавно приближается к предмету */}
                 <div className="absolute inset-0"
                     style={{ transform: zoomTransform, transformOrigin: '0 0', transition: 'transform 1.1s cubic-bezier(.45,0,.2,1)' }}>
@@ -304,6 +341,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     <button type="button" aria-label="Закрыть" className="absolute inset-0 cursor-default bg-black/15" style={{ zIndex: 1190 }} onClick={() => setOpenNum(null)} />
                 )}
             </div>
+            </div>
 
             {!bare && panelItem && (
                 // Плашка задания — под картинкой, чтобы не закрывать ангар
@@ -345,7 +383,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     ))}
                 </div>
             ) : (
-                <p className="mt-2 text-center text-xs font-bold text-[#7E8F99]">Номер — раздел ЕГЭ</p>
+                <p className="mt-2 text-center text-xs font-bold text-[#7E8F99]">{scrollMode ? '← Листай ангар вбок → · номер — раздел ЕГЭ' : 'Номер — раздел ЕГЭ'}</p>
             )}
             {archiveOpen && <ZaNaukuArchive onClose={() => setArchiveOpen(false)} />}
         </div>
