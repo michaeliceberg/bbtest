@@ -110,12 +110,15 @@ function Hearts({ x, y }: { x: number; y: number }) {
 
 /** Коробка, на которой живёт котик (Leonardo, docs/hangar/leonardo/cat-cardboard.png): котик сидит на её крышке. */
 // Место коробки и холодильника — из редактора /test-hangar-layout (CAT_DECOR в lib/hangarModel.ts); котик сидит на крышке.
+// слой элемента в CSS (как placeStyle) и центр окошка, зажатый так, чтобы окошко (до ~50% ширины) не вылезало за край ангара
+const zOf = (p: Place) => Math.round(p.z * 10) + 10
+const panelX = (x: number) => Math.min(Math.max(x, 262), 762)
 const bedOf = (b: Place) => ({ x: b.x - 6, y: b.y - 52, k: BED_K * (b.w / 150) })
 function Cardboard({ p }: { p: Place }) {
     return (
         // eslint-disable-next-line @next/next/no-img-element
         <img src="/hangar/life/cat-cardboard.webp" alt="" draggable={false} className="pointer-events-none absolute select-none"
-            style={{ ...placeStyle(p), zIndex: 205 }} />
+            style={placeStyle(p)} />
     )
 }
 
@@ -127,7 +130,7 @@ function Fridge({ p, fixed, onClick, justFixed }: { p: Place; fixed: boolean; on
     return (
         <button type="button" disabled={!onClick} onClick={onClick} aria-label={fixed ? 'Холодильник котика' : 'Сломанный холодильник'}
             className={`absolute select-none ${onClick ? 'cursor-pointer' : 'pointer-events-none'}`}
-            style={{ ...placeStyle(p), zIndex: 204, animation: justFixed ? 'hangar-pop .6s ease-out' : undefined }}>
+            style={{ ...placeStyle(p), animation: justFixed ? 'hangar-pop .6s ease-out' : undefined }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={fixed ? '/hangar/life/cat-fridge.webp' : '/hangar/life/cat-fridge-broken.webp'} alt="" draggable={false} className="absolute inset-0 h-full w-full" />
             {fixed && (
@@ -147,7 +150,7 @@ function Fridge({ p, fixed, onClick, justFixed }: { p: Place; fixed: boolean; on
 /** Табличка с именем котика — стоит на крыше холодильника на двух ножках. Нет имени — «Назови котика ✏️». */
 function NameSign({ fr, name, onClick }: { fr: Place; name: string | null; onClick?: () => void }) {
     return (
-        <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: pct(fr.x - 6), top: pct(fr.y - fr.h + 12), zIndex: 206 }}>
+        <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: pct(Math.min(Math.max(fr.x - 6, 105), 919)), top: pct(fr.y - fr.h + 12), zIndex: zOf(fr) + 1 }}>
             <button type="button" disabled={!onClick} onClick={onClick} aria-label={name ? `Котика зовут ${name}` : 'Назови котика'}
                 className={`flex flex-col items-center ${onClick ? 'cursor-pointer' : 'pointer-events-none'}`}>
                 <span className="whitespace-nowrap rounded-[0.8cqw] border-[0.35cqw] border-[#5A3A22] px-[1.2cqw] py-[0.35cqw] font-black leading-none shadow-md"
@@ -178,7 +181,7 @@ function NamePanel({ fr, initial, onSave, onClose }: { fr: Place; initial: strin
         if (e) setErr(e)
     }
     return (
-        <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: pct(fr.x - 60), top: pct(fr.y - fr.h - 22), zIndex: 1185 }}>
+        <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: pct(panelX(fr.x - 60)), top: pct(fr.y - fr.h - 22), zIndex: 1185 }}>
             <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 18 }}
                 className="w-[48cqw] rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-[2cqw] text-center shadow-xl sm:w-[38cqw]">
                 <div className="text-[3.2cqw] font-black text-[#F2C35B] sm:text-[2.6cqw]">Как назовём котика?</div>
@@ -205,7 +208,7 @@ function NamePanel({ fr, initial, onSave, onClose }: { fr: Place; initial: strin
 /** Окошко «Починить холодильник за 999 монет» над холодильником. */
 function FridgePanel({ fr, pending, noCoins, onFix, onClose }: { fr: Place; pending: boolean; noCoins: boolean; onFix: () => void; onClose: () => void }) {
     return (
-        <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: pct(fr.x - 40), top: pct(fr.y - fr.h - 8), zIndex: 1185 }}>
+        <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: pct(panelX(fr.x - 40)), top: pct(fr.y - fr.h - 8), zIndex: 1185 }}>
             <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 18 }}
                 className="w-[44cqw] rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-[2cqw] text-center shadow-xl sm:w-[36cqw]">
                 <div className="text-[3.2cqw] font-black text-[#F2C35B] sm:text-[2.6cqw]">Холодильник сломан</div>
@@ -266,6 +269,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const boxP = place(layout, st, 'cat-box', CAT_DECOR[1][st])
     const frP = place(layout, st, 'cat-fridge', CAT_DECOR[0][st])
     const BED = bedOf(boxP)
+    const catZ = zOf(boxP) + 1 // котик сидит на коробке — на слой выше неё
     const [fridgeOpen, setFridgeOpen] = useState(false)
     const [fridgeBusy, setFridgeBusy] = useState(false)
     const [noCoins, setNoCoins] = useState(false)
@@ -415,7 +419,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
         return (
             <>
                 <Cardboard p={boxP} />
-                <motion.div className="pointer-events-none absolute" style={{ zIndex: 215 }}
+                <motion.div className="pointer-events-none absolute" style={{ zIndex: catZ }}
                     initial={frames[0]}
                     animate={{ left: frames.map((f) => f.left), top: frames.map((f) => f.top), width: frames.map((f) => f.width), height: frames.map((f) => f.height) }}
                     transition={{ duration: WALK_S, ease: 'linear', times: [0, 0.3, 0.65, 1] }}>
@@ -444,7 +448,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             <Cardboard p={boxP} />
             {stroll ? (
                 // гуляет: идёт (кадры ходьбы, отражены, если влево) или сидит в точке и смотрит по сторонам
-                <motion.div className="pointer-events-none absolute" style={{ zIndex: 215 }}
+                <motion.div className="pointer-events-none absolute" style={{ zIndex: catZ }}
                     initial={false}
                     animate={box(stroll.walking ? 'walk-1' : 'sit-shy', { x: stroll.x, y: stroll.y, k: kAt(stroll.y) })}
                     transition={{ duration: stroll.walking ? stroll.dur : 0, ease: 'linear' }}>
@@ -455,7 +459,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             ) : (
             <button type="button" aria-label="Котик" disabled={bare}
                 className="absolute cursor-pointer disabled:cursor-default"
-                style={{ ...box(pose, BED), zIndex: 215 }}
+                style={{ ...box(pose, BED), zIndex: catZ }}
                 onClick={() => { playJustClick(); reactKey.current++; const r = Math.random(); setReact(r < 0.45 ? 'happy' : r < 0.8 ? 'pet' : 'meow') }}>
                 <CatImg pose={pose} poses={allSit} />
             </button>

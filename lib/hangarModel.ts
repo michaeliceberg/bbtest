@@ -76,8 +76,9 @@ const defaultZ = (key: string) => {
     if (key === 'rocket') return 20
     if (key === 'portrait') return 4
     if (key === 'lamp') return 4.5
-    if (key === 'cat-fridge') return 19.4
-    if (key === 'cat-box') return 19.5
+    // вещи котика обычно стоят ближе предметов — по умолчанию поверх них (слой меняется в редакторе)
+    if (key === 'cat-fridge') return 44
+    if (key === 'cat-box') return 44.5
     return 30 + Number(key)
 }
 
