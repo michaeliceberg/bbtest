@@ -82,7 +82,7 @@ function SkyClouds() {
             <Cloud src="cloud-wisp" w={190} y={18} dur={140} delay={-30} opacity={0.75} />
             <Cloud src="cloud-puffy" w={120} y={40} dur={95} delay={-20} opacity={0.9} />
             <Cloud src="cloud-round" w={78} y={118} dur={70} delay={-55} opacity={0.85} flip />
-            <Cloud w={150} y={165} dur={120} delay={-90} opacity={0.7} />
+            <Cloud src="cloud-puffy" w={140} y={165} dur={120} delay={-90} opacity={0.75} flip />
             <Cloud src="cloud-wisp" w={130} y={92} dur={105} delay={-75} opacity={0.6} flip />
         </>
     )
