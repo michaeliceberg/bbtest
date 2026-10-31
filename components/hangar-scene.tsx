@@ -124,7 +124,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     const [robotJoke, setRobotJoke] = useState<{ joke: ZnJoke; key: number } | null>(null)
     useEffect(() => {
         if (!robotJoke) return
-        const t = setTimeout(() => setRobotJoke(null), Math.min(11000, Math.max(5000, robotJoke.joke.text.length * 75)))
+        const t = setTimeout(() => setRobotJoke(null), Math.min(18000, Math.max(8000, robotJoke.joke.text.length * 110)))
         return () => clearTimeout(t)
     }, [robotJoke])
     const robotSay = () => setRobotJoke({ joke: pickShortJoke(), key: Date.now() })
@@ -365,13 +365,17 @@ function FunBadge({ x, y, label, onClick }: { x: number; y: number; label: strin
 
 // Облачко робота с шуткой из «За науку» — над его головой
 function RobotBubble({ x, y, joke, onClose }: { x: number; y: number; joke: ZnJoke; onClose: () => void }) {
+    // Центрирование (translate) — на внешней обёртке, анимация появления (scale) — на самом облачке:
+    // если оба на одном элементе, анимация затирает translate и облачко сначала стоит правее, а потом прыгает на место.
     return (
-        <button type="button" onClick={onClose}
-            className="absolute w-[58%] -translate-x-1/2 -translate-y-full rounded-xl border-2 border-[#3D8A55] bg-[#10231A]/95 px-2.5 py-1.5 text-left shadow-xl"
-            style={{ left: pct(Math.min(Math.max(x, 300), 724)), top: pct(y), zIndex: 1180, animation: 'hangar-pop .35s ease-out' }}>
-            <span className="block text-[8px] font-black uppercase tracking-wide text-[#9EE8B0]">{ZN_RUBRIC_TITLE[joke.rubric]}</span>
-            <span className="block text-[11px] font-bold leading-snug text-[#E9F7EE]">{joke.text}</span>
-            <span className="mt-0.5 block text-[8px] font-bold text-[#7FA48B]">{znSource(joke)}</span>
-        </button>
+        <div className="absolute w-[66%] -translate-x-1/2 -translate-y-full" style={{ left: pct(Math.min(Math.max(x, 345), 679)), top: pct(y), zIndex: 1180 }}>
+            <button type="button" onClick={onClose}
+                className="block w-full rounded-xl border-2 border-[#3D8A55] bg-[#10231A]/95 px-3 py-2 text-left shadow-xl"
+                style={{ animation: 'hangar-pop .35s ease-out', transformOrigin: '50% 100%' }}>
+                <span className="block text-[10px] font-black uppercase tracking-wide text-[#9EE8B0] sm:text-[11px]">{ZN_RUBRIC_TITLE[joke.rubric]}</span>
+                <span className="mt-0.5 block text-sm font-bold leading-snug text-[#E9F7EE] sm:text-[15px]">{joke.text}</span>
+                <span className="mt-1 block text-[10px] font-bold text-[#7FA48B]">{znSource(joke)}</span>
+            </button>
+        </div>
     )
 }
