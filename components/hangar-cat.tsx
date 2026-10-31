@@ -95,6 +95,15 @@ function Bubble({ x, y, children }: { x: number; y: number; children: React.Reac
     )
 }
 
+// Фразы котика (выбираются в момент реакции, не на каждый рендер).
+const PHRASES = {
+    meow: ['Мяу!', 'Мяу?', 'Мя-я-яу!', 'Мяу-мяу!', 'Мр-мяу!', 'Мяу — это «вамос» по-кошачьи', 'Тыгыдык!', 'Мяу, амиго!'],
+    pet: ['Мрр-мрр', 'Мур-мур', 'Мурр… ещё!', 'Мур-р-р-р', 'Погладь ещё', 'Мрр, тепло'],
+    happy: ['Мррр… хорошо', 'Мур-мур-мур', 'Жизнь удалась', 'Мрр, люблю ангар', 'Мурр, решай задачи', 'Я тут главный кот'],
+    hungry: ['Мяу… а где молоко?', 'Кушать хочу…', 'Холодильник сломан, мяу…'],
+}
+const pick = (a: string[]) => a[Math.floor(Math.random() * a.length)]
+
 /** Сердечки поднимаются над котиком. */
 function Hearts({ x, y }: { x: number; y: number }) {
     return (
@@ -263,6 +272,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const [react, setReact] = useState<'pet' | 'meow' | 'happy' | null>(null)
     const [meowShown, setMeowShown] = useState(true)
     const reactKey = useRef(0)
+    const [say, setSay] = useState('')
     const router = useRouter()
     const [fridgeOk, setFridgeOk] = useState(fridgeFixed)
     const st = fridgeOk ? 'a' : 'b'
@@ -270,6 +280,12 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const frP = place(layout, st, 'cat-fridge', CAT_DECOR[0][st])
     const BED = bedOf(boxP)
     const catZ = zOf(boxP) + 1 // котик сидит на коробке — на слой выше неё
+    // реакция + фраза одним махом; голодный котик (холодильник сломан) иногда просит молока
+    const doReact = (r: 'pet' | 'meow' | 'happy') => {
+        reactKey.current++
+        setSay(r === 'meow' && !fridgeOk && Math.random() < 0.4 ? pick(PHRASES.hungry) : pick(PHRASES[r]))
+        setReact(r)
+    }
     const [fridgeOpen, setFridgeOpen] = useState(false)
     const [fridgeBusy, setFridgeBusy] = useState(false)
     const [noCoins, setNoCoins] = useState(false)
@@ -282,7 +298,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
         const r = onHome ? { ok: true, name: n, error: undefined } : await setCatName(n)
         if (!r.ok) return r.error ?? 'Не получилось'
         setName(r.name ?? n); setNameOpen(false); playSound(CASE_PRIZE_SOUND)
-        reactKey.current++; setReact('happy')
+        doReact('happy')
         if (!onHome) router.refresh()
         return null
     }
@@ -299,7 +315,10 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
 
     useEffect(() => { if (stage >= 2) setPhase((p) => (p === 'peek' ? 'home' : p)) }, [stage])
 
-    // у входа «Мяу?» то появляется, то пропадает
+    // у входа «Мяу?» то появляется, то пропадает — каждый раз немного по-разному
+    const PEEK = ['Мяу?', 'Мяу…', 'Мя?', 'Пустите погреться?', 'Мяу, есть кто?']
+    const [peekSay, setPeekSay] = useState('Мяу?')
+    useEffect(() => { if (meowShown) setPeekSay((p) => (Math.random() < 0.5 ? 'Мяу?' : PEEK[Math.floor(Math.random() * PEEK.length)] || p)) }, [meowShown])
     useEffect(() => {
         if (phase !== 'peek') return
         const t = setInterval(() => setMeowShown((v) => !v), 2600)
@@ -317,12 +336,12 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     useEffect(() => {
         if (phase !== 'home' || bare || night) return
         // иногда сам мяукает, иногда жмурится от удовольствия («котику хорошо»)
-        const t = setInterval(() => { const r = Math.random(); if (r < 0.3) { reactKey.current++; setReact('meow') } else if (r < 0.6) { reactKey.current++; setReact('happy') } }, 12000)
+        const t = setInterval(() => { const r = Math.random(); if (r < 0.3) doReact('meow'); else if (r < 0.6) doReact('happy') }, 12000)
         return () => clearInterval(t)
     }, [phase, bare, night])
     useEffect(() => {
         if (!react) return
-        const t = setTimeout(() => setReact(null), react === 'meow' ? 1200 : react === 'happy' ? 2600 : 1800)
+        const t = setTimeout(() => setReact(null), react === 'meow' ? 2000 : react === 'happy' ? 2800 : 2200)
         return () => clearTimeout(t)
     }, [react])
 
@@ -370,14 +389,19 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
         const b = box('peek', GATE)
         return (
             <>
-                <button type="button" aria-label="Котик" disabled={bare}
-                    className="absolute cursor-pointer animate-[cat-peek_2.6s_ease-in-out_infinite] disabled:cursor-default"
-                    style={{ ...b, zIndex: 215, transformOrigin: '100% 100%' }}
-                    onClick={() => { playJustClick(); setPhase((p) => (p === 'choice' ? 'peek' : 'choice')) }}>
+                <div className="pointer-events-none absolute animate-[cat-peek_2.6s_ease-in-out_infinite]"
+                    style={{ ...b, zIndex: 215, transformOrigin: '100% 100%' }}>
                     <CatImg pose="peek" poses={['peek']} flip />
-                </button>
+                </div>
+                {/* Котик маленький и прячется за воротами — рядом ракета (№14) и компьютер (№7), по ним легко промахнуться.
+                    Поэтому зона нажатия — невидимая, с запасом вокруг котика и ПОВЕРХ предметов и их номеров. */}
+                {!bare && (
+                    <button type="button" aria-label="Котик" className="absolute cursor-pointer"
+                        style={{ left: pct(GATE.x - 70), top: pct(GATE.y - 115), width: pct(130), height: pct(135), zIndex: 1160 }}
+                        onClick={() => { playJustClick(); setPhase((p) => (p === 'choice' ? 'peek' : 'choice')) }} />
+                )}
                 <style>{`@keyframes cat-peek{0%,100%{transform:rotate(0)}50%{transform:rotate(4deg)}}`}</style>
-                {!bare && meowShown && phase === 'peek' && <Bubble x={GATE.x - 18} y={GATE.y - 72}>Мяу?</Bubble>}
+                {!bare && meowShown && phase === 'peek' && <Bubble x={GATE.x - 18} y={GATE.y - 72}>{peekSay}</Bubble>}
                 {!bare && phase === 'choice' && (
                     <div className="absolute flex -translate-x-1/2 flex-col gap-[1cqw]" style={{ left: pct(GATE.x - 30), top: pct(GATE.y - 30), zIndex: 1185 }}>
                         <button type="button" onClick={() => choose('pet')}
@@ -461,12 +485,12 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             <button type="button" aria-label="Котик" disabled={bare}
                 className="absolute cursor-pointer disabled:cursor-default"
                 style={{ ...box(pose, BED), zIndex: catZ }}
-                onClick={() => { playJustClick(); reactKey.current++; const r = Math.random(); setReact(r < 0.45 ? 'happy' : r < 0.8 ? 'pet' : 'meow') }}>
+                onClick={() => { playJustClick(); const r = Math.random(); doReact(r < 0.45 ? 'happy' : r < 0.8 ? 'pet' : 'meow') }}>
                 <CatImg pose={pose} poses={allSit} />
             </button>
             )}
-            {!bare && (react === 'pet' || react === 'happy') && <><Hearts key={reactKey.current} x={BED.x} y={BED.y - 95} /><Bubble x={BED.x + 30} y={BED.y - 96}>Мрр-мрр</Bubble></>}
-            {!bare && react === 'meow' && <Bubble key={reactKey.current} x={BED.x + 34} y={BED.y - 96}>Мяу!</Bubble>}
+            {!bare && (react === 'pet' || react === 'happy') && <><Hearts key={reactKey.current} x={BED.x} y={BED.y - 95} /><Bubble x={BED.x + 30} y={BED.y - 96}>{say}</Bubble></>}
+            {!bare && react === 'meow' && <Bubble key={reactKey.current} x={BED.x + 34} y={BED.y - 96}>{say}</Bubble>}
             {night && (
                 <motion.span className="pointer-events-none absolute font-black text-[#C9D3FF]" style={{ left: pct(BED.x + 30), top: pct(BED.y - 80), zIndex: 1160, fontSize: '3cqw' }}
                     animate={{ y: ['0cqw', '-3cqw'], opacity: [0, 1, 0] }} transition={{ duration: 2.4, repeat: Infinity }}>Zzz</motion.span>

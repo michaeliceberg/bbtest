@@ -76,13 +76,19 @@ export const CAT_DECOR: Decor[] = [
 // в редакторе есть только поправка dz («Ближе/Дальше», в точках сцены) для исключений — она тоже по глубине,
 // поэтому работает при любом порядке ремонта. zIndex = 30 + 0,8·(y + dz) → от ~30 до ~850 (вентилятор — 900).
 export const depthZIndex = (y: number) => Math.round(30 + 0.8 * y)
+// Лежат на полу плашмя (как коврик): по ним ходят, поэтому глубина — по их ДАЛЬНЕМУ (верхнему) краю, иначе котик
+// и вещи, стоящие на них, оказываются снизу. Ключ — `${состояние}:${предмет}` (сломанный флаг лежит, починенный висит).
+const FLAT = new Set(['b:6'])
+/** Слой предмета (в единицах Place.z) — общая формула для сцены и редактора. */
+export const zFor = (state: HangarState, key: string, y: number, h: number, dz = 0) => depthZ((FLAT.has(`${state}:${key}`) ? y - h : y) + dz)
 const depthZ = (y: number) => (depthZIndex(y) - 10) / 10
 
 export function place(o: LayoutOverrides | null | undefined, state: HangarState, key: string, base: Slot): Place {
     const p = o?.[state]?.[key] ?? {}
     const y = p.y ?? base.y
+    const h = p.h ?? base.h
     const dz = p.dz ?? 0
-    return { x: p.x ?? base.x, y, w: p.w ?? base.w, h: p.h ?? base.h, z: depthZ(y + dz), dz, rot: p.rot ?? base.rot ?? 0 }
+    return { x: p.x ?? base.x, y, w: p.w ?? base.w, h, z: zFor(state, key, y, h, dz), dz, rot: p.rot ?? base.rot ?? 0 }
 }
 
 export type EditorObj = Slot & Place & { key: string; label: string }

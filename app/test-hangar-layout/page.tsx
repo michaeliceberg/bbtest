@@ -4,7 +4,7 @@
 // по глубине (ниже на полу — ближе), для исключений — поправка «Ближе/Дальше». «Сохранить» пишет расстановку в базу (таблица hangar_layout, только админ),
 // и ангар в «Моём пути» сразу рисуется по ней. Модель — lib/hangarModel.ts.
 import { useEffect, useRef, useState } from 'react'
-import { depthZIndex, editorObjects, placeStyle, type EditorObj, type HangarState, type LayoutOverrides } from '@/lib/hangarModel'
+import { zFor, editorObjects, placeStyle, type EditorObj, type HangarState, type LayoutOverrides } from '@/lib/hangarModel'
 import { getHangarLayout, saveHangarLayout } from '@/actions/hangar-layout'
 import { HangarFan } from '@/components/hangar-fan'
 
@@ -35,7 +35,7 @@ export default function Page() {
     // слой пересчитывается сам по глубине (lib/hangarModel.ts depthZIndex), поэтому после любого сдвига обновляем z
     const update = (key: string, f: (o: EditorObj) => Partial<EditorObj>) => {
         setDirty(true)
-        setObjs((s) => s && ({ ...s, [state]: s[state].map((o) => { if (o.key !== key) return o; const n = { ...o, ...f(o) }; return { ...n, z: (depthZIndex(n.y + n.dz) - 10) / 10 } }) }))
+        setObjs((s) => s && ({ ...s, [state]: s[state].map((o) => { if (o.key !== key) return o; const n = { ...o, ...f(o) }; return { ...n, z: zFor(state, n.key, n.y, n.h, n.dz) } }) }))
     }
     const scale = (key: string, k: number) => update(key, (o) => ({ w: Math.max(12, Math.round(o.w * k)), h: Math.max(12, Math.round(o.h * k)) }))
     const rotate = (key: string, d: number | null) => update(key, (o) => ({ rot: d === null ? 0 : Math.max(-45, Math.min(45, o.rot + d)) }))
