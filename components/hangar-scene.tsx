@@ -49,8 +49,8 @@ const ITEM_JOKE: Record<number, string> = {
 }
 // Что откроется после починки (рядом с шуткой в окне задания)
 const UNLOCK_HINT: Record<number, string> = {
-    7: 'Почини — и в компьютере откроется архив шуток газеты физтехов «За науку» 📰',
-    4: 'Почини — и робот будет рассказывать шутки физтехов из газеты «За науку» 💬',
+    7: 'В компьютере откроется архив физтех-шуток из газеты «За науку» 📰',
+    4: 'Робот будет рассказывать физтех-шутки из газеты «За науку» 💬',
 }
 const ARCHIVE_ITEM = 7 // компьютер
 const ROBOT_ITEM = 13 // робот (бывший «автомат»)
@@ -388,7 +388,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 <div className="mt-3 rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3.5 shadow-xl lg:pointer-events-auto lg:mt-0 lg:w-full lg:max-w-[540px]" style={{ animation: 'hangar-pop .35s ease-out' }}>
                     <div className="flex items-start gap-2">
                         <KeyRound className="mt-1 h-5 w-5 shrink-0 text-[#F2C35B]" strokeWidth={2.6} />
-                        <span className="min-w-0 flex-1 text-lg font-black leading-tight text-[#F2F7FB]">Задание №{panelItem.num} · {panelItem.title}</span>
+                        <span className="min-w-0 flex-1 text-lg font-black leading-tight text-[#F2F7FB]">Раздел {panelItem.num} — {panelItem.title}</span>
                         <button type="button" aria-label="Закрыть" onClick={() => setOpenNum(null)} className="-mr-1 -mt-1 rounded-lg p-1 text-[#9AA7B0] hover:text-white"><X className="h-5 w-5" /></button>
                     </div>
                     <p className="mt-2 text-base font-bold leading-snug text-[#E8D9B8]">{panelItem.num >= 14 ? ROCKET_JOKE : ITEM_JOKE[panelItem.num]}</p>
@@ -404,7 +404,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                         <Link href={`/learn?task=${panelItem.num}`}
                             className="flex flex-1 items-center justify-center rounded-xl border-b-4 px-3 py-2.5 text-center text-sm font-black text-[#0F171B] active:border-b-0"
                             style={{ background: '#53ADEF', borderBottomColor: '#3A85BC' }}>
-                            Перейти в задачник
+                            Перейти в раздел {panelItem.num}
                         </Link>
                     </div>
                 </div>
