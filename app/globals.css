@@ -1259,3 +1259,10 @@ body {
 /* Ангар на телефоне листается вбок — без полосы прокрутки (внизу подсказка «Листай ангар вбок») */
 .hangar-frame { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .hangar-frame::-webkit-scrollbar { display: none; }
+
+/* Ангар: пропеллер кукурузника — лопасть быстро «переворачивается», диск чуть мерцает */
+.hangar-prop { transform-box: fill-box; transform-origin: center; animation: hangar-prop 0.16s linear infinite; }
+@keyframes hangar-prop { 0% { transform: scaleY(1); } 50% { transform: scaleY(-1); } 100% { transform: scaleY(1); } }
+.hangar-prop-disc { animation: hangar-prop-disc 0.24s linear infinite; }
+@keyframes hangar-prop-disc { 0%, 100% { opacity: 0.85; } 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .hangar-prop, .hangar-prop-disc { animation: none; } }

@@ -122,7 +122,12 @@ function PlaneLeg({ toLeft, text }: { toLeft: boolean; text: string }) {
                 <text x={bx + 103} y="29" textAnchor="middle" fontSize="17" fontWeight={900} fill="#C0392B" style={{ fontFamily: 'var(--font-nunito), sans-serif' }}>{text}</text>
             </g>
             <g transform={toLeft ? `translate(${px + PLANE.w} -8) scale(-1 1)` : `translate(${px} -8)`}>
-                <image href="/hangar/life/biplane.webp" width={PLANE.w} height={PLANE.h} />
+                {/* пропеллер крутится: картинка без лопастей + лопасть, которая «переворачивается» (scaleY) и прозрачный диск */}
+                <ellipse cx={PLANE.w * 0.955} cy={PLANE.h * 0.44} rx={1.7} ry={PLANE.h * 0.34} fill="rgba(235,238,242,0.32)" className="hangar-prop-disc" />
+                <g className="hangar-prop">
+                    <rect x={PLANE.w * 0.955 - 0.8} y={PLANE.h * 0.44 - PLANE.h * 0.33} width={1.6} height={PLANE.h * 0.66} rx={0.8} fill="#6B4A2E" />
+                </g>
+                <image href="/hangar/life/biplane-noprop.webp" width={PLANE.w} height={PLANE.h} />
             </g>
         </>
     )
