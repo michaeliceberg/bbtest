@@ -76,6 +76,18 @@ function Birds() {
 // Кукурузник — картинка Leonardo (public/hangar/life/biplane.webp, 320×147, носом вправо, крюк с тросом слева).
 const PLANE = { w: 76, h: 35, hookX: 0.025, hookY: 0.67 }
 
+function SkyClouds() {
+    return (
+        <>
+            <Cloud src="cloud-wisp" w={190} y={18} dur={140} delay={-30} opacity={0.75} />
+            <Cloud src="cloud-puffy" w={120} y={40} dur={95} delay={-20} opacity={0.9} />
+            <Cloud src="cloud-round" w={78} y={118} dur={70} delay={-55} opacity={0.85} flip />
+            <Cloud w={150} y={165} dur={120} delay={-90} opacity={0.7} />
+            <Cloud src="cloud-wisp" w={130} y={92} dur={105} delay={-75} opacity={0.6} flip />
+        </>
+    )
+}
+
 function PlaneWithBanner({ night = false }: { night?: boolean }) {
     const [i, setI] = useState(0)
     const PH = night ? NIGHT_BANNER_PHRASES : BANNER_PHRASES
@@ -135,13 +147,8 @@ export function HangarSky({ time = 'day' }: { time?: 'day' | 'evening' | 'night'
                 </div>
             )}
             {/* облака Leonardo без обводки (cloud-puffy/round/wisp) вперемешку со старым cloud; разная скорость — разная «высота» */}
-            <Cloud src="cloud-wisp" w={190} y={18} dur={140} delay={-30} opacity={0.75} />
-            <Cloud src="cloud-puffy" w={120} y={40} dur={95} delay={-20} opacity={0.9} />
-            <Cloud src="cloud-round" w={78} y={118} dur={70} delay={-55} opacity={0.85} flip />
-            <Cloud w={150} y={165} dur={120} delay={-90} opacity={0.7} />
-            <Cloud src="cloud-wisp" w={130} y={92} dur={105} delay={-75} opacity={0.6} flip />
-            {/* ночью ласточки спят, а кукурузник иногда пролетает и желает спокойной ночи */}
-            {time !== 'night' ? <><Birds /><PlaneWithBanner /></> : <PlaneWithBanner night />}
+            {/* ночью облака и кукурузник рисуются в слое луны (HangarMoon) — поверх неё, луна дальше всех */}
+            {time !== 'night' && <><SkyClouds /><Birds /><PlaneWithBanner /></>}
         </div>
     )
 }
@@ -322,6 +329,11 @@ export function HangarMoon({ cutout }: { cutout?: { src: string; x: number; y: n
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/hangar/life/moon.webp" alt="" draggable={false} className="block w-full select-none"
                     style={{ filter: 'drop-shadow(0 0 6px rgba(255,236,170,0.9)) drop-shadow(0 0 16px rgba(255,220,140,0.6))' }} />
+            </div>
+            {/* облака и кукурузник — ближе луны; слой поверх ночного затемнения, поэтому приглушаем их сами */}
+            <div className="absolute inset-0" style={{ filter: 'brightness(0.55) saturate(0.8) hue-rotate(-10deg)' }}>
+                <SkyClouds />
+                <PlaneWithBanner night />
             </div>
         </div>
     )
