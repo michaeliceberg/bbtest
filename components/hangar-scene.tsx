@@ -193,7 +193,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
             // ширину берём у внешнего блока (рамка на компьютере сужается под квадрат) минус рамка 2+2 px
             const w = (el.parentElement?.parentElement?.clientWidth ?? el.clientWidth + 4) - 4
             // компьютер: квадрат не выше экрана — нижний край виден целиком без прокрутки страницы
-            const s = w < 480 ? Math.max(w, Math.round(Math.min(window.innerHeight * 0.62, 640))) : Math.min(w, Math.max(360, window.innerHeight - 64))
+            const s = w < 480 ? Math.max(w, Math.round(Math.min(window.innerHeight * 0.62, 640))) : Math.min(w, Math.max(360, window.innerHeight - 40))
             setFrame((prev) => {
                 if (prev && prev.w === w && prev.s === s) return prev
                 return { w, s }
@@ -240,7 +240,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     const zoomTransform = (() => {
         if (!focus) return 'translate(0px, 0px) scale(1)'
         const S = frame?.s ?? 1024
-        const vw = frame?.w ?? S
+        const vw = Math.min(frame?.w ?? S, S) // видимая ширина: на компьютере рамка сужена под квадрат
         const fx = (focus.x / 1024) * S
         const fy = (focus.y / 1024) * S
         const tx = Math.min(zoomFrom, Math.max(zoomFrom + vw - ZOOM * S, zoomFrom + vw / 2 - ZOOM * fx))
@@ -424,9 +424,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                         </button>
                     ))}
                 </div>
-            ) : scrollMode ? null : (
-                <p className="mt-2 text-center text-xs font-bold text-[#7E8F99]">Номер — раздел ЕГЭ</p>
-            )}
+            ) : null}
             {archiveOpen && <ZaNaukuArchive onClose={() => setArchiveOpen(false)} />}
         </div>
     )
