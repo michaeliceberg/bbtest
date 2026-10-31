@@ -1,10 +1,10 @@
 'use client'
 
-// Редактор расстановки ангара: тащишь предмет — двигается, колёсико / кнопки ± — размер, слой («Поверх всех»,
-// «Выше», «Ниже», «Под всеми») и поворот. «Сохранить» пишет расстановку в базу (таблица hangar_layout, только админ),
+// Редактор расстановки ангара: тащишь предмет — двигается, колёсико / кнопки ± — размер и поворот. Слой считается сам
+// по глубине (ниже на полу — ближе), для исключений — поправка «Ближе/Дальше». «Сохранить» пишет расстановку в базу (таблица hangar_layout, только админ),
 // и ангар в «Моём пути» сразу рисуется по ней. Модель — lib/hangarModel.ts.
 import { useEffect, useRef, useState } from 'react'
-import { editorObjects, placeStyle, type EditorObj, type HangarState, type LayoutOverrides } from '@/lib/hangarModel'
+import { depthZIndex, editorObjects, placeStyle, type EditorObj, type HangarState, type LayoutOverrides } from '@/lib/hangarModel'
 import { getHangarLayout, saveHangarLayout } from '@/actions/hangar-layout'
 import { HangarFan } from '@/components/hangar-fan'
 
@@ -32,27 +32,20 @@ export default function Page() {
         const r = box.current!.getBoundingClientRect()
         return { x: ((e.clientX - r.left) / r.width) * 1024, y: ((e.clientY - r.top) / r.height) * 1024 }
     }
+    // слой пересчитывается сам по глубине (lib/hangarModel.ts depthZIndex), поэтому после любого сдвига обновляем z
     const update = (key: string, f: (o: EditorObj) => Partial<EditorObj>) => {
         setDirty(true)
-        setObjs((s) => s && ({ ...s, [state]: s[state].map((o) => (o.key === key ? { ...o, ...f(o) } : o)) }))
+        setObjs((s) => s && ({ ...s, [state]: s[state].map((o) => { if (o.key !== key) return o; const n = { ...o, ...f(o) }; return { ...n, z: (depthZIndex(n.y + n.dz) - 10) / 10 } }) }))
     }
     const scale = (key: string, k: number) => update(key, (o) => ({ w: Math.max(12, Math.round(o.w * k)), h: Math.max(12, Math.round(o.h * k)) }))
     const rotate = (key: string, d: number | null) => update(key, (o) => ({ rot: d === null ? 0 : Math.max(-45, Math.min(45, o.rot + d)) }))
-    // Слои: новый порядок — перенумеровываем всех 0,1,2… чтобы z не расползались.
-    const restack = (key: string, how: 'top' | 'bottom' | 'up' | 'down') => {
-        const order = sorted.map((o) => o.key)
-        const i = order.indexOf(key)
-        order.splice(i, 1)
-        const j = how === 'top' ? order.length : how === 'bottom' ? 0 : how === 'up' ? Math.min(order.length, i + 1) : Math.max(0, i - 1)
-        order.splice(j, 0, key)
-        setDirty(true)
-        setObjs((s) => s && ({ ...s, [state]: s[state].map((o) => ({ ...o, z: order.indexOf(o.key) })) }))
-    }
+    // Поправка глубины для исключений: «Ближе» — предмет рисуется поверх тех, что стоят чуть ниже на полу.
+    const nudge = (key: string, d: number | null) => update(key, (o) => ({ dz: d === null ? 0 : Math.max(-200, Math.min(200, o.dz + d)) }))
 
     const save = async () => {
         setSaving(true)
         const data: LayoutOverrides = {}
-        for (const st of STATES) data[st] = Object.fromEntries(objs[st].map((o) => [o.key, { x: Math.round(o.x), y: Math.round(o.y), w: o.w, h: o.h, z: o.z, rot: o.rot }]))
+        for (const st of STATES) data[st] = Object.fromEntries(objs[st].map((o) => [o.key, { x: Math.round(o.x), y: Math.round(o.y), w: o.w, h: o.h, dz: o.dz, rot: o.rot }]))
         const r = await saveHangarLayout(data).catch(() => ({ ok: false, error: 'Нет связи' }))
         setSaving(false)
         if (r.ok) setDirty(false)
@@ -61,7 +54,6 @@ export default function Page() {
     }
     const pct = (v: number) => `${(v / 1024) * 100}%`
     const s = list.find((o) => o.key === sel)
-    const layerIdx = s ? sorted.findIndex((o) => o.key === s.key) : -1
     const smallBtn = 'h-9 rounded-lg bg-[#26333B] px-2.5 text-xs font-black text-[#E6EDF1] active:bg-[#33444D]'
 
     return (
@@ -119,11 +111,10 @@ export default function Page() {
                                 <button onClick={() => scale(s.key, 1.08)} className="h-9 w-9 rounded-lg bg-[#26333B] text-lg font-black">+</button>
                             </div>
                             <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                                <span className="mr-1 text-xs text-[#7E8F99]">Слой {layerIdx + 1}/{sorted.length}</span>
-                                <button onClick={() => restack(s.key, 'top')} className={`${smallBtn} bg-[#3B5568]`}>Поверх всех</button>
-                                <button onClick={() => restack(s.key, 'up')} className={smallBtn}>Выше</button>
-                                <button onClick={() => restack(s.key, 'down')} className={smallBtn}>Ниже</button>
-                                <button onClick={() => restack(s.key, 'bottom')} className={smallBtn}>Под всеми</button>
+                                <span className="mr-1 text-xs text-[#7E8F99]">Слой — сам по глубине (ниже на полу = ближе){s.dz ? `, поправка ${s.dz > 0 ? '+' : ''}${s.dz}` : ''}</span>
+                                <button onClick={() => nudge(s.key, 20)} className={smallBtn}>Ближе</button>
+                                <button onClick={() => nudge(s.key, -20)} className={smallBtn}>Дальше</button>
+                                {s.dz !== 0 && <button onClick={() => nudge(s.key, null)} className={smallBtn}>Сбросить</button>}
                             </div>
                             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                                 <span className="mr-1 text-xs text-[#7E8F99]">Поворот</span>

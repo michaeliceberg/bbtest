@@ -11,7 +11,7 @@ import type { CSSProperties } from 'react'
 import layout from '@/lib/hangarLayout.json'
 
 export type Slot = { src: string; x: number; y: number; w: number; h: number; rot?: number }
-export type Place = { x: number; y: number; w: number; h: number; z: number; rot: number }
+export type Place = { x: number; y: number; w: number; h: number; z: number; rot: number; dz: number }
 export type HangarState = 'b' | 'a'
 export type LayoutOverrides = Partial<Record<HangarState, Record<string, Partial<Place>>>>
 
@@ -70,21 +70,19 @@ export const CAT_DECOR: Decor[] = [
         b: { src: '/hangar/life/cat-cardboard.webp', x: 554, y: 904, w: 150, h: 108 } },
 ]
 
-// Слой по умолчанию — как было: хлам, потом ракета, потом предметы по номерам.
-const defaultZ = (key: string) => {
-    if (key.startsWith('junk-')) return key === 'junk-tools' ? 7.5 : Number(key.slice(5)) - 1
-    if (key === 'rocket') return 20
-    if (key === 'portrait') return 4
-    if (key === 'lamp') return 4.5
-    // вещи котика обычно стоят ближе предметов — по умолчанию поверх них (слой меняется в редакторе)
-    if (key === 'cat-fridge') return 44
-    if (key === 'cat-box') return 44.5
-    return 30 + Number(key)
-}
+// Слой — АВТОМАТИЧЕСКИ по глубине: что стоит ниже на полу (больше y нижнего края), то ближе и рисуется сверху.
+// Раньше слои задавались вручную номерами отдельно для «Сломано» и «Починено» — у ученика, у которого часть предметов
+// починена, а часть нет, номера из двух разных шкал сравнивались между собой и порядок ломался. Теперь номер не нужен:
+// в редакторе есть только поправка dz («Ближе/Дальше», в точках сцены) для исключений — она тоже по глубине,
+// поэтому работает при любом порядке ремонта. zIndex = 30 + 0,8·(y + dz) → от ~30 до ~850 (вентилятор — 900).
+export const depthZIndex = (y: number) => Math.round(30 + 0.8 * y)
+const depthZ = (y: number) => (depthZIndex(y) - 10) / 10
 
 export function place(o: LayoutOverrides | null | undefined, state: HangarState, key: string, base: Slot): Place {
     const p = o?.[state]?.[key] ?? {}
-    return { x: p.x ?? base.x, y: p.y ?? base.y, w: p.w ?? base.w, h: p.h ?? base.h, z: p.z ?? defaultZ(key), rot: p.rot ?? base.rot ?? 0 }
+    const y = p.y ?? base.y
+    const dz = p.dz ?? 0
+    return { x: p.x ?? base.x, y, w: p.w ?? base.w, h: p.h ?? base.h, z: depthZ(y + dz), dz, rot: p.rot ?? base.rot ?? 0 }
 }
 
 export type EditorObj = Slot & Place & { key: string; label: string }

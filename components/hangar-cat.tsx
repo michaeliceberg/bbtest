@@ -13,9 +13,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { CAT_DECOR, place, placeStyle, type LayoutOverrides, type Place } from '@/lib/hangarModel'
+import { CAT_DECOR, depthZIndex, place, placeStyle, type LayoutOverrides, type Place } from '@/lib/hangarModel'
 import Lottie from '@/components/lottie-player'
-import LottieCoins from '@/public/Lottie/LottieCoins.json'
+import LottieGems from '@/public/Lottie/LottieGems.json'
 import { useRouter } from 'next/navigation'
 import { bringCatHome, fixCatFridge, setCatName } from '@/actions/cat'
 import { checkCatName, CAT_NAME_MAX } from '@/lib/catName'
@@ -122,10 +122,10 @@ function Cardboard({ p }: { p: Place }) {
     )
 }
 
-/** Мини-холодильник котика рядом с коробкой (Leonardo, cat-fridge). Сначала он сломан — чинится за FRIDGE_COST монет
+/** Мини-холодильник котика рядом с коробкой (Leonardo, cat-fridge). Сначала он сломан — чинится за FRIDGE_COST рубинов
  *  (actions/cat.ts fixCatFridge, user_progress.cat_fridge_fixed). Сломанный — cat-fridge-broken.webp. На пустой бумажке починенного — подпись кодом (потом имя котика).
  *  Бумажка на картинке: 66–92% по ширине, 37–56% по высоте. */
-export const FRIDGE_COST = 999
+export const FRIDGE_COST = 25 // рубинов (gems) — на жёлтой кнопке розовый рубин читается лучше монет
 function Fridge({ p, fixed, onClick, justFixed }: { p: Place; fixed: boolean; onClick?: () => void; justFixed?: boolean }) {
     return (
         <button type="button" disabled={!onClick} onClick={onClick} aria-label={fixed ? 'Холодильник котика' : 'Сломанный холодильник'}
@@ -205,7 +205,7 @@ function NamePanel({ fr, initial, onSave, onClose }: { fr: Place; initial: strin
     )
 }
 
-/** Окошко «Починить холодильник за 999 монет» над холодильником. */
+/** Окошко «Починить холодильник за 25 рубинов» над холодильником. */
 function FridgePanel({ fr, pending, noCoins, onFix, onClose }: { fr: Place; pending: boolean; noCoins: boolean; onFix: () => void; onClose: () => void }) {
     return (
         <div className="absolute -translate-x-1/2 -translate-y-full" style={{ left: pct(panelX(fr.x - 40)), top: pct(fr.y - fr.h - 8), zIndex: 1185 }}>
@@ -213,7 +213,7 @@ function FridgePanel({ fr, pending, noCoins, onFix, onClose }: { fr: Place; pend
                 className="w-[44cqw] rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-[2cqw] text-center shadow-xl sm:w-[36cqw]">
                 <div className="text-[3.2cqw] font-black text-[#F2C35B] sm:text-[2.6cqw]">Холодильник сломан</div>
                 <div className="mt-[0.6cqw] text-[2.7cqw] font-bold leading-snug text-[#C9D3D9] sm:text-[2.2cqw]">
-                    {noCoins ? 'Не хватает монет — реши ещё задач, амиго!' : 'Котику негде хранить молоко. Починим?'}
+                    {noCoins ? 'Не хватает рубинов — реши ещё задач, амиго!' : 'Котику негде хранить молоко. Починим?'}
                 </div>
                 <div className="mt-[1.4cqw] flex gap-[1.2cqw]">
                     <button type="button" onClick={onClose}
@@ -225,8 +225,8 @@ function FridgePanel({ fr, pending, noCoins, onFix, onClose }: { fr: Place; pend
                         <span className="text-[2.8cqw] sm:text-[2.2cqw]">Починить</span>
                         <span className="flex items-center text-[3.2cqw] sm:text-[2.6cqw]">
                             {FRIDGE_COST}
-                            {/* та же монета, что в шапке приложения (components/user-progress.tsx); нарисована в нижней части холста */}
-                            <Lottie animationData={LottieCoins} className="-my-[1.6cqw] h-[6.5cqw] w-[6.5cqw] -translate-y-[14%] sm:h-[5.4cqw] sm:w-[5.4cqw]" />
+                            {/* тот же рубин, что в шапке приложения (components/user-progress.tsx) */}
+                            <Lottie animationData={LottieGems} className="-my-[1cqw] ml-[0.4cqw] h-[4.6cqw] w-[4.6cqw] sm:h-[3.8cqw] sm:w-[3.8cqw]" />
                         </span>
                     </button>
                 </div>
@@ -446,9 +446,10 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             {!bare && nameOpen && <NamePanel fr={frP} initial={name ?? ''} onSave={saveName} onClose={() => setNameOpen(false)} />}
             {!bare && !fridgeOk && fridgeOpen && <FridgePanel fr={frP} pending={fridgeBusy} noCoins={noCoins} onFix={fixFridge} onClose={() => setFridgeOpen(false)} />}
             <Cardboard p={boxP} />
+            {/* гуляет: слой по глубине точки, где сидит (что стоит ниже на полу — перед ним); пока идёт — не ниже своей коробки */}
             {stroll ? (
                 // гуляет: идёт (кадры ходьбы, отражены, если влево) или сидит в точке и смотрит по сторонам
-                <motion.div className="pointer-events-none absolute" style={{ zIndex: catZ }}
+                <motion.div className="pointer-events-none absolute" style={{ zIndex: stroll.walking ? Math.max(catZ, depthZIndex(stroll.y)) : depthZIndex(stroll.y) }}
                     initial={false}
                     animate={box(stroll.walking ? 'walk-1' : 'sit-shy', { x: stroll.x, y: stroll.y, k: kAt(stroll.y) })}
                     transition={{ duration: stroll.walking ? stroll.dur : 0, ease: 'linear' }}>

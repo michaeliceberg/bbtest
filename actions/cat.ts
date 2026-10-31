@@ -14,17 +14,17 @@ export async function bringCatHome(): Promise<{ ok: boolean }> {
     return { ok: (r as unknown as unknown[]).length > 0 }
 }
 
-const CAT_FRIDGE_COST = 999 // то же число — FRIDGE_COST в components/hangar-cat.tsx (из "use server" экспортировать можно только функции)
+const CAT_FRIDGE_COST = 25 // рубинов (gems); то же число — FRIDGE_COST в components/hangar-cat.tsx (из "use server" экспортировать можно только функции)
 
-// Починить холодильник котика за 999 монет — одним атомарным UPDATE (не хватает монет или уже починен — ничего не меняется).
-export async function fixCatFridge(): Promise<{ ok: boolean; reason?: 'coins' }> {
+// Починить холодильник котика за 25 рубинов (gems) — одним атомарным UPDATE (не хватает рубинов или уже починен — ничего не меняется).
+export async function fixCatFridge(): Promise<{ ok: boolean; reason?: 'gems' }> {
     const session = await auth()
     const userId = session?.user?.id
     if (!userId) return { ok: false }
-    const r = await db.execute(sql`UPDATE user_progress SET points = points - ${CAT_FRIDGE_COST}, cat_fridge_fixed = true
-        WHERE user_id = ${userId} AND cat_stage >= 2 AND NOT cat_fridge_fixed AND points >= ${CAT_FRIDGE_COST} RETURNING user_id`)
+    const r = await db.execute(sql`UPDATE user_progress SET gems = gems - ${CAT_FRIDGE_COST}, cat_fridge_fixed = true
+        WHERE user_id = ${userId} AND cat_stage >= 2 AND NOT cat_fridge_fixed AND gems >= ${CAT_FRIDGE_COST} RETURNING user_id`)
     if ((r as unknown as unknown[]).length > 0) return { ok: true }
-    return { ok: false, reason: 'coins' }
+    return { ok: false, reason: 'gems' }
 }
 
 // Имя котика (табличка над холодильником). Проверка длины и грубых слов — на сервере тоже.
