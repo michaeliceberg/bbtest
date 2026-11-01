@@ -12,7 +12,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, useTransition, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
-import { Check, Dumbbell, Star, KeyRound, ListChecks, Lock, LogOut, Wrench, X } from 'lucide-react'
+import { Check, Dumbbell, Star, KeyRound, ListChecks, Lock, LogOut, Rocket, Wrench, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import type { CatFoodStock } from '@/lib/catFood'
 import { RepairIcon } from '@/components/repair-icon'
@@ -220,7 +220,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     useEffect(() => {
         setPanelNum(null)
         // закрыли плашку — снимаем «наведение»: на телефоне касание наводит и не снимает его (подсветка залипала)
-        if (openNum === null) { setHover(null); return }
+        if (openNum === null) { setHover(null); trayGuard.current.closed = Date.now(); setTrayOpen(false); return }
         const t = setTimeout(() => setPanelNum(openNum), ZOOM_MS)
         return () => clearTimeout(t)
     }, [openNum])
@@ -258,7 +258,17 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     // Задания 14–20 — не значками на ракете (закрывали атмосферу), а на выезжающем лотке: нажал ракету (или красную
     // кнопку пульта) — снизу выезжает лоток с кнопками 14…20, нажал ещё раз — уезжает обратно.
     const [trayOpen, setTrayOpen] = useState(false)
-    const toggleTray = () => { playJustClick(); setTrayOpen((v) => !v) }
+    // На телефоне касание иногда срабатывает дважды, а после закрытия плашки крестиком «долетает» до того, что под пальцем
+    // (часто — ракета). Тогда лоток тихо переключался, и следующее нажатие на ракету его закрывало, а не открывало.
+    // Поэтому: повторы в пределах 400 мс и нажатия сразу после закрытия плашки игнорируем.
+    const trayGuard = useRef({ toggled: 0, closed: 0 })
+    const toggleTray = () => {
+        const now = Date.now()
+        if (now - trayGuard.current.toggled < 400 || now - trayGuard.current.closed < 500) return
+        trayGuard.current.toggled = now
+        playJustClick()
+        setTrayOpen((v) => !v)
+    }
     const fixed = (num: number) => { setJustFixed(num); playSound(CASE_PRIZE_SOUND); setTimeout(() => setJustFixed(null), 1500) }
     // золотой предмет: получить ключ редкого кейса и сразу открыть барабан
     const [goldKey, setGoldKey] = useState<number | null>(null)
@@ -530,6 +540,15 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 )}
             </div>
             </div>
+            {!bare && !scrollMode && !openItem && (
+                // компьютер: пульта нет — отдельная кнопка в правом нижнем углу открывает лоток 14–20 (нажатие на ракету тоже работает)
+                <button type="button" onClick={toggleTray}
+                    className="absolute bottom-3 right-3 flex items-center gap-2 rounded-xl border-2 border-b-4 border-[#1E2629] bg-[#3A454B] px-3 py-2 text-sm font-black text-[#E6EDF1] shadow-lg active:border-b-0"
+                    style={{ zIndex: 1260 }}>
+                    <Rocket className="h-4 w-4 text-[#FF6B5E]" />
+                    {trayOpen ? 'Убрать' : 'Вторая часть'}
+                </button>
+            )}
             {!bare && (
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 overflow-hidden" style={{ zIndex: 1250 }}>
                     {/* выезжает не целиком: над краем видна только часть до гнёзд (нижние 26% с полозьями остаются внизу) */}
