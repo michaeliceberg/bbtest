@@ -75,6 +75,9 @@ export const userProgress = pgTable('user_progress', {
 	catStage: integer('cat_stage').notNull().default(0),
 	catFridgeFixed: boolean('cat_fridge_fixed').notNull().default(false), // холодильник котика починен (999 монет)
 	catName: text('cat_name'),
+	// еда котика в холодильнике (lib/catFood.ts), сколько штук куплено
+	catMilk: integer('cat_milk').notNull().default(0),
+	catSausage: integer('cat_sausage').notNull().default(0),
 	userImageSrc: text('user_image_src').notNull().default('/mascot.svg'),
 	activeCourseId: integer('active_course_id').references(() => courses.id, { onDelete: 'cascade' }),
 	hearts: integer('hearts').notNull().default(500),

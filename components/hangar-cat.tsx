@@ -17,6 +17,9 @@ import { CAT_DECOR, place, placeStyle, type LayoutOverrides, type Place } from '
 import Lottie from '@/components/lottie-player'
 import LottieGems from '@/public/Lottie/LottieGems.json'
 import { useRouter } from 'next/navigation'
+import { createPortal } from 'react-dom'
+import { CatFridgeModal } from '@/components/cat-fridge-modal'
+import type { CatFoodStock } from '@/lib/catFood'
 import { bringCatHome, fixCatFridge, setCatName } from '@/actions/cat'
 import { checkCatName, CAT_NAME_MAX } from '@/lib/catName'
 import { useAchievementUnlockStore } from '@/store/use-achievement-unlock-store'
@@ -309,8 +312,10 @@ const Sausage = ({ size = 9 }: { size?: number }) => (
     <img src="/hangar/life/cat-sausage.webp" alt="" draggable={false} className="block select-none" style={{ width: `${size}cqw` }} />
 )
 
-export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, catName = null, layout, desk }: {
+export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, catName = null, layout, desk, catFood }: {
     stage: number
+    /** Еда в холодильнике (user_progress.cat_milk / cat_sausage). */
+    catFood?: CatFoodStock
     /** Стол с компьютером (№7): место и картинка без задней ножки — котик любит лежать под ним. */
     desk?: { src: string; p: Place } | null
     /** Расстановка из редактора (коробка и холодильник котика). */
@@ -365,6 +370,10 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const [fridgeBusy, setFridgeBusy] = useState(false)
     const [noCoins, setNoCoins] = useState(false)
     const [fridgeJust, setFridgeJust] = useState(false)
+    // открытый холодильник (окно с полками) и сколько еды куплено
+    const [shopOpen, setShopOpen] = useState(false)
+    const [food, setFood] = useState<CatFoodStock>(catFood ?? { milk: 0, sausage: 0 })
+    useEffect(() => { if (catFood) setFood(catFood) }, [catFood?.milk, catFood?.sausage])
     useEffect(() => { if (fridgeFixed) setFridgeOk(true) }, [fridgeFixed])
     const [name, setName] = useState<string | null>(catName)
     const [nameOpen, setNameOpen] = useState(false)
@@ -547,7 +556,10 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const allSit: Pose[] = ['sit', 'sit-half', 'sit-closed', 'happy', 'pet', 'meow', 'sleep']
     return (
         <>
-            <Fridge p={frP} fixed={fridgeOk} justFixed={fridgeJust} onClick={!bare && !fridgeOk ? () => { playJustClick(); setNoCoins(false); setNameOpen(false); setFridgeOpen((v) => !v) } : undefined} />
+            <Fridge p={frP} fixed={fridgeOk} justFixed={fridgeJust} onClick={bare ? undefined : !fridgeOk ? () => { playJustClick(); setNoCoins(false); setNameOpen(false); setFridgeOpen((v) => !v) } : () => { playJustClick(); setNameOpen(false); setShopOpen(true) }} />
+            {shopOpen && typeof document !== 'undefined' && createPortal(
+                <CatFridgeModal stock={food} offline={!!onHome} onClose={() => setShopOpen(false)}
+                    onBought={(k, n) => { setFood((f) => ({ ...f, [k]: n })); if (!onHome) router.refresh() }} />, document.body)}
             <NameSign fr={frP} name={name} onClick={!bare ? () => { playJustClick(); setFridgeOpen(false); setNameOpen((v) => !v) } : undefined} />
             {!bare && nameOpen && <NamePanel fr={frP} initial={name ?? ''} onSave={saveName} onClose={() => setNameOpen(false)} />}
             {!bare && !fridgeOk && fridgeOpen && <FridgePanel fr={frP} pending={fridgeBusy} noCoins={noCoins} onFix={fixFridge} onClose={() => setFridgeOpen(false)} />}

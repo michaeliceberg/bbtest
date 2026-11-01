@@ -13,6 +13,7 @@ import { useEffect, useLayoutEffect, useRef, useState, useTransition } from 'rea
 import { useRouter } from 'next/navigation'
 import { KeyRound, LogOut, Wrench, X } from 'lucide-react'
 import { motion } from 'framer-motion'
+import type { CatFoodStock } from '@/lib/catFood'
 import { RepairIcon } from '@/components/repair-icon'
 import Link from 'next/link'
 import { L, JUNK, FAN_NUM, DECOR, PORTRAIT_NUM, itemOf, place, placeStyle, type LayoutOverrides } from '@/lib/hangarModel'
@@ -99,7 +100,8 @@ export type HangarTime = Time
  * onFix / time / decorFixed — для тестовой страницы /test-hangar: починка без сервера, своё время суток,
  * состояние портрета вручную. В приложении не передаются.
  */
-export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed, bare = false, onClose, onGoTask, catStage = 0, catFridgeFixed = false, catName = null, onCatHome }: {
+export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed, bare = false, onClose, onGoTask, catStage = 0, catFridgeFixed = false, catName = null, onCatHome, catFood }: {
+    catFood?: CatFoodStock
     items: SceneItem[]; layout?: LayoutOverrides | null; onFix?: (num: number) => void; time?: Time; decorFixed?: boolean
     /** Только сама картинка ангара — без заголовка и подсказок снизу (превью на /learn). */
     bare?: boolean
@@ -344,7 +346,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     onClick={() => { if (nextRocket) openTask(nextRocket.num) }}
                     onMouseEnter={() => { if (nextRocket) setHover(nextRocket.num) }} onMouseLeave={() => setHover(null)}
                     style={{ ...placeStyle(R), ...litStyle(!!nextRocket && lit(nextRocket.num)), animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
-                <HangarCat stage={catStage} layout={layout} desk={desk} fridgeFixed={catFridgeFixed} catName={catName} bare={bare} night={time === 'night'} onHome={onCatHome} />
+                <HangarCat stage={catStage} layout={layout} desk={desk} fridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} bare={bare} night={time === 'night'} onHome={onCatHome} />
                 {nextRocket && !bare && <KeyBadge x={R.x + R.w * (stage === 0 ? 0.3 : 0.44)} y={R.y - R.h * 0.55} n={nextRocket.num} ready={!!readyRocket} active={lit(nextRocket.num)} onHover={setHover} onOpen={openTask} />}
                 {room.filter((i) => i.num !== FAN_NUM).map((i) => {
                     const done = i.state === 'fixed'

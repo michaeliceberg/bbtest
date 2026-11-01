@@ -1,4 +1,5 @@
 'use client'
+import type { CatFoodStock } from '@/lib/catFood'
 
 // components/hangar-entry.tsx
 //
@@ -15,7 +16,7 @@ import { RepairIcon } from '@/components/repair-icon'
 import { HangarScene, type SceneItem } from '@/components/hangar-scene'
 import type { LayoutOverrides } from '@/lib/hangarModel'
 
-export function HangarEntry({ items, layout, catStage = 0, catFridgeFixed = false, catName = null, openOnLoad = false }: { items: SceneItem[]; layout?: LayoutOverrides | null; catStage?: number; catFridgeFixed?: boolean; catName?: string | null; openOnLoad?: boolean }) {
+export function HangarEntry({ items, layout, catStage = 0, catFridgeFixed = false, catName = null, openOnLoad = false, catFood }: { items: SceneItem[]; layout?: LayoutOverrides | null; catStage?: number; catFridgeFixed?: boolean; catName?: string | null; openOnLoad?: boolean; catFood?: CatFoodStock }) {
     // /learn?hangar=1 (ссылка из оповещения «кто-то мяучит») — ангар открывается сразу
     const [open, setOpen] = useState(openOnLoad)
     const router = useRouter()
@@ -68,7 +69,7 @@ export function HangarEntry({ items, layout, catStage = 0, catFridgeFixed = fals
                         style={{ filter: 'blur(36px) brightness(0.55) saturate(1.2)' }} />
                     <div className="pointer-events-none fixed inset-0" style={{ background: 'radial-gradient(ellipse at 50% 40%, rgba(15,23,27,0) 30%, rgba(15,23,27,0.75) 100%)' }} />
                     <div className="relative mx-auto w-full max-w-xl px-4 pb-4 pt-2 lg:pt-4 lg:max-w-[1180px] lg:pb-4">
-<HangarScene items={items} layout={layout} catStage={catStage} catFridgeFixed={catFridgeFixed} catName={catName} onClose={() => setOpen(false)} onGoTask={goTask} />
+<HangarScene items={items} layout={layout} catStage={catStage} catFridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} onClose={() => setOpen(false)} onGoTask={goTask} />
                     </div>
                 </div>,
                 document.body,
