@@ -34,10 +34,11 @@ import { LearnWrapper } from '@/components/learn-wrapper';
 import { ScrollToLesson } from '@/components/scroll-to-lesson';
 import { getPendingLevelCase } from '@/lib/levelCase';
 import { LevelCard } from '@/components/level-card';
-import { HangarEntry } from '@/components/hangar-entry';
-import { getHangarItems } from '@/lib/hangar';
+import { HangarInline } from '@/components/hangar-entry';
+import { getHangarItems, withTrainers } from '@/lib/hangar';
 import { getEgeMap } from '@/lib/egeMap';
 import { getHangarLayout } from '@/actions/hangar-layout';
+import { hangarItemPic } from '@/lib/hangarModel';
 import { getLvlLottieCount } from '@/lib/lvl-lottie';
 import { StreakRiskBanner } from '@/components/streak-risk-banner';
 import { TrainerQuestCard } from '@/components/trainer-quest-card';
@@ -381,7 +382,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
   const trainerKeys = activeCourse.title.includes('ЕГЭ Математика') ? await getTrainerKeysByTask(userId) : {}
   // Ангар («Мой путь») — только у ЕГЭ Математики: плитка справа от карточки уровня.
   const [hangarItems, hangarLayout] = activeCourse.title.includes('ЕГЭ Математика')
-    ? await Promise.all([getEgeMap(userId, 'math_profile').then((m) => getHangarItems(userId, m)), getHangarLayout()])
+    ? await Promise.all([getEgeMap(userId, 'math_profile').then((m) => getHangarItems(userId, m)).then((it) => withTrainers(it, trainerKeys)), getHangarLayout()])
     : [null, null]
 
   // Раскрыт только один раздел: по умолчанию — где решали последним, иначе первый открытый непройденный.
@@ -468,19 +469,22 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
           <div className='mt-2 lg:mt-5'>
             <StreakRiskBanner streak={currentStreak} hasExtendedToday={hasExtendedStreakToday} freezes={userProgress.streakFreezes} gems={userProgress.gems} />
 
-            {/* Уровень на задачнике не показываем (он и так в шапке) — только если ждёт кейс за уровень, чтобы его можно было открыть */}
-            {hangarItems ? (
-              // ЕГЭ Математика: слева уровень (пол-ширины), справа плитка «В ангар»
-              <div className='mb-4 grid grid-cols-2 gap-3'>
-                <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} levelCase={levelCase} variant='half' />
-                <HangarEntry items={hangarItems} layout={hangarLayout} catStage={userProgress.catStage} catFridgeFixed={userProgress.catFridgeFixed} catName={userProgress.catName} catFood={{ milk: userProgress.catMilk, sausage: userProgress.catSausage, fedDate: userProgress.catFedDate, streak: userProgress.catFeedStreak }} openOnLoad={searchParams?.hangar === '1'} />
-              </div>
-            ) : levelCase && (
+            {/* Уровень — в шапке; карточка уровня только если ждёт кейс за уровень, чтобы его можно было открыть */}
+            {levelCase && (
               <div className='mb-4'>
                 <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} levelCase={levelCase} />
               </div>
             )}
 
+            {/* ЕГЭ Математика: ангар — карта задачника. Предмет = задание ЕГЭ: тренажёры → задачи → починить */}
+            {hangarItems && (
+              <div className='mb-5'>
+                <HangarInline items={hangarItems} layout={hangarLayout} catStage={userProgress.catStage} catFridgeFixed={userProgress.catFridgeFixed} catName={userProgress.catName} catFood={{ milk: userProgress.catMilk, sausage: userProgress.catSausage, fedDate: userProgress.catFedDate, streak: userProgress.catFeedStreak }} scrollOnLoad={searchParams?.hangar === '1'} />
+              </div>
+            )}
+
+            {/* Без ангара (другие курсы) — прежняя шкала разделов */}
+            {!hangarItems && (
             <CourseProgressStrip
               defaultOpenId={defaultOpenUnitId}
               trainerKeys={trainerKeys}
@@ -499,6 +503,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
                 };
               })}
             />
+            )}
 
             {unitsWithFormattedLessons.map((unit, index) => {
               // ЕГЭ Математика: разделитель «Часть 1 / Часть 2 / Дополнительно» по номеру задания в названии юнита
@@ -516,6 +521,9 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
                   isCompleted={isForcedLocked(unit.id) ? false : unit.isCompleted}
                   defaultOpenId={defaultOpenUnitId}
                   trainers={(() => { const n = unitNum(unit.title); const ks = n ? trainerKeys[n] : undefined; return ks?.length ? { done: ks.filter((k) => k.percent > 0).length, total: ks.length } : null })()}
+                  itemSrc={(() => { const n = unitNum(unit.title); const it = n && hangarItems ? hangarItems.find((h) => h.num === n) : null; return it ? hangarItemPic(n!, it.state === 'fixed') : null })()}
+                  trainerLocked={(() => { const n = unitNum(unit.title); return !!(n && hangarItems?.find((h) => h.num === n)?.locked) })()}
+                  isAdmin={isAdmin}
                 >
                 <Unit
                   id={unit.id}

@@ -11,7 +11,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { KeyRound, LogOut, Wrench, X } from 'lucide-react'
+import { Check, Dumbbell, KeyRound, ListChecks, Lock, LogOut, Wrench, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import type { CatFoodStock } from '@/lib/catFood'
 import { RepairIcon } from '@/components/repair-icon'
@@ -25,7 +25,12 @@ import { playSound, playJustClick, CASE_PRIZE_SOUND } from '@/lib/sound'
 import { ZaNaukuArchive } from '@/components/za-nauku-archive'
 import { pickShortJoke, ZN_RUBRIC_TITLE, znSource, type ZnJoke } from '@/lib/zaNauku'
 
-export type SceneItem = { num: number; title: string; state: 'broken' | 'ready' | 'fixed'; progress: number; href: string | null }
+export type SceneItem = {
+    num: number; title: string; state: 'broken' | 'ready' | 'fixed'; progress: number; href: string | null
+    tasks?: { solved: number; target: number }
+    trainers?: { title: string; percent: number }[]
+    locked?: boolean // «под брезентом»: сначала тренажёры к заданию
+}
 
 // По номеру ЗАДАНИЯ: что делаем с его предметом (кнопка «Починить») и шутка — про предмет и про это задание.
 // Какой предмет у задания — ITEM_OF_TASK (lib/hangarModel.ts).
@@ -72,16 +77,19 @@ const timeOf = (h: number): Time => (h >= 7 && h < 18 ? 'day' : h >= 18 && h < 2
 // Значок задания — жёлтая плашка с номером (как номер задания на карточке юнита /trainer), без ключика и подложки.
 // Раздел решён — плашка подпрыгивает. Наводишь или жмёшь — предмет, который починится, подсвечивается;
 // по нажатию — окошко «Перейти в задачник».
-function KeyBadge({ x, y, n, ready, active, onHover, onOpen }: { x: number; y: number; n: number; ready: boolean; active: boolean; onHover: (n: number | null) => void; onOpen: (n: number) => void }) {
+function KeyBadge({ x, y, n, ready, active, locked = false, onHover, onOpen }: { x: number; y: number; n: number; ready: boolean; active: boolean; locked?: boolean; onHover: (n: number | null) => void; onOpen: (n: number) => void }) {
     return (
         <span className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: pct(x), top: pct(y), zIndex: 1150 }}>
             <button type="button" aria-label={`Задание №${n}`}
                 onMouseEnter={() => onHover(n)} onMouseLeave={() => onHover(null)} onFocus={() => onHover(n)} onBlur={() => onHover(null)}
                 onClick={() => onOpen(n)}
                 className={`flex h-[clamp(18px,4.4cqw,27px)] min-w-[clamp(18px,4.4cqw,27px)] items-center justify-center rounded-[7px] px-1 text-[clamp(11px,2.7cqw,15px)] font-black leading-none transition-transform active:scale-90 ${ready ? 'animate-bounce' : ''}`}
-                style={{ background: 'linear-gradient(180deg,#FFE58A,#F2C35B)', color: '#3A2A08',
-                    boxShadow: active ? '0 2px 0 #B8862E, 0 0 0 2px #FFF4C2, 0 0 10px 2px rgba(242,195,91,.8)' : '0 2px 0 #B8862E, 0 2px 6px rgba(0,0,0,.45)' }}>
-                {n}
+                style={locked
+                    ? { background: 'linear-gradient(180deg,#A9B4BA,#7D8A91)', color: '#1B2428',
+                        boxShadow: active ? '0 2px 0 #4E5A60, 0 0 0 2px #E2EAF0, 0 0 10px 2px rgba(226,234,240,.6)' : '0 2px 0 #4E5A60, 0 2px 6px rgba(0,0,0,.45)' }
+                    : { background: 'linear-gradient(180deg,#FFE58A,#F2C35B)', color: '#3A2A08',
+                        boxShadow: active ? '0 2px 0 #B8862E, 0 0 0 2px #FFF4C2, 0 0 10px 2px rgba(242,195,91,.8)' : '0 2px 0 #B8862E, 0 2px 6px rgba(0,0,0,.45)' }}>
+                {locked && <Lock className="mr-0.5 h-[0.8em] w-[0.8em]" strokeWidth={3} />}{n}
             </button>
         </span>
     )
@@ -283,6 +291,15 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
         const el = frameRef.current
         if (el && el.getBoundingClientRect().height > window.innerHeight * 0.9) el.scrollIntoView({ block: 'center', behavior: 'smooth' })
     }
+    // раздел задачника под брезентом нажали в списке — открываем его предмет здесь (шаг «Тренажёры»)
+    const openTaskRef = useRef(openTask)
+    openTaskRef.current = openTask
+    useEffect(() => {
+        if (bare) return
+        const on = (e: Event) => openTaskRef.current(Number((e as CustomEvent).detail))
+        window.addEventListener('hangar-open', on)
+        return () => window.removeEventListener('hangar-open', on)
+    }, [bare])
     // подсветка + вечером/ночью подъём над затемнением
     // keepZ — подсветить, но не поднимать над затемнением: предмет стоит за вещами котика (генератор №10 за холодильником)
     // и, поднявшись, оказался бы перед ними
@@ -359,7 +376,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     onMouseEnter={() => { if (nextRocket) setHover(nextRocket.num) }} onMouseLeave={() => setHover(null)}
                     style={{ ...placeStyle(R), filter: FLOOR_SHADOW, ...litStyle(!!nextRocket && lit(nextRocket.num)), animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
                 <HangarCat stage={catStage} layout={layout} desk={desk} barrel={barrelP} fridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} demo={catDemo} bare={bare} night={time === 'night'} onHome={onCatHome} />
-                {nextRocket && !bare && <KeyBadge x={R.x + R.w * (stage === 0 ? 0.3 : 0.44)} y={R.y - R.h * 0.55} n={nextRocket.num} ready={!!readyRocket} active={lit(nextRocket.num)} onHover={setHover} onOpen={openTask} />}
+                {nextRocket && !bare && <KeyBadge x={R.x + R.w * (stage === 0 ? 0.3 : 0.44)} y={R.y - R.h * 0.55} n={nextRocket.num} ready={!!readyRocket} locked={!!nextRocket.locked} active={lit(nextRocket.num)} onHover={setHover} onOpen={openTask} />}
                 {room.filter((i) => i.num !== FAN_NUM).map((i) => {
                     const done = i.state === 'fixed'
                     const id = itemOf(i.num) // картинка предмета этого задания
@@ -377,8 +394,9 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                                 }}
                                 onMouseEnter={() => { if (!done) setHover(i.num) }} onMouseLeave={() => setHover(null)}
                                 style={{ ...placeStyle(p), ...litStyle(!done && lit(i.num), catStage >= 2 && behindCatDecor(p)), ...(!onWall && !(!done && lit(i.num)) ? { filter: FLOOR_SHADOW } : {}), animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
-                            {id === 7 && !done && <ComputerFlicker style={placeStyle(p)} />}
-                            {!done && !bare && <KeyBadge x={id === 5 && !done ? p.x - p.w * 0.32 : p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready'} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
+                            {id === 7 && !done && !i.locked && <ComputerFlicker style={placeStyle(p)} />}
+                            {i.locked && !done && <Tarp style={placeStyle(p)} onClick={() => openTask(i.num)} onHover={(on) => setHover(on ? i.num : null)} />}
+                            {!done && !bare && <KeyBadge x={id === 5 && !done ? p.x - p.w * 0.32 : p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready'} locked={!!i.locked} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
                             {done && !bare && (id === ARCHIVE_ITEM || id === ROBOT_ITEM) && !(id === ROBOT_ITEM && robotJoke) && (
                                 <FunBadge x={p.x} y={p.y - p.h - 6} label={id === ARCHIVE_ITEM ? 'Читать' : 'Шутка'}
                                     onClick={() => (id === ARCHIVE_ITEM ? setArchiveOpen(true) : robotSay())} />
@@ -402,7 +420,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                         style={{ left: pct(FAN.x - FAN.bladesD / 2), top: pct(FAN.top), width: pct(FAN.bladesD), height: pct(FAN.motorH + 70), zIndex: 905 }}
                         onMouseEnter={() => setHover(FAN_NUM)} onMouseLeave={() => setHover(null)} onClick={() => openTask(FAN_NUM)} />
                 )}
-                {fan && fan.state !== 'fixed' && !bare && <KeyBadge x={FAN.x} y={FAN.top + FAN.motorH + 46} n={FAN_NUM} ready={fan.state === 'ready'} active={lit(FAN_NUM)} onHover={setHover} onOpen={openTask} />}
+                {fan && fan.state !== 'fixed' && !bare && <KeyBadge x={FAN.x} y={FAN.top + FAN.motorH + 46} n={FAN_NUM} ready={fan.state === 'ready'} locked={!!fan.locked} active={lit(FAN_NUM)} onHover={setHover} onOpen={openTask} />}
                 <div className="pointer-events-none absolute inset-0 transition-[background] duration-700" style={{ background: TIME_TINT[time], mixBlendMode: 'multiply', zIndex: 1100 }} />
                 {time === 'night' && <HangarMoon cutout={R.rot ? undefined : { src: R.src, x: R.x, y: R.y, w: R.w, h: R.h }} />}
                 <div className="pointer-events-none absolute rounded-full transition-opacity duration-700"
@@ -432,21 +450,9 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     </div>
                     <p className="mt-2 text-base font-bold leading-snug text-[#E8D9B8]">{panelItem.num >= 14 ? ROCKET_JOKE : ITEM_JOKE[panelItem.num]}</p>
                     {UNLOCK_HINT[panelItem.num] && <p className="mt-1.5 text-sm font-bold leading-snug text-[#9EE8B0]">{UNLOCK_HINT[panelItem.num]}</p>}
-                    <div className="mt-3 flex gap-2">
-                        {panelItem.state === 'ready' ? (
-                            <button type="button" disabled={pending} onClick={() => { setOpenNum(null); fix(panelItem.num) }}
-                                className="flex flex-1 items-center justify-center gap-2 rounded-xl border-b-4 px-3 py-2.5 text-sm font-black text-[#151F24] active:border-b-0 disabled:opacity-60"
-                                style={{ background: 'linear-gradient(180deg,#FFD84D,#F2C35B)', borderBottomColor: '#B8862E' }}>
-                                <Wrench className="h-4 w-4 shrink-0" />{label(panelItem)}
-                            </button>
-                        ) : null}
-                        <Link href={`/learn?task=${panelItem.num}`}
-                            onClick={(e) => { if (onGoTask) { e.preventDefault(); setOpenNum(null); onGoTask(panelItem.num) } }}
-                            className="flex flex-1 items-center justify-center rounded-xl border-b-4 px-3 py-2.5 text-center text-sm font-black text-[#0F171B] active:border-b-0"
-                            style={{ background: '#53ADEF', borderBottomColor: '#3A85BC' }}>
-                            Перейти в раздел {panelItem.num}
-                        </Link>
-                    </div>
+                    <TaskSteps item={panelItem} fixLabel={label(panelItem)} pending={pending}
+                        onFix={() => { setOpenNum(null); fix(panelItem.num) }}
+                        onGo={onGoTask ? () => { setOpenNum(null); onGoTask(panelItem.num) } : undefined} />
                 </div>
                 </div>
             )}
@@ -563,6 +569,105 @@ function HangarControlPanel({ canLeft, canRight, onLeft, onRocket, onRight }: { 
                 )
             })}
             <style>{`@keyframes panel-lamp{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}25%{opacity:1;transform:translate(-50%,-50%) scale(1.5)}100%{opacity:0;transform:translate(-50%,-50%) scale(1)}}`}</style>
+        </div>
+    )
+}
+
+// Брезент поверх предмета, к которому ещё не пройдены тренажёры: ткань накрывает предмет, сверху замок.
+function Tarp({ style, onClick, onHover }: { style: React.CSSProperties; onClick: () => void; onHover: (on: boolean) => void }) {
+    const z = typeof style.zIndex === 'number' ? style.zIndex + 1 : 20
+    return (
+        <button type="button" aria-label="Под брезентом — сначала тренажёры" onClick={onClick}
+            onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)}
+            className="absolute cursor-pointer" style={{ ...style, zIndex: z, scale: '1.1', filter: FLOOR_SHADOW }}>
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden>
+                <defs>
+                    <linearGradient id="tarp-g" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stopColor="#7D8566" />
+                        <stop offset="0.55" stopColor="#5E6649" />
+                        <stop offset="1" stopColor="#474E37" />
+                    </linearGradient>
+                </defs>
+                {/* ткань: скруглённый верх, неровный низ с провисами */}
+                <path d="M4 100 C2 70 3 40 10 22 C18 6 40 2 52 3 C68 4 86 8 92 24 C98 42 98 72 96 100 L88 96 L80 100 L70 95 L60 100 L49 95 L38 100 L27 95 L16 100 L9 96 Z"
+                    fill="url(#tarp-g)" stroke="#2E331F" strokeWidth="2.2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+                {/* складки */}
+                <path d="M30 12 C26 40 24 70 27 95 M58 6 C60 40 62 70 60 98 M80 14 C84 45 86 70 84 97"
+                    fill="none" stroke="#3B4129" strokeWidth="1.6" vectorEffect="non-scaling-stroke" strokeLinecap="round" opacity="0.7" />
+                <path d="M18 20 C24 14 34 10 44 9" fill="none" stroke="#A3AB86" strokeWidth="1.6" vectorEffect="non-scaling-stroke" strokeLinecap="round" opacity="0.6" />
+                {/* верёвка */}
+                <path d="M5 62 C30 68 70 68 96 60" fill="none" stroke="#C9A86A" strokeWidth="2.4" vectorEffect="non-scaling-stroke" strokeLinecap="round" />
+            </svg>
+            <span className="absolute left-1/2 top-[56%] flex aspect-square w-[clamp(18px,34%,40px)] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#2E331F] bg-[#D9DEE1]">
+                <Lock className="h-[55%] w-[55%] text-[#2E331F]" strokeWidth={3} />
+            </span>
+        </button>
+    )
+}
+
+// Плашка задания: три шага — «Тренажёры → Задачи → Починить». Каждый шаг со своей кнопкой.
+function TaskSteps({ item, fixLabel, pending, onFix, onGo }: { item: SceneItem; fixLabel: string; pending: boolean; onFix: () => void; onGo?: () => void }) {
+    const trainers = item.trainers ?? []
+    const tDone = trainers.filter((t) => t.percent > 0).length
+    const nextTrainer = trainers.find((t) => t.percent === 0) ?? trainers[0]
+    const tasks = item.tasks ?? { solved: 0, target: 0 }
+    const fixed = item.state === 'fixed'
+    const trainerOk = trainers.length === 0 || tDone >= trainers.length
+    const tasksOk = item.state !== 'broken'
+    const btn = 'flex w-full items-center justify-center gap-1 rounded-xl border-b-4 px-1.5 py-2 text-center text-[13px] font-black leading-tight active:border-b-0'
+    const step = (n: number, active: boolean, done: boolean) =>
+        `relative flex min-w-0 flex-1 flex-col gap-1.5 rounded-xl border-2 p-2 ${done ? 'border-[#3D8A55] bg-[#163322]/60' : active ? 'border-[#F2C35B] bg-[#2A2410]/70' : 'border-[#2A363C] bg-[#0F171B]/70'}`
+    const head = (n: number, title: string, done: boolean) => (
+        <span className="flex min-w-0 items-center gap-1 text-[10px] font-black uppercase text-[#9AA7B0] sm:text-[11px] sm:tracking-wide">
+            <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] ${done ? 'bg-[#3D8A55] text-white' : 'bg-[#26333B] text-[#C9D3D9]'}`}>
+                {done ? <Check className="h-3 w-3" strokeWidth={3.5} /> : n}
+            </span>
+            <span className="truncate">{title}</span>
+        </span>
+    )
+    const goTasks = (
+        <Link href={`/learn?task=${item.num}`} onClick={(e) => { if (onGo) { e.preventDefault(); onGo() } }}
+            className={`${btn} text-[#0F171B]`} style={{ background: '#53ADEF', borderBottomColor: '#3A85BC' }}>
+            <ListChecks className="h-4 w-4 shrink-0" />К задачам
+        </Link>
+    )
+    return (
+        <div className="mt-3 flex gap-1.5">
+            {trainers.length > 0 && (
+                <div className={step(1, !trainerOk, trainerOk)}>
+                    {head(1, 'Тренажёры', trainerOk)}
+                    <span className="text-lg font-black leading-none text-[#F2F7FB]">{tDone}/{trainers.length}</span>
+                    {nextTrainer && (
+                        <Link href={`/trainer?topic=${encodeURIComponent(nextTrainer.title)}`}
+                            className={`${btn} mt-auto text-[#16240C]`} style={{ background: '#78C93C', borderBottomColor: '#60A12F' }}>
+                            <Dumbbell className="h-4 w-4 shrink-0" />{trainerOk ? 'Повторить' : 'Пройти'}
+                        </Link>
+                    )}
+                </div>
+            )}
+            <div className={step(2, trainerOk && !tasksOk, tasksOk)}>
+                {head(trainers.length > 0 ? 2 : 1, 'Задачи', tasksOk)}
+                <span className="text-lg font-black leading-none text-[#F2F7FB]">{tasks.target > 0 ? `${Math.min(tasks.solved, tasks.target)}/${tasks.target}` : '—'}</span>
+                {item.locked ? (
+                    <span className={`${btn} mt-auto cursor-not-allowed text-[#6B7A83]`} style={{ background: '#26333B', borderBottomColor: '#1B252A' }}>
+                        <Lock className="h-3.5 w-3.5 shrink-0" />Закрыто
+                    </span>
+                ) : <span className="mt-auto">{goTasks}</span>}
+            </div>
+            <div className={step(3, item.state === 'ready', fixed)}>
+                {head(trainers.length > 0 ? 3 : 2, 'Починить', fixed)}
+                <Wrench className="h-[18px] w-[18px] text-[#F2C35B]" />
+                {item.state === 'ready' ? (
+                    <button type="button" disabled={pending} onClick={onFix}
+                        className={`${btn} mt-auto text-[#151F24] disabled:opacity-60`} style={{ background: 'linear-gradient(180deg,#FFD84D,#F2C35B)', borderBottomColor: '#B8862E' }}>
+                        {fixLabel}
+                    </button>
+                ) : (
+                    <span className={`${btn} mt-auto text-[#6B7A83]`} style={{ background: '#26333B', borderBottomColor: '#1B252A' }}>
+                        {fixed ? 'Готово' : 'Позже'}
+                    </span>
+                )}
+            </div>
         </div>
     )
 }

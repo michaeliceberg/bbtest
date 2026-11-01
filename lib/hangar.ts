@@ -9,7 +9,15 @@ import type { EgeMap, EgeStation } from '@/lib/egeMap'
 // Починка — отдельное действие ученика (кнопка «Починить …»), хранится в hangar_fixed.
 
 export type HangarItemState = 'broken' | 'ready' | 'fixed'
-export type HangarItem = { num: number; title: string; state: HangarItemState; progress: number; href: string | null }
+export type HangarItem = {
+    num: number; title: string; state: HangarItemState; progress: number; href: string | null
+    // задачи задачника этого задания: решено / сколько нужно для починки (0 — у задания нет задачника)
+    tasks?: { solved: number; target: number }
+    // темы тренажёра к заданию (percent > 0 — тема пройдена, есть медаль)
+    trainers?: { title: string; percent: number }[]
+    // «под брезентом»: тренажёры к заданию ещё не пройдены, а задач ещё не решал — задачи раздела закрыты
+    locked?: boolean
+}
 
 export const isStationDone = (s: EgeStation) =>
     s.courseTarget > 0 ? s.courseSolved >= s.courseTarget : s.trainerTotal > 0 && s.trainerDone >= s.trainerTotal
@@ -28,6 +36,19 @@ export async function getHangarItems(userId: string, map: EgeMap): Promise<Hanga
             state: fixed.has(s.num) ? 'fixed' : isStationDone(s) ? 'ready' : 'broken',
             progress: Math.min(1, progress),
             href: s.lessonHref ?? s.trainerHref,
+            tasks: { solved: s.courseSolved, target: s.courseTarget },
         }
+    })
+}
+
+/** Ангар — карта задачника: сначала тренажёры к заданию, потом его задачи. Пока тренажёры не пройдены
+ *  (все темы хотя бы с бронзой) и ни одной задачи раздела не решено — предмет под брезентом, раздел закрыт.
+ *  Кто уже начал решать задачи раздела раньше — не запираем. */
+export function withTrainers(items: HangarItem[], keys: Record<number, { title: string; percent: number }[]>): HangarItem[] {
+    return items.map((it) => {
+        const trainers = keys[it.num] ?? []
+        const done = trainers.filter((k) => k.percent > 0).length
+        const locked = it.state === 'broken' && trainers.length > 0 && done < trainers.length && (it.tasks?.solved ?? 0) === 0
+        return { ...it, trainers, locked }
     })
 }

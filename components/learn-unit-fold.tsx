@@ -23,6 +23,11 @@ type Props = {
     defaultOpenId: number | null
     // тренажёры к этому заданию ЕГЭ: сколько пройдено (есть медаль) из скольких
     trainers?: { done: number; total: number } | null
+    // картинка предмета ангара этого задания (раздел 7 — компьютер)
+    itemSrc?: string | null
+    // тренажёры к заданию не пройдены — задачи раздела закрыты (админу открыто, но с пометкой)
+    trainerLocked?: boolean
+    isAdmin?: boolean
     children: ReactNode
 }
 
@@ -32,9 +37,11 @@ export const openLearnUnit = (id: number) => {
     setTimeout(() => scrollToLearnUnit(id), 80)
 }
 
-export const LearnUnitFold = ({ id, title, unitIndex, percent, isUnlocked, isCompleted, defaultOpenId, trainers, children }: Props) => {
+export const LearnUnitFold = ({ id, title, unitIndex, percent, isUnlocked: unitOpen, isCompleted, defaultOpenId, trainers, itemSrc, trainerLocked = false, isAdmin = false, children }: Props) => {
     const openId = useLearnOpenUnit((s) => s.openId) ?? defaultOpenId
-    if (openId === id) return <div className="mb-8">{children}</div>
+    // Сначала тренажёры: пока они не пройдены, раздел не раскрывается (админ может, для проверки)
+    const isUnlocked = unitOpen && (!trainerLocked || isAdmin)
+    if (openId === id && isUnlocked) return <div className="mb-8">{children}</div>
 
     const m = title.match(/^(\d+)\.\s*(.*)$/)
     const num = m ? m[1] : null
@@ -44,12 +51,22 @@ export const LearnUnitFold = ({ id, title, unitIndex, percent, isUnlocked, isCom
     return (
         <motion.button
             type="button"
-            whileTap={isUnlocked ? { scale: 0.98 } : undefined}
-            disabled={!isUnlocked}
-            onClick={() => openLearnUnit(id)}
+            whileTap={unitOpen ? { scale: 0.98 } : undefined}
+            disabled={!unitOpen}
+            onClick={() => {
+                if (isUnlocked) { openLearnUnit(id); return }
+                // раздел под брезентом — показываем его предмет в ангаре: там шаг «Тренажёры» с кнопкой
+                document.getElementById('learn-hangar')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                if (num) setTimeout(() => window.dispatchEvent(new CustomEvent('hangar-open', { detail: Number(num) })), 450)
+            }}
             className={`flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left disabled:cursor-not-allowed ${NAV_ITEM_PRESS}`}
             style={navItemStyle(false, !isUnlocked)}
         >
+            {itemSrc && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={itemSrc} alt="" aria-hidden draggable={false}
+                    className={`h-10 w-10 flex-shrink-0 object-contain ${isUnlocked ? '' : 'opacity-50 grayscale'}`} />
+            )}
             {num && (
                 <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-[15px] font-black"
                     style={isUnlocked ? { background: `${c}22`, color: c, boxShadow: `inset 0 0 0 1.5px ${c}66` } : { background: '#26333B', color: '#4E5D65' }}>
@@ -63,7 +80,12 @@ export const LearnUnitFold = ({ id, title, unitIndex, percent, isUnlocked, isCom
                     <span className="block h-1 w-14 flex-shrink-0 overflow-hidden rounded-full bg-[#0E1518]">
                         <span className="block h-full rounded-full" style={{ width: `${isCompleted ? 100 : percent}%`, background: c }} />
                     </span>
-                    {trainers && (
+                    {trainerLocked ? (
+                        <span className="flex items-center gap-1 text-[11px] font-black text-[#F2C35B]">
+                            <Dumbbell className="h-3 w-3" />
+                            Сначала тренажёры {trainers?.done ?? 0}/{trainers?.total ?? 0}
+                        </span>
+                    ) : trainers && (
                         <span className="flex items-center gap-1 text-[11px] font-bold"
                             style={{ color: trainers.done === trainers.total ? '#F2C35B' : trainers.done ? '#AEBCC5' : '#6B7A83' }}>
                             <Dumbbell className="h-3 w-3" />

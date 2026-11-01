@@ -119,3 +119,12 @@ export const placeStyle = (p: Place): CSSProperties => ({
     rotate: p.rot ? `${p.rot}deg` : undefined,
     transformOrigin: '50% 100%',
 })
+
+/** Картинка предмета задания для списка разделов задачника (раздел 7 — компьютер и т.п.).
+ *  Вентилятор — лопасти, задания второй части — ракета (сломано — каркас, починено — целиком). */
+export const hangarItemPic = (task: number, fixed: boolean): string => {
+    if (task === FAN_NUM) return '/hangar/fan-blades-v2.webp'
+    if (task >= 14) return L.rocket[fixed ? L.rocket.length - 1 : 0].src
+    const it = L[String(itemOf(task))]
+    return it ? (fixed ? it.a : it.b).src : '/hangar/bg.webp'
+}

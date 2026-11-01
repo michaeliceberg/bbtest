@@ -77,3 +77,23 @@ export function HangarEntry({ items, layout, catStage = 0, catFridgeFixed = fals
         </>
     )
 }
+
+/** Ангар прямо в задачнике (наверху /learn) — карта разделов. «К задачам» раскрывает раздел ниже на странице. */
+export function HangarInline({ items, layout, catStage = 0, catFridgeFixed = false, catName = null, catFood, scrollOnLoad = false }: { items: SceneItem[]; layout?: LayoutOverrides | null; catStage?: number; catFridgeFixed?: boolean; catName?: string | null; catFood?: CatFoodStock; scrollOnLoad?: boolean }) {
+    const router = useRouter()
+    const goTask = (num: number) => {
+        const node = document.querySelector<HTMLElement>(`[data-learn-task-num="${num}"]`)
+        const id = Number(node?.dataset.learnUnitId)
+        if (id) openLearnUnit(id)
+        else router.push(`/learn?task=${num}`)
+    }
+    // /learn?hangar=1 (оповещение «кто-то мяучит») — доезжаем до ангара
+    useEffect(() => {
+        if (scrollOnLoad) document.getElementById('learn-hangar')?.scrollIntoView({ block: 'start' })
+    }, [scrollOnLoad])
+    return (
+        <div id="learn-hangar">
+            <HangarScene items={items} layout={layout} catStage={catStage} catFridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} onGoTask={goTask} />
+        </div>
+    )
+}
