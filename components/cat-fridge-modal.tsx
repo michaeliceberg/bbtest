@@ -7,7 +7,7 @@
 // На полках еда (lib/catFood.ts): купленная — цветная со счётчиком, не купленная — силуэт. Под каждой — цена в монетах
 // (Lottie-монета, как в шапке); нажал — покупка на сервере (actions/cat.ts buyCatFood).
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import Lottie from '@/components/lottie-player'
@@ -33,6 +33,19 @@ export function CatFridgeModal({ stock, onBought, onClose, offline }: {
     const [busy, setBusy] = useState<CatFood | null>(null)
     const [noCoins, setNoCoins] = useState<CatFood | null>(null)
     const [sgTapped, setSgTapped] = useState(false)
+    // лампочка изредка мигает (раз в 6–13 с: погасла-зажглась-погасла-зажглась)
+    const [dark, setDark] = useState(false)
+    useEffect(() => {
+        let alive = true
+        const timers: ReturnType<typeof setTimeout>[] = []
+        const loop = () => {
+            const t = 6000 + Math.random() * 7000
+            ;[[0, true], [90, false], [190, true], [260, false]].forEach(([d, v]) => timers.push(setTimeout(() => alive && setDark(v as boolean), t + (d as number))))
+            timers.push(setTimeout(() => alive && loop(), t + 300))
+        }
+        loop()
+        return () => { alive = false; timers.forEach(clearTimeout) }
+    }, [])
     const buy = async (kind: CatFood) => {
         if (busy) return
         playJustClick()
@@ -86,13 +99,15 @@ export function CatFridgeModal({ stock, onBought, onClose, offline }: {
         </div>
     )
 
-    // Внутренность холодильника — картинка Leonardo (public/hangar/life/cat-fridge-inside.webp, 904×956,
-    // исходник docs/hangar/leonardo/cat-fridge-inside.jpg). Координаты ниже — % этой картинки: верхняя полка ~41%,
-    // нижняя ~58.5%, камера x 14.5–85.5%, y 13.5–86.5%. Пасхалка «SG was here» нацарапана под нижней полкой справа (cat-fridge-sg.webp).
+    // Внутренность холодильника — картинка Leonardo (public/hangar/life/cat-fridge-inside.webp, 707×914, высокий, наледь
+    // и сосульки уже нарисованы; исходник docs/hangar/leonardo/cat-fridge-inside-2.webp). Координаты — % этой картинки:
+    // камера x 14.4–85.1%, y 13.5–88%; полки — верх 34.4%, 49.8%, 64%; низ нижней 71%; лампочка (50%, 16%).
+    // Продукты — на верхней полке, ценники — на её краю. Лампочка иногда мигает — всё внутри на миг тускнеет.
+    // Пасхалка «SG was here» нацарапана справа между второй и третьей полкой (снизу — между нижней и второй).
     return (
         <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/65 p-4" onClick={onClose}>
             <motion.div initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 20 }}
-                className="w-full max-w-[380px]" onClick={(e) => e.stopPropagation()}>
+                className="w-full max-w-[340px]" onClick={(e) => e.stopPropagation()}>
                 <div className="mb-2 flex items-center justify-between px-1">
                     <span className="text-lg font-black text-[#FFF1D6]">Холодильник котика</span>
                     <button type="button" onClick={onClose} aria-label="Закрыть холодильник"
@@ -100,49 +115,44 @@ export function CatFridgeModal({ stock, onBought, onClose, offline }: {
                         <X className="h-4 w-4" strokeWidth={3} />Закрыть
                     </button>
                 </div>
-                <div className="relative w-full overflow-hidden" style={{ aspectRatio: '904 / 956' }}>
+                <div className="relative w-full overflow-hidden" style={{ aspectRatio: '707 / 914' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src="/hangar/life/cat-fridge-inside.webp" alt="" draggable={false} className="pointer-events-none absolute inset-0 h-full w-full select-none" />
-                    {/* камера: наледь по углам, пасхалка, снежинки */}
-                    <div className="pointer-events-none absolute overflow-hidden" style={{ left: '14.5%', top: '13.5%', width: '71%', height: '73%', borderRadius: '5%' }}>
-                        {[['0%', '0%'], ['100%', '0%'], ['0%', '100%'], ['100%', '100%']].map(([x, y], i) => (
-                            <span key={i} className="absolute h-[34%] w-[40%] -translate-x-1/2 -translate-y-1/2 rounded-full"
-                                style={{ left: x, top: y, background: 'radial-gradient(closest-side, rgba(255,255,255,0.85), rgba(225,240,255,0.45) 45%, transparent)' }} />
-                        ))}
-                        {/* сосульки-наледь под потолком камеры */}
-                        <svg viewBox="0 0 100 8" preserveAspectRatio="none" className="absolute inset-x-0 top-0 h-[6%] w-full" aria-hidden>
-                            <path d="M0 0 H100 V2 L96 3 L94 6 L92 2.5 L84 3.5 L82 7 L80 3 L66 2.5 L64 5 L62 2.5 L40 3 L38 6.5 L36 2.8 L20 3 L18 5.5 L16 2.6 L6 3 L4 6 L2 2.5 L0 2.5 Z" fill="rgba(245,251,255,0.9)" />
-                        </svg>
-
-                        {FLAKES.map((f, i) => (
-                            <span key={i} className="cat-fridge-flake absolute top-0 select-none text-white"
-                                style={{ left: `${f.x}%`, fontSize: f.s, animationDuration: `${f.d}s`, animationDelay: `${f.delay}s` }}>❄</span>
-                        ))}
-                    </div>
+                    {/* свет лампочки */}
+                    <span className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full transition-opacity duration-75"
+                        style={{ left: '50%', top: '17%', width: '60%', height: '22%', opacity: dark ? 0 : 0.8, mixBlendMode: 'screen',
+                            background: 'radial-gradient(closest-side, rgba(255,246,200,0.75), rgba(255,240,190,0.25) 55%, transparent)' }} />
                     {/* пасхалка: нажал на нацарапанную надпись — ачивка «Сол Гудман был здесь!» (в зале ачивок — кусочек пиццы) */}
                     <button type="button" aria-label="SG was here" onClick={() => { playJustClick(); setSgTapped(true); if (!offline) reportAchievement('fridge_sg') }}
-                        className="absolute" style={{ left: '55%', top: '63%', width: '25%', height: '8%' }}>
+                        className="absolute" style={{ left: '50%', top: '56.5%', width: '26%', height: '6.5%' }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src="/hangar/life/cat-fridge-sg.webp" alt="" draggable={false} className="pointer-events-none h-full w-full select-none object-contain"
                             style={{ rotate: '-4deg', opacity: sgTapped ? 0.9 : 0.7, mixBlendMode: 'multiply', transition: 'opacity .3s' }} />
                     </button>
                     {/* верхняя полка: продукты стоят на ней */}
-                    <div className="absolute grid grid-cols-2" style={{ left: '17%', width: '66%', top: '15%', height: '26.5%' }}>
-                        {item('milk', 42)}
-                        {item('sausage', 78)}
+                    <div className="absolute grid grid-cols-2" style={{ left: '20%', width: '60%', top: '20.4%', height: '14.4%' }}>
+                        {item('milk', 34)}
+                        {item('sausage', 72)}
                     </div>
                     {/* ценники на краю верхней полки */}
-                    <div className="absolute grid grid-cols-2" style={{ left: '17%', width: '66%', top: '41%' }}>
+                    <div className="absolute grid grid-cols-2" style={{ left: '20%', width: '60%', top: '35.4%' }}>
                         {tag('milk')}
                         {tag('sausage')}
                     </div>
-                    <p className="pointer-events-none absolute inset-x-[20%] text-center text-[11px] font-bold leading-tight text-[#56646C]" style={{ top: '76%' }}>
-                        Скоро здесь будет больше вкусного
-                    </p>
+                    {/* снежинки — внутри камеры */}
+                    <div className="pointer-events-none absolute overflow-hidden" style={{ left: '14.4%', top: '13.5%', width: '70.7%', height: '74.5%' }}>
+                        {FLAKES.map((f, i) => (
+                            <span key={i} className="cat-fridge-flake absolute top-0 select-none text-white"
+                                style={{ left: `${f.x}%`, fontSize: f.s * 0.8, animationDuration: `${f.d}s`, animationDelay: `${f.delay}s` }}>❄</span>
+                        ))}
+                    </div>
+                    {/* лампочка мигнула — всё внутри на миг тускнеет */}
+                    <div className="pointer-events-none absolute transition-opacity duration-75"
+                        style={{ left: '14.4%', top: '13.5%', width: '70.7%', height: '74.5%', background: 'rgba(12,20,32,0.5)', opacity: dark ? 1 : 0 }} />
                 </div>
                 <style>{`
                     .cat-fridge-flake { animation-name: cat-fridge-fall; animation-timing-function: linear; animation-iteration-count: infinite; opacity: 0; text-shadow: 0 0 4px rgba(150,200,255,.8) }
-                    @keyframes cat-fridge-fall { 0% { transform: translate(0,-20px) rotate(0); opacity: 0 } 10% { opacity: .9 } 90% { opacity: .8 } 100% { transform: translate(18px,360px) rotate(220deg); opacity: 0 } }
+                    @keyframes cat-fridge-fall { 0% { transform: translate(0,-20px) rotate(0); opacity: 0 } 10% { opacity: .9 } 90% { opacity: .8 } 100% { transform: translate(14px,340px) rotate(220deg); opacity: 0 } }
                     @media (prefers-reduced-motion: reduce) { .cat-fridge-flake { animation: none; display: none } }
                 `}</style>
             </motion.div>
