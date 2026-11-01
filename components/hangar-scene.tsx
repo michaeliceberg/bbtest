@@ -11,7 +11,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, ChevronRight, KeyRound, LogOut, Rocket, Wrench, X } from 'lucide-react'
+import { KeyRound, LogOut, Wrench, X } from 'lucide-react'
 import { RepairIcon } from '@/components/repair-icon'
 import Link from 'next/link'
 import { L, JUNK, FAN_NUM, DECOR, PORTRAIT_NUM, itemOf, place, placeStyle, type LayoutOverrides } from '@/lib/hangarModel'
@@ -19,7 +19,7 @@ import { HangarFan, FAN } from '@/components/hangar-fan'
 import { HangarCat } from '@/components/hangar-cat'
 import { HangarSky, HangarSpider, HangarHangingSpider, HangarBug, HangarPaper, ComputerFlicker, HangarMoon } from '@/components/hangar-life'
 import { fixHangarItem } from '@/actions/hangar'
-import { playSound, CASE_PRIZE_SOUND } from '@/lib/sound'
+import { playSound, playJustClick, CASE_PRIZE_SOUND } from '@/lib/sound'
 import { ZaNaukuArchive } from '@/components/za-nauku-archive'
 import { pickShortJoke, ZN_RUBRIC_TITLE, znSource, type ZnJoke } from '@/lib/zaNauku'
 
@@ -204,7 +204,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
             const w = (el.parentElement?.parentElement?.clientWidth ?? el.clientWidth + 4) - 4
             // компьютер: квадрат не выше экрана — нижний край виден целиком без прокрутки страницы
             // телефон: ангар во всю высоту экрана, снизу остаётся место только под кнопки (влево · к ракете · вправо)
-            const s = w < 480 ? Math.max(w, Math.round(Math.min(window.innerHeight - 104, 900))) : Math.min(w, Math.max(360, window.innerHeight - 40))
+            const s = w < 480 ? Math.max(w, Math.round(Math.min(window.innerHeight - 116, 900))) : Math.min(w, Math.max(360, window.innerHeight - 40))
             setFrame((prev) => {
                 if (prev && prev.w === w && prev.s === s) return prev
                 return { w, s }
@@ -404,12 +404,8 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
             </div>
 
             {scrollMode && !openItem && (
-                // большие деревянные стрелки-указатели: подсказка, что ангар листается вбок (и сами листают)
-                <div className="mt-3 flex items-center justify-between gap-2">
-                    <PlankArrow dir={-1} disabled={!edge.l} onClick={() => slide(-1)} />
-                    <CenterButton onClick={centerRocket} />
-                    <PlankArrow dir={1} disabled={!edge.r} onClick={() => slide(1)} />
-                </div>
+                // пульт с тремя кнопками: листать влево / к ракете / вправо (картинки Leonardo, public/hangar/ui)
+                <HangarControlPanel canLeft={edge.l} canRight={edge.r} onLeft={() => slide(-1)} onRocket={centerRocket} onRight={() => slide(1)} />
             )}
             {!bare && panelItem && (
                 // Плашка задания — под картинкой, чтобы не закрывать ангар; на компьютере ангар большой и выше экрана —
@@ -488,36 +484,45 @@ function RobotBubble({ x, y, joke, onClose }: { x: number; y: number; joke: ZnJo
     )
 }
 
-// Квадратная кнопка между стрелками: ракета — встать ею в центр экрана.
-function CenterButton({ onClick }: { onClick: () => void }) {
-    return (
-        <button type="button" onClick={onClick} aria-label="К ракете"
-            className="shrink-0 transition-transform active:translate-y-[4px] active:[filter:none]"
-            style={{ filter: 'drop-shadow(0 4px 0 #2A190B) drop-shadow(0 6px 8px rgba(0,0,0,0.4))' }}>
-            <span className="flex h-14 w-14 items-center justify-center rounded-xl"
-                style={{ background: 'url(/hangar/life/sign-plank.webp) center / 380% 100%' }}>
-                <Rocket className="h-7 w-7 text-[#FFF1D6]" strokeWidth={2.6} style={{ filter: 'drop-shadow(0 2px 0 #3B2412)' }} />
-            </span>
-        </button>
-    )
+// Пульт под ангаром на телефоне (Leonardo: docs/hangar/leonardo/ui-panel-*.png). Планка с пустыми гнёздами — panel-plate,
+// колпачки кнопок вырезаны из картинки с кнопками и стоят ровно в гнёздах (координаты — % планки 986×337).
+// Нажатие: колпачок утапливается в гнездо (вниз, чуть меньше и темнее), зелёная лампочка над кнопкой вспыхивает.
+const PANEL_CAPS = {
+    left: { src: '/hangar/ui/cap-left.webp', left: 9.53, top: 18.1, w: 18.05, h: 52.82 },
+    rocket: { src: '/hangar/ui/cap-rocket.webp', left: 40.47, top: 17.8, w: 18.66, h: 54.3 },
+    right: { src: '/hangar/ui/cap-right.webp', left: 71.81, top: 18.1, w: 18.05, h: 52.82 },
 }
-
-// Стрелка-указатель «из доски» (та же доска, что у таблички «Наш ангар»), как на деревянном столбе-указателе.
-// Нажатие по стандарту: тёмная нижняя грань (тень-фильтр) исчезает, стрелка опускается на её высоту.
-function PlankArrow({ dir, disabled, onClick }: { dir: -1 | 1; disabled: boolean; onClick: () => void }) {
-    const shape = dir === 1
-        ? 'polygon(0 18%, 70% 18%, 70% 0, 100% 50%, 70% 100%, 70% 82%, 0 82%)'
-        : 'polygon(100% 18%, 30% 18%, 30% 0, 0 50%, 30% 100%, 30% 82%, 100% 82%)'
+const PANEL_LAMPS = { left: 34, right: 65.8 } // центры зелёных лампочек по x, y — 18.4%
+function HangarControlPanel({ canLeft, canRight, onLeft, onRocket, onRight }: { canLeft: boolean; canRight: boolean; onLeft: () => void; onRocket: () => void; onRight: () => void }) {
+    const [flash, setFlash] = useState<{ k: 'left' | 'right'; n: number } | null>(null)
+    const press = (k: keyof typeof PANEL_CAPS) => {
+        playJustClick()
+        setFlash({ k: k === 'right' ? 'right' : 'left', n: Date.now() })
+        if (k === 'left') onLeft(); else if (k === 'right') onRight(); else onRocket()
+        if (k === 'rocket') setTimeout(() => setFlash({ k: 'right', n: Date.now() }), 120)
+    }
+    const caps: [keyof typeof PANEL_CAPS, boolean, string][] = [['left', canLeft, 'Листать ангар влево'], ['rocket', true, 'К ракете'], ['right', canRight, 'Листать ангар вправо']]
     return (
-        <button type="button" onClick={onClick} disabled={disabled} aria-label={dir === 1 ? 'Листать ангар вправо' : 'Листать ангар влево'}
-            className={`shrink-0 transition-[opacity,transform] duration-200 active:translate-y-[4px] active:[filter:none] disabled:opacity-35 disabled:active:translate-y-0 ${dir === 1 ? 'rotate-[2deg]' : '-rotate-[2deg]'}`}
-            style={{ filter: 'drop-shadow(0 4px 0 #2A190B) drop-shadow(0 6px 8px rgba(0,0,0,0.4))' }}>
-            <span className="relative flex h-14 w-28 items-center justify-center"
-                style={{ clipPath: shape, background: 'url(/hangar/life/sign-plank.webp) center / 190% 100%' }}>
-                <span style={{ filter: 'drop-shadow(0 2px 0 #3B2412)', paddingLeft: dir === 1 ? 0 : 12, paddingRight: dir === 1 ? 12 : 0 }}>
-                    {dir === 1 ? <ChevronRight className="h-8 w-8 text-[#FFF1D6]" strokeWidth={4} /> : <ChevronLeft className="h-8 w-8 text-[#FFF1D6]" strokeWidth={4} />}
-                </span>
-            </span>
-        </button>
+        <div className="relative mx-auto mt-2 w-full max-w-[280px] select-none" style={{ aspectRatio: '986 / 337' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/hangar/ui/panel-plate.webp" alt="" draggable={false} className="pointer-events-none absolute inset-0 h-full w-full" />
+            {flash && (
+                <span key={flash.n} className="pointer-events-none absolute h-[16%] w-[7%] -translate-x-1/2 -translate-y-1/2 rounded-full"
+                    style={{ left: `${PANEL_LAMPS[flash.k]}%`, top: '18.4%', background: 'radial-gradient(closest-side, #E8FFB0, #6BE05A 55%, transparent)', animation: 'panel-lamp .5s ease-out forwards' }} />
+            )}
+            {caps.map(([k, on, label]) => {
+                const c = PANEL_CAPS[k]
+                return (
+                    <button key={k} type="button" aria-label={label} disabled={!on} onClick={() => press(k)}
+                        className="group absolute disabled:cursor-default"
+                        style={{ left: `${c.left}%`, top: `${c.top}%`, width: `${c.w}%`, height: `${c.h}%` }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={c.src} alt="" draggable={false}
+                            className="pointer-events-none h-full w-full transition-[transform,filter] duration-75 group-active:translate-y-[7%] group-active:scale-[0.94] group-active:brightness-[0.82] group-disabled:opacity-40 group-disabled:grayscale group-disabled:group-active:translate-y-0 group-disabled:group-active:scale-100" />
+                    </button>
+                )
+            })}
+            <style>{`@keyframes panel-lamp{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}25%{opacity:1;transform:translate(-50%,-50%) scale(1.5)}100%{opacity:0;transform:translate(-50%,-50%) scale(1)}}`}</style>
+        </div>
     )
 }
