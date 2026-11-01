@@ -531,9 +531,10 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
             </div>
             {!bare && (
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 overflow-hidden" style={{ zIndex: 1250 }}>
+                    {/* выезжает не целиком: над краем видна только часть до гнёзд (нижние 26% с полозьями остаются внизу) */}
                     {/* без AnimatePresence (в проекте не всегда доигрывает уход) — лоток всегда в DOM, едет вверх/вниз */}
                     <motion.div className={trayOpen && !openItem ? 'pointer-events-auto' : ''} initial={false}
-                        animate={{ y: trayOpen && !openItem ? 0 : '105%' }} transition={{ type: 'spring', stiffness: 380, damping: 32 }}>
+                        animate={{ y: trayOpen && !openItem ? '26%' : '105%' }} transition={{ type: 'spring', stiffness: 380, damping: 32 }}>
                         <RocketTray parts={rocketParts} lit={lit} onHover={setHover}
                             onPick={(n) => { setTrayOpen(false); openTask(n) }} />
                     </motion.div>
