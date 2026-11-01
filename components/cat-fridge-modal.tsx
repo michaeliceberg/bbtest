@@ -14,6 +14,7 @@ import Lottie from '@/components/lottie-player'
 import LottieCoins from '@/public/Lottie/LottieCoins.json'
 import { buyCatFood } from '@/actions/cat'
 import { reportAchievement } from '@/lib/achievementsClient'
+import { catNameGenitive } from '@/lib/catName'
 import { CAT_FOOD, type CatFood, type CatFoodStock } from '@/lib/catFood'
 import { playJustClick, playSound, CASE_PRIZE_SOUND, WRONG_ANSWER_SOUND } from '@/lib/sound'
 
@@ -23,7 +24,9 @@ const FLAKES = Array.from({ length: 16 }, (_, i) => ({
     x: (i * 37) % 100, s: 10 + ((i * 7) % 4) * 4, d: 6 + ((i * 5) % 5), delay: -((i * 1.3) % 8),
 }))
 
-export function CatFridgeModal({ stock, onBought, onClose, offline }: {
+export function CatFridgeModal({ stock, onBought, onClose, offline, catName }: {
+    /** Имя котика — в заголовке «Холодильник Мурзика». */
+    catName?: string | null
     stock: CatFoodStock
     onBought: (kind: CatFood, count: number) => void
     onClose: () => void
@@ -108,13 +111,7 @@ export function CatFridgeModal({ stock, onBought, onClose, offline }: {
         <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/65 p-4" onClick={onClose}>
             <motion.div initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 20 }}
                 className="w-full max-w-[340px]" onClick={(e) => e.stopPropagation()}>
-                <div className="mb-2 flex items-center justify-between px-1">
-                    <span className="text-lg font-black text-[#FFF1D6]">Холодильник котика</span>
-                    <button type="button" onClick={onClose} aria-label="Закрыть холодильник"
-                        className="flex items-center gap-1 rounded-xl border-2 border-b-4 border-[#3A2A1E] bg-[#FFF6E4] px-2.5 py-1 text-sm font-black text-[#3A2A1E] active:border-b-0">
-                        <X className="h-4 w-4" strokeWidth={3} />Закрыть
-                    </button>
-                </div>
+                <div className="mb-2 text-center text-lg font-black text-[#FFF1D6]">Холодильник {catNameGenitive(catName)}</div>
                 <div className="relative w-full overflow-hidden" style={{ aspectRatio: '707 / 914' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src="/hangar/life/cat-fridge-inside.webp" alt="" draggable={false} className="pointer-events-none absolute inset-0 h-full w-full select-none" />
@@ -124,7 +121,7 @@ export function CatFridgeModal({ stock, onBought, onClose, offline }: {
                             background: 'radial-gradient(closest-side, rgba(255,246,200,0.75), rgba(255,240,190,0.25) 55%, transparent)' }} />
                     {/* пасхалка: нажал на нацарапанную надпись — ачивка «Сол Гудман был здесь!» (в зале ачивок — кусочек пиццы) */}
                     <button type="button" aria-label="SG was here" onClick={() => { playJustClick(); setSgTapped(true); if (!offline) reportAchievement('fridge_sg') }}
-                        className="absolute" style={{ left: '50%', top: '56.5%', width: '26%', height: '6.5%' }}>
+                        className="absolute" style={{ left: '54%', top: '58.2%', width: '25%', height: '6%' }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src="/hangar/life/cat-fridge-sg.webp" alt="" draggable={false} className="pointer-events-none h-full w-full select-none object-contain"
                             style={{ rotate: '-4deg', opacity: sgTapped ? 0.9 : 0.7, mixBlendMode: 'multiply', transition: 'opacity .3s' }} />
@@ -150,6 +147,10 @@ export function CatFridgeModal({ stock, onBought, onClose, offline }: {
                     <div className="pointer-events-none absolute transition-opacity duration-75"
                         style={{ left: '14.4%', top: '13.5%', width: '70.7%', height: '74.5%', background: 'rgba(12,20,32,0.5)', opacity: dark ? 1 : 0 }} />
                 </div>
+                <button type="button" onClick={onClose} aria-label="Закрыть холодильник"
+                    className="mx-auto mt-3 flex items-center gap-1.5 rounded-xl border-2 border-b-4 border-[#3A2A1E] bg-[#FFF6E4] px-4 py-2 text-base font-black text-[#3A2A1E] active:border-b-0">
+                    <X className="h-4 w-4" strokeWidth={3} />Закрыть холодильник
+                </button>
                 <style>{`
                     .cat-fridge-flake { animation-name: cat-fridge-fall; animation-timing-function: linear; animation-iteration-count: infinite; opacity: 0; text-shadow: 0 0 4px rgba(150,200,255,.8) }
                     @keyframes cat-fridge-fall { 0% { transform: translate(0,-20px) rotate(0); opacity: 0 } 10% { opacity: .9 } 90% { opacity: .8 } 100% { transform: translate(14px,340px) rotate(220deg); opacity: 0 } }

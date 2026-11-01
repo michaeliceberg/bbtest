@@ -15,3 +15,22 @@ export function checkCatName(raw: string): { ok: true; name: string } | { ok: fa
     if (BAD_ROOTS.some((r) => flat.includes(r) || cyr.includes(r))) return { ok: false, error: 'Котик такое не одобряет 🙀' }
     return { ok: true, name }
 }
+
+/** «Холодильник Мурзика»: имя в родительном падеже (для мужских/кошачьих кличек; несклоняемые — как есть). Нет имени — «котика». */
+export function catNameGenitive(name: string | null | undefined): string {
+    const n = (name ?? '').trim()
+    if (!n) return 'котика'
+    if (!/[а-яё]$/i.test(n)) return n // латиница и цифры — не склоняем
+    const head = n.slice(0, -1)
+    const last = n.slice(-1).toLowerCase()
+    const up = (s: string) => (n.slice(-1) === n.slice(-1).toUpperCase() ? s.toUpperCase() : s)
+    if (last === 'й' || last === 'ь') return head + up('я')
+    if (last === 'а') return head + up(/[гкхжшчщ]$/i.test(head) ? 'и' : 'ы')
+    if (last === 'я') return head + up('и')
+    if ('оиуеэюыё'.includes(last)) return n
+    // беглая гласная: Дымок → Дымка, Уголёк → Уголька, Огурец → Огурца
+    if (/[^аеёиоуыэюя]ок$/i.test(n) && n.length > 3) return n.slice(0, -2) + up('ка')
+    if (/ёк$/i.test(n)) return n.slice(0, -2) + up('ька')
+    if (/[^аеёиоуыэюя]ец$/i.test(n) && n.length > 3) return n.slice(0, -2) + up('ца')
+    return n + up('а')
+}

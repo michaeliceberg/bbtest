@@ -635,7 +635,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
         <>
             <Fridge p={frP} fixed={fridgeOk} justFixed={fridgeJust} onClick={bare ? undefined : !fridgeOk ? () => { playJustClick(); setNoCoins(false); setNameOpen(false); setFridgeOpen((v) => !v) } : () => { playJustClick(); setNameOpen(false); setShopOpen(true) }} />
             {shopOpen && typeof document !== 'undefined' && createPortal(
-                <CatFridgeModal stock={food} offline={!!onHome} onClose={() => setShopOpen(false)}
+                <CatFridgeModal stock={food} catName={name} offline={!!onHome} onClose={() => setShopOpen(false)}
                     onBought={(k, n) => { setFood((f) => ({ ...f, [k]: n })); if (!onHome) router.refresh() }} />, document.body)}
             <NameSign fr={frP} name={name} onClick={!bare ? () => { playJustClick(); setFridgeOpen(false); setNameOpen((v) => !v) } : undefined} />
             {!bare && nameOpen && <NamePanel fr={frP} initial={name ?? ''} onSave={saveName} onClose={() => setNameOpen(false)} />}
