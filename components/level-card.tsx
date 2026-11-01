@@ -120,6 +120,24 @@ export const LevelCard = ({ xp, lvlLottieCount, variant = 'compact', levelCase =
                         <div className="pointer-events-none absolute inset-x-0 top-0 h-1/3 bg-white/10" />
                     </div>
                 </div>
+                {!levelCase && (() => {
+                    // нечего открывать — показываем следующий кейс за уровень: серый сундук и сколько уровней до него
+                    // (раньше низ карточки пустовал, и она выглядела сломанной)
+                    const caseLvl = nextLevelCaseLevel(level)
+                    const left = caseLvl - level
+                    return (
+                        <div className="flex items-center gap-2 rounded-xl bg-[#0F171B] py-1 pl-1.5 pr-2.5">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src="/chests/rare0001.svg" alt="" className="h-9 w-9 shrink-0 object-contain opacity-60 grayscale-[40%]" />
+                            <span className="min-w-0 flex-1 text-[11px] font-bold leading-tight text-[#A9C7D3]">
+                                Редкий кейс<br />на уровне {caseLvl}
+                            </span>
+                            <span className="shrink-0 text-right text-[11px] font-black leading-tight text-[#7FE0FF]">
+                                ещё {left}<br />{left === 1 ? 'уровень' : left < 5 ? 'уровня' : 'уровней'}
+                            </span>
+                        </div>
+                    )
+                })()}
                 {levelCase && (
                     // Стандартная объёмная кнопка: заливка + тёмная нижняя грань border-b-4, active:border-b-0
                     // (globals.css: грань исчезает, кнопка опускается на её высоту, блок не меняет высоту).

@@ -158,6 +158,9 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     // стол с компьютером (№7) — котик лежит под ним; картинка без задней ножки (public/hangar/07-*-front.webp)
     const deskDone = byNum.get(7)?.state === 'fixed'
     const deskId = itemOf(7)
+    // лежащая бочка (задание №13 ещё не починено) — котик любит залезать на неё греться
+    const barrelId = itemOf(13)
+    const barrelP = byNum.get(13)?.state !== 'fixed' && L[barrelId] ? place(layout, 'b', `${barrelId}`, L[barrelId].b) : null
     const desk = deskId === 7 ? { src: `/hangar/07-${deskDone ? 'after' : 'before'}-front.webp`, p: place(layout, deskDone ? 'a' : 'b', '7', L[7][deskDone ? 'a' : 'b']) } : null
     const decorDone = decorFixed ?? (PORTRAIT_NUM !== null && byNum.get(PORTRAIT_NUM)?.state === 'fixed')
     const decorState = decorDone ? 'a' : 'b'
@@ -346,7 +349,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     onClick={() => { if (nextRocket) openTask(nextRocket.num) }}
                     onMouseEnter={() => { if (nextRocket) setHover(nextRocket.num) }} onMouseLeave={() => setHover(null)}
                     style={{ ...placeStyle(R), ...litStyle(!!nextRocket && lit(nextRocket.num)), animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
-                <HangarCat stage={catStage} layout={layout} desk={desk} fridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} bare={bare} night={time === 'night'} onHome={onCatHome} />
+                <HangarCat stage={catStage} layout={layout} desk={desk} barrel={barrelP} fridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} bare={bare} night={time === 'night'} onHome={onCatHome} />
                 {nextRocket && !bare && <KeyBadge x={R.x + R.w * (stage === 0 ? 0.3 : 0.44)} y={R.y - R.h * 0.55} n={nextRocket.num} ready={!!readyRocket} active={lit(nextRocket.num)} onHover={setHover} onOpen={openTask} />}
                 {room.filter((i) => i.num !== FAN_NUM).map((i) => {
                     const done = i.state === 'fixed'
