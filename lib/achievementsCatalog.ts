@@ -120,6 +120,9 @@ const RAW_ACHIEVEMENTS: AchievementDef[] = [
 	// Котик в ангаре (user_progress.cat_stage, components/hangar-cat.tsx).
 	{ key: 'fridge_sg', group: 'start', emoji: '⚖️', title: 'Сол Гудман был здесь!', desc: 'Нашёл надпись, нацарапанную в холодильнике котика' },
 	{ key: 'schrodinger', group: 'start', emoji: '📦', title: 'Кот Шрёдингера', desc: 'Открыл коробку и узнал, жив котик или спит' },
+	{ key: 'cat_feed_10', group: 'habit', emoji: '🥛', title: 'Заботливый хозяин', desc: 'Кормил котика 10 дней подряд' },
+	{ key: 'cat_feed_50', group: 'habit', emoji: '🐟', title: 'Кошачий шеф', desc: 'Кормил котика 50 дней подряд' },
+	{ key: 'cat_feed_100', group: 'habit', emoji: '👑', title: 'Лучший друг котика', desc: 'Кормил котика 100 дней подряд — мыши обходят ангар стороной' },
 	{ key: 'cat_home', group: 'start', emoji: '🐱', iconSrc: '/hangar/life/cat-pet.webp', title: 'Кот в ангаре', desc: 'Приютил рыжего котика — теперь он живёт на картонке в ангаре' },
 	{ key: 'medal_gold_5', group: 'medals', emoji: '🥇', iconSrc: '/medals/medal-gold.webp', title: 'Нужен сейф', desc: '5 золотых медалей — пора прятать от грабителей' },
 ];
@@ -202,6 +205,9 @@ export const REWARDS: Record<string, AchievementReward> = {
 	cat_home: { kind: 'coins', amount: 50 },
 	fridge_sg: { kind: 'pizza', amount: 1 },
 	schrodinger: { kind: 'coins', amount: 50 },
+	cat_feed_10: { kind: 'gems', amount: 5 },
+	cat_feed_50: { kind: 'gems', amount: 20 },
+	cat_feed_100: { kind: 'pizza', amount: 1 },
 };
 
 export const rewardText = (r: AchievementReward) =>

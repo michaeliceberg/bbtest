@@ -53,3 +53,23 @@ export async function buyCatFood(kind: CatFood): Promise<{ ok: boolean; count?: 
     if (r.length > 0) return { ok: true, count: Number(r[0].n) }
     return { ok: false, reason: 'coins' }
 }
+
+// Покормить котика одной купленной порцией (раз в день по Москве). Серия кормлений: вчера кормили — +1, иначе с 1.
+// Всё одним UPDATE: порции нет или сегодня уже кормили — ничего не меняется.
+export async function feedCat(kind: CatFood): Promise<{ ok: boolean; reason?: 'empty' | 'fed'; streak?: number; left?: number }> {
+    const session = await auth()
+    const userId = session?.user?.id
+    if (!userId || !(kind in CAT_FOOD)) return { ok: false }
+    const today = sql`(now() AT TIME ZONE 'Europe/Moscow')::date`
+    const streak = sql`CASE WHEN cat_fed_date = ${today} - 1 THEN cat_feed_streak + 1 ELSE 1 END`
+    const r = (kind === 'milk'
+        ? await db.execute(sql`UPDATE user_progress SET cat_milk = cat_milk - 1, cat_feed_streak = ${streak},
+            cat_feed_best = GREATEST(cat_feed_best, ${streak}), cat_fed_date = ${today}
+            WHERE user_id = ${userId} AND cat_milk > 0 AND cat_fed_date IS DISTINCT FROM ${today} RETURNING cat_feed_streak AS s, cat_milk AS n`)
+        : await db.execute(sql`UPDATE user_progress SET cat_sausage = cat_sausage - 1, cat_feed_streak = ${streak},
+            cat_feed_best = GREATEST(cat_feed_best, ${streak}), cat_fed_date = ${today}
+            WHERE user_id = ${userId} AND cat_sausage > 0 AND cat_fed_date IS DISTINCT FROM ${today} RETURNING cat_feed_streak AS s, cat_sausage AS n`)) as unknown as { s: number; n: number }[]
+    if (r.length > 0) return { ok: true, streak: Number(r[0].s), left: Number(r[0].n) }
+    const cur = (await db.execute(sql`SELECT cat_fed_date = ${today} AS fed FROM user_progress WHERE user_id = ${userId}`)) as unknown as { fed: boolean }[]
+    return { ok: false, reason: cur[0]?.fed ? 'fed' : 'empty' }
+}

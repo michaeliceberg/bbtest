@@ -20,17 +20,17 @@ import { useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { CatFridgeModal } from '@/components/cat-fridge-modal'
 import { reportAchievement } from '@/lib/achievementsClient'
-import type { CatFoodStock } from '@/lib/catFood'
+import { liveFeedStreak, moscowToday, type CatFood, type CatFoodStock } from '@/lib/catFood'
 import { bringCatHome, fixCatFridge, setCatName } from '@/actions/cat'
 import { checkCatName, CAT_NAME_MAX } from '@/lib/catName'
 import { useAchievementUnlockStore } from '@/store/use-achievement-unlock-store'
 import { playSound, playJustClick, CASE_PRIZE_SOUND } from '@/lib/sound'
 
-type Pose = 'happy' | 'peek' | 'walk-1' | 'walk-2' | 'walk-3' | 'jump' | 'land' | 'sun' | 'sun-wink' | 'meow' | 'pet' | 'sniff' | 'sleep' | 'sit' | 'sit-half' | 'sit-closed' | 'sit-shy'
+type Pose = 'happy' | 'peek' | 'walk-1' | 'walk-2' | 'walk-3' | 'eat-bowl' | 'jump' | 'land' | 'sun' | 'sun-wink' | 'meow' | 'pet' | 'sniff' | 'sleep' | 'sit' | 'sit-half' | 'sit-closed' | 'sit-shy'
 
 // Размер позы в исходных пикселях (обрезка по картинке, до уменьшения).
 const CAT_PX: Record<Pose, [number, number]> = {
-    peek: [536, 651], 'walk-1': [811, 689], 'walk-2': [811, 689], 'walk-3': [811, 689], jump: [750, 715], land: [825, 671], sun: [892, 581], 'sun-wink': [891, 640], meow: [648, 750], pet: [611, 764], sniff: [632, 727],
+    peek: [536, 651], 'walk-1': [811, 689], 'walk-2': [811, 689], 'walk-3': [811, 689], 'eat-bowl': [753, 450], jump: [750, 715], land: [825, 671], sun: [892, 581], 'sun-wink': [891, 640], meow: [648, 750], pet: [611, 764], sniff: [632, 727],
     sleep: [672, 453], happy: [626, 755], sit: [626, 755], 'sit-half': [626, 755], 'sit-closed': [626, 755], 'sit-shy': [627, 635],
 }
 // Ходьба — 3 кадра Leonardo (docs/hangar/leonardo/cat-walk2-*): лапа вперёд → широкий шаг → лапы собраны.
@@ -367,7 +367,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const [step, setStep] = useState(0)
     // ky — по какой глубине пола считать размер (котик на бочке стоит выше пола, но размер — как у бочки),
     // perch — сидит на бочке и греется, jump — сейчас прыгает (вверх на бочку или вниз)
-    const [stroll, setStroll] = useState<{ x: number; y: number; walking: boolean; flip: boolean; dur: number; under?: boolean; ky?: number; k?: number; perch?: boolean; jump?: boolean; crouch?: boolean; land?: boolean } | null>(null)
+    const [stroll, setStroll] = useState<{ x: number; y: number; walking: boolean; flip: boolean; dur: number; under?: boolean; ky?: number; k?: number; eat?: boolean; perch?: boolean; jump?: boolean; crouch?: boolean; land?: boolean } | null>(null)
     const [wink, setWink] = useState(false)
     const strollingRef = useRef(false)
     // стол — через ref: объект desk новый на каждой перерисовке ангара, в зависимостях эффекта прогулки он сбрасывал
@@ -383,6 +383,9 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const [sboxSay, setSboxSay] = useState<string | null>(null)
     const sboxRef = useRef<Place | null>(null)
     const sboxResume = useRef<(() => void) | null>(null) // продолжение прогулки после открытия: выпрыгнуть и домой
+    // покормили — котик спрыгивает с коробки, ест из миски и возвращается (задаётся в эффекте прогулки)
+    const eatNowRef = useRef<(() => void) | null>(null)
+    const busyRef = useRef(false) // котик занят едой — новую прогулку не начинать
     strollingRef.current = !!stroll?.walking
     const [react, setReact] = useState<'pet' | 'meow' | 'happy' | null>(null)
     // ночью: тап по спящему котику — ему снится задачка (не исчезает сама)
@@ -419,7 +422,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     // открытый холодильник (окно с полками) и сколько еды куплено
     const [shopOpen, setShopOpen] = useState(false)
     const [food, setFood] = useState<CatFoodStock>(catFood ?? { milk: 0, sausage: 0 })
-    useEffect(() => { if (catFood) setFood(catFood) }, [catFood?.milk, catFood?.sausage])
+    useEffect(() => { if (catFood) setFood(catFood) }, [catFood?.milk, catFood?.sausage, catFood?.fedDate, catFood?.streak])
     useEffect(() => { if (fridgeFixed) setFridgeOk(true) }, [fridgeFixed])
     const [name, setName] = useState<string | null>(catName)
     const [nameOpen, setNameOpen] = useState(false)
@@ -507,8 +510,8 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
         const later = (ms: number, f: () => void) => timers.push(setTimeout(() => alive && f(), ms))
         const durTo = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.min(3.6, Math.max(1.4, Math.hypot(a.x - b.x, a.y - b.y) / STROLL_SPEED))
         // Прогулка по шагам на одной шкале времени: t — когда начать следующий шаг (мс от начала прогулки).
-        const go = () => {
-            if (!demo && Math.random() < 0.5) { later(20000 + Math.random() * 15000, go); return }
+        const go = (eatOnly = false) => {
+            if (!eatOnly && (busyRef.current || (!demo && Math.random() < 0.5))) { later(20000 + Math.random() * 15000, () => go()); return }
             const bed = bedRef.current
             if (!bed) return
             const BEDp = { x: bed.x, y: bed.y }
@@ -534,7 +537,17 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             const comeHome = (from: { x: number; y: number }) => {
                 walk(from, boxFloor)
                 jump(boxFloor, BEDp, BEDp.x < boxFloor.x, {}, { k: bed.k })
-                at(() => { setStroll(null); later(demo ? 1500 : 25000 + Math.random() * 20000, go) })
+                at(() => { setStroll(null); later(demo ? 1500 : 25000 + Math.random() * 20000, () => go()) })
+            }
+            if (eatOnly) {
+                // поесть: спрыгнул, ест из миски перед коробкой, запрыгнул обратно
+                busyRef.current = true
+                leaveBox({ x: boxFloor.x + 1 })
+                at(() => { setStroll({ ...boxFloor, walking: false, flip: false, dur: 0, eat: true }); setSay('Ням-ням! 😋'); setReact('happy') })
+                t += 4200
+                jump(boxFloor, BEDp, true, {}, { k: bed.k })
+                at(() => { setStroll(null); busyRef.current = false })
+                return
             }
 
             // коробка Шрёдингера: запрыгнул внутрь → коробка закрылась → ждём, пока откроют (или сам через минуту)
@@ -590,9 +603,10 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             at(() => setStroll({ ...boxFloor, walking: true, flip: boxFloor.x < spot.x, dur: back, under }))
             t += back * 1000
             jump(boxFloor, BEDp, BEDp.x < boxFloor.x, {}, { k: bed.k })
-            at(() => { setStroll(null); later(demo ? 1500 : 25000 + Math.random() * 20000, go) })
+            at(() => { setStroll(null); later(demo ? 1500 : 25000 + Math.random() * 20000, () => go()) })
         }
-        later(demo ? 800 : 15000 + Math.random() * 15000, go)
+        later(demo ? 800 : 15000 + Math.random() * 15000, () => go())
+        eatNowRef.current = () => { if (!busyRef.current) go(true) }
         return () => { alive = false; timers.forEach(clearTimeout) }
     }, [phase, bare, night, demo])
 
@@ -693,7 +707,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const pose: Pose = night ? 'sleep' : react ?? blink
     // где говорит котик: над коробкой или над точкой прогулки (верх его картинки)
     // поза на прогулке: идёт / прыгает (кадр широкого шага) / лежит под столом / греется на бочке / сидит
-    const strollPose: Pose = !stroll ? 'sit' : stroll.walking ? WALK_FRAMES[step] : stroll.crouch ? 'walk-3' : stroll.jump ? 'jump' : stroll.land ? 'land'
+    const strollPose: Pose = !stroll ? 'sit' : stroll.walking ? WALK_FRAMES[step] : stroll.eat ? 'eat-bowl' : stroll.crouch ? 'walk-3' : stroll.jump ? 'jump' : stroll.land ? 'land'
         : stroll.under ? 'sleep' : stroll.perch ? (wink ? 'sun-wink' : 'sun') : 'sit-shy'
     const strollBox: Pose = !stroll ? 'sit' : stroll.walking ? 'walk-1' : strollPose
     const strollK = stroll ? stroll.k ?? kAt(stroll.ky ?? stroll.y) : BED_K
@@ -704,6 +718,12 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             <Fridge p={frP} fixed={fridgeOk} justFixed={fridgeJust} onClick={bare ? undefined : !fridgeOk ? () => { playJustClick(); setNoCoins(false); setNameOpen(false); setFridgeOpen((v) => !v) } : () => { playJustClick(); setNameOpen(false); setShopOpen(true) }} />
             {shopOpen && typeof document !== 'undefined' && createPortal(
                 <CatFridgeModal stock={food} catName={name} offline={!!onHome} onClose={() => setShopOpen(false)}
+                    fedToday={food.fedDate === moscowToday()} feedStreak={liveFeedStreak(food.fedDate, food.streak)}
+                    onFed={(k: CatFood, left: number, streak: number) => {
+                        setFood((f) => ({ ...f, [k]: left, fedDate: moscowToday(), streak })); setShopOpen(false)
+                        setTimeout(() => { if (eatNowRef.current && !stroll) eatNowRef.current(); else doReact('happy') }, 400)
+                        if (!onHome) { useAchievementUnlockStore.getState().check(); router.refresh() }
+                    }}
                     onBought={(k, n) => { setFood((f) => ({ ...f, [k]: n })); if (!onHome) router.refresh() }} />, document.body)}
             <NameSign fr={frP} name={name} onClick={!bare ? () => { playJustClick(); setFridgeOpen(false); setNameOpen((v) => !v) } : undefined} />
             {!bare && nameOpen && <NamePanel fr={frP} initial={name ?? ''} onSave={saveName} onClose={() => setNameOpen(false)} />}
@@ -739,7 +759,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                     <motion.div className="absolute inset-0"
                         animate={{ y: stroll.walking ? ['0%', '-1.5%', '0%'] : stroll.jump ? ['0%', '-45%', '0%'] : '0%' }}
                         transition={stroll.jump ? { duration: stroll.dur, ease: 'easeOut' } : { duration: 0.3, repeat: stroll.walking ? Infinity : 0 }}>
-                        <CatImg pose={strollPose} poses={[...WALK_FRAMES, 'jump', 'land', 'sun', 'sun-wink', 'sit-shy', 'sleep']} flip={stroll.flip} />
+                        <CatImg pose={strollPose} poses={[...WALK_FRAMES, 'jump', 'land', 'sun', 'sun-wink', 'sit-shy', 'sleep', 'eat-bowl']} flip={stroll.flip} />
                     </motion.div>
                 </motion.div>
             ) : sbox !== 'idle' ? null : (
