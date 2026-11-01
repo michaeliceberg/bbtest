@@ -101,13 +101,37 @@ function KeyBadge({ x, y, n, ready, active, locked = false, onHover, onOpen }: {
     )
 }
 
-/** Задание второй части уже сделано — маленький зелёный номер с галочкой на ракете (не нажимается). */
-function DoneBadge({ x, y, n }: { x: number; y: number; n: number }) {
+/** Лоток пульта: кнопки заданий 14–20 в ряд (замок — тренажёры не пройдены, галочка — сделано). */
+function RocketTray({ parts, lit, onHover, onPick }: { parts: SceneItem[]; lit: (n: number) => boolean; onHover: (n: number | null) => void; onPick: (n: number) => void }) {
     return (
-        <span className="pointer-events-none absolute flex h-[clamp(16px,3.8cqw,23px)] -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-0.5 rounded-[7px] px-1 text-[clamp(10px,2.4cqw,13px)] font-black leading-none"
-            style={{ left: pct(x), top: pct(y), zIndex: 1150, background: 'linear-gradient(180deg,#9BE07A,#5FA84A)', color: '#173A0F', boxShadow: '0 2px 0 #3E7A2E, 0 2px 6px rgba(0,0,0,.4)' }}>
-            <Check className="h-[0.85em] w-[0.85em]" strokeWidth={3.5} />{n}
-        </span>
+        <div className="rounded-t-2xl border-x-2 border-t-2 border-[#5A666C] px-2.5 pb-3 pt-2 shadow-[0_-6px_18px_rgba(0,0,0,.45)]"
+            style={{ background: 'linear-gradient(180deg,#46525A,#2A3338)' }}>
+            <div className="mb-2 flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-[#C9D3D8]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#6BE05A] shadow-[0_0_6px_#6BE05A]" />Ракета · вторая часть ЕГЭ
+            </div>
+            <div className="grid grid-cols-7 gap-1.5">
+                {parts.map((i) => {
+                    const done = i.state === 'fixed'
+                    const gold = done && !!i.mastered && !i.goldClaimed
+                    const look = done
+                        ? { background: 'linear-gradient(180deg,#9BE07A,#5FA84A)', color: '#173A0F', borderBottomColor: '#3E7A2E' }
+                        : i.locked
+                            ? { background: 'linear-gradient(180deg,#A9B4BA,#7D8A91)', color: '#1B2428', borderBottomColor: '#4E5A60' }
+                            : { background: 'linear-gradient(180deg,#FFE58A,#F2C35B)', color: '#3A2A08', borderBottomColor: '#B8862E' }
+                    return (
+                        <button key={i.num} type="button" aria-label={`Задание №${i.num}`} disabled={done && !gold}
+                            onClick={() => onPick(i.num)} onMouseEnter={() => onHover(i.num)} onMouseLeave={() => onHover(null)}
+                            className={`flex h-10 items-center justify-center gap-0.5 rounded-lg border-b-4 text-sm font-black leading-none active:border-b-0 disabled:cursor-default ${i.state === 'ready' ? 'animate-bounce' : ''}`}
+                            style={{ ...look, boxShadow: lit(i.num) ? '0 0 0 2px #FFF4C2, 0 0 10px 2px rgba(242,195,91,.8)' : undefined }}>
+                            {i.locked && !done && <Lock className="h-3 w-3" strokeWidth={3} />}
+                            {done && !gold && <Check className="h-3 w-3" strokeWidth={3.5} />}
+                            {gold && <Star className="h-3 w-3" fill="#3A2A08" />}
+                            {i.num}
+                        </button>
+                    )
+                })}
+            </div>
+        </div>
     )
 }
 
@@ -219,6 +243,10 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     const nextRocket = readyRocket ?? rocketParts.find((i) => i.state !== 'fixed')
     const ready = [...room.filter((i) => i.state === 'ready'), ...(readyRocket ? [readyRocket] : [])]
 
+    // Задания 14–20 — не значками на ракете (закрывали атмосферу), а на выезжающем лотке: нажал ракету (или красную
+    // кнопку пульта) — снизу выезжает лоток с кнопками 14…20, нажал ещё раз — уезжает обратно.
+    const [trayOpen, setTrayOpen] = useState(false)
+    const toggleTray = () => { playJustClick(); setTrayOpen((v) => !v) }
     const fixed = (num: number) => { setJustFixed(num); playSound(CASE_PRIZE_SOUND); setTimeout(() => setJustFixed(null), 1500) }
     // золотой предмет: получить ключ редкого кейса и сразу открыть барабан
     const [goldKey, setGoldKey] = useState<number | null>(null)
@@ -428,19 +456,11 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                             background: 'radial-gradient(ellipse 50% 60% at 50% 0%, rgba(255,214,140,0.45), transparent 75%)', mixBlendMode: 'screen' }} />
                 )}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img key={R.src} src={R.src} alt="Ракета" draggable={false} className={`absolute select-none ${nextRocket ? 'cursor-pointer' : ''}`}
-                    onClick={() => { if (nextRocket) openTask(nextRocket.num) }}
-                    onMouseEnter={() => { if (nextRocket) setHover(nextRocket.num) }} onMouseLeave={() => setHover(null)}
-                    style={{ ...placeStyle(R), filter: FLOOR_SHADOW, ...litStyle(!!nextRocket && lit(nextRocket.num)), animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
+                <img key={R.src} src={R.src} alt="Ракета" draggable={false} className={`absolute select-none ${bare ? '' : 'cursor-pointer'}`}
+                    onClick={() => { if (!bare) toggleTray() }}
+                    style={{ ...placeStyle(R), filter: FLOOR_SHADOW, ...litStyle(rocketParts.some((i) => i.state !== 'fixed' && lit(i.num))), animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
                 <HangarCat stage={catStage} layout={layout} desk={desk} barrel={barrelP} fridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} demo={catDemo} bare={bare} night={time === 'night'} onHome={onCatHome} />
                 {rocketGold && !bare && <GoldBadge x={R.x} y={R.y - R.h * 0.62} onOpen={() => openTask(rocketGold.num)} />}
-                {/* номера заданий второй части — столбиком прямо на ракете, снизу вверх 14 → 20; любое решённое задание = +1 деталь */}
-                {!bare && rocketParts.map((i, k) => {
-                    const y = R.y - R.h * (0.22 + (0.66 * k) / Math.max(1, rocketParts.length - 1))
-                    return i.state === 'fixed'
-                        ? <DoneBadge key={i.num} x={R.x} y={y} n={i.num} />
-                        : <KeyBadge key={i.num} x={R.x} y={y} n={i.num} ready={i.state === 'ready'} locked={!!i.locked} active={lit(i.num)} onHover={setHover} onOpen={openTask} />
-                })}
                 {room.filter((i) => i.num !== FAN_NUM).map((i) => {
                     const done = i.state === 'fixed'
                     const id = itemOf(i.num) // картинка предмета этого задания
@@ -498,11 +518,21 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 )}
             </div>
             </div>
+            {!bare && (
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 overflow-hidden" style={{ zIndex: 1250 }}>
+                    {/* без AnimatePresence (в проекте не всегда доигрывает уход) — лоток всегда в DOM, едет вверх/вниз */}
+                    <motion.div className={trayOpen && !openItem ? 'pointer-events-auto' : ''} initial={false}
+                        animate={{ y: trayOpen && !openItem ? 0 : '105%' }} transition={{ type: 'spring', stiffness: 380, damping: 32 }}>
+                        <RocketTray parts={rocketParts} lit={lit} onHover={setHover}
+                            onPick={(n) => { setTrayOpen(false); openTask(n) }} />
+                    </motion.div>
+                </div>
+            )}
             </div>
 
             {scrollMode && !openItem && (
                 // пульт с тремя кнопками: листать влево / к ракете / вправо (картинки Leonardo, public/hangar/ui)
-                <HangarControlPanel canLeft={edge.l} canRight={edge.r} onLeft={() => slide(-1)} onRocket={centerRocket} onRight={() => slide(1)} />
+                <HangarControlPanel canLeft={edge.l} canRight={edge.r} onLeft={() => slide(-1)} onRocket={() => { centerRocket(); toggleTray() }} onRight={() => slide(1)} />
             )}
             {!bare && panelItem && inBody((
                 // Плашка задания — под картинкой, чтобы не закрывать ангар; на компьютере ангар большой и выше экрана —
@@ -655,7 +685,7 @@ function HangarControlPanel({ canLeft, canRight, onLeft, onRocket, onRight }: { 
 
 // Брезент поверх предмета, к которому ещё не пройдены тренажёры: картинки Leonardo (public/hangar/tarp-*.webp,
 // исходники docs/hangar/leonardo/tarp-*), у каждого предмета свой по форме (TARP_OF_ITEM), растянут по размеру предмета.
-// Поверх кодом — трафаретная красная звезда Команданте на передней стороне ткани, замок сбоку.
+// Поверх кодом — трафаретная красная звезда Команданте на передней стороне ткани (замок — только у номера задания).
 // star — левый верхний угол и размер звезды в долях картинки + наклон вдоль края стороны; lock — центр замка.
 type TarpKind = 'square' | 'cube' | 'tall' | 'wide-rope' | 'wide-straps' | 'hang-tall' | 'hang-square'
 const TARPS: Record<TarpKind, { star: { l: number; t: number; w: number; h: number; skew: number }; lock: { l: number; t: number } }> = {
@@ -675,7 +705,7 @@ const TARP_OF_ITEM: Record<number, TarpKind> = {
 function Tarp({ item, style, onClick, onHover }: { item: number; style: React.CSSProperties; onClick: () => void; onHover: (on: boolean) => void }) {
     const z = typeof style.zIndex === 'number' ? style.zIndex + 1 : 20
     const kind = TARP_OF_ITEM[item] ?? 'square'
-    const { star, lock } = TARPS[kind]
+    const { star } = TARPS[kind]
     return (
         <button type="button" aria-label="Под брезентом — сначала тренажёры" onClick={onClick}
             onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)}
@@ -696,10 +726,6 @@ function Tarp({ item, style, onClick, onHover }: { item: number; style: React.CS
                     <path d="M50 4 L61 37 L96 37 L68 58 L79 92 L50 71 L21 92 L32 58 L4 37 L39 37 Z" fill="#D8352C" />
                 </g>
             </svg>
-            <span className="absolute flex aspect-square w-[clamp(14px,20%,26px)] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#2E331F] bg-[#D9DEE1] shadow-md"
-                style={{ left: `${lock.l}%`, top: `${lock.t}%` }}>
-                <Lock className="h-[55%] w-[55%] text-[#2E331F]" strokeWidth={3} />
-            </span>
         </button>
     )
 }
