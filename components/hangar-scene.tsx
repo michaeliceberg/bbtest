@@ -281,10 +281,10 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     const label = (i: SceneItem) => (i.num >= 14 ? ROCKET_STEP[Math.min(6, stage)] : FIX_LABEL[i.num] ?? 'Починить')
 
     return (
-        <div className={bare ? '' : 'mt-6 lg:mt-0'}>
+        <div className={bare || scrollMode ? '' : 'mt-6 lg:mt-0'}>
             <style>{`@keyframes hangar-pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:scale(1)}}`}</style>
             {/* ключ «N/20» и «Выйти» — плашками поверх картинки, вне прокручиваемой рамки (не уезжают при листании) */}
-            <div className="relative mx-auto" style={{ width: frame && frame.s < frame.w ? frame.s + 4 : '100%' }}>
+            <div className="relative mx-auto" style={{ width: frame && frame.s < frame.w ? frame.s : '100%' }}>
             {!bare && (
                 <span className="pointer-events-none absolute left-2.5 top-2.5 flex items-center gap-1.5 rounded-xl border-2 border-[#4A3A14] bg-[#151F23]/90 px-2.5 py-1 text-sm font-black text-[#F2E3C2] shadow-lg"
                     style={{ zIndex: 1200 }} title="Починено">
@@ -299,8 +299,8 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 </button>
             )}
             <div ref={frameRef} onScroll={onFrameScroll}
-                className={`hangar-frame relative w-full rounded-2xl border-2 border-[#2C3A41] ${scrollMode && !openItem ? 'overflow-x-auto overflow-y-hidden' : 'overflow-hidden'} ${frame ? '' : 'aspect-square'}`}
-                style={frame ? { height: frame.s + 4 } : undefined}>
+                className={`hangar-frame relative w-full ${scrollMode ? '' : 'rounded-2xl'} ${scrollMode && !openItem ? 'overflow-x-auto overflow-y-hidden' : 'overflow-hidden'} ${frame ? '' : 'aspect-square'}`}
+                style={frame ? { height: frame.s } : undefined}>
             <div className="relative overflow-hidden" style={frame ? { width: frame.s, height: frame.s, containerType: 'inline-size' } : { position: 'absolute', inset: 0, containerType: 'inline-size' }}>
                 {/* все слои сцены — в одной обёртке: при выборе задания она плавно приближается к предмету */}
                 <div className="absolute inset-0"
@@ -484,15 +484,18 @@ function RobotBubble({ x, y, joke, onClose }: { x: number; y: number; joke: ZnJo
     )
 }
 
-// Пульт под ангаром на телефоне (Leonardo: docs/hangar/leonardo/ui-panel-*.png). Планка с пустыми гнёздами — panel-plate,
-// колпачки кнопок вырезаны из картинки с кнопками и стоят ровно в гнёздах (координаты — % планки 986×337).
-// Нажатие: колпачок утапливается в гнездо (вниз, чуть меньше и темнее), зелёная лампочка над кнопкой вспыхивает.
+// Пульт под ангаром на телефоне (Leonardo: docs/hangar/leonardo/ui-panel-*.png). Планка с пустыми гнёздами разрезана на
+// 3 части (panel-l / panel-m / panel-r, разрез по гладкому металлу между лампочками и центральным гнездом) — между ними
+// растягивается полоска металла panel-fill, так пульт тянется на всю ширину, а кнопки не искажаются.
+// Колпачки вырезаны из картинки с кнопками и стоят ровно в гнёздах (координаты — % своей части; планка 986×337).
+// Нажатие: колпачок утапливается в гнездо (вниз, меньше, темнее), зелёная лампочка над кнопкой вспыхивает.
+const PANEL_PART = { l: 368, m: 247, r: 371, h: 337 }
 const PANEL_CAPS = {
-    left: { src: '/hangar/ui/cap-left.webp', left: 9.53, top: 18.1, w: 18.05, h: 52.82 },
-    rocket: { src: '/hangar/ui/cap-rocket.webp', left: 40.47, top: 17.8, w: 18.66, h: 54.3 },
-    right: { src: '/hangar/ui/cap-right.webp', left: 71.81, top: 18.1, w: 18.05, h: 52.82 },
-}
-const PANEL_LAMPS = { left: 34, right: 65.8 } // центры зелёных лампочек по x, y — 18.4%
+    left: { part: 'l', src: '/hangar/ui/cap-left.webp', left: 25.5, top: 18.1, w: 48.4, h: 52.82 },
+    rocket: { part: 'm', src: '/hangar/ui/cap-rocket.webp', left: 12.55, top: 17.8, w: 74.5, h: 54.3 },
+    right: { part: 'r', src: '/hangar/ui/cap-right.webp', left: 25.07, top: 18.1, w: 48, h: 52.82 },
+} as const
+const PANEL_LAMPS = { left: 91, right: 9.2 } // центры лампочек по x внутри panel-l / panel-r, y — 18.4%
 function HangarControlPanel({ canLeft, canRight, onLeft, onRocket, onRight }: { canLeft: boolean; canRight: boolean; onLeft: () => void; onRocket: () => void; onRight: () => void }) {
     const [flash, setFlash] = useState<{ k: 'left' | 'right'; n: number } | null>(null)
     const press = (k: keyof typeof PANEL_CAPS) => {
@@ -501,27 +504,39 @@ function HangarControlPanel({ canLeft, canRight, onLeft, onRocket, onRight }: { 
         if (k === 'left') onLeft(); else if (k === 'right') onRight(); else onRocket()
         if (k === 'rocket') setTimeout(() => setFlash({ k: 'right', n: Date.now() }), 120)
     }
-    const caps: [keyof typeof PANEL_CAPS, boolean, string][] = [['left', canLeft, 'Листать ангар влево'], ['rocket', true, 'К ракете'], ['right', canRight, 'Листать ангар вправо']]
-    return (
-        <div className="relative mx-auto mt-2 w-full max-w-[280px] select-none" style={{ aspectRatio: '986 / 337' }}>
+    const on = { left: canLeft, rocket: true, right: canRight }
+    const label = { left: 'Листать ангар влево', rocket: 'К ракете', right: 'Листать ангар вправо' }
+    const cap = (k: keyof typeof PANEL_CAPS) => {
+        const c = PANEL_CAPS[k]
+        return (
+            <button key={k} type="button" aria-label={label[k]} disabled={!on[k]} onClick={() => press(k)}
+                className="group absolute disabled:cursor-default"
+                style={{ left: `${c.left}%`, top: `${c.top}%`, width: `${c.w}%`, height: `${c.h}%` }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={c.src} alt="" draggable={false}
+                    className="pointer-events-none h-full w-full transition-[transform,filter] duration-75 group-active:translate-y-[7%] group-active:scale-[0.94] group-active:brightness-[0.82] group-disabled:opacity-40 group-disabled:grayscale group-disabled:group-active:translate-y-0 group-disabled:group-active:scale-100" />
+            </button>
+        )
+    }
+    const part = (p: 'l' | 'm' | 'r', children: React.ReactNode) => (
+        <div className="relative h-full shrink-0" style={{ aspectRatio: `${PANEL_PART[p]} / ${PANEL_PART.h}` }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/hangar/ui/panel-plate.webp" alt="" draggable={false} className="pointer-events-none absolute inset-0 h-full w-full" />
-            {flash && (
-                <span key={flash.n} className="pointer-events-none absolute h-[16%] w-[7%] -translate-x-1/2 -translate-y-1/2 rounded-full"
-                    style={{ left: `${PANEL_LAMPS[flash.k]}%`, top: '18.4%', background: 'radial-gradient(closest-side, #E8FFB0, #6BE05A 55%, transparent)', animation: 'panel-lamp .5s ease-out forwards' }} />
-            )}
-            {caps.map(([k, on, label]) => {
-                const c = PANEL_CAPS[k]
-                return (
-                    <button key={k} type="button" aria-label={label} disabled={!on} onClick={() => press(k)}
-                        className="group absolute disabled:cursor-default"
-                        style={{ left: `${c.left}%`, top: `${c.top}%`, width: `${c.w}%`, height: `${c.h}%` }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={c.src} alt="" draggable={false}
-                            className="pointer-events-none h-full w-full transition-[transform,filter] duration-75 group-active:translate-y-[7%] group-active:scale-[0.94] group-active:brightness-[0.82] group-disabled:opacity-40 group-disabled:grayscale group-disabled:group-active:translate-y-0 group-disabled:group-active:scale-100" />
-                    </button>
-                )
-            })}
+            <img src={`/hangar/ui/panel-${p}.webp`} alt="" draggable={false} className="pointer-events-none absolute inset-0 h-full w-full" />
+            {children}
+        </div>
+    )
+    const fill = <div className="h-full min-w-0 flex-1" style={{ background: 'url(/hangar/ui/panel-fill.webp) center / 100% 100%' }} />
+    const lamp = (k: 'left' | 'right') => flash?.k === k && (
+        <span key={flash.n} className="pointer-events-none absolute h-[16%] -translate-x-1/2 -translate-y-1/2 rounded-full"
+            style={{ left: `${PANEL_LAMPS[k]}%`, top: '18.4%', aspectRatio: '1', background: 'radial-gradient(closest-side, #E8FFB0, #6BE05A 55%, transparent)', animation: 'panel-lamp .5s ease-out forwards' }} />
+    )
+    return (
+        <div className="mt-2 flex h-[92px] w-full select-none">
+            {part('l', <>{lamp('left')}{cap('left')}</>)}
+            {fill}
+            {part('m', cap('rocket'))}
+            {fill}
+            {part('r', <>{lamp('right')}{cap('right')}</>)}
             <style>{`@keyframes panel-lamp{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}25%{opacity:1;transform:translate(-50%,-50%) scale(1.5)}100%{opacity:0;transform:translate(-50%,-50%) scale(1)}}`}</style>
         </div>
     )

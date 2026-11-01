@@ -67,7 +67,7 @@ export function HangarEntry({ items, layout, catStage = 0, catFridgeFixed = fals
                         className="pointer-events-none fixed inset-0 h-full w-full scale-125 object-cover"
                         style={{ filter: 'blur(36px) brightness(0.55) saturate(1.2)' }} />
                     <div className="pointer-events-none fixed inset-0" style={{ background: 'radial-gradient(ellipse at 50% 40%, rgba(15,23,27,0) 30%, rgba(15,23,27,0.75) 100%)' }} />
-                    <div className="relative mx-auto w-full max-w-xl px-4 pb-4 pt-4 lg:max-w-[1180px] lg:pb-4">
+                    <div className="relative mx-auto w-full max-w-xl px-4 pb-4 pt-2 lg:pt-4 lg:max-w-[1180px] lg:pb-4">
 <HangarScene items={items} layout={layout} catStage={catStage} catFridgeFixed={catFridgeFixed} catName={catName} onClose={() => setOpen(false)} onGoTask={goTask} />
                     </div>
                 </div>,

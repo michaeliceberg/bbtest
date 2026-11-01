@@ -90,6 +90,12 @@ function CatImg({ pose, poses, flip }: { pose: Pose; poses: Pose[]; flip?: boole
     )
 }
 
+/** Мягкая тень под лапками (низ картинки котика), не прыгает вместе с ним. */
+const CatShadow = () => (
+    <span className="pointer-events-none absolute left-[12%] w-[76%] rounded-[50%]"
+        style={{ bottom: '-3%', height: '12%', background: 'radial-gradient(closest-side, rgba(20,10,8,0.45), transparent)' }} />
+)
+
 function Bubble({ x, y, children }: { x: number; y: number; children: React.ReactNode }) {
     return (
         <div className="pointer-events-none absolute -translate-x-1/2 -translate-y-full" style={{ left: pct(x), top: pct(y), zIndex: 1160 }}>
@@ -322,6 +328,10 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const [step, setStep] = useState(0)
     const [stroll, setStroll] = useState<{ x: number; y: number; walking: boolean; flip: boolean; dur: number; under?: boolean } | null>(null)
     const strollingRef = useRef(false)
+    // стол — через ref: объект desk новый на каждой перерисовке ангара, в зависимостях эффекта прогулки он сбрасывал
+    // таймеры, и котик оставался в позе ходьбы («ходил на месте»)
+    const deskRef = useRef(desk)
+    deskRef.current = desk
     strollingRef.current = !!stroll?.walking
     const [react, setReact] = useState<'pet' | 'meow' | 'happy' | null>(null)
     // ночью: тап по спящему котику — ему снится задачка (не исчезает сама)
@@ -420,8 +430,9 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
         const go = () => {
             if (Math.random() < 0.5) { later(20000 + Math.random() * 15000, go); return }
             // любимое место — под столом с компьютером (лежит там подольше)
-            const under = !!desk && Math.random() < 0.4
-            const spot = under && desk ? { x: Math.round(desk.p.x - desk.p.w * 0.13), y: Math.round(desk.p.y - desk.p.h * 0.11) } : STROLL_SPOTS[Math.floor(Math.random() * STROLL_SPOTS.length)]
+            const dk = deskRef.current
+            const under = !!dk && Math.random() < 0.4
+            const spot = under && dk ? { x: Math.round(dk.p.x - dk.p.w * 0.13), y: Math.round(dk.p.y - dk.p.h * 0.11) } : STROLL_SPOTS[Math.floor(Math.random() * STROLL_SPOTS.length)]
             const d1 = durTo(BED, spot)
             setStroll({ ...spot, walking: true, flip: spot.x < BED.x, dur: d1, under })
             later(d1 * 1000, () => setStroll((st) => st && { ...st, walking: false }))
@@ -431,7 +442,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
         }
         later(15000 + Math.random() * 15000, go)
         return () => { alive = false; timers.forEach(clearTimeout) }
-    }, [phase, bare, night, desk])
+    }, [phase, bare, night])
 
     if (stage < 1) return null
 
@@ -512,6 +523,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                     initial={frames[0]}
                     animate={{ left: frames.map((f) => f.left), top: frames.map((f) => f.top), width: frames.map((f) => f.width), height: frames.map((f) => f.height) }}
                     transition={{ duration: WALK_S, ease: 'linear', times: [0, 0.3, 0.65, 1] }}>
+                    <CatShadow />
                     <motion.div className="absolute inset-0" animate={{ y: ['0%', '-4%', '0%'] }} transition={{ duration: 0.34, repeat: Infinity }}>
                         <CatImg pose={pose} poses={['walk-1', 'walk-2']} flip />
                     </motion.div>
@@ -547,6 +559,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                     animate={box(stroll.walking ? 'walk-1' : stroll.under ? 'sleep' : 'sit-shy', { x: stroll.x, y: stroll.y, k: kAt(stroll.y) })}
                     transition={{ duration: stroll.walking ? stroll.dur : 0, ease: 'linear' }}
                     onClick={stroll.walking || bare ? undefined : () => { playJustClick(); const r = Math.random(); doReact(r < 0.5 ? 'pet' : 'meow') }}>
+                    <CatShadow />
                     <motion.div className="absolute inset-0" animate={{ y: stroll.walking ? ['0%', '-4%', '0%'] : '0%' }} transition={{ duration: 0.34, repeat: stroll.walking ? Infinity : 0 }}>
                         <CatImg pose={stroll.walking ? (step ? 'walk-2' : 'walk-1') : stroll.under ? 'sleep' : 'sit-shy'} poses={['walk-1', 'walk-2', 'sit-shy', 'sleep']} flip={stroll.flip} />
                     </motion.div>
