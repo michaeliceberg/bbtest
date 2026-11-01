@@ -101,36 +101,47 @@ function KeyBadge({ x, y, n, ready, active, locked = false, onHover, onOpen }: {
     )
 }
 
-/** Лоток пульта: кнопки заданий 14–20 в ряд (замок — тренажёры не пройдены, галочка — сделано). */
+/** Лоток пульта: кнопки заданий 14–20 в гнёздах (картинка Leonardo public/hangar/ui/rocket-tray.webp,
+ *  исходник — docs/hangar/leonardo/ui-rocket-tray.png). Координаты гнёзд и таблички — в % картинки 1175×449.
+ *  Замок — тренажёры не пройдены, галочка — сделано, звезда — золото ждёт кейс. */
+const TRAY_SOCKETS: [number, number][] = [[11.32, 18.98], [22.98, 30.72], [35.15, 42.89], [47.06, 54.81], [58.98, 66.72], [70.81, 78.55], [82.55, 90.21]]
+const TRAY_SOCKET_Y: [number, number] = [39.42, 65.26]
 function RocketTray({ parts, lit, onHover, onPick }: { parts: SceneItem[]; lit: (n: number) => boolean; onHover: (n: number | null) => void; onPick: (n: number) => void }) {
     return (
-        <div className="rounded-t-2xl border-x-2 border-t-2 border-[#5A666C] px-2.5 pb-3 pt-2 shadow-[0_-6px_18px_rgba(0,0,0,.45)]"
-            style={{ background: 'linear-gradient(180deg,#46525A,#2A3338)' }}>
-            <div className="mb-2 flex items-center justify-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-[#C9D3D8]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#6BE05A] shadow-[0_0_6px_#6BE05A]" />Ракета · вторая часть ЕГЭ
-            </div>
-            <div className="grid grid-cols-7 gap-1.5">
-                {parts.map((i) => {
-                    const done = i.state === 'fixed'
-                    const gold = done && !!i.mastered && !i.goldClaimed
-                    const look = done
-                        ? { background: 'linear-gradient(180deg,#9BE07A,#5FA84A)', color: '#173A0F', borderBottomColor: '#3E7A2E' }
-                        : i.locked
-                            ? { background: 'linear-gradient(180deg,#A9B4BA,#7D8A91)', color: '#1B2428', borderBottomColor: '#4E5A60' }
-                            : { background: 'linear-gradient(180deg,#FFE58A,#F2C35B)', color: '#3A2A08', borderBottomColor: '#B8862E' }
-                    return (
-                        <button key={i.num} type="button" aria-label={`Задание №${i.num}`} disabled={done && !gold}
-                            onClick={() => onPick(i.num)} onMouseEnter={() => onHover(i.num)} onMouseLeave={() => onHover(null)}
-                            className={`flex h-10 items-center justify-center gap-0.5 rounded-lg border-b-4 text-sm font-black leading-none active:border-b-0 disabled:cursor-default ${i.state === 'ready' ? 'animate-bounce' : ''}`}
-                            style={{ ...look, boxShadow: lit(i.num) ? '0 0 0 2px #FFF4C2, 0 0 10px 2px rgba(242,195,91,.8)' : undefined }}>
-                            {i.locked && !done && <Lock className="h-3 w-3" strokeWidth={3} />}
-                            {done && !gold && <Check className="h-3 w-3" strokeWidth={3.5} />}
-                            {gold && <Star className="h-3 w-3" fill="#3A2A08" />}
-                            {i.num}
-                        </button>
-                    )
-                })}
-            </div>
+        <div className="relative mx-auto w-full max-w-[560px] select-none" style={{ aspectRatio: '1175 / 449', containerType: 'inline-size' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/hangar/ui/rocket-tray.webp" alt="" draggable={false} className="pointer-events-none absolute inset-0 h-full w-full" />
+            {/* лампочка «живая» — мягко мигает поверх нарисованной */}
+            <span className="pointer-events-none absolute aspect-square w-[7%] -translate-x-1/2 -translate-y-1/2 rounded-full animate-glow-pulse"
+                style={{ left: '12.48%', top: '13.8%', background: 'radial-gradient(closest-side, rgba(170,255,140,.75), transparent)' }} />
+            <span className="pointer-events-none absolute flex items-center justify-center font-black uppercase leading-none text-[#3B3A30]"
+                style={{ left: '32%', width: '34.8%', top: '10.7%', height: '9.4%', fontSize: '2.7cqw', letterSpacing: '0.08em', whiteSpace: 'nowrap', textShadow: '0 1px 0 rgba(255,255,255,.55)' }}>
+                Вторая часть ЕГЭ
+            </span>
+            {parts.slice(0, 7).map((i, k) => {
+                const [l, r] = TRAY_SOCKETS[k]
+                const done = i.state === 'fixed'
+                const gold = done && !!i.mastered && !i.goldClaimed
+                const look = done
+                    ? { background: 'linear-gradient(180deg,#9BE07A,#5FA84A)', color: '#173A0F', borderBottomColor: '#3E7A2E' }
+                    : i.locked
+                        ? { background: 'linear-gradient(180deg,#A9B4BA,#7D8A91)', color: '#1B2428', borderBottomColor: '#4E5A60' }
+                        : { background: 'linear-gradient(180deg,#FFE58A,#F2C35B)', color: '#3A2A08', borderBottomColor: '#B8862E' }
+                const padX = (r - l) * 0.12
+                const padY = (TRAY_SOCKET_Y[1] - TRAY_SOCKET_Y[0]) * 0.1
+                return (
+                    <button key={i.num} type="button" aria-label={`Задание №${i.num}`} disabled={done && !gold}
+                        onClick={() => onPick(i.num)} onMouseEnter={() => onHover(i.num)} onMouseLeave={() => onHover(null)}
+                        className={`absolute flex flex-col items-center justify-center rounded-[1.2cqw] border-b-4 font-black leading-none active:border-b-0 disabled:cursor-default ${i.state === 'ready' ? 'animate-bounce' : ''}`}
+                        style={{ ...look, left: `${l + padX}%`, width: `${r - l - 2 * padX}%`, top: `${TRAY_SOCKET_Y[0] + padY}%`, height: `${TRAY_SOCKET_Y[1] - TRAY_SOCKET_Y[0] - 2 * padY}%`,
+                            fontSize: '3.6cqw', boxShadow: lit(i.num) ? '0 0 0 2px #FFF4C2, 0 0 10px 2px rgba(242,195,91,.8)' : undefined }}>
+                        {i.locked && !done && <Lock className="h-[0.75em] w-[0.75em]" strokeWidth={3} />}
+                        {done && !gold && <Check className="h-[0.8em] w-[0.8em]" strokeWidth={3.5} />}
+                        {gold && <Star className="h-[0.8em] w-[0.8em]" fill="#3A2A08" />}
+                        {i.num}
+                    </button>
+                )
+            })}
         </div>
     )
 }
