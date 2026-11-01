@@ -637,32 +637,39 @@ function HangarControlPanel({ canLeft, canRight, onLeft, onRocket, onRight }: { 
     )
 }
 
-// Брезент поверх предмета, к которому ещё не пройдены тренажёры: ткань накрывает предмет, сверху замок.
+// Брезент поверх предмета, к которому ещё не пройдены тренажёры: картинка Leonardo (public/hangar/tarp-square.webp,
+// исходник docs/hangar/leonardo/tarp-square.png), растянутая по размеру предмета. Поверх кодом — трафаретная эмблема
+// Команданте на правой (передней) стороне ткани: красная звезда и «GG», наклонены вдоль верхнего края стороны;
+// замок — на левой стороне. Координаты — доли картинки брезента.
+const TARP_SRC = '/hangar/tarp-square.webp'
 function Tarp({ style, onClick, onHover }: { style: React.CSSProperties; onClick: () => void; onHover: (on: boolean) => void }) {
     const z = typeof style.zIndex === 'number' ? style.zIndex + 1 : 20
     return (
         <button type="button" aria-label="Под брезентом — сначала тренажёры" onClick={onClick}
             onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)}
-            className="absolute cursor-pointer" style={{ ...style, zIndex: z, scale: '1.1', filter: FLOOR_SHADOW }}>
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden>
+            className="absolute cursor-pointer" style={{ ...style, zIndex: z, scale: '1.12', filter: FLOOR_SHADOW }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={TARP_SRC} alt="" draggable={false} className="absolute inset-0 h-full w-full select-none" style={{ objectFit: 'fill' }} />
+            {/* эмблема по трафарету: краска местами стёрлась (шум-маска) */}
+            <svg viewBox="0 0 100 100" className="pointer-events-none absolute"
+                style={{ left: '50%', top: '22%', width: '28%', height: '36%', transform: 'skewY(-13deg)', opacity: 0.85 }} aria-hidden>
                 <defs>
-                    <linearGradient id="tarp-g" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0" stopColor="#7D8566" />
-                        <stop offset="0.55" stopColor="#5E6649" />
-                        <stop offset="1" stopColor="#474E37" />
-                    </linearGradient>
+                    <filter id="tarp-worn" x="0" y="0" width="100%" height="100%">
+                        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" result="n" />
+                        <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.2 1.6" result="m" />
+                        <feComposite in="SourceGraphic" in2="m" operator="in" />
+                    </filter>
                 </defs>
-                {/* ткань: скруглённый верх, неровный низ с провисами */}
-                <path d="M4 100 C2 70 3 40 10 22 C18 6 40 2 52 3 C68 4 86 8 92 24 C98 42 98 72 96 100 L88 96 L80 100 L70 95 L60 100 L49 95 L38 100 L27 95 L16 100 L9 96 Z"
-                    fill="url(#tarp-g)" stroke="#2E331F" strokeWidth="2.2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
-                {/* складки */}
-                <path d="M30 12 C26 40 24 70 27 95 M58 6 C60 40 62 70 60 98 M80 14 C84 45 86 70 84 97"
-                    fill="none" stroke="#3B4129" strokeWidth="1.6" vectorEffect="non-scaling-stroke" strokeLinecap="round" opacity="0.7" />
-                <path d="M18 20 C24 14 34 10 44 9" fill="none" stroke="#A3AB86" strokeWidth="1.6" vectorEffect="non-scaling-stroke" strokeLinecap="round" opacity="0.6" />
-                {/* верёвка */}
-                <path d="M5 62 C30 68 70 68 96 60" fill="none" stroke="#C9A86A" strokeWidth="2.4" vectorEffect="non-scaling-stroke" strokeLinecap="round" />
+                <g filter="url(#tarp-worn)">
+                    <path d="M50 4 L61 37 L96 37 L68 58 L79 92 L50 71 L21 92 L32 58 L4 37 L39 37 Z" fill="#D8352C" />
+                </g>
             </svg>
-            <span className="absolute left-1/2 top-[56%] flex aspect-square w-[clamp(18px,34%,40px)] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#2E331F] bg-[#D9DEE1]">
+            <span className="pointer-events-none absolute flex items-center justify-center font-black leading-none"
+                style={{ left: '50%', top: '57%', width: '28%', transform: 'skewY(-13deg)', fontFamily: 'var(--font-nunito), sans-serif',
+                    fontSize: 'clamp(7px, 3.4cqw, 22px)', letterSpacing: '0.12em', color: '#D9C9A3', opacity: 0.55, mixBlendMode: 'screen' }}>
+                GG
+            </span>
+            <span className="absolute left-[27%] top-[52%] flex aspect-square w-[clamp(16px,24%,36px)] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#2E331F] bg-[#D9DEE1] shadow-md">
                 <Lock className="h-[55%] w-[55%] text-[#2E331F]" strokeWidth={3} />
             </span>
         </button>

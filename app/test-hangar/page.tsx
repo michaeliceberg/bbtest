@@ -32,10 +32,11 @@ export default function Page() {
     const [st, setSt] = useState<Record<number, St>>(() => Object.fromEntries(NUMS.map((n) => [n, 'broken'])))
     const [time, setTime] = useState<HangarTime>('day')
     const [cat, setCat] = useState(1)
+    const [tarp, setTarp] = useState(false) // сломанные — под брезентом
     const [catKey, setCatKey] = useState(0)
     useEffect(() => { getHangarLayout().then(setLayout).catch(() => setLayout(null)) }, [])
 
-    const items: SceneItem[] = NUMS.map((n) => ({ num: n, title: TITLES[n], state: st[n], progress: st[n] === 'broken' ? 0 : 1, href: null }))
+    const items: SceneItem[] = NUMS.map((n) => ({ num: n, title: TITLES[n], state: st[n], progress: st[n] === 'broken' ? 0 : 1, href: null, locked: tarp && st[n] === 'broken' && n !== 11 }))
     const all = (s: St) => setSt(Object.fromEntries(NUMS.map((n) => [n, s])))
     // ракета чинится по порядку — как в приложении «следующая деталь» одна
     const setNum = (n: number, s: St) => setSt((o) => ({ ...o, [n]: s }))
@@ -49,6 +50,7 @@ export default function Page() {
                     <Btn onClick={() => all('broken')}>Всё сломано</Btn>
                     <Btn onClick={() => all('ready')}>Всё можно чинить</Btn>
                     <Btn onClick={() => all('fixed')}>Всё починено</Btn>
+                    <Btn on={tarp} onClick={() => setTarp((v) => !v)}>Сломанные под брезентом</Btn>
                 </div>
                 <div className="mb-3 flex flex-wrap gap-2">
                     <Btn on={time === 'day'} onClick={() => setTime('day')}>День</Btn>
