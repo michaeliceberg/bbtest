@@ -140,8 +140,8 @@ export function CatFridgeModal({ stock, onBought, onClose, offline, catName }: {
                             style={{ rotate: '-4deg', opacity: sgTapped ? 0.9 : 0.7, mixBlendMode: 'multiply', transition: 'opacity .3s' }} />
                     </button>
                     {/* верхняя полка: продукты стоят на ней */}
-                    <div className="absolute grid grid-cols-2" style={{ left: '20%', width: '60%', top: '20.4%', height: '14.4%' }}>
-                        {item('milk', 34)}
+                    <div className="absolute grid grid-cols-2" style={{ left: '20%', width: '60%', top: '13.8%', height: '20.8%' }}>
+                        {item('milk', 51)}
                         {item('sausage', 72)}
                     </div>
                     {/* ценники на краю верхней полки */}
@@ -156,9 +156,9 @@ export function CatFridgeModal({ stock, onBought, onClose, offline, catName }: {
                                 style={{ left: `${f.x}%`, fontSize: f.s * 0.8, animationDuration: `${f.d}s`, animationDelay: `${f.delay}s` }}>❄</span>
                         ))}
                     </div>
-                    {/* лампочка мигнула — всё внутри на миг тускнеет */}
+                    {/* лампочка мигнула — всё внутри на миг тускнеет; zIndex выше продуктов (у пакетов свой zIndex 1–3, иначе они рисовались поверх тени) */}
                     <div className="pointer-events-none absolute transition-opacity duration-75"
-                        style={{ left: '14.4%', top: '13.5%', width: '70.7%', height: '74.5%', background: 'rgba(12,20,32,0.5)', opacity: dark ? 1 : 0 }} />
+                        style={{ left: '14.4%', top: '13.5%', width: '70.7%', height: '74.5%', background: 'rgba(12,20,32,0.5)', opacity: dark ? 1 : 0, zIndex: 30 }} />
                 </div>
                 <button type="button" onClick={onClose} aria-label="Закрыть холодильник"
                     className="mx-auto mt-3 flex items-center gap-1.5 rounded-xl border-2 border-b-4 border-[#3A2A1E] bg-[#FFF6E4] px-4 py-2 text-base font-black text-[#3A2A1E] active:border-b-0">
