@@ -12,6 +12,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { KeyRound, LogOut, Wrench, X } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { RepairIcon } from '@/components/repair-icon'
 import Link from 'next/link'
 import { L, JUNK, FAN_NUM, DECOR, PORTRAIT_NUM, itemOf, place, placeStyle, type LayoutOverrides } from '@/lib/hangarModel'
@@ -484,59 +485,71 @@ function RobotBubble({ x, y, joke, onClose }: { x: number; y: number; joke: ZnJo
     )
 }
 
-// Пульт под ангаром на телефоне (Leonardo: docs/hangar/leonardo/ui-panel-*.png). Планка с пустыми гнёздами разрезана на
-// 3 части (panel-l / panel-m / panel-r, разрез по гладкому металлу между лампочками и центральным гнездом) — между ними
-// растягивается полоска металла panel-fill, так пульт тянется на всю ширину, а кнопки не искажаются.
-// Колпачки вырезаны из картинки с кнопками и стоят ровно в гнёздах (координаты — % своей части; планка 986×337).
-// Нажатие: колпачок утапливается в гнездо (вниз, меньше, темнее), зелёная лампочка над кнопкой вспыхивает.
-const PANEL_PART = { l: 368, m: 247, r: 371, h: 337 }
+// Пульт под ангаром на телефоне (Leonardo: docs/hangar/leonardo/ui-panel2-*.png). Планка с пустыми гнёздами —
+// panel2-plate (на всю ширину, своя пропорция 1170×275), колпачки вырезаны из картинки с кнопками и стоят ровно в гнёздах
+// (координаты — % планки). Стрелка датчика стёрта с картинки и рисуется кодом: в покое чуть подрагивает, при нажатии
+// кнопки взлетает вверх и плавно, с перелётом, возвращается (пружина — разгон и торможение как у настоящей стрелки).
+// Нажатие кнопки: колпачок утапливается в гнездо (вниз, меньше, темнее), зелёная лампочка над ней вспыхивает.
 const PANEL_CAPS = {
-    left: { part: 'l', src: '/hangar/ui/cap-left.webp', left: 25.5, top: 18.1, w: 48.4, h: 52.82 },
-    rocket: { part: 'm', src: '/hangar/ui/cap-rocket.webp', left: 12.55, top: 17.8, w: 74.5, h: 54.3 },
-    right: { part: 'r', src: '/hangar/ui/cap-right.webp', left: 25.07, top: 18.1, w: 48, h: 52.82 },
-} as const
-const PANEL_LAMPS = { left: 91, right: 9.2 } // центры лампочек по x внутри panel-l / panel-r, y — 18.4%
+    left: { src: '/hangar/ui/cap2-left.webp', left: 6.5, top: 18.55, w: 12.82, h: 54.55 },
+    rocket: { src: '/hangar/ui/cap2-rocket.webp', left: 46.5, top: 17.09, w: 12.99, h: 55.27 },
+    right: { src: '/hangar/ui/cap2-right.webp', left: 80.34, top: 18.55, w: 12.82, h: 54.55 },
+}
+const PANEL_LAMPS = { left: 23.68, right: 76.32 } // центры зелёных лампочек по x, y — 17.09%
+const GAUGE = { x: 32.26, y: 53.82, w: 5.13, h: 21.82 } // ось стрелки и квадрат вокруг неё (60×60 точек планки)
+const NEEDLE_REST = -28 // градусы от вертикали: в покое стрелка слева, красная зона справа (~+50)
 function HangarControlPanel({ canLeft, canRight, onLeft, onRocket, onRight }: { canLeft: boolean; canRight: boolean; onLeft: () => void; onRocket: () => void; onRight: () => void }) {
     const [flash, setFlash] = useState<{ k: 'left' | 'right'; n: number } | null>(null)
+    const [needle, setNeedle] = useState({ a: NEEDLE_REST, kick: false })
+    const backTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+    // в покое стрелка изредка чуть гуляет — «прибор живой»
+    useEffect(() => {
+        const t = setInterval(() => setNeedle((n) => (n.kick ? n : { a: NEEDLE_REST + (Math.random() * 14 - 7), kick: false })), 3500)
+        return () => clearInterval(t)
+    }, [])
+    useEffect(() => () => { if (backTimer.current) clearTimeout(backTimer.current) }, [])
     const press = (k: keyof typeof PANEL_CAPS) => {
         playJustClick()
         setFlash({ k: k === 'right' ? 'right' : 'left', n: Date.now() })
         if (k === 'left') onLeft(); else if (k === 'right') onRight(); else onRocket()
         if (k === 'rocket') setTimeout(() => setFlash({ k: 'right', n: Date.now() }), 120)
+        // стрелка взлетает (ракета — до красной зоны), потом возвращается
+        setNeedle({ a: k === 'rocket' ? 52 : 18 + Math.random() * 16, kick: true })
+        if (backTimer.current) clearTimeout(backTimer.current)
+        backTimer.current = setTimeout(() => setNeedle({ a: NEEDLE_REST, kick: false }), k === 'rocket' ? 900 : 550)
     }
     const on = { left: canLeft, rocket: true, right: canRight }
     const label = { left: 'Листать ангар влево', rocket: 'К ракете', right: 'Листать ангар вправо' }
-    const cap = (k: keyof typeof PANEL_CAPS) => {
-        const c = PANEL_CAPS[k]
-        return (
-            <button key={k} type="button" aria-label={label[k]} disabled={!on[k]} onClick={() => press(k)}
-                className="group absolute disabled:cursor-default"
-                style={{ left: `${c.left}%`, top: `${c.top}%`, width: `${c.w}%`, height: `${c.h}%` }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={c.src} alt="" draggable={false}
-                    className="pointer-events-none h-full w-full transition-[transform,filter] duration-75 group-active:translate-y-[7%] group-active:scale-[0.94] group-active:brightness-[0.82] group-disabled:opacity-40 group-disabled:grayscale group-disabled:group-active:translate-y-0 group-disabled:group-active:scale-100" />
-            </button>
-        )
-    }
-    const part = (p: 'l' | 'm' | 'r', children: React.ReactNode) => (
-        <div className="relative h-full shrink-0" style={{ aspectRatio: `${PANEL_PART[p]} / ${PANEL_PART.h}` }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/hangar/ui/panel-${p}.webp`} alt="" draggable={false} className="pointer-events-none absolute inset-0 h-full w-full" />
-            {children}
-        </div>
-    )
-    const fill = <div className="h-full min-w-0 flex-1" style={{ background: 'url(/hangar/ui/panel-fill.webp) center / 100% 100%' }} />
-    const lamp = (k: 'left' | 'right') => flash?.k === k && (
-        <span key={flash.n} className="pointer-events-none absolute h-[16%] -translate-x-1/2 -translate-y-1/2 rounded-full"
-            style={{ left: `${PANEL_LAMPS[k]}%`, top: '18.4%', aspectRatio: '1', background: 'radial-gradient(closest-side, #E8FFB0, #6BE05A 55%, transparent)', animation: 'panel-lamp .5s ease-out forwards' }} />
-    )
     return (
-        <div className="mt-2 flex h-[92px] w-full select-none">
-            {part('l', <>{lamp('left')}{cap('left')}</>)}
-            {fill}
-            {part('m', cap('rocket'))}
-            {fill}
-            {part('r', <>{lamp('right')}{cap('right')}</>)}
+        <div className="relative mt-2 w-full select-none" style={{ aspectRatio: '1170 / 275' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/hangar/ui/panel2-plate.webp" alt="" draggable={false} className="pointer-events-none absolute inset-0 h-full w-full" />
+            <motion.div className="pointer-events-none absolute"
+                style={{ left: `${GAUGE.x - GAUGE.w / 2}%`, top: `${GAUGE.y - GAUGE.h / 2}%`, width: `${GAUGE.w}%`, height: `${GAUGE.h}%` }}
+                animate={{ rotate: needle.a }}
+                transition={needle.kick ? { type: 'spring', stiffness: 260, damping: 11 } : { type: 'spring', stiffness: 34, damping: 8 }}>
+                <svg viewBox="-30 -30 60 60" className="h-full w-full overflow-visible">
+                    <line x1={0} y1={8} x2={0} y2={-21} stroke="#2B2522" strokeWidth={3.4} strokeLinecap="round" />
+                    <circle r={4.6} fill="#2B2522" />
+                    <circle r={1.8} fill="#DDD8B1" />
+                </svg>
+            </motion.div>
+            {flash && (
+                <span key={flash.n} className="pointer-events-none absolute h-[15%] -translate-x-1/2 -translate-y-1/2 rounded-full"
+                    style={{ left: `${PANEL_LAMPS[flash.k]}%`, top: '17.09%', aspectRatio: '1', background: 'radial-gradient(closest-side, #E8FFB0, #6BE05A 55%, transparent)', animation: 'panel-lamp .5s ease-out forwards' }} />
+            )}
+            {(Object.keys(PANEL_CAPS) as (keyof typeof PANEL_CAPS)[]).map((k) => {
+                const c = PANEL_CAPS[k]
+                return (
+                    <button key={k} type="button" aria-label={label[k]} disabled={!on[k]} onClick={() => press(k)}
+                        className="group absolute disabled:cursor-default"
+                        style={{ left: `${c.left}%`, top: `${c.top}%`, width: `${c.w}%`, height: `${c.h}%` }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={c.src} alt="" draggable={false}
+                            className="pointer-events-none h-full w-full transition-[transform,filter] duration-75 group-active:translate-y-[7%] group-active:scale-[0.94] group-active:brightness-[0.82] group-disabled:opacity-40 group-disabled:grayscale group-disabled:group-active:translate-y-0 group-disabled:group-active:scale-100" />
+                    </button>
+                )
+            })}
             <style>{`@keyframes panel-lamp{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}25%{opacity:1;transform:translate(-50%,-50%) scale(1.5)}100%{opacity:0;transform:translate(-50%,-50%) scale(1)}}`}</style>
         </div>
     )
