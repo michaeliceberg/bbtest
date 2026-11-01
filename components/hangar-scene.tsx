@@ -131,7 +131,7 @@ function RocketTray({ parts, lit, onHover, onPick }: { parts: SceneItem[]; lit: 
                 const padY = (TRAY_SOCKET_Y[1] - TRAY_SOCKET_Y[0]) * 0.1
                 return (
                     <button key={i.num} type="button" aria-label={`Задание №${i.num}`} disabled={done && !gold}
-                        onClick={() => onPick(i.num)} onMouseEnter={() => onHover(i.num)} onMouseLeave={() => onHover(null)}
+                        onClick={() => onPick(i.num)} onPointerEnter={(e) => { if (e.pointerType === 'mouse') onHover(i.num) }} onPointerLeave={() => onHover(null)}
                         className={`absolute flex flex-col items-center justify-center rounded-[1.2cqw] border-b-4 font-black leading-none active:border-b-0 disabled:cursor-default ${i.state === 'ready' ? 'animate-bounce' : ''}`}
                         style={{ ...look, left: `${l + padX}%`, width: `${r - l - 2 * padX}%`, top: `${TRAY_SOCKET_Y[0] + padY}%`, height: `${TRAY_SOCKET_Y[1] - TRAY_SOCKET_Y[0] - 2 * padY}%`,
                             fontSize: '3.6cqw', boxShadow: lit(i.num) ? '0 0 0 2px #FFF4C2, 0 0 10px 2px rgba(242,195,91,.8)' : undefined }}>
@@ -219,7 +219,8 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     const robotSay = () => setRobotJoke({ joke: pickShortJoke(), key: Date.now() })
     useEffect(() => {
         setPanelNum(null)
-        if (openNum === null) return
+        // закрыли плашку — снимаем «наведение»: на телефоне касание наводит и не снимает его (подсветка залипала)
+        if (openNum === null) { setHover(null); return }
         const t = setTimeout(() => setPanelNum(openNum), ZOOM_MS)
         return () => clearTimeout(t)
     }, [openNum])
@@ -536,7 +537,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     <motion.div className={trayOpen && !openItem ? 'pointer-events-auto' : ''} initial={false}
                         animate={{ y: trayOpen && !openItem ? '26%' : '105%' }} transition={{ type: 'spring', stiffness: 380, damping: 32 }}>
                         <RocketTray parts={rocketParts} lit={lit} onHover={setHover}
-                            onPick={(n) => { setTrayOpen(false); openTask(n) }} />
+                            onPick={(n) => { setTrayOpen(false); setHover(null); openTask(n) }} />
                     </motion.div>
                 </div>
             )}
