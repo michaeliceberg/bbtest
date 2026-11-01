@@ -60,33 +60,46 @@ export function CatFridgeModal({ stock, onBought, onClose, offline, catName }: {
         onBought(kind, r.count)
     }
 
-    // продукт стоит на полке (низ картинки — на линии полки). Куплено 2–3 — стоят рядом друг за другом (молоко —
-    // в ряд, колбаски — горкой друг на друге); больше трёх — видно три, а справа снизу число: 4, 5, 6…
+    // Продукт стоит на полке (низ картинки — на линии полки). Куплено 2–3 — стоят рядом в один ряд на той же линии
+    // (молоко — пакеты чуть заходят друг за друга, колбаски — горкой), ряд всегда по центру над ценником.
+    // Больше трёх — видно три, справа снизу число. Купил ещё — весь ряд пружинит (bounce).
     const item = (kind: CatFood, w: number) => {
         const f = CAT_FOOD[kind]
         const n = stock[kind]
         const shown = Math.max(1, Math.min(n, 3))
         const pile = kind === 'sausage'
-        const size = pile ? w : w * [1, 0.86, 0.76][shown - 1]
+        // ширина одного пакета в % колонки: чем больше пакетов, тем чуть меньше, чтобы ряд влезал
+        const size = pile ? w : w * [1, 0.8, 0.68][shown - 1]
         return (
             <div className="relative flex h-full items-end justify-center">
-                {Array.from({ length: shown }, (_, i) => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <motion.img key={`${kind}-${i}`} src={f.src} alt={i === 0 ? f.title : ''} draggable={false}
-                        initial={n > 0 && i === shown - 1 ? { scale: 0.6, y: -20 } : false} animate={{ scale: 1, y: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 14 }}
-                        className="max-h-full select-none"
-                        style={{
-                            width: `${size}%`, filter: n > 0 ? (i > 0 ? `brightness(${1 - i * 0.08})` : undefined) : 'brightness(0) opacity(0.22)',
-                            position: i === 0 ? 'relative' : 'absolute', zIndex: shown - i,
-                            ...(i > 0 && !pile ? { left: `calc(50% - ${size / 2}% + ${i * size * 0.62}%)`, bottom: `${i * 2}%` } : {}),
-                            ...(i > 0 && pile ? { left: `calc(50% - ${size / 2}% + ${i * 4}%)`, bottom: `${i * 20}%` } : {}),
-                        }} />
-                ))}
-                {n > 3 && (
-                    // число — справа снизу от ряда пакетов (ряд кончается на 50% − size/2 + 2,24·size)
-                    <span className="absolute bottom-0 z-10 rounded-md bg-white/85 px-1 text-sm font-black leading-tight text-[#3A2A1E]"
-                        style={{ left: `calc(${50 - size / 2 + size * (pile ? 1 : 2.24)}% + 2px)` }}>{n}</span>
-                )}
+                <motion.div key={`${kind}-${n}`} className="relative flex h-full w-full items-end justify-center"
+                    initial={n > 0 ? { scale: 0.75, y: -10 } : false} animate={{ scale: 1, y: 0 }} transition={{ type: 'spring', stiffness: 420, damping: 11 }}>
+                    {pile ? (
+                        // колбаски — горкой: нижняя на полке, следующие лежат сверху чуть со сдвигом
+                        <div className="relative flex h-full items-end justify-center" style={{ width: `${size}%` }}>
+                            {Array.from({ length: shown }, (_, i) => (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img key={i} src={f.src} alt={i === 0 ? f.title : ''} draggable={false} className="select-none"
+                                    style={{ width: '100%', position: i === 0 ? 'relative' : 'absolute', left: i === 0 ? undefined : `${i * 6}%`, bottom: i === 0 ? undefined : `${i * 22}%`,
+                                        zIndex: shown - i, filter: n > 0 ? (i > 0 ? `brightness(${1 - i * 0.08})` : undefined) : 'brightness(0) opacity(0.22)' }} />
+                            ))}
+                        </div>
+                    ) : (
+                        // молоко — в ряд на одной линии: каждый следующий пакет чуть заходит за предыдущий; число — справа снизу от ряда
+                        <div className="relative flex h-full w-full items-end justify-center">
+                            {Array.from({ length: shown }, (_, i) => (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img key={i} src={f.src} alt={i === 0 ? f.title : ''} draggable={false} className="max-h-full min-w-0 select-none"
+                                    style={{ width: `${size}%`, marginLeft: i === 0 ? 0 : `-${size * 0.38}%`, zIndex: shown - i, position: 'relative',
+                                        filter: n > 0 ? (i > 0 ? `brightness(${1 - i * 0.08})` : undefined) : 'brightness(0) opacity(0.22)' }} />
+                            ))}
+                        </div>
+                    )}
+                    {n > 3 && (
+                        <span className="absolute bottom-0 z-10 rounded-md bg-white/85 px-1 text-sm font-black leading-tight text-[#3A2A1E]"
+                            style={{ left: `calc(50% + ${(pile ? size : size * (1 + 2 * 0.62)) / 2}% - 4px)` }}>{n}</span>
+                    )}
+                </motion.div>
             </div>
         )
     }
