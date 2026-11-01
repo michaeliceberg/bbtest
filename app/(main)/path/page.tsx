@@ -15,7 +15,7 @@ import { getWeeklySummary, snapshotForecast } from '@/lib/weeklyReport'
 import { WeeklyGrowthCard } from '@/components/weekly-growth-card'
 import { getOrCreateInvite } from '@/lib/invite'
 import { getInviteLink } from '@/lib/referral'
-import { getHangarItems, withTrainers } from '@/lib/hangar'
+import { getHangarItems } from '@/lib/hangar'
 import { getTrainerKeysByTask } from '@/lib/egeTrainerLinks'
 import { HangarScene } from '@/components/hangar-scene'
 import { getHangarLayout } from '@/actions/hangar-layout'
@@ -40,7 +40,7 @@ const PathPage = async () => {
     if (!lastDiag) return <DiagnosticIntro variant="screen" questionsCount={diagTasks} />
     // Снимок прогноза недели (для «Моя неделя» и воскресного отчёта родителю), потом сводка.
     if (map.primary > 0) await snapshotForecast(session.user.id, map.primary, map.test).catch(() => {})
-    const [weekly, invite, hangarItems, hangarLayout] = await Promise.all([getWeeklySummary(session.user.id), getOrCreateInvite(session.user.id), Promise.all([getHangarItems(session.user.id, map), getTrainerKeysByTask(session.user.id)]).then(([it, keys]) => withTrainers(it, keys)), getHangarLayout()])
+    const [weekly, invite, hangarItems, hangarLayout] = await Promise.all([getWeeklySummary(session.user.id), getOrCreateInvite(session.user.id), getTrainerKeysByTask(session.user.id).then((keys) => getHangarItems(session.user.id, map, keys)), getHangarLayout()])
     const weeklyCard = <WeeklyGrowthCard w={weekly} inviteUrl={getInviteLink(invite?.code, undefined, 'math')} />
     const diagCardOnly = doneDiag ? null : <DiagnosticIntro variant="card" questionsCount={diagTasks} resume={lastDiag.status === 'active'} />
     const diagCard = <>{diagCardOnly}{weeklyCard}</>

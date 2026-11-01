@@ -37,7 +37,7 @@ import { LevelCard } from '@/components/level-card';
 import { HangarInline } from '@/components/hangar-entry';
 import { StreakChip } from '@/components/streak-chip';
 import { LearnSectionHeader } from '@/components/learn-section-header';
-import { getHangarItems, withTrainers } from '@/lib/hangar';
+import { getHangarItems } from '@/lib/hangar';
 import { getEgeMap } from '@/lib/egeMap';
 import { getHangarLayout } from '@/actions/hangar-layout';
 import { hangarItemPic } from '@/lib/hangarModel';
@@ -384,7 +384,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
   const trainerKeys = activeCourse.title.includes('ЕГЭ Математика') ? await getTrainerKeysByTask(userId) : {}
   // Ангар («Мой путь») — только у ЕГЭ Математики: плитка справа от карточки уровня.
   const [hangarItems, hangarLayout] = activeCourse.title.includes('ЕГЭ Математика')
-    ? await Promise.all([getEgeMap(userId, 'math_profile').then((m) => getHangarItems(userId, m)).then((it) => withTrainers(it, trainerKeys)), getHangarLayout()])
+    ? await Promise.all([getEgeMap(userId, 'math_profile').then((m) => getHangarItems(userId, m, trainerKeys)), getHangarLayout()])
     : [null, null]
 
   // Раскрыт только один раздел: по умолчанию — где решали последним, иначе первый открытый непройденный.
@@ -517,7 +517,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
               const locked = !!item.locked && !isAdmin
               return (
                 <>
-                  <LearnSectionHeader num={item.num} title={item.title} pic={hangarItemPic(item.num, item.state === 'fixed')} tasks={item.tasks} trainers={item.trainers ?? []} />
+                  <LearnSectionHeader num={item.num} title={item.title} pic={hangarItemPic(item.num, item.state === 'fixed')} tasks={item.tasks} trainers={item.trainers ?? []} fixed={item.state === 'fixed'} />
                   {locked ? (
                     <div className='mt-4 rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-4'>
                       <p className='text-base font-black text-[#F2E3C2]'>🔒 Задачи откроются после тренажёров</p>

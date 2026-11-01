@@ -4,16 +4,19 @@
 // тренажёры d/t → задачи s/25. Сами тренажёры (кнопки тем с медалями) и уроки — ниже.
 
 import Link from 'next/link'
-import { ArrowLeft, Check, Dumbbell, ListChecks } from 'lucide-react'
+import { ArrowLeft, Check, Dumbbell, ListChecks, Star } from 'lucide-react'
 
-export function LearnSectionHeader({ num, title, pic, tasks, trainers }: {
+export function LearnSectionHeader({ num, title, pic, tasks, trainers, fixed = false }: {
     num: number; title: string; pic: string
-    tasks?: { solved: number; target: number }
+    tasks?: { solved: number; target: number; full?: number }
+    fixed?: boolean
     trainers: { title: string; percent: number }[]
 }) {
     const tDone = trainers.filter((t) => t.percent > 0).length
     const tOk = trainers.length === 0 || tDone >= trainers.length
     const solved = Math.min(tasks?.solved ?? 0, tasks?.target ?? 0)
+    const tGold = trainers.filter((t) => t.percent >= 100).length
+    const gold = fixed && tGold >= trainers.length && (tasks?.solved ?? 0) >= (tasks?.full ?? 0)
     const chip = (ok: boolean) => `flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-black ${ok ? 'bg-[#163322] text-[#9EE8B0]' : 'bg-[#0F171B] text-[#C9D3D9]'}`
     return (
         <div>
@@ -30,8 +33,15 @@ export function LearnSectionHeader({ num, title, pic, tasks, trainers }: {
                         {trainers.length > 0 && (
                             <span className={chip(tOk)}>{tOk ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : <Dumbbell className="h-3.5 w-3.5" />}Тренажёры {tDone}/{trainers.length}</span>
                         )}
-                        {tasks && tasks.target > 0 && (
+                        {/* до починки — сколько задач нужно, чтобы починить; после — путь к золоту (весь раздел + тренажёры на золото) */}
+                        {!fixed && tasks && tasks.target > 0 && (
                             <span className={chip(solved >= tasks.target)}><ListChecks className="h-3.5 w-3.5" />Задачи {solved}/{tasks.target}</span>
+                        )}
+                        {fixed && (
+                            <span className="flex items-center gap-1.5 rounded-lg bg-[#2A2410] px-2 py-1 text-xs font-black text-[#FFD84D]">
+                                <Star className="h-3.5 w-3.5" fill={gold ? '#FFD84D' : 'none'} />
+                                {gold ? 'Золото!' : `Золото: задачи ${Math.min(tasks?.solved ?? 0, tasks?.full ?? 0)}/${tasks?.full ?? 0}, тренажёры ${tGold}/${trainers.length}`}
+                            </span>
                         )}
                     </div>
                 </div>

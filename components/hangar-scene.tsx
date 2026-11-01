@@ -12,7 +12,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, useTransition, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
-import { Check, Dumbbell, KeyRound, ListChecks, Lock, LogOut, Wrench, X } from 'lucide-react'
+import { Check, Dumbbell, Star, KeyRound, ListChecks, Lock, LogOut, Wrench, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import type { CatFoodStock } from '@/lib/catFood'
 import { RepairIcon } from '@/components/repair-icon'
@@ -21,16 +21,21 @@ import { L, JUNK, FAN_NUM, DECOR, CAT_DECOR, PORTRAIT_NUM, itemOf, place, placeS
 import { HangarFan, FAN } from '@/components/hangar-fan'
 import { HangarCat } from '@/components/hangar-cat'
 import { HangarSky, HangarSpider, HangarHangingSpider, HangarBug, HangarPaper, ComputerFlicker, HangarMoon } from '@/components/hangar-life'
-import { fixHangarItem } from '@/actions/hangar'
+import { fixHangarItem, claimHangarGold } from '@/actions/hangar'
+import { openKeyCase } from '@/actions/open-key-case'
+import { CaseReel } from '@/components/CaseReel'
+import { getLessonCasePool } from '@/lib/caseRewards'
 import { playSound, playJustClick, CASE_PRIZE_SOUND } from '@/lib/sound'
 import { ZaNaukuArchive } from '@/components/za-nauku-archive'
 import { pickShortJoke, ZN_RUBRIC_TITLE, znSource, type ZnJoke } from '@/lib/zaNauku'
 
 export type SceneItem = {
     num: number; title: string; state: 'broken' | 'ready' | 'fixed'; progress: number; href: string | null
-    tasks?: { solved: number; target: number }
+    tasks?: { solved: number; target: number; full?: number }
     trainers?: { title: string; percent: number }[]
     locked?: boolean // «под брезентом»: сначала тренажёры к заданию
+    mastered?: boolean // золото: раздел решён весь, тренажёры на золоте
+    goldClaimed?: boolean // кейс за золото уже открыт
 }
 
 // По номеру ЗАДАНИЯ: что делаем с его предметом (кнопка «Починить») и шутка — про предмет и про это задание.
@@ -104,6 +109,8 @@ const FAN_GLOW = 'drop-shadow(0 0 3px #FFE58A) drop-shadow(0 0 10px #F2C35B) bri
 // Тень предмета на полу — по его собственному силуэту, прижатая к нему (drop-shadow на картинке). Раньше под предметом
 // рисовался отдельный размытый овал, он оказывался ниже предмета, и вещи будто парили над полом (шуруповёрт).
 export const FLOOR_SHADOW = 'drop-shadow(1px 3px 2px rgba(20,10,8,0.5))'
+// золотой предмет: тёплый ореол по силуэту (статично — без пересчёта на каждом кадре)
+const GOLD_SHINE = 'drop-shadow(0 0 3px #FFE58A) drop-shadow(0 0 9px rgba(255,200,60,.75)) brightness(1.08) saturate(1.1)'
 const LIT_Z = 1104 // выше затемнения времени суток (1100), ниже звёзд и луны (1105)
 
 export type HangarTime = Time
@@ -177,6 +184,10 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     const rocketParts = items.filter((i) => i.num >= 14)
     const stage = rocketParts.filter((i) => i.state === 'fixed').length
     const fixedCount = items.filter((i) => i.state === 'fixed').length
+    const goldCount = items.filter((i) => i.mastered).length
+    // золото, за которое ещё не забран кейс — у такого предмета прыгает звёздочка
+    const goldWaiting = (i?: SceneItem | null) => !!i?.mastered && !i.goldClaimed
+    const rocketGold = rocketParts.find(goldWaiting)
     const dirt = [1, 0.75, 0.5, 0.25, 0][Math.min(4, Math.floor(fixedCount / 4))]
     const junkLeft = Math.max(0, JUNK.length - Math.round((fixedCount * JUNK.length) / 16))
     const lampOn = byNum.get(8)?.state === 'fixed'
@@ -198,6 +209,17 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     const ready = [...room.filter((i) => i.state === 'ready'), ...(readyRocket ? [readyRocket] : [])]
 
     const fixed = (num: number) => { setJustFixed(num); playSound(CASE_PRIZE_SOUND); setTimeout(() => setJustFixed(null), 1500) }
+    // золотой предмет: получить ключ редкого кейса и сразу открыть барабан
+    const [goldKey, setGoldKey] = useState<number | null>(null)
+    const [goldError, setGoldError] = useState<string | null>(null)
+    const claimGold = (num: number) => {
+        if (onFix) { setOpenNum(null); return } // тестовая страница — без сервера
+        setGoldError(null)
+        start(async () => {
+            const r = await claimHangarGold(num)
+            if (r.keyId) { setOpenNum(null); setGoldKey(r.keyId) } else setGoldError(r.error ?? 'Не получилось')
+        })
+    }
     const fix = (num: number) => {
         if (onFix) { onFix(num); fixed(num); return }
         start(async () => {
@@ -300,7 +322,8 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     })()
     // открыть окошко задания: по ключику или по самому предмету (если он ещё не починен)
     const openTask = (num: number) => {
-        if (byNum.get(num)?.state === 'fixed') return
+        const it = byNum.get(num)
+        if (it?.state === 'fixed' && !goldWaiting(it)) return
         setZoomFrom(frameRef.current?.scrollLeft ?? 0)
         setOpenNum(num)
         const fr = frameRef.current?.getBoundingClientRect()
@@ -340,6 +363,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 <span className="pointer-events-none absolute left-2.5 top-2.5 flex items-center gap-1.5 rounded-xl border-2 border-[#4A3A14] bg-[#151F23]/90 px-2.5 py-1 text-sm font-black text-[#F2E3C2] shadow-lg"
                     style={{ zIndex: 1200 }} title="Починено">
                     <RepairIcon className="h-4 w-4 text-[#F2C35B]" />{fixedCount}/20
+                    {goldCount > 0 && <span className="ml-1 flex items-center gap-0.5 text-[#FFD84D]"><Star className="h-4 w-4" fill="#FFD84D" />{goldCount}</span>}
                 </span>
             )}
             {!bare && !onClose && cornerRight && (
@@ -398,6 +422,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     onMouseEnter={() => { if (nextRocket) setHover(nextRocket.num) }} onMouseLeave={() => setHover(null)}
                     style={{ ...placeStyle(R), filter: FLOOR_SHADOW, ...litStyle(!!nextRocket && lit(nextRocket.num)), animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
                 <HangarCat stage={catStage} layout={layout} desk={desk} barrel={barrelP} fridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} demo={catDemo} bare={bare} night={time === 'night'} onHome={onCatHome} />
+                {rocketGold && !bare && <GoldBadge x={R.x} y={R.y - R.h * 0.62} onOpen={() => openTask(rocketGold.num)} />}
                 {nextRocket && !bare && <KeyBadge x={R.x + R.w * (stage === 0 ? 0.3 : 0.44)} y={R.y - R.h * 0.55} n={nextRocket.num} ready={!!readyRocket} locked={!!nextRocket.locked} active={lit(nextRocket.num)} onHover={setHover} onOpen={openTask} />}
                 {room.filter((i) => i.num !== FAN_NUM).map((i) => {
                     const done = i.state === 'fixed'
@@ -415,11 +440,12 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                                     else openTask(i.num)
                                 }}
                                 onMouseEnter={() => { if (!done) setHover(i.num) }} onMouseLeave={() => setHover(null)}
-                                style={{ ...placeStyle(p), ...litStyle(!done && lit(i.num), catStage >= 2 && behindCatDecor(p)), ...(!onWall && !(!done && lit(i.num)) ? { filter: FLOOR_SHADOW } : {}), animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
+                                style={{ ...placeStyle(p), ...litStyle(!done && lit(i.num), catStage >= 2 && behindCatDecor(p)), ...(!onWall && !(!done && lit(i.num)) ? { filter: FLOOR_SHADOW } : {}), ...(i.mastered ? { filter: GOLD_SHINE } : {}), animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
                             {id === 7 && !done && !i.locked && <ComputerFlicker style={placeStyle(p)} />}
                             {i.locked && !done && <Tarp style={placeStyle(p)} onClick={() => openTask(i.num)} onHover={(on) => setHover(on ? i.num : null)} />}
                             {!done && !bare && <KeyBadge x={id === 5 && !done ? p.x - p.w * 0.32 : p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready'} locked={!!i.locked} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
-                            {done && !bare && (id === ARCHIVE_ITEM || id === ROBOT_ITEM) && !(id === ROBOT_ITEM && robotJoke) && (
+                            {done && !bare && goldWaiting(i) && <GoldBadge x={p.x} y={p.y - p.h - 14} onOpen={() => openTask(i.num)} />}
+                            {done && !bare && (id === ARCHIVE_ITEM || id === ROBOT_ITEM) && !(id === ROBOT_ITEM && robotJoke) && !goldWaiting(i) && (
                                 <FunBadge x={p.x} y={p.y - p.h - 6} label={id === ARCHIVE_ITEM ? 'Читать' : 'Шутка'}
                                     onClick={() => (id === ARCHIVE_ITEM ? setArchiveOpen(true) : robotSay())} />
                             )}
@@ -442,6 +468,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                         style={{ left: pct(FAN.x - FAN.bladesD / 2), top: pct(FAN.top), width: pct(FAN.bladesD), height: pct(FAN.motorH + 70), zIndex: 905 }}
                         onMouseEnter={() => setHover(FAN_NUM)} onMouseLeave={() => setHover(null)} onClick={() => openTask(FAN_NUM)} />
                 )}
+                {fan && goldWaiting(fan) && !bare && <GoldBadge x={FAN.x} y={FAN.top + FAN.motorH + 46} onOpen={() => openTask(FAN_NUM)} />}
                 {fan && fan.state !== 'fixed' && !bare && <KeyBadge x={FAN.x} y={FAN.top + FAN.motorH + 46} n={FAN_NUM} ready={fan.state === 'ready'} locked={!!fan.locked} active={lit(FAN_NUM)} onHover={setHover} onOpen={openTask} />}
                 <div className="pointer-events-none absolute inset-0 transition-[background] duration-700" style={{ background: TIME_TINT[time], mixBlendMode: 'multiply', zIndex: 1100 }} />
                 {time === 'night' && <HangarMoon cutout={R.rot ? undefined : { src: R.src, x: R.x, y: R.y, w: R.w, h: R.h }} />}
@@ -475,9 +502,13 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     </div>
                     <p className="mt-2 text-base font-bold leading-snug text-[#E8D9B8]">{panelItem.num >= 14 ? ROCKET_JOKE : ITEM_JOKE[panelItem.num]}</p>
                     {UNLOCK_HINT[panelItem.num] && <p className="mt-1.5 text-sm font-bold leading-snug text-[#9EE8B0]">{UNLOCK_HINT[panelItem.num]}</p>}
-                    <TaskSteps item={panelItem} fixLabel={label(panelItem)} pending={pending}
-                        onFix={() => { setOpenNum(null); fix(panelItem.num) }}
-                        onGo={onGoTask ? () => { setOpenNum(null); onGoTask(panelItem.num) } : undefined} />
+                    {panelItem.state === 'fixed' ? (
+                        <GoldClaim error={goldError} pending={pending} onClaim={() => claimGold(panelItem.num)} />
+                    ) : (
+                        <TaskSteps item={panelItem} fixLabel={label(panelItem)} pending={pending}
+                            onFix={() => { setOpenNum(null); fix(panelItem.num) }}
+                            onGo={onGoTask ? () => { setOpenNum(null); onGoTask(panelItem.num) } : undefined} />
+                    )}
                 </div>
                 </div>
             ))}
@@ -496,6 +527,13 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 </div>
             ) : null}
             {archiveOpen && <ZaNaukuArchive onClose={() => setArchiveOpen(false)} />}
+            {goldKey !== null && createPortal(
+                <div className="fixed inset-0 z-[3000] overflow-y-auto bg-[#131D22]">
+                    <CaseReel isMega tier="rare" pool={getLessonCasePool('rare')} spinAction={() => openKeyCase(goldKey)}
+                        onDone={() => { setGoldKey(null); router.refresh() }} />
+                </div>,
+                document.body,
+            )}
         </div>
     )
 }
@@ -690,5 +728,34 @@ function TaskSteps({ item, fixLabel, pending, onFix, onGo }: { item: SceneItem; 
             </button>
         )}
         </>
+    )
+}
+
+// Звёздочка над золотым предметом, за который ещё не забран кейс
+function GoldBadge({ x, y, onOpen }: { x: number; y: number; onOpen: () => void }) {
+    return (
+        <span className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: pct(x), top: pct(y), zIndex: 1150 }}>
+            <button type="button" aria-label="Золото — забрать кейс" onClick={onOpen}
+                className="flex h-[clamp(20px,5cqw,30px)] w-[clamp(20px,5cqw,30px)] animate-bounce items-center justify-center rounded-full active:scale-90"
+                style={{ background: 'radial-gradient(circle at 40% 35%, #FFF4C2, #F2C35B 60%, #B8862E)', boxShadow: '0 0 12px 3px rgba(255,216,77,.7)' }}>
+                <Star className="h-[60%] w-[60%] text-[#7A4E0C]" fill="#7A4E0C" />
+            </button>
+        </span>
+    )
+}
+
+// Плашка золотого предмета: раздел решён целиком и тренажёры на золоте — забрать редкий кейс
+function GoldClaim({ pending, error, onClaim }: { pending: boolean; error: string | null; onClaim: () => void }) {
+    return (
+        <div className="mt-3">
+            <p className="flex items-center gap-1.5 text-sm font-black text-[#FFD84D]"><Star className="h-4 w-4" fill="#FFD84D" />Золото! Раздел решён целиком, тренажёры на золоте</p>
+            <button type="button" disabled={pending} onClick={onClaim}
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-b-4 px-3 py-2.5 text-sm font-black text-[#151F24] active:border-b-0 disabled:opacity-60"
+                style={{ background: 'linear-gradient(180deg,#FFE58A,#F2C35B)', borderBottomColor: '#B8862E' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/chests/rare0001.svg" alt="" className="h-5 w-5" />Забрать редкий кейс
+            </button>
+            {error && <p className="mt-1.5 text-xs font-bold text-[#FFB4A8]">{error}</p>}
+        </div>
     )
 }
