@@ -148,7 +148,8 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     const [time, setTime] = useState<Time>('day')
     const [hover, setHover] = useState<number | null>(null)
     const [openNum, setOpenNum] = useState<number | null>(null)
-    const lit = (n: number) => hover === n || openNum === n
+    // подсветка предмета; под брезентом — не подсвечиваем: что там, пока секрет
+    const lit = (n: number) => (hover === n || openNum === n) && !items.find((i) => i.num === n)?.locked
     // Плашка задания появляется на середине зума (зум 1,1 с → через 0,55 с) — не сразу и без долгого ожидания; закрывается сразу.
     const ZOOM_MS = 550
     const [panelNum, setPanelNum] = useState<number | null>(null)
@@ -500,8 +501,8 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                         <span className="min-w-0 flex-1 text-lg font-black leading-tight text-[#F2F7FB]">Раздел {panelItem.num} — {panelItem.title}</span>
                         <button type="button" aria-label="Закрыть" onClick={() => setOpenNum(null)} className="-mr-1 -mt-1 rounded-lg p-1 text-[#9AA7B0] hover:text-white"><X className="h-5 w-5" /></button>
                     </div>
-                    <p className="mt-2 text-base font-bold leading-snug text-[#E8D9B8]">{panelItem.num >= 14 ? ROCKET_JOKE : ITEM_JOKE[panelItem.num]}</p>
-                    {UNLOCK_HINT[panelItem.num] && <p className="mt-1.5 text-sm font-bold leading-snug text-[#9EE8B0]">{UNLOCK_HINT[panelItem.num]}</p>}
+                    <p className="mt-2 text-base font-bold leading-snug text-[#E8D9B8]">{panelItem.locked ? 'Под брезентом что-то спрятано… 🤫 Пройди тренажёр — и узнаешь, что там' : panelItem.num >= 14 ? ROCKET_JOKE : ITEM_JOKE[panelItem.num]}</p>
+                    {!panelItem.locked && UNLOCK_HINT[panelItem.num] && <p className="mt-1.5 text-sm font-bold leading-snug text-[#9EE8B0]">{UNLOCK_HINT[panelItem.num]}</p>}
                     {panelItem.state === 'fixed' ? (
                         <GoldClaim error={goldError} pending={pending} onClaim={() => claimGold(panelItem.num)} />
                     ) : (
@@ -714,12 +715,16 @@ function TaskSteps({ item, fixLabel, pending, onFix, onGo }: { item: SceneItem; 
                 {head(trainers.length > 0 ? 2 : 1, 'Задачи', tasksOk, tasks.target > 0 ? `${Math.min(tasks.solved, tasks.target)}/${tasks.target}` : '—')}
                 {item.locked ? (
                     <span className={`${btn} mt-auto cursor-not-allowed text-[#6B7A83]`} style={{ background: '#26333B', borderBottomColor: '#1B252A' }}>
-                        <Lock className="h-3.5 w-3.5 shrink-0" />Закрыто
+                        <Lock className="h-3.5 w-3.5 shrink-0" />Под брезентом
                     </span>
                 ) : <span className="mt-auto">{goTasks}</span>}
             </div>
         </div>
-        {item.state === 'broken' && (
+        {item.locked ? (
+            <p className="mt-2 text-sm font-bold leading-snug text-[#F2C35B]">
+                🔒 Чтобы снять брезент и открыть задачи — {trainers.length > 1 ? 'пройди хотя бы 1 урок в каждом тренажёре' : 'пройди хотя бы 1 урок тренажёра'}
+            </p>
+        ) : item.state === 'broken' && (
             <p className="mt-2 text-xs font-bold text-[#8A98A0]">
                 Чтобы починить: {trainers.length > 0 ? 'тренажёры на серебро' : ''}{trainers.length > 0 && tasks.target > 0 ? ' и ' : ''}{tasks.target > 0 ? `${tasks.target} задач` : ''}
             </p>
