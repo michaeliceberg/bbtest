@@ -495,7 +495,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             const br = barrelRef.current
             if (br && (demo === 'barrel' || Math.random() < 0.45)) {
                 const floor = { x: Math.round(br.x + br.w * 0.12), y: Math.round(br.y + 6) } // перед бочкой на полу
-                const top = { x: Math.round(br.x + br.w * 0.22), y: Math.round(br.y - br.h * 0.92) } // на верху бочки
+                const top = { x: Math.round(br.x + br.w * 0.1), y: Math.round(br.y - br.h * 0.86) } // на верху бочки
                 const flip = floor.x < boxFloor.x
                 leaveBox(floor)
                 walk(boxFloor, floor)
