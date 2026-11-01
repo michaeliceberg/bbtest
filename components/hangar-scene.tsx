@@ -443,7 +443,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                                 onMouseEnter={() => { if (!done) setHover(i.num) }} onMouseLeave={() => setHover(null)}
                                 style={{ ...placeStyle(p), ...litStyle(!done && lit(i.num), catStage >= 2 && behindCatDecor(p)), ...(!onWall && !(!done && lit(i.num)) ? { filter: FLOOR_SHADOW } : {}), ...(i.mastered ? { filter: GOLD_SHINE } : {}), animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
                             {id === 7 && !done && !i.locked && <ComputerFlicker style={placeStyle(p)} />}
-                            {i.locked && !done && <Tarp style={placeStyle(p)} onClick={() => openTask(i.num)} onHover={(on) => setHover(on ? i.num : null)} />}
+                            {i.locked && !done && <Tarp item={id} style={placeStyle(p)} onClick={() => openTask(i.num)} onHover={(on) => setHover(on ? i.num : null)} />}
                             {!done && !bare && <KeyBadge x={id === 5 && !done ? p.x - p.w * 0.32 : p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready'} locked={!!i.locked} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
                             {done && !bare && goldWaiting(i) && <GoldBadge x={p.x} y={p.y - p.h - 14} onOpen={() => openTask(i.num)} />}
                             {done && !bare && (id === ARCHIVE_ITEM || id === ROBOT_ITEM) && !(id === ROBOT_ITEM && robotJoke) && !goldWaiting(i) && (
@@ -637,22 +637,38 @@ function HangarControlPanel({ canLeft, canRight, onLeft, onRocket, onRight }: { 
     )
 }
 
-// Брезент поверх предмета, к которому ещё не пройдены тренажёры: картинка Leonardo (public/hangar/tarp-square.webp,
-// исходник docs/hangar/leonardo/tarp-square.png), растянутая по размеру предмета. Поверх кодом — трафаретная эмблема
-// Команданте на правой (передней) стороне ткани: красная звезда и «GG», наклонены вдоль верхнего края стороны;
-// замок — на левой стороне. Координаты — доли картинки брезента.
-const TARP_SRC = '/hangar/tarp-square.webp'
-function Tarp({ style, onClick, onHover }: { style: React.CSSProperties; onClick: () => void; onHover: (on: boolean) => void }) {
+// Брезент поверх предмета, к которому ещё не пройдены тренажёры: картинки Leonardo (public/hangar/tarp-*.webp,
+// исходники docs/hangar/leonardo/tarp-*), у каждого предмета свой по форме (TARP_OF_ITEM), растянут по размеру предмета.
+// Поверх кодом — трафаретная красная звезда Команданте на передней стороне ткани, замок сбоку.
+// star — левый верхний угол и размер звезды в долях картинки + наклон вдоль края стороны; lock — центр замка.
+type TarpKind = 'square' | 'cube' | 'tall' | 'wide-rope' | 'wide-straps' | 'hang-tall' | 'hang-square'
+const TARPS: Record<TarpKind, { star: { l: number; t: number; w: number; h: number; skew: number }; lock: { l: number; t: number } }> = {
+    square: { star: { l: 50, t: 24, w: 28, h: 36, skew: -13 }, lock: { l: 27, t: 52 } },
+    cube: { star: { l: 58, t: 34, w: 22, h: 27, skew: -10 }, lock: { l: 27, t: 55 } },
+    tall: { star: { l: 34, t: 22, w: 40, h: 24, skew: 0 }, lock: { l: 50, t: 66 } },
+    'wide-rope': { star: { l: 46, t: 35, w: 18, h: 38, skew: -8 }, lock: { l: 17, t: 52 } },
+    'wide-straps': { star: { l: 46, t: 36, w: 18, h: 37, skew: -6 }, lock: { l: 15, t: 52 } },
+    'hang-tall': { star: { l: 35, t: 26, w: 30, h: 23, skew: 0 }, lock: { l: 50, t: 72 } },
+    'hang-square': { star: { l: 36, t: 27, w: 28, h: 25, skew: 0 }, lock: { l: 50, t: 74 } },
+}
+// id картинки предмета → форма брезента
+const TARP_OF_ITEM: Record<number, TarpKind> = {
+    1: 'wide-rope', 2: 'hang-square', 3: 'wide-straps', 4: 'wide-rope', 5: 'wide-straps', 6: 'wide-rope', 7: 'square',
+    8: 'hang-tall', 9: 'cube', 10: 'wide-straps', 12: 'cube', 13: 'tall',
+}
+function Tarp({ item, style, onClick, onHover }: { item: number; style: React.CSSProperties; onClick: () => void; onHover: (on: boolean) => void }) {
     const z = typeof style.zIndex === 'number' ? style.zIndex + 1 : 20
+    const kind = TARP_OF_ITEM[item] ?? 'square'
+    const { star, lock } = TARPS[kind]
     return (
         <button type="button" aria-label="Под брезентом — сначала тренажёры" onClick={onClick}
             onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)}
             className="absolute cursor-pointer" style={{ ...style, zIndex: z, scale: '1.12', filter: FLOOR_SHADOW }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={TARP_SRC} alt="" draggable={false} className="absolute inset-0 h-full w-full select-none" style={{ objectFit: 'fill' }} />
-            {/* эмблема по трафарету: краска местами стёрлась (шум-маска) */}
-            <svg viewBox="0 0 100 100" className="pointer-events-none absolute"
-                style={{ left: '50%', top: '22%', width: '28%', height: '36%', transform: 'skewY(-13deg)', opacity: 0.85 }} aria-hidden>
+            <img src={`/hangar/tarp-${kind}.webp`} alt="" draggable={false} className="absolute inset-0 h-full w-full select-none" style={{ objectFit: 'fill' }} />
+            {/* звезда по трафарету: краска местами стёрлась (шум-маска) */}
+            <svg viewBox="0 0 100 100" className="pointer-events-none absolute" preserveAspectRatio="none"
+                style={{ left: `${star.l}%`, top: `${star.t}%`, width: `${star.w}%`, height: `${star.h}%`, transform: star.skew ? `skewY(${star.skew}deg)` : undefined, opacity: 0.85 }} aria-hidden>
                 <defs>
                     <filter id="tarp-worn" x="0" y="0" width="100%" height="100%">
                         <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" result="n" />
@@ -664,12 +680,8 @@ function Tarp({ style, onClick, onHover }: { style: React.CSSProperties; onClick
                     <path d="M50 4 L61 37 L96 37 L68 58 L79 92 L50 71 L21 92 L32 58 L4 37 L39 37 Z" fill="#D8352C" />
                 </g>
             </svg>
-            <span className="pointer-events-none absolute flex items-center justify-center font-black leading-none"
-                style={{ left: '50%', top: '57%', width: '28%', transform: 'skewY(-13deg)', fontFamily: 'var(--font-nunito), sans-serif',
-                    fontSize: 'clamp(7px, 3.4cqw, 22px)', letterSpacing: '0.12em', color: '#D9C9A3', opacity: 0.55, mixBlendMode: 'screen' }}>
-                GG
-            </span>
-            <span className="absolute left-[27%] top-[52%] flex aspect-square w-[clamp(16px,24%,36px)] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#2E331F] bg-[#D9DEE1] shadow-md">
+            <span className="absolute flex aspect-square w-[clamp(14px,20%,26px)] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#2E331F] bg-[#D9DEE1] shadow-md"
+                style={{ left: `${lock.l}%`, top: `${lock.t}%` }}>
                 <Lock className="h-[55%] w-[55%] text-[#2E331F]" strokeWidth={3} />
             </span>
         </button>
