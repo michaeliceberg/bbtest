@@ -100,8 +100,9 @@ export type HangarTime = Time
  * onFix / time / decorFixed — для тестовой страницы /test-hangar: починка без сервера, своё время суток,
  * состояние портрета вручную. В приложении не передаются.
  */
-export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed, bare = false, onClose, onGoTask, catStage = 0, catFridgeFixed = false, catName = null, onCatHome, catFood }: {
+export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed, bare = false, onClose, onGoTask, catStage = 0, catFridgeFixed = false, catName = null, onCatHome, catFood, catDemo }: {
     catFood?: CatFoodStock
+    catDemo?: 'barrel'
     items: SceneItem[]; layout?: LayoutOverrides | null; onFix?: (num: number) => void; time?: Time; decorFixed?: boolean
     /** Только сама картинка ангара — без заголовка и подсказок снизу (превью на /learn). */
     bare?: boolean
@@ -349,7 +350,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     onClick={() => { if (nextRocket) openTask(nextRocket.num) }}
                     onMouseEnter={() => { if (nextRocket) setHover(nextRocket.num) }} onMouseLeave={() => setHover(null)}
                     style={{ ...placeStyle(R), ...litStyle(!!nextRocket && lit(nextRocket.num)), animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
-                <HangarCat stage={catStage} layout={layout} desk={desk} barrel={barrelP} fridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} bare={bare} night={time === 'night'} onHome={onCatHome} />
+                <HangarCat stage={catStage} layout={layout} desk={desk} barrel={barrelP} fridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} demo={catDemo} bare={bare} night={time === 'night'} onHome={onCatHome} />
                 {nextRocket && !bare && <KeyBadge x={R.x + R.w * (stage === 0 ? 0.3 : 0.44)} y={R.y - R.h * 0.55} n={nextRocket.num} ready={!!readyRocket} active={lit(nextRocket.num)} onHover={setHover} onOpen={openTask} />}
                 {room.filter((i) => i.num !== FAN_NUM).map((i) => {
                     const done = i.state === 'fixed'
@@ -371,7 +372,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                                 onMouseEnter={() => { if (!done) setHover(i.num) }} onMouseLeave={() => setHover(null)}
                                 style={{ ...placeStyle(p), ...litStyle(!done && lit(i.num)), animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
                             {id === 7 && !done && <ComputerFlicker style={placeStyle(p)} />}
-                            {!done && !bare && <KeyBadge x={p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready'} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
+                            {!done && !bare && <KeyBadge x={id === 5 && !done ? p.x - p.w * 0.32 : p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready'} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
                             {done && !bare && (id === ARCHIVE_ITEM || id === ROBOT_ITEM) && !(id === ROBOT_ITEM && robotJoke) && (
                                 <FunBadge x={p.x} y={p.y - p.h - 6} label={id === ARCHIVE_ITEM ? 'Читать' : 'Шутка'}
                                     onClick={() => (id === ARCHIVE_ITEM ? setArchiveOpen(true) : robotSay())} />

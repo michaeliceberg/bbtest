@@ -52,6 +52,8 @@ const kAt = (y: number) => Math.min(0.175, Math.max(0.085, BED_K * (0.5 + (0.5 *
 // Гуляющий котик выше всего на полу (хлам, штаны, банки, флаг) — ниже вентилятора (900). Под столом компьютера —
 // столешница и передние ножки рисуются поверх котика (DESK_FRONT_Z), задняя ножка вырезана из этой картинки и остаётся сзади.
 const CAT_TOP_Z = 880
+// наклон верха лежащей бочки (05-before: верхний край идёт от (80,24) к (260,1) — ~7° вверх вправо)
+const BARREL_TILT = -8
 const DESK_FRONT_Z = 885
 const STROLL_SPEED = 85 // точек сцены в секунду
 const pct = (v: number) => `${(v / 1024) * 100}%`
@@ -312,8 +314,10 @@ const Sausage = ({ size = 9 }: { size?: number }) => (
     <img src="/hangar/life/cat-sausage.webp" alt="" draggable={false} className="block select-none" style={{ width: `${size}cqw` }} />
 )
 
-export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, catName = null, layout, desk, barrel, catFood }: {
+export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, catName = null, layout, desk, barrel, catFood, demo }: {
     stage: number
+    /** Тестовая страница /test-cat-barrel: котик сразу и по кругу запрыгивает на бочку. */
+    demo?: 'barrel'
     /** Лежащая бочка (№13, пока не починена) — любимое место: котик запрыгивает на неё и греется на солнце. */
     barrel?: Place | null
     /** Еда в холодильнике (user_progress.cat_milk / cat_sausage). */
@@ -338,7 +342,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const [step, setStep] = useState(0)
     // ky — по какой глубине пола считать размер (котик на бочке стоит выше пола, но размер — как у бочки),
     // perch — сидит на бочке и греется, jump — сейчас прыгает (вверх на бочку или вниз)
-    const [stroll, setStroll] = useState<{ x: number; y: number; walking: boolean; flip: boolean; dur: number; under?: boolean; ky?: number; perch?: boolean; jump?: boolean; crouch?: boolean; land?: boolean } | null>(null)
+    const [stroll, setStroll] = useState<{ x: number; y: number; walking: boolean; flip: boolean; dur: number; under?: boolean; ky?: number; k?: number; perch?: boolean; jump?: boolean; crouch?: boolean; land?: boolean } | null>(null)
     const [wink, setWink] = useState(false)
     const strollingRef = useRef(false)
     // стол — через ref: объект desk новый на каждой перерисовке ангара, в зависимостях эффекта прогулки он сбрасывал
@@ -347,6 +351,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     deskRef.current = desk
     const barrelRef = useRef(barrel)
     barrelRef.current = barrel
+    const bedRef = useRef<{ x: number; y: number; k: number; floorY: number } | null>(null)
     strollingRef.current = !!stroll?.walking
     const [react, setReact] = useState<'pet' | 'meow' | 'happy' | null>(null)
     // ночью: тап по спящему котику — ему снится задачка (не исчезает сама)
@@ -366,6 +371,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const boxP = place(layout, st, 'cat-box', CAT_DECOR[1][st])
     const frP = place(layout, st, 'cat-fridge', CAT_DECOR[0][st])
     const BED = bedOf(boxP)
+    bedRef.current = { ...BED, floorY: boxP.y }
     const catZ = zOf(boxP) + 1 // котик сидит на коробке — на слой выше неё
     // реакция + фраза одним махом; голодный котик (холодильник сломан) иногда просит молока
     const doReact = (r: 'pet' | 'meow' | 'happy') => {
@@ -454,46 +460,73 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
         const timers: ReturnType<typeof setTimeout>[] = []
         const later = (ms: number, f: () => void) => timers.push(setTimeout(() => alive && f(), ms))
         const durTo = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.min(3.6, Math.max(1.4, Math.hypot(a.x - b.x, a.y - b.y) / STROLL_SPEED))
+        // Прогулка по шагам на одной шкале времени: t — когда начать следующий шаг (мс от начала прогулки).
         const go = () => {
-            if (Math.random() < 0.5) { later(20000 + Math.random() * 15000, go); return }
-            // самое любимое днём — лежащая бочка: подходит, запрыгивает, греется на солнце и мурчит, потом спрыгивает
+            if (!demo && Math.random() < 0.5) { later(20000 + Math.random() * 15000, go); return }
+            const bed = bedRef.current
+            if (!bed) return
+            const BEDp = { x: bed.x, y: bed.y }
+            const boxFloor = { x: Math.round(bed.x + 18), y: Math.round(bed.floorY + 8) } // на полу перед коробкой
+            let t = 0
+            const at = (f: () => void) => later(t, f)
+            // прыжок дугой from → to: присел, полёт, приземлился (k — размер на «верхней» точке)
+            const jump = (from: { x: number; y: number }, to: { x: number; y: number }, flip: boolean, kFrom: { k?: number; ky?: number }, kTo: { k?: number; ky?: number }, extra: { perch?: boolean } = {}) => {
+                at(() => setStroll({ ...from, walking: false, flip, dur: 0, crouch: true, ...kFrom }))
+                t += 350
+                at(() => setStroll({ ...to, walking: false, flip, dur: 0.5, jump: true, ...kTo, ...extra }))
+                t += 500
+                at(() => setStroll({ ...to, walking: false, flip, dur: 0, land: true, ...kTo, ...extra }))
+                t += 300
+            }
+            const walk = (from: { x: number; y: number }, to: { x: number; y: number }) => {
+                const d = durTo(from, to)
+                at(() => setStroll({ ...to, walking: true, flip: to.x < from.x, dur: d }))
+                t += d * 1000
+            }
+            // спрыгнул с коробки → …прогулка… → вернулся к коробке, запрыгнул и сел дома
+            const leaveBox = (toward: { x: number }) => jump(BEDp, boxFloor, toward.x < BEDp.x, { k: bed.k }, {})
+            const comeHome = (from: { x: number; y: number }) => {
+                walk(from, boxFloor)
+                jump(boxFloor, BEDp, BEDp.x < boxFloor.x, {}, { k: bed.k })
+                at(() => { setStroll(null); later(demo ? 1500 : 25000 + Math.random() * 20000, go) })
+            }
+
+            // самое любимое днём — лежащая бочка: запрыгивает, греется на солнце и мурчит, потом спрыгивает
             const br = barrelRef.current
-            if (br && Math.random() < 0.45) {
+            if (br && (demo === 'barrel' || Math.random() < 0.45)) {
                 const floor = { x: Math.round(br.x + br.w * 0.12), y: Math.round(br.y + 6) } // перед бочкой на полу
                 const top = { x: Math.round(br.x + br.w * 0.22), y: Math.round(br.y - br.h * 0.92) } // на верху бочки
-                const d1 = durTo(BED, floor)
-                const flip = floor.x < BED.x
-                // подошёл → присел (собрал лапы) → прыжок дугой → приземлился стоя → лёг греться (иногда подмигивает)
-                setStroll({ ...floor, walking: true, flip, dur: d1 })
-                const t0 = d1 * 1000
-                later(t0, () => setStroll({ ...floor, walking: false, flip, dur: 0, crouch: true }))
-                later(t0 + 350, () => setStroll({ ...top, walking: false, flip, dur: 0.5, ky: br.y, perch: true, jump: true }))
-                later(t0 + 850, () => setStroll((st) => st && { ...st, jump: false, land: true }))
-                later(t0 + 1150, () => { setStroll((st) => st && { ...st, land: false }); doReact('happy') })
-                const stay = 16000 + Math.random() * 10000
-                later(t0 + 1150 + stay / 2, () => doReact('happy'))
-                const t1 = t0 + 1150 + stay
-                later(t1, () => setStroll((st) => st && { ...st, land: true, flip: !flip }))
-                later(t1 + 250, () => setStroll({ ...floor, walking: false, flip: !flip, dur: 0.45, jump: true }))
-                later(t1 + 700, () => setStroll({ ...floor, walking: false, flip: !flip, dur: 0, land: true }))
-                later(t1 + 950, () => setStroll({ x: BED.x, y: BED.y, walking: true, flip: !flip, dur: d1 }))
-                later(t1 + 950 + d1 * 1000, () => { setStroll(null); later(25000 + Math.random() * 20000, go) })
+                const flip = floor.x < boxFloor.x
+                leaveBox(floor)
+                walk(boxFloor, floor)
+                jump(floor, top, flip, {}, { ky: br.y }, { perch: true })
+                at(() => { setStroll((st) => st && { ...st, land: false }); doReact('happy') })
+                const stay = demo ? 7000 : 16000 + Math.random() * 10000
+                later(t + stay / 2, () => doReact('happy'))
+                t += stay
+                jump(top, floor, !flip, { ky: br.y }, {}, {})
+                comeHome(floor)
                 return
             }
-            // любимое место — под столом с компьютером (лежит там подольше)
+            // любимое место — под столом с компьютером (лежит там подольше); иначе — одна из точек пола
             const dk = deskRef.current
             const under = !!dk && Math.random() < 0.4
             const spot = under && dk ? { x: Math.round(dk.p.x - dk.p.w * 0.13), y: Math.round(dk.p.y - dk.p.h * 0.11) } : STROLL_SPOTS[Math.floor(Math.random() * STROLL_SPOTS.length)]
-            const d1 = durTo(BED, spot)
-            setStroll({ ...spot, walking: true, flip: spot.x < BED.x, dur: d1, under })
-            later(d1 * 1000, () => setStroll((st) => st && { ...st, walking: false }))
-            const stay = under ? 12000 + Math.random() * 8000 : 5000 + Math.random() * 4000
-            later(d1 * 1000 + stay, () => setStroll({ x: BED.x, y: BED.y, walking: true, flip: BED.x < spot.x, dur: d1, under }))
-            later(d1 * 2000 + stay, () => { setStroll(null); later(25000 + Math.random() * 20000, go) })
+            leaveBox(spot)
+            const d = durTo(boxFloor, spot)
+            at(() => setStroll({ ...spot, walking: true, flip: spot.x < boxFloor.x, dur: d, under }))
+            t += d * 1000
+            at(() => setStroll((st) => st && { ...st, walking: false }))
+            t += under ? 12000 + Math.random() * 8000 : 5000 + Math.random() * 4000
+            const back = durTo(spot, boxFloor)
+            at(() => setStroll({ ...boxFloor, walking: true, flip: boxFloor.x < spot.x, dur: back, under }))
+            t += back * 1000
+            jump(boxFloor, BEDp, BEDp.x < boxFloor.x, {}, { k: bed.k })
+            at(() => { setStroll(null); later(demo ? 1500 : 25000 + Math.random() * 20000, go) })
         }
-        later(15000 + Math.random() * 15000, go)
+        later(demo ? 800 : 15000 + Math.random() * 15000, go)
         return () => { alive = false; timers.forEach(clearTimeout) }
-    }, [phase, bare, night])
+    }, [phase, bare, night, demo])
 
     if (stage < 1) return null
 
@@ -595,7 +628,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const strollPose: Pose = !stroll ? 'sit' : stroll.walking ? WALK_FRAMES[step] : stroll.crouch ? 'walk-3' : stroll.jump ? 'jump' : stroll.land ? 'land'
         : stroll.under ? 'sleep' : stroll.perch ? (wink ? 'sun-wink' : 'sun') : 'sit-shy'
     const strollBox: Pose = !stroll ? 'sit' : stroll.walking ? 'walk-1' : strollPose
-    const strollK = stroll ? kAt(stroll.ky ?? stroll.y) : BED_K
+    const strollK = stroll ? stroll.k ?? kAt(stroll.ky ?? stroll.y) : BED_K
     const talkAt = stroll ? { x: stroll.x, y: stroll.y - CAT_PX[strollBox][1] * strollK - 6 } : { x: BED.x, y: BED.y - 96 }
     const allSit: Pose[] = ['sit', 'sit-half', 'sit-closed', 'happy', 'pet', 'meow', 'sleep']
     return (
@@ -612,10 +645,13 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             {stroll ? (
                 // гуляет: идёт (кадры ходьбы, отражены, если влево) или сидит в точке и смотрит по сторонам; под столом — лежит.
                 // Слой — поверх всего на полу (CAT_TOP_Z), размер — по глубине точки (kAt).
-                <motion.div className={`absolute ${stroll.walking ? 'pointer-events-none' : 'cursor-pointer'}`} style={{ zIndex: CAT_TOP_Z }}
+                <motion.div className={`absolute ${stroll.walking ? 'pointer-events-none' : 'cursor-pointer'}`} style={{ zIndex: CAT_TOP_Z, transformOrigin: '50% 100%' }}
                     // старт прогулки — от коробки (раньше initial={false}: котик сразу оказывался в точке прогулки, «телепортировался»)
                     initial={box('walk-1', { x: BED.x, y: BED.y, k: kAt(BED.y) })}
-                    animate={box(strollBox, { x: stroll.x, y: stroll.y, k: strollK })}
+                    // на бочке котик лежит вдоль её верха: бочка лежит наискосок (верх уходит вверх-вправо ~8°), поэтому котик
+                    // наклонён так же и чуть сплющен по высоте — смотрим на него сверху, как на бочку
+                    animate={{ ...box(strollBox, { x: stroll.x, y: stroll.y, k: strollK }),
+                        rotate: stroll.perch && !stroll.jump ? BARREL_TILT : 0, scaleY: stroll.perch && !stroll.jump && !stroll.land ? 0.9 : 1 }}
                     transition={{ duration: stroll.walking || stroll.jump ? stroll.dur : 0, ease: stroll.jump ? [0.3, 0, 0.4, 1] : 'linear' }}
                     onClick={stroll.walking || bare ? undefined : () => { playJustClick(); const r = Math.random(); doReact(r < 0.5 ? 'pet' : 'meow') }}>
                     {!stroll.perch && !stroll.jump && <CatShadow />}
