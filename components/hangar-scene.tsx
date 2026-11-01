@@ -456,7 +456,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                             background: 'radial-gradient(ellipse 50% 60% at 50% 0%, rgba(255,214,140,0.45), transparent 75%)', mixBlendMode: 'screen' }} />
                 )}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img key={R.src} src={R.src} alt="Ракета" draggable={false} className={`absolute select-none ${bare ? '' : 'cursor-pointer'}`}
+                <img key={R.src} src={R.src} alt="Ракета" title={bare ? undefined : 'Задания 14–20 — нажми на ракету'} draggable={false} className={`absolute select-none ${bare ? '' : 'cursor-pointer'}`}
                     onClick={() => { if (!bare) toggleTray() }}
                     style={{ ...placeStyle(R), filter: FLOOR_SHADOW, ...litStyle(rocketParts.some((i) => i.state !== 'fixed' && lit(i.num))), animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
                 <HangarCat stage={catStage} layout={layout} desk={desk} barrel={barrelP} fridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} demo={catDemo} bare={bare} night={time === 'night'} onHome={onCatHome} />
