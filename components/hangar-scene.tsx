@@ -111,7 +111,11 @@ export type HangarTime = Time
  * onFix / time / decorFixed — для тестовой страницы /test-hangar: починка без сервера, своё время суток,
  * состояние портрета вручную. В приложении не передаются.
  */
-export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed, bare = false, onClose, onGoTask, catStage = 0, catFridgeFixed = false, catName = null, onCatHome, catFood, catDemo }: {
+export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed, bare = false, onClose, onGoTask, catStage = 0, catFridgeFixed = false, catName = null, onCatHome, catFood, catDemo, cornerRight, phoneReserve = 116 }: {
+    /** плашка в правом верхнем углу ангара (серия на /learn) */
+    cornerRight?: React.ReactNode
+    /** телефон: сколько px высоты экрана оставить под шапку и пульт (ангар = экран минус это) */
+    phoneReserve?: number
     catFood?: CatFoodStock
     catDemo?: 'barrel' | 'sbox'
     items: SceneItem[]; layout?: LayoutOverrides | null; onFix?: (num: number) => void; time?: Time; decorFixed?: boolean
@@ -222,7 +226,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
             const w = (el.parentElement?.parentElement?.clientWidth ?? el.clientWidth + 4) - 4
             // компьютер: квадрат не выше экрана — нижний край виден целиком без прокрутки страницы
             // телефон: ангар во всю высоту экрана, снизу остаётся место только под кнопки (влево · к ракете · вправо)
-            const s = w < 480 ? Math.max(w, Math.round(Math.min(window.innerHeight - 116, 900))) : Math.min(w, Math.max(360, window.innerHeight - 40))
+            const s = w < 480 ? Math.max(w, Math.round(Math.min(window.innerHeight - phoneReserve, 900))) : Math.min(w, Math.max(360, window.innerHeight - 40))
             setFrame((prev) => {
                 if (prev && prev.w === w && prev.s === s) return prev
                 return { w, s }
@@ -233,7 +237,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
         ro.observe(el.parentElement?.parentElement ?? el)
         window.addEventListener('resize', measure)
         return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
-    }, [bare])
+    }, [bare, phoneReserve])
     const scrollMode = !!frame && frame.s > frame.w
     // можно ли ещё листать влево/вправо (стрелки под ангаром гаснут у края)
     const [edge, setEdge] = useState({ l: true, r: true })
@@ -322,6 +326,9 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     style={{ zIndex: 1200 }} title="Починено">
                     <RepairIcon className="h-4 w-4 text-[#F2C35B]" />{fixedCount}/20
                 </span>
+            )}
+            {!bare && !onClose && cornerRight && (
+                <div className="absolute right-2.5 top-2.5" style={{ zIndex: 1200 }}>{cornerRight}</div>
             )}
             {!bare && onClose && (
                 <button type="button" onClick={onClose}
@@ -632,6 +639,7 @@ function TaskSteps({ item, fixLabel, pending, onFix, onGo }: { item: SceneItem; 
         </Link>
     )
     return (
+        <>
         <div className="mt-3 flex gap-1.5">
             {trainers.length > 0 && (
                 <div className={step(1, !trainerOk, trainerOk)}>
@@ -654,20 +662,15 @@ function TaskSteps({ item, fixLabel, pending, onFix, onGo }: { item: SceneItem; 
                     </span>
                 ) : <span className="mt-auto">{goTasks}</span>}
             </div>
-            <div className={step(3, item.state === 'ready', fixed)}>
-                {head(trainers.length > 0 ? 3 : 2, 'Починить', fixed)}
-                <Wrench className="h-[18px] w-[18px] text-[#F2C35B]" />
-                {item.state === 'ready' ? (
-                    <button type="button" disabled={pending} onClick={onFix}
-                        className={`${btn} mt-auto text-[#151F24] disabled:opacity-60`} style={{ background: 'linear-gradient(180deg,#FFD84D,#F2C35B)', borderBottomColor: '#B8862E' }}>
-                        {fixLabel}
-                    </button>
-                ) : (
-                    <span className={`${btn} mt-auto text-[#6B7A83]`} style={{ background: '#26333B', borderBottomColor: '#1B252A' }}>
-                        {fixed ? 'Готово' : 'Позже'}
-                    </span>
-                )}
-            </div>
         </div>
+        {/* раздел решён — появляется кнопка починить */}
+        {item.state === 'ready' && (
+            <button type="button" disabled={pending} onClick={onFix}
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-b-4 px-3 py-2.5 text-sm font-black text-[#151F24] active:border-b-0 disabled:opacity-60"
+                style={{ background: 'linear-gradient(180deg,#FFD84D,#F2C35B)', borderBottomColor: '#B8862E' }}>
+                <Wrench className="h-4 w-4 shrink-0" />{fixLabel}
+            </button>
+        )}
+        </>
     )
 }

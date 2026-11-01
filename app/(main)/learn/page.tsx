@@ -35,6 +35,8 @@ import { ScrollToLesson } from '@/components/scroll-to-lesson';
 import { getPendingLevelCase } from '@/lib/levelCase';
 import { LevelCard } from '@/components/level-card';
 import { HangarInline } from '@/components/hangar-entry';
+import { StreakChip } from '@/components/streak-chip';
+import { LearnSectionHeader } from '@/components/learn-section-header';
 import { getHangarItems, withTrainers } from '@/lib/hangar';
 import { getEgeMap } from '@/lib/egeMap';
 import { getHangarLayout } from '@/actions/hangar-layout';
@@ -394,10 +396,39 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
     ?? unitsWithFormattedLessons[0]?.id
     ?? null;
 
+  const renderUnit = (unit: (typeof unitsWithFormattedLessons)[number], index: number) => (
+    <Unit
+      id={unit.id}
+      unitIndex={index}
+      order={unit.order}
+      description={unit.description}
+      title={unit.title}
+      lessons={unit.lessons}
+      activeLesson={undefined}
+      lessonStat={lessonStat}
+      percentageDone={0}
+      imgSrc={unit.imageSrc}
+      RecomNumChallengesToday={recommendedToday}
+      bgSvgSrc={bgSvgSrc[index]}
+      missedCIds={teacherMissedCIds}
+      dailyMissedCIds={dailyMissedCIds}
+      homeworkStatusMap={homeworkStatusMap}
+      isUnlocked={unitUnlocked(unit)}
+      isCompleted={isForcedLocked(unit.id) ? false : unit.isCompleted}
+      unitProgressPercent={unit.percent}
+      needMoreLessons={unit.needMoreLessons}
+      isNextUnitUnlocked={unit.isNextUnitUnlocked}
+      isAdmin={isAdmin}
+      lastTouchedLessonId={lastTouchedLessonId}
+      belowBanner={(() => { const n = unitNum(unit.title); return n && trainerKeys[n] ? <TrainerKeyChips num={n} keys={trainerKeys[n]} /> : null })()}
+    />
+  )
+
   return (
     <LearnWrapper courseId={activeCourseId}>
       <Suspense fallback={null}>
-        {taskUnit
+        {/* ЕГЭ Математика (ангар): экраны ангара и раздела открываются с самого верха */}
+        {hangarItems ? null : taskUnit
           ? <ScrollToLesson lessonId={taskUnit.lessons?.[0]?.id ?? null} always />
           : focusUnit
           ? <ScrollToLesson lessonId={focusScrollLessonId} always />
@@ -451,7 +482,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
         <FeedWrapper>
           {/* Шапка как на /trainer: кнопка с разделом, который сейчас на экране, по нажатию — меню разделов */}
           <Header title={`Задачник ${activeCourse.title}`} />
-          <LearnUnitNav
+          {!hangarItems && <LearnUnitNav
             units={unitsWithFormattedLessons.map((unit, index) => {
               const stats = unitChallengeStats.get(unit.id);
               return {
@@ -464,9 +495,44 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
                 section: egeSectionOf(activeCourse.title, unit.title),
               };
             })}
-          />
+          />}
 
           <div className='mt-2 lg:mt-5'>
+            {hangarItems ? (() => {
+              // ЕГЭ Математика: ангар — карта задачника. Без ?task — экран ангара, с ?task=N — экран раздела N.
+              const item = taskNum ? hangarItems.find((h) => h.num === taskNum) : null
+              if (!item) return (
+                <>
+                  <HangarInline items={hangarItems} layout={hangarLayout} catStage={userProgress.catStage} catFridgeFixed={userProgress.catFridgeFixed} catName={userProgress.catName} catFood={{ milk: userProgress.catMilk, sausage: userProgress.catSausage, fedDate: userProgress.catFedDate, streak: userProgress.catFeedStreak }}
+                    cornerRight={<StreakChip streak={currentStreak} hasExtendedToday={hasExtendedStreakToday} freezes={userProgress.streakFreezes} />} />
+                  {levelCase && (
+                    <div className='mt-4'>
+                      <LevelCard xp={currentXp} lvlLottieCount={getLvlLottieCount()} levelCase={levelCase} />
+                    </div>
+                  )}
+                </>
+              )
+              const idx = unitsWithFormattedLessons.findIndex((u) => unitNum(u.title) === item.num)
+              const unit = idx >= 0 ? unitsWithFormattedLessons[idx] : null
+              const locked = !!item.locked && !isAdmin
+              return (
+                <>
+                  <LearnSectionHeader num={item.num} title={item.title} pic={hangarItemPic(item.num, item.state === 'fixed')} tasks={item.tasks} trainers={item.trainers ?? []} />
+                  {locked ? (
+                    <div className='mt-4 rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-4'>
+                      <p className='text-base font-black text-[#F2E3C2]'>🔒 Задачи откроются после тренажёров</p>
+                      <p className='mt-1 text-sm font-bold text-[#9AA7B0]'>Пройди тренажёры к этому заданию — так задачи пойдут легче.</p>
+                      {trainerKeys[item.num] && <div className='mt-3'><TrainerKeyChips num={item.num} keys={trainerKeys[item.num]} /></div>}
+                    </div>
+                  ) : unit ? (
+                    <div className='mt-4'>{renderUnit(unit, idx)}</div>
+                  ) : (
+                    <p className='mt-4 text-center text-sm font-bold text-[#9AA7B0]'>Задачи к этому заданию скоро появятся</p>
+                  )}
+                </>
+              )
+            })() : (
+            <>
             <StreakRiskBanner streak={currentStreak} hasExtendedToday={hasExtendedStreakToday} freezes={userProgress.streakFreezes} gems={userProgress.gems} />
 
             {/* Уровень — в шапке; карточка уровня только если ждёт кейс за уровень, чтобы его можно было открыть */}
@@ -476,15 +542,7 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
               </div>
             )}
 
-            {/* ЕГЭ Математика: ангар — карта задачника. Предмет = задание ЕГЭ: тренажёры → задачи → починить */}
-            {hangarItems && (
-              <div className='mb-5'>
-                <HangarInline items={hangarItems} layout={hangarLayout} catStage={userProgress.catStage} catFridgeFixed={userProgress.catFridgeFixed} catName={userProgress.catName} catFood={{ milk: userProgress.catMilk, sausage: userProgress.catSausage, fedDate: userProgress.catFedDate, streak: userProgress.catFeedStreak }} scrollOnLoad={searchParams?.hangar === '1'} />
-              </div>
-            )}
-
-            {/* Без ангара (другие курсы) — прежняя шкала разделов */}
-            {!hangarItems && (
+            {/* Другие курсы — шкала разделов */}
             <CourseProgressStrip
               defaultOpenId={defaultOpenUnitId}
               trainerKeys={trainerKeys}
@@ -503,7 +561,6 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
                 };
               })}
             />
-            )}
 
             {unitsWithFormattedLessons.map((unit, index) => {
               // ЕГЭ Математика: разделитель «Часть 1 / Часть 2 / Дополнительно» по номеру задания в названии юнита
@@ -521,39 +578,14 @@ const LearnPage = async ({ searchParams }: { searchParams?: { task?: string; han
                   isCompleted={isForcedLocked(unit.id) ? false : unit.isCompleted}
                   defaultOpenId={defaultOpenUnitId}
                   trainers={(() => { const n = unitNum(unit.title); const ks = n ? trainerKeys[n] : undefined; return ks?.length ? { done: ks.filter((k) => k.percent > 0).length, total: ks.length } : null })()}
-                  itemSrc={(() => { const n = unitNum(unit.title); const it = n && hangarItems ? hangarItems.find((h) => h.num === n) : null; return it ? hangarItemPic(n!, it.state === 'fixed') : null })()}
-                  trainerLocked={(() => { const n = unitNum(unit.title); return !!(n && hangarItems?.find((h) => h.num === n)?.locked) })()}
-                  isAdmin={isAdmin}
                 >
-                <Unit
-                  id={unit.id}
-                  unitIndex={index}
-                  order={unit.order}
-                  description={unit.description}
-                  title={unit.title}
-                  lessons={unit.lessons}
-                  activeLesson={undefined}
-                  lessonStat={lessonStat}
-                  percentageDone={0}
-                  imgSrc={unit.imageSrc}
-                  RecomNumChallengesToday={recommendedToday}
-                  bgSvgSrc={bgSvgSrc[index]}
-                  missedCIds={teacherMissedCIds}
-                  dailyMissedCIds={dailyMissedCIds}
-                  homeworkStatusMap={homeworkStatusMap}
-                  isUnlocked={unitUnlocked(unit)}
-                  isCompleted={isForcedLocked(unit.id) ? false : unit.isCompleted}
-                  unitProgressPercent={unit.percent}
-                  needMoreLessons={unit.needMoreLessons}
-                  isNextUnitUnlocked={unit.isNextUnitUnlocked}
-                  isAdmin={isAdmin}
-                  lastTouchedLessonId={lastTouchedLessonId}
-                  belowBanner={(() => { const n = unitNum(unit.title); return n && trainerKeys[n] ? <TrainerKeyChips num={n} keys={trainerKeys[n]} /> : null })()}
-                />
+                {renderUnit(unit, index)}
                 </LearnUnitFold>
               </div>
               )
             })}
+            </>
+            )}
           </div>
         </FeedWrapper>
       </div>
