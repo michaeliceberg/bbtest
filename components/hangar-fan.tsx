@@ -73,24 +73,24 @@ export type FanMode = 'lofi' | 'smooth'
  * fps — кадров в секунду для lo-fi (0.5 = кадр раз в 2 секунды), period — секунд на четверть оборота.
  * В lo-fi за период получается fps·period кадров — сделаем шаг кадра заметным, но спокойным.
  */
-export function HangarFan({ broken = false, mode = 'lofi', fps = 2, period = 6 }: { broken?: boolean; mode?: FanMode; fps?: number; period?: number }) {
+export function HangarFan({ broken = false, mode = 'lofi', fps = 2, period = 6, glow }: { broken?: boolean; mode?: FanMode; fps?: number; period?: number; glow?: string }) {
     const hubY = FAN.top + FAN.motorH * 0.93
     const D = FAN.bladesD
     const frames = Math.max(2, Math.round(fps * period))
     const spin = broken ? undefined : `hangar-fan-spin ${period}s ${mode === 'lofi' ? `steps(${frames}, end)` : 'linear'} infinite`
     return (
-        <div className="pointer-events-none absolute inset-0" style={{ animation: broken ? 'hangar-fan-sway 7s ease-in-out infinite' : undefined, transformOrigin: `${pct(FAN.x)} ${pct(FAN.top)}` }}>
+        <div className="pointer-events-none absolute inset-0" style={{ animation: broken && !glow ? 'hangar-fan-sway 7s ease-in-out infinite' : undefined, transformOrigin: `${pct(FAN.x)} ${pct(FAN.top)}` }}>
             <style>{`
                 @keyframes hangar-fan-spin { from { transform: rotate(0deg) } to { transform: rotate(90deg) } }
                 @keyframes hangar-fan-sway { 0%,100% { transform: rotate(-1.2deg) } 50% { transform: rotate(1.2deg) } }
                 @media (prefers-reduced-motion: reduce) { .hangar-fan-rot { animation: none !important } }
             `}</style>
-            <div className="absolute" style={{ left: pct(FAN.x - FAN.motorW / 2), top: pct(FAN.top), width: pct(FAN.motorW), height: pct(FAN.motorH), zIndex: 0 }}>
+            <div className="absolute" style={{ left: pct(FAN.x - FAN.motorW / 2), top: pct(FAN.top), width: pct(FAN.motorW), height: pct(FAN.motorH), zIndex: 0, filter: glow }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/hangar/fan-motor-v2.webp" alt="" className="h-full w-full" draggable={false} />
             </div>
             {/* плоскость лопастей: квадрат D×D с центром у крышки моторчика, наклонён в перспективу */}
-            <div className="absolute" style={{ left: pct(FAN.x - D / 2), top: pct(hubY - D / 2), width: pct(D), height: pct(D), perspective: '170cqw', perspectiveOrigin: '50% 50%', zIndex: 1 }}>
+            <div className="absolute" style={{ left: pct(FAN.x - D / 2), top: pct(hubY - D / 2), width: pct(D), height: pct(D), perspective: '170cqw', perspectiveOrigin: '50% 50%', zIndex: 1, filter: glow }}>
                 <div className="h-full w-full" style={{ transform: `rotateX(${FAN.tilt}deg)` }}>
                     <div className="hangar-fan-rot h-full w-full" style={{ animation: spin, transform: broken ? 'rotate(18deg)' : undefined }}>
                         {broken ? <Blades broken /> : (

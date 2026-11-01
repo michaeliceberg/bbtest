@@ -88,6 +88,8 @@ function KeyBadge({ x, y, n, ready, active, onHover, onOpen }: { x: number; y: n
 /** Подсветка предмета, который починится: яркий золотой контур по форме картинки (drop-shadow) и заметно светлее.
  *  Вечером и ночью подсвеченный предмет ещё и поднимается над затемнением (litZ) — иначе его почти не видно. */
 const HIGHLIGHT = 'drop-shadow(0 0 2px #FFFBE6) drop-shadow(0 0 5px #FFE58A) drop-shadow(0 0 12px #FFD84D) drop-shadow(0 0 24px #F2C35B) brightness(1.4) saturate(1.15)'
+// для вентилятора — полегче: два слоя тени вместо четырёх (он тонкий, большой размытый ореол не нужен)
+const FAN_GLOW = 'drop-shadow(0 0 3px #FFE58A) drop-shadow(0 0 10px #F2C35B) brightness(1.5)'
 const LIT_Z = 1104 // выше затемнения времени суток (1100), ниже звёзд и луны (1105)
 
 export type HangarTime = Time
@@ -150,6 +152,10 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     const RS = L.rocket[Math.min(7, stage)]
     const R = { ...RS, ...place(layout, stage >= 7 ? 'a' : 'b', 'rocket', RS) }
     const fan = byNum.get(FAN_NUM)
+    // стол с компьютером (№7) — котик лежит под ним; картинка без задней ножки (public/hangar/07-*-front.webp)
+    const deskDone = byNum.get(7)?.state === 'fixed'
+    const deskId = itemOf(7)
+    const desk = deskId === 7 ? { src: `/hangar/07-${deskDone ? 'after' : 'before'}-front.webp`, p: place(layout, deskDone ? 'a' : 'b', '7', L[7][deskDone ? 'a' : 'b']) } : null
     const decorDone = decorFixed ?? (PORTRAIT_NUM !== null && byNum.get(PORTRAIT_NUM)?.state === 'fixed')
     const decorState = decorDone ? 'a' : 'b'
     const lampP = place(layout, decorState, 'lamp', DECOR[1][decorState])
@@ -337,8 +343,8 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     onClick={() => { if (nextRocket) openTask(nextRocket.num) }}
                     onMouseEnter={() => { if (nextRocket) setHover(nextRocket.num) }} onMouseLeave={() => setHover(null)}
                     style={{ ...placeStyle(R), ...litStyle(!!nextRocket && lit(nextRocket.num)), animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
-                <HangarCat stage={catStage} layout={layout} fridgeFixed={catFridgeFixed} catName={catName} bare={bare} night={time === 'night'} onHome={onCatHome} />
-                {nextRocket && !bare && <KeyBadge x={R.x + R.w * (stage === 0 ? 0.17 : 0.3)} y={R.y - R.h * 0.55} n={nextRocket.num} ready={!!readyRocket} active={lit(nextRocket.num)} onHover={setHover} onOpen={openTask} />}
+                <HangarCat stage={catStage} layout={layout} desk={desk} fridgeFixed={catFridgeFixed} catName={catName} bare={bare} night={time === 'night'} onHome={onCatHome} />
+                {nextRocket && !bare && <KeyBadge x={R.x + R.w * (stage === 0 ? 0.3 : 0.44)} y={R.y - R.h * 0.55} n={nextRocket.num} ready={!!readyRocket} active={lit(nextRocket.num)} onHover={setHover} onOpen={openTask} />}
                 {room.filter((i) => i.num !== FAN_NUM).map((i) => {
                     const done = i.state === 'fixed'
                     const id = itemOf(i.num) // картинка предмета этого задания
@@ -371,8 +377,10 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     )
                 })}
                 {fan && (
-                    <div className="pointer-events-none absolute inset-0" style={{ zIndex: 900, ...litStyle(fan.state !== 'fixed' && lit(FAN_NUM)), animation: justFixed === FAN_NUM ? 'hangar-pop .6s ease-out' : undefined }}>
-                        <HangarFan broken={fan.state !== 'fixed'} />
+                    // подсветка — не фильтром на весь слой (он размером со всю картинку и пересчитывался на каждом кадре
+                    // покачивания — лагало), а внутри вентилятора на моторчике и лопастях, покачивание на это время замирает
+                    <div className="pointer-events-none absolute inset-0" style={{ zIndex: fan.state !== 'fixed' && lit(FAN_NUM) && time !== 'day' ? LIT_Z : 900, animation: justFixed === FAN_NUM ? 'hangar-pop .6s ease-out' : undefined }}>
+                        <HangarFan broken={fan.state !== 'fixed'} glow={fan.state !== 'fixed' && lit(FAN_NUM) ? FAN_GLOW : undefined} />
                     </div>
                 )}
                 {fan && fan.state !== 'fixed' && !bare && (

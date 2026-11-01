@@ -13,7 +13,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { CAT_DECOR, depthZIndex, place, placeStyle, type LayoutOverrides, type Place } from '@/lib/hangarModel'
+import { CAT_DECOR, place, placeStyle, type LayoutOverrides, type Place } from '@/lib/hangarModel'
 import Lottie from '@/components/lottie-player'
 import LottieGems from '@/public/Lottie/LottieGems.json'
 import { useRouter } from 'next/navigation'
@@ -40,7 +40,13 @@ const PATH = [GATE, { x: 640, y: 710, k: 0.112 }, { x: 595, y: 780, k: 0.12 }, D
 const WALK_S = 3.4
 // Днём котик иногда гуляет по ангару: уходит к одной из точек пола, сидит там и возвращается на коробку.
 const STROLL_SPOTS = [{ x: 440, y: 882 }, { x: 702, y: 888 }, { x: 612, y: 726 }, { x: 505, y: 958 }]
-const kAt = (y: number) => Math.min(0.15, Math.max(0.1, 0.105 + ((y - 660) * (BED_K - 0.105)) / (852 - 660)))
+// Перспектива: размер котика растёт к зрителю (ниже на полу) и уменьшается вдаль — как у коробки (BED_K на y 852).
+// Горизонт пола ~ y 470: размер ∝ (y − 470), смягчено наполовину, чтобы менялся «чуть-чуть».
+const kAt = (y: number) => Math.min(0.175, Math.max(0.085, BED_K * (0.5 + (0.5 * (y - 470)) / (852 - 470))))
+// Гуляющий котик выше всего на полу (хлам, штаны, банки, флаг) — ниже вентилятора (900). Под столом компьютера —
+// столешница и передние ножки рисуются поверх котика (DESK_FRONT_Z), задняя ножка вырезана из этой картинки и остаётся сзади.
+const CAT_TOP_Z = 880
+const DESK_FRONT_Z = 885
 const STROLL_SPEED = 85 // точек сцены в секунду
 const pct = (v: number) => `${(v / 1024) * 100}%`
 
@@ -294,8 +300,10 @@ const Sausage = ({ size = 9 }: { size?: number }) => (
     <img src="/hangar/life/cat-sausage.webp" alt="" draggable={false} className="block select-none" style={{ width: `${size}cqw` }} />
 )
 
-export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, catName = null, layout }: {
+export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, catName = null, layout, desk }: {
     stage: number
+    /** Стол с компьютером (№7): место и картинка без задней ножки — котик любит лежать под ним. */
+    desk?: { src: string; p: Place } | null
     /** Расстановка из редактора (коробка и холодильник котика). */
     layout?: LayoutOverrides | null
     /** Имя котика (user_progress.cat_name). */
@@ -312,7 +320,9 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const [phase, setPhase] = useState<'peek' | 'choice' | 'lure' | 'walk' | 'home'>(stage >= 2 ? 'home' : 'peek')
     const [lure, setLure] = useState<'pet' | 'sausage'>('pet')
     const [step, setStep] = useState(0)
-    const [stroll, setStroll] = useState<{ x: number; y: number; walking: boolean; flip: boolean; dur: number } | null>(null)
+    const [stroll, setStroll] = useState<{ x: number; y: number; walking: boolean; flip: boolean; dur: number; under?: boolean } | null>(null)
+    const strollingRef = useRef(false)
+    strollingRef.current = !!stroll?.walking
     const [react, setReact] = useState<'pet' | 'meow' | 'happy' | null>(null)
     // ночью: тап по спящему котику — ему снится задачка (не исчезает сама)
     const [dreamIdx, setDreamIdx] = useState<number | null>(null)
@@ -388,7 +398,8 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     useEffect(() => {
         if (phase !== 'home' || bare || night) return
         // иногда сам мяукает, иногда жмурится от удовольствия («котику хорошо»)
-        const t = setInterval(() => { const r = Math.random(); if (r < 0.3) doReact('meow'); else if (r < 0.6) doReact('happy') }, 12000)
+        // на ходу не мяукает (облачко не успевало бы за котиком)
+        const t = setInterval(() => { if (strollingRef.current) return; const r = Math.random(); if (r < 0.3) doReact('meow'); else if (r < 0.6) doReact('happy') }, 12000)
         return () => clearInterval(t)
     }, [phase, bare, night])
     useEffect(() => {
@@ -408,17 +419,19 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
         const durTo = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.min(3.6, Math.max(1.4, Math.hypot(a.x - b.x, a.y - b.y) / STROLL_SPEED))
         const go = () => {
             if (Math.random() < 0.5) { later(20000 + Math.random() * 15000, go); return }
-            const spot = STROLL_SPOTS[Math.floor(Math.random() * STROLL_SPOTS.length)]
+            // любимое место — под столом с компьютером (лежит там подольше)
+            const under = !!desk && Math.random() < 0.4
+            const spot = under && desk ? { x: Math.round(desk.p.x - desk.p.w * 0.13), y: Math.round(desk.p.y - desk.p.h * 0.11) } : STROLL_SPOTS[Math.floor(Math.random() * STROLL_SPOTS.length)]
             const d1 = durTo(BED, spot)
-            setStroll({ ...spot, walking: true, flip: spot.x < BED.x, dur: d1 })
+            setStroll({ ...spot, walking: true, flip: spot.x < BED.x, dur: d1, under })
             later(d1 * 1000, () => setStroll((st) => st && { ...st, walking: false }))
-            const stay = 5000 + Math.random() * 4000
-            later(d1 * 1000 + stay, () => setStroll({ x: BED.x, y: BED.y, walking: true, flip: BED.x < spot.x, dur: d1 }))
+            const stay = under ? 12000 + Math.random() * 8000 : 5000 + Math.random() * 4000
+            later(d1 * 1000 + stay, () => setStroll({ x: BED.x, y: BED.y, walking: true, flip: BED.x < spot.x, dur: d1, under }))
             later(d1 * 2000 + stay, () => { setStroll(null); later(25000 + Math.random() * 20000, go) })
         }
         later(15000 + Math.random() * 15000, go)
         return () => { alive = false; timers.forEach(clearTimeout) }
-    }, [phase, bare, night])
+    }, [phase, bare, night, desk])
 
     if (stage < 1) return null
 
@@ -514,6 +527,8 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
 
     // --- дома, на картонке ---
     const pose: Pose = night ? 'sleep' : react ?? blink
+    // где говорит котик: над коробкой или над точкой прогулки (верх его картинки)
+    const talkAt = stroll ? { x: stroll.x, y: stroll.y - CAT_PX[stroll.under ? 'sleep' : 'sit-shy'][1] * kAt(stroll.y) - 6 } : { x: BED.x, y: BED.y - 96 }
     const allSit: Pose[] = ['sit', 'sit-half', 'sit-closed', 'happy', 'pet', 'meow', 'sleep']
     return (
         <>
@@ -524,14 +539,16 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             <Cardboard p={boxP} />
             {/* гуляет: слой по глубине точки, где сидит (что стоит ниже на полу — перед ним); пока идёт — не ниже своей коробки */}
             {stroll ? (
-                // гуляет: идёт (кадры ходьбы, отражены, если влево) или сидит в точке и смотрит по сторонам
-                <motion.div className="pointer-events-none absolute" style={{ zIndex: stroll.walking ? Math.max(catZ, depthZIndex(stroll.y)) : depthZIndex(stroll.y) }}
+                // гуляет: идёт (кадры ходьбы, отражены, если влево) или сидит в точке и смотрит по сторонам; под столом — лежит.
+                // Слой — поверх всего на полу (CAT_TOP_Z), размер — по глубине точки (kAt).
+                <motion.div className={`absolute ${stroll.walking ? 'pointer-events-none' : 'cursor-pointer'}`} style={{ zIndex: CAT_TOP_Z }}
                     // старт прогулки — от коробки (раньше initial={false}: котик сразу оказывался в точке прогулки, «телепортировался»)
                     initial={box('walk-1', { x: BED.x, y: BED.y, k: kAt(BED.y) })}
-                    animate={box(stroll.walking ? 'walk-1' : 'sit-shy', { x: stroll.x, y: stroll.y, k: kAt(stroll.y) })}
-                    transition={{ duration: stroll.walking ? stroll.dur : 0, ease: 'linear' }}>
+                    animate={box(stroll.walking ? 'walk-1' : stroll.under ? 'sleep' : 'sit-shy', { x: stroll.x, y: stroll.y, k: kAt(stroll.y) })}
+                    transition={{ duration: stroll.walking ? stroll.dur : 0, ease: 'linear' }}
+                    onClick={stroll.walking || bare ? undefined : () => { playJustClick(); const r = Math.random(); doReact(r < 0.5 ? 'pet' : 'meow') }}>
                     <motion.div className="absolute inset-0" animate={{ y: stroll.walking ? ['0%', '-4%', '0%'] : '0%' }} transition={{ duration: 0.34, repeat: stroll.walking ? Infinity : 0 }}>
-                        <CatImg pose={stroll.walking ? (step ? 'walk-2' : 'walk-1') : 'sit-shy'} poses={['walk-1', 'walk-2', 'sit-shy']} flip={stroll.flip} />
+                        <CatImg pose={stroll.walking ? (step ? 'walk-2' : 'walk-1') : stroll.under ? 'sleep' : 'sit-shy'} poses={['walk-1', 'walk-2', 'sit-shy', 'sleep']} flip={stroll.flip} />
                     </motion.div>
                 </motion.div>
             ) : (
@@ -542,8 +559,14 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                 <CatImg pose={pose} poses={allSit} />
             </button>
             )}
-            {!bare && (react === 'pet' || react === 'happy') && <><Hearts key={reactKey.current} x={BED.x} y={BED.y - 95} /><Bubble x={BED.x + 30} y={BED.y - 96}>{say}</Bubble></>}
-            {!bare && react === 'meow' && <Bubble key={reactKey.current} x={BED.x + 34} y={BED.y - 96}>{say}</Bubble>}
+            {stroll?.under && desk && (
+                // столешница и передние ножки — поверх котика, пока он идёт под стол, лежит там и уходит
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={desk.src} alt="" draggable={false} className="pointer-events-none absolute select-none" style={{ ...placeStyle(desk.p), zIndex: DESK_FRONT_Z }} />
+            )}
+            {/* облачко и сердечки — над котиком там, где он сейчас (на коробке или в точке прогулки) */}
+            {!bare && !stroll?.walking && (react === 'pet' || react === 'happy') && <><Hearts key={reactKey.current} x={talkAt.x} y={talkAt.y + 1} /><Bubble x={talkAt.x + 30} y={talkAt.y}>{say}</Bubble></>}
+            {!bare && !stroll?.walking && react === 'meow' && <Bubble key={reactKey.current} x={talkAt.x + 34} y={talkAt.y}>{say}</Bubble>}
             {!bare && night && dreamIdx !== null && (
                 <Dream x={BED.x + 40} y={BED.y - 100} dream={DREAMS[dreamIdx]} onNext={nextDream} onClose={() => setDreamIdx(null)} />
             )}
