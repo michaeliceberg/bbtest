@@ -277,3 +277,21 @@ Avoid (в конце каждого): `text, letters, numbers, icon, symbol, arr
 
 В Avoid к этим четырём добавить: `padlock, lock, chain, visible object under the cloth, person, hands, plastic wrap, shiny vinyl, bright green`.
 Если выйдет слишком ярко-зелёным — допиши в промпт «muted khaki-olive, faded by the sun».
+
+## Выезжающий лоток ракеты (кнопки 14–20) — в стиле пульта (2026-11-02)
+Модель FLUX.1 Kontext, Add Image → `public/hangar/ui/panel2-plate.webp` (тот же металл, винты, обводка).
+Кнопки 14…20 рисуем кодом поверх гнёзд, поэтому гнёзда — пустые.
+
+```
+Using the attached control panel as the exact style reference, draw a matching slide-out metal tray for the same panel.
+Same dark gunmetal grey plate, same thick uneven dark-brown cartoon outline, same worn scratches and rust specks,
+same round screws in the corners, same flat cel shading and muted dusty colours.
+The tray is a wide horizontal plate (about 4:1), front view, perfectly straight, no perspective.
+On it, one row of 7 identical empty rectangular sockets with rounded corners, evenly spaced, dark and recessed,
+each with a thin raised rim — no buttons inside, no numbers, no text.
+Above the row, a thin empty engraved label strip across the plate (blank, no letters) with one small green indicator lamp at its left end.
+Along the bottom edge — two small slide rails / runners, as if the tray slides out from under the panel.
+Isolated on pure white background, no shadow.
+Avoid: text, letters, numbers, buttons inside sockets, perspective, tilt, extra knobs, gauges, cables, glow, background, shadow.
+```
+Потом: Remove Background (Full, тень None), прислать картинку — вырежу и подставлю под кнопки 14–20.

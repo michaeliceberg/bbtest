@@ -80,7 +80,7 @@ export function MiptSilhouette({ night = false }: { night?: boolean }) {
     const h = (MIPT.w * 80) / 100
     return (
         <svg viewBox="0 0 100 80" className="absolute" aria-hidden
-            style={{ left: cq(MIPT.x - (WIN.cx - WIN.r) - MIPT.w / 2), top: cq(MIPT.base - WIN.top - h), width: cq(MIPT.w), opacity: night ? 0.8 : 0.45,
+            style={{ left: cq(MIPT.x - (WIN.cx - WIN.r) - MIPT.w / 2), top: cq(MIPT.base - WIN.top - h), width: cq(MIPT.w), opacity: night ? 0.8 : 0.62,
                 WebkitMaskImage: 'linear-gradient(180deg, #000 72%, transparent 100%)', maskImage: 'linear-gradient(180deg, #000 72%, transparent 100%)' }}>
             {/* корпус с аркой: арка вырезана (evenodd), сквозь неё небо */}
             <path fillRule="evenodd" fill={fill}
@@ -90,8 +90,8 @@ export function MiptSilhouette({ night = false }: { night?: boolean }) {
             <rect x="8" y="27" width="20" height="5" fill={fill} /><rect x="72" y="27" width="20" height="5" fill={fill} />
             {/* аттик над аркой, над ним крупные буквы на фоне неба */}
             <rect x="26" y="22" width="48" height="10" fill={fill} />
-            <text x="50" y="18" textAnchor="middle" fontFamily="var(--font-nunito), Arial, sans-serif" fontWeight={600} fontSize="17" letterSpacing="2.5"
-                fill={night ? '#FFD27A' : '#46707A'} opacity={night ? 0.75 : 1}>МФТИ</text>
+            <text x="50" y="18" textAnchor="middle" fontFamily="var(--font-nunito), Arial, sans-serif" fontWeight={400} fontSize="16" letterSpacing="3"
+                fill={night ? '#FFD27A' : fill} opacity={night ? 0.7 : 1}>МФТИ</text>
             {night && (
                 <g fill="#FFD27A" opacity={0.85}>
                     {[[14, 44], [22, 52], [78, 46], [86, 54], [16, 62], [82, 64]].map(([x, y], i) => (
