@@ -22,13 +22,16 @@ import { checkCatName, CAT_NAME_MAX } from '@/lib/catName'
 import { useAchievementUnlockStore } from '@/store/use-achievement-unlock-store'
 import { playSound, playJustClick, CASE_PRIZE_SOUND } from '@/lib/sound'
 
-type Pose = 'happy' | 'peek' | 'walk-1' | 'walk-2' | 'meow' | 'pet' | 'sniff' | 'sleep' | 'sit' | 'sit-half' | 'sit-closed' | 'sit-shy'
+type Pose = 'happy' | 'peek' | 'walk-1' | 'walk-2' | 'walk-3' | 'meow' | 'pet' | 'sniff' | 'sleep' | 'sit' | 'sit-half' | 'sit-closed' | 'sit-shy'
 
 // Размер позы в исходных пикселях (обрезка по картинке, до уменьшения).
 const CAT_PX: Record<Pose, [number, number]> = {
-    peek: [536, 651], 'walk-1': [767, 659], 'walk-2': [767, 659], meow: [648, 750], pet: [611, 764], sniff: [632, 727],
+    peek: [536, 651], 'walk-1': [811, 689], 'walk-2': [811, 689], 'walk-3': [811, 689], meow: [648, 750], pet: [611, 764], sniff: [632, 727],
     sleep: [672, 453], happy: [626, 755], sit: [626, 755], 'sit-half': [626, 755], 'sit-closed': [626, 755], 'sit-shy': [627, 635],
 }
+// Ходьба — 3 кадра Leonardo (docs/hangar/leonardo/cat-walk2-*): лапа вперёд → широкий шаг → лапы собраны.
+// Кадры выровнены по голове, поэтому голова не дёргается — двигаются только лапы.
+const WALK_FRAMES: Pose[] = ['walk-1', 'walk-2', 'walk-3']
 const src = (p: Pose) => `/hangar/life/cat-${p}.webp`
 
 // Точки сцены: у правой стойки ворот (далеко — мельче; слева от ворот стоит бочка) и картонка на полу перед ракетой.
@@ -400,7 +403,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     // кадры ходьбы
     useEffect(() => {
         if (phase !== 'walk' && !stroll?.walking) return
-        const t = setInterval(() => setStep((s) => 1 - s), 170)
+        const t = setInterval(() => setStep((s) => (s + 1) % 3), 150)
         return () => clearInterval(t)
     }, [phase, stroll?.walking])
 
@@ -514,7 +517,7 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
 
     // --- бежит к картонке ---
     if (phase === 'walk') {
-        const pose: Pose = step ? 'walk-2' : 'walk-1'
+        const pose: Pose = WALK_FRAMES[step]
         const frames = [...PATH.slice(0, -1), BED].map((p) => box('walk-1', p))
         return (
             <>
@@ -524,8 +527,8 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                     animate={{ left: frames.map((f) => f.left), top: frames.map((f) => f.top), width: frames.map((f) => f.width), height: frames.map((f) => f.height) }}
                     transition={{ duration: WALK_S, ease: 'linear', times: [0, 0.3, 0.65, 1] }}>
                     <CatShadow />
-                    <motion.div className="absolute inset-0" animate={{ y: ['0%', '-4%', '0%'] }} transition={{ duration: 0.34, repeat: Infinity }}>
-                        <CatImg pose={pose} poses={['walk-1', 'walk-2']} flip />
+                    <motion.div className="absolute inset-0" animate={{ y: ['0%', '-1.5%', '0%'] }} transition={{ duration: 0.3, repeat: Infinity }}>
+                        <CatImg pose={pose} poses={WALK_FRAMES} flip />
                     </motion.div>
                 </motion.div>
                 {lure === 'sausage' && (
@@ -560,8 +563,8 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
                     transition={{ duration: stroll.walking ? stroll.dur : 0, ease: 'linear' }}
                     onClick={stroll.walking || bare ? undefined : () => { playJustClick(); const r = Math.random(); doReact(r < 0.5 ? 'pet' : 'meow') }}>
                     <CatShadow />
-                    <motion.div className="absolute inset-0" animate={{ y: stroll.walking ? ['0%', '-4%', '0%'] : '0%' }} transition={{ duration: 0.34, repeat: stroll.walking ? Infinity : 0 }}>
-                        <CatImg pose={stroll.walking ? (step ? 'walk-2' : 'walk-1') : stroll.under ? 'sleep' : 'sit-shy'} poses={['walk-1', 'walk-2', 'sit-shy', 'sleep']} flip={stroll.flip} />
+                    <motion.div className="absolute inset-0" animate={{ y: stroll.walking ? ['0%', '-1.5%', '0%'] : '0%' }} transition={{ duration: 0.3, repeat: stroll.walking ? Infinity : 0 }}>
+                        <CatImg pose={stroll.walking ? WALK_FRAMES[step] : stroll.under ? 'sleep' : 'sit-shy'} poses={[...WALK_FRAMES, 'sit-shy', 'sleep']} flip={stroll.flip} />
                     </motion.div>
                 </motion.div>
             ) : (
