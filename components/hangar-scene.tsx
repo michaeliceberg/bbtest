@@ -16,7 +16,7 @@ import { motion } from 'framer-motion'
 import type { CatFoodStock } from '@/lib/catFood'
 import { RepairIcon } from '@/components/repair-icon'
 import Link from 'next/link'
-import { L, JUNK, FAN_NUM, DECOR, PORTRAIT_NUM, itemOf, place, placeStyle, type LayoutOverrides } from '@/lib/hangarModel'
+import { L, JUNK, FAN_NUM, DECOR, CAT_DECOR, PORTRAIT_NUM, itemOf, place, placeStyle, type LayoutOverrides } from '@/lib/hangarModel'
 import { HangarFan, FAN } from '@/components/hangar-fan'
 import { HangarCat } from '@/components/hangar-cat'
 import { HangarSky, HangarSpider, HangarHangingSpider, HangarBug, HangarPaper, ComputerFlicker, HangarMoon } from '@/components/hangar-life'
@@ -94,7 +94,7 @@ const HIGHLIGHT = 'drop-shadow(0 0 2px #FFFBE6) drop-shadow(0 0 5px #FFE58A) dro
 const FAN_GLOW = 'drop-shadow(0 0 3px #FFE58A) drop-shadow(0 0 10px #F2C35B) brightness(1.5)'
 // Тень предмета на полу — по его собственному силуэту, прижатая к нему (drop-shadow на картинке). Раньше под предметом
 // рисовался отдельный размытый овал, он оказывался ниже предмета, и вещи будто парили над полом (шуруповёрт).
-const FLOOR_SHADOW = 'drop-shadow(1px 3px 2px rgba(20,10,8,0.5))'
+export const FLOOR_SHADOW = 'drop-shadow(1px 3px 2px rgba(20,10,8,0.5))'
 const LIT_Z = 1104 // выше затемнения времени суток (1100), ниже звёзд и луны (1105)
 
 export type HangarTime = Time
@@ -284,9 +284,14 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
         if (el && el.getBoundingClientRect().height > window.innerHeight * 0.9) el.scrollIntoView({ block: 'center', behavior: 'smooth' })
     }
     // подсветка + вечером/ночью подъём над затемнением
-    const litStyle = (on: boolean): React.CSSProperties => ({
-        filter: on ? HIGHLIGHT : undefined, transition: 'filter .25s',
-        ...(on && time !== 'day' ? { zIndex: LIT_Z } : {}),
+    // keepZ — подсветить, но не поднимать над затемнением: предмет стоит за вещами котика (генератор №10 за холодильником)
+    // и, поднявшись, оказался бы перед ними
+    const catDecorP = catStage >= 2 ? [place(layout, catFridgeFixed ? 'a' : 'b', 'cat-fridge', CAT_DECOR[0][catFridgeFixed ? 'a' : 'b']), place(layout, 'a', 'cat-box', CAT_DECOR[1].a)] : []
+    const behindCatDecor = (p: { x: number; y: number; w: number; h: number; z: number }) => catDecorP.some((d) =>
+        d.z > p.z && Math.abs(d.x - p.x) < (d.w + p.w) / 2 && p.y > d.y - d.h && p.y - p.h < d.y)
+    const litStyle = (on: boolean, keepZ = false): React.CSSProperties => ({
+        ...(on ? { filter: HIGHLIGHT } : {}), transition: 'filter .25s',
+        ...(on && time !== 'day' && !keepZ ? { zIndex: LIT_Z } : {}),
     })
     const label = (i: SceneItem) => (i.num >= 14 ? ROCKET_STEP[Math.min(6, stage)] : FIX_LABEL[i.num] ?? 'Починить')
 
@@ -328,7 +333,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     return (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img key={jp.key} src={jp.src} alt="" draggable={false} className="absolute select-none transition-[opacity,transform] duration-700"
-                            style={{ ...placeStyle(p), opacity: j < junkLeft ? 1 : 0, transform: j < junkLeft ? 'scale(1)' : 'scale(0.3)' }} />
+                            style={{ ...placeStyle(p), filter: FLOOR_SHADOW, opacity: j < junkLeft ? 1 : 0, transform: j < junkLeft ? 'scale(1)' : 'scale(0.3)' }} />
                     )
                 })}
                 {DECOR.map((d) => {
@@ -352,7 +357,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 <img key={R.src} src={R.src} alt="Ракета" draggable={false} className={`absolute select-none ${nextRocket ? 'cursor-pointer' : ''}`}
                     onClick={() => { if (nextRocket) openTask(nextRocket.num) }}
                     onMouseEnter={() => { if (nextRocket) setHover(nextRocket.num) }} onMouseLeave={() => setHover(null)}
-                    style={{ ...placeStyle(R), ...litStyle(!!nextRocket && lit(nextRocket.num)), animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
+                    style={{ ...placeStyle(R), filter: FLOOR_SHADOW, ...litStyle(!!nextRocket && lit(nextRocket.num)), animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
                 <HangarCat stage={catStage} layout={layout} desk={desk} barrel={barrelP} fridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} demo={catDemo} bare={bare} night={time === 'night'} onHome={onCatHome} />
                 {nextRocket && !bare && <KeyBadge x={R.x + R.w * (stage === 0 ? 0.3 : 0.44)} y={R.y - R.h * 0.55} n={nextRocket.num} ready={!!readyRocket} active={lit(nextRocket.num)} onHover={setHover} onOpen={openTask} />}
                 {room.filter((i) => i.num !== FAN_NUM).map((i) => {
@@ -371,7 +376,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                                     else openTask(i.num)
                                 }}
                                 onMouseEnter={() => { if (!done) setHover(i.num) }} onMouseLeave={() => setHover(null)}
-                                style={{ ...placeStyle(p), ...litStyle(!done && lit(i.num)), ...(!onWall && !(!done && lit(i.num)) ? { filter: FLOOR_SHADOW } : {}), animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
+                                style={{ ...placeStyle(p), ...litStyle(!done && lit(i.num), catStage >= 2 && behindCatDecor(p)), ...(!onWall && !(!done && lit(i.num)) ? { filter: FLOOR_SHADOW } : {}), animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
                             {id === 7 && !done && <ComputerFlicker style={placeStyle(p)} />}
                             {!done && !bare && <KeyBadge x={id === 5 && !done ? p.x - p.w * 0.32 : p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready'} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
                             {done && !bare && (id === ARCHIVE_ITEM || id === ROBOT_ITEM) && !(id === ROBOT_ITEM && robotJoke) && (

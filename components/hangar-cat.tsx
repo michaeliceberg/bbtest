@@ -191,7 +191,7 @@ function Cardboard({ p }: { p: Place }) {
         // eslint-disable-next-line @next/next/no-img-element
         <img src="/hangar/life/cat-cardboard.webp" alt="" draggable={false} className="pointer-events-none absolute select-none"
             // в тон соседнего хлама у стены: темнее и чуть менее рыжая
-            style={{ ...placeStyle(p), filter: 'sepia(0.35) brightness(0.62) saturate(0.95) contrast(0.95)' }} />
+            style={{ ...placeStyle(p), filter: 'sepia(0.35) brightness(0.62) saturate(0.95) contrast(0.95) drop-shadow(1px 3px 2px rgba(20,10,8,0.5))' }} />
     )
 }
 
@@ -205,7 +205,7 @@ function Fridge({ p, fixed, onClick, justFixed }: { p: Place; fixed: boolean; on
             className={`absolute select-none ${onClick ? 'cursor-pointer' : 'pointer-events-none'}`}
             style={{ ...placeStyle(p), animation: justFixed ? 'hangar-pop .6s ease-out' : undefined }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={fixed ? '/hangar/life/cat-fridge.webp' : '/hangar/life/cat-fridge-broken.webp'} alt="" draggable={false} className="absolute inset-0 h-full w-full" />
+            <img src={fixed ? '/hangar/life/cat-fridge.webp' : '/hangar/life/cat-fridge-broken.webp'} alt="" draggable={false} className="absolute inset-0 h-full w-full" style={{ filter: 'drop-shadow(1px 3px 2px rgba(20,10,8,0.5))' }} />
             {fixed && (
                 // на бумажке — мордочка котика простым карандашом (как ребёнок нарисовал)
                 <svg className="absolute" viewBox="0 0 40 30" style={{ left: '68%', top: '38.5%', width: '22%', height: '17%', rotate: '-4deg' }}

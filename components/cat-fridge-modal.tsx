@@ -36,15 +36,33 @@ export function CatFridgeModal({ stock, onBought, onClose, offline, catName }: {
     const [busy, setBusy] = useState<CatFood | null>(null)
     const [noCoins, setNoCoins] = useState<CatFood | null>(null)
     const [sgTapped, setSgTapped] = useState(false)
-    // лампочка изредка мигает (раз в 6–13 с: погасла-зажглась-погасла-зажглась)
-    const [dark, setDark] = useState(false)
+    // Лампочка изредка барахлит, как старая лампа: каждый раз по-разному — короткая дрожь из 2–4 вспышек,
+    // одно долгое затухание (~0,35 с) или «почти погасла» (тускнеет не до конца). dark — насколько темно, 0…1.
+    const [dark, setDark] = useState(0)
     useEffect(() => {
         let alive = true
         const timers: ReturnType<typeof setTimeout>[] = []
+        const at = (ms: number, v: number) => timers.push(setTimeout(() => alive && setDark(v), ms))
         const loop = () => {
-            const t = 6000 + Math.random() * 7000
-            ;[[0, true], [90, false], [190, true], [260, false]].forEach(([d, v]) => timers.push(setTimeout(() => alive && setDark(v as boolean), t + (d as number))))
-            timers.push(setTimeout(() => alive && loop(), t + 300))
+            let t = 5000 + Math.random() * 8000
+            const kind = Math.random()
+            if (kind < 0.35) {
+                // долгое затухание: гаснет, держится ~треть секунды, моргнув, загорается
+                at(t, 1); t += 280 + Math.random() * 120
+                at(t, 0.35); t += 60; at(t, 1); t += 70
+            } else if (kind < 0.6) {
+                // почти погасла и не сразу ожила
+                at(t, 0.6); t += 150; at(t, 0.85); t += 120
+            } else {
+                // дрожь: 2–4 вспышки разной длины и глубины
+                const n = 2 + Math.floor(Math.random() * 3)
+                for (let i = 0; i < n; i++) {
+                    at(t, 0.7 + Math.random() * 0.3); t += 40 + Math.random() * 110
+                    at(t, Math.random() < 0.3 ? 0.25 : 0); t += 40 + Math.random() * 90
+                }
+            }
+            at(t, 0)
+            timers.push(setTimeout(() => alive && loop(), t + 50))
         }
         loop()
         return () => { alive = false; timers.forEach(clearTimeout) }
@@ -130,7 +148,7 @@ export function CatFridgeModal({ stock, onBought, onClose, offline, catName }: {
                     <img src="/hangar/life/cat-fridge-inside.webp" alt="" draggable={false} className="pointer-events-none absolute inset-0 h-full w-full select-none" />
                     {/* свет лампочки */}
                     <span className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full transition-opacity duration-75"
-                        style={{ left: '50%', top: '17%', width: '60%', height: '22%', opacity: dark ? 0 : 0.8, mixBlendMode: 'screen',
+                        style={{ left: '50%', top: '17%', width: '60%', height: '22%', opacity: 0.8 * (1 - dark), mixBlendMode: 'screen',
                             background: 'radial-gradient(closest-side, rgba(255,246,200,0.75), rgba(255,240,190,0.25) 55%, transparent)' }} />
                     {/* пасхалка: нажал на нацарапанную надпись — ачивка «Сол Гудман был здесь!» (в зале ачивок — кусочек пиццы) */}
                     <button type="button" aria-label="SG was here" onClick={() => { playJustClick(); setSgTapped(true); if (!offline) reportAchievement('fridge_sg') }}
@@ -158,7 +176,7 @@ export function CatFridgeModal({ stock, onBought, onClose, offline, catName }: {
                     </div>
                     {/* лампочка мигнула — всё внутри на миг тускнеет; zIndex выше продуктов (у пакетов свой zIndex 1–3, иначе они рисовались поверх тени) */}
                     <div className="pointer-events-none absolute transition-opacity duration-75"
-                        style={{ left: '14.4%', top: '13.5%', width: '70.7%', height: '74.5%', background: 'rgba(12,20,32,0.5)', opacity: dark ? 1 : 0, zIndex: 30 }} />
+                        style={{ left: '14.4%', top: '13.5%', width: '70.7%', height: '74.5%', background: 'rgba(12,20,32,0.55)', opacity: dark, zIndex: 30 }} />
                 </div>
                 <button type="button" onClick={onClose} aria-label="Закрыть холодильник"
                     className="mx-auto mt-3 flex items-center gap-1.5 rounded-xl border-2 border-b-4 border-[#3A2A1E] bg-[#FFF6E4] px-4 py-2 text-base font-black text-[#3A2A1E] active:border-b-0">
