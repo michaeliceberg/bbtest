@@ -404,7 +404,16 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
     const st = fridgeOk ? 'a' : 'b'
     const boxP = place(layout, st, 'cat-box', CAT_DECOR[1][st])
     const frP = place(layout, st, 'cat-fridge', CAT_DECOR[0][st])
-    const sbP = place(layout, 'a', 'cat-sbox', CAT_DECOR[2].a)
+    // Коробка Шрёдингера не ломается — в редакторе её могли сдвинуть на любой вкладке («Сломано» или «Починено»):
+    // берём ту, где место отличается от исходного (сначала вкладку текущего состояния холодильника).
+    const sbP = (() => {
+        const def = CAT_DECOR[2].a
+        const moved = (q: Place) => q.x !== def.x || q.y !== def.y || q.w !== def.w || q.h !== def.h || (q.rot ?? 0) !== 0
+        const mine = place(layout, st, 'cat-sbox', def)
+        if (moved(mine)) return mine
+        const other = place(layout, st === 'a' ? 'b' : 'a', 'cat-sbox', def)
+        return moved(other) ? other : mine
+    })()
     const BED = bedOf(boxP)
     bedRef.current = { ...BED, floorY: boxP.y }
     sboxRef.current = sbP
