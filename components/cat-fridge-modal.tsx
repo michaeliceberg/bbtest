@@ -44,29 +44,43 @@ export function CatFridgeModal({ stock, onBought, onClose, offline }: {
         onBought(kind, r.count)
     }
 
-    // продукт стоит на полке (низ картинки — на линии полки), счётчик «×N» — если куплено больше одного
-    const item = (kind: CatFood, w: string) => {
+    // продукт стоит на полке (низ картинки — на линии полки). Куплено 2–3 — стоят рядом друг за другом (молоко —
+    // в ряд, колбаски — горкой друг на друге); больше трёх — видно три, а справа снизу число: 4, 5, 6…
+    const item = (kind: CatFood, w: number) => {
         const f = CAT_FOOD[kind]
-        const have = stock[kind] > 0
+        const n = stock[kind]
+        const shown = Math.max(1, Math.min(n, 3))
+        const pile = kind === 'sausage'
+        const size = pile ? w : w * [1, 0.86, 0.76][shown - 1]
         return (
             <div className="relative flex h-full items-end justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <motion.img key={`${kind}-${stock[kind]}`} src={f.src} alt={f.title} draggable={false}
-                    initial={have ? { scale: 0.6, y: -20 } : false} animate={{ scale: 1, y: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 14 }}
-                    className="max-h-full select-none" style={{ width: w, filter: have ? undefined : 'brightness(0) opacity(0.22)' }} />
-                {stock[kind] > 1 && (
-                    <span className="absolute right-1 top-1 rounded-full border-2 border-[#3A2A1E] bg-[#FFE58A] px-1.5 text-xs font-black text-[#3A2A08]">×{stock[kind]}</span>
+                {Array.from({ length: shown }, (_, i) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <motion.img key={`${kind}-${i}`} src={f.src} alt={i === 0 ? f.title : ''} draggable={false}
+                        initial={n > 0 && i === shown - 1 ? { scale: 0.6, y: -20 } : false} animate={{ scale: 1, y: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 14 }}
+                        className="max-h-full select-none"
+                        style={{
+                            width: `${size}%`, filter: n > 0 ? (i > 0 ? `brightness(${1 - i * 0.08})` : undefined) : 'brightness(0) opacity(0.22)',
+                            position: i === 0 ? 'relative' : 'absolute', zIndex: shown - i,
+                            ...(i > 0 && !pile ? { left: `calc(50% - ${size / 2}% + ${i * size * 0.62}%)`, bottom: `${i * 2}%` } : {}),
+                            ...(i > 0 && pile ? { left: `calc(50% - ${size / 2}% + ${i * 4}%)`, bottom: `${i * 20}%` } : {}),
+                        }} />
+                ))}
+                {n > 3 && (
+                    // число — справа снизу от ряда пакетов (ряд кончается на 50% − size/2 + 2,24·size)
+                    <span className="absolute bottom-0 z-10 rounded-md bg-white/85 px-1 text-sm font-black leading-tight text-[#3A2A1E]"
+                        style={{ left: `calc(${50 - size / 2 + size * (pile ? 1 : 2.24)}% + 2px)` }}>{n}</span>
                 )}
             </div>
         )
     }
-    // ценник под полкой: цена + монета, нажал — купить
+    // ценник на краю полки (маленький, чтобы не закрывать нижнюю полку): цена + монета, нажал — купить
     const tag = (kind: CatFood) => (
         <div className="flex flex-col items-center">
             <button type="button" onClick={() => void buy(kind)} disabled={busy !== null} aria-label={`Купить: ${CAT_FOOD[kind].title}`}
-                className="flex items-center gap-0.5 rounded-xl border-b-4 border-[#B8862E] bg-[#FFE58A] py-1 pl-2.5 pr-1 text-base font-black text-[#3A2A08] shadow-md active:border-b-0 disabled:opacity-70">
+                className="flex items-center gap-0.5 rounded-lg border-b-4 border-[#B8862E] bg-[#FFE58A] py-0.5 pl-2 pr-0.5 text-sm font-black text-[#3A2A08] shadow-md active:border-b-0 disabled:opacity-70">
                 {CAT_FOOD[kind].price}
-                <Lottie animationData={LottieCoins} loop autoplay className="-my-3 h-9 w-9 -translate-y-[14%]" />
+                <Lottie animationData={LottieCoins} loop autoplay className="-my-2 h-7 w-7 -translate-y-[14%]" />
             </button>
             {noCoins === kind && <span className="mt-1 text-xs font-bold text-[#B23A32]">Не хватает монет</span>}
         </div>
@@ -74,7 +88,7 @@ export function CatFridgeModal({ stock, onBought, onClose, offline }: {
 
     // Внутренность холодильника — картинка Leonardo (public/hangar/life/cat-fridge-inside.webp, 904×956,
     // исходник docs/hangar/leonardo/cat-fridge-inside.jpg). Координаты ниже — % этой картинки: верхняя полка ~41%,
-    // нижняя ~58.5%, камера x 13–87%, y 9–90%. Пасхалка «SG was here» нацарапана на задней стенке (cat-fridge-sg.webp).
+    // нижняя ~58.5%, камера x 14.5–85.5%, y 13.5–86.5%. Пасхалка «SG was here» нацарапана под нижней полкой справа (cat-fridge-sg.webp).
     return (
         <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/65 p-4" onClick={onClose}>
             <motion.div initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 20 }}
@@ -90,7 +104,7 @@ export function CatFridgeModal({ stock, onBought, onClose, offline }: {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src="/hangar/life/cat-fridge-inside.webp" alt="" draggable={false} className="pointer-events-none absolute inset-0 h-full w-full select-none" />
                     {/* камера: наледь по углам, пасхалка, снежинки */}
-                    <div className="pointer-events-none absolute overflow-hidden" style={{ left: '13%', top: '9%', width: '74%', height: '81%' }}>
+                    <div className="pointer-events-none absolute overflow-hidden" style={{ left: '14.5%', top: '13.5%', width: '71%', height: '73%', borderRadius: '5%' }}>
                         {[['0%', '0%'], ['100%', '0%'], ['0%', '100%'], ['100%', '100%']].map(([x, y], i) => (
                             <span key={i} className="absolute h-[34%] w-[40%] -translate-x-1/2 -translate-y-1/2 rounded-full"
                                 style={{ left: x, top: y, background: 'radial-gradient(closest-side, rgba(255,255,255,0.85), rgba(225,240,255,0.45) 45%, transparent)' }} />
@@ -107,22 +121,22 @@ export function CatFridgeModal({ stock, onBought, onClose, offline }: {
                     </div>
                     {/* пасхалка: нажал на нацарапанную надпись — ачивка «Сол Гудман был здесь!» (в зале ачивок — кусочек пиццы) */}
                     <button type="button" aria-label="SG was here" onClick={() => { playJustClick(); setSgTapped(true); if (!offline) reportAchievement('fridge_sg') }}
-                        className="absolute" style={{ left: '42.6%', top: '30.9%', width: '29.6%', height: '10%' }}>
+                        className="absolute" style={{ left: '55%', top: '63%', width: '25%', height: '8%' }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src="/hangar/life/cat-fridge-sg.webp" alt="" draggable={false} className="pointer-events-none h-full w-full select-none object-contain"
-                            style={{ rotate: '-4deg', opacity: sgTapped ? 0.8 : 0.55, mixBlendMode: 'multiply', transition: 'opacity .3s' }} />
+                            style={{ rotate: '-4deg', opacity: sgTapped ? 0.9 : 0.7, mixBlendMode: 'multiply', transition: 'opacity .3s' }} />
                     </button>
                     {/* верхняя полка: продукты стоят на ней */}
                     <div className="absolute grid grid-cols-2" style={{ left: '17%', width: '66%', top: '15%', height: '26.5%' }}>
-                        {item('milk', '42%')}
-                        {item('sausage', '78%')}
+                        {item('milk', 42)}
+                        {item('sausage', 78)}
                     </div>
-                    {/* ценники под верхней полкой */}
-                    <div className="absolute grid grid-cols-2" style={{ left: '17%', width: '66%', top: '45%' }}>
+                    {/* ценники на краю верхней полки */}
+                    <div className="absolute grid grid-cols-2" style={{ left: '17%', width: '66%', top: '41%' }}>
                         {tag('milk')}
                         {tag('sausage')}
                     </div>
-                    <p className="pointer-events-none absolute inset-x-[20%] text-center text-[11px] font-bold leading-tight text-[#56646C]" style={{ top: '74%' }}>
+                    <p className="pointer-events-none absolute inset-x-[20%] text-center text-[11px] font-bold leading-tight text-[#56646C]" style={{ top: '76%' }}>
                         Скоро здесь будет больше вкусного
                     </p>
                 </div>
