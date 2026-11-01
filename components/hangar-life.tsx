@@ -259,10 +259,37 @@ export function HangarSpider() {
  * Нить и паучок — одна и та же раскладка по времени: нить растёт вниз (scaleY от верха), паучок едет на её конец.
  * Тоже за вентилятором — нить проходит позади лопастей.
  */
+// Сеть паучка под потолком: центр (откуда идёт нить) — в точке крепления нити, нити-спицы расходятся вверх к потолку
+// и в стороны, между ними кольца. Координаты: центр сети = (0, 0), потолок — выше на ~22.
+const WEB_SPOKES: [number, number][] = [[-44, -22], [-22, -26], [0, -26], [22, -26], [44, -22], [40, 2], [-40, 2], [24, 16], [-24, 16]]
+function HangingWeb() {
+    const ring = (f: number) => WEB_SPOKES.map(([x, y]) => `${(x * f).toFixed(1)},${(y * f).toFixed(1)}`)
+    // кольцо — по спицам по кругу (порядок по углу), с лёгким провисом между спицами
+    const order = [...WEB_SPOKES.keys()].sort((a, b) => Math.atan2(WEB_SPOKES[a][1], WEB_SPOKES[a][0]) - Math.atan2(WEB_SPOKES[b][1], WEB_SPOKES[b][0]))
+    const ringPath = (f: number) => {
+        const pts = order.map((i) => ring(f)[i].split(',').map(Number))
+        return pts.map(([x, y], i) => {
+            const [nx, ny] = pts[(i + 1) % pts.length]
+            const mx = (x + nx) / 2 * 0.9, my = (y + ny) / 2 * 0.9 // провис к центру
+            return `${i === 0 ? `M${x},${y}` : ''} Q${mx.toFixed(1)},${my.toFixed(1)} ${nx},${ny}`
+        }).join(' ')
+    }
+    return (
+        <svg className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-[57.7%] overflow-visible" style={{ width: cq(110) }} viewBox="-50 -30 100 52" aria-hidden>
+            <g fill="none" stroke="#D8D4C8" strokeOpacity={0.5} strokeWidth={0.7} strokeLinecap="round">
+                {WEB_SPOKES.map(([x, y], i) => <line key={i} x1={0} y1={0} x2={x} y2={y} />)}
+                {[0.3, 0.55, 0.8].map((f) => <path key={f} d={ringPath(f)} />)}
+            </g>
+        </svg>
+    )
+}
+
 export function HangarHangingSpider() {
     const L = 230 // длина нити в пикселях картинки при полном спуске
     return (
         <div className="pointer-events-none absolute" aria-hidden style={{ left: pct(728), top: pct(70), width: cq(40), zIndex: 850 }}>
+            {/* у потолка — маленькая сплетённая сеть, нить спускается из её центра */}
+            <HangingWeb />
             <div className="hangar-thread absolute left-1/2 top-0 w-px -translate-x-1/2 bg-[#C9C6BC]/70" style={{ height: cq(L) }} />
             <div className="hangar-hang absolute left-0 top-0 w-full" style={{ ['--hang' as string]: cq(L) }}>
                 <div className="hangar-hang-sway" style={{ transformOrigin: '50% 0%' }}>
