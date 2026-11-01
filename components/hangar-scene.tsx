@@ -9,7 +9,8 @@
 // Картинки и координаты — docs/hangar/tools/build.py → public/hangar/, lib/hangarLayout.json; правки расстановки
 // (слой, поворот, место) — из редактора /test-hangar-layout (проп layout, lib/hangarModel.ts). №11 — вентилятор.
 
-import { useEffect, useLayoutEffect, useRef, useState, useTransition } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useTransition, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { Check, Dumbbell, KeyRound, ListChecks, Lock, LogOut, Wrench, X } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -144,6 +145,17 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
     // Плашка задания появляется на середине зума (зум 1,1 с → через 0,55 с) — не сразу и без долгого ожидания; закрывается сразу.
     const ZOOM_MS = 550
     const [panelNum, setPanelNum] = useState<number | null>(null)
+    // середина ангара по горизонтали в пикселях экрана — по ней центрируется плашка на компьютере
+    const [panelX, setPanelX] = useState<number | null>(null)
+    // на компьютере плашка — в body: страница задачника обёрнута анимацией (transform), и fixed внутри неё
+    // считался бы от колонки, а не от экрана (плашка уезжала вправо)
+    const [isLg, setIsLg] = useState(false)
+    useEffect(() => {
+        const mq = window.matchMedia('(min-width: 1024px)')
+        const on = () => setIsLg(mq.matches)
+        on(); mq.addEventListener('change', on)
+        return () => mq.removeEventListener('change', on)
+    }, [])
     const [archiveOpen, setArchiveOpen] = useState(false)
     const [robotJoke, setRobotJoke] = useState<{ joke: ZnJoke; key: number } | null>(null)
     useEffect(() => {
@@ -283,7 +295,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
         const fx = (focus.x / 1024) * S
         const fy = (focus.y / 1024) * S
         const tx = Math.min(zoomFrom, Math.max(zoomFrom + vw - ZOOM * S, zoomFrom + vw / 2 - ZOOM * fx))
-        const ty = Math.min(0, Math.max(S - ZOOM * S, S / 2 - ZOOM * fy))
+        const ty = Math.min(0, Math.max(S - ZOOM * S, (scrollMode ? S * 0.3 : S / 2) - ZOOM * fy))
         return `translate(${tx}px, ${ty}px) scale(${ZOOM})`
     })()
     // открыть окошко задания: по ключику или по самому предмету (если он ещё не починен)
@@ -291,6 +303,8 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
         if (byNum.get(num)?.state === 'fixed') return
         setZoomFrom(frameRef.current?.scrollLeft ?? 0)
         setOpenNum(num)
+        const fr = frameRef.current?.getBoundingClientRect()
+        if (fr) setPanelX(Math.round(fr.left + fr.width / 2))
         // большой ангар на компьютере выше экрана: ставим его серединой в кадр (предмет после зума — в центре квадрата)
         const el = frameRef.current
         if (el && el.getBoundingClientRect().height > window.innerHeight * 0.9) el.scrollIntoView({ block: 'center', behavior: 'smooth' })
@@ -314,10 +328,11 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
         ...(on ? { filter: HIGHLIGHT } : {}), transition: 'filter .25s',
         ...(on && time !== 'day' && !keepZ ? { zIndex: LIT_Z } : {}),
     })
+    const inBody = (el: ReactNode) => (isLg && !scrollMode ? createPortal(el, document.body) : el)
     const label = (i: SceneItem) => (i.num >= 14 ? ROCKET_STEP[Math.min(6, stage)] : FIX_LABEL[i.num] ?? 'Починить')
 
     return (
-        <div className={bare || scrollMode ? '' : 'mt-6 lg:mt-0'}>
+        <div className={`relative ${bare || scrollMode ? '' : 'mt-6 lg:mt-0'}`}>
             <style>{`@keyframes hangar-pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:scale(1)}}`}</style>
             {/* ключ «N/20» и «Выйти» — плашками поверх картинки, вне прокручиваемой рамки (не уезжают при листании) */}
             <div className="relative mx-auto" style={{ width: frame && frame.s < frame.w ? frame.s : '100%' }}>
@@ -445,11 +460,14 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                 // пульт с тремя кнопками: листать влево / к ракете / вправо (картинки Leonardo, public/hangar/ui)
                 <HangarControlPanel canLeft={edge.l} canRight={edge.r} onLeft={() => slide(-1)} onRocket={centerRocket} onRight={() => slide(1)} />
             )}
-            {!bare && panelItem && (
+            {!bare && panelItem && inBody((
                 // Плашка задания — под картинкой, чтобы не закрывать ангар; на компьютере ангар большой и выше экрана —
                 // там плашка висит внизу экрана поверх (центрирование — на обёртке, анимация — на самой плашке)
-                <div className="lg:pointer-events-none lg:fixed lg:inset-x-0 lg:bottom-5 lg:z-[1300] lg:flex lg:justify-center lg:px-4">
-                <div className="mt-3 rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3.5 shadow-xl lg:pointer-events-auto lg:mt-0 lg:w-full lg:max-w-[540px]" style={{ animation: 'hangar-pop .35s ease-out' }}>
+                // Телефон (ангар листается): плашка поверх нижней части ангара, предмет при зуме уезжает в верхнюю треть.
+                // Компьютер: висит внизу экрана по центру самого ангара (panelX — середина рамки).
+                <div className={scrollMode ? 'absolute inset-x-2 bottom-2' : 'lg:pointer-events-none lg:fixed lg:bottom-5 lg:z-[1300] lg:w-[min(540px,calc(100vw-32px))] lg:-translate-x-1/2'}
+                    style={scrollMode ? { zIndex: 1300 } : panelX !== null ? { left: panelX } : undefined}>
+                <div className={`${scrollMode ? '' : 'mt-3'} rounded-2xl border-2 border-[#4A3A14] bg-[#151F23] p-3.5 shadow-xl lg:pointer-events-auto lg:mt-0 lg:w-full`} style={{ animation: 'hangar-pop .35s ease-out' }}>
                     <div className="flex items-start gap-2">
                         <KeyRound className="mt-1 h-5 w-5 shrink-0 text-[#F2C35B]" strokeWidth={2.6} />
                         <span className="min-w-0 flex-1 text-lg font-black leading-tight text-[#F2F7FB]">Раздел {panelItem.num} — {panelItem.title}</span>
@@ -462,7 +480,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                         onGo={onGoTask ? () => { setOpenNum(null); onGoTask(panelItem.num) } : undefined} />
                 </div>
                 </div>
-            )}
+            ))}
             {bare || openItem ? null : ready.length > 0 ? (
                 <div className="mt-3 space-y-2">
                     <p className="text-center text-sm font-black text-[#F2C35B]">Раздел решён — наводи порядок!</p>
@@ -624,12 +642,14 @@ function TaskSteps({ item, fixLabel, pending, onFix, onGo }: { item: SceneItem; 
     const btn = 'flex w-full items-center justify-center gap-1 rounded-xl border-b-4 px-1.5 py-2 text-center text-[13px] font-black leading-tight active:border-b-0'
     const step = (n: number, active: boolean, done: boolean) =>
         `relative flex min-w-0 flex-1 flex-col gap-1.5 rounded-xl border-2 p-2 ${done ? 'border-[#3D8A55] bg-[#163322]/60' : active ? 'border-[#F2C35B] bg-[#2A2410]/70' : 'border-[#2A363C] bg-[#0F171B]/70'}`
-    const head = (n: number, title: string, done: boolean) => (
-        <span className="flex min-w-0 items-center gap-1 text-[10px] font-black uppercase text-[#9AA7B0] sm:text-[11px] sm:tracking-wide">
+    // «① Тренажёры 0/1» — одной строкой
+    const head = (n: number, title: string, done: boolean, count: string) => (
+        <span className="flex min-w-0 items-center gap-1.5 text-sm font-black text-[#C9D3D9]">
             <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] ${done ? 'bg-[#3D8A55] text-white' : 'bg-[#26333B] text-[#C9D3D9]'}`}>
                 {done ? <Check className="h-3 w-3" strokeWidth={3.5} /> : n}
             </span>
             <span className="truncate">{title}</span>
+            <span className="ml-auto shrink-0 text-[#F2F7FB]">{count}</span>
         </span>
     )
     const goTasks = (
@@ -643,8 +663,7 @@ function TaskSteps({ item, fixLabel, pending, onFix, onGo }: { item: SceneItem; 
         <div className="mt-3 flex gap-1.5">
             {trainers.length > 0 && (
                 <div className={step(1, !trainerOk, trainerOk)}>
-                    {head(1, 'Тренажёры', trainerOk)}
-                    <span className="text-lg font-black leading-none text-[#F2F7FB]">{tDone}/{trainers.length}</span>
+                    {head(1, 'Тренажёры', trainerOk, `${tDone}/${trainers.length}`)}
                     {nextTrainer && (
                         <Link href={`/trainer?topic=${encodeURIComponent(nextTrainer.title)}`}
                             className={`${btn} mt-auto text-[#16240C]`} style={{ background: '#78C93C', borderBottomColor: '#60A12F' }}>
@@ -654,8 +673,7 @@ function TaskSteps({ item, fixLabel, pending, onFix, onGo }: { item: SceneItem; 
                 </div>
             )}
             <div className={step(2, trainerOk && !tasksOk, tasksOk)}>
-                {head(trainers.length > 0 ? 2 : 1, 'Задачи', tasksOk)}
-                <span className="text-lg font-black leading-none text-[#F2F7FB]">{tasks.target > 0 ? `${Math.min(tasks.solved, tasks.target)}/${tasks.target}` : '—'}</span>
+                {head(trainers.length > 0 ? 2 : 1, 'Задачи', tasksOk, tasks.target > 0 ? `${Math.min(tasks.solved, tasks.target)}/${tasks.target}` : '—')}
                 {item.locked ? (
                     <span className={`${btn} mt-auto cursor-not-allowed text-[#6B7A83]`} style={{ background: '#26333B', borderBottomColor: '#1B252A' }}>
                         <Lock className="h-3.5 w-3.5 shrink-0" />Закрыто

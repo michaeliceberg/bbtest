@@ -161,10 +161,21 @@ function Dream({ x, y, dream, onNext, onClose }: { x: number; y: number; dream: 
                     <button type="button" onClick={onNext} className="rounded-lg border-b-4 border-[#262E55] bg-[#323B6E] px-2.5 py-1 text-xs font-black text-[#C9D0FF] active:border-b-0">Другой сон</button>
                 </div>
             </motion.div>
-            {/* «пузырьки» мысли к спящему котику */}
-            <span className="absolute left-[18%] top-full mt-1 h-3 w-3 rounded-full border-2 border-[#6E7BC4] bg-[#1B2140]" />
-            <span className="absolute left-[14%] top-full mt-5 h-2 w-2 rounded-full border-2 border-[#6E7BC4] bg-[#1B2140]" />
         </div>
+    )
+}
+
+/** «Пузырьки» мысли: от низа облачка вниз к голове спящего котика (координаты ангара, не облачка —
+ *  облачко прижато к середине и над котиком не стоит). */
+function DreamDots({ x, y }: { x: number; y: number }) {
+    const dots = [{ dx: 22, dy: -44, s: 13 }, { dx: 12, dy: -26, s: 9 }, { dx: 4, dy: -12, s: 6 }]
+    return (
+        <>
+            {dots.map((d, i) => (
+                <span key={i} className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#6E7BC4] bg-[#1B2140]"
+                    style={{ left: pct(x + d.dx), top: pct(y + d.dy), width: d.s, height: d.s, zIndex: 1185 }} />
+            ))}
+        </>
     )
 }
 
@@ -795,7 +806,10 @@ export function HangarCat({ stage, bare, night, onHome, fridgeFixed = false, cat
             {!bare && !stroll?.walking && (react === 'pet' || react === 'happy') && <><Hearts key={reactKey.current} x={talkAt.x} y={talkAt.y + 1} /><Bubble x={talkAt.x + 30} y={talkAt.y}>{say}</Bubble></>}
             {!bare && !stroll?.walking && react === 'meow' && <Bubble key={reactKey.current} x={talkAt.x + 34} y={talkAt.y}>{say}</Bubble>}
             {!bare && night && dreamIdx !== null && (
-                <Dream x={BED.x + 40} y={BED.y - 100} dream={DREAMS[dreamIdx]} onNext={nextDream} onClose={() => setDreamIdx(null)} />
+                <>
+                    <Dream x={BED.x + 40} y={BED.y - 100} dream={DREAMS[dreamIdx]} onNext={nextDream} onClose={() => setDreamIdx(null)} />
+                    <DreamDots x={BED.x} y={BED.y - 50} />
+                </>
             )}
             {night && (
                 <motion.span className="pointer-events-none absolute font-black text-[#C9D3FF]" style={{ left: pct(BED.x + 30), top: pct(BED.y - 80), zIndex: 1160, fontSize: '3cqw' }}
