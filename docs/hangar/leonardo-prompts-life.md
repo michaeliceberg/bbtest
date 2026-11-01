@@ -258,3 +258,22 @@ Avoid (в конце каждого): `text, letters, numbers, icon, symbol, arr
 
 Что сделаю после: вырежу фон, положу в `public/hangar/life/panel-*.webp`, нажатие — по стандарту (тень-грань исчезает),
 нерабочая стрелка у края — лампочка гаснет.
+
+## Брезент над предметами, к которым не пройдены тренажёры (2026-11-01)
+
+Сейчас брезент нарисован кодом (`Tarp` в components/hangar-scene.tsx) и одинаковый на всех предметах. Нужны 4
+картинки разной формы — под каждый предмет возьму ближайшую по пропорциям и растяну. **Замок рисую кодом** (одинаковый
+везде), поэтому на брезенте его нет. Брезент — **пустой, без предмета под ним видимого**: только форма ткани.
+
+Как всегда: FLUX.1 Kontext, образец стиля — `public/hangar/03-before.webp` или кусок `docs/hangar/bg-empty.jpg`, общий
+хвост стиля и Avoid из начала файла. Формат картинки — как в колонке «Формат».
+
+| Файл | Под что | Формат | Промпт (перед хвостом стиля) |
+|---|---|---|---|
+| `tarp-square.jpg` | ящик, генератор, компьютер на столе, робот | 1:1 | old heavy olive-green canvas tarpaulin thrown over a bulky square object about as wide as it is tall, the cloth hangs down on all sides in deep soft folds and touches the floor, slightly dusty, a few patches and stitched seams, frayed bottom edge, a rough rope tied around it once with a knot, brass grommets along the hem, three-quarter view from slightly above, the object under it is completely hidden |
+| `tarp-wide.jpg` | провода, флаг на полу, шуруповёрт, огнетушитель, бочка | 16:9 | old heavy olive-green canvas tarpaulin thrown over a long low object lying on the floor, wide and flat shape about three times wider than tall, the cloth drapes over it and spreads on the floor around the edges in loose folds, slightly dusty, a couple of patches, frayed edge, a rope across the middle with a knot, three-quarter view from slightly above, the object under it is completely hidden |
+| `tarp-tall.jpg` | стремянка, высокие вещи | 2:3 | old heavy olive-green canvas tarpaulin thrown over a tall narrow object standing upright, about twice as tall as wide, the cloth hangs straight down in long vertical folds and pools a little on the floor, slightly dusty, patches and stitched seams, frayed bottom edge, a rope wrapped around it twice, three-quarter view, the object under it is completely hidden |
+| `tarp-wall.jpg` | лампа и портрет на стене | 3:4 | old olive-green canvas cloth hanging flat on a wall, pinned at the two top corners with nails, covering a picture frame behind it, the cloth sags slightly in the middle with soft vertical folds, frayed bottom edge, a few patches, seen straight from the front, the thing under it is completely hidden |
+
+В Avoid к этим четырём добавить: `padlock, lock, chain, visible object under the cloth, person, hands, plastic wrap, shiny vinyl, bright green`.
+Если выйдет слишком ярко-зелёным — допиши в промпт «muted khaki-olive, faded by the sun».
