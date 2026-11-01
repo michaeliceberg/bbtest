@@ -295,3 +295,20 @@ Isolated on pure white background, no shadow.
 Avoid: text, letters, numbers, buttons inside sockets, perspective, tilt, extra knobs, gauges, cables, glow, background, shadow.
 ```
 Потом: Remove Background (Full, тень None), прислать картинку — вырежу и подставлю под кнопки 14–20.
+
+### Лоток ракеты, v2 — узкий (2026-11-02)
+Первая версия вышла слишком высокой (верхняя часть с длинной табличкой лишняя). Kontext, Add Image → та картинка лотка
+(или снова panel2-plate.webp), команда правки:
+
+```
+Edit the attached metal tray: make it a much shorter, narrow horizontal strip (about 6:1, wide and low), front view, perfectly straight.
+Remove the big upper part and the long top bar completely.
+Keep only: the row of 7 identical empty rectangular sockets (same dark recessed sockets with raised rims, evenly spaced, centred vertically),
+and directly above the row a slim band (about one quarter of the height) containing a small green indicator lamp on the left
+and, right next to it, a short blank engraved label plate (empty, no letters) for a title.
+Same dark gunmetal grey metal, same thick uneven dark-brown cartoon outline, rounded corners, a few round screws at the ends,
+light scratches and rust specks, flat cel shading, muted dusty colours. Keep the two small slide rails under the bottom edge.
+Isolated on pure white background, no shadow.
+Avoid: text, letters, numbers, buttons inside sockets, tall plate, top bar, perspective, tilt, extra knobs, gauges, cables, glow, shadow.
+```
+Название «ВТОРАЯ ЧАСТЬ ЕГЭ» на табличку и кнопки 14–20 в гнёзда кладём кодом.
