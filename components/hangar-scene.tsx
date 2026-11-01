@@ -92,6 +92,9 @@ function KeyBadge({ x, y, n, ready, active, onHover, onOpen }: { x: number; y: n
 const HIGHLIGHT = 'drop-shadow(0 0 2px #FFFBE6) drop-shadow(0 0 5px #FFE58A) drop-shadow(0 0 12px #FFD84D) drop-shadow(0 0 24px #F2C35B) brightness(1.4) saturate(1.15)'
 // для вентилятора — полегче: два слоя тени вместо четырёх (он тонкий, большой размытый ореол не нужен)
 const FAN_GLOW = 'drop-shadow(0 0 3px #FFE58A) drop-shadow(0 0 10px #F2C35B) brightness(1.5)'
+// Тень предмета на полу — по его собственному силуэту, прижатая к нему (drop-shadow на картинке). Раньше под предметом
+// рисовался отдельный размытый овал, он оказывался ниже предмета, и вещи будто парили над полом (шуруповёрт).
+const FLOOR_SHADOW = 'drop-shadow(1px 3px 2px rgba(20,10,8,0.5))'
 const LIT_Z = 1104 // выше затемнения времени суток (1100), ниже звёзд и луны (1105)
 
 export type HangarTime = Time
@@ -360,8 +363,6 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     const onWall = WALL.has(id) && !(id === 6 && !done)
                     return (
                         <div key={i.num}>
-                            {!onWall && <div className="pointer-events-none absolute rounded-[50%]"
-                                style={{ left: pct(p.x - p.w * 0.45), top: pct(p.y - p.h * 0.07 - 4), width: pct(p.w * 0.9), height: pct(p.h * 0.12 + 8), background: 'radial-gradient(closest-side, rgba(20,10,15,0.5), transparent)', zIndex: Math.round(p.z * 10) + 9 }} />}
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img key={p.src} src={p.src} alt={i.title} draggable={false} className={`absolute select-none ${!done || (!bare && (id === ARCHIVE_ITEM || id === ROBOT_ITEM)) ? 'cursor-pointer' : ''}`}
                                 onClick={() => {
@@ -370,7 +371,7 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                                     else openTask(i.num)
                                 }}
                                 onMouseEnter={() => { if (!done) setHover(i.num) }} onMouseLeave={() => setHover(null)}
-                                style={{ ...placeStyle(p), ...litStyle(!done && lit(i.num)), animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
+                                style={{ ...placeStyle(p), ...litStyle(!done && lit(i.num)), ...(!onWall && !(!done && lit(i.num)) ? { filter: FLOOR_SHADOW } : {}), animation: justFixed === i.num ? 'hangar-pop .6s ease-out' : undefined }} />
                             {id === 7 && !done && <ComputerFlicker style={placeStyle(p)} />}
                             {!done && !bare && <KeyBadge x={id === 5 && !done ? p.x - p.w * 0.32 : p.x} y={p.y - p.h - 14} n={i.num} ready={i.state === 'ready'} active={lit(i.num)} onHover={setHover} onOpen={openTask} />}
                             {done && !bare && (id === ARCHIVE_ITEM || id === ROBOT_ITEM) && !(id === ROBOT_ITEM && robotJoke) && (
