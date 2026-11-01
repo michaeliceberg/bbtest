@@ -671,8 +671,8 @@ function Tarp({ style, onClick, onHover }: { style: React.CSSProperties; onClick
 // Плашка задания: три шага — «Тренажёры → Задачи → Починить». Каждый шаг со своей кнопкой.
 function TaskSteps({ item, fixLabel, pending, onFix, onGo }: { item: SceneItem; fixLabel: string; pending: boolean; onFix: () => void; onGo?: () => void }) {
     const trainers = item.trainers ?? []
-    const tDone = trainers.filter((t) => t.percent > 0).length
-    const nextTrainer = trainers.find((t) => t.percent === 0) ?? trainers[0]
+    const tDone = trainers.filter((t) => t.percent >= 50).length // на серебре — нужно для починки
+    const nextTrainer = trainers.find((t) => t.percent < 50) ?? trainers[0]
     const tasks = item.tasks ?? { solved: 0, target: 0 }
     const fixed = item.state === 'fixed'
     const trainerOk = trainers.length === 0 || tDone >= trainers.length
@@ -719,6 +719,11 @@ function TaskSteps({ item, fixLabel, pending, onFix, onGo }: { item: SceneItem; 
                 ) : <span className="mt-auto">{goTasks}</span>}
             </div>
         </div>
+        {item.state === 'broken' && (
+            <p className="mt-2 text-xs font-bold text-[#8A98A0]">
+                Чтобы починить: {trainers.length > 0 ? 'тренажёры на серебро' : ''}{trainers.length > 0 && tasks.target > 0 ? ' и ' : ''}{tasks.target > 0 ? `${tasks.target} задач` : ''}
+            </p>
+        )}
         {/* раздел решён — появляется кнопка починить */}
         {item.state === 'ready' && (
             <button type="button" disabled={pending} onClick={onFix}

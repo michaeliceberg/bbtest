@@ -12,7 +12,7 @@ export function LearnSectionHeader({ num, title, pic, tasks, trainers, fixed = f
     fixed?: boolean
     trainers: { title: string; percent: number }[]
 }) {
-    const tDone = trainers.filter((t) => t.percent > 0).length
+    const tDone = trainers.filter((t) => t.percent >= 50).length // на серебре — нужно для починки
     const tOk = trainers.length === 0 || tDone >= trainers.length
     const solved = Math.min(tasks?.solved ?? 0, tasks?.target ?? 0)
     const tGold = trainers.filter((t) => t.percent >= 100).length

@@ -4,13 +4,15 @@ import db from '@/db/drizzle'
 import type { EgeMap, EgeStation } from '@/lib/egeMap'
 
 // «Ангар»: задания 1–13 — предметы, 14–20 — детали ракеты. Ангар — карта задачника, у предмета два этапа:
-//  1) Починить (первая радость, быстро): все тренажёры к заданию хотя бы на бронзу + FIX_TASKS задач раздела
+//  1) Починить (первая радость, быстро): все тренажёры к заданию хотя бы на серебро (половина уроков темы) + FIX_TASKS задач
 //     (нет тренажёров — FIX_TASKS_NO_TRAINER задач; нет задачника — достаточно тренажёров).
 //  2) Золото (долгая цель): решён весь раздел (TARGET_SOLVED задач) и все тренажёры на золоте — предмет блестит,
 //     за него редкий кейс (case_keys source='hangar_gold', source_ref = номер задания, один раз).
 // Починка — отдельное действие ученика (кнопка «Починить …»), хранится в hangar_fixed.
 
 export const FIX_TASKS = 5
+// для починки тема тренажёра должна быть на серебре: бронза ставится уже за один урок — это слишком мало
+export const FIX_TRAINER_PERCENT = 50
 export const FIX_TASKS_NO_TRAINER = 8
 
 export type HangarItemState = 'broken' | 'ready' | 'fixed'
@@ -18,7 +20,7 @@ export type HangarItem = {
     num: number; title: string; state: HangarItemState; progress: number; href: string | null
     // задачи раздела: решено / сколько нужно для починки / сколько для золота (0 — у задания нет задачника)
     tasks?: { solved: number; target: number; full: number }
-    // темы тренажёра к заданию (percent > 0 — бронза, 100 — золото)
+    // темы тренажёра к заданию (percent > 0 — бронза, ≥ 50 — серебро, нужно для починки; 100 — золото)
     trainers?: { title: string; percent: number }[]
     // «под брезентом»: тренажёры к заданию ещё не пройдены, а задач ещё не решал — задачи раздела закрыты
     locked?: boolean
@@ -31,10 +33,10 @@ type TrainerKeyLite = { title: string; percent: number }
 
 /** Можно ли починить предмет задания и достиг ли он золота. */
 export function repairStatus(s: EgeStation, keys: TrainerKeyLite[]) {
-    const bronze = keys.every((k) => k.percent > 0)
+    const silver = keys.every((k) => k.percent >= FIX_TRAINER_PERCENT)
     const gold = keys.every((k) => k.percent >= 100)
     const need = s.courseTarget > 0 ? Math.min(s.courseTarget, keys.length ? FIX_TASKS : FIX_TASKS_NO_TRAINER) : 0
-    const canFix = (keys.length > 0 || s.courseTarget > 0) && bronze && s.courseSolved >= need
+    const canFix = (keys.length > 0 || s.courseTarget > 0) && silver && s.courseSolved >= need
     const mastered = canFix && gold && s.courseSolved >= s.courseTarget
     return { canFix, mastered, need }
 }
