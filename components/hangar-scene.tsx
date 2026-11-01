@@ -101,6 +101,16 @@ function KeyBadge({ x, y, n, ready, active, locked = false, onHover, onOpen }: {
     )
 }
 
+/** Задание второй части уже сделано — маленький зелёный номер с галочкой на ракете (не нажимается). */
+function DoneBadge({ x, y, n }: { x: number; y: number; n: number }) {
+    return (
+        <span className="pointer-events-none absolute flex h-[clamp(16px,3.8cqw,23px)] -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-0.5 rounded-[7px] px-1 text-[clamp(10px,2.4cqw,13px)] font-black leading-none"
+            style={{ left: pct(x), top: pct(y), zIndex: 1150, background: 'linear-gradient(180deg,#9BE07A,#5FA84A)', color: '#173A0F', boxShadow: '0 2px 0 #3E7A2E, 0 2px 6px rgba(0,0,0,.4)' }}>
+            <Check className="h-[0.85em] w-[0.85em]" strokeWidth={3.5} />{n}
+        </span>
+    )
+}
+
 /** Подсветка предмета, который починится: яркий золотой контур по форме картинки (drop-shadow) и заметно светлее.
  *  Вечером и ночью подсвеченный предмет ещё и поднимается над затемнением (litZ) — иначе его почти не видно. */
 const HIGHLIGHT = 'drop-shadow(0 0 2px #FFFBE6) drop-shadow(0 0 5px #FFE58A) drop-shadow(0 0 12px #FFD84D) drop-shadow(0 0 24px #F2C35B) brightness(1.4) saturate(1.15)'
@@ -424,7 +434,13 @@ export function HangarScene({ items, layout, onFix, time: forcedTime, decorFixed
                     style={{ ...placeStyle(R), filter: FLOOR_SHADOW, ...litStyle(!!nextRocket && lit(nextRocket.num)), animation: justFixed && justFixed >= 14 ? 'hangar-pop .6s ease-out' : undefined }} />
                 <HangarCat stage={catStage} layout={layout} desk={desk} barrel={barrelP} fridgeFixed={catFridgeFixed} catName={catName} catFood={catFood} demo={catDemo} bare={bare} night={time === 'night'} onHome={onCatHome} />
                 {rocketGold && !bare && <GoldBadge x={R.x} y={R.y - R.h * 0.62} onOpen={() => openTask(rocketGold.num)} />}
-                {nextRocket && !bare && <KeyBadge x={R.x + R.w * (stage === 0 ? 0.3 : 0.44)} y={R.y - R.h * 0.55} n={nextRocket.num} ready={!!readyRocket} locked={!!nextRocket.locked} active={lit(nextRocket.num)} onHover={setHover} onOpen={openTask} />}
+                {/* номера заданий второй части — столбиком прямо на ракете, снизу вверх 14 → 20; любое решённое задание = +1 деталь */}
+                {!bare && rocketParts.map((i, k) => {
+                    const y = R.y - R.h * (0.22 + (0.66 * k) / Math.max(1, rocketParts.length - 1))
+                    return i.state === 'fixed'
+                        ? <DoneBadge key={i.num} x={R.x} y={y} n={i.num} />
+                        : <KeyBadge key={i.num} x={R.x} y={y} n={i.num} ready={i.state === 'ready'} locked={!!i.locked} active={lit(i.num)} onHover={setHover} onOpen={openTask} />
+                })}
                 {room.filter((i) => i.num !== FAN_NUM).map((i) => {
                     const done = i.state === 'fixed'
                     const id = itemOf(i.num) // картинка предмета этого задания
@@ -653,7 +669,7 @@ const TARPS: Record<TarpKind, { star: { l: number; t: number; w: number; h: numb
 }
 // id картинки предмета → форма брезента
 const TARP_OF_ITEM: Record<number, TarpKind> = {
-    1: 'wide-rope', 2: 'hang-square', 3: 'wide-straps', 4: 'wide-rope', 5: 'wide-straps', 6: 'wide-rope', 7: 'square',
+    1: 'wide-rope', 2: 'hang-square', 3: 'wide-straps', 4: 'wide-rope', 5: 'wide-straps', 6: 'wide-rope', 7: 'tall',
     8: 'hang-tall', 9: 'cube', 10: 'wide-straps', 12: 'cube', 13: 'tall',
 }
 function Tarp({ item, style, onClick, onHover }: { item: number; style: React.CSSProperties; onClick: () => void; onHover: (on: boolean) => void }) {

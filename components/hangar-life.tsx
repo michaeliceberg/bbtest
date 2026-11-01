@@ -70,6 +70,39 @@ export function MguSilhouette({ night = false }: { night?: boolean }) {
     )
 }
 
+/**
+ * Слева от ракеты — лабораторный корпус МФТИ вдалеке: прямоугольный корпус с большой аркой (сквозь неё видно небо),
+ * над ним крупные буквы «МФТИ» — читаются на фоне неба, но в той же дымке, что и МГУ. Ночью буквы тепло светятся.
+ */
+const MIPT = { x: 342, base: 512, w: 118 }
+export function MiptSilhouette({ night = false }: { night?: boolean }) {
+    const fill = night ? '#1B2238' : '#5E8C93'
+    const h = (MIPT.w * 80) / 100
+    return (
+        <svg viewBox="0 0 100 80" className="absolute" aria-hidden
+            style={{ left: cq(MIPT.x - (WIN.cx - WIN.r) - MIPT.w / 2), top: cq(MIPT.base - WIN.top - h), width: cq(MIPT.w), opacity: night ? 0.95 : 0.6,
+                WebkitMaskImage: 'linear-gradient(180deg, #000 72%, transparent 100%)', maskImage: 'linear-gradient(180deg, #000 72%, transparent 100%)' }}>
+            {/* корпус с аркой: арка вырезана (evenodd), сквозь неё небо */}
+            <path fillRule="evenodd" fill={fill}
+                d="M8 34 H92 V80 H8 Z M33 80 V54 A17 17 0 0 1 67 54 V80 Z" />
+            {/* карниз и боковые пилоны */}
+            <rect x="6" y="31" width="88" height="4" fill={fill} />
+            <rect x="8" y="27" width="20" height="5" fill={fill} /><rect x="72" y="27" width="20" height="5" fill={fill} />
+            {/* аттик над аркой, над ним крупные буквы на фоне неба */}
+            <rect x="26" y="22" width="48" height="10" fill={fill} />
+            <text x="50" y="18" textAnchor="middle" fontFamily="var(--font-nunito), Arial, sans-serif" fontWeight={900} fontSize="19" letterSpacing="1.5"
+                fill={night ? '#FFD27A' : '#3F6A72'} opacity={night ? 0.9 : 1}>МФТИ</text>
+            {night && (
+                <g fill="#FFD27A" opacity={0.85}>
+                    {[[14, 44], [22, 52], [78, 46], [86, 54], [16, 62], [82, 64]].map(([x, y], i) => (
+                        <rect key={i} x={x} y={y} width="1.6" height="1.6" className={i % 2 === 0 ? 'hangar-window-blink' : undefined} style={{ animationDelay: `${-i * 2.1}s` }} />
+                    ))}
+                </g>
+            )}
+        </svg>
+    )
+}
+
 export const BANNER_PHRASES = [
     '¡VAMOS, AMIGO!',
     'ЛОГАРИФМЫ — ИМБА',
@@ -235,6 +268,7 @@ export function HangarSky({ time = 'day' }: { time?: 'day' | 'evening' | 'night'
             {/* облака Leonardo без обводки (cloud-puffy/round/wisp) вперемешку со старым cloud; разная скорость — разная «высота» */}
             {/* ночью облака и кукурузник рисуются в слое луны (HangarMoon) — поверх неё, луна дальше всех */}
             {time !== 'night' && <MguSilhouette />}
+            {time !== 'night' && <MiptSilhouette />}
             {time !== 'night' && <div className="absolute inset-0" style={HORIZON_FADE}><SkyClouds /><Birds /></div>}
             {time !== 'night' && <PlaneWithBanner />}
         </div>
@@ -447,6 +481,7 @@ export function HangarMoon({ cutout }: { cutout?: { src: string; x: number; y: n
             </div>
             {/* облака и кукурузник — ближе луны; слой поверх ночного затемнения, поэтому приглушаем их сами */}
             <MguSilhouette night />
+            <MiptSilhouette night />
             <div className="absolute inset-0" style={{ filter: 'brightness(0.55) saturate(0.8) hue-rotate(-10deg)', ...HORIZON_FADE }}>
                 <SkyClouds />
             </div>
